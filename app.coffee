@@ -1,9 +1,10 @@
-chokidar = require("chokidar")
+wrench = require("wrench")
 
-watcher = chokidar.watch('/media/', {ignored: /^\./, persistent: true})
-watcher.on('add', (path, stats) ->
-	console.log('File', path, 'has been added')
+files = []
+
+wrench.readdirRecursive('/media', (error, curFiles) ->
+	if error?
+		console.error error
+	else
+		console.log curFiles
 )
-
-# Only needed if watching is persistent.
-#watcher.close()
