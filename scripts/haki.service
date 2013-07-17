@@ -1,0 +1,13 @@
+[Unit]
+Description=Haki App Supervisor
+Requires=network.target
+After=network.target
+
+[Service]
+ExecStart=/home/haki/ewa-client-bootstrap/supervisor.js
+ExecReload=/bin/kill -HUP $MAINPID
+StandardOutput=null
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
