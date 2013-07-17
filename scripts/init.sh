@@ -23,5 +23,5 @@ cd /home/haki && chown -R haki $REPO
 cd /home/haki/$REPO && sudo -u haki npm install
 
 # system service setup
-ln -s /home/haki/$REPO/scripts/haki.service /etc/systemd/system/haki.service
+ln -sf /home/haki/$REPO/scripts/haki.service /etc/systemd/system/haki.service
 systemctl enable haki
