@@ -2,7 +2,8 @@
 	"name": "haki-client",
 	"version": "0.0.1",
 	"dependencies": {
-		"coffee-script": "~1.6.3"
+		"coffee-script": "~1.6.3",
+		"async": "~0.2.9"
 	},
 	"engines": [
 		"node >= 0.10.x"
