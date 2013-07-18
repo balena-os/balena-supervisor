@@ -18,7 +18,7 @@ bootstrapTasks = [
 			callback(null, require('/mnt/config.json'))
 		catch error
 			callback(error)
-	# bootstraping
+	# bootstrapping
 	(config, callback) ->
 		request.post("#{API_ENDPOINT}/associate", {
 			user: config.id
