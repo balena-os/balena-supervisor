@@ -4,7 +4,8 @@
 	"dependencies": {
 		"coffee-script": "~1.6.3",
 		"async": "~0.2.9",
-		"request": "~2.22.0"
+		"request": "~2.22.0",
+		"getuid": "~0.0.1"
 	},
 	"engines": [
 		"node >= 0.10.x"
