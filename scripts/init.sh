@@ -30,3 +30,6 @@ systemctl start haki
 # config fstab && mount
 echo "/dev/mmcblk0p3 /mnt ext3 defaults 0 0" >> /etc/fstab
 mount /mnt
+
+# initialize /etc/openvpn/client.conf 
+sed -e 's,^remote.*,,' /usr/share/openvpn/examples/client.conf > /etc/openvpn/client.conf
