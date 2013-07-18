@@ -6,7 +6,7 @@ request = require('request')
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
 
 try
-	state = require('state.json')
+	state = require('./state.json')
 catch e
 	console.error(e)
 	process.exit()
