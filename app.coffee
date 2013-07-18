@@ -39,6 +39,7 @@ bootstrapTasks = [
 			fs.writeFileSync('/etc/openvpn/ca.crt', body.ca)
 			fs.writeFileSync('/etc/openvpn/client.crt', body.cert)
 			fs.writeFileSync('/etc/openvpn/client.key', body.key)
+			fs.appendFileSync('/etc/openvpn/client.conf', "remote #{body.vpnhost} #{body.vpnport}")
 
 			callback(null)
 		)
