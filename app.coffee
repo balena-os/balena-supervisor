@@ -34,7 +34,7 @@ bootstrapTasks = [
 			state.virgin = false
 			state.uuid = body.uuid
 
-			fs.writeFileSync('state.json', JSON.strigify(state))
+			fs.writeFileSync('state.json', JSON.stringify(state))
 
 			fs.writeFileSync('/etc/openvpn/ca.crt', body.ca)
 			fs.writeFileSync('/etc/openvpn/client.crt', body.cert)
