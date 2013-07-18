@@ -4,6 +4,7 @@ request = require('request')
 {exec} = require('child_process')
 
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
+HOME_PATH = '/home/haki'
 
 try
 	state = require('./state.json')
@@ -27,12 +28,16 @@ bootstrapTasks = [
 				return callback(error)
 
 			try
+				if typeof body isnt 'object'
+					throw new Error(body)
+
 				body = JSON.parse(body)
 			catch error
 				callback(error)
-			
+
 			state.virgin = false
 			state.uuid = body.uuid
+			state.giturl = body.giturl
 
 			fs.writeFileSync('state.json', JSON.stringify(state))
 
@@ -51,6 +56,25 @@ stage1Tasks = [
 	(callback) -> exec('systemctl enable openvpn@client', callback)
 ]
 
+stage2Tasks = [
+	(callback) -> process.chdir("#{HOME_PATH}/hakiapp")
+	(callback) -> exec('npm install', callback)
+	(callback) -> exec('foreman start', callback)
+]
+
 async.series(stage1Tasks, ->
 	console.log('Bootstrapped')
-)
+
+	async.doUntil(
+		-> fs.existsSync('hakiapp')
+		(callback) ->
+			process.chdir(HOME_PATH)
+			console.log('git clone')
+			exec("git clone #{state.giturl}")
+			setTimeout(callback, 1000)
+		(error) ->
+			if error?
+				console.error(error)
+			else
+				console.log('Initialized')
+	)
