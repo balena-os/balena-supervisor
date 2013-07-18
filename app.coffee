@@ -1,10 +1,11 @@
 fs = require('fs')
 async = require('async')
 request = require('request')
+getuid = require('getuid')
 {exec} = require('child_process')
 
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
-HOME_PATH = '/home/haki'
+HAKI_PATH = '/home/haki'
 
 try
 	state = require('./state.json')
@@ -22,22 +23,20 @@ bootstrapTasks = [
 	# bootstrapping
 	(config, callback) ->
 		request.post("#{API_ENDPOINT}/associate", {
-			user: config.id
+			json:
+				user: config.id
 		}, (error, response, body) ->
 			if error
 				return callback(error)
 
-			try
-				if typeof body isnt 'object'
-					throw new Error(body)
-
-				body = JSON.parse(body)
-			catch error
-				callback(error)
+			if typeof body isnt 'object'
+				callback(body)
 
 			state.virgin = false
 			state.uuid = body.uuid
 			state.giturl = body.giturl
+
+			console.log state
 
 			fs.writeFileSync('state.json', JSON.stringify(state))
 
@@ -54,27 +53,31 @@ stage1Tasks = [
 	(callback) -> async.waterfall(bootstrapTasks, callback)
 	(callback) -> exec('systemctl start openvpn@client', callback)
 	(callback) -> exec('systemctl enable openvpn@client', callback)
+	(callback) ->
+		process.setuid(getuid('haki'))
+		process.chdir(HAKI_PATH)
+		fs.mkdir('hakiapp', callback)
+	(callback) -> exec('git init', cwd: 'hakiapp', callback)
+	(callback) -> exec("git remote add origin #{state.giturl}", cwd: 'hakiapp', callback)
 ]
 
 stage2Tasks = [
-	(callback) -> process.chdir("#{HOME_PATH}/hakiapp")
-	(callback) -> exec('npm install', callback)
-	(callback) -> exec('foreman start', callback)
+	(callback) ->
+		process.setuid(getuid('haki'))
+		process.chdir(HAKI_PATH)
+		fs.mkdir('hakiapp', callback)
+	(callback) -> async.forever([
+		(callback) -> exec('git pull', cwd: 'hakiapp', callback)
+		(callback) -> exec('npm install', cwd: 'hakiapp', callback)
+		(callback) -> exec('foreman start', cwd: 'hakiapp', callback)
+	])
 ]
 
-async.series(stage1Tasks, ->
-	console.log('Bootstrapped')
 
-	async.doUntil(
-		-> fs.existsSync('hakiapp')
-		(callback) ->
-			process.chdir(HOME_PATH)
-			console.log('git clone')
-			exec("git clone #{state.giturl}")
-			setTimeout(callback, 1000)
-		(error) ->
-			if error?
-				console.error(error)
-			else
-				console.log('Initialized')
+if state.virgin
+	async.series(stage1Tasks, (error, results) ->
+		if (error)
+			console.error(error)
+		else
+			console.log('Bootstrapped')
 	)
