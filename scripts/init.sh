@@ -32,4 +32,4 @@ echo "/dev/mmcblk0p3 /mnt ext3 defaults 0 0" >> /etc/fstab
 mount /mnt
 
 # initialize /etc/openvpn/client.conf 
-sed -e 's,^remote.*,,' /usr/share/openvpn/examples/client.conf > /etc/openvpn/client.conf
+sed -e 's,proto udp,;proto udp,' -e 's,;proto tcp,proto tcp,' -e 's,^remote.*,,' /usr/share/openvpn/examples/client.conf > /etc/openvpn/client.conf
