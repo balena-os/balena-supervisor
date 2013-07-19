@@ -1,7 +1,7 @@
 fs = require('fs')
 async = require('async')
 request = require('request')
-getuid = require('getuid')
+posix = require('posix')
 {exec} = require('child_process')
 
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
@@ -50,7 +50,7 @@ bootstrapTasks = [
 ]
 
 setHakiEnv = (callback) ->
-	process.setuid(getuid('haki'))
+	process.setuid(posix.getpwnam('haki').uid)
 	process.chdir(HAKI_PATH)
 	callback()
 
