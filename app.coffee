@@ -6,6 +6,7 @@ posix = require('posix')
 
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
 HAKI_PATH = '/home/haki'
+POLLING_INTERVAL = 30000
 
 try
 	state = require('./state.json')
@@ -62,19 +63,20 @@ stage1Tasks = [
 	(callback) -> fs.mkdir('hakiapp', callback)
 	(callback) -> exec('git init', cwd: 'hakiapp', callback)
 	(callback) -> exec("git remote add origin #{state.giturl}", cwd: 'hakiapp', callback)
+	(callback) -> console.log('Bootstrapped') ; callback()
 ]
 
 updateRepo = (callback) ->
 	tasks1 = [
-		(callback) -> setTimeout(callback, 3e5)
+		(callback) -> setTimeout(callback, POLLING_INTERVAL)
 		(callback) -> exec('git pull', cwd: 'hakiapp', callback)
 		(stdout, stderr, callback) -> exec('git rev-parse HEAD', cwd: 'hakiapp', callback)
 		(stdout, stderr, callback) -> callback(null, stdout.trim())
 	]
 
 	tasks2 = [
-		(callback) -> exec('npm install', cwd: 'hakiapp', callback)
-		(callback) -> exec('foreman start', cwd: 'hakiapp', callback)
+		(callback) -> exec('npm install', cwd: 'hakiapp', callback) if fs.existsSync('package.json')
+		(callback) -> exec('foreman start', cwd: 'hakiapp', callback) if fs.existsSync('Procfile')
 	]
 
 	async.waterfall(tasks1, (error, hash) ->
@@ -98,6 +100,4 @@ else
 async.series(tasks, (error, results) ->
 	if (error)
 		console.error(error)
-	else
-		console.log('Bootstrapped')
 )
