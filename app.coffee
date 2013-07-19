@@ -65,7 +65,7 @@ hakiExec = (command, options, callback) ->
 stage1Tasks = [
 	# superuser tasks
 	(callback) -> async.waterfall(bootstrapTasks, callback)
-	(callback) -> fs.writeFileSync(STATE_FILE, JSON.stringify(state)) ; callback()
+	(callback) -> fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 4)) ; callback()
 	(callback) -> exec('systemctl start openvpn@client', callback)
 	(callback) -> exec('systemctl enable openvpn@client', callback)
 	# haki user tasks
@@ -118,7 +118,7 @@ updateRepo = (callback) ->
 		if hash isnt state.gitHead
 			console.log("New version found #{state.gitHead}->#{hash}")
 			state.gitHead = hash
-			fs.writeFileSync(STATE_FILE, JSON.stringify(state))
+			fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 4))
 			async.series(tasks2, (callback) -> setTimeout(callback, POLLING_INTERVAL))
 		else
 			console.log("No new version found")
