@@ -83,6 +83,7 @@ updateRepo = (callback) ->
 			async.series(tasks2, callback)
 		else
 			callback()
+	)
 
 stage2Tasks = [
 	setHakiEnv
