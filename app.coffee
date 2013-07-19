@@ -35,7 +35,7 @@ bootstrapTasks = [
 
 			state.virgin = false
 			state.uuid = body.uuid
-			state.giturl = body.giturl
+			state.gitUrl = body.gitUrl
 
 			console.log state
 
@@ -62,7 +62,7 @@ stage1Tasks = [
 	setHakiEnv
 	(callback) -> fs.mkdir('hakiapp', callback)
 	(callback) -> exec('git init', cwd: 'hakiapp', callback)
-	(callback) -> exec("git remote add origin #{state.giturl}", cwd: 'hakiapp', callback)
+	(callback) -> exec("git remote add origin #{state.gitUrl}", cwd: 'hakiapp', callback)
 	(callback) -> console.log('Bootstrapped') ; callback()
 ]
 
@@ -75,13 +75,14 @@ updateRepo = (callback) ->
 	]
 
 	tasks2 = [
-		(callback) -> exec('npm install', cwd: 'hakiapp', callback) if fs.existsSync('package.json')
-		(callback) -> exec('foreman start', cwd: 'hakiapp', callback) if fs.existsSync('Procfile')
+		(callback) -> exec('npm install', cwd: 'hakiapp', callback) if fs.existsSync('package.json') ; callback()
+		(callback) -> exec('foreman start', cwd: 'hakiapp', callback) if fs.existsSync('Procfile') ; callback()
 	]
 
 	async.waterfall(tasks1, (error, hash) ->
-		if hash isnt state.githead
-			state.githead = hash
+		if hash isnt state.gitHead
+			state.gitHead = hash
+			fs.writeFileSync('state.json', JSON.stringify(state))
 			async.series(tasks2, callback)
 		else
 			callback()
