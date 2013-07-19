@@ -18,12 +18,11 @@ pacman --noconfirm --sync --needed --quiet git nodejs openvpn yaourt
 yaourt --noconfirm --sync heroku-toolbelt > /dev/null
 
 # node app setup
-cd /home/haki && git clone git@bitbucket.org:rulemotion/$REPO.git
-cd /home/haki && chown -R haki:haki $REPO
-cd /home/haki/$REPO && sudo -u haki npm install
+cd /opt && git clone git@bitbucket.org:rulemotion/$REPO.git
+cd /opt/$REPO && sudo -u haki npm install
 
 # system service setup
-cp /home/haki/$REPO/scripts/haki.service /etc/systemd/system/haki.service
+cp /opt/$REPO/scripts/haki.service /etc/systemd/system/haki.service
 systemctl enable haki
 systemctl start haki
 
