@@ -69,27 +69,27 @@ stage1Tasks = [
 	(callback) -> exec('systemctl start openvpn@client', callback)
 	(callback) -> exec('systemctl enable openvpn@client', callback)
 	# haki user tasks
-	(callback) -> hakiExec('mkdir hakiapp', cwd: '/home/haki', callback)
-	(callback) -> hakiExec('git init', cwd: '/home/haki/hakiapp', callback)
-	(callback) -> hakiExec("git remote add origin #{state.gitUrl}", cwd: '/home/haki/hakiapp', callback)
+	(callback) -> hakiExec('mkdir hakiapp', cwd: HAKI_PATH, callback)
+	(callback) -> hakiExec('git init', cwd: "#{HAKI_PATH}/hakiapp", callback)
+	(callback) -> hakiExec("git remote add origin #{state.gitUrl}", cwd: "#{HAKI_PATH}/hakiapp", callback)
 	# done
 	(callback) -> console.log('Bootstrapped') ; callback()
 ]
 
 updateRepo = (callback) ->
 	tasks1 = [
-		(callback) -> hakiExec('git pull origin master', cwd: '/home/haki/hakiapp', callback)
-		(stdout, stderr, callback) -> hakiExec('git rev-parse HEAD', cwd: '/home/haki/hakiapp', callback)
+		(callback) -> hakiExec('git pull origin master', cwd: "#{HAKI_PATH}/hakiapp", callback)
+		(stdout, stderr, callback) -> hakiExec('git rev-parse HEAD', cwd: "#{HAKI_PATH}/hakiapp", callback)
 		(stdout, stderr, callback) -> callback(null, stdout.trim())
 	]
 
 	tasks2 = [
 		(callback) ->
 			console.log("Checking for package.json")
-			if fs.existsSync('hakiapp/package.json')
+			if fs.existsSync("#{HAKI_PATH}/hakiapp/package.json")
 				console.log("Found, npm installing")
 				ps = spawn('sudo', ['-u', 'haki', 'npm', 'install'],
-					cwd: 'hakiapp'
+					cwd: "#{HAKI_PATH}/hakiapp"
 					stdio: [0, 1, 2]
 				)
 				ps.on('exit', callback)
@@ -99,10 +99,10 @@ updateRepo = (callback) ->
 				callback()
 		(callback) ->
 			console.log("Checking for Procfile")
-			if fs.existsSync('hakiapp/Procfile')
+			if fs.existsSync("#{HAKI_PATH}/hakiapp/Procfile")
 				console.log("Found Procfile, starting app..")
 				ps = spawn('foreman', ['start'],
-					cwd: 'hakiapp'
+					cwd: "#{HAKI_PATH}/hakiapp"
 					stdio: [0, 1, 2]
 					uid: posix.getpwnam('haki').uid
 				)
