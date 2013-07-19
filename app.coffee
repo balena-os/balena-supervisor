@@ -38,10 +38,6 @@ bootstrapTasks = [
 			state.uuid = body.uuid
 			state.gitUrl = body.gitUrl
 
-			console.log state
-
-			fs.writeFileSync(STATE_FILE, JSON.stringify(state))
-
 			fs.writeFileSync('/etc/openvpn/ca.crt', body.ca)
 			fs.writeFileSync('/etc/openvpn/client.crt', body.cert)
 			fs.writeFileSync('/etc/openvpn/client.key', body.key)
@@ -58,6 +54,7 @@ setHakiEnv = (callback) ->
 
 stage1Tasks = [
 	(callback) -> async.waterfall(bootstrapTasks, callback)
+	(callback) -> fs.writeFileSync(STATE_FILE, JSON.stringify(state)) ; callback()
 	(callback) -> exec('systemctl start openvpn@client', callback)
 	(callback) -> exec('systemctl enable openvpn@client', callback)
 	setHakiEnv
