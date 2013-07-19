@@ -6,7 +6,7 @@ REPO=ewa-client-bootstrap
 pacman --noconfirm --sync --refresh --sysupgrade --quiet
 
 # user configuration
-useradd -m -G users,wheel -s /bin/bash haki
+useradd -m -G users,audio,wheel -s /bin/bash haki
 
 # sudo configuration
 pacman --noconfirm --sync --needed --quiet sudo
