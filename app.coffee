@@ -4,12 +4,13 @@ request = require('request')
 posix = require('posix')
 {exec,spawn} = require('child_process')
 
+STATE_FILE = '/opt/ewa-client-bootstrap/state.json'
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
 HAKI_PATH = '/home/haki'
 POLLING_INTERVAL = 30000
 
 try
-	state = require('./state.json')
+	state = require(STATE_FILE)
 catch e
 	console.error(e)
 	process.exit()
@@ -39,7 +40,7 @@ bootstrapTasks = [
 
 			console.log state
 
-			fs.writeFileSync('state.json', JSON.stringify(state))
+			fs.writeFileSync(STATE_FILE, JSON.stringify(state))
 
 			fs.writeFileSync('/etc/openvpn/ca.crt', body.ca)
 			fs.writeFileSync('/etc/openvpn/client.crt', body.cert)
@@ -108,7 +109,7 @@ updateRepo = (callback) ->
 		if hash isnt state.gitHead
 			console.log("New version found #{state.gitHead}->#{hash}")
 			state.gitHead = hash
-			fs.writeFileSync('state.json', JSON.stringify(state))
+			fs.writeFileSync(STATE_FILE, JSON.stringify(state))
 			async.series(tasks2, (callback) -> setTimeout(callback, POLLING_INTERVAL))
 		else
 			console.log("No new version found")
