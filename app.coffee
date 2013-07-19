@@ -68,8 +68,7 @@ stage1Tasks = [
 
 updateRepo = (callback) ->
 	tasks1 = [
-		(callback) -> setTimeout(callback, POLLING_INTERVAL)
-		(callback) -> exec('git pull', cwd: 'hakiapp', callback)
+		(callback) -> exec('git pull origin master', cwd: 'hakiapp', callback)
 		(stdout, stderr, callback) -> exec('git rev-parse HEAD', cwd: 'hakiapp', callback)
 		(stdout, stderr, callback) -> callback(null, stdout.trim())
 	]
@@ -91,9 +90,9 @@ updateRepo = (callback) ->
 		if hash isnt state.gitHead
 			state.gitHead = hash
 			fs.writeFileSync('state.json', JSON.stringify(state))
-			async.series(tasks2, callback)
+			async.series(tasks2, (callback) -> setTimeout(callback, POLLING_INTERVAL))
 		else
-			callback()
+			setTimeout(callback, POLLING_INTERVAL)
 	)
 
 stage2Tasks = [
