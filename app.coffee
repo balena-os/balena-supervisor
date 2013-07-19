@@ -2,7 +2,7 @@ fs = require('fs')
 async = require('async')
 request = require('request')
 posix = require('posix')
-{exec} = require('child_process')
+{exec,spawn} = require('child_process')
 
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
 HAKI_PATH = '/home/haki'
@@ -75,23 +75,43 @@ updateRepo = (callback) ->
 
 	tasks2 = [
 		(callback) ->
-			if fs.existsSync('package.json')
-				exec('npm install', cwd: 'hakiapp', callback)
+			console.log("Checking for package.json")
+			if fs.existsSync('hakiapp/package.json')
+				console.log("Found, npm installing")
+				ps = spawn('sudo', ['-u', 'haki', 'npm', 'install'],
+					cwd: 'hakiapp'
+					stdio: [0, 1, 2]
+				)
+				ps.on('exit', callback)
+				ps.on('error', callback)
 			else
+				console.log("No package.json")
 				callback()
 		(callback) ->
-			if fs.existsSync('Procfile')
-				exec('foreman start', cwd: 'hakiapp', callback)
+			console.log("Checking for Procfile")
+			if fs.existsSync('hakiapp/Procfile')
+				console.log("Found Procfile, starting app..")
+				ps = spawn('foreman', ['start'],
+					cwd: 'hakiapp'
+					stdio: [0, 1, 2]
+					uid: posix.getpwnam('haki').uid
+				)
+				ps.on('exit', callback)
+				ps.on('error', callback)
 			else
+				console.log("No Procfile found")
 				callback()
 	]
 
 	async.waterfall(tasks1, (error, hash) ->
+		console.log("Checking for new version..")
 		if hash isnt state.gitHead
+			console.log("New version found #{state.gitHead}->#{hash}")
 			state.gitHead = hash
 			fs.writeFileSync('state.json', JSON.stringify(state))
 			async.series(tasks2, (callback) -> setTimeout(callback, POLLING_INTERVAL))
 		else
+			console.log("No new version found")
 			setTimeout(callback, POLLING_INTERVAL)
 	)
 
