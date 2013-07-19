@@ -75,8 +75,16 @@ updateRepo = (callback) ->
 	]
 
 	tasks2 = [
-		(callback) -> exec('npm install', cwd: 'hakiapp', callback) if fs.existsSync('package.json') ; callback()
-		(callback) -> exec('foreman start', cwd: 'hakiapp', callback) if fs.existsSync('Procfile') ; callback()
+		(callback) ->
+			if fs.existsSync('package.json')
+				exec('npm install', cwd: 'hakiapp', callback)
+			else
+				callback()
+		(callback) ->
+			if fs.existsSync('Procfile')
+				exec('foreman start', cwd: 'hakiapp', callback)
+			else
+				callback()
 	]
 
 	async.waterfall(tasks1, (error, hash) ->
