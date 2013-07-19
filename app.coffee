@@ -49,35 +49,54 @@ bootstrapTasks = [
 		)
 ]
 
+setHakiEnv = (callback) ->
+	process.setuid(getuid('haki'))
+	process.chdir(HAKI_PATH)
+	callback()
+
 stage1Tasks = [
 	(callback) -> async.waterfall(bootstrapTasks, callback)
 	(callback) -> exec('systemctl start openvpn@client', callback)
 	(callback) -> exec('systemctl enable openvpn@client', callback)
-	(callback) ->
-		process.setuid(getuid('haki'))
-		process.chdir(HAKI_PATH)
-		fs.mkdir('hakiapp', callback)
+	setHakiEnv
+	(callback) -> fs.mkdir('hakiapp', callback)
 	(callback) -> exec('git init', cwd: 'hakiapp', callback)
 	(callback) -> exec("git remote add origin #{state.giturl}", cwd: 'hakiapp', callback)
 ]
 
-stage2Tasks = [
-	(callback) ->
-		process.setuid(getuid('haki'))
-		process.chdir(HAKI_PATH)
-		fs.mkdir('hakiapp', callback)
-	(callback) -> async.forever([
+updateRepo = (callback) ->
+	tasks1 = [
+		(callback) -> setTimeout(callback, 3e5)
 		(callback) -> exec('git pull', cwd: 'hakiapp', callback)
+		(stdout, stderr, callback) -> exec('git rev-parse HEAD', cwd: 'hakiapp', callback)
+		(stdout, stderr, callback) -> callback(null, stdout.trim())
+	]
+
+	tasks2 = [
 		(callback) -> exec('npm install', cwd: 'hakiapp', callback)
 		(callback) -> exec('foreman start', cwd: 'hakiapp', callback)
-	])
+	]
+
+	async.waterfall(tasks1, (error, hash) ->
+		if hash isnt state.githead
+			state.githead = hash
+			async.series(tasks2, callback)
+		else
+			callback()
+
+stage2Tasks = [
+	setHakiEnv
+	(callback) -> async.forever(updateRepo, callback)
 ]
 
-
 if state.virgin
-	async.series(stage1Tasks, (error, results) ->
-		if (error)
-			console.error(error)
-		else
-			console.log('Bootstrapped')
-	)
+	tasks = stage1Tasks.concat(stage2Tasks)
+else
+	tasks = stage2Tasks
+
+async.series(tasks, (error, results) ->
+	if (error)
+		console.error(error)
+	else
+		console.log('Bootstrapped')
+)
