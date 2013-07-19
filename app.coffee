@@ -2,7 +2,7 @@ fs = require('fs')
 async = require('async')
 request = require('request')
 posix = require('posix')
-{exec,spawn} = require('child_process')
+{exec, spawn} = require('child_process')
 
 STATE_FILE = '/opt/ewa-client-bootstrap/state.json'
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
@@ -47,27 +47,39 @@ bootstrapTasks = [
 		)
 ]
 
-setHakiEnv = (callback) ->
-	process.setuid(posix.getpwnam('haki').uid)
-	process.chdir(HAKI_PATH)
-	callback()
+hakiExec = (command, options, callback) ->
+	options.uid = posix.getpwnam('haki').uid
+
+	ps = spawn(process.env.SHELL, ['-c', command], options)
+	stdout = ''
+	stderr = ''
+	ps.stdout.on('data', (chunk) ->
+		stdout += chunk
+	)
+	ps.stderr.on('data', (chunk) ->
+		stderr += chunk
+	)
+	ps.on('exit', (error) -> callback(error, stdout, stderr))
+	ps.on('error', (error) -> callback(error, stdout, stderr))
 
 stage1Tasks = [
+	# superuser tasks
 	(callback) -> async.waterfall(bootstrapTasks, callback)
 	(callback) -> fs.writeFileSync(STATE_FILE, JSON.stringify(state)) ; callback()
 	(callback) -> exec('systemctl start openvpn@client', callback)
 	(callback) -> exec('systemctl enable openvpn@client', callback)
-	setHakiEnv
-	(callback) -> fs.mkdir('hakiapp', callback)
-	(callback) -> exec('git init', cwd: 'hakiapp', callback)
-	(callback) -> exec("git remote add origin #{state.gitUrl}", cwd: 'hakiapp', callback)
+	# haki user tasks
+	(callback) -> hakiExec('mkdir hakiapp', cwd: '/home/haki', callback)
+	(callback) -> hakiExec('git init', cwd: '/home/haki/hakiapp', callback)
+	(callback) -> hakiExec("git remote add origin #{state.gitUrl}", cwd: '/home/haki/hakiapp', callback)
+	# done
 	(callback) -> console.log('Bootstrapped') ; callback()
 ]
 
 updateRepo = (callback) ->
 	tasks1 = [
-		(callback) -> exec('git pull origin master', cwd: 'hakiapp', callback)
-		(stdout, stderr, callback) -> exec('git rev-parse HEAD', cwd: 'hakiapp', callback)
+		(callback) -> hakiExec('git pull origin master', cwd: '/home/haki/hakiapp', callback)
+		(stdout, stderr, callback) -> hakiExec('git rev-parse HEAD', cwd: '/home/haki/hakiapp', callback)
 		(stdout, stderr, callback) -> callback(null, stdout.trim())
 	]
 
@@ -114,7 +126,6 @@ updateRepo = (callback) ->
 	)
 
 stage2Tasks = [
-	setHakiEnv
 	(callback) -> async.forever(updateRepo, callback)
 ]
 
