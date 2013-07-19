@@ -33,3 +33,7 @@ mount /mnt
 
 # initialize /etc/openvpn/client.conf 
 sed -e 's,proto udp,;proto udp,' -e 's,;proto tcp,proto tcp,' -e 's,^remote.*,,' /usr/share/openvpn/examples/client.conf > /etc/openvpn/client.conf
+
+# ssh configuration
+if [ ! -d /home/haki/.ssh ] ; then sudo -u haki mkdir /home/haki/.ssh ; fi
+echo "StrictHostKeyChecking on" | sudo -u haki tee /home/haki/.ssh/config >/dev/null
