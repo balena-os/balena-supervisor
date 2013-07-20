@@ -5,7 +5,8 @@
 		"coffee-script": "~1.6.3",
 		"async": "~0.2.9",
 		"request": "~2.22.0",
-		"posix": "~1.0.2"
+		"posix": "~1.0.2",
+		"express": "~3.2.6"
 	},
 	"engines": [
 		"node >= 0.10.x"

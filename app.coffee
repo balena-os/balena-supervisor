@@ -2,12 +2,17 @@ fs = require('fs')
 async = require('async')
 request = require('request')
 posix = require('posix')
+express = require('express')
+
 {exec, spawn} = require('child_process')
 
 STATE_FILE = '/opt/ewa-client-bootstrap/state.json'
 API_ENDPOINT = 'http://paras.rulemotion.com:1337'
 HAKI_PATH = '/home/haki'
 POLLING_INTERVAL = 30000
+
+LED_FILE = "/sys/class/leds/led0/brightness"
+BLINK_STEP = 100
 
 try
 	state = require(STATE_FILE)
@@ -138,3 +143,26 @@ async.series(tasks, (error, results) ->
 	if (error)
 		console.error(error)
 )
+
+app = express()
+
+app.post('/blink', (req, res) ->
+	count = 0
+
+	async.whilst(
+		->  return count < 25
+		(callback) ->
+			fs.writeFile(LED_FILE, '1', (err) ->
+				setTimeout( ->
+					fs.writeFileSync(LED_FILE, '0')
+				BLINK_STEP)
+			)
+			count++
+			setTimeout(callback, 2*BLINK_STEP)
+		(err) ->
+			#5 seconds have passed
+	)
+	res.send(200)
+)
+
+app.listen(80)
