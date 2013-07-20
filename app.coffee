@@ -71,6 +71,7 @@ stage1Tasks = [
 	# superuser tasks
 	(callback) -> async.waterfall(bootstrapTasks, callback)
 	(callback) -> fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 4)) ; callback()
+	(callback) -> exec('systemctl stop openvpn@client', callback)
 	(callback) -> exec('systemctl start openvpn@client', callback)
 	(callback) -> exec('systemctl enable openvpn@client', callback)
 	# haki user tasks
