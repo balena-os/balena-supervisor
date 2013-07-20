@@ -5,7 +5,7 @@ After=network.target
 
 [Service]
 Type=simple
-Requires=network.target
+Environment=SHELL=/bin/bash
 ExecStart=/opt/ewa-client-bootstrap/supervisor.js
 ExecReload=/bin/kill -HUP $MAINPID
 StandardOutput=/var/log/haki.log
