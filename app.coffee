@@ -70,8 +70,12 @@ app.post('/blink', (req, res) ->
 )
 
 app.post('/update', (req, res) ->
-
-
+	hakiApp.update((error) ->
+		if error
+			res.send(500)
+		else
+			res.send(204)
+	)
 )
 
 app.listen(80)
