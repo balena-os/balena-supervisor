@@ -64,6 +64,7 @@ app.post('/blink', (req, res) ->
 	interval = setInterval(toggleLed, settings.BLINK_STEP)
 	setTimeout(->
 		clearInterval(interval)
+		fs.writeFileSync(settings.LED_FILE, 0)
 		res.send(200)
 	, 5000)
 )
