@@ -29,6 +29,8 @@ tasks = [
 			console.log("Device isn't a virgin")
 			callback()
 	(callback) ->
+		fs.writeFile('/sys/class/leds/led0/trigger', 'none', callback)
+	(callback) ->
 		hakiApp = new Application(state.get('gitUrl'), '/home/haki/hakiapp', 'haki')
 
 		hakiApp.on 'pre-init', ->
