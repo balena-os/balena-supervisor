@@ -1,5 +1,5 @@
 module.exports =
-	STATE_FILE: '/opt/ewa-client-bootstrap/state.json'
+	STATE_FILE: '/opt/ewa-client-bootstrap/data/state.json'
 	API_ENDPOINT: 'http://paras.rulemotion.com:1337'
 	HAKI_PATH: '/home/haki'
 
