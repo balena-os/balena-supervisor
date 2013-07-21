@@ -13,13 +13,14 @@ hakiApp = null
 tasks = [
 	(callback) ->
 		if state.get('virgin')
-			console.log('Device is virgin. Boostrapping')
+			console.log('Device is virgin. Bootstrapping')
 			handler = (error) ->
 				if error
 					console.log('Bootstrapping failed with error', error)
 					console.log('Trying again in 10s')
 					setTimeout((-> bootstrap(handler)), 10000)
 				else
+					console.log('Bootstrapping successful')
 					state.set('virgin', false)
 					callback()
 			bootstrap(handler)
