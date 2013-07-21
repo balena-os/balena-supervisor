@@ -15,9 +15,11 @@ class Application extends EventEmitter
 			cwd: @path
 			stdio: 'inherit'
 			uid: getpwnam(@user).uid
+			gid: getpwnam(@user).gid
 			env:
 				USER: @user
 				USERNAME: @user
+				HOME: "/home/#{@user}"
 
 	_init: (callback) ->
 		tasks = [
@@ -45,7 +47,11 @@ class Application extends EventEmitter
 
 	_start: (callback) ->
 		if not @process
-			@process = spawn('foreman', ['start'], @options)
+			options =
+				cwd: @path
+				stdio: 'inherit'
+
+			@process = spawn('sudo', ['-u', @user, 'foreman', 'start'], options)
 		@emit('start')
 		callback?()
 
