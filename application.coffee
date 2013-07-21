@@ -52,7 +52,11 @@ class Application
 		shouldRestartApp = Boolean(@process)
 		tasks = [
 			# Stop the application if running
-			(callback) => shouldRestartApp and @_stop(callback) or callback()
+			(callback) =>
+				if shouldRestartApp
+					@_stop(callback)
+				else
+					callback()
 			
 			# Pull new commits
 			(callback) =>
@@ -63,7 +67,11 @@ class Application
 				spawn('npm', ['install'], @options).on('exit', callback).on('error', callback)
 
 			# Start the app
-			(callback) => shouldRestartApp and @_start(callback) or callback()
+			(callback) =>
+				if shouldRestartApp
+					@_start(callback)
+				else
+					callback()
 		]
 		async.series(tasks, callback)
 	
