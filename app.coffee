@@ -4,6 +4,7 @@ async = require('async')
 bootstrap = require('./bootstrap')
 state = require('./state')
 settings = require('./settings')
+request = require('request')
 Application = require('./application')
 
 console.log('Supervisor started..')
@@ -29,6 +30,56 @@ tasks = [
 			callback()
 	(callback) ->
 		hakiApp = new Application(state.get('gitUrl'), '/home/haki/hakiapp', 'haki')
+
+		hakiApp.on 'pre-init', ->
+			request(
+				uri: "#{settings.API_ENDPOINT}/ewa/device?$filter=uuid eq '#{state.get('uuid')}'"
+				method: 'PATCH'
+				json:
+					status: 'Initialising'
+			)
+
+		hakiApp.on 'post-init', ->
+			request(
+				uri: "#{settings.API_ENDPOINT}/ewa/device?$filter=uuid eq '#{state.get('uuid')}'"
+				method: 'PATCH'
+				json:
+					status: 'Idle'
+			)
+
+		hakiApp.on 'pre-update', ->
+			request(
+				uri: "#{settings.API_ENDPOINT}/ewa/device?$filter=uuid eq '#{state.get('uuid')}'"
+				method: 'PATCH'
+				json:
+					status: 'Updating'
+			)
+
+		hakiApp.on 'post-update', (hash) ->
+			request(
+				uri: "#{settings.API_ENDPOINT}/ewa/device?$filter=uuid eq '#{state.get('uuid')}'"
+				method: 'PATCH'
+				json:
+					status: 'Idle'
+					commit: state.get('gitHash')
+			)
+
+		hakiApp.on 'start', ->
+			request(
+				uri: "#{settings.API_ENDPOINT}/ewa/device?$filter=uuid eq '#{state.get('uuid')}'"
+				method: 'PATCH'
+				json:
+					status: 'Running'
+			)
+
+		hakiApp.on 'stop', ->
+			request(
+				uri: "#{settings.API_ENDPOINT}/ewa/device?$filter=uuid eq '#{state.get('uuid')}'"
+				method: 'PATCH'
+				json:
+					status: 'Idle'
+			)
+
 		if not state.get('appInitialised')
 			console.log('Initialising app..')
 			hakiApp.init((error) ->
