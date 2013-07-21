@@ -42,7 +42,8 @@ bootstrapTasks = [
 	(callback) ->
 		console.log('Starting VPN client..')
 		exec('systemctl start openvpn@client', callback)
-	(callback) ->
+
+	(stdout, stderr, callback) ->
 		console.log('Enabling VPN client..')
 		exec('systemctl enable openvpn@client', callback)
 ]
