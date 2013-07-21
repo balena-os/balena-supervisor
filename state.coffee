@@ -14,5 +14,3 @@ exports.get = (key) -> state[key]
 exports.set = (key, value) ->
 	state[key] = value
 	sync(state)
-
-exports.sync = -> sync(state)
