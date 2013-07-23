@@ -45,6 +45,9 @@ class Application extends EventEmitter
 			callback?(arguments...)
 		)
 
+	_exitHandler: (code, signal) ->
+		@process = null
+
 	_start: (callback) ->
 		if not @process
 			options =
@@ -52,6 +55,8 @@ class Application extends EventEmitter
 				stdio: 'inherit'
 
 			@process = spawn('sudo', ['-u', @user, 'foreman', 'start'], options)
+			@process.on('exit', @_exitHandler.bind(@))
+			@process.on('error', @_exitHandler.bind(@))
 		@emit('start')
 		callback?()
 
@@ -61,22 +66,25 @@ class Application extends EventEmitter
 			@process = null
 			@emit('stop')
 			callback?(arguments...)
-			
+
 		spawn('pkill', ['-TERM', '-P', @process.pid], @options).on('exit', handler).on('error', handler)
 
 	_update: (callback) ->
-		shouldRestartApp = Boolean(@process)
 		tasks = [
 			# Stop the application if running
 			(callback) =>
-				if shouldRestartApp
+				if @process
 					@_stop(callback)
 				else
 					callback()
-			
-			# Pull new commits
+
+			# Fetch new commits
 			(callback) =>
-				spawn('git', ['pull', 'origin', 'master'], @options).on('exit', callback).on('error', callback)
+				spawn('git', ['fetch'], @options).on('exit', callback).on('error', callback)
+
+			# Reset our master branch to origin/master
+			(callback) =>
+				spawn('git', ['reset', '--hard', 'origin/master'], @options).on('exit', callback).on('error', callback)
 
 			# Save the new commit hash
 			(callback) =>
@@ -90,23 +98,24 @@ class Application extends EventEmitter
 					state.set('gitHash', hash.trim())
 				)
 
+			# Prune npm dependencies
+			(callback) =>
+				spawn('npm', ['prune'], @options).on('exit', callback).on('error', callback)
+
 			# Install npm dependencies
 			(callback) =>
 				spawn('npm', ['install'], @options).on('exit', callback).on('error', callback)
 
 			# Start the app
 			(callback) =>
-				if shouldRestartApp
-					@_start(callback)
-				else
-					callback()
+				@_start(callback)
 		]
 		@emit('pre-update')
 		async.series(tasks, =>
 			@emit('post-update')
 			callback?(arguments...)
 		)
-	
+
 	# These methods shouldn't be called in parallel, queue them if they conflict
 	['start', 'stop', 'init', 'update'].forEach((method) ->
 		Application::[method] = (callback) ->
