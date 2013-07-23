@@ -110,10 +110,10 @@ async.series(tasks, (error) ->
 app = express()
 
 app.post('/blink', (req, res) ->
-	state = 0
+	ledState = 0
 	toggleLed = ->
-		state = (state + 1) % 2
-		fs.writeFileSync(settings.LED_FILE, state)
+		ledState = (ledState + 1) % 2
+		fs.writeFileSync(settings.LED_FILE, ledState)
 
 	interval = setInterval(toggleLed, settings.BLINK_STEP)
 	setTimeout(->
