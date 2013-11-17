@@ -1,5 +1,5 @@
 {
-	"name": "haki-client",
+	"name": "resin-supervisor",
 	"version": "0.0.1",
 	"dependencies": {
 		"coffee-script": "~1.6.3",
