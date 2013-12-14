@@ -1,0 +1,16 @@
+client
+remote <%= vpnhost %> <%= vpnport %>
+resolv-retry infinite
+
+ca ca.crt
+cert client.crt
+key client.key
+
+comp-lzo
+dev tun
+proto tcp
+nobind
+
+persist-key
+persist-tun
+verb 3

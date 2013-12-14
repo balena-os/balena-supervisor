@@ -1,5 +1,4 @@
 module.exports =
-	STATE_FILE: '/opt/ewa-client-bootstrap/data/state.json'
 	API_ENDPOINT: 'http://haki.io'
 	HAKI_PATH: '/home/haki'
 
