@@ -13,15 +13,13 @@ console.log('Supervisor started..')
 newUuid = utils.getDeviceUuid()
 oldUuid = knex('config').select('value').where(key: 'uuid')
 
-bootstrap = Promise.all([newUuid, oldUuid]).then(([newUuid, [oldUuid]]) ->
+Promise.all([newUuid, oldUuid]).then(([newUuid, [oldUuid]]) ->
 	if newUuid is oldUuid
 		return true
 
 	console.log('New device detected. Bootstrapping..')
 	return bootstrap(newUuid)
-)
-
-bootstrap.then(->
+).then(->
 	console.log('Starting OpenVPN..')
 	openvpn = spawn('openvpn', ['client.conf'], cwd: '/supervisor/data')
 
