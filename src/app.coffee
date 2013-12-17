@@ -1,8 +1,8 @@
-knex = require './db'
 Promise = require 'bluebird'
 fs = Promise.promisifyAll(require('fs'))
 os = require 'os'
 api = require './api'
+knex = require './db'
 utils = require './utils'
 crypto = require 'crypto'
 {spawn} = require 'child_process'
