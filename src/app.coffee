@@ -35,6 +35,6 @@ Promise.all([newUuid, oldUuid]).then(([newUuid, [oldUuid]]) ->
 		console.log((prefix + data).trim().replace(/\n/gm, '\n#{prefix}'))
 	)
 
-	console.log('Start API server')
+	console.log('Starting API server..')
 	api.listen(80)
 )
