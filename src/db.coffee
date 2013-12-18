@@ -9,8 +9,7 @@ knex = Knex.initialize(
 knex.schema.hasTable('config').then((exists) ->
 	if not exists
 		knex.schema.createTable('config', (t) ->
-			t.increments('id').primary()
-			t.string('key')
+			t.string('key').primary()
 			t.string('value')
 		)
 )
