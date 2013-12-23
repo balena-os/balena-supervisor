@@ -1,11 +1,11 @@
-Promise = require('bluebird')
-_ = require('lodash')
-fs = Promise.promisifyAll(require('fs'))
-url = require('url')
+Promise = require 'bluebird'
+_ = require 'lodash'
+fs = Promise.promisifyAll require 'fs'
+url = require 'url'
 knex = require './db'
-crypto = require('crypto')
-csrgen = Promise.promisify(require('csr-gen'))
-request = Promise.promisify(require('request'))
+crypto = require 'crypto'
+csrgen = Promise.promisify require 'csr-gen'
+request = Promise.promisify require 'request'
 
 module.exports = (uuid) ->
 	# Load config file
