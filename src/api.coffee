@@ -1,15 +1,17 @@
-fs = require 'fs'
+Promise = require 'bluebird'
+fs = Promise.promisifyAll require 'fs'
+utils = require './utils'
 express = require 'express'
 dockerode = require 'dockerode'
 
 api = express()
 
 LED_FILE = '/sys/class/leds/led0/brightness'
-blink = (ms = 200, callback) ->
-	fs.writeFileSync(LED_FILE, 1)
-	setTimeout(->
-		fs.writeFile(LED_FILE, 0, callback)
-	, ms)
+
+blink = (ms = 200) ->
+	fs.writeFileAsync(LED_FILE, 1)
+		.then(-> utils.delay(ms))
+		.then(-> fs.writeFileAsync(LED_FILE, 0))
 
 api.post('/blink', (req, res) ->
 	interval = setInterval(blink, 400)
