@@ -32,13 +32,13 @@ Promise.all([newUuid, oldUuid]).then(([newUuid, [oldUuid]]) ->
 	# Prefix and log all OpenVPN output
 	openvpn.stdout.on('data', (data) ->
 		prefix = 'OPENVPN: '
-		console.log((prefix + data).trim().replace(/\n/gm, '\n#{prefix}'))
+		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
 	)
 
 	# Prefix and log all OpenVPN output
 	openvpn.stderr.on('data', (data) ->
 		prefix = 'OPENVPN: '
-		console.log((prefix + data).trim().replace(/\n/gm, '\n#{prefix}'))
+		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
 	)
 
 	console.log('Starting API server..')
