@@ -1,3 +1,7 @@
+process.on('uncaughtException', function (e) {
+	console.log('Got unhandled exception', e)
+})
+
 require('coffee-script');
 var knex = require('./db')
 
