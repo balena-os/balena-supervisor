@@ -4,16 +4,22 @@ os = require 'os'
 api = require './api'
 knex = require './db'
 utils = require './utils'
+Docker = require 'dockerode'
 crypto = require 'crypto'
 {spawn} = require 'child_process'
 bootstrap = require './bootstrap'
+application = require './application'
 
 console.log('Supervisor started..')
+
+# Connect to the host docker instance
+docker = Promise.promisifyAll(new Docker(socketPath: '/hostrun/docker.sock'))
 
 newUuid = utils.getDeviceUuid()
 oldUuid = knex('config').select('value').where(key: 'uuid')
 
 Promise.all([newUuid, oldUuid]).then(([newUuid, [oldUuid]]) ->
+	oldUuid = oldUuid?.value
 	if newUuid is oldUuid
 		return true
 
@@ -37,4 +43,11 @@ Promise.all([newUuid, oldUuid]).then(([newUuid, [oldUuid]]) ->
 
 	console.log('Starting API server..')
 	api.listen(80)
+
+	console.log('Starting Apps..')
+	knex('app').select().then((apps) ->
+		Promise.all(apps.map(application.start))
+	).catch((error) ->
+		console.log(error)
+	)
 )
