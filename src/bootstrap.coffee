@@ -30,6 +30,7 @@ module.exports = (uuid) ->
 		console.log('User ID:', config.userId)
 		console.log('User:', config.username)
 		console.log('API key:', config.apiKey)
+		console.log('Application ID:', config.applicationId)
 		console.log('CSR :', keys.csr)
 		console.log('Posting to the API..')
 		config.csr = keys.csr
