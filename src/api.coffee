@@ -1,10 +1,8 @@
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs'
-url = require 'url'
-knex = require './db'
 utils = require './utils'
 express = require 'express'
-request = Promise.promisify require 'request'
+application = require './application'
 
 api = express()
 
@@ -24,22 +22,9 @@ api.post('/v1/blink', (req, res) ->
 )
 
 api.post('/v1/update', (req, res) ->
+	console.log("Got application update")
+	application.update()
 	res.send(204)
-	Promise.all([
-		knex('config').select('value').where(key: 'apiKey')
-		knex('config').select('value').where(key: 'uuid')
-	]).then(([[apiKey], [uuid]]) ->
-		apiKey = apiKey.value
-		uuid = uuid.value
-		request(
-			method: 'GET'
-			url: url.resolve(process.env.API_ENDPOINT, "/ewa/application?$filter=device/uuid eq '#{uuid}'&apikey=#{apiKey}")
-			json: true
-		).spread((request, body) ->
-			for app in body.d
-				console.log("Got application", app)
-		)
-	)
 )
 
 module.exports = api

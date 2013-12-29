@@ -46,8 +46,14 @@ Promise.all([newUuid, oldUuid]).then(([newUuid, [oldUuid]]) ->
 
 	console.log('Starting Apps..')
 	knex('app').select().then((apps) ->
-		Promise.all(apps.map(application.start))
+		Promise.all(apps.map((app) -> app.imageId).map(application.restart))
 	).catch((error) ->
-		console.log(error)
+		console.error("Error starting apps:", error)
+	).then(->
+		console.log('Starting periodic check for updates..')
+		setInterval(->
+			application.update()
+		, 15 * 60 * 1000) # Every 15 mins
+		application.update()
 	)
 )
