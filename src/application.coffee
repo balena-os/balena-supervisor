@@ -67,7 +67,7 @@ exports.start = start = (app) ->
 			Cmd: ['/bin/bash', '-c', '/start web']
 		)
 	).then((container) ->
-		container.startAsync()
+		container.startAsync(Privileged: true)
 	)
 
 exports.restart = restart = (app) ->
