@@ -58,13 +58,15 @@ module.exports = (uuid) ->
 	).then(->
 		console.log('Finishing bootstrapping')
 		Promise.all([
-			knex('config').truncate().then(config).then((config) ->
-				knex('config').insert([
-					{key: 'uuid', value: uuid}
-					{key: 'apiKey', value: config.apiKey}
-					{key: 'username', value: config.username}
-					{key: 'userId', value: config.userId}
-				])
+			knex('config').truncate().then(->
+				config.then((config) ->
+					knex('config').insert([
+						{key: 'uuid', value: uuid}
+						{key: 'apiKey', value: config.apiKey}
+						{key: 'username', value: config.username}
+						{key: 'userId', value: config.userId}
+					])
+				)
 			)
 			knex('app').truncate()
 		])
