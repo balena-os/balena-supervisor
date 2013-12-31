@@ -89,7 +89,7 @@ exports.update = ->
 			json: true
 		).spread((request, body) ->
 			console.log("Remote apps")
-			remoteApps = ("registry.resin.io:5000/#{path.basename(app.git_repository, '.git')}/#{app.commit}" for app in body.d)
+			remoteApps = ("registry.resin.io/#{path.basename(app.git_repository, '.git')}/#{app.commit}" for app in body.d when app.commit)
 			console.log(remoteApps)
 
 			console.log("Local apps")
