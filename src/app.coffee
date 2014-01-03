@@ -4,16 +4,12 @@ os = require 'os'
 api = require './api'
 knex = require './db'
 utils = require './utils'
-Docker = require 'dockerode'
 crypto = require 'crypto'
 {spawn} = require 'child_process'
 bootstrap = require './bootstrap'
 application = require './application'
 
 console.log('Supervisor started..')
-
-# Connect to the host docker instance
-docker = Promise.promisifyAll(new Docker(socketPath: '/hostrun/docker.sock'))
 
 newUuid = utils.getDeviceUuid()
 oldUuid = knex('config').select('value').where(key: 'uuid')
