@@ -33,7 +33,7 @@ exports.kill = kill = (app) ->
 
 exports.start = start = (app) ->
 	docker.getImage(app).inspectAsync().catch((error) ->
-		console.log(error)
+		console.log("Pulling image:", app)
 		deferred = Promise.defer()
 		options =
 			method: 'POST'
