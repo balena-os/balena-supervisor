@@ -2,6 +2,7 @@
   "name": "resin-supervisor",
   "version": "0.0.1",
   "scripts": {
+    "preinstall": "bash deps.sh",
     "start": "node src/supervisor.js"
   },
   "dependencies": {
