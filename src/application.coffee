@@ -65,6 +65,8 @@ exports.start = start = (app) ->
 		docker.createContainerAsync(
 			Image: app
 			Cmd: ['/bin/bash', '-c', '/start web']
+			Volumes:
+				'/dev/snd': {}
 		)
 	).then((container) ->
 		container.startAsync(
