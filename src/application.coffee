@@ -66,12 +66,12 @@ exports.start = start = (app) ->
 			Image: app
 			Cmd: ['/bin/bash', '-c', '/start web']
 			Volumes:
-				'/dev/snd': {}
+				'/dev': {}
 		)
 	).then((container) ->
 		container.startAsync(
 			Privileged: true
-			Binds: ['/dev/snd:/dev/snd']
+			Binds: ['/dev:/dev']
 		)
 	)
 
