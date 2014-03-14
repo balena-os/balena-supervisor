@@ -8,6 +8,8 @@ Docker = require 'dockerode'
 Promise = require 'bluebird'
 request = Promise.promisify require 'request'
 JSONStream = require 'JSONStream'
+PlatformAPI = require 'resin-platform-api/request'
+resinAPI = new PlatformAPI(url.resolve(process.env.API_ENDPOINT, '/ewa/'))
 
 docker = Promise.promisifyAll(new Docker(socketPath: '/run/docker.sock'))
 # Hack dockerode to promisify internal classes' prototypes
@@ -84,14 +86,17 @@ exports.update = ->
 	.then ([[apiKey], [uuid], apps]) ->
 		apiKey = apiKey.value
 		uuid = uuid.value
-		request(
-			method: 'GET'
-			url: url.resolve(process.env.API_ENDPOINT, "/ewa/application?$filter=device/uuid eq '#{uuid}'&apikey=#{apiKey}")
-			json: true
+		resinAPI.get(
+			resource: 'application'
+			options:
+				filter:
+					'device/uuid': uuid
+			customOptions:
+				apikey: apiKey
 		)
-		.spread (request, body) ->
+		.then (remoteApps) ->
 			console.log("Remote apps")
-			remoteApps = ("registry.resin.io/#{path.basename(app.git_repository, '.git')}/#{app.commit}" for app in body.d when app.commit)
+			remoteApps = ("registry.resin.io/#{path.basename(app.git_repository, '.git')}/#{app.commit}" for app in remoteApps when app.commit)
 			console.log(remoteApps)
 
 			console.log("Local apps")
