@@ -109,13 +109,16 @@ exports.update = ->
 			toBeInstalled = _.difference(remoteApps, localApps)
 			console.log(toBeInstalled)
 
-			Promise.all(toBeRemoved.map(kill)).then(->
-				Promise.all(toBeInstalled.map(start))
-			).then(->
-				knex('app').whereIn('imageId', toBeRemoved).delete().then(->
-					knex('app').insert(({imageId: app} for app in toBeInstalled))
-				)
+			# Install the apps and add each to the db as they succeed
+			promises = toBeInstalled.map (app) ->
+				start(app).then -> 
+					knex('app').insert({imageId: app})
+			# And delete all the ones to remove in one go
+			promises.push(
+				Promise.all(toBeRemoved.map(kill)).then ->
+					knex('app').whereIn('imageId', toBeRemoved).delete()
 			)
+			Promise.all(promises)
 		)
 
 	)
