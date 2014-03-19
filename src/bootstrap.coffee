@@ -25,7 +25,8 @@ module.exports = (uuid) ->
 		division: ''
 	)
 
-	Promise.all([config, keys]).then(([config, keys]) ->
+	Promise.all([config, keys])
+	.then ([config, keys]) ->
 		console.log('UUID:', uuid)
 		console.log('User ID:', config.userId)
 		console.log('User:', config.username)
@@ -40,36 +41,34 @@ module.exports = (uuid) ->
 			url: url.resolve(process.env.API_ENDPOINT, 'associate')
 			json: config
 		)
-	).spread((response, body) ->
+	.spread (response, body) ->
 		if response.statusCode >= 400
 			throw body
 
 		console.log('Configuring VPN..')
 		vpnConf = fs.readFileAsync('/supervisor/src/openvpn.conf.tmpl', 'utf8')
-			.then((tmpl) ->
+			.then (tmpl) ->
 				fs.writeFileAsync('/supervisor/data/client.conf', _.template(tmpl)(body))
-			)
 
 		Promise.all([
 			fs.writeFileAsync('/supervisor/data/ca.crt', body.ca)
 			fs.writeFileAsync('/supervisor/data/client.crt', body.cert)
 			vpnConf
 		])
-	).then(->
+	.then ->
 		console.log('Finishing bootstrapping')
 		Promise.all([
-			knex('config').truncate().then(->
-				config.then((config) ->
+			knex('config').truncate()
+			.then ->
+				config
+				.then (config) ->
 					knex('config').insert([
 						{key: 'uuid', value: uuid}
 						{key: 'apiKey', value: config.apiKey}
 						{key: 'username', value: config.username}
 						{key: 'userId', value: config.userId}
 					])
-				)
-			)
 			knex('app').truncate()
 		])
-	).catch((error) ->
+	.catch (error) ->
 		console.log(error)
-	)

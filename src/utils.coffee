@@ -7,14 +7,14 @@ crypto = require 'crypto'
 # or the hostname if there isn't a serial number (when run in dev mode)
 # The uuid is the SHA1 hash of that value.
 exports.getDeviceUuid = ->
-	fs.readFileAsync('/proc/cpuinfo', 'utf8').then((cpuinfo) ->
+	fs.readFileAsync('/proc/cpuinfo', 'utf8')
+	.then (cpuinfo) ->
 		serial = cpuinfo
 			.split('\n')
 			.filter((line) -> line.indexOf('Serial') isnt -1)[0]
 			?.split(':')[1]
 			.trim() or os.hostname()
-		
+
 		return crypto.createHash('sha1').update(serial, 'utf8').digest('hex')
-	)
 
 exports.delay = (ms) -> new Promise (v) -> setTimeout(v, ms)

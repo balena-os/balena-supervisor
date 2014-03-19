@@ -15,24 +15,22 @@ Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
 
 exports.kill = kill = (app) ->
-	docker.listContainersAsync(all: 1).then((containers) ->
+	docker.listContainersAsync(all: 1)
+	.then (containers) ->
 		Promise.all(
 			containers
-				.filter((container) ->
-					return container.Image is "#{app}:latest"
-				)
-				.map((container) -> docker.getContainer(container.Id))
-				.map((container) ->
-					console.log("Stopping and deleting container:", container)
-					container.stopAsync().then(->
-						container.removeAsync()
-					)
-				)
+			.filter (container) -> container.Image is "#{app}:latest"
+			.map (container) -> docker.getContainer(container.Id)
+			.map (container) ->
+				console.log("Stopping and deleting container:", container)
+				container.stopAsync()
+				.then ->
+					container.removeAsync()
 		)
-	)
 
 exports.start = start = (app) ->
-	docker.getImage(app).inspectAsync().catch((error) ->
+	docker.getImage(app).inspectAsync()
+	.catch (error) ->
 		console.log("Pulling image:", app)
 		deferred = Promise.defer()
 		options =
@@ -40,27 +38,25 @@ exports.start = start = (app) ->
 			path: "/v1.8/images/create?fromImage=#{app}"
 			socketPath: '/hostrun/docker.sock'
 
-		req = http.request(options, (res) ->
+		req = http.request options, (res) ->
 			if res.headers['content-type'] is 'application/json'
 				res.pipe(JSONStream.parse('error'))
-					.pipe(es.mapSync((error) ->
-						deferred.reject(error)
-					))
+				.pipe es.mapSync (error) ->
+					deferred.reject(error)
 			else
-				res.pipe(es.wait((error, text) -> deferred.reject(text)))
+				res.pipe es.wait (error, text) -> deferred.reject(text)
 
-			res.on('end', ->
+			res.on 'end', ->
 				if res.statusCode is 200
 					deferred.resolve()
 				else
 					deferred.reject(res.statusCode)
-			)
-		)
+
 		req.end()
-		req.on('error', (error) -> deferred.reject(error))
+		req.on 'error', (error) -> deferred.reject(error)
 
 		return deferred.promise
-	).then(->
+	.then ->
 		console.log("Creating container:", app)
 		docker.createContainerAsync(
 			Image: app
@@ -68,31 +64,32 @@ exports.start = start = (app) ->
 			Volumes:
 				'/dev': {}
 		)
-	).then((container) ->
+	.then (container) ->
 		container.startAsync(
 			Privileged: true
 			Binds: ['/dev:/dev']
 		)
-	)
 
 exports.restart = restart = (app) ->
-	kill(app).then(->
+	kill(app)
+	.then ->
 		start(app)
-	)
 
 exports.update = ->
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
 		knex('config').select('value').where(key: 'uuid')
 		knex('app').select()
-	]).then(([[apiKey], [uuid], apps]) ->
+	])
+	.then ([[apiKey], [uuid], apps]) ->
 		apiKey = apiKey.value
 		uuid = uuid.value
 		request(
 			method: 'GET'
 			url: url.resolve(process.env.API_ENDPOINT, "/ewa/application?$filter=device/uuid eq '#{uuid}'&apikey=#{apiKey}")
 			json: true
-		).spread((request, body) ->
+		)
+		.spread (request, body) ->
 			console.log("Remote apps")
 			remoteApps = ("registry.resin.io/#{path.basename(app.git_repository, '.git')}/#{app.commit}" for app in body.d when app.commit)
 			console.log(remoteApps)
@@ -111,14 +108,13 @@ exports.update = ->
 
 			# Install the apps and add each to the db as they succeed
 			promises = toBeInstalled.map (app) ->
-				start(app).then -> 
+				start(app)
+				.then -> 
 					knex('app').insert({imageId: app})
 			# And delete all the ones to remove in one go
 			promises.push(
-				Promise.all(toBeRemoved.map(kill)).then ->
+				Promise.all(toBeRemoved.map(kill))
+				.then ->
 					knex('app').whereIn('imageId', toBeRemoved).delete()
 			)
 			Promise.all(promises)
-		)
-
-	)
