@@ -14,42 +14,40 @@ console.log('Supervisor started..')
 newUuid = utils.getDeviceUuid()
 oldUuid = knex('config').select('value').where(key: 'uuid')
 
-Promise.all([newUuid, oldUuid]).then(([newUuid, [oldUuid]]) ->
+Promise.all([newUuid, oldUuid])
+.then ([newUuid, [oldUuid]]) ->
 	oldUuid = oldUuid?.value
 	if newUuid is oldUuid
 		return true
 
 	console.log('New device detected. Bootstrapping..')
 	return bootstrap(newUuid)
-).then(->
+.then ->
 	console.log('Starting OpenVPN..')
 	openvpn = spawn('openvpn', ['client.conf'], cwd: '/supervisor/data')
 
 	# Prefix and log all OpenVPN output
-	openvpn.stdout.on('data', (data) ->
+	openvpn.stdout.on 'data', (data) ->
 		prefix = 'OPENVPN: '
 		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
-	)
 
 	# Prefix and log all OpenVPN output
-	openvpn.stderr.on('data', (data) ->
+	openvpn.stderr.on 'data', (data) ->
 		prefix = 'OPENVPN: '
 		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
-	)
 
 	console.log('Starting API server..')
 	api.listen(80)
 
 	console.log('Starting Apps..')
-	knex('app').select().then((apps) ->
+	knex('app').select()
+	.then (apps) ->
 		Promise.all(apps.map((app) -> app.imageId).map(application.restart))
-	).catch((error) ->
+	.catch (error) ->
 		console.error("Error starting apps:", error)
-	).then(->
+	.then ->
 		console.log('Starting periodic check for updates..')
 		setInterval(->
 			application.update()
 		, 15 * 60 * 1000) # Every 15 mins
 		application.update()
-	)
-)
