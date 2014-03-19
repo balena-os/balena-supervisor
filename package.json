@@ -13,7 +13,7 @@
     "csr-gen": "~0.2.1",
     "dockerode": "~0.2.5",
     "knex": "~0.5.1",
-    "bluebird": "~0.11.5-0",
+    "bluebird": "~1.1.1",
     "JSONStream": "~0.7.1",
     "event-stream": "~3.0.20",
     "sqlite3": "~2.1.19"

@@ -10,7 +10,7 @@ LED_FILE = '/sys/class/leds/led0/brightness'
 
 blink = (ms = 200) ->
 	fs.writeFileAsync(LED_FILE, 1)
-	.then -> utils.delay(ms)
+	.delay(ms)
 	.then -> fs.writeFileAsync(LED_FILE, 0)
 
 api.post '/v1/blink', (req, res) ->
