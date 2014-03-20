@@ -16,5 +16,3 @@ exports.getDeviceUuid = ->
 			.trim() or os.hostname()
 
 		return crypto.createHash('sha1').update(serial, 'utf8').digest('hex')
-
-exports.delay = (ms) -> new Promise (v) -> setTimeout(v, ms)
