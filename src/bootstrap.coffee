@@ -70,5 +70,3 @@ module.exports = (uuid) ->
 					])
 			knex('app').truncate()
 		])
-	.catch (error) ->
-		console.log(error)
