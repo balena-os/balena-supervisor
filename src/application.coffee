@@ -9,7 +9,7 @@ Promise = require 'bluebird'
 request = Promise.promisify require 'request'
 JSONStream = require 'JSONStream'
 
-docker = Promise.promisifyAll(new Docker(socketPath: '/hostrun/docker.sock'))
+docker = Promise.promisifyAll(new Docker(socketPath: '/run/docker.sock'))
 # Hack dockerode to promisify internal classes' prototypes
 Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
@@ -36,7 +36,7 @@ exports.start = start = (app) ->
 		options =
 			method: 'POST'
 			path: "/v1.8/images/create?fromImage=#{app}"
-			socketPath: '/hostrun/docker.sock'
+			socketPath: '/run/docker.sock'
 
 		req = http.request options, (res) ->
 			if res.headers['content-type'] is 'application/json'
