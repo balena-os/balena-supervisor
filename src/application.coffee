@@ -69,10 +69,13 @@ exports.start = start = (app) ->
 				'/dev': {}
 		)
 	.then (container) ->
+		console.log('Starting container:', app)
 		container.startAsync(
 			Privileged: true
 			Binds: ['/dev:/dev']
 		)
+	.tap ->
+		console.log('Started container:', app)
 
 exports.restart = restart = (app) ->
 	kill(app)
