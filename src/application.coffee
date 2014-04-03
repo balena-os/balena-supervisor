@@ -69,6 +69,7 @@ exports.start = start = (app) ->
 			Cmd: ['/bin/bash', '-c', '/start web']
 			Volumes:
 				'/dev': {}
+			Env: env
 		)
 	.then (container) ->
 		console.log('Starting container:', app.imageId)
@@ -96,6 +97,7 @@ exports.update = ->
 		resinAPI.get(
 			resource: 'application'
 			options:
+				expand: 'environment_variable'
 				filter:
 					'device/uuid': uuid
 			customOptions:
@@ -105,8 +107,13 @@ exports.update = ->
 			console.log("Remote apps")
 			remoteApps = _.filter(remoteApps, 'commit')
 			remoteApps = _.map remoteApps, (app) ->
+				env = {}
+				if app.environment_variable?
+					for envVar in app.environment_variable
+						env[envVar.name] = envVar.value
 				return {
 					imageId: "#{REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+					env: env
 				}
 
 			remoteApps = _.indexBy(remoteApps, 'imageId')
@@ -114,7 +121,7 @@ exports.update = ->
 			console.log(remoteImages)
 
 			console.log("Local apps")
-			apps = _.map(apps, (app) -> _.pick(app, ['imageId']))
+			apps = _.map(apps, (app) -> _.pick(app, ['imageId', 'env']))
 			apps = _.indexBy(apps, 'imageId')
 			localImages = _.keys(apps)
 			console.log(localImages)
@@ -126,6 +133,12 @@ exports.update = ->
 			console.log("Apps to be installed")
 			toBeInstalled = _.difference(remoteImages, localImages)
 			console.log(toBeInstalled)
+
+			console.log("Apps to be updated")
+			toBeUpdated = _.intersection(remoteImages, localImages)
+			toBeUpdated = _.filter toBeUpdated, (imageId) ->
+				return _.isEqual(remoteApps[imageId], apps[imageId])
+			console.log(toBeUpdated)
 
 			# Install the apps and add each to the db as they succeed
 			promises = toBeInstalled.map (imageId) ->

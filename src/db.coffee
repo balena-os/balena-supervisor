@@ -24,6 +24,7 @@ knex.init = Promise.all([
 				t.string('containerId')
 				t.string('imageId')
 				t.boolean('privileged')
+				t.json('env')
 ])
 
 module.exports = knex
