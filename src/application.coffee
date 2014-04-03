@@ -10,10 +10,12 @@ request = Promise.promisify require 'request'
 JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
 
+REGISTRY_ENDPOINT = 'registry.resin.io'
+DOCKER_SOCKET = '/run/docker.sock'
 PLATFORM_ENDPOINT = url.resolve(process.env.API_ENDPOINT, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
 
-docker = Promise.promisifyAll(new Docker(socketPath: '/run/docker.sock'))
+docker = Promise.promisifyAll(new Docker(socketPath: DOCKER_SOCKET))
 # Hack dockerode to promisify internal classes' prototypes
 Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
@@ -40,7 +42,7 @@ exports.start = start = (app) ->
 		options =
 			method: 'POST'
 			path: "/v1.8/images/create?fromImage=#{app.imageId}"
-			socketPath: '/run/docker.sock'
+			socketPath: DOCKER_SOCKET
 
 		req = http.request options, (res) ->
 			if res.headers['content-type'] is 'application/json'
@@ -104,7 +106,7 @@ exports.update = ->
 			remoteApps = _.filter(remoteApps, 'commit')
 			remoteApps = _.map remoteApps, (app) ->
 				return {
-					imageId: "registry.resin.io/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+					imageId: "#{REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
 				}
 
 			remoteApps = _.indexBy(remoteApps, 'imageId')
