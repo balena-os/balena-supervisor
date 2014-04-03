@@ -23,7 +23,7 @@ exports.kill = kill = (app) ->
 	.then (containers) ->
 		Promise.all(
 			containers
-			.filter (container) -> container.Image is "#{app}:latest"
+			.filter (container) -> container.Image is "#{app.imageId}:latest"
 			.map (container) -> docker.getContainer(container.Id)
 			.map (container) ->
 				console.log("Stopping and deleting container:", container)
@@ -35,11 +35,11 @@ exports.kill = kill = (app) ->
 exports.start = start = (app) ->
 	docker.getImage(app).inspectAsync()
 	.catch (error) ->
-		console.log("Pulling image:", app)
+		console.log("Pulling image:", app.imageId)
 		deferred = Promise.defer()
 		options =
 			method: 'POST'
-			path: "/v1.8/images/create?fromImage=#{app}"
+			path: "/v1.8/images/create?fromImage=#{app.imageId}"
 			socketPath: '/run/docker.sock'
 
 		req = http.request options, (res) ->
@@ -61,21 +61,21 @@ exports.start = start = (app) ->
 
 		return deferred.promise
 	.then ->
-		console.log("Creating container:", app)
+		console.log("Creating container:", app.imageId)
 		docker.createContainerAsync(
-			Image: app
+			Image: app.imageId
 			Cmd: ['/bin/bash', '-c', '/start web']
 			Volumes:
 				'/dev': {}
 		)
 	.then (container) ->
-		console.log('Starting container:', app)
+		console.log('Starting container:', app.imageId)
 		container.startAsync(
 			Privileged: true
 			Binds: ['/dev:/dev']
 		)
 	.tap ->
-		console.log('Started container:', app)
+		console.log('Started container:', app.imageId)
 
 exports.restart = restart = (app) ->
 	kill(app)
@@ -101,26 +101,42 @@ exports.update = ->
 		)
 		.then (remoteApps) ->
 			console.log("Remote apps")
-			remoteApps = ("registry.resin.io/#{path.basename(app.git_repository, '.git')}/#{app.commit}" for app in remoteApps when app.commit)
-			console.log(remoteApps)
+			remoteApps = _.filter(remoteApps, 'commit')
+			remoteApps = _.map remoteApps, (app) ->
+				return {
+					imageId: "registry.resin.io/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+				}
+
+			remoteApps = _.indexBy(remoteApps, 'imageId')
+			remoteImages = _.keys(remoteApps)
+			console.log(remoteImages)
 
 			console.log("Local apps")
-			localApps = (app.imageId for app in apps)
-			console.log(localApps)
+			apps = _.map(apps, (app) -> _.pick(app, ['imageId']))
+			apps = _.indexBy(apps, 'imageId')
+			localImages = _.keys(apps)
+			console.log(localImages)
 
 			console.log("Apps to be removed")
-			toBeRemoved = _.difference(localApps, remoteApps)
+			toBeRemoved = _.difference(localImages, remoteImages)
 			console.log(toBeRemoved)
 
 			console.log("Apps to be installed")
-			toBeInstalled = _.difference(remoteApps, localApps)
+			toBeInstalled = _.difference(remoteImages, localImages)
 			console.log(toBeInstalled)
 
 			# Install the apps and add each to the db as they succeed
-			promises = toBeInstalled.map (app) ->
+			promises = toBeInstalled.map (imageId) ->
+				app = remoteApps[imageId]
 				start(app)
 				.then -> 
-					knex('app').insert({imageId: app})
+					knex('app').insert(app)
+			# And restart updated apps and update db as they succeed
+			promises = promises.concat toBeUpdated.map (imageId) ->
+				app = remoteApps[imageId]
+				restart(app)
+				.then -> 
+					knex('app').update(app).where(imageId: app.imageId)
 			# And delete all the ones to remove in one go
 			promises.push(
 				Promise.all(toBeRemoved.map(kill))

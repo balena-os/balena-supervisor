@@ -42,7 +42,7 @@ Promise.all([newUuid, oldUuid])
 	console.log('Starting Apps..')
 	knex('app').select()
 	.then (apps) ->
-		Promise.all(apps.map((app) -> app.imageId).map(application.restart))
+		Promise.all(apps.map(application.restart))
 	.catch (error) ->
 		console.error("Error starting apps:", error)
 	.then ->
