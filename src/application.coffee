@@ -154,7 +154,7 @@ exports.update = ->
 					knex('app').update(app).where(imageId: app.imageId)
 			# And delete all the ones to remove in one go
 			promises.push(
-				Promise.all(toBeRemoved.map(kill))
+				Promise.map(toBeRemoved, (imageId) -> kill(remoteApps[imageId]))
 				.then ->
 					knex('app').whereIn('imageId', toBeRemoved).delete()
 			)
