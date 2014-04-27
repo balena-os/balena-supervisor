@@ -75,7 +75,10 @@ exports.start = start = (app) ->
 		console.log('Starting container:', app.imageId)
 		container.startAsync(
 			Privileged: true
-			Binds: ['/dev:/dev']
+			Binds: [
+				'/dev:/dev'
+				'/var/run/docker.sock:/run/docker.sock'
+			]
 		)
 	.tap ->
 		console.log('Started container:', app.imageId)
