@@ -46,7 +46,7 @@ module.exports = (uuid) ->
 			throw body
 
 		console.log('Configuring VPN..')
-		vpnConf = fs.readFileAsync('/supervisor/src/openvpn.conf.tmpl', 'utf8')
+		vpnConf = fs.readFileAsync(__dirname + '/openvpn.conf.tmpl', 'utf8')
 			.then (tmpl) ->
 				fs.writeFileAsync('/data/client.conf', _.template(tmpl)(body))
 
