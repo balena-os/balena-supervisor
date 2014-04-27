@@ -69,11 +69,17 @@ exports.start = start = (app) ->
 			Volumes:
 				'/dev': {}
 			Env: _.map app.env, (v, k) -> k + '=' + v
+			ExposedPorts:
+				'80/tcp': {}
+				'443/tcp': {}
 		)
 	.then (container) ->
 		console.log('Starting container:', app.imageId)
 		container.startAsync(
 			Privileged: true
+			PortBindings:
+				'80/tcp': [ HostPort: '80' ]
+				'443/tcp': [ HostPort: '443' ]
 			Binds: [
 				'/dev:/dev'
 				'/var/run/docker.sock:/run/docker.sock'
