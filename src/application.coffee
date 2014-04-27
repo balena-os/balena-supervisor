@@ -63,23 +63,25 @@ exports.start = start = (app) ->
 		return deferred.promise
 	.then ->
 		console.log("Creating container:", app.imageId)
+		ports = {}
+		if app.env.PORT?
+			ports[app.env.PORT + '/tcp'] = {}
 		docker.createContainerAsync(
 			Image: app.imageId
 			Cmd: ['/bin/bash', '-c', '/start']
 			Volumes:
 				'/dev': {}
 			Env: _.map app.env, (v, k) -> k + '=' + v
-			ExposedPorts:
-				'80/tcp': {}
-				'443/tcp': {}
+			ExposedPorts: ports
 		)
 	.then (container) ->
 		console.log('Starting container:', app.imageId)
+		ports = {}
+		if app.env.PORT?
+			ports[app.env.PORT + '/tcp'] = [ HostPort: app.env.PORT ]
 		container.startAsync(
 			Privileged: true
-			PortBindings:
-				'80/tcp': [ HostPort: '80' ]
-				'443/tcp': [ HostPort: '443' ]
+			PortBindings: ports
 			Binds: [
 				'/dev:/dev'
 				'/var/run/docker.sock:/run/docker.sock'
