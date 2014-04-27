@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "preinstall": "bash deps.sh",
+    "postinstall": "node ./node_modules/coffee-script/bin/coffee -c ./src",
     "start": "node src/supervisor.js"
   },
   "dependencies": {
