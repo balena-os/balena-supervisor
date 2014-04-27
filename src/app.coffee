@@ -24,7 +24,7 @@ Promise.all([newUuid, oldUuid])
 	return bootstrap(newUuid)
 .then ->
 	console.log('Starting OpenVPN..')
-	openvpn = spawn('openvpn', ['client.conf'], cwd: '/supervisor/data')
+	openvpn = spawn('openvpn', ['client.conf'], cwd: '/data')
 
 	# Prefix and log all OpenVPN output
 	openvpn.stdout.on 'data', (data) ->

@@ -16,7 +16,7 @@ module.exports = (uuid) ->
 		company: 'Rulemotion Ltd'
 		csrName: 'client.csr'
 		keyName: 'client.key'
-		outputDir: '/supervisor/data'
+		outputDir: '/data'
 		email: 'vpn@resin.io'
 		read: true
 		country: ''
@@ -48,11 +48,11 @@ module.exports = (uuid) ->
 		console.log('Configuring VPN..')
 		vpnConf = fs.readFileAsync('/supervisor/src/openvpn.conf.tmpl', 'utf8')
 			.then (tmpl) ->
-				fs.writeFileAsync('/supervisor/data/client.conf', _.template(tmpl)(body))
+				fs.writeFileAsync('/data/client.conf', _.template(tmpl)(body))
 
 		Promise.all([
-			fs.writeFileAsync('/supervisor/data/ca.crt', body.ca)
-			fs.writeFileAsync('/supervisor/data/client.crt', body.cert)
+			fs.writeFileAsync('/data/ca.crt', body.ca)
+			fs.writeFileAsync('/data/client.crt', body.cert)
 			vpnConf
 		])
 	.then ->

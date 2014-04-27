@@ -4,7 +4,7 @@ Knex = require 'knex'
 knex = Knex.initialize(
 	client: 'sqlite3'
 	connection:
-		filename: '/supervisor/data/database.sqlite'
+		filename: '/data/database.sqlite'
 )
 
 knex.init = Promise.all([
