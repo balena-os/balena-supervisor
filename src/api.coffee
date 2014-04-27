@@ -17,7 +17,7 @@ api.post '/v1/blink', (req, res) ->
 	interval = setInterval(blink, 400)
 	setTimeout(->
 		clearInterval(interval)
-	, 5000)
+	, 15000)
 	res.send(200)
 
 api.post '/v1/update', (req, res) ->
