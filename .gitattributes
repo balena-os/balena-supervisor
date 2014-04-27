@@ -1,0 +1,6 @@
+# Set all files to use line feed endings (since we can't match only ones without an extension)
+* eol=lf
+# And then reset all the files with extensions back to default
+*.* -eol
+
+*.sh text eol=lf
