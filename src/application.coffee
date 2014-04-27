@@ -66,7 +66,7 @@ exports.start = start = (app) ->
 		console.log("Creating container:", app.imageId)
 		docker.createContainerAsync(
 			Image: app.imageId
-			Cmd: ['/bin/bash', '-c', '/start web']
+			Cmd: ['/bin/bash', '-c', '/start']
 			Volumes:
 				'/dev': {}
 			Env: env
