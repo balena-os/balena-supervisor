@@ -140,7 +140,7 @@ exports.update = ->
 			console.log("Apps to be updated")
 			toBeUpdated = _.intersection(remoteImages, localImages)
 			toBeUpdated = _.filter toBeUpdated, (imageId) ->
-				return _.isEqual(remoteApps[imageId], apps[imageId])
+				return !_.isEqual(remoteApps[imageId], apps[imageId])
 			console.log(toBeUpdated)
 
 			# Install the apps and add each to the db as they succeed
