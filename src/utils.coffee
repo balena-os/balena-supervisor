@@ -16,3 +16,13 @@ exports.getDeviceUuid = ->
 			.trim() or os.hostname()
 
 		return crypto.createHash('sha1').update(serial, 'utf8').digest('hex')
+
+# Parses package.json and returns resin-supervisor's version
+exports.getSupervisorVersion = ->
+	fs.readFileAsync '../package.json'
+	.then (data) ->
+		obj = JSON.parse data
+
+		Promise.resolve obj
+			.then (obj) ->
+				return obj.version

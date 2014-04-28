@@ -147,13 +147,13 @@ exports.update = ->
 			promises = toBeInstalled.map (imageId) ->
 				app = remoteApps[imageId]
 				start(app)
-				.then -> 
+				.then ->
 					knex('app').insert(app)
 			# And restart updated apps and update db as they succeed
 			promises = promises.concat toBeUpdated.map (imageId) ->
 				app = remoteApps[imageId]
 				restart(app)
-				.then -> 
+				.then ->
 					knex('app').update(app).where(imageId: app.imageId)
 			# And delete all the ones to remove in one go
 			promises.push(

@@ -7,7 +7,7 @@ crypto = require 'crypto'
 csrgen = Promise.promisify require 'csr-gen'
 request = Promise.promisify require 'request'
 
-module.exports = (uuid) ->
+module.exports = (uuid, version) ->
 	# Load config file
 	config = fs.readFileAsync('/boot/config.json', 'utf8').then(JSON.parse)
 
@@ -30,6 +30,7 @@ module.exports = (uuid) ->
 		console.log('UUID:', uuid)
 		console.log('User ID:', config.userId)
 		console.log('User:', config.username)
+		console.log('Supervisor Version:', version)
 		console.log('API key:', config.apiKey)
 		console.log('Application ID:', config.applicationId)
 		console.log('CSR :', keys.csr)
@@ -67,6 +68,7 @@ module.exports = (uuid) ->
 						{key: 'apiKey', value: config.apiKey}
 						{key: 'username', value: config.username}
 						{key: 'userId', value: config.userId}
+						{key: 'version', value: version}
 					])
 			knex('app').truncate()
 		])
