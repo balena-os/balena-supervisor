@@ -69,7 +69,7 @@ exports.start = start = (app) ->
 			Cmd: ['/bin/bash', '-c', '/start']
 			Volumes:
 				'/dev': {}
-			Env: env
+			Env: app.env
 		)
 	.then (container) ->
 		console.log('Starting container:', app.imageId)
