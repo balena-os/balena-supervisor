@@ -1,4 +1,4 @@
-FROM resin/rpi-buildstep:v0.0.3
+FROM resin/rpi-buildstep:v0.0.5
 ADD . /app
 ADD deploy_key /root/.ssh/id_rsa
 RUN chmod 400 /root/.ssh/id_rsa
