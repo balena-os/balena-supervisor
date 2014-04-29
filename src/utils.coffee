@@ -19,10 +19,7 @@ exports.getDeviceUuid = ->
 
 # Parses package.json and returns resin-supervisor's version
 exports.getSupervisorVersion = ->
-	fs.readFileAsync '../package.json'
+	fs.readFileAsync '../package.json', 'utf-8'
 	.then (data) ->
 		obj = JSON.parse data
-
-		Promise.resolve obj
-			.then (obj) ->
-				return obj.version
+		return obj.version
