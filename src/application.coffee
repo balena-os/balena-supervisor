@@ -100,7 +100,7 @@ exports.update = ->
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
 		knex('config').select('value').where(key: 'uuid')
-        knex('config').select('value').where(key: 'version')
+		knex('config').select('value').where(key: 'version')
 		knex('app').select()
 	])
 	.then ([[apiKey], [uuid], [version], apps]) ->
@@ -108,12 +108,12 @@ exports.update = ->
 		uuid = uuid.value
 		version = uuid.value
 		###
-        # should I post 'resin-supervisor' version every 15-minutes?
-        # with something like
-        resinAPI.post(
-            device:
-                supervisor-version: version
-        )
+		# should I post 'resin-supervisor' version every 15-minutes?
+		# with something like
+		resinAPI.post(
+		    device:
+		        supervisor-version: version
+		)
 		###
 		resinAPI.get(
 			resource: 'application'
