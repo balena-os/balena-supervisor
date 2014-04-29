@@ -106,7 +106,7 @@ exports.update = ->
 	.then ([[apiKey], [uuid], [version], apps]) ->
 		apiKey = apiKey.value
 		uuid = uuid.value
-		version = uuid.value
+		version = version.value
 		###
 		# should I post 'resin-supervisor' version every 15-minutes?
 		# with something like
