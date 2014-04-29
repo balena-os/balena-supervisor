@@ -37,6 +37,7 @@ module.exports = (uuid, version) ->
 		console.log('Posting to the API..')
 		config.csr = keys.csr
 		config.uuid = uuid
+		config.version = version
 		return request(
 			method: 'POST'
 			url: url.resolve(process.env.API_ENDPOINT, 'associate')
