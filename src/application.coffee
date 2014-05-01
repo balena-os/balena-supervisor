@@ -87,7 +87,16 @@ exports.restart = restart = (app) ->
 	.then ->
 		start(app)
 
+# 0 - Idle
+# 1 - Updating
+# 2 - Update required
+currentlyUpdating = 0
 exports.update = ->
+	if currentlyUpdating isnt 0
+		# Mark an update required after the current.
+		currentlyUpdating = 2
+		return
+	currentlyUpdating = 1
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
 		knex('config').select('value').where(key: 'uuid')
@@ -161,3 +170,9 @@ exports.update = ->
 					knex('app').whereIn('imageId', toBeRemoved).delete()
 			)
 			Promise.all(promises)
+	.finally ->
+		if currentlyUpdating is 2
+			# If an update is required then schedule it
+			setTimeout(exports.update)
+		# Set the updating as finished
+		currentlyUpdating = 0
