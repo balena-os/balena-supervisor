@@ -10,7 +10,6 @@ request = Promise.promisify require 'request'
 JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
 
-REGISTRY_ENDPOINT = 'registry.resin.io'
 DOCKER_SOCKET = '/run/docker.sock'
 PLATFORM_ENDPOINT = url.resolve(process.env.API_ENDPOINT, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
@@ -115,7 +114,7 @@ exports.update = ->
 					for envVar in app.environment_variable
 						env[envVar.name] = envVar.value
 				return {
-					imageId: "#{REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+					imageId: "#{pocess.env.REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
 					env: env
 				}
 
