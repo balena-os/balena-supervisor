@@ -102,7 +102,7 @@ exports.update = ->
 		knex('config').select('value').where(key: 'uuid')
 		knex('app').select()
 	])
-	.then ([[apiKey], [uuid], [version], apps]) ->
+	.then ([[apiKey], [uuid], apps]) ->
 		apiKey = apiKey.value
 		uuid = uuid.value
 		resinAPI.get(
