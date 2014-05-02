@@ -13,7 +13,7 @@ console.log('Supervisor started..')
 
 newUuid = utils.getDeviceUuid()
 oldUuid = knex('config').select('value').where(key: 'uuid')
-version = utils.getSupevisorVersion()
+version = utils.getSupervisorVersion()
 
 Promise.all([newUuid, oldUuid, version])
 .then ([newUuid, [oldUuid], version]) ->
