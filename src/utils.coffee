@@ -19,7 +19,7 @@ exports.getDeviceUuid = ->
 
 # Parses package.json and returns resin-supervisor's version
 exports.getSupervisorVersion = ->
-	fs.readFileAsync '../package.json', 'utf-8'
+	fs.readFileAsync(__dirname + '/../package.json', 'utf-8')
 	.then (data) ->
 		obj = JSON.parse data
 		return obj.version
