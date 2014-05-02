@@ -151,25 +151,26 @@ exports.update = ->
 				return !_.isEqual(remoteApps[imageId], apps[imageId])
 			console.log(toBeUpdated)
 
-			# Install the apps and add each to the db as they succeed
-			promises = toBeInstalled.map (imageId) ->
-				app = remoteApps[imageId]
-				start(app)
+			# Delete all the ones to remove in one go
+			Promise.map toBeRemoved, (imageId) ->
+				kill(apps[imageId])
 				.then ->
-					knex('app').insert(app)
-			# And restart updated apps and update db as they succeed
-			promises = promises.concat toBeUpdated.map (imageId) ->
-				app = remoteApps[imageId]
-				restart(app)
-				.then ->
-					knex('app').update(app).where(imageId: app.imageId)
-			# And delete all the ones to remove in one go
-			promises.push(
-				Promise.map(toBeRemoved, (imageId) -> kill(apps[imageId]))
-				.then ->
-					knex('app').whereIn('imageId', toBeRemoved).delete()
+					knex('app').where('imageId', imageId).delete()
 			)
-			Promise.all(promises)
+			.then ->
+				# Then install the apps and add each to the db as they succeed
+				installingPromises = toBeInstalled.map (imageId) ->
+					app = remoteApps[imageId]
+					start(app)
+					.then ->
+						knex('app').insert(app)
+				# And restart updated apps and update db as they succeed
+				updatingPromises = toBeUpdated.map (imageId) ->
+					app = remoteApps[imageId]
+					restart(app)
+					.then ->
+						knex('app').update(app).where(imageId: app.imageId)
+				Promise.all(installingPromises.concat(updatingPromises))
 	.finally ->
 		if currentlyUpdating is 2
 			# If an update is required then schedule it
