@@ -50,5 +50,5 @@ Promise.all([newUuid, oldUuid, version])
 		console.log('Starting periodic check for updates..')
 		setInterval(->
 			application.update()
-		, 15 * 60 * 1000) # Every 15 mins
+		, 5 * 60 * 1000) # Every 5 mins
 		application.update()
