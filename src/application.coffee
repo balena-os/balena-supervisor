@@ -123,7 +123,7 @@ exports.update = ->
 					for envVar in app.environment_variable
 						env[envVar.name] = envVar.value
 				return {
-					imageId: "#{pocess.env.REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+					imageId: "#{process.env.REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
 					env: env
 				}
 
