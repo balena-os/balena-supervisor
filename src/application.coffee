@@ -65,7 +65,11 @@ exports.start = start = (app) ->
 		console.log("Creating container:", app.imageId)
 		ports = {}
 		if app.env.PORT?
-			ports[app.env.PORT + '/tcp'] = {}
+			maybePort = parseInt(app.env.PORT, 10)
+			if parseFloat(app.env.PORT) is maybePort and maybePort > 0 and maybePort < 65535
+				port = maybePort
+		if port?
+			ports[port + '/tcp'] = {}
 		docker.createContainerAsync(
 			Image: app.imageId
 			Cmd: ['/bin/bash', '-c', '/start']
@@ -74,19 +78,19 @@ exports.start = start = (app) ->
 			Env: _.map app.env, (v, k) -> k + '=' + v
 			ExposedPorts: ports
 		)
-	.then (container) ->
-		console.log('Starting container:', app.imageId)
-		ports = {}
-		if app.env.PORT?
-			ports[app.env.PORT + '/tcp'] = [ HostPort: app.env.PORT ]
-		container.startAsync(
-			Privileged: true
-			PortBindings: ports
-			Binds: [
-				'/dev:/dev'
-				'/var/run/docker.sock:/run/docker.sock'
-			]
-		)
+		.then (container) ->
+			console.log('Starting container:', app.imageId)
+			ports = {}
+			if port?
+				ports[port + '/tcp'] = [ HostPort: port ]
+			container.startAsync(
+				Privileged: true
+				PortBindings: ports
+				Binds: [
+					'/dev:/dev'
+					'/var/run/docker.sock:/run/docker.sock'
+				]
+			)
 	.tap ->
 		console.log('Started container:', app.imageId)
 
