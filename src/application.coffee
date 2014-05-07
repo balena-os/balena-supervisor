@@ -168,7 +168,6 @@ exports.update = ->
 				kill(apps[imageId])
 				.then ->
 					knex('app').where('imageId', imageId).delete()
-			)
 			.then ->
 				# Then install the apps and add each to the db as they succeed
 				installingPromises = toBeInstalled.map (imageId) ->
