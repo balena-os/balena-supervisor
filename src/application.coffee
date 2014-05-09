@@ -4,6 +4,7 @@ url = require 'url'
 knex = require './db'
 path = require 'path'
 Docker = require 'dockerode'
+PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
@@ -16,6 +17,20 @@ docker = Promise.promisifyAll(new Docker(socketPath: DOCKER_SOCKET))
 # Hack dockerode to promisify internal classes' prototypes
 Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
+
+pubnub = PUBNUB.init(
+	subscribe_key: 'sub-c-bananas'
+	publish_key: 'pub-c-bananas'
+)
+
+publish = null
+
+knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
+	uuid = uuid.value
+	channel = "device-#{uuid}-logs"
+
+	publish = (message) ->
+		pubnub.publish({channel, message})
 
 exports.kill = kill = (app) ->
 	docker.listContainersAsync(all: 1)
@@ -59,6 +74,7 @@ exports.start = start = (app) ->
 		docker.createContainerAsync(
 			Image: app.imageId
 			Cmd: ['/bin/bash', '-c', '/start']
+			Tty: true
 			Volumes:
 				'/dev': {}
 			Env: _.map env, (v, k) -> k + '=' + v
@@ -77,6 +93,15 @@ exports.start = start = (app) ->
 					'/var/run/docker.sock:/run/docker.sock'
 				]
 			)
+			.then ->
+				container.attach {stream: true, stdout: true, stderr: true, tty: true}, (err, stream) ->
+					es.pipeline(
+						stream
+						es.split()
+						# Remove color escape sequences
+						es.mapSync((s) -> s.replace(/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]/g, ''))
+						es.mapSync(publish)
+					)
 	.tap ->
 		console.log('Started container:', app.imageId)
 

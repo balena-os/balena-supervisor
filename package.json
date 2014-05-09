@@ -18,7 +18,8 @@
     "JSONStream": "~0.7.1",
     "event-stream": "~3.0.20",
     "sqlite3": "~2.1.19",
-    "resin-platform-api": "git+ssh://git@bitbucket.org:rulemotion/resin-platform-api.git#v0.2.3"
+    "resin-platform-api": "git+ssh://git@bitbucket.org:rulemotion/resin-platform-api.git#v0.2.3",
+    "pubnub": "~3.6.4"
   },
   "engines": {
     "node": "0.10.22"
