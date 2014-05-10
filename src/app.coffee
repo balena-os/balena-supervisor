@@ -1,28 +1,23 @@
 Promise = require 'bluebird'
 fs = Promise.promisifyAll(require('fs'))
 os = require 'os'
-api = require './api'
 knex = require './db'
 utils = require './utils'
 {spawn} = require 'child_process'
 bootstrap = require './bootstrap'
-application = require './application'
 
 console.log('Supervisor started..')
 
-newUuid = utils.getDeviceUuid()
-oldUuid = knex('config').select('value').where(key: 'uuid')
 version = utils.getSupervisorVersion()
 
-Promise.all([newUuid, oldUuid, version])
-.then ([newUuid, [oldUuid], version]) ->
-	oldUuid = oldUuid?.value
-	if newUuid is oldUuid
-		return true
-
-	console.log('New device detected. Bootstrapping..')
-	return bootstrap(newUuid, version)
+knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
+	if not uuid?.value
+		console.log('New device detected. Bootstrapping..')
+		bootstrap()
 .then ->
+	api = require './api'
+	application = require './application'
+
 	console.log('Starting OpenVPN..')
 	openvpn = spawn('openvpn', ['client.conf'], cwd: '/data')
 
@@ -51,3 +46,4 @@ Promise.all([newUuid, oldUuid, version])
 			application.update()
 		, 5 * 60 * 1000) # Every 5 mins
 		application.update()
+

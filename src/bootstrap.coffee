@@ -3,13 +3,24 @@ _ = require 'lodash'
 fs = Promise.promisifyAll require 'fs'
 url = require 'url'
 knex = require './db'
+utils = require './utils'
 crypto = require 'crypto'
 csrgen = Promise.promisify require 'csr-gen'
 request = Promise.promisify require 'request'
 
-module.exports = (uuid, version) ->
+module.exports = ->
 	# Load config file
 	config = fs.readFileAsync('/boot/config.json', 'utf8').then(JSON.parse)
+
+	version = utils.getSupervisorVersion()
+
+	# I'd be nice if the UUID matched the output of a SHA-256 function, but
+	# although the length limit of the CN attribute in a X.509 certificate is
+	# 64 chars, a 32 byte UUID (64 chars in hex) doesn't pass the certificate
+	# validation in OpenVPN This either means that the RFC counts a final NULL
+	# byte as part of the CN or that the OpenVPN/OpenSSL implementation has a
+	# bug.
+	uuid = crypto.pseudoRandomBytes(31).toString('hex')
 
 	# Generate SSL certificate
 	keys = csrgen(uuid,
@@ -25,8 +36,8 @@ module.exports = (uuid, version) ->
 		division: ''
 	)
 
-	Promise.all([config, keys])
-	.then ([config, keys]) ->
+	Promise.all([config, keys, version])
+	.then ([config, keys, version]) ->
 		console.log('UUID:', uuid)
 		console.log('User ID:', config.userId)
 		console.log('User:', config.username)
