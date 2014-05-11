@@ -5,6 +5,7 @@ url = require 'url'
 knex = require './db'
 utils = require './utils'
 crypto = require 'crypto'
+config = require './config'
 csrgen = Promise.promisify require 'csr-gen'
 request = Promise.promisify require 'request'
 
@@ -51,7 +52,7 @@ module.exports = ->
 		config.version = version
 		return request(
 			method: 'POST'
-			url: url.resolve(process.env.API_ENDPOINT, 'associate')
+			url: url.resolve(config.apiEndpoint, 'associate')
 			json: config
 		)
 	.spread (response, body) ->

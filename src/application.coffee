@@ -3,6 +3,7 @@ es = require 'event-stream'
 url = require 'url'
 knex = require './db'
 path = require 'path'
+config = require './config'
 Docker = require 'dockerode'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
@@ -10,7 +11,7 @@ JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
 
 DOCKER_SOCKET = '/run/docker.sock'
-PLATFORM_ENDPOINT = url.resolve(process.env.API_ENDPOINT, '/ewa/')
+PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
 
 docker = Promise.promisifyAll(new Docker(socketPath: DOCKER_SOCKET))
@@ -18,10 +19,7 @@ docker = Promise.promisifyAll(new Docker(socketPath: DOCKER_SOCKET))
 Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
 
-pubnub = PUBNUB.init(
-	subscribe_key: 'sub-c-bananas'
-	publish_key: 'pub-c-bananas'
-)
+pubnub = PUBNUB.init(config.pubnub)
 
 publish = null
 
