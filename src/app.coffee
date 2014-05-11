@@ -8,8 +8,6 @@ bootstrap = require './bootstrap'
 
 console.log('Supervisor started..')
 
-version = utils.getSupervisorVersion()
-
 knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	if not uuid?.value
 		console.log('New device detected. Bootstrapping..')
