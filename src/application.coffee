@@ -23,20 +23,20 @@ pubnub = PUBNUB.init(config.pubnub)
 
 # Queue up any calls to publish while we wait for the uuid to return from
 # the sqlite db
-publishQueue = []
+publish = do ->
+	publishQueue = []
 
-publish = ->
-	publishQueue.push(arguments)
+	knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
+		uuid = uuid.value
+		channel = "device-#{uuid}-logs"
 
-knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
-	uuid = uuid.value
-	channel = "device-#{uuid}-logs"
+		publish = (message) ->
+			pubnub.publish({channel, message})
 
-	publish = (message) ->
-		pubnub.publish({channel, message})
+		# Replay queue now that we have initialised the publish function
+		publish(args...) for args in publishQueue
 
-	# Replay queue now that we have initialised the publish function
-	publish.apply(null, args) for args in publishQueue
+	return -> publishQueue.push(arguments)
 
 exports.kill = kill = (app) ->
 	docker.listContainersAsync(all: 1)
