@@ -11,7 +11,7 @@ request = Promise.promisify require 'request'
 
 module.exports = ->
 	# Load config file
-	config = fs.readFileAsync('/boot/config.json', 'utf8').then(JSON.parse)
+	userConfig = fs.readFileAsync('/boot/config.json', 'utf8').then(JSON.parse)
 
 	version = utils.getSupervisorVersion()
 
@@ -37,23 +37,23 @@ module.exports = ->
 		division: ''
 	)
 
-	Promise.all([config, keys, version])
-	.then ([config, keys, version]) ->
+	Promise.all([userConfig, keys, version])
+	.then ([userConfig, keys, version]) ->
 		console.log('UUID:', uuid)
-		console.log('User ID:', config.userId)
-		console.log('User:', config.username)
+		console.log('User ID:', userConfig.userId)
+		console.log('User:', userConfig.username)
 		console.log('Supervisor Version:', version)
-		console.log('API key:', config.apiKey)
-		console.log('Application ID:', config.applicationId)
+		console.log('API key:', userConfig.apiKey)
+		console.log('Application ID:', userConfig.applicationId)
 		console.log('CSR :', keys.csr)
 		console.log('Posting to the API..')
-		config.csr = keys.csr
-		config.uuid = uuid
-		config.version = version
+		userConfig.csr = keys.csr
+		userConfig.uuid = uuid
+		userConfig.version = version
 		return request(
 			method: 'POST'
 			url: url.resolve(config.apiEndpoint, 'associate')
-			json: config
+			json: userConfig
 		)
 	.spread (response, body) ->
 		if response.statusCode >= 400
@@ -74,13 +74,13 @@ module.exports = ->
 		Promise.all([
 			knex('config').truncate()
 			.then ->
-				config
-				.then (config) ->
+				userConfig
+				.then (userConfig) ->
 					knex('config').insert([
 						{key: 'uuid', value: uuid}
-						{key: 'apiKey', value: config.apiKey}
-						{key: 'username', value: config.username}
-						{key: 'userId', value: config.userId}
+						{key: 'apiKey', value: userConfig.apiKey}
+						{key: 'username', value: userConfig.username}
+						{key: 'userId', value: userConfig.userId}
 						{key: 'version', value: version}
 					])
 			knex('app').truncate()
