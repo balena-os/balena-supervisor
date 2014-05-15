@@ -82,7 +82,7 @@ exports.start = start = (app) ->
 			console.log('Starting container:', app.imageId)
 			ports = {}
 			if port?
-				ports[port + '/tcp'] = [ HostPort: port ]
+				ports[port + '/tcp'] = [ HostPort: String(port) ]
 			container.startAsync(
 				Privileged: true
 				PortBindings: ports
