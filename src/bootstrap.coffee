@@ -75,13 +75,13 @@ module.exports = ->
 			knex('config').truncate()
 			.then ->
 				userConfig
-				.then (userConfig) ->
-					knex('config').insert([
-						{key: 'uuid', value: uuid}
-						{key: 'apiKey', value: userConfig.apiKey}
-						{key: 'username', value: userConfig.username}
-						{key: 'userId', value: userConfig.userId}
-						{key: 'version', value: version}
-					])
+			.then (userConfig) ->
+				knex('config').insert([
+					{ key: 'uuid', value: uuid }
+					{ key: 'apiKey', value: userConfig.apiKey }
+					{ key: 'username', value: userConfig.username }
+					{ key: 'userId', value: userConfig.userId }
+					{ key: 'version', value: version }
+				])
 			knex('app').truncate()
 		])
