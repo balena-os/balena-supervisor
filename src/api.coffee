@@ -3,6 +3,7 @@ fs = Promise.promisifyAll require 'fs'
 utils = require './utils'
 express = require 'express'
 application = require './application'
+supervisor = require './supervisor-update'
 
 api = express()
 
@@ -23,6 +24,11 @@ api.post '/v1/blink', (req, res) ->
 api.post '/v1/update', (req, res) ->
 	console.log("Got application update")
 	application.update()
+	res.send(204)
+
+api.post '/v1/update-supervisor', (req, res) ->
+	console.log('Got supervisor update')
+	supervisor.update()
 	res.send(204)
 
 module.exports = api
