@@ -1,12 +1,10 @@
 _ = require 'lodash'
 es = require 'event-stream'
 url = require 'url'
-http = require 'http'
 knex = require './db'
 path = require 'path'
 Docker = require 'dockerode'
 Promise = require 'bluebird'
-request = Promise.promisify require 'request'
 JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
 
@@ -37,30 +35,20 @@ exports.start = start = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
 		console.log("Pulling image:", app.imageId)
-		deferred = Promise.defer()
-		options =
-			method: 'POST'
-			path: "/v1.8/images/create?fromImage=#{app.imageId}"
-			socketPath: DOCKER_SOCKET
+		docker.createImageAsync(fromImage: app.imageId)
+		.then (stream) ->
+			deferred = Promise.defer()
 
-		req = http.request options, (res) ->
-			if res.headers['content-type'] is 'application/json'
-				res.pipe(JSONStream.parse('error'))
+			if stream.headers['content-type'] is 'application/json'
+				stream.pipe(JSONStream.parse('error'))
 				.pipe es.mapSync (error) ->
 					deferred.reject(error)
 			else
-				res.pipe es.wait (error, text) -> deferred.reject(text)
+				stream.pipe es.wait (error, text) -> deferred.reject(text)
 
-			res.on 'end', ->
-				if res.statusCode is 200
-					deferred.resolve()
-				else
-					deferred.reject(res.statusCode)
+			stream.on 'end', -> deferred.resolve()
 
-		req.end()
-		req.on 'error', (error) -> deferred.reject(error)
-
-		return deferred.promise
+			return deferred.promise
 	.then ->
 		console.log("Creating container:", app.imageId)
 		ports = {}
