@@ -34,7 +34,7 @@ exports.kill = kill = (app) ->
 		)
 
 exports.start = start = (app) ->
-	docker.getImage(app).inspectAsync()
+	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
 		console.log("Pulling image:", app.imageId)
 		deferred = Promise.defer()
