@@ -64,9 +64,11 @@ exports.start = start = (app) ->
 	.then ->
 		console.log("Creating container:", app.imageId)
 		ports = {}
-		if app.env.PORT?
-			maybePort = parseInt(app.env.PORT, 10)
-			if parseFloat(app.env.PORT) is maybePort and maybePort > 0 and maybePort < 65535
+		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
+		env = JSON.parse(app.env)
+		if env.PORT?
+			maybePort = parseInt(env.PORT, 10)
+			if parseFloat(env.PORT) is maybePort and maybePort > 0 and maybePort < 65535
 				port = maybePort
 		if port?
 			ports[port + '/tcp'] = {}
@@ -75,7 +77,7 @@ exports.start = start = (app) ->
 			Cmd: ['/bin/bash', '-c', '/start']
 			Volumes:
 				'/dev': {}
-			Env: _.map app.env, (v, k) -> k + '=' + v
+			Env: _.map env, (v, k) -> k + '=' + v
 			ExposedPorts: ports
 		)
 		.then (container) ->
@@ -136,7 +138,7 @@ exports.update = ->
 						env[envVar.name] = envVar.value
 				return {
 					imageId: "#{process.env.REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
-					env: env
+					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
 				}
 
 			remoteApps = _.indexBy(remoteApps, 'imageId')
