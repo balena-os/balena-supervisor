@@ -37,18 +37,14 @@ exports.start = start = (app) ->
 		console.log("Pulling image:", app.imageId)
 		docker.createImageAsync(fromImage: app.imageId)
 		.then (stream) ->
-			deferred = Promise.defer()
+			return new Promise (resolve, reject) ->
+				if stream.headers['content-type'] is 'application/json'
+					stream.pipe(JSONStream.parse('error'))
+					.pipe(es.mapSync(reject))
+				else
+					stream.pipe(es.wait((error, text) -> reject(text))
 
-			if stream.headers['content-type'] is 'application/json'
-				stream.pipe(JSONStream.parse('error'))
-				.pipe es.mapSync (error) ->
-					deferred.reject(error)
-			else
-				stream.pipe es.wait (error, text) -> deferred.reject(text)
-
-			stream.on 'end', -> deferred.resolve()
-
-			return deferred.promise
+				stream.on('end', resolve)
 	.then ->
 		console.log("Creating container:", app.imageId)
 		ports = {}
