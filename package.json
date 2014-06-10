@@ -4,7 +4,7 @@
   "scripts": {
     "preinstall": "bash deps.sh",
     "postinstall": "node ./node_modules/coffee-script/bin/coffee -c ./src",
-    "start": "bash entry.sh node src/supervisor.js"
+    "start": "./entry.sh"
   },
   "dependencies": {
     "coffee-script": "~1.7.1",

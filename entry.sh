@@ -1,4 +1,5 @@
 #!/bin/sh
+
 set -e
 
 [ -d /dev/net ] ||
@@ -6,4 +7,4 @@ set -e
 [ -c /dev/net/tun ] ||
     mknod /dev/net/tun c 10 200
 
-[ "$1" ] && exec "$@"
+exec node src/supervisor.js
