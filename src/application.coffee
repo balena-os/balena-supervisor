@@ -42,7 +42,7 @@ exports.start = start = (app) ->
 					stream.pipe(JSONStream.parse('error'))
 					.pipe(es.mapSync(reject))
 				else
-					stream.pipe(es.wait((error, text) -> reject(text))
+					stream.pipe(es.wait((error, text) -> reject(text)))
 
 				stream.on('end', resolve)
 	.then ->
