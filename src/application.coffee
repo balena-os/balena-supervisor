@@ -100,14 +100,15 @@ exports.start = start = (app) ->
 				]
 			)
 			.then ->
-				container.attach {stream: true, stdout: true, stderr: true, tty: true}, (err, stream) ->
-					es.pipeline(
-						stream
-						es.split()
-						# Remove color escape sequences
-						es.mapSync((s) -> s.replace(/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]/g, ''))
-						es.mapSync(publish)
-					)
+				container.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
+			.then (stream) ->
+				es.pipeline(
+					stream
+					es.split()
+					# Remove color escape sequences
+					es.mapSync((s) -> s.replace(/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]/g, ''))
+					es.mapSync(publish)
+				)
 	.tap ->
 		console.log('Started container:', app.imageId)
 
