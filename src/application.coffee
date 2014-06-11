@@ -105,8 +105,6 @@ exports.start = start = (app) ->
 				es.pipeline(
 					stream
 					es.split()
-					# Remove color escape sequences
-					es.mapSync((s) -> s.replace(/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]/g, ''))
 					es.mapSync(publish)
 				)
 	.tap ->
