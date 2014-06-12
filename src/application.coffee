@@ -30,6 +30,7 @@ publish = do ->
 		uuid = uuid.value
 		channel = "device-#{uuid}-logs"
 
+		# Redefine original function
 		publish = (message) ->
 			pubnub.publish({channel, message})
 
