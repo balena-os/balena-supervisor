@@ -11,15 +11,15 @@ docker = Promise.promisifyAll(new Docker(socketPath: DOCKER_SOCKET))
 Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
 
-supervisorTag = 'resin/rpi-supervisor'
-updateImage = config.REGISTRY_ENDPOINT + '/' + supervisorTag
+localImage = 'resin/rpi-supervisor'
+remoteImage = config.REGISTRY_ENDPOINT + '/' + localImage
 
 supervisorUpdating = Promise.resolve()
 exports.update = ->
 	# Make sure only one attempt to update the full supervisor is running at a time, ignoring any errors from previous update attempts
 	supervisorUpdating = supervisorUpdating.catch(->).then -> 
-		console.log('Fetching updated supervisor:', updateImage)
-		docker.createImageAsync(fromImage: updateImage)
+		console.log('Fetching updated supervisor:', remoteImage)
+		docker.createImageAsync(fromImage: remoteImage)
 	.then (stream) ->
 		return new Promise (resolve, reject) ->
 			if stream.headers['content-type'] is 'application/json'
@@ -30,15 +30,15 @@ exports.update = ->
 
 			stream.on('end', resolve)
 	.then ->
-		console.log('Tagging updated supervisor:', updateImage)
-		docker.getImage(updateImage).tagAsync(
-			repo: supervisorTag
+		console.log('Tagging updated supervisor:', remoteImage)
+		docker.getImage(remoteImage).tagAsync(
+			repo: localImage
 			force: true
 		)
 	.then ->
-		console.log('Creating updated supervisor container:', supervisorTag)
+		console.log('Creating updated supervisor container:', localImage)
 		docker.createContainerAsync(
-			Image: supervisorTag
+			Image: localImage
 			Cmd: ['/start']
 			Volumes:
 				'/boot/config.json': '/mnt/mmcblk0p1/config.json'
@@ -50,7 +50,7 @@ exports.update = ->
 			]
 		)
 	.then (container) ->
-		console.log('Starting updated supervisor container:', supervisorTag)
+		console.log('Starting updated supervisor container:', localImage)
 		container.startAsync(
 			Privileged: true
 			Binds: [
