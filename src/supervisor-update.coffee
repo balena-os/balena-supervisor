@@ -41,8 +41,8 @@ exports.update = ->
 			Image: supervisorTag
 			Cmd: ['/start']
 			Volumes:
-				'/boot/config.json': '/mnt/mmcblk0p1/config.json',
-				'/data': '/var/lib/docker/data',
+				'/boot/config.json': '/mnt/mmcblk0p1/config.json'
+				'/data': '/var/lib/docker/data'
 				'/run/docker.sock': '/var/run/docker.sock'
 			Env: [
 				'API_ENDPOINT=' + config.API_ENDPOINT
