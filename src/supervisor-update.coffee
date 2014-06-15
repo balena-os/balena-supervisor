@@ -12,7 +12,7 @@ Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
 
 localImage = 'resin/rpi-supervisor'
-remoteImage = config.REGISTRY_ENDPOINT + '/' + localImage
+remoteImage = config.registryEndpoint + '/' + localImage
 
 supervisorUpdating = Promise.resolve()
 exports.update = ->
@@ -44,10 +44,9 @@ exports.update = ->
 				'/boot/config.json': '/mnt/mmcblk0p1/config.json'
 				'/data': '/var/lib/docker/data'
 				'/run/docker.sock': '/var/run/docker.sock'
-			Env: [
-				'API_ENDPOINT=' + config.API_ENDPOINT
-				'REGISTRY_ENDPOINT=' + config.REGISTRY_ENDPOINT
-			]
+			Env:
+				for envVar in config.expectedEnvVars
+					envVar + '=' + process.env[envVar]
 		)
 	.then (container) ->
 		console.log('Starting updated supervisor container:', localImage)
