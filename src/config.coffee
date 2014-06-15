@@ -4,6 +4,7 @@ module.exports = config =
 	pubnub:
 		subscribe_key: process.env.PUBNUB_SUBSCRIBE_KEY
 		publish_key: process.env.PUBNUB_PUBLISH_KEY
+	dockerSocket: '/run/docker.sock'
 	expectedEnvVars: [
 		'API_ENDPOINT'
 		'REGISTRY_ENDPOINT'

@@ -4,9 +4,8 @@ Promise = require 'bluebird'
 JSONStream = require 'JSONStream'
 config = require './config'
 
-DOCKER_SOCKET = '/run/docker.sock'
 
-docker = Promise.promisifyAll(new Docker(socketPath: DOCKER_SOCKET))
+docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
 Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)

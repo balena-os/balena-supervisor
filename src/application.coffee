@@ -10,11 +10,10 @@ Promise = require 'bluebird'
 JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
 
-DOCKER_SOCKET = '/run/docker.sock'
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
 
-docker = Promise.promisifyAll(new Docker(socketPath: DOCKER_SOCKET))
+docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
 Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
