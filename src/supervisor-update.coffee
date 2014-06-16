@@ -13,11 +13,15 @@ Promise.promisifyAll(docker.getContainer().__proto__)
 localImage = 'resin/rpi-supervisor'
 remoteImage = config.registryEndpoint + '/' + localImage
 
+# Docker sets the HOSTNAME as the container's short id.
+currentSupervisorImage = docker.getContainer(process.env.HOSTNAME).inspectAsync().then (info) ->
+	return info.Image
+
 supervisorUpdating = Promise.resolve()
 exports.update = ->
 	# Make sure only one attempt to update the full supervisor is running at a time, ignoring any errors from previous update attempts
 	supervisorUpdating = supervisorUpdating.catch(->).then -> 
-		console.log('Fetching updated supervisor:', remoteImage)
+		console.log('Fetching supervisor:', remoteImage)
 		docker.createImageAsync(fromImage: remoteImage)
 	.then (stream) ->
 		return new Promise (resolve, reject) ->
@@ -29,12 +33,21 @@ exports.update = ->
 
 			stream.on('end', resolve)
 	.then ->
-		console.log('Tagging updated supervisor:', remoteImage)
+		console.log('Tagging supervisor:', remoteImage)
 		docker.getImage(remoteImage).tagAsync(
 			repo: localImage
 			force: true
 		)
 	.then ->
+		console.log('Inspecting newly tagged supervisor:', localImage)
+		Promise.all([
+			docker.getImage(localImage).inspectAsync()
+			currentSupervisorImage
+		])
+	.spread (localImageInfo, currentSupervisorImage) ->
+		if localImageInfo.id == currentSupervisorImage
+			console.log('Supervisor is up to date')
+			return
 		console.log('Creating updated supervisor container:', localImage)
 		docker.createContainerAsync(
 			Image: localImage
@@ -47,19 +60,19 @@ exports.update = ->
 				for envVar in config.expectedEnvVars
 					envVar + '=' + process.env[envVar]
 		)
-	.then (container) ->
-		console.log('Starting updated supervisor container:', localImage)
-		container.startAsync(
-			Privileged: true
-			Binds: [
-				'/mnt/mmcblk0p1/config.json:/boot/config.json'
-				'/var/run/docker.sock:/run/docker.sock'
-				'/var/lib/docker/data:/data'
-			]
-		)
-	.then ->
-		# We've started the new container, so we're done here! #pray
-		process.exit()
+		.then (container) ->
+			console.log('Starting updated supervisor container:', localImage)
+			container.startAsync(
+				Privileged: true
+				Binds: [
+					'/mnt/mmcblk0p1/config.json:/boot/config.json'
+					'/var/run/docker.sock:/run/docker.sock'
+					'/var/lib/docker/data:/data'
+				]
+			)
+		.then ->
+			# We've started the new container, so we're done here! #pray
+			process.exit()
 	.catch (err) ->
 		console.error('Error updating supervisor:', err)
 		throw err

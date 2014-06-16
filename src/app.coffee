@@ -15,6 +15,7 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 .then ->
 	api = require './api'
 	application = require './application'
+	supervisor = require './supervisor-update'
 
 	console.log('Starting OpenVPN..')
 	openvpn = spawn('openvpn', ['client.conf'], cwd: '/data')
@@ -44,4 +45,10 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 			application.update()
 		, 5 * 60 * 1000) # Every 5 mins
 		application.update()
+
+	console.log('Starting periodic check for supervisor updates..')
+	setInterval(->
+		supervisor.update()
+	, 5 * 60 * 1000) # Every 5 mins
+	supervisor.update()
 
