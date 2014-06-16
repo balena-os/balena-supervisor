@@ -147,7 +147,9 @@ exports.update = ->
 			console.log("Remote apps")
 			remoteApps = _.filter(remoteApps, 'commit')
 			remoteApps = _.map remoteApps, (app) ->
-				env = {}
+				env =
+					RESIN_DEVICE_UUID: uuid
+
 				if app.environment_variable?
 					for envVar in app.environment_variable
 						env[envVar.name] = envVar.value
