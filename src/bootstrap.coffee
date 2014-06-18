@@ -85,3 +85,4 @@ module.exports = ->
 				])
 			knex('app').truncate()
 		])
+	.return(uuid)

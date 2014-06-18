@@ -15,6 +15,7 @@ blink = (ms = 200) ->
 	.then -> fs.writeFileAsync(LED_FILE, 0)
 
 api.post '/v1/blink', (req, res) ->
+	utils.mixpanelTrack('Device blink')
 	interval = setInterval(blink, 400)
 	setTimeout(->
 		clearInterval(interval)
@@ -22,6 +23,7 @@ api.post '/v1/blink', (req, res) ->
 	res.send(200)
 
 api.post '/v1/update', (req, res) ->
+	utils.mixpanelTrack('Update notification')
 	console.log("Got application update")
 	application.update()
 	res.send(204)

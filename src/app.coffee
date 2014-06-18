@@ -7,12 +7,19 @@ utils = require './utils'
 bootstrap = require './bootstrap'
 
 console.log('Supervisor started..')
+utils.mixpanelTrack('Supervisor start')
 
 knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	if not uuid?.value
 		console.log('New device detected. Bootstrapping..')
+		utils.mixpanelTrack('Device bootstrap')
 		bootstrap()
-.then ->
+	else
+		uuid.value
+.then (uuid) ->
+	# Persist the uuid in subsequent metrics
+	utils.mixpanelProperties.uuid = uuid
+
 	api = require './api'
 	application = require './application'
 	supervisor = require './supervisor-update'

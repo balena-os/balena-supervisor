@@ -51,6 +51,8 @@ exports.kill = kill = (app) ->
 				.then ->
 					container.removeAsync()
 		)
+	.tap ->
+		utils.mixpanelTrack('Application stop', app.imageId)
 
 exports.start = start = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
@@ -110,6 +112,7 @@ exports.start = start = (app) ->
 					es.mapSync(publish)
 				)
 	.tap ->
+		utils.mixpanelTrack('Application start', app.imageId)
 		console.log('Started container:', app.imageId)
 
 exports.restart = restart = (app) ->
@@ -186,19 +189,23 @@ exports.update = ->
 
 			# Delete all the ones to remove in one go
 			Promise.map toBeRemoved, (imageId) ->
-				kill(apps[imageId])
+				app = apps[imageId]
+				utils.mixpanelTrack('Application remove', app)
+				kill(app)
 				.then ->
 					knex('app').where('imageId', imageId).delete()
 			.then ->
 				# Then install the apps and add each to the db as they succeed
 				installingPromises = toBeInstalled.map (imageId) ->
 					app = remoteApps[imageId]
+					utils.mixpanelTrack('Application install', app)
 					start(app)
 					.then ->
 						knex('app').insert(app)
 				# And restart updated apps and update db as they succeed
 				updatingPromises = toBeUpdated.map (imageId) ->
 					app = remoteApps[imageId]
+					utils.mixpanelTrack('Application update', app)
 					restart(app)
 					.then ->
 						knex('app').update(app).where(imageId: app.imageId)

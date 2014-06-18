@@ -7,19 +7,20 @@
     "start": "./entry.sh"
   },
   "dependencies": {
+    "bluebird": "~1.1.1",
     "coffee-script": "~1.7.1",
-    "request": "~2.22.0",
-    "express": "~3.2.6",
-    "lodash": "~2.4.1",
     "csr-gen": "~0.2.1",
     "dockerode": "~2.0.0",
-    "knex": "~0.5.1",
-    "bluebird": "~1.1.1",
-    "JSONStream": "~0.7.1",
     "event-stream": "~3.0.20",
-    "sqlite3": "~2.1.19",
+    "express": "~3.2.6",
+    "JSONStream": "~0.7.1",
+    "knex": "~0.5.1",
+    "lodash": "~2.4.1",
+    "mixpanel": "0.0.20",
+    "pubnub": "~3.6.4",
+    "request": "~2.22.0",
     "resin-platform-api": "git+ssh://git@bitbucket.org:rulemotion/resin-platform-api.git#v0.2.3",
-    "pubnub": "~3.6.4"
+    "sqlite3": "~2.1.19"
   },
   "engines": {
     "node": "0.10.22"
