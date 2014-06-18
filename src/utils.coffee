@@ -11,7 +11,7 @@ exports.getSupervisorVersion = ->
 		obj = JSON.parse data
 		return obj.version
 
-mixpanel.init(config.mixpanelToken)
+mixpanelClient = mixpanel.init(config.mixpanelToken)
 
 exports.mixpanelProperties = mixpanelProperties =
 	username: require('/boot/config.json').username
@@ -20,4 +20,4 @@ exports.mixpanelTrack = (event, properties={}) ->
 	# Mutation is bad, and it should feel bad
 	properties = _.assign(_.cloneDeep(properties), mixpanelProperties)
 
-	mixpanel.track(event, properties)
+	mixpanelClient.track(event, properties)
