@@ -1,8 +1,9 @@
 es = require 'event-stream'
+utils = require './utils'
+config = require './config'
 Docker = require 'dockerode'
 Promise = require 'bluebird'
 JSONStream = require 'JSONStream'
-config = require './config'
 
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
@@ -20,7 +21,8 @@ currentSupervisorImage = docker.getContainer(process.env.HOSTNAME).inspectAsync(
 supervisorUpdating = Promise.resolve()
 exports.update = ->
 	# Make sure only one attempt to update the full supervisor is running at a time, ignoring any errors from previous update attempts
-	supervisorUpdating = supervisorUpdating.catch(->).then -> 
+	supervisorUpdating = supervisorUpdating.catch(->).then ->
+		utils.mixpanelTrack('Supervisor update check')
 		console.log('Fetching supervisor:', remoteImage)
 		docker.createImageAsync(fromImage: remoteImage)
 	.then (stream) ->
@@ -46,8 +48,10 @@ exports.update = ->
 		])
 	.spread (localImageInfo, currentSupervisorImage) ->
 		if localImageInfo.id == currentSupervisorImage
+			utils.mixpanelTrack('Supervisor up to date')
 			console.log('Supervisor is up to date')
 			return
+		utils.mixpanelTrack('Supervisor update start', image: localImageInfo.id)
 		console.log('Creating updated supervisor container:', localImage)
 		docker.createContainerAsync(
 			Image: localImage
@@ -74,5 +78,6 @@ exports.update = ->
 			# We've started the new container, so we're done here! #pray
 			process.exit()
 	.catch (err) ->
+		utils.mixpanelTrack('Supervisor update failed', error: err)
 		console.error('Error updating supervisor:', err)
 		throw err
