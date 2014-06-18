@@ -11,7 +11,7 @@ request = Promise.promisify require 'request'
 
 module.exports = ->
 	# Load config file
-	userConfig = fs.readFileAsync('/boot/config.json', 'utf8').then(JSON.parse)
+	userConfig = require('/boot/config.json')
 
 	version = utils.getSupervisorVersion()
 
@@ -37,8 +37,8 @@ module.exports = ->
 		division: ''
 	)
 
-	Promise.all([userConfig, keys, version])
-	.then ([userConfig, keys, version]) ->
+	Promise.all([keys, version])
+	.then ([keys, version]) ->
 		console.log('UUID:', uuid)
 		console.log('User ID:', userConfig.userId)
 		console.log('User:', userConfig.username)
@@ -74,8 +74,6 @@ module.exports = ->
 		Promise.all([
 			knex('config').truncate()
 			.then ->
-				userConfig
-			.then (userConfig) ->
 				knex('config').insert([
 					{ key: 'uuid', value: uuid }
 					{ key: 'apiKey', value: userConfig.apiKey }
