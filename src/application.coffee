@@ -83,6 +83,7 @@ exports.start = start = (app) ->
 			Tty: true
 			Volumes:
 				'/dev': {}
+				'/lib/modules': {}
 			Env: _.map env, (v, k) -> k + '=' + v
 			ExposedPorts: ports
 		)
@@ -96,6 +97,7 @@ exports.start = start = (app) ->
 				PortBindings: ports
 				Binds: [
 					'/dev:/dev'
+					'/lib/modules:/lib/modules'
 					'/var/run/docker.sock:/run/docker.sock'
 				]
 			)
