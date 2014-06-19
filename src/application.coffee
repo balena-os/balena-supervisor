@@ -150,6 +150,7 @@ exports.update = ->
 			remoteApps = _.map remoteApps, (app) ->
 				env =
 					RESIN_DEVICE_UUID: uuid
+					USER: 'root'
 
 				if app.environment_variable?
 					for envVar in app.environment_variable
