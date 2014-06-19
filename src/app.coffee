@@ -6,7 +6,6 @@ utils = require './utils'
 {spawn} = require 'child_process'
 bootstrap = require './bootstrap'
 
-console.log('Supervisor started..')
 utils.mixpanelTrack('Supervisor start')
 
 knex('config').select('value').where(key: 'uuid').then ([uuid]) ->

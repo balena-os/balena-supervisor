@@ -17,6 +17,7 @@ exports.mixpanelProperties = mixpanelProperties =
 	username: require('/boot/config.json').username
 
 exports.mixpanelTrack = (event, properties={}) ->
+	console.log('Event:', event, JSON.stringify(properties))
 	# Mutation is bad, and it should feel bad
 	properties = _.assign(_.cloneDeep(properties), mixpanelProperties)
 

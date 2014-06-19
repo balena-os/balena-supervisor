@@ -58,7 +58,6 @@ exports.kill = kill = (app) ->
 exports.start = start = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
-		console.log("Pulling image:", app.imageId)
 		utils.mixpanelTrack('Application install', app)
 		docker.createImageAsync(fromImage: app.imageId)
 		.then (stream) ->
@@ -115,7 +114,6 @@ exports.start = start = (app) ->
 				)
 	.tap ->
 		utils.mixpanelTrack('Application start', app.imageId)
-		console.log('Started container:', app.imageId)
 
 exports.restart = restart = (app) ->
 	kill(app)

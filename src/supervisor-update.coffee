@@ -49,10 +49,8 @@ exports.update = ->
 	.spread (localImageInfo, currentSupervisorImage) ->
 		if localImageInfo.id == currentSupervisorImage
 			utils.mixpanelTrack('Supervisor up to date')
-			console.log('Supervisor is up to date')
 			return
 		utils.mixpanelTrack('Supervisor update start', image: localImageInfo.id)
-		console.log('Creating updated supervisor container:', localImage)
 		docker.createContainerAsync(
 			Image: localImage
 			Cmd: ['/start']
@@ -79,5 +77,4 @@ exports.update = ->
 			process.exit()
 	.catch (err) ->
 		utils.mixpanelTrack('Supervisor update failed', error: err)
-		console.error('Error updating supervisor:', err)
 		throw err

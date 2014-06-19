@@ -24,7 +24,6 @@ api.post '/v1/blink', (req, res) ->
 
 api.post '/v1/update', (req, res) ->
 	utils.mixpanelTrack('Update notification')
-	console.log("Got application update")
 	application.update()
 	res.send(204)
 
