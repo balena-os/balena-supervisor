@@ -39,6 +39,7 @@ publish = do ->
 	return -> publishQueue.push(arguments)
 
 exports.kill = kill = (app) ->
+	utils.mixpanelTrack('Application kill', app)
 	docker.listContainersAsync(all: 1)
 	.then (containers) ->
 		Promise.all(
@@ -58,6 +59,7 @@ exports.start = start = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
 		console.log("Pulling image:", app.imageId)
+		utils.mixpanelTrack('Application install', app)
 		docker.createImageAsync(fromImage: app.imageId)
 		.then (stream) ->
 			return new Promise (resolve, reject) ->
@@ -189,16 +191,13 @@ exports.update = ->
 
 			# Delete all the ones to remove in one go
 			Promise.map toBeRemoved, (imageId) ->
-				app = apps[imageId]
-				utils.mixpanelTrack('Application remove', app)
-				kill(app)
+				kill(apps[imageId])
 				.then ->
 					knex('app').where('imageId', imageId).delete()
 			.then ->
 				# Then install the apps and add each to the db as they succeed
 				installingPromises = toBeInstalled.map (imageId) ->
 					app = remoteApps[imageId]
-					utils.mixpanelTrack('Application install', app)
 					start(app)
 					.then ->
 						knex('app').insert(app)
