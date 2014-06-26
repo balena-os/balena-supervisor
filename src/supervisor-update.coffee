@@ -74,6 +74,7 @@ exports.update = ->
 			)
 		.then ->
 			# We've started the new container, so we're done here! #pray
+			console.log('Exiting to let the new supervisor take over')
 			process.exit()
 	.catch (err) ->
 		utils.mixpanelTrack('Supervisor update failed', error: err)
