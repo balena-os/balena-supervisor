@@ -47,10 +47,10 @@ exports.update = ->
 			currentSupervisorImage
 		])
 	.spread (localImageInfo, currentSupervisorImage) ->
-		if localImageInfo.id == currentSupervisorImage
+		if localImageInfo.Id == currentSupervisorImage
 			utils.mixpanelTrack('Supervisor up to date')
 			return
-		utils.mixpanelTrack('Supervisor update start', image: localImageInfo.id)
+		utils.mixpanelTrack('Supervisor update start', image: localImageInfo.Id)
 		docker.createContainerAsync(
 			Image: localImage
 			Cmd: ['/start']
