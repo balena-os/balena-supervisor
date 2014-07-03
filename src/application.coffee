@@ -9,6 +9,7 @@ PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
+utils = require './utils'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
