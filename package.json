@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "preinstall": "bash deps.sh",
-    "postinstall": "node ./node_modules/coffee-script/bin/coffee -c ./src",
+    "postinstall": "node ./node_modules/coffee-script/bin/coffee -c ./src && rm -rf /root/.ssh/* && rm -rf /build/app/deploy_key",
     "start": "./entry.sh"
   },
   "dependencies": {

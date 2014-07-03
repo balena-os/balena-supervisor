@@ -2,7 +2,7 @@
 mkdir -p /root/.ssh
 cp deploy_key /root/.ssh/id_rsa
 chmod 400 /root/.ssh/id_rsa
-cp known_hosts /root/.ssh/known_hosts
+cp ssh_config /root/.ssh/config
 
 # System dependencies
 apt-get update
