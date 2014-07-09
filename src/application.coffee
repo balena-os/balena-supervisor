@@ -56,6 +56,10 @@ exports.kill = kill = (app) ->
 	.tap ->
 		utils.mixpanelTrack('Application stop', app.imageId)
 
+isValidPort = (port) ->
+	maybePort = parseInt(port, 10)
+	return parseFloat(port) is maybePort and maybePort > 0 and maybePort < 65535
+
 exports.start = start = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
@@ -76,11 +80,14 @@ exports.start = start = (app) ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
 		env = JSON.parse(app.env)
 		if env.PORT?
-			maybePort = parseInt(env.PORT, 10)
-			if parseFloat(env.PORT) is maybePort and maybePort > 0 and maybePort < 65535
-				port = maybePort
-		if port?
-			ports[port + '/tcp'] = {}
+			portList = env.PORT
+			.split(',')
+			.map((port) -> port.trim())
+			.filter(isValidPort)
+
+			portList.forEach (port) ->
+				ports[port + '/tcp'] = {}
+
 		docker.createContainerAsync(
 			Image: app.imageId
 			Cmd: ['/bin/bash', '-c', '/start']
@@ -94,8 +101,9 @@ exports.start = start = (app) ->
 		.then (container) ->
 			console.log('Starting container:', app.imageId)
 			ports = {}
-			if port?
-				ports[port + '/tcp'] = [ HostPort: String(port) ]
+			if portList?
+				portList.forEach (port) ->
+					ports[port + '/tcp'] = [ HostPort: port ]
 			container.startAsync(
 				Privileged: true
 				PortBindings: ports
