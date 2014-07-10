@@ -1,3 +1,3 @@
-FROM resin/rpi-buildstep-armv6hf:latest
+FROM resin/supervisor-base:latest
 ADD . /app
 RUN /build/builder
