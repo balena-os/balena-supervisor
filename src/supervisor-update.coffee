@@ -59,6 +59,7 @@ exports.update = ->
 				'/boot/config.json': '/mnt/mmcblk0p1/config.json'
 				'/data': '/var/lib/docker/data'
 				'/run/docker.sock': '/var/run/docker.sock'
+				'/mnt/fib_trie': '/proc/net/fib_trie'
 			Env:
 				for envVar in config.expectedEnvVars
 					envVar + '=' + process.env[envVar]
@@ -71,6 +72,7 @@ exports.update = ->
 					'/mnt/mmcblk0p1/config.json:/boot/config.json'
 					'/var/run/docker.sock:/run/docker.sock'
 					'/var/lib/docker/data:/data'
+					'/proc/net/fib_trie:/mnt/fib_trie'
 				]
 			)
 		.then ->
