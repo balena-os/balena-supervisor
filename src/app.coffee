@@ -58,3 +58,12 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	, 5 * 60 * 1000) # Every 5 mins
 	supervisor.update()
 
+	updateIpAddr = ->
+		utils.findIpAddrs().then (ipAddrs) ->
+			application.updateDeviceInfo(
+				ip_address: ipAddrs.join(' ')
+			)
+	console.log('Starting periodic check for IP addresses..')
+	setInterval(updateIpAddr, 5 * 60 * 1000) # Every 5 mins
+	updateIpAddr()
+

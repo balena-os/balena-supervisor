@@ -222,3 +222,29 @@ exports.update = ->
 			setTimeout(exports.update)
 		# Set the updating as finished
 		currentlyUpdating = 0
+
+exports.updateDeviceInfo = (body) ->
+	Promise.all([
+		knex('config').select('value').where(key: 'apiKey')
+		knex('config').select('value').where(key: 'uuid')
+	])
+	.spread ([{value: apiKey}], [{value: uuid}]) ->
+		resinAPI.get(
+			resource: 'device'
+			options:
+				filter:
+					uuid: uuid
+			customOptions:
+				apikey: apiKey
+		)
+		.then (devices) ->
+			if devices.length is 0
+				throw new Error('Could not find this device?!')
+			deviceID = devices[0].id
+			resinAPI.patch(
+				resource: 'device'
+				id: deviceID
+				body: body
+				customOptions:
+					apikey: apiKey
+			)
