@@ -60,9 +60,8 @@ exports.update = ->
 				'/data': '/var/lib/docker/data'
 				'/run/docker.sock': '/var/run/docker.sock'
 				'/mnt/fib_trie': '/proc/net/fib_trie'
-			Env:
-				for envVar in config.expectedEnvVars
-					envVar + '=' + process.env[envVar]
+			# Copy the env vars directly from the current container - using both upper/lower case to account for different docker versions.
+			Env: localImageInfo.Env ? localImageInfo.env
 		)
 		.then (container) ->
 			console.log('Starting updated supervisor container:', localImage)

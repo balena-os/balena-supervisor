@@ -1,20 +1,8 @@
 module.exports = config =
-	apiEndpoint: process.env.API_ENDPOINT
-	registryEndpoint: process.env.REGISTRY_ENDPOINT
+	apiEndpoint: process.env.API_ENDPOINT ? 'https://api.resin.io'
+	registryEndpoint: process.env.REGISTRY_ENDPOINT ? 'registry.resin.io'
 	pubnub:
-		subscribe_key: process.env.PUBNUB_SUBSCRIBE_KEY
-		publish_key: process.env.PUBNUB_PUBLISH_KEY
-	mixpanelToken: process.env.MIXPANEL_TOKEN
-	dockerSocket: '/run/docker.sock'
-	expectedEnvVars: [
-		'API_ENDPOINT'
-		'REGISTRY_ENDPOINT'
-		'MIXPANEL_TOKEN'
-		'PUBNUB_SUBSCRIBE_KEY'
-		'PUBNUB_PUBLISH_KEY'
-	]
-
-# A check that all variables are set and notify the user if not
-for envVar in config.expectedEnvVars when !process.env[envVar]?
-	console.error('Cannot find env var:', envVar)
-
+		subscribe_key: process.env.PUBNUB_SUBSCRIBE_KEY ? 'sub-c-bananas'
+		publish_key: process.env.PUBNUB_PUBLISH_KEY ? 'pub-c-bananas'
+	mixpanelToken: process.env.MIXPANEL_TOKEN ? 'bananasbananas'
+	dockerSocket: process.env.DOCKER_SOCKET ? '/run/docker.sock'
