@@ -4,7 +4,7 @@ config = require './config'
 Docker = require 'dockerode'
 Promise = require 'bluebird'
 JSONStream = require 'JSONStream'
-
+_ = require 'lodash'
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
@@ -14,9 +14,39 @@ Promise.promisifyAll(docker.getContainer().__proto__)
 localImage = 'resin/rpi-supervisor'
 remoteImage = config.registryEndpoint + '/' + localImage
 
+startNewSupervisor = (currentSupervisor) ->
+	console.log('Creating supervisor container:', localImage)
+	docker.createContainerAsync(
+		Image: localImage
+		Cmd: ['/start']
+		Volumes: config.supervisorContainer.Volumes
+		# Copy the env vars directly from the current container - using both upper/lower case to account for different docker versions.
+		Env: currentSupervisor.Env ? currentSupervisor.env
+	)
+	.then (container) ->
+		console.log('Starting supervisor container:', localImage)
+		container.startAsync(
+			Privileged: true
+			Binds: config.supervisorContainer.Binds
+		)
+	.then ->
+		# We've started the new container, so we're done here! #pray
+		console.log('Exiting to let the new supervisor take over')
+		process.exit()
+
 # Docker sets the HOSTNAME as the container's short id.
-currentSupervisorImage = docker.getContainer(process.env.HOSTNAME).inspectAsync().then (info) ->
-	return info.Image
+currentSupervisor = docker.getContainer(process.env.HOSTNAME).inspectAsync().tap (currentSupervisor) ->
+	# The volume keys are the important bit.
+	expectedVolumes = _.sortBy(_.keys(config.supervisorContainer.Volumes))
+	actualVolumes = _.sortBy(_.keys(info.Volumes))
+
+	expectedBinds = _.sortBy(config.supervisorContainer.Binds)
+	actualBinds = _.sortBy(info.HostConfig.Binds)
+
+	# Check all the expected binds and volumes exist, if not then start a new supervisor (which will add them correctly)
+	if !_.isEqual(expectedVolumes, actualVolumes) or !_.isEqual(expectedBinds, actualBinds)
+		utils.mixpanelTrack('Supervisor restart (for binds/mounts)', image: localImage)
+		startNewSupervisor(currentSupervisor)
 
 supervisorUpdating = Promise.resolve()
 exports.update = ->
@@ -44,40 +74,15 @@ exports.update = ->
 		console.log('Inspecting newly tagged supervisor:', localImage)
 		Promise.all([
 			docker.getImage(localImage).inspectAsync()
-			currentSupervisorImage
+			currentSupervisor
 		])
-	.spread (localImageInfo, currentSupervisorImage) ->
+	.spread (localImageInfo, currentSupervisor) ->
 		localImageId = localImageInfo.Id or localImageInfo.id
-		if localImageId is currentSupervisorImage
+		if localImageId is currentSupervisor.Image
 			utils.mixpanelTrack('Supervisor up to date')
 			return
 		utils.mixpanelTrack('Supervisor update start', image: localImageId)
-		docker.createContainerAsync(
-			Image: localImage
-			Cmd: ['/start']
-			Volumes:
-				'/boot/config.json': '/mnt/mmcblk0p1/config.json'
-				'/data': '/var/lib/docker/data'
-				'/run/docker.sock': '/var/run/docker.sock'
-				'/mnt/fib_trie': '/proc/net/fib_trie'
-			# Copy the env vars directly from the current container - using both upper/lower case to account for different docker versions.
-			Env: localImageInfo.Env ? localImageInfo.env
-		)
-		.then (container) ->
-			console.log('Starting updated supervisor container:', localImage)
-			container.startAsync(
-				Privileged: true
-				Binds: [
-					'/mnt/mmcblk0p1/config.json:/boot/config.json'
-					'/var/run/docker.sock:/run/docker.sock'
-					'/var/lib/docker/data:/data'
-					'/proc/net/fib_trie:/mnt/fib_trie'
-				]
-			)
-		.then ->
-			# We've started the new container, so we're done here! #pray
-			console.log('Exiting to let the new supervisor take over')
-			process.exit()
+		startNewSupervisor(currentSupervisor)
 	.catch (err) ->
 		utils.mixpanelTrack('Supervisor update failed', error: err)
 		throw err
