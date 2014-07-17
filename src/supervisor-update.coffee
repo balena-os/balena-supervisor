@@ -1,9 +1,6 @@
-es = require 'event-stream'
-utils = require './utils'
 config = require './config'
 Docker = require 'dockerode'
 Promise = require 'bluebird'
-JSONStream = require 'JSONStream'
 _ = require 'lodash'
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
@@ -20,8 +17,7 @@ startNewSupervisor = (currentSupervisor) ->
 		Image: localImage
 		Cmd: ['/start']
 		Volumes: config.supervisorContainer.Volumes
-		# Copy the env vars directly from the current container - using both upper/lower case to account for different docker versions.
-		Env: currentSupervisor.Env ? currentSupervisor.env
+		Env: currentSupervisor.Config.Env
 	)
 	.then (container) ->
 		console.log('Starting supervisor container:', localImage)
@@ -38,51 +34,57 @@ startNewSupervisor = (currentSupervisor) ->
 currentSupervisor = docker.getContainer(process.env.HOSTNAME).inspectAsync().tap (currentSupervisor) ->
 	# The volume keys are the important bit.
 	expectedVolumes = _.sortBy(_.keys(config.supervisorContainer.Volumes))
-	actualVolumes = _.sortBy(_.keys(info.Volumes))
+	actualVolumes = _.sortBy(_.keys(currentSupervisor.Volumes))
 
 	expectedBinds = _.sortBy(config.supervisorContainer.Binds)
-	actualBinds = _.sortBy(info.HostConfig.Binds)
+	actualBinds = _.sortBy(currentSupervisor.HostConfig.Binds)
 
 	# Check all the expected binds and volumes exist, if not then start a new supervisor (which will add them correctly)
 	if !_.isEqual(expectedVolumes, actualVolumes) or !_.isEqual(expectedBinds, actualBinds)
-		utils.mixpanelTrack('Supervisor restart (for binds/mounts)', image: localImage)
+		console.log('Supervisor restart (for binds/mounts)')
 		startNewSupervisor(currentSupervisor)
 
-supervisorUpdating = Promise.resolve()
-exports.update = ->
-	# Make sure only one attempt to update the full supervisor is running at a time, ignoring any errors from previous update attempts
-	supervisorUpdating = supervisorUpdating.catch(->).then ->
-		utils.mixpanelTrack('Supervisor update check')
-		console.log('Fetching supervisor:', remoteImage)
-		docker.createImageAsync(fromImage: remoteImage)
-	.then (stream) ->
-		return new Promise (resolve, reject) ->
-			if stream.headers['content-type'] is 'application/json'
-				stream.pipe(JSONStream.parse('error'))
-				.pipe(es.mapSync(reject))
-			else
-				stream.pipe(es.wait((error, text) -> reject(text)))
+# This is a promise that resolves when we have fully initialised.
+exports.initialised = currentSupervisor.then (currentSupervisor) ->
+	es = require 'event-stream'
+	utils = require './utils'
+	JSONStream = require 'JSONStream'
 
-			stream.on('end', resolve)
-	.then ->
-		console.log('Tagging supervisor:', remoteImage)
-		docker.getImage(remoteImage).tagAsync(
-			repo: localImage
-			force: true
-		)
-	.then ->
-		console.log('Inspecting newly tagged supervisor:', localImage)
-		Promise.all([
-			docker.getImage(localImage).inspectAsync()
-			currentSupervisor
-		])
-	.spread (localImageInfo, currentSupervisor) ->
-		localImageId = localImageInfo.Id or localImageInfo.id
-		if localImageId is currentSupervisor.Image
-			utils.mixpanelTrack('Supervisor up to date')
-			return
-		utils.mixpanelTrack('Supervisor update start', image: localImageId)
-		startNewSupervisor(currentSupervisor)
-	.catch (err) ->
-		utils.mixpanelTrack('Supervisor update failed', error: err)
-		throw err
+	supervisorUpdating = Promise.resolve()
+	exports.update = ->
+		# Make sure only one attempt to update the full supervisor is running at a time, ignoring any errors from previous update attempts
+		supervisorUpdating = supervisorUpdating.catch(->).then ->
+			utils.mixpanelTrack('Supervisor update check')
+			console.log('Fetching supervisor:', remoteImage)
+			docker.createImageAsync(fromImage: remoteImage)
+		.then (stream) ->
+			return new Promise (resolve, reject) ->
+				if stream.headers['content-type'] is 'application/json'
+					stream.pipe(JSONStream.parse('error'))
+					.pipe(es.mapSync(reject))
+				else
+					stream.pipe(es.wait((error, text) -> reject(text)))
+
+				stream.on('end', resolve)
+		.then ->
+			console.log('Tagging supervisor:', remoteImage)
+			docker.getImage(remoteImage).tagAsync(
+				repo: localImage
+				force: true
+			)
+		.then ->
+			console.log('Inspecting newly tagged supervisor:', localImage)
+			Promise.all([
+				docker.getImage(localImage).inspectAsync()
+				currentSupervisor
+			])
+		.spread (localImageInfo, currentSupervisor) ->
+			localImageId = localImageInfo.Id or localImageInfo.id
+			if localImageId is currentSupervisor.Image
+				utils.mixpanelTrack('Supervisor up to date')
+				return
+			utils.mixpanelTrack('Supervisor update start', image: localImageId)
+			startNewSupervisor(currentSupervisor)
+		.catch (err) ->
+			utils.mixpanelTrack('Supervisor update failed', error: err)
+			throw err
