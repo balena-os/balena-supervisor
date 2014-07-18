@@ -14,7 +14,7 @@ BUILDSTEP_REPO = resin/rpi-buildstep-armv6hf
 
 all: supervisor 
 
-BUILDSTEP_PRESENT = $(shell docker images | grep $(BUILDSTEP_VERSION) | awk '{print $$1}' | grep -xF $(BUILDSTEP_REPO) )
+BUILDSTEP_PRESENT = $(shell docker images --all | grep $(BUILDSTEP_VERSION) | awk '{print $$1}' | grep -xF $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO) )
 
 supervisor:
 ifneq ($(BUILDSTEP_PRESENT) , )
