@@ -21,8 +21,8 @@ ifneq ($(BUILDSTEP_PRESENT) , )
 	echo "Using existing Build step from $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)"
 else
 	docker pull $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
-	docker tag $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 endif
+	docker tag $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 	docker build --no-cache=$(DISABLE_CACHE) -t $(IMAGE):$(SUPERVISOR_VERSION) .
 	docker tag $(IMAGE):$(SUPERVISOR_VERSION) $(SUPERVISOR_REGISTRY)/$(IMAGE):$(SUPERVISOR_VERSION)
 
@@ -35,8 +35,8 @@ ifneq ($(BUILDSTEP_PRESENT) , )
 	echo "Using existing Build step from $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)"
 else
 	docker pull $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
-	docker tag $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 endif
+	docker tag $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 	docker run --name build-supervisor-latest --volumes-from  $(ACCELERATOR):ro -v `pwd`:/tmp/app $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
 	docker commit build-supervisor-latest $(IMAGE) > /dev/null
 	docker rm build-supervisor-latest
