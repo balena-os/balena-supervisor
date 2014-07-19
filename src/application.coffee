@@ -119,6 +119,7 @@ exports.start = start = (app) ->
 				]
 			)
 			.then ->
+				updateDeviceInfo(commit: app.commit)
 				container.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
 			.then (stream) ->
 				es.pipeline(
@@ -176,6 +177,7 @@ exports.update = ->
 					for envVar in app.environment_variable
 						env[envVar.name] = envVar.value
 				return {
+					commit: app.commit
 					imageId: "#{process.env.REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
 					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
 				}
@@ -185,7 +187,7 @@ exports.update = ->
 			console.log(remoteImages)
 
 			console.log("Local apps")
-			apps = _.map(apps, (app) -> _.pick(app, ['imageId', 'env']))
+			apps = _.map(apps, (app) -> _.pick(app, ['commit', 'imageId', 'env']))
 			apps = _.indexBy(apps, 'imageId')
 			localImages = _.keys(apps)
 			console.log(localImages)
@@ -232,7 +234,7 @@ exports.update = ->
 		# Set the updating as finished
 		currentlyUpdating = 0
 
-exports.updateDeviceInfo = (body) ->
+exports.updateDeviceInfo = updateDeviceInfo = (body) ->
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
 		knex('config').select('value').where(key: 'uuid')

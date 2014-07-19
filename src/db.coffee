@@ -22,9 +22,17 @@ knex.init = Promise.all([
 				t.increments('id').primary()
 				t.string('name')
 				t.string('containerId')
+				t.string('commit')
 				t.string('imageId')
 				t.boolean('privileged')
 				t.json('env')
+		else
+			knex.schema.hasColumn('app', 'commit')
+			.then (exists) ->
+				if not exists
+					knex.schema.table 'app', (t) ->
+						t.string('commit')
+
 ])
 
 module.exports = knex
