@@ -41,6 +41,7 @@ publish = do ->
 
 exports.kill = kill = (app) ->
 	utils.mixpanelTrack('Application kill', app)
+	updateDeviceInfo(status: 'Stopping')
 	docker.listContainersAsync(all: 1)
 	.then (containers) ->
 		Promise.all(
@@ -55,6 +56,8 @@ exports.kill = kill = (app) ->
 		)
 	.tap ->
 		utils.mixpanelTrack('Application stop', app.imageId)
+	.finally ->
+		updateDeviceInfo(status: 'Idle')
 
 isValidPort = (port) ->
 	maybePort = parseInt(port, 10)
@@ -64,6 +67,7 @@ exports.start = start = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
 		utils.mixpanelTrack('Application install', app)
+		updateDeviceInfo(status: 'Downloading')
 		docker.createImageAsync(fromImage: app.imageId)
 		.then (stream) ->
 			return new Promise (resolve, reject) ->
@@ -76,6 +80,7 @@ exports.start = start = (app) ->
 				stream.on('end', resolve)
 	.then ->
 		console.log("Creating container:", app.imageId)
+		updateDeviceInfo(status: 'Starting')
 		ports = {}
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
 		env = JSON.parse(app.env)
@@ -123,6 +128,8 @@ exports.start = start = (app) ->
 				)
 	.tap ->
 		utils.mixpanelTrack('Application start', app.imageId)
+	.finally ->
+		updateDeviceInfo(status: 'Idle')
 
 exports.restart = restart = (app) ->
 	kill(app)
@@ -138,6 +145,7 @@ exports.update = ->
 		# Mark an update required after the current.
 		currentlyUpdating = 2
 		return
+	updateDeviceInfo(status: 'Checking Updates')
 	currentlyUpdating = 1
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
@@ -217,6 +225,7 @@ exports.update = ->
 						knex('app').update(app).where(imageId: app.imageId)
 				Promise.all(installingPromises.concat(updatingPromises))
 	.finally ->
+		updateDeviceInfo(status: 'Idle')
 		if currentlyUpdating is 2
 			# If an update is required then schedule it
 			setTimeout(exports.update)
