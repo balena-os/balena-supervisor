@@ -15,6 +15,6 @@ module.exports = config =
 		Binds: [
 			'/mnt/mmcblk0p1/config.json:/boot/config.json'
 			'/var/run/docker.sock:/run/docker.sock'
-			'/var/lib/docker/data:/data'
+			'/resin-data/resin-supervisor:/data'
 			'/proc/net/fib_trie:/mnt/fib_trie'
 		]
