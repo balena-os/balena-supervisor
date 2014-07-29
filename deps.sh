@@ -5,5 +5,5 @@ chmod 400 /root/.ssh/id_rsa
 cp ssh_config /root/.ssh/config
 
 # System dependencies
-apt-get update
-apt-get install -y openvpn libsqlite3-dev python
+apt-get -q update
+apt-get install -qqy openvpn libsqlite3-dev python
