@@ -37,7 +37,7 @@ else
 	docker pull $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
 endif
 	docker tag $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) resin/supervisor-base:latest
-	docker rm build-supervisor-latest 2> /dev/null || true
+	docker rm -f build-supervisor-latest 2> /dev/null || true
 	docker run --name build-supervisor-latest --volumes-from  $(ACCELERATOR):ro -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
 	docker commit build-supervisor-latest $(IMAGE):$(SUPERVISOR_VERSION) > /dev/null
 	docker tag $(IMAGE):$(SUPERVISOR_VERSION) $(SUPERVISOR_REGISTRY)/$(IMAGE):$(SUPERVISOR_VERSION)
