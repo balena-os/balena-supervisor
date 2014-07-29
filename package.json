@@ -7,13 +7,13 @@
     "start": "./entry.sh"
   },
   "dependencies": {
+    "JSONStream": "~0.7.1",
     "bluebird": "~2.2.2",
     "coffee-script": "~1.7.1",
     "csr-gen": "~0.2.1",
     "dockerode": "~2.0.0",
     "event-stream": "~3.0.20",
     "express": "~3.2.6",
-    "JSONStream": "~0.7.1",
     "knex": "~0.5.1",
     "lodash": "~2.4.1",
     "mixpanel": "0.0.20",
