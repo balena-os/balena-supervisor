@@ -47,12 +47,20 @@ exports.kill = kill = (app) ->
 		Promise.all(
 			containers
 			.filter (container) -> container.Image is "#{app.imageId}:latest"
-			.map (container) -> docker.getContainer(container.Id)
 			.map (container) ->
-				console.log("Stopping and deleting container:", container)
+				container = docker.getContainer(container.Id)
+				console.log('Stopping and deleting container:', container)
 				container.stopAsync()
 				.then ->
 					container.removeAsync()
+				.catch (err) ->
+					# 304 means the container was already stopped - so we can just remove it
+					if err.statusCode is 304
+						return container.removeAsync()
+					# 404 means the container doesn't exist, precisely what we want! :D
+					if err is 404
+						return
+					throw err
 		)
 	.tap ->
 		utils.mixpanelTrack('Application stop', app.imageId)
