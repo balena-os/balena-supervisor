@@ -143,7 +143,8 @@ exports.restart = restart = (app) ->
 # 1 - Updating
 # 2 - Update required
 currentlyUpdating = 0
-exports.update = ->
+failedUpdates = 0
+exports.update = update = ->
 	if currentlyUpdating isnt 0
 		# Mark an update required after the current.
 		currentlyUpdating = 2
@@ -229,11 +230,22 @@ exports.update = ->
 					.then ->
 						knex('app').update(app).where(imageId: app.imageId)
 				Promise.all(installingPromises.concat(updatingPromises))
+	.then ->
+		failedUpdates = 0
+	.catch (err) ->
+		failedUpdates++
+		if currentlyUpdating is 2
+			console.log('Updating failed, but there is already another update scheduled immediately: ', err)
+			return
+		delayTime = Math.min(failedUpdates * 500, 30000)
+		# If there was an error then schedule another attempt briefly in the future.
+		console.log('Scheduling another update attempt due to failure: ', delayTime, err)
+		setTimeout(update, delayTime)
 	.finally ->
 		updateDeviceInfo(status: 'Idle')
 		if currentlyUpdating is 2
 			# If an update is required then schedule it
-			setTimeout(exports.update)
+			setTimeout(update)
 		# Set the updating as finished
 		currentlyUpdating = 0
 
