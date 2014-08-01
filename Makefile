@@ -12,6 +12,9 @@ BUILDSTEP_VERSION = latest
 
 BUILDSTEP_REPO = resin/rpi-buildstep-armv6hf
 
+# This allows using a cache for building the supervisor, making it much faster.
+CACHE_VOLUME = # --volume /home/vagrant/cache:/cache
+
 all: supervisor 
 
 BUILDSTEP_PRESENT = $(shell docker images --all | grep $(BUILDSTEP_VERSION) | awk '{print $$1}' | grep -xF $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO) )
@@ -38,7 +41,7 @@ else
 endif
 	docker tag $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 	docker rm -f build-supervisor-latest 2> /dev/null || true
-	docker run --name build-supervisor-latest --volumes-from  $(ACCELERATOR):ro -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
+	docker run --name build-supervisor-latest $(CACHE_VOLUME) --volumes-from  $(ACCELERATOR):ro -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
 	docker commit build-supervisor-latest $(IMAGE):$(SUPERVISOR_VERSION) > /dev/null
 	docker tag $(IMAGE):$(SUPERVISOR_VERSION) $(SUPERVISOR_REGISTRY)/$(IMAGE):$(SUPERVISOR_VERSION)
 else
