@@ -4,6 +4,7 @@
   "scripts": {
     "preinstall": "bash deps.sh",
     "postinstall": "bash postinstall.sh",
+    "prestart": "cp bin/enter.sh /data/enter.sh && chmod +x /data/enter.sh",
     "start": "./entry.sh"
   },
   "dependencies": {
@@ -17,11 +18,13 @@
     "knex": "~0.5.1",
     "lodash": "~2.4.1",
     "mixpanel": "0.0.20",
+    "ngrok": "~0.1.97",
     "ping": "0.1.8",
     "pubnub": "~3.6.4",
     "request": "~2.22.0",
     "resin-platform-api": "git+ssh://git@bitbucket.org:rulemotion/resin-platform-api.git#v0.2.3",
-    "sqlite3": "~2.1.19"
+    "sqlite3": "~2.1.19",
+    "tty.js": "~0.2.13"
   },
   "engines": {
     "node": "0.10.22"

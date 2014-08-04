@@ -4,8 +4,10 @@ utils = require './utils'
 express = require 'express'
 application = require './application'
 supervisor = require './supervisor-update'
+tty = require './tty'
 
 api = express()
+api.use(express.bodyParser())
 
 api.post '/v1/blink', (req, res) ->
 	utils.mixpanelTrack('Device blink')
@@ -24,5 +26,16 @@ api.post '/v1/update-supervisor', (req, res) ->
 	console.log('Got supervisor update')
 	supervisor.update()
 	res.send(204)
+
+api.post '/v1/spawn-tty', (req, res) ->
+	appId = req.body.appId
+	utils.mixpanelTrack('Spawn tty', appId)
+	if !appId?
+		res.send(400, 'Missing app id')
+	tty.start(appId)
+	.then (url) ->
+		res.send(200, url)
+	.catch (err) ->
+		res.send(404, err)
 
 module.exports = api
