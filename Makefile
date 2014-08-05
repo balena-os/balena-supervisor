@@ -49,5 +49,10 @@ supervisor-accelerated:
 	echo 'Please run make accelerator in resin-buildstep to continue'
 endif
 
+supervisor-x86:
+	tar --exclude="Dockerfile" --transform='flags=r;s|Dockerfile.x86|Dockerfile|' -c . | docker build -t resin/x86-supervisor -
 
-.PHONY: supervisor supervisor-accelerated
+run-supervisor-x86:
+	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/x86-supervisor /start
+
+.PHONY: supervisor supervisor-accelerated supervisor-x86 run-supervisor-x86

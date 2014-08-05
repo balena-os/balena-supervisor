@@ -7,4 +7,6 @@ set -e
 [ -c /dev/net/tun ] ||
     mknod /dev/net/tun c 10 200
 
+cd /app
+
 exec node src/supervisor.js

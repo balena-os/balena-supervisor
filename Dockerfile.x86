@@ -1,0 +1,14 @@
+FROM dockerfile/nodejs
+
+ADD . /app
+
+WORKDIR /app
+
+ENV SUPERVISOR_IMAGE resin/x86-supervisor
+ENV CONFIG_MOUNT_POINT /boot/config.json
+
+RUN rm -rf node_modules
+RUN npm install --unsafe-perm --production
+
+RUN ln -sf /app/entry.sh /start
+CMD ["/app/entry.sh"]

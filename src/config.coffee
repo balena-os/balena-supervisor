@@ -6,14 +6,16 @@ module.exports = config =
 		publish_key: process.env.PUBNUB_PUBLISH_KEY ? 'pub-c-bananas'
 	mixpanelToken: process.env.MIXPANEL_TOKEN ? 'bananasbananas'
 	dockerSocket: process.env.DOCKER_SOCKET ? '/run/docker.sock'
-	supervisorContainer:
+	localImage: process.env.SUPERVISOR_IMAGE ? 'resin/rpi-supervisor'
+	configMountPoint: process.env.CONFIG_MOUNT_POINT ? '/mnt/mmcblk0p1/config.json'
+config.supervisorContainer =
 		Volumes: 
 			'/boot/config.json': {}
 			'/data': {}
 			'/run/docker.sock': {}
 			'/mnt/fib_trie': {}
 		Binds: [
-			'/mnt/mmcblk0p1/config.json:/boot/config.json'
+			config.configMountPoint + ':/boot/config.json'
 			'/var/run/docker.sock:/run/docker.sock'
 			'/resin-data/resin-supervisor:/data'
 			'/proc/net/fib_trie:/mnt/fib_trie'

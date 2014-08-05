@@ -8,7 +8,7 @@ docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
 
-localImage = 'resin/rpi-supervisor'
+localImage = config.localImage
 remoteImage = config.registryEndpoint + '/' + localImage
 
 startNewSupervisor = (currentSupervisor) ->

@@ -8,4 +8,4 @@ fi
 
 # System dependencies
 apt-get -q update
-apt-get install -qqy openvpn libsqlite3-dev python
+apt-get install -qqy openvpn libsqlite3-dev
