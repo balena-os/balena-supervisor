@@ -11,4 +11,8 @@ if [ $NODE_ENV == 'production' ]; then
 	rm -rf Makefile src/*.coffee
 	# Remove the git repo info
 	rm -rf .git
+	# Remove the c files we no longer need (the sqlite3 node module has a massive ~5M c file)
+	find . -name '*.c' -delete
+	# And the tar files (sqlite3 module again)
+	find . -name '*.tar.*' -delete
 fi
