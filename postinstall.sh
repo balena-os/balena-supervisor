@@ -9,4 +9,6 @@ if [ $NODE_ENV == 'production' ]; then
 	rm -rf /root/.ssh/* deploy_key
 	# Remove unnecessary source files
 	rm -rf Makefile src/*.coffee
+	# Remove the git repo info
+	rm -rf .git
 fi
