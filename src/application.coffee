@@ -42,31 +42,25 @@ publish = do ->
 exports.kill = kill = (app) ->
 	utils.mixpanelTrack('Application kill', app)
 	updateDeviceInfo(status: 'Stopping')
-	docker.listContainersAsync(all: 1)
-	.then (containers) ->
-		Promise.all(
-			containers
-			.filter (container) -> container.Image is "#{app.imageId}:latest"
-			.map (container) ->
-				container = docker.getContainer(container.Id)
-				console.log('Stopping and deleting container:', container)
-				container.stopAsync()
-				.then ->
-					container.removeAsync()
-				# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
-				.catch Promise.OperationalError, (err) ->
-					# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison reasons.
-					statusCode = '' + err.cause.statusCode
-					# 304 means the container was already stopped - so we can just remove it
-					if statusCode is '304'
-						return container.removeAsync()
-					# 404 means the container doesn't exist, precisely what we want! :D
-					if statusCode is '404'
-						return
-					throw err
-		)
+	container = docker.getContainer(app.containerId)
+	console.log('Stopping and deleting container:', container)
+	container.stopAsync()
+	.then ->
+		container.removeAsync()
+	# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
+	.catch Promise.OperationalError, (err) ->
+		# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison reasons.
+		statusCode = '' + err.cause.statusCode
+		# 304 means the container was already stopped - so we can just remove it
+		if statusCode is '304'
+			return container.removeAsync()
+		# 404 means the container doesn't exist, precisely what we want! :D
+		if statusCode is '404'
+			return
+		throw err
 	.tap ->
 		utils.mixpanelTrack('Application stop', app.imageId)
+		knex('app').where('id', app.id).delete()
 	.finally ->
 		updateDeviceInfo(status: 'Idle')
 
@@ -75,48 +69,60 @@ isValidPort = (port) ->
 	return parseFloat(port) is maybePort and maybePort > 0 and maybePort < 65535
 
 exports.start = start = (app) ->
-	docker.getImage(app.imageId).inspectAsync()
-	.catch (error) ->
-		utils.mixpanelTrack('Application install', app)
-		updateDeviceInfo(status: 'Downloading')
-		docker.createImageAsync(fromImage: app.imageId)
-		.then (stream) ->
-			return new Promise (resolve, reject) ->
-				if stream.headers['content-type'] is 'application/json'
-					stream.pipe(JSONStream.parse('error'))
-					.pipe(es.mapSync(reject))
-				else
-					stream.pipe es.wait (error, text) ->
-						if error
-							reject(text)
-
-				stream.on('end', resolve)
-	.then ->
-		console.log("Creating container:", app.imageId)
-		updateDeviceInfo(status: 'Starting')
-		ports = {}
+	Promise.try ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
-		env = JSON.parse(app.env)
+		JSON.parse(app.env)
+	.then (env) ->
 		if env.PORT?
 			portList = env.PORT
 			.split(',')
 			.map((port) -> port.trim())
 			.filter(isValidPort)
 
-			portList.forEach (port) ->
-				ports[port + '/tcp'] = {}
+		if app.containerId?
+			# If we have a container id then check it exists and if so use it.
+			container = docker.getContainer(app.containerId)
+			containerPromise = container.inspectAsync().return(container)
+		else
+			containerPromise = Promise.rejected()
 
-		docker.createContainerAsync(
-			Image: app.imageId
-			Cmd: ['/bin/bash', '-c', '/start']
-			Tty: true
-			Volumes:
-				'/dev': {}
-				'/lib/modules': {}
-			Env: _.map env, (v, k) -> k + '=' + v
-			ExposedPorts: ports
-		)
-		.then (container) ->
+		# If there is no existing container then create one instead.
+		containerPromise.catch ->
+			docker.getImage(app.imageId).inspectAsync()
+			.catch (error) ->
+				utils.mixpanelTrack('Application install', app)
+				updateDeviceInfo(status: 'Downloading')
+				docker.createImageAsync(fromImage: app.imageId)
+				.then (stream) ->
+					return new Promise (resolve, reject) ->
+						if stream.headers['content-type'] is 'application/json'
+							stream.pipe(JSONStream.parse('error'))
+							.pipe(es.mapSync(reject))
+						else
+							stream.pipe es.wait (error, text) ->
+								if error
+									reject(text)
+
+						stream.on('end', resolve)
+			.then ->
+				console.log("Creating container:", app.imageId)
+				updateDeviceInfo(status: 'Starting')
+				ports = {}
+				if portList?
+					portList.forEach (port) ->
+						ports[port + '/tcp'] = {}
+
+				docker.createContainerAsync(
+					Image: app.imageId
+					Cmd: ['/bin/bash', '-c', '/start']
+					Tty: true
+					Volumes:
+						'/dev': {}
+						'/lib/modules': {}
+					Env: _.map env, (v, k) -> k + '=' + v
+					ExposedPorts: ports
+				)
+		.tap (container) ->
 			console.log('Starting container:', app.imageId)
 			ports = {}
 			if portList?
@@ -140,15 +146,15 @@ exports.start = start = (app) ->
 					es.split()
 					es.mapSync(publish)
 				)
-	.tap ->
+	.tap (container) ->
 		utils.mixpanelTrack('Application start', app.imageId)
+		app.containerId = container.id
+		if app.id?
+			knex('app').update(app).where(id: app.id)
+		else
+			knex('app').insert(app)
 	.finally ->
 		updateDeviceInfo(status: 'Idle')
-
-exports.restart = restart = (app) ->
-	kill(app)
-	.then ->
-		start(app)
 
 # 0 - Idle
 # 1 - Updating
@@ -202,9 +208,9 @@ exports.update = update = ->
 			console.log(remoteImages)
 
 			console.log("Local apps")
-			apps = _.map(apps, (app) -> _.pick(app, ['commit', 'imageId', 'env']))
 			apps = _.indexBy(apps, 'imageId')
-			localImages = _.keys(apps)
+			localApps = _.mapValues(apps, (app) -> _.pick(app, ['commit', 'imageId', 'env']))
+			localImages = _.keys(localApps)
 			console.log(localImages)
 
 			console.log("Apps to be removed")
@@ -218,28 +224,25 @@ exports.update = update = ->
 			console.log("Apps to be updated")
 			toBeUpdated = _.intersection(remoteImages, localImages)
 			toBeUpdated = _.filter toBeUpdated, (imageId) ->
-				return !_.isEqual(remoteApps[imageId], apps[imageId])
+				return !_.isEqual(remoteApps[imageId], localApps[imageId])
 			console.log(toBeUpdated)
 
 			# Delete all the ones to remove in one go
 			Promise.map toBeRemoved, (imageId) ->
 				kill(apps[imageId])
-				.then ->
-					knex('app').where('imageId', imageId).delete()
 			.then ->
 				# Then install the apps and add each to the db as they succeed
 				installingPromises = toBeInstalled.map (imageId) ->
 					app = remoteApps[imageId]
 					start(app)
-					.then ->
-						knex('app').insert(app)
-				# And restart updated apps and update db as they succeed
+				# And remove/recreate updated apps and update db as they succeed
 				updatingPromises = toBeUpdated.map (imageId) ->
+					localApp = apps[imageId]
 					app = remoteApps[imageId]
 					utils.mixpanelTrack('Application update', app)
-					restart(app)
+					kill(localApp)
 					.then ->
-						knex('app').update(app).where(imageId: app.imageId)
+						start(app)
 				Promise.all(installingPromises.concat(updatingPromises))
 	.then ->
 		failedUpdates = 0

@@ -42,7 +42,7 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	console.log('Starting Apps..')
 	knex('app').select()
 	.then (apps) ->
-		Promise.all(apps.map(application.restart))
+		Promise.all(apps.map(application.start))
 	.catch (error) ->
 		console.error("Error starting apps:", error)
 	.then ->
