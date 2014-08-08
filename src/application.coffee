@@ -54,11 +54,13 @@ exports.kill = kill = (app) ->
 				.then ->
 					container.removeAsync()
 				.catch (err) ->
+					# Make sure statusCode is definitely a string, for comparison reasons.
+					statusCode = '' + err.statusCode
 					# 304 means the container was already stopped - so we can just remove it
-					if err.statusCode is 304
+					if statusCode is '304'
 						return container.removeAsync()
 					# 404 means the container doesn't exist, precisely what we want! :D
-					if err is 404
+					if statusCode is '404'
 						return
 					throw err
 		)
