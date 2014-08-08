@@ -53,9 +53,10 @@ exports.kill = kill = (app) ->
 				container.stopAsync()
 				.then ->
 					container.removeAsync()
-				.catch (err) ->
-					# Make sure statusCode is definitely a string, for comparison reasons.
-					statusCode = '' + err.statusCode
+				# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
+				.catch Promise.OperationalError, (err) ->
+					# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison reasons.
+					statusCode = '' + err.cause.statusCode
 					# 304 means the container was already stopped - so we can just remove it
 					if statusCode is '304'
 						return container.removeAsync()
