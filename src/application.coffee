@@ -117,7 +117,6 @@ exports.start = start = (app) ->
 					Cmd: ['/bin/bash', '-c', '/start']
 					Tty: true
 					Volumes:
-						'/dev': {}
 						'/lib/modules': {}
 					Env: _.map env, (v, k) -> k + '=' + v
 					ExposedPorts: ports
@@ -132,7 +131,6 @@ exports.start = start = (app) ->
 				Privileged: true
 				PortBindings: ports
 				Binds: [
-					'/dev:/dev'
 					'/lib/modules:/lib/modules'
 					'/var/run/docker.sock:/run/docker.sock'
 				]
