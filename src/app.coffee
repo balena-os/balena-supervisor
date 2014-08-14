@@ -8,11 +8,37 @@ bootstrap = require './bootstrap'
 
 utils.mixpanelTrack('Supervisor start')
 
+connectivityState = true # Used to prevent multiple messages when disconnected
+
+ensureConnected = (continuous=false) ->
+	utils.checkConnectivity()
+	.then (connected) ->
+		if not connected
+			if connectivityState
+				console.log('Waiting for connectivity...')
+				connectivityState = false
+			interval = setInterval(utils.blink,200)
+			Promise.delay(1000)
+			.then ->
+				# Clear the blinks after 1 second
+				clearInterval(interval)
+				ensureConnected(continuous)
+		else
+			if not connectivityState
+				console.log('Internet Connectivity: OK')
+				connectivityState = true
+			if continuous
+				setTimeout(->
+					ensureConnected(continuous)
+				, 10 * 1000) # Every 10 seconds perform this check.
+
+
 knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	if not uuid?.value
 		console.log('New device detected. Bootstrapping..')
-		utils.mixpanelTrack('Device bootstrap')
-		bootstrap()
+		ensureConnected().then ->
+			utils.mixpanelTrack('Device bootstrap')
+			bootstrap()
 	else
 		uuid.value
 .then (uuid) ->
@@ -66,4 +92,7 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	console.log('Starting periodic check for IP addresses..')
 	setInterval(updateIpAddr, 5 * 60 * 1000) # Every 5 mins
 	updateIpAddr()
+
+	console.log('Starting connectivity check..')
+	ensureConnected(true)
 

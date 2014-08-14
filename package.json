@@ -17,6 +17,7 @@
     "knex": "~0.5.1",
     "lodash": "~2.4.1",
     "mixpanel": "0.0.20",
+    "ping": "0.1.8",
     "pubnub": "~3.6.4",
     "request": "~2.22.0",
     "resin-platform-api": "git+ssh://git@bitbucket.org:rulemotion/resin-platform-api.git#v0.2.3",

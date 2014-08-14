@@ -8,6 +8,7 @@ module.exports = config =
 	dockerSocket: process.env.DOCKER_SOCKET ? '/run/docker.sock'
 	localImage: process.env.SUPERVISOR_IMAGE ? 'resin/rpi-supervisor'
 	configMountPoint: process.env.CONFIG_MOUNT_POINT ? '/mnt/mmcblk0p1/config.json'
+	ledFile: process.env.LED_FILE ? '/sys/class/leds/led0/brightness'
 
 config.remoteImage = config.registryEndpoint + '/' + config.localImage
 

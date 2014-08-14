@@ -7,16 +7,9 @@ supervisor = require './supervisor-update'
 
 api = express()
 
-LED_FILE = '/sys/class/leds/led0/brightness'
-
-blink = (ms = 200) ->
-	fs.writeFileAsync(LED_FILE, 1)
-	.delay(ms)
-	.then -> fs.writeFileAsync(LED_FILE, 0)
-
 api.post '/v1/blink', (req, res) ->
 	utils.mixpanelTrack('Device blink')
-	interval = setInterval(blink, 400)
+	interval = setInterval(utils.blink, 400)
 	setTimeout(->
 		clearInterval(interval)
 	, 15000)

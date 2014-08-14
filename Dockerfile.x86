@@ -6,6 +6,7 @@ WORKDIR /app
 
 ENV SUPERVISOR_IMAGE resin/x86-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
 
 RUN rm -rf node_modules
 RUN npm install --unsafe-perm --production

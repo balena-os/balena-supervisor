@@ -3,6 +3,7 @@ _ = require 'lodash'
 fs = Promise.promisifyAll require 'fs'
 config = require './config'
 mixpanel = require 'mixpanel'
+ping = require 'ping'
 
 # Parses package.json and returns resin-supervisor's version
 exports.getSupervisorVersion = ->
@@ -46,3 +47,17 @@ exports.findIpAddrs = ->
 			prevLine = line
 			return ipAddr
 		.filter(Boolean)
+
+# Helps in blinking the LED from the given end point.
+exports.blink = (ms = 200) ->
+	fs.writeFileAsync(config.ledFile, 1)
+	.delay(ms)
+	.then -> fs.writeFileAsync(config.ledFile, 0)
+
+# Helps in checking connectivity by pinging the given site.
+exports.checkConnectivity = (host = '8.8.8.8') ->
+        ping.sys.promise_probe(host,
+                timeout: 1
+                extra: ["-c 1"]
+        ).then (res) ->
+                return res.alive
