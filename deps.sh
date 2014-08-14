@@ -1,3 +1,6 @@
+set -o errexit
+set -o pipefail
+
 if [ $NODE_ENV == 'production' ]; then
 	# Deploy key for private npm modules
 	mkdir -p /root/.ssh

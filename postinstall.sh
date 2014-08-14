@@ -1,3 +1,6 @@
+set -o errexit
+set -o pipefail
+
 if [ $NODE_ENV == 'production' ]; then
 	node ./node_modules/coffee-script/bin/coffee -c ./src
 	# We don't need coffee-script at runtime
