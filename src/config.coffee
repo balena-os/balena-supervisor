@@ -8,6 +8,9 @@ module.exports = config =
 	dockerSocket: process.env.DOCKER_SOCKET ? '/run/docker.sock'
 	localImage: process.env.SUPERVISOR_IMAGE ? 'resin/rpi-supervisor'
 	configMountPoint: process.env.CONFIG_MOUNT_POINT ? '/mnt/mmcblk0p1/config.json'
+
+config.remoteImage = config.registryEndpoint + '/' + config.localImage
+
 config.supervisorContainer =
 		Volumes: 
 			'/boot/config.json': {}

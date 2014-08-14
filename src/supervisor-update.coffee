@@ -9,7 +9,7 @@ Promise.promisifyAll(docker.getImage().__proto__)
 Promise.promisifyAll(docker.getContainer().__proto__)
 
 localImage = config.localImage
-remoteImage = config.registryEndpoint + '/' + localImage
+remoteImage = config.remoteImage
 
 startNewSupervisor = (currentSupervisor) ->
 	console.log('Creating supervisor container:', localImage)

@@ -244,6 +244,10 @@ exports.update = update = ->
 				Promise.all(installingPromises.concat(updatingPromises))
 	.then ->
 		failedUpdates = 0
+		updateDeviceInfo(status: 'Cleaning old images')
+		# We cleanup here as we want a point when we have a consistent apps/images state,
+		# rather than potentially at a point where we might clean up an image we still want.
+		cleanupImages()
 	.catch (err) ->
 		failedUpdates++
 		if currentlyUpdating is 2
@@ -285,4 +289,27 @@ exports.updateDeviceInfo = updateDeviceInfo = (body) ->
 				body: body
 				customOptions:
 					apikey: apiKey
+			)
+
+cleanupImages = ->
+	knex('app').select()
+	.then (apps) ->
+		apps = apps.map((app) -> app.imageId + ':latest')
+		# Make sure not to delete the supervisor image!
+		apps.push(config.localImage + ':latest')
+		apps.push(config.remoteImage + ':latest')
+
+		docker.listImagesAsync()
+		.then (images) ->
+			Promise.all(
+				images.filter (image) ->
+					!_.any image.RepoTags, (imageId) ->
+						_.contains(apps, imageId)
+				.map (image) ->
+					# TODO: Remove old supervisor containers cleanly so we don't have to force remove images.
+					docker.getImage(image.Id).removeAsync(force: true)
+					.then ->
+						console.log('Deleted image:', image.Id, image.RepoTags)
+					.catch (err) ->
+						console.log('Error deleting image:', image.Id, image.RepoTags, err)
 			)
