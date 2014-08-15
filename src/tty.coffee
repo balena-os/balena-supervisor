@@ -23,3 +23,14 @@ exports.start = (appId) ->
 			.listenAsync(port, null)
 			.then ->
 				ngrok.connectAsync(port)
+
+DISCONNECTED = 'Disconnected'
+disconnectedErr = (err) -> return err.message is DISCONNECTED
+exports.stop = (appId) ->
+	if !apps[appId]?
+		return Promise.resolve()
+	apps[appId] = apps[appId].then (url) ->
+		ngrok.disconnectAsync(url)
+		.then ->
+			throw new Error(DISCONNECTED)
+	return apps[appId].catch disconnectedErr, -> # All good!

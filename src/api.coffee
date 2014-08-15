@@ -38,4 +38,15 @@ api.post '/v1/spawn-tty', (req, res) ->
 	.catch (err) ->
 		res.send(404, err)
 
+api.post '/v1/despawn-tty', (req, res) ->
+	appId = req.body.appId
+	utils.mixpanelTrack('Despawn tty', appId)
+	if !appId?
+		res.send(400, 'Missing app id')
+	tty.stop(appId)
+	.then ->
+		res.send(200)
+	.catch (err) ->
+		res.send(404, err)
+
 module.exports = api
