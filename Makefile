@@ -30,7 +30,7 @@ endif
 	docker tag $(IMAGE):$(SUPERVISOR_VERSION) $(SUPERVISOR_REGISTRY)/$(IMAGE):$(SUPERVISOR_VERSION)
 
 
-ACCELERATOR = $(shell docker ps --all | grep buildstep-accelerator-latest | awk '{print $$1}' )
+ACCELERATOR = $(shell docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}' )
 
 ifneq ($(ACCELERATOR) , )
 supervisor-accelerated:
@@ -41,7 +41,7 @@ else
 endif
 	docker tag $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 	docker rm -f build-supervisor-latest 2> /dev/null || true
-	docker run --name build-supervisor-latest $(CACHE_VOLUME) --volumes-from  $(ACCELERATOR):ro -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
+	docker run --name build-supervisor-latest $(CACHE_VOLUME) --volumes-from $(ACCELERATOR):ro -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
 	docker commit build-supervisor-latest $(IMAGE):$(SUPERVISOR_VERSION) > /dev/null
 	docker tag $(IMAGE):$(SUPERVISOR_VERSION) $(SUPERVISOR_REGISTRY)/$(IMAGE):$(SUPERVISOR_VERSION)
 else
