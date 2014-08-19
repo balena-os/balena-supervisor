@@ -7,6 +7,13 @@ knex = Knex.initialize(
 		filename: '/data/database.sqlite'
 )
 
+addColumn = (table, column, type) ->
+	knex.schema.hasColumn(table, column)
+	.then (exists) ->
+		if not exists
+			knex.schema.table table, (t) ->
+				t[type](column)
+
 knex.init = Promise.all([
 	knex.schema.hasTable('config')
 	.then (exists) ->
@@ -24,14 +31,14 @@ knex.init = Promise.all([
 				t.string('containerId')
 				t.string('commit')
 				t.string('imageId')
+				t.string('appId')
 				t.boolean('privileged')
 				t.json('env')
 		else
-			knex.schema.hasColumn('app', 'commit')
-			.then (exists) ->
-				if not exists
-					knex.schema.table 'app', (t) ->
-						t.string('commit')
+			Promise.all [
+				addColumn('app', 'commit', 'string')
+				addColumn('app', 'appId', 'string')
+			]
 
 ])
 

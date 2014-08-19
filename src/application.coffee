@@ -117,6 +117,7 @@ exports.start = start = (app) ->
 					Cmd: ['/bin/bash', '-c', '/start']
 					Tty: true
 					Volumes:
+						'/data': {}
 						'/lib/modules': {}
 					Env: _.map env, (v, k) -> k + '=' + v
 					ExposedPorts: ports
@@ -139,6 +140,7 @@ exports.start = start = (app) ->
 				Privileged: true
 				PortBindings: ports
 				Binds: [
+					'/resin-data/' + app.id + ':/data'
 					'/lib/modules:/lib/modules'
 					'/var/run/docker.sock:/run/docker.sock'
 				]
@@ -199,6 +201,7 @@ exports.update = update = ->
 					for envVar in app.environment_variable
 						env[envVar.name] = envVar.value
 				return {
+					appId: '' + app.id
 					commit: app.commit
 					imageId: "#{process.env.REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
 					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
@@ -210,7 +213,7 @@ exports.update = update = ->
 
 			console.log("Local apps")
 			apps = _.indexBy(apps, 'imageId')
-			localApps = _.mapValues(apps, (app) -> _.pick(app, ['commit', 'imageId', 'env']))
+			localApps = _.mapValues(apps, (app) -> _.pick(app, ['appId', 'commit', 'imageId', 'env']))
 			localImages = _.keys(localApps)
 			console.log(localImages)
 
