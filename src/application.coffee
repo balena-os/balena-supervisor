@@ -122,6 +122,14 @@ exports.start = start = (app) ->
 					ExposedPorts: ports
 				)
 		.tap (container) ->
+			# Update the app info the moment we create the container, even if then starting the container fails.
+			# This stops issues with constantly creating new containers for an image that fails to start.
+			app.containerId = container.id
+			if app.id?
+				knex('app').update(app).where(id: app.id)
+			else
+				knex('app').insert(app)
+		.tap (container) ->
 			console.log('Starting container:', app.imageId)
 			ports = {}
 			if portList?
@@ -144,13 +152,8 @@ exports.start = start = (app) ->
 					es.split()
 					es.mapSync(publish)
 				)
-	.tap (container) ->
+	.tap ->
 		utils.mixpanelTrack('Application start', app.imageId)
-		app.containerId = container.id
-		if app.id?
-			knex('app').update(app).where(id: app.id)
-		else
-			knex('app').insert(app)
 	.finally ->
 		updateDeviceInfo(status: 'Idle')
 
