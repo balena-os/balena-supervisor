@@ -10,6 +10,7 @@ Promise = require 'bluebird'
 JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
 utils = require './utils'
+tty = require './tty'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
@@ -44,7 +45,10 @@ exports.kill = kill = (app) ->
 	updateDeviceInfo(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
 	console.log('Stopping and deleting container:', container)
-	container.stopAsync()
+	tty.stop()
+	.catch(->) # Even if stopping the tty fails we want to finish stopping the container
+	.then ->
+		container.stopAsync()
 	.then ->
 		container.removeAsync()
 	# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
