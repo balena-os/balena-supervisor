@@ -203,7 +203,7 @@ exports.update = update = ->
 				return {
 					appId: '' + app.id
 					commit: app.commit
-					imageId: "#{process.env.REGISTRY_ENDPOINT}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+					imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
 					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
 				}
 
