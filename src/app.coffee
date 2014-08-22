@@ -17,10 +17,10 @@ ensureConnected = (continuous=false) ->
 			if connectivityState
 				console.log('Waiting for connectivity...')
 				connectivityState = false
-			interval = setInterval(utils.blink,200)
-			Promise.delay(1000)
+			interval = setInterval(utils.blink,400)
+			Promise.delay(2000)
 			.then ->
-				# Clear the blinks after 1 second
+				# Clear the blinks after 2 second
 				clearInterval(interval)
 				ensureConnected(continuous)
 		else
