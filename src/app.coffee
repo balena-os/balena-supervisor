@@ -96,3 +96,5 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	console.log('Starting connectivity check..')
 	ensureConnected(true)
 
+	# Let the previous supervisor know that we started successfully
+	console.log(config.successMessage) 

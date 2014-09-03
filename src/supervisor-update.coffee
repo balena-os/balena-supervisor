@@ -2,6 +2,7 @@ config = require './config'
 Docker = require 'dockerode'
 Promise = require 'bluebird'
 _ = require 'lodash'
+es = require 'event-stream'
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
@@ -19,12 +20,34 @@ startNewSupervisor = (currentSupervisor) ->
 		Volumes: config.supervisorContainer.Volumes
 		Env: currentSupervisor.Config.Env
 	)
-	.then (container) ->
+	.tap (container) ->
 		console.log('Starting supervisor container:', localImage)
 		container.startAsync(
 			Privileged: true
 			Binds: config.supervisorContainer.Binds
 		)
+	.then (container) ->
+		# check that next supervisor outputs config.successMessage before this supervisor exits
+		container.attachAsync({ stream: true, stdout: true, stderr: false, tty: true })
+		.then (stream) ->
+			new Promise (resolve, reject) ->
+				es.pipeline(
+					stream
+					es.split()
+					es.map (line, callback) ->
+						# ignore first 8 characters of every line that are a header sent by docker attach
+						data = line.substr(8)
+						if data is config.successMessage
+							resolve(container)
+						callback(null, data)
+				)
+				stream.on 'end', ->
+					reject(new Error('New supervisor stopped before success message'))
+			.timeout(10000) # wait up to 10 seconds
+		.catch (e) ->
+			container.stop()
+			console.log('Container failed to start successfully. Error: ', e)
+			throw e
 	.then ->
 		# We've started the new container, so we're done here! #pray
 		console.log('Exiting to let the new supervisor take over')
