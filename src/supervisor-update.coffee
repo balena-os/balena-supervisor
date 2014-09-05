@@ -3,6 +3,7 @@ Docker = require 'dockerode'
 Promise = require 'bluebird'
 _ = require 'lodash'
 es = require 'event-stream'
+fs = Promise.promisifyAll(require('fs'))
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
@@ -11,6 +12,17 @@ Promise.promisifyAll(docker.getContainer().__proto__)
 
 localImage = config.localImage
 remoteImage = config.remoteImage
+
+getContainerId = ->
+	fs.readFileAsync( '/proc/1/cgroup' )
+	.then (data) ->
+		data.toString().match( /:cpu:\/docker\/(.*)$/m )[ 1 ]
+	.catch (err) ->
+		return process.env.HOSTNAME
+
+getCurrentContainer = ->
+	getContainerId().then (containerId) ->
+		docker.getContainer(containerId).inspectAsync()
 
 startNewSupervisor = (currentSupervisor) ->
 	console.log('Creating supervisor container:', localImage)
@@ -53,8 +65,7 @@ startNewSupervisor = (currentSupervisor) ->
 		console.log('Exiting to let the new supervisor take over')
 		process.exit()
 
-# Docker sets the HOSTNAME as the container's short id.
-currentSupervisor = docker.getContainer(process.env.HOSTNAME).inspectAsync().tap (currentSupervisor) ->
+currentSupervisor = getCurrentContainer().tap (currentSupervisor) ->
 	# The volume keys are the important bit.
 	expectedVolumes = _.sortBy(_.keys(config.supervisorContainer.Volumes))
 	actualVolumes = _.sortBy(_.keys(currentSupervisor.Volumes))
