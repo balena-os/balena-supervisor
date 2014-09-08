@@ -5,6 +5,7 @@ knex = require './db'
 utils = require './utils'
 {spawn} = require 'child_process'
 bootstrap = require './bootstrap'
+config = require './config'
 
 utils.mixpanelTrack('Supervisor start')
 
