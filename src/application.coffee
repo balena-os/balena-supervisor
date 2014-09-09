@@ -46,7 +46,9 @@ exports.kill = kill = (app) ->
 	container = docker.getContainer(app.containerId)
 	console.log('Stopping and deleting container:', container)
 	tty.stop()
-	.catch(->) # Even if stopping the tty fails we want to finish stopping the container
+	.catch (err) ->
+		console.error('Error stopping tty', err)
+		return # Even if stopping the tty fails we want to finish stopping the container
 	.then ->
 		container.stopAsync()
 	.then ->
