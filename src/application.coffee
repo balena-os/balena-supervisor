@@ -22,8 +22,7 @@ Promise.promisifyAll(docker.getContainer().__proto__)
 
 pubnub = PUBNUB.init(config.pubnub)
 
-# Queue up any calls to publish while we wait for the uuid to return from
-# the sqlite db
+# Queue up any calls to publish while we wait for the uuid to return from the sqlite db
 publish = do ->
 	publishQueue = []
 
@@ -55,7 +54,8 @@ exports.kill = kill = (app) ->
 		container.removeAsync()
 	# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
 	.catch Promise.OperationalError, (err) ->
-		# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison reasons.
+		# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison
+		# reasons.
 		statusCode = '' + err.cause.statusCode
 		# 304 means the container was already stopped - so we can just remove it
 		if statusCode is '304'
@@ -129,8 +129,8 @@ exports.start = start = (app) ->
 					ExposedPorts: ports
 				)
 		.tap (container) ->
-			# Update the app info the moment we create the container, even if then starting the container fails.
-			# This stops issues with constantly creating new containers for an image that fails to start.
+			# Update the app info the moment we create the container, even if then starting the container fails.  This
+			# stops issues with constantly creating new containers for an image that fails to start.
 			app.containerId = container.id
 			if app.id?
 				knex('app').update(app).where(id: app.id)
@@ -258,8 +258,8 @@ exports.update = update = ->
 	.then ->
 		failedUpdates = 0
 		updateDeviceInfo(status: 'Cleaning old images')
-		# We cleanup here as we want a point when we have a consistent apps/images state,
-		# rather than potentially at a point where we might clean up an image we still want.
+		# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
+		# point where we might clean up an image we still want.
 		cleanupImages()
 	.catch (err) ->
 		failedUpdates++

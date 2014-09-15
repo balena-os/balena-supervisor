@@ -35,9 +35,8 @@ exports.findIpAddrs = ->
 
 			# We only care about LOCAL routes (not UNICAST or BROADCAST)
 			if line.match(/LOCAL$/)
-				# Then we make sure the previous line was an ending branch (and
-				# hence contains an IP - 127.0.0.0 has BROADCAST and LOCAL
-				# entries)
+				# Then we make sure the previous line was an ending branch (and hence contains an IP - 127.0.0.0 has
+				# BROADCAST and LOCAL entries)
 				if prevLine.match(/^\|--/)
 					# Then we remove the ending branch bit
 					maybeAddr = prevLine.replace(/^\|--/, '').trim()
