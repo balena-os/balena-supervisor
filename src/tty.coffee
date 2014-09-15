@@ -12,14 +12,14 @@ exports.start = (appId) ->
 	return apps[appId] = apps[appId].catch ->
 		port = nextPort++
 		knex('app').select().where({appId})
-		.then ([app]) ->
+		.then ([ app ]) ->
 			if !app?
 				throw new Error('App not found')
 			tty.createServer
 				shell: './src/enterContainer.sh'
 				shellArgs: do ->
 					i = 0
-					return (session) -> [app.containerId, session.id, i++]
+					return (session) -> [ app.containerId, session.id, i++ ]
 			.listenAsync(port, null)
 			.then ->
 				ngrok.connectAsync(port)

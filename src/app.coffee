@@ -11,7 +11,7 @@ utils.mixpanelTrack('Supervisor start')
 
 connectivityState = true # Used to prevent multiple messages when disconnected
 
-ensureConnected = (continuous=false) ->
+ensureConnected = (continuous = false) ->
 	utils.checkConnectivity()
 	.then (connected) ->
 		if not connected
@@ -34,7 +34,7 @@ ensureConnected = (continuous=false) ->
 				, 10 * 1000) # Every 10 seconds perform this check.
 
 
-knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
+knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	if not uuid?.value
 		console.log('New device detected. Bootstrapping..')
 		ensureConnected().then ->
@@ -51,7 +51,7 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	supervisor = require './supervisor-update'
 
 	console.log('Starting OpenVPN..')
-	openvpn = spawn('openvpn', ['client.conf'], cwd: '/data')
+	openvpn = spawn('openvpn', [ 'client.conf' ], cwd: '/data')
 
 	# Prefix and log all OpenVPN output
 	openvpn.stdout.on 'data', (data) ->
@@ -71,7 +71,7 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	.then (apps) ->
 		Promise.all(apps.map(application.start))
 	.catch (error) ->
-		console.error("Error starting apps:", error)
+		console.error('Error starting apps:', error)
 	.then ->
 		console.log('Starting periodic check for updates..')
 		setInterval(->
@@ -98,4 +98,4 @@ knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
 	ensureConnected(true)
 
 	# Let the previous supervisor know that we started successfully
-	console.log(config.successMessage) 
+	console.log(config.successMessage)

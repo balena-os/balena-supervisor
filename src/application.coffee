@@ -27,13 +27,13 @@ pubnub = PUBNUB.init(config.pubnub)
 publish = do ->
 	publishQueue = []
 
-	knex('config').select('value').where(key: 'uuid').then ([uuid]) ->
+	knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 		uuid = uuid.value
 		channel = "device-#{uuid}-logs"
 
 		# Redefine original function
 		publish = (message) ->
-			pubnub.publish({channel, message})
+			pubnub.publish({ channel, message })
 
 		# Replay queue now that we have initialised the publish function
 		publish(args...) for args in publishQueue
@@ -111,7 +111,7 @@ exports.start = start = (app) ->
 
 						stream.on('end', resolve)
 			.then ->
-				console.log("Creating container:", app.imageId)
+				console.log('Creating container:', app.imageId)
 				updateDeviceInfo(status: 'Starting')
 				ports = {}
 				if portList?
@@ -120,7 +120,7 @@ exports.start = start = (app) ->
 
 				docker.createContainerAsync(
 					Image: app.imageId
-					Cmd: ['/bin/bash', '-c', '/start']
+					Cmd: [ '/bin/bash', '-c', '/start' ]
 					Tty: true
 					Volumes:
 						'/data': {}
@@ -182,7 +182,7 @@ exports.update = update = ->
 		knex('config').select('value').where(key: 'uuid')
 		knex('app').select()
 	])
-	.then ([[apiKey], [uuid], apps]) ->
+	.then ([ [ apiKey ], [ uuid ], apps ]) ->
 		apiKey = apiKey.value
 		uuid = uuid.value
 		resinAPI.get(
@@ -195,7 +195,7 @@ exports.update = update = ->
 				apikey: apiKey
 		)
 		.then (remoteApps) ->
-			console.log("Remote apps")
+			console.log('Remote apps')
 			remoteApps = _.filter(remoteApps, 'commit')
 			remoteApps = _.map remoteApps, (app) ->
 				env =
@@ -217,21 +217,22 @@ exports.update = update = ->
 			remoteImages = _.keys(remoteApps)
 			console.log(remoteImages)
 
-			console.log("Local apps")
+			console.log('Local apps')
 			apps = _.indexBy(apps, 'imageId')
-			localApps = _.mapValues(apps, (app) -> _.pick(app, ['appId', 'commit', 'imageId', 'env']))
+			localApps = _.mapValues apps, (app) ->
+				_.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 			localImages = _.keys(localApps)
 			console.log(localImages)
 
-			console.log("Apps to be removed")
+			console.log('Apps to be removed')
 			toBeRemoved = _.difference(localImages, remoteImages)
 			console.log(toBeRemoved)
 
-			console.log("Apps to be installed")
+			console.log('Apps to be installed')
 			toBeInstalled = _.difference(remoteImages, localImages)
 			console.log(toBeInstalled)
 
-			console.log("Apps to be updated")
+			console.log('Apps to be updated')
 			toBeUpdated = _.intersection(remoteImages, localImages)
 			toBeUpdated = _.filter toBeUpdated, (imageId) ->
 				return !_.isEqual(remoteApps[imageId], localApps[imageId])

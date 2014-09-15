@@ -3,7 +3,8 @@ process.on 'uncaughtException', (e) ->
 
 supervisor = require './supervisor-update'
 
-# Make sure the supervisor-update has initialised before we continue, as it will handle restarting to add mounts if necessary.
+# Make sure the supervisor-update has initialised before we continue, as it will
+# handle restarting to add mounts if necessary.
 supervisor.initialised.then ->
 	knex = require './db'
 

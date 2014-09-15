@@ -14,7 +14,7 @@ module.exports = config =
 config.remoteImage = config.registryEndpoint + '/' + config.localImage
 
 config.supervisorContainer =
-		Volumes: 
+		Volumes:
 			'/boot/config.json': {}
 			'/data': {}
 			'/run/docker.sock': {}

@@ -17,7 +17,7 @@ mixpanelClient = mixpanel.init(config.mixpanelToken)
 exports.mixpanelProperties = mixpanelProperties =
 	username: require('/boot/config.json').username
 
-exports.mixpanelTrack = (event, properties={}) ->
+exports.mixpanelTrack = (event, properties = {}) ->
 	console.log('Event:', event, JSON.stringify(properties))
 	# Mutation is bad, and it should feel bad
 	properties = _.assign(_.cloneDeep(properties), mixpanelProperties)
@@ -35,7 +35,9 @@ exports.findIpAddrs = ->
 
 			# We only care about LOCAL routes (not UNICAST or BROADCAST)
 			if line.match(/LOCAL$/)
-				# Then we make sure the previous line was an ending branch (and hence contains an IP - 127.0.0.0 has BROADCAST and LOCAL entries)
+				# Then we make sure the previous line was an ending branch (and
+				# hence contains an IP - 127.0.0.0 has BROADCAST and LOCAL
+				# entries)
 				if prevLine.match(/^\|--/)
 					# Then we remove the ending branch bit
 					maybeAddr = prevLine.replace(/^\|--/, '').trim()
@@ -56,8 +58,8 @@ exports.blink = (ms = 200) ->
 
 # Helps in checking connectivity by pinging the given site.
 exports.checkConnectivity = (host = '8.8.8.8') ->
-        ping.sys.promise_probe(host,
-                timeout: 1
-                extra: ["-c 1"]
-        ).then (res) ->
-                return res.alive
+	ping.sys.promise_probe(host,
+		timeout: 1
+		extra: [ '-c 1' ]
+	).then (res) ->
+		return res.alive

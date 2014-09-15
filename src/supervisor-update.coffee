@@ -16,7 +16,7 @@ remoteImage = config.remoteImage
 getContainerId = ->
 	fs.readFileAsync( '/proc/1/cgroup' )
 	.then (data) ->
-		data.toString().match( /:cpu:\/docker\/(.*)$/m )[ 1 ]
+		data.toString().match( /:cpu:\/docker\/(.*)$/m )[1]
 	.catch (err) ->
 		return process.env.HOSTNAME
 
@@ -28,7 +28,7 @@ startNewSupervisor = (currentSupervisor) ->
 	console.log('Creating supervisor container:', localImage)
 	docker.createContainerAsync(
 		Image: localImage
-		Cmd: ['/start']
+		Cmd: [ '/start' ]
 		Volumes: config.supervisorContainer.Volumes
 		Env: currentSupervisor.Config.Env
 	)
@@ -86,7 +86,8 @@ exports.initialised = currentSupervisor.then (currentSupervisor) ->
 
 	supervisorUpdating = Promise.resolve()
 	exports.update = ->
-		# Make sure only one attempt to update the full supervisor is running at a time, ignoring any errors from previous update attempts
+		# Make sure only one attempt to update the full supervisor is running at
+		# a time, ignoring any errors from previous update attempts.
 		supervisorUpdating = supervisorUpdating.catch(->).then ->
 			utils.mixpanelTrack('Supervisor update check')
 			console.log('Fetching supervisor:', remoteImage)
