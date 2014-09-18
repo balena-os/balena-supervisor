@@ -8,7 +8,3 @@ if [ $NODE_ENV == 'production' ]; then
 	chmod 400 /root/.ssh/id_rsa
 	cp ssh_config /root/.ssh/config
 fi
-
-# System dependencies
-apt-get -q update
-apt-get install -qqy openvpn libsqlite3-dev socat

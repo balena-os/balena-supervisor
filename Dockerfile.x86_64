@@ -1,5 +1,8 @@
 FROM dockerfile/nodejs
 
+RUN apt-get -q update
+RUN apt-get install -qqy openvpn libsqlite3-dev socat
+
 ADD . /app
 
 WORKDIR /app
