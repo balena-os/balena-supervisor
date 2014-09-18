@@ -47,6 +47,6 @@ api.post '/v1/despawn-tty', (req, res) ->
 	.then ->
 		res.send(200)
 	.catch (err) ->
-		res.send(404, err)
+		res.send(503, err?.message or err or 'Unknown error')
 
 module.exports = api
