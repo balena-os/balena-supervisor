@@ -80,7 +80,6 @@ currentSupervisor = getCurrentContainer().tap (currentSupervisor) ->
 
 # This is a promise that resolves when we have fully initialised.
 exports.initialised = currentSupervisor.then (currentSupervisor) ->
-	es = require 'event-stream'
 	utils = require './utils'
 	JSONStream = require 'JSONStream'
 
