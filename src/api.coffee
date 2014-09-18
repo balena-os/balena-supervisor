@@ -36,7 +36,7 @@ api.post '/v1/spawn-tty', (req, res) ->
 	.then (url) ->
 		res.send(200, url)
 	.catch (err) ->
-		res.send(404, err)
+		res.send(503, err?.message or err or 'Unknown error')
 
 api.post '/v1/despawn-tty', (req, res) ->
 	appId = req.body.appId
