@@ -4,7 +4,6 @@
   "scripts": {
     "preinstall": "bash deps.sh",
     "postinstall": "bash postinstall.sh",
-    "prestart": "cp bin/enter.sh /data/enter.sh && chmod +x /data/enter.sh",
     "start": "./entry.sh"
   },
   "dependencies": {
