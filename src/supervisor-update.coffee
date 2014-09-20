@@ -57,7 +57,7 @@ startNewSupervisor = (currentSupervisor) ->
 					reject(new Error('New supervisor stopped before success message'))
 			.timeout(10000) # wait up to 10 seconds
 		.catch (e) ->
-			container.stop()
+			container.stopAsync()
 			console.log('Container failed to start successfully. Error: ', e)
 			throw e
 	.then ->
