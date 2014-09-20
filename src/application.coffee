@@ -146,7 +146,7 @@ exports.start = start = (app) ->
 				Privileged: true
 				PortBindings: ports
 				Binds: [
-					'/resin-data/' + app.id + ':/data'
+					'/resin-data/' + app.appId + ':/data'
 					'/lib/modules:/lib/modules'
 					'/var/run/docker.sock:/run/docker.sock'
 				]
