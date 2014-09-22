@@ -4,6 +4,7 @@ FROM resin/i386-ubuntu:14.04
 RUN \
   apt-get update && \
   apt-get install -y curl git unzip wget npm nodejs inetutils-ping
+RUN ln -sf /usr/bin/nodejs  /usr/bin/node
 
 ADD . /app
 
@@ -14,7 +15,6 @@ ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
 
 RUN rm -rf node_modules
-RUN ln -sf /usr/bin/nodejs  /usr/bin/node
 RUN npm install --unsafe-perm --production
 
 RUN ln -sf /app/entry.sh /start
