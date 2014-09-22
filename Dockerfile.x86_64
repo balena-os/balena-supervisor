@@ -12,4 +12,7 @@ RUN rm -rf node_modules
 RUN npm install --unsafe-perm --production
 
 RUN ln -sf /app/entry.sh /start
+
+RUN apt-get clean
+
 CMD ["/app/entry.sh"]
