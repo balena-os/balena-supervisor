@@ -49,10 +49,16 @@ supervisor-accelerated:
 	echo 'Please run make accelerator in resin-buildstep to continue'
 endif
 
-supervisor-x86:
-	tar --exclude="Dockerfile" --transform='flags=r;s|Dockerfile.x86|Dockerfile|' -c . | docker build -t resin/x86-supervisor -
+supervisor-x86_64:
+	tar --exclude="Dockerfile" --transform='flags=r;s|Dockerfile.x86_64|Dockerfile|' -c . | docker build -t resin/x86_64-supervisor -
 
-run-supervisor-x86:
-	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/x86-supervisor /start
+run-supervisor-x86_64:
+	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/x86_64-supervisor /start
 
-.PHONY: supervisor supervisor-accelerated supervisor-x86 run-supervisor-x86
+supervisor-i386:
+	tar --exclude="Dockerfile" --transform='flags=r;s|Dockerfile.i386|Dockerfile|' -c . | docker build -t resin/i386-supervisor -
+
+run-supervisor-i386:
+	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/i386-supervisor /start
+
+.PHONY: supervisor supervisor-accelerated supervisor-x86_64 run-supervisor-x86_64 supervisor-i386 run-supervisor-i386

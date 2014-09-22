@@ -1,0 +1,24 @@
+FROM resin/i386-ubuntu:14.04
+
+# Install.
+RUN \
+  apt-get update && \
+  apt-get install -y curl git unzip wget npm nodejs inetutils-ping
+
+ADD . /app
+
+WORKDIR /app
+
+ENV SUPERVISOR_IMAGE resin/i386-supervisor
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
+
+RUN rm -rf node_modules
+RUN ln -sf /usr/bin/nodejs  /usr/bin/node
+RUN npm install --unsafe-perm --production
+
+RUN ln -sf /app/entry.sh /start
+
+RUN apt-get clean
+
+CMD ["/app/entry.sh"]

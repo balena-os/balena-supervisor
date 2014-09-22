@@ -4,7 +4,7 @@ ADD . /app
 
 WORKDIR /app
 
-ENV SUPERVISOR_IMAGE resin/x86-supervisor
+ENV SUPERVISOR_IMAGE resin/x86_64-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
 
