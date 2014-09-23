@@ -123,4 +123,3 @@ exports.initialised = currentSupervisor.then (currentSupervisor) ->
 			startNewSupervisor(currentSupervisor)
 		.catch (err) ->
 			utils.mixpanelTrack('Supervisor update failed', error: err)
-			throw err
