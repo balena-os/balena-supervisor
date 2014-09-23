@@ -123,3 +123,6 @@ exports.initialised = currentSupervisor.then (currentSupervisor) ->
 			startNewSupervisor(currentSupervisor)
 		.catch (err) ->
 			utils.mixpanelTrack('Supervisor update failed', error: err)
+			# The error here is intentionally not propagated further up the chain,
+			# because the supervisor-update module internally handles update failures
+			# and makes sure that ill updates do not affect the rest of the system.
