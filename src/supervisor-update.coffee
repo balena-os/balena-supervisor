@@ -87,7 +87,7 @@ exports.initialised = currentSupervisor.then (currentSupervisor) ->
 	exports.update = ->
 		# Make sure only one attempt to update the full supervisor is running at a time, ignoring any errors from
 		# previous update attempts.
-		supervisorUpdating = supervisorUpdating.catch(->).then ->
+		supervisorUpdating = supervisorUpdating.then ->
 			utils.mixpanelTrack('Supervisor update check')
 			console.log('Fetching supervisor:', remoteImage)
 			docker.createImageAsync(fromImage: remoteImage)
