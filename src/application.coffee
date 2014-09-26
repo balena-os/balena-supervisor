@@ -144,6 +144,7 @@ exports.start = start = (app) ->
 					ports[port + '/tcp'] = [ HostPort: port ]
 			container.startAsync(
 				Privileged: true
+				NetworkMode: "host"
 				PortBindings: ports
 				Binds: [
 					'/resin-data/' + app.appId + ':/data'
