@@ -61,7 +61,7 @@ exports.checkConnectivity = ->
 	# ol' port 80 HTTP should always be available :-)
 	request
 	.getAsync(config.heartbeatEndpoint)
-	.then ([ response ]) ->
+	.spread (response) ->
 		return response.statusCode in [ 200, 304 ]
 	.catch ->
 		return false
