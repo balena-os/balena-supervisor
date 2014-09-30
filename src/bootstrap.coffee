@@ -9,34 +9,60 @@ config = require './config'
 csrgen = Promise.promisify require 'csr-gen'
 request = Promise.promisify require 'request'
 
-module.exports = ->
-	# Load config file
-	userConfig = require('/boot/config.json')
-
-	version = utils.getSupervisorVersion()
-
+registerDevice = (apiKey, userId, applicationId) ->
 	# I'd be nice if the UUID matched the output of a SHA-256 function, but although the length limit of the CN
 	# attribute in a X.509 certificate is 64 chars, a 32 byte UUID (64 chars in hex) doesn't pass the certificate
 	# validation in OpenVPN This either means that the RFC counts a final NULL byte as part of the CN or that the
 	# OpenVPN/OpenSSL implementation has a bug.
 	uuid = crypto.pseudoRandomBytes(31).toString('hex')
+	request(
+		method: 'POST'
+		url: url.resolve(config.apiEndpoint, '/ewa/device?apikey=' + apiKey)
+		json:
+			user: userId
+			application: applicationId
+			uuid: uuid
+			'device_type': 'Raspberry Pi'
+	).spread (response, body) ->
+		if response.statusCode != 201
+			throw new Error('Device registration to resin failed. body: ' + body + '. status code: ' + response.statusCode)
+		else
+			return uuid
 
-	# Generate SSL certificate
-	keys = csrgen(uuid,
-		company: 'Rulemotion Ltd'
-		csrName: 'client.csr'
-		keyName: 'client.key'
-		outputDir: '/data'
-		email: 'vpn@resin.io'
-		read: true
-		country: ''
-		city: ''
-		state: ''
-		division: ''
-	)
+module.exports = ->
+	# Load config file
+	userConfig = require('/boot/config.json')
 
-	Promise.all([keys, version])
-	.then ([keys, version]) ->
+	new Promise (resolve, reject) ->
+		if not userConfig.uuid?
+			registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId)
+			.then (uuid) ->
+				userConfig.uuid = uuid
+				resolve(uuid)
+			.catch (err) ->
+				reject(err)
+		else
+			uuid = userConfig.uuid
+			resolve(uuid)	
+	.then (uuid) ->
+		version = utils.getSupervisorVersion()
+	
+		# Generate SSL certificate
+		keys = csrgen(uuid,
+			company: 'Rulemotion Ltd'
+			csrName: 'client.csr'
+			keyName: 'client.key'
+			outputDir: '/data'
+			email: 'vpn@resin.io'
+			read: true
+			country: ''
+			city: ''
+			state: ''
+			division: ''
+		)
+
+		return [keys, version, uuid]
+	.spread (keys, version, uuid) ->
 		console.log('UUID:', uuid)
 		console.log('User ID:', userConfig.userId)
 		console.log('User:', userConfig.username)
@@ -50,7 +76,7 @@ module.exports = ->
 		userConfig.version = version
 		return request(
 			method: 'POST'
-			url: url.resolve(config.apiEndpoint, 'associate')
+			url: url.resolve(config.apiEndpoint, 'sign_certificate?apikey=' + userConfig.apiKey)
 			json: userConfig
 		)
 	.spread (response, body) ->
@@ -73,12 +99,11 @@ module.exports = ->
 			knex('config').truncate()
 			.then ->
 				knex('config').insert([
-					{ key: 'uuid', value: uuid }
+					{ key: 'uuid', value: userConfig.uuid }
 					{ key: 'apiKey', value: userConfig.apiKey }
 					{ key: 'username', value: userConfig.username }
 					{ key: 'userId', value: userConfig.userId }
-					{ key: 'version', value: version }
+					{ key: 'version', value: userConfig.version }
 				])
 			knex('app').truncate()
 		])
-	.return(uuid)
