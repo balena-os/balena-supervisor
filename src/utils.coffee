@@ -3,7 +3,7 @@ _ = require 'lodash'
 fs = Promise.promisifyAll require 'fs'
 config = require './config'
 mixpanel = require 'mixpanel'
-ping = require 'ping'
+request = Promise.promisifyAll require 'request'
 
 # Parses package.json and returns resin-supervisor's version
 exports.getSupervisorVersion = ->
@@ -55,10 +55,13 @@ exports.blink = (ms = 200) ->
 	.delay(ms)
 	.then -> fs.writeFileAsync(config.ledFile, 0)
 
-# Helps in checking connectivity by pinging the given site.
-exports.checkConnectivity = (host = '8.8.8.8') ->
-	ping.sys.promise_probe(host,
-		timeout: 1
-		extra: [ '-c 1' ]
-	).then (res) ->
-		return res.alive
+# Helps in checking connectivity by pseudo-pinging our endpoint.
+exports.checkConnectivity = ->
+	# We avoid using ICMP as this traffic is sometimes restricted/dropped. Good
+	# ol' port 80 HTTP should always be available :-)
+	request
+	.getAsync(config.heartbeatEndpoint)
+	.then ([ response ]) ->
+		return response.statusCode in [ 200, 304 ]
+	.catch ->
+		return false
