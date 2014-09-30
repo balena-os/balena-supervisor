@@ -9,7 +9,7 @@ set -e
 
 cd /app
 
-set DATA_DIRECTORY = /data
+DATA_DIRECTORY=/data
 if [ -d "$DATA_DIRECTORY" ]; then
 	cp bin/enter.sh $DATA_DIRECTORY/enter.sh
 	chmod +x $DATA_DIRECTORY/enter.sh
