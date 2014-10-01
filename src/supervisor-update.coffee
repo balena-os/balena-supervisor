@@ -112,15 +112,9 @@ exports.initialised = currentSupervisor.then (currentSupervisor) ->
 
 				stream.on('end', resolve)
 		.then ->
-			console.log('Tagging supervisor:', remoteImage)
-			docker.getImage(remoteImage).tagAsync(
-				repo: localImage
-				force: true
-			)
-		.then ->
-			console.log('Inspecting newly tagged supervisor:', localImage)
+			console.log('Inspecting new supervisor:', remoteImage)
 			Promise.all([
-				docker.getImage(localImage).inspectAsync()
+				docker.getImage(remoteImage).inspectAsync()
 				currentSupervisor
 			])
 		.spread (localImageInfo, currentSupervisor) ->
@@ -135,3 +129,13 @@ exports.initialised = currentSupervisor.then (currentSupervisor) ->
 			# The error here is intentionally not propagated further up the chain,
 			# because the supervisor-update module internally handles update failures
 			# and makes sure that ill updates do not affect the rest of the system.
+
+	exports.startupSuccessful = ->
+		# Let the previous supervisor know that we started successfully
+		console.log(config.successMessage)
+
+		console.log('Tagging ourselves as a working supervisor:', remoteImage)
+		docker.getImage(remoteImage).tagAsync(
+			repo: localImage
+			force: true
+		)

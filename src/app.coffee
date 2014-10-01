@@ -5,7 +5,6 @@ knex = require './db'
 utils = require './utils'
 {spawn} = require 'child_process'
 bootstrap = require './bootstrap'
-config = require './config'
 
 utils.mixpanelTrack('Supervisor start')
 
@@ -95,5 +94,5 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	console.log('Starting connectivity check..')
 	ensureConnected(true)
 
-	# Let the previous supervisor know that we started successfully
-	console.log(config.successMessage)
+	# Tell the supervisor updater that we have successfully started, so that it can do whatever it needs to.
+	supervisor.startupSuccessful()
