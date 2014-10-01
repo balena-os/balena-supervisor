@@ -37,9 +37,13 @@ ensureConnected = (continuous = false) ->
 knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	if not uuid?.value
 		console.log('New device detected. Bootstrapping..')
-		ensureConnected().then ->
+		retryingBootstrap = ->
 			utils.mixpanelTrack('Device bootstrap')
-			bootstrap()
+			bootstrap().catch (err) ->
+				utils.mixpanelTrack("Device bootstrap failed due to #{err?.message}, retrying in #{config.bootstrapRetryDelay}ms")
+				Promise.delay(config.bootstrapRetryDelay)
+				.then(retryingBootstrap)
+		retryingBootstrap()
 	else
 		uuid.value
 .then (uuid) ->
