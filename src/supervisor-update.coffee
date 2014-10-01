@@ -24,7 +24,7 @@ getCurrentContainer = ->
 	getContainerId().then (containerId) ->
 		docker.getContainer(containerId).inspectAsync()
 
-startNewSupervisor = (currentSupervisor) ->
+startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
 	console.log('Creating supervisor container:', localImage)
 	docker.createContainerAsync(
 		Image: localImage
@@ -39,6 +39,8 @@ startNewSupervisor = (currentSupervisor) ->
 			Binds: config.supervisorContainer.Binds
 		)
 	.then (container) ->
+		if !waitForSuccess
+			return
 		# check that next supervisor outputs config.successMessage before this supervisor exits
 		container.attachAsync({ stream: true, stdout: true, stderr: false, tty: true })
 		.then (stream) ->
@@ -76,7 +78,14 @@ currentSupervisor = getCurrentContainer().tap (currentSupervisor) ->
 	# Check all the expected binds and volumes exist, if not then start a new supervisor (which will add them correctly)
 	if !_.isEqual(expectedVolumes, actualVolumes) or !_.isEqual(expectedBinds, actualBinds)
 		console.log('Supervisor restart (for binds/mounts)')
-		startNewSupervisor(currentSupervisor)
+		restart = ->
+			# When restarting for just binds/mounts we just wait for the supervisor updates to start.
+			startNewSupervisor(currentSupervisor, false)
+			.catch (err) ->
+				console.error('Error restarting', err)
+				# If there's an error just keep attempting to restart to get to a useful state.
+				restart()
+		restart()
 
 # This is a promise that resolves when we have fully initialised.
 exports.initialised = currentSupervisor.then (currentSupervisor) ->
