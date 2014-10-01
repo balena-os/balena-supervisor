@@ -18,6 +18,17 @@ exports.mixpanelProperties = mixpanelProperties =
 	username: require('/boot/config.json').username
 
 exports.mixpanelTrack = (event, properties = {}) ->
+	# Allow passing in an error directly and having it assigned to the error property.
+	if properties instanceof Error
+		properties = error: properties
+
+	# If the properties has an error argument that is an Error object then it treats it nicely,
+	# rather than letting it become `{}`
+	if properties.error instanceof Error
+		properties.error =
+			message: properties.error.message
+			stack: properties.error.stack
+
 	console.log('Event:', event, JSON.stringify(properties))
 	# Mutation is bad, and it should feel bad
 	properties = _.assign(_.cloneDeep(properties), mixpanelProperties)

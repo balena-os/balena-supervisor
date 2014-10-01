@@ -40,7 +40,7 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 		retryingBootstrap = ->
 			utils.mixpanelTrack('Device bootstrap')
 			bootstrap().catch (err) ->
-				utils.mixpanelTrack("Device bootstrap failed due to #{err?.message}, retrying in #{config.bootstrapRetryDelay}ms")
+				utils.mixpanelTrack('Device bootstrap failed, retrying', {error: err, delay: config.bootstrapRetryDelay})
 				Promise.delay(config.bootstrapRetryDelay)
 				.then(retryingBootstrap)
 		retryingBootstrap()
