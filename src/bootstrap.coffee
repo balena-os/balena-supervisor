@@ -9,7 +9,7 @@ config = require './config'
 csrgen = Promise.promisify require 'csr-gen'
 request = Promise.promisify require 'request'
 
-registerDevice = (apiKey, userId, applicationId) ->
+registerDevice = (apiKey, userId, applicationId, deviceType) ->
 	# I'd be nice if the UUID matched the output of a SHA-256 function, but although the length limit of the CN
 	# attribute in a X.509 certificate is 64 chars, a 32 byte UUID (64 chars in hex) doesn't pass the certificate
 	# validation in OpenVPN This either means that the RFC counts a final NULL byte as part of the CN or that the
@@ -22,7 +22,7 @@ registerDevice = (apiKey, userId, applicationId) ->
 			user: userId
 			application: applicationId
 			uuid: uuid
-			'device_type': 'Raspberry Pi'
+			'device_type': deviceType
 	).spread (response, body) ->
 		if response.statusCode != 201
 			throw new Error('Device registration to resin failed. body: ' + body + '. status code: ' + response.statusCode)
@@ -32,10 +32,11 @@ registerDevice = (apiKey, userId, applicationId) ->
 module.exports = ->
 	# Load config file
 	userConfig = require('/boot/config.json')
+	userConfig.deviceType ?= 'Raspberry Pi'
 
 	new Promise (resolve, reject) ->
 		if not userConfig.uuid?
-			registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId)
+			registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType)
 			.then (uuid) ->
 				userConfig.uuid = uuid
 				resolve(uuid)
