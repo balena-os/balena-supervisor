@@ -48,12 +48,12 @@ startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
 				es.pipeline(
 					stream
 					es.split()
-					es.map (line, callback) ->
+					es.mapSync (line) ->
 						# ignore first 8 characters of every line that are a header sent by docker attach
 						data = line.substr(8)
 						if data is config.successMessage
 							resolve(container)
-						callback(null, data)
+						return
 				)
 				stream.on 'end', ->
 					reject(new Error('New supervisor stopped before success message'))
