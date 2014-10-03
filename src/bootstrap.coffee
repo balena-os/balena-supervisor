@@ -8,6 +8,10 @@ crypto = require 'crypto'
 config = require './config'
 csrgen = Promise.promisify require 'csr-gen'
 request = Promise.promisify require 'request'
+PlatformAPI = require 'resin-platform-api/request'
+
+PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
+resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
 
 registerDevice = (apiKey, userId, applicationId, deviceType) ->
 	# I'd be nice if the UUID matched the output of a SHA-256 function, but although the length limit of the CN
@@ -15,19 +19,18 @@ registerDevice = (apiKey, userId, applicationId, deviceType) ->
 	# validation in OpenVPN This either means that the RFC counts a final NULL byte as part of the CN or that the
 	# OpenVPN/OpenSSL implementation has a bug.
 	uuid = crypto.pseudoRandomBytes(31).toString('hex')
-	request(
-		method: 'POST'
-		url: url.resolve(config.apiEndpoint, '/ewa/device?apikey=' + apiKey)
-		json:
+
+	resinAPI.post(
+		resource: 'device'
+		body:
 			user: userId
 			application: applicationId
 			uuid: uuid
 			'device_type': deviceType
-	).spread (response, body) ->
-		if response.statusCode != 201
-			throw new Error('Device registration to resin failed. body: ' + body + '. status code: ' + response.statusCode)
-		else
-			return uuid
+		customOptions:
+			apikey: apiKey
+	).then ->
+		return uuid
 
 module.exports = ->
 	# Load config file
