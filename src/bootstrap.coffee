@@ -37,17 +37,12 @@ module.exports = ->
 	userConfig = require('/boot/config.json')
 	userConfig.deviceType ?= 'Raspberry Pi'
 
-	new Promise (resolve, reject) ->
-		if not userConfig.uuid?
-			registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType)
-			.then (uuid) ->
-				userConfig.uuid = uuid
-				resolve(uuid)
-			.catch (err) ->
-				reject(err)
-		else
-			uuid = userConfig.uuid
-			resolve(uuid)	
+	Promise.try ->
+		if userConfig.uuid?
+			return userConfig.uuid
+		registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType)
+		.tap (uuid) ->
+			userConfig.uuid = uuid
 	.then (uuid) ->
 		version = utils.getSupervisorVersion()
 	
