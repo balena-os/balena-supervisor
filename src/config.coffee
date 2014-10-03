@@ -10,6 +10,7 @@ module.exports = config =
 	configMountPoint: process.env.CONFIG_MOUNT_POINT ? '/mnt/mmcblk0p1/config.json'
 	ledFile: process.env.LED_FILE ? '/sys/class/leds/led0/brightness'
 	bootstrapRetryDelay: process.env.BOOTSTRAP_RETRY_DELAY_MS ? 30000
+	restartSuccessTimeout: process.env.RESTART_SUCCESS_TIMEOUT ? 60000
 	successMessage: 'SUPERVISOR OK'
 
 config.heartbeatEndpoint = config.apiEndpoint + '/ping'

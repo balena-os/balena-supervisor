@@ -57,10 +57,10 @@ startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
 				)
 				stream.on 'end', ->
 					reject(new Error('New supervisor stopped before success message'))
-			.timeout(60000) # wait up to 1 minute
+			.timeout(config.restartSuccessTimeout) # wait up to 1 minute
 		.catch (e) ->
 			container.stopAsync()
-			console.log('Container failed to start successfully. Error: ', e)
+			console.error('Container failed to start successfully. Error: ', e)
 			throw e
 	.then ->
 		# We've started the new container, so we're done here! #pray
