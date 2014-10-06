@@ -28,22 +28,22 @@ publish = do ->
 
 	knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 		uuid = uuid.value
-		channel = "device-#{uuid}-"
+		channel = "device-#{uuid}-logs"
 
 		# Redefine original function
-		publish = (message, channelPrefix="logs") ->
-			pubnub.publish({ channel + channelPrefix, message })
+		publish = (message) ->
+			pubnub.publish({ channel, message })
 
 		# Replay queue now that we have initialised the publish function
 		publish(args...) for args in publishQueue
 
 	return -> publishQueue.push(arguments)
 
-exports.logSupervisorEvent = logSupervisorEvent = (message) ->
-	publish(message, "meta-logs")
+exports.logSystemEvent = logSystemEvent = (message) ->
+	publish("[system] " + message)
 
-exports.kill = kill = (app) ->	
-	logSupervisorEvent( 'Killing application ' + app.imageId )
+exports.kill = kill = (app) ->
+	logSystemEvent('Killing application ' + app.imageId)
 	utils.mixpanelTrack('Application kill', app)
 	updateDeviceInfo(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
@@ -101,7 +101,7 @@ exports.start = start = (app) ->
 			docker.getImage(app.imageId).inspectAsync()
 			.catch (error) ->
 				utils.mixpanelTrack('Application install', app)
-				logSupervisorEvent('Installing application ' + app.imageId)
+				logSystemEvent('Installing application ' + app.imageId)
 				updateDeviceInfo(status: 'Downloading')
 				docker.createImageAsync(fromImage: app.imageId)
 				.then (stream) ->
@@ -168,7 +168,7 @@ exports.start = start = (app) ->
 				)
 	.tap ->
 		utils.mixpanelTrack('Application start', app.imageId)
-		logSupervisorEvent('Starting application ' + app.imageId)
+		logSystemEvent('Starting application ' + app.imageId)
 	.finally ->
 		updateDeviceInfo(status: 'Idle')
 
@@ -258,7 +258,7 @@ exports.update = update = ->
 					localApp = apps[imageId]
 					app = remoteApps[imageId]
 					utils.mixpanelTrack('Application update', app)
-					logSupervisorEvent('Updating application')
+					logSystemEvent('Updating application')
 					kill(localApp)
 					.then ->
 						start(app)
