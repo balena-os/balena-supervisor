@@ -32,6 +32,8 @@ publish = do ->
 
 		# Redefine original function
 		publish = (message) ->
+			# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
+			message or= ' '
 			pubnub.publish({ channel, message })
 
 		# Replay queue now that we have initialised the publish function
