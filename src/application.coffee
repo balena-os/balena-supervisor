@@ -28,11 +28,11 @@ publish = do ->
 
 	knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 		uuid = uuid.value
-		channel = "device-#{uuid}-logs"
+		channel = "device-#{uuid}-"
 
 		# Redefine original function
-		publish = (message, isMeta=false) ->
-			pubnub.publish({ channel, message, isMeta })
+		publish = (message, channelPrefix="logs") ->
+			pubnub.publish({ channel + channelPrefix, message })
 
 		# Replay queue now that we have initialised the publish function
 		publish(args...) for args in publishQueue
@@ -40,7 +40,7 @@ publish = do ->
 	return -> publishQueue.push(arguments)
 
 exports.logSupervisorEvent = logSupervisorEvent = (message) ->
-	publish(message, true)
+	publish(message, "meta-logs")
 
 exports.kill = kill = (app) ->	
 	logSupervisorEvent( 'Killing application ' + app.imageId )
