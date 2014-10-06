@@ -31,17 +31,19 @@ publish = do ->
 		channel = "device-#{uuid}-logs"
 
 		# Redefine original function
-		publish = (message) ->
-			# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
-			message or= ' '
-			pubnub.publish({ channel, message })
+		publish = (message, isMeta=false) ->
+			pubnub.publish({ channel, message, isMeta })
 
 		# Replay queue now that we have initialised the publish function
 		publish(args...) for args in publishQueue
 
 	return -> publishQueue.push(arguments)
 
-exports.kill = kill = (app) ->
+exports.logSupervisorEvent = logSupervisorEvent = (message) ->
+	publish(message, true)
+
+exports.kill = kill = (app) ->	
+	logSupervisorEvent( 'Killing application ' + app.imageId )
 	utils.mixpanelTrack('Application kill', app)
 	updateDeviceInfo(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
@@ -99,6 +101,7 @@ exports.start = start = (app) ->
 			docker.getImage(app.imageId).inspectAsync()
 			.catch (error) ->
 				utils.mixpanelTrack('Application install', app)
+				logSupervisorEvent('Installing application ' + app.imageId)
 				updateDeviceInfo(status: 'Downloading')
 				docker.createImageAsync(fromImage: app.imageId)
 				.then (stream) ->
@@ -165,6 +168,7 @@ exports.start = start = (app) ->
 				)
 	.tap ->
 		utils.mixpanelTrack('Application start', app.imageId)
+		logSupervisorEvent('Starting application ' + app.imageId)
 	.finally ->
 		updateDeviceInfo(status: 'Idle')
 
@@ -254,6 +258,7 @@ exports.update = update = ->
 					localApp = apps[imageId]
 					app = remoteApps[imageId]
 					utils.mixpanelTrack('Application update', app)
+					logSupervisorEvent('Updating application')
 					kill(localApp)
 					.then ->
 						start(app)
