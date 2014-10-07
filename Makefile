@@ -17,7 +17,9 @@ CACHE_VOLUME = # --volume /home/vagrant/cache:/cache
 
 all: supervisor 
 
-BUILDSTEP_PRESENT = $(shell docker images --all | grep $(BUILDSTEP_VERSION) | awk '{print $$1}' | grep -xF $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO) )
+VERSIONED_IMAGES = "$(shell docker images --all | grep $(BUILDSTEP_VERSION) | awk '{print $$1}')"
+BUILDSTEP_PRESENT = $(shell echo $(VERSIONED_IMAGES) | grep --extended-regexp '$(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO)(\s|$$)' )
+SUPERVISOR_BASE_PRESENT = $(shell echo $(VERSIONED_IMAGES) | grep --extended-regexp 'resin/supervisor-base(\s|$$)' )
 
 supervisor-base:
 ifneq ($(BUILDSTEP_PRESENT) , )
@@ -25,7 +27,14 @@ ifneq ($(BUILDSTEP_PRESENT) , )
 else
 	docker pull $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
 endif
-	docker tag $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) resin/supervisor-base:latest
+ifneq ($(SUPERVISOR_BASE_PRESENT) , )
+	@echo "Using existing supervisor base from resin/supervisor-base:$(BUILDSTEP_VERSION)"
+else
+	docker rm -f build-supervisor-base 2> /dev/null || true
+	docker run --name build-supervisor-base $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) bash -c "apt-get -q update && apt-get install -qqy openvpn libsqlite3-dev socat"
+	docker commit build-supervisor-base resin/supervisor-base:$(BUILDSTEP_VERSION)
+endif
+	docker tag resin/supervisor-base:$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 
 supervisor: supervisor-base
 	docker build --no-cache=$(DISABLE_CACHE) -t $(IMAGE):$(SUPERVISOR_VERSION) .
