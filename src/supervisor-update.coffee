@@ -113,11 +113,8 @@ exports.initialised = currentSupervisor.then (currentSupervisor) ->
 				stream.on('end', resolve)
 		.then ->
 			console.log('Inspecting new supervisor:', remoteImage)
-			Promise.all([
-				docker.getImage(remoteImage).inspectAsync()
-				currentSupervisor
-			])
-		.spread (localImageInfo, currentSupervisor) ->
+			docker.getImage(remoteImage).inspectAsync()
+		.then (localImageInfo) ->
 			localImageId = localImageInfo.Id or localImageInfo.id
 			if localImageId is currentSupervisor.Image
 				utils.mixpanelTrack('Supervisor up to date')
