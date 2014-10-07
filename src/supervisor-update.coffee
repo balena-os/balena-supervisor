@@ -20,9 +20,8 @@ getContainerId = ->
 	.catch (err) ->
 		return process.env.HOSTNAME
 
-getCurrentContainer = ->
-	getContainerId().then (containerId) ->
-		docker.getContainer(containerId).inspectAsync()
+currentContainer = getContainerId().then (containerId) ->
+		docker.getContainer(containerId)
 
 startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
 	console.log('Creating supervisor container:', localImage)
@@ -64,10 +63,18 @@ startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
 			throw e
 	.then ->
 		# We've started the new container, so we're done here! #pray
-		console.log('Exiting to let the new supervisor take over')
-		process.exit()
+		console.log('Removing our container and letting the new supervisor take over')
+		currentContainer.then (container) ->
+			container.removeAsync(force: true)
+		.finally ->
+			# This should never really be reached as docker should already have terminated us,
+			# but in case it hasn't, then we'll just commit harakiri
+			console.log('And process.exiting..')
+			process.exit()
 
-currentSupervisor = getCurrentContainer().tap (currentSupervisor) ->
+currentSupervisorConfig = currentContainer.then (container) ->
+	container.inspectAsync()
+.tap (currentSupervisor) ->
 	# The volume keys are the important bit.
 	expectedVolumes = _.sortBy(_.keys(config.supervisorContainer.Volumes))
 	actualVolumes = _.sortBy(_.keys(currentSupervisor.Volumes))
@@ -88,7 +95,7 @@ currentSupervisor = getCurrentContainer().tap (currentSupervisor) ->
 		restart()
 
 # This is a promise that resolves when we have fully initialised.
-exports.initialised = currentSupervisor.then (currentSupervisor) ->
+exports.initialised = currentSupervisorConfig.then (currentSupervisor) ->
 	utils = require './utils'
 	JSONStream = require 'JSONStream'
 
