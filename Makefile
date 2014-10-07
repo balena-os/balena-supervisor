@@ -21,7 +21,7 @@ BUILDSTEP_PRESENT = $(shell docker images --all | grep $(BUILDSTEP_VERSION) | aw
 
 supervisor:
 ifneq ($(BUILDSTEP_PRESENT) , )
-	echo "Using existing Build step from $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)"
+	@echo "Using existing Build step from $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)"
 else
 	docker pull $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
 endif
@@ -35,7 +35,7 @@ ACCELERATOR = $(shell docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_V
 ifneq ($(ACCELERATOR) , )
 supervisor-accelerated:
 ifneq ($(BUILDSTEP_PRESENT) , )
-	echo "Using existing Build step from $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)"
+	@echo "Using existing Build step from $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)"
 else
 	docker pull $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
 endif
@@ -46,7 +46,7 @@ endif
 	docker tag $(IMAGE):$(SUPERVISOR_VERSION) $(SUPERVISOR_REGISTRY)/$(IMAGE):$(SUPERVISOR_VERSION)
 else
 supervisor-accelerated:
-	echo 'Please run make accelerator in resin-buildstep to continue'
+	@echo 'Please run make accelerator in resin-buildstep to continue'
 endif
 
 supervisor-x86_64:
