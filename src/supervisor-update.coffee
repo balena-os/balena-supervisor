@@ -13,14 +13,15 @@ Promise.promisifyAll(docker.getContainer().__proto__)
 localImage = config.localImage
 remoteImage = config.remoteImage
 
-getContainerId = ->
+containerIdPromise =
 	fs.readFileAsync( '/proc/1/cgroup' )
 	.then (data) ->
 		data.toString().match( /:cpu:\/docker\/(.*)$/m )[1]
 	.catch (err) ->
 		return process.env.HOSTNAME
 
-currentContainer = getContainerId().then (containerId) ->
+currentContainerPromise =
+	containerIdPromise.then (containerId) ->
 		docker.getContainer(containerId)
 
 startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
@@ -64,7 +65,7 @@ startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
 	.then ->
 		# We've started the new container, so we're done here! #pray
 		console.log('Removing our container and letting the new supervisor take over')
-		currentContainer.then (container) ->
+		currentContainerPromise.then (container) ->
 			container.removeAsync(force: true)
 		.finally ->
 			# This should never really be reached as docker should already have terminated us,
@@ -72,7 +73,7 @@ startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
 			console.log('And process.exiting..')
 			process.exit()
 
-currentSupervisorConfig = currentContainer.then (container) ->
+currentConfigPromise = currentContainerPromise.then (container) ->
 	container.inspectAsync()
 .tap (currentSupervisor) ->
 	# The volume keys are the important bit.
@@ -95,7 +96,7 @@ currentSupervisorConfig = currentContainer.then (container) ->
 		restart()
 
 # This is a promise that resolves when we have fully initialised.
-exports.initialised = currentSupervisorConfig.then (currentSupervisor) ->
+exports.initialised = currentConfigPromise.then (currentSupervisor) ->
 	utils = require './utils'
 	JSONStream = require 'JSONStream'
 
