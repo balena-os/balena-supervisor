@@ -5,13 +5,6 @@ config = require './config'
 mixpanel = require 'mixpanel'
 request = Promise.promisifyAll require 'request'
 
-# Parses package.json and returns resin-supervisor's version
-exports.getSupervisorVersion = ->
-	fs.readFileAsync(__dirname + '/../package.json', 'utf-8')
-	.then (data) ->
-		obj = JSON.parse data
-		return obj.version
-
 mixpanelClient = mixpanel.init(config.mixpanelToken)
 
 exports.mixpanelProperties = mixpanelProperties =

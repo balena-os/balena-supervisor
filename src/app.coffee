@@ -52,7 +52,7 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 
 	api = require './api'
 	application = require './application'
-	supervisor = require './supervisor-update'
+	supervisor = require './supervisor'
 
 	console.log('Starting OpenVPN..')
 	openvpn = spawn('openvpn', [ 'client.conf' ], cwd: '/data')
@@ -97,3 +97,8 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 
 	# Tell the supervisor updater that we have successfully started, so that it can do whatever it needs to.
 	supervisor.startupSuccessful()
+
+	# Let API know we are running a new version
+	application.updateDeviceInfo(
+		supervisor_version: supervisor.version
+	)

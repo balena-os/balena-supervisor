@@ -1,7 +1,14 @@
 process.on 'uncaughtException', (e) ->
 	console.error('Got unhandled exception', e, e?.stack)
 
+fs = require 'fs'
 supervisor = require './supervisor-update'
+
+# Parses package.json and returns resin-supervisor's version
+supervisor.version = version = do ->
+	packageJson = fs.readFileSync(__dirname + '/../package.json', 'utf-8')
+	obj = JSON.parse packageJson
+	return obj.version
 
 # Make sure the supervisor-update has initialised before we continue, as it will handle restarting to add mounts if
 # necessary.
@@ -19,3 +26,5 @@ supervisor.initialised.then ->
 	# Wait for the DB schema to be created
 	knex.init.then ->
 		require('./app')
+
+module.exports = exports = supervisor

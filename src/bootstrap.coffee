@@ -9,6 +9,7 @@ config = require './config'
 csrgen = Promise.promisify require 'csr-gen'
 request = Promise.promisify require 'request'
 PlatformAPI = require 'resin-platform-api/request'
+supervisor = require './supervisor'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
@@ -44,8 +45,6 @@ module.exports = ->
 		.tap (uuid) ->
 			userConfig.uuid = uuid
 	.then (uuid) ->
-		version = utils.getSupervisorVersion()
-	
 		# Generate SSL certificate
 		keys = csrgen(uuid,
 			company: 'Rulemotion Ltd'
@@ -60,19 +59,18 @@ module.exports = ->
 			division: ''
 		)
 
-		return [keys, version, uuid]
-	.spread (keys, version, uuid) ->
+		return [keys, uuid]
+	.spread (keys, uuid) ->
 		console.log('UUID:', uuid)
 		console.log('User ID:', userConfig.userId)
 		console.log('User:', userConfig.username)
-		console.log('Supervisor Version:', version)
+		console.log('Supervisor Version:', supervisor.version)
 		console.log('API key:', userConfig.apiKey)
 		console.log('Application ID:', userConfig.applicationId)
 		console.log('CSR :', keys.csr)
 		console.log('Posting to the API..')
 		userConfig.csr = keys.csr
 		userConfig.uuid = uuid
-		userConfig.version = version
 		return request(
 			method: 'POST'
 			url: url.resolve(config.apiEndpoint, 'sign_certificate?apikey=' + userConfig.apiKey)
@@ -106,7 +104,7 @@ module.exports = ->
 					{ key: 'apiKey', value: userConfig.apiKey }
 					{ key: 'username', value: userConfig.username }
 					{ key: 'userId', value: userConfig.userId }
-					{ key: 'version', value: userConfig.version }
+					{ key: 'version', value: supervisor.version }
 				])
 			knex('app').truncate()
 		])
