@@ -268,7 +268,7 @@ exports.update = update = ->
 		updateDeviceInfo(status: 'Cleaning old images')
 		# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
 		# point where we might clean up an image we still want.
-		cleanupImages()
+		cleanupContainersAndImages()
 	.catch (err) ->
 		failedUpdates++
 		if currentlyUpdating is 2
@@ -312,25 +312,34 @@ exports.updateDeviceInfo = updateDeviceInfo = (body) ->
 					apikey: apiKey
 			)
 
-cleanupImages = ->
+cleanupContainersAndImages = ->
 	knex('app').select()
+	.map (app) ->
+		app.imageId + ':latest'
 	.then (apps) ->
-		apps = apps.map((app) -> app.imageId + ':latest')
 		# Make sure not to delete the supervisor image!
 		apps.push(config.localImage + ':latest')
 		apps.push(config.remoteImage + ':latest')
 
-		docker.listImagesAsync()
-		.then (images) ->
-			Promise.all(
-				images.filter (image) ->
-					!_.any image.RepoTags, (imageId) ->
-						_.contains(apps, imageId)
-				.map (image) ->
-					# TODO: Remove old supervisor containers cleanly so we don't have to force remove images.
-					docker.getImage(image.Id).removeAsync(force: true)
-					.then ->
-						console.log('Deleted image:', image.Id, image.RepoTags)
-					.catch (err) ->
-						console.log('Error deleting image:', image.Id, image.RepoTags, err)
-			)
+		# Cleanup containers first, so that they don't block image removal.
+		docker.listContainersAsync(all: true)
+		.filter (containerInfo) ->
+			!_.contains(apps, containerInfo.Image)
+		.map (containerInfo) ->
+			docker.getContainer(containerInfo.Id).removeAsync()
+			.then ->
+				console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
+			.catch (err) ->
+				console.log('Error deleting container:', containerInfo.Id, image.Image, err)
+		.then ->
+			# And then clean up the images.
+			docker.listImagesAsync()
+			.filter (image) ->
+				!_.any image.RepoTags, (imageId) ->
+					_.contains(apps, imageId)
+			.map (image) ->
+				docker.getImage(image.Id).removeAsync()
+				.then ->
+					console.log('Deleted image:', image.Id, image.RepoTags)
+				.catch (err) ->
+					console.log('Error deleting image:', image.Id, image.RepoTags, err)
