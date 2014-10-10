@@ -31,7 +31,7 @@ ifneq ($(SUPERVISOR_BASE_PRESENT) , )
 	@echo "Using existing supervisor base from resin/supervisor-base:$(BUILDSTEP_VERSION)"
 else
 	docker rm -f build-supervisor-base 2> /dev/null || true
-	docker run --name build-supervisor-base $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) bash -c "apt-get -q update && apt-get install -qqy openvpn libsqlite3-dev socat"
+	docker run --name build-supervisor-base $(BUILDSTEP_REGISTRY)/$(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) bash -c "apt-get -q update && apt-get install -qqy openvpn libsqlite3-dev socat && apt-get clean && rm -rf /var/lib/apt/lists/"
 	docker commit build-supervisor-base resin/supervisor-base:$(BUILDSTEP_VERSION)
 endif
 	docker tag resin/supervisor-base:$(BUILDSTEP_VERSION) resin/supervisor-base:latest
