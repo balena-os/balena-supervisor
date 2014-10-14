@@ -20,6 +20,7 @@ module.exports = config =
 	ledFile: process.env.LED_FILE ? '/sys/class/leds/led0/brightness'
 	bootstrapRetryDelay: checkInt(process.env.BOOTSTRAP_RETRY_DELAY_MS) ? 30000
 	restartSuccessTimeout: checkInt(process.env.RESTART_SUCCESS_TIMEOUT) ? 60000
+	appUpdatePollInterval: checkInt(process.env.APPLICATION_UPDATE_POLL_INTERVAL) ? 60000
 	successMessage: 'SUPERVISOR OK'
 
 config.heartbeatEndpoint = config.apiEndpoint + '/ping'

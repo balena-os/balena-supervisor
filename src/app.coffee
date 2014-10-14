@@ -77,10 +77,10 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->
-		console.log('Starting periodic check for updates..')
+		utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})		
 		setInterval(->
 			application.update()
-		, 5 * 60 * 1000) # Every 5 mins
+		, config.appUpdatePollInterval)
 		application.update()
 
 	updateIpAddr = ->
