@@ -9,7 +9,6 @@ config = require './config'
 csrgen = Promise.promisify require 'csr-gen'
 request = Promise.promisify require 'request'
 PlatformAPI = require 'resin-platform-api/request'
-supervisor = require './supervisor'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
@@ -64,7 +63,7 @@ module.exports = ->
 		console.log('UUID:', uuid)
 		console.log('User ID:', userConfig.userId)
 		console.log('User:', userConfig.username)
-		console.log('Supervisor Version:', supervisor.version)
+		console.log('Supervisor Version:', utils.supervisorVersion)
 		console.log('API key:', userConfig.apiKey)
 		console.log('Application ID:', userConfig.applicationId)
 		console.log('CSR :', keys.csr)
@@ -104,7 +103,7 @@ module.exports = ->
 					{ key: 'apiKey', value: userConfig.apiKey }
 					{ key: 'username', value: userConfig.username }
 					{ key: 'userId', value: userConfig.userId }
-					{ key: 'version', value: supervisor.version }
+					{ key: 'version', value: utils.supervisorVersion }
 				])
 			knex('app').truncate()
 		])

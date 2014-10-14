@@ -5,6 +5,9 @@ config = require './config'
 mixpanel = require 'mixpanel'
 request = Promise.promisifyAll require 'request'
 
+# Parses package.json and returns resin-supervisor's version
+exports.supervisorVersion = require('../package.json').version
+
 mixpanelClient = mixpanel.init(config.mixpanelToken)
 
 exports.mixpanelProperties = mixpanelProperties =
