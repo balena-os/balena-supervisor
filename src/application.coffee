@@ -311,6 +311,8 @@ exports.updateDeviceInfo = updateDeviceInfo = (body) ->
 				customOptions:
 					apikey: apiKey
 			)
+	.catch (error) ->
+		utils.mixpanelTrack('Device info update failure', {error, body})
 
 cleanupContainersAndImages = ->
 	knex('app').select()
