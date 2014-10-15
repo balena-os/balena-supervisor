@@ -330,7 +330,7 @@ cleanupContainersAndImages = ->
 			.then ->
 				console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
 			.catch (err) ->
-				console.log('Error deleting container:', containerInfo.Id, image.Image, err)
+				console.log('Error deleting container:', containerInfo.Id, containerInfo.Image, err)
 		.then ->
 			# And then clean up the images.
 			docker.listImagesAsync()
