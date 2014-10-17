@@ -4,13 +4,14 @@ url = require 'url'
 knex = require './db'
 path = require 'path'
 config = require './config'
-{docker} = require './docker-utils'
+dockerUtils = require './docker-utils'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
-JSONStream = require 'JSONStream'
 PlatformAPI = require 'resin-platform-api/request'
 utils = require './utils'
 tty = require './tty'
+
+{docker} = dockerUtils
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
@@ -98,18 +99,7 @@ exports.start = start = (app) ->
 				utils.mixpanelTrack('Application install', app)
 				logSystemEvent('Installing application ' + app.imageId)
 				updateDeviceInfo(status: 'Downloading')
-				docker.createImageAsync(fromImage: app.imageId)
-				.then (stream) ->
-					return new Promise (resolve, reject) ->
-						if stream.headers['content-type'] is 'application/json'
-							stream.pipe(JSONStream.parse('error'))
-							.pipe(es.mapSync(reject))
-						else
-							stream.pipe es.wait (error, text) ->
-								if error
-									reject(text)
-
-						stream.on('end', resolve)
+				dockerUtils.fetchImage(app.imageId)
 			.then ->
 				console.log('Creating container:', app.imageId)
 				updateDeviceInfo(status: 'Starting')

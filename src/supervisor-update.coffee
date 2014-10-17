@@ -1,9 +1,11 @@
 config = require './config'
-{docker} = require './docker-utils'
+dockerUtils = require './docker-utils'
 Promise = require 'bluebird'
 _ = require 'lodash'
 es = require 'event-stream'
 fs = Promise.promisifyAll(require('fs'))
+
+{docker} = dockerUtils
 
 localImage = config.localImage
 remoteImage = config.remoteImage
@@ -93,7 +95,6 @@ currentConfigPromise = currentContainerPromise.then (container) ->
 # This is a promise that resolves when we have fully initialised.
 exports.initialised = currentConfigPromise.then (currentSupervisor) ->
 	utils = require './utils'
-	JSONStream = require 'JSONStream'
 
 	supervisorUpdating = Promise.resolve()
 	exports.update = ->
@@ -102,18 +103,7 @@ exports.initialised = currentConfigPromise.then (currentSupervisor) ->
 		supervisorUpdating = supervisorUpdating.then ->
 			utils.mixpanelTrack('Supervisor update check')
 			console.log('Fetching supervisor:', remoteImage)
-			docker.createImageAsync(fromImage: remoteImage)
-		.then (stream) ->
-			return new Promise (resolve, reject) ->
-				if stream.headers['content-type'] is 'application/json'
-					stream.pipe(JSONStream.parse('error'))
-					.pipe(es.mapSync(reject))
-				else
-					stream.pipe es.wait (error, text) ->
-						if error
-							reject(text)
-
-				stream.on('end', resolve)
+			dockerUtils.fetchImage(remoteImage)
 		.then ->
 			console.log('Inspecting new supervisor:', remoteImage)
 			docker.getImage(remoteImage).inspectAsync()
