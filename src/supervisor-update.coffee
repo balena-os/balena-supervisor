@@ -1,14 +1,9 @@
 config = require './config'
-Docker = require 'dockerode'
+{docker} = require './docker-utils'
 Promise = require 'bluebird'
 _ = require 'lodash'
 es = require 'event-stream'
 fs = Promise.promisifyAll(require('fs'))
-
-docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
-# Hack dockerode to promisify internal classes' prototypes
-Promise.promisifyAll(docker.getImage().__proto__)
-Promise.promisifyAll(docker.getContainer().__proto__)
 
 localImage = config.localImage
 remoteImage = config.remoteImage

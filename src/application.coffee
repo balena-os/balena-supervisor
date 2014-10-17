@@ -4,7 +4,7 @@ url = require 'url'
 knex = require './db'
 path = require 'path'
 config = require './config'
-Docker = require 'dockerode'
+{docker} = require './docker-utils'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 JSONStream = require 'JSONStream'
@@ -14,11 +14,6 @@ tty = require './tty'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
-
-docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
-# Hack dockerode to promisify internal classes' prototypes
-Promise.promisifyAll(docker.getImage().__proto__)
-Promise.promisifyAll(docker.getContainer().__proto__)
 
 pubnub = PUBNUB.init(config.pubnub)
 
