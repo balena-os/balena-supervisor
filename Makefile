@@ -21,26 +21,22 @@ SUPERVISOR_BASE_PRESENT = $(shell echo $(VERSIONED_IMAGES) | grep --extended-reg
 ACCELERATOR = $(shell docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}' )
 
 clean:
+ifeq "$(ARCH)" "rpi"
 	-docker rm -f build-supervisor-base 2> /dev/null
 	-docker rmi resin/supervisor-base:latest
 	-docker rmi resin/supervisor-base:$(BUILDSTEP_VERSION)
-	-docker pull $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
-	-docker pull resin/rpi-buildstep-accelerator:$(BUILDSTEP_VERSION)
 ifneq ($(ACCELERATOR) , )
 	-docker rm buildstep-accelerator-$(BUILDSTEP_VERSION) 2> /dev/null
 endif
-	@echo "Older images cleaned - Fetched fresh buildstep and acccelerator"
+	@echo "Older images cleaned."
+endif
 
 supervisor-base:
 ifeq "$(ARCH)" "rpi"
-ifneq ($(BUILDSTEP_PRESENT) , )
-	@echo "Using existing build step from $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)"
-else
-	docker pull $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
-endif
 ifneq ($(SUPERVISOR_BASE_PRESENT) , )
 	@echo "Using existing supervisor base from resin/supervisor-base:$(BUILDSTEP_VERSION)"
 else
+	docker pull $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
 	-docker rm -f build-supervisor-base 2> /dev/null
 	docker run --name build-supervisor-base $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) bash -c "apt-get -q update && apt-get install -qqy openvpn libsqlite3-dev socat && apt-get clean && rm -rf /var/lib/apt/lists/"
 	docker commit build-supervisor-base resin/supervisor-base:$(BUILDSTEP_VERSION)
@@ -58,6 +54,7 @@ supervisor: supervisor-base
 supervisor-accelerated: supervisor-base
 ifeq ($(ACCELERATOR) , )
 	@echo 'Supervisor accelerator not found - Downloading resin/buildstep-accelerator and preparing.'
+	docker pull resin/rpi-buildstep-accelerator:$(BUILDSTEP_VERSION)
 	-docker rm buildstep-accelerator-$(BUILDSTEP_VERSION) 2> /dev/null
 	docker run --name=buildstep-accelerator-$(BUILDSTEP_VERSION) -v /.a resin/rpi-buildstep-accelerator:$(BUILDSTEP_VERSION) /prepare-accelerator.sh
 endif
