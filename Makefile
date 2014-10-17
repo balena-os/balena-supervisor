@@ -50,10 +50,10 @@ endif
 endif
 
 supervisor: supervisor-base
-	cp Dockerfile.$(ARCH) Dockerfile.tmp
-	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile.tmp
-	tar --exclude="Dockerfile" --transform='flags=r;s|Dockerfile.tmp|Dockerfile|' -c . | docker build --no-cache=$(DISABLE_CACHE) -t resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION) -
-	rm Dockerfile.tmp
+	cp Dockerfile.$(ARCH) Dockerfile
+	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile
+	docker build --no-cache=$(DISABLE_CACHE) -t resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION) .
+	rm Dockerfile
 
 supervisor-accelerated: supervisor-base
 ifeq ($(ACCELERATOR) , )
