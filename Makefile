@@ -1,6 +1,8 @@
 DISABLE_CACHE = 'false'
 
-IMAGE = resin/rpi-supervisor
+RPI_IMAGE = resin/rpi-supervisor
+
+ARCH = rpi# rpi/x86_64/i386
 
 SUPERVISOR_VERSION = latest
 
@@ -19,7 +21,7 @@ SUPERVISOR_BASE_PRESENT = $(shell echo $(VERSIONED_IMAGES) | grep --extended-reg
 ACCELERATOR = $(shell docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}' )
 
 clean:
-	-docker rm -f build-supervisor-base 2> /dev/null || true
+	-docker rm -f build-supervisor-base 2> /dev/null
 	-docker rmi resin/supervisor-base:latest
 	-docker rmi resin/supervisor-base:$(BUILDSTEP_VERSION)
 	-docker pull $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
@@ -30,6 +32,7 @@ endif
 	@echo "Older images cleaned - Fetched fresh buildstep and acccelerator"
 
 supervisor-base:
+ifeq "$(ARCH)" "rpi"
 ifneq ($(BUILDSTEP_PRESENT) , )
 	@echo "Using existing build step from $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)"
 else
@@ -44,10 +47,13 @@ else
 	-docker rm build-supervisor-base 2> /dev/null
 endif
 	docker tag resin/supervisor-base:$(BUILDSTEP_VERSION) resin/supervisor-base:latest
+endif
 
 supervisor: supervisor-base
-	docker build --no-cache=$(DISABLE_CACHE) -t $(IMAGE):$(SUPERVISOR_VERSION) .
-
+	cp Dockerfile.$(ARCH) Dockerfile.tmp
+	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile.tmp
+	tar --exclude="Dockerfile" --transform='flags=r;s|Dockerfile.tmp|Dockerfile|' -c . | docker build --no-cache=$(DISABLE_CACHE) -t resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION) -
+	rm Dockerfile.tmp
 
 supervisor-accelerated: supervisor-base
 ifeq ($(ACCELERATOR) , )
@@ -56,18 +62,12 @@ ifeq ($(ACCELERATOR) , )
 	docker run --name=buildstep-accelerator-$(BUILDSTEP_VERSION) -v /.a resin/rpi-buildstep-accelerator:$(BUILDSTEP_VERSION) /prepare-accelerator.sh
 endif
 	docker rm -f build-supervisor-latest 2> /dev/null || true
-	docker run --name build-supervisor-latest $(CACHE_VOLUME) --volumes-from `docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}'`:ro -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
-	docker commit build-supervisor-latest $(IMAGE):$(SUPERVISOR_VERSION) > /dev/null
+	docker run --name build-supervisor-latest $(CACHE_VOLUME) --volumes-from `docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}'`:ro --env VERSION=`jq -r .version package.json` -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
+	docker commit build-supervisor-latest $(RPI_IMAGE):$(SUPERVISOR_VERSION) > /dev/null
 	-docker rm build-supervisor-latest 2> /dev/null
-
-supervisor-x86_64:
-	tar --exclude="Dockerfile" --transform='flags=r;s|Dockerfile.x86_64|Dockerfile|' -c . | docker build -t resin/x86_64-supervisor -
 
 run-supervisor-x86_64:
 	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/x86_64-supervisor /start
-
-supervisor-i386:
-	tar --exclude="Dockerfile" --transform='flags=r;s|Dockerfile.i386|Dockerfile|' -c . | docker build -t resin/i386-supervisor -
 
 run-supervisor-i386:
 	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/i386-supervisor /start
