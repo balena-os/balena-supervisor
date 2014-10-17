@@ -83,6 +83,10 @@ module.exports = ->
 			throw body
 
 		console.log('Configuring VPN..', JSON.stringify(body))
+
+		for prop in ['ca', 'cert', 'vpnhost', 'vpnport'] when _.isEmpty(body[prop])
+			throw new Error("'#{prop}' is empty, cannot bootstrap")
+
 		vpnConf = fs.readFileAsync(__dirname + '/openvpn.conf.tmpl', 'utf8')
 			.then (tmpl) ->
 				fs.writeFileAsync('/data/client.conf', _.template(tmpl)(body))
