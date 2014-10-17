@@ -21,16 +21,16 @@ currentContainerPromise =
 	containerIdPromise.then (containerId) ->
 		docker.getContainer(containerId)
 
-startNewSupervisor = (currentSupervisor, waitForSuccess = true) ->
-	console.log('Creating supervisor container:', localImage)
+startNewSupervisor = (currentSupervisor, image, waitForSuccess = true) ->
+	console.log('Creating supervisor container:', image)
 	docker.createContainerAsync(
-		Image: localImage
+		Image: image
 		Cmd: [ '/start' ]
 		Volumes: config.supervisorContainer.Volumes
 		Env: currentSupervisor.Config.Env
 	)
 	.tap (container) ->
-		console.log('Starting supervisor container:', localImage)
+		console.log('Starting supervisor container:', image)
 		container.startAsync(
 			Privileged: true
 			Binds: config.supervisorContainer.Binds
@@ -85,7 +85,7 @@ currentConfigPromise = currentContainerPromise.then (container) ->
 		console.log('Supervisor restart (for binds/mounts)')
 		restart = ->
 			# When restarting for just binds/mounts we just wait for the supervisor updates to start.
-			startNewSupervisor(currentSupervisor, false)
+			startNewSupervisor(currentSupervisor, localImage, false)
 			.catch (err) ->
 				console.error('Error restarting', err)
 				# If there's an error just keep attempting to restart to get to a useful state.
@@ -113,7 +113,7 @@ exports.initialised = currentConfigPromise.then (currentSupervisor) ->
 				utils.mixpanelTrack('Supervisor up to date')
 				return
 			utils.mixpanelTrack('Supervisor update start', image: localImageId)
-			startNewSupervisor(currentSupervisor)
+			startNewSupervisor(currentSupervisor, remoteImage)
 		.catch (err) ->
 			utils.mixpanelTrack('Supervisor update failed', error: err)
 			# The error here is intentionally not propagated further up the chain,
