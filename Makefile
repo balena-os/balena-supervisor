@@ -41,7 +41,7 @@ endif
 ifneq ($(SUPERVISOR_BASE_PRESENT) , )
 	@echo "Using existing supervisor base from resin/supervisor-base:$(BUILDSTEP_VERSION)"
 else
-	docker rm -f build-supervisor-base 2> /dev/null || true
+	-docker rm -f build-supervisor-base 2> /dev/null
 	docker run --name build-supervisor-base $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) bash -c "apt-get -q update && apt-get install -qqy openvpn libsqlite3-dev socat && apt-get clean && rm -rf /var/lib/apt/lists/"
 	docker commit build-supervisor-base resin/supervisor-base:$(BUILDSTEP_VERSION)
 	-docker rm build-supervisor-base 2> /dev/null
@@ -61,7 +61,7 @@ ifeq ($(ACCELERATOR) , )
 	-docker rm buildstep-accelerator-$(BUILDSTEP_VERSION) 2> /dev/null
 	docker run --name=buildstep-accelerator-$(BUILDSTEP_VERSION) -v /.a resin/rpi-buildstep-accelerator:$(BUILDSTEP_VERSION) /prepare-accelerator.sh
 endif
-	docker rm -f build-supervisor-latest 2> /dev/null || true
+	-docker rm -f build-supervisor-latest 2> /dev/null
 	docker run --name build-supervisor-latest $(CACHE_VOLUME) --volumes-from `docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}'`:ro --env VERSION=`jq -r .version package.json` -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
 	docker commit build-supervisor-latest $(RPI_IMAGE):$(SUPERVISOR_VERSION) > /dev/null
 	-docker rm build-supervisor-latest 2> /dev/null
