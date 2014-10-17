@@ -25,9 +25,7 @@ ifeq "$(ARCH)" "rpi"
 	-docker rm -f build-supervisor-base 2> /dev/null
 	-docker rmi resin/supervisor-base:latest
 	-docker rmi resin/supervisor-base:$(BUILDSTEP_VERSION)
-ifneq ($(ACCELERATOR) , )
 	-docker rm buildstep-accelerator-$(BUILDSTEP_VERSION) 2> /dev/null
-endif
 	@echo "Older images cleaned."
 endif
 
