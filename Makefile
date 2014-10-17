@@ -72,4 +72,4 @@ run-supervisor-x86_64:
 run-supervisor-i386:
 	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/i386-supervisor /start
 
-.PHONY: supervisor supervisor-accelerated supervisor-x86_64 run-supervisor-x86_64 supervisor-i386 run-supervisor-i386
+.PHONY: supervisor supervisor-accelerated run-supervisor-x86_64 run-supervisor-i386
