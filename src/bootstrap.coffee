@@ -82,7 +82,7 @@ module.exports = ->
 		if response.statusCode >= 400
 			throw body
 
-		console.log('Configuring VPN..')
+		console.log('Configuring VPN..', JSON.stringify(body))
 		vpnConf = fs.readFileAsync(__dirname + '/openvpn.conf.tmpl', 'utf8')
 			.then (tmpl) ->
 				fs.writeFileAsync('/data/client.conf', _.template(tmpl)(body))
