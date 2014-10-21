@@ -21,7 +21,7 @@
     "ping": "0.1.8",
     "pubnub": "~3.6.4",
     "request": "~2.22.0",
-    "resin-platform-api": "git+ssh://git@bitbucket.org:rulemotion/resin-platform-api.git#v0.2.3",
+    "resin-platform-api": "git+ssh://git@bitbucket.org:rulemotion/resin-platform-api.git#v0.2.5",
     "sqlite3": "~2.1.19",
     "tty.js": "~0.2.13"
   },
