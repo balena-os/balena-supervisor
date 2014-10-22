@@ -11,7 +11,7 @@ BUILDSTEP_VERSION = master
 BUILDSTEP_REPO = resin/rpi-buildstep-armv6hf
 
 # This allows using a cache for building the supervisor, making it much faster.
-CACHE_VOLUME = # --volume /home/vagrant/cache:/cache
+CACHE_VOLUME = ~/cache/resin-supervisor
 
 all: supervisor 
 
@@ -26,6 +26,7 @@ ifeq "$(ARCH)" "rpi"
 	-docker rmi resin/supervisor-base:latest
 	-docker rmi resin/supervisor-base:$(BUILDSTEP_VERSION)
 	-docker rm buildstep-accelerator-$(BUILDSTEP_VERSION) 2> /dev/null
+	-rm -rf $(CACHE_VOLUME)
 	@echo "Older images cleaned."
 endif
 
@@ -57,7 +58,7 @@ ifeq ($(ACCELERATOR) , )
 	docker run --name=buildstep-accelerator-$(BUILDSTEP_VERSION) -v /.a resin/rpi-buildstep-accelerator:$(BUILDSTEP_VERSION) /prepare-accelerator.sh
 endif
 	-docker rm -f build-supervisor-latest 2> /dev/null
-	docker run --name build-supervisor-latest $(CACHE_VOLUME) --volumes-from `docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}'`:ro --env VERSION=`jq -r .version package.json` -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
+	docker run --name build-supervisor-latest --volume $(CACHE_VOLUME):/cache --volumes-from `docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}'`:ro --env VERSION=`jq -r .version package.json` -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
 	docker commit build-supervisor-latest $(RPI_IMAGE):$(SUPERVISOR_VERSION) > /dev/null
 	-docker rm build-supervisor-latest 2> /dev/null
 
