@@ -99,15 +99,8 @@ exports.start = start = (app) ->
 				utils.mixpanelTrack('Application install', app)
 				logSystemEvent('Installing application ' + app.imageId)
 				updateDeviceInfo(status: 'Downloading')
-				dockerUtils.fetchImageWithProgress(app.imageId)
-			.then (stream) ->
-				return new Promise (resolve, reject) ->
-					stream.on 'data', (d) ->
-						data = JSON.parse(d)
-						if data.progress?
-							updateDeviceInfo(download_progress: data.progress.percentage)
-					stream.on('error', reject)
-					stream.on('end', resolve)
+				dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
+					updateDeviceInfo(download_progress: progress.percentage)
 			.then ->
 				console.log('Creating container:', app.imageId)
 				updateDeviceInfo(status: 'Starting')
