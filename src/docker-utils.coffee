@@ -88,6 +88,7 @@ do ->
 					.catch (err) ->
 						console.log('Error deleting image:', image.Id, image.RepoTags, err)
 
+	# Return true if an image exists in the local docker repository, false otherwise.
 	exports.imageExists = imageExists = (imageId) ->
 		image = docker.getImage(imageId)
 		image.inspectAsync().then ->
@@ -95,6 +96,7 @@ do ->
 		.catch (e) ->
 			return false
 
+	# Get the id of an image on a given registry and tag.
 	exports.getImageId = getImageId = (registry, imageName, tag='latest') ->
 		request("http://#{registry}/v1/repositories/#{imageName}/tags")
 		.spread (res, data) ->
@@ -105,6 +107,7 @@ do ->
 			tags = JSON.parse(data)
 			return tags[tag]
 
+	# Return the ids of the layers of an image.
 	exports.getImageHistory = getImageHistory = (registry, imageId) ->
 		request("http://#{registry}/v1/images/#{imageId}/ancestry")
 		.spread (res, data) ->
@@ -113,6 +116,8 @@ do ->
 			history = JSON.parse(data)
 			return history
 
+	# Return the number of bytes docker has to download to pull this image (or layer).
+	# If the image is already downloaded, then 0 is returned.
 	exports.getImageDownloadSize = getImageDownloadSize = (registry, imageId) ->
 		imageExists(imageId)
 		.then (exists) ->
@@ -124,6 +129,10 @@ do ->
 					throw new Error("Failed to get image download size of #{imageId} from #{registry}. Status code: #{res.statusCode}")
 				return parseInt(res.headers['x-docker-size'])
 
+	# Get download size of the layers of an image.
+	# The object returned has layer ids as keys and their download size as values.
+	# Download size is the size that docker will download if the image will be pulled now.
+	# If some layer is already downloaded, it will return 0 size for that layer.
 	exports.getLayerDownloadSizes = getLayerDownloadSizes = (image, tag='latest') ->
 		{registry, imageName} = getRegistryAndName(image)
 		imageSizes = {}
@@ -135,6 +144,8 @@ do ->
 				imageSizes[layerId] = size
 		.return(imageSizes)
 
+	# Return percentage from current completed/total, handling edge cases.
+	# Null total is considered an unknown total and 0 percentage is returned.
 	calculatePercentage = (completed, total) ->
 		if not total?
 			percentage = 0 # report 0% if unknown total size
@@ -144,10 +155,13 @@ do ->
 			percentage = (100 * completed) // total
 		return percentage
 
+	# Separate string containing registry and image name into its parts.
+	# Example: registry.staging.resin.io/resin/rpi
+	#          { registry: "registry.staging.resin.io", imageName: "resin/rpi" }
 	getRegistryAndName = (image) ->
 		slashPos = image.indexOf('/')
 		if slashPos < 0
-			throw new Error("Expected image name including registry domain name")
+			throw new Error("Expected image name to include registry domain name")
 		registry = image.substr(0,slashPos)
 		imageName = image.substr(slashPos+1)
 		return {registry, imageName}
@@ -156,6 +170,11 @@ do ->
 	# to include total progress metrics.
 	# 
 	# The docker pull output should be piped to this stream as separate javascript objects.
+	#
+	# Stream:
+	# { status: "status", progressDetail: { current } }
+	#                     =>
+	# { status: "status", progressDetail: { current }, totalProgress: { downloadedSize, totalSize, percentage } }
 	pullProgressStream = (image) ->
 		totalSize = 0
 		completedSize = 0
@@ -180,5 +199,5 @@ do ->
 				percentage = calculatePercentage(downloadedSize, totalSize)
 				pull.totalProgress = { downloadedSize, totalSize, percentage }
 				callback(null, pull)
-			.catch (error) =>
-				callback(null, { error })
+			.catch (e) ->
+				callback(null, { error: e.message })
