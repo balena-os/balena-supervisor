@@ -159,11 +159,11 @@ do ->
 	# Example: registry.staging.resin.io/resin/rpi
 	#          { registry: "registry.staging.resin.io", imageName: "resin/rpi" }
 	getRegistryAndName = (image) ->
-		slashPos = image.indexOf('/')
-		if slashPos < 0
+		[ m, registry, imageName ] = image.match(/(.+[:.].+)\/(.+\/.+)/)
+		if not registry
 			throw new Error("Expected image name to include registry domain name")
-		registry = image.substr(0,slashPos)
-		imageName = image.substr(slashPos+1)
+		if not imageName
+			throw new Error("Invalid image name, expected domain.tld/repo/image format.")
 		return {registry, imageName}
 	
 	# Create a stream that transforms docker pull output 
