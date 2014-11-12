@@ -281,6 +281,7 @@ exports.updateDeviceInfo = updateDeviceInfo = (body) ->
 		resinAPI.get(
 			resource: 'device'
 			options:
+				select: 'id'
 				filter:
 					uuid: uuid
 			customOptions:
