@@ -277,32 +277,44 @@ exports.update = update = ->
 		# Set the updating as finished
 		currentlyUpdating = 0
 
+getDeviceID = do ->
+	deviceIdPromise = null
+	return ->
+		# We initialise the rejected promise just before we catch in order to avoid a useless first unhandled error warning.
+		deviceIdPromise ?= Promise.rejected()
+		# Only fetch the device id once (when successful, otherwise retry for each request)
+		deviceIdPromise = deviceIdPromise.catch ->
+			Promise.all([
+				knex('config').select('value').where(key: 'apiKey')
+				knex('config').select('value').where(key: 'uuid')
+			])
+			.spread ([{value: apiKey}], [{value: uuid}]) ->
+				resinAPI.get(
+					resource: 'device'
+					options:
+						select: 'id'
+						filter:
+							uuid: uuid
+					customOptions:
+						apikey: apiKey
+				)
+			.then (devices) ->
+				if devices.length is 0
+					throw new Error('Could not find this device?!')
+				return devices[0].id
+
 exports.updateDeviceInfo = updateDeviceInfo = (body) ->
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
-		knex('config').select('value').where(key: 'uuid')
-	])
-	.spread ([{value: apiKey}], [{value: uuid}]) ->
-		resinAPI.get(
+		getDeviceID()
+	]).spread ([{value: apiKey}], deviceID) ->
+		resinAPI.patch(
 			resource: 'device'
-			options:
-				select: 'id'
-				filter:
-					uuid: uuid
+			id: deviceID
+			body: body
 			customOptions:
 				apikey: apiKey
 		)
-		.then (devices) ->
-			if devices.length is 0
-				throw new Error('Could not find this device?!')
-			deviceID = devices[0].id
-			resinAPI.patch(
-				resource: 'device'
-				id: deviceID
-				body: body
-				customOptions:
-					apikey: apiKey
-			)
 	.catch (error) ->
 		utils.mixpanelTrack('Device info update failure', {error, body})
 
