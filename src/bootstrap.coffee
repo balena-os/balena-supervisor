@@ -7,7 +7,7 @@ utils = require './utils'
 crypto = require 'crypto'
 config = require './config'
 csrgen = Promise.promisify require 'csr-gen'
-request = Promise.promisify require 'request'
+request = require './request'
 PlatformAPI = require 'resin-platform-api/request'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
@@ -70,8 +70,7 @@ module.exports = ->
 		console.log('Posting to the API..')
 		userConfig.csr = keys.csr
 		userConfig.uuid = uuid
-		return request(
-			method: 'POST'
+		return request.postAsync(
 			url: url.resolve(config.apiEndpoint, 'sign_certificate?apikey=' + userConfig.apiKey)
 			json: userConfig
 		)

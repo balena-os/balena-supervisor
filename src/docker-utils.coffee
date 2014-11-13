@@ -6,7 +6,7 @@ es = require 'event-stream'
 _ = require 'lodash'
 knex = require './db'
 
-request = Promise.promisify(require 'request')
+request = require './request'
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
@@ -98,7 +98,7 @@ do ->
 
 	# Get the id of an image on a given registry and tag.
 	exports.getImageId = getImageId = (registry, imageName, tag='latest') ->
-		request("http://#{registry}/v1/repositories/#{imageName}/tags")
+		request.getAsync("http://#{registry}/v1/repositories/#{imageName}/tags")
 		.spread (res, data) ->
 			if res.statusCode == 404
 				throw new Error("No such image #{imageName} on registry #{registry}")
@@ -109,7 +109,7 @@ do ->
 
 	# Return the ids of the layers of an image.
 	exports.getImageHistory = getImageHistory = (registry, imageId) ->
-		request("http://#{registry}/v1/images/#{imageId}/ancestry")
+		request.getAsync("http://#{registry}/v1/images/#{imageId}/ancestry")
 		.spread (res, data) ->
 			if res.statusCode >= 400
 				throw new Error("Failed to get image ancestry of #{imageId} from #{registry}. Status code: #{res.statusCode}")
@@ -123,7 +123,7 @@ do ->
 		.then (exists) ->
 			if exists
 				return 0
-			request("http://#{registry}/v1/images/#{imageId}/json")
+			request.getAsync("http://#{registry}/v1/images/#{imageId}/json")
 			.spread (res, data) ->
 				if res.statusCode >= 400
 					throw new Error("Failed to get image download size of #{imageId} from #{registry}. Status code: #{res.statusCode}")

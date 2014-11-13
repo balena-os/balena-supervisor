@@ -3,7 +3,7 @@ _ = require 'lodash'
 fs = Promise.promisifyAll require 'fs'
 config = require './config'
 mixpanel = require 'mixpanel'
-request = Promise.promisifyAll require 'request'
+request = require './request'
 
 # Parses package.json and returns resin-supervisor's version
 exports.supervisorVersion = require('../package.json').version
