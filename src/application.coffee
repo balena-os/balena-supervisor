@@ -182,6 +182,11 @@ exports.update = update = ->
 			resource: 'application'
 			options:
 				expand: 'environment_variable'
+				select: [
+					'id'
+					'git_repository'
+					'commit'
+				]
 				filter:
 					'device/uuid': uuid
 			customOptions:
