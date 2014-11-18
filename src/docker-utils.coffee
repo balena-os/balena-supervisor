@@ -60,14 +60,14 @@ do ->
 		.map (app) ->
 			app.imageId + ':latest'
 		.then (apps) ->
-			# Make sure not to delete the supervisor image!
-			apps.push(config.localImage + ':latest')
-			apps.push(config.remoteImage + ':latest')
-
 			# Cleanup containers first, so that they don't block image removal.
+			supervisorImages = [ "#{config.localImage}:latest", "#{config.remoteImage}:latest" ]
 			docker.listContainersAsync(all: true)
 			.filter (containerInfo) ->
-				!_.contains(apps, containerInfo.Image) or !containerInfo.Status
+				isUserApp = _.contains(apps, containerInfo.Image)
+				isSupervisor = _.contains(supervisorImages, containerInfo.Image)
+				isRunning = !!containerInfo.Status
+				not (isUserApp or (isSupervisor and isRunning))
 			.map (containerInfo) ->
 				docker.getContainer(containerInfo.Id).removeAsync()
 				.then ->
