@@ -67,7 +67,7 @@ do ->
 			# Cleanup containers first, so that they don't block image removal.
 			docker.listContainersAsync(all: true)
 			.filter (containerInfo) ->
-				!_.contains(apps, containerInfo.Image)
+				!_.contains(apps, containerInfo.Image) or !containerInfo.Status
 			.map (containerInfo) ->
 				docker.getContainer(containerInfo.Id).removeAsync()
 				.then ->
