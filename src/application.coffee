@@ -101,7 +101,9 @@ exports.start = start = (app) ->
 				updateDeviceInfo(status: 'Downloading')
 				dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
 					updateDeviceInfo(download_progress: progress.percentage)
-			.then ->
+				.then ->
+					docker.getImage(app.imageId).inspectAsync()
+			.then (imageInfo) ->
 				console.log('Creating container:', app.imageId)
 				updateDeviceInfo(status: 'Starting')
 				ports = {}
@@ -109,9 +111,14 @@ exports.start = start = (app) ->
 					portList.forEach (port) ->
 						ports[port + '/tcp'] = {}
 
+				if imageInfo?.Config?.Cmd
+					cmd = imageInfo.Config.Cmd
+				else
+					cmd = [ '/bin/bash', '-c', '/start' ]
+
 				docker.createContainerAsync(
 					Image: app.imageId
-					Cmd: [ '/bin/bash', '-c', '/start' ]
+					Cmd: cmd
 					Tty: true
 					Volumes:
 						'/data': {}
