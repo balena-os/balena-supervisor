@@ -116,6 +116,7 @@ exports.start = start = (app) ->
 					Volumes:
 						'/data': {}
 						'/lib/modules': {}
+						'/run/dbus': {}
 					Env: _.map env, (v, k) -> k + '=' + v
 					ExposedPorts: ports
 				)
@@ -140,6 +141,7 @@ exports.start = start = (app) ->
 				Binds: [
 					'/resin-data/' + app.appId + ':/data'
 					'/lib/modules:/lib/modules'
+					'/run/dbus:/run/dbus'
 					'/var/run/docker.sock:/run/docker.sock'
 				]
 			)
