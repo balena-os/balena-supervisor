@@ -89,7 +89,7 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 				ip_address: ipAddrs.join(' ')
 			)
 	console.log('Starting periodic check for IP addresses..')
-	setInterval(updateIpAddr, 5 * 60 * 1000) # Every 5 mins
+	setInterval(updateIpAddr, 30 * 1000) # Every 30s
 	updateIpAddr()
 
 	console.log('Starting connectivity check..')
