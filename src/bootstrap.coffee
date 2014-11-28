@@ -35,7 +35,7 @@ registerDevice = (apiKey, userId, applicationId, deviceType) ->
 module.exports = ->
 	# Load config file
 	userConfig = require('/boot/config.json')
-	userConfig.deviceType ?= 'Raspberry Pi'
+	userConfig.deviceType ?= 'raspberry-pi'
 
 	Promise.try ->
 		if userConfig.uuid?
