@@ -33,6 +33,8 @@ ensureConnected = (continuous = false) ->
 					ensureConnected(continuous)
 				, 10 * 1000) # Every 10 seconds perform this check.
 
+console.log('Starting connectivity check..')
+ensureConnected(true)
 
 knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	if not uuid?.value
@@ -91,9 +93,6 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	console.log('Starting periodic check for IP addresses..')
 	setInterval(updateIpAddr, 30 * 1000) # Every 30s
 	updateIpAddr()
-
-	console.log('Starting connectivity check..')
-	ensureConnected(true)
 
 	# Tell the supervisor updater that we have successfully started, so that it can do whatever it needs to.
 	supervisor.startupSuccessful()
