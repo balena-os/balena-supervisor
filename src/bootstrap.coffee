@@ -13,12 +13,13 @@ PlatformAPI = require 'resin-platform-api/request'
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
 
-registerDevice = (apiKey, userId, applicationId, deviceType) ->
+registerDevice = (apiKey, userId, applicationId, deviceType, uuid) ->
 	# I'd be nice if the UUID matched the output of a SHA-256 function, but although the length limit of the CN
 	# attribute in a X.509 certificate is 64 chars, a 32 byte UUID (64 chars in hex) doesn't pass the certificate
 	# validation in OpenVPN This either means that the RFC counts a final NULL byte as part of the CN or that the
 	# OpenVPN/OpenSSL implementation has a bug.
-	uuid = crypto.pseudoRandomBytes(31).toString('hex')
+	if not uuid?
+		uuid = crypto.pseudoRandomBytes(31).toString('hex')
 
 	resinAPI.post(
 		resource: 'device'
@@ -38,9 +39,9 @@ module.exports = ->
 	userConfig.deviceType ?= 'raspberry-pi'
 
 	Promise.try ->
-		if userConfig.uuid?
+		if userConfig.uuid? and userConfig.registered_at?
 			return userConfig.uuid
-		registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType)
+		registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType, userConfig.uuid)
 		.tap (uuid) ->
 			userConfig.uuid = uuid
 	.then (uuid) ->
