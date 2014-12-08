@@ -6,8 +6,7 @@ SUPERVISOR_SOCKET_PATH=/data
 COMMAND_SOCKET=${SUPERVISOR_SOCKET_PATH}/host
 
 if [ ! -S ${COMMAND_SOCKET} ]; then
-	echo 'TTY mode not supported on this image, please update.'
-	sleep infinity
+	read -p 'TTY mode not supported on this image, please update.'
 else
         echo "
                 rm -f ${HOST_SOCKET}
