@@ -66,7 +66,7 @@ do ->
 			.filter (containerInfo) ->
 				isUserApp = _.contains(apps, containerInfo.Image)
 				isSupervisor = _.contains(supervisorImages, containerInfo.Image)
-				isRunning = !!containerInfo.Status
+				isRunning = not containerInfo.Status.match(/^Exited/)
 				not (isUserApp or (isSupervisor and isRunning))
 			.map (containerInfo) ->
 				docker.getContainer(containerInfo.Id).removeAsync()
