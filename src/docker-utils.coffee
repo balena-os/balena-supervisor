@@ -55,13 +55,13 @@ do ->
 		.finally ->
 			imagesBeingFetched--
 
+	supervisorImages = [ "#{config.localImage}:latest", "#{config.remoteImage}:latest" ]
 	exports.cleanupContainersAndImages = ->
 		knex('app').select()
 		.map (app) ->
 			app.imageId + ':latest'
 		.then (apps) ->
 			# Cleanup containers first, so that they don't block image removal.
-			supervisorImages = [ "#{config.localImage}:latest", "#{config.remoteImage}:latest" ]
 			docker.listContainersAsync(all: true)
 			.filter (containerInfo) ->
 				isUserApp = _.contains(apps, containerInfo.Image)
@@ -80,7 +80,7 @@ do ->
 				docker.listImagesAsync()
 				.filter (image) ->
 					!_.any image.RepoTags, (imageId) ->
-						_.contains(apps, imageId)
+						_.contains(apps, imageId) or _.contains(supervisorImages, imageId)
 				.map (image) ->
 					docker.getImage(image.Id).removeAsync()
 					.then ->
