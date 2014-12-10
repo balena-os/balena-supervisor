@@ -9,32 +9,9 @@ config = require './config'
 
 utils.mixpanelTrack('Supervisor start')
 
-connectivityState = true # Used to prevent multiple messages when disconnected
-
-ensureConnected = (continuous = false) ->
-	utils.checkConnectivity()
-	.then (connected) ->
-		if not connected
-			if connectivityState
-				console.log('Waiting for connectivity...')
-				connectivityState = false
-			interval = setInterval(utils.blink,400)
-			Promise.delay(2000)
-			.then ->
-				# Clear the blinks after 2 second
-				clearInterval(interval)
-				ensureConnected(continuous)
-		else
-			if not connectivityState
-				console.log('Internet Connectivity: OK')
-				connectivityState = true
-			if continuous
-				setTimeout(->
-					ensureConnected(continuous)
-				, 10 * 1000) # Every 10 seconds perform this check.
 
 console.log('Starting connectivity check..')
-ensureConnected(true)
+utils.connectivityCheck(true)
 
 knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	if not uuid?.value

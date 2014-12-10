@@ -5,6 +5,8 @@ config = require './config'
 mixpanel = require 'mixpanel'
 request = require './request'
 
+utils = exports
+
 # Parses package.json and returns resin-supervisor's version
 exports.supervisorVersion = require('../package.json').version
 
@@ -72,3 +74,27 @@ exports.checkConnectivity = ->
 		return response.statusCode in [ 200, 304 ]
 	.catch ->
 		return false
+
+exports.connectivityCheck = do ->
+	connectivityState = true # Used to prevent multiple messages when disconnected
+	(continuous = false) ->
+		utils.checkConnectivity()
+		.then (connected) ->
+			if not connected
+				if connectivityState
+					console.log('Waiting for connectivity...')
+					connectivityState = false
+				interval = setInterval(utils.blink,400)
+				Promise.delay(2000)
+				.then ->
+					# Clear the blinks after 2 second
+					clearInterval(interval)
+					utils.connectivityCheck(continuous)
+			else
+				if not connectivityState
+					console.log('Internet Connectivity: OK')
+					connectivityState = true
+				if continuous
+					setTimeout(->
+						utils.connectivityCheck(continuous)
+					, 10 * 1000) # Every 10 seconds perform this check.
