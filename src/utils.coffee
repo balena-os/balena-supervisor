@@ -75,6 +75,34 @@ exports.checkConnectivity = ->
 	.catch ->
 		return false
 
+blinkPattern = do ->
+	started = false
+	interval = null
+	timeout = null
+	# This function lets us have sensible param orders,
+	# and always have a timeout we can cancel.
+	delay = (ms, fn) ->
+		timeout = setTimeout(fn, ms)
+	start = () ->
+		interval = setInterval(utils.blink, 400)
+		delay 2000, ->
+			# Clear the blinks after 2 second
+			clearInterval(interval)
+			delay 2000, ->
+				# And then repeat again after another 2 seconds
+				start()
+	return {
+		start: () ->
+			return false if started
+			started = true
+			start()
+		stop: ->
+			return false if not started
+			started = false
+			clearInterval(interval)
+			clearTimeout(timeout)
+	}
+
 exports.connectivityCheck = do ->
 	connectivityState = true # Used to prevent multiple messages when disconnected
 	_check = ->
@@ -84,15 +112,11 @@ exports.connectivityCheck = do ->
 				if connectivityState
 					console.log('Waiting for connectivity...')
 					connectivityState = false
-				interval = setInterval(utils.blink,400)
-				Promise.delay(2000)
-				.then ->
-					# Clear the blinks after 2 second
-					clearInterval(interval)
-					_check()
+					blinkPattern.start()
 			else
 				if not connectivityState
 					console.log('Internet Connectivity: OK')
 					connectivityState = true
-				setTimeout(_check, 10 * 1000) # Every 10 seconds perform this check.
+					blinkPattern.stop()
+			setTimeout(_check, 10 * 1000) # Every 10 seconds perform this check.
 	return _.once(_check)
