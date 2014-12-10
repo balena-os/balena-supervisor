@@ -69,7 +69,9 @@ exports.checkConnectivity = ->
 	# We avoid using ICMP as this traffic is sometimes restricted/dropped. Good
 	# ol' port 80 HTTP should always be available :-)
 	request
-	.getAsync(config.heartbeatEndpoint)
+	.getAsync
+		url: config.heartbeatEndpoint
+		timeout: 10000
 	.spread (response) ->
 		return response.statusCode in [ 200, 304 ]
 	.catch ->
