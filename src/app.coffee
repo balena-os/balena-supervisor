@@ -11,7 +11,7 @@ utils.mixpanelTrack('Supervisor start')
 
 
 console.log('Starting connectivity check..')
-utils.connectivityCheck(true)
+utils.connectivityCheck()
 
 knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	if not uuid?.value

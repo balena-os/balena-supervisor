@@ -77,7 +77,7 @@ exports.checkConnectivity = ->
 
 exports.connectivityCheck = do ->
 	connectivityState = true # Used to prevent multiple messages when disconnected
-	(continuous = false) ->
+	_check = ->
 		utils.checkConnectivity()
 		.then (connected) ->
 			if not connected
@@ -89,12 +89,10 @@ exports.connectivityCheck = do ->
 				.then ->
 					# Clear the blinks after 2 second
 					clearInterval(interval)
-					utils.connectivityCheck(continuous)
+					_check()
 			else
 				if not connectivityState
 					console.log('Internet Connectivity: OK')
 					connectivityState = true
-				if continuous
-					setTimeout(->
-						utils.connectivityCheck(continuous)
-					, 10 * 1000) # Every 10 seconds perform this check.
+				setTimeout(_check, 10 * 1000) # Every 10 seconds perform this check.
+	return _.once(_check)
