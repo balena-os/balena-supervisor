@@ -85,7 +85,7 @@ blinkPattern = do ->
 	# and always have a timeout we can cancel.
 	delay = (ms, fn) ->
 		timeout = setTimeout(fn, ms)
-	start = () ->
+	start = ->
 		interval = setInterval(utils.blink, 400)
 		delay 2000, ->
 			# Clear the blinks after 2 second
@@ -94,7 +94,7 @@ blinkPattern = do ->
 				# And then repeat again after another 2 seconds
 				start()
 	return {
-		start: () ->
+		start: ->
 			return false if started
 			started = true
 			start()
@@ -110,15 +110,14 @@ exports.connectivityCheck = do ->
 	_check = ->
 		utils.checkConnectivity()
 		.then (connected) ->
-			if not connected
-				if connectivityState
-					console.log('Waiting for connectivity...')
-					connectivityState = false
-					blinkPattern.start()
+			return if connected == connectivityState
+			connectivityState = connected
+			if connectivityState
+				console.log('Internet Connectivity: OK')
+				blinkPattern.stop()
 			else
-				if not connectivityState
-					console.log('Internet Connectivity: OK')
-					connectivityState = true
-					blinkPattern.stop()
+				console.log('Waiting for connectivity...')
+				blinkPattern.start()
+		.finally ->
 			setTimeout(_check, 10 * 1000) # Every 10 seconds perform this check.
 	return _.once(_check)
