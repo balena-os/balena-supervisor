@@ -64,10 +64,15 @@ do ->
 			# Cleanup containers first, so that they don't block image removal.
 			docker.listContainersAsync(all: true)
 			.filter (containerInfo) ->
-				isUserApp = _.contains(apps, containerInfo.Image)
-				isSupervisor = _.contains(supervisorImages, containerInfo.Image)
-				isRunning = not containerInfo.Status.match(/^Exited/)
-				not (isUserApp or (isSupervisor and isRunning))
+				# Do not remove user apps.
+				if _.contains(apps, containerInfo.Image)
+					return false
+				# Do not remove running supervisors.
+				else if _.contains(supervisorImages, containerInfo.Image)
+					return containerHasExited(containerInfo.Id)
+				# Remove everything else.
+				else
+					return true
 			.map (containerInfo) ->
 				docker.getContainer(containerInfo.Id).removeAsync()
 				.then ->
@@ -87,6 +92,11 @@ do ->
 						console.log('Deleted image:', image.Id, image.RepoTags)
 					.catch (err) ->
 						console.log('Error deleting image:', image.Id, image.RepoTags, err)
+
+	exports.containerHasExited = (id) ->
+		docker.getContainer(id).inspectAsync()
+		.then (data) ->
+			return not data.Status.Running
 
 	# Return true if an image exists in the local docker repository, false otherwise.
 	exports.imageExists = imageExists = (imageId) ->
