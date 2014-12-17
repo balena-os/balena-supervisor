@@ -14,24 +14,19 @@ module.exports = exports = (ledFile) ->
 		.then(ledOff)
 
 	blink.pattern = do ->
-		pattern =
-			onDuration: 200
-			offDuration: 200
-			blinks: 4
-			pause: 1000
 		blinking = null
-		start = ->
+		start = (pattern) ->
 			Promise.resolve([0...pattern.blinks]).cancellable()
 			.each ->
 				blink(pattern.onDuration)
 				.delay(pattern.offDuration)
 			.delay(pattern.pause)
 			.then ->
-				start()
+				start(pattern)
 		return {
-			start: ->
+			start: (pattern) ->
 				return false if blinking?
-				blinking = start()
+				blinking = start(pattern)
 				return
 			stop: ->
 				return false if not blinking?

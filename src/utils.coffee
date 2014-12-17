@@ -60,8 +60,13 @@ exports.findIpAddrs = ->
 			return ipAddr
 		.filter(Boolean)
 
-exports.blink = blink
+networkPattern =
+	onDuration: 200
+	offDuration: 200
+	blinks: 4
+	pause: 1000
 
+exports.blink = blink
 exports.connectivityCheck = _.once ->
 	networkCheck.monitorURL 
 		url: config.heartbeatEndpoint
@@ -72,4 +77,4 @@ exports.connectivityCheck = _.once ->
 				blink.pattern.stop()
 			else
 				console.log('Waiting for connectivity...')
-				blink.pattern.start()
+				blink.pattern.start(networkPattern)
