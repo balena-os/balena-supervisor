@@ -4,6 +4,7 @@ fs = Promise.promisifyAll require 'fs'
 config = require './config'
 mixpanel = require 'mixpanel'
 request = require './request'
+networkCheck = require './lib/network-check'
 
 utils = exports
 
@@ -64,18 +65,6 @@ exports.blink = (ms = 200) ->
 	.delay(ms)
 	.then -> fs.writeFileAsync(config.ledFile, 0)
 
-# Helps in checking connectivity by pseudo-pinging our endpoint.
-exports.checkConnectivity = ->
-	# We avoid using ICMP as this traffic is sometimes restricted/dropped. Good
-	# ol' port 80 HTTP should always be available :-)
-	request
-	.getAsync
-		url: config.heartbeatEndpoint
-		timeout: 10000
-	.spread (response) ->
-		return response.statusCode in [ 200, 304 ]
-	.catch ->
-		return false
 
 blinkPattern = do ->
 	started = false
@@ -105,19 +94,15 @@ blinkPattern = do ->
 			clearTimeout(timeout)
 	}
 
-exports.connectivityCheck = do ->
-	connectivityState = true # Used to prevent multiple messages when disconnected
-	_check = ->
-		utils.checkConnectivity()
-		.then (connected) ->
-			return if connected == connectivityState
-			connectivityState = connected
-			if connectivityState
+
+exports.connectivityCheck = _.once ->
+	networkCheck.monitorURL 
+		url: config.heartbeatEndpoint
+		interval: 10 * 1000
+		(connected) ->
+			if connected
 				console.log('Internet Connectivity: OK')
 				blinkPattern.stop()
 			else
 				console.log('Waiting for connectivity...')
 				blinkPattern.start()
-		.finally ->
-			setTimeout(_check, 10 * 1000) # Every 10 seconds perform this check.
-	return _.once(_check)
