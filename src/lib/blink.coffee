@@ -3,37 +3,41 @@ fs = Promise.promisifyAll require 'fs'
 
 # Helps in blinking the LED from the given end point.
 module.exports = exports = (ledFile) ->
-	blink = (ms = 200) ->
+	ledOn = ->
 		fs.writeFileAsync(ledFile, 1)
+	ledOff = ->
+		fs.writeFileAsync(ledFile, 0)
+
+	blink = (ms = 200) ->
+		ledOn()
 		.delay(ms)
-		.then -> fs.writeFileAsync(ledFile, 0)
+		.then(ledOff)
 
 	blink.pattern = do ->
-		started = false
-		interval = null
-		timeout = null
-		# This function lets us have sensible param orders,
-		# and always have a timeout we can cancel.
-		delay = (ms, fn) ->
-			timeout = setTimeout(fn, ms)
+		pattern =
+			onDuration: 200
+			offDuration: 200
+			blinks: 4
+			pause: 1000
+		blinking = null
 		start = ->
-			interval = setInterval(blink, 400)
-			delay 2000, ->
-				# Clear the blinks after 2 second
-				clearInterval(interval)
-				delay 2000, ->
-					# And then repeat again after another 2 seconds
-					start()
+			Promise.resolve([0...pattern.blinks]).cancellable()
+			.each ->
+				blink(pattern.onDuration)
+				.delay(pattern.offDuration)
+			.delay(pattern.pause)
+			.then ->
+				start()
 		return {
 			start: ->
-				return false if started
-				started = true
-				start()
+				return false if blinking?
+				blinking = start()
+				return
 			stop: ->
-				return false if not started
-				started = false
-				clearInterval(interval)
-				clearTimeout(timeout)
+				return false if not blinking?
+				blinking.cancel().catch(Promise.CancellationError, ->)
+				ledOff()
+				blinking = null
 		}
 
 	return blink
