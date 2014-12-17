@@ -5,6 +5,7 @@ config = require './config'
 mixpanel = require 'mixpanel'
 request = require './request'
 networkCheck = require './lib/network-check'
+blink = require('./lib/blink')(config.ledFile)
 
 utils = exports
 
@@ -59,41 +60,7 @@ exports.findIpAddrs = ->
 			return ipAddr
 		.filter(Boolean)
 
-# Helps in blinking the LED from the given end point.
-exports.blink = (ms = 200) ->
-	fs.writeFileAsync(config.ledFile, 1)
-	.delay(ms)
-	.then -> fs.writeFileAsync(config.ledFile, 0)
-
-
-blinkPattern = do ->
-	started = false
-	interval = null
-	timeout = null
-	# This function lets us have sensible param orders,
-	# and always have a timeout we can cancel.
-	delay = (ms, fn) ->
-		timeout = setTimeout(fn, ms)
-	start = ->
-		interval = setInterval(utils.blink, 400)
-		delay 2000, ->
-			# Clear the blinks after 2 second
-			clearInterval(interval)
-			delay 2000, ->
-				# And then repeat again after another 2 seconds
-				start()
-	return {
-		start: ->
-			return false if started
-			started = true
-			start()
-		stop: ->
-			return false if not started
-			started = false
-			clearInterval(interval)
-			clearTimeout(timeout)
-	}
-
+exports.blink = blink
 
 exports.connectivityCheck = _.once ->
 	networkCheck.monitorURL 
@@ -102,7 +69,7 @@ exports.connectivityCheck = _.once ->
 		(connected) ->
 			if connected
 				console.log('Internet Connectivity: OK')
-				blinkPattern.stop()
+				blink.pattern.stop()
 			else
 				console.log('Waiting for connectivity...')
-				blinkPattern.start()
+				blink.pattern.start()
