@@ -24,9 +24,14 @@ module.exports = exports = (ledFile) ->
 			.then ->
 				start(pattern)
 		return {
-			start: (pattern) ->
+			start: (pattern = {}) ->
 				return false if blinking?
-				blinking = start(pattern)
+				fullPattern =
+					blinks: pattern.blinks ? 1
+					onDuration: pattern.onDuration ? 200
+					offDuration: pattern.offDuration ? 200
+					pause: pattern.pause ? 0
+				blinking = start(fullPattern)
 				return
 			stop: ->
 				return false if not blinking?

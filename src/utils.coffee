@@ -61,8 +61,6 @@ exports.findIpAddrs = ->
 		.filter(Boolean)
 
 networkPattern =
-	onDuration: 200
-	offDuration: 200
 	blinks: 4
 	pause: 1000
 

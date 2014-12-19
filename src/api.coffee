@@ -11,10 +11,8 @@ api.use(express.bodyParser())
 
 api.post '/v1/blink', (req, res) ->
 	utils.mixpanelTrack('Device blink')
-	interval = setInterval(utils.blink, 400)
-	setTimeout(->
-		clearInterval(interval)
-	, 15000)
+	utils.blink.pattern.start()
+	setTimeout(utils.blink.pattern.stop, 15000)
 	res.send(200)
 
 api.post '/v1/update', (req, res) ->
