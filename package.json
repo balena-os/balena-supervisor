@@ -23,7 +23,8 @@
     "request": "~2.22.0",
     "resin-platform-api": "git+ssh://git@bitbucket.org:rulemotion/resin-platform-api.git#v0.2.7",
     "sqlite3": "~2.1.19",
-    "tty.js": "~0.2.13"
+    "tty.js": "~0.2.13",
+    "typed-error": "~0.1.0"
   },
   "engines": {
     "node": "0.10.22"

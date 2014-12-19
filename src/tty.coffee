@@ -2,6 +2,9 @@ Promise = require 'bluebird'
 ngrok = Promise.promisifyAll require 'ngrok'
 tty = Promise.promisifyAll require 'tty.js'
 knex = require './db'
+TypedError = require 'typed-error'
+
+class DisconnectedError extends TypedError
 
 # socat UNIX:/data/host -,raw,echo=0
 
@@ -24,13 +27,12 @@ exports.start = (appId) ->
 			.then ->
 				ngrok.connectAsync(port)
 
-DISCONNECTED = 'Disconnected'
-disconnectedErr = (err) -> return err.message is DISCONNECTED
 exports.stop = (appId) ->
 	if !apps[appId]?
 		return Promise.resolve()
 	apps[appId] = apps[appId].then (url) ->
 		ngrok.disconnectAsync(url)
 		.then ->
-			throw new Error(DISCONNECTED)
-	return apps[appId].catch disconnectedErr, -> # All good!
+			# We throw an error so that `.start` will catch and restart the session.
+			throw new DisconnectedError()
+	return apps[appId].catch DisconnectedError, -> # All good, since we want to disconnect here!
