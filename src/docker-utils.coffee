@@ -67,12 +67,9 @@ do ->
 				# Do not remove user apps.
 				if _.contains(apps, containerInfo.Image)
 					return false
-				# Do not remove running supervisors.
-				else if _.contains(supervisorImages, containerInfo.Image)
-					return containerHasExited(containerInfo.Id)
-				# Remove everything else.
-				else
+				if !_.contains(supervisorImages, containerInfo.Image)
 					return true
+				return containerHasExited(containerInfo.Id)
 			.map (containerInfo) ->
 				docker.getContainer(containerInfo.Id).removeAsync()
 				.then ->
