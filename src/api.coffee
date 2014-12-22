@@ -4,7 +4,8 @@ utils = require './utils'
 express = require 'express'
 application = require './application'
 supervisor = require './supervisor-update'
-tty = require './tty'
+tty = require './lib/tty'
+knex = require './db'
 
 api = express()
 api.use(express.bodyParser())
@@ -30,7 +31,11 @@ api.post '/v1/spawn-tty', (req, res) ->
 	utils.mixpanelTrack('Spawn tty', appId)
 	if !appId?
 		res.send(400, 'Missing app id')
-	tty.start(appId)
+	knex('app').select().where({appId})
+	.then ([ app ]) ->
+		if !app?
+			throw new Error('App not found')
+		tty.start(app)
 	.then (url) ->
 		res.send(200, url)
 	.catch (err) ->

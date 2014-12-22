@@ -9,7 +9,7 @@ PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 PlatformAPI = require 'resin-platform-api/request'
 utils = require './utils'
-tty = require './tty'
+tty = require './lib/tty'
 
 {docker} = dockerUtils
 
