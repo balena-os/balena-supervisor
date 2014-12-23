@@ -1,16 +1,15 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
-fs = Promise.promisifyAll require 'fs'
 url = require 'url'
 knex = require './db'
 utils = require './utils'
 crypto = require 'crypto'
 config = require './config'
-csrgen = Promise.promisify require 'csr-gen'
-request = require './request'
 PlatformAPI = require 'resin-platform-api/request'
+vpn = require './lib/vpn'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
+vpnGenerate = _.partial(vpn.generate, config.apiEndpoint)
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
 
 registerDevice = (apiKey, userId, applicationId, deviceType, uuid) ->
@@ -40,59 +39,12 @@ module.exports = ->
 
 	Promise.try ->
 		if userConfig.uuid? and userConfig.registered_at?
-			return userConfig.uuid
+			return userConfig
 		registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType, userConfig.uuid)
-		.tap (uuid) ->
+		.then (uuid) ->
 			userConfig.uuid = uuid
-	.then (uuid) ->
-		# Generate SSL certificate
-		keys = csrgen(uuid,
-			company: 'Rulemotion Ltd'
-			csrName: 'client.csr'
-			keyName: 'client.key'
-			outputDir: '/data'
-			email: 'vpn@resin.io'
-			read: true
-			country: ''
-			city: ''
-			state: ''
-			division: ''
-		)
-
-		return [keys, uuid]
-	.spread (keys, uuid) ->
-		console.log('UUID:', uuid)
-		console.log('User ID:', userConfig.userId)
-		console.log('User:', userConfig.username)
-		console.log('Supervisor Version:', utils.supervisorVersion)
-		console.log('API key:', userConfig.apiKey)
-		console.log('Application ID:', userConfig.applicationId)
-		console.log('CSR :', keys.csr)
-		console.log('Posting to the API..')
-		userConfig.csr = keys.csr
-		userConfig.uuid = uuid
-		return request.postAsync(
-			url: url.resolve(config.apiEndpoint, 'sign_certificate?apikey=' + userConfig.apiKey)
-			json: userConfig
-		)
-	.spread (response, body) ->
-		if response.statusCode >= 400
-			throw body
-
-		console.log('Configuring VPN..', JSON.stringify(body))
-
-		for prop in ['ca', 'cert', 'vpnhost', 'vpnport'] when _.isEmpty(body[prop])
-			throw new Error("'#{prop}' is empty, cannot bootstrap")
-
-		vpnConf = fs.readFileAsync(__dirname + '/openvpn.conf.tmpl', 'utf8')
-			.then (tmpl) ->
-				fs.writeFileAsync('/data/client.conf', _.template(tmpl)(body))
-
-		Promise.all([
-			fs.writeFileAsync('/data/ca.crt', body.ca)
-			fs.writeFileAsync('/data/client.crt', body.cert)
-			vpnConf
-		])
+			return userConfig
+	.then(vpnGenerate)
 	.then ->
 		console.log('Finishing bootstrapping')
 		Promise.all([

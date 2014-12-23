@@ -75,6 +75,7 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	supervisor.startupSuccessful()
 
 	# Let API know we are running a new version
+	console.log('Updating supervisor version:', utils.supervisorVersion)
 	application.updateDeviceInfo(
 		supervisor_version: utils.supervisorVersion
 	)
