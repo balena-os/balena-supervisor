@@ -1,6 +1,4 @@
 Promise = require 'bluebird'
-fs = Promise.promisifyAll(require('fs'))
-os = require 'os'
 knex = require './db'
 utils = require './utils'
 bootstrap = require './bootstrap'
