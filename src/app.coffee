@@ -3,7 +3,6 @@ fs = Promise.promisifyAll(require('fs'))
 os = require 'os'
 knex = require './db'
 utils = require './utils'
-{spawn} = require 'child_process'
 bootstrap = require './bootstrap'
 config = require './config'
 
@@ -32,19 +31,10 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	api = require './api'
 	application = require './application'
 	supervisor = require './supervisor-update'
+	vpn = require './lib/vpn'
 
 	console.log('Starting OpenVPN..')
-	openvpn = spawn('openvpn', [ 'client.conf' ], cwd: '/data')
-
-	# Prefix and log all OpenVPN output
-	openvpn.stdout.on 'data', (data) ->
-		prefix = 'OPENVPN: '
-		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
-
-	# Prefix and log all OpenVPN output
-	openvpn.stderr.on 'data', (data) ->
-		prefix = 'OPENVPN: '
-		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
+	setImmediate(vpn.connect)
 
 	console.log('Starting API server..')
 	api.listen(80)

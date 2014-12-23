@@ -1,8 +1,10 @@
 Promise = require 'bluebird'
+_ = require 'lodash'
 csrgen = Promise.promisify require 'csr-gen'
 fs = Promise.promisifyAll require 'fs'
 request = Promise.promisifyAll require 'request'
 url = require 'url'
+{spawn} = require 'child_process'
 
 exports.generate = (apiEndpoint, userConfig) ->
 	# Generate SSL certificate
@@ -50,3 +52,16 @@ exports.generate = (apiEndpoint, userConfig) ->
 			fs.writeFileAsync('/data/client.crt', body.cert)
 			vpnConf
 		])
+
+exports.connect = ->
+	openvpn = spawn('openvpn', [ 'client.conf' ], cwd: '/data')
+
+	# Prefix and log all OpenVPN output
+	openvpn.stdout.on 'data', (data) ->
+		prefix = 'OPENVPN: '
+		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
+
+	# Prefix and log all OpenVPN output
+	openvpn.stderr.on 'data', (data) ->
+		prefix = 'OPENVPN: '
+		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
