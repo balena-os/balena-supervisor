@@ -7,7 +7,7 @@ config = require './config'
 dockerUtils = require './docker-utils'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
-PlatformAPI = require 'resin-platform-api/request'
+PlatformAPI = require 'pinejs-client-js/request'
 utils = require './utils'
 tty = require './lib/tty'
 
@@ -197,7 +197,8 @@ exports.update = update = ->
 					'commit'
 				]
 				filter:
-					'device/uuid': uuid
+					device:
+						uuid: uuid
 			customOptions:
 				apikey: apiKey
 		)

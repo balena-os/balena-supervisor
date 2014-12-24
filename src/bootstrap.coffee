@@ -5,7 +5,7 @@ knex = require './db'
 utils = require './utils'
 crypto = require 'crypto'
 config = require './config'
-PlatformAPI = require 'resin-platform-api/request'
+PlatformAPI = require 'pinejs-client-js/request'
 vpn = require './lib/vpn'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
@@ -26,7 +26,7 @@ registerDevice = (apiKey, userId, applicationId, deviceType, uuid) ->
 			user: userId
 			application: applicationId
 			uuid: uuid
-			'device_type': deviceType
+			device_type: deviceType
 		customOptions:
 			apikey: apiKey
 	).then ->
