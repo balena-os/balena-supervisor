@@ -53,15 +53,13 @@ exports.generate = (apiEndpoint, userConfig) ->
 			vpnConf
 		])
 
+prefixData = (data) ->
+	prefix = 'OPENVPN: '
+	console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
+
 exports.connect = ->
 	openvpn = spawn('openvpn', [ 'client.conf' ], cwd: '/data')
 
 	# Prefix and log all OpenVPN output
-	openvpn.stdout.on 'data', (data) ->
-		prefix = 'OPENVPN: '
-		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
-
-	# Prefix and log all OpenVPN output
-	openvpn.stderr.on 'data', (data) ->
-		prefix = 'OPENVPN: '
-		console.log((prefix + data).trim().replace(/\n/gm, "\n#{prefix}"))
+	openvpn.stdout.on('data', prefixData)
+	openvpn.stderr.on('data', prefixData)
