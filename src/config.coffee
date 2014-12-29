@@ -38,4 +38,5 @@ config.supervisorContainer =
 			'/var/run/docker.sock:/run/docker.sock'
 			'/resin-data/resin-supervisor:/data'
 			'/proc/net/fib_trie:/mnt/fib_trie'
+			'/var/log/supervisor-log:/var/log'
 		]

@@ -15,4 +15,4 @@ if [ -d "$DATA_DIRECTORY" ]; then
 	chmod +x $DATA_DIRECTORY/enter.sh
 fi
 
-exec node src/supervisor.js
+exec node src/supervisor.js &> /var/log/supervisor.log
