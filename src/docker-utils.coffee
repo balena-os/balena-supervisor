@@ -93,7 +93,7 @@ do ->
 	containerHasExited = (id) ->
 		docker.getContainer(id).inspectAsync()
 		.then (data) ->
-			return not data.Status.Running
+			return not data.State.Running
 
 	# Return true if an image exists in the local docker repository, false otherwise.
 	exports.imageExists = imageExists = (imageId) ->
