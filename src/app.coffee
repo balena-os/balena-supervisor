@@ -44,7 +44,7 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->
-		utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})		
+		utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})
 		setInterval(->
 			application.update()
 		, config.appUpdatePollInterval)

@@ -5,38 +5,26 @@ knex = require './db'
 path = require 'path'
 config = require './config'
 dockerUtils = require './docker-utils'
-PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 PlatformAPI = require 'pinejs-client-js/request'
 utils = require './utils'
 tty = require './lib/tty'
+logger = require './lib/logger'
 
 {docker} = dockerUtils
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
 
-pubnub = PUBNUB.init(config.pubnub)
-
-# Queue up any calls to publish while we wait for the uuid to return from the sqlite db
-publish = do ->
-	publishQueue = []
-
-	knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
-		uuid = uuid.value
-		channel = "device-#{uuid}-logs"
-
-		# Redefine original function
-		publish = (message) ->
-			pubnub.publish({ channel, message })
-
-		# Replay queue now that we have initialised the publish function
-		publish(args...) for args in publishQueue
-
-	return -> publishQueue.push(arguments)
+knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
+	logger.init(
+		dockerSocket: config.dockerSocket
+		pubnub: config.pubnub
+		channel: "device-#{uuid.value}-logs"
+	)
 
 exports.logSystemEvent = logSystemEvent = (message) ->
-	publish("[system] " + message)
+	logger.log('[system] ' + message)
 
 exports.kill = kill = (app) ->
 	logSystemEvent('Killing application ' + app.imageId)
@@ -154,13 +142,7 @@ exports.start = start = (app) ->
 			)
 			.then ->
 				updateDeviceInfo(commit: app.commit)
-				container.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
-			.then (stream) ->
-				es.pipeline(
-					stream
-					es.split()
-					es.mapSync(publish)
-				)
+				logger.attach(app)
 	.tap ->
 		utils.mixpanelTrack('Application start', app.imageId)
 		logSystemEvent('Starting application ' + app.imageId)
