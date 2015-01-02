@@ -90,7 +90,7 @@ do ->
 					.catch (err) ->
 						console.log('Error deleting image:', image.Id, image.RepoTags, err)
 
-	exports.containerHasExited = (id) ->
+	containerHasExited = (id) ->
 		docker.getContainer(id).inspectAsync()
 		.then (data) ->
 			return not data.Status.Running
