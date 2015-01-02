@@ -33,6 +33,7 @@ config.supervisorContainer =
 			'/data': {}
 			'/run/docker.sock': {}
 			'/mnt/fib_trie': {}
+			'/var/log': {}
 		Binds: [
 			config.configMountPoint + ':/boot/config.json'
 			'/var/run/docker.sock:/run/docker.sock'

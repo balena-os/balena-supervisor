@@ -1,7 +1,7 @@
 FROM resin/i386-ubuntu:14.04
 
 # Install.
-RUN apt-get update && apt-get install -y curl git unzip wget npm nodejs inetutils-ping openvpn libsqlite3-dev socat
+RUN apt-get update && apt-get install -y curl git unzip wget npm nodejs inetutils-ping openvpn libsqlite3-dev socat supervisor
 RUN ln -sf /usr/bin/nodejs  /usr/bin/node
 
 ADD . /app

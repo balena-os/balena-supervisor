@@ -37,7 +37,7 @@ ifneq ($(SUPERVISOR_BASE_PRESENT) , )
 else
 	docker pull $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION)
 	-docker rm -f build-supervisor-base 2> /dev/null
-	docker run --name build-supervisor-base $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) bash -c "apt-get -q update && apt-get install -qqy openvpn libsqlite3-dev socat && apt-get clean && rm -rf /var/lib/apt/lists/"
+	docker run --name build-supervisor-base $(BUILDSTEP_REPO):$(BUILDSTEP_VERSION) bash -c "apt-get -q update && apt-get install -qqy openvpn libsqlite3-dev socat supervisor && apt-get clean && rm -rf /var/lib/apt/lists/"
 	docker commit build-supervisor-base resin/supervisor-base:$(BUILDSTEP_VERSION)
 	-docker rm build-supervisor-base 2> /dev/null
 endif

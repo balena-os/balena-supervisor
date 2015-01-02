@@ -1,6 +1,9 @@
 set -o errexit
 set -o pipefail
 
+# Copy supervisord launch file for resin-supervisor
+cp /app/resin-supervisor.conf /etc/supervisor/conf.d/resin-supervisor.conf
+
 if [ $NODE_ENV == 'production' ]; then
 	chmod +x src/enterContainer.sh
 
