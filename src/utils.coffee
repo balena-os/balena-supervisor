@@ -5,7 +5,7 @@ config = require './config'
 mixpanel = require 'mixpanel'
 request = require './request'
 networkCheck = require './lib/network-check'
-blink = require('./lib/blink')(config.ledFile)
+blink = require('blinker')(config.ledFile)
 
 utils = exports
 
