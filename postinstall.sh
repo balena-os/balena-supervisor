@@ -27,6 +27,9 @@ if [ $NODE_ENV == 'production' ]; then
 	find . -type d -name 'test' -exec rm -rf '{}' \; 2> /dev/null || true
 	find . -type d -name 'doc' -exec rm -rf '{}' \; 2> /dev/null || true
 	find . -type d -name 'man' -exec rm -rf '{}' \; 2> /dev/null || true
+	# And any benchmark results (ttyjs->socket.io->socket.io-client->active-x-obfuscator->zeparser has an 8MB benchmark.html)
+	find . -type d -name 'benchmark*' -exec rm -rf '{}' \; 2> /dev/null || true
+	find . -name 'benchmark*' -delete
 	# And npm - we've finished with it
 	find . -type d -name 'npm' -exec rm -rf '{}' \; 2> /dev/null || true
 fi
