@@ -18,6 +18,7 @@
     "knex": "~0.5.1",
     "lodash": "~2.4.1",
     "mixpanel": "0.0.20",
+    "network-checker": "git+ssh://git@bitbucket.org:rulemotion/network-checker.git#v0.0.1",
     "ngrok": "~0.1.97",
     "pubnub": "~3.6.4",
     "request": "^2.51.0",

@@ -4,7 +4,7 @@ fs = Promise.promisifyAll require 'fs'
 config = require './config'
 mixpanel = require 'mixpanel'
 request = require './request'
-networkCheck = require './lib/network-check'
+networkCheck = require 'network-checker'
 blink = require('blinker')(config.ledFile)
 
 utils = exports
