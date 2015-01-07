@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "JSONStream": "~0.7.1",
-    "bluebird": "~2.2.2",
+    "bluebird": "^2.6.0",
     "coffee-script": "~1.8.0",
     "csr-gen": "~0.2.1",
     "dockerode": "~2.0.0",
@@ -19,7 +19,7 @@
     "mixpanel": "0.0.20",
     "ngrok": "~0.1.97",
     "pubnub": "~3.6.4",
-    "request": "~2.22.0",
+    "request": "^2.51.0",
     "pinejs-client-js": "git+ssh://git@bitbucket.org:rulemotion/pinejs-client-js.git#v0.3.1",
     "sqlite3": "~2.1.19",
     "tty.js": "~0.2.13",
