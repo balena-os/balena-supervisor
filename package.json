@@ -9,7 +9,7 @@
   "dependencies": {
     "JSONStream": "~0.7.1",
     "bluebird": "~2.2.2",
-    "coffee-script": "~1.7.1",
+    "coffee-script": "~1.8.0",
     "csr-gen": "~0.2.1",
     "dockerode": "~2.0.0",
     "event-stream": "~3.0.20",
