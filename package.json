@@ -18,7 +18,6 @@
     "lodash": "~2.4.1",
     "mixpanel": "0.0.20",
     "ngrok": "~0.1.97",
-    "ping": "0.1.8",
     "pubnub": "~3.6.4",
     "request": "~2.22.0",
     "pinejs-client-js": "git+ssh://git@bitbucket.org:rulemotion/pinejs-client-js.git#v0.3.1",
