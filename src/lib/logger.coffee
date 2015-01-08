@@ -1,6 +1,7 @@
 Docker = require 'dockerode'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
+es = require 'event-stream'
 
 initialised = new Promise (resolve) ->
 	exports.init = (config) ->
