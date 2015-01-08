@@ -15,7 +15,7 @@
     "dockerode": "~2.0.0",
     "event-stream": "~3.0.20",
     "express": "~3.2.6",
-    "knex": "~0.5.1",
+    "knex": "~0.7.3",
     "lodash": "~2.4.1",
     "mixpanel": "0.0.20",
     "network-checker": "git+ssh://git@bitbucket.org:rulemotion/network-checker.git#v0.0.1",
@@ -23,7 +23,7 @@
     "pubnub": "~3.6.4",
     "request": "^2.51.0",
     "pinejs-client-js": "git+ssh://git@bitbucket.org:rulemotion/pinejs-client-js.git#v0.3.1",
-    "sqlite3": "~2.1.19",
+    "sqlite3": "~3.0.4",
     "tty.js": "~0.2.13",
     "typed-error": "~0.1.0"
   },
