@@ -41,7 +41,7 @@ else
 	docker commit build-supervisor-base resin/supervisor-base:$(BUILDSTEP_VERSION)
 	-docker rm build-supervisor-base 2> /dev/null
 endif
-	docker tag resin/supervisor-base:$(BUILDSTEP_VERSION) resin/supervisor-base:latest
+	docker tag -f resin/supervisor-base:$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 endif
 
 supervisor: supervisor-base
