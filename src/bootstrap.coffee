@@ -6,10 +6,8 @@ utils = require './utils'
 crypto = require 'crypto'
 config = require './config'
 PlatformAPI = require 'pinejs-client-js/request'
-vpn = require './lib/vpn'
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
-vpnGenerate = _.partial(vpn.generate, config.apiEndpoint)
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
 
 registerDevice = (apiKey, userId, applicationId, deviceType, uuid) ->
@@ -44,7 +42,6 @@ module.exports = ->
 		.then (uuid) ->
 			userConfig.uuid = uuid
 			return userConfig
-	.then(vpnGenerate)
 	.then ->
 		console.log('Finishing bootstrapping')
 		Promise.all([

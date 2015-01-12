@@ -31,10 +31,6 @@ knex.init.then ->
 
 		api = require './api'
 		application = require './application'
-		vpn = require './lib/vpn'
-
-		console.log('Starting OpenVPN..')
-		setImmediate(vpn.connect)
 
 		console.log('Starting API server..')
 		api.listen(80)
