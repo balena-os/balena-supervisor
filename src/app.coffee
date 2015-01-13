@@ -33,8 +33,8 @@ knex.init.then ->
 		application = require './application'
 
 		console.log('Starting API server..')
-		api.listen(80)
-
+		api.listen(config.listenPort)
+	
 		console.log('Starting Apps..')
 		knex('app').select()
 		.then (apps) ->
