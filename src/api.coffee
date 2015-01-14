@@ -3,7 +3,6 @@ fs = Promise.promisifyAll require 'fs'
 utils = require './utils'
 express = require 'express'
 application = require './application'
-supervisor = require './supervisor-update'
 tty = require './lib/tty'
 knex = require './db'
 
@@ -19,11 +18,6 @@ api.post '/v1/blink', (req, res) ->
 api.post '/v1/update', (req, res) ->
 	utils.mixpanelTrack('Update notification')
 	application.update()
-	res.send(204)
-
-api.post '/v1/update-supervisor', (req, res) ->
-	console.log('Got supervisor update')
-	supervisor.update()
 	res.send(204)
 
 api.post '/v1/spawn-tty', (req, res) ->
