@@ -63,8 +63,8 @@ endif
 	-docker rm build-supervisor-latest 2> /dev/null
 
 run-supervisor-x86_64:
-	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -v /boot/config.json:/boot/config.json -v /resin-data/resin-supervisor:/data -v /proc/net/fib_trie:/mnt/fib_trie -v /var/log/supervisor-log:/var/log -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/x86_64-supervisor /start
+	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -v /boot/config.json:/boot/config.json -v /:/mnt/root -v /resin-data/resin-supervisor:/data -v /proc/net/fib_trie:/mnt/fib_trie -v /var/log/supervisor-log:/var/log -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/x86_64-supervisor /start
 run-supervisor-i386:
-	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -v /boot/config.json:/boot/config.json -v /:/mnt -v /resin-data/resin-supervisor:/data -v /proc/net/fib_trie:/mnt/fib_trie -v /var/log/supervisor-log:/var/log -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/i386-supervisor /start
+	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -v /boot/config.json:/boot/config.json -v /:/mnt/root -v /resin-data/resin-supervisor:/data -v /proc/net/fib_trie:/mnt/fib_trie -v /var/log/supervisor-log:/var/log -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/i386-supervisor /start
 
 .PHONY: supervisor supervisor-accelerated run-supervisor-x86_64 run-supervisor-i386
