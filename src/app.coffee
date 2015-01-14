@@ -1,11 +1,11 @@
+process.on 'uncaughtException', (e) ->
+	console.error('Got unhandled exception', e, e?.stack)
+
 Promise = require 'bluebird'
 knex = require './db'
 utils = require './utils'
 bootstrap = require './bootstrap'
 config = require './config'
-
-process.on 'uncaughtException', (e) ->
-	console.error('Got unhandled exception', e, e?.stack)
 
 knex.init.then ->
 	utils.mixpanelTrack('Supervisor start')
