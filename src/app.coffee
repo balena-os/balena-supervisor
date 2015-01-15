@@ -34,6 +34,10 @@ knex.init.then ->
 
 		console.log('Starting API server..')
 		api.listen(config.listenPort)
+		application.updateDeviceInfo(
+			api_port: config.listenPort
+			5000
+		)
 	
 		console.log('Starting Apps..')
 		knex('app').select()

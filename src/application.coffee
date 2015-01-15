@@ -295,7 +295,7 @@ getDeviceID = do ->
 					throw new Error('Could not find this device?!')
 				return devices[0].id
 
-exports.updateDeviceInfo = updateDeviceInfo = (body) ->
+exports.updateDeviceInfo = updateDeviceInfo = (body, retry = false) ->
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
 		getDeviceID()
@@ -309,4 +309,6 @@ exports.updateDeviceInfo = updateDeviceInfo = (body) ->
 		)
 	.catch (error) ->
 		utils.mixpanelTrack('Device info update failure', {error, body})
-
+		if retry isnt false
+			Promise.delay(retry).then ->
+				updateDeviceInfo(body, retry)
