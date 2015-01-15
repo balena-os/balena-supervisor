@@ -6,6 +6,7 @@ utils = require './utils'
 crypto = require 'crypto'
 config = require './config'
 PlatformAPI = require 'pinejs-client-js/request'
+fs = Promise.promisifyAll(require('fs'))
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
 resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
@@ -27,8 +28,8 @@ registerDevice = (apiKey, userId, applicationId, deviceType, uuid) ->
 			device_type: deviceType
 		customOptions:
 			apikey: apiKey
-	).then ->
-		return uuid
+	).then (data) ->
+		_.pick(data, 'id', 'uuid')
 
 module.exports = ->
 	# Load config file
@@ -39,9 +40,11 @@ module.exports = ->
 		if userConfig.uuid? and userConfig.registered_at?
 			return userConfig
 		registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType, userConfig.uuid)
-		.then (uuid) ->
-			userConfig.uuid = uuid
-			return userConfig
+		.then (device) ->
+			userConfig.uuid = device.uuid
+			userConfig.deviceId = device.id
+			fs.writeFileAsync('/boot/config.json', JSON.stringify(userConfig))
+		.return(userConfig)
 	.then ->
 		console.log('Finishing bootstrapping')
 		Promise.all([
