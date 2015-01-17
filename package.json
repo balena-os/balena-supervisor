@@ -1,6 +1,6 @@
 {
   "name": "resin-supervisor",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "scripts": {
     "preinstall": "bash deps.sh",
     "postinstall": "bash postinstall.sh",
