@@ -1,20 +1,37 @@
-FROM dockerfile/nodejs
+FROM node:0.10.36-slim
 
-RUN apt-get -q update && apt-get install -qqy libsqlite3-dev socat supervisor
+# Supervisor apt dependencies
+RUN apt-get -q update \
+	&& apt-get install -qqy socat supervisor \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
 
-ADD . /app
+# Compile time dependencies
+RUN apt-get -q update \
+	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
 
+# Deploy key for private npm modules
+RUN mkdir -p /root/.ssh
+COPY deploy_key /root/.ssh/id_rsa
+COPY ssh_config /root/.ssh/config
+RUN chmod 400 /root/.ssh/*
+
+# Copy supervisord launch file for resin-supervisor
+COPY resin-supervisor.conf /etc/supervisor/conf.d/resin-supervisor.conf
+
+# Install dependencies
 WORKDIR /app
+COPY package.json postinstall.sh /app/
+RUN npm install --unsafe-perm --production \
+	&& npm cache clean
+
+# Copy source
+COPY . /app/
 
 ENV SUPERVISOR_IMAGE resin/x86_64-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
-
-RUN rm -rf node_modules
-RUN npm install --unsafe-perm --production
-
-RUN ln -sf /app/entry.sh /start
-
-RUN apt-get clean
 
 CMD ["/app/entry.sh"]

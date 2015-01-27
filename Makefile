@@ -45,7 +45,7 @@ endif
 	docker tag -f resin/supervisor-base:$(BUILDSTEP_VERSION) resin/supervisor-base:latest
 endif
 
-supervisor: supervisor-base
+supervisor:
 	cp Dockerfile.$(ARCH) Dockerfile
 	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile
 	docker build --no-cache=$(DISABLE_CACHE) -t resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION) .

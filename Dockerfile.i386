@@ -1,20 +1,44 @@
 FROM resin/i386-debian:jessie
 
-# Install.
-RUN apt-get update && apt-get install -y curl git unzip wget npm nodejs inetutils-ping libsqlite3-dev socat supervisor && apt-get clean && rm -rf /var/lib/apt/lists/
-RUN ln -sf /usr/bin/nodejs  /usr/bin/node
+# Nodejs
+RUN apt-get update \
+	&& apt-get install -y curl git unzip wget npm nodejs inetutils-ping \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
+RUN ln -sf /usr/bin/nodejs /usr/bin/node
 
-ADD . /app
+# Supervisor apt dependencies
+RUN apt-get -q update \
+	&& apt-get install -qqy socat supervisor \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
 
+# Compile time dependencies
+RUN apt-get -q update \
+	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
+
+# Deploy key for private npm modules
+RUN mkdir -p /root/.ssh
+COPY deploy_key /root/.ssh/id_rsa
+COPY ssh_config /root/.ssh/config
+RUN chmod 400 /root/.ssh/*
+
+# Copy supervisord launch file for resin-supervisor
+COPY resin-supervisor.conf /etc/supervisor/conf.d/resin-supervisor.conf
+
+# Install dependencies
 WORKDIR /app
+COPY package.json postinstall.sh /app/
+RUN npm install --unsafe-perm --production \
+	&& npm cache clean
+
+# Copy source
+COPY . /app/
 
 ENV SUPERVISOR_IMAGE resin/i386-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
-
-RUN rm -rf node_modules
-RUN npm install --unsafe-perm --production
-
-RUN ln -sf /app/entry.sh /start
 
 CMD ["/app/entry.sh"]

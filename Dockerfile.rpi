@@ -1,4 +1,36 @@
-FROM resin/supervisor-base:latest
-ADD . /app
-RUN /build/builder
-RUN apt-get clean
+FROM resin/rpi-node:0.10.36-slim
+
+# Supervisor apt dependencies
+RUN apt-get -q update \
+	&& apt-get install -qqy socat supervisor \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
+
+# Compile time dependencies
+RUN apt-get -q update \
+	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
+
+# Deploy key for private npm modules
+RUN mkdir -p /root/.ssh
+COPY deploy_key /root/.ssh/id_rsa
+COPY ssh_config /root/.ssh/config
+RUN chmod 400 /root/.ssh/*
+
+# Copy supervisord launch file for resin-supervisor
+COPY resin-supervisor.conf /etc/supervisor/conf.d/resin-supervisor.conf
+
+# Install dependencies
+WORKDIR /app
+COPY package.json postinstall.sh /app/
+RUN npm install --unsafe-perm --production \
+	&& npm cache clean
+
+# Copy source
+COPY . /app/
+
+RUN chmod +x /app/src/enterContainer.sh
+RUN /app/node_modules/.bin/coffee -c /app/src
+
+CMD ["/app/entry.sh"]
