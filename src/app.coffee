@@ -31,11 +31,15 @@ knex.init.then ->
 
 		api = require './api'
 		application = require './application'
+		randomstring = require 'randomstring'
 
 		console.log('Starting API server..')
-		api.listen(config.listenPort)
+		secret = randomstring.generate()
+		api(secret).listen(config.listenPort)
 		application.updateDeviceInfo(
 			api_port: config.listenPort
+			api_secret: secret
+			# Retry the device info update every 5s until it finally succeeds.
 			5000
 		)
 	
