@@ -179,6 +179,7 @@ exports.update = update = ->
 					'commit'
 				]
 				filter:
+					commit: $ne: null
 					device:
 						uuid: uuid
 			customOptions:
@@ -186,7 +187,6 @@ exports.update = update = ->
 		)
 		.then (remoteApps) ->
 			console.log('Remote apps')
-			remoteApps = _.filter(remoteApps, 'commit')
 			remoteApps = _.map remoteApps, (app) ->
 				env =
 					RESIN_DEVICE_UUID: uuid
