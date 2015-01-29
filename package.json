@@ -16,7 +16,7 @@
     "event-stream": "~3.0.20",
     "express": "~3.2.6",
     "knex": "~0.7.3",
-    "lodash": "~2.4.1",
+    "lodash": "~3.0.0",
     "mixpanel": "0.0.20",
     "network-checker": "git+ssh://git@bitbucket.org:rulemotion/network-checker.git#v0.0.1",
     "ngrok": "~0.1.97",
