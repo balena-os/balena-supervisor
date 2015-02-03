@@ -1,7 +1,5 @@
 DISABLE_CACHE = 'false'
 
-RPI_IMAGE = resin/rpi-supervisor
-
 ARCH = rpi# rpi/x86_64/i386
 
 SUPERVISOR_VERSION = latest
@@ -15,6 +13,7 @@ CACHE_VOLUME = ~/cache/resin-supervisor
 
 all: supervisor 
 
+IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
 VERSIONED_IMAGES = "$(shell docker images --all | grep $(BUILDSTEP_VERSION) | awk '{print $$1}')"
 BUILDSTEP_PRESENT = $(shell echo $(VERSIONED_IMAGES) | grep --extended-regexp '$(BUILDSTEP_REPO)(\s|$$)' )
 SUPERVISOR_BASE_PRESENT = $(shell echo $(VERSIONED_IMAGES) | grep --extended-regexp 'resin/supervisor-base(\s|$$)' )
@@ -51,6 +50,9 @@ supervisor: supervisor-base
 	rm Dockerfile
 
 supervisor-accelerated: supervisor-base
+ifneq "$(ARCH)" "rpi"
+	@echo 'Can only accelerate an rpi build.'
+else
 ifeq ($(ACCELERATOR) , )
 	@echo 'Supervisor accelerator not found - Downloading resin/buildstep-accelerator and preparing.'
 	docker pull resin/rpi-buildstep-accelerator:$(BUILDSTEP_VERSION)
@@ -59,8 +61,9 @@ ifeq ($(ACCELERATOR) , )
 endif
 	-docker rm -f build-supervisor-latest 2> /dev/null
 	docker run --name build-supervisor-latest --volume $(CACHE_VOLUME):/cache --volumes-from `docker ps --all | grep buildstep-accelerator-$(BUILDSTEP_VERSION) | awk '{print $$1}'`:ro --env VERSION=`jq -r .version package.json` -v `pwd`:/tmp/app resin/supervisor-base:latest bash -i -c ". /.env && cp -r /tmp/app /app && /build/builder"
-	docker commit build-supervisor-latest $(RPI_IMAGE):$(SUPERVISOR_VERSION) > /dev/null
+	docker commit build-supervisor-latest $(IMAGE) > /dev/null
 	-docker rm build-supervisor-latest 2> /dev/null
+endif
 
 run-supervisor-x86_64:
 	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -v /boot/config.json:/boot/config.json -v /:/mnt/root -v /resin-data/resin-supervisor:/data -v /proc/net/fib_trie:/mnt/fib_trie -v /var/log/supervisor-log:/var/log -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/x86_64-supervisor /start
