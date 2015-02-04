@@ -36,9 +36,13 @@ knex.init.then ->
 		console.log('Starting API server..')
 		secret = randomstring.generate()
 		api(secret).listen(config.listenPort)
+
+		# Let API know what version we are, and our api connection info.
+		console.log('Updating supervisor version and api info')
 		application.updateDeviceInfo(
 			api_port: config.listenPort
 			api_secret: secret
+			supervisor_version: utils.supervisorVersion
 			# Retry the device info update every 5s until it finally succeeds.
 			5000
 		)
@@ -64,9 +68,3 @@ knex.init.then ->
 		console.log('Starting periodic check for IP addresses..')
 		setInterval(updateIpAddr, 30 * 1000) # Every 30s
 		updateIpAddr()
-
-		# Let API know we are running a new version
-		console.log('Updating supervisor version:', utils.supervisorVersion)
-		application.updateDeviceInfo(
-			supervisor_version: utils.supervisorVersion
-		)
