@@ -1,5 +1,12 @@
 #!/bin/bash
-CONTAINER_PID=$(docker inspect --format '{{if .State.Running}}{{.State.Pid}}{{end}}' $1)
+
+if [ -f /usr/bin/rce ]; then
+	ENGINE=rce
+else
+	ENGINE=docker
+fi
+
+CONTAINER_PID=$($ENGINE inspect --format '{{if .State.Running}}{{.State.Pid}}{{end}}' $1)
 if [ -z $CONTAINER_PID ]; then
 	read -p "Application must be running for a terminal to be started."
 else
