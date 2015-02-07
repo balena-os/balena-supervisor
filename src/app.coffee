@@ -43,6 +43,8 @@ knex.init.then ->
 			api_port: config.listenPort
 			api_secret: secret
 			supervisor_version: utils.supervisorVersion
+			provisioning_progress: null
+			provisioning_state: ''
 			# Retry the device info update every 5s until it finally succeeds.
 			5000
 		)
