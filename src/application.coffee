@@ -62,6 +62,17 @@ isValidPort = (port) ->
 	maybePort = parseInt(port, 10)
 	return parseFloat(port) is maybePort and maybePort > 0 and maybePort < 65535
 
+fetch = (app) ->
+	docker.getImage(app.imageId).inspectAsync()
+	.catch (error) ->
+		utils.mixpanelTrack('Application download', app)
+		logSystemEvent('Downloading application ' + app.imageId)
+		updateDeviceInfo(status: 'Downloading')
+		dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
+			updateDeviceInfo(download_progress: progress.percentage)
+		.then ->
+			docker.getImage(app.imageId).inspectAsync()
+
 exports.start = start = (app) ->
 	Promise.try ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
@@ -82,18 +93,12 @@ exports.start = start = (app) ->
 
 		# If there is no existing container then create one instead.
 		containerPromise.catch ->
-			docker.getImage(app.imageId).inspectAsync()
-			.catch (error) ->
+			fetch(app)
+			.then (imageInfo) ->
 				utils.mixpanelTrack('Application install', app)
 				logSystemEvent('Installing application ' + app.imageId)
-				updateDeviceInfo(status: 'Downloading')
-				dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
-					updateDeviceInfo(download_progress: progress.percentage)
-				.then ->
-					docker.getImage(app.imageId).inspectAsync()
-			.then (imageInfo) ->
-				console.log('Creating container:', app.imageId)
-				updateDeviceInfo(status: 'Starting')
+				updateDeviceInfo(status: 'Installing')
+
 				ports = {}
 				if portList?
 					portList.forEach (port) ->
@@ -124,7 +129,9 @@ exports.start = start = (app) ->
 			else
 				knex('app').insert(app)
 		.tap (container) ->
-			console.log('Starting container:', app.imageId)
+			utils.mixpanelTrack('Application start', app)
+			logSystemEvent('Starting application ' + app.imageId)
+			updateDeviceInfo(status: 'Starting')
 			ports = {}
 			if portList?
 				portList.forEach (port) ->
@@ -228,9 +235,14 @@ exports.update = update = ->
 				return !_.isEqual(remoteApps[imageId], localApps[imageId])
 			console.log(toBeUpdated)
 
-			# Delete all the ones to remove in one go
-			Promise.map toBeRemoved, (imageId) ->
-				kill(apps[imageId])
+			# Fetch any updated images first
+			Promise.map toBeInstalled, (imageId) ->
+				app = remoteApps[imageId]
+				fetch(app)
+			.then ->
+				# Then delete all the ones to remove in one go
+				Promise.map toBeRemoved, (imageId) ->
+					kill(apps[imageId])
 			.then ->
 				# Then install the apps and add each to the db as they succeed
 				installingPromises = toBeInstalled.map (imageId) ->
