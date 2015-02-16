@@ -16,7 +16,7 @@ module.exports = config =
 		publish_key: process.env.PUBNUB_PUBLISH_KEY ? 'pub-c-bananas'
 	mixpanelToken: process.env.MIXPANEL_TOKEN ? 'bananasbananas'
 	dockerSocket: process.env.DOCKER_SOCKET ? '/run/docker.sock'
-	localImage: process.env.SUPERVISOR_IMAGE ? 'resin/rpi-supervisor'
+	supervisorImage: process.env.SUPERVISOR_IMAGE ? 'resin/rpi-supervisor'
 	configMountPoint: process.env.CONFIG_MOUNT_POINT ? '/mnt/mmcblk0p1/config.json'
 	ledFile: process.env.LED_FILE ? '/sys/class/leds/led0/brightness'
 	bootstrapRetryDelay: checkInt(process.env.BOOTSTRAP_RETRY_DELAY_MS) ? 30000
@@ -25,8 +25,6 @@ module.exports = config =
 	successMessage: 'SUPERVISOR OK'
 
 config.heartbeatEndpoint = config.apiEndpoint + '/ping'
-
-config.remoteImage = config.registryEndpoint + '/' + config.localImage
 
 config.supervisorContainer =
 		Volumes:

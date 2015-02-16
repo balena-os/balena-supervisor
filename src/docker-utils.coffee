@@ -55,7 +55,10 @@ do ->
 		.finally ->
 			imagesBeingFetched--
 
-	supervisorImages = [ "#{config.localImage}:latest", "#{config.remoteImage}:latest" ]
+	supervisorImage = config.supervisorImage
+	if !/:/g.test(supervisorImage)
+		# If there is no tag then mark it as latest
+		supervisorImage += ':latest'
 	exports.cleanupContainersAndImages = ->
 		knex('app').select()
 		.map (app) ->
@@ -67,7 +70,7 @@ do ->
 				# Do not remove user apps.
 				if _.contains(apps, containerInfo.Image)
 					return false
-				if !_.contains(supervisorImages, containerInfo.Image)
+				if containerInfo.Image isnt supervisorImage
 					return true
 				return containerHasExited(containerInfo.Id)
 			.map (containerInfo) ->
@@ -82,7 +85,7 @@ do ->
 				docker.listImagesAsync()
 				.filter (image) ->
 					!_.any image.RepoTags, (imageId) ->
-						_.contains(apps, imageId) or _.contains(supervisorImages, imageId)
+						supervisorImage is imageId or _.contains(apps, imageId)
 				.map (image) ->
 					docker.getImage(image.Id).removeAsync()
 					.then ->
