@@ -2,6 +2,10 @@ set -o errexit
 set -o pipefail
 
 if [[ $NODE_ENV == 'production' ]]; then
+	# Remove node-gyp cache
+	rm -rf ~/.node-gyp/
+	# Remove cached git deps
+	rm -rf /tmp/*
 	# Remove the c files we no longer need (the sqlite3 node module has a massive ~5M c file)
 	find . -name '*.c' -delete
 	# And the tar files (sqlite3 module again)
