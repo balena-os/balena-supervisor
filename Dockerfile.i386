@@ -4,7 +4,7 @@ COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 
 # Nodejs
 RUN apt-get update \
-	&& apt-get install -y curl git unzip wget npm nodejs inetutils-ping --no-install-recommends \
+	&& apt-get install -y npm nodejs --no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 RUN ln -sf /usr/bin/nodejs /usr/bin/node
