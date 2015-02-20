@@ -8,9 +8,9 @@ Promise = require 'bluebird'
 utils = require './utils'
 tty = require './lib/tty'
 logger = require './lib/logger'
-{ resinApi, cachedResinApi } = require './request'
+{ resinApi, cachedResinApi, request } = require './request'
 
-{docker} = dockerUtils
+{ docker } = dockerUtils
 
 
 knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
@@ -178,7 +178,7 @@ exports.start = start = (app) ->
 					logSystemEvent(logTypes.installAppError, app, err)
 					throw err
 		.tap (container) ->
-			# Update the app info the moment we create the container, even if then starting the container fails.  This
+			# Update the app info the moment we create the container, even if then starting the container fails. This
 			# stops issues with constantly creating new containers for an image that fails to start.
 			app.containerId = container.id
 			if app.id?
@@ -233,10 +233,12 @@ exports.update = update = ->
 	.then ([ [ apiKey ], [ uuid ], apps ]) ->
 		apiKey = apiKey.value
 		uuid = uuid.value
-		cachedResinApi.get(
+
+		deviceId = getDeviceID()
+
+		remoteApps = cachedResinApi.get
 			resource: 'application'
 			options:
-				expand: 'environment_variable'
 				select: [
 					'id'
 					'git_repository'
@@ -248,7 +250,22 @@ exports.update = update = ->
 						uuid: uuid
 			customOptions:
 				apikey: apiKey
-		)
+
+		Promise.join deviceId, remoteApps, (deviceId, remoteApps) ->
+			envApiEndpoint = url.resolve(config.apiEndpoint, '/environment')
+
+			return Promise.map remoteApps, (remoteApp) ->
+				request.getAsync
+					url: envApiEndpoint
+					qs:
+						deviceId: deviceId
+						appId: remoteApp.id
+						apikey: apiKey
+				.spread (res, data) ->
+					if res.statusCode >= 400
+						throw new Error("Failed to get environment for device #{uuid}, app #{remoteApp.id}. Status code: #{res.statusCode}")
+					remoteApp.environment_variable = JSON.parse(data)
+					return remoteApp
 		.then (remoteApps) ->
 			console.log('Remote apps')
 			remoteApps = _.map remoteApps, (app) ->
@@ -258,8 +275,7 @@ exports.update = update = ->
 					USER: 'root'
 
 				if app.environment_variable?
-					for envVar in app.environment_variable
-						env[envVar.name] = envVar.value
+					_.extend(env, app.environment_variable)
 				return {
 					appId: '' + app.id
 					commit: app.commit
