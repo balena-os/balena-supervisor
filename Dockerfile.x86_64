@@ -2,13 +2,13 @@ FROM node:0.10.36-slim
 
 # Supervisor apt dependencies
 RUN apt-get -q update \
-	&& apt-get install -qqy socat supervisor \
+	&& apt-get install -qqy socat supervisor --no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 
 # Compile time dependencies
 RUN apt-get -q update \
-	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client \
+	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client --no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 

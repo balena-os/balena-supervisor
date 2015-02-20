@@ -2,20 +2,20 @@ FROM resin/i386-debian:jessie
 
 # Nodejs
 RUN apt-get update \
-	&& apt-get install -y curl git unzip wget npm nodejs inetutils-ping \
+	&& apt-get install -y curl git unzip wget npm nodejs inetutils-ping --no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 RUN ln -sf /usr/bin/nodejs /usr/bin/node
 
 # Supervisor apt dependencies
 RUN apt-get -q update \
-	&& apt-get install -qqy socat supervisor \
+	&& apt-get install -qqy socat supervisor --no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 
 # Compile time dependencies
 RUN apt-get -q update \
-	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client \
+	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client --no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 
