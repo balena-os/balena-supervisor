@@ -1,5 +1,7 @@
 FROM node:0.10.36-slim
 
+COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
+
 # Supervisor apt dependencies
 RUN apt-get -q update \
 	&& apt-get install -qqy socat supervisor --no-install-recommends \

@@ -1,5 +1,7 @@
 FROM resin/i386-debian:jessie
 
+COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
+
 # Nodejs
 RUN apt-get update \
 	&& apt-get install -y curl git unzip wget npm nodejs inetutils-ping --no-install-recommends \
