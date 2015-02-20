@@ -15,12 +15,6 @@ RUN apt-get -q update \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 
-# Compile time dependencies
-RUN apt-get -q update \
-	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client --no-install-recommends \
-	&& apt-get clean \
-	&& rm -rf /var/lib/apt/lists/
-
 # Deploy key for private npm modules
 RUN mkdir -p /root/.ssh
 COPY deploy_key /root/.ssh/id_rsa
@@ -33,8 +27,14 @@ COPY resin-supervisor.conf /etc/supervisor/conf.d/resin-supervisor.conf
 # Install dependencies
 WORKDIR /app
 COPY package.json postinstall.sh /app/
-RUN npm install --unsafe-perm --production \
-	&& npm cache clean
+RUN apt-get -q update \
+	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client --no-install-recommends \
+	&& npm install --unsafe-perm --production \
+	&& npm cache clean \
+	&& apt-get purge -qqy g++ git libsqlite3-dev make ssh-client \
+	&& apt-get clean \
+	&& apt-get autoremove -qqy \
+	&& rm -rf /var/lib/apt/lists/
 
 # Copy source
 COPY . /app/
