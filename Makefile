@@ -17,7 +17,7 @@ supervisor:
 	cp Dockerfile.$(ARCH) Dockerfile
 	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile
 	docker build --no-cache=$(DISABLE_CACHE) -t resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION) .
-	rm Dockerfile
+	-rm Dockerfile
 
 deploy: supervisor
 	docker tag -f $(IMAGE) $(DEPLOY_REGISTRY)/$(IMAGE)
