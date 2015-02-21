@@ -28,10 +28,10 @@ publish = do ->
 			if _.isString(message)
 				message = { message }
 
-			message.timestamp = Date.now()
-
-			# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
-			message.message or= ' '
+			_.defaults message,
+				timestamp: Date.now()
+				# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
+				message: ' '
 
 			pubnub.publish({ channel, message })
 
