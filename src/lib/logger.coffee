@@ -1,3 +1,4 @@
+_ = require 'lodash'
 Docker = require 'dockerode'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
@@ -24,8 +25,14 @@ publish = do ->
 
 		# Redefine original function
 		publish = (message) ->
+			if _.isString(message)
+				message = { message }
+
+			message.timestamp = Date.now()
+
 			# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
-			message or= ' '
+			message.message or= ' '
+
 			pubnub.publish({ channel, message })
 
 		# Replay queue now that we have initialised the publish function

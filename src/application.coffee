@@ -24,7 +24,7 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	)
 
 exports.logSystemEvent = logSystemEvent = (message) ->
-	logger.log('[system] ' + message)
+	logger.log({ message, isSystem: true })
 
 exports.kill = kill = (app) ->
 	logSystemEvent('Killing application ' + app.imageId)
