@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "JSONStream": "~0.7.1",
-    "blinker": "git+ssh://git@bitbucket.org:rulemotion/blinker.git#v0.0.1",
+    "blinker": "~0.0.2",
     "bluebird": "^2.6.0",
     "coffee-script": "~1.8.0",
     "csr-gen": "~0.2.1",
@@ -17,7 +17,7 @@
     "knex": "~0.7.3",
     "lodash": "~3.0.0",
     "mixpanel": "0.0.20",
-    "network-checker": "git+ssh://git@bitbucket.org:rulemotion/network-checker.git#v0.0.1",
+    "network-checker": "~0.0.2",
     "ngrok": "~0.1.97",
     "pubnub": "~3.6.4",
     "randomstring": "~1.0.3",
