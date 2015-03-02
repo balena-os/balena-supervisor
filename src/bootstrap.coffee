@@ -5,7 +5,7 @@ knex = require './db'
 utils = require './utils'
 crypto = require 'crypto'
 config = require './config'
-PlatformAPI = require 'pinejs-client-js/request'
+PlatformAPI = require 'pinejs-client'
 fs = Promise.promisifyAll(require('fs'))
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
