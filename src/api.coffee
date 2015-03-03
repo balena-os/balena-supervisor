@@ -1,14 +1,15 @@
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs'
 utils = require './utils'
-express = require 'express'
 application = require './application'
 tty = require './lib/tty'
 knex = require './db'
+express = require 'express'
+bodyParser = require 'body-parser'
 
 module.exports = (secret) ->
 	api = express()
-	api.use(express.bodyParser())
+	api.use(bodyParser())
 	api.use (req, res, next) ->
 		if req.query.apikey is secret
 			next()
