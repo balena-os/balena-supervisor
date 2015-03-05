@@ -21,10 +21,11 @@ COPY resin-supervisor.conf /etc/supervisor/conf.d/resin-supervisor.conf
 WORKDIR /app
 COPY package.json postinstall.sh /app/
 RUN apt-get -q update \
-	&& apt-get install -qqy g++ git libsqlite3-dev make ssh-client --no-install-recommends \
+	&& apt-get install -qqy g++ libsqlite3-dev make --no-install-recommends \
 	&& npm install --unsafe-perm --production \
+	&& npm dedupe \
 	&& npm cache clean \
-	&& apt-get purge -qqy g++ git libsqlite3-dev make ssh-client \
+	&& apt-get purge -qqy g++ libsqlite3-dev make \
 	&& apt-get clean \
 	&& apt-get autoremove -qqy \
 	&& rm -rf /var/lib/apt/lists/
