@@ -3,7 +3,6 @@ _ = require 'lodash'
 fs = Promise.promisifyAll require 'fs'
 config = require './config'
 mixpanel = require 'mixpanel'
-request = require './request'
 networkCheck = require 'network-checker'
 blink = require('blinking')(config.ledFile)
 
