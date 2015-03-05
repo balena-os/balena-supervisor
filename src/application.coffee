@@ -26,7 +26,7 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 exports.logSystemEvent = logSystemEvent = (message) ->
 	logger.log({ message, isSystem: true })
 
-exports.kill = kill = (app) ->
+kill = (app) ->
 	logSystemEvent('Killing application ' + app.imageId)
 	utils.mixpanelTrack('Application kill', app)
 	updateDeviceInfo(status: 'Stopping')
@@ -55,8 +55,6 @@ exports.kill = kill = (app) ->
 	.tap ->
 		utils.mixpanelTrack('Application stop', app.imageId)
 		knex('app').where('id', app.id).delete()
-	.finally ->
-		updateDeviceInfo(status: 'Idle')
 
 isValidPort = (port) ->
 	maybePort = parseInt(port, 10)
@@ -71,6 +69,7 @@ fetch = (app) ->
 		dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
 			updateDeviceInfo(download_progress: progress.percentage)
 		.then ->
+			updateDeviceInfo(download_progress: null)
 			docker.getImage(app.imageId).inspectAsync()
 
 exports.start = start = (app) ->
@@ -154,7 +153,7 @@ exports.start = start = (app) ->
 		utils.mixpanelTrack('Application start', app.imageId)
 		logSystemEvent('Starting application ' + app.imageId)
 	.finally ->
-		updateDeviceInfo(status: 'Idle', download_progress: null, provisioning_progress: null)
+		updateDeviceInfo(status: 'Idle')
 
 # 0 - Idle
 # 1 - Updating
@@ -166,7 +165,6 @@ exports.update = update = ->
 		# Mark an update required after the current.
 		currentlyUpdating = 2
 		return
-	updateDeviceInfo(status: 'Checking Updates')
 	currentlyUpdating = 1
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
@@ -260,7 +258,6 @@ exports.update = update = ->
 				Promise.all(installingPromises.concat(updatingPromises))
 	.then ->
 		failedUpdates = 0
-		updateDeviceInfo(status: 'Cleaning old images')
 		# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
 		# point where we might clean up an image we still want.
 		dockerUtils.cleanupContainersAndImages()
