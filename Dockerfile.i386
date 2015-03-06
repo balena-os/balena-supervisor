@@ -40,13 +40,12 @@ RUN apt-get -q update \
 # Copy source
 COPY . /app/
 
-RUN chmod +x /app/src/enterContainer.sh
-RUN /app/node_modules/.bin/coffee -c /app/src
+RUN chmod +x /app/src/enterContainer.sh \
+	&& /app/node_modules/.bin/coffee -c /app/src \
+	&& ln -sf /app/entry.sh /start # Needed for legacy
 
 ENV SUPERVISOR_IMAGE resin/i386-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
 
-# Needed for legacy
-RUN ln -sf /app/entry.sh /start
 CMD ["/app/entry.sh"]

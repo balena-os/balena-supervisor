@@ -33,9 +33,8 @@ RUN apt-get -q update \
 # Copy source
 COPY . /app/
 
-RUN chmod +x /app/src/enterContainer.sh
-RUN /app/node_modules/.bin/coffee -c /app/src
+RUN chmod +x /app/src/enterContainer.sh \
+	&& /app/node_modules/.bin/coffee -c /app/src \
+	&& ln -sf /app/entry.sh /start # Needed for legacy
 
-# Needed for legacy
-RUN ln -sf /app/entry.sh /start
 CMD ["/app/entry.sh"]
