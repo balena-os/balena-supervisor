@@ -1,0 +1,38 @@
+FROM resin/armv7hf-node:0.10.36-slim
+
+COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
+
+# Supervisor apt dependencies
+RUN apt-get -q update \
+	&& apt-get install -qqy socat supervisor --no-install-recommends \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
+
+# Copy supervisord launch file for resin-supervisor
+COPY resin-supervisor.conf /etc/supervisor/conf.d/resin-supervisor.conf
+
+# Install dependencies
+WORKDIR /app
+COPY package.json postinstall.sh /app/
+RUN apt-get -q update \
+	&& apt-get install -qqy g++ libsqlite3-dev make --no-install-recommends \
+	&& npm install --unsafe-perm --production \
+	&& npm dedupe \
+	&& npm cache clean \
+	&& apt-get purge -qqy g++ libsqlite3-dev make binutils \
+	&& apt-get clean \
+	&& apt-get autoremove -qqy \
+	&& rm -rf /var/lib/apt/lists/
+
+# Copy source
+COPY . /app/
+
+RUN chmod +x /app/src/enterContainer.sh \
+	&& /app/node_modules/.bin/coffee -c /app/src \
+	&& ln -sf /app/entry.sh /start # Needed for legacy
+
+ENV SUPERVISOR_IMAGE resin/armv7hf-supervisor
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
+
+CMD ["/app/entry.sh"]
