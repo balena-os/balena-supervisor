@@ -28,7 +28,7 @@ exports.logSystemEvent = logSystemEvent = (message) ->
 kill = (app) ->
 	logSystemEvent('Killing application ' + app.imageId)
 	utils.mixpanelTrack('Application kill', app)
-	updateDeviceInfo(status: 'Stopping')
+	updateDeviceState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
 	console.log('Stopping and deleting container:', container)
 	tty.stop(app.id)
@@ -64,11 +64,11 @@ fetch = (app) ->
 	.catch (error) ->
 		utils.mixpanelTrack('Application download', app)
 		logSystemEvent('Downloading application ' + app.imageId)
-		updateDeviceInfo(status: 'Downloading')
+		updateDeviceState(status: 'Downloading')
 		dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
-			updateDeviceInfo(download_progress: progress.percentage)
+			updateDeviceState(download_progress: progress.percentage)
 		.then ->
-			updateDeviceInfo(download_progress: null)
+			updateDeviceState(download_progress: null)
 			docker.getImage(app.imageId).inspectAsync()
 
 exports.start = start = (app) ->
@@ -95,7 +95,7 @@ exports.start = start = (app) ->
 			.then (imageInfo) ->
 				utils.mixpanelTrack('Application install', app)
 				logSystemEvent('Installing application ' + app.imageId)
-				updateDeviceInfo(status: 'Installing')
+				updateDeviceState(status: 'Installing')
 
 				ports = {}
 				if portList?
@@ -129,7 +129,7 @@ exports.start = start = (app) ->
 		.tap (container) ->
 			utils.mixpanelTrack('Application start', app)
 			logSystemEvent('Starting application ' + app.imageId)
-			updateDeviceInfo(status: 'Starting')
+			updateDeviceState(status: 'Starting')
 			ports = {}
 			if portList?
 				portList.forEach (port) ->
@@ -146,13 +146,13 @@ exports.start = start = (app) ->
 				]
 			)
 			.then ->
-				updateDeviceInfo(commit: app.commit)
+				updateDeviceState(commit: app.commit)
 				logger.attach(app)
 	.tap ->
 		utils.mixpanelTrack('Application start', app.imageId)
 		logSystemEvent('Starting application ' + app.imageId)
 	.finally ->
-		updateDeviceInfo(status: 'Idle')
+		updateDeviceState(status: 'Idle')
 
 # 0 - Idle
 # 1 - Updating
@@ -270,7 +270,7 @@ exports.update = update = ->
 		console.log('Scheduling another update attempt due to failure: ', delayTime, err)
 		setTimeout(update, delayTime)
 	.finally ->
-		updateDeviceInfo(status: 'Idle')
+		updateDeviceState(status: 'Idle')
 		if currentlyUpdating is 2
 			# If an update is required then schedule it
 			setTimeout(update)
@@ -303,20 +303,49 @@ getDeviceID = do ->
 					throw new Error('Could not find this device?!')
 				return devices[0].id
 
-exports.updateDeviceInfo = updateDeviceInfo = (body, retry = false) ->
-	Promise.all([
-		knex('config').select('value').where(key: 'apiKey')
-		getDeviceID()
-	]).spread ([{value: apiKey}], deviceID) ->
-		resinAPI.patch(
-			resource: 'device'
-			id: deviceID
-			body: body
-			customOptions:
-				apikey: apiKey
+exports.updateDeviceState = updateDeviceState = do ->
+	applyPromise = Promise.resolve()
+	targetState = {}
+	actualState = {}
+
+	getStateDiff = ->
+		_.omit targetState, (value, key) ->
+			actualState[key] is value
+
+	applyState = ->
+		if _.size(getStateDiff()) is 0
+			return
+
+		applyPromise = Promise.join(
+			knex('config').select('value').where(key: 'apiKey')
+			getDeviceID()
+			([{value: apiKey}], deviceID) ->
+				stateDiff = getStateDiff()
+				if _.size(stateDiff) is 0
+					return
+				resinAPI.patch
+					resource: 'device'
+					id: deviceID
+					body: stateDiff
+					customOptions:
+						apikey: apiKey
+				.then ->
+					# Update the actual state.
+					_.merge(actualState, stateDiff)
+				.catch (error) ->
+					utils.mixpanelTrack('Device info update failure', {error, stateDiff})
+					# Delay 5s before retrying a failed update
+					Promise.delay(5000)
 		)
-	.catch (error) ->
-		utils.mixpanelTrack('Device info update failure', {error, body})
-		if retry isnt false
-			Promise.delay(retry).then ->
-				updateDeviceInfo(body, retry)
+		.finally ->
+			# Check if any more state diffs have appeared whilst we've been processing this update.
+			applyState()
+
+	return (updatedState = {}, retry = false) ->
+		# Remove any updates that match the last we successfully sent.
+		_.merge(targetState, updatedState)
+
+		# Only trigger applying state if an apply isn't already in progress.
+		if !applyPromise.isPending()
+			applyState()
+		return

@@ -39,14 +39,12 @@ knex.init.then ->
 
 		# Let API know what version we are, and our api connection info.
 		console.log('Updating supervisor version and api info')
-		application.updateDeviceInfo(
+		application.updateDeviceState(
 			api_port: config.listenPort
 			api_secret: secret
 			supervisor_version: utils.supervisorVersion
 			provisioning_progress: null
 			provisioning_state: ''
-			# Retry the device info update every 5s until it finally succeeds.
-			5000
 		)
 	
 		console.log('Starting Apps..')
@@ -64,7 +62,7 @@ knex.init.then ->
 
 		updateIpAddr = ->
 			utils.findIpAddrs().then (ipAddrs) ->
-				application.updateDeviceInfo(
+				application.updateDeviceState(
 					ip_address: ipAddrs.join(' ')
 				)
 		console.log('Starting periodic check for IP addresses..')
