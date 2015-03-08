@@ -1,7 +1,14 @@
+_ = require 'lodash'
 Promise = require 'bluebird'
-ngrok = Promise.promisifyAll require 'ngrok'
-tty = Promise.promisifyAll require 'tty.js'
 TypedError = require 'typed-error'
+
+# Only load ngrok/tty when they are actually needed,
+# to reduce memory in the likely case they are never used.
+ngrok = null
+tty = null
+init = _.once ->
+	ngrok = Promise.promisifyAll require 'ngrok'
+	tty = Promise.promisifyAll require 'tty.js'
 
 class DisconnectedError extends TypedError
 
@@ -10,6 +17,7 @@ class DisconnectedError extends TypedError
 apps = {}
 nextPort = 81
 exports.start = (app) ->
+	init()
 	apps[app.id] ?= Promise.rejected()
 	return apps[app.id] = apps[app.id].catch ->
 		port = nextPort++
@@ -27,6 +35,7 @@ exports.stop = (appId) ->
 	if !apps[appId]?
 		return Promise.resolve()
 	apps[appId] = apps[appId].then (url) ->
+		# ngrok must have been loaded already or we wouldn't have a url to disconnect from.
 		ngrok.disconnectAsync(url)
 		.then ->
 			# We throw an error so that `.start` will catch and restart the session.
