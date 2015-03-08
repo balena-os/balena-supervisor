@@ -43,14 +43,9 @@ publish = do ->
 exports.log = ->
 	publish(arguments...)
 
-# Helps in blinking the LED from the given end point.
 exports.attach = (app) ->
 	dockerPromise.then (docker) ->
 		docker.getContainer(app.containerId)
 		.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
 		.then (stream) ->
-			es.pipeline(
-				stream
-				es.split()
-				es.mapSync(publish)
-			)
+			stream.pipe(es.split()).on('data', publish)

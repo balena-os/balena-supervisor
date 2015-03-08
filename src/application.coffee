@@ -1,5 +1,4 @@
 _ = require 'lodash'
-es = require 'event-stream'
 url = require 'url'
 knex = require './db'
 path = require 'path'
