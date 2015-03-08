@@ -10,7 +10,6 @@
     "blinking": "~0.0.2",
     "bluebird": "^2.6.0",
     "coffee-script": "~1.9.1",
-    "csr-gen": "~0.2.1",
     "dockerode": "~2.0.0",
     "event-stream": "^3.0.20",
     "express": "~3.2.6",
