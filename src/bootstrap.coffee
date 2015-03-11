@@ -9,7 +9,7 @@ PlatformAPI = require 'pinejs-client'
 fs = Promise.promisifyAll(require('fs'))
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
-resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
+resinApi = new PlatformAPI(PLATFORM_ENDPOINT)
 
 registerDevice = (apiKey, userId, applicationId, deviceType, uuid) ->
 	# I'd be nice if the UUID matched the output of a SHA-256 function, but although the length limit of the CN
@@ -19,7 +19,7 @@ registerDevice = (apiKey, userId, applicationId, deviceType, uuid) ->
 	if not uuid?
 		uuid = crypto.pseudoRandomBytes(31).toString('hex')
 
-	resinAPI.post(
+	resinApi.post(
 		resource: 'device'
 		body:
 			user: userId

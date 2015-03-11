@@ -13,7 +13,8 @@ logger = require './lib/logger'
 {docker} = dockerUtils
 
 PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
-resinAPI = new PlatformAPI(PLATFORM_ENDPOINT)
+resinApi = new PlatformAPI(PLATFORM_ENDPOINT)
+cachedResinApi = resinApi.clone({}, cache: {})
 
 knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	logger.init(
@@ -173,7 +174,7 @@ exports.update = update = ->
 	.then ([ [ apiKey ], [ uuid ], apps ]) ->
 		apiKey = apiKey.value
 		uuid = uuid.value
-		resinAPI.get(
+		cachedResinApi.get(
 			resource: 'application'
 			options:
 				expand: 'environment_variable'
@@ -289,7 +290,7 @@ getDeviceID = do ->
 				knex('config').select('value').where(key: 'uuid')
 			])
 			.spread ([{value: apiKey}], [{value: uuid}]) ->
-				resinAPI.get(
+				resinApi.get(
 					resource: 'device'
 					options:
 						select: 'id'
@@ -326,7 +327,7 @@ exports.updateDeviceState = updateDeviceState = do ->
 				stateDiff = getStateDiff()
 				if _.size(stateDiff) is 0
 					return
-				resinAPI.patch
+				resinApi.patch
 					resource: 'device'
 					id: deviceID
 					body: stateDiff
