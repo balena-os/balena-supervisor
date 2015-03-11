@@ -303,6 +303,9 @@ getDeviceID = do ->
 					throw new Error('Could not find this device?!')
 				return devices[0].id
 
+# Calling this function updates the local device state, which is then used to synchronise
+# the remote device state, repeating any failed updates until successfully synchronised.
+# This function will also optimise updates by merging multiple updates and only sending the latest state.
 exports.updateDeviceState = updateDeviceState = do ->
 	applyPromise = Promise.resolve()
 	targetState = {}
