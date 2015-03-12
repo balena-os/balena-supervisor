@@ -143,6 +143,13 @@ exports.start = start = (app) ->
 					'/var/run/docker.sock:/run/docker.sock'
 				]
 			)
+			# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
+			.catch Promise.OperationalError, (err) ->
+				# Report the message from the original cause to the user.
+				message = err.cause.json ? err.cause.message ? err.message
+				logSystemEvent("Unable to start application #{app.imageId} due to:\n#{message}")
+				# And rethrow the error, to be handled later as necessary.
+				throw err
 			.then ->
 				updateDeviceState(commit: app.commit)
 				logger.attach(app)
