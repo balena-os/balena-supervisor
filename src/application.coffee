@@ -275,7 +275,8 @@ exports.update = update = ->
 		if currentlyUpdating is 2
 			# If an update is required then schedule it
 			setTimeout(update)
-		# Set the updating as finished
+	.finally ->
+		# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
 		currentlyUpdating = 0
 
 getDeviceID = do ->
