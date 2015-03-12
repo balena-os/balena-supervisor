@@ -1,7 +1,20 @@
-request = require 'request'
+config = require './config'
+PlatformAPI = require 'pinejs-client'
 Promise = require 'bluebird'
+request = require 'request'
+url = require 'url'
 
-request = request.defaults
+requestOpts =
 	gzip: true
+	timeout: 30000
 
-module.exports = Promise.promisifyAll(request)
+PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
+exports.resinApi = resinApi = new PlatformAPI
+	apiPrefix: PLATFORM_ENDPOINT
+	passthrough: requestOpts
+exports.cachedResinApi = resinApi.clone({}, cache: {})
+
+
+request = request.defaults(requestOpts)
+
+exports.request = Promise.promisifyAll(request)

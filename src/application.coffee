@@ -5,16 +5,13 @@ path = require 'path'
 config = require './config'
 dockerUtils = require './docker-utils'
 Promise = require 'bluebird'
-PlatformAPI = require 'pinejs-client'
 utils = require './utils'
 tty = require './lib/tty'
 logger = require './lib/logger'
+{ resinApi, cachedResinApi } = require './request'
 
 {docker} = dockerUtils
 
-PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
-resinApi = new PlatformAPI(PLATFORM_ENDPOINT)
-cachedResinApi = resinApi.clone({}, cache: {})
 
 knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	logger.init(

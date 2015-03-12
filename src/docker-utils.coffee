@@ -6,7 +6,7 @@ es = require 'event-stream'
 _ = require 'lodash'
 knex = require './db'
 
-request = require './request'
+{ request } = require './request'
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
