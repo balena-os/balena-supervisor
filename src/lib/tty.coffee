@@ -31,13 +31,13 @@ exports.start = (app) ->
 		.then ->
 			ngrok.connectAsync(port)
 
-exports.stop = (appId) ->
-	if !apps[appId]?
+exports.stop = (app) ->
+	if !apps[app.id]?
 		return Promise.resolve()
-	apps[appId] = apps[appId].then (url) ->
+	apps[app.id] = apps[app.id].then (url) ->
 		# ngrok must have been loaded already or we wouldn't have a url to disconnect from.
 		ngrok.disconnectAsync(url)
 		.then ->
 			# We throw an error so that `.start` will catch and restart the session.
 			throw new DisconnectedError()
-	return apps[appId].catch DisconnectedError, -> # All good, since we want to disconnect here!
+	return apps[app.id].catch DisconnectedError, -> # All good, since we want to disconnect here!

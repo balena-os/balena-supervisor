@@ -32,7 +32,7 @@ kill = (app) ->
 	updateDeviceState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
 	console.log('Stopping and deleting container:', container)
-	tty.stop(app.id)
+	tty.stop(app)
 	.catch (err) ->
 		console.error('Error stopping tty', err)
 		return # Even if stopping the tty fails we want to finish stopping the container

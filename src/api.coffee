@@ -47,7 +47,11 @@ module.exports = (secret) ->
 		utils.mixpanelTrack('Despawn tty', appId)
 		if !appId?
 			res.status(400).send('Missing app id')
-		tty.stop(appId)
+		knex('app').select().where({appId})
+		.then ([ app ]) ->
+			if !app?
+				throw new Error('App not found')
+			tty.stop(app)
 		.then ->
 			res.sendStatus(200)
 		.catch (err) ->
