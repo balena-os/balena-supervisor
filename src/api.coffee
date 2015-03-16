@@ -37,7 +37,7 @@ module.exports = (secret) ->
 			if !app?
 				throw new Error('App not found')
 			tty.start(app)
-		.then (url) ->
+		.then ({url}) ->
 			res.status(200).send(url)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
