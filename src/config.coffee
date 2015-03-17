@@ -24,8 +24,6 @@ module.exports = config =
 	appUpdatePollInterval: checkInt(process.env.APPLICATION_UPDATE_POLL_INTERVAL) ? 60000
 	successMessage: 'SUPERVISOR OK'
 
-config.heartbeatEndpoint = config.apiEndpoint + '/ping'
-
 config.supervisorContainer =
 		Volumes:
 			'/boot/config.json': {}

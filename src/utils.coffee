@@ -5,6 +5,7 @@ config = require './config'
 mixpanel = require 'mixpanel'
 networkCheck = require 'network-checker'
 blink = require('blinking')(config.ledFile)
+url = require 'url'
 
 utils = exports
 
@@ -64,9 +65,12 @@ networkPattern =
 	pause: 1000
 
 exports.blink = blink
+
 exports.connectivityCheck = _.once ->
-	networkCheck.monitorURL 
-		url: config.heartbeatEndpoint
+	parsedUrl = url.parse(config.apiEndpoint)
+	networkCheck.monitorHost 
+		host: parsedUrl.hostname
+		port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
 		interval: 10 * 1000
 		(connected) ->
 			if connected
