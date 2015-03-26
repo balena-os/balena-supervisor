@@ -8,7 +8,7 @@ Promise = require 'bluebird'
 utils = require './utils'
 tty = require './lib/tty'
 logger = require './lib/logger'
-{ resinApi, cachedResinApi, request } = require './request'
+{ resinApi, cachedResinApi } = require './request'
 
 { docker } = dockerUtils
 
@@ -214,6 +214,21 @@ exports.start = start = (app) ->
 	.finally ->
 		updateDeviceState(status: 'Idle')
 
+getEnvironment = do ->
+	envApiEndpoint = url.resolve(config.apiEndpoint, '/environment')
+
+	return (appId, deviceId, apiKey) ->
+
+		requestParams = _.extend
+			method: 'GET'
+			url: "#{envApiEndpoint}?deviceId=#{deviceId}&appId=#{appId}&apikey=#{apiKey}"
+		, cachedResinApi.passthrough
+
+		cachedResinApi._request(requestParams)
+		.catch (err) ->
+				console.error("Failed to get environment for device #{deviceId}, app #{appId}. #{err}")
+				throw err
+
 # 0 - Idle
 # 1 - Updating
 # 2 - Update required
@@ -252,19 +267,10 @@ exports.update = update = ->
 				apikey: apiKey
 
 		Promise.join deviceId, remoteApps, (deviceId, remoteApps) ->
-			envApiEndpoint = url.resolve(config.apiEndpoint, '/environment')
-
 			return Promise.map remoteApps, (remoteApp) ->
-				request.getAsync
-					url: envApiEndpoint
-					qs:
-						deviceId: deviceId
-						appId: remoteApp.id
-						apikey: apiKey
-				.spread (res, data) ->
-					if res.statusCode >= 400
-						throw new Error("Failed to get environment for device #{uuid}, app #{remoteApp.id}. Status code: #{res.statusCode}")
-					remoteApp.environment_variable = JSON.parse(data)
+				getEnvironment(remoteApp.id, deviceId, apiKey)
+				.then (environment) ->
+					remoteApp.environment_variable = environment
 					return remoteApp
 		.then (remoteApps) ->
 			console.log('Remote apps')
