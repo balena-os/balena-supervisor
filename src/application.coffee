@@ -20,12 +20,51 @@ knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 		channel: "device-#{uuid.value}-logs"
 	)
 
-exports.logSystemEvent = logSystemEvent = (message) ->
+logTypes =
+	stopApp:
+		eventName: 'Application kill'
+		humanName: 'Killing application'
+	stopAppSuccess:
+		eventName: 'Application stop'
+		humanName: 'Killed application'
+
+	downloadApp:
+		eventName: 'Application download'
+		humanName: 'Downloading application'
+	downloadAppSuccess:
+		eventName: 'Application downloaded'
+		humanName: 'Downloaded application'
+
+	installApp:
+		eventName: 'Application install'
+		humanName: 'Installing application'
+
+	startApp:
+		eventName: 'Application start'
+		humanName: 'Starting application'
+	startAppSuccess:
+		eventName: 'Application started'
+		humanName: 'Started application'
+	startAppError:
+		eventName: 'Application started'
+		humanName: 'Failed to start application'
+
+	updateApp:
+		eventName: 'Application update'
+		humanName: 'Updating application'
+
+logSystemEvent = (logType, app, err) ->
+	message = "#{logType.humanName} '#{app.imageId}'"
+	if err?
+		# Report the message from the original cause to the user.
+		errMessage = err.cause.json ? err.cause.message ? err.message
+		message += " due to '#{errMessage}'"
 	logger.log({ message, isSystem: true })
+	utils.mixpanelTrack(logType.eventName, {app, err})
+	return
 
 kill = (app) ->
-	logSystemEvent('Killing application ' + app.imageId)
-	utils.mixpanelTrack('Application kill', app)
+	logSystemEvent(logTypes.stopApp, app)
 	updateDeviceState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
 	console.log('Stopping and deleting container:', container)
@@ -50,7 +89,7 @@ kill = (app) ->
 			return
 		throw err
 	.tap ->
-		utils.mixpanelTrack('Application stop', app.imageId)
+		logSystemEvent(logTypes.stopAppSuccess, app)
 		knex('app').where('id', app.id).delete()
 
 isValidPort = (port) ->
@@ -60,12 +99,12 @@ isValidPort = (port) ->
 fetch = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
-		utils.mixpanelTrack('Application download', app)
-		logSystemEvent('Downloading application ' + app.imageId)
+		logSystemEvent(logTypes.downloadApp, app)
 		updateDeviceState(status: 'Downloading')
 		dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
 			updateDeviceState(download_progress: progress.percentage)
 		.then ->
+			logSystemEvent(logTypes.downloadAppSuccess, app)
 			updateDeviceState(download_progress: null)
 			docker.getImage(app.imageId).inspectAsync()
 
@@ -91,8 +130,7 @@ exports.start = start = (app) ->
 		containerPromise.catch ->
 			fetch(app)
 			.then (imageInfo) ->
-				utils.mixpanelTrack('Application install', app)
-				logSystemEvent('Installing application ' + app.imageId)
+				logSystemEvent(logTypes.installApp, app)
 				updateDeviceState(status: 'Installing')
 
 				ports = {}
@@ -125,8 +163,7 @@ exports.start = start = (app) ->
 			else
 				knex('app').insert(app)
 		.tap (container) ->
-			utils.mixpanelTrack('Application start', app)
-			logSystemEvent('Starting application ' + app.imageId)
+			logSystemEvent(logTypes.startApp, app)
 			updateDeviceState(status: 'Starting')
 			ports = {}
 			if portList?
@@ -143,19 +180,14 @@ exports.start = start = (app) ->
 					'/var/run/docker.sock:/run/docker.sock'
 				]
 			)
-			# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
-			.catch Promise.OperationalError, (err) ->
-				# Report the message from the original cause to the user.
-				message = err.cause.json ? err.cause.message ? err.message
-				logSystemEvent("Unable to start application #{app.imageId} due to:\n#{message}")
-				# And rethrow the error, to be handled later as necessary.
+			.catch (err) ->
+				logSystemEvent(logTypes.startAppError, app, err)
 				throw err
 			.then ->
 				updateDeviceState(commit: app.commit)
 				logger.attach(app)
 	.tap ->
-		utils.mixpanelTrack('Application start', app.imageId)
-		logSystemEvent('Starting application ' + app.imageId)
+		logSystemEvent(logTypes.startAppSuccess, app)
 	.finally ->
 		updateDeviceState(status: 'Idle')
 
@@ -254,8 +286,7 @@ exports.update = update = ->
 				updatingPromises = toBeUpdated.map (imageId) ->
 					localApp = apps[imageId]
 					app = remoteApps[imageId]
-					utils.mixpanelTrack('Application update', app)
-					logSystemEvent('Updating application')
+					logSystemEvent(logTypes.updateApp, app)
 					kill(localApp)
 					.then ->
 						start(app)
