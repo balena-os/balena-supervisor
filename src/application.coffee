@@ -27,6 +27,9 @@ logTypes =
 	stopAppSuccess:
 		eventName: 'Application stop'
 		humanName: 'Killed application'
+	stopAppError:
+		eventName: 'Application stop error'
+		humanName: 'Killed application'
 
 	downloadApp:
 		eventName: 'Application download'
@@ -34,10 +37,19 @@ logTypes =
 	downloadAppSuccess:
 		eventName: 'Application downloaded'
 		humanName: 'Downloaded application'
+	downloadAppError:
+		eventName: 'Application download error'
+		humanName: 'Failed to download application'
 
 	installApp:
 		eventName: 'Application install'
 		humanName: 'Installing application'
+	installAppSuccess:
+		eventName: 'Application installed'
+		humanName: 'Installed application'
+	installAppError:
+		eventName: 'Application install error'
+		humanName: 'Failed to install application'
 
 	startApp:
 		eventName: 'Application start'
@@ -91,6 +103,9 @@ kill = (app) ->
 	.tap ->
 		logSystemEvent(logTypes.stopAppSuccess, app)
 		knex('app').where('id', app.id).delete()
+	.catch (err) ->
+		logSystemEvent(logTypes.stopAppError, app, err)
+		throw err
 
 isValidPort = (port) ->
 	maybePort = parseInt(port, 10)
@@ -107,6 +122,9 @@ fetch = (app) ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			updateDeviceState(download_progress: null)
 			docker.getImage(app.imageId).inspectAsync()
+		.catch (err) ->
+			logSystemEvent(logTypes.downloadAppError, app, err)
+			throw err
 
 exports.start = start = (app) ->
 	Promise.try ->
@@ -154,6 +172,11 @@ exports.start = start = (app) ->
 					Env: _.map env, (v, k) -> k + '=' + v
 					ExposedPorts: ports
 				)
+				.tap ->
+					logSystemEvent(logTypes.installAppSuccess, app)
+				.catch (err) ->
+					logSystemEvent(logTypes.installAppError, app, err)
+					throw err
 		.tap (container) ->
 			# Update the app info the moment we create the container, even if then starting the container fails.  This
 			# stops issues with constantly creating new containers for an image that fails to start.
