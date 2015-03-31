@@ -79,7 +79,6 @@ kill = (app) ->
 	logSystemEvent(logTypes.stopApp, app)
 	updateDeviceState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
-	console.log('Stopping and deleting container:', container)
 	tty.stop(app)
 	.catch (err) ->
 		console.error('Error stopping tty', err)
@@ -226,8 +225,8 @@ getEnvironment = do ->
 
 		cachedResinApi._request(requestParams)
 		.catch (err) ->
-				console.error("Failed to get environment for device #{deviceId}, app #{appId}. #{err}")
-				throw err
+			console.error("Failed to get environment for device #{deviceId}, app #{appId}. #{err}")
+			throw err
 
 # 0 - Idle
 # 1 - Updating
@@ -273,7 +272,6 @@ exports.update = update = ->
 					remoteApp.environment_variable = environment
 					return remoteApp
 		.then (remoteApps) ->
-			console.log('Remote apps')
 			remoteApps = _.map remoteApps, (app) ->
 				env =
 					RESIN_DEVICE_UUID: uuid
@@ -291,28 +289,18 @@ exports.update = update = ->
 
 			remoteApps = _.indexBy(remoteApps, 'imageId')
 			remoteImages = _.keys(remoteApps)
-			console.log(remoteImages)
 
-			console.log('Local apps')
 			apps = _.indexBy(apps, 'imageId')
 			localApps = _.mapValues apps, (app) ->
 				_.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 			localImages = _.keys(localApps)
-			console.log(localImages)
 
-			console.log('Apps to be removed')
 			toBeRemoved = _.difference(localImages, remoteImages)
-			console.log(toBeRemoved)
-
-			console.log('Apps to be installed')
 			toBeInstalled = _.difference(remoteImages, localImages)
-			console.log(toBeInstalled)
 
-			console.log('Apps to be updated')
 			toBeUpdated = _.intersection(remoteImages, localImages)
 			toBeUpdated = _.filter toBeUpdated, (imageId) ->
 				return !_.isEqual(remoteApps[imageId], localApps[imageId])
-			console.log(toBeUpdated)
 
 			# Fetch any updated images first
 			Promise.map toBeInstalled, (imageId) ->
