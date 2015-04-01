@@ -25,7 +25,7 @@
     "request": "^2.51.0",
     "server-destroy": "^1.0.0",
     "sqlite3": "~3.0.4",
-    "tty.js": "~0.2.13",
+    "tty.js": "0.2.13",
     "typed-error": "~0.1.0"
   },
   "engines": {
