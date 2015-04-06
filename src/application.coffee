@@ -69,7 +69,7 @@ logSystemEvent = (logType, app, err) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
 	if err?
 		# Report the message from the original cause to the user.
-		errMessage = err.cause.json ? err.cause.message ? err.message
+		errMessage = err.cause?.json ? err.cause?.message ? err.message
 		message += " due to '#{errMessage}'"
 	logger.log({ message, isSystem: true })
 	utils.mixpanelTrack(logType.eventName, {app, err})
