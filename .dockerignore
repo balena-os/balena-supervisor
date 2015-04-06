@@ -6,3 +6,4 @@ Dockerfile.*
 Makefile
 .editorconfig
 coffeelint.json
+automation
