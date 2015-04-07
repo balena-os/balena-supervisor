@@ -18,7 +18,7 @@ exports.docker = docker
 do ->
 	# Keep track of the images being fetched, so we don't clean them up whilst fetching.
 	imagesBeingFetched = 0
-	exports.fetchImage = (image) ->
+	fetchImage = (image) ->
 		imagesBeingFetched++
 		docker.createImageAsync(fromImage: image)
 		.then (stream) ->
@@ -99,7 +99,7 @@ do ->
 			return not data.State.Running
 
 	# Return true if an image exists in the local docker repository, false otherwise.
-	exports.imageExists = imageExists = (imageId) ->
+	imageExists = (imageId) ->
 		image = docker.getImage(imageId)
 		image.inspectAsync().then ->
 			return true
@@ -107,7 +107,7 @@ do ->
 			return false
 
 	# Get the id of an image on a given registry and tag.
-	exports.getImageId = getImageId = (registry, imageName, tag='latest') ->
+	getImageId = (registry, imageName, tag='latest') ->
 		request.getAsync("http://#{registry}/v1/repositories/#{imageName}/tags")
 		.spread (res, data) ->
 			if res.statusCode == 404
@@ -115,10 +115,12 @@ do ->
 			if res.statusCode >= 400
 				throw new Error("Failed to get image tags of #{imageName} from #{registry}. Status code: #{res.statusCode}")
 			tags = JSON.parse(data)
+			if !tags[tag]?
+				throw new Error("Could not find tag #{tag} for image #{imageName}")
 			return tags[tag]
 
 	# Return the ids of the layers of an image.
-	exports.getImageHistory = getImageHistory = (registry, imageId) ->
+	getImageHistory = (registry, imageId) ->
 		request.getAsync("http://#{registry}/v1/images/#{imageId}/ancestry")
 		.spread (res, data) ->
 			if res.statusCode >= 400
@@ -128,7 +130,7 @@ do ->
 
 	# Return the number of bytes docker has to download to pull this image (or layer).
 	# If the image is already downloaded, then 0 is returned.
-	exports.getImageDownloadSize = getImageDownloadSize = (registry, imageId) ->
+	getImageDownloadSize = (registry, imageId) ->
 		imageExists(imageId)
 		.then (exists) ->
 			if exists
@@ -143,7 +145,7 @@ do ->
 	# The object returned has layer ids as keys and their download size as values.
 	# Download size is the size that docker will download if the image will be pulled now.
 	# If some layer is already downloaded, it will return 0 size for that layer.
-	exports.getLayerDownloadSizes = getLayerDownloadSizes = (image, tag='latest') ->
+	getLayerDownloadSizes = (image, tag='latest') ->
 		{registry, imageName} = getRegistryAndName(image)
 		imageSizes = {}
 		getImageId(registry, imageName, tag)
