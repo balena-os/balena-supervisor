@@ -45,6 +45,7 @@ knex.init.then ->
 			supervisor_version: utils.supervisorVersion
 			provisioning_progress: null
 			provisioning_state: ''
+			download_progress: null
 		)
 	
 		console.log('Starting Apps..')
