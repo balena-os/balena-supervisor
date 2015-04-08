@@ -1,13 +1,6 @@
-FROM resin/i386-debian:jessie
+FROM resin/i386-node:0.10.36-slim
 
 COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
-
-# Nodejs
-RUN apt-get update \
-	&& apt-get install -y npm nodejs --no-install-recommends \
-	&& apt-get clean \
-	&& rm -rf /var/lib/apt/lists/
-RUN ln -sf /usr/bin/nodejs /usr/bin/node
 
 # Supervisor apt dependencies
 RUN apt-get -q update \
