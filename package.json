@@ -17,7 +17,7 @@
     "knex": "~0.7.3",
     "lodash": "^3.0.0",
     "mixpanel": "0.0.20",
-    "network-checker": "~0.0.3",
+    "network-checker": "~0.0.4",
     "ngrok": "~0.1.97",
     "pinejs-client": "^1.2.0",
     "pubnub": "~3.6.4",
