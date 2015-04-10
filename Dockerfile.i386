@@ -1,4 +1,4 @@
-FROM resin/i386-node:0.10.36-slim
+FROM resin/i386-node:0.10.38-slim
 
 COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 
