@@ -49,22 +49,35 @@ do ->
 		.finally ->
 			imagesBeingFetched--
 
-	supervisorImage = config.supervisorImage
-	if !/:/g.test(supervisorImage)
+	supervisorTag = config.supervisorImage
+	if !/:/g.test(supervisorTag)
 		# If there is no tag then mark it as latest
-		supervisorImage += ':latest'
+		supervisorTag += ':latest'
 	exports.cleanupContainersAndImages = ->
-		knex('app').select()
-		.map (app) ->
-			app.imageId + ':latest'
-		.then (apps) ->
+		Promise.join(
+			knex('app').select()
+			.map (app) ->
+				app.imageId + ':latest'
+			docker.listImagesAsync()
+			(apps, images) ->
+				imageTags = _.map(images, 'RepoTags')
+				supervisorTags = _.filter imageTags, (tags) ->
+					_.contains(tags, supervisorTag)
+				appTags = _.filter imageTags, (tags) ->
+					_.any tags, (tag) ->
+						_.contains(apps, tag)
+				supervisorTags = _.flatten(supervisorTags)
+				appTags = _.flatten(appTags)
+				return { images, supervisorTags, appTags }
+		)
+		.then ({ images, supervisorTags, appTags }) ->
 			# Cleanup containers first, so that they don't block image removal.
 			docker.listContainersAsync(all: true)
 			.filter (containerInfo) ->
 				# Do not remove user apps.
-				if _.contains(apps, containerInfo.Image)
+				if _.contains(appTags, containerInfo.Image)
 					return false
-				if containerInfo.Image isnt supervisorImage
+				if !_.contains(supervisorTags, containerInfo.Image)
 					return true
 				return containerHasExited(containerInfo.Id)
 			.map (containerInfo) ->
@@ -76,11 +89,10 @@ do ->
 			.then ->
 				# And then clean up the images, as long as we aren't currently trying to fetch any.
 				return if imagesBeingFetched > 0
-				docker.listImagesAsync()
-				.filter (image) ->
-					!_.any image.RepoTags, (imageId) ->
-						supervisorImage is imageId or _.contains(apps, imageId)
-				.map (image) ->
+				imagesToClean = _.reject images, (image) ->
+					_.any image.RepoTags, (tag) ->
+						return _.contains(appTags, tag) or _.contains(supervisorTags, tag)
+				Promise.map imagesToClean, (image) ->
 					docker.getImage(image.Id).removeAsync()
 					.then ->
 						console.log('Deleted image:', image.Id, image.RepoTags)
