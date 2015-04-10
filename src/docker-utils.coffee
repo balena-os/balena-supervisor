@@ -37,21 +37,15 @@ do ->
 
 	# Pull docker image returning a stream that reports progress
 	# This is less safe than fetchImage and shouldnt be used for supervisor updates
-	exports.fetchImageWithProgress = (image, progressUpdates) ->
+	exports.fetchImageWithProgress = (image, onProgress) ->
 		imagesBeingFetched++
-		docker.createImageAsync(fromImage: image)
-		.then (stream) ->
-			return new Promise (resolve, reject) ->
-				stream.on('error', reject)
-				.pipe(JSONStream.parse())
-				.on('error', reject)
-				.pipe(pullProgressStream(image))
-				.pipe es.mapSync (data) ->
-					if data.error?
-						reject(data.error)
-					else if data.totalProgress?
-						progressUpdates?(data.totalProgress)
-				.on('end', resolve)
+		Promise.join(
+			docker.pullAsync(image)
+			pullProgress(image, onProgress)
+			(stream, onProgress) ->
+				Promise.fromNode (callback) ->
+					docker.modem.followProgress(stream, callback, onProgress)
+		)
 		.finally ->
 			imagesBeingFetched--
 
@@ -178,23 +172,14 @@ do ->
 			throw new Error("Invalid image name, expected domain.tld/repo/image format.")
 		return {registry, imageName}
 	
-	# Create a stream that transforms docker pull output 
+	# Create a stream that transforms `docker.modem.followProgress` onProgress events
 	# to include total progress metrics.
-	# 
-	# The docker pull output should be piped to this stream as separate javascript objects.
-	#
-	# Stream:
-	# { status: "status", progressDetail: { current } }
-	#                     =>
-	# { status: "status", progressDetail: { current }, totalProgress: { downloadedSize, totalSize, percentage } }
-	pullProgressStream = (image) ->
-		totalSize = 0
-		completedSize = 0
-		currentSize = 0
-		sizePromise = getLayerDownloadSizes(image).tap (layerSizes) ->
-			totalSize = _.reduce(layerSizes, ((t,x) -> t+x), 0)
-		es.map (pull, callback) ->
-			sizePromise.then (layerSizes) ->
+	pullProgress = (image, onProgress) ->
+		getLayerDownloadSizes(image).then (layerSizes) ->
+			currentSize = 0
+			completedSize = 0
+			totalSize = _.sum(layerSizes)
+			return (pull) ->
 				if pull.status == 'Downloading'
 					currentSize = pull.progressDetail.current
 				else if pull.status == 'Download complete'
@@ -209,7 +194,5 @@ do ->
 						totalSize = null
 				downloadedSize = completedSize + currentSize
 				percentage = calculatePercentage(downloadedSize, totalSize)
-				pull.totalProgress = { downloadedSize, totalSize, percentage }
-				callback(null, pull)
-			.catch (e) ->
-				callback(null, { error: e.message })
+
+				onProgress({ downloadedSize, totalSize, percentage })
