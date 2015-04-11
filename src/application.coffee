@@ -65,14 +65,14 @@ logTypes =
 		eventName: 'Application update'
 		humanName: 'Updating application'
 
-logSystemEvent = (logType, app, err) ->
+logSystemEvent = (logType, app, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
-	if err?
+	if error?
 		# Report the message from the original cause to the user.
-		errMessage = err.cause?.json ? err.cause?.message ? err.message
+		errMessage = error.cause?.json ? error.cause?.message ? error.message
 		message += " due to '#{errMessage}'"
 	logger.log({ message, isSystem: true })
-	utils.mixpanelTrack(logType.eventName, {app, err})
+	utils.mixpanelTrack(logType.eventName, {app, error})
 	return
 
 kill = (app) ->
