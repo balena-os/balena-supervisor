@@ -69,11 +69,9 @@ logSystemEvent = (logType, app, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
 	if error?
 		# Report the message from the original cause to the user.
-		errMessage = error.cause?.json
+		errMessage = error.json
 		if _.isEmpty(errMessage)
-			errMessage = error.cause?.reason
-		if _.isEmpty(errMessage)
-			errMessage = error.cause?.message
+			errMessage = error.reason
 		if _.isEmpty(errMessage)
 			errMessage = error.message
 		if _.isEmpty(errMessage)
@@ -99,7 +97,7 @@ kill = (app) ->
 	.catch Promise.OperationalError, (err) ->
 		# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison
 		# reasons.
-		statusCode = '' + err.cause.statusCode
+		statusCode = '' + err.statusCode
 		# 304 means the container was already stopped - so we can just remove it
 		if statusCode is '304'
 			return container.removeAsync()
@@ -212,7 +210,7 @@ exports.start = start = (app) ->
 				]
 			)
 			.catch (err) ->
-				statusCode = '' + err.cause?.statusCode
+				statusCode = '' + err.statusCode
 				# 304 means the container was already started, precisely what we want :)
 				if statusCode is '304'
 					return
