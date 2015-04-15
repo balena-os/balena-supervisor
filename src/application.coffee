@@ -69,7 +69,15 @@ logSystemEvent = (logType, app, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
 	if error?
 		# Report the message from the original cause to the user.
-		errMessage = error.cause?.json ? error.cause?.message ? error.message
+		errMessage = error.cause?.json
+		if _.isEmpty(errMessage)
+			errMessage = error.cause?.reason
+		if _.isEmpty(errMessage)
+			errMessage = error.cause?.message
+		if _.isEmpty(errMessage)
+			errMessage = error.message
+		if _.isEmpty(errMessage)
+			errMessage = 'Unknown cause'
 		message += " due to '#{errMessage}'"
 	logger.log({ message, isSystem: true })
 	utils.mixpanelTrack(logType.eventName, {app, error})
