@@ -211,6 +211,10 @@ exports.start = start = (app) ->
 				]
 			)
 			.catch (err) ->
+				statusCode = '' + err.cause?.statusCode
+				# 304 means the container was already started, precisely what we want :)
+				if statusCode is '304'
+					return
 				logSystemEvent(logTypes.startAppError, app, err)
 				throw err
 			.then ->
