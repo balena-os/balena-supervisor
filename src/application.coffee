@@ -121,12 +121,16 @@ isValidPort = (port) ->
 	return parseFloat(port) is maybePort and maybePort > 0 and maybePort < 65535
 
 fetch = (app) ->
+	onProgress = (progress) ->
+		device.updateState(download_progress: progress.percentage)
+
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
 		logSystemEvent(logTypes.downloadApp, app)
 		device.updateState(status: 'Downloading')
-		dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
-			device.updateState(download_progress: progress.percentage)
+		dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
+		.catch ->
+			dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			device.updateState(download_progress: null)
