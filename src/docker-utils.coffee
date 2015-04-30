@@ -66,12 +66,12 @@ findSimilarImage = (repoTag) ->
 exports.rsyncImageWithProgress = (image, onProgress) ->
 	findSimilarImage(image)
 	.spread (repoTag, id) ->
-		config =
+		containerConfig =
 			Image: id
 			Cmd: [ '/bin/sh', '-c', 'sleep 1000000' ]
 			NetworkDisabled: true
 
-		Promise.using createContainerDisposed(config), (container) ->
+		Promise.using createContainerDisposed(containerConfig), (container) ->
 			container.inspectAsync()
 			.then(rootDir)
 			.then (dest) ->
@@ -90,16 +90,16 @@ exports.rsyncImageWithProgress = (image, onProgress) ->
 					.on 'error', reject
 					.pipe rsync.stdin
 
-				config = request.getAsync("#{config.deltaEndpoint}/api/v1/config?image=#{image}", {json: true, timeout: 0})
+				imageConfig = request.getAsync("#{config.deltaEndpoint}/api/v1/config?image=#{image}", {json: true, timeout: 0})
 
-				Promise.all [ config, delta ]
+				Promise.all [ imageConfig, delta ]
 			.get(0)
-			.spread ({statusCode}, config) ->
+			.spread ({statusCode}, imageConfig) ->
 				if statusCode isnt 200
-					throw new Error("Invalid configuration: #{config}")
+					throw new Error("Invalid configuration: #{imageConfig}")
 
-				config.repo = image
-				container.commitAsync(config)
+				imageConfig.repo = image
+				container.commitAsync(imageConfig)
 
 do ->
 	# Keep track of the images being fetched, so we don't clean them up whilst fetching.
