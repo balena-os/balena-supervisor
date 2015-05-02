@@ -15,29 +15,6 @@ Promise.promisifyAll(docker.getContainer().constructor.prototype)
 exports.docker = docker
 dockerProgress = new DockerProgress(socketPath: config.dockerSocket)
 
-createContainerDisposed = (config) ->
-	docker.createContainerAsync(config)
-	.tap (container) ->
-		container.startAsync()
-	.disposer (container) ->
-		container.removeAsync(force: true)
-
-# Trailing slashes are important to rsync
-rootDir = ({Driver, Id}) ->
-	switch Driver
-		when 'aufs'
-			"/var/lib/docker/#{Driver}/mnt/#{Id}/"
-		when 'btrfs'
-			"/var/lib/docker/#{Driver}/subvolumes/#{Id}/"
-		when 'devicemapper'
-			"/var/lib/docker/#{Driver}/mnt/#{Id}/rootfs/"
-		when 'overlay'
-			"/var/lib/docker/#{Driver}/#{Id}/merged/"
-		when 'vfs'
-			"/var/lib/docker/#{Driver}/dir/#{Id}/"
-		else
-			throw new Error("Unsupported driver: #{Driver}")
-
 # Create an array of (repoTag, image_id, created) tuples like the output of `docker images`
 listRepoTagsAsync = ->
 	docker.listImagesAsync()
