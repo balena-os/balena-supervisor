@@ -63,43 +63,39 @@ findSimilarImage = (repoTag) ->
 
 		return config.supervisorImage
 
-exports.rsyncImageWithProgress = (image, onProgress) ->
-	findSimilarImage(image)
-	.spread (repoTag, id) ->
-		containerConfig =
-			Image: id
-			Cmd: [ '/bin/sh', '-c', 'sleep 1000000' ]
-			NetworkDisabled: true
+exports.rsyncImageWithProgress = (imgDest, onProgress) ->
+	findSimilarImage(imgDest)
+	.spread (imgSrc) ->
+		rsyncDiff = new Promise (resolve, reject) ->
+			console.log("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 0)
+			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 0)
+			.on 'progress', onProgress
+			.on 'response', (res) ->
+				if res.statusCode isnt 200
+					reject()
+				else
+					resolve(res)
+			.on 'error', reject
+			.pause()
 
-		Promise.using createContainerDisposed(containerConfig), (container) ->
-			container.inspectAsync()
-			.then(rootDir)
-			.then (dest) ->
-				delta = new Promise (resolve, reject) ->
-					rsync = spawn('rsync', [ '--archive', '--read-batch=-', dest ])
-					.on 'error', reject
-					.on 'exit', (code, signal) ->
-						if code isnt 0
-							reject(new Error("rsync exited. code: #{code} signal: #{signal}"))
-						else
-							resolve()
+		imageConfig = request.getAsync("#{config.deltaHost}/api/v1/config?image=#{imgDest}", {json: true, timeout: 0})
+		.spread ({statusCode}, imageConfig) ->
+			if statusCode isnt 200
+				throw new Error("Invalid configuration: #{imageConfig}")
+			return imageConfig
 
-					progress request.get("#{config.deltaEndpoint}/api/v1/delta?src=#{repoTag}&dest=#{image}", timeout: 0)
-					.on 'progress', onProgress
-					.on 'response', ({statusCode}) -> reject() if statusCode isnt 200
-					.on 'error', reject
-					.pipe rsync.stdin
+		return [ rsyncDiff, imageConfig, imgSrc ]
+	.spread (rsyncDiff, imageConfig, imgSrc) ->
+		new Promise (resolve, reject) ->
+			dockersync = spawn('/app/src/dockersync.sh', [ imgSrc, imgDest, JSON.stringify(imageConfig) ])
+			.on 'error', reject
+			.on 'exit', (code, signal) ->
+				if code isnt 0
+					reject(new Error("rsync exited. code: #{code} signal: #{signal}"))
+				else
+					resolve()
 
-				imageConfig = request.getAsync("#{config.deltaEndpoint}/api/v1/config?image=#{image}", {json: true, timeout: 0})
-
-				Promise.all [ imageConfig, delta ]
-			.get(0)
-			.spread ({statusCode}, imageConfig) ->
-				if statusCode isnt 200
-					throw new Error("Invalid configuration: #{imageConfig}")
-
-				imageConfig.repo = image
-				container.commitAsync(imageConfig)
+			rsyncDiff.pipe(dockersync.stdin).resume()
 
 do ->
 	# Keep track of the images being fetched, so we don't clean them up whilst fetching.
