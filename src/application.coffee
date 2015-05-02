@@ -129,8 +129,6 @@ fetch = (app) ->
 		logSystemEvent(logTypes.downloadApp, app)
 		device.updateState(status: 'Downloading')
 		dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
-		.catch ->
-			dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			device.updateState(download_progress: null)
