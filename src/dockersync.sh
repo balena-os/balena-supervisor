@@ -11,7 +11,7 @@ dest=$2
 config=$3
 
 src_id=$(docker inspect -f '{{ .Id }}' "$src")
-dest_id=$(cat /app/empty.tar | docker import - "$dest")
+dest_id=$(cat /app/empty.tar | docker import -)
 
 jq ".config=$config" "$DOCKER_ROOT/graph/$dest_id/json" > "$DOCKER_ROOT/graph/$dest_id/json.tmp"
 mv "$DOCKER_ROOT/graph/$dest_id/json.tmp" "$DOCKER_ROOT/graph/$dest_id/json"
@@ -20,3 +20,5 @@ btrfs subvolume delete "$BTRFS_ROOT/$dest_id"
 btrfs subvolume snapshot "$BTRFS_ROOT/$src_id" "$BTRFS_ROOT/$dest_id"
 
 rsync --archive --read-batch=- "$BTRFS_ROOT/$dest_id"
+
+docker tag -f "$dest_id" "$dest"
