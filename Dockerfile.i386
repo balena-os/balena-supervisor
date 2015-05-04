@@ -4,7 +4,14 @@ COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 
 # Supervisor apt dependencies
 RUN apt-get -q update \
-	&& apt-get install -qqy socat supervisor rsync btrfs-tools jq --no-install-recommends \
+	&& apt-get install -qqy \
+		btrfs-tools \
+		docker.io \
+		jq \
+		rsync \
+		socat \
+		supervisor \
+		--no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 
