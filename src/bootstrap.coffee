@@ -28,10 +28,10 @@ registerDevice = (apiKey, userId, applicationId, deviceType, uuid) ->
 
 module.exports = ->
 	# Load config file
-	userConfig = require('/boot/config.json')
-	userConfig.deviceType ?= 'raspberry-pi'
-
-	Promise.try ->
+	fs.readFileAsync('/boot/config.json', 'utf8')
+	.then(JSON.parse)
+	.then (userConfig) ->
+		userConfig.deviceType ?= 'raspberry-pi'
 		if userConfig.uuid? and userConfig.registered_at?
 			return userConfig
 		registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType, userConfig.uuid)
@@ -40,7 +40,7 @@ module.exports = ->
 			userConfig.deviceId = device.id
 			fs.writeFileAsync('/boot/config.json', JSON.stringify(userConfig))
 		.return(userConfig)
-	.then ->
+	.then (userConfig) ->
 		console.log('Finishing bootstrapping')
 		Promise.all([
 			knex('config').truncate()

@@ -1,3 +1,5 @@
+* Stop caching config.json, avoids a race that could cause getting stuck repeatedly trying to register [Page]
+
 # v0.0.13
 
 * Bind mount /etc/resolv.conf as ro for application containers and supervisor [Praneeth]
