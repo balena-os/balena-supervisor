@@ -76,7 +76,8 @@ exports.rsyncImageWithProgress = (imgDest, onProgress) ->
 				else
 					resolve()
 
-			rsyncDiff.pipe(dockersync.stdin).resume()
+			rsyncDiff.pipe(dockersync.stdin)
+			rsyncDiff.resume()
 
 do ->
 	# Keep track of the images being fetched, so we don't clean them up whilst fetching.
