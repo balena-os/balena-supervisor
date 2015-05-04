@@ -38,6 +38,10 @@ findSimilarImage = (repoTag) ->
 			if otherApplication is application
 				return repoTag
 
+		# Otherwise return the most specific supervisor tag (commit hash)
+		for repoTag in repoTags when /resin\/.*-supervisor.*:[0-9a-f]{6}/.test(repoTag)
+			return repoTag
+
 		return config.supervisorImage
 
 exports.rsyncImageWithProgress = (imgDest, onProgress) ->
