@@ -30,6 +30,7 @@ COPY . /app/
 
 RUN chmod +x /app/src/enterContainer.sh \
 	&& /app/node_modules/.bin/coffee -c /app/src \
+	&& ln -sf /mnt/root/var/lib/rce /var/lib/docker \
 	&& ln -sf /app/entry.sh /start # Needed for legacy
 
 RUN chmod +x /app/bin/gosuper
