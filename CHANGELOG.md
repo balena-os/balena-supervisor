@@ -1,3 +1,4 @@
+* Fix an error where mixpanel events would have the wrong uuid set on first provision. [Page]
 * Update knexjs to ~0.8.3, which uses lodash 3 and means it will be deduplicated (reducing image size and runtime memory usage) [Page]
 * Stop caching config.json, avoids a race that could cause getting stuck repeatedly trying to register [Page]
 

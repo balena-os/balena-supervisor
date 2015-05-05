@@ -54,3 +54,4 @@ module.exports = ->
 				])
 			knex('app').truncate()
 		])
+		.return(userConfig.uuid)
