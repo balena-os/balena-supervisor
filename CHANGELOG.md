@@ -1,5 +1,7 @@
+# v0.0.13
 
 * Bind mount /etc/resolv.conf as ro for application containers and supervisor [Praneeth]
+
 # v0.0.12
 
 * Stopped displaying an error message when trying to start a container that is already started.
