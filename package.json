@@ -14,7 +14,7 @@
     "dockerode": "~2.1.1",
     "event-stream": "^3.0.20",
     "express": "^4.0.0",
-    "knex": "~0.7.3",
+    "knex": "~0.8.3",
     "lodash": "^3.0.0",
     "mixpanel": "0.0.20",
     "network-checker": "~0.0.4",
