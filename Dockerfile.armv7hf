@@ -19,6 +19,7 @@ RUN apt-get -q update \
 	&& npm install --unsafe-perm --production \
 	&& npm dedupe \
 	&& npm cache clean \
+	&& rm -rf /tmp/* \
 	&& apt-get purge -qqy g++ libsqlite3-dev make binutils \
 	&& apt-get clean \
 	&& apt-get autoremove -qqy \
