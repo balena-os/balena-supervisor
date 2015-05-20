@@ -1,3 +1,5 @@
+* Write the `registered_at` time to config.json as well, in case there is a failure between writing to config.json and writing to knex [Page]
+
 # v0.0.14
 
 * Clean up tmp files left behind by npm [Page]

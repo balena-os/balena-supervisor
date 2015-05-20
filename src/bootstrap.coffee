@@ -37,6 +37,7 @@ module.exports = ->
 		registerDevice(userConfig.apiKey, userConfig.userId, userConfig.applicationId, userConfig.deviceType, userConfig.uuid)
 		.then (device) ->
 			userConfig.uuid = device.uuid
+			userConfig.registered_at = Date.now()
 			userConfig.deviceId = device.id
 			fs.writeFileAsync('/boot/config.json', JSON.stringify(userConfig))
 		.return(userConfig)
