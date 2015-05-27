@@ -23,6 +23,7 @@
     "pubnub": "~3.6.4",
     "randomstring": "~1.0.3",
     "request": "^2.51.0",
+    "resin-register-device": "^1.0.1",
     "server-destroy": "^1.0.0",
     "sqlite3": "~3.0.4",
     "tty.js": "0.2.14-1",
