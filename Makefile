@@ -4,7 +4,7 @@ ARCH = rpi# rpi/x86_64/i386/armv7hf
 
 DEPLOY_REGISTRY = registry.resindev.io:5000/
 
-SUPERVISOR_VERSION = latest
+SUPERVISOR_VERSION = master
 
 all: supervisor 
 
@@ -12,6 +12,16 @@ IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
 
 clean:
 	-rm Dockerfile
+
+supervisor-dind:
+	cd tools/dind && docker build --no-cache=$(DISABLE_CACHE) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
+
+run-supervisor: supervisor-dind
+	-docker stop resin_supervisor_1 > /dev/null
+	-docker rm -f resin_supervisor_1 > /dev/null
+	cd tools/dind \
+	&& sed --in-place -e "s|SUPERVISOR_IMAGE=.*|SUPERVISOR_IMAGE=resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)|" config/env \
+	&& docker run -d --name resin_supervisor_1 --privileged -v $$(pwd)/config.json:/usr/src/app/config/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v /sys/fs/cgroup:/sys/fs/cgroup:ro resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
 
 supervisor:
 	cp Dockerfile.$(ARCH) Dockerfile
@@ -23,9 +33,4 @@ deploy: supervisor
 	docker tag -f $(IMAGE) $(DEPLOY_REGISTRY)$(IMAGE)
 	docker push $(DEPLOY_REGISTRY)$(IMAGE)
 
-run-supervisor-x86_64:
-	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -v /boot/config.json:/boot/config.json -v /:/mnt/root -v /resin-data/resin-supervisor:/data -v /proc/net/fib_trie:/mnt/fib_trie -v /var/log/supervisor-log:/var/log -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/x86_64-supervisor /start
-run-supervisor-i386:
-	docker run --privileged -d -v /var/run/docker.sock:/run/docker.sock -v /boot/config.json:/boot/config.json -v /:/mnt/root -v /resin-data/resin-supervisor:/data -v /proc/net/fib_trie:/mnt/fib_trie -v /var/log/supervisor-log:/var/log -e API_ENDPOINT=https://staging.resin.io -e REGISTRY_ENDPOINT=registry.staging.resin.io -e PUBNUB_SUBSCRIBE_KEY=sub-c-bananas -e PUBNUB_PUBLISH_KEY=pub-c-bananas -e MIXPANEL_TOKEN=bananasbananas  resin/i386-supervisor /start
-
-.PHONY: supervisor deploy run-supervisor-x86_64 run-supervisor-i386
+.PHONY: supervisor deploy supervisor-dind run-supervisor

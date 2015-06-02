@@ -7,3 +7,5 @@ Makefile
 .editorconfig
 coffeelint.json
 automation
+tools
+README.md
