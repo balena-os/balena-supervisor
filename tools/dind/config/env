@@ -1,0 +1,10 @@
+API_ENDPOINT=https://api.resinstaging.io
+CONFIG_PATH=/usr/src/app/config/config.json
+REGISTRY_ENDPOINT=registry.resinstaging.io
+PUBNUB_SUBSCRIBE_KEY=sub-c-bananas
+PUBNUB_PUBLISH_KEY=pub-c-bananas
+MIXPANEL_TOKEN=bananasbananas
+LISTEN_PORT=48484
+
+SUPERVISOR_IMAGE=
+LED_FILE=/dev/null
