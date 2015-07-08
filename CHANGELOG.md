@@ -1,3 +1,4 @@
+* Fixed an issue where an image would not be cleaned up if it was tagged in multiple repos. [Page]
 * Use JOBS=MAX for npm install. [Page]
 * Updated pinejs-client so that valid ssl certificates are enforced by default. [Page]
 * Write the `registered_at` time to config.json as well, in case there is a failure between writing to config.json and writing to knex [Page]

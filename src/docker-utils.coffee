@@ -93,11 +93,12 @@ do ->
 					_.any image.RepoTags, (tag) ->
 						return _.contains(appTags, tag) or _.contains(supervisorTags, tag)
 				Promise.map imagesToClean, (image) ->
-					docker.getImage(image.Id).removeAsync()
-					.then ->
-						console.log('Deleted image:', image.Id, image.RepoTags)
-					.catch (err) ->
-						console.log('Error deleting image:', image.Id, image.RepoTags, err)
+					Promise.map image.RepoTags.concat(image.Id), (tag) ->
+						docker.getImage(tag).removeAsync()
+						.then ->
+							console.log('Deleted image:', tag, image.Id, image.RepoTags)
+						.catch (err) ->
+							console.log('Error deleting image:', tag, image.Id, image.RepoTags, err)
 
 	containerHasExited = (id) ->
 		docker.getContainer(id).inspectAsync()
