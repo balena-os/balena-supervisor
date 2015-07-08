@@ -19,7 +19,7 @@
     "mixpanel": "0.0.20",
     "network-checker": "~0.0.4",
     "ngrok": "~0.1.97",
-    "pinejs-client": "^1.2.0",
+    "pinejs-client": "^1.4.0",
     "pubnub": "~3.6.4",
     "randomstring": "~1.0.3",
     "request": "^2.51.0",
