@@ -32,7 +32,7 @@ RUN chmod +x /app/src/enterContainer.sh \
 	&& /app/node_modules/.bin/coffee -c /app/src \
 	&& ln -sf /app/entry.sh /start # Needed for legacy
 
-ENV SUPERVISOR_IMAGE resin/x86_64-supervisor
+ENV SUPERVISOR_IMAGE resin/amd64-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
 

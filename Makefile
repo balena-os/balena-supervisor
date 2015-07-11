@@ -1,6 +1,6 @@
 DISABLE_CACHE = 'false'
 
-ARCH = rpi# rpi/x86_64/i386/armv7hf
+ARCH = rpi# rpi/amd64/i386/armv7hf
 
 DEPLOY_REGISTRY = registry.resindev.io:5000/
 
