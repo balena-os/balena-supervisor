@@ -10,5 +10,5 @@ CONTAINER_PID=$($ENGINE inspect --format '{{if .State.Running}}{{.State.Pid}}{{e
 if [ -z $CONTAINER_PID ]; then
 	read -p "Application must be running for a terminal to be started."
 else
-	nsenter --target $CONTAINER_PID --mount --uts --ipc --net --pid bash
+	nsenter --target $CONTAINER_PID --mount --uts --ipc --net --pid -- bash -c 'export $(xargs -n 1 -0 < /proc/1/environ); exec bash'
 fi
