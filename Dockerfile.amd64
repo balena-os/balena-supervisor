@@ -16,7 +16,7 @@ WORKDIR /app
 COPY package.json postinstall.sh /app/
 RUN apt-get -q update \
 	&& apt-get install -qqy g++ libsqlite3-dev make --no-install-recommends \
-	&& npm install --unsafe-perm --production \
+	&& JOBS=MAX npm install --unsafe-perm --production \
 	&& npm dedupe \
 	&& npm cache clean \
 	&& rm -rf /tmp/* \
