@@ -24,6 +24,7 @@ run-supervisor: supervisor-dind
 	&& docker run -d --name resin_supervisor_1 --privileged -v $$(pwd)/config.json:/usr/src/app/config/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v /sys/fs/cgroup:/sys/fs/cgroup:ro resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
 
 stop-supervisor:
+	# Prevent us from running out of loopback devices, as per https://github.com/jpetazzo/dind/issues/19
 	docker exec resin_supervisor_1 umount /var/lib/docker
 	docker stop resin_supervisor_1
 
