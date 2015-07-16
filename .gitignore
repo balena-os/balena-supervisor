@@ -1,4 +1,3 @@
 /node_modules/
 *.swp
 data
-tools/dind/config.json
