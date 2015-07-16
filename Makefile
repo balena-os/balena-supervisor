@@ -2,7 +2,7 @@ DISABLE_CACHE = 'false'
 
 ARCH = rpi# rpi/amd64/i386/armv7hf
 
-DEPLOY_REGISTRY = registry.resindev.io:5000/
+DEPLOY_REGISTRY = registry.resindev.io/
 
 SUPERVISOR_VERSION = master
 
@@ -20,8 +20,12 @@ run-supervisor: supervisor-dind
 	-docker stop resin_supervisor_1 > /dev/null
 	-docker rm -f resin_supervisor_1 > /dev/null
 	cd tools/dind \
-	&& sed --in-place -e "s|SUPERVISOR_IMAGE=.*|SUPERVISOR_IMAGE=resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)|" config/env \
+	&& sed --in-place -e "s|SUPERVISOR_IMAGE=.*|SUPERVISOR_IMAGE=$(DEPLOY_REGISTRY)$(IMAGE) |" config/env \
 	&& docker run -d --name resin_supervisor_1 --privileged -v $$(pwd)/config.json:/usr/src/app/config/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v /sys/fs/cgroup:/sys/fs/cgroup:ro resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
+
+stop-supervisor:
+	docker exec resin_supervisor_1 umount /var/lib/docker
+	docker stop resin_supervisor_1
 
 supervisor:
 	cp Dockerfile.$(ARCH) Dockerfile
