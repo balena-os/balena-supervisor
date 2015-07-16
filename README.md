@@ -42,13 +42,13 @@ logs supervisor -f
 ```
 
 ## View the supervisor logs
-```
+```bash
 enter supervisor
 tail /var/log/supervisor-log/resin_supervisor_stdout.log -f
 ```
 
 ## Stop the supervisor
-`make stop-supervisor`
-This will unmount /var/lib/docker in the container and then stop it.
-
-This prevents future failures due to no loopback devices being available.
+```bash
+make stop-supervisor
+```
+This will stop the container and remove it, also removing its volumes.
