@@ -1,0 +1,12 @@
+FROM golang:1.4.2-cross
+
+COPY . /usr/src/app/src/resin-supervisor
+
+ENV GOOS linux
+ENV GOPATH /usr/src/app
+
+WORKDIR /usr/src/app
+
+# Run go install with -a (force rebuilding of all packages)
+# and -v (print package names as they are built)
+CMD go install -a -v ./...

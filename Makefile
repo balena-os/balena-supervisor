@@ -10,6 +10,19 @@ all: supervisor
 
 IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
 
+ifeq ($(ARCH),rpi)
+	GOARCH = arm
+endif
+ifeq ($(ARCH),armv7hf)
+	GOARCH = arm
+endif
+ifeq ($(ARCH),i386)
+	GOARCH = 386
+endif
+ifeq ($(ARCH),amd64)
+	GOARCH = amd64
+endif
+
 clean:
 	-rm Dockerfile
 
@@ -36,5 +49,15 @@ supervisor:
 deploy: supervisor
 	docker tag -f $(IMAGE) $(DEPLOY_REGISTRY)$(IMAGE)
 	docker push $(DEPLOY_REGISTRY)$(IMAGE)
+
+go-builder:
+	cp Dockerfile.gosuper Dockerfile
+	docker build -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
+	-rm Dockerfile
+
+gosuper: go-builder
+	-mkdir gosuper/bin
+	docker run -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
+
 
 .PHONY: supervisor deploy supervisor-dind run-supervisor

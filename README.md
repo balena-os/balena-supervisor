@@ -52,3 +52,29 @@ tail /var/log/supervisor-log/resin_supervisor_stdout.log -f
 make stop-supervisor
 ```
 This will stop the container and remove it, also removing its volumes.
+
+# Working with the Go supervisor
+The Dockerfile used to build the Go supervisor is Dockerfile.gosuper, and the code for the Go supervisor lives in the `gosuper` directory.
+
+To build it, run:
+```bash
+make ARCH=amd64 gosuper
+```
+This will build and run the docker image that builds the Go supervisor and outputs the executable at `gosuper/bin`.
+
+## Adding Go dependencies
+This project uses [Godep](https://github.com/tools/godep) to manage its Go dependencies. In order for it to work, this repo needs to be withing the `src` directory in a valid Go workspace. This can easily be achieved in the devenv by having the repo in the devenv's `src` directory and setting the `GOPATH` environment variable to such directory's parent (that is, the `resin-containers` directory).
+
+If these conditions are met, a new dependency can be added with:
+```bash
+go get github.com/path/to/dependency
+```
+Then we add the corresponding import statement in our code (e.g. main.go):
+```go
+import "github.com/path/to/dependency"
+```
+And we save it to Godeps.json with:
+```bash
+godep save -r ./...
+```
+(The -r switch will modify the import statement to use Godep's `_workspace`)
