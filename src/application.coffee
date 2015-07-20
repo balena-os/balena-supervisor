@@ -9,7 +9,7 @@ utils = require './utils'
 tty = require './lib/tty'
 logger = require './lib/logger'
 { cachedResinApi } = require './request'
-{ getDeviceID, updateDeviceState } = require './state'
+device = require './device'
 
 { docker } = dockerUtils
 
@@ -84,7 +84,7 @@ logSystemEvent = (logType, app, error) ->
 
 kill = (app) ->
 	logSystemEvent(logTypes.stopApp, app)
-	updateDeviceState(status: 'Stopping')
+	device.updateState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
 	tty.stop(app)
 	.catch (err) ->
@@ -121,12 +121,12 @@ fetch = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
 		logSystemEvent(logTypes.downloadApp, app)
-		updateDeviceState(status: 'Downloading')
+		device.updateState(status: 'Downloading')
 		dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
-			updateDeviceState(download_progress: progress.percentage)
+			device.updateState(download_progress: progress.percentage)
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
-			updateDeviceState(download_progress: null)
+			device.updateState(download_progress: null)
 			docker.getImage(app.imageId).inspectAsync()
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
@@ -155,7 +155,7 @@ exports.start = start = (app) ->
 			fetch(app)
 			.then (imageInfo) ->
 				logSystemEvent(logTypes.installApp, app)
-				updateDeviceState(status: 'Installing')
+				device.updateState(status: 'Installing')
 
 				ports = {}
 				if portList?
@@ -193,7 +193,7 @@ exports.start = start = (app) ->
 				knex('app').insert(app)
 		.tap (container) ->
 			logSystemEvent(logTypes.startApp, app)
-			updateDeviceState(status: 'Starting')
+			device.updateState(status: 'Starting')
 			ports = {}
 			if portList?
 				portList.forEach (port) ->
@@ -218,12 +218,12 @@ exports.start = start = (app) ->
 				logSystemEvent(logTypes.startAppError, app, err)
 				throw err
 			.then ->
-				updateDeviceState(commit: app.commit)
+				device.updateState(commit: app.commit)
 				logger.attach(app)
 	.tap ->
 		logSystemEvent(logTypes.startAppSuccess, app)
 	.finally ->
-		updateDeviceState(status: 'Idle')
+		device.updateState(status: 'Idle')
 
 getEnvironment = do ->
 	envApiEndpoint = url.resolve(config.apiEndpoint, '/environment')
@@ -260,7 +260,7 @@ exports.update = update = ->
 		apiKey = apiKey.value
 		uuid = uuid.value
 
-		deviceId = getDeviceID()
+		deviceId = device.getID()
 
 		remoteApps = cachedResinApi.get
 			resource: 'application'
@@ -351,7 +351,7 @@ exports.update = update = ->
 		console.log('Scheduling another update attempt due to failure: ', delayTime, err)
 		setTimeout(update, delayTime)
 	.finally ->
-		updateDeviceState(status: 'Idle')
+		device.updateState(status: 'Idle')
 		if currentlyUpdating is 2
 			# If an update is required then schedule it
 			setTimeout(update)

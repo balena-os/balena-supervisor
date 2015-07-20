@@ -31,7 +31,7 @@ knex.init.then ->
 
 		api = require './api'
 		application = require './application'
-		{ updateDeviceState } = require './state'
+		device = require './device'
 		randomstring = require 'randomstring'
 
 		console.log('Starting API server..')
@@ -40,7 +40,7 @@ knex.init.then ->
 
 		# Let API know what version we are, and our api connection info.
 		console.log('Updating supervisor version and api info')
-		updateDeviceState(
+		device.updateState(
 			api_port: config.listenPort
 			api_secret: secret
 			supervisor_version: utils.supervisorVersion
@@ -64,7 +64,7 @@ knex.init.then ->
 
 		updateIpAddr = ->
 			utils.findIpAddrs().then (ipAddrs) ->
-				updateDeviceState(
+				device.updateState(
 					ip_address: ipAddrs.join(' ')
 				)
 		console.log('Starting periodic check for IP addresses..')

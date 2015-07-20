@@ -3,8 +3,9 @@ Promise = require 'bluebird'
 knex = require './db'
 utils = require './utils'
 { resinApi } = require './request'
+device = exports
 
-exports.getDeviceID = getDeviceID = do ->
+exports.getID = do ->
 	deviceIdPromise = null
 	return ->
 		# We initialise the rejected promise just before we catch in order to avoid a useless first unhandled error warning.
@@ -34,7 +35,7 @@ exports.getDeviceID = getDeviceID = do ->
 # Calling this function updates the local device state, which is then used to synchronise
 # the remote device state, repeating any failed updates until successfully synchronised.
 # This function will also optimise updates by merging multiple updates and only sending the latest state.
-exports.updateDeviceState = updateDeviceState = do ->
+exports.updateState = do ->
 	applyPromise = Promise.resolve()
 	targetState = {}
 	actualState = {}
@@ -49,7 +50,7 @@ exports.updateDeviceState = updateDeviceState = do ->
 
 		applyPromise = Promise.join(
 			knex('config').select('value').where(key: 'apiKey')
-			getDeviceID()
+			device.getID()
 			([{value: apiKey}], deviceID) ->
 				stateDiff = getStateDiff()
 				if _.size(stateDiff) is 0
