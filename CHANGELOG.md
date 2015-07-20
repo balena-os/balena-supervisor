@@ -1,3 +1,4 @@
+* Updated pubnub (3.7.13 doesn't seem to have the heartbeat unnecessarily)
 * Fixed an issue where an image would not be cleaned up if it was tagged in multiple repos. [Page]
 * Use JOBS=MAX for npm install. [Page]
 * Updated pinejs-client so that valid ssl certificates are enforced by default. [Page]
