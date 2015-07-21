@@ -207,7 +207,7 @@ exports.start = start = (app) ->
 					'/lib/modules:/lib/modules'
 					'/run/dbus:/run/dbus'
 					'/var/run/docker.sock:/run/docker.sock'
-					'/etc/resolv.conf:/etc/resolv.conf:ro'
+					'/etc/resolv.conf:/etc/resolv.conf:rw'
 				]
 			)
 			.catch (err) ->

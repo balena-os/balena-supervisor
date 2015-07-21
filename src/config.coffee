@@ -37,5 +37,5 @@ config.supervisorContainer =
 			'/resin-data/resin-supervisor:/data'
 			'/proc/net/fib_trie:/mnt/fib_trie'
 			'/var/log/supervisor-log:/var/log'
-			'/etc/resolv.conf:/etc/resolv.conf:ro'
+			'/etc/resolv.conf:/etc/resolv.conf:rw'
 		]
