@@ -1,3 +1,5 @@
+# v0.0.15
+
 * Make resolv.conf writable from a user container. [Praneeth]
 * Updated pubnub (3.7.13 doesn't seem to have the heartbeat unnecessarily)
 * Fixed an issue where an image would not be cleaned up if it was tagged in multiple repos. [Page]
