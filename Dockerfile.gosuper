@@ -7,6 +7,8 @@ ENV GOPATH /usr/src/app
 
 WORKDIR /usr/src/app
 
+RUN chmod +x src/resin-supervisor/build_gosuper.sh
+
 # Run go install with -a (force rebuilding of all packages)
 # and -v (print package names as they are built)
-CMD go test ./... && go install -a -v ./...
+CMD cd ./src/resin-supervisor && ./build_gosuper.sh

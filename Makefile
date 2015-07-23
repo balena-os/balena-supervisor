@@ -40,7 +40,7 @@ stop-supervisor:
 	# as per https://github.com/jpetazzo/dind/issues/19
 	-docker rm -f --volumes resin_supervisor_1 > /dev/null
 
-supervisor:
+supervisor: gosuper
 	cp Dockerfile.$(ARCH) Dockerfile
 	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile
 	docker build --no-cache=$(DISABLE_CACHE) -t resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION) .
@@ -51,13 +51,10 @@ deploy: supervisor
 	docker push $(DEPLOY_REGISTRY)$(IMAGE)
 
 go-builder:
-	cp Dockerfile.gosuper Dockerfile
-	docker build -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
-	-rm Dockerfile
+	docker build -f Dockerfile.gosuper -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
 
 gosuper: go-builder
-	-mkdir gosuper/bin
+	-mkdir -p gosuper/bin
 	docker run -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
-
 
 .PHONY: supervisor deploy supervisor-dind run-supervisor

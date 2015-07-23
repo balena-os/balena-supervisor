@@ -22,5 +22,6 @@ mount -t tmpfs -o size=1m tmpfs /var/run/resin
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 
 supervisorctl start resin-supervisor
+supervisorctl start go-supervisor
 
 tail -f /var/log/supervisor/supervisord.log

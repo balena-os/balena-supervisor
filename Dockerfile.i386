@@ -32,6 +32,9 @@ RUN chmod +x /app/src/enterContainer.sh \
 	&& /app/node_modules/.bin/coffee -c /app/src \
 	&& ln -sf /app/entry.sh /start # Needed for legacy
 
+RUN mv /app/gosuper/bin/linux_386/gosuper /app/gosuper/bin/
+RUN chmod +x /app/gosuper/bin/gosuper
+
 ENV SUPERVISOR_IMAGE resin/i386-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
