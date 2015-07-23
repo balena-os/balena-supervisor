@@ -1,11 +1,11 @@
 FROM golang:1.4.2-cross
 
-COPY . /usr/src/app/src/resin-supervisor
-
 ENV GOOS linux
 ENV GOPATH /usr/src/app
 
 WORKDIR /usr/src/app
+
+COPY . src/resin-supervisor
 
 RUN chmod +x src/resin-supervisor/build_gosuper.sh
 

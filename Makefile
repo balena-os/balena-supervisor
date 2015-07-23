@@ -55,6 +55,9 @@ go-builder:
 
 gosuper: go-builder
 	-mkdir -p gosuper/bin
-	docker run -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
+	docker run -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
+
+test-gosuper: go-builder
+	docker run -v $(shell pwd)/gosuper/bin:/usr/src/app/bin resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor && go test -v ./..."
 
 .PHONY: supervisor deploy supervisor-dind run-supervisor

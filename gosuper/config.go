@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"os"
+	"io/ioutil"
 )
 
 type UserConfig struct {
@@ -20,19 +20,13 @@ func ReadConfig(path string) (UserConfig, error) {
 
 	var config UserConfig
 
-	f, err := os.Open(path)
-	if err != nil {
-		return config, err
-	}
-	data := make([]byte, 1000)
-
-	count, err := f.Read(data)
+	data, err := ioutil.ReadFile(path)
 
 	if err != nil {
 		return config, err
 	}
 
-	err = json.Unmarshal(data[:count], &config)
+	err = json.Unmarshal(data, &config)
 
 	return config, err
 }
