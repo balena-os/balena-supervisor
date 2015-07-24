@@ -6,6 +6,8 @@ tty = require './lib/tty'
 knex = require './db'
 express = require 'express'
 bodyParser = require 'body-parser'
+request = require 'request'
+config = require './config'
 
 module.exports = (secret) ->
 	api = express()
@@ -56,5 +58,8 @@ module.exports = (secret) ->
 			res.sendStatus(200)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
+
+	api.post '/v1/purge', (req, res) ->
+		request.post(config.gosuperAddress + '/v1/purge', req.body).pipe(res)
 
 	return api

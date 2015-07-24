@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"os"
 
 	"resin-supervisor/Godeps/_workspace/src/github.com/gorilla/mux"
 )
@@ -25,6 +27,7 @@ func main() {
 	*/
 
 	ResinDataPath = "/resin-data/"
+	laddr := os.Getenv("GOSUPER_SOCKET")
 
 	r := mux.NewRouter()
 	r.HandleFunc("/ping", pingHandler)
@@ -32,6 +35,14 @@ func main() {
 
 	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
 
-	http.ListenAndServe(":8080", r)
-
+	listener, err := net.Listen("unix", laddr)
+	if err != nil {
+		fmt.Println("Could not listen on " + laddr)
+		return
+	}
+	err = http.Serve(listener, r)
+	if err != nil {
+		fmt.Println("Could not start HTTP server")
+		return
+	}
 }

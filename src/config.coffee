@@ -10,6 +10,7 @@ checkInt = (s) ->
 module.exports = config =
 	apiEndpoint: process.env.API_ENDPOINT ? 'https://api.resin.io'
 	listenPort: process.env.LISTEN_PORT ? 80
+	gosuperAddress: "http://unix:#{process.env.GOSUPER_SOCKET}:"
 	registryEndpoint: process.env.REGISTRY_ENDPOINT ? 'registry.resin.io'
 	pubnub:
 		subscribe_key: process.env.PUBNUB_SUBSCRIBE_KEY ? 'sub-c-bananas'

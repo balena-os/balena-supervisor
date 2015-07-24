@@ -2,6 +2,10 @@
 
 set -e
 
+if [ -z $GOSUPER_SOCKET ]; then
+	GOSUPER_SOCKET=/var/run/gosuper.sock
+fi
+
 [ -d /dev/net ] ||
     mkdir -p /dev/net
 [ -c /dev/net/tun ] ||
