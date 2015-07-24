@@ -31,7 +31,7 @@ module.exports = (secret) ->
 		appId = req.body.appId
 		utils.mixpanelTrack('Spawn tty', appId)
 		if !appId?
-			res.status(400).send('Missing app id')
+			return res.status(400).send('Missing app id')
 		knex('app').select().where({appId})
 		.then ([ app ]) ->
 			if !app?
@@ -46,7 +46,7 @@ module.exports = (secret) ->
 		appId = req.body.appId
 		utils.mixpanelTrack('Despawn tty', appId)
 		if !appId?
-			res.status(400).send('Missing app id')
+			return res.status(400).send('Missing app id')
 		knex('app').select().where({appId})
 		.then ([ app ]) ->
 			if !app?
