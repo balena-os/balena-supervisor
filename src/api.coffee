@@ -18,6 +18,9 @@ module.exports = (secret) ->
 		else
 			res.sendStatus(401)
 
+	api.get '/ping', (req, res) ->
+		res.send('OK')
+
 	api.post '/v1/blink', (req, res) ->
 		utils.mixpanelTrack('Device blink')
 		utils.blink.pattern.start()
@@ -60,6 +63,18 @@ module.exports = (secret) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	api.post '/v1/purge', (req, res) ->
-		request.post(config.gosuperAddress + '/v1/purge', req.body).pipe(res)
+		appId = req.body.appId
+		utils.mixpanelTrack('Purge /data', appId)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		knex('app').select().where({appId})
+		.then ([ app ]) ->
+			if !app?
+				throw new Error('App not found')
+			application.kill(app)
+		.then ->
+			request.post(config.gosuperAddress + '/v1/purge', {json: true, body: applicationId: appId}).on 'response', ->
+				application.start(app)
+			.pipe(res)
 
 	return api

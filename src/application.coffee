@@ -82,7 +82,7 @@ logSystemEvent = (logType, app, error) ->
 	utils.mixpanelTrack(logType.eventName, {app, error})
 	return
 
-kill = (app) ->
+exports.kill = kill = (app) ->
 	logSystemEvent(logTypes.stopApp, app)
 	device.updateState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)

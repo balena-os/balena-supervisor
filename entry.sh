@@ -2,7 +2,7 @@
 
 set -e
 
-if [ -z $GOSUPER_SOCKET ]; then
+if [ -z "$GOSUPER_SOCKET" ]; then
 	GOSUPER_SOCKET=/var/run/gosuper.sock
 fi
 

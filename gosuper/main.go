@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -22,12 +23,12 @@ func main() {
 	var err error
 	Config, err = ReadConfig("/boot/config.json")
 	if err != nil {
-		return
+		log.Fatalf("Could not read configuration file: %v", err)
 	}
 	*/
 
 	ResinDataPath = "/resin-data/"
-	laddr := os.Getenv("GOSUPER_SOCKET")
+	listenAddress := os.Getenv("GOSUPER_SOCKET")
 
 	r := mux.NewRouter()
 	r.HandleFunc("/ping", pingHandler)
@@ -35,14 +36,12 @@ func main() {
 
 	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
 
-	listener, err := net.Listen("unix", laddr)
+	listener, err := net.Listen("unix", listenAddress)
 	if err != nil {
-		fmt.Println("Could not listen on " + laddr)
-		return
+		log.Fatalf("Could not listen on "+listenAddress+": %v", err)
 	}
 	err = http.Serve(listener, r)
 	if err != nil {
-		fmt.Println("Could not start HTTP server")
-		return
+		log.Fatalf("Could not start HTTP server: %v", err)
 	}
 }

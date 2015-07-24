@@ -13,6 +13,10 @@ type ApiResponse struct {
 	Error  string
 }
 
+type PurgeBody struct {
+	ApplicationId string
+}
+
 func jsonResponse(w http.ResponseWriter, response interface{}, status int) {
 	j, _ := json.Marshal(response)
 	w.Header().Set("Content-Type", "application/json")
@@ -20,17 +24,29 @@ func jsonResponse(w http.ResponseWriter, response interface{}, status int) {
 	w.Write(j)
 }
 
+func parseJsonBody(r *http.Request, dest interface{}) error {
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&dest)
+	return err
+}
+
 func PurgeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Purging /data")
+	var body PurgeBody
+	err := parseJsonBody(r, &body)
+	if err != nil {
+		jsonResponse(w, ApiResponse{"Error", "Invalid request"}, 422)
+		return
+	}
 
-	appId := r.FormValue("applicationId")
+	appId := body.ApplicationId
 	if appId == "" {
 		jsonResponse(w, ApiResponse{"Error", "applicationId is required"}, 422)
 		return
 	}
 
 	// Validate that the appId is an integer
-	_, err := strconv.ParseInt(appId, 10, 0)
+	_, err = strconv.ParseInt(appId, 10, 0)
 	if err != nil {
 		jsonResponse(w, ApiResponse{"Error", "Invalid applicationId"}, 422)
 		return

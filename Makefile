@@ -55,9 +55,12 @@ go-builder:
 
 gosuper: go-builder
 	-mkdir -p gosuper/bin
-	docker run -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
+	docker run --rm -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
 
 test-gosuper: go-builder
-	docker run -v $(shell pwd)/gosuper/bin:/usr/src/app/bin resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor && go test -v ./..."
+	docker run --rm -v $(shell pwd)/gosuper/bin:/usr/src/app/bin resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor && go test -v ./gosuper"
+
+test-integration: run-supervisor go-builder
+	docker run --rm --net=host -e SUPERVISOR_IP="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" -v $(shell pwd)/gosuper/bin:/usr/src/app/bin resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor && go test -v ./supertest"
 
 .PHONY: supervisor deploy supervisor-dind run-supervisor

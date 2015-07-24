@@ -24,6 +24,7 @@ module.exports = config =
 	restartSuccessTimeout: checkInt(process.env.RESTART_SUCCESS_TIMEOUT) ? 60000
 	appUpdatePollInterval: checkInt(process.env.APPLICATION_UPDATE_POLL_INTERVAL) ? 60000
 	successMessage: 'SUPERVISOR OK'
+	forceApiSecret: process.env.RESIN_SUPERVISOR_SECRET ? null
 
 config.supervisorContainer =
 		Volumes:

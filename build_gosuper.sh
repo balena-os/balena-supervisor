@@ -1,6 +1,6 @@
 #!/bin/bash
 
-go install -a -v ./...
+go install -a -v ./gosuper
 RETURN_VALUE=$?
 
 # For consistency, always keep the binary within a linux_$GOARCH folder

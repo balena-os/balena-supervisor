@@ -11,7 +11,7 @@ import (
 
 func TestPurge(t *testing.T) {
 	appId := "1"
-	req, _ := http.NewRequest("POST", "/api/v1/purge", strings.NewReader("applicationId="+appId))
+	req, _ := http.NewRequest("POST", "/api/v1/purge", strings.NewReader(`{"applicationId": "`+appId+`"}`))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
 
 	w := httptest.NewRecorder()

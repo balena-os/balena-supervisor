@@ -35,7 +35,9 @@ knex.init.then ->
 		randomstring = require 'randomstring'
 
 		console.log('Starting API server..')
+
 		secret = randomstring.generate()
+		secret = config.forceApiSecret if config.forceApiSecret?
 		api(secret).listen(config.listenPort)
 
 		# Let API know what version we are, and our api connection info.
