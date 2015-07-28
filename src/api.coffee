@@ -73,7 +73,7 @@ module.exports = (secret) ->
 				throw new Error('App not found')
 			application.kill(app)
 		.then ->
-			request.post(config.gosuperAddress + '/v1/purge', {json: true, body: applicationId: appId}).on 'response', ->
+			request.post config.gosuperAddress + '/v1/purge', {json: true, body: applicationId: appId}, ->
 				application.start(app)
 			.pipe(res)
 

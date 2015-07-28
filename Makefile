@@ -5,6 +5,7 @@ ARCH = rpi# rpi/amd64/i386/armv7hf
 DEPLOY_REGISTRY = registry.resindev.io/
 
 SUPERVISOR_VERSION = master
+JOB_NAME = 1
 
 all: supervisor 
 
@@ -51,16 +52,24 @@ deploy: supervisor
 	docker push $(DEPLOY_REGISTRY)$(IMAGE)
 
 go-builder:
+	-cp tools/dind/config.json .
 	docker build -f Dockerfile.gosuper -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
+	-rm config.json
 
 gosuper: go-builder
 	-mkdir -p gosuper/bin
-	docker run --rm -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
+	-docker rm --volumes -f resin_build_gosuper_$(JOB_NAME)
+	docker run --name resin_build_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
+	docker rm --volumes -f resin_build_gosuper_$(JOB_NAME)
 
 test-gosuper: go-builder
-	docker run --rm -v $(shell pwd)/gosuper/bin:/usr/src/app/bin resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor && go test -v ./gosuper"
+	-docker rm --volumes -f resin_test_gosuper_$(JOB_NAME)
+	docker run --name resin_test_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper/bin:/usr/src/app/bin resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor && go test -v ./gosuper"
+	docker rm --volumes -f resin_test_gosuper_$(JOB_NAME)
 
-test-integration: run-supervisor go-builder
-	docker run --rm --net=host -e SUPERVISOR_IP="$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" -v $(shell pwd)/gosuper/bin:/usr/src/app/bin resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor && go test -v ./supertest"
+test-integration: go-builder
+	-docker rm --volumes -f resin_test_integration_$(JOB_NAME)
+	docker run --name resin_test_integration_$(JOB_NAME) --net=host -e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" -v $(shell pwd)/gosuper/bin:/usr/src/app/bin --volumes-from resin_supervisor_1 resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor && go test -v ./supertest"
+	docker rm --volumes -f resin_test_integration_$(JOB_NAME)
 
 .PHONY: supervisor deploy supervisor-dind run-supervisor

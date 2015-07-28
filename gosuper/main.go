@@ -27,7 +27,7 @@ func main() {
 	}
 	*/
 
-	ResinDataPath = "/resin-data/"
+	ResinDataPath = "/mnt/root/resin-data/"
 	listenAddress := os.Getenv("GOSUPER_SOCKET")
 
 	r := mux.NewRouter()
@@ -36,10 +36,12 @@ func main() {
 
 	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
 
+	fmt.Println("Going to listen on " + listenAddress)
 	listener, err := net.Listen("unix", listenAddress)
 	if err != nil {
 		log.Fatalf("Could not listen on "+listenAddress+": %v", err)
 	}
+	fmt.Println("Starting HTTP server")
 	err = http.Serve(listener, r)
 	if err != nil {
 		log.Fatalf("Could not start HTTP server: %v", err)

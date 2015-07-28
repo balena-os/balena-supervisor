@@ -11,7 +11,7 @@ import (
 
 func TestPurge(t *testing.T) {
 	appId := "1"
-	req, _ := http.NewRequest("POST", "/api/v1/purge", strings.NewReader(`{"applicationId": "`+appId+`"}`))
+	req, _ := http.NewRequest("POST", "/v1/purge", strings.NewReader(`{"applicationId": "`+appId+`"}`))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
 
 	w := httptest.NewRecorder()
@@ -23,6 +23,11 @@ func TestPurge(t *testing.T) {
 	err := os.MkdirAll(dataPath, 0755)
 	if err != nil {
 		t.Error("Could not create test directory for purge")
+	}
+
+	err = ioutil.WriteFile(dataPath+"/test", []byte("test"), 777)
+	if err != nil {
+		t.Error("Could not create test file for purge")
 	}
 
 	PurgeHandler(w, req)

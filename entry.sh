@@ -3,7 +3,7 @@
 set -e
 
 if [ -z "$GOSUPER_SOCKET" ]; then
-	GOSUPER_SOCKET=/var/run/gosuper.sock
+	export GOSUPER_SOCKET=/var/run/gosuper.sock
 fi
 
 [ -d /dev/net ] ||

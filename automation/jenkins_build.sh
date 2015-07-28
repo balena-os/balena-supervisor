@@ -9,8 +9,8 @@ ESCAPED_BRANCH_NAME=$(echo $sourceBranch | sed 's/[^a-z0-9A-Z_.-]/-/g')
 docker pull resin/${ARCH}-supervisor:${ESCAPED_BRANCH_NAME} || docker pull resin/${ARCH}-supervisor:master || true
 
 # Test the gosuper
-make SUPERVISOR_VERSION=${VERSION} test-gosuper
+make SUPERVISOR_VERSION=${VERSION} JOB_NAME=${JOB_NAME} test-gosuper
 
 # Build the images
-make SUPERVISOR_VERSION=${ESCAPED_BRANCH_NAME} ARCH=${ARCH} DEPLOY_REGISTRY= deploy
-make SUPERVISOR_VERSION=${VERSION} ARCH=${ARCH} DEPLOY_REGISTRY= deploy
+make SUPERVISOR_VERSION=${ESCAPED_BRANCH_NAME} ARCH=${ARCH} JOB_NAME=${JOB_NAME} DEPLOY_REGISTRY= deploy
+make SUPERVISOR_VERSION=${VERSION} ARCH=${ARCH} JOB_NAME=${JOB_NAME} DEPLOY_REGISTRY= deploy

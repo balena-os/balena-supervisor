@@ -20,6 +20,11 @@ This file can be obtained in several ways, for instance:
 * Download an Intel Edison image from staging, open `config.img` with an archive tool like [peazip](http://sourceforge.net/projects/peazip/files/)
 * Download a Raspberry Pi 2 image, flash it to an SD card, then mount partition 5 (resin-conf).
 
+Tip: to avoid git marking config.json as modified, you can run:
+```bash
+git update-index --assume-unchanged tools/dind/config.json
+```
+
 ## Start the supervisor instance
 ```bash
 make ARCH=amd64 run-supervisor
@@ -78,3 +83,20 @@ And we save it to Godeps.json with:
 godep save -r ./...
 ```
 (The -r switch will modify the import statement to use Godep's `_workspace`)
+
+## Testing
+# Gosuper
+The Go supervisor can be tested by running:
+```bash
+make ARCH=amd64 test-gosuper
+```
+The test suite is at [gosuper/main_test.go](./gosuper/main_test.go).
+# Integration test
+The integration test tests the supervisor API by hitting its endpoints. To run it, first run the supervisor as explained in the first section of this document.
+
+Once it's running, you can run the test with:
+```bash
+make ARCH=amd64 test-integration
+```
+The tests will fail if the supervisor API is down - bear in mind that the supervisor image takes a while to start the actual supervisor program, so you might have to wait a few minutes between running the supervisor and testing it.
+The test expects the supervisor to be already running the application (so that the app is already on the SQLite database), so check the dashboard to see if the app has already downloaded.

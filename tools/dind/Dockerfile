@@ -1,6 +1,8 @@
 FROM resin/resin-base:1acfee1
 
 VOLUME /var/lib/docker
+VOLUME /resin-data
+
 ENV DOCKER_VERSION 1.6.2
 
 # From get.docker.com script
