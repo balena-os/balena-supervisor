@@ -1,4 +1,4 @@
-FROM resin/resin-base
+FROM resin/resin-base:1acfee1
 
 VOLUME /var/lib/docker
 ENV DOCKER_VERSION 1.6.2
@@ -8,7 +8,7 @@ RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 36A
 	&& echo deb https://get.docker.com/ubuntu docker main > /etc/apt/sources.list.d/docker.list \
 	&& apt-get update && apt-get install lxc-docker-${DOCKER_VERSION} \
 	&& rm -rf /var/lib/apt/lists/*
-	
+
 RUN apt-get update && apt-get install jq \
 	&& rm -rf /var/lib/apt/lists/*
 
