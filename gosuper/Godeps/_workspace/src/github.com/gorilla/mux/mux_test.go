@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"resin-supervisor/Godeps/_workspace/src/github.com/gorilla/context"
+	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/context"
 )
 
 type routeTest struct {

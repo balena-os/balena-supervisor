@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"path"
 
-	"resin-supervisor/Godeps/_workspace/src/github.com/gorilla/context"
+	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/context"
 )
 
 // NewRouter returns a new router instance.

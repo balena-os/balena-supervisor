@@ -76,5 +76,7 @@ module.exports = (secret) ->
 			request.post config.gosuperAddress + '/v1/purge', {json: true, body: applicationId: appId}, ->
 				application.start(app)
 			.pipe(res)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
 	return api

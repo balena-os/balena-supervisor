@@ -1,4 +1,7 @@
 /node_modules/
 *.swp
 data
-gosuper/bin
+bin/gosuper
+bin/linux_amd64
+bin/linux_386
+bin/linux_arm

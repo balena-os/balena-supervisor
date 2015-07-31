@@ -32,8 +32,8 @@ RUN chmod +x /app/src/enterContainer.sh \
 	&& /app/node_modules/.bin/coffee -c /app/src \
 	&& ln -sf /app/entry.sh /start # Needed for legacy
 
-RUN mv /app/gosuper/bin/linux_amd64/gosuper /app/gosuper/bin/ && \
-	chmod +x /app/gosuper/bin/gosuper
+RUN mv /app/bin/linux_amd64/gosuper /app/bin/ && \
+	chmod +x /app/bin/gosuper
 
 ENV SUPERVISOR_IMAGE resin/amd64-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json

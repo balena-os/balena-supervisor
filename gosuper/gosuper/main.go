@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"resin-supervisor/Godeps/_workspace/src/github.com/gorilla/mux"
+	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {

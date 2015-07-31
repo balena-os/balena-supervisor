@@ -80,6 +80,7 @@ import "github.com/path/to/dependency"
 ```
 And we save it to Godeps.json with:
 ```bash
+cd gosuper
 godep save -r ./...
 ```
 (The -r switch will modify the import statement to use Godep's `_workspace`)
