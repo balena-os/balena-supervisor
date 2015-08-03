@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
-	"strconv"
 )
 
 type ApiResponse struct {
@@ -17,56 +17,52 @@ type PurgeBody struct {
 	ApplicationId string
 }
 
-func jsonResponse(w http.ResponseWriter, response interface{}, status int) {
-	j, _ := json.Marshal(response)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	w.Write(j)
+func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
+	jsonBody, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("Could not marshal JSON for %+v\n", response)
+	}
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(status)
+	writer.Write(jsonBody)
 }
 
-func parseJsonBody(r *http.Request, dest interface{}) error {
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&dest)
-	return err
+func parseJsonBody(destination interface{}, request *http.Request) error {
+	decoder := json.NewDecoder(request.Body)
+	return decoder.Decode(&destination)
 }
 
-func PurgeHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Purging /data")
+func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
+	log.Println("Purging /data")
 	var body PurgeBody
-	err := parseJsonBody(r, &body)
-	if err != nil {
-		jsonResponse(w, ApiResponse{"Error", "Invalid request"}, 422)
-		return
+
+	sendResponse := func(statusMsg, errorMsg string, statusCode int) {
+		jsonResponse(writer, ApiResponse{statusMsg, errorMsg}, statusCode)
+	}
+	sendError := func(err error) {
+		sendResponse("Error", err.Error(), http.StatusInternalServerError)
+	}
+	sendBadRequest := func(errorMsg string) {
+		sendResponse("Error", errorMsg, http.StatusBadRequest)
 	}
 
-	appId := body.ApplicationId
-	if appId == "" {
-		jsonResponse(w, ApiResponse{"Error", "applicationId is required"}, 422)
-		return
+	if err := parseJsonBody(&body, request); err != nil {
+		sendBadRequest("Invalid request")
+	} else if appId := body.ApplicationId; appId == "" {
+		sendBadRequest("applicationId is required")
+	} else if !IsValidAppId(appId) {
+		sendBadRequest(fmt.Sprintf("Invalid applicationId '%s'", appId))
+	} else if _, err = os.Stat(ResinDataPath + appId); err != nil {
+		if os.IsNotExist(err) {
+			sendBadRequest(fmt.Sprintf("Invalid applicationId '%s': Directory does not exist", appId))
+		} else {
+			sendError(err)
+		}
+	} else if err = os.RemoveAll(ResinDataPath + appId); err != nil {
+		sendError(err)
+	} else if err = os.Mkdir(ResinDataPath+appId, 0755); err != nil {
+		sendError(err)
+	} else {
+		sendResponse("OK", "", http.StatusOK)
 	}
-
-	// Validate that the appId is an integer
-	_, err = strconv.ParseInt(appId, 10, 0)
-	if err != nil {
-		jsonResponse(w, ApiResponse{"Error", "Invalid applicationId"}, 422)
-		return
-	}
-
-	directory := ResinDataPath + appId
-
-	err = os.RemoveAll(directory)
-
-	if err != nil {
-		jsonResponse(w, ApiResponse{"Error", err.Error()}, 500)
-		return
-	}
-
-	err = os.Mkdir(directory, 0755)
-	if err != nil {
-		jsonResponse(w, ApiResponse{"Error", err.Error()}, 500)
-		return
-	}
-
-	jsonResponse(w, ApiResponse{"OK", ""}, 200)
-
 }

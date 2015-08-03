@@ -11,50 +11,41 @@ import (
 
 func TestPurge(t *testing.T) {
 	appId := "1"
-	req, _ := http.NewRequest("POST", "/v1/purge", strings.NewReader(`{"applicationId": "`+appId+`"}`))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
-
-	w := httptest.NewRecorder()
-
+	request, err := http.NewRequest("POST", "/v1/purge", strings.NewReader(`{"applicationId": "`+appId+`"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded; param=value")
+	writer := httptest.NewRecorder()
 	ResinDataPath = "test-data/"
-
 	dataPath := ResinDataPath + appId
 
-	err := os.MkdirAll(dataPath, 0755)
-	if err != nil {
-		t.Error("Could not create test directory for purge")
+	if err = os.MkdirAll(dataPath, 0755); err != nil {
+		t.Fatal("Could not create test directory for purge")
+	} else if err = ioutil.WriteFile(dataPath+"/test", []byte("test"), 777); err != nil {
+		t.Fatal("Could not create test file for purge")
 	}
 
-	err = ioutil.WriteFile(dataPath+"/test", []byte("test"), 777)
-	if err != nil {
-		t.Error("Could not create test file for purge")
-	}
+	PurgeHandler(writer, request)
 
-	PurgeHandler(w, req)
-
-	if w.Code != http.StatusOK {
+	if writer.Code != http.StatusOK {
 		t.Errorf("Purge didn't return %v", http.StatusOK)
 	}
-	if !strings.EqualFold(w.Body.String(), `{"Status":"OK","Error":""}`) {
-		t.Errorf("Purge response didn't match the expected JSON, got: %s", w.Body.String())
+	if !strings.EqualFold(writer.Body.String(), `{"Status":"OK","Error":""}`) {
+		t.Errorf("Purge response didn't match the expected JSON, got: %s", writer.Body.String())
 	}
 
-	dirContents, err := ioutil.ReadDir(dataPath)
-	if err != nil {
+	if dirContents, err := ioutil.ReadDir(dataPath); err != nil {
 		t.Errorf("Could not read the data path after purge: %s", err)
-	}
-	if len(dirContents) > 0 {
+	} else if len(dirContents) > 0 {
 		t.Error("Data directory not empty after purge")
 	}
 }
 
 func TestReadConfig(t *testing.T) {
-	config, err := ReadConfig("config_for_test.json")
-	if err != nil {
+	if config, err := ReadConfig("config_for_test.json"); err != nil {
 		t.Error(err)
-	}
-
-	if !strings.EqualFold(config.ApplicationId, "1939") || !strings.EqualFold(config.ApiKey, "SuperSecretAPIKey") {
+	} else if !strings.EqualFold(config.ApplicationId, "1939") || !strings.EqualFold(config.ApiKey, "SuperSecretAPIKey") {
 		t.Error("Config not parsed correctly")
 	}
 }

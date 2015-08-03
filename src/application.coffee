@@ -1,5 +1,6 @@
 _ = require 'lodash'
 url = require 'url'
+Lock = require 'rwlock'
 knex = require './db'
 path = require 'path'
 config = require './config'
@@ -12,7 +13,6 @@ logger = require './lib/logger'
 device = require './device'
 
 { docker } = dockerUtils
-
 
 knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
 	logger.init(
@@ -242,6 +242,10 @@ getEnvironment = do ->
 			console.error("Failed to get environment for device #{deviceId}, app #{appId}. #{err}")
 			throw err
 
+lock = new Lock()
+exports.lockUpdates = lockUpdates = lock.async.writeLock
+exports.lockUpdatesAsync = lockUpdatesAsync = Promise.promisify(lockUpdates)
+
 # 0 - Idle
 # 1 - Updating
 # 2 - Update required
@@ -321,10 +325,12 @@ exports.update = update = ->
 				app = remoteApps[imageId]
 				fetch(app)
 			.then ->
+				lockUpdatesAsync()
+			.tap ->
 				# Then delete all the ones to remove in one go
 				Promise.map toBeRemoved, (imageId) ->
 					kill(apps[imageId])
-			.then ->
+			.tap ->
 				# Then install the apps and add each to the db as they succeed
 				installingPromises = toBeInstalled.map (imageId) ->
 					app = remoteApps[imageId]
@@ -338,6 +344,8 @@ exports.update = update = ->
 					.then ->
 						start(app)
 				Promise.all(installingPromises.concat(updatingPromises))
+			.then (release) ->
+				release()
 	.then ->
 		failedUpdates = 0
 		# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a

@@ -37,7 +37,7 @@ module.exports = (secret) ->
 		utils.mixpanelTrack('Spawn tty', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
-		knex('app').select().where({appId})
+		knex('app').select().where({ appId })
 		.then ([ app ]) ->
 			if !app?
 				throw new Error('App not found')
@@ -52,7 +52,7 @@ module.exports = (secret) ->
 		utils.mixpanelTrack('Despawn tty', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
-		knex('app').select().where({appId})
+		knex('app').select().where({ appId })
 		.then ([ app ]) ->
 			if !app?
 				throw new Error('App not found')
@@ -67,14 +67,20 @@ module.exports = (secret) ->
 		utils.mixpanelTrack('Purge /data', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
-		knex('app').select().where({appId})
-		.then ([ app ]) ->
-			if !app?
+		app = null
+		knex('app').select().where({ appId })
+		.then ([ appFromDB ]) ->
+			if !appFromDB?
 				throw new Error('App not found')
+			app = appFromDB
+			application.lockUpdatesAsync()
+		.tap ->
 			application.kill(app)
-		.then ->
-			request.post config.gosuperAddress + '/v1/purge', {json: true, body: applicationId: appId}, ->
+		.then (release) ->
+			request.post config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId }, ->
 				application.start(app)
+				.then ->
+					release()
 			.pipe(res)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')

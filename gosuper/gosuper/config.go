@@ -16,17 +16,10 @@ type UserConfig struct {
 	DeviceId      float64
 }
 
-func ReadConfig(path string) (UserConfig, error) {
-
-	var config UserConfig
-
-	data, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return config, err
+func ReadConfig(path string) (config UserConfig, err error) {
+	if data, err := ioutil.ReadFile(path); err == nil {
+		err = json.Unmarshal(data, &config)
 	}
 
-	err = json.Unmarshal(data, &config)
-
-	return config, err
+	return
 }

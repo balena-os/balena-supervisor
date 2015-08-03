@@ -10,40 +10,34 @@ import (
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
-func pingHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "OK")
+var ResinDataPath string = "/mnt/root/resin-data/"
+
+func setupApi(router *mux.Router) {
+	router.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintln(writer, "OK")
+	})
+
+	apiv1 := router.PathPrefix("/v1").Subrouter()
+	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
 }
 
-//var Config UserConfig // Disabled until we use Config
-var ResinDataPath string
+func startApi(listenAddress string, router *mux.Router) {
+	if listener, err := net.Listen("unix", listenAddress); err != nil {
+		log.Fatalf("Could not listen on %s: %v", listenAddress, err)
+	} else {
+		log.Printf("Starting HTTP server on %s\n", listenAddress)
+		if err = http.Serve(listener, router); err != nil {
+			log.Fatalf("Could not start HTTP server: %v", err)
+		}
+	}
+}
 
 func main() {
-	fmt.Println("Resin Go Supervisor starting")
-	/* Disabled until we use Config
-	var err error
-	Config, err = ReadConfig("/boot/config.json")
-	if err != nil {
-		log.Fatalf("Could not read configuration file: %v", err)
-	}
-	*/
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	log.Println("Resin Go Supervisor starting")
 
-	ResinDataPath = "/mnt/root/resin-data/"
 	listenAddress := os.Getenv("GOSUPER_SOCKET")
-
-	r := mux.NewRouter()
-	r.HandleFunc("/ping", pingHandler)
-	apiv1 := r.PathPrefix("/v1").Subrouter()
-
-	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
-
-	fmt.Println("Going to listen on " + listenAddress)
-	listener, err := net.Listen("unix", listenAddress)
-	if err != nil {
-		log.Fatalf("Could not listen on "+listenAddress+": %v", err)
-	}
-	fmt.Println("Starting HTTP server")
-	err = http.Serve(listener, r)
-	if err != nil {
-		log.Fatalf("Could not start HTTP server: %v", err)
-	}
+	router := mux.NewRouter()
+	setupApi(router)
+	startApi(listenAddress, router)
 }
