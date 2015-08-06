@@ -9,7 +9,7 @@ RUN apt-get -q update \
 	&& rm -rf /var/lib/apt/lists/
 
 # Copy supervisord configuration files
-COPY assets/etc/supervisor/ /etc/supervisor/
+COPY config/supervisor/ /etc/supervisor/
 
 # Install dependencies
 WORKDIR /app
