@@ -33,6 +33,7 @@ RUN chmod +x /app/src/enterContainer.sh \
 	&& ln -sf /app/entry.sh /start # Needed for legacy
 
 RUN mv /app/bin/linux_arm/gosuper /app/bin/ && \
-	chmod +x /app/bin/gosuper
+	chmod +x /app/bin/gosuper && \
+	rm -rf /app/bin/linux_*
 
 CMD ["/app/entry.sh"]

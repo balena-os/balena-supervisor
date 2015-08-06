@@ -2,10 +2,6 @@
 
 set -e
 
-if [ -z "$GOSUPER_SOCKET" ]; then
-	export GOSUPER_SOCKET=/var/run/gosuper.sock
-fi
-
 [ -d /dev/net ] ||
     mkdir -p /dev/net
 [ -c /dev/net/tun ] ||
@@ -22,6 +18,10 @@ fi
 mkdir -p /var/log/supervisor && touch /var/log/supervisor/supervisord.log
 mkdir -p /var/run/resin
 mount -t tmpfs -o size=1m tmpfs /var/run/resin
+
+if [ -z "$GOSUPER_SOCKET" ]; then
+	export GOSUPER_SOCKET=/var/run/resin/gosuper.sock
+fi
 
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 

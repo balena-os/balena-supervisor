@@ -54,7 +54,7 @@ func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 		sendBadRequest(fmt.Sprintf("Invalid applicationId '%s'", appId))
 	} else if _, err = os.Stat(ResinDataPath + appId); err != nil {
 		if os.IsNotExist(err) {
-			sendBadRequest(fmt.Sprintf("Invalid applicationId '%s': Directory does not exist", appId))
+			sendResponse("Error", fmt.Sprintf("Invalid applicationId '%s': Directory does not exist", appId), http.StatusNotFound)
 		} else {
 			sendError(err)
 		}
