@@ -174,6 +174,7 @@ exports.start = start = (app) ->
 					Volumes:
 						'/data': {}
 						'/lib/modules': {}
+						'/lib/firmware': {}
 						'/run/dbus': {}
 					Env: _.map env, (v, k) -> k + '=' + v
 					ExposedPorts: ports
@@ -205,6 +206,7 @@ exports.start = start = (app) ->
 				Binds: [
 					'/resin-data/' + app.appId + ':/data'
 					'/lib/modules:/lib/modules'
+					'/lib/firmware:/lib/firmware'
 					'/run/dbus:/run/dbus'
 					'/var/run/docker.sock:/run/docker.sock'
 					'/etc/resolv.conf:/etc/resolv.conf:rw'
