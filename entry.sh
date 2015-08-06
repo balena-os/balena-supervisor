@@ -16,6 +16,8 @@ if [ -d "$DATA_DIRECTORY" ]; then
 fi
 
 mkdir -p /var/log/supervisor && touch /var/log/supervisor/supervisord.log
+mkdir -p /var/run/resin
+mount -t tmpfs -o size=1m tmpfs /var/run/resin
 
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 

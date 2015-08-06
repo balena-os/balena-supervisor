@@ -8,8 +8,8 @@ RUN apt-get -q update \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 
-# Copy supervisord launch file for resin-supervisor
-COPY resin-supervisor.conf /etc/supervisor/conf.d/resin-supervisor.conf
+# Copy supervisord configuration files
+COPY assets/etc/supervisor/ /etc/supervisor/
 
 # Install dependencies
 WORKDIR /app
