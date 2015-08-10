@@ -42,31 +42,29 @@ func TestPurge(t *testing.T) {
 	appId := config.ApplicationId
 	dataPath := "/resin-data/" + appId
 
-	if err := ioutil.WriteFile(dataPath+"/test", []byte("test"), 777); err != nil {
+	if err := ioutil.WriteFile(dataPath+"/test", []byte("test"), 0777); err != nil {
 		t.Fatal("Could not create test file for purge")
 	} else if request, err := http.NewRequest("POST", supervisorAddress+"/v1/purge?apikey=bananas", strings.NewReader(`{"appId": "`+appId+`"}`)); err != nil {
 		t.Fatal(err)
 	} else {
 		request.Header.Set("Content-Type", "application/json")
-
-		if response, err := http.DefaultClient.Do(request); err != nil {
+		response, err := http.DefaultClient.Do(request)
+		defer response.Body.Close()
+		if err != nil {
 			t.Fatal(err)
 		} else if response.StatusCode != http.StatusOK {
 			t.Errorf("Expected 200, got %d", response.StatusCode)
-			defer response.Body.Close()
 			if contents, err := ioutil.ReadAll(response.Body); err != nil {
 				t.Fatal(err)
 			} else {
 				t.Fatalf("Response: %s", contents)
 			}
 		} else {
-			defer response.Body.Close()
 			if contents, err := ioutil.ReadAll(response.Body); err != nil {
 				t.Fatal(err)
 			} else if !strings.EqualFold(string(contents), `{"Status":"OK","Error":""}`) {
 				t.Errorf("Purge response didn't match the expected JSON, got: %s", contents)
 			}
-
 			if dirContents, err := ioutil.ReadDir(dataPath); err != nil {
 				t.Errorf("Could not read the data path after purge: %s", err)
 			} else if len(dirContents) > 0 {

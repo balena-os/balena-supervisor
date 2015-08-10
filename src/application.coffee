@@ -242,9 +242,10 @@ getEnvironment = do ->
 			console.error("Failed to get environment for device #{deviceId}, app #{appId}. #{err}")
 			throw err
 
-lock = new Lock()
-exports.lockUpdates = lockUpdates = lock.async.writeLock
-exports.lockUpdatesAsync = lockUpdatesAsync = Promise.promisify(lockUpdates)
+exports.lockUpdates = lockUpdates = do ->
+	_lock = new Lock()
+	_lockUpdates = Promise.promisify(_lock.async.writeLock)
+	return -> _lockUpdates().disposer (release) -> release()
 
 # 0 - Idle
 # 1 - Updating
@@ -325,27 +326,24 @@ exports.update = update = ->
 				app = remoteApps[imageId]
 				fetch(app)
 			.then ->
-				lockUpdatesAsync()
-			.tap ->
-				# Then delete all the ones to remove in one go
-				Promise.map toBeRemoved, (imageId) ->
-					kill(apps[imageId])
-			.tap ->
-				# Then install the apps and add each to the db as they succeed
-				installingPromises = toBeInstalled.map (imageId) ->
-					app = remoteApps[imageId]
-					start(app)
-				# And remove/recreate updated apps and update db as they succeed
-				updatingPromises = toBeUpdated.map (imageId) ->
-					localApp = apps[imageId]
-					app = remoteApps[imageId]
-					logSystemEvent(logTypes.updateApp, app)
-					kill(localApp)
+				Promise.using lockUpdates(), ->
+					# Then delete all the ones to remove in one go
+					Promise.map toBeRemoved, (imageId) ->
+						kill(apps[imageId])
 					.then ->
-						start(app)
-				Promise.all(installingPromises.concat(updatingPromises))
-			.then (release) ->
-				release()
+						# Then install the apps and add each to the db as they succeed
+						installingPromises = toBeInstalled.map (imageId) ->
+							app = remoteApps[imageId]
+							start(app)
+						# And remove/recreate updated apps and update db as they succeed
+						updatingPromises = toBeUpdated.map (imageId) ->
+							localApp = apps[imageId]
+							app = remoteApps[imageId]
+							logSystemEvent(logTypes.updateApp, app)
+							kill(localApp)
+							.then ->
+								start(app)
+						Promise.all(installingPromises.concat(updatingPromises))
 	.then ->
 		failedUpdates = 0
 		# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a

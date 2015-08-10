@@ -22,7 +22,7 @@ func TestPurge(t *testing.T) {
 
 	if err = os.MkdirAll(dataPath, 0755); err != nil {
 		t.Fatal("Could not create test directory for purge")
-	} else if err = ioutil.WriteFile(dataPath+"/test", []byte("test"), 777); err != nil {
+	} else if err = ioutil.WriteFile(dataPath+"/test", []byte("test"), 0777); err != nil {
 		t.Fatal("Could not create test file for purge")
 	}
 
