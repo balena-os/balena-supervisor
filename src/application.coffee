@@ -109,6 +109,8 @@ exports.kill = kill = (app) ->
 	.tap ->
 		logSystemEvent(logTypes.stopAppSuccess, app)
 		knex('app').where('id', app.id).delete()
+	.tap ->
+		app.id = null
 	.catch (err) ->
 		logSystemEvent(logTypes.stopAppError, app, err)
 		throw err
@@ -261,7 +263,7 @@ exports.update = update = ->
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
 		knex('config').select('value').where(key: 'uuid')
-		knex('app').select()
+		Promise.using(lockUpdates(), -> knex('app').select())
 	])
 	.then ([ [ apiKey ], [ uuid ], apps ]) ->
 		apiKey = apiKey.value
