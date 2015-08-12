@@ -53,7 +53,7 @@ knex.init.then ->
 		console.log('Starting Apps..')
 		knex('app').select()
 		.then (apps) ->
-			Promise.all(apps.map(application.start))
+			Promise.all(apps.map(application.startAndUnlock))
 		.catch (error) ->
 			console.error('Error starting apps:', error)
 		.then ->

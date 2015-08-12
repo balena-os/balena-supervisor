@@ -11,6 +11,8 @@ tty = require './lib/tty'
 logger = require './lib/logger'
 { cachedResinApi } = require './request'
 device = require './device'
+lockFile = Promise.promisifyAll(require('lockfile'))
+fs = Promise.promisifyAll(require('fs'))
 
 { docker } = dockerUtils
 
@@ -30,7 +32,7 @@ logTypes =
 		humanName: 'Killed application'
 	stopAppError:
 		eventName: 'Application stop error'
-		humanName: 'Killed application'
+		humanName: 'Failed to kill application'
 
 	downloadApp:
 		eventName: 'Application download'
@@ -244,6 +246,32 @@ getEnvironment = do ->
 			console.error("Failed to get environment for device #{deviceId}, app #{appId}. #{err}")
 			throw err
 
+lockPath = (app) -> "/mnt/root/resin-data/#{app.appId}/resin_updates.lock"
+locked = {}
+exports.lockAndKill = lockAndKill = (app, force) ->
+	Promise.try ->
+		fs.unlinkAsync(lockPath(app)) if force == true
+	.then ->
+		locked[app.appId] = true
+		lockFile.lockAsync(lockPath(app))
+	.catch (err) ->
+		if err.code != 'ENOENT'
+			locked[app.appId] = false
+			message = 'Updates are locked by application'
+			logSystemEvent(logTypes.stopAppError, app, { message })
+			throw message
+	.then ->
+		kill(app)
+
+exports.startAndUnlock = startAndUnlock = (app) ->
+	Promise.try ->
+		throw "Cannot start app because we couldn't acquire lock" if locked[app.appId] == false
+	.then ->
+		locked[app.appId] = null
+		start(app)
+	.then ->
+		lockFile.unlockAsync(lockPath(app))
+
 exports.lockUpdates = lockUpdates = do ->
 	_lock = new Lock()
 	_lockUpdates = Promise.promisify(_lock.async.writeLock)
@@ -254,7 +282,7 @@ exports.lockUpdates = lockUpdates = do ->
 # 2 - Update required
 currentlyUpdating = 0
 failedUpdates = 0
-exports.update = update = ->
+exports.update = update = (force) ->
 	if currentlyUpdating isnt 0
 		# Mark an update required after the current.
 		currentlyUpdating = 2
@@ -331,20 +359,20 @@ exports.update = update = ->
 				Promise.using lockUpdates(), ->
 					# Then delete all the ones to remove in one go
 					Promise.map toBeRemoved, (imageId) ->
-						kill(apps[imageId])
+						lockAndKill(apps[imageId], force)
 					.then ->
 						# Then install the apps and add each to the db as they succeed
 						installingPromises = toBeInstalled.map (imageId) ->
 							app = remoteApps[imageId]
-							start(app)
+							startAndUnlock(app)
 						# And remove/recreate updated apps and update db as they succeed
 						updatingPromises = toBeUpdated.map (imageId) ->
 							localApp = apps[imageId]
 							app = remoteApps[imageId]
 							logSystemEvent(logTypes.updateApp, app)
-							kill(localApp)
+							lockAndKill(localApp, force)
 							.then ->
-								start(app)
+								startAndUnlock(app)
 						Promise.all(installingPromises.concat(updatingPromises))
 	.then ->
 		failedUpdates = 0

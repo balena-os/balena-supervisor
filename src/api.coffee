@@ -29,7 +29,7 @@ module.exports = (secret) ->
 
 	api.post '/v1/update', (req, res) ->
 		utils.mixpanelTrack('Update notification')
-		application.update()
+		application.update(req.body.force)
 		res.sendStatus(204)
 
 	api.post '/v1/spawn-tty', (req, res) ->
@@ -72,7 +72,7 @@ module.exports = (secret) ->
 			if !app?
 				throw new Error('App not found')
 			Promise.using application.lockUpdates(), ->
-				application.kill(app)
+				application.lockAndKill(app)
 				.then ->
 					new Promise (resolve, reject) ->
 						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId })
@@ -80,7 +80,7 @@ module.exports = (secret) ->
 						.on 'response', -> resolve()
 						.pipe(res)
 				.finally ->
-					application.start(app)
+					application.startAndUnlock(app)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
