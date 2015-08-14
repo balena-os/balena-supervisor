@@ -6,7 +6,6 @@ COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 RUN apt-get -q update \
 	&& apt-get install -qqy \
 		btrfs-tools \
-		docker.io \
 		jq \
 		rsync \
 		socat \
@@ -14,6 +13,8 @@ RUN apt-get -q update \
 		--no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
+
+RUN curl -sL https://github.com/resin-io/docker/releases/download/1.5.0-dev/docker-arm-1.5.0-dev.tar.xz | tar xJv --strip-components=1 -C /usr/bin
 
 # Copy supervisord configuration files
 COPY config/supervisor/ /etc/supervisor/
