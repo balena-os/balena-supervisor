@@ -205,7 +205,7 @@ exports.start = start = (app) ->
 					ports[port + '/tcp'] = [ HostPort: port ]
 			container.startAsync(
 				Privileged: true
-				NetworkMode: "host"
+				NetworkMode: 'host'
 				PortBindings: ports
 				Binds: [
 					'/resin-data/' + app.appId + ':/data'
@@ -257,15 +257,15 @@ exports.lockAndKill = lockAndKill = (app, force) ->
 	.catch (err) ->
 		if err.code != 'ENOENT'
 			locked[app.appId] = false
-			message = 'Updates are locked by application'
-			logSystemEvent(logTypes.stopAppError, app, { message })
-			throw message
+			err = new Error('Updates are locked by application')
+			logSystemEvent(logTypes.stopAppError, app, err)
+			throw err
 	.then ->
 		kill(app)
 
 exports.startAndUnlock = startAndUnlock = (app) ->
 	Promise.try ->
-		throw "Cannot start app because we couldn't acquire lock" if locked[app.appId] == false
+		throw new Error("Cannot start app because we couldn't acquire lock") if locked[app.appId] == false
 	.then ->
 		locked[app.appId] = null
 		start(app)

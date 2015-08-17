@@ -114,7 +114,7 @@ do ->
 			return false
 
 	# Get the id of an image on a given registry and tag.
-	getImageId = (registry, imageName, tag='latest') ->
+	getImageId = (registry, imageName, tag = 'latest') ->
 		request.getAsync("http://#{registry}/v1/repositories/#{imageName}/tags")
 		.spread (res, data) ->
 			if res.statusCode == 404
@@ -152,7 +152,7 @@ do ->
 	# The object returned has layer ids as keys and their download size as values.
 	# Download size is the size that docker will download if the image will be pulled now.
 	# If some layer is already downloaded, it will return 0 size for that layer.
-	getLayerDownloadSizes = (image, tag='latest') ->
+	getLayerDownloadSizes = (image, tag = 'latest') ->
 		{registry, imageName} = getRegistryAndName(image)
 		imageSizes = {}
 		getImageId(registry, imageName, tag)
@@ -180,11 +180,11 @@ do ->
 	getRegistryAndName = (image) ->
 		[ m, registry, imageName ] = image.match(/(.+[:.].+)\/(.+\/.+)/)
 		if not registry
-			throw new Error("Expected image name to include registry domain name")
+			throw new Error('Expected image name to include registry domain name')
 		if not imageName
-			throw new Error("Invalid image name, expected domain.tld/repo/image format.")
+			throw new Error('Invalid image name, expected domain.tld/repo/image format.')
 		return {registry, imageName}
-	
+
 	# Create a stream that transforms `docker.modem.followProgress` onProgress events
 	# to include total progress metrics.
 	pullProgress = (image, onProgress) ->
