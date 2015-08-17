@@ -71,16 +71,16 @@ module.exports = (secret) ->
 		.then ([ app ]) ->
 			if !app?
 				throw new Error('App not found')
-			Promise.using application.lockUpdates(), ->
-				application.lockAndKill(app)
+			Promise.using application.lockUpdates(app), ->
+				application.kill(app)
 				.then ->
 					new Promise (resolve, reject) ->
-						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId })
+						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId.toString() })
 						.on 'error', reject
 						.on 'response', -> resolve()
 						.pipe(res)
-				.finally ->
-					application.startAndUnlock(app)
+					.finally ->
+						application.start(app)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
