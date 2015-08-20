@@ -92,4 +92,22 @@ module.exports = (secret) ->
 		utils.disableCheck(true)
 		res.sendStatus(204)
 
+	api.post '/v1/restart', (req, res) ->
+		appId = req.body.appId
+		utils.mixpanelTrack('Restart container', appId)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		Promise.using application.lockUpdates(appId, true), ->
+			knex('app').select().where({ appId })
+			.then ([ app ]) ->
+				if !app?
+					throw new Error('App not found')
+				application.kill(app)
+				.then ->
+					application.start(app)
+		.then ->
+			res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
 	return api
