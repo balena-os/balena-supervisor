@@ -67,20 +67,20 @@ module.exports = (secret) ->
 		utils.mixpanelTrack('Purge /data', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
-		knex('app').select().where({ appId })
-		.then ([ app ]) ->
-			if !app?
-				throw new Error('App not found')
-			Promise.using application.lockUpdates(app), ->
+		Promise.using application.lockUpdates(app), ->
+			knex('app').select().where({ appId })
+			.then ([ app ]) ->
+				if !app?
+					throw new Error('App not found')
 				application.kill(app)
-				.then ->
-					new Promise (resolve, reject) ->
-						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId.toString() })
-						.on 'error', reject
-						.on 'response', -> resolve()
-						.pipe(res)
-					.finally ->
-						application.start(app)
+			.then ->
+				new Promise (resolve, reject) ->
+					request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId.toString() })
+					.on 'error', reject
+					.on 'response', -> resolve()
+					.pipe(res)
+				.finally ->
+					application.start(app)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 

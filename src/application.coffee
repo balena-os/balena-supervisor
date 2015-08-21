@@ -251,13 +251,19 @@ exports.unlockAndStart = unlockAndStart = (app) ->
 	.then ->
 		start(app)
 
-exports.lockUpdates = lockUpdates = (app, force) ->
-	Promise.try ->
-		lockFile.unlockAsync(lockPath(app)) if force == true
-	.then ->
-		lockFile.lockAsync(lockPath(app))
-	.disposer ->
-		lockFile.unlockAsync(lockPath(app))
+exports.lockUpdates = lockUpdates = do ->
+	_lock = new Lock()
+	_writeLock = Promise.promisify(_lock.async.writeLock)
+	return (app, force) ->
+		_writeLock(lockPath(app))
+		.tap ->
+			lockFile.unlockAsync(lockPath(app)) if force == true
+		.tap ->
+			lockFile.lockAsync(lockPath(app))
+		.disposer (release) ->
+			lockFile.unlockAsync(lockPath(app))
+			.then ->
+				release()
 
 joinErrorMessages = (failures) ->
 	s = if failures.length > 1 then 's' else ''
@@ -354,7 +360,13 @@ exports.update = update = (force) ->
 				# Then delete all the ones to remove in one go
 				Promise.map toBeRemoved, (appId) ->
 					Promise.using lockUpdates(apps[appId], force), ->
-						kill(apps[appId])
+						# We get the app from the DB again in case someone restarted it
+						# (which would have changed its containerId)
+						knex('app').select().where({ appId })
+						.then ([ app ]) ->
+							if !app?
+								throw new Error('App not found')
+							kill(app)
 						.then ->
 							knex('app').where('appId', appId).delete()
 					.catch (err) ->
@@ -372,7 +384,11 @@ exports.update = update = (force) ->
 						app = remoteApps[appId]
 						logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
 						Promise.using lockUpdates(localApp, force), ->
-							kill(localApp)
+							knex('app').select().where({ appId })
+							.then ([ localApp ]) ->
+								if !localApp?
+									throw new Error('App not found')
+								kill(localApp)
 							.then ->
 								start(app)
 						.catch (err) ->
