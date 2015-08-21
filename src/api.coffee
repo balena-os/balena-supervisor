@@ -8,6 +8,7 @@ express = require 'express'
 bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
+systemd = require './systemd'
 
 module.exports = (secret) ->
 	api = express()
@@ -61,6 +62,16 @@ module.exports = (secret) ->
 			res.sendStatus(200)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
+
+	api.post '/v1/reboot', (req, res) ->
+		utils.mixpanelTrack('Reboot')
+		res.sendStatus(200)
+		systemd.reboot()
+
+	api.post '/v1/shutdown', (req, res) ->
+		utils.mixpanelTrack('Shutdown')
+		res.sendStatus(200)
+		systemd.shutdown()
 
 	api.post '/v1/purge', (req, res) ->
 		appId = req.body.appId
