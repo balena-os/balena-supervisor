@@ -19,6 +19,6 @@ mv "$DOCKER_ROOT/graph/$dest_id/json.tmp" "$DOCKER_ROOT/graph/$dest_id/json"
 btrfs subvolume delete "$BTRFS_ROOT/$dest_id"
 btrfs subvolume snapshot "$BTRFS_ROOT/$src_id" "$BTRFS_ROOT/$dest_id"
 
-rsync --timeout=30 --archive --delete --read-batch=- "$BTRFS_ROOT/$dest_id"
+rsync --timeout=300 --archive --delete --read-batch=- "$BTRFS_ROOT/$dest_id"
 
 docker tag -f "$dest_id" "$dest"
