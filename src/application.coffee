@@ -66,6 +66,9 @@ logTypes =
 	updateApp:
 		eventName: 'Application update'
 		humanName: 'Updating application'
+	updateAppError:
+		eventName: 'Application update error'
+		humanName: 'Failed to update application'
 
 logSystemEvent = (logType, app, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
@@ -109,6 +112,8 @@ exports.kill = kill = (app) ->
 		throw err
 	.tap ->
 		logSystemEvent(logTypes.stopAppSuccess, app)
+		app.containerId = null
+		knex('app').update(app).where(appId: app.appId)
 	.catch (err) ->
 		logSystemEvent(logTypes.stopAppError, app, err)
 		throw err
@@ -242,8 +247,8 @@ getEnvironment = do ->
 			throw err
 
 lockPath = (app) ->
-	appId = app.appId or app
-	return "/mnt/root/resin-data/#{appId}/resin_updates.lock"
+	appId = app.appId ? app
+	return "/mnt/root/resin-data/#{appId}/resin-updates.lock"
 
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
 exports.unlockAndStart = unlockAndStart = (app) ->
@@ -255,14 +260,18 @@ exports.lockUpdates = lockUpdates = do ->
 	_lock = new Lock()
 	_writeLock = Promise.promisify(_lock.async.writeLock)
 	return (app, force) ->
-		_writeLock(lockPath(app))
-		.tap ->
-			lockFile.unlockAsync(lockPath(app)) if force == true
-		.tap ->
-			lockFile.lockAsync(lockPath(app))
+		lockName = lockPath(app)
+		_writeLock(lockName)
+		.tap (release) ->
+			if force != true
+				lockFile.lockAsync(lockName)
+				.catch (err) ->
+					release()
+					throw new Error("Updates are locked: #{err.message}")
 		.disposer (release) ->
-			lockFile.unlockAsync(lockPath(app))
-			.then ->
+			Promise.try ->
+				lockFile.unlockAsync(lockName) if force != true
+			.finally ->
 				release()
 
 joinErrorMessages = (failures) ->
@@ -271,19 +280,21 @@ joinErrorMessages = (failures) ->
 		err.message or err
 	"#{failures.length} error#{s}: #{messages.join(' - ')}"
 
-# 0 - Idle
-# 1 - Updating
-# 2 - Update required
-currentlyUpdating = 0
-failedUpdates = 0
-forceNextUpdate = false
+UPDATE_IDLE = 0
+UPDATE_UPDATING = 1
+UPDATE_REQUIRED = 2
+
+updateStatus =
+	currentState: UPDATE_IDLE
+	failedUpdates: 0
+	forceNextUpdate: false
 exports.update = update = (force) ->
-	if currentlyUpdating isnt 0
+	if updateStatus.currentState isnt UPDATE_IDLE
 		# Mark an update required after the current.
-		forceNextUpdate = force
-		currentlyUpdating = 2
+		updateStatus.forceNextUpdate = force
+		updateStatus.currentState = UPDATE_REQUIRED
 		return
-	currentlyUpdating = 1
+	updateStatus.currentState = UPDATE_UPDATING
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
 		knex('config').select('value').where(key: 'uuid')
@@ -317,6 +328,7 @@ exports.update = update = (force) ->
 					remoteApp.environment_variable = environment
 					return remoteApp
 		.then (remoteApps) ->
+			remoteAppEnvs = {}
 			remoteApps = _.map remoteApps, (app) ->
 				env =
 					RESIN_DEVICE_UUID: uuid
@@ -325,6 +337,7 @@ exports.update = update = (force) ->
 
 				if app.environment_variable?
 					_.extend(env, app.environment_variable)
+				remoteAppEnvs[app.id] = env
 				return {
 					appId: '' + app.id
 					commit: app.commit
@@ -370,11 +383,12 @@ exports.update = update = (force) ->
 						.then ->
 							knex('app').where('appId', appId).delete()
 					.catch (err) ->
+						logSystemEvent(logTypes.stopAppError, apps[appId], err)
 						failures.push(err)
 				.then ->
 					# Then install the apps and add each to the db as they succeed
-					installingPromises = toBeInstalled.map (imageId) ->
-						app = remoteApps[imageId]
+					installingPromises = toBeInstalled.map (appId) ->
+						app = remoteApps[appId]
 						start(app)
 						.catch (err) ->
 							failures.push(err)
@@ -383,7 +397,8 @@ exports.update = update = (force) ->
 						localApp = apps[appId]
 						app = remoteApps[appId]
 						logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
-						Promise.using lockUpdates(localApp, force), ->
+						forceThisApp = remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
+						Promise.using lockUpdates(localApp, force || forceThisApp), ->
 							knex('app').select().where({ appId })
 							.then ([ localApp ]) ->
 								if !localApp?
@@ -392,29 +407,30 @@ exports.update = update = (force) ->
 							.then ->
 								start(app)
 						.catch (err) ->
+							logSystemEvent(logTypes.updateAppError, apps[appId], err)
 							failures.push(err)
 					Promise.all(installingPromises.concat(updatingPromises))
 				.then ->
 					throw new Error(joinErrorMessages(failures)) if failures.length > 0
 	.then ->
-		failedUpdates = 0
+		updateStatus.failedUpdates = 0
 		# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
 		# point where we might clean up an image we still want.
 		dockerUtils.cleanupContainersAndImages()
 	.catch (err) ->
-		failedUpdates++
-		if currentlyUpdating is 2
+		updateStatus.failedUpdates++
+		if updateStatus.currentState is UPDATE_REQUIRED
 			console.log('Updating failed, but there is already another update scheduled immediately: ', err)
 			return
-		delayTime = Math.min(failedUpdates * 500, 30000)
+		delayTime = Math.min(updateStatus.failedUpdates * 500, 30000)
 		# If there was an error then schedule another attempt briefly in the future.
 		console.log('Scheduling another update attempt due to failure: ', delayTime, err)
 		setTimeout(update, delayTime, force)
 	.finally ->
 		device.updateState(status: 'Idle')
-		if currentlyUpdating is 2
+		if updateStatus.currentState is UPDATE_REQUIRED
 			# If an update is required then schedule it
-			setTimeout(update, 1, forceNextUpdate)
+			setTimeout(update, 1, updateStatus.forceNextUpdate)
 	.finally ->
 		# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
-		currentlyUpdating = 0
+		updateStatus.currentState = UPDATE_IDLE
