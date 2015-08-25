@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/godbus/dbus",
+			"Comment": "v2-14-g69f6e9a",
+			"Rev": "69f6e9aa61d058ad86fd7f9e198e1df7384970d9"
+		},
+		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
 		},
