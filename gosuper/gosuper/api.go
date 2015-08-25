@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+
+	"resin-supervisor/gosuper/systemd"
 )
 
 type ApiResponse struct {
@@ -51,12 +53,16 @@ func parsePurgeBody(request *http.Request) (appId string, err error) {
 	return
 }
 
+func responseSender(writer http.ResponseWriter) func(string, string, int) {
+	return func(statusMsg, errorMsg string, statusCode int) {
+		jsonResponse(writer, ApiResponse{statusMsg, errorMsg}, statusCode)
+	}
+}
+
 func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Purging /data")
 
-	sendResponse := func(statusMsg, errorMsg string, statusCode int) {
-		jsonResponse(writer, ApiResponse{statusMsg, errorMsg}, statusCode)
-	}
+	sendResponse := responseSender(writer)
 	sendError := func(err error) {
 		sendResponse("Error", err.Error(), http.StatusInternalServerError)
 	}
@@ -83,4 +89,20 @@ func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 	} else {
 		sendResponse("OK", "", http.StatusOK)
 	}
+}
+
+func RebootHandler(writer http.ResponseWriter, request *http.Request) {
+	log.Println("Rebooting")
+
+	sendResponse := responseSender(writer)
+	sendResponse("OK", "", http.StatusAccepted)
+	systemd.Reboot()
+}
+
+func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
+	log.Println("Shutting down")
+
+	sendResponse := responseSender(writer)
+	sendResponse("OK", "", http.StatusAccepted)
+	systemd.Shutdown()
 }

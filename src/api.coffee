@@ -8,7 +8,6 @@ express = require 'express'
 bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
-systemd = require './systemd'
 
 module.exports = (secret) ->
 	api = express()
@@ -65,13 +64,13 @@ module.exports = (secret) ->
 
 	api.post '/v1/reboot', (req, res) ->
 		utils.mixpanelTrack('Reboot')
-		res.sendStatus(200)
-		systemd.reboot()
+		request.post(config.gosuperAddress + '/v1/reboot')
+		.pipe(res)
 
 	api.post '/v1/shutdown', (req, res) ->
 		utils.mixpanelTrack('Shutdown')
-		res.sendStatus(200)
-		systemd.shutdown()
+		request.post(config.gosuperAddress + '/v1/shutdown')
+		.pipe(res)
 
 	api.post '/v1/purge', (req, res) ->
 		appId = req.body.appId
