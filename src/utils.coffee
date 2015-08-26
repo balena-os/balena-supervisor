@@ -66,15 +66,19 @@ networkPattern =
 
 exports.blink = blink
 
-exports.pauseCheck = pauseCheck = false
+pauseConnectivityCheck = false
+disableConnectivityCheck = false
 # options: An object of net.connect options, with the addition of:
 #	timeout: 10s
 checkHost = (options) ->
 	new Promise (resolve, reject) ->
-		if exports.pauseCheck
+		if disableConnectivityCheck
 			resolve()
 		else
-			reject()
+			if pauseConnectivityCheck
+				resolve()
+			else
+				reject()
 	.then ->
 		return true
 	.catch ->
@@ -83,8 +87,13 @@ checkHost = (options) ->
 customMonitor = (options, fn) ->
 	networkCheck.monitor(checkHost, options, fn)
 
+# pause: A Boolean to pause the connectivity checks
+exports.pauseCheck = (pause) ->
+	pauseConnectivityCheck = pause
+
+# disable: A Boolean to disable the connectivity checks
 exports.disableCheck = (disable) ->
-	exports.pauseCheck=disable
+	disableConnectivityCheck = disable
 
 exports.connectivityCheck = _.once ->
 	parsedUrl = url.parse(config.apiEndpoint)
