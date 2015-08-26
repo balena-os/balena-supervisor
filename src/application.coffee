@@ -285,16 +285,16 @@ UPDATE_UPDATING = 1
 UPDATE_REQUIRED = 2
 
 updateStatus =
-	currentState: UPDATE_IDLE
-	failedUpdates: 0
-	forceNextUpdate: false
+	state: UPDATE_IDLE
+	failed: 0
+	forceNext: false
 exports.update = update = (force) ->
-	if updateStatus.currentState isnt UPDATE_IDLE
+	if updateStatus.state isnt UPDATE_IDLE
 		# Mark an update required after the current.
-		updateStatus.forceNextUpdate = force
-		updateStatus.currentState = UPDATE_REQUIRED
+		updateStatus.forceNext = force
+		updateStatus.state = UPDATE_REQUIRED
 		return
-	updateStatus.currentState = UPDATE_UPDATING
+	updateStatus.state = UPDATE_UPDATING
 	Promise.all([
 		knex('config').select('value').where(key: 'apiKey')
 		knex('config').select('value').where(key: 'uuid')
@@ -364,36 +364,30 @@ exports.update = update = (force) ->
 				return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
 			toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
 
-			# Fetch any updated images first
-			Promise.map toBeDownloaded, (appId) ->
-				app = remoteApps[appId]
-				fetch(app)
-			.then ->
-				failures = []
-				# Then delete all the ones to remove in one go
-				Promise.map toBeRemoved, (appId) ->
-					Promise.using lockUpdates(apps[appId], force), ->
-						# We get the app from the DB again in case someone restarted it
-						# (which would have changed its containerId)
-						knex('app').select().where({ appId })
-						.then ([ app ]) ->
-							if !app?
-								throw new Error('App not found')
-							kill(app)
-						.then ->
-							knex('app').where('appId', appId).delete()
-					.catch (err) ->
-						logSystemEvent(logTypes.stopAppError, apps[appId], err)
-						failures.push(err)
+			allAppIds = _.union(localAppIds, remoteAppIds)
+
+			Promise.map allAppIds, (appId) ->
+				Promise.try ->
+					fetch(remoteApps[appId]) if _.includes(toBeDownloaded, appId)
 				.then ->
-					# Then install the apps and add each to the db as they succeed
-					installingPromises = toBeInstalled.map (appId) ->
+					if _.includes(toBeRemoved, appId)
+						Promise.using lockUpdates(apps[appId], force), ->
+							# We get the app from the DB again in case someone restarted it
+							# (which would have changed its containerId)
+							knex('app').select().where({ appId })
+							.then ([ app ]) ->
+								if !app?
+									throw new Error('App not found')
+								kill(app)
+							.then ->
+								knex('app').where('appId', appId).delete()
+						.catch (err) ->
+							logSystemEvent(logTypes.updateAppError, app, err)
+							throw err
+					else if _.includes(toBeInstalled, appId)
 						app = remoteApps[appId]
 						start(app)
-						.catch (err) ->
-							failures.push(err)
-					# And remove/recreate updated apps and update db as they succeed
-					updatingPromises = toBeUpdated.map (appId) ->
+					else if _.includes(toBeUpdated, appId)
 						localApp = apps[appId]
 						app = remoteApps[appId]
 						logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
@@ -407,30 +401,31 @@ exports.update = update = (force) ->
 							.then ->
 								start(app)
 						.catch (err) ->
-							logSystemEvent(logTypes.updateAppError, apps[appId], err)
-							failures.push(err)
-					Promise.all(installingPromises.concat(updatingPromises))
-				.then ->
-					throw new Error(joinErrorMessages(failures)) if failures.length > 0
+							logSystemEvent(logTypes.updateAppError, app, err)
+							throw err
+				.catch(_.identity)
+	.filter(_.isError)
+	.then (failures) ->
+		throw new Error(joinErrorMessages(failures)) if failures.length > 0
 	.then ->
-		updateStatus.failedUpdates = 0
+		updateStatus.failed = 0
 		# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
 		# point where we might clean up an image we still want.
 		dockerUtils.cleanupContainersAndImages()
 	.catch (err) ->
-		updateStatus.failedUpdates++
-		if updateStatus.currentState is UPDATE_REQUIRED
+		updateStatus.failed++
+		if updateStatus.state is UPDATE_REQUIRED
 			console.log('Updating failed, but there is already another update scheduled immediately: ', err)
 			return
-		delayTime = Math.min(updateStatus.failedUpdates * 500, 30000)
+		delayTime = Math.min(updateStatus.failed * 500, 30000)
 		# If there was an error then schedule another attempt briefly in the future.
 		console.log('Scheduling another update attempt due to failure: ', delayTime, err)
 		setTimeout(update, delayTime, force)
 	.finally ->
 		device.updateState(status: 'Idle')
-		if updateStatus.currentState is UPDATE_REQUIRED
+		if updateStatus.state is UPDATE_REQUIRED
 			# If an update is required then schedule it
-			setTimeout(update, 1, updateStatus.forceNextUpdate)
+			setTimeout(update, 1, updateStatus.forceNext)
 	.finally ->
 		# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
-		updateStatus.currentState = UPDATE_IDLE
+		updateStatus.state = UPDATE_IDLE
