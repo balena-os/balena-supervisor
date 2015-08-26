@@ -37,7 +37,7 @@ knex.init.then ->
 		console.log('Starting API server..')
 
 		secret = config.forceApiSecret ? randomstring.generate()
-		api(secret).listen(config.listenPort)
+		api(secret,utils.disableCheck).listen(config.listenPort)
 
 		# Let API know what version we are, and our api connection info.
 		console.log('Updating supervisor version and api info')
@@ -49,7 +49,7 @@ knex.init.then ->
 			provisioning_state: ''
 			download_progress: null
 		)
-	
+
 		console.log('Starting Apps..')
 		knex('app').select()
 		.then (apps) ->

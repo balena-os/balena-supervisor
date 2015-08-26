@@ -66,9 +66,29 @@ networkPattern =
 
 exports.blink = blink
 
+exports.pauseCheck = pauseCheck = false
+# options: An object of net.connect options, with the addition of:
+#	timeout: 10s
+checkHost = (options) ->
+	new Promise (resolve, reject) ->
+		if exports.pauseCheck
+			resolve()
+		else
+			reject()
+	.then ->
+		return true
+	.catch ->
+		return networkCheck.checkHost(options)
+
+customMonitor = (options, fn) ->
+	networkCheck.monitor(checkHost, options, fn)
+
+exports.disableCheck = (disable) ->
+	exports.pauseCheck=disable
+
 exports.connectivityCheck = _.once ->
 	parsedUrl = url.parse(config.apiEndpoint)
-	networkCheck.monitorHost 
+	customMonitor
 		host: parsedUrl.hostname
 		port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
 		interval: 10 * 1000
