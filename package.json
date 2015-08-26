@@ -14,6 +14,7 @@
     "dockerode": "~2.2.1",
     "event-stream": "^3.0.20",
     "express": "^4.0.0",
+    "inotify": "^1.4.0",
     "knex": "~0.8.3",
     "lodash": "^3.0.0",
     "mixpanel": "0.0.20",

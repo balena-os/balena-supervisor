@@ -25,6 +25,7 @@ module.exports = config =
 	appUpdatePollInterval: checkInt(process.env.APPLICATION_UPDATE_POLL_INTERVAL) ? 60000
 	successMessage: 'SUPERVISOR OK'
 	forceApiSecret: process.env.RESIN_SUPERVISOR_SECRET ? null
+	vpnStatusPath: process.env.VPN_STATUS_PATH ? '/mnt/root/run/openvpn/vpn_status'
 
 config.supervisorContainer =
 		Volumes:

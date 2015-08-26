@@ -6,6 +6,9 @@ mixpanel = require 'mixpanel'
 networkCheck = require 'network-checker'
 blink = require('blinking')(config.ledFile)
 url = require 'url'
+Inotify = require('inotify').Inotify
+inotify = new Inotify()
+fs = require 'fs'
 
 utils = exports
 
@@ -68,6 +71,7 @@ exports.blink = blink
 
 pauseConnectivityCheck = false
 disableConnectivityCheck = false
+
 # options: An object of net.connect options, with the addition of:
 #	timeout: 10s
 checkHost = (options) ->
@@ -84,6 +88,7 @@ checkHost = (options) ->
 	.catch ->
 		return networkCheck.checkHost(options)
 
+# Custom monitor that uses checkHost function above.
 customMonitor = (options, fn) ->
 	networkCheck.monitor(checkHost, options, fn)
 
@@ -95,8 +100,34 @@ exports.pauseCheck = (pause) ->
 exports.disableCheck = (disable) ->
 	disableConnectivityCheck = disable
 
+# Call back for inotify triggered when the VPN status is changed.
+vpnStatusInotifyCallback = (arg) ->
+	try
+		stats = fs.lstatSync(config.vpnStatusPath+'/active')
+		pauseConnectivityCheck=true
+	catch error
+		pauseConnectivityCheck=false
+
+vpn_status =
+        path: config.vpnStatusPath
+        watch_for: Inotify.IN_DELETE | Inotify.IN_CREATE
+        callback: vpnStatusInotifyCallback
+
+# Helper to create the vpn status path if it does not already exist
+mkdirSync = (path) ->
+	try
+		fs.mkdirSync(path);
+	catch error
+		if error.code != 'EEXIST'
+			throw error
+
+mkdirSync(vpn_status.path)
+
 exports.connectivityCheck = _.once ->
 	parsedUrl = url.parse(config.apiEndpoint)
+	inotify.addWatch(vpn_status)
+	# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
+	vpnStatusInotifyCallback()
 	customMonitor
 		host: parsedUrl.hostname
 		port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
