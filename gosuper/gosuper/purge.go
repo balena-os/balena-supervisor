@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type ApiResponse struct {
@@ -14,7 +15,7 @@ type ApiResponse struct {
 }
 
 type PurgeBody struct {
-	ApplicationId string
+	ApplicationId interface{}
 }
 
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
@@ -32,9 +33,26 @@ func parseJsonBody(destination interface{}, request *http.Request) error {
 	return decoder.Decode(&destination)
 }
 
+func parsePurgeBody(request *http.Request) (appId string, err error) {
+	var body PurgeBody
+	if err = parseJsonBody(&body, request); err != nil {
+		return
+	}
+	switch v := body.ApplicationId.(type) {
+	case string:
+		appId = v
+	case float64:
+		if v != 0 {
+			appId = strconv.Itoa(int(v))
+		}
+	default:
+		log.Printf("Invalid appId type %T\n", v)
+	}
+	return
+}
+
 func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Purging /data")
-	var body PurgeBody
 
 	sendResponse := func(statusMsg, errorMsg string, statusCode int) {
 		jsonResponse(writer, ApiResponse{statusMsg, errorMsg}, statusCode)
@@ -46,9 +64,9 @@ func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 		sendResponse("Error", errorMsg, http.StatusBadRequest)
 	}
 
-	if err := parseJsonBody(&body, request); err != nil {
+	if appId, err := parsePurgeBody(request); err != nil {
 		sendBadRequest("Invalid request")
-	} else if appId := body.ApplicationId; appId == "" {
+	} else if appId == "" {
 		sendBadRequest("applicationId is required")
 	} else if !IsValidAppId(appId) {
 		sendBadRequest(fmt.Sprintf("Invalid applicationId '%s'", appId))

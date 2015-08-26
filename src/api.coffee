@@ -75,7 +75,7 @@ module.exports = (secret) ->
 				application.kill(app)
 				.then ->
 					new Promise (resolve, reject) ->
-						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId.toString() })
+						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId })
 						.on 'error', reject
 						.on 'response', -> resolve()
 						.pipe(res)
