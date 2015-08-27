@@ -116,7 +116,7 @@ vpn_status =
 # Helper to create the vpn status path if it does not already exist
 mkdirSync = (path) ->
 	try
-		fs.mkdirSync(path);
+		fs.mkdirSync(path)
 	catch error
 		if error.code != 'EEXIST'
 			throw error

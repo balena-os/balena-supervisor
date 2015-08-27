@@ -9,7 +9,7 @@ bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
 
-module.exports = (secret,disableCheck) ->
+module.exports = (secret, disableCheck) ->
 	api = express()
 	api.use(bodyParser())
 	api.use (req, res, next) ->
