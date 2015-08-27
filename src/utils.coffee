@@ -8,7 +8,7 @@ blink = require('blinking')(config.ledFile)
 url = require 'url'
 Inotify = require('inotify').Inotify
 inotify = new Inotify()
-fs = require 'fs'
+fs = Promise.promisifyAll require 'fs'
 
 utils = exports
 
@@ -102,10 +102,10 @@ exports.disableCheck = (disable) ->
 
 # Call back for inotify triggered when the VPN status is changed.
 vpnStatusInotifyCallback = (arg) ->
-	try
-		stats = fs.lstatSync(config.vpnStatusPath+'/active')
+	fs.lstatAsync(config.vpnStatusPath+'/active')
+	.then ->
 		pauseConnectivityCheck=true
-	catch error
+	.catch ->
 		pauseConnectivityCheck=false
 
 vpn_status =
@@ -113,19 +113,14 @@ vpn_status =
         watch_for: Inotify.IN_DELETE | Inotify.IN_CREATE
         callback: vpnStatusInotifyCallback
 
-# Helper to create the vpn status path if it does not already exist
-mkdirSync = (path) ->
-	try
-		fs.mkdirSync(path)
-	catch error
-		if error.code != 'EEXIST'
-			throw error
-
-mkdirSync(vpn_status.path)
-
 exports.connectivityCheck = _.once ->
 	parsedUrl = url.parse(config.apiEndpoint)
-	inotify.addWatch(vpn_status)
+	fs.mkdirAsync(vpn_status.path)
+	.then ->
+		inotify.addWatch(vpn_status)
+	.catch (error) ->
+		if error.code != 'EEXIST'
+			throw error
 	# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
 	vpnStatusInotifyCallback()
 	customMonitor
