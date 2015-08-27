@@ -6,7 +6,6 @@ mixpanel = require 'mixpanel'
 networkCheck = require 'network-checker'
 blink = require('blinking')(config.ledFile)
 url = require 'url'
-fs = Promise.promisifyAll require 'fs'
 
 utils = exports
 
@@ -97,14 +96,16 @@ vpnStatusInotifyCallback = ->
 	.catch ->
 		pauseConnectivityCheck = false
 
+# Use the following to catch EEXIST errors
+EEXIST = (err) -> err.code is 'EEXIST'
+
 exports.connectivityCheck = _.once ->
 	parsedUrl = url.parse(config.apiEndpoint)
 	fs.mkdirAsync(config.vpnStatusPath)
 	.then ->
 		fs.watch(config.vpnStatusPath, vpnStatusInotifyCallback)
-	.catch (error) ->
-		if error.code != 'EEXIST'
-			throw error
+	.catch EEXIST, (err) ->
+
 	# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
 	vpnStatusInotifyCallback()
 	customMonitor
