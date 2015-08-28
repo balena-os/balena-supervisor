@@ -1,4 +1,6 @@
 #!/bin/bash
+sed --expression="s/#{VPN_ENDPOINT}/${VPN_ENDPOINT}/" /etc/openvpn/client.conf.tmpl > /etc/openvpn/client.conf
+
 while true; do
 	if [ `jq ".uuid | length" $CONFIG_PATH` -eq 0 ]; then
 		echo "UUID missing from config file, VPN cannot connect"

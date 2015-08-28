@@ -6,6 +6,7 @@ PUBNUB_PUBLISH_KEY=pub-c-bananas
 MIXPANEL_TOKEN=bananasbananas
 LISTEN_PORT=48484
 RESIN_SUPERVISOR_SECRET=bananas
+VPN_ENDPOINT=vpn.resinstaging.io
 
 SUPERVISOR_IMAGE=
 LED_FILE=/dev/null
