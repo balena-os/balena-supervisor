@@ -74,7 +74,8 @@ disableConnectivityCheck = false
 checkHost = (options) ->
 	if disableConnectivityCheck or pauseConnectivityCheck
 		return true
-	return networkCheck.checkHost(options)
+	else
+		return networkCheck.checkHost(options)
 
 # Custom monitor that uses checkHost function above.
 customMonitor = (options, fn) ->
@@ -103,6 +104,8 @@ exports.connectivityCheck = _.once ->
 	parsedUrl = url.parse(config.apiEndpoint)
 	fs.mkdirAsync(config.vpnStatusPath)
 	.then ->
+		console.log('Creating directory for watching VPN status...')
+	.finally ->
 		fs.watch(config.vpnStatusPath, vpnStatusInotifyCallback)
 	.catch EEXIST, (err) ->
 
