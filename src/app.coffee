@@ -19,16 +19,14 @@ knex.init.then ->
 		utils.mixpanelProperties.uuid = uuid
 
 		api = require './api'
-		application = require './application'
+		application = require('./application')(uuid)
 		device = require './device'
 		randomstring = require 'randomstring'
-
-		console.log('Starting API server..')
-
 		secret = config.forceApiSecret ? randomstring.generate()
-		api(secret).listen(config.listenPort)
 
-		initialStateUpdate = ->
+		bootstrap.done.then ->
+			console.log('Starting API server..')
+			api(secret).listen(config.listenPort)
 			# Let API know what version we are, and our api connection info.
 			console.log('Updating supervisor version and api info')
 			device.updateState(
@@ -39,11 +37,6 @@ knex.init.then ->
 				provisioning_state: ''
 				download_progress: null
 			)
-
-		if bootstrap.bootstrapped
-			initialStateUpdate()
-		else
-			bootstrap.on('done', initialStateUpdate)
 
 		console.log('Starting Apps..')
 		knex('app').select()

@@ -5,18 +5,26 @@ utils = require './utils'
 deviceRegister = require 'resin-register-device'
 { resinApi } = require './request'
 fs = Promise.promisifyAll(require('fs'))
-crypto = require 'crypto'
-appConfig = require './config'
 EventEmitter = require('events').EventEmitter
 
 module.exports = do ->
 	configPath = '/boot/config.json'
+	appsPath  = '/boot/apps.json'
 	userConfig = {}
 
 	bootstrapper = new EventEmitter()
 
 	loadPreloadedApps = ->
-		#To-Do
+		knex('app').truncate()
+		.then ->
+			fs.readFileAsync(appsPath, 'utf8')
+		.then(JSON.parse)
+		.then (apps) ->
+			Promise.map apps, (app) ->
+				app.env = JSON.stringify(app.env)
+				knex('app').insert(app)
+		.catch (err) ->
+			utils.mixpanelTrack('Loading preloaded apps failed', {error: err})
 
 	bootstrap = ->
 		Promise.try ->
@@ -46,7 +54,7 @@ module.exports = do ->
 					])
 			])
 			.tap ->
-				doneBootstrapping()
+				bootstrapper.doneBootstrapping()
 
 	readConfigAndEnsureUUID = ->
 		# Load config file
@@ -73,16 +81,17 @@ module.exports = do ->
 			utils.mixpanelTrack('Device bootstrap failed, retrying', {error: err, delay: config.bootstrapRetryDelay})
 			setTimeout(bootstrapOrRetry, config.bootstrapRetryDelay)
 
-	doneBootstrapping = ->
-		bootstrapper.bootstrapped = true
-		bootstrapper.emit('done')
+	bootstrapper.done = new Promise (resolve) ->
+		bootstrapper.doneBootstrapping = ->
+			bootstrapper.bootstrapped = true
+			resolve(userConfig)
 
 	bootstrapper.bootstrapped = false
 	bootstrapper.startBootstrapping = ->
 		knex('config').select('value').where(key: 'uuid')
 		.then ([ uuid ]) ->
 			if uuid?.value
-				doneBootstrapping()
+				bootstrapper.doneBootstrapping()
 				return uuid.value
 			console.log('New device detected. Bootstrapping..')
 			readConfigAndEnsureUUID()

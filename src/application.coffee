@@ -16,13 +16,6 @@ bootstrap = require './bootstrap'
 
 { docker } = dockerUtils
 
-knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
-	logger.init(
-		dockerSocket: config.dockerSocket
-		pubnub: config.pubnub
-		channel: "device-#{uuid.value}-logs"
-	)
-
 logTypes =
 	stopApp:
 		eventName: 'Application kill'
@@ -87,7 +80,9 @@ logSystemEvent = (logType, app, error) ->
 	utils.mixpanelTrack(logType.eventName, {app, error})
 	return
 
-exports.kill = kill = (app) ->
+application = {}
+
+application.kill = kill = (app) ->
 	logSystemEvent(logTypes.stopApp, app)
 	device.updateState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
@@ -140,7 +135,7 @@ fetch = (app) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
 			throw err
 
-exports.start = start = (app) ->
+application.start = start = (app) ->
 	Promise.try ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
 		JSON.parse(app.env)
@@ -256,12 +251,12 @@ lockPath = (app) ->
 	return "/mnt/root/resin-data/#{appId}/resin-updates.lock"
 
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
-exports.unlockAndStart = unlockAndStart = (app) ->
+application.unlockAndStart = unlockAndStart = (app) ->
 	lockFile.unlockAsync(lockPath(app))
 	.then ->
 		start(app)
 
-exports.lockUpdates = lockUpdates = do ->
+application.lockUpdates = lockUpdates = do ->
 	_lock = new Lock()
 	_writeLock = Promise.promisify(_lock.async.writeLock)
 	return (app, force) ->
@@ -293,145 +288,153 @@ updateStatus =
 	state: UPDATE_IDLE
 	failed: 0
 	forceNext: false
-exports.update = update = (force) ->
-	return if !bootstrap.bootstrapped
+application.update = update = (force) ->
 	if updateStatus.state isnt UPDATE_IDLE
 		# Mark an update required after the current.
 		updateStatus.forceNext = force
 		updateStatus.state = UPDATE_REQUIRED
 		return
 	updateStatus.state = UPDATE_UPDATING
-	Promise.all([
-		knex('config').select('value').where(key: 'apiKey')
-		knex('config').select('value').where(key: 'uuid')
-		knex('app').select()
-	])
-	.then ([ [ apiKey ], [ uuid ], apps ]) ->
-		apiKey = apiKey.value
-		uuid = uuid.value
+	bootstrap.done.then ->
+		Promise.all([
+			knex('config').select('value').where(key: 'apiKey')
+			knex('config').select('value').where(key: 'uuid')
+			knex('app').select()
+		])
+		.then ([ [ apiKey ], [ uuid ], apps ]) ->
+			apiKey = apiKey.value
+			uuid = uuid.value
 
-		deviceId = device.getID()
+			deviceId = device.getID()
 
-		remoteApps = cachedResinApi.get
-			resource: 'application'
-			options:
-				select: [
-					'id'
-					'git_repository'
-					'commit'
-				]
-				filter:
-					commit: $ne: null
-					device:
-						uuid: uuid
-			customOptions:
-				apikey: apiKey
+			remoteApps = cachedResinApi.get
+				resource: 'application'
+				options:
+					select: [
+						'id'
+						'git_repository'
+						'commit'
+					]
+					filter:
+						commit: $ne: null
+						device:
+							uuid: uuid
+				customOptions:
+					apikey: apiKey
 
-		Promise.join deviceId, remoteApps, (deviceId, remoteApps) ->
-			return Promise.map remoteApps, (remoteApp) ->
-				getEnvironment(remoteApp.id, deviceId, apiKey)
-				.then (environment) ->
-					remoteApp.environment_variable = environment
-					return remoteApp
-		.then (remoteApps) ->
-			remoteAppEnvs = {}
-			remoteApps = _.map remoteApps, (app) ->
-				env =
-					RESIN_DEVICE_UUID: uuid
-					RESIN: '1'
-					USER: 'root'
+			Promise.join deviceId, remoteApps, (deviceId, remoteApps) ->
+				return Promise.map remoteApps, (remoteApp) ->
+					getEnvironment(remoteApp.id, deviceId, apiKey)
+					.then (environment) ->
+						remoteApp.environment_variable = environment
+						return remoteApp
+			.then (remoteApps) ->
+				remoteAppEnvs = {}
+				remoteApps = _.map remoteApps, (app) ->
+					env =
+						RESIN_DEVICE_UUID: uuid
+						RESIN: '1'
+						USER: 'root'
 
-				if app.environment_variable?
-					_.extend(env, app.environment_variable)
-				remoteAppEnvs[app.id] = env
-				return {
-					appId: '' + app.id
-					commit: app.commit
-					imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
-					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
-				}
+					if app.environment_variable?
+						_.extend(env, app.environment_variable)
+					remoteAppEnvs[app.id] = env
+					return {
+						appId: '' + app.id
+						commit: app.commit
+						imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+						env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
+					}
 
-			remoteApps = _.indexBy(remoteApps, 'appId')
-			remoteAppIds = _.keys(remoteApps)
+				remoteApps = _.indexBy(remoteApps, 'appId')
+				remoteAppIds = _.keys(remoteApps)
 
-			apps = _.indexBy(apps, 'appId')
-			localApps = _.mapValues apps, (app) ->
-				_.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
-			localAppIds = _.keys(localApps)
+				apps = _.indexBy(apps, 'appId')
+				localApps = _.mapValues apps, (app) ->
+					_.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
+				localAppIds = _.keys(localApps)
 
-			toBeRemoved = _.difference(localAppIds, remoteAppIds)
-			toBeInstalled = _.difference(remoteAppIds, localAppIds)
+				toBeRemoved = _.difference(localAppIds, remoteAppIds)
+				toBeInstalled = _.difference(remoteAppIds, localAppIds)
 
-			toBeUpdated = _.intersection(remoteAppIds, localAppIds)
-			toBeUpdated = _.filter toBeUpdated, (appId) ->
-				return !_.isEqual(remoteApps[appId], localApps[appId])
+				toBeUpdated = _.intersection(remoteAppIds, localAppIds)
+				toBeUpdated = _.filter toBeUpdated, (appId) ->
+					return !_.isEqual(remoteApps[appId], localApps[appId])
 
-			toBeDownloaded = _.filter toBeUpdated, (appId) ->
-				return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
-			toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
+				toBeDownloaded = _.filter toBeUpdated, (appId) ->
+					return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
+				toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
 
-			allAppIds = _.union(localAppIds, remoteAppIds)
+				allAppIds = _.union(localAppIds, remoteAppIds)
 
-			Promise.map allAppIds, (appId) ->
-				Promise.try ->
-					fetch(remoteApps[appId]) if _.includes(toBeDownloaded, appId)
-				.then ->
-					if _.includes(toBeRemoved, appId)
-						Promise.using lockUpdates(apps[appId], force), ->
-							# We get the app from the DB again in case someone restarted it
-							# (which would have changed its containerId)
-							knex('app').select().where({ appId })
-							.then ([ app ]) ->
-								if !app?
-									throw new Error('App not found')
-								kill(app)
-							.then ->
-								knex('app').where('appId', appId).delete()
-						.catch (err) ->
-							logSystemEvent(logTypes.updateAppError, app, err)
-							throw err
-					else if _.includes(toBeInstalled, appId)
-						app = remoteApps[appId]
-						start(app)
-					else if _.includes(toBeUpdated, appId)
-						localApp = apps[appId]
-						app = remoteApps[appId]
-						logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
-						forceThisApp = remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
-						Promise.using lockUpdates(localApp, force || forceThisApp), ->
-							knex('app').select().where({ appId })
-							.then ([ localApp ]) ->
-								if !localApp?
-									throw new Error('App not found')
-								kill(localApp)
-							.then ->
-								start(app)
-						.catch (err) ->
-							logSystemEvent(logTypes.updateAppError, app, err)
-							throw err
-				.catch(_.identity)
-	.filter(_.isError)
-	.then (failures) ->
-		throw new Error(joinErrorMessages(failures)) if failures.length > 0
-	.then ->
-		updateStatus.failed = 0
-		# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
-		# point where we might clean up an image we still want.
-		dockerUtils.cleanupContainersAndImages()
-	.catch (err) ->
-		updateStatus.failed++
-		if updateStatus.state is UPDATE_REQUIRED
-			console.log('Updating failed, but there is already another update scheduled immediately: ', err)
-			return
-		delayTime = Math.min(updateStatus.failed * 500, 30000)
-		# If there was an error then schedule another attempt briefly in the future.
-		console.log('Scheduling another update attempt due to failure: ', delayTime, err)
-		setTimeout(update, delayTime, force)
-	.finally ->
-		device.updateState(status: 'Idle')
-		if updateStatus.state is UPDATE_REQUIRED
-			# If an update is required then schedule it
-			setTimeout(update, 1, updateStatus.forceNext)
-	.finally ->
-		# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
-		updateStatus.state = UPDATE_IDLE
+				Promise.map allAppIds, (appId) ->
+					Promise.try ->
+						fetch(remoteApps[appId]) if _.includes(toBeDownloaded, appId)
+					.then ->
+						if _.includes(toBeRemoved, appId)
+							Promise.using lockUpdates(apps[appId], force), ->
+								# We get the app from the DB again in case someone restarted it
+								# (which would have changed its containerId)
+								knex('app').select().where({ appId })
+								.then ([ app ]) ->
+									if !app?
+										throw new Error('App not found')
+									kill(app)
+								.then ->
+									knex('app').where('appId', appId).delete()
+							.catch (err) ->
+								logSystemEvent(logTypes.updateAppError, app, err)
+								throw err
+						else if _.includes(toBeInstalled, appId)
+							app = remoteApps[appId]
+							start(app)
+						else if _.includes(toBeUpdated, appId)
+							localApp = apps[appId]
+							app = remoteApps[appId]
+							logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
+							forceThisApp = remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
+							Promise.using lockUpdates(localApp, force || forceThisApp), ->
+								knex('app').select().where({ appId })
+								.then ([ localApp ]) ->
+									if !localApp?
+										throw new Error('App not found')
+									kill(localApp)
+								.then ->
+									start(app)
+							.catch (err) ->
+								logSystemEvent(logTypes.updateAppError, app, err)
+								throw err
+					.catch(_.identity)
+		.filter(_.isError)
+		.then (failures) ->
+			throw new Error(joinErrorMessages(failures)) if failures.length > 0
+		.then ->
+			updateStatus.failed = 0
+			# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
+			# point where we might clean up an image we still want.
+			dockerUtils.cleanupContainersAndImages()
+		.catch (err) ->
+			updateStatus.failed++
+			if updateStatus.state is UPDATE_REQUIRED
+				console.log('Updating failed, but there is already another update scheduled immediately: ', err)
+				return
+			delayTime = Math.min(updateStatus.failed * 500, 30000)
+			# If there was an error then schedule another attempt briefly in the future.
+			console.log('Scheduling another update attempt due to failure: ', delayTime, err)
+			setTimeout(update, delayTime, force)
+		.finally ->
+			device.updateState(status: 'Idle')
+			if updateStatus.state is UPDATE_REQUIRED
+				# If an update is required then schedule it
+				setTimeout(update, 1, updateStatus.forceNext)
+		.finally ->
+			# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
+			updateStatus.state = UPDATE_IDLE
+
+module.exports = (uuid) ->
+	logger.init(
+		dockerSocket: config.dockerSocket
+		pubnub: config.pubnub
+		channel: "device-#{uuid}-logs"
+	)
+	return application
