@@ -21,10 +21,12 @@ knex.init.then ->
 		api = require './api'
 		application = require('./application')(uuid)
 		device = require './device'
-		randomstring = require 'randomstring'
-		secret = config.forceApiSecret ? randomstring.generate()
+		randomHexString = require './lib/random-hex-string'
 
-		bootstrap.done.then ->
+		bootstrap.done
+		.then ->
+			return config.forceApiSecret ? randomHexString.generate()
+		.then (secret) ->
 			console.log('Starting API server..')
 			api(secret, application).listen(config.listenPort)
 			# Let API know what version we are, and our api connection info.
