@@ -12,6 +12,7 @@ logger = require './lib/logger'
 { cachedResinApi } = require './request'
 device = require './device'
 lockFile = Promise.promisifyAll(require('lockfile'))
+bootstrap = require './bootstrap'
 
 { docker } = dockerUtils
 
@@ -293,6 +294,7 @@ updateStatus =
 	failed: 0
 	forceNext: false
 exports.update = update = (force) ->
+	return if !bootstrap.bootstrapped
 	if updateStatus.state isnt UPDATE_IDLE
 		# Mark an update required after the current.
 		updateStatus.forceNext = force

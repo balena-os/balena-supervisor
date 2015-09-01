@@ -13,18 +13,7 @@ knex.init.then ->
 	console.log('Starting connectivity check..')
 	utils.connectivityCheck()
 
-	knex('config').select('value').where(key: 'uuid').then ([ uuid ]) ->
-		if not uuid?.value
-			console.log('New device detected. Bootstrapping..')
-			retryingBootstrap = ->
-				utils.mixpanelTrack('Device bootstrap')
-				bootstrap().catch (err) ->
-					utils.mixpanelTrack('Device bootstrap failed, retrying', {error: err, delay: config.bootstrapRetryDelay})
-					Promise.delay(config.bootstrapRetryDelay)
-					.then(retryingBootstrap)
-			retryingBootstrap()
-		else
-			uuid.value
+	bootstrap.startBootstrapping()
 	.then (uuid) ->
 		# Persist the uuid in subsequent metrics
 		utils.mixpanelProperties.uuid = uuid
@@ -39,16 +28,22 @@ knex.init.then ->
 		secret = config.forceApiSecret ? randomstring.generate()
 		api(secret).listen(config.listenPort)
 
-		# Let API know what version we are, and our api connection info.
-		console.log('Updating supervisor version and api info')
-		device.updateState(
-			api_port: config.listenPort
-			api_secret: secret
-			supervisor_version: utils.supervisorVersion
-			provisioning_progress: null
-			provisioning_state: ''
-			download_progress: null
-		)
+		initialStateUpdate = ->
+			# Let API know what version we are, and our api connection info.
+			console.log('Updating supervisor version and api info')
+			device.updateState(
+				api_port: config.listenPort
+				api_secret: secret
+				supervisor_version: utils.supervisorVersion
+				provisioning_progress: null
+				provisioning_state: ''
+				download_progress: null
+			)
+
+		if bootstrap.bootstrapped
+			initialStateUpdate()
+		else
+			bootstrap.on('done', initialStateUpdate)
 
 		console.log('Starting Apps..')
 		knex('app').select()

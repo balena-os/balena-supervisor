@@ -24,7 +24,7 @@
     "pubnub": "^3.7.13",
     "randomstring": "~1.0.3",
     "request": "^2.51.0",
-    "resin-register-device": "^1.0.1",
+    "resin-register-device": "^1.1.0",
     "rwlock": "^5.0.0",
     "server-destroy": "^1.0.0",
     "sqlite3": "~3.0.4",
