@@ -7,6 +7,8 @@ Before=openvpn@client.service
 [Service]
 WorkingDirectory=/usr/src/app
 EnvironmentFile=/usr/src/app/config/env
+EnvironmentFile=/usr/src/app/config/localenv
+ExecStartPre=/bin/bash -c 'if [ -n "${PRELOADED_IMAGE}" ]; then /usr/bin/docker pull ${PRELOADED_IMAGE}; fi'
 ExecStartPre=/usr/bin/docker pull ${SUPERVISOR_IMAGE}
 ExecStartPre=-/usr/bin/docker kill resin_supervisor
 ExecStartPre=-/usr/bin/docker rm resin_supervisor
@@ -16,6 +18,7 @@ ExecStart=/bin/bash -c 'source /usr/src/app/resin-vars && \
 	--net=host \
 	-v /var/run/docker.sock:/run/docker.sock \
 	-v "${CONFIG_PATH}:/boot/config.json" \
+	-v "${APPS_PATH}:/boot/apps.json" \
 	-v /resin-data/resin-supervisor:/data \
 	-v /proc/net/fib_trie:/mnt/fib_trie \
 	-v /var/log/supervisor-log:/var/log \

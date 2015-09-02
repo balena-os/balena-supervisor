@@ -45,15 +45,15 @@ exports.updateState = do ->
 			actualState[key] is value
 
 	applyState = ->
-		if _.size(getStateDiff()) is 0
+		stateDiff = getStateDiff()
+		if _.size(stateDiff) is 0
 			return
-
 		applyPromise = Promise.join(
 			knex('config').select('value').where(key: 'apiKey')
 			device.getID()
 			([{value: apiKey}], deviceID) ->
 				stateDiff = getStateDiff()
-				if _.size(stateDiff) is 0
+				if _.size(stateDiff) is 0 || !apiKey?
 					return
 				resinApi.patch
 					resource: 'device'
@@ -64,11 +64,11 @@ exports.updateState = do ->
 				.then ->
 					# Update the actual state.
 					_.merge(actualState, stateDiff)
-				.catch (error) ->
-					utils.mixpanelTrack('Device info update failure', {error, stateDiff})
-					# Delay 5s before retrying a failed update
-					Promise.delay(5000)
 		)
+		.catch (error) ->
+			utils.mixpanelTrack('Device info update failure', {error, stateDiff})
+			# Delay 5s before retrying a failed update
+			Promise.delay(5000)
 		.finally ->
 			# Check if any more state diffs have appeared whilst we've been processing this update.
 			applyState()

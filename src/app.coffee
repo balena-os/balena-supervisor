@@ -26,7 +26,7 @@ knex.init.then ->
 
 		bootstrap.done.then ->
 			console.log('Starting API server..')
-			api(secret).listen(config.listenPort)
+			api(secret, application).listen(config.listenPort)
 			# Let API know what version we are, and our api connection info.
 			console.log('Updating supervisor version and api info')
 			device.updateState(

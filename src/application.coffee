@@ -256,6 +256,8 @@ application.unlockAndStart = unlockAndStart = (app) ->
 	.then ->
 		start(app)
 
+ENOENT = (err) -> err.code is 'ENOENT'
+
 application.lockUpdates = lockUpdates = do ->
 	_lock = new Lock()
 	_writeLock = Promise.promisify(_lock.async.writeLock)
@@ -265,6 +267,7 @@ application.lockUpdates = lockUpdates = do ->
 		.tap (release) ->
 			if force != true
 				lockFile.lockAsync(lockName)
+				.catch ENOENT, _.noop
 				.catch (err) ->
 					release()
 					throw new Error("Updates are locked: #{err.message}")

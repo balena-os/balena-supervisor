@@ -13,17 +13,35 @@ This will build the image if you haven't done it yet.
 A different registry can be specified with the DEPLOY_REGISTRY env var.
 
 ## Set up config
-Edit `tools/dind/config.json` to contain the values for a staging config.json.
+Add `tools/dind/config.json` file from a staging device image.
 
-This file can be obtained in several ways, for instance:
+A config.json file can be obtained in several ways, for instance:
 
 * Download an Intel Edison image from staging, open `config.img` with an archive tool like [peazip](http://sourceforge.net/projects/peazip/files/)
 * Download a Raspberry Pi 2 image, flash it to an SD card, then mount partition 5 (resin-conf).
 
-Tip: to avoid git marking config.json as modified, you can run:
-```bash
-git update-index --assume-unchanged tools/dind/config.json
+The config.json file should look something like this (beautified and commented for better explanation):
+```json
+{
+	"applicationId": "2167", /* Id of the app this supervisor will run */
+	"apiKey": "supersecretapikey", /* The API key for the Resin API */
+	"userId": "141", /* User ID for the user who owns the app */
+	"username": "gh_pcarranzav", /* User name for the user who owns the app */
+	"deviceType": "intel-edison", /* The device type corresponding to the test application */
+	"files": { /* This field is used by the host OS so the supervisor doesn't care about it */
+		"network/settings": "[global]\nOfflineMode=false\n\n[WiFi]\nEnable=true\nTethering=false\n\n[Wired]\nEnable=true\nTethering=false\n\n[Bluetooth]\nEnable=true\nTethering=false",
+		"network/network.config": "[service_home_ethernet]\nType = ethernet\nNameservers = 8.8.8.8,8.8.4.4"
+	},
+	"apiEndpoint": "https://api.resinstaging.io", /* Endpoint for the Resin API */
+	"registryEndpoint": "registry.resinstaging.io", /* Endpoint for the Resin registry */
+	"vpnEndpoint": "vpn.resinstaging.io", /* Endpoint for the Resin VPN server */
+	"pubnubSubscribeKey": "sub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Subscribe key for Pubnub for logs */
+	"pubnubPublishKey": "pub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Publish key for Pubnub for logs */
+	"listenPort": 48484, /* Listen port for the supervisor API */
+	"mixpanelToken": "aaaaaaaaaaaaaaaaaaaaaaaaaa", /* Mixpanel token to report events */
+}
 ```
+Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the resin API.
 
 ## Start the supervisor instance
 ```bash
@@ -40,6 +58,33 @@ e.g.
 make ARCH=amd64 DEPLOY_REGISTRY= run-supervisor
 ```
 to pull the jenkins built images from the docker hub.
+
+## Testing with preloaded apps
+To test preloaded apps, add a `tools/dind/apps.json` file according to the preloaded apps spec.
+
+It should look something like this:
+
+```json
+[{
+	"appId": "2167", /* Id of the app we are running */
+	"commit": "commithash", /* Current git commit for the app */
+	"imageId": "registry.resinstaging.io/appname/commithash", /* Id of the docker image for this app and commit */
+	"env": { /* Environment variables for the app */
+		"KEY": "value"
+	}
+}]
+```
+where `appname` and `commithash` correspond to the name of the test app and the last commit pushed to Resin.
+
+For instance, `imageId` could be `"registry.resinstaging.io/supertest/5a5f999fde38590d4c28ac80779f3999c12fd9ae"`
+
+Make sure the config.json file doesn't have uuid, registered_at or deviceId populated from a previous run.
+
+Then run the supervisor like this:
+```bash
+make ARCH=amd64 PRELOADED_IMAGE=registry.resinstaging.io/appname/commithash run-supervisor
+```
+This will make the docker-in-docker instance pull the image before running the supervisor.
 
 ## View the containers logs
 ```bash

@@ -1,7 +1,6 @@
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs'
 utils = require './utils'
-application = require './application'
 tty = require './lib/tty'
 knex = require './db'
 express = require 'express'
@@ -9,7 +8,7 @@ bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
 
-module.exports = (secret) ->
+module.exports = (secret, application) ->
 	api = express()
 	api.use(bodyParser())
 	api.use (req, res, next) ->

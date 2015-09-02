@@ -1,4 +1,4 @@
 CONFIG_PATH=/mnt/conf/config.json
 LED_FILE=/dev/null
 RESIN_SUPERVISOR_SECRET=bananas
-SUPERVISOR_IMAGE=
+APPS_PATH=/usr/src/app/config/apps.json

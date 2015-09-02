@@ -10,6 +10,7 @@ JOB_NAME = 1
 all: supervisor 
 
 IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
+SUPERVISOR_IMAGE=$(DEPLOY_REGISTRY)$(IMAGE)
 
 ifeq ($(ARCH),rpi)
 	GOARCH = arm
@@ -23,6 +24,12 @@ endif
 ifeq ($(ARCH),amd64)
 	GOARCH = amd64
 endif
+SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv -v /sys/fs/cgroup:/sys/fs/cgroup:ro
+ifdef PRELOADED_IMAGE
+	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/apps.json:/usr/src/app/config/apps.json
+else
+	PRELOADED_IMAGE=
+endif
 
 clean:
 	-rm Dockerfile
@@ -32,8 +39,8 @@ supervisor-dind:
 
 run-supervisor: supervisor-dind stop-supervisor
 	cd tools/dind \
-	&& sed --in-place -e "s|SUPERVISOR_IMAGE=.*|SUPERVISOR_IMAGE=$(DEPLOY_REGISTRY)$(IMAGE) |" config/env \
-	&& docker run -d --name resin_supervisor_1 --privileged -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v /sys/fs/cgroup:/sys/fs/cgroup:ro resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
+	&& echo "SUPERVISOR_IMAGE=$(SUPERVISOR_IMAGE)\nPRELOADED_IMAGE=$(PRELOADED_IMAGE)" > config/localenv \
+	&& docker run -d --name resin_supervisor_1 --privileged ${SUPERVISOR_DIND_MOUNTS} resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
 
 stop-supervisor:
 	# Stop docker and remove volumes to prevent us from running out of loopback devices,
