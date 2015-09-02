@@ -63,14 +63,13 @@ module.exports = do ->
 		.then (config) ->
 			userConfig = config
 			return userConfig.uuid if userConfig.uuid?
-			Promise.try ->
-				deviceRegister.generateUUID()
+			deviceRegister.generateUUID()
 			.then (uuid) ->
 				userConfig.uuid = uuid
 				fs.writeFileAsync(configPath, JSON.stringify(userConfig))
 			.return(userConfig.uuid)
 		.catch (err) ->
-			console.log('Error generating UUID: ', err)
+			console.log('Error generating and saving UUID: ', err)
 			Promise.delay(config.bootstrapRetryDelay)
 			.then ->
 				readConfigAndEnsureUUID()
