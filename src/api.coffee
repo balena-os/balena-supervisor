@@ -9,7 +9,7 @@ bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
 
-module.exports = (secret, disableCheck) ->
+module.exports = (secret) ->
 	api = express()
 	api.use(bodyParser())
 	api.use (req, res, next) ->
@@ -85,11 +85,11 @@ module.exports = (secret, disableCheck) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	api.post '/tcp-ping', (req, res) ->
-		disableCheck(false)
-		res.status(200).send('OK\n')
+		utils.disableCheck(false)
+		res.sendStatus(204)
 
 	api.delete '/tcp-ping', (req, res) ->
-		disableCheck(true)
-		res.status(200).send('OK\n')
+		utils.disableCheck(true)
+		res.sendStatus(204)
 
 	return api

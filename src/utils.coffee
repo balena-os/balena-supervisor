@@ -103,11 +103,10 @@ EEXIST = (err) -> err.code is 'EEXIST'
 exports.connectivityCheck = _.once ->
 	parsedUrl = url.parse(config.apiEndpoint)
 	fs.mkdirAsync(config.vpnStatusPath)
-	.then ->
-		console.log('Creating directory for watching VPN status...')
-	.finally ->
-		fs.watch(config.vpnStatusPath, vpnStatusInotifyCallback)
 	.catch EEXIST, (err) ->
+		console.log('VPN status path exists.')
+	.then ->
+		fs.watch(config.vpnStatusPath, vpnStatusInotifyCallback)
 
 	# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
 	vpnStatusInotifyCallback()
