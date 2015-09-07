@@ -1,3 +1,5 @@
+* Refactor bootstrapping to run in background [Pablo]
+* Run preloaded app images [Pablo]
 * Add API endpoints for device reboot and shutdown [Pablo]
 * Add /restart endpoint to restart container [Pablo]
 * Add additional mount point for the host dbus on host_run/dbus [Praneeth]
