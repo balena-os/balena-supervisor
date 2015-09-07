@@ -1,4 +1,5 @@
 #!/bin/bash
+source /usr/src/app/resin-vars
 sed --expression="s/#{VPN_ENDPOINT}/${VPN_ENDPOINT}/" /etc/openvpn/client.conf.tmpl > /etc/openvpn/client.conf
 
 while true; do

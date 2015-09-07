@@ -16,6 +16,6 @@ RUN apt-get update && apt-get install jq \
 
 COPY config/openvpn/ /etc/openvpn/
 COPY config/services/ /etc/systemd/system/
-COPY vpn-init /usr/src/app/
+COPY resin-vars vpn-init /usr/src/app/
 
 RUN systemctl enable resin-supervisor-dind
