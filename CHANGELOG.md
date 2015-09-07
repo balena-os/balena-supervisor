@@ -1,3 +1,11 @@
+# v0.0.15
+
+* Disabled the TCP ping whilst the VPN is connected. [Praneeth]
+* Added TCP ping enable/disable endpoints. [Praneeth]
+* Added initial go supervisor, using it to purge the /data directory of apps. [Pablo]
+* Mounted /lib/firmware into the user container. [Pablo]
+* Fixed spaces in env vars for web terminal. [Petros]
+* Added missing return when no app id specified. [Pablo]
 * Try to populate the docker cache before building. [Page]
 
 # v0.0.15
