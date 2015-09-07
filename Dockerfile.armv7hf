@@ -6,10 +6,12 @@ COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 RUN apt-get -q update \
 	&& apt-get install -qqy \
 		btrfs-tools \
+    curl \
 		jq \
 		rsync \
 		socat \
 		supervisor \
+    xz \
 		--no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
