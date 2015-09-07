@@ -1,4 +1,10 @@
-# v0.0.15
+* Allow /purge to be called with appId as string or number [Pablo]
+* Fetch containerId from DB within lock [Pablo]
+* Change update cycle to map by appId [Pablo]
+* Allow updates to be forced via an env var or an API call [Pablo]
+* Use lockfile to lock updates per app [Pablo]
+
+# v0.0.16
 
 * Disabled the TCP ping whilst the VPN is connected. [Praneeth]
 * Added TCP ping enable/disable endpoints. [Praneeth]
