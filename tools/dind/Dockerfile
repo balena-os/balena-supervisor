@@ -1,4 +1,4 @@
-FROM resin/resin-base:1acfee1
+FROM resin/resin-base:e47ff33
 
 VOLUME /var/lib/docker
 VOLUME /resin-data
