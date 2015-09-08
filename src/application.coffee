@@ -111,6 +111,8 @@ exports.kill = kill = (app) ->
 			return
 		throw err
 	.tap ->
+		lockFile.unlockAsync(lockPath(app))
+	.tap ->
 		logSystemEvent(logTypes.stopAppSuccess, app)
 		app.containerId = null
 		knex('app').update(app).where(appId: app.appId)
