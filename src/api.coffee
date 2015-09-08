@@ -94,10 +94,11 @@ module.exports = (secret) ->
 
 	api.post '/v1/restart', (req, res) ->
 		appId = req.body.appId
+		force = req.body.force
 		utils.mixpanelTrack('Restart container', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
-		Promise.using application.lockUpdates(appId, true), ->
+		Promise.using application.lockUpdates(appId, force), ->
 			knex('app').select().where({ appId })
 			.then ([ app ]) ->
 				if !app?
