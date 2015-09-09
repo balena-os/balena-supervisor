@@ -122,7 +122,7 @@ isValidPort = (port) ->
 
 fetch = (app) ->
 	onProgress = (progress) ->
-		device.updateState(download_progress: progress.percentage)
+		device.updateState(download_progress: progress.percent)
 
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
