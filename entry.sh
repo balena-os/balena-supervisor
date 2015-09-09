@@ -22,6 +22,7 @@ mount -t tmpfs -o size=1m tmpfs /var/run/resin
 if [ -z "$GOSUPER_SOCKET" ]; then
 	export GOSUPER_SOCKET=/var/run/resin/gosuper.sock
 fi
+export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket"
 
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 

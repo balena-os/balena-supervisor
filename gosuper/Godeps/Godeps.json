@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/coreos/go-systemd/login1",
+			"Comment": "v3-13-g392c689",
+			"Rev": "392c689e425689acb51976419a8d62878966511f"
+		},
+		{
 			"ImportPath": "github.com/godbus/dbus",
 			"Comment": "v2-14-g69f6e9a",
 			"Rev": "69f6e9aa61d058ad86fd7f9e198e1df7384970d9"

@@ -96,7 +96,7 @@ func RebootHandler(writer http.ResponseWriter, request *http.Request) {
 
 	sendResponse := responseSender(writer)
 	sendResponse("OK", "", http.StatusAccepted)
-	systemd.Reboot()
+	systemd.Logind.Reboot(false)
 }
 
 func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
@@ -104,5 +104,5 @@ func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
 
 	sendResponse := responseSender(writer)
 	sendResponse("OK", "", http.StatusAccepted)
-	systemd.Shutdown()
+	systemd.Logind.PowerOff(false)
 }
