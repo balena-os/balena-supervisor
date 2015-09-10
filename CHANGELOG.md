@@ -1,3 +1,5 @@
+* Add additional mount point for the host dbus on host_run/dbus [Praneeth]
+* Switch to golang 1.5.1 for compiling [Praneeth]
 * Allow /purge to be called with appId as string or number [Pablo]
 * Fetch containerId from DB within lock [Pablo]
 * Change update cycle to map by appId [Pablo]
