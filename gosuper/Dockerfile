@@ -1,4 +1,4 @@
-FROM golang:1.4.2-cross
+FROM golang:1.5.1
 
 ENV GOOS linux
 ENV GOPATH /usr/src/app
