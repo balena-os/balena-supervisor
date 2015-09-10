@@ -34,6 +34,31 @@ type VPNBody struct {
 	Enable bool
 }
 
+func setupApi(router *mux.Router) {
+	router.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintln(writer, "OK")
+	})
+
+	apiv1 := router.PathPrefix("/v1").Subrouter()
+	apiv1.HandleFunc("/ipaddr", IPAddressHandler).Methods("GET")
+	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
+	apiv1.HandleFunc("/reboot", RebootHandler).Methods("POST")
+	apiv1.HandleFunc("/shutdown", ShutdownHandler).Methods("POST")
+}
+
+func StartApi(listenAddress string) {
+	router := mux.NewRouter()
+	setupApi(router)
+	if listener, err := net.Listen("unix", listenAddress); err != nil {
+		log.Fatalf("Could not listen on %s: %v", listenAddress, err)
+	} else {
+		log.Printf("Starting HTTP server on %s\n", listenAddress)
+		if err = http.Serve(listener, router); err != nil {
+			log.Fatalf("Could not start HTTP server: %v", err)
+		}
+	}
+}
+
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
 	jsonBody, err := json.Marshal(response)
 	if err != nil {
