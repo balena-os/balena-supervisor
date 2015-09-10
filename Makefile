@@ -33,7 +33,7 @@ supervisor-dind:
 run-supervisor: supervisor-dind stop-supervisor
 	cd tools/dind \
 	&& sed --in-place -e "s|SUPERVISOR_IMAGE=.*|SUPERVISOR_IMAGE=$(DEPLOY_REGISTRY)$(IMAGE) |" config/env \
-	&& docker run -d --name resin_supervisor_1 --privileged -v $$(pwd)/config.json:/usr/src/app/config/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v /sys/fs/cgroup:/sys/fs/cgroup:ro resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
+	&& docker run -d --name resin_supervisor_1 --privileged -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v /sys/fs/cgroup:/sys/fs/cgroup:ro resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
 
 stop-supervisor:
 	# Stop docker and remove volumes to prevent us from running out of loopback devices,
