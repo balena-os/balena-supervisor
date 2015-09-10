@@ -214,6 +214,7 @@ exports.start = start = (app) ->
 					'/lib/modules:/lib/modules'
 					'/lib/firmware:/lib/firmware'
 					'/run/dbus:/run/dbus'
+					'/run/dbus:/host_run/dbus'
 					'/var/run/docker.sock:/run/docker.sock'
 					'/etc/resolv.conf:/etc/resolv.conf:rw'
 				]
