@@ -50,7 +50,7 @@ supervisor: gosuper
 
 deploy: supervisor
 	docker tag -f $(IMAGE) $(DEPLOY_REGISTRY)$(IMAGE)
-	docker push $(DEPLOY_REGISTRY)$(IMAGE)
+	bash retry_docker_push.sh $(DEPLOY_REGISTRY)$(IMAGE)
 
 go-builder:
 	-cp tools/dind/config.json ./gosuper/
