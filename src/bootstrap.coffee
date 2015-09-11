@@ -34,10 +34,18 @@ bootstrap = ->
 			return userConfig
 		deviceRegister.register(resinApi, userConfig)
 		.catch DuplicateUuidError, ->
-			return {}
+			resinApi.get
+				resource: 'device'
+				options:
+					filter:
+						uuid: userConfig.uuid
+				customOptions:
+					apikey: userConfig.apiKey
+			.then ([ device ]) ->
+				return device
 		.then (device) ->
 			userConfig.registered_at = Date.now()
-			userConfig.deviceId = device.id if device.id?
+			userConfig.deviceId = device.id
 			fs.writeFileAsync(configPath, JSON.stringify(userConfig))
 		.return(userConfig)
 	.then (userConfig) ->
