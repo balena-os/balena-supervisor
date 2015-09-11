@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"resin-supervisor/gosuper/systemd"
 )
@@ -91,12 +92,17 @@ func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func inASecond(theFunc func()) {
+	time.Sleep(time.Duration(time.Second))
+	theFunc()
+}
+
 func RebootHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Rebooting")
 
 	sendResponse := responseSender(writer)
 	sendResponse("OK", "", http.StatusAccepted)
-	systemd.Logind.Reboot(false)
+	go inASecond(func() { systemd.Logind.Reboot(false) })
 }
 
 func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
@@ -104,5 +110,5 @@ func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
 
 	sendResponse := responseSender(writer)
 	sendResponse("OK", "", http.StatusAccepted)
-	systemd.Logind.PowerOff(false)
+	go inASecond(func() { systemd.Logind.PowerOff(false) })
 }
