@@ -1,23 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net"
-	"net/http"
-	"os"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
 	"resin-supervisor/gosuper/application"
+	"resin-supervisor/gosuper/device"
+	"resin-supervisor/gosuper/supermodels"
 )
 
 var ResinDataPath string = "/mnt/root/resin-data/"
 
-func startConnectivityCheck() {
-
-}
-
-func supervisorStart() {
+func connectivityCheck() {
 
 }
 
@@ -26,14 +19,14 @@ func main() {
 	log.Println("Resin Supervisor starting")
 
 	config := GetSupervisorConfig()
-	startConnectivityCheck()
-	if db, err := InitDatabase(); err != nil {
+	go connectivityCheck()
+	if appsCollection, dbConfig, err := supermodels.Initialize(); err != nil {
 		log.Fatal("Failed to start database")
-	} else if uuid, bootstrapper, err := Booststrap(db); err != nil {
-		log.Fatal("Failed to bootstrap device")
-	} else if apps, err := application.Initialize(uuid, db); err != nil {
+	} else if dev, err := device.Initialize(appsCollection, dbConfig); err != nil {
+		log.Fatal("Failed to start device bootstrapping")
+	} else if apps, err := application.Initialize(appsCollection, dbConfig, dev); err != nil {
 		log.Fatal("Failed to initialize applications manager")
-	} else if api, err := startApi(config.ListenAddress, apps); err != nil {
+	} else if err = StartApi(config.ListenPort, apps); err != nil {
 		log.Fatal("Failed to initialize Supervisor API")
 	}
 }
