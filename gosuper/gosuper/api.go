@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
 	"net"
 	"net/http"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"strconv"
 	"time"
 
+	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
+	"resin-supervisor/gosuper/application"
 	"resin-supervisor/gosuper/systemd"
 )
 
@@ -46,17 +49,17 @@ func setupApi(router *mux.Router) {
 	apiv1.HandleFunc("/shutdown", ShutdownHandler).Methods("POST")
 }
 
-func StartApi(listenAddress string) {
+var applications *application.ApplicationManager
+
+func StartApi(port int, apps *application.ApplicationManager) (err error) {
 	router := mux.NewRouter()
+	applications = apps
 	setupApi(router)
-	if listener, err := net.Listen("unix", listenAddress); err != nil {
-		log.Fatalf("Could not listen on %s: %v", listenAddress, err)
-	} else {
-		log.Printf("Starting HTTP server on %s\n", listenAddress)
-		if err = http.Serve(listener, router); err != nil {
-			log.Fatalf("Could not start HTTP server: %v", err)
-		}
+	log.Printf("Starting HTTP server on port %d\n", port)
+	if err := http.ListenAndServe(":"+strconv.Itoa(port), router); err != nil {
+		log.Fatalf("Could not start HTTP server: %v", err)
 	}
+	return
 }
 
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {

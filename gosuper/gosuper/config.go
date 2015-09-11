@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
+	"os"
 	"reflect"
 	"strconv"
 )
@@ -27,25 +29,25 @@ func ReadConfig(path string) (config UserConfig, err error) {
 }
 
 type SupervisorConfig struct {
-	ApiEndpoint      string `config_env:"API_ENDPOINT",config_default:"https://api.resin.io"`
-	ListenPort       int    `config_env:"LISTEN_PORT",config_default:"48484"`
-	RegistryEndpoint string `config_env:"REGISTRY_ENDPOINT",config_default:"registry.resin.io"`
+	ApiEndpoint      string `config_env:"API_ENDPOINT" config_default:"https://api.resin.io"`
+	ListenPort       int    `config_env:"LISTEN_PORT" config_default:"48484"`
+	RegistryEndpoint string `config_env:"REGISTRY_ENDPOINT" config_default:"registry.resin.io"`
 	Pubnub           struct {
-		SubscribeKey string `config_env:"PUBNUB_SUBSCRIBE_KEY",config_default:"sub-c-bananas"`
-		PublishKey   string `config_env:"PUBNUB_PUBLISH_KEY",config_default:"pub-c-bananas"`
+		SubscribeKey string `config_env:"PUBNUB_SUBSCRIBE_KEY" config_default:"sub-c-bananas"`
+		PublishKey   string `config_env:"PUBNUB_PUBLISH_KEY" config_default:"pub-c-bananas"`
 	}
-	MixpanelToken         string `config_env:"MIXPANEL_TOKEN",config_default:"bananasbananas"`
-	DockerSocket          string `config_env:"DOCKER_SOCKET",config_default:"/run/docker.sock"`
-	SupervisorImage       string `config_env:"SUPERVISOR_IMAGE",config_default:"resin/rpi-supervisor"`
-	LedFile               string `config_env:"LED_FILE",config_default:"/sys/class/leds/led0/brightness"`
-	BootstrapRetryDelay   int    `config_env:"LED_FILE",config_default:"30000"`
-	AppUpdatePollInterval int    `config_env:"LED_FILE",config_default:"60000"`
-	ForceApiSecret        string `config_env:"RESIN_SUPERVISOR_SECRET",config_default:""`
-	VpnStatusPath         string `config_env:"VPN_STATUS_PATH",config_default:"/mnt/root/run/openvpn/vpn_status"`
+	MixpanelToken         string `config_env:"MIXPANEL_TOKEN" config_default:"bananasbananas"`
+	DockerSocket          string `config_env:"DOCKER_SOCKET" config_default:"/run/docker.sock"`
+	SupervisorImage       string `config_env:"SUPERVISOR_IMAGE" config_default:"resin/rpi-supervisor"`
+	LedFile               string `config_env:"LED_FILE" config_default:"/sys/class/leds/led0/brightness"`
+	BootstrapRetryDelay   int    `config_env:"BOOTSTRAP_RETRY_DELAY" config_default:"30000"`
+	AppUpdatePollInterval int    `config_env:"APP_UPDATE_POLL_INTERVAL" config_default:"60000"`
+	ForceApiSecret        string `config_env:"RESIN_SUPERVISOR_SECRET" config_default:""`
+	VpnStatusPath         string `config_env:"VPN_STATUS_PATH" config_default:"/mnt/root/run/openvpn/vpn_status"`
 }
 
 func populateConfigStruct(value reflect.Value) {
-	valueType = value.Type()
+	valueType := value.Type()
 	for i := 0; i < value.NumField(); i++ {
 		f := value.Field(i)
 		envValue := os.Getenv(valueType.Field(i).Tag.Get("config_env"))
@@ -59,12 +61,20 @@ func populateConfigStruct(value reflect.Value) {
 			}
 		case reflect.Int:
 			if envValue != "" {
-				f.SetInt(strconv.Atoi(envValue))
+				if val, err := strconv.Atoi(envValue); err != nil {
+					log.Printf("Invalid value for %s: %s", valueType.Field(i).Name, envValue)
+				} else {
+					f.SetInt(int64(val))
+				}
 			} else if defaultValue != "" {
-				f.SetInt(strconv.Atoi(defaultValue))
+				if val, err := strconv.Atoi(defaultValue); err != nil {
+					log.Printf("Invalid value for %s: %s", valueType.Field(i).Name, defaultValue)
+				} else {
+					f.SetInt(int64(val))
+				}
 			}
 		case reflect.Struct:
-			populate(f, f.Type)
+			populateConfigStruct(f)
 		default:
 			log.Printf("Unknown config type %s in field %s\n", f.Type(), valueType.Field(i).Name)
 		}
@@ -72,7 +82,7 @@ func populateConfigStruct(value reflect.Value) {
 }
 
 func populateConfig(v interface{}) {
-	value = reflect.ValueOf(v).Elem()
+	value := reflect.ValueOf(v).Elem()
 	populateConfigStruct(value)
 }
 
