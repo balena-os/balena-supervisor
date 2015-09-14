@@ -83,7 +83,7 @@ format-gosuper: go-builder
 
 test-integration: go-builder
 	-docker rm --volumes -f resin_test_integration_$(JOB_NAME) || true
-	docker run --name resin_test_integration_$(JOB_NAME) --net=host -e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" --volumes-from resin_supervisor_1 resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && go test -v ./supertest"
+	docker run --name resin_test_integration_$(JOB_NAME) --net=host -e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" --volumes-from resin_supervisor_1 -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && go test -v ./supertest"
 	docker rm --volumes -f resin_test_integration_$(JOB_NAME)
 
 .PHONY: supervisor deploy supervisor-dind run-supervisor
