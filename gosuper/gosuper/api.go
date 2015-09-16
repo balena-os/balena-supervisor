@@ -7,12 +7,17 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"resin-supervisor/gosuper/systemd"
 )
+
+// Compile the expression once, usually at init time.
+// Use raw strings to avoid having to quote the backslashes.
+var dockerMatch = regexp.MustCompile(`(docker[0-9])|(rce[0-9])`)
 
 type ApiResponse struct {
 	Status string
@@ -116,19 +121,19 @@ func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
 }
 
 // This function returns all active IPs of the interfaces that arent docker/rce and loopback
-func ipAddress() ([]string, error) {
-	ipAddr := []string{}
+func ipAddress() (ipAddresses []string, err error) {
+
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return ipAddr, err
+		return ipAddresses, err
 	}
 	for _, iface := range ifaces {
-		if (iface.Flags&net.FlagUp == 0) || (iface.Flags&net.FlagLoopback != 0) || strings.Contains(iface.Name, "docker") || strings.Contains(iface.Name, "rce") {
+		if (iface.Flags&net.FlagUp == 0) || (iface.Flags&net.FlagLoopback != 0) || dockerMatch.MatchString(iface.Name) {
 			continue // Interface down or Interface is loopback or Interface is a docker IP
 		}
 		addrs, err := iface.Addrs()
 		if err != nil {
-			return ipAddr, err
+			return ipAddresses, err
 		}
 		for _, addr := range addrs {
 			var ip net.IP
@@ -137,25 +142,23 @@ func ipAddress() ([]string, error) {
 				ip = v.IP
 			case *net.IPAddr:
 				ip = v.IP
+			default:
+				continue
 			}
 			if ip == nil {
 				continue
-			} else {
-				ip = ip.To4()
-				if ip == nil {
-					continue // This isnt an IPv4 Addresss
-				} else {
-					ipAddr = append(ipAddr, ip.String())
-				}
 			}
+			if ip = ip.To4(); ip == nil {
+				continue // This isnt an IPv4 Addresss
+			}
+			ipAddresses = append(ipAddresses, ip.String())
 		}
 	}
-	return ipAddr, nil
+	return
 }
 
 //IPAddressHandler is used to reply back with an array of the IPaddress used by the system.
 func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
-	//	log.Println("Fetching IP Address'") - Not logging this as this is called every 30 seconds.
 	sendResponse := responseSender(writer)
 	sendError := func(err string) {
 		sendResponse("Error", err, http.StatusInternalServerError)
