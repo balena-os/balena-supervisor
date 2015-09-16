@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"resin-supervisor/gosuper/systemd"
@@ -111,4 +113,57 @@ func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
 	sendResponse := responseSender(writer)
 	sendResponse("OK", "", http.StatusAccepted)
 	go inASecond(func() { systemd.Logind.PowerOff(false) })
+}
+
+// This function returns all active IPs of the interfaces that arent docker/rce and loopback
+func ipAddress() ([]string, error) {
+	ipAddr := []string{}
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ipAddr, err
+	}
+	for _, iface := range ifaces {
+		if (iface.Flags&net.FlagUp == 0) || (iface.Flags&net.FlagLoopback != 0) || strings.Contains(iface.Name, "docker") || strings.Contains(iface.Name, "rce") {
+			continue // Interface down or Interface is loopback or Interface is a docker IP
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return ipAddr, err
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil {
+				continue
+			} else {
+				ip = ip.To4()
+				if ip == nil {
+					continue // This isnt an IPv4 Addresss
+				} else {
+					ipAddr = append(ipAddr, ip.String())
+				}
+			}
+		}
+	}
+	return ipAddr, nil
+}
+
+//IPAddressHandler is used to reply back with an array of the IPaddress used by the system.
+func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
+	//	log.Println("Fetching IP Address'") - Not logging this as this is called every 30 seconds.
+	sendResponse := responseSender(writer)
+	sendError := func(err string) {
+		sendResponse("Error", err, http.StatusInternalServerError)
+	}
+
+	if ipAddr, err := ipAddress(); err != nil {
+		sendError("Invalid request")
+	} else {
+		sendResponse(strings.Join(ipAddr, " "), "", http.StatusOK)
+	}
 }

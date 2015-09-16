@@ -18,6 +18,7 @@ func setupApi(router *mux.Router) {
 	})
 
 	apiv1 := router.PathPrefix("/v1").Subrouter()
+	apiv1.HandleFunc("/ipaddr", IPAddressHandler).Methods("GET")
 	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
 	apiv1.HandleFunc("/reboot", RebootHandler).Methods("POST")
 	apiv1.HandleFunc("/shutdown", ShutdownHandler).Methods("POST")

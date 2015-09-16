@@ -6,6 +6,7 @@ knex = require './db'
 utils = require './utils'
 bootstrap = require './bootstrap'
 config = require './config'
+request = require 'request'
 
 knex.init.then ->
 	utils.mixpanelTrack('Supervisor start')
@@ -54,10 +55,14 @@ knex.init.then ->
 			application.update()
 
 		updateIpAddr = ->
-			utils.findIpAddrs().then (ipAddrs) ->
-				device.updateState(
-					ip_address: ipAddrs.join(' ')
-				)
+			callback = (error, response, body ) ->
+				if !error && response.statusCode == 200
+					api_response = JSON.parse(body)
+					device.updateState(
+						ip_address: api_response.Status
+					)
+			request.get(config.gosuperAddress + '/v1/ipaddr', callback )
+
 		console.log('Starting periodic check for IP addresses..')
 		setInterval(updateIpAddr, 30 * 1000) # Every 30s
 		updateIpAddr()
