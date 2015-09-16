@@ -48,8 +48,8 @@ exports.rsyncImageWithProgress = (imgDest, onProgress) ->
 	findSimilarImage(imgDest)
 	.spread (imgSrc) ->
 		rsyncDiff = new Promise (resolve, reject) ->
-			console.log("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 0)
-			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 0)
+			console.log("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
+			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
 			.on 'progress', onProgress
 			.on 'end', ->
 				onProgress(percent: 100)
