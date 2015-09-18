@@ -58,7 +58,7 @@ knex.init.then ->
 			callback = (error, response, body ) ->
 				if !error && response.statusCode == 200
 					device.updateState(
-						ip_address: body.Data.IPAddress.join(' ')
+						ip_address: body.Data.IPAddresses.join(' ')
 					)
 			request.get({ url: "#{config.gosuperAddress}/v1/ipaddr", json: true }, callback )
 

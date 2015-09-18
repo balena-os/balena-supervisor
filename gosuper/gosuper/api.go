@@ -143,6 +143,7 @@ func ipAddress() (ipAddresses []string, err error) {
 			case *net.IPAddr:
 				ip = v.IP
 			default:
+				log.Printf("Warning: Unrecognised type %T\n", v)
 				continue
 			}
 			if ip == nil {
@@ -151,7 +152,7 @@ func ipAddress() (ipAddresses []string, err error) {
 			if ip = ip.To4(); ip == nil {
 				continue // This isnt an IPv4 Addresss
 			}
-			ipAddresses = append(ipAddresses, ip.String())
+			ipAddresses = append(IPAddresses, ip.String())
 		}
 	}
 	return
@@ -168,7 +169,7 @@ func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
 		sendError("Invalid request")
 	} else {
 		payload := make(map[string][]string)
-		payload["IPAddress"] = ipAddr
+		payload["IPAddresses"] = ipAddr
 		sendResponse(payload, "", http.StatusOK)
 	}
 }
