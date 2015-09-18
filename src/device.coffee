@@ -4,6 +4,7 @@ knex = require './db'
 utils = require './utils'
 { resinApi } = require './request'
 device = exports
+configPath = '/boot/config.json'
 
 exports.getID = do ->
 	deviceIdPromise = null
@@ -31,6 +32,17 @@ exports.getID = do ->
 					throw new Error('Could not find this device?!')
 				return devices[0].id
 
+exports.getDeviceType = do ->
+	deviceTypePromise = null
+	return ->
+		deviceTypePromise ?= Promise.rejected()
+		deviceTypePromise = deviceTypePromise.catch ->
+			fs.readFileAsync(configPath, 'utf8')
+			.then(JSON.parse)
+			.then (configFromFile) ->
+				if !configFromFile.deviceType?
+					throw new Error('Device type not specified in config file')
+				return configFromFile.deviceType
 
 # Calling this function updates the local device state, which is then used to synchronise
 # the remote device state, repeating any failed updates until successfully synchronised.

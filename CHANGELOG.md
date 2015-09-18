@@ -1,3 +1,4 @@
+* Bind mount /boot in Raspberry Pis [Pablo]
 * Implement and use golang endpoint for getting IPs of the device, also fixes duplicate IP reporting in the JS implementation [Praneeth]
 * Refactor bootstrapping to run in background [Pablo]
 * Run preloaded app images [Pablo]

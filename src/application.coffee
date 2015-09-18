@@ -136,7 +136,29 @@ fetch = (app) ->
 			throw err
 
 application.start = start = (app) ->
-	Promise.try ->
+	volumes =
+		'/data': {}
+		'/lib/modules': {}
+		'/lib/firmware': {}
+		'/run/dbus': {}
+	binds = [
+		'/resin-data/' + app.appId + ':/data'
+		'/lib/modules:/lib/modules'
+		'/lib/firmware:/lib/firmware'
+		'/run/dbus:/run/dbus'
+		'/run/dbus:/host_run/dbus'
+		'/var/run/docker.sock:/run/docker.sock'
+		'/var/run/docker.sock:/host_run/docker.sock'
+		'/etc/resolv.conf:/etc/resolv.conf:rw'
+	]
+	device.getDeviceType()
+	.then (deviceType) ->
+		if deviceType.match(/^raspberry-pi/)?
+			volumes['/boot'] = {}
+			binds.push('/boot:/boot')
+	.catch (err) ->
+		console.log('Could not determine device type: ', err)
+	.then ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
 		JSON.parse(app.env)
 	.then (env) ->
@@ -174,11 +196,7 @@ application.start = start = (app) ->
 					Image: app.imageId
 					Cmd: cmd
 					Tty: true
-					Volumes:
-						'/data': {}
-						'/lib/modules': {}
-						'/lib/firmware': {}
-						'/run/dbus': {}
+					Volumes: volumes
 					Env: _.map env, (v, k) -> k + '=' + v
 					ExposedPorts: ports
 				)
@@ -205,16 +223,7 @@ application.start = start = (app) ->
 				Privileged: true
 				NetworkMode: 'host'
 				PortBindings: ports
-				Binds: [
-					'/resin-data/' + app.appId + ':/data'
-					'/lib/modules:/lib/modules'
-					'/lib/firmware:/lib/firmware'
-					'/run/dbus:/run/dbus'
-					'/run/dbus:/host_run/dbus'
-					'/var/run/docker.sock:/run/docker.sock'
-					'/var/run/docker.sock:/host_run/docker.sock'
-					'/etc/resolv.conf:/etc/resolv.conf:rw'
-				]
+				Binds: binds
 			)
 			.catch (err) ->
 				statusCode = '' + err.statusCode
