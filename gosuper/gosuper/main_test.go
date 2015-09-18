@@ -16,11 +16,11 @@ var purgeTests = []struct {
 	IsSuccess    bool
 	HttpStatus   int
 }{
-	{`{"applicationId": "1"}`, "1", `{"Status":"OK","Error":""}`, true, http.StatusOK},
-	{`{"applicationId": 1}`, "1", `{"Status":"OK","Error":""}`, true, http.StatusOK},
-	{`{"applicationId": "hi"}`, "1", `{"Status":"Error","Error":"Invalid applicationId 'hi'"}`, false, http.StatusBadRequest},
-	{`{"applicationId": "2"}`, "1", `{"Status":"Error","Error":"Invalid applicationId '2': Directory does not exist"}`, false, http.StatusNotFound},
-	{`{}`, "1", `{"Status":"Error","Error":"applicationId is required"}`, false, http.StatusBadRequest},
+	{`{"applicationId": "1"}`, "1", `{"Data":"OK","Error":""}`, true, http.StatusOK},
+	{`{"applicationId": 1}`, "1", `{"Data":"OK","Error":""}`, true, http.StatusOK},
+	{`{"applicationId": "hi"}`, "1", `{"Data":"Error","Error":"Invalid applicationId 'hi'"}`, false, http.StatusBadRequest},
+	{`{"applicationId": "2"}`, "1", `{"Data":"Error","Error":"Invalid applicationId '2': Directory does not exist"}`, false, http.StatusNotFound},
+	{`{}`, "1", `{"Data":"Error","Error":"applicationId is required"}`, false, http.StatusBadRequest},
 }
 
 func TestPurge(t *testing.T) {

@@ -9,7 +9,6 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"resin-supervisor/gosuper/systemd"
@@ -19,9 +18,10 @@ import (
 // Use raw strings to avoid having to quote the backslashes.
 var dockerMatch = regexp.MustCompile(`(docker[0-9])|(rce[0-9])`)
 
-type ApiResponse struct {
-	Status string
-	Error  string
+// API response sent from gosupervisor
+type APIResponse struct {
+	Data  interface{}
+	Error string
 }
 
 type PurgeBody struct {
@@ -61,9 +61,9 @@ func parsePurgeBody(request *http.Request) (appId string, err error) {
 	return
 }
 
-func responseSender(writer http.ResponseWriter) func(string, string, int) {
-	return func(statusMsg, errorMsg string, statusCode int) {
-		jsonResponse(writer, ApiResponse{statusMsg, errorMsg}, statusCode)
+func responseSender(writer http.ResponseWriter) func(interface{}, string, int) {
+	return func(data interface{}, errorMsg string, statusCode int) {
+		jsonResponse(writer, APIResponse{data, errorMsg}, statusCode)
 	}
 }
 
@@ -167,6 +167,8 @@ func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
 	if ipAddr, err := ipAddress(); err != nil {
 		sendError("Invalid request")
 	} else {
-		sendResponse(strings.Join(ipAddr, " "), "", http.StatusOK)
+		payload := make(map[string][]string)
+		payload["IPAddress"] = ipAddr
+		sendResponse(payload, "", http.StatusOK)
 	}
 }

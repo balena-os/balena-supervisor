@@ -62,7 +62,7 @@ func TestPurge(t *testing.T) {
 		} else {
 			if contents, err := ioutil.ReadAll(response.Body); err != nil {
 				t.Fatal(err)
-			} else if !strings.EqualFold(string(contents), `{"Status":"OK","Error":""}`) {
+			} else if !strings.EqualFold(string(contents), `{"Data":"OK","Error":""}`) {
 				t.Errorf("Purge response didn't match the expected JSON, got: %s", contents)
 			}
 			if dirContents, err := ioutil.ReadDir(dataPath); err != nil {
