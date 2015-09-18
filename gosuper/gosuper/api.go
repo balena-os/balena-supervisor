@@ -152,7 +152,7 @@ func ipAddress() (ipAddresses []string, err error) {
 			if ip = ip.To4(); ip == nil {
 				continue // This isnt an IPv4 Addresss
 			}
-			ipAddresses = append(IPAddresses, ip.String())
+			ipAddresses = append(ipAddresses, ip.String())
 		}
 	}
 	return
