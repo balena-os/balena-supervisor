@@ -49,9 +49,9 @@ func setupApi(router *mux.Router) {
 	apiv1.HandleFunc("/shutdown", ShutdownHandler).Methods("POST")
 }
 
-var applications *application.ApplicationManager
+var applications *application.Manager
 
-func StartApi(port int, apps *application.ApplicationManager) (err error) {
+func StartApi(port int, apps *application.Manager) (err error) {
 	router := mux.NewRouter()
 	applications = apps
 	setupApi(router)

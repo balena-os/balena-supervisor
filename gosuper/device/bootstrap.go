@@ -13,7 +13,7 @@ type Device struct {
 
 var device Device
 
-func Initialize(appsCollection supermodels.AppsCollection, dbConfig supermodels.Config) (dev *Device, err error) {
+func Initialize(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config) (dev *Device, err error) {
 	dev = &device
 	return
 }

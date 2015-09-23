@@ -14,25 +14,22 @@ type App struct {
 	Env         map[string]string
 	ContainerId string
 }
-type ApplicationManager struct {
+type Manager struct {
 	Device       *device.Device
 	PollInterval int64
 }
 
-var manager ApplicationManager
-
-func Initialize(appsCollection supermodels.AppsCollection, dbConfig supermodels.Config, dev *device.Device) (*ApplicationManager, error) {
-	manager.Device = dev
+func NewManager(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config, dev *device.Device) (*Manager, error) {
+	manager := Manager{Device: dev, PollInterval: 30000}
 	manager.StartUpdateInterval()
-	manager.PollInterval = 30000
 	return &manager, nil
 }
 
-func (manager ApplicationManager) StartUpdateInterval() {
+func (manager Manager) StartUpdateInterval() {
 	go manager.UpdateInterval()
 }
 
-func (manager ApplicationManager) UpdateInterval() {
+func (manager Manager) UpdateInterval() {
 	for {
 		if manager.Device.Bootstrapped {
 			manager.Update(false)
@@ -41,6 +38,6 @@ func (manager ApplicationManager) UpdateInterval() {
 	}
 }
 
-func (manager ApplicationManager) Update(force bool) {
+func (manager Manager) Update(force bool) {
 
 }

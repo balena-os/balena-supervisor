@@ -44,6 +44,7 @@ type SupervisorConfig struct {
 	AppUpdatePollInterval int    `config_env:"APP_UPDATE_POLL_INTERVAL" config_default:"60000"`
 	ForceApiSecret        string `config_env:"RESIN_SUPERVISOR_SECRET" config_default:""`
 	VpnStatusPath         string `config_env:"VPN_STATUS_PATH" config_default:"/mnt/root/run/openvpn/vpn_status"`
+	DatabasePath          string `config_env:"RESIN_SUPERVISOR_DB_PATH" config_default:"/data/resin-supervisor.db"`
 }
 
 func populateConfigStruct(value reflect.Value) {
