@@ -9,6 +9,7 @@ import (
 )
 
 type AppsCollection struct {
+	db *bolt.DB
 }
 
 type App struct {
@@ -21,7 +22,7 @@ type App struct {
 
 // Create or update an App in the database (identified by its AppId)
 func (apps *AppsCollection) CreateOrUpdate(app *App) error {
-	return Database.Update(func(tx *bolt.Tx) (err error) {
+	return apps.db.Update(func(tx *bolt.Tx) (err error) {
 		if jsonApp, err := json.Marshal(app); err == nil {
 			b := tx.Bucket([]byte("Apps"))
 			err = b.Put([]byte(strconv.Itoa(app.AppId)), jsonApp)
@@ -32,7 +33,7 @@ func (apps *AppsCollection) CreateOrUpdate(app *App) error {
 
 // Delete an App from the database (identified by its AppId)
 func (apps *AppsCollection) Destroy(app *App) error {
-	return Database.Update(func(tx *bolt.Tx) error {
+	return apps.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Apps"))
 		return b.Delete([]byte(strconv.Itoa(app.AppId)))
 	})
@@ -40,7 +41,7 @@ func (apps *AppsCollection) Destroy(app *App) error {
 
 // Get an App from the database (identified by its AppId)
 func (apps *AppsCollection) Get(app *App) (err error) {
-	return Database.View(func(tx *bolt.Tx) error {
+	return apps.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Apps"))
 		v := b.Get([]byte(strconv.Itoa(app.AppId)))
 		if v == nil {
