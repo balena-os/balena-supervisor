@@ -52,3 +52,25 @@ func (apps *AppsCollection) Get(app *App) (err error) {
 		return json.Unmarshal(v, app)
 	})
 }
+
+type AppCallback func(*App) error
+
+// Get an App from the database (identified by its AppId) and execute a callback within a transaction.
+// The app struct will be populated with the App and then passed to the callback, so the contents of
+// the passed struct can be modified by the callback too.
+func (apps *AppsCollection) GetAndDo(app *App, callback AppCallback) (err error) {
+	return apps.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Apps"))
+		v := b.Get([]byte(strconv.Itoa(app.AppId)))
+		if v == nil {
+			v = []byte("{}")
+		}
+		p := reflect.ValueOf(app).Elem()
+		p.Set(reflect.Zero(p.Type()))
+		if er := json.Unmarshal(v, app); err != nil {
+			return er
+		} else {
+			return callback(app)
+		}
+	})
+}
