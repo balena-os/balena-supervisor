@@ -11,9 +11,8 @@ type Device struct {
 	Bootstrapped bool
 }
 
-var device Device
-
-func Initialize(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config) (dev *Device, err error) {
+func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config) (dev *Device, err error) {
+	device := Device{}
 	dev = &device
 	return
 }
