@@ -8,6 +8,7 @@ WORKDIR /usr/src/app
 COPY . src/resin-supervisor/gosuper
 
 RUN chmod +x src/resin-supervisor/gosuper/build_gosuper.sh
+RUN chmod +x src/resin-supervisor/gosuper/test_gosuper.sh
 RUN chmod +x src/resin-supervisor/gosuper/test_formatting.sh
 
 # Run go install with -a (force rebuilding of all packages)
