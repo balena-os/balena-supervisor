@@ -26,19 +26,3 @@ module.exports = config =
 	successMessage: 'SUPERVISOR OK'
 	forceApiSecret: process.env.RESIN_SUPERVISOR_SECRET ? null
 	vpnStatusPath: process.env.VPN_STATUS_PATH ? '/mnt/root/run/openvpn/vpn_status'
-
-config.supervisorContainer =
-		Volumes:
-			'/boot/config.json': {}
-			'/data': {}
-			'/run/docker.sock': {}
-			'/mnt/fib_trie': {}
-			'/var/log': {}
-		Binds: [
-			config.configMountPoint + ':/boot/config.json'
-			'/var/run/docker.sock:/run/docker.sock'
-			'/resin-data/resin-supervisor:/data'
-			'/proc/net/fib_trie:/mnt/fib_trie'
-			'/var/log/supervisor-log:/var/log'
-			'/etc/resolv.conf:/etc/resolv.conf:rw'
-		]
