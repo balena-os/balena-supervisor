@@ -292,15 +292,10 @@ joinErrorMessages = (failures) ->
 		err.message or err
 	"#{failures.length} error#{s}: #{messages.join(' - ')}"
 
-# Example callback function to enable/disable vpn
-# enableVpn = (val) ->
-# 	if val == '1' then console.log('Enabling VPN') else console.log('Disabling VPN')
-
-specialActionEnvVars = {
+specialActionEnvVars =
 	'RESIN_OVERRIDE_LOCK': null
-	# @Praneeth: maybe add your vars here with a callback as value? e.g:
-	# 'RESIN_ENABLE_VPN': enableVpn
-}
+
+executedSpecialActionEnvVars = {}
 
 UPDATE_IDLE = 0
 UPDATE_UPDATING = 1
@@ -361,8 +356,7 @@ application.update = update = (force) ->
 					if app.environment_variable?
 						_.extend(env, app.environment_variable)
 					remoteAppEnvs[app.id] = env
-					env = _.pick env, (val, key) ->
-						!_.includes(key, _.keys(specialActionEnvVars))
+					env = _.omit(env, _.keys(specialActionEnvVars))
 					return {
 						appId: '' + app.id
 						commit: app.commit
@@ -373,12 +367,17 @@ application.update = update = (force) ->
 				remoteApps = _.indexBy(remoteApps, 'appId')
 				remoteAppIds = _.keys(remoteApps)
 
-				# @Praneeth: looks like this might be a good place to run the special functions,
-				# like turning vpn on/off if remoteAppEnvs has the corresponding variable.
+				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
 				_.map specialActionEnvVars, (specialActionCallback, key) ->
 					_.map remoteAppIds, (appId) ->
 						if remoteAppEnvs[appId][key]? && specialActionCallback?
-							specialActionCallback(remoteAppEnvs[appId][key])
+							# This makes the Special Action Envs only trigger their functions once.
+							if executedSpecialActionEnvVars[key]?
+								if executedSpecialActionEnvVars[key] != remoteAppEnvs[appId][key]
+									specialActionCallback(remoteAppEnvs[appId][key])
+							else
+								specialActionCallback(remoteAppEnvs[appId][key])
+						executedSpecialActionEnvVars[key] = remoteAppEnvs[appId][key]
 
 				apps = _.indexBy(apps, 'appId')
 				localApps = _.mapValues apps, (app) ->
