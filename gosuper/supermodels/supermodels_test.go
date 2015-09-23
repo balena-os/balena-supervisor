@@ -7,14 +7,14 @@ import (
 	"testing"
 )
 
-var apps AppsCollection
-var config Config
+var apps *AppsCollection
+var config *Config
 
 func TestMain(m *testing.M) {
 	var err error
 	if err = os.MkdirAll("/data", 0755); err != nil {
 		log.Fatal("Could not create test directory for supermodels")
-	} else if apps, config, err = Initialize(); err != nil {
+	} else if apps, config, err = New("/data/resin-supervisor.db"); err != nil {
 		log.Fatal(err)
 	} else {
 		os.Exit(m.Run())

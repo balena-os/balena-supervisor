@@ -5,11 +5,12 @@ import (
 )
 
 type Config struct {
+	db *bolt.DB
 }
 
 // Get a config value from the database.
 func (config Config) Get(key string) (value string, err error) {
-	err = Database.View(func(tx *bolt.Tx) error {
+	err = config.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Config"))
 		value = string(b.Get([]byte(key)))
 		return nil
@@ -19,7 +20,7 @@ func (config Config) Get(key string) (value string, err error) {
 
 // Set a config value in the database.
 func (config Config) Set(key string, val string) (err error) {
-	err = Database.Update(func(tx *bolt.Tx) error {
+	err = config.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Config"))
 		return b.Put([]byte(key), []byte(val))
 	})
