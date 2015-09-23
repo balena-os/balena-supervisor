@@ -83,7 +83,7 @@ gosuper: go-builder
 
 test-gosuper: go-builder
 	-docker rm --volumes -f resin_test_gosuper_$(JOB_NAME) || true
-	docker run --name resin_test_gosuper_$(JOB_NAME) -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && ./test_formatting.sh && go test -v ./gosuper"
+	docker run --name resin_test_gosuper_$(JOB_NAME) -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && ./test_formatting.sh && ./test_gosuper.sh"
 	docker rm --volumes -f resin_test_gosuper_$(JOB_NAME)
 
 format-gosuper: go-builder
