@@ -18,7 +18,7 @@ import (
 // Use raw strings to avoid having to quote the backslashes.
 var dockerMatch = regexp.MustCompile(`(docker[0-9]+)|(rce[0-9]+)`)
 
-// API response sent from gosupervisor
+// APIResponse sent from gosupervisor
 type APIResponse struct {
 	Data  interface{}
 	Error string
@@ -26,6 +26,11 @@ type APIResponse struct {
 
 type PurgeBody struct {
 	ApplicationId interface{}
+}
+
+// VPNBody interface for post request received by VPN control end point
+type VPNBody struct {
+	Enable bool
 }
 
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
@@ -172,4 +177,33 @@ func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
 		payload["IPAddresses"] = ipAddr
 		sendResponse(payload, "", http.StatusOK)
 	}
+}
+
+//VPNControl is used to control VPN service status with dbus
+func VPNControl(writer http.ResponseWriter, request *http.Request) {
+	sendResponse := responseSender(writer)
+	sendError := func(err string) {
+		sendResponse("Error", err, http.StatusInternalServerError)
+	}
+	var body VPNBody
+	if err := parseJsonBody(&body, request); err != nil {
+		sendError(string(err.Error()))
+		return
+	}
+	if body.Enable {
+		ch := make(chan string)
+		_, err := systemd.Dbus.StartUnit("openvpn-resin.service", "fail", ch)
+		if err != nil {
+			sendError(string(err.Error()))
+			return
+		}
+	} else {
+		ch := make(chan string)
+		_, err := systemd.Dbus.StopUnit("openvpn-resin.service", "fail", ch)
+		if err != nil {
+			sendError(string(err.Error()))
+			return
+		}
+	}
+
 }

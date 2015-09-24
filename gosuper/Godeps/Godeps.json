@@ -1,10 +1,15 @@
 {
 	"ImportPath": "resin-supervisor/gosuper",
-	"GoVersion": "go1.3.3",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
+		{
+			"ImportPath": "github.com/coreos/go-systemd/dbus",
+			"Comment": "v3-13-g392c689",
+			"Rev": "392c689e425689acb51976419a8d62878966511f"
+		},
 		{
 			"ImportPath": "github.com/coreos/go-systemd/login1",
 			"Comment": "v3-13-g392c689",

@@ -22,6 +22,7 @@ func setupApi(router *mux.Router) {
 	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
 	apiv1.HandleFunc("/reboot", RebootHandler).Methods("POST")
 	apiv1.HandleFunc("/shutdown", ShutdownHandler).Methods("POST")
+	apiv1.HandleFunc("/vpncontrol", VPNControl).Methods("POST")
 }
 
 func startApi(listenAddress string, router *mux.Router) {
