@@ -1,3 +1,4 @@
+* Allow special env vars with a callback which don't cause an app restart [Pablo] [Praneeth]
 * Remove unused config.supervisorContainer in config.coffee [Praneeth]
 * Bind mount /boot in Raspberry Pis [Pablo]
 * Implement and use golang endpoint for getting IPs of the device, also fixes duplicate IP reporting in the JS implementation [Praneeth]
