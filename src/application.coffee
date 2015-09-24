@@ -372,7 +372,7 @@ application.update = update = (force) ->
 					_.map remoteAppIds, (appId) ->
 						if remoteAppEnvs[appId][key]? && specialActionCallback?
 							# This makes the Special Action Envs only trigger their functions once.
-							if executedSpecialActionEnvVars[key]?
+							if _.has(executedSpecialActionEnvVars, key)
 								if executedSpecialActionEnvVars[key] != remoteAppEnvs[appId][key]
 									specialActionCallback(remoteAppEnvs[appId][key])
 							else
