@@ -297,6 +297,19 @@ specialActionEnvVars =
 
 executedSpecialActionEnvVars = {}
 
+executeSpecialActionsAndBootConfig = (env) ->
+	_.map specialActionEnvVars, (specialActionCallback, key) ->
+		if env[key]? && specialActionCallback?
+			# This makes the Special Action Envs only trigger their functions once.
+			if !_.has(executedSpecialActionEnvVars, key) or executedSpecialActionEnvVars[key] != env[key]
+				specialActionCallback(env[key])
+				executedSpecialActionEnvVars[key] = env[key]
+	bootConfigVars = _.pick env, (val, key) ->
+		configRegex = new RegExp('^/' + device.bootConfigEnvVarPrefix + '*/')
+		return configRegex.exec(key)?
+	if !_.isEmpty(bootConfigVars)
+		device.setBootConfig(bootConfigVars)
+
 UPDATE_IDLE = 0
 UPDATE_UPDATING = 1
 UPDATE_REQUIRED = 2
@@ -368,20 +381,13 @@ application.update = update = (force) ->
 				remoteAppIds = _.keys(remoteApps)
 
 				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
-				_.map specialActionEnvVars, (specialActionCallback, key) ->
-					_.map remoteAppIds, (appId) ->
-						if remoteAppEnvs[appId][key]? && specialActionCallback?
-							# This makes the Special Action Envs only trigger their functions once.
-							if _.has(executedSpecialActionEnvVars, key)
-								if executedSpecialActionEnvVars[key] != remoteAppEnvs[appId][key]
-									specialActionCallback(remoteAppEnvs[appId][key])
-							else
-								specialActionCallback(remoteAppEnvs[appId][key])
-						executedSpecialActionEnvVars[key] = remoteAppEnvs[appId][key]
+				_.map remoteAppIds, (appId) ->
+					executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
 
 				apps = _.indexBy(apps, 'appId')
 				localApps = _.mapValues apps, (app) ->
-					_.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
+					app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
+					app.env = JSON.stringify(_.omit(JSON.parse(app.env), _.keys(specialActionEnvVars)))
 				localAppIds = _.keys(localApps)
 
 				toBeRemoved = _.difference(localAppIds, remoteAppIds)
@@ -417,10 +423,14 @@ application.update = update = (force) ->
 								throw err
 						else if _.includes(toBeInstalled, appId)
 							app = remoteApps[appId]
+							# Restore the complete environment so that it's persisted in the DB
+							app.env = JSON.stringify(remoteAppEnvs[appId])
 							start(app)
 						else if _.includes(toBeUpdated, appId)
 							localApp = apps[appId]
 							app = remoteApps[appId]
+							# Restore the complete environment so that it's persisted in the DB
+							app.env = JSON.stringify(remoteAppEnvs[appId])
 							logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
 							forceThisApp = remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
 							Promise.using lockUpdates(localApp, force || forceThisApp), ->
@@ -460,6 +470,21 @@ application.update = update = (force) ->
 		.finally ->
 			# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
 			updateStatus.state = UPDATE_IDLE
+
+application.initialize = ->
+	knex('app').select()
+	.then (apps) ->
+		Promise.map apps, (app) ->
+			executeSpecialActionsAndBootConfig(JSON.parse(app.env))
+			unlockAndStart(app)
+	.catch (error) ->
+		console.error('Error starting apps:', error)
+	.then ->
+		utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})
+		setInterval(->
+			application.update()
+		, config.appUpdatePollInterval)
+		application.update()
 
 module.exports = (uuid) ->
 	logger.init(

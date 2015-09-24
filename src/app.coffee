@@ -42,17 +42,7 @@ knex.init.then ->
 			)
 
 		console.log('Starting Apps..')
-		knex('app').select()
-		.then (apps) ->
-			Promise.all(apps.map(application.unlockAndStart))
-		.catch (error) ->
-			console.error('Error starting apps:', error)
-		.then ->
-			utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})
-			setInterval(->
-				application.update()
-			, config.appUpdatePollInterval)
-			application.update()
+		application.initialize()
 
 		updateIpAddr = ->
 			callback = (error, response, body ) ->

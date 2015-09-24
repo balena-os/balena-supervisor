@@ -4,7 +4,9 @@ knex = require './db'
 utils = require './utils'
 { resinApi } = require './request'
 device = exports
+config = require './config'
 configPath = '/boot/config.json'
+request = require 'request'
 
 exports.getID = do ->
 	deviceIdPromise = null
@@ -31,6 +33,24 @@ exports.getID = do ->
 				if devices.length is 0
 					throw new Error('Could not find this device?!')
 				return devices[0].id
+
+rebootDevice = ->
+	request.post(config.gosuperAddress + '/v1/reboot', -> console.log('Rebooting.'))
+
+exports.bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
+bootConfigPath = '/mnt/root/boot/config.txt'
+exports.setBootConfig = (env) ->
+	configChanged = false
+	# TODO:
+	# Translate env to config.txt-compatible statements
+	# Read and parse config.txt
+	# Detect if variables are present
+	# If not there or different:
+	#	mark configChanged as true
+	# 	Replace those and create new ones as necessary
+	# 	Create config.txt.new
+	# 	Move config.txt.new to config.txt
+	#	rebootDevice()
 
 exports.getDeviceType = do ->
 	deviceTypePromise = null
