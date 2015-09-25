@@ -151,14 +151,7 @@ application.start = start = (app) ->
 		'/var/run/docker.sock:/host_run/docker.sock'
 		'/etc/resolv.conf:/etc/resolv.conf:rw'
 	]
-	device.getDeviceType()
-	.then (deviceType) ->
-		if _.startsWith(deviceType, 'raspberry-pi')
-			volumes['/boot'] = {}
-			binds.push('/boot:/boot')
-	.catch (err) ->
-		console.log('Could not determine device type: ', err)
-	.then ->
+	Promise.try ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
 		JSON.parse(app.env)
 	.then (env) ->
