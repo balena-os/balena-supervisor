@@ -1,8 +1,8 @@
 [Unit]
 Description=resin-supervisor-dind
-Requires=confd.service docker.service openvpn@client.service
+Requires=confd.service docker.service openvpn-resin.service
 After=confd.service
-Before=openvpn@client.service
+Before=openvpn-resin.service
 
 [Service]
 WorkingDirectory=/usr/src/app
@@ -24,6 +24,7 @@ ExecStart=/bin/bash -c 'source /usr/src/app/resin-vars && \
 	-v /var/log/supervisor-log:/var/log \
 	-v /:/mnt/root \
 	-v /etc/resolv.conf:/etc/resolv.conf:rw \
+	-v /var/run/dbus:/var/run/dbus \
 	-e "API_ENDPOINT=$API_ENDPOINT" \
 	-e "REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT" \
 	-e "PUBNUB_SUBSCRIBE_KEY=$PUBNUB_SUBSCRIBE_KEY" \

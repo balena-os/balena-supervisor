@@ -1,0 +1,13 @@
+[Unit]
+Description=Prepare OpenVPN Application On Resin
+Before=openvpn@client.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/usr/src/app
+EnvironmentFile=/usr/src/app/config/env
+ExecStart=/usr/src/app/vpn-init
+
+[Install]
+WantedBy=multi-user.target
