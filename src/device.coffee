@@ -6,7 +6,8 @@ utils = require './utils'
 device = exports
 config = require './config'
 configPath = '/boot/config.json'
-request = require 'request'
+request = Promise.promisifyAll(require('request'))
+execAsync = Promise.promisify(require('child_process').exec)
 
 exports.getID = do ->
 	deviceIdPromise = null
@@ -35,22 +36,63 @@ exports.getID = do ->
 				return devices[0].id
 
 rebootDevice = ->
-	request.post(config.gosuperAddress + '/v1/reboot', -> console.log('Rebooting.'))
+	request.postAsync(config.gosuperAddress + '/v1/reboot')
 
-exports.bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
+exports.bootConfigEnvVarPrefix = bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
 bootConfigPath = '/mnt/root/boot/config.txt'
+configRegex = new RegExp('(' + _.escapeRegExp(bootConfigEnvVarPrefix) + ')(.+)')
+parseBootConfigFromEnv = (env) ->
+	# We ensure env doesn't have garbage
+	parsedEnv = _.pick env, (val, key) ->
+		return _.startsWith(bootConfigEnvVarPrefix)
+	throw new Error('No boot config to change') if _.isEmpty(parsedEnv)
+	parsedEnv = _.mapKeys parsedEnv, (val, key) ->
+		key.replace(configRegex, '$2')
+	return parsedEnv
+
 exports.setBootConfig = (env) ->
-	configChanged = false
-	# TODO:
-	# Translate env to config.txt-compatible statements
-	# Read and parse config.txt
-	# Detect if variables are present
-	# If not there or different:
-	#	mark configChanged as true
-	# 	Replace those and create new ones as necessary
-	# 	Create config.txt.new
-	# 	Move config.txt.new to config.txt
-	#	rebootDevice()
+	device.getDeviceType()
+	.then (deviceType) ->
+		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry-pi')
+		Promise.join parseBootConfigFromEnv(env), fs.readFileAsync(bootConfigPath, 'utf8'), (configFromApp, configTxt ) ->
+			configFromFS = {}
+			configPositions = []
+			configStatements = configTxt.split(/\r?\n/)
+			_.each configStatements, (configStr) ->
+				keyValue = /^([^#=]+)=(.+)/.exec(configStr)
+				if keyValue?
+					configPositions.push(keyValue[1])
+					configFromFS[keyValue[1]] = keyValue[2]
+				else
+					# This will ensure config.txt filters are in order
+					configPositions.push(configStr)
+			# configFromApp and configFromFS now have compatible formats
+			keysFromApp = _.keys(configFromApp)
+			keysFromFS = _.keys(configFromFS)
+			toBeAdded = _.difference(keysFromApp, keysFromFS)
+			toBeChanged = _.intersection(keysFromApp, keysFromFS)
+			toBeChanged = _.filter toBeChanged, (key) ->
+				configFromApp[key] != configFromFS[key]
+			throw new Error('Nothing to change') if _.isEmpty(toBeChanged) and _.isEmpty(toBeAdded)
+			# We add the keys to be added first so they are out of any filters
+			outputConfig = _.map toBeAdded, (key) -> "#{key}=#{configFromApp[key]}"
+			outputConfig = outputConfig.concat _.map configPositions, (key, index) ->
+				configStatement = null
+				if _.includes(toBeChanged, key)
+					configStatement = "#{key}=#{configFromApp[key]}"
+				else
+					configStatement = configStatements[index]
+				return configStatement
+			# Here's the dangerous part:
+			fs.writeFileAsync(bootConfigPath + '.new', outputConfig.join('\n'))
+			.then ->
+				fs.renameAsync(bootConfigPath + '.new', bootConfigPath)
+			.then ->
+				execAsync('sync')
+			.then ->
+				rebootDevice()
+	.catch (err) ->
+		console.log('Will not set boot config: ', err)
 
 exports.getDeviceType = do ->
 	deviceTypePromise = null

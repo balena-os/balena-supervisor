@@ -153,7 +153,7 @@ application.start = start = (app) ->
 	]
 	device.getDeviceType()
 	.then (deviceType) ->
-		if deviceType.match(/^raspberry-pi/)?
+		if _.startsWith(deviceType, 'raspberry-pi')
 			volumes['/boot'] = {}
 			binds.push('/boot:/boot')
 	.catch (err) ->
@@ -305,8 +305,7 @@ executeSpecialActionsAndBootConfig = (env) ->
 				specialActionCallback(env[key])
 				executedSpecialActionEnvVars[key] = env[key]
 	bootConfigVars = _.pick env, (val, key) ->
-		configRegex = new RegExp('^/' + device.bootConfigEnvVarPrefix + '*/')
-		return configRegex.exec(key)?
+		return _.startsWith(key, device.bootConfigEnvVarPrefix)
 	if !_.isEmpty(bootConfigVars)
 		device.setBootConfig(bootConfigVars)
 
@@ -386,8 +385,8 @@ application.update = update = (force) ->
 
 				apps = _.indexBy(apps, 'appId')
 				localApps = _.mapValues apps, (app) ->
-					app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 					app.env = JSON.stringify(_.omit(JSON.parse(app.env), _.keys(specialActionEnvVars)))
+					app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 				localAppIds = _.keys(localApps)
 
 				toBeRemoved = _.difference(localAppIds, remoteAppIds)
