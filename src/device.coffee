@@ -8,7 +8,7 @@ config = require './config'
 configPath = '/boot/config.json'
 request = Promise.promisifyAll(require('request'))
 execAsync = Promise.promisify(require('child_process').exec)
-
+fs = Promise.promisifyAll(require('fs'))
 exports.getID = do ->
 	deviceIdPromise = null
 	return ->
@@ -39,7 +39,9 @@ rebootDevice = ->
 	request.postAsync(config.gosuperAddress + '/v1/reboot')
 
 exports.bootConfigEnvVarPrefix = bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
-bootConfigPath = '/mnt/root/boot/config.txt'
+bootBlockDevice = '/dev/mmcblk0p1'
+bootMountPoint = '/mnt/root/boot'
+bootConfigPath = bootMountPoint + '/config.txt'
 configRegex = new RegExp('(' + _.escapeRegExp(bootConfigEnvVarPrefix) + ')(.+)')
 forbiddenConfigKeys = [
 	'disable_commandline_tags'
@@ -61,7 +63,7 @@ forbiddenConfigKeys = [
 parseBootConfigFromEnv = (env) ->
 	# We ensure env doesn't have garbage
 	parsedEnv = _.pick env, (val, key) ->
-		return _.startsWith(bootConfigEnvVarPrefix)
+		return _.startsWith(key, bootConfigEnvVarPrefix)
 	parsedEnv = _.mapKeys parsedEnv, (val, key) ->
 		key.replace(configRegex, '$2')
 	parsedEnv = _.omit(parsedEnv, forbiddenConfigKeys)
@@ -102,7 +104,9 @@ exports.setBootConfig = (env) ->
 					configStatement = configStatements[index]
 				return configStatement
 			# Here's the dangerous part:
-			fs.writeFileAsync(bootConfigPath + '.new', outputConfig.join('\n'))
+			execAsync("mount -t vfat -o remount,rw #{bootBlockDevice} #{bootMountPoint}")
+			.then ->
+				fs.writeFileAsync(bootConfigPath + '.new', outputConfig.join('\n'))
 			.then ->
 				fs.renameAsync(bootConfigPath + '.new', bootConfigPath)
 			.then ->

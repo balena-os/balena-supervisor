@@ -291,16 +291,17 @@ specialActionEnvVars =
 executedSpecialActionEnvVars = {}
 
 executeSpecialActionsAndBootConfig = (env) ->
-	_.map specialActionEnvVars, (specialActionCallback, key) ->
-		if env[key]? && specialActionCallback?
-			# This makes the Special Action Envs only trigger their functions once.
-			if !_.has(executedSpecialActionEnvVars, key) or executedSpecialActionEnvVars[key] != env[key]
-				specialActionCallback(env[key])
-				executedSpecialActionEnvVars[key] = env[key]
-	bootConfigVars = _.pick env, (val, key) ->
-		return _.startsWith(key, device.bootConfigEnvVarPrefix)
-	if !_.isEmpty(bootConfigVars)
-		device.setBootConfig(bootConfigVars)
+	Promise.try ->
+		_.map specialActionEnvVars, (specialActionCallback, key) ->
+			if env[key]? && specialActionCallback?
+				# This makes the Special Action Envs only trigger their functions once.
+				if !_.has(executedSpecialActionEnvVars, key) or executedSpecialActionEnvVars[key] != env[key]
+					specialActionCallback(env[key])
+					executedSpecialActionEnvVars[key] = env[key]
+		bootConfigVars = _.pick env, (val, key) ->
+			return _.startsWith(key, device.bootConfigEnvVarPrefix)
+		if !_.isEmpty(bootConfigVars)
+			device.setBootConfig(bootConfigVars)
 
 UPDATE_IDLE = 0
 UPDATE_UPDATING = 1
@@ -372,10 +373,6 @@ application.update = update = (force) ->
 				remoteApps = _.indexBy(remoteApps, 'appId')
 				remoteAppIds = _.keys(remoteApps)
 
-				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
-				_.map remoteAppIds, (appId) ->
-					executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
-
 				apps = _.indexBy(apps, 'appId')
 				localApps = _.mapValues apps, (app) ->
 					app.env = JSON.stringify(_.omit(JSON.parse(app.env), _.keys(specialActionEnvVars)))
@@ -395,7 +392,11 @@ application.update = update = (force) ->
 
 				allAppIds = _.union(localAppIds, remoteAppIds)
 
-				Promise.map allAppIds, (appId) ->
+				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
+				Promise.map remoteAppIds, (appId) ->
+					executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
+				.return(allAppIds)
+				.map (appId) ->
 					Promise.try ->
 						fetch(remoteApps[appId]) if _.includes(toBeDownloaded, appId)
 					.then ->
@@ -468,7 +469,8 @@ application.initialize = ->
 	.then (apps) ->
 		Promise.map apps, (app) ->
 			executeSpecialActionsAndBootConfig(JSON.parse(app.env))
-			unlockAndStart(app)
+			.then ->
+				unlockAndStart(app)
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->
