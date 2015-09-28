@@ -1,3 +1,4 @@
+* Updated bases image to board-specific, and all node versions to 0.10.40-slim [Pablo]
 * Allow changing RPi config.txt with environment variables [Pablo]
 * Allow special env vars with a callback which don't cause an app restart [Pablo and Praneeth]
 * Remove unused config.supervisorContainer in config.coffee [Praneeth]

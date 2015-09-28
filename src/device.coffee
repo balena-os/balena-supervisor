@@ -41,13 +41,30 @@ rebootDevice = ->
 exports.bootConfigEnvVarPrefix = bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
 bootConfigPath = '/mnt/root/boot/config.txt'
 configRegex = new RegExp('(' + _.escapeRegExp(bootConfigEnvVarPrefix) + ')(.+)')
+forbiddenConfigKeys = [
+	'disable_commandline_tags'
+	'cmdline'
+	'kernel'
+	'kernel_address'
+	'kernel_old'
+	'ramfsfile'
+	'ramfsaddr'
+	'initramfs'
+	'device_tree_address'
+	'init_uart_baud'
+	'init_uart_clock'
+	'init_emmc_clock'
+	'boot_delay'
+	'boot_delay_ms'
+	'avoid_safe_mode'
+]
 parseBootConfigFromEnv = (env) ->
 	# We ensure env doesn't have garbage
 	parsedEnv = _.pick env, (val, key) ->
 		return _.startsWith(bootConfigEnvVarPrefix)
-	throw new Error('No boot config to change') if _.isEmpty(parsedEnv)
 	parsedEnv = _.mapKeys parsedEnv, (val, key) ->
 		key.replace(configRegex, '$2')
+	parsedEnv = _.omit(parsedEnv, forbiddenConfigKeys)
 	return parsedEnv
 
 exports.setBootConfig = (env) ->
@@ -55,6 +72,7 @@ exports.setBootConfig = (env) ->
 	.then (deviceType) ->
 		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry-pi')
 		Promise.join parseBootConfigFromEnv(env), fs.readFileAsync(bootConfigPath, 'utf8'), (configFromApp, configTxt ) ->
+			throw new Error('No boot config to change') if _.isEmpty(configFromApp)
 			configFromFS = {}
 			configPositions = []
 			configStatements = configTxt.split(/\r?\n/)

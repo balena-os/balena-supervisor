@@ -1,4 +1,4 @@
-FROM resin/armv7hf-node:0.10.38-slim
+FROM resin/beaglebone-node:0.10.40-slim
 
 COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 
