@@ -133,8 +133,13 @@ fetch = (app) ->
 	.catch (error) ->
 		logSystemEvent(logTypes.downloadApp, app)
 		device.updateState(status: 'Downloading', download_progress: 0)
-		dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
-		.then ->
+
+		if app.env.RESIN_DELTA?
+			fetchPromise = dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
+		else
+			fetchPromise = dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
+
+		fetchPromise.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			device.updateState(download_progress: null)
 			docker.getImage(app.imageId).inspectAsync()
