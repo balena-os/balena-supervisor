@@ -1,3 +1,4 @@
+* Expose supervisor API to app by allowing all requests from 127.0.0.1 and passing address and port as env vars [Pablo]
 * Only apply special actions / boot config on change, and always persist to DB [Pablo]
 
 # v0.0.18

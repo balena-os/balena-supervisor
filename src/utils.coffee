@@ -100,6 +100,8 @@ exports.connectivityCheck = _.once ->
 exports.extendEnvVars = (env, uuid) ->
 	newEnv =
 		RESIN_DEVICE_UUID: uuid
+		RESIN_SUPERVISOR_ADDRESS: 'http://127.0.0.1:' + config.listenPort
+		RESIN_SUPERVISOR_PORT: config.listenPort
 		RESIN: '1'
 		USER: 'root'
 	if env?
