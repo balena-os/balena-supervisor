@@ -1,3 +1,5 @@
+* Only apply special actions / boot config on change, and always persist to DB [Pablo]
+
 # v0.0.18
 
 * Fix preloaded apps so that they have the complete environment [Pablo]

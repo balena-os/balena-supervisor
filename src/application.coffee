@@ -368,10 +368,14 @@ application.update = update = (force) ->
 				remoteAppIds = _.keys(remoteApps)
 
 				apps = _.indexBy(apps, 'appId')
+				localAppEnvs = {}
 				localApps = _.mapValues apps, (app) ->
-					app.env = JSON.stringify(_.omit(JSON.parse(app.env), _.keys(specialActionEnvVars)))
+					localAppEnvs[app.appId] = JSON.parse(app.env)
+					app.env = JSON.stringify(_.omit(localAppEnvs[app.appId], _.keys(specialActionEnvVars)))
 					app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 				localAppIds = _.keys(localApps)
+				appsWithChangedEnvs = _.filter remoteAppIds, (appId) ->
+					return !localAppEnvs[appId]? or !_.isEqual(remoteAppEnvs[appId], localAppEnvs[appId])
 
 				toBeRemoved = _.difference(localAppIds, remoteAppIds)
 				toBeInstalled = _.difference(remoteAppIds, localAppIds)
@@ -387,8 +391,21 @@ application.update = update = (force) ->
 				allAppIds = _.union(localAppIds, remoteAppIds)
 
 				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
-				Promise.map remoteAppIds, (appId) ->
-					executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
+				Promise.map appsWithChangedEnvs, (appId) ->
+					Promise.using lockUpdates(remoteApps[appId], force), ->
+						executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
+						.then ->
+							# If an env var shouldn't cause a restart but requires an action, we should still
+							# save the new env to the DB
+							if !_.includes(toBeUpdated, appId) and !_.includes(toBeInstalled, appId)
+								knex('app').select().where({ appId })
+								.then ([ app ]) ->
+									if !app?
+										throw new Error('App not found')
+									app.env = JSON.stringify(remoteAppEnvs[appId])
+									knex('app').update(app).where({ appId })
+					.catch (err) ->
+						logSystemEvent(logTypes.updateAppError, remoteApps[appId], err)
 				.return(allAppIds)
 				.map (appId) ->
 					Promise.try ->
