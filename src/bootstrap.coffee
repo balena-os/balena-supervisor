@@ -22,6 +22,11 @@ loadPreloadedApps = ->
 		fs.readFileAsync(appsPath, 'utf8')
 	.then(JSON.parse)
 	.map (app) ->
+		env =
+			RESIN_DEVICE_UUID: userConfig.uuid
+			RESIN: '1'
+			USER: 'root'
+		_.extend(app.env, env)
 		app.env = JSON.stringify(app.env)
 		knex('app').insert(app)
 	.catch (err) ->
