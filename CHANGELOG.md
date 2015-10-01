@@ -1,3 +1,5 @@
+# v0.0.18
+
 * Fix preloaded apps so that they have the complete environment [Pablo]
 
 # v0.0.17
