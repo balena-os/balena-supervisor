@@ -96,3 +96,12 @@ exports.connectivityCheck = _.once ->
 			else
 				console.log('Waiting for connectivity...')
 				blink.pattern.start(networkPattern)
+
+exports.extendEnvVars = (env, uuid) ->
+	newEnv =
+		RESIN_DEVICE_UUID: uuid
+		RESIN: '1'
+		USER: 'root'
+	if env?
+		_.extend(newEnv, env)
+	return newEnv

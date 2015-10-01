@@ -22,12 +22,7 @@ loadPreloadedApps = ->
 		fs.readFileAsync(appsPath, 'utf8')
 	.then(JSON.parse)
 	.map (app) ->
-		env =
-			RESIN_DEVICE_UUID: userConfig.uuid
-			RESIN: '1'
-			USER: 'root'
-		_.extend(app.env, env)
-		app.env = JSON.stringify(app.env)
+		app.env = JSON.stringify(utils.extendEnvVars(app.env, userConfig.uuid))
 		knex('app').insert(app)
 	.catch (err) ->
 		utils.mixpanelTrack('Loading preloaded apps failed', {error: err})

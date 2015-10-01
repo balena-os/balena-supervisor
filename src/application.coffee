@@ -354,13 +354,7 @@ application.update = update = (force) ->
 			.then (remoteApps) ->
 				remoteAppEnvs = {}
 				remoteApps = _.map remoteApps, (app) ->
-					env =
-						RESIN_DEVICE_UUID: uuid
-						RESIN: '1'
-						USER: 'root'
-
-					if app.environment_variable?
-						_.extend(env, app.environment_variable)
+					env = utils.extendEnvVars(app.environment_variable, uuid)
 					remoteAppEnvs[app.id] = env
 					env = _.omit(env, _.keys(specialActionEnvVars))
 					return {

@@ -1,3 +1,5 @@
+* Fix preloaded apps so that they have the complete environment [Pablo]
+
 # v0.0.17
 
 * Updated bases image to board-specific, and all node versions to 0.10.40-slim [Pablo]
