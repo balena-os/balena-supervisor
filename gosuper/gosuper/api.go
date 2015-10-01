@@ -187,23 +187,23 @@ func VPNControl(writer http.ResponseWriter, request *http.Request) {
 	}
 	var body VPNBody
 	if err := parseJsonBody(&body, request); err != nil {
+		log.Println(string(err.Error()))
 		sendError(string(err.Error()))
-		return
 	}
 	if body.Enable {
-		ch := make(chan string)
-		_, err := systemd.Dbus.StartUnit("openvpn-resin.service", "fail", ch)
+		_, err := systemd.Dbus.StartUnit("openvpn-resin.service", "fail", nil)
 		if err != nil {
+			log.Println(string(err.Error()))
 			sendError(string(err.Error()))
-			return
 		}
+		log.Println("VPN Enabled")
 	} else {
-		ch := make(chan string)
-		_, err := systemd.Dbus.StopUnit("openvpn-resin.service", "fail", ch)
+		_, err := systemd.Dbus.StopUnit("openvpn-resin.service", "fail", nil)
 		if err != nil {
+			log.Println(string(err.Error()))
 			sendError(string(err.Error()))
-			return
 		}
+		log.Println("VPN Disabled")
 	}
-
+	sendResponse("OK", "", http.StatusAccepted)
 }

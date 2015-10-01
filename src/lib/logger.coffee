@@ -4,6 +4,8 @@ PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 es = require 'event-stream'
 
+disableLogs = false
+
 initialised = new Promise (resolve) ->
 	exports.init = (config) ->
 		resolve(config)
@@ -33,12 +35,18 @@ publish = do ->
 				# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
 				message: ' '
 
-			pubnub.publish({ channel, message })
+			# Disable sending logs for bandwidth control
+			if not disableLogs
+				pubnub.publish({ channel, message })
 
 		# Replay queue now that we have initialised the publish function
 		publish(args...) for args in publishQueue
 
 	return -> publishQueue.push(arguments)
+
+# disable: A Boolean to pause the connectivity checks
+exports.disableLogPublishing = (disable) ->
+	disableLogs = disable
 
 exports.log = ->
 	publish(arguments...)

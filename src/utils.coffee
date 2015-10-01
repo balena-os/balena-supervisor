@@ -7,7 +7,11 @@ mixpanel = require 'mixpanel'
 networkCheck = require 'network-checker'
 blink = require('blinking')(config.ledFile)
 url = require 'url'
+<<<<<<< HEAD
 randomHexString = require './lib/random-hex-string'
+=======
+request = require 'request'
+>>>>>>> Allow control of VPN + TCP check + Pub nub logs with Device Environment variables
 
 utils = exports
 
@@ -126,3 +130,12 @@ exports.extendEnvVars = (env, uuid) ->
 	if env?
 		_.extend(newEnv, env)
 	return Promise.props(newEnv)
+
+# Disable VPN - Uses am enable String
+exports.VPNControl = (enable) ->
+	callback = (error, response, body ) ->
+		if !error && response.statusCode == 200
+			console.log('VPN Enabled: ' + enable)
+		else
+			console.log(error)
+	request.post(config.gosuperAddress + '/v1/vpncontrol', { json: true, body: Enable: enable }, callback)

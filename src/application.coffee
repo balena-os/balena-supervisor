@@ -285,8 +285,23 @@ joinErrorMessages = (failures) ->
 		err.message or err
 	"#{failures.length} error#{s}: #{messages.join(' - ')}"
 
+# Callback function to enable/disable tcp pings
+connectivityCheck = (val) ->
+	if val == 'false' then utils.disableCheck(true) else utils.disableCheck(false)
+
+# Callback function to enable/disable logs
+resinLogControl = (val) ->
+	if val == 'false' then logger.disableLogPublishing(true) else logger.disableLogPublishing(false)
+
+# Callback function to enable/disable VPN
+vpnControl = (val) ->
+	if val == 'false' then utils.VPNControl(false) else utils.VPNControl(true)
+
 specialActionEnvVars =
 	'RESIN_OVERRIDE_LOCK': null
+	'_RESIN_VPN_CONTROL': vpnControl
+	'_RESIN_CONNECTIVTY_CHECK': connectivityCheck
+	'_RESIN_LOG_CONTROL': resinLogControl
 
 executedSpecialActionEnvVars = {}
 
