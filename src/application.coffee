@@ -289,6 +289,10 @@ joinErrorMessages = (failures) ->
 connectivityCheck = (val) ->
 	if val == 'false' then utils.disableCheck(true) else utils.disableCheck(false)
 
+# Callback function to set the API poll interval dynamically.
+apiPollInterval = (val) ->
+	config.appUpdatePollInterval = config.checkInt(val) ? 60000
+
 # Callback function to enable/disable logs
 resinLogControl = (val) ->
 	if val == 'false' then logger.disableLogPublishing(true) else logger.disableLogPublishing(false)
@@ -301,6 +305,7 @@ specialActionEnvVars =
 	'RESIN_OVERRIDE_LOCK': null
 	'_RESIN_VPN_CONTROL': vpnControl
 	'_RESIN_CONNECTIVTY_CHECK': connectivityCheck
+	'_RESIN_POLL_INTERVAL': apiPollInterval
 	'_RESIN_LOG_CONTROL': resinLogControl
 
 executedSpecialActionEnvVars = {}
@@ -491,6 +496,7 @@ application.update = update = (force) ->
 		.finally ->
 			# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
 			updateStatus.state = UPDATE_IDLE
+			setTimeout(update, config.appUpdatePollInterval)
 
 application.initialize = ->
 	knex('app').select()
@@ -503,9 +509,6 @@ application.initialize = ->
 		console.error('Error starting apps:', error)
 	.then ->
 		utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})
-		setInterval(->
-			application.update()
-		, config.appUpdatePollInterval)
 		application.update()
 
 module.exports = (uuid) ->

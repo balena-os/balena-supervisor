@@ -131,7 +131,7 @@ exports.extendEnvVars = (env, uuid) ->
 		_.extend(newEnv, env)
 	return Promise.props(newEnv)
 
-# Disable VPN - Uses am enable String
+# VPN Control - Uses an enable Boolean
 exports.VPNControl = (enable) ->
 	callback = (error, response, body ) ->
 		if !error && response.statusCode == 200
