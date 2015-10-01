@@ -11,7 +11,7 @@ RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 36A
 	&& apt-get update && apt-get install lxc-docker-${DOCKER_VERSION} \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install jq \
+RUN apt-get update && apt-get install jq socat\
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY config/openvpn/ /etc/openvpn/
