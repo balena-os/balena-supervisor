@@ -12,7 +12,7 @@ module.exports = (secret, application) ->
 	api = express()
 	api.use(bodyParser())
 	api.use (req, res, next) ->
-		if req.ip is '127.0.0.1' or req.query.apikey is secret
+		if req.query.apikey is secret
 			next()
 		else
 			res.sendStatus(401)
