@@ -2,10 +2,12 @@ Promise = require 'bluebird'
 _ = require 'lodash'
 fs = Promise.promisifyAll require 'fs'
 config = require './config'
+knex = require './db'
 mixpanel = require 'mixpanel'
 networkCheck = require 'network-checker'
 blink = require('blinking')(config.ledFile)
 url = require 'url'
+randomHexString = require './lib/random-hex-string'
 
 utils = exports
 
@@ -97,13 +99,30 @@ exports.connectivityCheck = _.once ->
 				console.log('Waiting for connectivity...')
 				blink.pattern.start(networkPattern)
 
+exports.getOrGenerateApiSecret = do ->
+	apiSecretPromise = null
+	return ->
+		apiSecretPromise ?= Promise.rejected()
+		apiSecretPromise = apiSecretPromise.catch ->
+			knex('config').select('value').where(key: 'apiSecret')
+			.then ([ apiSecret ]) ->
+				return apiSecret if apiSecret?
+				Promise.try ->
+					return config.forceApiSecret ? randomHexString.generate()
+				.then (newSecret) ->
+					knex('config').insert([{ key: 'apiSecret', value: newSecret }])
+					.return(newSecret)
+
 exports.extendEnvVars = (env, uuid) ->
+	host = '127.0.0.1'
 	newEnv =
 		RESIN_DEVICE_UUID: uuid
-		RESIN_SUPERVISOR_ADDRESS: 'http://127.0.0.1:' + config.listenPort
+		RESIN_SUPERVISOR_ADDRESS: "http://#{host}:#{config.listenPort}"
+		RESIN_SUPERVISOR_HOST: host
 		RESIN_SUPERVISOR_PORT: config.listenPort
+		RESIN_SUPERVISOR_API_KEY: exports.getOrGenerateApiSecret()
 		RESIN: '1'
 		USER: 'root'
 	if env?
 		_.extend(newEnv, env)
-	return newEnv
+	return Promise.props(newEnv)

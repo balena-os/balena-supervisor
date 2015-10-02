@@ -14,20 +14,16 @@ knex.init.then ->
 	console.log('Starting connectivity check..')
 	utils.connectivityCheck()
 
-	bootstrap.startBootstrapping()
-	.then (uuid) ->
+	Promise.join bootstrap.startBootstrapping(), utils.getOrGenerateApiSecret(), (uuid, secret) ->
 		# Persist the uuid in subsequent metrics
 		utils.mixpanelProperties.uuid = uuid
 
 		api = require './api'
 		application = require('./application')(uuid)
 		device = require './device'
-		randomHexString = require './lib/random-hex-string'
 
 		bootstrap.done
 		.then ->
-			return config.forceApiSecret ? randomHexString.generate()
-		.then (secret) ->
 			console.log('Starting API server..')
 			api(secret, application).listen(config.listenPort)
 			# Let API know what version we are, and our api connection info.

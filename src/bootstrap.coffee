@@ -22,8 +22,10 @@ loadPreloadedApps = ->
 		fs.readFileAsync(appsPath, 'utf8')
 	.then(JSON.parse)
 	.map (app) ->
-		app.env = JSON.stringify(utils.extendEnvVars(app.env, userConfig.uuid))
-		knex('app').insert(app)
+		utils.extendEnvVars(app.env, userConfig.uuid)
+		.then (extendedEnv) ->
+			app.env = JSON.stringify(extendedEnv)
+			knex('app').insert(app)
 	.catch (err) ->
 		utils.mixpanelTrack('Loading preloaded apps failed', {error: err})
 

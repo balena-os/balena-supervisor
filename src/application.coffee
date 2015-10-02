@@ -349,25 +349,23 @@ application.update = update = (force) ->
 				customOptions:
 					apikey: apiKey
 
+			remoteAppEnvs = {}
 			Promise.join deviceId, remoteApps, (deviceId, remoteApps) ->
-				return Promise.map remoteApps, (remoteApp) ->
-					getEnvironment(remoteApp.id, deviceId, apiKey)
+				return Promise.map remoteApps, (app) ->
+					getEnvironment(app.id, deviceId, apiKey)
 					.then (environment) ->
-						remoteApp.environment_variable = environment
-						return remoteApp
+						app.environment_variable = environment
+						utils.extendEnvVars(app.environment_variable, uuid)
+					.then (env) ->
+						remoteAppEnvs[app.id] = env
+						env = _.omit(env, _.keys(specialActionEnvVars))
+						return {
+							appId: '' + app.id
+							commit: app.commit
+							imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+							env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
+						}
 			.then (remoteApps) ->
-				remoteAppEnvs = {}
-				remoteApps = _.map remoteApps, (app) ->
-					env = utils.extendEnvVars(app.environment_variable, uuid)
-					remoteAppEnvs[app.id] = env
-					env = _.omit(env, _.keys(specialActionEnvVars))
-					return {
-						appId: '' + app.id
-						commit: app.commit
-						imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
-						env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
-					}
-
 				remoteApps = _.indexBy(remoteApps, 'appId')
 				remoteAppIds = _.keys(remoteApps)
 
