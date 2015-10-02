@@ -7,11 +7,9 @@ mixpanel = require 'mixpanel'
 networkCheck = require 'network-checker'
 blink = require('blinking')(config.ledFile)
 url = require 'url'
-<<<<<<< HEAD
 randomHexString = require './lib/random-hex-string'
-=======
 request = require 'request'
->>>>>>> Allow control of VPN + TCP check + Pub nub logs with Device Environment variables
+logger = require './lib/logger'
 
 utils = exports
 
@@ -67,7 +65,7 @@ exports.pauseCheck = (pause) ->
 	pauseConnectivityCheck = pause
 
 # disable: A Boolean to disable the connectivity checks
-exports.disableCheck = (disable) ->
+exports.disableCheck = disableCheck = (disable) ->
 	disableConnectivityCheck = disable
 
 # Call back for inotify triggered when the VPN status is changed.
@@ -131,11 +129,24 @@ exports.extendEnvVars = (env, uuid) ->
 		_.extend(newEnv, env)
 	return Promise.props(newEnv)
 
-# VPN Control - Uses an enable Boolean
-exports.VPNControl = (enable) ->
+# Callback function to enable/disable tcp pings
+exports.connectivityCheck = (val) ->
+	if val == 'false' then disableCheck(true) else disableCheck(false)
+
+# Callback function to set the API poll interval dynamically.
+exports.apiPollInterval = (val) ->
+	config.appUpdatePollInterval = config.checkInt(val) ? 60000
+
+# Callback function to enable/disable logs
+exports.resinLogControl = (val) ->
+	if val == 'false' then logger.disableLogPublishing(true) else logger.disableLogPublishing(false)
+
+# Callback function to enable/disable VPN
+exports.vpnControl = (val) ->
+	if val == 'false' then enable = false else enable = true
 	callback = (error, response, body ) ->
-		if !error && response.statusCode == 200
+		if response.statusCode == 202
 			console.log('VPN Enabled: ' + enable)
 		else
-			console.log(error)
+			console.log('Error: ' + error + ' response:' + response.statusCode + ' body: ' + body.Data  )
 	request.post(config.gosuperAddress + '/v1/vpncontrol', { json: true, body: Enable: enable }, callback)

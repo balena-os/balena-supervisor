@@ -285,28 +285,12 @@ joinErrorMessages = (failures) ->
 		err.message or err
 	"#{failures.length} error#{s}: #{messages.join(' - ')}"
 
-# Callback function to enable/disable tcp pings
-connectivityCheck = (val) ->
-	if val == 'false' then utils.disableCheck(true) else utils.disableCheck(false)
-
-# Callback function to set the API poll interval dynamically.
-apiPollInterval = (val) ->
-	config.appUpdatePollInterval = config.checkInt(val) ? 60000
-
-# Callback function to enable/disable logs
-resinLogControl = (val) ->
-	if val == 'false' then logger.disableLogPublishing(true) else logger.disableLogPublishing(false)
-
-# Callback function to enable/disable VPN
-vpnControl = (val) ->
-	if val == 'false' then utils.VPNControl(false) else utils.VPNControl(true)
-
 specialActionEnvVars =
 	'RESIN_OVERRIDE_LOCK': null
-	'_RESIN_VPN_CONTROL': vpnControl
-	'_RESIN_CONNECTIVTY_CHECK': connectivityCheck
-	'_RESIN_POLL_INTERVAL': apiPollInterval
-	'_RESIN_LOG_CONTROL': resinLogControl
+	'_RESIN_VPN_CONTROL': utils.vpnControl
+	'_RESIN_CONNECTIVTY_CHECK': utils.connectivityCheck
+	'_RESIN_POLL_INTERVAL': utils.apiPollInterval
+	'_RESIN_LOG_CONTROL': utils.resinLogControl
 
 executedSpecialActionEnvVars = {}
 
