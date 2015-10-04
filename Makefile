@@ -2,7 +2,7 @@ DISABLE_CACHE = 'false'
 
 ARCH = rpi# rpi/amd64/i386/armv7hf
 
-DEPLOY_REGISTRY = registry.resindev.io/
+DEPLOY_REGISTRY =
 
 SUPERVISOR_VERSION = master
 JOB_NAME = 1
@@ -52,12 +52,12 @@ stop-supervisor:
 supervisor: gosuper
 	cp Dockerfile.$(ARCH) Dockerfile
 	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile
-	docker build --no-cache=$(DISABLE_CACHE) -t resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION) .
+	docker build --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
 	-rm Dockerfile
 
 deploy: supervisor
-	docker tag -f $(IMAGE) $(DEPLOY_REGISTRY)$(IMAGE)
-	bash retry_docker_push.sh $(DEPLOY_REGISTRY)$(IMAGE)
+	docker tag -f $(IMAGE) $(SUPERVISOR_IMAGE)
+	bash retry_docker_push.sh $(SUPERVISOR_IMAGE)
 
 go-builder:
 	-cp tools/dind/config.json ./gosuper/

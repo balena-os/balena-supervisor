@@ -1,18 +1,31 @@
-# Running supervisor in the dev env
+# Resin Supervisor
 
-## Deploy your local version to the devenv registry
-If you haven't done so yet, login to the devenv registry:
-```bash
-docker login registry.resindev.io
-```
-Use username "resin" and the registry's [default login details](https://bitbucket.org/rulemotion/resin-builder/src/4594c0020dcae2c98e4b3d7bab718b088bb7e52a/config/confd/templates/env.tmpl?at=master#cl-9) if you haven't changed them.
-```bash
-make ARCH=amd64 deploy
-```
-This will build the image if you haven't done it yet.
-A different registry can be specified with the DEPLOY_REGISTRY env var.
+This is the [resin.io](https://resin.io)'s Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.
 
-## Set up config
+The Supervisor is for now a node.js program, with a subset of its functionality implemented in Go.
+
+We are currently **rewriting the whole code in Go**, so if you're interested in contributing, please checkout [the corresponding branch](../tree/RES-477-gosuper-all-the-way) and use that as a base for your PR's.
+
+# Running supervisor locally
+
+## Deploy your local version to a Docker registry
+
+We'll show how to use the DockerHub registry, but any other can be specified as part of the `SUPERVISOR_IMAGE` variable.
+
+If you haven't done so yet, login to the registry:
+```bash
+docker login
+```
+Use your username and password as required.
+
+Then deploy to a specific repo and tag, e.g.
+```bash
+make ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master deploy
+```
+This will build the Supervisor docker image if you haven't done it yet, and upload it to the registry.
+As we pointed out before, a different registry can be specified with the DEPLOY_REGISTRY env var.
+
+## Set up config.json
 Add `tools/dind/config.json` file from a staging device image.
 
 A config.json file can be obtained in several ways, for instance:
@@ -28,7 +41,7 @@ The config.json file should look something like this (beautified and commented f
 	"userId": "141", /* User ID for the user who owns the app */
 	"username": "gh_pcarranzav", /* User name for the user who owns the app */
 	"deviceType": "intel-edison", /* The device type corresponding to the test application */
-	"files": { /* This field is used by the host OS so the supervisor doesn't care about it */
+	"files": { /* This field is used by the host OS on devices, so the supervisor doesn't care about it */
 		"network/settings": "[global]\nOfflineMode=false\n\n[WiFi]\nEnable=true\nTethering=false\n\n[Wired]\nEnable=true\nTethering=false\n\n[Bluetooth]\nEnable=true\nTethering=false",
 		"network/network.config": "[service_home_ethernet]\nType = ethernet\nNameservers = 8.8.8.8,8.8.4.4"
 	},
@@ -45,19 +58,9 @@ Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by
 
 ## Start the supervisor instance
 ```bash
-make ARCH=amd64 run-supervisor
+make ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master run-supervisor
 ```
 This will setup a docker-in-docker instance with an image that runs the supervisor image.
-
-By default it will pull from the devenv registry (registry.resindev.io).
-
-A different registry can be specified with the DEPLOY_REGISTRY env var.
-
-e.g.
-```bash
-make ARCH=amd64 DEPLOY_REGISTRY= run-supervisor
-```
-to pull the jenkins built images from the docker hub.
 
 ## Testing with preloaded apps
 To test preloaded apps, add a `tools/dind/apps.json` file according to the preloaded apps spec.
@@ -82,18 +85,19 @@ Make sure the config.json file doesn't have uuid, registered_at or deviceId popu
 
 Then run the supervisor like this:
 ```bash
-make ARCH=amd64 PRELOADED_IMAGE=registry.resinstaging.io/appname/commithash run-supervisor
+make ARCH=amd64 PRELOADED_IMAGE=registry.resinstaging.io/appname/commithash \
+	SUPERVISOR_IMAGE=username/resin-supervisor:master run-supervisor
 ```
 This will make the docker-in-docker instance pull the image before running the supervisor.
 
 ## View the containers logs
 ```bash
-logs supervisor -f
+docker exec -it resin_supervisor_1 journalctl -f
 ```
 
 ## View the supervisor logs
 ```bash
-enter supervisor
+docker exec -it resin_supervisor_1 /bin/bash
 tail /var/log/supervisor-log/resin_supervisor_stdout.log -f
 ```
 
@@ -113,7 +117,7 @@ make ARCH=amd64 gosuper
 This will build and run the docker image that builds the Go supervisor and outputs the executable at `gosuper/bin`.
 
 ## Adding Go dependencies
-This project uses [Godep](https://github.com/tools/godep) to manage its Go dependencies. In order for it to work, this repo needs to be withing the `src` directory in a valid Go workspace. This can easily be achieved in the devenv by having the repo in the devenv's `src` directory and setting the `GOPATH` environment variable to such directory's parent (that is, the `resin-containers` directory).
+This project uses [Godep](https://github.com/tools/godep) to manage its Go dependencies. In order for it to work, this repo needs to be withing the `src` directory in a valid Go workspace. This can easily be achieved by having the repo as a child of a directory named `src` and setting the `GOPATH` environment variable to such directory's parent.
 
 If these conditions are met, a new dependency can be added with:
 ```bash
@@ -137,6 +141,7 @@ The Go supervisor can be tested by running:
 make ARCH=amd64 test-gosuper
 ```
 The test suite is at [gosuper/main_test.go](./gosuper/main_test.go).
+
 # Integration test
 The integration test tests the supervisor API by hitting its endpoints. To run it, first run the supervisor as explained in the first section of this document.
 
