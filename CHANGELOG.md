@@ -1,3 +1,5 @@
+* Wait 10 seconds after sending SIGTERM and before sending SIGKILL when stopping a container [petrosagg]
+
 # v1.0.0
 
 * Expose supervisor API to app by allowing all requests from 127.0.0.1 and passing address and port as env vars [Pablo]

@@ -91,7 +91,7 @@ application.kill = kill = (app) ->
 		console.error('Error stopping tty', err)
 		return # Even if stopping the tty fails we want to finish stopping the container
 	.then ->
-		container.stopAsync()
+		container.stopAsync(t: 10)
 	.then ->
 		container.removeAsync()
 	# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
