@@ -303,6 +303,10 @@ executeSpecialActionsAndBootConfig = (env) ->
 		if !_.isEmpty(bootConfigVars)
 			device.setBootConfig(bootConfigVars)
 
+wrapAsError = (err) ->
+	return err if _.isError(err)
+	return new Error(err.message ? err)
+
 UPDATE_IDLE = 0
 UPDATE_UPDATING = 1
 UPDATE_REQUIRED = 2
@@ -448,7 +452,7 @@ application.update = update = (force) ->
 							.catch (err) ->
 								logSystemEvent(logTypes.updateAppError, app, err)
 								throw err
-					.catch(_.identity)
+					.catch(wrapAsError)
 		.filter(_.isError)
 		.then (failures) ->
 			throw new Error(joinErrorMessages(failures)) if failures.length > 0
