@@ -285,14 +285,18 @@ joinErrorMessages = (failures) ->
 		err.message or err
 	"#{failures.length} error#{s}: #{messages.join(' - ')}"
 
+# Function to start the application update polling
+application.poll = ->
+	updateStatus.intervalHandle = setInterval(->
+		application.update()
+	, config.appUpdatePollInterval)
+
 # Callback function to set the API poll interval dynamically.
 apiPollInterval = (val) ->
 	config.appUpdatePollInterval = config.checkInt(val) ? 60000
 	console.log('New API poll interval: ' + val)
 	clearInterval(updateStatus.intervalHandle)
-	updateStatus.intervalHandle = setInterval(->
-		application.update()
-	, config.appUpdatePollInterval)
+	application.poll()
 
 specialActionEnvVars =
 	'RESIN_OVERRIDE_LOCK': null
@@ -503,9 +507,7 @@ application.initialize = ->
 		console.error('Error starting apps:', error)
 	.then ->
 		utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})
-		updateStatus.intervalHandle = setInterval(->
-			application.update()
-		, config.appUpdatePollInterval)
+		application.poll()
 		application.update()
 
 module.exports = (uuid) ->

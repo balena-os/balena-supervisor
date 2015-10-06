@@ -44,7 +44,7 @@ publish = do ->
 
 	return -> publishQueue.push(arguments)
 
-# disable: A Boolean to pause the connectivity checks
+# disable: A Boolean to pause the Log Publishing - Logs are lost when paused.
 exports.disableLogPublishing = (disable) ->
 	disableLogs = disable
 
