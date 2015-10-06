@@ -8,7 +8,7 @@ networkCheck = require 'network-checker'
 blink = require('blinking')(config.ledFile)
 url = require 'url'
 randomHexString = require './lib/random-hex-string'
-request = require 'request'
+request = Promise.promisifyAll require 'request'
 logger = require './lib/logger'
 
 utils = exports
@@ -131,22 +131,25 @@ exports.extendEnvVars = (env, uuid) ->
 
 # Callback function to enable/disable tcp pings
 exports.connectivityCheck = (val) ->
-	if val == 'false' then disableCheck(true) else disableCheck(false)
+	disableCheck(val == 'false')
+	console.log('Connectivity check enabled: ' + val)
 
 # Callback function to set the API poll interval dynamically.
 exports.apiPollInterval = (val) ->
 	config.appUpdatePollInterval = config.checkInt(val) ? 60000
+	console.log('API poll interval: ' + val)
 
 # Callback function to enable/disable logs
 exports.resinLogControl = (val) ->
-	if val == 'false' then logger.disableLogPublishing(true) else logger.disableLogPublishing(false)
+	logger.disableLogPublishing(val == 'false')
+	console.log('Logs enabled: ' + val)
 
 # Callback function to enable/disable VPN
 exports.vpnControl = (val) ->
-	if val == 'false' then enable = false else enable = true
-	callback = (error, response, body ) ->
+	enable = val != 'false'
+	request.postAsync(config.gosuperAddress + '/v1/vpncontrol', { json: true, body: Enable: enable })
+	.spread (response, body) ->
 		if response.statusCode == 202
-			console.log('VPN Enabled: ' + enable)
+			console.log('VPN enabled: ' + enable)
 		else
-			console.log('Error: ' + error + ' response:' + response.statusCode + ' body: ' + body.Data  )
-	request.post(config.gosuperAddress + '/v1/vpncontrol', { json: true, body: Enable: enable }, callback)
+			console.log('Error: ' + body + ' response:' + response.statusCode)

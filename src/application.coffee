@@ -288,7 +288,7 @@ joinErrorMessages = (failures) ->
 specialActionEnvVars =
 	'RESIN_OVERRIDE_LOCK': null
 	'_RESIN_VPN_CONTROL': utils.vpnControl
-	'_RESIN_CONNECTIVTY_CHECK': utils.connectivityCheck
+	'_RESIN_CONNECTIVITY_CHECK': utils.connectivityCheck
 	'_RESIN_POLL_INTERVAL': utils.apiPollInterval
 	'_RESIN_LOG_CONTROL': utils.resinLogControl
 

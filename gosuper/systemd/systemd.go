@@ -19,6 +19,6 @@ func init() {
 		log.Fatal("Failed to connect to host system bus")
 	}
 	if Dbus, err = dbus.New(); err != nil {
-		log.Fatal("Failed to connect to host system bus")
+		log.Fatal("Failed to connect to host DBUS ")
 	}
 }
