@@ -1,3 +1,7 @@
+* Enable control of API poll interval through Device Variables [Praneeth]
+* Allow control of VPN + TCP check + Pub nub logs with Device Environment variables [Praneeth]
+* Add GO api for openvpn control [Praneeth]
+
 # v1.0.2
 
 * Fix getting API key from DB by returning its .value [Pablo]
