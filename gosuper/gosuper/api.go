@@ -18,7 +18,7 @@ import (
 // Use raw strings to avoid having to quote the backslashes.
 var dockerMatch = regexp.MustCompile(`(docker[0-9]+)|(rce[0-9]+)`)
 
-// APIResponse sent from gosupervisor
+// APIResponse The api response sent from go supervisor
 type APIResponse struct {
 	Data  interface{}
 	Error string
@@ -181,29 +181,28 @@ func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
 
 //VPNControl is used to control VPN service status with dbus
 func VPNControl(writer http.ResponseWriter, request *http.Request) {
-	sendResponse := responseSender(writer)
-	sendError := func(err string) {
-		sendResponse("Error", err, http.StatusInternalServerError)
-	}
 	var body VPNBody
 	if err := parseJsonBody(&body, request); err != nil {
-		log.Println(string(err.Error()))
-		sendError(string(err.Error()))
+		log.Println(err.Error())
+		responseSender(writer)("Error", err.Error(), http.StatusBadRequest)
+		return
 	}
 	if body.Enable {
 		_, err := systemd.Dbus.StartUnit("openvpn-resin.service", "fail", nil)
 		if err != nil {
-			log.Println(string(err.Error()))
-			sendError(string(err.Error()))
+			log.Println(err.Error())
+			responseSender(writer)("Error", err.Error(), http.StatusInternalServerError)
+			return
 		}
 		log.Println("VPN Enabled")
 	} else {
 		_, err := systemd.Dbus.StopUnit("openvpn-resin.service", "fail", nil)
 		if err != nil {
-			log.Println(string(err.Error()))
-			sendError(string(err.Error()))
+			log.Println(err.Error())
+			responseSender(writer)("Error", err.Error(), http.StatusInternalServerError)
+			return
 		}
 		log.Println("VPN Disabled")
 	}
-	sendResponse("OK", "", http.StatusAccepted)
+	responseSender(writer)("OK", "", http.StatusAccepted)
 }

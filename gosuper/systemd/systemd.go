@@ -7,11 +7,12 @@ import (
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/coreos/go-systemd/login1"
 )
 
-// Logind Systemd Login1 connection
-var Logind *login1.Conn
-
-// Dbus Systems Dbus connection
-var Dbus *dbus.Conn
+var (
+	// Logind Systemd Login1 connection
+	Logind *login1.Conn
+	// Dbus Systems Dbus connection
+	Dbus *dbus.Conn
+)
 
 func init() {
 	var err error
