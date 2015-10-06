@@ -1,3 +1,4 @@
+* Use raspberrypi2 base image for armv7hf [Pablo]
 * Bugfix: wrap all errors from update as Error objects - prevents image cleanup on download failures [Pablo]
 * Wait 10 seconds after sending SIGTERM and before sending SIGKILL when stopping a container [petrosagg]
 
