@@ -101,19 +101,28 @@ exports.connectivityCheck = _.once ->
 				console.log('Waiting for connectivity...')
 				blink.pattern.start(networkPattern)
 
-exports.getOrGenerateApiSecret = do ->
-	apiSecretPromise = null
-	return ->
-		apiSecretPromise ?= Promise.rejected()
-		apiSecretPromise = apiSecretPromise.catch ->
-			knex('config').select('value').where(key: 'apiSecret')
-			.then ([ apiSecret ]) ->
-				return apiSecret.value if apiSecret?
-				Promise.try ->
-					return config.forceApiSecret ? randomHexString.generate()
-				.then (newSecret) ->
-					knex('config').insert([{ key: 'apiSecret', value: newSecret }])
-					.return(newSecret)
+
+apiSecretPromise = null
+generateApiSecret = ->
+	Promise.try ->
+		return config.forceApiSecret ? randomHexString.generate()
+	.then (newSecret) ->
+		secretInDB = { key: 'apiSecret', value: newSecret }
+		knex('config').update(secretInDB).where(key: 'apiSecret')
+		.then (affectedRows) ->
+			knex('config').insert(secretInDB) if affectedRows == 0
+		.return(newSecret)
+
+exports.newApiSecret = newApiSecret = ->
+	apiSecretPromise ?= Promise.resolve()
+	apiSecretPromise = apiSecretPromise.then ->
+		generateApiSecret()
+
+exports.getOrGenerateApiSecret = ->
+	apiSecretPromise ?= knex('config').select('value').where(key: 'apiSecret').then ([ apiSecret ]) ->
+		return apiSecret.value if apiSecret?
+		generateApiSecret()
+	return apiSecretPromise
 
 exports.extendEnvVars = (env, uuid) ->
 	host = '127.0.0.1'

@@ -7,15 +7,21 @@ express = require 'express'
 bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
+device = require './device'
 
-module.exports = (secret, application) ->
+module.exports = (application) ->
 	api = express()
 	api.use(bodyParser())
 	api.use (req, res, next) ->
-		if req.query.apikey is secret
-			next()
-		else
-			res.sendStatus(401)
+		utils.getOrGenerateApiSecret()
+		.then (secret) ->
+			if req.query.apikey is secret
+				next()
+			else
+				res.sendStatus(401)
+		.catch (err) ->
+			# This should never happen...
+			res.status(503).send('Invalid API key in supervisor')
 
 	api.get '/ping', (req, res) ->
 		res.send('OK')
@@ -117,6 +123,16 @@ module.exports = (secret, application) ->
 					application.start(app)
 		.then ->
 			res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	# Expires the supervisor's API key and generates a new one.
+	# It also communicates the new key to the Resin API.
+	api.post '/v1/regenerate-api-key', (req, res) ->
+		utils.newApiSecret()
+		.then (secret) ->
+			device.updateState(apikey: secret)
+			res.status(200).send(secret)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
