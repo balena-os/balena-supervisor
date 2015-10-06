@@ -1,0 +1,12 @@
+[Unit]
+Description=Confd
+Before=rsyslog.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/docker.env
+ExecStart=-/usr/local/bin/confd -onetime -confdir=/etc/confd -backend=env
+ExecStart=-/usr/local/bin/confd -onetime -confdir=/etc/confd -node=http://172.17.42.1:4001
+
+[Install]
+WantedBy=basic.target
