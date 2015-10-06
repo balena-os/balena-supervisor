@@ -24,7 +24,6 @@ ExecStart=/bin/bash -c 'source /usr/src/app/resin-vars && \
 	-v /var/log/supervisor-log:/var/log \
 	-v /:/mnt/root \
 	-v /etc/resolv.conf:/etc/resolv.conf:rw \
-	-v /var/run/dbus:/var/run/dbus \
 	-e "API_ENDPOINT=$API_ENDPOINT" \
 	-e "REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT" \
 	-e "PUBNUB_SUBSCRIBE_KEY=$PUBNUB_SUBSCRIBE_KEY" \
@@ -33,6 +32,7 @@ ExecStart=/bin/bash -c 'source /usr/src/app/resin-vars && \
 	-e "LED_FILE=${LED_FILE}" \
 	-e "LISTEN_PORT=$LISTEN_PORT" \
 	-e "SUPERVISOR_IMAGE=${SUPERVISOR_IMAGE}" \
+	-e "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/mnt/root/run/dbus/system_bus_socket" \
 	-e "RESIN_SUPERVISOR_SECRET=${RESIN_SUPERVISOR_SECRET}" \
 	${SUPERVISOR_IMAGE}'
 TimeoutStartSec=0
