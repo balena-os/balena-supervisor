@@ -285,11 +285,20 @@ joinErrorMessages = (failures) ->
 		err.message or err
 	"#{failures.length} error#{s}: #{messages.join(' - ')}"
 
+# Callback function to set the API poll interval dynamically.
+apiPollInterval = (val) ->
+	config.appUpdatePollInterval = config.checkInt(val) ? 60000
+	console.log('New API poll interval: ' + val)
+	clearInterval(updateStatus.intervalHandle)
+	updateStatus.intervalHandle = setInterval(->
+		application.update()
+	, config.appUpdatePollInterval)
+
 specialActionEnvVars =
 	'RESIN_OVERRIDE_LOCK': null
 	'_RESIN_VPN_CONTROL': utils.vpnControl
 	'_RESIN_CONNECTIVITY_CHECK': utils.connectivityCheck
-	'_RESIN_POLL_INTERVAL': utils.apiPollInterval
+	'_RESIN_POLL_INTERVAL': apiPollInterval
 	'_RESIN_LOG_CONTROL': utils.resinLogControl
 
 executedSpecialActionEnvVars = {}
@@ -319,6 +328,8 @@ updateStatus =
 	state: UPDATE_IDLE
 	failed: 0
 	forceNext: false
+	intervalHandle: null
+
 application.update = update = (force) ->
 	if updateStatus.state isnt UPDATE_IDLE
 		# Mark an update required after the current.
@@ -480,7 +491,6 @@ application.update = update = (force) ->
 		.finally ->
 			# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
 			updateStatus.state = UPDATE_IDLE
-			setTimeout(update, config.appUpdatePollInterval)
 
 application.initialize = ->
 	knex('app').select()
@@ -493,6 +503,9 @@ application.initialize = ->
 		console.error('Error starting apps:', error)
 	.then ->
 		utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})
+		updateStatus.intervalHandle = setInterval(->
+			application.update()
+		, config.appUpdatePollInterval)
 		application.update()
 
 module.exports = (uuid) ->

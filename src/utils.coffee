@@ -134,11 +134,6 @@ exports.connectivityCheck = (val) ->
 	disableCheck(val == 'false')
 	console.log('Connectivity check enabled: ' + val)
 
-# Callback function to set the API poll interval dynamically.
-exports.apiPollInterval = (val) ->
-	config.appUpdatePollInterval = config.checkInt(val) ? 60000
-	console.log('API poll interval: ' + val)
-
 # Callback function to enable/disable logs
 exports.resinLogControl = (val) ->
 	logger.disableLogPublishing(val == 'false')
