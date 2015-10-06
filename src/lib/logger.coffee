@@ -27,6 +27,8 @@ publish = do ->
 
 		# Redefine original function
 		publish = (message) ->
+			# Disable sending logs for bandwidth control
+			return if disableLogs
 			if _.isString(message)
 				message = { message }
 
@@ -35,9 +37,7 @@ publish = do ->
 				# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
 				message: ' '
 
-			# Disable sending logs for bandwidth control
-			if not disableLogs
-				pubnub.publish({ channel, message })
+			pubnub.publish({ channel, message })
 
 		# Replay queue now that we have initialised the publish function
 		publish(args...) for args in publishQueue

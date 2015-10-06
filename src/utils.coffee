@@ -131,8 +131,9 @@ exports.extendEnvVars = (env, uuid) ->
 
 # Callback function to enable/disable tcp pings
 exports.connectivityCheck = (val) ->
-	disableCheck(val == 'false')
-	console.log('Connectivity check enabled: ' + val)
+	bool = val is 'false'
+	disableCheck(bool)
+	console.log("Connectivity check enabled: #{not bool}")
 
 # Callback function to enable/disable logs
 exports.resinLogControl = (val) ->

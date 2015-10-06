@@ -17,9 +17,9 @@ var (
 func init() {
 	var err error
 	if Logind, err = login1.New(); err != nil {
-		log.Fatal("Failed to connect to host system bus")
+		log.Fatalf("Failed to connect to host system bus: %s", err)
 	}
 	if Dbus, err = dbus.New(); err != nil {
-		log.Fatal("Failed to connect to host DBUS ")
+		log.Fatalf("Failed to connect to host DBUS: %s", err)
 	}
 }

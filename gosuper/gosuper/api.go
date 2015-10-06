@@ -24,6 +24,7 @@ type APIResponse struct {
 	Error string
 }
 
+//PurgeBody struct for the ApplicationId interfact
 type PurgeBody struct {
 	ApplicationId interface{}
 }
@@ -43,14 +44,14 @@ func jsonResponse(writer http.ResponseWriter, response interface{}, status int) 
 	writer.Write(jsonBody)
 }
 
-func parseJsonBody(destination interface{}, request *http.Request) error {
+func parseJSONBody(destination interface{}, request *http.Request) error {
 	decoder := json.NewDecoder(request.Body)
 	return decoder.Decode(&destination)
 }
 
 func parsePurgeBody(request *http.Request) (appId string, err error) {
 	var body PurgeBody
-	if err = parseJsonBody(&body, request); err != nil {
+	if err = parseJSONBody(&body, request); err != nil {
 		return
 	}
 	switch v := body.ApplicationId.(type) {
@@ -72,13 +73,20 @@ func responseSender(writer http.ResponseWriter) func(interface{}, string, int) {
 	}
 }
 
-func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
-	log.Println("Purging /data")
-
-	sendResponse := responseSender(writer)
-	sendError := func(err error) {
+func responseSenders(writer http.ResponseWriter) (sendResponse func(interface{}, string, int), sendError func(error)) {
+	sendResponse = func(data interface{}, errorMsg string, statusCode int) {
+		jsonResponse(writer, APIResponse{data, errorMsg}, statusCode)
+	}
+	sendError = func(err error) {
 		sendResponse("Error", err.Error(), http.StatusInternalServerError)
 	}
+	return
+}
+
+// PurgeHandler Purges the data of the appID's application in the /data partition
+func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
+	log.Println("Purging /data")
+	sendResponse, sendError := responseSenders(writer)
 	sendBadRequest := func(errorMsg string) {
 		sendResponse("Error", errorMsg, http.StatusBadRequest)
 	}
@@ -109,25 +117,25 @@ func inASecond(theFunc func()) {
 	theFunc()
 }
 
+//RebootHandler Reboots the device using Systemd
 func RebootHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Rebooting")
-
-	sendResponse := responseSender(writer)
+	sendResponse, _ := responseSenders(writer)
 	sendResponse("OK", "", http.StatusAccepted)
 	go inASecond(func() { systemd.Logind.Reboot(false) })
 }
 
+//ShutdownHandler Shuts down the device using Systemd
 func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Shutting down")
 
-	sendResponse := responseSender(writer)
+	sendResponse, _ := responseSenders(writer)
 	sendResponse("OK", "", http.StatusAccepted)
 	go inASecond(func() { systemd.Logind.PowerOff(false) })
 }
 
 // This function returns all active IPs of the interfaces that arent docker/rce and loopback
 func ipAddress() (ipAddresses []string, err error) {
-
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return ipAddresses, err
@@ -165,13 +173,9 @@ func ipAddress() (ipAddresses []string, err error) {
 
 //IPAddressHandler is used to reply back with an array of the IPaddress used by the system.
 func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
-	sendResponse := responseSender(writer)
-	sendError := func(err string) {
-		sendResponse("Error", err, http.StatusInternalServerError)
-	}
-
+	sendResponse, sendError := responseSenders(writer)
 	if ipAddr, err := ipAddress(); err != nil {
-		sendError("Invalid request")
+		sendError(err)
 	} else {
 		payload := make(map[string][]string)
 		payload["IPAddresses"] = ipAddr
@@ -181,28 +185,24 @@ func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
 
 //VPNControl is used to control VPN service status with dbus
 func VPNControl(writer http.ResponseWriter, request *http.Request) {
+	sendResponse, sendError := responseSenders(writer)
 	var body VPNBody
-	if err := parseJsonBody(&body, request); err != nil {
-		log.Println(err.Error())
-		responseSender(writer)("Error", err.Error(), http.StatusBadRequest)
+	if err := parseJSONBody(&body, request); err != nil {
+		log.Println(err)
+		sendResponse("Error", err.Error(), http.StatusBadRequest)
 		return
 	}
+	action := systemd.Dbus.StopUnit
+	actionDescr := "VPN Disable"
 	if body.Enable {
-		_, err := systemd.Dbus.StartUnit("openvpn-resin.service", "fail", nil)
-		if err != nil {
-			log.Println(err.Error())
-			responseSender(writer)("Error", err.Error(), http.StatusInternalServerError)
-			return
-		}
-		log.Println("VPN Enabled")
-	} else {
-		_, err := systemd.Dbus.StopUnit("openvpn-resin.service", "fail", nil)
-		if err != nil {
-			log.Println(err.Error())
-			responseSender(writer)("Error", err.Error(), http.StatusInternalServerError)
-			return
-		}
-		log.Println("VPN Disabled")
+		action = systemd.Dbus.StartUnit
+		actionDescr = "VPN Enable"
 	}
-	responseSender(writer)("OK", "", http.StatusAccepted)
+	if _, err := action("openvpn-resin.service", "fail", nil); err != nil {
+		log.Printf("%s: %s\n", actionDescr, err)
+		sendError(err)
+		return
+	}
+	log.Printf("%sd\n", actionDescr)
+	sendResponse("OK", "", http.StatusAccepted)
 }
