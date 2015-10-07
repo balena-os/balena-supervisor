@@ -33,7 +33,9 @@ A config.json file can be obtained in several ways, for instance:
 * Download an Intel Edison image from staging, open `config.img` with an archive tool like [peazip](http://sourceforge.net/projects/peazip/files/)
 * Download a Raspberry Pi 2 image, flash it to an SD card, then mount partition 5 (resin-conf).
 
-The config.json file should look something like this (beautified and commented for better explanation):
+The config.json file should look something like this:
+
+(Please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
 ```json
 {
 	"applicationId": "2167", /* Id of the app this supervisor will run */
@@ -67,28 +69,27 @@ To test preloaded apps, add a `tools/dind/apps.json` file according to the prelo
 
 It should look something like this:
 
+(As before, please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
+
 ```json
 [{
 	"appId": "2167", /* Id of the app we are running */
 	"commit": "commithash", /* Current git commit for the app */
-	"imageId": "registry.resinstaging.io/appname/commithash", /* Id of the docker image for this app and commit */
+	"imageId": "registry.resinstaging.io/path/to/image", /* Id of the docker image for this app */
 	"env": { /* Environment variables for the app */
 		"KEY": "value"
 	}
 }]
 ```
-where `appname` and `commithash` correspond to the name of the test app and the last commit pushed to Resin.
-
-For instance, `imageId` could be `"registry.resinstaging.io/supertest/5a5f999fde38590d4c28ac80779f3999c12fd9ae"`
 
 Make sure the config.json file doesn't have uuid, registered_at or deviceId populated from a previous run.
 
 Then run the supervisor like this:
 ```bash
-make ARCH=amd64 PRELOADED_IMAGE=registry.resinstaging.io/appname/commithash \
+make ARCH=amd64 PRELOADED_IMAGE=true \
 	SUPERVISOR_IMAGE=username/resin-supervisor:master run-supervisor
 ```
-This will make the docker-in-docker instance pull the image before running the supervisor.
+This will make the docker-in-docker instance pull the image specified in apps.json before running the supervisor.
 
 ## View the containers logs
 ```bash
