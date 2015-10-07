@@ -6,6 +6,7 @@ COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 RUN apt-get -q update \
 	&& apt-get install -qqy \
 		btrfs-tools \
+		ca-certificates \
 		curl \
 		jq \
 		rsync \
