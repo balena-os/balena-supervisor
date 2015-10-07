@@ -1,6 +1,6 @@
 # Resin Supervisor
 
-This is the [resin.io](https://resin.io)'s Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.
+This is [resin.io](https://resin.io)'s Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.
 
 The Supervisor is for now a node.js program, with a subset of its functionality implemented in Go.
 
