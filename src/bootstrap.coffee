@@ -53,7 +53,7 @@ bootstrap = ->
 	.then (userConfig) ->
 		console.log('Finishing bootstrapping')
 		Promise.all([
-			knex('config').truncate()
+			knex('config').whereIn('key', ['uuid', 'apiKey', 'username', 'userId', 'version']).delete()
 			.then ->
 				knex('config').insert([
 					{ key: 'uuid', value: userConfig.uuid }

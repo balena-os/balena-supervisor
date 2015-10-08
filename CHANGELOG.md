@@ -1,3 +1,4 @@
+* Don't allow bootstrap to delete apiSecret from DB [Pablo]
 * Add API endpoint to expire and create new API key [Pablo]
 * Enable control of API poll interval through Device Variables [Praneeth]
 * Allow control of VPN + TCP check + Pub nub logs with Device Environment variables [Praneeth]
