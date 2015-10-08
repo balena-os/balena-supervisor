@@ -1,3 +1,5 @@
+# v1.0.2
+
 * Fix getting API key from DB by returning its .value [Pablo]
 
 # v1.0.1
