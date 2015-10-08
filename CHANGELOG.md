@@ -1,3 +1,5 @@
+* Fix getting API key from DB by returning its .value [Pablo]
+
 # v1.0.1
 
 * Pass supervisor API key to app, don't regenerate the key, and authenticate ALL requests [Pablo]

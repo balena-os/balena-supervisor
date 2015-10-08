@@ -106,7 +106,7 @@ exports.getOrGenerateApiSecret = do ->
 		apiSecretPromise = apiSecretPromise.catch ->
 			knex('config').select('value').where(key: 'apiSecret')
 			.then ([ apiSecret ]) ->
-				return apiSecret if apiSecret?
+				return apiSecret.value if apiSecret?
 				Promise.try ->
 					return config.forceApiSecret ? randomHexString.generate()
 				.then (newSecret) ->
