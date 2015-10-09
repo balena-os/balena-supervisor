@@ -1,3 +1,5 @@
+# v1.1.0
+
 * Switch back to using arch-based node images [Pablo]
 * Don't allow bootstrap to delete apiSecret from DB [Pablo]
 * Add API endpoint to expire and create new API key [Pablo]
