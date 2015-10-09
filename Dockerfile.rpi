@@ -34,4 +34,4 @@ RUN chmod +x /app/src/enterContainer.sh \
 
 RUN chmod +x /app/bin/gosuper
 
-CMD ["/app/entry.sh"]
+ENTRYPOINT ["/app/entry.sh"]

@@ -38,4 +38,4 @@ ENV SUPERVISOR_IMAGE resin/amd64-supervisor
 ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
 
-CMD ["/app/entry.sh"]
+ENTRYPOINT ["/app/entry.sh"]
