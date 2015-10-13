@@ -1,5 +1,5 @@
 process.on 'uncaughtException', (e) ->
-	console.log('Got unhandled exception', e)
+	console.error('Got unhandled exception', e, e?.stack)
 
 supervisor = require './supervisor-update'
 
