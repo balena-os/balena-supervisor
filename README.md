@@ -36,7 +36,7 @@ A config.json file can be obtained in several ways, for instance:
 The config.json file should look something like this:
 
 (Please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
-```json
+```yaml
 {
 	"applicationId": "2167", /* Id of the app this supervisor will run */
 	"apiKey": "supersecretapikey", /* The API key for the Resin API */
@@ -71,7 +71,7 @@ It should look something like this:
 
 (As before, please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
 
-```json
+```yaml
 [{
 	"appId": "2167", /* Id of the app we are running */
 	"commit": "commithash", /* Current git commit for the app */
