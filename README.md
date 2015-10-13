@@ -4,7 +4,7 @@ This is [resin.io](https://resin.io)'s Supervisor, a program that runs on IoT de
 
 The Supervisor is for now a node.js program, with a subset of its functionality implemented in Go.
 
-We are currently **rewriting the whole code in Go**, so if you're interested in contributing, please checkout [the corresponding branch](../tree/RES-477-gosuper-all-the-way) and use that as a base for your PR's.
+We are currently **rewriting the whole code in Go**, so if you're interested in contributing, please checkout [the corresponding branch](https://github.com/resin-io/resin-supervisor/tree/RES-477-gosuper-all-the-way) and use that as a base for your PR's.
 
 # Running supervisor locally
 
