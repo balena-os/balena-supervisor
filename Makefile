@@ -58,9 +58,9 @@ stop-supervisor:
 supervisor: gosuper
 	cp Dockerfile.$(ARCH) Dockerfile
 	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile
-	echo "ENV PUBNUB_PUBLISH_KEY $(PUBNUB_PUBLISH_KEY)" >> Dockerfile
-	echo "ENV PUBNUB_SUBSCRIBE_KEY $(PUBNUB_SUBSCRIBE_KEY)" >> Dockerfile
-	echo "ENV MIXPANEL_TOKEN $(MIXPANEL_TOKEN)" >> Dockerfile
+	echo "ENV DEFAULT_PUBNUB_PUBLISH_KEY $(PUBNUB_PUBLISH_KEY)" >> Dockerfile
+	echo "ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY $(PUBNUB_SUBSCRIBE_KEY)" >> Dockerfile
+	echo "ENV DEFAULT_MIXPANEL_TOKEN $(MIXPANEL_TOKEN)" >> Dockerfile
 	docker build --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
 	-rm Dockerfile
 

@@ -1,4 +1,4 @@
-* Remove default Pubnub and Mixpanel keys as they are now passed at build time [Pablo]
+* Use buildtime env vars as the default Pubnub and Mixpanel keys [Pablo]
 
 # v1.1.0
 
