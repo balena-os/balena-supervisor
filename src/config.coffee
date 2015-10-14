@@ -13,9 +13,9 @@ module.exports = config =
 	gosuperAddress: "http://unix:#{process.env.GOSUPER_SOCKET}:"
 	registryEndpoint: process.env.REGISTRY_ENDPOINT ? 'registry.resin.io'
 	pubnub:
-		subscribe_key: process.env.PUBNUB_SUBSCRIBE_KEY ? 'sub-c-bananas'
-		publish_key: process.env.PUBNUB_PUBLISH_KEY ? 'pub-c-bananas'
-	mixpanelToken: process.env.MIXPANEL_TOKEN ? 'bananasbananas'
+		subscribe_key: process.env.PUBNUB_SUBSCRIBE_KEY ? ''
+		publish_key: process.env.PUBNUB_PUBLISH_KEY ? ''
+	mixpanelToken: process.env.MIXPANEL_TOKEN ? ''
 	dockerSocket: process.env.DOCKER_SOCKET ? '/run/docker.sock'
 	supervisorImage: process.env.SUPERVISOR_IMAGE ? 'resin/rpi-supervisor'
 	configMountPoint: process.env.CONFIG_MOUNT_POINT ? '/mnt/mmcblk0p1/config.json'

@@ -1,3 +1,5 @@
+* Remove default Pubnub and Mixpanel keys as they are now passed at build time [Pablo]
+
 # v1.1.0
 
 * Switch back to using arch-based node images [Pablo]
