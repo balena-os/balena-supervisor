@@ -1,3 +1,5 @@
+* Use buildtime env vars as the default Pubnub and Mixpanel keys [Pablo]
+
 # v1.1.0
 
 * Switch back to using arch-based node images [Pablo]
