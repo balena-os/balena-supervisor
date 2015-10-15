@@ -120,7 +120,12 @@ func inASecond(theFunc func()) {
 //RebootHandler Reboots the device using Systemd
 func RebootHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Rebooting")
-	sendResponse, _ := responseSenders(writer)
+
+	sendResponse, sendError := responseSenders(writer)
+	if systemd.Logind == nil {
+		sendError(fmt.Errorf("Logind unavailable, cannot reboot."))
+		return
+	}
 	sendResponse("OK", "", http.StatusAccepted)
 	go inASecond(func() { systemd.Logind.Reboot(false) })
 }
@@ -129,7 +134,11 @@ func RebootHandler(writer http.ResponseWriter, request *http.Request) {
 func ShutdownHandler(writer http.ResponseWriter, request *http.Request) {
 	log.Println("Shutting down")
 
-	sendResponse, _ := responseSenders(writer)
+	sendResponse, sendError := responseSenders(writer)
+	if systemd.Logind == nil {
+		sendError(fmt.Errorf("Logind unavailable, cannot shut down."))
+		return
+	}
 	sendResponse("OK", "", http.StatusAccepted)
 	go inASecond(func() { systemd.Logind.PowerOff(false) })
 }
@@ -192,6 +201,12 @@ func VPNControl(writer http.ResponseWriter, request *http.Request) {
 		sendResponse("Error", err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	if systemd.Dbus == nil {
+		sendError(fmt.Errorf("Systemd dbus unavailable, cannot set VPN state."))
+		return
+	}
+
 	action := systemd.Dbus.StopUnit
 	actionDescr := "VPN Disable"
 	if body.Enable {
