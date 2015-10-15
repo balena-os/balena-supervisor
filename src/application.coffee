@@ -147,8 +147,6 @@ application.start = start = (app) ->
 		'/lib/firmware:/lib/firmware'
 		'/run/dbus:/run/dbus'
 		'/run/dbus:/host_run/dbus'
-		'/var/run/docker.sock:/run/docker.sock'
-		'/var/run/docker.sock:/host_run/docker.sock'
 		'/etc/resolv.conf:/etc/resolv.conf:rw'
 	]
 	Promise.try ->
