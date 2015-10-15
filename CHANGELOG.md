@@ -1,3 +1,6 @@
+# v1.1.1
+
+* Prevent non-fatal errors from causing the supervisor to exit [Lorenzo]
 * Use buildtime env vars as the default Pubnub and Mixpanel keys [Pablo]
 
 # v1.1.0
