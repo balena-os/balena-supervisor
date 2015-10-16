@@ -132,6 +132,7 @@ exports.extendEnvVars = (env, uuid) ->
 		RESIN_SUPERVISOR_HOST: host
 		RESIN_SUPERVISOR_PORT: config.listenPort
 		RESIN_SUPERVISOR_API_KEY: exports.getOrGenerateApiSecret()
+		RESIN_SUPERVISOR_VERSION: exports.supervisorVersion
 		RESIN: '1'
 		USER: 'root'
 	if env?

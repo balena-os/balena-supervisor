@@ -1,3 +1,5 @@
+* Expose a RESIN_SUPERVISOR_VERSION env var to app [Pablo]
+
 # v1.1.1
 
 * Prevent non-fatal errors from causing the supervisor to exit [Lorenzo]
