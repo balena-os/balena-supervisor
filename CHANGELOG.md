@@ -1,3 +1,5 @@
+# v1.2.0
+
 * Don't bind mount (the sometimes non-existent) docker.sock [Pablo]
 * Expose a RESIN_SUPERVISOR_VERSION env var to app [Pablo]
 
