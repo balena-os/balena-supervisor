@@ -6,9 +6,9 @@ The Supervisor is for now a node.js program, with a subset of its functionality 
 
 We are currently **rewriting the whole code in Go**, so if you're interested in contributing, please checkout [the corresponding branch](https://github.com/resin-io/resin-supervisor/tree/RES-477-gosuper-all-the-way) and use that as a base for your PR's.
 
-# Running supervisor locally
+## Running supervisor locally
 
-## Deploy your local version to a Docker registry
+### Deploy your local version to a Docker registry
 
 We'll show how to use the DockerHub registry, but any other can be specified as part of the `SUPERVISOR_IMAGE` variable.
 
@@ -25,7 +25,7 @@ make ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master deploy
 This will build the Supervisor docker image if you haven't done it yet, and upload it to the registry.
 As we pointed out before, a different registry can be specified with the DEPLOY_REGISTRY env var.
 
-## Set up config.json
+### Set up config.json
 Add `tools/dind/config.json` file from a staging device image.
 
 A config.json file can be obtained in several ways, for instance:
@@ -58,13 +58,13 @@ The config.json file should look something like this:
 ```
 Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the resin API.
 
-## Start the supervisor instance
+### Start the supervisor instance
 ```bash
 make ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master run-supervisor
 ```
 This will setup a docker-in-docker instance with an image that runs the supervisor image.
 
-## Testing with preloaded apps
+### Testing with preloaded apps
 To test preloaded apps, add a `tools/dind/apps.json` file according to the preloaded apps spec.
 
 It should look something like this:
@@ -91,24 +91,24 @@ make ARCH=amd64 PRELOADED_IMAGE=true \
 ```
 This will make the docker-in-docker instance pull the image specified in apps.json before running the supervisor.
 
-## View the containers logs
+### View the containers logs
 ```bash
 docker exec -it resin_supervisor_1 journalctl -f
 ```
 
-## View the supervisor logs
+### View the supervisor logs
 ```bash
 docker exec -it resin_supervisor_1 /bin/bash
 tail /var/log/supervisor-log/resin_supervisor_stdout.log -f
 ```
 
-## Stop the supervisor
+### Stop the supervisor
 ```bash
 make stop-supervisor
 ```
 This will stop the container and remove it, also removing its volumes.
 
-# Working with the Go supervisor
+## Working with the Go supervisor
 The Dockerfile used to build the Go supervisor is Dockerfile.gosuper, and the code for the Go supervisor lives in the `gosuper` directory.
 
 To build it, run:
@@ -117,7 +117,7 @@ make ARCH=amd64 gosuper
 ```
 This will build and run the docker image that builds the Go supervisor and outputs the executable at `gosuper/bin`.
 
-## Adding Go dependencies
+### Adding Go dependencies
 This project uses [Godep](https://github.com/tools/godep) to manage its Go dependencies. In order for it to work, this repo needs to be withing the `src` directory in a valid Go workspace. This can easily be achieved by having the repo as a child of a directory named `src` and setting the `GOPATH` environment variable to such directory's parent.
 
 If these conditions are met, a new dependency can be added with:
@@ -136,14 +136,14 @@ godep save -r ./...
 (The -r switch will modify the import statement to use Godep's `_workspace`)
 
 ## Testing
-# Gosuper
+### Gosuper
 The Go supervisor can be tested by running:
 ```bash
 make ARCH=amd64 test-gosuper
 ```
 The test suite is at [gosuper/main_test.go](./gosuper/main_test.go).
 
-# Integration test
+### Integration test
 The integration test tests the supervisor API by hitting its endpoints. To run it, first run the supervisor as explained in the first section of this document.
 
 Once it's running, you can run the test with:
@@ -152,3 +152,19 @@ make ARCH=amd64 test-integration
 ```
 The tests will fail if the supervisor API is down - bear in mind that the supervisor image takes a while to start the actual supervisor program, so you might have to wait a few minutes between running the supervisor and testing it.
 The test expects the supervisor to be already running the application (so that the app is already on the SQLite database), so check the dashboard to see if the app has already downloaded.
+
+## License
+
+Copyright 2015 Rulemotion Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+[http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
