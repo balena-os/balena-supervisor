@@ -270,7 +270,9 @@ application.lockUpdates = lockUpdates = do ->
 				.catch ENOENT, _.noop
 				.catch (err) ->
 					release()
-					throw new Error("Updates are locked: #{err.message}")
+					err = new Error("Updates are locked: #{err.message}")
+					err.isLocked = true
+					throw err
 		.disposer (release) ->
 			Promise.try ->
 				lockFile.unlockAsync(lockName) if force != true
@@ -297,11 +299,13 @@ apiPollInterval = (val) ->
 	application.poll()
 
 specialActionEnvVars =
-	'RESIN_OVERRIDE_LOCK': null
-	'RESIN_VPN_CONTROL': utils.vpnControl
-	'RESIN_CONNECTIVITY_CHECK': utils.connectivityCheck
-	'RESIN_POLL_INTERVAL': apiPollInterval
-	'RESIN_LOG_CONTROL': utils.resinLogControl
+	'RESIN_SUPERVISOR_UPDATE_STRATEGY': null
+	'RESIN_SUPERVISOR_HANDOVER_TIMEOUT': null
+	'RESIN_SUPERVISOR_OVERRIDE_LOCK': null
+	'RESIN_SUPERVISOR_VPN_CONTROL': utils.vpnControl
+	'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': utils.connectivityCheck
+	'RESIN_SUPERVISOR_POLL_INTERVAL': apiPollInterval
+	'RESIN_SUPERVISOR_LOG_CONTROL': utils.resinLogControl
 
 executedSpecialActionEnvVars = {}
 
@@ -322,6 +326,17 @@ wrapAsError = (err) ->
 	return err if _.isError(err)
 	return new Error(err.message ? err)
 
+selectAndKill = (appId) ->
+	knex('app').select().where({ appId })
+	.then ([ app ]) ->
+		if !app?
+			throw new Error('App not found')
+		kill(app)
+
+waitToKill = (app, timeout) ->
+	# TO-DO
+	# Wait for app to signal it's ready to die, or timeout to complete (if it is defined and not-empty)
+
 UPDATE_IDLE = 0
 UPDATE_UPDATING = 1
 UPDATE_REQUIRED = 2
@@ -331,6 +346,119 @@ updateStatus =
 	failed: 0
 	forceNext: false
 	intervalHandle: null
+
+updateStrategies =
+	'normal-update': (localApp, app, needsDownload, force, timeout) ->
+		Promise.try ->
+			fetch(app) if needsDownload
+		.then ->
+			Promise.using lockUpdates(localApp, force), ->
+				logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
+				selectAndKill(localApp.appId)
+				.then ->
+					start(app)
+			.catch (err) ->
+				logSystemEvent(logTypes.updateAppError, app, err) unless err.isLocked?
+				throw err
+	'kill-before-download': (localApp, app, needsDownload, force, timeout) ->
+		logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
+		Promise.using lockUpdates(localApp, force), ->
+			selectAndKill(localApp.appId)
+			.then ->
+				fetch(app) if needsDownload
+			.then ->
+				start(app)
+		.catch (err) ->
+			logSystemEvent(logTypes.updateAppError, app, err) unless err.isLocked?
+			throw err
+	'hand-over': (localApp, app, needsDownload, force, timeout) ->
+		Promise.using lockUpdates(localApp, force), ->
+			Promise.try ->
+				fetch(app) if needsDownload
+			.then ->
+				logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
+				start(app)
+			.then ->
+				waitToKill(localApp, timeout)
+			.then ->
+				selectAndKill(localApp.appId)
+		.catch (err) ->
+			logSystemEvent(logTypes.updateAppError, app, err) unless err.isLocked?
+			throw err
+
+
+updateUsingStrategy = (strategy, localApp, app, needsDownload, force, timeout) ->
+	if strategy not in _.keys(updateStrategies)
+		strategy = 'normal-update'
+	updateStrategies[strategy](localApp, app, needsDownload, force, timeout)
+
+getRemoteApps = (uuid, apiKey) ->
+	cachedResinApi.get
+		resource: 'application'
+		options:
+			select: [
+				'id'
+				'git_repository'
+				'commit'
+			]
+			filter:
+				commit: $ne: null
+				device:
+					uuid: uuid
+		customOptions:
+			apikey: apiKey
+
+getEnvAndFormatRemoteApps = (deviceId, remoteApps, uuid, apiKey) ->
+	Promise.map remoteApps, (app) ->
+		getEnvironment(app.id, deviceId, apiKey)
+		.then (environment) ->
+			app.environment_variable = environment
+			utils.extendEnvVars(app.environment_variable, uuid)
+		.then (env) ->
+			fullEnv = env
+			env = _.omit(env, _.keys(specialActionEnvVars))
+			return [
+				{
+					appId: app.id
+					env: fullEnv
+				},
+				{
+					appId: '' + app.id
+					commit: app.commit
+					imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
+					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
+				}
+			]
+	.then(_.zip)
+	.then ([ remoteAppEnvs, remoteApps ]) ->
+		return [_.mapValues(_.indexBy(remoteAppEnvs, 'appId'), 'env'), _.indexBy(remoteApps, 'appId')]
+
+formatLocalApps = (apps) ->
+	apps = _.indexBy(apps, 'appId')
+	localAppEnvs = {}
+	localApps = _.mapValues apps, (app) ->
+		localAppEnvs[app.appId] = JSON.parse(app.env)
+		app.env = JSON.stringify(_.omit(localAppEnvs[app.appId], _.keys(specialActionEnvVars)))
+		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
+	return { localApps, localAppEnvs }
+
+compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
+	remoteAppIds = _.keys(remoteApps)
+	localAppIds = _.keys(localApps)
+	appsWithChangedEnvs = _.filter remoteAppIds, (appId) ->
+		return !localAppEnvs[appId]? or !_.isEqual(remoteAppEnvs[appId], localAppEnvs[appId])
+	toBeRemoved = _.difference(localAppIds, remoteAppIds)
+	toBeInstalled = _.difference(remoteAppIds, localAppIds)
+
+	toBeUpdated = _.intersection(remoteAppIds, localAppIds)
+	toBeUpdated = _.filter toBeUpdated, (appId) ->
+		return !_.isEqual(remoteApps[appId], localApps[appId])
+
+	toBeDownloaded = _.filter toBeUpdated, (appId) ->
+		return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
+	toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
+	allAppIds = _.union(localAppIds, remoteAppIds)
+	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds }
 
 application.update = update = (force) ->
 	if updateStatus.state isnt UPDATE_IDLE
@@ -350,64 +478,13 @@ application.update = update = (force) ->
 			uuid = uuid.value
 
 			deviceId = device.getID()
+			remoteApps = getRemoteApps(uuid, apiKey)
 
-			remoteApps = cachedResinApi.get
-				resource: 'application'
-				options:
-					select: [
-						'id'
-						'git_repository'
-						'commit'
-					]
-					filter:
-						commit: $ne: null
-						device:
-							uuid: uuid
-				customOptions:
-					apikey: apiKey
-
-			remoteAppEnvs = {}
-			Promise.join deviceId, remoteApps, (deviceId, remoteApps) ->
-				return Promise.map remoteApps, (app) ->
-					getEnvironment(app.id, deviceId, apiKey)
-					.then (environment) ->
-						app.environment_variable = environment
-						utils.extendEnvVars(app.environment_variable, uuid)
-					.then (env) ->
-						remoteAppEnvs[app.id] = env
-						env = _.omit(env, _.keys(specialActionEnvVars))
-						return {
-							appId: '' + app.id
-							commit: app.commit
-							imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
-							env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
-						}
-			.then (remoteApps) ->
-				remoteApps = _.indexBy(remoteApps, 'appId')
-				remoteAppIds = _.keys(remoteApps)
-
-				apps = _.indexBy(apps, 'appId')
-				localAppEnvs = {}
-				localApps = _.mapValues apps, (app) ->
-					localAppEnvs[app.appId] = JSON.parse(app.env)
-					app.env = JSON.stringify(_.omit(localAppEnvs[app.appId], _.keys(specialActionEnvVars)))
-					app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
-				localAppIds = _.keys(localApps)
-				appsWithChangedEnvs = _.filter remoteAppIds, (appId) ->
-					return !localAppEnvs[appId]? or !_.isEqual(remoteAppEnvs[appId], localAppEnvs[appId])
-
-				toBeRemoved = _.difference(localAppIds, remoteAppIds)
-				toBeInstalled = _.difference(remoteAppIds, localAppIds)
-
-				toBeUpdated = _.intersection(remoteAppIds, localAppIds)
-				toBeUpdated = _.filter toBeUpdated, (appId) ->
-					return !_.isEqual(remoteApps[appId], localApps[appId])
-
-				toBeDownloaded = _.filter toBeUpdated, (appId) ->
-					return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
-				toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
-
-				allAppIds = _.union(localAppIds, remoteAppIds)
+			Promise.join deviceId, remoteApps, uuid, apiKey, getEnvAndFormatRemoteApps
+			.then ([ remoteAppEnvs, remoteApps ]) ->
+				{ localApps, localAppEnvs } = formatLocalApps(apps)
+				resourcesForUpdate = compareForUpdate(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
+				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds } = resourcesForUpdate
 
 				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
 				Promise.map appsWithChangedEnvs, (appId) ->
@@ -428,17 +505,12 @@ application.update = update = (force) ->
 				.return(allAppIds)
 				.map (appId) ->
 					Promise.try ->
-						fetch(remoteApps[appId]) if _.includes(toBeDownloaded, appId)
-					.then ->
+						needsDownload = _.includes(toBeDownloaded, appId)
 						if _.includes(toBeRemoved, appId)
 							Promise.using lockUpdates(apps[appId], force), ->
 								# We get the app from the DB again in case someone restarted it
 								# (which would have changed its containerId)
-								knex('app').select().where({ appId })
-								.then ([ app ]) ->
-									if !app?
-										throw new Error('App not found')
-									kill(app)
+								selectAndKill(appId)
 								.then ->
 									knex('app').where('appId', appId).delete()
 							.catch (err) ->
@@ -448,25 +520,18 @@ application.update = update = (force) ->
 							app = remoteApps[appId]
 							# Restore the complete environment so that it's persisted in the DB
 							app.env = JSON.stringify(remoteAppEnvs[appId])
-							start(app)
+							Promise.try ->
+								fetch(remoteApps[appId]) if needsDownload
+							.then ->
+								start(app)
 						else if _.includes(toBeUpdated, appId)
-							localApp = apps[appId]
 							app = remoteApps[appId]
 							# Restore the complete environment so that it's persisted in the DB
 							app.env = JSON.stringify(remoteAppEnvs[appId])
-							logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
-							forceThisApp = remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
-							Promise.using lockUpdates(localApp, force || forceThisApp), ->
-								knex('app').select().where({ appId })
-								.then ([ localApp ]) ->
-									if !localApp?
-										throw new Error('App not found')
-									kill(localApp)
-								.then ->
-									start(app)
-							.catch (err) ->
-								logSystemEvent(logTypes.updateAppError, app, err)
-								throw err
+							forceThisApp = remoteAppEnvs[appId]['RESIN_SUPERVISOR_OVERRIDE_LOCK'] == '1'
+							strategy = remoteAppEnvs[appId]['RESIN_SUPERVISOR_UPDATE_STRATEGY']
+							timeout = remoteAppEnvs[appId]['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
+							updateUsingStrategy(strategy, apps[appId], app, needsDownload, force || forceThisApp, timeout)
 					.catch(wrapAsError)
 		.filter(_.isError)
 		.then (failures) ->
