@@ -508,10 +508,10 @@ application.initialize = ->
 		application.poll()
 		application.update()
 
-module.exports = (uuid) ->
+module.exports = (logsChannel) ->
 	logger.init(
 		dockerSocket: config.dockerSocket
 		pubnub: config.pubnub
-		channel: "device-#{uuid}-logs"
+		channel: "device-#{logsChannel}-logs"
 	)
 	return application
