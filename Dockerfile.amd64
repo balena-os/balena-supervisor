@@ -6,7 +6,8 @@ COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 RUN apt-get -q update \
 	&& apt-get install -qqy \
 		btrfs-tools \
-		docker.io \
+		ca-certificates \
+		curl \
 		jq \
 		rsync \
 		socat \
@@ -14,6 +15,9 @@ RUN apt-get -q update \
 		--no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
+
+ENV DOCKER_VERSION 1.6.2
+RUN curl -sL  https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}.tgz | tar xzv --strip-components=3 -C /usr/bin
 
 # Copy supervisord configuration files
 COPY config/supervisor/ /etc/supervisor/
