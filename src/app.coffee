@@ -14,7 +14,7 @@ knex.init.then ->
 	console.log('Starting connectivity check..')
 	utils.connectivityCheck()
 
-	Promise.join bootstrap.startBootstrapping(), utils.getOrGenerateSecret('apiSecret'), utils.getOrGenerateSecret('logsChannel'), (uuid, secret, logsChannel) ->
+	Promise.join bootstrap.startBootstrapping(), utils.getOrGenerateSecret('api'), utils.getOrGenerateSecret('logsChannel'), (uuid, secret, logsChannel) ->
 		# Persist the uuid in subsequent metrics
 		utils.mixpanelProperties.uuid = uuid
 

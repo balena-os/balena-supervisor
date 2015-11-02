@@ -105,22 +105,22 @@ exports.connectivityCheck = _.once ->
 secretPromises = {}
 generateSecret = (name) ->
 	Promise.try ->
-		return config.forceApiSecret if name == 'apiSecret' && config.forceApiSecret?
+		return config.forceSecret[name] if config.forceSecret[name]?
 		return randomHexString.generate()
 	.then (newSecret) ->
-		secretInDB = { key: name, value: newSecret }
-		knex('config').update(secretInDB).where(key: name)
+		secretInDB = { key: "#{name}Secret", value: newSecret }
+		knex('config').update(secretInDB).where(key: "#{name}Secret")
 		.then (affectedRows) ->
 			knex('config').insert(secretInDB) if affectedRows == 0
 		.return(newSecret)
 
-exports.newSecret = newSecret = (name) ->
+exports.newSecret = (name) ->
 	secretPromises[name] ?= Promise.resolve()
 	secretPromises[name] = secretPromises[name].then ->
 		generateSecret(name)
 
 exports.getOrGenerateSecret = (name) ->
-	secretPromises[name] ?= knex('config').select('value').where(key: name).then ([ secret ]) ->
+	secretPromises[name] ?= knex('config').select('value').where(key: "#{name}Secret").then ([ secret ]) ->
 		return secret.value if secret?
 		generateSecret(name)
 	return secretPromises[name]
@@ -132,7 +132,7 @@ exports.extendEnvVars = (env, uuid) ->
 		RESIN_SUPERVISOR_ADDRESS: "http://#{host}:#{config.listenPort}"
 		RESIN_SUPERVISOR_HOST: host
 		RESIN_SUPERVISOR_PORT: config.listenPort
-		RESIN_SUPERVISOR_API_KEY: exports.getOrGenerateSecret('apiSecret')
+		RESIN_SUPERVISOR_API_KEY: exports.getOrGenerateSecret('api')
 		RESIN_SUPERVISOR_VERSION: exports.supervisorVersion
 		RESIN: '1'
 		USER: 'root'

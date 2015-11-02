@@ -13,7 +13,7 @@ module.exports = (application) ->
 	api = express()
 	api.use(bodyParser())
 	api.use (req, res, next) ->
-		utils.getOrGenerateSecret('apiSecret')
+		utils.getOrGenerateSecret('api')
 		.then (secret) ->
 			if req.query.apikey is secret
 				next()
@@ -129,7 +129,7 @@ module.exports = (application) ->
 	# Expires the supervisor's API key and generates a new one.
 	# It also communicates the new key to the Resin API.
 	api.post '/v1/regenerate-api-key', (req, res) ->
-		utils.newSecret('apiSecret')
+		utils.newSecret('api')
 		.then (secret) ->
 			device.updateState(api_secret: secret)
 			res.status(200).send(secret)
