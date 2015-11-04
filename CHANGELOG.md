@@ -1,3 +1,5 @@
+* Use random name for PubNub channel and report to API [Pablo]
+
 # v1.2.0
 
 * Don't bind mount (the sometimes non-existent) docker.sock [Pablo]
