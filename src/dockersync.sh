@@ -21,4 +21,6 @@ btrfs subvolume snapshot "$BTRFS_ROOT/$src_id" "$BTRFS_ROOT/$dest_id"
 
 rsync --timeout=300 --archive --delete --read-batch=- "$BTRFS_ROOT/$dest_id"
 
+sync
+
 docker tag -f "$dest_id" "$dest"
