@@ -1,3 +1,5 @@
+# v1.2.1
+
 * Use random name for PubNub channel and report to API [Pablo]
 
 # v1.2.0
