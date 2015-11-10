@@ -1,4 +1,4 @@
-# Resin Supervisor
+# Resin Supervisor ![Build status](http://jenkins.dev.resin.io/buildStatus/icon?job=resin-supervisor-gh)
 
 This is [resin.io](https://resin.io)'s Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.
 
