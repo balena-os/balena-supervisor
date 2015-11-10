@@ -99,11 +99,11 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
-	api.post '/tcp-ping', (req, res) ->
+	api.post '/v1/tcp-ping', (req, res) ->
 		utils.disableCheck(false)
 		res.sendStatus(204)
 
-	api.delete '/tcp-ping', (req, res) ->
+	api.delete '/v1/tcp-ping', (req, res) ->
 		utils.disableCheck(true)
 		res.sendStatus(204)
 
