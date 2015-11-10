@@ -1,3 +1,6 @@
+
+*Fix semvar versioning in tcp-ping endpoint
+
 # v1.2.1
 
 * Use random name for PubNub channel and report to API [Pablo]
