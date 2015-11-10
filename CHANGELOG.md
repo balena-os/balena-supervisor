@@ -1,5 +1,5 @@
-
-*Fix semvar versioning in tcp-ping endpoint
+* Switched to docker-progress for pull progress. [Page]
+* Fix semver versioning in tcp-ping endpoint. [Praneeth]
 
 # v1.2.1
 
