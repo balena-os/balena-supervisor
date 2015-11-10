@@ -43,7 +43,7 @@ knex.init.then ->
 
 		updateIpAddr = ->
 			callback = (error, response, body ) ->
-				if !error && response.statusCode == 200
+				if !error && response.statusCode == 200 && body.Data.IPAddresses?
 					device.updateState(
 						ip_address: body.Data.IPAddresses.join(' ')
 					)
