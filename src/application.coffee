@@ -127,22 +127,24 @@ isValidPort = (port) ->
 
 fetch = (app) ->
 	onProgress = (progress) ->
-		device.updateState(download_progress: progress.percent)
+		device.updateState(download_progress: progress.percentage)
 
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
 		logSystemEvent(logTypes.downloadApp, app)
 		device.updateState(status: 'Downloading')
 
-		if app.env.RESIN_DELTA?
-			fetchPromise = dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
-		else
-			fetchPromise = dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
-
-		fetchPromise.then ->
-			logSystemEvent(logTypes.downloadAppSuccess, app)
-			device.updateState(download_progress: null)
-			docker.getImage(app.imageId).inspectAsync()
+		Promise.try ->
+			JSON.parse(app.env)
+		.then (env) ->
+			if env['RESIN_DELTA'] == '1'
+				fetchPromise = dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
+			else
+				fetchPromise = dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
+			fetchPromise.then ->
+				logSystemEvent(logTypes.downloadAppSuccess, app)
+				device.updateState(download_progress: null)
+				docker.getImage(app.imageId).inspectAsync()
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
 			throw err
