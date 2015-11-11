@@ -7,6 +7,8 @@ config = require './config'
 _ = require 'lodash'
 knex = require './db'
 
+{ request } = require './request'
+
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
 Promise.promisifyAll(docker.getImage().constructor.prototype)
@@ -56,7 +58,7 @@ exports.rsyncImageWithProgress = (imgDest, onProgress) ->
 				onProgress(percentage: 100)
 			.on 'response', (res) ->
 				if res.statusCode isnt 200
-					reject()
+					reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
 				else
 					resolve(res)
 			.on 'error', reject
