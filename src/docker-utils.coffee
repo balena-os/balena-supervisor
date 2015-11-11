@@ -50,9 +50,10 @@ exports.rsyncImageWithProgress = (imgDest, onProgress) ->
 		rsyncDiff = new Promise (resolve, reject) ->
 			console.log("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
 			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
-			.on 'progress', onProgress
+			.on 'progress', (progress) ->
+				onProgress(percentage: progress.percent)
 			.on 'end', ->
-				onProgress(percent: 100)
+				onProgress(percentage: 100)
 			.on 'response', (res) ->
 				if res.statusCode isnt 200
 					reject()
