@@ -2,13 +2,16 @@ FROM resin/rpi-node:0.10.40-slim
 
 COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 
+ENV DOCKER_APT_VERSION 1.6.2~dfsg1-1~bpo8+1
+
 # Supervisor apt dependencies
-RUN apt-get -q update \
-	&& apt-get install -qqy \
+RUN echo deb "http://ftp.us.debian.org/debian jessie-backports main" >> /etc/apt/sources.list \
+	&& apt-get -q update \
+	&& apt-get install -qqy --force-yes \
 		btrfs-tools \
 		ca-certificates \
 		curl \
-		docker.io \
+		docker.io=$DOCKER_APT_VERSION \
 		jq \
 		rsync \
 		socat \
