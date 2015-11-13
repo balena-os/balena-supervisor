@@ -21,12 +21,13 @@ dockerProgress = new DockerProgress(socketPath: config.dockerSocket)
 listRepoTagsAsync = ->
 	docker.listImagesAsync()
 	.then (images) ->
-		images = _.sortByOrder(images, 'Created', [ false ])
-		ret = []
-		for image in images
+		_(images)
+		.sortByOrder(images, 'Created', [ false ])
+		.map (image) ->
 			for repoTag in image.RepoTags
 				ret.push [ repoTag, image.Id, image.Created ]
-		return ret
+		.flatten()
+		.value()
 
 # Find either the most recent image of the same app or the image of the supervisor
 findSimilarImage = (repoTag) ->
