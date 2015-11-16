@@ -1,3 +1,4 @@
+* Fix the error that comes up when no ip addresses are returned by gosuper [Praneeth]
 * Switched to docker-progress for pull progress. [Page]
 * Fix semver versioning in tcp-ping endpoint. [Praneeth]
 
