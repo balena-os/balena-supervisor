@@ -250,6 +250,10 @@ lockPath = (app) ->
 	appId = app.appId ? app
 	return "/mnt/root/resin-data/#{appId}/resin-updates.lock"
 
+killmePath = (app) ->
+	appId = app.appId ? app
+	return "/mnt/root/resin-data/#{appId}/resin-kill-me"
+
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
 application.unlockAndStart = unlockAndStart = (app) ->
 	lockFile.unlockAsync(lockPath(app))
@@ -299,6 +303,7 @@ apiPollInterval = (val) ->
 	application.poll()
 
 specialActionEnvVars =
+	'RESIN_OVERRIDE_LOCK': null # This one is in use, so we keep backwards comp.
 	'RESIN_SUPERVISOR_UPDATE_STRATEGY': null
 	'RESIN_SUPERVISOR_HANDOVER_TIMEOUT': null
 	'RESIN_SUPERVISOR_OVERRIDE_LOCK': null
@@ -333,9 +338,20 @@ selectAndKill = (appId) ->
 			throw new Error('App not found')
 		kill(app)
 
+# Wait for app to signal it's ready to die, or timeout to complete (if it is defined and not-empty)
 waitToKill = (app, timeout) ->
-	# TO-DO
-	# Wait for app to signal it's ready to die, or timeout to complete (if it is defined and not-empty)
+	startTime = Date.now()
+	pollInterval = 100
+	timeout = parseInt(timeout)
+	checkFileOrTimeout = ->
+		fs.statAsync(killmePath(app))
+		.catch (err) ->
+			throw err if isNaN(timeout) or (Date.now() - startTime) < timeout
+		.then ->
+			fs.unlinkAsync(killmePath(app)).catch(_.noop)
+	checkFileOrTimeout()
+	.catch ->
+		Promise.delay(pollInterval).then(checkFileOrTimeout)
 
 UPDATE_IDLE = 0
 UPDATE_UPDATING = 1
@@ -528,7 +544,7 @@ application.update = update = (force) ->
 							app = remoteApps[appId]
 							# Restore the complete environment so that it's persisted in the DB
 							app.env = JSON.stringify(remoteAppEnvs[appId])
-							forceThisApp = remoteAppEnvs[appId]['RESIN_SUPERVISOR_OVERRIDE_LOCK'] == '1'
+							forceThisApp = remoteAppEnvs[appId]['RESIN_SUPERVISOR_OVERRIDE_LOCK'] == '1' || remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
 							strategy = remoteAppEnvs[appId]['RESIN_SUPERVISOR_UPDATE_STRATEGY']
 							timeout = remoteAppEnvs[appId]['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
 							updateUsingStrategy(strategy, apps[appId], app, needsDownload, force || forceThisApp, timeout)
