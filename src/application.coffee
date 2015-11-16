@@ -13,6 +13,10 @@ logger = require './lib/logger'
 device = require './device'
 lockFile = Promise.promisifyAll(require('lockfile'))
 bootstrap = require './bootstrap'
+TypedError = require 'typed-error'
+fs = Promise.promisifyAll(require('fs'))
+
+class UpdatesLockedError extends TypedError
 
 { docker } = dockerUtils
 
@@ -82,7 +86,7 @@ logSystemEvent = (logType, app, error) ->
 
 application = {}
 
-application.kill = kill = (app) ->
+application.kill = kill = (app, updateDB = true) ->
 	logSystemEvent(logTypes.stopApp, app)
 	device.updateState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
@@ -110,8 +114,9 @@ application.kill = kill = (app) ->
 		lockFile.unlockAsync(lockPath(app))
 	.tap ->
 		logSystemEvent(logTypes.stopAppSuccess, app)
-		app.containerId = null
-		knex('app').update(app).where(appId: app.appId)
+		if updateDB == true
+			app.containerId = null
+			knex('app').update(app).where(appId: app.appId)
 	.catch (err) ->
 		logSystemEvent(logTypes.stopAppError, app, err)
 		throw err
@@ -274,9 +279,7 @@ application.lockUpdates = lockUpdates = do ->
 				.catch ENOENT, _.noop
 				.catch (err) ->
 					release()
-					err = new Error("Updates are locked: #{err.message}")
-					err.isLocked = true
-					throw err
+					throw new UpdatesLockedError("Updates are locked: #{err.message}")
 		.disposer (release) ->
 			Promise.try ->
 				lockFile.unlockAsync(lockName) if force != true
@@ -331,27 +334,31 @@ wrapAsError = (err) ->
 	return err if _.isError(err)
 	return new Error(err.message ? err)
 
-selectAndKill = (appId) ->
+select = (appId) ->
 	knex('app').select().where({ appId })
 	.then ([ app ]) ->
 		if !app?
 			throw new Error('App not found')
-		kill(app)
+		return app
 
-# Wait for app to signal it's ready to die, or timeout to complete (if it is defined and not-empty)
+# Wait for app to signal it's ready to die, or timeout to complete.
+# timeout defaults to 1 minute.
 waitToKill = (app, timeout) ->
 	startTime = Date.now()
 	pollInterval = 100
 	timeout = parseInt(timeout)
+	timeout = 60000 if isNaN(timeout)
 	checkFileOrTimeout = ->
 		fs.statAsync(killmePath(app))
 		.catch (err) ->
-			throw err if isNaN(timeout) or (Date.now() - startTime) < timeout
+			throw err unless (Date.now() - startTime) > timeout
 		.then ->
 			fs.unlinkAsync(killmePath(app)).catch(_.noop)
-	checkFileOrTimeout()
-	.catch ->
-		Promise.delay(pollInterval).then(checkFileOrTimeout)
+	retryCheck = ->
+		checkFileOrTimeout()
+		.catch ->
+			Promise.delay(pollInterval).then(retryCheck)
+	retryCheck()
 
 UPDATE_IDLE = 0
 UPDATE_UPDATING = 1
@@ -364,49 +371,53 @@ updateStatus =
 	intervalHandle: null
 
 updateStrategies =
-	'normal-update': (localApp, app, needsDownload, force, timeout) ->
+	'download-then-kill': ({ localApp, app, needsDownload, force }) ->
 		Promise.try ->
 			fetch(app) if needsDownload
 		.then ->
 			Promise.using lockUpdates(localApp, force), ->
 				logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
-				selectAndKill(localApp.appId)
+				select(localApp.appId)
+				.then(kill)
 				.then ->
 					start(app)
 			.catch (err) ->
-				logSystemEvent(logTypes.updateAppError, app, err) unless err.isLocked?
+				logSystemEvent(logTypes.updateAppError, app, err) unless err instanceof UpdatesLockedError
 				throw err
-	'kill-before-download': (localApp, app, needsDownload, force, timeout) ->
-		logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
+	'kill-then-download': ({ localApp, app, needsDownload, force }) ->
 		Promise.using lockUpdates(localApp, force), ->
-			selectAndKill(localApp.appId)
+			logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
+			select(localApp.appId)
+			.then(kill)
 			.then ->
 				fetch(app) if needsDownload
 			.then ->
 				start(app)
 		.catch (err) ->
-			logSystemEvent(logTypes.updateAppError, app, err) unless err.isLocked?
+			logSystemEvent(logTypes.updateAppError, app, err) unless err instanceof UpdatesLockedError
 			throw err
-	'hand-over': (localApp, app, needsDownload, force, timeout) ->
+	'hand-over': ({ localApp, app, needsDownload, force, timeout }) ->
 		Promise.using lockUpdates(localApp, force), ->
-			Promise.try ->
-				fetch(app) if needsDownload
-			.then ->
-				logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
-				start(app)
-			.then ->
-				waitToKill(localApp, timeout)
-			.then ->
-				selectAndKill(localApp.appId)
+			select(localApp.appId)
+			.then (localApp) ->
+				Promise.try ->
+					fetch(app) if needsDownload
+				.then ->
+					logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
+					start(app)
+				.then ->
+					waitToKill(localApp, timeout)
+				.then ->
+					kill(localApp, false)
 		.catch (err) ->
-			logSystemEvent(logTypes.updateAppError, app, err) unless err.isLocked?
+			logSystemEvent(logTypes.updateAppError, app, err) unless err instanceof UpdatesLockedError
 			throw err
 
 
-updateUsingStrategy = (strategy, localApp, app, needsDownload, force, timeout) ->
-	if strategy not in _.keys(updateStrategies)
-		strategy = 'normal-update'
-	updateStrategies[strategy](localApp, app, needsDownload, force, timeout)
+updateUsingStrategy = (strategy, options) ->
+	if not _.has(updateStrategies, strategy)
+		strategy = 'download-then-kill'
+	updateStrategies[strategy](options)
 
 getRemoteApps = (uuid, apiKey) ->
 	cachedResinApi.get
@@ -430,12 +441,11 @@ getEnvAndFormatRemoteApps = (deviceId, remoteApps, uuid, apiKey) ->
 		.then (environment) ->
 			app.environment_variable = environment
 			utils.extendEnvVars(app.environment_variable, uuid)
-		.then (env) ->
-			fullEnv = env
-			env = _.omit(env, _.keys(specialActionEnvVars))
+		.then (fullEnv) ->
+			env = _.omit(fullEnv, _.keys(specialActionEnvVars))
 			return [
 				{
-					appId: app.id
+					appId: '' + app.id
 					env: fullEnv
 				},
 				{
@@ -445,6 +455,7 @@ getEnvAndFormatRemoteApps = (deviceId, remoteApps, uuid, apiKey) ->
 					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
 				}
 			]
+	.then(_.flatten)
 	.then(_.zip)
 	.then ([ remoteAppEnvs, remoteApps ]) ->
 		return [_.mapValues(_.indexBy(remoteAppEnvs, 'appId'), 'env'), _.indexBy(remoteApps, 'appId')]
@@ -476,6 +487,9 @@ compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
 	allAppIds = _.union(localAppIds, remoteAppIds)
 	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds }
 
+getConfig = (key) ->
+	knex('config').select('value').where({ key }).get(0).get('value')
+
 application.update = update = (force) ->
 	if updateStatus.state isnt UPDATE_IDLE
 		# Mark an update required after the current.
@@ -484,73 +498,76 @@ application.update = update = (force) ->
 		return
 	updateStatus.state = UPDATE_UPDATING
 	bootstrap.done.then ->
-		Promise.all([
-			knex('config').select('value').where(key: 'apiKey')
-			knex('config').select('value').where(key: 'uuid')
-			knex('app').select()
-		])
-		.then ([ [ apiKey ], [ uuid ], apps ]) ->
-			apiKey = apiKey.value
-			uuid = uuid.value
+		Promise.join getConfig('apiKey'), getConfig('uuid'), knex('app').select(),
+			(apiKey, uuid, apps) ->
+				deviceId = device.getID()
+				remoteApps = getRemoteApps(uuid, apiKey)
 
-			deviceId = device.getID()
-			remoteApps = getRemoteApps(uuid, apiKey)
+				Promise.join deviceId, remoteApps, uuid, apiKey, getEnvAndFormatRemoteApps
+				.then ([ remoteAppEnvs, remoteApps ]) ->
+					{ localApps, localAppEnvs } = formatLocalApps(apps)
+					resourcesForUpdate = compareForUpdate(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
+					{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds } = resourcesForUpdate
 
-			Promise.join deviceId, remoteApps, uuid, apiKey, getEnvAndFormatRemoteApps
-			.then ([ remoteAppEnvs, remoteApps ]) ->
-				{ localApps, localAppEnvs } = formatLocalApps(apps)
-				resourcesForUpdate = compareForUpdate(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
-				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds } = resourcesForUpdate
-
-				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
-				Promise.map appsWithChangedEnvs, (appId) ->
-					Promise.using lockUpdates(remoteApps[appId], force), ->
-						executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
-						.then ->
-							# If an env var shouldn't cause a restart but requires an action, we should still
-							# save the new env to the DB
-							if !_.includes(toBeUpdated, appId) and !_.includes(toBeInstalled, appId)
-								knex('app').select().where({ appId })
-								.then ([ app ]) ->
-									if !app?
-										throw new Error('App not found')
-									app.env = JSON.stringify(remoteAppEnvs[appId])
-									knex('app').update(app).where({ appId })
-					.catch (err) ->
-						logSystemEvent(logTypes.updateAppError, remoteApps[appId], err)
-				.return(allAppIds)
-				.map (appId) ->
-					Promise.try ->
-						needsDownload = _.includes(toBeDownloaded, appId)
-						if _.includes(toBeRemoved, appId)
-							Promise.using lockUpdates(apps[appId], force), ->
-								# We get the app from the DB again in case someone restarted it
-								# (which would have changed its containerId)
-								selectAndKill(appId)
-								.then ->
-									knex('app').where('appId', appId).delete()
-							.catch (err) ->
-								logSystemEvent(logTypes.updateAppError, app, err)
-								throw err
-						else if _.includes(toBeInstalled, appId)
-							app = remoteApps[appId]
-							# Restore the complete environment so that it's persisted in the DB
-							app.env = JSON.stringify(remoteAppEnvs[appId])
-							Promise.try ->
-								fetch(remoteApps[appId]) if needsDownload
+					# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
+					Promise.map appsWithChangedEnvs, (appId) ->
+						Promise.using lockUpdates(remoteApps[appId], force), ->
+							executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
 							.then ->
-								start(app)
-						else if _.includes(toBeUpdated, appId)
-							app = remoteApps[appId]
-							# Restore the complete environment so that it's persisted in the DB
-							app.env = JSON.stringify(remoteAppEnvs[appId])
-							forceThisApp = remoteAppEnvs[appId]['RESIN_SUPERVISOR_OVERRIDE_LOCK'] == '1' || remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
-							strategy = remoteAppEnvs[appId]['RESIN_SUPERVISOR_UPDATE_STRATEGY']
-							timeout = remoteAppEnvs[appId]['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
-							updateUsingStrategy(strategy, apps[appId], app, needsDownload, force || forceThisApp, timeout)
-					.catch(wrapAsError)
+								# If an env var shouldn't cause a restart but requires an action, we should still
+								# save the new env to the DB
+								if !_.includes(toBeUpdated, appId) and !_.includes(toBeInstalled, appId)
+									knex('app').select().where({ appId })
+									.then ([ app ]) ->
+										if !app?
+											throw new Error('App not found')
+										app.env = JSON.stringify(remoteAppEnvs[appId])
+										knex('app').update(app).where({ appId })
+						.catch (err) ->
+							logSystemEvent(logTypes.updateAppError, remoteApps[appId], err)
+					.return(allAppIds)
+					.map (appId) ->
+						Promise.try ->
+							needsDownload = _.includes(toBeDownloaded, appId)
+							if _.includes(toBeRemoved, appId)
+								Promise.using lockUpdates(localApps[appId], force), ->
+									# We get the app from the DB again in case someone restarted it
+									# (which would have changed its containerId)
+									select(appId)
+									.then(kill)
+									.then ->
+										knex('app').where('appId', appId).delete()
+								.catch (err) ->
+									logSystemEvent(logTypes.updateAppError, app, err)
+									throw err
+							else if _.includes(toBeInstalled, appId)
+								app = remoteApps[appId]
+								# Restore the complete environment so that it's persisted in the DB
+								app.env = JSON.stringify(remoteAppEnvs[appId])
+								Promise.try ->
+									fetch(remoteApps[appId]) if needsDownload
+								.then ->
+									start(app)
+							else if _.includes(toBeUpdated, appId)
+								app = remoteApps[appId]
+								# Restore the complete environment so that it's persisted in the DB
+								app.env = JSON.stringify(remoteAppEnvs[appId])
+								forceThisApp =
+									remoteAppEnvs[appId]['RESIN_SUPERVISOR_OVERRIDE_LOCK'] == '1' ||
+									remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
+								strategy = remoteAppEnvs[appId]['RESIN_SUPERVISOR_UPDATE_STRATEGY']
+								timeout = remoteAppEnvs[appId]['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
+								updateUsingStrategy strategy, {
+									localApp: localApps[appId]
+									app
+									needsDownload
+									force: force || forceThisApp
+									timeout
+								}
+						.catch(wrapAsError)
 		.filter(_.isError)
 		.then (failures) ->
+			_.each(failures, (err) -> console.error('Error:', err, err.stack))
 			throw new Error(joinErrorMessages(failures)) if failures.length > 0
 		.then ->
 			updateStatus.failed = 0
