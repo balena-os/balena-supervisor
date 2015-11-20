@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"resin-supervisor/gosuper/application"
 	"resin-supervisor/gosuper/config"

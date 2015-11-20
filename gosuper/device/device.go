@@ -25,7 +25,8 @@ type Device struct {
 }
 
 func readConfigAndEnsureUuid(superConfig config.SupervisorConfig) (uuid string, err error) {
-	if userConfig, err := config.ReadConfig(config.DefaultConfigPath); err != nil {
+	var userConfig config.UserConfig
+	if userConfig, err = config.ReadConfig(config.DefaultConfigPath); err != nil {
 	} else if userConfig.Uuid != "" {
 		uuid = userConfig.Uuid
 	} else if uuid, err = utils.RandomHexString(uuidByteLength); err != nil {
@@ -34,7 +35,7 @@ func readConfigAndEnsureUuid(superConfig config.SupervisorConfig) (uuid string, 
 	}
 	if err != nil {
 		time.Sleep(time.Duration(superConfig.BootstrapRetryDelay) * time.Millisecond)
-		uuid, err = readConfigAndEnsureUuid(superConfig)
+		return readConfigAndEnsureUuid(superConfig)
 	}
 	return
 }
@@ -62,7 +63,8 @@ func bootstrapOrRetry() {
 
 func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config, superConfig config.SupervisorConfig) (dev *Device, err error) {
 	device := Device{}
-	if uuid, err := dbConfig.Get("uuid"); err != nil {
+	var uuid string
+	if uuid, err = dbConfig.Get("uuid"); err != nil {
 	} else if uuid != "" {
 		device.Uuid = uuid
 		device.finishBootstrapping()
@@ -87,10 +89,9 @@ func (dev Device) WaitForBootstrap() {
 	if dev.Bootstrapped {
 		dev.bootstrapLock.Unlock()
 	} else {
-		c := make(chan bool)
-		append(dev.waitChannels, c)
+		_ = append(dev.waitChannels, make(chan bool))
 		dev.bootstrapLock.Unlock()
-		<-c
+		<-dev.waitChannels[len(dev.waitChannels)]
 	}
 }
 
