@@ -1,6 +1,7 @@
 package device
 
 import (
+	"resin-supervisor/gosuper/config"
 	"resin-supervisor/gosuper/supermodels"
 )
 
@@ -13,6 +14,8 @@ type Device struct {
 
 func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config) (dev *Device, err error) {
 	device := Device{}
+
+
 	dev = &device
 	return
 }
