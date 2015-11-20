@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"resin-supervisor/gosuper/config"
 	"resin-supervisor/gosuper/device"
 	"resin-supervisor/gosuper/supermodels"
 )
@@ -19,7 +20,7 @@ type Manager struct {
 	PollInterval int64
 }
 
-func NewManager(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config, dev *device.Device) (*Manager, error) {
+func NewManager(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config, dev *device.Device, superConfig config.SupervisorConfig) (*Manager, error) {
 	manager := Manager{Apps: appsCollection, Config: dbConfig, Device: dev, PollInterval: 30000}
 	manager.StartUpdateInterval()
 	return &manager, nil
