@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"sync"
 	"time"
 
 	"resin-supervisor/gosuper/config"
@@ -17,8 +18,10 @@ const uuidByteLength = 31
 const preloadedAppsPath = "/boot/apps.json"
 
 type Device struct {
-	Uuid         string
-	Bootstrapped bool
+	Uuid          string
+	Bootstrapped  bool
+	waitChannels  []chan bool
+	bootstrapLock sync.Mutex
 }
 
 func readConfigAndEnsureUuid(superConfig config.SupervisorConfig) (uuid string, err error) {
@@ -62,7 +65,7 @@ func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Confi
 	if uuid, err := dbConfig.Get("uuid"); err != nil {
 	} else if uuid != "" {
 		device.Uuid = uuid
-		device.Bootstrapped = true
+		device.finishBootstrapping()
 	} else {
 		log.Printf("New device detected, bootstrapping...")
 		if uuid, err = readConfigAndEnsureUuid(superConfig); err == nil {
@@ -77,4 +80,25 @@ func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Confi
 
 func (dev Device) GetId() {
 
+}
+
+func (dev Device) WaitForBootstrap() {
+	dev.bootstrapLock.Lock()
+	if dev.Bootstrapped {
+		dev.bootstrapLock.Unlock()
+	} else {
+		c := make(chan bool)
+		append(dev.waitChannels, c)
+		dev.bootstrapLock.Unlock()
+		<-c
+	}
+}
+
+func (dev Device) finishBootstrapping() {
+	dev.bootstrapLock.Lock()
+	dev.Bootstrapped = true
+	for _, c := range dev.waitChannels {
+		c <- true
+	}
+	dev.bootstrapLock.Unlock()
 }

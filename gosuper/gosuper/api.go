@@ -51,15 +51,18 @@ func setupApi(router *mux.Router) {
 
 var applications *application.Manager
 
-func StartApi(port int, apps *application.Manager) (err error) {
+func listen(port int, router *mux.Router) {
+	if err := http.ListenAndServe(":"+strconv.Itoa(port), router); err != nil {
+		log.Printf("Could not start HTTP server: %v", err)
+	}
+}
+
+func StartApi(port int, apps *application.Manager) {
 	router := mux.NewRouter()
 	applications = apps
 	setupApi(router)
 	log.Printf("Starting HTTP server on port %d\n", port)
-	if err := http.ListenAndServe(":"+strconv.Itoa(port), router); err != nil {
-		log.Fatalf("Could not start HTTP server: %v", err)
-	}
-	return
+	go listen(port, router)
 }
 
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
