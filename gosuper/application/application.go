@@ -64,10 +64,10 @@ func (manager Manager) lockPath(app *supermodels.App) string {
 }
 
 func (manager Manager) LockAndDo(app *App, callback AppCallback) error {
-	return manager.Apps.GetAndDo((*supermodels.App)(app), func(appFromDB *supermodels.App) (err error) {
+	return manager.Apps.GetAndDo((*supermodels.App)(app), func(appFromDB *supermodels.App) error {
 		path := manager.lockPath(appFromDB)
 		if lock, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0777); err != nil {
-			return
+			return err
 		} else {
 			err = callback(appFromDB)
 			if e := lock.Close(); e != nil {
@@ -76,7 +76,7 @@ func (manager Manager) LockAndDo(app *App, callback AppCallback) error {
 			if e := os.Remove(path); e != nil {
 				log.Printf("Error releasing lockfile: %s\n", e)
 			}
+			return err
 		}
-		return
 	})
 }
