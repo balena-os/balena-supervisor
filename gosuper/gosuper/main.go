@@ -42,6 +42,11 @@ func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker 
 	return ticker
 }
 
+func waitForEver() {
+	c := make(chan bool)
+	<-c
+}
+
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.Println("Resin Go Supervisor starting")
@@ -67,8 +72,10 @@ func main() {
 		utils.MixpanelSetId(theDevice.Uuid)
 		if applicationManager, err := application.NewManager(appsCollection, dbConfig, theDevice, superConfig); err != nil {
 			log.Fatalf("Failed to initialize applications manager: %s", err)
-		} else if err = StartApi(superConfig.ListenPort, applicationManager); err != nil {
-			log.Printf("Failed to initialize Supervisor API: %s", err)
+		} else {
+			theDevice.WaitForBootstrap()
+			StartApi(superConfig.ListenPort, applicationManager)
 		}
 	}
+	waitForEver()
 }
