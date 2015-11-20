@@ -55,25 +55,28 @@ func (app *App) Start() (err error) {
 
 type AppCallback supermodels.AppCallback
 
+func (manager Manager) appDataPath(app *supermodels.App) string {
+	return fmt.Sprintf("/mnt/root/resin-data/%d", app.AppId)
+}
+
 func (manager Manager) lockPath(app *supermodels.App) string {
-	return fmt.Sprintf("/mnt/root/resin-data/%d/resin-updates.lock", app.AppId)
+	return manager.appDataPath(app) + "/resin-updates.lock"
 }
 
 func (manager Manager) LockAndDo(app *App, callback AppCallback) error {
-	return manager.Apps.GetAndDo((*supermodels.App)(app), func(a *supermodels.App) error {
-		// Here 'a' is the app from the DB, which is current and has a r/w lock
-		path := manager.lockPath(a)
-		if lock, er := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0777); er != nil {
-			return er
+	return manager.Apps.GetAndDo((*supermodels.App)(app), func(appFromDB *supermodels.App) (err error) {
+		path := manager.lockPath(appFromDB)
+		if lock, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0777); err != nil {
+			return
 		} else {
-			er = callback(a)
+			err = callback(appFromDB)
 			if e := lock.Close(); e != nil {
 				log.Printf("Error closing lockfile: %s\n", e)
 			}
 			if e := os.Remove(path); e != nil {
 				log.Printf("Error releasing lockfile: %s\n", e)
 			}
-			return er
 		}
+		return
 	})
 }
