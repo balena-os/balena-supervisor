@@ -40,7 +40,7 @@ func (apps *AppsCollection) Destroy(app *App) error {
 }
 
 // Get an App from the database (identified by its AppId)
-func (apps *AppsCollection) Get(app *App) (err error) {
+func (apps *AppsCollection) Get(app *App) error {
 	return apps.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Apps"))
 		v := b.Get([]byte(strconv.Itoa(app.AppId)))
@@ -58,7 +58,7 @@ type AppCallback func(*App) error
 // Get an App from the database (identified by its AppId) and execute a callback within a transaction.
 // The app struct will be populated with the App and then passed to the callback, so the contents of
 // the passed struct can be modified by the callback too.
-func (apps *AppsCollection) GetAndDo(app *App, callback AppCallback) (err error) {
+func (apps *AppsCollection) GetAndDo(app *App, callback AppCallback) error {
 	return apps.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Apps"))
 		v := b.Get([]byte(strconv.Itoa(app.AppId)))
@@ -67,8 +67,8 @@ func (apps *AppsCollection) GetAndDo(app *App, callback AppCallback) (err error)
 		}
 		p := reflect.ValueOf(app).Elem()
 		p.Set(reflect.Zero(p.Type()))
-		if er := json.Unmarshal(v, app); err != nil {
-			return er
+		if err := json.Unmarshal(v, app); err != nil {
+			return err
 		} else {
 			return callback(app)
 		}

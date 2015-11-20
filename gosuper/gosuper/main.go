@@ -2,8 +2,6 @@ package main
 
 import (
 	"log"
-	"net"
-	"net/http"
 	"os"
 	"time"
 
