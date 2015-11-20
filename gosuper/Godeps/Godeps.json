@@ -1,37 +1,41 @@
 {
 	"ImportPath": "resin-supervisor/gosuper",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.5.1",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.1.0-19-g0b00eff",
+			"Rev": "0b00effdd7a8270ebd91c24297e51643e370dd52"
+		},
+		{
 			"ImportPath": "github.com/coreos/go-systemd/dbus",
-			"Comment": "v3-13-g392c689",
-			"Rev": "392c689e425689acb51976419a8d62878966511f"
+			"Comment": "v4-4-g4a47042",
+			"Rev": "4a47042cb1d653fe9cd53014854782a516c6252a"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-systemd/login1",
-			"Comment": "v3-13-g392c689",
-			"Rev": "392c689e425689acb51976419a8d62878966511f"
+			"Comment": "v4-4-g4a47042",
+			"Rev": "4a47042cb1d653fe9cd53014854782a516c6252a"
+		},
+		{
+			"ImportPath": "github.com/dukex/mixpanel",
+			"Rev": "320805cae823c4cedd658c7176fa0daa8b16d0ee"
 		},
 		{
 			"ImportPath": "github.com/godbus/dbus",
-			"Comment": "v2-14-g69f6e9a",
-			"Rev": "69f6e9aa61d058ad86fd7f9e198e1df7384970d9"
-		},
-		{
-			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.0-125-g033d4ec",
-			"Rev": "033d4ec028192f38aef67ae47bd7b89f343145b5"
+			"Comment": "v3-2-g9055aba",
+			"Rev": "9055aba822f5d54b1cb3e124336499648cb5d3c5"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",
-			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+			"Rev": "1c83b3eabd45b6d76072b66b746c20815fb2872d"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "ba336c9cfb43552c90de6cb2ceedd3271c747558"
+			"Rev": "9c068cf16d982f8bd444b8c352acbeec34c4fe5b"
 		}
 	]
 }
