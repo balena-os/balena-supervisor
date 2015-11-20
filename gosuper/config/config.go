@@ -9,6 +9,8 @@ import (
 	"strconv"
 )
 
+const DefaultConfigPath = "/boot/config.json"
+
 type UserConfig struct {
 	ApplicationId string
 	ApiKey        string
@@ -25,6 +27,13 @@ func ReadConfig(path string) (config UserConfig, err error) {
 		err = json.Unmarshal(data, &config)
 	}
 
+	return
+}
+
+func WriteConfig(userConfig UserConfig, path string) (err error) {
+	if data, err := json.Marshal(userConfig); err == nil {
+		err = ioutil.WriteFile(path, data, 0666)
+	}
 	return
 }
 
