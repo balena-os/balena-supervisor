@@ -1,3 +1,4 @@
+* Remove volumes when removing a container [Pablo]
 * Refactor the still undocumented special env vars into RESIN_SUPERVISOR_ [Pablo]
 * Implement several update strategies (kill before download, 0-downtime) [Pablo]
 * Fix the error that comes up when no ip addresses are returned by gosuper [Praneeth]
