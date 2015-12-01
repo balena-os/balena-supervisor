@@ -137,14 +137,14 @@ fetch = (app) ->
 		Promise.try ->
 			JSON.parse(app.env)
 		.then (env) ->
-			if env['RESIN_DELTA'] == '1'
-				fetchPromise = dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
+			if env['RESIN_SUPERVISOR_DELTA'] == '1'
+				dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
 			else
-				fetchPromise = dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
-			fetchPromise.then ->
-				logSystemEvent(logTypes.downloadAppSuccess, app)
-				device.updateState(download_progress: null)
-				docker.getImage(app.imageId).inspectAsync()
+				dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
+		.then ->
+			logSystemEvent(logTypes.downloadAppSuccess, app)
+			device.updateState(download_progress: null)
+			docker.getImage(app.imageId).inspectAsync()
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
 			throw err
