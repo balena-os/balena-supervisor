@@ -1,3 +1,5 @@
+# v1.3.0
+
 * Remove volumes when removing a container [Pablo]
 * Refactor the still undocumented special env vars into RESIN_SUPERVISOR_ [Pablo]
 * Implement several update strategies (kill before download, 0-downtime) [Pablo]
