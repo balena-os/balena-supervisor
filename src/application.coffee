@@ -488,7 +488,9 @@ compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
 	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds }
 
 getConfig = (key) ->
-	knex('config').select('value').where({ key }).get(0).get('value')
+	knex('config').select('value').where({ key })
+	.then ([ conf ]) ->
+		return conf?.value
 
 application.update = update = (force) ->
 	if updateStatus.state isnt UPDATE_IDLE
