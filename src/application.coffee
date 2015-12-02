@@ -202,13 +202,6 @@ application.start = start = (app) ->
 					logSystemEvent(logTypes.installAppError, app, err)
 					throw err
 		.tap (container) ->
-			# Update the app info the moment we create the container, even if then starting the container fails. This
-			# stops issues with constantly creating new containers for an image that fails to start.
-			app.containerId = container.id
-			knex('app').update(app).where(appId: app.appId)
-			.then (affectedRows) ->
-				knex('app').insert(app) if affectedRows == 0
-		.tap (container) ->
 			logSystemEvent(logTypes.startApp, app)
 			device.updateState(status: 'Starting')
 			ports = {}
@@ -226,11 +219,20 @@ application.start = start = (app) ->
 				# 304 means the container was already started, precisely what we want :)
 				if statusCode is '304'
 					return
-				logSystemEvent(logTypes.startAppError, app, err)
-				throw err
+				# If starting the container failed, we remove it so that it doesn't litter
+				container.removeAsync(v: true)
+				.finally ->
+					logSystemEvent(logTypes.startAppError, app, err)
+					throw err
 			.then ->
 				device.updateState(commit: app.commit)
 				logger.attach(app)
+		.tap (container) ->
+			# Update the app info, only if starting the container worked.
+			app.containerId = container.id
+			knex('app').update(app).where(appId: app.appId)
+			.then (affectedRows) ->
+				knex('app').insert(app) if affectedRows == 0
 	.tap ->
 		logSystemEvent(logTypes.startAppSuccess, app)
 	.finally ->
