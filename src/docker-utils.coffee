@@ -39,24 +39,24 @@ findSimilarImage = (repoTag) ->
 		for repoTag in repoTags
 			otherApplication = repoTag[0].split('/')[1]
 			if otherApplication is application
-				return repoTag[1]
+				return repoTag
 
 		# Otherwise return the image for the most specific supervisor tag (commit hash)
 		for repoTag in repoTags when /resin\/.*-supervisor.*:[0-9a-f]{6}/.test(repoTag[0])
-			return repoTag[1]
+			return repoTag
 
-		# Or return *any* supervisor image available
-		for repoTag in repoTags when /resin\/.*-supervisor.*:/.test(repoTag[0])
-			return repoTag[1]
+		# Or return *any* supervisor image available (except latest which is usually a phony tag)
+		for repoTag in repoTags when /resin\/.*-supervisor.*:(?!latest)/.test(repoTag[0])
+			return repoTag
 
 		# If all else fails, return the newest image available
-		return repoTags[0][1]
+		return repoTags[0]
 
 exports.rsyncImageWithProgress = (imgDest, onProgress) ->
 	findSimilarImage(imgDest)
-	.spread (imgSrc) ->
+	.spread (imgSrc, imgSrcId) ->
 		rsyncDiff = new Promise (resolve, reject) ->
-			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
+			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&srcId=#{imgSrcId}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
 			.on 'progress', (progress) ->
 				onProgress(percentage: progress.percent)
 			.on 'end', ->
