@@ -1,10 +1,12 @@
-# Resin Supervisor ![Build status](http://jenkins.dev.resin.io/buildStatus/icon?job=resin-supervisor-gh)
+# Resin Supervisor ![Build status](http://jenkins.dev.resin.io/buildStatus/icon?job=resin-supervisor-gh) [![Tickets in progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=in progress&title=Tickets in progress)](https://waffle.io/resin-io/resin-supervisor)
 
 This is [resin.io](https://resin.io)'s Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.
 
 The Supervisor is for now a node.js program, with a subset of its functionality implemented in Go.
 
-We are currently **rewriting the whole code in Go**, so if you're interested in contributing, please checkout [the corresponding branch](https://github.com/resin-io/resin-supervisor/tree/RES-477-gosuper-all-the-way) and use that as a base for your PR's.
+We are currently **rewriting the whole code in Go**, so if you're interested in contributing, please checkout [the corresponding branch](https://github.com/resin-io/resin-supervisor/tree/RES-477-gosuper-all-the-way) and use that as a base for your PR's (unless it's a bug fix, in which case you can PR to master directly).
+
+We are using [waffle.io](https://waffle.io) to manage our tickets / issues, so if you want to track our progress or contribute take a look at [our board there](https://waffle.io/resin-io/resin-supervisor).
 
 ## Running supervisor locally
 
