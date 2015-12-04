@@ -225,11 +225,11 @@ application.start = start = (app) ->
 					logSystemEvent(logTypes.startAppError, app, err)
 					throw err
 			.then ->
+				app.containerId = container.id
 				device.updateState(commit: app.commit)
 				logger.attach(app)
 		.tap (container) ->
 			# Update the app info, only if starting the container worked.
-			app.containerId = container.id
 			knex('app').update(app).where(appId: app.appId)
 			.then (affectedRows) ->
 				knex('app').insert(app) if affectedRows == 0
