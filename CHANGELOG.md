@@ -1,3 +1,5 @@
+# v1.3.1
+
 * Only save the app if starting the container was successful [Pablo]
 
 # v1.3.0
