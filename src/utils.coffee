@@ -141,7 +141,7 @@ exports.extendEnvVars = (env, uuid) ->
 	return Promise.props(newEnv)
 
 # Callback function to enable/disable tcp pings
-exports.connectivityCheck = (val) ->
+exports.enableConnectivityCheck = (val) ->
 	bool = val is 'false'
 	disableCheck(bool)
 	console.log("Connectivity check enabled: #{not bool}")
