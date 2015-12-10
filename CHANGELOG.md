@@ -1,3 +1,6 @@
+
+* Do not report the tun addresses to API [Praneeth]
+
 # v1.3.1
 
 * Only save the app if starting the container was successful [Pablo]
