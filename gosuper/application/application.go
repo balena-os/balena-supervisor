@@ -40,7 +40,9 @@ func (manager Manager) UpdateInterval() {
 }
 
 func (manager Manager) Update(force bool) {
-
+	// Get apps from API
+	// Format and compare
+	// Install,remove, update apps (using update strategies)
 }
 
 func (app *App) Kill() (err error) {
@@ -55,17 +57,18 @@ func (app *App) Start() (err error) {
 
 type AppCallback supermodels.AppCallback
 
-func (manager Manager) appDataPath(app *supermodels.App) string {
+func (app App) DataPath() string {
 	return fmt.Sprintf("/mnt/root/resin-data/%d", app.AppId)
 }
 
-func (manager Manager) lockPath(app *supermodels.App) string {
-	return manager.appDataPath(app) + "/resin-updates.lock"
+func (app App) LockPath() string {
+	return app.DataPath() + "/resin-updates.lock"
 }
 
 func (manager Manager) LockAndDo(app *App, callback AppCallback) error {
 	return manager.Apps.GetAndDo((*supermodels.App)(app), func(appFromDB *supermodels.App) error {
-		path := manager.lockPath(appFromDB)
+		theApp := (*App)(appFromDB)
+		path := theApp.lockPath()
 		if lock, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0777); err != nil {
 			return err
 		} else {

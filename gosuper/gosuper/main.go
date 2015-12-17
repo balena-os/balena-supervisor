@@ -40,7 +40,7 @@ func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker 
 	return ticker
 }
 
-func waitForEver() {
+func waitForever() {
 	c := make(chan bool)
 	<-c
 }
@@ -75,5 +75,5 @@ func main() {
 			StartApi(superConfig.ListenPort, applicationManager)
 		}
 	}
-	waitForEver()
+	waitForever()
 }
