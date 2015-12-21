@@ -39,8 +39,8 @@ func AdjustOOMPriorityByName(procPath string, processName string, value int64) e
 
 //AdjustOOMPriority Adjust the OOM adj value for the process with the given pid
 func AdjustOOMPriority(procPath string, pid int64, value int64) error {
-	// Open the oom_adj file for the pid
-	oomAdjFile, err := os.OpenFile(path.Clean(procPath)+"/"+strconv.FormatInt(pid, 10)+"/oom_adj", os.O_RDWR, os.ModeType)
+	// Open the oom_score_adj file for the pid
+	oomAdjFile, err := os.OpenFile(path.Clean(procPath)+"/"+strconv.FormatInt(pid, 10)+"/oom_score_adj", os.O_RDWR, os.ModeType)
 	if err != nil {
 		return fmt.Errorf("Unable to open OOM adjust proc file for pid: %d\n", pid)
 	}
