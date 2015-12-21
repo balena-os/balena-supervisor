@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
+	"resin-supervisor/gosuper/psutils"
 )
 
 var ResinDataPath string = "/mnt/root/resin-data/"
@@ -39,6 +40,13 @@ func startApi(listenAddress string, router *mux.Router) {
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.Println("Resin Go Supervisor starting")
+
+	dockerSocket := os.Getenv("DOCKER_SOCKET")
+	log.Println("Changing OOMScore Adjust Value for this container to -800")
+	err := psutils.AdjustDockerOOMPriority("/mnt/root/proc", "unix://"+dockerSocket, "resin-supervisor", -800)
+	if err != nil {
+		log.Printf(err.Error())
+	}
 
 	listenAddress := os.Getenv("GOSUPER_SOCKET")
 	router := mux.NewRouter()
