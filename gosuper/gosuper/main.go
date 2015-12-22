@@ -37,16 +37,20 @@ func startApi(listenAddress string, router *mux.Router) {
 	}
 }
 
+func startOOMProtection(dockerSocket string, OOMScoreAdjustValue int64) {
+	log.Println("Changing OOMScore Adjust Value for this container to -800")
+	err := psutils.AdjustDockerOOMPriority("/mnt/root/proc", "unix://"+dockerSocket, "resin-supervisor", OOMScoreAdjustValue)
+	if err != nil {
+		log.Printf(err.Error())
+	}
+}
+
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.Println("Resin Go Supervisor starting")
 
 	dockerSocket := os.Getenv("DOCKER_SOCKET")
-	log.Println("Changing OOMScore Adjust Value for this container to -800")
-	err := psutils.AdjustDockerOOMPriority("/mnt/root/proc", "unix://"+dockerSocket, "resin-supervisor", -800)
-	if err != nil {
-		log.Printf(err.Error())
-	}
+	startOOMProtection(dockerSocket, -800)
 
 	listenAddress := os.Getenv("GOSUPER_SOCKET")
 	router := mux.NewRouter()
