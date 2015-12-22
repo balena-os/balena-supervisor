@@ -6,8 +6,10 @@ progress = require 'request-progress'
 config = require './config'
 _ = require 'lodash'
 knex = require './db'
-
+TypedError = require 'typed-error'
 { request } = require './request'
+
+class OutOfSyncError extends TypedError
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
@@ -39,24 +41,32 @@ findSimilarImage = (repoTag) ->
 		for repoTag in repoTags
 			otherApplication = repoTag[0].split('/')[1]
 			if otherApplication is application
-				return repoTag
+				return repoTag[0]
 
 		# Otherwise return the image for the most specific supervisor tag (commit hash)
 		for repoTag in repoTags when /resin\/.*-supervisor.*:[0-9a-f]{6}/.test(repoTag[0])
-			return repoTag
+			return repoTag[0]
 
 		# Or return *any* supervisor image available (except latest which is usually a phony tag)
 		for repoTag in repoTags when /resin\/.*-supervisor.*:(?!latest)/.test(repoTag[0])
-			return repoTag
+			return repoTag[0]
 
 		# If all else fails, return the newest image available
-		return repoTags[0]
+		for repoTag in repoTags when repoTag[0] isnt '<none>:<none>'
+			return repoTag[0]
 
-exports.rsyncImageWithProgress = (imgDest, onProgress) ->
-	findSimilarImage(imgDest)
-	.spread (imgSrc, imgSrcId) ->
+		return 'resin/scratch'
+
+DELTA_OUT_OF_SYNC_CODES = [23, 24]
+
+exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) ->
+	Promise.try ->
+		if startFromEmpty
+			return 'resin/scratch'
+		findSimilarImage(imgDest)
+	.then (imgSrc) ->
 		rsyncDiff = new Promise (resolve, reject) ->
-			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&srcId=#{imgSrcId}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
+			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
 			.on 'progress', (progress) ->
 				onProgress(percentage: progress.percent)
 			.on 'end', ->
@@ -78,16 +88,23 @@ exports.rsyncImageWithProgress = (imgDest, onProgress) ->
 		return [ rsyncDiff, imageConfig, imgSrc ]
 	.spread (rsyncDiff, imageConfig, imgSrc) ->
 		new Promise (resolve, reject) ->
-			dockersync = spawn('/app/src/dockersync.sh', [ imgSrc, imgDest, JSON.stringify(imageConfig) ], stdio: [ 'pipe', 'ignore', 'ignore' ])
+			dockersync = spawn('/app/src/dockersync.sh', [ imgSrc, imgDest, JSON.stringify(imageConfig) ], stdio: [ 'pipe', 'pipe', 'pipe' ])
 			.on 'error', reject
 			.on 'exit', (code, signal) ->
-				if code isnt 0
+				if code in DELTA_OUT_OF_SYNC_CODES
+					reject(new OutOfSyncError("Incompatible image"))
+				else if code isnt 0
 					reject(new Error("rsync exited. code: #{code} signal: #{signal}"))
 				else
 					resolve()
 
 			rsyncDiff.pipe(dockersync.stdin)
+			dockersync.stdout.pipe(process.stdout)
+			dockersync.stderr.pipe(process.stdout)
 			rsyncDiff.resume()
+	.catch OutOfSyncError, (err) ->
+		console.log('Falling back to delta-from-empty')
+		exports.rsyncImageWithProgress(imgDest, onProgress, true)
 
 do ->
 	# Keep track of the images being fetched, so we don't clean them up whilst fetching.
