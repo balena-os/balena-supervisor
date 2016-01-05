@@ -38,28 +38,21 @@ func startApi(listenAddress string, router *mux.Router) {
 	}
 }
 
-func startServiceOOMProtection(hostproc string) {
-	err := psutils.AdjustOOMPriorityByName(hostproc, "openvpn", -1000)
-	if err != nil {
-		log.Printf(err.Error())
-	}
-	err = psutils.AdjustOOMPriorityByName(hostproc, "connmand", -1000)
-	if err != nil {
-		log.Printf(err.Error())
-	}
-}
-
 func startOOMProtection(hostproc string, dockerSocket string, ticker *time.Ticker) {
 	log.Println("Changing OOMScore Adjust Value for this container to -800")
-	err := psutils.AdjustDockerOOMPriority(hostproc, "unix://"+dockerSocket, "resin-supervisor", -800)
+	err := psutils.AdjustDockerOOMPriority(hostproc, "unix://"+dockerSocket, "resin-supervisor", -800, false)
 	if err != nil {
 		log.Printf(err.Error())
 	}
-	log.Println("Changing OOMScore Adjust Value for openvpn and connmand to -1000 every 5 minutes")
-	startServiceOOMProtection(hostproc)
+	// Code below this could be eventually deprecated after all the devices are > 5 Jan 2016 deployment.
+	log.Println("Changing OOMScore Adjust Value for openvpn and connmand to -1000 if 0, every 5 minutes")
+	// Errors are not being caught here as users could have openvpn and connmand disabled.
+	psutils.AdjustOOMPriorityByName(hostproc, "openvpn", -1000, true)
+	psutils.AdjustOOMPriorityByName(hostproc, "connmand", -1000, true)
 	go func() {
 		for _ = range ticker.C {
-			startServiceOOMProtection(hostproc)
+			psutils.AdjustOOMPriorityByName(hostproc, "openvpn", -1000, true)
+			psutils.AdjustOOMPriorityByName(hostproc, "connmand", -1000, true)
 		}
 	}()
 }
