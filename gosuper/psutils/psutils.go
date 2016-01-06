@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"regexp"
 	"strconv"
 
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/samalba/dockerclient"
@@ -14,21 +13,23 @@ import (
 
 //AdjustOOMPriorityByName Adjust the OOM adj value for the process' with the given name regexp
 func AdjustOOMPriorityByName(procPath string, processName string, value int64, ignoreIfNonZero bool) error {
-	runningProcess, err := process.Pids()
+	pids, err := process.Pids()
 	if err != nil {
 		return err
 	}
-	var processMatch = regexp.MustCompile(processName)
 	processFound := false
-	for _, pid := range runningProcess {
+	for _, pid := range pids {
 		// Find the process with the given name
-		pidProcess, _ := process.NewProcess(pid)
-		pidName, _ := pidProcess.Name()
-		if processMatch.MatchString(pidName) {
-			processFound = true
-			err := AdjustOOMPriority(procPath, int64(pid), value, ignoreIfNonZero)
-			if err != nil {
-				return err
+		pidProcess, err := process.NewProcess(pid)
+		if err == nil {
+			pidName, err := pidProcess.Name()
+			if err == nil {
+				if processName == pidName {
+					processFound = true
+					if err := AdjustOOMPriority(procPath, int64(pid), value, ignoreIfNonZero); err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}
@@ -41,7 +42,8 @@ func AdjustOOMPriorityByName(procPath string, processName string, value int64, i
 //AdjustOOMPriority Adjust the OOM adj value for the process with the given pid.
 func AdjustOOMPriority(procPath string, pid int64, value int64, ignoreIfNonZero bool) error {
 	// Open the oom_score_adj file for the pid
-	oomAdjFile, err := os.OpenFile(path.Clean(procPath)+"/"+strconv.FormatInt(pid, 10)+"/oom_score_adj", os.O_RDWR, os.ModeType)
+	oomPath := fmt.Sprintf("%s/%d/oom_score_adj", path.Clean(procPath), pid)
+	oomAdjFile, err := os.OpenFile(oomPath, os.O_RDWR, os.ModeType)
 	if err != nil {
 		return fmt.Errorf("Unable to open OOM adjust proc file for pid: %d\n", pid)
 	}
@@ -61,8 +63,7 @@ func AdjustOOMPriority(procPath string, pid int64, value int64, ignoreIfNonZero 
 		return nil
 	}
 	// Write to the procfile to adjust the OOM adj value.
-	_, err = oomAdjFile.WriteString(strconv.FormatInt(value, 10))
-	if err != nil {
+	if _, err = oomAdjFile.WriteString(strconv.FormatInt(value, 10)); err != nil {
 		return fmt.Errorf("Unable to OOM adjust for pid: %d\n", pid)
 	}
 	return nil
@@ -70,24 +71,20 @@ func AdjustOOMPriority(procPath string, pid int64, value int64, ignoreIfNonZero 
 
 //AdjustDockerOOMPriority Adjusts the OOM Adj value for the entire docker container specified by the name. This should point to root proc filesystem
 func AdjustDockerOOMPriority(procPath string, connection string, containerName string, value int64, ignoreIfNonZero bool) error {
-	// Connect to the docker host with the connection string
-	docker, err := dockerclient.NewDockerClient(connection, nil)
-	if err != nil {
+	if docker, err := dockerclient.NewDockerClient(connection, nil); err != nil {
 		return err
-	}
-	// Get the running containers
-	containers, err := docker.ListContainers(false, false, "")
-	if err != nil {
+	} else if containers, err := docker.ListContainers(false, false, ""); err != nil {
 		return err
-	}
-	for _, container := range containers {
-		containerInfo, err := docker.InspectContainer(container.Id)
-		if err != nil {
-			return err
-		}
-		err = AdjustOOMPriority(procPath, int64(containerInfo.State.Pid), value, ignoreIfNonZero)
-		if err != nil {
-			return err
+	} else {
+		for _, container := range containers {
+			if containerInfo, err := docker.InspectContainer(container.Id); err != nil {
+				return err
+			} else if containerInfo.Name == containerName {
+				if err = AdjustOOMPriority(procPath, int64(containerInfo.State.Pid), value, ignoreIfNonZero); err != nil {
+					return err
+				}
+				return nil
+			}
 		}
 	}
 	return nil
