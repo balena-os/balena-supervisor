@@ -1,94 +1,82 @@
 package psutils
 
 import (
-	"bufio"
 	"fmt"
-	"os"
+	"io/ioutil"
+	"log"
 	"path"
-	"regexp"
 	"strconv"
+	"strings"
 
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/samalba/dockerclient"
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/shirou/gopsutil/process"
 )
 
+// Procs - psutils functions associated with the ProcfsPath
+type Procs struct {
+	ProcfsPath string
+}
+
+// parseInt - Parse integer from string.
+func parseInt(str string) (int, error) {
+	// strconv chokes on whitespace, go figure.
+	trimmed := strings.TrimSpace(str)
+	return strconv.Atoi(trimmed)
+}
+
 //AdjustOOMPriorityByName Adjust the OOM adj value for the process' with the given name regexp
-func AdjustOOMPriorityByName(procPath string, processName string, value int64, ignoreIfNonZero bool) error {
-	runningProcess, err := process.Pids()
+func (procs *Procs) AdjustOOMPriorityByName(processName string, value int, ignoreIfNonZero bool) error {
+	found := false
+	pids, err := process.Pids()
 	if err != nil {
 		return err
 	}
-	var processMatch = regexp.MustCompile(processName)
-	processFound := false
-	for _, pid := range runningProcess {
+	for _, pid := range pids {
 		// Find the process with the given name
-		pidProcess, _ := process.NewProcess(pid)
-		pidName, _ := pidProcess.Name()
-		if processMatch.MatchString(pidName) {
-			processFound = true
-			err := AdjustOOMPriority(procPath, int64(pid), value, ignoreIfNonZero)
-			if err != nil {
-				return err
-			}
+		if currProcess, err := process.NewProcess(pid); err != nil {
+			continue
+		} else if name, err := currProcess.Name(); err != nil && name != processName {
+			continue
+		} else if err := procs.AdjustOOMPriority(int(pid), value, ignoreIfNonZero); err == nil {
+			found = true
+		} else {
+			// Not an error but logging these for debugging.
+			log.Printf("Error adjusting OOM for process %s (pid %d): %s", processName, pid, err)
 		}
 	}
-	if processFound {
+	if found {
 		return nil
 	}
 	return fmt.Errorf("No process matches: %s\n", processName)
 }
 
 //AdjustOOMPriority Adjust the OOM adj value for the process with the given pid.
-func AdjustOOMPriority(procPath string, pid int64, value int64, ignoreIfNonZero bool) error {
-	// Open the oom_score_adj file for the pid
-	oomAdjFile, err := os.OpenFile(path.Clean(procPath)+"/"+strconv.FormatInt(pid, 10)+"/oom_score_adj", os.O_RDWR, os.ModeType)
-	if err != nil {
-		return fmt.Errorf("Unable to open OOM adjust proc file for pid: %d\n", pid)
-	}
-	defer oomAdjFile.Close()
-	// Read the oom_score_adj value currently set
-	scanner := bufio.NewScanner(oomAdjFile)
-	scanner.Split(bufio.ScanLines)
-	var currentOOMString string
-	for scanner.Scan() {
-		currentOOMString = scanner.Text() // Read the OOMString
-	}
-	currentOOMValue, err := strconv.ParseInt(currentOOMString, 10, 64)
-	if err != nil {
+func (procs *Procs) AdjustOOMPriority(pid int, value int, ignoreIfNonZero bool) error {
+	valueBytes := []byte(strconv.Itoa(value))
+	oomFile := fmt.Sprintf("%s/%d/oom_score_adj", path.Clean(procs.ProcfsPath), pid)
+	if currentOOMBytes, err := ioutil.ReadFile(oomFile); err != nil {
+		return err
+	} else if currentOOMValue, err := parseInt(string(currentOOMBytes)); err != nil {
 		return fmt.Errorf("Unable to read OOM adjust for pid: %d\n", pid)
-	}
-	if ignoreIfNonZero && currentOOMValue != 0 {
+	} else if ignoreIfNonZero && currentOOMValue != 0 {
 		return nil
-	}
-	// Write to the procfile to adjust the OOM adj value.
-	_, err = oomAdjFile.WriteString(strconv.FormatInt(value, 10))
-	if err != nil {
+	} else if err = ioutil.WriteFile(oomFile, valueBytes, 0644); err != nil {
 		return fmt.Errorf("Unable to OOM adjust for pid: %d\n", pid)
 	}
 	return nil
 }
 
 //AdjustDockerOOMPriority Adjusts the OOM Adj value for the entire docker container specified by the name. This should point to root proc filesystem
-func AdjustDockerOOMPriority(procPath string, connection string, containerName string, value int64, ignoreIfNonZero bool) error {
-	// Connect to the docker host with the connection string
-	docker, err := dockerclient.NewDockerClient(connection, nil)
-	if err != nil {
+func (procs *Procs) AdjustDockerOOMPriority(connection string, containerName string, value int, ignoreIfNonZero bool) error {
+	if docker, err := dockerclient.NewDockerClient(connection, nil); err != nil {
 		return err
-	}
-	// Get the running containers
-	containers, err := docker.ListContainers(false, false, "")
-	if err != nil {
+	} else if containers, err := docker.ListContainers(false, false, fmt.Sprintf(`{"name":["^/%s$"]}`, containerName)); err != nil {
 		return err
+	} else if containerInfo, err := docker.InspectContainer(containers[0].Id); err != nil {
+		return err
+	} else if err := procs.AdjustOOMPriority(containerInfo.State.Pid, value, ignoreIfNonZero); err != nil {
+		return err
+	} else {
+		return nil
 	}
-	for _, container := range containers {
-		containerInfo, err := docker.InspectContainer(container.Id)
-		if err != nil {
-			return err
-		}
-		err = AdjustOOMPriority(procPath, int64(containerInfo.State.Pid), value, ignoreIfNonZero)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

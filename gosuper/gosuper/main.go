@@ -38,35 +38,35 @@ func startApi(listenAddress string, router *mux.Router) {
 	}
 }
 
-func startOOMProtection(hostproc string, dockerSocket string, ticker *time.Ticker) {
-	log.Println("Changing OOMScore Adjust Value for this container to -800")
-	err := psutils.AdjustDockerOOMPriority(hostproc, "unix://"+dockerSocket, "resin-supervisor", -800, false)
-	if err != nil {
-		log.Printf(err.Error())
+func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker {
+	ticker := time.NewTicker(time.Minute * 5) //Timer runs every 5 minutes
+	procs := &psutils.Procs{hostproc}
+	log.Println("Changing oom_score_adj for the supervisor container to -800")
+	if err := procs.AdjustDockerOOMPriority("unix://"+dockerSocket, "resin_supervisor", -800, false); err != nil {
+		log.Printf("FAILED to OOM protect supervisor container: %s\n", err)
 	}
-	// Code below this could be eventually deprecated after all the devices are > 5 Jan 2016 deployment.
-	log.Println("Changing OOMScore Adjust Value for openvpn and connmand to -1000 if 0, every 5 minutes")
+	// Code below this could be eventually deprecated after all the devices are > 5 Jan 2016 deployment as this will be handled in the HOST OS.
+	log.Println("Changing oom_score_adj for openvpn and connmand to -1000 if 0, every 5 minutes")
 	// Errors are not being caught here as users could have openvpn and connmand disabled.
-	psutils.AdjustOOMPriorityByName(hostproc, "openvpn", -1000, true)
-	psutils.AdjustOOMPriorityByName(hostproc, "connmand", -1000, true)
+	procs.AdjustOOMPriorityByName("openvpn", -1000, true)
+	procs.AdjustOOMPriorityByName("connmand", -1000, true)
 	go func() {
 		for _ = range ticker.C {
-			psutils.AdjustOOMPriorityByName(hostproc, "openvpn", -1000, true)
-			psutils.AdjustOOMPriorityByName(hostproc, "connmand", -1000, true)
+			procs.AdjustOOMPriorityByName("openvpn", -1000, true)
+			procs.AdjustOOMPriorityByName("connmand", -1000, true)
 		}
 	}()
+	return ticker
 }
 
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.Println("Resin Go Supervisor starting")
 
-	// Start ticker for protecting Openvpn/Connman every 5 minutes
-	ticker := time.NewTicker(time.Minute * 5)
-	defer ticker.Stop()
+	// Start OOMProtectionTimer for protecting Openvpn/Connman
 	dockerSocket := os.Getenv("DOCKER_SOCKET")
 	hostproc := os.Getenv("HOST_PROC")
-	startOOMProtection(hostproc, dockerSocket, ticker)
+	defer startOOMProtectionTimer(hostproc, dockerSocket).Stop()
 
 	listenAddress := os.Getenv("GOSUPER_SOCKET")
 	router := mux.NewRouter()
