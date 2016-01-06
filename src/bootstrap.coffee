@@ -6,6 +6,7 @@ deviceRegister = require 'resin-register-device'
 { resinApi } = require './request'
 fs = Promise.promisifyAll(require('fs'))
 EventEmitter = require('events').EventEmitter
+execAsync = Promise.promisify(require('child_process').exec)
 config = require './config'
 configPath = '/boot/config.json'
 appsPath  = '/boot/apps.json'
@@ -48,7 +49,7 @@ bootstrap = ->
 		.then (device) ->
 			userConfig.registered_at = Date.now()
 			userConfig.deviceId = device.id
-			fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+			writeConfigFile(userConfig)
 		.return(userConfig)
 	.then (userConfig) ->
 		console.log('Finishing bootstrapping')
@@ -66,6 +67,14 @@ bootstrap = ->
 		.tap ->
 			bootstrapper.doneBootstrapping()
 
+
+writeConfigFile = (config) ->
+	fs.writeFileAsync(configPath + '.new', JSON.stringify(config))
+	.then ->
+		fs.renameAsync(configPath + '.new', configPath)
+	.then ->
+		execAsync('sync')
+
 readConfigAndEnsureUUID = ->
 	# Load config file
 	fs.readFileAsync(configPath, 'utf8')
@@ -76,7 +85,7 @@ readConfigAndEnsureUUID = ->
 		deviceRegister.generateUUID()
 		.then (uuid) ->
 			userConfig.uuid = uuid
-			fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+			writeConfigFile(userConfig)
 			.return(uuid)
 	.catch (err) ->
 		console.log('Error generating and saving UUID: ', err)
