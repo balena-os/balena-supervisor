@@ -1,5 +1,3 @@
-* Make config.json writes atomic [Pablo]
-
 # v1.3.2
 
 * Do not report the tun addresses to API [Praneeth]
