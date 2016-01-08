@@ -1,0 +1,2 @@
+# Ignore all godeps workspace diffs
+* -diff
