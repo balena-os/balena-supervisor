@@ -13,6 +13,7 @@ checkValidKey = (s) ->
 		return
 	return s
 
+# Defaults needed for both gosuper and node supervisor are declared in entry.sh
 module.exports = config =
 	apiEndpoint: process.env.API_ENDPOINT ? 'https://api.resin.io'
 	listenPort: process.env.LISTEN_PORT ? 80
