@@ -38,7 +38,8 @@ func startApi(listenAddress string, router *mux.Router) {
 	}
 }
 
-func startOOMProtection(hostproc string, dockerSocket string, ticker *time.Ticker) {
+func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker {
+	ticker := time.NewTicker(time.Minute * 5) //Timer runs every 5 minutes
 	procs := &psutils.Procs{hostproc}
 	log.Println("Changing oom_score_adj for the supervisor container to -800")
 	if err := procs.AdjustDockerOOMPriority("unix://"+dockerSocket, "resin_supervisor", -800, false); err != nil {
@@ -55,18 +56,18 @@ func startOOMProtection(hostproc string, dockerSocket string, ticker *time.Ticke
 			procs.AdjustOOMPriorityByName("connmand", -1000, true)
 		}
 	}()
+	return ticker
 }
 
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.Println("Resin Go Supervisor starting")
 
-	// Start ticker for protecting Openvpn/Connman every 5 minutes
-	ticker := time.NewTicker(time.Minute * 5)
-	defer ticker.Stop()
+	// Start OOMProtectionTimer for protecting Openvpn/Connman
 	dockerSocket := os.Getenv("DOCKER_SOCKET")
 	hostproc := os.Getenv("HOST_PROC")
-	startOOMProtection(hostproc, dockerSocket, ticker)
+	OOMProtectionTimer := startOOMProtectionTimer(hostproc, dockerSocket)
+	defer OOMProtectionTimer.Stop()
 
 	listenAddress := os.Getenv("GOSUPER_SOCKET")
 	router := mux.NewRouter()
