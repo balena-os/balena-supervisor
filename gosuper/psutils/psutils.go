@@ -12,8 +12,13 @@ import (
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/shirou/gopsutil/process"
 )
 
+// Procs - psutils functions associated with the ProcfsPath
+type Procs struct {
+	ProcfsPath string
+}
+
 //AdjustOOMPriorityByName Adjust the OOM adj value for the process' with the given name regexp
-func AdjustOOMPriorityByName(procPath string, processName string, value int, ignoreIfNonZero bool) error {
+func (procs *Procs) AdjustOOMPriorityByName(processName string, value int, ignoreIfNonZero bool) error {
 	found := false
 	pids, err := process.Pids()
 	if err != nil {
@@ -25,7 +30,7 @@ func AdjustOOMPriorityByName(procPath string, processName string, value int, ign
 			continue
 		} else if name, err := currProcess.Name(); err != nil && name != processName {
 			continue
-		} else if err := AdjustOOMPriority(procPath, int(pid), value, ignoreIfNonZero); err == nil {
+		} else if err := procs.AdjustOOMPriority(int(pid), value, ignoreIfNonZero); err == nil {
 			found = true
 		} else {
 			log.Println(err) // Not an error but logging these for debugging.
@@ -38,8 +43,8 @@ func AdjustOOMPriorityByName(procPath string, processName string, value int, ign
 }
 
 //AdjustOOMPriority Adjust the OOM adj value for the process with the given pid.
-func AdjustOOMPriority(procPath string, pid int, value int, ignoreIfNonZero bool) error {
-	oomFile := fmt.Sprintf("%s/%d/oom_score_adj", path.Clean(procPath), pid)
+func (procs *Procs) AdjustOOMPriority(pid int, value int, ignoreIfNonZero bool) error {
+	oomFile := fmt.Sprintf("%s/%d/oom_score_adj", path.Clean(procs.ProcfsPath), pid)
 	if currentOOMString, err := ioutil.ReadFile(oomFile); err != nil {
 		return err
 	} else if currentOOMValue, err := strconv.ParseInt(strings.Replace(string(currentOOMString), "\n", "", -1), 10, 32); err != nil {
@@ -53,14 +58,14 @@ func AdjustOOMPriority(procPath string, pid int, value int, ignoreIfNonZero bool
 }
 
 //AdjustDockerOOMPriority Adjusts the OOM Adj value for the entire docker container specified by the name. This should point to root proc filesystem
-func AdjustDockerOOMPriority(procPath string, connection string, containerName string, value int, ignoreIfNonZero bool) error {
+func (procs *Procs) AdjustDockerOOMPriority(connection string, containerName string, value int, ignoreIfNonZero bool) error {
 	if docker, err := dockerclient.NewDockerClient(connection, nil); err != nil {
 		return err
 	} else if containers, err := docker.ListContainers(false, false, fmt.Sprintf(`{"name":["^/%s$"]}`, containerName)); err != nil {
 		return err
 	} else if containerInfo, err := docker.InspectContainer(containers[0].Id); err != nil {
 		return err
-	} else if err = AdjustOOMPriority(procPath, containerInfo.State.Pid, value, ignoreIfNonZero); err != nil {
+	} else if err = procs.AdjustOOMPriority(containerInfo.State.Pid, value, ignoreIfNonZero); err != nil {
 		return err
 	} else {
 		return nil
