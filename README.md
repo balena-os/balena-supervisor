@@ -1,5 +1,7 @@
 # Resin Supervisor ![Build status](http://jenkins.dev.resin.io/buildStatus/icon?job=resin-supervisor-gh) [![Tickets in progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=in progress&title=Tickets in progress)](https://waffle.io/resin-io/resin-supervisor)
 
+Join our online chat at [![Gitter chat](https://badges.gitter.im/resin-io/chat.png)](https://gitter.im/resin-io/chat)
+
 This is [resin.io](https://resin.io)'s Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.
 
 The Supervisor is for now a node.js program, with a subset of its functionality implemented in Go.
