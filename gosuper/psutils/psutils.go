@@ -1,11 +1,12 @@
 package psutils
 
 import (
-	"bufio"
 	"fmt"
-	"os"
+	"io/ioutil"
+	"log"
 	"path"
 	"strconv"
+	"strings"
 
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/samalba/dockerclient"
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/shirou/gopsutil/process"
@@ -20,12 +21,14 @@ func AdjustOOMPriorityByName(procPath string, processName string, value int, ign
 	}
 	for _, pid := range pids {
 		// Find the process with the given name
-		if currProcess, err := process.NewProcess(pid); err == nil {
-			if name, err := currProcess.Name(); err == nil && name == processName {
-				if err := AdjustOOMPriority(procPath, int(pid), value, ignoreIfNonZero); err == nil {
-					found = true
-				}
-			}
+		if currProcess, err := process.NewProcess(pid); err != nil {
+			continue
+		} else if name, err := currProcess.Name(); err != nil && name != processName {
+			continue
+		} else if err := AdjustOOMPriority(procPath, int(pid), value, ignoreIfNonZero); err == nil {
+			found = true
+		} else {
+			log.Println(err) // Not an error but logging these for debugging.
 		}
 	}
 	if found {
@@ -36,28 +39,14 @@ func AdjustOOMPriorityByName(procPath string, processName string, value int, ign
 
 //AdjustOOMPriority Adjust the OOM adj value for the process with the given pid.
 func AdjustOOMPriority(procPath string, pid int, value int, ignoreIfNonZero bool) error {
-	oomPath := fmt.Sprintf("%s/%d/oom_score_adj", path.Clean(procPath), pid)
-	oomAdjFile, err := os.OpenFile(oomPath, os.O_RDWR, os.ModeType)
-	if err != nil {
-		return fmt.Errorf("Unable to open OOM adjust proc file for pid: %d\n", pid)
-	}
-	defer oomAdjFile.Close()
-	// Read the oom_score_adj value currently set
-	scanner := bufio.NewScanner(oomAdjFile)
-	scanner.Split(bufio.ScanLines)
-	var currentOOMString string
-	for scanner.Scan() {
-		currentOOMString = scanner.Text() // Read the OOMString
-	}
-	currentOOMValue, err := strconv.ParseInt(currentOOMString, 10, 64)
-	if err != nil {
+	oomFile := fmt.Sprintf("%s/%d/oom_score_adj", path.Clean(procPath), pid)
+	if currentOOMString, err := ioutil.ReadFile(oomFile); err != nil {
+		return err
+	} else if currentOOMValue, err := strconv.ParseInt(strings.Replace(string(currentOOMString), "\n", "", -1), 10, 32); err != nil {
 		return fmt.Errorf("Unable to read OOM adjust for pid: %d\n", pid)
-	}
-	if ignoreIfNonZero && currentOOMValue != 0 {
+	} else if ignoreIfNonZero && currentOOMValue != 0 {
 		return nil
-	}
-	// Write to the procfile to adjust the OOM adj value.
-	if _, err = oomAdjFile.WriteString(fmt.Sprintf("%d", value)); err != nil {
+	} else if err = ioutil.WriteFile(oomFile, []byte(fmt.Sprintf("%d\n", value)), 0644); err != nil {
 		return fmt.Errorf("Unable to OOM adjust for pid: %d\n", pid)
 	}
 	return nil
