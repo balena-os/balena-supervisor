@@ -73,19 +73,13 @@ func AdjustOOMPriority(procPath string, pid int64, value int64, ignoreIfNonZero 
 func AdjustDockerOOMPriority(procPath string, connection string, containerName string, value int64, ignoreIfNonZero bool) error {
 	if docker, err := dockerclient.NewDockerClient(connection, nil); err != nil {
 		return err
-	} else if containers, err := docker.ListContainers(false, false, ""); err != nil {
+	} else if containers, err := docker.ListContainers(false, false, fmt.Sprintf(`{"name":["^/%s$"]}`, containerName)); err != nil {
+		return err
+	} else if containerInfo, err := docker.InspectContainer(containers[0].Id); err != nil {
+		return err
+	} else if err = AdjustOOMPriority(procPath, int64(containerInfo.State.Pid), value, ignoreIfNonZero); err != nil {
 		return err
 	} else {
-		for _, container := range containers {
-			if containerInfo, err := docker.InspectContainer(container.Id); err != nil {
-				return err
-			} else if containerInfo.Name == containerName {
-				if err = AdjustOOMPriority(procPath, int64(containerInfo.State.Pid), value, ignoreIfNonZero); err != nil {
-					return err
-				}
-				return nil
-			}
-		}
+		return nil
 	}
-	return nil
 }

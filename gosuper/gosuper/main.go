@@ -40,7 +40,7 @@ func startApi(listenAddress string, router *mux.Router) {
 
 func startOOMProtection(hostproc string, dockerSocket string, ticker *time.Ticker) {
 	log.Println("Changing oom_score_adj for the supervisor container to -800")
-	if err := psutils.AdjustDockerOOMPriority(hostproc, "unix://"+dockerSocket, "/resin_supervisor", -800, false); err != nil {
+	if err := psutils.AdjustDockerOOMPriority(hostproc, "unix://"+dockerSocket, "resin_supervisor", -800, false); err != nil {
 		log.Printf("FAILED to OOM protect supervisor container: %s\n", err)
 	}
 	// Code below this could be eventually deprecated after all the devices are > 5 Jan 2016 deployment as this will be handled in the HOST OS.
