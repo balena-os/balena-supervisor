@@ -49,14 +49,12 @@ func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.Println("Resin Go Supervisor starting")
 
-	// Start OOMProtectionTimer for protecting Openvpn/Connman
-	dockerSocket := os.Getenv("DOCKER_SOCKET")
-	hostproc := os.Getenv("HOST_PROC")
-	defer startOOMProtectionTimer(hostproc, dockerSocket).Stop()
-
 	go connectivityCheck()
 
 	superConfig := config.GetSupervisorConfig()
+
+	// Start OOMProtectionTimer for protecting Openvpn/Connman
+	defer startOOMProtectionTimer(superConfig.HostProc, superConfig.DockerSocket).Stop()
 
 	if err := utils.MixpanelInit(superConfig.MixpanelToken); err != nil {
 		log.Printf("Failed to initialize Mixpanel client: %s", err)

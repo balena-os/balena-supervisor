@@ -40,6 +40,7 @@ func readConfigAndEnsureUuid(superConfig config.SupervisorConfig) (uuid string, 
 	return
 }
 
+// This should be moved to application or supermodels?
 func loadPreloadedApps(appsCollection *supermodels.AppsCollection) {
 	var err error
 	var apps []supermodels.App
@@ -57,8 +58,16 @@ func loadPreloadedApps(appsCollection *supermodels.AppsCollection) {
 	}
 }
 
-func bootstrapOrRetry() {
+// TODO
+func (dev *Device) bootstrap() (err error) {
+	if err = dev.register()
+}
 
+func (dev *Device) BootstrapOrRetry() {
+	if err = dev.bootstrap(); err != nil {
+		log.Printf("Device bootstrap failed, retrying: %s", err)
+		time.AfterFunc(time.Duration(superConfig.BootstrapRetryDelay)*time.Millisecond, dev.BootstrapOrRetry())
+	}
 }
 
 func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config, superConfig config.SupervisorConfig) (dev *Device, err error) {
@@ -67,19 +76,20 @@ func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Confi
 	if uuid, err = dbConfig.Get("uuid"); err != nil {
 	} else if uuid != "" {
 		device.Uuid = uuid
-		device.finishBootstrapping()
+		device.FinishBootstrapping()
 	} else {
 		log.Printf("New device detected, bootstrapping...")
 		if uuid, err = readConfigAndEnsureUuid(superConfig); err == nil {
 			device.Uuid = uuid
 			loadPreloadedApps(appsCollection)
-			bootstrapOrRetry()
+			device.BootstrapOrRetry()
 			dev = &device
 		}
 	}
 	return
 }
 
+// TODO
 func (dev Device) GetId() {
 
 }
@@ -95,7 +105,7 @@ func (dev Device) WaitForBootstrap() {
 	}
 }
 
-func (dev Device) finishBootstrapping() {
+func (dev Device) FinishBootstrapping() {
 	dev.bootstrapLock.Lock()
 	dev.Bootstrapped = true
 	for _, c := range dev.waitChannels {
