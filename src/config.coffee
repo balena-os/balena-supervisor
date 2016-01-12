@@ -13,6 +13,7 @@ checkValidKey = (s) ->
 		return
 	return s
 
+# Defaults needed for both gosuper and node supervisor are declared in entry.sh
 module.exports = config =
 	apiEndpoint: process.env.API_ENDPOINT ? 'https://api.resin.io'
 	listenPort: process.env.LISTEN_PORT ? 80
@@ -22,7 +23,7 @@ module.exports = config =
 		subscribe_key: checkValidKey(process.env.PUBNUB_SUBSCRIBE_KEY) ? process.env.DEFAULT_PUBNUB_SUBSCRIBE_KEY
 		publish_key: checkValidKey(process.env.PUBNUB_PUBLISH_KEY) ? process.env.DEFAULT_PUBNUB_PUBLISH_KEY
 	mixpanelToken: checkValidKey(process.env.MIXPANEL_TOKEN) ? process.env.DEFAULT_MIXPANEL_TOKEN
-	dockerSocket: process.env.DOCKER_SOCKET ? '/run/docker.sock'
+	dockerSocket: process.env.DOCKER_SOCKET
 	supervisorImage: process.env.SUPERVISOR_IMAGE ? 'resin/rpi-supervisor'
 	configMountPoint: process.env.CONFIG_MOUNT_POINT ? '/mnt/mmcblk0p1/config.json'
 	ledFile: process.env.LED_FILE ? '/sys/class/leds/led0/brightness'
