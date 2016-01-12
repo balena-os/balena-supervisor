@@ -47,6 +47,7 @@ type SupervisorConfig struct {
 	}
 	MixpanelToken         string `config_env:"MIXPANEL_TOKEN" config_default:"bananasbananas"`
 	DockerSocket          string `config_env:"DOCKER_SOCKET" config_default:"/run/docker.sock"`
+	HostProc              string `config_env:"HOST_PROC" config_default:"/mnt/root/proc"`
 	SupervisorImage       string `config_env:"SUPERVISOR_IMAGE" config_default:"resin/rpi-supervisor"`
 	LedFile               string `config_env:"LED_FILE" config_default:"/sys/class/leds/led0/brightness"`
 	BootstrapRetryDelay   int    `config_env:"BOOTSTRAP_RETRY_DELAY" config_default:"30000"`
