@@ -1,3 +1,6 @@
+
+* Add OOM protection for the supervisor container, openvpn and connmand [Praneeth]
+
 # v1.3.2
 
 * Do not report the tun addresses to API [Praneeth]
