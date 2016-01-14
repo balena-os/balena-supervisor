@@ -20,7 +20,7 @@
     "mixpanel": "0.0.20",
     "network-checker": "~0.0.5",
     "ngrok": "~0.1.97",
-    "pinejs-client": "^1.4.0",
+    "pinejs-client": "^1.7.1",
     "pubnub": "^3.7.13",
     "request": "^2.51.0",
     "resin-register-device": "^2.0.0",
