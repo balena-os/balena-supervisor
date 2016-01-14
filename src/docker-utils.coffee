@@ -88,7 +88,7 @@ exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) -
 		return [ rsyncDiff, imageConfig, imgSrc ]
 	.spread (rsyncDiff, imageConfig, imgSrc) ->
 		new Promise (resolve, reject) ->
-			dockersync = spawn('/app/src/dockersync.sh', [ imgSrc, imgDest, JSON.stringify(imageConfig) ], stdio: [ 'pipe', 'pipe', 'pipe' ])
+			dockersync = spawn('/app/src/dockersync.sh', [ imgSrc, imgDest, JSON.stringify(imageConfig) ], stdio: 'pipe')
 			.on 'error', reject
 			.on 'exit', (code, signal) ->
 				if code in DELTA_OUT_OF_SYNC_CODES
