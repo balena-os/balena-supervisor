@@ -26,3 +26,16 @@ func (config Config) Set(key string, val string) (err error) {
 	})
 	return
 }
+
+func (config Config) SetBatch(keyvals map[string]string) (err error) {
+	err = config.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Config"))
+		for key, val := range keyvals {
+			if e := b.Put([]byte(key), []byte(val)); e != nil {
+				return e
+			}
+		}
+		return nil
+	})
+	return
+}

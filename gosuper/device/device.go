@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"resin-supervisor/gosuper/config"
+	"resin-supervisor/gosuper/resin"
 	"resin-supervisor/gosuper/supermodels"
 	"resin-supervisor/gosuper/utils"
 )
@@ -22,9 +23,11 @@ type Device struct {
 	Bootstrapped  bool
 	waitChannels  []chan bool
 	bootstrapLock sync.Mutex
+	Config        config.UserConfig
+	DbConfig      *supermodels.Config
 }
 
-func readConfigAndEnsureUuid(superConfig config.SupervisorConfig) (uuid string, err error) {
+func (dev Device) readConfigAndEnsureUuid(superConfig config.SupervisorConfig) (uuid string, err error) {
 	var userConfig config.UserConfig
 	if userConfig, err = config.ReadConfig(config.DefaultConfigPath); err != nil {
 	} else if userConfig.Uuid != "" {
@@ -58,9 +61,12 @@ func loadPreloadedApps(appsCollection *supermodels.AppsCollection) {
 	}
 }
 
-// TODO
 func (dev *Device) bootstrap() (err error) {
-	if err = dev.register()
+	if err = dev.register(); err != nil {
+		return err
+	} else {
+		config.SaveToDB(dev.Config)
+	}
 }
 
 func (dev *Device) BootstrapOrRetry() {
@@ -73,14 +79,16 @@ func (dev *Device) BootstrapOrRetry() {
 func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config, superConfig config.SupervisorConfig) (dev *Device, err error) {
 	device := Device{}
 	var uuid string
+	device.DbConfig = dbConfig
 	if uuid, err = dbConfig.Get("uuid"); err != nil {
 	} else if uuid != "" {
 		device.Uuid = uuid
 		device.FinishBootstrapping()
 	} else {
 		log.Printf("New device detected, bootstrapping...")
-		if uuid, err = readConfigAndEnsureUuid(superConfig); err == nil {
+		if uuid, conf, err = readConfigAndEnsureUuid(superConfig); err == nil {
 			device.Uuid = uuid
+			device.Config = conf
 			loadPreloadedApps(appsCollection)
 			device.BootstrapOrRetry()
 			dev = &device
@@ -91,7 +99,7 @@ func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Confi
 
 // TODO
 func (dev Device) GetId() {
-
+	resin.GetDevice(dev.Uuid)
 }
 
 func (dev Device) WaitForBootstrap() {
