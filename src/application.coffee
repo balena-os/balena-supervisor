@@ -129,7 +129,7 @@ fetch = (app) ->
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
 		logSystemEvent(logTypes.downloadApp, app)
-		device.updateState(status: 'Downloading')
+		device.updateState(status: 'Downloading', download_progress: 0)
 		dockerUtils.fetchImageWithProgress app.imageId, (progress) ->
 			device.updateState(download_progress: progress.percentage)
 		.then ->
