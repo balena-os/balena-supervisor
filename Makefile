@@ -1,6 +1,6 @@
 DISABLE_CACHE = 'false'
 
-ARCH = rpi# rpi/amd64/i386/armv7hf
+ARCH = rpi# rpi/amd64/i386/armv7hf/armel
 
 DEPLOY_REGISTRY =
 
@@ -20,6 +20,9 @@ ifeq ($(ARCH),rpi)
 	GOARCH = arm
 endif
 ifeq ($(ARCH),armv7hf)
+	GOARCH = arm
+endif
+ifeq ($(ARCH),armel)
 	GOARCH = arm
 endif
 ifeq ($(ARCH),i386)
