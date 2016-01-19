@@ -35,7 +35,7 @@ func (procs *Procs) AdjustOOMPriorityByName(processName string, value int, ignor
 		// Find the process with the given name
 		if currProcess, err := process.NewProcess(pid); err != nil {
 			continue
-		} else if name, err := currProcess.Name(); err != nil && name != processName {
+		} else if name, err := currProcess.Name(); err != nil || name != processName {
 			continue
 		} else if err := procs.AdjustOOMPriority(int(pid), value, ignoreIfNonZero); err == nil {
 			found = true
