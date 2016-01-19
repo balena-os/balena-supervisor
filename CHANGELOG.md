@@ -1,4 +1,5 @@
-
+* Set GOARM separately for each architecture [Pablo]
+* Add armv5 (armel) build [Trong]
 * Add OOM protection for the supervisor container, openvpn and connmand [Praneeth]
 
 # v1.3.2
