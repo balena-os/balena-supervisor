@@ -2,8 +2,6 @@ FROM golang:1.5.1
 
 ENV GOOS linux
 ENV GOPATH /usr/src/app
-# Set an explicit GOARM of 5 for maximum compatibility
-ENV GOARM 5
 
 WORKDIR /usr/src/app
 
