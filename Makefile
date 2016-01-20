@@ -1,6 +1,6 @@
 DISABLE_CACHE = 'false'
 
-ARCH = rpi# rpi/amd64/i386/armv7hf
+ARCH = rpi# rpi/amd64/i386/armv7hf/armel
 
 DEPLOY_REGISTRY =
 
@@ -18,9 +18,15 @@ MIXPANEL_TOKEN = bananasbananas
 
 ifeq ($(ARCH),rpi)
 	GOARCH = arm
+	GOARM = 6
 endif
 ifeq ($(ARCH),armv7hf)
 	GOARCH = arm
+	GOARM = 7
+endif
+ifeq ($(ARCH),armel)
+	GOARCH = arm
+	GOARM = 5
 endif
 ifeq ($(ARCH),i386)
 	GOARCH = 386
@@ -77,7 +83,7 @@ go-builder:
 gosuper: go-builder
 	-mkdir -p bin
 	-docker rm --volumes -f resin_build_gosuper_$(JOB_NAME) || true
-	docker run --name resin_build_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
+	docker run --name resin_build_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) -e GOARM=$(GOARM) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
 	docker rm --volumes -f resin_build_gosuper_$(JOB_NAME)
 	mv gosuper/bin/linux_$(GOARCH)/gosuper bin/gosuper
 

@@ -1,0 +1,41 @@
+FROM resin/armel-node:0.10.40-slim
+
+COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
+
+# Supervisor apt dependencies
+RUN apt-get -q update \
+	&& apt-get install -qqy socat supervisor --no-install-recommends \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/
+
+# Copy supervisord configuration files
+COPY config/supervisor/ /etc/supervisor/
+
+# Install dependencies
+WORKDIR /app
+COPY package.json postinstall.sh /app/
+RUN apt-get -q update \
+	&& apt-get install -qqy g++ libsqlite3-dev make --no-install-recommends \
+	&& JOBS=MAX npm install --unsafe-perm --production --no-optional \
+	&& npm dedupe \
+	&& npm cache clean \
+	&& rm -rf /tmp/* \
+	&& apt-get purge -qqy g++ libsqlite3-dev make binutils \
+	&& apt-get clean \
+	&& apt-get autoremove -qqy \
+	&& rm -rf /var/lib/apt/lists/
+
+# Copy source
+COPY . /app/
+
+RUN chmod +x /app/src/enterContainer.sh \
+	&& /app/node_modules/.bin/coffee -c /app/src \
+	&& ln -sf /app/entry.sh /start # Needed for legacy
+
+RUN chmod +x /app/bin/gosuper
+
+ENV SUPERVISOR_IMAGE resin/armel-supervisor
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
+
+ENTRYPOINT ["/app/entry.sh"]
