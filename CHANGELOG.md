@@ -1,3 +1,4 @@
+* Report Host OS version to the API [Pablo]
 * Use _.defaults instead of _.extend to ensure internal env vars are not overwritten [Pablo]
 * Expose resin API key to apps [Pablo]
 * On download start, set download_progress to 0. On finish, set state to Idle [Pablo]
