@@ -1,13 +1,14 @@
 Docker = require 'dockerode'
-DockerProgress = require 'docker-progress'
+{ getRegistryAndName, DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
-{ spawn } = require 'child_process'
+{ spawn, execAsync } = Promise.promisifyAll(require('child_process'))
 progress = require 'request-progress'
 config = require './config'
 _ = require 'lodash'
 knex = require './db'
 TypedError = require 'typed-error'
 { request } = require './request'
+fs = Promise.promisifyAll(require('fs'))
 
 class OutOfSyncError extends TypedError
 
@@ -87,24 +88,63 @@ exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) -
 
 		return [ rsyncDiff, imageConfig, imgSrc ]
 	.spread (rsyncDiff, imageConfig, imgSrc) ->
-		new Promise (resolve, reject) ->
-			dockersync = spawn('/app/src/dockersync.sh', [ imgSrc, imgDest, JSON.stringify(imageConfig) ], stdio: 'pipe')
-			.on 'error', reject
-			.on 'exit', (code, signal) ->
-				if code in DELTA_OUT_OF_SYNC_CODES
-					reject(new OutOfSyncError("Incompatible image"))
-				else if code isnt 0
-					reject(new Error("rsync exited. code: #{code} signal: #{signal}"))
-				else
-					resolve()
-
-			rsyncDiff.pipe(dockersync.stdin)
-			dockersync.stdout.pipe(process.stdout)
-			dockersync.stderr.pipe(process.stdout)
-			rsyncDiff.resume()
+		dockerSync(imgSrc, imgDest, rsyncDiff, imageConfig)
 	.catch OutOfSyncError, (err) ->
 		console.log('Falling back to delta-from-empty')
 		exports.rsyncImageWithProgress(imgDest, onProgress, true)
+
+getRepoAndTag = (image) ->
+	getRegistryAndName(image)
+	.then ({ registry, imageName, tagName }) ->
+		return { repo: "#{registry}/#{imageName}", tag: tagName }
+
+dockerSync = (imgSrc, imgDest, rsyncDiff, conf) ->
+	docker.importImageAsync('/app/empty.tar')
+	.then (stream) ->
+		new Promise (resolve, reject) ->
+			streamOutput = ''
+			stream.on 'data', (data) ->
+				streamOutput += data
+			stream.on 'error', reject
+			stream.on 'end', ->
+				resolve(JSON.parse(streamOutput).status)
+	.then (destId) ->
+		jsonPath = "#{config.dockerRoot}/graph/#{destId}/json"
+		fs.readFileAsync(jsonPath)
+		.then(JSON.parse)
+		.then (destJson) ->
+			destJson.config = conf
+			fs.writeFileAsync(jsonPath + '.tmp', JSON.stringify(destJson))
+		.then ->
+			fs.renameAsync(jsonPath + '.tmp', jsonPath)
+		.then ->
+			if imgSrc isnt 'resin/scratch'
+				execAsync("btrfs subvolume delete \"#{config.btrfsRoot}/#{destId}\"")
+				.then ->
+					docker.getImage(imgSrc).inspectAsync().get('Id')
+				.then (srcId) ->
+					execAsync("btrfs subvolume snapshot \"#{config.btrfsRoot}/#{srcId}\" \"#{config.btrfsRoot}/#{destId}\"")
+		.then ->
+			new Promise (resolve, reject) ->
+				rsync = spawn('rsync', ['--timeout=300', '--archive', '--delete' , '--read-batch=-', "#{config.btrfsRoot}/#{destId}"], stdio: 'pipe')
+				.on 'error', reject
+				.on 'exit', (code, signal) ->
+					if code in DELTA_OUT_OF_SYNC_CODES
+						reject(new OutOfSyncError('Incompatible image'))
+					else if code isnt 0
+						reject(new Error("rsync exited. code: #{code} signal: #{signal}"))
+					else
+						resolve()
+				rsyncDiff.pipe(dockersync.stdin)
+				rsync.stdout.pipe(process.stdout)
+				rsync.stderr.pipe(process.stdout)
+				rsyncDiff.resume()
+		.then ->
+			execAsync('sync')
+		.then ->
+			getRepoAndTag(imgDest)
+		.then ({ repo, tag }) ->
+			docker.getImage(destId).tagAsync({ repo, tag, force: true })
 
 do ->
 	# Keep track of the images being fetched, so we don't clean them up whilst fetching.

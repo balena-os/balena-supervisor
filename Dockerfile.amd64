@@ -16,9 +16,6 @@ RUN apt-get -q update \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 
-ENV DOCKER_VERSION 1.6.2
-RUN curl -sL  https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}.tgz | tar xzv --strip-components=3 -C /usr/bin
-
 # Copy supervisord configuration files
 COPY config/supervisor/ /etc/supervisor/
 
@@ -41,7 +38,6 @@ COPY . /app/
 
 RUN chmod +x /app/src/enterContainer.sh \
 	&& /app/node_modules/.bin/coffee -c /app/src \
-	&& ln -sf /mnt/root/var/lib/rce /var/lib/docker \
 	&& ln -sf /app/entry.sh /start # Needed for legacy
 
 RUN chmod +x /app/bin/gosuper
