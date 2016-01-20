@@ -24,6 +24,8 @@ knex.init.then ->
 
 		bootstrap.done
 		.then ->
+			device.getOSVersion()
+		.then (osVersion) ->
 			console.log('Starting API server..')
 			api(application).listen(config.listenPort)
 			# Let API know what version we are, and our api connection info.
@@ -31,6 +33,7 @@ knex.init.then ->
 			device.updateState(
 				api_port: config.listenPort
 				api_secret: secret
+				os_version: osVersion
 				supervisor_version: utils.supervisorVersion
 				provisioning_progress: null
 				provisioning_state: ''

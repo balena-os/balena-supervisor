@@ -36,3 +36,4 @@ module.exports = config =
 		logsChannel: process.env.RESIN_SUPERVISOR_LOGS_CHANNEL ? null
 	vpnStatusPath: process.env.VPN_STATUS_PATH ? '/mnt/root/run/openvpn/vpn_status'
 	checkInt: checkInt
+	hostOsVersionPath: process.env.HOST_OS_VERSION_PATH ? '/mnt/root/etc/os-release'
