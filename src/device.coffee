@@ -177,3 +177,17 @@ exports.updateState = do ->
 		if !applyPromise.isPending()
 			applyState()
 		return
+
+exports.getOSVersion = ->
+	path = '/mnt/root/etc/os-release'
+	fs.readFileAsync(path)
+	.then (releaseData) ->
+		lines = _.split(releaseData, "\n")
+		releaseItems = {}
+		for line in lines
+			[ key, val ] = _.split(line, '=')
+			releaseItems[_.trim(key)] = _.trim(val)
+		return releaseItems['PRETTY_NAME']
+	.catch (err) ->
+		console.log("Could not get OS Version: ", err)
+		return undefined
