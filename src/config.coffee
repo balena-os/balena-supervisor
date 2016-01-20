@@ -13,6 +13,8 @@ checkValidKey = (s) ->
 		return
 	return s
 
+dockerRoot = process.env.DOCKER_ROOT ? '/mnt/root/var/lib/rce'
+
 # Defaults needed for both gosuper and node supervisor are declared in entry.sh
 module.exports = config =
 	apiEndpoint: process.env.API_ENDPOINT ? 'https://api.resin.io'
@@ -38,3 +40,5 @@ module.exports = config =
 	vpnStatusPath: process.env.VPN_STATUS_PATH ? '/mnt/root/run/openvpn/vpn_status'
 	checkInt: checkInt
 	hostOsVersionPath: process.env.HOST_OS_VERSION_PATH ? '/mnt/root/etc/os-release'
+	dockerRoot: dockerRoot
+	btrfsRoot: process.env.BTRFS_ROOT ? "#{dockerRoot}/btrfs/subvolumes"
