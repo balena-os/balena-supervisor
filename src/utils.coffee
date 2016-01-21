@@ -143,7 +143,7 @@ exports.extendEnvVars = (env, uuid) ->
 		RESIN: '1'
 		USER: 'root'
 	if env?
-		_.extend(newEnv, env)
+		_.defaults(newEnv, env)
 	return Promise.props(newEnv)
 
 # Callback function to enable/disable tcp pings
