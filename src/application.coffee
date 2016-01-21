@@ -134,7 +134,7 @@ fetch = (app) ->
 			device.updateState(download_progress: progress.percentage)
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
-			device.updateState(download_progress: null)
+			device.updateState(status: 'Idle', download_progress: null)
 			docker.getImage(app.imageId).inspectAsync()
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
