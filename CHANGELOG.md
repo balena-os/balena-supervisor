@@ -1,3 +1,4 @@
+* Expose resin API key to apps [Pablo]
 * On download start, set download_progress to 0. On finish, set state to Idle [Pablo]
 * Set GOARM separately for each architecture [Pablo]
 * Add armv5 (armel) build [Trong]

@@ -125,6 +125,11 @@ exports.getOrGenerateSecret = (name) ->
 		generateSecret(name)
 	return secretPromises[name]
 
+exports.getConfig = getConfig = (key) ->
+	knex('config').select('value').where({ key })
+	.then ([ conf ]) ->
+		return conf?.value
+
 exports.extendEnvVars = (env, uuid) ->
 	host = '127.0.0.1'
 	newEnv =
@@ -134,6 +139,7 @@ exports.extendEnvVars = (env, uuid) ->
 		RESIN_SUPERVISOR_PORT: config.listenPort
 		RESIN_SUPERVISOR_API_KEY: exports.getOrGenerateSecret('api')
 		RESIN_SUPERVISOR_VERSION: exports.supervisorVersion
+		RESIN_API_KEY: getConfig('apiKey')
 		RESIN: '1'
 		USER: 'root'
 	if env?

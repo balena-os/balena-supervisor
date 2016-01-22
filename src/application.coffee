@@ -489,11 +489,6 @@ compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
 	allAppIds = _.union(localAppIds, remoteAppIds)
 	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds }
 
-getConfig = (key) ->
-	knex('config').select('value').where({ key })
-	.then ([ conf ]) ->
-		return conf?.value
-
 application.update = update = (force) ->
 	if updateStatus.state isnt UPDATE_IDLE
 		# Mark an update required after the current.
@@ -502,7 +497,7 @@ application.update = update = (force) ->
 		return
 	updateStatus.state = UPDATE_UPDATING
 	bootstrap.done.then ->
-		Promise.join getConfig('apiKey'), getConfig('uuid'), knex('app').select(), (apiKey, uuid, apps) ->
+		Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), knex('app').select(), (apiKey, uuid, apps) ->
 			deviceId = device.getID()
 			remoteApps = getRemoteApps(uuid, apiKey)
 
