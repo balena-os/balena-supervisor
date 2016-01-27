@@ -181,7 +181,7 @@ exports.updateState = do ->
 exports.getOSVersion = ->
 	fs.readFileAsync(config.hostOsVersionPath)
 	.then (releaseData) ->
-		lines = releaseData.split("\n")
+		lines = (new String(releaseData)).split("\n")
 		releaseItems = {}
 		for line in lines
 			[ key, val ] = line.split('=')
