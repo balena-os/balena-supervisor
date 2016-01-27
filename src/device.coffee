@@ -181,10 +181,10 @@ exports.updateState = do ->
 exports.getOSVersion = ->
 	fs.readFileAsync(config.hostOsVersionPath)
 	.then (releaseData) ->
-		lines = _.split(releaseData, "\n")
+		lines = releaseData.split("\n")
 		releaseItems = {}
 		for line in lines
-			[ key, val ] = _.split(line, '=')
+			[ key, val ] = line.split('=')
 			releaseItems[_.trim(key)] = _.trim(val)
 		return releaseItems['PRETTY_NAME']
 	.catch (err) ->
