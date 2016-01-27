@@ -96,6 +96,7 @@ exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) -
 getRepoAndTag = (image) ->
 	getRegistryAndName(image)
 	.then ({ registry, imageName, tagName }) ->
+		registry = registry.toString().replace(':443','')
 		return { repo: "#{registry}/#{imageName}", tag: tagName }
 
 dockerSync = (imgSrc, imgDest, rsyncDiff, conf) ->
