@@ -1,3 +1,5 @@
+# v1.4.0
+
 * Report Host OS version to the API [Pablo]
 * Use _.defaults instead of _.extend to ensure internal env vars are not overwritten [Pablo]
 * Expose resin API key to apps [Pablo]
