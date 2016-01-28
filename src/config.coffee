@@ -13,11 +13,14 @@ checkValidKey = (s) ->
 		return
 	return s
 
+dockerRoot = process.env.DOCKER_ROOT ? '/mnt/root/var/lib/rce'
+
 # Defaults needed for both gosuper and node supervisor are declared in entry.sh
 module.exports = config =
 	apiEndpoint: process.env.API_ENDPOINT ? 'https://api.resin.io'
 	listenPort: process.env.LISTEN_PORT ? 80
 	gosuperAddress: "http://unix:#{process.env.GOSUPER_SOCKET}:"
+	deltaHost: process.env.DELTA_ENDPOINT ? 'https://delta.resin.io'
 	registryEndpoint: process.env.REGISTRY_ENDPOINT ? 'registry.resin.io'
 	pubnub:
 		subscribe_key: checkValidKey(process.env.PUBNUB_SUBSCRIBE_KEY) ? process.env.DEFAULT_PUBNUB_SUBSCRIBE_KEY
@@ -37,3 +40,5 @@ module.exports = config =
 	vpnStatusPath: process.env.VPN_STATUS_PATH ? '/mnt/root/run/openvpn/vpn_status'
 	checkInt: checkInt
 	hostOsVersionPath: process.env.HOST_OS_VERSION_PATH ? '/mnt/root/etc/os-release'
+	dockerRoot: dockerRoot
+	btrfsRoot: process.env.BTRFS_ROOT ? "#{dockerRoot}/btrfs/subvolumes"
