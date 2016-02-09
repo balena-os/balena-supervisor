@@ -1,3 +1,5 @@
+# v1.5.0
+
 * Add support for delta image download [petrosagg and Pablo]
 
 # v1.4.0
