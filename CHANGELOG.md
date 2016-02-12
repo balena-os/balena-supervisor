@@ -1,3 +1,5 @@
+* Check for valid strings or ints in all config values [Pablo]
+
 # v1.5.0
 
 * Add support for delta image download [petrosagg and Pablo]
