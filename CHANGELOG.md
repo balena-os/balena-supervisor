@@ -1,3 +1,4 @@
+* Check for valid strings or ints in all config values [Pablo]
 * Remove quotes in OS version [Pablo]
 
 # v1.5.0
