@@ -405,3 +405,38 @@ $ curl -X POST --header "Content-Type:application/json" \
 	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
 	"https://api.resin.io/supervisor/v1/regenerate-api-key"
 ```
+
+<hr>
+
+### GET /v1/device
+
+Introduced in supervisor v1.6.
+Returns the current device state, as reported to the Resin API.
+The state is a JSON object that contains some or all of the following:
+* `api_port`: Port on which the supervisor is listening.
+* `ip_address`: Space-separated list of IP addresses of the device.
+* `status`: Status of the device regarding the app, as a string, i.e. "Stopping", "Starting", "Downloading", "Installing", "Idle".
+* `download_progress`: Amount of the application image that has been downloaded, expressed as a percentage.
+* `os_version`: Version of the host OS running on the device.
+* `supervisor_version`: Version of the supervisor running on the device.
+
+Other attributes may be added in the future, and some may be missing or null if they haven't been set yet.
+
+#### Examples:
+From the app on the device:
+```bash
+$ curl -X GET --header "Content-Type:application/json" \
+	"$RESIN_SUPERVISOR_ADDRESS/v1/device?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+Response:
+```json
+{"api_port":48484,"ip_address":"192.168.0.114 10.42.0.3","status":"Downloading","download_progress":84,"os_version":"Resin OS 1.0.4 (fido)","supervisor_version":"1.6.0"}
+```
+
+Remotely via the API proxy:
+```bash
+$ curl -X POST --header "Content-Type:application/json" \
+	--header "Authorization: Bearer <auth token>" \
+	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	"https://api.resin.io/supervisor/v1/device"
+```
