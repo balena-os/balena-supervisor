@@ -578,11 +578,13 @@ application.update = update = (force) ->
 			throw new Error(joinErrorMessages(failures)) if failures.length > 0
 		.then ->
 			updateStatus.failed = 0
+			device.setUpdatePending(false)
 			# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
 			# point where we might clean up an image we still want.
 			dockerUtils.cleanupContainersAndImages()
 		.catch (err) ->
 			updateStatus.failed++
+			device.setUpdatePending(true)
 			if updateStatus.state is UPDATE_REQUIRED
 				console.log('Updating failed, but there is already another update scheduled immediately: ', err)
 				return
