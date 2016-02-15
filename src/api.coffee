@@ -136,4 +136,8 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
+	api.get '/v1/device', (req, res) ->
+		state = device.getState()
+		res.status(200).send(JSON.stringify(state))
+
 	return api

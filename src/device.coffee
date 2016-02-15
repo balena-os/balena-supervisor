@@ -128,12 +128,16 @@ exports.getDeviceType = do ->
 					throw new Error('Device type not specified in config file')
 				return configFromFile.deviceType
 
+targetState = {}
+exports.getState = ->
+	fieldsToOmit = ['api_secret', 'logs_channel', 'provisioning_progress', 'provisioning_state']
+	return _.omit(targetState, fieldsToOmit)
+
 # Calling this function updates the local device state, which is then used to synchronise
 # the remote device state, repeating any failed updates until successfully synchronised.
 # This function will also optimise updates by merging multiple updates and only sending the latest state.
 exports.updateState = do ->
 	applyPromise = Promise.resolve()
-	targetState = {}
 	actualState = {}
 
 	getStateDiff = ->
