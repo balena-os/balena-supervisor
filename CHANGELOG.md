@@ -1,3 +1,5 @@
+* Remove quotes in OS version [Pablo]
+
 # v1.5.0
 
 * Add support for delta image download [petrosagg and Pablo]

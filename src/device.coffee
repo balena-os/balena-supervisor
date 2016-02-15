@@ -186,7 +186,8 @@ exports.getOSVersion = ->
 		for line in lines
 			[ key, val ] = line.split('=')
 			releaseItems[_.trim(key)] = _.trim(val)
-		return releaseItems['PRETTY_NAME']
+		# Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
+		return releaseItems['PRETTY_NAME'].replace(/^"(.+(?="$))"$/, '$1')
 	.catch (err) ->
 		console.log("Could not get OS Version: ", err, err.stack)
 		return undefined
