@@ -419,6 +419,7 @@ The state is a JSON object that contains some or all of the following:
 * `download_progress`: Amount of the application image that has been downloaded, expressed as a percentage.
 * `os_version`: Version of the host OS running on the device.
 * `supervisor_version`: Version of the supervisor running on the device.
+* `update_pending`: This one is not reported to the Resin API. It's a boolean that will be true if the supervisor has tried to update the app, but failed (for example, if the update lock was set).
 
 Other attributes may be added in the future, and some may be missing or null if they haven't been set yet.
 
@@ -430,7 +431,7 @@ $ curl -X GET --header "Content-Type:application/json" \
 ```
 Response:
 ```json
-{"api_port":48484,"ip_address":"192.168.0.114 10.42.0.3","status":"Downloading","download_progress":84,"os_version":"Resin OS 1.0.4 (fido)","supervisor_version":"1.6.0"}
+{"api_port":48484,"ip_address":"192.168.0.114 10.42.0.3","status":"Downloading","download_progress":84,"os_version":"Resin OS 1.0.4 (fido)","supervisor_version":"1.6.0","update_pending":false}
 ```
 
 Remotely via the API proxy:
