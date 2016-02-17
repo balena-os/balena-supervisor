@@ -414,6 +414,7 @@ Introduced in supervisor v1.6.
 Returns the current device state, as reported to the Resin API and with some extra fields added to allow control over pending/locked updates.
 The state is a JSON object that contains some or all of the following:
 * `api_port`: Port on which the supervisor is listening.
+* `commit`: Hash of the current commit of the application that is running.
 * `ip_address`: Space-separated list of IP addresses of the device.
 * `status`: Status of the device regarding the app, as a string, i.e. "Stopping", "Starting", "Downloading", "Installing", "Idle".
 * `download_progress`: Amount of the application image that has been downloaded, expressed as a percentage. If the update has already been downloaded, this will be `null`.
@@ -433,7 +434,7 @@ $ curl -X GET --header "Content-Type:application/json" \
 ```
 Response:
 ```json
-{"api_port":48484,"ip_address":"192.168.0.114 10.42.0.3","status":"Downloading","download_progress":84,"os_version":"Resin OS 1.0.4 (fido)","supervisor_version":"1.6.0","update_pending":true,"update_downloaded":false,"update_failed":false}
+{"api_port":48484,"ip_address":"192.168.0.114 10.42.0.3","commit":"414e65cd378a69a96f403b75f14b40b55856f860","status":"Downloading","download_progress":84,"os_version":"Resin OS 1.0.4 (fido)","supervisor_version":"1.6.0","update_pending":true,"update_downloaded":false,"update_failed":false}
 ```
 
 Remotely via the API proxy:
