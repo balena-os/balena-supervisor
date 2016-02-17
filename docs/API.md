@@ -411,15 +411,17 @@ $ curl -X POST --header "Content-Type:application/json" \
 ### GET /v1/device
 
 Introduced in supervisor v1.6.
-Returns the current device state, as reported to the Resin API.
+Returns the current device state, as reported to the Resin API and with some extra fields added to allow control over pending/locked updates.
 The state is a JSON object that contains some or all of the following:
 * `api_port`: Port on which the supervisor is listening.
 * `ip_address`: Space-separated list of IP addresses of the device.
 * `status`: Status of the device regarding the app, as a string, i.e. "Stopping", "Starting", "Downloading", "Installing", "Idle".
-* `download_progress`: Amount of the application image that has been downloaded, expressed as a percentage.
+* `download_progress`: Amount of the application image that has been downloaded, expressed as a percentage. If the update has already been downloaded, this will be `null`.
 * `os_version`: Version of the host OS running on the device.
 * `supervisor_version`: Version of the supervisor running on the device.
-* `update_pending`: This one is not reported to the Resin API. It's a boolean that will be true if the supervisor has tried to update the app, but failed (for example, if the update lock was set).
+* `update_pending`: This one is not reported to the Resin API. It's a boolean that will be true if the supervisor has detected there is a pending update.
+* `update_downloaded`: Not reported to the Resin API either. Boolean that will be true if a pending update has already been downloaded.
+* `update_failed`: Not reported to the Resin API. Boolean that will be true if the supervisor has tried to apply a pending update but failed (i.e. if the app was locked, there was a network failure or anything else went wrong).
 
 Other attributes may be added in the future, and some may be missing or null if they haven't been set yet.
 
@@ -431,7 +433,7 @@ $ curl -X GET --header "Content-Type:application/json" \
 ```
 Response:
 ```json
-{"api_port":48484,"ip_address":"192.168.0.114 10.42.0.3","status":"Downloading","download_progress":84,"os_version":"Resin OS 1.0.4 (fido)","supervisor_version":"1.6.0","update_pending":false}
+{"api_port":48484,"ip_address":"192.168.0.114 10.42.0.3","status":"Downloading","download_progress":84,"os_version":"Resin OS 1.0.4 (fido)","supervisor_version":"1.6.0","update_pending":true,"update_downloaded":false,"update_failed":false}
 ```
 
 Remotely via the API proxy:

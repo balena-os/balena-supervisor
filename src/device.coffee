@@ -132,7 +132,7 @@ do ->
 	applyPromise = Promise.resolve()
 	targetState = {}
 	actualState = {}
-	updatePending = false
+	updateState = { update_pending: false, update_failed: false, update_downloaded: false }
 
 	getStateDiff = ->
 		_.omit targetState, (value, key) ->
@@ -167,13 +167,13 @@ do ->
 			# Check if any more state diffs have appeared whilst we've been processing this update.
 			applyState()
 
-	exports.setUpdatePending = (value) ->
-		updatePending = value
+	exports.setUpdateState = (value) ->
+		_.merge(updateState, value)
 
 	exports.getState = ->
 		fieldsToOmit = ['api_secret', 'logs_channel', 'provisioning_progress', 'provisioning_state']
 		state = _.omit(targetState, fieldsToOmit)
-		state.update_pending = updatePending
+		_.merge(state, updateState)
 		return state
 
 	# Calling this function updates the local device state, which is then used to synchronise
