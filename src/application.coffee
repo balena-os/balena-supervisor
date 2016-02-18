@@ -144,6 +144,7 @@ fetch = (app) ->
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			device.updateState(status: 'Idle', download_progress: null)
+			device.setUpdateState(update_downloaded: true)
 			docker.getImage(app.imageId).inspectAsync()
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
@@ -516,6 +517,8 @@ application.update = update = (force) ->
 				resourcesForUpdate = compareForUpdate(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
 				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds } = resourcesForUpdate
 
+				if !_.isEmpty(toBeRemoved) or !_.isEmpty(toBeInstalled) or !_.isEmpty(toBeUpdated)
+					device.setUpdateState(update_pending: true)
 				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
 				Promise.map appsWithChangedEnvs, (appId) ->
 					Promise.using lockUpdates(remoteApps[appId], force), ->
@@ -578,11 +581,13 @@ application.update = update = (force) ->
 			throw new Error(joinErrorMessages(failures)) if failures.length > 0
 		.then ->
 			updateStatus.failed = 0
+			device.setUpdateState(update_pending: false, update_downloaded: false, update_failed: false)
 			# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
 			# point where we might clean up an image we still want.
 			dockerUtils.cleanupContainersAndImages()
 		.catch (err) ->
 			updateStatus.failed++
+			device.setUpdateState(update_failed: true)
 			if updateStatus.state is UPDATE_REQUIRED
 				console.log('Updating failed, but there is already another update scheduled immediately: ', err)
 				return
