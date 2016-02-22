@@ -56,16 +56,16 @@ func main() {
 
 	if appsCollection, dbConfig, err := supermodels.New(superConfig.DatabasePath); err != nil {
 		log.Fatalf("Failed to start database: %s", err)
-	} else if theDevice, err := device.New(appsCollection, dbConfig, superConfig); err != nil {
-		log.Fatalf("Failed to start device bootstrapping: %s", err)
-	} else {
-		utils.MixpanelSetId(theDevice.Uuid)
-		if applicationManager, err := application.NewManager(appsCollection, dbConfig, theDevice, superConfig); err != nil {
-			log.Fatalf("Failed to initialize applications manager: %s", err)
-		} else {
-			theDevice.WaitForBootstrap()
-			StartApi(superConfig.ListenPort, applicationManager)
-		}
 	}
-	select {}
+
+	if theDevice, err := device.New(appsCollection, dbConfig, superConfig); err != nil {
+		log.Fatalf("Failed to start device bootstrapping: %s", err)
+	}
+
+	utils.MixpanelSetId(theDevice.Uuid)
+	if applicationManager, err := application.NewManager(appsCollection, dbConfig, theDevice, superConfig); err != nil {
+		log.Fatalf("Failed to initialize applications manager: %s", err)
+	}
+	theDevice.WaitForBootstrap()
+	StartApi(superConfig.ListenPort, applicationManager)
 }
