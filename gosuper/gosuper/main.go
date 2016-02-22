@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 	"time"
 
 	"resin-supervisor/gosuper/application"
@@ -40,11 +39,6 @@ func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker 
 	return ticker
 }
 
-func waitForever() {
-	c := make(chan bool)
-	<-c
-}
-
 func main() {
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	log.Println("Resin Go Supervisor starting")
@@ -73,5 +67,5 @@ func main() {
 			StartApi(superConfig.ListenPort, applicationManager)
 		}
 	}
-	waitForever()
+	select {}
 }
