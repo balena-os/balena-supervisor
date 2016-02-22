@@ -12,9 +12,10 @@ import (
 	"strconv"
 	"time"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
 	"resin-supervisor/gosuper/application"
 	"resin-supervisor/gosuper/systemd"
+
+	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 // Compile the expression once, usually at init time.
@@ -62,7 +63,7 @@ func StartApi(port int, apps *application.Manager) {
 	applications = apps
 	setupApi(router)
 	log.Printf("Starting HTTP server on port %d\n", port)
-	go listen(port, router)
+	listen(port, router)
 }
 
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
