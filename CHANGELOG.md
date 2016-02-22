@@ -1,3 +1,5 @@
+# v1.6.0
+
 * Add endpoint to get device state [Pablo]
 * Check for valid strings or ints in all config values [Pablo]
 * Remove quotes in OS version [Pablo]
