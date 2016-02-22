@@ -125,23 +125,37 @@ func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 
 	if appId, err := parsePurgeBody(request); err != nil {
 		sendBadRequest("Invalid request")
-	} else if appId == "" {
+		return
+	}
+	if appId == "" {
 		sendBadRequest("applicationId is required")
-	} else if !IsValidAppId(appId) {
+		return
+	}
+	if !IsValidAppId(appId) {
 		sendBadRequest(fmt.Sprintf("Invalid applicationId '%s'", appId))
-	} else if _, err = os.Stat(ResinDataPath + appId); err != nil {
+		return
+	}
+
+	if _, err = os.Stat(ResinDataPath + appId); err != nil {
 		if os.IsNotExist(err) {
 			sendResponse("Error", fmt.Sprintf("Invalid applicationId '%s': Directory does not exist", appId), http.StatusNotFound)
 		} else {
 			sendError(err)
 		}
-	} else if err = os.RemoveAll(ResinDataPath + appId); err != nil {
-		sendError(err)
-	} else if err = os.Mkdir(ResinDataPath+appId, 0755); err != nil {
-		sendError(err)
-	} else {
-		sendResponse("OK", "", http.StatusOK)
+		return
 	}
+
+	if err = os.RemoveAll(ResinDataPath + appId); err != nil {
+		sendError(err)
+		return
+	}
+
+	if err = os.Mkdir(ResinDataPath+appId, 0755); err != nil {
+		sendError(err)
+		return
+	}
+
+	sendResponse("OK", "", http.StatusOK)
 }
 
 func inASecond(theFunc func()) {
@@ -217,11 +231,11 @@ func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
 	sendResponse, sendError := responseSenders(writer)
 	if ipAddr, err := ipAddress(); err != nil {
 		sendError(err)
-	} else {
-		payload := make(map[string][]string)
-		payload["IPAddresses"] = ipAddr
-		sendResponse(payload, "", http.StatusOK)
+		return
 	}
+	payload := make(map[string][]string)
+	payload["IPAddresses"] = ipAddr
+	sendResponse(payload, "", http.StatusOK)
 }
 
 //VPNControl is used to control VPN service status with dbus
