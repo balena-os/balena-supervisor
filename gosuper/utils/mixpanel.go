@@ -3,8 +3,8 @@ package utils
 import (
 	"log"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/dukex/mixpanel"
-	"resin-supervisor/gosuper/config"
+	"github.com/dukex/mixpanel"
+	"github.com/resin-io/resin-supervisor/gosuper/config"
 )
 
 var client *mixpanel.Mixpanel

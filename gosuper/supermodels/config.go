@@ -1,7 +1,7 @@
 package supermodels
 
 import (
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/boltdb/bolt"
+	"github.com/boltdb/bolt"
 )
 
 type Config struct {

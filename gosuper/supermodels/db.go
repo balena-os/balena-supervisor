@@ -3,7 +3,7 @@ package supermodels
 import (
 	"fmt"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/boltdb/bolt"
+	"github.com/boltdb/bolt"
 )
 
 func createBuckets(tx *bolt.Tx) error {

@@ -3,10 +3,10 @@ package resin
 // This is a big TODO
 
 import (
-	pinejs "resin-supervisor/gosuper/Godeps/_workspace/src/github.com/resin-io/pinejs-client-go"
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/resin-io/pinejs-client-go/resin"
+	pinejs "github.com/resin-io/pinejs-client-go"
+	"github.com/resin-io/pinejs-client-go/resin"
 
-	"resin-supervisor/gosuper/supermodels"
+	"github.com/resin-io/resin-supervisor/gosuper/supermodels"
 )
 
 type Device resin.Device
@@ -30,14 +30,22 @@ func (client *Client) GetDevice(uuid string) (dev *Device, err error) {
 	return
 }
 
-func GetApps() (apps []supermodels.Application, err error) {
-	return
+func RegisterDevice(dev Device) (err error) {
+	return nil
+}
+
+func GetDevice(uuid string) (dev Device, err error) {
+	return Device{}, nil
+}
+
+func GetApps() (apps []supermodels.App, err error) {
+	return nil, nil
 }
 
 func UpdateDevice(dev Device) (err error) {
-	return
+	return nil
 }
 
 func GetEnvironment(appId string, deviceId string) (env map[string]string, err error) {
-	return
+	return nil, nil
 }

@@ -7,8 +7,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-
-	"resin-supervisor/gosuper/supermodels"
 )
 
 const DefaultConfigPath = "/boot/config.json"
@@ -106,6 +104,6 @@ func GetSupervisorConfig() (config SupervisorConfig) {
 
 // TODO (use db.SetBatch)
 // Where do we get supervisorVersion from? (nodesuper uses package.json)
-func SaveToDB(config UserConfig, db *supermodels.Config) (err error) {
-
+func SaveToDB(config UserConfig) (err error) {
+	return nil
 }

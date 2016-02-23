@@ -12,9 +12,10 @@ import (
 	"strconv"
 	"time"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
-	"resin-supervisor/gosuper/application"
-	"resin-supervisor/gosuper/systemd"
+	"github.com/resin-io/resin-supervisor/gosuper/application"
+	"github.com/resin-io/resin-supervisor/gosuper/systemd"
+
+	"github.com/gorilla/mux"
 )
 
 // Compile the expression once, usually at init time.
@@ -62,7 +63,7 @@ func StartApi(port int, apps *application.Manager) {
 	applications = apps
 	setupApi(router)
 	log.Printf("Starting HTTP server on port %d\n", port)
-	go listen(port, router)
+	listen(port, router)
 }
 
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
@@ -122,25 +123,40 @@ func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 		sendResponse("Error", errorMsg, http.StatusBadRequest)
 	}
 
-	if appId, err := parsePurgeBody(request); err != nil {
+	appId, err := parsePurgeBody(request)
+	if err != nil {
 		sendBadRequest("Invalid request")
-	} else if appId == "" {
+		return
+	}
+	if appId == "" {
 		sendBadRequest("applicationId is required")
-	} else if !IsValidAppId(appId) {
+		return
+	}
+	if !IsValidAppId(appId) {
 		sendBadRequest(fmt.Sprintf("Invalid applicationId '%s'", appId))
-	} else if _, err = os.Stat(ResinDataPath + appId); err != nil {
+		return
+	}
+
+	if _, err = os.Stat(ResinDataPath + appId); err != nil {
 		if os.IsNotExist(err) {
 			sendResponse("Error", fmt.Sprintf("Invalid applicationId '%s': Directory does not exist", appId), http.StatusNotFound)
 		} else {
 			sendError(err)
 		}
-	} else if err = os.RemoveAll(ResinDataPath + appId); err != nil {
-		sendError(err)
-	} else if err = os.Mkdir(ResinDataPath+appId, 0755); err != nil {
-		sendError(err)
-	} else {
-		sendResponse("OK", "", http.StatusOK)
+		return
 	}
+
+	if err = os.RemoveAll(ResinDataPath + appId); err != nil {
+		sendError(err)
+		return
+	}
+
+	if err = os.Mkdir(ResinDataPath+appId, 0755); err != nil {
+		sendError(err)
+		return
+	}
+
+	sendResponse("OK", "", http.StatusOK)
 }
 
 func inASecond(theFunc func()) {
@@ -214,13 +230,14 @@ func ipAddress() (ipAddresses []string, err error) {
 //IPAddressHandler is used to reply back with an array of the IPaddress used by the system.
 func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
 	sendResponse, sendError := responseSenders(writer)
-	if ipAddr, err := ipAddress(); err != nil {
+	ipAddr, err := ipAddress()
+	if err != nil {
 		sendError(err)
-	} else {
-		payload := make(map[string][]string)
-		payload["IPAddresses"] = ipAddr
-		sendResponse(payload, "", http.StatusOK)
+		return
 	}
+	payload := make(map[string][]string)
+	payload["IPAddresses"] = ipAddr
+	sendResponse(payload, "", http.StatusOK)
 }
 
 //VPNControl is used to control VPN service status with dbus
