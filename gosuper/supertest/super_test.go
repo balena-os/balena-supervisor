@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	gosuper "resin-supervisor/gosuper/gosuper"
+	gosuper "github.com/resin-io/resin-supervisor/gosuper/gosuper"
 )
 
 var supervisorAddress string

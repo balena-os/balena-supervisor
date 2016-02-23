@@ -4,12 +4,12 @@ import (
 	"log"
 	"time"
 
-	"resin-supervisor/gosuper/application"
-	"resin-supervisor/gosuper/config"
-	"resin-supervisor/gosuper/device"
-	"resin-supervisor/gosuper/psutils"
-	"resin-supervisor/gosuper/supermodels"
-	"resin-supervisor/gosuper/utils"
+	"github.com/resin-io/resin-supervisor/gosuper/application"
+	"github.com/resin-io/resin-supervisor/gosuper/config"
+	"github.com/resin-io/resin-supervisor/gosuper/device"
+	"github.com/resin-io/resin-supervisor/gosuper/psutils"
+	"github.com/resin-io/resin-supervisor/gosuper/supermodels"
+	"github.com/resin-io/resin-supervisor/gosuper/utils"
 )
 
 var ResinDataPath string = "/mnt/root/resin-data/"
@@ -54,16 +54,19 @@ func main() {
 		log.Printf("Failed to initialize Mixpanel client: %s", err)
 	}
 
-	if appsCollection, dbConfig, err := supermodels.New(superConfig.DatabasePath); err != nil {
+	appsCollection, dbConfig, err := supermodels.New(superConfig.DatabasePath)
+	if err != nil {
 		log.Fatalf("Failed to start database: %s", err)
 	}
 
-	if theDevice, err := device.New(appsCollection, dbConfig, superConfig); err != nil {
+	theDevice, err := device.New(appsCollection, dbConfig, superConfig)
+	if err != nil {
 		log.Fatalf("Failed to start device bootstrapping: %s", err)
 	}
 
 	utils.MixpanelSetId(theDevice.Uuid)
-	if applicationManager, err := application.NewManager(appsCollection, dbConfig, theDevice, superConfig); err != nil {
+	applicationManager, err := application.NewManager(appsCollection, dbConfig, theDevice, superConfig)
+	if err != nil {
 		log.Fatalf("Failed to initialize applications manager: %s", err)
 	}
 	theDevice.WaitForBootstrap()

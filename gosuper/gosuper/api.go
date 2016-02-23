@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"time"
 
-	"resin-supervisor/gosuper/application"
-	"resin-supervisor/gosuper/systemd"
+	"github.com/resin-io/resin-supervisor/gosuper/application"
+	"github.com/resin-io/resin-supervisor/gosuper/systemd"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 )
 
 // Compile the expression once, usually at init time.
@@ -123,7 +123,8 @@ func PurgeHandler(writer http.ResponseWriter, request *http.Request) {
 		sendResponse("Error", errorMsg, http.StatusBadRequest)
 	}
 
-	if appId, err := parsePurgeBody(request); err != nil {
+	appId, err := parsePurgeBody(request)
+	if err != nil {
 		sendBadRequest("Invalid request")
 		return
 	}
@@ -229,7 +230,8 @@ func ipAddress() (ipAddresses []string, err error) {
 //IPAddressHandler is used to reply back with an array of the IPaddress used by the system.
 func IPAddressHandler(writer http.ResponseWriter, request *http.Request) {
 	sendResponse, sendError := responseSenders(writer)
-	if ipAddr, err := ipAddress(); err != nil {
+	ipAddr, err := ipAddress()
+	if err != nil {
 		sendError(err)
 		return
 	}
