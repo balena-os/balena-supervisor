@@ -107,5 +107,5 @@ func GetSupervisorConfig() (config SupervisorConfig) {
 // TODO (use db.SetBatch)
 // Where do we get supervisorVersion from? (nodesuper uses package.json)
 func SaveToDB(config UserConfig, db *supermodels.Config) (err error) {
-
+	return
 }

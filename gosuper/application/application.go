@@ -68,7 +68,7 @@ func (app App) LockPath() string {
 func (manager Manager) LockAndDo(app *App, callback AppCallback) error {
 	return manager.Apps.GetAndDo((*supermodels.App)(app), func(appFromDB *supermodels.App) error {
 		theApp := (*App)(appFromDB)
-		path := theApp.lockPath()
+		path := theApp.LockPath()
 		if lock, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0777); err != nil {
 			return err
 		} else {

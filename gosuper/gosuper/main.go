@@ -2,19 +2,29 @@ package main
 
 import (
 	"log"
-	"os"
 	"time"
 
 	"resin-supervisor/gosuper/application"
 	"resin-supervisor/gosuper/config"
 	"resin-supervisor/gosuper/device"
 	"resin-supervisor/gosuper/psutils"
+	"resin-supervisor/gosuper/resin"
 	"resin-supervisor/gosuper/supermodels"
 	"resin-supervisor/gosuper/utils"
 )
 
 var ResinDataPath string = "/mnt/root/resin-data/"
 
+type Supervisor struct {
+	Config             config.SupervisorConfig
+	AppsCollection     *supermodels.AppsCollection
+	DbConfig           *supermodels.Config
+	ResinClient        *resin.Client
+	Device             *device.Device
+	ApplicationManager *application.Manager
+}
+
+// TODO
 func connectivityCheck() {
 
 }
@@ -40,38 +50,50 @@ func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker 
 	return ticker
 }
 
+func (supervisor *Supervisor) Start(connectivityCheckEnabled bool, oomProtectionEnabled bool) {
+	var err error
+	if connectivityCheckEnabled {
+		go connectivityCheck()
+	}
+
+	supervisor.Config = config.GetSupervisorConfig()
+
+	if oomProtectionEnabled {
+		// Start OOMProtectionTimer for protecting Openvpn/Connman
+		defer startOOMProtectionTimer(supervisor.Config.HostProc, supervisor.Config.DockerSocket).Stop()
+	}
+
+	if err = utils.MixpanelInit(supervisor.Config.MixpanelToken); err != nil {
+		log.Printf("Failed to initialize Mixpanel client: %s", err)
+	}
+
+	if supervisor.AppsCollection, supervisor.DbConfig, err = supermodels.New(supervisor.Config.DatabasePath); err != nil {
+		log.Fatalf("Failed to start database: %s", err)
+	} else if supervisor.Device, err = device.New(supervisor.AppsCollection, supervisor.DbConfig, supervisor.Config); err != nil {
+		log.Fatalf("Failed to start device bootstrapping: %s", err)
+	} else {
+		utils.MixpanelSetId(supervisor.Device.Uuid)
+		supervisor.ResinClient = supervisor.Device.ResinClient
+		if supervisor.ApplicationManager, err = application.NewManager(supervisor.AppsCollection, supervisor.DbConfig, supervisor.Device, supervisor.Config); err != nil {
+			log.Fatalf("Failed to initialize applications manager: %s", err)
+		} else {
+			supervisor.Device.WaitForBootstrap()
+			StartApi(supervisor.Config.ListenPort, supervisor.ApplicationManager)
+		}
+	}
+}
+
 func waitForever() {
 	c := make(chan bool)
 	<-c
 }
 
 func main() {
+	var supervisor Supervisor
+
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
-	log.Println("Resin Go Supervisor starting")
+	log.Println("Resin Supervisor starting")
 
-	go connectivityCheck()
-
-	superConfig := config.GetSupervisorConfig()
-
-	// Start OOMProtectionTimer for protecting Openvpn/Connman
-	defer startOOMProtectionTimer(superConfig.HostProc, superConfig.DockerSocket).Stop()
-
-	if err := utils.MixpanelInit(superConfig.MixpanelToken); err != nil {
-		log.Printf("Failed to initialize Mixpanel client: %s", err)
-	}
-
-	if appsCollection, dbConfig, err := supermodels.New(superConfig.DatabasePath); err != nil {
-		log.Fatalf("Failed to start database: %s", err)
-	} else if theDevice, err := device.New(appsCollection, dbConfig, superConfig); err != nil {
-		log.Fatalf("Failed to start device bootstrapping: %s", err)
-	} else {
-		utils.MixpanelSetId(theDevice.Uuid)
-		if applicationManager, err := application.NewManager(appsCollection, dbConfig, theDevice, superConfig); err != nil {
-			log.Fatalf("Failed to initialize applications manager: %s", err)
-		} else {
-			theDevice.WaitForBootstrap()
-			StartApi(superConfig.ListenPort, applicationManager)
-		}
-	}
+	supervisor.Start(true, true)
 	waitForever()
 }

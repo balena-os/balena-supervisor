@@ -25,20 +25,21 @@ type Device struct {
 	bootstrapLock sync.Mutex
 	Config        config.UserConfig
 	DbConfig      *supermodels.Config
+	ResinClient   *resin.Client
+	SuperConfig   config.SupervisorConfig
 }
 
-func (dev Device) readConfigAndEnsureUuid(superConfig config.SupervisorConfig) (uuid string, err error) {
-	var userConfig config.UserConfig
-	if userConfig, err = config.ReadConfig(config.DefaultConfigPath); err != nil {
-	} else if userConfig.Uuid != "" {
-		uuid = userConfig.Uuid
+func (dev Device) readConfigAndEnsureUuid() (uuid string, conf config.UserConfig, err error) {
+	if conf, err = config.ReadConfig(config.DefaultConfigPath); err != nil {
+	} else if conf.Uuid != "" {
+		uuid = conf.Uuid
 	} else if uuid, err = utils.RandomHexString(uuidByteLength); err != nil {
-		userConfig.Uuid = uuid
-		err = config.WriteConfig(userConfig, config.DefaultConfigPath)
+		conf.Uuid = uuid
+		err = config.WriteConfig(conf, config.DefaultConfigPath)
 	}
 	if err != nil {
-		time.Sleep(time.Duration(superConfig.BootstrapRetryDelay) * time.Millisecond)
-		return readConfigAndEnsureUuid(superConfig)
+		time.Sleep(time.Duration(dev.SuperConfig.BootstrapRetryDelay) * time.Millisecond)
+		return dev.readConfigAndEnsureUuid()
 	}
 	return
 }
@@ -61,34 +62,47 @@ func loadPreloadedApps(appsCollection *supermodels.AppsCollection) {
 	}
 }
 
+// TODO use resin.RegisterDevice
+func (dev *Device) register() (err error) {
+	return
+}
+
 func (dev *Device) bootstrap() (err error) {
-	if err = dev.register(); err != nil {
-		return err
-	} else {
-		config.SaveToDB(dev.Config)
+	if err = dev.register(); err == nil {
+		config.SaveToDB(dev.Config, dev.DbConfig)
 	}
+	return
 }
 
 func (dev *Device) BootstrapOrRetry() {
-	if err = dev.bootstrap(); err != nil {
+	if err := dev.bootstrap(); err != nil {
 		log.Printf("Device bootstrap failed, retrying: %s", err)
-		time.AfterFunc(time.Duration(superConfig.BootstrapRetryDelay)*time.Millisecond, dev.BootstrapOrRetry())
+		time.AfterFunc(time.Duration(dev.SuperConfig.BootstrapRetryDelay)*time.Millisecond, dev.BootstrapOrRetry)
 	}
 }
 
 func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config, superConfig config.SupervisorConfig) (dev *Device, err error) {
 	device := Device{}
 	var uuid string
+	var conf config.UserConfig
 	device.DbConfig = dbConfig
+	dev.SuperConfig = superConfig
 	if uuid, err = dbConfig.Get("uuid"); err != nil {
 	} else if uuid != "" {
-		device.Uuid = uuid
-		device.FinishBootstrapping()
+		if apikey, err := dbConfig.Get("apikey"); err == nil {
+			device.Uuid = uuid
+			device.ResinClient = resin.NewClient(superConfig.ApiEndpoint, apikey)
+			device.FinishBootstrapping()
+		} else {
+			// This should *never* happen
+			log.Fatalf("Device is bootstrapped, but could not get apikey from DB: %s", err)
+		}
 	} else {
 		log.Printf("New device detected, bootstrapping...")
-		if uuid, conf, err = readConfigAndEnsureUuid(superConfig); err == nil {
+		if uuid, conf, err = device.readConfigAndEnsureUuid(); err == nil {
 			device.Uuid = uuid
 			device.Config = conf
+			device.ResinClient = resin.NewClient(superConfig.ApiEndpoint, conf.ApiKey)
 			loadPreloadedApps(appsCollection)
 			device.BootstrapOrRetry()
 			dev = &device
@@ -97,9 +111,12 @@ func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Confi
 	return
 }
 
-// TODO
-func (dev Device) GetId() {
-	resin.GetDevice(dev.Uuid)
+func (dev Device) GetId() (id int, err error) {
+	remoteDev, err := dev.ResinClient.GetDevice(dev.Uuid)
+	if err != nil {
+		id = remoteDev.Id
+	}
+	return
 }
 
 func (dev Device) WaitForBootstrap() {

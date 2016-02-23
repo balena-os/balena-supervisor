@@ -3,6 +3,8 @@ package resin
 // This is a big TODO
 
 import (
+	"errors"
+
 	pinejs "resin-supervisor/gosuper/Godeps/_workspace/src/github.com/resin-io/pinejs-client-go"
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/resin-io/pinejs-client-go/resin"
 
@@ -24,13 +26,17 @@ func (client *Client) RegisterDevice(dev *Device) (err error) {
 }
 
 func (client *Client) GetDevice(uuid string) (dev *Device, err error) {
-	var device Device
-	dev = &device
-	err = (*pinejs.Client)(client).Get(dev, pinejs.NewQueryOptions(pinejs.Filter, `uuid eq "`+uuid+`"`)...)
+	var devices []Device
+	err = (*pinejs.Client)(client).Get(&devices, pinejs.NewQueryOptions(pinejs.Filter, `uuid eq "`+uuid+`"`)...)
+	if len(devices) == 0 {
+		err = errors.New("Device not found")
+	} else {
+		dev = &devices[0]
+	}
 	return
 }
 
-func GetApps() (apps []supermodels.Application, err error) {
+func GetApps() (apps []supermodels.App, err error) {
 	return
 }
 
