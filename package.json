@@ -19,7 +19,6 @@
     "lodash": "^3.0.0",
     "mixpanel": "0.0.20",
     "network-checker": "~0.0.5",
-    "ngrok": "~0.1.97",
     "pinejs-client": "^1.7.1",
     "pubnub": "^3.7.13",
     "request": "^2.51.0",
