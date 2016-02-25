@@ -47,8 +47,8 @@ module.exports = (application) ->
 			if !app?
 				throw new Error('App not found')
 			tty.start(app)
-		.then ({url}) ->
-			res.status(200).send(url)
+		.then ->
+			res.sendStatus(200)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 

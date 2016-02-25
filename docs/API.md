@@ -120,11 +120,8 @@ From the app on the device:
 $ curl -X POST --header "Content-Type:application/json" \
 	--data '{"appId": <appId>}' \
 	"$RESIN_SUPERVISOR_ADDRESS/v1/spawn-tty?apikey=$RESIN_SUPERVISOR_API_KEY"
-```
-Response:
-```none
-http://124135325.ngrok.com
-```
+
+When successful, responds with an empty 200 response.
 
 Remotely via the API proxy:
 ```bash

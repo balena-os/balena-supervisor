@@ -2,13 +2,11 @@ _ = require 'lodash'
 Promise = require 'bluebird'
 TypedError = require 'typed-error'
 
-# Only load ngrok/tty when they are actually needed,
-# to reduce memory in the likely case they are never used.
-ngrok = null
+# Only load tty when it is actually needed,
+# to reduce memory in the likely case it is never used.
 tty = null
 enableDestroy = null
 init = _.once ->
-	ngrok = Promise.promisifyAll require 'ngrok'
 	tty = Promise.promisifyAll require 'tty.js'
 	enableDestroy = require 'server-destroy'
 
@@ -17,12 +15,11 @@ class DisconnectedError extends TypedError
 # socat UNIX:/data/host -,raw,echo=0
 
 apps = {}
-nextPort = 81
+port = 48485
 exports.start = (app) ->
 	init()
 	apps[app.id] ?= Promise.rejected()
 	return apps[app.id] = apps[app.id].catch ->
-		port = nextPort++
 		server = tty.createServer
 			shell: './src/enterContainer.sh'
 			shellArgs: do ->
@@ -30,19 +27,15 @@ exports.start = (app) ->
 				return (session) -> [ app.containerId, session.id, i++ ]
 			static: __dirname + '/static'
 		enableDestroy(server.server)
-		Promise.props
-			server: server.listenAsync(port, null).return(server.server)
-			url: ngrok.connectAsync(port)
+		server.listenAsync(port, null).return(server.server)
 
 exports.stop = (app) ->
 	if !apps[app.id]?
 		return Promise.resolve()
-	apps[app.id] = apps[app.id].then ({server, url}) ->
+	apps[app.id] = apps[app.id].then (server) ->
 		destroy = Promise.promisify(server.destroy, server)
 		Promise.join(
 			destroy()
-			# ngrok must have been loaded already or we wouldn't have a url to disconnect from.
-			ngrok.disconnectAsync(url)
 			->
 				# We throw an error so that `.start` will catch and restart the session.
 				throw new DisconnectedError()
