@@ -1,5 +1,9 @@
 package device
 
+// TODO: implement function to get OS version
+// TODO: implement UpdateState (using dev.ResinClient.UpdateDevice)
+// TODO: implement ApplyBootConfig
+
 import (
 	"encoding/json"
 	"io/ioutil"
@@ -62,19 +66,33 @@ func loadPreloadedApps(appsCollection *supermodels.AppsCollection) {
 	}
 }
 
-// TODO use resin.RegisterDevice
-func (dev *Device) register() (err error) {
+// TODO use dev.ResinClient.RegisterDevice
+func (dev *Device) register() (registeredAt int, deviceId int, err error) {
 	return
 }
 
 func (dev *Device) bootstrap() (err error) {
-	if err = dev.register(); err == nil {
-		config.SaveToDB(dev.Config, dev.DbConfig)
+	if dev.Config.DeviceType == "" {
+		dev.Config.DeviceType = "raspberry-pi"
 	}
+	if dev.Config.RegisteredAt == 0 {
+		if registeredAt, deviceId, err := dev.register(); err == nil {
+			dev.Config.RegisteredAt = registeredAt.(float64)
+			dev.Config.DeviceId = deviceId.(float64)
+			if err = config.WriteConfig(dev.Config, config.DefaultConfigPath) {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	config.SaveToDB(dev.Config, dev.DbConfig)
 	return
 }
 
 func (dev *Device) BootstrapOrRetry() {
+	utils.MixpanelTrack("Device bootstrap", nil)
 	if err := dev.bootstrap(); err != nil {
 		log.Printf("Device bootstrap failed, retrying: %s", err)
 		time.AfterFunc(time.Duration(dev.SuperConfig.BootstrapRetryDelay)*time.Millisecond, dev.BootstrapOrRetry)
@@ -124,7 +142,7 @@ func (dev Device) WaitForBootstrap() {
 	if dev.Bootstrapped {
 		dev.bootstrapLock.Unlock()
 	} else {
-		_ = append(dev.waitChannels, make(chan bool))
+		dev.waitChannels = append(dev.waitChannels, make(chan bool))
 		dev.bootstrapLock.Unlock()
 		<-dev.waitChannels[len(dev.waitChannels)]
 	}

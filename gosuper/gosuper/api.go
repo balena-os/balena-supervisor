@@ -1,5 +1,10 @@
 package main
 
+// TODO: add apikey auth
+// TODO: port all endpoints from node
+// TODO: move functionality to corresponding packages
+// TODO: add things (app kill and restart) around purge from what node does
+
 import (
 	"encoding/json"
 	"fmt"

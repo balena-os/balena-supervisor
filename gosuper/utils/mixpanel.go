@@ -25,6 +25,9 @@ func MixpanelSetId(id string) {
 }
 
 func MixpanelTrack(eventName string, properties map[string]interface{}) (err error) {
+	if properties == nil {
+		properties = make(map[string]interface{})
+	}
 	properties["username"] = username
 	properties["uuid"] = distinctId
 	log.Printf("Event: %s %v", eventName, properties)

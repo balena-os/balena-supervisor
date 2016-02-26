@@ -14,14 +14,14 @@ import (
 const DefaultConfigPath = "/boot/config.json"
 
 type UserConfig struct {
-	ApplicationId string
-	ApiKey        string
-	UserId        string
-	Username      string
-	DeviceType    string
-	Uuid          string
-	RegisteredAt  float64
-	DeviceId      float64
+	ApplicationId string  `json:"applicationId"`
+	ApiKey        string  `json:"apikey"`
+	UserId        string  `json:"userId`
+	Username      string  `json:"username"`
+	DeviceType    string  `json:"deviceType"`
+	Uuid          string  `json:"uuid,omitempty"`
+	RegisteredAt  float64 `json:"registered_at,omitempty"`
+	DeviceId      float64 `json:"deviceId,omitempty"`
 }
 
 func ReadConfig(path string) (config UserConfig, err error) {
@@ -32,6 +32,7 @@ func ReadConfig(path string) (config UserConfig, err error) {
 	return
 }
 
+// TODO: make it atomic
 func WriteConfig(userConfig UserConfig, path string) (err error) {
 	if data, err := json.Marshal(userConfig); err == nil {
 		err = ioutil.WriteFile(path, data, 0666)
@@ -107,5 +108,6 @@ func GetSupervisorConfig() (config SupervisorConfig) {
 // TODO (use db.SetBatch)
 // Where do we get supervisorVersion from? (nodesuper uses package.json)
 func SaveToDB(config UserConfig, db *supermodels.Config) (err error) {
+	// Save 'uuid', 'apiKey', 'username', 'userId', 'version' to db
 	return
 }

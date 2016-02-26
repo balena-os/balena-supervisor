@@ -39,19 +39,32 @@ func (manager Manager) UpdateInterval() {
 	}
 }
 
+// TODO: Implement update function
 func (manager Manager) Update(force bool) {
+	// Grab self-mutex
 	// Get apps from API
 	// Format and compare
+	// Apply special actions, boot config
 	// Install,remove, update apps (using update strategies)
+	// Handle errors
 }
 
+// TODO: use dockerclient to kill an app
 func (app *App) Kill() (err error) {
 	log.Printf("Killing app %d", app.AppId)
 	return
 }
 
+// TODO: use dockerclient to start an app
+// TODO: implement logging
+// TODO: implement web terminal
 func (app *App) Start() (err error) {
 	log.Printf("Starting app %d", app.AppId)
+	return
+}
+
+// TODO: use dockerclient or deltas to fetch an app image
+func (app *App) Fetch() (err error) {
 	return
 }
 

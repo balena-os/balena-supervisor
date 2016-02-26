@@ -1,6 +1,6 @@
 package resin
 
-// This is a big TODO
+// TODO: Most of this package...
 
 import (
 	"errors"
@@ -11,17 +11,22 @@ import (
 	"resin-supervisor/gosuper/supermodels"
 )
 
-type Device resin.Device
+type Device {
+}
 
-type Client pinejs.Client
+type Client struct {
+	baseApiEndpoint
+	pinejs.Client
+}
 
 func NewClient(apiEndpoint, apiKey string) (client *Client) {
-	client = (*Client)(pinejs.NewClient(apiEndpoint, apiKey))
+	client = (*Client)(pinejs.NewClient(apiEndpoint+"/ewa", apiKey))
+	client.baseApiEndpoint = apiEndpoint
 	return
 }
 
 func (client *Client) RegisterDevice(dev *Device) (err error) {
-	err = (*pinejs.Client)(client).Create(dev)
+	err = client.Create(dev)
 	return
 }
 
@@ -36,14 +41,14 @@ func (client *Client) GetDevice(uuid string) (dev *Device, err error) {
 	return
 }
 
-func GetApps() (apps []supermodels.App, err error) {
+func (client *Client) GetApps() (apps []supermodels.App, err error) {
 	return
 }
 
-func UpdateDevice(dev Device) (err error) {
+func (client *Client) UpdateDevice(dev Device) (err error) {
 	return
 }
 
-func GetEnvironment(appId string, deviceId string) (env map[string]string, err error) {
+func (client *Client) GetEnvironment(appId string, deviceId string) (env map[string]string, err error) {
 	return
 }

@@ -6,6 +6,8 @@ import (
 	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/boltdb/bolt"
 )
 
+// TODO: Implement migration from SQLite
+
 func createBuckets(tx *bolt.Tx) error {
 	_, err := tx.CreateBucketIfNotExists([]byte("Apps"))
 	if err != nil {

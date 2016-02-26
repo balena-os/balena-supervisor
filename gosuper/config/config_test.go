@@ -9,7 +9,7 @@ import (
 func TestReadConfig(t *testing.T) {
 	if config, err := ReadConfig("config_for_test.json"); err != nil {
 		t.Error(err)
-	} else if !strings.EqualFold(config.ApplicationId, "1939") || !strings.EqualFold(config.ApiKey, "SuperSecretAPIKey") {
+	} else if !strings.EqualFold(config.ApplicationId, "1939") || !strings.EqualFold(config.ApiKey, "SuperSecretAPIKey") || !(int(config.RegisteredAt) == 1436987572906) {
 		t.Error("Config not parsed correctly")
 	}
 }

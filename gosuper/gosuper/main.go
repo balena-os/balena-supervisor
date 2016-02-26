@@ -24,11 +24,12 @@ type Supervisor struct {
 	ApplicationManager *application.Manager
 }
 
-// TODO
+// TODO: implement connectivityCheck
 func connectivityCheck() {
 
 }
 
+// TODO: move to utils?
 func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker {
 	ticker := time.NewTicker(time.Minute * 5) //Timer runs every 5 minutes
 	procs := &psutils.Procs{hostproc}
@@ -78,7 +79,10 @@ func (supervisor *Supervisor) Start(connectivityCheckEnabled bool, oomProtection
 			log.Fatalf("Failed to initialize applications manager: %s", err)
 		} else {
 			supervisor.Device.WaitForBootstrap()
+			// TODO: apikey and log channel generation
 			StartApi(supervisor.Config.ListenPort, supervisor.ApplicationManager)
+			// TODO: Update device state
+			// TODO: IP address update interval
 		}
 	}
 }
