@@ -77,9 +77,9 @@ func (dev *Device) bootstrap() (err error) {
 	}
 	if dev.Config.RegisteredAt == 0 {
 		if registeredAt, deviceId, err := dev.register(); err == nil {
-			dev.Config.RegisteredAt = registeredAt.(float64)
-			dev.Config.DeviceId = deviceId.(float64)
-			if err = config.WriteConfig(dev.Config, config.DefaultConfigPath) {
+			dev.Config.RegisteredAt = float64(registeredAt)
+			dev.Config.DeviceId = float64(deviceId)
+			if err = config.WriteConfig(dev.Config, config.DefaultConfigPath); err != nil {
 				return err
 			}
 		} else {

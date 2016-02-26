@@ -11,17 +11,17 @@ import (
 	"resin-supervisor/gosuper/supermodels"
 )
 
-type Device {
+type Device struct {
 }
 
 type Client struct {
-	baseApiEndpoint
+	BaseApiEndpoint string
 	pinejs.Client
 }
 
 func NewClient(apiEndpoint, apiKey string) (client *Client) {
-	client = (*Client)(pinejs.NewClient(apiEndpoint+"/ewa", apiKey))
-	client.baseApiEndpoint = apiEndpoint
+	client.Client = *(pinejs.NewClient(apiEndpoint+"/ewa", apiKey))
+	client.BaseApiEndpoint = apiEndpoint
 	return
 }
 
@@ -30,9 +30,9 @@ func (client *Client) RegisterDevice(dev *Device) (err error) {
 	return
 }
 
-func (client *Client) GetDevice(uuid string) (dev *Device, err error) {
-	var devices []Device
-	err = (*pinejs.Client)(client).Get(&devices, pinejs.NewQueryOptions(pinejs.Filter, `uuid eq "`+uuid+`"`)...)
+func (client *Client) GetDevice(uuid string) (dev *resin.Device, err error) {
+	var devices []resin.Device
+	err = client.Get(&devices, pinejs.NewQueryOptions(pinejs.Filter, `uuid eq "`+uuid+`"`)...)
 	if len(devices) == 0 {
 		err = errors.New("Device not found")
 	} else {
