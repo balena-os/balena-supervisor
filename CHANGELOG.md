@@ -1,3 +1,5 @@
+* Add add-resin-supervisor-host-socket-service.service needed for web terminal. [Kostas]
+
 # v1.6.0
 
 * Add endpoint to get device state [Pablo]
