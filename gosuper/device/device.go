@@ -1,16 +1,17 @@
 package device
 
 // TODO: implement function to get OS version
-// TODO: implement UpdateState (using dev.ResinClient.UpdateDevice)
 // TODO: implement ApplyBootConfig
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"sync"
 	"time"
 
+	"resin-supervisor/gosuper/application/updatestatus"
 	"resin-supervisor/gosuper/config"
 	"resin-supervisor/gosuper/resin"
 	"resin-supervisor/gosuper/supermodels"
@@ -23,6 +24,7 @@ const uuidByteLength = 31
 const preloadedAppsPath = "/boot/apps.json"
 
 type Device struct {
+	Id            int
 	Uuid          string
 	Bootstrapped  bool
 	waitChannels  []chan bool
@@ -31,6 +33,7 @@ type Device struct {
 	DbConfig      *supermodels.Config
 	ResinClient   *resin.Client
 	SuperConfig   config.SupervisorConfig
+	UpdateStatus  updatestatus.UpdateStatus
 }
 
 func (dev Device) readConfigAndEnsureUuid() (uuid string, conf config.UserConfig, err error) {
@@ -129,12 +132,20 @@ func New(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Confi
 	return
 }
 
-func (dev Device) GetId() (id int, err error) {
+func (dev *Device) GetId() (id int, err error) {
+	if dev.Id != 0 {
+		return dev.Id, nil
+	}
 	remoteDev, err := dev.ResinClient.GetDevice(dev.Uuid)
 	if err != nil {
-		id = remoteDev.Id
+		var ok bool
+		if id, ok = remoteDev["id"].(int); !ok {
+			err = errors.New("Invalid id received from API")
+		} else {
+			dev.Id = id
+		}
 	}
-	return
+	return id, err
 }
 
 func (dev Device) WaitForBootstrap() {
@@ -155,4 +166,9 @@ func (dev Device) FinishBootstrapping() {
 		c <- true
 	}
 	dev.bootstrapLock.Unlock()
+}
+
+// TODO: implement UpdateState (using dev.ResinClient.UpdateDevice)
+func (dev *Device) UpdateState(m map[string]interface{}) {
+
 }
