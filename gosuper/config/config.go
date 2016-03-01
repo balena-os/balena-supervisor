@@ -1,3 +1,4 @@
+// This package has utilities to deal with the several sources of configuration for the supervisor
 package config
 
 import (
@@ -11,8 +12,11 @@ import (
 	"resin-supervisor/gosuper/supermodels"
 )
 
+// Default location of the UserConfig config.json
 const DefaultConfigPath = "/boot/config.json"
+const packageJsonPath = "/app/package.json"
 
+// UserConfig: resin's config.json with information about this device
 type UserConfig struct {
 	ApplicationId string  `json:"applicationId"`
 	ApiKey        string  `json:"apikey"`
@@ -24,6 +28,7 @@ type UserConfig struct {
 	DeviceId      float64 `json:"deviceId,omitempty"`
 }
 
+// Reads a UserConfig structure from path
 func ReadConfig(path string) (config UserConfig, err error) {
 	if data, err := ioutil.ReadFile(path); err == nil {
 		err = json.Unmarshal(data, &config)
@@ -32,6 +37,7 @@ func ReadConfig(path string) (config UserConfig, err error) {
 	return
 }
 
+// Writes a UserConfig structure to a JSON file at path
 // TODO: make it atomic
 func WriteConfig(userConfig UserConfig, path string) (err error) {
 	if data, err := json.Marshal(userConfig); err == nil {
@@ -40,6 +46,7 @@ func WriteConfig(userConfig UserConfig, path string) (err error) {
 	return
 }
 
+// Configuration for the supervisor
 type SupervisorConfig struct {
 	ApiEndpoint      string `config_env:"API_ENDPOINT" config_default:"https://api.resin.io"`
 	ListenPort       int    `config_env:"LISTEN_PORT" config_default:"48484"`
@@ -100,14 +107,52 @@ func populateConfig(v interface{}) {
 	populateConfigStruct(value)
 }
 
+// Gets a SupervisorConfig structure populated according to env vars or default values
 func GetSupervisorConfig() (config SupervisorConfig) {
 	populateConfig(&config)
 	return
 }
 
-// TODO (use db.SetBatch)
-// Where do we get supervisorVersion from? (nodesuper uses package.json)
+var supervisorVersion string
+
+// Gets the supervisor version from package.json
+// Caches the value so that package.json is only read once
+func GetSupervisorVersion() (version string, err error) {
+	if supervisorVersion != "" {
+		return supervisorVersion, nil
+	} else {
+		var data []byte
+		m := make(map[string]string)
+		m["version"] = ""
+		if data, err = ioutil.ReadFile(packageJsonPath); err == nil {
+			if err = json.Unmarshal(data, &m); err == nil {
+				supervisorVersion = m["version"]
+			}
+		}
+
+		return m["version"], err
+	}
+}
+
+// Saves some config parameters to the local database (supermodels)
+// Saved fields are uuid, apiKey, username, userId, and version (supervisor version)
 func SaveToDB(config UserConfig, db *supermodels.Config) (err error) {
 	// Save 'uuid', 'apiKey', 'username', 'userId', 'version' to db
-	return
+	keyvals := make(map[string]string)
+
+	keyvals["uuid"] = config.Uuid
+	keyvals["apiKey"] = config.ApiKey
+	keyvals["username"] = config.Username
+	keyvals["userId"] = config.UserId
+	if v, e := GetSupervisorVersion(); e == nil {
+		keyvals["version"] = v
+	} else {
+		log.Printf("Unable to get supervisor version: %s", e)
+	}
+
+	if err = db.SetBatch(keyvals); err != nil {
+		log.Printf("Unable to save config to database: %s", err)
+	}
+
+	return err
 }
