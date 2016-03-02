@@ -53,6 +53,24 @@ func (apps *AppsCollection) Get(app *App) error {
 	})
 }
 
+// Get all Apps from the database
+func (apps *AppsCollection) List(appList *[]App) error {
+	return apps.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Apps"))
+		return b.ForEach(func(k, v []byte) (e error) {
+			var app App
+			if v == nil {
+				v = []byte("{}")
+			}
+			if e = json.Unmarshal(v, &app); e != nil {
+				return e
+			}
+			*appList = append(*appList, app)
+			return
+		})
+	})
+}
+
 type AppCallback func(*App) error
 
 // Get an App from the database (identified by its AppId) and execute a callback within a transaction.

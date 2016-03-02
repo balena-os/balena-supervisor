@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"strconv"
 	"time"
 
 	"resin-supervisor/gosuper/application/updatestatus"
@@ -22,12 +23,13 @@ type Manager struct {
 	Config               *supermodels.Config
 	PollInterval         int64
 	ResinClient          *resin.Client
+	superConfig          config.SupervisorConfig
 	updateStatus         *updatestatus.UpdateStatus
 	updateTriggerChannel chan bool
 }
 
 func NewManager(appsCollection *supermodels.AppsCollection, dbConfig *supermodels.Config, dev *device.Device, superConfig config.SupervisorConfig) (*Manager, error) {
-	manager := Manager{Apps: appsCollection, Config: dbConfig, Device: dev, PollInterval: 30000, ResinClient: dev.ResinClient, updateStatus: &dev.UpdateStatus}
+	manager := Manager{Apps: appsCollection, Config: dbConfig, Device: dev, PollInterval: 30000, ResinClient: dev.ResinClient, updateStatus: &dev.UpdateStatus, superConfig: superConfig}
 	go manager.UpdateInterval()
 	return &manager, nil
 }
@@ -63,13 +65,25 @@ func (manager *Manager) runUpdates() {
 	}
 }
 
+// TODO: Implement comparison between remote and local apps
+// Consider injection of local env vars, plus special env vars that don't affect updates
+func (manager *Manager) compare(remoteApps, localApps []supermodels.App) (obj map[string]interface{}) {
+	return obj
+}
+
 // TODO: Implement update function
 func (manager *Manager) update(force bool) {
 	doTheUpdate := func() (err error) {
+		var localApps []supermodels.App
 		// Get apps from API
-		if _, err := manager.ResinClient.GetApps(); err != nil {
+		if deviceId, err := manager.Device.GetId(); err != nil {
+			return err
+		} else if remoteApps, err := manager.ResinClient.GetApps(manager.Device.Uuid, manager.superConfig.RegistryEndpoint, strconv.Itoa(deviceId)); err != nil {
+			return err
+		} else if err = manager.Apps.List(&localApps); err != nil {
 			return err
 		} else {
+			manager.compare(remoteApps, localApps)
 			// Format and compare
 			// Apply special actions, boot config
 			// Install,remove, update apps (using update strategies)

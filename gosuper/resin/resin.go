@@ -4,9 +4,12 @@ package resin
 
 import (
 	"errors"
+	"path"
+	"strconv"
+	"strings"
 
 	pinejs "resin-supervisor/gosuper/Godeps/_workspace/src/github.com/resin-io/pinejs-client-go"
-	//"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/resin-io/pinejs-client-go/resin"
+	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/resin-io/pinejs-client-go/resin"
 
 	"resin-supervisor/gosuper/supermodels"
 )
@@ -34,17 +37,32 @@ func (client *Client) GetDevice(uuid string) (dev map[string]interface{}, err er
 	var devices []map[string]interface{}
 	devices[0] = make(map[string]interface{})
 	devices[0]["pinejs"] = "device"
-	err = client.Get(&devices, pinejs.NewQueryOptions(pinejs.Filter, `uuid eq "`+uuid+`"`)...)
-	if len(devices) == 0 {
+	if err = client.Get(&devices, pinejs.NewQueryOptions(pinejs.Filter, `uuid eq "`+uuid+`"`)...); err != nil {
+		return dev, err
+	} else if len(devices) == 0 {
 		err = errors.New("Device not found")
 	} else {
 		dev = devices[0]
 	}
-	return
+	return dev, err
 }
 
-func (client *Client) GetApps() (apps []supermodels.App, err error) {
-	return
+func (client *Client) GetApps(uuid, registryEndpoint, deviceId string) (apps []supermodels.App, err error) {
+	var remoteApps []resin.Application
+	err = client.List(&remoteApps, pinejs.NewQueryOptions(pinejs.Filter, `commit ne null`, pinejs.Filter, `device.uuid eq "`+uuid+`"`, pinejs.Select, []string{"id", "commit", "git_repository"})...)
+	if err != nil {
+		return apps, err
+	}
+	for _, app := range remoteApps {
+		env, err := client.getEnvironment(strconv.Itoa(app.Id), deviceId)
+		if err != nil {
+			return apps, err
+		}
+		imageId := registryEndpoint + "/" + strings.TrimSuffix(path.Base(app.GitRepository), ".git") + "/" + app.Commit
+		apps = append(apps, supermodels.App{AppId: app.Id, Commit: app.Commit, ImageId: imageId, Env: env})
+	}
+
+	return apps, err
 }
 
 func (client *Client) UpdateDevice(dev *map[string]interface{}) (err error) {
@@ -52,6 +70,6 @@ func (client *Client) UpdateDevice(dev *map[string]interface{}) (err error) {
 }
 
 // This one has to use BaseApiEndpoint and do the request without the pinejs client.
-func (client *Client) GetEnvironment(appId string, deviceId string) (env map[string]string, err error) {
+func (client *Client) getEnvironment(appId string, deviceId string) (env map[string]string, err error) {
 	return
 }
