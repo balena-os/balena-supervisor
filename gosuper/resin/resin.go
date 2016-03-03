@@ -1,7 +1,5 @@
 package resin
 
-// TODO: Most of this package...
-
 import (
 	"errors"
 	"path"
@@ -13,9 +11,6 @@ import (
 
 	"resin-supervisor/gosuper/supermodels"
 )
-
-type Device struct {
-}
 
 type Client struct {
 	BaseApiEndpoint string
@@ -29,8 +24,8 @@ func NewClient(apiEndpoint, apiKey string) (client *Client) {
 }
 
 func (client *Client) RegisterDevice(dev *map[string]interface{}) (err error) {
-	err = client.Create(dev)
-	return
+	(*dev)["pinejs"] = "device"
+	return client.Create(dev)
 }
 
 func (client *Client) GetDevice(uuid string) (dev map[string]interface{}, err error) {
@@ -65,10 +60,13 @@ func (client *Client) GetApps(uuid, registryEndpoint, deviceId string) (apps []s
 	return apps, err
 }
 
-func (client *Client) UpdateDevice(dev *map[string]interface{}) (err error) {
-	return
+func (client *Client) UpdateDevice(dev *map[string]interface{}, deviceId string) (err error) {
+	(*dev)["id"] = deviceId
+	(*dev)["pinejs"] = "device"
+	return client.Patch(dev)
 }
 
+// TODO implement getEnvironment
 // This one has to use BaseApiEndpoint and do the request without the pinejs client.
 func (client *Client) getEnvironment(appId string, deviceId string) (env map[string]string, err error) {
 	return
