@@ -1,7 +1,5 @@
 package resin
 
-// TODO: Most of this package...
-
 import (
 	"errors"
 	"path"
@@ -13,9 +11,6 @@ import (
 
 	"resin-supervisor/gosuper/supermodels"
 )
-
-type Device struct {
-}
 
 type Client struct {
 	BaseApiEndpoint string
@@ -29,15 +24,15 @@ func NewClient(apiEndpoint, apiKey string) (client *Client) {
 }
 
 func (client *Client) RegisterDevice(dev *map[string]interface{}) (err error) {
-	err = client.Create(dev)
-	return
+	(*dev)["pinejs"] = "device"
+	return client.Create(dev)
 }
 
 func (client *Client) GetDevice(uuid string) (dev map[string]interface{}, err error) {
 	var devices []map[string]interface{}
 	devices[0] = make(map[string]interface{})
 	devices[0]["pinejs"] = "device"
-	if err = client.Get(&devices, pinejs.NewQueryOptions(pinejs.Filter, `uuid eq "`+uuid+`"`)...); err != nil {
+	if err = client.Get(&devices, pinejs.NewQueryOptions(pinejs.Filter, "uuid eq '"+uuid+"'")...); err != nil {
 		return dev, err
 	} else if len(devices) == 0 {
 		err = errors.New("Device not found")
@@ -49,7 +44,7 @@ func (client *Client) GetDevice(uuid string) (dev map[string]interface{}, err er
 
 func (client *Client) GetApps(uuid, registryEndpoint, deviceId string) (apps []supermodels.App, err error) {
 	var remoteApps []resin.Application
-	err = client.List(&remoteApps, pinejs.NewQueryOptions(pinejs.Filter, `commit ne null`, pinejs.Filter, `device.uuid eq "`+uuid+`"`, pinejs.Select, []string{"id", "commit", "git_repository"})...)
+	err = client.List(&remoteApps, pinejs.NewQueryOptions(pinejs.Filter, `commit ne null`, pinejs.Filter, "device/any(d:d/uuid eq'"+uuid+"')", pinejs.Select, []string{"id", "commit", "git_repository"})...)
 	if err != nil {
 		return apps, err
 	}
@@ -65,10 +60,13 @@ func (client *Client) GetApps(uuid, registryEndpoint, deviceId string) (apps []s
 	return apps, err
 }
 
-func (client *Client) UpdateDevice(dev *map[string]interface{}) (err error) {
-	return
+func (client *Client) UpdateDevice(dev *map[string]interface{}, deviceId string) (err error) {
+	(*dev)["id"] = deviceId
+	(*dev)["pinejs"] = "device"
+	return client.Patch(dev)
 }
 
+// TODO implement getEnvironment
 // This one has to use BaseApiEndpoint and do the request without the pinejs client.
 func (client *Client) getEnvironment(appId string, deviceId string) (env map[string]string, err error) {
 	return
