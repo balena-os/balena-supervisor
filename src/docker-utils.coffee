@@ -191,8 +191,7 @@ do ->
 				docker.getContainer(containerInfo.Id).removeAsync()
 				.then ->
 					console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
-				.catch (err) ->
-					console.log('Error deleting container:', containerInfo.Id, containerInfo.Image, err)
+				.catch (err) -> # Ignore container delete error
 			.then ->
 				# And then clean up the images, as long as we aren't currently trying to fetch any.
 				return if imagesBeingFetched > 0
@@ -204,8 +203,7 @@ do ->
 						docker.getImage(tag).removeAsync()
 						.then ->
 							console.log('Deleted image:', tag, image.Id, image.RepoTags)
-						.catch (err) ->
-							console.log('Error deleting image:', tag, image.Id, image.RepoTags, err)
+						.catch (err) -> # Ignore image delete error
 
 	containerHasExited = (id) ->
 		docker.getContainer(id).inspectAsync()

@@ -1,3 +1,5 @@
+* Reduce noise in logs [Kostas]
+
 # v1.6.0
 
 * Add endpoint to get device state [Pablo]
