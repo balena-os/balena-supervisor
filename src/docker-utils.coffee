@@ -204,8 +204,7 @@ do ->
 						docker.getImage(tag).removeAsync()
 						.then ->
 							console.log('Deleted image:', tag, image.Id, image.RepoTags)
-						.catch (err) ->
-							console.log('Error deleting image:', tag, image.Id, image.RepoTags, err)
+						.catch (err) -> # Ignore image delete error
 
 	containerHasExited = (id) ->
 		docker.getContainer(id).inspectAsync()
