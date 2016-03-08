@@ -2,12 +2,12 @@ _ = require 'lodash'
 Promise = require 'bluebird'
 TypedError = require 'typed-error'
 
-# Only load tty when it is actually needed,
+# Only load term.js when it is actually needed,
 # to reduce memory in the likely case it is never used.
-tty = null
+term = null
 enableDestroy = null
 init = _.once ->
-	tty = Promise.promisifyAll require 'tty.js'
+	term = require './term'
 	enableDestroy = require 'server-destroy'
 
 class DisconnectedError extends TypedError
@@ -16,18 +16,19 @@ class DisconnectedError extends TypedError
 
 apps = {}
 port = 48485
+
 exports.start = (app) ->
 	init()
 	apps[app.id] ?= Promise.rejected()
 	return apps[app.id] = apps[app.id].catch ->
-		server = tty.createServer
+		server = term.createServer
 			shell: './src/enterContainer.sh'
 			shellArgs: do ->
 				i = 0
-				return (session) -> [ app.containerId, session.id, i++ ]
-			static: __dirname + '/static'
-		enableDestroy(server.server)
-		server.listenAsync(port, null).return(server.server)
+				return (session) -> [ app.containerId, session, i++ ]
+		enableDestroy(server)
+		termListen = Promise.promisify(server.listen, server)
+		termListen(port, null).return(server)
 
 exports.stop = (app) ->
 	if !apps[app.id]?
