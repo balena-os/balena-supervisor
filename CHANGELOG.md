@@ -1,3 +1,5 @@
+# v1.6.1
+
 * Reduce noise in logs [Kostas]
 
 # v1.6.0
