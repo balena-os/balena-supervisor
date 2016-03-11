@@ -334,7 +334,7 @@ specialActionEnvVars =
 
 executedSpecialActionEnvVars = {}
 
-executeSpecialActionsAndBootConfig = (env) ->
+executeSpecialActionsAndHostConfig = (env) ->
 	Promise.try ->
 		_.map specialActionEnvVars, (specialActionCallback, key) ->
 			if env[key]? && specialActionCallback?
@@ -342,10 +342,10 @@ executeSpecialActionsAndBootConfig = (env) ->
 				if !_.has(executedSpecialActionEnvVars, key) or executedSpecialActionEnvVars[key] != env[key]
 					specialActionCallback(env[key])
 					executedSpecialActionEnvVars[key] = env[key]
-		bootConfigVars = _.pick env, (val, key) ->
-			return _.startsWith(key, device.bootConfigEnvVarPrefix)
-		if !_.isEmpty(bootConfigVars)
-			device.setBootConfig(bootConfigVars)
+		hostConfigVars = _.pick env, (val, key) ->
+			return _.startsWith(key, device.hostConfigEnvVarPrefix)
+		if !_.isEmpty(hostConfigVars)
+			device.setHostConfig(hostConfigVars)
 
 wrapAsError = (err) ->
 	return err if _.isError(err)
@@ -527,7 +527,7 @@ application.update = update = (force) ->
 				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
 				Promise.map appsWithChangedEnvs, (appId) ->
 					Promise.using lockUpdates(remoteApps[appId], force), ->
-						executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
+						executeSpecialActionsAndHostConfig(remoteAppEnvs[appId])
 						.then ->
 							# If an env var shouldn't cause a restart but requires an action, we should still
 							# save the new env to the DB
@@ -613,7 +613,7 @@ application.initialize = ->
 	knex('app').select()
 	.then (apps) ->
 		Promise.map apps, (app) ->
-			executeSpecialActionsAndBootConfig(JSON.parse(app.env))
+			executeSpecialActionsAndHostConfig(JSON.parse(app.env))
 			.then ->
 				unlockAndStart(app)
 	.catch (error) ->
