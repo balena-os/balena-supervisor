@@ -38,7 +38,8 @@ exports.getID = do ->
 rebootDevice = ->
 	request.postAsync(config.gosuperAddress + '/v1/reboot')
 
-exports.bootConfigEnvVarPrefix = bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
+exports.hostConfigEnvVarPrefix = hostConfigEnvVarPrefix = 'RESIN_HOST_'
+bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
 bootBlockDevice = '/dev/mmcblk0p1'
 bootMountPoint = '/mnt/root/boot'
 bootConfigPath = bootMountPoint + '/config.txt'
@@ -69,7 +70,23 @@ parseBootConfigFromEnv = (env) ->
 	parsedEnv = _.omit(parsedEnv, forbiddenConfigKeys)
 	return parsedEnv
 
-exports.setBootConfig = (env) ->
+exports.setHostConfig = (env) ->
+	Promise.join setBootConfig(env), setLogToDisplay(env), (bootConfigApplied, logToDisplayChanged) ->
+		rebootDevice() if bootConfigApplied or logToDisplayChanged
+
+setLogToDisplay = (env) ->
+	if env['RESIN_HOST_LOG_TO_DISPLAY']?
+		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display')
+		.spread (response, body) ->
+			if response.statusCode != 200
+				console.log('Error setting log to display:', body, "Status:", response.statusCode)
+				return false
+			else
+				return body.Data
+	else
+		return false
+
+setBootConfig = (env) ->
 	device.getDeviceType()
 	.then (deviceType) ->
 		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry-pi')
@@ -112,9 +129,10 @@ exports.setBootConfig = (env) ->
 			.then ->
 				execAsync('sync')
 			.then ->
-				rebootDevice()
+				return true
 	.catch (err) ->
 		console.log('Will not set boot config: ', err)
+		return false
 
 exports.getDeviceType = do ->
 	deviceTypePromise = null
