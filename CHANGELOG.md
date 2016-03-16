@@ -1,3 +1,5 @@
+* Remove ngrok dependency and implement Web Terminal 2.0 [Kostas]
+
 # v1.6.1
 
 * Reduce noise in logs [Kostas]
