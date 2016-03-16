@@ -2,6 +2,7 @@ http = require 'http'
 _ = require 'lodash'
 Promise = require 'bluebird'
 TypedError = require 'typed-error'
+{ webTerminalPort } = require('../config')
 
 # Only load term.js when it is actually needed,
 # to reduce memory in the likely case it is never used.
@@ -24,8 +25,7 @@ class DisconnectedError extends TypedError
 # socat UNIX:/data/host -,raw,echo=0
 
 apps = {}
-port = 48485
-termPortGuard = portGuard(port)
+termPortGuard = portGuard(webTerminalPort)
 
 exports.start = (app) ->
 	init()
@@ -40,7 +40,7 @@ exports.start = (app) ->
 						return (session) -> [ app.containerId, session, i++ ]
 				enableDestroy(server)
 				termListen = Promise.promisify(server.listen, server)
-				termListen(port, null).return(server)
+				termListen(webTerminalPort, null).return(server)
 
 exports.stop = (app) ->
 	if !apps[app.id]?
@@ -49,7 +49,7 @@ exports.stop = (app) ->
 		destroy = Promise.promisify(server.destroy, server)
 		destroy()
 		.then ->
-			termPortGuard = portGuard(port)
+			termPortGuard = portGuard(webTerminalPort)
 		.then ->
 			# We throw an error so that `.start` will catch and restart the session.
 			throw new DisconnectedError()
