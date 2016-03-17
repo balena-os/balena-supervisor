@@ -34,6 +34,10 @@ type VPNBody struct {
 	Enable bool
 }
 
+type LogToDisplayBody struct {
+	Enable bool
+}
+
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
 	jsonBody, err := json.Marshal(response)
 	if err != nil {
@@ -65,12 +69,6 @@ func parsePurgeBody(request *http.Request) (appId string, err error) {
 		log.Printf("Invalid appId type %T\n", v)
 	}
 	return
-}
-
-func responseSender(writer http.ResponseWriter) func(interface{}, string, int) {
-	return func(data interface{}, errorMsg string, statusCode int) {
-		jsonResponse(writer, APIResponse{data, errorMsg}, statusCode)
-	}
 }
 
 func responseSenders(writer http.ResponseWriter) (sendResponse func(interface{}, string, int), sendError func(error)) {
@@ -220,4 +218,53 @@ func VPNControl(writer http.ResponseWriter, request *http.Request) {
 	}
 	log.Printf("%sd\n", actionDescr)
 	sendResponse("OK", "", http.StatusAccepted)
+}
+
+//LogToDisplayControl is used to control tty-replacement service status with dbus
+func LogToDisplayControl(writer http.ResponseWriter, request *http.Request) {
+	sendResponse, sendError := responseSenders(writer)
+	serviceName := "tty-replacement.service"
+	var body LogToDisplayBody
+	if err := parseJSONBody(&body, request); err != nil {
+		log.Println(err)
+		sendResponse("Error", err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if systemd.Dbus == nil {
+		sendError(fmt.Errorf("Systemd dbus unavailable, cannot set log to display state."))
+		return
+	}
+
+	if activeState, err := systemd.Dbus.GetUnitProperty(serviceName, "ActiveState"); err != nil {
+		sendError(fmt.Errorf("Unable to get log to display status: %v", err))
+		return
+	} else {
+		status := activeState.Value.String() == `"active"`
+		enable := body.Enable
+		if status == enable {
+			// Nothing to do, return Data = false to signal nothing was changed
+			sendResponse(false, "", http.StatusOK)
+			return
+		} else if enable {
+			if _, err := systemd.Dbus.StartUnit(serviceName, "fail", nil); err != nil {
+				sendError(fmt.Errorf("Unable to start service: %v", err))
+				return
+			}
+			if _, _, err = systemd.Dbus.EnableUnitFiles([]string{serviceName}, false, false); err != nil {
+				sendError(fmt.Errorf("Unable to enable service: %v", err))
+				return
+			}
+		} else {
+			if _, err := systemd.Dbus.StopUnit(serviceName, "fail", nil); err != nil {
+				sendError(fmt.Errorf("Unable to stop service: %v", err))
+				return
+			}
+			if _, err = systemd.Dbus.DisableUnitFiles([]string{serviceName}, false); err != nil {
+				sendError(fmt.Errorf("Unable to disable service: %v", err))
+				return
+			}
+		}
+		sendResponse(true, "", http.StatusOK)
+	}
 }

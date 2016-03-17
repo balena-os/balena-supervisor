@@ -84,6 +84,19 @@ logSystemEvent = (logType, app, error) ->
 	utils.mixpanelTrack(logType.eventName, {app, error})
 	return
 
+logMessage = (msg) ->
+	logger.log(msg, isSystem: true)
+	utils.mixpanelTrack(msg)
+
+logSpecialAction = (action, value, success) ->
+	if success
+		msg = "Applied config variable #{action} = #{value}"
+	else
+		msg = "Applying config variable #{action} = #{value}"
+	logMessage(msg)
+
+
+
 application = {}
 
 application.kill = kill = (app, updateDB = true) ->
@@ -340,12 +353,14 @@ executeSpecialActionsAndHostConfig = (env) ->
 			if env[key]? && specialActionCallback?
 				# This makes the Special Action Envs only trigger their functions once.
 				if !_.has(executedSpecialActionEnvVars, key) or executedSpecialActionEnvVars[key] != env[key]
+					logSpecialAction(key, env[key])
 					specialActionCallback(env[key])
 					executedSpecialActionEnvVars[key] = env[key]
+					logSpecialAction(key, env[key], true)
 		hostConfigVars = _.pick env, (val, key) ->
 			return _.startsWith(key, device.hostConfigEnvVarPrefix)
 		if !_.isEmpty(hostConfigVars)
-			device.setHostConfig(hostConfigVars)
+			device.setHostConfig(hostConfigVars, logMessage)
 
 wrapAsError = (err) ->
 	return err if _.isError(err)
@@ -460,6 +475,8 @@ getEnvAndFormatRemoteApps = (deviceId, remoteApps, uuid, apiKey) ->
 			utils.extendEnvVars(app.environment_variable, uuid)
 		.then (fullEnv) ->
 			env = _.omit(fullEnv, _.keys(specialActionEnvVars))
+			env = _.omitBy env, (v, k) ->
+				_.startsWith(k, device.hostConfigEnvVarPrefix)
 			return [
 				{
 					appId: '' + app.id
@@ -528,7 +545,7 @@ application.update = update = (force) ->
 				Promise.map appsWithChangedEnvs, (appId) ->
 					Promise.using lockUpdates(remoteApps[appId], force), ->
 						executeSpecialActionsAndHostConfig(remoteAppEnvs[appId])
-						.then ->
+						.tap ->
 							# If an env var shouldn't cause a restart but requires an action, we should still
 							# save the new env to the DB
 							if !_.includes(toBeUpdated, appId) and !_.includes(toBeInstalled, appId)
@@ -538,6 +555,8 @@ application.update = update = (force) ->
 										throw new Error('App not found')
 									app.env = JSON.stringify(remoteAppEnvs[appId])
 									knex('app').update(app).where({ appId })
+						.then (needsReboot) ->
+							device.reboot() if needsReboot
 					.catch (err) ->
 						logSystemEvent(logTypes.updateAppError, remoteApps[appId], err)
 				.return(allAppIds)
