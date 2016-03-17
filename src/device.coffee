@@ -72,8 +72,7 @@ parseBootConfigFromEnv = (env) ->
 
 exports.setHostConfig = (env, logMessage) ->
 	Promise.join setBootConfig(env, logMessage), setLogToDisplay(env, logMessage), (bootConfigApplied, logToDisplayChanged) ->
-		return true if bootConfigApplied or logToDisplayChanged
-		return false
+		return (bootConfigApplied or logToDisplayChanged)
 
 setLogToDisplay = (env, logMessage) ->
 	if env['RESIN_HOST_LOG_TO_DISPLAY']?
@@ -81,14 +80,17 @@ setLogToDisplay = (env, logMessage) ->
 		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display', {json: true, body: Enable: enable})
 		.spread (response, body) ->
 			if response.statusCode != 200
-				logMessage("Error setting log to display: #{body}, Status:, #{response.statusCode}")
+				logMessage("Error setting log to display: #{body.Error}, Status:, #{response.statusCode}", {error: body.Error}, "Set log to display error")
 				return false
 			else
 				if body.Data == true
 					logMessage("#{enable ? "Enabled" : "Disabled"} logs to display")
 				return body.Data
+		.catch (err) ->
+			logMessage("Error setting log to display: #{err}", {error: err}, "Set log to display error")
+			return false
 	else
-		return false
+		return Promise.resolve(false)
 
 setBootConfig = (env, logMessage) ->
 	device.getDeviceType()
@@ -116,7 +118,7 @@ setBootConfig = (env, logMessage) ->
 				configFromApp[key] != configFromFS[key]
 			throw new Error('Nothing to change') if _.isEmpty(toBeChanged) and _.isEmpty(toBeAdded)
 
-			logMessage("Applying boot config: #{configFromApp}")
+			logMessage("Applying boot config: #{configFromApp}", {}, "Apply boot config in progress")
 			# We add the keys to be added first so they are out of any filters
 			outputConfig = _.map toBeAdded, (key) -> "#{key}=#{configFromApp[key]}"
 			outputConfig = outputConfig.concat _.map configPositions, (key, index) ->
@@ -135,10 +137,10 @@ setBootConfig = (env, logMessage) ->
 			.then ->
 				execAsync('sync')
 			.then ->
-				logMessage("Applied boot config: #{configFromApp}")
+				logMessage("Applied boot config: #{configFromApp}", {}, "Apply boot config success")
 				return true
 			.catch (err) ->
-				logMessage("Error setting boot config: #{err}")
+				logMessage("Error setting boot config: #{err}", {error: err}, "Apply boot config error")
 				throw err
 	.catch (err) ->
 		console.log('Will not set boot config: ', err)
