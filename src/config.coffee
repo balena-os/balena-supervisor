@@ -43,3 +43,4 @@ module.exports = config =
 	hostOsVersionPath: checkString(process.env.HOST_OS_VERSION_PATH) ? '/mnt/root/etc/os-release'
 	dockerRoot: dockerRoot
 	btrfsRoot: checkString(process.env.BTRFS_ROOT) ? "#{dockerRoot}/btrfs/subvolumes"
+	webTerminalPort: 48485
