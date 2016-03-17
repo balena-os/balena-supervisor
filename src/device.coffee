@@ -35,7 +35,7 @@ exports.getID = do ->
 					throw new Error('Could not find this device?!')
 				return devices[0].id
 
-rebootDevice = ->
+exports.reboot = rebootDevice = ->
 	request.postAsync(config.gosuperAddress + '/v1/reboot')
 
 exports.hostConfigEnvVarPrefix = hostConfigEnvVarPrefix = 'RESIN_HOST_'
@@ -70,26 +70,30 @@ parseBootConfigFromEnv = (env) ->
 	parsedEnv = _.omit(parsedEnv, forbiddenConfigKeys)
 	return parsedEnv
 
-exports.setHostConfig = (env) ->
-	Promise.join setBootConfig(env), setLogToDisplay(env), (bootConfigApplied, logToDisplayChanged) ->
-		rebootDevice() if bootConfigApplied or logToDisplayChanged
+exports.setHostConfig = (env, logMessage) ->
+	Promise.join setBootConfig(env, logMessage), setLogToDisplay(env, logMessage), (bootConfigApplied, logToDisplayChanged) ->
+		return true if bootConfigApplied or logToDisplayChanged
+		return false
 
-setLogToDisplay = (env) ->
+setLogToDisplay = (env, logMessage) ->
 	if env['RESIN_HOST_LOG_TO_DISPLAY']?
-		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display')
+		enable = env['RESIN_HOST_LOG_TO_DISPLAY'] != '0'
+		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display', {json: true, body: Enable: enable})
 		.spread (response, body) ->
 			if response.statusCode != 200
-				console.log('Error setting log to display:', body, "Status:", response.statusCode)
+				logMessage("Error setting log to display: #{body}, Status:, #{response.statusCode}")
 				return false
 			else
+				if body.Data == true
+					logMessage("#{enable ? "Enabled" : "Disabled"} logs to display")
 				return body.Data
 	else
 		return false
 
-setBootConfig = (env) ->
+setBootConfig = (env, logMessage) ->
 	device.getDeviceType()
 	.then (deviceType) ->
-		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry-pi')
+		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry')
 		Promise.join parseBootConfigFromEnv(env), fs.readFileAsync(bootConfigPath, 'utf8'), (configFromApp, configTxt ) ->
 			throw new Error('No boot config to change') if _.isEmpty(configFromApp)
 			configFromFS = {}
@@ -111,6 +115,8 @@ setBootConfig = (env) ->
 			toBeChanged = _.filter toBeChanged, (key) ->
 				configFromApp[key] != configFromFS[key]
 			throw new Error('Nothing to change') if _.isEmpty(toBeChanged) and _.isEmpty(toBeAdded)
+
+			logMessage("Applying boot config: #{configFromApp}")
 			# We add the keys to be added first so they are out of any filters
 			outputConfig = _.map toBeAdded, (key) -> "#{key}=#{configFromApp[key]}"
 			outputConfig = outputConfig.concat _.map configPositions, (key, index) ->
@@ -129,7 +135,11 @@ setBootConfig = (env) ->
 			.then ->
 				execAsync('sync')
 			.then ->
+				logMessage("Applied boot config: #{configFromApp}")
 				return true
+			.catch (err) ->
+				logMessage("Error setting boot config: #{err}")
+				throw err
 	.catch (err) ->
 		console.log('Will not set boot config: ', err)
 		return false
