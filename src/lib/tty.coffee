@@ -17,7 +17,7 @@ portGuard = (port) ->
 		server = http.createServer (req, res) ->
 			res.end()
 		server.listen port, ->
-			cb(null, Promise.promisify(server.close, server))
+			cb(null, Promise.promisify(server.close.bind(server)))
 		server.on('error', cb)
 
 class DisconnectedError extends TypedError
@@ -39,14 +39,14 @@ exports.start = (app) ->
 						i = 0
 						return (session) -> [ app.containerId, session, i++ ]
 				enableDestroy(server)
-				termListen = Promise.promisify(server.listen, server)
+				termListen = Promise.promisify(server.listen.bind(server))
 				termListen(webTerminalPort, null).return(server)
 
 exports.stop = (app) ->
 	if !apps[app.id]?
 		return Promise.resolve()
 	apps[app.id] = apps[app.id].then (server) ->
-		destroy = Promise.promisify(server.destroy, server)
+		destroy = Promise.promisify(server.destroy.bind(server))
 		destroy()
 		.then ->
 			termPortGuard = portGuard(webTerminalPort)
