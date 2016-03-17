@@ -72,8 +72,7 @@ parseBootConfigFromEnv = (env) ->
 
 exports.setHostConfig = (env, logMessage) ->
 	Promise.join setBootConfig(env, logMessage), setLogToDisplay(env, logMessage), (bootConfigApplied, logToDisplayChanged) ->
-		return true if bootConfigApplied or logToDisplayChanged
-		return false
+		return (bootConfigApplied or logToDisplayChanged)
 
 setLogToDisplay = (env, logMessage) ->
 	if env['RESIN_HOST_LOG_TO_DISPLAY']?
@@ -81,14 +80,17 @@ setLogToDisplay = (env, logMessage) ->
 		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display', {json: true, body: Enable: enable})
 		.spread (response, body) ->
 			if response.statusCode != 200
-				logMessage("Error setting log to display: #{body}, Status:, #{response.statusCode}")
+				logMessage("Error setting log to display: #{body.Error}, Status:, #{response.statusCode}", {error: body.Error})
 				return false
 			else
 				if body.Data == true
 					logMessage("#{enable ? "Enabled" : "Disabled"} logs to display")
 				return body.Data
+		.catch (err) ->
+			logMessage("Error setting log to display: #{err}", {error: err})
+			return false
 	else
-		return false
+		return Promise.resolve(false)
 
 setBootConfig = (env, logMessage) ->
 	device.getDeviceType()
@@ -138,7 +140,7 @@ setBootConfig = (env, logMessage) ->
 				logMessage("Applied boot config: #{configFromApp}")
 				return true
 			.catch (err) ->
-				logMessage("Error setting boot config: #{err}")
+				logMessage("Error setting boot config: #{err}", {error: err})
 				throw err
 	.catch (err) ->
 		console.log('Will not set boot config: ', err)

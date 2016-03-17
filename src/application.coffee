@@ -68,6 +68,10 @@ logTypes =
 		eventName: 'Application update error'
 		humanName: 'Failed to update application'
 
+logSystemMessage = (message, obj, eventName) ->
+	logger.log({ message, isSystem: true })
+	utils.mixpanelTrack(eventName ? message, obj)
+
 logSystemEvent = (logType, app, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
 	if error?
@@ -80,22 +84,15 @@ logSystemEvent = (logType, app, error) ->
 		if _.isEmpty(errMessage)
 			errMessage = 'Unknown cause'
 		message += " due to '#{errMessage}'"
-	logger.log({ message, isSystem: true })
-	utils.mixpanelTrack(logType.eventName, {app, error})
+	logSystemMessage(message, {app, error}, logType.eventName)
 	return
-
-logMessage = (msg) ->
-	logger.log(msg, isSystem: true)
-	utils.mixpanelTrack(msg)
 
 logSpecialAction = (action, value, success) ->
 	if success
 		msg = "Applied config variable #{action} = #{value}"
 	else
 		msg = "Applying config variable #{action} = #{value}"
-	logMessage(msg)
-
-
+	logSystemMessage(msg)
 
 application = {}
 
@@ -355,7 +352,7 @@ executeSpecialActionsAndHostConfig = (env) ->
 		hostConfigVars = _.pick env, (val, key) ->
 			return _.startsWith(key, device.hostConfigEnvVarPrefix)
 		if !_.isEmpty(hostConfigVars)
-			device.setHostConfig(hostConfigVars, logMessage)
+			device.setHostConfig(hostConfigVars, logSystemMessage)
 
 wrapAsError = (err) ->
 	return err if _.isError(err)
