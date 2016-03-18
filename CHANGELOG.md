@@ -1,3 +1,7 @@
+* Add RESIN_HOST_LOG_TO_DISPLAY variable [Pablo]
+* Add system logs for special actions and host config [Pablo]
+* Fix setting config.txt for RPi 3 [Pablo]
+* Fix saving config vars to DB before reboot [Pablo]
 * Bind mount host /var/lib/connman to application /host_var/lib/connman [Aleksis]
 * Add RESIN_SUPERVISOR_DELTA to special list so that app is not restarted when it changes [Pablo]
 
