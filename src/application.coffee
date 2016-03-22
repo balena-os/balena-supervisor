@@ -156,15 +156,17 @@ application.start = start = (app) ->
 		'/lib/modules': {}
 		'/lib/firmware': {}
 		'/run/dbus': {}
-		'/host_var/lib/connman': {}
+		'/host/var/lib/connman': {}
+		'/host/run/dbus': {}
 	binds = [
 		'/resin-data/' + app.appId + ':/data'
 		'/lib/modules:/lib/modules'
 		'/lib/firmware:/lib/firmware'
 		'/run/dbus:/run/dbus'
 		'/run/dbus:/host_run/dbus'
+		'/run/dbus:/host/run/dbus'
 		'/etc/resolv.conf:/etc/resolv.conf:rw'
-		'/var/lib/connman:/host_var/lib/connman'
+		'/var/lib/connman:/host/var/lib/connman'
 	]
 	Promise.try ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
