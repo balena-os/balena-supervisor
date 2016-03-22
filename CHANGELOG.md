@@ -1,3 +1,5 @@
+* Add RESIN_SUPERVISOR_DELTA to special list so that app is not restarted when it changes [Pablo]
+
 # v1.6.1
 
 * Reduce noise in logs [Kostas]
