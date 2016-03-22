@@ -1,3 +1,5 @@
+* Bind mount host /var/lib/connman to application /host_var/lib/connman [Aleksis]
+
 # v1.6.1
 
 * Reduce noise in logs [Kostas]
