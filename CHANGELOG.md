@@ -1,3 +1,4 @@
+* Bind mount host /var/lib/connman to application /host_var/lib/connman [Aleksis]
 * Add RESIN_SUPERVISOR_DELTA to special list so that app is not restarted when it changes [Pablo]
 
 # v1.6.1
