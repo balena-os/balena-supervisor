@@ -1,43 +1,35 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net"
-	"net/http"
-	"os"
 	"time"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
+	"resin-supervisor/gosuper/application"
+	"resin-supervisor/gosuper/config"
+	"resin-supervisor/gosuper/device"
 	"resin-supervisor/gosuper/psutils"
+	"resin-supervisor/gosuper/resin"
+	"resin-supervisor/gosuper/supermodels"
+	"resin-supervisor/gosuper/utils"
 )
 
 var ResinDataPath string = "/mnt/root/resin-data/"
 
-func setupApi(router *mux.Router) {
-	router.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
-		fmt.Fprintln(writer, "OK")
-	})
-
-	apiv1 := router.PathPrefix("/v1").Subrouter()
-	apiv1.HandleFunc("/ipaddr", IPAddressHandler).Methods("GET")
-	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
-	apiv1.HandleFunc("/reboot", RebootHandler).Methods("POST")
-	apiv1.HandleFunc("/shutdown", ShutdownHandler).Methods("POST")
-	apiv1.HandleFunc("/vpncontrol", VPNControl).Methods("POST")
+type Supervisor struct {
+	Config             config.SupervisorConfig
+	AppsCollection     *supermodels.AppsCollection
+	DbConfig           *supermodels.Config
+	ResinClient        *resin.Client
+	Device             *device.Device
+	ApplicationManager *application.Manager
 }
 
-func startApi(listenAddress string, router *mux.Router) {
-	if listener, err := net.Listen("unix", listenAddress); err != nil {
-		log.Fatalf("Could not listen on %s: %v", listenAddress, err)
-	} else {
-		log.Printf("Starting HTTP server on %s\n", listenAddress)
-		if err = http.Serve(listener, router); err != nil {
-			log.Fatalf("Could not start HTTP server: %v", err)
-		}
-	}
+// TODO: implement connectivityCheck
+func connectivityCheck() {
+
 }
 
+// TODO: move to utils?
 func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker {
 	ticker := time.NewTicker(time.Minute * 5) //Timer runs every 5 minutes
 	procs := &psutils.Procs{hostproc}
@@ -59,17 +51,53 @@ func startOOMProtectionTimer(hostproc string, dockerSocket string) *time.Ticker 
 	return ticker
 }
 
+func (supervisor *Supervisor) Start(connectivityCheckEnabled bool, oomProtectionEnabled bool) {
+	var err error
+	if connectivityCheckEnabled {
+		go connectivityCheck()
+	}
+
+	supervisor.Config = config.GetSupervisorConfig()
+
+	if oomProtectionEnabled {
+		// Start OOMProtectionTimer for protecting Openvpn/Connman
+		defer startOOMProtectionTimer(supervisor.Config.HostProc, supervisor.Config.DockerSocket).Stop()
+	}
+
+	if err = utils.MixpanelInit(supervisor.Config.MixpanelToken); err != nil {
+		log.Printf("Failed to initialize Mixpanel client: %s", err)
+	}
+
+	if supervisor.AppsCollection, supervisor.DbConfig, err = supermodels.New(supervisor.Config.DatabasePath); err != nil {
+		log.Fatalf("Failed to start database: %s", err)
+	} else if supervisor.Device, err = device.New(supervisor.AppsCollection, supervisor.DbConfig, supervisor.Config); err != nil {
+		log.Fatalf("Failed to start device bootstrapping: %s", err)
+	} else {
+		utils.MixpanelSetId(supervisor.Device.Uuid)
+		supervisor.ResinClient = supervisor.Device.ResinClient
+		if supervisor.ApplicationManager, err = application.NewManager(supervisor.AppsCollection, supervisor.DbConfig, supervisor.Device, supervisor.Config); err != nil {
+			log.Fatalf("Failed to initialize applications manager: %s", err)
+		} else {
+			supervisor.Device.WaitForBootstrap()
+			// TODO: apikey and log channel generation
+			StartApi(supervisor.Config.ListenPort, supervisor.ApplicationManager)
+			// TODO: Update device state
+			// TODO: IP address update interval
+		}
+	}
+}
+
+func waitForever() {
+	c := make(chan bool)
+	<-c
+}
+
 func main() {
+	var supervisor Supervisor
+
 	log.SetFlags(log.Lshortfile | log.LstdFlags)
-	log.Println("Resin Go Supervisor starting")
+	log.Println("Resin Supervisor starting")
 
-	// Start OOMProtectionTimer for protecting Openvpn/Connman
-	dockerSocket := os.Getenv("DOCKER_SOCKET")
-	hostproc := os.Getenv("HOST_PROC")
-	defer startOOMProtectionTimer(hostproc, dockerSocket).Stop()
-
-	listenAddress := os.Getenv("GOSUPER_SOCKET")
-	router := mux.NewRouter()
-	setupApi(router)
-	startApi(listenAddress, router)
+	supervisor.Start(true, true)
+	waitForever()
 }

@@ -1,9 +1,15 @@
 package main
 
+// TODO: add apikey auth
+// TODO: port all endpoints from node
+// TODO: move functionality to corresponding packages
+// TODO: add things (app kill and restart) around purge from what node does
+
 import (
 	"encoding/json"
 	"fmt"
 	"log"
+
 	"net"
 	"net/http"
 	"os"
@@ -11,6 +17,8 @@ import (
 	"strconv"
 	"time"
 
+	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
+	"resin-supervisor/gosuper/application"
 	"resin-supervisor/gosuper/systemd"
 )
 
@@ -32,6 +40,34 @@ type PurgeBody struct {
 // VPNBody interface for post request received by VPN control end point
 type VPNBody struct {
 	Enable bool
+}
+
+func setupApi(router *mux.Router) {
+	router.HandleFunc("/ping", func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintln(writer, "OK")
+	})
+
+	apiv1 := router.PathPrefix("/v1").Subrouter()
+	apiv1.HandleFunc("/ipaddr", IPAddressHandler).Methods("GET")
+	apiv1.HandleFunc("/purge", PurgeHandler).Methods("POST")
+	apiv1.HandleFunc("/reboot", RebootHandler).Methods("POST")
+	apiv1.HandleFunc("/shutdown", ShutdownHandler).Methods("POST")
+}
+
+var applications *application.Manager
+
+func listen(port int, router *mux.Router) {
+	if err := http.ListenAndServe(":"+strconv.Itoa(port), router); err != nil {
+		log.Printf("Could not start HTTP server: %v", err)
+	}
+}
+
+func StartApi(port int, apps *application.Manager) {
+	router := mux.NewRouter()
+	applications = apps
+	setupApi(router)
+	log.Printf("Starting HTTP server on port %d\n", port)
+	go listen(port, router)
 }
 
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {

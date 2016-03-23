@@ -1,6 +1,6 @@
 {
 	"ImportPath": "resin-supervisor/gosuper",
-	"GoVersion": "go1.5",
+	"GoVersion": "go1.5.1",
 	"Packages": [
 		"./..."
 	],
@@ -10,19 +10,37 @@
 			"Rev": "f3e2bae1e0cb5aef83e319133eabfee30013a4a5"
 		},
 		{
+			"ImportPath": "github.com/bitly/go-simplejson",
+			"Comment": "v0.5.0",
+			"Rev": "aabad6e819789e569bd6aabf444c935aa9ba1e44"
+		},
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.1.0-19-g0b00eff",
+			"Rev": "0b00effdd7a8270ebd91c24297e51643e370dd52"
+		},
+		{
 			"ImportPath": "github.com/coreos/go-systemd/dbus",
-			"Comment": "v3-13-g392c689",
-			"Rev": "392c689e425689acb51976419a8d62878966511f"
+			"Comment": "v4-4-g4a47042",
+			"Rev": "4a47042cb1d653fe9cd53014854782a516c6252a"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-systemd/login1",
-			"Comment": "v3-13-g392c689",
-			"Rev": "392c689e425689acb51976419a8d62878966511f"
+			"Comment": "v4-4-g4a47042",
+			"Rev": "4a47042cb1d653fe9cd53014854782a516c6252a"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/pkg/units",
 			"Comment": "v1.4.1-8554-gbb2c923",
 			"Rev": "bb2c92355cb6f4e6935a945c22989fd3afe8e3cb"
+		},
+		{
+			"ImportPath": "github.com/dukex/mixpanel",
+			"Rev": "320805cae823c4cedd658c7176fa0daa8b16d0ee"
+		},
+		{
+			"ImportPath": "github.com/fatih/structs",
+			"Rev": "dd04ebad3deb3e3833c98ce4a83e2bff65734236"
 		},
 		{
 			"ImportPath": "github.com/go-ole/go-ole",
@@ -31,16 +49,20 @@
 		},
 		{
 			"ImportPath": "github.com/godbus/dbus",
-			"Comment": "v2-14-g69f6e9a",
-			"Rev": "69f6e9aa61d058ad86fd7f9e198e1df7384970d9"
+			"Comment": "v3-2-g9055aba",
+			"Rev": "9055aba822f5d54b1cb3e124336499648cb5d3c5"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",
-			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+			"Rev": "1c83b3eabd45b6d76072b66b746c20815fb2872d"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "ba336c9cfb43552c90de6cb2ceedd3271c747558"
+			"Rev": "9c068cf16d982f8bd444b8c352acbeec34c4fe5b"
+		},
+		{
+			"ImportPath": "github.com/resin-io/pinejs-client-go",
+			"Rev": "17bc18e5875e28e056e8e79b3899c3a4f345dd0e"
 		},
 		{
 			"ImportPath": "github.com/samalba/dockerclient",
@@ -74,6 +96,10 @@
 		{
 			"ImportPath": "github.com/shirou/w32",
 			"Rev": "ada3ba68f000aa1b58580e45c9d308fe0b7fc5c5"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
 		}
 	]
 }
