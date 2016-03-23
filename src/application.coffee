@@ -496,7 +496,9 @@ formatLocalApps = (apps) ->
 	localAppEnvs = {}
 	localApps = _.mapValues apps, (app) ->
 		localAppEnvs[app.appId] = JSON.parse(app.env)
-		app.env = JSON.stringify(_.omit(localAppEnvs[app.appId], _.keys(specialActionEnvVars)))
+		app.env = _.omit localAppEnvs[app.appId], (v, k) ->
+			_.startsWith(k, device.hostConfigEnvVarPrefix)
+		app.env = JSON.stringify(_.omit(app.env, _.keys(specialActionEnvVars)))
 		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 	return { localApps, localAppEnvs }
 
