@@ -118,7 +118,7 @@ setBootConfig = (env, logMessage) ->
 				configFromApp[key] != configFromFS[key]
 			throw new Error('Nothing to change') if _.isEmpty(toBeChanged) and _.isEmpty(toBeAdded)
 
-			logMessage("Applying boot config: #{configFromApp}", {}, "Apply boot config in progress")
+			logMessage("Applying boot config: #{JSON.stringify(configFromApp)}", {}, "Apply boot config in progress")
 			# We add the keys to be added first so they are out of any filters
 			outputConfig = _.map toBeAdded, (key) -> "#{key}=#{configFromApp[key]}"
 			outputConfig = outputConfig.concat _.map configPositions, (key, index) ->
@@ -137,7 +137,7 @@ setBootConfig = (env, logMessage) ->
 			.then ->
 				execAsync('sync')
 			.then ->
-				logMessage("Applied boot config: #{configFromApp}", {}, "Apply boot config success")
+				logMessage("Applied boot config: #{JSON.stringify(configFromApp)}", {}, "Apply boot config success")
 				return true
 			.catch (err) ->
 				logMessage("Error setting boot config: #{err}", {error: err}, "Apply boot config error")
