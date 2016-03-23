@@ -472,7 +472,7 @@ getEnvAndFormatRemoteApps = (deviceId, remoteApps, uuid, apiKey) ->
 			utils.extendEnvVars(app.environment_variable, uuid)
 		.then (fullEnv) ->
 			env = _.omit(fullEnv, _.keys(specialActionEnvVars))
-			env = _.omitBy env, (v, k) ->
+			env = _.omit env, (v, k) ->
 				_.startsWith(k, device.hostConfigEnvVarPrefix)
 			return [
 				{
