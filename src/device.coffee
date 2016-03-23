@@ -84,7 +84,7 @@ setLogToDisplay = (env, logMessage) ->
 				return false
 			else
 				if body.Data == true
-					logMessage("#{enable ? "Enabled" : "Disabled"} logs to display")
+					logMessage("#{if enable then "Enabled" else "Disabled"} logs to display")
 				return body.Data
 		.catch (err) ->
 			logMessage("Error setting log to display: #{err}", {error: err}, "Set log to display error")
