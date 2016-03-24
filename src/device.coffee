@@ -35,10 +35,11 @@ exports.getID = do ->
 					throw new Error('Could not find this device?!')
 				return devices[0].id
 
-rebootDevice = ->
+exports.reboot = rebootDevice = ->
 	request.postAsync(config.gosuperAddress + '/v1/reboot')
 
-exports.bootConfigEnvVarPrefix = bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
+exports.hostConfigEnvVarPrefix = hostConfigEnvVarPrefix = 'RESIN_HOST_'
+bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
 bootBlockDevice = '/dev/mmcblk0p1'
 bootMountPoint = '/mnt/root/boot'
 bootConfigPath = bootMountPoint + '/config.txt'
@@ -69,10 +70,32 @@ parseBootConfigFromEnv = (env) ->
 	parsedEnv = _.omit(parsedEnv, forbiddenConfigKeys)
 	return parsedEnv
 
-exports.setBootConfig = (env) ->
+exports.setHostConfig = (env, logMessage) ->
+	Promise.join setBootConfig(env, logMessage), setLogToDisplay(env, logMessage), (bootConfigApplied, logToDisplayChanged) ->
+		return (bootConfigApplied or logToDisplayChanged)
+
+setLogToDisplay = (env, logMessage) ->
+	if env['RESIN_HOST_LOG_TO_DISPLAY']?
+		enable = env['RESIN_HOST_LOG_TO_DISPLAY'] != '0'
+		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display', {json: true, body: Enable: enable})
+		.spread (response, body) ->
+			if response.statusCode != 200
+				logMessage("Error setting log to display: #{body.Error}, Status:, #{response.statusCode}", {error: body.Error}, "Set log to display error")
+				return false
+			else
+				if body.Data == true
+					logMessage("#{if enable then "Enabled" else "Disabled"} logs to display")
+				return body.Data
+		.catch (err) ->
+			logMessage("Error setting log to display: #{err}", {error: err}, "Set log to display error")
+			return false
+	else
+		return Promise.resolve(false)
+
+setBootConfig = (env, logMessage) ->
 	device.getDeviceType()
 	.then (deviceType) ->
-		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry-pi')
+		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry')
 		Promise.join parseBootConfigFromEnv(env), fs.readFileAsync(bootConfigPath, 'utf8'), (configFromApp, configTxt ) ->
 			throw new Error('No boot config to change') if _.isEmpty(configFromApp)
 			configFromFS = {}
@@ -94,6 +117,8 @@ exports.setBootConfig = (env) ->
 			toBeChanged = _.filter toBeChanged, (key) ->
 				configFromApp[key] != configFromFS[key]
 			throw new Error('Nothing to change') if _.isEmpty(toBeChanged) and _.isEmpty(toBeAdded)
+
+			logMessage("Applying boot config: #{JSON.stringify(configFromApp)}", {}, "Apply boot config in progress")
 			# We add the keys to be added first so they are out of any filters
 			outputConfig = _.map toBeAdded, (key) -> "#{key}=#{configFromApp[key]}"
 			outputConfig = outputConfig.concat _.map configPositions, (key, index) ->
@@ -112,9 +137,14 @@ exports.setBootConfig = (env) ->
 			.then ->
 				execAsync('sync')
 			.then ->
-				rebootDevice()
+				logMessage("Applied boot config: #{JSON.stringify(configFromApp)}", {}, "Apply boot config success")
+				return true
+			.catch (err) ->
+				logMessage("Error setting boot config: #{err}", {error: err}, "Apply boot config error")
+				throw err
 	.catch (err) ->
 		console.log('Will not set boot config: ', err)
+		return false
 
 exports.getDeviceType = do ->
 	deviceTypePromise = null

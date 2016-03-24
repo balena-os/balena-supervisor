@@ -68,6 +68,10 @@ logTypes =
 		eventName: 'Application update error'
 		humanName: 'Failed to update application'
 
+logSystemMessage = (message, obj, eventName) ->
+	logger.log({ message, isSystem: true })
+	utils.mixpanelTrack(eventName ? message, obj)
+
 logSystemEvent = (logType, app, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
 	if error?
@@ -80,9 +84,15 @@ logSystemEvent = (logType, app, error) ->
 		if _.isEmpty(errMessage)
 			errMessage = 'Unknown cause'
 		message += " due to '#{errMessage}'"
-	logger.log({ message, isSystem: true })
-	utils.mixpanelTrack(logType.eventName, {app, error})
+	logSystemMessage(message, {app, error}, logType.eventName)
 	return
+
+logSpecialAction = (action, value, success) ->
+	if success
+		msg = "Applied config variable #{action} = #{value}"
+	else
+		msg = "Applying config variable #{action} = #{value}"
+	logSystemMessage(msg, {}, "Apply special action #{success ? "success" : "in progress"}")
 
 application = {}
 
@@ -334,18 +344,20 @@ specialActionEnvVars =
 
 executedSpecialActionEnvVars = {}
 
-executeSpecialActionsAndBootConfig = (env) ->
+executeSpecialActionsAndHostConfig = (env) ->
 	Promise.try ->
 		_.map specialActionEnvVars, (specialActionCallback, key) ->
 			if env[key]? && specialActionCallback?
 				# This makes the Special Action Envs only trigger their functions once.
 				if !_.has(executedSpecialActionEnvVars, key) or executedSpecialActionEnvVars[key] != env[key]
+					logSpecialAction(key, env[key])
 					specialActionCallback(env[key])
 					executedSpecialActionEnvVars[key] = env[key]
-		bootConfigVars = _.pick env, (val, key) ->
-			return _.startsWith(key, device.bootConfigEnvVarPrefix)
-		if !_.isEmpty(bootConfigVars)
-			device.setBootConfig(bootConfigVars)
+					logSpecialAction(key, env[key], true)
+		hostConfigVars = _.pick env, (val, key) ->
+			return _.startsWith(key, device.hostConfigEnvVarPrefix)
+		if !_.isEmpty(hostConfigVars)
+			device.setHostConfig(hostConfigVars, logSystemMessage)
 
 wrapAsError = (err) ->
 	return err if _.isError(err)
@@ -460,6 +472,8 @@ getEnvAndFormatRemoteApps = (deviceId, remoteApps, uuid, apiKey) ->
 			utils.extendEnvVars(app.environment_variable, uuid)
 		.then (fullEnv) ->
 			env = _.omit(fullEnv, _.keys(specialActionEnvVars))
+			env = _.omit env, (v, k) ->
+				_.startsWith(k, device.hostConfigEnvVarPrefix)
 			return [
 				{
 					appId: '' + app.id
@@ -482,7 +496,9 @@ formatLocalApps = (apps) ->
 	localAppEnvs = {}
 	localApps = _.mapValues apps, (app) ->
 		localAppEnvs[app.appId] = JSON.parse(app.env)
-		app.env = JSON.stringify(_.omit(localAppEnvs[app.appId], _.keys(specialActionEnvVars)))
+		app.env = _.omit localAppEnvs[app.appId], (v, k) ->
+			_.startsWith(k, device.hostConfigEnvVarPrefix)
+		app.env = JSON.stringify(_.omit(app.env, _.keys(specialActionEnvVars)))
 		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 	return { localApps, localAppEnvs }
 
@@ -527,8 +543,8 @@ application.update = update = (force) ->
 				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
 				Promise.map appsWithChangedEnvs, (appId) ->
 					Promise.using lockUpdates(remoteApps[appId], force), ->
-						executeSpecialActionsAndBootConfig(remoteAppEnvs[appId])
-						.then ->
+						executeSpecialActionsAndHostConfig(remoteAppEnvs[appId])
+						.tap ->
 							# If an env var shouldn't cause a restart but requires an action, we should still
 							# save the new env to the DB
 							if !_.includes(toBeUpdated, appId) and !_.includes(toBeInstalled, appId)
@@ -538,6 +554,8 @@ application.update = update = (force) ->
 										throw new Error('App not found')
 									app.env = JSON.stringify(remoteAppEnvs[appId])
 									knex('app').update(app).where({ appId })
+						.then (needsReboot) ->
+							device.reboot() if needsReboot
 					.catch (err) ->
 						logSystemEvent(logTypes.updateAppError, remoteApps[appId], err)
 				.return(allAppIds)
@@ -613,7 +631,7 @@ application.initialize = ->
 	knex('app').select()
 	.then (apps) ->
 		Promise.map apps, (app) ->
-			executeSpecialActionsAndBootConfig(JSON.parse(app.env))
+			executeSpecialActionsAndHostConfig(JSON.parse(app.env))
 			.then ->
 				unlockAndStart(app)
 	.catch (error) ->
