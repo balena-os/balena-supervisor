@@ -1,3 +1,5 @@
+# v1.7.0
+
 * Add RESIN_HOST_LOG_TO_DISPLAY variable [Pablo]
 * Add system logs for special actions and host config [Pablo]
 * Fix setting config.txt for RPi 3 [Pablo]
