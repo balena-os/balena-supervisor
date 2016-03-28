@@ -232,11 +232,13 @@ application.start = start = (app) ->
 			if portList?
 				portList.forEach (port) ->
 					ports[port + '/tcp'] = [ HostPort: port ]
+			restartPolicy = createRestartPolicy({ name: env['RESIN_APP_RESTART_POLICY'], maximumRetryCount: env['RESIN_APP_RESTART_RETRIES'] })
 			container.startAsync(
 				Privileged: true
 				NetworkMode: 'host'
 				PortBindings: ports
 				Binds: binds
+				RestartPolicy: restartPolicy
 			)
 			.catch (err) ->
 				statusCode = '' + err.statusCode
@@ -261,6 +263,22 @@ application.start = start = (app) ->
 		logSystemEvent(logTypes.startAppSuccess, app)
 	.finally ->
 		device.updateState(status: 'Idle')
+
+validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
+# Construct a restart policy based on its name and maximumRetryCount.
+# Both arguments are optional, and the default policy is "always".
+#
+# Throws exception if an invalid policy name is given.
+# Returns a RestartPolicy { Name, MaximumRetryCount } object
+createRestartPolicy = ({ name, maximumRetryCount }) ->
+	if not name?
+		name = 'always'
+	if not (name in validRestartPolicies)
+		throw new Error("Invalid restart policy: #{name}")
+	policy = { Name: name }
+	if name is 'on-failure' and maximumRetryCount?
+		policy.MaximumRetryCount = maximumRetryCount
+	return policy
 
 getEnvironment = do ->
 	envApiEndpoint = url.resolve(config.apiEndpoint, '/environment')
