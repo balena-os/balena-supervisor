@@ -1,3 +1,5 @@
+* Catch exec format error and provide friendlier error message [Aleksis]
+
 # v1.7.0
 
 * Add RESIN_HOST_LOG_TO_DISPLAY variable [Pablo]
