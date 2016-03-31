@@ -4,7 +4,7 @@ The Resin Supervisor is resin.io's agent that runs on devices. Its main role is 
 
 The Supervisor itself has its own API, with means for user applications to communicate and execute some special actions that affect the host OS or the application itself. There are two main ways for the application to interact with the Supervisor: the update lockfile and the HTTP API.
 
-Only Supervisors after version 1.1.0 have all of this functionality. This corresponds to OS images downloaded after October 14th 2015.
+Only Supervisors after version 1.1.0 have this functionality, and some of the endpoints appeared in later versions (we've noted it down where this is the case).Supervisor version 1.1.0 corresponds to OS images downloaded after October 14th 2015.
 
 ## HTTP API reference
 
