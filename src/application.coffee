@@ -96,7 +96,7 @@ logSpecialAction = (action, value, success) ->
 
 application = {}
 
-application.kill = kill = (app, updateDB = true) ->
+application.kill = kill = (app, updateDB = true, removeContainer = true) ->
 	logSystemEvent(logTypes.stopApp, app)
 	device.updateState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
@@ -107,7 +107,8 @@ application.kill = kill = (app, updateDB = true) ->
 	.then ->
 		container.stopAsync(t: 10)
 	.then ->
-		container.removeAsync(v: true)
+		container.removeAsync(v: true) if removeContainer
+		return
 	# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
 	.catch Promise.OperationalError, (err) ->
 		# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison
@@ -115,7 +116,8 @@ application.kill = kill = (app, updateDB = true) ->
 		statusCode = '' + err.statusCode
 		# 304 means the container was already stopped - so we can just remove it
 		if statusCode is '304'
-			return container.removeAsync(v: true)
+			return container.removeAsync(v: true) if removeContainer
+			return
 		# 404 means the container doesn't exist, precisely what we want! :D
 		if statusCode is '404'
 			return
@@ -124,7 +126,7 @@ application.kill = kill = (app, updateDB = true) ->
 		lockFile.unlockAsync(lockPath(app))
 	.tap ->
 		logSystemEvent(logTypes.stopAppSuccess, app)
-		if updateDB == true
+		if removeContainer && updateDB
 			app.containerId = null
 			knex('app').update(app).where(appId: app.appId)
 	.catch (err) ->

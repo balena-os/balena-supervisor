@@ -126,6 +126,39 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
+	api.post '/v1/stop', (req, res) ->
+		appId = req.body.appId
+		force = req.body.force
+		utils.mixpanelTrack('Stop container', appId)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		Promise.using application.lockUpdates(appId, force), ->
+			knex('app').select().where({ appId })
+			.then ([ app ]) ->
+				if !app?
+					throw new Error('App not found')
+				application.kill(app, true, false)
+		.then ->
+			res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	api.post '/v1/start', (req, res) ->
+		appId = req.body.appId
+		utils.mixpanelTrack('Start container', appId)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		Promise.using application.lockUpdates(appId, force), ->
+			knex('app').select().where({ appId })
+			.then ([ app ]) ->
+				if !app?
+					throw new Error('App not found')
+				application.start(app)
+		.then ->
+			res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
 	# Expires the supervisor's API key and generates a new one.
 	# It also communicates the new key to the Resin API.
 	api.post '/v1/regenerate-api-key', (req, res) ->
