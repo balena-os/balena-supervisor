@@ -1,6 +1,6 @@
 DISABLE_CACHE = 'false'
 
-ARCH = rpi# rpi/amd64/i386/armv7hf/armel
+ARCH = rpi# rpi/amd64/i386/armv7hf/armel/armhf-alpine/amd64-alpine/i386-alpine
 
 DEPLOY_REGISTRY =
 
@@ -33,6 +33,16 @@ ifeq ($(ARCH),i386)
 endif
 ifeq ($(ARCH),amd64)
 	GOARCH = amd64
+endif
+ifeq ($(ARCH),armhf-alpine)
+	GOARCH = arm
+	GOARM = 6
+endif
+ifeq ($(ARCH),amd64-alpine)
+	GOARCH = amd64
+endif
+ifeq ($(ARCH),i386-alpine)
+	GOARCH = 386
 endif
 SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/../../:/resin-supervisor -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv -v /sys/fs/cgroup:/sys/fs/cgroup:ro
 ifdef PRELOADED_IMAGE
