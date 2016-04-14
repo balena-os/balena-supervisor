@@ -25,7 +25,7 @@
     "resin-register-device": "^2.0.0",
     "request-progress": "^0.3.1",
     "rwlock": "^5.0.0",
-    "sqlite3": "~3.0.4",
+    "sqlite3": "3.0.9",
     "typed-error": "~0.1.0"
   },
   "engines": {
