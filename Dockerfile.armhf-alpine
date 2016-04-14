@@ -1,0 +1,42 @@
+FROM resin/armhf-alpine-node:0.10.44-slim
+
+# Supervisor apt dependencies
+RUN apk add --update \
+		btrfs-progs \
+		ca-certificates \
+		rsync \
+		supervisor \
+	&& rm -rf /var/cache/apk/*
+
+# Copy supervisord configuration files
+COPY config/supervisor/ /etc/supervisor/
+
+# Install dependencies
+WORKDIR /app
+COPY package.json postinstall.sh /app/
+RUN set -x \
+	&& buildDeps='g++ sqlite-dev sqlite-libs make' \
+	&& apk add --update $buildDeps \
+	&& JOBS=MAX npm install --unsafe-perm --production --no-optional \
+	&& cd /app/node_modules/sqlite3 && ./node_modules/.bin/node-pre-gyp install --build-from-source --sqlite=/usr/lib \
+	&& npm dedupe \
+	&& npm cache clean \
+	&& rm -rf /tmp/* \
+	&& apk del $buildDeps \
+	&& rm -rf /var/cache/apk/*
+
+# Copy source
+COPY . /app/
+
+RUN mv -f /app/entry.alpine.sh /app/entry.sh
+
+RUN /app/node_modules/.bin/coffee -c /app/src \
+	&& ln -sf /app/entry.sh /start # Needed for legacy
+
+RUN chmod +x /app/bin/gosuper
+
+ENV SUPERVISOR_IMAGE resin/armhf-alpine-supervisor
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
+
+ENTRYPOINT ["/app/entry.sh"]
