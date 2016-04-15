@@ -7,7 +7,6 @@ config = require './config'
 dockerUtils = require './docker-utils'
 Promise = require 'bluebird'
 utils = require './utils'
-tty = require './lib/tty'
 logger = require './lib/logger'
 { cachedResinApi } = require './request'
 device = require './device'
@@ -100,12 +99,7 @@ application.kill = kill = (app, updateDB = true) ->
 	logSystemEvent(logTypes.stopApp, app)
 	device.updateState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
-	tty.stop(app)
-	.catch (err) ->
-		console.error('Error stopping tty', err)
-		return # Even if stopping the tty fails we want to finish stopping the container
-	.then ->
-		container.stopAsync(t: 10)
+	container.stopAsync(t: 10)
 	.then ->
 		container.removeAsync(v: true)
 	# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
