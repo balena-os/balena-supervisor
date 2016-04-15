@@ -1,6 +1,6 @@
 DISABLE_CACHE = 'false'
 
-ARCH = rpi# rpi/amd64/i386/armv7hf/armel
+ARCH = rpi# rpi/amd64/i386/armv7hf/armel/alpine.armhf/alpine.amd64/alpine.i386
 
 DEPLOY_REGISTRY =
 

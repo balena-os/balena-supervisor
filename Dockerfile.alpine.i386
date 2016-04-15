@@ -1,0 +1,41 @@
+FROM resin/armv7hf-node:0.10.40-slim
+
+# Supervisor apt dependencies
+RUN apk add --update \
+		btrfs-progs \
+		ca-certificates \
+		rsync \
+		socat \
+		supervisor \
+	&& rm -rf /var/cache/apk/*
+
+# Copy supervisord configuration files
+COPY config/supervisor/ /etc/supervisor/
+
+# Install dependencies
+WORKDIR /app
+COPY package.json postinstall.sh /app/
+RUN set -x \
+	&& buildDeps='g++ sqlite-dev sqlite-libs make' \
+	&& apk add --update $buildDeps \
+	&& JOBS=MAX npm install --unsafe-perm --production --no-optional \
+	&& npm dedupe \
+	&& npm cache clean \
+	&& rm -rf /tmp/* \
+	&& apk del $buildDeps \
+	&& rm -rf /var/cache/apk/*
+
+# Copy source
+COPY . /app/
+
+RUN chmod +x /app/src/enterContainer.sh \
+	&& /app/node_modules/.bin/coffee -c /app/src \
+	&& ln -sf /app/entry.sh /start # Needed for legacy
+
+RUN chmod +x /app/bin/gosuper
+
+ENV SUPERVISOR_IMAGE resin/i386-alpine-supervisor
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
+
+ENTRYPOINT ["/app/entry.sh"]
