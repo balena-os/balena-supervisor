@@ -453,31 +453,25 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 <hr>
 
-### POST /v1/stop
+### POST /v1/apps/:appId/stop
 
+Introduced in supervisor v1.8.
 Temporarily stops a user application container. A reboot or supervisor restart will cause the container to start again.
 The container is not removed with this endpoint.
 
 When successful, responds with 200 and an "OK"
 
+The appId must be specified in the URL.
+
 #### Request body
-Has to be a JSON object with an `appId` property, corresponding to the ID of the application the device is running.
-
-Example:
-
-```json
-{
-	"appId": 2167
-}
-```
+Can contain a `force` property, which if set to `true` will cause the update lock to be overridden.
 
 #### Examples:
 From the app on the device:
 
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
-	--data '{"appId": <appId>}' \
-	"$RESIN_SUPERVISOR_ADDRESS/v1/stop?apikey=$RESIN_SUPERVISOR_API_KEY"
+	"$RESIN_SUPERVISOR_ADDRESS/v1/apps/<appId>/stop?apikey=$RESIN_SUPERVISOR_API_KEY"
 ```
 
 Response:
@@ -491,36 +485,27 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "data": {"appId": <appId>}}' \
-	"https://api.resin.io/supervisor/v1/stop"
+	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
+	"https://api.resin.io/supervisor/v1/apps/<appId>/stop"
 ```
 
 <hr>
 
 ### POST /v1/start
 
+Introduced in supervisor v1.8.
 Starts a user application container, usually after it has been stopped with `/v1/stop`.
 
 When successful, responds with 200 and an "OK"
 
-#### Request body
-Has to be a JSON object with an `appId` property, corresponding to the ID of the application the device is running.
-
-Example:
-
-```json
-{
-	"appId": 2167
-}
-```
+The appId must be specified in the URL.
 
 #### Examples:
 From the app on the device:
 
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
-	--data '{"appId": <appId>}' \
-	"$RESIN_SUPERVISOR_ADDRESS/v1/start?apikey=$RESIN_SUPERVISOR_API_KEY"
+	"$RESIN_SUPERVISOR_ADDRESS/v1/apps/<appId>/start?apikey=$RESIN_SUPERVISOR_API_KEY"
 ```
 
 Response:
@@ -535,5 +520,39 @@ Remotely via the API proxy:
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
 	--data '{"deviceId": <deviceId>, "appId": <appId>, "data": {"appId": <appId>}}' \
-	"https://api.resin.io/supervisor/v1/start"
+	"https://api.resin.io/supervisor/v1/apps/<appId>/start"
+```
+
+<hr>
+
+### GET /v1/apps/:appId
+
+Introduced in supervisor v1.8.
+Returns the application running on the device
+The app is a JSON object that contains the following:
+* `appId`: The id of the app as per the Resin API.
+* `commit`: Application commit that is running.
+* `imageId`: The docker image of the current application build.
+* `containerId`: ID of the docker container of the running app.
+* `env`: A key-value store of the app's environment variables.
+
+The appId must be specified in the URL.
+
+#### Examples:
+From the app on the device:
+```bash
+$ curl -X GET --header "Content-Type:application/json" \
+	"$RESIN_SUPERVISOR_ADDRESS/v1/apps/<appId>?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+Response:
+```json
+{"appId": 3134,"commit":"414e65cd378a69a96f403b75f14b40b55856f860","imageId":"registry.resin.io/superapp/414e65cd378a69a96f403b75f14b40b55856f860","containerId":"e5c1eace8b4e","env":{"FOO":"bar"}}
+```
+
+Remotely via the API proxy:
+```bash
+$ curl -X POST --header "Content-Type:application/json" \
+	--header "Authorization: Bearer <auth token>" \
+	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	"https://api.resin.io/supervisor/v1/apps/<appId>"
 ```

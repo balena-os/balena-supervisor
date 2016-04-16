@@ -1,4 +1,4 @@
-# Add /v1/stop and /v1/start endpoints [Pablo]
+# Add endpoints to start, stop and get app [Pablo]
 
 # v1.7.0
 
