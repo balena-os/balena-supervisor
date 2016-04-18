@@ -8,6 +8,7 @@ bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
 device = require './device'
+_ = require 'lodash'
 
 module.exports = (application) ->
 	api = express()
