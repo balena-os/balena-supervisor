@@ -36,7 +36,6 @@ RUN apt-get update \
 		python-dev \
 		rsyslog \
 		rsyslog-gnutls \
-		socat \
 		vim \
 		wget \
 	&& rm -rf /var/lib/apt/lists/*
@@ -83,6 +82,5 @@ COPY config/services/ /etc/systemd/system/
 COPY resin-vars vpn-init /usr/src/app/
 
 RUN systemctl enable resin-supervisor-dind
-RUN systemctl enable resin-supervisor-host-socket
 
 CMD env > /etc/docker.env; exec /sbin/init
