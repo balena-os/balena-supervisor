@@ -247,6 +247,9 @@ application.start = start = (app) ->
 					return
 				# If starting the container failed, we remove it so that it doesn't litter
 				container.removeAsync(v: true)
+				.then ->
+					app.containerId = null
+					knex('app').update(app).where(appId: app.appId)
 				.finally ->
 					logSystemEvent(logTypes.startAppError, app, err)
 					throw err
