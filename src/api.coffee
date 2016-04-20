@@ -139,8 +139,8 @@ module.exports = (application) ->
 				if !app?
 					throw new Error('App not found')
 				application.kill(app, true, false)
-		.then ->
-			res.status(200).send('OK')
+				.then ->
+					res.json(_.pick(app, ['containerId']))
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -155,8 +155,8 @@ module.exports = (application) ->
 				if !app?
 					throw new Error('App not found')
 				application.start(app)
-		.then ->
-			res.status(200).send('OK')
+				.then ->
+					res.json(_.pick(app, ['containerId']))
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 

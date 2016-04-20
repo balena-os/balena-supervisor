@@ -459,7 +459,7 @@ Introduced in supervisor v1.8.
 Temporarily stops a user application container. A reboot or supervisor restart will cause the container to start again.
 The container is not removed with this endpoint.
 
-When successful, responds with 200 and an "OK"
+When successful, responds with 200 and the Id of the stopped container.
 
 The appId must be specified in the URL.
 
@@ -476,8 +476,8 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 Response:
 
-```none
-OK
+```json
+{"containerId":"5f4d4a857742e9ecac505ba5710834d3852ad7d71e10389fc6f61d8655a21806"}
 ```
 
 Remotely via the API proxy:
@@ -496,7 +496,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 Introduced in supervisor v1.8.
 Starts a user application container, usually after it has been stopped with `/v1/stop`.
 
-When successful, responds with 200 and an "OK"
+When successful, responds with 200 and the Id of the started container.
 
 The appId must be specified in the URL.
 
@@ -510,8 +510,8 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 Response:
 
-```none
-OK
+```json
+{"containerId":"6d9e1efdb9aad90fdb2df911f785b6aa00270e9448e75226a9a7361c8a9500cf"}
 ```
 
 Remotely via the API proxy:
