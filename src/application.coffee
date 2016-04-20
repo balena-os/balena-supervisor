@@ -248,8 +248,11 @@ application.start = start = (app) ->
 				# If starting the container failed, we remove it so that it doesn't litter
 				container.removeAsync(v: true)
 				.finally ->
-					logSystemEvent(logTypes.startAppError, app, err)
-					throw err
+					app.containerId = null
+					knex('app').update(app).where(appId: app.appId)
+					.then ->
+						logSystemEvent(logTypes.startAppError, app, err)
+						throw err
 			.then ->
 				app.containerId = container.id
 				device.updateState(commit: app.commit)
