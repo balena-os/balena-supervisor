@@ -8,7 +8,6 @@ RUN apt-get -q update \
 		btrfs-tools \
 		ca-certificates \
 		rsync \
-		socat \
 		supervisor \
 		--no-install-recommends \
 	&& apt-get clean \
@@ -34,8 +33,7 @@ RUN apt-get -q update \
 # Copy source
 COPY . /app/
 
-RUN chmod +x /app/src/enterContainer.sh \
-	&& /app/node_modules/.bin/coffee -c /app/src \
+RUN /app/node_modules/.bin/coffee -c /app/src \
 	&& ln -sf /app/entry.sh /start # Needed for legacy
 
 RUN chmod +x /app/bin/gosuper

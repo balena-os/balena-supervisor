@@ -9,12 +9,6 @@ set -e
 
 cd /app
 
-DATA_DIRECTORY=/data
-if [ -d "$DATA_DIRECTORY" ]; then
-	cp bin/enter.sh $DATA_DIRECTORY/enter.sh
-	chmod +x $DATA_DIRECTORY/enter.sh
-fi
-
 mkdir -p /var/log/supervisor && touch /var/log/supervisor/supervisord.log
 mkdir -p /var/run/resin
 mount -t tmpfs -o size=1m tmpfs /var/run/resin
