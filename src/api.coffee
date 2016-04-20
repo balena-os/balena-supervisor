@@ -128,8 +128,8 @@ module.exports = (application) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	api.post '/v1/apps/:appId/stop', (req, res) ->
-		appId = req.params.appId
-		force = req.body.force
+		{ appId } = req.params
+		{ force } = req.body
 		utils.mixpanelTrack('Stop container', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
@@ -140,12 +140,12 @@ module.exports = (application) ->
 					throw new Error('App not found')
 				application.kill(app, true, false)
 				.then ->
-					res.json(_.pick(app, ['containerId']))
+					res.json(_.pick(app, [ 'containerId' ]))
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	api.post '/v1/apps/:appId/start', (req, res) ->
-		appId = req.params.appId
+		{ appId } = req.params
 		utils.mixpanelTrack('Start container', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
@@ -156,12 +156,12 @@ module.exports = (application) ->
 					throw new Error('App not found')
 				application.start(app)
 				.then ->
-					res.json(_.pick(app, ['containerId']))
+					res.json(_.pick(app, [ 'containerId' ]))
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	api.get '/v1/apps/:appId', (req, res) ->
-		appId = req.params.appId
+		{ appId } = req.params
 		utils.mixpanelTrack('GET app', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
@@ -171,9 +171,9 @@ module.exports = (application) ->
 				if !app?
 					throw new Error('App not found')
 				# Don't return keys on the endpoint
-				app.env = _.omit(JSON.parse(app.env), ['RESIN_SUPERVISOR_API_KEY', 'RESIN_API_KEY'])
+				app.env = _.omit(JSON.parse(app.env), [ 'RESIN_SUPERVISOR_API_KEY', 'RESIN_API_KEY' ])
 				# name and privileged are unused, and id makes no sense to the user here.
-				res.json(_.omit(app, ['id', 'name', 'privileged']))
+				res.json(_.omit(app, [ 'id', 'name', 'privileged' ]))
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 

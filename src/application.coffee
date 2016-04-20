@@ -116,7 +116,7 @@ application.kill = kill = (app, updateDB = true, removeContainer = true) ->
 		statusCode = '' + err.statusCode
 		# 304 means the container was already stopped - so we can just remove it
 		if statusCode is '304'
-			return container.removeAsync(v: true) if removeContainer
+			container.removeAsync(v: true) if removeContainer
 			return
 		# 404 means the container doesn't exist, precisely what we want! :D
 		if statusCode is '404'
