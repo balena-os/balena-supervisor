@@ -10,6 +10,17 @@ config = require './config'
 device = require './device'
 _ = require 'lodash'
 
+privateAppEnvVars = [
+	'RESIN_SUPERVISOR_API_KEY'
+	'RESIN_API_KEY'
+]
+
+ignoredAppTableColumns = [
+	'id'
+	'name'
+	'privileged'
+]
+
 module.exports = (application) ->
 	api = express()
 	api.use(bodyParser())
@@ -171,9 +182,9 @@ module.exports = (application) ->
 				if !app?
 					throw new Error('App not found')
 				# Don't return keys on the endpoint
-				app.env = _.omit(JSON.parse(app.env), [ 'RESIN_SUPERVISOR_API_KEY', 'RESIN_API_KEY' ])
-				# name and privileged are unused, and id makes no sense to the user here.
-				res.json(_.omit(app, [ 'id', 'name', 'privileged' ]))
+				app.env = _.omit(JSON.parse(app.env), privateAppEnvVars)
+				# Don't return data that will be of no use to the user
+				res.json(_.omit(app, ignoredAppTableColumns))
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
