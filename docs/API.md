@@ -519,7 +519,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "data": {"appId": <appId>}}' \
+	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
 	"https://api.resin.io/supervisor/v1/apps/<appId>/start"
 ```
 
