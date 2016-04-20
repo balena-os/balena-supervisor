@@ -491,7 +491,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 <hr>
 
-### POST /v1/start
+### POST /v1/apps/:appId/start
 
 Introduced in supervisor v1.8.
 Starts a user application container, usually after it has been stopped with `/v1/stop`.
