@@ -15,12 +15,6 @@ privateAppEnvVars = [
 	'RESIN_API_KEY'
 ]
 
-ignoredAppTableColumns = [
-	'id'
-	'name'
-	'privileged'
-]
-
 module.exports = (application) ->
 	api = express()
 	api.use(bodyParser())
@@ -151,7 +145,7 @@ module.exports = (application) ->
 					throw new Error('App not found')
 				application.kill(app, true, false)
 				.then ->
-					res.json(_.pick(app, [ 'containerId' ]))
+					res.json(_.pick(app, 'containerId'))
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -167,7 +161,7 @@ module.exports = (application) ->
 					throw new Error('App not found')
 				application.start(app)
 				.then ->
-					res.json(_.pick(app, [ 'containerId' ]))
+					res.json(_.pick(app, 'containerId'))
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -177,14 +171,15 @@ module.exports = (application) ->
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, true), ->
-			knex('app').select().where({ appId })
+			columns = [ 'appId', 'containerId', 'commit', 'imageId', 'env' ]
+			knex('app').select(columns).where({ appId })
 			.then ([ app ]) ->
 				if !app?
 					throw new Error('App not found')
 				# Don't return keys on the endpoint
 				app.env = _.omit(JSON.parse(app.env), privateAppEnvVars)
 				# Don't return data that will be of no use to the user
-				res.json(_.omit(app, ignoredAppTableColumns))
+				res.json(app)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
