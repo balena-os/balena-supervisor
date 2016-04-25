@@ -7,6 +7,12 @@ bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
 device = require './device'
+_ = require 'lodash'
+
+privateAppEnvVars = [
+	'RESIN_SUPERVISOR_API_KEY'
+	'RESIN_API_KEY'
+]
 
 module.exports = (application) ->
 	api = express()
@@ -94,6 +100,58 @@ module.exports = (application) ->
 			res.status(200).send('OK')
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
+
+	api.post '/v1/apps/:appId/stop', (req, res) ->
+		{ appId } = req.params
+		{ force } = req.body
+		utils.mixpanelTrack('Stop container', appId)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		Promise.using application.lockUpdates(appId, force), ->
+			knex('app').select().where({ appId })
+			.then ([ app ]) ->
+				if !app?
+					throw new Error('App not found')
+				application.kill(app, true, false)
+				.then ->
+					res.json(_.pick(app, 'containerId'))
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	api.post '/v1/apps/:appId/start', (req, res) ->
+		{ appId } = req.params
+		utils.mixpanelTrack('Start container', appId)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		Promise.using application.lockUpdates(appId), ->
+			knex('app').select().where({ appId })
+			.then ([ app ]) ->
+				if !app?
+					throw new Error('App not found')
+				application.start(app)
+				.then ->
+					res.json(_.pick(app, 'containerId'))
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	api.get '/v1/apps/:appId', (req, res) ->
+		{ appId } = req.params
+		utils.mixpanelTrack('GET app', appId)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		Promise.using application.lockUpdates(appId, true), ->
+			columns = [ 'appId', 'containerId', 'commit', 'imageId', 'env' ]
+			knex('app').select(columns).where({ appId })
+			.then ([ app ]) ->
+				if !app?
+					throw new Error('App not found')
+				# Don't return keys on the endpoint
+				app.env = _.omit(JSON.parse(app.env), privateAppEnvVars)
+				# Don't return data that will be of no use to the user
+				res.json(app)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
 
 	# Expires the supervisor's API key and generates a new one.
 	# It also communicates the new key to the Resin API.

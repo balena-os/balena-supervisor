@@ -1,3 +1,5 @@
+# Add endpoints to start, stop and get app [Pablo]
+
 # v1.7.0
 
 * Add RESIN_HOST_LOG_TO_DISPLAY variable [Pablo]
