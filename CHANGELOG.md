@@ -1,4 +1,6 @@
-# Add endpoints to start, stop and get app [Pablo]
+# v1.8.0
+
+# Add endpoints to start, stop and get app [Pablo, Kostas]
 
 # v1.7.0
 
