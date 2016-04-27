@@ -1,6 +1,7 @@
 # v1.8.0
 
-# Add endpoints to start, stop and get app [Pablo, Kostas]
+* Add endpoints to start, stop and get app [Pablo, Kostas]
+* Removed a bunch ofobsolete code for the old terminal, reducing the supervisor size considerably. [Page]
 
 # v1.7.0
 
