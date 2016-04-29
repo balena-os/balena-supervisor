@@ -45,10 +45,7 @@ clean:
 	-rm Dockerfile
 
 supervisor-dind:
-	cp 01_nodoc tools/dind/config/
-	touch -t 7805200000 tools/dind/config/01_nodoc
 	cd tools/dind && docker build --no-cache=$(DISABLE_CACHE) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
-	rm tools/dind/config/01_nodoc
 
 run-supervisor: supervisor-dind stop-supervisor
 	cd tools/dind \
