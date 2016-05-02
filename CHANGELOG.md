@@ -1,3 +1,4 @@
+* Stop all apps before rebooting or shutting down [Pablo]
 * Catch exec format error and provide friendlier error message [Aleksis]
 
 # v2.1.0

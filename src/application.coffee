@@ -103,8 +103,12 @@ logSpecialAction = (action, value, success) ->
 	logSystemMessage(msg, {}, "Apply special action #{if success then "success" else "in progress"}")
 
 application = {}
+application.UpdatesLockedError = UpdatesLockedError
 
-application.kill = kill = (app, updateDB = true, removeContainer = true) ->
+application.kill = kill = (app, opts = {}) ->
+	{ updateDB, removeContainer } = opts
+	updateDB ?= true
+	removeContainer ?= true
 	logSystemEvent(logTypes.stopApp, app)
 	device.updateState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
@@ -464,7 +468,7 @@ updateStrategies =
 				.then ->
 					waitToKill(localApp, timeout)
 				.then ->
-					kill(localApp, false)
+					kill(localApp, updateDB: false)
 		.catch (err) ->
 			logSystemEvent(logTypes.updateAppError, app, err) unless err instanceof UpdatesLockedError
 			throw err
