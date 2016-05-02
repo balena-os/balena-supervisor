@@ -1,3 +1,4 @@
+* Stop all apps before rebooting or shutting down [Pablo]
 * Update request-progress to v2.0.1 [Pablo]
 
 # v2.7.1
