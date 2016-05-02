@@ -47,15 +47,41 @@ module.exports = (application) ->
 		application.update(req.body.force)
 		res.sendStatus(204)
 
-	unparsedRouter.post '/v1/reboot', (req, res) ->
+	parsedRouter.post '/v1/reboot', (req, res) ->
+		force = req.body.force
 		utils.mixpanelTrack('Reboot')
-		request.post(config.gosuperAddress + '/v1/reboot')
-		.pipe(res)
+		knex('app').select()
+		.then (apps) ->
+			Promise.map apps, (theApp) ->
+				Promise.using application.lockUpdates(theApp.appId, force), ->
+					# There's a slight chance the app changed after the previous select
+					# So we fetch it again now the lock is acquired
+					knex('app').select().where({ appId: theApp.appId })
+					.then ([ app ]) ->
+						application.kill(app, true, false) if app?
+		.then ->
+			request.post(config.gosuperAddress + '/v1/reboot')
+			.pipe(res)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-	unparsedRouter.post '/v1/shutdown', (req, res) ->
+	parsedRouter.post '/v1/shutdown', (req, res) ->
+		force = req.body.force
 		utils.mixpanelTrack('Shutdown')
-		request.post(config.gosuperAddress + '/v1/shutdown')
-		.pipe(res)
+		knex('app').select()
+		.then (apps) ->
+			Promise.map apps, (theApp) ->
+				Promise.using application.lockUpdates(theApp.appId, force), ->
+					# There's a slight chance the app changed after the previous select
+					# So we fetch it again now the lock is acquired
+					knex('app').select().where({ appId: theApp.appId })
+					.then ([ app ]) ->
+						application.kill(app, true, false) if app?
+		.then ->
+			request.post(config.gosuperAddress + '/v1/shutdown')
+			.pipe(res)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
 	parsedRouter.post '/v1/purge', (req, res) ->
 		appId = req.body.appId
