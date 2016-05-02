@@ -1,3 +1,4 @@
+* Stop all apps before rebooting or shutting down [Pablo]
 * Updated to coffee-script ~1.10.0 [Page]
 * Catch exec format error and provide friendlier error message [Aleksis]
 

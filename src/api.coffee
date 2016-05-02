@@ -9,6 +9,7 @@ device = require './device'
 dockerUtils = require './docker-utils'
 _ = require 'lodash'
 compose = require './compose'
+knex = require './db'
 
 module.exports = (application) ->
 	api = express()
@@ -47,15 +48,53 @@ module.exports = (application) ->
 		application.update(req.body.force)
 		res.sendStatus(204)
 
-	unparsedRouter.post '/v1/reboot', (req, res) ->
+	parsedRouter.post '/v1/reboot', (req, res) ->
+		force = req.body.force
 		utils.mixpanelTrack('Reboot')
-		request.post(config.gosuperAddress + '/v1/reboot')
-		.pipe(res)
+		knex('app').select()
+		.map (theApp) ->
+			Promise.using application.lockUpdates(theApp.appId, force), ->
+				# There's a slight chance the app changed after the previous select
+				# So we fetch it again now the lock is acquired
+				knex('app').select().where({ appId: theApp.appId })
+				.then ([ app ]) ->
+					application.kill(app, removeContainer: false) if app?
+		.then ->
+			new Promise (resolve, reject) ->
+				request.post(config.gosuperAddress + '/v1/reboot')
+				.on('error', reject)
+				.on('response', -> resolve())
+				.pipe(res)
+		.catch (err) ->
+			if err instanceof application.UpdatesLockedError
+				status = 423
+			else
+				status = 500
+			res.status(status).send(err?.message or err or 'Unknown error')
 
-	unparsedRouter.post '/v1/shutdown', (req, res) ->
+	parsedRouter.post '/v1/shutdown', (req, res) ->
+		force = req.body.force
 		utils.mixpanelTrack('Shutdown')
-		request.post(config.gosuperAddress + '/v1/shutdown')
-		.pipe(res)
+		knex('app').select()
+		.map (theApp) ->
+			Promise.using application.lockUpdates(theApp.appId, force), ->
+				# There's a slight chance the app changed after the previous select
+				# So we fetch it again now the lock is acquired
+				knex('app').select().where({ appId: theApp.appId })
+				.then ([ app ]) ->
+					application.kill(app, removeContainer: false) if app?
+		.then ->
+			new Promise (resolve, reject) ->
+				request.post(config.gosuperAddress + '/v1/shutdown')
+				.on('error', reject)
+				.on('response', -> resolve())
+				.pipe(res)
+		.catch (err) ->
+			if err instanceof application.UpdatesLockedError
+				status = 423
+			else
+				status = 500
+			res.status(status).send(err?.message or err or 'Unknown error')
 
 	parsedRouter.post '/v1/purge', (req, res) ->
 		appId = req.body.appId
@@ -69,8 +108,8 @@ module.exports = (application) ->
 				.then ->
 					new Promise (resolve, reject) ->
 						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId })
-						.on 'error', reject
-						.on 'response', -> resolve()
+						.on('error', reject)
+						.on('response', -> resolve())
 						.pipe(res)
 					.finally ->
 						application.start(app)
@@ -115,7 +154,7 @@ module.exports = (application) ->
 		Promise.using application.lockUpdates(appId, force), ->
 			utils.getKnexApp(appId)
 			.tap (app) ->
-				application.kill(app, true, false)
+				application.kill(app, removeContainer: false)
 			.then (app) ->
 				res.json(_.pick(app, 'containerId'))
 		.catch utils.AppNotFoundError, (e) ->
