@@ -1,3 +1,5 @@
+* Increase delta request timeout to 15 minutes [Pablo]
+
 # v1.8.0
 
 * Add endpoints to start, stop and get app [Pablo, Kostas]
