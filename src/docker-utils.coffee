@@ -59,6 +59,7 @@ findSimilarImage = (repoTag) ->
 		return 'resin/scratch'
 
 DELTA_OUT_OF_SYNC_CODES = [23, 24]
+DELTA_REQUEST_TIMEOUT = 15 * 60 * 1000
 
 exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) ->
 	Promise.try ->
@@ -67,7 +68,7 @@ exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) -
 		findSimilarImage(imgDest)
 	.then (imgSrc) ->
 		rsyncDiff = new Promise (resolve, reject) ->
-			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: 5 * 60 * 1000)
+			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
 			.on 'progress', (progress) ->
 				onProgress(percentage: progress.percent)
 			.on 'end', ->
