@@ -4,7 +4,9 @@ VOLUME /var/lib/docker
 VOLUME /resin-data
 
 RUN apt-get update \
-	&& apt-get install -y ifupdown \
+	&& apt-get install -y \
+	ifupdown \
+	rsync \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV DOCKER_VERSION 1.6.2
