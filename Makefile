@@ -14,6 +14,8 @@ PUBNUB_SUBSCRIBE_KEY = sub-c-bananas
 PUBNUB_PUBLISH_KEY = pub-c-bananas
 MIXPANEL_TOKEN = bananasbananas
 
+PASSWORDLESS_DROPBEAR = false
+
 ifdef BASE_DISTRO
 $(info BASE_DISTRO SPECIFIED. START BUILDING ALPINE SUPERVISOR)
 	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)-alpine"
@@ -55,6 +57,7 @@ clean:
 	-rm Dockerfile
 
 supervisor-dind:
+	sed -i 's/\(ENV PASSWORDLESS_DROPBEAR\).*/\1 ${PASSWORDLESS_DROPBEAR}/' tools/dind/Dockerfile
 	cd tools/dind && docker build --no-cache=$(DISABLE_CACHE) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
 
 run-supervisor: supervisor-dind stop-supervisor
