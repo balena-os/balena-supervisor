@@ -130,9 +130,10 @@ exports.getConfig = getConfig = (key) ->
 	.then ([ conf ]) ->
 		return conf?.value
 
-exports.extendEnvVars = (env, uuid) ->
+exports.extendEnvVars = (env, uuid, appId) ->
 	host = '127.0.0.1'
 	newEnv =
+		RESIN_APP_ID: appId.toString()
 		RESIN_DEVICE_UUID: uuid
 		RESIN_SUPERVISOR_ADDRESS: "http://#{host}:#{config.listenPort}"
 		RESIN_SUPERVISOR_HOST: host

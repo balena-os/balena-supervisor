@@ -1,3 +1,4 @@
+* Add RESIN_APP_ID variable [Pablo]
 * Increase delta request timeout to 15 minutes [Pablo]
 
 # v1.8.0
