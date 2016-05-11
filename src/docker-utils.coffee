@@ -244,16 +244,19 @@ do ->
 
 	exports.createImage = (req, res) ->
 		{ registry, repo, tag, fromImage, fromSrc } = req.query
-		if fromImage
+		if fromImage?
 			repoTag = fromImage
 		else
 			repoTag = buildRepoTag(repo, tag, registry)
 		Promise.using lockImages(), ->
 			knex('image').insert({ repoTag })
 			.then ->
-				docker.importImageAsync(req, { repo, tag, registry })
-				.then (stream) ->
-					stream.pipe(res)
+				if fromImage?
+					docker.createImageAsync({ fromImage })
+				else
+					docker.importImageAsync(req, { repo, tag, registry })
+			.then (stream) ->
+				stream.pipe(res)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
@@ -302,21 +305,21 @@ do ->
 	exports.startContainer = (req, res) ->
 		docker.getContainer(req.params.id).startAsync(req.body)
 		.then (data) ->
-				res.json(data)
+			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
 	exports.stopContainer = (req, res) ->
 		docker.getContainer(req.params.id).stopAsync(sanitizeQuery(req.query))
 		.then (data) ->
-				res.json(data)
+			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
 	exports.deleteContainer = (req, res) ->
 		docker.getContainer(req.params.id).removeAsync(sanitizeQuery(req.query))
 		.then (data) ->
-				res.json(data)
+			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
