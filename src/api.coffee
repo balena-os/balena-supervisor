@@ -17,7 +17,10 @@ privateAppEnvVars = [
 
 module.exports = (application) ->
 	api = express()
-	parseBody = bodyParser()
+	unparsedRouter = express.Router()
+	parsedRouter = express.Router()
+	parsedRouter.use(bodyParser())
+
 	api.use (req, res, next) ->
 		utils.getOrGenerateSecret('api')
 		.then (secret) ->
@@ -29,31 +32,31 @@ module.exports = (application) ->
 			# This should never happen...
 			res.status(503).send('Invalid API key in supervisor')
 
-	api.get '/ping', (req, res) ->
+	unparsedRouter.get '/ping', (req, res) ->
 		res.send('OK')
 
-	api.post '/v1/blink', (req, res) ->
+	unparsedRouter.post '/v1/blink', (req, res) ->
 		utils.mixpanelTrack('Device blink')
 		utils.blink.pattern.start()
 		setTimeout(utils.blink.pattern.stop, 15000)
 		res.sendStatus(200)
 
-	api.post '/v1/update', parseBody, (req, res) ->
+	parsedRouter.post '/v1/update', (req, res) ->
 		utils.mixpanelTrack('Update notification')
 		application.update(req.body.force)
 		res.sendStatus(204)
 
-	api.post '/v1/reboot', (req, res) ->
+	unparsedRouter.post '/v1/reboot', (req, res) ->
 		utils.mixpanelTrack('Reboot')
 		request.post(config.gosuperAddress + '/v1/reboot')
 		.pipe(res)
 
-	api.post '/v1/shutdown', (req, res) ->
+	unparsedRouter.post '/v1/shutdown', (req, res) ->
 		utils.mixpanelTrack('Shutdown')
 		request.post(config.gosuperAddress + '/v1/shutdown')
 		.pipe(res)
 
-	api.post '/v1/purge', parseBody, (req, res) ->
+	parsedRouter.post '/v1/purge',(req, res) ->
 		appId = req.body.appId
 		utils.mixpanelTrack('Purge /data', appId)
 		if !appId?
@@ -75,15 +78,15 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
-	api.post '/v1/tcp-ping', (req, res) ->
+	unparsedRouter.post '/v1/tcp-ping', (req, res) ->
 		utils.disableCheck(false)
 		res.sendStatus(204)
 
-	api.delete '/v1/tcp-ping', (req, res) ->
+	unparsedRouter.delete '/v1/tcp-ping', (req, res) ->
 		utils.disableCheck(true)
 		res.sendStatus(204)
 
-	api.post '/v1/restart', parseBody, (req, res) ->
+	parsedRouter.post '/v1/restart', (req, res) ->
 		appId = req.body.appId
 		force = req.body.force
 		utils.mixpanelTrack('Restart container', appId)
@@ -102,7 +105,7 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
-	api.post '/v1/apps/:appId/stop', parseBody, (req, res) ->
+	parsedRouter.post '/v1/apps/:appId/stop', (req, res) ->
 		{ appId } = req.params
 		{ force } = req.body
 		utils.mixpanelTrack('Stop container', appId)
@@ -119,7 +122,7 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
-	api.post '/v1/apps/:appId/start', (req, res) ->
+	unparsedRouter.post '/v1/apps/:appId/start', (req, res) ->
 		{ appId } = req.params
 		utils.mixpanelTrack('Start container', appId)
 		if !appId?
@@ -135,7 +138,7 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
-	api.get '/v1/apps/:appId', (req, res) ->
+	unparsedRouter.get '/v1/apps/:appId', (req, res) ->
 		{ appId } = req.params
 		utils.mixpanelTrack('GET app', appId)
 		if !appId?
@@ -156,7 +159,7 @@ module.exports = (application) ->
 
 	# Expires the supervisor's API key and generates a new one.
 	# It also communicates the new key to the Resin API.
-	api.post '/v1/regenerate-api-key', (req, res) ->
+	unparsedRouter.post '/v1/regenerate-api-key', (req, res) ->
 		utils.newSecret('api')
 		.then (secret) ->
 			device.updateState(api_secret: secret)
@@ -164,16 +167,19 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
-	api.get '/v1/device', (req, res) ->
+	unparsedRouter.get '/v1/device', (req, res) ->
 		res.json(device.getState())
 
-	api.post '/v1/images/create', dockerUtils.createImage
-	api.delete '/v1/images/:name', dockerUtils.deleteImage
-	api.get '/v1/images', dockerUtils.listImages
-	api.post '/v1/containers/create', parseBody, dockerUtils.createContainer
-	api.post '/v1/containers/:id/start', parseBody, dockerUtils.startContainer
-	api.post '/v1/containers/:id/stop', dockerUtils.stopContainer
-	api.delete '/v1/containers/:id', dockerUtils.deleteContainer
-	api.get '/v1/containers', dockerUtils.listContainers
+	unparsedRouter.post '/v1/images/create', dockerUtils.createImage
+	unparsedRouter.delete '/v1/images/:name', dockerUtils.deleteImage
+	unparsedRouter.get '/v1/images', dockerUtils.listImages
+	parsedRouter.post '/v1/containers/create', dockerUtils.createContainer
+	parsedRouter.post '/v1/containers/:id/start', dockerUtils.startContainer
+	unparsedRouter.post '/v1/containers/:id/stop', dockerUtils.stopContainer
+	unparsedRouter.delete '/v1/containers/:id', dockerUtils.deleteContainer
+	unparsedRouter.get '/v1/containers', dockerUtils.listContainers
+
+	api.use(unparsedRouter)
+	api.use(parsedRouter)
 
 	return api
