@@ -244,10 +244,10 @@ do ->
 
 	exports.createImage = (req, res) ->
 		{ registry, repo, tag, fromImage, fromSrc } = req.query
-		if fromSrc != '-'
-			res.status('422').send('Using a fromSrc other than "-" is not supported')
-			return
-		repoTag = buildRepoTag(repo, tag, registry)
+		if fromImage
+			repoTag = fromImage
+		else
+			repoTag = buildRepoTag(repo, tag, registry)
 		Promise.using lockImages(), ->
 			knex('image').insert({ repoTag })
 			.then ->
@@ -277,14 +277,48 @@ do ->
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
+	docker.modem.dialAsync = Promise.promisify(docker.modem.dial)
 	exports.createContainer = (req, res) ->
-		res.status(500).send('Not implemented')
+		Promise.using lockImages(), ->
+			knex('image').select().where('repoTag', req.body.Image)
+			.then (images) ->
+				throw new Error('Only images created via the Supervisor can be used for creating containers.') if images.length == 0
+				optsf =
+					path: '/containers/create?'
+					method: 'POST'
+					options: req.body
+					statusCodes:
+						200: true
+						201: true
+						404: 'no such container'
+						406: 'impossible to attach'
+						500: 'server error'
+				docker.modem.dialAsync(optsf)
+				.then (data) ->
+					res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
 	exports.startContainer = (req, res) ->
-		res.status(500).send('Not implemented')
+		docker.getContainer(req.params.id).startAsync(req.body)
+		.then (data) ->
+				res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
 	exports.stopContainer = (req, res) ->
-		res.status(500).send('Not implemented')
+		docker.getContainer(req.params.id).stopAsync(sanitizeQuery(req.query))
+		.then (data) ->
+				res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
 	exports.deleteContainer = (req, res) ->
-		res.status(500).send('Not implemented')
+		docker.getContainer(req.params.id).removeAsync(sanitizeQuery(req.query))
+		.then (data) ->
+				res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
 
 	exports.listContainers = (req, res) ->
 		docker.listContainersAsync(sanitizeQuery(req.query))

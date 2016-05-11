@@ -171,9 +171,9 @@ module.exports = (application) ->
 	api.delete '/v1/images/:name', dockerUtils.deleteImage
 	api.get '/v1/images', dockerUtils.listImages
 	api.post '/v1/containers/create', parseBody, dockerUtils.createContainer
-	api.post '/v1/containers/:id/start', dockerUtils.startContainer
+	api.post '/v1/containers/:id/start', parseBody, dockerUtils.startContainer
 	api.post '/v1/containers/:id/stop', dockerUtils.stopContainer
-	api.delete '/v1/containers/:name', dockerUtils.deleteContainer
+	api.delete '/v1/containers/:id', dockerUtils.deleteContainer
 	api.get '/v1/containers', dockerUtils.listContainers
 
 	return api
