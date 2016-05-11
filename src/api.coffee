@@ -7,6 +7,7 @@ bodyParser = require 'body-parser'
 request = require 'request'
 config = require './config'
 device = require './device'
+dockerUtils = require './docker-utils'
 _ = require 'lodash'
 
 privateAppEnvVars = [
@@ -16,7 +17,7 @@ privateAppEnvVars = [
 
 module.exports = (application) ->
 	api = express()
-	api.use(bodyParser())
+	parseBody = bodyParser()
 	api.use (req, res, next) ->
 		utils.getOrGenerateSecret('api')
 		.then (secret) ->
@@ -37,7 +38,7 @@ module.exports = (application) ->
 		setTimeout(utils.blink.pattern.stop, 15000)
 		res.sendStatus(200)
 
-	api.post '/v1/update', (req, res) ->
+	api.post '/v1/update', parseBody, (req, res) ->
 		utils.mixpanelTrack('Update notification')
 		application.update(req.body.force)
 		res.sendStatus(204)
@@ -52,7 +53,7 @@ module.exports = (application) ->
 		request.post(config.gosuperAddress + '/v1/shutdown')
 		.pipe(res)
 
-	api.post '/v1/purge', (req, res) ->
+	api.post '/v1/purge', parseBody, (req, res) ->
 		appId = req.body.appId
 		utils.mixpanelTrack('Purge /data', appId)
 		if !appId?
@@ -82,7 +83,7 @@ module.exports = (application) ->
 		utils.disableCheck(true)
 		res.sendStatus(204)
 
-	api.post '/v1/restart', (req, res) ->
+	api.post '/v1/restart', parseBody, (req, res) ->
 		appId = req.body.appId
 		force = req.body.force
 		utils.mixpanelTrack('Restart container', appId)
@@ -101,7 +102,7 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
-	api.post '/v1/apps/:appId/stop', (req, res) ->
+	api.post '/v1/apps/:appId/stop', parseBody, (req, res) ->
 		{ appId } = req.params
 		{ force } = req.body
 		utils.mixpanelTrack('Stop container', appId)
@@ -165,5 +166,14 @@ module.exports = (application) ->
 
 	api.get '/v1/device', (req, res) ->
 		res.json(device.getState())
+
+	api.post '/v1/images/create', dockerUtils.createImage
+	api.delete '/v1/images/:name', dockerUtils.deleteImage
+	api.get '/v1/images', dockerUtils.listImages
+	api.post '/v1/containers/create', parseBody, dockerUtils.createContainer
+	api.post '/v1/containers/:id/start', dockerUtils.startContainer
+	api.post '/v1/containers/:id/stop', dockerUtils.stopContainer
+	api.delete '/v1/containers/:name', dockerUtils.deleteContainer
+	api.get '/v1/containers', dockerUtils.listContainers
 
 	return api
