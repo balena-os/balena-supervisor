@@ -1,3 +1,5 @@
+* Add endpoints to manage images and containers locally [Pablo]
+* Only use bodyParser for endpoints that need it [Pablo]
 * Add RESIN_APP_ID variable [Pablo]
 * Increase delta request timeout to 15 minutes [Pablo]
 
