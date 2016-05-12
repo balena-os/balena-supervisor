@@ -246,13 +246,14 @@ do ->
 		{ registry, repo, tag, fromImage, fromSrc } = req.query
 		if fromImage?
 			repoTag = fromImage
+			repoTag += ':' + tag if tag?
 		else
 			repoTag = buildRepoTag(repo, tag, registry)
 		Promise.using lockImages(), ->
 			knex('image').insert({ repoTag })
 			.then ->
 				if fromImage?
-					docker.createImageAsync({ fromImage })
+					docker.createImageAsync({ fromImage, tag })
 				else
 					docker.importImageAsync(req, { repo, tag, registry })
 			.then (stream) ->
