@@ -311,14 +311,28 @@ do ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
 	exports.stopContainer = (req, res) ->
-		docker.getContainer(req.params.id).stopAsync(sanitizeQuery(req.query))
+		container = docker.getContainer(req.params.id)
+		knex('app').select()
+		.then (apps) ->
+			throw new Error('Cannot stop an app container') if _.any(apps, containerId: req.params.id)
+			container.inspectAsync()
+		.then (cont) ->
+			throw new Error('Cannot stop supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
+			container.stopAsync(sanitizeQuery(req.query))
 		.then (data) ->
 			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
 	exports.deleteContainer = (req, res) ->
-		docker.getContainer(req.params.id).removeAsync(sanitizeQuery(req.query))
+		container = docker.getContainer(req.params.id)
+		knex('app').select()
+		.then (apps) ->
+			throw new Error('Cannot remove an app container') if _.any(apps, containerId: req.params.id)
+			container.inspectAsync()
+		.then (cont) ->
+			throw new Error('Cannot remove supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
+			container.removeAsync(sanitizeQuery(req.query))
 		.then (data) ->
 			res.json(data)
 		.catch (err) ->
