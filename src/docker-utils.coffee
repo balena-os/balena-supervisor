@@ -9,7 +9,7 @@ knex = require './db'
 TypedError = require 'typed-error'
 { request } = require './request'
 fs = Promise.promisifyAll require 'fs'
-
+Lock = require 'rwlock'
 class OutOfSyncError extends TypedError
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
@@ -149,6 +149,13 @@ dockerSync = (imgSrc, imgDest, rsyncDiff, conf) ->
 			docker.getImage(destId).tagAsync({ repo, tag, force: true })
 
 do ->
+	_lock = new Lock()
+	_writeLock = Promise.promisify(_lock.async.writeLock)
+	lockImages = ->
+		_writeLock('images')
+		.disposer (release) ->
+			release()
+
 	# Keep track of the images being fetched, so we don't clean them up whilst fetching.
 	imagesBeingFetched = 0
 	exports.fetchImageWithProgress = (image, onProgress) ->
@@ -162,51 +169,179 @@ do ->
 		# If there is no tag then mark it as latest
 		supervisorTag += ':latest'
 	exports.cleanupContainersAndImages = ->
-		Promise.join(
-			knex('app').select()
-			.map (app) ->
-				app.imageId + ':latest'
-			docker.listImagesAsync()
-			(apps, images) ->
-				imageTags = _.map(images, 'RepoTags')
-				supervisorTags = _.filter imageTags, (tags) ->
-					_.contains(tags, supervisorTag)
-				appTags = _.filter imageTags, (tags) ->
-					_.any tags, (tag) ->
-						_.contains(apps, tag)
-				supervisorTags = _.flatten(supervisorTags)
-				appTags = _.flatten(appTags)
-				return { images, supervisorTags, appTags }
-		)
-		.then ({ images, supervisorTags, appTags }) ->
-			# Cleanup containers first, so that they don't block image removal.
-			docker.listContainersAsync(all: true)
-			.filter (containerInfo) ->
-				# Do not remove user apps.
-				if _.contains(appTags, containerInfo.Image)
-					return false
-				if !_.contains(supervisorTags, containerInfo.Image)
-					return true
-				return containerHasExited(containerInfo.Id)
-			.map (containerInfo) ->
-				docker.getContainer(containerInfo.Id).removeAsync()
+		Promise.using lockImages(), ->
+			Promise.join(
+				knex('image').select('repoTag')
+				.map (image) ->
+					image.repoTag
+				knex('app').select()
+				.map (app) ->
+					app.imageId + ':latest'
+				docker.listImagesAsync()
+				(localTags, apps, images) ->
+					imageTags = _.map(images, 'RepoTags')
+					supervisorTags = _.filter imageTags, (tags) ->
+						_.contains(tags, supervisorTag)
+					appTags = _.filter imageTags, (tags) ->
+						_.any tags, (tag) ->
+							_.contains(apps, tag)
+					locallyCreatedTags = _.filter imageTags, (tags) ->
+						_.any tags, (tag) ->
+							_.contains(localTags, tag)
+					supervisorTags = _.flatten(supervisorTags)
+					appTags = _.flatten(appTags)
+					locallyCreatedTags = _.flatten(locallyCreatedTags)
+					return { images, supervisorTags, appTags, locallyCreatedTags }
+			)
+			.then ({ images, supervisorTags, appTags, locallyCreatedTags }) ->
+				# Cleanup containers first, so that they don't block image removal.
+				docker.listContainersAsync(all: true)
+				.filter (containerInfo) ->
+					# Do not remove user apps.
+					if _.contains(appTags, containerInfo.Image)
+						return false
+					if _.contains(locallyCreatedTags, containerInfo.Image)
+						return false
+					if !_.contains(supervisorTags, containerInfo.Image)
+						return true
+					return containerHasExited(containerInfo.Id)
+				.map (containerInfo) ->
+					docker.getContainer(containerInfo.Id).removeAsync()
+					.then ->
+						console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
+					.catch(_.noop)
 				.then ->
-					console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
-				.catch(_.noop)
-			.then ->
-				# And then clean up the images, as long as we aren't currently trying to fetch any.
-				return if imagesBeingFetched > 0
-				imagesToClean = _.reject images, (image) ->
-					_.any image.RepoTags, (tag) ->
-						return _.contains(appTags, tag) or _.contains(supervisorTags, tag)
-				Promise.map imagesToClean, (image) ->
-					Promise.map image.RepoTags.concat(image.Id), (tag) ->
-						docker.getImage(tag).removeAsync()
-						.then ->
-							console.log('Deleted image:', tag, image.Id, image.RepoTags)
-						.catch(_.noop)
+					# And then clean up the images, as long as we aren't currently trying to fetch any.
+					return if imagesBeingFetched > 0
+					imagesToClean = _.reject images, (image) ->
+						_.any image.RepoTags, (tag) ->
+							return _.contains(appTags, tag) or _.contains(supervisorTags, tag) or _.contains(locallyCreatedTags, tag)
+					Promise.map imagesToClean, (image) ->
+						Promise.map image.RepoTags.concat(image.Id), (tag) ->
+							docker.getImage(tag).removeAsync()
+							.then ->
+								console.log('Deleted image:', tag, image.Id, image.RepoTags)
+							.catch(_.noop)
 
 	containerHasExited = (id) ->
 		docker.getContainer(id).inspectAsync()
 		.then (data) ->
 			return not data.State.Running
+
+	buildRepoTag = (repo, tag, registry) ->
+		repoTag = ''
+		if registry?
+			repoTag += registry + '/'
+		repoTag += repo
+		if tag?
+			repoTag += ':' + tag
+		else
+			repoTag += ':latest'
+		return repoTag
+
+	sanitizeQuery = (query) ->
+		_.omit(query, 'apikey')
+
+	exports.createImage = (req, res) ->
+		{ registry, repo, tag, fromImage, fromSrc } = req.query
+		if fromImage?
+			repoTag = fromImage
+			repoTag += ':' + tag if tag?
+		else
+			repoTag = buildRepoTag(repo, tag, registry)
+		Promise.using lockImages(), ->
+			knex('image').insert({ repoTag })
+			.then ->
+				if fromImage?
+					docker.createImageAsync({ fromImage, tag })
+				else
+					docker.importImageAsync(req, { repo, tag, registry })
+			.then (stream) ->
+				stream.pipe(res)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.deleteImage = (req, res) ->
+		imageName = req.params[0]
+		Promise.using lockImages(), ->
+			knex('image').select().where('repoTag', imageName)
+			.then (images) ->
+				throw new Error('Only images created via the Supervisor can be deleted.') if images.length == 0
+				knex('image').where('repoTag', imageName).delete()
+			.then ->
+				docker.getImage(imageName).removeAsync(sanitizeQuery(req.query))
+				.then (data) ->
+					res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.listImages = (req, res) ->
+		docker.listImagesAsync(sanitizeQuery(req.query))
+		.then (images) ->
+			res.json(images)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	docker.modem.dialAsync = Promise.promisify(docker.modem.dial)
+	exports.createContainer = (req, res) ->
+		Promise.using lockImages(), ->
+			knex('image').select().where('repoTag', req.body.Image)
+			.then (images) ->
+				throw new Error('Only images created via the Supervisor can be used for creating containers.') if images.length == 0
+				optsf =
+					path: '/containers/create?'
+					method: 'POST'
+					options: req.body
+					statusCodes:
+						200: true
+						201: true
+						404: 'no such container'
+						406: 'impossible to attach'
+						500: 'server error'
+				docker.modem.dialAsync(optsf)
+				.then (data) ->
+					res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.startContainer = (req, res) ->
+		docker.getContainer(req.params.id).startAsync(req.body)
+		.then (data) ->
+			res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.stopContainer = (req, res) ->
+		container = docker.getContainer(req.params.id)
+		knex('app').select()
+		.then (apps) ->
+			throw new Error('Cannot stop an app container') if _.any(apps, containerId: req.params.id)
+			container.inspectAsync()
+		.then (cont) ->
+			throw new Error('Cannot stop supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
+			container.stopAsync(sanitizeQuery(req.query))
+		.then (data) ->
+			res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.deleteContainer = (req, res) ->
+		container = docker.getContainer(req.params.id)
+		knex('app').select()
+		.then (apps) ->
+			throw new Error('Cannot remove an app container') if _.any(apps, containerId: req.params.id)
+			container.inspectAsync()
+		.then (cont) ->
+			throw new Error('Cannot remove supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
+			container.removeAsync(sanitizeQuery(req.query))
+		.then (data) ->
+			res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.listContainers = (req, res) ->
+		docker.listContainersAsync(sanitizeQuery(req.query))
+		.then (containers) ->
+			res.json(containers)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')

@@ -40,6 +40,13 @@ knex.init = Promise.all([
 				addColumn('app', 'appId', 'string')
 			]
 
+	knex.schema.hasTable('image')
+	.then (exists) ->
+		if not exists
+			knex.schema.createTable 'image', (t) ->
+				t.increments('id').primary()
+				t.string('repoTag')
+
 ])
 
 module.exports = knex
