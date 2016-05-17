@@ -262,13 +262,14 @@ do ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
 	exports.deleteImage = (req, res) ->
+		imageName = req.params[0]
 		Promise.using lockImages(), ->
-			knex('image').select().where('repoTag', req.params.name)
+			knex('image').select().where('repoTag', imageName)
 			.then (images) ->
 				throw new Error('Only images created via the Supervisor can be deleted.') if images.length == 0
-				knex('image').where('repoTag', req.params.name).delete()
+				knex('image').where('repoTag', imageName).delete()
 			.then ->
-				docker.getImage(req.params.name).removeAsync(sanitizeQuery(req.query))
+				docker.getImage(imageName).removeAsync(sanitizeQuery(req.query))
 				.then (data) ->
 					res.json(data)
 		.catch (err) ->

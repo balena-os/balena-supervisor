@@ -171,7 +171,7 @@ module.exports = (application) ->
 		res.json(device.getState())
 
 	unparsedRouter.post '/v1/images/create', dockerUtils.createImage
-	unparsedRouter.delete '/v1/images/:name', dockerUtils.deleteImage
+	unparsedRouter.delete '/v1/images/*', dockerUtils.deleteImage
 	unparsedRouter.get '/v1/images', dockerUtils.listImages
 	parsedRouter.post '/v1/containers/create', dockerUtils.createContainer
 	parsedRouter.post '/v1/containers/:id/start', dockerUtils.startContainer
