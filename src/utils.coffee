@@ -14,7 +14,10 @@ logger = require './lib/logger'
 utils = exports
 
 # Parses package.json and returns resin-supervisor's version
-exports.supervisorVersion = require('../package.json').version
+version = require('../package.json').version
+tagExtra = process.env.SUPERVISOR_TAG_EXTRA
+version += '-' + tagExtra if !_.isEmpty(tagExtra)
+exports.supervisorVersion = version
 
 mixpanelClient = mixpanel.init(config.mixpanelToken)
 

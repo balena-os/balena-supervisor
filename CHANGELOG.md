@@ -1,3 +1,5 @@
+* Fix reporting of supervisor version for alpine supervisor [Pablo]
+* Add alpine supervisor build information [Trong]
 * Add endpoints to manage images and containers locally [Pablo]
 * Only use bodyParser for endpoints that need it [Pablo]
 * Add RESIN_APP_ID variable [Pablo]
