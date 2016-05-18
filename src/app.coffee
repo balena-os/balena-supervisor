@@ -27,7 +27,8 @@ knex.init.then ->
 			device.getOSVersion()
 		.then (osVersion) ->
 			console.log('Starting API server..')
-			api(application).listen(config.listenPort)
+			apiServer = api(application).listen(config.listenPort)
+			apiServer.timeout = config.apiTimeout
 			# Let API know what version we are, and our api connection info.
 			console.log('Updating supervisor version and api info')
 			device.updateState(
