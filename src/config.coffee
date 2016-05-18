@@ -19,6 +19,7 @@ dockerRoot = checkString(process.env.DOCKER_ROOT) ? '/mnt/root/var/lib/rce'
 # Defaults needed for both gosuper and node supervisor are declared in entry.sh
 module.exports = config =
 	apiEndpoint: checkString(process.env.API_ENDPOINT) ? 'https://api.resin.io'
+	apiTimeout: checkInt(process.env.API_TIMEOUT) ? 15 * 60 * 1000
 	listenPort: checkInt(process.env.LISTEN_PORT) ? 80
 	gosuperAddress: "http://unix:#{process.env.GOSUPER_SOCKET}:"
 	deltaHost: checkString(process.env.DELTA_ENDPOINT) ? 'https://delta.resin.io'
