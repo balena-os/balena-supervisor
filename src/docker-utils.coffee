@@ -61,39 +61,6 @@ findSimilarImage = (repoTag) ->
 DELTA_OUT_OF_SYNC_CODES = [23, 24]
 DELTA_REQUEST_TIMEOUT = 15 * 60 * 1000
 
-exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) ->
-	Promise.try ->
-		if startFromEmpty
-			return 'resin/scratch'
-		findSimilarImage(imgDest)
-	.then (imgSrc) ->
-		rsyncDiff = new Promise (resolve, reject) ->
-			progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
-			.on 'progress', (progress) ->
-				onProgress(percentage: progress.percent)
-			.on 'end', ->
-				onProgress(percentage: 100)
-			.on 'response', (res) ->
-				if res.statusCode isnt 200
-					reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
-				else
-					resolve(res)
-			.on 'error', reject
-			.pause()
-
-		imageConfig = request.getAsync("#{config.deltaHost}/api/v1/config?image=#{imgDest}", {json: true, timeout: 0})
-		.spread ({statusCode}, imageConfig) ->
-			if statusCode isnt 200
-				throw new Error("Invalid configuration: #{imageConfig}")
-			return imageConfig
-
-		return [ rsyncDiff, imageConfig, imgSrc ]
-	.spread (rsyncDiff, imageConfig, imgSrc) ->
-		dockerSync(imgSrc, imgDest, rsyncDiff, imageConfig)
-	.catch OutOfSyncError, (err) ->
-		console.log('Falling back to delta-from-empty')
-		exports.rsyncImageWithProgress(imgDest, onProgress, true)
-
 getRepoAndTag = (image) ->
 	getRegistryAndName(image)
 	.then ({ registry, imageName, tagName }) ->
@@ -155,6 +122,42 @@ do ->
 		_writeLock('images')
 		.disposer (release) ->
 			release()
+
+	exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) ->
+		imagesBeingFetched++
+		Promise.try ->
+			if startFromEmpty
+				return 'resin/scratch'
+			findSimilarImage(imgDest)
+		.then (imgSrc) ->
+			rsyncDiff = new Promise (resolve, reject) ->
+				progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
+				.on 'progress', (progress) ->
+					onProgress(percentage: progress.percent)
+				.on 'end', ->
+					onProgress(percentage: 100)
+				.on 'response', (res) ->
+					if res.statusCode isnt 200
+						reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
+					else
+						resolve(res)
+				.on 'error', reject
+				.pause()
+
+			imageConfig = request.getAsync("#{config.deltaHost}/api/v1/config?image=#{imgDest}", {json: true, timeout: 0})
+			.spread ({statusCode}, imageConfig) ->
+				if statusCode isnt 200
+					throw new Error("Invalid configuration: #{imageConfig}")
+				return imageConfig
+
+			return [ rsyncDiff, imageConfig, imgSrc ]
+		.spread (rsyncDiff, imageConfig, imgSrc) ->
+			dockerSync(imgSrc, imgDest, rsyncDiff, imageConfig)
+		.catch OutOfSyncError, (err) ->
+			console.log('Falling back to delta-from-empty')
+			exports.rsyncImageWithProgress(imgDest, onProgress, true)
+		.finally ->
+			imagesBeingFetched--
 
 	# Keep track of the images being fetched, so we don't clean them up whilst fetching.
 	imagesBeingFetched = 0
@@ -258,6 +261,27 @@ do ->
 					docker.importImageAsync(req, { repo, tag, registry })
 			.then (stream) ->
 				stream.pipe(res)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.loadImage = (req, res) ->
+		if imagesBeingFetched > 0
+			res.status(500).send('Cannot load an image while the supervisor is pulling an update')
+			return
+		Promise.using lockImages(), ->
+			docker.listImagesAsync()
+			.then (oldImages) ->
+				docker.loadImageAsync(req)
+				.then ->
+					docker.listImagesAsync()
+				.then (newImages) ->
+					oldTags = _.flatten(_.map(oldImages, 'RepoTags'))
+					newTags = _.flatten(_.map(newImages, 'RepoTags'))
+					createdTags = _.difference(newTags, oldTags)
+					Promise.map createdTags, (repoTag) ->
+						knex('image').insert({ repoTag })
+			.then ->
+				res.sendStatus(200)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
