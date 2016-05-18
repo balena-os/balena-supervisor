@@ -1,6 +1,7 @@
 DISABLE_CACHE = 'false'
 
 ARCH = rpi# rpi/amd64/i386/armv7hf/armel
+BASE_DISTRO =
 
 DEPLOY_REGISTRY =
 
@@ -9,12 +10,21 @@ JOB_NAME = 1
 
 all: supervisor
 
-IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
-SUPERVISOR_IMAGE=$(DEPLOY_REGISTRY)$(IMAGE)
-
 PUBNUB_SUBSCRIBE_KEY = sub-c-bananas
 PUBNUB_PUBLISH_KEY = pub-c-bananas
 MIXPANEL_TOKEN = bananasbananas
+
+ifdef BASE_DISTRO
+$(info BASE_DISTRO SPECIFIED. START BUILDING ALPINE SUPERVISOR)
+	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)-alpine"
+	DOCKERFILE = alpine.$(ARCH)
+else
+$(info BASE_DISTRO NOT SPECIFIED. START BUILDING DEBIAN SUPERVISOR)
+	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
+	DOCKERFILE = $(ARCH)
+endif
+
+SUPERVISOR_IMAGE=$(DEPLOY_REGISTRY)$(IMAGE)
 
 ifeq ($(ARCH),rpi)
 	GOARCH = arm
@@ -60,7 +70,7 @@ stop-supervisor:
 	-docker rm -f --volumes resin_supervisor_1 > /dev/null || true
 
 supervisor: gosuper
-	cp Dockerfile.$(ARCH) Dockerfile
+	cp Dockerfile.$(DOCKERFILE) Dockerfile
 	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile
 	echo "ENV DEFAULT_PUBNUB_PUBLISH_KEY $(PUBNUB_PUBLISH_KEY)" >> Dockerfile
 	echo "ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY $(PUBNUB_SUBSCRIBE_KEY)" >> Dockerfile
