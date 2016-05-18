@@ -1,3 +1,6 @@
+* Use rwlock to block when pulling images [Pablo]
+* Increase API timeout to 15 minutes, and make it configurable [Pablo]
+* Add endpoint to load images from a docker save tar [Pablo]
 * Add endpoints to manage images and containers locally [Pablo]
 * Only use bodyParser for endpoints that need it [Pablo]
 * Add RESIN_APP_ID variable [Pablo]

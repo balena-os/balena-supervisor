@@ -518,6 +518,20 @@ $ curl -X POST \
 
 <hr>
 
+### POST /v1/images/load
+
+Works like [/images/load from the Docker API](https://docs.docker.com/engine/reference/api/docker_remote_api_v1.22/#load-a-tarball-with-a-set-of-images-and-tags-into-docker).
+Allows the creation of images from a tar archived produced by `docker save`.
+
+#### Example:
+
+```bash
+$ curl -X POST --data-binary @images.tar \
+	"$RESIN_SUPERVISOR_ADDRESS/v1/images/load?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+
+<hr>
+
 ### DELETE /v1/images/:name
 
 Deletes image with name `name`. Works like [DELETE /images/(name) from the Docker API](https://docs.docker.com/engine/reference/api/docker_remote_api_v1.22/#remove-an-image).
