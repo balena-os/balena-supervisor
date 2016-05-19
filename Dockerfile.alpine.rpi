@@ -32,7 +32,8 @@ RUN /app/node_modules/.bin/coffee -c /app/src \
 
 RUN chmod +x /app/bin/gosuper
 
-ENV SUPERVISOR_IMAGE resin/armhf-alpine-supervisor
+ENV SUPERVISOR_IMAGE resin/rpi-supervisor
+ENV SUPERVISOR_TAG_EXTRA alpine
 ENV CONFIG_MOUNT_POINT /boot/config.json
 ENV LED_FILE /dev/null
 
