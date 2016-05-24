@@ -4,6 +4,7 @@ utils = require './utils'
 knex = require './db'
 express = require 'express'
 bodyParser = require 'body-parser'
+bufferEq = require 'buffer-equal-constant-time'
 request = require 'request'
 config = require './config'
 device = require './device'
@@ -24,7 +25,7 @@ module.exports = (application) ->
 	api.use (req, res, next) ->
 		utils.getOrGenerateSecret('api')
 		.then (secret) ->
-			if req.query.apikey is secret
+			if bufferEq(new Buffer(req.query.apikey), new Buffer(secret))
 				next()
 			else
 				res.sendStatus(401)
