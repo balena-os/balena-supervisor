@@ -1,3 +1,5 @@
+# v1.9.0
+
 * Fix reporting of supervisor version for alpine supervisor [Pablo]
 * Use rwlock to block when pulling images [Pablo]
 * Increase API timeout to 15 minutes, and make it configurable [Pablo]
