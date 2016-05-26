@@ -1,3 +1,7 @@
+# v1.10.0
+
+* Fix progress bars on docker version 1.10 [Aleksis]
+
 # v1.9.0
 
 * Fix reporting of supervisor version for alpine supervisor [Pablo]
