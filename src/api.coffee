@@ -11,11 +11,6 @@ device = require './device'
 dockerUtils = require './docker-utils'
 _ = require 'lodash'
 
-privateAppEnvVars = [
-	'RESIN_SUPERVISOR_API_KEY'
-	'RESIN_API_KEY'
-]
-
 module.exports = (application) ->
 	api = express()
 	unparsedRouter = express.Router()
@@ -151,7 +146,7 @@ module.exports = (application) ->
 				if !app?
 					throw new Error('App not found')
 				# Don't return keys on the endpoint
-				app.env = _.omit(JSON.parse(app.env), privateAppEnvVars)
+				app.env = _.omit(JSON.parse(app.env), config.privateAppEnvVars)
 				# Don't return data that will be of no use to the user
 				res.json(app)
 		.catch (err) ->

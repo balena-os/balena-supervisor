@@ -36,6 +36,16 @@ exports.mixpanelTrack = (event, properties = {}) ->
 			message: properties.error.message
 			stack: properties.error.stack
 
+	# Don't log private env vars (e.g. api keys)
+	if properties?.app?.env?
+		try
+			{ env } = properties.app
+			env = JSON.parse(env) if typeof env is 'string'
+			safeEnv = _.omit(env, config.privateAppEnvVars)
+			properties.app.env = JSON.stringify(safeEnv)
+		catch
+			_.noop
+
 	console.log('Event:', event, JSON.stringify(properties))
 	# Mutation is bad, and it should feel bad
 	properties = _.assign(_.cloneDeep(properties), mixpanelProperties)

@@ -1,3 +1,5 @@
+* Log useful supervisor info to stdout/stderr [Kostas]
+
 # v1.10.0
 
 * Fix progress bars on docker version 1.10 [Aleksis]
