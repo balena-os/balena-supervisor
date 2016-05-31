@@ -28,4 +28,6 @@ export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket"
 supervisorctl -c /etc/supervisor/supervisord.conf start resin-supervisor
 supervisorctl -c /etc/supervisor/supervisord.conf start go-supervisor
 
-tail -f /var/log/supervisor/supervisord.log
+tail -F \
+	/var/log/supervisor/supervisord.log \
+	/var/log/resin_supervisor_stdout.log
