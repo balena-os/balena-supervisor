@@ -200,13 +200,16 @@ do ->
 				docker.listContainersAsync(all: true)
 				.filter (containerInfo) ->
 					# Do not remove user apps.
-					if _.contains(appTags, containerInfo.Image)
-						return false
-					if _.contains(locallyCreatedTags, containerInfo.Image)
-						return false
-					if !_.contains(supervisorTags, containerInfo.Image)
-						return true
-					return containerHasExited(containerInfo.Id)
+					getRepoAndTag(containerInfo.Image)
+					.then ({ repo, tag }) ->
+						repoTag = buildRepoTag(repo, tag)
+						if _.contains(appTags, repoTag)
+							return false
+						if _.contains(locallyCreatedTags, repoTag)
+							return false
+						if !_.contains(supervisorTags, repoTag)
+							return true
+						return containerHasExited(containerInfo.Id)
 				.map (containerInfo) ->
 					docker.getContainer(containerInfo.Id).removeAsync()
 					.then ->
