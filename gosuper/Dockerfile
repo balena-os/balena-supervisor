@@ -1,15 +1,22 @@
+# Build golang supervisor
 FROM golang:1.5.1
 
+RUN apt-get update \
+	&& apt-get install -y \
+		rsync \
+	&& rm -rf /var/lib/apt/lists/
+
+COPY . /go/src/resin-supervisor/gosuper
+
+WORKDIR /go/src/resin-supervisor/gosuper
+
 ENV GOOS linux
-ENV GOPATH /usr/src/app
 
-WORKDIR /usr/src/app
+ARG GOARCH=amd64
+ARG GOARM=''
 
-COPY . src/resin-supervisor/gosuper
+RUN go install -a -v ./gosuper \
+	&& cd /go/bin \
+	&& find -type f -name gosuper -exec mv {} /go/bin/gosuper \;
 
-RUN chmod +x src/resin-supervisor/gosuper/build_gosuper.sh
-RUN chmod +x src/resin-supervisor/gosuper/test_formatting.sh
-
-# Run go install with -a (force rebuilding of all packages)
-# and -v (print package names as they are built)
-CMD cd ./src/resin-supervisor/gosuper && ./build_gosuper.sh
+CMD rsync -a --delete /go/bin/gosuper /build
