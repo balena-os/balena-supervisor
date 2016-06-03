@@ -1,3 +1,4 @@
+* Correctly compare container image name on cleanup [Pablo]
 * Log useful supervisor info to stdout/stderr [Kostas]
 
 # v1.10.0
