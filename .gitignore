@@ -6,3 +6,8 @@ gosuper/bin/
 tools/dind/config.json
 tools/dind/apps.json
 tools/dind/config/localenv
+Dockerfile.build.*
+Dockerfile.runtime.*
+!Dockerfile.build.template
+!Dockerfile.runtime.template
+build
