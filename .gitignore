@@ -12,3 +12,9 @@ base-image/build/cache
 base-image/build/downloads
 base-image/build/sstate-cache
 base-image/build/tmp-glibc
+
+Dockerfile.build.*
+Dockerfile.runtime.*
+!Dockerfile.build.template
+!Dockerfile.runtime.template
+build
