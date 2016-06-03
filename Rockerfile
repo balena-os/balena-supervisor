@@ -1,0 +1,79 @@
+# Build nodejs dependencies
+FROM resin/amd64-alpine-node:6.2-slim
+WORKDIR /usr/src/app
+RUN apk add --update \
+		g++ \
+		git \
+		make \
+		sqlite-dev \
+		sqlite-libs \
+		python \
+	&& rm -rf /var/cache/apk/*
+
+RUN npm install -g coffee-script
+
+COPY package.json /usr/src/app/
+COPY src /usr/src/app/src
+
+RUN JOBS=MAX npm install --unsafe-perm --production --no-optional \
+	&& npm dedupe \
+	&& coffee -c src
+
+# Remove tar files (sqlite3 module) and tests to reduce space
+RUN find . -name '*.tar.*' -delete \
+    && find . -path '*/test/*' -delete
+
+EXPORT /usr/src/app/node_modules/ node_modules/
+EXPORT /usr/src/app/src/ src/
+
+# Build golang supervisor
+FROM golang:1.5.1
+ENV GOOS linux
+ENV GOARCH amd64
+COPY gosuper /go/src/resin-supervisor/gosuper
+WORKDIR /go/src/resin-supervisor/gosuper
+RUN go install -a -v ./gosuper \
+	&& strip /go/bin/gosuper
+EXPORT /go/bin/gosuper gosuper
+
+# Minimal runtime image
+FROM resin/amd64-alpine-node:6.2-slim
+
+ENV SUPERVISOR_IMAGE resin/amd64-supervisor
+ENV SUPERVISOR_TAG_EXTRA alpine
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
+
+RUN apk add --update \
+		btrfs-progs \
+		ca-certificates \
+		openrc \
+		rsync \
+	&& rm -rf /var/cache/apk/* \
+	&& mkdir -p /usr/src/app \
+	&& mkdir -p /usr/src/app/src \
+	&& mkdir -p /usr/src/app/node_modules
+
+COPY package.json /usr/src/app/
+IMPORT src/ /usr/src/app/src/
+IMPORT node_modules/ /usr/src/app/node_modules/
+IMPORT gosuper /usr/local/bin/gosuper
+
+COPY openrc/ /etc/init.d/
+
+RUN rc-update add node-supervisor default \
+	&& rc-update add golang-supervisor default \
+	&& rc-update delete resin default
+
+ENV DEFAULT_PUBNUB_PUBLISH_KEY pub-c-bananas
+ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY sub-c-bananas
+ENV DEFAULT_MIXPANEL_TOKEN bananasbananas
+
+ENTRYPOINT [ "/sbin/init" ]
+
+VOLUME /data
+
+TAG resin/supervisor:master
+
+# -*- mode: dockerfile -*-
+# vi: set ft=dockerfile :

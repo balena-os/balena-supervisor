@@ -1,0 +1,21 @@
+#!/sbin/openrc-run
+
+description="Resin.io golang supervisor"
+pid_file=/var/run/resin-supervisor-golang.pid
+waiting_time=1000
+
+start() {
+	ebegin "Starting $description"
+	start-stop-daemon --start --exec /usr/local/bin/gosuper \
+	--make-pidfile --pidfile "$pid_file" --background \
+	--stdout /dev/console \
+	--stderr /dev/console \
+	--wait "$waiting_time"
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping $description"
+	start-stop-daemon --stop --exec /usr/local/bin/gosuper --pidfile $pid_file --wait "$waiting_time"
+	eend $?
+}

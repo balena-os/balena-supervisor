@@ -4,7 +4,8 @@
   "scripts": {
     "postinstall": "sh postinstall.sh",
     "start": "./entry.sh",
-    "lint": "resin-lint src/"
+    "lint": "resin-lint src/",
+    "start": "./entry.sh"
   },
   "dependencies": {
     "JSONStream": "^1.1.2",
