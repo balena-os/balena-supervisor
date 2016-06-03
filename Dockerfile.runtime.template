@@ -1,0 +1,20 @@
+# Minimal runtime image
+FROM resin/%%ARCH%%-supervisor-base
+
+WORKDIR /usr/src/app
+
+COPY ./build/%%ARCH%%/src ./src
+COPY ./build/%%ARCH%%/node_modules ./node_modules
+COPY ./build/%%ARCH%%/gosuper ./gosuper
+COPY ./build/%%ARCH%%/rootfs-overlay/ /
+
+VOLUME /data
+
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
+ENV SUPERVISOR_IMAGE resin/%%ARCH%%-supervisor
+
+CMD [ "/sbin/init" ]
+
+# -*- mode: dockerfile -*-
+# vi: set ft=dockerfile :
