@@ -1,3 +1,5 @@
+* Add restart policies and change default to auto-restart [Aleksis]
+
 # v1.10.1
 
 * Switch to docker-delta library to use deltas v2 [petrosagg]
