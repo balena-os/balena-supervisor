@@ -1,7 +1,6 @@
 set -o errexit
-set -o pipefail
 
-if [[ $NODE_ENV == 'production' ]]; then
+if [ "$NODE_ENV" = "production" ]; then
 	# Remove node-gyp cache
 	rm -rf ~/.node-gyp/
 	# Remove cached git deps
