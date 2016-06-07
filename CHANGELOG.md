@@ -1,3 +1,6 @@
+# v1.10.1
+
+* Switch to docker-delta library to use deltas v2 [petrosagg]
 * Correctly compare container image name on cleanup [Pablo]
 * Log useful supervisor info to stdout/stderr [Kostas]
 
