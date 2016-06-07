@@ -1,16 +1,14 @@
 Docker = require 'dockerode'
 { getRegistryAndName, DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
-{ spawn, execAsync } = Promise.promisifyAll require 'child_process'
 progress = require 'request-progress'
+dockerDelta = require 'docker-delta'
 config = require './config'
 _ = require 'lodash'
 knex = require './db'
-TypedError = require 'typed-error'
 { request } = require './request'
 fs = Promise.promisifyAll require 'fs'
 Lock = require 'rwlock'
-class OutOfSyncError extends TypedError
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
@@ -58,7 +56,6 @@ findSimilarImage = (repoTag) ->
 
 		return 'resin/scratch'
 
-DELTA_OUT_OF_SYNC_CODES = [23, 24]
 DELTA_REQUEST_TIMEOUT = 15 * 60 * 1000
 
 getRepoAndTag = (image) ->
@@ -66,54 +63,6 @@ getRepoAndTag = (image) ->
 	.then ({ registry, imageName, tagName }) ->
 		registry = registry.toString().replace(':443','')
 		return { repo: "#{registry}/#{imageName}", tag: tagName }
-
-dockerSync = (imgSrc, imgDest, rsyncDiff, conf) ->
-	docker.importImageAsync('/app/empty.tar')
-	.then (stream) ->
-		new Promise (resolve, reject) ->
-			streamOutput = ''
-			stream.on 'data', (data) ->
-				streamOutput += data
-			stream.on 'error', reject
-			stream.on 'end', ->
-				resolve(JSON.parse(streamOutput).status)
-	.then (destId) ->
-		jsonPath = "#{config.dockerRoot}/graph/#{destId}/json"
-		fs.readFileAsync(jsonPath)
-		.then(JSON.parse)
-		.then (destJson) ->
-			destJson.config = conf
-			fs.writeFileAsync(jsonPath + '.tmp', JSON.stringify(destJson))
-		.then ->
-			fs.renameAsync(jsonPath + '.tmp', jsonPath)
-		.then ->
-			if imgSrc isnt 'resin/scratch'
-				execAsync("btrfs subvolume delete \"#{config.btrfsRoot}/#{destId}\"")
-				.then ->
-					docker.getImage(imgSrc).inspectAsync().get('Id')
-				.then (srcId) ->
-					execAsync("btrfs subvolume snapshot \"#{config.btrfsRoot}/#{srcId}\" \"#{config.btrfsRoot}/#{destId}\"")
-		.then ->
-			new Promise (resolve, reject) ->
-				rsync = spawn('rsync', ['--timeout=300', '--archive', '--delete' , '--read-batch=-', "#{config.btrfsRoot}/#{destId}"], stdio: 'pipe')
-				.on 'error', reject
-				.on 'exit', (code, signal) ->
-					if code in DELTA_OUT_OF_SYNC_CODES
-						reject(new OutOfSyncError('Incompatible image'))
-					else if code isnt 0
-						reject(new Error("rsync exited. code: #{code} signal: #{signal}"))
-					else
-						resolve()
-				rsyncDiff.pipe(rsync.stdin)
-				rsync.stdout.pipe(process.stdout)
-				rsync.stderr.pipe(process.stdout)
-				rsyncDiff.resume()
-		.then ->
-			execAsync('sync')
-		.then ->
-			getRepoAndTag(imgDest)
-		.then ({ repo, tag }) ->
-			docker.getImage(destId).tagAsync({ repo, tag, force: true })
 
 do ->
 	_lock = new Lock()
@@ -135,8 +84,8 @@ do ->
 					return 'resin/scratch'
 				findSimilarImage(imgDest)
 			.then (imgSrc) ->
-				rsyncDiff = new Promise (resolve, reject) ->
-					progress request.get("#{config.deltaHost}/api/v1/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
+				new Promise (resolve, reject) ->
+					progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
 					.on 'progress', (progress) ->
 						onProgress(percentage: progress.percent)
 					.on 'end', ->
@@ -145,20 +94,17 @@ do ->
 						if res.statusCode isnt 200
 							reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
 						else
-							resolve(res)
+							if imgSrc is 'resin/scratch'
+								deltaSrc = null
+							else
+								deltaSrc = imgSrc
+							res.pipe(dockerDelta.applyDelta(deltaSrc, imgDest)).on('id', resolve)
 					.on 'error', reject
-					.pause()
-
-				imageConfig = request.getAsync("#{config.deltaHost}/api/v1/config?image=#{imgDest}", {json: true, timeout: 0})
-				.spread ({statusCode}, imageConfig) ->
-					if statusCode isnt 200
-						throw new Error("Invalid configuration: #{imageConfig}")
-					return imageConfig
-
-				return [ rsyncDiff, imageConfig, imgSrc ]
-			.spread (rsyncDiff, imageConfig, imgSrc) ->
-				dockerSync(imgSrc, imgDest, rsyncDiff, imageConfig)
-			.catch OutOfSyncError, (err) ->
+			.then (id) ->
+				getRepoAndTag(imgDest)
+				.then ({ repo, tag }) ->
+					docker.getImage(id).tagAsync({ repo, tag, force: true })
+			.catch dockerDelta.OutOfSyncError, (err) ->
 				console.log('Falling back to delta-from-empty')
 				exports.rsyncImageWithProgress(imgDest, onProgress, true)
 
