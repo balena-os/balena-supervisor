@@ -1,3 +1,5 @@
+# v1.11.0
+
 * Add restart policies and change default to auto-restart [Aleksis]
 
 # v1.10.1
