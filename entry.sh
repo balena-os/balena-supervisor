@@ -25,6 +25,11 @@ fi
 
 export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket"
 
+# If docker data directory isn't mounted in the default path, symlink it
+if [ ! -d /var/lib/docker ]; then
+	ln -s "$DOCKER_ROOT" /var/lib/docker
+fi
+
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 
 supervisorctl start resin-supervisor
