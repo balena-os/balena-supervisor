@@ -20,7 +20,7 @@ const packageJsonPath = "/app/package.json"
 type UserConfig struct {
 	ApplicationId string  `json:"applicationId"`
 	ApiKey        string  `json:"apikey"`
-	UserId        string  `json:"userId`
+	UserId        string  `json:"userId"`
 	Username      string  `json:"username"`
 	DeviceType    string  `json:"deviceType"`
 	Uuid          string  `json:"uuid,omitempty"`
