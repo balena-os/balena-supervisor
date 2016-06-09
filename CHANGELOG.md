@@ -1,3 +1,9 @@
+# v1.11.1
+
+* Use sh for postinstall as alpine has no bash [Pablo]
+* update docker-delta to 0.0.8 [petrosagg]
+* symlink docker root to default path if not already there [petrosagg]
+
 # v1.11.0
 
 * Add restart policies and change default to auto-restart [Aleksis]
