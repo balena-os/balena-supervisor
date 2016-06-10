@@ -98,7 +98,9 @@ do ->
 								deltaSrc = null
 							else
 								deltaSrc = imgSrc
-							res.pipe(dockerDelta.applyDelta(deltaSrc, imgDest)).on('id', resolve)
+							res.pipe(dockerDelta.applyDelta(deltaSrc, imgDest))
+							.on('id', resolve)
+							.on('error', reject)
 					.on 'error', reject
 			.then (id) ->
 				getRepoAndTag(imgDest)
