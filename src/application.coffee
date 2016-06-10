@@ -14,6 +14,7 @@ lockFile = Promise.promisifyAll(require('lockfile'))
 bootstrap = require './bootstrap'
 TypedError = require 'typed-error'
 fs = Promise.promisifyAll(require('fs'))
+JSONStream = require 'JSONStream'
 
 class UpdatesLockedError extends TypedError
 
@@ -66,6 +67,14 @@ logTypes =
 	updateAppError:
 		eventName: 'Application update error'
 		humanName: 'Failed to update application'
+
+	appExit:
+		eventName: 'Application exit'
+		humanName: 'Application exited'
+
+	appRestart:
+		eventName: 'Application restart'
+		humanName: 'Restarting application'
 
 logSystemMessage = (message, obj, eventName) ->
 	logger.log({ message, isSystem: true })
@@ -644,7 +653,28 @@ application.update = update = (force) ->
 			# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
 			updateStatus.state = UPDATE_IDLE
 
+listenToEvents = ->
+	docker.getEventsAsync()
+	.then (stream) ->
+		parser = JSONStream.parse()
+		stream.pipe(parser)
+		parser.on 'data', (data) ->
+			if data?.Type == 'container'
+				knex('app').select().where({ containerId: data.id })
+				.then ([ app ]) ->
+					if app?
+						if data.status == 'die'
+							logSystemEvent(appExit, app)
+						else if data.status == 'restart'
+							logSystemEvent(appRestart, app)
+							logger.attach(app)
+				.catch (err) ->
+					console.error('Error on docker event:', err, err.stack)
+	.catch (err) ->
+		console.error('Error listening to events:', err, err.stack)
+
 application.initialize = ->
+	listenToEvents()
 	knex('app').select()
 	.then (apps) ->
 		Promise.map apps, (app) ->
