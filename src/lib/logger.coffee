@@ -51,9 +51,18 @@ exports.disableLogPublishing = (disable) ->
 exports.log = ->
 	publish(arguments...)
 
-exports.attach = (app) ->
-	dockerPromise.then (docker) ->
-		docker.getContainer(app.containerId)
-		.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
-		.then (stream) ->
-			stream.pipe(es.split()).on('data', publish)
+do ->
+	attached = {}
+	exports.attach = (app) ->
+		if !attached[app.containerId]
+			dockerPromise.then (docker) ->
+				docker.getContainer(app.containerId)
+				.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
+				.then (stream) ->
+					attached[app.containerId] = true
+					stream.pipe(es.split())
+					.on('data', publish)
+					.on 'error', ->
+						attached[app.containerId] = false
+					.on 'end', ->
+						attached[app.containerId] = false
