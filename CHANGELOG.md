@@ -1,3 +1,7 @@
+# v1.11.2
+
+* fix delta error handling by listening for the 'error' event [petrosagg]
+
 # v1.11.1
 
 * Use sh for postinstall as alpine has no bash [Pablo]
