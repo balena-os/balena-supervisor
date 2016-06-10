@@ -42,18 +42,7 @@ findSimilarImage = (repoTag) ->
 			if otherApplication is application
 				return repoTag[0]
 
-		# Otherwise return the image for the most specific supervisor tag (commit hash)
-		for repoTag in repoTags when /resin\/.*-supervisor.*:[0-9a-f]{6}/.test(repoTag[0])
-			return repoTag[0]
-
-		# Or return *any* supervisor image available (except latest which is usually a phony tag)
-		for repoTag in repoTags when /resin\/.*-supervisor.*:(?!latest)/.test(repoTag[0])
-			return repoTag[0]
-
-		# If all else fails, return the newest image available
-		for repoTag in repoTags when repoTag[0] isnt '<none>:<none>'
-			return repoTag[0]
-
+		# Otherwise we start from scratch
 		return 'resin/scratch'
 
 DELTA_REQUEST_TIMEOUT = 15 * 60 * 1000
