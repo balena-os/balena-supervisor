@@ -1,3 +1,4 @@
+* Add listener for container events and reattach on restart [Pablo]
 * fix deltas by not using the supervisor as source [Pablo]
 
 # v1.11.2
