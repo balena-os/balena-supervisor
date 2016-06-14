@@ -1,3 +1,5 @@
+* Make the data path configurable [Pablo]
+
 # v1.11.3
 
 * Add listener for container events and reattach on restart [Pablo]

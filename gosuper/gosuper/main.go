@@ -67,6 +67,9 @@ func main() {
 	// Start OOMProtectionTimer for protecting Openvpn/Connman
 	dockerSocket := os.Getenv("DOCKER_SOCKET")
 	hostproc := os.Getenv("HOST_PROC")
+	if dataPathEnv := os.Getenv("RESIN_DATA_PATH"); dataPathEnv != "" {
+		ResinDataPath = "/mnt/root" + dataPathEnv
+	}
 	defer startOOMProtectionTimer(hostproc, dockerSocket).Stop()
 
 	listenAddress := os.Getenv("GOSUPER_SOCKET")
