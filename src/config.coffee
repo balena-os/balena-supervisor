@@ -48,3 +48,4 @@ module.exports = config =
 		'RESIN_SUPERVISOR_API_KEY'
 		'RESIN_API_KEY'
 	]
+	dataPath: checkString(process.env.RESIN_DATA_PATH) ? "/resin-data"

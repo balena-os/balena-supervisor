@@ -174,7 +174,7 @@ application.start = start = (app) ->
 		'/host/var/lib/connman': {}
 		'/host/run/dbus': {}
 	binds = [
-		'/resin-data/' + app.appId + ':/data'
+		config.dataPath + '/' + app.appId + ':/data'
 		'/lib/modules:/lib/modules'
 		'/lib/firmware:/lib/firmware'
 		'/run/dbus:/run/dbus'
@@ -305,11 +305,11 @@ getEnvironment = do ->
 
 lockPath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root/resin-data/#{appId}/resin-updates.lock"
+	return "/mnt/root#{config.dataPath}/#{appId}/resin-updates.lock"
 
 killmePath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root/resin-data/#{appId}/resin-kill-me"
+	return "/mnt/root#{config.dataPath}/#{appId}/resin-kill-me"
 
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
 application.unlockAndStart = unlockAndStart = (app) ->
