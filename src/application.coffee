@@ -92,7 +92,7 @@ logSystemEvent = (logType, app, error) ->
 		if _.isEmpty(errMessage)
 			errMessage = 'Unknown cause'
 		message += " due to '#{errMessage}'"
-	logSystemMessage(message, {app, error}, logType.eventName)
+	logSystemMessage(message, { app, error }, logType.eventName)
 	return
 
 logSpecialAction = (action, value, success) ->
@@ -100,7 +100,7 @@ logSpecialAction = (action, value, success) ->
 		msg = "Applied config variable #{action} = #{value}"
 	else
 		msg = "Applying config variable #{action} = #{value}"
-	logSystemMessage(msg, {}, "Apply special action #{success ? "success" : "in progress"}")
+	logSystemMessage(msg, {}, "Apply special action #{if success then "success" else "in progress"}")
 
 application = {}
 
@@ -694,7 +694,7 @@ application.initialize = ->
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->
-		utils.mixpanelTrack('Start application update poll', {interval: config.appUpdatePollInterval})
+		utils.mixpanelTrack('Start application update poll', { interval: config.appUpdatePollInterval })
 		application.poll()
 		application.update()
 

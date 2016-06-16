@@ -17,7 +17,7 @@ checkString = (s) ->
 dockerRoot = checkString(process.env.DOCKER_ROOT) ? '/mnt/root/var/lib/rce'
 
 # Defaults needed for both gosuper and node supervisor are declared in entry.sh
-module.exports = config =
+module.exports =
 	apiEndpoint: checkString(process.env.API_ENDPOINT) ? 'https://api.resin.io'
 	apiTimeout: checkInt(process.env.API_TIMEOUT) ? 15 * 60 * 1000
 	listenPort: checkInt(process.env.LISTEN_PORT) ? 80
@@ -48,4 +48,4 @@ module.exports = config =
 		'RESIN_SUPERVISOR_API_KEY'
 		'RESIN_API_KEY'
 	]
-	dataPath: checkString(process.env.RESIN_DATA_PATH) ? "/resin-data"
+	dataPath: checkString(process.env.RESIN_DATA_PATH) ? '/resin-data'

@@ -11,8 +11,6 @@ randomHexString = require './lib/random-hex-string'
 request = Promise.promisifyAll require 'request'
 logger = require './lib/logger'
 
-utils = exports
-
 # Parses package.json and returns resin-supervisor's version
 version = require('../package.json').version
 tagExtra = process.env.SUPERVISOR_TAG_EXTRA
