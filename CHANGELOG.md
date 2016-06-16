@@ -1,3 +1,4 @@
+* Cleanup docker images if delta failed [petrosagg]
 * Make the data path configurable [Pablo]
 
 # v1.11.3

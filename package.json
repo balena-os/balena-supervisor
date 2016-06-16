@@ -12,7 +12,7 @@
     "body-parser": "^1.12.0",
     "buffer-equal-constant-time": "^1.0.1",
     "coffee-script": "~1.9.1",
-    "docker-delta": "0.0.9",
+    "docker-delta": "0.0.10",
     "docker-progress": "^2.1.0",
     "dockerode": "~2.2.9",
     "event-stream": "^3.0.20",
