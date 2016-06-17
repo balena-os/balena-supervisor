@@ -10,6 +10,7 @@ config = require './config'
 device = require './device'
 dockerUtils = require './docker-utils'
 _ = require 'lodash'
+compose = require './compose'
 
 module.exports = (application) ->
 	api = express()
@@ -175,6 +176,24 @@ module.exports = (application) ->
 	unparsedRouter.post '/v1/containers/:id/stop', dockerUtils.stopContainer
 	unparsedRouter.delete '/v1/containers/:id', dockerUtils.deleteContainer
 	unparsedRouter.get '/v1/containers', dockerUtils.listContainers
+
+	unparsedRouter.post '/v1/apps/:appId/compose/up', (req, res) ->
+		appId = req.query.appId
+		res.status(200)
+		compose.up(application.composePath(appId), res.write.bind(res))
+		.catch (err) ->
+			console.log('Error on compose up:', err, err.stack)
+		.finally ->
+			res.end()
+
+	unparsedRouter.post '/v1/apps/:appId/compose/down', (req, res) ->
+		appId = req.query.appId
+		res.status(200)
+		compose.down(application.composePath(appId), res.write.bind(res))
+		.catch (err) ->
+			console.log('Error on compose down:', err, err.stack)
+		.finally ->
+			res.end()
 
 	api.use(unparsedRouter)
 	api.use(parsedRouter)
