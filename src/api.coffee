@@ -9,6 +9,7 @@ config = require './config'
 device = require './device'
 dockerUtils = require './docker-utils'
 _ = require 'lodash'
+compose = require './compose'
 
 module.exports = (application) ->
 	api = express()
@@ -174,6 +175,40 @@ module.exports = (application) ->
 	unparsedRouter.post '/v1/containers/:id/stop', dockerUtils.stopContainer
 	unparsedRouter.delete '/v1/containers/:id', dockerUtils.deleteContainer
 	unparsedRouter.get '/v1/containers', dockerUtils.listContainers
+
+	unparsedRouter.post '/v1/apps/:appId/compose/up', (req, res) ->
+		appId = req.params.appId
+		onStatus = (status) ->
+			status = JSON.stringify(status) if _.isObject(status)
+			res.write(status)
+		knex('app').select().where({ appId })
+		.then ([ app ]) ->
+			return res.status(400).send('App not found') if !app?
+			res.status(200)
+			compose.up(application.composePath(appId), onStatus)
+			.catch (err) ->
+				console.log('Error on compose up:', err, err.stack)
+			.finally ->
+				res.end()
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	unparsedRouter.post '/v1/apps/:appId/compose/down', (req, res) ->
+		appId = req.params.appId
+		onStatus = (status) ->
+			status = JSON.stringify(status) if _.isObject(status)
+			res.write(status)
+		knex('app').select().where({ appId })
+		.then ([ app ]) ->
+			return res.status(400).send('App not found') if !app?
+			res.status(200)
+			compose.down(application.composePath(appId), onStatus)
+			.catch (err) ->
+				console.log('Error on compose down:', err, err.stack)
+			.finally ->
+				res.end()
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
 	api.use(unparsedRouter)
 	api.use(parsedRouter)

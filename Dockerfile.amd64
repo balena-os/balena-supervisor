@@ -7,11 +7,16 @@ RUN apt-get -q update \
 	&& apt-get install -qqy \
 		btrfs-tools \
 		ca-certificates \
+		curl \
 		rsync \
 		supervisor \
 		--no-install-recommends \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
+
+ENV DOCKER_COMPOSE_VERSION 1.8.0dev
+ENV DOCKER_COMPOSE_SHA256 9db33b03d9d02ea03aef7806f0272205a7c59b1a66599d559922db0eafaeb271
+
 
 # Copy supervisord configuration files
 COPY config/supervisor/ /etc/supervisor/

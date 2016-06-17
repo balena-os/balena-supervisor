@@ -1,3 +1,5 @@
+* Add endpoints for docker-compose up and down [Pablo]
+
 # v1.11.4
 
 * Cleanup docker images if delta failed [petrosagg]
