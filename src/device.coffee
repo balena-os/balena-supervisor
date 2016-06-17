@@ -20,7 +20,7 @@ exports.getID = do ->
 				knex('config').select('value').where(key: 'apiKey')
 				knex('config').select('value').where(key: 'uuid')
 			])
-			.spread ([{value: apiKey}], [{value: uuid}]) ->
+			.spread ([{ value: apiKey }], [{ value: uuid }]) ->
 				resinApi.get(
 					resource: 'device'
 					options:
@@ -35,10 +35,10 @@ exports.getID = do ->
 					throw new Error('Could not find this device?!')
 				return devices[0].id
 
-exports.reboot = rebootDevice = ->
+exports.reboot = ->
 	request.postAsync(config.gosuperAddress + '/v1/reboot')
 
-exports.hostConfigEnvVarPrefix = hostConfigEnvVarPrefix = 'RESIN_HOST_'
+exports.hostConfigEnvVarPrefix = 'RESIN_HOST_'
 bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
 bootBlockDevice = '/dev/mmcblk0p1'
 bootMountPoint = '/mnt/root/boot'
@@ -77,17 +77,17 @@ exports.setHostConfig = (env, logMessage) ->
 setLogToDisplay = (env, logMessage) ->
 	if env['RESIN_HOST_LOG_TO_DISPLAY']?
 		enable = env['RESIN_HOST_LOG_TO_DISPLAY'] != '0'
-		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display', {json: true, body: Enable: enable})
+		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display', { json: true, body: Enable: enable })
 		.spread (response, body) ->
 			if response.statusCode != 200
-				logMessage("Error setting log to display: #{body.Error}, Status:, #{response.statusCode}", {error: body.Error}, "Set log to display error")
+				logMessage("Error setting log to display: #{body.Error}, Status:, #{response.statusCode}", { error: body.Error }, 'Set log to display error')
 				return false
 			else
 				if body.Data == true
-					logMessage("#{if enable then "Enabled" else "Disabled"} logs to display")
+					logMessage("#{if enable then 'Enabled' else 'Disabled'} logs to display")
 				return body.Data
 		.catch (err) ->
-			logMessage("Error setting log to display: #{err}", {error: err}, "Set log to display error")
+			logMessage("Error setting log to display: #{err}", { error: err }, 'Set log to display error')
 			return false
 	else
 		return Promise.resolve(false)
@@ -118,7 +118,7 @@ setBootConfig = (env, logMessage) ->
 				configFromApp[key] != configFromFS[key]
 			throw new Error('Nothing to change') if _.isEmpty(toBeChanged) and _.isEmpty(toBeAdded)
 
-			logMessage("Applying boot config: #{JSON.stringify(configFromApp)}", {}, "Apply boot config in progress")
+			logMessage("Applying boot config: #{JSON.stringify(configFromApp)}", {}, 'Apply boot config in progress')
 			# We add the keys to be added first so they are out of any filters
 			outputConfig = _.map toBeAdded, (key) -> "#{key}=#{configFromApp[key]}"
 			outputConfig = outputConfig.concat _.map configPositions, (key, index) ->
@@ -137,10 +137,10 @@ setBootConfig = (env, logMessage) ->
 			.then ->
 				execAsync('sync')
 			.then ->
-				logMessage("Applied boot config: #{JSON.stringify(configFromApp)}", {}, "Apply boot config success")
+				logMessage("Applied boot config: #{JSON.stringify(configFromApp)}", {}, 'Apply boot config success')
 				return true
 			.catch (err) ->
-				logMessage("Error setting boot config: #{err}", {error: err}, "Apply boot config error")
+				logMessage("Error setting boot config: #{err}", { error: err }, 'Apply boot config error')
 				throw err
 	.catch (err) ->
 		console.log('Will not set boot config: ', err)
@@ -175,7 +175,7 @@ do ->
 		applyPromise = Promise.join(
 			knex('config').select('value').where(key: 'apiKey')
 			device.getID()
-			([{value: apiKey}], deviceID) ->
+			([{ value: apiKey }], deviceID) ->
 				stateDiff = getStateDiff()
 				if _.size(stateDiff) is 0 || !apiKey?
 					return
@@ -190,7 +190,7 @@ do ->
 					_.merge(actualState, stateDiff)
 		)
 		.catch (error) ->
-			utils.mixpanelTrack('Device info update failure', {error, stateDiff})
+			utils.mixpanelTrack('Device info update failure', { error, stateDiff })
 			# Delay 5s before retrying a failed update
 			Promise.delay(5000)
 		.finally ->
@@ -221,7 +221,7 @@ do ->
 exports.getOSVersion = ->
 	fs.readFileAsync(config.hostOsVersionPath)
 	.then (releaseData) ->
-		lines = (new String(releaseData)).split("\n")
+		lines = (new String(releaseData)).split('\n')
 		releaseItems = {}
 		for line in lines
 			[ key, val ] = line.split('=')
@@ -229,5 +229,5 @@ exports.getOSVersion = ->
 		# Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
 		return releaseItems['PRETTY_NAME'].replace(/^"(.+(?="$))"$/, '$1')
 	.catch (err) ->
-		console.log("Could not get OS Version: ", err, err.stack)
+		console.log('Could not get OS Version: ', err, err.stack)
 		return undefined

@@ -1,11 +1,9 @@
 Promise = require 'bluebird'
-_ = require 'lodash'
 knex = require './db'
 utils = require './utils'
 deviceRegister = require 'resin-register-device'
 { resinApi } = require './request'
 fs = Promise.promisifyAll(require('fs'))
-EventEmitter = require('events').EventEmitter
 config = require './config'
 configPath = '/boot/config.json'
 appsPath  = '/boot/apps.json'
@@ -27,7 +25,7 @@ loadPreloadedApps = ->
 			app.env = JSON.stringify(extendedEnv)
 			knex('app').insert(app)
 	.catch (err) ->
-		utils.mixpanelTrack('Loading preloaded apps failed', {error: err})
+		utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
 
 bootstrap = ->
 	Promise.try ->
@@ -87,7 +85,7 @@ readConfigAndEnsureUUID = ->
 bootstrapOrRetry = ->
 	utils.mixpanelTrack('Device bootstrap')
 	bootstrap().catch (err) ->
-		utils.mixpanelTrack('Device bootstrap failed, retrying', {error: err, delay: config.bootstrapRetryDelay})
+		utils.mixpanelTrack('Device bootstrap failed, retrying', { error: err, delay: config.bootstrapRetryDelay })
 		setTimeout(bootstrapOrRetry, config.bootstrapRetryDelay)
 
 bootstrapper.done = new Promise (resolve) ->

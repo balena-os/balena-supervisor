@@ -1,5 +1,4 @@
 Promise = require 'bluebird'
-fs = Promise.promisifyAll require 'fs'
 utils = require './utils'
 knex = require './db'
 express = require 'express'
@@ -52,7 +51,7 @@ module.exports = (application) ->
 		request.post(config.gosuperAddress + '/v1/shutdown')
 		.pipe(res)
 
-	parsedRouter.post '/v1/purge',(req, res) ->
+	parsedRouter.post '/v1/purge', (req, res) ->
 		appId = req.body.appId
 		utils.mixpanelTrack('Purge /data', appId)
 		if !appId?

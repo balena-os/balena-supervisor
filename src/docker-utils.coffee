@@ -7,7 +7,6 @@ config = require './config'
 _ = require 'lodash'
 knex = require './db'
 { request } = require './request'
-fs = Promise.promisifyAll require 'fs'
 Lock = require 'rwlock'
 
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
@@ -50,7 +49,7 @@ DELTA_REQUEST_TIMEOUT = 15 * 60 * 1000
 getRepoAndTag = (image) ->
 	getRegistryAndName(image)
 	.then ({ registry, imageName, tagName }) ->
-		registry = registry.toString().replace(':443','')
+		registry = registry.toString().replace(':443', '')
 		return { repo: "#{registry}/#{imageName}", tag: tagName }
 
 do ->
@@ -183,7 +182,7 @@ do ->
 		_.omit(query, 'apikey')
 
 	exports.createImage = (req, res) ->
-		{ registry, repo, tag, fromImage, fromSrc } = req.query
+		{ registry, repo, tag, fromImage } = req.query
 		if fromImage?
 			repoTag = fromImage
 			repoTag += ':' + tag if tag?
