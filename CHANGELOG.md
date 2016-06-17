@@ -1,3 +1,4 @@
+* Add endpoints for docker-compose up and down [Pablo]
 * Cleanup docker images if delta failed [petrosagg]
 * Make the data path configurable [Pablo]
 
