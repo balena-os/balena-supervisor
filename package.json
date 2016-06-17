@@ -30,7 +30,8 @@
     "resin-register-device": "^2.0.0",
     "rwlock": "^5.0.0",
     "sqlite3": "3.0.9",
-    "typed-error": "~0.1.0"
+    "typed-error": "~0.1.0",
+    "yamljs": "^0.2.7"
   },
   "engines": {
     "node": "0.10.22"

@@ -1,3 +1,5 @@
+* Add endpoints for docker-compose up and down [Pablo]
+
 # v1.11.6
 
 * Fixed deltas for older docker daemon versions [petrosagg]
