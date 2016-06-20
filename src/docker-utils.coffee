@@ -200,7 +200,7 @@ do ->
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
-	exports.pullImage = (image, onProgress) ->
+	exports.pullAndProtectImage = (image, onProgress) ->
 		repoTag = buildRepoTag(image)
 		Promise.using writeLockImages(), ->
 			knex('image').insert({ repoTag })

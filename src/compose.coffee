@@ -45,7 +45,7 @@ exports.up = (path, onStatus) ->
 			throw new Error("Service #{serviceName} has no image specified.") if !service.image
 			docker.getImage(service.image).inspectAsync()
 			.catch ->
-				dockerUtils.pullImage(service.image, reportStatus)
+				dockerUtils.pullAndProtectImage(service.image, reportStatus)
 	.then ->
 		runComposeCommand(['up', '-d'], path, onStatus)
 
