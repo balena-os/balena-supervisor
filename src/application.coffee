@@ -392,13 +392,6 @@ wrapAsError = (err) ->
 	return err if _.isError(err)
 	return new Error(err.message ? err)
 
-select = (appId) ->
-	knex('app').select().where({ appId })
-	.then ([ app ]) ->
-		if !app?
-			throw new Error('App not found')
-		return app
-
 # Wait for app to signal it's ready to die, or timeout to complete.
 # timeout defaults to 1 minute.
 waitToKill = (app, timeout) ->
@@ -435,7 +428,7 @@ updateStrategies =
 		.then ->
 			Promise.using lockUpdates(localApp, force), ->
 				logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
-				select(localApp.appId)
+				utils.getKnexApp(localApp.appId)
 				.then(kill)
 				.then ->
 					start(app)
@@ -445,7 +438,7 @@ updateStrategies =
 	'kill-then-download': ({ localApp, app, needsDownload, force }) ->
 		Promise.using lockUpdates(localApp, force), ->
 			logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
-			select(localApp.appId)
+			utils.getKnexApp(localApp.appId)
 			.then(kill)
 			.then ->
 				fetch(app) if needsDownload
@@ -456,7 +449,7 @@ updateStrategies =
 			throw err
 	'hand-over': ({ localApp, app, needsDownload, force, timeout }) ->
 		Promise.using lockUpdates(localApp, force), ->
-			select(localApp.appId)
+			utils.getKnexApp(localApp.appId)
 			.then (localApp) ->
 				Promise.try ->
 					fetch(app) if needsDownload
@@ -577,10 +570,8 @@ application.update = update = (force) ->
 							# If an env var shouldn't cause a restart but requires an action, we should still
 							# save the new env to the DB
 							if !_.includes(toBeUpdated, appId) and !_.includes(toBeInstalled, appId)
-								knex('app').select().where({ appId })
-								.then ([ app ]) ->
-									if !app?
-										throw new Error('App not found')
+								utils.getKnexApp(appId)
+								.then (app) ->
 									app.env = JSON.stringify(remoteAppEnvs[appId])
 									knex('app').update(app).where({ appId })
 						.then (needsReboot) ->
@@ -595,7 +586,7 @@ application.update = update = (force) ->
 							Promise.using lockUpdates(localApps[appId], force), ->
 								# We get the app from the DB again in case someone restarted it
 								# (which would have changed its containerId)
-								select(appId)
+								utils.getKnexApp(appId)
 								.then(kill)
 								.then ->
 									knex('app').where('appId', appId).delete()
