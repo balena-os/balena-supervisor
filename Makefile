@@ -18,10 +18,14 @@ ifdef BASE_DISTRO
 $(info BASE_DISTRO SPECIFIED. START BUILDING ALPINE SUPERVISOR)
 	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)-alpine"
 	DOCKERFILE = alpine.$(ARCH)
+	GOSUPER_DOCKERFILE = Dockerfile.$(BASE_DISTRO)
+	GOBUILDER_TAG = $(SUPERVISOR_VERSION)-$(BASE_DISTRO)
 else
 $(info BASE_DISTRO NOT SPECIFIED. START BUILDING DEBIAN SUPERVISOR)
 	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
 	DOCKERFILE = $(ARCH)
+	GOSUPER_DOCKERFILE = Dockerfile
+	GOBUILDER_TAG = $(SUPERVISOR_VERSION)
 endif
 
 SUPERVISOR_IMAGE=$(DEPLOY_REGISTRY)$(IMAGE)
@@ -84,29 +88,29 @@ deploy: supervisor
 
 go-builder:
 	-cp tools/dind/config.json ./gosuper/
-	cd gosuper && docker build -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
+	cd gosuper && docker build -f $(GOSUPER_DOCKERFILE) -t resin/go-supervisor-builder:$(GOBUILDER_TAG) .
 	-rm ./gosuper/config.json
 
 gosuper: go-builder
 	-mkdir -p bin
 	-docker rm --volumes -f resin_build_gosuper_$(JOB_NAME) || true
-	docker run --name resin_build_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) -e GOARM=$(GOARM) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
+	docker run --name resin_build_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) -e GOARM=$(GOARM) resin/go-supervisor-builder:$(GOBUILDER_TAG)
 	docker rm --volumes -f resin_build_gosuper_$(JOB_NAME)
 	mv gosuper/bin/linux_$(GOARCH)/gosuper bin/gosuper
 
 test-gosuper: go-builder
 	-docker rm --volumes -f resin_test_gosuper_$(JOB_NAME) || true
-	docker run --name resin_test_gosuper_$(JOB_NAME) -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && ./test_formatting.sh && go test -v ./gosuper"
+	docker run --name resin_test_gosuper_$(JOB_NAME) -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(GOBUILDER_TAG) bash -c "cd src/resin-supervisor/gosuper && ./test_formatting.sh && go test -v ./gosuper"
 	docker rm --volumes -f resin_test_gosuper_$(JOB_NAME)
 
 format-gosuper: go-builder
 	-docker rm --volumes -f resin_test_gosuper_$(JOB_NAME) || true
-	docker run --name resin_test_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper:/usr/src/app/src/resin-supervisor/gosuper resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && go fmt ./..."
+	docker run --name resin_test_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper:/usr/src/app/src/resin-supervisor/gosuper resin/go-supervisor-builder:$(GOBUILDER_TAG) bash -c "cd src/resin-supervisor/gosuper && go fmt ./..."
 	docker rm --volumes -f resin_test_gosuper_$(JOB_NAME)
 
 test-integration: go-builder
 	-docker rm --volumes -f resin_test_integration_$(JOB_NAME) || true
-	docker run --name resin_test_integration_$(JOB_NAME) --net=host -e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" --volumes-from resin_supervisor_1 -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && go test -v ./supertest"
+	docker run --name resin_test_integration_$(JOB_NAME) --net=host -e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" --volumes-from resin_supervisor_1 -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(GOBUILDER_TAG) bash -c "cd src/resin-supervisor/gosuper && go test -v ./supertest"
 	docker rm --volumes -f resin_test_integration_$(JOB_NAME)
 
 .PHONY: supervisor deploy supervisor-dind run-supervisor
