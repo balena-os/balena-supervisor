@@ -2,8 +2,8 @@ FROM resin/armv7hf-node:0.10.40-slim
 
 COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 
-ENV DOCKER_COMPOSE_VERSION 1.8.0dev
-ENV DOCKER_COMPOSE_SHA256 0f9e0bdedddc9188415e828985289d07e22e42244c758bd0e4579e7a5bfb881d
+ENV DOCKER_COMPOSE_VERSION 1.7.1
+ENV DOCKER_COMPOSE_SHA256 3f0b8c69c66a2daa5fbb0c127cb76ca95d7125827a9c43dd3c36f9bc2ed6e0e5
 
 # Supervisor apt dependencies
 RUN apt-get -q update \
@@ -23,7 +23,6 @@ RUN apt-get -q update \
 	&& apt-get purge -qqy curl \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
-
 
 # Copy supervisord configuration files
 COPY config/supervisor/ /etc/supervisor/
