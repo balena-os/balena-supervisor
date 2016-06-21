@@ -1,11 +1,22 @@
 FROM resin/armhf-alpine-node:0.10.44-slim
 
+ENV DOCKER_COMPOSE_VERSION 1.7.1
+ENV DOCKER_COMPOSE_SHA256 3f0b8c69c66a2daa5fbb0c127cb76ca95d7125827a9c43dd3c36f9bc2ed6e0e5
+
 # Supervisor apt dependencies
 RUN apk add --update \
 		btrfs-progs \
 		ca-certificates \
+		curl \
 		rsync \
 		supervisor \
+	&& curl -sLO http://resin-packages.s3.amazonaws.com/docker-compose/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-armhf-${DOCKER_COMPOSE_VERSION}.tar.gz \
+	&& echo $DOCKER_COMPOSE_SHA256  docker-compose-linux-armhf-${DOCKER_COMPOSE_VERSION}.tar.gz > docker-compose-linux-armhf-${DOCKER_COMPOSE_VERSION}.tar.gz.sha256 \
+	&& sha256sum -c docker-compose-linux-armhf-${DOCKER_COMPOSE_VERSION}.tar.gz.sha256 \
+	&& tar xzf docker-compose-linux-armhf-${DOCKER_COMPOSE_VERSION}.tar.gz \
+	&& mv docker-compose-linux-armhf-${DOCKER_COMPOSE_VERSION}/docker-compose-linux-armhf /usr/bin/docker-compose \
+	&& rm -rf docker-compose-linux-armhf-${DOCKER_COMPOSE_VERSION}* \
+	&& apk del curl \
 	&& rm -rf /var/cache/apk/*
 
 # Copy supervisord configuration files
