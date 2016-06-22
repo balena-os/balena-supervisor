@@ -49,12 +49,12 @@ module.exports = (application) ->
 
 	unparsedRouter.post '/v1/reboot', (req, res) ->
 		utils.mixpanelTrack('Reboot')
-		request.post(config.gosuperAddress + '/v1/reboot')
+		utils.gosuper.post('/v1/reboot')
 		.pipe(res)
 
 	unparsedRouter.post '/v1/shutdown', (req, res) ->
 		utils.mixpanelTrack('Shutdown')
-		request.post(config.gosuperAddress + '/v1/shutdown')
+		utils.gosuper.post('/v1/shutdown')
 		.pipe(res)
 
 	parsedRouter.post '/v1/purge', (req, res) ->
@@ -68,7 +68,7 @@ module.exports = (application) ->
 				application.kill(app)
 				.then ->
 					new Promise (resolve, reject) ->
-						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId })
+						utils.gosuper.post('/v1/purge', { json: true, body: applicationId: appId })
 						.on 'error', reject
 						.on 'response', -> resolve()
 						.pipe(res)
