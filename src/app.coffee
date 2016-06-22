@@ -51,7 +51,7 @@ knex.init.then ->
 					device.updateState(
 						ip_address: body.Data.IPAddresses.join(' ')
 					)
-			request.get({ url: "#{config.gosuperAddress}/v1/ipaddr", json: true }, callback )
+			utils.gosuper.get('/v1/ipaddr', { json: true }, callback)
 
 		console.log('Starting periodic check for IP addresses..')
 		setInterval(updateIpAddr, 30 * 1000) # Every 30s
