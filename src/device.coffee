@@ -36,7 +36,7 @@ exports.getID = do ->
 				return devices[0].id
 
 exports.reboot = ->
-	request.postAsync(config.gosuperAddress + '/v1/reboot')
+	utils.gosuper.postAsync('/v1/reboot')
 
 exports.hostConfigEnvVarPrefix = 'RESIN_HOST_'
 bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
@@ -77,7 +77,7 @@ exports.setHostConfig = (env, logMessage) ->
 setLogToDisplay = (env, logMessage) ->
 	if env['RESIN_HOST_LOG_TO_DISPLAY']?
 		enable = env['RESIN_HOST_LOG_TO_DISPLAY'] != '0'
-		request.postAsync(config.gosuperAddress + '/v1/set-log-to-display', { json: true, body: Enable: enable })
+		utils.gosuper.postAsync('/v1/set-log-to-display', { json: true, body: Enable: enable })
 		.spread (response, body) ->
 			if response.statusCode != 200
 				logMessage("Error setting log to display: #{body.Error}, Status:, #{response.statusCode}", { error: body.Error }, 'Set log to display error')

@@ -1,3 +1,6 @@
+* DRY up calls to gosuper API, and use empty Host header [Pablo]
+* Use go 1.6.2 for gosuper, and use golang alpine for alpine images [Pablo]
+
 # v1.11.4
 
 * Cleanup docker images if delta failed [petrosagg]

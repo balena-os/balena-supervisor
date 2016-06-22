@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 for dir in $(find ./* -path ./Godeps -prune -or -type d -print); do
 	errormessage=$(gofmt -l $dir)

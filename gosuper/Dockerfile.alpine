@@ -1,9 +1,11 @@
-FROM golang:1.6.2
+FROM golang:1.6.2-alpine
 
 ENV GOOS linux
 ENV GOPATH /usr/src/app
 
 WORKDIR /usr/src/app
+
+RUN apk add --update gcc musl-dev
 
 COPY . src/resin-supervisor/gosuper
 
