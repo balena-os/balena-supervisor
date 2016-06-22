@@ -1,3 +1,5 @@
+* DRY up calls to gosuper API, and use empty Host header [Pablo]
+
 # v2.1.1
 
 * Add iptables rules to allow resin-vpn named interface to be used by VPN [Praneeth]
