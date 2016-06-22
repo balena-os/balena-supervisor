@@ -48,14 +48,24 @@ module.exports = (application) ->
 		res.sendStatus(204)
 
 	unparsedRouter.post '/v1/reboot', (req, res) ->
-		utils.mixpanelTrack('Reboot')
-		request.post(config.gosuperAddress + '/v1/reboot')
-		.pipe(res)
+		new Promise (resolve, reject) ->
+			utils.mixpanelTrack('Reboot')
+			utils.gosuper.post('/v1/reboot')
+			.on('error', reject)
+			.on('response', -> resolve())
+			.pipe(res)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
 	unparsedRouter.post '/v1/shutdown', (req, res) ->
-		utils.mixpanelTrack('Shutdown')
-		request.post(config.gosuperAddress + '/v1/shutdown')
-		.pipe(res)
+		new Promise (resolve, reject) ->
+			utils.mixpanelTrack('Shutdown')
+			utils.gosuper.post('/v1/shutdown')
+			.on('error', reject)
+			.on('response', -> resolve())
+			.pipe(res)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
 	parsedRouter.post '/v1/purge', (req, res) ->
 		appId = req.body.appId
@@ -68,9 +78,9 @@ module.exports = (application) ->
 				application.kill(app)
 				.then ->
 					new Promise (resolve, reject) ->
-						request.post(config.gosuperAddress + '/v1/purge', { json: true, body: applicationId: appId })
-						.on 'error', reject
-						.on 'response', -> resolve()
+						utils.gosuper.post('/v1/purge', { json: true, body: applicationId: appId })
+						.on('error', reject)
+						.on('response', -> resolve())
 						.pipe(res)
 					.finally ->
 						application.start(app)
