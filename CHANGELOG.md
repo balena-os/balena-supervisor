@@ -1,3 +1,5 @@
+# v1.11.6
+
 * Fixed deltas for older docker daemon versions [petrosagg]
 
 # v1.11.5
