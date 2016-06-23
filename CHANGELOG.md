@@ -1,3 +1,5 @@
+* Fix entry.sh when DOCKER_ROOT isn't set [Page]
+
 # v1.11.4
 
 * Cleanup docker images if delta failed [petrosagg]
