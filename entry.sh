@@ -25,9 +25,18 @@ fi
 
 export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket"
 
+# If DOCKER_ROOT isn't set then default it
+if [ -n "${DOCKER_ROOT}" ]; then
+	DOCKER_ROOT=/mnt/root/var/lib/docker
+fi
 # If docker data directory isn't mounted in the default path, symlink it
 if [ ! -d /var/lib/docker ]; then
-	ln -s "$DOCKER_ROOT" /var/lib/docker
+	ln -s "${DOCKER_ROOT}" /var/lib/docker
+fi
+# And also mount the DOCKER_ROOT path equivalent in the container fs
+DOCKER_LIB_PATH=${DOCKER_ROOT#/mnt/root}
+if [ ! -d /var/lib/docker ]; then
+	ln -s "${DOCKER_ROOT}" "${DOCKER_LIB_PATH}" || true
 fi
 
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
