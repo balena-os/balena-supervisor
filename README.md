@@ -95,6 +95,14 @@ make ARCH=amd64 PRELOADED_IMAGE=true \
 ```
 This will make the docker-in-docker instance pull the image specified in apps.json before running the supervisor.
 
+### Enabling passwordless dropbear access
+
+If you want to enable passwordless dropbear login (e.g. while testing `resin sync`) you can set the `PASSWORDLESS_DROPBEAR` option to `true`, like:
+
+```bash
+make PASSWORDLESS_DROPBEAR=true ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master run-supervisor
+```
+
 ### View the containers logs
 ```bash
 docker exec -it resin_supervisor_1 journalctl -f

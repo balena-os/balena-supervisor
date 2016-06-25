@@ -34,6 +34,7 @@ ExecStart=/bin/bash -c 'source /usr/src/app/resin-vars && \
 	-e "SUPERVISOR_IMAGE=${SUPERVISOR_IMAGE}" \
 	-e "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/mnt/root/run/dbus/system_bus_socket" \
 	-e "RESIN_SUPERVISOR_SECRET=${RESIN_SUPERVISOR_SECRET}" \
+	-e "DOCKER_ROOT=/mnt/root/var/lib/docker" \
 	${SUPERVISOR_IMAGE}'
 TimeoutStartSec=0
 Restart=always

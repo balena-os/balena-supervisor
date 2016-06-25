@@ -1,22 +1,37 @@
-FROM resin/resin-base:1
+FROM resin/resin-base:2
 
 VOLUME /var/lib/docker
 VOLUME /resin-data
 
 RUN apt-get update \
-	&& apt-get install -y ifupdown \
+	&& apt-get install -y \
+	ifupdown \
+	rsync \
+	dropbear \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV DOCKER_VERSION 1.6.2
+ENV DOCKER_VERSION 1.10.3
+ENV RELEASE_NAME jessie
 
-# From get.docker.com script
-RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9 \
-	&& echo deb https://get.docker.com/ubuntu docker main > /etc/apt/sources.list.d/docker.list \
-	&& apt-get update && apt-get install -y lxc-docker-${DOCKER_VERSION} \
+# Change to 'true' to allow blank password dropbear logins on dind HostOS
+ENV PASSWORDLESS_DROPBEAR false
+
+RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D \
+	&& echo deb https://apt.dockerproject.org/repo debian-${RELEASE_NAME} main > /etc/apt/sources.list.d/docker.list \
+	&& apt-get update || true \
+	&& apt-get --force-yes install docker-engine=${DOCKER_VERSION}-0~${RELEASE_NAME} \
 	&& rm -rf /var/lib/apt/lists/*
+
+RUN passwd -d root
+
+# Change os release to a resin-sync compatible one
+RUN sed -i 's/\(PRETTY_NAME=\).*/\1"ResinOS 1.2.1+dind"/' /etc/os-release
 
 COPY config/openvpn/ /etc/openvpn/
+COPY config/dropbear/config /etc/default/dropbear
 COPY config/services/ /etc/systemd/system/
 COPY resin-vars vpn-init /usr/src/app/
+
+RUN if [ "$PASSWORDLESS_DROPBEAR" = "true" ]; then sed -i 's/\(DROPBEAR_EXTRA_ARGS=\).*/\1"-B"/' /etc/default/dropbear; fi
 
 RUN systemctl enable resin-supervisor-dind
