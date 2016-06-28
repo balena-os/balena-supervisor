@@ -1,3 +1,5 @@
+# v1.12.0
+
 * Add endpoints for docker-compose up and down [Pablo]
 
 # v1.11.6
