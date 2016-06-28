@@ -1,3 +1,11 @@
+ifdef http_proxy
+	DOCKER_HTTP_PROXY=--build-arg http_proxy=$(http_proxy)
+endif
+
+ifdef https_proxy
+	DOCKER_HTTPS_PROXY=--build-arg https_proxy=$(https_proxy)
+endif
+
 DISABLE_CACHE = 'false'
 
 ARCH = rpi# rpi/amd64/i386/armv7hf/armel
@@ -15,7 +23,6 @@ PUBNUB_PUBLISH_KEY = pub-c-bananas
 MIXPANEL_TOKEN = bananasbananas
 
 PASSWORDLESS_DROPBEAR = false
-
 ifdef BASE_DISTRO
 $(info BASE_DISTRO SPECIFIED. START BUILDING ALPINE SUPERVISOR)
 	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)-alpine"
@@ -58,7 +65,7 @@ clean:
 
 supervisor-dind:
 	sed -i 's/\(ENV PASSWORDLESS_DROPBEAR\).*/\1 ${PASSWORDLESS_DROPBEAR}/' tools/dind/Dockerfile
-	cd tools/dind && docker build --no-cache=$(DISABLE_CACHE) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
+	cd tools/dind && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
 
 run-supervisor: supervisor-dind stop-supervisor
 	cd tools/dind \
@@ -78,7 +85,15 @@ supervisor: gosuper
 	echo "ENV DEFAULT_PUBNUB_PUBLISH_KEY $(PUBNUB_PUBLISH_KEY)" >> Dockerfile
 	echo "ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY $(PUBNUB_SUBSCRIBE_KEY)" >> Dockerfile
 	echo "ENV DEFAULT_MIXPANEL_TOKEN $(MIXPANEL_TOKEN)" >> Dockerfile
-	docker build --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
+ifdef https_proxy
+	echo "ENV HTTPS_PROXY $(https_proxy)" >> Dockerfile
+	echo "ENV https_proxy $(https_proxy)" >> Dockerfile
+endif
+ifdef http_proxy
+	echo "ENV HTTP_PROXY $(http_proxy)" >> Dockerfile
+	echo "ENV http_proxy $(http_proxy)" >> Dockerfile
+endif
+	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
 	-rm Dockerfile
 
 deploy: supervisor
@@ -87,7 +102,7 @@ deploy: supervisor
 
 go-builder:
 	-cp tools/dind/config.json ./gosuper/
-	cd gosuper && docker build -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
+	cd gosuper && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
 	-rm ./gosuper/config.json
 
 gosuper: go-builder
