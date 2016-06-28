@@ -10,6 +10,7 @@ url = require 'url'
 randomHexString = require './lib/random-hex-string'
 request = Promise.promisifyAll require 'request'
 logger = require './lib/logger'
+TypedError = require 'typed-error'
 
 # Parses package.json and returns resin-supervisor's version
 version = require('../package.json').version
@@ -180,3 +181,13 @@ exports.vpnControl = (val) ->
 			console.log('VPN enabled: ' + enable)
 		else
 			console.log('Error: ' + body + ' response:' + response.statusCode)
+
+exports.AppNotFoundError = class AppNotFoundError extends TypedError
+
+exports.getKnexApp = (appId, columns) ->
+	knex('app').select(columns).where({ appId })
+	.then ([ app ]) ->
+		if !app?
+			throw new AppNotFoundError('App not found')
+		return app
+

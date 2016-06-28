@@ -200,6 +200,13 @@ do ->
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
+	exports.pullAndProtectImage = (image, onProgress) ->
+		repoTag = buildRepoTag(image)
+		Promise.using writeLockImages(), ->
+			knex('image').insert({ repoTag })
+			.then ->
+				dockerProgress.pull(repoTag, onProgress)
+
 	exports.loadImage = (req, res) ->
 		Promise.using writeLockImages(), ->
 			docker.listImagesAsync()

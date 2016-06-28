@@ -2,14 +2,25 @@ FROM resin/amd64-node:0.10.40-slim
 
 COPY 01_nodoc /etc/dpkg/dpkg.cfg.d/
 
+ENV DOCKER_COMPOSE_VERSION 1.7.1
+ENV DOCKER_COMPOSE_SHA256 37df85ee18bf0e2a8d71cbfb8198b1c06cc388f19118be7bdfc4d6db112af834
+
 # Supervisor apt dependencies
 RUN apt-get -q update \
 	&& apt-get install -qqy \
 		btrfs-tools \
 		ca-certificates \
+		curl \
 		rsync \
 		supervisor \
 		--no-install-recommends \
+	&& curl -sLO http://resin-packages.s3.amazonaws.com/docker-compose/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}.tar.gz \
+	&& echo $DOCKER_COMPOSE_SHA256  docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}.tar.gz > docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}.tar.gz.sha256 \
+	&& sha256sum -c docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}.tar.gz.sha256 \
+	&& tar xzf docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}.tar.gz \
+	&& mv docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}/docker-compose-linux-amd64 /usr/bin/docker-compose \
+	&& rm -rf docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}* \
+	&& apt-get purge -qqy curl \
 	&& apt-get clean \
 	&& rm -rf /var/lib/apt/lists/
 

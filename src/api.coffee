@@ -1,6 +1,5 @@
 Promise = require 'bluebird'
 utils = require './utils'
-knex = require './db'
 express = require 'express'
 bodyParser = require 'body-parser'
 bufferEq = require 'buffer-equal-constant-time'
@@ -9,6 +8,7 @@ config = require './config'
 device = require './device'
 dockerUtils = require './docker-utils'
 _ = require 'lodash'
+compose = require './compose'
 
 module.exports = (application) ->
 	api = express()
@@ -57,10 +57,8 @@ module.exports = (application) ->
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, true), ->
-			knex('app').select().where({ appId })
-			.then ([ app ]) ->
-				if !app?
-					throw new Error('App not found')
+			utils.getKnexApp(appId)
+			.then (app) ->
 				application.kill(app)
 				.then ->
 					new Promise (resolve, reject) ->
@@ -70,6 +68,8 @@ module.exports = (application) ->
 						.pipe(res)
 					.finally ->
 						application.start(app)
+		.catch utils.AppNotFoundError, (e) ->
+			return res.status(400).send(e.message)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -88,15 +88,15 @@ module.exports = (application) ->
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, force), ->
-			knex('app').select().where({ appId })
-			.then ([ app ]) ->
-				if !app?
-					throw new Error('App not found')
+			utils.getKnexApp(appId)
+			.then (app) ->
 				application.kill(app)
 				.then ->
 					application.start(app)
 		.then ->
 			res.status(200).send('OK')
+		.catch utils.AppNotFoundError, (e) ->
+			return res.status(400).send(e.message)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -107,13 +107,13 @@ module.exports = (application) ->
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, force), ->
-			knex('app').select().where({ appId })
-			.then ([ app ]) ->
-				if !app?
-					throw new Error('App not found')
+			utils.getKnexApp(appId)
+			.tap (app) ->
 				application.kill(app, true, false)
-				.then ->
-					res.json(_.pick(app, 'containerId'))
+			.then (app) ->
+				res.json(_.pick(app, 'containerId'))
+		.catch utils.AppNotFoundError, (e) ->
+			return res.status(400).send(e.message)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -123,13 +123,13 @@ module.exports = (application) ->
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId), ->
-			knex('app').select().where({ appId })
-			.then ([ app ]) ->
-				if !app?
-					throw new Error('App not found')
+			utils.getKnexApp(appId)
+			.tap (app) ->
 				application.start(app)
-				.then ->
-					res.json(_.pick(app, 'containerId'))
+			.then (app) ->
+				res.json(_.pick(app, 'containerId'))
+		.catch utils.AppNotFoundError, (e) ->
+			return res.status(400).send(e.message)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -140,14 +140,14 @@ module.exports = (application) ->
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, true), ->
 			columns = [ 'appId', 'containerId', 'commit', 'imageId', 'env' ]
-			knex('app').select(columns).where({ appId })
-			.then ([ app ]) ->
-				if !app?
-					throw new Error('App not found')
+			utils.getKnexApp(appId, columns)
+			.then (app) ->
 				# Don't return keys on the endpoint
 				app.env = _.omit(JSON.parse(app.env), config.privateAppEnvVars)
 				# Don't return data that will be of no use to the user
 				res.json(app)
+		.catch utils.AppNotFoundError, (e) ->
+			return res.status(400).send(e.message)
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -174,6 +174,42 @@ module.exports = (application) ->
 	unparsedRouter.post '/v1/containers/:id/stop', dockerUtils.stopContainer
 	unparsedRouter.delete '/v1/containers/:id', dockerUtils.deleteContainer
 	unparsedRouter.get '/v1/containers', dockerUtils.listContainers
+
+	unparsedRouter.post '/v1/apps/:appId/compose/up', (req, res) ->
+		appId = req.params.appId
+		onStatus = (status) ->
+			status = JSON.stringify(status) if _.isObject(status)
+			res.write(status)
+		utils.getKnexApp(appId)
+		.then (app) ->
+			res.status(200)
+			compose.up(application.composePath(appId), onStatus)
+			.catch (err) ->
+				console.log('Error on compose up:', err, err.stack)
+			.finally ->
+				res.end()
+		.catch utils.AppNotFoundError, (e) ->
+			return res.status(400).send(e.message)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	unparsedRouter.post '/v1/apps/:appId/compose/down', (req, res) ->
+		appId = req.params.appId
+		onStatus = (status) ->
+			status = JSON.stringify(status) if _.isObject(status)
+			res.write(status)
+		utils.getKnexApp(appId)
+		.then (app) ->
+			res.status(200)
+			compose.down(application.composePath(appId), onStatus)
+			.catch (err) ->
+				console.log('Error on compose down:', err, err.stack)
+			.finally ->
+				res.end()
+		.catch utils.AppNotFoundError, (e) ->
+			return res.status(400).send(e.message)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
 	api.use(unparsedRouter)
 	api.use(parsedRouter)
