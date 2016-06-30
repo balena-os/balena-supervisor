@@ -6,9 +6,14 @@ ifdef https_proxy
 	DOCKER_HTTPS_PROXY=--build-arg https_proxy=$(https_proxy)
 endif
 
+ifdef no_proxy
+	DOCKER_HTTPS_PROXY=--build-arg no_proxy=$(no_proxy)
+endif
+
 ifdef use_proxy_at_runtime
 	rt_http_proxy=$(http_proxy)
 	rt_https_proxy=$(https_proxy)
+	rt_no_proxy=$(no_proxy)
 endif
 
 DISABLE_CACHE= 'false'
@@ -97,6 +102,9 @@ endif
 ifdef rt_http_proxy
 	echo "ENV HTTP_PROXY $(rt_http_proxy)" >> Dockerfile
 	echo "ENV http_proxy $(rt_http_proxy)" >> Dockerfile
+endif
+ifdef rt_no_proxy
+	echo "ENV no_proxy $(rt_no_proxy)" >> Dockerfile
 endif
 	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
 	-rm Dockerfile
