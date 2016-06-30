@@ -6,3 +6,9 @@ gosuper/bin/
 tools/dind/config.json
 tools/dind/apps.json
 tools/dind/config/localenv
+
+base-image/build/bitbake.lock
+base-image/build/cache
+base-image/build/downloads
+base-image/build/sstate-cache
+base-image/build/tmp-glibc
