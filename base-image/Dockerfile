@@ -17,6 +17,18 @@ RUN apt-get update \
 		unzip \
 		wget \
 		xterm \
+		sudo \
 	&& rm -rf /var/lib/apt/lists/*
 
-WORKDIR /usr/src/yocto/
+RUN useradd -m  -G sudo builder \
+	&& su - -c "echo '%sudo ALL=(ALL) ALL' >> /etc/sudoers" \
+	&& mkdir /dest \
+	&& chown builder:sudo /dest
+
+USER builder
+
+ENV SOURCE_DIR /source
+ENV DEST_DIR /dest
+
+COPY build.sh /
+CMD ./build.sh
