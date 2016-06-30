@@ -6,7 +6,12 @@ ifdef https_proxy
 	DOCKER_HTTPS_PROXY=--build-arg https_proxy=$(https_proxy)
 endif
 
-DISABLE_CACHE = 'false'
+ifdef use_proxy_at_runtime
+	rt_http_proxy=$(http_proxy)
+	rt_https_proxy=$(https_proxy)
+endif
+
+DISABLE_CACHE= 'false'
 
 ARCH = rpi# rpi/amd64/i386/armv7hf/armel
 BASE_DISTRO =
@@ -85,13 +90,13 @@ supervisor: gosuper
 	echo "ENV DEFAULT_PUBNUB_PUBLISH_KEY $(PUBNUB_PUBLISH_KEY)" >> Dockerfile
 	echo "ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY $(PUBNUB_SUBSCRIBE_KEY)" >> Dockerfile
 	echo "ENV DEFAULT_MIXPANEL_TOKEN $(MIXPANEL_TOKEN)" >> Dockerfile
-ifdef https_proxy
-	echo "ENV HTTPS_PROXY $(https_proxy)" >> Dockerfile
-	echo "ENV https_proxy $(https_proxy)" >> Dockerfile
+ifdef rt_https_proxy
+	echo "ENV HTTPS_PROXY $(rt_https_proxy)" >> Dockerfile
+	echo "ENV https_proxy $(rt_https_proxy)" >> Dockerfile
 endif
-ifdef http_proxy
-	echo "ENV HTTP_PROXY $(http_proxy)" >> Dockerfile
-	echo "ENV http_proxy $(http_proxy)" >> Dockerfile
+ifdef rt_http_proxy
+	echo "ENV HTTP_PROXY $(rt_http_proxy)" >> Dockerfile
+	echo "ENV http_proxy $(rt_http_proxy)" >> Dockerfile
 endif
 	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
 	-rm Dockerfile
