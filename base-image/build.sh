@@ -10,4 +10,4 @@ cd $BUILD_DIR
 source poky/oe-init-build-env build
 bitbake core-image-minimal
 cd tmp/deploy/images/
-cp $(find . -name *.rootfs.tar.bz2) $DEST_DIR/rootfs.tar.bz2
+cp $(find . -name *.rootfs.tar.gz) $DEST_DIR/rootfs.tar.gz
