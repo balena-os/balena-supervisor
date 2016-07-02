@@ -15,8 +15,8 @@ docker run --rm \
 	-v `pwd`:/source \
 	-v `pwd`/dest:/dest \
 	supervisor-base-builder
-if [ -f dest/rootfs.tar.bz2 ]; then
-	cat dest/rootfs.tar.bz2 | docker import - $REPO:$date
+if [ -f dest/rootfs.tar.gz ]; then
+	cat dest/rootfs.tar.gz | docker import - $REPO:$date
 	docker tag -f $REPO:$date $REPO:latest
 	docker push $REPO
 else
