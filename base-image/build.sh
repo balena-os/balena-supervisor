@@ -10,4 +10,4 @@ cd $BUILD_DIR
 source oe-core/oe-init-build-env build bitbake
 bitbake core-image-minimal
 qemu=$(cat conf/local.conf | grep '^MACHINE ??= ' | grep -o '"[^"]\+"' | tr -d '"')
-cp --dereference tmp/deploy/images/$qemu/core-image-minimal-$qemu.tar.bz2  $DEST_DIR/rootfs.tar.bz2
+cp --dereference tmp/deploy/images/$qemu/core-image-minimal-$qemu.tar.gz  $DEST_DIR/rootfs.tar.gz
