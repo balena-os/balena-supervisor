@@ -16,6 +16,9 @@ ENV RELEASE_NAME jessie
 # Change to 'true' to allow blank password dropbear logins on dind HostOS
 ENV PASSWORDLESS_DROPBEAR false
 
+COPY config/certs/ /usr/local/share/ca-certificates/
+RUN rm -f /usr/local/share/ca-certificates/.keepme ; update-ca-certificates
+
 RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D \
 	&& echo deb https://apt.dockerproject.org/repo debian-${RELEASE_NAME} main > /etc/apt/sources.list.d/docker.list \
 	&& apt-get update || true \
