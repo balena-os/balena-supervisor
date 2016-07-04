@@ -73,9 +73,12 @@ endif
 clean:
 	-rm Dockerfile
 
+# Make 'sed' work on both GNU and BSD
+supervisor-dind: TMP_SED := $(shell mktemp)
 supervisor-dind:
-	sed -i 's/\(ENV PASSWORDLESS_DROPBEAR\).*/\1 ${PASSWORDLESS_DROPBEAR}/' tools/dind/Dockerfile
-	cd tools/dind && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
+	sed -e 's/\(ENV PASSWORDLESS_DROPBEAR\).*/\1 ${PASSWORDLESS_DROPBEAR}/g' ./tools/dind/Dockerfile > $(TMP_SED) \
+	&& mv $(TMP_SED) ./tools/dind/Dockerfile \
+	&& cd tools/dind && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
 
 run-supervisor: supervisor-dind stop-supervisor
 	cd tools/dind \
