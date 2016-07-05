@@ -34,4 +34,4 @@ ENV SOURCE_DIR /source
 ENV DEST_DIR /dest
 
 COPY build.sh /
-CMD ./build.sh
+CMD bash -ex build.sh
