@@ -41,7 +41,11 @@ function showHelp {
 }
 
 function deploySupervisor {
-	make -C "$SUPERVISOR_BASE_DIR" deploy
+	make -C "$SUPERVISOR_BASE_DIR" \
+		ARCH="$ARCH" \
+		DEPLOY_REGISTRY="$DEPLOY_REGISTRY" \
+		PASSWORDLESS_DROPBEAR="$PASSWORDLESS_DROPBEAR" \
+		deploy
 }
 
 function runDind {
@@ -63,9 +67,10 @@ function runDind {
 	done
 
 	make -C "$SUPERVISOR_BASE_DIR" \
+		ARCH="$ARCH" \
 		PASSWORDLESS_DROPBEAR="$PASSWORDLESS_DROPBEAR" \
 		SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS" \
-		SUPERVISOR_IMAGE="registry.resindev.io/resin/${ARCH}-supervisor:master" \
+		SUPERVISOR_IMAGE="#{DEPLOY_REGISTRY}resin/${ARCH}-supervisor:master" \
 		run-supervisor
 }
 
