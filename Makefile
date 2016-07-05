@@ -16,7 +16,7 @@ ifdef use_proxy_at_runtime
 	rt_no_proxy=$(no_proxy)
 endif
 
-DISABLE_CACHE= 'false'
+DISABLE_CACHE = 'false'
 
 ARCH = rpi# rpi/amd64/i386/armv7hf/armel
 BASE_DISTRO =
@@ -70,6 +70,8 @@ else
 	PRELOADED_IMAGE=
 endif
 
+SUPERVISOR_EXTRA_MOUNTS =
+
 clean:
 	-rm Dockerfile
 
@@ -78,7 +80,7 @@ supervisor-dind:
 
 run-supervisor: supervisor-dind stop-supervisor
 	cd tools/dind \
-	&& echo "SUPERVISOR_IMAGE=$(SUPERVISOR_IMAGE)\nPRELOADED_IMAGE=$(PRELOADED_IMAGE)" > config/localenv \
+	&& echo "SUPERVISOR_IMAGE=$(SUPERVISOR_IMAGE)\nPRELOADED_IMAGE=$(PRELOADED_IMAGE)\nSUPERVISOR_EXTRA_MOUNTS=$(SUPERVISOR_EXTRA_MOUNTS)" > config/localenv \
 	&& docker run -d --name resin_supervisor_1 --privileged ${SUPERVISOR_DIND_MOUNTS} resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
 
 stop-supervisor:
