@@ -14,7 +14,7 @@ ENV DOCKER_VERSION 1.10.3
 ENV RELEASE_NAME jessie
 
 # Change to 'true' to allow blank password dropbear logins on dind HostOS
-ENV PASSWORDLESS_DROPBEAR false
+ARG PASSWORDLESS_DROPBEAR=false
 
 COPY config/certs/ /usr/local/share/ca-certificates/
 RUN rm -f /usr/local/share/ca-certificates/.keepme ; update-ca-certificates
