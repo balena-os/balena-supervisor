@@ -4,6 +4,7 @@ FROM golang:1.6
 RUN apt-get update \
 	&& apt-get install -y \
 		rsync \
+		upx-ucl \
 	&& rm -rf /var/lib/apt/lists/
 
 COPY . /go/src/resin-supervisor/gosuper
@@ -17,6 +18,7 @@ ARG GOARM=''
 
 RUN go install -a -v ./gosuper \
 	&& cd /go/bin \
-	&& find -type f -name gosuper -exec mv {} /go/bin/gosuper \;
+	&& find -type f -name gosuper -exec mv {} /go/bin/gosuper \; \
+	&& upx --best /go/bin/gosuper
 
 CMD rsync -a --delete /go/bin/gosuper /build
