@@ -13,8 +13,21 @@ RUN JOBS=MAX npm install --unsafe-perm --production --no-optional \
 
 # Remove tar files (sqlite3 module) and tests to reduce space
 RUN find . -name '*.tar.*' -delete \
-    && find . -path '*/test/*' -delete \
-	&& find . -name '*.c' -delete
+	&& find . -path '*/test/*' -delete \
+	&& find . -path '*/.nyc_output/*' -delete \
+	&& find . -path '*/coverage/*' -delete \
+	&& find . -name '*.in' -delete \
+	&& find . -name '*.cc' -delete \
+	&& find . -name '*.c' -delete \
+	&& find . -name '*.coffee' -delete \
+	&& find . -name '*.eslintrc' -delete \
+	&& find . -name '*.h' -delete \
+	&& find . -name '*.html' -delete \
+	&& find . -name '*.markdown' -delete \
+	&& find . -name '*.md' -delete \
+	&& find . -name '*.patch' -delete \
+	&& find . -name '*.png' -delete \
+	&& find . -name '*.yml' -delete
 
 EXPORT /usr/src/app/node_modules/ node_modules/
 EXPORT /usr/src/app/src/ src/
