@@ -1,8 +1,7 @@
-[submodule "base-image/meta-nodejs"]
-	path = base-image/meta-nodejs
-	url = https://github.com/imyller/meta-nodejs.git
-	branch = krogoth
 [submodule "base-image/poky"]
 	path = base-image/poky
 	url = git://git.yoctoproject.org/poky.git
 	branch = krogoth
+[submodule "base-image/meta-nodejs"]
+	path = base-image/meta-nodejs
+	url = https://github.com/resin-io-playground/meta-nodejs.git
