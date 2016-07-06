@@ -90,7 +90,7 @@ stop-supervisor:
 	-docker stop resin_supervisor_1 > /dev/null || true
 	-docker rm -f --volumes resin_supervisor_1 > /dev/null || true
 
-refresh-supervisor:
+refresh-supervisor-src:
 	echo " * Compiling CoffeeScript.." \
 	&& coffee -c ./src \
 	&& echo " * Restarting supervisor container.." \
