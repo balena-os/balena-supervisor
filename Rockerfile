@@ -33,7 +33,7 @@ EXPORT /usr/src/app/node_modules/ node_modules/
 EXPORT /usr/src/app/src/ src/
 
 # Build golang supervisor
-FROM golang:1.5.1
+FROM golang:1.6
 ENV GOOS linux
 ENV GOARCH amd64
 COPY gosuper /go/src/resin-supervisor/gosuper
