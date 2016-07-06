@@ -36,6 +36,7 @@ A config.json file can be obtained in several ways, for instance:
 
 * Download an Intel Edison image from staging, open `config.img` with an archive tool like [peazip](http://sourceforge.net/projects/peazip/files/)
 * Download a Raspberry Pi 2 image, flash it to an SD card, then mount partition 5 (resin-conf).
+* Install Resin CLI with `npm install -g resin-cli`, then login with `resin login` and finally run `resin configure generate --app <appName> -o config.json` (chose the default settings whenever prompted). Check [this section](https://github.com/resin-io/resin-cli#how-do-i-point-the-resin-cli-to-staging) on how to point Resin CLI to a device on staging.
 
 The config.json file should look something like this:
 
