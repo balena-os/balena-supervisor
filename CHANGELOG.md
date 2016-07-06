@@ -1,3 +1,5 @@
+* Fix preloaded apps by passing appId to extendEnvVars
+
 # v1.12.0
 
 * Add endpoints for docker-compose up and down [Pablo]

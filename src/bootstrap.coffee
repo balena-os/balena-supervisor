@@ -20,7 +20,7 @@ loadPreloadedApps = ->
 		fs.readFileAsync(appsPath, 'utf8')
 	.then(JSON.parse)
 	.map (app) ->
-		utils.extendEnvVars(app.env, userConfig.uuid)
+		utils.extendEnvVars(app.env, userConfig.uuid, app.appId)
 		.then (extendedEnv) ->
 			app.env = JSON.stringify(extendedEnv)
 			knex('app').insert(app)
