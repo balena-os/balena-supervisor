@@ -90,6 +90,12 @@ stop-supervisor:
 	-docker stop resin_supervisor_1 > /dev/null || true
 	-docker rm -f --volumes resin_supervisor_1 > /dev/null || true
 
+refresh-supervisor:
+	echo " * Compiling CoffeeScript.." \
+	&& coffee -c ./src \
+	&& echo " * Restarting supervisor container.." \
+	&& docker exec -ti resin_supervisor_1 docker restart resin_supervisor
+
 supervisor: gosuper
 	cp Dockerfile.$(DOCKERFILE) Dockerfile
 	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile

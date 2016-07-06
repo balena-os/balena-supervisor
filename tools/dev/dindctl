@@ -8,7 +8,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 SUPERVISOR_BASE_DIR="${DIR}/../.."
 
 ARCH=${ARCH:-"amd64"}
-DEPLOY_REGISTRY=${DEPLOY_REGISTRY:-"registry.resindev.io/"}
+SUPERVISOR_IMAGE=${SUPERVISOR_IMAGE:-"registry.resindev.io/resin/${ARCH}-supervisor:master"}
 PASSWORDLESS_DROPBEAR=${PASSWORDLESS_DROPBEAR:-"false"}
 SUPERVISOR_EXTRA_MOUNTS=
 
@@ -18,20 +18,20 @@ function showHelp {
 	echo "	faster development iterations by bind-mounting the local './src' directly into the running"
 	echo "	supervisor container."
 	echo
-	echo "	Setting the '--mount-nm' flag in either 'bindrun' or 'deploybindrun' action will bind-mount"
-	echo "	'./node_modules/' into the running supervisor as well. In this case, it's up to the developer"
+	echo "	Setting the '--mount-nm' flag in either 'run' or 'deployrun' action will bind-mount"
+	echo "	'./node_modules/' into the running supervisor. In this case, it's up to the developer"
 	echo "	to make sure that the correct dependencies are installed."
 	echo
 	echo "	Usage: [environment] $0 action [options]"
 	echo
 	echo "	Environment Variables:"
 	echo "		ARCH [=amd64]"
-	echo "		DEPLOY_REGISTRY [=registry.resindev.io/]"
+	echo "		SUPERVISOR_IMAGE [=registry.resindev.io/resin/<ARCH>-supervisor:master]"
 	echo "		PASSWORDLESS_DROPBEAR [=false]"
 	echo "	Actions:"
-	echo "		deploy				build supervisor image and deploy it to the registry"
-	echo "		run [options]			build dind supervisor host container, run it, then pull supervisor container and run it as well"
-	echo "		deployrun [options]		run 'deploy' and 'run'"
+	echo "		deploy				build and deploy local supervisor image - you can override registry/image name with 'SUPERVISOR_IMAGE'"
+	echo "		run [options]			build dind supervisor host container, run it, then pull the configured 'SUPERVISOR_IMAGE' and run it"
+	echo "		deployrun [options]		run 'deploy' and then immediately 'run' the deployed container"
 	echo "		refresh				recompile sources in './src' with 'coffee -c' and restart supervisor container on dind host"
 	echo "		stop				stop dind supervisor host container"
 	echo "	Options:"
@@ -43,7 +43,7 @@ function showHelp {
 function deploySupervisor {
 	make -C "$SUPERVISOR_BASE_DIR" \
 		ARCH="$ARCH" \
-		DEPLOY_REGISTRY="$DEPLOY_REGISTRY" \
+		SUPERVISOR_IMAGE="$SUPERVISOR_IMAGE" \
 		PASSWORDLESS_DROPBEAR="$PASSWORDLESS_DROPBEAR" \
 		deploy
 }
@@ -68,9 +68,9 @@ function runDind {
 
 	make -C "$SUPERVISOR_BASE_DIR" \
 		ARCH="$ARCH" \
+		SUPERVISOR_IMAGE="$SUPERVISOR_IMAGE" \
 		PASSWORDLESS_DROPBEAR="$PASSWORDLESS_DROPBEAR" \
 		SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS" \
-		SUPERVISOR_IMAGE="${DEPLOY_REGISTRY}resin/${ARCH}-supervisor:master" \
 		run-supervisor
 }
 
@@ -87,10 +87,7 @@ case $1 in
 		deploySupervisor && runDind "$@"
 		;;
 	refresh)
-		echo " * Compiling CoffeeScript.." \
-		&& coffee -c "$SUPERVISOR_BASE_DIR/src" \
-		&& echo " * Restarting supervisor container.." \
-		&& docker exec -ti resin_supervisor_1 docker restart resin_supervisor
+		make -C "$SUPERVISOR_BASE_DIR" refresh-supervisor
 		;;
 	stop)
 		make -C "$SUPERVISOR_BASE_DIR" stop-supervisor
