@@ -12,6 +12,12 @@ SUPERVISOR_IMAGE=${SUPERVISOR_IMAGE:-"registry.resindev.io/resin/${ARCH}-supervi
 PASSWORDLESS_DROPBEAR=${PASSWORDLESS_DROPBEAR:-"false"}
 SUPERVISOR_EXTRA_MOUNTS=
 
+SUPERVISOR_LOGS=(
+	'/var/log/supervisor-log/go_supervisor_stdout.log'
+	'/var/log/supervisor-log/resin_supervisor_stdout.log'
+	'/var/log/supervisor-log/supervisor/supervisord.log'
+)
+
 function showHelp {
 	echo
 	echo "	This script can be used to facilitate supervisor development. Its core feature is allowing"
@@ -30,9 +36,10 @@ function showHelp {
 	echo "		PASSWORDLESS_DROPBEAR [=false]"
 	echo "	Actions:"
 	echo "		deploy				build and deploy local supervisor image - you can override registry/image name with 'SUPERVISOR_IMAGE'"
-	echo "		run [options]			build dind supervisor host container, run it, then pull the configured 'SUPERVISOR_IMAGE' and run it"
+	echo "		run [options]			build dind host container, run it, then pull the configured 'SUPERVISOR_IMAGE' into the dind host and run it"
 	echo "		deployrun [options]		run 'deploy' and then immediately 'run' the deployed container"
 	echo "		refresh				recompile sources in './src' with 'coffee -c' and restart supervisor container on dind host"
+	echo "		logs [-f]			print out supervisor log files - use '-f' to follow instead"
 	echo "		stop				stop dind supervisor host container"
 	echo "	Options:"
 	echo "		--mount-src			bind-mount './src/' from local development environment into supervisor container"
@@ -74,6 +81,17 @@ function runDind {
 		run-supervisor
 }
 
+function logs {
+	if [ "$1" = "-f" ]; then
+		docker exec -ti resin_supervisor_1 tail -f ${SUPERVISOR_LOGS[@]}
+	else
+		for log in "${SUPERVISOR_LOGS[@]}"; do
+			echo "	== ${log} =="
+			docker exec -ti resin_supervisor_1 cat "$log"
+		done
+	fi
+}
+
 case $1 in
 	deploy)
 		deploySupervisor
@@ -87,7 +105,11 @@ case $1 in
 		deploySupervisor && runDind "$@"
 		;;
 	refresh)
-		make -C "$SUPERVISOR_BASE_DIR" refresh-supervisor
+		make -C "$SUPERVISOR_BASE_DIR" refresh-supervisor-src
+		;;
+	logs)
+		shift
+		logs "$@"
 		;;
 	stop)
 		make -C "$SUPERVISOR_BASE_DIR" stop-supervisor
