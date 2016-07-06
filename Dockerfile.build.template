@@ -14,8 +14,7 @@ RUN apt-get update \
 		python \
 		rsync \
 		wget \
-	&& rm -rf /var/lib/apt/lists/ \
-	&& npm install -g coffee-script
+	&& rm -rf /var/lib/apt/lists/
 
 ENV DOCKER_COMPOSE_VERSION 1.7.1
 
@@ -41,12 +40,17 @@ RUN set -x \
 
 COPY package.json /usr/src/app/
 
-RUN JOBS=MAX npm install --unsafe-perm --production --no-optional \
-	&& npm dedupe
+# First install devDependencies too in order to run the build
+RUN JOBS=MAX npm install --unsafe-perm
 
 COPY src /usr/src/app/src
 
-RUN coffee -c src
+RUN npm run build
+
+# Re-install just production modules. This should be fast due to npm cache from previous layer
+RUN rm -rf node_modules \
+	&& JOBS=MAX npm install --unsafe-perm --production --no-optional \
+	&& npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space
 RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
