@@ -56,7 +56,11 @@ EXPORT /go/bin/gosuper gosuper
 # Minimal runtime image
 FROM resin/{{ .Arch }}-supervisor-base
 
-COPY package.json /usr/src/app/
+RUN mkdir /var/run/resin
+
+COPY entry.sh run.sh package.json /usr/src/app/
+
+COPY inittab /etc/inittab
 
 IMPORT src/ /usr/src/app/src/
 
