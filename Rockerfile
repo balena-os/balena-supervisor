@@ -36,6 +36,11 @@ EXPORT /usr/src/app/src/ src/
 # Build golang supervisor
 FROM golang:1.6
 
+RUN apt-get update \
+	&& apt-get install -y \
+		upx-ucl \
+	&& rm -rf /var/lib/apt/lists/
+
 COPY gosuper /go/src/resin-supervisor/gosuper
 
 WORKDIR /go/src/resin-supervisor/gosuper
@@ -43,7 +48,8 @@ WORKDIR /go/src/resin-supervisor/gosuper
 ENV GOOS linux
 ENV GOARCH {{ .Arch }}
 
-RUN go install -a -v ./gosuper
+RUN go install -a -v ./gosuper \
+	&& upx --best /go/bin/gosuper
 
 EXPORT /go/bin/gosuper gosuper
 
