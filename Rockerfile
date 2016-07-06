@@ -1,75 +1,75 @@
 # Build nodejs dependencies
-FROM resin/edison-node:6.2
+FROM resin/{{ .Arch }}-node:6.2-slim
+
 WORKDIR /usr/src/app
 
-RUN npm install -g coffee-script
+RUN apt-get update \
+	&& apt-get install -y \
+		g++ \
+		libsqlite3-dev \
+		make \
+		python \
+	&& rm -rf /var/lib/apt/lists/ \
+	&& npm install -g coffee-script
 
 COPY package.json /usr/src/app/
-COPY src /usr/src/app/src
 
 RUN JOBS=MAX npm install --unsafe-perm --production --no-optional \
-	&& npm dedupe \
-	&& coffee -c src
+	&& npm dedupe
 
-# Remove tar files (sqlite3 module) and tests to reduce space
-RUN find . -name '*.tar.*' -delete \
-	&& find . -path '*/test/*' -delete \
-	&& find . -path '*/.nyc_output/*' -delete \
-	&& find . -path '*/coverage/*' -delete \
-	&& find . -name '*.in' -delete \
-	&& find . -name '*.cc' -delete \
-	&& find . -name '*.c' -delete \
-	&& find . -name '*.coffee' -delete \
-	&& find . -name '*.eslintrc' -delete \
-	&& find . -name '*.h' -delete \
-	&& find . -name '*.html' -delete \
-	&& find . -name '*.markdown' -delete \
-	&& find . -name '*.md' -delete \
-	&& find . -name '*.patch' -delete \
-	&& find . -name '*.png' -delete \
-	&& find . -name '*.yml' -delete
+COPY src /usr/src/app/src
+
+RUN coffee -c src
+
+# Remove various uneeded filetypes in order to reduce space
+RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
+		-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
+		-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
+		-o -name '*.h'          -o -name '*.html'   -o -name '*.markdown' \
+		-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
+		-o -name '*.yml' \
+		-delete
 
 EXPORT /usr/src/app/node_modules/ node_modules/
 EXPORT /usr/src/app/src/ src/
 
 # Build golang supervisor
 FROM golang:1.6
-ENV GOOS linux
-ENV GOARCH amd64
+
 COPY gosuper /go/src/resin-supervisor/gosuper
+
 WORKDIR /go/src/resin-supervisor/gosuper
-RUN go install -a -v ./gosuper \
-	&& strip /go/bin/gosuper
+
+ENV GOOS linux
+ENV GOARCH {{ .Arch }}
+
+RUN go install -a -v ./gosuper
+
 EXPORT /go/bin/gosuper gosuper
 
 # Minimal runtime image
-FROM petrosagg/test
-
-ENV SUPERVISOR_IMAGE resin/amd64-supervisor
-ENV SUPERVISOR_TAG_EXTRA alpine
-ENV CONFIG_MOUNT_POINT /boot/config.json
-ENV LED_FILE /dev/null
+FROM resin/{{ .Arch }}-supervisor-base
 
 COPY package.json /usr/src/app/
+
 IMPORT src/ /usr/src/app/src/
 IMPORT node_modules/ /usr/src/app/node_modules/
+
 IMPORT gosuper /usr/bin/gosuper
 
-# COPY openrc/ /etc/init.d/
-# 
-# RUN rc-update add node-supervisor default \
-# 	&& rc-update add golang-supervisor default \
-# 	&& rc-update delete resin default
-
-ENV DEFAULT_PUBNUB_PUBLISH_KEY pub-c-bananas
-ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY sub-c-bananas
-ENV DEFAULT_MIXPANEL_TOKEN bananasbananas
 
 ENTRYPOINT [ "/sbin/init" ]
 
 VOLUME /data
 
-TAG resin/supervisor:master
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV DEFAULT_MIXPANEL_TOKEN bananasbananas
+ENV DEFAULT_PUBNUB_PUBLISH_KEY pub-c-bananas
+ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY sub-c-bananas
+ENV LED_FILE /dev/null
+ENV SUPERVISOR_IMAGE resin/{{ .Arch }}-supervisor
+
+TAG resin/{{ .Arch }}-supervisor:master
 
 # -*- mode: dockerfile -*-
 # vi: set ft=dockerfile :
