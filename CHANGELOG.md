@@ -1,4 +1,10 @@
 * Catch exec format error and provide friendlier error message [Aleksis]
+* Compress go binary with upx [petrosagg]
+* Switch to go version 1.6 [petrosagg]
+* Print all logs to stdout of container instead of file [petrosagg]
+* Upgrade nodejs to version 6.5 [petrosagg]
+* Switch initsystem from supervisor to busybox init [petrosagg]
+* Switch build to openembedded base images [petrosagg]
 
 # v2.1.0
 
