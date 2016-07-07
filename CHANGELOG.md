@@ -1,3 +1,5 @@
+* Switch build to Rockerfile and use openembedded base images [petrosagg]
+
 # v1.13.0
 
 * Allow the supervisor to work in offline mode [Pablo]
