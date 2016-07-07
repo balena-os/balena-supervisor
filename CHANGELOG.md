@@ -1,3 +1,10 @@
+* Compress go binary with upx [petrosagg]
+* Switch to go version 1.6 [petrosagg]
+* Print all logs to stdout of container instead of file [petrosagg]
+* Upgrade nodejs to version 6.5 [petrosagg]
+* Switch initsystem from supervisor to busybox init [petrosagg]
+* Switch build to openembedded base images [petrosagg]
+
 # v2.1.0
 
 * Pick up new variable from hostOS, pointing to the mount point of the hostOS's boot partition [Theodor]
