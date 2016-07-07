@@ -46,9 +46,14 @@ COPY src /usr/src/app/src
 
 RUN coffee -c src
 
-# Remove tar files (sqlite3 module) and tests to reduce space
-RUN find . -name '*.tar.*' -delete \
-    && find . -path '*/test/*' -delete
+# Remove various uneeded filetypes in order to reduce space
+RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
+		-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
+		-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
+		-o -name '*.h'          -o -name '*.html'   -o -name '*.markdown' \
+		-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
+		-o -name '*.yml' \
+		-delete
 
 # Create /var/run/resin for the gosuper to place its socket in
 RUN mkdir -p rootfs-overlay/var/run/resin
