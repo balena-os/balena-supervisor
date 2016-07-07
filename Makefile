@@ -1,3 +1,5 @@
+OS := $(shell uname)
+
 ifdef http_proxy
 	DOCKER_HTTP_PROXY=--build-arg http_proxy=$(http_proxy)
 endif
@@ -33,6 +35,7 @@ PUBNUB_PUBLISH_KEY = pub-c-bananas
 MIXPANEL_TOKEN = bananasbananas
 
 PASSWORDLESS_DROPBEAR = false
+
 ifdef BASE_DISTRO
 $(info BASE_DISTRO SPECIFIED. START BUILDING ALPINE SUPERVISOR)
 	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)-alpine"
@@ -63,7 +66,10 @@ endif
 ifeq ($(ARCH),amd64)
 	GOARCH = amd64
 endif
-SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/../../:/resin-supervisor -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv -v /sys/fs/cgroup:/sys/fs/cgroup:ro
+SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/../../:/resin-supervisor -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv
+ifeq ($(OS), Linux)
+	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v /sys/fs/cgroup:/sys/fs/cgroup:ro
+endif
 ifdef PRELOADED_IMAGE
 	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/apps.json:/usr/src/app/config/apps.json
 else
@@ -80,7 +86,9 @@ supervisor-dind:
 
 run-supervisor: supervisor-dind stop-supervisor
 	cd tools/dind \
-	&& echo "SUPERVISOR_IMAGE=$(SUPERVISOR_IMAGE)\nPRELOADED_IMAGE=$(PRELOADED_IMAGE)\nSUPERVISOR_EXTRA_MOUNTS=$(SUPERVISOR_EXTRA_MOUNTS)" > config/localenv \
+	&& echo "SUPERVISOR_IMAGE=$(SUPERVISOR_IMAGE)" > config/localenv \
+	&& echo "PRELOADED_IMAGE=$(PRELOADED_IMAGE)" >> config/localenv \
+	&& echo "SUPERVISOR_EXTRA_MOUNTS=$(SUPERVISOR_EXTRA_MOUNTS)" >> config/localenv \
 	&& docker run -d --name resin_supervisor_1 --privileged ${SUPERVISOR_DIND_MOUNTS} resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
 
 stop-supervisor:
