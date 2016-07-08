@@ -9,7 +9,7 @@ ifdef https_proxy
 endif
 
 ifdef no_proxy
-	DOCKER_HTTPS_PROXY=--build-arg no_proxy=$(no_proxy)
+	DOCKER_NO_PROXY=--build-arg no_proxy=$(no_proxy)
 endif
 
 ifdef use_proxy_at_runtime
@@ -82,7 +82,7 @@ clean:
 	-rm Dockerfile
 
 supervisor-dind:
-	cd tools/dind && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) --build-arg PASSWORDLESS_DROPBEAR=$(PASSWORDLESS_DROPBEAR) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
+	cd tools/dind && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) --no-cache=$(DISABLE_CACHE) --build-arg PASSWORDLESS_DROPBEAR=$(PASSWORDLESS_DROPBEAR) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
 
 run-supervisor: supervisor-dind stop-supervisor
 	cd tools/dind \
@@ -121,7 +121,7 @@ endif
 ifdef rt_no_proxy
 	echo "ENV no_proxy $(rt_no_proxy)" >> Dockerfile
 endif
-	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
+	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
 	-rm Dockerfile
 
 deploy: supervisor
@@ -130,7 +130,7 @@ deploy: supervisor
 
 go-builder:
 	-cp tools/dind/config.json ./gosuper/
-	cd gosuper && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
+	cd gosuper && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
 	-rm ./gosuper/config.json
 
 gosuper: go-builder
