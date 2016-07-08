@@ -4,7 +4,6 @@ set -o errexit
 set -o pipefail
 
 date=$(date +'%Y%m%d' -u)
-REPO='resin/amd64-supervisor-base'
 # MACHINE_LIST: generic-x86-64 generic-x86 generic-armv6 generic-armv7hf generic-armv5
 # MACHINE_LIST should be set in jenkins config
 
@@ -14,7 +13,7 @@ mkdir dest
 
 docker build -t supervisor-base-builder .
 for machine in $MACHINE_LIST; do
-	case "$device" in
+	case "$machine" in
 	'generic-x86-64')
 		REPO='resin/amd64-supervisor-base'
 	;;
