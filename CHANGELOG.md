@@ -1,3 +1,5 @@
+# v1.12.1
+
 * Fix preloaded apps by passing appId to extendEnvVars
 
 # v1.12.0
