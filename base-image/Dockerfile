@@ -20,18 +20,14 @@ RUN apt-get update \
 		sudo \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m builder \
-	&& mkdir /dest \
-	&& chown builder /dest
-
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 
-USER builder
-
 ENV SOURCE_DIR /source
 ENV DEST_DIR /dest
+ENV SHARED_DOWNLOADS /yocto/shared-downloads
+ENV SHARED_SSTATE /yocto/shared-sstate
 
 COPY build.sh /
 CMD bash -ex build.sh
