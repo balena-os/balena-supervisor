@@ -21,7 +21,7 @@ for machine in $MACHINE_LIST; do
 		REPO='resin/i386-supervisor-base'
 	;;
 	'generic-armv6')
-		REPO='resin/armv6-supervisor-base'
+		REPO='resin/rpi-supervisor-base'
 	;;
 	'generic-armv7hf')
 		REPO='resin/armv7hf-supervisor-base'
