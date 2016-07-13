@@ -77,7 +77,7 @@ logTypes =
 		humanName: 'Restarting application'
 
 logSystemMessage = (message, obj, eventName) ->
-	logger.log({ message, isSystem: true })
+	logger.log({ m: message, s: true })
 	utils.mixpanelTrack(eventName ? message, obj)
 
 logSystemEvent = (logType, app, error) ->
