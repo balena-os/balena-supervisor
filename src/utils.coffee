@@ -191,3 +191,16 @@ exports.getKnexApp = (appId, columns) ->
 			throw new AppNotFoundError('App not found')
 		return app
 
+exports.getOSVersion = (path) ->
+	fs.readFileAsync(path)
+	.then (releaseData) ->
+		lines = (new String(releaseData)).split('\n')
+		releaseItems = {}
+		for line in lines
+			[ key, val ] = line.split('=')
+			releaseItems[_.trim(key)] = _.trim(val)
+		# Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
+		return releaseItems['PRETTY_NAME'].replace(/^"(.+(?="$))"$/, '$1')
+	.catch (err) ->
+		console.log('Could not get OS Version: ', err, err.stack)
+		return undefined
