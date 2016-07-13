@@ -1,4 +1,4 @@
-Docker = require 'dockerode'
+Docker = require 'docker-toolbelt'
 { getRegistryAndName, DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
 progress = require 'request-progress'
@@ -9,10 +9,7 @@ knex = require './db'
 { request } = require './request'
 Lock = require 'rwlock'
 
-docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
-# Hack dockerode to promisify internal classes' prototypes
-Promise.promisifyAll(docker.getImage().constructor.prototype)
-Promise.promisifyAll(docker.getContainer().constructor.prototype)
+docker = new Docker(socketPath: config.dockerSocket)
 
 exports.docker = docker
 dockerProgress = new DockerProgress(socketPath: config.dockerSocket)
@@ -309,3 +306,6 @@ do ->
 			res.json(containers)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.imageRootDir = (image) ->
+		return docker.imageRootDir(image)
