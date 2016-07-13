@@ -1,3 +1,4 @@
+* **[Breaking]** Change the logger to send at a specific interval and with a different message format [Pablo]
 * Use log-timestamp to add timestamps to logs [Pablo]
 
 # v1.12.2

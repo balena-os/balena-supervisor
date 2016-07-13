@@ -3,6 +3,14 @@ Docker = require 'dockerode'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 es = require 'event-stream'
+Lock = require 'rwlock'
+
+LOG_PUBLISH_INTERVAL = 100
+
+# Pubnub's message size limit is 32KB (unclear on whether it's KB or actually KiB,
+# but we'll be conservative). So we limit a log message to 2 bytes less to account
+# for the [ and ] in the array.
+MAX_LOG_BYTE_SIZE = 31998
 
 disableLogs = false
 
@@ -19,30 +27,41 @@ dockerPromise = initialised.then (config) ->
 
 # Queue up any calls to publish logs whilst we wait to be initialised.
 publish = do ->
+	lockQueue = do ->
+		_lock = new Lock()
+		_lockQueue = Promise.promisify(_lock.async.writeLock)
+		return ->
+			_lockQueue()
+			.disposer (release) ->
+				release()
 	publishQueue = []
+	publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE
 
 	initialised.then (config) ->
 		pubnub = PUBNUB.init(config.pubnub)
 		channel = config.channel
+		doPublish = ->
+			Promise.using lockQueue(), ->
+				pubnub.publish({ channel, message: publishQueue }) if publishQueue.length > 0
+				publishQueue = []
+				publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE
+		setInterval(doPublish, LOG_PUBLISH_INTERVAL)
 
-		# Redefine original function
-		publish = (message) ->
-			# Disable sending logs for bandwidth control
-			return if disableLogs
-			if _.isString(message)
-				message = { message }
+	return (message) ->
+		# Disable sending logs for bandwidth control
+		return if disableLogs
+		if _.isString(message)
+			message = { m: message }
 
-			_.defaults message,
-				timestamp: Date.now()
-				# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
-				message: ' '
+		_.defaults message,
+			t: Date.now()
+			# Stop pubnub logging loads of "Missing Message" errors, as they are quite distracting
+			m: ' '
+		msgLength = Buffer.byteLength(JSON.stringify(msg), 'utf8')
+		Promise.using lockQueue, ->
+			publishQueueRemainingBytes -= msgLength
+			publishQueue.push(msg) if publishQueueRemainingBytes >= 0
 
-			pubnub.publish({ channel, message })
-
-		# Replay queue now that we have initialised the publish function
-		publish(args...) for args in publishQueue
-
-	return -> publishQueue.push(arguments)
 
 # disable: A Boolean to pause the Log Publishing - Logs are lost when paused.
 exports.disableLogPublishing = (disable) ->
