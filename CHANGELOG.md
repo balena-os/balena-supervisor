@@ -1,3 +1,4 @@
+* **[Breaking]** Change the logger to send at a specific interval and with a different message format [Pablo]
 * Fix duplicate logs issue [Kostas]
 * **[Breaking]** Do not bind mount /run/dbus to /run/dbus [Pablo]
 * Default to not bind mounting kmod if container distro can't be found [Pablo]
