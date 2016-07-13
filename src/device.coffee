@@ -9,6 +9,7 @@ configPath = '/boot/config.json'
 request = Promise.promisifyAll(require('request'))
 execAsync = Promise.promisify(require('child_process').exec)
 fs = Promise.promisifyAll(require('fs'))
+
 exports.getID = do ->
 	deviceIdPromise = null
 	return ->
@@ -219,15 +220,4 @@ do ->
 		return
 
 exports.getOSVersion = ->
-	fs.readFileAsync(config.hostOsVersionPath)
-	.then (releaseData) ->
-		lines = (new String(releaseData)).split('\n')
-		releaseItems = {}
-		for line in lines
-			[ key, val ] = line.split('=')
-			releaseItems[_.trim(key)] = _.trim(val)
-		# Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
-		return releaseItems['PRETTY_NAME'].replace(/^"(.+(?="$))"$/, '$1')
-	.catch (err) ->
-		console.log('Could not get OS Version: ', err, err.stack)
-		return undefined
+	return utils.getOSVersion(config.hostOsVersionPath)

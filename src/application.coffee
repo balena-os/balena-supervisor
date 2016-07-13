@@ -165,6 +165,13 @@ fetch = (app) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
 			throw err
 
+shouldMountKmod = (image) ->
+	dockerUtils.imageRootDir(image)
+	.then (rootDir) ->
+		utils.getOSVersion(rootDir + '/etc/os-release')
+	.then (version) ->
+		return version? and (version.match(/^Debian/i) or version.match(/^Raspbian/i))
+
 application.start = start = (app) ->
 	volumes =
 		'/data': {}
@@ -238,13 +245,16 @@ application.start = start = (app) ->
 				portList.forEach (port) ->
 					ports[port + '/tcp'] = [ HostPort: port ]
 			restartPolicy = createRestartPolicy({ name: env['RESIN_APP_RESTART_POLICY'], maximumRetryCount: env['RESIN_APP_RESTART_RETRIES'] })
-			container.startAsync(
-				Privileged: true
-				NetworkMode: 'host'
-				PortBindings: ports
-				Binds: binds
-				RestartPolicy: restartPolicy
-			)
+			shouldMountKmod(app.imageId)
+			.then (shouldMount) ->
+				binds.push('/bin/kmod:/bin/kmod') if shouldMount
+				container.startAsync(
+					Privileged: true
+					NetworkMode: 'host'
+					PortBindings: ports
+					Binds: binds
+					RestartPolicy: restartPolicy
+				)
 			.catch (err) ->
 				statusCode = '' + err.statusCode
 				# 304 means the container was already started, precisely what we want :)

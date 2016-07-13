@@ -9,6 +9,8 @@ knex = require './db'
 { request } = require './request'
 Lock = require 'rwlock'
 
+dockerToolbelt = new require('docker-delta/lib/docker-toolbelt')(socketPath: config.dockerSocket)
+
 docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
 # Hack dockerode to promisify internal classes' prototypes
 Promise.promisifyAll(docker.getImage().constructor.prototype)
@@ -309,3 +311,5 @@ do ->
 			res.json(containers)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.imageRootDir = dockerToolbelt.imageRootDir
