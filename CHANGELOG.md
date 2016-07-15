@@ -1,3 +1,5 @@
+# v1.12.2
+
 * Bind mount kmod if the container is debian or raspbian [Pablo]
 
 # v1.12.1
