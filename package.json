@@ -21,6 +21,7 @@
     "knex": "~0.8.3",
     "lockfile": "^1.0.1",
     "lodash": "^3.0.0",
+    "log-timestamp": "^0.1.2",
     "mixpanel": "0.0.20",
     "network-checker": "~0.0.5",
     "pinejs-client": "^1.7.1",

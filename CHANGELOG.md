@@ -1,3 +1,5 @@
+* Use log-timestamp to add timestamps to logs [Pablo]
+
 # v1.12.1
 
 * Fix preloaded apps by passing appId to extendEnvVars
