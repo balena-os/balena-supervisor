@@ -177,14 +177,12 @@ application.start = start = (app) ->
 		'/data': {}
 		'/lib/modules': {}
 		'/lib/firmware': {}
-		'/run/dbus': {}
 		'/host/var/lib/connman': {}
 		'/host/run/dbus': {}
 	binds = [
 		config.dataPath + '/' + app.appId + ':/data'
 		'/lib/modules:/lib/modules'
 		'/lib/firmware:/lib/firmware'
-		'/run/dbus:/run/dbus'
 		'/run/dbus:/host_run/dbus'
 		'/run/dbus:/host/run/dbus'
 		'/etc/resolv.conf:/etc/resolv.conf:rw'

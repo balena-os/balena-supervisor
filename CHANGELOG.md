@@ -1,3 +1,4 @@
+* Do not bind mount /run/dbus to /run/dbus [Pablo]
 * Use log-timestamp to add timestamps to logs [Pablo]
 
 # v1.12.2
