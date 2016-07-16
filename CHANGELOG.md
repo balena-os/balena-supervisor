@@ -1,3 +1,4 @@
+* **[Breaking]** Do not bind mount /run/dbus to /run/dbus [Pablo]
 * Default to not bind mounting kmod if container distro can't be found [Pablo]
 * Use log-timestamp to add timestamps to logs [Pablo]
 
