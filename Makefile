@@ -124,6 +124,9 @@ endif
 	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
 	-rm Dockerfile
 
+lint: supervisor
+	docker run --rm --entrypoint='sh' $(IMAGE) -c 'npm install && npm run lint'
+
 deploy: supervisor
 	docker tag -f $(IMAGE) $(SUPERVISOR_IMAGE)
 	bash retry_docker_push.sh $(SUPERVISOR_IMAGE)

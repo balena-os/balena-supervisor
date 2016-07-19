@@ -19,6 +19,9 @@ MAKE_ARGS="ARCH=${ARCH} \
     MIXPANEL_TOKEN=${MIXPANEL_TOKEN}"
 
 make ${MAKE_ARGS} \
+    lint
+
+make ${MAKE_ARGS} \
     SUPERVISOR_VERSION=${ESCAPED_BRANCH_NAME} \
     DEPLOY_REGISTRY= \
     deploy
