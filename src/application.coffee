@@ -171,6 +171,9 @@ shouldMountKmod = (image) ->
 		utils.getOSVersion(rootDir + '/etc/os-release')
 	.then (version) ->
 		return version? and (version.match(/^Debian/i) or version.match(/^Raspbian/i))
+	.catch (err) ->
+		console.error("Error getting app OS release: ", err)
+		return false
 
 application.start = start = (app) ->
 	volumes =
