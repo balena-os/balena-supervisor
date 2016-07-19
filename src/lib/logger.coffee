@@ -11,6 +11,7 @@ LOG_PUBLISH_INTERVAL = 110
 # but we'll be conservative). So we limit a log message to 2 bytes less to account
 # for the [ and ] in the array.
 MAX_LOG_BYTE_SIZE = 31998
+MAX_MESSAGE_INDEX = 9
 
 disableLogs = false
 
@@ -27,8 +28,10 @@ dockerPromise = initialised.then (config) ->
 
 # Queue up any calls to publish logs whilst we wait to be initialised.
 publish = do ->
-	publishQueue = []
+	publishQueue = [[]]
+	messageIndex = 0
 	publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE
+	logsOverflow = false
 
 	initialised.then (config) ->
 		if config.offlineMode
@@ -38,15 +41,19 @@ publish = do ->
 		pubnub = PUBNUB.init(config.pubnub)
 		channel = config.channel
 		doPublish = ->
-			return if publishQueue.length is 0
-			pubnub.publish({ channel, message: publishQueue })
-			publishQueue = []
-			publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE
+			return if publishQueue[0].length is 0
+			message = publishQueue.shift()
+			pubnub.publish({ channel, message })
+			if publishQueue.length is 0
+				publishQueue = [[]]
+				publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE
+			messageIndex = Math.max(messageIndex - 1, 0)
+			logsOverflow = false if messageIndex < MAX_MESSAGE_INDEX
 		setInterval(doPublish, LOG_PUBLISH_INTERVAL)
 
 	return (message) ->
 		# Disable sending logs for bandwidth control
-		return if disableLogs or publishQueueRemainingBytes <= 0
+		return if disableLogs or (messageIndex >= MAX_MESSAGE_INDEX and publishQueueRemainingBytes <= 0)
 		if _.isString(message)
 			message = { m: message }
 
@@ -54,9 +61,20 @@ publish = do ->
 			t: Date.now()
 			m: ''
 		msgLength = Buffer.byteLength(JSON.stringify(message), 'utf8')
-		publishQueueRemainingBytes -= msgLength
-		publishQueue.push(message) if publishQueueRemainingBytes >= 0
-
+		return if msgLength > MAX_LOG_BYTE_SIZE # Unlikely, but we can't allow this
+		remaining = publishQueueRemainingBytes - msgLength
+		if remaining >= 0
+			publishQueue[messageIndex].push(message)
+			publishQueueRemainingBytes = remaining
+		else if messageIndex < MAX_MESSAGE_INDEX
+			messageIndex += 1
+			publishQueue[messageIndex] = [ message ]
+			publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE - msgLength
+		else if !logsOverflow
+			logsOverflow = true
+			messageIndex += 1
+			publishQueue[messageIndex] = [ { m: 'Warning! Some logs dropped due to high load', t: Date.now(), s: 1 } ]
+			publishQueueRemainingBytes = 0
 
 # disable: A Boolean to pause the Log Publishing - Logs are lost when paused.
 exports.disableLogPublishing = (disable) ->
