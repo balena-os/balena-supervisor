@@ -170,6 +170,7 @@ module.exports = (application) ->
 	unparsedRouter.delete '/v1/images/*', dockerUtils.deleteImage
 	unparsedRouter.get '/v1/images', dockerUtils.listImages
 	parsedRouter.post '/v1/containers/create', dockerUtils.createContainer
+	parsedRouter.post '/v1/containers/update', dockerUtils.updateContainer
 	parsedRouter.post '/v1/containers/:id/start', dockerUtils.startContainer
 	unparsedRouter.post '/v1/containers/:id/stop', dockerUtils.stopContainer
 	unparsedRouter.delete '/v1/containers/:id', dockerUtils.deleteContainer

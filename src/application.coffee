@@ -176,21 +176,8 @@ shouldMountKmod = (image) ->
 		return false
 
 application.start = start = (app) ->
-	volumes =
-		'/data': {}
-		'/lib/modules': {}
-		'/lib/firmware': {}
-		'/host/var/lib/connman': {}
-		'/host/run/dbus': {}
-	binds = [
-		config.dataPath + '/' + app.appId + ':/data'
-		'/lib/modules:/lib/modules'
-		'/lib/firmware:/lib/firmware'
-		'/run/dbus:/host_run/dbus'
-		'/run/dbus:/host/run/dbus'
-		'/etc/resolv.conf:/etc/resolv.conf:rw'
-		'/var/lib/connman:/host/var/lib/connman'
-	]
+	volumes = utils.defaultVolumes
+	binds = utils.defaultBinds(app.appId)
 	Promise.try ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
 		JSON.parse(app.env)
