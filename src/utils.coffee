@@ -204,3 +204,22 @@ exports.getOSVersion = (path) ->
 	.catch (err) ->
 		console.log('Could not get OS Version: ', err, err.stack)
 		return undefined
+
+exports.defaultVolumes = {
+	'/data': {}
+	'/lib/modules': {}
+	'/lib/firmware': {}
+	'/host/var/lib/connman': {}
+	'/host/run/dbus': {}
+}
+
+exports.defaultBinds = (dataPath) ->
+	return [
+		config.dataPath + '/' + dataPath + ':/data'
+		'/lib/modules:/lib/modules'
+		'/lib/firmware:/lib/firmware'
+		'/run/dbus:/host_run/dbus'
+		'/run/dbus:/host/run/dbus'
+		'/etc/resolv.conf:/etc/resolv.conf:rw'
+		'/var/lib/connman:/host/var/lib/connman'
+	]
