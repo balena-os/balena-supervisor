@@ -3,6 +3,7 @@ Docker = require 'dockerode'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 es = require 'event-stream'
+Lock = require 'rwlock'
 
 disableLogs = false
 
@@ -52,17 +53,25 @@ exports.log = ->
 	publish(arguments...)
 
 do ->
+	_lock = new Lock()
+	_writeLock = Promise.promisify(_lock.async.writeLock)
+	loggerLock = (containerId) ->
+		_writeLock(containerId)
+		.disposer (release) ->
+			release()
+
 	attached = {}
 	exports.attach = (app) ->
-		if !attached[app.containerId]
-			dockerPromise.then (docker) ->
-				docker.getContainer(app.containerId)
-				.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
-				.then (stream) ->
-					attached[app.containerId] = true
-					stream.pipe(es.split())
-					.on('data', publish)
-					.on 'error', ->
-						attached[app.containerId] = false
-					.on 'end', ->
-						attached[app.containerId] = false
+		Promise.using loggerLock(app.containerId), ->
+			if !attached[app.containerId]
+				dockerPromise.then (docker) ->
+					docker.getContainer(app.containerId)
+					.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
+					.then (stream) ->
+						attached[app.containerId] = true
+						stream.pipe(es.split())
+						.on('data', publish)
+						.on 'error', ->
+							attached[app.containerId] = false
+						.on 'end', ->
+							attached[app.containerId] = false
