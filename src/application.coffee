@@ -678,7 +678,6 @@ listenToEvents = do ->
 								appHasDied[app.containerId] = true
 							else if data.status == 'start' and appHasDied[app.containerId]
 								logSystemEvent(logTypes.appRestart, app)
-								logger.attach(app)
 					.catch (err) ->
 						console.error('Error on docker event:', err, err.stack)
 			parser.on 'end', ->
