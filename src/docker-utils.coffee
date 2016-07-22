@@ -253,10 +253,10 @@ do ->
 			knex('image').select().where('repoTag', options.Image)
 			.then (images) ->
 				throw new Error('Only images created via the Supervisor can be used for creating containers.') if images.length == 0
-				knex.transaction (trx) ->
+				knex.transaction (tx) ->
 					Promise.try ->
 						return internalId if internalId?
-						trx.insert({}, 'id').into('container')
+						tx.insert({}, 'id').into('container')
 						.then ([ id ]) ->
 							return id
 					.then (id) ->
@@ -283,9 +283,8 @@ do ->
 							docker.modem.dialAsync(optsf)
 						.then (data) ->
 							containerId = data.Id
-							trx('container').update({ containerId }).where({ id })
-							.then ->
-								return data
+							tx('container').update({ containerId }).where({ id })
+							.return(data)
 	exports.createContainer = (req, res) ->
 		createContainer(req.body)
 		.then (data) ->
