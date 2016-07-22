@@ -185,7 +185,9 @@ do ->
 		else
 			repoTag = buildRepoTag(repo, tag, registry)
 		Promise.using writeLockImages(), ->
-			knex('image').insert({ repoTag })
+			knex('image').select().where({ repoTag })
+			.then ([ img ]) ->
+				knex('image').insert({ repoTag }) if !img?
 			.then ->
 				if fromImage?
 					docker.createImageAsync({ fromImage, tag })
@@ -199,7 +201,9 @@ do ->
 	exports.pullAndProtectImage = (image, onProgress) ->
 		repoTag = buildRepoTag(image)
 		Promise.using writeLockImages(), ->
-			knex('image').insert({ repoTag })
+			knex('image').select().where({ repoTag })
+			.then ([ img ]) ->
+				knex('image').insert({ repoTag }) if !img?
 			.then ->
 				dockerProgress.pull(repoTag, onProgress)
 
