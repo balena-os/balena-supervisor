@@ -8,6 +8,7 @@ fs = Promise.promisifyAll(require('fs'))
 mkdirp = Promise.promisify(require('mkdirp'))
 path = require 'path'
 utils = require './utils'
+config = require './config'
 
 composePathSrc = (appId) ->
 	return "/mnt/root#{config.dataPath}/#{appId}/docker-compose.yml"
@@ -39,12 +40,6 @@ writeComposeFile = (composeSpec, dstPath) ->
 	.then ->
 		execAsync('sync')
 
-validateServiceOptions = (service) ->
-	Promise.try ->
-		options = _.keys(service)
-		_.each options, (option) ->
-			throw new Error("Using #{option} is not allowed.") if !_.includes(utils.validComposeOptions, option)
-
 # Runs docker-compose up using the compose YAML at "path".
 # Reports status and errors in JSON to the onStatus function.
 # Copies the compose file from srcPath to dstPath adding default volumes
@@ -68,11 +63,11 @@ exports.up = (appId, onStatus) ->
 			.catch ->
 				dockerUtils.pullAndProtectImage(service.image, reportStatus)
 			.then ->
-				validateServiceOptions(service)
+				utils.validateKeys(service, utils.validComposeOptions)
 			.then ->
 				services[serviceName].volumes = utils.defaultBinds(composeDataPath(appId, serviceName))
 		.then ->
-			writeComposeFile(composeSpec, dstPath)
+			writeComposeFile(composeSpec, composePathDst(appId))
 	.then ->
 		runComposeCommand(['up', '-d'], appId, reportStatus)
 	.catch (err) ->
@@ -82,7 +77,7 @@ exports.up = (appId, onStatus) ->
 
 # Runs docker-compose down using the compose YAML at "path".
 # Reports status and errors in JSON to the onStatus function.
-exports.down = (appId, onStatus)
+exports.down = (appId, onStatus) ->
 	onStatus ?= console.log.bind(console)
 	reportStatus = (status) ->
 		try onStatus(status)

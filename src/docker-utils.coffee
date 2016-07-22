@@ -8,6 +8,7 @@ _ = require 'lodash'
 knex = require './db'
 { request } = require './request'
 Lock = require 'rwlock'
+utils = require './utils'
 
 docker = new Docker(socketPath: config.dockerSocket)
 
@@ -270,7 +271,11 @@ do ->
 								404: 'no such container'
 								406: 'impossible to attach'
 								500: 'server error'
-						docker.modem.dialAsync(optsf)
+						utils.validateKeys(options, utils.validContainerOptions)
+						.then ->
+							utils.validateKeys(options.HostConfig, utils.validHostConfigOptions)
+						.then ->
+							docker.modem.dialAsync(optsf)
 						.then (data) ->
 							containerId = data.Id
 							trx('container').update({ containerId }).where({ id })
@@ -284,7 +289,9 @@ do ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
 	startContainer = (containerId, options) ->
-		docker.getContainer(containerId).startAsync(options)
+		utils.validateKeys(options, utils.validHostConfigOptions)
+		.then ->
+			docker.getContainer(containerId).startAsync(options)
 	exports.startContainer = (req, res) ->
 		startContainer(req.params.id, req.body)
 		.then (data) ->
@@ -342,7 +349,7 @@ do ->
 				deleteContainer(oldContainerId, v: true)
 			.then ->
 				createContainer(req.body, oldContainer.id)
-			.then ->
+			.then (data) ->
 				startContainer(data.Id)
 		.then (data) ->
 			res.json(data)
