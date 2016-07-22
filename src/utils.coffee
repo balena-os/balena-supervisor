@@ -267,3 +267,71 @@ exports.validComposeOptions = [
 	'networks'
 	'pid'
 ]
+
+exports.validContainerOptions = [
+	'Hostname'
+	'Domainname'
+	'User'
+	'Tty'
+	'Env'
+	'Labels'
+	'Cmd'
+	'Entrypoint'
+	'Image'
+	'Volumes'
+	'WorkingDir'
+	'NetworkDisabled'
+	'ExposedPorts'
+	'HostConfig'
+]
+
+exports.validHostConfigOptions = [
+	'Binds'
+	'Links'
+	'Memory'
+	'MemorySwap'
+	'MemoryReservation'
+	'KernelMemory'
+	'CpuShares'
+	'CpuPeriod'
+	'CpuQuota'
+	'CpusetCpus'
+	'CpusetMems'
+	'BlkioWeight'
+	'BlkioWeightDevice'
+	'BlkioDeviceReadBps'
+	'BlkioDeviceWriteBps'
+	'BlkioDeviceReadIOps'
+	'BlkioDeviceWriteIOps'
+	'MemorySwappiness'
+	'OomKillDisable'
+	'OomScoreAdj'
+	'PidMode'
+	'PortBindings'
+	'PublishAllPorts'
+	'Privileged'
+	'ReadonlyRootfs'
+	'Dns'
+	'DnsOptions'
+	'DnsSearch'
+	'ExtraHosts'
+	'VolumesFrom'
+	'CapAdd'
+	'CapDrop'
+	'GroupAdd'
+	'RestartPolicy'
+	'NetworkMode'
+	'Devices'
+	'Ulimits'
+	'SecurityOpt'
+	'ShmSize'
+]
+
+exports.validateKeys = (options, validSet) ->
+	Promise.try ->
+		return if !options?
+		keys = _.keys(options)
+		invalidKeys = []
+		_.each keys, (key) ->
+			invalidKeys.push(key) if !_.includes(validSet, key)
+		throw new Error("Using #{invalidKeys.join(', ')} is not allowed.") if !_.isEmpty(invalidKeys)
