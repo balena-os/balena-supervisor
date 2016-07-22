@@ -283,6 +283,7 @@ exports.validContainerOptions = [
 	'NetworkDisabled'
 	'ExposedPorts'
 	'HostConfig'
+	'Name'
 ]
 
 exports.validHostConfigOptions = [
