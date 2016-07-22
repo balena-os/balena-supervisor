@@ -4,14 +4,23 @@ _ = require 'lodash'
 dockerUtils = require './docker-utils'
 { docker } = dockerUtils
 fs = Promise.promisifyAll(require('fs'))
-spawn = require('child_process').spawn
+{ spawn, execAsync } = Promise.promisifyAll(require('child_process'))
+mkdirp = Promise.promisify(require('mkdirp'))
+path = require 'path'
+utils = require './utils'
 
-runComposeCommand = (composeArgs, path, onStatus) ->
-	onStatus ?= console.log.bind(console)
-	reportStatus = (status) ->
-		try onStatus(status)
+composePathSrc = (appId) ->
+	return "/mnt/root#{config.dataPath}/#{appId}/docker-compose.yml"
+
+composePathDst = (appId) ->
+	return "/mnt/root#{config.dataPath}/resin-supervisor/compose/#{appId}/docker-compose.yml"
+
+composeDataPath = (appId, serviceName) ->
+	return "compose/#{appId}/#{serviceName}"
+
+runComposeCommand = (composeArgs, appId, reportStatus) ->
 	new Promise (resolve, reject) ->
-		child = spawn('docker-compose', ['-f', path].concat(composeArgs), stdio: 'pipe')
+		child = spawn('docker-compose', ['-f', composePathDst(appId)].concat(composeArgs), stdio: 'pipe')
 		.on 'error', reject
 		.on 'exit', (code) ->
 			return reject(new Error("docker-compose exited with code #{code}")) if code isnt 0
@@ -20,18 +29,30 @@ runComposeCommand = (composeArgs, path, onStatus) ->
 			reportStatus(status: '' + data)
 		child.stderr.on 'data', (data) ->
 			reportStatus(status: '' + data)
-	.catch (err) ->
-		msg = err?.message or err
-		reportStatus(error: msg)
-		throw err
+
+writeComposeFile = (composeSpec, dstPath) ->
+	mkdirp(path.dirname(dstPath))
+	.then ->
+		YAML.stringify(composeSpec)
+	.then (yml) ->
+		fs.writeFileAsync(dstPath, yml)
+	.then ->
+		execAsync('sync')
+
+validateServiceOptions = (service) ->
+	Promise.try ->
+		options = _.keys(service)
+		_.each options, (option) ->
+			throw new Error("Using #{option} is not allowed.") if !_.includes(utils.validComposeOptions, option)
 
 # Runs docker-compose up using the compose YAML at "path".
 # Reports status and errors in JSON to the onStatus function.
-exports.up = (path, onStatus) ->
+# Copies the compose file from srcPath to dstPath adding default volumes
+exports.up = (appId, onStatus) ->
 	onStatus ?= console.log.bind(console)
 	reportStatus = (status) ->
 		try onStatus(status)
-	fs.readFileAsync(path)
+	fs.readFileAsync(composePathSrc(appId))
 	.then (data) ->
 		YAML.parse(data.toString())
 	.then (composeSpec) ->
@@ -46,9 +67,27 @@ exports.up = (path, onStatus) ->
 			docker.getImage(service.image).inspectAsync()
 			.catch ->
 				dockerUtils.pullAndProtectImage(service.image, reportStatus)
+			.then ->
+				validateServiceOptions(service)
+			.then ->
+				services[serviceName].volumes = utils.defaultBinds(composeDataPath(appId, serviceName))
+		.then ->
+			writeComposeFile(composeSpec, dstPath)
 	.then ->
-		runComposeCommand(['up', '-d'], path, onStatus)
+		runComposeCommand(['up', '-d'], appId, reportStatus)
+	.catch (err) ->
+		msg = err?.message or err
+		reportStatus(error: msg)
+		throw err
 
 # Runs docker-compose down using the compose YAML at "path".
 # Reports status and errors in JSON to the onStatus function.
-exports.down = _.partial(runComposeCommand, 'down')
+exports.down = (appId, onStatus)
+	onStatus ?= console.log.bind(console)
+	reportStatus = (status) ->
+		try onStatus(status)
+	runComposeCommand([ 'down' ], appId, reportStatus)
+	.catch (err) ->
+		msg = err?.message or err
+		reportStatus(error: msg)
+		throw err

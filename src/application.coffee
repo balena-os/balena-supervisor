@@ -309,9 +309,6 @@ killmePath = (app) ->
 	appId = app.appId ? app
 	return "/mnt/root#{config.dataPath}/#{appId}/resin-kill-me"
 
-application.composePath = (appId) ->
-	return "/mnt/root#{config.dataPath}/#{appId}/docker-compose.yml"
-
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
 application.unlockAndStart = unlockAndStart = (app) ->
 	lockFile.unlockAsync(lockPath(app))

@@ -24,6 +24,7 @@
     "lodash": "^3.0.0",
     "log-timestamp": "^0.1.2",
     "mixpanel": "0.0.20",
+    "mkdirp": "^0.5.1",
     "network-checker": "~0.0.5",
     "pinejs-client": "^1.7.1",
     "pubnub": "^3.7.13",

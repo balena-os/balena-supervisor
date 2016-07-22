@@ -184,7 +184,7 @@ module.exports = (application) ->
 		utils.getKnexApp(appId)
 		.then (app) ->
 			res.status(200)
-			compose.up(application.composePath(appId), onStatus)
+			compose.up(appId, onStatus)
 			.catch (err) ->
 				console.log('Error on compose up:', err, err.stack)
 			.finally ->
@@ -202,7 +202,7 @@ module.exports = (application) ->
 		utils.getKnexApp(appId)
 		.then (app) ->
 			res.status(200)
-			compose.down(application.composePath(appId), onStatus)
+			compose.down(appId, onStatus)
 			.catch (err) ->
 				console.log('Error on compose down:', err, err.stack)
 			.finally ->
