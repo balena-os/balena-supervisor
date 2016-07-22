@@ -213,9 +213,12 @@ exports.defaultVolumes = {
 	'/host/run/dbus': {}
 }
 
+exports.getDataPath = (identifier) ->
+	return config.dataPath + '/' + identifier
+
 exports.defaultBinds = (dataPath) ->
 	return [
-		config.dataPath + '/' + dataPath + ':/data'
+		exports.getDataPath(dataPath) + ':/data'
 		'/lib/modules:/lib/modules'
 		'/lib/firmware:/lib/firmware'
 		'/run/dbus:/host_run/dbus'

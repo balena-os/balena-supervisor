@@ -9,6 +9,7 @@ knex = require './db'
 { request } = require './request'
 Lock = require 'rwlock'
 utils = require './utils'
+rimraf = Promise.promisify(require('rimraf'))
 
 docker = new Docker(socketPath: config.dockerSocket)
 
@@ -327,6 +328,14 @@ do ->
 			container.inspectAsync()
 		.then (cont) ->
 			throw new Error('Cannot remove supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
+			if options.purge
+				knex('container').select().where({ containerId })
+				.then (contFromDB) ->
+					# This will also be affected by #115. Should fix when we fix that.
+					rimraf(utils.getDataPath("containers/#{contFromDB.id}"))
+				.then ->
+					knex('container').where({ containerId }).del()
+		.then ->
 			container.removeAsync(options)
 	exports.deleteContainer = (req, res) ->
 		deleteContainer(req.params.id, sanitizeQuery(req.query))
