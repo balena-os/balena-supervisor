@@ -9,7 +9,7 @@ ifdef https_proxy
 endif
 
 ifdef no_proxy
-	DOCKER_HTTPS_PROXY=--build-arg no_proxy=$(no_proxy)
+	DOCKER_NO_PROXY=--build-arg no_proxy=$(no_proxy)
 endif
 
 ifdef use_proxy_at_runtime
@@ -81,14 +81,46 @@ SUPERVISOR_EXTRA_MOUNTS =
 clean:
 	-rm Dockerfile
 
-supervisor-dind:
-	cd tools/dind && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) --build-arg PASSWORDLESS_DROPBEAR=$(PASSWORDLESS_DROPBEAR) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
+DOCKERD_PROXY=tools/dind/config/services/docker.service.d/proxy.conf
+${DOCKERD_PROXY}:
+	rm -f ${DOCKERD_PROXY}
+	if [ -n "${rt_http_proxy}" ]; then \
+		proxies=("\"HTTP_PROXY=${rt_http_proxy}\""); \
+		proxies=($${proxies[*]} "\"http_proxy=${rt_http_proxy}\""); \
+	fi; \
+	if [ -n "${rt_https_proxy}" ]; then \
+		proxies=($${proxies[*]} "\"HTTPS_PROXY=${rt_https_proxy}\""); \
+		proxies=($${proxies[*]} "\"https_proxy=${rt_https_proxy}\""); \
+	fi; \
+	if [ -n "${rt_no_proxy}" ]; then \
+		proxies=($${proxies[*]} "\"no_proxy=${rt_no_proxy}\""); \
+	fi; \
+	if [ -n "$${proxies[*]}" ]; then \
+		echo "[Service]" > ${DOCKERD_PROXY}; \
+		echo "Environment=$${proxies[*]}" >> ${DOCKERD_PROXY}; \
+	else \
+		touch ${DOCKERD_PROXY}; \
+	fi
 
-run-supervisor: supervisor-dind stop-supervisor
+supervisor-dind: ${DOCKERD_PROXY}
+	cd tools/dind && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) --no-cache=$(DISABLE_CACHE) --build-arg PASSWORDLESS_DROPBEAR=$(PASSWORDLESS_DROPBEAR) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
+
+run-supervisor: stop-supervisor supervisor-dind
 	cd tools/dind \
 	&& echo "SUPERVISOR_IMAGE=$(SUPERVISOR_IMAGE)" > config/localenv \
 	&& echo "PRELOADED_IMAGE=$(PRELOADED_IMAGE)" >> config/localenv \
-	&& echo "SUPERVISOR_EXTRA_MOUNTS=$(SUPERVISOR_EXTRA_MOUNTS)" >> config/localenv \
+	&& echo "SUPERVISOR_EXTRA_MOUNTS=$(SUPERVISOR_EXTRA_MOUNTS)" >> config/localenv; \
+	if [ -n "$(rt_http_proxy)" ]; then \
+		echo "HTTP_PROXY=$(rt_http_proxy)" >> config/localenv \
+		&& echo "http_proxy=$(rt_http_proxy)" >> config/localenv; \
+	fi; \
+	if [ -n "$(rt_https_proxy)" ]; then \
+		echo "HTTPS_PROXY=$(rt_https_proxy)" >> config/localenv \
+		&& echo "https_proxy=$(rt_https_proxy)" >> config/localenv; \
+	fi; \
+	if [ -n "$(rt_no_proxy)" ]; then \
+		echo "no_proxy=$(rt_no_proxy)" >> config/localenv; \
+	fi \
 	&& docker run -d --name resin_supervisor_1 --privileged ${SUPERVISOR_DIND_MOUNTS} resin/resin-supervisor-dind:$(SUPERVISOR_VERSION)
 
 stop-supervisor:
@@ -121,7 +153,7 @@ endif
 ifdef rt_no_proxy
 	echo "ENV no_proxy $(rt_no_proxy)" >> Dockerfile
 endif
-	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
+	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
 	-rm Dockerfile
 
 lint: supervisor
@@ -133,7 +165,7 @@ deploy: supervisor
 
 go-builder:
 	-cp tools/dind/config.json ./gosuper/
-	cd gosuper && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
+	cd gosuper && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
 	-rm ./gosuper/config.json
 
 gosuper: go-builder
