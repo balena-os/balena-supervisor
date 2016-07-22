@@ -109,21 +109,20 @@ do ->
 			Promise.join(
 				knex('image').select('repoTag')
 				.map (image) ->
-					image.repoTag
+					# Docker sometimes prepends 'docker.io/' to official images
+					return [ image.repoTag, 'docker.io/' + image.repoTag ]
+				.then(_.flatten)
 				knex('app').select()
 				.map (app) ->
 					app.imageId + ':latest'
 				docker.listImagesAsync()
-				(localTags, apps, images) ->
+				(locallyCreatedTags, apps, images) ->
 					imageTags = _.map(images, 'RepoTags')
 					supervisorTags = _.filter imageTags, (tags) ->
 						_.contains(tags, supervisorTag)
 					appTags = _.filter imageTags, (tags) ->
 						_.any tags, (tag) ->
 							_.contains(apps, tag)
-					locallyCreatedTags = _.filter imageTags, (tags) ->
-						_.any tags, (tag) ->
-							_.contains(localTags, tag)
 					supervisorTags = _.flatten(supervisorTags)
 					appTags = _.flatten(appTags)
 					locallyCreatedTags = _.flatten(locallyCreatedTags)
@@ -182,8 +181,7 @@ do ->
 	exports.createImage = (req, res) ->
 		{ registry, repo, tag, fromImage } = req.query
 		if fromImage?
-			repoTag = fromImage
-			repoTag += ':' + tag if tag?
+			repoTag = buildRepoTag(fromImage, tag)
 		else
 			repoTag = buildRepoTag(repo, tag, registry)
 		Promise.using writeLockImages(), ->
@@ -261,8 +259,10 @@ do ->
 						options.Volumes ?= {}
 						_.assign(options.Volumes, utils.defaultVolumes)
 						options.HostConfig.Binds = utils.defaultBinds("containers/#{id}")
+						query = ''
+						query = "name=#{options.Name}&" if options.Name?
 						optsf =
-							path: '/containers/create?'
+							path: "/containers/create?#{query}"
 							method: 'POST'
 							options: options
 							statusCodes:
@@ -349,7 +349,7 @@ do ->
 				deleteContainer(oldContainerId, v: true)
 			.then ->
 				createContainer(req.body, oldContainer.id)
-			.then (data) ->
+			.tap (data) ->
 				startContainer(data.Id)
 		.then (data) ->
 			res.json(data)
