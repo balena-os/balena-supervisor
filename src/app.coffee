@@ -20,16 +20,17 @@ knex.init.then ->
 		utils.mixpanelProperties.uuid = uuid
 
 		api = require './api'
-		application = require('./application')(logsChannel)
+		application = require('./application')(logsChannel, bootstrap.offlineMode)
 		device = require './device'
+
+		console.log('Starting API server..')
+		apiServer = api(application).listen(config.listenPort)
+		apiServer.timeout = config.apiTimeout
 
 		bootstrap.done
 		.then ->
 			device.getOSVersion()
 		.then (osVersion) ->
-			console.log('Starting API server..')
-			apiServer = api(application).listen(config.listenPort)
-			apiServer.timeout = config.apiTimeout
 			# Let API know what version we are, and our api connection info.
 			console.log('Updating supervisor version and api info')
 			device.updateState(
