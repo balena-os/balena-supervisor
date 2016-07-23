@@ -64,12 +64,12 @@ bootstrap = ->
 		.tap ->
 			bootstrapper.doneBootstrapping()
 
-readConfigAndEnsureUUID = ->
-	# Load config file
+readConfig = ->
 	fs.readFileAsync(configPath, 'utf8')
 	.then(JSON.parse)
-	.then (configFromFile) ->
-		userConfig = configFromFile
+
+readConfigAndEnsureUUID = ->
+	Promise.try ->
 		return userConfig.uuid if userConfig.uuid?
 		deviceRegister.generateUUID()
 		.then (uuid) ->
@@ -84,6 +84,8 @@ readConfigAndEnsureUUID = ->
 
 bootstrapOrRetry = ->
 	utils.mixpanelTrack('Device bootstrap')
+	# If we're in offline mode, we don't start the provisioning process so bootstrap.done will never fulfill
+	return if bootstrapper.offlineMode
 	bootstrap().catch (err) ->
 		utils.mixpanelTrack('Device bootstrap failed, retrying', { error: err, delay: config.bootstrapRetryDelay })
 		setTimeout(bootstrapOrRetry, config.bootstrapRetryDelay)
@@ -95,10 +97,15 @@ bootstrapper.done = new Promise (resolve) ->
 
 bootstrapper.bootstrapped = false
 bootstrapper.startBootstrapping = ->
-	knex('config').select('value').where(key: 'uuid')
+	# Load config file
+	readConfig()
+	.then (configFromFile) ->
+		userConfig = configFromFile
+		bootstrapper.offlineMode = Boolean(userConfig.supervisorOfflineMode)
+		knex('config').select('value').where(key: 'uuid')
 	.then ([ uuid ]) ->
 		if uuid?.value
-			bootstrapper.doneBootstrapping()
+			bootstrapper.doneBootstrapping() if !bootstrapper.offlineMode
 			return uuid.value
 		console.log('New device detected. Bootstrapping..')
 		readConfigAndEnsureUUID()

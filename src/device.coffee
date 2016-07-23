@@ -17,10 +17,14 @@ exports.getID = do ->
 		deviceIdPromise ?= Promise.rejected()
 		# Only fetch the device id once (when successful, otherwise retry for each request)
 		deviceIdPromise = deviceIdPromise.catch ->
-			Promise.all([
-				knex('config').select('value').where(key: 'apiKey')
-				knex('config').select('value').where(key: 'uuid')
-			])
+			# Wait for bootstrapping to be done before querying the Resin API
+			# This will also block users of getID (like applyState below until this is resolved)
+			bootstrap.done
+			.then ->
+				Promise.all([
+					knex('config').select('value').where(key: 'apiKey')
+					knex('config').select('value').where(key: 'uuid')
+				])
 			.spread ([{ value: apiKey }], [{ value: uuid }]) ->
 				resinApi.get(
 					resource: 'device'
