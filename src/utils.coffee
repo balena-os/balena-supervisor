@@ -208,3 +208,73 @@ exports.getOSVersion = (path) ->
 	.catch (err) ->
 		console.log('Could not get OS Version: ', err, err.stack)
 		return undefined
+
+exports.defaultVolumes = {
+	'/data': {}
+	'/lib/modules': {}
+	'/lib/firmware': {}
+	'/host/var/lib/connman': {}
+	'/host/run/dbus': {}
+}
+
+exports.getDataPath = (identifier) ->
+	return config.dataPath + '/' + identifier
+
+exports.defaultBinds = (dataPath) ->
+	return [
+		exports.getDataPath(dataPath) + ':/data'
+		'/lib/modules:/lib/modules'
+		'/lib/firmware:/lib/firmware'
+		'/run/dbus:/host_run/dbus'
+		'/run/dbus:/host/run/dbus'
+		'/etc/resolv.conf:/etc/resolv.conf:rw'
+		'/var/lib/connman:/host/var/lib/connman'
+	]
+
+exports.validComposeOptions = [
+	'command'
+	'entrypoint'
+	'environment'
+	'expose'
+	'image'
+	'labels'
+	'ports'
+	'stop_signal'
+	'volumes' # Will be overwritten with the default binds
+	'user'
+	'working_dir'
+	'network_mode'
+	'net'
+	'privileged'
+	'restart'
+]
+
+exports.validContainerOptions = [
+	'Hostname'
+	'User'
+	'Env'
+	'Labels'
+	'Cmd'
+	'Entrypoint'
+	'Image'
+	'Volumes'
+	'WorkingDir'
+	'ExposedPorts'
+	'HostConfig'
+	'Name'
+]
+
+exports.validHostConfigOptions = [
+	'Binds' # Will be overwritten with the default binds
+	'Links'
+	'PortBindings'
+	'Privileged'
+	'RestartPolicy'
+	'NetworkMode'
+]
+
+exports.validateKeys = (options, validSet) ->
+	Promise.try ->
+		return if !options?
+		invalidKeys = _.keys(_.omit(options, validSet))
+		throw new Error("Using #{invalidKeys.join(', ')} is not allowed.") if !_.isEmpty(invalidKeys)

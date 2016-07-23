@@ -170,6 +170,7 @@ module.exports = (application) ->
 	unparsedRouter.delete '/v1/images/*', dockerUtils.deleteImage
 	unparsedRouter.get '/v1/images', dockerUtils.listImages
 	parsedRouter.post '/v1/containers/create', dockerUtils.createContainer
+	parsedRouter.post '/v1/containers/update', dockerUtils.updateContainer
 	parsedRouter.post '/v1/containers/:id/start', dockerUtils.startContainer
 	unparsedRouter.post '/v1/containers/:id/stop', dockerUtils.stopContainer
 	unparsedRouter.delete '/v1/containers/:id', dockerUtils.deleteContainer
@@ -183,7 +184,7 @@ module.exports = (application) ->
 		utils.getKnexApp(appId)
 		.then (app) ->
 			res.status(200)
-			compose.up(application.composePath(appId), onStatus)
+			compose.up(appId, onStatus)
 			.catch (err) ->
 				console.log('Error on compose up:', err, err.stack)
 			.finally ->
@@ -201,7 +202,7 @@ module.exports = (application) ->
 		utils.getKnexApp(appId)
 		.then (app) ->
 			res.status(200)
-			compose.down(application.composePath(appId), onStatus)
+			compose.down(appId, onStatus)
 			.catch (err) ->
 				console.log('Error on compose down:', err, err.stack)
 			.finally ->
