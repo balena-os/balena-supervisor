@@ -18,10 +18,14 @@ tagExtra = process.env.SUPERVISOR_TAG_EXTRA
 version += '+' + tagExtra if !_.isEmpty(tagExtra)
 exports.supervisorVersion = version
 
-mixpanelClient = mixpanel.init(config.mixpanelToken)
+configJson = require('/boot/config.json')
+if Boolean(configJson.supervisorOfflineMode)
+	mixpanelClient = mixpanel.init(config.mixpanelToken)
+else
+	mixpanelClient = { track: _.noop }
 
 exports.mixpanelProperties = mixpanelProperties =
-	username: require('/boot/config.json').username
+	username: configJson.username
 
 exports.mixpanelTrack = (event, properties = {}) ->
 	# Allow passing in an error directly and having it assigned to the error property.

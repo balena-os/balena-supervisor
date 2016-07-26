@@ -703,10 +703,11 @@ application.initialize = ->
 		application.poll()
 		application.update()
 
-module.exports = (logsChannel) ->
+module.exports = (logsChannel, offlineMode) ->
 	logger.init(
 		dockerSocket: config.dockerSocket
 		pubnub: config.pubnub
 		channel: "device-#{logsChannel}-logs"
+		offlineMode: offlineMode
 	)
 	return application

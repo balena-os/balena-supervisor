@@ -23,6 +23,10 @@ publish = do ->
 	publishQueue = []
 
 	initialised.then (config) ->
+		if config.offlineMode
+			publish = _.noop
+			publishQueue = null
+			return
 		pubnub = PUBNUB.init(config.pubnub)
 		channel = config.channel
 
