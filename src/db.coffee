@@ -46,6 +46,12 @@ knex.init = Promise.all([
 			knex.schema.createTable 'image', (t) ->
 				t.increments('id').primary()
 				t.string('repoTag')
+	knex.schema.hasTable('container')
+	.then (exists) ->
+		if not exists
+			knex.schema.createTable 'container', (t) ->
+				t.increments('id').primary()
+				t.string('containerId')
 
 ])
 

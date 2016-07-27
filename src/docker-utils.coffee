@@ -8,6 +8,8 @@ _ = require 'lodash'
 knex = require './db'
 { request } = require './request'
 Lock = require 'rwlock'
+utils = require './utils'
+rimraf = Promise.promisify(require('rimraf'))
 
 docker = new Docker(socketPath: config.dockerSocket)
 
@@ -108,21 +110,20 @@ do ->
 			Promise.join(
 				knex('image').select('repoTag')
 				.map (image) ->
-					image.repoTag
+					# Docker sometimes prepends 'docker.io/' to official images
+					return [ image.repoTag, 'docker.io/' + image.repoTag ]
+				.then(_.flatten)
 				knex('app').select()
 				.map (app) ->
 					app.imageId + ':latest'
 				docker.listImagesAsync()
-				(localTags, apps, images) ->
+				(locallyCreatedTags, apps, images) ->
 					imageTags = _.map(images, 'RepoTags')
 					supervisorTags = _.filter imageTags, (tags) ->
 						_.contains(tags, supervisorTag)
 					appTags = _.filter imageTags, (tags) ->
 						_.any tags, (tag) ->
 							_.contains(apps, tag)
-					locallyCreatedTags = _.filter imageTags, (tags) ->
-						_.any tags, (tag) ->
-							_.contains(localTags, tag)
 					supervisorTags = _.flatten(supervisorTags)
 					appTags = _.flatten(appTags)
 					locallyCreatedTags = _.flatten(locallyCreatedTags)
@@ -181,12 +182,13 @@ do ->
 	exports.createImage = (req, res) ->
 		{ registry, repo, tag, fromImage } = req.query
 		if fromImage?
-			repoTag = fromImage
-			repoTag += ':' + tag if tag?
+			repoTag = buildRepoTag(fromImage, tag)
 		else
 			repoTag = buildRepoTag(repo, tag, registry)
 		Promise.using writeLockImages(), ->
-			knex('image').insert({ repoTag })
+			knex('image').select().where({ repoTag })
+			.then ([ img ]) ->
+				knex('image').insert({ repoTag }) if !img?
 			.then ->
 				if fromImage?
 					docker.createImageAsync({ fromImage, tag })
@@ -200,7 +202,9 @@ do ->
 	exports.pullAndProtectImage = (image, onProgress) ->
 		repoTag = buildRepoTag(image)
 		Promise.using writeLockImages(), ->
-			knex('image').insert({ repoTag })
+			knex('image').select().where({ repoTag })
+			.then ([ img ]) ->
+				knex('image').insert({ repoTag }) if !img?
 			.then ->
 				dockerProgress.pull(repoTag, onProgress)
 
@@ -244,57 +248,96 @@ do ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
 	docker.modem.dialAsync = Promise.promisify(docker.modem.dial)
-	exports.createContainer = (req, res) ->
+	createContainer = (options, internalId) ->
 		Promise.using writeLockImages(), ->
-			knex('image').select().where('repoTag', req.body.Image)
+			knex('image').select().where('repoTag', options.Image)
 			.then (images) ->
 				throw new Error('Only images created via the Supervisor can be used for creating containers.') if images.length == 0
-				optsf =
-					path: '/containers/create?'
-					method: 'POST'
-					options: req.body
-					statusCodes:
-						200: true
-						201: true
-						404: 'no such container'
-						406: 'impossible to attach'
-						500: 'server error'
-				docker.modem.dialAsync(optsf)
-				.then (data) ->
-					res.json(data)
-		.catch (err) ->
-			res.status(500).send(err?.message or err or 'Unknown error')
-
-	exports.startContainer = (req, res) ->
-		docker.getContainer(req.params.id).startAsync(req.body)
+				knex.transaction (tx) ->
+					Promise.try ->
+						return internalId if internalId?
+						tx.insert({}, 'id').into('container')
+						.then ([ id ]) ->
+							return id
+					.then (id) ->
+						options.HostConfig ?= {}
+						options.Volumes ?= {}
+						_.assign(options.Volumes, utils.defaultVolumes)
+						options.HostConfig.Binds = utils.defaultBinds("containers/#{id}")
+						query = ''
+						query = "name=#{options.Name}&" if options.Name?
+						optsf =
+							path: "/containers/create?#{query}"
+							method: 'POST'
+							options: options
+							statusCodes:
+								200: true
+								201: true
+								404: 'no such container'
+								406: 'impossible to attach'
+								500: 'server error'
+						utils.validateKeys(options, utils.validContainerOptions)
+						.then ->
+							utils.validateKeys(options.HostConfig, utils.validHostConfigOptions)
+						.then ->
+							docker.modem.dialAsync(optsf)
+						.then (data) ->
+							containerId = data.Id
+							tx('container').update({ containerId }).where({ id })
+							.return(data)
+	exports.createContainer = (req, res) ->
+		createContainer(req.body)
 		.then (data) ->
 			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
-	exports.stopContainer = (req, res) ->
-		container = docker.getContainer(req.params.id)
+	startContainer = (containerId, options) ->
+		utils.validateKeys(options, utils.validHostConfigOptions)
+		.then ->
+			docker.getContainer(containerId).startAsync(options)
+	exports.startContainer = (req, res) ->
+		startContainer(req.params.id, req.body)
+		.then (data) ->
+			res.json(data)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	stopContainer = (containerId, options) ->
+		container = docker.getContainer(containerId)
 		knex('app').select()
 		.then (apps) ->
-			throw new Error('Cannot stop an app container') if _.any(apps, containerId: req.params.id)
+			throw new Error('Cannot stop an app container') if _.any(apps, { containerId })
 			container.inspectAsync()
 		.then (cont) ->
 			throw new Error('Cannot stop supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
-			container.stopAsync(sanitizeQuery(req.query))
+			container.stopAsync(options)
+	exports.stopContainer = (req, res) ->
+		stopContainer(req.params.id, sanitizeQuery(req.query))
 		.then (data) ->
 			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
-	exports.deleteContainer = (req, res) ->
-		container = docker.getContainer(req.params.id)
+	deleteContainer = (containerId, options) ->
+		container = docker.getContainer(containerId)
 		knex('app').select()
 		.then (apps) ->
-			throw new Error('Cannot remove an app container') if _.any(apps, containerId: req.params.id)
+			throw new Error('Cannot remove an app container') if _.any(apps, { containerId })
 			container.inspectAsync()
 		.then (cont) ->
 			throw new Error('Cannot remove supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
-			container.removeAsync(sanitizeQuery(req.query))
+			if options.purge
+				knex('container').select().where({ containerId })
+				.then (contFromDB) ->
+					# This will also be affected by #115. Should fix when we fix that.
+					rimraf(utils.getDataPath("containers/#{contFromDB.id}"))
+				.then ->
+					knex('container').where({ containerId }).del()
+		.then ->
+			container.removeAsync(options)
+	exports.deleteContainer = (req, res) ->
+		deleteContainer(req.params.id, sanitizeQuery(req.query))
 		.then (data) ->
 			res.json(data)
 		.catch (err) ->
@@ -304,5 +347,23 @@ do ->
 		docker.listContainersAsync(sanitizeQuery(req.query))
 		.then (containers) ->
 			res.json(containers)
+		.catch (err) ->
+			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.updateContainer = (req, res) ->
+		{ oldContainerId } = req.query
+		return res.status(400).send('Missing oldContainerId') if !oldContainerId?
+		knex('container').select().where({ containerId: oldContainerId })
+		.then ([ oldContainer ]) ->
+			return res.status(404).send('Old container not found') if !oldContainer?
+			stopContainer(oldContainerId, t: 10)
+			.then ->
+				deleteContainer(oldContainerId, v: true)
+			.then ->
+				createContainer(req.body, oldContainer.id)
+			.tap (data) ->
+				startContainer(data.Id)
+		.then (data) ->
+			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
