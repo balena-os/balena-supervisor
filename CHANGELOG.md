@@ -1,3 +1,5 @@
+# v1.13.0
+
 * Allow the supervisor to work in offline mode [Pablo]
 * Fix duplicate logs issue [Kostas]
 * **[Breaking]** Do not bind mount /run/dbus to /run/dbus [Pablo]
