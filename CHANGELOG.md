@@ -1,4 +1,9 @@
-* Switch build to Rockerfile and use openembedded base images [petrosagg]
+* Compress go binary with upx [petrosagg]
+* Switch to go version 1.6 [petrosagg]
+* Print all logs to stdout of container instead of file [petrosagg]
+* Upgrade nodejs to version 6.3 [petrosagg]
+* Switch initsystem from supervisor to busybox init [petrosagg]
+* Switch build to openembedded base images [petrosagg]
 
 # v1.13.0
 
