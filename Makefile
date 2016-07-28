@@ -21,12 +21,10 @@ endif
 DISABLE_CACHE = 'false'
 
 ARCH = rpi# rpi/amd64/i386/armv7hf/armel
-BASE_DISTRO =
 
 DEPLOY_REGISTRY =
 
 SUPERVISOR_VERSION = master
-JOB_NAME = 1
 
 all: supervisor
 
@@ -36,15 +34,8 @@ MIXPANEL_TOKEN = bananasbananas
 
 PASSWORDLESS_DROPBEAR = false
 
-ifdef BASE_DISTRO
-$(info BASE_DISTRO SPECIFIED. START BUILDING ALPINE SUPERVISOR)
-	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)-alpine"
-	DOCKERFILE = alpine.$(ARCH)
-else
-$(info BASE_DISTRO NOT SPECIFIED. START BUILDING DEBIAN SUPERVISOR)
-	IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
-	DOCKERFILE = $(ARCH)
-endif
+IMAGE = "resin/$(ARCH)-supervisor:$(SUPERVISOR_VERSION)"
+DOCKERFILE = $(ARCH)
 
 SUPERVISOR_IMAGE=$(DEPLOY_REGISTRY)$(IMAGE)
 
@@ -78,9 +69,6 @@ endif
 
 SUPERVISOR_EXTRA_MOUNTS =
 
-clean:
-	-rm Dockerfile
-
 DOCKERD_PROXY=tools/dind/config/services/docker.service.d/proxy.conf
 ${DOCKERD_PROXY}:
 	rm -f ${DOCKERD_PROXY}
@@ -103,7 +91,14 @@ ${DOCKERD_PROXY}:
 	fi
 
 supervisor-dind: ${DOCKERD_PROXY}
-	cd tools/dind && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) --no-cache=$(DISABLE_CACHE) --build-arg PASSWORDLESS_DROPBEAR=$(PASSWORDLESS_DROPBEAR) -t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
+	cd tools/dind \
+	&& docker build \
+		$(DOCKER_HTTP_PROXY) \
+		$(DOCKER_HTTPS_PROXY) \
+		$(DOCKER_NO_PROXY) \
+		--no-cache=$(DISABLE_CACHE) \
+		--build-arg PASSWORDLESS_DROPBEAR=$(PASSWORDLESS_DROPBEAR) \
+		-t resin/resin-supervisor-dind:$(SUPERVISOR_VERSION) .
 
 run-supervisor: stop-supervisor supervisor-dind
 	cd tools/dind \
@@ -136,54 +131,87 @@ refresh-supervisor-src:
 	&& echo " * Restarting supervisor container.." \
 	&& docker exec -ti resin_supervisor_1 docker restart resin_supervisor
 
-supervisor: gosuper
-	cp Dockerfile.$(DOCKERFILE) Dockerfile
-	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile
-	echo "ENV DEFAULT_PUBNUB_PUBLISH_KEY $(PUBNUB_PUBLISH_KEY)" >> Dockerfile
-	echo "ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY $(PUBNUB_SUBSCRIBE_KEY)" >> Dockerfile
-	echo "ENV DEFAULT_MIXPANEL_TOKEN $(MIXPANEL_TOKEN)" >> Dockerfile
+supervisor:
+	sed 's/%%ARCH%%/$(ARCH)/g' Dockerfile.runtime.template > Dockerfile.runtime.$(ARCH)
+	echo "ENV VERSION "`jq -r .version package.json` >> Dockerfile.runtime.$(ARCH)
+	echo "ENV DEFAULT_PUBNUB_PUBLISH_KEY $(PUBNUB_PUBLISH_KEY)" >> Dockerfile.runtime.$(ARCH)
+	echo "ENV DEFAULT_PUBNUB_SUBSCRIBE_KEY $(PUBNUB_SUBSCRIBE_KEY)" >> Dockerfile.runtime.$(ARCH)
+	echo "ENV DEFAULT_MIXPANEL_TOKEN $(MIXPANEL_TOKEN)" >> Dockerfile.runtime.$(ARCH)
 ifdef rt_https_proxy
-	echo "ENV HTTPS_PROXY $(rt_https_proxy)" >> Dockerfile
-	echo "ENV https_proxy $(rt_https_proxy)" >> Dockerfile
+	echo "ENV HTTPS_PROXY $(rt_https_proxy)" >> Dockerfile.runtime.$(ARCH)
+	echo "ENV https_proxy $(rt_https_proxy)" >> Dockerfile.runtime.$(ARCH)
 endif
 ifdef rt_http_proxy
-	echo "ENV HTTP_PROXY $(rt_http_proxy)" >> Dockerfile
-	echo "ENV http_proxy $(rt_http_proxy)" >> Dockerfile
+	echo "ENV HTTP_PROXY $(rt_http_proxy)" >> Dockerfile.runtime.$(ARCH)
+	echo "ENV http_proxy $(rt_http_proxy)" >> Dockerfile.runtime.$(ARCH)
 endif
 ifdef rt_no_proxy
-	echo "ENV no_proxy $(rt_no_proxy)" >> Dockerfile
+	echo "ENV no_proxy $(rt_no_proxy)" >> Dockerfile.runtime.$(ARCH)
 endif
-	docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) --no-cache=$(DISABLE_CACHE) -t $(IMAGE) .
-	-rm Dockerfile
+	docker build \
+		$(DOCKER_HTTP_PROXY) \
+		$(DOCKER_HTTPS_PROXY) \
+		$(DOCKER_NO_PROXY) \
+		--build-arg ARCH=$(ARCH) \
+		-f Dockerfile.runtime.$(ARCH) \
+		--pull \
+		-t $(IMAGE) .
 
-lint: supervisor
-	docker run --rm --entrypoint='sh' $(IMAGE) -c 'npm install && npm run lint'
+lint:
+	docker run --rm resin/node-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c 'npm install resin-lint && npm run lint'
 
 deploy: supervisor
 	docker tag -f $(IMAGE) $(SUPERVISOR_IMAGE)
 	bash retry_docker_push.sh $(SUPERVISOR_IMAGE)
 
-go-builder:
-	-cp tools/dind/config.json ./gosuper/
-	cd gosuper && docker build $(DOCKER_HTTP_PROXY) $(DOCKER_HTTPS_PROXY) $(DOCKER_NO_PROXY) -t resin/go-supervisor-builder:$(SUPERVISOR_VERSION) .
-	-rm ./gosuper/config.json
+nodesuper:
+	sed 's/%%ARCH%%/$(ARCH)/g' Dockerfile.build.template > Dockerfile.build.$(ARCH)
+	docker build \
+		$(DOCKER_HTTP_PROXY) \
+		$(DOCKER_HTTPS_PROXY) \
+		$(DOCKER_NO_PROXY) \
+		-f Dockerfile.build.$(ARCH) \
+		-t resin/node-supervisor-$(ARCH):$(SUPERVISOR_VERSION) .
+	docker run --rm \
+		-v `pwd`/build/$(ARCH):/build \
+		resin/node-supervisor-$(ARCH):$(SUPERVISOR_VERSION)
 
-gosuper: go-builder
-	-mkdir -p bin
-	-docker rm --volumes -f resin_build_gosuper_$(JOB_NAME) || true
-	docker run --rm --name resin_build_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper/bin:/usr/src/app/bin -e USER_ID=$(shell id -u) -e GROUP_ID=$(shell id -g) -e GOARCH=$(GOARCH) -e GOARM=$(GOARM) resin/go-supervisor-builder:$(SUPERVISOR_VERSION)
-	mv gosuper/bin/linux_$(GOARCH)/gosuper bin/gosuper
+gosuper:
+	cd gosuper && docker build \
+		$(DOCKER_HTTP_PROXY) \
+		$(DOCKER_HTTPS_PROXY) \
+		$(DOCKER_NO_PROXY) \
+		--build-arg GOARCH=$(GOARCH) \
+		--build-arg GOARM=$(GOARM) \
+		-t resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) .
+	docker run --rm \
+		-v `pwd`/build/$(ARCH):/build \
+		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION)
 
-test-gosuper: go-builder
-	-docker rm --volumes -f resin_test_gosuper_$(JOB_NAME) || true
-	docker run --rm --name resin_test_gosuper_$(JOB_NAME) -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && ./test_formatting.sh && go test -v ./gosuper"
+test-gosuper: gosuper
+	docker run \
+		--rm \
+		-v /var/run/dbus:/mnt/root/run/dbus \
+		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
+		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c \
+			'./test_formatting.sh && go test -v ./gosuper'
 
-format-gosuper: go-builder
-	-docker rm --volumes -f resin_test_gosuper_$(JOB_NAME) || true
-	docker run --rm --name resin_test_gosuper_$(JOB_NAME) -v $(shell pwd)/gosuper:/usr/src/app/src/resin-supervisor/gosuper resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && go fmt ./..."
+format-gosuper: gosuper
+	docker run \
+		--rm \
+		-v $(shell pwd)/gosuper:/go/src/resin-supervisor/gosuper \
+		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
+			go fmt ./...
 
-test-integration: go-builder
-	-docker rm --volumes -f resin_test_integration_$(JOB_NAME) || true
-	docker run --rm --name resin_test_integration_$(JOB_NAME) --net=host -e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" --volumes-from resin_supervisor_1 -v /var/run/dbus:/mnt/root/run/dbus -e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" resin/go-supervisor-builder:$(SUPERVISOR_VERSION) bash -c "cd src/resin-supervisor/gosuper && go test -v ./supertest"
+test-integration: gosuper
+	docker run \
+		--rm \
+		--net=host \
+		-e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" \
+		--volumes-from resin_supervisor_1 \
+		-v /var/run/dbus:/mnt/root/run/dbus \
+		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
+		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
+			go test -v ./supertest
 
-.PHONY: supervisor deploy supervisor-dind run-supervisor
+.PHONY: supervisor deploy supervisor-dind run-supervisor gosuper nodesuper

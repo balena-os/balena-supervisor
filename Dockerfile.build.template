@@ -1,0 +1,37 @@
+# Build nodejs dependencies
+FROM resin/%%ARCH%%-node:6.2-slim
+
+WORKDIR /usr/src/app
+
+RUN apt-get update \
+	&& apt-get install -y \
+		g++ \
+		libsqlite3-dev \
+		make \
+		python \
+		rsync \
+	&& rm -rf /var/lib/apt/lists/ \
+	&& npm install -g coffee-script
+
+COPY package.json /usr/src/app/
+
+RUN JOBS=MAX npm install --unsafe-perm --production --no-optional \
+	&& npm dedupe
+
+COPY src /usr/src/app/src
+
+RUN coffee -c src
+
+# Remove various uneeded filetypes in order to reduce space
+RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
+		-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
+		-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
+		-o -name '*.h'          -o -name '*.html'   -o -name '*.markdown' \
+		-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
+		-o -name '*.yml' \
+		-delete
+
+CMD rsync -a node_modules src /build
+
+# -*- mode: dockerfile -*-
+# vi: set ft=dockerfile :

@@ -1,0 +1,41 @@
+# Minimal runtime image
+FROM resin/%%ARCH%%-supervisor-base
+
+ARG ARCH
+
+RUN mkdir /var/run/resin \
+	&& ln -s /lib /lib64
+
+ENV DOCKER_COMPOSE_VERSION 1.7.1
+
+ENV DOCKER_COMPOSE_SHA256_amd64 37df85ee18bf0e2a8d71cbfb8198b1c06cc388f19118be7bdfc4d6db112af834
+ENV DOCKER_COMPOSE_SHA256_i386 b926fd9a2a9d89358f1353867706f94558a62caaf3aa72bf10bcbbe31e1a44f0
+ENV DOCKER_COMPOSE_SHA256_armhf 3f0b8c69c66a2daa5fbb0c127cb76ca95d7125827a9c43dd3c36f9bc2ed6e0e5
+ENV DOCKER_COMPOSE_SHA256_armel a1025fed97536e2698798ea277a014ec5e1eae816a8cf3155ecbe9679e3e7bac
+
+RUN set -x \
+	&& if [ $ARCH == "rpi" ]; then export ARCH=armf; fi \
+	&& wget http://resin-packages.s3.amazonaws.com/docker-compose/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-${ARCH}-${DOCKER_COMPOSE_VERSION}.tar.gz \
+	&& echo "${DOCKER_COMPOSE_SHA256_%%ARCH%%}  docker-compose-linux-${ARCH}-${DOCKER_COMPOSE_VERSION}.tar.gz" | sha256sum -c \
+	&& tar xzf docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}.tar.gz \
+	&& mv docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}/docker-compose-linux-amd64 /usr/bin/docker-compose \
+	&& rm -rf docker-compose-linux-amd64-${DOCKER_COMPOSE_VERSION}*
+
+COPY entry.sh run.sh package.json /usr/src/app/
+
+COPY inittab /etc/inittab
+
+COPY ./build/${ARCH}/src/ ./build/${ARCH}/node_modules /usr/src/app/
+
+COPY ./build/${ARCH}/gosuper /usr/bin/gosuper
+
+ENTRYPOINT [ "/sbin/init" ]
+
+VOLUME /data
+
+ENV CONFIG_MOUNT_POINT /boot/config.json
+ENV LED_FILE /dev/null
+ENV SUPERVISOR_IMAGE resin/%%ARCH%%-supervisor
+
+# -*- mode: dockerfile -*-
+# vi: set ft=dockerfile :
