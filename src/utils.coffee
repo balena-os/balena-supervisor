@@ -238,15 +238,15 @@ exports.validComposeOptions = [
 	'expose'
 	'image'
 	'labels'
-	'ports'
-	'stop_signal'
-	'volumes' # Will be overwritten with the default binds
-	'user'
-	'working_dir'
-	'network_mode'
 	'net'
+	'network_mode'
+	'ports'
 	'privileged'
 	'restart'
+	'stop_signal'
+	'user'
+	'volumes' # Will be overwritten with the default binds
+	'working_dir'
 ]
 
 exports.validContainerOptions = [
