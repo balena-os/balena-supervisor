@@ -1,3 +1,5 @@
+# v1.13.1
+
 * Using `links` in compose files is now allowed [petrosagg]
 
 # v1.13.0
