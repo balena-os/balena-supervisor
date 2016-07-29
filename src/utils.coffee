@@ -238,6 +238,7 @@ exports.validComposeOptions = [
 	'expose'
 	'image'
 	'labels'
+	'links'
 	'net'
 	'network_mode'
 	'ports'

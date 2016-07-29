@@ -1,3 +1,5 @@
+* Using `links` in compose files is now allowed [petrosagg]
+
 # v1.13.0
 
 * Allow the supervisor to work in offline mode [Pablo]
