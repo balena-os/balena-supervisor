@@ -50,9 +50,9 @@ router.post '/v1/devices', (req, res) ->
 		utils.getConfig('apiKey')
 		utils.getConfig('userId')
 		device.getID()
-		deviceRegister.generateUUID()
 		randomHexString.generate()
-		(apiKey, userId, deviceId, uuid, logsChannel) ->
+		(apiKey, userId, deviceId, logsChannel) ->
+			uuid = deviceRegister.generateUniqueKey()
 			d =
 				user: userId
 				application: req.body.appId

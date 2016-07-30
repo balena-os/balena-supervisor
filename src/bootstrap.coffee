@@ -2,7 +2,6 @@ Promise = require 'bluebird'
 knex = require './db'
 utils = require './utils'
 deviceRegister = require 'resin-register-device'
-{ resinApi } = require './request'
 fs = Promise.promisifyAll(require('fs'))
 config = require './config'
 configPath = '/boot/config.json'
@@ -10,9 +9,6 @@ appsPath  = '/boot/apps.json'
 _ = require 'lodash'
 deviceConfig = require './device-config'
 userConfig = {}
-
-DuplicateUuidError = (err) ->
-	return err.message == '"uuid" must be unique.'
 
 bootstrapper = {}
 
@@ -39,22 +35,22 @@ bootstrap = ->
 		userConfig.deviceType ?= 'raspberry-pi'
 		if userConfig.registered_at?
 			return userConfig
-		deviceRegister.register(resinApi, userConfig)
+
+		deviceRegister.register(
+			userId: userConfig.userId
+			applicationId: userConfig.applicationId
+			uuid: userConfig.uuid
+			deviceType: userConfig.deviceType
+			deviceApiKey: userConfig.deviceApiKey
+			provisioningApiKey: userConfig.apiKey
+			apiEndpoint: config.apiEndpoint
+		)
 		.timeout(config.apiTimeout)
-		.catch DuplicateUuidError, ->
-			resinApi.get
-				resource: 'device'
-				options:
-					filter:
-						uuid: userConfig.uuid
-				customOptions:
-					apikey: userConfig.apiKey
-			.timeout(config.apiTimeout)
-			.then ([ device ]) ->
-				return device
-		.then (device) ->
+		.then ({ id }) ->
 			userConfig.registered_at = Date.now()
-			userConfig.deviceId = device.id
+			userConfig.deviceId = id
+			# Delete the provisioning key now.
+			delete userConfig.apiKey
 			fs.writeFileAsync(configPath, JSON.stringify(userConfig))
 		.return(userConfig)
 	.then (userConfig) ->
@@ -63,7 +59,7 @@ bootstrap = ->
 		.then ->
 			knex('config').insert([
 				{ key: 'uuid', value: userConfig.uuid }
-				{ key: 'apiKey', value: userConfig.apiKey }
+				{ key: 'apiKey', value: userConfig.deviceApiKey }
 				{ key: 'username', value: userConfig.username }
 				{ key: 'userId', value: userConfig.userId }
 				{ key: 'version', value: utils.supervisorVersion }
@@ -77,12 +73,11 @@ readConfig = ->
 
 readConfigAndEnsureUUID = ->
 	Promise.try ->
-		return userConfig.uuid if userConfig.uuid?
-		deviceRegister.generateUUID()
-		.then (uuid) ->
-			userConfig.uuid = uuid
-			fs.writeFileAsync(configPath, JSON.stringify(userConfig))
-			.return(uuid)
+		return userConfig.uuid if userConfig.uuid? and userConfig.deviceApiKey?
+		userConfig.uuid ?= deviceRegister.generateUniqueKey()
+		userConfig.deviceApiKey ?= deviceRegister.generateUniqueKey()
+		fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+		.return(userConfig.uuid)
 	.catch (err) ->
 		console.log('Error generating and saving UUID: ', err)
 		Promise.delay(config.bootstrapRetryDelay)
@@ -115,6 +110,7 @@ bootstrapper.startBootstrapping = ->
 			bootstrapper.doneBootstrapping() if !bootstrapper.offlineMode
 			return uuid.value
 		console.log('New device detected. Bootstrapping..')
+
 		readConfigAndEnsureUUID()
 		.tap ->
 			loadPreloadedApps()
@@ -122,6 +118,8 @@ bootstrapper.startBootstrapping = ->
 			if bootstrapper.offlineMode
 				return knex('config').insert({ key: 'uuid', value: uuid })
 			else
-				return bootstrapOrRetry()
+				bootstrapOrRetry()
+				# Don't wait on bootstrapping here, bootstrapper.done is for that.
+				return
 
 module.exports = bootstrapper

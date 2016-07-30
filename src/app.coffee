@@ -51,17 +51,17 @@ knex.init.then ->
 					)
 			)
 
+			updateIpAddr = ->
+				utils.gosuper.getAsync('/v1/ipaddr', { json: true })
+				.spread (response, body) ->
+					if response.statusCode == 200 && body.Data.IPAddresses?
+						device.updateState(
+							ip_address: body.Data.IPAddresses.join(' ')
+						)
+				.catch(_.noop)
+			console.log('Starting periodic check for IP addresses..')
+			setInterval(updateIpAddr, 30 * 1000) # Every 30s
+			updateIpAddr()
+
 		console.log('Starting Apps..')
 		application.initialize()
-
-		updateIpAddr = ->
-			utils.gosuper.getAsync('/v1/ipaddr', { json: true })
-			.spread (response, body) ->
-				if response.statusCode == 200 && body.Data.IPAddresses?
-					device.updateState(
-						ip_address: body.Data.IPAddresses.join(' ')
-					)
-			.catch(_.noop)
-		console.log('Starting periodic check for IP addresses..')
-		setInterval(updateIpAddr, 30 * 1000) # Every 30s
-		updateIpAddr()
