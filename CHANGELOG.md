@@ -1,3 +1,5 @@
+* Change device registering so the server generates the UUID and returns a dedicated api key which we replace our provisioning key with. [Page]
+
 # v2.0.0
 
 * **[Breaking]** Change the logger to send at a specific interval and with a different message format [Pablo]
