@@ -357,14 +357,14 @@ apiPollInterval = (val) ->
 
 specialActionEnvVars =
 	'RESIN_OVERRIDE_LOCK': null # This one is in use, so we keep backwards comp.
-	'RESIN_SUPERVISOR_DELTA': null
-	'RESIN_SUPERVISOR_UPDATE_STRATEGY': null
-	'RESIN_SUPERVISOR_HANDOVER_TIMEOUT': null
-	'RESIN_SUPERVISOR_OVERRIDE_LOCK': null
-	'RESIN_SUPERVISOR_VPN_CONTROL': utils.vpnControl
 	'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': utils.enableConnectivityCheck
-	'RESIN_SUPERVISOR_POLL_INTERVAL': apiPollInterval
+	'RESIN_SUPERVISOR_DELTA': null
+	'RESIN_SUPERVISOR_HANDOVER_TIMEOUT': null
 	'RESIN_SUPERVISOR_LOG_CONTROL': utils.resinLogControl
+	'RESIN_SUPERVISOR_OVERRIDE_LOCK': null
+	'RESIN_SUPERVISOR_POLL_INTERVAL': apiPollInterval
+	'RESIN_SUPERVISOR_UPDATE_STRATEGY': null
+	'RESIN_SUPERVISOR_VPN_CONTROL': utils.vpnControl
 
 executedSpecialActionEnvVars = {}
 

@@ -1,3 +1,5 @@
+* Change to the new device registration method to exchange our provisioning key with a dedicated api key for the device. [Page]
+
 # v2.0.0
 
 * **[Breaking]** Change the logger to send at a specific interval and with a different message format [Pablo]
