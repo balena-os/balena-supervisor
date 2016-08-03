@@ -111,7 +111,10 @@ bootstrapper.startBootstrapping = ->
 		readConfigAndEnsureUUID()
 		.tap ->
 			loadPreloadedApps()
-		.tap ->
-			bootstrapOrRetry()
+		.tap (uuid) ->
+			if bootstrapper.offlineMode
+				return knex('config').insert({ key: 'uuid', value: uuid })
+			else
+				return bootstrapOrRetry()
 
 module.exports = bootstrapper
