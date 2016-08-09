@@ -1,6 +1,6 @@
 {
   "name": "resin-supervisor",
-  "version": "1.13.1",
+  "version": "1.13.2",
   "scripts": {
     "postinstall": "sh postinstall.sh",
     "start": "./entry.sh",

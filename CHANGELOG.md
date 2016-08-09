@@ -1,3 +1,7 @@
+# v1.13.2
+
+* bootstrap: if offlineMode is enabled, persist only the uuid [petrosagg]
+
 # v1.13.1
 
 * Using `links` in compose files is now allowed [petrosagg]
