@@ -24,8 +24,10 @@ knex.init.then ->
 		device = require './device'
 
 		console.log('Starting API server..')
-		apiServer = api(application).listen(config.listenPort)
-		apiServer.timeout = config.apiTimeout
+		utils.createIpTablesRules()
+		.then ->
+			apiServer = api(application).listen(config.listenPort)
+			apiServer.timeout = config.apiTimeout
 
 		bootstrap.done
 		.then ->

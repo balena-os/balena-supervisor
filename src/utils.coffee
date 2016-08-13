@@ -11,6 +11,7 @@ randomHexString = require './lib/random-hex-string'
 request = Promise.promisifyAll require 'request'
 logger = require './lib/logger'
 TypedError = require 'typed-error'
+execAsync = Promise.promisify(require('child_process').exec)
 
 # Parses package.json and returns resin-supervisor's version
 version = require('../package.json').version
@@ -279,3 +280,10 @@ exports.validateKeys = (options, validSet) ->
 		return if !options?
 		invalidKeys = _.keys(_.omit(options, validSet))
 		throw new Error("Using #{invalidKeys.join(', ')} is not allowed.") if !_.isEmpty(invalidKeys)
+
+exports.createIpTablesRules = ->
+	allowedInterfaces = ['tun0', 'docker0', 'lo']
+	Promise.each allowedInterfaces, (iface) ->
+		execAsync("iptables -A INPUT -p tcp --dport #{config.listenPort} -i #{iface} -j ACCEPT")
+	.then ->
+		execAsync("iptables -A INPUT -p tcp --dport #{config.listenPort} -j REJECT")

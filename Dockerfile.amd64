@@ -11,6 +11,7 @@ RUN apt-get -q update \
 		btrfs-tools \
 		ca-certificates \
 		curl \
+		iptables \
 		rsync \
 		supervisor \
 		--no-install-recommends \
