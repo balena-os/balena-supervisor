@@ -17,9 +17,15 @@ module.exports = (application) ->
 	parsedRouter.use(bodyParser())
 
 	api.use (req, res, next) ->
+		queryKey = req.query.apikey
+		header = req.get('Authorization')
+		match = header.match(/^ApiKey ([a-f\d]{64})$/)
+		headerKey = match?[1]
 		utils.getOrGenerateSecret('api')
 		.then (secret) ->
-			if bufferEq(new Buffer(req.query.apikey), new Buffer(secret))
+			if queryKey? && bufferEq(new Buffer(queryKey), new Buffer(secret))
+				next()
+			else if headerKey? && bufferEq(new Buffer(headerKey), new Buffer(secret))
 				next()
 			else
 				res.sendStatus(401)
