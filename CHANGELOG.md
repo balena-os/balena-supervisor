@@ -1,3 +1,5 @@
+* Add iptables rules to block requests to the supervisor API from all interfaces except vpn, docker and local [Pablo]
+
 # v1.13.2
 
 * bootstrap: if offlineMode is enabled, persist only the uuid [petrosagg]
