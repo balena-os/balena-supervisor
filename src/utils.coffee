@@ -281,9 +281,14 @@ exports.validateKeys = (options, validSet) ->
 		invalidKeys = _.keys(_.omit(options, validSet))
 		throw new Error("Using #{invalidKeys.join(', ')} is not allowed.") if !_.isEmpty(invalidKeys)
 
+checkAndAddIptablesRule = (rule) ->
+	execAsync("iptables -C #{rule}")
+	.catch ->
+		execAsync("iptables -A #{rule}")
+
 exports.createIpTablesRules = ->
 	allowedInterfaces = ['tun0', 'docker0', 'lo']
 	Promise.each allowedInterfaces, (iface) ->
-		execAsync("iptables -A INPUT -p tcp --dport #{config.listenPort} -i #{iface} -j ACCEPT")
+		checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -i #{iface} -j ACCEPT")
 	.then ->
-		execAsync("iptables -A INPUT -p tcp --dport #{config.listenPort} -j REJECT")
+		checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -j REJECT")
