@@ -1,3 +1,5 @@
+# v1.14.0
+
 * Allow using an HTTP header for auth [Pablo]
 * Add iptables rules to block requests to the supervisor API from all interfaces except vpn, docker and local [Pablo]
 
