@@ -9,6 +9,7 @@ device = require './device'
 dockerUtils = require './docker-utils'
 _ = require 'lodash'
 compose = require './compose'
+proxyvisor = require './proxyvisor'
 
 module.exports = (application) ->
 	api = express()
@@ -230,5 +231,6 @@ module.exports = (application) ->
 
 	api.use(unparsedRouter)
 	api.use(parsedRouter)
+	api.use(proxyvisor.router)
 
 	return api

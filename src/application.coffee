@@ -296,21 +296,6 @@ createRestartPolicy = ({ name, maximumRetryCount }) ->
 		policy.MaximumRetryCount = maximumRetryCount
 	return policy
 
-getEnvironment = do ->
-	envApiEndpoint = url.resolve(config.apiEndpoint, '/environment')
-
-	return (appId, deviceId, apiKey) ->
-
-		requestParams = _.extend
-			method: 'GET'
-			url: "#{envApiEndpoint}?deviceId=#{deviceId}&appId=#{appId}&apikey=#{apiKey}"
-		, cachedResinApi.passthrough
-
-		cachedResinApi._request(requestParams)
-		.catch (err) ->
-			console.error("Failed to get environment for device #{deviceId}, app #{appId}. #{err}")
-			throw err
-
 lockPath = (app) ->
 	appId = app.appId ? app
 	return "/mnt/root#{config.dataPath}/#{appId}/resin-updates.lock"
@@ -476,27 +461,21 @@ updateUsingStrategy = (strategy, options) ->
 	updateStrategies[strategy](options)
 
 getRemoteApps = (uuid, apiKey) ->
-	cachedResinApi.get
-		resource: 'application'
-		options:
-			select: [
-				'id'
-				'git_repository'
-				'commit'
-			]
-			filter:
-				commit: $ne: null
-				device:
-					uuid: uuid
-		customOptions:
-			apikey: apiKey
+	endpoint = url.resolve(config.apiEndpoint, "/device/v1/#{uuid}/state")
 
-getEnvAndFormatRemoteApps = (deviceId, remoteApps, uuid, apiKey) ->
+	requestParams = _.extend
+		method: 'GET'
+		url: "#{endpoint}?&apikey=#{apiKey}"
+	, cachedResinApi.passthrough
+
+	cachedResinApi._request(requestParams)
+	.catch (err) ->
+		console.error("Failed to get state for device #{uuid}. #{err}")
+		throw err
+
+parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
 	Promise.map remoteApps, (app) ->
-		getEnvironment(app.id, deviceId, apiKey)
-		.then (environment) ->
-			app.environment_variable = environment
-			utils.extendEnvVars(app.environment_variable, uuid, app.id)
+		utils.extendEnvVars(app.environment, uuid, app.id)
 		.then (fullEnv) ->
 			env = _.omit(fullEnv, _.keys(specialActionEnvVars))
 			env = _.omit env, (v, k) ->
@@ -529,7 +508,7 @@ formatLocalApps = (apps) ->
 		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 	return { localApps, localAppEnvs }
 
-compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
+exports.compareForUpdate = compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
 	remoteAppIds = _.keys(remoteApps)
 	localAppIds = _.keys(localApps)
 	appsWithChangedEnvs = _.filter remoteAppIds, (appId) ->
@@ -556,12 +535,17 @@ application.update = update = (force) ->
 	updateStatus.state = UPDATE_UPDATING
 	bootstrap.done.then ->
 		Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), knex('app').select(), (apiKey, uuid, apps) ->
-			deviceId = device.getID()
 			remoteApps = getRemoteApps(uuid, apiKey)
 
-			Promise.join deviceId, remoteApps, uuid, apiKey, getEnvAndFormatRemoteApps
+			Promise.join remoteApps, uuid, apiKey, parseEnvAndFormatRemoteApps
+			.tap ([ remoteAppEnvs, remoteApps ]) ->
+				Promise.map remoteAppEnvs, (env, appId) ->
+					if env['RESIN_APP_ENABLE_DEPENDENT_APPLICATIONS'] == '1'
+						# If the state endpoint incorporates dependent
+						proxyvisor.fetchDependentApps(appId)
 			.then ([ remoteAppEnvs, remoteApps ]) ->
 				{ localApps, localAppEnvs } = formatLocalApps(apps)
+				proxyvisor.updateDependentApps(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
 				resourcesForUpdate = compareForUpdate(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
 				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds } = resourcesForUpdate
 
