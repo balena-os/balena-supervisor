@@ -114,16 +114,19 @@ do ->
 					return [ image.repoTag, 'docker.io/' + image.repoTag ]
 				.then(_.flatten)
 				knex('app').select()
-				.map (app) ->
-					app.imageId + ':latest'
+				.map ({ imageId }) ->
+					imageId + ':latest'
+				knex('dependentApp').select()
+				.map ({ imageId }) ->
+					imageId + ':latest'
 				docker.listImagesAsync()
-				(locallyCreatedTags, apps, images) ->
+				(locallyCreatedTags, apps, dependentApps, images) ->
 					imageTags = _.map(images, 'RepoTags')
 					supervisorTags = _.filter imageTags, (tags) ->
 						_.contains(tags, supervisorTag)
 					appTags = _.filter imageTags, (tags) ->
 						_.any tags, (tag) ->
-							_.contains(apps, tag)
+							_.contains(apps, tag) or _.contains(dependentApps, tag)
 					supervisorTags = _.flatten(supervisorTags)
 					appTags = _.flatten(appTags)
 					locallyCreatedTags = _.flatten(locallyCreatedTags)
@@ -195,7 +198,10 @@ do ->
 				else
 					docker.importImageAsync(req, { repo, tag, registry })
 			.then (stream) ->
-				stream.pipe(res)
+				new Promise (resolve, reject) ->
+					stream.on('error', reject)
+					.on('response', -> resolve())
+					.pipe(res)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
@@ -207,6 +213,9 @@ do ->
 				knex('image').insert({ repoTag }) if !img?
 			.then ->
 				dockerProgress.pull(repoTag, onProgress)
+
+	exports.getImageTarStream = (image) ->
+		docker.getImage(image).getAsync()
 
 	exports.loadImage = (req, res) ->
 		Promise.using writeLockImages(), ->
@@ -367,3 +376,10 @@ do ->
 			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.getImageEnv = (id) ->
+		docker.getImage(id).inspectAsync()
+		.get('Config').get('Env')
+		.catch (err) ->
+			console.log('Error getting env from image', err, err.stack)
+			return {}
