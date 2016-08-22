@@ -1,5 +1,8 @@
 { docker } = require './docker-utils'
 express = require 'express'
+Promise = require 'bluebird'
+fs = Promise.promisifyAll require 'fs'
+tar = require 'tar-fs'
 { cachedResinApi, resinApi } = require './request'
 knex = require './db'
 _ = require 'lodash'
@@ -33,7 +36,7 @@ router.post '/v1/devices', (req, res) ->
 				application: req.body.applicationId
 				uuid: uuid
 				device_type: req.body.deviceType or 'edge'
-				device: 
+				device:
 				registered_at: Math.floor(Date.now() / 1000)
 				logsChannel: logsChannel
 			resinApi.post
@@ -57,9 +60,13 @@ router.get '/v1/assets/:commit', (req, res) ->
 		return res.status(404).send('Not found') if !app
 		getAssetsPath(app.imageId)
 	.then (path) ->
-		getTarArchive(path)
-	.then (archivePath) ->
-		res.sendFile(archivePath)
+		dest = __dirname + '/' + app.imageId + '.tar'
+		getTarArchive(path,dest)
+	.then (archive) ->
+		archive.on 'finish', ->
+			res.sendFile(dest)
+	.catch (err) ->
+  	console.log err
 
 getDependentAppsFromApi = (appId, apiKey) ->
 	resinApi.get
@@ -76,6 +83,15 @@ getDependentAppsFromApi = (appId, apiKey) ->
 	.then (apps) ->
 		# build imageId using git_repository and commit
 
+getTarArchive = (path, destination) ->
+  fs.lstatAsync(path)
+  .then ->
+    tarArchive = fs.createWriteStream(destination)
+    tar.pack(path).pipe tarArchive
+    return tarArchive
+  .catch (err) ->
+	   throw err
+
 exports.fetchDependentApps = (appId, apiKey) ->
 	Promise.join
 		knex('dependentApp').select()
@@ -86,7 +102,7 @@ exports.fetchDependentApps = (appId, apiKey) ->
 			localImageIds = _.map(localDependentApps, 'imageId')
 			toDelete = _.difference(localImageIds, remoteImageIds)
 			toDownload = _.difference(remoteImageIds, localImageIds)
-			Promise.map toDownload, 
+			Promise.map toDownload,
 				#download'em
 			.then ->
 				Promise.map toDelete,
@@ -108,4 +124,3 @@ exports.update = ->
 			_.each devices, (device) ->
 				targetImageId = dependentApps[device.appId].imageId
 				targetEnv = dependentApps[device.appId].environment
-
