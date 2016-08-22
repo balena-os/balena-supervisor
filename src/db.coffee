@@ -73,15 +73,14 @@ knex.init = Promise.all([
 				t.string('appId')
 				t.string('device_type')
 				t.string('deviceId')
+				t.boolean('is_online')
 				t.string('name')
 				t.string('status')
 				t.string('download_progress')
-				t.string('currentCommit')
+				t.string('commit')
 				t.string('targetCommit')
-				t.json('currentEnv')
+				t.json('env')
 				t.json('targetEnv')
-
-
 ])
 
 module.exports = knex

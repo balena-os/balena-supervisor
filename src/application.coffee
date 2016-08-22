@@ -2,7 +2,6 @@ _ = require 'lodash'
 url = require 'url'
 Lock = require 'rwlock'
 knex = require './db'
-path = require 'path'
 config = require './config'
 dockerUtils = require './docker-utils'
 Promise = require 'bluebird'
@@ -15,6 +14,7 @@ bootstrap = require './bootstrap'
 TypedError = require 'typed-error'
 fs = Promise.promisifyAll(require('fs'))
 JSONStream = require 'JSONStream'
+proxyvisor = require './proxyvisor'
 
 class UpdatesLockedError extends TypedError
 
@@ -140,7 +140,7 @@ isValidPort = (port) ->
 	maybePort = parseInt(port, 10)
 	return parseFloat(port) is maybePort and maybePort > 0 and maybePort < 65535
 
-fetch = (app) ->
+fetch = (app, setDeviceUpdateState = true) ->
 	onProgress = (progress) ->
 		device.updateState(download_progress: progress.percentage)
 
@@ -159,7 +159,7 @@ fetch = (app) ->
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			device.updateState(status: 'Idle', download_progress: null)
-			device.setUpdateState(update_downloaded: true)
+			device.setUpdateState(update_downloaded: true) if setDeviceUpdateState
 			docker.getImage(app.imageId).inspectAsync()
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
@@ -460,7 +460,7 @@ updateUsingStrategy = (strategy, options) ->
 		strategy = 'download-then-kill'
 	updateStrategies[strategy](options)
 
-getRemoteApps = (uuid, apiKey) ->
+getRemoteState = (uuid, apiKey) ->
 	endpoint = url.resolve(config.apiEndpoint, "/device/v1/#{uuid}/state")
 
 	requestParams = _.extend
@@ -474,28 +474,22 @@ getRemoteApps = (uuid, apiKey) ->
 		throw err
 
 parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
-	Promise.map remoteApps, (app) ->
-		utils.extendEnvVars(app.environment, uuid, app.id)
+	appsWithEnv = _.mapValues remoteApps, (app, appId) ->
+		utils.extendEnvVars(app.environment, uuid, appId)
 		.then (fullEnv) ->
 			env = _.omit(fullEnv, _.keys(specialActionEnvVars))
 			env = _.omit env, (v, k) ->
 				_.startsWith(k, device.hostConfigEnvVarPrefix)
-			return [
-				{
-					appId: '' + app.id
-					env: fullEnv
-				},
-				{
-					appId: '' + app.id
-					commit: app.commit
-					imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
-					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
-				}
-			]
-	.then(_.flatten)
-	.then(_.zip)
-	.then ([ remoteAppEnvs, remoteApps ]) ->
-		return [_.mapValues(_.indexBy(remoteAppEnvs, 'appId'), 'env'), _.indexBy(remoteApps, 'appId')]
+			return {
+				appId
+				commit: app.commit
+				imageId: app.image
+				env: JSON.stringify(env)
+				fullEnv
+			}
+	Promise.props(appsWithEnv)
+	.then (apps) ->
+		return [ _.mapValues(apps, 'fullEnv'), _.mapValues(apps, (app) -> return _.omit(app, 'fullEnv')) ]
 
 formatLocalApps = (apps) ->
 	apps = _.indexBy(apps, 'appId')
@@ -508,7 +502,7 @@ formatLocalApps = (apps) ->
 		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
 	return { localApps, localAppEnvs }
 
-exports.compareForUpdate = compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
+compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
 	remoteAppIds = _.keys(remoteApps)
 	localAppIds = _.keys(localApps)
 	appsWithChangedEnvs = _.filter remoteAppIds, (appId) ->
@@ -535,17 +529,13 @@ application.update = update = (force) ->
 	updateStatus.state = UPDATE_UPDATING
 	bootstrap.done.then ->
 		Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), knex('app').select(), (apiKey, uuid, apps) ->
-			remoteApps = getRemoteApps(uuid, apiKey)
-
-			Promise.join remoteApps, uuid, apiKey, parseEnvAndFormatRemoteApps
-			.tap ([ remoteAppEnvs, remoteApps ]) ->
-				Promise.map remoteAppEnvs, (env, appId) ->
-					if env['RESIN_APP_ENABLE_DEPENDENT_APPLICATIONS'] == '1'
-						# If the state endpoint incorporates dependent
-						proxyvisor.fetchDependentApps(appId)
+			getRemoteState(uuid, apiKey)
+			.then ({ local, dependent }) ->
+				proxyvisor.fetchAndSetTargetsForDependentApps(dependent, fetch)
+				.then ->
+					Promise.join local.apps, uuid, apiKey, parseEnvAndFormatRemoteApps
 			.then ([ remoteAppEnvs, remoteApps ]) ->
 				{ localApps, localAppEnvs } = formatLocalApps(apps)
-				proxyvisor.updateDependentApps(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
 				resourcesForUpdate = compareForUpdate(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
 				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds } = resourcesForUpdate
 
@@ -611,6 +601,8 @@ application.update = update = (force) ->
 		.then (failures) ->
 			_.each(failures, (err) -> console.error('Error:', err, err.stack))
 			throw new Error(joinErrorMessages(failures)) if failures.length > 0
+		.then ->
+			proxyvisor.sendUpdates()
 		.then ->
 			updateStatus.failed = 0
 			device.setUpdateState(update_pending: false, update_downloaded: false, update_failed: false)
