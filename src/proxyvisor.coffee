@@ -66,7 +66,7 @@ router.get '/v1/assets/:commit', (req, res) ->
 		archive.on 'finish', ->
 			res.sendFile(dest)
 	.catch (err) ->
-  	console.log err
+		console.log err
 
 getDependentAppsFromApi = (appId, apiKey) ->
 	resinApi.get
@@ -84,13 +84,13 @@ getDependentAppsFromApi = (appId, apiKey) ->
 		# build imageId using git_repository and commit
 
 getTarArchive = (path, destination) ->
-  fs.lstatAsync(path)
-  .then ->
-    tarArchive = fs.createWriteStream(destination)
-    tar.pack(path).pipe tarArchive
-    return tarArchive
-  .catch (err) ->
-	   throw err
+	fs.lstatAsync(path)
+	.then ->
+		tarArchive = fs.createWriteStream(destination)
+		tar.pack(path).pipe tarArchive
+		return tarArchive
+	.catch (err) ->
+		 throw err
 
 exports.fetchDependentApps = (appId, apiKey) ->
 	Promise.join
