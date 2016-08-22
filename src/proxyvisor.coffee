@@ -60,7 +60,7 @@ router.get '/v1/assets/:commit', (req, res) ->
 		return res.status(404).send('Not found') if !app
 		getAssetsPath(app.imageId)
 	.then (path) ->
-		dest = '/tmp/' + app.imageId + '.tar'
+		dest = '/tmp/' + app.commit + '.tar'
 		getTarArchive(path,dest)
 	.then (archive) ->
 		archive.on 'finish', ->
