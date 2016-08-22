@@ -116,14 +116,17 @@ do ->
 				knex('app').select()
 				.map (app) ->
 					app.imageId + ':latest'
+				knex('dependentApp').select()
+				.map (app) ->
+					app.imageId + ':latest'
 				docker.listImagesAsync()
-				(locallyCreatedTags, apps, images) ->
+				(locallyCreatedTags, apps, dependentApps, images) ->
 					imageTags = _.map(images, 'RepoTags')
 					supervisorTags = _.filter imageTags, (tags) ->
 						_.contains(tags, supervisorTag)
 					appTags = _.filter imageTags, (tags) ->
 						_.any tags, (tag) ->
-							_.contains(apps, tag)
+							_.contains(apps, tag) or _.contains(dependentApps, tag)
 					supervisorTags = _.flatten(supervisorTags)
 					appTags = _.flatten(appTags)
 					locallyCreatedTags = _.flatten(locallyCreatedTags)

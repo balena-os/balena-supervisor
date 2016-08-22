@@ -49,3 +49,4 @@ module.exports =
 		'RESIN_API_KEY'
 	]
 	dataPath: checkString(process.env.RESIN_DATA_PATH) ? '/resin-data'
+	proxyvisorHookReceiver: checkString(process.env.RESIN_PROXYVISOR_HOOK_RECEIVER) ? 'http://0.0.0.0:1337'
