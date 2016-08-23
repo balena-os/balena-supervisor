@@ -13,6 +13,9 @@ device = require './device'
 bodyParser = require 'body-parser'
 request = Promise.promisifyAll require 'request'
 config = require './config'
+PUBNUB = require 'pubnub'
+
+pubnub = PUBNUB.init(config.pubnub)
 
 getAssetsPath = (image) ->
 	docker.imageRootDir(image)
@@ -23,7 +26,11 @@ exports.router = router = express.Router()
 router.use(bodyParser())
 
 router.get '/v1/devices', (req, res) ->
-# get from api or local db?
+	knex('dependentDevice').select()
+	.then (devices) ->
+		res.json(devices)
+	.catch (err) ->
+		res.status(503).send(err?.message or err or 'Unknown error')
 
 router.post '/v1/devices', (req, res) ->
 	Promise.join(
@@ -49,12 +56,13 @@ router.post '/v1/devices', (req, res) ->
 					apikey: apiKey
 			.then (dev) ->
 				deviceForDB = {
-					uuid
+					uuid: uuid
 					appId: device.application
 					device_type: device.device_type
 					deviceId: dev.id
 					name: dev.name
 					status: device.status
+					logs_channel: device.logs_channel
 				}
 				knex('dependentDevice').insert(deviceForDB)
 				.then ->
@@ -64,9 +72,30 @@ router.post '/v1/devices', (req, res) ->
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 router.get '/v1/devices/:uuid', (req, res) ->
+	uuid = req.params.uuid
+	knex('dependentDevice').select().where({ uuid })
+	.then ([ device ]) ->
+		return res.status(404).send('Device not found') if !device?
+		res.json(device)
+	.catch (err) ->
+		res.status(503).send(err?.message or err or 'Unknown error')
 
-#TODO later
 router.put '/v1/devices/:uuid/logs', (req, res) ->
+	uuid = req.params.uuid
+	m = {
+		message: req.body.message
+		timestamp: req.body.timestamp or Date.now()
+	}
+	m.isSystem = req.body.isSystem if req.body.isSystem?
+
+	knex('dependentDevice').select().where({ uuid })
+	.then ([ device ]) ->
+		return res.status(404).send('Device not found') if !device?
+		pubnub.publish({ channel: "device-#{device.logs_channel}-logs", message: m })
+	.then ->
+		res.status(202).send('OK')
+	.catch (err) ->
+		res.status(503).send(err?.message or err or 'Unknown error')
 
 router.put '/v1/devices/:uuid', (req, res) ->
 	uuid = req.params.uuid
@@ -175,7 +204,7 @@ sendUpdate = (device) ->
 		knex('dependentDevice').update({ env: device.targetEnv, commit: device.targetCommit }).where({ uuid: device.uuid })
 
 exports.sendUpdates = ->
-	# Go through knex('dependentDevice') and sendUpdate if targetImage or targetEnv differ from the current ones.
+	# Go through knex('dependentDevice') and sendUpdate if targetCommit or targetEnv differ from the current ones.
 	knex('dependentDevice').select()
 	.then (devices) ->
 		Promise.map devices, (device) ->
