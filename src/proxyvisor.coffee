@@ -138,8 +138,7 @@ router.get '/v1/assets/:commit', (req, res) ->
 				archive.on 'finish', ->
 					res.sendFile(dest)
 					resolve()
-				archive.on 'error', (err) ->
-					reject(err)
+				archive.on('error', reject)
 	.catch (err) ->
 		console.error(err)
 		res.status(503).send(err?.message or err or 'Unknown error')
@@ -148,7 +147,8 @@ getTarArchive = (path, destination) ->
 	fs.lstatAsync(path)
 	.then ->
 		tarArchive = fs.createWriteStream(destination)
-		tar.pack(path).pipe tarArchive
+		tar.pack(path).pipe(tarArchive)
+		.on('error', console.error)
 		return tarArchive
 
 # TODO: deduplicate code from compareForUpdate in application.coffee
@@ -166,11 +166,9 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 		localApps = _.indexBy(localDependentApps, 'appId')
 
 		toBeDownloaded = _.filter remoteApps, (app, appId) ->
-			return !_.any localApps, (localApp) ->
-				localApp.imageId == app.imageId
+			return !_.any(localApps, imageId: app.imageId)
 		toBeRemoved = _.filter localApps, (app, appId) ->
-			return !_.any remoteApps, (remoteApp) ->
-				remoteApp.imageId == app.imageId
+			return !_.any(remoteApps, imageId: app.imageId)
 		Promise.map toBeDownloaded, (app, appId) ->
 			fetchFn(app, false)
 		.then ->
