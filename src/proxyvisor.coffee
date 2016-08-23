@@ -68,7 +68,30 @@ router.get '/v1/devices/:uuid', (req, res) ->
 #TODO later
 router.put '/v1/devices/:uuid/logs', (req, res) ->
 
-router.put '/v1/devices/:uuid/state', (req, res) ->
+router.put '/v1/devices/:uuid', (req, res) ->
+	uuid = req.params.uuid
+	status = req.body.status
+	is_online = req.body.is_online
+	utils.getConfig('apiKey')
+	.then (apiKey) ->
+		throw new Error('apikey not found') if !apiKey?
+		knex('dependentDevice').select().where({ uuid })
+		.then ([ device ]) ->
+			return res.status(404).send('Device not found') if !device?
+			resinApi.patch
+				resource: 'device'
+				id: device.deviceId
+				body: { status, is_online }
+				customOptions:
+					apikey: apiKey
+			.then ->
+				device.status = status
+				device.is_online = is_online
+				knex('dependentDevice').update(device).where({ uuid })
+				.then ->
+					res.json(device)
+	.catch (err) ->
+		res.status(503).send(err?.message or err or 'Unknown error')
 
 tarPath = (app) ->
 	return '/tmp/' + app.commit + '.tar'
