@@ -206,6 +206,5 @@ sendUpdate = (device) ->
 exports.sendUpdates = ->
 	# Go through knex('dependentDevice') and sendUpdate if targetCommit or targetEnv differ from the current ones.
 	knex('dependentDevice').select()
-	.then (devices) ->
-		Promise.map devices, (device) ->
-			sendUpdate(device) if device.targetEnv != device.env or device.targetCommit != device.commit
+	.map (device) ->
+		sendUpdate(device) if device.targetCommit != device.commit or not _.isEqual(device.targetEnv, device.env)
