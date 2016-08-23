@@ -72,6 +72,7 @@ knex.init = Promise.all([
 				t.string('uuid')
 				t.string('appId')
 				t.string('device_type')
+				t.string('logs_channel')
 				t.string('deviceId')
 				t.boolean('is_online')
 				t.string('name')
