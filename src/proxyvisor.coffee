@@ -165,11 +165,15 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 			}
 		localApps = _.indexBy(localDependentApps, 'appId')
 
-		toBeDownloaded = _.filter remoteApps, (app, appId) ->
-			return !_.any(localApps, imageId: app.imageId)
-		toBeRemoved = _.filter localApps, (app, appId) ->
-			return !_.any(remoteApps, imageId: app.imageId)
-		Promise.map toBeDownloaded, (app, appId) ->
+		toBeDownloaded = _.values(
+			_.filter remoteApps, (app, appId) ->
+				return !_.any(localApps, imageId: app.imageId)
+		)
+		toBeRemoved = _.values(
+			_.filter localApps, (app, appId) ->
+				return !_.any(remoteApps, imageId: app.imageId)
+		)
+		Promise.map toBeDownloaded, (app) ->
 			fetchFn(app, false)
 		.then ->
 			Promise.map toBeRemoved, (app) ->
@@ -179,10 +183,12 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 				.catch (err) ->
 					console.error('Could not remove image/artifacts for dependent app', err, err.stack)
 		.then ->
-			Promise.map remoteApps, (app, appId) ->
-				knex('dependentApp').update(app).where({ appId })
-				.then (n) ->
-					knex('dependentApp').insert(app) if n == 0
+			Promise.props(
+				_.mapValues remoteApps, (app, appId) ->
+					knex('dependentApp').update(app).where({ appId })
+					.then (n) ->
+						knex('dependentApp').insert(app) if n == 0
+			)
 		.then ->
 			devices = _.map state.devices, (device, uuid) ->
 				device.uuid = uuid
