@@ -2,7 +2,6 @@ Promise = require 'bluebird'
 { docker } = require './docker-utils'
 express = require 'express'
 fs = Promise.promisifyAll require 'fs'
-tar = require 'tar-fs'
 { resinApi } = require './request'
 knex = require './db'
 _ = require 'lodash'
@@ -14,6 +13,7 @@ bodyParser = require 'body-parser'
 request = Promise.promisifyAll require 'request'
 config = require './config'
 PUBNUB = require 'pubnub'
+execAsync = Promise.promisify(require('child_process').exec)
 
 pubnub = PUBNUB.init(config.pubnub)
 
@@ -133,12 +133,8 @@ router.get '/v1/assets/:commit', (req, res) ->
 		getAssetsPath(app.imageId)
 		.then (path) ->
 			getTarArchive(path, dest)
-		.then (archive) ->
-			new Promise (resolve, reject) ->
-				archive.on 'finish', ->
-					res.sendFile(dest)
-					resolve()
-				archive.on('error', reject)
+		.then ->
+			res.sendFile(dest)
 	.catch (err) ->
 		console.error(err)
 		res.status(503).send(err?.message or err or 'Unknown error')
@@ -146,10 +142,7 @@ router.get '/v1/assets/:commit', (req, res) ->
 getTarArchive = (path, destination) ->
 	fs.lstatAsync(path)
 	.then ->
-		tarArchive = fs.createWriteStream(destination)
-		tar.pack(path).pipe(tarArchive)
-		.on('error', console.error)
-		return tarArchive
+		execAsync("cd #{path} && tar -cvf #{destination} *")
 
 # TODO: deduplicate code from compareForUpdate in application.coffee
 exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
