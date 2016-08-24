@@ -40,7 +40,7 @@ router.post '/v1/devices', (req, res) ->
 		deviceRegister.generateUUID()
 		randomHexString.generate()
 		(apiKey, userId, deviceId, uuid, logsChannel) ->
-			device =
+			d =
 				user: userId
 				application: req.body.applicationId
 				uuid: uuid
@@ -51,18 +51,18 @@ router.post '/v1/devices', (req, res) ->
 				status: 'Provisioned'
 			resinApi.post
 				resource: 'device'
-				body: device
+				body: d
 				customOptions:
 					apikey: apiKey
 			.then (dev) ->
 				deviceForDB = {
 					uuid: uuid
-					appId: device.application
-					device_type: device.device_type
+					appId: d.application
+					device_type: d.device_type
 					deviceId: dev.id
 					name: dev.name
-					status: device.status
-					logs_channel: device.logs_channel
+					status: d.status
+					logs_channel: d.logs_channel
 				}
 				knex('dependentDevice').insert(deviceForDB)
 				.then ->
