@@ -157,11 +157,12 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 	.then (localDependentApps) ->
 		# Compare to see which to fetch, and which to delete
 		remoteApps = _.mapValues state.apps, (app, appId) ->
+			env = app.environment ? {}
 			return {
 				appId: appId
 				imageId: app.image
 				commit: app.commit
-				env: JSON.stringify(app.environment)
+				env: JSON.stringify(env)
 			}
 		localApps = _.indexBy(localDependentApps, 'appId')
 
