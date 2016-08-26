@@ -85,17 +85,17 @@ DOCKERD_PROXY=tools/dind/config/services/docker.service.d/proxy.conf
 ${DOCKERD_PROXY}:
 	rm -f ${DOCKERD_PROXY}
 	if [ -n "${rt_http_proxy}" ]; then \
-		proxies=("\"HTTP_PROXY=${rt_http_proxy}\""); \
-		proxies=($${proxies[*]} "\"http_proxy=${rt_http_proxy}\""); \
+		proxies="\"HTTP_PROXY=${rt_http_proxy}\""; \
+		proxies="$${proxies[*]} \"http_proxy=${rt_http_proxy}\""; \
 	fi; \
 	if [ -n "${rt_https_proxy}" ]; then \
-		proxies=($${proxies[*]} "\"HTTPS_PROXY=${rt_https_proxy}\""); \
-		proxies=($${proxies[*]} "\"https_proxy=${rt_https_proxy}\""); \
+		proxies="$${proxies[*]} \"HTTPS_PROXY=${rt_https_proxy}\""; \
+		proxies="$${proxies[*]} \"https_proxy=${rt_https_proxy}\""; \
 	fi; \
 	if [ -n "${rt_no_proxy}" ]; then \
-		proxies=($${proxies[*]} "\"no_proxy=${rt_no_proxy}\""); \
+		proxies="$${proxies[*]} \"no_proxy=${rt_no_proxy}\""; \
 	fi; \
-	if [ -n "$${proxies[*]}" ]; then \
+	if [ -n "${proxies}" ]; then \
 		echo "[Service]" > ${DOCKERD_PROXY}; \
 		echo "Environment=$${proxies[*]}" >> ${DOCKERD_PROXY}; \
 	else \
