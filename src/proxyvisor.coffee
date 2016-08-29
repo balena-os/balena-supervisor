@@ -69,6 +69,7 @@ router.post '/v1/devices', (req, res) ->
 					res.status(202).send(dev)
 	)
 	.catch (err) ->
+		console.error('Error on GET /v1/devices:', err, err.stack)
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 router.get '/v1/devices/:uuid', (req, res) ->
@@ -78,6 +79,7 @@ router.get '/v1/devices/:uuid', (req, res) ->
 		return res.status(404).send('Device not found') if !device?
 		res.json(device)
 	.catch (err) ->
+		console.error('Error on GET /v1/devices/:uuid:', err, err.stack)
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 router.put '/v1/devices/:uuid/logs', (req, res) ->
@@ -92,20 +94,20 @@ router.put '/v1/devices/:uuid/logs', (req, res) ->
 	.then ([ device ]) ->
 		return res.status(404).send('Device not found') if !device?
 		pubnub.publish({ channel: "device-#{device.logs_channel}-logs", message: m })
-	.then ->
 		res.status(202).send('OK')
 	.catch (err) ->
+		console.error('Error on PUT /v1/devices/:uuid/logs:', err, err.stack)
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 router.put '/v1/devices/:uuid', (req, res) ->
 	uuid = req.params.uuid
 	status = req.body.status
 	is_online = req.body.is_online
-	utils.getConfig('apiKey')
-	.then (apiKey) ->
-		throw new Error('apikey not found') if !apiKey?
+	Promise.join(
+		utils.getConfig('apiKey')
 		knex('dependentDevice').select().where({ uuid })
-		.then ([ device ]) ->
+		(apiKey, [ device ]) ->
+			throw new Error('apikey not found') if !apiKey?
 			return res.status(404).send('Device not found') if !device?
 			resinApi.patch
 				resource: 'device'
@@ -119,7 +121,9 @@ router.put '/v1/devices/:uuid', (req, res) ->
 				knex('dependentDevice').update(device).where({ uuid })
 				.then ->
 					res.json(device)
+	)
 	.catch (err) ->
+		console.error('Error on PUT /v1/devices:', err, err.stack)
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 tarPath = (app) ->
@@ -136,7 +140,7 @@ router.get '/v1/assets/:commit', (req, res) ->
 		.then ->
 			res.sendFile(dest)
 	.catch (err) ->
-		console.error(err)
+		console.error('Error on GET /v1/assets/:commit:', err, err.stack)
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 getTarArchive = (path, destination) ->
@@ -159,14 +163,10 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 			}
 		localApps = _.indexBy(localDependentApps, 'appId')
 
-		toBeDownloaded = _.values(
-			_.filter remoteApps, (app, appId) ->
-				return  app.commit? and !_.any(localApps, imageId: app.imageId)
-		)
-		toBeRemoved = _.values(
-			_.filter localApps, (app, appId) ->
-				return app.commit? and !_.any(remoteApps, imageId: app.imageId)
-		)
+		toBeDownloaded = _.filter remoteApps, (app, appId) ->
+			return  app.commit? and !_.any(localApps, imageId: app.imageId)
+		toBeRemoved = _.filter localApps, (app, appId) ->
+			return app.commit? and !_.any(remoteApps, imageId: app.imageId)
 		Promise.map toBeDownloaded, (app) ->
 			fetchFn(app, false)
 		.then ->
@@ -184,18 +184,20 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 						knex('dependentApp').insert(app) if n == 0
 			)
 		.then ->
-			devices = _.map state.devices, (device, uuid) ->
-				device.uuid = uuid
-				return device
-			Promise.map devices, (device) ->
+			Promise.all _.map state.devices, (device, uuid) ->
 				# Only consider one app per dependent device for now
-				appId = _.keys(device.apps)[0]
-				knex('dependentDevice').update({ targetEnv: JSON.stringify(device.environment), targetCommit: state.apps[appId].commit }).where({ uuid: device.uuid })
+				appId = _(device.apps).keys().first()
+				knex('dependentDevice').update({ targetEnv: JSON.stringify(device.environment), targetCommit: state.apps[appId].commit }).where({ uuid })
 	.catch (err) ->
 		console.error('Error fetching dependent apps', err, err.stack)
 
 sendUpdate = (device) ->
-	request.putAsync("#{config.proxyvisorHookReceiver}/v1/devices/#{device.uuid}", { json: true, body: { commit: device.targetCommit, environment: JSON.parse(device.targetEnv) } })
+	request.putAsync "#{config.proxyvisorHookReceiver}/v1/devices/#{device.uuid}", {
+		json: true
+		body:
+			commit: device.targetCommit
+			environment: JSON.parse(device.targetEnv)
+	}
 	.spread (response, body) ->
 		if response.statusCode != 200
 			return console.log("Error updating device #{device.uuid}: #{response.statusCode} #{body}")
