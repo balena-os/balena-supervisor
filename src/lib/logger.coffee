@@ -10,7 +10,7 @@ LOG_PUBLISH_INTERVAL = 110
 # Pubnub's message size limit is 32KB (unclear on whether it's KB or actually KiB,
 # but we'll be conservative). So we limit a log message to 2 bytes less to account
 # for the [ and ] in the array.
-MAX_LOG_BYTE_SIZE = 31998
+MAX_LOG_BYTE_SIZE = 30000
 MAX_MESSAGE_INDEX = 9
 
 disableLogs = false
@@ -60,7 +60,7 @@ publish = do ->
 		_.defaults message,
 			t: Date.now()
 			m: ''
-		msgLength = Buffer.byteLength(JSON.stringify(message), 'utf8')
+		msgLength = Buffer.byteLength(encodeURIComponent(JSON.stringify(message)), 'utf8')
 		return if msgLength > MAX_LOG_BYTE_SIZE # Unlikely, but we can't allow this
 		remaining = publishQueueRemainingBytes - msgLength
 		if remaining >= 0
