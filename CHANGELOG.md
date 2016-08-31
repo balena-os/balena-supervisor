@@ -1,3 +1,5 @@
+# v2.0.0
+
 * **[Breaking]** Change the logger to send at a specific interval and with a different message format [Pablo]
 
 # v1.14.0
