@@ -44,10 +44,19 @@ exports.getID = do ->
 exports.reboot = ->
 	request.postAsync(config.gosuperAddress + '/v1/reboot')
 
+exec = require('child_process')
+
+findMountPointByPartLabel = (label) ->
+  command = "grep $(blkid -L #{label}) /proc/mounts"
+  try
+    return (exec.execSync(command).toString().split " ")[1]
+  catch err
+    throw new Error ("Could not determine mount point for partition #{label}: #{stderr}, ExitCode: #{error.code}", { error: body.Error }, 'Set log to display error')
+
 exports.hostConfigEnvVarPrefix = 'RESIN_HOST_'
 bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
 bootBlockDevice = '/dev/mmcblk0p1'
-bootMountPoint = '/mnt/root/boot'
+bootMountPoint = findMountPointByPartLabel("resin-boot")
 bootConfigPath = bootMountPoint + '/config.txt'
 configRegex = new RegExp('(' + _.escapeRegExp(bootConfigEnvVarPrefix) + ')(.+)')
 forbiddenConfigKeys = [
