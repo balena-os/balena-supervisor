@@ -49,3 +49,4 @@ module.exports =
 		'RESIN_API_KEY'
 	]
 	dataPath: checkString(process.env.RESIN_DATA_PATH) ? '/resin-data'
+	bootMountPoint: checkString(process.env.BOOT_MOUNTPOINT) ? '/boot'
