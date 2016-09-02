@@ -35,6 +35,7 @@
     "rwlock": "^5.0.0",
     "sqlite3": "3.0.9",
     "typed-error": "~0.1.0",
+    "webtorrent": "^0.96.4",
     "yamljs": "^0.2.7"
   },
   "engines": {

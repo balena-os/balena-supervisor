@@ -97,6 +97,63 @@ do ->
 				console.log('Falling back to delta-from-empty')
 				exports.rsyncImageWithProgress(imgDest, onProgress, true)
 
+
+	# TODO: DRY up
+	exports.torrentImageWithProgress = do ->
+		torrentClient = null
+		return (imgDest, onProgress, startFromEmpty = false) ->
+			if !torrentClient?
+				WebTorrent = require 'webtorrent'
+				torrentClient = new WebTorrent()
+			Promise.using readLockImages(), ->
+				Promise.try ->
+					if startFromEmpty
+						return 'resin/scratch'
+					findSimilarImage(imgDest)
+				.then (imgSrc) ->
+					request.getAsync("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", { timeout: DELTA_REQUEST_TIMEOUT, followRedirect: false })
+					.then ([ res ]) ->
+						if res.statusCode isnt 302
+							throw new Error("Got #{res.statusCode} when requesting image from delta server (expected 302).")
+						new Promise (resolve, reject) ->
+							torrent = torrentClient.add(res.headers.location + '?torrent')
+							console.log('Starting torrent download for ', res.headers.location)
+							statusInterval = setInterval ->
+								console.log("Downloading from #{torrent.numPeers} at #{torrent.downloadSpeed}B/s")
+							, 2000
+							torrent.on 'error', (err) ->
+								clearInterval(statusInterval)
+								reject(err)
+							torrent.on 'download', ->
+								percentage = torrent.downloaded * 100
+								if percentage > 0
+									downloadedSize = torrent.downloaded
+									totalSize = downloadedSize / torrent.downloaded
+									onProgress({ percentage, totalSize, downloadedSize })
+							torrent.on 'ready', ->
+								console.log('Torrent ready, starting stream to rsync')
+								reject(new Error('File not found in torrent')) if !torrent.files[0]?
+								resolve(torrent.files[0].createReadStream())
+							torrent.on 'done', ->
+								console.log('Torrent downloaded.')
+								clearInterval(statusInterval)
+					.then (deltaStream) ->
+						if imgSrc is 'resin/scratch'
+							deltaSrc = null
+						else
+							deltaSrc = imgSrc
+						new Promise (resolve, reject) ->
+							deltaStream.pipe(dockerDelta.applyDelta(deltaSrc, imgDest))
+							.on('id', resolve)
+							.on('error', reject)
+				.then (id) ->
+					getRepoAndTag(imgDest)
+					.then ({ repo, tag }) ->
+						docker.getImage(id).tagAsync({ repo, tag, force: true })
+				.catch dockerDelta.OutOfSyncError, (err) ->
+					console.log('Falling back to delta-from-empty')
+					exports.torrentImageWithProgress(imgDest, onProgress, true)
+
 	exports.fetchImageWithProgress = (image, onProgress) ->
 		Promise.using readLockImages(), ->
 			dockerProgress.pull(image, onProgress)
