@@ -1,3 +1,5 @@
+* Pick up new variable from hostOS, pointing to the mount point of the hostOS's boot partition [Theodor]
+
 # v2.0.0
 
 * **[Breaking]** Change the logger to send at a specific interval and with a different message format [Pablo]
