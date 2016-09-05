@@ -1,3 +1,5 @@
+# v2.1.0
+
 * Pick up new variable from hostOS, pointing to the mount point of the hostOS's boot partition [Theodor]
 
 # v2.0.0
