@@ -1,3 +1,5 @@
+
+* Add iptables rules to allow resin-vpn named interface to be used by VPN [Praneeth]
 * Updated to coffee-script ~1.10.0 [Page]
 * Catch exec format error and provide friendlier error message [Aleksis]
 

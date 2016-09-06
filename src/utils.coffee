@@ -287,7 +287,7 @@ checkAndAddIptablesRule = (rule) ->
 		execAsync("iptables -A #{rule}")
 
 exports.createIpTablesRules = ->
-	allowedInterfaces = ['tun0', 'docker0', 'lo']
+	allowedInterfaces = ['resin-vpn', 'tun0', 'docker0', 'lo']
 	Promise.each allowedInterfaces, (iface) ->
 		checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -i #{iface} -j ACCEPT")
 	.then ->
