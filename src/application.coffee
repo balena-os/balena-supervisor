@@ -248,6 +248,16 @@ application.start = start = (app) ->
 				# 304 means the container was already started, precisely what we want :)
 				if statusCode is '304'
 					return
+
+				if statusCode is '500' and err.json.trim().match(/exec format error$/)
+					# Provide a friendlier error message for "exec format error"
+					device.getDeviceType()
+					.then (deviceType) ->
+						throw  new Error("Application architecture incompatible with #{deviceType}: exec format error")
+				else
+					# rethrow the same error
+					throw err
+			.catch (err) ->
 				# If starting the container failed, we remove it so that it doesn't litter
 				container.removeAsync(v: true)
 				.then ->

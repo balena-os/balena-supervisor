@@ -1,3 +1,5 @@
+* Catch exec format error and provide friendlier error message [Aleksis]
+
 # v2.1.0
 
 * Pick up new variable from hostOS, pointing to the mount point of the hostOS's boot partition [Theodor]
