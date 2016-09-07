@@ -45,7 +45,7 @@ router.post '/v1/devices', (req, res) ->
 				user: userId
 				application: req.body.applicationId
 				uuid: uuid
-				device_type: req.body.deviceType or 'edge'
+				device_type: 'edge'
 				device: deviceId
 				registered_at: Math.floor(Date.now() / 1000)
 				logs_channel: logsChannel
@@ -142,6 +142,21 @@ router.get '/v1/assets/:appId/:commit', (req, res) ->
 			res.sendFile(dest)
 	.catch (err) ->
 		console.error('Error on GET /v1/assets/:commit:', err, err.stack)
+		res.status(503).send(err?.message or err or 'Unknown error')
+
+router.get '/v1/dependent-apps', (req, res) ->
+	knex('dependentApp').select()
+	.map (app) ->
+		return {
+			id: app.appId
+			commit: app.commit
+			device_type: 'edge'
+			config: app.config
+		}
+	.then (apps) ->
+		res.json(apps)
+	.catch (err) ->
+		console.error('Error on GET /v1/dependent-apps', err, err.stack)
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 getTarArchive = (path, destination) ->
