@@ -150,8 +150,12 @@ fetch = (app, setDeviceUpdateState = true) ->
 		device.updateState(status: 'Downloading', download_progress: 0)
 
 		Promise.try ->
-			JSON.parse(app.env)
-		.then (env) ->
+			# In dependent apps env is replaced with config
+			if !app.env? and app.config?
+				env = JSON.parse(app.config)
+			else
+				env = JSON.parse(app.env)
+
 			if env['RESIN_SUPERVISOR_DELTA'] == '1'
 				dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
 			else
@@ -463,10 +467,12 @@ getRemoteState = (uuid, apiKey) ->
 		console.error("Failed to get state for device #{uuid}. #{err}")
 		throw err
 
+# TODO: Actually store and use app.environment and app.config separately
 parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
 	appsWithEnv = _.mapValues remoteApps, (app, appId) ->
 		utils.extendEnvVars(app.environment, uuid, appId)
-		.then (fullEnv) ->
+		.then (extendedEnv) ->
+			fullEnv = _.merge({}, extendedEnv, app.config)
 			env = _.omit(fullEnv, _.keys(specialActionEnvVars))
 			env = _.omit env, (v, k) ->
 				_.startsWith(k, device.hostConfigEnvVarPrefix)

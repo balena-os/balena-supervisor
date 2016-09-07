@@ -62,7 +62,7 @@ knex.init = Promise.all([
 				t.string('name')
 				t.string('commit')
 				t.string('imageId')
-				t.json('env')
+				t.json('config')
 
 	knex.schema.hasTable('dependentDevice')
 	.then (exists) ->
@@ -80,8 +80,10 @@ knex.init = Promise.all([
 				t.string('download_progress')
 				t.string('commit')
 				t.string('targetCommit')
-				t.json('env')
-				t.json('targetEnv')
+				t.json('environment')
+				t.json('targetEnvironment')
+				t.json('config')
+				t.json('targetConfig')
 ])
 
 module.exports = knex
