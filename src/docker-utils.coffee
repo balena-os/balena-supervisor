@@ -370,3 +370,7 @@ do ->
 			res.json(data)
 		.catch (err) ->
 			res.status(500).send(err?.message or err or 'Unknown error')
+
+	exports.getImageEnv = (id) ->
+		docker.getImage(id).inspectAsync()
+		.get('Config').get('Env')
