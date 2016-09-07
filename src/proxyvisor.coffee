@@ -83,7 +83,7 @@ router.get '/v1/devices/:uuid', (req, res) ->
 		console.error('Error on GET /v1/devices/:uuid:', err, err.stack)
 		res.status(503).send(err?.message or err or 'Unknown error')
 
-router.put '/v1/devices/:uuid/logs', (req, res) ->
+router.post '/v1/devices/:uuid/logs', (req, res) ->
 	uuid = req.params.uuid
 	m = {
 		message: req.body.message
