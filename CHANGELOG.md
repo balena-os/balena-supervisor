@@ -1,3 +1,4 @@
+* Updated to coffee-script ~1.10.0 [Page]
 * Catch exec format error and provide friendlier error message [Aleksis]
 
 # v2.1.0
