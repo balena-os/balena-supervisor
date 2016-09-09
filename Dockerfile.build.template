@@ -45,7 +45,8 @@ RUN JOBS=MAX npm install --unsafe-perm
 
 COPY src /usr/src/app/src
 
-RUN npm run build
+RUN npm run lint \
+	&& npm run build
 
 # Re-install just production modules. This should be fast due to npm cache from previous layer
 RUN rm -rf node_modules \
