@@ -16,9 +16,6 @@ MAKE_ARGS="ARCH=${ARCH} \
     PUBNUB_PUBLISH_KEY=${PUBNUB_PUBLISH_KEY} \
     MIXPANEL_TOKEN=${MIXPANEL_TOKEN}"
 
-# Disabled until this is merged in npm https://github.com/npm/npm/pull/13257
-# make ${MAKE_ARGS} lint
-
 make ${MAKE_ARGS} \
     SUPERVISOR_VERSION=${ESCAPED_BRANCH_NAME} \
     DEPLOY_REGISTRY= \
