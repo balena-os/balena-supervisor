@@ -1,3 +1,4 @@
+# v2.1.1
 
 * Add iptables rules to allow resin-vpn named interface to be used by VPN [Praneeth]
 * Updated to coffee-script ~1.10.0 [Page]
