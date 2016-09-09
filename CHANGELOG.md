@@ -1,3 +1,4 @@
+* Bind mount linker in amd64 platforms when we mount kmod [Pablo]
 * DRY up calls to gosuper API, and use empty Host header [Pablo]
 
 # v2.1.1

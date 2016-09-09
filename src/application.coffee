@@ -175,6 +175,12 @@ shouldMountKmod = (image) ->
 		console.error('Error getting app OS release: ', err)
 		return false
 
+linkerPath64 = '/lib/ld-linux-x86-64.so.2'
+hasAmd64Linker = ->
+	fs.lstatAsync("/mnt/root#{linkerPath64}")
+	.return(true)
+	.catchReturn(false)
+
 application.start = start = (app) ->
 	volumes = utils.defaultVolumes
 	binds = utils.defaultBinds(app.appId)
@@ -233,16 +239,20 @@ application.start = start = (app) ->
 				portList.forEach (port) ->
 					ports[port + '/tcp'] = [ HostPort: port ]
 			restartPolicy = createRestartPolicy({ name: env['RESIN_APP_RESTART_POLICY'], maximumRetryCount: env['RESIN_APP_RESTART_RETRIES'] })
-			shouldMountKmod(app.imageId)
-			.then (shouldMount) ->
-				binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
-				container.startAsync(
-					Privileged: true
-					NetworkMode: 'host'
-					PortBindings: ports
-					Binds: binds
-					RestartPolicy: restartPolicy
-				)
+			Promise.join(
+				shouldMountKmod(app.imageId)
+				hasAmd64Linker()
+				(shouldMount, shouldAlsoMountLinker) ->
+					binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
+					binds.push("#{linkerPath64}:#{linkerPath64}") if shouldMount and shouldAlsoMountLinker
+					container.startAsync(
+						Privileged: true
+						NetworkMode: 'host'
+						PortBindings: ports
+						Binds: binds
+						RestartPolicy: restartPolicy
+					)
+			)
 			.catch (err) ->
 				statusCode = '' + err.statusCode
 				# 304 means the container was already started, precisely what we want :)
