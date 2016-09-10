@@ -58,7 +58,7 @@ logTypes =
 		eventName: 'Application started'
 		humanName: 'Started application'
 	startAppError:
-		eventName: 'Application started'
+		eventName: 'Application start error'
 		humanName: 'Failed to start application'
 
 	updateApp:
