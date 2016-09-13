@@ -166,11 +166,14 @@ fetch = (app) ->
 			throw err
 
 shouldMountKmod = (image) ->
-	docker.imageRootDir(image)
-	.then (rootDir) ->
-		utils.getOSVersion(rootDir + '/etc/os-release')
-	.then (version) ->
-		return version? and (version.match(/^Debian/i) or version.match(/^Raspbian/i))
+	device.getOSVersion()
+	.then (hostOSVersion) ->
+		return false unless hostOSVersion.match(/^Resin OS/)
+		docker.imageRootDir(image)
+		.then (rootDir) ->
+			utils.getOSVersion(rootDir + '/etc/os-release')
+		.then (version) ->
+			return version? and (version.match(/^Debian/i) or version.match(/^Raspbian/i))
 	.catch (err) ->
 		console.error('Error getting app OS release: ', err)
 		return false
@@ -243,8 +246,11 @@ application.start = start = (app) ->
 				shouldMountKmod(app.imageId)
 				hasAmd64Linker()
 				(shouldMount, shouldAlsoMountLinker) ->
-					binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
-					binds.push("#{linkerPath64}:#{linkerPath64}") if shouldMount and shouldAlsoMountLinker
+					if shouldMount
+						binds.push('/bin/kmod:/bin/kmod:ro')
+						binds.push('/lib/libc.so.6:/lib/libc.so.6:ro')
+						binds.push('/lib/libc-2.22.so:/lib/libc-2.22.so:ro')
+						binds.push("#{linkerPath64}:#{linkerPath64}:ro") if shouldAlsoMountLinker
 					container.startAsync(
 						Privileged: true
 						NetworkMode: 'host'

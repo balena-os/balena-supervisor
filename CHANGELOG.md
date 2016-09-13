@@ -1,3 +1,4 @@
+* Only mount kmod in Resin OS, and also mount libc [Pablo]
 * Bind mount linker in amd64 platforms when we mount kmod [Pablo]
 * DRY up calls to gosuper API, and use empty Host header [Pablo]
 
