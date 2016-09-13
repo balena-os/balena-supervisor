@@ -177,10 +177,28 @@ exports.resinLogControl = (val) ->
 	logger.disableLogPublishing(val == 'false')
 	console.log('Logs enabled: ' + val)
 
+emptyHostRequest = request.defaults({ headers: Host: '' })
+gosuperRequest = (method, endpoint, options = {}, callback) ->
+	if _.isFunction(options)
+		callback = options
+		options = {}
+	options.method = method
+	options.url = config.gosuperAddress + endpoint
+	emptyHostRequest(options, callback)
+
+gosuperPost = _.partial(gosuperRequest, 'POST')
+gosuperGet = _.partial(gosuperRequest, 'GET')
+
+exports.gosuper = gosuper =
+	post: gosuperPost
+	get: gosuperGet
+	postAsync: Promise.promisify(gosuperPost)
+	getAsync: Promise.promisify(gosuperGet)
+
 # Callback function to enable/disable VPN
 exports.vpnControl = (val) ->
 	enable = val != 'false'
-	request.postAsync(config.gosuperAddress + '/v1/vpncontrol', { json: true, body: Enable: enable })
+	gosuper.postAsync('/v1/vpncontrol', { json: true, body: Enable: enable })
 	.spread (response, body) ->
 		if response.statusCode == 202
 			console.log('VPN enabled: ' + enable)
