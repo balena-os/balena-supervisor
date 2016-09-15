@@ -61,7 +61,6 @@ RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
 		-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
 		-o -name '*.yml' \
 		-delete \
-	&& find . -type f -path '*/node_modules/lodash*' ! -name lodash.js -delete \
 	&& find . -type f -path '*/node_modules/sqlite3/deps*' -delete \
 	&& find . -type f -path '*/node_modules/knex/build*' -delete
 
