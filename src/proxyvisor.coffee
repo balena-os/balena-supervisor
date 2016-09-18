@@ -180,7 +180,7 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 		localApps = _.indexBy(localDependentApps, 'appId')
 
 		toBeDownloaded = _.filter remoteApps, (app, appId) ->
-			return  app.commit? and !_.any(localApps, imageId: app.imageId)
+			return  app.commit? and app.imageId? and !_.any(localApps, imageId: app.imageId)
 		toBeRemoved = _.filter localApps, (app, appId) ->
 			return app.commit? and !_.any(remoteApps, imageId: app.imageId)
 		Promise.map toBeDownloaded, (app) ->

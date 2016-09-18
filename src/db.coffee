@@ -22,6 +22,15 @@ knex.init = Promise.all([
 				t.string('key').primary()
 				t.string('value')
 
+	knex.schema.hasTable('deviceConfig')
+	.then (exists) ->
+		if not exists
+			knex.schema.createTable 'deviceConfig', (t) ->
+				t.json('values')
+				t.json('targetValues')
+			.then ->
+				knex('deviceConfig').insert({ values: '{}', targetValues: '{}' })
+
 	knex.schema.hasTable('app')
 	.then (exists) ->
 		if not exists
@@ -34,10 +43,12 @@ knex.init = Promise.all([
 				t.string('appId')
 				t.boolean('privileged')
 				t.json('env')
+				t.json('config')
 		else
 			Promise.all [
 				addColumn('app', 'commit', 'string')
 				addColumn('app', 'appId', 'string')
+				addColumn('app', 'config', 'json')
 			]
 
 	knex.schema.hasTable('image')
