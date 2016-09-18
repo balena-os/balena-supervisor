@@ -7,7 +7,6 @@ knex = require './db'
 utils = require './utils'
 bootstrap = require './bootstrap'
 config = require './config'
-request = require 'request'
 _ = require 'lodash'
 
 knex.init.then ->
