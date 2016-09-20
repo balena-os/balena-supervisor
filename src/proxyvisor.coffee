@@ -173,6 +173,7 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 			conf = app.config ? {}
 			return {
 				appId: appId
+				parentAppId: app.parentAppId
 				imageId: app.image
 				commit: app.commit
 				config: JSON.stringify(conf)
@@ -228,16 +229,29 @@ sendUpdate = (device, endpoint) ->
 exports.sendUpdates = ->
 	knex('dependentApp').select()
 	.map (app) ->
-		Promise.props {
-			appId: app.appId
-			endpoint: dockerUtils.getImageEnv(app.imageId).then (imageEnv) ->
-				return imageEnv.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
-					app.config.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
-					"#{config.proxyvisorHookReceiver}/v1/devices/"
-		}
+		knex('app').select() #.where({ parentAppId: app.parentAppId }) # Just get the first app to test while Page adds the parentAppId on the API
+		.then ([ parentApp ]) ->
+			conf = JSON.parse(parentApp.config)
+			Promise.props {
+				appId: app.appId
+				endpoint: dockerUtils.getImageEnv(parentApp.imageId).then (imageEnv) ->
+					return imageEnv.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
+						conf.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
+						"#{config.proxyvisorHookReceiver}/v1/devices/"
+			}
 	.then (endpointsArray) ->
 		endpoints = _.indexBy(endpointsArray, 'appId')
 		knex('dependentDevice').select()
 		.map (device) ->
-			if device.targetCommit != device.commit or not _.isEqual(device.targetEnvironment, device.environment) or not _.isEqual(device.targetConfig, device.config)
+			currentState = {
+				commit: device.commit
+				environment: device.environment
+				config: device.config
+			}
+			targetState = {
+				commit: device.targetCommit
+				environment: device.targetEnvironment
+				config: device.targetConfig
+			}
+			if device.targetCommit? and !_.isEqual(targetState, currentState)
 				sendUpdate(device, endpoints[device.appId].endpoint)

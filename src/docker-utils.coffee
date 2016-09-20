@@ -372,5 +372,9 @@ do ->
 			res.status(500).send(err?.message or err or 'Unknown error')
 
 	exports.getImageEnv = (id) ->
-		docker.getImage(id).inspectAsync()
-		.get('Config').get('Env')
+		Promise.try ->
+			docker.getImage(id).inspectAsync()
+			.get('Config').get('Env')
+		.catch (err) ->
+			console.log('Error getting env from image', err, err.stack)
+			return {}
