@@ -374,3 +374,6 @@ do ->
 	exports.getImageEnv = (id) ->
 		docker.getImage(id).inspectAsync()
 		.get('Config').get('Env')
+		.catch (err) ->
+			console.log('Error getting env from image', err, err.stack)
+			return {}

@@ -138,7 +138,7 @@ setBootConfig = (env, oldEnv, logMessage) ->
 			# Here's the dangerous part:
 			execAsync("mount -t vfat -o remount,rw #{bootBlockDevice} #{bootMountPoint}")
 			.then ->
-				fs.writeFileAsync(bootConfigPath + '.new', _.without(outputConfig, null).join('\n'))
+				fs.writeFileAsync(bootConfigPath + '.new', _.reject(outputConfig, _.isNil).join('\n'))
 			.then ->
 				fs.renameAsync(bootConfigPath + '.new', bootConfigPath)
 			.then ->
@@ -227,3 +227,16 @@ do ->
 
 exports.getOSVersion = ->
 	return utils.getOSVersion(config.hostOsVersionPath)
+
+exports.getConfig = ->
+	knex('deviceConfig').select()
+	.then ([ deviceConfig ]) ->
+		return {
+			values: JSON.parse(deviceConfig.values)
+			targetValues: JSON.parse(deviceConfig.targetValues)
+		}
+exports.setConfig = (conf) ->
+	confToUpdate = {}
+	confToUpdate.values = JSON.stringify(conf.values) if conf.values?
+	confToUpdate.targetValues = JSON.stringify(conf.targetValues) if conf.targetValues?
+	knex('deviceConfig').update(confToUpdate)

@@ -214,19 +214,6 @@ exports.getKnexApp = (appId, columns) ->
 			throw new AppNotFoundError('App not found')
 		return app
 
-exports.getDeviceConfig = ->
-	knex('deviceConfig').select()
-	.then ([ deviceConfig ]) ->
-		return {
-			values: JSON.parse(deviceConfig.values)
-			targetValues: JSON.parse(deviceConfig.targetValues)
-		}
-exports.setDeviceConfig = (conf) ->
-	confToUpdate = {}
-	confToUpdate.values = JSON.stringify(conf.values) if conf.values?
-	confToUpdate.targetValues = JSON.stringify(conf.targetValues) if conf.targetValues?
-	knex('deviceConfig').update(confToUpdate)
-
 exports.getOSVersion = (path) ->
 	fs.readFileAsync(path)
 	.then (releaseData) ->
