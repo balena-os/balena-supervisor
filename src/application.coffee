@@ -363,7 +363,7 @@ executeSpecialActionsAndHostConfig = (conf, oldConf) ->
 		_.map specialActionConfigVars, (specialActionCallback, key) ->
 			if conf[key]? && specialActionCallback?
 				# This makes the Special Action Envs only trigger their functions once.
-				if !_.has(executedSpecialActionConfigVars, key) or executedSpecialActionConfigVars[key] != conf[key]
+				if executedSpecialActionConfigVars[key] != conf[key]
 					logSpecialAction(key, conf[key])
 					specialActionCallback(conf[key])
 					executedSpecialActionConfigVars[key] = conf[key]
@@ -372,8 +372,17 @@ executeSpecialActionsAndHostConfig = (conf, oldConf) ->
 			return _.startsWith(key, device.hostConfigConfigVarPrefix)
 		oldHostConfigVars = _.pick oldConf, (val, key) ->
 			return _.startsWith(key, device.hostConfigConfigVarPrefix)
-		if !_.isEmpty(hostConfigVars) && !_.isEqual(hostConfigVars, oldHostConfigVars)
+		if !_.isEqual(hostConfigVars, oldHostConfigVars)
 			device.setHostConfig(hostConfigVars, oldHostConfigVars, logSystemMessage)
+
+getAndApplyDeviceConfig = ->
+	device.getConfig()
+	.then ({ values, targetValues }) ->
+		executeSpecialActionsAndHostConfig(targetValues, values)
+		.tap ->
+			utils.setDeviceConfig({ values: targetValues })
+		.then (needsReboot) ->
+			device.reboot() if needsReboot
 
 wrapAsError = (err) ->
 	return err if _.isError(err)
@@ -538,13 +547,7 @@ application.update = update = (force) ->
 				.then ->
 					utils.setDeviceConfig({ targetValues: remoteDeviceConfig })
 					.then ->
-						utils.getDeviceConfig()
-					.then ({ values, targetValues }) ->
-						executeSpecialActionsAndHostConfig(targetValues, values)
-						.tap ->
-							utils.setDeviceConfig({ values: targetValues })
-						.then (needsReboot) ->
-							device.reboot() if needsReboot
+						getAndApplyDeviceConfig()
 				.catch (err) ->
 					logSystemMessage("Error applying device configuration: #{err}", { error: err }, 'Set device configuration error')
 				.return(allAppIds)
@@ -647,13 +650,7 @@ listenToEvents = do ->
 
 application.initialize = ->
 	listenToEvents()
-	utils.getDeviceConfig()
-	.then ({ values, targetValues }) ->
-		executeSpecialActionsAndHostConfig(targetValues, values)
-		.tap ->
-			utils.setDeviceConfig({ values: targetValues })
-		.then (needsReboot) ->
-			device.reboot() if needsReboot
+	getAndApplyDeviceConfig()
 	.then ->
 		knex('app').select()
 	.map (app) ->

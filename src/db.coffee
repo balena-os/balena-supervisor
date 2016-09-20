@@ -70,6 +70,7 @@ knex.init = Promise.all([
 			knex.schema.createTable 'dependentApp', (t) ->
 				t.increments('id').primary()
 				t.string('appId')
+				t.string('parentAppId')
 				t.string('name')
 				t.string('commit')
 				t.string('imageId')

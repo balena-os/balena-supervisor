@@ -104,6 +104,12 @@ router.put '/v1/devices/:uuid', (req, res) ->
 	uuid = req.params.uuid
 	status = req.body.status
 	is_online = req.body.is_online
+	if is_online? and !_.isBoolean(is_online)
+		res.status(400).send('is_online must be a boolean')
+		return
+	if status? and _.isEmpty(status)
+		res.status(400).send('status cannot be empty')
+		return
 	Promise.join(
 		utils.getConfig('apiKey')
 		knex('dependentDevice').select().where({ uuid })
@@ -120,8 +126,8 @@ router.put '/v1/devices/:uuid', (req, res) ->
 				device.status = status
 				device.is_online = is_online
 				knex('dependentDevice').update(device).where({ uuid })
-				.then ->
-					res.json(device)
+			.then ->
+				res.json(device)
 	)
 	.catch (err) ->
 		console.error('Error on PUT /v1/devices:', err, err.stack)
@@ -131,7 +137,7 @@ tarPath = (app) ->
 	return '/tmp/' + app.commit + '.tar'
 
 router.get '/v1/assets/:appId/:commit', (req, res) ->
-	knex('dependentApp').select().where({ appId: req.params.appId, commit: req.params.commit })
+	knex('dependentApp').select().where(_.pick(req.params, 'appId', 'commit'))
 	.then ([ app ]) ->
 		return res.status(404).send('Not found') if !app
 		dest = tarPath(app)
@@ -173,6 +179,7 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
 			conf = app.config ? {}
 			return {
 				appId: appId
+				parentAppId: app.parentApp
 				imageId: app.image
 				commit: app.commit
 				config: JSON.stringify(conf)
@@ -223,21 +230,33 @@ sendUpdate = (device, endpoint) ->
 	.spread (response, body) ->
 		if response.statusCode != 200
 			return console.log("Error updating device #{device.uuid}: #{response.statusCode} #{body}")
-		knex('dependentDevice').update({ environment: device.targetEnvironment, commit: device.targetCommit, config: device.targetConfig }).where({ uuid: device.uuid })
+		updatedFields = { environment: device.targetEnvironment, commit: device.targetCommit, config: device.targetConfig }
+		knex('dependentDevice').update(updatedFields).where({ uuid: device.uuid })
+
+getHookEndpoint = (appId) ->
+	knex('dependentApp').select('parentAppId').where({ appId })
+	.then ([ { parentAppId } ]) ->
+		knex('app').select().where({ appId: parentAppId })
+	.then ([ parentApp ]) ->
+		conf = JSON.parse(parentApp.config)
+		dockerUtils.getImageEnv(parentApp.imageId)
+		.then (imageEnv) ->
+			return imageEnv.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
+				conf.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
+				"#{config.proxyvisorHookReceiver}/v1/devices/"
 
 exports.sendUpdates = ->
-	knex('dependentApp').select()
-	.map (app) ->
-		Promise.props {
-			appId: app.appId
-			endpoint: dockerUtils.getImageEnv(app.imageId).then (imageEnv) ->
-				return imageEnv.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
-					app.config.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
-					"#{config.proxyvisorHookReceiver}/v1/devices/"
+	endpoints = {}
+	knex('dependentDevice').select()
+	.map (device) ->
+		currentState = _.pick(device, 'commit', 'environment', 'config')
+		targetState = {
+			commit: device.targetCommit
+			environment: device.targetEnvironment
+			config: device.targetConfig
 		}
-	.then (endpointsArray) ->
-		endpoints = _.indexBy(endpointsArray, 'appId')
-		knex('dependentDevice').select()
-		.map (device) ->
-			if device.targetCommit != device.commit or not _.isEqual(device.targetEnvironment, device.environment) or not _.isEqual(device.targetConfig, device.config)
-				sendUpdate(device, endpoints[device.appId].endpoint)
+		if device.targetCommit? and !_.isEqual(targetState, currentState)
+			endpoints[device.appId] ?= getHookEndpoint(device.appId)
+			endpoints[device.appId]
+			.then (endpoint) ->
+				sendUpdate(device, endpoint)
