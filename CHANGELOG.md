@@ -1,3 +1,4 @@
+* Implement delete-then-download update strategy [Pablo]
 * Compress go binary with upx [petrosagg]
 * Switch to go version 1.6 [petrosagg]
 * Print all logs to stdout of container instead of file [petrosagg]
