@@ -17,6 +17,8 @@ fs = Promise.promisifyAll(require('fs'))
 JSONStream = require 'JSONStream'
 
 class UpdatesLockedError extends TypedError
+ImageNotFoundError = (err) ->
+	return "#{err.statusCode}" is '404'
 
 { docker } = dockerUtils
 
@@ -50,6 +52,19 @@ logTypes =
 	installAppError:
 		eventName: 'Application install error'
 		humanName: 'Failed to install application'
+
+	deleteImageForApp:
+		eventName: 'Application image removal'
+		humanName: 'Deleting image for application'
+	deleteImageForAppSuccess:
+		eventName: 'Application image removed'
+		humanName: 'Deleted image for application'
+	deleteImageForAppError:
+		eventName: 'Application image removal error'
+		humanName: 'Failed to delete image for application'
+	imageAlreadyDeleted:
+		eventName: 'Image already deleted'
+		humanName: 'Image already deleted for application'
 
 	startApp:
 		eventName: 'Application start'
@@ -134,6 +149,17 @@ application.kill = kill = (app, updateDB = true, removeContainer = true) ->
 			knex('app').update(app).where(appId: app.appId)
 	.catch (err) ->
 		logSystemEvent(logTypes.stopAppError, app, err)
+		throw err
+
+application.deleteImage = deleteImage = (app) ->
+	logSystemEvent(logTypes.deleteImageForApp, app)
+	docker.getImage(app.imageId).removeAsync(force: true)
+	.then ->
+		logSystemEvent(logTypes.deleteImageForAppSuccess, app)
+	.catch ImageNotFoundError, (err) ->
+		logSystemEvent(logTypes.imageAlreadyDeleted, app)
+	.catch (err) ->
+		logSystemEvent(logTypes.deleteImageForAppError, app, err)
 		throw err
 
 isValidPort = (port) ->
@@ -445,6 +471,19 @@ updateStrategies =
 			logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
 			utils.getKnexApp(localApp.appId)
 			.then(kill)
+			.then ->
+				fetch(app) if needsDownload
+			.then ->
+				start(app)
+		.catch (err) ->
+			logSystemEvent(logTypes.updateAppError, app, err) unless err instanceof UpdatesLockedError
+			throw err
+	'delete-then-download': ({ localApp, app, needsDownload, force }) ->
+		Promise.using lockUpdates(localApp, force), ->
+			logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
+			utils.getKnexApp(localApp.appId)
+			.tap(kill)
+			.then(deleteImage)
 			.then ->
 				fetch(app) if needsDownload
 			.then ->

@@ -1,3 +1,4 @@
+* Implement delete-then-download update strategy [Pablo]
 * Bump node-docker-delta to 0.0.12 [Pablo, Kostas]
 
 # v2.2.1
