@@ -1,3 +1,5 @@
+* Fix ENV bug in build process [petrosagg]
+
 # v2.2.0
 
 * Add resin-vpn interface IP filtering to gosupervisor [Praneeth]
