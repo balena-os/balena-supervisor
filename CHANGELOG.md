@@ -1,3 +1,5 @@
+# v2.2.0
+
 * Add resin-vpn interface IP filtering to gosupervisor [Praneeth]
 * Compress go binary with upx [petrosagg]
 * Switch to go version 1.6 [petrosagg]
