@@ -16,7 +16,7 @@ import (
 
 // Compile the expression once, usually at init time.
 // Use raw strings to avoid having to quote the backslashes.
-var dockerMatch = regexp.MustCompile(`(docker[0-9]+)|(rce[0-9]+)|(tun[0-9]+)`)
+var dockerMatch = regexp.MustCompile(`(docker[0-9]+)|(rce[0-9]+)|(tun[0-9]+)|(resin-vpn)`)
 
 // APIResponse The api response sent from go supervisor
 type APIResponse struct {

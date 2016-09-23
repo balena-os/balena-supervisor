@@ -1,3 +1,4 @@
+* Add resin-vpn interface IP filtering to gosupervisor [Praneeth]
 * Compress go binary with upx [petrosagg]
 * Switch to go version 1.6 [petrosagg]
 * Print all logs to stdout of container instead of file [petrosagg]
