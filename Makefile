@@ -133,20 +133,20 @@ refresh-supervisor-src:
 
 supervisor: nodesuper gosuper
 	sed 's/%%ARCH%%/$(ARCH)/g' Dockerfile.runtime.template > Dockerfile.runtime.$(ARCH)
-	echo "ENV VERSION $(shell jq -r .version package.json) \\" >> Dockerfile.runtime.$(ARCH)
-	echo "    DEFAULT_PUBNUB_PUBLISH_KEY $(PUBNUB_PUBLISH_KEY) \\" >> Dockerfile.runtime.$(ARCH)
-	echo "    DEFAULT_PUBNUB_SUBSCRIBE_KEY $(PUBNUB_SUBSCRIBE_KEY) \\" >> Dockerfile.runtime.$(ARCH)
-	echo "    DEFAULT_MIXPANEL_TOKEN $(MIXPANEL_TOKEN)" >> Dockerfile.runtime.$(ARCH)
+	echo "ENV VERSION=$(shell jq -r .version package.json) \\" >> Dockerfile.runtime.$(ARCH)
+	echo "    DEFAULT_PUBNUB_PUBLISH_KEY=$(PUBNUB_PUBLISH_KEY) \\" >> Dockerfile.runtime.$(ARCH)
+	echo "    DEFAULT_PUBNUB_SUBSCRIBE_KEY=$(PUBNUB_SUBSCRIBE_KEY) \\" >> Dockerfile.runtime.$(ARCH)
+	echo "    DEFAULT_MIXPANEL_TOKEN=$(MIXPANEL_TOKEN)" >> Dockerfile.runtime.$(ARCH)
 ifdef rt_https_proxy
-	echo "ENV HTTPS_PROXY $(rt_https_proxy) \\" >> Dockerfile.runtime.$(ARCH)
-	echo "    https_proxy $(rt_https_proxy)" >> Dockerfile.runtime.$(ARCH)
+	echo "ENV HTTPS_PROXY=$(rt_https_proxy) \\" >> Dockerfile.runtime.$(ARCH)
+	echo "    https_proxy=$(rt_https_proxy)" >> Dockerfile.runtime.$(ARCH)
 endif
 ifdef rt_http_proxy
-	echo "ENV HTTP_PROXY $(rt_http_proxy) \\" >> Dockerfile.runtime.$(ARCH)
-	echo "    http_proxy $(rt_http_proxy)" >> Dockerfile.runtime.$(ARCH)
+	echo "ENV HTTP_PROXY=$(rt_http_proxy) \\" >> Dockerfile.runtime.$(ARCH)
+	echo "    http_proxy=$(rt_http_proxy)" >> Dockerfile.runtime.$(ARCH)
 endif
 ifdef rt_no_proxy
-	echo "ENV no_proxy $(rt_no_proxy)" >> Dockerfile.runtime.$(ARCH)
+	echo "ENV no_proxy=$(rt_no_proxy)" >> Dockerfile.runtime.$(ARCH)
 endif
 	docker build \
 		$(DOCKER_HTTP_PROXY) \

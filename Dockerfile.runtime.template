@@ -10,9 +10,9 @@ COPY ./build/%%ARCH%%/rootfs-overlay/ /
 
 VOLUME /data
 
-ENV CONFIG_MOUNT_POINT /boot/config.json \
-	LED_FILE /dev/null \
-	SUPERVISOR_IMAGE resin/%%ARCH%%-supervisor
+ENV CONFIG_MOUNT_POINT=/boot/config.json \
+	LED_FILE=/dev/null \
+	SUPERVISOR_IMAGE=resin/%%ARCH%%-supervisor
 
 CMD [ "/sbin/init" ]
 
