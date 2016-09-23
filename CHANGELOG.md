@@ -1,3 +1,4 @@
+* Bump node-docker-delta to 0.0.12 [Pablo, Kostas]
 * Fix ENV bug in build process [petrosagg]
 
 # v2.2.0
