@@ -104,6 +104,12 @@ router.put '/v1/devices/:uuid', (req, res) ->
 	uuid = req.params.uuid
 	status = req.body.status
 	is_online = req.body.is_online
+	if !is_online? and !status?
+		res.status(400).send('status or is_online must be set')
+		return
+	if _.isNull(status) or _.isNull(is_online)
+		res.status(400).send('Neither status nor is_online can be null')
+		return
 	if is_online? and !_.isBoolean(is_online)
 		res.status(400).send('is_online must be a boolean')
 		return
@@ -168,7 +174,7 @@ router.get '/v1/dependent-apps', (req, res) ->
 getTarArchive = (path, destination) ->
 	fs.lstatAsync(path)
 	.then ->
-		execAsync("cd #{path} && tar -cvf #{destination} *")
+		execAsync("tar -cvf '#{destination}' *", cwd: path)
 
 # TODO: deduplicate code from compareForUpdate in application.coffee
 exports.fetchAndSetTargetsForDependentApps = (state, fetchFn) ->
