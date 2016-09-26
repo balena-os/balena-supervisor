@@ -60,11 +60,11 @@ function runDind {
 		case $arg in
 			--mount-src)
 				coffee -c "$SUPERVISOR_BASE_DIR/src"
-				SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS -v /resin-supervisor/src:/app/src"
+				SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS -v /resin-supervisor/src:/usr/src/app/src"
 				shift
 				;;
 			--mount-nm)
-				SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS -v /resin-supervisor/node_modules:/app/node_modules"
+				SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS -v /resin-supervisor/node_modules:/usr/src/app/node_modules"
 				shift
 				;;
 			*)
