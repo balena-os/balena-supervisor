@@ -380,7 +380,7 @@ getAndApplyDeviceConfig = ->
 	.then ({ values, targetValues }) ->
 		executeSpecialActionsAndHostConfig(targetValues, values)
 		.tap ->
-			utils.setDeviceConfig({ values: targetValues })
+			device.setConfig({ values: targetValues })
 		.then (needsReboot) ->
 			device.reboot() if needsReboot
 
@@ -545,7 +545,7 @@ application.update = update = (force) ->
 				Promise.map allAppIds, (appId) ->
 					_.merge(remoteDeviceConfig, JSON.parse(remoteApps[appId].config))
 				.then ->
-					utils.setDeviceConfig({ targetValues: remoteDeviceConfig })
+					device.setConfig({ targetValues: remoteDeviceConfig })
 					.then ->
 						getAndApplyDeviceConfig()
 				.catch (err) ->
