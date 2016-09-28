@@ -223,7 +223,8 @@ func VPNControl(writer http.ResponseWriter, request *http.Request) {
 //LogToDisplayControl is used to control tty-replacement service status with dbus
 func LogToDisplayControl(writer http.ResponseWriter, request *http.Request) {
 	sendResponse, sendError := responseSenders(writer)
-	serviceName := "tty-replacement.service"
+	serviceName := "resin-info@tty1.service"
+	serviceNameOld := "tty-replacement.service"
 	var body LogToDisplayBody
 	if err := parseJSONBody(&body, request); err != nil {
 		log.Println(err)
@@ -234,6 +235,15 @@ func LogToDisplayControl(writer http.ResponseWriter, request *http.Request) {
 	if systemd.Dbus == nil {
 		sendError(fmt.Errorf("Systemd dbus unavailable, cannot set log to display state."))
 		return
+	}
+
+	if loaded, err := systemd.Dbus.GetUnitProperty(serviceName, "LoadState"); err != nil {
+		sendError(fmt.Errorf("Unable to get log to display load status: %v", err))
+		return
+	} else if loaded.Value.String() == `"not-found"` {
+		// If the resin-info service is not found, we're on an older OS
+		// which uses a different service name
+		serviceName = serviceNameOld
 	}
 
 	if activeState, err := systemd.Dbus.GetUnitProperty(serviceName, "ActiveState"); err != nil {
