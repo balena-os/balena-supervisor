@@ -1,3 +1,5 @@
+* Add system logs for Shutdown, Reboot and Purge [Pablo]
+
 # v2.3.0
 
 * Implement delete-then-download update strategy [Pablo]

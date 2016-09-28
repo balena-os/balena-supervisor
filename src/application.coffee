@@ -91,7 +91,9 @@ logTypes =
 		eventName: 'Application restart'
 		humanName: 'Restarting application'
 
-logSystemMessage = (message, obj, eventName) ->
+application = {}
+
+application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
 	logger.log({ m: message, s: 1 })
 	utils.mixpanelTrack(eventName ? message, obj)
 
@@ -116,8 +118,6 @@ logSpecialAction = (action, value, success) ->
 	else
 		msg = "Applying config variable #{action} = #{value}"
 	logSystemMessage(msg, {}, "Apply special action #{if success then "success" else "in progress"}")
-
-application = {}
 
 application.kill = kill = (app, updateDB = true, removeContainer = true) ->
 	logSystemEvent(logTypes.stopApp, app)
