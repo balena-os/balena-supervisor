@@ -145,7 +145,7 @@ do ->
 							return true
 						return containerHasExited(containerInfo.Id)
 				.map (containerInfo) ->
-					docker.getContainer(containerInfo.Id).removeAsync()
+					docker.getContainer(containerInfo.Id).removeAsync(v: true, force: true)
 					.then ->
 						console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
 					.catch(_.noop)
@@ -155,7 +155,7 @@ do ->
 							return _.contains(appTags, tag) or _.contains(supervisorTags, tag) or _.contains(locallyCreatedTags, tag)
 					Promise.map imagesToClean, (image) ->
 						Promise.map image.RepoTags.concat(image.Id), (tag) ->
-							docker.getImage(tag).removeAsync()
+							docker.getImage(tag).removeAsync(force: true)
 							.then ->
 								console.log('Deleted image:', tag, image.Id, image.RepoTags)
 							.catch(_.noop)
