@@ -11,12 +11,6 @@ SUPERVISOR_IMAGE=${SUPERVISOR_IMAGE:-"registry.resindev.io/resin/${ARCH}-supervi
 PASSWORDLESS_DROPBEAR=${PASSWORDLESS_DROPBEAR:-"false"}
 SUPERVISOR_EXTRA_MOUNTS=
 
-SUPERVISOR_LOGS=(
-	'/var/log/supervisor-log/go_supervisor_stdout.log'
-	'/var/log/supervisor-log/resin_supervisor_stdout.log'
-	'/var/log/supervisor-log/supervisor/supervisord.log'
-)
-
 function showHelp {
 	echo
 	echo "	This script can be used to facilitate supervisor development. Its core feature is allowing"
@@ -82,14 +76,7 @@ function runDind {
 }
 
 function logs {
-	if [ "$1" = "-f" ]; then
-		docker exec -ti resin_supervisor_1 tail -f ${SUPERVISOR_LOGS[@]}
-	else
-		for log in "${SUPERVISOR_LOGS[@]}"; do
-			echo "	== ${log} =="
-			docker exec -ti resin_supervisor_1 cat "$log"
-		done
-	fi
+	docker exec -ti resin_supervisor_1 journalctl $@
 }
 
 action="$1"
