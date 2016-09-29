@@ -49,7 +49,7 @@ module.exports = (application) ->
 
 	unparsedRouter.post '/v1/reboot', (req, res) ->
 		new Promise (resolve, reject) ->
-			utils.mixpanelTrack('Reboot')
+			application.logSystemMessage('Rebooting', {}, 'Reboot')
 			utils.gosuper.post('/v1/reboot')
 			.on('error', reject)
 			.on('response', -> resolve())
@@ -59,7 +59,7 @@ module.exports = (application) ->
 
 	unparsedRouter.post '/v1/shutdown', (req, res) ->
 		new Promise (resolve, reject) ->
-			utils.mixpanelTrack('Shutdown')
+			application.logSystemMessage('Shutting down', {}, 'Shutdown')
 			utils.gosuper.post('/v1/shutdown')
 			.on('error', reject)
 			.on('response', -> resolve())
@@ -69,7 +69,7 @@ module.exports = (application) ->
 
 	parsedRouter.post '/v1/purge', (req, res) ->
 		appId = req.body.appId
-		utils.mixpanelTrack('Purge /data', appId)
+		application.logSystemMessage('Purging /data', { appId }, 'Purge /data')
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, true), ->
@@ -82,8 +82,13 @@ module.exports = (application) ->
 						.on('error', reject)
 						.on('response', -> resolve())
 						.pipe(res)
+					.then ->
+						application.logSystemMessage('Purged /data', { appId }, 'Purge /data success')
 					.finally ->
 						application.start(app)
+		.catch (err) ->
+			application.logSystemMessage("Error purging /data: #{err}", { appId, error: err }, 'Purge /data error')
+			throw err
 		.catch utils.AppNotFoundError, (e) ->
 			return res.status(400).send(e.message)
 		.catch (err) ->
