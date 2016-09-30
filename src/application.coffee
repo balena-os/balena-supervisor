@@ -178,7 +178,9 @@ fetch = (app) ->
 		Promise.try ->
 			JSON.parse(app.env)
 		.then (env) ->
-			if env['RESIN_SUPERVISOR_DELTA'] == '1'
+			if env['SUPERVISOR_TORRENT_DELTA'] == '1' # Temporarily use a non-RESIN_ var for testing
+				dockerUtils.torrentImageWithProgress(app.imageId, onProgress)
+			else if env['RESIN_SUPERVISOR_DELTA'] == '1'
 				dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
 			else
 				dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
