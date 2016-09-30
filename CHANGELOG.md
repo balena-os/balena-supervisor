@@ -1,3 +1,5 @@
+# v2.4.0
+
 * On cleanup, force removal for images and containers, and remove container volumes [Pablo]
 * Add system logs for Shutdown, Reboot and Purge [Pablo]
 
