@@ -1,3 +1,5 @@
+# v2.5.0
+
 * Switch to v2 api to be able to set is_online [Page]
 * Implement proxyvisor API with dependent device handling [Pablo]
 * Use the state endpoint from the API to get the full device state [Pablo]

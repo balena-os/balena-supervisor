@@ -1,6 +1,6 @@
 {
   "name": "resin-supervisor",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "scripts": {
     "start": "./entry.sh",
     "build": "coffee -c src",
