@@ -8,7 +8,7 @@ requestOpts =
 	gzip: true
 	timeout: 30000
 
-PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/ewa/')
+PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/v2/')
 exports.resinApi = resinApi = new PlatformAPI
 	apiPrefix: PLATFORM_ENDPOINT
 	passthrough: requestOpts

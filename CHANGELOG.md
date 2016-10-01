@@ -1,3 +1,10 @@
+* Switch to v2 api to be able to set is_online [Page]
+* Implement proxyvisor API with dependent device handling [Pablo]
+* Use the state endpoint from the API to get the full device state [Pablo]
+* Add a deviceConfig db table to store host config separately, and allow deleting config.txt entries [Pablo]
+* Expose RESIN_APP_NAME, RESIN_APP_RELEASE, RESIN_DEVICE_NAME_AT_INIT, RESIN_DEVICE_TYPE and RESIN_HOST_OS_VERSION env vars [Pablo]
+* Add missing error handler on a stream in docker-utils [Pablo]
+
 # v2.4.0
 
 * On cleanup, force removal for images and containers, and remove container volumes [Pablo]

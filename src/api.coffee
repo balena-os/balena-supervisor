@@ -3,12 +3,12 @@ utils = require './utils'
 express = require 'express'
 bodyParser = require 'body-parser'
 bufferEq = require 'buffer-equal-constant-time'
-request = require 'request'
 config = require './config'
 device = require './device'
 dockerUtils = require './docker-utils'
 _ = require 'lodash'
 compose = require './compose'
+proxyvisor = require './proxyvisor'
 
 module.exports = (application) ->
 	api = express()
@@ -235,5 +235,6 @@ module.exports = (application) ->
 
 	api.use(unparsedRouter)
 	api.use(parsedRouter)
+	api.use(proxyvisor.router)
 
 	return api

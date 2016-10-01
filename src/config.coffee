@@ -50,3 +50,4 @@ module.exports =
 	]
 	dataPath: checkString(process.env.RESIN_DATA_PATH) ? '/resin-data'
 	bootMountPoint: checkString(process.env.BOOT_MOUNTPOINT) ? '/boot'
+	proxyvisorHookReceiver: checkString(process.env.RESIN_PROXYVISOR_HOOK_RECEIVER) ? 'http://0.0.0.0:1337'

@@ -12,6 +12,7 @@ request = Promise.promisifyAll require 'request'
 logger = require './lib/logger'
 TypedError = require 'typed-error'
 execAsync = Promise.promisify(require('child_process').exec)
+device = require './device'
 
 # Parses package.json and returns resin-supervisor's version
 version = require('../package.json').version
@@ -149,11 +150,21 @@ exports.getConfig = getConfig = (key) ->
 	.then ([ conf ]) ->
 		return conf?.value
 
-exports.extendEnvVars = (env, uuid, appId) ->
+exports.setConfig = (key, value) ->
+	knex('config').update({ value }).where({ key })
+	.then (n) ->
+		knex('config').insert({ key, value }) if n == 0
+
+exports.extendEnvVars = (env, uuid, appId, appName, commit) ->
 	host = '127.0.0.1'
 	newEnv =
 		RESIN_APP_ID: appId.toString()
+		RESIN_APP_NAME: appName
+		RESIN_APP_RELEASE: commit
 		RESIN_DEVICE_UUID: uuid
+		RESIN_DEVICE_NAME_AT_INIT: getConfig('name')
+		RESIN_DEVICE_TYPE: device.getDeviceType()
+		RESIN_HOST_OS_VERSION: device.getOSVersion()
 		RESIN_SUPERVISOR_ADDRESS: "http://#{host}:#{config.listenPort}"
 		RESIN_SUPERVISOR_HOST: host
 		RESIN_SUPERVISOR_PORT: config.listenPort

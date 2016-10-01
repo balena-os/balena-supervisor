@@ -2,7 +2,6 @@ _ = require 'lodash'
 url = require 'url'
 Lock = require 'rwlock'
 knex = require './db'
-path = require 'path'
 config = require './config'
 dockerUtils = require './docker-utils'
 Promise = require 'bluebird'
@@ -15,6 +14,7 @@ bootstrap = require './bootstrap'
 TypedError = require 'typed-error'
 fs = Promise.promisifyAll(require('fs'))
 JSONStream = require 'JSONStream'
+proxyvisor = require './proxyvisor'
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -166,7 +166,7 @@ isValidPort = (port) ->
 	maybePort = parseInt(port, 10)
 	return parseFloat(port) is maybePort and maybePort > 0 and maybePort < 65535
 
-fetch = (app) ->
+fetch = (app, setDeviceUpdateState = true) ->
 	onProgress = (progress) ->
 		device.updateState(download_progress: progress.percentage)
 
@@ -176,16 +176,16 @@ fetch = (app) ->
 		device.updateState(status: 'Downloading', download_progress: 0)
 
 		Promise.try ->
-			JSON.parse(app.env)
-		.then (env) ->
-			if env['RESIN_SUPERVISOR_DELTA'] == '1'
+			conf = JSON.parse(app.config)
+
+			if conf['RESIN_SUPERVISOR_DELTA'] == '1'
 				dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
 			else
 				dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			device.updateState(status: 'Idle', download_progress: null)
-			device.setUpdateState(update_downloaded: true)
+			device.setUpdateState(update_downloaded: true) if setDeviceUpdateState
 			docker.getImage(app.imageId).inspectAsync()
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
@@ -206,8 +206,8 @@ application.start = start = (app) ->
 	binds = utils.defaultBinds(app.appId)
 	Promise.try ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
-		JSON.parse(app.env)
-	.then (env) ->
+		return [ JSON.parse(app.env), JSON.parse(app.config) ]
+	.spread (env, conf) ->
 		if env.PORT?
 			portList = env.PORT
 			.split(',')
@@ -258,7 +258,7 @@ application.start = start = (app) ->
 			if portList?
 				portList.forEach (port) ->
 					ports[port + '/tcp'] = [ HostPort: port ]
-			restartPolicy = createRestartPolicy({ name: env['RESIN_APP_RESTART_POLICY'], maximumRetryCount: env['RESIN_APP_RESTART_RETRIES'] })
+			restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
 			shouldMountKmod(app.imageId)
 			.then (shouldMount) ->
 				binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
@@ -322,21 +322,6 @@ createRestartPolicy = ({ name, maximumRetryCount }) ->
 		policy.MaximumRetryCount = maximumRetryCount
 	return policy
 
-getEnvironment = do ->
-	envApiEndpoint = url.resolve(config.apiEndpoint, '/environment')
-
-	return (appId, deviceId, apiKey) ->
-
-		requestParams = _.extend
-			method: 'GET'
-			url: "#{envApiEndpoint}?deviceId=#{deviceId}&appId=#{appId}&apikey=#{apiKey}"
-		, cachedResinApi.passthrough
-
-		cachedResinApi._request(requestParams)
-		.catch (err) ->
-			console.error("Failed to get environment for device #{deviceId}, app #{appId}. #{err}")
-			throw err
-
 lockPath = (app) ->
 	appId = app.appId ? app
 	return "/mnt/root#{config.dataPath}/#{appId}/resin-updates.lock"
@@ -391,33 +376,39 @@ apiPollInterval = (val) ->
 	clearInterval(updateStatus.intervalHandle)
 	application.poll()
 
-specialActionEnvVars =
-	'RESIN_OVERRIDE_LOCK': null # This one is in use, so we keep backwards comp.
-	'RESIN_SUPERVISOR_DELTA': null
-	'RESIN_SUPERVISOR_UPDATE_STRATEGY': null
-	'RESIN_SUPERVISOR_HANDOVER_TIMEOUT': null
-	'RESIN_SUPERVISOR_OVERRIDE_LOCK': null
+specialActionConfigVars =
 	'RESIN_SUPERVISOR_VPN_CONTROL': utils.vpnControl
 	'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': utils.enableConnectivityCheck
 	'RESIN_SUPERVISOR_POLL_INTERVAL': apiPollInterval
 	'RESIN_SUPERVISOR_LOG_CONTROL': utils.resinLogControl
 
-executedSpecialActionEnvVars = {}
+executedSpecialActionConfigVars = {}
 
-executeSpecialActionsAndHostConfig = (env) ->
+executeSpecialActionsAndHostConfig = (conf, oldConf) ->
 	Promise.try ->
-		_.map specialActionEnvVars, (specialActionCallback, key) ->
-			if env[key]? && specialActionCallback?
+		_.map specialActionConfigVars, (specialActionCallback, key) ->
+			if conf[key]? && specialActionCallback?
 				# This makes the Special Action Envs only trigger their functions once.
-				if !_.has(executedSpecialActionEnvVars, key) or executedSpecialActionEnvVars[key] != env[key]
-					logSpecialAction(key, env[key])
-					specialActionCallback(env[key])
-					executedSpecialActionEnvVars[key] = env[key]
-					logSpecialAction(key, env[key], true)
-		hostConfigVars = _.pick env, (val, key) ->
-			return _.startsWith(key, device.hostConfigEnvVarPrefix)
-		if !_.isEmpty(hostConfigVars)
-			device.setHostConfig(hostConfigVars, logSystemMessage)
+				if executedSpecialActionConfigVars[key] != conf[key]
+					logSpecialAction(key, conf[key])
+					specialActionCallback(conf[key])
+					executedSpecialActionConfigVars[key] = conf[key]
+					logSpecialAction(key, conf[key], true)
+		hostConfigVars = _.pick conf, (val, key) ->
+			return _.startsWith(key, device.hostConfigConfigVarPrefix)
+		oldHostConfigVars = _.pick oldConf, (val, key) ->
+			return _.startsWith(key, device.hostConfigConfigVarPrefix)
+		if !_.isEqual(hostConfigVars, oldHostConfigVars)
+			device.setHostConfig(hostConfigVars, oldHostConfigVars, logSystemMessage)
+
+getAndApplyDeviceConfig = ->
+	device.getConfig()
+	.then ({ values, targetValues }) ->
+		executeSpecialActionsAndHostConfig(targetValues, values)
+		.tap ->
+			device.setConfig({ values: targetValues })
+		.then (needsReboot) ->
+			device.reboot() if needsReboot
 
 wrapAsError = (err) ->
 	return err if _.isError(err)
@@ -514,77 +505,59 @@ updateUsingStrategy = (strategy, options) ->
 		strategy = 'download-then-kill'
 	updateStrategies[strategy](options)
 
-getRemoteApps = (uuid, apiKey) ->
-	cachedResinApi.get
-		resource: 'application'
-		options:
-			select: [
-				'id'
-				'git_repository'
-				'commit'
-			]
-			filter:
-				commit: $ne: null
-				device:
-					uuid: uuid
-		customOptions:
-			apikey: apiKey
+getRemoteState = (uuid, apiKey) ->
+	endpoint = url.resolve(config.apiEndpoint, "/device/v1/#{uuid}/state")
 
-getEnvAndFormatRemoteApps = (deviceId, remoteApps, uuid, apiKey) ->
-	Promise.map remoteApps, (app) ->
-		getEnvironment(app.id, deviceId, apiKey)
-		.then (environment) ->
-			app.environment_variable = environment
-			utils.extendEnvVars(app.environment_variable, uuid, app.id)
-		.then (fullEnv) ->
-			env = _.omit(fullEnv, _.keys(specialActionEnvVars))
-			env = _.omit env, (v, k) ->
-				_.startsWith(k, device.hostConfigEnvVarPrefix)
-			return [
-				{
-					appId: '' + app.id
-					env: fullEnv
-				},
-				{
-					appId: '' + app.id
-					commit: app.commit
-					imageId: "#{config.registryEndpoint}/#{path.basename(app.git_repository, '.git')}/#{app.commit}"
-					env: JSON.stringify(env) # The env has to be stored as a JSON string for knex
-				}
-			]
-	.then(_.flatten)
-	.then(_.zip)
-	.then ([ remoteAppEnvs, remoteApps ]) ->
-		return [_.mapValues(_.indexBy(remoteAppEnvs, 'appId'), 'env'), _.indexBy(remoteApps, 'appId')]
+	requestParams = _.extend
+		method: 'GET'
+		url: "#{endpoint}?&apikey=#{apiKey}"
+	, cachedResinApi.passthrough
+
+	cachedResinApi._request(requestParams)
+	.catch (err) ->
+		console.error("Failed to get state for device #{uuid}. #{err}")
+		throw err
+
+# TODO: Actually store and use app.environment and app.config separately
+parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
+	appsWithEnv = _.mapValues remoteApps, (app, appId) ->
+		utils.extendEnvVars(app.environment, uuid, appId, app.name, app.commit)
+		.then (env) ->
+			app.config ?= {}
+			return {
+				appId
+				commit: app.commit
+				imageId: app.image
+				env: JSON.stringify(env)
+				config: JSON.stringify(app.config)
+				name: app.name
+			}
+	Promise.props(appsWithEnv)
 
 formatLocalApps = (apps) ->
 	apps = _.indexBy(apps, 'appId')
-	localAppEnvs = {}
 	localApps = _.mapValues apps, (app) ->
-		localAppEnvs[app.appId] = JSON.parse(app.env)
-		app.env = _.omit localAppEnvs[app.appId], (v, k) ->
-			_.startsWith(k, device.hostConfigEnvVarPrefix)
-		app.env = JSON.stringify(_.omit(app.env, _.keys(specialActionEnvVars)))
-		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env' ])
-	return { localApps, localAppEnvs }
+		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name' ])
+	return localApps
 
-compareForUpdate = (localApps, remoteApps, localAppEnvs, remoteAppEnvs) ->
+compareForUpdate = (localApps, remoteApps) ->
 	remoteAppIds = _.keys(remoteApps)
 	localAppIds = _.keys(localApps)
-	appsWithChangedEnvs = _.filter remoteAppIds, (appId) ->
-		return !localAppEnvs[appId]? or !_.isEqual(remoteAppEnvs[appId], localAppEnvs[appId])
+
 	toBeRemoved = _.difference(localAppIds, remoteAppIds)
 	toBeInstalled = _.difference(remoteAppIds, localAppIds)
 
 	toBeUpdated = _.intersection(remoteAppIds, localAppIds)
 	toBeUpdated = _.filter toBeUpdated, (appId) ->
-		return !_.isEqual(remoteApps[appId], localApps[appId])
+		localApp = _.omit(localApps[appId], 'config')
+		remoteApp = _.omit(remoteApps[appId], 'config')
+		return !_.isEqual(remoteApp, localApp)
 
 	toBeDownloaded = _.filter toBeUpdated, (appId) ->
 		return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
 	toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
 	allAppIds = _.union(localAppIds, remoteAppIds)
-	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds }
+	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, allAppIds }
 
 application.update = update = (force) ->
 	if updateStatus.state isnt UPDATE_IDLE
@@ -594,34 +567,31 @@ application.update = update = (force) ->
 		return
 	updateStatus.state = UPDATE_UPDATING
 	bootstrap.done.then ->
-		Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), knex('app').select(), (apiKey, uuid, apps) ->
-			deviceId = device.getID()
-			remoteApps = getRemoteApps(uuid, apiKey)
-
-			Promise.join deviceId, remoteApps, uuid, apiKey, getEnvAndFormatRemoteApps
-			.then ([ remoteAppEnvs, remoteApps ]) ->
-				{ localApps, localAppEnvs } = formatLocalApps(apps)
-				resourcesForUpdate = compareForUpdate(localApps, remoteApps, localAppEnvs, remoteAppEnvs)
-				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithChangedEnvs, allAppIds } = resourcesForUpdate
+		Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), utils.getConfig('name'), knex('app').select(), (apiKey, uuid, deviceName, apps) ->
+			getRemoteState(uuid, apiKey)
+			.then ({ local, dependent }) ->
+				proxyvisor.fetchAndSetTargetsForDependentApps(dependent, fetch, apiKey)
+				.then ->
+					utils.setConfig('name', deviceName) if local.name != deviceName
+				.then ->
+					parseEnvAndFormatRemoteApps(local.apps, uuid, apiKey)
+			.then (remoteApps) ->
+				localApps = formatLocalApps(apps)
+				resourcesForUpdate = compareForUpdate(localApps, remoteApps)
+				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, allAppIds } = resourcesForUpdate
 
 				if !_.isEmpty(toBeRemoved) or !_.isEmpty(toBeInstalled) or !_.isEmpty(toBeUpdated)
 					device.setUpdateState(update_pending: true)
-				# Run special functions against variables if remoteAppEnvs has the corresponding variable function mapping.
-				Promise.map appsWithChangedEnvs, (appId) ->
-					Promise.using lockUpdates(remoteApps[appId], force), ->
-						executeSpecialActionsAndHostConfig(remoteAppEnvs[appId])
-						.tap ->
-							# If an env var shouldn't cause a restart but requires an action, we should still
-							# save the new env to the DB
-							if !_.includes(toBeUpdated, appId) and !_.includes(toBeInstalled, appId)
-								utils.getKnexApp(appId)
-								.then (app) ->
-									app.env = JSON.stringify(remoteAppEnvs[appId])
-									knex('app').update(app).where({ appId })
-						.then (needsReboot) ->
-							device.reboot() if needsReboot
-					.catch (err) ->
-						logSystemEvent(logTypes.updateAppError, remoteApps[appId], err)
+				# Run special functions against variables
+				remoteDeviceConfig = {}
+				Promise.map allAppIds, (appId) ->
+					_.merge(remoteDeviceConfig, JSON.parse(remoteApps[appId].config))
+				.then ->
+					device.setConfig({ targetValues: remoteDeviceConfig })
+					.then ->
+						getAndApplyDeviceConfig()
+				.catch (err) ->
+					logSystemMessage("Error applying device configuration: #{err}", { error: err }, 'Set device configuration error')
 				.return(allAppIds)
 				.map (appId) ->
 					Promise.try ->
@@ -639,21 +609,18 @@ application.update = update = (force) ->
 								throw err
 						else if _.includes(toBeInstalled, appId)
 							app = remoteApps[appId]
-							# Restore the complete environment so that it's persisted in the DB
-							app.env = JSON.stringify(remoteAppEnvs[appId])
 							Promise.try ->
-								fetch(remoteApps[appId]) if needsDownload
+								fetch(app) if needsDownload
 							.then ->
 								start(app)
 						else if _.includes(toBeUpdated, appId)
 							app = remoteApps[appId]
-							# Restore the complete environment so that it's persisted in the DB
-							app.env = JSON.stringify(remoteAppEnvs[appId])
+							conf = JSON.parse(app.config)
 							forceThisApp =
-								remoteAppEnvs[appId]['RESIN_SUPERVISOR_OVERRIDE_LOCK'] == '1' ||
-								remoteAppEnvs[appId]['RESIN_OVERRIDE_LOCK'] == '1'
-							strategy = remoteAppEnvs[appId]['RESIN_SUPERVISOR_UPDATE_STRATEGY']
-							timeout = remoteAppEnvs[appId]['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
+								conf['RESIN_SUPERVISOR_OVERRIDE_LOCK'] == '1' ||
+								conf['RESIN_OVERRIDE_LOCK'] == '1'
+							strategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
+							timeout = conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
 							updateUsingStrategy strategy, {
 								localApp: localApps[appId]
 								app
@@ -666,6 +633,8 @@ application.update = update = (force) ->
 		.then (failures) ->
 			_.each(failures, (err) -> console.error('Error:', err, err.stack))
 			throw new Error(joinErrorMessages(failures)) if failures.length > 0
+		.then ->
+			proxyvisor.sendUpdates()
 		.then ->
 			updateStatus.failed = 0
 			device.setUpdateState(update_pending: false, update_downloaded: false, update_failed: false)
@@ -723,12 +692,11 @@ listenToEvents = do ->
 
 application.initialize = ->
 	listenToEvents()
-	knex('app').select()
-	.then (apps) ->
-		Promise.map apps, (app) ->
-			executeSpecialActionsAndHostConfig(JSON.parse(app.env))
-			.then ->
-				unlockAndStart(app)
+	getAndApplyDeviceConfig()
+	.then ->
+		knex('app').select()
+	.map (app) ->
+		unlockAndStart(app)
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->

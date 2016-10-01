@@ -6,7 +6,6 @@ utils = require './utils'
 device = exports
 config = require './config'
 configPath = '/boot/config.json'
-request = Promise.promisifyAll(require('request'))
 execAsync = Promise.promisify(require('child_process').exec)
 fs = Promise.promisifyAll(require('fs'))
 bootstrap = require './bootstrap'
@@ -44,7 +43,7 @@ exports.getID = do ->
 exports.reboot = ->
 	utils.gosuper.postAsync('/v1/reboot')
 
-exports.hostConfigEnvVarPrefix = 'RESIN_HOST_'
+exports.hostConfigConfigVarPrefix = 'RESIN_HOST_'
 bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
 bootBlockDevice = '/dev/mmcblk0p1'
 bootMountPoint = '/mnt/root' + config.bootMountPoint
@@ -76,11 +75,11 @@ parseBootConfigFromEnv = (env) ->
 	parsedEnv = _.omit(parsedEnv, forbiddenConfigKeys)
 	return parsedEnv
 
-exports.setHostConfig = (env, logMessage) ->
-	Promise.join setBootConfig(env, logMessage), setLogToDisplay(env, logMessage), (bootConfigApplied, logToDisplayChanged) ->
+exports.setHostConfig = (env, oldEnv, logMessage) ->
+	Promise.join setBootConfig(env, oldEnv, logMessage), setLogToDisplay(env, oldEnv, logMessage), (bootConfigApplied, logToDisplayChanged) ->
 		return (bootConfigApplied or logToDisplayChanged)
 
-setLogToDisplay = (env, logMessage) ->
+setLogToDisplay = (env, oldEnv, logMessage) ->
 	if env['RESIN_HOST_LOG_TO_DISPLAY']?
 		enable = env['RESIN_HOST_LOG_TO_DISPLAY'] != '0'
 		utils.gosuper.postAsync('/v1/set-log-to-display', { json: true, body: Enable: enable })
@@ -98,12 +97,12 @@ setLogToDisplay = (env, logMessage) ->
 	else
 		return Promise.resolve(false)
 
-setBootConfig = (env, logMessage) ->
+setBootConfig = (env, oldEnv, logMessage) ->
 	device.getDeviceType()
 	.then (deviceType) ->
 		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry')
-		Promise.join parseBootConfigFromEnv(env), fs.readFileAsync(bootConfigPath, 'utf8'), (configFromApp, configTxt ) ->
-			throw new Error('No boot config to change') if _.isEmpty(configFromApp)
+		Promise.join parseBootConfigFromEnv(env), parseBootConfigFromEnv(oldEnv), fs.readFileAsync(bootConfigPath, 'utf8'), (configFromApp, oldConfigFromApp, configTxt ) ->
+			throw new Error('No boot config to change') if _.isEmpty(configFromApp) or _.isEqual(configFromApp, oldConfigFromApp)
 			configFromFS = {}
 			configPositions = []
 			configStatements = configTxt.split(/\r?\n/)
@@ -117,8 +116,10 @@ setBootConfig = (env, logMessage) ->
 					configPositions.push(configStr)
 			# configFromApp and configFromFS now have compatible formats
 			keysFromApp = _.keys(configFromApp)
+			keysFromOldConf = _.keys(oldConfigFromApp)
 			keysFromFS = _.keys(configFromFS)
 			toBeAdded = _.difference(keysFromApp, keysFromFS)
+			toBeDeleted = _.difference(keysFromOldConf, keysFromApp)
 			toBeChanged = _.intersection(keysFromApp, keysFromFS)
 			toBeChanged = _.filter toBeChanged, (key) ->
 				configFromApp[key] != configFromFS[key]
@@ -131,13 +132,13 @@ setBootConfig = (env, logMessage) ->
 				configStatement = null
 				if _.includes(toBeChanged, key)
 					configStatement = "#{key}=#{configFromApp[key]}"
-				else
+				else if !_.includes(toBeDeleted, key)
 					configStatement = configStatements[index]
 				return configStatement
 			# Here's the dangerous part:
 			execAsync("mount -t vfat -o remount,rw #{bootBlockDevice} #{bootMountPoint}")
 			.then ->
-				fs.writeFileAsync(bootConfigPath + '.new', outputConfig.join('\n'))
+				fs.writeFileAsync(bootConfigPath + '.new', _.reject(outputConfig, _.isNil).join('\n'))
 			.then ->
 				fs.renameAsync(bootConfigPath + '.new', bootConfigPath)
 			.then ->
@@ -226,3 +227,16 @@ do ->
 
 exports.getOSVersion = ->
 	return utils.getOSVersion(config.hostOsVersionPath)
+
+exports.getConfig = ->
+	knex('deviceConfig').select()
+	.then ([ deviceConfig ]) ->
+		return {
+			values: JSON.parse(deviceConfig.values)
+			targetValues: JSON.parse(deviceConfig.targetValues)
+		}
+exports.setConfig = (conf) ->
+	confToUpdate = {}
+	confToUpdate.values = JSON.stringify(conf.values) if conf.values?
+	confToUpdate.targetValues = JSON.stringify(conf.targetValues) if conf.targetValues?
+	knex('deviceConfig').update(confToUpdate)
