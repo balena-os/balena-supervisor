@@ -10,6 +10,7 @@ knex = require './db'
 Lock = require 'rwlock'
 utils = require './utils'
 rimraf = Promise.promisify(require('rimraf'))
+resumable = require 'resumable-request'
 
 docker = new Docker(socketPath: config.dockerSocket)
 
@@ -72,7 +73,7 @@ do ->
 				findSimilarImage(imgDest)
 			.then (imgSrc) ->
 				new Promise (resolve, reject) ->
-					progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
+					progress resumable(request, { url: "#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT })
 					.on 'progress', (progress) ->
 						onProgress(percentage: progress.percent)
 					.on 'end', ->
