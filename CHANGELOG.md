@@ -1,3 +1,5 @@
+* Fix config.txt by implementing missing isNil [Pablo]
+
 # v2.5.0
 
 * Switch to v2 api to be able to set is_online [Page]
