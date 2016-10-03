@@ -97,6 +97,9 @@ setLogToDisplay = (env, oldEnv, logMessage) ->
 	else
 		return Promise.resolve(false)
 
+isNil = (val) ->
+	return !val?
+
 setBootConfig = (env, oldEnv, logMessage) ->
 	device.getDeviceType()
 	.then (deviceType) ->
@@ -138,7 +141,7 @@ setBootConfig = (env, oldEnv, logMessage) ->
 			# Here's the dangerous part:
 			execAsync("mount -t vfat -o remount,rw #{bootBlockDevice} #{bootMountPoint}")
 			.then ->
-				fs.writeFileAsync(bootConfigPath + '.new', _.reject(outputConfig, _.isNil).join('\n'))
+				fs.writeFileAsync(bootConfigPath + '.new', _.reject(outputConfig, isNil).join('\n'))
 			.then ->
 				fs.renameAsync(bootConfigPath + '.new', bootConfigPath)
 			.then ->
