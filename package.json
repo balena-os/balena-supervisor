@@ -20,7 +20,7 @@
     "express": "^4.0.0",
     "knex": "~0.8.3",
     "lockfile": "^1.0.1",
-    "lodash": "^3.0.0",
+    "lodash": "^4.16.3",
     "log-timestamp": "^0.1.2",
     "mixpanel": "0.0.20",
     "mkdirp": "^0.5.1",

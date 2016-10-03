@@ -1,3 +1,4 @@
+* Updated to lodash 4 [Page]
 * Updated to coffeescript 1.11 [Page]
 * In delete-then-download, only delete when a download is needed [Pablo]
 * Compare config vars to trigger an app restart [Pablo]

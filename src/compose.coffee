@@ -56,7 +56,7 @@ exports.up = (appId, onStatus) ->
 		else
 			services = composeSpec
 		throw new Error('No services found') if !_.isObject(services)
-		servicesArray = _.pairs(services)
+		servicesArray = _.toPairs(services)
 		Promise.each servicesArray, ([ serviceName, service ]) ->
 			throw new Error("Service #{serviceName} has no image specified.") if !service.image
 			docker.getImage(service.image).inspectAsync()
