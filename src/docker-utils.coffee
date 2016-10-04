@@ -101,27 +101,32 @@ do ->
 		Promise.using readLockImages(), ->
 			dockerProgress.pull(image, onProgress)
 
-	supervisorTag = config.supervisorImage
-	if !/:/g.test(supervisorTag)
-		# If there is no tag then mark it as latest
-		supervisorTag += ':latest'
+	normalizeRepoTag = (image) ->
+		getRepoAndTag(image)
+		.then ({ repo, tag }) ->
+			buildRepoTag(repo, tag)
+
+	supervisorTagPromise = normalizeRepoTag(config.supervisorImage)
+
 	exports.cleanupContainersAndImages = ->
 		Promise.using writeLockImages(), ->
 			Promise.join(
 				knex('image').select('repoTag')
-				.map (image) ->
-					# Docker sometimes prepends 'docker.io/' to official images
-					return [ image.repoTag, 'docker.io/' + image.repoTag ]
-				.then(_.flatten)
+				.map ({ repoTag }) ->
+					normalizeRepoTag(repoTag)
 				knex('app').select()
 				.map ({ imageId }) ->
-					imageId + ':latest'
+					normalizeRepoTag(imageId)
 				knex('dependentApp').select()
 				.map ({ imageId }) ->
-					imageId + ':latest'
+					normalizeRepoTag(imageId)
+				supervisorTagPromise
 				docker.listImagesAsync()
-				(locallyCreatedTags, apps, dependentApps, images) ->
-					imageTags = _.map(images, 'RepoTags')
+				.map (image) ->
+					image.NormalizedRepoTags = Promise.map(image.RepoTags, normalizeRepoTag)
+					Promise.props(image)
+				(locallyCreatedTags, apps, dependentApps, supervisorTag, images) ->
+					imageTags = _.map(images, 'NormalizedRepoTags')
 					supervisorTags = _.filter imageTags, (tags) ->
 						_.contains(tags, supervisorTag)
 					appTags = _.filter imageTags, (tags) ->
@@ -137,9 +142,8 @@ do ->
 				docker.listContainersAsync(all: true)
 				.filter (containerInfo) ->
 					# Do not remove user apps.
-					getRepoAndTag(containerInfo.Image)
-					.then ({ repo, tag }) ->
-						repoTag = buildRepoTag(repo, tag)
+					normalizeRepoTag(containerInfo.Image)
+					.then (repoTag) ->
 						if _.contains(appTags, repoTag)
 							return false
 						if _.contains(locallyCreatedTags, repoTag)
@@ -154,7 +158,7 @@ do ->
 					.catch(_.noop)
 				.then ->
 					imagesToClean = _.reject images, (image) ->
-						_.any image.RepoTags, (tag) ->
+						_.any image.NormalizedRepoTags, (tag) ->
 							return _.contains(appTags, tag) or _.contains(supervisorTags, tag) or _.contains(locallyCreatedTags, tag)
 					Promise.map imagesToClean, (image) ->
 						Promise.map image.RepoTags.concat(image.Id), (tag) ->
