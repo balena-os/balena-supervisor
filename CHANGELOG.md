@@ -1,3 +1,5 @@
+* Use getRegistryAndName from docker-toolbelt 1.2.0 [Pablo]
+
 # v2.5.0
 
 * Switch to v2 api to be able to set is_online [Page]

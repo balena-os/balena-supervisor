@@ -1,5 +1,5 @@
 Docker = require 'docker-toolbelt'
-{ getRegistryAndName, DockerProgress } = require 'docker-progress'
+{ DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
 progress = require 'request-progress'
 dockerDelta = require 'docker-delta'
@@ -46,7 +46,7 @@ findSimilarImage = (repoTag) ->
 DELTA_REQUEST_TIMEOUT = 15 * 60 * 1000
 
 getRepoAndTag = (image) ->
-	getRegistryAndName(image)
+	docker.getRegistryAndName(image)
 	.then ({ registry, imageName, tagName }) ->
 		registry = registry.toString().replace(':443', '')
 		return { repo: "#{registry}/#{imageName}", tag: tagName }
