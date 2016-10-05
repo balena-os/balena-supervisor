@@ -1,3 +1,5 @@
+* In delete-then-download, only delete when a download is needed [Pablo]
+* Compare config vars to trigger an app restart [Pablo]
 * Fix disabling logs to display on newer OS with different service name [Pablo]
 * In cleanup, normalize all image tags for comparison [Pablo]
 * Use getRegistryAndName from docker-toolbelt 1.2.0 [Pablo]

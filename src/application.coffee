@@ -474,9 +474,13 @@ updateStrategies =
 			logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
 			utils.getKnexApp(localApp.appId)
 			.tap(kill)
-			.then(deleteImage)
-			.then ->
-				fetch(app) if needsDownload
+			.then (appFromDB) ->
+				# If we don't need to download a new image,
+				# there's no use in deleting the image
+				if needsDownload
+					deleteImage(appFromDB)
+					.then ->
+						fetch(app)
 			.then ->
 				start(app)
 		.catch (err) ->
@@ -540,6 +544,9 @@ formatLocalApps = (apps) ->
 		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name' ])
 	return localApps
 
+restartVars = (conf) ->
+	return _.pick(conf, [ 'RESIN_DEVICE_RESTART', 'RESIN_RESTART' ])
+
 compareForUpdate = (localApps, remoteApps) ->
 	remoteAppIds = _.keys(remoteApps)
 	localAppIds = _.keys(localApps)
@@ -551,7 +558,8 @@ compareForUpdate = (localApps, remoteApps) ->
 	toBeUpdated = _.filter toBeUpdated, (appId) ->
 		localApp = _.omit(localApps[appId], 'config')
 		remoteApp = _.omit(remoteApps[appId], 'config')
-		return !_.isEqual(remoteApp, localApp)
+		return !_.isEqual(remoteApp, localApp) or
+			!_.isEqual(restartVars(JSON.parse(localApps[appId].config)), restartVars(JSON.parse(remoteApps[appId].config)))
 
 	toBeDownloaded = _.filter toBeUpdated, (appId) ->
 		return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
