@@ -25,8 +25,8 @@ make ${MAKE_ARGS} \
     deploy
 
 # Try to push the intermediate images to improve caching in future builds
-docker tag resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} registry.resinstaging.io/resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME}
-docker tag resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} registry.resinstaging.io/resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME}
+docker tag -f resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} registry.resinstaging.io/resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || true
+docker tag -f resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} registry.resinstaging.io/resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || true
 docker push registry.resinstaging.io/resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || true
 docker push registry.resinstaging.io/resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || true
 
