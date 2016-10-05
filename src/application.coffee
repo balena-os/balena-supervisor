@@ -91,6 +91,16 @@ logTypes =
 		eventName: 'Application restart'
 		humanName: 'Restarting application'
 
+	updateAppConfig:
+		eventName: 'Application config update'
+		humanName: 'Updating config for application'
+	updateAppConfigSuccess:
+		eventName: 'Application config updated'
+		humanName: 'Updated config for application'
+	updateAppConfigError:
+		eventName: 'Application config update error'
+		humanName: 'Failed to update config for application'
+
 application = {}
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
@@ -554,18 +564,22 @@ compareForUpdate = (localApps, remoteApps) ->
 	toBeRemoved = _.difference(localAppIds, remoteAppIds)
 	toBeInstalled = _.difference(remoteAppIds, localAppIds)
 
-	toBeUpdated = _.intersection(remoteAppIds, localAppIds)
-	toBeUpdated = _.filter toBeUpdated, (appId) ->
+	matchedAppIds = _.intersection(remoteAppIds, localAppIds)
+	toBeUpdated = _.filter matchedAppIds, (appId) ->
 		localApp = _.omit(localApps[appId], 'config')
 		remoteApp = _.omit(remoteApps[appId], 'config')
 		return !_.isEqual(remoteApp, localApp) or
 			!_.isEqual(restartVars(JSON.parse(localApps[appId].config)), restartVars(JSON.parse(remoteApps[appId].config)))
 
+	appsWithUpdatedConfigs = _.filter matchedAppIds, (appId) ->
+		return !_.includes(toBeUpdated, appId) and
+			!_.isEqual(localApps[appId].config, remoteApps[appId].config)
+
 	toBeDownloaded = _.filter toBeUpdated, (appId) ->
 		return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
 	toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
 	allAppIds = _.union(localAppIds, remoteAppIds)
-	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, allAppIds }
+	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, allAppIds }
 
 application.update = update = (force) ->
 	if updateStatus.state isnt UPDATE_IDLE
@@ -586,7 +600,7 @@ application.update = update = (force) ->
 			.then (remoteApps) ->
 				localApps = formatLocalApps(apps)
 				resourcesForUpdate = compareForUpdate(localApps, remoteApps)
-				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, allAppIds } = resourcesForUpdate
+				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, allAppIds } = resourcesForUpdate
 
 				if !_.isEmpty(toBeRemoved) or !_.isEmpty(toBeInstalled) or !_.isEmpty(toBeUpdated)
 					device.setUpdateState(update_pending: true)
@@ -636,6 +650,19 @@ application.update = update = (force) ->
 								force: force || forceThisApp
 								timeout
 							}
+						else if _.includes(appsWithUpdatedConfigs, appId)
+							# These apps have no changes other than config variables.
+							# It can notoriously affect setting dep. devices hook address
+							# if nothing else changes in the app.
+							# So we just save them.
+							app = remoteApps[appId]
+							logSystemEvent(logTypes.updateAppConfig, app)
+							knex('app').update(app).where({ appId })
+							.then ->
+								logSystemEvent(logTypes.updateAppConfigSuccess, app)
+							.catch (err) ->
+								logSystemEvent(logTypes.updateAppConfigError, app, err)
+								throw err
 					.catch(wrapAsError)
 		.filter(_.isError)
 		.then (failures) ->
