@@ -7,6 +7,9 @@ ESCAPED_BRANCH_NAME=$(echo $sourceBranch | sed 's/[^a-z0-9A-Z_.-]/-/g')
 
 # Try pulling the old build first for caching purposes.
 docker pull resin/${ARCH}-supervisor:${ESCAPED_BRANCH_NAME} || docker pull resin/${ARCH}-supervisor:master || true
+# Also pull the intermediate images, if possible, to improve caching
+docker pull registry.resinstaging.io/resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || docker pull registry.resinstaging.io/resin/node-supervisor-${ARCH}:master || true
+docker pull registry.resinstaging.io/resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || docker pull registry.resinstaging.io/resin/go-supervisor-${ARCH}:master || true
 
 # Test the gosuper
 make SUPERVISOR_VERSION=${VERSION} JOB_NAME=${JOB_NAME} test-gosuper
@@ -20,6 +23,12 @@ make ${MAKE_ARGS} \
     SUPERVISOR_VERSION=${ESCAPED_BRANCH_NAME} \
     DEPLOY_REGISTRY= \
     deploy
+
+# Try to push the intermediate images to improve caching in future builds
+docker tag resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} registry.resinstaging.io/resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME}
+docker tag resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} registry.resinstaging.io/resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME}
+docker push registry.resinstaging.io/resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || true
+docker push registry.resinstaging.io/resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || true
 
 make ${MAKE_ARGS} \
     SUPERVISOR_VERSION=${VERSION} \
