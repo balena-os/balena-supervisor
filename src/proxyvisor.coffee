@@ -149,11 +149,11 @@ router.put '/v1/devices/:uuid', (req, res) ->
 			resinApi.patch
 				resource: 'device'
 				id: device.deviceId
-				body: _.pick({ status, is_online, commit }, isDefined)
+				body: _.pickBy({ status, is_online, commit }, isDefined)
 				customOptions:
 					apikey: apiKey
 			.then ->
-				fieldsToUpdate = _.pick({ status, is_online, commit, config, environment }, isDefined)
+				fieldsToUpdate = _.pickBy({ status, is_online, commit, config, environment }, isDefined)
 				knex('dependentDevice').update(fieldsToUpdate).where({ uuid })
 			.then ->
 				res.json(parseDeviceFields(device))
@@ -215,12 +215,12 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 				config: JSON.stringify(conf)
 				name: app.name
 			}
-		localApps = _.indexBy(localDependentApps, 'appId')
+		localApps = _.keyBy(localDependentApps, 'appId')
 
 		toBeDownloaded = _.filter remoteApps, (app, appId) ->
-			return app.commit? and app.imageId? and !_.any(localApps, imageId: app.imageId)
+			return app.commit? and app.imageId? and !_.some(localApps, imageId: app.imageId)
 		toBeRemoved = _.filter localApps, (app, appId) ->
-			return app.commit? and !_.any(remoteApps, imageId: app.imageId)
+			return app.commit? and !_.some(remoteApps, imageId: app.imageId)
 		Promise.map toBeDownloaded, (app) ->
 			fetchFn(app, false)
 		.then ->
@@ -240,7 +240,7 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 		.then ->
 			Promise.all _.map state.devices, (device, uuid) ->
 				# Only consider one app per dependent device for now
-				appId = _(device.apps).keys().first()
+				appId = _(device.apps).keys().head()
 				targetCommit = state.apps[appId].commit
 				targetEnvironment = JSON.stringify(device.apps[appId].environment ? {})
 				targetConfig = JSON.stringify(device.apps[appId].config ? {})

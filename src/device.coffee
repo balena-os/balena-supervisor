@@ -68,7 +68,7 @@ forbiddenConfigKeys = [
 ]
 parseBootConfigFromEnv = (env) ->
 	# We ensure env doesn't have garbage
-	parsedEnv = _.pick env, (val, key) ->
+	parsedEnv = _.pickBy env, (val, key) ->
 		return _.startsWith(key, bootConfigEnvVarPrefix)
 	parsedEnv = _.mapKeys parsedEnv, (val, key) ->
 		key.replace(configRegex, '$2')
@@ -172,7 +172,7 @@ do ->
 	updateState = { update_pending: false, update_failed: false, update_downloaded: false }
 
 	getStateDiff = ->
-		_.omit targetState, (value, key) ->
+		_.omitBy targetState, (value, key) ->
 			actualState[key] is value
 
 	applyState = ->

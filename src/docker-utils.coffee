@@ -20,7 +20,7 @@ dockerProgress = new DockerProgress(socketPath: config.dockerSocket)
 listRepoTagsAsync = ->
 	docker.listImagesAsync()
 	.then (images) ->
-		images = _.sortByOrder(images, 'Created', [ false ])
+		images = _.orderBy(images, 'Created', [ false ])
 		ret = []
 		for image in images
 			for repoTag in image.RepoTags
@@ -128,10 +128,10 @@ do ->
 				(locallyCreatedTags, apps, dependentApps, supervisorTag, images) ->
 					imageTags = _.map(images, 'NormalizedRepoTags')
 					supervisorTags = _.filter imageTags, (tags) ->
-						_.contains(tags, supervisorTag)
+						_.includes(tags, supervisorTag)
 					appTags = _.filter imageTags, (tags) ->
-						_.any tags, (tag) ->
-							_.contains(apps, tag) or _.contains(dependentApps, tag)
+						_.some tags, (tag) ->
+							_.includes(apps, tag) or _.includes(dependentApps, tag)
 					supervisorTags = _.flatten(supervisorTags)
 					appTags = _.flatten(appTags)
 					locallyCreatedTags = _.flatten(locallyCreatedTags)
@@ -144,11 +144,11 @@ do ->
 					# Do not remove user apps.
 					normalizeRepoTag(containerInfo.Image)
 					.then (repoTag) ->
-						if _.contains(appTags, repoTag)
+						if _.includes(appTags, repoTag)
 							return false
-						if _.contains(locallyCreatedTags, repoTag)
+						if _.includes(locallyCreatedTags, repoTag)
 							return false
-						if !_.contains(supervisorTags, repoTag)
+						if !_.includes(supervisorTags, repoTag)
 							return true
 						return containerHasExited(containerInfo.Id)
 				.map (containerInfo) ->
@@ -158,8 +158,8 @@ do ->
 					.catch(_.noop)
 				.then ->
 					imagesToClean = _.reject images, (image) ->
-						_.any image.NormalizedRepoTags, (tag) ->
-							return _.contains(appTags, tag) or _.contains(supervisorTags, tag) or _.contains(locallyCreatedTags, tag)
+						_.some image.NormalizedRepoTags, (tag) ->
+							return _.includes(appTags, tag) or _.includes(supervisorTags, tag) or _.includes(locallyCreatedTags, tag)
 					Promise.map imagesToClean, (image) ->
 						Promise.map image.RepoTags.concat(image.Id), (tag) ->
 							docker.getImage(tag).removeAsync(force: true)
@@ -320,10 +320,10 @@ do ->
 		container = docker.getContainer(containerId)
 		knex('app').select()
 		.then (apps) ->
-			throw new Error('Cannot stop an app container') if _.any(apps, { containerId })
+			throw new Error('Cannot stop an app container') if _.some(apps, { containerId })
 			container.inspectAsync()
 		.then (cont) ->
-			throw new Error('Cannot stop supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
+			throw new Error('Cannot stop supervisor container') if cont.Name == '/resin_supervisor' or _.some(cont.Names, (n) -> n == '/resin_supervisor')
 			container.stopAsync(options)
 	exports.stopContainer = (req, res) ->
 		stopContainer(req.params.id, sanitizeQuery(req.query))
@@ -336,10 +336,10 @@ do ->
 		container = docker.getContainer(containerId)
 		knex('app').select()
 		.then (apps) ->
-			throw new Error('Cannot remove an app container') if _.any(apps, { containerId })
+			throw new Error('Cannot remove an app container') if _.some(apps, { containerId })
 			container.inspectAsync()
 		.then (cont) ->
-			throw new Error('Cannot remove supervisor container') if cont.Name == '/resin_supervisor' or _.any(cont.Names, (n) -> n == '/resin_supervisor')
+			throw new Error('Cannot remove supervisor container') if cont.Name == '/resin_supervisor' or _.some(cont.Names, (n) -> n == '/resin_supervisor')
 			if options.purge
 				knex('container').select().where({ containerId })
 				.then (contFromDB) ->

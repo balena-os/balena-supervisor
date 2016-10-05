@@ -394,9 +394,9 @@ executeSpecialActionsAndHostConfig = (conf, oldConf) ->
 					specialActionCallback(conf[key])
 					executedSpecialActionConfigVars[key] = conf[key]
 					logSpecialAction(key, conf[key], true)
-		hostConfigVars = _.pick conf, (val, key) ->
+		hostConfigVars = _.pickBy conf, (val, key) ->
 			return _.startsWith(key, device.hostConfigConfigVarPrefix)
-		oldHostConfigVars = _.pick oldConf, (val, key) ->
+		oldHostConfigVars = _.pickBy oldConf, (val, key) ->
 			return _.startsWith(key, device.hostConfigConfigVarPrefix)
 		if !_.isEqual(hostConfigVars, oldHostConfigVars)
 			device.setHostConfig(hostConfigVars, oldHostConfigVars, logSystemMessage)
@@ -539,7 +539,7 @@ parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
 	Promise.props(appsWithEnv)
 
 formatLocalApps = (apps) ->
-	apps = _.indexBy(apps, 'appId')
+	apps = _.keyBy(apps, 'appId')
 	localApps = _.mapValues apps, (app) ->
 		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name' ])
 	return localApps
