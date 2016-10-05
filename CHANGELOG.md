@@ -1,3 +1,4 @@
+* Updated to coffeescript 1.11 [Page]
 * In delete-then-download, only delete when a download is needed [Pablo]
 * Compare config vars to trigger an app restart [Pablo]
 * Fix disabling logs to display on newer OS with different service name [Pablo]
