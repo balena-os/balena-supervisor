@@ -48,6 +48,10 @@ router.get '/v1/devices', (req, res) ->
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 router.post '/v1/devices', (req, res) ->
+	appId = req.body.appId
+	if !appId? or _.isNaN(parseInt(appId)) or parseInt(appId) <= 0
+		res.status(400).send('appId must be a positive integer')
+		return
 	Promise.join(
 		utils.getConfig('apiKey')
 		utils.getConfig('userId')
@@ -70,9 +74,14 @@ router.post '/v1/devices', (req, res) ->
 				customOptions:
 					apikey: apiKey
 			.then (dev) ->
+				# If the response has id: null then something was wrong in the request
+				# but we don't know precisely what.
+				if !dev.id?
+					res.status(400).send('Provisioning failed, invalid appId or credentials')
+					return
 				deviceForDB = {
 					uuid: uuid
-					appId: d.application
+					appId: appId
 					device_type: d.device_type
 					deviceId: dev.id
 					name: dev.name

@@ -1,3 +1,5 @@
+* Add validation to dependent device provisioning [Pablo]
+
 # v2.5.2
 
 * Removed obsolete resolv.conf bind-mount [petrosagg]
