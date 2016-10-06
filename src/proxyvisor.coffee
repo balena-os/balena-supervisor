@@ -278,20 +278,22 @@ sendUpdate = (device, endpoint) ->
 	request.putAsync "#{endpoint}#{device.uuid}", {
 		json: true
 		body:
-			appId: device.appId
+			appId: parseInt(device.appId)
 			commit: device.targetCommit
 			environment: JSON.parse(device.targetEnvironment)
 			config: JSON.parse(device.targetConfig)
 	}
 	.spread (response, body) ->
 		if response.statusCode != 200
-			return console.error("Error updating device #{device.uuid}: #{response.statusCode} #{body}")
+			throw new Error("Hook returned #{response.statusCode}: #{body}")
+	.catch (err) ->
+		return console.error("Error updating device #{device.uuid}", err, err.stack)
 
 getHookEndpoint = (appId) ->
 	knex('dependentApp').select('parentAppId').where({ appId })
 	.then ([ { parentAppId } ]) ->
-		knex('app').select().where({ appId: parentAppId })
-	.then ([ parentApp ]) ->
+		utils.getKnexApp(parentAppId)
+	.then (parentApp) ->
 		conf = JSON.parse(parentApp.config)
 		dockerUtils.getImageEnv(parentApp.imageId)
 		.then (imageEnv) ->

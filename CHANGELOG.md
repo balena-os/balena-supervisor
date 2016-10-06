@@ -1,3 +1,6 @@
+* Store config vars when there's nothing else to update [Pablo]
+* Do not mark an update as failed if the hook failed [Pablo]
+* When hitting the dependent devices hook, send appId as int [Pablo]
 * Updated to lodash 4 [Page]
 * Updated to coffeescript 1.11 [Page]
 * In delete-then-download, only delete when a download is needed [Pablo]

@@ -117,7 +117,7 @@ do ->
 				knex('app').select()
 				.map ({ imageId }) ->
 					normalizeRepoTag(imageId)
-				knex('dependentApp').select()
+				knex('dependentApp').select().whereNotNull('imageId')
 				.map ({ imageId }) ->
 					normalizeRepoTag(imageId)
 				supervisorTagPromise
