@@ -165,7 +165,7 @@ deploy: supervisor
 
 nodesuper:
 	sed 's/%%ARCH%%/$(ARCH)/g' Dockerfile.build.template > Dockerfile.build.$(ARCH)
-	docker build \
+	docker build --pull \
 		$(DOCKER_HTTP_PROXY) \
 		$(DOCKER_HTTPS_PROXY) \
 		$(DOCKER_NO_PROXY) \
@@ -176,7 +176,7 @@ nodesuper:
 		resin/node-supervisor-$(ARCH):$(SUPERVISOR_VERSION)
 
 gosuper:
-	cd gosuper && docker build \
+	cd gosuper && docker build --pull \
 		$(DOCKER_HTTP_PROXY) \
 		$(DOCKER_HTTPS_PROXY) \
 		$(DOCKER_NO_PROXY) \
