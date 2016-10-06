@@ -1,3 +1,5 @@
+* Updated to pinejs-client 2 [Page]
+
 # v2.5.1
 
 * Store config vars when there's nothing else to update [Pablo]
