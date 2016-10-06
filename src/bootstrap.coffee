@@ -50,17 +50,15 @@ bootstrap = ->
 		.return(userConfig)
 	.then (userConfig) ->
 		console.log('Finishing bootstrapping')
-		Promise.all([
-			knex('config').whereIn('key', ['uuid', 'apiKey', 'username', 'userId', 'version']).delete()
-			.then ->
-				knex('config').insert([
-					{ key: 'uuid', value: userConfig.uuid }
-					{ key: 'apiKey', value: userConfig.apiKey }
-					{ key: 'username', value: userConfig.username }
-					{ key: 'userId', value: userConfig.userId }
-					{ key: 'version', value: utils.supervisorVersion }
-				])
-		])
+		knex('config').whereIn('key', ['uuid', 'apiKey', 'username', 'userId', 'version']).delete()
+		.then ->
+			knex('config').insert([
+				{ key: 'uuid', value: userConfig.uuid }
+				{ key: 'apiKey', value: userConfig.apiKey }
+				{ key: 'username', value: userConfig.username }
+				{ key: 'userId', value: userConfig.userId }
+				{ key: 'version', value: utils.supervisorVersion }
+			])
 		.tap ->
 			bootstrapper.doneBootstrapping()
 
