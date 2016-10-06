@@ -1,3 +1,4 @@
+* Updated to bluebird 3 [Page]
 * Better parameter handling in PUT /v1/devices/:uuid [Pablo]
 * An update hook response of 200 will cause the proxyvisor to stop pinging the hook [Pablo]
 * Allow deleting dependent apps and devices [Pablo]
