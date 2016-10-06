@@ -1,3 +1,5 @@
+# v2.5.1
+
 * Store config vars when there's nothing else to update [Pablo]
 * Do not mark an update as failed if the hook failed [Pablo]
 * When hitting the dependent devices hook, send appId as int [Pablo]
