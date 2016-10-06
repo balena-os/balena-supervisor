@@ -384,6 +384,12 @@ do ->
 	exports.getImageEnv = (id) ->
 		docker.getImage(id).inspectAsync()
 		.get('Config').get('Env')
+		.then (env) ->
+			# env is an array of strings that say 'key=value'
+			_(env)
+			.invokeMap('split', '=')
+			.fromPairs()
+			.value()
 		.catch (err) ->
 			console.log('Error getting env from image', err, err.stack)
 			return {}
