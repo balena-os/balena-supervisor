@@ -96,6 +96,9 @@ knex.init = Promise.all([
 				t.json('targetEnvironment')
 				t.json('config')
 				t.json('targetConfig')
+				t.boolean('markedForDeletion')
+		else
+			addColumn('dependentDevice', 'markedForDeletion', 'boolean')
 ])
 
 module.exports = knex

@@ -36,7 +36,7 @@ parseDeviceFields = (device) ->
 	device.environment = JSON.parse(device.environment ? '{}')
 	device.targetConfig = JSON.parse(device.targetConfig ? '{}')
 	device.targetEnvironment = JSON.parse(device.targetEnvironment ? '{}')
-	return device
+	return _.omit(device, 'markedForDeletion', 'logs_channel')
 
 
 router.get '/v1/devices', (req, res) ->
@@ -101,6 +101,7 @@ router.get '/v1/devices/:uuid', (req, res) ->
 	knex('dependentDevice').select().where({ uuid })
 	.then ([ device ]) ->
 		return res.status(404).send('Device not found') if !device?
+		return res.status(410).send('Device deleted') if device.markedForDeletion
 		res.json(parseDeviceFields(device))
 	.catch (err) ->
 		console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
@@ -117,6 +118,7 @@ router.post '/v1/devices/:uuid/logs', (req, res) ->
 	knex('dependentDevice').select().where({ uuid })
 	.then ([ device ]) ->
 		return res.status(404).send('Device not found') if !device?
+		return res.status(410).send('Device deleted') if device.markedForDeletion
 		pubnub.publish({ channel: "device-#{device.logs_channel}-logs", message: m })
 		res.status(202).send('OK')
 	.catch (err) ->
@@ -149,21 +151,31 @@ router.put '/v1/devices/:uuid', (req, res) ->
 	environment = JSON.stringify(environment) if isDefined(environment)
 	config = JSON.stringify(config) if isDefined(config)
 
+	fieldsToUpdateOnDB = _.pickBy({ status, is_online, commit, config, environment }, isDefined)
+	fieldsToUpdateOnAPI = _.pick(fieldsToUpdateOnDB, 'status', 'is_online', 'commit')
+
+	if _.isEmpty(fieldsToUpdateOnDB)
+		res.status(400).send('At least one device attribute must be updated')
+		return
+
 	Promise.join(
 		utils.getConfig('apiKey')
 		knex('dependentDevice').select().where({ uuid })
 		(apiKey, [ device ]) ->
 			throw new Error('apikey not found') if !apiKey?
 			return res.status(404).send('Device not found') if !device?
-			resinApi.patch
-				resource: 'device'
-				id: device.deviceId
-				body: _.pickBy({ status, is_online, commit }, isDefined)
-				customOptions:
-					apikey: apiKey
+			return res.status(410).send('Device deleted') if device.markedForDeletion
+			throw new Error('Device is invalid') if !device.deviceId?
+			Promise.try ->
+				if !_.isEmpty(fieldsToUpdateOnAPI)
+					resinApi.patch
+						resource: 'device'
+						id: device.deviceId
+						body: fieldsToUpdateOnAPI
+						customOptions:
+							apikey: apiKey
 			.then ->
-				fieldsToUpdate = _.pickBy({ status, is_online, commit, config, environment }, isDefined)
-				knex('dependentDevice').update(fieldsToUpdate).where({ uuid })
+				knex('dependentDevice').update(fieldsToUpdateOnDB).where({ uuid })
 			.then ->
 				res.json(parseDeviceFields(device))
 	)
@@ -230,6 +242,8 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 			return app.commit? and app.imageId? and !_.some(localApps, imageId: app.imageId)
 		toBeRemoved = _.filter localApps, (app, appId) ->
 			return app.commit? and !_.some(remoteApps, imageId: app.imageId)
+		toBeDeletedFromDB = _.filter localApps, (app, appId) ->
+			return !remoteApps[appId]?
 		Promise.map toBeDownloaded, (app) ->
 			fetchFn(app, false)
 		.then ->
@@ -246,6 +260,10 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 					.then (n) ->
 						knex('dependentApp').insert(app) if n == 0
 			)
+		.then ->
+			knex('dependentApp').del().whereIn('appId', _.keys(toBeDeletedFromDB))
+		.then ->
+			knex('dependentDevice').update({ markedForDeletion: true }).whereNotIn('uuid', _.keys(state.devices))
 		.then ->
 			Promise.all _.map state.devices, (device, uuid) ->
 				# Only consider one app per dependent device for now
@@ -283,21 +301,6 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 	.catch (err) ->
 		console.error('Error fetching dependent apps', err, err.stack)
 
-sendUpdate = (device, endpoint) ->
-	request.putAsync "#{endpoint}#{device.uuid}", {
-		json: true
-		body:
-			appId: parseInt(device.appId)
-			commit: device.targetCommit
-			environment: JSON.parse(device.targetEnvironment)
-			config: JSON.parse(device.targetConfig)
-	}
-	.spread (response, body) ->
-		if response.statusCode != 200
-			throw new Error("Hook returned #{response.statusCode}: #{body}")
-	.catch (err) ->
-		return console.error("Error updating device #{device.uuid}", err, err.stack)
-
 getHookEndpoint = (appId) ->
 	knex('dependentApp').select('parentAppId').where({ appId })
 	.then ([ { parentAppId } ]) ->
@@ -310,18 +313,53 @@ getHookEndpoint = (appId) ->
 				conf.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
 				"#{appConfig.proxyvisorHookReceiver}/v1/devices/"
 
-exports.sendUpdates = ->
-	endpoints = {}
-	knex('dependentDevice').select()
-	.map (device) ->
-		currentState = _.pick(device, 'commit', 'environment', 'config')
-		targetState = {
+do ->
+	acknowledgedState = {}
+	sendUpdate = (device, endpoint) ->
+		stateToSend = {
+			appId: parseInt(device.appId)
 			commit: device.targetCommit
-			environment: device.targetEnvironment
-			config: device.targetConfig
+			environment: JSON.parse(device.targetEnvironment)
+			config: JSON.parse(device.targetConfig)
 		}
-		if device.targetCommit? and !_.isEqual(targetState, currentState)
+		request.putAsync "#{endpoint}#{device.uuid}", {
+			json: true
+			body: stateToSend
+		}
+		.spread (response, body) ->
+			if response.statusCode == 200
+				acknowledgedState[device.uuid] = _.omit(stateToSend, 'appId')
+			else
+				acknowledgedState[device.uuid] = null
+				throw new Error("Hook returned #{response.statusCode}: #{body}") if response.statusCode != 202
+		.catch (err) ->
+			return console.error("Error updating device #{device.uuid}", err, err.stack)
+
+	sendDeleteHook = (device, endpoint) ->
+		uuid = device.uuid
+		request.delAsync("#{endpoint}#{uuid}")
+		.spread (response, body) ->
+			if response.statusCode == 200
+				knex('dependentDevice').del().where({ uuid })
+			else
+				throw new Error("Hook returned #{response.statusCode}: #{body}")
+		.catch (err) ->
+			return console.error("Error deleting device #{device.uuid}", err, err.stack)
+
+	exports.sendUpdates = ->
+		endpoints = {}
+		knex('dependentDevice').select()
+		.map (device) ->
+			currentState = _.pick(device, 'commit', 'environment', 'config')
+			targetState = {
+				commit: device.targetCommit
+				environment: device.targetEnvironment
+				config: device.targetConfig
+			}
 			endpoints[device.appId] ?= getHookEndpoint(device.appId)
 			endpoints[device.appId]
 			.then (endpoint) ->
-				sendUpdate(device, endpoint)
+				if device.markedForDeletion
+					sendDeleteHook(device, endpoint)
+				else if device.targetCommit? and !_.isEqual(targetState, currentState) and !_.isEqual(targetState, acknowledgedState[device.uuid])
+					sendUpdate(device, endpoint)
