@@ -1,3 +1,6 @@
+# v2.5.2
+
+* Removed obsolete resolv.conf bind-mount [petrosagg]
 * Updated to pinejs-client 2 [Page]
 
 # v2.5.1
