@@ -40,17 +40,17 @@ RUN set -x \
 
 COPY package.json /usr/src/app/
 
-# First install devDependencies too in order to run the build
-RUN JOBS=MAX npm install --unsafe-perm
+# Install only the production modules
+RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
+	&& npm dedupe
 
 COPY src /usr/src/app/src
 
-RUN npm run lint \
-	&& npm run build
-
-# Re-install just production modules. This should be fast due to npm cache from previous layer
-RUN rm -rf node_modules \
-	&& JOBS=MAX npm install --unsafe-perm --production --no-optional \
+# Install devDependencies, build the coffeescript and then prune the deps
+RUN npm install --only=dev --no-optional --unsafe-perm \
+	&& npm run lint \
+	&& npm run build \
+	&& npm prune --production \
 	&& npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space

@@ -1,3 +1,4 @@
+* Avoid installing npm dependencies twice [Pablo]
 * Updated to bluebird 3 [Page]
 * Better parameter handling in PUT /v1/devices/:uuid [Pablo]
 * An update hook response of 200 will cause the proxyvisor to stop pinging the hook [Pablo]
