@@ -1,3 +1,5 @@
+# v2.6.0
+
 * Fix docker utils getImageEnv by correctly parsing the returned array [Pablo]
 * Avoid installing npm dependencies twice [Pablo]
 * Updated to bluebird 3 [Page]
