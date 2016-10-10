@@ -17,4 +17,4 @@ exports.cachedResinApi = resinApi.clone({}, cache: {})
 
 request = request.defaults(requestOpts)
 
-exports.request = Promise.promisifyAll(request)
+exports.request = Promise.promisifyAll(request, multiArgs: true)
