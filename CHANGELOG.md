@@ -1,3 +1,5 @@
+* Ignore resinhup images and containers during cleanup [Pablo]
+
 # v2.6.1
 
 Do not use parsed JSON to compare dep. device state [Pablo]
