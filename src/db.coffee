@@ -1,7 +1,7 @@
 Promise = require 'bluebird'
 Knex = require 'knex'
 
-knex = Knex.initialize(
+knex = Knex(
 	client: 'sqlite3'
 	connection:
 		filename: '/data/database.sqlite'

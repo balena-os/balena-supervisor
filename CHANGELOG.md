@@ -1,6 +1,8 @@
+* Updated knex to ~0.12.3
+
 # v2.6.1
 
-Do not use parsed JSON to compare dep. device state [Pablo]
+* Do not use parsed JSON to compare dep. device state [Pablo]
 
 # v2.6.0
 
