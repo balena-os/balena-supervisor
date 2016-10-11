@@ -1,3 +1,5 @@
+Do not use parsed JSON to compare dep. device state [Pablo]
+
 # v2.6.0
 
 * Fix docker utils getImageEnv by correctly parsing the returned array [Pablo]
