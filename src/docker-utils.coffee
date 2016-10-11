@@ -10,6 +10,7 @@ knex = require './db'
 Lock = require 'rwlock'
 utils = require './utils'
 rimraf = Promise.promisify(require('rimraf'))
+device = require './device'
 
 docker = new Docker(socketPath: config.dockerSocket)
 
@@ -121,11 +122,12 @@ do ->
 				.map ({ imageId }) ->
 					normalizeRepoTag(imageId)
 				supervisorTagPromise
+				device.getDeviceType()
 				docker.listImagesAsync()
 				.map (image) ->
 					image.NormalizedRepoTags = Promise.map(image.RepoTags, normalizeRepoTag)
 					Promise.props(image)
-				(locallyCreatedTags, apps, dependentApps, supervisorTag, images) ->
+				(locallyCreatedTags, apps, dependentApps, supervisorTag, deviceType, images) ->
 					imageTags = _.map(images, 'NormalizedRepoTags')
 					supervisorTags = _.filter imageTags, (tags) ->
 						_.includes(tags, supervisorTag)
@@ -135,9 +137,10 @@ do ->
 					supervisorTags = _.flatten(supervisorTags)
 					appTags = _.flatten(appTags)
 					locallyCreatedTags = _.flatten(locallyCreatedTags)
-					return { images, supervisorTags, appTags, locallyCreatedTags }
+					resinhupTagRegex = new RegExp("resinhup/resinhup-#{deviceType}")
+					return { images, supervisorTags, appTags, locallyCreatedTags, resinhupTagRegex }
 			)
-			.then ({ images, supervisorTags, appTags, locallyCreatedTags }) ->
+			.then ({ images, supervisorTags, appTags, locallyCreatedTags, resinhupTagRegex }) ->
 				# Cleanup containers first, so that they don't block image removal.
 				docker.listContainersAsync(all: true)
 				.filter (containerInfo) ->
@@ -147,6 +150,8 @@ do ->
 						if _.includes(appTags, repoTag)
 							return false
 						if _.includes(locallyCreatedTags, repoTag)
+							return false
+						if repoTag.match(resinhupTagRegex)
 							return false
 						if !_.includes(supervisorTags, repoTag)
 							return true
@@ -159,7 +164,7 @@ do ->
 				.then ->
 					imagesToClean = _.reject images, (image) ->
 						_.some image.NormalizedRepoTags, (tag) ->
-							return _.includes(appTags, tag) or _.includes(supervisorTags, tag) or _.includes(locallyCreatedTags, tag)
+							return _.includes(appTags, tag) or _.includes(supervisorTags, tag) or _.includes(locallyCreatedTags, tag) or tag.match(resinhupTagRegex)
 					Promise.map imagesToClean, (image) ->
 						Promise.map image.RepoTags.concat(image.Id), (tag) ->
 							docker.getImage(tag).removeAsync(force: true)
