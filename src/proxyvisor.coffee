@@ -312,6 +312,13 @@ getHookEndpoint = (appId) ->
 				conf.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
 				"#{appConfig.proxyvisorHookReceiver}/v1/devices/"
 
+formatTargetAsState = (device) ->
+	return {
+		commit: device.targetCommit
+		environment: device.targetEnvironment
+		config: device.targetConfig
+	}
+
 do ->
 	acknowledgedState = {}
 	sendUpdate = (device, endpoint) ->
@@ -327,7 +334,7 @@ do ->
 		}
 		.spread (response, body) ->
 			if response.statusCode == 200
-				acknowledgedState[device.uuid] = _.omit(stateToSend, 'appId')
+				acknowledgedState[device.uuid] = formatTargetAsState(device)
 			else
 				acknowledgedState[device.uuid] = null
 				throw new Error("Hook returned #{response.statusCode}: #{body}") if response.statusCode != 202
@@ -350,11 +357,7 @@ do ->
 		knex('dependentDevice').select()
 		.map (device) ->
 			currentState = _.pick(device, 'commit', 'environment', 'config')
-			targetState = {
-				commit: device.targetCommit
-				environment: device.targetEnvironment
-				config: device.targetConfig
-			}
+			targetState = formatTargetAsState(device)
 			endpoints[device.appId] ?= getHookEndpoint(device.appId)
 			endpoints[device.appId]
 			.then (endpoint) ->
