@@ -150,7 +150,7 @@ exports.getConfig = getConfig = (key) ->
 	.then ([ conf ]) ->
 		return conf?.value
 
-exports.setConfig = (key, value) ->
+exports.setConfig = (key, value = null) ->
 	knex('config').update({ value }).where({ key })
 	.then (n) ->
 		knex('config').insert({ key, value }) if n == 0

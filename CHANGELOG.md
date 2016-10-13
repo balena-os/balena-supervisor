@@ -1,3 +1,5 @@
+* Properly set device name, and set undefined arguments to setConfig as null [Pablo]
+
 # v2.6.2
 
 * Updated knex to ~0.12.3
