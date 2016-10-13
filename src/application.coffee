@@ -594,7 +594,7 @@ application.update = update = (force) ->
 			.then ({ local, dependent }) ->
 				proxyvisor.fetchAndSetTargetsForDependentApps(dependent, fetch, apiKey)
 				.then ->
-					utils.setConfig('name', deviceName) if local.name != deviceName
+					utils.setConfig('name', local.name) if local.name != deviceName
 				.then ->
 					parseEnvAndFormatRemoteApps(local.apps, uuid, apiKey)
 			.then (remoteApps) ->
