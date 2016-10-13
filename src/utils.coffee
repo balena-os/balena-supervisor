@@ -5,7 +5,7 @@ config = require './config'
 knex = require './db'
 mixpanel = require 'mixpanel'
 networkCheck = require 'network-checker'
-blink = require('blinking')(config.ledFile)
+Blink = require('blinking')
 url = require 'url'
 randomHexString = require './lib/random-hex-string'
 { request } = require './request'
@@ -13,6 +13,12 @@ logger = require './lib/logger'
 TypedError = require 'typed-error'
 execAsync = Promise.promisify(require('child_process').exec)
 device = require './device'
+
+try
+	blink = Blink(config.ledFile)
+catch err
+	console.error('Unable to open LED file', err, err.stack)
+	blink = _.noop
 
 # Parses package.json and returns resin-supervisor's version
 version = require('../package.json').version

@@ -1,3 +1,5 @@
+* Do not throw an exception if the LED file can't be opened [Pablo]
+
 # v2.6.2
 
 * Updated knex to ~0.12.3
