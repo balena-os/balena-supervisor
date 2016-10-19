@@ -26,6 +26,18 @@ DEPLOY_REGISTRY =
 
 SUPERVISOR_VERSION = master
 
+DOCKER_VERSION:=$(shell docker version --format '{{.Server.Version}}')
+DOCKER_MAJOR_VERSION:=$(word 1, $(subst ., ,$(DOCKER_VERSION)))
+DOCKER_MINOR_VERSION:=$(word 2, $(subst ., ,$(DOCKER_VERSION)))
+DOCKER_GE_1_12 := $(shell [ $(DOCKER_MAJOR_VERSION) -gt 1 -o \( $(DOCKER_MAJOR_VERSION) -eq 1 -a $(DOCKER_MINOR_VERSION) -ge 12 \) ] && echo true)
+
+# In docker 1.12 tag --force has been removed.
+ifeq ($(DOCKER_GE_1_12),true)
+DOCKER_TAG_FORCE=
+else
+DOCKER_TAG_FORCE=-f
+endif
+
 all: supervisor
 
 PUBNUB_SUBSCRIBE_KEY = sub-c-bananas
@@ -160,7 +172,7 @@ lint:
 	docker run --rm resin/node-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c 'npm install resin-lint && npm run lint'
 
 deploy: supervisor
-	docker tag -f $(IMAGE) $(SUPERVISOR_IMAGE)
+	docker tag $(DOCKER_TAG_FORCE) $(IMAGE) $(SUPERVISOR_IMAGE)
 	bash retry_docker_push.sh $(SUPERVISOR_IMAGE)
 
 nodesuper:
