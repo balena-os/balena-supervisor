@@ -202,8 +202,7 @@ fetch = (app, setDeviceUpdateState = true) ->
 			throw err
 
 shouldMountKmod = (image) ->
-	docker.imageRootDir(image)
-	.then (rootDir) ->
+	Promise.using docker.imageRootDirMounted(image), (rootDir) ->
 		utils.getOSVersion(rootDir + '/etc/os-release')
 	.then (version) ->
 		return version? and (version.match(/^Debian/i) or version.match(/^Raspbian/i))
