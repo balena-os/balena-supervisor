@@ -567,6 +567,8 @@ compareForUpdate = (localApps, remoteApps) ->
 	toBeUpdated = _.filter matchedAppIds, (appId) ->
 		localApp = _.omit(localApps[appId], 'config')
 		remoteApp = _.omit(remoteApps[appId], 'config')
+		localApp.env = _.omit(JSON.parse(localApp.env), 'RESIN_DEVICE_NAME_AT_INIT')
+		remoteApp.env = _.omit(JSON.parse(remoteApp.env), 'RESIN_DEVICE_NAME_AT_INIT')
 		return !_.isEqual(remoteApp, localApp) or
 			!_.isEqual(restartVars(JSON.parse(localApps[appId].config)), restartVars(JSON.parse(remoteApps[appId].config)))
 
