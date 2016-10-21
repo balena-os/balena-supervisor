@@ -1,0 +1,81 @@
+From 0ea3a41d2dc8b222093f191e6c2b7c3c89ac4e87 Mon Sep 17 00:00:00 2001
+From: Petros Angelatos <petrosagg@gmail.com>
+Date: Thu, 20 Oct 2016 20:20:56 -0700
+Subject: [PATCH 1/2] Revert "runtime: check and fail early with a message if
+ MMX is not available on 386"
+
+This reverts commit 35e84546d7c3cc599dd5bf31ad86bf8d3d841d04.
+---
+ src/runtime/asm_386.s | 42 ------------------------------------------
+ 1 file changed, 42 deletions(-)
+
+diff --git a/src/runtime/asm_386.s b/src/runtime/asm_386.s
+index 4181859..942446e 100644
+--- a/src/runtime/asm_386.s
++++ b/src/runtime/asm_386.s
+@@ -26,32 +26,6 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0
+ 	MOVL	SP, (g_stack+stack_hi)(BP)
+ 	
+ 	// find out information about the processor we're on
+-#ifdef GOOS_nacl // NaCl doesn't like PUSHFL/POPFL
+-	JMP 	has_cpuid
+-#else
+-	// first see if CPUID instruction is supported.
+-	PUSHFL
+-	PUSHFL
+-	XORL	$(1<<21), 0(SP) // flip ID bit
+-	POPFL
+-	PUSHFL
+-	POPL	AX
+-	XORL	0(SP), AX
+-	POPFL	// restore EFLAGS
+-	TESTL	$(1<<21), AX
+-	JNE 	has_cpuid
+-#endif
+-
+-bad_proc: // show that the program requires MMX.
+-	MOVL	$2, 0(SP)
+-	MOVL	$bad_proc_msg<>(SB), 4(SP)
+-	MOVL	$0x3d, 8(SP)
+-	CALL	runtime·write(SB)
+-	MOVL	$1, 0(SP)
+-	CALL	runtime·exit(SB)
+-	INT	$3
+-
+-has_cpuid:
+ 	MOVL	$0, AX
+ 	CPUID
+ 	CMPL	AX, $0
+@@ -74,11 +48,6 @@ notintel:
+ 	MOVL	CX, AX // Move to global variable clobbers CX when generating PIC
+ 	MOVL	AX, runtime·cpuid_ecx(SB)
+ 	MOVL	DX, runtime·cpuid_edx(SB)
+-
+-	// Check for MMX support
+-	TESTL	$(1<<23), DX	// MMX
+-	JZ 	bad_proc
+-
+ nocpuinfo:	
+ 
+ 	// if there is an _cgo_init, call it to let it
+@@ -160,17 +129,6 @@ ok:
+ 	INT $3
+ 	RET
+ 
+-DATA	bad_proc_msg<>+0x00(SB)/8, $"This pro"
+-DATA	bad_proc_msg<>+0x08(SB)/8, $"gram can"
+-DATA	bad_proc_msg<>+0x10(SB)/8, $" only be"
+-DATA	bad_proc_msg<>+0x18(SB)/8, $" run on "
+-DATA	bad_proc_msg<>+0x20(SB)/8, $"processe"
+-DATA	bad_proc_msg<>+0x28(SB)/8, $"rs with "
+-DATA	bad_proc_msg<>+0x30(SB)/8, $"MMX supp"
+-DATA	bad_proc_msg<>+0x38(SB)/4, $"ort."
+-DATA	bad_proc_msg<>+0x3c(SB)/1, $0xa
+-GLOBL	bad_proc_msg<>(SB), RODATA, $0x3d
+-
+ DATA	runtime·mainPC+0(SB)/4,$runtime·main(SB)
+ GLOBL	runtime·mainPC(SB),RODATA,$4
+ 
+-- 
+2.10.0
+

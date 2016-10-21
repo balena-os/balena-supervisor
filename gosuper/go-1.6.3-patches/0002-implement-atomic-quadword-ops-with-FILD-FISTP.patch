@@ -1,0 +1,91 @@
+From 973d55e9e319a895e406c89413563a2fc787e98c Mon Sep 17 00:00:00 2001
+From: Petros Angelatos <petrosagg@gmail.com>
+Date: Tue, 18 Oct 2016 08:13:44 -0700
+Subject: [PATCH 2/2] implement atomic quadword ops with FILD/FISTP
+
+Signed-off-by: Petros Angelatos <petrosagg@gmail.com>
+---
+ src/runtime/internal/atomic/asm_386.s | 21 ++++++++-------------
+ src/sync/atomic/asm_386.s             | 20 ++++++++------------
+ 2 files changed, 16 insertions(+), 25 deletions(-)
+
+diff --git a/src/runtime/internal/atomic/asm_386.s b/src/runtime/internal/atomic/asm_386.s
+index ce84fd8..cd91023 100644
+--- a/src/runtime/internal/atomic/asm_386.s
++++ b/src/runtime/internal/atomic/asm_386.s
+@@ -121,12 +121,10 @@ TEXT runtime∕internal∕atomic·Load64(SB), NOSPLIT, $0-12
+ 	JZ	2(PC)
+ 	MOVL	0, AX // crash with nil ptr deref
+ 	LEAL	ret_lo+4(FP), BX
+-	// MOVQ (%EAX), %MM0
+-	BYTE $0x0f; BYTE $0x6f; BYTE $0x00
+-	// MOVQ %MM0, 0(%EBX)
+-	BYTE $0x0f; BYTE $0x7f; BYTE $0x03
+-	// EMMS
+-	BYTE $0x0F; BYTE $0x77
++	// FILDQ (%EAX)
++	BYTE $0xdf; BYTE $0x28
++	// FISTPQ (%EBX)
++	BYTE $0xdf; BYTE $0x3b
+ 	RET
+ 
+ // void runtime∕internal∕atomic·Store64(uint64 volatile* addr, uint64 v);
+@@ -135,13 +133,10 @@ TEXT runtime∕internal∕atomic·Store64(SB), NOSPLIT, $0-12
+ 	TESTL	$7, AX
+ 	JZ	2(PC)
+ 	MOVL	0, AX // crash with nil ptr deref
+-	// MOVQ and EMMS were introduced on the Pentium MMX.
+-	// MOVQ 0x8(%ESP), %MM0
+-	BYTE $0x0f; BYTE $0x6f; BYTE $0x44; BYTE $0x24; BYTE $0x08
+-	// MOVQ %MM0, (%EAX)
+-	BYTE $0x0f; BYTE $0x7f; BYTE $0x00 
+-	// EMMS
+-	BYTE $0x0F; BYTE $0x77
++	// FILDQ 0x8(%ESP)
++	BYTE $0xdf; BYTE $0x6c; BYTE $0x24; BYTE $0x08
++	// FISTPQ (%EAX)
++	BYTE $0xdf; BYTE $0x38
+ 	// This is essentially a no-op, but it provides required memory fencing.
+ 	// It can be replaced with MFENCE, but MFENCE was introduced only on the Pentium4 (SSE2).
+ 	MOVL	$0, AX
+diff --git a/src/sync/atomic/asm_386.s b/src/sync/atomic/asm_386.s
+index 383d759..b706047 100644
+--- a/src/sync/atomic/asm_386.s
++++ b/src/sync/atomic/asm_386.s
+@@ -157,12 +157,10 @@ TEXT ·LoadUint64(SB),NOSPLIT,$0-12
+ 	TESTL	$7, AX
+ 	JZ	2(PC)
+ 	MOVL	0, AX // crash with nil ptr deref
+-	// MOVQ and EMMS were introduced on the Pentium MMX.
+-	// MOVQ (%EAX), %MM0
+-	BYTE $0x0f; BYTE $0x6f; BYTE $0x00
+-	// MOVQ %MM0, 0x8(%ESP)
+-	BYTE $0x0f; BYTE $0x7f; BYTE $0x44; BYTE $0x24; BYTE $0x08
+-	EMMS
++	// FILDQ (%EAX)
++	BYTE $0xdf; BYTE $0x28
++	// FISTPQ 0x8(%ESP)
++	BYTE $0xdf; BYTE $0x7c; BYTE $0x24; BYTE $0x08
+ 	RET
+ 
+ TEXT ·LoadUintptr(SB),NOSPLIT,$0-8
+@@ -188,12 +186,10 @@ TEXT ·StoreUint64(SB),NOSPLIT,$0-12
+ 	TESTL	$7, AX
+ 	JZ	2(PC)
+ 	MOVL	0, AX // crash with nil ptr deref
+-	// MOVQ and EMMS were introduced on the Pentium MMX.
+-	// MOVQ 0x8(%ESP), %MM0
+-	BYTE $0x0f; BYTE $0x6f; BYTE $0x44; BYTE $0x24; BYTE $0x08
+-	// MOVQ %MM0, (%EAX)
+-	BYTE $0x0f; BYTE $0x7f; BYTE $0x00 
+-	EMMS
++	// FILDQ 0x8(%ESP)
++	BYTE $0xdf; BYTE $0x6c; BYTE $0x24; BYTE $0x08
++	// FISTPQ (%EAX)
++	BYTE $0xdf; BYTE $0x38
+ 	// This is essentially a no-op, but it provides required memory fencing.
+ 	// It can be replaced with MFENCE, but MFENCE was introduced only on the Pentium4 (SSE2).
+ 	XORL	AX, AX
+-- 
+2.10.0
+
