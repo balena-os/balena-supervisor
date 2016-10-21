@@ -445,6 +445,7 @@ waitToKill = (app, timeout) ->
 UPDATE_IDLE = 0
 UPDATE_UPDATING = 1
 UPDATE_REQUIRED = 2
+UPDATE_SCHEDULED = 3
 
 updateStatus =
 	state: UPDATE_IDLE
@@ -582,12 +583,19 @@ compareForUpdate = (localApps, remoteApps) ->
 	allAppIds = _.union(localAppIds, remoteAppIds)
 	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, allAppIds }
 
-application.update = update = (force) ->
-	if updateStatus.state isnt UPDATE_IDLE
-		# Mark an update required after the current.
-		updateStatus.forceNext = force
-		updateStatus.state = UPDATE_REQUIRED
-		return
+application.update = update = (force, scheduled = false) ->
+	switch updateStatus.state
+		when UPDATE_SCHEDULED
+			if scheduled isnt true
+				# There's an update scheduled but it isn't this one, so just stop
+				return
+		when UPDATE_IDLE
+			# All good, carry on with the update.
+		else
+			# Mark an update required after the current in-progress update.
+			updateStatus.forceNext = force
+			updateStatus.state = UPDATE_REQUIRED
+			return
 	updateStatus.state = UPDATE_UPDATING
 	bootstrap.done.then ->
 		Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), utils.getConfig('name'), knex('app').select(), (apiKey, uuid, deviceName, apps) ->
@@ -680,21 +688,26 @@ application.update = update = (force) ->
 		.catch (err) ->
 			updateStatus.failed++
 			device.setUpdateState(update_failed: true)
-			if updateStatus.state is UPDATE_REQUIRED
+			if updateStatus.state in [ UPDATE_REQUIRED, UPDATE_SCHEDULED ]
 				console.log('Updating failed, but there is already another update scheduled immediately: ', err)
 				return
 			delayTime = Math.min((2 ** updateStatus.failed) * 500, 30000)
 			# If there was an error then schedule another attempt briefly in the future.
 			console.log('Scheduling another update attempt due to failure: ', delayTime, err)
-			setTimeout(update, delayTime, force)
+			setTimeout(update, delayTime, force || updateStatus.forceNext, true)
+			updateStatus.state = UPDATE_SCHEDULED
 		.finally ->
+			switch updateStatus.state
+				when UPDATE_REQUIRED
+					# If an update is required then schedule it
+					setTimeout(update, 1, updateStatus.forceNext, true)
+					updateStatus.state = UPDATE_SCHEDULED
+				when UPDATE_SCHEDULED
+					# Already scheduled, nothing to do here
+				else
+					updateStatus.state = UPDATE_IDLE
 			device.updateState(status: 'Idle')
-			if updateStatus.state is UPDATE_REQUIRED
-				# If an update is required then schedule it
-				setTimeout(update, 1, updateStatus.forceNext)
-		.finally ->
-			# Set the updating as finished in its own block, so it never has to worry about other code stopping this.
-			updateStatus.state = UPDATE_IDLE
+			return
 
 listenToEvents = do ->
 	appHasDied = {}
