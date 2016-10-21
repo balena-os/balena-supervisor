@@ -18,11 +18,6 @@ url = require 'url'
 
 pubnub = PUBNUB.init(appConfig.pubnub)
 
-getAssetsPath = (image) ->
-	docker.imageRootDir(image)
-	.then (rootDir) ->
-		return rootDir + '/assets'
-
 isDefined = _.negate(_.isUndefined)
 
 exports.router = router = express.Router()
@@ -182,17 +177,18 @@ router.put '/v1/devices/:uuid', (req, res) ->
 		console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
 		res.status(503).send(err?.message or err or 'Unknown error')
 
-tarPath = ({ commit }) ->
-	return '/tmp/' + commit + '.tar'
+tarPath = ({ appId, commit }) ->
+	return '/tmp/' + appId + '-' + commit + '.tar'
 
 router.get '/v1/dependent-apps/:appId/assets/:commit', (req, res) ->
 	knex('dependentApp').select().where(_.pick(req.params, 'appId', 'commit'))
 	.then ([ app ]) ->
 		return res.status(404).send('Not found') if !app
 		dest = tarPath(app)
-		getAssetsPath(app.imageId)
-		.then (path) ->
-			getTarArchive(path, dest)
+		fs.lstatAsync(dest)
+		.catch ->
+			Promise.using docker.imageRootDirMounted(app.imageId), (rootDir) ->
+				getTarArchive(rootDir + '/assets', dest)
 		.then ->
 			res.sendFile(dest)
 	.catch (err) ->

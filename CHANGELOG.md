@@ -1,3 +1,5 @@
+* Use appId in dependent app assets tar path, and only create the tar if it doesn't exist [Pablo]
+* Support AUFS by upgrading node-docker-delta to 1.0.0 and docker-toolbelt to 1.3.0 [Pablo]
 * Send the uuid as distinct_id for mixpanel events [Pablo]
 * gosuper: support i386 platforms without MMX instructions [petrosagg]
 
