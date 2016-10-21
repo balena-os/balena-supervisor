@@ -1,3 +1,5 @@
+* gosuper: support i386 platforms without MMX instructions [petrosagg]
+
 # v2.6.3
 
 * Properly set device name, and set undefined arguments to setConfig as null [Pablo]
