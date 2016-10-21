@@ -1,3 +1,4 @@
+* Send the uuid as distinct_id for mixpanel events [Pablo]
 * gosuper: support i386 platforms without MMX instructions [petrosagg]
 
 # v2.6.3

@@ -18,6 +18,7 @@ knex.init.then ->
 	Promise.join bootstrap.startBootstrapping(), utils.getOrGenerateSecret('api'), utils.getOrGenerateSecret('logsChannel'), (uuid, secret, logsChannel) ->
 		# Persist the uuid in subsequent metrics
 		utils.mixpanelProperties.uuid = uuid
+		utils.mixpanelProperties.distinct_id = uuid
 
 		api = require './api'
 		application = require('./application')(logsChannel, bootstrap.offlineMode)
