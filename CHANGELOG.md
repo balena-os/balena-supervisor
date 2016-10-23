@@ -1,3 +1,5 @@
+* Log whether deltas are being used when downloading an app [Pablo]
+
 # v2.7.0
 
 * Upgrade docker-progress to v2.3.1 [Pablo]
