@@ -1,3 +1,4 @@
+* Upgrade docker-progress to v2.3.1 [Pablo]
 * Fixed multiple update loops appearing after a long period of updates failing. [Page]
 * Avoid restarting the app if the device name changes [Pablo]
 * Use appId in dependent app assets tar path, and only create the tar if it doesn't exist [Pablo]
