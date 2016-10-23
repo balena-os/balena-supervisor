@@ -79,7 +79,7 @@ do ->
 					.on 'end', ->
 						onProgress(percentage: 100)
 					.on 'response', (res) ->
-						if res.statusCode isnt 200
+						if res.statusCode isnt 200 and res.statusCode isnt 206
 							reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
 						else
 							if imgSrc is 'resin/scratch'
