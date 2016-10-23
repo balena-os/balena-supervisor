@@ -34,7 +34,7 @@
     "pinejs-client": "^2.4.0",
     "pubnub": "^3.7.13",
     "request": "^2.51.0",
-    "request-progress": "^0.3.1",
+    "request-progress": "^2.0.1",
     "resin-register-device": "^2.0.0",
     "rimraf": "^2.5.4",
     "rwlock": "^5.0.0",
