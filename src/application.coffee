@@ -36,6 +36,9 @@ logTypes =
 	downloadApp:
 		eventName: 'Application download'
 		humanName: 'Downloading application'
+	downloadAppDelta:
+		eventName: 'Application delta download'
+		humanName: 'Downloading delta for application'
 	downloadAppSuccess:
 		eventName: 'Application downloaded'
 		humanName: 'Downloaded application'
@@ -182,15 +185,16 @@ fetch = (app, setDeviceUpdateState = true) ->
 
 	docker.getImage(app.imageId).inspectAsync()
 	.catch (error) ->
-		logSystemEvent(logTypes.downloadApp, app)
 		device.updateState(status: 'Downloading', download_progress: 0)
 
 		Promise.try ->
 			conf = JSON.parse(app.config)
 
 			if conf['RESIN_SUPERVISOR_DELTA'] == '1'
+				logSystemEvent(logTypes.downloadAppDelta, app)
 				dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
 			else
+				logSystemEvent(logTypes.downloadApp, app)
 				dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
