@@ -1,3 +1,4 @@
+* Use multiArgs to promisify gosuper requests [Pablo]
 * Also make it explicit in mixpanel events when it's a full image download [Pablo]
 * Log whether deltas are being used when downloading an app [Pablo]
 

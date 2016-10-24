@@ -203,8 +203,8 @@ gosuperGet = _.partial(gosuperRequest, 'GET')
 exports.gosuper = gosuper =
 	post: gosuperPost
 	get: gosuperGet
-	postAsync: Promise.promisify(gosuperPost)
-	getAsync: Promise.promisify(gosuperGet)
+	postAsync: Promise.promisify(gosuperPost, multiArgs: true)
+	getAsync: Promise.promisify(gosuperGet, multiArgs: true)
 
 # Callback function to enable/disable VPN
 exports.vpnControl = (val) ->
