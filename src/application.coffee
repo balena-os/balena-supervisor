@@ -34,7 +34,7 @@ logTypes =
 		humanName: 'Failed to kill application'
 
 	downloadApp:
-		eventName: 'Application download'
+		eventName: 'Application docker download'
 		humanName: 'Downloading application'
 	downloadAppDelta:
 		eventName: 'Application delta download'
