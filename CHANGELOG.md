@@ -1,3 +1,5 @@
+* Update request-progress to v2.0.1 [Pablo]
+
 # v2.7.1
 
 * Use multiArgs to promisify gosuper requests [Pablo]

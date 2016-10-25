@@ -74,7 +74,8 @@ do ->
 				new Promise (resolve, reject) ->
 					progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
 					.on 'progress', (progress) ->
-						onProgress(percentage: progress.percent)
+						# In request-progress ^2.0.1, "percentage" is a ratio from 0 to 1
+						onProgress(percentage: progress.percentage * 100)
 					.on 'end', ->
 						onProgress(percentage: 100)
 					.on 'response', (res) ->
