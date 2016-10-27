@@ -33,3 +33,8 @@ make ${MAKE_ARGS} \
     DEPLOY_REGISTRY=registry.resinstaging.io/ \
     deploy
 
+# Cleanup removing by Id to actually remove the images rather than untagging them
+docker rmi -f $(docker inspect -f "{{.Id}}" registry.resinstaging.io/resin/${ARCH}-supervisor:${ESCAPED_BRANCH_NAME}) || true
+docker rmi -f $(docker inspect -f "{{.Id}}" resin/${ARCH}-supervisor:${ESCAPED_BRANCH_NAME}) || true
+docker rmi -f $(docker inspect -f "{{.Id}}" registry.resinstaging.io/resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME}) || true
+docker rmi -f $(docker inspect -f "{{.Id}}" registry.resinstaging.io/resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME}) || true
