@@ -1,3 +1,5 @@
+* Add HostConfig in container create instead of start [Pablo]
+* Make it clear in logs when container was already running [Pablo]
 * Stop all apps before rebooting or shutting down [Pablo]
 * Update request-progress to v2.0.1 [Pablo]
 

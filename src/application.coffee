@@ -75,6 +75,9 @@ logTypes =
 	startAppSuccess:
 		eventName: 'Application started'
 		humanName: 'Started application'
+	startAppNoop:
+		eventName: 'Application already running'
+		humanName: 'Application is already running'
 	startAppError:
 		eventName: 'Application start error'
 		humanName: 'Failed to start application'
@@ -218,6 +221,7 @@ shouldMountKmod = (image) ->
 application.start = start = (app) ->
 	volumes = utils.defaultVolumes
 	binds = utils.defaultBinds(app.appId)
+	alreadyStarted = false
 	Promise.try ->
 		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
 		return [ JSON.parse(app.env), JSON.parse(app.config) ]
@@ -243,23 +247,35 @@ application.start = start = (app) ->
 				device.updateState(status: 'Installing')
 
 				ports = {}
+				portBindings = {}
 				if portList?
 					portList.forEach (port) ->
 						ports[port + '/tcp'] = {}
+						portBindings[port + '/tcp'] = [ HostPort: port ]
 
 				if imageInfo?.Config?.Cmd
 					cmd = imageInfo.Config.Cmd
 				else
 					cmd = [ '/bin/bash', '-c', '/start' ]
 
-				docker.createContainerAsync(
-					Image: app.imageId
-					Cmd: cmd
-					Tty: true
-					Volumes: volumes
-					Env: _.map env, (v, k) -> k + '=' + v
-					ExposedPorts: ports
-				)
+				restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
+				shouldMountKmod(app.imageId)
+				.then (shouldMount) ->
+					binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
+					docker.createContainerAsync(
+						Image: app.imageId
+						Cmd: cmd
+						Tty: true
+						Volumes: volumes
+						Env: _.map env, (v, k) -> k + '=' + v
+						ExposedPorts: ports
+						HostConfig:
+							Privileged: true
+							NetworkMode: 'host'
+							PortBindings: portBindings
+							Binds: binds
+							RestartPolicy: restartPolicy
+					)
 				.tap ->
 					logSystemEvent(logTypes.installAppSuccess, app)
 				.catch (err) ->
@@ -268,25 +284,12 @@ application.start = start = (app) ->
 		.tap (container) ->
 			logSystemEvent(logTypes.startApp, app)
 			device.updateState(status: 'Starting')
-			ports = {}
-			if portList?
-				portList.forEach (port) ->
-					ports[port + '/tcp'] = [ HostPort: port ]
-			restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
-			shouldMountKmod(app.imageId)
-			.then (shouldMount) ->
-				binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
-				container.startAsync(
-					Privileged: true
-					NetworkMode: 'host'
-					PortBindings: ports
-					Binds: binds
-					RestartPolicy: restartPolicy
-				)
+			container.startAsync()
 			.catch (err) ->
 				statusCode = '' + err.statusCode
 				# 304 means the container was already started, precisely what we want :)
 				if statusCode is '304'
+					alreadyStarted = true
 					return
 
 				if statusCode is '500' and err.json.trim().match(/exec format error$/)
@@ -316,7 +319,10 @@ application.start = start = (app) ->
 			.then (affectedRows) ->
 				knex('app').insert(app) if affectedRows == 0
 	.tap ->
-		logSystemEvent(logTypes.startAppSuccess, app)
+		if alreadyStarted
+			logSystemEvent(logTypes.startAppNoop, app)
+		else
+			logSystemEvent(logTypes.startAppSuccess, app)
 	.finally ->
 		device.updateState(status: 'Idle')
 
