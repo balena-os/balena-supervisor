@@ -47,25 +47,51 @@ module.exports = (application) ->
 		application.update(req.body.force)
 		res.sendStatus(204)
 
-	unparsedRouter.post '/v1/reboot', (req, res) ->
-		new Promise (resolve, reject) ->
-			application.logSystemMessage('Rebooting', {}, 'Reboot')
-			utils.gosuper.post('/v1/reboot')
-			.on('error', reject)
-			.on('response', -> resolve())
-			.pipe(res)
+	parsedRouter.post '/v1/reboot', (req, res) ->
+		force = req.body.force
+		Promise.map utils.getKnexApps(), (theApp) ->
+			Promise.using application.lockUpdates(theApp.appId, force), ->
+				# There's a slight chance the app changed after the previous select
+				# So we fetch it again now the lock is acquired
+				utils.getKnexApp(theApp.appId)
+				.then (app) ->
+					application.kill(app, removeContainer: false) if app?
+		.then ->
+			new Promise (resolve, reject) ->
+				application.logSystemMessage('Rebooting', {}, 'Reboot')
+				utils.gosuper.post('/v1/reboot')
+				.on('error', reject)
+				.on('response', -> resolve())
+				.pipe(res)
 		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+			if err instanceof application.UpdatesLockedError
+				status = 423
+			else
+				status = 500
+			res.status(status).send(err?.message or err or 'Unknown error')
 
-	unparsedRouter.post '/v1/shutdown', (req, res) ->
-		new Promise (resolve, reject) ->
-			application.logSystemMessage('Shutting down', {}, 'Shutdown')
-			utils.gosuper.post('/v1/shutdown')
-			.on('error', reject)
-			.on('response', -> resolve())
-			.pipe(res)
+	parsedRouter.post '/v1/shutdown', (req, res) ->
+		force = req.body.force
+		Promise.map utils.getKnexApps(), (theApp) ->
+			Promise.using application.lockUpdates(theApp.appId, force), ->
+				# There's a slight chance the app changed after the previous select
+				# So we fetch it again now the lock is acquired
+				utils.getKnexApp(theApp.appId)
+				.then (app) ->
+					application.kill(app, removeContainer: false) if app?
+		.then ->
+			new Promise (resolve, reject) ->
+				application.logSystemMessage('Shutting down', {}, 'Shutdown')
+				utils.gosuper.post('/v1/shutdown')
+				.on('error', reject)
+				.on('response', -> resolve())
+				.pipe(res)
 		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+			if err instanceof application.UpdatesLockedError
+				status = 423
+			else
+				status = 500
+			res.status(status).send(err?.message or err or 'Unknown error')
 
 	parsedRouter.post '/v1/purge', (req, res) ->
 		appId = req.body.appId
@@ -130,7 +156,7 @@ module.exports = (application) ->
 		Promise.using application.lockUpdates(appId, force), ->
 			utils.getKnexApp(appId)
 			.tap (app) ->
-				application.kill(app, true, false)
+				application.kill(app, removeContainer: false)
 			.then (app) ->
 				res.json(_.pick(app, 'containerId'))
 		.catch utils.AppNotFoundError, (e) ->

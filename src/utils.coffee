@@ -225,6 +225,9 @@ exports.getKnexApp = (appId, columns) ->
 			throw new AppNotFoundError('App not found')
 		return app
 
+exports.getKnexApps = (columns) ->
+	knex('app').select(columns)
+
 exports.getOSVersion = (path) ->
 	fs.readFileAsync(path)
 	.then (releaseData) ->
