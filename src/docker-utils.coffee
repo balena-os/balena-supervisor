@@ -44,6 +44,7 @@ findSimilarImage = (repoTag) ->
 		return 'resin/scratch'
 
 DELTA_REQUEST_TIMEOUT = 15 * 60 * 1000
+DELTA_TOTAL_TIMEOUT = 30 * 60 * 1000
 
 getRepoAndTag = (image) ->
 	docker.getRegistryAndName(image)
@@ -90,6 +91,7 @@ do ->
 							.on('id', resolve)
 							.on('error', reject)
 					.on 'error', reject
+				.timeout(DELTA_TOTAL_TIMEOUT)
 			.then (id) ->
 				getRepoAndTag(imgDest)
 				.then ({ repo, tag }) ->

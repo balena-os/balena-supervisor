@@ -33,6 +33,7 @@ bootstrap = ->
 		if userConfig.registered_at?
 			return userConfig
 		deviceRegister.register(resinApi, userConfig)
+		.timeout(config.apiTimeout)
 		.catch DuplicateUuidError, ->
 			resinApi.get
 				resource: 'device'
@@ -41,6 +42,7 @@ bootstrap = ->
 						uuid: userConfig.uuid
 				customOptions:
 					apikey: userConfig.apiKey
+			.timeout(config.apiTimeout)
 			.then ([ device ]) ->
 				return device
 		.then (device) ->

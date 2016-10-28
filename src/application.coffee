@@ -533,6 +533,7 @@ getRemoteState = (uuid, apiKey) ->
 	, cachedResinApi.passthrough
 
 	cachedResinApi._request(requestParams)
+	.timeout(config.apiTimeout)
 	.catch (err) ->
 		console.error("Failed to get state for device #{uuid}. #{err}")
 		throw err
