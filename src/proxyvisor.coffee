@@ -239,8 +239,7 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 			return app.commit? and app.imageId? and !_.some(localApps, imageId: app.imageId)
 		toBeRemoved = _.filter localApps, (app, appId) ->
 			return app.commit? and !_.some(remoteApps, imageId: app.imageId)
-		toBeDeletedFromDB = _.filter localApps, (app, appId) ->
-			return !remoteApps[appId]?
+		toBeDeletedFromDB = _(localApps).reject((app, appId) -> remoteApps[appId]?).map('appId').value()
 		Promise.map toBeDownloaded, (app) ->
 			fetchFn(app, false)
 		.then ->
@@ -258,7 +257,9 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 						knex('dependentApp').insert(app) if n == 0
 			)
 		.then ->
-			knex('dependentApp').del().whereIn('appId', _.keys(toBeDeletedFromDB))
+			knex('dependentDevice').del().whereIn('appId', toBeDeletedFromDB)
+		.then ->
+			knex('dependentApp').del().whereIn('appId', toBeDeletedFromDB)
 		.then ->
 			knex('dependentDevice').update({ markedForDeletion: true }).whereNotIn('uuid', _.keys(state.devices))
 		.then ->
