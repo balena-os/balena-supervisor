@@ -35,6 +35,7 @@ exports.getID = do ->
 					customOptions:
 						apikey: apiKey
 				)
+				.timeout(config.apiTimeout)
 			.then (devices) ->
 				if devices.length is 0
 					throw new Error('Could not find this device?!')
@@ -192,6 +193,7 @@ do ->
 					body: stateDiff
 					customOptions:
 						apikey: apiKey
+				.timeout(config.apiTimeout)
 				.then ->
 					# Update the actual state.
 					_.merge(actualState, stateDiff)

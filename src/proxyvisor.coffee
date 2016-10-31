@@ -67,6 +67,7 @@ router.post '/v1/devices', (req, res) ->
 				body: d
 				customOptions:
 					apikey: apiKey
+			.timeout(appConfig.apiTimeout)
 			.then (dev) ->
 				# If the response has id: null then something was wrong in the request
 				# but we don't know precisely what.
@@ -168,6 +169,7 @@ router.put '/v1/devices/:uuid', (req, res) ->
 						body: fieldsToUpdateOnAPI
 						customOptions:
 							apikey: apiKey
+					.timeout(appConfig.apiTimeout)
 			.then ->
 				knex('dependentDevice').update(fieldsToUpdateOnDB).where({ uuid })
 			.then ->
@@ -278,6 +280,7 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 								uuid: uuid
 						customOptions:
 							apikey: apiKey
+					.timeout(appConfig.apiTimeout)
 					.then ([ dev ]) ->
 						deviceForDB = {
 							uuid: uuid
@@ -328,6 +331,7 @@ do ->
 			json: true
 			body: stateToSend
 		}
+		.timeout(appConfig.apiTimeout)
 		.spread (response, body) ->
 			if response.statusCode == 200
 				acknowledgedState[device.uuid] = formatTargetAsState(device)
@@ -340,6 +344,7 @@ do ->
 	sendDeleteHook = (device, endpoint) ->
 		uuid = device.uuid
 		request.delAsync("#{endpoint}#{uuid}")
+		.timeout(appConfig.apiTimeout)
 		.spread (response, body) ->
 			if response.statusCode == 200
 				knex('dependentDevice').del().where({ uuid })
