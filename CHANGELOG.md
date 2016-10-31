@@ -1,3 +1,5 @@
+# v2.8.1
+
 * Properly delete dependent apps and their corresponding devices [Pablo]
 
 # v2.8.0
