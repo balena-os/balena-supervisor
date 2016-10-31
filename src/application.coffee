@@ -593,7 +593,7 @@ compareForUpdate = (localApps, remoteApps) ->
 		return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
 	toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
 	allAppIds = _.union(localAppIds, remoteAppIds)
-	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, allAppIds }
+	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, remoteAppIds, allAppIds }
 
 application.update = update = (force, scheduled = false) ->
 	switch updateStatus.state
@@ -621,15 +621,15 @@ application.update = update = (force, scheduled = false) ->
 			.then (remoteApps) ->
 				localApps = formatLocalApps(apps)
 				resourcesForUpdate = compareForUpdate(localApps, remoteApps)
-				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, allAppIds } = resourcesForUpdate
+				{ toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, remoteAppIds, allAppIds } = resourcesForUpdate
 
 				if !_.isEmpty(toBeRemoved) or !_.isEmpty(toBeInstalled) or !_.isEmpty(toBeUpdated)
 					device.setUpdateState(update_pending: true)
 				# Run special functions against variables
-				remoteDeviceConfig = {}
-				Promise.map allAppIds, (appId) ->
-					_.merge(remoteDeviceConfig, JSON.parse(remoteApps[appId].config))
-				.then ->
+				Promise.try ->
+					remoteDeviceConfig = {}
+					_.map remoteAppIds, (appId) ->
+						_.merge(remoteDeviceConfig, JSON.parse(remoteApps[appId].config))
 					device.setConfig({ targetValues: remoteDeviceConfig })
 					.then ->
 						getAndApplyDeviceConfig()
