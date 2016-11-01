@@ -113,12 +113,15 @@ module.exports = (application) ->
 					.finally ->
 						application.start(app)
 		.catch (err) ->
+			status = 503
+			if err instanceof utils.AppNotFoundError
+				errMsg = "App not found: an app needs to be installed for purge to work.
+					If you've recently moved this device from another app,
+					please push an app and wait for it to be installed first."
+				err = new Error(errMsg)
+				status = 400
 			application.logSystemMessage("Error purging /data: #{err}", { appId, error: err }, 'Purge /data error')
-			throw err
-		.catch utils.AppNotFoundError, (e) ->
-			return res.status(400).send(e.message)
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+			res.status(status).send(err?.message or err or 'Unknown error')
 
 	unparsedRouter.post '/v1/tcp-ping', (req, res) ->
 		utils.disableCheck(false)

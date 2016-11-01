@@ -1,3 +1,4 @@
+* Provide a better error message when app is not found for purging [Pablo]
 * Only iterate through remote apps to set device config [Pablo]
 
 # v2.8.1
