@@ -1,3 +1,5 @@
+* Only iterate through remote apps to set device config [Pablo]
+
 # v2.8.1
 
 * Properly delete dependent apps and their corresponding devices [Pablo]
