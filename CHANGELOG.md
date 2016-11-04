@@ -1,3 +1,4 @@
+* Update the supervisor base to 20161103 to include the i386 fix [Pablo]
 * Fix nodejs for the i386 architectures [Theodor]
 * Provide a better error message when app is not found for purging [Pablo]
 * Only iterate through remote apps to set device config [Pablo]
