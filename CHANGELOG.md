@@ -1,4 +1,7 @@
+# v2.8.2
+
 * Update the supervisor base to 20161103 to include the i386 fix [Pablo]
+* Fix an error when trying to call logSystemEvent with an undefined app [Page]
 * Fix nodejs for the i386 architectures [Theodor]
 * Provide a better error message when app is not found for purging [Pablo]
 * Only iterate through remote apps to set device config [Pablo]
