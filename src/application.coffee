@@ -114,7 +114,7 @@ application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
 	logger.log({ m: message, s: 1 })
 	utils.mixpanelTrack(eventName ? message, obj)
 
-logSystemEvent = (logType, app, error) ->
+logSystemEvent = (logType, app = {}, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
 	if error?
 		# Report the message from the original cause to the user.
@@ -640,7 +640,8 @@ application.update = update = (force, scheduled = false) ->
 					Promise.try ->
 						needsDownload = _.includes(toBeDownloaded, appId)
 						if _.includes(toBeRemoved, appId)
-							Promise.using lockUpdates(localApps[appId], force), ->
+							app = localApps[appId]
+							Promise.using lockUpdates(app, force), ->
 								# We get the app from the DB again in case someone restarted it
 								# (which would have changed its containerId)
 								utils.getKnexApp(appId)
