@@ -1,5 +1,5 @@
 # Minimal runtime image
-FROM resin/%%ARCH%%-supervisor-base:20160913
+FROM resin/%%ARCH%%-supervisor-base:20161103
 
 WORKDIR /usr/src/app
 
