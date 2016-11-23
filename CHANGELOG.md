@@ -1,3 +1,5 @@
+# v2.8.3
+
 * Fallback to DROP when iptables REJECT is not available [Pablo]
 
 # v2.8.2
