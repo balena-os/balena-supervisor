@@ -323,3 +323,6 @@ exports.createIpTablesRules = ->
 		checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -i #{iface} -j ACCEPT")
 	.then ->
 		checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -j REJECT")
+		.catch ->
+			# On systems without REJECT support, fall back to DROP
+			checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -j DROP")

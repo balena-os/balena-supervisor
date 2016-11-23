@@ -1,3 +1,5 @@
+* Fallback to DROP when iptables REJECT is not available [Pablo]
+
 # v2.8.2
 
 * Update the supervisor base to 20161103 to include the i386 fix [Pablo]
