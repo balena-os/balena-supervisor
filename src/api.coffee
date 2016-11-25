@@ -14,7 +14,8 @@ module.exports = (application) ->
 	api = express()
 	unparsedRouter = express.Router()
 	parsedRouter = express.Router()
-	parsedRouter.use(bodyParser())
+	parsedRouter.use(bodyParser.json())
+	parsedRouter.use(bodyParser.urlencoded(extended: true))
 
 	api.use (req, res, next) ->
 		queryKey = req.query.apikey

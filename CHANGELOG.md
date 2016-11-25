@@ -1,3 +1,5 @@
+* Remove bodyParser deprecation warnings by using it in the correct way [Pablo]
+
 # v2.8.3
 
 * Fallback to DROP when iptables REJECT is not available [Pablo]

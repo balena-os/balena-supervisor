@@ -21,7 +21,8 @@ pubnub = PUBNUB.init(appConfig.pubnub)
 isDefined = _.negate(_.isUndefined)
 
 exports.router = router = express.Router()
-router.use(bodyParser())
+router.use(bodyParser.json())
+router.use(bodyParser.urlencoded(extended: true))
 
 parseDeviceFields = (device) ->
 	device.id = parseInt(device.deviceId)
