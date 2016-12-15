@@ -25,6 +25,7 @@ ARCH = rpi# rpi/amd64/i386/armv7hf/armel
 DEPLOY_REGISTRY =
 
 SUPERVISOR_VERSION = master
+ESCAPED_BASE_IMAGE_TAG = resin\/$(ARCH)-supervisor-base:$(SUPERVISOR_VERSION)
 
 DOCKER_VERSION:=$(shell docker version --format '{{.Server.Version}}')
 DOCKER_MAJOR_VERSION:=$(word 1, $(subst ., ,$(DOCKER_VERSION)))
@@ -144,7 +145,7 @@ refresh-supervisor-src:
 	&& docker exec -ti resin_supervisor_1 docker restart resin_supervisor
 
 supervisor: nodesuper gosuper
-	sed 's/%%ARCH%%/$(ARCH)/g' Dockerfile.runtime.template > Dockerfile.runtime.$(ARCH)
+	sed 's/%%ARCH%%/$(ARCH)/g' Dockerfile.runtime.template | sed 's/%%BASE_IMAGE_TAG%%/$(ESCAPED_BASE_IMAGE_TAG)/g' > Dockerfile.runtime.$(ARCH)
 	echo "ENV VERSION=$(shell jq -r .version package.json) \\" >> Dockerfile.runtime.$(ARCH)
 	echo "    DEFAULT_PUBNUB_PUBLISH_KEY=$(PUBNUB_PUBLISH_KEY) \\" >> Dockerfile.runtime.$(ARCH)
 	echo "    DEFAULT_PUBNUB_SUBSCRIBE_KEY=$(PUBNUB_SUBSCRIBE_KEY) \\" >> Dockerfile.runtime.$(ARCH)
