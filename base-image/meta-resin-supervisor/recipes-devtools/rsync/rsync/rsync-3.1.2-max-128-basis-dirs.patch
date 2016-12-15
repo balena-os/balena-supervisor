@@ -1,0 +1,30 @@
+From c630e487ba704fdd45d441ccfff4e678eacba758 Mon Sep 17 00:00:00 2001
+From: Pablo Carranza Velez <pablo@resin.io>
+Date: Thu, 8 Dec 2016 23:27:59 -0300
+Subject: [PATCH] Change maximum amount of basis directories to 128.
+
+It is 1 more than the maximum number of docker layers, which allows
+ performing hardlink copies of docker images using rsync.
+ Also it's a power of 2 so it's a prettier number.
+
+Signed-off-by: Pablo Carranza Velez <pablo@resin.io>
+---
+ rsync.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/rsync.h b/rsync.h
+index 6e1e1dd..36a2097 100644
+--- a/rsync.h
++++ b/rsync.h
+@@ -148,7 +148,7 @@
+ #define IOERR_DEL_LIMIT (1<<2)
+ 
+ #define MAX_ARGS 1000
+-#define MAX_BASIS_DIRS 20
++#define MAX_BASIS_DIRS 128
+ #define MAX_SERVER_ARGS (MAX_BASIS_DIRS*2 + 100)
+ 
+ #define MPLEX_BASE 7
+-- 
+2.5.0
+
