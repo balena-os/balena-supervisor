@@ -164,6 +164,18 @@ make ARCH=amd64 test-integration
 The tests will fail if the supervisor API is down - bear in mind that the supervisor image takes a while to start the actual supervisor program, so you might have to wait a few minutes between running the supervisor and testing it.
 The test expects the supervisor to be already running the application (so that the app is already on the SQLite database), so check the dashboard to see if the app has already downloaded.
 
+## Contributing
+
+If you're interested in contributing, that's awesome!
+
+Here's a few guidelines to make the process easier for everyone involved.
+
+* Every PR *should* have an associated issue, and the PR's opening comment should say "Fixes #issue" or "Closes #issue".
+* We use [Versionist](https://github.com/resin-io/versionist) to manage versioning (and in particular, [semantic versioning](semver.org)) and generate the changelog for this project.
+* At least one commit in a PR should have a `Change-Type: type` footer, where `type` can be `patch`, `minor` or `major`. The subject of this commit will be added to the changelog.
+* Commits should be squashed as much as makes sense.
+* Commits should be signed-off (`git commit -s`)
+
 ## License
 
 Copyright 2015 Rulemotion Ltd.
