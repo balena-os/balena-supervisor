@@ -48,7 +48,7 @@ for machine in $MACHINE_LIST; do
 		supervisor-base-builder
 	if [ -f dest/rootfs.tar.gz ]; then
 		docker import dest/rootfs.tar.gz $REPO:$date
-		docker tag -f $REPO:$date $REPO:latest
+		docker tag $REPO:$date $REPO:latest
 		docker push $REPO
 	else
 		echo "rootfs is missing!"
