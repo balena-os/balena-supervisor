@@ -8,9 +8,6 @@ set -o pipefail
 
 JENKINS_PERSISTENT_WORKDIR=${1:-/var/lib/yocto}
 DL_DIR="$JENKINS_PERSISTENT_WORKDIR/shared-downloads"
-
-git submodule update --init --recursive
-rm -rf dest
 mkdir dest
 
 BUILDER_REPO=registry.resinstaging.io/resin/${ARCH}-supervisor-base-builder
