@@ -210,13 +210,15 @@ fetch = (app, setDeviceUpdateState = true) ->
 			throw err
 
 shouldMountKmod = (image) ->
-	Promise.using docker.imageRootDirMounted(image), (rootDir) ->
-		utils.getOSVersion(rootDir + '/etc/os-release')
-	.then (version) ->
-		return version? and (version.match(/^Debian/i) or version.match(/^Raspbian/i))
-	.catch (err) ->
-		console.error('Error getting app OS release: ', err)
-		return false
+	device.getOSVersion().then (osVersion) ->
+		return false if not /^Resin OS 1./.test(osVersion)
+		Promise.using docker.imageRootDirMounted(image), (rootDir) ->
+			utils.getOSVersion(rootDir + '/etc/os-release')
+		.then (version) ->
+			return version? and /^(Debian|Raspbian)/i.test(version)
+		.catch (err) ->
+			console.error('Error getting app OS release: ', err)
+			return false
 
 application.start = start = (app) ->
 	volumes = utils.defaultVolumes

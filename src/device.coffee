@@ -1,5 +1,6 @@
 _ = require 'lodash'
 Promise = require 'bluebird'
+memoizee = require 'memoizee'
 knex = require './db'
 utils = require './utils'
 { resinApi } = require './request'
@@ -10,36 +11,31 @@ execAsync = Promise.promisify(require('child_process').exec)
 fs = Promise.promisifyAll(require('fs'))
 bootstrap = require './bootstrap'
 
-exports.getID = do ->
-	deviceIdPromise = null
-	return ->
-		# We initialise the rejected promise just before we catch in order to avoid a useless first unhandled error warning.
-		deviceIdPromise ?= Promise.rejected()
-		# Only fetch the device id once (when successful, otherwise retry for each request)
-		deviceIdPromise = deviceIdPromise.catch ->
-			# Wait for bootstrapping to be done before querying the Resin API
-			# This will also block users of getID (like applyState below until this is resolved)
-			bootstrap.done
-			.then ->
-				Promise.all([
-					knex('config').select('value').where(key: 'apiKey')
-					knex('config').select('value').where(key: 'uuid')
-				])
-			.spread ([{ value: apiKey }], [{ value: uuid }]) ->
-				resinApi.get(
-					resource: 'device'
-					options:
-						select: 'id'
-						filter:
-							uuid: uuid
-					customOptions:
-						apikey: apiKey
-				)
-				.timeout(config.apiTimeout)
-			.then (devices) ->
-				if devices.length is 0
-					throw new Error('Could not find this device?!')
-				return devices[0].id
+memoizePromise = _.partial(memoizee, _, promise: true)
+
+
+exports.getID = memoizePromise ->
+	bootstrap.done
+	.then ->
+		Promise.all([
+			knex('config').select('value').where(key: 'apiKey')
+			knex('config').select('value').where(key: 'uuid')
+		])
+	.spread ([{ value: apiKey }], [{ value: uuid }]) ->
+		resinApi.get(
+			resource: 'device'
+			options:
+				select: 'id'
+				filter:
+					uuid: uuid
+			customOptions:
+				apikey: apiKey
+		)
+		.timeout(config.apiTimeout)
+	.then (devices) ->
+		if devices.length is 0
+			throw new Error('Could not find this device?!')
+		return devices[0].id
 
 exports.reboot = ->
 	utils.gosuper.postAsync('/v1/reboot')
@@ -154,17 +150,13 @@ setBootConfig = (env, oldEnv, logMessage) ->
 		console.log('Will not set boot config: ', err)
 		return false
 
-exports.getDeviceType = do ->
-	deviceTypePromise = null
-	return ->
-		deviceTypePromise ?= Promise.rejected()
-		deviceTypePromise = deviceTypePromise.catch ->
-			fs.readFileAsync(configPath, 'utf8')
-			.then(JSON.parse)
-			.then (configFromFile) ->
-				if !configFromFile.deviceType?
-					throw new Error('Device type not specified in config file')
-				return configFromFile.deviceType
+exports.getDeviceType = memoizePromise ->
+	fs.readFileAsync(configPath, 'utf8')
+	.then(JSON.parse)
+	.then (configFromFile) ->
+		if !configFromFile.deviceType?
+			throw new Error('Device type not specified in config file')
+		return configFromFile.deviceType
 
 do ->
 	applyPromise = Promise.resolve()
@@ -227,8 +219,8 @@ do ->
 			applyState()
 		return
 
-exports.getOSVersion = ->
-	return utils.getOSVersion(config.hostOsVersionPath)
+exports.getOSVersion = memoizePromise ->
+	utils.getOSVersion(config.hostOsVersionPath)
 
 exports.getConfig = ->
 	knex('deviceConfig').select()
