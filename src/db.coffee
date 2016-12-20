@@ -28,8 +28,10 @@ knex.init = Promise.all([
 			knex.schema.createTable 'deviceConfig', (t) ->
 				t.json('values')
 				t.json('targetValues')
-			.then ->
-				knex('deviceConfig').insert({ values: '{}', targetValues: '{}' })
+	.then ->
+		knex('deviceConfig').select()
+		.then (deviceConfigs) ->
+			knex('deviceConfig').insert({ values: '{}', targetValues: '{}' }) if deviceConfigs.length == 0
 
 	knex.schema.hasTable('app')
 	.then (exists) ->
