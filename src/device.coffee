@@ -167,6 +167,8 @@ exports.getDeviceType = do ->
 				return configFromFile.deviceType
 
 do ->
+	APPLY_STATE_SUCCESS_DELAY = 1000
+	APPLY_STATE_RETRY_DELAY = 5000
 	applyPromise = Promise.resolve()
 	targetState = {}
 	actualState = {}
@@ -198,10 +200,11 @@ do ->
 					# Update the actual state.
 					_.merge(actualState, stateDiff)
 		)
+		.delay(APPLY_STATE_SUCCESS_DELAY)
 		.catch (error) ->
 			utils.mixpanelTrack('Device info update failure', { error, stateDiff })
 			# Delay 5s before retrying a failed update
-			Promise.delay(5000)
+			Promise.delay(APPLY_STATE_RETRY_DELAY)
 		.finally ->
 			# Check if any more state diffs have appeared whilst we've been processing this update.
 			applyState()
