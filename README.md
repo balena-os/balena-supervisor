@@ -62,9 +62,13 @@ The config.json file should look something like this:
 Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the resin API.
 
 ### Start the supervisor instance
+
+Ensure your kernel supports aufs (in Ubuntu, install `linux-image-extra-$(uname -r)`) and the `aufs` module is loaded (if necessary, run `sudo modprobe aufs`).
+
 ```bash
-make ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master run-supervisor
+ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master ./tools/dev/dindctl run
 ```
+
 This will setup a docker-in-docker instance with an image that runs the supervisor image.
 
 ### Testing with preloaded apps
@@ -99,7 +103,7 @@ This will make the docker-in-docker instance pull the image specified in apps.js
 If you want to enable passwordless dropbear login (e.g. while testing `resin sync`) you can set the `PASSWORDLESS_DROPBEAR` option to `true`, like:
 
 ```bash
-make PASSWORDLESS_DROPBEAR=true ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master run-supervisor
+PASSWORDLESS_DROPBEAR=true ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master ./tools/dev/dindctl run
 ```
 
 ### View the containers logs
@@ -109,13 +113,12 @@ docker exec -it resin_supervisor_1 journalctl -f
 
 ### View the supervisor logs
 ```bash
-docker exec -it resin_supervisor_1 /bin/bash
-tail /var/log/supervisor-log/resin_supervisor_stdout.log -f
+./tools/dev/dindctl logs -f
 ```
 
 ### Stop the supervisor
 ```bash
-make stop-supervisor
+./tools/dev/dindctl stop
 ```
 This will stop the container and remove it, also removing its volumes.
 
