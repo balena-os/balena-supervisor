@@ -10,6 +10,7 @@ knex = require './db'
 Lock = require 'rwlock'
 utils = require './utils'
 rimraf = Promise.promisify(require('rimraf'))
+resumable = require 'resumable-request'
 
 docker = new Docker(socketPath: config.dockerSocket)
 
@@ -73,14 +74,14 @@ do ->
 				findSimilarImage(imgDest)
 			.then (imgSrc) ->
 				new Promise (resolve, reject) ->
-					progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
+					progress resumable(request, { url: "#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT })
 					.on 'progress', (progress) ->
 						# In request-progress ^2.0.1, "percentage" is a ratio from 0 to 1
 						onProgress(percentage: progress.percentage * 100)
 					.on 'end', ->
 						onProgress(percentage: 100)
 					.on 'response', (res) ->
-						if res.statusCode isnt 200
+						if res.statusCode isnt 200 and res.statusCode isnt 206
 							reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
 						else
 							if imgSrc is 'resin/scratch'
