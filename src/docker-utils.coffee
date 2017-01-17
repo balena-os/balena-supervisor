@@ -43,9 +43,6 @@ findSimilarImage = (repoTag) ->
 		# Otherwise we start from scratch
 		return 'resin/scratch'
 
-DELTA_REQUEST_TIMEOUT = 15 * 60 * 1000
-DELTA_TOTAL_TIMEOUT = 30 * 60 * 1000
-
 getRepoAndTag = (image) ->
 	docker.getRegistryAndName(image)
 	.then ({ registry, imageName, tagName }) ->
@@ -65,7 +62,7 @@ do ->
 		.disposer (release) ->
 			release()
 
-	exports.rsyncImageWithProgress = (imgDest, onProgress, startFromEmpty = false) ->
+	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, totalTimeout, startFromEmpty = false }, onProgress) ->
 		Promise.using readLockImages(), ->
 			Promise.try ->
 				if startFromEmpty
@@ -73,14 +70,16 @@ do ->
 				findSimilarImage(imgDest)
 			.then (imgSrc) ->
 				new Promise (resolve, reject) ->
-					progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: DELTA_REQUEST_TIMEOUT)
+					progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: requestTimeout)
 					.on 'progress', (progress) ->
 						# In request-progress ^2.0.1, "percentage" is a ratio from 0 to 1
 						onProgress(percentage: progress.percentage * 100)
 					.on 'end', ->
 						onProgress(percentage: 100)
 					.on 'response', (res) ->
-						if res.statusCode isnt 200
+						if res.statusCode is 504
+							reject(new Error('Delta server is still processing the delta, will retry'))
+						else if res.statusCode isnt 200
 							reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
 						else
 							if imgSrc is 'resin/scratch'
@@ -91,14 +90,14 @@ do ->
 							.on('id', resolve)
 							.on('error', reject)
 					.on 'error', reject
-				.timeout(DELTA_TOTAL_TIMEOUT)
+				.timeout(totalTimeout)
 			.then (id) ->
 				getRepoAndTag(imgDest)
 				.then ({ repo, tag }) ->
 					docker.getImage(id).tagAsync({ repo, tag, force: true })
 			.catch dockerDelta.OutOfSyncError, (err) ->
 				console.log('Falling back to delta-from-empty')
-				exports.rsyncImageWithProgress(imgDest, onProgress, true)
+				exports.rsyncImageWithProgress(imgDest, { requestTimeout, totalTimeout, startFromEmpty: true }, onProgress)
 
 	exports.fetchImageWithProgress = (image, onProgress) ->
 		Promise.using readLockImages(), ->

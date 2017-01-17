@@ -196,7 +196,9 @@ fetch = (app, setDeviceUpdateState = true) ->
 
 			if conf['RESIN_SUPERVISOR_DELTA'] == '1'
 				logSystemEvent(logTypes.downloadAppDelta, app)
-				dockerUtils.rsyncImageWithProgress(app.imageId, onProgress)
+				requestTimeout = conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'] ? 30 * 60 * 1000
+				totalTimeout = conf['RESIN_SUPERVISOR_DELTA_TOTAL_TIMEOUT'] ? 24 * 60 * 60 * 1000
+				dockerUtils.rsyncImageWithProgress(app.imageId, { requestTimeout, totalTimeout }, onProgress)
 			else
 				logSystemEvent(logTypes.downloadApp, app)
 				dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
