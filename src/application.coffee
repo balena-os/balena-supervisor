@@ -15,6 +15,7 @@ TypedError = require 'typed-error'
 fs = Promise.promisifyAll(require('fs'))
 JSONStream = require 'JSONStream'
 proxyvisor = require './proxyvisor'
+{ checkInt } = require './lib/validation'
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -196,8 +197,8 @@ fetch = (app, setDeviceUpdateState = true) ->
 
 			if conf['RESIN_SUPERVISOR_DELTA'] == '1'
 				logSystemEvent(logTypes.downloadAppDelta, app)
-				requestTimeout = conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'] ? 30 * 60 * 1000
-				totalTimeout = conf['RESIN_SUPERVISOR_DELTA_TOTAL_TIMEOUT'] ? 24 * 60 * 60 * 1000
+				requestTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'], positive: true) ? 30 * 60 * 1000
+				totalTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_TOTAL_TIMEOUT'], positive: true) ? 24 * 60 * 60 * 1000
 				dockerUtils.rsyncImageWithProgress(app.imageId, { requestTimeout, totalTimeout }, onProgress)
 			else
 				logSystemEvent(logTypes.downloadApp, app)
@@ -395,7 +396,7 @@ application.poll = ->
 
 # Callback function to set the API poll interval dynamically.
 apiPollInterval = (val) ->
-	config.appUpdatePollInterval = config.checkInt(val) ? 60000
+	config.appUpdatePollInterval = checkInt(val, positive: true) ? 60000
 	console.log('New API poll interval: ' + val)
 	clearInterval(updateStatus.intervalHandle)
 	application.poll()
@@ -443,8 +444,7 @@ wrapAsError = (err) ->
 waitToKill = (app, timeout) ->
 	startTime = Date.now()
 	pollInterval = 100
-	timeout = parseInt(timeout)
-	timeout = 60000 if isNaN(timeout)
+	timeout = checkInt(timeout, positive: true) ? 60000
 	checkFileOrTimeout = ->
 		fs.statAsync(killmePath(app))
 		.catch (err) ->
