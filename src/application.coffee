@@ -16,6 +16,7 @@ fs = Promise.promisifyAll(require('fs'))
 JSONStream = require 'JSONStream'
 proxyvisor = require './proxyvisor'
 { checkInt } = require './lib/validation'
+deviceConfig = require './device-config'
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -427,11 +428,11 @@ executeSpecialActionsAndHostConfig = (conf, oldConf) ->
 			device.setHostConfig(hostConfigVars, oldHostConfigVars, logSystemMessage)
 
 getAndApplyDeviceConfig = ->
-	device.getConfig()
+	deviceConfig.get()
 	.then ({ values, targetValues }) ->
 		executeSpecialActionsAndHostConfig(targetValues, values)
 		.tap ->
-			device.setConfig({ values: targetValues })
+			deviceConfig.set({ values: targetValues })
 		.then (needsReboot) ->
 			device.reboot() if needsReboot
 
@@ -634,7 +635,7 @@ application.update = update = (force, scheduled = false) ->
 					remoteDeviceConfig = {}
 					_.map remoteAppIds, (appId) ->
 						_.merge(remoteDeviceConfig, JSON.parse(remoteApps[appId].config))
-					device.setConfig({ targetValues: remoteDeviceConfig })
+					deviceConfig.set({ targetValues: remoteDeviceConfig })
 					.then ->
 						getAndApplyDeviceConfig()
 				.catch (err) ->

@@ -224,16 +224,3 @@ do ->
 
 exports.getOSVersion = memoizePromise ->
 	utils.getOSVersion(config.hostOsVersionPath)
-
-exports.getConfig = ->
-	knex('deviceConfig').select()
-	.then ([ deviceConfig ]) ->
-		return {
-			values: JSON.parse(deviceConfig.values)
-			targetValues: JSON.parse(deviceConfig.targetValues)
-		}
-exports.setConfig = (conf) ->
-	confToUpdate = {}
-	confToUpdate.values = JSON.stringify(conf.values) if conf.values?
-	confToUpdate.targetValues = JSON.stringify(conf.targetValues) if conf.targetValues?
-	knex('deviceConfig').update(confToUpdate)

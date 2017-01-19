@@ -7,6 +7,8 @@ fs = Promise.promisifyAll(require('fs'))
 config = require './config'
 configPath = '/boot/config.json'
 appsPath  = '/boot/apps.json'
+_ = require 'lodash'
+deviceConfig = require './device-config'
 userConfig = {}
 
 DuplicateUuidError = (err) ->
@@ -15,6 +17,7 @@ DuplicateUuidError = (err) ->
 bootstrapper = {}
 
 loadPreloadedApps = ->
+	devConfig = {}
 	knex('app').truncate()
 	.then ->
 		fs.readFileAsync(appsPath, 'utf8')
@@ -23,7 +26,11 @@ loadPreloadedApps = ->
 		utils.extendEnvVars(app.env, userConfig.uuid, app.appId, app.name, app.commit)
 		.then (extendedEnv) ->
 			app.env = JSON.stringify(extendedEnv)
+			_.merge(devConfig, app.config)
+			app.config = JSON.stringify(app.config)
 			knex('app').insert(app)
+	.then ->
+		deviceConfig.set({ targetValues: devConfig })
 	.catch (err) ->
 		utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
 
