@@ -604,14 +604,19 @@ application.update = update = (force, scheduled = false) ->
 		when UPDATE_SCHEDULED
 			if scheduled isnt true
 				# There's an update scheduled but it isn't this one, so just stop
+				# but if we have to force an update, do it in the one that is scheduled
+				updateStatus.forceNext or= force
 				return
 		when UPDATE_IDLE
 			# All good, carry on with the update.
 		else
 			# Mark an update required after the current in-progress update.
-			updateStatus.forceNext = force
+			updateStatus.forceNext or= force
 			updateStatus.state = UPDATE_REQUIRED
 			return
+
+	force or= updateStatus.forceNext
+	updateStatus.forceNext = false
 	updateStatus.state = UPDATE_UPDATING
 	bootstrap.done.then ->
 		Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), utils.getConfig('name'), knex('app').select(), (apiKey, uuid, deviceName, apps) ->
@@ -711,13 +716,13 @@ application.update = update = (force, scheduled = false) ->
 			delayTime = Math.min((2 ** updateStatus.failed) * 500, 30000)
 			# If there was an error then schedule another attempt briefly in the future.
 			console.log('Scheduling another update attempt due to failure: ', delayTime, err)
-			setTimeout(update, delayTime, force || updateStatus.forceNext, true)
+			setTimeout(update, delayTime, force, true)
 			updateStatus.state = UPDATE_SCHEDULED
 		.finally ->
 			switch updateStatus.state
 				when UPDATE_REQUIRED
 					# If an update is required then schedule it
-					setTimeout(update, 1, updateStatus.forceNext, true)
+					setTimeout(update, 1, false, true)
 					updateStatus.state = UPDATE_SCHEDULED
 				when UPDATE_SCHEDULED
 					# Already scheduled, nothing to do here
