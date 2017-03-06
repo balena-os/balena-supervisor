@@ -224,3 +224,8 @@ do ->
 
 exports.getOSVersion = memoizePromise ->
 	utils.getOSVersion(config.hostOsVersionPath)
+
+exports.isResinOSv1 = memoizePromise ->
+	exports.getOSVersion().then (osVersion) ->
+		return true if /^Resin OS 1./.test(osVersion)
+		return false

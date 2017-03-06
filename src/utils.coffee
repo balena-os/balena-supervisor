@@ -242,26 +242,32 @@ exports.getOSVersion = (path) ->
 		console.log('Could not get OS Version: ', err, err.stack)
 		return undefined
 
-exports.defaultVolumes = {
-	'/data': {}
-	'/lib/modules': {}
-	'/lib/firmware': {}
-	'/host/var/lib/connman': {}
-	'/host/run/dbus': {}
-}
+exports.defaultVolumes = (includeV1Volumes) ->
+	volumes = {
+		'/data': {}
+		'/lib/modules': {}
+		'/lib/firmware': {}
+		'/host/run/dbus': {}
+	}
+	if includeV1Volumes
+		volumes['/host/var/lib/connman'] = {}
+		volumes['/host_run/dbus'] = {}
+	return volumes
 
 exports.getDataPath = (identifier) ->
 	return config.dataPath + '/' + identifier
 
-exports.defaultBinds = (dataPath) ->
-	return [
+exports.defaultBinds = (dataPath, includeV1Binds) ->
+	binds = [
 		exports.getDataPath(dataPath) + ':/data'
 		'/lib/modules:/lib/modules'
 		'/lib/firmware:/lib/firmware'
-		'/run/dbus:/host_run/dbus'
 		'/run/dbus:/host/run/dbus'
-		'/var/lib/connman:/host/var/lib/connman'
 	]
+	if includeV1Binds
+		binds.push('/run/dbus:/host_run/dbus')
+		binds.push('/var/lib/connman:/host/var/lib/connman')
+	return binds
 
 exports.validComposeOptions = [
 	'command'
