@@ -214,8 +214,8 @@ fetch = (app, setDeviceUpdateState = true) ->
 			throw err
 
 shouldMountKmod = (image) ->
-	device.getOSVersion().then (osVersion) ->
-		return false if not /^Resin OS 1./.test(osVersion)
+	device.isResinOSv1().then (isV1) ->
+		return false if not isV1
 		Promise.using docker.imageRootDirMounted(image), (rootDir) ->
 			utils.getOSVersion(rootDir + '/etc/os-release')
 		.then (version) ->
@@ -225,112 +225,113 @@ shouldMountKmod = (image) ->
 			return false
 
 application.start = start = (app) ->
-	volumes = utils.defaultVolumes
-	binds = utils.defaultBinds(app.appId)
-	alreadyStarted = false
-	Promise.try ->
-		# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
-		return [ JSON.parse(app.env), JSON.parse(app.config) ]
-	.spread (env, conf) ->
-		if env.PORT?
-			portList = env.PORT
-			.split(',')
-			.map((port) -> port.trim())
-			.filter(isValidPort)
+	device.isResinOSv1().then (isV1) ->
+		volumes = utils.defaultVolumes(isV1)
+		binds = utils.defaultBinds(app.appId, isV1)
+		alreadyStarted = false
+		Promise.try ->
+			# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
+			return [ JSON.parse(app.env), JSON.parse(app.config) ]
+		.spread (env, conf) ->
+			if env.PORT?
+				portList = env.PORT
+				.split(',')
+				.map((port) -> port.trim())
+				.filter(isValidPort)
 
-		if app.containerId?
-			# If we have a container id then check it exists and if so use it.
-			container = docker.getContainer(app.containerId)
-			containerPromise = container.inspectAsync().return(container)
-		else
-			containerPromise = Promise.rejected()
+			if app.containerId?
+				# If we have a container id then check it exists and if so use it.
+				container = docker.getContainer(app.containerId)
+				containerPromise = container.inspectAsync().return(container)
+			else
+				containerPromise = Promise.rejected()
 
-		# If there is no existing container then create one instead.
-		containerPromise.catch ->
-			fetch(app)
-			.then (imageInfo) ->
-				logSystemEvent(logTypes.installApp, app)
-				device.updateState(status: 'Installing')
+			# If there is no existing container then create one instead.
+			containerPromise.catch ->
+				fetch(app)
+				.then (imageInfo) ->
+					logSystemEvent(logTypes.installApp, app)
+					device.updateState(status: 'Installing')
 
-				ports = {}
-				portBindings = {}
-				if portList?
-					portList.forEach (port) ->
-						ports[port + '/tcp'] = {}
-						portBindings[port + '/tcp'] = [ HostPort: port ]
+					ports = {}
+					portBindings = {}
+					if portList?
+						portList.forEach (port) ->
+							ports[port + '/tcp'] = {}
+							portBindings[port + '/tcp'] = [ HostPort: port ]
 
-				if imageInfo?.Config?.Cmd
-					cmd = imageInfo.Config.Cmd
-				else
-					cmd = [ '/bin/bash', '-c', '/start' ]
+					if imageInfo?.Config?.Cmd
+						cmd = imageInfo.Config.Cmd
+					else
+						cmd = [ '/bin/bash', '-c', '/start' ]
 
-				restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
-				shouldMountKmod(app.imageId)
-				.then (shouldMount) ->
-					binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
-					docker.createContainerAsync(
-						Image: app.imageId
-						Cmd: cmd
-						Tty: true
-						Volumes: volumes
-						Env: _.map env, (v, k) -> k + '=' + v
-						ExposedPorts: ports
-						HostConfig:
-							Privileged: true
-							NetworkMode: 'host'
-							PortBindings: portBindings
-							Binds: binds
-							RestartPolicy: restartPolicy
-					)
-				.tap ->
-					logSystemEvent(logTypes.installAppSuccess, app)
+					restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
+					shouldMountKmod(app.imageId)
+					.then (shouldMount) ->
+						binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
+						docker.createContainerAsync(
+							Image: app.imageId
+							Cmd: cmd
+							Tty: true
+							Volumes: volumes
+							Env: _.map env, (v, k) -> k + '=' + v
+							ExposedPorts: ports
+							HostConfig:
+								Privileged: true
+								NetworkMode: 'host'
+								PortBindings: portBindings
+								Binds: binds
+								RestartPolicy: restartPolicy
+						)
+					.tap ->
+						logSystemEvent(logTypes.installAppSuccess, app)
+					.catch (err) ->
+						logSystemEvent(logTypes.installAppError, app, err)
+						throw err
+			.tap (container) ->
+				logSystemEvent(logTypes.startApp, app)
+				device.updateState(status: 'Starting')
+				container.startAsync()
 				.catch (err) ->
-					logSystemEvent(logTypes.installAppError, app, err)
-					throw err
-		.tap (container) ->
-			logSystemEvent(logTypes.startApp, app)
-			device.updateState(status: 'Starting')
-			container.startAsync()
-			.catch (err) ->
-				statusCode = '' + err.statusCode
-				# 304 means the container was already started, precisely what we want :)
-				if statusCode is '304'
-					alreadyStarted = true
-					return
+					statusCode = '' + err.statusCode
+					# 304 means the container was already started, precisely what we want :)
+					if statusCode is '304'
+						alreadyStarted = true
+						return
 
-				if statusCode is '500' and err.json.trim().match(/exec format error$/)
-					# Provide a friendlier error message for "exec format error"
-					device.getDeviceType()
-					.then (deviceType) ->
-						throw  new Error("Application architecture incompatible with #{deviceType}: exec format error")
-				else
-					# rethrow the same error
-					throw err
-			.catch (err) ->
-				# If starting the container failed, we remove it so that it doesn't litter
-				container.removeAsync(v: true)
+					if statusCode is '500' and err.json.trim().match(/exec format error$/)
+						# Provide a friendlier error message for "exec format error"
+						device.getDeviceType()
+						.then (deviceType) ->
+							throw  new Error("Application architecture incompatible with #{deviceType}: exec format error")
+					else
+						# rethrow the same error
+						throw err
+				.catch (err) ->
+					# If starting the container failed, we remove it so that it doesn't litter
+					container.removeAsync(v: true)
+					.then ->
+						app.containerId = null
+						knex('app').update(app).where(appId: app.appId)
+					.finally ->
+						logSystemEvent(logTypes.startAppError, app, err)
+						throw err
 				.then ->
-					app.containerId = null
-					knex('app').update(app).where(appId: app.appId)
-				.finally ->
-					logSystemEvent(logTypes.startAppError, app, err)
-					throw err
-			.then ->
-				app.containerId = container.id
-				device.updateState(commit: app.commit)
-				logger.attach(app)
-		.tap (container) ->
-			# Update the app info, only if starting the container worked.
-			knex('app').update(app).where(appId: app.appId)
-			.then (affectedRows) ->
-				knex('app').insert(app) if affectedRows == 0
-	.tap ->
-		if alreadyStarted
-			logSystemEvent(logTypes.startAppNoop, app)
-		else
-			logSystemEvent(logTypes.startAppSuccess, app)
-	.finally ->
-		device.updateState(status: 'Idle')
+					app.containerId = container.id
+					device.updateState(commit: app.commit)
+					logger.attach(app)
+			.tap (container) ->
+				# Update the app info, only if starting the container worked.
+				knex('app').update(app).where(appId: app.appId)
+				.then (affectedRows) ->
+					knex('app').insert(app) if affectedRows == 0
+		.tap ->
+			if alreadyStarted
+				logSystemEvent(logTypes.startAppNoop, app)
+			else
+				logSystemEvent(logTypes.startAppSuccess, app)
+		.finally ->
+			device.updateState(status: 'Idle')
 
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 # Construct a restart policy based on its name and maximumRetryCount.

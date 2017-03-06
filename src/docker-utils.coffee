@@ -265,42 +265,45 @@ do ->
 	docker.modem.dialAsync = Promise.promisify(docker.modem.dial)
 	createContainer = (options, internalId) ->
 		Promise.using writeLockImages(), ->
-			knex('image').select().where('repoTag', options.Image)
-			.then (images) ->
-				throw new Error('Only images created via the Supervisor can be used for creating containers.') if images.length == 0
-				knex.transaction (tx) ->
-					Promise.try ->
-						return internalId if internalId?
-						tx.insert({}, 'id').into('container')
-						.then ([ id ]) ->
-							return id
-					.then (id) ->
-						options.HostConfig ?= {}
-						options.Volumes ?= {}
-						_.assign(options.Volumes, utils.defaultVolumes)
-						options.HostConfig.Binds = utils.defaultBinds("containers/#{id}")
-						query = ''
-						query = "name=#{options.Name}&" if options.Name?
-						optsf =
-							path: "/containers/create?#{query}"
-							method: 'POST'
-							options: options
-							statusCodes:
-								200: true
-								201: true
-								404: 'no such container'
-								406: 'impossible to attach'
-								500: 'server error'
-						utils.validateKeys(options, utils.validContainerOptions)
-						.then ->
-							utils.validateKeys(options.HostConfig, utils.validHostConfigOptions)
-						.then ->
-							docker.modem.dialAsync(optsf)
-						.then (data) ->
-							containerId = data.Id
-							tx('container').update({ containerId }).where({ id })
-							.return(data)
-	exports.createContainer = (req, res) ->
+			Promise.join(
+				knex('image').select().where('repoTag', options.Image)
+				device.isResinOSv1()
+				(images, isV1) ->
+					throw new Error('Only images created via the Supervisor can be used for creating containers.') if images.length == 0
+					knex.transaction (tx) ->
+						Promise.try ->
+							return internalId if internalId?
+							tx.insert({}, 'id').into('container')
+							.then ([ id ]) ->
+								return id
+						.then (id) ->
+							options.HostConfig ?= {}
+							options.Volumes ?= {}
+							_.assign(options.Volumes, utils.defaultVolumes(isV1))
+							options.HostConfig.Binds = utils.defaultBinds("containers/#{id}", isV1)
+							query = ''
+							query = "name=#{options.Name}&" if options.Name?
+							optsf =
+								path: "/containers/create?#{query}"
+								method: 'POST'
+								options: options
+								statusCodes:
+									200: true
+									201: true
+									404: 'no such container'
+									406: 'impossible to attach'
+									500: 'server error'
+							utils.validateKeys(options, utils.validContainerOptions)
+							.then ->
+								utils.validateKeys(options.HostConfig, utils.validHostConfigOptions)
+							.then ->
+								docker.modem.dialAsync(optsf)
+							.then (data) ->
+								containerId = data.Id
+								tx('container').update({ containerId }).where({ id })
+								.return(data)
+			)
+		exports.createContainer = (req, res) ->
 		createContainer(req.body)
 		.then (data) ->
 			res.json(data)
