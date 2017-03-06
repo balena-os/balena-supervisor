@@ -97,12 +97,17 @@ do ->
 			if !attached[app.containerId]
 				dockerPromise.then (docker) ->
 					docker.getContainer(app.containerId)
-					.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
+					.logsAsync({ follow: true, stdout: true, stderr: true, timestamps: true })
 					.then (stream) ->
 						attached[app.containerId] = true
 						stream.pipe(es.split())
-						.on('data', publish)
-						.on 'error', ->
+						.on 'data', (logLine) ->
+							space = logLine.indexOf(' ')
+							if space > 0
+								msg = { t: logLine.substr(0, space), m: logLine.substr(space + 1) }
+								publish(msg)
+						.on 'error', (err) ->
+							console.error('Error on container logs', err, err.stack)
 							attached[app.containerId] = false
 						.on 'end', ->
 							attached[app.containerId] = false
