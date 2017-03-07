@@ -175,7 +175,11 @@ application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}
 			return
 		throw err
 	.tap ->
-		lockFile.unlockAsync(lockPath(app))
+		lockFile.unlockAsync(tmpLockPath(app))
+	.tap ->
+		device.isResinOSv1()
+		.then (isV1) ->
+			lockFile.unlockAsync(persistentLockPath(app)) if isV1
 	.tap ->
 		logSystemEvent(logTypes.stopAppSuccess, app)
 		if removeContainer && updateDB
@@ -364,9 +368,13 @@ createRestartPolicy = ({ name, maximumRetryCount }) ->
 		policy.MaximumRetryCount = maximumRetryCount
 	return policy
 
-lockPath = (app) ->
+persistentLockPath = (app) ->
 	appId = app.appId ? app
 	return "/mnt/root#{config.dataPath}/#{appId}/resin-updates.lock"
+
+tmpLockPath = (app) ->
+	appId = app.appId ? app
+	return "/mnt/root/tmp/resin-supervisor/#{appId}/resin-updates.lock"
 
 killmePath = (app) ->
 	appId = app.appId ? app
@@ -374,7 +382,7 @@ killmePath = (app) ->
 
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
 application.unlockAndStart = unlockAndStart = (app) ->
-	lockFile.unlockAsync(lockPath(app))
+	lockFile.unlockAsync(persistentLockPath(app))
 	.then ->
 		start(app)
 
@@ -384,20 +392,35 @@ application.lockUpdates = lockUpdates = do ->
 	_lock = new Lock()
 	_writeLock = Promise.promisify(_lock.async.writeLock)
 	return (app, force) ->
-		lockName = lockPath(app)
-		_writeLock(lockName)
-		.tap (release) ->
-			if force != true
-				lockFile.lockAsync(lockName)
-				.catch ENOENT, _.noop
-				.catch (err) ->
+		device.isResinOSv1()
+		.then (isV1) ->
+			persistentLockName = persistentLockPath(app)
+			tmpLockName = tmpLockPath(app)
+			_writeLock(tmpLockName)
+			.tap (release) ->
+				if isV1 and force != true
+					lockFile.lockAsync(persistentLockName)
+					.catch ENOENT, _.noop
+					.catch (err) ->
+						release()
+						throw new UpdatesLockedError("Updates are locked: #{err.message}")
+			.tap (release) ->
+				if force != true
+					lockFile.lockAsync(tmpLockName)
+					.catch ENOENT, _.noop
+					.catch (err) ->
+						Promise.try ->
+							lockFile.unlockAsync(persistentLockName) if isV1
+						.finally ->
+							release()
+							throw new UpdatesLockedError("Updates are locked: #{err.message}")
+			.disposer (release) ->
+				Promise.try ->
+					lockFile.unlockAsync(tmpLockName) if force != true
+				.then ->
+					lockFile.unlockAsync(persistentLockName) if isV1 and force != true
+				.finally ->
 					release()
-					throw new UpdatesLockedError("Updates are locked: #{err.message}")
-		.disposer (release) ->
-			Promise.try ->
-				lockFile.unlockAsync(lockName) if force != true
-			.finally ->
-				release()
 
 joinErrorMessages = (failures) ->
 	s = if failures.length > 1 then 's' else ''
