@@ -6,6 +6,8 @@ set -o errexit
     mkdir -p /dev/net
 [ -c /dev/net/tun ] ||
     mknod /dev/net/tun c 10 200
+[ -d /mnt/root/tmp/resin-supervisor ] ||
+    mkdir -p /mnt/root/tmp/resin-supervisor
 
 mount -t tmpfs -o size=1m tmpfs /var/run/resin
 
