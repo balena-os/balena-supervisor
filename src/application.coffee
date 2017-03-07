@@ -435,7 +435,11 @@ getAndApplyDeviceConfig = ->
 		.tap ->
 			deviceConfig.set({ values: targetValues })
 		.then (needsReboot) ->
-			device.reboot() if needsReboot
+			if needsReboot
+				logSystemMessage('Rebooting', {}, 'Reboot')
+				Promise.delay(1000)
+				.then ->
+					device.reboot()
 
 wrapAsError = (err) ->
 	return err if _.isError(err)
