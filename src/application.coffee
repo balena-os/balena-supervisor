@@ -111,6 +111,7 @@ logTypes =
 
 application = {}
 application.UpdatesLockedError = UpdatesLockedError
+application.localMode = false
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
 	logger.log({ m: message, s: 1 })
@@ -403,24 +404,47 @@ apiPollInterval = (val) ->
 	clearInterval(updateStatus.intervalHandle)
 	application.poll()
 
-specialActionConfigVars =
-	'RESIN_SUPERVISOR_VPN_CONTROL': utils.vpnControl
-	'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': utils.enableConnectivityCheck
-	'RESIN_SUPERVISOR_POLL_INTERVAL': apiPollInterval
-	'RESIN_SUPERVISOR_LOG_CONTROL': utils.resinLogControl
+setLocalMode = (val) ->
+	mode = (val == '1')
+	Promise.try ->
+		if mode and !application.localMode
+			logSystemMessage('Entering local mode, app will be forcefully stopped', {}, 'Enter local mode')
+			Promise.map utils.getKnexApps(), (theApp) ->
+				Promise.using application.lockUpdates(theApp.appId, true), ->
+					# There's a slight chance the app changed after the previous select
+					# So we fetch it again now the lock is acquired
+					utils.getKnexApp(theApp.appId)
+					.then (app) ->
+						application.kill(app, removeContainer: false) if app?
+		else if !mode and application.localMode
+			logSystemMessage('Exiting local mode, app will be resumed', {}, 'Exit local mode')
+			Promise.map utils.getKnexApps(), (app) ->
+				unlockAndStart(app)
+	.then ->
+		application.localMode = mode
+
+specialActionConfigVars = [
+	[ 'RESIN_SUPERVISOR_LOCAL_MODE', setLocalMode ]
+	[ 'RESIN_SUPERVISOR_VPN_CONTROL', utils.vpnControl ]
+	[ 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', utils.enableConnectivityCheck ]
+	[ 'RESIN_SUPERVISOR_POLL_INTERVAL', apiPollInterval ]
+	[ 'RESIN_SUPERVISOR_LOG_CONTROL', utils.resinLogControl ]
+]
 
 executedSpecialActionConfigVars = {}
 
 executeSpecialActionsAndHostConfig = (conf, oldConf) ->
-	Promise.try ->
-		_.map specialActionConfigVars, (specialActionCallback, key) ->
-			if conf[key]? && specialActionCallback?
-				# This makes the Special Action Envs only trigger their functions once.
-				if executedSpecialActionConfigVars[key] != conf[key]
-					logSpecialAction(key, conf[key])
+	Promise.mapSeries specialActionConfigVars, ([ key, specialActionCallback ]) ->
+		if conf[key]? && specialActionCallback?
+			# This makes the Special Action Envs only trigger their functions once.
+			if executedSpecialActionConfigVars[key] != conf[key]
+				logSpecialAction(key, conf[key])
+				Promise.try ->
 					specialActionCallback(conf[key])
+				.then ->
 					executedSpecialActionConfigVars[key] = conf[key]
 					logSpecialAction(key, conf[key], true)
+	.then ->
 		hostConfigVars = _.pickBy conf, (val, key) ->
 			return _.startsWith(key, device.hostConfigConfigVarPrefix)
 		oldHostConfigVars = _.pickBy oldConf, (val, key) ->
@@ -648,6 +672,7 @@ application.update = update = (force, scheduled = false) ->
 					logSystemMessage("Error applying device configuration: #{err}", { error: err }, 'Set device configuration error')
 				.return(allAppIds)
 				.map (appId) ->
+					return if application.localMode
 					Promise.try ->
 						needsDownload = _.includes(toBeDownloaded, appId)
 						if _.includes(toBeRemoved, appId)
@@ -704,6 +729,7 @@ application.update = update = (force, scheduled = false) ->
 		.then ->
 			proxyvisor.sendUpdates()
 		.then ->
+			return if application.localMode
 			updateStatus.failed = 0
 			device.setUpdateState(update_pending: false, update_downloaded: false, update_failed: false)
 			# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
@@ -769,7 +795,7 @@ application.initialize = ->
 	.then ->
 		knex('app').select()
 	.map (app) ->
-		unlockAndStart(app)
+		unlockAndStart(app) if !application.localMode
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->
