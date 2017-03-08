@@ -15,7 +15,7 @@ TypedError = require 'typed-error'
 fs = Promise.promisifyAll(require('fs'))
 JSONStream = require 'JSONStream'
 proxyvisor = require './proxyvisor'
-{ checkInt } = require './lib/validation'
+{ checkInt, checkTruthy } = require './lib/validation'
 deviceConfig = require './device-config'
 
 class UpdatesLockedError extends TypedError
@@ -405,7 +405,7 @@ apiPollInterval = (val) ->
 	application.poll()
 
 setLocalMode = (val) ->
-	mode = (val == '1')
+	mode = checkTruthy(val) ? false
 	Promise.try ->
 		if mode and !application.localMode
 			logSystemMessage('Entering local mode, app will be forcefully stopped', {}, 'Enter local mode')

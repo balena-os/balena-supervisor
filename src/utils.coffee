@@ -13,6 +13,7 @@ logger = require './lib/logger'
 TypedError = require 'typed-error'
 execAsync = Promise.promisify(require('child_process').exec)
 device = require './device'
+{ checkTruthy } = require './lib/validation'
 
 # Parses package.json and returns resin-supervisor's version
 version = require('../package.json').version
@@ -179,13 +180,14 @@ exports.extendEnvVars = (env, uuid, appId, appName, commit) ->
 
 # Callback function to enable/disable tcp pings
 exports.enableConnectivityCheck = (val) ->
-	bool = val is 'false'
-	disableCheck(bool)
+	enabled = checkTruthy(val) ? true
+	disableCheck(!enabled)
 	console.log("Connectivity check enabled: #{not bool}")
 
 # Callback function to enable/disable logs
 exports.resinLogControl = (val) ->
-	logger.disableLogPublishing(val == 'false')
+	logEnabled = checkTruthy(val) ? true
+	logger.disableLogPublishing(!logEnabled)
 	console.log('Logs enabled: ' + val)
 
 emptyHostRequest = request.defaults({ headers: Host: '' })
@@ -208,7 +210,7 @@ exports.gosuper = gosuper =
 
 # Callback function to enable/disable VPN
 exports.vpnControl = (val) ->
-	enable = val != 'false'
+	enable = checkTruthy(val) ? true
 	gosuper.postAsync('/v1/vpncontrol', { json: true, body: Enable: enable })
 	.spread (response, body) ->
 		if response.statusCode == 202

@@ -15,3 +15,10 @@ exports.checkString = (s) ->
 	if !s? or s == 'null' or s == 'undefined' or s == ''
 		return
 	return s
+
+exports.checkTruthy = (v) ->
+	if v == '1' or v == 'true' or v == true or v == 'on'
+		return true
+	if v == '0' or v == 'false' or v == false or v == 'off'
+		return false
+	return
