@@ -230,3 +230,9 @@ exports.isResinOSv1 = memoizePromise ->
 	exports.getOSVersion().then (osVersion) ->
 		return true if /^Resin OS 1./.test(osVersion)
 		return false
+
+exports.getOSVariant = memoizePromise ->
+	utils.getOSReleaseField(config.hostOsVersionPath, 'VARIANT_ID')
+	.catch (err) ->
+		console.error('Failed to get OS variant', err, err.stack)
+		return undefined

@@ -27,6 +27,8 @@ module.exports = (application) ->
 				next()
 			else if headerKey? && bufferEq(new Buffer(headerKey), new Buffer(secret))
 				next()
+			else if application.localMode
+				next()
 			else
 				res.sendStatus(401)
 		.catch (err) ->
