@@ -10,6 +10,7 @@ configPath = '/boot/config.json'
 execAsync = Promise.promisify(require('child_process').exec)
 fs = Promise.promisifyAll(require('fs'))
 bootstrap = require './bootstrap'
+{ checkTruthy } = require './lib/validation'
 
 memoizePromise = _.partial(memoizee, _, promise: true)
 
@@ -78,7 +79,7 @@ exports.setHostConfig = (env, oldEnv, logMessage) ->
 
 setLogToDisplay = (env, oldEnv, logMessage) ->
 	if env['RESIN_HOST_LOG_TO_DISPLAY']?
-		enable = env['RESIN_HOST_LOG_TO_DISPLAY'] != '0'
+		enable = checkTruthy(env['RESIN_HOST_LOG_TO_DISPLAY']) ? true
 		utils.gosuper.postAsync('/v1/set-log-to-display', { json: true, body: Enable: enable })
 		.spread (response, body) ->
 			if response.statusCode != 200
