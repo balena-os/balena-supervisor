@@ -31,6 +31,12 @@ logTypes =
 	stopAppSuccess:
 		eventName: 'Application stop'
 		humanName: 'Killed application'
+	stopAppNoop:
+		eventName: 'Application already stopped'
+		humanName: 'Application is already stopped, removing container'
+	stopRemoveAppNoop:
+		eventName: 'Application already stopped and container removed'
+		humanName: 'Application is already stopped and the container removed'
 	stopAppError:
 		eventName: 'Application stop error'
 		humanName: 'Failed to kill application'
@@ -160,10 +166,12 @@ application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}
 		statusCode = '' + err.statusCode
 		# 304 means the container was already stopped - so we can just remove it
 		if statusCode is '304'
+			logSystemEvent(logTypes.stopAppNoop, app)
 			container.removeAsync(v: true) if removeContainer
 			return
 		# 404 means the container doesn't exist, precisely what we want! :D
 		if statusCode is '404'
+			logSystemEvent(logTypes.stopRemoveAppNoop, app)
 			return
 		throw err
 	.tap ->
@@ -412,22 +420,27 @@ apiPollInterval = (val) ->
 
 setLocalMode = (val) ->
 	mode = checkTruthy(val) ? false
-	Promise.try ->
-		if mode and !application.localMode
-			logSystemMessage('Entering local mode, app will be forcefully stopped', {}, 'Enter local mode')
-			Promise.map utils.getKnexApps(), (theApp) ->
-				Promise.using application.lockUpdates(theApp.appId, true), ->
-					# There's a slight chance the app changed after the previous select
-					# So we fetch it again now the lock is acquired
-					utils.getKnexApp(theApp.appId)
-					.then (app) ->
-						application.kill(app, removeContainer: false) if app?
-		else if !mode and application.localMode
-			logSystemMessage('Exiting local mode, app will be resumed', {}, 'Exit local mode')
-			Promise.map utils.getKnexApps(), (app) ->
-				unlockAndStart(app)
-	.then ->
-		application.localMode = mode
+	device.getOSVariant()
+	.then (variant) ->
+		if variant is not 'dev'
+			logSystemMessage('Not a development OS, ignoring local mode', {}, 'Ignore local mode')
+			return
+		Promise.try ->
+			if mode and !application.localMode
+				logSystemMessage('Entering local mode, app will be forcefully stopped', {}, 'Enter local mode')
+				Promise.map utils.getKnexApps(), (theApp) ->
+					Promise.using application.lockUpdates(theApp.appId, true), ->
+						# There's a slight chance the app changed after the previous select
+						# So we fetch it again now the lock is acquired
+						utils.getKnexApp(theApp.appId)
+						.then (app) ->
+							application.kill(app) if app?
+			else if !mode and application.localMode
+				logSystemMessage('Exiting local mode, app will be resumed', {}, 'Exit local mode')
+				Promise.map utils.getKnexApps(), (app) ->
+					unlockAndStart(app)
+		.then ->
+			application.localMode = mode
 
 specialActionConfigVars = [
 	[ 'RESIN_SUPERVISOR_LOCAL_MODE', setLocalMode ]

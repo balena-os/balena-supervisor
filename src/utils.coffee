@@ -230,7 +230,7 @@ exports.getKnexApp = (appId, columns) ->
 exports.getKnexApps = (columns) ->
 	knex('app').select(columns)
 
-exports.getOSVersion = (path) ->
+exports.getOSReleaseField = (path, field) ->
 	fs.readFileAsync(path)
 	.then (releaseData) ->
 		lines = releaseData.toString().split('\n')
@@ -239,7 +239,10 @@ exports.getOSVersion = (path) ->
 			[ key, val ] = line.split('=')
 			releaseItems[_.trim(key)] = _.trim(val)
 		# Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
-		return releaseItems['PRETTY_NAME'].replace(/^"(.+(?="$))"$/, '$1')
+		return releaseItems[field].replace(/^"(.+(?="$))"$/, '$1')
+
+exports.getOSVersion = (path) ->
+	exports.getOSReleaseField(path, 'PRETTY_NAME')
 	.catch (err) ->
 		console.log('Could not get OS Version: ', err, err.stack)
 		return undefined
