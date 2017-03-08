@@ -134,9 +134,15 @@ logSystemEvent = (logType, app = {}, error) ->
 
 logSpecialAction = (action, value, success) ->
 	if success
-		msg = "Applied config variable #{action} = #{value}"
+		if !value?
+			msg = "Cleared config variable #{action}"
+		else
+			msg = "Applied config variable #{action} = #{value}"
 	else
-		msg = "Applying config variable #{action} = #{value}"
+		if !value?
+			msg = "Clearing config variable #{action}"
+		else
+			msg = "Applying config variable #{action} = #{value}"
 	logSystemMessage(msg, {}, "Apply special action #{if success then "success" else "in progress"}")
 
 application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}) ->
@@ -435,7 +441,7 @@ executedSpecialActionConfigVars = {}
 
 executeSpecialActionsAndHostConfig = (conf, oldConf) ->
 	Promise.mapSeries specialActionConfigVars, ([ key, specialActionCallback ]) ->
-		if conf[key]? && specialActionCallback?
+		if (conf[key]? or oldConf[key]?) and specialActionCallback?
 			# This makes the Special Action Envs only trigger their functions once.
 			if executedSpecialActionConfigVars[key] != conf[key]
 				logSpecialAction(key, conf[key])
