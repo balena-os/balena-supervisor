@@ -303,7 +303,7 @@ do ->
 								tx('container').update({ containerId }).where({ id })
 								.return(data)
 			)
-		exports.createContainer = (req, res) ->
+	exports.createContainer = (req, res) ->
 		createContainer(req.body)
 		.then (data) ->
 			res.json(data)
