@@ -19,4 +19,7 @@ if [ -z "${DOCKER_ROOT}" ]; then
 	DOCKER_ROOT=/mnt/root/var/lib/rce
 fi
 
+# Enable full debug logging for Rust
+export RUST_LOG=debug
+
 exec $@

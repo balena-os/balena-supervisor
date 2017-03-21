@@ -1,0 +1,14 @@
+[package]
+name = "rustsuper"
+version = "0.1.0"
+authors = ["Garrett Brown <themagnificentmrb@gmail.com>"]
+license = "Apache-2.0"
+
+[dependencies]
+env_logger = "*"
+hyper = "*"
+hyper-router = { git = "https://github.com/eigendude/hyper-router.git", branch = "update-hyper" }
+hyperlocal = "*"
+log = "*"
+regex = "*"
+rustc-serialize = "*"

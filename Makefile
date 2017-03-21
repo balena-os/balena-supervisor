@@ -215,6 +215,31 @@ format-gosuper: gosuper
 		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
 			go fmt ./...
 
+rustsuper:
+	cd rustsuper && docker build --pull \
+		$(DOCKER_HTTP_PROXY) \
+		$(DOCKER_HTTPS_PROXY) \
+		$(DOCKER_NO_PROXY) \
+		-t resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION) .
+	docker run --rm \
+		-v `pwd`/build/$(ARCH):/build \
+		resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION)
+
+test-rustsuper: rustsuper
+	docker run \
+		--rm \
+		-v /var/run/dbus:/mnt/root/run/dbus \
+		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
+		resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c \
+			'./test_formatting.sh && cargo test unit'
+
+format-rustsuper: rustsuper
+	docker run \
+		--rm \
+		-v $(shell pwd)/rustsuper:/rustsuper \
+		resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c \
+			'./do_formatting.sh'
+
 test-integration: gosuper
 	docker run \
 		--rm \
@@ -226,4 +251,4 @@ test-integration: gosuper
 		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
 			go test -v ./supertest
 
-.PHONY: supervisor deploy supervisor-dind run-supervisor gosuper nodesuper
+.PHONY: supervisor deploy supervisor-dind run-supervisor gosuper nodesuper rustsuper
