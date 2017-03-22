@@ -52,6 +52,9 @@ knex.init = Promise.all([
 				addColumn('app', 'appId', 'string')
 				addColumn('app', 'config', 'json')
 			]
+			.then ->
+				# When updating from older supervisors, config can be null
+				knex('app').update({ config: '{}' }).whereNull('config')
 
 	knex.schema.hasTable('image')
 	.then (exists) ->
