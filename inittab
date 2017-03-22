@@ -4,4 +4,4 @@
 stdout::sysinit:/usr/src/app/entry.sh
 
 stdout::respawn:/usr/src/app/run.sh node /usr/src/app/src/app.js
-stdout::respawn:/usr/src/app/run.sh /usr/src/app/gosuper
+stdout::respawn:/usr/src/app/run.sh /usr/src/app/rustsuper
