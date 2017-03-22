@@ -1,4 +1,4 @@
-# Resin Supervisor [![Tickets in progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=in progress&title=Tickets in progress)](https://waffle.io/resin-io/resin-supervisor)
+# Resin Supervisor [![Tickets in Progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=flow/in-progress&title=Tickets%20in%20progress)](https://waffle.io/resin-io/resin-supervisor)
 
 Join our online chat at [![Gitter chat](https://badges.gitter.im/resin-io/chat.png)](https://gitter.im/resin-io/chat)
 
