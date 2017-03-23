@@ -11,6 +11,7 @@ execAsync = Promise.promisify(require('child_process').exec)
 fs = Promise.promisifyAll(require('fs'))
 bootstrap = require './bootstrap'
 { checkTruthy } = require './lib/validation'
+osRelease = require './lib/os-release'
 
 memoizePromise = _.partial(memoizee, _, promise: true)
 
@@ -224,7 +225,7 @@ do ->
 		return
 
 exports.getOSVersion = memoizePromise ->
-	utils.getOSVersion(config.hostOsVersionPath)
+	osRelease.getOSVersion(config.hostOsVersionPath)
 
 exports.isResinOSv1 = memoizePromise ->
 	exports.getOSVersion().then (osVersion) ->
@@ -232,7 +233,4 @@ exports.isResinOSv1 = memoizePromise ->
 		return false
 
 exports.getOSVariant = memoizePromise ->
-	utils.getOSReleaseField(config.hostOsVersionPath, 'VARIANT_ID')
-	.catch (err) ->
-		console.error('Failed to get OS variant', err, err.stack)
-		return undefined
+	osRelease.getOSVariant(config.hostOsVersionPath)

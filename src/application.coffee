@@ -16,6 +16,7 @@ fs = Promise.promisifyAll(require('fs'))
 JSONStream = require 'JSONStream'
 proxyvisor = require './proxyvisor'
 { checkInt, checkTruthy } = require './lib/validation'
+osRelease = require './lib/os-release'
 deviceConfig = require './device-config'
 
 class UpdatesLockedError extends TypedError
@@ -236,7 +237,7 @@ shouldMountKmod = (image) ->
 	device.isResinOSv1().then (isV1) ->
 		return false if not isV1
 		Promise.using docker.imageRootDirMounted(image), (rootDir) ->
-			utils.getOSVersion(rootDir + '/etc/os-release')
+			osRelease.getOSVersion(rootDir + '/etc/os-release')
 		.then (version) ->
 			return version? and /^(Debian|Raspbian)/i.test(version)
 		.catch (err) ->
