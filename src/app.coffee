@@ -32,19 +32,23 @@ knex.init.then ->
 
 		bootstrap.done
 		.then ->
-			device.getOSVersion()
-		.then (osVersion) ->
-			# Let API know what version we are, and our api connection info.
-			console.log('Updating supervisor version and api info')
-			device.updateState(
-				api_port: config.listenPort
-				api_secret: secret
-				os_version: osVersion
-				supervisor_version: utils.supervisorVersion
-				provisioning_progress: null
-				provisioning_state: ''
-				download_progress: null
-				logs_channel: logsChannel
+			Promise.join(
+				device.getOSVersion()
+				device.getOSVariant()
+				(osVersion, osVariant) ->
+					osVersion += " (#{osVariant})" if osVersion? and osVariant?
+					# Let API know what version we are, and our api connection info.
+					console.log('Updating supervisor version and api info')
+					device.updateState(
+						api_port: config.listenPort
+						api_secret: secret
+						os_version: osVersion
+						supervisor_version: utils.supervisorVersion
+						provisioning_progress: null
+						provisioning_state: ''
+						download_progress: null
+						logs_channel: logsChannel
+					)
 			)
 
 		console.log('Starting Apps..')
