@@ -142,7 +142,7 @@ do ->
 
 	supervisorTagPromise = normalizeRepoTag(config.supervisorImage)
 
-	exports.cleanupContainersAndImages = ->
+	exports.cleanupContainersAndImages = (extraImagesToIgnore = []) ->
 		Promise.using writeLockImages(), ->
 			Promise.join(
 				knex('image').select('repoTag')
@@ -159,19 +159,25 @@ do ->
 				.map (image) ->
 					image.NormalizedRepoTags = Promise.map(image.RepoTags, normalizeRepoTag)
 					Promise.props(image)
-				(locallyCreatedTags, apps, dependentApps, supervisorTag, images) ->
+				Promise.map(extraImagesToIgnore, normalizeRepoTag)
+				(locallyCreatedTags, apps, dependentApps, supervisorTag, images, normalizedExtraImages) ->
 					imageTags = _.map(images, 'NormalizedRepoTags')
 					supervisorTags = _.filter imageTags, (tags) ->
 						_.includes(tags, supervisorTag)
 					appTags = _.filter imageTags, (tags) ->
 						_.some tags, (tag) ->
 							_.includes(apps, tag) or _.includes(dependentApps, tag)
+					extraTags = _.filter imageTags, (tags) ->
+						_.some tags, (tag) ->
+							_.includes(normalizedExtraImages, tag)
 					supervisorTags = _.flatten(supervisorTags)
 					appTags = _.flatten(appTags)
+					extraTags = _.flatten(extraTags)
 					locallyCreatedTags = _.flatten(locallyCreatedTags)
-					return { images, supervisorTags, appTags, locallyCreatedTags }
+
+					return { images, supervisorTags, appTags, locallyCreatedTags, extraTags }
 			)
-			.then ({ images, supervisorTags, appTags, locallyCreatedTags }) ->
+			.then ({ images, supervisorTags, appTags, locallyCreatedTags, extraTags }) ->
 				# Cleanup containers first, so that they don't block image removal.
 				docker.listContainersAsync(all: true)
 				.filter (containerInfo) ->
@@ -181,6 +187,8 @@ do ->
 						if _.includes(appTags, repoTag)
 							return false
 						if _.includes(locallyCreatedTags, repoTag)
+							return false
+						if _.includes(extraTags, repoTag)
 							return false
 						if !_.includes(supervisorTags, repoTag)
 							return true
@@ -193,7 +201,7 @@ do ->
 				.then ->
 					imagesToClean = _.reject images, (image) ->
 						_.some image.NormalizedRepoTags, (tag) ->
-							return _.includes(appTags, tag) or _.includes(supervisorTags, tag) or _.includes(locallyCreatedTags, tag)
+							return _.includes(appTags, tag) or _.includes(supervisorTags, tag) or _.includes(locallyCreatedTags, tag) or _.includes(extraTags, tag)
 					Promise.map imagesToClean, (image) ->
 						Promise.map image.RepoTags.concat(image.Id), (tag) ->
 							docker.getImage(tag).removeAsync(force: true)
