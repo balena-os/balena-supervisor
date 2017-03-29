@@ -62,7 +62,7 @@ do ->
 		.disposer (release) ->
 			release()
 
-	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, totalTimeout, startFromEmpty = false }, onProgress) ->
+	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty = false }, onProgress) ->
 		Promise.using readLockImages(), ->
 			Promise.try ->
 				if startFromEmpty
@@ -70,26 +70,51 @@ do ->
 				findSimilarImage(imgDest)
 			.then (imgSrc) ->
 				new Promise (resolve, reject) ->
-					progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", timeout: requestTimeout)
-					.on 'progress', (progress) ->
-						# In request-progress ^2.0.1, "percentage" is a ratio from 0 to 1
-						onProgress(percentage: progress.percentage * 100)
-					.on 'end', ->
-						onProgress(percentage: 100)
-					.on 'response', (res) ->
-						if res.statusCode is 504
-							reject(new Error('Delta server is still processing the delta, will retry'))
-						else if res.statusCode isnt 200
-							reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
-						else
-							if imgSrc is 'resin/scratch'
-								deltaSrc = null
-							else
-								deltaSrc = imgSrc
-							res.pipe(dockerDelta.applyDelta(deltaSrc, imgDest))
-							.on('id', resolve)
-							.on('error', reject)
-					.on 'error', reject
+					Promise.join docker.getRegistryAndName(imgDest), docker.getRegistryAndName(imgSrc), (dstInfo, srcInfo) ->
+						tokenEndpoint = "#{config.apiEndpoint}/auth/v1/token"
+						authOpts =
+							auth:
+								user: 'd_' + uuid
+								pass: apiKey
+								sendImmediately: true
+						url = "#{tokenEndpoint}?service=#{dstInfo.registry}&scope=repository:#{dstInfo.imageName}:pull&scope=repository:#{srcInfo.imageName}:pull"
+						request.getAsync(url, authOpts)
+						.spread (res, body) ->
+							try
+								return JSON.parse(body)
+							catch e
+								return {}
+						.then (b) ->
+							opts =
+								timeout: requestTimeout
+
+							if b?.token?
+								deltaAuthOpts =
+									auth:
+										bearer: b?.token
+										sendImmediately: true
+								opts = _.merge(opts, deltaAuthOpts)
+
+							progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", opts)
+							.on 'progress', (progress) ->
+								# In request-progress ^2.0.1, "percentage" is a ratio from 0 to 1
+								onProgress(percentage: progress.percentage * 100)
+							.on 'end', ->
+								onProgress(percentage: 100)
+							.on 'response', (res) ->
+								if res.statusCode is 504
+									reject(new Error('Delta server is still processing the delta, will retry'))
+								else if res.statusCode isnt 200
+									reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
+								else
+									if imgSrc is 'resin/scratch'
+										deltaSrc = null
+									else
+										deltaSrc = imgSrc
+									res.pipe(dockerDelta.applyDelta(deltaSrc, imgDest))
+									.on('id', resolve)
+									.on('error', reject)
+							.on 'error', reject
 				.timeout(totalTimeout)
 			.then (id) ->
 				getRepoAndTag(imgDest)
@@ -97,11 +122,18 @@ do ->
 					docker.getImage(id).tagAsync({ repo, tag, force: true })
 			.catch dockerDelta.OutOfSyncError, (err) ->
 				console.log('Falling back to delta-from-empty')
-				exports.rsyncImageWithProgress(imgDest, { requestTimeout, totalTimeout, startFromEmpty: true }, onProgress)
+				exports.rsyncImageWithProgress(imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty: true }, onProgress)
 
-	exports.fetchImageWithProgress = (image, onProgress) ->
+	exports.fetchImageWithProgress = (image, onProgress, { uuid, apiKey }) ->
 		Promise.using readLockImages(), ->
-			dockerProgress.pull(image, onProgress)
+			docker.getRegistryAndName(image)
+			.then ({ registry, imageName, tagName }) ->
+				dockerOptions =
+					authconfig:
+						username: 'd_' + uuid,
+						password: apiKey,
+						serveraddress: registry
+				dockerProgress.pull(image, onProgress, dockerOptions)
 
 	normalizeRepoTag = (image) ->
 		getRepoAndTag(image)

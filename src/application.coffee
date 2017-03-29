@@ -7,7 +7,7 @@ dockerUtils = require './docker-utils'
 Promise = require 'bluebird'
 utils = require './utils'
 logger = require './lib/logger'
-{ cachedResinApi } = require './request'
+{ cachedResinApi, request } = require './request'
 device = require './device'
 lockFile = Promise.promisifyAll(require('lockfile'))
 bootstrap = require './bootstrap'
@@ -215,15 +215,15 @@ fetch = (app, setDeviceUpdateState = true) ->
 
 		Promise.try ->
 			conf = JSON.parse(app.config)
-
-			if conf['RESIN_SUPERVISOR_DELTA'] == '1'
-				logSystemEvent(logTypes.downloadAppDelta, app)
-				requestTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'], positive: true) ? 30 * 60 * 1000
-				totalTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_TOTAL_TIMEOUT'], positive: true) ? 24 * 60 * 60 * 1000
-				dockerUtils.rsyncImageWithProgress(app.imageId, { requestTimeout, totalTimeout }, onProgress)
-			else
-				logSystemEvent(logTypes.downloadApp, app)
-				dockerUtils.fetchImageWithProgress(app.imageId, onProgress)
+			Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), (apiKey, uuid) ->
+				if conf['RESIN_SUPERVISOR_DELTA'] == '1'
+					logSystemEvent(logTypes.downloadAppDelta, app)
+					requestTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'], positive: true) ? 30 * 60 * 1000
+					totalTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_TOTAL_TIMEOUT'], positive: true) ? 24 * 60 * 60 * 1000
+					dockerUtils.rsyncImageWithProgress(app.imageId, { requestTimeout, totalTimeout, uuid, apiKey }, onProgress)
+				else
+					logSystemEvent(logTypes.downloadApp, app)
+					dockerUtils.fetchImageWithProgress(app.imageId, onProgress, { uuid, apiKey })
 		.then ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			device.updateState(status: 'Idle', download_progress: null)
