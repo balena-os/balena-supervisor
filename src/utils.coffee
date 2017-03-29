@@ -15,11 +15,7 @@ execAsync = Promise.promisify(require('child_process').exec)
 device = require './device'
 { checkTruthy } = require './lib/validation'
 
-# Parses package.json and returns resin-supervisor's version
-version = require('../package.json').version
-tagExtra = process.env.SUPERVISOR_TAG_EXTRA
-version += '+' + tagExtra if !_.isEmpty(tagExtra)
-exports.supervisorVersion = version
+exports.supervisorVersion = require('./lib/supervisor-version')
 
 configJson = require('/boot/config.json')
 if Boolean(configJson.supervisorOfflineMode)
@@ -229,23 +225,6 @@ exports.getKnexApp = (appId, columns) ->
 
 exports.getKnexApps = (columns) ->
 	knex('app').select(columns)
-
-exports.getOSReleaseField = (path, field) ->
-	fs.readFileAsync(path)
-	.then (releaseData) ->
-		lines = releaseData.toString().split('\n')
-		releaseItems = {}
-		for line in lines
-			[ key, val ] = line.split('=')
-			releaseItems[_.trim(key)] = _.trim(val)
-		# Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
-		return releaseItems[field].replace(/^"(.+(?="$))"$/, '$1')
-
-exports.getOSVersion = (path) ->
-	exports.getOSReleaseField(path, 'PRETTY_NAME')
-	.catch (err) ->
-		console.log('Could not get OS Version: ', err, err.stack)
-		return undefined
 
 exports.defaultVolumes = (includeV1Volumes) ->
 	volumes = {
