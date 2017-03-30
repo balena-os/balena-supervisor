@@ -178,7 +178,7 @@ exports.extendEnvVars = (env, uuid, appId, appName, commit) ->
 exports.enableConnectivityCheck = (val) ->
 	enabled = checkTruthy(val) ? true
 	disableCheck(!enabled)
-	console.log("Connectivity check enabled: #{not bool}")
+	console.log("Connectivity check enabled: #{enabled}")
 
 # Callback function to enable/disable logs
 exports.resinLogControl = (val) ->
