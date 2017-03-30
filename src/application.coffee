@@ -700,6 +700,13 @@ application.update = update = (force, scheduled = false) ->
 					utils.setConfig('name', local.name) if local.name != deviceName
 				.then ->
 					parseEnvAndFormatRemoteApps(local.apps, uuid, apiKey)
+			.tap (remoteApps) ->
+				# Before running the updates, try to clean up any images that aren't in use
+				# and will not be used in the target state
+				return if application.localMode
+				dockerUtils.cleanupContainersAndImages(_.map(remoteApps, 'imageId'))
+				.catch (err) ->
+					console.log('Cleanup failed: ', err, err.stack)
 			.then (remoteApps) ->
 				localApps = formatLocalApps(apps)
 				resourcesForUpdate = compareForUpdate(localApps, remoteApps)
