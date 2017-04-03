@@ -100,9 +100,8 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "data": {"force": true}}"' \
+	--data '{"deviceId": <deviceId>, "appId": <appId>, "data": {"force": true}}' \
 	"https://api.resin.io/supervisor/v1/update"
-$
 ```
 
 <hr>
