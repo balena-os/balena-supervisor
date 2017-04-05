@@ -36,13 +36,13 @@ knex.init.then ->
 				device.getOSVersion()
 				device.getOSVariant()
 				(osVersion, osVariant) ->
-					osVersion += " (#{osVariant})" if osVersion? and osVariant?
 					# Let API know what version we are, and our api connection info.
 					console.log('Updating supervisor version and api info')
 					device.updateState(
 						api_port: config.listenPort
 						api_secret: secret
 						os_version: osVersion
+						os_variant: osVariant
 						supervisor_version: utils.supervisorVersion
 						provisioning_progress: null
 						provisioning_state: ''
