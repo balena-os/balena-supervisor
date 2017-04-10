@@ -13,7 +13,8 @@ bootstrap = require './bootstrap'
 { checkTruthy } = require './lib/validation'
 osRelease = require './lib/os-release'
 
-memoizePromise = _.partial(memoizee, _, promise: true)
+# If we don't use promise: 'then', exceptions will crash the program
+memoizePromise = _.partial(memoizee, _, promise: 'then')
 
 
 exports.getID = memoizePromise ->
