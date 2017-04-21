@@ -2,13 +2,18 @@ Promise = require 'bluebird'
 knex = require './db'
 utils = require './utils'
 deviceRegister = require 'resin-register-device'
+{ resinApi, request } = require './request'
 fs = Promise.promisifyAll(require('fs'))
 config = require './config'
 configPath = '/boot/config.json'
 appsPath  = '/boot/apps.json'
 _ = require 'lodash'
 deviceConfig = require './device-config'
+TypedError = require 'typed-error'
 userConfig = {}
+
+DuplicateUuidError = message: '"uuid" must be unique.'
+exports.ExchangeKeyError = class ExchangeKeyError extends TypedError
 
 bootstrapper = {}
 
@@ -30,6 +35,27 @@ loadPreloadedApps = ->
 	.catch (err) ->
 		utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
 
+exchangeKey = ->
+	resinApi.get
+		resource: 'device'
+		options:
+			filter:
+				uuid: userConfig.uuid
+		customOptions:
+			apikey: userConfig.apiKey
+	.catchReturn([])
+	.timeout(config.apiTimeout)
+	.then ([ device ]) ->
+		if not device?
+			throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
+		# We found the device, we can try to generate a working device key for it
+		request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key")
+		.spread (res, body) ->
+			if res.status != 200
+				throw new ExchangeKeyError("Couldn't generate device key with provisioning key")
+			userConfig.deviceApiKey = body
+		.return(device)
+
 bootstrap = ->
 	Promise.try ->
 		userConfig.deviceType ?= 'raspberry-pi'
@@ -46,6 +72,29 @@ bootstrap = ->
 			apiEndpoint: config.apiEndpoint
 		)
 		.timeout(config.apiTimeout)
+		.catch DuplicateUuidError, ->
+			console.log('UUID already registered, checking if our device key is valid for it')
+			resinApi.get
+				resource: 'device'
+				options:
+					filter:
+						uuid: userConfig.uuid
+				customOptions:
+					apikey: userConfig.deviceApiKey
+			.catchReturn([])
+			.timeout(config.apiTimeout)
+			.then ([ device ]) ->
+				if device?
+					console.log('Fetched device, all is good')
+					return device
+				# If we couldn't fetch with the device key then we can try to key exchange in case the provisioning key is an old 'user-api-key'
+				console.log("Couldn't fetch the device, trying to exchange for a valid key")
+				exchangeKey()
+				.tapCatch ExchangeKeyError, (err) ->
+					# If it fails we just have to reregister as a provisioning key doesn't have the ability to change existing devices
+					console.log('Exchanging key failed, having to reregister')
+					generateRegistration(true)
+				.then (device) ->
 		.then ({ id }) ->
 			userConfig.registered_at = Date.now()
 			userConfig.deviceId = id
@@ -71,18 +120,21 @@ readConfig = ->
 	fs.readFileAsync(configPath, 'utf8')
 	.then(JSON.parse)
 
-readConfigAndEnsureUUID = ->
+generateRegistration = (forceReregister = false) ->
 	Promise.try ->
-		return userConfig.uuid if userConfig.uuid? and userConfig.deviceApiKey?
-		userConfig.uuid ?= deviceRegister.generateUniqueKey()
-		userConfig.deviceApiKey ?= deviceRegister.generateUniqueKey()
+		if forceReregister
+			userConfig.uuid = deviceRegister.generateUniqueKey()
+			userConfig.deviceApiKey = deviceRegister.generateUniqueKey()
+		else
+			userConfig.uuid ?= deviceRegister.generateUniqueKey()
+			userConfig.deviceApiKey ?= deviceRegister.generateUniqueKey()
 		fs.writeFileAsync(configPath, JSON.stringify(userConfig))
 		.return(userConfig.uuid)
 	.catch (err) ->
 		console.log('Error generating and saving UUID: ', err)
 		Promise.delay(config.bootstrapRetryDelay)
 		.then ->
-			readConfigAndEnsureUUID()
+			generateRegistration()
 
 bootstrapOrRetry = ->
 	utils.mixpanelTrack('Device bootstrap')
@@ -96,6 +148,15 @@ bootstrapper.done = new Promise (resolve) ->
 	bootstrapper.doneBootstrapping = ->
 		bootstrapper.bootstrapped = true
 		resolve(userConfig)
+		# If we're still using an old api key we can try to exchange it for a valid device key
+		if userConfig.apiKey?
+			exchangeKey()
+			.then ->
+				delete userConfig.apiKey
+				knex('config').update(value: userConfig.deviceApiKey).where(key: 'apiKey')
+				.then ->
+					fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+
 
 bootstrapper.bootstrapped = false
 bootstrapper.startBootstrapping = ->
@@ -111,7 +172,7 @@ bootstrapper.startBootstrapping = ->
 			return uuid.value
 		console.log('New device detected. Bootstrapping..')
 
-		readConfigAndEnsureUUID()
+		generateRegistration()
 		.tap ->
 			loadPreloadedApps()
 		.tap (uuid) ->

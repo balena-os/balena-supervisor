@@ -21,10 +21,10 @@ exports.getID = memoizePromise ->
 	bootstrap.done
 	.then ->
 		Promise.all([
-			knex('config').select('value').where(key: 'apiKey')
-			knex('config').select('value').where(key: 'uuid')
+			utils.getConfig('apiKey')
+			utils.getConfig('uuid')
 		])
-	.spread ([{ value: apiKey }], [{ value: uuid }]) ->
+	.spread (apiKey, uuid) ->
 		resinApi.get(
 			resource: 'device'
 			options:
@@ -178,9 +178,9 @@ do ->
 		if _.size(stateDiff) is 0
 			return
 		applyPromise = Promise.join(
-			knex('config').select('value').where(key: 'apiKey')
+			utils.getConfig('apiKey')
 			device.getID()
-			([{ value: apiKey }], deviceID) ->
+			(apiKey, deviceID) ->
 				stateDiff = getStateDiff()
 				if _.size(stateDiff) is 0 || !apiKey?
 					return
