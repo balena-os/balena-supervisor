@@ -1,0 +1,31 @@
+From 806089f11a484d035df76717638cfb1aa8124766 Mon Sep 17 00:00:00 2001
+From: Petros Angelatos <petrosagg@gmail.com>
+Date: Sat, 22 Apr 2017 14:30:32 +0100
+Subject: [PATCH] batch: exit if we reach EOF during processing
+
+rsync will hang forever under certain conditions if its input is
+truncated. This ensures that if we don't read all the expected data the
+process will immediately exit.
+
+Signed-off-by: Petros Angelatos <petrosagg@gmail.com>
+---
+ io.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/io.c b/io.c
+index ef70d677..add99410 100644
+--- a/io.c
++++ b/io.c
+@@ -620,6 +620,9 @@ static char *perform_io(size_t needed, int flags)
+ 		case PIO_NEED_INPUT:
+ 			if (iobuf.in.len >= needed)
+ 				goto double_break;
++			if (am_receiver && batch_fd < 0) {
++				iobuf.in_fd = -2;
++			}
+ 			break;
+ 		case PIO_NEED_OUTROOM:
+ 			/* Note that iobuf.out_empty_len doesn't factor into this check
+-- 
+2.12.2
+
