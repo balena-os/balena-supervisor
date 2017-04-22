@@ -36,25 +36,42 @@ loadPreloadedApps = ->
 		utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
 
 exchangeKey = ->
-	resinApi.get
-		resource: 'device'
-		options:
-			filter:
-				uuid: userConfig.uuid
-		customOptions:
-			apikey: userConfig.apiKey
-	.catchReturn([])
-	.timeout(config.apiTimeout)
-	.then ([ device ]) ->
-		if not device?
-			throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
-		# We found the device, we can try to generate a working device key for it
-		request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key")
-		.spread (res, body) ->
-			if res.status != 200
-				throw new ExchangeKeyError("Couldn't generate device key with provisioning key")
-			userConfig.deviceApiKey = body
-		.return(device)
+	Promise.try ->
+		# If we have an existing device key we first check if it's valid, because if it is we can just use that
+		if userConfig.deviceApiKey?
+			resinApi.get
+				resource: 'device'
+				options:
+					filter:
+						uuid: userConfig.uuid
+				customOptions:
+					apikey: userConfig.deviceApiKey
+			.get(0)
+			.catchReturn(null)
+			.timeout(config.apiTimeout)
+	.then (device) ->
+		if device?
+			return device
+		# If it's not valid/doesn't exist then we try to use the user/provisioning api key for the exchange
+		resinApi.get
+			resource: 'device'
+			options:
+				filter:
+					uuid: userConfig.uuid
+			customOptions:
+				apikey: userConfig.apiKey
+		.catchReturn([])
+		.timeout(config.apiTimeout)
+		.then ([ device ]) ->
+			if not device?
+				throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
+			# We found the device, we can try to generate a working device key for it
+			request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key")
+			.spread (res, body) ->
+				if res.status != 200
+					throw new ExchangeKeyError("Couldn't generate device key with provisioning key")
+				userConfig.deviceApiKey = body
+			.return(device)
 
 bootstrap = ->
 	Promise.try ->
@@ -73,28 +90,14 @@ bootstrap = ->
 		)
 		.timeout(config.apiTimeout)
 		.catch DuplicateUuidError, ->
-			console.log('UUID already registered, checking if our device key is valid for it')
-			resinApi.get
-				resource: 'device'
-				options:
-					filter:
-						uuid: userConfig.uuid
-				customOptions:
-					apikey: userConfig.deviceApiKey
-			.catchReturn([])
-			.timeout(config.apiTimeout)
-			.then ([ device ]) ->
-				if device?
-					console.log('Fetched device, all is good')
-					return device
-				# If we couldn't fetch with the device key then we can try to key exchange in case the provisioning key is an old 'user-api-key'
-				console.log("Couldn't fetch the device, trying to exchange for a valid key")
-				exchangeKey()
-				.tapCatch ExchangeKeyError, (err) ->
-					# If it fails we just have to reregister as a provisioning key doesn't have the ability to change existing devices
-					console.log('Exchanging key failed, having to reregister')
-					generateRegistration(true)
-				.then (device) ->
+			console.log('UUID already registered, trying a key exchange')
+			exchangeKey()
+			.tap ->
+				console.log('Key exchange succeeded, all good')
+			.tapCatch ExchangeKeyError, (err) ->
+				# If it fails we just have to reregister as a provisioning key doesn't have the ability to change existing devices
+				console.log('Exchanging key failed, having to reregister')
+				generateRegistration(true)
 		.then ({ id }) ->
 			userConfig.registered_at = Date.now()
 			userConfig.deviceId = id
