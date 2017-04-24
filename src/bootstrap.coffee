@@ -35,34 +35,29 @@ loadPreloadedApps = ->
 	.catch (err) ->
 		utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
 
+fetchDevice = (apiKey) ->
+	resinApi.get
+		resource: 'device'
+		options:
+			filter:
+				uuid: userConfig.uuid
+		customOptions:
+			apikey: apiKey
+	.get(0)
+	.catchReturn(null)
+	.timeout(config.apiTimeout)
+
 exchangeKey = ->
 	Promise.try ->
 		# If we have an existing device key we first check if it's valid, because if it is we can just use that
 		if userConfig.deviceApiKey?
-			resinApi.get
-				resource: 'device'
-				options:
-					filter:
-						uuid: userConfig.uuid
-				customOptions:
-					apikey: userConfig.deviceApiKey
-			.get(0)
-			.catchReturn(null)
-			.timeout(config.apiTimeout)
+			fetchDevice(userConfig.deviceApiKey)
 	.then (device) ->
 		if device?
 			return device
 		# If it's not valid/doesn't exist then we try to use the user/provisioning api key for the exchange
-		resinApi.get
-			resource: 'device'
-			options:
-				filter:
-					uuid: userConfig.uuid
-			customOptions:
-				apikey: userConfig.apiKey
-		.catchReturn([])
-		.timeout(config.apiTimeout)
-		.then ([ device ]) ->
+		fetchDevice(userConfig.apiKey)
+		.then (device) ->
 			if not device?
 				throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
 			# We found the device, we can try to generate a working device key for it
