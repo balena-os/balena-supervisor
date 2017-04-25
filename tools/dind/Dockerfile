@@ -8,6 +8,7 @@ RUN apt-get update \
 	ifupdown \
 	rsync \
 	dropbear \
+	aufs-tools \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV DOCKER_VERSION 1.10.3
