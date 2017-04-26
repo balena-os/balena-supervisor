@@ -156,6 +156,7 @@ bootstrapper.done = new Promise (resolve) ->
 				knex('config').update(value: userConfig.deviceApiKey).where(key: 'apiKey')
 				.then ->
 					fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+		return
 
 
 bootstrapper.bootstrapped = false
