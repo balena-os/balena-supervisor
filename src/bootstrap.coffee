@@ -106,7 +106,9 @@ bootstrap = ->
 		.then ->
 			knex('config').insert([
 				{ key: 'uuid', value: userConfig.uuid }
-				{ key: 'apiKey', value: userConfig.deviceApiKey }
+				# We use the provisioning/user `apiKey` if it still exists because if it does it means we were already registered
+				# using that key and have to rely on the exchange key mechanism to swap the keys as appropriate later
+				{ key: 'apiKey', value: userConfig.apiKey ? userConfig.deviceApiKey }
 				{ key: 'username', value: userConfig.username }
 				{ key: 'userId', value: userConfig.userId }
 				{ key: 'version', value: utils.supervisorVersion }
