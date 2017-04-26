@@ -106,7 +106,9 @@ bootstrap = ->
 		.then ->
 			knex('config').insert([
 				{ key: 'uuid', value: userConfig.uuid }
-				{ key: 'apiKey', value: userConfig.deviceApiKey }
+				# We use the provisioning/user `apiKey` if it still exists because if it does it means we were already registered
+				# using that key and have to rely on the exchange key mechanism to swap the keys as appropriate later
+				{ key: 'apiKey', value: userConfig.apiKey ? userConfig.deviceApiKey }
 				{ key: 'username', value: userConfig.username }
 				{ key: 'userId', value: userConfig.userId }
 				{ key: 'version', value: utils.supervisorVersion }
@@ -154,6 +156,7 @@ bootstrapper.done = new Promise (resolve) ->
 				knex('config').update(value: userConfig.deviceApiKey).where(key: 'apiKey')
 				.then ->
 					fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+		return
 
 
 bootstrapper.bootstrapped = false
