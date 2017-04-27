@@ -10,6 +10,10 @@ appsPath  = '/boot/apps.json'
 _ = require 'lodash'
 deviceConfig = require './device-config'
 TypedError = require 'typed-error'
+osRelease = require './lib/os-release'
+semver = require 'semver'
+semverRegex = require('semver-regex')()
+
 userConfig = {}
 
 DuplicateUuidError = message: '"uuid" must be unique.'
@@ -150,14 +154,20 @@ bootstrapper.done = new Promise (resolve) ->
 		resolve(userConfig)
 		# If we're still using an old api key we can try to exchange it for a valid device key
 		if userConfig.apiKey?
-			exchangeKey()
-			.then ->
-				delete userConfig.apiKey
-				knex('config').update(value: userConfig.deviceApiKey).where(key: 'apiKey')
-				.then ->
-					fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+			Promise.join(
+				osRelease.getOSVersion(config.hostOSVersionPath)
+				exchangeKey()
+				(osVersion) ->
+					# Only delete the provisioning key if we're on a Resin OS version that supports using the deviceApiKey (2.0.2 and above)
+					# or if we're in a non-Resin OS (which is assumed to be updated enough).
+					# Otherwise VPN and other host services that use an API key will break.
+					hasDeviceApiKeySupport = !/^Resin OS /.test(osVersion) or semver.gte(semverRegex.test(osVersion), '2.0.2')
+					delete userConfig.apiKey if hasDeviceApiKeySupport
+					utils.setConfig('apiKey', userConfig.deviceApiKey)
+					.then ->
+						fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+			)
 		return
-
 
 bootstrapper.bootstrapped = false
 bootstrapper.startBootstrapping = ->
