@@ -500,7 +500,7 @@ getAndApplyDeviceConfig = ->
 	.then ({ values, targetValues }) ->
 		executeSpecialActionsAndHostConfig(targetValues, values)
 		.tap ->
-			deviceConfig.set({ values: targetValues })
+			deviceConfig.set({ values: targetValues }) if !_.isEqual(values, targetValues)
 		.then (needsReboot) ->
 			if needsReboot
 				logSystemMessage('Rebooting', {}, 'Reboot')
@@ -719,11 +719,16 @@ application.update = update = (force, scheduled = false) ->
 					remoteDeviceConfig = {}
 					_.map remoteAppIds, (appId) ->
 						_.merge(remoteDeviceConfig, JSON.parse(remoteApps[appId].config))
-					deviceConfig.set({ targetValues: remoteDeviceConfig })
-					.then ->
-						getAndApplyDeviceConfig()
+					deviceConfig.get()
+					.then ({ values, targetValues }) ->
+						# If the new device config is different from the target values we had, or if
+						# for some reason it hasn't been applied yet (values don't match target), we apply it.
+						if !_.isEqual(targetValues, remoteDeviceConfig) or !_.isEqual(targetValues, values)
+							deviceConfig.set({ targetValues: remoteDeviceConfig })
+							.then ->
+								getAndApplyDeviceConfig()
 				.catch (err) ->
-					logSystemMessage("Error applying device configuration: #{err}", { error: err }, 'Set device configuration error')
+					logSystemMessage("Error fetching/applying device configuration: #{err}", { error: err }, 'Set device configuration error')
 				.return(allAppIds)
 				.map (appId) ->
 					return if application.localMode
