@@ -69,32 +69,29 @@ do ->
 					return 'resin/scratch'
 				findSimilarImage(imgDest)
 			.then (imgSrc) ->
-				new Promise (resolve, reject) ->
-					Promise.join docker.getRegistryAndName(imgDest), docker.getRegistryAndName(imgSrc), (dstInfo, srcInfo) ->
-						tokenEndpoint = "#{config.apiEndpoint}/auth/v1/token"
-						authOpts =
-							auth:
-								user: 'd_' + uuid
-								pass: apiKey
-								sendImmediately: true
-						url = "#{tokenEndpoint}?service=#{dstInfo.registry}&scope=repository:#{dstInfo.imageName}:pull&scope=repository:#{srcInfo.imageName}:pull"
-						request.getAsync(url, authOpts)
-						.spread (res, body) ->
-							try
-								return JSON.parse(body)
-							catch e
-								return {}
-						.then (b) ->
-							opts =
-								timeout: requestTimeout
+				Promise.join docker.getRegistryAndName(imgDest), docker.getRegistryAndName(imgSrc), (dstInfo, srcInfo) ->
+					tokenEndpoint = "#{config.apiEndpoint}/auth/v1/token"
+					opts =
+						auth:
+							user: 'd_' + uuid
+							pass: apiKey
+							sendImmediately: true
+						json: true
+						timeout: requestTimeout
+					url = "#{tokenEndpoint}?service=#{dstInfo.registry}&scope=repository:#{dstInfo.imageName}:pull&scope=repository:#{srcInfo.imageName}:pull"
+					request.getAsync(url, opts)
+					.get(1)
+					.then (b) ->
+						opts =
+							timeout: requestTimeout
 
-							if b?.token?
-								deltaAuthOpts =
-									auth:
-										bearer: b?.token
-										sendImmediately: true
-								opts = _.merge(opts, deltaAuthOpts)
-
+						if b?.token?
+							deltaAuthOpts =
+								auth:
+									bearer: b?.token
+									sendImmediately: true
+							opts = _.merge(opts, deltaAuthOpts)
+						new Promise (resolve, reject) ->
 							progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", opts)
 							.on 'progress', (progress) ->
 								# In request-progress ^2.0.1, "percentage" is a ratio from 0 to 1
