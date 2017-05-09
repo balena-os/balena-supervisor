@@ -226,7 +226,7 @@ do ->
 		return
 
 exports.getOSVersion = memoizePromise ->
-	osRelease.getOSVersion(config.hostOsVersionPath)
+	osRelease.getOSVersion(config.hostOSVersionPath)
 
 exports.isResinOSv1 = memoizePromise ->
 	exports.getOSVersion().then (osVersion) ->
@@ -234,4 +234,4 @@ exports.isResinOSv1 = memoizePromise ->
 		return false
 
 exports.getOSVariant = memoizePromise ->
-	osRelease.getOSVariant(config.hostOsVersionPath)
+	osRelease.getOSVariant(config.hostOSVersionPath)

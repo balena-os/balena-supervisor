@@ -5,8 +5,8 @@ request = require 'request'
 url = require 'url'
 osRelease = require './lib/os-release'
 
-osVersion = osRelease.getOSVersionSync(config.hostOsVersionPath)
-osVariant = osRelease.getOSVariantSync(config.hostOsVersionPath)
+osVersion = osRelease.getOSVersionSync(config.hostOSVersionPath)
+osVariant = osRelease.getOSVariantSync(config.hostOSVersionPath)
 supervisorVersion = require('./lib/supervisor-version')
 
 userAgent = "Supervisor/#{supervisorVersion}"

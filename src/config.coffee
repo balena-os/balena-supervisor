@@ -26,7 +26,7 @@ module.exports =
 		api: checkString(process.env.RESIN_SUPERVISOR_SECRET) ? null
 		logsChannel: checkString(process.env.RESIN_SUPERVISOR_LOGS_CHANNEL) ? null
 	vpnStatusPath: checkString(process.env.VPN_STATUS_PATH) ? '/mnt/root/run/openvpn/vpn_status'
-	hostOsVersionPath: checkString(process.env.HOST_OS_VERSION_PATH) ? '/mnt/root/etc/os-release'
+	hostOSVersionPath: checkString(process.env.HOST_OS_VERSION_PATH) ? '/mnt/root/etc/os-release'
 	dockerRoot: dockerRoot
 	btrfsRoot: checkString(process.env.BTRFS_ROOT) ? "#{dockerRoot}/btrfs/subvolumes"
 	privateAppEnvVars: [
