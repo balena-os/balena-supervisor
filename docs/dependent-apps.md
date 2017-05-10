@@ -60,14 +60,16 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/dependent-apps?apikey=$RESIN_SUPERVISOR
          "device_type": "edge",
          "name": "edgeApp1",
          "commit": "d43bea5e16658e653088ce4b9a91b6606c3c2a0d",
-         "config": {}
+         "config": {},
+         "environment": {}
      },
      {
          "id": 13016,
          "device_type": "edge",
          "name": "edgeApp2",
          "commit": "d0f6624d6410fa079159fa3ebe0d3af46753d75d",
-         "config": {}
+         "config": {},
+         "environment": {}
      }
  ]
 ```
@@ -89,6 +91,62 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/dependent-apps/<appId>/assets/<commit>?
 [application/x-tar] .tar
 ```
 
+### GET /v1/dependent-apps/:appId/devices
+Dependent Application Devices List
+
+**Example**
+
+```bash
+curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/dependent-apps/<appId>/devices
+```
+
+**Response**
+`HTTP/1.1 200 OK`
+
+
+```javascript
+[
+     {
+         "id": 1,
+         "localId": "00:A0:C9:14:C8:29",
+         "uuid": "5ae8cf6e062c033ea38435498ad9b487bcc714e9eab0fed0404ee56e397790",
+         "appId": 13015,
+         "device_type": "edge",
+         "logs_channel": "69f961abffaad1ff66031b29f712be4fb19e1bfabf1fee7a9ebfb5fa75a1fbdb",
+         "deviceId": "47270",
+         "is_online": null,
+         "name": "blue-sun",
+         "status": "Provisioned",
+         "download_progress": null,
+         "commit": "d43bea5e16658e693088ce4b9a91b6606c3c2a0d",
+         "targetCommit": "d43bea5e16653e653088ce4b9a91b6606c3c2a0d",
+         "environment":{},
+         "targetEnvironment":{},
+         "config":{},
+         "targetConfig":{"RESIN_SUPERVISOR_DELTA":"1"}
+     },
+     {
+         "id": 3,
+         "localId": "0ed28cc954b0",
+         "uuid": "8dc608765fd32665d49d218a7eb4657bc2ab8a56db06d2c57ef7c7e9a115da",
+         "appId": 13015,
+         "device_type": "edge",
+         "logs_channel": "d0244a90e8cd6e9a1ab410d3d599dea7f15110a6fe37b2a8fd69bb6ee0bce043",
+         "deviceId": "47318",
+         "is_online": null,
+         "name": "wild-paper",
+         "status": "Provisioned",
+         "download_progress": null,
+         "commit": "d43bea5e16658e253088ce4b9a91b6606c3c2a0d",
+         "targetCommit": "d43bea5e11658e653088ce4b9a91b6606c3c2a0d",
+         "environment":{},
+         "targetEnvironment":{},
+         "config":{},
+         "targetConfig":{"RESIN_SUPERVISOR_DELTA":"1"}
+     }
+ ]
+```
+
 ## Devices
 
 ### GET /v1/devices
@@ -108,6 +166,7 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KE
 [
      {
          "id": 1,
+         "localId": "00:A0:C9:14:C8:29",
          "uuid": "5ae8cf6e062c033ea38435498ad9b487bcc714e9eab0fed0404ee56e397790",
          "appId": 13015,
          "device_type": "edge",
@@ -126,6 +185,7 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KE
      },
      {
          "id": 3,
+         "localId": "0ed28cc954b0",
          "uuid": "8dc608765fd32665d49d218a7eb4657bc2ab8a56db06d2c57ef7c7e9a115da",
          "appId": 13015,
          "device_type": "edge",
@@ -151,7 +211,7 @@ Dependent Device Provision
 **Example**
 
 ```bash
-curl -H "Content-Type: application/json" -X POST --data '{"appId": <appId>}' /
+curl -H "Content-Type: application/json" -X POST --data '{"appId": <appId>, "localId": <localId>}' /
 $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KEY
 ```
 
@@ -184,6 +244,7 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$RESIN_SUPERVISOR
 ```javascript
 {
            "id": 1,
+           "localId": "0ed28cc954b0",
            "uuid": "5ae8cf6e062c033ea57837498ad9b487bfc714e9eab0fed0404ee56e397790",
            "appId": 13015,
            "device_type": "edge",
@@ -217,6 +278,7 @@ $RESIN_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$RESIN_SUPERVISOR_API_KEY
 ```javascript
 {
            "id": 1,
+           "localId": "0ed28cc954b0",
            "uuid": "5ae8cf6e062c033ea38437498ad9b482bcc714e9eab0fed0404ee56e397790",
            "appId": 13015,
            "device_type": "edge",
@@ -265,7 +327,21 @@ curl -H "Content-Type: application/json" -X PUT /
 http://127.0.0.1:1337/v1/devices/<uuid>/restart
 ```
 **Response**
-`HTTP/1.1 200 OK`
+* `HTTP/1.1 200 OK`
+* `HTTP/1.1/ 501 NOT IMPLEMENTED`
+
+### PUT /v1/devices/:uuid/identify
+Dependent Device Identify Notification
+
+**Example**
+
+```bash
+curl -H "Content-Type: application/json" -X PUT /
+http://127.0.0.1:1337/v1/devices/<uuid>/identify
+```
+**Response**
+* `HTTP/1.1 200 OK`
+* `HTTP/1.1/ 501 NOT IMPLEMENTED`
 
 ### PUT /v1/devices/:uuid
 Dependent Device Update Notification
