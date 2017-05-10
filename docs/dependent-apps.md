@@ -268,7 +268,7 @@ Dependent Device Information Update
 
 ```bash
 curl -H "Content-Type: application/json" -X PUT --data /
-'{"is_online":true, "status": "Updating", "commit": "339125a7529cb2c2a8c93a0bbd8af69f2d96286ab4f4552cb5cfe99b0d3ee9"}' /
+'{"download_process": 87.5, "is_online":true, "status": "Updating", "commit": "339125a7529cb2c2a8c93a0bbd8af69f2d96286ab4f4552cb5cfe99b0d3ee9"}' /
 $RESIN_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$RESIN_SUPERVISOR_API_KEY
 ```
 
@@ -317,14 +317,14 @@ You can point the supervisor where to find the hook server via a configuration v
 
 It's worth mentioning (as described below) that the supervisor will append the dependent device uuid (`<uuid>` in the hook descriptions) to every hook request URL
 
-### PUT /v1/devices/:uuid/restart
-Dependent Device Restart Notification
+### PUT /v1/devices/:uuid/reboot
+Dependent Device Reboot Notification
 
 **Example**
 
 ```bash
 curl -H "Content-Type: application/json" -X PUT /
-http://127.0.0.1:1337/v1/devices/<uuid>/restart
+http://127.0.0.1:1337/v1/devices/<uuid>/reboot
 ```
 **Response**
 * `HTTP/1.1 200 OK`
