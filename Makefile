@@ -144,7 +144,7 @@ refresh-supervisor-src:
 	&& echo " * Restarting supervisor container.." \
 	&& docker exec -ti resin_supervisor_1 docker restart resin_supervisor
 
-supervisor: nodesuper gosuper
+supervisor: nodesuper rustsuper
 	sed 's/%%ARCH%%/$(ARCH)/g' Dockerfile.runtime.template | sed 's/%%BASE_IMAGE_TAG%%/$(ESCAPED_BASE_IMAGE_TAG)/g' > Dockerfile.runtime.$(ARCH)
 	echo "ENV VERSION=$(shell jq -r .version package.json) \\" >> Dockerfile.runtime.$(ARCH)
 	echo "    DEFAULT_PUBNUB_PUBLISH_KEY=$(PUBNUB_PUBLISH_KEY) \\" >> Dockerfile.runtime.$(ARCH)
@@ -215,7 +215,32 @@ format-gosuper: gosuper
 		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
 			go fmt ./...
 
-test-integration: gosuper
+rustsuper:
+	cd rustsuper && docker build --pull \
+		$(DOCKER_HTTP_PROXY) \
+		$(DOCKER_HTTPS_PROXY) \
+		$(DOCKER_NO_PROXY) \
+		-t resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION) .
+	docker run --rm \
+		-v `pwd`/build/$(ARCH):/build \
+		resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION)
+
+test-rustsuper: rustsuper
+	docker run \
+		--rm \
+		-v /var/run/dbus:/mnt/root/run/dbus \
+		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
+		resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c \
+			'./test_formatting.sh && cargo test unit'
+
+format-rustsuper: rustsuper
+	docker run \
+		--rm \
+		-v $(shell pwd)/rustsuper:/rustsuper \
+		resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c \
+			'./do_formatting.sh'
+
+test-integration: rustsuper
 	docker run \
 		--rm \
 		--net=host \
@@ -223,7 +248,7 @@ test-integration: gosuper
 		--volumes-from resin_supervisor_1 \
 		-v /var/run/dbus:/mnt/root/run/dbus \
 		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
-		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
-			go test -v ./supertest
+		resin/rust-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
+			cargo test integration
 
-.PHONY: supervisor deploy supervisor-dind run-supervisor gosuper nodesuper
+.PHONY: supervisor deploy supervisor-dind run-supervisor gosuper nodesuper rustsuper

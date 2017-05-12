@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 
 COPY ./build/%%ARCH%%/src ./src
 COPY ./build/%%ARCH%%/node_modules ./node_modules
-COPY ./build/%%ARCH%%/gosuper ./gosuper
+COPY ./build/%%ARCH%%/rustsuper ./rustsuper
 COPY ./build/%%ARCH%%/rootfs-overlay/ /
 
 VOLUME /data

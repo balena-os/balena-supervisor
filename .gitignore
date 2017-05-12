@@ -18,3 +18,7 @@ Dockerfile.runtime.*
 !Dockerfile.build.template
 !Dockerfile.runtime.template
 build
+
+# Eclipse ignorables
+.project
+.settings

@@ -157,6 +157,13 @@ make ARCH=amd64 test-gosuper
 ```
 The test suite is at [gosuper/main_test.go](./gosuper/main_test.go).
 
+### Rustsuper
+The Rust supervisor can be tested by running:
+```bash
+make ARCH=amd64 test-rustsuper
+```
+The test suite is at [rustsuper/integration_test.rs](./rustsuper/integration_test.rs).
+
 ### Integration test
 The integration test tests the supervisor API by hitting its endpoints. To run it, first run the supervisor as explained in the first section of this document.
 
