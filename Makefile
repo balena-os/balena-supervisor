@@ -25,7 +25,8 @@ ARCH = rpi# rpi/amd64/i386/armv7hf/armel
 DEPLOY_REGISTRY =
 
 SUPERVISOR_VERSION = master
-ESCAPED_BASE_IMAGE_TAG = resin\/$(ARCH)-supervisor-base:$(SUPERVISOR_VERSION)
+BASE_IMAGE_VERSION = $(shell find base-image -print0 | LC_ALL=C sort -z | tar --null -cf - --no-recursion --mtime=@0 --owner=root --group=root --numeric-owner -T - | md5sum | awk -F " " '{print $$1}')
+ESCAPED_BASE_IMAGE_TAG = resin\/$(ARCH)-supervisor-base:$(BASE_IMAGE_VERSION)
 
 DOCKER_VERSION:=$(shell docker version --format '{{.Server.Version}}')
 DOCKER_MAJOR_VERSION:=$(word 1, $(subst ., ,$(DOCKER_VERSION)))
@@ -225,5 +226,8 @@ test-integration: gosuper
 		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
 		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
 			go test -v ./supertest
+
+base-image-version:
+	@echo $(BASE_IMAGE_VERSION)
 
 .PHONY: supervisor deploy supervisor-dind run-supervisor gosuper nodesuper
