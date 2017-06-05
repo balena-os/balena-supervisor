@@ -80,6 +80,7 @@ knex.init = Promise.all([
 				t.string('commit')
 				t.string('imageId')
 				t.json('config')
+				t.json('environment')
 
 	knex.schema.hasTable('dependentDevice')
 	.then (exists) ->
@@ -88,6 +89,7 @@ knex.init = Promise.all([
 				t.increments('id').primary()
 				t.string('uuid')
 				t.string('appId')
+				t.string('localId')
 				t.string('device_type')
 				t.string('logs_channel')
 				t.string('deviceId')
@@ -95,6 +97,8 @@ knex.init = Promise.all([
 				t.string('name')
 				t.string('status')
 				t.string('download_progress')
+				t.string('is_managed_by')
+				t.dateTime('lock_expiry_date')
 				t.string('commit')
 				t.string('targetCommit')
 				t.json('environment')
