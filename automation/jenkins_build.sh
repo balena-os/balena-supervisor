@@ -6,7 +6,7 @@ export ESCAPED_BRANCH_NAME=$(echo $sourceBranch | sed 's/[^a-z0-9A-Z_.-]/-/g')
 git submodule update --init --recursive
 git clean -fxd base-image
 git submodule foreach --recursive git clean -fxd
-BASE_IMAGE_VERSION=$(find base-image -print0 | LC_ALL=C sort -z | tar --null -cf - --no-recursion --mtime=@0 --owner=root --group=root --numeric-owner -T - | md5sum | awk -F " " '{print $1}')
+BASE_IMAGE_VERSION=$(make base-image-version)
 export BASE_IMAGE_REPO=resin/$ARCH-supervisor-base
 export BASE_IMAGE_TAG=resin/$ARCH-supervisor-base:$BASE_IMAGE_VERSION
 
