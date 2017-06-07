@@ -1,7 +1,6 @@
 _ = require 'lodash'
 Promise = require 'bluebird'
 memoizee = require 'memoizee'
-knex = require './db'
 utils = require './utils'
 { resinApi } = require './request'
 device = exports
@@ -40,8 +39,16 @@ exports.getID = memoizePromise ->
 			throw new Error('Could not find this device?!')
 		return devices[0].id
 
+waitForReboot = ->
+	console.log('Waiting for reboot...')
+	Promise.delay(3000).then(waitForReboot)
+
 exports.reboot = ->
 	utils.gosuper.postAsync('/v1/reboot')
+	.spread (res, body) ->
+		if res.status != 202
+			throw new Error("Unable to reboot, got #{res.status} from Go supervisor")
+		waitForReboot()
 
 exports.hostConfigConfigVarPrefix = 'RESIN_HOST_'
 bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'
