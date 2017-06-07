@@ -16,27 +16,8 @@ RUN apt-get update \
 		wget \
 	&& rm -rf /var/lib/apt/lists/
 
-ENV DOCKER_COMPOSE_VERSION 1.7.1
-
-ENV DOCKER_COMPOSE_SHA256_amd64 37df85ee18bf0e2a8d71cbfb8198b1c06cc388f19118be7bdfc4d6db112af834
-ENV DOCKER_COMPOSE_SHA256_i386 b926fd9a2a9d89358f1353867706f94558a62caaf3aa72bf10bcbbe31e1a44f0
-ENV DOCKER_COMPOSE_SHA256_rpi 3f0b8c69c66a2daa5fbb0c127cb76ca95d7125827a9c43dd3c36f9bc2ed6e0e5
-ENV DOCKER_COMPOSE_SHA256_armv7hf 3f0b8c69c66a2daa5fbb0c127cb76ca95d7125827a9c43dd3c36f9bc2ed6e0e5
-ENV DOCKER_COMPOSE_SHA256_armel a1025fed97536e2698798ea277a014ec5e1eae816a8cf3155ecbe9679e3e7bac
-
-RUN set -x \
-	&& mkdir -p rootfs-overlay/usr/bin/ \
-	&& ln -s /lib rootfs-overlay/lib64 \
-	&& pkgname='docker-compose' \
-	&& arch=%%ARCH%% \
-	&& if [ $arch = 'rpi' -o $arch = 'armv7hf' ]; then arch=armhf; fi \
-	&& base="http://resin-packages.s3.amazonaws.com/${pkgname}" \
-	&& pkgver=$DOCKER_COMPOSE_VERSION \
-	&& checksum=$DOCKER_COMPOSE_SHA256_%%ARCH%% \
-	&& wget "${base}/${pkgver}/${pkgname}-linux-${arch}-${pkgver}.tar.gz" \
-	&& echo "$checksum  ${pkgname}-linux-${arch}-${pkgver}.tar.gz" | sha256sum -c \
-	&& tar xzf "${pkgname}-linux-${arch}-${pkgver}.tar.gz" --strip-components=1 -C rootfs-overlay/usr/bin \
-	&& mv "rootfs-overlay/usr/bin/${pkgname}-linux-${arch}" rootfs-overlay/usr/bin/docker-compose
+RUN mkdir -p rootfs-overlay && \
+	ln -s /lib rootfs-overlay/lib64
 
 COPY package.json /usr/src/app/
 

@@ -56,19 +56,6 @@ knex.init = Promise.all([
 				# When updating from older supervisors, config can be null
 				knex('app').update({ config: '{}' }).whereNull('config')
 
-	knex.schema.hasTable('image')
-	.then (exists) ->
-		if not exists
-			knex.schema.createTable 'image', (t) ->
-				t.increments('id').primary()
-				t.string('repoTag')
-	knex.schema.hasTable('container')
-	.then (exists) ->
-		if not exists
-			knex.schema.createTable 'container', (t) ->
-				t.increments('id').primary()
-				t.string('containerId')
-
 	knex.schema.hasTable('dependentApp')
 	.then (exists) ->
 		if not exists
