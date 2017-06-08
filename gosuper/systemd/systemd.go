@@ -3,8 +3,8 @@ package systemd
 import (
 	"log"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/coreos/go-systemd/dbus"
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/coreos/go-systemd/login1"
+	"github.com/coreos/go-systemd/dbus"
+	"github.com/coreos/go-systemd/login1"
 )
 
 var (
