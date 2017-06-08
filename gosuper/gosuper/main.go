@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 	"resin-supervisor/gosuper/psutils"
 )
 
