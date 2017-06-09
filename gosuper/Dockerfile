@@ -9,9 +9,9 @@ RUN apt-get update \
 		upx-ucl \
 	&& rm -rf /var/lib/apt/lists/
 
-ENV GOLANG_VERSION 1.6.3
+ENV GOLANG_VERSION 1.7.6
 ENV GOLANG_DOWNLOAD_URL https://golang.org/dl/go$GOLANG_VERSION.linux-amd64.tar.gz
-ENV GOLANG_DOWNLOAD_SHA256 cdde5e08530c0579255d6153b08fdb3b8e47caabbe717bc7bcd7561275a87aeb
+ENV GOLANG_DOWNLOAD_SHA256 ad5808bf42b014c22dd7646458f631385003049ded0bb6af2efc7f1f79fa29ea
 
 COPY go-${GOLANG_VERSION}-patches /go-${GOLANG_VERSION}-patches
 
@@ -25,7 +25,7 @@ RUN mkdir /usr/src/go \
 	&& export GOROOT_BOOTSTRAP=/usr/local/go-bootstrap \
 	&& cp -r /usr/local/go /usr/local/go-bootstrap \
 	&& cd /usr/local/go/src \
-	&& patch -p2 -i /go-${GOLANG_VERSION}-patches/0001-Revert-runtime-check-and-fail-early-with-a-message-i.patch \
+	&& patch -p2 -i /go-${GOLANG_VERSION}-patches/0001-dont-fail-when-no-mmx.patch \
 	&& patch -p2 -i /go-${GOLANG_VERSION}-patches/0002-implement-atomic-quadword-ops-with-FILD-FISTP.patch \
 	&& ./make.bash \
 	&& rm -rf /usr/local/go-bootstrap

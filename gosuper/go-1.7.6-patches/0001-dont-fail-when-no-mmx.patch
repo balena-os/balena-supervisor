@@ -1,16 +1,16 @@
-From 0ea3a41d2dc8b222093f191e6c2b7c3c89ac4e87 Mon Sep 17 00:00:00 2001
-From: Petros Angelatos <petrosagg@gmail.com>
-Date: Thu, 20 Oct 2016 20:20:56 -0700
-Subject: [PATCH 1/2] Revert "runtime: check and fail early with a message if
- MMX is not available on 386"
+commit e85665ea84c11128b8d2408054372ee81598e09d
+Author: Pablo Carranza Velez <pablo@resin.io>
+Date:   Fri Jun 9 14:57:23 2017 -0700
 
-This reverts commit 35e84546d7c3cc599dd5bf31ad86bf8d3d841d04.
----
- src/runtime/asm_386.s | 42 ------------------------------------------
- 1 file changed, 42 deletions(-)
+    Do not fail when there's no MMX support
+    
+    Adapted from https://github.com/resin-io/resin-supervisor/blob/c7a7ba93fb46775006f0739ced41fc0a2059b426/gosuper/go-1.6.3-patches/0001-Revert-runtime-check-and-fail-early-with-a-message-i.patch
+    Original author: Petros Angelatos <petrosagg@gmail.com>
+    
+    Signed-off-by: Pablo Carranza Velez <pablo@resin.io>
 
 diff --git a/src/runtime/asm_386.s b/src/runtime/asm_386.s
-index 4181859..942446e 100644
+index ea11b2b..d3a3cdf 100644
 --- a/src/runtime/asm_386.s
 +++ b/src/runtime/asm_386.s
 @@ -26,32 +26,6 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0
@@ -45,8 +45,8 @@ index 4181859..942446e 100644
 -has_cpuid:
  	MOVL	$0, AX
  	CPUID
- 	CMPL	AX, $0
-@@ -74,11 +48,6 @@ notintel:
+ 	MOVL	AX, SI
+@@ -76,11 +50,6 @@ notintel:
  	MOVL	CX, AX // Move to global variable clobbers CX when generating PIC
  	MOVL	AX, runtime·cpuid_ecx(SB)
  	MOVL	DX, runtime·cpuid_edx(SB)
@@ -55,10 +55,10 @@ index 4181859..942446e 100644
 -	TESTL	$(1<<23), DX	// MMX
 -	JZ 	bad_proc
 -
- nocpuinfo:	
- 
- 	// if there is an _cgo_init, call it to let it
-@@ -160,17 +129,6 @@ ok:
+ 	// Load EAX=7/ECX=0 cpuid flags
+ 	CMPL	SI, $7
+ 	JLT	nocpuinfo
+@@ -170,17 +139,6 @@ ok:
  	INT $3
  	RET
  
@@ -66,7 +66,7 @@ index 4181859..942446e 100644
 -DATA	bad_proc_msg<>+0x08(SB)/8, $"gram can"
 -DATA	bad_proc_msg<>+0x10(SB)/8, $" only be"
 -DATA	bad_proc_msg<>+0x18(SB)/8, $" run on "
--DATA	bad_proc_msg<>+0x20(SB)/8, $"processe"
+-DATA	bad_proc_msg<>+0x20(SB)/8, $"processo"
 -DATA	bad_proc_msg<>+0x28(SB)/8, $"rs with "
 -DATA	bad_proc_msg<>+0x30(SB)/8, $"MMX supp"
 -DATA	bad_proc_msg<>+0x38(SB)/4, $"ort."
@@ -76,6 +76,3 @@ index 4181859..942446e 100644
  DATA	runtime·mainPC+0(SB)/4,$runtime·main(SB)
  GLOBL	runtime·mainPC(SB),RODATA,$4
  
--- 
-2.10.0
-
