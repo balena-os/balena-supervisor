@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for dir in $(find ./* -path ./Godeps -prune -or -type d -print); do
+for dir in $(find ./* -path ./vendor -prune -or -type d -print); do
 	errormessage=$(gofmt -l $dir)
 	if [ -n "$errormessage" ]; then
 		echo "$errormessage"
