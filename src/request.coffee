@@ -1,12 +1,12 @@
 config = require './config'
-PlatformAPI = require 'pinejs-client'
+
 Promise = require 'bluebird'
 request = require 'request'
-url = require 'url'
+
 osRelease = require './lib/os-release'
 
-osVersion = osRelease.getOSVersionSync(config.hostOSVersionPath)
-osVariant = osRelease.getOSVariantSync(config.hostOSVersionPath)
+osVersion = osRelease.getOSVersionSync(config.constants.hostOSVersionPath)
+osVariant = osRelease.getOSVariantSync(config.constants.hostOSVersionPath)
 supervisorVersion = require('./lib/supervisor-version')
 
 userAgent = "Supervisor/#{supervisorVersion}"
@@ -16,18 +16,11 @@ if osVersion?
 	else
 		userAgent += " (Linux; #{osVersion})"
 
-requestOpts =
+exports.requestOpts =
 	gzip: true
 	timeout: 30000
 	headers:
 		'User-Agent': userAgent
-
-PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/v2/')
-exports.resinApi = resinApi = new PlatformAPI
-	apiPrefix: PLATFORM_ENDPOINT
-	passthrough: requestOpts
-exports.cachedResinApi = resinApi.clone({}, cache: {})
-
 
 request = request.defaults(requestOpts)
 

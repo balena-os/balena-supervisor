@@ -3,7 +3,7 @@ utils = require './utils'
 express = require 'express'
 bodyParser = require 'body-parser'
 bufferEq = require 'buffer-equal-constant-time'
-config = require './config'
+constants = require './constants'
 device = require './device'
 _ = require 'lodash'
 proxyvisor = require './proxyvisor'
@@ -193,7 +193,7 @@ module.exports = (application) ->
 			utils.getKnexApp(appId, columns)
 			.then (app) ->
 				# Don't return keys on the endpoint
-				app.env = _.omit(JSON.parse(app.env), config.privateAppEnvVars)
+				app.env = _.omit(JSON.parse(app.env), constants.privateAppEnvVars)
 				# Don't return data that will be of no use to the user
 				res.json(app)
 		.catch utils.AppNotFoundError, (e) ->

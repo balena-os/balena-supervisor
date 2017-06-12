@@ -215,7 +215,8 @@ fetch = (app, setDeviceUpdateState = true) ->
 
 		Promise.try ->
 			conf = JSON.parse(app.config)
-			Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), (apiKey, uuid) ->
+			config.getArray([ 'currentApiKey', 'uuid' ])
+			.spread (apiKey, uuid) ->
 				if conf['RESIN_SUPERVISOR_DELTA'] == '1'
 					logSystemEvent(logTypes.downloadAppDelta, app)
 					requestTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'], positive: true) ? 30 * 60 * 1000
@@ -371,7 +372,7 @@ createRestartPolicy = ({ name, maximumRetryCount }) ->
 
 persistentLockPath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root#{config.dataPath}/#{appId}/resin-updates.lock"
+	return "/mnt/root#{constants.dataPath}/#{appId}/resin-updates.lock"
 
 tmpLockPath = (app) ->
 	appId = app.appId ? app
@@ -379,7 +380,7 @@ tmpLockPath = (app) ->
 
 killmePath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root#{config.dataPath}/#{appId}/resin-kill-me"
+	return "/mnt/root#{constants.dataPath}/#{appId}/resin-kill-me"
 
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
 application.unlockAndStart = unlockAndStart = (app) ->
@@ -431,16 +432,20 @@ joinErrorMessages = (failures) ->
 
 # Function to start the application update polling
 application.poll = ->
-	updateStatus.intervalHandle = setInterval(->
-		application.update()
-	, config.appUpdatePollInterval)
+	config.get('appUpdatePollInterval')
+	.then (interval) ->
+		updateStatus.intervalHandle = setInterval(->
+			application.update()
+		, interval)
 
 # Callback function to set the API poll interval dynamically.
 apiPollInterval = (val) ->
-	config.appUpdatePollInterval = checkInt(val, positive: true) ? 60000
+	interval = checkInt(val, positive: true) ? 60000
 	console.log('New API poll interval: ' + val)
 	clearInterval(updateStatus.intervalHandle)
-	application.poll()
+	config.set('appUpdatePollInterval', interval)
+	.then ->
+		application.poll()
 
 setLocalMode = (val) ->
 	mode = checkTruthy(val) ? false
@@ -860,6 +865,7 @@ application.initialize = ->
 	.then ->
 		utils.mixpanelTrack('Start application update poll', { interval: config.appUpdatePollInterval })
 		application.poll()
+	.then ->
 		application.update()
 
 module.exports = (logsChannel, offlineMode) ->
