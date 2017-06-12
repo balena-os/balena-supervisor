@@ -1,6 +1,6 @@
 /node_modules/
 *.swp
-data
+/data/
 bin/gosuper
 gosuper/bin/
 tools/dind/config.json
@@ -18,3 +18,5 @@ Dockerfile.runtime.*
 !Dockerfile.build.template
 !Dockerfile.runtime.template
 /build/
+test/data/config.json
+test/data/database.sqlite

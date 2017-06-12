@@ -1,10 +1,12 @@
 Promise = require 'bluebird'
 Knex = require 'knex'
+constants = require './constants'
 
 knex = Knex(
 	client: 'sqlite3'
 	connection:
-		filename: process.env.DATABASE_PATH ? '/data/database.sqlite'
+		filename: constants.databasePath
+	useNullAsDefault: true
 )
 
 addColumn = (table, column, type) ->
