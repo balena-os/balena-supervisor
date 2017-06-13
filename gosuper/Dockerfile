@@ -8,9 +8,9 @@ RUN apt-get update \
 		rsync \
 	&& rm -rf /var/lib/apt/lists/
 
-ENV GOLANG_VERSION 1.7.6
+ENV GOLANG_VERSION 1.8.3
 ENV GOLANG_DOWNLOAD_URL https://golang.org/dl/go$GOLANG_VERSION.linux-amd64.tar.gz
-ENV GOLANG_DOWNLOAD_SHA256 ad5808bf42b014c22dd7646458f631385003049ded0bb6af2efc7f1f79fa29ea
+ENV GOLANG_DOWNLOAD_SHA256 1862f4c3d3907e59b04a757cfda0ea7aa9ef39274af99a784f5be843c80c6772
 
 COPY go-${GOLANG_VERSION}-patches /go-${GOLANG_VERSION}-patches
 

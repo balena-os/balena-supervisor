@@ -1,4 +1,4 @@
-commit e85665ea84c11128b8d2408054372ee81598e09d
+commit 6a0e489a556d753161ce75d85a3114654c031853
 Author: Pablo Carranza Velez <pablo@resin.io>
 Date:   Fri Jun 9 14:57:23 2017 -0700
 
@@ -10,7 +10,7 @@ Date:   Fri Jun 9 14:57:23 2017 -0700
     Signed-off-by: Pablo Carranza Velez <pablo@resin.io>
 
 diff --git a/src/runtime/asm_386.s b/src/runtime/asm_386.s
-index ea11b2b..d3a3cdf 100644
+index 3d0b74c..f4e51ce 100644
 --- a/src/runtime/asm_386.s
 +++ b/src/runtime/asm_386.s
 @@ -26,32 +26,6 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0
