@@ -1,4 +1,4 @@
-commit a8e51a8828f69365a1381821942df96300fe80b2
+commit 03def348bdd766df0c508ee8cbf6ceba00e8d78c
 Author: Pablo Carranza Velez <pablo@resin.io>
 Date:   Fri Jun 9 15:07:55 2017 -0700
 
@@ -10,10 +10,10 @@ Date:   Fri Jun 9 15:07:55 2017 -0700
     Signed-off-by: Pablo Carranza Velez <pablo@resin.io>
 
 diff --git a/src/runtime/internal/atomic/asm_386.s b/src/runtime/internal/atomic/asm_386.s
-index 357d830..bf40433 100644
+index 882906e..d37c675 100644
 --- a/src/runtime/internal/atomic/asm_386.s
 +++ b/src/runtime/internal/atomic/asm_386.s
-@@ -121,12 +121,10 @@ TEXT runtime∕internal∕atomic·Load64(SB), NOSPLIT, $0-12
+@@ -124,12 +124,10 @@ TEXT runtime∕internal∕atomic·Load64(SB), NOSPLIT, $0-12
  	JZ	2(PC)
  	MOVL	0, AX // crash with nil ptr deref
  	LEAL	ret_lo+4(FP), BX
@@ -30,7 +30,7 @@ index 357d830..bf40433 100644
  	RET
  
  // void runtime∕internal∕atomic·Store64(uint64 volatile* addr, uint64 v);
-@@ -135,13 +133,10 @@ TEXT runtime∕internal∕atomic·Store64(SB), NOSPLIT, $0-12
+@@ -138,13 +136,10 @@ TEXT runtime∕internal∕atomic·Store64(SB), NOSPLIT, $0-12
  	TESTL	$7, AX
  	JZ	2(PC)
  	MOVL	0, AX // crash with nil ptr deref
