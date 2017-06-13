@@ -81,6 +81,8 @@ knex.init = Promise.all([
 				t.string('imageId')
 				t.json('config')
 				t.json('environment')
+		else
+			addColumn('dependentApp', 'environment', 'json')
 
 	knex.schema.hasTable('dependentDevice')
 	.then (exists) ->
@@ -107,7 +109,12 @@ knex.init = Promise.all([
 				t.json('targetConfig')
 				t.boolean('markedForDeletion')
 		else
-			addColumn('dependentDevice', 'markedForDeletion', 'boolean')
+			Promise.all [
+				addColumn('dependentDevice', 'markedForDeletion', 'boolean')
+				addColumn('dependentDevice', 'localId', 'string')
+				addColumn('dependentDevice', 'is_managed_by', 'string')
+				addColumn('dependentDevice', 'lock_expiry_date', 'dateTime')
+		]
 ])
 
 module.exports = knex
