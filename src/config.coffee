@@ -13,6 +13,7 @@ module.exports =
 	pubnub:
 		subscribe_key: checkString(process.env.PUBNUB_SUBSCRIBE_KEY) ? process.env.DEFAULT_PUBNUB_SUBSCRIBE_KEY
 		publish_key: checkString(process.env.PUBNUB_PUBLISH_KEY) ? process.env.DEFAULT_PUBNUB_PUBLISH_KEY
+		ssl: true
 	mixpanelToken: checkString(process.env.MIXPANEL_TOKEN) ? process.env.DEFAULT_MIXPANEL_TOKEN
 	dockerSocket: process.env.DOCKER_SOCKET
 	supervisorImage: checkString(process.env.SUPERVISOR_IMAGE) ? 'resin/rpi-supervisor'
