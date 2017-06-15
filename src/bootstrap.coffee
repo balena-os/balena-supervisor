@@ -175,7 +175,7 @@ bootstrapper.startBootstrapping = ->
 	readConfig()
 	.then (configFromFile) ->
 		userConfig = configFromFile
-		bootstrapper.offlineMode = Boolean(userConfig.supervisorOfflineMode)
+		bootstrapper.offlineMode = !Boolean(config.apiEndpoint) or Boolean(userConfig.supervisorOfflineMode)
 		knex('config').select('value').where(key: 'uuid')
 	.then ([ uuid ]) ->
 		if uuid?.value
