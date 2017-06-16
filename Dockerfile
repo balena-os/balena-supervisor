@@ -148,7 +148,7 @@ COPY src /usr/src/app/src
 # Install devDependencies, build the coffeescript and then prune the deps
 RUN cp -R node_modules node_modules_prod \
 	&& npm install --no-optional --unsafe-perm \
-	&& npm run lint \
+	&& npm run test \
 	&& npm run build \
 	&& rm -rf node_modules \
 	&& mv node_modules_prod node_modules
