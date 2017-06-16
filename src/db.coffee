@@ -4,7 +4,7 @@ Knex = require 'knex'
 knex = Knex(
 	client: 'sqlite3'
 	connection:
-		filename: '/data/database.sqlite'
+		filename: process.env.DATABASE_PATH ? '/data/database.sqlite'
 )
 
 addColumn = (table, column, type) ->

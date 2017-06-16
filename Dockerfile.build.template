@@ -25,11 +25,12 @@ COPY package.json /usr/src/app/
 RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
 	&& npm dedupe
 
-COPY src /usr/src/app/src
+COPY src test /usr/src/app/
 
 # Install devDependencies, build the coffeescript and then prune the deps
 RUN npm install --only=dev --no-optional --unsafe-perm \
 	&& npm run lint \
+	&& npm run test \
 	&& npm run build \
 	&& npm prune --production \
 	&& npm dedupe
