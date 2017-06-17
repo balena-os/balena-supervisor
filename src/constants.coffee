@@ -28,3 +28,4 @@ module.exports =
 	configJsonNonAtomicPath: '/boot/config.json'
 	defaultPubnubSubscribeKey: process.env.DEFAULT_PUBNUB_SUBSCRIBE_KEY
 	defaultPubnubPublishKey: process.env.DEFAULT_PUBNUB_PUBLISH_KEY
+	allowedInterfaces: ['resin-vpn', 'tun0', 'docker0', 'lo']
