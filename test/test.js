@@ -16,3 +16,4 @@ try {
 require('./constants.spec')
 require('./db.spec')
 require('./config.spec')
+require('./iptables.spec')

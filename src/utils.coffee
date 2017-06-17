@@ -6,7 +6,6 @@ blink = require('blinking')(config.ledFile)
 { request } = require './request'
 logger = require './lib/logger'
 TypedError = require 'typed-error'
-execAsync = Promise.promisify(require('child_process').exec)
 device = require './device'
 { checkTruthy } = require './lib/validation'
 
@@ -14,6 +13,7 @@ exports.supervisorVersion = require('./lib/supervisor-version')
 
 exports.blink = blink
 
+# Move to container-config.coffee
 exports.extendEnvVars = (env, uuid, appId, appName, commit) ->
 	config.getMany(['listenPort', 'name', 'apiSecret', 'deviceApiKey', 'version'])
 	.spread (listenPort, name, apiSecret, deviceApiKey, version) ->
@@ -38,12 +38,14 @@ exports.extendEnvVars = (env, uuid, appId, appName, commit) ->
 			_.defaults(newEnv, env)
 		return Promise.props(newEnv)
 
+# Move to lib/logger
 # Callback function to enable/disable logs
 exports.resinLogControl = (val) ->
 	logEnabled = checkTruthy(val) ? true
 	logger.disableLogPublishing(!logEnabled)
 	console.log('Logs enabled: ' + val)
 
+# Move to gosuper.coffee
 emptyHostRequest = request.defaults({ headers: Host: '' })
 gosuperRequest = (method, endpoint, options = {}, callback) ->
 	if _.isFunction(options)
@@ -84,6 +86,7 @@ exports.getKnexApp = (appId, columns) ->
 exports.getKnexApps = (columns) ->
 	knex('app').select(columns)
 
+# move to container-config.coffee
 exports.defaultVolumes = (includeV1Volumes) ->
 	volumes = {
 		'/data': {}
@@ -111,67 +114,3 @@ exports.defaultBinds = (dataPath, includeV1Binds) ->
 		binds.push('/run/dbus:/host_run/dbus')
 		binds.push('/var/lib/connman:/host/var/lib/connman')
 	return binds
-
-exports.validComposeOptions = [
-	'command'
-	'entrypoint'
-	'environment'
-	'expose'
-	'image'
-	'labels'
-	'links'
-	'net'
-	'network_mode'
-	'ports'
-	'privileged'
-	'restart'
-	'stop_signal'
-	'user'
-	'volumes' # Will be overwritten with the default binds
-	'working_dir'
-]
-
-exports.validContainerOptions = [
-	'Hostname'
-	'User'
-	'Env'
-	'Labels'
-	'Cmd'
-	'Entrypoint'
-	'Image'
-	'Volumes'
-	'WorkingDir'
-	'ExposedPorts'
-	'HostConfig'
-	'Name'
-]
-
-exports.validHostConfigOptions = [
-	'Binds' # Will be overwritten with the default binds
-	'Links'
-	'PortBindings'
-	'Privileged'
-	'RestartPolicy'
-	'NetworkMode'
-]
-
-exports.validateKeys = (options, validSet) ->
-	Promise.try ->
-		return if !options?
-		invalidKeys = _.keys(_.omit(options, validSet))
-		throw new Error("Using #{invalidKeys.join(', ')} is not allowed.") if !_.isEmpty(invalidKeys)
-
-checkAndAddIptablesRule = (rule) ->
-	execAsync("iptables -C #{rule}")
-	.catch ->
-		execAsync("iptables -A #{rule}")
-
-exports.createIpTablesRules = ->
-	allowedInterfaces = ['resin-vpn', 'tun0', 'docker0', 'lo']
-	Promise.each allowedInterfaces, (iface) ->
-		checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -i #{iface} -j ACCEPT")
-	.then ->
-		checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -j REJECT")
-		.catch ->
-			# On systems without REJECT support, fall back to DROP
-			checkAndAddIptablesRule("INPUT -p tcp --dport #{config.listenPort} -j DROP")

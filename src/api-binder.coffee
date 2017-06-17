@@ -3,10 +3,13 @@ url = require 'url'
 PlatformAPI = require 'pinejs-client'
 request = require './request'
 
-initClients =
+resinApi = null
+cachedResinApi = null
+
+initClients = ->
 	config.init
 	.then ->
-		config.get('resinApiEndpoint')
+		config.get('apiEndpoint')
 	.then (apiEndpoint) ->
 		if apiEndpoint?
 			baseUrl = url.resolve(apiEndpoint, '/v2/')
