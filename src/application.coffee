@@ -18,6 +18,7 @@ proxyvisor = require './proxyvisor'
 { checkInt, checkTruthy } = require './lib/validation'
 osRelease = require './lib/os-release'
 deviceConfig = require './device-config'
+network = require './network'
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -474,7 +475,7 @@ setLocalMode = (val) ->
 specialActionConfigVars = [
 	[ 'RESIN_SUPERVISOR_LOCAL_MODE', setLocalMode ]
 	[ 'RESIN_SUPERVISOR_VPN_CONTROL', utils.vpnControl ]
-	[ 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', utils.enableConnectivityCheck ]
+	[ 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', network.enableConnectivityCheck ]
 	[ 'RESIN_SUPERVISOR_POLL_INTERVAL', apiPollInterval ]
 	[ 'RESIN_SUPERVISOR_LOG_CONTROL', utils.resinLogControl ]
 ]
