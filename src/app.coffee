@@ -13,6 +13,7 @@ supervisorInit = ->
 	knex.init.then ->
 		config.init # Ensures uuid, apiSecret and logsChannel
 		.then ->
+			network.connectivityCheck()
 			config.getMany(['uuid', 'listenPort', 'version', 'apiSecret', 'logsChannelSecret', 'provisioned'])
 		.spread (uuid, listenPort, version, apiSecret, logsChannelSecret, provisioned) ->
 			utils.mixpanelTrack('Supervisor start')

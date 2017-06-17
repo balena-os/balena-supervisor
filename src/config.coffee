@@ -49,7 +49,7 @@ schema = {
 	apiTimeout: { source: 'config.json' }
 	listenPort: { source: 'config.json' }
 	deltaEndpoint: { source: 'config.json', default: 'https://delta.resin.io' }
-	uuid: { source: 'config.json', mutable: true}
+	uuid: { source: 'config.json', mutable: true }
 	apiKey: { source: 'config.json', mutable: true }
 	deviceApiKey: { source: 'config.json', mutable: true }
 	deviceType: { source: 'config.json' }
@@ -58,7 +58,7 @@ schema = {
 	deviceId: { source: 'config.json', mutable: true }
 	registered_at: { source: 'config.json', mutable: true }
 	applicationId: { source: 'config.json' }
-	appUpdatePollInterval: { source: 'config.json', mutable: true}
+	appUpdatePollInterval: { source: 'config.json', mutable: true }
 	pubnubSubscribeKey: { source: 'config.json' }
 	pubnubPublishKey: { source: 'config.json' }
 	mixpanelToken: { source: 'config.json', default: process.env.DEFAULT_MIXPANEL_TOKEN }
@@ -135,7 +135,7 @@ configJsonPathOnHost = memoizePromise ->
 			else if /^Resin OS 1./.test(osVersion)
 				# In Resin OS 1.12, $BOOT_MOUNTPOINT was added and it coincides with config.json's path
 				return "#{constants.bootMountPointFromEnv}/config.json" if constants.bootMountPointFromEnv
-				# Older 1.X versions have config.json here 
+				# Older 1.X versions have config.json here
 				return '/mnt/conf/config.json'
 			else
 				# In non-resinOS hosts (or older than 1.0.0), if CONFIG_JSON_PATH wasn't passed then we can't do atomic changes
