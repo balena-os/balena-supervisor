@@ -123,7 +123,7 @@ application.localMode = false
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
 	logger.log({ m: message, s: 1 })
-	utils.mixpanelTrack(eventName ? message, obj)
+	mixpanel.track(eventName ? message, obj)
 
 logSystemEvent = (logType, app = {}, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
@@ -864,7 +864,7 @@ application.initialize = ->
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->
-		utils.mixpanelTrack('Start application update poll', { interval: config.appUpdatePollInterval })
+		mixpanel.track('Start application update poll', { interval: config.appUpdatePollInterval })
 		application.poll()
 	.then ->
 		application.update()

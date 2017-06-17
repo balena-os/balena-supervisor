@@ -197,7 +197,7 @@ do ->
 		)
 		.delay(APPLY_STATE_SUCCESS_DELAY)
 		.catch (error) ->
-			utils.mixpanelTrack('Device info update failure', { error, stateDiff })
+			mixpanel.track('Device info update failure', { error, stateDiff })
 			# Delay 5s before retrying a failed update
 			Promise.delay(APPLY_STATE_RETRY_DELAY)
 		.finally ->
