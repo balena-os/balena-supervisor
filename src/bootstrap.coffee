@@ -13,6 +13,7 @@ TypedError = require 'typed-error'
 osRelease = require './lib/os-release'
 semver = require 'semver'
 semverRegex = require('semver-regex')()
+mixpanel = require './mixpanel'
 
 userConfig = {}
 
@@ -37,7 +38,7 @@ loadPreloadedApps = ->
 	.then ->
 		deviceConfig.set({ targetValues: devConfig })
 	.catch (err) ->
-		utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
+		mixpanel.track('Loading preloaded apps failed', { error: err })
 
 fetchDevice = (apiKey) ->
 	resinApi.get
@@ -141,11 +142,11 @@ generateRegistration = (forceReregister = false) ->
 			generateRegistration()
 
 bootstrapOrRetry = ->
-	utils.mixpanelTrack('Device bootstrap')
+	mixpanel.track('Device bootstrap')
 	# If we're in offline mode, we don't start the provisioning process so bootstrap.done will never fulfill
 	return if bootstrapper.offlineMode
 	bootstrap().catch (err) ->
-		utils.mixpanelTrack('Device bootstrap failed, retrying', { error: err, delay: config.bootstrapRetryDelay })
+		mixpanel.track('Device bootstrap failed, retrying', { error: err, delay: config.bootstrapRetryDelay })
 		setTimeout(bootstrapOrRetry, config.bootstrapRetryDelay)
 
 bootstrapper.done = new Promise (resolve) ->

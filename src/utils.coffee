@@ -2,7 +2,6 @@ Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs'
 config = require './config'
 knex = require './db'
-mixpanel = require 'mixpanel'
 blink = require('blinking')(config.ledFile)
 { request } = require './request'
 logger = require './lib/logger'
@@ -12,45 +11,6 @@ device = require './device'
 { checkTruthy } = require './lib/validation'
 
 exports.supervisorVersion = require('./lib/supervisor-version')
-
-configJson = require('/boot/config.json')
-if Boolean(config.apiEndpoint) and !Boolean(configJson.supervisorOfflineMode)
-	mixpanelClient = mixpanel.init(config.mixpanelToken)
-else
-	mixpanelClient = { track: _.noop }
-
-exports.mixpanelProperties = mixpanelProperties =
-	username: configJson.username
-
-exports.mixpanelTrack = (event, properties = {}) ->
-	# Allow passing in an error directly and having it assigned to the error property.
-	if properties instanceof Error
-		properties = error: properties
-
-	# If the properties has an error argument that is an Error object then it treats it nicely,
-	# rather than letting it become `{}`
-	if properties.error instanceof Error
-		properties.error =
-			message: properties.error.message
-			stack: properties.error.stack
-
-	properties = _.cloneDeep(properties)
-
-	# Don't log private env vars (e.g. api keys)
-	if properties?.app?.env?
-		try
-			{ env } = properties.app
-			env = JSON.parse(env) if _.isString(env)
-			safeEnv = _.omit(env, config.privateAppEnvVars)
-			properties.app.env = JSON.stringify(safeEnv)
-		catch
-			properties.app.env = 'Fully hidden due to error in selective hiding'
-
-	console.log('Event:', event, JSON.stringify(properties))
-	# Mutation is bad, and it should feel bad
-	properties = _.assign(properties, mixpanelProperties)
-
-	mixpanelClient.track(event, properties)
 
 exports.blink = blink
 

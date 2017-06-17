@@ -7,6 +7,7 @@ constants = require './constants'
 device = require './device'
 _ = require 'lodash'
 proxyvisor = require './proxyvisor'
+mixpanel = require './mixpanel'
 
 module.exports = (application) ->
 	api = express()
@@ -37,13 +38,13 @@ module.exports = (application) ->
 		res.send('OK')
 
 	unparsedRouter.post '/v1/blink', (req, res) ->
-		utils.mixpanelTrack('Device blink')
+		mixpanel.track('Device blink')
 		utils.blink.pattern.start()
 		setTimeout(utils.blink.pattern.stop, 15000)
 		res.sendStatus(200)
 
 	parsedRouter.post '/v1/update', (req, res) ->
-		utils.mixpanelTrack('Update notification')
+		mixpanel.track('Update notification')
 		application.update(req.body.force)
 		res.sendStatus(204)
 
@@ -134,7 +135,7 @@ module.exports = (application) ->
 	parsedRouter.post '/v1/restart', (req, res) ->
 		appId = req.body.appId
 		force = req.body.force
-		utils.mixpanelTrack('Restart container', appId)
+		mixpanel.track('Restart container', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, force), ->
@@ -153,7 +154,7 @@ module.exports = (application) ->
 	parsedRouter.post '/v1/apps/:appId/stop', (req, res) ->
 		{ appId } = req.params
 		{ force } = req.body
-		utils.mixpanelTrack('Stop container', appId)
+		mixpanel.track('Stop container', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, force), ->
@@ -169,7 +170,7 @@ module.exports = (application) ->
 
 	unparsedRouter.post '/v1/apps/:appId/start', (req, res) ->
 		{ appId } = req.params
-		utils.mixpanelTrack('Start container', appId)
+		mixpanel.track('Start container', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId), ->
@@ -185,7 +186,7 @@ module.exports = (application) ->
 
 	unparsedRouter.get '/v1/apps/:appId', (req, res) ->
 		{ appId } = req.params
-		utils.mixpanelTrack('GET app', appId)
+		mixpanel.track('GET app', appId)
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, true), ->
