@@ -1,8 +1,8 @@
 Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs'
-config = require './config'
+constants = require './constants'
 knex = require './db'
-blink = require('blinking')(config.ledFile)
+blink = require('blinking')(constants.ledFile)
 { request } = require './request'
 logger = require './lib/logger'
 TypedError = require 'typed-error'
@@ -25,7 +25,7 @@ gosuperRequest = (method, endpoint, options = {}, callback) ->
 		callback = options
 		options = {}
 	options.method = method
-	options.url = config.gosuperAddress + endpoint
+	options.url = constants.gosuperAddress + endpoint
 	emptyHostRequest(options, callback)
 
 gosuperPost = _.partial(gosuperRequest, 'POST')

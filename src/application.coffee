@@ -217,13 +217,13 @@ fetch = (app, setDeviceUpdateState = true) ->
 
 		Promise.try ->
 			conf = JSON.parse(app.config)
-			config.getArray([ 'currentApiKey', 'uuid' ])
-			.spread (apiKey, uuid) ->
+			config.getArray([ 'currentApiKey', 'uuid', 'apiEndpoint', 'deltaEndpoint' ])
+			.spread (apiKey, uuid, apiEndpoint, deltaEndpoint) ->
 				if conf['RESIN_SUPERVISOR_DELTA'] == '1'
 					logSystemEvent(logTypes.downloadAppDelta, app)
 					requestTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'], positive: true) ? 30 * 60 * 1000
 					totalTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_TOTAL_TIMEOUT'], positive: true) ? 24 * 60 * 60 * 1000
-					dockerUtils.rsyncImageWithProgress(app.imageId, { requestTimeout, totalTimeout, uuid, apiKey }, onProgress)
+					dockerUtils.rsyncImageWithProgress(app.imageId, { requestTimeout, totalTimeout, uuid, apiKey, apiEndpoint, deltaEndpoint }, onProgress)
 				else
 					logSystemEvent(logTypes.downloadApp, app)
 					dockerUtils.fetchImageWithProgress(app.imageId, onProgress, { uuid, apiKey })

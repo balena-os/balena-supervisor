@@ -1,5 +1,5 @@
 mixpanel = require 'mixpanel'
-
+constants = require './constants'
 mixpanelClient = null
 mixpanelProperties = null
 
@@ -22,7 +22,7 @@ exports.track = (ev, properties = {}) ->
 		try
 			{ env } = properties.app
 			env = JSON.parse(env) if _.isString(env)
-			safeEnv = _.omit(env, config.privateAppEnvVars)
+			safeEnv = _.omit(env, constants.privateAppEnvVars)
 			properties.app.env = JSON.stringify(safeEnv)
 		catch
 			properties.app.env = 'Fully hidden due to error in selective hiding'

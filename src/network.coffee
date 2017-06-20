@@ -1,12 +1,12 @@
 Promise = require 'bluebird'
 networkCheck = require 'network-checker'
 fs = Promise.promisifyAll require 'fs'
-config = require './config'
+constants = require './constants'
 _ = require 'lodash'
 url = require 'url'
 { checkTruthy } = require './lib/validation'
 
-blink = require('blinking')(config.constants.ledFile)
+blink = require('blinking')(constants.ledFile)
 
 networkPattern =
 	blinks: 4
@@ -33,7 +33,7 @@ exports.enableCheck = enableCheck = (enable) ->
 
 # Call back for inotify triggered when the VPN status is changed.
 vpnStatusInotifyCallback = ->
-	fs.lstatAsync(config.constants.vpnStatusPath + '/active')
+	fs.lstatAsync(constants.vpnStatusPath + '/active')
 	.then ->
 		pauseConnectivityCheck = true
 	.catch ->
@@ -42,31 +42,27 @@ vpnStatusInotifyCallback = ->
 # Use the following to catch EEXIST errors
 EEXIST = (err) -> err.code is 'EEXIST'
 
-exports.connectivityCheck = _.once ->
-	config.init
+exports.connectivityCheck = _.once (apiEndpoint) ->
+	parsedUrl = url.parse(apiEndpoint)
+	fs.mkdirAsync(constants.vpnStatusPath)
+	.catch EEXIST, (err) ->
+		console.log('VPN status path exists.')
 	.then ->
-		config.get('apiEndpoint')
-	.then (apiEndpoint) ->
-		parsedUrl = url.parse(apiEndpoint)
-		fs.mkdirAsync(config.constants.vpnStatusPath)
-		.catch EEXIST, (err) ->
-			console.log('VPN status path exists.')
-		.then ->
-			fs.watch(config.constants.vpnStatusPath, vpnStatusInotifyCallback)
+		fs.watch(constants.vpnStatusPath, vpnStatusInotifyCallback)
 
-		# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
-		vpnStatusInotifyCallback()
-		customMonitor
-			host: parsedUrl.hostname
-			port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
-			interval: 10 * 1000
-			(connected) ->
-				if connected
-					console.log('Internet Connectivity: OK')
-					blink.pattern.stop()
-				else
-					console.log('Waiting for connectivity...')
-					blink.pattern.start(networkPattern)
+	# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
+	vpnStatusInotifyCallback()
+	customMonitor
+		host: parsedUrl.hostname
+		port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
+		interval: 10 * 1000
+		(connected) ->
+			if connected
+				console.log('Internet Connectivity: OK')
+				blink.pattern.stop()
+			else
+				console.log('Waiting for connectivity...')
+				blink.pattern.start(networkPattern)
 
 # Callback function to enable/disable tcp pings
 exports.enableConnectivityCheck = (val) ->
