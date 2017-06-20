@@ -9,9 +9,11 @@ try {
 	fs.unlinkSync(process.env.DATABASE_PATH)
 } catch(err){}
 try {
+	fs.unlinkSync('./dbfoo.sqlite')
+} catch(err){}
+try {
 	fs.unlinkSync(process.env.ROOT_MOUNTPOINT + process.env.CONFIG_JSON_PATH)
 } catch(err){}
-
 
 require('./constants.spec')
 require('./db.spec')
