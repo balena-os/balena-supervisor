@@ -19,6 +19,7 @@ proxyvisor = require './proxyvisor'
 osRelease = require './lib/os-release'
 deviceConfig = require './device-config'
 network = require './network'
+containerConfig = require './container-config'
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -248,8 +249,8 @@ shouldMountKmod = (image) ->
 
 application.start = start = (app) ->
 	device.isResinOSv1().then (isV1) ->
-		volumes = utils.defaultVolumes(isV1)
-		binds = utils.defaultBinds(app.appId, isV1)
+		volumes = containerConfig.defaultVolumes(isV1)
+		binds = containerConfig.defaultBinds(app.appId, isV1)
 		alreadyStarted = false
 		Promise.try ->
 			# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
@@ -629,19 +630,38 @@ getRemoteState = (uuid, apiKey) ->
 
 # TODO: Actually store and use app.environment and app.config separately
 parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
-	appsWithEnv = _.mapValues remoteApps, (app, appId) ->
-		utils.extendEnvVars(app.environment, uuid, appId, app.name, app.commit)
-		.then (env) ->
-			app.config ?= {}
-			return {
+	Promise.join(
+		config.getMany(['listenPort', 'name', 'apiSecret', 'version'])
+		device.getOSVersion()
+		device.getDeviceType()
+	)
+	.then ([listenPort, name, apiSecret, version], osVersion, deviceType) ->
+		appsWithEnv = _.mapValues remoteApps, (app, appId) ->
+			extendEnvVarsOpts = {
+				uuid
 				appId
+				appName: app.name
 				commit: app.commit
-				imageId: app.image
-				env: JSON.stringify(env)
-				config: JSON.stringify(app.config)
-				name: app.name
+				listenPort
+				name
+				apiSecret
+				deviceApiKey: apiKey
+				version
+				osVersion
+				deviceType
 			}
-	Promise.props(appsWithEnv)
+			containerConfig.extendEnvVars(app.environment, extendEnvVarsOpts)
+			.then (env) ->
+				app.config ?= {}
+				return {
+					appId
+					commit: app.commit
+					imageId: app.image
+					env: JSON.stringify(env)
+					config: JSON.stringify(app.config)
+					name: app.name
+				}
+		Promise.props(appsWithEnv)
 
 formatLocalApps = (apps) ->
 	apps = _.keyBy(apps, 'appId')
@@ -703,7 +723,7 @@ application.update = update = (force, scheduled = false) ->
 			.then ({ local, dependent }) ->
 				proxyvisor.fetchAndSetTargetsForDependentApps(dependent, fetch, apiKey)
 				.then ->
-					utils.setConfig('name', local.name) if local.name != deviceName
+					config.set('name', local.name) if local.name != deviceName
 				.then ->
 					parseEnvAndFormatRemoteApps(local.apps, uuid, apiKey)
 			.tap (remoteApps) ->
