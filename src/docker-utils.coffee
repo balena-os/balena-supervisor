@@ -3,7 +3,7 @@ Docker = require 'docker-toolbelt'
 Promise = require 'bluebird'
 progress = require 'request-progress'
 dockerDelta = require 'docker-delta'
-config = require './config'
+constants = require './constants'
 _ = require 'lodash'
 knex = require './db'
 { request } = require './request'
@@ -11,10 +11,10 @@ Lock = require 'rwlock'
 utils = require './utils'
 rimraf = Promise.promisify(require('rimraf'))
 
-docker = new Docker(socketPath: config.dockerSocket)
+docker = new Docker(socketPath: constants.dockerSocket)
 
 exports.docker = docker
-dockerProgress = new DockerProgress(socketPath: config.dockerSocket)
+dockerProgress = new DockerProgress(socketPath: constants.dockerSocket)
 
 # Create an array of (repoTag, image_id, created) tuples like the output of `docker images`
 listRepoTagsAsync = ->
@@ -62,7 +62,7 @@ do ->
 		.disposer (release) ->
 			release()
 
-	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty = false }, onProgress) ->
+	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty = false, deltaEndpoint, apiEndpoint }, onProgress) ->
 		Promise.using readLockImages(), ->
 			Promise.try ->
 				if startFromEmpty
@@ -70,7 +70,7 @@ do ->
 				findSimilarImage(imgDest)
 			.then (imgSrc) ->
 				Promise.join docker.getRegistryAndName(imgDest), docker.getRegistryAndName(imgSrc), (dstInfo, srcInfo) ->
-					tokenEndpoint = "#{config.apiEndpoint}/auth/v1/token"
+					tokenEndpoint = "#{apiEndpoint}/auth/v1/token"
 					opts =
 						auth:
 							user: 'd_' + uuid
@@ -92,7 +92,7 @@ do ->
 									sendImmediately: true
 							opts = _.merge(opts, deltaAuthOpts)
 						new Promise (resolve, reject) ->
-							progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", opts)
+							progress request.get("#{deltaEndpoint}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", opts)
 							.on 'progress', (progress) ->
 								# In request-progress ^2.0.1, "percentage" is a ratio from 0 to 1
 								onProgress(percentage: progress.percentage * 100)
@@ -137,7 +137,7 @@ do ->
 		.then ({ repo, tag }) ->
 			buildRepoTag(repo, tag)
 
-	supervisorTagPromise = normalizeRepoTag(config.supervisorImage)
+	supervisorTagPromise = normalizeRepoTag(constants.supervisorImage)
 
 	exports.cleanupContainersAndImages = (extraImagesToIgnore = []) ->
 		Promise.using writeLockImages(), ->

@@ -19,9 +19,9 @@ supervisorInit = ->
 		mixpanel.init
 	.then ->
 		mixpanel.track('Supervisor start')
-		network.connectivityCheck()
-		config.getMany(['uuid', 'listenPort', 'version', 'apiSecret', 'logsChannelSecret', 'provisioned'])
-	.spread (uuid, listenPort, version, apiSecret, logsChannelSecret, provisioned) ->
+		config.getMany([ 'uuid', 'listenPort', 'version', 'apiSecret', 'logsChannelSecret', 'provisioned', 'apiEndpoint' ])
+	.spread (uuid, listenPort, version, apiSecret, logsChannelSecret, provisioned, apiEndpoint) ->
+		network.connectivityCheck(apiEndpoint)
 		Promise.join(
 			device.getOSVersion()
 			device.getOSVariant()
