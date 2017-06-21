@@ -5,8 +5,7 @@ constants = require './constants'
 _ = require 'lodash'
 url = require 'url'
 { checkTruthy } = require './lib/validation'
-
-blink = require('blinking')(constants.ledFile)
+blink = require './lib/blink'
 
 networkPattern =
 	blinks: 4
