@@ -1,9 +1,11 @@
+constants = require './constants'
+process.env.DOCKER_HOST = "unix://#{constants.dockerSocket}"
+
 Docker = require 'docker-toolbelt'
 { DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
 progress = require 'request-progress'
 dockerDelta = require 'docker-delta'
-constants = require './constants'
 _ = require 'lodash'
 knex = require './db'
 { request } = require './request'
@@ -11,7 +13,7 @@ Lock = require 'rwlock'
 utils = require './utils'
 rimraf = Promise.promisify(require('rimraf'))
 
-docker = new Docker(socketPath: constants.dockerSocket)
+docker = new Docker()
 
 exports.docker = docker
 dockerProgress = new DockerProgress(socketPath: constants.dockerSocket)
