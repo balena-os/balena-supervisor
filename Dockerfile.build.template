@@ -29,7 +29,6 @@ COPY src test /usr/src/app/
 
 # Install devDependencies, build the coffeescript and then prune the deps
 RUN npm install --only=dev --no-optional --unsafe-perm \
-	&& npm run lint \
 	&& npm run test \
 	&& npm run build \
 	&& npm prune --production \

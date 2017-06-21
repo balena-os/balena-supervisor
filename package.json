@@ -11,6 +11,7 @@
     "start": "./entry.sh",
     "build": "coffee -c src",
     "lint": "resin-lint src/",
+    "test": "npm run lint && mocha",
     "versionist": "versionist"
   },
   "dependencies": {
