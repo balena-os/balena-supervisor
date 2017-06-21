@@ -19,8 +19,8 @@ describe 'db.coffee', ->
 		expect(promise).to.be.fulfilled
 
 	it 'creates a database at the path passed on creation', ->
-		knex2 = new require('../src/db')({ databasePath: './dbfoo.sqlite' })
-		promise = knex2.init().then( -> fs.statAsync('./dbfoo.sqlite'))
+		knex2 = new require('../src/db')({ databasePath: process.env.DATABASE_PATH_2 })
+		promise = knex2.init().then( -> fs.statAsync(process.env.DATABASE_PATH_2))
 		expect(promise).to.be.fulfilled
 
 	it 'creates a deviceConfig table with a single default value', ->
