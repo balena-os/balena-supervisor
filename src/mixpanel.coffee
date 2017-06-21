@@ -33,7 +33,7 @@ exports.track = (ev, properties = {}) ->
 	properties = _.assign(properties, mixpanelProperties)
 	mixpanelClient.track(ev, properties)
 
-exports.init = ({ offlineMode, mixpanelToken, username, uuid })
+exports.init = ({ offlineMode, mixpanelToken, username, uuid }) ->
 	return if offlineMode
 	mixpanelClient = mixpanel.init(mixpanelToken)
 	mixpanelProperties =
