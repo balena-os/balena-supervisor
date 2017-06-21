@@ -8,6 +8,7 @@ device = require './device'
 _ = require 'lodash'
 proxyvisor = require './proxyvisor'
 mixpanel = require './mixpanel'
+blink = require './lib/blink'
 
 module.exports = (application) ->
 	api = express()
@@ -39,8 +40,8 @@ module.exports = (application) ->
 
 	unparsedRouter.post '/v1/blink', (req, res) ->
 		mixpanel.track('Device blink')
-		utils.blink.pattern.start()
-		setTimeout(utils.blink.pattern.stop, 15000)
+		blink.pattern.start()
+		setTimeout(blink.pattern.stop, 15000)
 		res.sendStatus(200)
 
 	parsedRouter.post '/v1/update', (req, res) ->

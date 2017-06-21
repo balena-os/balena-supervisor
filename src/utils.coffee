@@ -2,14 +2,11 @@ Promise = require 'bluebird'
 fs = Promise.promisifyAll require 'fs'
 constants = require './constants'
 knex = require './db'
-blink = require('blinking')(constants.ledFile)
 { request } = require './request'
 logger = require './lib/logger'
 TypedError = require 'typed-error'
 device = require './device'
 { checkTruthy } = require './lib/validation'
-
-exports.blink = blink
 
 # Move to lib/logger
 # Callback function to enable/disable logs
