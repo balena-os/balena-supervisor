@@ -631,37 +631,36 @@ getRemoteState = (uuid, apiKey) ->
 # TODO: Actually store and use app.environment and app.config separately
 parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
 	Promise.join(
-		config.getMany(['listenPort', 'name', 'apiSecret', 'version'])
+		config.getMany(['listenPort', 'name', 'apiSecret', 'version', 'deviceType'])
 		device.getOSVersion()
-		device.getDeviceType()
-	)
-	.then ([listenPort, name, apiSecret, version], osVersion, deviceType) ->
-		appsWithEnv = _.mapValues remoteApps, (app, appId) ->
-			extendEnvVarsOpts = {
-				uuid
-				appId
-				appName: app.name
-				commit: app.commit
-				listenPort
-				name
-				apiSecret
-				deviceApiKey: apiKey
-				version
-				osVersion
-				deviceType
-			}
-			containerConfig.extendEnvVars(app.environment, extendEnvVarsOpts)
-			.then (env) ->
-				app.config ?= {}
-				return {
+		([ listenPort, name, apiSecret, version, deviceType ], osVersion) ->
+			appsWithEnv = _.mapValues remoteApps, (app, appId) ->
+				extendEnvVarsOpts = {
+					uuid
 					appId
+					appName: app.name
 					commit: app.commit
-					imageId: app.image
-					env: JSON.stringify(env)
-					config: JSON.stringify(app.config)
-					name: app.name
+					listenPort
+					name
+					apiSecret
+					deviceApiKey: apiKey
+					version
+					osVersion
+					deviceType
 				}
-		Promise.props(appsWithEnv)
+				containerConfig.extendEnvVars(app.environment, extendEnvVarsOpts)
+				.then (env) ->
+					app.config ?= {}
+					return {
+						appId
+						commit: app.commit
+						imageId: app.image
+						env: JSON.stringify(env)
+						config: JSON.stringify(app.config)
+						name: app.name
+					}
+			Promise.props(appsWithEnv)
+	)
 
 formatLocalApps = (apps) ->
 	apps = _.keyBy(apps, 'appId')
@@ -697,6 +696,16 @@ compareForUpdate = (localApps, remoteApps) ->
 	toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
 	allAppIds = _.union(localAppIds, remoteAppIds)
 	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, remoteAppIds, allAppIds }
+
+application.update = do ->
+		_updateRunning = false
+		return Promise.method (targetState, { force }) ->
+			throw new Error('An update is already running') if _updateRunning # ApiBinder should ensure this doesn't happen
+			_updateRunning = true
+			device.getCurrentState()
+			.then ({ localCurrent, dependentCurrent }) ->
+				{ localTarget, dependentTarget } = targetState
+
 
 application.update = update = (force, scheduled = false) ->
 	switch updateStatus.state

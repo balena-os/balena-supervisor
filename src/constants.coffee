@@ -29,3 +29,4 @@ module.exports =
 	defaultPubnubSubscribeKey: process.env.DEFAULT_PUBNUB_SUBSCRIBE_KEY
 	defaultPubnubPublishKey: process.env.DEFAULT_PUBNUB_PUBLISH_KEY
 	allowedInterfaces: ['resin-vpn', 'tun0', 'docker0', 'lo']
+	appsJsonPath: process.env.APPS_JSON_PATH ? '/boot/apps.json'

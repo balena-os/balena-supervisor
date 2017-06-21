@@ -3,10 +3,8 @@ process.on 'uncaughtException', (e) ->
 	console.error('Got unhandled exception', e, e?.stack)
 
 Promise = require 'bluebird'
-
 utils = require './utils'
 bootstrap = require './bootstrap'
-config = require './config'
 _ = require 'lodash'
 mixpanel = require './mixpanel'
 iptables = require './lib/iptables'
