@@ -374,15 +374,15 @@ createRestartPolicy = ({ name, maximumRetryCount }) ->
 
 persistentLockPath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root#{constants.dataPath}/#{appId}/resin-updates.lock"
+	return "#{constants.rootMountPoint}#{constants.dataPath}/#{appId}/resin-updates.lock"
 
 tmpLockPath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root/tmp/resin-supervisor/#{appId}/resin-updates.lock"
+	return "#{constants.rootMountPoint}/tmp/resin-supervisor/#{appId}/resin-updates.lock"
 
 killmePath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root#{constants.dataPath}/#{appId}/resin-kill-me"
+	return "#{constants.rootMountPoint}#{constants.dataPath}/#{appId}/resin-kill-me"
 
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
 application.unlockAndStart = unlockAndStart = (app) ->
