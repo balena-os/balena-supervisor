@@ -1,42 +1,31 @@
-config = require './config'
 url = require 'url'
 PlatformAPI = require 'pinejs-client'
-request = require './request'
+{ request, requestOpts } = require './request'
 
-resinApi = null
-cachedResinApi = null
+module.exports = ({ config, db }) ->
+	binder = {
+		resinApi = null
+		cachedResinApi = null
+	}
 
-initClients = ->
-	config.init
-	.then ->
-		config.get('apiEndpoint')
-	.then (apiEndpoint) ->
-		if apiEndpoint?
+	binder.startTargetStatePoll = ->
+		# request from the target state endpoint, and store to knex app, dependentApp and config
+	binder.startCurrentStateReport = ->
+		# patch to the device(id) endpoint
+
+	binder.init = ->
+		config.getMany([ 'offlineMode', 'resinApiEndpoint' ])
+		.spread (offlineMode, apiEndpoint) ->
+			return if offlineMode
 			baseUrl = url.resolve(apiEndpoint, '/v2/')
-			resinApi = resinApi = new PlatformAPI
+			binder.resinApi = new PlatformAPI
 				apiPrefix: baseUrl
 				passthrough: requestOpts
-			cachedResinApi = resinApi.clone({}, cache: {})
-			return { resinApi, cachedResinApi }
-		else
-			return { resinApi: {}, cachedResinApi: {} }
+			binder.cachedResinApi = resinApi.clone({}, cache: {})
+			provisionDevice()
+			.then ->
+				binder.startCurrentStateReport()
+			.then ->
+				binder.startTargetStatePoll()
 
-startTargetStatePoll = ->
-	initClients
-	.then ({ resinApi, cachedResinApi }) ->
-		pollInterval = setInterval()
-
-startCurrentStateReport = ->
-	initClients
-	.then ({ resinApi, cachedResinApi }) ->
-		setInterval()
-
-exports.initialize = ->
-	initClients
-	.then ({ resinApi, cachedResinApi }) ->
-		config.get()
-				provisionDevice()
-		.then ->
-			startTargetStatePoll()
-		.then ->
-			startCurrentStateReport()
+	return binder

@@ -13,15 +13,28 @@ iptables = require './lib/iptables'
 
 Knex = require('./db')
 Config = require('./config')
+ApiBinder = require('./api-binder')
 
 supervisorInit = ->
 	knex = new Knex()
 	config = new Config({ db: knex })
+	apiBinder = new ApiBinder({ config, db: knex })
 	knex.init()
 	.then ->
 		config.init() # Ensures uuid, deviceApiKey, apiSecret and logsChannel
 	.then ->
-		config.getMany([ 'uuid', 'listenPort', 'version', 'apiSecret', 'logsChannelSecret', 'provisioned', 'apiEndpoint', 'offlineMode', 'mixpanelToken', 'username' ])
+		config.getMany([
+			'uuid'
+			'listenPort'
+			'version'
+			'apiSecret'
+			'logsChannelSecret'
+			'provisioned'
+			'apiEndpoint'
+			'offlineMode'
+			'mixpanelToken'
+			'username'
+		])
 	.spread (uuid, listenPort, version, apiSecret, logsChannelSecret, provisioned, apiEndpoint, offlineMode, mixpanelToken, username) ->
 		mixpanel.init({
 			offlineMode
@@ -75,7 +88,6 @@ supervisorInit = ->
 					apiServer = api(application).listen(listenPort)
 					apiServer.timeout = apiTimeout
 			.then ->
-				if !config.get('offlineMode')
-					apiBinder.initialize() # this will first try to provision if it's a new device
+				apiBinder.init() # this will first try to provision if it's a new device
 
 supervisorInit()
