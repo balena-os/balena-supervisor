@@ -143,7 +143,8 @@ RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
 	&& npm dedupe
 
 COPY webpack.config.js remove-hashbang-loader.js /usr/src/app/
-COPY src test /usr/src/app/src
+COPY src /usr/src/app/src
+COPY test /usr/src/app/test
 
 # Install devDependencies, build the coffeescript and then prune the deps
 RUN cp -R node_modules node_modules_prod \
