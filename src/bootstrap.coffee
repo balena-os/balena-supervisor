@@ -65,7 +65,7 @@ exchangeKey = ->
 			if not device?
 				throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
 			# We found the device, we can try to generate a working device key for it
-			request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key")
+			request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key?apikey=#{userConfig.apiKey}")
 			.spread (res, body) ->
 				if res.status != 200
 					throw new ExchangeKeyError("Couldn't generate device key with provisioning key")
