@@ -3,7 +3,7 @@ constants = require './constants'
 fs = Promise.promisifyAll(require('fs'))
 containerConfig = require './container-config'
 Lock = require('rwlock')
-module.exports = ({ db, config })->
+module.exports = ({ db, config }) ->
 
 	deviceState = { target: {} }
 
@@ -17,14 +17,23 @@ module.exports = ({ db, config })->
 
 	deviceState.writeTarget = ->
 		Promise.using writeLockTarget(), ->
-			
+
+
+	deviceState.getTarget = ->
+		return deviceState.target
+
+	deviceState.getCurrent = ->
+		# Get device name
+		# Get config.txt and logs-to-display current values, build deviceConfig
+		# Get docker containers, build apps object
+
 
 	deviceState.loadTargetFromFile = (appsPath) ->
 		appsPath ?= constants.appsJsonPath
 		Promise.join(
 			config.getMany([ 'uuid', 'listenPort', 'name', 'apiSecret', 'version', 'deviceType', 'deviceApiKey' ])
 			device.getOSVersion()
-			([ uuid, listenPort, name, apiSecret, version, deviceType, deviceApiKey ], osVersion)->
+			([ uuid, listenPort, name, apiSecret, version, deviceType, deviceApiKey ], osVersion) ->
 				Promise.using writeLockTarget(), ->
 					devConfig = {}
 					db('app').truncate()

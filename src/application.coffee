@@ -698,13 +698,13 @@ compareForUpdate = (localApps, remoteApps) ->
 	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, remoteAppIds, allAppIds }
 
 application.update = do ->
-		_updateRunning = false
-		return Promise.method (targetState, { force }) ->
-			throw new Error('An update is already running') if _updateRunning # ApiBinder should ensure this doesn't happen
-			_updateRunning = true
-			device.getCurrentState()
-			.then ({ localCurrent, dependentCurrent }) ->
-				{ localTarget, dependentTarget } = targetState
+	_updateRunning = false
+	return Promise.method (targetState, { force }) ->
+		throw new Error('An update is already running') if _updateRunning # ApiBinder should ensure this doesn't happen
+		_updateRunning = true
+		device.getCurrentState()
+		.then ({ localCurrent, dependentCurrent }) ->
+			{ localTarget, dependentTarget } = targetState
 
 
 application.update = update = (force, scheduled = false) ->
