@@ -49,9 +49,14 @@ make ${MAKE_ARGS} \
     DEPLOY_REGISTRY=registry.resinstaging.io/ \
     deploy
 
-# Cleanup removing by Id to actually remove the images rather than untagging them
-docker rmi -f $(docker inspect -f "{{.Id}}" registry.resinstaging.io/resin/${ARCH}-supervisor:${ESCAPED_BRANCH_NAME}) || true
-docker rmi -f $(docker inspect -f "{{.Id}}" resin/${ARCH}-supervisor:${ESCAPED_BRANCH_NAME}) || true
-docker rmi -f $(docker inspect -f "{{.Id}}" ${NODE_SUPERVISOR_REPO}:${ESCAPED_BRANCH_NAME}) || true
-docker rmi -f $(docker inspect -f "{{.Id}}" ${GO_SUPERVISOR_REPO}:${ESCAPED_BRANCH_NAME}) || true
-docker rmi -f $(docker inspect -f "{{.Id}}" ${BASE_IMAGE_TAG}) || true
+docker rmi registry.resinstaging.io/resin/${ARCH}-supervisor:${ESCAPED_BRANCH_NAME} || true
+docker rmi resin/${ARCH}-supervisor:${ESCAPED_BRANCH_NAME} || true
+docker rmi resin/${ARCH}-supervisor:master || true
+docker rmi ${NODE_SUPERVISOR_REPO}:${ESCAPED_BRANCH_NAME} || true
+docker rmi ${NODE_SUPERVISOR_REPO}:master || true
+docker rmi resin/node-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || true
+docker rmi ${GO_SUPERVISOR_REPO}:${ESCAPED_BRANCH_NAME} || true
+docker rmi ${GO_SUPERVISOR_REPO}:master || true
+docker rmi resin/go-supervisor-${ARCH}:${ESCAPED_BRANCH_NAME} || true
+docker rmi ${BASE_IMAGE_TAG} || true
+docker rmi ${BASE_IMAGE_REPO}:${ESCAPED_BRANCH_NAME} || true
