@@ -45,3 +45,8 @@ describe 'config.coffee', ->
 		# We catch it to avoid the unhandled error log
 		promise.catch(->)
 		expect(promise).to.throw
+
+	it 'allows setting both config.json and database fields transparently', ->
+		promise = config.set({ appUpdatePollInterval: 30000, name: 'a new device name'}).then ->
+			config.getMany([ 'appUpdatePollInterval', 'name' ])
+		expect(promise).to.eventually.deep.equal([ 30000, 'a new device name' ])

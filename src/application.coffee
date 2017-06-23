@@ -19,7 +19,7 @@ proxyvisor = require './proxyvisor'
 osRelease = require './lib/os-release'
 deviceConfig = require './device-config'
 network = require './network'
-containerConfig = require './container-config'
+containerConfig = require './lib/container-config'
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->

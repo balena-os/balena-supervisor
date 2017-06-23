@@ -1,11 +1,15 @@
 Promise = require 'bluebird'
 constants = require './constants'
 fs = Promise.promisifyAll(require('fs'))
-containerConfig = require './container-config'
+containerConfig = require './lib/container-config'
 Lock = require('rwlock')
 module.exports = ({ db, config }) ->
 
-	deviceState = { target: {} }
+	deviceState = new EventEmitter()
+	deviceState.on 'error', (err) ->
+		console.error("Error in deviceState: ", err, err.stack)
+	deviceState._target = {}
+	deviceState._currentVolatile = {}
 
 	_lock = new Lock()
 	_writeLock = Promise.promisify(_lock.async.writeLock)
@@ -23,10 +27,30 @@ module.exports = ({ db, config }) ->
 		return deviceState.target
 
 	deviceState.getCurrent = ->
+		currentState = {}
+		Promise.join(
+			config.get('name')
+			deviceConfig.get('values')
+			application.getAll()
+			proxyvisor.getCurrentStates()
+			(name, apps, dependent) ->
+				return {
+					local: {
+						name
+						config: devConfig
+						apps
+					}
+					dependent
+				}
+		)
+
 		# Get device name
 		# Get config.txt and logs-to-display current values, build deviceConfig
 		# Get docker containers, build apps object
 
+	deviceState.report = (newState) ->
+		_.merge(deviceState._currentVolatile, newState)
+		setImmediate -> deviceState.emit('current-state-change')
 
 	deviceState.loadTargetFromFile = (appsPath) ->
 		appsPath ?= constants.appsJsonPath

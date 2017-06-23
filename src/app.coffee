@@ -8,15 +8,19 @@ bootstrap = require './bootstrap'
 _ = require 'lodash'
 mixpanel = require './mixpanel'
 iptables = require './lib/iptables'
+network = require './network'
+
 
 Knex = require('./db')
 Config = require('./config')
 ApiBinder = require('./api-binder')
+DeviceState = require('./device-state')
 
 supervisorInit = ->
-	knex = new Knex()
-	config = new Config({ db: knex })
-	apiBinder = new ApiBinder({ config, db: knex })
+	db = new Knex()
+	config = new Config({ db })
+	apiBinder = new ApiBinder({ config, db })
+	deviceState = new DeviceState({ config, db })
 	knex.init()
 	.then ->
 		config.init() # Ensures uuid, deviceApiKey, apiSecret and logsChannel
@@ -75,9 +79,11 @@ supervisorInit = ->
 				setInterval(updateIpAddr, 30 * 1000) # Every 30s
 				updateIpAddr()
 			.then ->
-				application.loadTargetsFromFile() if !provisioned
+				deviceState.init()
 			.then ->
-				application.initialize()
+				deviceState.loadTargetsFromFile() if !provisioned
+			.then ->
+				deviceState.applyAndMaintainTarget()
 			.then ->
 				# initialize API
 				console.log('Starting API server..')

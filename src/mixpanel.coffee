@@ -1,4 +1,5 @@
 mixpanel = require 'mixpanel'
+_ = require 'lodash'
 constants = require './constants'
 mixpanelClient = null
 mixpanelProperties = null
