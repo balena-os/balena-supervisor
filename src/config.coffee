@@ -4,7 +4,7 @@ memoizee = require 'memoizee'
 deviceRegister = require 'resin-register-device'
 _ = require 'lodash'
 fs = Promise.promisifyAll(require('fs'))
-execAsync = Promise.promisify(require('child_process').exec)
+osRelease = require './lib/os-release'
 
 memoizePromise = _.partial(memoizee, _, promise: 'then')
 
@@ -40,7 +40,7 @@ module.exports = ({ db, configPath }) ->
 			# Fall back to checking if an API endpoint was passed via env vars if there's none in config.json (legacy)
 			config.get('apiEndpoint')
 			.then (apiEndpoint) ->
-				return apiEndpoint ? apiEndpointFromEnv
+				return apiEndpoint ? constants.apiEndpointFromEnv
 
 		provisioned: ->
 			config.getMany([ 'apiEndpoint', 'registered_at' ])
@@ -218,15 +218,15 @@ module.exports = ({ db, configPath }) ->
 		dbKeys = _.keys(dbVals)
 		config.getMany(dbKeys)
 		.then (oldValues) ->
-			#db.transaction (trx) ->
-			Promise.map dbKeys, (key, idx) ->
-				value = dbVals[key]
-				if oldValues[idx] != value
-					db('config').update({ value }).where({ key })
-					.then (n) ->
-						db('config').insert({ key, value }) if n == 0
-			.then ->
-				configJsonSet(configJsonVals) if !_.isEmpty(configJsonVals)
+			db.transaction (trx) ->
+				Promise.map dbKeys, (key, idx) ->
+					value = dbVals[key]
+					if oldValues[idx] != value
+						trx('config').update({ value }).where({ key })
+						.then (n) ->
+							trx('config').insert({ key, value }) if n == 0
+				.then ->
+					configJsonSet(configJsonVals) if !_.isEmpty(configJsonVals)
 
 	config.remove = (key) ->
 		# Clear a value from config.json or DB

@@ -3,7 +3,7 @@ m = require 'mochainon'
 
 { expect } = m.chai
 
-containerConfig = require '../src/container-config'
+containerConfig = require '../src/lib/container-config'
 describe 'container-config.coffee', ->
 
 	it 'extends environment variables properly', ->
