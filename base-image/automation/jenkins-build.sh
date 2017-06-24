@@ -48,7 +48,8 @@ docker run --rm \
 	-v $SSTATE_DIR:/yocto/shared-sstate \
 	-v `pwd`/dest:/dest \
 	${BUILDER_IMAGE}
-docker rmi -f $(docker inspect -f "{{.Id}}" ${BUILDER_IMAGE}) || true
+docker rmi ${BUILDER_IMAGE} || true
+docker rmi ${BUILDER_REPO}:master || true
 if [ -f dest/rootfs.tar.gz ]; then
 	docker import dest/rootfs.tar.gz ${BASE_IMAGE_TAG}
 	docker tag ${BASE_IMAGE_TAG} ${BASE_IMAGE_REPO}:${ESCAPED_BRANCH_NAME} || docker tag -f ${BASE_IMAGE_TAG} ${BASE_IMAGE_REPO}:${ESCAPED_BRANCH_NAME}
