@@ -5,9 +5,7 @@ bodyParser = require 'body-parser'
 bufferEq = require 'buffer-equal-constant-time'
 config = require './config'
 device = require './device'
-dockerUtils = require './docker-utils'
 _ = require 'lodash'
-compose = require './compose'
 proxyvisor = require './proxyvisor'
 
 module.exports = (application) ->
@@ -216,53 +214,6 @@ module.exports = (application) ->
 
 	unparsedRouter.get '/v1/device', (req, res) ->
 		res.json(device.getState())
-
-	unparsedRouter.post '/v1/images/create', dockerUtils.createImage
-	unparsedRouter.post '/v1/images/load', dockerUtils.loadImage
-	unparsedRouter.delete '/v1/images/*', dockerUtils.deleteImage
-	unparsedRouter.get '/v1/images', dockerUtils.listImages
-	parsedRouter.post '/v1/containers/create', dockerUtils.createContainer
-	parsedRouter.post '/v1/containers/update', dockerUtils.updateContainer
-	parsedRouter.post '/v1/containers/:id/start', dockerUtils.startContainer
-	unparsedRouter.post '/v1/containers/:id/stop', dockerUtils.stopContainer
-	unparsedRouter.delete '/v1/containers/:id', dockerUtils.deleteContainer
-	unparsedRouter.get '/v1/containers', dockerUtils.listContainers
-
-	unparsedRouter.post '/v1/apps/:appId/compose/up', (req, res) ->
-		appId = req.params.appId
-		onStatus = (status) ->
-			status = JSON.stringify(status) if _.isObject(status)
-			res.write(status)
-		utils.getKnexApp(appId)
-		.then (app) ->
-			res.status(200)
-			compose.up(appId, onStatus)
-			.catch (err) ->
-				console.log('Error on compose up:', err, err.stack)
-			.finally ->
-				res.end()
-		.catch utils.AppNotFoundError, (e) ->
-			return res.status(400).send(e.message)
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	unparsedRouter.post '/v1/apps/:appId/compose/down', (req, res) ->
-		appId = req.params.appId
-		onStatus = (status) ->
-			status = JSON.stringify(status) if _.isObject(status)
-			res.write(status)
-		utils.getKnexApp(appId)
-		.then (app) ->
-			res.status(200)
-			compose.down(appId, onStatus)
-			.catch (err) ->
-				console.log('Error on compose down:', err, err.stack)
-			.finally ->
-				res.end()
-		.catch utils.AppNotFoundError, (e) ->
-			return res.status(400).send(e.message)
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
 
 	api.use(unparsedRouter)
 	api.use(parsedRouter)
