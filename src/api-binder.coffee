@@ -10,14 +10,17 @@ module.exports = ({ config, db, deviceState }) ->
 	}
 
 	binder.provisionDevice =  ->
-
+		throw new Error('Trying to provision device without initializing API client') if !binder.resinApi?
 
 	binder.startTargetStatePoll = ->
 		# request from the target state endpoint, and store to knex app, dependentApp and config
+		throw new Error('Trying to start poll without initializing API client') if !binder.resinApi?
 	binder.startCurrentStateReport = ->
+		throw new Error('Trying to start state reporting without initializing API client') if !binder.resinApi?
 		# patch to the device(id) endpoint
 		deviceState.getCurrent()
 		.then (currentDeviceState) ->
+
 
 
 	binder.init = ->

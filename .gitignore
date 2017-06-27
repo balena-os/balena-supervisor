@@ -6,6 +6,7 @@ gosuper/bin/
 tools/dind/config.json
 tools/dind/apps.json
 tools/dind/config/localenv
+tools/dind/config/services/docker.service.d/proxy.conf
 
 base-image/build/bitbake.lock
 base-image/build/cache
