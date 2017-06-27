@@ -44,6 +44,7 @@ fi
 if [ -f $CONFIG_PATH ]
 then
     API_ENDPOINT=$(jq --raw-output ".apiEndpoint" $CONFIG_PATH)
+    DELTA_ENDPOINT=$(jq --raw-output ".deltaEndpoint" $CONFIG_PATH)
     LISTEN_PORT=$(jq --raw-output ".listenPort" $CONFIG_PATH)
     MIXPANEL_TOKEN=$(jq --raw-output ".mixpanelToken" $CONFIG_PATH)
     PUBNUB_PUBLISH_KEY=$(jq --raw-output ".pubnubPublishKey" $CONFIG_PATH)

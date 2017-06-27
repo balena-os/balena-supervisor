@@ -30,6 +30,7 @@ RUN passwd -d root
 
 # Change os release to a resin-sync compatible one
 RUN sed -i 's/\(PRETTY_NAME=\).*/\1"ResinOS 1.2.1+dind"/' /etc/os-release
+RUN echo 'VARIANT_ID="dev"' >> /etc/os-release
 
 COPY config/openvpn/ /etc/openvpn/
 COPY config/dropbear/config /etc/default/dropbear
