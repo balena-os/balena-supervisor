@@ -43,9 +43,12 @@ module.exports = ({ db, configPath }) ->
 				return apiEndpoint ? constants.apiEndpointFromEnv
 
 		provisioned: ->
-			config.getMany([ 'apiEndpoint', 'registered_at' ])
-			.spread (apiEndpoint, registeredAt) ->
-				return Boolean(apiEndpoint) and Boolean(registeredAt)
+			config.getMany([ 'uuid', 'apiEndpoint', 'registered_at', 'deviceId' ])
+			.then (requiredValues) ->
+				return _.every(requiredValues, Boolean)
+
+		osVersion: ->
+			osRelease.getOSVersion(constants.hostOSVersionPath)
 
 	schema = {
 		apiEndpoint: { source: 'config.json' }
@@ -64,13 +67,16 @@ module.exports = ({ db, configPath }) ->
 		appUpdatePollInterval: { source: 'config.json', mutable: true }
 		pubnubSubscribeKey: { source: 'config.json' }
 		pubnubPublishKey: { source: 'config.json' }
-		mixpanelToken: { source: 'config.json', default: process.env.DEFAULT_MIXPANEL_TOKEN }
+		mixpanelToken: { source: 'config.json', default: constants.defaultMixpanelToken }
 		bootstrapRetryDelay: { source: 'config.json', default: 30000 }
 
 		version: { source: 'func' }
 		currentApiKey: { source: 'func' }
 		offlineMode: { source: 'func' }
 		pubnub: { source: 'func' }
+		resinApiEndpoint: { source: 'func' }
+		provisioned: { source: 'func' }
+		osVersion: { source: 'func' }
 
 		apiSecret: { source: 'db', mutable: true }
 		logsChannelSecret: { source: 'db', mutable: true }

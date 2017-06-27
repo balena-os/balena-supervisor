@@ -21,7 +21,7 @@ supervisorInit = ->
 	config = new Config({ db })
 	apiBinder = new ApiBinder({ config, db })
 	deviceState = new DeviceState({ config, db })
-	knex.init()
+	db.init()
 	.then ->
 		config.init() # Ensures uuid, deviceApiKey, apiSecret and logsChannel
 	.then ->

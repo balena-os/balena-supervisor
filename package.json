@@ -11,7 +11,7 @@
     "start": "./entry.sh",
     "build": "webpack --optimize-minimize",
     "lint": "resin-lint src/",
-    "test": "npm run lint && mocha",
+    "test": "npm run lint && mocha --compilers coffee:coffee-script/register",
     "versionist": "versionist"
   },
   "dependencies": {
@@ -42,7 +42,7 @@
     "memoizee": "^0.4.1",
     "mixpanel": "0.0.20",
     "mocha": "^3.4.2",
-    "mochainon": "^1.0.0",
+    "mochainon": "^2.0.0",
     "network-checker": "~0.0.5",
     "node-loader": "^0.6.0",
     "null-loader": "^0.1.1",

@@ -1,3 +1,4 @@
+require './lib/prepare'
 Promise = require 'bluebird'
 m = require 'mochainon'
 constants = require '../src/constants'
