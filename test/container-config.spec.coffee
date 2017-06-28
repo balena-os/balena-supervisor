@@ -1,4 +1,4 @@
-require './lib/prepare'
+prepare = require './lib/prepare'
 Promise = require 'bluebird'
 m = require 'mochainon'
 
@@ -6,6 +6,8 @@ m = require 'mochainon'
 
 containerConfig = require '../src/lib/container-config'
 describe 'container-config.coffee', ->
+	before ->
+		prepare()
 
 	it 'extends environment variables properly', ->
 		extendEnvVarsOpts = {

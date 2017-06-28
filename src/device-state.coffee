@@ -7,6 +7,7 @@ _ = require 'lodash'
 EventEmitter = require 'events'
 mixpanel = require './mixpanel'
 DeviceConfig = require './device-config'
+validation = require './lib/validation'
 
 module.exports = ({ db, config }) ->
 
@@ -31,44 +32,72 @@ module.exports = ({ db, config }) ->
 	keyByAndOmit = (collection, key) ->
 		_.mapValues(_.keyBy(collection, key), (el) -> _.omit(el, key))
 
-	deviceState.setTarget = ->
-		Promise.using writeLockTarget(), ->
-			# Apps, deviceConfig, dependent
+	validateLocalState = (state) ->
+		if state.name? and !validation.isValidShortText(state.name)
+			throw new Error('Invalid device name')
+		if state.apps? and !validation.isValidAppsObject(state.apps)
+			throw new Error('Invalid apps')
+		if state.config? and !validation.isValidEnv(state.config)
+			throw new Error('Invalid device configuration')
+
+	validateDependentState = (state) ->
+		if state.apps? and !validation.isValidAppsObject(state.apps)
+			throw new Error('Invalid dependent apps')
+		if state.devices? and !validation.isValidDependentDevicesObject(state.devices)
+			throw new Error('Invalid dependent devices')
+
+	validateState = Promise.method (state) ->
+		validate LocalState(target.local) if target.local?
+		validateDependentState(target.dependent) if target.dependent?
+
+	deviceState.setTarget = (target) ->
+		validateState(target)
+		.then ->
+			Promise.using writeLockTarget(), ->
+				# Apps, deviceConfig, dependent
+				Promise.try ->
+					config.set({ name: target.local.name }) if target.local?.name?
+				.then ->
+					deviceConfig.setTarget(target.local.config) if target.local?.config?
+				.then ->
+					if target.local?.apps?
+						console.log('To do: save apps')
 
 	# BIG TODO: correctly include dependent apps/devices
 	deviceState.getTarget = ->
-		Promise.props({
-			local: Promise.props({
-				name: config.get('name')
-				config: deviceConfig.getTarget()
-				apps: db('app').select().map (app) ->
-					return {
-						appId: app.appId
-						image: app.imageId
-						name: app.name
-						commit: app.commit
-						environment: JSON.parse(app.env)
-						config: JSON.parse(app.config)
-					}
-				.then (apps) ->
-					keyByAndOmit(apps, 'appId')
-			})
-			dependent: Promise.props({
-				apps: db('dependentApp').select().map (app) ->
-					return {
-						appId: app.appId
-						name: app.name
-						parentApp: app.parentApp
-						commit: app.commit
-						image: app.imageId
-						config: JSON.parse(app.config)
-					}
-				.then (apps) ->
-					keyByAndOmit(apps, 'appId')
-				devices: {} #db('dependentDevice').select().map (device) ->
+		Promise.using readLockTarget(), ->
+			Promise.props({
+				local: Promise.props({
+					name: config.get('name')
+					config: deviceConfig.getTarget()
+					apps: db('app').select().map (app) ->
+						return {
+							appId: app.appId
+							image: app.imageId
+							name: app.name
+							commit: app.commit
+							environment: JSON.parse(app.env)
+							config: JSON.parse(app.config)
+						}
+					.then (apps) ->
+						keyByAndOmit(apps, 'appId')
+				})
+				dependent: Promise.props({
+					apps: db('dependentApp').select().map (app) ->
+						return {
+							appId: app.appId
+							name: app.name
+							parentApp: app.parentApp
+							commit: app.commit
+							image: app.imageId
+							config: JSON.parse(app.config)
+						}
+					.then (apps) ->
+						keyByAndOmit(apps, 'appId')
+					devices: {} #db('dependentDevice').select().map (device) ->
 
+				})
 			})
-		})
 
 	deviceState.getCurrent = ->
 		currentState = {}
@@ -92,7 +121,7 @@ module.exports = ({ db, config }) ->
 		# Get config.txt and logs-to-display current values, build deviceConfig
 		# Get docker containers, build apps object
 
-	deviceState.reportCurrent = (newState) ->
+	deviceState.reportCurrent = (newState = {}) ->
 		_.merge(deviceState._currentVolatile, newState)
 		setImmediate -> deviceState.emit('current-state-change')
 
