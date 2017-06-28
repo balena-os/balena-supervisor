@@ -1,4 +1,4 @@
-require './lib/prepare'
+prepare = require './lib/prepare'
 Promise = require 'bluebird'
 m = require 'mochainon'
 
@@ -12,6 +12,8 @@ childProcess = require('child_process')
 
 knex = require '../src/db'
 describe 'iptables.coffee', ->
+	before ->
+		prepare()
 
 	it 'calls iptables to check if the rules exist', ->
 		stub(childProcess, 'execAsync').returns(Promise.resolve())

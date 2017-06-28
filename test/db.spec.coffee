@@ -1,4 +1,4 @@
-require './lib/prepare'
+prepare = require './lib/prepare'
 Promise = require 'bluebird'
 m = require 'mochainon'
 
@@ -11,6 +11,7 @@ knex = new require('../src/db')()
 describe 'db.coffee', ->
 	initialization = null
 	before ->
+		prepare()
 		initialization = knex.init()
 	it 'initializes correctly', ->
 		expect(initialization).to.be.fulfilled

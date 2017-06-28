@@ -2,9 +2,10 @@ Promise = require 'bluebird'
 m = require 'mochainon'
 
 { stub } = m.sinon
+m.chai.use(require('chai-events'))
 { expect } = m.chai
 
-require './lib/prepare'
+prepare = require './lib/prepare'
 DeviceState = require '../src/device-state'
 Knex = require('../src/db')
 Config = require('../src/config')
@@ -18,6 +19,7 @@ deviceState = new DeviceState({ db, config })
 
 describe 'deviceState', ->
 	before ->
+		prepare()
 		stub(containerConfig, 'extendEnvVars').callsFake (env) ->
 			env['ADDITIONAL_ENV_VAR'] = 'its value'
 			Promise.resolve(env)
@@ -30,7 +32,7 @@ describe 'deviceState', ->
 		containerConfig.extendEnvVars.restore()
 		mixpanel.track.restore()
 
-	it 'loads a target state from an apps.json file and saves it as target state', ->
+	it 'loads a target state from an apps.json file and saves it as target state, then returns it', ->
 		config.set({ name: '' })
 		.then ->
 			deviceState.loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps.json')
@@ -63,7 +65,9 @@ describe 'deviceState', ->
 				dependent: { apps: {}, devices: {}}
 			})
 
-	it 'emits a change event when a new state is reported'
+	it 'emits a change event when a new state is reported', ->
+		deviceState.reportCurrent({ someStateDiff: 'someValue' })
+		expect(deviceState).to.emit('current-state-change')
 
 	it 'returns the current state'
 

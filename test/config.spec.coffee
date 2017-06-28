@@ -1,10 +1,7 @@
-require './lib/prepare'
+prepare = require './lib/prepare'
 Promise = require 'bluebird'
 m = require 'mochainon'
 fs = Promise.promisifyAll(require('fs'))
-
-# Create a test config.json before requiring the library
-fs.writeFileSync('./test/data/config.json', fs.readFileSync('./test/data/testconfig.json'))
 
 { expect } = m.chai
 
@@ -14,6 +11,7 @@ describe 'config.coffee', ->
 	initialization = null
 
 	before ->
+		prepare()
 		initialization = knex.init().then(config.init)
 
 	it 'uses the correct config.json path', ->
