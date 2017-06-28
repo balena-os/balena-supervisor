@@ -1,26 +1,22 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
 
-module.exports = ({ db, config }) ->
-	deviceConfig = {}
-	deviceConfig.setTarget = (target) ->
+module.exports = class DeviceConfig
+	constructor: ({ @db, @config }) ->
+
+	setTarget: (target) ->
 		confToUpdate = {
 			targetValues: JSON.stringify(target)
 		}
-		db('deviceConfig').update(confToUpdate)
-
-	deviceConfig.getTarget = ->
-		db('deviceConfig').select('targetValues')
+		@db('deviceConfig').update(confToUpdate)
+	getTarget: ->
+		@db('deviceConfig').select('targetValues')
 		.then ([ devConfig ]) ->
 			return JSON.parse(devConfig.targetValues)
-
-	deviceConfig.getCurrent = ->
+	getCurrent: ->
 		# Use gosuper to get state of log to display
 		# Read config.txt and translate to config vars
 		# Get config values
-
-	deviceConfig.applyTarget = ->
+	applyTarget: ->
 		# Takes the target value of log to display and calls gosuper to set it
 		# Takes the config.txt values and writes them to config.txt
-
-	return deviceConfig
