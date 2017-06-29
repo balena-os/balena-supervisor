@@ -13,31 +13,30 @@ Config = require('../src/config')
 containerConfig = require '../src/lib/container-config'
 mixpanel = require '../src/mixpanel'
 
-db = new Knex()
-config = new Config({ db })
-deviceState = new DeviceState({ db, config })
-
 describe 'deviceState', ->
 	before ->
 		prepare()
+		@db = new Knex()
+		@config = new Config({ @db })
+		@deviceState = new DeviceState({ @db, @config })
 		stub(containerConfig, 'extendEnvVars').callsFake (env) ->
 			env['ADDITIONAL_ENV_VAR'] = 'its value'
 			Promise.resolve(env)
 		stub(mixpanel, 'track').callsFake(console.log)
-		db.init()
-		.then ->
-			config.init()
+		@db.init()
+		.then =>
+			@config.init()
 
 	after ->
 		containerConfig.extendEnvVars.restore()
 		mixpanel.track.restore()
 
 	it 'loads a target state from an apps.json file and saves it as target state, then returns it', ->
-		config.set({ name: '' })
-		.then ->
-			deviceState.loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps.json')
-		.then ->
-			deviceState.getTarget()
+		@config.set({ name: '' })
+		.then =>
+			@deviceState.loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps.json')
+		.then =>
+			@deviceState.getTarget()
 		.then (targetState) ->
 			expect(targetState).to.deep.equal({
 				local: {
@@ -66,8 +65,8 @@ describe 'deviceState', ->
 			})
 
 	it 'emits a change event when a new state is reported', ->
-		deviceState.reportCurrent({ someStateDiff: 'someValue' })
-		expect(deviceState).to.emit('current-state-change')
+		@deviceState.reportCurrent({ someStateDiff: 'someValue' })
+		expect(@deviceState).to.emit('current-state-change')
 
 	it 'returns the current state'
 

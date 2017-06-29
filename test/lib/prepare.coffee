@@ -9,4 +9,3 @@ module.exports = ->
 
 	try
 		fs.writeFileSync('./test/data/config.json', fs.readFileSync('./test/data/testconfig.json'))
-
