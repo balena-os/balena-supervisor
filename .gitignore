@@ -21,3 +21,4 @@ Dockerfile.runtime.*
 /build/
 test/data/config.json
 test/data/*.sqlite
+coverage
