@@ -8,4 +8,10 @@ module.exports = ->
 		fs.unlinkSync(process.env.DATABASE_PATH_2)
 
 	try
+		fs.unlinkSync(process.env.DATABASE_PATH_3)
+
+	try
+		fs.unlinkSync(process.env.LED_FILE)
+
+	try
 		fs.writeFileSync('./test/data/config.json', fs.readFileSync('./test/data/testconfig.json'))

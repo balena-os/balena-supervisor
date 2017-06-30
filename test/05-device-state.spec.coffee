@@ -7,29 +7,29 @@ m.chai.use(require('chai-events'))
 
 prepare = require './lib/prepare'
 DeviceState = require '../src/device-state'
-Knex = require('../src/db')
+DB = require('../src/db')
 Config = require('../src/config')
 
 containerConfig = require '../src/lib/container-config'
-mixpanel = require '../src/mixpanel'
 
 describe 'deviceState', ->
 	before ->
 		prepare()
-		@db = new Knex()
+		@db = new DB()
 		@config = new Config({ @db })
-		@deviceState = new DeviceState({ @db, @config })
+		eventTracker = {
+			track: console.log
+		}
+		@deviceState = new DeviceState({ @db, @config, eventTracker })
 		stub(containerConfig, 'extendEnvVars').callsFake (env) ->
 			env['ADDITIONAL_ENV_VAR'] = 'its value'
 			Promise.resolve(env)
-		stub(mixpanel, 'track').callsFake(console.log)
 		@db.init()
 		.then =>
 			@config.init()
 
 	after ->
 		containerConfig.extendEnvVars.restore()
-		mixpanel.track.restore()
 
 	it 'loads a target state from an apps.json file and saves it as target state, then returns it', ->
 		@config.set({ name: '' })
@@ -73,6 +73,15 @@ describe 'deviceState', ->
 	it 'writes the target state to te db'
 
 	it 'applies the target state for device config'
+
+	it 'allows triggering applying the target state', (done) ->
+		stub(@deviceState, 'applyTarget')
+		@deviceState.triggerApplyTarget({ force: true })
+		expect(@deviceState.applyTarget).to.not.be.called
+		setImmediate =>
+			expect(@deviceState.applyTarget).to.be.calledWith({ force: true })
+			@deviceState.applyTarget.restore()
+			done()
 
 	it 'applies the target state for applications'
 

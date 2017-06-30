@@ -172,7 +172,7 @@ COPY entry.sh run.sh package.json rootfs-overlay/usr/src/app/
 
 COPY inittab rootfs-overlay/etc/inittab
 
-RUN rsync -a --delete node_modules dist rootfs-overlay /build
+RUN rsync -a --delete report.xml node_modules dist rootfs-overlay /build
 
 RUN [ "cross-build-end" ]
 

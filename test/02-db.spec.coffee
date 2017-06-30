@@ -4,13 +4,38 @@ m = require 'mochainon'
 
 fs = Promise.promisifyAll(require('fs'))
 
+Knex = require('knex')
+
+createOldDatabase = (path) ->
+
+	knex = new Knex(
+		client: 'sqlite3'
+		connection:
+			filename: path
+		useNullAsDefault: true
+	)
+	createEmptyTable = (name, fn) ->
+		knex.schema.createTable name, (t) ->
+			t.increments('id').primary()
+			fn(t) if fn?
+	createEmptyTable('app', (t) ->
+		t.boolean('privileged')
+		t.string('containerId')
+	)
+	.then ->
+		createEmptyTable('dependentApp')
+	.then ->
+		createEmptyTable('dependentDevice')
+	.then ->
+		return knex
+
 { expect } = m.chai
 DB = require('../src/db')
-describe 'db.coffee', ->
+describe 'db', ->
 	before ->
 		prepare()
-		@knex = new DB()
-		@initialization = @knex.init()
+		@db = new DB()
+		@initialization = @db.init()
 	it 'initializes correctly', ->
 		expect(@initialization).to.be.fulfilled
 
@@ -19,11 +44,38 @@ describe 'db.coffee', ->
 		expect(promise).to.be.fulfilled
 
 	it 'creates a database at the path passed on creation', ->
-		knex2 = new require('../src/db')({ databasePath: process.env.DATABASE_PATH_2 })
-		promise = knex2.init().then( -> fs.statAsync(process.env.DATABASE_PATH_2))
+		db2 = new DB({ databasePath: process.env.DATABASE_PATH_2 })
+		promise = db2.init().then( -> fs.statAsync(process.env.DATABASE_PATH_2))
 		expect(promise).to.be.fulfilled
 
+	it 'adds new fields and removes old ones in an old database', ->
+		databasePath = process.env.DATABASE_PATH_3
+		createOldDatabase(databasePath)
+		.then (knexForDB) ->
+			db = new DB({ databasePath })
+			db.init()
+			.then ->
+				Promise.all([
+					expect(knexForDB.schema.hasColumn('app', 'appId')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('app', 'commit')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('app', 'config')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('app', 'privileged')).to.eventually.be.false
+					expect(knexForDB.schema.hasColumn('app', 'containerId')).to.eventually.be.false
+					expect(knexForDB.schema.hasColumn('dependentApp', 'environment')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('dependentDevice', 'markedForDeletion')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('dependentDevice', 'localId')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('dependentDevice', 'is_managed_by')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('dependentDevice', 'lock_expiry_date')).to.eventually.be.true
+				])
+
 	it 'creates a deviceConfig table with a single default value', ->
-		promise = @knex('deviceConfig').select()
-		expect(promise).to.eventually.have.lengthOf(1)
-		expect(promise).to.eventually.deep.equal([ { values: '{}', targetValues: '{}' } ])
+		promise = @db.models('deviceConfig').select()
+		Promise.all([
+			expect(promise).to.eventually.have.lengthOf(1)
+			expect(promise).to.eventually.deep.equal([ { values: '{}', targetValues: '{}' } ])
+		])
+
+	it 'allows performing transactions', ->
+		@db.transaction (trx) ->
+			expect(trx.commit()).to.be.fulfilled
+

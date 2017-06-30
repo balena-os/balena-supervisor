@@ -6,6 +6,7 @@ _ = require 'lodash'
 url = require 'url'
 { checkTruthy } = require './lib/validation'
 blink = require './lib/blink'
+os = require 'os'
 
 networkPattern =
 	blinks: 4
@@ -41,7 +42,7 @@ vpnStatusInotifyCallback = ->
 # Use the following to catch EEXIST errors
 EEXIST = (err) -> err.code is 'EEXIST'
 
-exports.connectivityCheck = _.once (apiEndpoint) ->
+exports.startConnectivityCheck = _.once (apiEndpoint) ->
 	parsedUrl = url.parse(apiEndpoint)
 	fs.mkdirAsync(constants.vpnStatusPath)
 	.catch EEXIST, (err) ->
@@ -68,3 +69,15 @@ exports.enableConnectivityCheck = (val) ->
 	enabled = checkTruthy(val) ? true
 	enableCheck(enabled)
 	console.log("Connectivity check enabled: #{enabled}")
+
+exports.getIPAddresses = ->
+	validAddresses = _.flatten(_.map(_.omitBy(os.networkInterfaces(), (interfaceFields, interfaceName) ->
+		/(docker[0-9]+)|(rce[0-9]+)|(tun[0-9]+)|(resin-vpn)|(lo)/.test(interfaceName))
+	, (validInterfaces) ->
+		_.map(_.omitBy(validInterfaces, (a) -> a.family != 'IPv4' ), 'address'))
+	)
+
+exports.startIPAddressUpdate = (callback, interval) ->
+	setInterval( ->
+		callback(exports.getIPAddress())
+	, interval)

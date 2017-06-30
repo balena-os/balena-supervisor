@@ -22,6 +22,6 @@ exports.requestOpts =
 	headers:
 		'User-Agent': userAgent
 
-request = request.defaults(requestOpts)
+request = request.defaults(exports.requestOpts)
 
 exports.request = Promise.promisifyAll(request, multiArgs: true)

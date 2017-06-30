@@ -11,9 +11,9 @@
     "start": "./entry.sh",
     "build": "webpack --optimize-minimize",
     "lint": "resin-lint src/",
-    "test": "npm run lint && mocha --compilers coffee:coffee-script/register --require register-coffee-coverage && npm run coverage",
+    "test": "npm run lint && JUNIT_REPORT_PATH=report.xml mocha --compilers coffee:coffee-script/register --require register-coffee-coverage --reporter mocha-jenkins-reporter && npm run coverage",
     "versionist": "versionist",
-    "coverage": "istanbul report text"
+    "coverage": "istanbul report text && istanbul report html"
   },
   "dependencies": {
     "mkfifo": "^0.1.5",
@@ -45,6 +45,7 @@
     "memoizee": "^0.4.1",
     "mixpanel": "0.0.20",
     "mocha": "^3.4.2",
+    "mocha-jenkins-reporter": "^0.3.8",
     "mochainon": "^2.0.0",
     "network-checker": "~0.0.5",
     "node-loader": "^0.6.0",

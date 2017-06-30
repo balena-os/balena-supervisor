@@ -5,12 +5,11 @@ containerConfig = require './lib/container-config'
 Lock = require('rwlock')
 _ = require 'lodash'
 EventEmitter = require 'events'
-mixpanel = require './mixpanel'
 DeviceConfig = require './device-config'
+#Application = require './application'
+#proxyvisor = require './proxyvisor'
 validation = require './lib/validation'
-
-keyByAndOmit = (collection, key) ->
-	_.mapValues(_.keyBy(collection, key), (el) -> _.omit(el, key))
+{ dbToState, stateToDB, keyByAndOmit } = require './lib/app-conversions'
 
 validateLocalState = (state) ->
 	if state.name? and !validation.isValidShortText(state.name)
@@ -27,39 +26,58 @@ validateDependentState = (state) ->
 		throw new Error('Invalid dependent devices')
 
 validateState = Promise.method (state) ->
-	validateLocalState(target.local) if target.local?
-	validateDependentState(target.dependent) if target.dependent?
+	validateLocalState(state.local) if state.local?
+	validateDependentState(state.dependent) if state.dependent?
+
+UPDATE_IDLE = 0
+UPDATE_UPDATING = 1
+UPDATE_REQUIRED = 2
+UPDATE_SCHEDULED = 3
 
 module.exports = class DeviceState extends EventEmitter
-	constructor: ({ db, config }) ->
-		@db = db
-		@config = config
-		@deviceConfig = new DeviceConfig({ db, config })
+	constructor: ({ @db, @config, @eventTracker }) ->
+		@deviceConfig = new DeviceConfig({ @db, @config })
+		#@application = new Application({ @db, @config, deviceState: this })
 		@on 'error', (err) ->
 			console.error('Error in deviceState: ', err, err.stack)
 		@_currentVolatile = {}
 		_lock = new Lock()
 		@_writeLock = Promise.promisify(_lock.async.writeLock)
 		@_readLock = Promise.promisify(_lock.async.writeLock)
-	readLockTarget: ->
+		@lastSuccessfulUpdate = null
+		@failedUpdates = 0
+
+	emitAsync: (ev, args) =>
+		setImmediate => @emit(ev, args)
+
+	readLockTarget: =>
 		@_readLock('target').disposer (release) ->
 			release()
-	writeLockTarget: ->
+	writeLockTarget: =>
 		@_writeLock('target').disposer (release) ->
+			release()
+	writeLockApply: =>
+		@_writeLock('apply').disposer (release) ->
 			release()
 
 	setTarget: (target) ->
 		validateState(target)
-		.then ->
-			Promise.using @writeLockTarget(), ->
+		.then =>
+			Promise.using @writeLockTarget(), =>
 				# Apps, deviceConfig, dependent
-				Promise.try ->
+				Promise.try =>
 					@config.set({ name: target.local.name }) if target.local?.name?
-				.then ->
+				.then =>
 					@deviceConfig.setTarget(target.local.config) if target.local?.config?
-				.then ->
+				.then =>
 					if target.local?.apps?
-						console.log('To do: save apps')
+						appsForDB = _.map target.local.apps, (app, appId) ->
+							stateToDB(app, appId)
+						Promise.map appsForDB, (app) =>
+							@db.upsertModel('app', app, { appId: app.appId })
+				.then ->
+				# TO DO: set dependent apps and devices from target.dependent
+
 
 	# BIG TODO: correctly include dependent apps/devices
 	getTarget: ->
@@ -68,29 +86,11 @@ module.exports = class DeviceState extends EventEmitter
 				local: Promise.props({
 					name: @config.get('name')
 					config: @deviceConfig.getTarget()
-					apps: @db('app').select().map (app) ->
-						return {
-							appId: app.appId
-							image: app.imageId
-							name: app.name
-							commit: app.commit
-							environment: JSON.parse(app.env)
-							config: JSON.parse(app.config)
-						}
-					.then (apps) ->
+					apps: @db.models('app').select().map(dbToState).then (apps) ->
 						keyByAndOmit(apps, 'appId')
 				})
 				dependent: Promise.props({
-					apps: @db('dependentApp').select().map (app) ->
-						return {
-							appId: app.appId
-							name: app.name
-							parentApp: app.parentApp
-							commit: app.commit
-							image: app.imageId
-							config: JSON.parse(app.config)
-						}
-					.then (apps) ->
+					apps: @db.models('dependentApp').select().map(dbToState).then (apps) ->
 						keyByAndOmit(apps, 'appId')
 					devices: {} #db('dependentDevice').select().map (device) ->
 
@@ -102,7 +102,7 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.join(
 			@config.get('name')
 			@deviceConfig.getCurrent()
-			@application.getAll()
+			@application.listCurrent()
 			@proxyvisor.getCurrentStates()
 			(name, devConfig, apps, dependent) ->
 				return {
@@ -115,62 +115,82 @@ module.exports = class DeviceState extends EventEmitter
 				}
 		)
 
-		# Get device name
-		# Get config.txt and logs-to-display current values, build deviceConfig
-		# Get docker containers, build apps object
-
 	reportCurrent: (newState = {}) ->
 		_.merge(@_currentVolatile, newState)
-		setImmediate => @emit('current-state-change')
+		@emitAsync('current-state-change')
 
 	loadTargetFromFile: (appsPath) ->
 		appsPath ?= constants.appsJsonPath
-		@config.getMany([ 'uuid', 'listenPort', 'name', 'apiSecret', 'version', 'deviceType', 'deviceApiKey' , 'osVersion'])
-		.spread (uuid, listenPort, name, apiSecret, version, deviceType, deviceApiKey , osVersion) =>
-			Promise.using @writeLockTarget(), =>
-				devConfig = {}
-				@db('app').truncate()
-				.then ->
-					fs.readFileAsync(appsPath, 'utf8')
-				.then(JSON.parse)
-				.map (app) =>
-					containerConfig.extendEnvVars(app.env, {
-						uuid
-						appId: app.appId
-						appName: app.name
-						commit: app.commit
-						listenPort
-						name
-						apiSecret
-						deviceApiKey
-						version
-						deviceType
-						osVersion
-					})
-					.then (extendedEnv) =>
-						app.env = JSON.stringify(extendedEnv)
-						_.merge(devConfig, app.config)
-						app.config = JSON.stringify(app.config)
-						@db('app').insert(app)
-				.then =>
-					@deviceConfig.setTarget(devConfig)
-		.catch (err) ->
-			mixpanel.track('Loading preloaded apps failed', { error: err })
+		@config.getMany([
+			'uuid'
+			'listenPort'
+			'name'
+			'apiSecret'
+			'version'
+			'deviceType'
+			'deviceApiKey'
+			'osVersion'
+		])
+		.then (conf) =>
+			devConfig = {}
+			@db.models('app').truncate()
+			.then ->
+				fs.readFileAsync(appsPath, 'utf8')
+			.then(JSON.parse)
+			.map (app) ->
+				opts = _.clone(conf)
+				opts.appId = app.appId
+				opts.appName = app.name
+				opts.commit = app.commit
+				containerConfig.extendEnvVars(app.env, opts)
+				.then (extendedEnv) ->
+					app.env = JSON.stringify(extendedEnv)
+					_.merge(devConfig, app.config)
+					app.config = JSON.stringify(app.config)
+					return dbToState(app)
+			.then (apps) =>
+				@setTarget({
+					local:
+						config: devConfig
+						apps: keyByAndOmit(apps, 'appId')
+				})
+		.catch (err) =>
+			@eventTracker.track('Loading preloaded apps failed', { error: err })
 
-	triggerAlignment: ->
-		setImmediate(@align)
+	# Triggers an applyTarget call immediately (but asynchronously)
+	triggerApplyTarget: (opts) ->
+		setImmediate =>
+			@applyTarget(opts)
 
 	# Aligns the current state to the target state
-	align: ->
-		Promise.join(
-			@getCurrent()
-			@getTarget()
-			(current, target) =>
-				return if _.isEqual(current, target)
-				Promise.try =>
-					@deviceConfig.applyTarget() if !_.isEqual(current.local.config, target.local.config)
-				.then ->
-
-
-		)
-		.catch (err) ->
+	applyTarget: ({ force = false } = {}) =>
+		Promise.using @writeLockApply(), =>
+			Promise.join(
+				@getCurrent()
+				@getTarget()
+				(current, target) =>
+					return if _.isEqual(current, target)
+					Promise.try =>
+						@deviceConfig.applyTarget() if !_.isEqual(current.local.config, target.local.config)
+					.then ->
+						@application.applyTarget(target.local.apps, { force, scheduled }) if !_.isEqual(current.local.apps, target.local.apps)
+					.then ->
+						@proxyvisor.applyTarget()
+			)
+			.then =>
+				@config.get('localMode')
+			.then (localMode) =>
+				return if localMode
+				@failedUpdates = 0
+				@lastSuccessfulUpdate = Date.now()
+				@reportCurrent(update_pending: false, update_downloaded: false, update_failed: false)
+				# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
+				# point where we might clean up an image we still want.
+				@emitAsync('apply-target-state-success', err)
+				@application.cleanup()
+			.catch (err) =>
+				@failedUpdates++
+				@reportCurrent(update_failed: true)
+				@emitAsync('apply-target-state-error', err)
+			.finally =>
+				@reportCurrent(status: 'Idle')

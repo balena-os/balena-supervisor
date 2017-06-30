@@ -8,9 +8,9 @@ module.exports = class DeviceConfig
 		confToUpdate = {
 			targetValues: JSON.stringify(target)
 		}
-		@db('deviceConfig').update(confToUpdate)
+		@db.models('deviceConfig').update(confToUpdate)
 	getTarget: ->
-		@db('deviceConfig').select('targetValues')
+		@db.models('deviceConfig').select('targetValues')
 		.then ([ devConfig ]) ->
 			return JSON.parse(devConfig.targetValues)
 	getCurrent: ->

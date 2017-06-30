@@ -5,8 +5,9 @@ deviceRegister = require 'resin-register-device'
 _ = require 'lodash'
 fs = Promise.promisifyAll(require('fs'))
 osRelease = require './lib/os-release'
-
+EventEmitter = require 'events'
 memoizePromise = _.partial(memoizee, _, promise: 'then')
+supervisorVersion = require('./lib/supervisor-version')
 
 writeAndSyncFile = (path, data) ->
 	fs.openAsync(path, 'w')
@@ -17,29 +18,29 @@ writeAndSyncFile = (path, data) ->
 		.then ->
 			fs.closeAsync(fd)
 
-module.exports = class Config
+module.exports = class Config extends EventEmitter
 	constructor: ({ @db, @configPath }) ->
 		# These are values that come from env vars or hardcoded defaults and can be resolved synchronously
 		# Defaults needed for both gosuper and node supervisor are declared in entry.sh
-		@constants = constants = require './constants'
+		@constants = require './constants'
 
 		@funcs =
 			version: ->
-				require('./lib/supervisor-version')
+				Promise.resolve(supervisorVersion)
 			currentApiKey: =>
 				@getMany([ 'apiKey', 'deviceApiKey' ])
-				.spread (apiKey, deviceApiKey) ->
+				.then ({ apiKey, deviceApiKey }) ->
 					return apiKey ? deviceApiKey
 			offlineMode: =>
 				@getMany([ 'resinApiEndpoint', 'supervisorOfflineMode' ])
-				.spread (apiEndpoint, supervisorOfflineMode) ->
+				.spread ({ apiEndpoint, supervisorOfflineMode }) ->
 					return Boolean(supervisorOfflineMode) or !Boolean(apiEndpoint)
 			pubnub: =>
-				@getMany(['pubnubSubscribeKey', 'pubnubPublishKey' ])
-				.spread (pubnubSubscribeKey, pubnubPublishKey) ->
+				@getMany([ 'pubnubSubscribeKey', 'pubnubPublishKey' ])
+				.then ({ pubnubSubscribeKey, pubnubPublishKey }) ->
 					pubnub = {
-						subscribe_key: pubnubSubscribeKey ? constants.defaultPubnubSubscribeKey
-						publish_key: pubnubPublishKey ? constants.defaultPubnubPublishKey
+						subscribe_key: pubnubSubscribeKey
+						publish_key: pubnubPublishKey
 						ssl: true
 					}
 					return pubnub
@@ -47,15 +48,38 @@ module.exports = class Config
 				# Fall back to checking if an API endpoint was passed via env vars if there's none in config.json (legacy)
 				@get('apiEndpoint')
 				.then (apiEndpoint) ->
-					return apiEndpoint ? constants.apiEndpointFromEnv
+					return apiEndpoint ? @constants.apiEndpointFromEnv
 
 			provisioned: =>
 				@getMany([ 'uuid', 'apiEndpoint', 'registered_at', 'deviceId' ])
 				.then (requiredValues) ->
-					return _.every(requiredValues, Boolean)
+					return _.every(_.values(requiredValues), Boolean)
 
-			osVersion: ->
-				osRelease.getOSVersion(constants.hostOSVersionPath)
+			osVersion: =>
+				osRelease.getOSVersion(@constants.hostOSVersionPath)
+
+			osVariant: =>
+				osRelease.getOSVariant(@constants.hostOSVersionPath)
+
+			provisioningOptions: ->
+				@getMany([
+					'uuid'
+					'userId'
+					'applicationId'
+					'apiKey'
+					'deviceApiKey'
+					'deviceType'
+					'resinApiEndpoint'
+				]).then (conf) ->
+					return {
+						uuid: conf.uuid
+						applicationId: conf.applicationId
+						userId: conf.userId
+						deviceType: conf.deviceType
+						provisioningApiKey: conf.apiKey
+						deviceApiKey: conf.deviceApiKey
+						apiEndpoint: conf.resinApiEndpoint
+					}
 
 		@schema = {
 			apiEndpoint: { source: 'config.json' }
@@ -72,9 +96,9 @@ module.exports = class Config
 			registered_at: { source: 'config.json', mutable: true }
 			applicationId: { source: 'config.json' }
 			appUpdatePollInterval: { source: 'config.json', mutable: true, default: 60000 }
-			pubnubSubscribeKey: { source: 'config.json' }
-			pubnubPublishKey: { source: 'config.json' }
-			mixpanelToken: { source: 'config.json', default: constants.defaultMixpanelToken }
+			pubnubSubscribeKey: { source: 'config.json', default: @constants.defaultPubnubSubscribeKey }
+			pubnubPublishKey: { source: 'config.json', default: @constants.defaultPubnubPublishKey }
+			mixpanelToken: { source: 'config.json', default: @constants.defaultMixpanelToken }
 			bootstrapRetryDelay: { source: 'config.json', default: 30000 }
 
 			version: { source: 'func' }
@@ -84,10 +108,12 @@ module.exports = class Config
 			resinApiEndpoint: { source: 'func' }
 			provisioned: { source: 'func' }
 			osVersion: { source: 'func' }
+			osVariant: { source: 'func' }
 
 			apiSecret: { source: 'db', mutable: true }
 			logsChannelSecret: { source: 'db', mutable: true }
 			name: { source: 'db', mutable: true }
+			initialEnvReported: { source: 'db', mutable: true }
 		}
 
 		@configJsonCache = {}
@@ -177,7 +203,7 @@ module.exports = class Config
 
 	generateRequiredFields: =>
 		@getMany([ 'uuid', 'deviceApiKey', 'apiSecret', 'logsChannelSecret' ])
-		.spread (uuid, deviceApiKey, apiSecret, logsChannelSecret) =>
+		.then ({ uuid, deviceApiKey, apiSecret, logsChannelSecret }) =>
 			if !uuid? or !deviceApiKey? or !apiSecret? or !logsChannelSecret?
 				uuid ?= deviceRegister.generateUniqueKey()
 				deviceApiKey ?= deviceRegister.generateUniqueKey()
@@ -194,11 +220,14 @@ module.exports = class Config
 					throw new Error("Unknown config value #{key}")
 				when 'func'
 					@funcs[key]()
+					.catch (err) ->
+						console.error("Error getting config value for #{key}", err, err.stack)
+						return null
 				when 'config.json'
-					Promise.using @readLockConfigJson, =>
+					Promise.using @readLockConfigJson(), =>
 						return @configJsonCache[key]
 				when 'db'
-					@db('config').select('value').where({ key })
+					@db.models('config').select('value').where({ key })
 					.then ([ conf ]) ->
 						return conf?.value
 		.then (value) =>
@@ -209,6 +238,11 @@ module.exports = class Config
 	getMany: (keys) =>
 		# Get the values for several keys in an array
 		Promise.all(_.map(keys, @get))
+		.then (values) ->
+			out = {}
+			for key, i in keys
+				out[key] = values[i]
+			return out
 
 	# Sets config values as atomically as possible
 	# Is atomic if all values have the same source, otherwise it's atomic for each source
@@ -229,14 +263,17 @@ module.exports = class Config
 			@getMany(dbKeys)
 			.then (oldValues) =>
 				@db.transaction (trx) =>
-					Promise.map dbKeys, (key, idx) ->
+					Promise.map dbKeys, (key) ->
 						value = dbVals[key]
-						if oldValues[idx] != value
+						if oldValues[key] != value
 							trx('config').update({ value }).where({ key })
 							.then (n) ->
 								trx('config').insert({ key, value }) if n == 0
 					.then =>
 						@configJsonSet(configJsonVals) if !_.isEmpty(configJsonVals)
+			.then =>
+				setImmediate =>
+					@emit('change', keyValues)
 
 	# Clear a value from config.json or DB
 	# (will be used to clear the provisioning key)
@@ -248,7 +285,7 @@ module.exports = class Config
 				when 'config.json'
 					@configJsonRemove(key)
 				when 'db'
-					@db('config').del().where({ key })
+					@db.models('config').del().where({ key })
 
 	init: =>
 		# Read config.json and cache its values
