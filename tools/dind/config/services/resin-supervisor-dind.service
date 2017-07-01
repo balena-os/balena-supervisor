@@ -26,6 +26,7 @@ ExecStart=/bin/bash -c 'source /usr/src/app/resin-vars && \
 	-v /etc/resolv.conf:/etc/resolv.conf:rw \
 	${SUPERVISOR_EXTRA_MOUNTS} \
 	-e "API_ENDPOINT=$API_ENDPOINT" \
+	-e "DELTA_ENDPOINT=$DELTA_ENDPOINT" \
 	-e "REGISTRY_ENDPOINT=$REGISTRY_ENDPOINT" \
 	-e "PUBNUB_SUBSCRIBE_KEY=$PUBNUB_SUBSCRIBE_KEY" \
 	-e "PUBNUB_PUBLISH_KEY=$PUBNUB_PUBLISH_KEY" \
