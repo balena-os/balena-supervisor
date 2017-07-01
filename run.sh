@@ -12,7 +12,7 @@ if [ -z "$HOST_PROC" ]; then
 	export HOST_PROC=/mnt/root/proc
 fi
 
-export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket"
+export DBUS_SYSTEM_BUS_ADDRESS="/mnt/root/run/dbus/system_bus_socket"
 
 # If DOCKER_ROOT isn't set then default it
 if [ -z "${DOCKER_ROOT}" ]; then

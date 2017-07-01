@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/samalba/dockerclient"
-	"resin-supervisor/gosuper/Godeps/_workspace/src/github.com/shirou/gopsutil/process"
+	"github.com/samalba/dockerclient"
+	"github.com/shirou/gopsutil/process"
 )
 
 // Procs - psutils functions associated with the ProcfsPath

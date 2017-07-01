@@ -33,6 +33,9 @@ case "$ARCH" in
 'armel')
 	machine='generic-armv5'
 ;;
+'aarch64')
+	machine='generic-armv8'
+;;
 esac
 SSTATE_DIR="$JENKINS_PERSISTENT_WORKDIR/$machine/sstate"
 # Make sure shared directories are in place

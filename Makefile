@@ -20,7 +20,7 @@ endif
 
 DISABLE_CACHE = 'false'
 
-ARCH = rpi# rpi/amd64/i386/armv7hf/armel
+ARCH = rpi# rpi/amd64/i386/armv7hf/armel/aarch64
 
 DEPLOY_REGISTRY =
 
@@ -70,6 +70,9 @@ ifeq ($(ARCH),i386)
 endif
 ifeq ($(ARCH),amd64)
 	GOARCH = amd64
+endif
+ifeq ($(ARCH),aarch64)
+	GOARCH = arm64
 endif
 SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/../../:/resin-supervisor -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv
 ifeq ($(OS), Linux)
@@ -205,7 +208,7 @@ test-gosuper: gosuper
 	docker run \
 		--rm \
 		-v /var/run/dbus:/mnt/root/run/dbus \
-		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
+		-e DBUS_SYSTEM_BUS_ADDRESS="/mnt/root/run/dbus/system_bus_socket" \
 		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c \
 			'./test_formatting.sh && go test -v ./gosuper'
 
@@ -223,7 +226,7 @@ test-integration: gosuper
 		-e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" \
 		--volumes-from resin_supervisor_1 \
 		-v /var/run/dbus:/mnt/root/run/dbus \
-		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
+		-e DBUS_SYSTEM_BUS_ADDRESS="/mnt/root/run/dbus/system_bus_socket" \
 		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
 			go test -v ./supertest
 
