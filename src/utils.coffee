@@ -17,7 +17,7 @@ device = require './device'
 
 exports.supervisorVersion = require('./lib/supervisor-version')
 
-configJson = require('/boot/config.json')
+configJson = JSON.parse(fs.readFileSync('/boot/config.json'))
 if Boolean(config.apiEndpoint) and !Boolean(configJson.supervisorOfflineMode)
 	mixpanelClient = mixpanel.init(config.mixpanelToken)
 else
