@@ -208,7 +208,7 @@ test-gosuper: gosuper
 	docker run \
 		--rm \
 		-v /var/run/dbus:/mnt/root/run/dbus \
-		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
+		-e DBUS_SYSTEM_BUS_ADDRESS="/mnt/root/run/dbus/system_bus_socket" \
 		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) bash -c \
 			'./test_formatting.sh && go test -v ./gosuper'
 
@@ -226,7 +226,7 @@ test-integration: gosuper
 		-e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" \
 		--volumes-from resin_supervisor_1 \
 		-v /var/run/dbus:/mnt/root/run/dbus \
-		-e DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket" \
+		-e DBUS_SYSTEM_BUS_ADDRESS="/mnt/root/run/dbus/system_bus_socket" \
 		resin/go-supervisor-$(ARCH):$(SUPERVISOR_VERSION) \
 			go test -v ./supertest
 
