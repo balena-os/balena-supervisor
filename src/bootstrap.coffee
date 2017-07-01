@@ -21,6 +21,15 @@ exports.ExchangeKeyError = class ExchangeKeyError extends TypedError
 
 bootstrapper = {}
 
+writeAndSyncFile = (path, data) ->
+	fs.openAsync(path, 'w')
+	.then (fd) ->
+		fs.writeAsync(fd, data, 0, 'utf8')
+		.then ->
+			fs.fsyncAsync(fd)
+		.then ->
+			fs.closeAsync(fd)
+
 loadPreloadedApps = ->
 	devConfig = {}
 	knex('app').truncate()
@@ -64,12 +73,16 @@ exchangeKey = ->
 		.then (device) ->
 			if not device?
 				throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
-			# We found the device, we can try to generate a working device key for it
-			request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key?apikey=#{userConfig.apiKey}")
+			# We found the device, we can try to register a working device key for it
+			userConfig.deviceApiKey ?= deviceRegister.generateUniqueKey()
+			request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key?apikey=#{userConfig.apiKey}", {
+				json: true
+				body:
+					apiKey: userConfig.deviceApiKey
+			})
 			.spread (res, body) ->
-				if res.status != 200
-					throw new ExchangeKeyError("Couldn't generate device key with provisioning key")
-				userConfig.deviceApiKey = body
+				if res.statusCode != 200
+					throw new ExchangeKeyError("Couldn't register device key with provisioning key")
 			.return(device)
 
 bootstrap = ->
@@ -100,9 +113,15 @@ bootstrap = ->
 		.then ({ id }) ->
 			userConfig.registered_at = Date.now()
 			userConfig.deviceId = id
-			# Delete the provisioning key now.
-			delete userConfig.apiKey
-			fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+			osRelease.getOSVersion(config.hostOSVersionPath)
+		.then (osVersion) ->
+			# Delete the provisioning key now, only if the OS supports it
+			hasSupport = hasDeviceApiKeySupport(osVersion)
+			if hasSupport
+				delete userConfig.apiKey
+			else
+				userConfig.apiKey = userConfig.deviceApiKey
+			writeAndSyncFile(configPath, JSON.stringify(userConfig))
 		.return(userConfig)
 	.then (userConfig) ->
 		console.log('Finishing bootstrapping')
@@ -132,7 +151,7 @@ generateRegistration = (forceReregister = false) ->
 		else
 			userConfig.uuid ?= deviceRegister.generateUniqueKey()
 			userConfig.deviceApiKey ?= deviceRegister.generateUniqueKey()
-		fs.writeFileAsync(configPath, JSON.stringify(userConfig))
+		writeAndSyncFile(configPath, JSON.stringify(userConfig))
 		.return(userConfig.uuid)
 	.catch (err) ->
 		console.log('Error generating and saving UUID: ', err)
@@ -148,26 +167,43 @@ bootstrapOrRetry = ->
 		utils.mixpanelTrack('Device bootstrap failed, retrying', { error: err, delay: config.bootstrapRetryDelay })
 		setTimeout(bootstrapOrRetry, config.bootstrapRetryDelay)
 
+hasDeviceApiKeySupport = (osVersion) ->
+	try
+		!/^Resin OS /.test(osVersion) or semver.gte(semverRegex.test(osVersion), '2.0.2')
+	catch err
+		console.error('Unable to determine if device has deviceApiKey support', err, err.stack)
+		false
+
 bootstrapper.done = new Promise (resolve) ->
 	bootstrapper.doneBootstrapping = ->
 		bootstrapper.bootstrapped = true
 		resolve(userConfig)
 		# If we're still using an old api key we can try to exchange it for a valid device key
+		# This will only be the case when the supervisor/OS has been updated.
 		if userConfig.apiKey?
-			Promise.join(
-				osRelease.getOSVersion(config.hostOSVersionPath)
-				exchangeKey()
-				(osVersion) ->
-					# Only delete the provisioning key if we're on a Resin OS version that supports using the deviceApiKey (2.0.2 and above)
-					# or if we're in a non-Resin OS (which is assumed to be updated enough).
-					# Otherwise VPN and other host services that use an API key will break.
-					hasDeviceApiKeySupport = !/^Resin OS /.test(osVersion) or semver.gte(semverRegex.test(osVersion), '2.0.2')
-					delete userConfig.apiKey if hasDeviceApiKeySupport
-					utils.setConfig('apiKey', userConfig.deviceApiKey)
+			# Only do a key exchange and delete the provisioning key if we're on a Resin OS version
+			# that supports using the deviceApiKey (2.0.2 and above)
+			# or if we're in a non-Resin OS (which is assumed to be updated enough).
+			# Otherwise VPN and other host services that use an API key will break.
+			#
+			# In other cases, we make the apiKey equal the deviceApiKey instead.
+			osRelease.getOSVersion(config.hostOSVersionPath)
+			.then (osVersion) ->
+				hasSupport = hasDeviceApiKeySupport(osVersion)
+				if hasSupport or userConfig.apiKey != userConfig.deviceApiKey
+					console.log('Attempting key exchange')
+					exchangeKey()
 					.then ->
-						fs.writeFileAsync(configPath, JSON.stringify(userConfig))
-			)
-		return
+						console.log('Key exchange succeeded, starting to use deviceApiKey')
+						if hasSupport
+							delete userConfig.apiKey
+						else
+							userConfig.apiKey = userConfig.deviceApiKey
+						utils.setConfig('apiKey', userConfig.deviceApiKey)
+					.then ->
+						writeAndSyncFile(configPath, JSON.stringify(userConfig))
+			# We return immediately, and eventually the API key will be exchanged and replaced.
+			return
 
 bootstrapper.bootstrapped = false
 bootstrapper.startBootstrapping = ->
