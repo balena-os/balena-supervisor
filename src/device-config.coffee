@@ -20,3 +20,4 @@ module.exports = class DeviceConfig
 	applyTarget: ->
 		# Takes the target value of log to display and calls gosuper to set it
 		# Takes the config.txt values and writes them to config.txt
+		# Takes the special action env vars and sets the supervisor config

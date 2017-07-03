@@ -7,7 +7,7 @@ almostTooLongText = ''
 for i in [0...255]
 	almostTooLongText += 'a'
 
-describe 'validation.coffee', ->
+describe 'validation', ->
 
 	describe 'checkTruthy', ->
 		it 'returns true for a truthy value', ->

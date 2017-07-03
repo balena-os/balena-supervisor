@@ -5,7 +5,7 @@ m = require 'mochainon'
 { expect } = m.chai
 
 containerConfig = require '../src/lib/container-config'
-describe 'container-config.coffee', ->
+describe 'containerConfig', ->
 	before ->
 		prepare()
 

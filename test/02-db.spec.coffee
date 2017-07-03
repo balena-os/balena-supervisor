@@ -31,7 +31,7 @@ createOldDatabase = (path) ->
 
 { expect } = m.chai
 DB = require('../src/db')
-describe 'db', ->
+describe 'DB', ->
 	before ->
 		prepare()
 		@db = new DB()

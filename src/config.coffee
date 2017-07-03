@@ -51,7 +51,7 @@ module.exports = class Config extends EventEmitter
 					return apiEndpoint ? @constants.apiEndpointFromEnv
 
 			provisioned: =>
-				@getMany([ 'uuid', 'apiEndpoint', 'registered_at', 'deviceId' ])
+				@getMany([ 'uuid', 'resinApiEndpoint', 'registered_at', 'deviceId' ])
 				.then (requiredValues) ->
 					return _.every(_.values(requiredValues), Boolean)
 
@@ -70,6 +70,7 @@ module.exports = class Config extends EventEmitter
 					'deviceApiKey'
 					'deviceType'
 					'resinApiEndpoint'
+					'apiTimeout'
 				]).then (conf) ->
 					return {
 						uuid: conf.uuid
@@ -79,6 +80,7 @@ module.exports = class Config extends EventEmitter
 						provisioningApiKey: conf.apiKey
 						deviceApiKey: conf.deviceApiKey
 						apiEndpoint: conf.resinApiEndpoint
+						apiTimeout: conf.apiTimeout
 					}
 
 		@schema = {
@@ -87,9 +89,9 @@ module.exports = class Config extends EventEmitter
 			listenPort: { source: 'config.json' }
 			deltaEndpoint: { source: 'config.json', default: 'https://delta.resin.io' }
 			uuid: { source: 'config.json', mutable: true }
-			apiKey: { source: 'config.json', mutable: true }
+			apiKey: { source: 'config.json', mutable: true, removeIfNull: true }
 			deviceApiKey: { source: 'config.json', mutable: true }
-			deviceType: { source: 'config.json' }
+			deviceType: { source: 'config.json', default: 'raspberry-pi' }
 			username: { source: 'config.json' }
 			userId: { source: 'config.json' }
 			deviceId: { source: 'config.json', mutable: true }
@@ -154,6 +156,7 @@ module.exports = class Config extends EventEmitter
 				value = keyVals[key]
 				if @configJsonCache[key] != value
 					@configJsonCache[key] = value
+					delete @configJsonCache[key] if !value? and @schema[key].removeIfNull
 					changed = true
 			.then =>
 				@writeConfigJson() if changed
@@ -211,6 +214,10 @@ module.exports = class Config extends EventEmitter
 				logsChannelSecret ?= deviceRegister.generateUniqueKey()
 				@set({ uuid, deviceApiKey, apiSecret, logsChannelSecret })
 
+	regenerateRegistrationFields: =>
+		uuid = deviceRegister.generateUniqueKey()
+		deviceApiKey = deviceRegister.generateUniqueKey()
+		@set({ uuid, deviceApiKey })
 
 	get: (key) =>
 		# Get value for "key" from config.json or db

@@ -9,7 +9,7 @@ m.chai.use(require('chai-events'))
 DB = require('../src/db')
 Config = require('../src/config')
 
-describe 'config.coffee', ->
+describe 'Config', ->
 	before ->
 		prepare()
 		db = new DB()
@@ -68,6 +68,17 @@ describe 'config.coffee', ->
 			@conf.get('appUpdatePollInterval')
 		expect(promise).to.be.fulfilled
 		expect(promise).to.eventually.equal(60000)
+
+	it 'allows deleting a config.json key if it is null', ->
+		promise = @conf.set('apiKey': null).then =>
+			@conf.get('apiKey')
+		expect(promise).to.be.fulfilled
+		expect(promise).to.eventually.be.undefined
+		.then ->
+			fs.readFileAsync('./test/data/config.json')
+		.then(JSON.parse)
+		.then (confFromFile) =>
+			expect(confFromFile).to.not.have.property('apiKey')
 
 	it 'does not allow modifying or removing a function value', ->
 		promise1 = @conf.remove('version')

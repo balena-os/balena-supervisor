@@ -12,6 +12,84 @@ Config = require('../src/config')
 
 containerConfig = require '../src/lib/container-config'
 
+testTarget1 = {
+	local: {
+		name: ''
+		config: {
+			'RESIN_HOST_CONFIG_gpu_mem': '256'
+			'RESIN_HOST_LOG_TO_DISPLAY': '0'
+		}
+		apps:{
+			'1234': {
+				name: 'superapp'
+				image: 'registry2.resin.io/superapp/abcdef'
+				commit: 'abcdef'
+				environment: {
+					'FOO': 'bar'
+					'ADDITIONAL_ENV_VAR': 'its value'
+				}
+				config: {
+					'RESIN_HOST_CONFIG_gpu_mem': '256'
+					'RESIN_HOST_LOG_TO_DISPLAY': '0'
+				}
+			}
+		}
+	}
+	dependent: { apps: {}, devices: {}}
+}
+
+testTarget2 = {
+	local: {
+		name: ''
+		config: {
+			'RESIN_HOST_CONFIG_gpu_mem': '512'
+			'RESIN_HOST_LOG_TO_DISPLAY': '1'
+		}
+		apps:{
+			'1234': {
+				name: 'superapp'
+				image: 'registry2.resin.io/superapp/edfabc'
+				commit: 'abcdef'
+				environment: {
+					'FOO': 'bar'
+					'ADDITIONAL_ENV_VAR': 'another value'
+				}
+				config: {
+					'RESIN_HOST_CONFIG_gpu_mem': '256'
+					'RESIN_HOST_LOG_TO_DISPLAY': '0'
+				}
+			}
+		}
+	}
+	dependent: { apps: {}, devices: {}}
+}
+
+testTargetInvalid = {
+	local: {
+		name: ''
+		config: {
+			'RESIN_HOST_CONFIG_gpu_mem': '512'
+			'RESIN_HOST_LOG_TO_DISPLAY': '1'
+		}
+		apps:{
+			'1234': {
+				name: 'superapp'
+				image: 'registry2.resin.io/superapp/edfabc'
+				commit: 'abcdef'
+				environment: [{
+					'FOO': 'bar'
+					'ADDITIONAL_ENV_VAR': 'another value'
+				}]
+				config: {
+					'RESIN_HOST_CONFIG_gpu_mem': '256'
+					'RESIN_HOST_LOG_TO_DISPLAY': '0'
+				}
+			}
+		}
+	}
+	dependent: { apps: {}, devices: {}}
+}
+
 describe 'deviceState', ->
 	before ->
 		prepare()
@@ -38,31 +116,7 @@ describe 'deviceState', ->
 		.then =>
 			@deviceState.getTarget()
 		.then (targetState) ->
-			expect(targetState).to.deep.equal({
-				local: {
-					name: ''
-					config: {
-						'RESIN_HOST_CONFIG_gpu_mem': '256'
-						'RESIN_HOST_LOG_TO_DISPLAY': '0'
-					}
-					apps:{
-						'1234': {
-							name: 'superapp'
-							image: 'registry2.resin.io/superapp/abcdef'
-							commit: 'abcdef'
-							environment: {
-								'FOO': 'bar'
-								'ADDITIONAL_ENV_VAR': 'its value'
-							}
-							config: {
-								'RESIN_HOST_CONFIG_gpu_mem': '256'
-								'RESIN_HOST_LOG_TO_DISPLAY': '0'
-							}
-						}
-					}
-				}
-				dependent: { apps: {}, devices: {}}
-			})
+			expect(targetState).to.deep.equal(testTarget1)
 
 	it 'emits a change event when a new state is reported', ->
 		@deviceState.reportCurrent({ someStateDiff: 'someValue' })
@@ -70,9 +124,17 @@ describe 'deviceState', ->
 
 	it 'returns the current state'
 
-	it 'writes the target state to te db'
+	it 'writes the target state to te db', ->
+		@deviceState.setTarget(testTarget2)
+		.then =>
+			@deviceState.getTarget()
+		.then (target) ->
+			expect(target).to.deep.equal(testTarget2)
 
-	it 'applies the target state for device config'
+	it 'does not allow setting an invalid target state', ->
+		promise = @deviceState.setTarget(testTargetInvalid)
+		promise.catch(->)
+		expect(promise).to.throw
 
 	it 'allows triggering applying the target state', (done) ->
 		stub(@deviceState, 'applyTarget')
@@ -82,6 +144,8 @@ describe 'deviceState', ->
 			expect(@deviceState.applyTarget).to.be.calledWith({ force: true })
 			@deviceState.applyTarget.restore()
 			done()
+
+	it 'applies the target state for device config'
 
 	it 'applies the target state for applications'
 

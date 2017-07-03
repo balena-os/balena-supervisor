@@ -1,9 +1,21 @@
 url = require 'url'
 PlatformAPI = require 'pinejs-client'
+deviceRegister = require 'resin-register-device'
 { request, requestOpts } = require './request'
+osRelease = require './lib/os-release'
+
+DuplicateUuidError = message: '"uuid" must be unique.'
+ExchangeKeyError = class ExchangeKeyError extends TypedError
+
+hasDeviceApiKeySupport = (osVersion) ->
+	try
+		!/^Resin OS /.test(osVersion) or semver.gte(semverRegex.test(osVersion), '2.0.2')
+	catch err
+		console.error('Unable to determine if device has deviceApiKey support', err, err.stack)
+		false
 
 module.exports = class APIBinder
-	constructor: ({ @config, @db, @deviceState }) ->
+	constructor: ({ @config, @db, @deviceState, @eventTracker }) ->
 		@resinApi = null
 		@cachedResinApi = null
 		@lastReportedState = {}
@@ -11,9 +23,9 @@ module.exports = class APIBinder
 
 	init: ->
 		@config.getMany([ 'offlineMode', 'resinApiEndpoint' ])
-		.then ({ offlineMode, apiEndpoint }) =>
+		.then ({ offlineMode, resinApiEndpoint }) =>
 			return if offlineMode
-			baseUrl = url.resolve(apiEndpoint, '/v2/')
+			baseUrl = url.resolve(resinApiEndpoint, '/v2/')
 			@resinApi = new PlatformAPI
 				apiPrefix: baseUrl
 				passthrough: requestOpts
@@ -23,6 +35,94 @@ module.exports = class APIBinder
 				@startCurrentStateReport()
 			.then =>
 				@startTargetStatePoll()
+			return
+
+	fetchDevice: (uuid, apiKey, timeout) =>
+		@resinApi.get
+			resource: 'device'
+			options:
+				filter:
+					uuid: uuid
+			customOptions:
+				apikey: apiKey
+		.get(0)
+		.catchReturn(null)
+		.timeout(timeout)
+
+	exchangeKeyAndGetDevice: (opts) ->
+		Promise.try =>
+			# If we have an existing device key we first check if it's valid, because if it is we can just use that
+			if opts.deviceApiKey?
+				@fetchDevice(opts.uuid, opts.deviceApiKey, opts.apiTimeout)
+		.then (device) =>
+			if device?
+				return device
+			# If it's not valid/doesn't exist then we try to use the user/provisioning api key for the exchange
+			@fetchDevice(opts.uuid, opts.provisioningApiKey, opts.apiTimeout)
+			.then (device) ->
+				if not device?
+					throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
+				# We found the device, we can try to register a working device key for it
+				request.postAsync("#{opts.apiEndpoint}/api-key/device/#{device.id}/device-key?apikey=#{opts.provisioningApiKey}", {
+					json: true
+					body:
+						apiKey: opts.deviceApiKey
+				})
+				.spread (res, body) ->
+					if res.statusCode != 200
+						throw new ExchangeKeyError("Couldn't register device key with provisioning key")
+				.timeout(opts.apiTimeout)
+				.return(device)
+
+	_exchangeKeyAndGetDeviceOrRegenerate: (opts) =>
+		@exchangeKeyAndGetDevice(opts)
+		.tap ->
+			console.log('Key exchange succeeded, all good')
+		.tapCatch ExchangeKeyError, (err) =>
+			# If it fails we just have to reregister as a provisioning key doesn't have the ability to change existing devices
+			console.log('Exchanging key failed, having to reregister')
+			@config.regenerateRegistrationFields()
+
+	_provision: ->
+		@config.get('provisioningOptions')
+		.then (opts) ->
+			Promise.try ->
+				if opts.registered_at? && !opts.deviceId?
+					console.log('Device is registered but no device id available, attempting key exchange')
+					@_exchangeKeyAndGetDeviceOrRegenerate(opts)
+				else
+					deviceRegister.register(opts)
+					.timeout(opts.apiTimeout)
+					.catch DuplicateUuidError, =>
+						console.log('UUID already registered, trying a key exchange')
+						@_exchangeKeyAndGetDeviceOrRegenerate(opts)
+					.tap ->
+						opts.registered_at = Date.now()
+			.then ({ id }) ->
+				opts.deviceId = id
+				osRelease.getOSVersion(@config.constants.hostOSVersionPath)
+			.then (osVersion) ->
+				configToUpdate = {
+					registered_at: opts.registered_at
+					deviceId: opts.deviceId
+				}
+				# Delete the provisioning key now, only if the OS supports it
+				hasSupport = hasDeviceApiKeySupport(osVersion)
+				if hasSupport
+					configToUpdate.apiKey = null
+				else
+					configToUpdate.apiKey = opts.deviceApiKey
+				@config.set(configToUpdate)
+		.then ->
+			@eventTracker.track('Device bootstrap success')
+
+	_provisionOrRetry: (retryDelay) =>
+		@eventTracker.track('Device bootstrap')
+		@_provision()
+		.catch (err) ->
+			@eventTracker.track('Device bootstrap failed, retrying', { error: err, delay: config.bootstrapRetryDelay })
+			Promise.delay(retryDelay).then =>
+				@_provisionOrRetry(retryDelay)
 
 	provisionDevice: ->
 		throw new Error('Trying to provision device without initializing API client') if !@resinApi?
@@ -30,19 +130,38 @@ module.exports = class APIBinder
 			'provisioned'
 			'initialEnvReported'
 			'bootstrapRetryDelay'
-			'uuid'
-			'apiKey'
-			'deviceApiKey'
 		])
-		.then (conf) =>
+		.tap (conf) =>
 			if !provisioned
 				console.log('New device detected. Bootstrapping..')
-				@_provision()
-		.then =>
-			# Perform the key exchange
-			@exchangeKey()
-		.then =>
-			@reportInitialEnv(conf.bootstrapRetryDelay) if !initialEnvReported
+				@_provisionOrRetry(conf.bootstrapRetryDelay)
+		.tap =>
+			@config.getMany([ 'apiKey', 'deviceApiKey'])
+			.then ({ apiKey, deviceApiKey }) ->
+				if apiKey?
+					# Only do a key exchange and delete the provisioning key if we're on a Resin OS version
+					# that supports using the deviceApiKey (2.0.2 and above)
+					# or if we're in a non-Resin OS (which is assumed to be updated enough).
+					# Otherwise VPN and other host services that use an API key will break.
+					#
+					# In other cases, we make the apiKey equal the deviceApiKey instead.
+					osRelease.getOSVersion(@config.constants.hostOSVersionPath)
+					.then (osVersion) ->
+						hasSupport = hasDeviceApiKeySupport(osVersion)
+						if hasSupport or apiKey != deviceApiKey
+							console.log('Attempting key exchange')
+							exchangeKeyAndGetDevice()
+							.then =>
+								console.log('Key exchange succeeded, starting to use deviceApiKey')
+								if hasSupport
+									apiKey = null
+								else
+									apiKey = deviceApiKey
+								@config.set({ apiKey })
+					.catch (err) ->
+						console.error('Error exchanging keys, will ignore since device is already provisioned', err, err.stack)
+		.then (conf) =>
+			@reportInitialConfig(conf.bootstrapRetryDelay) if !initialEnvReported
 
 
 	_reportInitialEnv: ->
@@ -57,8 +176,9 @@ module.exports = class APIBinder
 		@_reportInitialEnv()
 		.catch (err) ->
 			console.error('Error reporting initial configuration, will retry')
-		.then ->
-			Promise.delay
+			Promise.delay(retryDelay)
+			.then =>
+				@reportInitialConfig(retryDelay)
 
 	getTargetState: ->
 		@config.getMany([ 'uuid', 'currentApiKey', 'resinApiEndpoint', 'apiTimeout' ])

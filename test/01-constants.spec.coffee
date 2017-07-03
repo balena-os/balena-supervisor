@@ -5,7 +5,7 @@ constants = require '../src/constants'
 
 { expect } = m.chai
 
-describe 'constants.coffee', ->
+describe 'constants', ->
 	before ->
 		prepare()
 	it 'has the correct configJsonPathOnHost', ->
