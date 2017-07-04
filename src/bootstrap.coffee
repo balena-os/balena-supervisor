@@ -32,21 +32,24 @@ writeAndSyncFile = (path, data) ->
 
 loadPreloadedApps = ->
 	devConfig = {}
-	knex('app').truncate()
-	.then ->
+	knex('app').select()
+	.then (apps) ->
+		if apps.length > 0
+			console.log('Preloaded apps already loaded, skipping')
+			return
 		fs.readFileAsync(appsPath, 'utf8')
-	.then(JSON.parse)
-	.map (app) ->
-		utils.extendEnvVars(app.env, userConfig.uuid, app.appId, app.name, app.commit)
-		.then (extendedEnv) ->
-			app.env = JSON.stringify(extendedEnv)
-			_.merge(devConfig, app.config)
-			app.config = JSON.stringify(app.config)
-			knex('app').insert(app)
-	.then ->
-		deviceConfig.set({ targetValues: devConfig })
-	.catch (err) ->
-		utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
+		.then(JSON.parse)
+		.map (app) ->
+			utils.extendEnvVars(app.env, userConfig.uuid, app.appId, app.name, app.commit)
+			.then (extendedEnv) ->
+				app.env = JSON.stringify(extendedEnv)
+				_.merge(devConfig, app.config)
+				app.config = JSON.stringify(app.config)
+				knex('app').insert(app)
+		.then ->
+			deviceConfig.set({ targetValues: devConfig })
+		.catch (err) ->
+			utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
 
 fetchDevice = (apiKey) ->
 	resinApi.get
@@ -223,11 +226,8 @@ bootstrapper.startBootstrapping = ->
 		.tap ->
 			loadPreloadedApps()
 		.tap (uuid) ->
-			if bootstrapper.offlineMode
-				return knex('config').insert({ key: 'uuid', value: uuid })
-			else
-				bootstrapOrRetry()
-				# Don't wait on bootstrapping here, bootstrapper.done is for that.
-				return
+			bootstrapOrRetry() if !bootstrapper.offlineMode
+			# Don't wait on bootstrapping here, bootstrapper.done is for that.
+			return
 
 module.exports = bootstrapper
