@@ -1,12 +1,10 @@
 Promise = require 'bluebird'
 Lock = require 'rwlock'
-memoizee = require 'memoizee'
 deviceRegister = require 'resin-register-device'
 _ = require 'lodash'
 fs = Promise.promisifyAll(require('fs'))
 osRelease = require './lib/os-release'
 EventEmitter = require 'events'
-memoizePromise = _.partial(memoizee, _, promise: 'then')
 supervisorVersion = require('./lib/supervisor-version')
 
 writeAndSyncFile = (path, data) ->
@@ -33,8 +31,8 @@ module.exports = class Config extends EventEmitter
 					return apiKey ? deviceApiKey
 			offlineMode: =>
 				@getMany([ 'resinApiEndpoint', 'supervisorOfflineMode' ])
-				.spread ({ apiEndpoint, supervisorOfflineMode }) ->
-					return Boolean(supervisorOfflineMode) or !Boolean(apiEndpoint)
+				.then ({ resinApiEndpoint, supervisorOfflineMode }) ->
+					return Boolean(supervisorOfflineMode) or !Boolean(resinApiEndpoint)
 			pubnub: =>
 				@getMany([ 'pubnubSubscribeKey', 'pubnubPublishKey' ])
 				.then ({ pubnubSubscribeKey, pubnubPublishKey }) ->
@@ -61,7 +59,7 @@ module.exports = class Config extends EventEmitter
 			osVariant: =>
 				osRelease.getOSVariant(@constants.hostOSVersionPath)
 
-			provisioningOptions: ->
+			provisioningOptions: =>
 				@getMany([
 					'uuid'
 					'userId'
@@ -85,8 +83,8 @@ module.exports = class Config extends EventEmitter
 
 		@schema = {
 			apiEndpoint: { source: 'config.json' }
-			apiTimeout: { source: 'config.json' }
-			listenPort: { source: 'config.json' }
+			apiTimeout: { source: 'config.json', default: 15 * 60 * 1000 }
+			listenPort: { source: 'config.json', default: 48484 }
 			deltaEndpoint: { source: 'config.json', default: 'https://delta.resin.io' }
 			uuid: { source: 'config.json', mutable: true }
 			apiKey: { source: 'config.json', mutable: true, removeIfNull: true }
@@ -102,6 +100,7 @@ module.exports = class Config extends EventEmitter
 			pubnubPublishKey: { source: 'config.json', default: @constants.defaultPubnubPublishKey }
 			mixpanelToken: { source: 'config.json', default: @constants.defaultMixpanelToken }
 			bootstrapRetryDelay: { source: 'config.json', default: 30000 }
+			supervisorOfflineMode: { source: 'config.json', default: false }
 
 			version: { source: 'func' }
 			currentApiKey: { source: 'func' }
@@ -111,11 +110,12 @@ module.exports = class Config extends EventEmitter
 			provisioned: { source: 'func' }
 			osVersion: { source: 'func' }
 			osVariant: { source: 'func' }
+			provisioningOptions: { source: 'func' }
 
 			apiSecret: { source: 'db', mutable: true }
 			logsChannelSecret: { source: 'db', mutable: true }
 			name: { source: 'db', mutable: true }
-			initialEnvReported: { source: 'db', mutable: true }
+			initialConfigReported: { source: 'db', mutable: true }
 		}
 
 		@configJsonCache = {}
@@ -173,6 +173,7 @@ module.exports = class Config extends EventEmitter
 
 	configJsonPathOnHost: =>
 		Promise.try =>
+			return @configPath if @configPath?
 			return @constants.configJsonPathOnHost if @constants.configJsonPathOnHost?
 			osRelease.getOSVersion(@constants.hostOSVersionPath)
 			.then (osVersion) =>
@@ -191,7 +192,6 @@ module.exports = class Config extends EventEmitter
 			return "#{@constants.rootMountPoint}#{path}"
 
 	configJsonPath: =>
-		Promise.resolve(@configPath) if @configPath?
 		@configJsonPathOnHost()
 		.catch (err) =>
 			console.error(err)

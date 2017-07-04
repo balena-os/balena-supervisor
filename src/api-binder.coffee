@@ -1,16 +1,22 @@
+Promise = require 'bluebird'
 url = require 'url'
 PlatformAPI = require 'pinejs-client'
 deviceRegister = require 'resin-register-device'
 { request, requestOpts } = require './request'
-osRelease = require './lib/os-release'
+semver = require 'semver'
+semverRegex = require('semver-regex')
+TypedError = require 'typed-error'
+_ = require 'lodash'
 
 DuplicateUuidError = message: '"uuid" must be unique.'
 ExchangeKeyError = class ExchangeKeyError extends TypedError
 
 hasDeviceApiKeySupport = (osVersion) ->
 	try
-		!/^Resin OS /.test(osVersion) or semver.gte(semverRegex.test(osVersion), '2.0.2')
+		osSemver = semverRegex().exec(osVersion)[0]
+		!/^Resin OS /.test(osVersion) or semver.gte(osSemver, '2.0.2')
 	catch err
+		console.error(osVersion)
 		console.error('Unable to determine if device has deviceApiKey support', err, err.stack)
 		false
 
@@ -21,19 +27,30 @@ module.exports = class APIBinder
 		@lastReportedState = {}
 		@_targetStateInterval = null
 
-	init: ->
+	init: (startServices = true) ->
 		@config.getMany([ 'offlineMode', 'resinApiEndpoint' ])
 		.then ({ offlineMode, resinApiEndpoint }) =>
-			return if offlineMode
+			if offlineMode
+				console.log('Offline Mode is set, skipping API binder initialization')
+				return
 			baseUrl = url.resolve(resinApiEndpoint, '/v2/')
 			@resinApi = new PlatformAPI
 				apiPrefix: baseUrl
 				passthrough: requestOpts
 			@cachedResinApi = @resinApi.clone({}, cache: {})
+			return if !startServices
+			console.log('Ensuring provisioning')
 			@provisionDevice()
 			.then =>
+				@config.get('initialConfigReported')
+				.then (reported) =>
+					console.log('Reporting initial configuration')
+					@reportInitialConfig if !reported
+			.then =>
+				console.log('Starting current state report')
 				@startCurrentStateReport()
 			.then =>
+				console.log('Starting target state poll')
 				@startTargetStatePoll()
 			return
 
@@ -83,9 +100,9 @@ module.exports = class APIBinder
 			console.log('Exchanging key failed, having to reregister')
 			@config.regenerateRegistrationFields()
 
-	_provision: ->
+	_provision: =>
 		@config.get('provisioningOptions')
-		.then (opts) ->
+		.then (opts) =>
 			Promise.try ->
 				if opts.registered_at? && !opts.deviceId?
 					console.log('Device is registered but no device id available, attempting key exchange')
@@ -98,10 +115,10 @@ module.exports = class APIBinder
 						@_exchangeKeyAndGetDeviceOrRegenerate(opts)
 					.tap ->
 						opts.registered_at = Date.now()
-			.then ({ id }) ->
+			.then ({ id }) =>
 				opts.deviceId = id
-				osRelease.getOSVersion(@config.constants.hostOSVersionPath)
-			.then (osVersion) ->
+				@config.get('osVersion')
+			.then (osVersion) =>
 				configToUpdate = {
 					registered_at: opts.registered_at
 					deviceId: opts.deviceId
@@ -113,31 +130,30 @@ module.exports = class APIBinder
 				else
 					configToUpdate.apiKey = opts.deviceApiKey
 				@config.set(configToUpdate)
-		.then ->
+		.then =>
 			@eventTracker.track('Device bootstrap success')
 
 	_provisionOrRetry: (retryDelay) =>
 		@eventTracker.track('Device bootstrap')
 		@_provision()
-		.catch (err) ->
-			@eventTracker.track('Device bootstrap failed, retrying', { error: err, delay: config.bootstrapRetryDelay })
+		.catch (err) =>
+			@eventTracker.track('Device bootstrap failed, retrying', { error: err, delay: retryDelay })
 			Promise.delay(retryDelay).then =>
 				@_provisionOrRetry(retryDelay)
 
-	provisionDevice: ->
+	provisionDevice: =>
 		throw new Error('Trying to provision device without initializing API client') if !@resinApi?
 		@config.getMany([
 			'provisioned'
-			'initialEnvReported'
 			'bootstrapRetryDelay'
 		])
 		.tap (conf) =>
-			if !provisioned
+			if !conf.provisioned
 				console.log('New device detected. Bootstrapping..')
 				@_provisionOrRetry(conf.bootstrapRetryDelay)
 		.tap =>
 			@config.getMany([ 'apiKey', 'deviceApiKey'])
-			.then ({ apiKey, deviceApiKey }) ->
+			.then ({ apiKey, deviceApiKey }) =>
 				if apiKey?
 					# Only do a key exchange and delete the provisioning key if we're on a Resin OS version
 					# that supports using the deviceApiKey (2.0.2 and above)
@@ -145,12 +161,12 @@ module.exports = class APIBinder
 					# Otherwise VPN and other host services that use an API key will break.
 					#
 					# In other cases, we make the apiKey equal the deviceApiKey instead.
-					osRelease.getOSVersion(@config.constants.hostOSVersionPath)
-					.then (osVersion) ->
+					@config.get('osVersion')
+					.then (osVersion) =>
 						hasSupport = hasDeviceApiKeySupport(osVersion)
 						if hasSupport or apiKey != deviceApiKey
 							console.log('Attempting key exchange')
-							exchangeKeyAndGetDevice()
+							@exchangeKeyAndGetDevice()
 							.then =>
 								console.log('Key exchange succeeded, starting to use deviceApiKey')
 								if hasSupport
@@ -160,9 +176,6 @@ module.exports = class APIBinder
 								@config.set({ apiKey })
 					.catch (err) ->
 						console.error('Error exchanging keys, will ignore since device is already provisioned', err, err.stack)
-		.then (conf) =>
-			@reportInitialConfig(conf.bootstrapRetryDelay) if !initialEnvReported
-
 
 	_reportInitialEnv: ->
 		Promise.join(
@@ -205,12 +218,12 @@ module.exports = class APIBinder
 
 	getAndSetTargetState: ->
 
-	_pollTargetState: ->
+	_pollTargetState: =>
 		if @_targetStateInterval?
 			clearInterval(@_targetStateInterval)
 			@_targetStateInterval = null
 		@config.get('appUpdatePollInterval')
-		.then (appUpdatePollInterval) ->
+		.then (appUpdatePollInterval) =>
 			@_targetStateInterval = setInterval(@getAndSetTargetState, appUpdatePollInterval)
 			@getAndSetTargetState()
 			return
@@ -219,7 +232,7 @@ module.exports = class APIBinder
 		# request from the target state endpoint, and store to knex app, dependentApp and config
 		throw new Error('Trying to start poll without initializing API client') if !@resinApi?
 		@_pollTargetState()
-		@config.on 'change', (changedConfig) ->
+		@config.on 'change', (changedConfig) =>
 			@_pollTargetState() if changedConfig.appUpdatePollInterval?
 
 	_reportCurrentState: =>

@@ -15,3 +15,4 @@ module.exports = ->
 
 	try
 		fs.writeFileSync('./test/data/config.json', fs.readFileSync('./test/data/testconfig.json'))
+		fs.writeFileSync('./test/data/config-apibinder.json', fs.readFileSync('./test/data/testconfig-apibinder.json'))

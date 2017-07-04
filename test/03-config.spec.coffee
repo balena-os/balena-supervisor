@@ -12,13 +12,17 @@ Config = require('../src/config')
 describe 'Config', ->
 	before ->
 		prepare()
-		db = new DB()
-		@conf = new Config({ db })
-		@initialization = db.init().then =>
+		@db = new DB()
+		@conf = new Config({ @db })
+		@initialization = @db.init().then =>
 			@conf.init()
 
 	it 'uses the correct config.json path', ->
 		expect(@conf.configJsonPath()).to.eventually.equal('./test/data/config.json')
+
+	it 'uses the correct config.json path from the root mount when passed as argument to the constructor', ->
+		conf2 = new Config({ @db, configPath: '/foo.json' })
+		expect(conf2.configJsonPath()).to.eventually.equal('./test/data/foo.json')
 
 	it 'initializes correctly', ->
 		expect(@initialization).to.be.fulfilled
@@ -105,7 +109,7 @@ describe 'Config', ->
 
 	it "returns an undefined OS variant if it doesn't exist", ->
 		oldPath = @conf.constants.hostOSVersionPath
-		@conf.constants.hostOSVersionPath = './test/data/etc/os-release2'
+		@conf.constants.hostOSVersionPath = './test/data/etc/os-release-novariant'
 		@conf.get('osVariant')
 		.then (osVariant) =>
 			@conf.constants.hostOSVersionPath = oldPath

@@ -71,7 +71,7 @@ exports.enableConnectivityCheck = (val) ->
 	console.log("Connectivity check enabled: #{enabled}")
 
 exports.getIPAddresses = ->
-	validAddresses = _.flatten(_.map(_.omitBy(os.networkInterfaces(), (interfaceFields, interfaceName) ->
+	_.flatten(_.map(_.omitBy(os.networkInterfaces(), (interfaceFields, interfaceName) ->
 		/(docker[0-9]+)|(rce[0-9]+)|(tun[0-9]+)|(resin-vpn)|(lo)/.test(interfaceName))
 	, (validInterfaces) ->
 		_.map(_.omitBy(validInterfaces, (a) -> a.family != 'IPv4' ), 'address'))

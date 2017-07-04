@@ -173,7 +173,7 @@ module.exports = class DeviceState extends EventEmitter
 					Promise.try =>
 						@deviceConfig.applyTarget() if !_.isEqual(current.local.config, target.local.config)
 					.then ->
-						@application.applyTarget(target.local.apps, { force, scheduled }) if !_.isEqual(current.local.apps, target.local.apps)
+						@application.applyTarget(target.local.apps, { force }) if !_.isEqual(current.local.apps, target.local.apps)
 					.then ->
 						@proxyvisor.applyTarget()
 			)
@@ -186,7 +186,7 @@ module.exports = class DeviceState extends EventEmitter
 				@reportCurrent(update_pending: false, update_downloaded: false, update_failed: false)
 				# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
 				# point where we might clean up an image we still want.
-				@emitAsync('apply-target-state-success', err)
+				@emitAsync('apply-target-state-success')
 				@application.cleanup()
 			.catch (err) =>
 				@failedUpdates++
