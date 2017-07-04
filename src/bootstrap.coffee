@@ -12,7 +12,7 @@ deviceConfig = require './device-config'
 TypedError = require 'typed-error'
 osRelease = require './lib/os-release'
 semver = require 'semver'
-semverRegex = require('semver-regex')()
+semverRegex = require('semver-regex')
 
 userConfig = {}
 
@@ -169,7 +169,7 @@ bootstrapOrRetry = ->
 
 hasDeviceApiKeySupport = (osVersion) ->
 	try
-		!/^Resin OS /.test(osVersion) or semver.gte(semverRegex.test(osVersion), '2.0.2')
+		!/^Resin OS /.test(osVersion) or semver.gte(semverRegex().exec(osVersion)[0], '2.0.2')
 	catch err
 		console.error('Unable to determine if device has deviceApiKey support', err, err.stack)
 		false
