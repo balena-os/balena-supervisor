@@ -42,10 +42,13 @@ router.get '/v1/devices', (req, res) ->
 		res.status(503).send(err?.message or err or 'Unknown error')
 
 router.post '/v1/devices', (req, res) ->
-	appId = req.body.appId
+	{ appId, device_type } = req.body
+
 	if !appId? or _.isNaN(parseInt(appId)) or parseInt(appId) <= 0
 		res.status(400).send('appId must be a positive integer')
 		return
+	device_type = 'generic-amd64' if !device_type?
+
 	Promise.join(
 		utils.getConfig('apiKey')
 		utils.getConfig('userId')
@@ -57,7 +60,7 @@ router.post '/v1/devices', (req, res) ->
 				user: userId
 				application: req.body.appId
 				uuid: uuid
-				device_type: 'edge'
+				device_type: device_type
 				device: deviceId
 				registered_at: Math.floor(Date.now() / 1000)
 				logs_channel: logsChannel
@@ -203,7 +206,6 @@ router.get '/v1/dependent-apps', (req, res) ->
 		return {
 			id: parseInt(app.appId)
 			commit: app.commit
-			device_type: 'edge'
 			name: app.name
 			config: JSON.parse(app.config ? '{}')
 		}
