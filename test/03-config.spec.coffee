@@ -54,7 +54,7 @@ describe 'Config', ->
 		promise = @conf.set({ username: 'somebody else' })
 		# We catch it to avoid the unhandled error log
 		promise.catch(->)
-		expect(promise).to.throw
+		expect(promise).to.be.rejected
 
 	it 'allows setting both config.json and database fields transparently', ->
 		promise = @conf.set({ appUpdatePollInterval: 30000, name: 'a new device name'}).then =>
@@ -90,14 +90,14 @@ describe 'Config', ->
 		promise2 = @conf.set(version: '2.0')
 		promise2.catch(->)
 		Promise.all([
-			expect(promise1).to.throw
-			expect(promise2).to.throw
+			expect(promise1).to.be.rejected
+			expect(promise2).to.be.rejected
 		])
 
 	it 'throws when asked for an unknown key', ->
 		promise = @conf.get('unknownInvalidValue')
 		promise.catch(->)
-		expect(promise).to.throw
+		expect(promise).to.be.rejected
 
 	it 'emits a change event when values are set', (done) ->
 		@conf.on 'change', (val) ->

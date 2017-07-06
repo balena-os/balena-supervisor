@@ -134,7 +134,7 @@ describe 'deviceState', ->
 	it 'does not allow setting an invalid target state', ->
 		promise = @deviceState.setTarget(testTargetInvalid)
 		promise.catch(->)
-		expect(promise).to.throw
+		expect(promise).to.be.rejected
 
 	it 'allows triggering applying the target state', (done) ->
 		stub(@deviceState, 'applyTarget')
