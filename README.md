@@ -12,7 +12,7 @@ We are using [waffle.io](https://waffle.io) to manage our tickets / issues, so i
 
 ### Deploy your local version to a Docker registry
 
-We'll show how to use the DockerHub registry, but any other can be specified as part of the `SUPERVISOR_IMAGE` variable.
+We'll show how to use the DockerHub registry, but any other can be specified as part of the `IMAGE` variable.
 
 If you haven't done so yet, login to the registry:
 ```bash
@@ -20,21 +20,24 @@ docker login
 ```
 Use your username and password as required.
 
-Then deploy to a specific repo and tag, e.g.
+Then build the supervisor and deploy it to a specific repo and tag, e.g.
 ```bash
-make ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master deploy
+./tools/dev/dindctl deploy --image username/resin-supervisor:master --arch amd64
 ```
-This will build the Supervisor docker image if you haven't done it yet, and upload it to the registry.
-As we pointed out before, a different registry can be specified with the DEPLOY_REGISTRY env var.
+
+This will build the Supervisor docker image and upload it to dockerhub. You can use other registries by adding to the
+image name e.g. `myregistry.com/username/resin-supervisor:master`.
 
 ### Set up config.json
-Add `tools/dind/config.json` file from a staging device image.
+
+Add a `tools/dind/config.json` file from a staging device image. It should be configured for an x86 or amd64 device type so that you can push apps to it and they run properly on your computer.
+
+Note: don't use resinstaging for production devices. This is for development purposes only. A production (resin.io) config.json should work just as fine for this local supervisor, but we also don't recommend using this in production scenarios - ResinOS is way better suited for that.
 
 A config.json file can be obtained in several ways, for instance:
 
-* Download an Intel Edison image from staging, open `config.img` with an archive tool like [peazip](http://sourceforge.net/projects/peazip/files/)
-* Download a Raspberry Pi 2 image, flash it to an SD card, then mount partition 5 (resin-conf).
-* Install Resin CLI with `npm install -g resin-cli`, then login with `resin login` and finally run `resin config generate --app <appName> -o config.json` (choose the default settings whenever prompted). Check [this section](https://github.com/resin-io/resin-cli#how-do-i-point-the-resin-cli-to-staging) on how to point Resin CLI to a device on staging.
+* Log in to the dashboard on resinstaging (https://dashboard.resinstaging.io), create or select an application, click "Download OS" and on the Advanced section select "Download configuration only".
+* Install the Resin CLI with `npm install -g resin-cli`, then login with `resin login` and finally run `resin config generate --app <appName> -o config.json` (choose the default settings whenever prompted). Check [this section](https://github.com/resin-io/resin-cli#how-do-i-point-the-resin-cli-to-staging) on how to point Resin CLI to a device on staging.
 
 The config.json file should look something like this:
 
@@ -46,30 +49,44 @@ The config.json file should look something like this:
 	"userId": "141", /* User ID for the user who owns the app */
 	"username": "gh_pcarranzav", /* User name for the user who owns the app */
 	"deviceType": "intel-edison", /* The device type corresponding to the test application */
-	"files": { /* This field is used by the host OS on devices, so the supervisor doesn't care about it */
-		"network/settings": "[global]\nOfflineMode=false\n\n[WiFi]\nEnable=true\nTethering=false\n\n[Wired]\nEnable=true\nTethering=false\n\n[Bluetooth]\nEnable=true\nTethering=false",
-		"network/network.config": "[service_home_ethernet]\nType = ethernet\nNameservers = 8.8.8.8,8.8.4.4"
-	},
 	"apiEndpoint": "https://api.resinstaging.io", /* Endpoint for the Resin API */
-	"registryEndpoint": "registry.resinstaging.io", /* Endpoint for the Resin registry */
+	"deltaEndpoint": "https://delta.resinstaging.io", /* Endpoint for the delta server to download docker binary diffs */
 	"vpnEndpoint": "vpn.resinstaging.io", /* Endpoint for the Resin VPN server */
 	"pubnubSubscribeKey": "sub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Subscribe key for Pubnub for logs */
 	"pubnubPublishKey": "pub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Publish key for Pubnub for logs */
 	"listenPort": 48484, /* Listen port for the supervisor API */
 	"mixpanelToken": "aaaaaaaaaaaaaaaaaaaaaaaaaa", /* Mixpanel token to report events */
+	"files": { /* This field is used by the host OS on devices, so the supervisor doesn't care about it */
+		"network/settings": "[global]\nOfflineMode=false\n\n[WiFi]\nEnable=true\nTethering=false\n\n[Wired]\nEnable=true\nTethering=false\n\n[Bluetooth]\nEnable=true\nTethering=false",
+		"network/network.config": "[service_home_ethernet]\nType = ethernet\nNameservers = 8.8.8.8,8.8.4.4"
+	},
+	"registryEndpoint": "registry.resinstaging.io", /* Endpoint for the Resin registry, not used by the latest supervisor versions */
 }
 ```
-Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the resin API.
+
+Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the resin API. Other fields may be present (the format has evolved over time and will likely continue to do so).
 
 ### Start the supervisor instance
 
 Ensure your kernel supports aufs (in Ubuntu, install `linux-image-extra-$(uname -r)`) and the `aufs` module is loaded (if necessary, run `sudo modprobe aufs`).
 
 ```bash
-ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master ./tools/dev/dindctl run
+./tools/dev/dindctl run --image username/resin-supervisor:master
 ```
 
 This will setup a docker-in-docker instance with an image that runs the supervisor image.
+
+If you want to develop and test your changes, you can run:
+
+```bash
+./tools/dev/dindctl run --image username/resin-supervisor:master --mount-dist
+```
+
+This will mount the ./dist folder into the supervisor container, so that any changes you make can be added to the running supervisor with:
+
+```bash
+./tools/dev/dindctl refresh
+```
 
 ### Testing with preloaded apps
 To test preloaded apps, add a `tools/dind/apps.json` file according to the preloaded apps spec.
@@ -93,8 +110,7 @@ Make sure the config.json file doesn't have uuid, registered_at or deviceId popu
 
 Then run the supervisor like this:
 ```bash
-make ARCH=amd64 PRELOADED_IMAGE=true \
-	SUPERVISOR_IMAGE=username/resin-supervisor:master run-supervisor
+./tools/dev/dindctl run --image username/resin-supervisor:master --preload
 ```
 This will make the docker-in-docker instance pull the image specified in apps.json before running the supervisor.
 
@@ -123,34 +139,26 @@ docker exec -it resin_supervisor_1 journalctl -f
 This will stop the container and remove it, also removing its volumes.
 
 ## Working with the Go supervisor
-The Dockerfile used to build the Go supervisor is Dockerfile.gosuper, and the code for the Go supervisor lives in the `gosuper` directory.
 
-To build it, run:
+The code for the Go supervisor lives in the `gosuper` directory.
+
+To build it, run (with the ARCH and IMAGE you want):
 ```bash
-make ARCH=amd64 gosuper
+make ARCH=amd64 IMAGE=username/gosuper:master gosuper
 ```
-This will build and run the docker image that builds the Go supervisor and outputs the executable at `gosuper/bin`.
+This will build a docker image that builds the Go supervisor and has the executable at /go/bin/gosuper inside the image.
 
 ### Adding Go dependencies
-This project uses [Godep](https://github.com/tools/godep) to manage its Go dependencies. In order for it to work, this repo needs to be withing the `src` directory in a valid Go workspace. This can easily be achieved by having the repo as a child of a directory named `src` and setting the `GOPATH` environment variable to such directory's parent.
+This project uses [glide](https://github.com/Masterminds/glide) to manage its Go dependencies. Refer to its repository for instructions on adding packages.
 
-If these conditions are met, a new dependency can be added with:
-```bash
-go get github.com/path/to/dependency
-```
-Then we add the corresponding import statement in our code (e.g. main.go):
-```go
-import "github.com/path/to/dependency"
-```
-And we save it to Godeps.json with:
-```bash
-cd gosuper
-godep save -r ./...
-```
-(The -r switch will modify the import statement to use Godep's `_workspace`)
+In order for go utilities to work, this repo needs to be within the `src` directory in a valid Go workspace. This can easily be achieved by having the repo as a child of a directory named `src` and setting the `GOPATH` environment variable to such directory's parent.
 
 ## Testing
+
+We're working on adding more tests to this repo, but here's what you can run in the meantime:
+
 ### Gosuper
+
 The Go supervisor can be tested by running:
 ```bash
 make ARCH=amd64 test-gosuper
@@ -164,6 +172,7 @@ Once it's running, you can run the test with:
 ```bash
 make ARCH=amd64 test-integration
 ```
+
 The tests will fail if the supervisor API is down - bear in mind that the supervisor image takes a while to start the actual supervisor program, so you might have to wait a few minutes between running the supervisor and testing it.
 The test expects the supervisor to be already running the application (so that the app is already on the SQLite database), so check the dashboard to see if the app has already downloaded.
 
