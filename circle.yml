@@ -1,0 +1,63 @@
+---
+defaults: &defaults
+  docker:
+    - image: library/docker:stable
+  working_directory: /tmp/build
+  environment:
+    DOCKER_USERNAME: travisciresin
+    DOCKER_EMAIL: accounts+travisci+docker@resin.io
+  steps:
+    - setup_remote_docker
+    - run:
+        name: Check docker is running and install git
+        command: |
+          docker info
+          apk update && apk upgrade && apk add --nocache git
+    - checkout
+    - run:
+        name: Initialize the submodules (yocto layers)
+        command: |
+            git submodule update --init --recursive
+            git clean -fxd base-image
+            git submodule foreach --recursive git clean -fxd
+    - run:
+        name: Build and start the docker-in-docker builder
+        command: |
+            docker build --rm=false --tag builder -f automation/Dockerfile .
+    - run:
+        name: Start the docker-in-docker builder and build $ARCH-supervisor
+        no_output_timeout: 10800
+        command: |
+            # build the dind image
+            docker build --rm=false --tag builder -f automation/Dockerfile .
+            # start the dind container
+            dind=$(docker run --privileged -d builder)
+            # confirm it's running
+            docker ps
+            # start the build for this architecture
+            docker exec -it -e TAG=${CIRCLE_BRANCH} -e ARCH=${ARCH} -e PUSH_IMAGES=${PUSH_IMAGES} ${dind} bash automation/build.sh
+            docker exec -ti ${dind} docker images
+
+version: 2
+jobs:
+  amd64:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      DOCKER_EMAIL: accounts+travisci+docker@resin.io
+      ARCH: amd64
+      PUSH_IMAGES: "false"
+  i386:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      DOCKER_EMAIL: accounts+travisci+docker@resin.io
+      ARCH: i386
+      PUSH_IMAGES: "false"
+
+workflows:
+  version: 2
+  build_them_all:
+    jobs:
+      - amd64
+      - i386
