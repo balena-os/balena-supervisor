@@ -57,14 +57,12 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/dependent-apps?apikey=$RESIN_SUPERVISOR
 [
      {
          "id": 13015,
-         "device_type": "edge",
          "name": "edgeApp1",
          "commit": "d43bea5e16658e653088ce4b9a91b6606c3c2a0d",
          "config": {}
      },
      {
          "id": 13016,
-         "device_type": "edge",
          "name": "edgeApp2",
          "commit": "d0f6624d6410fa079159fa3ebe0d3af46753d75d",
          "config": {}
@@ -110,7 +108,7 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KE
          "id": 1,
          "uuid": "5ae8cf6e062c033ea38435498ad9b487bcc714e9eab0fed0404ee56e397790",
          "appId": 13015,
-         "device_type": "edge",
+         "device_type": "generic-amd64",
          "logs_channel": "69f961abffaad1ff66031b29f712be4fb19e1bfabf1fee7a9ebfb5fa75a1fbdb",
          "deviceId": "47270",
          "is_online": null,
@@ -128,7 +126,7 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KE
          "id": 3,
          "uuid": "8dc608765fd32665d49d218a7eb4657bc2ab8a56db06d2c57ef7c7e9a115da",
          "appId": 13015,
-         "device_type": "edge",
+         "device_type": "generic-amd64",
          "logs_channel": "d0244a90e8cd6e9a1ab410d3d599dea7f15110a6fe37b2a8fd69bb6ee0bce043",
          "deviceId": "47318",
          "is_online": null,
@@ -148,10 +146,15 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KE
 ### POST /v1/devices
 Dependent Device Provision
 
+The `device_type` parameter is optional, defaulting to `generic-amd64`. You
+should only set this if you need to provision a dependent device to an
+application with the deprecated `edge` device type.
+
 **Example**
 
 ```bash
-curl -H "Content-Type: application/json" -X POST --data '{"appId": <appId>}' /
+curl -H "Content-Type: application/json" -X POST --data '{"appId": <appId>,
+"device_type": "edge"}' /
 $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KEY
 ```
 
@@ -162,10 +165,10 @@ $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KEY
 ```javascript
 {
           "id": 47318,
-            "uuid": "8dc608765fd32665d49a268a7eb4657bc2ab8a56db06d2c57ef7c7e9a115da",
-      "name": "wild-paper",
+          "uuid": "8dc608765fd32665d49a268a7eb4657bc2ab8a56db06d2c57ef7c7e9a115da",
+          "name": "wild-paper",
           "note": null,
-          "device_type": "edge",
+          "device_type": "edge"
     }
 ```
 
@@ -186,7 +189,7 @@ curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$RESIN_SUPERVISOR
            "id": 1,
            "uuid": "5ae8cf6e062c033ea57837498ad9b487bfc714e9eab0fed0404ee56e397790",
            "appId": 13015,
-           "device_type": "edge",
+           "device_type": "generic-amd64",
            "logs_channel": "69f961abffaad2ff00031b29f718be4fb19e1bfabf1fee7a9ebfb5fa75a1fbdb",
            "deviceId": "47270",
            "is_online": null,
@@ -219,7 +222,7 @@ $RESIN_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$RESIN_SUPERVISOR_API_KEY
            "id": 1,
            "uuid": "5ae8cf6e062c033ea38437498ad9b482bcc714e9eab0fed0404ee56e397790",
            "appId": 13015,
-           "device_type": "edge",
+           "device_type": "generic-amd64",
            "logs_channel": "69f961abffaad2ff66031b29f712be4fb19e1bfabf1fee7a9ebfb5fa05a1fbdb",
            "deviceId": "47270",
            "is_online": true,
