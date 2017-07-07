@@ -19,3 +19,4 @@ Dockerfile.runtime.*
 !Dockerfile.runtime.template
 /build/
 /dist/
+tools/dind/config/services/docker.service.d/proxy.conf
