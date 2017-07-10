@@ -1,7 +1,6 @@
 _ = require 'lodash'
 Promise = require 'bluebird'
 memoizee = require 'memoizee'
-knex = require './db'
 utils = require './utils'
 { resinApi } = require './request'
 device = exports
@@ -12,6 +11,7 @@ fs = Promise.promisifyAll(require('fs'))
 bootstrap = require './bootstrap'
 { checkTruthy } = require './lib/validation'
 osRelease = require './lib/os-release'
+EventEmitter = require 'events'
 
 # If we don't use promise: 'then', exceptions will crash the program
 memoizePromise = _.partial(memoizee, _, promise: 'then')
@@ -40,8 +40,25 @@ exports.getID = memoizePromise ->
 			throw new Error('Could not find this device?!')
 		return devices[0].id
 
+exports.shuttingDown = false
+exports.events = new EventEmitter()
 exports.reboot = ->
-	utils.gosuper.postAsync('/v1/reboot')
+	utils.gosuper.postAsync('/v1/reboot', { json: true })
+	.spread (res, body) ->
+		if res.statusCode != 202
+			throw new Error(body.Error)
+		exports.shuttingDown = true
+		exports.events.emit('shutdown')
+		return body
+
+exports.shutdown = ->
+	utils.gosuper.postAsync('/v1/shutdown', { json: true })
+	.spread (res, body) ->
+		if res.statusCode != 202
+			throw new Error(body.Error)
+		exports.shuttingDown = true
+		exports.events.emit('shutdown')
+		return body
 
 exports.hostConfigConfigVarPrefix = 'RESIN_HOST_'
 bootConfigEnvVarPrefix = 'RESIN_HOST_CONFIG_'

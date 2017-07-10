@@ -77,7 +77,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 Triggers an update check on the supervisor. Optionally, forces an update when updates are locked.
 
-Responds with an empty 204 (Accepted) response.
+Responds with an empty 204 (No Content) response.
 
 #### Request body
 Can be a JSON object with a `force` property. If this property is true, the update lock will be overridden.
@@ -110,7 +110,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 Reboots the device
 
-When successful, responds with 204 accepted and a JSON object:
+When successful, responds with 202 accepted and a JSON object:
 ```json
 {
 	"Data": "OK",
@@ -144,7 +144,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 **Dangerous**. Shuts down the device.
 
-When successful, responds with 204 accepted and a JSON object:
+When successful, responds with 202 accepted and a JSON object:
 ```json
 {
 	"Data": "OK",

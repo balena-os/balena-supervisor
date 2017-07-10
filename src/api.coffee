@@ -57,18 +57,16 @@ module.exports = (application) ->
 				.then (app) ->
 					application.kill(app, removeContainer: false) if app?
 		.then ->
-			new Promise (resolve, reject) ->
-				application.logSystemMessage('Rebooting', {}, 'Reboot')
-				utils.gosuper.post('/v1/reboot')
-				.on('error', reject)
-				.on('response', -> resolve())
-				.pipe(res)
+			application.logSystemMessage('Rebooting', {}, 'Reboot')
+			device.reboot()
+			.then (response) ->
+				res.status(202).json(response)
 		.catch (err) ->
 			if err instanceof application.UpdatesLockedError
 				status = 423
 			else
 				status = 500
-			res.status(status).send(err?.message or err or 'Unknown error')
+			res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
 
 	parsedRouter.post '/v1/shutdown', (req, res) ->
 		force = req.body.force
@@ -80,18 +78,16 @@ module.exports = (application) ->
 				.then (app) ->
 					application.kill(app, removeContainer: false) if app?
 		.then ->
-			new Promise (resolve, reject) ->
-				application.logSystemMessage('Shutting down', {}, 'Shutdown')
-				utils.gosuper.post('/v1/shutdown')
-				.on('error', reject)
-				.on('response', -> resolve())
-				.pipe(res)
+			application.logSystemMessage('Shutting down', {}, 'Shutdown')
+			device.shutdown()
+			.then (response) ->
+				res.status(202).json(response)
 		.catch (err) ->
 			if err instanceof application.UpdatesLockedError
 				status = 423
 			else
 				status = 500
-			res.status(status).send(err?.message or err or 'Unknown error')
+			res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
 
 	parsedRouter.post '/v1/purge', (req, res) ->
 		appId = req.body.appId

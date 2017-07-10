@@ -709,7 +709,7 @@ application.update = update = (force, scheduled = false) ->
 			.tap (remoteApps) ->
 				# Before running the updates, try to clean up any images that aren't in use
 				# and will not be used in the target state
-				return if application.localMode
+				return if application.localMode or device.shuttingDown
 				dockerUtils.cleanupContainersAndImages(_.map(remoteApps, 'imageId'))
 				.catch (err) ->
 					console.log('Cleanup failed: ', err, err.stack)
@@ -737,7 +737,7 @@ application.update = update = (force, scheduled = false) ->
 					logSystemMessage("Error fetching/applying device configuration: #{err}", { error: err }, 'Set device configuration error')
 				.return(allAppIds)
 				.map (appId) ->
-					return if application.localMode
+					return if application.localMode or device.shuttingDown
 					Promise.try ->
 						needsDownload = _.includes(toBeDownloaded, appId)
 						if _.includes(toBeRemoved, appId)
@@ -792,9 +792,9 @@ application.update = update = (force, scheduled = false) ->
 			_.each(failures, (err) -> console.error('Error:', err, err.stack))
 			throw new Error(joinErrorMessages(failures)) if failures.length > 0
 		.then ->
-			proxyvisor.sendUpdates()
+			proxyvisor.sendUpdates() if !device.shuttingDown
 		.then ->
-			return if application.localMode
+			return if application.localMode or device.shuttingDown
 			updateStatus.failed = 0
 			device.setUpdateState(update_pending: false, update_downloaded: false, update_failed: false)
 			# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
