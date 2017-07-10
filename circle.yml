@@ -46,14 +46,42 @@ jobs:
       DOCKER_USERNAME: travisciresin
       DOCKER_EMAIL: accounts+travisci+docker@resin.io
       ARCH: amd64
-      PUSH_IMAGES: "false"
+      PUSH_IMAGES: "true"
   i386:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       DOCKER_EMAIL: accounts+travisci+docker@resin.io
       ARCH: i386
-      PUSH_IMAGES: "false"
+      PUSH_IMAGES: "true"
+  armel:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      DOCKER_EMAIL: accounts+travisci+docker@resin.io
+      ARCH: armel
+      PUSH_IMAGES: "true"
+  armv7hf:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      DOCKER_EMAIL: accounts+travisci+docker@resin.io
+      ARCH: armv7hf
+      PUSH_IMAGES: "true"
+  aarch64:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      DOCKER_EMAIL: accounts+travisci+docker@resin.io
+      ARCH: aarch64
+      PUSH_IMAGES: "true"
+  rpi:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      DOCKER_EMAIL: accounts+travisci+docker@resin.io
+      ARCH: rpi
+      PUSH_IMAGES: "true"
 
 workflows:
   version: 2
