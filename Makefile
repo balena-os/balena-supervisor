@@ -9,7 +9,7 @@
 # * base - builds the "base" component (a yocto builder with the output rootfs at /dest)
 # * gosuper - builds the "gosuper" component (a golang image with the Go supervisor component at /go/bin/gosuper and /build/gosuper)
 # * nodesuper - builds the node component, with the node_modules and src at /usr/src/app and /build (also includes a rootfs-overlay there)
-# * supervisor-dind: build the development docker-in-docker supervisor that run-supervisor uses
+# * supervisor-dind: build the development docker-in-docker supervisor that run-supervisor uses (requires a SUPERVISOR_IMAGE to be available locally)
 #
 # Variables for build targets:
 # * ARCH: amd64/rpi/i386/armv7hf/armel/aarch64 architecture for which to build the supervisor - default: amd64
@@ -19,13 +19,13 @@
 # * DOCKER_BUILD_OPTIONS: Additional options for docker build, like --cache-from parameters
 #
 # Test/development targets:
-# * run-supervisor, stop-supervisor - build and start or stop a docker-in-docker resin-supervisor (requires aufs and ability to run privileged containers)
+# * run-supervisor, stop-supervisor - build and start or stop a docker-in-docker resin-supervisor (requires aufs, ability to run privileged containers, and a SUPERVISOR_IMAGE to be available locally)
 # * format-gosuper, test-gosuper - build a gosuper image and run formatting or unit tests
 # * test-integration - run an integration test (see gosuper/supertest). Requires a docker-in-docker supervisor to be running
 #
 # Variables for test/dev targets:
 # * IMAGE: image to build and run (either for run-supervisor or test-gosuper/integration)
-# * SUPERVISOR_IMAGE: In run-supervisor, the supervisor image to run inside the docker-in-docker image
+# * SUPERVISOR_IMAGE: In run-supervisor and supervisor-dind, the supervisor image to run inside the docker-in-docker image
 # * PRELOADED_IMAGE: If true, will preload user app image from tools/dev/apps.json and bind mount apps.json into the docker-in-docker supervisor
 # * SUPERVISOR_EXTRA_MOUNTS: Additional bind mount flags for the docker-in-docker supervisor
 # * PASSWORDLESS_DROPBEAR: For run-supervisor - start a passwordless ssh daemon in the docker-in-docker supervisor
@@ -120,7 +120,10 @@ ${DOCKERD_PROXY}:
 		touch ${DOCKERD_PROXY}; \
 	fi
 
-supervisor-dind: ${DOCKERD_PROXY}
+supervisor-tar:
+	docker save --output tools/dind/supervisor-image.tar $(SUPERVISOR_IMAGE)
+
+supervisor-dind: ${DOCKERD_PROXY} supervisor-tar
 	cd tools/dind \
 	&& docker build \
 		$(DOCKER_HTTP_PROXY) \

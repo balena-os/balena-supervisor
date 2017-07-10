@@ -9,7 +9,7 @@ WorkingDirectory=/usr/src/app
 EnvironmentFile=/usr/src/app/config/env
 EnvironmentFile=/usr/src/app/config/localenv
 ExecStartPre=/bin/bash -c 'if [ "${PRELOADED_IMAGE}" == "true" ]; then /usr/bin/docker pull $(jq ".[0].imageId" ${APPS_PATH}); fi'
-ExecStartPre=/usr/bin/docker pull ${SUPERVISOR_IMAGE}
+ExecStartPre=/usr/bin/docker load --input /usr/src/supervisor-image.tar
 ExecStartPre=-/usr/bin/docker kill resin_supervisor
 ExecStartPre=-/usr/bin/docker rm resin_supervisor
 ExecStartPre=-/bin/touch /etc/resolv.conf
