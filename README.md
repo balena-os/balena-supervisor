@@ -10,23 +10,15 @@ We are using [waffle.io](https://waffle.io) to manage our tickets / issues, so i
 
 ## Running supervisor locally
 
-### Deploy your local version to a Docker registry
+### Build a local supervisor image
 
-We'll show how to use the DockerHub registry, but any other can be specified as part of the `IMAGE` variable.
-
-If you haven't done so yet, login to the registry:
+Build the supervisor with a specific repo and tag, e.g.
 ```bash
-docker login
-```
-Use your username and password as required.
-
-Then build the supervisor and deploy it to a specific repo and tag, e.g.
-```bash
-./tools/dev/dindctl deploy --image username/resin-supervisor:master --arch amd64
+./tools/dev/dindctl build --image username/resin-supervisor:master --arch amd64
 ```
 
-This will build the Supervisor docker image and upload it to dockerhub. You can use other registries by adding to the
-image name e.g. `myregistry.com/username/resin-supervisor:master`.
+This will build the Supervisor docker image locally. If you then run `docker images` you should see the repo/tag you
+set there.
 
 ### Set up config.json
 
@@ -74,7 +66,8 @@ Ensure your kernel supports aufs (in Ubuntu, install `linux-image-extra-$(uname 
 ./tools/dev/dindctl run --image username/resin-supervisor:master
 ```
 
-This will setup a docker-in-docker instance with an image that runs the supervisor image.
+This will setup a docker-in-docker instance with an image that runs the supervisor image. The image has to be available
+locally, either because you built it as described above, or because you pulled it before running `dindctl run`.
 
 If you want to develop and test your changes, you can run:
 

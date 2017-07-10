@@ -20,3 +20,4 @@ Dockerfile.runtime.*
 /build/
 /dist/
 tools/dind/config/services/docker.service.d/proxy.conf
+tools/dind/supervisor-image.tar

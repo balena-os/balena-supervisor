@@ -26,6 +26,10 @@ RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C0
 	&& apt-get --force-yes install docker-engine=${DOCKER_VERSION}-0~${RELEASE_NAME} \
 	&& rm -rf /var/lib/apt/lists/*
 
+ENV DIND_COMMIT 3b5fac462d21ca164b3778647420016315289034
+RUN curl -sL https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind > /usr/bin/dind \
+	&& chmod +x /usr/bin/dind
+
 RUN passwd -d root
 
 # Change os release to a resin-sync compatible one
@@ -40,3 +44,5 @@ COPY resin-vars vpn-init /usr/src/app/
 RUN if [ "$PASSWORDLESS_DROPBEAR" = "true" ]; then sed -i 's/\(DROPBEAR_EXTRA_ARGS=\).*/\1"-B"/' /etc/default/dropbear; fi
 
 RUN systemctl enable resin-supervisor-dind
+
+COPY supervisor-image.tar /usr/src/

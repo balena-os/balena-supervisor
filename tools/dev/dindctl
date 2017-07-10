@@ -4,22 +4,22 @@
 # faster development iterations by bind-mounting the local './dist' directly into the running
 # supervisor container.
 #
-# Setting the '--mount-nm' flag in either 'run' or 'deployrun' action will bind-mount
+# Setting the '--mount-nm' flag in either 'run' or 'buildrun' action will bind-mount
 # './node_modules/' into the running supervisor. In this case, it's up to the developer
 # to make sure that the correct dependencies are installed.
 #
 # Usage: dindctl action [options]
 #
 # Actions:
-# 	deploy					build and deploy local supervisor image - you can override registry/image name with --image.
-# 	run [options]			build dind host container, run it (with name resin_supervisor_1), then pull the configured supervisor image into the dind host and run it.
-# 	deployrun [options]		run 'deploy' and then immediately 'run' the deployed container.
+# 	build					build local supervisor image - you can override image name with --image.
+# 	run [options]			build dind host container, run it (with name resin_supervisor_1), which will include the specified supervisor image and run it.
+# 	buildrun [options]		run 'build' and then immediately 'run' the built container.
 # 	refresh					recompile sources in './src' and restart supervisor container on dind host - requires --mount-dist in order to work properly.
 # 	logs [-f]				print out supervisor log files - use '-f' to follow instead, or any other arguments you'd send to journalctl.
 # 	stop					stop dind supervisor host container.
 # Options:
 # 	--arch | -a  [arch]		architecture of the supervisor to build (default: amd64 )
-# 	--image | -i [image]	image name for supervisor image to build/deploy/use ( default: resin/$ARCH-supervisor:master )
+# 	--image | -i [image]	image name for supervisor image to build/use ( default: resin/$ARCH-supervisor:master )
 # 	--dind-image [image]	image name for the dind host container
 # 	--mount-dist			bind-mount './dist/' (where webpack stores the built js) from local development environment into supervisor container.
 # 	--mount-nm				bind-mount './node_modules/' from local development environment into supervisor container.
@@ -88,15 +88,12 @@ function parseOptions {
 	done
 }
 
-function deploySupervisor {
+function buildSupervisor {
 	echo "Building and deploying for architecture $ARCH and tagging as $IMAGE"
 	make -C "$SUPERVISOR_BASE_DIR" \
 		ARCH="$ARCH" \
 		IMAGE="$SUPERVISOR_IMAGE" \
-		supervisor \
-	&& make -C "$SUPERVISOR_BASE_DIR" \
-		IMAGE="$SUPERVISOR_IMAGE" \
-		deploy
+		supervisor
 }
 
 function buildSupervisorSrc {
@@ -124,7 +121,7 @@ function runDind {
 		SUPERVISOR_IMAGE="$SUPERVISOR_IMAGE" \
 		PASSWORDLESS_DROPBEAR="$PASSWORDLESS_DROPBEAR" \
 		SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS" \
-		IMAGE="$DIND_IMAGE"
+		IMAGE="$DIND_IMAGE" \
 		run-supervisor
 }
 
@@ -145,14 +142,14 @@ if [ "$action" = "logs" ]; then
 else
 	parseOptions "$@"
 	case $action in
-		deploy)
-			deploySupervisor
+		build)
+			buildSupervisor
 			;;
 		run)
 			runDind
 			;;
-		deployrun)
-			deploySupervisor && runDind
+		buildrun)
+			buildSupervisor && runDind
 			;;
 		refresh)
 			refreshSupervisorSrc
