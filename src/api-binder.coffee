@@ -1,12 +1,13 @@
 Promise = require 'bluebird'
+_ = require 'lodash'
 url = require 'url'
+semver = require 'semver'
+semverRegex = require 'semver-regex'
+TypedError = require 'typed-error'
 PlatformAPI = require 'pinejs-client'
 deviceRegister = require 'resin-register-device'
-{ request, requestOpts } = require './request'
-semver = require 'semver'
-semverRegex = require('semver-regex')
-TypedError = require 'typed-error'
-_ = require 'lodash'
+
+{ request, requestOpts } = require './lib/request'
 
 DuplicateUuidError = message: '"uuid" must be unique.'
 ExchangeKeyError = class ExchangeKeyError extends TypedError

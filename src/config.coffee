@@ -1,10 +1,11 @@
 Promise = require 'bluebird'
+_ = require 'lodash'
 Lock = require 'rwlock'
 deviceRegister = require 'resin-register-device'
-_ = require 'lodash'
 fs = Promise.promisifyAll(require('fs'))
-osRelease = require './lib/os-release'
 EventEmitter = require 'events'
+
+osRelease = require './lib/os-release'
 supervisorVersion = require('./lib/supervisor-version')
 
 writeAndSyncFile = (path, data) ->
@@ -20,7 +21,7 @@ module.exports = class Config extends EventEmitter
 	constructor: ({ @db, @configPath }) ->
 		# These are values that come from env vars or hardcoded defaults and can be resolved synchronously
 		# Defaults needed for both gosuper and node supervisor are declared in entry.sh
-		@constants = require './constants'
+		@constants = require './lib/constants'
 
 		@funcs =
 			version: ->
@@ -116,7 +117,9 @@ module.exports = class Config extends EventEmitter
 			logsChannelSecret: { source: 'db', mutable: true }
 			name: { source: 'db', mutable: true }
 			initialConfigReported: { source: 'db', mutable: true }
-			localMode: { source: 'db', mutable: true }
+			localMode: { source: 'db', mutable: true, default: 'false' }
+			loggingEnabled: { source: 'db', mutable: true, default: 'true' }
+			connectivityCheckEnabled: { source: 'db', mutable: true, default: 'true' }
 		}
 
 		@configJsonCache = {}

@@ -1,13 +1,12 @@
-constants = require './constants'
-
 Promise = require 'bluebird'
 request = require 'request'
 
-osRelease = require './lib/os-release'
+constants = require './constants'
+osRelease = require './os-release'
 
 osVersion = osRelease.getOSVersionSync(constants.hostOSVersionPath)
 osVariant = osRelease.getOSVariantSync(constants.hostOSVersionPath)
-supervisorVersion = require('./lib/supervisor-version')
+supervisorVersion = require('./supervisor-version')
 
 userAgent = "Supervisor/#{supervisorVersion}"
 if osVersion?

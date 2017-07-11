@@ -1,4 +1,4 @@
-{ checkString } = require './lib/validation'
+{ checkString } = require './validation'
 
 bootMountPointFromEnv = checkString(process.env.BOOT_MOUNTPOINT)
 rootMountPoint = checkString(process.env.ROOT_MOUNTPOINT) ? '/mnt/root'

@@ -1,10 +1,5 @@
 EventEmitter = require 'events'
 
-Promise = require 'bluebird'
-utils = require './utils'
-bootstrap = require './bootstrap'
-_ = require 'lodash'
-
 iptables = require './lib/iptables'
 network = require './network'
 
@@ -52,7 +47,7 @@ module.exports = class Supervisor extends EventEmitter
 				@deviceState.init()
 			.then =>
 				network.startConnectivityCheck(conf.resinApiEndpoint, conf.connectivityCheckEnabled)
-				@config.on 'change', (changedConfig) =>
+				@config.on 'change', (changedConfig) ->
 					network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled) if changedConfig.connectivityCheckEnabled?
 				# Let API know what version we are, and our api connection info.
 				console.log('Updating supervisor version and api info')
@@ -76,13 +71,15 @@ module.exports = class Supervisor extends EventEmitter
 				.then =>
 					@deviceState.loadTargetsFromFile() if !conf.provisioned
 				.then =>
-					@deviceState.applyAndMaintainTarget()
+					@deviceState.init()
+				.then =>
+					@deviceState.applyAndFollowTarget()
 				.then =>
 					# initialize API
 					console.log('Starting API server..')
 					iptables.rejectOnAllInterfacesExcept(@config.constants.allowedInterfaces, conf.listenPort)
 					.then ->
-						apiServer = api(application).listen(conf.listenPort)
-						apiServer.timeout = conf.apiTimeout
+						#apiServer = api(application).listen(conf.listenPort)
+						#apiServer.timeout = conf.apiTimeout
 				.then =>
 					@apiBinder.init() # this will first try to provision if it's a new device

@@ -1,5 +1,5 @@
 Promise = require 'bluebird'
-constants = require '../constants'
+constants = require './constants'
 _ = require 'lodash'
 
 exports.extendEnvVars = (env, { uuid, appId, appName, commit, listenPort, name, apiSecret, deviceApiKey, version, deviceType, osVersion }) ->

@@ -1,6 +1,7 @@
 Promise = require 'bluebird'
 Knex = require 'knex'
-constants = require './constants'
+
+constants = require './lib/constants'
 
 module.exports = class DB
 	constructor: ({ databasePath } = {}) ->

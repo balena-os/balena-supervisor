@@ -6,6 +6,7 @@ Lock = require('rwlock')
 _ = require 'lodash'
 EventEmitter = require 'events'
 DeviceConfig = require './device-config'
+Logger = require './logger'
 #Application = require './application'
 #proxyvisor = require './proxyvisor'
 validation = require './lib/validation'
@@ -36,7 +37,9 @@ UPDATE_SCHEDULED = 3
 
 module.exports = class DeviceState extends EventEmitter
 	constructor: ({ @db, @config, @eventTracker }) ->
-		@deviceConfig = new DeviceConfig({ @db, @config })
+		@logger = new Logger({ @eventTracker })
+		@deviceConfig = new DeviceConfig({ @db, @config, @logger })
+		#@application = new Application({ @config, @logger })
 		#@application = new Application({ @db, @config, deviceState: this })
 		@on 'error', (err) ->
 			console.error('Error in deviceState: ', err, err.stack)
@@ -46,6 +49,18 @@ module.exports = class DeviceState extends EventEmitter
 		@_readLock = Promise.promisify(_lock.async.writeLock)
 		@lastSuccessfulUpdate = null
 		@failedUpdates = 0
+
+	init: ->
+		@config.on 'change', (changedConfig) =>
+			@logger.enable(changedConfig.loggingEnabled) if changedConfig.loggingEnabled?
+		@config.getMany([ 'logsChannelSecret', 'pubnub', 'offlineMode', 'loggingEnabled' ])
+		.then (conf) =>
+			@logger.init({
+				pubnub: conf.pubnub
+				channel: "device-#{conf.logsChannelSecret}-logs"
+				offlineMode: !conf.offlineMode
+				enable: conf.loggingEnabled
+			})
 
 	emitAsync: (ev, args) =>
 		setImmediate => @emit(ev, args)
