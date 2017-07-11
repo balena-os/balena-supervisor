@@ -42,7 +42,8 @@ vpnStatusInotifyCallback = ->
 # Use the following to catch EEXIST errors
 EEXIST = (err) -> err.code is 'EEXIST'
 
-exports.startConnectivityCheck = _.once (apiEndpoint) ->
+exports.startConnectivityCheck = _.once (apiEndpoint, enable) ->
+	exports.enableConnectivityCheck(enable)
 	parsedUrl = url.parse(apiEndpoint)
 	fs.mkdirAsync(constants.vpnStatusPath)
 	.catch EEXIST, (err) ->
@@ -51,7 +52,7 @@ exports.startConnectivityCheck = _.once (apiEndpoint) ->
 		fs.watch(constants.vpnStatusPath, vpnStatusInotifyCallback)
 
 	# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
-	vpnStatusInotifyCallback()
+	vpnStatusInotifyCallback() if enable
 	customMonitor
 		host: parsedUrl.hostname
 		port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
@@ -69,6 +70,9 @@ exports.enableConnectivityCheck = (val) ->
 	enabled = checkTruthy(val) ? true
 	enableCheck(enabled)
 	console.log("Connectivity check enabled: #{enabled}")
+
+exports.connectivityCheckEnabled = Promise.method ->
+	return enableConnectivityCheck
 
 exports.getIPAddresses = ->
 	_.flatten(_.map(_.omitBy(os.networkInterfaces(), (interfaceFields, interfaceName) ->

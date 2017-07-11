@@ -39,6 +39,7 @@ module.exports = class Supervisor extends EventEmitter
 				'username'
 				'osVersion'
 				'osVariant'
+				'connectivityCheckEnabled'
 			])
 		.then (conf) =>
 			@eventTracker.init({
@@ -50,7 +51,9 @@ module.exports = class Supervisor extends EventEmitter
 				@eventTracker.track('Supervisor start')
 				@deviceState.init()
 			.then =>
-				network.startConnectivityCheck(conf.resinApiEndpoint)
+				network.startConnectivityCheck(conf.resinApiEndpoint, conf.connectivityCheckEnabled)
+				@config.on 'change', (changedConfig) =>
+					network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled) if changedConfig.connectivityCheckEnabled?
 				# Let API know what version we are, and our api connection info.
 				console.log('Updating supervisor version and api info')
 				@deviceState.reportCurrent(

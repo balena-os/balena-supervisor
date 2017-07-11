@@ -116,6 +116,7 @@ module.exports = class Config extends EventEmitter
 			logsChannelSecret: { source: 'db', mutable: true }
 			name: { source: 'db', mutable: true }
 			initialConfigReported: { source: 'db', mutable: true }
+			localMode: { source: 'db', mutable: true }
 		}
 
 		@configJsonCache = {}
