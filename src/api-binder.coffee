@@ -217,6 +217,7 @@ module.exports = class APIBinder
 						_.merge(state.local.config, JSON.parse(app.config ? '{}'))
 				return state
 
+	# Get target state from API, set it on @deviceState
 	getAndSetTargetState: ->
 
 	_pollTargetState: =>

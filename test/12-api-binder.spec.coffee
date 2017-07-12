@@ -8,7 +8,7 @@ _ = require 'lodash'
 { expect } = m.chai
 { stub, spy } = m.sinon
 
-constants = require '../src/constants'
+constants = require '../src/lib/constants'
 
 DB = require('../src/db')
 Config = require('../src/config')

@@ -5,17 +5,9 @@ deviceRegister = require 'resin-register-device'
 fs = Promise.promisifyAll(require('fs'))
 EventEmitter = require 'events'
 
+{ writeAndSyncFile, writeFileAtomic } = require './lib/fs-utils'
 osRelease = require './lib/os-release'
 supervisorVersion = require('./lib/supervisor-version')
-
-writeAndSyncFile = (path, data) ->
-	fs.openAsync(path, 'w')
-	.then (fd) ->
-		fs.writeAsync(fd, data, 0, 'utf8')
-		.then ->
-			fs.fsyncAsync(fd)
-		.then ->
-			fs.closeAsync(fd)
 
 module.exports = class Config extends EventEmitter
 	constructor: ({ @db, @configPath }) ->
@@ -60,6 +52,12 @@ module.exports = class Config extends EventEmitter
 			osVariant: =>
 				osRelease.getOSVariant(@constants.hostOSVersionPath)
 
+			isResinOSV1: =>
+				@get('osVersion')
+				.then (osVersion) ->
+					return true if /^Resin OS 1./.test(osVersion)
+					return false
+
 			provisioningOptions: =>
 				@getMany([
 					'uuid'
@@ -81,6 +79,11 @@ module.exports = class Config extends EventEmitter
 						apiEndpoint: conf.resinApiEndpoint
 						apiTimeout: conf.apiTimeout
 					}
+
+			mixpanelHost: =>
+				@get('resinApiEndpoint')
+				.then (apiEndpoint) ->
+					return apiEndpoint + '/mixpanel'
 
 		@schema = {
 			apiEndpoint: { source: 'config.json' }
@@ -112,6 +115,7 @@ module.exports = class Config extends EventEmitter
 			osVersion: { source: 'func' }
 			osVariant: { source: 'func' }
 			provisioningOptions: { source: 'func' }
+			mixpanelHost: { source: 'func' }
 
 			apiSecret: { source: 'db', mutable: true }
 			logsChannelSecret: { source: 'db', mutable: true }
@@ -146,9 +150,7 @@ module.exports = class Config extends EventEmitter
 			return @constants.configJsonNonAtomicPath
 		.then (path) =>
 			if atomicWritePossible
-				writeAndSyncFile("#{path}.new", JSON.stringify(@configJsonCache))
-				.then ->
-					fs.renameAsync("#{path}.new", path)
+				writeFileAtomic(path, JSON.stringify(@configJsonCache))
 			else
 				writeAndSyncFile(path, JSON.stringify(@configJsonCache))
 

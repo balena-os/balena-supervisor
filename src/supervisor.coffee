@@ -31,6 +31,7 @@ module.exports = class Supervisor extends EventEmitter
 				'resinApiEndpoint'
 				'offlineMode'
 				'mixpanelToken'
+				'mixpanelHost'
 				'username'
 				'osVersion'
 				'osVariant'
@@ -40,6 +41,7 @@ module.exports = class Supervisor extends EventEmitter
 			@eventTracker.init({
 				offlineMode: conf.offlineMode
 				mixpanelToken: conf.mixpanelToken
+				mixpanelHost: conf.mixpanelHost
 				uuid: conf.uuid
 			})
 			.then =>

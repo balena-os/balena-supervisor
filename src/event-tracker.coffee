@@ -1,7 +1,8 @@
 Promise = require 'bluebird'
-mixpanel = require 'mixpanel'
 _ = require 'lodash'
-constants = require './constants'
+mixpanel = require 'mixpanel'
+
+constants = require './lib/constants'
 
 module.exports = class EventTracker
 	constructor: ->
@@ -41,10 +42,10 @@ module.exports = class EventTracker
 		properties = _.assign(properties, @_properties)
 		@_client.track(ev, properties)
 
-	init: ({ offlineMode, mixpanelToken, uuid }) ->
+	init: ({ offlineMode, mixpanelToken, uuid, mixpanelHost }) ->
 		Promise.try =>
 			@_properties =
 				distinct_id: uuid
 				uuid: uuid
 			return if offlineMode
-			@_client = mixpanel.init(mixpanelToken)
+			@_client = mixpanel.init(mixpanelToken, { host: mixpanelHost })

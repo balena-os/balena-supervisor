@@ -1,7 +1,7 @@
 prepare = require './lib/prepare'
 Promise = require 'bluebird'
 m = require 'mochainon'
-constants = require '../src/constants'
+constants = require '../src/lib/constants'
 
 { expect } = m.chai
 

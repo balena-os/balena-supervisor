@@ -1,12 +1,13 @@
 Promise = require 'bluebird'
-networkCheck = require 'network-checker'
-fs = Promise.promisifyAll require 'fs'
-constants = require './constants'
 _ = require 'lodash'
 url = require 'url'
+networkCheck = require 'network-checker'
+os = require 'os'
+fs = Promise.promisifyAll(require('fs'))
+
+constants = require './lib/constants'
 { checkTruthy } = require './lib/validation'
 blink = require './lib/blink'
-os = require 'os'
 
 networkPattern =
 	blinks: 4

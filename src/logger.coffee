@@ -106,7 +106,7 @@ module.exports = class Logger
 					.on 'end', =>
 						@attached[containerId] = false
 
-	logSystemEvent = (logType, app = {}, error) ->
+	logSystemEvent: (logType, app = {}, error) ->
 		message = "#{logType.humanName}"
 		if app.imageId?
 			message += " '#{app.imageId}'"
@@ -120,10 +120,10 @@ module.exports = class Logger
 			if _.isEmpty(errMessage)
 				errMessage = 'Unknown cause'
 			message += " due to '#{errMessage}'"
-		logSystemMessage(message, { app, error }, logType.eventName)
+		@logSystemMessage(message, { app, error }, logType.eventName)
 		return
 
-	logSpecialAction = (action, value, success) ->
+	logSpecialAction: (action, value, success) ->
 		if success
 			if !value?
 				msg = "Cleared config variable #{action}"
@@ -134,4 +134,4 @@ module.exports = class Logger
 				msg = "Clearing config variable #{action}"
 			else
 				msg = "Applying config variable #{action} = #{value}"
-		logSystemMessage(msg, {}, "Apply special action #{if success then "success" else "in progress"}")
+		@logSystemMessage(msg, {}, "Apply special action #{if success then "success" else "in progress"}")

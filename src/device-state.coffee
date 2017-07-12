@@ -1,16 +1,18 @@
 Promise = require 'bluebird'
-constants = require './constants'
-fs = Promise.promisifyAll(require('fs'))
-containerConfig = require './lib/container-config'
-Lock = require('rwlock')
 _ = require 'lodash'
+Lock = require 'rwlock'
 EventEmitter = require 'events'
+fs = Promise.promisifyAll(require('fs'))
+
+containerConfig = require './lib/container-config'
+constants = require './lib/constants'
+validation = require './lib/validation'
+{ dbToState, stateToDB, keyByAndOmit } = require './lib/app-conversions'
+
 DeviceConfig = require './device-config'
 Logger = require './logger'
 #Application = require './application'
 #proxyvisor = require './proxyvisor'
-validation = require './lib/validation'
-{ dbToState, stateToDB, keyByAndOmit } = require './lib/app-conversions'
 
 validateLocalState = (state) ->
 	if state.name? and !validation.isValidShortText(state.name)
@@ -113,7 +115,6 @@ module.exports = class DeviceState extends EventEmitter
 			})
 
 	getCurrent: ->
-		currentState = {}
 		Promise.join(
 			@config.get('name')
 			@deviceConfig.getCurrent()

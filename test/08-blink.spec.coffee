@@ -1,6 +1,6 @@
 Promise = require 'bluebird'
 m = require 'mochainon'
-constants = require '../src/constants'
+constants = require '../src/lib/constants'
 fs = Promise.promisifyAll(require('fs'))
 blink = require('../src/lib/blink')
 
