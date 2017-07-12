@@ -3,16 +3,13 @@ defaults: &defaults
   docker:
     - image: library/docker:stable
   working_directory: /tmp/build
-  environment:
-    DOCKER_USERNAME: travisciresin
-    DOCKER_EMAIL: accounts+travisci+docker@resin.io
   steps:
     - setup_remote_docker
     - run:
         name: Check docker is running and install git
         command: |
           docker info
-          apk update && apk upgrade && apk add --nocache git
+          apk update && apk upgrade && apk add --nocache git jq
     - checkout
     - run:
         name: Initialize the submodules (yocto layers)
@@ -34,9 +31,20 @@ defaults: &defaults
             dind=$(docker run --privileged -d builder)
             # confirm it's running
             docker ps
+            VERSION_TAG=v$(jq .version package.json | sed 's/"//g')
+            if [ "${CIRCLE_BRANCH}" = "master" ]; then
+              EXTRA_BUILD_ARGS="-e EXTRA_TAG=$VERSION_TAG"
+            else
+              EXTRA_BUILD_ARGS=""
+            fi
             # start the build for this architecture
-            docker exec -it -e TAG=${CIRCLE_BRANCH} -e ARCH=${ARCH} -e PUSH_IMAGES=${PUSH_IMAGES} ${dind} bash automation/build.sh
-            docker exec -ti ${dind} docker images
+            docker exec -it -e TAG=${CIRCLE_BRANCH} -e ARCH=${ARCH} -e PUSH_IMAGES=${PUSH_IMAGES} $EXTRA_BUILD_ARGS ${dind} bash automation/build.sh
+            if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_RESIN}" = "true" ]; then
+              echo "Deploying to Resin API (staging)"
+              docker exec -it -e ARCH=${ARCH} -e TAG=$VERSION_TAG -e API_KEY=$STAGING_API_KEY -e API_ENDPOINT=$STAGING_API_ENDPOINT ${dind} node automation/deploy-to-resin.js
+              echo "Deploying to Resin API (production)"
+              docker exec -it -e ARCH=${ARCH} -e TAG=$VERSION_TAG -e API_KEY=$PRODUCTION_API_KEY -e API_ENDPOINT=$PRODUCTION_API_ENDPOINT ${dind} node automation/deploy-to-resin.js
+            fi
 
 version: 2
 jobs:
@@ -47,6 +55,8 @@ jobs:
       DOCKER_EMAIL: accounts+travisci+docker@resin.io
       ARCH: amd64
       PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
   i386:
     <<: *defaults
     environment:
@@ -54,6 +64,8 @@ jobs:
       DOCKER_EMAIL: accounts+travisci+docker@resin.io
       ARCH: i386
       PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
   armel:
     <<: *defaults
     environment:
@@ -61,6 +73,8 @@ jobs:
       DOCKER_EMAIL: accounts+travisci+docker@resin.io
       ARCH: armel
       PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
   armv7hf:
     <<: *defaults
     environment:
@@ -68,6 +82,8 @@ jobs:
       DOCKER_EMAIL: accounts+travisci+docker@resin.io
       ARCH: armv7hf
       PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
   aarch64:
     <<: *defaults
     environment:
@@ -75,6 +91,8 @@ jobs:
       DOCKER_EMAIL: accounts+travisci+docker@resin.io
       ARCH: aarch64
       PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
   rpi:
     <<: *defaults
     environment:
@@ -82,10 +100,16 @@ jobs:
       DOCKER_EMAIL: accounts+travisci+docker@resin.io
       ARCH: rpi
       PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
 
 workflows:
   version: 2
-  build_them_all:
+  build_and_maybe_deploy:
     jobs:
       - amd64
       - i386
+      - rpi
+      - armv7hf
+      - aarch64
+      - armel

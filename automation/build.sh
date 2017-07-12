@@ -11,6 +11,7 @@
 # * CLEANUP
 # * ENABLE_TESTS
 # * PUBNUB_SUBSCRIBE_KEY, PUBNUB_PUBLISH_KEY, MIXPANEL_TOKEN: default keys to inject in the supervisor image
+# * EXTRA_TAG: when PUSH_IMAGES is true, additional tag to push to the registries
 #
 # Builds the supervisor for the architecture defined by $ARCH.
 # Will produce and push an image tagged as resin/$ARCH-supervisor:$TAG
@@ -109,13 +110,20 @@ make IMAGE=$TARGET_IMAGE supervisor
 if [ "$PUSH_IMAGES" = "true" ]; then
 	make IMAGE=$TARGET_IMAGE deploy
 	docker tag $TARGET_IMAGE registry.resinstaging.io/$TARGET_IMAGE
-    make IMAGE=registry.resinstaging.io/$TARGET_IMAGE deploy
+	make IMAGE=registry.resinstaging.io/$TARGET_IMAGE deploy
 
-    # Try to push the intermediate images to improve caching in future builds
-    # But we don't care much if any of this fails.
-    ( make IMAGE=$BASE_IMAGE base && make IMAGE=$BASE_IMAGE deploy ) || true
-    ( make IMAGE=$GO_IMAGE gosuper && make IMAGE=$GO_IMAGE deploy ) || true
-    ( make IMAGE=$NODE_IMAGE node && make IMAGE=$NODE_IMAGE deploy ) || true
+	if [ -n "$EXTRA_TAG" ]; then
+		docker tag $TARGET_IMAGE resin/$ARCH-supervisor:$EXTRA_TAG
+		make IMAGE=resin/$ARCH-supervisor:$EXTRA_TAG deploy
+		docker tag $TARGET_IMAGE registry.resinstaging.io/resin/$ARCH-supervisor:$EXTRA_TAG
+		make IMAGE=registry.resinstaging.io/resin/$ARCH-supervisor:$EXTRA_TAG deploy
+	fi
+
+	# Try to push the intermediate images to improve caching in future builds
+	# But we don't care much if any of this fails.
+	( make IMAGE=$BASE_IMAGE base && make IMAGE=$BASE_IMAGE deploy ) || true
+	( make IMAGE=$GO_IMAGE gosuper && make IMAGE=$GO_IMAGE deploy ) || true
+	( make IMAGE=$NODE_IMAGE node && make IMAGE=$NODE_IMAGE deploy ) || true
 fi
 
 if [ "$CLEANUP" = "true" ]; then
