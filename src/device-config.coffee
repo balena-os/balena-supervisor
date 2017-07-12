@@ -36,28 +36,6 @@ forbiddenConfigKeys = [
 ]
 arrayConfigKeys = [ 'dtparam', 'dtoverlay', 'device_tree_param', 'device_tree_overlay' ]
 
-envToBootConfig = (env) ->
-	# We ensure env doesn't have garbage
-	parsedEnv = _.pickBy env, (val, key) ->
-		return _.startsWith(key, bootConfigEnvVarPrefix)
-	parsedEnv = _.mapKeys parsedEnv, (val, key) ->
-		key.replace(configRegex(), '$2')
-	parsedEnv = _.mapValues parsedEnv, (val, key) ->
-		if _.includes(arrayConfigKeys, key)
-			return JSON.parse("[#{val}]")
-		else
-			return val
-	return parsedEnv
-
-bootConfigToEnv = (config) ->
-	confWithEnvKeys = _.mapKeys config, (val, key) ->
-		return bootConfigEnvVarPrefix + key
-	return _.mapValues confWithEnvKeys, (val, key) ->
-		if _.isArray(val)
-			return JSON.stringify(val).replace(/^\[(.*)\]$/, '$1')
-		else
-			return val
-
 module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 
@@ -71,14 +49,14 @@ module.exports = class DeviceConfig
 		.then ([ devConfig ]) ->
 			return JSON.parse(devConfig.targetValues)
 
-	getCurrent: ->
+	getCurrent: =>
 		@config.getMany(['deviceType', 'localMode', 'connectivityCheckEnabled', 'loggingEnabled'])
 		.then (conf) =>
 			Promise.join(
 				@getLogToDisplay()
 				@getVPNEnabled()
 				@getBootConfig(conf.deviceType)
-				(logToDisplayStatus, vpnStatus, bootConfig) ->
+				(logToDisplayStatus, vpnStatus, bootConfig) =>
 					currentConf = {
 						RESIN_HOST_LOG_TO_DISPLAY: logToDisplayStatus.toString()
 						RESIN_SUPERVISOR_VPN_CONTROL: vpnStatus.toString()
@@ -87,7 +65,7 @@ module.exports = class DeviceConfig
 						RESIN_SUPERVISOR_CONNECTIVITY_CHECK: conf.connectivityCheckEnabled.toString()
 						RESIN_SUPERVISOR_POLL_INTERVAL: conf.appUpdatePollInterval.toString()
 					}
-					return _.assign(currentConf, bootConfigToEnv(bootConfig))
+					return _.assign(currentConf, @bootConfigToEnv(bootConfig))
 			)
 
 	applyTarget: ->
@@ -114,8 +92,8 @@ module.exports = class DeviceConfig
 					else return false
 				.then (changed) =>
 					rebootRequired = changed
-					targetBootConfig = envToBootConfig(target)
-					currentBootConfig = envToBootConfig(current)
+					targetBootConfig = @envToBootConfig(target)
+					currentBootConfig = @envToBootConfig(current)
 					if !_.isEqual(currentBootConfig, targetBootConfig)
 						_.forEach forbiddenConfigKeys, (key) ->
 							if current[key] != target[key]
@@ -129,14 +107,36 @@ module.exports = class DeviceConfig
 					device.reboot() if rebootRequired
 		)
 
+	envToBootConfig: (env) ->
+		# We ensure env doesn't have garbage
+		parsedEnv = _.pickBy env, (val, key) ->
+			return _.startsWith(key, bootConfigEnvVarPrefix)
+		parsedEnv = _.mapKeys parsedEnv, (val, key) ->
+			key.replace(configRegex(), '$2')
+		parsedEnv = _.mapValues parsedEnv, (val, key) ->
+			if _.includes(arrayConfigKeys, key)
+				return JSON.parse("[#{val}]")
+			else
+				return val
+		return parsedEnv
+
+	bootConfigToEnv: (config) ->
+		confWithEnvKeys = _.mapKeys config, (val, key) ->
+			return bootConfigEnvVarPrefix + key
+		return _.mapValues confWithEnvKeys, (val, key) ->
+			if _.isArray(val)
+				return JSON.stringify(val).replace(/^\[(.*)\]$/, '$1')
+			else
+				return val
+
 	readBootConfig: ->
 		fs.readFileAsync(bootConfigPath, 'utf8')
 
-	getBootConfig: (deviceType) ->
+	getBootConfig: (deviceType) =>
 		Promise.try =>
 			return {} if !_.startsWith(deviceType, 'raspberry')
 			@readBootConfig()
-			.then (configTxt) ->
+			.then (configTxt) =>
 				conf = {}
 				configStatements = configTxt.split(/\r?\n/)
 				_.forEach configStatements, (configStr) ->
@@ -153,7 +153,7 @@ module.exports = class DeviceConfig
 					if keyValue?
 						conf[keyValue[1]] = keyValue[2]
 						return
-				return bootConfigToEnv(conf)
+				return @bootConfigToEnv(conf)
 
 	getLogToDisplay: ->
 		gosuper.get('/log-to-display')
