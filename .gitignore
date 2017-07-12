@@ -18,3 +18,4 @@ Dockerfile.runtime.*
 !Dockerfile.build.template
 !Dockerfile.runtime.template
 /build/
+/dist/

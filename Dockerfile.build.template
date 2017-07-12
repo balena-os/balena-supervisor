@@ -21,18 +21,20 @@ RUN mkdir -p rootfs-overlay && \
 
 COPY package.json /usr/src/app/
 
-# Install only the production modules
+# Install only the production modules that have C extensions
 RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
 	&& npm dedupe
 
+COPY webpack.config.js remove-hashbang-loader.js /usr/src/app/
 COPY src /usr/src/app/src
 
 # Install devDependencies, build the coffeescript and then prune the deps
-RUN npm install --only=dev --no-optional --unsafe-perm \
+RUN cp -R node_modules node_modules_prod \
+	&& npm install --no-optional --unsafe-perm \
 	&& npm run lint \
 	&& npm run build \
-	&& npm prune --production \
-	&& npm dedupe
+	&& rm -rf node_modules \
+	&& mv node_modules_prod node_modules
 
 # Remove various uneeded filetypes in order to reduce space
 RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
@@ -52,7 +54,7 @@ COPY entry.sh run.sh package.json rootfs-overlay/usr/src/app/
 
 COPY inittab rootfs-overlay/etc/inittab
 
-CMD rsync -a --delete node_modules src rootfs-overlay /build
+CMD rsync -a --delete node_modules dist rootfs-overlay /build
 
 # -*- mode: dockerfile -*-
 # vi: set ft=dockerfile :
