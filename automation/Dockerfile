@@ -4,7 +4,13 @@ RUN apk add --no-cache \
 	make \
 	jq \
 	git \
-	bash
+	bash \
+	nodejs \
+	nodejs-npm
+
 WORKDIR /src
+COPY ./automation/package.json /src/automation/package.json
+RUN cd automation \
+	&& npm install
 
 COPY . /src

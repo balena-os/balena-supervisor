@@ -1,0 +1,16 @@
+{
+  "name": "resin-supervisor-automation",
+  "version": "1.0.0",
+  "description": "Tools to build/deploy resin-supervisor",
+  "main": "deploy-to-resin.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Resin Inc.",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "lodash": "^4.17.4",
+    "pinejs-client": "^4.0.0"
+  }
+}
