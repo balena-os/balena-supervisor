@@ -1,7 +1,7 @@
 [submodule "base-image/meta-nodejs"]
 	path = base-image/meta-nodejs
-	url = https://github.com/imyller/meta-nodejs.git
-	branch = krogoth
+	url = https://github.com/resin-io-playground/meta-nodejs.git
+	branch = node-6.11.1
 [submodule "base-image/oe-core"]
 	path = base-image/oe-core
 	url = git://git.openembedded.org/openembedded-core

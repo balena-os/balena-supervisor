@@ -3,6 +3,8 @@ set -e
 
 # Jenkins build steps
 export ESCAPED_BRANCH_NAME=$(echo $sourceBranch | sed 's/[^a-z0-9A-Z_.-]/-/g')
+# We use git submodule sync in case a submodule's remote has changed
+git submodule sync || true
 git submodule update --init --recursive
 git clean -fxd base-image
 git submodule foreach --recursive git clean -fxd
