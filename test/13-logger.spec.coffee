@@ -19,6 +19,9 @@ describe 'Logger', ->
 		@logger = new Logger({ eventTracker: @fakeEventTracker })
 		@logger.init({ pubnub: {}, channel: 'foo', offlineMode: 'false', enable: 'true' })
 
+	after ->
+		PUBNUB.init.restore()
+
 	it 'publishes logs to pubnub', (done) ->
 		theTime = Date.now()
 		@logger.log(m: 'Hello!', t: theTime)	

@@ -7,13 +7,13 @@ device = require './device'
 
 constants = require './lib/constants'
 gosuper = require './lib/gosuper'
-{ writeFileAtomic } = require './lib/fs-utils'
+fsUtils = require './lib/fs-utils'
 { checkTruthy } = require './lib/validation'
 
 hostConfigConfigVarPrefix = 'RESIN_HOST_'
 bootConfigEnvVarPrefix = hostConfigConfigVarPrefix + 'CONFIG_'
 bootBlockDevice = '/dev/mmcblk0p1'
-bootMountPoint = '/mnt/root' + constants.bootMountPoint
+bootMountPoint = constants.rootMountPoint + constants.bootMountPoint
 bootConfigPath = bootMountPoint + '/config.txt'
 configRegex = ->
 	new RegExp('(' + _.escapeRegExp(bootConfigEnvVarPrefix) + ')(.+)')
@@ -68,15 +68,29 @@ module.exports = class DeviceConfig
 					return _.assign(currentConf, @bootConfigToEnv(bootConfig))
 			)
 
+	compareAndSetBootConfig: (deviceType, current, target) =>
+		Promise.try =>
+			targetBootConfig = @envToBootConfig(target)
+			currentBootConfig = @envToBootConfig(current)
+			if !_.isEqual(currentBootConfig, targetBootConfig)
+				_.forEach forbiddenConfigKeys, (key) =>
+					if currentBootConfig[key] != targetBootConfig[key]
+						err = "Attempt to change blacklisted config value #{key}"
+						@logger.logSystemMessage(err, { error: err }, 'Apply boot config error')
+						throw new Error(err)
+				@setBootConfig(deviceType, targetBootConfig)
+			else return false
+
 	applyTarget: ->
 		# Takes the target value of log to display and calls gosuper to set it
 		# Takes the config.txt values and writes them to config.txt
 		# Takes the special action env vars and sets the supervisor config
 		rebootRequired = false
 		Promise.join(
+			@config.get('deviceType')
 			@getCurrent()
 			@getTarget()
-			(current, target) =>
+			(deviceType, current, target) =>
 				Promise.try =>
 					if current['RESIN_SUPERVISOR_POLL_INTERVAL'] != target['RESIN_SUPERVISOR_POLL_INTERVAL']
 						@config.set({ appUpdatePollInterval: target['RESIN_SUPERVISOR_POLL_INTERVAL'] })
@@ -92,16 +106,7 @@ module.exports = class DeviceConfig
 					else return false
 				.then (changed) =>
 					rebootRequired = changed
-					targetBootConfig = @envToBootConfig(target)
-					currentBootConfig = @envToBootConfig(current)
-					if !_.isEqual(currentBootConfig, targetBootConfig)
-						_.forEach forbiddenConfigKeys, (key) ->
-							if current[key] != target[key]
-								err = "Attempt to change blacklisted config value #{key}"
-								@logger.logSystemMessage(err, { error: err }, 'Apply boot config error')
-								throw new Error(err)
-						@setBootConfig(targetBootConfig)
-					else return false
+					@compareAndSetBootConfig(deviceTyoe, current, target)
 				.then (changed) ->
 					rebootRequired or= changed
 					device.reboot() if rebootRequired
@@ -149,7 +154,7 @@ module.exports = class DeviceConfig
 							conf[keyValue[1]] ?= []
 							conf[keyValue[1]].push(keyValue[2])
 							return
-					keyValue = /^[^#](initramfs) (.+)/.exec(configStr)
+					keyValue = /^(initramfs) (.+)/.exec(configStr)
 					if keyValue?
 						conf[keyValue[1]] = keyValue[2]
 						return
@@ -195,11 +200,11 @@ module.exports = class DeviceConfig
 			# Here's the dangerous part:
 			childProcess.execAsync("mount -t vfat -o remount,rw #{bootBlockDevice} #{bootMountPoint}")
 			.then ->
-				writeFileAtomic(bootConfigPath, configStatements.join('\n'))
-			.then ->
+				fsUtils.writeFileAtomic(bootConfigPath, configStatements.join('\n') + '\n')
+			.then =>
 				@logger.logSystemMessage("Applied boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config success')
 				return true
-		.catch (err) ->
+		.catch (err) =>
 			@logger.logSystemMessage("Error setting boot config: #{err}", { error: err }, 'Apply boot config error')
 			throw err
 
