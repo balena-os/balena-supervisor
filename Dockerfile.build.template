@@ -2,7 +2,7 @@
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM resin/%%ARCH%%-node:6.5-slim
+FROM resin/%%ARCH%%-node:6.11-slim
 
 WORKDIR /usr/src/app
 
