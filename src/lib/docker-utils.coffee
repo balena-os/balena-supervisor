@@ -7,11 +7,8 @@ Promise = require 'bluebird'
 progress = require 'request-progress'
 dockerDelta = require 'docker-delta'
 _ = require 'lodash'
-knex = require './db'
 { request } = require './request'
 Lock = require 'rwlock'
-utils = require './utils'
-rimraf = Promise.promisify(require('rimraf'))
 
 docker = new Docker()
 

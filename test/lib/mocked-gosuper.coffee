@@ -11,4 +11,7 @@ api.gosuperBackend = {
 api.post '/v1/vpncontrol', (req, res) ->
 	api.gosuperBackend.vpnControlHandler(req, res)
 
+api.get '/v1/vpncontrol', (req, res) ->
+	api.gosuperBackend.vpnControlHandler(req, res)
+
 module.exports = api

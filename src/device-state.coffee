@@ -41,7 +41,7 @@ module.exports = class DeviceState extends EventEmitter
 	constructor: ({ @db, @config, @eventTracker }) ->
 		@logger = new Logger({ @eventTracker })
 		@deviceConfig = new DeviceConfig({ @db, @config, @logger })
-		#@application = new Application({ @config, @logger })
+		@application = new ApplicationManager({ @config, @logger })
 		#@application = new Application({ @db, @config, deviceState: this })
 		@on 'error', (err) ->
 			console.error('Error in deviceState: ', err, err.stack)
@@ -118,7 +118,7 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.join(
 			@config.get('name')
 			@deviceConfig.getCurrent()
-			@application.listCurrent()
+			@application.getCurrent()
 			@proxyvisor.getCurrentStates()
 			(name, devConfig, apps, dependent) ->
 				return {
@@ -187,9 +187,9 @@ module.exports = class DeviceState extends EventEmitter
 				(current, target) =>
 					return if _.isEqual(current, target)
 					Promise.try =>
-						@deviceConfig.applyTarget() if !_.isEqual(current.local.config, target.local.config)
+						@deviceConfig.applyTarget()
 					.then ->
-						@application.applyTarget(target.local.apps, { force }) if !_.isEqual(current.local.apps, target.local.apps)
+						@application.applyTarget(target.local.apps, { force })
 					.then ->
 						@proxyvisor.applyTarget()
 			)

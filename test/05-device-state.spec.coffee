@@ -124,7 +124,7 @@ describe 'deviceState', ->
 
 	it 'returns the current state'
 
-	it 'writes the target state to te db', ->
+	it 'writes the target state to the db', ->
 		@deviceState.setTarget(testTarget2)
 		.then =>
 			@deviceState.getTarget()
