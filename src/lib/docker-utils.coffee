@@ -1,7 +1,5 @@
 constants = require './constants'
-process.env.DOCKER_HOST = "unix://#{constants.dockerSocket}"
-
-Docker = require 'docker-toolbelt'
+dockerToolbelt = require 'docker-toolbelt'
 { DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
 progress = require 'request-progress'
@@ -10,69 +8,70 @@ _ = require 'lodash'
 { request } = require './request'
 Lock = require 'rwlock'
 
-docker = new Docker()
+module.exports = class DockerUtils extends dockerToolbelt
+	constructor: (opts) ->
+		super(opts)
+		@dockerProgress = new DockerProgress(dockerToolbelt: this)
+		_lock = new Lock()
+		_writeLock = Promise.promisify(_lock.async.writeLock)
+		_readLock = Promise.promisify(_lock.async.readLock)
+		@writeLockImages = ->
+			_writeLock('images')
+			.disposer (release) ->
+				release()
+		@readLockImages = ->
+			_readLock('images')
+			.disposer (release) ->
+				release()
+		@supervisorTagPromise = normalizeRepoTag(constants.supervisorImage)
+		return this
 
-exports.docker = docker
-dockerProgress = new DockerProgress(socketPath: constants.dockerSocket)
+	# Create an array of (repoTag, image_id, created) tuples like the output of `docker images`
+	listRepoTags: =>
+		@listImages()
+		.then (images) ->
+			images = _.orderBy(images, 'Created', [ false ])
+			ret = []
+			for image in images
+				for repoTag in image.RepoTags
+					ret.push [ repoTag, image.Id, image.Created ]
+			return ret
 
-# Create an array of (repoTag, image_id, created) tuples like the output of `docker images`
-listRepoTags = ->
-	docker.listImages()
-	.then (images) ->
-		images = _.orderBy(images, 'Created', [ false ])
-		ret = []
-		for image in images
-			for repoTag in image.RepoTags
-				ret.push [ repoTag, image.Id, image.Created ]
-		return ret
+	# Find either the most recent image of the same app or the image of the supervisor.
+	# Returns an image Id or Tag (depending on whatever's available)
+	findSimilarImage: (repoTag) =>
+		application = repoTag.split('/')[1]
 
-# Find either the most recent image of the same app or the image of the supervisor.
-# Returns an image Id or Tag (depending on whatever's available)
-findSimilarImage = (repoTag) ->
-	application = repoTag.split('/')[1]
+		@listRepoTags()
+		.then (repoTags) ->
+			# Find the most recent image of the same application
+			for repoTag in repoTags
+				otherApplication = repoTag[0].split('/')[1]
+				if otherApplication is application
+					return repoTag[0]
 
-	listRepoTags()
-	.then (repoTags) ->
-		# Find the most recent image of the same application
-		for repoTag in repoTags
-			otherApplication = repoTag[0].split('/')[1]
-			if otherApplication is application
-				return repoTag[0]
+			# Otherwise we start from scratch
+			return 'resin/scratch'
 
-		# Otherwise we start from scratch
-		return 'resin/scratch'
+	getRepoAndTag: (image) =>
+		@getRegistryAndName(image)
+		.then ({ registry, imageName, tagName }) ->
+			if registry?
+				registry = registry.toString().replace(':443', '')
+				repoName = "#{registry}/#{imageName}"
+			else
+				repoName = imageName
+			return { repo: repoName, tag: tagName }
 
-getRepoAndTag = (image) ->
-	docker.getRegistryAndName(image)
-	.then ({ registry, imageName, tagName }) ->
-		if registry?
-			registry = registry.toString().replace(':443', '')
-			repoName = "#{registry}/#{imageName}"
-		else
-			repoName = imageName
-		return { repo: repoName, tag: tagName }
-
-do ->
-	_lock = new Lock()
-	_writeLock = Promise.promisify(_lock.async.writeLock)
-	_readLock = Promise.promisify(_lock.async.readLock)
-	writeLockImages = ->
-		_writeLock('images')
-		.disposer (release) ->
-			release()
-	readLockImages = ->
-		_readLock('images')
-		.disposer (release) ->
-			release()
-
-	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty = false, deltaEndpoint, apiEndpoint }, onProgress) ->
-		Promise.using readLockImages(), ->
-			Promise.try ->
+	
+	rsyncImageWithProgress: (imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty = false, deltaEndpoint, apiEndpoint }, onProgress) ->
+		Promise.using @readLockImages(), =>
+			Promise.try =>
 				if startFromEmpty
 					return 'resin/scratch'
-				findSimilarImage(imgDest)
-			.then (imgSrc) ->
-				Promise.join docker.getRegistryAndName(imgDest), docker.getRegistryAndName(imgSrc), (dstInfo, srcInfo) ->
+				@findSimilarImage(imgDest)
+			.then (imgSrc) =>
+				Promise.join @getRegistryAndName(imgDest), @getRegistryAndName(imgSrc), (dstInfo, srcInfo) =>
 					tokenEndpoint = "#{apiEndpoint}/auth/v1/token"
 					opts =
 						auth:
@@ -116,33 +115,34 @@ do ->
 									.on('error', reject)
 							.on 'error', reject
 				.timeout(totalTimeout)
-			.then (id) ->
-				getRepoAndTag(imgDest)
-				.then ({ repo, tag }) ->
-					docker.getImage(id).tag({ repo, tag, force: true })
-			.catch dockerDelta.OutOfSyncError, (err) ->
+			.then (id) =>
+				@getRepoAndTag(imgDest)
+				.then ({ repo, tag }) =>
+					@getImage(id).tag({ repo, tag, force: true })
+			.catch dockerDelta.OutOfSyncError, (err) =>
 				console.log('Falling back to delta-from-empty')
-				exports.rsyncImageWithProgress(imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty: true }, onProgress)
+				@rsyncImageWithProgress(imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty: true }, onProgress)
 
-	exports.fetchImageWithProgress = (image, onProgress, { uuid, apiKey }) ->
-		Promise.using readLockImages(), ->
-			docker.getRegistryAndName(image)
-			.then ({ registry, imageName, tagName }) ->
+	fetchImageWithProgress: (image, onProgress, { uuid, apiKey }) =>
+		Promise.using @readLockImages(), =>
+			@getRegistryAndName(image)
+			.then ({ registry, imageName, tagName }) =>
 				dockerOptions =
 					authconfig:
 						username: 'd_' + uuid,
 						password: apiKey,
 						serveraddress: registry
-				dockerProgress.pull(image, onProgress, dockerOptions)
+				@dockerProgress.pull(image, onProgress, dockerOptions)
 
-	normalizeRepoTag = (image) ->
-		getRepoAndTag(image)
+	normalizeRepoTag: (image) =>
+		@getRepoAndTag(image)
 		.then ({ repo, tag }) ->
-			buildRepoTag(repo, tag)
+			@buildRepoTag(repo, tag)
 
-	supervisorTagPromise = normalizeRepoTag(constants.supervisorImage)
+	
 
-	exports.cleanupContainersAndImages = (extraImagesToIgnore = []) ->
+	# Todo: cleanup so it doesn't look in knex and receives what images to clean up/protect
+	cleanupContainersAndImages: (extraImagesToIgnore = []) ->
 		Promise.using writeLockImages(), ->
 			Promise.join(
 				knex('app').select()
@@ -203,12 +203,12 @@ do ->
 								console.log('Deleted image:', tag, image.Id, image.RepoTags)
 							.catch(_.noop)
 
-	containerHasExited = (id) ->
-		docker.getContainer(id).inspect()
+	containerHasExited: (id) =>
+		@getContainer(id).inspect()
 		.then (data) ->
 			return not data.State.Running
 
-	buildRepoTag = (repo, tag, registry) ->
+	buildRepoTag: (repo, tag, registry) ->
 		repoTag = ''
 		if registry?
 			repoTag += registry + '/'
@@ -219,8 +219,8 @@ do ->
 			repoTag += ':latest'
 		return repoTag
 
-	exports.getImageEnv = (id) ->
-		docker.getImage(id).inspect()
+	getImageEnv: (id) ->
+		@getImage(id).inspect()
 		.get('Config').get('Env')
 		.then (env) ->
 			# env is an array of strings that say 'key=value'

@@ -37,57 +37,60 @@ module.exports = class Containers
 			throw err
 
 	create: (app) =>
-		@config.get('isResinOSv1')
-		.then (isV1) =>
-			volumes = containerConfig.defaultVolumes(isV1)
-			binds = containerConfig.defaultBinds(app.appId, isV1)
-			Promise.try =>
-				env = app.environment
-				conf = app.config
-				@docker.getImage(app.image).inspect()
-				.then (imageInfo) =>
-					@logger.logSystemEvent(logTypes.installApp, app)
-					@deviceState.reportCurrent(status: 'Installing')
+		@get(app)
+		.then (container) =>
+			return container if container?
+			@config.get('isResinOSv1')
+			.then (isV1) =>
+				volumes = containerConfig.defaultVolumes(isV1)
+				binds = containerConfig.defaultBinds(app.appId, isV1)
+				Promise.try =>
+					env = app.environment
+					conf = app.config
+					@docker.getImage(app.image).inspect()
+					.then (imageInfo) =>
+						@logger.logSystemEvent(logTypes.installApp, app)
+						@deviceState.reportCurrent(status: 'Installing')
 
-					ports = {}
-					portBindings = {}
-					if portList?
-						portList.forEach (port) ->
-							ports[port + '/tcp'] = {}
-							portBindings[port + '/tcp'] = [ HostPort: port ]
+						ports = {}
+						portBindings = {}
+						if portList?
+							portList.forEach (port) ->
+								ports[port + '/tcp'] = {}
+								portBindings[port + '/tcp'] = [ HostPort: port ]
 
-					if imageInfo?.Config?.Cmd
-						cmd = imageInfo.Config.Cmd
-					else
-						cmd = [ '/bin/bash', '-c', '/start' ]
+						if imageInfo?.Config?.Cmd
+							cmd = imageInfo.Config.Cmd
+						else
+							cmd = [ '/bin/bash', '-c', '/start' ]
 
-					restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
-					shouldMountKmod(app.image)
-					.then (shouldMount) =>
-						binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
-						@docker.createContainer(
-							Image: app.image
-							Cmd: cmd
-							Tty: true
-							Volumes: volumes
-							Env: _.map env, (v, k) -> k + '=' + v
-							ExposedPorts: ports
-							HostConfig:
-								Privileged: true
-								NetworkMode: 'host'
-								PortBindings: portBindings
-								Binds: binds
-								RestartPolicy: restartPolicy
-						)
-		.tap =>
-			@logger.logSystemEvent(logTypes.installAppSuccess, app)
-		.catch (err) =>
-			@logger.logSystemEvent(logTypes.installAppError, app, err)
-			throw err
+						restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
+						shouldMountKmod(app.image)
+						.then (shouldMount) =>
+							binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
+							@docker.createContainer(
+								Image: app.image
+								Cmd: cmd
+								Tty: true
+								Volumes: volumes
+								Env: _.map env, (v, k) -> k + '=' + v
+								ExposedPorts: ports
+								HostConfig:
+									Privileged: true
+									NetworkMode: 'host'
+									PortBindings: portBindings
+									Binds: binds
+									RestartPolicy: restartPolicy
+							)
+			.tap =>
+				@logger.logSystemEvent(logTypes.installAppSuccess, app)
+			.catch (err) =>
+				@logger.logSystemEvent(logTypes.installAppError, app, err)
+				throw err
 
-	start: (containerId, app) =>
+	start: (app) =>
 		alreadyStarted = false
-		@docker.getContainer(containerId).inspect()
+		@create(app)
 		.tap (container) =>
 			@logger.logSystemEvent(logTypes.startApp, app)
 			@deviceState.reportCurrent(status: 'Starting')
@@ -123,3 +126,12 @@ module.exports = class Containers
 				@logger.logSystemEvent(logTypes.startAppSuccess, app)
 		.finally =>
 			@deviceState.reportCurrent(status: 'Idle')
+
+	# Gets the running container for an app, if it exists and matches the app's configuration
+	get: (app) ->
+		@getAll()
+		.then (containers) =>
+			theContainer = _.filter containers, (container) ->
+				labels = container.Config.Labels
+	# Gets all existing containers that correspond to apps
+	getAll: ->
