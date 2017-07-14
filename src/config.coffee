@@ -52,7 +52,7 @@ module.exports = class Config extends EventEmitter
 			osVariant: =>
 				osRelease.getOSVariant(@constants.hostOSVersionPath)
 
-			isResinOSV1: =>
+			isResinOSv1: =>
 				@get('osVersion')
 				.then (osVersion) ->
 					return true if /^Resin OS 1./.test(osVersion)
@@ -121,6 +121,7 @@ module.exports = class Config extends EventEmitter
 			logsChannelSecret: { source: 'db', mutable: true }
 			name: { source: 'db', mutable: true }
 			initialConfigReported: { source: 'db', mutable: true }
+			containersNormalized: { source: 'db', mutable: true, default: 'false' }
 			localMode: { source: 'db', mutable: true, default: 'false' }
 			loggingEnabled: { source: 'db', mutable: true, default: 'true' }
 			connectivityCheckEnabled: { source: 'db', mutable: true, default: 'true' }

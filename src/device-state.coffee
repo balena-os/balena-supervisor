@@ -63,6 +63,8 @@ module.exports = class DeviceState extends EventEmitter
 				offlineMode: !conf.offlineMode
 				enable: conf.loggingEnabled
 			})
+		.then =>
+			@application.init()
 
 	emitAsync: (ev, args) =>
 		setImmediate => @emit(ev, args)
