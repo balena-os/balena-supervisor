@@ -3,4 +3,5 @@
 node_modules
 .editorconfig
 tools
+dindctl
 README.md

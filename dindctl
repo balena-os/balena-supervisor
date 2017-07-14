@@ -37,7 +37,7 @@ set -o errexit
 set -o pipefail
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-SUPERVISOR_BASE_DIR="${DIR}/../.."
+SUPERVISOR_BASE_DIR="${DIR}"
 
 ARCH="amd64"
 SUPERVISOR_IMAGE="resin/${ARCH}-supervisor:master"
