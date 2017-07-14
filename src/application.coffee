@@ -18,6 +18,8 @@ proxyvisor = require './proxyvisor'
 { checkInt, checkTruthy } = require './lib/validation'
 osRelease = require './lib/os-release'
 deviceConfig = require './device-config'
+network = require './network'
+containerConfig = require './lib/container-config'
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -25,132 +27,11 @@ ImageNotFoundError = (err) ->
 
 { docker } = dockerUtils
 
-logTypes =
-	stopApp:
-		eventName: 'Application kill'
-		humanName: 'Killing application'
-	stopAppSuccess:
-		eventName: 'Application stop'
-		humanName: 'Killed application'
-	stopAppNoop:
-		eventName: 'Application already stopped'
-		humanName: 'Application is already stopped, removing container'
-	stopRemoveAppNoop:
-		eventName: 'Application already stopped and container removed'
-		humanName: 'Application is already stopped and the container removed'
-	stopAppError:
-		eventName: 'Application stop error'
-		humanName: 'Failed to kill application'
-
-	downloadApp:
-		eventName: 'Application docker download'
-		humanName: 'Downloading application'
-	downloadAppDelta:
-		eventName: 'Application delta download'
-		humanName: 'Downloading delta for application'
-	downloadAppSuccess:
-		eventName: 'Application downloaded'
-		humanName: 'Downloaded application'
-	downloadAppError:
-		eventName: 'Application download error'
-		humanName: 'Failed to download application'
-
-	installApp:
-		eventName: 'Application install'
-		humanName: 'Installing application'
-	installAppSuccess:
-		eventName: 'Application installed'
-		humanName: 'Installed application'
-	installAppError:
-		eventName: 'Application install error'
-		humanName: 'Failed to install application'
-
-	deleteImageForApp:
-		eventName: 'Application image removal'
-		humanName: 'Deleting image for application'
-	deleteImageForAppSuccess:
-		eventName: 'Application image removed'
-		humanName: 'Deleted image for application'
-	deleteImageForAppError:
-		eventName: 'Application image removal error'
-		humanName: 'Failed to delete image for application'
-	imageAlreadyDeleted:
-		eventName: 'Image already deleted'
-		humanName: 'Image already deleted for application'
-
-	startApp:
-		eventName: 'Application start'
-		humanName: 'Starting application'
-	startAppSuccess:
-		eventName: 'Application started'
-		humanName: 'Started application'
-	startAppNoop:
-		eventName: 'Application already running'
-		humanName: 'Application is already running'
-	startAppError:
-		eventName: 'Application start error'
-		humanName: 'Failed to start application'
-
-	updateApp:
-		eventName: 'Application update'
-		humanName: 'Updating application'
-	updateAppError:
-		eventName: 'Application update error'
-		humanName: 'Failed to update application'
-
-	appExit:
-		eventName: 'Application exit'
-		humanName: 'Application exited'
-
-	appRestart:
-		eventName: 'Application restart'
-		humanName: 'Restarting application'
-
-	updateAppConfig:
-		eventName: 'Application config update'
-		humanName: 'Updating config for application'
-	updateAppConfigSuccess:
-		eventName: 'Application config updated'
-		humanName: 'Updated config for application'
-	updateAppConfigError:
-		eventName: 'Application config update error'
-		humanName: 'Failed to update config for application'
-
 application = {}
 application.UpdatesLockedError = UpdatesLockedError
 application.localMode = false
 
-application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
-	logger.log({ m: message, s: 1 })
-	utils.mixpanelTrack(eventName ? message, obj)
 
-logSystemEvent = (logType, app = {}, error) ->
-	message = "#{logType.humanName} '#{app.imageId}'"
-	if error?
-		# Report the message from the original cause to the user.
-		errMessage = error.json
-		if _.isEmpty(errMessage)
-			errMessage = error.reason
-		if _.isEmpty(errMessage)
-			errMessage = error.message
-		if _.isEmpty(errMessage)
-			errMessage = 'Unknown cause'
-		message += " due to '#{errMessage}'"
-	logSystemMessage(message, { app, error }, logType.eventName)
-	return
-
-logSpecialAction = (action, value, success) ->
-	if success
-		if !value?
-			msg = "Cleared config variable #{action}"
-		else
-			msg = "Applied config variable #{action} = #{value}"
-	else
-		if !value?
-			msg = "Clearing config variable #{action}"
-		else
-			msg = "Applying config variable #{action} = #{value}"
-	logSystemMessage(msg, {}, "Apply special action #{if success then "success" else "in progress"}")
 
 application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}) ->
 	logSystemEvent(logTypes.stopApp, app)
@@ -215,12 +96,13 @@ fetch = (app, setDeviceUpdateState = true) ->
 
 		Promise.try ->
 			conf = JSON.parse(app.config)
-			Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), (apiKey, uuid) ->
+			config.getArray([ 'currentApiKey', 'uuid', 'apiEndpoint', 'deltaEndpoint' ])
+			.spread (apiKey, uuid, apiEndpoint, deltaEndpoint) ->
 				if conf['RESIN_SUPERVISOR_DELTA'] == '1'
 					logSystemEvent(logTypes.downloadAppDelta, app)
 					requestTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'], positive: true) ? 30 * 60 * 1000
 					totalTimeout = checkInt(conf['RESIN_SUPERVISOR_DELTA_TOTAL_TIMEOUT'], positive: true) ? 24 * 60 * 60 * 1000
-					dockerUtils.rsyncImageWithProgress(app.imageId, { requestTimeout, totalTimeout, uuid, apiKey }, onProgress)
+					dockerUtils.rsyncImageWithProgress(app.imageId, { requestTimeout, totalTimeout, uuid, apiKey, apiEndpoint, deltaEndpoint }, onProgress)
 				else
 					logSystemEvent(logTypes.downloadApp, app)
 					dockerUtils.fetchImageWithProgress(app.imageId, onProgress, { uuid, apiKey })
@@ -246,8 +128,8 @@ shouldMountKmod = (image) ->
 
 application.start = start = (app) ->
 	device.isResinOSv1().then (isV1) ->
-		volumes = utils.defaultVolumes(isV1)
-		binds = utils.defaultBinds(app.appId, isV1)
+		volumes = containerConfig.defaultVolumes(isV1)
+		binds = containerConfig.defaultBinds(app.appId, isV1)
 		alreadyStarted = false
 		Promise.try ->
 			# Parse the env vars before trying to access them, that's because they have to be stringified for knex..
@@ -371,15 +253,15 @@ createRestartPolicy = ({ name, maximumRetryCount }) ->
 
 persistentLockPath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root#{config.dataPath}/#{appId}/resin-updates.lock"
+	return "#{constants.rootMountPoint}#{constants.dataPath}/#{appId}/resin-updates.lock"
 
 tmpLockPath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root/tmp/resin-supervisor/#{appId}/resin-updates.lock"
+	return "#{constants.rootMountPoint}/tmp/resin-supervisor/#{appId}/resin-updates.lock"
 
 killmePath = (app) ->
 	appId = app.appId ? app
-	return "/mnt/root#{config.dataPath}/#{appId}/resin-kill-me"
+	return "#{constants.rootMountPoint}#{constants.dataPath}/#{appId}/resin-kill-me"
 
 # At boot, all apps should be unlocked *before* start to prevent a deadlock
 application.unlockAndStart = unlockAndStart = (app) ->
@@ -431,16 +313,20 @@ joinErrorMessages = (failures) ->
 
 # Function to start the application update polling
 application.poll = ->
-	updateStatus.intervalHandle = setInterval(->
-		application.update()
-	, config.appUpdatePollInterval)
+	config.get('appUpdatePollInterval')
+	.then (interval) ->
+		updateStatus.intervalHandle = setInterval(->
+			application.update()
+		, interval)
 
 # Callback function to set the API poll interval dynamically.
 apiPollInterval = (val) ->
-	config.appUpdatePollInterval = checkInt(val, positive: true) ? 60000
+	interval = checkInt(val, positive: true) ? 60000
 	console.log('New API poll interval: ' + val)
 	clearInterval(updateStatus.intervalHandle)
-	application.poll()
+	config.set('appUpdatePollInterval', interval)
+	.then ->
+		application.poll()
 
 setLocalMode = (val) ->
 	mode = checkTruthy(val) ? false
@@ -469,7 +355,7 @@ setLocalMode = (val) ->
 specialActionConfigVars = [
 	[ 'RESIN_SUPERVISOR_LOCAL_MODE', setLocalMode ]
 	[ 'RESIN_SUPERVISOR_VPN_CONTROL', utils.vpnControl ]
-	[ 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', utils.enableConnectivityCheck ]
+	[ 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', network.enableConnectivityCheck ]
 	[ 'RESIN_SUPERVISOR_POLL_INTERVAL', apiPollInterval ]
 	[ 'RESIN_SUPERVISOR_LOG_CONTROL', utils.resinLogControl ]
 ]
@@ -623,19 +509,37 @@ getRemoteState = (uuid, apiKey) ->
 
 # TODO: Actually store and use app.environment and app.config separately
 parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
-	appsWithEnv = _.mapValues remoteApps, (app, appId) ->
-		utils.extendEnvVars(app.environment, uuid, appId, app.name, app.commit)
-		.then (env) ->
-			app.config ?= {}
-			return {
-				appId
-				commit: app.commit
-				imageId: app.image
-				env: JSON.stringify(env)
-				config: JSON.stringify(app.config)
-				name: app.name
-			}
-	Promise.props(appsWithEnv)
+	Promise.join(
+		config.getMany(['listenPort', 'name', 'apiSecret', 'version', 'deviceType'])
+		device.getOSVersion()
+		([ listenPort, name, apiSecret, version, deviceType ], osVersion) ->
+			appsWithEnv = _.mapValues remoteApps, (app, appId) ->
+				extendEnvVarsOpts = {
+					uuid
+					appId
+					appName: app.name
+					commit: app.commit
+					listenPort
+					name
+					apiSecret
+					deviceApiKey: apiKey
+					version
+					osVersion
+					deviceType
+				}
+				containerConfig.extendEnvVars(app.environment, extendEnvVarsOpts)
+				.then (env) ->
+					app.config ?= {}
+					return {
+						appId
+						commit: app.commit
+						imageId: app.image
+						env: JSON.stringify(env)
+						config: JSON.stringify(app.config)
+						name: app.name
+					}
+			Promise.props(appsWithEnv)
+	)
 
 formatLocalApps = (apps) ->
 	apps = _.keyBy(apps, 'appId')
@@ -672,6 +576,16 @@ compareForUpdate = (localApps, remoteApps) ->
 	allAppIds = _.union(localAppIds, remoteAppIds)
 	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, remoteAppIds, allAppIds }
 
+application.update = do ->
+	_updateRunning = false
+	return Promise.method (targetState, { force }) ->
+		throw new Error('An update is already running') if _updateRunning # ApiBinder should ensure this doesn't happen
+		_updateRunning = true
+		device.getCurrentState()
+		.then ({ localCurrent, dependentCurrent }) ->
+			{ localTarget, dependentTarget } = targetState
+
+
 application.update = update = (force, scheduled = false) ->
 	switch updateStatus.state
 		when UPDATE_SCHEDULED
@@ -697,7 +611,7 @@ application.update = update = (force, scheduled = false) ->
 			.then ({ local, dependent }) ->
 				proxyvisor.fetchAndSetTargetsForDependentApps(dependent, fetch, apiKey)
 				.then ->
-					utils.setConfig('name', local.name) if local.name != deviceName
+					config.set('name', local.name) if local.name != deviceName
 				.then ->
 					parseEnvAndFormatRemoteApps(local.apps, uuid, apiKey)
 			.tap (remoteApps) ->
@@ -858,8 +772,9 @@ application.initialize = ->
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->
-		utils.mixpanelTrack('Start application update poll', { interval: config.appUpdatePollInterval })
+		mixpanel.track('Start application update poll', { interval: config.appUpdatePollInterval })
 		application.poll()
+	.then ->
 		application.update()
 
 module.exports = (logsChannel, offlineMode) ->

@@ -1,0 +1,15 @@
+[
+	{
+		"appId": "1234",
+		"name": "superapp",
+		"commit": "abcdef",
+		"imageId": "registry2.resin.io/superapp/abcdef",
+		"env": {
+			"FOO": "bar"
+		},
+		"config": {
+			"RESIN_HOST_CONFIG_gpu_mem": "256",
+			"RESIN_HOST_LOG_TO_DISPLAY": "0"
+		}
+	}
+]

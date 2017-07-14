@@ -1,0 +1,163 @@
+#!/bin/bash
+#
+# This script can be used to facilitate supervisor development. Its core feature is allowing
+# faster development iterations by bind-mounting the local './dist' directly into the running
+# supervisor container.
+#
+# Setting the '--mount-nm' flag in either 'run' or 'buildrun' action will bind-mount
+# './node_modules/' into the running supervisor. In this case, it's up to the developer
+# to make sure that the correct dependencies are installed.
+#
+# Usage: dindctl action [options]
+#
+# Actions:
+# 	build					build local supervisor image - you can override image name with --image.
+# 	run [options]			build dind host container, run it (with name resin_supervisor_1), which will include the specified supervisor image and run it.
+# 	buildrun [options]		run 'build' and then immediately 'run' the built container.
+# 	refresh					recompile sources in './src' and restart supervisor container on dind host - requires --mount-dist in order to work properly.
+# 	logs [-f]				print out supervisor log files - use '-f' to follow instead, or any other arguments you'd send to journalctl.
+# 	stop					stop dind supervisor host container.
+# Options:
+# 	--arch | -a  [arch]		architecture of the supervisor to build (default: amd64 )
+# 	--image | -i [image]	image name for supervisor image to build/use ( default: resin/$ARCH-supervisor:master )
+# 	--dind-image [image]	image name for the dind host container
+# 	--mount-dist			bind-mount './dist/' (where webpack stores the built js) from local development environment into supervisor container.
+# 	--mount-nm				bind-mount './node_modules/' from local development environment into supervisor container.
+#	--preload | -p			use tools/dev/apps.json to preload an application image into the dind host.
+# 	--ssh					enable a passwordless dropbear ssh server on the dind host
+#
+# See README.md for examples.
+#
+# The script requires make and docker.
+#
+
+THIS_FILE=$0
+
+set -o errexit
+set -o pipefail
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+SUPERVISOR_BASE_DIR="${DIR}/../.."
+
+ARCH="amd64"
+SUPERVISOR_IMAGE="resin/${ARCH}-supervisor:master"
+PASSWORDLESS_DROPBEAR="false"
+SUPERVISOR_EXTRA_MOUNTS=""
+DIST_MOUNTED="false"
+DIND_IMAGE="resin-supervisor-dind"
+PRELOADED_IMAGE=""
+
+function showHelp {
+	cat $THIS_FILE | awk '{if(/^#/)print;else exit}' | tail -n +2 | sed 's/\#//' | sed 's|dindctl|'$THIS_FILE'|'
+}
+
+function parseOptions {
+	while [[ $# -gt 1 ]]
+	do
+		case $1 in
+			--mount-dist)
+				DIST_MOUNTED="true"
+				SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS -v /resin-supervisor/dist:/usr/src/app/dist"
+				;;
+			--mount-nm)
+				SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS -v /resin-supervisor/node_modules:/usr/src/app/node_modules"
+				;;
+			-p|--preload)
+				PRELOADED_IMAGE="true"
+				;;
+			--ssh)
+				PASSWORDLESS_DROPBEAR="true"
+				;;
+			-i|--image)
+				SUPERVISOR_IMAGE="$2"
+				shift || { echo "--image provided not specified" && exit 1; }
+				;;
+			--dind-image)
+				DIND_IMAGE="$2"
+				shift || { echo "--dind-image provided not specified" && exit 1; }
+				;;
+			-a|--arch)
+				ARCH="$2"
+				shift || { echo "--arch provided not specified" && exit 1; }
+				;;
+			*)
+				echo "Warning: unknown argument: $arg"
+				;;
+		esac
+		shift
+	done
+}
+
+function buildSupervisor {
+	echo "Building and deploying for architecture $ARCH and tagging as $IMAGE"
+	make -C "$SUPERVISOR_BASE_DIR" \
+		ARCH="$ARCH" \
+		IMAGE="$SUPERVISOR_IMAGE" \
+		supervisor
+}
+
+function buildSupervisorSrc {
+	echo "Rebuilding supervisor source"
+	( cd "$SUPERVISOR_BASE_DIR" && npm run build )
+}
+
+function refreshSupervisorSrc {
+	buildSupervisorSrc
+	echo "Restarting the supervisor container"
+	docker exec -ti resin_supervisor_1 docker restart resin_supervisor
+}
+
+function runDind {
+	if [ "$DIST_MOUNTED" = "true" ]; then
+		buildSupervisorSrc
+		echo "Running with mounted dist folder"
+	fi
+	if [ "$PRELOADED_IMAGE" = "true" ]; then
+		echo "Running with preloaded apps"
+	fi
+	echo "Starting dind supervisor"
+	make -C "$SUPERVISOR_BASE_DIR" \
+		ARCH="$ARCH" \
+		SUPERVISOR_IMAGE="$SUPERVISOR_IMAGE" \
+		PASSWORDLESS_DROPBEAR="$PASSWORDLESS_DROPBEAR" \
+		SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS" \
+		IMAGE="$DIND_IMAGE" \
+		run-supervisor
+}
+
+function stopDind {
+	echo "Stopping dind supervisor"
+	make -C "$SUPERVISOR_BASE_DIR" stop-supervisor
+}
+
+function logs {
+	docker exec -ti resin_supervisor_1 journalctl $@
+}
+
+action="$1"
+shift || true
+
+if [ "$action" = "logs" ]; then
+	logs "$@"
+else
+	parseOptions "$@"
+	case $action in
+		build)
+			buildSupervisor
+			;;
+		run)
+			runDind
+			;;
+		buildrun)
+			buildSupervisor && runDind
+			;;
+		refresh)
+			refreshSupervisorSrc
+			;;
+		stop)
+			stopDind
+			;;
+		*)
+			showHelp
+	esac
+fi

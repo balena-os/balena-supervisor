@@ -220,11 +220,65 @@ func VPNControl(writer http.ResponseWriter, request *http.Request) {
 	sendResponse("OK", "", http.StatusAccepted)
 }
 
+func getUnitStatus(unitName string) (state bool, err error) {
+	if systemd.Dbus == nil {
+		err = fmt.Errorf("Systemd dbus unavailable, cannot get unit status.")
+		return
+	}
+	if activeState, e := systemd.Dbus.GetUnitProperty(unitName, "ActiveState"); e != nil {
+		err = fmt.Errorf("Unable to get unit status: %v", e)
+		return
+	} else {
+		state = activeState.Value.String() == `"active"`
+		return
+	}
+}
+
+func unitStatusHandler(serviceName string, writer http.ResponseWriter, request *http.Request) {
+	sendResponse, sendError := responseSenders(writer)
+	if status, err := GetUnitState(serviceName); err != nil {
+		sendError(fmt.Errorf("Unable to get VPN status: %v", err))
+		return
+	} else {
+		sendResponse(state, "", http.StatusOK)
+	}
+}
+
+func VPNStatus(writer http.ResponseWriter, request *http.Request) {
+	unitStatusHandler("openvpn-resin.service", writer, request)
+}
+
+func logToDisplayServiceName() (serviceName string, err error) {
+	serviceName = "resin-info@tty1.service"
+	serviceNameOld := "tty-replacement.service"
+	if systemd.Dbus == nil {
+		sendError(fmt.Errorf("Systemd dbus unavailable, cannot get log to display service."))
+		return
+	}
+	if loaded, e := systemd.Dbus.GetUnitProperty(serviceName, "LoadState"); e != nil {
+		err = fmt.Errorf("Unable to get log to display load status: %v", e)
+		return
+	} else if loaded.Value.String() == `"not-found"` {
+		// If the resin-info service is not found, we're on an older OS
+		// which uses a different service name
+		serviceName = serviceNameOld
+	}
+	return
+}
+
+func LogToDisplayStatus(writer http.ResponseWriter, request *http.Request) {
+	_, sendError := responseSenders(writer)
+	serviceName, err := logToDisplayServiceName()
+	if err != nil {
+		sendError(err)
+		return
+	}
+	unitStatusHandler(serviceName, writer, request)
+}
+
 //LogToDisplayControl is used to control tty-replacement service status with dbus
 func LogToDisplayControl(writer http.ResponseWriter, request *http.Request) {
 	sendResponse, sendError := responseSenders(writer)
-	serviceName := "resin-info@tty1.service"
-	serviceNameOld := "tty-replacement.service"
 	var body LogToDisplayBody
 	if err := parseJSONBody(&body, request); err != nil {
 		log.Println(err)
@@ -237,20 +291,16 @@ func LogToDisplayControl(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if loaded, err := systemd.Dbus.GetUnitProperty(serviceName, "LoadState"); err != nil {
-		sendError(fmt.Errorf("Unable to get log to display load status: %v", err))
+	serviceName, err := logToDisplayServiceName()
+	if err != nil {
+		sendError(err)
 		return
-	} else if loaded.Value.String() == `"not-found"` {
-		// If the resin-info service is not found, we're on an older OS
-		// which uses a different service name
-		serviceName = serviceNameOld
 	}
 
-	if activeState, err := systemd.Dbus.GetUnitProperty(serviceName, "ActiveState"); err != nil {
+	if status, err := getUnitStatus(serviceName); err != nil {
 		sendError(fmt.Errorf("Unable to get log to display status: %v", err))
 		return
 	} else {
-		status := activeState.Value.String() == `"active"`
 		enable := body.Enable
 		if status == enable {
 			// Nothing to do, return Data = false to signal nothing was changed
