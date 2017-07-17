@@ -12,6 +12,7 @@
 # * ENABLE_TESTS
 # * PUBNUB_SUBSCRIBE_KEY, PUBNUB_PUBLISH_KEY, MIXPANEL_TOKEN: default keys to inject in the supervisor image
 # * EXTRA_TAG: when PUSH_IMAGES is true, additional tag to push to the registries
+# * DOCKER_USERNAME, DOCKER_PASSWORD: if the password is set, then these will be used to login to dockerhub before pushing
 #
 # Builds the supervisor for the architecture defined by $ARCH.
 # Will produce and push an image tagged as resin/$ARCH-supervisor:$TAG
@@ -24,8 +25,7 @@
 # In all of these cases it will use "master" if $TAG is not found.
 #
 # If PUSH_IMAGES is "true", it will also push the supervisor and intermediate images
-# to the docker registry. The supervisor image will also be pushed to registry.resinstaging.io
-# so that devices with older docker versions can pull it from there (it's a v1 registry).
+# to the docker registry.
 # If CLEANUP is "true", all images will be removed after pushing - including any relevant images
 # that may have been on the host from before the build, so be careful!
 # If ENABLE_TESTS is "true", tests will be run.
@@ -108,15 +108,14 @@ export MIXPANEL_TOKEN
 make IMAGE=$TARGET_IMAGE supervisor
 
 if [ "$PUSH_IMAGES" = "true" ]; then
+	if [ -n "$DOCKER_PASSWORD" ]; then
+		docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+	fi
 	make IMAGE=$TARGET_IMAGE deploy
-	docker tag $TARGET_IMAGE registry.resinstaging.io/$TARGET_IMAGE
-	make IMAGE=registry.resinstaging.io/$TARGET_IMAGE deploy
 
 	if [ -n "$EXTRA_TAG" ]; then
 		docker tag $TARGET_IMAGE resin/$ARCH-supervisor:$EXTRA_TAG
 		make IMAGE=resin/$ARCH-supervisor:$EXTRA_TAG deploy
-		docker tag $TARGET_IMAGE registry.resinstaging.io/resin/$ARCH-supervisor:$EXTRA_TAG
-		make IMAGE=registry.resinstaging.io/resin/$ARCH-supervisor:$EXTRA_TAG deploy
 	fi
 
 	# Try to push the intermediate images to improve caching in future builds

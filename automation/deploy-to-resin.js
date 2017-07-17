@@ -72,7 +72,7 @@ resinApi._request(_.extend({
 			return resinApi.post({
 				resource: 'supervisor_release',
 				body: {
-					image_name: `registry.resinstaging.io/resin/${arch}-supervisor`,
+					image_name: `resin/${arch}-supervisor`,
 					supervisor_version: tag,
 					device_type: deviceType.slug,
 					is_public: true
