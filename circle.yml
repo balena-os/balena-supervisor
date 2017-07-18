@@ -1,17 +1,31 @@
 ---
 defaults: &defaults
   docker:
-    - image: library/docker:stable
+    - image: library/docker:17.06.0-ce
   working_directory: /tmp/build
   steps:
     - setup_remote_docker:
+        version: 17.06.0-ce
         reusable: true
     - run:
         name: Check docker is running and install git
         command: |
           docker info
-          apk update && apk upgrade && apk add --nocache git jq
+          apk update && apk upgrade && apk add --nocache \
+            make \
+            jq \
+            git \
+            bash \
+            nodejs \
+            nodejs-npm \
+            openssh-client
     - checkout
+    - run:
+        name: Install npm dependencies
+        working_directory: /tmp/build/automation
+        command: |
+            JOBS=max npm install \
+              && npm cache clean
     - run:
         name: Initialize the submodules (yocto layers)
         command: |
@@ -19,37 +33,26 @@ defaults: &defaults
             git clean -fxd base-image
             git submodule foreach --recursive git clean -fxd
     - run:
-        name: Build and start the docker-in-docker builder
-        command: |
-            docker build --rm=false --tag builder -f automation/Dockerfile .
-    - run:
-        name: Start the docker-in-docker builder and build $ARCH-supervisor
+        name: Build $ARCH-supervisor
         no_output_timeout: 10800
         command: |
-            # start the dind container
-            echo "Starting the dind builder"
-            dind=$(docker run --privileged -d builder)
             VERSION_TAG=v$(jq .version package.json | sed 's/"//g')
             if [ "${CIRCLE_BRANCH}" = "master" ]; then
-              EXTRA_BUILD_ARGS="-e EXTRA_TAG=$VERSION_TAG"
-            else
-              EXTRA_BUILD_ARGS=""
+              export EXTRA_TAG=$VERSION_TAG
             fi
             echo "Starting build.sh"
             # start the build for this architecture
-            docker exec -it \
-              -e TAG=${CIRCLE_BRANCH} \
-              -e ARCH=${ARCH} \
-              -e PUSH_IMAGES=${PUSH_IMAGES} \
-              -e DOCKER_USERNAME=${DOCKER_USERNAME} \
-              -e DOCKER_PASSWORD=${DOCKER_PASSWORD} \
-              $EXTRA_BUILD_ARGS \
-              ${dind} bash automation/build.sh
+            export TAG=${CIRCLE_BRANCH}
+            export ARCH=${ARCH}
+            export PUSH_IMAGES=${PUSH_IMAGES}
+            export DOCKER_USERNAME=${DOCKER_USERNAME}
+            export DOCKER_PASSWORD=${DOCKER_PASSWORD}
+            bash automation/build.sh
             if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_RESIN}" = "true" ]; then
               echo "Deploying to Resin API (staging)"
-              docker exec -it -e ARCH=${ARCH} -e TAG=$VERSION_TAG -e API_KEY=$STAGING_API_KEY -e API_ENDPOINT=$STAGING_API_ENDPOINT ${dind} node automation/deploy-to-resin.js
+              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$STAGING_API_KEY API_ENDPOINT=$STAGING_API_ENDPOINT node automation/deploy-to-resin.js
               echo "Deploying to Resin API (production)"
-              docker exec -it -e ARCH=${ARCH} -e TAG=$VERSION_TAG -e API_KEY=$PRODUCTION_API_KEY -e API_ENDPOINT=$PRODUCTION_API_ENDPOINT ${dind} node automation/deploy-to-resin.js
+              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$PRODUCTION_API_KEY API_ENDPOINT=$PRODUCTION_API_ENDPOINT node automation/deploy-to-resin.js
             fi
 
 version: 2
@@ -112,4 +115,3 @@ workflows:
       - rpi
       - armv7hf
       - aarch64
-      - armel
