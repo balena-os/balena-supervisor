@@ -12,7 +12,6 @@
 # * ENABLE_TESTS
 # * PUBNUB_SUBSCRIBE_KEY, PUBNUB_PUBLISH_KEY, MIXPANEL_TOKEN: default keys to inject in the supervisor image
 # * EXTRA_TAG: when PUSH_IMAGES is true, additional tag to push to the registries
-# * DOCKER_USERNAME, DOCKER_PASSWORD: if the password is set, then these will be used to login to dockerhub before pushing
 #
 # Builds the supervisor for the architecture defined by $ARCH.
 # Will produce and push an image tagged as resin/$ARCH-supervisor:$TAG
@@ -24,7 +23,7 @@
 #
 # In all of these cases it will use "master" if $TAG is not found.
 #
-# If PUSH_IMAGES is "true", it will also push the supervisor and intermediate images
+# If PUSH_IMAGES is "true", it will also push the supervisor and intermediate images (must be logged in to dockerhub)
 # to the docker registry.
 # If CLEANUP is "true", all images will be removed after pushing - including any relevant images
 # that may have been on the host from before the build, so be careful!
@@ -104,36 +103,42 @@ export PUBNUB_PUBLISH_KEY
 export PUBNUB_SUBSCRIBE_KEY
 export MIXPANEL_TOKEN
 
+make IMAGE=$BASE_IMAGE base
+if [ "$PUSH_IMAGES" = "true" ]; then
+	make IMAGE=$BASE_IMAGE deploy || true
+fi
+export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${BASE_IMAGE}"
+
+make IMAGE=$GO_IMAGE gosuper
+if [ "$PUSH_IMAGES" = "true" ]; then
+	make IMAGE=$GO_IMAGE deploy || true
+fi
+export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${GO_IMAGE}"
+
+make IMAGE=$NODE_IMAGE nodesuper
+if [ "$PUSH_IMAGES" = "true" ]; then
+	make IMAGE=$NODE_IMAGE deploy || true
+fi
+export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${NODE_IMAGE}"
+
 # This is the step that actually builds the supervisor
 make IMAGE=$TARGET_IMAGE supervisor
 
 if [ "$PUSH_IMAGES" = "true" ]; then
-	if [ -n "$DOCKER_PASSWORD" ]; then
-		docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
-	fi
 	make IMAGE=$TARGET_IMAGE deploy
 
 	if [ -n "$EXTRA_TAG" ]; then
 		docker tag $TARGET_IMAGE resin/$ARCH-supervisor:$EXTRA_TAG
 		make IMAGE=resin/$ARCH-supervisor:$EXTRA_TAG deploy
 	fi
-
-	# Try to push the intermediate images to improve caching in future builds
-	# But we don't care much if any of this fails.
-	( make IMAGE=$BASE_IMAGE base && make IMAGE=$BASE_IMAGE deploy ) || true
-	( make IMAGE=$GO_IMAGE gosuper && make IMAGE=$GO_IMAGE deploy ) || true
-	( make IMAGE=$NODE_IMAGE node && make IMAGE=$NODE_IMAGE deploy ) || true
 fi
 
 if [ "$CLEANUP" = "true" ]; then
 	tryRemove $TARGET_IMAGE
 
-	# Only attempt to remove intermediate imaegs if we built them
-	if [ "$PUSH_IMAGES" = "true" ]; then
-		tryRemove $BASE_IMAGE
-		tryRemove $GO_IMAGE
-		tryRemove $NODE_IMAGE
-	fi
+	tryRemove $BASE_IMAGE
+	tryRemove $GO_IMAGE
+	tryRemove $NODE_IMAGE
 
 	tryRemove $TARGET_CACHE
 	tryRemove $BASE_CACHE
