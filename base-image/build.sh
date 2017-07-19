@@ -43,3 +43,9 @@ sudo -H -u builder \
 	&& source oe-core/oe-init-build-env build bitbake \
 	&& DL_DIR=$SHARED_DOWNLOADS SSTATE_DIR=$SHARED_SSTATE MACHINE=$TARGET_MACHINE $BUILD_DIR/bitbake/bin/bitbake core-image-minimal > /dev/null"
 tar xzf $BUILD_DIR/build/tmp-glibc/deploy/images/$TARGET_MACHINE/core-image-minimal-$TARGET_MACHINE.tar.gz  -C $DEST_DIR
+# Delete the sstate and downloads directory so that the resulting image isn't huge
+# If https://github.com/moby/moby/issues/32507 gets implemented we can start using
+# a bind mounted cached directory instead
+rm -rf $SHARED_DOWNLOADS
+rm -rf $SHARED_SSTATE
+rm -rf $BUILD_DIR
