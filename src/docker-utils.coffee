@@ -1,9 +1,12 @@
+config = require './config'
+process.env.DOCKER_HOST ?= "unix://#{config.dockerSocket}"
+
 Docker = require 'docker-toolbelt'
 { DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
 progress = require 'request-progress'
 dockerDelta = require 'docker-delta'
-config = require './config'
+
 _ = require 'lodash'
 knex = require './db'
 { request } = require './request'
@@ -11,14 +14,12 @@ Lock = require 'rwlock'
 utils = require './utils'
 rimraf = Promise.promisify(require('rimraf'))
 
-docker = new Docker(socketPath: config.dockerSocket)
-
-exports.docker = docker
-dockerProgress = new DockerProgress(socketPath: config.dockerSocket)
+exports.docker = docker = new Docker()
+dockerProgress = new DockerProgress(dockerToolbelt: docker)
 
 # Create an array of (repoTag, image_id, created) tuples like the output of `docker images`
-listRepoTagsAsync = ->
-	docker.listImagesAsync()
+listRepoTags = ->
+	docker.listImages()
 	.then (images) ->
 		images = _.orderBy(images, 'Created', [ false ])
 		ret = []
@@ -32,7 +33,7 @@ listRepoTagsAsync = ->
 findSimilarImage = (repoTag) ->
 	application = repoTag.split('/')[1]
 
-	listRepoTagsAsync()
+	listRepoTags()
 	.then (repoTags) ->
 		# Find the most recent image of the same application
 		for repoTag in repoTags
@@ -46,8 +47,11 @@ findSimilarImage = (repoTag) ->
 getRepoAndTag = (image) ->
 	docker.getRegistryAndName(image)
 	.then ({ registry, imageName, tagName }) ->
-		registry = registry.toString().replace(':443', '')
-		return { repo: "#{registry}/#{imageName}", tag: tagName }
+		if registry? and registry != 'docker.io'
+			registry = registry.toString().replace(':443', '') + '/'
+		else
+			registry = ''
+		return { repo: "#{registry}#{imageName}", tag: tagName }
 
 do ->
 	_lock = new Lock()
@@ -116,7 +120,7 @@ do ->
 			.then (id) ->
 				getRepoAndTag(imgDest)
 				.then ({ repo, tag }) ->
-					docker.getImage(id).tagAsync({ repo, tag, force: true })
+					docker.getImage(id).tag({ repo, tag, force: true })
 			.catch dockerDelta.OutOfSyncError, (err) ->
 				console.log('Falling back to delta-from-empty')
 				exports.rsyncImageWithProgress(imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty: true }, onProgress)
@@ -149,7 +153,7 @@ do ->
 				.map ({ imageId }) ->
 					normalizeRepoTag(imageId)
 				supervisorTagPromise
-				docker.listImagesAsync()
+				docker.listImages()
 				.map (image) ->
 					image.NormalizedRepoTags = Promise.map(image.RepoTags, normalizeRepoTag)
 					Promise.props(image)
@@ -172,7 +176,7 @@ do ->
 			)
 			.then ({ images, supervisorTags, appTags, extraTags }) ->
 				# Cleanup containers first, so that they don't block image removal.
-				docker.listContainersAsync(all: true)
+				docker.listContainers(all: true)
 				.filter (containerInfo) ->
 					# Do not remove user apps.
 					normalizeRepoTag(containerInfo.Image)
@@ -185,7 +189,7 @@ do ->
 							return true
 						return containerHasExited(containerInfo.Id)
 				.map (containerInfo) ->
-					docker.getContainer(containerInfo.Id).removeAsync(v: true, force: true)
+					docker.getContainer(containerInfo.Id).remove(v: true, force: true)
 					.then ->
 						console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
 					.catch(_.noop)
@@ -195,13 +199,13 @@ do ->
 							return _.includes(appTags, tag) or _.includes(supervisorTags, tag) or _.includes(extraTags, tag)
 					Promise.map imagesToClean, (image) ->
 						Promise.map image.RepoTags.concat(image.Id), (tag) ->
-							docker.getImage(tag).removeAsync(force: true)
+							docker.getImage(tag).remove(force: true)
 							.then ->
 								console.log('Deleted image:', tag, image.Id, image.RepoTags)
 							.catch(_.noop)
 
 	containerHasExited = (id) ->
-		docker.getContainer(id).inspectAsync()
+		docker.getContainer(id).inspect()
 		.then (data) ->
 			return not data.State.Running
 
@@ -217,7 +221,7 @@ do ->
 		return repoTag
 
 	exports.getImageEnv = (id) ->
-		docker.getImage(id).inspectAsync()
+		docker.getImage(id).inspect()
 		.get('Config').get('Env')
 		.then (env) ->
 			# env is an array of strings that say 'key=value'

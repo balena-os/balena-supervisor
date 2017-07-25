@@ -248,7 +248,7 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 			Promise.map toBeRemoved, (app) ->
 				fs.unlinkAsync(tarPath(app))
 				.then ->
-					docker.getImage(app.imageId).removeAsync()
+					docker.getImage(app.imageId).remove()
 				.catch (err) ->
 					console.error('Could not remove image/artifacts for dependent app', err, err.stack)
 		.then ->
