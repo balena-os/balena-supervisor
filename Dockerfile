@@ -1,5 +1,5 @@
 ARG ARCH=amd64
-FROM debian:jessie as base
+FROM debian:jessie-20170723 as base
 ARG ARCH
 # Install the following utilities (required by openembedded)
 # http://www.openembedded.org/wiki/Getting_started#Ubuntu_.2F_Debian
@@ -41,7 +41,7 @@ RUN cd /source && bash -ex build.sh
 ##############################################################################
 
 # Build golang supervisor
-FROM debian:jessie as gosuper
+FROM debian:jessie-20170723 as gosuper
 ARG ARCH
 
 RUN apt-get update \
