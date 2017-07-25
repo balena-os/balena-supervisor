@@ -1,13 +1,7 @@
 .dockerignore
 .git
 node_modules
-Dockerfile
-Dockerfile.*
-Makefile
 .editorconfig
-coffeelint.json
-automation
 tools
+dindctl
 README.md
-retry_docker_push.sh
-base-image

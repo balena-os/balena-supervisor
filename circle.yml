@@ -1,0 +1,116 @@
+---
+defaults: &defaults
+  docker:
+    - image: library/docker:17.06.0-ce
+  working_directory: /tmp/build
+  steps:
+    - setup_remote_docker:
+        version: 17.06.0-ce
+        reusable: true
+    - run:
+        name: Check docker is running and install git
+        command: |
+          docker info
+          apk update && apk upgrade && apk add --nocache \
+            make \
+            jq \
+            git \
+            bash \
+            nodejs \
+            nodejs-npm \
+            openssh-client
+    - checkout
+    - run:
+        name: Install npm dependencies
+        working_directory: /tmp/build/automation
+        command: |
+            JOBS=max npm install \
+              && npm cache clean
+    - run:
+        name: Initialize the submodules (yocto layers)
+        command: |
+            git submodule update --init --recursive
+            git clean -fxd base-image
+            git submodule foreach --recursive git clean -fxd
+    - run:
+        name: Build $ARCH-supervisor
+        no_output_timeout: 10800
+        command: |
+            VERSION_TAG=v$(jq .version package.json | sed 's/"//g')
+            if [ "${CIRCLE_BRANCH}" = "master" ]; then
+              export EXTRA_TAG=$VERSION_TAG
+            fi
+            echo "Starting build.sh"
+            docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+            # start the build for this architecture
+            export TAG=${CIRCLE_BRANCH}
+            export ARCH=${ARCH}
+            export PUSH_IMAGES=${PUSH_IMAGES}
+            bash automation/build.sh
+            if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_RESIN}" = "true" ]; then
+              echo "Deploying to Resin API (staging)"
+              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$STAGING_API_KEY API_ENDPOINT=$STAGING_API_ENDPOINT node automation/deploy-to-resin.js
+              echo "Deploying to Resin API (production)"
+              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$PRODUCTION_API_KEY API_ENDPOINT=$PRODUCTION_API_ENDPOINT node automation/deploy-to-resin.js
+            fi
+
+version: 2
+jobs:
+  amd64:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: amd64
+      PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
+  i386:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: i386
+      PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
+  armel:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: armel
+      PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
+  armv7hf:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: armv7hf
+      PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
+  aarch64:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: aarch64
+      PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
+  rpi:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: rpi
+      PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
+
+workflows:
+  version: 2
+  build_and_maybe_deploy:
+    jobs:
+      - amd64
+      - i386
+      - rpi
+      - armv7hf
+      - aarch64
