@@ -52,7 +52,7 @@ function showHelp {
 }
 
 function parseOptions {
-	while [[ $# -gt 1 ]]
+	while [[ $# -ge 1 ]]
 	do
 		case $1 in
 			--mount-dist)
@@ -98,7 +98,7 @@ function buildSupervisor {
 
 function buildSupervisorSrc {
 	echo "Rebuilding supervisor source"
-	( cd "$SUPERVISOR_BASE_DIR" && npm run build )
+	( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build )
 }
 
 function refreshSupervisorSrc {
@@ -121,6 +121,7 @@ function runDind {
 		SUPERVISOR_IMAGE="$SUPERVISOR_IMAGE" \
 		PASSWORDLESS_DROPBEAR="$PASSWORDLESS_DROPBEAR" \
 		SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS" \
+		PRELOADED_IMAGE="$PRELOADED_IMAGE" \
 		IMAGE="$DIND_IMAGE" \
 		run-supervisor
 }
@@ -159,5 +160,6 @@ else
 			;;
 		*)
 			showHelp
+			;;
 	esac
 fi
