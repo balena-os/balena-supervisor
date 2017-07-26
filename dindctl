@@ -115,6 +115,10 @@ function runDind {
 	if [ "$PRELOADED_IMAGE" = "true" ]; then
 		echo "Running with preloaded apps"
 	fi
+	if ! ( docker inspect $SUPERVISOR_IMAGE &> /dev/null ); then
+		echo "$SUPERVISOR_IMAGE not available locally, pulling"
+		docker pull $SUPERVISOR_IMAGE
+	fi
 	echo "Starting dind supervisor"
 	make -C "$SUPERVISOR_BASE_DIR" \
 		ARCH="$ARCH" \
