@@ -46,6 +46,7 @@ SUPERVISOR_EXTRA_MOUNTS=""
 DIST_MOUNTED="false"
 DIND_IMAGE="resin-supervisor-dind"
 PRELOADED_IMAGE=""
+OPTIMIZE="true"
 
 function showHelp {
 	cat $THIS_FILE | awk '{if(/^#/)print;else exit}' | tail -n +2 | sed 's/\#//' | sed 's|dindctl|'$THIS_FILE'|'
@@ -80,6 +81,9 @@ function parseOptions {
 				ARCH="$2"
 				shift || { echo "--arch provided not specified" && exit 1; }
 				;;
+			--no-optimize)
+				OPTIMIZE="false"
+				;;
 			*)
 				echo "Warning: unknown argument: $arg"
 				;;
@@ -97,8 +101,13 @@ function buildSupervisor {
 }
 
 function buildSupervisorSrc {
-	echo "Rebuilding supervisor source"
-	( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build )
+	if [ "$OPTIMIZE" = "true" ]; then
+		echo "Rebuilding supervisor source"
+		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build )
+	else
+		echo "Rebuilding supervisor source without optimizations"
+		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build-no-optimize )
+	fi
 }
 
 function refreshSupervisorSrc {
