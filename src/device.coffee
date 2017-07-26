@@ -181,7 +181,7 @@ exports.getDeviceType = memoizePromise ->
 do ->
 	APPLY_STATE_SUCCESS_DELAY = 1000
 	APPLY_STATE_RETRY_DELAY = 5000
-	applyPromise = Promise.resolve()
+	applyPending = false
 	targetState = {}
 	actualState = {}
 	updateState = { update_pending: false, update_failed: false, update_downloaded: false }
@@ -193,8 +193,10 @@ do ->
 	applyState = ->
 		stateDiff = getStateDiff()
 		if _.size(stateDiff) is 0
+			applyPending = false
 			return
-		applyPromise = Promise.join(
+		applyPending = true
+		Promise.join(
 			utils.getConfig('apiKey')
 			device.getID()
 			(apiKey, deviceID) ->
@@ -219,7 +221,7 @@ do ->
 			Promise.delay(APPLY_STATE_RETRY_DELAY)
 		.finally ->
 			# Check if any more state diffs have appeared whilst we've been processing this update.
-			applyState()
+			setImmediate(applyState)
 
 	exports.setUpdateState = (value) ->
 		_.merge(updateState, value)
@@ -238,7 +240,7 @@ do ->
 		_.merge(targetState, updatedState)
 
 		# Only trigger applying state if an apply isn't already in progress.
-		if !applyPromise.isPending()
+		if !applyPending
 			applyState()
 		return
 
