@@ -244,6 +244,12 @@ shouldMountKmod = (image) ->
 			console.error('Error getting app OS release: ', err)
 			return false
 
+isExecFormatError = (err) ->
+	message = ''
+	try
+		message = err.json.trim()
+	/exec format error$/.test(message)
+
 application.start = start = (app) ->
 	device.isResinOSv1().then (isV1) ->
 		volumes = utils.defaultVolumes(isV1)
@@ -319,7 +325,7 @@ application.start = start = (app) ->
 						alreadyStarted = true
 						return
 
-					if statusCode is '500' and err.json.trim().match(/exec format error$/)
+					if statusCode is '500' and isExecFormatError(err)
 						# Provide a friendlier error message for "exec format error"
 						device.getDeviceType()
 						.then (deviceType) ->
