@@ -46,13 +46,14 @@ SUPERVISOR_EXTRA_MOUNTS=""
 DIST_MOUNTED="false"
 DIND_IMAGE="resin-supervisor-dind"
 PRELOADED_IMAGE=""
+OPTIMIZE="true"
 
 function showHelp {
 	cat $THIS_FILE | awk '{if(/^#/)print;else exit}' | tail -n +2 | sed 's/\#//' | sed 's|dindctl|'$THIS_FILE'|'
 }
 
 function parseOptions {
-	while [[ $# -gt 1 ]]
+	while [[ $# -ge 1 ]]
 	do
 		case $1 in
 			--mount-dist)
@@ -80,6 +81,9 @@ function parseOptions {
 				ARCH="$2"
 				shift || { echo "--arch provided not specified" && exit 1; }
 				;;
+			--no-optimize)
+				OPTIMIZE="false"
+				;;
 			*)
 				echo "Warning: unknown argument: $arg"
 				;;
@@ -97,8 +101,13 @@ function buildSupervisor {
 }
 
 function buildSupervisorSrc {
-	echo "Rebuilding supervisor source"
-	( cd "$SUPERVISOR_BASE_DIR" && npm run build )
+	if [ "$OPTIMIZE" = "true" ]; then
+		echo "Rebuilding supervisor source"
+		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build )
+	else
+		echo "Rebuilding supervisor source without optimizations"
+		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build-no-optimize )
+	fi
 }
 
 function refreshSupervisorSrc {
@@ -115,12 +124,17 @@ function runDind {
 	if [ "$PRELOADED_IMAGE" = "true" ]; then
 		echo "Running with preloaded apps"
 	fi
+	if ! ( docker inspect $SUPERVISOR_IMAGE &> /dev/null ); then
+		echo "$SUPERVISOR_IMAGE not available locally, pulling"
+		docker pull $SUPERVISOR_IMAGE
+	fi
 	echo "Starting dind supervisor"
 	make -C "$SUPERVISOR_BASE_DIR" \
 		ARCH="$ARCH" \
 		SUPERVISOR_IMAGE="$SUPERVISOR_IMAGE" \
 		PASSWORDLESS_DROPBEAR="$PASSWORDLESS_DROPBEAR" \
 		SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS" \
+		PRELOADED_IMAGE="$PRELOADED_IMAGE" \
 		IMAGE="$DIND_IMAGE" \
 		run-supervisor
 }
@@ -159,5 +173,6 @@ else
 			;;
 		*)
 			showHelp
+			;;
 	esac
 fi
