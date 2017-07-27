@@ -156,9 +156,9 @@ application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}
 	logSystemEvent(logTypes.stopApp, app)
 	device.updateState(status: 'Stopping')
 	container = docker.getContainer(app.containerId)
-	container.stopAsync(t: 10)
+	container.stop(t: 10)
 	.then ->
-		container.removeAsync(v: true) if removeContainer
+		container.remove(v: true) if removeContainer
 		return
 	# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
 	.catch Promise.OperationalError, (err) ->
@@ -168,7 +168,7 @@ application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}
 		# 304 means the container was already stopped - so we can just remove it
 		if statusCode is '304'
 			logSystemEvent(logTypes.stopAppNoop, app)
-			container.removeAsync(v: true) if removeContainer
+			container.remove(v: true) if removeContainer
 			return
 		# 404 means the container doesn't exist, precisely what we want! :D
 		if statusCode is '404'
@@ -192,7 +192,7 @@ application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}
 
 application.deleteImage = deleteImage = (app) ->
 	logSystemEvent(logTypes.deleteImageForApp, app)
-	docker.getImage(app.imageId).removeAsync(force: true)
+	docker.getImage(app.imageId).remove(force: true)
 	.then ->
 		logSystemEvent(logTypes.deleteImageForAppSuccess, app)
 	.catch ImageNotFoundError, (err) ->
@@ -209,7 +209,7 @@ fetch = (app, setDeviceUpdateState = true) ->
 	onProgress = (progress) ->
 		device.updateState(download_progress: progress.percentage)
 
-	docker.getImage(app.imageId).inspectAsync()
+	docker.getImage(app.imageId).inspect()
 	.catch (error) ->
 		device.updateState(status: 'Downloading', download_progress: 0)
 
@@ -228,7 +228,7 @@ fetch = (app, setDeviceUpdateState = true) ->
 			logSystemEvent(logTypes.downloadAppSuccess, app)
 			device.updateState(status: 'Idle', download_progress: null)
 			device.setUpdateState(update_downloaded: true) if setDeviceUpdateState
-			docker.getImage(app.imageId).inspectAsync()
+			docker.getImage(app.imageId).inspect()
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
 			throw err
@@ -268,7 +268,7 @@ application.start = start = (app) ->
 			if app.containerId?
 				# If we have a container id then check it exists and if so use it.
 				container = docker.getContainer(app.containerId)
-				containerPromise = container.inspectAsync().return(container)
+				containerPromise = container.inspect().return(container)
 			else
 				containerPromise = Promise.rejected()
 
@@ -295,7 +295,7 @@ application.start = start = (app) ->
 					shouldMountKmod(app.imageId)
 					.then (shouldMount) ->
 						binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
-						docker.createContainerAsync(
+						docker.createContainer(
 							Image: app.imageId
 							Cmd: cmd
 							Tty: true
@@ -317,7 +317,7 @@ application.start = start = (app) ->
 			.tap (container) ->
 				logSystemEvent(logTypes.startApp, app)
 				device.updateState(status: 'Starting')
-				container.startAsync()
+				container.start()
 				.catch (err) ->
 					statusCode = '' + err.statusCode
 					# 304 means the container was already started, precisely what we want :)
@@ -335,7 +335,7 @@ application.start = start = (app) ->
 						throw err
 				.catch (err) ->
 					# If starting the container failed, we remove it so that it doesn't litter
-					container.removeAsync(v: true)
+					container.remove(v: true)
 					.then ->
 						app.containerId = null
 						knex('app').update(app).where(appId: app.appId)
@@ -827,7 +827,7 @@ application.update = update = (force, scheduled = false) ->
 listenToEvents = do ->
 	appHasDied = {}
 	return ->
-		docker.getEventsAsync()
+		docker.getEvents()
 		.then (stream) ->
 			stream.on 'error', (err) ->
 				console.error('Error on docker events stream:', err, err.stack)
@@ -870,7 +870,6 @@ application.initialize = ->
 
 module.exports = (logsChannel, offlineMode) ->
 	logger.init(
-		dockerSocket: config.dockerSocket
 		pubnub: config.pubnub
 		channel: "device-#{logsChannel}-logs"
 		offlineMode: offlineMode

@@ -1,9 +1,10 @@
 _ = require 'lodash'
-Docker = require 'dockerode'
+Docker = require 'docker-toolbelt'
 PUBNUB = require 'pubnub'
 Promise = require 'bluebird'
 es = require 'event-stream'
 Lock = require 'rwlock'
+{ docker } = require '../docker-utils'
 
 LOG_PUBLISH_INTERVAL = 110
 
@@ -18,13 +19,6 @@ disableLogs = false
 initialised = new Promise (resolve) ->
 	exports.init = (config) ->
 		resolve(config)
-
-dockerPromise = initialised.then (config) ->
-	docker = Promise.promisifyAll(new Docker(socketPath: config.dockerSocket))
-	# Hack dockerode to promisify internal classes' prototypes
-	Promise.promisifyAll(docker.getImage().constructor.prototype)
-	Promise.promisifyAll(docker.getContainer().constructor.prototype)
-	return docker
 
 # Queue up any calls to publish logs whilst we wait to be initialised.
 publish = do ->
@@ -95,19 +89,18 @@ do ->
 	exports.attach = (app) ->
 		Promise.using loggerLock(app.containerId), ->
 			if !attached[app.containerId]
-				dockerPromise.then (docker) ->
-					docker.getContainer(app.containerId)
-					.logsAsync({ follow: true, stdout: true, stderr: true, timestamps: true })
-					.then (stream) ->
-						attached[app.containerId] = true
-						stream.pipe(es.split())
-						.on 'data', (logLine) ->
-							space = logLine.indexOf(' ')
-							if space > 0
-								msg = { t: logLine.substr(0, space), m: logLine.substr(space + 1) }
-								publish(msg)
-						.on 'error', (err) ->
-							console.error('Error on container logs', err, err.stack)
-							attached[app.containerId] = false
-						.on 'end', ->
-							attached[app.containerId] = false
+				docker.getContainer(app.containerId)
+				.logs({ follow: true, stdout: true, stderr: true, timestamps: true })
+				.then (stream) ->
+					attached[app.containerId] = true
+					stream.pipe(es.split())
+					.on 'data', (logLine) ->
+						space = logLine.indexOf(' ')
+						if space > 0
+							msg = { t: logLine.substr(0, space), m: logLine.substr(space + 1) }
+							publish(msg)
+					.on 'error', (err) ->
+						console.error('Error on container logs', err, err.stack)
+						attached[app.containerId] = false
+					.on 'end', ->
+						attached[app.containerId] = false
