@@ -97,6 +97,9 @@ vpnStatusInotifyCallback = ->
 EEXIST = (err) -> err.code is 'EEXIST'
 
 exports.connectivityCheck = _.once ->
+	if !config.apiEndpoint?
+		console.log('No apiEndpoint specified, skipping connectivity check')
+		return
 	parsedUrl = url.parse(config.apiEndpoint)
 	fs.mkdirAsync(config.vpnStatusPath)
 	.catch EEXIST, (err) ->

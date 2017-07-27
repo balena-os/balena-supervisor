@@ -22,12 +22,15 @@ requestOpts =
 	headers:
 		'User-Agent': userAgent
 
-PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/v2/')
-exports.resinApi = resinApi = new PlatformAPI
-	apiPrefix: PLATFORM_ENDPOINT
-	passthrough: requestOpts
-exports.cachedResinApi = resinApi.clone({}, cache: {})
-
+try
+	PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/v2/')
+	exports.resinApi = resinApi = new PlatformAPI
+		apiPrefix: PLATFORM_ENDPOINT
+		passthrough: requestOpts
+	exports.cachedResinApi = resinApi.clone({}, cache: {})
+catch
+	exports.resinApi = {}
+	exports.cachedResinApi = {}
 
 request = request.defaults(requestOpts)
 
