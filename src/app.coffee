@@ -29,7 +29,8 @@ knex.init.then ->
 		.then ->
 			apiServer = api(application).listen(config.listenPort)
 			apiServer.timeout = config.apiTimeout
-
+			device.events.on 'shutdown', ->
+				apiServer.close()
 		bootstrap.done
 		.then ->
 			Promise.join(
