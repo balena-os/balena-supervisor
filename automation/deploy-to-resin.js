@@ -68,7 +68,7 @@ resinApi._request(_.extend({
 			if (_.isEmpty(apiToken)) {
 				customOptions.apikey = apikey;
 			}
-			console.log(`Deploying ${supervisor_version} for ${device_type}`);
+			console.log(`Deploying ${tag} for ${deviceType.slug}`);
 			return resinApi.post({
 				resource: 'supervisor_release',
 				body: {
