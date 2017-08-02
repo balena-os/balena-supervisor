@@ -860,7 +860,7 @@ application.initialize = ->
 	.then ->
 		knex('app').select()
 	.map (app) ->
-		unlockAndStart(app) if !application.localMode
+		unlockAndStart(app) if !application.localMode and !device.shuttingDown
 	.catch (error) ->
 		console.error('Error starting apps:', error)
 	.then ->
