@@ -4,12 +4,11 @@ process.env.DOCKER_HOST ?= "unix://#{config.dockerSocket}"
 Docker = require 'docker-toolbelt'
 { DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
-progress = require 'request-progress'
 dockerDelta = require 'docker-delta'
 
 _ = require 'lodash'
 knex = require './db'
-{ request } = require './request'
+{ request, resumable } = require './request'
 Lock = require 'rwlock'
 utils = require './utils'
 rimraf = Promise.promisify(require('rimraf'))
@@ -53,6 +52,23 @@ getRepoAndTag = (image) ->
 			registry = ''
 		return { repo: "#{registry}#{imageName}", tag: tagName }
 
+applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, retryCount, retryInterval }, onProgress) ->
+	new Promise (resolve, reject) ->
+		resumable(request, { url: deltaUrl, timeout: requestTimeout })
+		.on('progress', onProgress)
+		.on('retry', onProgress)
+		.on('error', reject)
+		.on 'response', (res) ->
+			if res.statusCode isnt 200
+				reject(new Error("Got #{res.statusCode} when requesting delta from storage."))
+			else if parseInt(res.headers['content-length']) is 0
+				reject(new Error('Invalid delta URL.'))
+			else
+				deltaStream = dockerDelta.applyDelta(imgSrc, timeout: applyTimeout)
+				res.pipe(deltaStream)
+				.on('id', resolve)
+				.on('error', reject)
+
 do ->
 	_lock = new Lock()
 	_writeLock = Promise.promisify(_lock.async.writeLock)
@@ -66,7 +82,7 @@ do ->
 		.disposer (release) ->
 			release()
 
-	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty = false }, onProgress) ->
+	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, applyTimeout, retryCount, retryInterval, uuid, apiKey, startFromEmpty = false }, onProgress) ->
 		Promise.using readLockImages(), ->
 			Promise.try ->
 				if startFromEmpty
@@ -87,36 +103,30 @@ do ->
 					.get(1)
 					.then (b) ->
 						opts =
+							followRedirect: false
 							timeout: requestTimeout
 
 						if b?.token?
-							deltaAuthOpts =
-								auth:
-									bearer: b?.token
-									sendImmediately: true
-							opts = _.merge(opts, deltaAuthOpts)
+							opts.auth =
+								bearer: b.token
+								sendImmediately: true
 						new Promise (resolve, reject) ->
-							progress request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", opts)
-							.on 'progress', (progress) ->
-								# In request-progress ^2.0.1, "percentage" is a ratio from 0 to 1
-								onProgress(percentage: progress.percentage * 100)
-							.on 'end', ->
-								onProgress(percentage: 100)
+							request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", opts)
 							.on 'response', (res) ->
-								if res.statusCode is 504
+								res.resume() # discard response body -- we only care about response headers
+								if res.statusCode in [ 502, 504 ]
 									reject(new Error('Delta server is still processing the delta, will retry'))
-								else if res.statusCode isnt 200
+								else if not (300 <= res.statusCode < 400 and res.headers['location']?)
 									reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
 								else
+									deltaUrl = res.headers['location']
 									if imgSrc is 'resin/scratch'
 										deltaSrc = null
 									else
 										deltaSrc = imgSrc
-									res.pipe(dockerDelta.applyDelta(deltaSrc, imgDest))
-									.on('id', resolve)
-									.on('error', reject)
+									deltaOpts = { requestTimeout, applyTimeout, retryCount, retryInterval }
+									resolve(applyDelta(deltaSrc, deltaUrl, deltaOpts, onProgress))
 							.on 'error', reject
-				.timeout(totalTimeout)
 			.then (id) ->
 				getRepoAndTag(imgDest)
 				.then ({ repo, tag }) ->
