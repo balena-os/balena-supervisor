@@ -232,7 +232,6 @@ router.post '/v2/device/scan', (req, res) ->
 	res.status(500).send('Not implemented')
 
 # TODO test
-# TODO update spec
 router.patch '/v2/device/:id', (req, res) ->
 	{ status, is_online, commit, environment, config, download_progress, lock_expiry_date, manage } = req.body
 
@@ -284,22 +283,23 @@ router.patch '/v2/device/:id', (req, res) ->
 			$or: [
 				device: null
 			,
-				device: $any:
-					$alias: 'd'
-					$expr: d: id: id
-			,
-				$and: [
-					device: $any:
-						$alias: 'd'
-						$expr: d: is_online: false
-				,
-					$or: [
-						device: lock_expiry_date: null
-					,
-						device: lock_expiry_date: $le: $now: {}
-						]
-					]
-				]
+				device: id
+				# device: $any:
+				# 	$alias: 'd'
+				# 	$expr: d: id: id
+			# ,
+			# 	$and: [
+			# 		device: $any:
+			# 			$alias: 'd'
+			# 			$expr: d: is_online: false
+			# 	,
+			# 		$or: [
+			# 			lock_expiry_date: null
+			# 		,
+			# 			lock_expiry_date: $le: $now: {}
+			# 		]
+			# 	]
+			]
 
 		Promise.join(
 			utils.getConfig('apiKey')
@@ -311,6 +311,8 @@ router.patch '/v2/device/:id', (req, res) ->
 				throw new Error('Device is invalid') if !device.deviceId?
 
 				Promise.try ->
+					console.log('body: ', fieldsToUpdateOnAPI)
+					console.log('filter: ', JSON.stringify(filter))
 					resinApi.patch
 						resource: 'device'
 						id: device.deviceId
@@ -318,26 +320,26 @@ router.patch '/v2/device/:id', (req, res) ->
 						customOptions: apikey: apiKey
 						options: filter: filter
 					.timeout(appConfig.apiTimeout)
-					# .then ->
-					# 	resinApi.get
-					# 		resource: 'device'
-					# 		id: device.deviceId
-					# 		customOptions: apikey: apiKey
-					# 		options: filter: filter
-					# 	.timeout(appConfig.apiTimeout)
-					# .then ( device ) ->
-					# 	if device
-					# 		knex('dependentDevice').update(fieldsToUpdateOnDB).where(query)
-					# 		.then ->
-					# 			knex('dependentDevice').select().where(query)
-					# 		.then ([ device ]) ->
-					# 			return res.json(parseDeviceFields(device))
-					# 	else
-					# 		return res.status(403).send('device is managed by a different gateway')
+					.then ->
+						resinApi.get
+							resource: 'device'
+							id: device.deviceId
+							customOptions: apikey: apiKey
+							# options: filter: filter
+						.timeout(appConfig.apiTimeout)
+					.then ( device ) ->
+						if device
+							# knex('dependentDevice').update(fieldsToUpdateOnDB).where(query)
+							# .then ->
+							# 	knex('dependentDevice').select().where(query)
+							# .then ([ device ]) ->
+							return res.json(parseDeviceFields(device))
+						else
+							return res.status(403).send('device is managed by a different gateway')
 		)
-		.catch (err) ->
-			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
-			res.status(500).send(err?.message or err or 'Unknown error')
+	.catch (err) ->
+		console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+		res.status(500).send(err?.message or err or 'Unknown error')
 
 router.post '/v2/device/:id/log', (req, res) ->
 	idType = req.query.idType
