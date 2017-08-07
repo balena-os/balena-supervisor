@@ -6,7 +6,7 @@
 #
 # If $PR_1X is "true", an additional PR for 1.X will be created.
 #
-# Requires $GITHUB_USERNAME and $GITHUB_PASSWORD to push and create the pull-request.
+# Requires $GITHUB_USER and $GITHUB_PASSWORD to push and create the pull-request.
 # Requires $TAG to be set to the supervisor version to use.
 #
 
@@ -18,11 +18,13 @@ if [ -z "$TAG" ]; then
 	exit 1
 fi
 
-if [[ -z "$GITHUB_PASSWORD" || -z "$GITHUB_USERNAME" ]]; then
-	echo "GITHUB_USERNAME and GITHUB_PASSWORD are required"
+if [[ -z "$GITHUB_PASSWORD" || -z "$GITHUB_USER" ]]; then
+	echo "GITHUB_USER and GITHUB_PASSWORD are required"
 	exit 1
 fi
 
+REPO_URL=https://github.com/resin-os/meta-resin.git
+REPO_URL_WITH_CREDENTIALS=https://${GITHUB_USER}:${GITHUB_PASSWORD}@github.com/resin-os/meta-resin.git
 USER=${USER:-$(whoami)}
 
 function prepareBranches() {
@@ -48,25 +50,20 @@ docker-resin-supervisor-disk: Update to ${TAG}
 
 Changelog-Entry: Update supervisor to ${TAG}
 Change-Type: patch
-" <<EOF
-${GITHUB_USERNAME}
-${GITHUB_PASSWORD}
-EOF
+"
 
-	git push origin $HEAD
+	git push $REPO_URL_WITH_CREDENTIALS $HEAD
+
 	hub pull-request -b ${BASE} -m "${BASE}: Update supervisor to ${TAG}
 
 Change-Type: patch
-" <<EOF
-${GITHUB_USERNAME}
-${GITHUB_PASSWORD}
-EOF
+"
 
 }
 
 if [ ! -d "./meta-resin" ]; then
 	echo "Cloning meta-resin..."
-	git clone https://github.com/resin-os/meta-resin.git
+	git clone $REPO_URL
 else
 	echo "Using available meta-resin repo"
 fi
