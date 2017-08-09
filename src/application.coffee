@@ -19,6 +19,8 @@ proxyvisor = require './proxyvisor'
 osRelease = require './lib/os-release'
 deviceConfig = require './device-config'
 
+DEFAULT_DELTA_APPLY_TIMEOUT = 300 * 1000 # 6 minutes
+
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
 	return "#{err.statusCode}" is '404'
@@ -222,7 +224,7 @@ fetch = (app, setDeviceUpdateState = true) ->
 						uuid, apiKey
 						# use user-defined timeouts, but fallback to defaults if none is provided.
 						requestTimeout: checkInt(conf['RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT'], positive: true)
-						applyTimeout: checkInt(conf['RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT'], positive: true)
+						applyTimeout: checkInt(conf['RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT'], positive: true) ? DEFAULT_DELTA_APPLY_TIMEOUT
 						retryCount: checkInt(conf['RESIN_SUPERVISOR_DELTA_RETRY_COUNT'], positive: true)
 						retryInterval: checkInt(conf['RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL'], positive: true)
 					}
