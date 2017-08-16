@@ -2,6 +2,7 @@ config = require './config'
 PlatformAPI = require 'pinejs-client'
 Promise = require 'bluebird'
 request = require 'request'
+resumable = require 'resumable-request'
 url = require 'url'
 osRelease = require './lib/os-release'
 
@@ -16,11 +17,22 @@ if osVersion?
 	else
 		userAgent += " (Linux; #{osVersion})"
 
+# With these settings, the device must be unable to receive a single byte
+# from the network for a continuous period of 20 minutes before we give up.
+# (reqTimeout + retryInterval) * retryCount / 1000ms / 60sec ~> minutes
+DEFAULT_REQUEST_TIMEOUT = 30000 # ms
+DEFAULT_REQUEST_RETRY_INTERVAL = 10000 # ms
+DEFAULT_REQUEST_RETRY_COUNT = 30
+
 requestOpts =
 	gzip: true
-	timeout: 30000
+	timeout: DEFAULT_REQUEST_TIMEOUT
 	headers:
 		'User-Agent': userAgent
+
+resumableOpts =
+	maxRetries: DEFAULT_REQUEST_RETRY_COUNT
+	retryInterval: DEFAULT_REQUEST_RETRY_INTERVAL
 
 try
 	PLATFORM_ENDPOINT = url.resolve(config.apiEndpoint, '/v2/')
@@ -35,3 +47,5 @@ catch
 request = request.defaults(requestOpts)
 
 exports.request = Promise.promisifyAll(request, multiArgs: true)
+
+exports.resumable = resumable.defaults(resumableOpts)
