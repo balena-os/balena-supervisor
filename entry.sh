@@ -9,6 +9,7 @@ set -o errexit
 [ -d /mnt/root/tmp/resin-supervisor ] ||
     mkdir -p /mnt/root/tmp/resin-supervisor
 
+mkdir -p /var/run/resin
 mount -t tmpfs -o size=1m tmpfs /var/run/resin
 
 # If DOCKER_ROOT isn't set then default it
