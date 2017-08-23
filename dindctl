@@ -25,6 +25,7 @@
 # 	--mount-nm				bind-mount './node_modules/' from local development environment into supervisor container.
 #	--preload | -p			use tools/dev/apps.json to preload an application image into the dind host.
 # 	--ssh					enable a passwordless dropbear ssh server on the dind host
+# 	-n | --no-optimize		when bind-mounting dist/, avoid optimizing the js output to get more readable code for debugging
 #
 # See README.md for examples.
 #
@@ -81,7 +82,7 @@ function parseOptions {
 				ARCH="$2"
 				shift || { echo "--arch provided not specified" && exit 1; }
 				;;
-			--no-optimize)
+			-n|--no-optimize)
 				OPTIMIZE="false"
 				;;
 			*)

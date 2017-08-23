@@ -11,7 +11,7 @@ RUN apt-get update \
 	aufs-tools \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV DOCKER_VERSION 1.10.3
+ENV DOCKER_VERSION 17.03.1
 ENV RELEASE_NAME jessie
 
 # Change to 'true' to allow blank password dropbear logins on dind HostOS
@@ -20,10 +20,10 @@ ARG PASSWORDLESS_DROPBEAR=false
 COPY config/certs/ /usr/local/share/ca-certificates/
 RUN rm -f /usr/local/share/ca-certificates/.keepme ; update-ca-certificates
 
-RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D \
-	&& echo deb https://apt.dockerproject.org/repo debian-${RELEASE_NAME} main > /etc/apt/sources.list.d/docker.list \
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - \
+	&& echo deb https://download.docker.com/linux/debian jessie stable > /etc/apt/sources.list.d/docker.list \
 	&& apt-get update || true \
-	&& apt-get --force-yes install docker-engine=${DOCKER_VERSION}-0~${RELEASE_NAME} \
+	&& apt-get --force-yes install docker-ce=${DOCKER_VERSION}~ce-0~debian-${RELEASE_NAME} \
 	&& rm -rf /var/lib/apt/lists/*
 
 ENV DIND_COMMIT 3b5fac462d21ca164b3778647420016315289034
