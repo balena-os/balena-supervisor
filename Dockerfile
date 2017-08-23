@@ -143,13 +143,14 @@ COPY package.json /usr/src/app/
 RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
 	&& npm dedupe
 
-COPY webpack.config.js remove-hashbang-loader.js /usr/src/app/
+COPY webpack.config.js fix-jsonstream.js /usr/src/app/
 COPY src /usr/src/app/src
+COPY test /usr/src/app/test
 
 # Install devDependencies, build the coffeescript and then prune the deps
 RUN cp -R node_modules node_modules_prod \
 	&& npm install --no-optional --unsafe-perm \
-	&& npm run lint \
+	&& (npm run test || touch tests-failed) \
 	&& npm run build \
 	&& rm -rf node_modules \
 	&& mv node_modules_prod node_modules
@@ -174,7 +175,11 @@ COPY entry.sh run.sh package.json rootfs-overlay/usr/src/app/
 
 COPY inittab rootfs-overlay/etc/inittab
 
-RUN rsync -a --delete node_modules dist rootfs-overlay /build
+RUN rsync -a --delete report.xml coverage node_modules dist rootfs-overlay /build && \
+	(if [ -f tests-failed ]; then \
+		echo "ERROR: Tests failed"; \
+		exit 1; \
+	fi)
 
 RUN [ "cross-build-end" ]
 
