@@ -1,7 +1,7 @@
 // Deploy a supervisor image as a supervisor_release in the Resin API
 //
 // Environment variables:
-// This program deploys only for device types where the architecture matches $ARCH.
+// This program deploys for all device types, or only device types where the architecture matches $ARCH, if specified.
 // It deploys to the API specified by $API_ENDPOINT and using a provided $API_TOKEN or $API_KEY
 // (if both are set, API_TOKEN is preferred).
 // The tag to deploy must be passed as $TAG.
@@ -33,10 +33,11 @@ if (_.isEmpty(tag)) {
 }
 
 const supportedArchitectures = [ 'amd64', 'rpi', 'aarch64', 'armel', 'i386', 'armv7hf' ];
-if (_.isEmpty(arch) || !_.includes(supportedArchitectures, arch)) {
+if (!_.isEmpty(arch) && !_.includes(supportedArchitectures, arch)) {
 	console.error('Invalid architecture ' + arch);
 	process.exit(1);
 }
+const archs = _.isEmpty(arch) ? supportedArchitectures : [ arch ];
 
 const requestOpts = {
 	gzip: true,
@@ -63,7 +64,7 @@ resinApi._request(_.extend({
 .then( (deviceTypes) => {
 	// This is a critical step so we better do it serially
 	return Promise.mapSeries(deviceTypes, (deviceType) => {
-		if (deviceType.arch === arch) {
+		if (archs.indexOf(deviceType.arch) >= 0) {
 			const customOptions = {};
 			if (_.isEmpty(apiToken)) {
 				customOptions.apikey = apikey;
@@ -72,7 +73,7 @@ resinApi._request(_.extend({
 			return resinApi.post({
 				resource: 'supervisor_release',
 				body: {
-					image_name: `resin/${arch}-supervisor`,
+					image_name: `resin/${deviceType.arch}-supervisor`,
 					supervisor_version: tag,
 					device_type: deviceType.slug,
 					is_public: true
