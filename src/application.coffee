@@ -130,11 +130,11 @@ logSystemEvent = (logType, app = {}, error) ->
 	message = "#{logType.humanName} '#{app.imageId}'"
 	if error?
 		# Report the message from the original cause to the user.
-		errMessage = error.json
+		errMessage = error.message
+		if _.isEmpty(errMessage)
+			errMessage = error.json
 		if _.isEmpty(errMessage)
 			errMessage = error.reason
-		if _.isEmpty(errMessage)
-			errMessage = error.message
 		if _.isEmpty(errMessage)
 			errMessage = 'Unknown cause'
 		message += " due to '#{errMessage}'"
