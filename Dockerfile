@@ -154,6 +154,7 @@ RUN cp -R node_modules node_modules_prod \
 	&& mv node_modules_prod node_modules
 
 # Remove various uneeded filetypes in order to reduce space
+# We also remove the spurious node.dtps, see https://github.com/mapbox/node-sqlite3/issues/861
 RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
 		-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
 		-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
@@ -162,7 +163,8 @@ RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
 		-o -name '*.yml' \
 		-delete \
 	&& find . -type f -path '*/node_modules/sqlite3/deps*' -delete \
-	&& find . -type f -path '*/node_modules/knex/build*' -delete
+	&& find . -type f -path '*/node_modules/knex/build*' -delete \
+	&& rm -rf node_modules/sqlite3/node.dtps
 
 # Create /var/run/resin for the gosuper to place its socket in
 RUN mkdir -p rootfs-overlay/var/run/resin
