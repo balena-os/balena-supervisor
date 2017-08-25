@@ -52,9 +52,9 @@ getRepoAndTag = (image) ->
 			registry = ''
 		return { repo: "#{registry}#{imageName}", tag: tagName }
 
-applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, retryCount, retryInterval }, onProgress) ->
+applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress) ->
 	new Promise (resolve, reject) ->
-		resumable(request, { url: deltaUrl, timeout: requestTimeout })
+		resumable(request, { url: deltaUrl, timeout: requestTimeout }, resumeOpts)
 		.on('progress', onProgress)
 		.on('retry', onProgress)
 		.on('error', reject)
@@ -124,8 +124,8 @@ do ->
 										deltaSrc = null
 									else
 										deltaSrc = imgSrc
-									deltaOpts = { requestTimeout, applyTimeout, retryCount, retryInterval }
-									resolve(applyDelta(deltaSrc, deltaUrl, deltaOpts, onProgress))
+									resumeOpts = { maxRetries: retryCount, retryInterval }
+									resolve(applyDelta(deltaSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress))
 							.on 'error', reject
 			.then (id) ->
 				getRepoAndTag(imgDest)
