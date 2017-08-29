@@ -126,6 +126,7 @@ WORKDIR /usr/src/app
 RUN apt-get update \
 	&& apt-get install -y \
 		g++ \
+		git \
 		libsqlite3-dev \
 		make \
 		python \
