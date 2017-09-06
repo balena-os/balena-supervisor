@@ -162,8 +162,7 @@ application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}
 	.then ->
 		container.remove(v: true) if removeContainer
 		return
-	# Bluebird throws OperationalError for errors resulting in the normal execution of a promisified function.
-	.catch Promise.OperationalError, (err) ->
+	.catch (err) ->
 		# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison
 		# reasons.
 		statusCode = '' + err.statusCode
