@@ -88,14 +88,14 @@ describe 'validation', ->
 				{
 					appId: '1234'
 					name: 'something'
-					buildId: '123'
+					releaseId: '123'
 					commit: 'bar'
 					config: { baz: 'bat' }
 					services: [
 						{
 							serviceId: '45'
 							serviceName: 'bazbaz'
-							containerId: '34'
+							imageId: '34'
 							image: 'foo'
 							config: {}
 							environment: {}
@@ -110,14 +110,14 @@ describe 'validation', ->
 				{
 					appId: '1234'
 					name: 'something'
-					buildId: '123'
+					releaseId: '123'
 					commit: 'bar'
 					config: { ' baz': 'bat' }
 					services: [
 						{
 							serviceId: '45'
 							serviceName: 'bazbaz'
-							containerId: '34'
+							imageId: '34'
 							image: 'foo'
 							config: {}
 							environment: {}
@@ -132,14 +132,14 @@ describe 'validation', ->
 				{
 					appId: 'boo'
 					name: 'something'
-					buildId: '123'
+					releaseId: '123'
 					commit: 'bar'
 					config: { baz: 'bat' }
 					services: [
 						{
 							serviceId: '45'
 							serviceName: 'bazbaz'
-							containerId: '34'
+							imageId: '34'
 							image: 'foo'
 							config: {}
 							environment: {}
@@ -149,7 +149,7 @@ describe 'validation', ->
 				}
 			]
 			expect(validation.isValidAppsArray(apps)).to.equal(false)
-		it 'returns false with an missing buildId', ->
+		it 'returns false with a missing releaseId', ->
 			apps = [
 				{
 					appId: '1234'
@@ -159,7 +159,7 @@ describe 'validation', ->
 						{
 							serviceId: '45'
 							serviceName: 'bazbaz'
-							containerId: '34'
+							imageId: '34'
 							image: 'foo'
 							config: {}
 							environment: {}
@@ -186,7 +186,7 @@ describe 'validation', ->
 				}
 			]
 			expect(validation.isValidDependentDevicesArray(devices)).to.equal(true)
-		it 'returns false with an missing apps array', ->
+		it 'returns false with a missing apps array', ->
 			devices = [
 				{
 					uuid: 'abcd1234'

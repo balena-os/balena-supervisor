@@ -67,7 +67,7 @@ class ApplicationManagerRouter
 					serviceId: service.serviceId
 				}, { force })
 			.then (service) ->
-				res.status(200).json({ containerId: service.dockerContainerId })
+				res.status(200).json({ containerId: service.containerId })
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -88,7 +88,7 @@ class ApplicationManagerRouter
 					serviceId: service.serviceId
 				}, { force })
 			.then (service) ->
-				res.status(200).json({ containerId: service.dockerContainerId })
+				res.status(200).json({ containerId: service.containerId })
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -105,10 +105,10 @@ class ApplicationManagerRouter
 				# Don't return data that will be of no use to the user
 				appToSend = {
 					appId
-					containerId: service.dockerContainerId
+					containerId: service.containerId
 					env: _.omit(service.environment, constants.privateAppEnvVars)
 					commit: app.commit
-					buildId: app.buildId
+					releaseId: app.releaseId
 					imageId: service.image
 				}
 				res.json(appToSend)
@@ -207,13 +207,13 @@ module.exports = class ApplicationManager
 			_.forEach services, (service) =>
 				appId = service.appId
 				apps[appId].services ?= []
-				# We use the oldest container in an app to define the current buildId and commit
-				if !apps[appId].buildId? or service.createdAt < oldestContainer[appId]
-					apps[appId].buildId = service.buildId
+				# We use the oldest container in an app to define the current releaseId and commit
+				if !apps[appId].releaseId? or service.createdAt < oldestContainer[appId]
+					apps[appId].releaseId = service.releaseId
 					apps[appId].commit = service.commit
 					oldestContainer[appId] = service.createdAt
 
-				service = _.pick(service, [ 'serviceId', 'containerId', 'status' ])
+				service = _.pick(service, [ 'serviceId', 'imageId', 'status' ])
 				# If there's volatile state relating to this service, we're either downloading
 				# or installing it
 				if @volatileState[service.serviceId]
@@ -225,10 +225,10 @@ module.exports = class ApplicationManager
 			_.forEach @volatileState, (serviceState) ->
 				appId = serviceState.appId
 				apps[appId] ?= { appId }
-				apps[appId].buildId ?= null
+				apps[appId].releaseId ?= null
 				apps[appId].services ?= []
 				service = _.pick(serviceState, [ 'status', 'serviceId' ])
-				service.containerId = null
+				service.imageId = null
 				apps[appId].services.push(service)
 
 			# We return an array of the apps, not an object
@@ -648,7 +648,7 @@ module.exports = class ApplicationManager
 	normaliseAppForDB: (app) =>
 		Promise.map _.cloneDeep(app.services ? []), (service) =>
 			service.appId = app.appId
-			service.buildId = app.buildId
+			service.releaseId = app.releaseId
 			service.image = @images.normalise(service.image)
 			Promise.props(service)
 		.then (services) ->
@@ -656,7 +656,7 @@ module.exports = class ApplicationManager
 				appId: app.appId
 				commit: app.commit
 				name: app.name
-				buildId: app.buildId
+				releaseId: app.releaseId
 				config: JSON.stringify(app.config ? {})
 				services: JSON.stringify(services)
 				networks: JSON.stringify(app.networks ? {})
@@ -700,7 +700,7 @@ module.exports = class ApplicationManager
 						appId: app.appId
 						name: app.name
 						commit: app.commit
-						buildId: app.buildId
+						releaseId: app.releaseId
 						config: JSON.parse(app.config)
 						services: services
 						networks: JSON.parse(app.networks)

@@ -21,7 +21,7 @@ describe 'Service', ->
 		}
 		service = {
 			appId: '23'
-			buildId: 'abcd'
+			releaseId: 'abcd'
 			serviceName: 'serviceName'
 			environment:
 				FOO: 'bar'
@@ -34,8 +34,8 @@ describe 'Service', ->
 			A_VARIABLE: 'ITS_VALUE'
 			RESIN_APP_ID: '23'
 			RESIN_APP_NAME: 'awesomeApp'
-			RESIN_APP_RELEASE: 'abcdef'
-			RESIN_APP_BUILD: 'abcd'
+			RESIN_APP_COMMIT: 'abcdef'
+			RESIN_APP_RELEASE: 'abcd'
 			RESIN_DEVICE_UUID: '1234'
 			RESIN_DEVICE_NAME_AT_INIT: 'awesomeDevice'
 			RESIN_DEVICE_TYPE: 'raspberry-pie'

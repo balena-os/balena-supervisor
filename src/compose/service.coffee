@@ -43,12 +43,12 @@ module.exports = class Service
 			@ports
 			@network_mode
 			@privileged
-			@buildId
-			@containerId
+			@releaseId
+			@imageId
 			@serviceId
 			@appId
 			@serviceName
-			@dockerContainerId
+			@containerId
 			@status
 			@running
 			@createdAt
@@ -73,8 +73,8 @@ module.exports = class Service
 		@cap_add ?= []
 		@cap_drop ?= []
 
-		# If the service has no dockerContainerId, it is a target service and has to be normalised and extended
-		if !@dockerContainerId?
+		# If the service has no containerId, it is a target service and has to be normalised and extended
+		if !@containerId?
 			@restartPolicy = createRestartPolicy(serviceProperties.restart)
 			@command = getCommand(serviceProperties, opts.imageInfo)
 			@entrypoint = getEntrypoint(serviceProperties, opts.imageInfo)
@@ -100,8 +100,8 @@ module.exports = class Service
 		newEnv =
 			RESIN_APP_ID: @appId.toString()
 			RESIN_APP_NAME: appName
-			RESIN_APP_RELEASE: commit
-			RESIN_APP_BUILD: @buildId
+			RESIN_APP_COMMIT: commit
+			RESIN_APP_RELEASE: @releaseId
 			RESIN_SERVICE_NAME: @serviceName
 			RESIN_DEVICE_UUID: uuid
 			RESIN_DEVICE_NAME_AT_INIT: name
@@ -125,8 +125,8 @@ module.exports = class Service
 		@labels['io.resin.app_id'] = @appId
 		@labels['io.resin.service_id'] = @serviceId
 		@labels['io.resin.service_name'] = @serviceName
-		@labels['io.resin.container_id'] = @containerId
-		@labels['io.resin.build_id'] = @buildId
+		@labels['io.resin.image_id'] = @imageId
+		@labels['io.resin.release_id'] = @releaseId
 		@labels['io.resin.commit'] = @commit
 		return @labels
 
@@ -201,7 +201,7 @@ module.exports = class Service
 			appId: appId
 			serviceId: serviceId
 			serviceName: serviceName
-			containerId: container.Config.Labels['io.resin.container_id']
+			imageId: container.Config.Labels['io.resin.image_id']
 			command: container.Config.Cmd
 			entrypoint: container.Config.Entrypoint
 			network_mode: container.HostConfig.NetworkMode
@@ -209,7 +209,7 @@ module.exports = class Service
 			image: container.Config.Image
 			environment: conversions.envArrayToObject(container.Config.Env)
 			privileged: container.HostConfig.Privileged
-			buildId: container.Config.Labels['io.resin.build_id']
+			releaseId: container.Config.Labels['io.resin.release_id']
 			commit: container.Config.Labels['io.resin.commit']
 			labels: container.Config.Labels
 			status: {
@@ -221,7 +221,7 @@ module.exports = class Service
 			restartPolicy: container.HostConfig.RestartPolicy
 			ports: ports
 			expose: expose
-			dockerContainerId: container.Id
+			containerId: container.Id
 			cap_add: container.HostConfig.CapAdd
 			cap_drop: container.HostConfig.CapDrop
 		}
@@ -278,8 +278,8 @@ module.exports = class Service
 	isSameContainer: (otherService) =>
 		propertiesToCompare = [
 			'image'
-			'buildId'
-			'containerId'
+			'releaseId'
+			'imageId'
 			'network_mode'
 			'privileged'
 			'restartPolicy'

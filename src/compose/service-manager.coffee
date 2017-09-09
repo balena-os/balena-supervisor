@@ -59,7 +59,7 @@ module.exports = class ServiceManager
 			throw err
 
 	kill: (service, { removeContainer = true } = {}) =>
-		@_killContainer(service.dockerContainerId, service, { removeContainer })
+		@_killContainer(service.containerId, service, { removeContainer })
 		.then ->
 			service.running = false
 			return service
@@ -77,7 +77,7 @@ module.exports = class ServiceManager
 	create: (service) =>
 		@get(service)
 		.then ([ existingService ]) =>
-			return @docker.getContainer(existingService.dockerContainerId) if existingService?
+			return @docker.getContainer(existingService.containerId) if existingService?
 			conf = service.toContainerConfig()
 			@logger.logSystemEvent(logTypes.installService, { service })
 			@reportServiceStatus(service.serviceId, { status: 'Installing' })
@@ -117,7 +117,7 @@ module.exports = class ServiceManager
 					@logger.logSystemEvent(logTypes.startServiceError, { service, error: err })
 					throw err
 			.then =>
-				@reportServiceStatus(service.serviceId, { buildId: service.buildId })
+				@reportServiceStatus(service.serviceId, { releaseId: service.releaseId })
 				@logger.attach(@docker, container.id)
 		.tap =>
 			if alreadyStarted
@@ -126,7 +126,7 @@ module.exports = class ServiceManager
 				@logger.logSystemEvent(logTypes.startServiceSuccess, { service })
 		.then (container) ->
 			service.running = true
-			service.dockerContainerId = container.id
+			service.containerId = container.id
 		.finally =>
 			@reportServiceStatus(service.serviceId, { status: 'Idle' })
 
@@ -172,7 +172,7 @@ module.exports = class ServiceManager
 	setNoRestart: (service) =>
 		@get(service)
 		.then ([ svc ]) ->
-			@docker.getContainer(svc.dockerContainerId).update(RestartPolicy: {})
+			@docker.getContainer(svc.containerId).update(RestartPolicy: {})
 
 	handover: (currentService, targetService) =>
 		# We set the running container to not restart so that in case of a poweroff
@@ -235,4 +235,4 @@ module.exports = class ServiceManager
 		@getAll()
 		.map (service) =>
 			@logger.logSystemEvent(logTypes.startServiceNoop, { service })
-			@logger.attach(@docker, service.dockerContainerId)
+			@logger.attach(@docker, service.containerId)

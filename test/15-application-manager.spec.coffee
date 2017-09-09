@@ -17,7 +17,7 @@ Service = require '../src/compose/service'
 appDBFormat = {
 	appId: '1234' 
 	commit: 'bar'
-	buildId: '2'
+	releaseId: '2'
 	name: 'app'
 	services: JSON.stringify([
 		{
@@ -35,18 +35,18 @@ appDBFormat = {
 appDBFormatNormalised = {
 	appId: '1234' 
 	commit: 'bar'
-	buildId: '2'
+	releaseId: '2'
 	name: 'app'
 	services: JSON.stringify([
 		{
 			appId: '1234'
 			serviceId: '4'
 			serviceName: 'serv'
-			containerId: 'abcd'
+			imageId: 'abcd'
 			environment: { FOO: 'var2' }
 			labels: {}
 			image: 'foo/bar:latest'
-			buildId: '2'
+			releaseId: '2'
 		}
 	])
 	networks: "{}"
@@ -57,14 +57,14 @@ appDBFormatNormalised = {
 appStateFormat = {
 	appId: '1234' 
 	commit: 'bar'
-	buildId: '2'
+	releaseId: '2'
 	name: 'app'
 	services: [
 		{
 			appId: '1234'
 			serviceId: '4'
 			serviceName: 'serv'
-			containerId: 'abcd'
+			imageId: 'abcd'
 			environment: { FOO: 'var2' }
 			labels: {}
 			image: 'foo/bar:latest'
@@ -76,7 +76,7 @@ appStateFormat = {
 appStateFormatWithDefaults = {
 	appId: '1234' 
 	commit: 'bar'
-	buildId: '2'
+	releaseId: '2'
 	name: 'app'
 	services: [
 		{
@@ -88,14 +88,14 @@ appStateFormatWithDefaults = {
 			labels: {
 				'io.resin.app_id': '1234'
 				'io.resin.service_id': '4'
-				'io.resin.build_id': '2'
-				'io.resin.container_id': 'abcd'
+				'io.resin.release_id': '2'
+				'io.resin.image_id': 'abcd'
 				'io.resin.supervised': 'true'
 				'io.resin.service_name': 'serv'
 			}
-			containerId: 'abcd'
+			imageId: 'abcd'
 			serviceId: '4'
-			buildId: '2'
+			releaseId: '2'
 			serviceName: 'serv'
 			image: 'foo/bar:latest'
 			privileged: false
@@ -123,7 +123,7 @@ dependentStateFormat = {
 	appId: '1234'
 	image: 'foo/bar'
 	commit: 'bar'
-	buildId: '3'
+	releaseId: '3'
 	name: 'app'
 	config: { RESIN_FOO: 'var' }
 	environment: { FOO: 'var2' }
@@ -134,7 +134,7 @@ dependentStateFormatNormalised = {
 	appId: '1234'
 	image: 'foo/bar:latest'
 	commit: 'bar'
-	buildId: '3'
+	releaseId: '3'
 	name: 'app'
 	config: { RESIN_FOO: 'var' }
 	environment: { FOO: 'var2' }
@@ -145,7 +145,7 @@ dependentDBFormat = {
 	appId: '1234' 
 	image: 'foo/bar:latest'
 	commit: 'bar'
-	buildId: '3'
+	releaseId: '3'
 	name: 'app'
 	config: JSON.stringify({ RESIN_FOO: 'var' })
 	environment: JSON.stringify({ FOO: 'var2' })

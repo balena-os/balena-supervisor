@@ -48,14 +48,14 @@ exports.isValidAppsArray = (arr) ->
 	return false if !_.isArray(arr)
 	return false if !_.every arr, (val) ->
 		return false if !isValidShortText(val.appId) or !checkInt(val.appId)?
-		return false if !isValidShortText(val.name) or !isValidShortText(val.buildId) or !isValidEnv(val.config)
+		return false if !isValidShortText(val.name) or !isValidShortText(val.releaseId) or !isValidEnv(val.config)
 		return false if !_.isArray(val.services)
 		return false if !_.every val.services, (service) ->
 			return false if !isValidEnv(service.environment)
 			return false if !isValidShortText(service.serviceName)
 			return false if !isValidShortText(service.image)
 			return false if !isValidShortText(service.serviceId) or !checkInt(service.serviceId)
-			return false if !isValidShortText(service.containerId) or !checkInt(service.containerId)
+			return false if !isValidShortText(service.imageId) or !checkInt(service.imageId)
 			return false if !isValidLabelsObject(service.labels)
 			return true
 		return true

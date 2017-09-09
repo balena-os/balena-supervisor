@@ -165,7 +165,7 @@ module.exports = class DeviceState extends EventEmitter
 					appId: app.appId
 					parentApp: app.parentAppId
 					image: app.imageId
-					buildId: null
+					releaseId: null
 					commit: app.commit
 					name: app.name
 					config: tryParseObj(app.config)
@@ -280,7 +280,7 @@ module.exports = class DeviceState extends EventEmitter
 			theApp = apps[0] ? {}
 			theState = {}
 			_.merge(theState, @_currentVolatile)
-			theState.buildId = theApp.buildId
+			theState.releaseId = theApp.releaseId
 			theState.commit = theApp.commit
 			return theState
 

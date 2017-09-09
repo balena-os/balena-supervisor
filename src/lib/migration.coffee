@@ -4,7 +4,7 @@ exports.singleToMulticontainerApp = (app, appId) ->
 		appId
 		commit: app.commit
 		name: app.name
-		buildId: '1'
+		releaseId: '1'
 		networks: {}
 		volumes: { "resin-data-#{appId}": {} }
 		config: app.config ? {}
@@ -13,9 +13,9 @@ exports.singleToMulticontainerApp = (app, appId) ->
 		{
 			serviceId: '1'
 			serviceName: 'main'
-			containerId: '1'
+			imageId: '1'
 			commit: app.commit
-			buildId: app.buildId ? '1'
+			releaseId: app.releaseId ? '1'
 			image: app.image
 			privileged: true
 			network_mode: 'host'

@@ -152,7 +152,7 @@ class ProxyvisorRouter
 
 		@router.put '/v1/devices/:uuid', (req, res) =>
 			uuid = req.params.uuid
-			{ status, is_online, commit, buildId, environment, config } = req.body
+			{ status, is_online, commit, releaseId, environment, config } = req.body
 			validateDeviceFields = ->
 				if isDefined(is_online) and !_.isBoolean(is_online)
 					return 'is_online must be a boolean'
@@ -160,7 +160,7 @@ class ProxyvisorRouter
 					return 'status must be a non-empty string'
 				if !validStringOrUndefined(commit)
 					return 'commit must be a non-empty string'
-				if !validStringOrUndefined(buildId)
+				if !validStringOrUndefined(releaseId)
 					return 'commit must be a non-empty string'
 				if !validObjectOrUndefined(environment)
 					return 'environment must be an object'
@@ -175,8 +175,8 @@ class ProxyvisorRouter
 			environment = JSON.stringify(environment) if isDefined(environment)
 			config = JSON.stringify(config) if isDefined(config)
 
-			fieldsToUpdateOnDB = _.pickBy({ status, is_online, commit, buildId, config, environment }, isDefined)
-			fieldsToUpdateOnAPI = _.pick(fieldsToUpdateOnDB, 'status', 'is_online', 'commit', 'buildId')
+			fieldsToUpdateOnDB = _.pickBy({ status, is_online, commit, releaseId, config, environment }, isDefined)
+			fieldsToUpdateOnAPI = _.pick(fieldsToUpdateOnDB, 'status', 'is_online', 'commit', 'releaseId')
 
 			if _.isEmpty(fieldsToUpdateOnDB)
 				res.status(400).send('At least one device attribute must be updated')
@@ -334,7 +334,7 @@ module.exports = class Proxyvisor
 			appId: app.appId
 			name: app.name
 			commit: app.commit
-			buildId: app.buildId
+			releaseId: app.releaseId
 			parentApp: app.parentApp
 			image: @images.normalise(app.image)
 			config: JSON.stringify(app.config ? {})
@@ -379,7 +379,7 @@ module.exports = class Proxyvisor
 				appId: app.appId
 				name: app.name
 				commit: app.commit
-				buildId: app.buildId
+				releaseId: app.releaseId
 				image: app.image
 				config: JSON.parse(app.config)
 				environment: JSON.parse(app.environment)

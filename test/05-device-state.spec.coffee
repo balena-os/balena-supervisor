@@ -29,20 +29,20 @@ testTarget1 = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'abcdef'
-				buildId: '1'
+				releaseId: '1'
 				services: [
 					{
 						appId: '1234'
 						serviceId: '23'
-						containerId: '12345'
+						imageId: '12345'
 						serviceName: 'someservice'
-						buildId: '1'
+						releaseId: '1'
 						image: 'registry2.resin.io/superapp/abcdef:latest'
 						labels: {
 							'io.resin.app_id': '1234'
 							'io.resin.service_id': '23'
-							'io.resin.build_id': '1'
-							'io.resin.container_id': '12345'
+							'io.resin.release_id': '1'
+							'io.resin.image_id': '12345'
 							'io.resin.something': 'bar'
 							'io.resin.supervised': 'true'
 							'io.resin.service_name': 'someservice'
@@ -89,13 +89,13 @@ testTarget2 = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
 						serviceId: '23'
 						serviceName: 'aservice'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc'
 						environment: {
 							'FOO': 'bar'
@@ -105,7 +105,7 @@ testTarget2 = {
 					{
 						serviceId: '24'
 						serviceName: 'anotherService'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/afaff'
 						environment: {
 							'FOO': 'bro'
@@ -135,15 +135,15 @@ testTargetWithDefaults2 = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
 						appId: '1234'
-						buildId: '2'
+						releaseId: '2'
 						serviceId: '23'
 						serviceName: 'aservice'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'
 						environment: {
 							'FOO': 'bar'
@@ -160,8 +160,8 @@ testTargetWithDefaults2 = {
 						labels: {
 							'io.resin.app_id': '1234'
 							'io.resin.service_id': '23'
-							'io.resin.build_id': '2'
-							'io.resin.container_id': '12345'
+							'io.resin.release_id': '2'
+							'io.resin.image_id': '12345'
 							'io.resin.supervised': 'true'
 							'io.resin.service_name': 'aservice'
 						}
@@ -173,10 +173,10 @@ testTargetWithDefaults2 = {
 					},
 					{
 						appId: '1234'
-						buildId: '2'
+						releaseId: '2'
 						serviceId: '24'
 						serviceName: 'anotherService'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/afaff:latest'
 						environment: {
 							'FOO': 'bro'
@@ -193,8 +193,8 @@ testTargetWithDefaults2 = {
 						labels: {
 							'io.resin.app_id': '1234'
 							'io.resin.service_id': '24'
-							'io.resin.build_id': '2'
-							'io.resin.container_id': '12346'
+							'io.resin.release_id': '2'
+							'io.resin.image_id': '12346'
 							'io.resin.supervised': 'true'
 							'io.resin.service_name': 'anotherService'
 						}
@@ -225,13 +225,13 @@ testTargetInvalid = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
 						serviceId: '23'
 						serviceName: 'aservice'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc'
 						config: {}
 						environment: {
@@ -242,7 +242,7 @@ testTargetInvalid = {
 					{
 						serviceId: '24'
 						serviceName: 'anotherService'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/afaff'
 						config: {}
 						environment: {

@@ -12,7 +12,7 @@ targetState[0] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
@@ -20,7 +20,7 @@ targetState[0] = {
 						serviceId: '23'
 						serviceName: 'aservice'
 						commit: 'afafafa'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'
 						
 						environment: {
@@ -37,7 +37,7 @@ targetState[0] = {
 						serviceId: '24'
 						serviceName: 'anotherService'
 						commit: 'afafafa'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/afaff:latest'
 						
 						environment: {
@@ -70,7 +70,7 @@ targetState[1] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
@@ -78,7 +78,7 @@ targetState[1] = {
 						serviceId: '23'
 						serviceName: 'aservice'
 						commit: 'afafafa'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'
 						
 						environment: {
@@ -112,7 +112,7 @@ targetState[2] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {
 					RESIN_SUPERVISOR_DELTA: '1'
 				}
@@ -122,7 +122,7 @@ targetState[2] = {
 						serviceId: '23'
 						serviceName: 'aservice'
 						commit: 'afafafa'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'
 						environment: {
 							'FOO': 'bar'
@@ -139,7 +139,7 @@ targetState[2] = {
 						serviceId: '24'
 						serviceName: 'anotherService'
 						commit: 'afafafa'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/foooo:latest'	
 						depends_on: [ 'aservice' ]
 						environment: {
@@ -173,7 +173,7 @@ targetState[3] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
@@ -181,7 +181,7 @@ targetState[3] = {
 						serviceId: '23'
 						serviceName: 'aservice'
 						commit: 'afafafa'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'
 						environment: {
 							'FOO': 'bar'
@@ -198,7 +198,7 @@ targetState[3] = {
 						serviceId: '24'
 						serviceName: 'anotherService'
 						commit: 'afafafa'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/foooo:latest'
 						environment: {
 							'FOO': 'bro'
@@ -233,7 +233,7 @@ targetState[4] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
@@ -241,7 +241,7 @@ targetState[4] = {
 						serviceId: '23'
 						serviceName: 'aservice'
 						commit: 'afafafa'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'
 						environment: {
 							'FOO': 'THIS VALUE CHANGED'
@@ -258,7 +258,7 @@ targetState[4] = {
 						serviceId: '24'
 						serviceName: 'anotherService'
 						commit: 'afafafa'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/foooo:latest'
 						depends_on: [ 'aservice' ]
 						environment: {
@@ -292,7 +292,7 @@ targetState[5] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
@@ -300,7 +300,7 @@ targetState[5] = {
 						serviceId: '23'
 						serviceName: 'aservice'
 						commit: 'afafafa'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'
 						environment: {
 							'FOO': 'THIS VALUE CHANGED'
@@ -317,7 +317,7 @@ targetState[5] = {
 						serviceId: '24'
 						serviceName: 'anotherService'
 						commit: 'afafafa'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/foooo:latest'
 						environment: {
 							'FOO': 'bro'
@@ -351,16 +351,16 @@ currentState[0] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
 						appId: '1234'
 						serviceId: '23'
-						buildId: '2'
+						releaseId: '2'
 						commit: 'afafafa'
 						serviceName: 'aservice'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'
 						environment: {
 							'FOO': 'bar'
@@ -378,23 +378,23 @@ currentState[0] = {
 						labels: {
 							'io.resin.app_id': '1234'
 							'io.resin.service_id': '23'
-							'io.resin.build_id': '2'
-							'io.resin.container_id': '12345'
+							'io.resin.release_id': '2'
+							'io.resin.image_id': '12345'
 							'io.resin.supervised': 'true'
 							'io.resin.service_name': 'aservice'
 							'io.resin.commit': 'afafafa'
 						}
 						running: true
 						createdAt: new Date()
-						dockerContainerId: '1'
+						containerId: '1'
 					},
 					{
 						appId: '1234'
 						serviceId: '24'
-						buildId: '2'
+						releaseId: '2'
 						commit: 'afafafa'
 						serviceName: 'anotherService'
-						containerId: '12346'
+						imageId: '12346'
 						image: 'registry2.resin.io/superapp/afaff:latest'
 						environment: {
 							'FOO': 'bro'
@@ -411,15 +411,15 @@ currentState[0] = {
 						labels: {
 							'io.resin.app_id': '1234'
 							'io.resin.service_id': '24'
-							'io.resin.build_id': '2'
-							'io.resin.container_id': '12346'
+							'io.resin.release_id': '2'
+							'io.resin.image_id': '12346'
 							'io.resin.supervised': 'true'
 							'io.resin.service_name': 'anotherService'
 							'io.resin.commit': 'afafafa'
 						}
 						running: false
 						createdAt: new Date()
-						dockerContainerId: '2'
+						containerId: '2'
 					}
 				]
 				volumes: {}
@@ -442,7 +442,7 @@ currentState[1] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: []
 				volumes: {}
@@ -465,18 +465,18 @@ currentState[2] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
 						appId: '1234'
 						serviceId: '23'
-						buildId: '2'
+						releaseId: '2'
 						commit: 'afafafa'
 						expose: []
 						ports: []
 						serviceName: 'aservice'
-						containerId: '12345'
+						imageId: '12345'
 						image: 'registry2.resin.io/superapp/edfabc:latest'		
 						environment: {
 							'FOO': 'THIS VALUE CHANGED'
@@ -493,15 +493,15 @@ currentState[2] = {
 						labels: {
 							'io.resin.app_id': '1234'
 							'io.resin.service_id': '23'
-							'io.resin.build_id': '2'
-							'io.resin.container_id': '12345'
+							'io.resin.release_id': '2'
+							'io.resin.image_id': '12345'
 							'io.resin.supervised': 'true'
 							'io.resin.service_name': 'aservice'
 							'io.resin.commit': 'afafafa'
 						}
 						running: true
 						createdAt: new Date()
-						dockerContainerId: '1'
+						containerId: '1'
 					}
 				]
 				volumes: {}
@@ -524,15 +524,15 @@ currentState[3] = {
 				appId: '1234'
 				name: 'superapp'
 				commit: 'afafafa'
-				buildId: '2'
+				releaseId: '2'
 				config: {}
 				services: [
 					{
 						appId: '1234'
 						serviceId: '23'
 						serviceName: 'aservice'
-						containerId: '12345'
-						buildId: '2'
+						imageId: '12345'
+						releaseId: '2'
 						commit: 'afafafa'
 						expose: []
 						ports: []
@@ -552,22 +552,22 @@ currentState[3] = {
 						labels: {
 							'io.resin.app_id': '1234'
 							'io.resin.service_id': '23'
-							'io.resin.build_id': '2'
-							'io.resin.container_id': '12345'
+							'io.resin.release_id': '2'
+							'io.resin.image_id': '12345'
 							'io.resin.supervised': 'true'
 							'io.resin.service_name': 'aservice'
 							'io.resin.commit': 'afafafa'
 						}
 						running: true
 						createdAt: new Date(0)
-						dockerContainerId: '1'
+						containerId: '1'
 					},
 					{
 						appId: '1234'
 						serviceId: '23'
 						serviceName: 'aservice'
-						containerId: '12345'
-						buildId: '2'
+						imageId: '12345'
+						releaseId: '2'
 						commit: 'afafafa'
 						expose: []
 						ports: []
@@ -588,15 +588,15 @@ currentState[3] = {
 						labels: {
 							'io.resin.app_id': '1234'
 							'io.resin.service_id': '23'
-							'io.resin.build_id': '2'
-							'io.resin.container_id': '12345'
+							'io.resin.release_id': '2'
+							'io.resin.image_id': '12345'
 							'io.resin.supervised': 'true'
 							'io.resin.service_name': 'aservice'
 							'io.resin.commit': 'afafafa'
 						}
 						running: true
 						createdAt: new Date(1)
-						dockerContainerId: '2'
+						containerId: '2'
 					}
 				]
 				volumes: {}

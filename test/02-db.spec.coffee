@@ -64,7 +64,7 @@ describe 'DB', ->
 			.then ->
 				Promise.all([
 					expect(knexForDB.schema.hasColumn('app', 'appId')).to.eventually.be.true
-					expect(knexForDB.schema.hasColumn('app', 'buildId')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('app', 'releaseId')).to.eventually.be.true
 					expect(knexForDB.schema.hasColumn('app', 'config')).to.eventually.be.true
 					expect(knexForDB.schema.hasColumn('app', 'privileged')).to.eventually.be.false
 					expect(knexForDB.schema.hasColumn('app', 'containerId')).to.eventually.be.false

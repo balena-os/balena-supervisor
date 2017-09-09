@@ -9,11 +9,11 @@
 			"appId": "1234",
 			"name": "superapp",
 			"commit": "abcdef",
-			"buildId": "1",
+			"releaseId": "1",
 			"services": [
 				{
 					"serviceId": "23",
-					"containerId": "12345",
+					"imageId": "12345",
 					"serviceName": "someservice",
 					"image": "registry2.resin.io/superapp/abcdef",
 					"labels": {
