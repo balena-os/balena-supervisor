@@ -123,31 +123,36 @@ class ApplicationManagerRouter
 						If you've recently moved this device from another app,
 						please push an app and wait for it to be installed first."
 				return res.status(400).send(errMsg)
-			@applications.getCurrentApp(appId)
-			.then (app) =>
-				service = app?.services?[0]
-				return res.status(400).send('App not found') if !service?
-				return res.status(400).send('v1 endpoints are only allowed on single-container apps') if app.services.length > 1
-				@applications.executeStepAction({
-					action: 'kill'
-					serviceId: service.serviceId
-					current: service
-					options:
-						force: force
-				}, { force })
-				.then =>
+			Promise.using updateLock.lock(appId, { force }), =>
+				@applications.getCurrentApp(appId)
+				.then (app) =>
+					service = app?.services?[0]
+					return res.status(400).send('App not found') if !service?
+					return res.status(400).send('v1 endpoints are only allowed on single-container apps') if app.services.length > 1
 					@applications.executeStepAction({
-						action: 'purge'
-						appId: app.appId
-					}, { force })
-				.then =>
-					@applications.executeStepAction({
-						action: 'start'
+						action: 'kill'
 						serviceId: service.serviceId
-						target: service
+						current: service
+						options:
+							skipLock: true
 					}, { force })
-				.then ->
-					res.status(200).json(Data: 'OK', Error: '')
+					.then =>
+						@applications.executeStepAction({
+							action: 'purge'
+							appId: app.appId
+							options:
+								skipLock: true
+						}, { force })
+					.then =>
+						@applications.executeStepAction({
+							action: 'start'
+							serviceId: service.serviceId
+							target: service
+							options:
+								skipLock: true
+						}, { force })
+					.then ->
+						res.status(200).json(Data: 'OK', Error: '')
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 		@router.use(@proxyvisor.router)
@@ -839,12 +844,16 @@ module.exports = class ApplicationManager
 			return Promise.reject(new Error("Invalid action #{step.action}"))
 		if step.options?.force?
 			force = force or step.options.force
+		if step.options?.skipLock
+			lockFn = Promise.resolve
+		else
+			lockFn = updateLock.lock
 		actionExecutors =
 			stop: =>
-				Promise.using updateLock.lock(step.current.appId, { force }), =>
+				Promise.using lockFn(step.current.appId, { force }), =>
 					@services.kill(step.current, { removeContainer: false })
 			kill: =>
-				Promise.using updateLock.lock(step.current.appId, { force }), =>
+				Promise.using lockFn(step.current.appId, { force }), =>
 					@services.kill(step.current)
 					.then =>
 						@images.removeByName(step.current.image) if step.options?.removeImage
@@ -854,7 +863,7 @@ module.exports = class ApplicationManager
 			purge: =>
 				appId = step.appId
 				@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
-				Promise.using updateLock.lock(appId, { force }), =>
+				Promise.using lockFn(appId, { force }), =>
 					@getCurrentApp(appId)
 					.then (app) =>
 						throw new Error('Attempt to purge app with running services') if !_.isEmpty(app?.services)
@@ -871,7 +880,7 @@ module.exports = class ApplicationManager
 					@logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
 					throw err
 			restart: =>
-				Promise.using updateLock.lock(step.current.appId, { force }), =>
+				Promise.using lockFn(step.current.appId, { force }), =>
 					Promise.try =>
 						@services.kill(step.current)
 					.then =>
@@ -881,7 +890,7 @@ module.exports = class ApplicationManager
 			start: =>
 				@services.start(step.target)
 			handover: =>
-				Promise.using updateLock.lock(step.current.appId, { force }), =>
+				Promise.using lockFn(step.current.appId, { force }), =>
 					@services.handover(step.current, step.target)
 			fetch: =>
 				@_fetchOptions(step.target, step)
