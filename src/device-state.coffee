@@ -66,6 +66,25 @@ class DeviceStateRouter
 					status = 500
 				res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
 
+		@router.get '/v1/device', (req, res) =>
+			@deviceState.getCurrentForReport()
+			.then (state) ->
+				stateToSend = _.pick(state, [
+					'api_port'
+					'commit'
+					'ip_address'
+					'status'
+					'download_progress'
+					'os_version'
+					'supervisor_version'
+					'update_pending'
+					'update_failed'
+					'update_downloaded'
+				])
+				res.json(stateToSend)
+			.catch (err) ->
+				res.status(500).json({ Data: '', Error: err?.message or err or 'Unknown error' })
+
 		@router.use(@applications.router)
 
 module.exports = class DeviceState extends EventEmitter
@@ -401,7 +420,7 @@ module.exports = class DeviceState extends EventEmitter
 					@applyInProgress = false
 					@failedUpdates = 0
 					@lastSuccessfulUpdate = Date.now()
-					@reportCurrentState(update_failed: false)
+					@reportCurrentState(update_failed: false, update_pending: false, update_downloaded: false)
 					@emitAsync('apply-target-state-end', null)
 					return
 				@reportCurrentState(update_pending: true)

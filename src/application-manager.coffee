@@ -904,6 +904,7 @@ module.exports = class ApplicationManager
 				.finally =>
 					@downloadsInProgress -= 1
 					if @downloadsInProgress == 0
+						@reportCurrentState(update_downloaded: true)
 						@globalAppStatus.status = 'Idle'
 						@globalAppStatus.download_progress = null
 						@reportCurrentState(@globalAppStatus)

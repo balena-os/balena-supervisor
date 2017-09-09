@@ -91,6 +91,9 @@ module.exports = class Supervisor extends EventEmitter
 					status: 'Idle'
 					download_progress: null
 					logs_channel: conf.logsChannelSecret
+					update_failed: false
+					update_pending: false
+					update_downloaded: false
 				)
 
 				console.log('Starting periodic check for IP addresses')
