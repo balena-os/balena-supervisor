@@ -441,7 +441,7 @@ module.exports = class Proxyvisor
 			toBeDownloaded = _.filter targetAppIds, (appId) =>
 				return targetApps[appId].commit? and targetApps[appId].image? and !@_imageAvailable(targetApps[appId].image, availableImages)
 
-			_.map allAppIds, (appId) ->
+			_.map allAppIds, (appId) =>
 				# - if a step is in progress for this appId, ignore
 				if _.some(steps.concat(stepsInProgress), (step) -> step.appId == appId)
 					return
@@ -489,7 +489,7 @@ module.exports = class Proxyvisor
 					devices: []
 					appId
 				}
-				_.forEach currentDevices, (device) ->
+				_.forEach currentDevices, (device) =>
 					target = targetDevicesByUuid[device.uuid]
 					if !target?
 						hookStep.devices.push({
