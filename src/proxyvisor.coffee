@@ -107,7 +107,7 @@ class ProxyvisorRouter
 					return
 				deviceForDB = {
 					uuid: dev.uuid
-					appId: dev.application
+					appId
 					device_type: dev.device_type
 					deviceId: dev.id
 					name: dev.name
@@ -255,7 +255,7 @@ module.exports = class Proxyvisor
 							targetCommit = device.apps[appId].commit
 							targetEnvironment = JSON.stringify(device.apps[appId].environment)
 							targetConfig = JSON.stringify(device.apps[appId].config)
-							@db.models('dependentDevice').update({ targetEnvironment, targetConfig, targetCommit, name: device.name }).where({ uuid })
+							@db.models('dependentDevice').update({ appId, targetEnvironment, targetConfig, targetCommit, name: device.name }).where({ uuid })
 							.then (n) =>
 								return if n != 0
 								# If the device is not in the DB it means it was provisioned externally
@@ -277,7 +277,7 @@ module.exports = class Proxyvisor
 									}
 									@db.models('dependentDevice').insert(deviceForDB)
 						.then =>
-							@db.models('dependentDevice').whereNotIn('uuid', _.map(step.devices, 'uuid')).update({ markedForDeletion: true })
+							@db.models('dependentDevice').where({ appId: step.appId }).whereNotIn('uuid', _.map(step.devices, 'uuid')).update({ markedForDeletion: true })
 						.then =>
 							@normaliseDependentAppForDB(step.app)
 						.then (appForDB) =>
@@ -296,8 +296,6 @@ module.exports = class Proxyvisor
 								else
 									@sendUpdate(device, apiTimeout, endpoint)
 					)
-					.then ->
-						cleanupTars(step.appId)
 
 				removeDependentApp: =>
 					# find step.app and delete it from the DB
@@ -352,10 +350,11 @@ module.exports = class Proxyvisor
 		}
 		return Promise.props(dbApp)
 
-	normaliseDependentDeviceTargetForDB: (device) ->
+	normaliseDependentDeviceTargetForDB: (device, appCommit) ->
 		Promise.try ->
 			apps = _.clone(device.apps ? {})
 			_.forEach apps, (app) ->
+				app.commit ?= appCommit
 				app.config ?= {}
 				app.environment ?= {}
 			apps = JSON.stringify(apps)
@@ -378,11 +377,10 @@ module.exports = class Proxyvisor
 						trx('dependentAppTarget').whereNotIn('appId', _.map(appsForDB, 'appId')).del()
 		.then =>
 			if dependent?.devices?
-				Promise.map(dependent.devices, @normaliseDependentDeviceTargetForDB)
+				Promise.map dependent.devices, (device) =>
+					@normaliseDependentDeviceTargetForDB(device, appsByAppId[appId]?.commit)
 				.then (devicesForDB) =>
 					Promise.map devicesForDB, (device) =>
-						device.apps = _.mapValues device.apps, (app, appId) ->
-							app.commit ?= appsByAppId[appId]?.commit
 						@db.upsertModel('dependentDeviceTarget', device, { uuid: device.uuid }, trx)
 					.then ->
 						trx('dependentDeviceTarget').whereNotIn('uuid', _.map(devicesForDB, 'uuid')).del()
@@ -492,7 +490,7 @@ module.exports = class Proxyvisor
 				targetDevices = devicesForApp(target.dependent.devices)
 				targetDevicesByUuid = _.keyBy(targetDevices, 'uuid')
 				devicesDiffer = false
-				for dev in currentDeviceTargetsByUuid
+				for dev in currentDeviceTargets
 					if !_.isEqual(dev, targetDevicesByUuid[dev.uuid])
 						devicesDiffer = true
 						break
