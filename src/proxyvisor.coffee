@@ -330,13 +330,17 @@ module.exports = class Proxyvisor
 		)
 
 	normaliseDependentAppForDB: (app) =>
+		if app.image?
+			image = @images.normalise(app.image)
+		else
+			image = null
 		dbApp = {
 			appId: app.appId
 			name: app.name
 			commit: app.commit
 			releaseId: app.releaseId
 			parentApp: app.parentApp
-			image: @images.normalise(app.image)
+			image: image
 			config: JSON.stringify(app.config ? {})
 			environment: JSON.stringify(app.environment ? {})
 		}
