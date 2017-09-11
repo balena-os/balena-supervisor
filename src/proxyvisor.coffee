@@ -470,8 +470,9 @@ module.exports = class Proxyvisor
 				currentDevices = devicesForApp(current.dependent.devices)
 				targetDevices = devicesForApp(target.dependent.devices)
 				targetDevicesByUuid = _.keyBy(targetDevices, 'uuid')
-				devicesDiffer = _.isEmpty(_.difference(currentDevices, targetDevices).concat(_.difference(targetDevices, currentDevices)))
+				devicesDiffer = !_.isEmpty(_.difference(currentDevices, targetDevices).concat(_.difference(targetDevices, currentDevices)))
 				# - if current doesn't match target, or the devices differ, push an updateDependentTargets step
+
 				if !_.isEqual(currentApps[appId], targetApps[appId]) or devicesDiffer
 					steps.push({
 						action: 'updateDependentTargets'
