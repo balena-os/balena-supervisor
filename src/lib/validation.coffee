@@ -67,7 +67,7 @@ exports.isValidDependentDevicesArray = (devices) ->
 	return false if !_.every devices, (val) ->
 		return false if !isValidShortText(val.uuid)
 		return false if !isValidShortText(val.name)
-		return false if !_.isArray(val.apps) or _.isEmpty(val.apps)
+		return false if !_.isObject(val.apps) or _.isEmpty(val.apps)
 		return false if !_.every val.apps, (app) ->
 			#return false if !isValidShortText(app.appId) or !checkInt(app.appId)?
 			return isValidEnv(app.config) and isValidEnv(app.environment)
