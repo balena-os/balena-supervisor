@@ -38,7 +38,7 @@ exports.isValidDependentAppsArray = (obj) ->
 	return false if !_.isArray(obj)
 	return false if !_.every obj, (val) ->
 		return false if !isValidShortText(val.appId) or !checkInt(val.appId)? # key is appId
-		return false if !isValidShortText(val.name) or !isValidEnv(val.config)
+		return false if !isValidShortText(val.name) or (val.config? and !isValidEnv(val.config))
 		return false if val.commit? and (!isValidShortText(val.image) or !isValidShortText(val.commit))
 		if val.environment?
 			return false if !isValidEnv(val.environment)
@@ -69,7 +69,6 @@ exports.isValidDependentDevicesArray = (devices) ->
 		return false if !isValidShortText(val.name)
 		return false if !_.isObject(val.apps) or _.isEmpty(val.apps)
 		return false if !_.every val.apps, (app) ->
-			#return false if !isValidShortText(app.appId) or !checkInt(app.appId)?
-			return isValidEnv(app.config) and isValidEnv(app.environment)
+			return (!app.config? or isValidEnv(app.config)) and (!app.environment? or isValidEnv(app.environment))
 		return true
 	return true
