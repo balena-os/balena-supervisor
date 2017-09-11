@@ -233,7 +233,7 @@ module.exports = class APIBinder
 				user: conf.userId
 				device: conf.deviceId
 				uuid: deviceRegister.generateUniqueKey()
-				logsChannel: deviceRegister.generateUniqueKey()
+				logs_channel: deviceRegister.generateUniqueKey()
 				registered_at: Math.floor(Date.now() / 1000)
 				status: 'Provisioned'
 			})
