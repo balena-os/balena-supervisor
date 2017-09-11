@@ -319,6 +319,8 @@ module.exports = class APIBinder
 				state.dependent ?= {}
 				state.dependent.apps = _.map state.dependent.apps, (app, appId) ->
 					app.appId = appId
+					app.config ?= {}
+					app.environment ?= {}
 					return app
 				state.dependent.devices = _.map state.dependent.devices, (device, uuid) ->
 					device.uuid = uuid
