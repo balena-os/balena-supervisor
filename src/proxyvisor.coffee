@@ -76,7 +76,7 @@ formatCurrentAsState = (device) ->
 
 class ProxyvisorRouter
 	constructor: (@proxyvisor) ->
-		{ @config, @logger, @db, @docker, @apiBinder, @reportCurrentState } = @proxyvisor
+		{ @config, @logger, @db, @docker, @reportCurrentState } = @proxyvisor
 		@router = express.Router()
 		@router.use(bodyParser.urlencoded(extended: true))
 		@router.use(bodyParser.json())
@@ -98,7 +98,7 @@ class ProxyvisorRouter
 			d =
 				application: req.body.appId
 				device_type: device_type
-			@apiBinder.provisionDependentDevice(d)
+			@proxyvisor.apiBinder.provisionDependentDevice(d)
 			.then (dev) =>
 				# If the response has id: null then something was wrong in the request
 				# but we don't know precisely what.
@@ -189,7 +189,7 @@ class ProxyvisorRouter
 				throw new Error('Device is invalid') if !device.deviceId?
 				Promise.try =>
 					if !_.isEmpty(fieldsToUpdateOnAPI)
-						@apiBinder.patchDevice(device.deviceId, fieldsToUpdateOnAPI)
+						@proxyvisor.apiBinder.patchDevice(device.deviceId, fieldsToUpdateOnAPI)
 				.then =>
 					@db.models('dependentDevice').update(fieldsToUpdateOnDB).where({ uuid })
 				.then ->
