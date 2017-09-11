@@ -116,7 +116,7 @@ module.exports = class Images
 			@docker.listImages(filters: { dangling: [ 'true' ] })
 			.map (image) ->
 				images.push(image.Id)
-		.then ->
+		.then =>
 			return _.filter images, (image) =>
 				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > 3600 * 1000
 
