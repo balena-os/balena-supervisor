@@ -279,7 +279,9 @@ module.exports = class Proxyvisor
 						.then =>
 							@db.models('dependentDevice').whereNotIn('uuid', _.map(step.devices, 'uuid')).update({ markedForDeletion: true })
 						.then =>
-							@db.upsertModel('dependentApp', step.app, { appId: step.appId })
+							@normaliseDependentAppForDB(step.app)
+						.then (appForDB) =>
+							@db.upsertModel('dependentApp', appForDB, { appId: step.appId })
 						.then ->
 							cleanupTars(step.appId, step.app.commit)
 
