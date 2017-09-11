@@ -252,9 +252,9 @@ module.exports = class Proxyvisor
 							uuid = device.uuid
 							# Only consider one app per dependent device for now
 							appId = _(device.apps).keys().head()
-							targetCommit = step.app.commit
-							targetEnvironment = device.apps[appId].environment
-							targetConfig = device.apps[appId].config
+							targetCommit = device.apps[appId].commit
+							targetEnvironment = JSON.stringify(device.apps[appId].environment)
+							targetConfig = JSON.stringify(device.apps[appId].config)
 							@db.models('dependentDevice').update({ targetEnvironment, targetConfig, targetCommit, name: device.name }).where({ uuid })
 							.then (n) =>
 								return if n != 0
@@ -320,12 +320,16 @@ module.exports = class Proxyvisor
 					dev = {
 						uuid: device.uuid
 						name: device.name
+						markedForDeletion: device.markedForDeletion
 						apps: {}
 					}
 					dev.apps[device.appId] = {
 						commit: device.commit
 						config: JSON.parse(device.config)
 						environment: JSON.parse(device.environment)
+						targetCommit: device.targetCommit
+						targetEnvironment: JSON.parse(device.targetEnvironment)
+						targetConfig: JSON.parse(device.targetConfig)
 					}
 					return dev
 				return { apps, devices }
@@ -350,7 +354,11 @@ module.exports = class Proxyvisor
 
 	normaliseDependentDeviceTargetForDB: (device) ->
 		Promise.try ->
-			apps = JSON.stringify(device.apps ? {})
+			apps = _.clone(device.apps ? {})
+			_.forEach apps, (app) ->
+				app.config ?= {}
+				app.environment ?= {}
+			apps = JSON.stringify(apps)
 			outDevice = {
 				uuid: device.uuid
 				name: device.name
@@ -441,7 +449,7 @@ module.exports = class Proxyvisor
 			toBeDownloaded = _.filter targetAppIds, (appId) =>
 				return targetApps[appId].commit? and targetApps[appId].image? and !@_imageAvailable(targetApps[appId].image, availableImages)
 
-			_.map allAppIds, (appId) =>
+			_.forEach allAppIds, (appId) =>
 				# - if a step is in progress for this appId, ignore
 				if _.some(steps.concat(stepsInProgress), (step) -> step.appId == appId)
 					return
@@ -468,11 +476,31 @@ module.exports = class Proxyvisor
 						_.includes(_.keys(d.apps), appId)
 
 				currentDevices = devicesForApp(current.dependent.devices)
+				currentDeviceTargets = _.map currentDevices, (dev) ->
+					return null if dev.markedForDeletion
+					devTarget = _.clone(dev)
+					delete devTarget.markedForDeletion
+					devTarget.apps = {}
+					devTarget.apps[appId] = {
+						commit: dev.apps[appId].targetCommit
+						environment: dev.apps[appId].targetEnvironment
+						config: dev.apps[appId].targetConfig
+					}
+					return devTarget
+				currentDeviceTargets = _.filter(currentDeviceTargets, (dev) -> !_.isNull(dev))
+				currentDeviceTargetsByUuid = _.keyBy(currentDeviceTargets, 'uuid')
 				targetDevices = devicesForApp(target.dependent.devices)
 				targetDevicesByUuid = _.keyBy(targetDevices, 'uuid')
-				devicesDiffer = !_.isEmpty(_.difference(currentDevices, targetDevices).concat(_.difference(targetDevices, currentDevices)))
+				devicesDiffer = false
+				for dev in currentDeviceTargetsByUuid
+					if !_.isEqual(dev, targetDevicesByUuid[dev.uuid])
+						devicesDiffer = true
+						break
+				for dev in targetDevices
+					if !_.isEqual(dev, currentDeviceTargetsByUuid[dev.uuid])
+						devicesDiffer = true
+						break
 				# - if current doesn't match target, or the devices differ, push an updateDependentTargets step
-
 				if !_.isEqual(currentApps[appId], targetApps[appId]) or devicesDiffer
 					steps.push({
 						action: 'updateDependentTargets'
@@ -490,8 +518,7 @@ module.exports = class Proxyvisor
 					appId
 				}
 				_.forEach currentDevices, (device) =>
-					target = targetDevicesByUuid[device.uuid]
-					if !target?
+					if device.markedForDeletion
 						hookStep.devices.push({
 							uuid: device.uuid
 							markedForDeletion: true
@@ -499,17 +526,17 @@ module.exports = class Proxyvisor
 					else
 						targetState = {
 							appId
-							commit: targetApps[appId].commit
-							config: target.config
-							environment: target.environment
+							commit: device.targetCommit
+							config: device.targetConfig
+							environment: device.targetEnvironment
 						}
 						currentState = {
 							appId
-							commit: targetApps[appId].commit
+							commit: device.commit
 							config: device.config
 							environment: device.environment
 						}
-						if targetApps[appId].commit? and !_.isEqual(targetState, currentState) and !_.isEqual(targetState, @acknowledgedState[device.uuid])
+						if device.targetCommit? and !_.isEqual(targetState, currentState) and !_.isEqual(targetState, @acknowledgedState[device.uuid])
 							hookStep.devices.push({
 								uuid: device.uuid
 								target: targetState
