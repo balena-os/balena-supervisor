@@ -427,7 +427,7 @@ module.exports = class Proxyvisor
 		_.some available, (availableImage) ->
 			_.includes(availableImage.NormalisedRepoTags, image)
 
-	getRequiredSteps: (availableImages, current, target, nextSteps, stepsInProgress) =>
+	getRequiredSteps: (availableImages, current, target, stepsInProgress) =>
 		steps = []
 		Promise.try =>
 			targetApps = _.keyBy(target.dependent?.apps ? [], 'appId')
