@@ -2,7 +2,7 @@ Promise = require 'bluebird'
 _ = require 'lodash'
 express = require 'express'
 fs = Promise.promisifyAll require 'fs'
-request = require './lib/request'
+{ request } = require './lib/request'
 constants = require './lib/constants'
 path = require 'path'
 mkdirp = Promise.promisify(require('mkdirp'))
@@ -28,7 +28,7 @@ validObjectOrUndefined = (o) ->
 	_.isUndefined(o) or _.isObject(o)
 
 tarDirectory = (appId) ->
-	return "/var/tmp/resin-supervisor/dependent-assets/#{appId}"
+	return "/data/dependent-assets/#{appId}"
 
 tarFilename = (appId, commit) ->
 	return "#{appId}-#{commit}.tar"
@@ -36,12 +36,12 @@ tarFilename = (appId, commit) ->
 tarPath = (appId, commit) ->
 	return "#{tarDirectory(appId)}/#{tarFilename(appId, commit)}"
 
-getTarArchive = (file, destination) ->
-	fs.lstatAsync(path)
-	.then ->
-		mkdirp(path.dirname(file))
+getTarArchive = (source, destination) ->
+	fs.lstatAsync(destination)
+	.catch ->
+		mkdirp(path.dirname(destination))
 		.then ->
-			execAsync("tar -cvf '#{destination}' *", cwd: path)
+			execAsync("tar -cvf '#{destination}' *", cwd: source)
 
 cleanupTars = (appId, commit) ->
 	if commit?
@@ -231,6 +231,7 @@ class ProxyvisorRouter
 module.exports = class Proxyvisor
 	constructor: ({ @config, @logger, @db, @docker, @images, @applications, @reportCurrentState }) ->
 		@acknowledgedState = {}
+		@lastRequestForDevice = {}
 		@_router = new ProxyvisorRouter(this)
 		@router = @_router.router
 		@validActions = [ 'updateDependentTargets', 'sendDependentHooks', 'removeDependentApp' ]
@@ -291,10 +292,17 @@ module.exports = class Proxyvisor
 						@getHookEndpoint(step.appId)
 						(apiTimeout, endpoint) =>
 							Promise.mapSeries step.devices, (device) =>
-								if device.markedForDeletion
-									@sendDeleteHook(device, apiTimeout, endpoint)
-								else
-									@sendUpdate(device, apiTimeout, endpoint)
+								Promise.try =>
+									if @lastRequestForDevice[device.uuid]?
+										diff = Date.now() - lastRequestForDevice[device.uuid]
+										if diff < 30000
+											Promise.delay(30001 - diff)
+								.then =>
+									@lastRequestForDevice[device.uuid] = Date.now()
+									if device.markedForDeletion
+										@sendDeleteHook(device, apiTimeout, endpoint)
+									else
+										@sendUpdate(device, apiTimeout, endpoint)
 					)
 
 				removeDependentApp: =>
@@ -304,6 +312,8 @@ module.exports = class Proxyvisor
 						trx('dependentApp').where({ appId: step.appId }).del()
 						.then ->
 							trx('dependentDevice').where({ appId: step.appId }).del()
+						.then ->
+							cleanupTars(step.appId)
 
 			}
 			throw new Error("Invalid proxyvisor action #{step.action}") if !actions[step.action]?
@@ -524,15 +534,15 @@ module.exports = class Proxyvisor
 					else
 						targetState = {
 							appId
-							commit: device.targetCommit
-							config: device.targetConfig
-							environment: device.targetEnvironment
+							commit: device.apps[appId].targetCommit
+							config: device.apps[appId].targetConfig
+							environment: device.apps[appId].targetEnvironment
 						}
 						currentState = {
 							appId
-							commit: device.commit
-							config: device.config
-							environment: device.environment
+							commit: device.apps[appId].commit
+							config: device.apps[appId].config
+							environment: device.apps[appId].environment
 						}
 						if device.targetCommit? and !_.isEqual(targetState, currentState) and !_.isEqual(targetState, @acknowledgedState[device.uuid])
 							hookStep.devices.push({
@@ -545,9 +555,9 @@ module.exports = class Proxyvisor
 			return steps
 
 	getHookEndpoint: (appId) =>
-		@db.models('dependentApp').select('parentAppId').where({ appId })
-		.then ([ { parentAppId } ]) =>
-			@applications.getCurrentApp(parentAppId)
+		@db.models('dependentApp').select('parentApp').where({ appId })
+		.then ([ { parentApp } ]) =>
+			@applications.getTargetApp(parentApp)
 		.then (parentApp) =>
 			Promise.map parentApp?.services ? [], (service) =>
 				@docker.getImageEnv(service.image)
@@ -556,7 +566,7 @@ module.exports = class Proxyvisor
 			.then (imageHookAddresses) ->
 				for addr in imageHookAddresses
 					return addr if addr?
-				return parentApp.config.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
+				return parentApp?.config?.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
 						"#{constants.proxyvisorHookReceiver}/v1/devices/"
 
 	sendUpdate: (device, timeout, endpoint) =>
