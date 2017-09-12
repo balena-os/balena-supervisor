@@ -19,7 +19,7 @@ module.exports = class Supervisor extends EventEmitter
 		@deviceState = new DeviceState({ @config, @db, @eventTracker })
 		@apiBinder = new APIBinder({ @config, @db, @deviceState, @eventTracker })
 		@deviceState.applications.proxyvisor.bindToAPI(@apiBinder)
-		@api = new SupervisorAPI({ @config, routers: [ @apiBinder.router, @deviceState.router ] })
+		@api = new SupervisorAPI({ @config, @eventTracker, routers: [ @apiBinder.router, @deviceState.router ] })
 
 	normaliseState: =>
 		@db.init()
