@@ -492,7 +492,7 @@ module.exports = class Proxyvisor
 			}
 			return devTarget
 		currentDeviceTargets = _.filter(currentDeviceTargets, (dev) -> !_.isNull(dev))
-		return !_.isEmpy(_.xorWith(currentDeviceTargets, targetDevices, _.isEqual))
+		return !_.isEmpty(_.xorWith(currentDeviceTargets, targetDevices, _.isEqual))
 
 	getRequiredSteps: (availableImages, current, target, stepsInProgress) =>
 		steps = []
