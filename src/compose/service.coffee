@@ -295,8 +295,7 @@ module.exports = class Service
 		]
 		return _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
 			_.every arraysToCompare, (property) =>
-				_.isEmpty(_.difference(this[property], otherService[property])) and
-					_.isEmpty(_.difference(otherService[property], this[property]))
+				_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
 
 	isEqual: (otherService) =>
 		return @isSameContainer(otherService) and @running == otherService.running
