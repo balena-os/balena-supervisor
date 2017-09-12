@@ -2,78 +2,23 @@ Promise = require 'bluebird'
 _ = require 'lodash'
 express = require 'express'
 fs = Promise.promisifyAll require 'fs'
-{ request } = require './lib/request'
-constants = require './lib/constants'
-path = require 'path'
-mkdirp = Promise.promisify(require('mkdirp'))
+{ request } = require '../lib/request'
+constants = require '../lib/constants'
 bodyParser = require 'body-parser'
-execAsync = Promise.promisify(require('child_process').exec)
 url = require 'url'
-
-isDefined = _.negate(_.isUndefined)
-
-parseDeviceFields = (device) ->
-	device.id = parseInt(device.deviceId)
-	device.appId = parseInt(device.appId)
-	device.config = JSON.parse(device.config ? '{}')
-	device.environment = JSON.parse(device.environment ? '{}')
-	device.targetConfig = JSON.parse(device.targetConfig ? '{}')
-	device.targetEnvironment = JSON.parse(device.targetEnvironment ? '{}')
-	return _.omit(device, 'markedForDeletion', 'logs_channel')
-
-# TODO move to lib/validation
-validStringOrUndefined = (s) ->
-	_.isUndefined(s) or !_.isEmpty(s)
-validObjectOrUndefined = (o) ->
-	_.isUndefined(o) or _.isObject(o)
-
-tarDirectory = (appId) ->
-	return "/data/dependent-assets/#{appId}"
-
-tarFilename = (appId, commit) ->
-	return "#{appId}-#{commit}.tar"
-
-tarPath = (appId, commit) ->
-	return "#{tarDirectory(appId)}/#{tarFilename(appId, commit)}"
-
-getTarArchive = (source, destination) ->
-	fs.lstatAsync(destination)
-	.catch ->
-		mkdirp(path.dirname(destination))
-		.then ->
-			execAsync("tar -cvf '#{destination}' *", cwd: source)
-
-cleanupTars = (appId, commit) ->
-	if commit?
-		fileToKeep = tarFilename(appId, commit)
-	else
-		fileToKeep = null
-	dir = tarDirectory(appId)
-	fs.readdirAsync(dir)
-	.catchReturn([])
-	.then (files) ->
-		if fileToKeep?
-			files = _.filter files, (file) ->
-				return file isnt fileToKeep
-		Promise.map files, (file) ->
-			if !fileToKeep? or (file isnt fileToKeep)
-				fs.unlinkAsync(path.join(dir, file))
-
-formatTargetAsState = (device) ->
-	return {
-		appId: parseInt(device.appId)
-		commit: device.targetCommit
-		environment: device.targetEnvironment
-		config: device.targetConfig
-	}
-
-formatCurrentAsState = (device) ->
-	return {
-		appId: parseInt(device.appId)
-		commit: device.commit
-		environment: device.environment
-		config: device.config
-	}
+{
+	isDefined,
+	parseDeviceFields,
+	validStringOrUndefined,
+	validObjectOrUndefined,
+	# tarDirectory,
+	# tarFilename,
+	tarPath,
+	getTarArchive,
+	cleanupTars,
+	formatTargetAsState,
+	formatCurrentAsState,
+} = require './lib'
 
 class ProxyvisorRouter
 	constructor: (@proxyvisor) ->
