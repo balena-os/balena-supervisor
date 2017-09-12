@@ -45,10 +45,11 @@ getTarArchive = (source, destination) ->
 
 cleanupTars = (appId, commit) ->
 	if commit?
-		fileToKeep = tarPath(appId, commit)
+		fileToKeep = tarFilename(appId, commit)
 	else
 		fileToKeep = null
-	fs.readdirAsync(tarDirectory(appId))
+	dir = tarDirectory(appId)
+	fs.readdirAsync(dir)
 	.catchReturn([])
 	.then (files) ->
 		if fileToKeep?
@@ -56,7 +57,7 @@ cleanupTars = (appId, commit) ->
 				return file isnt fileToKeep
 		Promise.map files, (file) ->
 			if !fileToKeep? or (file isnt fileToKeep)
-				fs.unlinkAsync(file)
+				fs.unlinkAsync(dir + file)
 
 formatTargetAsState = (device) ->
 	return {
