@@ -472,7 +472,7 @@ module.exports = class Proxyvisor
 					config: device.apps[appId].config
 					environment: device.apps[appId].environment
 				}
-				if device.targetCommit? and !_.isEqual(targetState, currentState) and !_.isEqual(targetState, @acknowledgedState[device.uuid])
+				if device.apps[appId].targetCommit? and !_.isEqual(targetState, currentState) and !_.isEqual(targetState, @acknowledgedState[device.uuid])
 					hookStep.devices.push({
 						uuid: device.uuid
 						target: targetState
