@@ -34,15 +34,21 @@ exports.isValidLabelsObject = isValidLabelsObject = (obj) ->
 	_.isObject(obj) and _.every obj, (val, key) ->
 		isValidShortText(key) and /^[a-zA-Z_]+[a-zA-Z0-9_.]*$/.test(key) and _.isString(val)
 
+undefinedOrValidEnv = (val) ->
+	if val? and !isValidEnv(val)
+		return false
+	return true
+
+isValidDependentApp = (val) ->
+	return false if !isValidShortText(val.appId) or !checkInt(val.appId)? # key is appId
+	return false if !isValidShortText(val.name)
+	return false if val.commit? and (!isValidShortText(val.image) or !isValidShortText(val.commit))
+	return undefinedOrValidEnv(val.environment) and undefinedOrValidEnv(val.config)
+
 exports.isValidDependentAppsArray = (obj) ->
 	return false if !_.isArray(obj)
 	return false if !_.every obj, (val) ->
-		return false if !isValidShortText(val.appId) or !checkInt(val.appId)? # key is appId
-		return false if !isValidShortText(val.name) or (val.config? and !isValidEnv(val.config))
-		return false if val.commit? and (!isValidShortText(val.image) or !isValidShortText(val.commit))
-		if val.environment?
-			return false if !isValidEnv(val.environment)
-		return true
+		isValidDependentApp(val)
 	return true
 
 exports.isValidAppsArray = (arr) ->
@@ -69,6 +75,6 @@ exports.isValidDependentDevicesArray = (devices) ->
 		return false if !isValidShortText(val.name)
 		return false if !_.isObject(val.apps) or _.isEmpty(val.apps)
 		return false if !_.every val.apps, (app) ->
-			return (!app.config? or isValidEnv(app.config)) and (!app.environment? or isValidEnv(app.environment))
+			return undefinedOrValidEnv(app.config) and undefinedOrValidEnv(app.environment)
 		return true
 	return true
