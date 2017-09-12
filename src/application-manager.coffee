@@ -17,7 +17,7 @@ Images = require './compose/images'
 Networks = require './compose/networks'
 Volumes = require './compose/volumes'
 
-Proxyvisor = require './proxyvisor/proxyvisor'
+Proxyvisor = require './proxyvisor'
 
 # TODO: implement v2 endpoints
 # v1 endpoins only work for single-container apps as they assume the app has a single service.
