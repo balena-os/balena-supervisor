@@ -86,7 +86,7 @@ knex.init = Promise.all([
 				t.string('name')
 				t.string('status')
 				t.string('download_progress')
-				t.string('is_managed_by')
+				t.string('device')
 				t.dateTime('lock_expiry_date')
 				t.string('commit')
 				t.string('targetCommit')
@@ -99,7 +99,7 @@ knex.init = Promise.all([
 			Promise.all [
 				addColumn('dependentDevice', 'markedForDeletion', 'boolean')
 				addColumn('dependentDevice', 'localId', 'string')
-				addColumn('dependentDevice', 'is_managed_by', 'string')
+				addColumn('dependentDevice', 'device', 'string')
 				addColumn('dependentDevice', 'lock_expiry_date', 'dateTime')
 		]
 ])
