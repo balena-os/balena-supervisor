@@ -1,4 +1,7 @@
 
+exports.defaultLegacyVolume = (appId) ->
+	return "resin-data-#{appId}"
+
 exports.singleToMulticontainerApp = (app, appId) ->
 	newApp = {
 		appId
@@ -6,7 +9,7 @@ exports.singleToMulticontainerApp = (app, appId) ->
 		name: app.name
 		releaseId: '1'
 		networks: {}
-		volumes: { "resin-data-#{appId}": {} }
+		volumes: { "#{exports.defaultLegacyVolume(appId)}": {} }
 		config: app.config ? {}
 	}
 	newApp.services = [
@@ -20,7 +23,7 @@ exports.singleToMulticontainerApp = (app, appId) ->
 			privileged: true
 			network_mode: 'host'
 			volumes: [
-				"resin-data-#{appId}:/data"
+				"#{exports.defaultLegacyVolume(appId)}:/data"
 			]
 			labels: {
 				'io.resin.features.kernel_modules': '1'
