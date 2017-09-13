@@ -791,21 +791,25 @@ module.exports = class ApplicationManager
 			return notUsedForDelta and notUsedByProxyvisor
 
 	_inferNextSteps: (imagesToCleanup, availableImages, current, target, stepsInProgress) =>
-		currentByAppId = _.keyBy(current.local.apps ? [], 'appId')
-		targetByAppId = _.keyBy(target.local.apps ? [], 'appId')
-		nextSteps = []
-		if !_.isEmpty(imagesToCleanup) and !_.some(stepsInProgress, (step) -> step.action == 'fetch')
-			nextSteps.push({ action: 'cleanup' })
-		imagesToRemove = @_unnecessaryImages(current, target, availableImages)
-		_.forEach imagesToRemove, (image) ->
-			nextSteps.push({ action: 'removeImage', image })
-		allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
-		Promise.map allAppIds, (appId) =>
-			@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, stepsInProgress)
-			.then (nextStepsForThisApp) ->
-				nextSteps = nextSteps.concat(nextStepsForThisApp)
-		.then =>
-			return @_removeDuplicateSteps(nextSteps, stepsInProgress)
+		Promise.try =>
+			currentByAppId = _.keyBy(current.local.apps ? [], 'appId')
+			targetByAppId = _.keyBy(target.local.apps ? [], 'appId')
+			nextSteps = []
+			if !_.isEmpty(imagesToCleanup) and !_.some(stepsInProgress, (step) -> step.action == 'fetch')
+				nextSteps.push({ action: 'cleanup' })
+			imagesToRemove = @_unnecessaryImages(current, target, availableImages)
+			_.forEach imagesToRemove, (image) ->
+				nextSteps.push({ action: 'removeImage', image })
+			# If we have to remove any images, we do that before anything else
+			return nextSteps if !_.isEmpty(nextSteps)
+
+			allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
+			Promise.map allAppIds, (appId) =>
+				@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, stepsInProgress)
+				.then (nextStepsForThisApp) ->
+					nextSteps = nextSteps.concat(nextStepsForThisApp)
+			.then =>
+				return @_removeDuplicateSteps(nextSteps, stepsInProgress)
 
 	_removeDuplicateSteps: (nextSteps, stepsInProgress) ->
 		withoutProgressDups = _.filter nextSteps, (step) ->
