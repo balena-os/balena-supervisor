@@ -193,7 +193,9 @@ class ProxyvisorRouter
 						@proxyvisor.apiBinder.patchDevice(device.deviceId, fieldsToUpdateOnAPI)
 				.then =>
 					@db.models('dependentDevice').update(fieldsToUpdateOnDB).where({ uuid })
-				.then ->
+				.then =>
+					@db.models('dependentDevice').select().where({ uuid })
+				.then ([ device ]) ->
 					res.json(parseDeviceFields(device))
 			.catch (err) ->
 				console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
