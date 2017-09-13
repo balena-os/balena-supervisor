@@ -48,6 +48,7 @@
     "mocha": "^3.4.2",
     "mocha-jenkins-reporter": "^0.3.8",
     "mochainon": "^2.0.0",
+    "ncp": "^2.0.0",
     "network-checker": "~0.0.5",
     "node-loader": "^0.6.0",
     "null-loader": "^0.1.1",
