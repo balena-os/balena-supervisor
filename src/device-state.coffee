@@ -175,6 +175,8 @@ module.exports = class DeviceState extends EventEmitter
 							devConf = @deviceConfig.filterConfigKeys(appAsState.config)
 							_.assign(legacyTarget.local.config, devConf) if !_.isEmpty(devConf)
 						legacyTarget.local.apps.push(migration.singleToMulticontainerApp(appAsState, appId))
+					.then =>
+						@applications.volumes.createFromLegacy(appId)
 				.catch (err) ->
 					console.error("Ignoring legacy app #{app.imageId} due to #{err}")
 		.then =>
