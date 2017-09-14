@@ -19,6 +19,7 @@ module.exports = class Volumes
 			appId
 			config: {
 				labels: _.omit(volume.Labels, _.keys(@defaultLabels(appId)))
+				driver_opts: volume.Options
 			}
 		}
 
@@ -52,9 +53,11 @@ module.exports = class Volumes
 		@logger.logSystemEvent(logTypes.createVolume, { volume: { name } })
 		labels = _.clone(config.labels) ? {}
 		_.assign(labels, @defaultLabels(appId))
+		driverOpts = config.driver_opts ? {}
 		@docker.createVolume({
 			Name: name
 			Labels: labels
+			DriverOpts: driverOpts
 		})
 		.catch (err) =>
 			@logger.logSystemEvent(logTypes.createVolumeError, { volume: { name }, error: err })
@@ -63,8 +66,10 @@ module.exports = class Volumes
 	createFromLegacy: (appId) =>
 		name = migration.defaultLegacyVolume(appId)
 		@create({ name, appId })
-		.then ->
-			volumePath = "#{constants.rootMountPoint}/var/lib/docker/volumes/#{name}/_data"
+		.then (v) ->
+			v.inspect()
+		.then (v) ->
+			volumePath = "#{constants.rootMountPoint}#{v.Mountpoint}"
 			legacyPath = "/mnt/root/resin-data/#{appId}"
 			fs.lstatAsync(legacyPath)
 			.then ->
@@ -91,4 +96,8 @@ module.exports = class Volumes
 			@logger.logSystemEvent(logTypes.removeVolumeError, { volume: { name }, error: err })
 
 	isEqualConfig: (current, target) ->
-		_.isEqual(current.labels, target.labels)
+		currentOpts = current.driver_opts ? {}
+		targetOpts = target.driver_opts ? {}
+		currentLabels = current.labels ? {}
+		targetLabels = target.labels ? {}
+		return _.isEqual(currentLabels, targetLabels) and _.isEqual(currentOpts, targetOpts)
