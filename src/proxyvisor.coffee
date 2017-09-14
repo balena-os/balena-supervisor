@@ -57,7 +57,7 @@ cleanupTars = (appId, commit) ->
 				return file isnt fileToKeep
 		Promise.map files, (file) ->
 			if !fileToKeep? or (file isnt fileToKeep)
-				fs.unlinkAsync(dir + file)
+				fs.unlinkAsync(path.join(dir, file))
 
 formatTargetAsState = (device) ->
 	return {
