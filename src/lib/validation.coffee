@@ -17,8 +17,8 @@ exports.checkString = (s) ->
 	return s
 
 exports.checkTruthy = (v) ->
-	if v == '1' or v == 'true' or v == true or v == 'on'
+	if v in [ '1', 'true', true, 'on', 1 ]
 		return true
-	if v == '0' or v == 'false' or v == false or v == 'off'
+	if v in [ '0', 'false', false, 'off', 0 ]
 		return false
 	return

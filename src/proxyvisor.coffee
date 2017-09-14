@@ -243,7 +243,12 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 			return app.commit? and !_.some(remoteApps, imageId: app.imageId)
 		toBeDeletedFromDB = _(localApps).reject((app, appId) -> remoteApps[appId]?).map('appId').value()
 		Promise.map toBeDownloaded, (app) ->
-			fetchFn(app, false)
+			deltaSource = null
+			if localApps[app.appId]?
+				deltaSource = localApps[app.appId].imageId
+			else if !_.isEmpty(localDependentApps)
+				deltaSource = localDependentApps[0].imageId
+			fetchFn(app, { deltaSource, setDeviceUpdateState: false })
 		.then ->
 			Promise.map toBeRemoved, (app) ->
 				fs.unlinkAsync(tarPath(app))

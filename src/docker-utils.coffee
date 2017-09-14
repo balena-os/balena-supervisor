@@ -10,38 +10,9 @@ _ = require 'lodash'
 knex = require './db'
 { request, resumable } = require './request'
 Lock = require 'rwlock'
-utils = require './utils'
-rimraf = Promise.promisify(require('rimraf'))
 
 exports.docker = docker = new Docker()
 dockerProgress = new DockerProgress(dockerToolbelt: docker)
-
-# Create an array of (repoTag, image_id, created) tuples like the output of `docker images`
-listRepoTags = ->
-	docker.listImages()
-	.then (images) ->
-		images = _.orderBy(images, 'Created', [ false ])
-		ret = []
-		for image in images
-			for repoTag in image.RepoTags
-				ret.push [ repoTag, image.Id, image.Created ]
-		return ret
-
-# Find either the most recent image of the same app or the image of the supervisor.
-# Returns an image Id or Tag (depending on whatever's available)
-findSimilarImage = (repoTag) ->
-	application = repoTag.split('/')[1]
-
-	listRepoTags()
-	.then (repoTags) ->
-		# Find the most recent image of the same application
-		for repoTag in repoTags
-			otherApplication = repoTag[0].split('/')[1]
-			if otherApplication is application
-				return repoTag[0]
-
-		# Otherwise we start from scratch
-		return 'resin/scratch'
 
 getRepoAndTag = (image) ->
 	docker.getRegistryAndName(image)
@@ -82,13 +53,21 @@ do ->
 		.disposer (release) ->
 			release()
 
-	exports.rsyncImageWithProgress = (imgDest, { requestTimeout, applyTimeout, retryCount, retryInterval, uuid, apiKey, startFromEmpty = false }, onProgress) ->
+	exports.rsyncImageWithProgress = (imgDest, opts, onProgress) ->
+		{ requestTimeout, applyTimeout, retryCount, retryInterval, uuid, apiKey, deltaSource, startFromEmpty = false } = opts
 		Promise.using readLockImages(), ->
 			Promise.try ->
-				if startFromEmpty
+				if startFromEmpty or !deltaSource?
 					return 'resin/scratch'
-				findSimilarImage(imgDest)
+				else
+					docker.getImage(deltaSource).inspect()
+					.then ->
+						return deltaSource
+					.catch ->
+						return 'resin/scratch'
 			.then (imgSrc) ->
+				# I'll leave this debug log here in case we ever wonder what delta source a device is using in production
+				console.log("Using delta source #{imgSrc}")
 				Promise.join docker.getRegistryAndName(imgDest), docker.getRegistryAndName(imgSrc), (dstInfo, srcInfo) ->
 					tokenEndpoint = "#{config.apiEndpoint}/auth/v1/token"
 					opts =
@@ -132,8 +111,10 @@ do ->
 				.then ({ repo, tag }) ->
 					docker.getImage(id).tag({ repo, tag, force: true })
 			.catch dockerDelta.OutOfSyncError, (err) ->
+				throw err if startFromEmpty
 				console.log('Falling back to delta-from-empty')
-				exports.rsyncImageWithProgress(imgDest, { requestTimeout, totalTimeout, uuid, apiKey, startFromEmpty: true }, onProgress)
+				opts.startFromEmpty = true
+				exports.rsyncImageWithProgress(imgDest, opts, onProgress)
 
 	exports.fetchImageWithProgress = (image, onProgress, { uuid, apiKey }) ->
 		Promise.using readLockImages(), ->
