@@ -3,6 +3,7 @@ _ = require 'lodash'
 fs = Promise.promisifyAll(require('fs'))
 ncp = Promise.promisify(require('ncp').ncp)
 rimraf = Promise.promisify(require('rimraf'))
+exec = Promise.promisify(require('child_process').exec)
 ncp.limit = 16
 
 logTypes = require '../lib/log-types'
@@ -74,6 +75,8 @@ module.exports = class Volumes
 			fs.lstatAsync(legacyPath)
 			.then ->
 				ncp(legacyPath, volumePath)
+			.then ->
+				exec('sync')
 			.then ->
 				# Before deleting, we rename so that if there's an unexpected poweroff
 				# next time we won't copy a partially deleted folder into the volume
