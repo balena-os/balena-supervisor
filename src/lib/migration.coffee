@@ -33,6 +33,7 @@ exports.singleToMulticontainerApp = (app, appId) ->
 				'io.resin.features.resin_api': '1'
 				'io.resin.update.strategy': newApp.config['RESIN_SUPERVISOR_UPDATE_STRATEGY'] ? 'download-then-kill'
 				'io.resin.update.handover_timeout': newApp.config['RESIN_SUPERVISOR_HANDOVER_TIMEOUT'] ? ''
+				'io.resin.restart_token': (newApp.config['RESIN_RESTART'] ? '') + (newApp.config['RESIN_DEVICE_RESTART'] ? '')
 			}
 			environment: app.environment ? {}
 			restart: 'unless-stopped'
