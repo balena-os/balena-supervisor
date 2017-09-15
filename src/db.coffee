@@ -5,6 +5,7 @@ knex = Knex(
 	client: 'sqlite3'
 	connection:
 		filename: '/data/database.sqlite'
+	useNullAsDefault: true
 )
 
 addColumn = (table, column, type) ->
@@ -46,15 +47,19 @@ knex.init = Promise.all([
 				t.boolean('privileged')
 				t.json('env')
 				t.json('config')
+				t.boolean('markedForDeletion')
 		else
 			Promise.all [
 				addColumn('app', 'commit', 'string')
 				addColumn('app', 'appId', 'string')
 				addColumn('app', 'config', 'json')
+				addColumn('app', 'markedForDeletion', 'boolean')
 			]
 			.then ->
 				# When updating from older supervisors, config can be null
 				knex('app').update({ config: '{}' }).whereNull('config')
+				.then ->
+					knex('app').update({ markedForDeletion: false }).whereNull('markedForDeletion')
 
 	knex.schema.hasTable('dependentApp')
 	.then (exists) ->

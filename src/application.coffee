@@ -206,7 +206,7 @@ isValidPort = (port) ->
 	maybePort = parseInt(port, 10)
 	return parseFloat(port) is maybePort and maybePort > 0 and maybePort < 65535
 
-fetch = (app, setDeviceUpdateState = true) ->
+fetch = (app, { deltaSource, setDeviceUpdateState = true } = {}) ->
 	onProgress = (progress) ->
 		device.updateState(download_progress: progress.percentage)
 
@@ -226,6 +226,7 @@ fetch = (app, setDeviceUpdateState = true) ->
 						applyTimeout: checkInt(conf['RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT'], positive: true) ? DEFAULT_DELTA_APPLY_TIMEOUT
 						retryCount: checkInt(conf['RESIN_SUPERVISOR_DELTA_RETRY_COUNT'], positive: true)
 						retryInterval: checkInt(conf['RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL'], positive: true)
+						deltaSource
 					}
 					dockerUtils.rsyncImageWithProgress(app.imageId, deltaOpts, onProgress)
 				else
@@ -555,9 +556,9 @@ updateStatus =
 	intervalHandle: null
 
 updateStrategies =
-	'download-then-kill': ({ localApp, app, needsDownload, force }) ->
+	'download-then-kill': ({ localApp, app, needsDownload, force, deltaSource }) ->
 		Promise.try ->
-			fetch(app) if needsDownload
+			fetch(app, { deltaSource }) if needsDownload
 		.then ->
 			Promise.using lockUpdates(localApp, force), ->
 				logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
@@ -568,19 +569,19 @@ updateStrategies =
 			.catch (err) ->
 				logSystemEvent(logTypes.updateAppError, app, err) unless err instanceof UpdatesLockedError
 				throw err
-	'kill-then-download': ({ localApp, app, needsDownload, force }) ->
+	'kill-then-download': ({ localApp, app, needsDownload, force, deltaSource }) ->
 		Promise.using lockUpdates(localApp, force), ->
 			logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
 			utils.getKnexApp(localApp.appId)
 			.then(kill)
 			.then ->
-				fetch(app) if needsDownload
+				fetch(app, { deltaSource }) if needsDownload
 			.then ->
 				start(app)
 		.catch (err) ->
 			logSystemEvent(logTypes.updateAppError, app, err) unless err instanceof UpdatesLockedError
 			throw err
-	'delete-then-download': ({ localApp, app, needsDownload, force }) ->
+	'delete-then-download': ({ localApp, app, needsDownload, force, deltaSource }) ->
 		Promise.using lockUpdates(localApp, force), ->
 			logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
 			utils.getKnexApp(localApp.appId)
@@ -591,18 +592,18 @@ updateStrategies =
 				if needsDownload
 					deleteImage(appFromDB)
 					.then ->
-						fetch(app)
+						fetch(app, { deltaSource })
 			.then ->
 				start(app)
 		.catch (err) ->
 			logSystemEvent(logTypes.updateAppError, app, err) unless err instanceof UpdatesLockedError
 			throw err
-	'hand-over': ({ localApp, app, needsDownload, force, timeout }) ->
+	'hand-over': ({ localApp, app, needsDownload, force, timeout, deltaSource }) ->
 		Promise.using lockUpdates(localApp, force), ->
 			utils.getKnexApp(localApp.appId)
 			.then (localApp) ->
 				Promise.try ->
-					fetch(app) if needsDownload
+					fetch(app, { deltaSource }) if needsDownload
 				.then ->
 					logSystemEvent(logTypes.updateApp, app) if localApp.imageId == app.imageId
 					start(app)
@@ -647,13 +648,16 @@ parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
 				env: JSON.stringify(env)
 				config: JSON.stringify(app.config)
 				name: app.name
+				markedForDeletion: false
 			}
 	Promise.props(appsWithEnv)
 
 formatLocalApps = (apps) ->
 	apps = _.keyBy(apps, 'appId')
 	localApps = _.mapValues apps, (app) ->
-		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name' ])
+		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name', 'markedForDeletion' ])
+		app.markedForDeletion = checkTruthy(app.markedForDeletion)
+		return app
 	return localApps
 
 restartVars = (conf) ->
@@ -682,6 +686,9 @@ compareForUpdate = (localApps, remoteApps) ->
 	toBeDownloaded = _.filter toBeUpdated, (appId) ->
 		return !_.isEqual(remoteApps[appId].imageId, localApps[appId].imageId)
 	toBeDownloaded = _.union(toBeDownloaded, toBeInstalled)
+
+	# The order in this _.union ensures that installations (new appIds) go last, so
+	# they will happen *after* removals.
 	allAppIds = _.union(localAppIds, remoteAppIds)
 	return { toBeRemoved, toBeDownloaded, toBeInstalled, toBeUpdated, appsWithUpdatedConfigs, remoteAppIds, allAppIds }
 
@@ -713,13 +720,6 @@ application.update = update = (force, scheduled = false) ->
 					utils.setConfig('name', local.name) if local.name != deviceName
 				.then ->
 					parseEnvAndFormatRemoteApps(local.apps, uuid, apiKey)
-			.tap (remoteApps) ->
-				# Before running the updates, try to clean up any images that aren't in use
-				# and will not be used in the target state
-				return if application.localMode or device.shuttingDown
-				dockerUtils.cleanupContainersAndImages(_.map(remoteApps, 'imageId'))
-				.catch (err) ->
-					console.log('Cleanup failed: ', err, err.stack)
 			.then (remoteApps) ->
 				localApps = formatLocalApps(apps)
 				resourcesForUpdate = compareForUpdate(localApps, remoteApps)
@@ -727,8 +727,21 @@ application.update = update = (force, scheduled = false) ->
 
 				if !_.isEmpty(toBeRemoved) or !_.isEmpty(toBeInstalled) or !_.isEmpty(toBeUpdated)
 					device.setUpdateState(update_pending: true)
-				# Run special functions against variables
-				Promise.try ->
+				deltaSource = {}
+
+				Promise.map toBeDownloaded, (appId) ->
+					if _.includes(toBeUpdated, appId)
+						deltaSource[appId] = localApps[appId].imageId
+					else if !_.isEmpty(apps) # apps is localApps as an array
+						deltaSource[appId] = apps[0].imageId
+				.then ->
+					# Before running the updates, try to clean up any images that aren't in use
+					# and will not be used in the target state
+					return if application.localMode or device.shuttingDown
+					dockerUtils.cleanupContainersAndImages(_.map(remoteApps, 'imageId').concat(_.values(deltaSource)))
+					.catch (err) ->
+						console.log('Cleanup failed: ', err, err.stack)
+				.then ->
 					remoteDeviceConfig = {}
 					_.map remoteAppIds, (appId) ->
 						_.merge(remoteDeviceConfig, JSON.parse(remoteApps[appId].config))
@@ -743,7 +756,9 @@ application.update = update = (force, scheduled = false) ->
 				.catch (err) ->
 					logSystemMessage("Error fetching/applying device configuration: #{err}", { error: err }, 'Set device configuration error')
 				.return(allAppIds)
-				.map (appId) ->
+				.mapSeries (appId) ->
+					# The sorting of allAppIds from compareForUpdate ensures that toBeRemoved is
+					# done before toBeInstalled, which is the behavior we want.
 					return if application.localMode or device.shuttingDown
 					Promise.try ->
 						needsDownload = _.includes(toBeDownloaded, appId)
@@ -755,14 +770,14 @@ application.update = update = (force, scheduled = false) ->
 								utils.getKnexApp(appId)
 								.then(kill)
 								.then ->
-									knex('app').where('appId', appId).delete()
+									knex('app').where('appId', appId).update(markedForDeletion: true)
 							.catch (err) ->
 								logSystemEvent(logTypes.updateAppError, app, err)
 								throw err
 						else if _.includes(toBeInstalled, appId)
 							app = remoteApps[appId]
 							Promise.try ->
-								fetch(app) if needsDownload
+								fetch(app, { deltaSource: deltaSource[appId] }) if needsDownload
 							.then ->
 								start(app)
 						else if _.includes(toBeUpdated, appId)
@@ -779,6 +794,7 @@ application.update = update = (force, scheduled = false) ->
 								needsDownload
 								force: force || forceThisApp
 								timeout
+								deltaSource: deltaSource[appId]
 							}
 						else if _.includes(appsWithUpdatedConfigs, appId)
 							# These apps have no changes other than config variables.
@@ -806,7 +822,9 @@ application.update = update = (force, scheduled = false) ->
 			device.setUpdateState(update_pending: false, update_downloaded: false, update_failed: false)
 			# We cleanup here as we want a point when we have a consistent apps/images state, rather than potentially at a
 			# point where we might clean up an image we still want.
-			dockerUtils.cleanupContainersAndImages()
+			knex('app').where(markedForDeletion: true).del()
+			.then ->
+				dockerUtils.cleanupContainersAndImages()
 		.catch (err) ->
 			updateStatus.failed++
 			device.setUpdateState(update_failed: true)
@@ -865,7 +883,7 @@ application.initialize = ->
 	listenToEvents()
 	getAndApplyDeviceConfig()
 	.then ->
-		knex('app').select()
+		knex('app').whereNot(markedForDeletion: true).select()
 	.map (app) ->
 		unlockAndStart(app) if !application.localMode and !device.shuttingDown
 	.catch (error) ->
