@@ -19,7 +19,7 @@ exports.supervisorVersion = require('./lib/supervisor-version')
 
 configJson = JSON.parse(fs.readFileSync('/boot/config.json'))
 if Boolean(config.apiEndpoint) and !Boolean(configJson.supervisorOfflineMode)
-	mixpanelClient = mixpanel.init(config.mixpanelToken)
+	mixpanelClient = mixpanel.init(config.mixpanelToken, { host: config.mixpanelHost })
 else
 	mixpanelClient = { track: _.noop }
 
