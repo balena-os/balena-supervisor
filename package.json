@@ -34,6 +34,7 @@
     "docker-toolbelt": "^3.0.3",
     "event-stream": "^3.0.20",
     "express": "^4.0.0",
+    "json-mask": "^0.3.8",
     "knex": "~0.12.3",
     "lockfile": "^1.0.1",
     "lodash": "^4.16.3",
