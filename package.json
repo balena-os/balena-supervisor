@@ -30,7 +30,7 @@
     "coffee-loader": "^0.7.3",
     "coffee-script": "~1.11.0",
     "docker-delta": "^2.0.1",
-    "docker-progress": "^2.7.0",
+    "docker-progress": "^2.7.1",
     "docker-toolbelt": "^3.0.1",
     "event-stream": "^3.0.20",
     "express": "^4.0.0",
