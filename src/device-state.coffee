@@ -208,8 +208,8 @@ module.exports = class DeviceState extends EventEmitter
 					if !_.isEmpty(devicesForThisApp)
 						devices = _.map devicesForThisApp, (d) ->
 							d.markedForDeletion ?= false
-							d.localId ?= null
-							d.is_managed_by ?= null
+							d.local_id ?= null
+							d.device ?= null
 							d.lock_expiry_date ?= null
 							return d
 						devicesForState = _.map devicesForThisApp, (d) ->
