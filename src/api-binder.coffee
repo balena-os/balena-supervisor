@@ -432,3 +432,25 @@ module.exports = class APIBinder
 			if !@reportPending
 				@_reportCurrentState()
 		@_reportCurrentState()
+
+	sendOnlineDependentDevices: (app_id, device_type, online_devices, expiry_date) =>
+		@config.getMany(['userId', 'uuid', 'currentApiKey', 'resinApiEndpoint', 'apiTimeout' ])
+		.then ({ uuid, currentApiKey, resinApiEndpoint, apiTimeout }) =>
+			onlineDependentDevices = {
+				user_id: userId
+				gateway_id: uuid,
+				dependent_app_id: app_id
+				dependent_device_type: device_type
+				online_dependent_devices: online_devices
+				expiry_date: expiry_date
+			}
+
+			endpoint = url.resolve(resinApiEndpoint, '/dependent/v1/scan')
+			requestParams = _.extend
+				method: 'POST'
+				url: "#{endpoint}?&apikey=#{currentApiKey}"
+				body: onlineDependentDevices
+			, @cachedResinApi.passthrough
+
+			@cachedResinApi._request(requestParams)
+			.timeout(apiTimeout)

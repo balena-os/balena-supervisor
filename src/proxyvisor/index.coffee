@@ -21,7 +21,7 @@ class ProxyvisorRouter
 		@router.use(bodyParser.urlencoded(extended: true))
 		@router.use(bodyParser.json())
 		@router.use('/v1', @_proxyvisorRouterV1.router)
-		@router.use('/v2', @_proxyvisorRouterV2.router)
+		@router.use('/v2/dependent', @_proxyvisorRouterV2.router)
 
 module.exports = class Proxyvisor
 	constructor: ({ @config, @logger, @db, @docker, @images, @applications, @reportCurrentState }) ->

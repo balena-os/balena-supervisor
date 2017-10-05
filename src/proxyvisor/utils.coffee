@@ -5,24 +5,34 @@ path = require 'path'
 mkdirp = Promise.promisify(require('mkdirp'))
 execAsync = Promise.promisify(require('child_process').exec)
 
-module.exports =
+self = module.exports =
 
 	isDefined: _.negate(_.isUndefined)
-
-	parseDeviceFields: (device) ->
-		device.id = parseInt(device.deviceId)
-		device.appId = parseInt(device.appId)
-		device.config = JSON.parse(device.config ? '{}')
-		device.environment = JSON.parse(device.environment ? '{}')
-		device.targetConfig = JSON.parse(device.targetConfig ? '{}')
-		device.targetEnvironment = JSON.parse(device.targetEnvironment ? '{}')
-		return _.omit(device, 'markedForDeletion', 'logs_channel')
-
-	# TODO move to lib/validation
 	validStringOrUndefined: (s) ->
 		_.isUndefined(s) or !_.isEmpty(s)
 	validObjectOrUndefined: (o) ->
 		_.isUndefined(o) or _.isObject(o)
+	validBooleanOrUndefined: (b) ->
+		_.isUndefined(b) or _.isBoolean(b)
+	validNumberOrUndefined: (i) ->
+		_.isUndefined(i) or !_.isNaN(parseInt(i))
+	validDateOrUndefined: (d) ->
+		_.isUndefined(d) or _.isDate(new Date(d))
+
+	parseDeviceFields: (device) ->
+		device.appId = parseInt(device.appId)
+		device.environment = JSON.parse(device.environment ? '{}')
+		device.targetEnvironment = JSON.parse(device.targetEnvironment ? '{}')
+		device.config = JSON.parse(device.config ? '{}')
+		device.targetConfig = JSON.parse(device.targetConfig ? '{}')
+		return _.omit(device, 'deviceId', 'markedForDeletion', 'logs_channel')
+
+	parseApplicationFields: (application) ->
+		application.appId = parseInt(application.appId)
+		application.parentApp = parseInt(application.parentApp)
+		application.environment = JSON.parse(application.environment ? '{}')
+		application.config = JSON.parse(application.config ? '{}')
+		return _.omit(application, 'id', 'releaseId', 'image')
 
 	tarDirectory: (appId) ->
 		return "/data/dependent-assets/#{appId}"
@@ -31,7 +41,7 @@ module.exports =
 		return "#{appId}-#{commit}.tar"
 
 	tarPath: (appId, commit) ->
-		return "#{@tarDirectory(appId)}/#{@tarFilename(appId, commit)}"
+		return "#{self.tarDirectory(appId)}/#{self.tarFilename(appId, commit)}"
 
 	getTarArchive: (source, destination) ->
 		fs.lstatAsync(destination)
@@ -42,10 +52,11 @@ module.exports =
 
 	cleanupTars: (appId, commit) ->
 		if commit?
-			fileToKeep = @tarPath(appId, commit)
+			fileToKeep = self.tarFilename(appId, commit)
 		else
 			fileToKeep = null
-		fs.readdirAsync(@tarDirectory(appId))
+		dir = self.tarDirectory(appId)
+		fs.readdirAsync(dir)
 		.catchReturn([])
 		.then (files) ->
 			if fileToKeep?
@@ -53,7 +64,7 @@ module.exports =
 					return file isnt fileToKeep
 			Promise.map files, (file) ->
 				if !fileToKeep? or (file isnt fileToKeep)
-					fs.unlinkAsync(file)
+					fs.unlinkAsync(path.join(dir, file))
 
 	formatTargetAsState: (device) ->
 		return {
