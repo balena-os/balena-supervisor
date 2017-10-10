@@ -30,6 +30,7 @@
 # * SUPERVISOR_EXTRA_MOUNTS: Additional bind mount flags for the docker-in-docker supervisor
 # * PASSWORDLESS_DROPBEAR: For run-supervisor - start a passwordless ssh daemon in the docker-in-docker supervisor
 # * CONTAINER_NAME: For run-supervisor, specify the container name for the docker-in-docker container (default: resin_supervisor_1)
+# * CONFIG_FILENAME: For run-supervisor, specify the filename to mount as config.json, relative to tools/dind/ (default: config.json)
 #
 
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
@@ -78,9 +79,10 @@ IMAGE ?= resin/$(ARCH)-supervisor:master
 SUPERVISOR_IMAGE ?= resin/$(ARCH)-supervisor:master
 PASSWORDLESS_DROPBEAR ?= false
 CONTAINER_NAME ?= resin_supervisor_1
+CONFIG_FILENAME ?= config.json
 
 # Bind mounts and variables for the run-supervisor target
-SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/../../:/resin-supervisor -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv
+SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/../../:/resin-supervisor -v $$(pwd)/$(CONFIG_FILENAME):/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv
 ifeq ($(OS), Linux)
 	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v /bin/kmod:/bin/kmod
 endif
