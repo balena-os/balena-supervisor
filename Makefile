@@ -29,6 +29,7 @@
 # * PRELOADED_IMAGE: If true, will preload user app image from tools/dev/apps.json and bind mount apps.json into the docker-in-docker supervisor
 # * SUPERVISOR_EXTRA_MOUNTS: Additional bind mount flags for the docker-in-docker supervisor
 # * PASSWORDLESS_DROPBEAR: For run-supervisor - start a passwordless ssh daemon in the docker-in-docker supervisor
+# * CONTAINER_NAME: For run-supervisor, specify the container name for the docker-in-docker container (default: resin_supervisor_1)
 #
 
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
@@ -76,6 +77,7 @@ IMAGE ?= resin/$(ARCH)-supervisor:master
 # Default values for run-supervisor
 SUPERVISOR_IMAGE ?= resin/$(ARCH)-supervisor:master
 PASSWORDLESS_DROPBEAR ?= false
+CONTAINER_NAME ?= resin_supervisor_1
 
 # Bind mounts and variables for the run-supervisor target
 SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/../../:/resin-supervisor -v $$(pwd)/config.json:/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv
@@ -150,14 +152,14 @@ run-supervisor: stop-supervisor supervisor-dind
 	if [ -n "$(rt_no_proxy)" ]; then \
 		echo "no_proxy=$(rt_no_proxy)" >> config/localenv; \
 	fi \
-	&& docker run -d --name resin_supervisor_1 --privileged ${SUPERVISOR_DIND_MOUNTS} $(IMAGE)
+	&& docker run -d --name $(CONTAINER_NAME) --privileged ${SUPERVISOR_DIND_MOUNTS} $(IMAGE)
 
 stop-supervisor:
 	# Stop docker and remove volumes to prevent us from running out of loopback devices,
 	# as per https://github.com/jpetazzo/dind/issues/19
-	-docker exec resin_supervisor_1 bash -c "systemctl stop docker" || true
-	-docker stop resin_supervisor_1 > /dev/null || true
-	-docker rm -f --volumes resin_supervisor_1 > /dev/null || true
+	-docker exec $(CONTAINER_NAME) bash -c "systemctl stop docker" || true
+	-docker stop $(CONTAINER_NAME) > /dev/null || true
+	-docker rm -f --volumes $(CONTAINER_NAME) > /dev/null || true
 
 supervisor-image:
 ifneq ($(DOCKER_GE_17_05),true)

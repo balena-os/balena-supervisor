@@ -21,6 +21,7 @@
 # 	--arch | -a  [arch]		architecture of the supervisor to build (default: amd64 )
 # 	--image | -i [image]	image name for supervisor image to build/use ( default: resin/$ARCH-supervisor:master )
 # 	--dind-image [image]	image name for the dind host container
+# 	--dind-container [name]	container name for the dind host container ( default: resin_supervisor_1 )
 # 	--mount-dist			bind-mount './dist/' (where webpack stores the built js) from local development environment into supervisor container.
 # 	--mount-nm				bind-mount './node_modules/' from local development environment into supervisor container.
 #	--preload | -p			use tools/dev/apps.json to preload an application image into the dind host.
@@ -45,6 +46,7 @@ PASSWORDLESS_DROPBEAR="false"
 SUPERVISOR_EXTRA_MOUNTS=""
 DIST_MOUNTED="false"
 DIND_IMAGE="resin-supervisor-dind"
+CONTAINER_NAME="resin_supervisor_1"
 PRELOADED_IMAGE=""
 OPTIMIZE="true"
 
@@ -76,6 +78,10 @@ function parseOptions {
 			--dind-image)
 				DIND_IMAGE="$2"
 				shift || { echo "--dind-image provided not specified" && exit 1; }
+				;;
+			--dind-container)
+				CONTAINER_NAME="$2"
+				shift || { echo "--dind-container provided not specified" && exit 1; }
 				;;
 			-a|--arch)
 				ARCH="$2"
@@ -113,7 +119,7 @@ function buildSupervisorSrc {
 function refreshSupervisorSrc {
 	buildSupervisorSrc
 	echo "Restarting the supervisor container"
-	docker exec -ti resin_supervisor_1 docker restart resin_supervisor
+	docker exec -ti $CONTAINER_NAME docker restart resin_supervisor
 }
 
 function runDind {
@@ -136,16 +142,17 @@ function runDind {
 		SUPERVISOR_EXTRA_MOUNTS="$SUPERVISOR_EXTRA_MOUNTS" \
 		PRELOADED_IMAGE="$PRELOADED_IMAGE" \
 		IMAGE="$DIND_IMAGE" \
+		CONTAINER_NAME="$CONTAINER_NAME" \
 		run-supervisor
 }
 
 function stopDind {
 	echo "Stopping dind supervisor"
-	make -C "$SUPERVISOR_BASE_DIR" stop-supervisor
+	make -C "$SUPERVISOR_BASE_DIR" CONTAINER_NAME="$CONTAINER_NAME" stop-supervisor
 }
 
 function logs {
-	docker exec -ti resin_supervisor_1 journalctl $@
+	docker exec -ti $CONTAINER_NAME journalctl $@
 }
 
 action="$1"
