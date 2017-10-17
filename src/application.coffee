@@ -18,6 +18,7 @@ proxyvisor = require './proxyvisor'
 { checkInt, checkTruthy } = require './lib/validation'
 osRelease = require './lib/os-release'
 deviceConfig = require './device-config'
+randomHexString = require './lib/random-hex-string'
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -155,7 +156,7 @@ logSpecialAction = (action, value, success) ->
 application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}) ->
 	logSystemEvent(logTypes.stopApp, app)
 	device.updateState(status: 'Stopping')
-	container = docker.getContainer(app.containerId)
+	container = docker.getContainer(app.containerName)
 	container.stop(t: 10)
 	.then ->
 		container.remove(v: true) if removeContainer
@@ -183,7 +184,7 @@ application.kill = kill = (app, { updateDB = true, removeContainer = true } = {}
 	.tap ->
 		logSystemEvent(logTypes.stopAppSuccess, app)
 		if removeContainer && updateDB
-			app.containerId = null
+			app.containerName = null
 			knex('app').update(app).where(appId: app.appId)
 	.catch (err) ->
 		logSystemEvent(logTypes.stopAppError, app, err)
@@ -255,6 +256,12 @@ isExecFormatError = (err) ->
 		message = err.json.trim()
 	/exec format error$/.test(message)
 
+generateContainerName = (app) ->
+	randomHexString.generate()
+	.then (randomString) ->
+		sanitisedAppName = app.name.replace(/[^a-zA-Z0-9]+/g, '_')
+		return "#{sanitisedAppName}_#{randomString}"
+
 application.start = start = (app) ->
 	device.isResinOSv1().then (isV1) ->
 		volumes = utils.defaultVolumes(isV1)
@@ -270,9 +277,9 @@ application.start = start = (app) ->
 				.map((port) -> port.trim())
 				.filter(isValidPort)
 
-			if app.containerId?
+			if app.containerName?
 				# If we have a container id then check it exists and if so use it.
-				container = docker.getContainer(app.containerId)
+				container = docker.getContainer(app.containerName)
 				containerPromise = container.inspect().return(container)
 			else
 				containerPromise = Promise.rejected()
@@ -283,37 +290,44 @@ application.start = start = (app) ->
 				.then (imageInfo) ->
 					logSystemEvent(logTypes.installApp, app)
 					device.updateState(status: 'Installing')
+					generateContainerName(app)
+					.tap (name) ->
+						app.containerName = name
+						knex('app').update(app).where(appId: app.appId)
+						.then (affectedRows) ->
+							knex('app').insert(app) if affectedRows == 0
+					.then (name) ->
+						ports = {}
+						portBindings = {}
+						if portList?
+							portList.forEach (port) ->
+								ports[port + '/tcp'] = {}
+								portBindings[port + '/tcp'] = [ HostPort: port ]
 
-					ports = {}
-					portBindings = {}
-					if portList?
-						portList.forEach (port) ->
-							ports[port + '/tcp'] = {}
-							portBindings[port + '/tcp'] = [ HostPort: port ]
+						if imageInfo?.Config?.Cmd
+							cmd = imageInfo.Config.Cmd
+						else
+							cmd = [ '/bin/bash', '-c', '/start' ]
 
-					if imageInfo?.Config?.Cmd
-						cmd = imageInfo.Config.Cmd
-					else
-						cmd = [ '/bin/bash', '-c', '/start' ]
-
-					restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
-					shouldMountKmod(app.imageId)
-					.then (shouldMount) ->
-						binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
-						docker.createContainer(
-							Image: app.imageId
-							Cmd: cmd
-							Tty: true
-							Volumes: volumes
-							Env: _.map env, (v, k) -> k + '=' + v
-							ExposedPorts: ports
-							HostConfig:
-								Privileged: true
-								NetworkMode: 'host'
-								PortBindings: portBindings
-								Binds: binds
-								RestartPolicy: restartPolicy
-						)
+						restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
+						shouldMountKmod(app.imageId)
+						.then (shouldMount) ->
+							binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
+							docker.createContainer(
+								name: name
+								Image: app.imageId
+								Cmd: cmd
+								Tty: true
+								Volumes: volumes
+								Env: _.map env, (v, k) -> k + '=' + v
+								ExposedPorts: ports
+								HostConfig:
+									Privileged: true
+									NetworkMode: 'host'
+									PortBindings: portBindings
+									Binds: binds
+									RestartPolicy: restartPolicy
+							)
 					.tap ->
 						logSystemEvent(logTypes.installAppSuccess, app)
 					.catch (err) ->
@@ -341,21 +355,20 @@ application.start = start = (app) ->
 				.catch (err) ->
 					# If starting the container failed, we remove it so that it doesn't litter
 					container.remove(v: true)
-					.then ->
-						app.containerId = null
-						knex('app').update(app).where(appId: app.appId)
 					.finally ->
-						logSystemEvent(logTypes.startAppError, app, err)
 						throw err
 				.then ->
-					app.containerId = container.id
 					device.updateState(commit: app.commit)
 					logger.attach(app)
-			.tap (container) ->
-				# Update the app info, only if starting the container worked.
-				knex('app').update(app).where(appId: app.appId)
-				.then (affectedRows) ->
-					knex('app').insert(app) if affectedRows == 0
+		.catch (err) ->
+			# If creating or starting the app failed, we soft-delete it so that
+			# the next update cycle doesn't think the app is up to date
+			app.containerName = null
+			app.markedForDeletion = true
+			knex('app').update(app).where(appId: app.appId)
+			.finally ->
+				logSystemEvent(logTypes.startAppError, app, err)
+				throw err
 		.tap ->
 			if alreadyStarted
 				logSystemEvent(logTypes.startAppNoop, app)
@@ -765,7 +778,7 @@ application.update = update = (force, scheduled = false) ->
 							app = localApps[appId]
 							Promise.using lockUpdates(app, force), ->
 								# We get the app from the DB again in case someone restarted it
-								# (which would have changed its containerId)
+								# (which would have changed its containerName)
 								utils.getKnexApp(appId)
 								.then(kill)
 								.then ->
@@ -848,6 +861,8 @@ application.update = update = (force, scheduled = false) ->
 			device.updateState(status: 'Idle')
 			return
 
+sanitiseContainerName = (name) -> name.replace(/^\//, '')
+
 listenToEvents = do ->
 	appHasDied = {}
 	return ->
@@ -859,14 +874,14 @@ listenToEvents = do ->
 			parser.on 'error', (err) ->
 				console.error('Error on docker events JSON stream:', err, err.stack)
 			parser.on 'data', (data) ->
-				if data?.Type? && data.Type == 'container' && data.status in ['die', 'start']
-					knex('app').select().where({ containerId: data.id })
+				if data?.Type? && data.Type == 'container' && data.status in ['die', 'start'] && data.Actor?.Attributes?.Name?
+					knex('app').select().where({ containerName: sanitiseContainerName(data.Actor.Attributes.Name) })
 					.then ([ app ]) ->
 						if app?
 							if data.status == 'die'
 								logSystemEvent(logTypes.appExit, app)
-								appHasDied[app.containerId] = true
-							else if data.status == 'start' and appHasDied[app.containerId]
+								appHasDied[app.containerName] = true
+							else if data.status == 'start' and appHasDied[app.containerName]
 								logSystemEvent(logTypes.appRestart, app)
 								logger.attach(app)
 					.catch (err) ->
@@ -878,9 +893,35 @@ listenToEvents = do ->
 		.catch (err) ->
 			console.error('Error listening to events:', err, err.stack)
 
+migrateContainerIdApps = ->
+	knex.schema.hasColumn('app', 'containerId')
+	.then (exists) ->
+		return if not exists
+		knex('app').whereNotNull('containerId').select()
+		.then (apps) ->
+			return if !apps? or apps.length == 0
+			Promise.map apps, (app) ->
+				docker.getContainer(app.containerId).inspect()
+				.catchReturn({ Name: null })
+				.then (container) ->
+					app.containerName = sanitiseContainerName(container.Name)
+					app.containerId = null
+					knex('app').update(app).where({ id: app.id })
+		.then ->
+			knex.schema.table 'app', (table) ->
+				table.dropColumn('containerId')
+
+application.getContainerId = (app) ->
+	docker.getContainer(app.containerName).inspect()
+	.catchReturn({ Id: null })
+	.then (container) ->
+		return container.Id
+
 application.initialize = ->
 	listenToEvents()
-	getAndApplyDeviceConfig()
+	migrateContainerIdApps()
+	.then ->
+		getAndApplyDeviceConfig()
 	.then ->
 		knex('app').whereNot(markedForDeletion: true).orWhereNull('markedForDeletion').select()
 	.map (app) ->

@@ -154,10 +154,12 @@ module.exports = (application) ->
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, force), ->
 			utils.getKnexApp(appId)
-			.tap (app) ->
-				application.kill(app, removeContainer: false)
 			.then (app) ->
-				res.json(_.pick(app, 'containerId'))
+				application.getContainerId(app)
+				.then (containerId) ->
+					application.kill(app, removeContainer: false)
+					.then (app) ->
+						res.json({ containerId })
 		.catch utils.AppNotFoundError, (e) ->
 			return res.status(400).send(e.message)
 		.catch (err) ->
@@ -172,8 +174,10 @@ module.exports = (application) ->
 			utils.getKnexApp(appId)
 			.tap (app) ->
 				application.start(app)
-			.then (app) ->
-				res.json(_.pick(app, 'containerId'))
+				.then ->
+					application.getContainerId(app)
+				.then (containerId) ->
+					res.json({ containerId })
 		.catch utils.AppNotFoundError, (e) ->
 			return res.status(400).send(e.message)
 		.catch (err) ->
@@ -185,13 +189,16 @@ module.exports = (application) ->
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.using application.lockUpdates(appId, true), ->
-			columns = [ 'appId', 'containerId', 'commit', 'imageId', 'env' ]
+			columns = [ 'appId', 'containerName', 'commit', 'imageId', 'env' ]
 			utils.getKnexApp(appId, columns)
 			.then (app) ->
-				# Don't return keys on the endpoint
-				app.env = _.omit(JSON.parse(app.env), config.privateAppEnvVars)
-				# Don't return data that will be of no use to the user
-				res.json(app)
+				application.getContainerId(app)
+				.then (containerId) ->
+					# Don't return keys on the endpoint
+					app.env = _.omit(JSON.parse(app.env), config.privateAppEnvVars)
+					app.containerId = containerId
+					# Don't return data that will be of no use to the user
+					res.json(_.omit(app, [ 'containerName' ]))
 		.catch utils.AppNotFoundError, (e) ->
 			return res.status(400).send(e.message)
 		.catch (err) ->
