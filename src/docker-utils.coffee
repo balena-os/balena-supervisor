@@ -25,7 +25,7 @@ getRepoAndTag = (image) ->
 
 applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress) ->
 	new Promise (resolve, reject) ->
-		resumable(request, { url: deltaUrl, timeout: requestTimeout }, resumeOpts)
+		req = resumable(request, { url: deltaUrl, timeout: requestTimeout }, resumeOpts)
 		.on('progress', onProgress)
 		.on('retry', onProgress)
 		.on('error', reject)
@@ -38,7 +38,7 @@ applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, on
 				deltaStream = dockerDelta.applyDelta(imgSrc, timeout: applyTimeout)
 				res.pipe(deltaStream)
 				.on('id', resolve)
-				.on('error', reject)
+				.on('error', req.destroy.bind(req))
 
 do ->
 	_lock = new Lock()
