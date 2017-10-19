@@ -31,7 +31,7 @@
     "coffee-script": "~1.11.0",
     "docker-delta": "^2.0.3",
     "docker-progress": "^2.7.2",
-    "docker-toolbelt": "^3.0.1",
+    "docker-toolbelt": "^3.0.3",
     "event-stream": "^3.0.20",
     "express": "^4.0.0",
     "knex": "~0.12.3",
