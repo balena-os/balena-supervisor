@@ -40,7 +40,7 @@ loadPreloadedApps = ->
 		fs.readFileAsync(appsPath, 'utf8')
 		.then(JSON.parse)
 		.map (app) ->
-			utils.extendEnvVars(app.env, userConfig.uuid, app.appId, app.name, app.commit)
+			utils.extendEnvVars(app.env, userConfig.uuid, userConfig.deviceApiKey, app.appId, app.name, app.commit)
 			.then (extendedEnv) ->
 				app.env = JSON.stringify(extendedEnv)
 				_.merge(devConfig, app.config)
@@ -135,6 +135,7 @@ bootstrap = ->
 				# We use the provisioning/user `apiKey` if it still exists because if it does it means we were already registered
 				# using that key and have to rely on the exchange key mechanism to swap the keys as appropriate later
 				{ key: 'apiKey', value: userConfig.apiKey ? userConfig.deviceApiKey }
+				{ key: 'deviceApiKey', value: userConfig.deviceApiKey }
 				{ key: 'username', value: userConfig.username }
 				{ key: 'userId', value: userConfig.userId }
 				{ key: 'version', value: utils.supervisorVersion }
@@ -202,6 +203,8 @@ bootstrapper.done = new Promise (resolve) ->
 							delete userConfig.apiKey
 						else
 							userConfig.apiKey = userConfig.deviceApiKey
+						utils.setConfig('deviceApiKey', userConfig.deviceApiKey)
+					.then ->
 						utils.setConfig('apiKey', userConfig.deviceApiKey)
 					.then ->
 						writeAndSyncFile(configPath, JSON.stringify(userConfig))

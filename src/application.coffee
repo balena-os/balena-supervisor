@@ -633,9 +633,9 @@ getRemoteState = (uuid, apiKey) ->
 		throw err
 
 # TODO: Actually store and use app.environment and app.config separately
-parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
+parseEnvAndFormatRemoteApps = (remoteApps, uuid, deviceApiKey) ->
 	appsWithEnv = _.mapValues remoteApps, (app, appId) ->
-		utils.extendEnvVars(app.environment, uuid, appId, app.name, app.commit)
+		utils.extendEnvVars(app.environment, uuid, deviceApiKey, appId, app.name, app.commit)
 		.then (env) ->
 			app.config ?= {}
 			return {
@@ -716,7 +716,9 @@ application.update = update = (force, scheduled = false) ->
 				.then ->
 					utils.setConfig('name', local.name) if local.name != deviceName
 				.then ->
-					parseEnvAndFormatRemoteApps(local.apps, uuid, apiKey)
+					utils.getConfig('deviceApiKey')
+				.then (deviceApiKey) ->
+					parseEnvAndFormatRemoteApps(local.apps, uuid, deviceApiKey)
 			.then (remoteApps) ->
 				localApps = formatLocalApps(apps)
 				resourcesForUpdate = compareForUpdate(localApps, remoteApps)
