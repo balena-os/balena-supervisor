@@ -882,7 +882,7 @@ application.initialize = ->
 	listenToEvents()
 	getAndApplyDeviceConfig()
 	.then ->
-		knex('app').whereNot(markedForDeletion: true).select()
+		knex('app').whereNot(markedForDeletion: true).orWhereNull('markedForDeletion').select()
 	.map (app) ->
 		unlockAndStart(app) if !application.localMode and !device.shuttingDown
 	.catch (error) ->

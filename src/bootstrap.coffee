@@ -43,6 +43,7 @@ loadPreloadedApps = ->
 			utils.extendEnvVars(app.env, userConfig.uuid, userConfig.deviceApiKey, app.appId, app.name, app.commit)
 			.then (extendedEnv) ->
 				app.env = JSON.stringify(extendedEnv)
+				app.markedForDeletion = false
 				_.merge(devConfig, app.config)
 				app.config = JSON.stringify(app.config)
 				knex('app').insert(app)
