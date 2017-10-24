@@ -16,7 +16,7 @@ semverRegex = require('semver-regex')
 
 userConfig = {}
 
-DuplicateUuidError = message: '"uuid" must be unique.'
+DuplicateUuidError = (err) -> _.startsWith(err.message, '"uuid" must be unique')
 exports.ExchangeKeyError = class ExchangeKeyError extends TypedError
 
 bootstrapper = {}
