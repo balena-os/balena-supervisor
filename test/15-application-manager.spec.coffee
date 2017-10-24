@@ -134,8 +134,6 @@ dependentStateFormatNormalised = {
 	commit: 'bar'
 	releaseId: '3'
 	name: 'app'
-	config: { RESIN_FOO: 'var' }
-	environment: { FOO: 'var2' }
 	parentApp: '256'
 }
 
@@ -145,8 +143,6 @@ dependentDBFormat = {
 	commit: 'bar'
 	releaseId: '3'
 	name: 'app'
-	config: JSON.stringify({ RESIN_FOO: 'var' })
-	environment: JSON.stringify({ FOO: 'var2' })
 	parentApp: '256'
 }
 
@@ -369,7 +365,7 @@ describe 'ApplicationManager', ->
 		expect(app).to.eventually.deep.equal(appDBFormatNormalised)
 
 	it 'converts a dependent app from a state format to a db format, normalising the image name', ->
-		app = @applications.proxyvisor.normaliseDependentAppForDB(dependentStateFormat)
+		app = @applications.proxyvisor._normaliseDependentAppForDB(dependentStateFormat)
 		expect(app).to.eventually.deep.equal(dependentDBFormat)
 
 	it 'converts an app in DB format into state format, adding default and missing fields', ->
@@ -378,5 +374,5 @@ describe 'ApplicationManager', ->
 			expect(JSON.parse(JSON.stringify(app))).to.deep.equal(appStateFormatWithDefaults)
 
 	it 'converts a dependent app in DB format into state format', ->
-		app = @applications.proxyvisor.normaliseDependentAppFromDB(dependentDBFormat)
+		app = @applications.proxyvisor._normaliseDependentAppFromDB(dependentDBFormat)
 		expect(app).to.eventually.deep.equal(dependentStateFormatNormalised)

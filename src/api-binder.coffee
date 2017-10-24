@@ -367,3 +367,25 @@ module.exports = class APIBinder
 				# allows avoiding catching docker at weird states
 				@_reportCurrentState()
 		@_reportCurrentState()
+
+	sendOnlineDependentDevices: (appId, device_type, online_devices, expiry_date) =>
+		@config.getMany(['userId', 'deviceId', 'currentApiKey', 'resinApiEndpoint', 'apiTimeout' ])
+		.then ({ userId, deviceId, currentApiKey, resinApiEndpoint, apiTimeout }) =>
+			onlineDependentDevices = {
+				user: userId
+				gateway: deviceId
+				dependent_app: appId
+				dependent_device_type: device_type
+				online_dependent_devices: online_devices
+				expiry_date: expiry_date
+			}
+
+			endpoint = url.resolve(resinApiEndpoint, '/dependent/v1/scan')
+			requestParams = _.extend
+				method: 'POST'
+				url: "#{endpoint}?&apikey=#{currentApiKey}"
+				body: onlineDependentDevices
+			, @cachedResinApi.passthrough
+
+			@cachedResinApi._request(requestParams)
+			.timeout(apiTimeout)

@@ -147,8 +147,6 @@ module.exports = class DB
 							t.string('releaseId')
 							t.string('imageId')
 							t.string('image')
-							t.json('environment')
-							t.json('config')
 
 				@knex.schema.hasTable('dependentDeviceTarget')
 				.then (exists) =>
@@ -157,6 +155,7 @@ module.exports = class DB
 							t.increments('id').primary()
 							t.string('uuid')
 							t.string('name')
+							t.dateTime('lock_expiry_date')
 							t.json('apps')
 
 				@knex.schema.hasTable('dependentApp')
@@ -170,8 +169,6 @@ module.exports = class DB
 							t.string('commit')
 							t.string('releaseId')
 							t.string('image')
-							t.json('environment')
-							t.json('config')
 
 				@knex.schema.hasTable('dependentDevice')
 				.then (exists) =>
@@ -180,15 +177,13 @@ module.exports = class DB
 							t.increments('id').primary()
 							t.string('uuid')
 							t.string('appId')
-							t.string('localId')
+							t.string('local_id')
 							t.string('device_type')
 							t.string('logs_channel')
 							t.string('deviceId')
-							t.boolean('is_online')
 							t.string('name')
 							t.string('status')
 							t.string('download_progress')
-							t.string('is_managed_by')
 							t.dateTime('lock_expiry_date')
 							t.string('commit')
 							t.string('targetCommit')
@@ -196,7 +191,6 @@ module.exports = class DB
 							t.json('targetEnvironment')
 							t.json('config')
 							t.json('targetConfig')
-							t.boolean('markedForDeletion')
 
 				@knex.schema.hasTable('image')
 				.then (exists) =>

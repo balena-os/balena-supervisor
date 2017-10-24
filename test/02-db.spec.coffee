@@ -68,10 +68,7 @@ describe 'DB', ->
 					expect(knexForDB.schema.hasColumn('app', 'config')).to.eventually.be.false
 					expect(knexForDB.schema.hasColumn('app', 'privileged')).to.eventually.be.false
 					expect(knexForDB.schema.hasColumn('app', 'containerId')).to.eventually.be.false
-					expect(knexForDB.schema.hasColumn('dependentApp', 'environment')).to.eventually.be.true
-					expect(knexForDB.schema.hasColumn('dependentDevice', 'markedForDeletion')).to.eventually.be.true
-					expect(knexForDB.schema.hasColumn('dependentDevice', 'localId')).to.eventually.be.true
-					expect(knexForDB.schema.hasColumn('dependentDevice', 'is_managed_by')).to.eventually.be.true
+					expect(knexForDB.schema.hasColumn('dependentDevice', 'local_id')).to.eventually.be.true
 					expect(knexForDB.schema.hasColumn('dependentDevice', 'lock_expiry_date')).to.eventually.be.true
 				])
 
