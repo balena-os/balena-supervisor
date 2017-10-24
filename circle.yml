@@ -72,6 +72,14 @@ jobs:
       PUSH_IMAGES: "true"
       STAGING_API_ENDPOINT: https://api.resinstaging.io
       PRODUCTION_API_ENDPOINT: https://api.resin.io
+  i386-nlp:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: i386-nlp
+      PUSH_IMAGES: "true"
+      STAGING_API_ENDPOINT: https://api.resinstaging.io
+      PRODUCTION_API_ENDPOINT: https://api.resin.io
   armel:
     <<: *defaults
     environment:
@@ -114,3 +122,4 @@ workflows:
       - rpi
       - armv7hf
       - aarch64
+      - i386-nlp

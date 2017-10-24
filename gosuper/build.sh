@@ -12,6 +12,9 @@ case "$ARCH" in
 'i386')
 	export GOARCH=386
 ;;
+'i386-nlp')
+	export GOARCH=386
+;;
 'rpi')
 	export GOARCH=arm
 	export GOARM=6

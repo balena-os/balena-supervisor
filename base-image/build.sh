@@ -23,6 +23,9 @@ case "$ARCH" in
 'aarch64')
 	export TARGET_MACHINE='generic-armv8'
 ;;
+'i386-nlp')
+	export TARGET_MACHINE='i386-nlp'
+;;
 esac
 
 export SOURCE_DIR=/source
