@@ -830,7 +830,7 @@ application.update = update = (force, scheduled = false) ->
 			if updateStatus.state in [ UPDATE_REQUIRED, UPDATE_SCHEDULED ]
 				console.log('Updating failed, but there is already another update scheduled immediately: ', err)
 				return
-			delayTime = Math.min((2 ** updateStatus.failed) * 500, 30000)
+			delayTime = Math.min((2 ** updateStatus.failed) * 500, config.appUpdatePollInterval)
 			# If there was an error then schedule another attempt briefly in the future.
 			console.log('Scheduling another update attempt due to failure: ', delayTime, err)
 			setTimeout(update, delayTime, force, true)
