@@ -155,7 +155,7 @@ exports.setConfig = (key, value = null) ->
 	.then (n) ->
 		knex('config').insert({ key, value }) if n == 0
 
-exports.extendEnvVars = (env, uuid, appId, appName, commit) ->
+exports.extendEnvVars = (env, uuid, apiKey, appId, appName, commit) ->
 	host = '127.0.0.1'
 	newEnv =
 		RESIN_APP_ID: appId.toString()
@@ -170,7 +170,7 @@ exports.extendEnvVars = (env, uuid, appId, appName, commit) ->
 		RESIN_SUPERVISOR_PORT: config.listenPort
 		RESIN_SUPERVISOR_API_KEY: exports.getOrGenerateSecret('api')
 		RESIN_SUPERVISOR_VERSION: exports.supervisorVersion
-		RESIN_API_KEY: getConfig('apiKey')
+		RESIN_API_KEY: apiKey
 		RESIN: '1'
 		USER: 'root'
 	if env?
