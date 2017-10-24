@@ -179,6 +179,42 @@ hasDeviceApiKeySupport = (osVersion) ->
 		console.error('Unable to determine if device has deviceApiKey support', err, err.stack)
 		false
 
+exchangeKeyAndUpdateConfig = ->
+	# Only do a key exchange and delete the provisioning key if we're on a Resin OS version
+	# that supports using the deviceApiKey (2.0.2 and above)
+	# or if we're in a non-Resin OS (which is assumed to be updated enough).
+	# Otherwise VPN and other host services that use an API key will break.
+	#
+	# In other cases, we make the apiKey equal the deviceApiKey instead.
+	osRelease.getOSVersion(config.hostOSVersionPath)
+	.then (osVersion) ->
+		hasSupport = hasDeviceApiKeySupport(osVersion)
+		if hasSupport or userConfig.apiKey != userConfig.deviceApiKey
+			console.log('Attempting key exchange')
+			exchangeKey()
+			.then ->
+				console.log('Key exchange succeeded, starting to use deviceApiKey')
+				if hasSupport
+					delete userConfig.apiKey
+				else
+					userConfig.apiKey = userConfig.deviceApiKey
+				utils.setConfig('deviceApiKey', userConfig.deviceApiKey)
+			.then ->
+				utils.setConfig('apiKey', userConfig.deviceApiKey)
+			.then ->
+				writeAndSyncFile(configPath, JSON.stringify(userConfig))
+
+exchangeKeyOrRetry = do ->
+	_failedExchanges = 0
+	return ->
+		exchangeKeyAndUpdateConfig()
+		.catch (err) ->
+			console.error('Error exchanging API key, will retry', err, err.stack)
+			delay = Math.min((2 ** _failedExchanges) * config.bootstrapRetryDelay, 24 * 60 * 60 * 1000)
+			_failedExchanges += 1
+			setTimeout(exchangeKeyOrRetry, delay)
+		return
+
 bootstrapper.done = new Promise (resolve) ->
 	bootstrapper.doneBootstrapping = ->
 		bootstrapper.bootstrapped = true
@@ -186,31 +222,8 @@ bootstrapper.done = new Promise (resolve) ->
 		# If we're still using an old api key we can try to exchange it for a valid device key
 		# This will only be the case when the supervisor/OS has been updated.
 		if userConfig.apiKey?
-			# Only do a key exchange and delete the provisioning key if we're on a Resin OS version
-			# that supports using the deviceApiKey (2.0.2 and above)
-			# or if we're in a non-Resin OS (which is assumed to be updated enough).
-			# Otherwise VPN and other host services that use an API key will break.
-			#
-			# In other cases, we make the apiKey equal the deviceApiKey instead.
-			osRelease.getOSVersion(config.hostOSVersionPath)
-			.then (osVersion) ->
-				hasSupport = hasDeviceApiKeySupport(osVersion)
-				if hasSupport or userConfig.apiKey != userConfig.deviceApiKey
-					console.log('Attempting key exchange')
-					exchangeKey()
-					.then ->
-						console.log('Key exchange succeeded, starting to use deviceApiKey')
-						if hasSupport
-							delete userConfig.apiKey
-						else
-							userConfig.apiKey = userConfig.deviceApiKey
-						utils.setConfig('deviceApiKey', userConfig.deviceApiKey)
-					.then ->
-						utils.setConfig('apiKey', userConfig.deviceApiKey)
-					.then ->
-						writeAndSyncFile(configPath, JSON.stringify(userConfig))
-			# We return immediately, and eventually the API key will be exchanged and replaced.
-			return
+			exchangeKeyOrRetry()
+		return
 
 bootstrapper.bootstrapped = false
 bootstrapper.startBootstrapping = ->
