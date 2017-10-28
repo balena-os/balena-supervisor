@@ -210,7 +210,7 @@ fetch = (app, { deltaSource, setDeviceUpdateState = true } = {}) ->
 		device.updateState(download_progress: progress.percentage)
 
 	docker.getImage(app.imageId).inspect()
-	.catch (error) ->
+	.catch ImageNotFoundError, ->
 		device.updateState(status: 'Downloading', download_progress: 0)
 
 		Promise.try ->
@@ -286,7 +286,8 @@ application.start = start = (app) ->
 
 			# If there is no existing container then create one instead.
 			containerPromise.catch ->
-				fetch(app)
+				# If the image is not available, we'll let the update cycle fix it
+				docker.getImage(app.imageId).inspect()
 				.then (imageInfo) ->
 					logSystemEvent(logTypes.installApp, app)
 					device.updateState(status: 'Installing')
