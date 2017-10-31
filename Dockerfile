@@ -143,7 +143,7 @@ COPY package.json /usr/src/app/
 RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
 	&& npm dedupe
 
-COPY webpack.config.js remove-hashbang-loader.js /usr/src/app/
+COPY webpack.config.js fix-jsonstream.js /usr/src/app/
 COPY src /usr/src/app/src
 
 # Install devDependencies, build the coffeescript and then prune the deps
