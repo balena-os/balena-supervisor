@@ -62,8 +62,8 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.js$/,
-				use: require.resolve('./remove-hashbang-loader')
+				test: /JSONStream\/index\.js$/,
+				use: require.resolve('./fix-jsonstream')
 			},
 			{
 				test: /\.coffee$/,
