@@ -138,62 +138,60 @@ do ->
 		Promise.using writeLockImages(), ->
 			Promise.join(
 				knex('app').select()
-				.map ({ imageId }) ->
-					normalizeRepoTag(imageId)
+				.map (app) ->
+					app.imageId = normalizeRepoTag(app.imageId)
+					return Promise.props(app)
 				knex('dependentApp').select().whereNotNull('imageId')
 				.map ({ imageId }) ->
-					normalizeRepoTag(imageId)
+					return normalizeRepoTag(imageId)
 				supervisorTagPromise
 				docker.listImages()
 				.map (image) ->
 					image.NormalizedRepoTags = Promise.map(image.RepoTags, normalizeRepoTag)
-					Promise.props(image)
+					return Promise.props(image)
 				Promise.map(extraImagesToIgnore, normalizeRepoTag)
 				(apps, dependentApps, supervisorTag, images, normalizedExtraImages) ->
+					appNames = _.map(apps, 'containerName')
+					appImages = _.map(apps, 'imageId')
 					imageTags = _.map(images, 'NormalizedRepoTags')
-					supervisorTags = _.filter imageTags, (tags) ->
-						_.includes(tags, supervisorTag)
 					appTags = _.filter imageTags, (tags) ->
 						_.some tags, (tag) ->
-							_.includes(apps, tag) or _.includes(dependentApps, tag)
-					extraTags = _.filter imageTags, (tags) ->
-						_.some tags, (tag) ->
-							_.includes(normalizedExtraImages, tag)
-					supervisorTags = _.flatten(supervisorTags)
+							_.includes(appImages, tag) or _.includes(dependentApps, tag)
 					appTags = _.flatten(appTags)
+					supervisorTags = _.filter imageTags, (tags) ->
+						_.includes(tags, supervisorTag)
+					supervisorTags = _.flatten(supervisorTags)
+					extraTags = _.filter imageTags, (tags) ->
+						_.some(tags, (tag) -> _.includes(normalizedExtraImages, tag))
 					extraTags = _.flatten(extraTags)
-
-					return { images, supervisorTags, appTags, extraTags }
-			)
-			.then ({ images, supervisorTags, appTags, extraTags }) ->
-				# Cleanup containers first, so that they don't block image removal.
-				docker.listContainers(all: true)
-				.filter (containerInfo) ->
-					# Do not remove user apps.
-					normalizeRepoTag(containerInfo.Image)
-					.then (repoTag) ->
-						if _.includes(appTags, repoTag)
-							return false
-						if _.includes(extraTags, repoTag)
-							return false
-						if !_.includes(supervisorTags, repoTag)
+					allProtectedTags = _.union(appTags, supervisorTags, extraTags)
+					# Cleanup containers first, so that they don't block image removal.
+					docker.listContainers(all: true)
+					.filter (containerInfo) ->
+						# Do not remove user apps.
+						normalizeRepoTag(containerInfo.Image)
+						.then (repoTag) ->
+							if _.includes(appTags, repoTag)
+								return !_.some containerInfo.Names, (name) ->
+									_.some appNames, (appContainerName) -> "/#{appContainerName}" == name
+							if _.includes(supervisorTags, repoTag)
+								return containerHasExited(containerInfo.Id)
 							return true
-						return containerHasExited(containerInfo.Id)
-				.map (containerInfo) ->
-					docker.getContainer(containerInfo.Id).remove(v: true, force: true)
+					.map (containerInfo) ->
+						docker.getContainer(containerInfo.Id).remove(v: true, force: true)
+						.then ->
+							console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
+						.catch(_.noop)
 					.then ->
-						console.log('Deleted container:', containerInfo.Id, containerInfo.Image)
-					.catch(_.noop)
-				.then ->
-					imagesToClean = _.reject images, (image) ->
-						_.some image.NormalizedRepoTags, (tag) ->
-							return _.includes(appTags, tag) or _.includes(supervisorTags, tag) or _.includes(extraTags, tag)
-					Promise.map imagesToClean, (image) ->
-						Promise.map image.RepoTags.concat(image.Id), (tag) ->
-							docker.getImage(tag).remove(force: true)
-							.then ->
-								console.log('Deleted image:', tag, image.Id, image.RepoTags)
-							.catch(_.noop)
+						imagesToClean = _.reject images, (image) ->
+							_.some(image.NormalizedRepoTags, (tag) -> _.includes(allProtectedTags, tag))
+						Promise.map imagesToClean, (image) ->
+							Promise.map image.RepoTags.concat(image.Id), (tag) ->
+								docker.getImage(tag).remove(force: true)
+								.then ->
+									console.log('Deleted image:', tag, image.Id, image.RepoTags)
+								.catch(_.noop)
+			)
 
 	containerHasExited = (id) ->
 		docker.getContainer(id).inspect()

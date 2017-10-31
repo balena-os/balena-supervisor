@@ -40,7 +40,7 @@ knex.init = Promise.all([
 			knex.schema.createTable 'app', (t) ->
 				t.increments('id').primary()
 				t.string('name')
-				t.string('containerId')
+				t.string('containerName')
 				t.string('commit')
 				t.string('imageId')
 				t.string('appId')
@@ -52,6 +52,7 @@ knex.init = Promise.all([
 			Promise.all [
 				addColumn('app', 'commit', 'string')
 				addColumn('app', 'appId', 'string')
+				addColumn('app', 'containerName', 'string')
 				addColumn('app', 'config', 'json')
 				addColumn('app', 'markedForDeletion', 'boolean')
 			]

@@ -80,19 +80,19 @@ exports.log = ->
 do ->
 	_lock = new Lock()
 	_writeLock = Promise.promisify(_lock.async.writeLock)
-	loggerLock = (containerId) ->
-		_writeLock(containerId)
+	loggerLock = (containerName) ->
+		_writeLock(containerName)
 		.disposer (release) ->
 			release()
 
 	attached = {}
 	exports.attach = (app) ->
-		Promise.using loggerLock(app.containerId), ->
-			if !attached[app.containerId]
-				docker.getContainer(app.containerId)
+		Promise.using loggerLock(app.containerName), ->
+			if !attached[app.containerName]
+				docker.getContainer(app.containerName)
 				.logs({ follow: true, stdout: true, stderr: true, timestamps: true })
 				.then (stream) ->
-					attached[app.containerId] = true
+					attached[app.containerName] = true
 					stream.pipe(es.split())
 					.on 'data', (logLine) ->
 						space = logLine.indexOf(' ')
@@ -101,6 +101,6 @@ do ->
 							publish(msg)
 					.on 'error', (err) ->
 						console.error('Error on container logs', err, err.stack)
-						attached[app.containerId] = false
+						attached[app.containerName] = false
 					.on 'end', ->
-						attached[app.containerId] = false
+						attached[app.containerName] = false
