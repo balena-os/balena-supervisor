@@ -2,7 +2,7 @@ _ = require 'lodash'
 m = require 'mochainon'
 { expect } = m.chai
 
-validation = require '../../src/lib/validation'
+validation = require '../src/lib/validation'
 
 almostTooLongText = _.map([0...255], -> 'a').join('')
 

@@ -1,5 +1,6 @@
-{ expect } = require 'chai'
-Service = require '../../src/compose/service'
+m = require 'mochainon'
+{ expect } = m.chai
+Service = require '../src/compose/service'
 
 describe 'compose/service.cofee', ->
 

@@ -1,0 +1,25 @@
+{
+	"name": "aDevice",
+	"config": {
+		"RESIN_HOST_CONFIG_gpu_mem": "256",
+		"RESIN_HOST_LOG_TO_DISPLAY": "0"
+	},
+	"apps": {
+		"1234": {
+			"name": "superapp",
+			"commit": "abcdef",
+			"releaseId": 1,
+			"services": {
+				"23": {
+					"imageId": 12345,
+					"serviceName": "someservice",
+					"image": "registry2.resin.io/superapp/abcdef",
+					"labels": {
+						"io.resin.something": "bar"
+					},
+					"environment": {}
+				}
+			}
+		}
+	}
+}

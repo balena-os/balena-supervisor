@@ -165,6 +165,10 @@ module.exports = class Logger
 			@opts = opts
 			@_startBackend()
 
+	stop: =>
+		if @backend?
+			@backend.stop()
+
 	_startBackend: =>
 		if checkTruthy(@opts.nativeLogger)
 			@backend = new NativeLoggerBackend()
