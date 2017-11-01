@@ -1,10 +1,11 @@
 { checkInt, checkString } = require './lib/validation'
 
 dockerRoot = checkString(process.env.DOCKER_ROOT) ? '/mnt/root/var/lib/rce'
+apiEndpoint = checkString(process.env.API_ENDPOINT)
 
 # Defaults needed for both gosuper and node supervisor are declared in entry.sh
 module.exports =
-	apiEndpoint: checkString(process.env.API_ENDPOINT)
+	apiEndpoint: apiEndpoint
 	apiTimeout: checkInt(process.env.API_TIMEOUT, positive: true) ? 15 * 60 * 1000
 	listenPort: checkInt(process.env.LISTEN_PORT, positive: true) ? 80
 	gosuperAddress: "http://unix:#{process.env.GOSUPER_SOCKET}:"
@@ -15,6 +16,7 @@ module.exports =
 		publish_key: checkString(process.env.PUBNUB_PUBLISH_KEY) ? process.env.DEFAULT_PUBNUB_PUBLISH_KEY
 		ssl: true
 	mixpanelToken: checkString(process.env.MIXPANEL_TOKEN) ? process.env.DEFAULT_MIXPANEL_TOKEN
+	mixpanelHost: "#{apiEndpoint}/mixpanel"
 	dockerSocket: process.env.DOCKER_SOCKET
 	supervisorImage: checkString(process.env.SUPERVISOR_IMAGE) ? 'resin/rpi-supervisor'
 	configMountPoint: checkString(process.env.CONFIG_MOUNT_POINT) ? '/mnt/mmcblk0p1/config.json'

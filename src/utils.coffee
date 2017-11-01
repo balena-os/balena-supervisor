@@ -14,17 +14,27 @@ TypedError = require 'typed-error'
 execAsync = Promise.promisify(require('child_process').exec)
 device = require './device'
 { checkTruthy } = require './lib/validation'
+mask = require 'json-mask'
 
 exports.supervisorVersion = require('./lib/supervisor-version')
 
 configJson = JSON.parse(fs.readFileSync('/boot/config.json'))
 if Boolean(config.apiEndpoint) and !Boolean(configJson.supervisorOfflineMode)
-	mixpanelClient = mixpanel.init(config.mixpanelToken)
+	mixpanelClient = mixpanel.init(config.mixpanelToken, { host: config.mixpanelHost })
 else
 	mixpanelClient = { track: _.noop }
 
 exports.mixpanelProperties = mixpanelProperties =
 	username: configJson.username
+
+mixpanelMask = [
+	'appId'
+	'delay'
+	'error'
+	'interval'
+	'app(appId,imageId,commit,name)'
+	'stateDiff(status,download_progress,commit,os_version,superisor_version,ip_address)'
+].join(',')
 
 exports.mixpanelTrack = (event, properties = {}) ->
 	# Allow passing in an error directly and having it assigned to the error property.
@@ -40,16 +50,8 @@ exports.mixpanelTrack = (event, properties = {}) ->
 
 	properties = _.cloneDeep(properties)
 
-	# Don't log private env vars (e.g. api keys)
-	if properties?.app?.env?
-		try
-			{ env } = properties.app
-			env = JSON.parse(env) if _.isString(env)
-			safeEnv = _.omit(env, config.privateAppEnvVars)
-			properties.app.env = JSON.stringify(safeEnv)
-		catch
-			properties.app.env = 'Fully hidden due to error in selective hiding'
-
+	# Filter properties to only send the whitelisted keys and values
+	properties = mask(properties, mixpanelMask)
 	console.log('Event:', event, JSON.stringify(properties))
 	# Mutation is bad, and it should feel bad
 	properties = _.assign(properties, mixpanelProperties)
