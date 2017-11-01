@@ -32,7 +32,7 @@ if (_.isEmpty(tag)) {
 	process.exit(1);
 }
 
-const supportedArchitectures = [ 'amd64', 'rpi', 'aarch64', 'armel', 'i386', 'armv7hf' ];
+const supportedArchitectures = [ 'amd64', 'rpi', 'aarch64', 'armel', 'i386', 'armv7hf', 'i386-nlp' ];
 if (!_.isEmpty(arch) && !_.includes(supportedArchitectures, arch)) {
 	console.error('Invalid architecture ' + arch);
 	process.exit(1);

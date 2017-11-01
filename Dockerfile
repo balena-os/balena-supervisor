@@ -115,6 +115,8 @@ FROM resin/i386-node:6.5-slim as i386-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
+FROM i386-node-base as i386-nlp-node-base
+
 # Build nodejs dependencies
 FROM $ARCH-node-base as node
 ARG ARCH
