@@ -10,10 +10,12 @@ exports.getOSReleaseField = (path, field) ->
 		for line in lines
 			[ key, val ] = line.split('=')
 			releaseItems[_.trim(key)] = _.trim(val)
+		if !releaseItems[field]?
+			throw new Error("Field #{field} not available in #{path}")
 		# Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
 		return releaseItems[field].replace(/^"(.+(?="$))"$/, '$1')
 	catch err
-		console.log('Could not get OS release field: ', err, err.stack)
+		console.log('Could not get OS release field: ', err.message)
 		return undefined
 
 
