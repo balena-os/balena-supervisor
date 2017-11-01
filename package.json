@@ -40,6 +40,8 @@
     "log-timestamp": "^0.1.2",
     "memoizee": "^0.4.1",
     "mixpanel": "0.0.20",
+    "mkdirp": "^0.5.1",
+    "ncp": "^2.0.0",
     "network-checker": "~0.0.5",
     "node-loader": "^0.6.0",
     "null-loader": "^0.1.1",
