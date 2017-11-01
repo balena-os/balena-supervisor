@@ -2,12 +2,13 @@
 /automation/node_modules/
 /automation/meta-resin/
 *.swp
-data
+/data/
 bin/gosuper
 gosuper/bin/
 tools/dind/config.json
 tools/dind/apps.json
 tools/dind/config/localenv
+tools/dind/config/services/docker.service.d/proxy.conf
 
 base-image/build/bitbake.lock
 base-image/build/cache
@@ -23,3 +24,9 @@ Dockerfile.runtime.*
 /dist/
 tools/dind/config/services/docker.service.d/proxy.conf
 tools/dind/supervisor-image.tar
+test/data/config.json
+test/data/config-apibinder.json
+test/data/*.sqlite
+test/data/led_file
+/coverage/
+report.xml
