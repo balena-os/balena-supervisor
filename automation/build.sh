@@ -62,36 +62,29 @@ BASE_CACHE=$BASE_IMAGE
 GO_CACHE=$GO_IMAGE
 NODE_CACHE=$NODE_IMAGE
 
+TARGET_CACHE_MASTER=resin/$ARCH-supervisor:master
+BASE_CACHE_MASTER=resin/$ARCH-supervisor-base:master
+GO_CACHE_MASTER=resin/$ARCH-supervisor-go:master
+NODE_CACHE_MASTER=resin/$ARCH-supervisor-node:master
+
 CACHE_FROM=""
+function tryPullForCache() {
+	image=$1
+	docker pull $image && {
+		CACHE_FROM="$CACHE_FROM --cache-from $image"
+	} || true
+}
+
 # Attempt to pull images for cache
 # Only if the pull succeeds we add a --cache-from option
-docker pull $TARGET_CACHE || {
-	TARGET_CACHE=resin/$ARCH-supervisor:master
-	docker pull $TARGET_CACHE
-} && {
-	CACHE_FROM="$CACHE_FROM --cache-from $TARGET_CACHE"
-} || true
-
-docker pull $BASE_CACHE || {
-	BASE_CACHE=resin/$ARCH-supervisor-base:master
-	docker pull $BASE_CACHE
-} && {
-	CACHE_FROM="$CACHE_FROM --cache-from $BASE_CACHE"
-} || true
-
-docker pull $NODE_CACHE || {
-	NODE_CACHE=resin/$ARCH-supervisor-node:master
-	docker pull $NODE_CACHE
-} && {
-	CACHE_FROM="$CACHE_FROM --cache-from $NODE_CACHE"
-} || true
-
-docker pull $GO_CACHE || {
-	GO_CACHE=resin/$ARCH-supervisor-go:master
-	docker pull $GO_CACHE
-} && {
-	CACHE_FROM="$CACHE_FROM --cache-from $GO_CACHE"
-} || true
+tryPullForCache $TARGET_CACHE
+tryPullForCache $TARGET_CACHE_MASTER
+tryPullForCache $BASE_CACHE
+tryPullForCache $BASE_CACHE_MASTER
+tryPullForCache $GO_CACHE
+tryPullForCache $GO_CACHE_MASTER
+tryPullForCache $NODE_CACHE
+tryPullForCache $NODE_CACHE_MASTER
 
 if [ "$ENABLE_TESTS" = "true" ]; then
 	make ARCH=$ARCH IMAGE=$GO_IMAGE test-gosuper
