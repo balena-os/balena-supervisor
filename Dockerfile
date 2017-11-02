@@ -42,7 +42,6 @@ RUN cd /source && bash -ex build.sh
 
 # Build golang supervisor
 FROM debian:jessie-20170723 as gosuper
-ARG ARCH
 
 RUN apt-get update \
 	&& apt-get install -y \
@@ -95,6 +94,7 @@ WORKDIR /go/src/resin-supervisor/gosuper
 ENV GOOS linux
 ENV GO386=387
 
+ARG ARCH
 RUN bash ./build.sh
 RUN rsync -a --delete /go/bin/gosuper /build/
 
