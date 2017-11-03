@@ -1,0 +1,19 @@
+[Unit]
+Description=Balena Application Container Engine
+Documentation=http://docs.docker.com
+After=network.target docker.socket
+Requires=docker.socket
+
+[Service]
+Type=notify
+Restart=always
+ExecStart=/usr/bin/dind /usr/bin/balenad --storage-driver aufs --host=fd:// -g /var/lib/docker
+#Adjust OOMscore to -900 to make killing balena unlikely
+OOMScoreAdjust=-900
+MountFlags=slave
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=infinity
+
+[Install]
+WantedBy=multi-user.target

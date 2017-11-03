@@ -6,15 +6,16 @@ Before=openvpn-resin.service
 
 [Service]
 WorkingDirectory=/usr/src/app
+Environment=DOCKER_HOST=unix:///var/run/docker.sock
 EnvironmentFile=/usr/src/app/config/env
 EnvironmentFile=/usr/src/app/config/localenv
-ExecStartPre=/bin/bash -c 'if [ "${PRELOADED_IMAGE}" == "true" ]; then /usr/bin/docker pull $(jq --raw-output ".[0].imageId" ${APPS_PATH}); fi'
-ExecStartPre=/usr/bin/docker load --input /usr/src/supervisor-image.tar
-ExecStartPre=-/usr/bin/docker kill resin_supervisor
-ExecStartPre=-/usr/bin/docker rm resin_supervisor
+ExecStartPre=/bin/bash -c 'if [ "${PRELOADED_IMAGE}" == "true" ]; then /usr/bin/balena pull $(jq --raw-output ".[0].imageId" ${APPS_PATH}); fi'
+ExecStartPre=/usr/bin/balena load --input /usr/src/supervisor-image.tar
+ExecStartPre=-/usr/bin/balena kill resin_supervisor
+ExecStartPre=-/usr/bin/balena rm resin_supervisor
 ExecStartPre=-/bin/touch /etc/resolv.conf
 ExecStart=/bin/bash -c 'source /usr/src/app/resin-vars && \
-	/usr/bin/docker run --rm --privileged --name resin_supervisor \
+	/usr/bin/balena run --rm --privileged --name resin_supervisor \
 	--net=host \
 	-v /var/run/docker.sock:/var/run/docker.sock \
 	-v "${CONFIG_PATH}:/boot/config.json" \

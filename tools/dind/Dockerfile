@@ -1,4 +1,4 @@
-FROM resin/resin-base:2
+FROM resin/resin-base:v2.9.2
 
 VOLUME /var/lib/docker
 VOLUME /resin-data
@@ -11,7 +11,7 @@ RUN apt-get update \
 	aufs-tools \
 	&& rm -rf /var/lib/apt/lists/*
 
-ENV DOCKER_VERSION 1.10.3
+ENV BALENA_VERSION 17.06-rev1
 ENV RELEASE_NAME jessie
 
 # Change to 'true' to allow blank password dropbear logins on dind HostOS
@@ -20,14 +20,10 @@ ARG PASSWORDLESS_DROPBEAR=false
 COPY config/certs/ /usr/local/share/ca-certificates/
 RUN rm -f /usr/local/share/ca-certificates/.keepme ; update-ca-certificates
 
-RUN apt-key adv --keyserver hkp://pgp.mit.edu:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D \
-	&& echo deb https://apt.dockerproject.org/repo debian-${RELEASE_NAME} main > /etc/apt/sources.list.d/docker.list \
-	&& apt-get update || true \
-	&& apt-get --force-yes install docker-engine=${DOCKER_VERSION}-0~${RELEASE_NAME} \
-	&& rm -rf /var/lib/apt/lists/*
+RUN curl -sL "https://github.com/resin-os/balena/releases/download/${BALENA_VERSION}/balena-${BALENA_VERSION}-x86_64.tar.gz" \
+	| tar xzv -C /usr/bin --strip-components=1
 
-ENV DIND_COMMIT 3b5fac462d21ca164b3778647420016315289034
-RUN curl -sL https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind > /usr/bin/dind \
+RUN curl -sL https://raw.githubusercontent.com/resin-os/balena/${BALENA_VERSION}/hack/dind > /usr/bin/dind \
 	&& chmod +x /usr/bin/dind
 
 RUN passwd -d root
@@ -43,6 +39,8 @@ COPY resin-vars vpn-init /usr/src/app/
 
 RUN if [ "$PASSWORDLESS_DROPBEAR" = "true" ]; then sed -i 's/\(DROPBEAR_EXTRA_ARGS=\).*/\1"-B"/' /etc/default/dropbear; fi
 
+ENV DOCKER_HOST unix:///var/run/docker.sock
+RUN groupadd docker
 RUN systemctl enable resin-supervisor-dind
 
 COPY supervisor-image.tar /usr/src/
