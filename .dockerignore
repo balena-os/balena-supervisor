@@ -1,5 +1,5 @@
 .dockerignore
-.git
+**/.git
 node_modules
 .editorconfig
 tools
