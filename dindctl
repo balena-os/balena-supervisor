@@ -125,7 +125,7 @@ function buildSupervisorSrc {
 function refreshSupervisorSrc {
 	buildSupervisorSrc
 	echo "Restarting the supervisor container"
-	docker exec -ti $CONTAINER_NAME docker restart resin_supervisor
+	docker exec -ti $CONTAINER_NAME balena restart resin_supervisor
 }
 
 function runDind {
