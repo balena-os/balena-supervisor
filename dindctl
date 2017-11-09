@@ -118,7 +118,7 @@ function buildSupervisorSrc {
 		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build )
 	else
 		echo "Rebuilding supervisor source without optimizations"
-		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build-no-optimize )
+		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build -- --env.noOptimize )
 	fi
 }
 
