@@ -3,6 +3,7 @@ DockerToolbelt = require 'docker-toolbelt'
 { DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
 dockerDelta = require 'docker-delta'
+TypedError = require 'typed-error'
 _ = require 'lodash'
 { request, resumable } = require './request'
 { envArrayToObject } = require './conversions'
@@ -30,6 +31,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 		super(opts)
 		@dockerProgress = new DockerProgress(dockerToolbelt: this)
 		@supervisorTagPromise = @normaliseImageName(constants.supervisorImage)
+		@InvalidNetGatewayError = class InvalidNetGatewayError extends TypedError
 		return this
 
 	getRepoAndTag: (image) =>
@@ -127,9 +129,14 @@ module.exports = class DockerUtils extends DockerToolbelt
 	# Maybe switch to just looking at the docker0 interface?
 	# For now we do a hacky thing using the Subnet property...
 	defaultBridgeGateway: =>
-		@getNetwork('bridge').inspect()
-		.then (netInfo) ->
+		@getNetworkGateway('bridge')
+		.catchReturn(@InvalidNetGatewayError, '172.17.0.1')
+
+	getNetworkGateway: (netName) =>
+		return '127.0.0.1' if netName == 'host'
+		@getNetwork(netName).inspect()
+		.then (netInfo) =>
 			conf = netInfo?.IPAM?.Config?[0]
 			return conf.Gateway if conf?.Gateway?
 			return conf.Subnet.replace('.0/16', '.1') if _.endsWith(conf?.Subnet, '.0/16')
-			return '172.17.0.1'
+			throw new @InvalidNetGatewayError("Cannot determine network gateway for #{netName}")
