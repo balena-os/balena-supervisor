@@ -34,6 +34,13 @@ defaultBinds = (appId, serviceName) ->
 		"#{updateLock.lockPath(appId, serviceName)}:/tmp/resin"
 	]
 
+formatDevices = (devices) ->
+	return _.map devices, (device) ->
+		[ PathOnHost, PathInContainer, CgroupPermissions ] = device.split(':')
+		PathInContainer ?= PathOnHost
+		CgroupPermissions ?= 'rwm'
+		return { PathOnHost, PathInContainer, CgroupPermissions }
+
 module.exports = class Service
 	constructor: (serviceProperties, opts = {}) ->
 		{
@@ -61,6 +68,9 @@ module.exports = class Service
 			@cap_drop
 			@commit
 			@status
+			@devices
+			@exposedPorts
+			@portBindings
 		} = serviceProperties
 		@privileged ?= false
 		@volumes ?= []
@@ -71,6 +81,9 @@ module.exports = class Service
 		@expose ?= []
 		@cap_add ?= []
 		@cap_drop ?= []
+		@devices ?= []
+		@exposedPorts ?= {}
+		@portBindings ?= {}
 		@network_mode ?= @appId.toString()
 		if @releaseId?
 			@releaseId = @releaseId.toString()
@@ -83,7 +96,9 @@ module.exports = class Service
 			@extendEnvVars(opts)
 			@extendLabels(opts.imageInfo)
 			@extendAndSanitiseVolumes(opts.imageInfo)
-
+			@extendAndSanitiseExposedPorts(opts.imageInfo)
+			{ @exposedPorts, @portBindings } = @getPortsAndPortBindings()
+			@devices = formatDevices(@devices)
 			if checkTruthy(@labels['io.resin.features.dbus'])
 				@volumes.push('/run/dbus:/host/run/dbus')
 			if checkTruthy(@labels['io.resin.features.kernel_modules'])
@@ -130,6 +145,17 @@ module.exports = class Service
 		@labels['io.resin.image_id'] = @imageId.toString()
 		@labels['io.resin.commit'] = @commit
 		return @labels
+
+	extendAndSanitiseExposedPorts: (imageInfo) =>
+		@expose = _.clone(@expose)
+		@expose = _.map(@expose, String)
+		if imageInfo?.Config?.ExposedPorts?
+			_.forEach imageInfo.Config.ExposedPorts, (v, k) =>
+				port = k.match(/^([0-9]*)\/tcp$/)?[1]
+				if port? and !_.find(@expose, port)
+					@expose.push(port)
+
+		return @expose
 
 	extendAndSanitiseVolumes: (imageInfo) =>
 		volumes = []
@@ -224,23 +250,27 @@ module.exports = class Service
 			containerId: container.Id
 			cap_add: container.HostConfig.CapAdd
 			cap_drop: container.HostConfig.CapDrop
+			devices: container.HostConfig.Devices
 			status
+			exposedPorts: container.Config.ExposedPorts
+			portBindings: container.HostConfig.PortBindings
 		}
 		return new Service(service)
 
 	# TODO: map ports for any of the possible formats "container:host/protocol", port ranges, etc.
 	getPortsAndPortBindings: =>
-		ports = {}
+		exposedPorts = {}
 		portBindings = {}
 		if @ports?
 			_.forEach @ports, (port) ->
-				[ hostPort, containerPort ] = port.split(':')
-				ports[containerPort + '/tcp'] = {}
-				portBindings[containerPort + '/tcp'] = [ HostPort: hostPort ]
+				[ hostPort, containerPort ] = port.toString().split(':')
+				containerPort ?= hostPort
+				exposedPorts[containerPort + '/tcp'] = {}
+				portBindings[containerPort + '/tcp'] = [ { HostIp: '', HostPort: hostPort } ]
 		if @expose?
 			_.forEach @expose, (port) ->
-				ports[port + '/tcp'] = {}
-		return { ports, portBindings }
+				exposedPorts[port + '/tcp'] = {}
+		return { exposedPorts, portBindings }
 
 	getBindsAndVolumes: =>
 		binds = []
@@ -254,7 +284,6 @@ module.exports = class Service
 		return { binds, volumes }
 
 	toContainerConfig: =>
-		{ ports, portBindings } = @getPortsAndPortBindings()
 		{ binds, volumes } = @getBindsAndVolumes()
 
 		conf = {
@@ -265,16 +294,17 @@ module.exports = class Service
 			Tty: true
 			Volumes: volumes
 			Env: _.map @environment, (v, k) -> k + '=' + v
-			ExposedPorts: ports
+			ExposedPorts: @exposedPorts
 			Labels: @labels
 			HostConfig:
 				Privileged: @privileged
 				NetworkMode: @network_mode
-				PortBindings: portBindings
+				PortBindings: @portBindings
 				Binds: binds
 				RestartPolicy: @restartPolicy
 				CapAdd: @cap_add
 				CapDrop: @cap_drop
+				Devices: @devices
 		}
 		# If network mode is the default network for this app, add alias for serviceName
 		if @network_mode == @appId.toString()
@@ -296,13 +326,14 @@ module.exports = class Service
 			'restartPolicy'
 			'labels'
 			'environment'
-			'cap_add'
-			'cap_drop'
+			'portBindings'
+			'exposedPorts'
 		]
 		arraysToCompare = [
-			'ports'
-			'expose'
 			'volumes'
+			'devices'
+			'cap_add'
+			'cap_drop'
 		]
 		return _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
 			_.every arraysToCompare, (property) =>

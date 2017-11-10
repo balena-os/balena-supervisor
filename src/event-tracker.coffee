@@ -36,9 +36,7 @@ module.exports = class EventTracker
 
 		properties = _.cloneDeep(properties)
 
-		# Don't log private env vars (e.g. api keys)
-		if properties?.service?.environment?
-			delete properties.service.environment
+		# Don't log private env vars (e.g. api keys) or other secrets - use a whitelist to mask what we send
 		properties = mask(properties, mixpanelMask)
 		@_logEvent('Event:', ev, JSON.stringify(properties))
 		return if !@_client?

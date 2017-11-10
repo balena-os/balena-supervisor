@@ -124,7 +124,7 @@ module.exports = class ServiceManager extends EventEmitter
 					alreadyStarted = true
 					return
 
-				if statusCode is '500' and err.json.trim().match(/exec format error$/)
+				if statusCode is '500' and err.message?.trim?()?.match(/exec format error$/)
 					# Provide a friendlier error message for "exec format error"
 					@config.get('deviceType')
 					.then (deviceType) ->
@@ -132,7 +132,7 @@ module.exports = class ServiceManager extends EventEmitter
 				else
 					# rethrow the same error
 					throw err
-			.catch (err) ->
+			.catch (err) =>
 				# If starting the container failed, we remove it so that it doesn't litter
 				container.remove(v: true)
 				.finally =>
@@ -177,6 +177,8 @@ module.exports = class ServiceManager extends EventEmitter
 	getByDockerContainerId: (containerId) =>
 		@docker.getContainer(containerId).inspect()
 		.then (container) ->
+			if !container.Config.Labels['io.resin.supervised']?
+				return null
 			return Service.fromContainer(container)
 		.catchReturn(null)
 
