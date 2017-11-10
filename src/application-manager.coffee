@@ -597,15 +597,22 @@ module.exports = class ApplicationManager extends EventEmitter
 			return dbApp
 
 	createTargetService: (service, opts) ->
+		NotFoundErr = (err) -> err.statusCode == 404
 		serviceOpts = {
 			serviceName: service.serviceName
 		}
 		_.assign(serviceOpts, opts)
-		@images.inspectByName(service.image)
-		.catchReturn(undefined)
-		.then (imageInfo) ->
-			serviceOpts.imageInfo = imageInfo
-			return new Service(service, serviceOpts)
+		Promise.join(
+			@images.inspectByName(service.image)
+			.catchReturn(undefined)
+			@docker.getNetworkGateway(service.network_mode ? service.appId)
+			.catchReturn(NotFoundErr, null)
+			.catchReturn(@docker.InvalidNetGatewayError, null)
+			(imageInfo, apiHostForNetwork) ->
+				serviceOpts.imageInfo = imageInfo
+				serviceOpts.supervisorApiHost = apiHostForNetwork if apiHostForNetwork?
+				return new Service(service, serviceOpts)
+		)
 
 	normaliseAndExtendAppFromDB: (app) =>
 		Promise.join(
