@@ -597,15 +597,22 @@ module.exports = class ApplicationManager extends EventEmitter
 			return dbApp
 
 	createTargetService: (service, opts) ->
+		NotFoundErr = (err) -> err.statusCode == 404
 		serviceOpts = {
 			serviceName: service.serviceName
 		}
 		_.assign(serviceOpts, opts)
-		@images.inspectByName(service.image)
-		.catchReturn(undefined)
-		.then (imageInfo) ->
-			serviceOpts.imageInfo = imageInfo
-			return new Service(service, serviceOpts)
+		Promise.join(
+			@images.inspectByName(service.image)
+			.catchReturn(undefined)
+			@docker.getNetworkGateway(service.network_mode ? service.appId)
+			.catchReturn(NotFoundErr, null)
+			.catchReturn(@docker.InvalidNetGatewayError, null)
+			(imageInfo, apiHostForNetwork) ->
+				serviceOpts.imageInfo = imageInfo
+				serviceOpts.supervisorApiHost = apiHostForNetwork if apiHostForNetwork?
+				return new Service(service, serviceOpts)
+		)
 
 	normaliseAndExtendAppFromDB: (app) =>
 		Promise.join(
@@ -619,8 +626,10 @@ module.exports = class ApplicationManager extends EventEmitter
 				}
 				_.assign(configOpts, opts)
 				volumes = JSON.parse(app.volumes)
-				_.forEach volumes, (v) ->
-					v.labels ?= {}
+				volumes = _.mapValues volumes, (volumeConfig) ->
+					volumeConfig ?= {}
+					volumeConfig.labels ?= {}
+					return volumeConfig
 				Promise.map(JSON.parse(app.services), (service) => @createTargetService(service, configOpts))
 				.then (services) ->
 					# If a named volume is defined in a service, we add it app-wide so that we can track it and purge it
