@@ -11,7 +11,7 @@
 # Usage: dindctl action [options]
 #
 # Actions:
-# 	build					build local supervisor image - you can override image name with --image.
+# 	build					build local supervisor image. By default it will be resin/amd64-supervisor:master, you can override the tag with --tag.
 # 	run [options]			build dind host container, run it (with name resin_supervisor_1), which will include the specified supervisor image and run it.
 # 	buildrun [options]		run 'build' and then immediately 'run' the built container.
 # 	refresh					recompile sources in './src' and restart supervisor container on dind host - requires --mount-dist in order to work properly.
@@ -27,6 +27,7 @@
 # 	--preload | -p			use tools/dev/apps.json to preload an application image into the dind host.
 # 	--ssh					enable a passwordless dropbear ssh server on the dind host
 # 	--config | -c [file]	path to config.json, relative to tools/dind ( default: config.json )
+# 	--tag | -t [tag]		for the "build" action, specify the tag to build (default: master)
 #
 # See README.md for examples.
 #
@@ -51,6 +52,7 @@ CONTAINER_NAME="resin_supervisor_1"
 PRELOADED_IMAGE=""
 OPTIMIZE="true"
 CONFIG_FILENAME="config.json"
+TAG="master"
 
 function showHelp {
 	cat $THIS_FILE | awk '{if(/^#/)print;else exit}' | tail -n +2 | sed 's/\#//' | sed 's|dindctl|'$THIS_FILE'|'
@@ -93,7 +95,11 @@ function parseOptions {
 				ARCH="$2"
 				shift || { echo "--arch provided not specified" && exit 1; }
 				;;
-			--no-optimize)
+			-t|--tag)
+				TAG="$2"
+				shift || { echo "--tag provided not specified" && exit 1; }
+				;;
+			-n|--no-optimize)
 				OPTIMIZE="false"
 				;;
 			*)
@@ -105,11 +111,11 @@ function parseOptions {
 }
 
 function buildSupervisor {
-	echo "Building and deploying for architecture $ARCH and tagging as $IMAGE"
-	make -C "$SUPERVISOR_BASE_DIR" \
-		ARCH="$ARCH" \
-		IMAGE="$SUPERVISOR_IMAGE" \
-		supervisor
+	echo "Building and deploying for architecture $ARCH and tagging as $TAG"
+	git submodule update --init --recursive
+	git clean -fxd base-image
+	git submodule foreach --recursive git clean -fxd
+	ARCH="$ARCH" TAG="$TAG" bash automation/build.sh
 }
 
 function buildSupervisorSrc {

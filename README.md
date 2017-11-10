@@ -8,23 +8,16 @@ The Supervisor is for now a node.js program, with a subset of its functionality 
 
 We are using [waffle.io](https://waffle.io) to manage our tickets / issues, so if you want to track our progress or contribute take a look at [our board there](https://waffle.io/resin-io/resin-supervisor).
 
-## Running supervisor locally
+## Running a supervisor locally
 
-### Build a local supervisor image
-
-Build the supervisor with a specific repo and tag, e.g.
-```bash
-./tools/dev/dindctl build --image username/resin-supervisor:master --arch amd64
-```
-
-This will build the Supervisor docker image locally. If you then run `docker images` you should see the repo/tag you
-set there.
+This process will allow you to run a development instance of the supervisor on your local computer. It is not recommended for production scenarios, but allows someone developing on the supervisor to test changes quickly.
+The supervisor is run inside a docker-in-docker container that roughly emulates its environment when running on a ResinOS device.
 
 ### Set up config.json
 
-Add a `tools/dind/config.json` file from a staging device image. It should be configured for an x86 or amd64 device type so that you can push apps to it and they run properly on your computer.
+Add a `tools/dind/config.json` file from a staging or production device image. It should be configured for an x86 or amd64 device type (e.g. an Intel Nuc) so that you can push apps to it and they run properly on your computer.
 
-Note: don't use resinstaging for production devices. This is for development purposes only. A production (resin.io) config.json should work just as fine for this local supervisor, but we also don't recommend using this in production scenarios - ResinOS is way better suited for that.
+Note: don't use staging for production devices. This is for development purposes only. A production (resin.io) config.json should work just as fine for this local supervisor, but we also don't recommend using this in production scenarios - ResinOS is way better suited for that.
 
 A config.json file can be obtained in several ways, for instance:
 
@@ -34,13 +27,13 @@ A config.json file can be obtained in several ways, for instance:
 The config.json file should look something like this:
 
 (Please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
-```yaml
+```
 {
 	"applicationId": "2167", /* Id of the app this supervisor will run */
-	"apiKey": "supersecretapikey", /* The API key for the Resin API */
+	"apiKey": "supersecretapikey", /* The API key to provision the device on the Resin API */
 	"userId": "141", /* User ID for the user who owns the app */
 	"username": "gh_pcarranzav", /* User name for the user who owns the app */
-	"deviceType": "intel-edison", /* The device type corresponding to the test application */
+	"deviceType": "intel-nuc", /* The device type corresponding to the test application */
 	"apiEndpoint": "https://api.resinstaging.io", /* Endpoint for the Resin API */
 	"deltaEndpoint": "https://delta.resinstaging.io", /* Endpoint for the delta server to download docker binary diffs */
 	"vpnEndpoint": "vpn.resinstaging.io", /* Endpoint for the Resin VPN server */
@@ -48,37 +41,35 @@ The config.json file should look something like this:
 	"pubnubPublishKey": "pub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Publish key for Pubnub for logs */
 	"listenPort": 48484, /* Listen port for the supervisor API */
 	"mixpanelToken": "aaaaaaaaaaaaaaaaaaaaaaaaaa", /* Mixpanel token to report events */
-	"files": { /* This field is used by the host OS on devices, so the supervisor doesn't care about it */
-		"network/settings": "[global]\nOfflineMode=false\n\n[WiFi]\nEnable=true\nTethering=false\n\n[Wired]\nEnable=true\nTethering=false\n\n[Bluetooth]\nEnable=true\nTethering=false",
-		"network/network.config": "[service_home_ethernet]\nType = ethernet\nNameservers = 8.8.8.8,8.8.4.4"
-	},
-	"registryEndpoint": "registry.resinstaging.io", /* Endpoint for the Resin registry, not used by the latest supervisor versions */
 }
 ```
 
-Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the resin API. Other fields may be present (the format has evolved over time and will likely continue to do so).
+Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the resin API. Other fields may be present (the format has evolved over time and will likely continue to do so) but they are not used by the supervisor.
 
 ### Start the supervisor instance
 
 Ensure your kernel supports aufs (in Ubuntu, install `linux-image-extra-$(uname -r)`) and the `aufs` module is loaded (if necessary, run `sudo modprobe aufs`).
 
 ```bash
-./tools/dev/dindctl run --image username/resin-supervisor:master
+./dindctl run --image resin/amd64-supervisor:master
 ```
 
-This will setup a docker-in-docker instance with an image that runs the supervisor image. The image has to be available
-locally, either because you built it as described above, or because you pulled it before running `dindctl run`.
+This will setup a docker-in-docker instance with an image that runs the supervisor image. You can replace `:master` for a specific tag (see the [tags in dockerhub](https://hub.docker.com/r/resin/amd64-supervisor/tags/)) to run
+a supervisor from a branch or specific version. The script will pull the image if it is not already available in your
+local docker instance.
 
 If you want to develop and test your changes, you can run:
 
 ```bash
-./tools/dev/dindctl run --image username/resin-supervisor:master --mount-dist
+./dindctl run --image resin/amd64-supervisor:master --mount-dist
 ```
 
-This will mount the ./dist folder into the supervisor container, so that any changes you make can be added to the running supervisor with:
+This will mount the ./dist folder into the supervisor container and build the code before starting the instance, so that any changes you make can be added to the running supervisor with:
+
+Note: using `--mount-dist` requires a nodejs 6.x installed on your computer.
 
 ```bash
-./tools/dev/dindctl refresh
+./dindctl refresh
 ```
 
 ### Testing with preloaded apps
@@ -88,13 +79,17 @@ It should look something like this:
 
 (As before, please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
 
-```yaml
+```
 [{
 	"appId": "2167", /* Id of the app we are running */
+	"name": "myapplication", /* Name of the app we are running */
 	"commit": "commithash", /* Current git commit for the app */
 	"imageId": "registry.resinstaging.io/path/to/image", /* Id of the docker image for this app */
 	"env": { /* Environment variables for the app */
 		"KEY": "value"
+	},
+	"config": { /* Device configuration variables */
+		"RESIN_SUPERVISOR_DELTA": "1"
 	}
 }]
 ```
@@ -103,26 +98,30 @@ Make sure the config.json file doesn't have uuid, registered_at or deviceId popu
 
 Then run the supervisor like this:
 ```bash
-./tools/dev/dindctl run --image username/resin-supervisor:master --preload
+./dindctl run --image resin/amd64-supervisor:master --preload
 ```
-This will make the docker-in-docker instance pull the image specified in apps.json before running the supervisor.
+This will make the docker-in-docker instance pull the image specified in apps.json before running the supervisor, simulating a preloaded ResinOS image (where `resin preload` has been used on the image, see [the resin CLI docs](https://docs.resin.io/tools/cli/#preload-60-image-62-)).
 
 ### Enabling passwordless dropbear access
 
-If you want to enable passwordless dropbear login (e.g. while testing `resin sync`) you can set the `PASSWORDLESS_DROPBEAR` option to `true`, like:
+If you want to enable passwordless dropbear login (e.g. while testing `resin sync`) you can set the `--ssh` option, like:
 
 ```bash
-PASSWORDLESS_DROPBEAR=true ARCH=amd64 SUPERVISOR_IMAGE=username/resin-supervisor:master ./tools/dev/dindctl run
+./dindctl run --image resin/amd64-supervisor:master --ssh
 ```
 
-### View the containers logs
+This will run an ssh daemon **with no password** inside the docker-in-docker instance, so use with caution.
+
+### View the supervisor's logs
 ```bash
-docker exec -it resin_supervisor_1 journalctl -f
+./dindctl logs
 ```
 
-### View the supervisor logs
+This will show the output of `journalctl` inside the docker-in-docker container. You can pass
+additional options, for instance, to see the logs from the supervisor service:
+
 ```bash
-./tools/dev/dindctl logs -f
+./dindctl logs -fn 100 -u resin-supervisor-dind
 ```
 
 ### Stop the supervisor
@@ -130,6 +129,48 @@ docker exec -it resin_supervisor_1 journalctl -f
 ./tools/dev/dindctl stop
 ```
 This will stop the container and remove it, also removing its volumes.
+
+## Developing with a ResinOS device
+
+If you want to test local changes (only changes to the nodejs code are supported) on a real ResinOS device, provision
+a [development OS image](https://docs.resin.io/understanding/understanding-devices/2.0.0/#dev-vs-prod-images) and power up the device. On the resin dashboard, take note of the device's IP address. Then run:
+```
+./sync.js <device IP>
+```
+
+This will build the supervisor code and sync it onto the running supervisor container inside the device, and then restart it.
+
+## Build a local supervisor image
+
+This should rarely be needed as `--mount-dist` allows you to test any changes to the nodejs code without a full rebuild. However, if you've changed code in gosuper, base-image or the Dockerfile you will need to build the proper
+supervisor docker image.
+
+Build the supervisor with a specific tag, and for a specific architecture, like this:
+```bash
+./dindctl build --tag master --arch amd64
+```
+
+This will build the Supervisor docker image locally. If you then run `docker images` you should see the repo/tag you
+set there. Keep in mind several images will be pulled for caching purposes - if the base image is not cached the build
+can take a few hours.
+
+The docker caching system can be tricky, so it might try to build the base image anyways; if you see that the build hangs at something like:
+
+```
+### Shell environment set up for builds. ###
+
+You can now run 'bitbake <target>'
+
+Common targets are:
+    core-image-minimal
+    core-image-sato
+    meta-toolchain
+    meta-ide-support
+
+You can also run generated qemu images with a command like 'runqemu qemux86'
+```
+
+...don't be alarmed, it means it is building the base image and will take a few hours without any output. Go grab some coffee or play a game of Risk.
 
 ## Working with the Go supervisor
 
