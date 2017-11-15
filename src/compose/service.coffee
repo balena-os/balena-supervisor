@@ -234,7 +234,8 @@ module.exports = class Service
 		portBindings = {}
 		if @ports?
 			_.forEach @ports, (port) ->
-				[ hostPort, containerPort ] = port.split(':')
+				[ hostPort, containerPort ] = port.toString().split(':')
+				containerPort ?= hostPort
 				ports[containerPort + '/tcp'] = {}
 				portBindings[containerPort + '/tcp'] = [ HostPort: hostPort ]
 		if @expose?
