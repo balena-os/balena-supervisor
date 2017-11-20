@@ -17,7 +17,7 @@ opts = {
 	destination: '/usr/src/app/dist',
 	appName: 'resin_supervisor',
 	skipGitignore: true,
-	before: 'npm install && npm run build-no-optimize'
+	before: 'npm install && npm run build -- --env.noOptimize'
 };
 
 doSync(opts);
