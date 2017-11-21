@@ -92,6 +92,7 @@ module.exports = class Service
 			@extendEnvVars(opts)
 			@extendLabels(opts.imageInfo)
 			@extendAndSanitiseVolumes(opts.imageInfo)
+			@extendAndSanitiseExposedPorts(opts.imageInfo)
 			@devices = formatDevices(@devices)
 			if checkTruthy(@labels['io.resin.features.dbus'])
 				@volumes.push('/run/dbus:/host/run/dbus')
@@ -139,6 +140,16 @@ module.exports = class Service
 		@labels['io.resin.image_id'] = @imageId.toString()
 		@labels['io.resin.commit'] = @commit
 		return @labels
+
+	extendAndSanitiseExposedPorts: (imageInfo) =>
+		@expose = _.clone(@expose)
+		@expose = _.map(@expose, String)
+		if imageInfo?.Config?.ExposedPorts?
+			_.forEach imageInfo.Config.ExposedPorts, (v, k) =>
+				port = k.match(/^([0-9]*)\/tcp$/)?[1]
+				if port? and !_.find(@expose, port)
+					@expose.push(port)
+		return @expose
 
 	extendAndSanitiseVolumes: (imageInfo) =>
 		volumes = []
