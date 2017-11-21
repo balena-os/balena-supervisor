@@ -34,6 +34,13 @@ defaultBinds = (appId, serviceName) ->
 		"#{updateLock.lockPath(appId, serviceName)}:/tmp/resin"
 	]
 
+formatDevices = (devices) ->
+	return _.map devices, (device) ->
+		[ PathOnHost, PathInContainer, CgroupPermissions ] = device.split(':')
+		PathInContainer ?= PathOnHost
+		CgroupPermissions ?= 'rwm'
+		return { PathOnHost, PathInContainer, CgroupPermissions }
+
 module.exports = class Service
 	constructor: (serviceProperties, opts = {}) ->
 		{
@@ -61,6 +68,7 @@ module.exports = class Service
 			@cap_drop
 			@commit
 			@status
+			@devices
 		} = serviceProperties
 		@privileged ?= false
 		@volumes ?= []
@@ -71,6 +79,7 @@ module.exports = class Service
 		@expose ?= []
 		@cap_add ?= []
 		@cap_drop ?= []
+		@devices ?= []
 		@network_mode ?= @appId.toString()
 		if @releaseId?
 			@releaseId = @releaseId.toString()
@@ -83,7 +92,7 @@ module.exports = class Service
 			@extendEnvVars(opts)
 			@extendLabels(opts.imageInfo)
 			@extendAndSanitiseVolumes(opts.imageInfo)
-
+			@devices = formatDevices(@devices)
 			if checkTruthy(@labels['io.resin.features.dbus'])
 				@volumes.push('/run/dbus:/host/run/dbus')
 			if checkTruthy(@labels['io.resin.features.kernel_modules'])
@@ -224,6 +233,7 @@ module.exports = class Service
 			containerId: container.Id
 			cap_add: container.HostConfig.CapAdd
 			cap_drop: container.HostConfig.CapDrop
+			devices: container.HostConfig.Devices
 			status
 		}
 		return new Service(service)
@@ -276,6 +286,7 @@ module.exports = class Service
 				RestartPolicy: @restartPolicy
 				CapAdd: @cap_add
 				CapDrop: @cap_drop
+				Devices: @devices
 		}
 		# If network mode is the default network for this app, add alias for serviceName
 		if @network_mode == @appId.toString()
@@ -297,13 +308,14 @@ module.exports = class Service
 			'restartPolicy'
 			'labels'
 			'environment'
-			'cap_add'
-			'cap_drop'
 		]
 		arraysToCompare = [
 			'ports'
 			'expose'
 			'volumes'
+			'devices'
+			'cap_add'
+			'cap_drop'
 		]
 		return _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
 			_.every arraysToCompare, (property) =>
