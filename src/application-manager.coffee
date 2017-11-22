@@ -626,8 +626,10 @@ module.exports = class ApplicationManager extends EventEmitter
 				}
 				_.assign(configOpts, opts)
 				volumes = JSON.parse(app.volumes)
-				_.forEach volumes, (v) ->
-					v.labels ?= {}
+				volumes = _.mapValues volumes, (volumeConfig) ->
+					volumeConfig ?= {}
+					volumeConfig.labels ?= {}
+					return volumeConfig
 				Promise.map(JSON.parse(app.services), (service) => @createTargetService(service, configOpts))
 				.then (services) ->
 					# If a named volume is defined in a service, we add it app-wide so that we can track it and purge it
