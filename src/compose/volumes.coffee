@@ -101,8 +101,8 @@ module.exports = class Volumes
 			@logger.logSystemEvent(logTypes.removeVolumeError, { volume: { name }, error: err })
 
 	isEqualConfig: (current, target) ->
-		currentOpts = current.driver_opts ? {}
-		targetOpts = target.driver_opts ? {}
-		currentLabels = current.labels ? {}
-		targetLabels = target.labels ? {}
+		currentOpts = current?.driver_opts ? {}
+		targetOpts = target?.driver_opts ? {}
+		currentLabels = current?.labels ? {}
+		targetLabels = target?.labels ? {}
 		return _.isEqual(currentLabels, targetLabels) and _.isEqual(currentOpts, targetOpts)
