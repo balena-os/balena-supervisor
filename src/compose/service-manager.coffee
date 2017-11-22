@@ -177,6 +177,8 @@ module.exports = class ServiceManager extends EventEmitter
 	getByDockerContainerId: (containerId) =>
 		@docker.getContainer(containerId).inspect()
 		.then (container) ->
+			if !container.Config.Labels['io.resin.supervised']?
+				return null
 			return Service.fromContainer(container)
 		.catchReturn(null)
 
