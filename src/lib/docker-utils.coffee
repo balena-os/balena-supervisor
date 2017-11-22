@@ -133,7 +133,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 		.catchReturn(@InvalidNetGatewayError, '172.17.0.1')
 
 	getNetworkGateway: (netName) =>
-		return '127.0.0.1' if netName == 'host'
+		return Promise.resolve('127.0.0.1') if netName == 'host'
 		@getNetwork(netName).inspect()
 		.then (netInfo) =>
 			conf = netInfo?.IPAM?.Config?[0]
