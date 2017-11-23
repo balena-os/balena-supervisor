@@ -416,7 +416,8 @@ module.exports = class ApplicationManager extends EventEmitter
 			pairs.push({ current: imageWithSameName, target, serviceId: target.serviceId })
 		return pairs
 
-	hasCurrentNetworksOrVolumes: (service, networkPairs, volumePairs) ->
+	# Checks if a service is using a network or volume that is about to be updated
+	_hasCurrentNetworksOrVolumes: (service, networkPairs, volumePairs) ->
 		hasNetwork = _.some networkPairs, (pair) ->
 			pair.current.name == service.network_mode
 		return true if hasNetwork
@@ -443,6 +444,17 @@ module.exports = class ApplicationManager extends EventEmitter
 			sourceName = volumeDefinition.split(':')[0]
 			_.find(volumePairs, (pair) -> pair.target.name == sourceName)? or _.find(stepsInProgress, (step) -> step.model == 'volume' and step.target.name == sourceName)?
 		return !volumeUnmet
+
+	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
+	# to kill a service once the images for the services it depends on have been downloaded, so as to minimize
+	# downtime (but not block the killing too much, potentially causing a deadlock)
+	_dependenciesMetForServiceKill: (target, targetApp, availableImages) ->
+		if target.depends_on?
+			for dependency in target.depends_on
+				dependencyService = _.find(targetApp.services, (s) -> s.serviceName == dependency)
+				if !_.find(availableImages, (image) -> image.name == dependencyService.image)?
+					return false
+		return true
 
 	_nextStepsForNetworkOrVolume: ({ current, target }, currentApp, changingPairs, dependencyComparisonFn, model) ->
 		# Check none of the currentApp.services use this network or volume
@@ -484,57 +496,66 @@ module.exports = class ApplicationManager extends EventEmitter
 		else
 			return serviceAction('stop', target.serviceId, current, target)
 
-	_fetchOrStartStep: (current, target, needsDownload, dependenciesMetFn) ->
+	_fetchOrStartStep: (current, target, needsDownload, dependenciesMetForStart) ->
 		if needsDownload
 			return fetchAction(target)
-		else if dependenciesMetFn()
+		else if dependenciesMetForStart()
 			return serviceAction('start', target.serviceId, current, target)
 		else
 			return null
 
 	_strategySteps: {
-		'download-then-kill': (current, target, needsDownload, dependenciesMetFn) ->
+		'download-then-kill': (current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill) ->
 			if needsDownload
 				return fetchAction(target)
-			else if dependenciesMetFn()
+			else if dependenciesMetForKill()
 				# We only kill when dependencies are already met, so that we minimize downtime
 				return serviceAction('kill', target.serviceId, current, target)
 			else
 				return null
-		'kill-then-download': (current, target, needsDownload, dependenciesMetFn) ->
+		'kill-then-download': (current, target) ->
 			return serviceAction('kill', target.serviceId, current, target)
-		'delete-then-download': (current, target, needsDownload, dependenciesMetFn) ->
-			return serviceAction('kill', target.serviceId, current, target, removeImage: true)
-		'hand-over': (current, target, needsDownload, dependenciesMetFn, timeout) ->
+		'delete-then-download': (current, target, needsDownload) ->
+			return serviceAction('kill', target.serviceId, current, target, removeImage: needsDownload)
+		'hand-over': (current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout) ->
 			if needsDownload
 				return fetchAction(target)
-			else if dependenciesMetFn()
+			else if needsSpecialKill && dependenciesMetForKill()
+				return serviceAction('kill', target.serviceId, current, target)
+			else if dependenciesMetForStart()
 				return serviceAction('handover', target.serviceId, current, target, timeout: timeout)
 			else
 				return null
 	}
 
 	_nextStepForService: ({ current, target }, updateContext) ->
-		{ networkPairs, volumePairs, installPairs, updatePairs, stepsInProgress, availableImages } = updateContext
+		{ targetApp, networkPairs, volumePairs, installPairs, updatePairs, stepsInProgress, availableImages } = updateContext
 		if _.find(stepsInProgress, (step) -> step.serviceId == target.serviceId)?
 			# There is already a step in progress for this service, so we wait
 			return null
-		dependenciesMet = =>
-			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs), stepsInProgress)
 
 		needsDownload = !_.some(availableImages, (image) -> target.image == image.name)
+		dependenciesMetForStart = =>
+			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs), stepsInProgress)
+		dependenciesMetForKill = =>
+			!needsDownload and @_dependenciesMetForServiceKill(target, targetApp, availableImages)
+
+		# If the service is using a network or volume that is being updated, we need to kill it
+		# even if its strategy is handover
+		needsSpecialKill = @_hasCurrentNetworksOrVolumes(current, networkPairs, volumePairs)
+
 		if current?.isSameContainer(target)
 			# We're only stopping/starting it
 			return @_updateContainerStep(current, target)
 		else if !current?
 			# Either this is a new service, or the current one has already been killed
-			return @_fetchOrStartStep(current, target, needsDownload, dependenciesMet)
+			return @_fetchOrStartStep(current, target, needsDownload, dependenciesMetForStart)
 		else
 			strategy = checkString(target.labels['io.resin.update.strategy'])
 			validStrategies = [ 'download-then-kill', 'kill-then-download', 'delete-then-download', 'hand-over' ]
 			strategy = 'download-then-kill' if !_.includes(validStrategies, strategy)
 			timeout = checkInt(target.labels['io.resin.update.handover_timeout'])
-			return @_strategySteps[strategy](current, target, needsDownload, dependenciesMet, timeout)
+			return @_strategySteps[strategy](current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout)
 
 	_nextStepsForAppUpdate: (currentApp, targetApp, availableImages = [], stepsInProgress = []) =>
 		emptyApp = { services: [], volumes: {}, networks: {} }
@@ -558,7 +579,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				# next step for install pairs in download - start order, but start requires dependencies, networks and volumes met
 				# next step for update pairs in order by update strategy. start requires dependencies, networks and volumes met.
 				_.forEach installPairs.concat(updatePairs), (pair) =>
-					step = @_nextStepForService(pair, { networkPairs, volumePairs, installPairs, updatePairs, stepsInProgress, availableImages })
+					step = @_nextStepForService(pair, { targetApp, networkPairs, volumePairs, installPairs, updatePairs, stepsInProgress, availableImages })
 					steps.push(step) if step?
 				# next step for network pairs - remove requires services killed, create kill if no pairs or steps affect that service
 				_.forEach networkPairs, (pair) =>
