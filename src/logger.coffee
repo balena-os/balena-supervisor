@@ -135,7 +135,7 @@ module.exports = class Logger
 			errMessage = obj.error.message
 			if _.isEmpty(errMessage)
 				errMessage = 'Unknown cause'
-				console.log("Warning: invalid error message", obj.error)
+				console.log('Warning: invalid error message', obj.error)
 			message += " due to '#{errMessage}'"
 		@logSystemMessage(message, obj, logType.eventName)
 		return
