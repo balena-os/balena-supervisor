@@ -41,14 +41,6 @@ module.exports = class SupervisorAPI
 			setTimeout(blink.pattern.stop, 15000)
 			res.sendStatus(200)
 
-		@_api.post '/v1/tcp-ping', (req, res) =>
-			@config.set({ connectivityCheckEnabled: true })
-			res.sendStatus(204)
-
-		@_api.delete '/v1/tcp-ping', (req, res) =>
-			@config.set({ connectivityCheckEnabled: false })
-			res.sendStatus(204)
-
 		# Expires the supervisor's API key and generates a new one.
 		# It also communicates the new key to the Resin API.
 		@_api.post '/v1/regenerate-api-key', (req, res) =>
