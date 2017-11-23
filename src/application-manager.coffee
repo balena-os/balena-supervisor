@@ -418,6 +418,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	# Checks if a service is using a network or volume that is about to be updated
 	_hasCurrentNetworksOrVolumes: (service, networkPairs, volumePairs) ->
+		return false if !service?
 		hasNetwork = _.some networkPairs, (pair) ->
 			pair.current.name == service.network_mode
 		return true if hasNetwork
