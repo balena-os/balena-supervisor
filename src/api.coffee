@@ -9,12 +9,7 @@ _ = require 'lodash'
 proxyvisor = require './proxyvisor'
 
 module.exports = (application) ->
-	api = express()
-	unparsedRouter = express.Router()
-	parsedRouter = express.Router()
-	parsedRouter.use(bodyParser())
-
-	api.use (req, res, next) ->
+	authenticate = (req, res, next) ->
 		queryKey = req.query.apikey
 		header = req.get('Authorization') ? ''
 		match = header.match(/^ApiKey (\w+)$/)
@@ -32,6 +27,15 @@ module.exports = (application) ->
 		.catch (err) ->
 			# This should never happen...
 			res.status(503).send('Invalid API key in supervisor')
+
+	api = express()
+	unparsedRouter = express.Router()
+	parsedRouter = express.Router()
+	unauthenticatedRouter = express.Router()
+
+	parsedRouter.use(bodyParser())
+	parsedRouter.use(authenticate)
+	unparsedRouter.use(authenticate)
 
 	unparsedRouter.get '/ping', (req, res) ->
 		res.send('OK')
@@ -218,6 +222,20 @@ module.exports = (application) ->
 	unparsedRouter.get '/v1/device', (req, res) ->
 		res.json(device.getState())
 
+	unauthenticatedRouter.get '/v1/healthy', (req, res) ->
+		# Has the update cycle not hung? (unless we're downloading an image)
+		healthy = application.healthy()
+		# If we're connected and we know it, has the current state been reported?
+		healthy and= device.stateReportHealthy()
+		# As far as we know, is gosuper healthy?
+		healthy and= device.gosuperHealthy()
+
+		if healthy
+			res.sendStatus(200)
+		else
+			res.sendStatus(500)
+
+	api.use(unauthenticatedRouter)
 	api.use(unparsedRouter)
 	api.use(parsedRouter)
 	api.use(proxyvisor.router)

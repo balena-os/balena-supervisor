@@ -7,7 +7,7 @@ dockerUtils = require './docker-utils'
 Promise = require 'bluebird'
 utils = require './utils'
 logger = require './lib/logger'
-{ cachedResinApi, request } = require './request'
+{ cachedResinApi } = require './request'
 device = require './device'
 lockFile = Promise.promisifyAll(require('lockfile'))
 bootstrap = require './bootstrap'
@@ -19,6 +19,19 @@ proxyvisor = require './proxyvisor'
 osRelease = require './lib/os-release'
 deviceConfig = require './device-config'
 randomHexString = require './lib/random-hex-string'
+
+UPDATE_IDLE = 0
+UPDATE_UPDATING = 1
+UPDATE_REQUIRED = 2
+UPDATE_SCHEDULED = 3
+
+updateStatus =
+	state: UPDATE_IDLE
+	failed: 0
+	forceNext: false
+	intervalHandle: null
+	lastFullUpdateCycle: process.hrtime()[0]
+	currentlyDownloading: false
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -121,6 +134,10 @@ application = {}
 application.UpdatesLockedError = UpdatesLockedError
 application.localMode = false
 
+application.healthy = ->
+	timeSinceLastCycle = (process.hrtime()[0] - updateStatus.lastFullUpdateCycle) * 1000
+	return updateStatus.currentlyDownloading or timeSinceLastCycle <= 2 * config.apiPollInterval
+
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
 	logger.log({ m: message, s: 1 })
 	utils.mixpanelTrack(eventName ? message, obj)
@@ -217,6 +234,7 @@ fetch = (app, { deltaSource, setDeviceUpdateState = true } = {}) ->
 
 	docker.getImage(app.imageId).inspect()
 	.catch ImageNotFoundError, ->
+		updateStatus.currentlyDownloading = true
 		device.updateState(status: 'Downloading', download_progress: 0)
 
 		Promise.try ->
@@ -244,6 +262,8 @@ fetch = (app, { deltaSource, setDeviceUpdateState = true } = {}) ->
 		.catch (err) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
 			throw err
+		.finally ->
+			updateStatus.currentlyDownloading = false
 
 shouldMountKmod = (image) ->
 	device.isResinOSv1().then (isV1) ->
@@ -576,17 +596,6 @@ waitToKill = (app, timeout) ->
 			Promise.delay(pollInterval).then(retryCheck)
 	retryCheck()
 
-UPDATE_IDLE = 0
-UPDATE_UPDATING = 1
-UPDATE_REQUIRED = 2
-UPDATE_SCHEDULED = 3
-
-updateStatus =
-	state: UPDATE_IDLE
-	failed: 0
-	forceNext: false
-	intervalHandle: null
-
 updateStrategies =
 	'download-then-kill': ({ localApp, app, needsDownload, force, deltaSource }) ->
 		Promise.try ->
@@ -885,6 +894,7 @@ application.update = update = (force, scheduled = false) ->
 				else
 					updateStatus.state = UPDATE_IDLE
 			device.updateState(status: 'Idle')
+			updateStatus.lastFullUpdateCycle = process.hrtime()[0]
 			return
 
 sanitiseContainerName = (name) -> name.replace(/^\//, '')

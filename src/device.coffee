@@ -185,6 +185,10 @@ do ->
 	targetState = {}
 	actualState = {}
 	updateState = { update_pending: false, update_failed: false, update_downloaded: false }
+	reportErrors = 0
+
+	exports.stateReportHealthy = ->
+		return !(utils.isConnectivityCheckEnabled() and utils.connected() and reportErrors > 3)
 
 	getStateDiff = ->
 		_.omitBy targetState, (value, key) ->
@@ -211,11 +215,13 @@ do ->
 						apikey: apiKey
 				.timeout(config.apiTimeout)
 				.then ->
+					reportErrors = 0
 					# Update the actual state.
 					_.merge(actualState, stateDiff)
 		)
 		.delay(APPLY_STATE_SUCCESS_DELAY)
 		.catch (error) ->
+			reportErrors += 1
 			utils.mixpanelTrack('Device info update failure', { error, stateDiff })
 			# Delay 5s before retrying a failed update
 			Promise.delay(APPLY_STATE_RETRY_DELAY)
@@ -254,3 +260,10 @@ exports.isResinOSv1 = memoizePromise ->
 
 exports.getOSVariant = memoizePromise ->
 	osRelease.getOSVariant(config.hostOSVersionPath)
+
+do ->
+	_gosuperHealthy = true
+	exports.gosuperHealthy = ->
+		return _gosuperHealthy
+	exports.reportUnhealthyGosuper = ->
+		_gosuperHealthy = false
