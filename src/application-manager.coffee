@@ -437,13 +437,15 @@ module.exports = class ApplicationManager extends EventEmitter
 			_.find(pendingPairs, (pair) -> pair.target?.serviceName == dependency)? or _.find(stepsInProgress, (step) -> step.target?.serviceName == dependency)?
 		return false if dependencyUnmet
 		# for networks and volumes, check no network pairs have that volume name
-		if _.find(networkPairs, (pair) -> pair.target.name == target.network_mode)?
+		if _.find(networkPairs, (pair) -> pair.target?.name == target.network_mode)?
 			return false
-		if _.find(stepsInProgress, (step) -> step.model == 'network' and step.target.name == target.network_mode)?
+		if _.find(stepsInProgress, (step) -> step.model == 'network' and step.target?.name == target.network_mode)?
 			return false
 		volumeUnmet = _.some target.volumes, (volumeDefinition) ->
-			sourceName = volumeDefinition.split(':')[0]
-			_.find(volumePairs, (pair) -> pair.target.name == sourceName)? or _.find(stepsInProgress, (step) -> step.model == 'volume' and step.target.name == sourceName)?
+			[ sourceName, destName ] = volumeDefinition.split(':')
+			if !destName? # If this is not a named volume, ignore it
+				return false
+			_.find(volumePairs, (pair) -> pair.target?.name == sourceName)? or _.find(stepsInProgress, (step) -> step.model == 'volume' and step.target.name == sourceName)?
 		return !volumeUnmet
 
 	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
@@ -562,11 +564,12 @@ module.exports = class ApplicationManager extends EventEmitter
 		emptyApp = { services: [], volumes: {}, networks: {} }
 		if !targetApp?
 			targetApp = emptyApp
+		else
+			# Create the default network for the target app
+			targetApp.networks[targetApp.appId] ?= {}
 		if !currentApp?
 			currentApp = emptyApp
 		appId = targetApp.appId ? currentApp.appId
-		# Create the default network for the target app
-		targetApp.networks[targetApp.appId] ?= {}
 		Promise.join(
 			@compareNetworksOrVolumesForUpdate(@networks, { current: currentApp.networks, target: targetApp.networks }, appId)
 			@compareNetworksOrVolumesForUpdate(@volumes, { current: currentApp.volumes, target: targetApp.volumes }, appId)

@@ -4,6 +4,7 @@ var fs = require('fs');
 var _ = require('lodash');
 var path = require('path');
 var UglifyPlugin = require("uglifyjs-webpack-plugin");
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 var externalModules = [
 	'mkfifo',
@@ -54,7 +55,13 @@ module.exports = function (env) {
 	let plugins = [
 		new webpack.DefinePlugin({
 			'process.env.NODE_ENV': '"production"',
-		})
+		}),
+		new CopyWebpackPlugin([
+			{
+				from: './src/migrations',
+				to: 'migrations'
+			}
+		])
 	]
 	if (env == null || !env.noOptimize) {
 		plugins.push(new UglifyPlugin())

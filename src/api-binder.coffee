@@ -332,6 +332,7 @@ module.exports = class APIBinder
 			stateDiff = @_getStateDiff()
 			if _.size(stateDiff) is 0
 				return
+			console.log(JSON.stringify(stateDiff, null, 2))
 			@_sendReportPatch(stateDiff, conf)
 			.timeout(conf.apiTimeout)
 			.then =>
