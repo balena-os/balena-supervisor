@@ -26,9 +26,8 @@ class APIBinderRouter
 		@router.use(bodyParser.json())
 		@router.post '/v1/update', (req, res) =>
 			@eventTracker.track('Update notification')
-			setImmediate =>
-				if @apiBinder.readyForUpdates
-					@apiBinder.getAndSetTargetState(req.body.force)
+			if @apiBinder.readyForUpdates
+				@apiBinder.getAndSetTargetState(req.body.force)
 			res.sendStatus(204)
 
 module.exports = class APIBinder
@@ -65,7 +64,8 @@ module.exports = class APIBinder
 				apiPrefix: baseUrlLegacy
 				passthrough: requestOpts
 			@cachedResinApi = @resinApi.clone({}, cache: {})
-			return if !startServices
+			if !startServices
+				return
 			console.log('Ensuring device is provisioned')
 			@provisionDevice()
 			.then =>
@@ -137,7 +137,8 @@ module.exports = class APIBinder
 	_provision: =>
 		@config.get('provisioningOptions')
 		.then (opts) =>
-			return if opts.registered_at? and opts.deviceId? and !opts.provisioningApiKey?
+			if opts.registered_at? and opts.deviceId? and !opts.provisioningApiKey?
+				return
 			Promise.try ->
 				if opts.registered_at? and !opts.deviceId?
 					console.log('Device is registered but no device id available, attempting key exchange')
@@ -173,7 +174,8 @@ module.exports = class APIBinder
 				@_provisionOrRetry(retryDelay)
 
 	provisionDevice: =>
-		throw new Error('Trying to provision device without initializing API client') if !@resinApi?
+		if !@resinApi?
+			throw new Error('Trying to provision device without initializing API client')
 		@config.getMany([
 			'provisioned'
 			'bootstrapRetryDelay'
@@ -193,8 +195,10 @@ module.exports = class APIBinder
 			'deviceId'
 		])
 		.then (conf) =>
-			throw new Error('Cannot provision dependent device in offline mode') if conf.offlineMode
-			throw new Error('Device must be provisioned to provision a dependent device') if !conf.provisioned
+			if conf.offlineMode
+				throw new Error('Cannot provision dependent device in offline mode')
+			if !conf.provisioned
+				throw new Error('Device must be provisioned to provision a dependent device')
 			# TODO: when API supports it as per https://github.com/resin-io/hq/pull/949 remove userId
 			_.defaults(device, {
 				user: conf.userId
@@ -219,8 +223,10 @@ module.exports = class APIBinder
 			'apiTimeout'
 		])
 		.then (conf) =>
-			throw new Error('Cannot update dependent device in offline mode') if conf.offlineMode
-			throw new Error('Device must be provisioned to update a dependent device') if !conf.provisioned
+			if conf.offlineMode
+				throw new Error('Cannot update dependent device in offline mode')
+			if !conf.provisioned
+				throw new Error('Device must be provisioned to update a dependent device')
 			@resinApiLegacy.patch
 				resource: 'device'
 				id: id
@@ -229,7 +235,6 @@ module.exports = class APIBinder
 					apikey: conf.currentApiKey
 			.timeout(conf.apiTimeout)
 
-	# TODO: change to the multicontainer model, I think it's device_configuration_variable?
 	# Creates the necessary config vars in the API to match the current device state,
 	# without overwriting any variables that are already set.
 	_reportInitialEnv: =>
@@ -301,10 +306,12 @@ module.exports = class APIBinder
 			return
 
 	startTargetStatePoll: ->
-		throw new Error('Trying to start poll without initializing API client') if !@resinApi?
+		if !@resinApi?
+			throw new Error('Trying to start poll without initializing API client')
 		@_pollTargetState()
 		@config.on 'change', (changedConfig) =>
-			@_pollTargetState() if changedConfig.appUpdatePollInterval?
+			if changedConfig.appUpdatePollInterval?
+				@_pollTargetState()
 
 	_getStateDiff: =>
 		diff = {
@@ -325,7 +332,6 @@ module.exports = class APIBinder
 
 		@cachedResinApi._request(requestParams)
 
-	# TODO: switch to using the proper endpoint by changing @_reportV1 to @_reportV2
 	_report: =>
 		@config.getMany([ 'currentApiKey', 'deviceId', 'apiTimeout', 'resinApiEndpoint', 'uuid' ])
 		.then (conf) =>
@@ -339,6 +345,7 @@ module.exports = class APIBinder
 				_.assign(@lastReportedState.dependent, stateDiff.dependent)
 
 	_reportCurrentState: =>
+		@reportPending = true
 		@deviceState.getStatus()
 		.then (currentDeviceState) =>
 			_.assign(@stateForReport.local, currentDeviceState.local)
@@ -350,19 +357,20 @@ module.exports = class APIBinder
 			@_report()
 			.delay(REPORT_SUCCESS_DELAY)
 			.then =>
-				setImmediate(@_reportCurrentState)
+				@_reportCurrentState()
 		.catch (err) =>
 			@eventTracker.track('Device state report failure', { error: err })
 			Promise.delay(REPORT_RETRY_DELAY)
 			.then =>
-				setImmediate(@_reportCurrentState)
+				@_reportCurrentState()
+		return
 
 	startCurrentStateReport: =>
-		throw new Error('Trying to start state reporting without initializing API client') if !@resinApi?
+		if !@resinApi?
+			throw new Error('Trying to start state reporting without initializing API client')
 		# patch to the device(id) endpoint
 		@deviceState.on 'change', =>
 			if !@reportPending
-				@reportPending = true
 				# A latency of 100 ms should be acceptable and
 				# allows avoiding catching docker at weird states
 				@_reportCurrentState()

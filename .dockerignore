@@ -5,3 +5,4 @@ node_modules
 tools
 dindctl
 README.md
+knexfile.js

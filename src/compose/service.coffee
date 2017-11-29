@@ -5,6 +5,8 @@ updateLock = require '../lib/update-lock'
 constants = require '../lib/constants'
 conversions =  require '../lib/conversions'
 
+Images = require './images'
+
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 
 # Construct a restart policy based on its name.
@@ -41,13 +43,14 @@ formatDevices = (devices) ->
 		CgroupPermissions ?= 'rwm'
 		return { PathOnHost, PathInContainer, CgroupPermissions }
 
+# TODO: Support "networks" too, instead of only networkMode
 module.exports = class Service
 	constructor: (serviceProperties, opts = {}) ->
 		{
 			@image
 			@expose
 			@ports
-			@network_mode
+			@networkMode
 			@privileged
 			@releaseId
 			@imageId
@@ -63,15 +66,15 @@ module.exports = class Service
 			@labels
 			@volumes
 			@restartPolicy
-			@depends_on
-			@cap_add
-			@cap_drop
+			@dependsOn
+			@capAdd
+			@capDrop
 			@commit
 			@status
 			@devices
 			@exposedPorts
 			@portBindings
-		} = serviceProperties
+		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
 		@privileged ?= false
 		@volumes ?= []
 		@labels ?= {}
@@ -79,14 +82,12 @@ module.exports = class Service
 		@running ?= true
 		@ports ?= []
 		@expose ?= []
-		@cap_add ?= []
-		@cap_drop ?= []
+		@capAdd ?= []
+		@capDrop ?= []
 		@devices ?= []
 		@exposedPorts ?= {}
 		@portBindings ?= {}
-		@network_mode ?= @appId.toString()
-		if @releaseId?
-			@releaseId = @releaseId.toString()
+		@networkMode ?= @appId.toString()
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
@@ -142,7 +143,6 @@ module.exports = class Service
 		@labels['io.resin.app_id'] = @appId.toString()
 		@labels['io.resin.service_id'] = @serviceId.toString()
 		@labels['io.resin.service_name'] = @serviceName
-		@labels['io.resin.image_id'] = @imageId.toString()
 		@labels['io.resin.commit'] = @commit
 		return @labels
 
@@ -159,7 +159,7 @@ module.exports = class Service
 
 	extendAndSanitiseVolumes: (imageInfo) =>
 		volumes = []
-		_.forEach @volumes, (vol) ->
+		for vol in @volumes
 			isBind = /:/.test(vol)
 			if isBind
 				bindSource = vol.split(':')[0]
@@ -177,8 +177,8 @@ module.exports = class Service
 	getNamedVolumes: =>
 		defaults = @defaultBinds()
 		validVolumes = _.map @volumes, (vol) ->
-			return null if _.includes(defaults, vol)
-			return null if !/:/.test(vol)
+			if _.includes(defaults, vol) or !/:/.test(vol)
+				return null
 			bindSource = vol.split(':')[0]
 			if !path.isAbsolute(bindSource)
 				return bindSource
@@ -223,18 +223,20 @@ module.exports = class Service
 			if containerPort? and !_.includes(boundContainerPorts, containerPort)
 				expose.push(containerPort)
 
-		appId = container.Config.Labels['io.resin.app_id']
-		serviceId = container.Config.Labels['io.resin.service_id']
+		appId = checkInt(container.Config.Labels['io.resin.app_id'])
+		serviceId = checkInt(container.Config.Labels['io.resin.service_id'])
 		serviceName = container.Config.Labels['io.resin.service_name']
-		releaseId = container.Name.match(/.*_(\d+)$/)?[1]
+		nameComponents = container.Name.match(/.*_(\d+)_(\d+)$/)
+		imageId = checkInt(nameComponents?[1])
+		releaseId = checkInt(nameComponents?[2])
 		service = {
 			appId: appId
 			serviceId: serviceId
 			serviceName: serviceName
-			imageId: checkInt(container.Config.Labels['io.resin.image_id'])
+			imageId: imageId
 			command: container.Config.Cmd
 			entrypoint: container.Config.Entrypoint
-			network_mode: container.HostConfig.NetworkMode
+			networkMode: container.HostConfig.NetworkMode
 			volumes: _.concat(container.HostConfig.Binds ? [], _.keys(container.Config.Volumes ? {}))
 			image: container.Config.Image
 			environment: conversions.envArrayToObject(container.Config.Env)
@@ -248,13 +250,16 @@ module.exports = class Service
 			ports: ports
 			expose: expose
 			containerId: container.Id
-			cap_add: container.HostConfig.CapAdd
-			cap_drop: container.HostConfig.CapDrop
+			capAdd: container.HostConfig.CapAdd
+			capDrop: container.HostConfig.CapDrop
 			devices: container.HostConfig.Devices
 			status
 			exposedPorts: container.Config.ExposedPorts
 			portBindings: container.HostConfig.PortBindings
 		}
+		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
+		if service.restartPolicy.Name == ''
+			service.restartPolicy.Name = 'no'
 		return new Service(service)
 
 	# TODO: map ports for any of the possible formats "container:host/protocol", port ranges, etc.
@@ -262,20 +267,20 @@ module.exports = class Service
 		exposedPorts = {}
 		portBindings = {}
 		if @ports?
-			_.forEach @ports, (port) ->
+			for port in @ports
 				[ hostPort, containerPort ] = port.toString().split(':')
 				containerPort ?= hostPort
 				exposedPorts[containerPort + '/tcp'] = {}
 				portBindings[containerPort + '/tcp'] = [ { HostIp: '', HostPort: hostPort } ]
 		if @expose?
-			_.forEach @expose, (port) ->
+			for port in @expose
 				exposedPorts[port + '/tcp'] = {}
 		return { exposedPorts, portBindings }
 
 	getBindsAndVolumes: =>
 		binds = []
 		volumes = {}
-		_.forEach @volumes, (vol) ->
+		for vol in @volumes
 			isBind = /:/.test(vol)
 			if isBind
 				binds.push(vol)
@@ -285,9 +290,8 @@ module.exports = class Service
 
 	toContainerConfig: =>
 		{ binds, volumes } = @getBindsAndVolumes()
-
 		conf = {
-			name: "#{@serviceName}_#{@releaseId}"
+			name: "#{@serviceName}_#{@imageId}_#{@releaseId}"
 			Image: @image
 			Cmd: @command
 			Entrypoint: @entrypoint
@@ -298,16 +302,17 @@ module.exports = class Service
 			Labels: @labels
 			HostConfig:
 				Privileged: @privileged
-				NetworkMode: @network_mode
+				NetworkMode: @networkMode
 				PortBindings: @portBindings
 				Binds: binds
-				RestartPolicy: @restartPolicy
-				CapAdd: @cap_add
-				CapDrop: @cap_drop
+				CapAdd: @capAdd
+				CapDrop: @capDrop
 				Devices: @devices
 		}
+		if @restartPolicy.Name != 'no'
+			conf.HostConfig.RestartPolicy = @restartPolicy
 		# If network mode is the default network for this app, add alias for serviceName
-		if @network_mode == @appId.toString()
+		if @networkMode == @appId.toString()
 			conf.NetworkingConfig = {
 				EndpointsConfig: {
 					"#{@appId}": {
@@ -319,9 +324,7 @@ module.exports = class Service
 
 	isSameContainer: (otherService) =>
 		propertiesToCompare = [
-			'image'
-			'imageId'
-			'network_mode'
+			'networkMode'
 			'privileged'
 			'restartPolicy'
 			'labels'
@@ -332,12 +335,16 @@ module.exports = class Service
 		arraysToCompare = [
 			'volumes'
 			'devices'
-			'cap_add'
-			'cap_drop'
+			'capAdd'
+			'capDrop'
 		]
-		return _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
+		return Images.isSameImage({ name: @image }, { name: otherService.image }) and
+			_.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
 			_.every arraysToCompare, (property) =>
 				_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
 
 	isEqual: (otherService) =>
-		return @isSameContainer(otherService) and @running == otherService.running and @releaseId == otherService.releaseId
+		return @isSameContainer(otherService) and
+			@running == otherService.running and
+			@releaseId == otherService.releaseId and
+			@imageId == otherService.imageId

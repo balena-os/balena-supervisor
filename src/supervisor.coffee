@@ -30,33 +30,14 @@ module.exports = class Supervisor extends EventEmitter
 		@deviceState.applications.proxyvisor.bindToAPI(@apiBinder)
 		@api = new SupervisorAPI({ @config, @eventTracker, routers: [ @apiBinder.router, @deviceState.router ] })
 
-	normaliseState: =>
+	init: =>
 		@db.init()
 		.tap =>
 			@config.init() # Ensures uuid, deviceApiKey, apiSecret and logsChannel
-		.then (needsMigration) =>
-			# We're updating from an older supervisor, so we need to mark images as supervised and remove all containers
-			if needsMigration
-				@db.models('legacyData').select()
-				.then ([ legacyData ]) =>
-					if !legacyData?
-						console.log('No legacy data found, skipping migration')
-						return
-					@deviceState.normaliseLegacy(legacyData)
-				.then =>
-					@db.finishMigration()
-
-	init: =>
-		@normaliseState()
 		.then =>
 			@config.getMany(startupConfigFields)
 		.then (conf) =>
-			@eventTracker.init({
-				offlineMode: conf.offlineMode
-				mixpanelToken: conf.mixpanelToken
-				mixpanelHost: conf.mixpanelHost
-				uuid: conf.uuid
-			})
+			@eventTracker.init(conf)
 			.then =>
 				@eventTracker.track('Supervisor start')
 				@deviceState.init()

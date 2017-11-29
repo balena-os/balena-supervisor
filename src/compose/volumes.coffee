@@ -1,28 +1,23 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
 fs = Promise.promisifyAll(require('fs'))
-ncp = Promise.promisify(require('ncp').ncp)
-rimraf = Promise.promisify(require('rimraf'))
-exec = Promise.promisify(require('child_process').exec)
-ncp.limit = 16
+path = require 'path'
 
 logTypes = require '../lib/log-types'
-migration = require '../lib/migration'
 constants = require '../lib/constants'
-
-ENOENT = (err) -> err.code is 'ENOENT'
+{ checkInt } = require '../lib/validation'
 
 module.exports = class Volumes
 	constructor: ({ @docker, @logger }) ->
 
 	format: (volume) ->
-		appId = volume.Labels['io.resin.app_id']
+		appId = checkInt(volume.Labels['io.resin.app_id'])
 		return {
 			name: volume.Name
 			appId
 			config: {
 				labels: _.omit(volume.Labels, _.keys(@defaultLabels(appId)))
-				driver_opts: volume.Options
+				driverOpts: volume.Options
 			}
 		}
 
@@ -48,15 +43,17 @@ module.exports = class Volumes
 	defaultLabels: (appId) ->
 		return {
 			'io.resin.supervised': 'true'
-			'io.resin.app_id': appId
+			'io.resin.app_id': appId.toString()
 		}
 
 	# TODO: what config values are relevant/whitelisted?
+	# For now we only care about driverOpts and labels
 	create: ({ name, config = {}, appId }) =>
+		config = _.mapKeys(config, (v, k) -> _.camelCase(k))
 		@logger.logSystemEvent(logTypes.createVolume, { volume: { name } })
 		labels = _.clone(config.labels) ? {}
 		_.assign(labels, @defaultLabels(appId))
-		driverOpts = config.driver_opts ? {}
+		driverOpts = config.driverOpts ? {}
 		@docker.createVolume({
 			Name: name
 			Labels: labels
@@ -67,32 +64,22 @@ module.exports = class Volumes
 			throw err
 
 	createFromLegacy: (appId) =>
-		name = migration.defaultLegacyVolume(appId)
+		name = "resin-data-#{appId}"
 		@create({ name, appId })
 		.then (v) ->
 			v.inspect()
 		.then (v) ->
-			volumePath = "#{constants.rootMountPoint}#{v.Mountpoint}"
-			legacyPath = "/mnt/root/resin-data/#{appId}"
-			fs.lstatAsync(legacyPath)
-			.catch ENOENT, (err) ->
-				fs.lstatAsync(legacyPath + '-old')
+			volumePath = path.join(constants.rootMountPoint, v.Mountpoint)
+			legacyPath = path.join(constants.rootMountPoint, constants.dataPath, appId.toString())
+			fs.renameAsync(legacyPath, volumePath)
+			.then ->
+				fs.openAsync(path.dirname(volumePath))
+			.then (parent) ->
+				fs.fsyncAsync(parent)
 				.then ->
-					rimraf(legacyPath + '-old')
-				.finally ->
-					throw err
-			.then ->
-				ncp(legacyPath, volumePath)
-			.then ->
-				exec('sync')
-			.then ->
-				# Before deleting, we rename so that if there's an unexpected poweroff
-				# next time we won't copy a partially deleted folder into the volume
-				fs.renameAsync(legacyPath, legacyPath + '-old')
-				.then ->
-					rimraf(legacyPath + '-old')
+					fs.closeAsync(parent)
 		.catch (err) ->
-			console.log("Ignoring legacy data volume migration due to #{err}")
+			@logger.logSystemMessage("Warning: could not migrate legacy /data volume: #{err.message}", { error: err }, 'Volume migration error')
 
 	remove: ({ name }) ->
 		@logger.logSystemEvent(logTypes.removeVolume, { volume: { name } })
@@ -100,9 +87,11 @@ module.exports = class Volumes
 		.catch (err) =>
 			@logger.logSystemEvent(logTypes.removeVolumeError, { volume: { name }, error: err })
 
-	isEqualConfig: (current, target) ->
-		currentOpts = current?.driver_opts ? {}
-		targetOpts = target?.driver_opts ? {}
-		currentLabels = current?.labels ? {}
-		targetLabels = target?.labels ? {}
+	isEqualConfig: (current = {}, target = {}) ->
+		current = _.mapKeys(current, (v, k) -> _.camelCase(k))
+		target = _.mapKeys(target, (v, k) -> _.camelCase(k))
+		currentOpts = current.driverOpts ? {}
+		targetOpts = target.driverOpts ? {}
+		currentLabels = current.labels ? {}
+		targetLabels = target.labels ? {}
 		return _.isEqual(currentLabels, targetLabels) and _.isEqual(currentOpts, targetOpts)

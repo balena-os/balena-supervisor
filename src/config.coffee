@@ -145,6 +145,7 @@ module.exports = class Config extends EventEmitter
 			deltaRetryCount: { source: 'db', mutable: true, default: '' }
 			deltaRetryInterval: { source: 'db', mutable: true, default: '' }
 			lockOverride: { source: 'db', mutable: true, default: 'false' }
+			legacyAppsPresent: { source: 'db', mutable: true, default: 'false' }
 		}
 
 		@configJsonCache = {}
@@ -183,10 +184,12 @@ module.exports = class Config extends EventEmitter
 				value = keyVals[key]
 				if @configJsonCache[key] != value
 					@configJsonCache[key] = value
-					delete @configJsonCache[key] if !value? and @schema[key].removeIfNull
+					if !value? and @schema[key].removeIfNull
+						delete @configJsonCache[key]
 					changed = true
 			.then =>
-				@writeConfigJson() if changed
+				if changed
+					@writeConfigJson()
 
 	configJsonRemove: (key) =>
 		changed = false
@@ -196,19 +199,23 @@ module.exports = class Config extends EventEmitter
 					delete @configJsonCache[key]
 					changed = true
 			.then =>
-				@writeConfigJson() if changed
+				if changed
+					@writeConfigJson()
 
 	configJsonPathOnHost: =>
 		Promise.try =>
-			return @configPath if @configPath?
-			return @constants.configJsonPathOnHost if @constants.configJsonPathOnHost?
+			if @configPath?
+				return @configPath
+			if @constants.configJsonPathOnHost?
+				return @constants.configJsonPathOnHost
 			osRelease.getOSVersion(@constants.hostOSVersionPath)
 			.then (osVersion) =>
 				if /^Resin OS 2./.test(osVersion)
 					return "#{@constants.bootMountPointFromEnv}/config.json"
 				else if /^Resin OS 1./.test(osVersion)
 					# In Resin OS 1.12, $BOOT_MOUNTPOINT was added and it coincides with config.json's path
-					return "#{@constants.bootMountPointFromEnv}/config.json" if @constants.bootMountPointFromEnv
+					if @constants.bootMountPointFromEnv
+						return "#{@constants.bootMountPointFromEnv}/config.json"
 					# Older 1.X versions have config.json here
 					return '/mnt/conf/config.json'
 				else
@@ -287,7 +294,8 @@ module.exports = class Config extends EventEmitter
 		Promise.try =>
 			# Write value to config.json or DB
 			{ configJsonVals, dbVals } =  _.reduce(keyValues, (acc, val, key) =>
-				throw new Error("Attempt to change immutable config value #{key}") if !@schema[key]?.mutable
+				if !@schema[key]?.mutable
+					throw new Error("Attempt to change immutable config value #{key}")
 				switch @schema[key]?.source
 					when 'config.json'
 						acc.configJsonVals[key] = val
@@ -305,7 +313,8 @@ module.exports = class Config extends EventEmitter
 						if oldValues[key] != value
 							@db.upsertModel('config', { key, value }, { key }, tx)
 				.then =>
-					@configJsonSet(configJsonVals) if !_.isEmpty(configJsonVals)
+					if !_.isEmpty(configJsonVals)
+						@configJsonSet(configJsonVals)
 			if trx?
 				setValuesInTransaction(trx)
 			else
@@ -320,7 +329,8 @@ module.exports = class Config extends EventEmitter
 	# only mutable fields!
 	remove: (key) =>
 		Promise.try =>
-			throw new Error("Attempt to delete immutable config value #{key}") if !@schema[key]?.mutable
+			if !@schema[key]?.mutable
+				throw new Error("Attempt to delete immutable config value #{key}")
 			switch @schema[key]?.source
 				when 'config.json'
 					@configJsonRemove(key)
