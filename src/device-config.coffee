@@ -37,7 +37,7 @@ arrayConfigKeys = [ 'dtparam', 'dtoverlay', 'device_tree_param', 'device_tree_ov
 module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 		@rebootRequired = false
-		@validActions = [ 'changeConfig', 'setLogToDisplay', 'setBootConfig' ]
+		@validActions = _.keys(@actionExecutors)
 		@configKeys = {
 			appUpdatePollInterval: { envVarName: 'RESIN_SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
 			localMode: { envVarName: 'RESIN_SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
@@ -96,7 +96,7 @@ module.exports = class DeviceConfig
 		targetBootConfig = @envToBootConfig(target)
 		currentBootConfig = @envToBootConfig(current)
 		if !_.isEqual(currentBootConfig, targetBootConfig)
-			_.forEach forbiddenConfigKeys, (key) =>
+			for key in forbiddenConfigKeys
 				if currentBootConfig[key] != targetBootConfig[key]
 					err = "Attempt to change blacklisted config value #{key}"
 					@logger.logSystemMessage(err, { error: err }, 'Apply boot config error')
@@ -140,7 +140,8 @@ module.exports = class DeviceConfig
 					action: 'setBootConfig'
 					target
 				})
-			return if !_.isEmpty(steps)
+			if !_.isEmpty(steps)
+				return
 			if @rebootRequired
 				steps.push({
 					action: 'reboot'
@@ -155,22 +156,24 @@ module.exports = class DeviceConfig
 				return [{ action: 'noop' }]
 			else return filteredSteps
 
+	actionExecutors: {
+		changeConfig: (step) =>
+			@logger.logConfigChange(step.humanReadableTarget)
+			@config.set(step.target)
+			.then =>
+				@logger.logConfigChange(step.humanReadableTarget, { success: true })
+			.catch (err) =>
+				@logger.logConfigChange(step.humanReadableTarget, { err })
+				throw err
+		setLogToDisplay: (step) =>
+			@setLogToDisplay(step.target)
+		setBootConfig: (step) =>
+			@config.get('deviceType')
+			.then (deviceType) =>
+				@setBootConfig(deviceType, step.target)
+	}
 	executeStepAction: (step) =>
-		switch step.action
-			when 'changeConfig'
-				@logger.logConfigChange(step.humanReadableTarget)
-				@config.set(step.target)
-				.then =>
-					@logger.logConfigChange(step.humanReadableTarget, { success: true })
-				.catch (err) =>
-					@logger.logConfigChange(step.humanReadableTarget, { err })
-					throw err
-			when 'setLogToDisplay'
-				@setLogToDisplay(step.target)
-			when 'setBootConfig'
-				@config.get('deviceType')
-				.then (deviceType) =>
-					@setBootConfig(deviceType, step.target)
+		@actionExecutors[step.action](step)
 
 	envToBootConfig: (env) ->
 		# We ensure env doesn't have garbage
@@ -199,32 +202,33 @@ module.exports = class DeviceConfig
 
 	getBootConfig: (deviceType) =>
 		Promise.try =>
-			return {} if !_.startsWith(deviceType, 'raspberry')
+			if !_.startsWith(deviceType, 'raspberry')
+				return {}
 			@readBootConfig()
 			.then (configTxt) =>
 				conf = {}
 				configStatements = configTxt.split(/\r?\n/)
-				_.forEach configStatements, (configStr) ->
+				for configStr in configStatements
 					keyValue = /^([^#=]+)=(.+)/.exec(configStr)
 					if keyValue?
 						if !_.includes(arrayConfigKeys, keyValue[1])
 							conf[keyValue[1]] = keyValue[2]
-							return
 						else
 							conf[keyValue[1]] ?= []
 							conf[keyValue[1]].push(keyValue[2])
-							return
-					keyValue = /^(initramfs) (.+)/.exec(configStr)
-					if keyValue?
-						conf[keyValue[1]] = keyValue[2]
-						return
+					else
+						keyValue = /^(initramfs) (.+)/.exec(configStr)
+						if keyValue?
+							conf[keyValue[1]] = keyValue[2]
 				return @bootConfigToEnv(conf)
 
 	getLogToDisplay: ->
 		gosuper.get('/v1/log-to-display', { json: true })
 		.spread (res, body) ->
-			return undefined if res.statusCode == 404
-			throw new Error("Error getting log to display status: #{res.statusCode} #{body.Error}") if res.statusCode != 200
+			if res.statusCode == 404
+				return undefined
+			if res.statusCode != 200
+				throw new Error("Error getting log to display status: #{res.statusCode} #{body.Error}")
 			return Boolean(body.Data)
 
 	setLogToDisplay: (val) =>
@@ -248,7 +252,8 @@ module.exports = class DeviceConfig
 	setBootConfig: (deviceType, target) =>
 		Promise.try =>
 			conf = @envToBootConfig(target)
-			return false if !_.startsWith(deviceType, 'raspberry')
+			if !_.startsWith(deviceType, 'raspberry')
+				return false
 			@logger.logSystemMessage("Applying boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config in progress')
 			configStatements = []
 			_.forEach conf, (val, key) ->
@@ -275,7 +280,8 @@ module.exports = class DeviceConfig
 	getVPNEnabled: ->
 		gosuper.get('/v1/vpncontrol', { json: true })
 		.spread (res, body) ->
-			throw new Error("Error getting vpn status: #{res.statusCode} #{body.Error}") if res.statusCode != 200
+			if res.statusCode != 200
+				throw new Error("Error getting vpn status: #{res.statusCode} #{body.Error}")
 			return Boolean(body.Data)
 
 	setVPNEnabled: (val) ->

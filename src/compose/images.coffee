@@ -6,7 +6,7 @@ constants = require '../lib/constants'
 validation = require '../lib/validation'
 
 ImageNotFoundError = (err) ->
-	return "#{err.statusCode}" is '404'
+	return validation.checkInt(err.statusCode) is 404
 
 # image = {
 # 	name: image registry/repo:tag
@@ -17,7 +17,7 @@ ImageNotFoundError = (err) ->
 # 	releaseId
 # 	dependent
 # 	status Downloading, Downloaded, Deleting
-# 	download_progress
+# 	downloadProgress
 # }
 
 module.exports = class Images extends EventEmitter
@@ -37,7 +37,7 @@ module.exports = class Images extends EventEmitter
 
 	fetch: (image, opts) =>
 		onProgress = (progress) =>
-			@reportChange(image.imageId, { download_progress: progress.percentage })
+			@reportChange(image.imageId, { downloadProgress: progress.percentage })
 
 		@normalise(image.name)
 		.then (imageName) =>
@@ -47,7 +47,7 @@ module.exports = class Images extends EventEmitter
 			.then =>
 				@inspectByName(imageName)
 			.catch =>
-				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', download_progress: 0 }))
+				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', downloadProgress: 0 }))
 				Promise.try =>
 					if validation.checkTruthy(opts.delta)
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
@@ -81,19 +81,14 @@ module.exports = class Images extends EventEmitter
 		@db.models('image').update(image).where(name: image.name)
 
 	_removeImageIfNotNeeded: (image) =>
-		removed = true
 		@inspectByName(image.name)
-		.catch ImageNotFoundError, (err) ->
-			removed = false
-			return null
 		.then (img) =>
-			if img?
-				@db.models('image').where(name: image.name).select()
-				.then (imagesFromDB) =>
-					if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(image))
-						@docker.getImage(image.name).remove(force: true)
-		.then ->
-			return removed
+			@db.models('image').where(name: image.name).select()
+			.then (imagesFromDB) =>
+				if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(image))
+					@docker.getImage(image.name).remove(force: true)
+		.return(true)
+		.catchReturn(ImageNotFoundError, false)
 
 	remove: (image) =>
 		@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Deleting' }))
@@ -127,12 +122,12 @@ module.exports = class Images extends EventEmitter
 
 	_isAvailableInDocker: (image, dockerImages) ->
 		_.some dockerImages, (dockerImage) ->
-			_.includes(dockerImage.NormalisedRepoTags, image.name)
+			_.includes(dockerImage.NormalisedRepoTags, image.name) or _.includes(dockerImage.RepoDigests, image.name)
 
 	# Gets all images that are supervised, in an object containing name, appId, serviceId, serviceName, imageId, dependent.
 	getAvailable: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
-			return _.filter(supervisedImages, (image) => @_isAvailableInDocker(image, dockerImages))
+			_.filter(supervisedImages, (image) => @_isAvailableInDocker(image, dockerImages))
 
 	cleanupDatabase: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
@@ -145,15 +140,15 @@ module.exports = class Images extends EventEmitter
 		@getAvailable()
 		.map (image) ->
 			image.status = 'Downloaded'
-			image.download_progress = null
+			image.downloadProgress = null
 			return image
 		.then (images) =>
 			status = _.clone(@volatileState)
-			_.forEach images, (image) ->
+			for image in images
 				status[image.imageId] ?= image
 			return _.values(status)
 
-	_getDanglingAndOldSupervisorsForCleanup: =>
+	_getOldSupervisorsForCleanup: =>
 		images = []
 		@docker.getRegistryAndName(constants.supervisorImage)
 		.then (supervisorImageInfo) =>
@@ -165,12 +160,8 @@ module.exports = class Images extends EventEmitter
 						if imageName == supervisorImageInfo.imageName and tagName != supervisorImageInfo.tagName
 							images.push(repoTag)
 		.then =>
-			@docker.listImages(filters: { dangling: [ 'true' ] })
-			.map (image) ->
-				images.push(image.Id)
-		.then =>
 			return _.filter images, (image) =>
-				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > 3600 * 1000
+				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > constants.imageCleanupErrorIgnoreTimeout
 
 	inspectByName: (imageName) =>
 		@docker.getImage(imageName).inspect()
@@ -179,17 +170,25 @@ module.exports = class Images extends EventEmitter
 		@docker.normaliseImageName(imageName)
 
 	isCleanupNeeded: =>
-		@_getDanglingAndOldSupervisorsForCleanup()
+		@_getOldSupervisorsForCleanup()
 		.then (imagesForCleanup) ->
 			return !_.isEmpty(imagesForCleanup)
 
-	# Delete old supervisor images and dangling images
+	# Delete old supervisor images
 	cleanup: =>
-		@_getDanglingAndOldSupervisorsForCleanup()
+		@_getOldSupervisorsForCleanup()
 		.map (image) =>
+			console.log("Cleaning up #{image}")
 			@docker.getImage(image).remove(force: true)
 			.then =>
 				delete @imageCleanupFailures[image]
 			.catch (err) =>
 				@logger.logSystemMessage("Error cleaning up #{image}: #{err.message} - will ignore for 1 hour", { error: err }, 'Image cleanup error')
 				@imageCleanupFailures[image] = Date.now()
+
+	@isSameImage: (image1, image2) ->
+		hash1 = image1.name.split('@')[1]
+		hash2 = image2.name.split('@')[1]
+		return image1.name == image2.name or (hash1? and hash1 == hash2)
+
+	isSameImage: @isSameImage

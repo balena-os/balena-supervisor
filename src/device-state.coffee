@@ -12,18 +12,17 @@ constants = require './lib/constants'
 validation = require './lib/validation'
 device = require './lib/device'
 updateLock = require './lib/update-lock'
-migration = require './lib/migration'
 
 DeviceConfig = require './device-config'
 Logger = require './logger'
 ApplicationManager = require './application-manager'
 
 validateLocalState = (state) ->
-	if state.name? and !validation.isValidShortText(state.name)
+	if !state.name? or !validation.isValidShortText(state.name)
 		throw new Error('Invalid device name')
-	if state.apps? and !validation.isValidAppsObject(state.apps)
+	if !state.apps? or !validation.isValidAppsObject(state.apps)
 		throw new Error('Invalid apps')
-	if state.config? and !validation.isValidEnv(state.config)
+	if !state.config? or !validation.isValidEnv(state.config)
 		throw new Error('Invalid device configuration')
 
 validateDependentState = (state) ->
@@ -33,9 +32,13 @@ validateDependentState = (state) ->
 		throw new Error('Invalid dependent devices')
 
 validateState = Promise.method (state) ->
-	throw new Error('State must be an object') if !_.isObject(state)
-	validateLocalState(state.local) if state.local?
-	validateDependentState(state.dependent) if state.dependent?
+	if !_.isObject(state)
+		throw new Error('State must be an object')
+	if !_.isObject(state.local)
+		throw new Error('Local state must be an object')
+	validateLocalState(state.local)
+	if state.dependent?
+		validateDependentState(state.dependent)
 
 class DeviceStateRouter
 	constructor: (@deviceState) ->
@@ -99,7 +102,7 @@ module.exports = class DeviceState extends EventEmitter
 		@_currentVolatile = {}
 		_lock = new Lock()
 		@_writeLock = Promise.promisify(_lock.async.writeLock)
-		@_readLock = Promise.promisify(_lock.async.writeLock)
+		@_readLock = Promise.promisify(_lock.async.readLock)
 		@lastSuccessfulUpdate = null
 		@failedUpdates = 0
 		@stepsInProgress = []
@@ -124,119 +127,24 @@ module.exports = class DeviceState extends EventEmitter
 
 		@applications.on('change', @reportCurrentState)
 
-	normaliseLegacy: ({ apps, dependentApps, dependentDevices }) =>
-		legacyTarget = { local: { apps: [], config: {} }, dependent: { apps: [], devices: [] } }
-
-		tryParseObj = (j) ->
-			try
-				JSON.parse(j)
-			catch
-				{}
-		tryParseArray = (j) ->
-			try
-				JSON.parse(j)
-			catch
-				[]
-
-		dependentDevices = tryParseArray(dependentDevices)
-		# Old containers have to be killed as we can't update their labels
-		@deviceConfig.getCurrent()
-		.then (deviceConf) =>
-			legacyTarget.local.config = deviceConf
-			console.log('Killing legacy containers')
-			@applications.services.killAllLegacy()
+	normaliseLegacy: =>
+		# When legacy apps are present, we kill their containers and migrate their /data to a named volume
+		# (everything else is handled by the knex migration)
+		console.log('Killing legacy containers')
+		@applications.services.killAllLegacy()
 		.then =>
-			@config.get('name')
-		.then (name) ->
-			legacyTarget.local.name = name ? ''
+			console.log('Migrating legacy app volumes')
+			@applications.getTargetApps()
+			.map (app) =>
+				@applications.volumes.createFromLegacy(app.appId)
 		.then =>
-			console.log('Migrating apps')
-			Promise.map tryParseArray(apps), (app) =>
-				@applications.images.normalise(app.imageId)
-				.then (image) =>
-					appAsState = {
-						image: image
-						commit: app.commit
-						name: app.name ? ''
-						environment: tryParseObj(app.env)
-						config: tryParseObj(app.config)
-					}
-					appAsState.environment = _.omitBy appAsState.environment, (v, k) ->
-						_.startsWith(k, 'RESIN_')
-					appId = app.appId
-					# Only for apps for which we have the image locally,
-					# we translate that app to the target state so that we run
-					# a (mostly) compatible container until a new target state is fetched.
-					# This is also necessary to avoid cleaning up the image, which may
-					# be needed for cache/delta in the next update.
-					multicontainerApp = migration.singleToMulticontainerApp(appAsState, appId)
-					@applications.images.inpectByName(appAsState.image)
-					.then =>
-						@applications.images.markAsSupervised(@applications.imageForService(multicontainerApp.services['1']))
-					.then =>
-						if !_.isEmpty(appAsState.config)
-							devConf = @deviceConfig.filterConfigKeys(appAsState.config)
-							_.assign(legacyTarget.local.config, devConf) if !_.isEmpty(devConf)
-						legacyTarget.local.apps.push(multicontainerApp)
-					.then =>
-						@applications.volumes.createFromLegacy(appId)
-				.catch (err) ->
-					console.error("Ignoring legacy app #{app.imageId} due to #{err}")
-		.then =>
-			console.log('Migrating dependent apps and devices')
-			Promise.map tryParseArray(dependentApps), (app) =>
-				appAsState = {
-					appId: app.appId
-					parentApp: app.parentAppId
-					image: app.imageId
-					releaseId: null
-					commit: app.commit
-					name: app.name
-					config: tryParseObj(app.config)
-					environment: tryParseObj(app.environment)
-				}
-				@applications.images.inspectByName(app.imageId)
-				.then =>
-					@applications.images.markAsSupervised(@applications.proxyvisor.imageForDependentApp(appAsState))
-				.then =>
-					appForDB = _.clone(appAsState)
-					appForDB.config = JSON.stringify(appAsState.config)
-					appForDB.environment = JSON.stringify(appAsState.environment)
-					@db.models('dependentApp').insert(appForDB)
-				.then =>
-					legacyTarget.dependent.apps.push(appAsState)
-					devicesForThisApp = _.filter(dependentDevices ? [], (d) -> d.appId == appAsState.appId)
-					if !_.isEmpty(devicesForThisApp)
-						devices = _.map devicesForThisApp, (d) ->
-							d.markedForDeletion ?= false
-							d.localId ?= null
-							d.is_managed_by ?= null
-							d.lock_expiry_date ?= null
-							return d
-						devicesForState = _.map devicesForThisApp, (d) ->
-							dev = {
-								uuid: d.uuid
-								name: d.name
-								apps: {}
-							}
-							dev.apps[d.appId] = {
-								config: tryParseObj(d.targetConfig)
-								environment: tryParseObj(d.targetEnvironment)
-							}
-						legacyTarget.dependent.devices = legacyTarget.dependent.devices.concat(devicesForState)
-						@db.models('dependentDevice').insert(devices)
-				.catch (err) ->
-					console.error("Ignoring legacy dependent app #{app.imageId} due to #{err}")
-		.then =>
-			@setTarget(legacyTarget)
-		.then =>
-			@config.set({ initialConfigSaved: 'true' })
+			@config.set({ legacyAppsPresent: 'false' })
 
 	init: ->
 		@config.getMany([
 			'logsChannelSecret', 'pubnub', 'offlineMode', 'loggingEnabled', 'initialConfigSaved',
 			'listenPort', 'apiSecret', 'osVersion', 'osVariant', 'version', 'provisioned',
-			'resinApiEndpoint', 'connectivityCheckEnabled'
+			'resinApiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent'
 		])
 		.then (conf) =>
 			@logger.init({
@@ -247,8 +155,13 @@ module.exports = class DeviceState extends EventEmitter
 			})
 			.then =>
 				@config.on 'change', (changedConfig) =>
-					@logger.enable(changedConfig.loggingEnabled) if changedConfig.loggingEnabled?
-					@reportCurrentState(api_secret: changedConfig.apiSecret) if changedConfig.apiSecret?
+					if changedConfig.loggingEnabled?
+						@logger.enable(changedConfig.loggingEnabled)
+					if changedConfig.apiSecret?
+						@reportCurrentState(api_secret: changedConfig.apiSecret)
+			.then =>
+				if validation.checkTruthy(conf.legacyAppsPresent)
+					@normaliseLegacy()
 			.then =>
 				@applications.init()
 			.then =>
@@ -271,14 +184,16 @@ module.exports = class DeviceState extends EventEmitter
 					update_downloaded: false
 				)
 			.then =>
-				@loadTargetFromFile() if !conf.provisioned
+				if !conf.provisioned
+					@loadTargetFromFile()
 			.then =>
 				@triggerApplyTarget()
 
 	initNetworkChecks: ({ resinApiEndpoint, connectivityCheckEnabled }) =>
 		network.startConnectivityCheck(resinApiEndpoint, connectivityCheckEnabled)
 		@config.on 'change', (changedConfig) ->
-			network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled) if changedConfig.connectivityCheckEnabled?
+			if changedConfig.connectivityCheckEnabled?
+				network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled)
 		console.log('Starting periodic check for IP addresses')
 		network.startIPAddressUpdate (addresses) =>
 			@reportCurrentState(
@@ -296,31 +211,38 @@ module.exports = class DeviceState extends EventEmitter
 	emitAsync: (ev, args...) =>
 		setImmediate => @emit(ev, args...)
 
-	readLockTarget: =>
+	_readLockTarget: =>
 		@_readLock('target').disposer (release) ->
 			release()
-	writeLockTarget: =>
+	_writeLockTarget: =>
 		@_writeLock('target').disposer (release) ->
 			release()
-	inferStepsLock: =>
+	_inferStepsLock: =>
 		@_writeLock('inferSteps').disposer (release) ->
 			release()
+
+	usingReadLockTarget: (fn) =>
+		Promise.using @_readLockTarget, -> fn()
+	usingWriteLockTarget: (fn) =>
+		Promise.using @_writeLockTarget, -> fn()
+	usingInferStepsLock: (fn) =>
+		Promise.using @_inferStepsLock, -> fn()
 
 	setTarget: (target) ->
 		validateState(target)
 		.then =>
-			Promise.using @writeLockTarget(), =>
+			@usingWriteLockTarget =>
 				# Apps, deviceConfig, dependent
 				@db.transaction (trx) =>
 					Promise.try =>
-						@config.set({ name: target.local.name }, trx) if target.local?.name?
+						@config.set({ name: target.local.name }, trx)
 					.then =>
-						@deviceConfig.setTarget(target.local.config, trx) if target.local?.config?
+						@deviceConfig.setTarget(target.local.config, trx)
 					.then =>
-						@applications.setTarget(target.local?.apps, target.dependent, trx)
+						@applications.setTarget(target.local.apps, target.dependent, trx)
 
 	getTarget: ->
-		Promise.using @readLockTarget(), =>
+		@usingReadLockTarget =>
 			Promise.props({
 				local: Promise.props({
 					name: @config.get('name')
@@ -337,7 +259,8 @@ module.exports = class DeviceState extends EventEmitter
 			_.merge(theState.local, @_currentVolatile)
 			theState.local.apps = appsStatus.local
 			theState.dependent.apps = appsStatus.dependent
-			theState.local.is_on__commit = appsStatus.commit if appsStatus.commit
+			if appsStatus.commit
+				theState.local.is_on__commit = appsStatus.commit
 			return theState
 
 	getCurrentForComparison: ->
@@ -425,12 +348,13 @@ module.exports = class DeviceState extends EventEmitter
 						throw new Error("Invalid action #{step.action}")
 
 	applyStepAsync: (step, { force, targetState }) =>
-		return if @shuttingDown
+		if @shuttingDown
+			return
 		@stepsInProgress.push(step)
 		setImmediate =>
 			@executeStepAction(step, { force, targetState })
 			.finally =>
-				Promise.using @inferStepsLock(), =>
+				@usingInferStepsLock =>
 					_.pullAllWith(@stepsInProgress, [ step ], _.isEqual)
 			.then (stepResult) =>
 				@emitAsync('step-completed', null, step, stepResult)
@@ -456,7 +380,7 @@ module.exports = class DeviceState extends EventEmitter
 
 	applyTarget: ({ force = false } = {}) =>
 		console.log('Applying target state')
-		Promise.using @inferStepsLock(), =>
+		@usingInferStepsLock =>
 			Promise.join(
 				@getCurrentForComparison()
 				@getTarget()
@@ -484,7 +408,8 @@ module.exports = class DeviceState extends EventEmitter
 			@applyError(err, force)
 
 	continueApplyTarget: ({ force = false } = {}) =>
-		return if @applyContinueScheduled
+		if @applyContinueScheduled
+			return
 		@applyContinueScheduled = true
 		setTimeout( =>
 			@applyContinueScheduled = false
@@ -492,6 +417,7 @@ module.exports = class DeviceState extends EventEmitter
 		, 1000)
 		return
 
+	# TODO: Make this and applyTarget work purely with promises, no need to wait on events
 	triggerApplyTarget: ({ force = false, delay = 0 } = {}) =>
 		if @applyInProgress
 			if !@scheduledApply?

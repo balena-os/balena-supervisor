@@ -1,35 +1,30 @@
-Promise = require 'bluebird'
-_ = require 'lodash'
-
 logTypes = require '../lib/log-types'
+{ checkInt } = require '../lib/validation'
 
 module.exports = class Networks
 	constructor: ({ @docker, @logger }) ->
 
+	# TODO: parse supported config fields
 	format: (network) ->
 		return {
-			appId: network.Labels['io.resin.appId']
+			appId: checkInt(network.Labels['io.resin.appId'])
 			name: network.Name
 			config: {}
 		}
 
 	getAll: =>
 		@docker.listNetworks(filters: label: [ 'io.resin.supervised' ])
-		.then (networks) =>
-			Promise.map networks, (network) =>
-				@docker.getNetwork(network.Name).inspect()
-				.then (net) =>
-					@format(net)
+		.map (network) =>
+			@docker.getNetwork(network.Name).inspect()
+			.then(@format)
 
 	getAllByAppId: (appId) =>
 		@getAll()
-		.then (networks) ->
-			_.filter(networks, (v) -> v.appId == appId)
+		.filter((network) -> network.appId == appId)
 
 	get: (name) =>
 		@docker.getNetwork(name).inspect()
-		.then (network) ->
-			return @format(network)
+		.then(@format)
 
 	# TODO: what config values are relevant/whitelisted?
 	create: ({ name, config, appId }) =>
@@ -38,7 +33,7 @@ module.exports = class Networks
 			Name: name
 			Labels: {
 				'io.resin.supervised': 'true'
-				'io.resin.appId': appId
+				'io.resin.appId': appId.toString()
 			}
 		})
 		.catch (err) =>
@@ -52,5 +47,6 @@ module.exports = class Networks
 			@logger.logSystemEvent(logTypes.removeNetworkError, { network: { name }, error: err })
 			throw err
 
+	# TODO: compare supported config fields
 	isEqualConfig: (current, target) ->
 		return true
