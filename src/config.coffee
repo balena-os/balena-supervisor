@@ -7,7 +7,7 @@ apiEndpoint = checkString(process.env.API_ENDPOINT)
 module.exports =
 	apiEndpoint: apiEndpoint
 	apiTimeout: checkInt(process.env.API_TIMEOUT, positive: true) ? 15 * 60 * 1000
-	listenPort: checkInt(process.env.LISTEN_PORT, positive: true) ? 80
+	listenPort: checkInt(process.env.LISTEN_PORT, positive: true) ? 48484
 	gosuperAddress: "http://unix:#{process.env.GOSUPER_SOCKET}:"
 	deltaHost: checkString(process.env.DELTA_ENDPOINT) ? 'https://delta.resin.io'
 	registryEndpoint: checkString(process.env.REGISTRY_ENDPOINT) ? 'registry.resin.io'
