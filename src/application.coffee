@@ -122,7 +122,7 @@ application.UpdatesLockedError = UpdatesLockedError
 application.localMode = false
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
-	logger.log({ m: message, s: 1 })
+	logger.log({ message, isSystem: true })
 	utils.mixpanelTrack(eventName ? message, obj)
 
 logSystemEvent = (logType, app = {}, error) ->
