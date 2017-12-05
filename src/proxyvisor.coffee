@@ -385,7 +385,7 @@ module.exports = class Proxyvisor
 			if dependent?.apps?
 				appsArray = _.map dependent.apps, (app, appId) ->
 					appClone = _.clone(app)
-					appClone.appId = appId
+					appClone.appId = checkInt(appId)
 					return appClone
 				Promise.map(appsArray, @normaliseDependentAppForDB)
 				.then (appsForDB) =>

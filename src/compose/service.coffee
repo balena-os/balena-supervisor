@@ -85,8 +85,6 @@ module.exports = class Service
 		@exposedPorts ?= {}
 		@portBindings ?= {}
 		@network_mode ?= @appId.toString()
-		if @releaseId?
-			@releaseId = @releaseId.toString()
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
@@ -223,10 +221,10 @@ module.exports = class Service
 			if containerPort? and !_.includes(boundContainerPorts, containerPort)
 				expose.push(containerPort)
 
-		appId = container.Config.Labels['io.resin.app_id']
-		serviceId = container.Config.Labels['io.resin.service_id']
+		appId = checkInt(container.Config.Labels['io.resin.app_id'])
+		serviceId = checkInt(container.Config.Labels['io.resin.service_id'])
 		serviceName = container.Config.Labels['io.resin.service_name']
-		releaseId = container.Name.match(/.*_(\d+)$/)?[1]
+		releaseId = checkInt(container.Name.match(/.*_(\d+)$/)?[1])
 		service = {
 			appId: appId
 			serviceId: serviceId

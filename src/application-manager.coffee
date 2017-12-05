@@ -32,8 +32,8 @@ imageForService = (service) ->
 		appId: service.appId
 		serviceId: service.serviceId
 		serviceName: service.serviceName
-		imageId: service.imageId?.toString()
-		releaseId: service.releaseId?.toString()
+		imageId: service.imageId
+		releaseId: service.releaseId
 		dependent: 0
 	}
 
@@ -53,7 +53,7 @@ class ApplicationManagerRouter
 		@router.use(bodyParser.json())
 
 		@router.post '/v1/restart', (req, res) =>
-			appId = checkString(req.body.appId)
+			appId = checkInt(req.body.appId)
 			force = checkTruthy(req.body.force)
 			@eventTracker.track('Restart container (v1)', { appId })
 			if !appId?
@@ -72,7 +72,7 @@ class ApplicationManagerRouter
 				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.post '/v1/apps/:appId/stop', (req, res) =>
-			appId = checkString(req.params.appId)
+			appId = checkInt(req.params.appId)
 			force = checkTruthy(req.body.force)
 			if !appId?
 				return res.status(400).send('Missing app id')
@@ -91,7 +91,7 @@ class ApplicationManagerRouter
 				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.post '/v1/apps/:appId/start', (req, res) =>
-			appId = checkString(req.params.appId)
+			appId = checkInt(req.params.appId)
 			force = checkTruthy(req.body.force)
 			if !appId?
 				return res.status(400).send('Missing app id')
@@ -110,7 +110,7 @@ class ApplicationManagerRouter
 				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.get '/v1/apps/:appId', (req, res) =>
-			appId = checkString(req.params.appId)
+			appId = checkInt(req.params.appId)
 			@eventTracker.track('GET app (v1)', appId)
 			if !appId?
 				return res.status(400).send('Missing app id')
@@ -135,7 +135,7 @@ class ApplicationManagerRouter
 				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.post '/v1/purge', (req, res) =>
-			appId = checkString(req.body.appId)
+			appId = checkInt(req.body.appId)
 			force = checkTruthy(req.body.force)
 			if !appId?
 				errMsg = "App not found: an app needs to be installed for purge to work.
@@ -222,7 +222,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					else
 						# There's two containers with the same imageId, so this has to be a handover
 						previousReleaseId = apps[appId].services[service.imageId].releaseId
-						apps[appId].services[service.imageId].releaseId = Math.max(parseInt(previousReleaseId), parseInt(service.releaseId)).toString()
+						apps[appId].services[service.imageId].releaseId = Math.max(previousReleaseId, service.releaseId)
 						apps[appId].services[service.imageId].status = 'Handing over'
 
 				for image in images
@@ -597,7 +597,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			service = _.clone(s)
 			service.appId = app.appId
 			service.releaseId = app.releaseId
-			service.serviceId = serviceId
+			service.serviceId = checkInt(serviceId)
 			service.commit = app.commit
 			return service
 		Promise.map services, (service) =>
@@ -674,7 +674,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			Promise.try =>
 				appsArray = _.map apps, (app, appId) ->
 					appClone = _.clone(app)
-					appClone.appId = appId
+					appClone.appId = checkInt(appId)
 					return appClone
 				Promise.map(appsArray, @normaliseAppForDB)
 				.then (appsForDB) =>
