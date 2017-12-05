@@ -159,7 +159,7 @@ module.exports = class Service
 
 	extendAndSanitiseVolumes: (imageInfo) =>
 		volumes = []
-		_.forEach @volumes, (vol) ->
+		for vol in @volumes
 			isBind = /:/.test(vol)
 			if isBind
 				bindSource = vol.split(':')[0]
@@ -177,8 +177,8 @@ module.exports = class Service
 	getNamedVolumes: =>
 		defaults = @defaultBinds()
 		validVolumes = _.map @volumes, (vol) ->
-			return null if _.includes(defaults, vol)
-			return null if !/:/.test(vol)
+			if _.includes(defaults, vol) or !/:/.test(vol)
+				return null
 			bindSource = vol.split(':')[0]
 			if !path.isAbsolute(bindSource)
 				return bindSource
@@ -262,20 +262,20 @@ module.exports = class Service
 		exposedPorts = {}
 		portBindings = {}
 		if @ports?
-			_.forEach @ports, (port) ->
+			for port in @ports
 				[ hostPort, containerPort ] = port.toString().split(':')
 				containerPort ?= hostPort
 				exposedPorts[containerPort + '/tcp'] = {}
 				portBindings[containerPort + '/tcp'] = [ { HostIp: '', HostPort: hostPort } ]
 		if @expose?
-			_.forEach @expose, (port) ->
+			for port in @expose
 				exposedPorts[port + '/tcp'] = {}
 		return { exposedPorts, portBindings }
 
 	getBindsAndVolumes: =>
 		binds = []
 		volumes = {}
-		_.forEach @volumes, (vol) ->
+		for vol in @volumes
 			isBind = /:/.test(vol)
 			if isBind
 				binds.push(vol)

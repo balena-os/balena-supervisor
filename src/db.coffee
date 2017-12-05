@@ -31,7 +31,8 @@ module.exports = class DB
 		knex = trx ? @knex
 		knex.schema.hasTable(tableName)
 		.then (exists) ->
-			knex.schema.dropTable(tableName) if exists
+			if exists
+				knex.schema.dropTable(tableName)
 
 	_migrateToV2: =>
 		# Drop all tables, but keep the info we need
@@ -120,7 +121,8 @@ module.exports = class DB
 				.then =>
 					@knex('deviceConfig').select()
 					.then (deviceConfigs) =>
-						@knex('deviceConfig').insert({ targetValues: '{}' }) if deviceConfigs.length == 0
+						if deviceConfigs.length == 0
+							@knex('deviceConfig').insert({ targetValues: '{}' })
 
 				@knex.schema.hasTable('app')
 				.then (exists) =>
@@ -223,7 +225,8 @@ module.exports = class DB
 		knex = trx ? @knex
 		knex(modelName).update(obj).where(id)
 		.then (n) ->
-			knex(modelName).insert(obj) if n == 0
+			if n == 0
+				knex(modelName).insert(obj)
 
 	transaction: (cb) =>
 		@knex.transaction(cb)

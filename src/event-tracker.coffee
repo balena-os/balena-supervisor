@@ -39,7 +39,8 @@ module.exports = class EventTracker
 		# Don't log private env vars (e.g. api keys) or other secrets - use a whitelist to mask what we send
 		properties = mask(properties, mixpanelMask)
 		@_logEvent('Event:', ev, JSON.stringify(properties))
-		return if !@_client?
+		if !@_client?
+			return
 		# Mutation is bad, and it should feel bad
 		properties = _.assign(properties, @_properties)
 		@_client.track(ev, properties)
@@ -49,5 +50,6 @@ module.exports = class EventTracker
 			@_properties =
 				distinct_id: uuid
 				uuid: uuid
-			return if offlineMode
+			if offlineMode
+				return
 			@_client = mixpanel.init(mixpanelToken, { host: mixpanelHost })

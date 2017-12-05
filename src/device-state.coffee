@@ -19,11 +19,11 @@ Logger = require './logger'
 ApplicationManager = require './application-manager'
 
 validateLocalState = (state) ->
-	if state.name? and !validation.isValidShortText(state.name)
+	if !state.name? or !validation.isValidShortText(state.name)
 		throw new Error('Invalid device name')
-	if state.apps? and !validation.isValidAppsObject(state.apps)
+	if !state.apps? or !validation.isValidAppsObject(state.apps)
 		throw new Error('Invalid apps')
-	if state.config? and !validation.isValidEnv(state.config)
+	if !state.config? or !validation.isValidEnv(state.config)
 		throw new Error('Invalid device configuration')
 
 validateDependentState = (state) ->
@@ -33,9 +33,13 @@ validateDependentState = (state) ->
 		throw new Error('Invalid dependent devices')
 
 validateState = Promise.method (state) ->
-	throw new Error('State must be an object') if !_.isObject(state)
-	validateLocalState(state.local) if state.local?
-	validateDependentState(state.dependent) if state.dependent?
+	if !_.isObject(state)
+		throw new Error('State must be an object')
+	if !_.isObject(state.local)
+		throw new Error('Local state must be an object')
+	validateLocalState(state.local)
+	if state.dependent?
+		validateDependentState(state.dependent)
 
 class DeviceStateRouter
 	constructor: (@deviceState) ->
@@ -99,7 +103,7 @@ module.exports = class DeviceState extends EventEmitter
 		@_currentVolatile = {}
 		_lock = new Lock()
 		@_writeLock = Promise.promisify(_lock.async.writeLock)
-		@_readLock = Promise.promisify(_lock.async.writeLock)
+		@_readLock = Promise.promisify(_lock.async.readLock)
 		@lastSuccessfulUpdate = null
 		@failedUpdates = 0
 		@stepsInProgress = []
@@ -176,7 +180,8 @@ module.exports = class DeviceState extends EventEmitter
 					.then =>
 						if !_.isEmpty(appAsState.config)
 							devConf = @deviceConfig.filterConfigKeys(appAsState.config)
-							_.assign(legacyTarget.local.config, devConf) if !_.isEmpty(devConf)
+							if !_.isEmpty(devConf)
+								_.assign(legacyTarget.local.config, devConf)
 						legacyTarget.local.apps.push(multicontainerApp)
 					.then =>
 						@applications.volumes.createFromLegacy(appId)
@@ -247,8 +252,10 @@ module.exports = class DeviceState extends EventEmitter
 			})
 			.then =>
 				@config.on 'change', (changedConfig) =>
-					@logger.enable(changedConfig.loggingEnabled) if changedConfig.loggingEnabled?
-					@reportCurrentState(api_secret: changedConfig.apiSecret) if changedConfig.apiSecret?
+					if changedConfig.loggingEnabled?
+						@logger.enable(changedConfig.loggingEnabled)
+					if changedConfig.apiSecret?
+						@reportCurrentState(api_secret: changedConfig.apiSecret)
 			.then =>
 				@applications.init()
 			.then =>
@@ -271,14 +278,16 @@ module.exports = class DeviceState extends EventEmitter
 					update_downloaded: false
 				)
 			.then =>
-				@loadTargetFromFile() if !conf.provisioned
+				if !conf.provisioned
+					@loadTargetFromFile()
 			.then =>
 				@triggerApplyTarget()
 
 	initNetworkChecks: ({ resinApiEndpoint, connectivityCheckEnabled }) =>
 		network.startConnectivityCheck(resinApiEndpoint, connectivityCheckEnabled)
 		@config.on 'change', (changedConfig) ->
-			network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled) if changedConfig.connectivityCheckEnabled?
+			if changedConfig.connectivityCheckEnabled?
+				network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled)
 		console.log('Starting periodic check for IP addresses')
 		network.startIPAddressUpdate (addresses) =>
 			@reportCurrentState(
@@ -296,31 +305,38 @@ module.exports = class DeviceState extends EventEmitter
 	emitAsync: (ev, args...) =>
 		setImmediate => @emit(ev, args...)
 
-	readLockTarget: =>
+	_readLockTarget: =>
 		@_readLock('target').disposer (release) ->
 			release()
-	writeLockTarget: =>
+	_writeLockTarget: =>
 		@_writeLock('target').disposer (release) ->
 			release()
-	inferStepsLock: =>
+	_inferStepsLock: =>
 		@_writeLock('inferSteps').disposer (release) ->
 			release()
+
+	usingReadLockTarget: (fn) =>
+		Promise.using @_readLockTarget, -> fn()
+	usingWriteLockTarget: (fn) =>
+		Promise.using @_writeLockTarget, -> fn()
+	usingInferStepsLock: (fn) =>
+		Promise.using @_inferStepsLock, -> fn()
 
 	setTarget: (target) ->
 		validateState(target)
 		.then =>
-			Promise.using @writeLockTarget(), =>
+			@usingWriteLockTarget =>
 				# Apps, deviceConfig, dependent
 				@db.transaction (trx) =>
 					Promise.try =>
-						@config.set({ name: target.local.name }, trx) if target.local?.name?
+						@config.set({ name: target.local.name }, trx)
 					.then =>
-						@deviceConfig.setTarget(target.local.config, trx) if target.local?.config?
+						@deviceConfig.setTarget(target.local.config, trx)
 					.then =>
-						@applications.setTarget(target.local?.apps, target.dependent, trx)
+						@applications.setTarget(target.local.apps, target.dependent, trx)
 
 	getTarget: ->
-		Promise.using @readLockTarget(), =>
+		@usingReadLockTarget =>
 			Promise.props({
 				local: Promise.props({
 					name: @config.get('name')
@@ -337,7 +353,8 @@ module.exports = class DeviceState extends EventEmitter
 			_.merge(theState.local, @_currentVolatile)
 			theState.local.apps = appsStatus.local
 			theState.dependent.apps = appsStatus.dependent
-			theState.local.is_on__commit = appsStatus.commit if appsStatus.commit
+			if appsStatus.commit
+				theState.local.is_on__commit = appsStatus.commit
 			return theState
 
 	getCurrentForComparison: ->
@@ -425,12 +442,13 @@ module.exports = class DeviceState extends EventEmitter
 						throw new Error("Invalid action #{step.action}")
 
 	applyStepAsync: (step, { force, targetState }) =>
-		return if @shuttingDown
+		if @shuttingDown
+			return
 		@stepsInProgress.push(step)
 		setImmediate =>
 			@executeStepAction(step, { force, targetState })
 			.finally =>
-				Promise.using @inferStepsLock(), =>
+				@usingInferStepsLock =>
 					_.pullAllWith(@stepsInProgress, [ step ], _.isEqual)
 			.then (stepResult) =>
 				@emitAsync('step-completed', null, step, stepResult)
@@ -456,7 +474,7 @@ module.exports = class DeviceState extends EventEmitter
 
 	applyTarget: ({ force = false } = {}) =>
 		console.log('Applying target state')
-		Promise.using @inferStepsLock(), =>
+		@usingInferStepsLock =>
 			Promise.join(
 				@getCurrentForComparison()
 				@getTarget()
@@ -484,7 +502,8 @@ module.exports = class DeviceState extends EventEmitter
 			@applyError(err, force)
 
 	continueApplyTarget: ({ force = false } = {}) =>
-		return if @applyContinueScheduled
+		if @applyContinueScheduled
+			return
 		@applyContinueScheduled = true
 		setTimeout( =>
 			@applyContinueScheduled = false

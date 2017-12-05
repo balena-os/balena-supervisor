@@ -45,11 +45,13 @@ module.exports = class ServiceManager extends EventEmitter
 
 	_killContainer: (containerId, service = {}, { removeContainer = true }) =>
 		@logger.logSystemEvent(logTypes.stopService, { service })
-		@reportNewStatus(containerId, service, 'Stopping') if service.imageId?
+		if service.imageId?
+			@reportNewStatus(containerId, service, 'Stopping')
 		containerObj = @docker.getContainer(containerId)
 		containerObj.stop(t: 10)
 		.then ->
-			containerObj.remove(v: true) if removeContainer
+			if removeContainer
+				containerObj.remove(v: true)
 		.catch (err) =>
 			# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison
 			# reasons.
@@ -66,14 +68,15 @@ module.exports = class ServiceManager extends EventEmitter
 				return
 			throw err
 		.tap =>
-			delete @containerHasDied[containerId] if @containerHasDied[containerId]?
+			delete @containerHasDied[containerId]
 		.tap =>
 			@logger.logSystemEvent(logTypes.stopServiceSuccess, { service })
 		.catch (err) =>
 			@logger.logSystemEvent(logTypes.stopServiceError, { service, error: err })
 			throw err
 		.finally =>
-			@reportChange(containerId) if service.imageId?
+			if service.imageId?
+				@reportChange(containerId)
 
 	kill: (service, { removeContainer = true } = {}) =>
 		@_killContainer(service.containerId, service, { removeContainer })
@@ -94,7 +97,8 @@ module.exports = class ServiceManager extends EventEmitter
 		mockContainerId = @config.newUniqueKey()
 		@get(service)
 		.then ([ existingService ]) =>
-			return @docker.getContainer(existingService.containerId) if existingService?
+			if existingService?
+				return @docker.getContainer(existingService.containerId)
 			conf = service.toContainerConfig()
 			@logger.logSystemEvent(logTypes.installService, { service })
 			@reportNewStatus(mockContainerId, service, 'Installing')
@@ -170,7 +174,7 @@ module.exports = class ServiceManager extends EventEmitter
 		@getAll()
 		.then (services) =>
 			status = _.clone(@volatileState)
-			_.forEach services, (service) ->
+			for service in services
 				status[service.containerId] ?= _.pick(service, [ 'appId', 'imageId', 'status', 'releaseId', 'commit' ])
 			return _.values(status)
 
@@ -224,7 +228,8 @@ module.exports = class ServiceManager extends EventEmitter
 			@kill(currentService)
 
 	listenToEvents: =>
-		return if @listening
+		if @listening
+			return
 		@listening = true
 		@docker.getEvents(filters: type: [ 'container' ])
 		.then (stream) =>
@@ -233,7 +238,8 @@ module.exports = class ServiceManager extends EventEmitter
 				console.error('Error on docker events stream', err, err.stack)
 				stream.destroy()
 			parser.onValue = (data) =>
-				return if parser.stack.length != 0
+				if parser.stack.length != 0
+					return
 				if data?.status in ['die', 'start']
 					setImmediate =>
 						@getByDockerContainerId(data.id)
@@ -259,12 +265,11 @@ module.exports = class ServiceManager extends EventEmitter
 				.on 'end', ->
 					console.error('Docker events stream ended, restarting listener')
 					resolve()
-			.finally =>
-				@listening = false
-				setImmediate( => @listenToEvents())
-		.catch (err) =>
+		.catch (err) ->
 			console.error('Error starting to listen to events:', err, err.stack)
+		.finally =>
 			setTimeout =>
+				@listening = false
 				@listenToEvents()
 			, 1000
 		return

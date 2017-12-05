@@ -52,7 +52,7 @@ module.exports = class SupervisorAPI
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
-		_.forEach @routers, (router) =>
+		for router in @routers
 			@_api.use(router)
 
 	listen: (allowedInterfaces, port, apiTimeout) =>

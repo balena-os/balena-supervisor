@@ -22,30 +22,32 @@ exports.UpdatesLockedError = class UpdatesLockedError extends TypedError
 exports.lock = do ->
 	_lock = new Lock()
 	_writeLock = Promise.promisify(_lock.async.writeLock)
-	return (appId, { force = false } = {}) ->
-		Promise.try ->
-			return if !appId?
-			locksTaken = []
-			dispose = (release) ->
-				Promise.map locksTaken, (lockName) ->
-					lockFile.unlockAsync(lockName)
-				.finally ->
-					release()
-			_writeLock(appId)
-			.tap (release) ->
-				fs.readdirAsync(baseLockPath(appId))
-				.catch ENOENT, -> []
-				.mapSeries (serviceName) ->
-					tmpLockName = lockFileOnHost(appId, serviceName)
-					Promise.try ->
-						lockFile.unlockAsync(tmpLockName) if force == true
-					.then ->
-						lockFile.lockAsync(tmpLockName)
+	return (appId, { force = false } = {}, fn) ->
+		takeTheLock = ->
+			Promise.try ->
+				return if !appId?
+				locksTaken = []
+				dispose = (release) ->
+					Promise.map locksTaken, (lockName) ->
+						lockFile.unlockAsync(lockName)
+					.finally ->
+						release()
+				_writeLock(appId)
+				.tap (release) ->
+					fs.readdirAsync(baseLockPath(appId))
+					.catch ENOENT, -> []
+					.mapSeries (serviceName) ->
+						tmpLockName = lockFileOnHost(appId, serviceName)
+						Promise.try ->
+							lockFile.unlockAsync(tmpLockName) if force == true
 						.then ->
-							locksTaken.push(tmpLockName)
-					.catch ENOENT, _.noop
-					.catch (err) ->
-						dispose(release)
-						.finally ->
-							throw new exports.UpdatesLockedError("Updates are locked: #{err.message}")
-			.disposer(dispose)
+							lockFile.lockAsync(tmpLockName)
+							.then ->
+								locksTaken.push(tmpLockName)
+						.catch ENOENT, _.noop
+						.catch (err) ->
+							dispose(release)
+							.finally ->
+								throw new exports.UpdatesLockedError("Updates are locked: #{err.message}")
+				.disposer(dispose)
+		Promise.using takeTheLock, -> fn()

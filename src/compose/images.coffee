@@ -149,7 +149,7 @@ module.exports = class Images extends EventEmitter
 			return image
 		.then (images) =>
 			status = _.clone(@volatileState)
-			_.forEach images, (image) ->
+			for image in images
 				status[image.imageId] ?= image
 			return _.values(status)
 
