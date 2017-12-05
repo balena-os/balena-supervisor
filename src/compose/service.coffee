@@ -283,7 +283,6 @@ module.exports = class Service
 
 	toContainerConfig: =>
 		{ binds, volumes } = @getBindsAndVolumes()
-
 		conf = {
 			name: "#{@serviceName}_#{@releaseId}"
 			Image: @image
@@ -299,11 +298,12 @@ module.exports = class Service
 				NetworkMode: @network_mode
 				PortBindings: @portBindings
 				Binds: binds
-				RestartPolicy: @restartPolicy
 				CapAdd: @cap_add
 				CapDrop: @cap_drop
 				Devices: @devices
 		}
+		if @restartPolicy.Name != 'no'
+			conf.RestartPolicy = @restartPolicy
 		# If network mode is the default network for this app, add alias for serviceName
 		if @network_mode == @appId.toString()
 			conf.NetworkingConfig = {
