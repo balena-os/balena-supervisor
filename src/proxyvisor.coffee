@@ -4,6 +4,7 @@ express = require 'express'
 fs = Promise.promisifyAll require 'fs'
 { request } = require './lib/request'
 constants = require './lib/constants'
+{ checkInt } = require './lib/validation'
 path = require 'path'
 mkdirp = Promise.promisify(require('mkdirp'))
 bodyParser = require 'body-parser'

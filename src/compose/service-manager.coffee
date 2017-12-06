@@ -9,8 +9,9 @@ logTypes = require '../lib/log-types'
 constants = require '../lib/constants'
 
 Service = require './service'
-#restartVars = (conf) ->
-#	return _.pick(conf, [ 'RESIN_DEVICE_RESTART', 'RESIN_RESTART' ])
+
+NotFoundError = (err) ->
+	return checkInt(err.statusCode) is 404
 
 module.exports = class ServiceManager extends EventEmitter
 	constructor: ({ @docker, @logger, @config }) ->
@@ -24,12 +25,9 @@ module.exports = class ServiceManager extends EventEmitter
 		# so we need to stop and remove them
 		@docker.getImage(constants.supervisorImage).inspect()
 		.then (supervisorImage) =>
-			Promise.map(@docker.listContainers(all: true), (container) =>
-				@docker.getImage(container.Image).inspect()
-				.then (containerImage) =>
-					if containerImage.Id != supervisorImage.Id
-						@_killContainer(container.Id, { serviceName: 'legacy', image: container.Image }, { removeContainer: true })
-			)
+			Promise.map @docker.listContainers(all: true), (container) =>
+				if container.ImageID != supervisorImage.Id
+					@_killContainer(container.Id, { serviceName: 'legacy', image: container.ImageID }, { removeContainer: true })
 
 	reportChange: (containerId, status) ->
 		if status?
@@ -53,17 +51,17 @@ module.exports = class ServiceManager extends EventEmitter
 			if removeContainer
 				containerObj.remove(v: true)
 		.catch (err) =>
-			# Get the statusCode from the original cause and make sure statusCode its definitely a string for comparison
+			# Get the statusCode from the original cause and make sure statusCode it's definitely a string for comparison
 			# reasons.
-			statusCode = '' + err.statusCode
+			statusCode = checkInt(err.statusCode)
 			# 304 means the container was already stopped - so we can just remove it
-			if statusCode is '304'
+			if statusCode is 304
 				@logger.logSystemEvent(logTypes.stopServiceNoop, { service })
 				if removeContainer
 					return containerObj.remove(v: true)
 				return
 			# 404 means the container doesn't exist, precisely what we want! :D
-			if statusCode is '404'
+			if statusCode is 404
 				@logger.logSystemEvent(logTypes.stopRemoveServiceNoop, { service })
 				return
 			throw err
@@ -86,8 +84,6 @@ module.exports = class ServiceManager extends EventEmitter
 
 	getAllByAppId: (appId) =>
 		@getAll("io.resin.app_id=#{appId}")
-		.filter (service) ->
-			service.appId == appId
 
 	stopAllByAppId: (appId) =>
 		Promise.map @getAllByAppId(appId), (service) =>
@@ -96,7 +92,7 @@ module.exports = class ServiceManager extends EventEmitter
 	create: (service) =>
 		mockContainerId = @config.newUniqueKey()
 		@get(service)
-		.then ([ existingService ]) =>
+		.then (existingService) =>
 			if existingService?
 				return @docker.getContainer(existingService.containerId)
 			conf = service.toContainerConfig()
@@ -122,13 +118,13 @@ module.exports = class ServiceManager extends EventEmitter
 			@reportNewStatus(containerId, service, 'Starting')
 			container.start()
 			.catch (err) =>
-				statusCode = '' + err.statusCode
+				statusCode = checkInt(err.statusCode)
 				# 304 means the container was already started, precisely what we want :)
-				if statusCode is '304'
+				if statusCode is 304
 					alreadyStarted = true
 					return
 
-				if statusCode is '500' and err.message?.trim?()?.match(/exec format error$/)
+				if statusCode is 500 and err.message?.trim?()?.match(/exec format error$/)
 					# Provide a friendlier error message for "exec format error"
 					@config.get('deviceType')
 					.then (deviceType) ->
@@ -158,17 +154,15 @@ module.exports = class ServiceManager extends EventEmitter
 	getAll: (extraLabelFilters = []) =>
 		filters = label: [ 'io.resin.supervised' ].concat(extraLabelFilters)
 		@docker.listContainers({ all: true, filters })
-		.then (containers) =>
-			Promise.mapSeries containers, (container) =>
-				@docker.getContainer(container.Id).inspect()
-				.then(Service.fromContainer)
+		.mapSeries (container) =>
+			@docker.getContainer(container.Id).inspect()
+			.then(Service.fromContainer)
 
 	# Returns an array with the container(s) matching a service by appId, commit, image and environment
 	get: (service) =>
 		@getAll("io.resin.service_id=#{service.serviceId}")
-		.then (services = []) ->
-			return _.filter services, (currentService) ->
-				currentService.isSameContainer(service)
+		.filter((currentService) -> currentService.isSameContainer(service))
+		.get(0)
 
 	getStatus: =>
 		@getAll()
@@ -184,7 +178,6 @@ module.exports = class ServiceManager extends EventEmitter
 			if !container.Config.Labels['io.resin.supervised']?
 				return null
 			return Service.fromContainer(container)
-		.catchReturn(null)
 
 	waitToKill: (service, timeout) ->
 		startTime = Date.now()
@@ -205,7 +198,7 @@ module.exports = class ServiceManager extends EventEmitter
 
 	prepareForHandover: (service) =>
 		@get(service)
-		.then ([ svc ]) =>
+		.then (svc) =>
 			container = @docker.getContainer(svc.containerId)
 			container.update(RestartPolicy: {})
 			.then ->
@@ -213,7 +206,7 @@ module.exports = class ServiceManager extends EventEmitter
 
 	updateReleaseId: (service, releaseId) =>
 		@get(service)
-		.then ([ svc ]) =>
+		.then (svc) =>
 			@docker.getContainer(svc.containerId).rename(name: "#{service.serviceName}_#{releaseId}")
 
 	handover: (currentService, targetService) =>
@@ -227,6 +220,7 @@ module.exports = class ServiceManager extends EventEmitter
 		.then =>
 			@kill(currentService)
 
+	# TODO: back to JSONStream
 	listenToEvents: =>
 		if @listening
 			return
@@ -241,18 +235,20 @@ module.exports = class ServiceManager extends EventEmitter
 				if parser.stack.length != 0
 					return
 				if data?.status in ['die', 'start']
-					setImmediate =>
-						@getByDockerContainerId(data.id)
-						.then (service) =>
-							if service?
-								if data.status == 'die'
-									@logger.logSystemEvent(logTypes.serviceExit, { service })
-									@containerHasDied[data.id] = true
-								else if data.status == 'start' and @containerHasDied[data.id]
-									@logger.logSystemEvent(logTypes.serviceRestart, { service })
-									@logger.attach(@docker, data.id, service.serviceId)
-						.catch (err) ->
-							console.error('Error on docker event:', err, err.stack)
+					@getByDockerContainerId(data.id)
+					.catchReturn(NotFoundError, null)
+					.then (service) =>
+						if service?
+							if data.status == 'die'
+								@logger.logSystemEvent(logTypes.serviceExit, { service })
+								@containerHasDied[data.id] = true
+							else if data.status == 'start' and @containerHasDied[data.id]
+								delete @containerHasDied[data.id]
+								@logger.logSystemEvent(logTypes.serviceRestart, { service })
+								@logger.attach(@docker, data.id, service.serviceId)
+					.catch (err) ->
+						console.error('Error on docker event:', err, err.stack)
+					return
 			new Promise (resolve, reject) ->
 				stream
 				.on 'error', (err) ->

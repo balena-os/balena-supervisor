@@ -230,11 +230,13 @@ module.exports = class ApplicationManager extends EventEmitter
 					if !image.dependent
 						apps[appId] ?= {}
 						apps[appId].services ?= {}
-						apps[appId].services[image.imageId] ?= _.pick(image, [ 'status', 'download_progress', 'releaseId' ])
+						apps[appId].services[image.imageId] ?= _.pick(image, [ 'status', 'releaseId' ])
+						apps[appId].services[image.imageId].download_progress = image.downloadProgress
 					else
 						dependent[appId] ?= {}
 						dependent[appId].images ?= {}
-						dependent[appId].images[image.imageId] = _.pick(image, [ 'status', 'download_progress' ])
+						dependent[appId].images[image.imageId] = _.pick(image, [ 'status' ])
+						dependent[appId].images[image.imageId].download_progress = image.downloadProgress
 
 				obj = { local: apps, dependent }
 				if commit?

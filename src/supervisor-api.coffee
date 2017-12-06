@@ -1,4 +1,3 @@
-_ = require 'lodash'
 express = require 'express'
 bufferEq = require 'buffer-equal-constant-time'
 blink = require './lib/blink'

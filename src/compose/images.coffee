@@ -6,7 +6,7 @@ constants = require '../lib/constants'
 validation = require '../lib/validation'
 
 ImageNotFoundError = (err) ->
-	return "#{err.statusCode}" is '404'
+	return validation.checkInt(err.statusCode) is 404
 
 # image = {
 # 	name: image registry/repo:tag
@@ -17,7 +17,7 @@ ImageNotFoundError = (err) ->
 # 	releaseId
 # 	dependent
 # 	status Downloading, Downloaded, Deleting
-# 	download_progress
+# 	downloadProgress
 # }
 
 module.exports = class Images extends EventEmitter
@@ -37,7 +37,7 @@ module.exports = class Images extends EventEmitter
 
 	fetch: (image, opts) =>
 		onProgress = (progress) =>
-			@reportChange(image.imageId, { download_progress: progress.percentage })
+			@reportChange(image.imageId, { downloadProgress: progress.percentage })
 
 		@normalise(image.name)
 		.then (imageName) =>
@@ -47,7 +47,7 @@ module.exports = class Images extends EventEmitter
 			.then =>
 				@inspectByName(imageName)
 			.catch =>
-				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', download_progress: 0 }))
+				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', downloadProgress: 0 }))
 				Promise.try =>
 					if validation.checkTruthy(opts.delta)
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
@@ -81,19 +81,14 @@ module.exports = class Images extends EventEmitter
 		@db.models('image').update(image).where(name: image.name)
 
 	_removeImageIfNotNeeded: (image) =>
-		removed = true
 		@inspectByName(image.name)
-		.catch ImageNotFoundError, (err) ->
-			removed = false
-			return null
 		.then (img) =>
-			if img?
-				@db.models('image').where(name: image.name).select()
-				.then (imagesFromDB) =>
-					if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(image))
-						@docker.getImage(image.name).remove(force: true)
-		.then ->
-			return removed
+			@db.models('image').where(name: image.name).select()
+			.then (imagesFromDB) =>
+				if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(image))
+					@docker.getImage(image.name).remove(force: true)
+		.return(true)
+		.catchReturn(ImageNotFoundError, false)
 
 	remove: (image) =>
 		@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Deleting' }))
@@ -132,7 +127,7 @@ module.exports = class Images extends EventEmitter
 	# Gets all images that are supervised, in an object containing name, appId, serviceId, serviceName, imageId, dependent.
 	getAvailable: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
-			return _.filter(supervisedImages, (image) => @_isAvailableInDocker(image, dockerImages))
+			_.filter(supervisedImages, (image) => @_isAvailableInDocker(image, dockerImages))
 
 	cleanupDatabase: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
@@ -145,7 +140,7 @@ module.exports = class Images extends EventEmitter
 		@getAvailable()
 		.map (image) ->
 			image.status = 'Downloaded'
-			image.download_progress = null
+			image.downloadProgress = null
 			return image
 		.then (images) =>
 			status = _.clone(@volatileState)
@@ -170,7 +165,7 @@ module.exports = class Images extends EventEmitter
 				images.push(image.Id)
 		.then =>
 			return _.filter images, (image) =>
-				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > 3600 * 1000
+				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > constants.imageCleanupErrorIgnoreTimeout
 
 	inspectByName: (imageName) =>
 		@docker.getImage(imageName).inspect()
