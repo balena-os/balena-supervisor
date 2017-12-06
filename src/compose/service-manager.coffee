@@ -180,21 +180,20 @@ module.exports = class ServiceManager extends EventEmitter
 			return Service.fromContainer(container)
 
 	waitToKill: (service, timeout) ->
-		startTime = Date.now()
 		pollInterval = 100
 		timeout = checkInt(timeout, positive: true) ? 60000
-		checkFileOrTimeout = ->
-			killme = service.killmeFullPathOnHost()
-			fs.statAsync(killme)
-			.catch (err) ->
-				throw err unless (Date.now() - startTime) > timeout
+		deadline = Date.now() + timeout
+
+		killmePath = service.killmeFullPathOnHost()
+
+		wait = ->
+			fs.statAsync(killmePath)
 			.then ->
-				fs.unlinkAsync(killme).catch(_.noop)
-		retryCheck = ->
-			checkFileOrTimeout()
-			.catch ->
-				Promise.delay(pollInterval).then(retryCheck)
-		retryCheck()
+				fs.unlinkAsync(killmePath).catch(_.noop)
+			.catch (err) ->
+				if Date.now() < deadline
+					Promise.delay(pollInterval).then(wait)
+		wait()
 
 	prepareForHandover: (service) =>
 		@get(service)
