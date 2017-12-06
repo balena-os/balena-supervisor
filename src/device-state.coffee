@@ -146,11 +146,11 @@ module.exports = class DeviceState extends EventEmitter
 		# Old containers have to be killed as we can't update their labels
 		@deviceConfig.getCurrent()
 		.then (deviceConf) =>
-			legacyTarget.local.config = deviceConf
+			legacyTarget.local.config = deviceConf # will happen in saveInitialConfig
 			console.log('Killing legacy containers')
-			@applications.services.killAllLegacy()
+			@applications.services.killAllLegacy() # move to init if conf.legacyAppsPresent
 		.then =>
-			@config.get('name')
+			@config.get('name') # Do this in saveInitialConfig?
 		.then (name) ->
 			legacyTarget.local.name = name ? ''
 		.then =>
