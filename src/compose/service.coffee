@@ -43,6 +43,7 @@ formatDevices = (devices) ->
 		CgroupPermissions ?= 'rwm'
 		return { PathOnHost, PathInContainer, CgroupPermissions }
 
+# TODO: Support "networks" too, instead of only networkMode
 module.exports = class Service
 	constructor: (serviceProperties, opts = {}) ->
 		{

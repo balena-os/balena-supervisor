@@ -511,6 +511,7 @@ module.exports = class DeviceState extends EventEmitter
 		, 1000)
 		return
 
+	# TODO: Make this and applyTarget work purely with promises, no need to wait on events
 	triggerApplyTarget: ({ force = false, delay = 0 } = {}) =>
 		if @applyInProgress
 			if !@scheduledApply?

@@ -235,7 +235,6 @@ module.exports = class APIBinder
 					apikey: conf.currentApiKey
 			.timeout(conf.apiTimeout)
 
-	# TODO: change to the multicontainer model, I think it's device_configuration_variable?
 	# Creates the necessary config vars in the API to match the current device state,
 	# without overwriting any variables that are already set.
 	_reportInitialEnv: =>
@@ -333,7 +332,6 @@ module.exports = class APIBinder
 
 		@cachedResinApi._request(requestParams)
 
-	# TODO: switch to using the proper endpoint by changing @_reportV1 to @_reportV2
 	_report: =>
 		@config.getMany([ 'currentApiKey', 'deviceId', 'apiTimeout', 'resinApiEndpoint', 'uuid' ])
 		.then (conf) =>

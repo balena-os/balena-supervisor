@@ -66,6 +66,8 @@ var singleToMulticontainerApp = function (app, appId) {
 	}
 	return newApp
 }
+
+// TODO: this whole thing is WIP
 exports.up = function (knex, Promise) {
 	let addColumn = (table, type, column) => {
 		return knex.schema.table(table, (t) => { return t[type](column) })

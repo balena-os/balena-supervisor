@@ -44,6 +44,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 				repoName = imageName
 			return { repo: repoName, tag: tagName }
 
+	# TODO: somehow fix this to work with image names having repo digests instead of tags
 	rsyncImageWithProgress: (imgDest, fullDeltaOpts, onProgress) =>
 		{
 			deltaRequestTimeout, deltaApplyTimeout, deltaRetryCount, deltaRetryInterval,

@@ -48,6 +48,7 @@ module.exports = class Volumes
 		}
 
 	# TODO: what config values are relevant/whitelisted?
+	# For now we only care about driverOpts and labels
 	create: ({ name, config = {}, appId }) =>
 		config = _.mapKeys(config, (v, k) -> _.camelCase(k))
 		@logger.logSystemEvent(logTypes.createVolume, { volume: { name } })
