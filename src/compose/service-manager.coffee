@@ -1,7 +1,7 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
 EventEmitter = require 'events'
-JSONParser = require 'jsonparse'
+JSONStream = require 'JSONStream'
 fs = Promise.promisifyAll(require('fs'))
 
 logTypes = require '../lib/log-types'
@@ -219,20 +219,16 @@ module.exports = class ServiceManager extends EventEmitter
 		.then =>
 			@kill(currentService)
 
-	# TODO: back to JSONStream
 	listenToEvents: =>
 		if @listening
 			return
 		@listening = true
 		@docker.getEvents(filters: type: [ 'container' ])
 		.then (stream) =>
-			parser = new JSONParser()
-			parser.onError = (err) ->
-				console.error('Error on docker events stream', err, err.stack)
-				stream.destroy()
-			parser.onValue = (data) =>
-				if parser.stack.length != 0
-					return
+			stream.on 'error', (err) ->
+				console.error('Error on docker events stream:', err, err.stack)
+			parser = JSONStream.parse()
+			parser.on 'data', (data) =>
 				if data?.status in ['die', 'start']
 					@getByDockerContainerId(data.id)
 					.catchReturn(NotFoundError, null)
@@ -249,22 +245,19 @@ module.exports = class ServiceManager extends EventEmitter
 						console.error('Error on docker event:', err, err.stack)
 					return
 			new Promise (resolve, reject) ->
-				stream
+				parser
 				.on 'error', (err) ->
 					console.error('Error on docker events stream', err)
 					reject()
-				.on 'data', (data) ->
-					if typeof data is 'string'
-						data = new Buffer(data)
-					parser.write(data)
 				.on 'end', ->
 					console.error('Docker events stream ended, restarting listener')
 					resolve()
+				stream.pipe(parser)
 		.catch (err) ->
-			console.error('Error starting to listen to events:', err, err.stack)
+			console.error('Error listening to events:', err, err.stack)
 		.finally =>
+			@listening = false
 			setTimeout =>
-				@listening = false
 				@listenToEvents()
 			, 1000
 		return
