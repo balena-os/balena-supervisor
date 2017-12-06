@@ -202,12 +202,12 @@ module.exports = class ServiceManager extends EventEmitter
 			container = @docker.getContainer(svc.containerId)
 			container.update(RestartPolicy: {})
 			.then ->
-				container.rename(name: "old_#{service.serviceName}_#{service.releaseId}")
+				container.rename(name: "old_#{service.serviceName}_#{service.imageId}_#{service.releaseId}")
 
-	updateReleaseId: (service, releaseId) =>
+	updateMetadata: (service, { imageId, releaseId }) =>
 		@get(service)
 		.then (svc) =>
-			@docker.getContainer(svc.containerId).rename(name: "#{service.serviceName}_#{releaseId}")
+			@docker.getContainer(svc.containerId).rename(name: "#{service.serviceName}_#{imageId}_#{releaseId}")
 
 	handover: (currentService, targetService) =>
 		# We set the running container to not restart so that in case of a poweroff

@@ -404,9 +404,9 @@ module.exports = class ApplicationManager extends EventEmitter
 		pairs = []
 		targetImages = _.map(targetServices, imageForService)
 		for target in targetImages
-			imageWithSameName = _.find(availableImages, (img) -> img.name == target.name)
-			if imageWithSameName? and !_.find(availableImages, (img) -> _.isEqual(_.omit(img, 'id'), target))
-				pairs.push({ current: imageWithSameName, target, serviceId: target.serviceId })
+			imageWithSameContent = _.find(availableImages, (img) -> @images.isSameImage(img, target))
+			if imageWithSameContent? and !_.find(availableImages, (img) -> _.isEqual(_.omit(img, 'id'), target))
+				pairs.push({ current: imageWithSameContent, target, serviceId: target.serviceId })
 		return pairs
 
 	# Checks if a service is using a network or volume that is about to be updated
@@ -452,7 +452,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		if target.depends_on?
 			for dependency in target.depends_on
 				dependencyService = _.find(targetApp.services, (s) -> s.serviceName == dependency)
-				if !_.find(availableImages, (image) -> image.name == dependencyService.image)?
+				if !_.find(availableImages, (image) -> @images.isSameImage(image, { name: dependencyService.image }))?
 					return false
 		return true
 
@@ -489,8 +489,8 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	# Infers steps that do not require creating a new container
 	_updateContainerStep: (current, target) ->
-		if current.releaseId != target.releaseId
-			return serviceAction('updateReleaseId', target.serviceId, current, target)
+		if current.releaseId != target.releaseId or current.imageId != target.imageId
+			return serviceAction('updateMetadata', target.serviceId, current, target)
 		else if target.running
 			return serviceAction('start', target.serviceId, current, target)
 		else
@@ -534,7 +534,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			# There is already a step in progress for this service, so we wait
 			return null
 
-		needsDownload = !_.some(availableImages, (image) -> target.image == image.name)
+		needsDownload = !_.some(availableImages, (image) -> @images.isSameImage(image, { name: target.image }))
 		dependenciesMetForStart = =>
 			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs), stepsInProgress)
 		dependenciesMetForKill = =>
@@ -736,9 +736,9 @@ module.exports = class ApplicationManager extends EventEmitter
 		currentImages = _.flatten(_.map(current.local.apps, allImagesForApp))
 		targetImages = _.flatten(_.map(target.local.apps, allImagesForApp))
 		availableAndUnused = _.filter available, (image) ->
-			!_.some currentImages.concat(targetImages), (imageInUse) -> image.name == imageInUse.name
-		imagesToDownload = _.filter targetImages, (imageName) ->
-			!_.some available, (availableImage) -> availableImage.name == imageName.name
+			!_.some currentImages.concat(targetImages), (imageInUse) -> @images.isSameImage(image, imageInUse)
+		imagesToDownload = _.filter targetImages, (targetImage) ->
+			!_.some available, (availableImage) -> @images.isSameImage(availableImage, targetImage)
 
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)
@@ -747,7 +747,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 		return _.filter availableAndUnused, (image) ->
 			notUsedForDelta = !_.some deltaSources, (deltaSource) -> deltaSource == image.name
-			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) -> image.name == proxyvisorImage
+			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) -> @images.isSameImage(image, { name: proxyvisorImage })
 			return notUsedForDelta and notUsedByProxyvisor
 
 	_inferNextSteps: (cleanupNeeded, availableImages, current, target, stepsInProgress) =>
@@ -798,8 +798,8 @@ module.exports = class ApplicationManager extends EventEmitter
 				.then =>
 					if step.options?.removeImage
 						@images.remove(imageForService(step.current))
-		updateReleaseId: (step) =>
-			@services.updateReleaseId(step.current, step.target.releaseId)
+		updateMetadata: (step) =>
+			@services.updateMetadata(step.current, step.target)
 		purge: (step, { force = false } = {}) =>
 			appId = step.appId
 			@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')

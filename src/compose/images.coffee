@@ -122,7 +122,7 @@ module.exports = class Images extends EventEmitter
 
 	_isAvailableInDocker: (image, dockerImages) ->
 		_.some dockerImages, (dockerImage) ->
-			_.includes(dockerImage.NormalisedRepoTags, image.name)
+			_.includes(dockerImage.NormalisedRepoTags, image.name) or _.includes(dockerImage.RepoDigests, image.name)
 
 	# Gets all images that are supervised, in an object containing name, appId, serviceId, serviceName, imageId, dependent.
 	getAvailable: =>
@@ -188,3 +188,10 @@ module.exports = class Images extends EventEmitter
 			.catch (err) =>
 				@logger.logSystemMessage("Error cleaning up #{image}: #{err.message} - will ignore for 1 hour", { error: err }, 'Image cleanup error')
 				@imageCleanupFailures[image] = Date.now()
+
+	@isSameImage: (image1, image2) ->
+		hash1 = image1.name.split('@')[1]
+		hash2 = image2.name.split('@')[1]
+		return image1.name == image2.name or (hash1? and hash1 == hash2)
+
+	isSameImage: @isSameImage

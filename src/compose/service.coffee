@@ -5,6 +5,8 @@ updateLock = require '../lib/update-lock'
 constants = require '../lib/constants'
 conversions =  require '../lib/conversions'
 
+Images = require './images'
+
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 
 # Construct a restart policy based on its name.
@@ -140,7 +142,6 @@ module.exports = class Service
 		@labels['io.resin.app_id'] = @appId.toString()
 		@labels['io.resin.service_id'] = @serviceId.toString()
 		@labels['io.resin.service_name'] = @serviceName
-		@labels['io.resin.image_id'] = @imageId.toString()
 		@labels['io.resin.commit'] = @commit
 		return @labels
 
@@ -224,12 +225,14 @@ module.exports = class Service
 		appId = checkInt(container.Config.Labels['io.resin.app_id'])
 		serviceId = checkInt(container.Config.Labels['io.resin.service_id'])
 		serviceName = container.Config.Labels['io.resin.service_name']
-		releaseId = checkInt(container.Name.match(/.*_(\d+)$/)?[1])
+		nameComponents = container.Name.match(/.*_(\d+)_(\d+)$/)
+		imageId = checkInt(nameComponents?[1])
+		releaseId = checkInt(nameComponents?[2])
 		service = {
 			appId: appId
 			serviceId: serviceId
 			serviceName: serviceName
-			imageId: checkInt(container.Config.Labels['io.resin.image_id'])
+			imageId: imageId
 			command: container.Config.Cmd
 			entrypoint: container.Config.Entrypoint
 			networkMode: container.HostConfig.NetworkMode
@@ -284,7 +287,7 @@ module.exports = class Service
 	toContainerConfig: =>
 		{ binds, volumes } = @getBindsAndVolumes()
 		conf = {
-			name: "#{@serviceName}_#{@releaseId}"
+			name: "#{@serviceName}_#{@imageId}_#{@releaseId}"
 			Image: @image
 			Cmd: @command
 			Entrypoint: @entrypoint
@@ -318,7 +321,6 @@ module.exports = class Service
 	isSameContainer: (otherService) =>
 		propertiesToCompare = [
 			'image'
-			'imageId'
 			'networkMode'
 			'privileged'
 			'restartPolicy'
@@ -333,9 +335,13 @@ module.exports = class Service
 			'capAdd'
 			'capDrop'
 		]
-		return _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
+		return Images.isSameImage({ name: @image }, { name: otherService.image }) and
+			_.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
 			_.every arraysToCompare, (property) =>
 				_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
 
 	isEqual: (otherService) =>
-		return @isSameContainer(otherService) and @running == otherService.running and @releaseId == otherService.releaseId
+		return @isSameContainer(otherService) and
+			@running == otherService.running and
+			@releaseId == otherService.releaseId and
+			@imageId == otherService.imageId
