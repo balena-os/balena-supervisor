@@ -257,6 +257,9 @@ module.exports = class Service
 			exposedPorts: container.Config.ExposedPorts
 			portBindings: container.HostConfig.PortBindings
 		}
+		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
+		if service.restartPolicy.Name == ''
+			service.restartPolicy.Name = 'no'
 		return new Service(service)
 
 	# TODO: map ports for any of the possible formats "container:host/protocol", port ranges, etc.
@@ -307,7 +310,7 @@ module.exports = class Service
 				Devices: @devices
 		}
 		if @restartPolicy.Name != 'no'
-			conf.RestartPolicy = @restartPolicy
+			conf.HostConfig.RestartPolicy = @restartPolicy
 		# If network mode is the default network for this app, add alias for serviceName
 		if @networkMode == @appId.toString()
 			conf.NetworkingConfig = {

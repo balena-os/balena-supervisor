@@ -239,85 +239,84 @@ module.exports = class Proxyvisor
 		@_router = new ProxyvisorRouter(this)
 		@router = @_router.router
 		@validActions = _.keys(@actionExecutors)
+		@actionExecutors = {
+			updateDependentTargets: (step) =>
+				@config.getMany([ 'currentApiKey', 'apiTimeout' ])
+				.then ({ currentApiKey, apiTimeout }) =>
+					# - take each of the step.devices and update dependentDevice with it (targetCommit, targetEnvironment, targetConfig)
+					# - if update returns 0, then use APIBinder to fetch the device, then store it to the db
+					# - set markedForDeletion: true for devices that are not in the step.devices list
+					# - update dependentApp with step.app
+					Promise.map step.devices, (device) =>
+						uuid = device.uuid
+						# Only consider one app per dependent device for now
+						appId = _(device.apps).keys().head()
+						targetCommit = device.apps[appId].commit
+						targetEnvironment = JSON.stringify(device.apps[appId].environment)
+						targetConfig = JSON.stringify(device.apps[appId].config)
+						@db.models('dependentDevice').update({ appId, targetEnvironment, targetConfig, targetCommit, name: device.name }).where({ uuid })
+						.then (n) =>
+							return if n != 0
+							# If the device is not in the DB it means it was provisioned externally
+							# so we need to fetch it.
+							@apiBinder.fetchDevice(uuid, currentApiKey, apiTimeout)
+							.then (dev) =>
+								deviceForDB = {
+									uuid: uuid
+									appId: appId
+									device_type: dev.device_type
+									deviceId: dev.id
+									is_online: dev.is_online
+									name: dev.name
+									status: dev.status
+									logs_channel: dev.logs_channel
+									targetCommit
+									targetConfig
+									targetEnvironment
+								}
+								@db.models('dependentDevice').insert(deviceForDB)
+					.then =>
+						@db.models('dependentDevice').where({ appId: step.appId }).whereNotIn('uuid', _.map(step.devices, 'uuid')).update({ markedForDeletion: true })
+					.then =>
+						@normaliseDependentAppForDB(step.app)
+					.then (appForDB) =>
+						@db.upsertModel('dependentApp', appForDB, { appId: step.appId })
+					.then ->
+						cleanupTars(step.appId, step.app.commit)
+
+			sendDependentHooks: (step) =>
+				Promise.join(
+					@config.get('apiTimeout')
+					@getHookEndpoint(step.appId)
+					(apiTimeout, endpoint) =>
+						Promise.mapSeries step.devices, (device) =>
+							Promise.try =>
+								if @lastRequestForDevice[device.uuid]?
+									diff = Date.now() - @lastRequestForDevice[device.uuid]
+									if diff < 30000
+										Promise.delay(30001 - diff)
+							.then =>
+								@lastRequestForDevice[device.uuid] = Date.now()
+								if device.markedForDeletion
+									@sendDeleteHook(device, apiTimeout, endpoint)
+								else
+									@sendUpdate(device, apiTimeout, endpoint)
+				)
+
+			removeDependentApp: (step) =>
+				# find step.app and delete it from the DB
+				# find devices with step.appId and delete them from the DB
+				@db.transaction (trx) ->
+					trx('dependentApp').where({ appId: step.appId }).del()
+					.then ->
+						trx('dependentDevice').where({ appId: step.appId }).del()
+					.then ->
+						cleanupTars(step.appId)
+
+		}
 
 	bindToAPI: (apiBinder) =>
 		@apiBinder = apiBinder
-
-	actionExecutors: {
-		updateDependentTargets: (step) =>
-			@config.getMany([ 'currentApiKey', 'apiTimeout' ])
-			.then ({ currentApiKey, apiTimeout }) =>
-				# - take each of the step.devices and update dependentDevice with it (targetCommit, targetEnvironment, targetConfig)
-				# - if update returns 0, then use APIBinder to fetch the device, then store it to the db
-				# - set markedForDeletion: true for devices that are not in the step.devices list
-				# - update dependentApp with step.app
-				Promise.map step.devices, (device) =>
-					uuid = device.uuid
-					# Only consider one app per dependent device for now
-					appId = _(device.apps).keys().head()
-					targetCommit = device.apps[appId].commit
-					targetEnvironment = JSON.stringify(device.apps[appId].environment)
-					targetConfig = JSON.stringify(device.apps[appId].config)
-					@db.models('dependentDevice').update({ appId, targetEnvironment, targetConfig, targetCommit, name: device.name }).where({ uuid })
-					.then (n) =>
-						return if n != 0
-						# If the device is not in the DB it means it was provisioned externally
-						# so we need to fetch it.
-						@apiBinder.fetchDevice(uuid, currentApiKey, apiTimeout)
-						.then (dev) =>
-							deviceForDB = {
-								uuid: uuid
-								appId: appId
-								device_type: dev.device_type
-								deviceId: dev.id
-								is_online: dev.is_online
-								name: dev.name
-								status: dev.status
-								logs_channel: dev.logs_channel
-								targetCommit
-								targetConfig
-								targetEnvironment
-							}
-							@db.models('dependentDevice').insert(deviceForDB)
-				.then =>
-					@db.models('dependentDevice').where({ appId: step.appId }).whereNotIn('uuid', _.map(step.devices, 'uuid')).update({ markedForDeletion: true })
-				.then =>
-					@normaliseDependentAppForDB(step.app)
-				.then (appForDB) =>
-					@db.upsertModel('dependentApp', appForDB, { appId: step.appId })
-				.then ->
-					cleanupTars(step.appId, step.app.commit)
-
-		sendDependentHooks: (step) =>
-			Promise.join(
-				@config.get('apiTimeout')
-				@getHookEndpoint(step.appId)
-				(apiTimeout, endpoint) =>
-					Promise.mapSeries step.devices, (device) =>
-						Promise.try =>
-							if @lastRequestForDevice[device.uuid]?
-								diff = Date.now() - @lastRequestForDevice[device.uuid]
-								if diff < 30000
-									Promise.delay(30001 - diff)
-						.then =>
-							@lastRequestForDevice[device.uuid] = Date.now()
-							if device.markedForDeletion
-								@sendDeleteHook(device, apiTimeout, endpoint)
-							else
-								@sendUpdate(device, apiTimeout, endpoint)
-			)
-
-		removeDependentApp: (step) =>
-			# find step.app and delete it from the DB
-			# find devices with step.appId and delete them from the DB
-			@db.transaction (trx) ->
-				trx('dependentApp').where({ appId: step.appId }).del()
-				.then ->
-					trx('dependentDevice').where({ appId: step.appId }).del()
-				.then ->
-					cleanupTars(step.appId)
-
-	}
 
 	executeStepAction: (step) =>
 		Promise.try =>

@@ -148,7 +148,7 @@ module.exports = class Images extends EventEmitter
 				status[image.imageId] ?= image
 			return _.values(status)
 
-	_getDanglingAndOldSupervisorsForCleanup: =>
+	_getOldSupervisorsForCleanup: =>
 		images = []
 		@docker.getRegistryAndName(constants.supervisorImage)
 		.then (supervisorImageInfo) =>
@@ -160,10 +160,6 @@ module.exports = class Images extends EventEmitter
 						if imageName == supervisorImageInfo.imageName and tagName != supervisorImageInfo.tagName
 							images.push(repoTag)
 		.then =>
-			@docker.listImages(filters: { dangling: [ 'true' ] })
-			.map (image) ->
-				images.push(image.Id)
-		.then =>
 			return _.filter images, (image) =>
 				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > constants.imageCleanupErrorIgnoreTimeout
 
@@ -174,14 +170,15 @@ module.exports = class Images extends EventEmitter
 		@docker.normaliseImageName(imageName)
 
 	isCleanupNeeded: =>
-		@_getDanglingAndOldSupervisorsForCleanup()
+		@_getOldSupervisorsForCleanup()
 		.then (imagesForCleanup) ->
 			return !_.isEmpty(imagesForCleanup)
 
-	# Delete old supervisor images and dangling images
+	# Delete old supervisor images
 	cleanup: =>
-		@_getDanglingAndOldSupervisorsForCleanup()
+		@_getOldSupervisorsForCleanup()
 		.map (image) =>
+			console.log("Cleaning up #{image}")
 			@docker.getImage(image).remove(force: true)
 			.then =>
 				delete @imageCleanupFailures[image]

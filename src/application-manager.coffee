@@ -175,6 +175,74 @@ module.exports = class ApplicationManager extends EventEmitter
 		@volumes = new Volumes({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
 		@_targetVolatilePerServiceId = {}
+		@actionExecutors = {
+			stop: (step, { force = false } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
+					@services.kill(step.current, { removeContainer: false })
+			kill: (step, { force = false } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
+					@services.kill(step.current)
+					.then =>
+						if step.options?.removeImage
+							@images.remove(imageForService(step.current))
+			updateMetadata: (step) =>
+				@services.updateMetadata(step.current, step.target)
+			purge: (step, { force = false } = {}) =>
+				appId = step.appId
+				@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
+				@_lockingIfNecessary appId, { force, skipLock: step.options?.skipLock }, =>
+					@getCurrentApp(appId)
+					.then (app) =>
+						if !_.isEmpty(app?.services)
+							throw new Error('Attempt to purge app with running services')
+						if _.isEmpty(app?.volumes)
+							@logger.logSystemMessage('No volumes to purge', { appId }, 'Purge data noop')
+							return
+						Promise.mapSeries _.toPairs(app.volumes ? {}), ([ name, config ]) =>
+							@volumes.remove({ name })
+							.then =>
+								@volumes.create({ name, config, appId })
+					.then =>
+						@logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
+				.catch (err) =>
+					@logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
+					throw err
+			restart: (step, { force = false } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
+					Promise.try =>
+						@services.kill(step.current)
+					.then =>
+						@services.start(step.target)
+			stopAll: (step, { force = false } = {}) =>
+				@stopAll({ force })
+			start: (step) =>
+				@services.start(step.target)
+			handover: (step, { force = false } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
+					@services.handover(step.current, step.target)
+			fetch: (step) =>
+				Promise.join(
+					@config.get('fetchOptions')
+					@images.getAvailable()
+					(opts, availableImages) =>
+						opts.deltaSource = @bestDeltaSource(step.image, availableImages)
+						@images.fetch(step.image, opts)
+				)
+				.finally =>
+					@reportCurrentState(update_downloaded: true)
+			removeImage: (step) =>
+				@images.remove(step.image)
+			updateImage: (step) =>
+				@images.update(step.target)
+			cleanup: (step) =>
+				@images.cleanup()
+			createNetworkOrVolume: (step) =>
+				model = if step.model is 'volume' then @volumes else @networks
+				model.create(step.target)
+			removeNetworkOrVolume: (step) =>
+				model = if step.model is 'volume' then @volumes else @networks
+				model.remove(step.current)
+		}
 		@validActions = _.keys(@actionExecutors).concat(@proxyvisor.validActions)
 		@_router = new ApplicationManagerRouter(this)
 		@router = @_router.router
@@ -404,7 +472,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		pairs = []
 		targetImages = _.map(targetServices, imageForService)
 		for target in targetImages
-			imageWithSameContent = _.find(availableImages, (img) -> @images.isSameImage(img, target))
+			imageWithSameContent = _.find(availableImages, (img) => @images.isSameImage(img, target))
 			if imageWithSameContent? and !_.find(availableImages, (img) -> _.isEqual(_.omit(img, 'id'), target))
 				pairs.push({ current: imageWithSameContent, target, serviceId: target.serviceId })
 		return pairs
@@ -448,11 +516,11 @@ module.exports = class ApplicationManager extends EventEmitter
 	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
 	# to kill a service once the images for the services it depends on have been downloaded, so as to minimize
 	# downtime (but not block the killing too much, potentially causing a deadlock)
-	_dependenciesMetForServiceKill: (target, targetApp, availableImages) ->
+	_dependenciesMetForServiceKill: (target, targetApp, availableImages) =>
 		if target.depends_on?
 			for dependency in target.depends_on
 				dependencyService = _.find(targetApp.services, (s) -> s.serviceName == dependency)
-				if !_.find(availableImages, (image) -> @images.isSameImage(image, { name: dependencyService.image }))?
+				if !_.find(availableImages, (image) => @images.isSameImage(image, { name: dependencyService.image }))?
 					return false
 		return true
 
@@ -528,13 +596,13 @@ module.exports = class ApplicationManager extends EventEmitter
 				return null
 	}
 
-	_nextStepForService: ({ current, target }, updateContext) ->
+	_nextStepForService: ({ current, target }, updateContext) =>
 		{ targetApp, networkPairs, volumePairs, installPairs, updatePairs, stepsInProgress, availableImages } = updateContext
 		if _.find(stepsInProgress, (step) -> step.serviceId == target.serviceId)?
 			# There is already a step in progress for this service, so we wait
 			return null
 
-		needsDownload = !_.some(availableImages, (image) -> @images.isSameImage(image, { name: target.image }))
+		needsDownload = !_.some(availableImages, (image) => @images.isSameImage(image, { name: target.image }))
 		dependenciesMetForStart = =>
 			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs), stepsInProgress)
 		dependenciesMetForKill = =>
@@ -735,19 +803,19 @@ module.exports = class ApplicationManager extends EventEmitter
 
 		currentImages = _.flatten(_.map(current.local.apps, allImagesForApp))
 		targetImages = _.flatten(_.map(target.local.apps, allImagesForApp))
-		availableAndUnused = _.filter available, (image) ->
-			!_.some currentImages.concat(targetImages), (imageInUse) -> @images.isSameImage(image, imageInUse)
-		imagesToDownload = _.filter targetImages, (targetImage) ->
-			!_.some available, (availableImage) -> @images.isSameImage(availableImage, targetImage)
+		availableAndUnused = _.filter available, (image) =>
+			!_.some currentImages.concat(targetImages), (imageInUse) => @images.isSameImage(image, imageInUse)
+		imagesToDownload = _.filter targetImages, (targetImage) =>
+			!_.some available, (availableImage) => @images.isSameImage(availableImage, targetImage)
 
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)
 
 		proxyvisorImages = @proxyvisor.imagesInUse(current, target)
 
-		return _.filter availableAndUnused, (image) ->
+		return _.filter availableAndUnused, (image) =>
 			notUsedForDelta = !_.some deltaSources, (deltaSource) -> deltaSource == image.name
-			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) -> @images.isSameImage(image, { name: proxyvisorImage })
+			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) => @images.isSameImage(image, { name: proxyvisorImage })
 			return notUsedForDelta and notUsedByProxyvisor
 
 	_inferNextSteps: (cleanupNeeded, availableImages, current, target, stepsInProgress) =>
@@ -787,75 +855,6 @@ module.exports = class ApplicationManager extends EventEmitter
 			return lockOverride or force
 		.then (force) ->
 			updateLock.lock(appId, { force }, fn)
-
-	actionExecutors: {
-		stop: (step, { force = false } = {}) =>
-			@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
-				@services.kill(step.current, { removeContainer: false })
-		kill: (step, { force = false } = {}) =>
-			@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
-				@services.kill(step.current)
-				.then =>
-					if step.options?.removeImage
-						@images.remove(imageForService(step.current))
-		updateMetadata: (step) =>
-			@services.updateMetadata(step.current, step.target)
-		purge: (step, { force = false } = {}) =>
-			appId = step.appId
-			@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
-			@_lockingIfNecessary appId, { force, skipLock: step.options?.skipLock }, =>
-				@getCurrentApp(appId)
-				.then (app) =>
-					if !_.isEmpty(app?.services)
-						throw new Error('Attempt to purge app with running services')
-					if _.isEmpty(app?.volumes)
-						@logger.logSystemMessage('No volumes to purge', { appId }, 'Purge data noop')
-						return
-					Promise.mapSeries _.toPairs(app.volumes ? {}), ([ name, config ]) =>
-						@volumes.remove({ name })
-						.then =>
-							@volumes.create({ name, config, appId })
-				.then =>
-					@logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
-			.catch (err) =>
-				@logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
-				throw err
-		restart: (step, { force = false } = {}) =>
-			@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
-				Promise.try =>
-					@services.kill(step.current)
-				.then =>
-					@services.start(step.target)
-		stopAll: (step, { force = false } = {}) =>
-			@stopAll({ force })
-		start: (step) =>
-			@services.start(step.target)
-		handover: (step, { force = false } = {}) =>
-			@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
-				@services.handover(step.current, step.target)
-		fetch: (step) =>
-			Promise.join(
-				@config.get('fetchOptions')
-				@images.getAvailable()
-				(opts, availableImages) =>
-					opts.deltaSource = @bestDeltaSource(step.image, availableImages)
-					@images.fetch(step.image, opts)
-			)
-			.finally =>
-				@reportCurrentState(update_downloaded: true)
-		removeImage: (step) =>
-			@images.remove(step.image)
-		updateImage: (step) =>
-			@images.update(step.target)
-		cleanup: (step) =>
-			@images.cleanup()
-		createNetworkOrVolume: (step) =>
-			model = if step.model is 'volume' then @volumes else @networks
-			model.create(step.target)
-		removeNetworkOrVolume: (step) =>
-			model = if step.model is 'volume' then @volumes else @networks
-			model.remove(step.current)
-	}
 
 	executeStepAction: (step, { force = false } = {}) =>
 		if _.includes(@proxyvisor.validActions, step.action)
