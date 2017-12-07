@@ -33,7 +33,7 @@ module.exports = class Networks
 			Name: name
 			Labels: {
 				'io.resin.supervised': 'true'
-				'io.resin.appId': appId
+				'io.resin.appId': appId.toString()
 			}
 		})
 		.catch (err) =>

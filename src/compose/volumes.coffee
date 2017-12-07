@@ -43,7 +43,7 @@ module.exports = class Volumes
 	defaultLabels: (appId) ->
 		return {
 			'io.resin.supervised': 'true'
-			'io.resin.app_id': appId
+			'io.resin.app_id': appId.toString()
 		}
 
 	# TODO: what config values are relevant/whitelisted?
