@@ -4,7 +4,6 @@ fs = Promise.promisifyAll(require('fs'))
 path = require 'path'
 
 logTypes = require '../lib/log-types'
-migration = require '../lib/migration'
 constants = require '../lib/constants'
 { checkInt } = require '../lib/validation'
 
@@ -65,7 +64,7 @@ module.exports = class Volumes
 			throw err
 
 	createFromLegacy: (appId) =>
-		name = migration.defaultLegacyVolume(appId)
+		name = "resin-data-#{appId}"
 		@create({ name, appId })
 		.then (v) ->
 			v.inspect()
@@ -80,7 +79,7 @@ module.exports = class Volumes
 				.then ->
 					fs.closeAsync(parent)
 		.catch (err) ->
-			console.log("Ignoring legacy data volume migration due to #{err}")
+			@logger.logSystemMessage("Warning: could not migrate legacy /data volume: #{err.message}", { error: err }, 'Volume migration error')
 
 	remove: ({ name }) ->
 		@logger.logSystemEvent(logTypes.removeVolume, { volume: { name } })

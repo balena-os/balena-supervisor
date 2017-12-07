@@ -71,19 +71,19 @@ exports.up = function (knex, Promise) {
 			t.boolean('markedForDeletion')
 		}, () => {
 			return Promise.all([
-					addColumn('app', 'commit', 'string'),
-					addColumn('app', 'appId', 'string'),
-					addColumn('app', 'containerName', 'string'),
-					addColumn('app', 'config', 'json'),
-					addColumn('app', 'markedForDeletion', 'boolean'),
-					dropColumn('app', 'containerId')
-				]).then(() => {
-					//When updating from older supervisors, config can be null
-					return knex('app').update({ config: '{}' }).whereNull('config')
-						.then(() => {
-							knex('app').update({ markedForDeletion: false }).whereNull('markedForDeletion')
-						})
-				})
+				addColumn('app', 'commit', 'string'),
+				addColumn('app', 'appId', 'string'),
+				addColumn('app', 'containerName', 'string'),
+				addColumn('app', 'config', 'json'),
+				addColumn('app', 'markedForDeletion', 'boolean'),
+				dropColumn('app', 'containerId')
+			]).then(() => {
+				//When updating from older supervisors, config can be null
+				return knex('app').update({ config: '{}' }).whereNull('config')
+					.then(() => {
+						knex('app').update({ markedForDeletion: false }).whereNull('markedForDeletion')
+					})
+			})
 		}),
 		createTableOrRun('dependentApp', (t) => {
 			t.increments('id').primary()
@@ -120,11 +120,11 @@ exports.up = function (knex, Promise) {
 			t.boolean('markedForDeletion')
 		}, () => {
 			return Promise.all([
-					addColumn('dependentDevice', 'markedForDeletion', 'boolean'),
-					addColumn('dependentDevice', 'localId', 'string'),
-					addColumn('dependentDevice', 'is_managed_by', 'string'),
-					addColumn('dependentDevice', 'lock_expiry_date', 'dateTime')
-				])
+				addColumn('dependentDevice', 'markedForDeletion', 'boolean'),
+				addColumn('dependentDevice', 'localId', 'string'),
+				addColumn('dependentDevice', 'is_managed_by', 'string'),
+				addColumn('dependentDevice', 'lock_expiry_date', 'dateTime')
+			])
 		}),
 		dropTable('image'),
 		dropTable('container')

@@ -12,7 +12,6 @@ constants = require './lib/constants'
 validation = require './lib/validation'
 device = require './lib/device'
 updateLock = require './lib/update-lock'
-migration = require './lib/migration'
 
 DeviceConfig = require './device-config'
 Logger = require './logger'
@@ -128,120 +127,24 @@ module.exports = class DeviceState extends EventEmitter
 
 		@applications.on('change', @reportCurrentState)
 
-	normaliseLegacy: ({ apps, dependentApps, dependentDevices }) =>
-		legacyTarget = { local: { apps: [], config: {} }, dependent: { apps: [], devices: [] } }
-
-		tryParseObj = (j) ->
-			try
-				JSON.parse(j)
-			catch
-				{}
-		tryParseArray = (j) ->
-			try
-				JSON.parse(j)
-			catch
-				[]
-
-		dependentDevices = tryParseArray(dependentDevices)
-		# Old containers have to be killed as we can't update their labels
-		@deviceConfig.getCurrent()
-		.then (deviceConf) =>
-			legacyTarget.local.config = deviceConf # will happen in saveInitialConfig
-			console.log('Killing legacy containers')
-			@applications.services.killAllLegacy() # move to init if conf.legacyAppsPresent
+	normaliseLegacy: =>
+		# When legacy apps are present, we kill their containers and migrate their /data to a named volume
+		# (everything else is handled by the knex migration)
+		console.log('Killing legacy containers')
+		@applications.services.killAllLegacy()
 		.then =>
-			@config.get('name') # Do this in saveInitialConfig?
-		.then (name) ->
-			legacyTarget.local.name = name ? ''
+			console.log('Migrating legacy app volumes')
+			@applications.getTargetApps()
+			.map (app) =>
+				@applications.volumes.createFromLegacy(app.appId)
 		.then =>
-			console.log('Migrating apps')
-			Promise.map tryParseArray(apps), (app) =>
-				@applications.images.normalise(app.imageId)
-				.then (image) =>
-					appAsState = {
-						image: image
-						commit: app.commit
-						name: app.name ? ''
-						environment: tryParseObj(app.env)
-						config: tryParseObj(app.config)
-					}
-					appAsState.environment = _.omitBy appAsState.environment, (v, k) ->
-						_.startsWith(k, 'RESIN_')
-					appId = app.appId
-					# Only for apps for which we have the image locally,
-					# we translate that app to the target state so that we run
-					# a (mostly) compatible container until a new target state is fetched.
-					# This is also necessary to avoid cleaning up the image, which may
-					# be needed for cache/delta in the next update.
-					multicontainerApp = migration.singleToMulticontainerApp(appAsState, appId)
-					@applications.images.inpectByName(appAsState.image)
-					.then =>
-						@applications.images.markAsSupervised(@applications.imageForService(multicontainerApp.services['1']))
-					.then =>
-						if !_.isEmpty(appAsState.config)
-							devConf = @deviceConfig.filterConfigKeys(appAsState.config)
-							if !_.isEmpty(devConf)
-								_.assign(legacyTarget.local.config, devConf)
-						legacyTarget.local.apps.push(multicontainerApp)
-					.then =>
-						@applications.volumes.createFromLegacy(appId)
-				.catch (err) ->
-					console.error("Ignoring legacy app #{app.imageId} due to #{err}")
-		.then =>
-			console.log('Migrating dependent apps and devices')
-			Promise.map tryParseArray(dependentApps), (app) =>
-				appAsState = {
-					appId: app.appId
-					parentApp: app.parentAppId
-					image: app.imageId
-					releaseId: null
-					commit: app.commit
-					name: app.name
-					config: tryParseObj(app.config)
-					environment: tryParseObj(app.environment)
-				}
-				@applications.images.inspectByName(app.imageId)
-				.then =>
-					@applications.images.markAsSupervised(@applications.proxyvisor.imageForDependentApp(appAsState))
-				.then =>
-					appForDB = _.clone(appAsState)
-					appForDB.config = JSON.stringify(appAsState.config)
-					appForDB.environment = JSON.stringify(appAsState.environment)
-					@db.models('dependentApp').insert(appForDB)
-				.then =>
-					legacyTarget.dependent.apps.push(appAsState)
-					devicesForThisApp = _.filter(dependentDevices ? [], (d) -> d.appId == appAsState.appId)
-					if !_.isEmpty(devicesForThisApp)
-						devices = _.map devicesForThisApp, (d) ->
-							d.markedForDeletion ?= false
-							d.localId ?= null
-							d.is_managed_by ?= null
-							d.lock_expiry_date ?= null
-							return d
-						devicesForState = _.map devicesForThisApp, (d) ->
-							dev = {
-								uuid: d.uuid
-								name: d.name
-								apps: {}
-							}
-							dev.apps[d.appId] = {
-								config: tryParseObj(d.targetConfig)
-								environment: tryParseObj(d.targetEnvironment)
-							}
-						legacyTarget.dependent.devices = legacyTarget.dependent.devices.concat(devicesForState)
-						@db.models('dependentDevice').insert(devices)
-				.catch (err) ->
-					console.error("Ignoring legacy dependent app #{app.imageId} due to #{err}")
-		.then =>
-			@setTarget(legacyTarget)
-		.then =>
-			@config.set({ initialConfigSaved: 'true' })
+			@config.set({ legacyAppsPresent: 'false' })
 
 	init: ->
 		@config.getMany([
 			'logsChannelSecret', 'pubnub', 'offlineMode', 'loggingEnabled', 'initialConfigSaved',
 			'listenPort', 'apiSecret', 'osVersion', 'osVariant', 'version', 'provisioned',
-			'resinApiEndpoint', 'connectivityCheckEnabled'
+			'resinApiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent'
 		])
 		.then (conf) =>
 			@logger.init({
@@ -256,6 +159,9 @@ module.exports = class DeviceState extends EventEmitter
 						@logger.enable(changedConfig.loggingEnabled)
 					if changedConfig.apiSecret?
 						@reportCurrentState(api_secret: changedConfig.apiSecret)
+			.then =>
+				if validation.checkTruthy(conf.legacyAppsPresent)
+					@normaliseLegacy()
 			.then =>
 				@applications.init()
 			.then =>
