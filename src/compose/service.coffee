@@ -324,7 +324,6 @@ module.exports = class Service
 
 	isSameContainer: (otherService) =>
 		propertiesToCompare = [
-			'image'
 			'networkMode'
 			'privileged'
 			'restartPolicy'

@@ -61,7 +61,11 @@ module.exports = function (env) {
 				from: './src/migrations',
 				to: 'migrations'
 			}
-		])
+		]),
+		new webpack.ContextReplacementPlugin(
+			/\.\/migrations/,
+			path.resolve(__dirname, 'src/migrations')
+		)
 	]
 	if (env == null || !env.noOptimize) {
 		plugins.push(new UglifyPlugin())
@@ -76,8 +80,15 @@ module.exports = function (env) {
 			extensions: [".js", ".json", ".coffee"]
 		},
 		target: 'node',
+		node: {
+			__dirname: false
+		},
 		module: {
 			rules: [
+				{
+					test: /knex\/lib\/migrate\/index\.js$/,
+					use: require.resolve('./hardcode-migrations')
+				},
 				{
 					test: /JSONStream\/index\.js$/,
 					use: require.resolve('./fix-jsonstream')

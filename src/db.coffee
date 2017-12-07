@@ -1,5 +1,5 @@
 Knex = require 'knex'
-
+path = require 'path'
 constants = require './lib/constants'
 
 module.exports = class DB
@@ -13,7 +13,7 @@ module.exports = class DB
 		)
 
 	init: =>
-		@knex.migrate.latest()
+		@knex.migrate.latest(directory: path.join(__dirname, 'migrations'))
 
 	# Returns a knex object for one of the models (tables)
 	models: (modelName) =>

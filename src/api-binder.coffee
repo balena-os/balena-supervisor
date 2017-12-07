@@ -338,7 +338,6 @@ module.exports = class APIBinder
 			stateDiff = @_getStateDiff()
 			if _.size(stateDiff) is 0
 				return
-			console.log(JSON.stringify(stateDiff, null, 2))
 			@_sendReportPatch(stateDiff, conf)
 			.timeout(conf.apiTimeout)
 			.then =>
@@ -358,12 +357,12 @@ module.exports = class APIBinder
 			@_report()
 			.delay(REPORT_SUCCESS_DELAY)
 			.then =>
-				@_reportCurrentState
+				@_reportCurrentState()
 		.catch (err) =>
 			@eventTracker.track('Device state report failure', { error: err })
 			Promise.delay(REPORT_RETRY_DELAY)
 			.then =>
-				@_reportCurrentState
+				@_reportCurrentState()
 		return
 
 	startCurrentStateReport: =>

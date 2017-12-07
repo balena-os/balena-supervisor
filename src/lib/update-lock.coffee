@@ -4,18 +4,20 @@ TypedError = require 'typed-error'
 lockFile = Promise.promisifyAll(require('lockfile'))
 Lock = require 'rwlock'
 fs = Promise.promisifyAll(require('fs'))
+path = require 'path'
 
 constants = require './constants'
 
 ENOENT = (err) -> err.code is 'ENOENT'
 
 baseLockPath = (appId) ->
-	return "/tmp/resin-supervisor/services/#{appId}"
+	return path.join('/tmp/resin-supervisor/services', appId.toString())
+
 exports.lockPath = (appId, serviceName) ->
-	return "#{baseLockPath(appId)}/#{serviceName}"
+	return path.join(baseLockPath(appId), serviceName)
 
 lockFileOnHost = (appId, serviceName) ->
-	return "#{constants.rootMountPoint}#{exports.lockPath(appId, serviceName)}/resin-updates.lock"
+	return path.join(constants.rootMountPoint, exports.lockPath(appId, serviceName), 'resin-updates.lock')
 
 exports.UpdatesLockedError = class UpdatesLockedError extends TypedError
 
@@ -34,7 +36,8 @@ exports.lock = do ->
 						release()
 				_writeLock(appId)
 				.tap (release) ->
-					fs.readdirAsync(baseLockPath(appId))
+					theLockDir = path.join(constants.rootMountPoint, baseLockPath(appId))
+					fs.readdirAsync(theLockDir)
 					.catch ENOENT, -> []
 					.mapSeries (serviceName) ->
 						tmpLockName = lockFileOnHost(appId, serviceName)
@@ -50,4 +53,4 @@ exports.lock = do ->
 							.finally ->
 								throw new exports.UpdatesLockedError("Updates are locked: #{err.message}")
 				.disposer(dispose)
-		Promise.using takeTheLock, -> fn()
+		Promise.using takeTheLock(), -> fn()

@@ -185,6 +185,7 @@ exports.up = function (knex, Promise) {
 						t.json('targetValues')
 					})
 				})
+				.then(() => knex('deviceConfig').insert({ targetValues: '{}' }))
 		})
 		.then(() => knex('dependentApp').select())
 		.then((dependentApps) => {
