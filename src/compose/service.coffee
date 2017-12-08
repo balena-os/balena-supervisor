@@ -69,7 +69,6 @@ module.exports = class Service
 			@dependsOn
 			@capAdd
 			@capDrop
-			@commit
 			@status
 			@devices
 			@exposedPorts
@@ -121,12 +120,10 @@ module.exports = class Service
 			if checkTruthy(@labels['io.resin.features.resin_api'])
 				@environment['RESIN_API_KEY'] = opts.deviceApiKey
 
-	extendEnvVars: ({ imageInfo, uuid, appName, commit, name, version, deviceType, osVersion }) =>
+	extendEnvVars: ({ imageInfo, uuid, appName, name, version, deviceType, osVersion }) =>
 		newEnv =
 			RESIN_APP_ID: @appId.toString()
 			RESIN_APP_NAME: appName
-			RESIN_APP_COMMIT: commit
-			RESIN_APP_RELEASE: @releaseId.toString()
 			RESIN_SERVICE_NAME: @serviceName
 			RESIN_DEVICE_UUID: uuid
 			RESIN_DEVICE_NAME_AT_INIT: name
@@ -150,7 +147,6 @@ module.exports = class Service
 		@labels['io.resin.app_id'] = @appId.toString()
 		@labels['io.resin.service_id'] = @serviceId.toString()
 		@labels['io.resin.service_name'] = @serviceName
-		@labels['io.resin.commit'] = @commit
 		return @labels
 
 	extendAndSanitiseExposedPorts: (imageInfo) =>
@@ -249,7 +245,6 @@ module.exports = class Service
 			environment: conversions.envArrayToObject(container.Config.Env)
 			privileged: container.HostConfig.Privileged
 			releaseId: releaseId
-			commit: container.Config.Labels['io.resin.commit']
 			labels: container.Config.Labels
 			running: container.State.Running
 			createdAt: new Date(container.Created)

@@ -715,7 +715,6 @@ module.exports = class ApplicationManager extends EventEmitter
 			(opts, supervisorApiHost) =>
 				configOpts = {
 					appName: app.name
-					commit: app.commit
 					supervisorApiHost
 				}
 				_.assign(configOpts, opts)
