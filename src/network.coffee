@@ -80,7 +80,7 @@ exports.connectivityCheckEnabled = Promise.method ->
 
 exports.getIPAddresses = ->
 	# We get IP addresses but ignore:
-	# - docker bridges (docker0, docker1, etc)
+	# - docker and balena bridges (docker0, docker1, balena0, etc)
 	# - legacy rce bridges (rce0, etc)
 	# - tun interfaces like the legacy vpn
 	# - the resin VPN interface (resin-vpn)
@@ -89,7 +89,7 @@ exports.getIPAddresses = ->
 	# - the docker network for the supervisor API (supervisor0)
 	# - custom docker network bridges (br- + 12 hex characters)
 	_.flatten(_.map(_.omitBy(os.networkInterfaces(), (interfaceFields, interfaceName) ->
-		/^(docker[0-9]+)|(rce[0-9]+)|(tun[0-9]+)|(resin-vpn)|(lo)|(resin-dns)|(supervisor0)|(br-[0-9a-f]{12})$/.test(interfaceName))
+		/^(balena[0-9]+)|(docker[0-9]+)|(rce[0-9]+)|(tun[0-9]+)|(resin-vpn)|(lo)|(resin-dns)|(supervisor0)|(br-[0-9a-f]{12})$/.test(interfaceName))
 	, (validInterfaces) ->
 		_.map(_.omitBy(validInterfaces, (a) -> a.family != 'IPv4' ), 'address'))
 	)
