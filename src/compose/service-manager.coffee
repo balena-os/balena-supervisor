@@ -10,8 +10,7 @@ constants = require '../lib/constants'
 
 Service = require './service'
 
-NotFoundError = (err) ->
-	return checkInt(err.statusCode) is 404
+{ NotFoundError } = require '../lib/errors'
 
 module.exports = class ServiceManager extends EventEmitter
 	constructor: ({ @docker, @logger, @config }) ->
@@ -96,11 +95,16 @@ module.exports = class ServiceManager extends EventEmitter
 			if existingService?
 				return @docker.getContainer(existingService.containerId)
 			conf = service.toContainerConfig()
+			nets = service.extraNetworksToJoin()
 			@logger.logSystemEvent(logTypes.installService, { service })
 			@reportNewStatus(mockContainerId, service, 'Installing')
 			@docker.createContainer(conf)
 			.tap (container) =>
 				service.containerId = container.id
+				Promise.map nets, ({ name, endpointConfig }) =>
+					console.log('Connecting ' + container.id + ' to network ' + name)
+					@docker.getNetwork(name).connect({ Container: container.id, EndpointConfig: endpointConfig })
+			.tap =>
 				@logger.logSystemEvent(logTypes.installServiceSuccess, { service })
 		.catch (err) =>
 			@logger.logSystemEvent(logTypes.installServiceError, { service, error: err })

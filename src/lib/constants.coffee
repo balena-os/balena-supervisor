@@ -3,6 +3,8 @@
 bootMountPointFromEnv = checkString(process.env.BOOT_MOUNTPOINT)
 rootMountPoint = checkString(process.env.ROOT_MOUNTPOINT) ? '/mnt/root'
 
+supervisorNetworkInterface = 'supervisor0'
+
 module.exports =
 	rootMountPoint: rootMountPoint
 	databasePath: checkString(process.env.DATABASE_PATH) ? '/data/database.sqlite'
@@ -29,7 +31,8 @@ module.exports =
 	defaultPubnubSubscribeKey: process.env.DEFAULT_PUBNUB_SUBSCRIBE_KEY
 	defaultPubnubPublishKey: process.env.DEFAULT_PUBNUB_PUBLISH_KEY
 	defaultMixpanelToken: process.env.DEFAULT_MIXPANEL_TOKEN
-	allowedInterfaces: ['resin-vpn', 'tun0', 'docker0', 'lo']
+	supervisorNetworkInterface: supervisorNetworkInterface
+	allowedInterfaces: ['resin-vpn', 'tun0', 'docker0', 'lo', supervisorNetworkInterface]
 	appsJsonPath: process.env.APPS_JSON_PATH ? '/boot/apps.json'
 	ipAddressUpdateInterval: 30 * 1000
 	imageCleanupErrorIgnoreTimeout: 3600 * 1000

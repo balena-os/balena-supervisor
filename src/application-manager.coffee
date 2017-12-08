@@ -10,6 +10,7 @@ process.env.DOCKER_HOST ?= "unix://#{constants.dockerSocket}"
 Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
+{ NotFoundError } = require './lib/errors'
 
 ServiceManager = require './compose/service-manager'
 Service = require './compose/service'
@@ -257,8 +258,19 @@ module.exports = class ApplicationManager extends EventEmitter
 	reportCurrentState: (data) =>
 		@emit('change', data)
 
+	ensureSupervisorNetwork: =>
+		@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
+		.catch NotFoundError, =>
+			@docker.createNetwork({
+				Name: constants.supervisorNetworkInterface
+				Options:
+					'com.docker.network.bridge.name': constants.supervisorNetworkInterface
+			})
+
 	init: =>
 		@images.cleanupDatabase()
+		.then =>
+			@ensureSupervisorNetwork()
 		.then =>
 			@services.attachToRunning()
 		.then =>
@@ -686,28 +698,20 @@ module.exports = class ApplicationManager extends EventEmitter
 			return dbApp
 
 	createTargetService: (service, opts) ->
-		NotFoundErr = (err) -> err.statusCode == 404
-		serviceOpts = {
-			serviceName: service.serviceName
-		}
-		_.assign(serviceOpts, opts)
-		Promise.join(
-			@images.inspectByName(service.image)
-			.catchReturn(undefined)
-			@docker.getNetworkGateway(service.network_mode ? service.appId)
-			.catchReturn(NotFoundErr, null)
-			.catchReturn(@docker.InvalidNetGatewayError, null)
-			(imageInfo, apiHostForNetwork) ->
-				serviceOpts.imageInfo = imageInfo
-				if apiHostForNetwork?
-					serviceOpts.supervisorApiHost = apiHostForNetwork
-				return new Service(service, serviceOpts)
-		)
+		@images.inspectByName(service.image)
+		.catchReturn(undefined)
+		.then (imageInfo) ->
+			serviceOpts = {
+				serviceName: service.serviceName
+				imageInfo
+			}
+			_.assign(serviceOpts, opts)
+			return new Service(service, serviceOpts)
 
 	normaliseAndExtendAppFromDB: (app) =>
 		Promise.join(
 			@config.get('extendedEnvOptions')
-			@docker.defaultBridgeGateway()
+			@docker.getNetworkGateway(constants.supervisorNetworkInterface)
 			(opts, supervisorApiHost) =>
 				configOpts = {
 					appName: app.name

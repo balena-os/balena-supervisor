@@ -43,7 +43,7 @@ formatDevices = (devices) ->
 		CgroupPermissions ?= 'rwm'
 		return { PathOnHost, PathInContainer, CgroupPermissions }
 
-# TODO: Support "networks" too, instead of only networkMode
+# TODO: Support configuration for "networks"
 module.exports = class Service
 	constructor: (serviceProperties, opts = {}) ->
 		{
@@ -74,6 +74,7 @@ module.exports = class Service
 			@devices
 			@exposedPorts
 			@portBindings
+			@networks
 		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
 		@privileged ?= false
 		@volumes ?= []
@@ -88,6 +89,8 @@ module.exports = class Service
 		@exposedPorts ?= {}
 		@portBindings ?= {}
 		@networkMode ?= @appId.toString()
+		@networks ?= {}
+		@networks[@networkMode] ?= {}
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
@@ -111,6 +114,10 @@ module.exports = class Service
 				@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
 				@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://#{opts.supervisorApiHost}:#{opts.listenPort}"
 				@environment['RESIN_SUPERVISOR_API_KEY'] = opts.apiSecret
+				@networks[constants.supervisorNetworkInterface] = {}
+			else
+				# We ensure the user hasn't added "supervisor0" to the service's networks
+				delete @networks[constants.supervisorNetworkInterface]
 			if checkTruthy(@labels['io.resin.features.resin_api'])
 				@environment['RESIN_API_KEY'] = opts.deviceApiKey
 
@@ -256,6 +263,7 @@ module.exports = class Service
 			status
 			exposedPorts: container.Config.ExposedPorts
 			portBindings: container.HostConfig.PortBindings
+			networks: container.NetworkSettings.Networks
 		}
 		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
 		if service.restartPolicy.Name == ''
@@ -322,6 +330,15 @@ module.exports = class Service
 			}
 		return conf
 
+	# TODO: when we support network configuration properly, return endpointConfig: conf
+	extraNetworksToJoin: =>
+		_.map _.pickBy(@networks, (conf, net) => net != @networkMode), (conf, net) ->
+			return { name: net, endpointConfig: {} }
+
+	# TODO: compare configuration, not only network names
+	hasSameNetworks: (otherService) =>
+		_.isEmpty(_.xor(_.keys(@networks), _.keys(otherService.networks)))
+
 	isSameContainer: (otherService) =>
 		propertiesToCompare = [
 			'networkMode'
@@ -338,10 +355,19 @@ module.exports = class Service
 			'capAdd'
 			'capDrop'
 		]
-		return Images.isSameImage({ name: @image }, { name: otherService.image }) and
+		isEq = Images.isSameImage({ name: @image }, { name: otherService.image }) and
 			_.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
+			@hasSameNetworks(otherService) and
 			_.every arraysToCompare, (property) =>
 				_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
+
+		# This can be very useful for debugging so I'm leaving it commented for now.
+		# Uncomment to see the services whenever they don't match.
+		#if !isEq
+		#	console.log(JSON.stringify(this, null, 2))
+		#	console.log(JSON.stringify(otherService, null, 2))
+
+		return isEq
 
 	isEqual: (otherService) =>
 		return @isSameContainer(otherService) and
