@@ -109,11 +109,15 @@ module.exports = class Service
 			if checkTruthy(@labels['io.resin.features.firmware'])
 				@volumes.push('/lib/firmware:/lib/firmware')
 			if checkTruthy(@labels['io.resin.features.supervisor_api'])
-				@environment['RESIN_SUPERVISOR_HOST'] = opts.supervisorApiHost
 				@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
-				@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://#{opts.supervisorApiHost}:#{opts.listenPort}"
 				@environment['RESIN_SUPERVISOR_API_KEY'] = opts.apiSecret
-				@networks[constants.supervisorNetworkInterface] = {}
+				if @networkMode == 'host'
+					@environment['RESIN_SUPERVISOR_HOST'] = '127.0.0.1'
+					@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://127.0.0.1:#{opts.listenPort}"
+				else
+					@environment['RESIN_SUPERVISOR_HOST'] = opts.supervisorApiHost
+					@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://#{opts.supervisorApiHost}:#{opts.listenPort}"
+					@networks[constants.supervisorNetworkInterface] = {}
 			else
 				# We ensure the user hasn't added "supervisor0" to the service's networks
 				delete @networks[constants.supervisorNetworkInterface]
