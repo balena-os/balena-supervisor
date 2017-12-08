@@ -466,6 +466,7 @@ apiPollInterval = (val) ->
 	console.log('New API poll interval: ' + val)
 	clearInterval(updateStatus.intervalHandle)
 	application.poll()
+	return true
 
 setLocalMode = (val) ->
 	mode = checkTruthy(val) ? false
@@ -490,6 +491,7 @@ setLocalMode = (val) ->
 					unlockAndStart(app)
 		.then ->
 			application.localMode = mode
+	.return(true)
 
 specialActionConfigVars = [
 	[ 'RESIN_SUPERVISOR_LOCAL_MODE', setLocalMode ]
@@ -501,16 +503,20 @@ specialActionConfigVars = [
 
 executedSpecialActionConfigVars = {}
 
-executeSpecialActionsAndHostConfig = (conf, oldConf) ->
+executeSpecialActionsAndHostConfig = (conf, oldConf, opts) ->
+	updatedValues = _.clone(oldConf)
+	needsReboot = false
 	Promise.mapSeries specialActionConfigVars, ([ key, specialActionCallback ]) ->
 		if (conf[key]? or oldConf[key]?) and specialActionCallback?
 			# This makes the Special Action Envs only trigger their functions once.
 			if executedSpecialActionConfigVars[key] != conf[key]
 				logSpecialAction(key, conf[key])
 				Promise.try ->
-					specialActionCallback(conf[key])
-				.then ->
-					executedSpecialActionConfigVars[key] = conf[key]
+					specialActionCallback(conf[key], logSystemMessage, opts)
+				.then (updated) ->
+					if updated
+						updatedValues[key] = conf[key]
+						executedSpecialActionConfigVars[key] = conf[key]
 					logSpecialAction(key, conf[key], true)
 	.then ->
 		hostConfigVars = _.pickBy conf, (val, key) ->
@@ -519,14 +525,22 @@ executeSpecialActionsAndHostConfig = (conf, oldConf) ->
 			return _.startsWith(key, device.hostConfigConfigVarPrefix)
 		if !_.isEqual(hostConfigVars, oldHostConfigVars)
 			device.setHostConfig(hostConfigVars, oldHostConfigVars, logSystemMessage)
+			.then (changedHostConfig) ->
+				needsReboot = changedHostConfig
+				if changedHostConfig
+					_.forEach oldHostConfigVars, (val, key) ->
+						delete updatedValues[key]
+					_.assign(updatedValues, hostConfigVars)
+	.then ->
+		return { updatedValues, needsReboot }
 
-getAndApplyDeviceConfig = ->
+getAndApplyDeviceConfig = ({ initial = false } = {}) ->
 	deviceConfig.get()
 	.then ({ values, targetValues }) ->
-		executeSpecialActionsAndHostConfig(targetValues, values)
-		.tap ->
-			deviceConfig.set({ values: targetValues }) if !_.isEqual(values, targetValues)
-		.then (needsReboot) ->
+		executeSpecialActionsAndHostConfig(targetValues, values, { initial })
+		.tap ({ updatedValues }) ->
+			deviceConfig.set({ values: updatedValues }) if !_.isEqual(values, updatedValues)
+		.then ({ needsReboot }) ->
 			if needsReboot
 				logSystemMessage('Rebooting', {}, 'Reboot')
 				Promise.delay(1000)
@@ -922,7 +936,7 @@ application.initialize = ->
 	listenToEvents()
 	migrateContainerIdApps()
 	.then ->
-		getAndApplyDeviceConfig()
+		getAndApplyDeviceConfig(initial: true)
 	.then ->
 		knex('app').whereNot(markedForDeletion: true).orWhereNull('markedForDeletion').select()
 	.map (app) ->

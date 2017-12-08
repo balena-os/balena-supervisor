@@ -184,12 +184,14 @@ exports.enableConnectivityCheck = (val) ->
 	enabled = checkTruthy(val) ? true
 	disableCheck(!enabled)
 	console.log("Connectivity check enabled: #{enabled}")
+	return true
 
 # Callback function to enable/disable logs
 exports.resinLogControl = (val) ->
 	logEnabled = checkTruthy(val) ? true
 	logger.disableLogPublishing(!logEnabled)
 	console.log('Logs enabled: ' + val)
+	return true
 
 emptyHostRequest = request.defaults({ headers: Host: '' })
 gosuperRequest = (method, endpoint, options = {}, callback) ->
@@ -210,14 +212,20 @@ exports.gosuper = gosuper =
 	getAsync: Promise.promisify(gosuperGet, multiArgs: true)
 
 # Callback function to enable/disable VPN
-exports.vpnControl = (val) ->
+exports.vpnControl = (val, logMessage, { initial = false } = {}) ->
 	enable = checkTruthy(val) ? true
+	# If it's the initial run, we always want the VPN enabled, so we ignore calls to disable it
+	if initial and !enable
+		return Promise.resolve(false)
 	gosuper.postAsync('/v1/vpncontrol', { json: true, body: Enable: enable })
 	.spread (response, body) ->
 		if response.statusCode == 202
 			console.log('VPN enabled: ' + enable)
+			return true
 		else
-			console.log('Error: ' + body + ' response:' + response.statusCode)
+			logMessage("Error (#{response.statusCode}) toggling VPN: #{body}", {}, 'Toggle VPN error')
+			return false
+	.catchReturn(false)
 
 exports.AppNotFoundError = class AppNotFoundError extends TypedError
 
