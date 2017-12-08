@@ -37,13 +37,24 @@ module.exports = class APIBinder
 		@lastReportedState = { local: {}, dependent: {} }
 		@stateForReport = { local: {}, dependent: {} }
 		@lastTarget = {}
+		@lastTargetStateFetch = process.hrtime()
 		@_targetStateInterval = null
 		@reportPending = false
+		@stateReportErrors = 0
 		@_router = new APIBinderRouter(this)
 		@router = @_router.router
 		_lock = new Lock()
 		@_writeLock = Promise.promisify(_lock.async.writeLock)
 		@readyForUpdates = false
+
+	healthcheck: =>
+		@config.getMany([ 'appUpdatePollInterval', 'offlineMode', 'connectivityCheckEnabled' ])
+		.then (conf) =>
+			if conf.offlineMode
+				return true
+			stateFetchHealthy = process.hrtime(@lastTargetStateFetch)[0] < 2 * conf.appUpdatePollInterval
+			stateReportHealthy = !conf.connectivityCheckEnabled or !@deviceState.connected or @stateReportErrors < 3
+			return stateFetchHealthy and stateReportHealthy
 
 	_lockGetTarget: =>
 		@_writeLock('getTarget').disposer (release) ->
@@ -294,6 +305,8 @@ module.exports = class APIBinder
 						@deviceState.triggerApplyTarget({ force })
 		.catch (err) ->
 			console.error("Failed to get target state for device: #{err}")
+		.finally =>
+			@lastTargetStateFetch = process.hrtime()
 
 	_pollTargetState: =>
 		if @_targetStateInterval?
@@ -341,6 +354,7 @@ module.exports = class APIBinder
 			@_sendReportPatch(stateDiff, conf)
 			.timeout(conf.apiTimeout)
 			.then =>
+				@stateReportErrors = 0
 				_.assign(@lastReportedState.local, stateDiff.local)
 				_.assign(@lastReportedState.dependent, stateDiff.dependent)
 
@@ -359,6 +373,7 @@ module.exports = class APIBinder
 			.then =>
 				@_reportCurrentState()
 		.catch (err) =>
+			@stateReportErrors += 1
 			@eventTracker.track('Device state report failure', { error: err })
 			Promise.delay(REPORT_RETRY_DELAY)
 			.then =>

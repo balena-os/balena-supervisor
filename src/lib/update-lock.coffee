@@ -8,7 +8,7 @@ path = require 'path'
 
 constants = require './constants'
 
-ENOENT = (err) -> err.code is 'ENOENT'
+{ ENOENT } = require './errors'
 
 baseLockPath = (appId) ->
 	return path.join('/tmp/resin-supervisor/services', appId.toString())
