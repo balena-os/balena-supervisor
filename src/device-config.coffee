@@ -38,6 +38,7 @@ module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 		@rebootRequired = false
 		@validActions = _.keys(@actionExecutors)
+		@gosuperHealthy = true
 		@configKeys = {
 			appUpdatePollInterval: { envVarName: 'RESIN_SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
 			localMode: { envVarName: 'RESIN_SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
@@ -63,14 +64,15 @@ module.exports = class DeviceConfig
 		_.pickBy conf, (v, k) =>
 			_.includes(@validKeys, k) or _.startsWith(k, bootConfigEnvVarPrefix)
 
-	getTarget: =>
+	getTarget: ({ initial = false } = {}) =>
 		@db.models('deviceConfig').select('targetValues')
 		.then ([ devConfig ]) ->
 			return JSON.parse(devConfig.targetValues)
 		.then (conf) =>
 			conf = @filterConfigKeys(conf)
 			conf.RESIN_HOST_LOG_TO_DISPLAY ?= ''
-			conf.RESIN_SUPERVISOR_VPN_CONTROL ?= 'true'
+			if initial or !conf.RESIN_SUPERVISOR_VPN_CONTROL?
+				conf.RESIN_SUPERVISOR_VPN_CONTROL = 'true'
 			_.forEach @configKeys, ({ envVarName, defaultValue }) ->
 				conf[envVarName] ?= defaultValue ? ''
 			return conf
@@ -282,7 +284,11 @@ module.exports = class DeviceConfig
 		.spread (res, body) ->
 			if res.statusCode != 200
 				throw new Error("Error getting vpn status: #{res.statusCode} #{body.Error}")
+			@gosuperHealthy = true
 			return Boolean(body.Data)
+		.catch (err) =>
+			@gosuperHealthy = false
+			throw err
 
 	setVPNEnabled: (val) ->
 		enable = checkTruthy(val) ? true

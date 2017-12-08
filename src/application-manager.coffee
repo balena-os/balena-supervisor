@@ -10,6 +10,7 @@ process.env.DOCKER_HOST ?= "unix://#{constants.dockerSocket}"
 Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
+{ NotFoundError } = require './lib/errors'
 
 ServiceManager = require './compose/service-manager'
 Service = require './compose/service'
@@ -174,6 +175,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@networks = new Networks({ @docker, @logger })
 		@volumes = new Volumes({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
+		@timeSpentFetching = 0
 		@_targetVolatilePerServiceId = {}
 		@actionExecutors = {
 			stop: (step, { force = false } = {}) =>
@@ -221,6 +223,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
 					@services.handover(step.current, step.target)
 			fetch: (step) =>
+				startTime = process.hrtime()
 				Promise.join(
 					@config.get('fetchOptions')
 					@images.getAvailable()
@@ -229,6 +232,7 @@ module.exports = class ApplicationManager extends EventEmitter
 						@images.fetch(step.image, opts)
 				)
 				.finally =>
+					@timeSpentFetching += process.hrtime(startTime)[0]
 					@reportCurrentState(update_downloaded: true)
 			removeImage: (step) =>
 				@images.remove(step.image)
@@ -257,33 +261,46 @@ module.exports = class ApplicationManager extends EventEmitter
 	reportCurrentState: (data) =>
 		@emit('change', data)
 
+	ensureSupervisorNetwork: =>
+		@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
+		.catch NotFoundError, =>
+			@docker.createNetwork({
+				Name: constants.supervisorNetworkInterface
+				Options:
+					'com.docker.network.bridge.name': constants.supervisorNetworkInterface
+			})
+
 	init: =>
 		@images.cleanupDatabase()
+		.then =>
+			@ensureSupervisorNetwork()
 		.then =>
 			@services.attachToRunning()
 		.then =>
 			@services.listenToEvents()
 
 	# Returns the status of applications and their services
+	# TODO: discuss: I think commit could be deduced by the UI looking at the image_installs on the API?
 	getStatus: =>
 		Promise.join(
 			@services.getStatus()
 			@images.getStatus()
-			(services, images) ->
+			@db.models('app').select([ 'appId', 'releaseId', 'commit' ])
+			(services, images, targetApps) ->
 				apps = {}
 				dependent = {}
-				commit = null
+				releaseId = null
 				# We iterate over the current running services and add them to the current state
 				# of the app they belong to.
 				for service in services
 					appId = service.appId
 					apps[appId] ?= {}
 					apps[appId].services ?= {}
-					# We only send commit if all services have the same
-					if !commit?
-						commit = service.commit
-					else if commit != service.commit
-						commit = false
+					# We only send commit if all services have the same release, and it matches the target release
+					if !releaseId?
+						releaseId = service.releaseId
+					else if releaseId != service.releaseId
+						releaseId = false
 					if !apps[appId].services[service.imageId]?
 						apps[appId].services[service.imageId] = _.pick(service, [ 'status', 'releaseId' ])
 						apps[appId].services[service.imageId].download_progress = null
@@ -307,8 +324,8 @@ module.exports = class ApplicationManager extends EventEmitter
 						dependent[appId].images[image.imageId].download_progress = image.downloadProgress
 
 				obj = { local: apps, dependent }
-				if commit?
-					obj.commit = commit
+				if releaseId and targetApps[0]?.releaseId == releaseId
+					obj.commit = targetApps[0].commit
 				return obj
 		)
 
@@ -686,32 +703,23 @@ module.exports = class ApplicationManager extends EventEmitter
 			return dbApp
 
 	createTargetService: (service, opts) ->
-		NotFoundErr = (err) -> err.statusCode == 404
-		serviceOpts = {
-			serviceName: service.serviceName
-		}
-		_.assign(serviceOpts, opts)
-		Promise.join(
-			@images.inspectByName(service.image)
-			.catchReturn(undefined)
-			@docker.getNetworkGateway(service.network_mode ? service.appId)
-			.catchReturn(NotFoundErr, null)
-			.catchReturn(@docker.InvalidNetGatewayError, null)
-			(imageInfo, apiHostForNetwork) ->
-				serviceOpts.imageInfo = imageInfo
-				if apiHostForNetwork?
-					serviceOpts.supervisorApiHost = apiHostForNetwork
-				return new Service(service, serviceOpts)
-		)
+		@images.inspectByName(service.image)
+		.catchReturn(undefined)
+		.then (imageInfo) ->
+			serviceOpts = {
+				serviceName: service.serviceName
+				imageInfo
+			}
+			_.assign(serviceOpts, opts)
+			return new Service(service, serviceOpts)
 
 	normaliseAndExtendAppFromDB: (app) =>
 		Promise.join(
 			@config.get('extendedEnvOptions')
-			@docker.defaultBridgeGateway()
+			@docker.getNetworkGateway(constants.supervisorNetworkInterface)
 			(opts, supervisorApiHost) =>
 				configOpts = {
 					appName: app.name
-					commit: app.commit
 					supervisorApiHost
 				}
 				_.assign(configOpts, opts)

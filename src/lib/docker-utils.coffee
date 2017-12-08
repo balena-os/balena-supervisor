@@ -126,13 +126,6 @@ module.exports = class DockerUtils extends DockerToolbelt
 			console.log('Error getting env from image', err, err.stack)
 			return {}
 
-	# FIXME: looks like sometimes docker doesn't include the "Gateway" property.
-	# Maybe switch to just looking at the docker0 interface?
-	# For now we do a hacky thing using the Subnet property...
-	defaultBridgeGateway: =>
-		@getNetworkGateway('bridge')
-		.catchReturn(@InvalidNetGatewayError, '172.17.0.1')
-
 	getNetworkGateway: (netName) =>
 		return Promise.resolve('127.0.0.1') if netName == 'host'
 		@getNetwork(netName).inspect()

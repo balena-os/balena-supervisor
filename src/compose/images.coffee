@@ -5,8 +5,7 @@ logTypes = require '../lib/log-types'
 constants = require '../lib/constants'
 validation = require '../lib/validation'
 
-ImageNotFoundError = (err) ->
-	return validation.checkInt(err.statusCode) is 404
+{ NotFoundError } = require '../lib/errors'
 
 # image = {
 # 	name: image registry/repo:tag
@@ -88,7 +87,7 @@ module.exports = class Images extends EventEmitter
 				if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(image))
 					@docker.getImage(image.name).remove(force: true)
 		.return(true)
-		.catchReturn(ImageNotFoundError, false)
+		.catchReturn(NotFoundError, false)
 
 	remove: (image) =>
 		@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Deleting' }))
