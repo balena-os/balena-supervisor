@@ -1,42 +1,42 @@
-# Resin Supervisor [![Tickets in Progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=flow/in-progress&title=Tickets%20in%20progress)](https://waffle.io/resin-io/resin-supervisor)
+# resin-supervisor [![Tickets in Progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=flow/in-progress&title=Tickets%20in%20progress)](https://waffle.io/resin-io/resin-supervisor)
 
 Join our online chat at [![Gitter chat](https://badges.gitter.im/resin-io/chat.png)](https://gitter.im/resin-io/chat)
 
-This is [resin.io](https://resin.io)'s Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.
+This is [resin.io](https://resin.io)'s supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as resin.io's API informs it to.
 
-The Supervisor is for now a node.js program, with a subset of its functionality implemented in Go.
+The supervisor is for now a Node.js program, with a subset of its functionality implemented in Go.
 
 We are using [waffle.io](https://waffle.io) to manage our tickets / issues, so if you want to track our progress or contribute take a look at [our board there](https://waffle.io/resin-io/resin-supervisor).
 
 ## Running a supervisor locally
 
 This process will allow you to run a development instance of the supervisor on your local computer. It is not recommended for production scenarios, but allows someone developing on the supervisor to test changes quickly.
-The supervisor is run inside a docker-in-docker container that roughly emulates its environment when running on a ResinOS device.
+The supervisor is run inside a Docker-in-Docker container that roughly emulates its environment when running on a resinOS device.
 
-### Set up config.json
+### Set up `config.json`
 
 Add a `tools/dind/config.json` file from a staging or production device image. It should be configured for an x86 or amd64 device type (e.g. an Intel Nuc) so that you can push apps to it and they run properly on your computer.
 
-Note: don't use staging for production devices. This is for development purposes only. A production (resin.io) config.json should work just as fine for this local supervisor, but we also don't recommend using this in production scenarios - ResinOS is way better suited for that.
+Note: Don't use staging for production devices. This is for development purposes only. A production (resin.io) `config.json` should work just as well for this local supervisor, but we also don't recommend using this in production scenarios - resinOS is better suited for that.
 
-A config.json file can be obtained in several ways, for instance:
+A `config.json` file can be obtained in several ways, for instance:
 
 * Log in to the dashboard on resinstaging (https://dashboard.resinstaging.io), create or select an application, click "Download OS" and on the Advanced section select "Download configuration only".
-* Install the Resin CLI with `npm install -g resin-cli`, then login with `resin login` and finally run `resin config generate --app <appName> -o config.json` (choose the default settings whenever prompted). Check [this section](https://github.com/resin-io/resin-cli#how-do-i-point-the-resin-cli-to-staging) on how to point Resin CLI to a device on staging.
+* Install the resin CLI with `npm install -g resin-cli`, then login with `resin login` and finally run `resin config generate --app <appName> -o config.json` (choose the default settings whenever prompted). Check [this section](https://github.com/resin-io/resin-cli#how-do-i-point-the-resin-cli-to-staging) on how to point resin CLI to a device on staging.
 
-The config.json file should look something like this:
+The `config.json` file should look something like this:
 
 (Please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
 ```
 {
 	"applicationId": "2167", /* Id of the app this supervisor will run */
-	"apiKey": "supersecretapikey", /* The API key to provision the device on the Resin API */
+	"apiKey": "supersecretapikey", /* The API key to provision the device on the resin.io API */
 	"userId": "141", /* User ID for the user who owns the app */
 	"username": "gh_pcarranzav", /* User name for the user who owns the app */
 	"deviceType": "intel-nuc", /* The device type corresponding to the test application */
-	"apiEndpoint": "https://api.resinstaging.io", /* Endpoint for the Resin API */
-	"deltaEndpoint": "https://delta.resinstaging.io", /* Endpoint for the delta server to download docker binary diffs */
-	"vpnEndpoint": "vpn.resinstaging.io", /* Endpoint for the Resin VPN server */
+	"apiEndpoint": "https://api.resinstaging.io", /* Endpoint for the resin.io API */
+	"deltaEndpoint": "https://delta.resinstaging.io", /* Endpoint for the delta server to download Docker binary diffs */
+	"vpnEndpoint": "vpn.resinstaging.io", /* Endpoint for the resin.io VPN server */
 	"pubnubSubscribeKey": "sub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Subscribe key for Pubnub for logs */
 	"pubnubPublishKey": "pub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Publish key for Pubnub for logs */
 	"listenPort": 48484, /* Listen port for the supervisor API */
@@ -54,9 +54,9 @@ Ensure your kernel supports aufs (in Ubuntu, install `linux-image-extra-$(uname 
 ./dindctl run --image resin/amd64-supervisor:master
 ```
 
-This will setup a docker-in-docker instance with an image that runs the supervisor image. You can replace `:master` for a specific tag (see the [tags in dockerhub](https://hub.docker.com/r/resin/amd64-supervisor/tags/)) to run
+This will setup a Docker-in-Docker instance with an image that runs the supervisor image. You can replace `:master` for a specific tag (see the [tags in Dockerhub](https://hub.docker.com/r/resin/amd64-supervisor/tags/)) to run
 a supervisor from a branch or specific version. The script will pull the image if it is not already available in your
-local docker instance.
+local Docker instance.
 
 If you want to develop and test your changes, you can run:
 
@@ -64,9 +64,9 @@ If you want to develop and test your changes, you can run:
 ./dindctl run --image resin/amd64-supervisor:master --mount-dist
 ```
 
-This will mount the ./dist folder into the supervisor container and build the code before starting the instance, so that any changes you make can be added to the running supervisor with:
+Note: Using `--mount-dist` requires a Node.js 6.x installed on your computer.
 
-Note: using `--mount-dist` requires a nodejs 6.x installed on your computer.
+This will mount the ./dist folder into the supervisor container and build the code before starting the instance, so that any changes you make can be added to the running supervisor with:
 
 ```bash
 ./dindctl refresh
@@ -84,7 +84,7 @@ It should look something like this:
 	"appId": "2167", /* Id of the app we are running */
 	"name": "myapplication", /* Name of the app we are running */
 	"commit": "commithash", /* Current git commit for the app */
-	"imageId": "registry.resinstaging.io/path/to/image", /* Id of the docker image for this app */
+	"imageId": "registry.resinstaging.io/path/to/image", /* Id of the Docker image for this app */
 	"env": { /* Environment variables for the app */
 		"KEY": "value"
 	},
@@ -94,13 +94,13 @@ It should look something like this:
 }]
 ```
 
-Make sure the config.json file doesn't have uuid, registered_at or deviceId populated from a previous run.
+Make sure the `config.json` file doesn't have uuid, registered_at or deviceId populated from a previous run.
 
 Then run the supervisor like this:
 ```bash
 ./dindctl run --image resin/amd64-supervisor:master --preload
 ```
-This will make the docker-in-docker instance pull the image specified in apps.json before running the supervisor, simulating a preloaded ResinOS image (where `resin preload` has been used on the image, see [the resin CLI docs](https://docs.resin.io/tools/cli/#preload-60-image-62-)).
+This will make the Docker-in-Docker instance pull the image specified in `apps.json` before running the supervisor, simulating a preloaded resinOS image (where `resin preload` has been used on the image, see [the resin CLI docs](https://docs.resin.io/tools/cli/#preload-60-image-62-)).
 
 ### Enabling passwordless dropbear access
 
@@ -110,14 +110,14 @@ If you want to enable passwordless dropbear login (e.g. while testing `resin syn
 ./dindctl run --image resin/amd64-supervisor:master --ssh
 ```
 
-This will run an ssh daemon **with no password** inside the docker-in-docker instance, so use with caution.
+This will run an ssh daemon **with no password** inside the Docker-in-Docker instance, so use with caution.
 
 ### View the supervisor's logs
 ```bash
 ./dindctl logs
 ```
 
-This will show the output of `journalctl` inside the docker-in-docker container. You can pass
+This will show the output of `journalctl` inside the Docker-in-Docker container. You can pass
 additional options, for instance, to see the logs from the supervisor service:
 
 ```bash
@@ -126,14 +126,14 @@ additional options, for instance, to see the logs from the supervisor service:
 
 ### Stop the supervisor
 ```bash
-./tools/dev/dindctl stop
+./dindctl stop
 ```
 This will stop the container and remove it, also removing its volumes.
 
-## Developing with a ResinOS device
+## Developing with a resinOS device
 
-If you want to test local changes (only changes to the nodejs code are supported) on a real ResinOS device, provision
-a [development OS image](https://docs.resin.io/understanding/understanding-devices/2.0.0/#dev-vs-prod-images) and power up the device. On the resin dashboard, take note of the device's IP address. Then run:
+If you want to test local changes (only changes to the Node.js code are supported) on a real resinOS device, provision
+a [development OS image](https://docs.resin.io/understanding/understanding-devices/2.0.0/#dev-vs-prod-images) and power up the device. On the resin.io dashboard, take note of the device's IP address. Then run:
 ```
 ./sync.js <device IP>
 ```
@@ -142,19 +142,19 @@ This will build the supervisor code and sync it onto the running supervisor cont
 
 ## Build a local supervisor image
 
-This should rarely be needed as `--mount-dist` allows you to test any changes to the nodejs code without a full rebuild. However, if you've changed code in gosuper, base-image or the Dockerfile you will need to build the proper
-supervisor docker image.
+This should rarely be needed as `--mount-dist` allows you to test any changes to the Node.js code without a full rebuild. However, if you've changed code in gosuper, base-image or the Dockerfile you will need to build the proper
+supervisor Docker image.
 
 Build the supervisor with a specific tag, and for a specific architecture, like this:
 ```bash
 ./dindctl build --tag master --arch amd64
 ```
 
-This will build the Supervisor docker image locally. If you then run `docker images` you should see the repo/tag you
+This will build the supervisor Docker image locally. If you then run `docker images` you should see the repo/tag you
 set there. Keep in mind several images will be pulled for caching purposes - if the base image is not cached the build
 can take a few hours.
 
-The docker caching system can be tricky, so it might try to build the base image anyways; if you see that the build hangs at something like:
+The Docker caching system can be tricky, so it might try to build the base image anyways; if you see that the build hangs at something like:
 
 ```
 ### Shell environment set up for builds. ###
@@ -180,7 +180,7 @@ To build it, run (with the ARCH and IMAGE you want):
 ```bash
 make ARCH=amd64 IMAGE=username/gosuper:master gosuper
 ```
-This will build a docker image that builds the Go supervisor and has the executable at /go/bin/gosuper inside the image.
+This will build a Docker image that builds the Go supervisor and has the executable at /go/bin/gosuper inside the image.
 
 ### Adding Go dependencies
 This project uses [glide](https://github.com/Masterminds/glide) to manage its Go dependencies. Refer to its repository for instructions on adding packages.
