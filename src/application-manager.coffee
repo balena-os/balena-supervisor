@@ -277,25 +277,27 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.listenToEvents()
 
 	# Returns the status of applications and their services
+	# TODO: discuss: I think commit could be deduced by the UI looking at the image_installs on the API?
 	getStatus: =>
 		Promise.join(
 			@services.getStatus()
 			@images.getStatus()
-			(services, images) ->
+			@db.models('app').select([ 'appId', 'releaseId', 'commit' ])
+			(services, images, targetApps) ->
 				apps = {}
 				dependent = {}
-				commit = null
+				releaseId = null
 				# We iterate over the current running services and add them to the current state
 				# of the app they belong to.
 				for service in services
 					appId = service.appId
 					apps[appId] ?= {}
 					apps[appId].services ?= {}
-					# We only send commit if all services have the same
-					if !commit?
-						commit = service.commit
-					else if commit != service.commit
-						commit = false
+					# We only send commit if all services have the same release, and it matches the target release
+					if !releaseId?
+						releaseId = service.releaseId
+					else if releaseId != service.releaseId
+						releaseId = false
 					if !apps[appId].services[service.imageId]?
 						apps[appId].services[service.imageId] = _.pick(service, [ 'status', 'releaseId' ])
 						apps[appId].services[service.imageId].download_progress = null
@@ -319,8 +321,8 @@ module.exports = class ApplicationManager extends EventEmitter
 						dependent[appId].images[image.imageId].download_progress = image.downloadProgress
 
 				obj = { local: apps, dependent }
-				if commit?
-					obj.commit = commit
+				if releaseId and targetApps[0]?.releaseId == releaseId
+					obj.commit = targetApps[0].commit
 				return obj
 		)
 
