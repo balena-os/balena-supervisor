@@ -30,7 +30,7 @@ updateStatus =
 	failed: 0
 	forceNext: false
 	intervalHandle: null
-	lastFullUpdateCycle: process.hrtime()[0]
+	lastFullUpdateCycle: process.hrtime()
 	currentlyDownloading: false
 
 class UpdatesLockedError extends TypedError
@@ -135,7 +135,7 @@ application.UpdatesLockedError = UpdatesLockedError
 application.localMode = false
 
 application.healthy = ->
-	timeSinceLastCycle = (process.hrtime()[0] - updateStatus.lastFullUpdateCycle) * 1000
+	timeSinceLastCycle = process.hrtime(updateStatus.lastFullUpdateCycle)[0] * 1000
 	return updateStatus.currentlyDownloading or timeSinceLastCycle <= 2 * config.appUpdatePollInterval
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
@@ -894,7 +894,7 @@ application.update = update = (force, scheduled = false) ->
 				else
 					updateStatus.state = UPDATE_IDLE
 			device.updateState(status: 'Idle')
-			updateStatus.lastFullUpdateCycle = process.hrtime()[0]
+			updateStatus.lastFullUpdateCycle = process.hrtime()
 			return
 
 sanitiseContainerName = (name) -> name.replace(/^\//, '')
