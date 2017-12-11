@@ -511,7 +511,8 @@ specialActionConfigKeys = _.map(specialActionConfigVars, 0)
 executedSpecialActionConfigVars = {}
 
 executeSpecialActionsAndHostConfig = (conf, oldConf, opts) ->
-	updatedValues = _.clone(oldConf)
+	updatedValues = _.pickBy _.clone(oldConf), (val, key) ->
+		_.startsWith(key, device.hostConfigConfigVarPrefix) or _.includes(specialActionConfigKeys, key)
 	needsReboot = false
 	Promise.mapSeries specialActionConfigVars, ([ key, specialActionCallback ]) ->
 		# This makes the Special Action Envs only trigger their functions once.
