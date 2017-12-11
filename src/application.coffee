@@ -137,7 +137,7 @@ application.localMode = false
 
 application.healthy = ->
 	timeSinceLastCycle = process.hrtime(updateStatus.lastFullUpdateCycle)[0] * 1000
-	return updateStatus.currentlyDownloading or timeSinceLastCycle - updateStatus.timeSpentPulling <= 2 * config.appUpdatePollInterval
+	return bootstrap.offlineMode or updateStatus.currentlyDownloading or timeSinceLastCycle - updateStatus.timeSpentPulling <= 2 * config.appUpdatePollInterval
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
 	logger.log({ m: message, s: 1 })
