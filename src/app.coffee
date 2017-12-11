@@ -56,6 +56,7 @@ knex.init.then ->
 				.spread (response, body) ->
 					if response.statusCode != 200 || !body.Data.IPAddresses?
 						throw new Error('Invalid response from gosuper')
+					device.reportHealthyGosuper()
 					device.updateState(
 						ip_address: body.Data.IPAddresses.join(' ')
 					)

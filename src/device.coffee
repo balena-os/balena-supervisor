@@ -267,3 +267,5 @@ do ->
 		return _gosuperHealthy
 	exports.reportUnhealthyGosuper = ->
 		_gosuperHealthy = false
+	exports.reportHealthyGosuper = ->
+		_gosuperHealthy = true
