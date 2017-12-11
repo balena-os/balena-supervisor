@@ -175,6 +175,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@networks = new Networks({ @docker, @logger })
 		@volumes = new Volumes({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
+		@timeSpentFetching = 0
 		@_targetVolatilePerServiceId = {}
 		@actionExecutors = {
 			stop: (step, { force = false } = {}) =>
@@ -222,6 +223,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
 					@services.handover(step.current, step.target)
 			fetch: (step) =>
+				startTime = process.hrtime()
 				Promise.join(
 					@config.get('fetchOptions')
 					@images.getAvailable()
@@ -230,6 +232,7 @@ module.exports = class ApplicationManager extends EventEmitter
 						@images.fetch(step.image, opts)
 				)
 				.finally =>
+					@timeSpentFetching += process.hrtime(startTime)[0]
 					@reportCurrentState(update_downloaded: true)
 			removeImage: (step) =>
 				@images.remove(step.image)

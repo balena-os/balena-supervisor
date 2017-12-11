@@ -1,3 +1,4 @@
+Promise = require 'bluebird'
 express = require 'express'
 bufferEq = require 'buffer-equal-constant-time'
 blink = require './lib/blink'
@@ -25,9 +26,20 @@ authenticate = (config) ->
 			res.status(503).send('Invalid API key in supervisor')
 
 module.exports = class SupervisorAPI
-	constructor: ({ @config, @eventTracker, @routers }) ->
+	constructor: ({ @config, @eventTracker, @routers, @healthchecks }) ->
 		@server = null
 		@_api = express()
+
+		@_api.get '/v1/healthy', (req, res) =>
+			Promise.map @healthchecks, (fn) ->
+				fn()
+				.then (healthy) ->
+					if !healthy
+						throw new Error('Unhealthy')
+			.then ->
+				res.sendStatus(200)
+			.catch ->
+				res.sendStatus(500)
 
 		@_api.use(authenticate(@config))
 
@@ -50,6 +62,7 @@ module.exports = class SupervisorAPI
 					res.status(200).send(secret)
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
+
 
 		for router in @routers
 			@_api.use(router)

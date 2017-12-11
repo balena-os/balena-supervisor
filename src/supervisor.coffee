@@ -28,7 +28,7 @@ module.exports = class Supervisor extends EventEmitter
 		# FIXME: rearchitect proxyvisor to avoid this circular dependency
 		# by storing current state and having the APIBinder query and report it / provision devices
 		@deviceState.applications.proxyvisor.bindToAPI(@apiBinder)
-		@api = new SupervisorAPI({ @config, @eventTracker, routers: [ @apiBinder.router, @deviceState.router ] })
+		@api = new SupervisorAPI({ @config, @eventTracker, routers: [ @apiBinder.router, @deviceState.router ], healthchecks: [ @apiBinder.healthcheck, @deviceState.healthcheck ] })
 
 	init: =>
 		@db.init()

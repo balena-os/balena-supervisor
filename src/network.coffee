@@ -43,7 +43,7 @@ vpnStatusInotifyCallback = ->
 # Use the following to catch EEXIST errors
 EEXIST = (err) -> err.code is 'EEXIST'
 
-exports.startConnectivityCheck = _.once (apiEndpoint, enable) ->
+exports.startConnectivityCheck = _.once (apiEndpoint, enable, onChangeCallback) ->
 	exports.enableConnectivityCheck(enable)
 	if !apiEndpoint?
 		console.log('No API endpoint specified, skipping connectivity check')
@@ -62,6 +62,8 @@ exports.startConnectivityCheck = _.once (apiEndpoint, enable) ->
 		port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
 		interval: 10 * 1000
 		(connected) ->
+			if onChangeCallback?
+				onChangeCallback(connected)
 			if connected
 				console.log('Internet Connectivity: OK')
 				blink.pattern.stop()

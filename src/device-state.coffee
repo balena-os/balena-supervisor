@@ -107,6 +107,7 @@ module.exports = class DeviceState extends EventEmitter
 		@failedUpdates = 0
 		@stepsInProgress = []
 		@applyInProgress = false
+		@lastApplyStart = process.hrtime()
 		@scheduledApply = null
 		@applyContinueScheduled = false
 		@shuttingDown = false
@@ -126,6 +127,12 @@ module.exports = class DeviceState extends EventEmitter
 			console.log("Step error #{err}")
 
 		@applications.on('change', @reportCurrentState)
+
+	healthcheck: =>
+		@config.getMany([ 'appUpdatePollInterval', 'offlineMode' ])
+		.then (conf) =>
+			applyTargetHealthy = conf.offlineMode or !@applyInProgress or process.hrtime(@lastApplyStart)[0] - @applications.timeSpentFetching < 2 * conf.appUpdatePollInterval
+			return applyTargetHealthy and @deviceConfig.gosuperHealthy
 
 	normaliseLegacy: =>
 		# When legacy apps are present, we kill their containers and migrate their /data to a named volume
@@ -187,10 +194,11 @@ module.exports = class DeviceState extends EventEmitter
 				if !conf.provisioned
 					@loadTargetFromFile()
 			.then =>
-				@triggerApplyTarget()
+				@triggerApplyTarget({ initial: true })
 
 	initNetworkChecks: ({ resinApiEndpoint, connectivityCheckEnabled }) =>
-		network.startConnectivityCheck(resinApiEndpoint, connectivityCheckEnabled)
+		network.startConnectivityCheck resinApiEndpoint, connectivityCheckEnabled, (connected) =>
+			@connected = connected
 		@config.on 'change', (changedConfig) ->
 			if changedConfig.connectivityCheckEnabled?
 				network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled)
@@ -241,12 +249,12 @@ module.exports = class DeviceState extends EventEmitter
 					.then =>
 						@applications.setTarget(target.local.apps, target.dependent, trx)
 
-	getTarget: ->
+	getTarget: ({ initial = false } = {}) =>
 		@usingReadLockTarget =>
 			Promise.props({
 				local: Promise.props({
 					name: @config.get('name')
-					config: @deviceConfig.getTarget()
+					config: @deviceConfig.getTarget({ initial })
 					apps: @applications.getTargetApps()
 				})
 				dependent: @applications.getDependentTargets()
@@ -347,23 +355,23 @@ module.exports = class DeviceState extends EventEmitter
 					else
 						throw new Error("Invalid action #{step.action}")
 
-	applyStepAsync: (step, { force, targetState }) =>
+	applyStepAsync: (step, { force, initial }) =>
 		if @shuttingDown
 			return
 		@stepsInProgress.push(step)
 		setImmediate =>
-			@executeStepAction(step, { force, targetState })
+			@executeStepAction(step, { force })
 			.finally =>
 				@usingInferStepsLock =>
 					_.pullAllWith(@stepsInProgress, [ step ], _.isEqual)
 			.then (stepResult) =>
 				@emitAsync('step-completed', null, step, stepResult)
-				@continueApplyTarget({ force })
+				@continueApplyTarget({ force, initial })
 			.catch (err) =>
 				@emitAsync('step-error', err, step)
-				@applyError(err, force)
+				@applyError(err, force, initial)
 
-	applyError: (err, force) =>
+	applyError: (err, force, initial) =>
 		@_applyingSteps = false
 		@applyInProgress = false
 		@failedUpdates += 1
@@ -374,16 +382,16 @@ module.exports = class DeviceState extends EventEmitter
 			delay = Math.min((2 ** @failedUpdates) * 500, 30000)
 			# If there was an error then schedule another attempt briefly in the future.
 			console.log('Scheduling another update attempt due to failure: ', delay, err)
-			@triggerApplyTarget({ force, delay })
+			@triggerApplyTarget({ force, delay, initial })
 		@emitAsync('apply-target-state-error', err)
 		@emitAsync('apply-target-state-end', err)
 
-	applyTarget: ({ force = false } = {}) =>
+	applyTarget: ({ force = false, initial = false } = {}) =>
 		console.log('Applying target state')
 		@usingInferStepsLock =>
 			Promise.join(
 				@getCurrentForComparison()
-				@getTarget()
+				@getTarget({ initial })
 				(currentState, targetState) =>
 					@deviceConfig.getRequiredSteps(currentState, targetState, @stepsInProgress)
 					.then (deviceConfigSteps) =>
@@ -396,6 +404,7 @@ module.exports = class DeviceState extends EventEmitter
 				if _.isEmpty(steps) and _.isEmpty(@stepsInProgress)
 					console.log('Finished applying target state')
 					@applyInProgress = false
+					@applications.timeSpentFetching = 0
 					@failedUpdates = 0
 					@lastSuccessfulUpdate = Date.now()
 					@reportCurrentState(update_failed: false, update_pending: false, update_downloaded: false)
@@ -403,22 +412,22 @@ module.exports = class DeviceState extends EventEmitter
 					return
 				@reportCurrentState(update_pending: true)
 				Promise.map steps, (step) =>
-					@applyStepAsync(step, { force })
+					@applyStepAsync(step, { force, initial })
 		.catch (err) =>
-			@applyError(err, force)
+			@applyError(err, force, initial)
 
-	continueApplyTarget: ({ force = false } = {}) =>
+	continueApplyTarget: ({ force = false, initial = false } = {}) =>
 		if @applyContinueScheduled
 			return
 		@applyContinueScheduled = true
 		setTimeout( =>
 			@applyContinueScheduled = false
-			@applyTarget({ force })
+			@applyTarget({ force, initial })
 		, 1000)
 		return
 
 	# TODO: Make this and applyTarget work purely with promises, no need to wait on events
-	triggerApplyTarget: ({ force = false, delay = 0 } = {}) =>
+	triggerApplyTarget: ({ force = false, delay = 0, initial = false } = {}) =>
 		if @applyInProgress
 			if !@scheduledApply?
 				@scheduledApply = { force, delay }
@@ -433,6 +442,7 @@ module.exports = class DeviceState extends EventEmitter
 			return
 		@applyInProgress = true
 		setTimeout( =>
-			@applyTarget({ force })
+			@lastApplyStart = process.hrtime()
+			@applyTarget({ force, initial })
 		, delay)
 		return
