@@ -32,6 +32,7 @@ updateStatus =
 	intervalHandle: null
 	lastFullUpdateCycle: process.hrtime()
 	currentlyDownloading: false
+	timeSpentPulling: 0
 
 class UpdatesLockedError extends TypedError
 ImageNotFoundError = (err) ->
@@ -136,7 +137,7 @@ application.localMode = false
 
 application.healthy = ->
 	timeSinceLastCycle = process.hrtime(updateStatus.lastFullUpdateCycle)[0] * 1000
-	return updateStatus.currentlyDownloading or timeSinceLastCycle <= 2 * config.appUpdatePollInterval
+	return updateStatus.currentlyDownloading or timeSinceLastCycle - updateStatus.timeSpentPulling <= 2 * config.appUpdatePollInterval
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
 	logger.log({ m: message, s: 1 })
@@ -232,6 +233,7 @@ fetch = (app, { deltaSource, setDeviceUpdateState = true } = {}) ->
 	onProgress = (progress) ->
 		device.updateState(download_progress: progress.percentage)
 
+	startTime = process.hrtime()
 	docker.getImage(app.imageId).inspect()
 	.catch ImageNotFoundError, ->
 		updateStatus.currentlyDownloading = true
@@ -263,6 +265,7 @@ fetch = (app, { deltaSource, setDeviceUpdateState = true } = {}) ->
 			logSystemEvent(logTypes.downloadAppError, app, err)
 			throw err
 		.finally ->
+			updateStatus.timeSpentPulling += process.hrtime(startTime)[0]
 			updateStatus.currentlyDownloading = false
 
 shouldMountKmod = (image) ->
@@ -895,6 +898,7 @@ application.update = update = (force, scheduled = false) ->
 					updateStatus.state = UPDATE_IDLE
 			device.updateState(status: 'Idle')
 			updateStatus.lastFullUpdateCycle = process.hrtime()
+			updateStatus.timeSpentPulling = 0
 			return
 
 sanitiseContainerName = (name) -> name.replace(/^\//, '')
