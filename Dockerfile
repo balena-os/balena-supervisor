@@ -209,4 +209,7 @@ ENV CONFIG_MOUNT_POINT=/boot/config.json \
 	DEFAULT_PUBNUB_SUBSCRIBE_KEY=$DEFAULT_PUBNUB_SUBSCRIBE_KEY \
 	DEFAULT_MIXPANEL_TOKEN=$DEFAULT_MIXPANEL_TOKEN
 
+HEALTHCHECK --interval=5m --start-period=1m --timeout=30s --retries=3 \
+	CMD wget -qO- http://127.0.0.1:${LISTEN_PORT:-48484}/v1/healthy || exit 1
+
 CMD [ "/sbin/init" ]

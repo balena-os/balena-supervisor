@@ -483,3 +483,30 @@ $ curl -X POST --header "Content-Type:application/json" \
 	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
 	"https://api.resin.io/supervisor/v1/apps/<appId>"
 ```
+
+<hr>
+
+### GET /v1/healthy
+
+Added in supervisor v6.5.0.
+
+Used internally to check whether the supervisor is running correctly, according to some heuristics that help determine
+whether the internal components, application updates and reporting to the Resin API are functioning.
+
+Responds with an empty 200 response if the supervisor is healthy, or a 500 status code if something is not working
+correctly.
+
+#### Examples:
+From the app on the device:
+```bash
+$ curl "$RESIN_SUPERVISOR_ADDRESS/v1/healthy"
+```
+(Empty response)
+
+Remotely via the API proxy:
+```bash
+$ curl -X POST --header "Content-Type:application/json" \
+	--header "Authorization: Bearer <auth token>" \
+	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	"https://api.resin.io/supervisor/v1/healthy"
+```

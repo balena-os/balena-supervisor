@@ -7,7 +7,6 @@ knex = require './db'
 utils = require './utils'
 bootstrap = require './bootstrap'
 config = require './config'
-_ = require 'lodash'
 
 knex.init.then ->
 	utils.mixpanelTrack('Supervisor start')
@@ -55,11 +54,15 @@ knex.init.then ->
 			updateIpAddr = ->
 				utils.gosuper.getAsync('/v1/ipaddr', { json: true })
 				.spread (response, body) ->
-					if response.statusCode == 200 && body.Data.IPAddresses?
-						device.updateState(
-							ip_address: body.Data.IPAddresses.join(' ')
-						)
-				.catch(_.noop)
+					if response.statusCode != 200 || !body.Data.IPAddresses?
+						throw new Error('Invalid response from gosuper')
+					device.reportHealthyGosuper()
+					device.updateState(
+						ip_address: body.Data.IPAddresses.join(' ')
+					)
+				.catch ->
+					device.reportUnhealthyGosuper()
+
 			console.log('Starting periodic check for IP addresses..')
 			setInterval(updateIpAddr, 30 * 1000) # Every 30s
 			updateIpAddr()

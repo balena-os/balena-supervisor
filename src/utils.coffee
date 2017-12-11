@@ -70,10 +70,13 @@ disableConnectivityCheck = false
 # options: An object of net.connect options, with the addition of:
 #	timeout: 10s
 checkHost = (options) ->
-	if disableConnectivityCheck or pauseConnectivityCheck
+	if !isConnectivityCheckEnabled()
 		return true
 	else
 		return networkCheck.checkHost(options)
+
+exports.isConnectivityCheckEnabled = isConnectivityCheckEnabled = ->
+	return !disableConnectivityCheck and !pauseConnectivityCheck
 
 # Custom monitor that uses checkHost function above.
 customMonitor = (options, fn) ->
@@ -98,30 +101,36 @@ vpnStatusInotifyCallback = ->
 # Use the following to catch EEXIST errors
 EEXIST = (err) -> err.code is 'EEXIST'
 
-exports.connectivityCheck = _.once ->
-	if !config.apiEndpoint?
-		console.log('No apiEndpoint specified, skipping connectivity check')
-		return
-	parsedUrl = url.parse(config.apiEndpoint)
-	fs.mkdirAsync(config.vpnStatusPath)
-	.catch EEXIST, (err) ->
-		console.log('VPN status path exists.')
-	.then ->
-		fs.watch(config.vpnStatusPath, vpnStatusInotifyCallback)
+do ->
+	_connected = true
+	exports.connected = ->
+		return _connected
 
-	# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
-	vpnStatusInotifyCallback()
-	customMonitor
-		host: parsedUrl.hostname
-		port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
-		interval: 10 * 1000
-		(connected) ->
-			if connected
-				console.log('Internet Connectivity: OK')
-				blink.pattern.stop()
-			else
-				console.log('Waiting for connectivity...')
-				blink.pattern.start(networkPattern)
+	exports.connectivityCheck = _.once ->
+		if !config.apiEndpoint?
+			console.log('No apiEndpoint specified, skipping connectivity check')
+			return
+		parsedUrl = url.parse(config.apiEndpoint)
+		fs.mkdirAsync(config.vpnStatusPath)
+		.catch EEXIST, (err) ->
+			console.log('VPN status path exists.')
+		.then ->
+			fs.watch(config.vpnStatusPath, vpnStatusInotifyCallback)
+
+		# Manually trigger the call back to detect cases when VPN was switched on before the supervisor starts.
+		vpnStatusInotifyCallback()
+		customMonitor
+			host: parsedUrl.hostname
+			port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
+			interval: 10 * 1000
+			(connected) ->
+				_connected = connected
+				if connected
+					console.log('Internet Connectivity: OK')
+					blink.pattern.stop()
+				else
+					console.log('Waiting for connectivity...')
+					blink.pattern.start(networkPattern)
 
 
 secretPromises = {}
