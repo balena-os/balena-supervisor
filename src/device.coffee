@@ -119,7 +119,7 @@ setBootConfig = (env, oldEnv, logMessage) ->
 	.then (deviceType) ->
 		throw new Error('This is not a Raspberry Pi') if !_.startsWith(deviceType, 'raspberry')
 		Promise.join parseBootConfigFromEnv(env), parseBootConfigFromEnv(oldEnv), fs.readFileAsync(bootConfigPath, 'utf8'), (configFromApp, oldConfigFromApp, configTxt ) ->
-			throw new Error('No boot config to change') if _.isEmpty(configFromApp) or _.isEqual(configFromApp, oldConfigFromApp)
+			throw new Error('No boot config to change') if _.isEqual(configFromApp, oldConfigFromApp)
 			configFromFS = {}
 			configPositions = []
 			configStatements = configTxt.split(/\r?\n/)
@@ -140,7 +140,7 @@ setBootConfig = (env, oldEnv, logMessage) ->
 			toBeChanged = _.intersection(keysFromApp, keysFromFS)
 			toBeChanged = _.filter toBeChanged, (key) ->
 				configFromApp[key] != configFromFS[key]
-			throw new Error('Nothing to change') if _.isEmpty(toBeChanged) and _.isEmpty(toBeAdded)
+			throw new Error('Nothing to change') if _.isEmpty(toBeChanged) and _.isEmpty(toBeAdded) and _.isEmpty(toBeDeleted)
 
 			logMessage("Applying boot config: #{JSON.stringify(configFromApp)}", {}, 'Apply boot config in progress')
 			# We add the keys to be added first so they are out of any filters

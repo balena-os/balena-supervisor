@@ -141,11 +141,17 @@ logSystemEvent = (logType, app = {}, error) ->
 	return
 
 logSpecialAction = (action, value, success) ->
-	if success
-		if !value?
-			msg = "Cleared config variable #{action}"
+	if success?
+		if success
+			if !value?
+				msg = "Cleared config variable #{action}"
+			else
+				msg = "Applied config variable #{action} = #{value}"
 		else
-			msg = "Applied config variable #{action} = #{value}"
+			if !value?
+				msg = "Config variable #{action} not cleared yet"
+			else
+				msg = "Config variable #{action} = #{value} not applied yet"
 	else
 		if !value?
 			msg = "Clearing config variable #{action}"
@@ -466,6 +472,7 @@ apiPollInterval = (val) ->
 	console.log('New API poll interval: ' + val)
 	clearInterval(updateStatus.intervalHandle)
 	application.poll()
+	return true
 
 setLocalMode = (val) ->
 	mode = checkTruthy(val) ? false
@@ -490,6 +497,7 @@ setLocalMode = (val) ->
 					unlockAndStart(app)
 		.then ->
 			application.localMode = mode
+	.return(true)
 
 specialActionConfigVars = [
 	[ 'RESIN_SUPERVISOR_LOCAL_MODE', setLocalMode ]
@@ -498,20 +506,25 @@ specialActionConfigVars = [
 	[ 'RESIN_SUPERVISOR_POLL_INTERVAL', apiPollInterval ]
 	[ 'RESIN_SUPERVISOR_LOG_CONTROL', utils.resinLogControl ]
 ]
+specialActionConfigKeys = _.map(specialActionConfigVars, 0)
 
 executedSpecialActionConfigVars = {}
 
-executeSpecialActionsAndHostConfig = (conf, oldConf) ->
+executeSpecialActionsAndHostConfig = (conf, oldConf, opts) ->
+	updatedValues = _.pickBy _.clone(oldConf), (val, key) ->
+		_.startsWith(key, device.hostConfigConfigVarPrefix) or _.includes(specialActionConfigKeys, key)
+	needsReboot = false
 	Promise.mapSeries specialActionConfigVars, ([ key, specialActionCallback ]) ->
-		if (conf[key]? or oldConf[key]?) and specialActionCallback?
-			# This makes the Special Action Envs only trigger their functions once.
-			if executedSpecialActionConfigVars[key] != conf[key]
-				logSpecialAction(key, conf[key])
-				Promise.try ->
-					specialActionCallback(conf[key])
-				.then ->
+		# This makes the Special Action Envs only trigger their functions once.
+		if specialActionCallback? and executedSpecialActionConfigVars[key] != conf[key]
+			logSpecialAction(key, conf[key])
+			Promise.try ->
+				specialActionCallback(conf[key], logSystemMessage, opts)
+			.then (updated) ->
+				if updated
+					updatedValues[key] = conf[key]
 					executedSpecialActionConfigVars[key] = conf[key]
-					logSpecialAction(key, conf[key], true)
+				logSpecialAction(key, conf[key], updated)
 	.then ->
 		hostConfigVars = _.pickBy conf, (val, key) ->
 			return _.startsWith(key, device.hostConfigConfigVarPrefix)
@@ -519,14 +532,22 @@ executeSpecialActionsAndHostConfig = (conf, oldConf) ->
 			return _.startsWith(key, device.hostConfigConfigVarPrefix)
 		if !_.isEqual(hostConfigVars, oldHostConfigVars)
 			device.setHostConfig(hostConfigVars, oldHostConfigVars, logSystemMessage)
+			.then (changedHostConfig) ->
+				needsReboot = changedHostConfig
+				if changedHostConfig
+					for own key of oldHostConfigVars
+						delete updatedValues[key]
+					_.assign(updatedValues, hostConfigVars)
+	.then ->
+		return { updatedValues, needsReboot }
 
-getAndApplyDeviceConfig = ->
+getAndApplyDeviceConfig = ({ initial = false } = {}) ->
 	deviceConfig.get()
 	.then ({ values, targetValues }) ->
-		executeSpecialActionsAndHostConfig(targetValues, values)
-		.tap ->
-			deviceConfig.set({ values: targetValues }) if !_.isEqual(values, targetValues)
-		.then (needsReboot) ->
+		executeSpecialActionsAndHostConfig(targetValues, values, { initial })
+		.tap ({ updatedValues }) ->
+			deviceConfig.set({ values: updatedValues }) if !_.isEqual(values, updatedValues)
+		.then ({ needsReboot }) ->
 			if needsReboot
 				logSystemMessage('Rebooting', {}, 'Reboot')
 				Promise.delay(1000)
@@ -758,12 +779,16 @@ application.update = update = (force, scheduled = false) ->
 					remoteDeviceConfig = {}
 					_.map remoteAppIds, (appId) ->
 						_.merge(remoteDeviceConfig, JSON.parse(remoteApps[appId].config))
+					remoteDeviceHostConfig = _.pickBy(remoteDeviceConfig, (val, key) -> _.startsWith(key, device.hostConfigConfigVarPrefix))
+					remoteSpecialActionValues = _.pickBy(remoteDeviceConfig, (val, key) -> _.includes(specialActionConfigKeys, key))
+					# This prevents saving values like RESIN_SUPERVISOR_DELTA, that (for now) actually belong to app config, to the deviceConfig table
+					relevantDeviceConfig = _.assign({}, remoteDeviceHostConfig, remoteSpecialActionValues)
 					deviceConfig.get()
 					.then ({ values, targetValues }) ->
 						# If the new device config is different from the target values we had, or if
 						# for some reason it hasn't been applied yet (values don't match target), we apply it.
-						if !_.isEqual(targetValues, remoteDeviceConfig) or !_.isEqual(targetValues, values)
-							deviceConfig.set({ targetValues: remoteDeviceConfig })
+						if !_.isEqual(targetValues, remoteDeviceConfig) or !_.isEqual(targetValues, values) or _.some(remoteSpecialActionValues, (v, k) -> executedSpecialActionConfigVars[k] != v)
+							deviceConfig.set({ targetValues: relevantDeviceConfig })
 							.then ->
 								getAndApplyDeviceConfig()
 				.catch (err) ->
@@ -922,7 +947,7 @@ application.initialize = ->
 	listenToEvents()
 	migrateContainerIdApps()
 	.then ->
-		getAndApplyDeviceConfig()
+		getAndApplyDeviceConfig(initial: true)
 	.then ->
 		knex('app').whereNot(markedForDeletion: true).orWhereNull('markedForDeletion').select()
 	.map (app) ->
