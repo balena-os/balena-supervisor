@@ -535,7 +535,7 @@ executeSpecialActionsAndHostConfig = (conf, oldConf, opts) ->
 			.then (changedHostConfig) ->
 				needsReboot = changedHostConfig
 				if changedHostConfig
-					_.forEach oldHostConfigVars, (val, key) ->
+					for own key of oldHostConfigVars
 						delete updatedValues[key]
 					_.assign(updatedValues, hostConfigVars)
 	.then ->
