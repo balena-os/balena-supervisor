@@ -142,16 +142,17 @@ RUN mkdir -p rootfs-overlay && \
 COPY package.json /usr/src/app/
 
 # Install only the production modules that have C extensions
+# then install devdependencies but save production ones in a separate folder
 RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
-	&& npm dedupe
+	&& npm dedupe \
+	&& cp -R node_modules node_modules_prod \
+	&& npm install --no-optional --unsafe-perm
 
 COPY webpack.config.js fix-jsonstream.js hardcode-migrations.js /usr/src/app/
 COPY src /usr/src/app/src
 
-# Install devDependencies, build the coffeescript and then prune the deps
-RUN cp -R node_modules node_modules_prod \
-	&& npm install --no-optional --unsafe-perm \
-	&& npm run lint \
+# build the coffeescript and then restore the production deps
+RUN npm run lint \
 	&& npm run build \
 	&& rm -rf node_modules \
 	&& mv node_modules_prod node_modules
