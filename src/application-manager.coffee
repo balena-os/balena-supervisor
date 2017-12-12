@@ -499,7 +499,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		if !service?
 			return false
 		hasNetwork = _.some networkPairs, (pair) ->
-			pair.current.name == service.network_mode
+			pair.current.name == service.networkMode
 		if hasNetwork
 			return true
 		hasVolume = _.some service.volumes, (volume) ->
@@ -511,17 +511,17 @@ module.exports = class ApplicationManager extends EventEmitter
 		return false
 
 	# TODO: account for volumes-from, networks-from, links, etc
-	# TODO: support networks instead of only network_mode
+	# TODO: support networks instead of only networkMode
 	_dependenciesMetForServiceStart: (target, networkPairs, volumePairs, pendingPairs, stepsInProgress) ->
-		# for depends_on, check no install or update pairs have that service
-		dependencyUnmet = _.some target.depends_on ? [], (dependency) ->
+		# for dependsOn, check no install or update pairs have that service
+		dependencyUnmet = _.some target.dependsOn ? [], (dependency) ->
 			_.find(pendingPairs, (pair) -> pair.target?.serviceName == dependency)? or _.find(stepsInProgress, (step) -> step.target?.serviceName == dependency)?
 		if dependencyUnmet
 			return false
 		# for networks and volumes, check no network pairs have that volume name
-		if _.find(networkPairs, (pair) -> pair.target?.name == target.network_mode)?
+		if _.find(networkPairs, (pair) -> pair.target?.name == target.networkMode)?
 			return false
-		if _.find(stepsInProgress, (step) -> step.model == 'network' and step.target?.name == target.network_mode)?
+		if _.find(stepsInProgress, (step) -> step.model == 'network' and step.target?.name == target.networkMode)?
 			return false
 		volumeUnmet = _.some target.volumes, (volumeDefinition) ->
 			[ sourceName, destName ] = volumeDefinition.split(':')
@@ -534,8 +534,8 @@ module.exports = class ApplicationManager extends EventEmitter
 	# to kill a service once the images for the services it depends on have been downloaded, so as to minimize
 	# downtime (but not block the killing too much, potentially causing a deadlock)
 	_dependenciesMetForServiceKill: (target, targetApp, availableImages) =>
-		if target.depends_on?
-			for dependency in target.depends_on
+		if target.dependsOn?
+			for dependency in target.dependsOn
 				dependencyService = _.find(targetApp.services, (s) -> s.serviceName == dependency)
 				if !_.find(availableImages, (image) => @images.isSameImage(image, { name: dependencyService.image }))?
 					return false
@@ -561,7 +561,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	_nextStepsForNetwork: ({ current, target }, currentApp, changingPairs) =>
 		dependencyComparisonFn = (service, current) ->
-			service.network_mode == current.name
+			service.networkMode == current.name
 		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'network')
 
 	_nextStepsForVolume: ({ current, target }, currentApp, changingPairs) ->
