@@ -238,7 +238,6 @@ module.exports = class Proxyvisor
 		@lastRequestForDevice = {}
 		@_router = new ProxyvisorRouter(this)
 		@router = @_router.router
-		@validActions = _.keys(@actionExecutors)
 		@actionExecutors = {
 			updateDependentTargets: (step) =>
 				@config.getMany([ 'currentApiKey', 'apiTimeout' ])
@@ -314,6 +313,7 @@ module.exports = class Proxyvisor
 						cleanupTars(step.appId)
 
 		}
+		@validActions = _.keys(@actionExecutors)
 
 	bindToAPI: (apiBinder) =>
 		@apiBinder = apiBinder

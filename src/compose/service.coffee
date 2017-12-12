@@ -5,28 +5,92 @@ updateLock = require '../lib/update-lock'
 constants = require '../lib/constants'
 conversions =  require '../lib/conversions'
 
+Duration = require 'duration-js'
 Images = require './images'
 
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
+
+parseMemoryNumber = (numAsString, defaultVal) ->
+	m = numAsString?.toString().match(/^([0-9]+)([bkmg]?)$/)
+	if !m? and defaultVal?
+		return parseMemoryNumber(defaultVal)
+	num = m[1]
+	pow = { '': 0, 'b': 0, 'B': 0, 'K': 1, 'k': 1, 'm': 2, 'M': 2, 'g': 3, 'G': 3 }
+	return parseInt(num) * 1024 ** pow[m[2]]
 
 # Construct a restart policy based on its name.
 # The default policy (if name is not a valid policy) is "always".
 createRestartPolicy = (name) ->
 	if not (name in validRestartPolicies)
-		name = 'unless-stopped'
+		name = 'always'
 	return { Name: name, MaximumRetryCount: 0 }
 
 getCommand = (service, imageInfo) ->
+	cmd = null
 	if service.command?
-		return service.command
-	else if imageInfo?.Config?.Cmd
-		return imageInfo.Config.Cmd
+		cmd = service.command
+	else if imageInfo?.Config?.Cmd?
+		cmd = imageInfo.Config.Cmd
+	if _.isString(cmd)
+		cmd = [ cmd ]
+	return cmd
 
 getEntrypoint = (service, imageInfo) ->
+	entry = null
 	if service.entrypoint?
-		return service.entrypoint
-	else if imageInfo?.Config?.Entrypoint
-		return imageInfo.Config.Entrypoint
+		entry = service.entrypoint
+	else if imageInfo?.Config?.Entrypoint?
+		entry = imageInfo.Config.Entrypoint
+	if _.isString(entry)
+		entry = [ entry ]
+	return entry
+
+getStopSignal = (service, imageInfo) ->
+	sig = null
+	if service.stop_signal?
+		sig = service.stop_signal
+	else if imageInfo?.Config?.StopSignal?
+		sig = imageInfo.Config.StopSignal
+	if sig? and !_.isString(sig) # In case the YAML was parsed as a number
+		sig = sig.toString()
+	return sig
+
+buildHealthcheckTest = (test) ->
+	if _.isString(test)
+		return [ 'CMD-SHELL', test ]
+	else
+		return test
+
+getNanoseconds = (duration) ->
+	d = new Duration(duration)
+	return d.nanoseconds()
+
+# Mutates imageHealthcheck
+overrideHealthcheckFromCompose = (serviceHealthcheck, imageHealthcheck = {}) ->
+	if serviceHealthcheck.disable
+		imageHealthcheck.Test = [ 'NONE' ]
+	else
+		imageHealthcheck.Test = buildHealthcheckTest(serviceHealthcheck.test)
+		if serviceHealthcheck.interval?
+			imageHealthcheck.Interval = getNanoseconds(serviceHealthcheck.interval)
+		if serviceHealthcheck.timeout?
+			imageHealthcheck.Timeout = getNanoseconds(serviceHealthcheck.timeout)
+		if serviceHealthcheck.start_period?
+			imageHealthcheck.StartPeriod = getNanoseconds(serviceHealthcheck.start_period)
+		if serviceHealthcheck.retries?
+			imageHealthcheck.Retries = parseInt(serviceHealthcheck.retries)
+	return imageHealthcheck
+
+getHealthcheck = (service, imageInfo) ->
+	healthcheck = null
+	if imageInfo?.Config?.Healthcheck?
+		healthcheck = imageInfo.Config.Healthcheck
+	if service.healthcheck?
+		healthcheck = overrideHealthcheckFromCompose(service.healthcheck, healthcheck)
+	# Set invalid healthchecks back to null
+	if healthcheck and (!healthcheck.Test? or _.isEqual(healthcheck.Test, []))
+		healthcheck = null
+	return healthcheck
 
 killmePath = (appId, serviceName) ->
 	return updateLock.lockPath(appId, serviceName)
@@ -74,7 +138,32 @@ module.exports = class Service
 			@exposedPorts
 			@portBindings
 			@networks
+
+			@memLimit
+			@memReservation
+			@shmSize
+			@cpuShares
+			@cpuQuota
+			@cpus
+			@cpuset
+			@nanoCpus
+			@domainname
+			@oomScoreAdj
+			@dns
+			@dnsSearch
+			@dnsOpt
+			@tmpfs
+			@extraHosts
+			@ulimitsArray
+			@stopSignal
+			@stopGracePeriod
+			@init
+			@healthcheck
+			@readOnly
+			@sysctls
 		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
+
+		@networks ?= {}
 		@privileged ?= false
 		@volumes ?= []
 		@labels ?= {}
@@ -87,42 +176,111 @@ module.exports = class Service
 		@devices ?= []
 		@exposedPorts ?= {}
 		@portBindings ?= {}
-		@networkMode ?= @appId.toString()
-		@networks ?= {}
-		@networks[@networkMode] ?= {}
+
+		@memLimit = parseMemoryNumber(@memLimit, '0')
+		@memReservation = parseMemoryNumber(@memReservation, '0')
+		@shmSize = parseMemoryNumber(@shmSize, '64m')
+		@cpuShares ?= 0
+		@cpuQuota ?= 0
+		@cpus ?= 0
+		@nanoCpus ?= 0
+		@cpuset ?= ''
+		@domainname ?= ''
+
+		@oomScoreAdj ?= 0
+		@tmpfs ?= []
+		@extraHosts ?= []
+
+		@dns ?= []
+		@dnsSearch ?= []
+		@dnsOpt ?= []
+		@ulimitsArray ?= []
+
+		@stopSignal ?= null
+		@stopGracePeriod ?= null
+		@healthcheck ?= null
+		@init ?= null
+		@readOnly ?= false
+
+		@sysctls ?= {}
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
+			@networkMode ?= 'default'
+			if @networkMode not in [ 'host', 'bridge', 'none' ]
+				@networkMode = "#{@appId}_#{@networkMode}"
+
+			@networks = _.mapKeys @networks, (v, k) ->
+				if k not in [ 'host', 'bridge', 'none' ]
+					return "#{@appId}_#{k}"
+				else
+					return k
+
+			@networks[@networkMode] ?= {}
+
 			@restartPolicy = createRestartPolicy(serviceProperties.restart)
 			@command = getCommand(serviceProperties, opts.imageInfo)
 			@entrypoint = getEntrypoint(serviceProperties, opts.imageInfo)
+			@stopSignal = getStopSignal(serviceProperties, opts.imageInfo)
+			@healthcheck = getHealthcheck(serviceProperties, opts.imageInfo)
 			@extendEnvVars(opts)
 			@extendLabels(opts.imageInfo)
 			@extendAndSanitiseVolumes(opts.imageInfo)
 			@extendAndSanitiseExposedPorts(opts.imageInfo)
 			{ @exposedPorts, @portBindings } = @getPortsAndPortBindings()
 			@devices = formatDevices(@devices)
-			if checkTruthy(@labels['io.resin.features.dbus'])
-				@volumes.push('/run/dbus:/host/run/dbus')
-			if checkTruthy(@labels['io.resin.features.kernel_modules'])
-				@volumes.push('/lib/modules:/lib/modules')
-			if checkTruthy(@labels['io.resin.features.firmware'])
-				@volumes.push('/lib/firmware:/lib/firmware')
-			if checkTruthy(@labels['io.resin.features.supervisor_api'])
-				@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
-				@environment['RESIN_SUPERVISOR_API_KEY'] = opts.apiSecret
-				if @networkMode == 'host'
-					@environment['RESIN_SUPERVISOR_HOST'] = '127.0.0.1'
-					@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://127.0.0.1:#{opts.listenPort}"
+			@addFeaturesFromLabels(opts)
+			if @dns?
+				if !Array.isArray(@dns)
+					@dns = [ @dns ]
+			if @dnsSearch?
+				if !Array.isArray(@dnsSearch)
+					@dnsSearch = [ @dns ]
+
+			@nanoCpus = Math.round(Number(@cpus) * 10 ** 9)
+
+			@ulimitsArray = _.map @ulimits, (value, name) ->
+				if _.isNumber(value) or _.isString(value)
+					return { Name: name, Soft: parseInt(value), Hard: parseInt(value) }
 				else
-					@environment['RESIN_SUPERVISOR_HOST'] = opts.supervisorApiHost
-					@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://#{opts.supervisorApiHost}:#{opts.listenPort}"
-					@networks[constants.supervisorNetworkInterface] = {}
-			else
-				# We ensure the user hasn't added "supervisor0" to the service's networks
-				delete @networks[constants.supervisorNetworkInterface]
-			if checkTruthy(@labels['io.resin.features.resin_api'])
-				@environment['RESIN_API_KEY'] = opts.deviceApiKey
+					return { Name: name, Soft: parseInt(value.soft), Hard: parseInt(value.hard) }
+			if @init
+				@init = true
+
+			if @stopGracePeriod?
+				d = new Duration(@stopGracePeriod)
+				@stopGracePeriod = d.seconds()
+
+			@readOnly = Boolean(@readOnly)
+
+			if Array.isArray(@sysctls)
+				@sysctls = _.fromPairs(_.map(@sysctls, (v) -> _.split(v, '=')))
+
+	_addSupervisorApi: (opts) =>
+		@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
+		@environment['RESIN_SUPERVISOR_API_KEY'] = opts.apiSecret
+		if @networkMode == 'host'
+			@environment['RESIN_SUPERVISOR_HOST'] = '127.0.0.1'
+			@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://127.0.0.1:#{opts.listenPort}"
+		else
+			@environment['RESIN_SUPERVISOR_HOST'] = opts.supervisorApiHost
+			@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://#{opts.supervisorApiHost}:#{opts.listenPort}"
+			@networks[constants.supervisorNetworkInterface] = {}
+
+	addFeaturesFromLabels: (opts) =>
+		if checkTruthy(@labels['io.resin.features.dbus'])
+			@volumes.push('/run/dbus:/host/run/dbus')
+		if checkTruthy(@labels['io.resin.features.kernel_modules'])
+			@volumes.push('/lib/modules:/lib/modules')
+		if checkTruthy(@labels['io.resin.features.firmware'])
+			@volumes.push('/lib/firmware:/lib/firmware')
+		if checkTruthy(@labels['io.resin.features.supervisor_api'])
+			@_addSupervisorApi(opts)
+		else
+			# We ensure the user hasn't added "supervisor0" to the service's networks
+			delete @networks[constants.supervisorNetworkInterface]
+		if checkTruthy(@labels['io.resin.features.resin_api'])
+			@environment['RESIN_API_KEY'] = opts.deviceApiKey
 
 	extendEnvVars: ({ imageInfo, uuid, appName, name, version, deviceType, osVersion }) =>
 		newEnv =
@@ -169,9 +327,10 @@ module.exports = class Service
 		for vol in @volumes
 			isBind = /:/.test(vol)
 			if isBind
-				bindSource = vol.split(':')[0]
+				[ bindSource, bindDest ] = vol.split(':')
 				if !path.isAbsolute(bindSource)
-					volumes.push(vol)
+					# Rewrite named volumes to namespace by appId
+					volumes.push("#{@appId}_#{bindSource}:#{bindDest}")
 				else
 					console.log("Ignoring invalid bind mount #{vol}")
 			else
@@ -188,7 +347,7 @@ module.exports = class Service
 				return null
 			bindSource = vol.split(':')[0]
 			if !path.isAbsolute(bindSource)
-				return bindSource
+				return bindSource.split('_')[1]
 			else
 				return null
 		return _.filter(validVolumes, (v) -> !_.isNull(v))
@@ -263,6 +422,27 @@ module.exports = class Service
 			exposedPorts: container.Config.ExposedPorts
 			portBindings: container.HostConfig.PortBindings
 			networks: container.NetworkSettings.Networks
+			memLimit: container.HostConfig.Memory
+			memReservation: container.HostConfig.MemoryReservation
+			shmSize: container.HostConfig.ShmSize
+			cpuShares: container.HostConfig.CpuShares
+			cpuQuota: container.HostConfig.CpuQuota
+			nanoCpus: container.HostConfig.NanoCpus
+			cpuset: container.HostConfig.CpusetCpus
+			domainname: container.Config.Domainname
+			oomScoreAdj: container.HostConfig.OomScoreAdj
+			dns: container.HostConfig.Dns
+			dnsSearch: container.HostConfig.DnsSearch
+			dnsOpt: container.HostConfig.DnsOpt
+			tmpfs: _.keys(container.HostConfig.Tmpfs ? {})
+			extraHosts: container.HostConfig.ExtraHosts
+			ulimitsArray: container.HostConfig.Ulimits
+			stopSignal: container.Config.StopSignal
+			stopGracePeriod: container.Config.StopTimeout
+			healthcheck: container.Config.Healthcheck
+			init: container.HostConfig.Init
+			readOnly: container.HostConfig.ReadonlyRootfs
+			sysctls: container.HostConfig.Sysctls
 		}
 		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
 		if service.restartPolicy.Name == ''
@@ -297,6 +477,9 @@ module.exports = class Service
 
 	toContainerConfig: =>
 		{ binds, volumes } = @getBindsAndVolumes()
+		tmpfs = {}
+		for dir in @tmpfs
+			tmpfs[dir] = ''
 		conf = {
 			name: "#{@serviceName}_#{@imageId}_#{@releaseId}"
 			Image: @image
@@ -307,7 +490,11 @@ module.exports = class Service
 			Env: _.map @environment, (v, k) -> k + '=' + v
 			ExposedPorts: @exposedPorts
 			Labels: @labels
+			Domainname: @domainname
 			HostConfig:
+				Memory: @memLimit
+				MemoryReservation: @memReservation
+				ShmSize: @shmSize
 				Privileged: @privileged
 				NetworkMode: @networkMode
 				PortBindings: @portBindings
@@ -315,18 +502,38 @@ module.exports = class Service
 				CapAdd: @capAdd
 				CapDrop: @capDrop
 				Devices: @devices
+				CpuShares: @cpuShares
+				NanoCpus: @nanoCpus
+				CpuQuota: @cpuQuota
+				CpusetCpus: @cpuset
+				OomScoreAdj: @oomScoreAdj
+				Tmpfs: tmpfs
+				Dns: @dns
+				DnsSearch: @dnsSearch
+				DnsOpt: @dnsOpt
+				Ulimits: @ulimitsArray
+				ReadonlyRootfs: @readOnly
+				Sysctls: @sysctls
 		}
+		if @stopSignal?
+			conf.StopSignal = @stopSignal
+		if @stopGracePeriod?
+			conf.StopTimeout = @stopGracePeriod
+		if @healthcheck?
+			conf.Healthcheck = @healthcheck
 		if @restartPolicy.Name != 'no'
 			conf.HostConfig.RestartPolicy = @restartPolicy
 		# If network mode is the default network for this app, add alias for serviceName
-		if @networkMode == @appId.toString()
+		if @networkMode == "#{@appId}_default"
 			conf.NetworkingConfig = {
 				EndpointsConfig: {
-					"#{@appId}": {
+					"#{@appId}_default": {
 						Aliases: [ @serviceName ]
 					}
 				}
 			}
+		if @init
+			conf.HostConfig.Init = true
 		return conf
 
 	# TODO: when we support network configuration properly, return endpointConfig: conf
@@ -340,6 +547,8 @@ module.exports = class Service
 
 	isSameContainer: (otherService) =>
 		propertiesToCompare = [
+			'command'
+			'entrypoint'
 			'networkMode'
 			'privileged'
 			'restartPolicy'
@@ -347,12 +556,33 @@ module.exports = class Service
 			'environment'
 			'portBindings'
 			'exposedPorts'
+			'memLimit'
+			'memReservation'
+			'shmSize'
+			'cpuShares'
+			'cpuQuota'
+			'nanoCpus'
+			'cpuset'
+			'domainname'
+			'oomScoreAdj'
+			'healthcheck'
+			'stopSignal'
+			'stopGracePeriod'
+			'init'
+			'readOnly'
+			'sysctls'
 		]
 		arraysToCompare = [
 			'volumes'
 			'devices'
 			'capAdd'
 			'capDrop'
+			'dns'
+			'dnsSearch'
+			'dnsOpt'
+			'tmpfs'
+			'extraHosts'
+			'ulimitsArray'
 		]
 		isEq = Images.isSameImage({ name: @image }, { name: otherService.image }) and
 			_.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
@@ -365,6 +595,8 @@ module.exports = class Service
 		#if !isEq
 		#	console.log(JSON.stringify(this, null, 2))
 		#	console.log(JSON.stringify(otherService, null, 2))
+		#	diff = _.omitBy this, (prop, k) -> _.isEqual(prop, otherService[k])
+		#	console.log(JSON.stringify(diff, null, 2))
 
 		return isEq
 
