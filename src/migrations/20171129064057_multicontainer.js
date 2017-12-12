@@ -55,7 +55,7 @@ var singleToMulticontainerApp = function (app, appId) {
 			releaseId: 1,
 			image: app.imageId,
 			privileged: true,
-			network_mode: 'host',
+			networkMode: 'host',
 			volumes: [
 				`${defaultVolume}:/data`
 			],
