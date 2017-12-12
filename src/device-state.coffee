@@ -338,10 +338,10 @@ module.exports = class DeviceState extends EventEmitter
 				@shuttingDown = true
 				@emitAsync('shutdown')
 
-	executeStepAction: (step, { force, targetState }) =>
+	executeStepAction: (step, { force, initial }) =>
 		Promise.try =>
 			if _.includes(@deviceConfig.validActions, step.action)
-				@deviceConfig.executeStepAction(step)
+				@deviceConfig.executeStepAction(step, { initial })
 			else if _.includes(@applications.validActions, step.action)
 				@applications.executeStepAction(step, { force })
 			else
@@ -360,7 +360,7 @@ module.exports = class DeviceState extends EventEmitter
 			return
 		@stepsInProgress.push(step)
 		setImmediate =>
-			@executeStepAction(step, { force })
+			@executeStepAction(step, { force, initial })
 			.finally =>
 				@usingInferStepsLock =>
 					_.pullAllWith(@stepsInProgress, [ step ], _.isEqual)

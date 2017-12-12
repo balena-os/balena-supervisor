@@ -257,6 +257,9 @@ module.exports = class APIBinder
 				currentConfig = currentState.local.config
 				targetConfig = targetState.local.config
 				Promise.mapSeries _.toPairs(currentConfig), ([ key, value ]) =>
+					# We never want to disable VPN if, for instance, it failed to start so far
+					if key == 'RESIN_SUPERVISOR_VPN_CONTROL'
+						value = 'true'
 					if !targetConfig[key]?
 						envVar = {
 							value

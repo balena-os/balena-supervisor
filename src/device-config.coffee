@@ -37,7 +37,6 @@ arrayConfigKeys = [ 'dtparam', 'dtoverlay', 'device_tree_param', 'device_tree_ov
 module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 		@rebootRequired = false
-		@validActions = _.keys(@actionExecutors)
 		@gosuperHealthy = true
 		@configKeys = {
 			appUpdatePollInterval: { envVarName: 'RESIN_SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
@@ -52,6 +51,41 @@ module.exports = class DeviceConfig
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
 		}
 		@validKeys = [ 'RESIN_HOST_LOG_TO_DISPLAY', 'RESIN_SUPERVISOR_VPN_CONTROL' ].concat(_.map(@configKeys, 'envVarName'))
+		@actionExecutors = {
+			changeConfig: (step) =>
+				@logger.logConfigChange(step.humanReadableTarget)
+				@config.set(step.target)
+				.then =>
+					@logger.logConfigChange(step.humanReadableTarget, { success: true })
+				.catch (err) =>
+					@logger.logConfigChange(step.humanReadableTarget, { err })
+					throw err
+			setLogToDisplay: (step) =>
+				logValue = { RESIN_HOST_LOG_TO_DISPLAY: step.target }
+				@logger.logConfigChange(logValue)
+				@setLogToDisplay(step.target)
+				.then =>
+					@logger.logConfigChange(logValue, { success: true })
+				.catch (err) =>
+					@logger.logConfigChange(logValue, { err })
+					throw err
+			setVPNEnabled: (step, { initial = false } = {}) =>
+				logValue = { RESIN_SUPERVISOR_VPN_CONTROL: step.target }
+				if !initial
+					@logger.logConfigChange(logValue)
+				@setVPNEnabled(step.target)
+				.then =>
+					if !initial
+						@logger.logConfigChange(logValue, { success: true })
+				.catch (err) =>
+					@logger.logConfigChange(logValue, { err })
+					throw err
+			setBootConfig: (step) =>
+				@config.get('deviceType')
+				.then (deviceType) =>
+					@setBootConfig(deviceType, step.target)
+		}
+		@validActions = _.keys(@actionExecutors)
 
 	setTarget: (target, trx) =>
 		db = trx ? @db.models
@@ -137,6 +171,11 @@ module.exports = class DeviceConfig
 						action: 'setLogToDisplay'
 						target: target['RESIN_HOST_LOG_TO_DISPLAY']
 					})
+			if !_.isEmpty(target['RESIN_SUPERVISOR_VPN_CONTROL']) && checkTruthy(current['RESIN_SUPERVISOR_VPN_CONTROL']) != checkTruthy(target['RESIN_SUPERVISOR_VPN_CONTROL'])
+				steps.push({
+					action: 'setVPNEnabled'
+					target: target['RESIN_SUPERVISOR_VPN_CONTROL']
+				})
 			if @bootConfigChangeRequired(deviceType, current, target)
 				steps.push({
 					action: 'setBootConfig'
@@ -158,24 +197,8 @@ module.exports = class DeviceConfig
 				return [{ action: 'noop' }]
 			else return filteredSteps
 
-	actionExecutors: {
-		changeConfig: (step) =>
-			@logger.logConfigChange(step.humanReadableTarget)
-			@config.set(step.target)
-			.then =>
-				@logger.logConfigChange(step.humanReadableTarget, { success: true })
-			.catch (err) =>
-				@logger.logConfigChange(step.humanReadableTarget, { err })
-				throw err
-		setLogToDisplay: (step) =>
-			@setLogToDisplay(step.target)
-		setBootConfig: (step) =>
-			@config.get('deviceType')
-			.then (deviceType) =>
-				@setBootConfig(deviceType, step.target)
-	}
-	executeStepAction: (step) =>
-		@actionExecutors[step.action](step)
+	executeStepAction: (step, opts) =>
+		@actionExecutors[step.action](step, opts)
 
 	envToBootConfig: (env) ->
 		# We ensure env doesn't have garbage
@@ -244,12 +267,8 @@ module.exports = class DeviceConfig
 					throw new Error("#{response.statusCode} #{body.Error}")
 				else
 					if body.Data == true
-						@logger.logSystemMessage("#{if enable then 'Enabled' else 'Disabled'} logs to display")
 						@rebootRequired = true
 					return body.Data
-			.catch (err) =>
-				@logger.logSystemMessage("Error setting log to display: #{err}", { error: err }, 'Set log to display error')
-				throw err
 
 	setBootConfig: (deviceType, target) =>
 		Promise.try =>
@@ -294,7 +313,5 @@ module.exports = class DeviceConfig
 		enable = checkTruthy(val) ? true
 		gosuper.post('/v1/vpncontrol', { json: true, body: Enable: enable })
 		.spread (response, body) ->
-			if response.statusCode == 202
-				console.log('VPN enabled: ' + enable)
-			else
-				console.log('Error: ' + body + ' response:' + response.statusCode)
+			if response.statusCode != 202
+				throw new Error("#{response.statusCode} #{body?.Error}")
