@@ -61,13 +61,13 @@ getHealthcheck = (service, imageInfo) ->
 		healthcheck = imageInfo.Config.Healthcheck
 	if service.healthcheck?
 		if !healthcheck?
-			healthcheck = { Test: [], Interval: 0, Retries: 0, Timeout: 0, StartPeriod: 0 }
+			healthcheck = {}
 		if service.healthcheck.disable
 			healthcheck.Test = [ 'NONE' ]
 		else
 			if _.isString(service.healthcheck.test)
 				healthcheck.Test = [ 'CMD-SHELL', service.healthcheck.test ]
-			else if !_.isEqual(service.healthcheck.test, [])
+			else if service.healthcheck.test?
 				healthcheck.Test = service.healthcheck.test
 			if service.healthcheck.interval?
 				d = new Duration(service.healthcheck.interval)
@@ -85,6 +85,9 @@ getHealthcheck = (service, imageInfo) ->
 				r = parseInt(service.healthcheck.retries)
 				if r > 0
 					healthcheck.Retries = r
+	# Set invalid healthchecks back to null
+	if healthcheck and (!healthcheck.Test? or _.isEqual(healthcheck.Test, []))
+		healthcheck = null
 	return healthcheck
 
 killmePath = (appId, serviceName) ->
@@ -149,8 +152,9 @@ module.exports = class Service
 			@extraHosts
 			@ulimitsArray
 			@stopSignal
-			@stopPeriodGrace
+			@stopGracePeriod
 			@init
+			@healthcheck
 		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
 		@privileged ?= false
 		@volumes ?= []
@@ -168,7 +172,7 @@ module.exports = class Service
 		@networks ?= {}
 		@networks[@networkMode] ?= {}
 
-		@memLimit = parseMemoryNumber(@memLimit) ? 0
+		@memLimit = parseMemoryNumber(@memLimit ? '0') ? 0
 		@cpuShares ?= 0
 		@cpuQuota ?= 0
 		@cpus ?= 0
@@ -186,7 +190,7 @@ module.exports = class Service
 		@ulimitsArray ?= []
 
 		@stopSignal ?= null
-		@stopPeriodGrace ?= null
+		@stopGracePeriod ?= null
 		@healthcheck ?= null
 		@init ?= null
 
@@ -231,8 +235,7 @@ module.exports = class Service
 			if @dnsSearch?
 				if !Array.isArray(@dnsSearch)
 					@dnsSearch = [ @dns ]
-			if @stopPeriodGrace?
-				@stopPeriodGrace = parseInt(@stopPeriodGrace)
+
 			@nanoCpus = Math.round(Number(@cpus) * 10 ** 9)
 
 			@ulimitsArray = _.map @ulimits, (value, name) ->
@@ -242,6 +245,10 @@ module.exports = class Service
 					return { Name: name, Soft: parseInt(value.soft), Hard: parseInt(value.hard) }
 			if @init
 				@init = true
+
+			if @stopGracePeriod?
+				d = new Duration(@stopGracePeriod)
+				@stopGracePeriod = d.seconds()
 
 	extendEnvVars: ({ imageInfo, uuid, appName, name, version, deviceType, osVersion }) =>
 		newEnv =
@@ -396,7 +403,7 @@ module.exports = class Service
 			extraHosts: container.HostConfig.ExtraHosts
 			ulimitsArray: container.HostConfig.Ulimits
 			stopSignal: container.Config.StopSignal
-			stopPeriodGrace: container.Config.StopTimeout
+			stopGracePeriod: container.Config.StopTimeout
 			healthcheck: container.Config.Healthcheck
 			init: container.HostConfig.Init
 		}
@@ -468,11 +475,11 @@ module.exports = class Service
 				Ulimits: @ulimitsArray
 		}
 		if @stopSignal?
-			conf.Config.StopSignal = @stopSignal
-		if @stopPeriodGrace?
-			conf.Config.StopTimeout = @stopPeriodGrace
+			conf.StopSignal = @stopSignal
+		if @stopGracePeriod?
+			conf.StopTimeout = @stopGracePeriod
 		if @healthcheck?
-			conf.Config.Healthcheck = @healthcheck
+			conf.Healthcheck = @healthcheck
 		if @restartPolicy.Name != 'no'
 			conf.HostConfig.RestartPolicy = @restartPolicy
 		# If network mode is the default network for this app, add alias for serviceName
@@ -517,7 +524,7 @@ module.exports = class Service
 			'oomScoreAdj'
 			'healthcheck'
 			'stopSignal'
-			'stopPeriodGrace'
+			'stopGracePeriod'
 			'init'
 		]
 		arraysToCompare = [
@@ -543,6 +550,8 @@ module.exports = class Service
 		#if !isEq
 		#	console.log(JSON.stringify(this, null, 2))
 		#	console.log(JSON.stringify(otherService, null, 2))
+		#	diff = _.omitBy this, (prop, k) -> _.isEqual(prop, otherService[k])
+		#	console.log(JSON.stringify(diff, null, 2))
 
 		return isEq
 
