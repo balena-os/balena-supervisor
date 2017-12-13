@@ -22,7 +22,7 @@ parseMemoryNumber = (numAsString) ->
 # The default policy (if name is not a valid policy) is "always".
 createRestartPolicy = (name) ->
 	if not (name in validRestartPolicies)
-		name = 'unless-stopped'
+		name = 'always'
 	return { Name: name, MaximumRetryCount: 0 }
 
 getCommand = (service, imageInfo) ->
