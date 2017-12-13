@@ -6,15 +6,16 @@ path = require 'path'
 logTypes = require '../lib/log-types'
 constants = require '../lib/constants'
 { checkInt } = require '../lib/validation'
+{ NotFoundError } = require '../lib/errors'
 
 module.exports = class Volumes
 	constructor: ({ @docker, @logger }) ->
 
-	format: (volume) ->
-		appId = checkInt(volume.Labels['io.resin.app_id'])
+	format: (volume) =>
+		[ appId, name ] = volume.Name.split('_')
 		return {
-			name: volume.Name
-			appId
+			name: name
+			appId: checkInt(appId)
 			config: {
 				labels: _.omit(volume.Labels, _.keys(@defaultLabels(appId)))
 				driverOpts: volume.Options
@@ -35,15 +36,14 @@ module.exports = class Volumes
 		.then (volumes) ->
 			_.filter(volumes, (v) -> v.appId == appId)
 
-	get: (name) ->
-		@docker.getVolume(name).inspect()
-		.then (volume) ->
+	get: ({ name, appId }) ->
+		@docker.getVolume("#{appId}_#{name}").inspect()
+		.then (volume) =>
 			return @format(volume)
 
-	defaultLabels: (appId) ->
+	defaultLabels: ->
 		return {
 			'io.resin.supervised': 'true'
-			'io.resin.app_id': appId.toString()
 		}
 
 	# TODO: what config values are relevant/whitelisted?
@@ -52,13 +52,18 @@ module.exports = class Volumes
 		config = _.mapKeys(config, (v, k) -> _.camelCase(k))
 		@logger.logSystemEvent(logTypes.createVolume, { volume: { name } })
 		labels = _.clone(config.labels) ? {}
-		_.assign(labels, @defaultLabels(appId))
+		_.assign(labels, @defaultLabels())
 		driverOpts = config.driverOpts ? {}
-		@docker.createVolume({
-			Name: name
-			Labels: labels
-			DriverOpts: driverOpts
-		})
+		@get({ name, appId })
+		.then (vol) =>
+			if !@isEqualConfig(vol.config, config)
+				throw new Error("Trying to create volume '#{name}', but a volume with same name and different configuration exists")
+		.catch NotFoundError, =>
+			@docker.createVolume({
+				Name: "#{appId}_#{name}"
+				Labels: labels
+				DriverOpts: driverOpts
+			})
 		.catch (err) =>
 			@logger.logSystemEvent(logTypes.createVolumeError, { volume: { name }, error: err })
 			throw err
@@ -81,11 +86,11 @@ module.exports = class Volumes
 		.catch (err) ->
 			@logger.logSystemMessage("Warning: could not migrate legacy /data volume: #{err.message}", { error: err }, 'Volume migration error')
 
-	remove: ({ name }) ->
+	remove: ({ name, appId }) ->
 		@logger.logSystemEvent(logTypes.removeVolume, { volume: { name } })
-		@docker.getVolume(name).remove()
+		@docker.getVolume("#{appId}_#{name}").remove()
 		.catch (err) =>
-			@logger.logSystemEvent(logTypes.removeVolumeError, { volume: { name }, error: err })
+			@logger.logSystemEvent(logTypes.removeVolumeError, { volume: { name, appId }, error: err })
 
 	isEqualConfig: (current = {}, target = {}) ->
 		current = _.mapKeys(current, (v, k) -> _.camelCase(k))

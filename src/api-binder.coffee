@@ -150,7 +150,7 @@ module.exports = class APIBinder
 		.then (opts) =>
 			if opts.registered_at? and opts.deviceId? and !opts.provisioningApiKey?
 				return
-			Promise.try ->
+			Promise.try =>
 				if opts.registered_at? and !opts.deviceId?
 					console.log('Device is registered but no device id available, attempting key exchange')
 					@_exchangeKeyAndGetDeviceOrRegenerate(opts)

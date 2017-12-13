@@ -202,7 +202,7 @@ module.exports = class ApplicationManager extends EventEmitter
 							@logger.logSystemMessage('No volumes to purge', { appId }, 'Purge data noop')
 							return
 						Promise.mapSeries _.toPairs(app.volumes ? {}), ([ name, config ]) =>
-							@volumes.remove({ name })
+							@volumes.remove({ name, appId })
 							.then =>
 								@volumes.create({ name, config, appId })
 					.then =>
@@ -502,13 +502,13 @@ module.exports = class ApplicationManager extends EventEmitter
 		if !service?
 			return false
 		hasNetwork = _.some networkPairs, (pair) ->
-			pair.current.name == service.networkMode
+			"#{service.appId}_#{pair.current?.name}" == service.networkMode
 		if hasNetwork
 			return true
 		hasVolume = _.some service.volumes, (volume) ->
 			name = _.split(volume, ':')[0]
 			_.some volumePairs, (pair) ->
-				pair.current.name == name
+				"#{service.appId}_#{pair.current?.name}" == name
 		if hasVolume
 			return true
 		return false
@@ -522,15 +522,16 @@ module.exports = class ApplicationManager extends EventEmitter
 		if dependencyUnmet
 			return false
 		# for networks and volumes, check no network pairs have that volume name
-		if _.find(networkPairs, (pair) -> pair.target?.name == target.networkMode)?
+		if _.find(networkPairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == target.networkMode)?
 			return false
-		if _.find(stepsInProgress, (step) -> step.model == 'network' and step.target?.name == target.networkMode)?
+		if _.find(stepsInProgress, (step) -> step.model == 'network' and "#{target.appId}_#{step.target?.name}" == target.networkMode)?
 			return false
 		volumeUnmet = _.some target.volumes, (volumeDefinition) ->
 			[ sourceName, destName ] = volumeDefinition.split(':')
 			if !destName? # If this is not a named volume, ignore it
 				return false
-			_.find(volumePairs, (pair) -> pair.target?.name == sourceName)? or _.find(stepsInProgress, (step) -> step.model == 'volume' and step.target.name == sourceName)?
+			return _.find(volumePairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == sourceName)? or
+				_.find(stepsInProgress, (step) -> step.model == 'volume' and "#{target.appId}_#{step.target?.name}" == sourceName)?
 		return !volumeUnmet
 
 	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
@@ -544,7 +545,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					return false
 		return true
 
-	_nextStepsForNetworkOrVolume: ({ current, target }, currentApp, changingPairs, dependencyComparisonFn, model) ->
+	_nextStepsForNetworkOrVolume: ({ current, target }, currentApp, changingPairs, dependencyComparisonFn, model, stepsInProgress) ->
 		# Check none of the currentApp.services use this network or volume
 		if current?
 			dependencies = _.filter currentApp.services, (service) ->
@@ -556,24 +557,24 @@ module.exports = class ApplicationManager extends EventEmitter
 				# we have to kill them before removing the network/volume (e.g. when we're only updating the network config)
 				steps = []
 				for dependency in dependencies
-					if !_.some(changingPairs, (pair) -> pair.serviceId == dependency.serviceId)
+					if !_.some(changingPairs, (pair) -> pair.serviceId == dependency.serviceId) and !_.find(stepsInProgress, (step) -> step.serviceId == dependency.serviceId)?
 						steps.push(serviceAction('kill', dependency.serviceId, dependency))
 				return steps
 		else if target?
 			return [{ action: 'createNetworkOrVolume', model, target }]
 
-	_nextStepsForNetwork: ({ current, target }, currentApp, changingPairs) =>
+	_nextStepsForNetwork: ({ current, target }, currentApp, changingPairs, stepsInProgress) =>
 		dependencyComparisonFn = (service, current) ->
-			service.networkMode == current.name
-		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'network')
+			service.networkMode == "#{service.appId}_#{current?.name}"
+		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'network', stepsInProgress)
 
-	_nextStepsForVolume: ({ current, target }, currentApp, changingPairs) ->
+	_nextStepsForVolume: ({ current, target }, currentApp, changingPairs, stepsInProgress) ->
 		# Check none of the currentApp.services use this network or volume
 		dependencyComparisonFn = (service, current) ->
 			_.some service.volumes, (volumeDefinition) ->
 				sourceName = volumeDefinition.split(':')[0]
-				sourceName == current.name
-		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'volume')
+				sourceName == "#{service.appId}_#{current?.name}"
+		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'volume', stepsInProgress)
 
 	# Infers steps that do not require creating a new container
 	_updateContainerStep: (current, target) ->
@@ -652,7 +653,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			targetApp = emptyApp
 		else
 			# Create the default network for the target app
-			targetApp.networks[targetApp.appId] ?= {}
+			targetApp.networks['default'] ?= {}
 		if !currentApp?
 			currentApp = emptyApp
 		appId = targetApp.appId ? currentApp.appId
@@ -663,7 +664,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		steps = []
 		# All removePairs get a 'kill' action
 		for pair in removePairs
-			steps.push(serviceAction('kill', pair.current.serviceId, pair.current, null))
+			if !_.find(stepsInProgress, (step) -> step.serviceId == pair.current.serviceId)?
+				steps.push(serviceAction('kill', pair.current.serviceId, pair.current, null))
 		# next step for install pairs in download - start order, but start requires dependencies, networks and volumes met
 		# next step for update pairs in order by update strategy. start requires dependencies, networks and volumes met.
 		for pair in installPairs.concat(updatePairs)

@@ -158,6 +158,8 @@ module.exports = class Service
 			@init
 			@healthcheck
 		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
+
+		@networks ?= {}
 		@privileged ?= false
 		@volumes ?= []
 		@labels ?= {}
@@ -170,9 +172,6 @@ module.exports = class Service
 		@devices ?= []
 		@exposedPorts ?= {}
 		@portBindings ?= {}
-		@networkMode ?= @appId.toString()
-		@networks ?= {}
-		@networks[@networkMode] ?= {}
 
 		@memLimit = parseMemoryNumber(@memLimit ? '0') ? 0
 		@cpuShares ?= 0
@@ -198,6 +197,18 @@ module.exports = class Service
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
+			@networkMode ?= 'default'
+			if @networkMode not in [ 'host', 'bridge', 'none' ]
+				@networkMode = "#{@appId}_#{@networkMode}"
+
+			@networks = _.mapKeys @networks, (v, k) ->
+				if k not in [ 'host', 'bridge', 'none' ]
+					return "#{@appId}_#{k}"
+				else
+					return k
+
+			@networks[@networkMode] ?= {}
+
 			@restartPolicy = createRestartPolicy(serviceProperties.restart)
 			@command = getCommand(serviceProperties, opts.imageInfo)
 			@entrypoint = getEntrypoint(serviceProperties, opts.imageInfo)
@@ -302,9 +313,10 @@ module.exports = class Service
 		for vol in @volumes
 			isBind = /:/.test(vol)
 			if isBind
-				bindSource = vol.split(':')[0]
+				[ bindSource, bindDest ] = vol.split(':')
 				if !path.isAbsolute(bindSource)
-					volumes.push(vol)
+					# Rewrite named volumes to namespace by appId
+					volumes.push("#{@appId}_#{bindSource}:#{bindDest}")
 				else
 					console.log("Ignoring invalid bind mount #{vol}")
 			else
@@ -321,7 +333,7 @@ module.exports = class Service
 				return null
 			bindSource = vol.split(':')[0]
 			if !path.isAbsolute(bindSource)
-				return bindSource
+				return bindSource.split('_')[1]
 			else
 				return null
 		return _.filter(validVolumes, (v) -> !_.isNull(v))
