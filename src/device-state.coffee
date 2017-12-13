@@ -131,7 +131,8 @@ module.exports = class DeviceState extends EventEmitter
 	healthcheck: =>
 		@config.getMany([ 'appUpdatePollInterval', 'offlineMode' ])
 		.then (conf) =>
-			applyTargetHealthy = conf.offlineMode or !@applyInProgress or process.hrtime(@lastApplyStart)[0] - @applications.timeSpentFetching < 2 * conf.appUpdatePollInterval
+			cycleTimeWithinInterval = process.hrtime(@lastApplyStart)[0] - @applications.timeSpentFetching < 2 * conf.appUpdatePollInterval
+			applyTargetHealthy = conf.offlineMode or !@applyInProgress or @applications.fetchesInProgress > 0 or cycleTimeWithinInterval
 			return applyTargetHealthy and @deviceConfig.gosuperHealthy
 
 	normaliseLegacy: =>

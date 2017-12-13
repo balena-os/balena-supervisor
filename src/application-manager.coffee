@@ -176,6 +176,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@volumes = new Volumes({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
 		@timeSpentFetching = 0
+		@fetchesInProgress = 0
 		@_targetVolatilePerServiceId = {}
 		@actionExecutors = {
 			stop: (step, { force = false } = {}) =>
@@ -224,6 +225,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					@services.handover(step.current, step.target)
 			fetch: (step) =>
 				startTime = process.hrtime()
+				@fetchesInProgress += 1
 				Promise.join(
 					@config.get('fetchOptions')
 					@images.getAvailable()
@@ -232,6 +234,7 @@ module.exports = class ApplicationManager extends EventEmitter
 						@images.fetch(step.image, opts)
 				)
 				.finally =>
+					@fetchesInProgress -= 1
 					@timeSpentFetching += process.hrtime(startTime)[0]
 					@reportCurrentState(update_downloaded: true)
 			removeImage: (step) =>
