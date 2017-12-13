@@ -15,7 +15,7 @@ parseMemoryNumber = (numAsString) ->
 	if !m?
 		return null
 	num = m[1]
-	pow = { '': 0, 'b': 0, 'B': 0, 'K': 1,'k': 1, 'm': 2, 'M': 2, 'g': 3, 'G': 3 }
+	pow = { '': 0, 'b': 0, 'B': 0, 'K': 1, 'k': 1, 'm': 2, 'M': 2, 'g': 3, 'G': 3 }
 	return parseInt(num) * 1024 ** pow[m[2]]
 
 # Construct a restart policy based on its name.
@@ -55,36 +55,38 @@ getStopSignal = (service, imageInfo) ->
 		sig = sig.toString()
 	return sig
 
+buildHealthcheckTest = (test) ->
+	if _.isString(test)
+		return [ 'CMD-SHELL', test ]
+	else
+		return test
+
+getNanoseconds = (duration) ->
+	d = new Duration(duration)
+	return d.nanoseconds()
+
+# Mutates imageHealthcheck
+overrideHealthcheckFromCompose = (serviceHealthcheck, imageHealthcheck = {}) ->
+	if serviceHealthcheck.disable
+		imageHealthcheck.Test = [ 'NONE' ]
+	else
+		imageHealthcheck.Test = buildHealthcheckTest(serviceHealthcheck.test)
+		if serviceHealthcheck.interval?
+			imageHealthcheck.Interval = getNanoseconds(serviceHealthcheck.interval)
+		if serviceHealthcheck.timeout?
+			imageHealthcheck.Timeout = getNanoseconds(serviceHealthcheck.timeout)
+		if serviceHealthcheck.start_period?
+			imageHealthcheck.StartPeriod = getNanoseconds(serviceHealthcheck.start_period)
+		if serviceHealthcheck.retries?
+			imageHealthcheck.Retries = parseInt(serviceHealthcheck.retries)
+	return imageHealthcheck
+
 getHealthcheck = (service, imageInfo) ->
 	healthcheck = null
 	if imageInfo?.Config?.Healthcheck?
 		healthcheck = imageInfo.Config.Healthcheck
 	if service.healthcheck?
-		if !healthcheck?
-			healthcheck = {}
-		if service.healthcheck.disable
-			healthcheck.Test = [ 'NONE' ]
-		else
-			if _.isString(service.healthcheck.test)
-				healthcheck.Test = [ 'CMD-SHELL', service.healthcheck.test ]
-			else if service.healthcheck.test?
-				healthcheck.Test = service.healthcheck.test
-			if service.healthcheck.interval?
-				d = new Duration(service.healthcheck.interval)
-				if d.nanoseconds() > 0
-					healthcheck.Interval = d.nanoseconds()
-			if service.healthcheck.timeout?
-				d = new Duration(service.healthcheck.timeout)
-				if d.nanoseconds() > 0
-					healthcheck.Timeout = d.nanoseconds()
-			if service.healthcheck.start_period?
-				d = new Duration(service.healthcheck.start_period)
-				if d.nanoseconds() > 0
-					healthcheck.StartPeriod = d.nanoseconds()
-			if service.healthcheck.retries?
-				r = parseInt(service.healthcheck.retries)
-				if r > 0
-					healthcheck.Retries = r
+		healthcheck = overrideHealthcheckFromCompose(service.healthcheck, healthcheck)
 	# Set invalid healthchecks back to null
 	if healthcheck and (!healthcheck.Test? or _.isEqual(healthcheck.Test, []))
 		healthcheck = null
@@ -207,28 +209,7 @@ module.exports = class Service
 			@extendAndSanitiseExposedPorts(opts.imageInfo)
 			{ @exposedPorts, @portBindings } = @getPortsAndPortBindings()
 			@devices = formatDevices(@devices)
-			if checkTruthy(@labels['io.resin.features.dbus'])
-				@volumes.push('/run/dbus:/host/run/dbus')
-			if checkTruthy(@labels['io.resin.features.kernel_modules'])
-				@volumes.push('/lib/modules:/lib/modules')
-			if checkTruthy(@labels['io.resin.features.firmware'])
-				@volumes.push('/lib/firmware:/lib/firmware')
-			if checkTruthy(@labels['io.resin.features.supervisor_api'])
-				@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
-				@environment['RESIN_SUPERVISOR_API_KEY'] = opts.apiSecret
-				if @networkMode == 'host'
-					@environment['RESIN_SUPERVISOR_HOST'] = '127.0.0.1'
-					@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://127.0.0.1:#{opts.listenPort}"
-				else
-					@environment['RESIN_SUPERVISOR_HOST'] = opts.supervisorApiHost
-					@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://#{opts.supervisorApiHost}:#{opts.listenPort}"
-					@networks[constants.supervisorNetworkInterface] = {}
-			else
-				# We ensure the user hasn't added "supervisor0" to the service's networks
-				delete @networks[constants.supervisorNetworkInterface]
-			if checkTruthy(@labels['io.resin.features.resin_api'])
-				@environment['RESIN_API_KEY'] = opts.deviceApiKey
-
+			@addFeaturesFromLabels(opts)
 			if @dns?
 				if !Array.isArray(@dns)
 					@dns = [ @dns ]
@@ -249,6 +230,32 @@ module.exports = class Service
 			if @stopGracePeriod?
 				d = new Duration(@stopGracePeriod)
 				@stopGracePeriod = d.seconds()
+
+	_addSupervisorApi: (opts) =>
+		@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
+		@environment['RESIN_SUPERVISOR_API_KEY'] = opts.apiSecret
+		if @networkMode == 'host'
+			@environment['RESIN_SUPERVISOR_HOST'] = '127.0.0.1'
+			@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://127.0.0.1:#{opts.listenPort}"
+		else
+			@environment['RESIN_SUPERVISOR_HOST'] = opts.supervisorApiHost
+			@environment['RESIN_SUPERVISOR_ADDRESS'] = "http://#{opts.supervisorApiHost}:#{opts.listenPort}"
+			@networks[constants.supervisorNetworkInterface] = {}
+
+	addFeaturesFromLabels: (opts) =>
+		if checkTruthy(@labels['io.resin.features.dbus'])
+			@volumes.push('/run/dbus:/host/run/dbus')
+		if checkTruthy(@labels['io.resin.features.kernel_modules'])
+			@volumes.push('/lib/modules:/lib/modules')
+		if checkTruthy(@labels['io.resin.features.firmware'])
+			@volumes.push('/lib/firmware:/lib/firmware')
+		if checkTruthy(@labels['io.resin.features.supervisor_api'])
+			@_addSupervisorApi(opts)
+		else
+			# We ensure the user hasn't added "supervisor0" to the service's networks
+			delete @networks[constants.supervisorNetworkInterface]
+		if checkTruthy(@labels['io.resin.features.resin_api'])
+			@environment['RESIN_API_KEY'] = opts.deviceApiKey
 
 	extendEnvVars: ({ imageInfo, uuid, appName, name, version, deviceType, osVersion }) =>
 		newEnv =
@@ -492,7 +499,7 @@ module.exports = class Service
 				}
 			}
 		if @init
-			container.HostConfig.Init = true
+			conf.HostConfig.Init = true
 		return conf
 
 	# TODO: when we support network configuration properly, return endpointConfig: conf
