@@ -60,14 +60,13 @@ module.exports = class Networks
 		# but the interface does not
 		@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
 		.then (net) ->
-			return net.Options['com.docker.network.bridge.name'] == constants.supervisorNetworkInterface and
-				os.networkInterfaces()[constants.supervisorNetworkInterface]?
+			return net.Options['com.docker.network.bridge.name'] == constants.supervisorNetworkInterface
 		.catchReturn(NotFoundError, false)
 
 	ensureSupervisorNetwork: =>
 		@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
 		.then (net) =>
-			if net.Options['com.docker.network.bridge.name'] != constants.supervisorNetworkInterface or !os.networkInterfaces()[constants.supervisorNetworkInterface]?
+			if net.Options['com.docker.network.bridge.name'] != constants.supervisorNetworkInterface
 				@docker.getNetwork(constants.supervisorNetworkInterface).remove()
 				.then =>
 					@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
