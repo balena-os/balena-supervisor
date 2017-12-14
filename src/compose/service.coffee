@@ -502,10 +502,10 @@ module.exports = class Service
 		if @restartPolicy.Name != 'no'
 			conf.HostConfig.RestartPolicy = @restartPolicy
 		# If network mode is the default network for this app, add alias for serviceName
-		if @networkMode == @appId.toString()
+		if @networkMode == "#{@appId}_default"
 			conf.NetworkingConfig = {
 				EndpointsConfig: {
-					"#{@appId}": {
+					"#{@appId}_default": {
 						Aliases: [ @serviceName ]
 					}
 				}
