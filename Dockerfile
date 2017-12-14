@@ -117,8 +117,38 @@ RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/c
 
 FROM i386-node-base as i386-nlp-node-base
 
+##############################################################################
+
+# We always do the webpack build on amd64, cause it's way faster
+FROM amd64-node-base as node-build
+
+WORKDIR /usr/src/app
+
+RUN apt-get update \
+	&& apt-get install -y \
+		g++ \
+		git \
+		libsqlite3-dev \
+		make \
+		python \
+		rsync \
+		wget \
+	&& rm -rf /var/lib/apt/lists/
+
+COPY package.json /usr/src/app/
+
+RUN JOBS=MAX npm install --no-optional --unsafe-perm
+
+COPY webpack.config.js fix-jsonstream.js /usr/src/app/
+COPY src /usr/src/app/src
+
+RUN npm run lint \
+	&& npm run build
+
+##############################################################################
+
 # Build nodejs dependencies
-FROM $ARCH-node-base as node
+FROM $ARCH-node-base as node-deps
 ARG ARCH
 
 RUN [ "cross-build-start" ]
@@ -142,20 +172,8 @@ RUN mkdir -p rootfs-overlay && \
 COPY package.json /usr/src/app/
 
 # Install only the production modules that have C extensions
-# Save the modules and then install devDependencies for build
 RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
-	&& npm dedupe \
-	&& cp -R node_modules node_modules_prod \
-	&& npm install --no-optional --unsafe-perm
-
-COPY webpack.config.js fix-jsonstream.js /usr/src/app/
-COPY src /usr/src/app/src
-
-# Build the coffeescript and then restore the production modules
-RUN npm run lint \
-	&& npm run build \
-	&& rm -rf node_modules \
-	&& mv node_modules_prod node_modules
+	&& npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space
 # We also remove the spurious node.dtps, see https://github.com/mapbox/node-sqlite3/issues/861
@@ -177,7 +195,7 @@ COPY entry.sh run.sh package.json rootfs-overlay/usr/src/app/
 
 COPY inittab rootfs-overlay/etc/inittab
 
-RUN rsync -a --delete node_modules dist rootfs-overlay /build
+RUN rsync -a --delete node_modules rootfs-overlay /build
 
 RUN [ "cross-build-end" ]
 
@@ -195,10 +213,10 @@ COPY --from=base /dest/ /
 
 WORKDIR /usr/src/app
 
-COPY --from=node /build/dist ./dist
-COPY --from=node /build/node_modules ./node_modules
+COPY --from=node-build /usr/src/app/dist ./dist
+COPY --from=node-deps /build/node_modules ./node_modules
 COPY --from=gosuper /build/gosuper ./gosuper
-COPY --from=node /build/rootfs-overlay/ /
+COPY --from=node-deps /build/rootfs-overlay/ /
 
 VOLUME /data
 
