@@ -10,7 +10,6 @@ process.env.DOCKER_HOST ?= "unix://#{constants.dockerSocket}"
 Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
-{ NotFoundError } = require './lib/errors'
 
 ServiceManager = require './compose/service-manager'
 Service = require './compose/service'
@@ -249,6 +248,8 @@ module.exports = class ApplicationManager extends EventEmitter
 			removeNetworkOrVolume: (step) =>
 				model = if step.model is 'volume' then @volumes else @networks
 				model.remove(step.current)
+			ensureSupervisorNetwork: =>
+				@networks.ensureSupervisorNetwork()
 		}
 		@validActions = _.keys(@actionExecutors).concat(@proxyvisor.validActions)
 		@_router = new ApplicationManagerRouter(this)
@@ -264,19 +265,8 @@ module.exports = class ApplicationManager extends EventEmitter
 	reportCurrentState: (data) =>
 		@emit('change', data)
 
-	ensureSupervisorNetwork: =>
-		@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
-		.catch NotFoundError, =>
-			@docker.createNetwork({
-				Name: constants.supervisorNetworkInterface
-				Options:
-					'com.docker.network.bridge.name': constants.supervisorNetworkInterface
-			})
-
 	init: =>
 		@images.cleanupDatabase()
-		.then =>
-			@ensureSupervisorNetwork()
 		.then =>
 			@services.attachToRunning()
 		.then =>
@@ -831,11 +821,13 @@ module.exports = class ApplicationManager extends EventEmitter
 			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) => @images.isSameImage(image, { name: proxyvisorImage })
 			return notUsedForDelta and notUsedByProxyvisor
 
-	_inferNextSteps: (cleanupNeeded, availableImages, current, target, stepsInProgress) =>
+	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress) =>
 		Promise.try =>
 			currentByAppId = _.keyBy(current.local.apps ? [], 'appId')
 			targetByAppId = _.keyBy(target.local.apps ? [], 'appId')
 			nextSteps = []
+			if !supervisorNetworkReady
+				nextSteps.push({ action: 'ensureSupervisorNetwork' })
 			if !_.some(stepsInProgress, (step) -> step.action == 'fetch')
 				if cleanupNeeded
 					nextSteps.push({ action: 'cleanup' })
@@ -880,8 +872,9 @@ module.exports = class ApplicationManager extends EventEmitter
 		Promise.join(
 			@images.isCleanupNeeded()
 			@images.getAvailable()
-			(cleanupNeeded, availableImages) =>
-				@_inferNextSteps(cleanupNeeded, availableImages, currentState, targetState, stepsInProgress)
+			@networks.supervisorNetworkReady()
+			(cleanupNeeded, availableImages, supervisorNetworkReady) =>
+				@_inferNextSteps(cleanupNeeded, availableImages, supervisorNetworkReady, currentState, targetState, stepsInProgress)
 				.then (nextSteps) =>
 					@proxyvisor.getRequiredSteps(availableImages, currentState, targetState, nextSteps.concat(stepsInProgress))
 					.then (proxyvisorSteps) ->
