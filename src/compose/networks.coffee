@@ -1,4 +1,3 @@
-os = require 'os'
 logTypes = require '../lib/log-types'
 { checkInt } = require '../lib/validation'
 { NotFoundError } = require '../lib/errors'

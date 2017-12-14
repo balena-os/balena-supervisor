@@ -712,6 +712,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		Promise.join(
 			@config.get('extendedEnvOptions')
 			@docker.getNetworkGateway(constants.supervisorNetworkInterface)
+			.catchReturn('127.0.0.1')
 			(opts, supervisorApiHost) =>
 				configOpts = {
 					appName: app.name
@@ -828,17 +829,18 @@ module.exports = class ApplicationManager extends EventEmitter
 			nextSteps = []
 			if !supervisorNetworkReady
 				nextSteps.push({ action: 'ensureSupervisorNetwork' })
-			if !_.some(stepsInProgress, (step) -> step.action == 'fetch')
-				if cleanupNeeded
-					nextSteps.push({ action: 'cleanup' })
-				imagesToRemove = @_unnecessaryImages(current, target, availableImages)
-				for image in imagesToRemove
-					nextSteps.push({ action: 'removeImage', image })
-			# If we have to remove any images, we do that before anything else
-			if _.isEmpty(nextSteps)
-				allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
-				for appId in allAppIds
-					nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, stepsInProgress))
+			else
+				if !_.some(stepsInProgress, (step) -> step.action == 'fetch')
+					if cleanupNeeded
+						nextSteps.push({ action: 'cleanup' })
+					imagesToRemove = @_unnecessaryImages(current, target, availableImages)
+					for image in imagesToRemove
+						nextSteps.push({ action: 'removeImage', image })
+				# If we have to remove any images, we do that before anything else
+				if _.isEmpty(nextSteps)
+					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
+					for appId in allAppIds
+						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, stepsInProgress))
 			return @_removeDuplicateSteps(nextSteps, stepsInProgress)
 
 	_removeDuplicateSteps: (nextSteps, stepsInProgress) ->
