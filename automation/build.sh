@@ -55,17 +55,20 @@ TARGET_IMAGE=resin/$ARCH-supervisor:$TAG
 # Intermediate images and cache
 BASE_IMAGE=resin/$ARCH-supervisor-base:$TAG
 NODE_IMAGE=resin/$ARCH-supervisor-node:$TAG
+NODE_BUILD_IMAGE=resin/$ARCH-supervisor-node:$TAG-build
 GO_IMAGE=resin/$ARCH-supervisor-go:$TAG
 
 TARGET_CACHE=$TARGET_IMAGE
 BASE_CACHE=$BASE_IMAGE
 GO_CACHE=$GO_IMAGE
 NODE_CACHE=$NODE_IMAGE
+NODE_BUILD_CACHE=$NODE_BUILD_IMAGE
 
 TARGET_CACHE_MASTER=resin/$ARCH-supervisor:master
 BASE_CACHE_MASTER=resin/$ARCH-supervisor-base:master
 GO_CACHE_MASTER=resin/$ARCH-supervisor-go:master
 NODE_CACHE_MASTER=resin/$ARCH-supervisor-node:master
+NODE_BUILD_CACHE_MASTER=resin/$ARCH-supervisor-node:master-build
 
 CACHE_FROM=""
 function tryPullForCache() {
@@ -85,6 +88,8 @@ tryPullForCache $GO_CACHE
 tryPullForCache $GO_CACHE_MASTER
 tryPullForCache $NODE_CACHE
 tryPullForCache $NODE_CACHE_MASTER
+tryPullForCache $NODE_BUILD_CACHE
+tryPullForCache $NODE_BUILD_CACHE_MASTER
 
 if [ "$ENABLE_TESTS" = "true" ]; then
 	make ARCH=$ARCH IMAGE=$GO_IMAGE test-gosuper
@@ -108,7 +113,13 @@ if [ "$PUSH_IMAGES" = "true" ]; then
 fi
 export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${GO_IMAGE}"
 
-make IMAGE=$NODE_IMAGE nodesuper
+make IMAGE=$NODE_BUILD_IMAGE nodebuild
+if [ "$PUSH_IMAGES" = "true" ]; then
+	make IMAGE=$NODE_BUILD_IMAGE deploy || true
+fi
+export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${NODE_BUILD_IMAGE}"
+
+make IMAGE=$NODE_IMAGE nodedeps
 if [ "$PUSH_IMAGES" = "true" ]; then
 	make IMAGE=$NODE_IMAGE deploy || true
 fi
@@ -132,9 +143,11 @@ if [ "$CLEANUP" = "true" ]; then
 	tryRemove $BASE_IMAGE
 	tryRemove $GO_IMAGE
 	tryRemove $NODE_IMAGE
+	tryRemove $NODE_BUILD_IMAGE
 
 	tryRemove $TARGET_CACHE
 	tryRemove $BASE_CACHE
 	tryRemove $GO_CACHE
+	tryRemove $NODE_BUILD_CACHE
 	tryRemove $NODE_CACHE
 fi

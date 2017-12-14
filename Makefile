@@ -8,7 +8,7 @@
 # * deploy - pushes a resin-supervisor image to the registry, retrying up to 3 times
 # * base - builds the "base" component (a yocto builder with the output rootfs at /dest)
 # * gosuper - builds the "gosuper" component (a golang image with the Go supervisor component at /go/bin/gosuper and /build/gosuper)
-# * nodesuper - builds the node component, with the node_modules and src at /usr/src/app and /build (also includes a rootfs-overlay there)
+# * nodedeps, nodebuild - builds the node component, with the node_modules and src at /usr/src/app and /build (also includes a rootfs-overlay there)
 # * supervisor-dind: build the development docker-in-docker supervisor that run-supervisor uses (requires a SUPERVISOR_IMAGE to be available locally)
 #
 # Variables for build targets:
@@ -191,8 +191,11 @@ deploy:
 base:
 	$(MAKE) -f $(THIS_FILE) TARGET_COMPONENT=base IMAGE=$(IMAGE) ARCH=$(ARCH) supervisor-image
 
-nodesuper:
-	$(MAKE) -f $(THIS_FILE) TARGET_COMPONENT=node IMAGE=$(IMAGE) ARCH=$(ARCH) supervisor-image
+nodedeps:
+	$(MAKE) -f $(THIS_FILE) TARGET_COMPONENT=node-deps IMAGE=$(IMAGE) ARCH=$(ARCH) supervisor-image
+
+nodebuild:
+	$(MAKE) -f $(THIS_FILE) TARGET_COMPONENT=node-build IMAGE=$(IMAGE) ARCH=$(ARCH) supervisor-image
 
 gosuper:
 	$(MAKE) -f $(THIS_FILE) TARGET_COMPONENT=gosuper IMAGE=$(IMAGE) ARCH=$(ARCH) supervisor-image
@@ -223,4 +226,4 @@ test-integration: gosuper
 		$(IMAGE) \
 			go test -v ./supertest
 
-.PHONY: supervisor deploy base nodesuper gosuper supervisor-dind run-supervisor
+.PHONY: supervisor deploy base nodedeps nodebuild gosuper supervisor-dind run-supervisor
