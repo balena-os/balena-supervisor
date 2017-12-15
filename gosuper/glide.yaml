@@ -7,8 +7,3 @@ import:
   - login1
 - package: github.com/gorilla/mux
   version: ^1.4.0
-- package: github.com/samalba/dockerclient
-- package: github.com/shirou/gopsutil
-  version: ^2.17.5
-  subpackages:
-  - process
