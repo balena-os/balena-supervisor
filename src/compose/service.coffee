@@ -154,6 +154,7 @@ module.exports = class Service
 			@dnsOpt
 			@tmpfs
 			@extraHosts
+			@ulimits
 			@ulimitsArray
 			@stopSignal
 			@stopGracePeriod
@@ -561,8 +562,8 @@ module.exports = class Service
 			'environment'
 			'portBindings'
 			'exposedPorts'
-			'memLimit'
-			'memReservation'
+			#'memLimit'
+			#'memReservation'
 			'shmSize'
 			'cpuShares'
 			'cpuQuota'
