@@ -10,10 +10,10 @@ Images = require './images'
 
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 
-parseMemoryNumber = (numAsString, default) ->
+parseMemoryNumber = (numAsString, defaultVal) ->
 	m = numAsString.toString().match(/^([1-9][0-9]*)([bkmg]?)$/)
-	if !m? and default?
-		return parseMemoryNumber(default)
+	if !m? and defaultVal?
+		return parseMemoryNumber(defaultVal)
 	num = m[1]
 	pow = { '': 0, 'b': 0, 'B': 0, 'K': 1, 'k': 1, 'm': 2, 'M': 2, 'g': 3, 'G': 3 }
 	return parseInt(num) * 1024 ** pow[m[2]]
