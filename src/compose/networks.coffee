@@ -72,7 +72,7 @@ module.exports = class Networks
 			.then =>
 				@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
 		@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
-		.then (net) =>
+		.then (net) ->
 			if net.Options['com.docker.network.bridge.name'] != constants.supervisorNetworkInterface
 				removeIt()
 			else
