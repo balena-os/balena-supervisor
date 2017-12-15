@@ -321,7 +321,7 @@ module.exports = class Service
 		@expose = _.clone(@expose)
 		@expose = _.map(@expose, String)
 		if imageInfo?.Config?.ExposedPorts?
-			_.forEach imageInfo.Config.ExposedPorts, (v, k) =>
+			for own k, v of imageInfo.Config.ExposedPorts
 				port = k.match(/^([0-9]*)\/tcp$/)?[1]
 				if port? and !_.find(@expose, port)
 					@expose.push(port)
@@ -381,7 +381,7 @@ module.exports = class Service
 		boundContainerPorts = []
 		ports = []
 		expose = []
-		_.forEach container.HostConfig.PortBindings, (conf, port) ->
+		for own port, conf of container.HostConfig.PortBindings
 			containerPort = port.match(/^([0-9]*)\/tcp$/)?[1]
 			if containerPort?
 				boundContainerPorts.push(containerPort)
@@ -390,7 +390,7 @@ module.exports = class Service
 					ports.push("#{hostPort}:#{containerPort}")
 				else
 					ports.push(containerPort)
-		_.forEach container.Config.ExposedPorts, (conf, port) ->
+		for own port, conf of container.Config.ExposedPorts
 			containerPort = port.match(/^([0-9]*)\/tcp$/)?[1]
 			if containerPort? and !_.includes(boundContainerPorts, containerPort)
 				expose.push(containerPort)
