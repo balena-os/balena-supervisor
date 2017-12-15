@@ -12,10 +12,12 @@ module.exports = class Volumes
 	constructor: ({ @docker, @logger }) ->
 
 	format: (volume) =>
-		[ appId, name ] = volume.Name.split('_')
+		m = /^([0-9]+)_(.+)$/.match(volume.Name)
+		appId = checkInt(m[1])
+		name = m[2]
 		return {
 			name: name
-			appId: checkInt(appId)
+			appId: appId
 			config: {
 				labels: _.omit(volume.Labels, _.keys(@defaultLabels(appId)))
 				driverOpts: volume.Options

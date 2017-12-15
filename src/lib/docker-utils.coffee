@@ -49,13 +49,14 @@ module.exports = class DockerUtils extends DockerToolbelt
 		{
 			deltaRequestTimeout, deltaApplyTimeout, deltaRetryCount, deltaRetryInterval,
 			uuid, currentApiKey, deltaEndpoint, resinApiEndpoint,
-			deltaSource, startFromEmpty = false
+			deltaSource, deltaSourceId, startFromEmpty = false
 		} = fullDeltaOpts
 		retryCount = checkInt(deltaRetryCount)
 		retryInterval = checkInt(deltaRetryInterval)
 		requestTimeout = checkInt(deltaRequestTimeout)
 		applyTimeout = checkInt(deltaApplyTimeout)
 		deltaSource = 'resin/scratch' if startFromEmpty or !deltaSource?
+		deltaSourceId ?= deltaSource
 		# I'll leave this debug log here in case we ever wonder what delta source a device is using in production
 		console.log("Using delta source #{deltaSource}")
 		Promise.join @getRegistryAndName(imgDest), @getRegistryAndName(deltaSource), (dstInfo, srcInfo) ->
@@ -92,14 +93,10 @@ module.exports = class DockerUtils extends DockerToolbelt
 							if deltaSource is 'resin/scratch'
 								deltaSrc = null
 							else
-								deltaSrc = deltaSource
+								deltaSrc = deltaSourceId
 							resumeOpts = { maxRetries: retryCount, retryInterval }
 							resolve(applyDelta(deltaSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress))
 					.on 'error', reject
-		.then (id) =>
-			@getRepoAndTag(imgDest)
-			.then ({ repo, tag }) =>
-				@getImage(id).tag({ repo, tag, force: true })
 		.catch dockerDelta.OutOfSyncError, (err) =>
 			throw err if startFromEmpty
 			console.log('Falling back to delta-from-empty')
@@ -109,13 +106,15 @@ module.exports = class DockerUtils extends DockerToolbelt
 
 	fetchImageWithProgress: (image, { uuid, currentApiKey }, onProgress) =>
 		@getRegistryAndName(image)
-		.then ({ registry, imageName, tagName }) =>
+		.then ({ registry }) =>
 			dockerOptions =
 				authconfig:
 					username: 'd_' + uuid,
 					password: currentApiKey,
 					serveraddress: registry
 			@dockerProgress.pull(image, onProgress, dockerOptions)
+			.then =>
+				@getImage(image).inspect().get('Id')
 
 	getImageEnv: (id) ->
 		@getImage(id).inspect()
