@@ -1,7 +1,8 @@
 logTypes = require '../lib/log-types'
 { checkInt } = require '../lib/validation'
-{ NotFoundError } = require '../lib/errors'
+{ NotFoundError, ENOENT } = require '../lib/errors'
 constants = require '../lib/constants'
+fs = Promise.promisifyAll(require('fs'))
 
 module.exports = class Networks
 	constructor: ({ @docker, @logger }) ->
@@ -57,18 +58,27 @@ module.exports = class Networks
 	supervisorNetworkReady: =>
 		# For mysterious reasons sometimes the balena/docker network exists
 		# but the interface does not
-		@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
+		fs.statAsync("/sys/class/net/#{constants.supervisorNetworkInterface}")
+		.then =>
+			@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
 		.then (net) ->
 			return net.Options['com.docker.network.bridge.name'] == constants.supervisorNetworkInterface
 		.catchReturn(NotFoundError, false)
+		.catchReturn(ENOENT, false)
 
 	ensureSupervisorNetwork: =>
+		removeIt = =>
+			@docker.getNetwork(constants.supervisorNetworkInterface).remove()
+			.then =>
+				@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
 		@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
 		.then (net) =>
 			if net.Options['com.docker.network.bridge.name'] != constants.supervisorNetworkInterface
-				@docker.getNetwork(constants.supervisorNetworkInterface).remove()
-				.then =>
-					@docker.getNetwork(constants.supervisorNetworkInterface).inspect()
+				removeIt()
+			else
+				fs.statAsync("/sys/class/net/#{constants.supervisorNetworkInterface}")
+				.catch ENOENT, ->
+					removeIt()
 		.catch NotFoundError, =>
 			console.log('Creating supervisor0 network')
 			@docker.createNetwork({
