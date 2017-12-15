@@ -11,7 +11,7 @@ Images = require './images'
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 
 parseMemoryNumber = (numAsString, defaultVal) ->
-	m = numAsString.toString().match(/^([1-9][0-9]*)([bkmg]?)$/)
+	m = numAsString?.toString().match(/^([0-9]+)([bkmg]?)$/)
 	if !m? and defaultVal?
 		return parseMemoryNumber(defaultVal)
 	num = m[1]
