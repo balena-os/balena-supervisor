@@ -107,7 +107,7 @@ module.exports = class DeviceConfig
 			conf.RESIN_HOST_LOG_TO_DISPLAY ?= ''
 			if initial or !conf.RESIN_SUPERVISOR_VPN_CONTROL?
 				conf.RESIN_SUPERVISOR_VPN_CONTROL = 'true'
-			_.forEach @configKeys, ({ envVarName, defaultValue }) ->
+			for own k, { envVarName, defaultValue } of @configKeys
 				conf[envVarName] ?= defaultValue ? ''
 			return conf
 
@@ -123,7 +123,7 @@ module.exports = class DeviceConfig
 						RESIN_HOST_LOG_TO_DISPLAY: (logToDisplayStatus ? '').toString()
 						RESIN_SUPERVISOR_VPN_CONTROL: (vpnStatus ? 'true').toString()
 					}
-					_.forEach @configKeys, ({ envVarName }, key) ->
+					for own key, { envVarName } of @configKeys
 						currentConf[envVarName] = (conf[key] ? '').toString()
 					return _.assign(currentConf, bootConfig)
 			)
@@ -154,7 +154,7 @@ module.exports = class DeviceConfig
 				'int': (a, b) ->
 					checkInt(a) == checkInt(b)
 			}
-			_.forEach @configKeys, ({ envVarName, varType }, key) ->
+			for own key, { envVarName, varType } of @configKeys
 				if !match[varType](current[envVarName], target[envVarName])
 					configChanges[key] = target[envVarName]
 					humanReadableConfigChanges[envVarName] = target[envVarName]
@@ -277,12 +277,11 @@ module.exports = class DeviceConfig
 				return false
 			@logger.logSystemMessage("Applying boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config in progress')
 			configStatements = []
-			_.forEach conf, (val, key) ->
+			for own key, val of conf
 				if key is 'initramfs'
 					configStatements.push("#{key} #{val}")
 				else if _.isArray(val)
-					configStatements = configStatements.concat _.map val, (entry) ->
-						return "#{key}=#{entry}"
+					configStatements = configStatements.concat(_.map(val, (entry) -> "#{key}=#{entry}"))
 				else
 					configStatements.push("#{key}=#{val}")
 

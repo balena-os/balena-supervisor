@@ -2,7 +2,7 @@ _ = require 'lodash'
 
 exports.checkInt = checkInt = (s, options = {}) ->
 	# Make sure `s` exists and is not an empty string.
-	if !s
+	if !s?
 		return
 	i = parseInt(s, 10)
 	if isNaN(i)

@@ -154,6 +154,7 @@ module.exports = class Service
 			@dnsOpt
 			@tmpfs
 			@extraHosts
+			@ulimits
 			@ulimitsArray
 			@stopSignal
 			@stopGracePeriod
@@ -241,9 +242,9 @@ module.exports = class Service
 
 			@ulimitsArray = _.map @ulimits, (value, name) ->
 				if _.isNumber(value) or _.isString(value)
-					return { Name: name, Soft: parseInt(value), Hard: parseInt(value) }
+					return { Name: name, Soft: checkInt(value), Hard: checkInt(value) }
 				else
-					return { Name: name, Soft: parseInt(value.soft), Hard: parseInt(value.hard) }
+					return { Name: name, Soft: checkInt(value.soft), Hard: checkInt(value.hard) }
 			if @init
 				@init = true
 
@@ -255,6 +256,11 @@ module.exports = class Service
 
 			if Array.isArray(@sysctls)
 				@sysctls = _.fromPairs(_.map(@sysctls, (v) -> _.split(v, '=')))
+			@sysctls = _.mapValues(@sysctls, String)
+
+			# Avoid problems with yaml parsing numbers as strings
+			for key in [ 'cpuShares', 'cpuQuota', 'oomScoreAdj' ]
+				this[key] = checkInt(this[key])
 
 	_addSupervisorApi: (opts) =>
 		@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
@@ -315,7 +321,7 @@ module.exports = class Service
 		@expose = _.clone(@expose)
 		@expose = _.map(@expose, String)
 		if imageInfo?.Config?.ExposedPorts?
-			_.forEach imageInfo.Config.ExposedPorts, (v, k) =>
+			for own k, v of imageInfo.Config.ExposedPorts
 				port = k.match(/^([0-9]*)\/tcp$/)?[1]
 				if port? and !_.find(@expose, port)
 					@expose.push(port)
@@ -375,7 +381,7 @@ module.exports = class Service
 		boundContainerPorts = []
 		ports = []
 		expose = []
-		_.forEach container.HostConfig.PortBindings, (conf, port) ->
+		for own port, conf of container.HostConfig.PortBindings
 			containerPort = port.match(/^([0-9]*)\/tcp$/)?[1]
 			if containerPort?
 				boundContainerPorts.push(containerPort)
@@ -384,7 +390,7 @@ module.exports = class Service
 					ports.push("#{hostPort}:#{containerPort}")
 				else
 					ports.push(containerPort)
-		_.forEach container.Config.ExposedPorts, (conf, port) ->
+		for own port, conf of container.Config.ExposedPorts
 			containerPort = port.match(/^([0-9]*)\/tcp$/)?[1]
 			if containerPort? and !_.includes(boundContainerPorts, containerPort)
 				expose.push(containerPort)
@@ -556,8 +562,8 @@ module.exports = class Service
 			'environment'
 			'portBindings'
 			'exposedPorts'
-			'memLimit'
-			'memReservation'
+			#'memLimit'
+			#'memReservation'
 			'shmSize'
 			'cpuShares'
 			'cpuQuota'
