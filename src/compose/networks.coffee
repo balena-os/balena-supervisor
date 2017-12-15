@@ -1,3 +1,4 @@
+Promise = require 'bluebird'
 logTypes = require '../lib/log-types'
 { checkInt } = require '../lib/validation'
 { NotFoundError, ENOENT } = require '../lib/errors'
