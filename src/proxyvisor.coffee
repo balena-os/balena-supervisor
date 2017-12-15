@@ -368,7 +368,7 @@ module.exports = class Proxyvisor
 	normaliseDependentDeviceTargetForDB: (device, appCommit) ->
 		Promise.try ->
 			apps = _.clone(device.apps ? {})
-			_.forEach apps, (app) ->
+			for app in apps
 				app.commit ?= appCommit
 				app.config ?= {}
 				app.environment ?= {}
@@ -447,10 +447,10 @@ module.exports = class Proxyvisor
 	imagesInUse: (current, target) ->
 		images = []
 		if current.dependent?.apps?
-			_.forEach current.dependent.apps, (app) ->
+			for app in current.dependent.apps
 				images.push app.image
 		if target.dependent?.apps?
-			_.forEach target.dependent.apps, (app) ->
+			for app in target.dependent.apps
 				images.push app.image
 		return images
 
@@ -463,7 +463,7 @@ module.exports = class Proxyvisor
 			devices: []
 			appId
 		}
-		_.forEach currentDevices, (device) =>
+		for device in currentDevices
 			if device.markedForDeletion
 				hookStep.devices.push({
 					uuid: device.uuid
@@ -527,7 +527,7 @@ module.exports = class Proxyvisor
 			appIdsToCheck = _.filter allAppIds, (appId) ->
 				# - if a step is in progress for this appId, ignore
 				!_.some(steps.concat(stepsInProgress), (step) -> step.appId == appId)
-			_.forEach appIdsToCheck, (appId) =>
+			for appId in appIdsToCheck
 				# - if there's current but not target, push a removeDependentApp step
 				if !targetApps[appId]?
 					steps.push({
