@@ -490,7 +490,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		for target in targetImages
 			imageWithSameContent = _.find(availableImages, (img) => @images.isSameImage(img, target))
 			if imageWithSameContent? and !_.find(availableImages, (img) -> _.isEqual(_.omit(img, 'id'), target))
-				pairs.push({ current: imageWithSameContent, target, serviceId: target.serviceId })
+				pairs.push({ current: imageWithSameContent, target: _.assign({}, target, _.pick(imageWithSameContent, [ 'dockerImageId' ])), serviceId: target.serviceId })
 		return pairs
 
 	# Checks if a service is using a network or volume that is about to be updated

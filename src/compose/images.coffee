@@ -15,6 +15,7 @@ validation = require '../lib/validation'
 # 	imageId (from resin API)
 # 	releaseId
 # 	dependent
+# 	dockerImageId
 # 	status Downloading, Downloaded, Deleting
 # 	downloadProgress
 # }
@@ -51,6 +52,8 @@ module.exports = class Images extends EventEmitter
 					if validation.checkTruthy(opts.delta)
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
 						@docker.rsyncImageWithProgress(imageName, opts, onProgress)
+						.then (id) =>
+							@db.models('image').update({ dockerImageId: id }).where(image)
 					else
 						@logger.logSystemEvent(logTypes.downloadImage, { image })
 						@docker.fetchImageWithProgress(imageName, opts, onProgress)
@@ -69,6 +72,7 @@ module.exports = class Images extends EventEmitter
 		image.imageId ?= null
 		image.releaseId ?= null
 		image.dependent ?= false
+		image.dockerImageId ?= null
 		return _.omit(image, 'id')
 
 	markAsSupervised: (image) =>
@@ -147,35 +151,52 @@ module.exports = class Images extends EventEmitter
 				status[image.imageId] ?= image
 			return _.values(status)
 
-	_getOldSupervisorsForCleanup: =>
+	_getImagesForCleanup: =>
 		images = []
 		@docker.getRegistryAndName(constants.supervisorImage)
 		.then (supervisorImageInfo) =>
-			@docker.listImages()
+			@docker.listImages(digests: true)
 			.map (image) =>
-				Promise.map image.RepoTags ? [], (repoTag) =>
-					@docker.getRegistryAndName(repoTag)
-					.then ({ imageName, tagName }) ->
-						if imageName == supervisorImageInfo.imageName and tagName != supervisorImageInfo.tagName
-							images.push(repoTag)
+				# Cleanup should remove truly dangling images (i.e. dangling and with no digests)
+				if _.isEmpty(image.RepoTags) and _.isEmpty(image.RepoDigests)
+					images.push(image.Id)
+				else
+					# We also remove images from the supervisor repository with a different tag
+					Promise.map image.RepoTags, (repoTag) =>
+						@docker.getRegistryAndName(repoTag)
+						.then ({ imageName, tagName }) ->
+							if imageName == supervisorImageInfo.imageName and tagName != supervisorImageInfo.tagName
+								images.push(image.Id)
+		.then(_.uniq)
 		.then =>
 			return _.filter images, (image) =>
 				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > constants.imageCleanupErrorIgnoreTimeout
 
 	inspectByName: (imageName) =>
 		@docker.getImage(imageName).inspect()
+		.catch NotFoundError, (err) =>
+			digest = imageName.split('@')[1]
+			if !digest?
+				throw err
+			@db.models('image').where('name', 'like', "%@#{digest}").select()
+			.then (imagesFromDB) =>
+				for image in imagesFromDB
+					if image.dockerImageId?
+						return @docker.getImage(image.dockerImageId).inspect()
+				throw err
+
 
 	normalise: (imageName) =>
 		@docker.normaliseImageName(imageName)
 
 	isCleanupNeeded: =>
-		@_getOldSupervisorsForCleanup()
+		@_getImagesForCleanup()
 		.then (imagesForCleanup) ->
 			return !_.isEmpty(imagesForCleanup)
 
 	# Delete old supervisor images
 	cleanup: =>
-		@_getOldSupervisorsForCleanup()
+		@_getImagesForCleanup()
 		.map (image) =>
 			console.log("Cleaning up #{image}")
 			@docker.getImage(image).remove(force: true)

@@ -31,7 +31,7 @@
     "copy-webpack-plugin": "^4.2.3",
     "docker-delta": "^2.0.3",
     "docker-progress": "^2.7.2",
-    "docker-toolbelt": "^3.0.3",
+    "docker-toolbelt": "^3.2.0",
     "duration-js": "^4.0.0",
     "event-stream": "^3.0.20",
     "express": "^4.0.0",

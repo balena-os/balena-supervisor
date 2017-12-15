@@ -96,10 +96,6 @@ module.exports = class DockerUtils extends DockerToolbelt
 							resumeOpts = { maxRetries: retryCount, retryInterval }
 							resolve(applyDelta(deltaSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress))
 					.on 'error', reject
-		.then (id) =>
-			@getRepoAndTag(imgDest)
-			.then ({ repo, tag }) =>
-				@getImage(id).tag({ repo, tag, force: true })
 		.catch dockerDelta.OutOfSyncError, (err) =>
 			throw err if startFromEmpty
 			console.log('Falling back to delta-from-empty')
