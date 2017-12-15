@@ -6,7 +6,6 @@ constants = require '../lib/constants'
 conversions =  require '../lib/conversions'
 
 Duration = require 'duration-js'
-Images = require './images'
 
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 
@@ -112,6 +111,7 @@ module.exports = class Service
 	constructor: (serviceProperties, opts = {}) ->
 		{
 			@image
+			@imageName
 			@expose
 			@ports
 			@networkMode
@@ -553,6 +553,7 @@ module.exports = class Service
 
 	isSameContainer: (otherService) =>
 		propertiesToCompare = [
+			'image'
 			'command'
 			'entrypoint'
 			'networkMode'
@@ -590,8 +591,7 @@ module.exports = class Service
 			'extraHosts'
 			'ulimitsArray'
 		]
-		isEq = Images.isSameImage({ name: @image }, { name: otherService.image }) and
-			_.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
+		isEq = _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
 			@hasSameNetworks(otherService) and
 			_.every arraysToCompare, (property) =>
 				_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))

@@ -10,6 +10,7 @@ process.env.DOCKER_HOST ?= "unix://#{constants.dockerSocket}"
 Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
+{ NotFoundError } = require './lib/errors'
 
 ServiceManager = require './compose/service-manager'
 Service = require './compose/service'
@@ -28,7 +29,7 @@ serviceAction = (action, serviceId, current, target, options) ->
 # TODO: move this to an Image class?
 imageForService = (service) ->
 	return {
-		name: service.image
+		name: service.imageName
 		appId: service.appId
 		serviceId: service.serviceId
 		serviceName: service.serviceName
@@ -186,7 +187,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					@services.kill(step.current)
 					.then =>
 						if step.options?.removeImage
-							@images.remove(imageForService(step.current))
+							@images.removeByDockerId(step.current.image)
 			updateMetadata: (step) =>
 				@services.updateMetadata(step.current, step.target)
 			purge: (step, { force = false } = {}) =>
@@ -238,8 +239,8 @@ module.exports = class ApplicationManager extends EventEmitter
 					@reportCurrentState(update_downloaded: true)
 			removeImage: (step) =>
 				@images.remove(step.image)
-			updateImage: (step) =>
-				@images.update(step.target)
+			saveImage: (step) =>
+				@images.save(step.image)
 			cleanup: (step) =>
 				@images.cleanup()
 			createNetworkOrVolume: (step) =>
@@ -431,6 +432,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				target: targetServicesPerId[serviceId]
 				serviceId
 			})
+
 		return { removePairs, installPairs, updatePairs }
 
 	_compareNetworksOrVolumesForUpdate: (model, { current, target }, appId) ->
@@ -480,19 +482,6 @@ module.exports = class ApplicationManager extends EventEmitter
 	compareVolumesForUpdate: ({ current, target }, appId) =>
 		@_compareNetworksOrVolumesForUpdate(@volumes, { current, target }, appId)
 
-	# TODO: should we consider the case where several services use the same image?
-	# In such case we should do more complex matching to allow several image objects
-	# with the same name but different metadata. For now this shouldn't be necessary
-	# because the Resin model requires a different imageId and name for each service.
-	compareImagesForMetadataUpdate: (availableImages, targetServices) ->
-		pairs = []
-		targetImages = _.map(targetServices, imageForService)
-		for target in targetImages
-			imageWithSameContent = _.find(availableImages, (img) => @images.isSameImage(img, target))
-			if imageWithSameContent? and !_.find(availableImages, (img) -> _.isEqual(_.omit(img, 'id'), target))
-				pairs.push({ current: imageWithSameContent, target, serviceId: target.serviceId })
-		return pairs
-
 	# Checks if a service is using a network or volume that is about to be updated
 	_hasCurrentNetworksOrVolumes: (service, networkPairs, volumePairs) ->
 		if !service?
@@ -537,7 +526,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		if target.dependsOn?
 			for dependency in target.dependsOn
 				dependencyService = _.find(targetApp.services, (s) -> s.serviceName == dependency)
-				if !_.find(availableImages, (image) => @images.isSameImage(image, { name: dependencyService.image }))?
+				if !_.find(availableImages, (image) => @images.isSameImage(image, { name: dependencyService.imageName }))?
 					return false
 		return true
 
@@ -619,7 +608,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			# There is already a step in progress for this service, so we wait
 			return null
 
-		needsDownload = !_.some(availableImages, (image) => @images.isSameImage(image, { name: target.image }))
+		needsDownload = !_.some(availableImages, (image) => @images.isSameImage(image, { name: target.imageName }))
 		dependenciesMetForStart = =>
 			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs), stepsInProgress)
 		dependenciesMetForKill = =>
@@ -656,7 +645,6 @@ module.exports = class ApplicationManager extends EventEmitter
 		networkPairs = @compareNetworksForUpdate({ current: currentApp.networks, target: targetApp.networks }, appId)
 		volumePairs = @compareVolumesForUpdate({ current: currentApp.volumes, target: targetApp.volumes }, appId)
 		{ removePairs, installPairs, updatePairs } = @compareServicesForUpdate(currentApp.services, targetApp.services)
-		imagePairs = @compareImagesForMetadataUpdate(availableImages, targetApp.services)
 		steps = []
 		# All removePairs get a 'kill' action
 		for pair in removePairs
@@ -676,8 +664,6 @@ module.exports = class ApplicationManager extends EventEmitter
 		for pair in volumePairs
 			pairSteps = @_nextStepsForVolume(pair, currentApp, removePairs.concat(updatePairs))
 			steps = steps.concat(pairSteps)
-		for pair in imagePairs
-			steps.push(_.assign({ action: 'updateImage' }, pair))
 		return steps
 
 	normaliseAppForDB: (app) =>
@@ -705,13 +691,16 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	createTargetService: (service, opts) ->
 		@images.inspectByName(service.image)
-		.catchReturn(undefined)
+		.catchReturn(NotFoundError, undefined)
 		.then (imageInfo) ->
 			serviceOpts = {
 				serviceName: service.serviceName
 				imageInfo
 			}
 			_.assign(serviceOpts, opts)
+			service.imageName = service.image
+			if imageInfo?.Id?
+				service.image = imageInfo.Id
 			return new Service(service, serviceOpts)
 
 	normaliseAndExtendAppFromDB: (app) =>
@@ -803,30 +792,40 @@ module.exports = class ApplicationManager extends EventEmitter
 				return availableImage.name
 		return 'resin/scratch'
 
-	# return images that:
+	# returns:
+	# imagesToRemove: images that
 	# - are not used in the current state, and
 	# - are not going to be used in the target state, and
 	# - are not needed for delta source / pull caching or would be used for a service with delete-then-download as strategy
-	_unnecessaryImages: (current, target, available) =>
+	# imagesToSave: images that
+	# - are locally available (i.e. an image with the same digest exists)
+	# - are not saved to the DB with all their metadata (serviceId, serviceName, etc)
+	_compareImages: (current, target, available) =>
 
-		allImagesForApp = (app) -> _.map(app.services, imageForService)
-
-		currentImages = _.flatten(_.map(current.local.apps, allImagesForApp))
-		targetImages = _.flatten(_.map(target.local.apps, allImagesForApp))
-		availableAndUnused = _.filter available, (image) =>
-			!_.some currentImages.concat(targetImages), (imageInUse) => @images.isSameImage(image, imageInUse)
+		allImagesForTargetApp = (app) -> _.map(app.services, imageForService)
+		allImagesForCurrentApp = (app) ->
+			_.map app.services, (service) ->
+				_.omit(_.find(available, (image) -> image.dockerImageId == service.image), [ 'dockerImageId', 'id' ])
+		availableWithoutIds = _.map(available, (image) -> _.omit(image, [ 'dockerImageId', 'id' ]))
+		currentImages = _.flatten(_.map(current.local.apps, allImagesForCurrentApp))
+		targetImages = _.flatten(_.map(target.local.apps, allImagesForTargetApp))
+		availableAndUnused = _.filter availableWithoutIds, (image) ->
+			!_.some currentImages.concat(targetImages), (imageInUse) -> _.isEqual(image, imageInUse)
 		imagesToDownload = _.filter targetImages, (targetImage) =>
 			!_.some available, (availableImage) => @images.isSameImage(availableImage, targetImage)
+		# Images that are available but we don't have them in the DB with the exact metadata:
+		imagesToSave = _.filter targetImages, (targetImage) =>
+			_.some(available, (availableImage) => @images.isSameImage(availableImage, targetImage)) and
+				!_.find(availableWithoutIds, (img) -> _.isEqual(img, targetImage))?
 
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)
-
 		proxyvisorImages = @proxyvisor.imagesInUse(current, target)
-
-		return _.filter availableAndUnused, (image) =>
+		imagesToRemove = _.filter availableAndUnused, (image) =>
 			notUsedForDelta = !_.some deltaSources, (deltaSource) -> deltaSource == image.name
 			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) => @images.isSameImage(image, { name: proxyvisorImage })
 			return notUsedForDelta and notUsedByProxyvisor
+		return { imagesToSave, imagesToRemove }
 
 	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress) =>
 		Promise.try =>
@@ -839,9 +838,12 @@ module.exports = class ApplicationManager extends EventEmitter
 				if !_.some(stepsInProgress, (step) -> step.action == 'fetch')
 					if cleanupNeeded
 						nextSteps.push({ action: 'cleanup' })
-					imagesToRemove = @_unnecessaryImages(current, target, availableImages)
-					for image in imagesToRemove
-						nextSteps.push({ action: 'removeImage', image })
+					{ imagesToRemove, imagesToSave } = @_compareImages(current, target, availableImages)
+					for image in imagesToSave
+						nextSteps.push({ action: 'saveImage', image })
+					if _.isEmpty(imagesToSave)
+						for image in imagesToRemove
+							nextSteps.push({ action: 'removeImage', image })
 				# If we have to remove any images, we do that before anything else
 				if _.isEmpty(nextSteps)
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
