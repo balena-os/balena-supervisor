@@ -241,9 +241,9 @@ module.exports = class Service
 
 			@ulimitsArray = _.map @ulimits, (value, name) ->
 				if _.isNumber(value) or _.isString(value)
-					return { Name: name, Soft: parseInt(value), Hard: parseInt(value) }
+					return { Name: name, Soft: checkInt(value), Hard: checkInt(value) }
 				else
-					return { Name: name, Soft: parseInt(value.soft), Hard: parseInt(value.hard) }
+					return { Name: name, Soft: checkInt(value.soft), Hard: checkInt(value.hard) }
 			if @init
 				@init = true
 
@@ -255,6 +255,11 @@ module.exports = class Service
 
 			if Array.isArray(@sysctls)
 				@sysctls = _.fromPairs(_.map(@sysctls, (v) -> _.split(v, '=')))
+			@sysctls = _.mapValues(@sysctls, String)
+
+			# Avoid problems with yaml parsing numbers as strings
+			for key in [ 'cpuShares', 'cpuQuota', 'oomScoreAdj' ]
+				this[key] = checkInt(this[key])
 
 	_addSupervisorApi: (opts) =>
 		@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
