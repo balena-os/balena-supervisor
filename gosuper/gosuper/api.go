@@ -133,7 +133,6 @@ func unitStatusHandler(serviceName string, writer http.ResponseWriter, request *
 	sendResponse, sendError := responseSenders(writer)
 	if status, err := getUnitStatus(serviceName); err != nil {
 		sendError(fmt.Errorf("Unable to get VPN status: %v", err))
-		return
 	} else {
 		sendResponse(status, "", http.StatusOK)
 	}
