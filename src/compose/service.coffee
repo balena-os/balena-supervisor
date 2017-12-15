@@ -10,10 +10,10 @@ Images = require './images'
 
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 
-parseMemoryNumber = (numAsString) ->
+parseMemoryNumber = (numAsString, default) ->
 	m = numAsString.toString().match(/^([1-9][0-9]*)([bkmg]?)$/)
-	if !m?
-		return null
+	if !m? and default?
+		return parseMemoryNumber(default)
 	num = m[1]
 	pow = { '': 0, 'b': 0, 'B': 0, 'K': 1, 'k': 1, 'm': 2, 'M': 2, 'g': 3, 'G': 3 }
 	return parseInt(num) * 1024 ** pow[m[2]]
@@ -140,6 +140,8 @@ module.exports = class Service
 			@networks
 
 			@memLimit
+			@memReservation
+			@shmSize
 			@cpuShares
 			@cpuQuota
 			@cpus
@@ -157,6 +159,8 @@ module.exports = class Service
 			@stopGracePeriod
 			@init
 			@healthcheck
+			@readOnly
+			@sysctls
 		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
 
 		@networks ?= {}
@@ -173,7 +177,9 @@ module.exports = class Service
 		@exposedPorts ?= {}
 		@portBindings ?= {}
 
-		@memLimit = parseMemoryNumber(@memLimit ? '0') ? 0
+		@memLimit = parseMemoryNumber(@memLimit, '0')
+		@memReservation = parseMemoryNumber(@memReservation, '0')
+		@shmSize = parseMemoryNumber(@shmSize, '64m')
 		@cpuShares ?= 0
 		@cpuQuota ?= 0
 		@cpus ?= 0
@@ -194,6 +200,9 @@ module.exports = class Service
 		@stopGracePeriod ?= null
 		@healthcheck ?= null
 		@init ?= null
+		@readOnly ?= false
+
+		@sysctls ?= {}
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
@@ -241,6 +250,11 @@ module.exports = class Service
 			if @stopGracePeriod?
 				d = new Duration(@stopGracePeriod)
 				@stopGracePeriod = d.seconds()
+
+			@readOnly = Boolean(@readOnly)
+
+			if Array.isArray(@sysctls)
+				@sysctls = _.fromPairs(_.map(@sysctls, (v) -> _.split(v, '=')))
 
 	_addSupervisorApi: (opts) =>
 		@environment['RESIN_SUPERVISOR_PORT'] = opts.listenPort.toString()
@@ -409,6 +423,8 @@ module.exports = class Service
 			portBindings: container.HostConfig.PortBindings
 			networks: container.NetworkSettings.Networks
 			memLimit: container.HostConfig.Memory
+			memReservation: container.HostConfig.MemoryReservation
+			shmSize: container.HostConfig.ShmSize
 			cpuShares: container.HostConfig.CpuShares
 			cpuQuota: container.HostConfig.CpuQuota
 			nanoCpus: container.HostConfig.NanoCpus
@@ -425,6 +441,8 @@ module.exports = class Service
 			stopGracePeriod: container.Config.StopTimeout
 			healthcheck: container.Config.Healthcheck
 			init: container.HostConfig.Init
+			readOnly: container.HostConfig.ReadonlyRootfs
+			sysctls: container.HostConfig.Sysctls
 		}
 		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
 		if service.restartPolicy.Name == ''
@@ -475,6 +493,8 @@ module.exports = class Service
 			Domainname: @domainname
 			HostConfig:
 				Memory: @memLimit
+				MemoryReservation: @memReservation
+				ShmSize: @shmSize
 				Privileged: @privileged
 				NetworkMode: @networkMode
 				PortBindings: @portBindings
@@ -492,6 +512,8 @@ module.exports = class Service
 				DnsSearch: @dnsSearch
 				DnsOpt: @dnsOpt
 				Ulimits: @ulimitsArray
+				ReadonlyRootfs: @readOnly
+				Sysctls: @sysctls
 		}
 		if @stopSignal?
 			conf.StopSignal = @stopSignal
@@ -535,6 +557,8 @@ module.exports = class Service
 			'portBindings'
 			'exposedPorts'
 			'memLimit'
+			'memReservation'
+			'shmSize'
 			'cpuShares'
 			'cpuQuota'
 			'nanoCpus'
@@ -545,6 +569,8 @@ module.exports = class Service
 			'stopSignal'
 			'stopGracePeriod'
 			'init'
+			'readOnly'
+			'sysctls'
 		]
 		arraysToCompare = [
 			'volumes'
