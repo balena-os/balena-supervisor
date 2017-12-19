@@ -433,7 +433,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			})
 		return { removePairs, installPairs, updatePairs }
 
-	compareNetworksOrVolumesForUpdate: (model, { current, target }, appId) ->
+	_compareNetworksOrVolumesForUpdate: (model, { current, target }, appId) ->
 		outputPairs = []
 		currentNames = _.keys(current)
 		targetNames = _.keys(target)
@@ -473,6 +473,12 @@ module.exports = class ApplicationManager extends EventEmitter
 				}
 			})
 		return outputPairs
+
+	compareNetworksForUpdate: ({ current, target }, appId) =>
+		@_compareNetworksOrVolumesForUpdate(@networks, { current, target }, appId)
+
+	compareVolumesForUpdate: ({ current, target }, appId) =>
+		@_compareNetworksOrVolumesForUpdate(@volumes, { current, target }, appId)
 
 	# TODO: should we consider the case where several services use the same image?
 	# In such case we should do more complex matching to allow several image objects
@@ -647,8 +653,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		if !currentApp?
 			currentApp = emptyApp
 		appId = targetApp.appId ? currentApp.appId
-		networkPairs = @compareNetworksOrVolumesForUpdate(@networks, { current: currentApp.networks, target: targetApp.networks }, appId)
-		volumePairs = @compareNetworksOrVolumesForUpdate(@volumes, { current: currentApp.volumes, target: targetApp.volumes }, appId)
+		networkPairs = @compareNetworksForUpdate({ current: currentApp.networks, target: targetApp.networks }, appId)
+		volumePairs = @compareVolumesForUpdate({ current: currentApp.volumes, target: targetApp.volumes }, appId)
 		{ removePairs, installPairs, updatePairs } = @compareServicesForUpdate(currentApp.services, targetApp.services)
 		imagePairs = @compareImagesForMetadataUpdate(availableImages, targetApp.services)
 		steps = []
