@@ -208,7 +208,10 @@ module.exports = class DeviceConfig
 			key.replace(configRegex(), '$2')
 		parsedEnv = _.mapValues parsedEnv, (val, key) ->
 			if _.includes(arrayConfigKeys, key)
-				return JSON.parse("[#{val}]")
+				if !_.startsWith(val, '"')
+					return [ val ]
+				else
+					return JSON.parse("[#{val}]")
 			else
 				return val
 		return parsedEnv
