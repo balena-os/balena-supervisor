@@ -105,7 +105,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 
 	fetchImageWithProgress: (image, { uuid, currentApiKey }, onProgress) =>
 		@getRegistryAndName(image)
-		.then ({ registry, imageName, tagName }) =>
+		.then ({ registry }) =>
 			dockerOptions =
 				authconfig:
 					username: 'd_' + uuid,

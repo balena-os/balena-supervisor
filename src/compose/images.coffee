@@ -8,7 +8,7 @@ validation = require '../lib/validation'
 { NotFoundError } = require '../lib/errors'
 
 # image = {
-# 	name: image registry/repo:tag
+# 	name: image registry/repo@digest or registry/repo:tag
 # 	appId
 # 	serviceId
 # 	serviceName
@@ -115,7 +115,7 @@ module.exports = class Images extends EventEmitter
 
 	_withImagesFromDockerAndDB: (callback) =>
 		Promise.join(
-			@docker.listImages()
+			@docker.listImages(digests: true)
 			.map (image) =>
 				image.NormalisedRepoTags = @getNormalisedTags(image)
 				Promise.props(image)
@@ -123,14 +123,22 @@ module.exports = class Images extends EventEmitter
 			callback
 		)
 
-	_isAvailableInDocker: (image, dockerImages) ->
-		_.some dockerImages, (dockerImage) ->
-			_.includes(dockerImage.NormalisedRepoTags, image.name) or _.includes(dockerImage.RepoDigests, image.name)
+	_matchesTagOrDigest: (image, dockerImage) ->
+		return _.includes(dockerImage.NormalisedRepoTags, image.name) or
+			_.some(dockerImage.RepoDigests, (digest) -> Images.hasSameDigest(image.name, digest))
+
+	_isAvailableInDocker: (image, dockerImages) =>
+		image.dockerImageId? or _.some dockerImages, (dockerImage) =>
+			@_matchesTagOrDigest(image, dockerImage)
 
 	# Gets all images that are supervised, in an object containing name, appId, serviceId, serviceName, imageId, dependent.
 	getAvailable: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
-			_.filter(supervisedImages, (image) => @_isAvailableInDocker(image, dockerImages))
+			withDockerIds = _.map supervisedImages, (image) ->
+				if !image.dockerImageId?
+					image.dockerImageId = _.find(dockerImages, (dkImg) => @_matchesTagOrDigest(image, dkImg))?.Id
+				return image
+			_.filter(withDockerIds, (image) => image.dockerImageId?)
 
 	cleanupDatabase: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
@@ -206,9 +214,12 @@ module.exports = class Images extends EventEmitter
 				@logger.logSystemMessage("Error cleaning up #{image}: #{err.message} - will ignore for 1 hour", { error: err }, 'Image cleanup error')
 				@imageCleanupFailures[image] = Date.now()
 
+	@hasSameDigest: (name1, name2) ->
+		hash1 = name1.split('@')[1]
+		hash2 = name2.split('@')[1]
+		return hash1? and hash1 == hash2
+
 	@isSameImage: (image1, image2) ->
-		hash1 = image1.name.split('@')[1]
-		hash2 = image2.name.split('@')[1]
-		return image1.name == image2.name or (hash1? and hash1 == hash2)
+		return image1.name == image2.name or Images.hasSameDigest(image1.name, image2.name)
 
 	isSameImage: @isSameImage
