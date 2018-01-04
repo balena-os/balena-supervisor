@@ -53,7 +53,13 @@ module.exports = class Images extends EventEmitter
 				Promise.try =>
 					if validation.checkTruthy(opts.delta)
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
-						@docker.rsyncImageWithProgress(imageName, opts, onProgress)
+						Promise.try =>
+							if opts.deltaSource
+								@inspectByName(opts.deltaSource)
+								.then (srcImage) ->
+									opts.deltaSourceId = srcImage.Id
+						.then =>
+							@docker.rsyncImageWithProgress(imageName, opts, onProgress)
 					else
 						@logger.logSystemEvent(logTypes.downloadImage, { image })
 						@docker.fetchImageWithProgress(imageName, opts, onProgress)
@@ -85,6 +91,9 @@ module.exports = class Images extends EventEmitter
 		image = @format(image)
 		@db.models('image').update(image).where(name: image.name)
 
+	save: (image) =>
+		@markAsSupervised(image)
+
 	# change to remove by dockerImageId
 	_removeImageIfNotNeeded: (image) =>
 		@inspectByName(image.name)
@@ -92,26 +101,33 @@ module.exports = class Images extends EventEmitter
 			@db.models('image').where(dockerImageId: image.dockerImageId).select()
 			.then (imagesFromDB) =>
 				if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(image))
+					@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Deleting' }))
+					@logger.logSystemEvent(logTypes.deleteImage, { image })
 					@docker.getImage(image.dockerImageId).remove(force: true)
-		.return(true)
+					.return(true)
+				else
+					return false
 		.catchReturn(NotFoundError, false)
-
-	remove: (image) =>
-		@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Deleting' }))
-		@logger.logSystemEvent(logTypes.deleteImage, { image })
-		@_removeImageIfNotNeeded(image)
-		.tap =>
-			@db.models('image').del().where(image)
 		.then (removed) =>
 			if removed
 				@logger.logSystemEvent(logTypes.deleteImageSuccess, { image })
-			else
-				@logger.logSystemEvent(logTypes.imageAlreadyDeleted, { image })
+		.finally =>
+			@reportChange(image.imageId)
+
+	remove: (image) =>
+		@_removeImageIfNotNeeded(image)
+		.tap =>
+			@db.models('image').del().where(image)
 		.catch (err) =>
 			@logger.logSystemEvent(logTypes.deleteImageError, { image, error: err })
 			throw err
-		.finally =>
-			@reportChange(image.imageId)
+
+	getByDockerId: (id) =>
+		@db.models('image').where(dockerImageId: id).first()
+
+	removeByDockerId: (id) =>
+		@getByDockerId(id)
+		.then(@remove)
 
 	getNormalisedTags: (image) ->
 		Promise.map(image.RepoTags ? [], (tag) => @normalise(tag))

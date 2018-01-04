@@ -49,13 +49,14 @@ module.exports = class DockerUtils extends DockerToolbelt
 		{
 			deltaRequestTimeout, deltaApplyTimeout, deltaRetryCount, deltaRetryInterval,
 			uuid, currentApiKey, deltaEndpoint, resinApiEndpoint,
-			deltaSource, startFromEmpty = false
+			deltaSource, deltaSourceId, startFromEmpty = false
 		} = fullDeltaOpts
 		retryCount = checkInt(deltaRetryCount)
 		retryInterval = checkInt(deltaRetryInterval)
 		requestTimeout = checkInt(deltaRequestTimeout)
 		applyTimeout = checkInt(deltaApplyTimeout)
 		deltaSource = 'resin/scratch' if startFromEmpty or !deltaSource?
+		deltaSourceId ?= deltaSource
 		# I'll leave this debug log here in case we ever wonder what delta source a device is using in production
 		console.log("Using delta source #{deltaSource}")
 		Promise.join @getRegistryAndName(imgDest), @getRegistryAndName(deltaSource), (dstInfo, srcInfo) ->
@@ -92,7 +93,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 							if deltaSource is 'resin/scratch'
 								deltaSrc = null
 							else
-								deltaSrc = deltaSource
+								deltaSrc = deltaSourceId
 							resumeOpts = { maxRetries: retryCount, retryInterval }
 							resolve(applyDelta(deltaSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress))
 					.on 'error', reject
