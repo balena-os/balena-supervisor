@@ -46,17 +46,19 @@ module.exports = class Images extends EventEmitter
 			@markAsSupervised(image)
 			.then =>
 				@inspectByName(imageName)
+				.tap (img) =>
+					@db.models('image').update({ dockerImageId: img.Id }).where(image)
 			.catch =>
 				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', downloadProgress: 0 }))
 				Promise.try =>
 					if validation.checkTruthy(opts.delta)
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
 						@docker.rsyncImageWithProgress(imageName, opts, onProgress)
-						.then (id) =>
-							@db.models('image').update({ dockerImageId: id }).where(image)
 					else
 						@logger.logSystemEvent(logTypes.downloadImage, { image })
 						@docker.fetchImageWithProgress(imageName, opts, onProgress)
+				.then (id) =>
+					@db.models('image').update({ dockerImageId: id }).where(image)
 				.then =>
 					@logger.logSystemEvent(logTypes.downloadImageSuccess, { image })
 					@inspectByName(imageName)
@@ -83,13 +85,14 @@ module.exports = class Images extends EventEmitter
 		image = @format(image)
 		@db.models('image').update(image).where(name: image.name)
 
+	# change to remove by dockerImageId
 	_removeImageIfNotNeeded: (image) =>
 		@inspectByName(image.name)
 		.then (img) =>
-			@db.models('image').where(name: image.name).select()
+			@db.models('image').where(dockerImageId: image.dockerImageId).select()
 			.then (imagesFromDB) =>
 				if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(image))
-					@docker.getImage(image.name).remove(force: true)
+					@docker.getImage(image.dockerImageId).remove(force: true)
 		.return(true)
 		.catchReturn(NotFoundError, false)
 
@@ -128,21 +131,27 @@ module.exports = class Images extends EventEmitter
 			_.some(dockerImage.RepoDigests, (digest) -> Images.hasSameDigest(image.name, digest))
 
 	_isAvailableInDocker: (image, dockerImages) =>
-		image.dockerImageId? or _.some dockerImages, (dockerImage) =>
-			@_matchesTagOrDigest(image, dockerImage)
+		_.some dockerImages, (dockerImage) =>
+			@_matchesTagOrDigest(image, dockerImage) or image.dockerImageId == dockerImage.Id
 
 	# Gets all images that are supervised, in an object containing name, appId, serviceId, serviceName, imageId, dependent.
 	getAvailable: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
-			withDockerIds = _.map supervisedImages, (image) ->
-				if !image.dockerImageId?
-					image.dockerImageId = _.find(dockerImages, (dkImg) => @_matchesTagOrDigest(image, dkImg))?.Id
-				return image
-			_.filter(withDockerIds, (image) => image.dockerImageId?)
+			_.filter(supervisedImages, (image) => @_isAvailableInDocker(image, dockerImages))
 
 	cleanupDatabase: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
-			return _.filter(supervisedImages, (image) => !@_isAvailableInDocker(image, dockerImages))
+			Promise.map supervisedImages, (image) =>
+				# If the supervisor was interrupted between fetching an image and storing its id,
+				# some entries in the db might need to have the dockerImageId populated
+				if !image.dockerImageId?
+					id = _.find(dockerImages, (dockerImage) => @_matchesTagOrDigest(image, dockerImage))?.Id
+					if id?
+						@db.models('image').update(dockerImageId: id).where(image)
+						.then ->
+							image.dockerImageId = id
+			.then =>
+				_.filter(supervisedImages, (image) => !@_isAvailableInDocker(image, dockerImages))
 		.then (imagesToRemove) =>
 			ids = _.map(imagesToRemove, 'id')
 			@db.models('image').del().whereIn('id', ids)
@@ -161,20 +170,24 @@ module.exports = class Images extends EventEmitter
 
 	_getImagesForCleanup: =>
 		images = []
-		@docker.getRegistryAndName(constants.supervisorImage)
-		.then (supervisorImageInfo) =>
-			@docker.listImages(digests: true)
-			.map (image) =>
-				# Cleanup should remove truly dangling images (i.e. dangling and with no digests)
-				if _.isEmpty(image.RepoTags) and _.isEmpty(image.RepoDigests)
-					images.push(image.Id)
-				else
-					# We also remove images from the supervisor repository with a different tag
-					Promise.map image.RepoTags, (repoTag) =>
-						@docker.getRegistryAndName(repoTag)
-						.then ({ imageName, tagName }) ->
-							if imageName == supervisorImageInfo.imageName and tagName != supervisorImageInfo.tagName
-								images.push(image.Id)
+		Promise.join(
+			@docker.getRegistryAndName(constants.supervisorImage)
+			@db.models('image').select('dockerImageId')
+			.map((image) -> image.dockerImageId)
+			(supervisorImageInfo, usedImageIds) =>
+				@docker.listImages(digests: true)
+				.map (image) =>
+					# Cleanup should remove truly dangling images (i.e. dangling and with no digests)
+					if _.isEmpty(image.RepoTags) and _.isEmpty(image.RepoDigests) and not image.Id in usedImageIds
+						images.push(image.Id)
+					else
+						# We also remove images from the supervisor repository with a different tag
+						Promise.map image.RepoTags, (repoTag) =>
+							@docker.getRegistryAndName(repoTag)
+							.then ({ imageName, tagName }) ->
+								if imageName == supervisorImageInfo.imageName and tagName != supervisorImageInfo.tagName
+									images.push(image.Id)
+		)
 		.then(_.uniq)
 		.then =>
 			return _.filter images, (image) =>
@@ -202,7 +215,7 @@ module.exports = class Images extends EventEmitter
 		.then (imagesForCleanup) ->
 			return !_.isEmpty(imagesForCleanup)
 
-	# Delete old supervisor images
+	# Delete dangling images and old supervisor images
 	cleanup: =>
 		@_getImagesForCleanup()
 		.map (image) =>
