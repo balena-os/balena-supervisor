@@ -79,7 +79,7 @@ module.exports = class Images extends EventEmitter
 		image.serviceName ?= null
 		image.imageId ?= null
 		image.releaseId ?= null
-		image.dependent ?= false
+		image.dependent ?= 0
 		image.dockerImageId ?= null
 		return _.omit(image, 'id')
 
@@ -92,22 +92,38 @@ module.exports = class Images extends EventEmitter
 		@db.models('image').update(image).where(name: image.name)
 
 	save: (image) =>
-		@markAsSupervised(image)
-
-	# change to remove by dockerImageId
-	_removeImageIfNotNeeded: (image) =>
 		@inspectByName(image.name)
-		.then (img) =>
-			@db.models('image').where(dockerImageId: image.dockerImageId).select()
-			.then (imagesFromDB) =>
-				if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(image))
-					@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Deleting' }))
-					@logger.logSystemEvent(logTypes.deleteImage, { image })
-					@docker.getImage(image.dockerImageId).remove(force: true)
+		.then (img) ->
+			image = _.clone(image)
+			image.dockerImageId = img.Id
+			@markAsSupervised(image)
+
+	_removeImageIfNotNeeded: (image) =>
+		# We first fetch the image from the DB to ensure it exists,
+		# and get the dockerImageId and any other missing field
+		@db.models('image').select().where(image)
+		.then (images) =>
+			if images.length == 0
+				return false
+			img = images[0]
+			Promise.try =>
+				if !img.dockerImageId?
+					# Legacy image from before we started using dockerImageId, so we try to remove it by name
+					@docker.getImage(img.name).remove(force: true)
 					.return(true)
 				else
-					return false
-		.catchReturn(NotFoundError, false)
+					@db.models('image').where(dockerImageId: img.dockerImageId).select()
+					.then (imagesFromDB) =>
+						if imagesFromDB.length == 1 and _.isEqual(@format(imagesFromDB[0]), @format(img))
+							@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Deleting' }))
+							@logger.logSystemEvent(logTypes.deleteImage, { image })
+							@docker.getImage(img.dockerImageId).remove(force: true)
+							.return(true)
+						else
+							return false
+			.catchReturn(NotFoundError, false)
+			.tap =>
+				@db.models('image').del().where(id: img.id)
 		.then (removed) =>
 			if removed
 				@logger.logSystemEvent(logTypes.deleteImageSuccess, { image })
@@ -116,8 +132,6 @@ module.exports = class Images extends EventEmitter
 
 	remove: (image) =>
 		@_removeImageIfNotNeeded(image)
-		.tap =>
-			@db.models('image').del().where(image)
 		.catch (err) =>
 			@logger.logSystemEvent(logTypes.deleteImageError, { image, error: err })
 			throw err

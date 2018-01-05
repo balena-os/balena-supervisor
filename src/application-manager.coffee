@@ -805,7 +805,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		allImagesForTargetApp = (app) -> _.map(app.services, imageForService)
 		allImagesForCurrentApp = (app) ->
 			_.map app.services, (service) ->
-				_.find(available, (image) -> image.dockerImageId == service.image)
+				_.omit(_.find(available, (image) -> image.dockerImageId == service.image), [ 'dockerImageId', 'id' ])
 		availableWithoutIds = _.map(available, (image) -> _.omit(image, [ 'dockerImageId', 'id' ]))
 		currentImages = _.flatten(_.map(current.local.apps, allImagesForCurrentApp))
 		targetImages = _.flatten(_.map(target.local.apps, allImagesForTargetApp))
@@ -820,9 +820,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)
-
 		proxyvisorImages = @proxyvisor.imagesInUse(current, target)
-
 		imagesToRemove = _.filter availableAndUnused, (image) =>
 			notUsedForDelta = !_.some deltaSources, (deltaSource) -> deltaSource == image.name
 			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) => @images.isSameImage(image, { name: proxyvisorImage })
