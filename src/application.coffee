@@ -288,7 +288,7 @@ isExecFormatError = (err) ->
 generateContainerName = (app) ->
 	randomHexString.generate()
 	.then (randomString) ->
-		sanitisedAppName = app.name.replace(/[^a-zA-Z0-9]+/g, '_')
+		sanitisedAppName = (app.name ? 'app').replace(/[^a-zA-Z0-9]+/g, '_')
 		return "#{sanitisedAppName}_#{randomString}"
 
 application.start = start = (app) ->
@@ -944,7 +944,10 @@ migrateContainerIdApps = ->
 				docker.getContainer(app.containerId).inspect()
 				.catchReturn({ Name: null })
 				.then (container) ->
-					app.containerName = sanitiseContainerName(container.Name)
+					if container.Name?
+						app.containerName = sanitiseContainerName(container.Name)
+					else
+						app.containerName = null
 					app.containerId = null
 					knex('app').update(app).where({ id: app.id })
 		.then ->
