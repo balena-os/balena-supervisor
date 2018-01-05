@@ -10,6 +10,7 @@ process.env.DOCKER_HOST ?= "unix://#{constants.dockerSocket}"
 Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
+{ NotFoundError } = require './lib/errors'
 
 ServiceManager = require './compose/service-manager'
 Service = require './compose/service'
@@ -431,6 +432,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				target: targetServicesPerId[serviceId]
 				serviceId
 			})
+
 		return { removePairs, installPairs, updatePairs }
 
 	_compareNetworksOrVolumesForUpdate: (model, { current, target }, appId) ->
@@ -480,19 +482,6 @@ module.exports = class ApplicationManager extends EventEmitter
 	compareVolumesForUpdate: ({ current, target }, appId) =>
 		@_compareNetworksOrVolumesForUpdate(@volumes, { current, target }, appId)
 
-	# TODO: should we consider the case where several services use the same image?
-	# In such case we should do more complex matching to allow several image objects
-	# with the same name but different metadata. For now this shouldn't be necessary
-	# because the Resin model requires a different imageId and name for each service.
-	compareImagesForMetadataUpdate: (availableImages, targetServices) ->
-		pairs = []
-		targetImages = _.map(targetServices, imageForService)
-		for target in targetImages
-			imageWithSameContent = _.find(availableImages, (img) => @images.isSameImage(img, target))
-			if imageWithSameContent? and !_.find(availableImages, (img) -> _.isEqual(_.omit(img, 'id'), target))
-				pairs.push({ current: imageWithSameContent, target: _.assign({}, target, _.pick(imageWithSameContent, [ 'dockerImageId' ])), serviceId: target.serviceId })
-		return pairs
-
 	# Checks if a service is using a network or volume that is about to be updated
 	_hasCurrentNetworksOrVolumes: (service, networkPairs, volumePairs) ->
 		if !service?
@@ -537,7 +526,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		if target.dependsOn?
 			for dependency in target.dependsOn
 				dependencyService = _.find(targetApp.services, (s) -> s.serviceName == dependency)
-				if !_.find(availableImages, (image) => @images.isSameImage(image, { name: dependencyService.image }))?
+				if !_.find(availableImages, (image) => @images.isSameImage(image, { name: dependencyService.imageName }))?
 					return false
 		return true
 
@@ -619,7 +608,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			# There is already a step in progress for this service, so we wait
 			return null
 
-		needsDownload = !_.some(availableImages, (image) => @images.isSameImage(image, { name: target.image }))
+		needsDownload = !_.some(availableImages, (image) => @images.isSameImage(image, { name: target.imageName }))
 		dependenciesMetForStart = =>
 			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs), stepsInProgress)
 		dependenciesMetForKill = =>
@@ -702,7 +691,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	createTargetService: (service, opts) ->
 		@images.inspectByName(service.image)
-		.catchReturn(undefined)
+		.catchReturn(NotFoundError, undefined)
 		.then (imageInfo) ->
 			serviceOpts = {
 				serviceName: service.serviceName
@@ -817,17 +806,17 @@ module.exports = class ApplicationManager extends EventEmitter
 		allImagesForCurrentApp = (app) ->
 			_.map app.services, (service) ->
 				_.find(available, (image) -> image.dockerImageId == service.image)
-		availableWithoutDockerId = _.map(available, (image) -> _.omit(image, 'dockerImageId'))
+		availableWithoutIds = _.map(available, (image) -> _.omit(image, [ 'dockerImageId', 'id' ]))
 		currentImages = _.flatten(_.map(current.local.apps, allImagesForCurrentApp))
 		targetImages = _.flatten(_.map(target.local.apps, allImagesForTargetApp))
-		availableAndUnused = _.filter availableWithoutDockerId, (image) ->
+		availableAndUnused = _.filter availableWithoutIds, (image) ->
 			!_.some currentImages.concat(targetImages), (imageInUse) -> _.isEqual(image, imageInUse)
 		imagesToDownload = _.filter targetImages, (targetImage) =>
 			!_.some available, (availableImage) => @images.isSameImage(availableImage, targetImage)
 		# Images that are available but we don't have them in the DB with the exact metadata:
-		imagesToSave = _.filter targetImages, (targetImage) ->
+		imagesToSave = _.filter targetImages, (targetImage) =>
 			_.some(available, (availableImage) => @images.isSameImage(availableImage, targetImage)) and
-				!_.find(availableWithoutDockerId, (img) -> _.isEqual(img, targetImage))?
+				!_.find(availableWithoutIds, (img) -> _.isEqual(img, targetImage))?
 
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)

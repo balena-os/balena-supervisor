@@ -196,7 +196,7 @@ module.exports = class Images extends EventEmitter
 					# Cleanup should remove truly dangling images (i.e. dangling and with no digests)
 					if _.isEmpty(image.RepoTags) and _.isEmpty(image.RepoDigests) and not image.Id in usedImageIds
 						images.push(image.Id)
-					else
+					else if !_.isEmpty(image.RepoTags)
 						# We also remove images from the supervisor repository with a different tag
 						Promise.map image.RepoTags, (repoTag) =>
 							@docker.getRegistryAndName(repoTag)
