@@ -276,16 +276,16 @@ module.exports = class Service
 	addFeaturesFromLabels: (opts) =>
 		if checkTruthy(@labels['io.resin.features.dbus'])
 			@volumes.push('/run/dbus:/host/run/dbus')
-		if checkTruthy(@labels['io.resin.features.kernel_modules'])
+		if checkTruthy(@labels['io.resin.features.kernel-modules'])
 			@volumes.push('/lib/modules:/lib/modules')
 		if checkTruthy(@labels['io.resin.features.firmware'])
 			@volumes.push('/lib/firmware:/lib/firmware')
-		if checkTruthy(@labels['io.resin.features.supervisor_api'])
+		if checkTruthy(@labels['io.resin.features.supervisor-api'])
 			@_addSupervisorApi(opts)
 		else
 			# We ensure the user hasn't added "supervisor0" to the service's networks
 			delete @networks[constants.supervisorNetworkInterface]
-		if checkTruthy(@labels['io.resin.features.resin_api'])
+		if checkTruthy(@labels['io.resin.features.resin-api'])
 			@environment['RESIN_API_KEY'] = opts.deviceApiKey
 
 	extendEnvVars: ({ imageInfo, uuid, appName, name, version, deviceType, osVersion }) =>
@@ -312,9 +312,9 @@ module.exports = class Service
 		@labels = _.clone(@labels)
 		_.defaults(@labels, imageInfo?.Config?.Labels ? {})
 		@labels['io.resin.supervised'] = 'true'
-		@labels['io.resin.app_id'] = @appId.toString()
-		@labels['io.resin.service_id'] = @serviceId.toString()
-		@labels['io.resin.service_name'] = @serviceName
+		@labels['io.resin.app-id'] = @appId.toString()
+		@labels['io.resin.service-id'] = @serviceId.toString()
+		@labels['io.resin.service-name'] = @serviceName
 		return @labels
 
 	extendAndSanitiseExposedPorts: (imageInfo) =>
@@ -333,10 +333,13 @@ module.exports = class Service
 		for vol in @volumes
 			isBind = /:/.test(vol)
 			if isBind
-				[ bindSource, bindDest ] = vol.split(':')
+				[ bindSource, bindDest, mode ] = vol.split(':')
 				if !path.isAbsolute(bindSource)
 					# Rewrite named volumes to namespace by appId
-					volumes.push("#{@appId}_#{bindSource}:#{bindDest}")
+					volDefinition = "#{@appId}_#{bindSource}:#{bindDest}"
+					if mode?
+						volDefinition += ":#{mode}"
+					volumes.push(volDefinition)
 				else
 					console.log("Ignoring invalid bind mount #{vol}")
 			else
@@ -353,7 +356,8 @@ module.exports = class Service
 				return null
 			bindSource = vol.split(':')[0]
 			if !path.isAbsolute(bindSource)
-				return bindSource.split('_')[1]
+				m = bindSource.match(/[0-9]+_(.+)/)
+				return m[1]
 			else
 				return null
 		return _.filter(validVolumes, (v) -> !_.isNull(v))
@@ -395,9 +399,9 @@ module.exports = class Service
 			if containerPort? and !_.includes(boundContainerPorts, containerPort)
 				expose.push(containerPort)
 
-		appId = checkInt(container.Config.Labels['io.resin.app_id'])
-		serviceId = checkInt(container.Config.Labels['io.resin.service_id'])
-		serviceName = container.Config.Labels['io.resin.service_name']
+		appId = checkInt(container.Config.Labels['io.resin.app-id'])
+		serviceId = checkInt(container.Config.Labels['io.resin.service-id'])
+		serviceName = container.Config.Labels['io.resin.service-name']
 		nameComponents = container.Name.match(/.*_(\d+)_(\d+)$/)
 		imageId = checkInt(nameComponents?[1])
 		releaseId = checkInt(nameComponents?[2])

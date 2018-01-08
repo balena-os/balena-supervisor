@@ -32,7 +32,7 @@ exports.isValidEnv = isValidEnv = (obj) ->
 
 exports.isValidLabelsObject = isValidLabelsObject = (obj) ->
 	_.isObject(obj) and _.every obj, (val, key) ->
-		isValidShortText(key) and /^[a-zA-Z_]+[a-zA-Z0-9_.]*$/.test(key) and _.isString(val)
+		isValidShortText(key) and /^[a-zA-Z_]+[a-zA-Z0-9\.\-]*$/.test(key) and _.isString(val)
 
 undefinedOrValidEnv = (val) ->
 	if val? and !isValidEnv(val)

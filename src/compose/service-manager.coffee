@@ -82,7 +82,7 @@ module.exports = class ServiceManager extends EventEmitter
 			return service
 
 	getAllByAppId: (appId) =>
-		@getAll("io.resin.app_id=#{appId}")
+		@getAll("io.resin.app-id=#{appId}")
 
 	stopAllByAppId: (appId) =>
 		Promise.map @getAllByAppId(appId), (service) =>
@@ -164,7 +164,7 @@ module.exports = class ServiceManager extends EventEmitter
 
 	# Returns an array with the container(s) matching a service by appId, commit, image and environment
 	get: (service) =>
-		@getAll("io.resin.service_id=#{service.serviceId}")
+		@getAll("io.resin.service-id=#{service.serviceId}")
 		.filter((currentService) -> currentService.isSameContainer(service))
 		.get(0)
 
@@ -219,7 +219,7 @@ module.exports = class ServiceManager extends EventEmitter
 		.then =>
 			@start(targetService)
 		.then =>
-			@waitToKill(currentService, targetService.labels['io.resin.update.handover_timeout'])
+			@waitToKill(currentService, targetService.labels['io.resin.update.handover-timeout'])
 		.then =>
 			@kill(currentService)
 
