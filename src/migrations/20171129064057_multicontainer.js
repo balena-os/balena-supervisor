@@ -60,13 +60,13 @@ var singleToMulticontainerApp = function (app, appId) {
 				`${defaultVolume}:/data`
 			],
 			labels: {
-				'io.resin.features.kernel_modules': '1',
+				'io.resin.features.kernel-modules': '1',
 				'io.resin.features.firmware': '1',
 				'io.resin.features.dbus': '1',
-				'io.resin.features.supervisor_api': '1',
-				'io.resin.features.resin_api': '1',
+				'io.resin.features.supervisor-api': '1',
+				'io.resin.features.resin-api': '1',
 				'io.resin.update.strategy': updateStrategy,
-				'io.resin.update.handover_timeout': handoverTimeout
+				'io.resin.update.handover-timeout': handoverTimeout
 			},
 			environment: environment,
 			restart: restartPolicy,

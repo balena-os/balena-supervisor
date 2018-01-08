@@ -12,7 +12,7 @@ module.exports = class Volumes
 	constructor: ({ @docker, @logger }) ->
 
 	format: (volume) =>
-		m = /^([0-9]+)_(.+)$/.match(volume.Name)
+		m = volume.Name.match(/^([0-9]+)_(.+)$/)
 		appId = checkInt(m[1])
 		name = m[2]
 		return {

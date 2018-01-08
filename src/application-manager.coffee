@@ -629,7 +629,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			validStrategies = [ 'download-then-kill', 'kill-then-download', 'delete-then-download', 'hand-over' ]
 			if !_.includes(validStrategies, strategy)
 				strategy = 'download-then-kill'
-			timeout = checkInt(target.labels['io.resin.update.handover_timeout'])
+			timeout = checkInt(target.labels['io.resin.update.handover-timeout'])
 			return @_strategySteps[strategy](current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout)
 
 	_nextStepsForAppUpdate: (currentApp, targetApp, availableImages = [], stepsInProgress = []) =>
