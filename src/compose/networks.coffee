@@ -10,9 +10,11 @@ module.exports = class Networks
 
 	# TODO: parse supported config fields
 	format: (network) ->
-		[ appId, name ] = network.Name.split('_')
+		m = /^([0-9]+)_(.+)$/.match(network.Name)
+		appId = checkInt(m[1])
+		name = m[2]
 		return {
-			appId: checkInt(appId)
+			appId: appId
 			name: name
 			config: {}
 		}

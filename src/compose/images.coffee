@@ -93,7 +93,7 @@ module.exports = class Images extends EventEmitter
 
 	save: (image) =>
 		@inspectByName(image.name)
-		.then (img) ->
+		.then (img) =>
 			image = _.clone(image)
 			image.dockerImageId = img.Id
 			@markAsSupervised(image)
