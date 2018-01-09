@@ -1,6 +1,6 @@
 [Unit]
 Description=resin-supervisor-dind
-Requires=confd.service docker.service openvpn-resin.service
+Wants=confd.service docker.service openvpn-resin.service
 After=confd.service
 Before=openvpn-resin.service
 
