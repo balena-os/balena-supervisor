@@ -223,6 +223,17 @@ bootstrapper.done = new Promise (resolve) ->
 		# This will only be the case when the supervisor/OS has been updated.
 		if userConfig.apiKey?
 			exchangeKeyOrRetry()
+		else
+			Promise.join(
+				knex('config').select('value').where(key: 'apiKey')
+				knex('config').select('value').where(key: 'deviceApiKey')
+				([ apiKey ], [ deviceApiKey ]) ->
+					if !deviceApiKey?.value
+						# apiKey in the DB is actually the deviceApiKey, but it was
+						# exchanged in a supervisor version that didn't save it to the DB
+						# (which mainly affects the RESIN_API_KEY env var)
+						knex('config').insert({ key: 'deviceApiKey', value: apiKey.value })
+			)
 		return
 
 bootstrapper.bootstrapped = false
