@@ -7,6 +7,7 @@ config = require './config'
 device = require './device'
 _ = require 'lodash'
 proxyvisor = require './proxyvisor'
+hostConfig = require './host-config'
 
 module.exports = (application) ->
 	authenticate = (req, res, next) ->
@@ -208,7 +209,6 @@ module.exports = (application) ->
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
-
 	# Expires the supervisor's API key and generates a new one.
 	# It also communicates the new key to the Resin API.
 	unparsedRouter.post '/v1/regenerate-api-key', (req, res) ->
@@ -216,6 +216,20 @@ module.exports = (application) ->
 		.then (secret) ->
 			device.updateState(api_secret: secret)
 			res.status(200).send(secret)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	parsedRouter.get '/v1/device/host-config', (req, res) ->
+		hostConfig.get()
+		.then (conf) ->
+			res.json(conf)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	parsedRouter.patch '/v1/device/host-config', (req, res) ->
+		hostConfig.patch(req.body)
+		.then ->
+			res.status(200).send('OK')
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 

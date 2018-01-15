@@ -38,6 +38,10 @@ type LogToDisplayBody struct {
 	Enable bool
 }
 
+type RestartServiceBody struct {
+	Name string
+}
+
 func jsonResponse(writer http.ResponseWriter, response interface{}, status int) {
 	jsonBody, err := json.Marshal(response)
 	if err != nil {
@@ -277,4 +281,30 @@ func LogToDisplayControl(writer http.ResponseWriter, request *http.Request) {
 		}
 		sendResponse(true, "", http.StatusOK)
 	}
+}
+
+//RestartService is used to restart a systemd service by name
+func RestartService(writer http.ResponseWriter, request *http.Request) {
+	sendResponse, sendError := responseSenders(writer)
+	var body RestartServiceBody
+	if err := parseJSONBody(&body, request); err != nil {
+		log.Println(err)
+		sendResponse("Error", err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if systemd.Dbus == nil {
+		sendError(fmt.Errorf("Systemd dbus unavailable, cannot restart service."))
+		return
+	}
+
+	actionDescr := "Service Restart"
+
+	if _, err := systemd.Dbus.RestartUnit(body.Name+".service", "fail", nil); err != nil {
+		log.Printf("%s: %s\n", actionDescr, err)
+		sendError(err)
+		return
+	}
+	log.Printf("%sd\n", actionDescr)
+	sendResponse("OK", "", http.StatusOK)
 }
