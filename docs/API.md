@@ -510,3 +510,96 @@ $ curl -X POST --header "Content-Type:application/json" \
 	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
 	"https://api.resin.io/supervisor/v1/healthy"
 ```
+
+<hr>
+
+### PATCH /v1/device/host-config
+
+Added in supervisor v6.6.0.
+
+This endpoint allows setting some configuration values for the host OS. Currently it supports
+proxy and hostname configuration.
+
+For proxy configuration, resinOS 2.0.7 and higher provides a transparent proxy redirector (redsocks) that makes all connections be routed to a SOCKS or HTTP proxy. This endpoint allows user applications to modify these proxy settings at runtime.
+
+
+#### Request body
+
+Is a JSON object with several optional fields. Proxy and hostname configuration go under a "network" key. If "proxy" or "hostname" are not present (undefined), those values will not be modified, so that a request can modify hostname
+without changing proxy settings and viceversa.
+
+```json
+{
+	"network": {
+		"proxy": {
+			"type": "http-connect",
+			"ip": "myproxy.example.com",
+			"port": 8123,
+			"login": "username",
+			"password": "password",
+			"noProxy": [ "152.10.30.4", "253.1.1.0/16" ]
+		},
+		"hostname": "mynewhostname"
+	}
+}
+```
+
+In the proxy settings, `type`, `ip`, `port`, `login` and `password` are the settings for the proxy redirector to
+be able to connnect to the proxy, based on how [redsocks.conf](https://github.com/darkk/redsocks/blob/master/redsocks.conf.example) works. `type` can be `socks4`, `socks5`, `http-connect` or `http-relay` (not all proxies are
+guaranteed to work, especially if they block connections that the resin services may require).
+
+The "noProxy" setting for the proxy is an optional array of IP addresses/subnets that should not be routed through the
+proxy. Keep in mind that local/reserved subnets are already [excluded by resinOS automatically](https://github.com/resin-os/meta-resin/blob/master/meta-resin-common/recipes-connectivity/resin-proxy-config/resin-proxy-config/resin-proxy-config#L48).
+
+If either "proxy" or "hostname" are null or empty values (i.e. `{}` for proxy or an empty string for hostname), they will be cleared to their default values (i.e. not using a proxy, and a hostname equal to the first 7 characters of the device's uuid, respectively).
+
+#### Examples:
+From the app on the device:
+```bash
+$ curl -X PATCH --header "Content-Type:application/json" \
+	--data '{"network": {"hostname": "newhostname"}}' \
+	"$RESIN_SUPERVISOR_ADDRESS/v1/device/host-config?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+
+Response:
+```none
+OK
+```
+
+Remotely via the API proxy:
+```bash
+$ curl -X POST --header "Content-Type:application/json" \
+	--header "Authorization: Bearer <auth token>" \
+	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "PATCH", "data": {"network": {"hostname": "newhostname"}}}' \
+	"https://api.resin.io/supervisor/v1/device/host-config"
+```
+
+<hr>
+
+### GET /v1/device/host-config
+
+Added in supervisor v6.6.0.
+
+This endpoint allows reading some configuration values for the host OS, previously set with `PATCH /v1/device/host-config`. Currently it supports
+proxy and hostname configuration.
+
+Please refer to the PATCH endpoint above for details on the behavior and meaning of the fields in the response.
+
+#### Examples:
+From the app on the device:
+```bash
+$ curl "$RESIN_SUPERVISOR_ADDRESS/v1/device/host-config?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{"network":{"proxy":{"ip":"192.168.0.199","port":"8123","type":"socks5"},"hostname":"27b0fdc"}}
+```
+
+Remotely via the API proxy:
+```bash
+$ curl -X POST --header "Content-Type:application/json" \
+	--header "Authorization: Bearer <auth token>" \
+	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	"https://api.resin.io/supervisor/v1/device/host-config"
+```
