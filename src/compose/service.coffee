@@ -1,5 +1,6 @@
 _ = require 'lodash'
 path = require 'path'
+os = require 'os'
 { checkTruthy, checkInt } = require '../lib/validation'
 updateLock = require '../lib/update-lock'
 constants = require '../lib/constants'
@@ -138,7 +139,6 @@ module.exports = class Service
 			@exposedPorts
 			@portBindings
 			@networks
-
 			@memLimit
 			@memReservation
 			@shmSize
@@ -162,6 +162,7 @@ module.exports = class Service
 			@healthcheck
 			@readOnly
 			@sysctls
+			@hostname
 		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
 
 		@networks ?= {}
@@ -204,6 +205,8 @@ module.exports = class Service
 		@readOnly ?= false
 
 		@sysctls ?= {}
+
+		@hostname ?= ''
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
@@ -405,6 +408,12 @@ module.exports = class Service
 		nameComponents = container.Name.match(/.*_(\d+)_(\d+)$/)
 		imageId = checkInt(nameComponents?[1])
 		releaseId = checkInt(nameComponents?[2])
+		hostname = container.Config.Hostname
+		# A hostname equal to the first part of the container ID actually
+		# means no hostname was specified
+		if hostname == container.Id.substr(0, 12) or
+			(container.HostConfig.NetworkMode == 'host' and hostname == os.hostname())
+				hostname = ''
 		service = {
 			appId: appId
 			serviceId: serviceId
@@ -453,6 +462,7 @@ module.exports = class Service
 			init: container.HostConfig.Init
 			readOnly: container.HostConfig.ReadonlyRootfs
 			sysctls: container.HostConfig.Sysctls
+			hostname: hostname
 		}
 		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
 		if service.restartPolicy.Name == ''
@@ -582,6 +592,7 @@ module.exports = class Service
 			'init'
 			'readOnly'
 			'sysctls'
+			'hostname'
 		]
 		arraysToCompare = [
 			'volumes'

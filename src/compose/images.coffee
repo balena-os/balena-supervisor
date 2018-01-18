@@ -54,7 +54,7 @@ module.exports = class Images extends EventEmitter
 					if validation.checkTruthy(opts.delta)
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
 						Promise.try =>
-							if opts.deltaSource
+							if opts.deltaSource and opts.deltaSource != 'resin/scratch'
 								@inspectByName(opts.deltaSource)
 								.then (srcImage) ->
 									opts.deltaSourceId = srcImage.Id
