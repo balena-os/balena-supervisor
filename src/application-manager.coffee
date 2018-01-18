@@ -383,7 +383,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		removePairs = []
 		installPairs = []
 		updatePairs = []
-		if currentServices.length == 1 and targetServices.length == 1 and
+		if currentServices?.length == 1 and targetServices?.length == 1 and
 			targetServices[0].serviceName == currentServices[0].serviceName and
 			checkTruthy(currentServices[0].labels['io.resin.legacy-container'])
 				# This is a legacy preloaded app or container, so we didn't have things like serviceId.
@@ -880,7 +880,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			return Promise.resolve()
 		@config.get('lockOverride')
 		.then (lockOverride) ->
-			return lockOverride or force
+			return checkTruthy(lockOverride) or force
 		.then (force) ->
 			updateLock.lock(appId, { force }, fn)
 

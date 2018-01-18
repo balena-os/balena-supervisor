@@ -61,7 +61,7 @@ exports.isValidAppsObject = (obj) ->
 	return false if !_.isObject(obj)
 	return false if !_.every obj, (val, appId) ->
 		return false if !isValidShortText(appId) or !checkInt(appId)?
-		return false if !isValidShortText(val.name) or !checkInt(val.releaseId)?
+		return false if !isValidShortText(val.name) or (val.releaseId? and !checkInt(val.releaseId)?)
 		return false if !_.isObject(val.services)
 		return false if !_.every(val.services, isValidService)
 		return true
