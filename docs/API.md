@@ -14,7 +14,7 @@ The supervisor exposes an HTTP API on port 48484 (`RESIN_SUPERVISOR_PORT`).
 
 The full address for the API, i.e. `"http://127.0.0.1:48484"`, is available as `RESIN_SUPERVISOR_ADDRESS`. **Always use these variables when communicating via the API, since address and port could change**.
 
-Alternatively, the Resin API (api.resin.io) has a proxy endpoint at `POST /supervisor/<url>` (where `<url>` is one of the API URLs described below) from which you can send API commands to the supervisor remotely, using your Auth Token instead of your API key. Commands sent through the proxy require an `appId` and/or `deviceId` parameter in the body, and default to POST requests unless you specify a `method` parameter (e.g. "GET").
+Alternatively, the Resin API (api.resin.io) has a proxy endpoint at `POST /supervisor/<url>` (where `<url>` is one of the API URLs described below) from which you can send API commands to the supervisor remotely, using your Auth Token instead of your API key. Commands sent through the proxy can specify either an `appId` to send the request to all devices in an application, or a `deviceId` or `uuid` to send to a particular device. These requests default to POST unless you specify a `method` parameter (e.g. "GET"). In the examples below, we show how to use a uuid to specify a device, but in any of those you can replace `uuid` for a `deviceId` or `appId`.
 
 The API is versioned (currently at v1), except for `/ping`.
 
@@ -43,7 +43,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	--data '{"uuid": <uuid>, "method": "GET"}' \
 	"https://api.resin.io/supervisor/ping"
 ```
 
@@ -67,7 +67,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
+	--data '{"uuid": <uuid>}' \
 	"https://api.resin.io/supervisor/v1/blink"
 ```
 
@@ -100,7 +100,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "data": {"force": true}}' \
+	--data '{"uuid": <uuid>, "data": {"force": true}}' \
 	"https://api.resin.io/supervisor/v1/update"
 ```
 
@@ -134,7 +134,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
+	--data '{"uuid": <uuid>}' \
 	"https://api.resin.io/supervisor/v1/reboot"
 ```
 
@@ -169,7 +169,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
+	--data '{"uuid": <uuid>}' \
 	"https://api.resin.io/supervisor/v1/shutdown"
 ```
 
@@ -217,7 +217,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "data": {"appId": <appId>}}' \
+	--data '{"uuid": <uuid>, "data": {"appId": <appId>}}' \
 	"https://api.resin.io/supervisor/v1/purge"
 ```
 
@@ -260,7 +260,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "data": {"appId": <appId>}}' \
+	--data '{"uuid": <uuid>, "data": {"appId": <appId>}}' \
 	"https://api.resin.io/supervisor/v1/restart"
 ```
 
@@ -285,7 +285,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
+	--data '{"uuid": <uuid>}' \
 	"https://api.resin.io/supervisor/v1/tcp-ping"
 ```
 
@@ -310,7 +310,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "DELETE"}' \
+	--data '{"uuid": <uuid>, "method": "DELETE"}' \
 	"https://api.resin.io/supervisor/v1/tcp-ping"
 ```
 
@@ -335,7 +335,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
+	--data '{"uuid": <uuid>}' \
 	"https://api.resin.io/supervisor/v1/regenerate-api-key"
 ```
 
@@ -374,7 +374,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	--data '{"uuid": <uuid>, "method": "GET"}' \
 	"https://api.resin.io/supervisor/v1/device"
 ```
 
@@ -412,7 +412,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
+	--data '{"uuid": <uuid>}' \
 	"https://api.resin.io/supervisor/v1/apps/<appId>/stop"
 ```
 
@@ -446,7 +446,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>}' \
+	--data '{"uuid": <uuid>}' \
 	"https://api.resin.io/supervisor/v1/apps/<appId>/start"
 ```
 
@@ -480,7 +480,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	--data '{"uuid": <uuid>, "method": "GET"}' \
 	"https://api.resin.io/supervisor/v1/apps/<appId>"
 ```
 
@@ -507,7 +507,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	--data '{"uuid": <uuid>, "method": "GET"}' \
 	"https://api.resin.io/supervisor/v1/healthy"
 ```
 
@@ -548,6 +548,8 @@ In the proxy settings, `type`, `ip`, `port`, `login` and `password` are the sett
 be able to connnect to the proxy, based on how [redsocks.conf](https://github.com/darkk/redsocks/blob/master/redsocks.conf.example) works. `type` can be `socks4`, `socks5`, `http-connect` or `http-relay` (not all proxies are
 guaranteed to work, especially if they block connections that the resin services may require).
 
+Keep in mind that, even if transparent proxy redirection will take effect immediately after the API call (i.e. all new connections will go through the proxy), open connections will not be closed. So, if for example, the device has managed to connect to the resin VPN without the proxy, it will stay connected directly without trying to reconnect through the proxy, unless the connection breaks - any reconnection attempts will then go through the proxy. To force *all* connections to go through the proxy, the best way is to reboot the device (see the /v1/reboot endpoint). In most networks were no connections to the Internet can be made if not through a proxy, this should not be necessary (as there will be no open connections before configuring the proxy settings).
+
 The "noProxy" setting for the proxy is an optional array of IP addresses/subnets that should not be routed through the
 proxy. Keep in mind that local/reserved subnets are already [excluded by resinOS automatically](https://github.com/resin-os/meta-resin/blob/master/meta-resin-common/recipes-connectivity/resin-proxy-config/resin-proxy-config/resin-proxy-config#L48).
 
@@ -570,7 +572,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "PATCH", "data": {"network": {"hostname": "newhostname"}}}' \
+	--data '{"uuid": <uuid>, "method": "PATCH", "data": {"network": {"hostname": "newhostname"}}}' \
 	"https://api.resin.io/supervisor/v1/device/host-config"
 ```
 
@@ -600,6 +602,6 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"deviceId": <deviceId>, "appId": <appId>, "method": "GET"}' \
+	--data '{"uuid": <uuid>, "method": "GET"}' \
 	"https://api.resin.io/supervisor/v1/device/host-config"
 ```
