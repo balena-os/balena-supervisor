@@ -1,6 +1,6 @@
 
 var defaultLegacyVolume = function (appId) {
-	return `resin-data-${appId}`
+	return `resin-app-${appId}`
 }
 
 var tryParse = function (obj) {
@@ -43,13 +43,13 @@ var singleToMulticontainerApp = function (app, appId) {
 	}
 	let restartPolicy = conf['RESIN_APP_RESTART_POLICY']
 	if (restartPolicy == null) {
-		restartPolicy = 'unless-stopped'
+		restartPolicy = 'always'
 	}
 	newApp.services = [
 		{
 			serviceId: 1,
 			appId: appId,
-			serviceName: 'main',
+			serviceName: app.name,
 			imageId: 1,
 			commit: app.commit,
 			releaseId: 1,
@@ -66,7 +66,8 @@ var singleToMulticontainerApp = function (app, appId) {
 				'io.resin.features.supervisor-api': '1',
 				'io.resin.features.resin-api': '1',
 				'io.resin.update.strategy': updateStrategy,
-				'io.resin.update.handover-timeout': handoverTimeout
+				'io.resin.update.handover-timeout': handoverTimeout,
+				'io.resin.legacy-container': '1'
 			},
 			environment: environment,
 			restart: restartPolicy,
