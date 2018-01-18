@@ -50,7 +50,7 @@ module.exports = class DeviceConfig
 			deltaRetryInterval: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL', varType: 'int' }
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
 		}
-		@validKeys = [ 'RESIN_HOST_LOG_TO_DISPLAY', 'RESIN_SUPERVISOR_VPN_CONTROL' ].concat(_.map(@configKeys, 'envVarName'))
+		@validKeys = [ 'RESIN_HOST_LOG_TO_DISPLAY', 'RESIN_SUPERVISOR_VPN_CONTROL', 'RESIN_OVERRIDE_LOCK' ].concat(_.map(@configKeys, 'envVarName'))
 		@actionExecutors = {
 			changeConfig: (step) =>
 				@logger.logConfigChange(step.humanReadableTarget)
@@ -141,8 +141,8 @@ module.exports = class DeviceConfig
 		else return false
 
 	getRequiredSteps: (currentState, targetState, stepsInProgress) =>
-		current = currentState.local?.config ? {}
-		target = targetState.local?.config ? {}
+		current = _.clone(currentState.local?.config ? {})
+		target = _.clone(targetState.local?.config ? {})
 		steps = []
 		@config.get('deviceType')
 		.then (deviceType) =>
@@ -154,6 +154,9 @@ module.exports = class DeviceConfig
 				'int': (a, b) ->
 					checkInt(a) == checkInt(b)
 			}
+			# If the legacy lock override is used, place it as the new variable
+			if checkTruthy(target['RESIN_OVERRIDE_LOCK'])
+				target['RESIN_SUPERVISOR_OVERRIDE_LOCK'] = target['RESIN_OVERRIDE_LOCK']
 			for own key, { envVarName, varType } of @configKeys
 				if !match[varType](current[envVarName], target[envVarName])
 					configChanges[key] = target[envVarName]
