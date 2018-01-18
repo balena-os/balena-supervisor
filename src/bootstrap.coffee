@@ -5,7 +5,6 @@ deviceRegister = require 'resin-register-device'
 { resinApi, request } = require './request'
 fs = Promise.promisifyAll(require('fs'))
 config = require './config'
-configPath = '/boot/config.json'
 appsPath  = '/boot/apps.json'
 _ = require 'lodash'
 deviceConfig = require './device-config'
@@ -13,22 +12,12 @@ TypedError = require 'typed-error'
 osRelease = require './lib/os-release'
 semver = require 'semver'
 semverRegex = require('semver-regex')
-
-userConfig = {}
+configJson = require './config-json'
 
 DuplicateUuidError = (err) -> _.startsWith(err.message, '"uuid" must be unique')
 exports.ExchangeKeyError = class ExchangeKeyError extends TypedError
 
 bootstrapper = {}
-
-writeAndSyncFile = (path, data) ->
-	fs.openAsync(path, 'w')
-	.then (fd) ->
-		fs.writeAsync(fd, data, 0, 'utf8')
-		.then ->
-			fs.fsyncAsync(fd)
-		.then ->
-			fs.closeAsync(fd)
 
 loadPreloadedApps = ->
 	devConfig = {}
@@ -37,27 +26,29 @@ loadPreloadedApps = ->
 		if apps.length > 0
 			console.log('Preloaded apps already loaded, skipping')
 			return
-		fs.readFileAsync(appsPath, 'utf8')
-		.then(JSON.parse)
-		.map (app) ->
-			utils.extendEnvVars(app.env, userConfig.uuid, userConfig.deviceApiKey, app.appId, app.name, app.commit)
-			.then (extendedEnv) ->
-				app.env = JSON.stringify(extendedEnv)
-				app.markedForDeletion = false
-				_.merge(devConfig, app.config)
-				app.config = JSON.stringify(app.config)
-				knex('app').insert(app)
-		.then ->
-			deviceConfig.set({ targetValues: devConfig })
+		configJson.getAll()
+		.then (userConfig) ->
+			fs.readFileAsync(appsPath, 'utf8')
+			.then(JSON.parse)
+			.map (app) ->
+				utils.extendEnvVars(app.env, userConfig.uuid, userConfig.deviceApiKey, app.appId, app.name, app.commit)
+				.then (extendedEnv) ->
+					app.env = JSON.stringify(extendedEnv)
+					app.markedForDeletion = false
+					_.merge(devConfig, app.config)
+					app.config = JSON.stringify(app.config)
+					knex('app').insert(app)
+			.then ->
+				deviceConfig.set({ targetValues: devConfig })
 		.catch (err) ->
 			utils.mixpanelTrack('Loading preloaded apps failed', { error: err })
 
-fetchDevice = (apiKey) ->
+fetchDevice = (uuid, apiKey) ->
 	resinApi.get
 		resource: 'device'
 		options:
 			filter:
-				uuid: userConfig.uuid
+				uuid: uuid
 		customOptions:
 			apikey: apiKey
 	.get(0)
@@ -65,33 +56,47 @@ fetchDevice = (apiKey) ->
 	.timeout(config.apiTimeout)
 
 exchangeKey = ->
-	Promise.try ->
-		# If we have an existing device key we first check if it's valid, because if it is we can just use that
-		if userConfig.deviceApiKey?
-			fetchDevice(userConfig.deviceApiKey)
-	.then (device) ->
-		if device?
-			return device
-		# If it's not valid/doesn't exist then we try to use the user/provisioning api key for the exchange
-		fetchDevice(userConfig.apiKey)
+	configJson.getAll()
+	.then (userConfig) ->
+		Promise.try ->
+			# If we have an existing device key we first check if it's valid, because if it is we can just use that
+			if userConfig.deviceApiKey?
+				fetchDevice(userConfig.uuid, userConfig.deviceApiKey)
 		.then (device) ->
-			if not device?
-				throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
-			# We found the device, we can try to register a working device key for it
-			userConfig.deviceApiKey ?= deviceRegister.generateUniqueKey()
-			request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key?apikey=#{userConfig.apiKey}", {
-				json: true
-				body:
-					apiKey: userConfig.deviceApiKey
-			})
-			.spread (res, body) ->
-				if res.statusCode != 200
-					throw new ExchangeKeyError("Couldn't register device key with provisioning key")
-			.return(device)
+			if device?
+				return device
+			# If it's not valid/doesn't exist then we try to use the user/provisioning api key for the exchange
+			fetchDevice(userConfig.uuid, userConfig.apiKey)
+			.then (device) ->
+				if not device?
+					throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
+				# We found the device, we can try to register a working device key for it
+				Promise.try ->
+					if !userConfig.deviceApiKey?
+						deviceApiKey = deviceRegister.generateUniqueKey()
+						configJson.set({ deviceApiKey })
+						.return(deviceApiKey)
+					else
+						return userConfig.deviceApiKey
+				.then (deviceApiKey) ->
+					request.postAsync("#{config.apiEndpoint}/api-key/device/#{device.id}/device-key?apikey=#{userConfig.apiKey}", {
+						json: true
+						body:
+							apiKey: deviceApiKey
+					})
+				.spread (res, body) ->
+					if res.statusCode != 200
+						throw new ExchangeKeyError("Couldn't register device key with provisioning key")
+				.return(device)
 
 bootstrap = ->
-	Promise.try ->
-		userConfig.deviceType ?= 'raspberry-pi'
+	configJson.get('deviceType')
+	.then (deviceType) ->
+		if !deviceType?
+			configJson.set(deviceType: 'raspberry-pi')
+	.then ->
+		configJson.getAll()
+	.then (userConfig) ->
 		if userConfig.registered_at?
 			return userConfig
 
@@ -115,18 +120,22 @@ bootstrap = ->
 				console.log('Exchanging key failed, having to reregister')
 				generateRegistration(true)
 		.then ({ id }) ->
-			userConfig.registered_at = Date.now()
-			userConfig.deviceId = id
+			toUpdate = {}
+			toDelete = []
+			if !userConfig.registered_at?
+				toUpdate.registered_at = Date.now()
+			toUpdate.deviceId = id
 			osRelease.getOSVersion(config.hostOSVersionPath)
-		.then (osVersion) ->
-			# Delete the provisioning key now, only if the OS supports it
-			hasSupport = hasDeviceApiKeySupport(osVersion)
-			if hasSupport
-				delete userConfig.apiKey
-			else
-				userConfig.apiKey = userConfig.deviceApiKey
-			writeAndSyncFile(configPath, JSON.stringify(userConfig))
-		.return(userConfig)
+			.then (osVersion) ->
+				# Delete the provisioning key now, only if the OS supports it
+				hasSupport = hasDeviceApiKeySupport(osVersion)
+				if hasSupport
+					toDelete.push('apiKey')
+				else
+					toUpdate.apiKey = userConfig.deviceApiKey
+				configJson.set(toUpdate, toDelete)
+		.then ->
+			configJson.getAll()
 	.then (userConfig) ->
 		console.log('Finishing bootstrapping')
 		knex('config').whereIn('key', ['uuid', 'apiKey', 'username', 'userId', 'version']).delete()
@@ -144,20 +153,18 @@ bootstrap = ->
 		.tap ->
 			bootstrapper.doneBootstrapping()
 
-readConfig = ->
-	fs.readFileAsync(configPath, 'utf8')
-	.then(JSON.parse)
-
 generateRegistration = (forceReregister = false) ->
 	Promise.try ->
 		if forceReregister
-			userConfig.uuid = deviceRegister.generateUniqueKey()
-			userConfig.deviceApiKey = deviceRegister.generateUniqueKey()
+			configJson.set({ uuid: deviceRegister.generateUniqueKey(), deviceApiKey: deviceRegister.generateUniqueKey() })
 		else
-			userConfig.uuid ?= deviceRegister.generateUniqueKey()
-			userConfig.deviceApiKey ?= deviceRegister.generateUniqueKey()
-		writeAndSyncFile(configPath, JSON.stringify(userConfig))
-		.return(userConfig.uuid)
+			configJson.getAll()
+			.then ({ uuid, deviceApiKey }) ->
+				uuid ?= deviceRegister.generateUniqueKey()
+				deviceApiKey ?= deviceRegister.generateUniqueKey()
+				configJson.set({ uuid, deviceApiKey })
+	.then ->
+		configJson.get('uuid')
 	.catch (err) ->
 		console.log('Error generating and saving UUID: ', err)
 		Promise.delay(config.bootstrapRetryDelay)
@@ -186,23 +193,27 @@ exchangeKeyAndUpdateConfig = ->
 	# Otherwise VPN and other host services that use an API key will break.
 	#
 	# In other cases, we make the apiKey equal the deviceApiKey instead.
-	osRelease.getOSVersion(config.hostOSVersionPath)
-	.then (osVersion) ->
-		hasSupport = hasDeviceApiKeySupport(osVersion)
-		if hasSupport or userConfig.apiKey != userConfig.deviceApiKey
-			console.log('Attempting key exchange')
-			exchangeKey()
-			.then ->
-				console.log('Key exchange succeeded, starting to use deviceApiKey')
-				if hasSupport
-					delete userConfig.apiKey
-				else
-					userConfig.apiKey = userConfig.deviceApiKey
-				utils.setConfig('deviceApiKey', userConfig.deviceApiKey)
-			.then ->
-				utils.setConfig('apiKey', userConfig.deviceApiKey)
-			.then ->
-				writeAndSyncFile(configPath, JSON.stringify(userConfig))
+	Promise.join(
+		configJson.getAll()
+		osRelease.getOSVersion(config.hostOSVersionPath)
+		(userConfig, osVersion) ->
+			hasSupport = hasDeviceApiKeySupport(osVersion)
+			if hasSupport or userConfig.apiKey != userConfig.deviceApiKey
+				console.log('Attempting key exchange')
+				exchangeKey()
+				.then ->
+					configJson.get('deviceApiKey')
+				.then (deviceApiKey) ->
+					console.log('Key exchange succeeded, starting to use deviceApiKey')
+					utils.setConfig('deviceApiKey', deviceApiKey)
+					.then ->
+						utils.setConfig('apiKey', deviceApiKey)
+					.then ->
+						if hasSupport
+							configJson.set({}, [ 'apiKey' ])
+						else
+							configJson.set(apiKey: deviceApiKey)
+	)
 
 exchangeKeyOrRetry = do ->
 	_failedExchanges = 0
@@ -217,31 +228,34 @@ exchangeKeyOrRetry = do ->
 
 bootstrapper.done = new Promise (resolve) ->
 	bootstrapper.doneBootstrapping = ->
-		bootstrapper.bootstrapped = true
-		resolve(userConfig)
-		# If we're still using an old api key we can try to exchange it for a valid device key
-		# This will only be the case when the supervisor/OS has been updated.
-		if userConfig.apiKey?
-			exchangeKeyOrRetry()
-		else
-			Promise.join(
-				knex('config').select('value').where(key: 'apiKey')
-				knex('config').select('value').where(key: 'deviceApiKey')
-				([ apiKey ], [ deviceApiKey ]) ->
-					if !deviceApiKey?.value
-						# apiKey in the DB is actually the deviceApiKey, but it was
-						# exchanged in a supervisor version that didn't save it to the DB
-						# (which mainly affects the RESIN_API_KEY env var)
-						knex('config').insert({ key: 'deviceApiKey', value: apiKey.value })
-			)
+		configJson.getAll()
+		.then (userConfig) ->
+			bootstrapper.bootstrapped = true
+			resolve(userConfig)
+			# If we're still using an old api key we can try to exchange it for a valid device key
+			# This will only be the case when the supervisor/OS has been updated.
+			if userConfig.apiKey?
+				exchangeKeyOrRetry()
+			else
+				Promise.join(
+					knex('config').select('value').where(key: 'apiKey')
+					knex('config').select('value').where(key: 'deviceApiKey')
+					([ apiKey ], [ deviceApiKey ]) ->
+						if !deviceApiKey?.value
+							# apiKey in the DB is actually the deviceApiKey, but it was
+							# exchanged in a supervisor version that didn't save it to the DB
+							# (which mainly affects the RESIN_API_KEY env var)
+							knex('config').insert({ key: 'deviceApiKey', value: apiKey.value })
+				)
 		return
 
 bootstrapper.bootstrapped = false
 bootstrapper.startBootstrapping = ->
 	# Load config file
-	readConfig()
-	.then (configFromFile) ->
-		userConfig = configFromFile
+	configJson.init()
+	.then ->
+		configJson.getAll()
+	.then (userConfig) ->
 		bootstrapper.offlineMode = !Boolean(config.apiEndpoint) or Boolean(userConfig.supervisorOfflineMode)
 		knex('config').select('value').where(key: 'uuid')
 	.then ([ uuid ]) ->

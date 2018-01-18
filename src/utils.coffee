@@ -236,6 +236,14 @@ exports.vpnControl = (val, logMessage, { initial = false } = {}) ->
 			return false
 	.catchReturn(false)
 
+exports.restartSystemdService = (serviceName) ->
+	gosuper.postAsync('/v1/restart-service', { json: true, body: Name: serviceName })
+	.spread (response, body) ->
+		if response.statusCode != 200
+			err = new Error("Error restarting service #{serviceName}: #{response.statusCode} #{body}")
+			err.statusCode = response.statusCode
+			throw err
+
 exports.AppNotFoundError = class AppNotFoundError extends TypedError
 
 exports.getKnexApp = (appId, columns) ->
