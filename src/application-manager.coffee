@@ -383,6 +383,19 @@ module.exports = class ApplicationManager extends EventEmitter
 		removePairs = []
 		installPairs = []
 		updatePairs = []
+		if currentServices.length == 1 and targetServices.length == 1 and
+			targetServices[0].serviceName == currentServices[0].serviceName and
+			checkTruthy(currentServices[0].labels['io.resin.legacy-container'])
+				# This is a legacy preloaded app or container, so we didn't have things like serviceId.
+				# We hack a few things to avoid an unnecessary restart of the preloaded app
+				# (but ensuring it gets updated if it actually changed)
+				targetServices = _.cloneDeep(targetServices)
+				currentServices = _.cloneDeep(currentServices)
+				delete currentServices[0].labels['io.resin.legacy-container']
+				delete targetServices[0].labels['io.resin.legacy-container']
+				currentServices[0].labels['io.resin.service-id'] = targetServices[0].labels['io.resin.service-id']
+				currentServices[0].serviceId = targetServices[0].serviceId
+
 		targetServiceIds = _.map(targetServices, 'serviceId')
 		currentServiceIds = _.uniq(_.map(currentServices, 'serviceId'))
 
