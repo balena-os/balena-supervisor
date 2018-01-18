@@ -40,6 +40,65 @@ validateState = Promise.method (state) ->
 	if state.dependent?
 		validateDependentState(state.dependent)
 
+singleToMulticontainerApp = (app) ->
+	environment = {}
+	for key of app.env
+		if !/^RESIN_/.test(key)
+			environment[key] = app.env[key]
+
+	appId = app.appId
+	conf = app.config ? {}
+	newApp = {
+		appId: appId
+		commit: app.commit
+		name: app.name
+		releaseId: 1
+		networks: {}
+		volumes: {}
+	}
+	defaultVolume = "resin-app-#{appId}"
+	newApp.volumes[defaultVolume] = {}
+	updateStrategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
+	if updateStrategy == null
+		updateStrategy = 'download-then-kill'
+	handoverTimeout = conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
+	if handoverTimeout == null
+		handoverTimeout = ''
+	restartPolicy = conf['RESIN_APP_RESTART_POLICY']
+	if restartPolicy == null
+		restartPolicy = 'always'
+
+	newApp.services = [
+		{
+			serviceId: 1
+			appId: appId
+			serviceName: app.name
+			imageId: 1
+			commit: app.commit
+			releaseId: 1
+			image: app.imageId
+			privileged: true
+			networkMode: 'host'
+			volumes: [
+				"#{defaultVolume}:/data"
+			],
+			labels: {
+				'io.resin.features.kernel-modules': '1'
+				'io.resin.features.firmware': '1'
+				'io.resin.features.dbus': '1',
+				'io.resin.features.supervisor-api': '1'
+				'io.resin.features.resin-api': '1'
+				'io.resin.update.strategy': updateStrategy
+				'io.resin.update.handover-timeout': handoverTimeout
+				'io.resin.legacy-container': '1'
+			},
+			environment: environment
+			restart: restartPolicy
+			running: true
+		}
+	]
+	return newApp
+
 class DeviceStateRouter
 	constructor: (@deviceState) ->
 		{ @applications } = @deviceState
@@ -293,12 +352,22 @@ module.exports = class DeviceState extends EventEmitter
 		_.assign(@_currentVolatile, newState)
 		@emitAsync('change')
 
+	_convertLegacyAppsJson: (appsArray) ->
+		config = _.reduce(appsArray, (conf, app) ->
+			return _.merge({}, conf, @deviceConfig.filterConfigKeys(app.config))
+		, {})
+		apps = _.map(appsArray, singleToMulticontainerApp)
+		return { apps, config }
+
 	loadTargetFromFile: (appsPath) ->
 		appsPath ?= constants.appsJsonPath
 		fs.readFileAsync(appsPath, 'utf8')
 		.then(JSON.parse)
 		.then (stateFromFile) =>
 			if !_.isEmpty(stateFromFile)
+				if _.isArray(stateFromFile)
+					# This is a legacy apps.json
+					stateFromFile = @_convertLegacyAppsJson(stateFromFile)
 				images = _.flatten(_.map(_.values(stateFromFile.apps), (app, appId) =>
 					_.map app.services, (service, serviceId) =>
 						svc = {
@@ -314,11 +383,14 @@ module.exports = class DeviceState extends EventEmitter
 					@applications.images.normalise(img.name)
 					.then (name) =>
 						img.name = name
-						@applications.images.markAsSupervised(img)
+						@applications.images.save(img)
 				.then =>
-					@setTarget({
-						local: stateFromFile
-					})
+					@deviceConfig.getCurrent()
+					.then (deviceConf) ->
+						_.defaults(stateFromFile.config, deviceConf)
+						@setTarget({
+							local: stateFromFile
+						})
 		.catch (err) =>
 			@eventTracker.track('Loading preloaded apps failed', { error: err })
 
