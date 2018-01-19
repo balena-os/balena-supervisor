@@ -48,7 +48,7 @@ fetchAction = (service) ->
 # v1 endpoins only work for single-container apps as they assume the app has a single service.
 class ApplicationManagerRouter
 	constructor: (@applications) ->
-		{ @proxyvisor, @eventTracker } = @applications
+		{ @proxyvisor, @eventTracker, @deviceState } = @applications
 		@router = express.Router()
 		@router.use(bodyParser.urlencoded(extended: true))
 		@router.use(bodyParser.json())
@@ -165,10 +165,50 @@ class ApplicationManagerRouter
 						res.status(200).json(Data: 'OK', Error: '')
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
+
+		@router.post '/v2/applications/:appId/purge', (req, res) =>
+			# lock first?
+			# currentApp = getCurrentApp
+			# Set volatile target: no running services, no volumes
+			# Apply volatile target (no cleanup / fetch)
+			# Set volatile target: currentApp
+			# Apply volatile target (no cleanup / fetch)
+			# res.send 200
+
+		@router.post '/v2/applications/:appId/restart-service', (req, res) =>
+			{ imageId, force } = req.body
+			{ appId } = req.params
+			@_lockingIfNecessary appId, { force }, =>
+				@applications.getCurrentApp(appId)
+				.then (app) =>
+					if !app?
+						errMsg = "App not found: an app needs to be installed for purge to work.
+								If you've recently moved this device from another app,
+								please push an app and wait for it to be installed first."
+						return res.status(404).send(errMsg)
+					service = _.find(app.services, (s) -> s.imageId == imageId)
+					if !service?
+						errMsg = "Service not found, a container must exist for service restart to work."
+						return res.status(404).send(errMsg)
+					@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { force })
+				.then ->
+					res.status(200).send('OK')
+			.catch (err) ->
+				res.status(503).send(err?.message or err or 'Unknown error')
+
+		@router.post '/v2/applications/:appId/restart', (req, res) =>
+			# lock first?
+			# currentApp = getCurrentApp
+			# Set volatile target: no running services, same volumes/networks
+			# Apply volatile target (no cleanup / fetch)
+			# Set volatile target: currentApp
+			# Apply volatile target (no cleanup / fetch)
+			# res.send 200
+
 		@router.use(@proxyvisor.router)
 
 module.exports = class ApplicationManager extends EventEmitter
-	constructor: ({ @logger, @config, @db, @eventTracker }) ->
+	constructor: ({ @logger, @config, @db, @eventTracker, @deviceState }) ->
 		@docker = new Docker()
 		@images = new Images({ @docker, @logger, @db })
 		@services = new ServiceManager({ @docker, @logger, @images, @config })

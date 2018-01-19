@@ -155,7 +155,7 @@ module.exports = class DeviceState extends EventEmitter
 	constructor: ({ @db, @config, @eventTracker }) ->
 		@logger = new Logger({ @eventTracker })
 		@deviceConfig = new DeviceConfig({ @db, @config, @logger })
-		@applications = new ApplicationManager({ @config, @logger, @db, @eventTracker })
+		@applications = new ApplicationManager({ @config, @logger, @db, @eventTracker, deviceState: this })
 		@on 'error', (err) ->
 			console.error('Error in deviceState: ', err, err.stack)
 		@_currentVolatile = {}
