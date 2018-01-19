@@ -309,8 +309,10 @@ module.exports = class DeviceState extends EventEmitter
 					.then =>
 						@applications.setTarget(target.local.apps, target.dependent, trx)
 
-	getTarget: ({ initial = false } = {}) =>
+	getTarget: ({ initial = false, intermediate = false } = {}) =>
 		@usingReadLockTarget =>
+			if intermediate
+				return @intermediateTarget
 			Promise.props({
 				local: Promise.props({
 					name: @config.get('name')
@@ -428,7 +430,7 @@ module.exports = class DeviceState extends EventEmitter
 					else
 						throw new Error("Invalid action #{step.action}")
 
-	applyStepAsync: (step, { force, initial }) =>
+	applyStepAsync: (step, { force, initial, intermediate }) =>
 		if @shuttingDown
 			return
 		@stepsInProgress.push(step)
@@ -437,12 +439,12 @@ module.exports = class DeviceState extends EventEmitter
 			.finally =>
 				@usingInferStepsLock =>
 					_.pullAllWith(@stepsInProgress, [ step ], _.isEqual)
-			.then (stepResult) =>
-				@emitAsync('step-completed', null, step, stepResult)
-				@continueApplyTarget({ force, initial })
 			.catch (err) =>
 				@emitAsync('step-error', err, step)
-				@applyError(err, force, initial)
+				throw err
+			.then (stepResult) =>
+				@emitAsync('step-completed', null, step, stepResult)
+				@continueApplyTarget({ force, initial, intermediate })
 
 	applyError: (err, force, initial) =>
 		@_applyingSteps = false
@@ -458,23 +460,25 @@ module.exports = class DeviceState extends EventEmitter
 			@triggerApplyTarget({ force, delay, initial })
 		@emitAsync('apply-target-state-error', err)
 		@emitAsync('apply-target-state-end', err)
+		throw err
 
-	applyTarget: ({ force = false, initial = false } = {}) =>
+	applyTarget: ({ force = false, initial = false, intermediate = false } = {}) =>
 		console.log('Applying target state')
 		@usingInferStepsLock =>
 			Promise.join(
 				@getCurrentForComparison()
-				@getTarget({ initial })
+				@getTarget({ initial, intermediate })
 				(currentState, targetState) =>
 					@deviceConfig.getRequiredSteps(currentState, targetState, @stepsInProgress)
 					.then (deviceConfigSteps) =>
 						if !_.isEmpty(deviceConfigSteps)
 							return deviceConfigSteps
 						else
-							@applications.getRequiredSteps(currentState, targetState, @stepsInProgress)
+							@applications.getRequiredSteps(currentState, targetState, @stepsInProgress, intermediate)
 			)
-			.then (steps) =>
-				if _.isEmpty(steps) and _.isEmpty(@stepsInProgress)
+		.then (steps) =>
+			if _.isEmpty(steps) and _.isEmpty(@stepsInProgress)
+				if !intermediate
 					console.log('Finished applying target state')
 					@applyInProgress = false
 					@applications.timeSpentFetching = 0
@@ -482,31 +486,38 @@ module.exports = class DeviceState extends EventEmitter
 					@lastSuccessfulUpdate = Date.now()
 					@reportCurrentState(update_failed: false, update_pending: false, update_downloaded: false)
 					@emitAsync('apply-target-state-end', null)
-					return
+				return
+			if !intermediate
 				@reportCurrentState(update_pending: true)
-				Promise.map steps, (step) =>
-					@applyStepAsync(step, { force, initial })
+			Promise.map steps, (step) =>
+				@applyStepAsync(step, { force, initial, intermediate })
 		.catch (err) =>
 			@applyError(err, force, initial)
 
-	continueApplyTarget: ({ force = false, initial = false } = {}) =>
-		if @applyContinueScheduled
-			return
-		@applyContinueScheduled = true
-		setTimeout( =>
-			@applyContinueScheduled = false
-			@applyTarget({ force, initial })
-		, 1000)
-		return
+	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}) =>
+		Promise.try =>
+			if !intermediate
+				@applyBlocker
+		.then =>
+			if @applyContinueScheduled
+				return
+			@applyContinueScheduled = true
+			Promise.delay(1000)
+			.then =>
+				@applyContinueScheduled = false
+				@applyTarget({ force, initial })
 
-	# TODO: Make this and applyTarget work purely with promises, no need to wait on events
+	pauseNextApply: =>
+		@applyBlocker = new Promise (resolve) =>
+			@applyUnblocker = resolve
+
+	resumeNextApply: =>
+		@applyUnblocker?()
+
 	triggerApplyTarget: ({ force = false, delay = 0, initial = false } = {}) =>
 		if @applyInProgress
 			if !@scheduledApply?
 				@scheduledApply = { force, delay }
-				@once 'apply-target-state-end', =>
-					@triggerApplyTarget(@scheduledApply)
-					@scheduledApply = null
 			else
 				# If a delay has been set it's because we need to hold off before applying again,
 				# so we need to respect the maximum delay that has been passed
@@ -514,8 +525,17 @@ module.exports = class DeviceState extends EventEmitter
 				@scheduledApply.force or= force
 			return
 		@applyInProgress = true
-		setTimeout( =>
+		Promise.delay(delay)
+		.then =>
 			@lastApplyStart = process.hrtime()
 			@applyTarget({ force, initial })
-		, delay)
+			.finally =>
+				@triggerApplyTarget(@scheduledApply)
+				@scheduledApply = null
 		return
+
+	applyIntermediateTarget: (intermediateTarget) =>
+		# TODO: figure out what things from the running apply we need to save/restore
+		# e.g. applyContinueScheduled, stepsInProgress?
+		@intermediateTarget = intermediateTarget
+		@applyTarget({ intermediate: true })

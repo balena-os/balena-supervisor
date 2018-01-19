@@ -44,7 +44,7 @@ fetchAction = (service) ->
 		image: imageForService(service)
 		serviceId: service.serviceId
 	}
-# TODO: implement v2 endpoints
+# TODO: implement additional v2 endpoints
 # v1 endpoins only work for single-container apps as they assume the app has a single service.
 class ApplicationManagerRouter
 	constructor: (@applications) ->
@@ -880,7 +880,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			return notUsedForDelta and notUsedByProxyvisor
 		return { imagesToSave, imagesToRemove }
 
-	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress) =>
+	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress, ignoreImages) =>
 		Promise.try =>
 			currentByAppId = _.keyBy(current.local.apps ? [], 'appId')
 			targetByAppId = _.keyBy(target.local.apps ? [], 'appId')
@@ -888,7 +888,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			if !supervisorNetworkReady
 				nextSteps.push({ action: 'ensureSupervisorNetwork' })
 			else
-				if !_.some(stepsInProgress, (step) -> step.action == 'fetch')
+				if !ignoreImages and !_.some(stepsInProgress, (step) -> step.action == 'fetch')
 					if cleanupNeeded
 						nextSteps.push({ action: 'cleanup' })
 					{ imagesToRemove, imagesToSave } = @_compareImages(current, target, availableImages)
@@ -902,6 +902,8 @@ module.exports = class ApplicationManager extends EventEmitter
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
 					for appId in allAppIds
 						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, stepsInProgress))
+						if ignoreImages and _.some(nextSteps, (step) -> step.action == 'fetch')
+							throw new Error('Cannot fetch images while executing an API action')
 			return @_removeDuplicateSteps(nextSteps, stepsInProgress)
 
 	_removeDuplicateSteps: (nextSteps, stepsInProgress) ->
@@ -931,13 +933,13 @@ module.exports = class ApplicationManager extends EventEmitter
 			return Promise.reject(new Error("Invalid action #{step.action}"))
 		@actionExecutors[step.action](step, { force })
 
-	getRequiredSteps: (currentState, targetState, stepsInProgress) =>
+	getRequiredSteps: (currentState, targetState, stepsInProgress, ignoreImages = false) =>
 		Promise.join(
 			@images.isCleanupNeeded()
 			@images.getAvailable()
 			@networks.supervisorNetworkReady()
 			(cleanupNeeded, availableImages, supervisorNetworkReady) =>
-				@_inferNextSteps(cleanupNeeded, availableImages, supervisorNetworkReady, currentState, targetState, stepsInProgress)
+				@_inferNextSteps(cleanupNeeded, availableImages, supervisorNetworkReady, currentState, targetState, stepsInProgress, ignoreImages)
 				.then (nextSteps) =>
 					@proxyvisor.getRequiredSteps(availableImages, currentState, targetState, nextSteps.concat(stepsInProgress))
 					.then (proxyvisorSteps) ->
