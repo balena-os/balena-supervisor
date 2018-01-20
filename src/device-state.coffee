@@ -462,20 +462,25 @@ module.exports = class DeviceState extends EventEmitter
 		@emitAsync('apply-target-state-end', err)
 		throw err
 
+	# BIG TODO: use correct stepsInProgress and applyContinueScheduled when it's an intermediate target
 	applyTarget: ({ force = false, initial = false, intermediate = false } = {}) =>
-		console.log('Applying target state')
-		@usingInferStepsLock =>
-			Promise.join(
-				@getCurrentForComparison()
-				@getTarget({ initial, intermediate })
-				(currentState, targetState) =>
-					@deviceConfig.getRequiredSteps(currentState, targetState, @stepsInProgress)
-					.then (deviceConfigSteps) =>
-						if !_.isEmpty(deviceConfigSteps)
-							return deviceConfigSteps
-						else
-							@applications.getRequiredSteps(currentState, targetState, @stepsInProgress, intermediate)
-			)
+		Promise.try =>
+			if !intermediate
+				@applyBlocker
+		.then =>
+			console.log('Applying target state')
+			@usingInferStepsLock =>
+				Promise.join(
+					@getCurrentForComparison()
+					@getTarget({ initial, intermediate })
+					(currentState, targetState) =>
+						@deviceConfig.getRequiredSteps(currentState, targetState, @stepsInProgress)
+						.then (deviceConfigSteps) =>
+							if !_.isEmpty(deviceConfigSteps)
+								return deviceConfigSteps
+							else
+								@applications.getRequiredSteps(currentState, targetState, @stepsInProgress, intermediate)
+				)
 		.then (steps) =>
 			if _.isEmpty(steps) and _.isEmpty(@stepsInProgress)
 				if !intermediate
@@ -535,7 +540,7 @@ module.exports = class DeviceState extends EventEmitter
 		return
 
 	applyIntermediateTarget: (intermediateTarget) =>
-		# TODO: figure out what things from the running apply we need to save/restore
-		# e.g. applyContinueScheduled, stepsInProgress?
 		@intermediateTarget = intermediateTarget
+		@intermediateStepsInProgress = []
+		@intermediateApplyContinueScheduled = false
 		@applyTarget({ intermediate: true })
