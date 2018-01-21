@@ -902,8 +902,6 @@ module.exports = class ApplicationManager extends EventEmitter
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
 					for appId in allAppIds
 						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, stepsInProgress))
-						if ignoreImages and _.some(nextSteps, (step) -> step.action == 'fetch')
-							throw new Error('Cannot fetch images while executing an API action')
 			return @_removeDuplicateSteps(nextSteps, stepsInProgress)
 
 	_removeDuplicateSteps: (nextSteps, stepsInProgress) ->
@@ -941,6 +939,8 @@ module.exports = class ApplicationManager extends EventEmitter
 			(cleanupNeeded, availableImages, supervisorNetworkReady) =>
 				@_inferNextSteps(cleanupNeeded, availableImages, supervisorNetworkReady, currentState, targetState, stepsInProgress, ignoreImages)
 				.then (nextSteps) =>
+					if ignoreImages and _.some(nextSteps, (step) -> step.action == 'fetch')
+						throw new Error('Cannot fetch images while executing an API action')
 					@proxyvisor.getRequiredSteps(availableImages, currentState, targetState, nextSteps.concat(stepsInProgress))
 					.then (proxyvisorSteps) ->
 						return nextSteps.concat(proxyvisorSteps)

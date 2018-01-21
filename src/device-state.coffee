@@ -446,18 +446,18 @@ module.exports = class DeviceState extends EventEmitter
 				@emitAsync('step-completed', null, step, stepResult)
 				@continueApplyTarget({ force, initial, intermediate })
 
-	applyError: (err, force, initial) =>
-		@_applyingSteps = false
-		@applyInProgress = false
-		@failedUpdates += 1
-		@reportCurrentState(update_failed: true)
-		if @scheduledApply?
-			console.log('Updating failed, but there is already another update scheduled immediately: ', err)
-		else
-			delay = Math.min((2 ** @failedUpdates) * 500, 30000)
-			# If there was an error then schedule another attempt briefly in the future.
-			console.log('Scheduling another update attempt due to failure: ', delay, err)
-			@triggerApplyTarget({ force, delay, initial })
+	applyError: (err, force, { initial, intermediate }) =>
+		if !intermediate
+			@applyInProgress = false
+			@failedUpdates += 1
+			@reportCurrentState(update_failed: true)
+			if @scheduledApply?
+				console.log('Updating failed, but there is already another update scheduled immediately: ', err)
+			else
+				delay = Math.min((2 ** @failedUpdates) * 500, 30000)
+				# If there was an error then schedule another attempt briefly in the future.
+				console.log('Scheduling another update attempt due to failure: ', delay, err)
+				@triggerApplyTarget({ force, delay, initial })
 		@emitAsync('apply-target-state-error', err)
 		@emitAsync('apply-target-state-end', err)
 		throw err
@@ -497,7 +497,7 @@ module.exports = class DeviceState extends EventEmitter
 			Promise.map steps, (step) =>
 				@applyStepAsync(step, { force, initial, intermediate })
 		.catch (err) =>
-			@applyError(err, force, initial)
+			@applyError(err, force, { initial, intermediate })
 
 	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}) =>
 		Promise.try =>
@@ -539,8 +539,10 @@ module.exports = class DeviceState extends EventEmitter
 				@scheduledApply = null
 		return
 
-	applyIntermediateTarget: (intermediateTarget) =>
+	applyIntermediateTarget: (intermediateTarget, { force = false } = {}) =>
 		@intermediateTarget = intermediateTarget
 		@intermediateStepsInProgress = []
 		@intermediateApplyContinueScheduled = false
-		@applyTarget({ intermediate: true })
+		@applyTarget({ intermediate: true, force })
+		.then =>
+			@intermediateTarget = null
