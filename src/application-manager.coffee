@@ -199,7 +199,7 @@ class ApplicationManagerRouter
 						return res.status(404).send(errMsg)
 					service = _.find(app.services, (s) -> s.imageId == imageId)
 					if !service?
-						errMsg = "Service not found, a container must exist for service restart to work."
+						errMsg = 'Service not found, a container must exist for service restart to work.'
 						return res.status(404).send(errMsg)
 					@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { force })
 				.then ->
@@ -243,7 +243,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			stop: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.kill(step.current, { removeContainer: false })
-			kill: (step, { force = false, skipLock = false  } = {}) =>
+			kill: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.kill(step.current)
 					.then =>

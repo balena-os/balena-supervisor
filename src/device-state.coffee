@@ -435,7 +435,7 @@ module.exports = class DeviceState extends EventEmitter
 		setImmediate =>
 			@executeStepAction(step, { force, initial, skipLock })
 			.finally =>
-				@usingInferStepsLock =>
+				@usingInferStepsLock ->
 					_.pullAllWith(updateContext.stepsInProgress, [ step ], _.isEqual)
 			.catch (err) =>
 				@emitAsync('step-error', err, step)
@@ -463,8 +463,8 @@ module.exports = class DeviceState extends EventEmitter
 	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false } = {}, updateContext) =>
 		if !updateContext?
 			updateContext = {
-				stepsInProgress = []
-				applyContinueScheduled = false
+				stepsInProgress: []
+				applyContinueScheduled: false
 			}
 		Promise.try =>
 			if !intermediate
