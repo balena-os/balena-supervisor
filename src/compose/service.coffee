@@ -1,5 +1,6 @@
 _ = require 'lodash'
 path = require 'path'
+os = require 'os'
 { checkTruthy, checkInt } = require '../lib/validation'
 updateLock = require '../lib/update-lock'
 constants = require '../lib/constants'
@@ -410,8 +411,9 @@ module.exports = class Service
 		hostname = container.Config.Hostname
 		# A hostname equal to the first part of the container ID actually
 		# means no hostname was specified
-		if hostname == container.Id.substr(0, 12)
-			hostname = ''
+		if hostname == container.Id.substr(0, 12) or
+			(container.HostConfig.NetworkMode == 'host' and hostname == os.hostname())
+				hostname = ''
 		service = {
 			appId: appId
 			serviceId: serviceId
