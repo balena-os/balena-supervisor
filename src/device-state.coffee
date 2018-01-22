@@ -394,16 +394,16 @@ module.exports = class DeviceState extends EventEmitter
 		.catch (err) =>
 			@eventTracker.track('Loading preloaded apps failed', { error: err })
 
-	reboot: (force) =>
-		@applications.stopAll({ force })
+	reboot: (force, skipLock) =>
+		@applications.stopAll({ force, skipLock })
 		.then =>
 			@logger.logSystemMessage('Rebooting', {}, 'Reboot')
 			device.reboot()
 			.tap =>
 				@emit('shutdown')
 
-	shutdown: (force) =>
-		@applications.stopAll({ force })
+	shutdown: (force, skipLock) =>
+		@applications.stopAll({ force, skipLock })
 		.then =>
 			@logger.logSystemMessage('Shutting down', {}, 'Shutdown')
 			device.shutdown()
@@ -411,29 +411,29 @@ module.exports = class DeviceState extends EventEmitter
 				@shuttingDown = true
 				@emitAsync('shutdown')
 
-	executeStepAction: (step, { force, initial }) =>
+	executeStepAction: (step, { force, initial, skipLock }) =>
 		Promise.try =>
 			if _.includes(@deviceConfig.validActions, step.action)
 				@deviceConfig.executeStepAction(step, { initial })
 			else if _.includes(@applications.validActions, step.action)
-				@applications.executeStepAction(step, { force })
+				@applications.executeStepAction(step, { force, skipLock })
 			else
 				switch step.action
 					when 'reboot'
-						@reboot(force)
+						@reboot(force, skipLock)
 					when 'shutdown'
-						@shutdown(force)
+						@shutdown(force, skipLock)
 					when 'noop'
 						Promise.resolve()
 					else
 						throw new Error("Invalid action #{step.action}")
 
-	applyStepAsync: (step, { force, initial, intermediate }, updateContext) =>
+	applyStepAsync: (step, { force, initial, intermediate, skipLock }, updateContext) =>
 		if @shuttingDown
 			return
 		updateContext.stepsInProgress.push(step)
 		setImmediate =>
-			@executeStepAction(step, { force, initial })
+			@executeStepAction(step, { force, initial, skipLock })
 			.finally =>
 				@usingInferStepsLock =>
 					_.pullAllWith(updateContext.stepsInProgress, [ step ], _.isEqual)
@@ -460,7 +460,7 @@ module.exports = class DeviceState extends EventEmitter
 		@emitAsync('apply-target-state-end', err)
 		throw err
 
-	applyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext) =>
+	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false } = {}, updateContext) =>
 		if !updateContext?
 			updateContext = {
 				stepsInProgress = []
@@ -497,7 +497,7 @@ module.exports = class DeviceState extends EventEmitter
 			if !intermediate
 				@reportCurrentState(update_pending: true)
 			Promise.map steps, (step) =>
-				@applyStepAsync(step, { force, initial, intermediate }, updateContext)
+				@applyStepAsync(step, { force, initial, intermediate, skipLock }, updateContext)
 		.catch (err) =>
 			@applyError(err, force, { initial, intermediate })
 
@@ -541,8 +541,8 @@ module.exports = class DeviceState extends EventEmitter
 				@scheduledApply = null
 		return
 
-	applyIntermediateTarget: (intermediateTarget, { force = false, skipLock = true } = {}) =>
+	applyIntermediateTarget: (intermediateTarget, { force = false, skipLock = false } = {}) =>
 		@intermediateTarget = intermediateTarget
-		@applyTarget({ intermediate: true, force })
+		@applyTarget({ intermediate: true, force, skipLock })
 		.then =>
 			@intermediateTarget = null

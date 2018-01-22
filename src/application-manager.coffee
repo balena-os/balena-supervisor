@@ -167,13 +167,24 @@ class ApplicationManagerRouter
 				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.post '/v2/applications/:appId/purge', (req, res) =>
-			# lock first?
-			# currentApp = getCurrentApp
-			# Set volatile target: no running services, no volumes
-			# Apply volatile target (no cleanup / fetch)
-			# Set volatile target: currentApp
-			# Apply volatile target (no cleanup / fetch)
-			# res.send 200
+			{ force } = req.body
+			{ appId } = req.params
+			@_lockingIfNecessary appId, { force }, =>
+				@deviceState.getCurrentForComparison()
+				.then (currentState) =>
+					app = currentState.local.apps[appId]
+					purgedApp = _.cloneDeep(app)
+					purgedApp.services = []
+					purgedApp.volumes = {}
+					currentState.local.apps[appId] = purgedApp
+					@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+					.then =>
+						currentState.local.apps[appId] = app
+						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+			.then ->
+				res.status(200).send('OK')
+			.catch (err) ->
+				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.post '/v2/applications/:appId/restart-service', (req, res) =>
 			{ imageId, force } = req.body
@@ -202,14 +213,18 @@ class ApplicationManagerRouter
 			@_lockingIfNecessary appId, { force }, =>
 				@deviceState.getCurrentForComparison()
 				.then (currentState) =>
-					app = currentState.local.apps
-			# lock first?
-			# currentApp = getCurrentApp
-			# Set volatile target: no running services, same volumes/networks
-			# Apply volatile target (no cleanup / fetch)
-			# Set volatile target: currentApp
-			# Apply volatile target (no cleanup / fetch)
-			# res.send 200
+					app = currentState.local.apps[appId]
+					stoppedApp = _.cloneDeep(app)
+					stoppedApp.services = []
+					currentState.local.apps[appId] = stoppedApp
+					@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+					.then =>
+						currentState.local.apps[appId] = app
+						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+			.then ->
+				res.status(200).send('OK')
+			.catch (err) ->
+				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.use(@proxyvisor.router)
 
@@ -225,21 +240,21 @@ module.exports = class ApplicationManager extends EventEmitter
 		@fetchesInProgress = 0
 		@_targetVolatilePerServiceId = {}
 		@actionExecutors = {
-			stop: (step, { force = false } = {}) =>
-				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
+			stop: (step, { force = false, skipLock = false } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.kill(step.current, { removeContainer: false })
-			kill: (step, { force = false } = {}) =>
-				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
+			kill: (step, { force = false, skipLock = false  } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.kill(step.current)
 					.then =>
 						if step.options?.removeImage
 							@images.removeByDockerId(step.current.image)
 			updateMetadata: (step) =>
 				@services.updateMetadata(step.current, step.target)
-			purge: (step, { force = false } = {}) =>
+			purge: (step, { force = false, skipLock = false } = {}) =>
 				appId = step.appId
 				@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
-				@_lockingIfNecessary appId, { force, skipLock: step.options?.skipLock }, =>
+				@_lockingIfNecessary appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@getCurrentApp(appId)
 					.then (app) =>
 						if !_.isEmpty(app?.services)
@@ -256,18 +271,18 @@ module.exports = class ApplicationManager extends EventEmitter
 				.catch (err) =>
 					@logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
 					throw err
-			restart: (step, { force = false } = {}) =>
-				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
+			restart: (step, { force = false, skipLock = false } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					Promise.try =>
 						@services.kill(step.current)
 					.then =>
 						@services.start(step.target)
-			stopAll: (step, { force = false } = {}) =>
-				@stopAll({ force })
+			stopAll: (step, { force = false, skipLock = false } = {}) =>
+				@stopAll({ force, skipLock })
 			start: (step) =>
 				@services.start(step.target)
-			handover: (step, { force = false } = {}) =>
-				@_lockingIfNecessary step.current.appId, { force, skipLock: step.options?.skipLock }, =>
+			handover: (step, { force = false, skipLock = false } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.handover(step.current, step.target)
 			fetch: (step) =>
 				startTime = process.hrtime()
@@ -916,10 +931,10 @@ module.exports = class ApplicationManager extends EventEmitter
 			!_.find(stepsInProgress, (s) -> _.isEqual(s, step))?
 		_.uniqWith(withoutProgressDups, _.isEqual)
 
-	stopAll: ({ force = false } = {}) =>
+	stopAll: ({ force = false, skipLock = false } = {}) =>
 		@services.getAll()
 		.map (service) =>
-			@_lockingIfNecessary service.appId, { force }, =>
+			@_lockingIfNecessary service.appId, { force, skipLock }, =>
 				@services.kill(service, { removeContainer: false })
 
 	_lockingIfNecessary: (appId, { force = false, skipLock = false } = {}, fn) =>
