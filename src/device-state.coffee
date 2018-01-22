@@ -164,11 +164,9 @@ module.exports = class DeviceState extends EventEmitter
 		@_readLock = Promise.promisify(_lock.async.readLock)
 		@lastSuccessfulUpdate = null
 		@failedUpdates = 0
-		@stepsInProgress = []
 		@applyInProgress = false
 		@lastApplyStart = process.hrtime()
 		@scheduledApply = null
-		@applyContinueScheduled = false
 		@shuttingDown = false
 		@_router = new DeviceStateRouter(this)
 		@router = @_router.router
@@ -430,21 +428,21 @@ module.exports = class DeviceState extends EventEmitter
 					else
 						throw new Error("Invalid action #{step.action}")
 
-	applyStepAsync: (step, { force, initial, intermediate }) =>
+	applyStepAsync: (step, { force, initial, intermediate }, updateContext) =>
 		if @shuttingDown
 			return
-		@stepsInProgress.push(step)
+		updateContext.stepsInProgress.push(step)
 		setImmediate =>
 			@executeStepAction(step, { force, initial })
 			.finally =>
 				@usingInferStepsLock =>
-					_.pullAllWith(@stepsInProgress, [ step ], _.isEqual)
+					_.pullAllWith(updateContext.stepsInProgress, [ step ], _.isEqual)
 			.catch (err) =>
 				@emitAsync('step-error', err, step)
 				throw err
 			.then (stepResult) =>
 				@emitAsync('step-completed', null, step, stepResult)
-				@continueApplyTarget({ force, initial, intermediate })
+				@continueApplyTarget({ force, initial, intermediate }, updateContext)
 
 	applyError: (err, force, { initial, intermediate }) =>
 		if !intermediate
@@ -462,8 +460,12 @@ module.exports = class DeviceState extends EventEmitter
 		@emitAsync('apply-target-state-end', err)
 		throw err
 
-	# BIG TODO: use correct stepsInProgress and applyContinueScheduled when it's an intermediate target
-	applyTarget: ({ force = false, initial = false, intermediate = false } = {}) =>
+	applyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext) =>
+		if !updateContext?
+			updateContext = {
+				stepsInProgress = []
+				applyContinueScheduled = false
+			}
 		Promise.try =>
 			if !intermediate
 				@applyBlocker
@@ -474,15 +476,15 @@ module.exports = class DeviceState extends EventEmitter
 					@getCurrentForComparison()
 					@getTarget({ initial, intermediate })
 					(currentState, targetState) =>
-						@deviceConfig.getRequiredSteps(currentState, targetState, @stepsInProgress)
+						@deviceConfig.getRequiredSteps(currentState, targetState, updateContext.stepsInProgress)
 						.then (deviceConfigSteps) =>
 							if !_.isEmpty(deviceConfigSteps)
 								return deviceConfigSteps
 							else
-								@applications.getRequiredSteps(currentState, targetState, @stepsInProgress, intermediate)
+								@applications.getRequiredSteps(currentState, targetState, updateContext.stepsInProgress, intermediate)
 				)
 		.then (steps) =>
-			if _.isEmpty(steps) and _.isEmpty(@stepsInProgress)
+			if _.isEmpty(steps) and _.isEmpty(updateContext.stepsInProgress)
 				if !intermediate
 					console.log('Finished applying target state')
 					@applyInProgress = false
@@ -495,22 +497,22 @@ module.exports = class DeviceState extends EventEmitter
 			if !intermediate
 				@reportCurrentState(update_pending: true)
 			Promise.map steps, (step) =>
-				@applyStepAsync(step, { force, initial, intermediate })
+				@applyStepAsync(step, { force, initial, intermediate }, updateContext)
 		.catch (err) =>
 			@applyError(err, force, { initial, intermediate })
 
-	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}) =>
+	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext) =>
 		Promise.try =>
 			if !intermediate
 				@applyBlocker
 		.then =>
-			if @applyContinueScheduled
+			if updateContext.applyContinueScheduled
 				return
-			@applyContinueScheduled = true
+			updateContext.applyContinueScheduled = true
 			Promise.delay(1000)
 			.then =>
-				@applyContinueScheduled = false
-				@applyTarget({ force, initial })
+				updateContext.applyContinueScheduled = false
+				@applyTarget({ force, initial }, updateContext)
 
 	pauseNextApply: =>
 		@applyBlocker = new Promise (resolve) =>
@@ -539,10 +541,8 @@ module.exports = class DeviceState extends EventEmitter
 				@scheduledApply = null
 		return
 
-	applyIntermediateTarget: (intermediateTarget, { force = false } = {}) =>
+	applyIntermediateTarget: (intermediateTarget, { force = false, skipLock = true } = {}) =>
 		@intermediateTarget = intermediateTarget
-		@intermediateStepsInProgress = []
-		@intermediateApplyContinueScheduled = false
 		@applyTarget({ intermediate: true, force })
 		.then =>
 			@intermediateTarget = null
