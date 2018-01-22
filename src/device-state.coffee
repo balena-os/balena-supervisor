@@ -72,7 +72,7 @@ singleToMulticontainerApp = (app) ->
 		{
 			serviceId: 1
 			appId: appId
-			serviceName: app.name
+			serviceName: app.name.toLowerCase()
 			imageId: 1
 			commit: app.commit
 			releaseId: 1
