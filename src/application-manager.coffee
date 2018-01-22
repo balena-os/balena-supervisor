@@ -197,6 +197,12 @@ class ApplicationManagerRouter
 				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.post '/v2/applications/:appId/restart', (req, res) =>
+			{ force } = req.body
+			{ appId } = req.params
+			@_lockingIfNecessary appId, { force }, =>
+				@deviceState.getCurrentForComparison()
+				.then (currentState) =>
+					app = currentState.local.apps
 			# lock first?
 			# currentApp = getCurrentApp
 			# Set volatile target: no running services, same volumes/networks
@@ -388,8 +394,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			apps[appId].volumes ?= {}
 			apps[appId].volumes[volume.name] = volume.config
 
-		# We return the apps as an array
-		return _.values(apps)
+		return apps
 
 	getCurrentForComparison: =>
 		Promise.join(
@@ -406,7 +411,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@networks.getAllByAppId(appId)
 			@volumes.getAllByAppId(appId)
 			(services, networks, volumes) =>
-				return @_buildApps(services, networks, volumes)[0]
+				return @_buildApps(services, networks, volumes)[appId]
 		)
 
 	getTargetApp: (appId) =>
@@ -828,6 +833,8 @@ module.exports = class ApplicationManager extends EventEmitter
 						_.merge(service, @_targetVolatilePerServiceId[service.serviceId])
 					return service
 			return app
+		.then (apps) ->
+			return _.keyBy(apps, 'appId')
 
 	getDependentTargets: =>
 		@proxyvisor.getTarget()
@@ -882,8 +889,8 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress, ignoreImages) =>
 		Promise.try =>
-			currentByAppId = _.keyBy(current.local.apps ? [], 'appId')
-			targetByAppId = _.keyBy(target.local.apps ? [], 'appId')
+			currentByAppId = current.local.apps ? {}
+			targetByAppId = target.local.apps ? {}
 			nextSteps = []
 			if !supervisorNetworkReady
 				nextSteps.push({ action: 'ensureSupervisorNetwork' })
