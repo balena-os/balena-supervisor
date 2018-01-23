@@ -53,22 +53,42 @@ class ApplicationManagerRouter
 		@router.use(bodyParser.urlencoded(extended: true))
 		@router.use(bodyParser.json())
 
+		doRestart = (appId, force) =>
+			@_lockingIfNecessary appId, { force }, =>
+				@deviceState.getCurrentForComparison()
+				.then (currentState) =>
+					app = currentState.local.apps[appId]
+					stoppedApp = _.cloneDeep(app)
+					stoppedApp.services = []
+					currentState.local.apps[appId] = stoppedApp
+					@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+					.then =>
+						currentState.local.apps[appId] = app
+						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+
+		doPurge = (appId, force) =>
+			@_lockingIfNecessary appId, { force }, =>
+				@deviceState.getCurrentForComparison()
+				.then (currentState) =>
+					app = currentState.local.apps[appId]
+					purgedApp = _.cloneDeep(app)
+					purgedApp.services = []
+					purgedApp.volumes = {}
+					currentState.local.apps[appId] = purgedApp
+					@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+					.then =>
+						currentState.local.apps[appId] = app
+						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+
 		@router.post '/v1/restart', (req, res) =>
 			appId = checkInt(req.body.appId)
 			force = checkTruthy(req.body.force)
 			@eventTracker.track('Restart container (v1)', { appId })
 			if !appId?
 				return res.status(400).send('Missing app id')
-			@applications.getCurrentApp(appId)
-			.then (app) =>
-				service = app?.services?[0]
-				if !service?
-					return res.status(400).send('App not found')
-				if app.services.length > 1
-					return res.status(400).send('v1 endpoints are only allowed on single-container apps')
-				@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { force })
-				.then ->
-					res.status(200).send('OK')
+			doRestart(appId, force)
+			.then ->
+				res.status(200).send('OK')
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -135,7 +155,7 @@ class ApplicationManagerRouter
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.post '/v1/purge', (req, res) =>
+		@router.post '/v1/purge', (req, res) ->
 			appId = checkInt(req.body.appId)
 			force = checkTruthy(req.body.force)
 			if !appId?
@@ -143,44 +163,16 @@ class ApplicationManagerRouter
 						If you've recently moved this device from another app,
 						please push an app and wait for it to be installed first."
 				return res.status(400).send(errMsg)
-			@_lockingIfNecessary appId, { force }, =>
-				@applications.getCurrentApp(appId)
-				.then (app) =>
-					service = app?.services?[0]
-					if !service?
-						return res.status(400).send('App not found')
-					if app.services.length > 1
-						return res.status(400).send('v1 endpoints are only allowed on single-container apps')
-					@applications.executeStepAction(serviceAction('kill', service.serviceId, service, null, skipLock: true), { force })
-					.then =>
-						@applications.executeStepAction({
-							action: 'purge'
-							appId: app.appId
-							options:
-								skipLock: true
-						}, { force })
-					.then =>
-						@applications.executeStepAction(serviceAction('start', service.serviceId, null, service, skipLock: true), { force })
-					.then ->
-						res.status(200).json(Data: 'OK', Error: '')
+			doPurge(appId, force)
+			.then ->
+				res.status(200).json(Data: 'OK', Error: '')
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.post '/v2/applications/:appId/purge', (req, res) =>
+		@router.post '/v2/applications/:appId/purge', (req, res) ->
 			{ force } = req.body
 			{ appId } = req.params
-			@_lockingIfNecessary appId, { force }, =>
-				@deviceState.getCurrentForComparison()
-				.then (currentState) =>
-					app = currentState.local.apps[appId]
-					purgedApp = _.cloneDeep(app)
-					purgedApp.services = []
-					purgedApp.volumes = {}
-					currentState.local.apps[appId] = purgedApp
-					@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.then =>
-						currentState.local.apps[appId] = app
-						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+			doPurge(appId, force)
 			.then ->
 				res.status(200).send('OK')
 			.catch (err) ->
@@ -207,20 +199,10 @@ class ApplicationManagerRouter
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.post '/v2/applications/:appId/restart', (req, res) =>
+		@router.post '/v2/applications/:appId/restart', (req, res) ->
 			{ force } = req.body
 			{ appId } = req.params
-			@_lockingIfNecessary appId, { force }, =>
-				@deviceState.getCurrentForComparison()
-				.then (currentState) =>
-					app = currentState.local.apps[appId]
-					stoppedApp = _.cloneDeep(app)
-					stoppedApp.services = []
-					currentState.local.apps[appId] = stoppedApp
-					@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.then =>
-						currentState.local.apps[appId] = app
-						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+			doRestart(appId, force)
 			.then ->
 				res.status(200).send('OK')
 			.catch (err) ->
