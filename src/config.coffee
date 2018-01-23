@@ -116,6 +116,7 @@ module.exports = class Config extends EventEmitter
 			mixpanelToken: { source: 'config.json', default: @constants.defaultMixpanelToken }
 			bootstrapRetryDelay: { source: 'config.json', default: 30000 }
 			supervisorOfflineMode: { source: 'config.json', default: false }
+			hostname: { source: 'config.json', mutable: true }
 
 			version: { source: 'func' }
 			currentApiKey: { source: 'func' }

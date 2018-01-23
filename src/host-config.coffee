@@ -1,10 +1,9 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
-utils = require './utils'
+gosuper = require './lib/gosuper'
 path = require 'path'
-config = require './config'
+constants = require './lib/constants'
 fs = Promise.promisifyAll(require('fs'))
-configJson = require './config-json'
 { writeFileAtomic } = require './lib/fs-utils'
 mkdirp = Promise.promisify(require('mkdirp'))
 
@@ -29,9 +28,17 @@ redsocksFooter = '}\n'
 
 proxyFields = [ 'type', 'ip', 'port', 'login', 'password' ]
 
-proxyBasePath = path.join('/mnt/root', config.bootMountPoint, 'system-proxy')
+proxyBasePath = path.join('/mnt/root', constants.bootMountPoint, 'system-proxy')
 redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf')
 noProxyPath = path.join(proxyBasePath, 'no_proxy')
+
+restartSystemdService = (serviceName) ->
+	gosuper.post('/v1/restart-service', { json: true, body: Name: serviceName })
+	.spread (response, body) ->
+		if response.statusCode != 200
+			err = new Error("Error restarting service #{serviceName}: #{response.statusCode} #{body}")
+			err.statusCode = response.statusCode
+			throw err
 
 readProxy = ->
 	fs.readFileAsync(redsocksConfPath)
@@ -90,9 +97,9 @@ setProxy = (conf) ->
 				redsocksConf += redsocksFooter
 				writeFileAtomic(redsocksConfPath, redsocksConf)
 	.then ->
-		utils.restartSystemdService('resin-proxy-config')
+		restartSystemdService('resin-proxy-config')
 	.then ->
-		utils.restartSystemdService('redsocks')
+		restartSystemdService('redsocks')
 
 hostnamePath = '/mnt/root/etc/hostname'
 readHostname = ->
@@ -100,10 +107,10 @@ readHostname = ->
 	.then (hostnameData) ->
 		return _.trim(new String(hostnameData))
 
-setHostname = (val) ->
-	configJson.set(hostname: val)
+setHostname = (val, configModel) ->
+	configModel.set(hostname: val)
 	.then ->
-		utils.restartSystemdService('resin-hostname')
+		restartSystemdService('resin-hostname')
 
 
 exports.get = ->
@@ -119,10 +126,10 @@ exports.get = ->
 			}
 	)
 
-exports.patch = (conf) ->
+exports.patch = (conf, configModel) ->
 	Promise.try ->
 		if !_.isUndefined(conf?.network?.proxy)
 			setProxy(conf.network.proxy)
 	.then ->
 		if !_.isUndefined(conf?.network?.hostname)
-			setHostname(conf.network.hostname)
+			setHostname(conf.network.hostname, configModel)
