@@ -5,7 +5,7 @@ EventEmitter = require 'events'
 fs = Promise.promisifyAll(require('fs'))
 express = require 'express'
 bodyParser = require 'body-parser'
-
+hostConfig = require './host-config'
 network = require './network'
 
 constants = require './lib/constants'
@@ -101,7 +101,7 @@ singleToMulticontainerApp = (app) ->
 
 class DeviceStateRouter
 	constructor: (@deviceState) ->
-		{ @applications } = @deviceState
+		{ @applications, @config } = @deviceState
 		@router = express.Router()
 		@router.use(bodyParser.urlencoded(extended: true))
 		@router.use(bodyParser.json())
@@ -129,6 +129,20 @@ class DeviceStateRouter
 				else
 					status = 500
 				res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
+
+		@router.get '/v1/device/host-config', (req, res) ->
+			hostConfig.get()
+			.then (conf) ->
+				res.json(conf)
+			.catch (err) ->
+				res.status(503).send(err?.message or err or 'Unknown error')
+
+		@router.patch '/v1/device/host-config', (req, res) =>
+			hostConfig.patch(req.body, @config)
+			.then ->
+				res.status(200).send('OK')
+			.catch (err) ->
+				res.status(503).send(err?.message or err or 'Unknown error')
 
 		@router.get '/v1/device', (req, res) =>
 			@deviceState.getStatus()

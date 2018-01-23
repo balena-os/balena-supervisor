@@ -22,6 +22,7 @@ func setupApi(router *mux.Router) {
 	apiv1.HandleFunc("/vpncontrol", VPNStatus).Methods("GET")
 	apiv1.HandleFunc("/log-to-display", LogToDisplayControl).Methods("POST")
 	apiv1.HandleFunc("/log-to-display", LogToDisplayStatus).Methods("GET")
+	apiv1.HandleFunc("/restart-service", RestartService).Methods("POST")
 }
 
 func startApi(listenAddress string, router *mux.Router) {
