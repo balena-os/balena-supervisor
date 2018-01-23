@@ -48,7 +48,7 @@ fetchAction = (service) ->
 # v1 endpoins only work for single-container apps as they assume the app has a single service.
 class ApplicationManagerRouter
 	constructor: (@applications) ->
-		{ @proxyvisor, @eventTracker, @deviceState } = @applications
+		{ @proxyvisor, @eventTracker, @deviceState, @_lockingIfNecessary } = @applications
 		@router = express.Router()
 		@router.use(bodyParser.urlencoded(extended: true))
 		@router.use(bodyParser.json())
@@ -201,9 +201,9 @@ class ApplicationManagerRouter
 					if !service?
 						errMsg = 'Service not found, a container must exist for service restart to work.'
 						return res.status(404).send(errMsg)
-					@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { force })
-				.then ->
-					res.status(200).send('OK')
+					@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { skipLock: true })
+					.then ->
+						res.status(200).send('OK')
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -388,25 +388,23 @@ module.exports = class ApplicationManager extends EventEmitter
 		@proxyvisor.getCurrentStates()
 
 	_buildApps: (services, networks, volumes) ->
-		apps = _.keyBy(_.map(_.uniq(_.map(services, 'appId')), (appId) -> { appId }), 'appId')
+		apps = {}
 
 		# We iterate over the current running services and add them to the current state
 		# of the app they belong to.
 		for service in services
 			appId = service.appId
-			apps[appId].services ?= []
+			apps[appId] ?= { appId, services: [], volumes: {}, networks: {} }
 			apps[appId].services.push(service)
 
 		for network in networks
 			appId = network.appId
-			apps[appId] ?= { appId }
-			apps[appId].networks ?= {}
+			apps[appId] ?= { appId, services: [], volumes: {}, networks: {} }
 			apps[appId].networks[network.name] = network.config
 
 		for volume in volumes
 			appId = volume.appId
-			apps[appId] ?= { appId }
-			apps[appId].volumes ?= {}
+			apps[appId] ?= { appId, services: [], volumes: {}, networks: {} }
 			apps[appId].volumes[volume.name] = volume.config
 
 		return apps
@@ -681,7 +679,8 @@ module.exports = class ApplicationManager extends EventEmitter
 			# There is already a step in progress for this service, so we wait
 			return null
 
-		needsDownload = !_.some(availableImages, (image) => @images.isSameImage(image, { name: target.imageName }))
+		needsDownload = !_.some availableImages, (image) =>
+			image.dockerImageId == target.image or @images.isSameImage(image, { name: target.imageName })
 		dependenciesMetForStart = =>
 			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs), stepsInProgress)
 		dependenciesMetForKill = =>
@@ -939,19 +938,19 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	_lockingIfNecessary: (appId, { force = false, skipLock = false } = {}, fn) =>
 		if skipLock
-			return Promise.resolve()
+			return Promise.try( -> fn())
 		@config.get('lockOverride')
 		.then (lockOverride) ->
 			return checkTruthy(lockOverride) or force
 		.then (force) ->
 			updateLock.lock(appId, { force }, fn)
 
-	executeStepAction: (step, { force = false } = {}) =>
+	executeStepAction: (step, { force = false, skipLock = false } = {}) =>
 		if _.includes(@proxyvisor.validActions, step.action)
 			return @proxyvisor.executeStepAction(step)
 		if !_.includes(@validActions, step.action)
 			return Promise.reject(new Error("Invalid action #{step.action}"))
-		@actionExecutors[step.action](step, { force })
+		@actionExecutors[step.action](step, { force, skipLock })
 
 	getRequiredSteps: (currentState, targetState, stepsInProgress, ignoreImages = false) =>
 		Promise.join(

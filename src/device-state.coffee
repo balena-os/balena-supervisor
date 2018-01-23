@@ -428,21 +428,20 @@ module.exports = class DeviceState extends EventEmitter
 					else
 						throw new Error("Invalid action #{step.action}")
 
-	applyStepAsync: (step, { force, initial, intermediate, skipLock }, updateContext) =>
+	applyStep: (step, { force, initial, intermediate, skipLock }, updateContext) =>
 		if @shuttingDown
 			return
 		updateContext.stepsInProgress.push(step)
-		setImmediate =>
-			@executeStepAction(step, { force, initial, skipLock })
-			.finally =>
-				@usingInferStepsLock ->
-					_.pullAllWith(updateContext.stepsInProgress, [ step ], _.isEqual)
-			.catch (err) =>
-				@emitAsync('step-error', err, step)
-				throw err
-			.then (stepResult) =>
-				@emitAsync('step-completed', null, step, stepResult)
-				@continueApplyTarget({ force, initial, intermediate }, updateContext)
+		@executeStepAction(step, { force, initial, skipLock })
+		.finally =>
+			@usingInferStepsLock ->
+				_.pullAllWith(updateContext.stepsInProgress, [ step ], _.isEqual)
+		.catch (err) =>
+			@emitAsync('step-error', err, step)
+			throw err
+		.then (stepResult) =>
+			@emitAsync('step-completed', null, step, stepResult)
+			@continueApplyTarget({ force, initial, intermediate }, updateContext)
 
 	applyError: (err, force, { initial, intermediate }) =>
 		if !intermediate
@@ -497,7 +496,7 @@ module.exports = class DeviceState extends EventEmitter
 			if !intermediate
 				@reportCurrentState(update_pending: true)
 			Promise.map steps, (step) =>
-				@applyStepAsync(step, { force, initial, intermediate, skipLock }, updateContext)
+				@applyStep(step, { force, initial, intermediate, skipLock }, updateContext)
 		.catch (err) =>
 			@applyError(err, force, { initial, intermediate })
 
@@ -512,7 +511,7 @@ module.exports = class DeviceState extends EventEmitter
 			Promise.delay(1000)
 			.then =>
 				updateContext.applyContinueScheduled = false
-				@applyTarget({ force, initial }, updateContext)
+				@applyTarget({ force, initial, intermediate }, updateContext)
 
 	pauseNextApply: =>
 		@applyBlocker = new Promise (resolve) =>
@@ -537,12 +536,13 @@ module.exports = class DeviceState extends EventEmitter
 			@lastApplyStart = process.hrtime()
 			@applyTarget({ force, initial })
 			.finally =>
-				@triggerApplyTarget(@scheduledApply)
-				@scheduledApply = null
+				if @scheduledApply?
+					@triggerApplyTarget(@scheduledApply)
+					@scheduledApply = null
 		return
 
 	applyIntermediateTarget: (intermediateTarget, { force = false, skipLock = false } = {}) =>
-		@intermediateTarget = intermediateTarget
+		@intermediateTarget = _.cloneDeep(intermediateTarget)
 		@applyTarget({ intermediate: true, force, skipLock })
 		.then =>
 			@intermediateTarget = null
