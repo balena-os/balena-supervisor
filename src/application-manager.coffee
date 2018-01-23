@@ -597,7 +597,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		if target.dependsOn?
 			for dependency in target.dependsOn
 				dependencyService = _.find(targetApp.services, (s) -> s.serviceName == dependency)
-				if !_.find(availableImages, (image) => @images.isSameImage(image, { name: dependencyService.imageName }))?
+				if !_.find(availableImages, (image) => image.dockerImageId == dependencyService.image or @images.isSameImage(image, { name: dependencyService.imageName }))?
 					return false
 		return true
 
