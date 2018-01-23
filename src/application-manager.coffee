@@ -48,7 +48,7 @@ fetchAction = (service) ->
 # v1 endpoins only work for single-container apps as they assume the app has a single service.
 class ApplicationManagerRouter
 	constructor: (@applications) ->
-		{ @proxyvisor, @eventTracker, @deviceState, @_lockingIfNecessary } = @applications
+		{ @proxyvisor, @eventTracker, @deviceState, @_lockingIfNecessary, @logger } = @applications
 		@router = express.Router()
 		@router.use(bodyParser.urlencoded(extended: true))
 		@router.use(bodyParser.json())
@@ -67,6 +67,7 @@ class ApplicationManagerRouter
 						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
 
 		doPurge = (appId, force) =>
+			@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
 			@_lockingIfNecessary appId, { force }, =>
 				@deviceState.getCurrentForComparison()
 				.then (currentState) =>
@@ -79,6 +80,11 @@ class ApplicationManagerRouter
 					.then =>
 						currentState.local.apps[appId] = app
 						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+			.tap =>
+				@logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
+			.catch (err) =>
+				@logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
+				throw err
 
 		@router.post '/v1/restart', (req, res) =>
 			appId = checkInt(req.body.appId)
@@ -233,26 +239,6 @@ module.exports = class ApplicationManager extends EventEmitter
 							@images.removeByDockerId(step.current.image)
 			updateMetadata: (step) =>
 				@services.updateMetadata(step.current, step.target)
-			purge: (step, { force = false, skipLock = false } = {}) =>
-				appId = step.appId
-				@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
-				@_lockingIfNecessary appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
-					@getCurrentApp(appId)
-					.then (app) =>
-						if !_.isEmpty(app?.services)
-							throw new Error('Attempt to purge app with running services')
-						if _.isEmpty(app?.volumes)
-							@logger.logSystemMessage('No volumes to purge', { appId }, 'Purge data noop')
-							return
-						Promise.mapSeries _.toPairs(app.volumes ? {}), ([ name, config ]) =>
-							@volumes.remove({ name, appId })
-							.then =>
-								@volumes.create({ name, config, appId })
-					.then =>
-						@logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
-				.catch (err) =>
-					@logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
-					throw err
 			restart: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					Promise.try =>
