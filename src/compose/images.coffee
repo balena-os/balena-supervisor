@@ -258,8 +258,8 @@ module.exports = class Images extends EventEmitter
 				@imageCleanupFailures[image] = Date.now()
 
 	@hasSameDigest: (name1, name2) ->
-		hash1 = name1.split('@')[1]
-		hash2 = name2.split('@')[1]
+		hash1 = name1?.split('@')[1]
+		hash2 = name2?.split('@')[1]
 		return hash1? and hash1 == hash2
 
 	@isSameImage: (image1, image2) ->
