@@ -554,6 +554,8 @@ module.exports = class Service
 			}
 		if @init
 			conf.HostConfig.Init = true
+		if !_.isEmpty(@hostname)
+			conf.Hostname = @hostname
 		return conf
 
 	# TODO: when we support network configuration properly, return endpointConfig: conf
