@@ -33,7 +33,7 @@ redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf')
 noProxyPath = path.join(proxyBasePath, 'no_proxy')
 
 restartSystemdService = (serviceName) ->
-	gosuper.postAsync('/v1/restart-service', { json: true, body: Name: serviceName })
+	gosuper.post('/v1/restart-service', { json: true, body: Name: serviceName })
 	.spread (response, body) ->
 		if response.statusCode != 200
 			err = new Error("Error restarting service #{serviceName}: #{response.statusCode} #{body}")

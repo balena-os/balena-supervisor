@@ -903,7 +903,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress, ignoreImages, localMode) =>
 		Promise.try =>
-			if localMode
+			if checkTruthy(localMode)
 				target = _.cloneDeep(target)
 				target.local.apps = _.mapValues target.local.apps ? {}, (app) ->
 					app.services = []
