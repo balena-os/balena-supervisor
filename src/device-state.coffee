@@ -457,14 +457,15 @@ module.exports = class DeviceState extends EventEmitter
 			@emitAsync('step-completed', null, step, stepResult)
 			@continueApplyTarget({ force, initial, intermediate }, updateContext)
 
-	applyError: (err, force, { initial, intermediate }) =>
+	applyError: (err, { force, initial, intermediate }, updateContext) =>
 		if !intermediate
 			@applyInProgress = false
 			@failedUpdates += 1
 			@reportCurrentState(update_failed: true)
-			if @scheduledApply?
+			if @scheduledApply? or updateContext.applyContinueScheduled
 				console.log('Updating failed, but there is already another update scheduled immediately: ', err)
 			else
+				updateContext.applyContinueScheduled = true # Avoid other steps finishing and continuing this failed update
 				delay = Math.min((2 ** @failedUpdates) * 500, 30000)
 				# If there was an error then schedule another attempt briefly in the future.
 				console.log('Scheduling another update attempt due to failure: ', delay, err)
@@ -512,7 +513,7 @@ module.exports = class DeviceState extends EventEmitter
 			Promise.map steps, (step) =>
 				@applyStep(step, { force, initial, intermediate, skipLock }, updateContext)
 		.catch (err) =>
-			@applyError(err, force, { initial, intermediate })
+			@applyError(err, { force, initial, intermediate }, updateContext)
 
 	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext) =>
 		Promise.try =>
