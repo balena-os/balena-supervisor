@@ -901,8 +901,14 @@ module.exports = class ApplicationManager extends EventEmitter
 			return notUsedForDelta and notUsedByProxyvisor
 		return { imagesToSave, imagesToRemove }
 
-	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress, ignoreImages) =>
+	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress, ignoreImages, localMode) =>
 		Promise.try =>
+			if localMode
+				target = _.cloneDeep(target)
+				target.local.apps = _.mapValues target.local.apps ? {}, (app) ->
+					app.services = []
+					return app
+				ignoreImages = true
 			currentByAppId = current.local.apps ? {}
 			targetByAppId = target.local.apps ? {}
 			nextSteps = []
@@ -957,8 +963,9 @@ module.exports = class ApplicationManager extends EventEmitter
 			@images.isCleanupNeeded()
 			@images.getAvailable()
 			@networks.supervisorNetworkReady()
-			(cleanupNeeded, availableImages, supervisorNetworkReady) =>
-				@_inferNextSteps(cleanupNeeded, availableImages, supervisorNetworkReady, currentState, targetState, stepsInProgress, ignoreImages)
+			@config.get('localMode')
+			(cleanupNeeded, availableImages, supervisorNetworkReady, localMode) =>
+				@_inferNextSteps(cleanupNeeded, availableImages, supervisorNetworkReady, currentState, targetState, stepsInProgress, ignoreImages, localMode)
 				.then (nextSteps) =>
 					if ignoreImages and _.some(nextSteps, (step) -> step.action == 'fetch')
 						throw new Error('Cannot fetch images while executing an API action')
