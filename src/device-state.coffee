@@ -445,8 +445,10 @@ module.exports = class DeviceState extends EventEmitter
 	applyStep: (step, { force, initial, intermediate, skipLock }, updateContext) =>
 		if @shuttingDown
 			return
-		updateContext.stepsInProgress.push(step)
-		@executeStepAction(step, { force, initial, skipLock })
+		@usingInferStepsLock ->
+			updateContext.stepsInProgress.push(step)
+		.then =>
+			@executeStepAction(step, { force, initial, skipLock })
 		.finally =>
 			@usingInferStepsLock ->
 				_.pullAllWith(updateContext.stepsInProgress, [ step ], _.isEqual)
@@ -458,21 +460,24 @@ module.exports = class DeviceState extends EventEmitter
 			@continueApplyTarget({ force, initial, intermediate }, updateContext)
 
 	applyError: (err, { force, initial, intermediate }, updateContext) =>
+		@emitAsync('apply-target-state-error', err)
+		@emitAsync('apply-target-state-end', err)
 		if !intermediate
-			@applyInProgress = false
 			@failedUpdates += 1
 			@reportCurrentState(update_failed: true)
-			if @scheduledApply? or updateContext.applyContinueScheduled
-				console.log('Updating failed, but there is already another update scheduled immediately: ', err)
+			if @scheduledApply?
+				console.log("Updating failed, but there's another update scheduled immediately: ", err)
+				force = force or @scheduledApply.force
+				delay = @scheduledApply.delay
+				@scheduledApply = null
 			else
-				updateContext.applyContinueScheduled = true # Avoid other steps finishing and continuing this failed update
 				delay = Math.min((2 ** @failedUpdates) * 500, 30000)
 				# If there was an error then schedule another attempt briefly in the future.
 				console.log('Scheduling another update attempt due to failure: ', delay, err)
-				@triggerApplyTarget({ force, delay, initial })
-		@emitAsync('apply-target-state-error', err)
-		@emitAsync('apply-target-state-end', err)
-		throw err
+			@continueApplyTarget({ force, initial, intermediate }, updateContext, delay)
+		else
+			updateContext.applyContinueScheduled = true
+			throw err
 
 	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false } = {}, updateContext) =>
 		if !updateContext?
@@ -501,7 +506,6 @@ module.exports = class DeviceState extends EventEmitter
 			if _.isEmpty(steps) and _.isEmpty(updateContext.stepsInProgress)
 				if !intermediate
 					console.log('Finished applying target state')
-					@applyInProgress = false
 					@applications.timeSpentFetching = 0
 					@failedUpdates = 0
 					@lastSuccessfulUpdate = Date.now()
@@ -515,7 +519,7 @@ module.exports = class DeviceState extends EventEmitter
 		.catch (err) =>
 			@applyError(err, { force, initial, intermediate }, updateContext)
 
-	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext) =>
+	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext, delay = 1000) =>
 		Promise.try =>
 			if !intermediate
 				@applyBlocker
@@ -523,7 +527,7 @@ module.exports = class DeviceState extends EventEmitter
 			if updateContext.applyContinueScheduled
 				return
 			updateContext.applyContinueScheduled = true
-			Promise.delay(1000)
+			Promise.delay(delay)
 			.then =>
 				updateContext.applyContinueScheduled = false
 				@applyTarget({ force, initial, intermediate }, updateContext)
@@ -551,6 +555,7 @@ module.exports = class DeviceState extends EventEmitter
 			@lastApplyStart = process.hrtime()
 			@applyTarget({ force, initial })
 			.finally =>
+				@applyInProgress = false
 				if @scheduledApply?
 					@triggerApplyTarget(@scheduledApply)
 					@scheduledApply = null
