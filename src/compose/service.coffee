@@ -10,6 +10,9 @@ Duration = require 'duration-js'
 
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 
+# Adapted from https://github.com/docker/docker-py/blob/master/docker/utils/ports.py#L3
+PORTS_REGEX = /^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/
+
 parseMemoryNumber = (numAsString, defaultVal) ->
 	m = numAsString?.toString().match(/^([0-9]+)([bkmg]?)$/)
 	if !m? and defaultVal?
@@ -475,10 +478,19 @@ module.exports = class Service
 		portBindings = {}
 		if @ports?
 			for port in @ports
-				[ hostPort, containerPort ] = port.toString().split(':')
-				containerPort ?= hostPort
-				exposedPorts[containerPort + '/tcp'] = {}
-				portBindings[containerPort + '/tcp'] = [ { HostIp: '', HostPort: hostPort } ]
+				m = port.match(PORTS_REGEX)
+				if m? # Ignore invalid port mappings
+					[ _unused, host = '', external, externalEnd, internal, internalEnd, protocol = 'tcp' ] = m
+					external ?= internal
+					internalEnd ?= internal
+					externalEnd ?= external
+					externalRange = _.map([external..externalEnd], String)
+					internalRange = _.map([internal..internalEnd], String)
+					if externalRange.length == internalRange.length # Ignore invalid port mappings
+						for hostPort, ind in externalRange
+							containerPort = internalRange[ind]
+							exposedPorts["#{containerPort}/#{protocol}"] = {}
+							portBindings["#{containerPort}/#{protocol}"] = [ { HostIp: host, HostPort: hostPort } ]
 		if @expose?
 			for port in @expose
 				exposedPorts[port + '/tcp'] = {}
