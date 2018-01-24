@@ -341,7 +341,7 @@ module.exports = class DeviceState extends EventEmitter
 			_.merge(theState.local, @_currentVolatile)
 			theState.local.apps = appsStatus.local
 			theState.dependent.apps = appsStatus.dependent
-			if appsStatus.commit
+			if appsStatus.commit and !@applyInProgress
 				theState.local.is_on__commit = appsStatus.commit
 			return theState
 
@@ -556,6 +556,7 @@ module.exports = class DeviceState extends EventEmitter
 			@applyTarget({ force, initial })
 			.finally =>
 				@applyInProgress = false
+				@reportCurrentState()
 				if @scheduledApply?
 					@triggerApplyTarget(@scheduledApply)
 					@scheduledApply = null
