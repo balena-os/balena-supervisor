@@ -588,7 +588,6 @@ module.exports = class Service
 			'privileged'
 			'restartPolicy'
 			'labels'
-			'environment'
 			'portBindings'
 			'exposedPorts'
 			#'memLimit'
@@ -621,6 +620,7 @@ module.exports = class Service
 			'ulimitsArray'
 		]
 		isEq = _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
+			_.isEqual(_.omit(@environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ]), _.omit(otherService.environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ])) and
 			@hasSameNetworks(otherService) and
 			_.every arraysToCompare, (property) =>
 				_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
