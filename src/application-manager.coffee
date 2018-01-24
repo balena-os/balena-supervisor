@@ -847,7 +847,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		allImagesForTargetApp = (app) -> _.map(app.services, imageForService)
 		allImagesForCurrentApp = (app) ->
 			_.map app.services, (service) ->
-				_.omit(_.find(available, (image) -> image.dockerImageId == service.image), [ 'dockerImageId', 'id' ])
+				_.omit(_.find(available, (image) -> image.dockerImageId == service.image and image.imageId == service.imageId), [ 'dockerImageId', 'id' ])
 		availableWithoutIds = _.map(available, (image) -> _.omit(image, [ 'dockerImageId', 'id' ]))
 		currentImages = _.flatten(_.map(current.local.apps, allImagesForCurrentApp))
 		targetImages = _.flatten(_.map(target.local.apps, allImagesForTargetApp))
