@@ -38,6 +38,7 @@ if (!_.isEmpty(arch) && !_.includes(supportedArchitectures, arch)) {
 	process.exit(1);
 }
 const archs = _.isEmpty(arch) ? supportedArchitectures : [ arch ];
+const quarkSlugs = [ 'iot2000', 'cybertan-ze250' ];
 
 const requestOpts = {
 	gzip: true,
@@ -66,14 +67,18 @@ resinApi._request(_.extend({
 	return Promise.mapSeries(deviceTypes, (deviceType) => {
 		if (archs.indexOf(deviceType.arch) >= 0) {
 			const customOptions = {};
+			let arch = deviceType.arch;
 			if (_.isEmpty(apiToken)) {
 				customOptions.apikey = apikey;
+			}
+			if (quarkSlugs.indexOf(deviceType.slug) >= 0) {
+				arch = 'i386-nlp';
 			}
 			console.log(`Deploying ${tag} for ${deviceType.slug}`);
 			return resinApi.post({
 				resource: 'supervisor_release',
 				body: {
-					image_name: `resin/${deviceType.arch}-supervisor`,
+					image_name: `resin/${arch}-supervisor`,
 					supervisor_version: tag,
 					device_type: deviceType.slug,
 					is_public: true
