@@ -59,18 +59,17 @@ singleToMulticontainerApp = (app) ->
 	defaultVolume = "resin-app-#{appId}"
 	newApp.volumes[defaultVolume] = {}
 	updateStrategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
-	if updateStrategy == null
+	if !updateStrategy?
 		updateStrategy = 'download-then-kill'
 	handoverTimeout = conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
-	if handoverTimeout == null
+	if !handoverTimeout?
 		handoverTimeout = ''
 	restartPolicy = conf['RESIN_APP_RESTART_POLICY']
-	if restartPolicy == null
+	if !restartPolicy?
 		restartPolicy = 'always'
 
-	newApp.services = [
-		{
-			serviceId: 1
+	newApp.services = {
+		'1': {
 			appId: appId
 			serviceName: app.name.toLowerCase()
 			imageId: 1
@@ -96,7 +95,7 @@ singleToMulticontainerApp = (app) ->
 			restart: restartPolicy
 			running: true
 		}
-	]
+	}
 	return newApp
 
 class DeviceStateRouter
@@ -341,7 +340,7 @@ module.exports = class DeviceState extends EventEmitter
 			_.merge(theState.local, @_currentVolatile)
 			theState.local.apps = appsStatus.local
 			theState.dependent.apps = appsStatus.dependent
-			if appsStatus.commit
+			if appsStatus.commit and !@applyInProgress
 				theState.local.is_on__commit = appsStatus.commit
 			return theState
 
@@ -366,11 +365,11 @@ module.exports = class DeviceState extends EventEmitter
 		_.assign(@_currentVolatile, newState)
 		@emitAsync('change')
 
-	_convertLegacyAppsJson: (appsArray) ->
-		config = _.reduce(appsArray, (conf, app) ->
+	_convertLegacyAppsJson: (appsArray) =>
+		config = _.reduce(appsArray, (conf, app) =>
 			return _.merge({}, conf, @deviceConfig.filterConfigKeys(app.config))
 		, {})
-		apps = _.map(appsArray, singleToMulticontainerApp)
+		apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId')
 		return { apps, config }
 
 	loadTargetFromFile: (appsPath) ->
@@ -382,13 +381,14 @@ module.exports = class DeviceState extends EventEmitter
 				if _.isArray(stateFromFile)
 					# This is a legacy apps.json
 					stateFromFile = @_convertLegacyAppsJson(stateFromFile)
-				images = _.flatten(_.map(_.values(stateFromFile.apps), (app, appId) =>
+				images = _.flatten(_.map(stateFromFile.apps, (app, appId) =>
 					_.map app.services, (service, serviceId) =>
 						svc = {
-							image: service.image
+							imageName: service.image
 							serviceName: service.serviceName
 							imageId: service.imageId
 							serviceId
+							releaseId: app.releaseId
 							appId
 						}
 						return @applications.imageForService(svc)
@@ -400,8 +400,9 @@ module.exports = class DeviceState extends EventEmitter
 						@applications.images.save(img)
 				.then =>
 					@deviceConfig.getCurrent()
-					.then (deviceConf) ->
+					.then (deviceConf) =>
 						_.defaults(stateFromFile.config, deviceConf)
+						stateFromFile.name ?= ''
 						@setTarget({
 							local: stateFromFile
 						})
@@ -519,7 +520,7 @@ module.exports = class DeviceState extends EventEmitter
 		.catch (err) =>
 			@applyError(err, { force, initial, intermediate }, updateContext)
 
-	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext, delay = 1000) =>
+	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext, delay = 100) =>
 		Promise.try =>
 			if !intermediate
 				@applyBlocker
@@ -556,6 +557,7 @@ module.exports = class DeviceState extends EventEmitter
 			@applyTarget({ force, initial })
 			.finally =>
 				@applyInProgress = false
+				@reportCurrentState()
 				if @scheduledApply?
 					@triggerApplyTarget(@scheduledApply)
 					@scheduledApply = null
