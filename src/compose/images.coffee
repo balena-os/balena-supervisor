@@ -119,6 +119,16 @@ module.exports = class Images extends EventEmitter
 							@logger.logSystemEvent(logTypes.deleteImage, { image })
 							@docker.getImage(img.dockerImageId).remove(force: true)
 							.return(true)
+						else if !img.name.split('@')[1]?
+							# Image has a regular tag, so we might have to remove unnecessary tags
+							@docker.getImage(img.dockerImageId).inspect()
+							.then (dockerImg) =>
+								differentTags = _.filter(imagesFromDB, (dbImage) -> dbImage.name != img.name)
+								if dockerImg.RepoTags.length > 1 and
+									_.some(dockerImg.RepoTags, (tag) -> tag == img.name) and
+									_.some(dockerImg.RepoTags, (tag) -> _.some(differentTags, (dbImage) -> dbImage.name == tag))
+										@docker.getImage(img.name).remove(noprune: true)
+							.return(false)
 						else
 							return false
 			.catchReturn(NotFoundError, false)
