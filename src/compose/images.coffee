@@ -20,6 +20,9 @@ validation = require '../lib/validation'
 # 	downloadProgress
 # }
 
+hasDigest = (name) ->
+	name?.split?('@')?[1]? ? false
+
 module.exports = class Images extends EventEmitter
 	constructor: ({ @docker, @logger, @db }) ->
 		@imageCleanupFailures = {}
@@ -60,6 +63,16 @@ module.exports = class Images extends EventEmitter
 									opts.deltaSourceId = srcImage.Id
 						.then =>
 							@docker.rsyncImageWithProgress(imageName, opts, onProgress)
+							.then (id) =>
+								id = 'sha256:' + id
+								if !hasDigest(imageName)
+									@docker.getRepoAndTag(imageName)
+									.then ({ repo, tag }) =>
+										@docker.getImage(id).tag({ repo, tag })
+									.then ->
+										return id
+								else
+									return id
 					else
 						@logger.logSystemEvent(logTypes.downloadImage, { image })
 						@docker.fetchImageWithProgress(imageName, opts, onProgress)
@@ -119,7 +132,7 @@ module.exports = class Images extends EventEmitter
 							@logger.logSystemEvent(logTypes.deleteImage, { image })
 							@docker.getImage(img.dockerImageId).remove(force: true)
 							.return(true)
-						else if !img.name.split('@')[1]?
+						else if !hasDigest(img.name)
 							# Image has a regular tag, so we might have to remove unnecessary tags
 							@docker.getImage(img.dockerImageId).inspect()
 							.then (dockerImg) =>
@@ -215,10 +228,14 @@ module.exports = class Images extends EventEmitter
 			@db.models('image').select('dockerImageId')
 			.map((image) -> image.dockerImageId)
 			(supervisorImageInfo, usedImageIds) =>
+				isDangling = (image) ->
+					# Looks like dangling images show up with these weird RepoTags and RepoDigests sometimes
+					(_.isEmpty(image.RepoTags) or _.isEqual(image.RepoTags, [ '<none>:<none>' ])) and
+						(_.isEmpty(image.RepoDigests) or _.isEqual(image.RepoDigests, [ '<none>@<none>' ]))
 				@docker.listImages(digests: true)
 				.map (image) =>
 					# Cleanup should remove truly dangling images (i.e. dangling and with no digests)
-					if _.isEmpty(image.RepoTags) and _.isEmpty(image.RepoDigests) and not image.Id in usedImageIds
+					if isDangling(image) and not (image.Id in usedImageIds)
 						images.push(image.Id)
 					else if !_.isEmpty(image.RepoTags)
 						# We also remove images from the supervisor repository with a different tag
@@ -228,11 +245,11 @@ module.exports = class Images extends EventEmitter
 								if imageName == supervisorImageInfo.imageName and tagName != supervisorImageInfo.tagName
 									images.push(image.Id)
 		)
-		.then(_.uniq)
 		.then =>
-			return _.filter images, (image) =>
+			toCleanup = _.filter _.uniq(images), (image) =>
 				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > constants.imageCleanupErrorIgnoreTimeout
-
+			#console.log(toCleanup)
+			return toCleanup
 	inspectByName: (imageName) =>
 		@docker.getImage(imageName).inspect()
 		.catch NotFoundError, (err) =>
