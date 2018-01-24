@@ -5,7 +5,7 @@ os = require 'os'
 updateLock = require '../lib/update-lock'
 constants = require '../lib/constants'
 conversions =  require '../lib/conversions'
-
+parseCommand = require('shell-quote').parse
 Duration = require 'duration-js'
 
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
@@ -35,7 +35,7 @@ getCommand = (service, imageInfo) ->
 	else if imageInfo?.Config?.Cmd?
 		cmd = imageInfo.Config.Cmd
 	if _.isString(cmd)
-		cmd = [ cmd ]
+		cmd = parseCommand(cmd)
 	return cmd
 
 getEntrypoint = (service, imageInfo) ->
@@ -45,7 +45,7 @@ getEntrypoint = (service, imageInfo) ->
 	else if imageInfo?.Config?.Entrypoint?
 		entry = imageInfo.Config.Entrypoint
 	if _.isString(entry)
-		entry = [ entry ]
+		entry = parseCommand(entry)
 	return entry
 
 getStopSignal = (service, imageInfo) ->
