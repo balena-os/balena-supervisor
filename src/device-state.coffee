@@ -519,7 +519,7 @@ module.exports = class DeviceState extends EventEmitter
 		.catch (err) =>
 			@applyError(err, { force, initial, intermediate }, updateContext)
 
-	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext, delay = 1000) =>
+	continueApplyTarget: ({ force = false, initial = false, intermediate = false } = {}, updateContext, delay = 100) =>
 		Promise.try =>
 			if !intermediate
 				@applyBlocker
