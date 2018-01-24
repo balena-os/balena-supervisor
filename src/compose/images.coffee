@@ -237,9 +237,11 @@ module.exports = class Images extends EventEmitter
 		@docker.getImage(imageName).inspect()
 		.catch NotFoundError, (err) =>
 			digest = imageName.split('@')[1]
-			if !digest?
-				throw err
-			@db.models('image').where('name', 'like', "%@#{digest}").select()
+			Promise.try =>
+				if digest?
+					@db.models('image').where('name', 'like', "%@#{digest}").select()
+				else
+					@db.models('image').where(name: imageName).select()
 			.then (imagesFromDB) =>
 				for image in imagesFromDB
 					if image.dockerImageId?
