@@ -536,9 +536,11 @@ module.exports = class DeviceState extends EventEmitter
 	pauseNextApply: =>
 		@applyBlocker = new Promise (resolve) =>
 			@applyUnblocker = resolve
+		return
 
 	resumeNextApply: =>
 		@applyUnblocker?()
+		return
 
 	triggerApplyTarget: ({ force = false, delay = 0, initial = false } = {}) =>
 		if @applyInProgress
