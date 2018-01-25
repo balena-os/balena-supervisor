@@ -45,6 +45,11 @@ function setSupervisorTag() {
 function commitAndPR() {
 	BASE=$1
 	HEAD=$2
+	if [ "$BASE" = "1.X" ]; then
+		prefix="1.X: "
+	else
+		prefix=""
+	fi
 	git commit -as -m "
 docker-resin-supervisor-disk: Update to ${TAG}
 
@@ -54,7 +59,7 @@ Change-Type: patch
 
 	git push $REPO_URL_WITH_CREDENTIALS $HEAD
 
-	hub pull-request -b ${BASE} -m "${BASE}: Update supervisor to ${TAG}
+	hub pull-request -b ${BASE} -m "${prefix}Update resin-supervisor to ${TAG}
 
 Change-Type: patch
 "
