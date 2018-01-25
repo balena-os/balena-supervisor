@@ -109,8 +109,8 @@ class ApplicationManagerRouter
 				if !service?
 					return res.status(400).send('App not found')
 				if app.services.length > 1
-					return res.status(400).send('v1 endpoints are only allowed on single-container apps')
-				@applications.setTargetVolatileForService(service.serviceId, running: false)
+					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
+				@applications.setTargetVolatileForService(service.imageId, running: false)
 				@applications.executeStepAction(serviceAction('stop', service.serviceId, service), { force })
 			.then (service) ->
 				res.status(200).json({ containerId: service.containerId })
@@ -128,8 +128,8 @@ class ApplicationManagerRouter
 				if !service?
 					return res.status(400).send('App not found')
 				if app.services.length > 1
-					return res.status(400).send('v1 endpoints are only allowed on single-container apps')
-				@applications.setTargetVolatileForService(service.serviceId, running: true)
+					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
+				@applications.setTargetVolatileForService(service.imageId, running: true)
 				@applications.executeStepAction(serviceAction('start', service.serviceId, null, service), { force })
 			.then (service) ->
 				res.status(200).json({ containerId: service.containerId })
@@ -147,7 +147,7 @@ class ApplicationManagerRouter
 				if !service?
 					return res.status(400).send('App not found')
 				if app.services.length > 1
-					return res.status(400).send('v1 endpoints are only allowed on single-container apps')
+					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
 				# Don't return data that will be of no use to the user
 				appToSend = {
 					appId
@@ -191,7 +191,7 @@ class ApplicationManagerRouter
 				@applications.getCurrentApp(appId)
 				.then (app) =>
 					if !app?
-						errMsg = "App not found: an app needs to be installed for purge to work.
+						errMsg = "App not found: an app needs to be installed for restart-service to work.
 								If you've recently moved this device from another app,
 								please push an app and wait for it to be installed first."
 						return res.status(404).send(errMsg)
@@ -200,6 +200,50 @@ class ApplicationManagerRouter
 						errMsg = 'Service not found, a container must exist for service restart to work.'
 						return res.status(404).send(errMsg)
 					@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { skipLock: true })
+					.then ->
+						res.status(200).send('OK')
+			.catch (err) ->
+				res.status(503).send(err?.message or err or 'Unknown error')
+
+		@router.post '/v2/applications/:appId/stop-service', (req, res) =>
+			{ imageId, force } = req.body
+			{ appId } = req.params
+			@_lockingIfNecessary appId, { force }, =>
+				@applications.getCurrentApp(appId)
+				.then (app) =>
+					if !app?
+						errMsg = "App not found: an app needs to be installed for stop-service to work.
+								If you've recently moved this device from another app,
+								please push an app and wait for it to be installed first."
+						return res.status(404).send(errMsg)
+					service = _.find(app.services, (s) -> s.imageId == imageId)
+					if !service?
+						errMsg = 'Service not found, a container must exist for service stop to work.'
+						return res.status(404).send(errMsg)
+					@applications.setTargetVolatileForService(service.imageId, running: false)
+					@applications.executeStepAction(serviceAction('stop', service.serviceId, service, service), { skipLock: true })
+					.then ->
+						res.status(200).send('OK')
+			.catch (err) ->
+				res.status(503).send(err?.message or err or 'Unknown error')
+
+		@router.post '/v2/applications/:appId/start-service', (req, res) =>
+			{ imageId, force } = req.body
+			{ appId } = req.params
+			@_lockingIfNecessary appId, { force }, =>
+				@applications.getCurrentApp(appId)
+				.then (app) =>
+					if !app?
+						errMsg = "App not found: an app needs to be installed for stop-service to work.
+								If you've recently moved this device from another app,
+								please push an app and wait for it to be installed first."
+						return res.status(404).send(errMsg)
+					service = _.find(app.services, (s) -> s.imageId == imageId)
+					if !service?
+						errMsg = 'Service not found, a container must exist for service start to work.'
+						return res.status(404).send(errMsg)
+					@applications.setTargetVolatileForService(service.imageId, running: true)
+					@applications.executeStepAction(serviceAction('start', service.serviceId, service, service), { skipLock: true })
 					.then ->
 						res.status(200).send('OK')
 			.catch (err) ->
@@ -226,7 +270,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
 		@timeSpentFetching = 0
 		@fetchesInProgress = 0
-		@_targetVolatilePerServiceId = {}
+		@_targetVolatilePerImageId = {}
 		@actionExecutors = {
 			stop: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
@@ -797,19 +841,19 @@ module.exports = class ApplicationManager extends EventEmitter
 			else
 				@db.transaction(setInTransaction)
 		.then =>
-			@_targetVolatilePerServiceId = {}
+			@_targetVolatilePerImageId = {}
 
-	setTargetVolatileForService: (serviceId, target) ->
-		@_targetVolatilePerServiceId[serviceId] ?= {}
-		_.assign(@_targetVolatilePerServiceId, target)
+	setTargetVolatileForService: (imageId, target) ->
+		@_targetVolatilePerImageId[imageId] ?= {}
+		_.assign(@_targetVolatilePerImageId[imageId], target)
 
 	getTargetApps: =>
 		Promise.map(@db.models('app').select(), @normaliseAndExtendAppFromDB)
 		.map (app) =>
 			if !_.isEmpty(app.services)
 				app.services = _.map app.services, (service) =>
-					if @_targetVolatilePerServiceId[service.serviceId]?
-						_.merge(service, @_targetVolatilePerServiceId[service.serviceId])
+					if @_targetVolatilePerImageId[service.imageId]?
+						_.merge(service, @_targetVolatilePerImageId[service.imageId])
 					return service
 			return app
 		.then (apps) ->

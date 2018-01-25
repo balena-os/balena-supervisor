@@ -239,9 +239,11 @@ module.exports = class ServiceManager extends EventEmitter
 					.then (service) =>
 						if service?
 							if data.status == 'die'
+								@emit('change')
 								@logger.logSystemEvent(logTypes.serviceExit, { service })
 								@containerHasDied[data.id] = true
 							else if data.status == 'start' and @containerHasDied[data.id]
+								@emit('change')
 								delete @containerHasDied[data.id]
 								@logger.logSystemEvent(logTypes.serviceRestart, { service })
 								@logger.attach(@docker, data.id, service.serviceId)
