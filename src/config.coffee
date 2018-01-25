@@ -140,7 +140,7 @@ module.exports = class Config extends EventEmitter
 			localMode: { source: 'db', mutable: true, default: 'false' }
 			loggingEnabled: { source: 'db', mutable: true, default: 'true' }
 			connectivityCheckEnabled: { source: 'db', mutable: true, default: 'true' }
-			delta: { source: 'db', mutable: true, default: 'false' }
+			delta: { source: 'db', mutable: true, default: 'true' }
 			deltaRequestTimeout: { source: 'db', mutable: true, default: '' }
 			deltaApplyTimeout: { source: 'db', mutable: true, default: '' }
 			deltaRetryCount: { source: 'db', mutable: true, default: '' }
