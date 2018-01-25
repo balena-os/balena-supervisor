@@ -61,10 +61,13 @@ class ApplicationManagerRouter
 					stoppedApp = _.cloneDeep(app)
 					stoppedApp.services = []
 					currentState.local.apps[appId] = stoppedApp
-					@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.then =>
-						currentState.local.apps[appId] = app
+					@deviceState.pausingApply =>
 						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+						.then =>
+							currentState.local.apps[appId] = app
+							@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+					.finally =>
+						@deviceState.triggerApplyTarget()
 
 		doPurge = (appId, force) =>
 			@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
@@ -76,10 +79,13 @@ class ApplicationManagerRouter
 					purgedApp.services = []
 					purgedApp.volumes = {}
 					currentState.local.apps[appId] = purgedApp
-					@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.then =>
-						currentState.local.apps[appId] = app
+					@deviceState.pausingApply =>
 						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+						.then =>
+							currentState.local.apps[appId] = app
+							@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+					.finally =>
+						@deviceState.triggerApplyTarget()
 			.tap =>
 				@logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
 			.catch (err) =>

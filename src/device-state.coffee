@@ -533,12 +533,26 @@ module.exports = class DeviceState extends EventEmitter
 				updateContext.applyContinueScheduled = false
 				@applyTarget({ force, initial, intermediate }, updateContext)
 
-	pauseNextApply: =>
-		@applyBlocker = new Promise (resolve) =>
-			@applyUnblocker = resolve
+	pausingApply: (fn) =>
+		lock = =>
+			@_writeLock('pause').disposer (release) ->
+				release()
+		pause = =>
+			Promise.try =>
+				res = null
+				@applyBlocker = new Promise (resolve) ->
+					res = resolve
+				return res
+			.disposer (resolve) ->
+				resolve()
+
+		Promise.using lock(), ->
+			Promise.using pause(), ->
+				fn()
 
 	resumeNextApply: =>
 		@applyUnblocker?()
+		return
 
 	triggerApplyTarget: ({ force = false, delay = 0, initial = false } = {}) =>
 		if @applyInProgress
