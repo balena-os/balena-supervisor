@@ -45,7 +45,7 @@ module.exports = class ServiceManager extends EventEmitter
 		if service.imageId?
 			@reportNewStatus(containerId, service, 'Stopping')
 		containerObj = @docker.getContainer(containerId)
-		containerObj.stop(t: 10)
+		containerObj.stop()
 		.then ->
 			if removeContainer
 				containerObj.remove(v: true)
