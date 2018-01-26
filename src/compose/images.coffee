@@ -54,25 +54,17 @@ module.exports = class Images extends EventEmitter
 			.catch =>
 				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', downloadProgress: 0 }))
 				Promise.try =>
-					if validation.checkTruthy(opts.delta)
+					if validation.checkTruthy(opts.delta) and opts.deltaSource and opts.deltaSource != 'resin/scratch'
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
-						Promise.try =>
-							if opts.deltaSource and opts.deltaSource != 'resin/scratch'
-								@inspectByName(opts.deltaSource)
-								.then (srcImage) ->
-									opts.deltaSourceId = srcImage.Id
-						.then =>
+						@inspectByName(opts.deltaSource)
+						.then (srcImage) ->
+							opts.deltaSourceId = srcImage.Id
 							@docker.rsyncImageWithProgress(imageName, opts, onProgress)
-							.then (id) =>
-								id = 'sha256:' + id
+							.tap (id) =>
 								if !hasDigest(imageName)
 									@docker.getRepoAndTag(imageName)
 									.then ({ repo, tag }) =>
 										@docker.getImage(id).tag({ repo, tag })
-									.then ->
-										return id
-								else
-									return id
 					else
 						@logger.logSystemEvent(logTypes.downloadImage, { image })
 						@docker.fetchImageWithProgress(imageName, opts, onProgress)
