@@ -23,7 +23,7 @@ applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, on
 			else
 				deltaStream = dockerDelta.applyDelta(imgSrc, timeout: applyTimeout)
 				res.pipe(deltaStream)
-				.on('id', resolve)
+				.on('id', (id) -> resolve('sha256:' + id))
 				.on('error', req.destroy.bind(req))
 
 module.exports = class DockerUtils extends DockerToolbelt
@@ -98,11 +98,8 @@ module.exports = class DockerUtils extends DockerToolbelt
 							resolve(applyDelta(deltaSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress))
 					.on 'error', reject
 		.catch dockerDelta.OutOfSyncError, (err) =>
-			throw err if startFromEmpty
-			console.log('Falling back to delta-from-empty')
-			newOpts = _.clone(fullDeltaOpts)
-			newOpts.startFromEmpty = true
-			@rsyncImageWithProgress(imgDest, newOpts, onProgress)
+			console.log('Falling back to regular pull')
+			@fetchImageWithProgress(imgDest, fullDeltaOpts, onProgress)
 
 	fetchImageWithProgress: (image, { uuid, currentApiKey }, onProgress) =>
 		@getRegistryAndName(image)
