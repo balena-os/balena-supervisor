@@ -227,7 +227,7 @@ class ApplicationManagerRouter
 						errMsg = 'Service not found, a container must exist for service stop to work.'
 						return res.status(404).send(errMsg)
 					@applications.setTargetVolatileForService(service.imageId, running: false)
-					@applications.executeStepAction(serviceAction('stop', service.serviceId, service, service), { skipLock: true })
+					@applications.executeStepAction(serviceAction('stop', service.serviceId, service, service, { wait: true }), { skipLock: true })
 					.then ->
 						res.status(200).send('OK')
 			.catch (err) ->
@@ -280,7 +280,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		@actionExecutors = {
 			stop: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
-					@services.kill(step.current, { removeContainer: false })
+					wait = step.options?.wait ? false
+					@services.kill(step.current, { removeContainer: false, wait })
 			kill: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.kill(step.current)
@@ -292,7 +293,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			restart: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					Promise.try =>
-						@services.kill(step.current)
+						@services.kill(step.current, { wait: true })
 					.then =>
 						@services.start(step.target)
 			stopAll: (step, { force = false, skipLock = false } = {}) =>
@@ -310,12 +311,12 @@ module.exports = class ApplicationManager extends EventEmitter
 					@images.getAvailable()
 					(opts, availableImages) =>
 						opts.deltaSource = @bestDeltaSource(step.image, availableImages)
-						@images.fetch(step.image, opts)
+						@images.triggerFetch step.image, opts, (success) =>
+							@fetchesInProgress -= 1
+							@timeSpentFetching += process.hrtime(startTime)[0]
+							if success
+								@reportCurrentState(update_downloaded: true)
 				)
-				.finally =>
-					@fetchesInProgress -= 1
-					@timeSpentFetching += process.hrtime(startTime)[0]
-					@reportCurrentState(update_downloaded: true)
 			removeImage: (step) =>
 				@images.remove(step.image)
 			saveImage: (step) =>
@@ -576,23 +577,20 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	# TODO: account for volumes-from, networks-from, links, etc
 	# TODO: support networks instead of only networkMode
-	_dependenciesMetForServiceStart: (target, networkPairs, volumePairs, pendingPairs, stepsInProgress) ->
+	_dependenciesMetForServiceStart: (target, networkPairs, volumePairs, pendingPairs) ->
 		# for dependsOn, check no install or update pairs have that service
 		dependencyUnmet = _.some target.dependsOn ? [], (dependency) ->
-			_.find(pendingPairs, (pair) -> pair.target?.serviceName == dependency)? or _.find(stepsInProgress, (step) -> step.target?.serviceName == dependency)?
+			_.find(pendingPairs, (pair) -> pair.target?.serviceName == dependency)?
 		if dependencyUnmet
 			return false
 		# for networks and volumes, check no network pairs have that volume name
 		if _.find(networkPairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == target.networkMode)?
 			return false
-		if _.find(stepsInProgress, (step) -> step.model == 'network' and "#{target.appId}_#{step.target?.name}" == target.networkMode)?
-			return false
 		volumeUnmet = _.some target.volumes, (volumeDefinition) ->
 			[ sourceName, destName ] = volumeDefinition.split(':')
 			if !destName? # If this is not a named volume, ignore it
 				return false
-			return _.find(volumePairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == sourceName)? or
-				_.find(stepsInProgress, (step) -> step.model == 'volume' and "#{target.appId}_#{step.target?.name}" == sourceName)?
+			return _.find(volumePairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == sourceName)?
 		return !volumeUnmet
 
 	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
@@ -606,7 +604,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					return false
 		return true
 
-	_nextStepsForNetworkOrVolume: ({ current, target }, currentApp, changingPairs, dependencyComparisonFn, model, stepsInProgress) ->
+	_nextStepsForNetworkOrVolume: ({ current, target }, currentApp, changingPairs, dependencyComparisonFn, model) ->
 		# Check none of the currentApp.services use this network or volume
 		if current?
 			dependencies = _.filter currentApp.services, (service) ->
@@ -618,24 +616,24 @@ module.exports = class ApplicationManager extends EventEmitter
 				# we have to kill them before removing the network/volume (e.g. when we're only updating the network config)
 				steps = []
 				for dependency in dependencies
-					if !_.some(changingPairs, (pair) -> pair.serviceId == dependency.serviceId) and !_.find(stepsInProgress, (step) -> step.serviceId == dependency.serviceId)?
+					if dependency.status != 'Stopping' and !_.some(changingPairs, (pair) -> pair.serviceId == dependency.serviceId)
 						steps.push(serviceAction('kill', dependency.serviceId, dependency))
 				return steps
 		else if target?
 			return [{ action: 'createNetworkOrVolume', model, target }]
 
-	_nextStepsForNetwork: ({ current, target }, currentApp, changingPairs, stepsInProgress) =>
+	_nextStepsForNetwork: ({ current, target }, currentApp, changingPairs) =>
 		dependencyComparisonFn = (service, current) ->
 			service.networkMode == "#{service.appId}_#{current?.name}"
-		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'network', stepsInProgress)
+		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'network')
 
-	_nextStepsForVolume: ({ current, target }, currentApp, changingPairs, stepsInProgress) ->
+	_nextStepsForVolume: ({ current, target }, currentApp, changingPairs) ->
 		# Check none of the currentApp.services use this network or volume
 		dependencyComparisonFn = (service, current) ->
 			_.some service.volumes, (volumeDefinition) ->
 				sourceName = volumeDefinition.split(':')[0]
 				sourceName == "#{service.appId}_#{current?.name}"
-		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'volume', stepsInProgress)
+		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'volume')
 
 	# Infers steps that do not require creating a new container
 	_updateContainerStep: (current, target) ->
@@ -679,15 +677,20 @@ module.exports = class ApplicationManager extends EventEmitter
 	}
 
 	_nextStepForService: ({ current, target }, updateContext) =>
-		{ targetApp, networkPairs, volumePairs, installPairs, updatePairs, stepsInProgress, availableImages } = updateContext
-		if _.find(stepsInProgress, (step) -> step.serviceId == target.serviceId)?
-			# There is already a step in progress for this service, so we wait
-			return null
+		{ targetApp, networkPairs, volumePairs, installPairs, updatePairs, availableImages, downloading } = updateContext
+		if current?.status == 'Stopping'
+			# There is already a kill step in progress for this service, so we wait
+			return { action: 'noop' }
 
 		needsDownload = !_.some availableImages, (image) =>
-			image.dockerImageId == target.image or @images.isSameImage(image, { name: target.imageName })
+			image.dockerImageId == target?.image or @images.isSameImage(image, { name: target.imageName })
+
+		# This service needs an image download but it's currently downloading, so we wait
+		if needsDownload and target?.imageId in downloading
+			return { action: 'noop' }
+
 		dependenciesMetForStart = =>
-			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs), stepsInProgress)
+			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs))
 		dependenciesMetForKill = =>
 			!needsDownload and @_dependenciesMetForServiceKill(target, targetApp, availableImages)
 
@@ -709,7 +712,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			timeout = checkInt(target.labels['io.resin.update.handover-timeout'])
 			return @_strategySteps[strategy](current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout)
 
-	_nextStepsForAppUpdate: (currentApp, targetApp, availableImages = [], stepsInProgress = []) =>
+	_nextStepsForAppUpdate: (currentApp, targetApp, availableImages = [], downloading = []) =>
 		emptyApp = { services: [], volumes: {}, networks: {} }
 		if !targetApp?
 			targetApp = emptyApp
@@ -735,12 +738,14 @@ module.exports = class ApplicationManager extends EventEmitter
 		steps = []
 		# All removePairs get a 'kill' action
 		for pair in removePairs
-			if !_.find(stepsInProgress, (step) -> step.serviceId == pair.current.serviceId)?
+			if pair.current.status != 'Stopping'
 				steps.push(serviceAction('kill', pair.current.serviceId, pair.current, null))
+			else
+				steps.push({ action: 'noop' })
 		# next step for install pairs in download - start order, but start requires dependencies, networks and volumes met
 		# next step for update pairs in order by update strategy. start requires dependencies, networks and volumes met.
 		for pair in installPairs.concat(updatePairs)
-			step = @_nextStepForService(pair, { targetApp, networkPairs, volumePairs, installPairs, updatePairs, stepsInProgress, availableImages })
+			step = @_nextStepForService(pair, { targetApp, networkPairs, volumePairs, installPairs, updatePairs, availableImages, downloading })
 			if step?
 				steps.push(step)
 		# next step for network pairs - remove requires services killed, create kill if no pairs or steps affect that service
@@ -751,7 +756,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		for pair in volumePairs
 			pairSteps = @_nextStepsForVolume(pair, currentApp, removePairs.concat(updatePairs))
 			steps = steps.concat(pairSteps)
-		return steps
+		return _.map(steps, (step) -> _.assign({}, step, { appId }))
 
 	normaliseAppForDB: (app) =>
 		services = _.map app.services, (s, serviceId) ->
@@ -916,7 +921,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			return notUsedForDelta and notUsedByProxyvisor
 		return { imagesToSave, imagesToRemove }
 
-	_inferNextSteps: (cleanupNeeded, availableImages, supervisorNetworkReady, current, target, stepsInProgress, ignoreImages, localMode) =>
+	_inferNextSteps: (cleanupNeeded, availableImages, downloading, supervisorNetworkReady, current, target, ignoreImages, localMode) =>
 		Promise.try =>
 			if checkTruthy(localMode)
 				target = _.cloneDeep(target)
@@ -930,7 +935,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			if !supervisorNetworkReady
 				nextSteps.push({ action: 'ensureSupervisorNetwork' })
 			else
-				if !ignoreImages and !_.some(stepsInProgress, (step) -> step.action == 'fetch')
+				if !ignoreImages and _.isEmpty(downloading)
 					if cleanupNeeded
 						nextSteps.push({ action: 'cleanup' })
 					{ imagesToRemove, imagesToSave } = @_compareImages(current, target, availableImages)
@@ -943,19 +948,16 @@ module.exports = class ApplicationManager extends EventEmitter
 				if _.isEmpty(nextSteps)
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
 					for appId in allAppIds
-						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, stepsInProgress))
-			return @_removeDuplicateSteps(nextSteps, stepsInProgress)
-
-	_removeDuplicateSteps: (nextSteps, stepsInProgress) ->
-		withoutProgressDups = _.filter nextSteps, (step) ->
-			!_.find(stepsInProgress, (s) -> _.isEqual(s, step))?
-		_.uniqWith(withoutProgressDups, _.isEqual)
+						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, downloading))
+			if !ignoreImages and _.isEmpty(nextSteps) and !_.isEmpty(downloading)
+				nextSteps.push({ action: 'noop' })
+			return _.uniqWith(nextSteps, _.isEqual)
 
 	stopAll: ({ force = false, skipLock = false } = {}) =>
 		@services.getAll()
 		.map (service) =>
 			@_lockingIfNecessary service.appId, { force, skipLock }, =>
-				@services.kill(service, { removeContainer: false })
+				@services.kill(service, { removeContainer: false, wait: true })
 
 	_lockingIfNecessary: (appId, { force = false, skipLock = false } = {}, fn) =>
 		if skipLock
@@ -973,18 +975,19 @@ module.exports = class ApplicationManager extends EventEmitter
 			return Promise.reject(new Error("Invalid action #{step.action}"))
 		@actionExecutors[step.action](step, { force, skipLock })
 
-	getRequiredSteps: (currentState, targetState, stepsInProgress, ignoreImages = false) =>
+	getRequiredSteps: (currentState, targetState, ignoreImages = false) =>
 		Promise.join(
 			@images.isCleanupNeeded()
 			@images.getAvailable()
+			@images.getDownloadingImageIds()
 			@networks.supervisorNetworkReady()
 			@config.get('localMode')
-			(cleanupNeeded, availableImages, supervisorNetworkReady, localMode) =>
-				@_inferNextSteps(cleanupNeeded, availableImages, supervisorNetworkReady, currentState, targetState, stepsInProgress, ignoreImages, localMode)
+			(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, localMode) =>
+				@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, localMode)
 				.then (nextSteps) =>
 					if ignoreImages and _.some(nextSteps, (step) -> step.action == 'fetch')
 						throw new Error('Cannot fetch images while executing an API action')
-					@proxyvisor.getRequiredSteps(availableImages, currentState, targetState, nextSteps.concat(stepsInProgress))
+					@proxyvisor.getRequiredSteps(availableImages, downloading, currentState, targetState, nextSteps)
 					.then (proxyvisorSteps) ->
 						return nextSteps.concat(proxyvisorSteps)
 		)

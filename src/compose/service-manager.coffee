@@ -40,46 +40,45 @@ module.exports = class ServiceManager extends EventEmitter
 	reportNewStatus: (containerId, service, status) =>
 		@reportChange(containerId, _.merge({ status }, _.pick(service, [ 'imageId', 'appId', 'releaseId', 'commit' ])))
 
-	_killContainer: (containerId, service = {}, { removeContainer = true }) =>
-		@logger.logSystemEvent(logTypes.stopService, { service })
-		if service.imageId?
-			@reportNewStatus(containerId, service, 'Stopping')
-		containerObj = @docker.getContainer(containerId)
-		containerObj.stop()
-		.then ->
-			if removeContainer
-				containerObj.remove(v: true)
-		.catch (err) =>
-			# Get the statusCode from the original cause and make sure statusCode it's definitely a string for comparison
-			# reasons.
-			statusCode = checkInt(err.statusCode)
-			# 304 means the container was already stopped - so we can just remove it
-			if statusCode is 304
-				@logger.logSystemEvent(logTypes.stopServiceNoop, { service })
-				if removeContainer
-					return containerObj.remove(v: true)
-				return
-			# 404 means the container doesn't exist, precisely what we want! :D
-			if statusCode is 404
-				@logger.logSystemEvent(logTypes.stopRemoveServiceNoop, { service })
-				return
-			throw err
-		.tap =>
-			delete @containerHasDied[containerId]
-		.tap =>
-			@logger.logSystemEvent(logTypes.stopServiceSuccess, { service })
-		.catch (err) =>
-			@logger.logSystemEvent(logTypes.stopServiceError, { service, error: err })
-			throw err
-		.finally =>
+	_killContainer: (containerId, service = {}, { removeContainer = true, wait = false }) =>
+		Promise.try =>
+			@logger.logSystemEvent(logTypes.stopService, { service })
 			if service.imageId?
-				@reportChange(containerId)
+				@reportNewStatus(containerId, service, 'Stopping')
+			containerObj = @docker.getContainer(containerId)
+			killPromise = containerObj.stop().then ->
+				if removeContainer
+					containerObj.remove(v: true)
+			.catch (err) =>
+				# Get the statusCode from the original cause and make sure statusCode it's definitely a string for comparison
+				# reasons.
+				statusCode = checkInt(err.statusCode)
+				# 304 means the container was already stopped - so we can just remove it
+				if statusCode is 304
+					@logger.logSystemEvent(logTypes.stopServiceNoop, { service })
+					if removeContainer
+						return containerObj.remove(v: true)
+					return
+				# 404 means the container doesn't exist, precisely what we want! :D
+				if statusCode is 404
+					@logger.logSystemEvent(logTypes.stopRemoveServiceNoop, { service })
+					return
+				throw err
+			.tap =>
+				delete @containerHasDied[containerId]
+			.tap =>
+				@logger.logSystemEvent(logTypes.stopServiceSuccess, { service })
+			.catch (err) =>
+				@logger.logSystemEvent(logTypes.stopServiceError, { service, error: err })
+			.finally =>
+				if service.imageId?
+					@reportChange(containerId)
+			if wait
+				return killPromise
+			return
 
-	kill: (service, { removeContainer = true } = {}) =>
-		@_killContainer(service.containerId, service, { removeContainer })
-		.then ->
-			service.running = false
-			return service
+	kill: (service, { removeContainer = true, wait = false } = {}) =>
+		@_killContainer(service.containerId, service, { removeContainer, wait })
 
 	getAllByAppId: (appId) =>
 		@getAll("io.resin.app-id=#{appId}")
@@ -161,6 +160,10 @@ module.exports = class ServiceManager extends EventEmitter
 		.mapSeries (container) =>
 			@docker.getContainer(container.Id).inspect()
 			.then(Service.fromContainer)
+			.then (service) =>
+				if @volatileState[service.containerId]?.status?
+					service.status = @volatileState[service.containerId].status
+				return service
 
 	# Returns an array with the container(s) matching a service by appId, commit, image and environment
 	get: (service) =>
