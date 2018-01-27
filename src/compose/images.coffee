@@ -38,9 +38,11 @@ module.exports = class Images extends EventEmitter
 			delete @volatileState[imageId]
 			@emit('change')
 
-	fetch: (image, opts) =>
+	triggerFetch: (image, opts, onFinish) =>
 		onProgress = (progress) =>
 			@reportChange(image.imageId, { downloadProgress: progress.percentage })
+
+		onFinish ?= _.noop
 
 		@normalise(image.name)
 		.then (imageName) =>
@@ -49,15 +51,18 @@ module.exports = class Images extends EventEmitter
 			@markAsSupervised(image)
 			.then =>
 				@inspectByName(imageName)
-				.tap (img) =>
+				.then (img) =>
 					@db.models('image').update({ dockerImageId: img.Id }).where(image)
+			.then ->
+				onFinish(true)
+				return
 			.catch =>
 				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', downloadProgress: 0 }))
 				Promise.try =>
 					if validation.checkTruthy(opts.delta) and opts.deltaSource and opts.deltaSource != 'resin/scratch'
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
 						@inspectByName(opts.deltaSource)
-						.then (srcImage) ->
+						.then (srcImage) =>
 							opts.deltaSourceId = srcImage.Id
 							@docker.rsyncImageWithProgress(imageName, opts, onProgress)
 							.tap (id) =>
@@ -72,12 +77,15 @@ module.exports = class Images extends EventEmitter
 					@db.models('image').update({ dockerImageId: id }).where(image)
 				.then =>
 					@logger.logSystemEvent(logTypes.downloadImageSuccess, { image })
-					@inspectByName(imageName)
+					return true
 				.catch (err) =>
 					@logger.logSystemEvent(logTypes.downloadImageError, { image, error: err })
-					throw err
-				.finally =>
+					return false
+				.then (success) =>
 					@reportChange(image.imageId)
+					onFinish(success)
+					return
+				return
 
 	format: (image) ->
 		image.serviceId ?= null
@@ -183,6 +191,10 @@ module.exports = class Images extends EventEmitter
 	getAvailable: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
 			_.filter(supervisedImages, (image) => @_isAvailableInDocker(image, dockerImages))
+
+	getDownloadingImageIds: =>
+		Promise.try =>
+			return _.map(_.keys(_.pickBy(@volatileState, (s) -> s.status == 'Downloading')), validation.checkInt)
 
 	cleanupDatabase: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>

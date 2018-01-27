@@ -512,7 +512,48 @@ module.exports = class Proxyvisor
 			dependent: true
 		}
 
-	getRequiredSteps: (availableImages, current, target, stepsInProgress) =>
+	nextStepsForDependentApp: (appId, availableImages, downloading, current, target, currentDevices, targetDevices, stepsInProgress) =>
+		# - if there's current but not target, push a removeDependentApp step
+		if !target?
+			return [{
+				action: 'removeDependentApp'
+				appId: current.appId
+			}]
+
+		if _.some(stepsInProgress, (step) -> step.appId == target.parentApp)
+			return [{ action: 'noop' }]
+
+		needsDownload = target.commit? and target.image? and !@_imageAvailable(target.image, availableImages)
+
+		# - if toBeDownloaded includes this app, push a fetch step
+		if needsDownload
+			if target.imageId in downloading
+				return [{ action: 'noop' }]
+			else
+				return [{
+					action: 'fetch'
+					appId
+					image: @imageForDependentApp(target)
+				}]
+
+		devicesDiffer = @_compareDevices(currentDevices, targetDevices, appId)
+		# - if current doesn't match target, or the devices differ, push an updateDependentTargets step
+		if !_.isEqual(current, target) or devicesDiffer
+			return [{
+				action: 'updateDependentTargets'
+				devices: targetDevices
+				app: target
+				appId
+			}]
+
+		# if we got to this point, the current app is up to date and devices have the
+		# correct targetCommit, targetEnvironment and targetConfig.
+		hookStep = @_getHookStep(currentDevices, appId)
+		if !_.isEmpty(hookStep.devices)
+			return [ hookStep ]
+		return []
+
+	getRequiredSteps: (availableImages, downloading, current, target, stepsInProgress) =>
 		steps = []
 		Promise.try =>
 			targetApps = _.keyBy(target.dependent?.apps ? [], 'appId')
@@ -521,54 +562,18 @@ module.exports = class Proxyvisor
 			currentAppIds = _.keys(currentApps)
 			allAppIds = _.union(targetAppIds, currentAppIds)
 
-			toBeDownloaded = _.filter targetAppIds, (appId) =>
-				return targetApps[appId].commit? and targetApps[appId].image? and !@_imageAvailable(targetApps[appId].image, availableImages)
-
-			appIdsToCheck = _.filter allAppIds, (appId) ->
-				# - if a step is in progress for this appId, ignore
-				!_.some(steps.concat(stepsInProgress), (step) -> step.appId == appId)
-			for appId in appIdsToCheck
-				# - if there's current but not target, push a removeDependentApp step
-				if !targetApps[appId]?
-					steps.push({
-						action: 'removeDependentApp'
-						appId
-					})
-					return
-
-				# - if toBeDownloaded includes this app, push a fetch step
-				if _.includes(toBeDownloaded, appId)
-					steps.push({
-						action: 'fetch'
-						appId
-						image: @imageForDependentApp(targetApps[appId])
-					})
-					return
-
+			for appId in allAppIds
 				devicesForApp = (devices) ->
 					_.filter devices, (d) ->
 						_.includes(_.keys(d.apps), appId)
 
 				currentDevices = devicesForApp(current.dependent.devices)
 				targetDevices = devicesForApp(target.dependent.devices)
-
-				devicesDiffer = @_compareDevices(currentDevices, targetDevices, appId)
-				# - if current doesn't match target, or the devices differ, push an updateDependentTargets step
-				if !_.isEqual(currentApps[appId], targetApps[appId]) or devicesDiffer
-					steps.push({
-						action: 'updateDependentTargets'
-						devices: targetDevices
-						app: targetApps[appId]
-						appId
-					})
-					return
-
-				# if we got to this point, the current app is up to date and devices have the
-				# correct targetCommit, targetEnvironment and targetConfig.
-				hookStep = @_getHookStep(currentDevices, appId)
-				if !_.isEmpty(hookStep.devices)
-					steps.push(hookStep)
-		.then ->
+				stepsForApp = @nextStepsForDependentApp(appId, availableImages, downloading,
+					currentApps[appId], targetApps[appId],
+					currentDevices, targetDevices,
+					stepsInProgress)
+				steps = steps.concat(stepsForApp)
 			return steps
 
 	getHookEndpoint: (appId) =>
