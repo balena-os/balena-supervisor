@@ -140,7 +140,7 @@ module.exports = class DeviceConfig
 			return true
 		else return false
 
-	getRequiredSteps: (currentState, targetState, stepsInProgress) =>
+	getRequiredSteps: (currentState, targetState) =>
 		current = _.clone(currentState.local?.config ? {})
 		target = _.clone(targetState.local?.config ? {})
 		steps = []
@@ -192,13 +192,7 @@ module.exports = class DeviceConfig
 				})
 			return
 		.then ->
-			needsWait = !_.isEmpty(steps)
-			filteredSteps = _.filter steps, (step) ->
-				!_.find(stepsInProgress, (stepInProgress) -> _.isEqual(stepInProgress, step))?
-
-			if _.isEmpty(filteredSteps) and needsWait
-				return [{ action: 'noop' }]
-			else return filteredSteps
+			return steps
 
 	executeStepAction: (step, opts) =>
 		@actionExecutors[step.action](step, opts)
