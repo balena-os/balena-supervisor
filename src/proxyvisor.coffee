@@ -96,7 +96,7 @@ class ProxyvisorRouter
 			if !appId? or _.isNaN(parseInt(appId)) or parseInt(appId) <= 0
 				res.status(400).send('appId must be a positive integer')
 				return
-			device_type = 'generic-amd64' if !device_type?
+			device_type = 'generic' if !device_type?
 			d =
 				application: req.body.appId
 				device_type: device_type
