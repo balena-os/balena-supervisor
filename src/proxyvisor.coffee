@@ -96,7 +96,7 @@ class ProxyvisorRouter
 			if !appId? or _.isNaN(parseInt(appId)) or parseInt(appId) <= 0
 				res.status(400).send('appId must be a positive integer')
 				return
-			device_type = 'generic-amd64' if !device_type?
+			device_type = 'generic' if !device_type?
 			d =
 				application: req.body.appId
 				device_type: device_type
@@ -320,7 +320,7 @@ module.exports = class Proxyvisor
 
 	executeStepAction: (step) =>
 		Promise.try =>
-			throw new Error("Invalid proxyvisor action #{step.action}") if !@actionsExecutors[step.action]?
+			throw new Error("Invalid proxyvisor action #{step.action}") if !@actionExecutors[step.action]?
 			@actionExecutors[step.action](step)
 
 	getCurrentStates: =>
@@ -358,6 +358,7 @@ module.exports = class Proxyvisor
 			name: app.name
 			commit: app.commit
 			releaseId: app.releaseId
+			imageId: app.imageId
 			parentApp: app.parentApp
 			image: image
 			config: JSON.stringify(app.config ? {})

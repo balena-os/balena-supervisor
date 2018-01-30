@@ -12,6 +12,7 @@ constants = require './lib/constants'
 validation = require './lib/validation'
 device = require './lib/device'
 updateLock = require './lib/update-lock'
+{ singleToMulticontainerApp } = './lib/migration'
 
 DeviceConfig = require './device-config'
 Logger = require './logger'
@@ -39,64 +40,6 @@ validateState = Promise.method (state) ->
 	validateLocalState(state.local)
 	if state.dependent?
 		validateDependentState(state.dependent)
-
-singleToMulticontainerApp = (app) ->
-	environment = {}
-	for key of app.env
-		if !/^RESIN_/.test(key)
-			environment[key] = app.env[key]
-
-	appId = app.appId
-	conf = app.config ? {}
-	newApp = {
-		appId: appId
-		commit: app.commit
-		name: app.name
-		releaseId: 1
-		networks: {}
-		volumes: {}
-	}
-	defaultVolume = "resin-app-#{appId}"
-	newApp.volumes[defaultVolume] = {}
-	updateStrategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
-	if !updateStrategy?
-		updateStrategy = 'download-then-kill'
-	handoverTimeout = conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
-	if !handoverTimeout?
-		handoverTimeout = ''
-	restartPolicy = conf['RESIN_APP_RESTART_POLICY']
-	if !restartPolicy?
-		restartPolicy = 'always'
-
-	newApp.services = {
-		'1': {
-			appId: appId
-			serviceName: app.name.toLowerCase()
-			imageId: 1
-			commit: app.commit
-			releaseId: 1
-			image: app.imageId
-			privileged: true
-			networkMode: 'host'
-			volumes: [
-				"#{defaultVolume}:/data"
-			],
-			labels: {
-				'io.resin.features.kernel-modules': '1'
-				'io.resin.features.firmware': '1'
-				'io.resin.features.dbus': '1',
-				'io.resin.features.supervisor-api': '1'
-				'io.resin.features.resin-api': '1'
-				'io.resin.update.strategy': updateStrategy
-				'io.resin.update.handover-timeout': handoverTimeout
-				'io.resin.legacy-container': '1'
-			},
-			environment: environment
-			restart: restartPolicy
-			running: true
-		}
-	}
-	return newApp
 
 class DeviceStateRouter
 	constructor: (@deviceState) ->
@@ -195,13 +138,13 @@ module.exports = class DeviceState extends EventEmitter
 				console.log("Apply error #{err}")
 			else
 				console.log('Apply success!')
-		@on 'step-completed', (err) ->
-			if err?
-				console.log("Step completed with error #{err}")
-			else
-				console.log('Step success!')
-		@on 'step-error', (err) ->
-			console.log("Step error #{err}")
+		#@on 'step-completed', (err) ->
+		#	if err?
+		#		console.log("Step completed with error #{err}")
+		#	else
+		#		console.log('Step success!')
+		#@on 'step-error', (err) ->
+		#	console.log("Step error #{err}")
 
 		@applications.on('change', @reportCurrentState)
 
@@ -482,7 +425,6 @@ module.exports = class DeviceState extends EventEmitter
 			if !intermediate
 				@applyBlocker
 		.then =>
-			console.log('Applying target state')
 			@usingInferStepsLock =>
 				Promise.join(
 					@getCurrentForComparison()
@@ -510,7 +452,6 @@ module.exports = class DeviceState extends EventEmitter
 			if _.every(steps, (step) -> step.action == 'noop')
 				nextDelay = 1000
 			Promise.map steps, (step) =>
-				console.log('Running ' + step.action)
 				@applyStep(step, { force, initial, intermediate, skipLock })
 			.then ->
 				Promise.delay(nextDelay)
@@ -554,6 +495,7 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.delay(delay)
 		.then =>
 			@lastApplyStart = process.hrtime()
+			console.log('Applying target state')
 			@applyTarget({ force, initial })
 			.finally =>
 				@applyInProgress = false
