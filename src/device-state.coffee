@@ -148,16 +148,23 @@ class DeviceStateRouter
 			.then (state) ->
 				stateToSend = _.pick(state.local, [
 					'api_port'
-					'commit'
 					'ip_address'
-					'status'
-					'download_progress'
 					'os_version'
 					'supervisor_version'
 					'update_pending'
 					'update_failed'
 					'update_downloaded'
 				])
+				if state.local.is_on__commit?
+					stateToSend.commit = state.local.is_on__commit
+				# Will produce nonsensical results for multicontainer apps...
+				service = _.toPairs(_.toPairs(state.local.apps)[0]?[1]?.services)[0]?[1]
+				if service?
+					stateToSend.status = service.status
+					# For backwards compatibility, we adapt Running to the old "Idle"
+					if stateToSend.status == 'Running'
+						stateToSend.status = 'Idle'
+					stateToSend.download_progress = service.download_progress
 				res.json(stateToSend)
 			.catch (err) ->
 				res.status(500).json({ Data: '', Error: err?.message or err or 'Unknown error' })
