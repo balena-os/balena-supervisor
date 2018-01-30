@@ -7,6 +7,7 @@ logTypes = require '../lib/log-types'
 constants = require '../lib/constants'
 { checkInt } = require '../lib/validation'
 { NotFoundError } = require '../lib/errors'
+{ defaultLegacyVolume } = require '../lib/migration'
 
 module.exports = class Volumes
 	constructor: ({ @docker, @logger }) ->
@@ -71,7 +72,7 @@ module.exports = class Volumes
 			throw err
 
 	createFromLegacy: (appId) =>
-		name = "resin-data-#{appId}"
+		name = defaultLegacyVolume()
 		@create({ name, appId })
 		.then (v) ->
 			v.inspect()

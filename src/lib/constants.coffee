@@ -36,3 +36,4 @@ module.exports =
 	appsJsonPath: process.env.APPS_JSON_PATH ? '/boot/apps.json'
 	ipAddressUpdateInterval: 30 * 1000
 	imageCleanupErrorIgnoreTimeout: 3600 * 1000
+	maxDeltaDownloads: 3
