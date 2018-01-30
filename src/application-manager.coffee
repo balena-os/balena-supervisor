@@ -921,8 +921,9 @@ module.exports = class ApplicationManager extends EventEmitter
 			return notUsedForDelta and notUsedByProxyvisor
 		return { imagesToSave, imagesToRemove }
 
-	_inferNextSteps: (cleanupNeeded, availableImages, downloading, supervisorNetworkReady, current, target, ignoreImages, localMode) =>
+	_inferNextSteps: (cleanupNeeded, availableImages, downloading, supervisorNetworkReady, current, target, ignoreImages, { localMode, delta }) =>
 		Promise.try =>
+			delta = checkTruthy(delta)
 			if checkTruthy(localMode)
 				target = _.cloneDeep(target)
 				target.local.apps = _.mapValues target.local.apps ? {}, (app) ->
@@ -949,6 +950,12 @@ module.exports = class ApplicationManager extends EventEmitter
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
 					for appId in allAppIds
 						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, downloading))
+			newDownloads = _.filter(nextSteps, (s) -> s.action == 'fetch').length
+			if !ignoreImages and delta and newDownloads > 0
+				downloadsToBlock = downloading.length + newDownloads - constants.maxDeltaDownloads
+				while downloadsToBlock > 0
+					_.pull(nextSteps, _.find(nextSteps, (s) -> s.action == 'fetch'))
+					downloadsToBlock -= 1
 			if !ignoreImages and _.isEmpty(nextSteps) and !_.isEmpty(downloading)
 				nextSteps.push({ action: 'noop' })
 			return _.uniqWith(nextSteps, _.isEqual)
@@ -981,9 +988,9 @@ module.exports = class ApplicationManager extends EventEmitter
 			@images.getAvailable()
 			@images.getDownloadingImageIds()
 			@networks.supervisorNetworkReady()
-			@config.get('localMode')
-			(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, localMode) =>
-				@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, localMode)
+			@config.getMany([ 'localMode', 'delta' ])
+			(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, conf) =>
+				@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
 				.then (nextSteps) =>
 					if ignoreImages and _.some(nextSteps, (step) -> step.action == 'fetch')
 						throw new Error('Cannot fetch images while executing an API action')
