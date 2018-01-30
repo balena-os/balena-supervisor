@@ -138,13 +138,13 @@ module.exports = class DeviceState extends EventEmitter
 				console.log("Apply error #{err}")
 			else
 				console.log('Apply success!')
-		@on 'step-completed', (err) ->
-			if err?
-				console.log("Step completed with error #{err}")
-			else
-				console.log('Step success!')
-		@on 'step-error', (err) ->
-			console.log("Step error #{err}")
+		#@on 'step-completed', (err) ->
+		#	if err?
+		#		console.log("Step completed with error #{err}")
+		#	else
+		#		console.log('Step success!')
+		#@on 'step-error', (err) ->
+		#	console.log("Step error #{err}")
 
 		@applications.on('change', @reportCurrentState)
 
@@ -425,7 +425,6 @@ module.exports = class DeviceState extends EventEmitter
 			if !intermediate
 				@applyBlocker
 		.then =>
-			console.log('Applying target state')
 			@usingInferStepsLock =>
 				Promise.join(
 					@getCurrentForComparison()
@@ -453,7 +452,6 @@ module.exports = class DeviceState extends EventEmitter
 			if _.every(steps, (step) -> step.action == 'noop')
 				nextDelay = 1000
 			Promise.map steps, (step) =>
-				console.log('Running ' + step.action)
 				@applyStep(step, { force, initial, intermediate, skipLock })
 			.then ->
 				Promise.delay(nextDelay)
@@ -497,6 +495,7 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.delay(delay)
 		.then =>
 			@lastApplyStart = process.hrtime()
+			console.log('Applying target state')
 			@applyTarget({ force, initial })
 			.finally =>
 				@applyInProgress = false
