@@ -320,7 +320,7 @@ module.exports = class Proxyvisor
 
 	executeStepAction: (step) =>
 		Promise.try =>
-			throw new Error("Invalid proxyvisor action #{step.action}") if !@actionsExecutors[step.action]?
+			throw new Error("Invalid proxyvisor action #{step.action}") if !@actionExecutors[step.action]?
 			@actionExecutors[step.action](step)
 
 	getCurrentStates: =>
