@@ -631,8 +631,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		# Check none of the currentApp.services use this network or volume
 		dependencyComparisonFn = (service, current) ->
 			_.some service.volumes, (volumeDefinition) ->
-				sourceName = volumeDefinition.split(':')[0]
-				sourceName == "#{service.appId}_#{current?.name}"
+				[ sourceName, destName ] = volumeDefinition.split(':')
+				destName? and sourceName == "#{service.appId}_#{current?.name}"
 		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'volume')
 
 	# Infers steps that do not require creating a new container
