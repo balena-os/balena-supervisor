@@ -212,8 +212,8 @@ module.exports = class APIBinder
 				throw new Error('Device must be provisioned to provision a dependent device')
 			# TODO: when API supports it as per https://github.com/resin-io/hq/pull/949 remove userId
 			_.defaults(device, {
-				user: conf.userId
-				device: conf.deviceId
+				belongs_to__user: conf.userId
+				is_managed_by__device: conf.deviceId
 				uuid: deviceRegister.generateUniqueKey()
 				logs_channel: deviceRegister.generateUniqueKey()
 				registered_at: Math.floor(Date.now() / 1000)
