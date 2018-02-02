@@ -23,9 +23,9 @@ getRepoAndTag = (image) ->
 			registry = ''
 		return { repo: "#{registry}#{imageName}", tag: tagName }
 
-applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress) ->
+applyDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress) ->
 	new Promise (resolve, reject) ->
-		req = resumable(request, { url: deltaUrl, timeout: requestTimeout }, resumeOpts)
+		req = resumable(Object.assign({ url: deltaUrl }, opts))
 		.on('progress', onProgress)
 		.on('retry', onProgress)
 		.on('error', reject)
@@ -38,7 +38,7 @@ applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, on
 				deltaStream = dockerDelta.applyDelta(imgSrc, timeout: applyTimeout)
 				res.pipe(deltaStream)
 				.on('id', resolve)
-				.on('error', req.destroy.bind(req))
+				.on('error', req.abort.bind(req))
 
 do ->
 	_lock = new Lock()
@@ -103,8 +103,8 @@ do ->
 										deltaSrc = null
 									else
 										deltaSrc = imgSrc
-									resumeOpts = { maxRetries: retryCount, retryInterval }
-									resolve(applyDelta(deltaSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress))
+									resumeOpts = { timeout: requestTimeout, maxRetries: retryCount, retryInterval }
+									resolve(applyDelta(deltaSrc, deltaUrl, applyTimeout, resumeOpts, onProgress))
 							.on 'error', reject
 			.then (id) ->
 				getRepoAndTag(imgDest)
