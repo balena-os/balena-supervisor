@@ -98,7 +98,7 @@ class ProxyvisorRouter
 				return
 			device_type = 'generic' if !device_type?
 			d =
-				application: req.body.appId
+				belongs_to__application: req.body.appId
 				device_type: device_type
 			@proxyvisor.apiBinder.provisionDependentDevice(d)
 			.then (dev) =>
