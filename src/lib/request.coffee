@@ -30,6 +30,7 @@ exports.requestOpts =
 		'User-Agent': userAgent
 
 resumableOpts =
+	timeout: DEFAULT_REQUEST_TIMEOUT
 	maxRetries: DEFAULT_REQUEST_RETRY_COUNT
 	retryInterval: DEFAULT_REQUEST_RETRY_INTERVAL
 

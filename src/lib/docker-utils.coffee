@@ -9,9 +9,9 @@ _ = require 'lodash'
 { envArrayToObject } = require './conversions'
 { checkInt } = require './validation'
 
-applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress) ->
+applyDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress) ->
 	new Promise (resolve, reject) ->
-		req = resumable(request, { url: deltaUrl, timeout: requestTimeout }, resumeOpts)
+		req = resumable(Object.assign({ url: deltaUrl }, opts))
 		.on('progress', onProgress)
 		.on('retry', onProgress)
 		.on('error', reject)
@@ -24,7 +24,7 @@ applyDelta = (imgSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, on
 				deltaStream = dockerDelta.applyDelta(imgSrc, timeout: applyTimeout)
 				res.pipe(deltaStream)
 				.on('id', (id) -> resolve('sha256:' + id))
-				.on('error', req.destroy.bind(req))
+				.on('error', req.abort.bind(req))
 
 module.exports = class DockerUtils extends DockerToolbelt
 	constructor: (opts) ->
@@ -94,8 +94,8 @@ module.exports = class DockerUtils extends DockerToolbelt
 								deltaSrc = null
 							else
 								deltaSrc = deltaSourceId
-							resumeOpts = { maxRetries: retryCount, retryInterval }
-							resolve(applyDelta(deltaSrc, deltaUrl, { requestTimeout, applyTimeout, resumeOpts }, onProgress))
+							resumeOpts = { timeout: requestTimeout, maxRetries: retryCount, retryInterval }
+							resolve(applyDelta(deltaSrc, deltaUrl, applyTimeout, resumeOpts, onProgress))
 					.on 'error', reject
 		.catch dockerDelta.OutOfSyncError, (err) =>
 			console.log('Falling back to regular pull')

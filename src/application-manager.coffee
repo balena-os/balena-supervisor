@@ -58,6 +58,8 @@ class ApplicationManagerRouter
 				@deviceState.getCurrentForComparison()
 				.then (currentState) =>
 					app = currentState.local.apps[appId]
+					imageIds = _.map(app.services, 'imageId')
+					@applications.clearTargetVolatileForServices(imageIds)
 					stoppedApp = _.cloneDeep(app)
 					stoppedApp.services = []
 					currentState.local.apps[appId] = stoppedApp
@@ -147,23 +149,27 @@ class ApplicationManagerRouter
 			@eventTracker.track('GET app (v1)', appId)
 			if !appId?
 				return res.status(400).send('Missing app id')
-			@applications.getCurrentApp(appId)
-			.then (app) ->
-				service = app?.services?[0]
-				if !service?
-					return res.status(400).send('App not found')
-				if app.services.length > 1
-					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-				# Don't return data that will be of no use to the user
-				appToSend = {
-					appId
-					containerId: service.containerId
-					env: _.omit(service.environment, constants.privateAppEnvVars)
-					commit: service.commit
-					releaseId: app.releaseId
-					imageId: service.image
-				}
-				res.json(appToSend)
+			Promise.join(
+				@applications.getCurrentApp(appId)
+				@applications.getStatus()
+				(app, status) ->
+					service = app?.services?[0]
+					if !service?
+						return res.status(400).send('App not found')
+					if app.services.length > 1
+						return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
+					# Don't return data that will be of no use to the user
+					appToSend = {
+						appId
+						containerId: service.containerId
+						env: _.omit(service.environment, constants.privateAppEnvVars)
+						releaseId: service.releaseId
+						imageId: service.image
+					}
+					if status.commit?
+						appToSend.commit = status.commit
+					res.json(appToSend)
+			)
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -205,6 +211,7 @@ class ApplicationManagerRouter
 					if !service?
 						errMsg = 'Service not found, a container must exist for service restart to work.'
 						return res.status(404).send(errMsg)
+					@applications.setTargetVolatileForService(service.imageId, running: true)
 					@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { skipLock: true })
 					.then ->
 						res.status(200).send('OK')
@@ -288,8 +295,9 @@ module.exports = class ApplicationManager extends EventEmitter
 					.then =>
 						if step.options?.removeImage
 							@images.removeByDockerId(step.current.image)
-			updateMetadata: (step) =>
-				@services.updateMetadata(step.current, step.target)
+			updateMetadata: (step, { force = false, skipLock = false } = {}) =>
+				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
+					@services.updateMetadata(step.current, step.target)
 			restart: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					Promise.try =>
@@ -857,9 +865,13 @@ module.exports = class ApplicationManager extends EventEmitter
 		.then =>
 			@_targetVolatilePerImageId = {}
 
-	setTargetVolatileForService: (imageId, target) ->
+	setTargetVolatileForService: (imageId, target) =>
 		@_targetVolatilePerImageId[imageId] ?= {}
 		_.assign(@_targetVolatilePerImageId[imageId], target)
+
+	clearTargetVolatileForServices: (imageIds) =>
+		for imageId in imageIds
+			@_targetVolatilePerImageId[imageId] = {}
 
 	getTargetApps: =>
 		Promise.map(@db.models('app').select(), @normaliseAndExtendAppFromDB)

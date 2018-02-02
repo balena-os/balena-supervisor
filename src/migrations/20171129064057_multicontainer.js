@@ -12,12 +12,13 @@ var tryParse = function (obj) {
 	}
 }
 
-var singleToMulticontainerApp = function (app, appId) {
+var singleToMulticontainerApp = function (app) {
 	// From *very* old supervisors, env or config may be null
 	// so we ignore errors parsing them
 	let conf = tryParse(app.config)
 	let env = tryParse(app.env)
 	let environment = {}
+	let appId = parseInt(app.appId)
 	for (let key in env) {
 		if (!/^RESIN_/.test(key)) {
 			environment[key] = env[key]
