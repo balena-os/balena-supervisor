@@ -392,10 +392,13 @@ module.exports = class ApplicationManager extends EventEmitter
 						apps[appId].services[image.imageId] ?= _.pick(image, [ 'status', 'releaseId' ])
 						apps[appId].services[image.imageId].download_progress = image.downloadProgress
 					else
-						dependent[appId] ?= {}
-						dependent[appId].images ?= {}
-						dependent[appId].images[image.imageId] = _.pick(image, [ 'status' ])
-						dependent[appId].images[image.imageId].download_progress = image.downloadProgress
+						if image.imageId?
+							dependent[appId] ?= {}
+							dependent[appId].images ?= {}
+							dependent[appId].images[image.imageId] = _.pick(image, [ 'status' ])
+							dependent[appId].images[image.imageId].download_progress = image.downloadProgress
+						else
+							console.log('Ignoring legacy dependent image', image)
 
 				obj = { local: apps, dependent }
 				if releaseId and targetApps[0]?.releaseId == releaseId

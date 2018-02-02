@@ -358,6 +358,7 @@ module.exports = class Proxyvisor
 			name: app.name
 			commit: app.commit
 			releaseId: app.releaseId
+			imageId: app.imageId
 			parentApp: app.parentApp
 			image: image
 			config: JSON.stringify(app.config ? {})
