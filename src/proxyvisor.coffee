@@ -417,6 +417,7 @@ module.exports = class Proxyvisor
 				commit: app.commit
 				releaseId: app.releaseId
 				image: app.image
+				imageId: app.imageId
 				config: JSON.parse(app.config)
 				environment: JSON.parse(app.environment)
 				parentApp: app.parentApp
