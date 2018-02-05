@@ -58,6 +58,8 @@ class ApplicationManagerRouter
 				@deviceState.getCurrentForComparison()
 				.then (currentState) =>
 					app = currentState.local.apps[appId]
+					imageIds = _.map(app.services, 'imageId')
+					@applications.clearTargetVolatileForServices(imageIds)
 					stoppedApp = _.cloneDeep(app)
 					stoppedApp.services = []
 					currentState.local.apps[appId] = stoppedApp
@@ -205,6 +207,7 @@ class ApplicationManagerRouter
 					if !service?
 						errMsg = 'Service not found, a container must exist for service restart to work.'
 						return res.status(404).send(errMsg)
+					@applications.setTargetVolatileForService(service.imageId, running: true)
 					@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { skipLock: true })
 					.then ->
 						res.status(200).send('OK')
@@ -858,9 +861,13 @@ module.exports = class ApplicationManager extends EventEmitter
 		.then =>
 			@_targetVolatilePerImageId = {}
 
-	setTargetVolatileForService: (imageId, target) ->
+	setTargetVolatileForService: (imageId, target) =>
 		@_targetVolatilePerImageId[imageId] ?= {}
 		_.assign(@_targetVolatilePerImageId[imageId], target)
+
+	clearTargetVolatileForServices: (imageIds) =>
+		for imageId in imageIds
+			@_targetVolatilePerImageId[imageId] = {}
 
 	getTargetApps: =>
 		Promise.map(@db.models('app').select(), @normaliseAndExtendAppFromDB)
