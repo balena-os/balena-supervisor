@@ -400,7 +400,7 @@ module.exports = class ApplicationManager extends EventEmitter
 						else
 							console.log('Ignoring legacy dependent image', image)
 
-				obj = { local: apps, dependent }
+				obj = local: { apps, dependent }
 				if releaseId and targetApps[0]?.releaseId == releaseId
 					obj.commit = targetApps[0].commit
 				return obj
