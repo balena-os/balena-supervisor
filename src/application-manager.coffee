@@ -291,7 +291,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					.then =>
 						if step.options?.removeImage
 							@images.removeByDockerId(step.current.image)
-			updateMetadata: (step) =>
+			updateMetadata: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.updateMetadata(step.current, step.target)
 			restart: (step, { force = false, skipLock = false } = {}) =>
