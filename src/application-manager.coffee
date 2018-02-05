@@ -149,23 +149,27 @@ class ApplicationManagerRouter
 			@eventTracker.track('GET app (v1)', appId)
 			if !appId?
 				return res.status(400).send('Missing app id')
-			@applications.getCurrentApp(appId)
-			.then (app) ->
-				service = app?.services?[0]
-				if !service?
-					return res.status(400).send('App not found')
-				if app.services.length > 1
-					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-				# Don't return data that will be of no use to the user
-				appToSend = {
-					appId
-					containerId: service.containerId
-					env: _.omit(service.environment, constants.privateAppEnvVars)
-					commit: service.commit
-					releaseId: app.releaseId
-					imageId: service.image
-				}
-				res.json(appToSend)
+			Promise.join(
+				@applications.getCurrentApp(appId)
+				@applications.getStatus()
+				(app, status) ->
+					service = app?.services?[0]
+					if !service?
+						return res.status(400).send('App not found')
+					if app.services.length > 1
+						return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
+					# Don't return data that will be of no use to the user
+					appToSend = {
+						appId
+						containerId: service.containerId
+						env: _.omit(service.environment, constants.privateAppEnvVars)
+						releaseId: service.releaseId
+						imageId: service.image
+					}
+					if status.commit?
+						appToSend.commit = status.commit
+					res.json(appToSend)
+			)
 			.catch (err) ->
 				res.status(503).send(err?.message or err or 'Unknown error')
 
