@@ -148,7 +148,7 @@ module.exports = class ServiceManager extends EventEmitter
 				@logger.logSystemEvent(logTypes.startServiceNoop, { service })
 			else
 				@logger.logSystemEvent(logTypes.startServiceSuccess, { service })
-		.then (container) ->
+		.tap (container) ->
 			service.running = true
 		.finally =>
 			@reportChange(containerId)
