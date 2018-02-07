@@ -368,11 +368,11 @@ module.exports = class Proxyvisor
 
 	normaliseDependentDeviceTargetForDB: (device, appCommit) ->
 		Promise.try ->
-			apps = _.clone(device.apps ? {})
-			for app in apps
-				app.commit ?= appCommit
+			apps = _.mapValues _.clone(device.apps ? {}), (app) ->
+				app.commit = appCommit or null
 				app.config ?= {}
 				app.environment ?= {}
+				return app
 			apps = JSON.stringify(apps)
 			outDevice = {
 				uuid: device.uuid
@@ -429,7 +429,10 @@ module.exports = class Proxyvisor
 			outDevice = {
 				uuid: device.uuid
 				name: device.name
-				apps: JSON.parse(device.apps)
+				apps: _.mapValues JSON.parse(device.apps), (a) ->
+					a.commit ?= null
+					return a
+
 			}
 			return outDevice
 
@@ -496,11 +499,12 @@ module.exports = class Proxyvisor
 			return null if dev.markedForDeletion
 			devTarget = _.clone(dev)
 			delete devTarget.markedForDeletion
+			delete devTarget.lock_expiry_date
 			devTarget.apps = {}
 			devTarget.apps[appId] = {
 				commit: dev.apps[appId].targetCommit
-				environment: dev.apps[appId].targetEnvironment
-				config: dev.apps[appId].targetConfig
+				environment: dev.apps[appId].targetEnvironment or {}
+				config: dev.apps[appId].targetConfig or {}
 			}
 			return devTarget
 		currentDeviceTargets = _.filter(currentDeviceTargets, (dev) -> !_.isNull(dev))
@@ -539,6 +543,7 @@ module.exports = class Proxyvisor
 				}]
 
 		devicesDiffer = @_compareDevices(currentDevices, targetDevices, appId)
+
 		# - if current doesn't match target, or the devices differ, push an updateDependentTargets step
 		if !_.isEqual(current, target) or devicesDiffer
 			return [{
