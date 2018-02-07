@@ -284,15 +284,19 @@ module.exports = class ApplicationManager extends EventEmitter
 		@timeSpentFetching = 0
 		@fetchesInProgress = 0
 		@_targetVolatilePerImageId = {}
+		@_containerStarted = {}
 		@actionExecutors = {
 			stop: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					wait = step.options?.wait ? false
 					@services.kill(step.current, { removeContainer: false, wait })
+					.then =>
+						delete @_containerStarted[step.current.containerId]
 			kill: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.kill(step.current)
 					.then =>
+						delete @_containerStarted[step.current.containerId]
 						if step.options?.removeImage
 							@images.removeByDockerId(step.current.image)
 			updateMetadata: (step, { force = false, skipLock = false } = {}) =>
@@ -303,11 +307,17 @@ module.exports = class ApplicationManager extends EventEmitter
 					Promise.try =>
 						@services.kill(step.current, { wait: true })
 					.then =>
+						delete @_containerStarted[step.current.containerId]
+					.then =>
 						@services.start(step.target)
+					.then (container) =>
+						@_containerStarted[container.id] = true
 			stopAll: (step, { force = false, skipLock = false } = {}) =>
 				@stopAll({ force, skipLock })
 			start: (step) =>
 				@services.start(step.target)
+				.then (container) =>
+					@_containerStarted[container.id] = true
 			handover: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.handover(step.current, step.target)
@@ -467,7 +477,7 @@ module.exports = class ApplicationManager extends EventEmitter
 	# Compares current and target services and returns a list of service pairs to be updated/removed/installed.
 	# The returned list is an array of objects where the "current" and "target" properties define the update pair, and either can be null
 	# (in the case of an install or removal).
-	compareServicesForUpdate: (currentServices, targetServices) ->
+	compareServicesForUpdate: (currentServices, targetServices) =>
 		removePairs = []
 		installPairs = []
 		updatePairs = []
@@ -512,8 +522,15 @@ module.exports = class ApplicationManager extends EventEmitter
 			else
 				currentServicesPerId[serviceId] = currentServiceContainers[0]
 
+		# Returns true if a service matches its target except it should be running and it is not, but we've
+		# already started it before. In this case it means it just exited so we don't want to start it again.
+		alreadyStarted = (serviceId) =>
+			currentServicesPerId[serviceId].isEqualExceptForRunningState(targetServicesPerId[serviceId]) and
+				targetServicesPerId[serviceId].running  and
+				@_containerStarted[currentServicesPerId[serviceId].containerId]
+
 		needUpdate = _.filter toBeMaybeUpdated, (serviceId) ->
-			return !currentServicesPerId[serviceId].isEqual(targetServicesPerId[serviceId])
+			return !currentServicesPerId[serviceId].isEqual(targetServicesPerId[serviceId]) and !alreadyStarted(serviceId)
 		for serviceId in needUpdate
 			updatePairs.push({
 				current: currentServicesPerId[serviceId]
@@ -980,6 +997,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		.map (service) =>
 			@_lockingIfNecessary service.appId, { force, skipLock }, =>
 				@services.kill(service, { removeContainer: false, wait: true })
+				.then =>
+					delete @_containerStarted[service.containerId]
 
 	_lockingIfNecessary: (appId, { force = false, skipLock = false } = {}, fn) =>
 		if skipLock

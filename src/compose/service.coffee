@@ -635,8 +635,11 @@ module.exports = class Service
 
 		return isEq
 
-	isEqual: (otherService) =>
+	isEqualExceptForRunningState: (otherService) =>
 		return @isSameContainer(otherService) and
-			@running == otherService.running and
 			@releaseId == otherService.releaseId and
 			@imageId == otherService.imageId
+
+	isEqual: (otherService) =>
+		return @isEqualExceptForRunningState(otherService) and
+			@running == otherService.running
