@@ -58,6 +58,22 @@ getStopSignal = (service, imageInfo) ->
 		sig = sig.toString()
 	return sig
 
+getUser = (service, imageInfo) ->
+	user = ''
+	if service.user?
+		user = service.user
+	else if imageInfo?.Config?.User?
+		user = imageInfo.Config.User
+	return user
+
+getWorkingDir = (service, imageInfo) ->
+	workingDir = ''
+	if service.workingDir?
+		workingDir = service.workingDir
+	else if imageInfo?.Config?.WorkingDir?
+		workingDir = imageInfo.Config.WorkingDir
+	return workingDir
+
 buildHealthcheckTest = (test) ->
 	if _.isString(test)
 		return [ 'CMD-SHELL', test ]
@@ -151,6 +167,7 @@ module.exports = class Service
 			@cpuset
 			@nanoCpus
 			@domainname
+			@oomKillDisable
 			@oomScoreAdj
 			@dns
 			@dnsSearch
@@ -166,6 +183,17 @@ module.exports = class Service
 			@readOnly
 			@sysctls
 			@hostname
+			@cgroupParent
+			@groupAdd
+			@pid
+			@pidsLimit
+			@securityOpt
+			@storageOpt
+			@usernsMode
+			@ipc
+			@macAddress
+			@user
+			@workingDir
 		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
 
 		@networks ?= {}
@@ -193,6 +221,7 @@ module.exports = class Service
 		@domainname ?= ''
 
 		@oomScoreAdj ?= 0
+		@oomKillDisable ?= false
 		@tmpfs ?= []
 		@extraHosts ?= []
 
@@ -200,16 +229,29 @@ module.exports = class Service
 		@dnsSearch ?= []
 		@dnsOpt ?= []
 		@ulimitsArray ?= []
+		@groupAdd ?= []
 
 		@stopSignal ?= null
 		@stopGracePeriod ?= null
 		@healthcheck ?= null
 		@init ?= null
 		@readOnly ?= false
+		@macAddress ?= null
 
 		@sysctls ?= {}
 
 		@hostname ?= ''
+		@cgroupParent ?= ''
+		@pid ?= ''
+		@pidsLimit ?= 0
+		@securityOpt ?= []
+		@storageOpt ?= {}
+		@usernsMode ?= ''
+		@user ?= ''
+		@workingDir ?= ''
+
+		if _.isEmpty(@ipc)
+			@ipc = 'shareable'
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
@@ -217,7 +259,7 @@ module.exports = class Service
 			if @networkMode not in [ 'host', 'bridge', 'none' ]
 				@networkMode = "#{@appId}_#{@networkMode}"
 
-			@networks = _.mapKeys @networks, (v, k) ->
+			@networks = _.mapKeys @networks, (v, k) =>
 				if k not in [ 'host', 'bridge', 'none' ]
 					return "#{@appId}_#{k}"
 				else
@@ -230,6 +272,8 @@ module.exports = class Service
 			@entrypoint = getEntrypoint(serviceProperties, opts.imageInfo)
 			@stopSignal = getStopSignal(serviceProperties, opts.imageInfo)
 			@healthcheck = getHealthcheck(serviceProperties, opts.imageInfo)
+			@workingDir = getWorkingDir(serviceProperties, opts.imageInfo)
+			@user = getUser(serviceProperties, opts.imageInfo)
 			@extendEnvVars(opts)
 			@extendLabels(opts.imageInfo)
 			@extendAndSanitiseVolumes(opts.imageInfo)
@@ -243,6 +287,9 @@ module.exports = class Service
 			if @dnsSearch?
 				if !Array.isArray(@dnsSearch)
 					@dnsSearch = [ @dns ]
+			if @tmpfs?
+				if !Array.isArray(@tmpfs)
+					@tmpfs = [ @tmpfs ]
 
 			@nanoCpus = Math.round(Number(@cpus) * 10 ** 9)
 
@@ -258,6 +305,7 @@ module.exports = class Service
 				d = new Duration(@stopGracePeriod)
 				@stopGracePeriod = d.seconds()
 
+			@oomKillDisable = Boolean(@oomKillDisable)
 			@readOnly = Boolean(@readOnly)
 
 			if Array.isArray(@sysctls)
@@ -286,6 +334,9 @@ module.exports = class Service
 			@volumes.push('/lib/modules:/lib/modules')
 		if checkTruthy(@labels['io.resin.features.firmware'])
 			@volumes.push('/lib/firmware:/lib/firmware')
+		if checkTruthy(@labels['io.resin.features.balena-socket'])
+			@volumes.push('/var/run/balena.sock:/var/run/balena.sock')
+			@environment['DOCKER_HOST'] ?= 'unix:///var/run/balena.sock'
 		if checkTruthy(@labels['io.resin.features.supervisor-api'])
 			@_addSupervisorApi(opts)
 		else
@@ -452,6 +503,7 @@ module.exports = class Service
 			nanoCpus: container.HostConfig.NanoCpus
 			cpuset: container.HostConfig.CpusetCpus
 			domainname: container.Config.Domainname
+			oomKillDisable: container.HostConfig.OomKillDisable
 			oomScoreAdj: container.HostConfig.OomScoreAdj
 			dns: container.HostConfig.Dns
 			dnsSearch: container.HostConfig.DnsSearch
@@ -466,6 +518,16 @@ module.exports = class Service
 			readOnly: container.HostConfig.ReadonlyRootfs
 			sysctls: container.HostConfig.Sysctls
 			hostname: hostname
+			cgroupParent: container.HostConfig.CgroupParent
+			groupAdd: container.HostConfig.GroupAdd
+			pid: container.HostConfig.PidMode
+			pidsLimit: container.HostConfig.PidsLimit
+			securityOpt: container.HostConfig.SecurityOpt
+			storageOpt: container.HostConfig.StorageOpt
+			usernsMode: container.HostConfig.UsernsMode
+			ipc: container.HostConfig.IpcMode
+			macAddress: container.Config.MacAddress
+			user: container.Config.User
 		}
 		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
 		if service.restartPolicy.Name == ''
@@ -523,6 +585,7 @@ module.exports = class Service
 			ExposedPorts: @exposedPorts
 			Labels: @labels
 			Domainname: @domainname
+			User: @user
 			HostConfig:
 				Memory: @memLimit
 				MemoryReservation: @memReservation
@@ -539,6 +602,7 @@ module.exports = class Service
 				CpuQuota: @cpuQuota
 				CpusetCpus: @cpuset
 				OomScoreAdj: @oomScoreAdj
+				OomKillDisable: @oomKillDisable
 				Tmpfs: tmpfs
 				Dns: @dns
 				DnsSearch: @dnsSearch
@@ -546,6 +610,14 @@ module.exports = class Service
 				Ulimits: @ulimitsArray
 				ReadonlyRootfs: @readOnly
 				Sysctls: @sysctls
+				CgroupParent: @cgroupParent
+				ExtraHosts: @extraHosts
+				GroupAdd: @groupAdd
+				PidMode: @pid
+				PidsLimit: @pidsLimit
+				SecurityOpt: @securityOpt
+				UsernsMode: @usernsMode
+				IpcMode: @ipc
 		}
 		if @stopSignal?
 			conf.StopSignal = @stopSignal
@@ -568,6 +640,10 @@ module.exports = class Service
 			conf.HostConfig.Init = true
 		if !_.isEmpty(@hostname)
 			conf.Hostname = @hostname
+		if !_.isEmpty(@storageOpt)
+			conf.HostConfig.StorageOpt = @storageOpt
+		if @macAddress?
+			conf.MacAddress = @macAddress
 		return conf
 
 	# TODO: when we support network configuration properly, return endpointConfig: conf
@@ -599,6 +675,7 @@ module.exports = class Service
 			'cpuset'
 			'domainname'
 			'oomScoreAdj'
+			'oomKillDisable'
 			'healthcheck'
 			'stopSignal'
 			'stopGracePeriod'
@@ -606,6 +683,14 @@ module.exports = class Service
 			'readOnly'
 			'sysctls'
 			'hostname'
+			'cgroupParent'
+			'pid'
+			'pidsLimit'
+			'storageOpt'
+			'usernsMode'
+			'ipc'
+			'macAddress'
+			'user'
 		]
 		arraysToCompare = [
 			'volumes'
@@ -618,6 +703,8 @@ module.exports = class Service
 			'tmpfs'
 			'extraHosts'
 			'ulimitsArray'
+			'groupAdd'
+			'securityOpt'
 		]
 		isEq = _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
 			_.isEqual(_.omit(@environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ]), _.omit(otherService.environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ])) and
