@@ -23,11 +23,24 @@
 # * IMAGE: image to build and run (either for run-supervisor or test-gosuper/integration)
 # * SUPERVISOR_IMAGE: In run-supervisor and supervisor-dind, the supervisor image to run inside the docker-in-docker image
 # * PRELOADED_IMAGE: If true, will preload user app image from tools/dev/apps.json and bind mount apps.json into the docker-in-docker supervisor
-# * SUPERVISOR_EXTRA_MOUNTS: Additional bind mount flags for the docker-in-docker supervisor
-# * PASSWORDLESS_DROPBEAR: For run-supervisor - start a passwordless ssh daemon in the docker-in-docker supervisor
-# * CONTAINER_NAME: For run-supervisor, specify the container name for the docker-in-docker container (default: resin_supervisor_1)
+# * MOUNT_DIST: If true, mount the dist folder into the docker-in-docker supervisor
+# * MOUNT_NODE_MODULES: If true, mount the node_modules folder into the docker-in-docker supervisor
+# * CONTAINER_NAME: For run-supervisor, specify the container name for the docker-in-docker container (default: supervisor which produces container resinos-in-container-supervisor)
 # * CONFIG_FILENAME: For run-supervisor, specify the filename to mount as config.json, relative to tools/dind/ (default: config.json)
+# * DIND_IMAGE: For run-supervisor, specify the resinOS image to use (default: resin/resinos:2.12.5_rev1-intel-nuc)
 #
+
+# Based on https://stackoverflow.com/a/8540718/2549019
+# Retrieves a repo part of the given docker image string
+# Param:
+#   1. String to parse in form 'repo[:tag]'.
+repo = $(firstword $(subst :, ,$1))
+
+# Returns a tag (if any) on a docker image string.
+# If there is no tag part in the string, returns latest
+# Param:
+#   1. String to parse in form 'repo[:tag]'.
+tag = $(or $(word 2,$(subst :, ,$1)),latest)
 
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
 
@@ -49,12 +62,6 @@ ifdef no_proxy
 	DOCKER_NO_PROXY=--build-arg no_proxy=$(no_proxy)
 endif
 
-ifdef use_proxy_at_runtime
-	rt_http_proxy=$(http_proxy)
-	rt_https_proxy=$(https_proxy)
-	rt_no_proxy=$(no_proxy)
-endif
-
 DISABLE_CACHE ?= 'false'
 
 DOCKER_VERSION:=$(shell docker version --format '{{.Server.Version}}')
@@ -73,21 +80,26 @@ IMAGE ?= resin/$(ARCH)-supervisor:master
 
 # Default values for run-supervisor
 SUPERVISOR_IMAGE ?= resin/$(ARCH)-supervisor:master
-PASSWORDLESS_DROPBEAR ?= false
-CONTAINER_NAME ?= resin_supervisor_1
+CONTAINER_NAME ?= supervisor
 CONFIG_FILENAME ?= config.json
+DIND_IMAGE ?= resin/resinos:2.12.5_rev1-intel-nuc
 
 # Bind mounts and variables for the run-supervisor target
-SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/../../:/resin-supervisor -v $$(pwd)/$(CONFIG_FILENAME):/mnt/conf/config.json -v $$(pwd)/config/env:/usr/src/app/config/env -v $$(pwd)/config/localenv:/usr/src/app/config/localenv
-ifeq ($(OS), Linux)
-	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v /bin/kmod:/bin/kmod
-endif
+SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/config/supervisor-image.tar:/usr/src/supervisor-image.tar:ro -v $$(pwd)/start-resin-supervisor:/usr/bin/start-resin-supervisor:ro -v $$(pwd)/config/supervisor.conf:/etc/resin-supervisor/supervisor.conf
+
 ifeq ($(PRELOADED_IMAGE),true)
-	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/apps.json:/usr/src/app/config/apps.json
+	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/apps.json:/mnt/data/apps.json
 else
 	PRELOADED_IMAGE=
 endif
-SUPERVISOR_EXTRA_MOUNTS ?=
+
+ifeq ($(MOUNT_DIST), true)
+	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/../../dist:/resin-supervisor/dist
+endif
+
+ifeq ($(MOUNT_NODE_MODULES), true)
+	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/../../node_modules:/resin-supervisor/node_modules
+endif
 
 ifdef TARGET_COMPONENT
 	DOCKER_TARGET_COMPONENT := "--target=${TARGET_COMPONENT}"
@@ -98,66 +110,32 @@ endif
 # Default target is to build the supervisor image
 all: supervisor
 
-# Settings to make the run-supervisor target work behind a proxy
-DOCKERD_PROXY=tools/dind/config/services/docker.service.d/proxy.conf
-${DOCKERD_PROXY}:
-	rm -f ${DOCKERD_PROXY}
-	if [ -n "${rt_http_proxy}" ]; then \
-		proxies="\"HTTP_PROXY=${rt_http_proxy}\""; \
-		proxies="$${proxies[*]} \"http_proxy=${rt_http_proxy}\""; \
-	fi; \
-	if [ -n "${rt_https_proxy}" ]; then \
-		proxies="$${proxies[*]} \"HTTPS_PROXY=${rt_https_proxy}\""; \
-		proxies="$${proxies[*]} \"https_proxy=${rt_https_proxy}\""; \
-	fi; \
-	if [ -n "${rt_no_proxy}" ]; then \
-		proxies="$${proxies[*]} \"no_proxy=${rt_no_proxy}\""; \
-	fi; \
-	if [ -n "${proxies}" ]; then \
-		echo "[Service]" > ${DOCKERD_PROXY}; \
-		echo "Environment=$${proxies[*]}" >> ${DOCKERD_PROXY}; \
-	else \
-		touch ${DOCKERD_PROXY}; \
-	fi
-
 supervisor-tar:
-	docker save --output tools/dind/supervisor-image.tar $(SUPERVISOR_IMAGE)
-
-supervisor-dind: ${DOCKERD_PROXY} supervisor-tar
 	cd tools/dind \
-	&& docker build \
-		$(DOCKER_HTTP_PROXY) \
-		$(DOCKER_HTTPS_PROXY) \
-		$(DOCKER_NO_PROXY) \
-		${DOCKER_BUILD_OPTIONS} \
-		--no-cache=$(DISABLE_CACHE) \
-		--build-arg PASSWORDLESS_DROPBEAR=$(PASSWORDLESS_DROPBEAR) \
-		-t $(IMAGE) .
+	&& mkdir -p config \
+	&& docker save --output config/supervisor-image.tar $(SUPERVISOR_IMAGE)
 
-run-supervisor: stop-supervisor supervisor-dind
+supervisor-conf:
 	cd tools/dind \
-	&& echo "SUPERVISOR_IMAGE=$(SUPERVISOR_IMAGE)" > config/localenv \
-	&& echo "PRELOADED_IMAGE=$(PRELOADED_IMAGE)" >> config/localenv \
-	&& echo "SUPERVISOR_EXTRA_MOUNTS=$(SUPERVISOR_EXTRA_MOUNTS)" >> config/localenv; \
-	if [ -n "$(rt_http_proxy)" ]; then \
-		echo "HTTP_PROXY=$(rt_http_proxy)" >> config/localenv \
-		&& echo "http_proxy=$(rt_http_proxy)" >> config/localenv; \
-	fi; \
-	if [ -n "$(rt_https_proxy)" ]; then \
-		echo "HTTPS_PROXY=$(rt_https_proxy)" >> config/localenv \
-		&& echo "https_proxy=$(rt_https_proxy)" >> config/localenv; \
-	fi; \
-	if [ -n "$(rt_no_proxy)" ]; then \
-		echo "no_proxy=$(rt_no_proxy)" >> config/localenv; \
-	fi \
-	&& docker run -d --name $(CONTAINER_NAME) --privileged ${SUPERVISOR_DIND_MOUNTS} $(IMAGE)
+	&& mkdir -p config \
+	&& echo "SUPERVISOR_IMAGE=$(call repo,$(SUPERVISOR_IMAGE))" > config/supervisor.conf \
+	&& echo "SUPERVISOR_TAG=$(call tag,$(SUPERVISOR_IMAGE))" >> config/supervisor.conf \
+	&& echo "LED_FILE=/dev/null" >> config/supervisor.conf
+
+supervisor-dind: supervisor-tar supervisor-conf
+
+run-supervisor: supervisor-dind
+	cd tools/dind \
+	&& ./resinos-in-container/resinos-in-container.sh \
+		--detach \
+		--config "$$(pwd)/$(CONFIG_FILENAME)" \
+		--image $(DIND_IMAGE) \
+		--id $(CONTAINER_NAME) \
+		--extra-args "${SUPERVISOR_DIND_MOUNTS}"
 
 stop-supervisor:
-	# Stop docker and remove volumes to prevent us from running out of loopback devices,
-	# as per https://github.com/jpetazzo/dind/issues/19
-	-docker exec $(CONTAINER_NAME) bash -c "systemctl stop docker" || true
-	-docker stop $(CONTAINER_NAME) > /dev/null || true
-	-docker rm -f --volumes $(CONTAINER_NAME) > /dev/null || true
+	-docker stop resinos-in-container-$(CONTAINER_NAME) > /dev/null || true
+	-docker rm -f --volumes resinos-in-container-$(CONTAINER_NAME) > /dev/null || true
 
 supervisor-image:
 ifneq ($(DOCKER_GE_17_05),true)

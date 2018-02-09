@@ -1,13 +1,11 @@
 /node_modules/
 /automation/node_modules/
 /automation/meta-resin/
+/meta-resin/
 *.swp
-data
+/data/
 bin/gosuper
 gosuper/bin/
-tools/dind/config.json
-tools/dind/apps.json
-tools/dind/config/localenv
 
 base-image/build/bitbake.lock
 base-image/build/cache
@@ -15,11 +13,8 @@ base-image/build/downloads
 base-image/build/sstate-cache
 base-image/build/tmp-glibc
 
-Dockerfile.build.*
-Dockerfile.runtime.*
-!Dockerfile.build.template
-!Dockerfile.runtime.template
 /build/
 /dist/
-tools/dind/config/services/docker.service.d/proxy.conf
-tools/dind/supervisor-image.tar
+tools/dind/config/
+tools/dind/config.json*
+tools/dind/apps.json
