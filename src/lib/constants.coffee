@@ -37,3 +37,5 @@ module.exports =
 	ipAddressUpdateInterval: 30 * 1000
 	imageCleanupErrorIgnoreTimeout: 3600 * 1000
 	maxDeltaDownloads: 3
+
+process.env.DOCKER_HOST ?= "unix://#{module.exports.dockerSocket}"

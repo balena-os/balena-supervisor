@@ -3,13 +3,13 @@ childProcess = Promise.promisifyAll(require('child_process'))
 
 clearAndAppendIptablesRule = (rule) ->
 	childProcess.execAsync("iptables -D #{rule}")
-	.catch(->)
+	.catchReturn()
 	.then ->
 		childProcess.execAsync("iptables -A #{rule}")
 
 clearAndInsertIptablesRule = (rule) ->
 	childProcess.execAsync("iptables -D #{rule}")
-	.catch(->)
+	.catchReturn()
 	.then ->
 		childProcess.execAsync("iptables -I #{rule}")
 

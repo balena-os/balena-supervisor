@@ -24,55 +24,33 @@ parseMemoryNumber = (numAsString, defaultVal) ->
 # Construct a restart policy based on its name.
 # The default policy (if name is not a valid policy) is "always".
 createRestartPolicy = (name) ->
-	if not (name in validRestartPolicies)
+	if name not in validRestartPolicies
 		name = 'always'
 	return { Name: name, MaximumRetryCount: 0 }
 
 getCommand = (service, imageInfo) ->
-	cmd = null
-	if service.command?
-		cmd = service.command
-	else if imageInfo?.Config?.Cmd?
-		cmd = imageInfo.Config.Cmd
+	cmd = service.command ? imageInfo?.Config?.Cmd ? null
 	if _.isString(cmd)
 		cmd = parseCommand(cmd)
 	return cmd
 
 getEntrypoint = (service, imageInfo) ->
-	entry = null
-	if service.entrypoint?
-		entry = service.entrypoint
-	else if imageInfo?.Config?.Entrypoint?
-		entry = imageInfo.Config.Entrypoint
+	entry = service.entrypoint ? imageInfo?.Config?.Entrypoint ? null
 	if _.isString(entry)
 		entry = parseCommand(entry)
 	return entry
 
 getStopSignal = (service, imageInfo) ->
-	sig = null
-	if service.stop_signal?
-		sig = service.stop_signal
-	else if imageInfo?.Config?.StopSignal?
-		sig = imageInfo.Config.StopSignal
+	sig = service.stopSignal ? imageInfo?.Config?.StopSignal ? null
 	if sig? and !_.isString(sig) # In case the YAML was parsed as a number
 		sig = sig.toString()
 	return sig
 
 getUser = (service, imageInfo) ->
-	user = ''
-	if service.user?
-		user = service.user
-	else if imageInfo?.Config?.User?
-		user = imageInfo.Config.User
-	return user
+	return service.user ? imageInfo?.Config?.User ? ''
 
 getWorkingDir = (service, imageInfo) ->
-	workingDir = ''
-	if service.workingDir?
-		workingDir = service.workingDir
-	else if imageInfo?.Config?.WorkingDir?
-		workingDir = imageInfo.Config.WorkingDir
-	return workingDir
+	return service.workingDir ? imageInfo?.Config?.WorkingDir ? ''
 
 buildHealthcheckTest = (test) ->
 	if _.isString(test)
@@ -101,13 +79,11 @@ overrideHealthcheckFromCompose = (serviceHealthcheck, imageHealthcheck = {}) ->
 	return imageHealthcheck
 
 getHealthcheck = (service, imageInfo) ->
-	healthcheck = null
-	if imageInfo?.Config?.Healthcheck?
-		healthcheck = imageInfo.Config.Healthcheck
+	healthcheck = imageInfo?.Config?.Healthcheck ? null
 	if service.healthcheck?
 		healthcheck = overrideHealthcheckFromCompose(service.healthcheck, healthcheck)
 	# Set invalid healthchecks back to null
-	if healthcheck and (!healthcheck.Test? or _.isEqual(healthcheck.Test, []))
+	if healthcheck? and (!healthcheck.Test? or _.isEqual(healthcheck.Test, []))
 		healthcheck = null
 	return healthcheck
 
@@ -128,7 +104,8 @@ formatDevices = (devices) ->
 
 # TODO: Support configuration for "networks"
 module.exports = class Service
-	constructor: (serviceProperties, opts = {}) ->
+	constructor: (props, opts = {}) ->
+		serviceProperties = _.mapKeys(props, (v, k) -> _.camelCase(k))
 		{
 			@image
 			@imageName
@@ -194,7 +171,7 @@ module.exports = class Service
 			@macAddress
 			@user
 			@workingDir
-		} = _.mapKeys(serviceProperties, (v, k) -> _.camelCase(k))
+		} = serviceProperties
 
 		@networks ?= {}
 		@privileged ?= false
@@ -255,15 +232,18 @@ module.exports = class Service
 
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
-			@networkMode ?= 'default'
+			if !@networkMode?
+				if !_.isEmpty(@networks)
+					@networkMode = _.keys(@networks)[0]
+				else
+					@networkMode = 'default'
 			if @networkMode not in [ 'host', 'bridge', 'none' ]
 				@networkMode = "#{@appId}_#{@networkMode}"
 
 			@networks = _.mapKeys @networks, (v, k) =>
 				if k not in [ 'host', 'bridge', 'none' ]
 					return "#{@appId}_#{k}"
-				else
-					return k
+				return k
 
 			@networks[@networkMode] ?= {}
 
@@ -282,14 +262,11 @@ module.exports = class Service
 			@devices = formatDevices(@devices)
 			@addFeaturesFromLabels(opts)
 			if @dns?
-				if !Array.isArray(@dns)
-					@dns = [ @dns ]
+				@dns = _.castArray(@dns)
 			if @dnsSearch?
-				if !Array.isArray(@dnsSearch)
-					@dnsSearch = [ @dns ]
+				@dnsSearch = _.castArray(@dnsSearch)
 			if @tmpfs?
-				if !Array.isArray(@tmpfs)
-					@tmpfs = [ @tmpfs ]
+				@tmpfs = _.castArray(@tmpfs)
 
 			@nanoCpus = Math.round(Number(@cpus) * 10 ** 9)
 
@@ -330,9 +307,9 @@ module.exports = class Service
 	addFeaturesFromLabels: (opts) =>
 		if checkTruthy(@labels['io.resin.features.dbus'])
 			@volumes.push('/run/dbus:/host/run/dbus')
-		if checkTruthy(@labels['io.resin.features.kernel-modules'])
+		if checkTruthy(@labels['io.resin.features.kernel-modules']) and opts.hostPathExists.modules
 			@volumes.push('/lib/modules:/lib/modules')
-		if checkTruthy(@labels['io.resin.features.firmware'])
+		if checkTruthy(@labels['io.resin.features.firmware']) and opts.hostPathExists.firmware
 			@volumes.push('/lib/firmware:/lib/firmware')
 		if checkTruthy(@labels['io.resin.features.balena-socket'])
 			@volumes.push('/var/run/balena.sock:/var/run/balena.sock')
@@ -388,7 +365,7 @@ module.exports = class Service
 	extendAndSanitiseVolumes: (imageInfo) =>
 		volumes = []
 		for vol in @volumes
-			isBind = /:/.test(vol)
+			isBind = _.includes(vol, ':')
 			if isBind
 				[ bindSource, bindDest, mode ] = vol.split(':')
 				if !path.isAbsolute(bindSource)
@@ -409,7 +386,7 @@ module.exports = class Service
 	getNamedVolumes: =>
 		defaults = @defaultBinds()
 		validVolumes = _.map @volumes, (vol) ->
-			if _.includes(defaults, vol) or !/:/.test(vol)
+			if _.includes(defaults, vol) or !_.includes(vol, ':')
 				return null
 			bindSource = vol.split(':')[0]
 			if !path.isAbsolute(bindSource)
@@ -417,7 +394,7 @@ module.exports = class Service
 				return m[1]
 			else
 				return null
-		return _.filter(validVolumes, (v) -> !_.isNull(v))
+		return _.reject(validVolumes, _.isNil)
 
 	lockPath: =>
 		return updateLock.lockPath(@appId)
@@ -562,7 +539,7 @@ module.exports = class Service
 		binds = []
 		volumes = {}
 		for vol in @volumes
-			isBind = /:/.test(vol)
+			isBind = _.includes(vol, ':')
 			if isBind
 				binds.push(vol)
 			else
@@ -714,11 +691,11 @@ module.exports = class Service
 
 		# This can be very useful for debugging so I'm leaving it commented for now.
 		# Uncomment to see the services whenever they don't match.
-		#if !isEq
-		#	console.log(JSON.stringify(this, null, 2))
-		#	console.log(JSON.stringify(otherService, null, 2))
-		#	diff = _.omitBy this, (prop, k) -> _.isEqual(prop, otherService[k])
-		#	console.log(JSON.stringify(diff, null, 2))
+		if !isEq
+			console.log(JSON.stringify(this, null, 2))
+			console.log(JSON.stringify(otherService, null, 2))
+			diff = _.omitBy this, (prop, k) -> _.isEqual(prop, otherService[k])
+			console.log(JSON.stringify(diff, null, 2))
 
 		return isEq
 

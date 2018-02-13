@@ -15,16 +15,16 @@ var tryParse = function (obj) {
 var singleToMulticontainerApp = function (app) {
 	// From *very* old supervisors, env or config may be null
 	// so we ignore errors parsing them
-	let conf = tryParse(app.config)
-	let env = tryParse(app.env)
-	let environment = {}
-	let appId = parseInt(app.appId)
+	const conf = tryParse(app.config)
+	const env = tryParse(app.env)
+	const environment = {}
+	const appId = parseInt(app.appId)
 	for (let key in env) {
 		if (!/^RESIN_/.test(key)) {
 			environment[key] = env[key]
 		}
 	}
-	let newApp = {
+	const newApp = {
 		appId: appId,
 		commit: app.commit,
 		name: app.name,
@@ -32,7 +32,7 @@ var singleToMulticontainerApp = function (app) {
 		networks: {},
 		volumes: {}
 	}
-	let defaultVolume = defaultLegacyVolume(appId)
+	const defaultVolume = defaultLegacyVolume(appId)
 	newApp.volumes[defaultVolume] = {}
 	let updateStrategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
 	if (updateStrategy == null) {
@@ -79,7 +79,7 @@ var singleToMulticontainerApp = function (app) {
 }
 
 var jsonifyAppFields = function (app) {
-	let newApp = Object.assign({}, app)
+	const newApp = Object.assign({}, app)
 	newApp.services = JSON.stringify(app.services)
 	newApp.networks = JSON.stringify(app.networks)
 	newApp.volumes = JSON.stringify(app.volumes)
@@ -87,7 +87,7 @@ var jsonifyAppFields = function (app) {
 }
 
 var imageForApp = function (app) {
-	let service = app.services[0]
+	const service = app.services[0]
 	return {
 		name: service.image,
 		appId: service.appId,
@@ -147,7 +147,7 @@ exports.up = function (knex, Promise) {
 				})
 		})
 		.map((app) => {
-			let migratedApp = singleToMulticontainerApp(app)
+			const migratedApp = singleToMulticontainerApp(app)
 			return knex('app').insert(jsonifyAppFields(migratedApp))
 				.then(() => knex('image').insert(imageForApp(migratedApp)))
 		})
@@ -160,9 +160,8 @@ exports.up = function (knex, Promise) {
 				.then((deviceConf) => {
 					return knex.schema.dropTable('deviceConfig')
 						.then(() => {
-							let values = JSON.parse(deviceConf[0].values)
-							let promises = []
-							let configKeys = {
+							const values = JSON.parse(deviceConf[0].values)
+							const configKeys = {
 								'RESIN_SUPERVISOR_POLL_INTERVAL': 'appUpdatePollInterval',
 								'RESIN_SUPERVISOR_LOCAL_MODE': 'localMode',
 								'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': 'connectivityCheckEnabled',
@@ -174,12 +173,11 @@ exports.up = function (knex, Promise) {
 								'RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL': 'deltaRequestTimeout',
 								'RESIN_SUPERVISOR_OVERRIDE_LOCK': 'lockOverride'
 							}
-							for (let envVarName in values) {
+							return Promise.map(Object.keys(values), (envVarName) => {
 								if (configKeys[envVarName] != null) {
-									promises.push(knex('config').insert({ key: configKeys[envVarName], value: values[envVarName]}))
+									return knex('config').insert({ key: configKeys[envVarName], value: values[envVarName]})
 								}
-							}
-							return Promise.all(promises)
+							})
 						})
 				})
 				.then(() => {
@@ -222,7 +220,7 @@ exports.up = function (knex, Promise) {
 				})
 				.then(() => {
 					return Promise.map(dependentApps, (app) => {
-						let newApp = {
+						const newApp = {
 							appId: parseInt(app.appId),
 							parentApp: parseInt(app.parentAppId),
 							image: app.imageId,
@@ -232,7 +230,7 @@ exports.up = function (knex, Promise) {
 							config: JSON.stringify(tryParse(app.config)),
 							environment: JSON.stringify(tryParse(app.environment))
 						}
-						let image = imageForDependentApp(newApp)
+						const image = imageForDependentApp(newApp)
 						return knex('image').insert(image)
 							.then(() => knex('dependentApp').insert(newApp))
 							.then(() => knex('dependentAppTarget').insert(newApp))
@@ -276,7 +274,7 @@ exports.up = function (knex, Promise) {
 				})
 				.then(() => {
 					return Promise.map(dependentDevices, (device) => {
-						let newDevice = Object.assign({}, device)
+						const newDevice = Object.assign({}, device)
 						newDevice.appId = parseInt(device.appId)
 						newDevice.deviceId = parseInt(device.deviceId)
 						if (device.is_managed_by != null) {
@@ -289,7 +287,7 @@ exports.up = function (knex, Promise) {
 						if (newDevice.markedForDeletion == null) {
 							newDevice.markedForDeletion = false
 						}
-						let deviceTarget = {
+						const deviceTarget = {
 							uuid: device.uuid,
 							name: device.name,
 							apps: {}
@@ -307,5 +305,5 @@ exports.up = function (knex, Promise) {
 }
 
 exports.down = function(knex, Promise) {
-	return Promise.try(() => { throw new Error('Not implemented') })
+	return Promise.reject(new Error('Not implemented'))
 }

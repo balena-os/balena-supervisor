@@ -21,7 +21,7 @@ validation = require '../lib/validation'
 # }
 
 hasDigest = (name) ->
-	name?.split?('@')?[1]? ? false
+	name?.split?('@')?[1]?
 
 module.exports = class Images extends EventEmitter
 	constructor: ({ @docker, @logger, @db }) ->
@@ -136,10 +136,10 @@ module.exports = class Images extends EventEmitter
 							# Image has a regular tag, so we might have to remove unnecessary tags
 							@docker.getImage(img.dockerImageId).inspect()
 							.then (dockerImg) =>
-								differentTags = _.filter(imagesFromDB, (dbImage) -> dbImage.name != img.name)
+								differentTags = _.reject(imagesFromDB, name: img.name)
 								if dockerImg.RepoTags.length > 1 and
-									_.some(dockerImg.RepoTags, (tag) -> tag == img.name) and
-									_.some(dockerImg.RepoTags, (tag) -> _.some(differentTags, (dbImage) -> dbImage.name == tag))
+									_.includes(dockerImg.RepoTags, img.name) and
+									_.some(dockerImg.RepoTags, (tag) -> _.some(differentTags, name: tag))
 										@docker.getImage(img.name).remove(noprune: true)
 							.return(false)
 						else
@@ -155,9 +155,8 @@ module.exports = class Images extends EventEmitter
 
 	remove: (image) =>
 		@_removeImageIfNotNeeded(image)
-		.catch (err) =>
+		.tapCatch (err) =>
 			@logger.logSystemEvent(logTypes.deleteImageError, { image, error: err })
-			throw err
 
 	getByDockerId: (id) =>
 		@db.models('image').where(dockerImageId: id).first()
@@ -167,7 +166,7 @@ module.exports = class Images extends EventEmitter
 		.then(@remove)
 
 	getNormalisedTags: (image) ->
-		Promise.map(image.RepoTags ? [], (tag) => @normalise(tag))
+		Promise.map(image.RepoTags ? [], @normalise)
 
 	_withImagesFromDockerAndDB: (callback) =>
 		Promise.join(
@@ -194,7 +193,7 @@ module.exports = class Images extends EventEmitter
 
 	getDownloadingImageIds: =>
 		Promise.try =>
-			return _.map(_.keys(_.pickBy(@volatileState, (s) -> s.status == 'Downloading')), validation.checkInt)
+			return _.map(_.keys(_.pickBy(@volatileState, status: 'Downloading')), validation.checkInt)
 
 	cleanupDatabase: =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
@@ -252,7 +251,6 @@ module.exports = class Images extends EventEmitter
 		.then =>
 			toCleanup = _.filter _.uniq(images), (image) =>
 				!@imageCleanupFailures[image]? or Date.now() - @imageCleanupFailures[image] > constants.imageCleanupErrorIgnoreTimeout
-			#console.log(toCleanup)
 			return toCleanup
 	inspectByName: (imageName) =>
 		@docker.getImage(imageName).inspect()

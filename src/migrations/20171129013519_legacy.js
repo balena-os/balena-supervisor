@@ -8,7 +8,7 @@
 // history without actually adding drop statements (mostly just becoming unused, but still there).
 
 exports.up = function (knex, Promise) {
-	let addColumn = function (table, column, type) {
+	const addColumn = function (table, column, type) {
 		return knex.schema.hasColumn(table, column)
 			.then((exists) => {
 				if (!exists) {
@@ -16,7 +16,7 @@ exports.up = function (knex, Promise) {
 				}
 			})
 	}
-	let dropColumn = function (table, column) {
+	const dropColumn = function (table, column) {
 		return knex.schema.hasColumn(table, column)
 			.then((exists) => {
 				if (exists) {
@@ -24,7 +24,7 @@ exports.up = function (knex, Promise) {
 				}
 			})
 	}
-	let createTableOrRun = function (tableName, tableCreator, runIfTableExists) {
+	const createTableOrRun = function (tableName, tableCreator, runIfTableExists) {
 		return knex.schema.hasTable(tableName)
 			.then((exists) => {
 				if (!exists) {
@@ -34,7 +34,7 @@ exports.up = function (knex, Promise) {
 				}
 			})
 	}
-	let dropTable = function (tableName) {
+	const dropTable = function (tableName) {
 		return knex.schema.hasTable(tableName)
 			.then((exists) => {
 				if (exists) {
@@ -132,5 +132,5 @@ exports.up = function (knex, Promise) {
 }
 
 exports.down = function(knex, Promise) {
-	return Promise.try(() => { throw new Error('Not implemented') })
+	return Promise.reject(new Error('Not implemented'))
 }

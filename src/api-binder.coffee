@@ -2,7 +2,7 @@ Promise = require 'bluebird'
 _ = require 'lodash'
 url = require 'url'
 TypedError = require 'typed-error'
-PlatformAPI = require 'pinejs-client'
+PinejsClient = require 'pinejs-client'
 deviceRegister = require 'resin-register-device'
 express = require 'express'
 bodyParser = require 'body-parser'
@@ -18,17 +18,16 @@ ExchangeKeyError = class ExchangeKeyError extends TypedError
 REPORT_SUCCESS_DELAY = 1000
 REPORT_RETRY_DELAY = 5000
 
-class APIBinderRouter
-	constructor: (@apiBinder) ->
-		{ @eventTracker } = @apiBinder
-		@router = express.Router()
-		@router.use(bodyParser.urlencoded(extended: true))
-		@router.use(bodyParser.json())
-		@router.post '/v1/update', (req, res) =>
-			@eventTracker.track('Update notification')
-			if @apiBinder.readyForUpdates
-				@apiBinder.getAndSetTargetState(req.body.force)
-			res.sendStatus(204)
+createAPIBinderRouter = (apiBinder) ->
+	router = express.Router()
+	router.use(bodyParser.urlencoded(extended: true))
+	router.use(bodyParser.json())
+	router.post '/v1/update', (req, res) ->
+		apiBinder.eventTracker.track('Update notification')
+		if apiBinder.readyForUpdates
+			apiBinder.getAndSetTargetState(req.body.force)
+		res.sendStatus(204)
+	return router
 
 module.exports = class APIBinder
 	constructor: ({ @config, @db, @deviceState, @eventTracker }) ->
@@ -41,8 +40,7 @@ module.exports = class APIBinder
 		@_targetStateInterval = null
 		@reportPending = false
 		@stateReportErrors = 0
-		@_router = new APIBinderRouter(this)
-		@router = @_router.router
+		@router = createAPIBinderRouter(this)
 		_lock = new Lock()
 		@_writeLock = Promise.promisify(_lock.async.writeLock)
 		@readyForUpdates = false
@@ -52,7 +50,9 @@ module.exports = class APIBinder
 		.then (conf) =>
 			if conf.offlineMode
 				return true
-			stateFetchHealthy = process.hrtime(@lastTargetStateFetch)[0] < 2 * conf.appUpdatePollInterval
+			timeSinceLastFetch = process.hrtime(@lastTargetStateFetch)
+			timeSinceLastFetchMs = timeSinceLastFetch[0] * 1000 + timeSinceLastFetch[1] / 1e6
+			stateFetchHealthy = timeSinceLastFetchMs < 2 * conf.appUpdatePollInterval
 			stateReportHealthy = !conf.connectivityCheckEnabled or !@deviceState.connected or @stateReportErrors < 3
 			return stateFetchHealthy and stateReportHealthy
 
@@ -61,19 +61,22 @@ module.exports = class APIBinder
 			release()
 
 	init: (startServices = true) ->
-		@config.getMany([ 'offlineMode', 'resinApiEndpoint', 'bootstrapRetryDelay' ])
-		.then ({ offlineMode, resinApiEndpoint, bootstrapRetryDelay }) =>
+		@config.getMany([ 'offlineMode', 'resinApiEndpoint', 'bootstrapRetryDelay', 'currentApiKey' ])
+		.then ({ offlineMode, resinApiEndpoint, bootstrapRetryDelay, currentApiKey }) =>
 			if offlineMode
 				console.log('Offline Mode is set, skipping API binder initialization')
 				return
 			baseUrl = url.resolve(resinApiEndpoint, '/v4/')
-			@resinApi = new PlatformAPI
+			passthrough = _.cloneDeep(requestOpts)
+			passthrough.headers ?= {}
+			passthrough.headers.Authorization = "Bearer #{currentApiKey}"
+			@resinApi = new PinejsClient
 				apiPrefix: baseUrl
-				passthrough: requestOpts
+				passthrough: passthrough
 			baseUrlLegacy = url.resolve(resinApiEndpoint, '/v2/')
-			@resinApiLegacy = new PlatformAPI
+			@resinApiLegacy = new PinejsClient
 				apiPrefix: baseUrlLegacy
-				passthrough: requestOpts
+				passthrough: passthrough
 			@cachedResinApi = @resinApi.clone({}, cache: {})
 			if !startServices
 				return
@@ -100,8 +103,8 @@ module.exports = class APIBinder
 			options:
 				filter:
 					uuid: uuid
-			customOptions:
-				apikey: apiKey
+			passthrough:
+				headers: Authorization: "Bearer: #{apiKey}"
 		.get(0)
 		.catchReturn(null)
 		.timeout(timeout)
@@ -121,20 +124,21 @@ module.exports = class APIBinder
 				return device
 			# If it's not valid/doesn't exist then we try to use the user/provisioning api key for the exchange
 			@fetchDevice(opts.uuid, opts.provisioningApiKey, opts.apiTimeout)
-			.then (device) ->
+			.tap (device) ->
 				if not device?
 					throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
 				# We found the device, we can try to register a working device key for it
-				request.postAsync("#{opts.apiEndpoint}/api-key/device/#{device.id}/device-key?apikey=#{opts.provisioningApiKey}", {
+				request.postAsync("#{opts.apiEndpoint}/api-key/device/#{device.id}/device-key", {
 					json: true
 					body:
 						apiKey: opts.deviceApiKey
+					headers:
+						Authorization: "Bearer #{opts.provisioningApiKey}"
 				})
 				.spread (res, body) ->
 					if res.statusCode != 200
 						throw new ExchangeKeyError("Couldn't register device key with provisioning key")
 				.timeout(opts.apiTimeout)
-				.return(device)
 
 	_exchangeKeyAndGetDeviceOrRegenerate: (opts) =>
 		@_exchangeKeyAndGetDevice(opts)
@@ -167,6 +171,7 @@ module.exports = class APIBinder
 					console.log('Device is registered but we still have an apiKey, attempting key exchange')
 					@_exchangeKeyAndGetDevice(opts)
 			.then ({ id }) =>
+				@resinApi.passthrough.headers.Authorization = "Bearer #{opts.deviceApiKey}"
 				configToUpdate = {
 					registered_at: opts.registered_at
 					deviceId: id
@@ -200,7 +205,6 @@ module.exports = class APIBinder
 		@config.getMany([
 			'offlineMode'
 			'provisioned'
-			'currentApiKey'
 			'apiTimeout'
 			'userId'
 			'deviceId'
@@ -221,8 +225,6 @@ module.exports = class APIBinder
 			@resinApi.post
 				resource: 'device'
 				body: device
-				customOptions:
-					apikey: conf.currentApiKey
 			.timeout(conf.apiTimeout)
 
 	# This uses resin API v2 for now, as the proxyvisor expects to be able to patch the device's commit
@@ -230,7 +232,6 @@ module.exports = class APIBinder
 		@config.getMany([
 			'offlineMode'
 			'provisioned'
-			'currentApiKey'
 			'apiTimeout'
 		])
 		.then (conf) =>
@@ -242,8 +243,6 @@ module.exports = class APIBinder
 				resource: 'device'
 				id: id
 				body: updatedFields
-				customOptions:
-					apikey: conf.currentApiKey
 			.timeout(conf.apiTimeout)
 
 	# Creates the necessary config vars in the API to match the current device state,
@@ -252,8 +251,8 @@ module.exports = class APIBinder
 		Promise.join(
 			@deviceState.getCurrentForComparison()
 			@getTargetState()
-			@config.getMany([ 'currentApiKey', 'deviceId' ])
-			(currentState, targetState, conf) =>
+			@config.get('deviceId')
+			(currentState, targetState, deviceId) =>
 				currentConfig = currentState.local.config
 				targetConfig = targetState.local.config
 				Promise.mapSeries _.toPairs(currentConfig), ([ key, value ]) =>
@@ -263,14 +262,12 @@ module.exports = class APIBinder
 					if !targetConfig[key]?
 						envVar = {
 							value
-							device: conf.deviceId
+							device: deviceId
 							name: key
 						}
 						@resinApi.post
 							resource: 'device_config_variable'
 							body: envVar
-							customOptions:
-								apikey: conf.currentApiKey
 		)
 		.then =>
 			@config.set({ initialConfigReported: 'true' })
@@ -284,13 +281,13 @@ module.exports = class APIBinder
 				@reportInitialConfig(retryDelay)
 
 	getTargetState: =>
-		@config.getMany([ 'uuid', 'currentApiKey', 'resinApiEndpoint', 'apiTimeout' ])
-		.then ({ uuid, currentApiKey, resinApiEndpoint, apiTimeout }) =>
+		@config.getMany([ 'uuid', 'resinApiEndpoint', 'apiTimeout' ])
+		.then ({ uuid, resinApiEndpoint, apiTimeout }) =>
 			endpoint = url.resolve(resinApiEndpoint, "/device/v2/#{uuid}/state")
 
 			requestParams = _.extend
 				method: 'GET'
-				url: "#{endpoint}?&apikey=#{currentApiKey}"
+				url: "#{endpoint}"
 			, @cachedResinApi.passthrough
 
 			@cachedResinApi._request(requestParams)
@@ -312,11 +309,10 @@ module.exports = class APIBinder
 			@lastTargetStateFetch = process.hrtime()
 
 	_pollTargetState: =>
-		if @_targetStateInterval?
-			clearInterval(@_targetStateInterval)
-			@_targetStateInterval = null
 		@config.get('appUpdatePollInterval')
 		.then (appUpdatePollInterval) =>
+			if @_targetStateInterval?
+				clearInterval(@_targetStateInterval)
 			@_targetStateInterval = setInterval(@getAndSetTargetState, appUpdatePollInterval)
 			@getAndSetTargetState()
 			return
@@ -336,20 +332,20 @@ module.exports = class APIBinder
 			dependent: _.omitBy @stateForReport.dependent, (val, key) =>
 				_.isEqual(@lastReportedState.dependent[key], val)
 		}
-		return _.pickBy(diff, (val) -> !_.isEmpty(val))
+		return _.pickBy(diff, _.negate(_.isEmpty))
 
 	_sendReportPatch: (stateDiff, conf) =>
 		endpoint = url.resolve(conf.resinApiEndpoint, "/device/v2/#{conf.uuid}/state")
 		requestParams = _.extend
 			method: 'PATCH'
-			url: "#{endpoint}?&apikey=#{conf.currentApiKey}"
+			url: "#{endpoint}"
 			body: stateDiff
 		, @cachedResinApi.passthrough
 
 		@cachedResinApi._request(requestParams)
 
 	_report: =>
-		@config.getMany([ 'currentApiKey', 'deviceId', 'apiTimeout', 'resinApiEndpoint', 'uuid' ])
+		@config.getMany([ 'deviceId', 'apiTimeout', 'resinApiEndpoint', 'uuid' ])
 		.then (conf) =>
 			stateDiff = @_getStateDiff()
 			if _.size(stateDiff) is 0

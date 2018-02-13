@@ -47,16 +47,14 @@ module.exports = class Networks
 					'io.resin.supervised': 'true'
 				}
 			})
-		.catch (err) =>
+		.tapCatch (err) =>
 			@logger.logSystemEvent(logTypes.createNetworkError, { network: { name, appId }, error: err })
-			throw err
 
 	remove: ({ name, appId }) =>
 		@logger.logSystemEvent(logTypes.removeNetwork, { network: { name, appId } })
 		@docker.getNetwork("#{appId}_#{name}").remove()
-		.catch (err) =>
+		.tapCatch (err) =>
 			@logger.logSystemEvent(logTypes.removeNetworkError, { network: { name, appId }, error: err })
-			throw err
 
 	supervisorNetworkReady: =>
 		# For mysterious reasons sometimes the balena/docker network exists
@@ -80,8 +78,7 @@ module.exports = class Networks
 				removeIt()
 			else
 				fs.statAsync("/sys/class/net/#{constants.supervisorNetworkInterface}")
-				.catch ENOENT, ->
-					removeIt()
+				.catch(ENOENT, removeIt)
 		.catch NotFoundError, =>
 			console.log('Creating supervisor0 network')
 			@docker.createNetwork({

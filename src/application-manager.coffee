@@ -3,10 +3,11 @@ _ = require 'lodash'
 EventEmitter = require 'events'
 express = require 'express'
 bodyParser = require 'body-parser'
+fs = Promise.promisifyAll(require('fs'))
+path = require 'path'
 
 constants = require './lib/constants'
 
-process.env.DOCKER_HOST ?= "unix://#{constants.dockerSocket}"
 Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
@@ -20,11 +21,8 @@ Volumes = require './compose/volumes'
 
 Proxyvisor = require './proxyvisor'
 
-serviceAction = (action, serviceId, current, target, options) ->
-	obj = { action, serviceId, current, target }
-	if options?
-		obj.options = options
-	return obj
+serviceAction = (action, serviceId, current, target, options = {}) ->
+	return { action, serviceId, current, target, options }
 
 # TODO: move this to an Image class?
 imageForService = (service) ->
@@ -44,234 +42,193 @@ fetchAction = (service) ->
 		image: imageForService(service)
 		serviceId: service.serviceId
 	}
+
+pathExistsOnHost = (p) ->
+	fs.statAsync(path.join(constants.rootMountPoint, p))
+	.return(true)
+	.catchReturn(false)
+
+appNotFoundMsg = "App not found: an app needs to be installed for this endpoint to work.
+				If you've recently moved this device from another app,
+				please push an app and wait for it to be installed first."
+
 # TODO: implement additional v2 endpoints
-# v1 endpoins only work for single-container apps as they assume the app has a single service.
-class ApplicationManagerRouter
-	constructor: (@applications) ->
-		{ @proxyvisor, @eventTracker, @deviceState, @_lockingIfNecessary, @logger } = @applications
-		@router = express.Router()
-		@router.use(bodyParser.urlencoded(extended: true))
-		@router.use(bodyParser.json())
+# Some v1 endpoins only work for single-container apps as they assume the app has a single service.
+createApplicationManagerRouter = (applications) ->
+	{ eventTracker, deviceState, _lockingIfNecessary, logger } = applications
+	router = express.Router()
+	router.use(bodyParser.urlencoded(extended: true))
+	router.use(bodyParser.json())
 
-		doRestart = (appId, force) =>
-			@_lockingIfNecessary appId, { force }, =>
-				@deviceState.getCurrentForComparison()
-				.then (currentState) =>
-					app = currentState.local.apps[appId]
-					imageIds = _.map(app.services, 'imageId')
-					@applications.clearTargetVolatileForServices(imageIds)
-					stoppedApp = _.cloneDeep(app)
-					stoppedApp.services = []
-					currentState.local.apps[appId] = stoppedApp
-					@deviceState.pausingApply =>
-						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-						.then =>
-							currentState.local.apps[appId] = app
-							@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.finally =>
-						@deviceState.triggerApplyTarget()
+	doRestart = (appId, force) ->
+		_lockingIfNecessary appId, { force }, ->
+			deviceState.getCurrentForComparison()
+			.then (currentState) ->
+				app = currentState.local.apps[appId]
+				imageIds = _.map(app.services, 'imageId')
+				applications.clearTargetVolatileForServices(imageIds)
+				stoppedApp = _.cloneDeep(app)
+				stoppedApp.services = []
+				currentState.local.apps[appId] = stoppedApp
+				deviceState.pausingApply ->
+					deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+					.then ->
+						currentState.local.apps[appId] = app
+						deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+				.finally ->
+					deviceState.triggerApplyTarget()
 
-		doPurge = (appId, force) =>
-			@logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
-			@_lockingIfNecessary appId, { force }, =>
-				@deviceState.getCurrentForComparison()
-				.then (currentState) =>
-					app = currentState.local.apps[appId]
-					purgedApp = _.cloneDeep(app)
-					purgedApp.services = []
-					purgedApp.volumes = {}
-					currentState.local.apps[appId] = purgedApp
-					@deviceState.pausingApply =>
-						@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-						.then =>
-							currentState.local.apps[appId] = app
-							@deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.finally =>
-						@deviceState.triggerApplyTarget()
-			.tap =>
-				@logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
-			.catch (err) =>
-				@logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
-				throw err
+	doPurge = (appId, force) ->
+		logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
+		_lockingIfNecessary appId, { force }, ->
+			deviceState.getCurrentForComparison()
+			.then (currentState) ->
+				app = currentState.local.apps[appId]
+				if !app?
+					throw new Error(appNotFoundMsg)
+				purgedApp = _.cloneDeep(app)
+				purgedApp.services = []
+				purgedApp.volumes = {}
+				currentState.local.apps[appId] = purgedApp
+				deviceState.pausingApply ->
+					deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+					.then ->
+						currentState.local.apps[appId] = app
+						deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+				.finally ->
+					deviceState.triggerApplyTarget()
+		.tap ->
+			logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
+		.tapCatch (err) ->
+			logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
 
-		@router.post '/v1/restart', (req, res) =>
-			appId = checkInt(req.body.appId)
-			force = checkTruthy(req.body.force)
-			@eventTracker.track('Restart container (v1)', { appId })
-			if !appId?
-				return res.status(400).send('Missing app id')
-			doRestart(appId, force)
-			.then ->
-				res.status(200).send('OK')
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.post '/v1/restart', (req, res) ->
+		appId = checkInt(req.body.appId)
+		force = checkTruthy(req.body.force)
+		eventTracker.track('Restart container (v1)', { appId })
+		if !appId?
+			return res.status(400).send('Missing app id')
+		doRestart(appId, force)
+		.then ->
+			res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.post '/v1/apps/:appId/stop', (req, res) =>
-			appId = checkInt(req.params.appId)
-			force = checkTruthy(req.body.force)
-			if !appId?
-				return res.status(400).send('Missing app id')
-			@applications.getCurrentApp(appId)
-			.then (app) =>
+	v1StopOrStart = (req, res, action) ->
+		appId = checkInt(req.params.appId)
+		force = checkTruthy(req.body.force)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		applications.getCurrentApp(appId)
+		.then (app) ->
+			service = app?.services?[0]
+			if !service?
+				return res.status(400).send('App not found')
+			if app.services.length > 1
+				return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
+			applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
+			applications.executeStepAction(serviceAction(action, service.serviceId, service), { force })
+		.then (service) ->
+			res.status(200).json({ containerId: service.containerId })
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	router.post '/v1/apps/:appId/stop', (req, res) ->
+		v1StopOrStart(req, res, 'stop')
+
+	router.post '/v1/apps/:appId/start', (req, res) ->
+		v1StopOrStart(req, res, 'start')
+
+	router.get '/v1/apps/:appId', (req, res) ->
+		appId = checkInt(req.params.appId)
+		eventTracker.track('GET app (v1)', appId)
+		if !appId?
+			return res.status(400).send('Missing app id')
+		Promise.join(
+			applications.getCurrentApp(appId)
+			applications.getStatus()
+			(app, status) ->
 				service = app?.services?[0]
 				if !service?
 					return res.status(400).send('App not found')
 				if app.services.length > 1
 					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-				@applications.setTargetVolatileForService(service.imageId, running: false)
-				@applications.executeStepAction(serviceAction('stop', service.serviceId, service), { force })
-			.then (service) ->
-				res.status(200).json({ containerId: service.containerId })
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+				# Don't return data that will be of no use to the user
+				appToSend = {
+					appId
+					containerId: service.containerId
+					env: _.omit(service.environment, constants.privateAppEnvVars)
+					releaseId: service.releaseId
+					imageId: service.image
+				}
+				if status.commit?
+					appToSend.commit = status.commit
+				res.json(appToSend)
+		)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.post '/v1/apps/:appId/start', (req, res) =>
-			appId = checkInt(req.params.appId)
-			force = checkTruthy(req.body.force)
-			if !appId?
-				return res.status(400).send('Missing app id')
-			@applications.getCurrentApp(appId)
-			.then (app) =>
-				service = app?.services?[0]
+	router.post '/v1/purge', (req, res) ->
+		appId = checkInt(req.body.appId)
+		force = checkTruthy(req.body.force)
+		if !appId?
+			errMsg = 'Invalid or missing appId'
+			return res.status(400).send(errMsg)
+		doPurge(appId, force)
+		.then ->
+			res.status(200).json(Data: 'OK', Error: '')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	router.post '/v2/applications/:appId/purge', (req, res) ->
+		{ force } = req.body
+		{ appId } = req.params
+		doPurge(appId, force)
+		.then ->
+			res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	handleServiceAction = (req, res, action) ->
+		{ imageId, force } = req.body
+		{ appId } = req.params
+		_lockingIfNecessary appId, { force }, ->
+			applications.getCurrentApp(appId)
+			.then (app) ->
+				if !app?
+					return res.status(404).send(appNotFoundMsg)
+				service = _.find(app.services, { imageId })
 				if !service?
-					return res.status(400).send('App not found')
-				if app.services.length > 1
-					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-				@applications.setTargetVolatileForService(service.imageId, running: true)
-				@applications.executeStepAction(serviceAction('start', service.serviceId, null, service), { force })
-			.then (service) ->
-				res.status(200).json({ containerId: service.containerId })
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+					errMsg = 'Service not found, a container must exist for this endpoint to work.'
+					return res.status(404).send(errMsg)
+				applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
+				applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { skipLock: true })
+				.then ->
+					res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.get '/v1/apps/:appId', (req, res) =>
-			appId = checkInt(req.params.appId)
-			@eventTracker.track('GET app (v1)', appId)
-			if !appId?
-				return res.status(400).send('Missing app id')
-			Promise.join(
-				@applications.getCurrentApp(appId)
-				@applications.getStatus()
-				(app, status) ->
-					service = app?.services?[0]
-					if !service?
-						return res.status(400).send('App not found')
-					if app.services.length > 1
-						return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-					# Don't return data that will be of no use to the user
-					appToSend = {
-						appId
-						containerId: service.containerId
-						env: _.omit(service.environment, constants.privateAppEnvVars)
-						releaseId: service.releaseId
-						imageId: service.image
-					}
-					if status.commit?
-						appToSend.commit = status.commit
-					res.json(appToSend)
-			)
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.post '/v2/applications/:appId/restart-service', (req, res) ->
+		handleServiceAction(req, res, 'restart')
 
-		@router.post '/v1/purge', (req, res) ->
-			appId = checkInt(req.body.appId)
-			force = checkTruthy(req.body.force)
-			if !appId?
-				errMsg = "App not found: an app needs to be installed for purge to work.
-						If you've recently moved this device from another app,
-						please push an app and wait for it to be installed first."
-				return res.status(400).send(errMsg)
-			doPurge(appId, force)
-			.then ->
-				res.status(200).json(Data: 'OK', Error: '')
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.post '/v2/applications/:appId/stop-service', (req, res) ->
+		handleServiceAction(req, res, 'stop')
 
-		@router.post '/v2/applications/:appId/purge', (req, res) ->
-			{ force } = req.body
-			{ appId } = req.params
-			doPurge(appId, force)
-			.then ->
-				res.status(200).send('OK')
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.post '/v2/applications/:appId/start-service', (req, res) ->
+		handleServiceAction(req, res, 'start')
 
-		@router.post '/v2/applications/:appId/restart-service', (req, res) =>
-			{ imageId, force } = req.body
-			{ appId } = req.params
-			@_lockingIfNecessary appId, { force }, =>
-				@applications.getCurrentApp(appId)
-				.then (app) =>
-					if !app?
-						errMsg = "App not found: an app needs to be installed for restart-service to work.
-								If you've recently moved this device from another app,
-								please push an app and wait for it to be installed first."
-						return res.status(404).send(errMsg)
-					service = _.find(app.services, (s) -> s.imageId == imageId)
-					if !service?
-						errMsg = 'Service not found, a container must exist for service restart to work.'
-						return res.status(404).send(errMsg)
-					@applications.setTargetVolatileForService(service.imageId, running: true)
-					@applications.executeStepAction(serviceAction('restart', service.serviceId, service, service), { skipLock: true })
-					.then ->
-						res.status(200).send('OK')
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.post '/v2/applications/:appId/restart', (req, res) ->
+		{ force } = req.body
+		{ appId } = req.params
+		doRestart(appId, force)
+		.then ->
+			res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.post '/v2/applications/:appId/stop-service', (req, res) =>
-			{ imageId, force } = req.body
-			{ appId } = req.params
-			@_lockingIfNecessary appId, { force }, =>
-				@applications.getCurrentApp(appId)
-				.then (app) =>
-					if !app?
-						errMsg = "App not found: an app needs to be installed for stop-service to work.
-								If you've recently moved this device from another app,
-								please push an app and wait for it to be installed first."
-						return res.status(404).send(errMsg)
-					service = _.find(app.services, (s) -> s.imageId == imageId)
-					if !service?
-						errMsg = 'Service not found, a container must exist for service stop to work.'
-						return res.status(404).send(errMsg)
-					@applications.setTargetVolatileForService(service.imageId, running: false)
-					@applications.executeStepAction(serviceAction('stop', service.serviceId, service, service, { wait: true }), { skipLock: true })
-					.then ->
-						res.status(200).send('OK')
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.use(applications.proxyvisor.router)
 
-		@router.post '/v2/applications/:appId/start-service', (req, res) =>
-			{ imageId, force } = req.body
-			{ appId } = req.params
-			@_lockingIfNecessary appId, { force }, =>
-				@applications.getCurrentApp(appId)
-				.then (app) =>
-					if !app?
-						errMsg = "App not found: an app needs to be installed for stop-service to work.
-								If you've recently moved this device from another app,
-								please push an app and wait for it to be installed first."
-						return res.status(404).send(errMsg)
-					service = _.find(app.services, (s) -> s.imageId == imageId)
-					if !service?
-						errMsg = 'Service not found, a container must exist for service start to work.'
-						return res.status(404).send(errMsg)
-					@applications.setTargetVolatileForService(service.imageId, running: true)
-					@applications.executeStepAction(serviceAction('start', service.serviceId, service, service), { skipLock: true })
-					.then ->
-						res.status(200).send('OK')
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
-
-		@router.post '/v2/applications/:appId/restart', (req, res) ->
-			{ force } = req.body
-			{ appId } = req.params
-			doRestart(appId, force)
-			.then ->
-				res.status(200).send('OK')
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
-
-		@router.use(@proxyvisor.router)
+	return router
 
 module.exports = class ApplicationManager extends EventEmitter
 	constructor: ({ @logger, @config, @db, @eventTracker, @deviceState }) ->
@@ -304,8 +261,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					@services.updateMetadata(step.current, step.target)
 			restart: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
-					Promise.try =>
-						@services.kill(step.current, { wait: true })
+					@services.kill(step.current, { wait: true })
 					.then =>
 						delete @_containerStarted[step.current.containerId]
 					.then =>
@@ -331,8 +287,13 @@ module.exports = class ApplicationManager extends EventEmitter
 						opts.deltaSource = @bestDeltaSource(step.image, availableImages)
 						@images.triggerFetch step.image, opts, (success) =>
 							@fetchesInProgress -= 1
-							@timeSpentFetching += process.hrtime(startTime)[0]
+							elapsed = process.hrtime(startTime)
+							elapsedMs = elapsed[0] * 1000 + elapsed[1] / 1e6
+							@timeSpentFetching += elapsedMs
 							if success
+								# update_downloaded is true if *any* image has been downloaded,
+								# and it's relevant mostly for the legacy GET /v1/device endpoint
+								# that assumes a single-container app
 								@reportCurrentState(update_downloaded: true)
 				)
 			removeImage: (step) =>
@@ -351,9 +312,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				@networks.ensureSupervisorNetwork()
 		}
 		@validActions = _.keys(@actionExecutors).concat(@proxyvisor.validActions)
-		@_router = new ApplicationManagerRouter(this)
-		@router = @_router.router
-
+		@router = createApplicationManagerRouter(this)
 		@images.on('change', @reportCurrentState)
 		@services.on('change', @reportCurrentState)
 
@@ -372,7 +331,6 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.listenToEvents()
 
 	# Returns the status of applications and their services
-	# TODO: discuss: I think commit could be deduced by the UI looking at the image_installs on the API?
 	getStatus: =>
 		Promise.join(
 			@services.getStatus()
@@ -382,11 +340,13 @@ module.exports = class ApplicationManager extends EventEmitter
 				apps = {}
 				dependent = {}
 				releaseId = null
+				creationTimesAndReleases = {}
 				# We iterate over the current running services and add them to the current state
 				# of the app they belong to.
 				for service in services
 					appId = service.appId
 					apps[appId] ?= {}
+					creationTimesAndReleases[appId] = {}
 					apps[appId].services ?= {}
 					# We only send commit if all services have the same release, and it matches the target release
 					if !releaseId?
@@ -395,11 +355,11 @@ module.exports = class ApplicationManager extends EventEmitter
 						releaseId = false
 					if !apps[appId].services[service.imageId]?
 						apps[appId].services[service.imageId] = _.pick(service, [ 'status', 'releaseId' ])
+						creationTimesAndReleases[appId][service.imageId] = _.pick(service, [ 'createdAt', 'releaseId' ])
 						apps[appId].services[service.imageId].download_progress = null
 					else
 						# There's two containers with the same imageId, so this has to be a handover
-						previousReleaseId = apps[appId].services[service.imageId].releaseId
-						apps[appId].services[service.imageId].releaseId = Math.max(previousReleaseId, service.releaseId)
+						apps[appId].services[service.imageId].releaseId = _.minBy([ creationTimesAndReleases[appId][service.imageId], service ], 'createdAt').releaseId
 						apps[appId].services[service.imageId].status = 'Handing over'
 
 				for image in images
@@ -409,14 +369,13 @@ module.exports = class ApplicationManager extends EventEmitter
 						apps[appId].services ?= {}
 						apps[appId].services[image.imageId] ?= _.pick(image, [ 'status', 'releaseId' ])
 						apps[appId].services[image.imageId].download_progress = image.downloadProgress
+					else if image.imageId?
+						dependent[appId] ?= {}
+						dependent[appId].images ?= {}
+						dependent[appId].images[image.imageId] = _.pick(image, [ 'status' ])
+						dependent[appId].images[image.imageId].download_progress = image.downloadProgress
 					else
-						if image.imageId?
-							dependent[appId] ?= {}
-							dependent[appId].images ?= {}
-							dependent[appId].images[image.imageId] = _.pick(image, [ 'status' ])
-							dependent[appId].images[image.imageId].download_progress = image.downloadProgress
-						else
-							console.log('Ignoring legacy dependent image', image)
+						console.log('Ignoring legacy dependent image', image)
 
 				obj = { local: apps, dependent }
 				if releaseId and targetApps[0]?.releaseId == releaseId
@@ -454,8 +413,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.getAll()
 			@networks.getAll()
 			@volumes.getAll()
-			(services, networks, volumes) =>
-				return @_buildApps(services, networks, volumes)
+			@_buildApps
 		)
 
 	getCurrentApp: (appId) =>
@@ -463,9 +421,8 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.getAllByAppId(appId)
 			@networks.getAllByAppId(appId)
 			@volumes.getAllByAppId(appId)
-			(services, networks, volumes) =>
-				return @_buildApps(services, networks, volumes)[appId]
-		)
+			@_buildApps
+		).get(appId)
 
 	getTargetApp: (appId) =>
 		@db.models('app').where({ appId }).select()
@@ -486,7 +443,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 		toBeRemoved = _.difference(currentServiceIds, targetServiceIds)
 		for serviceId in toBeRemoved
-			servicesToRemove = _.filter(currentServices, (s) -> s.serviceId == serviceId)
+			servicesToRemove = _.filter(currentServices, { serviceId })
 			for service in servicesToRemove
 				removePairs.push({
 					current: service
@@ -496,7 +453,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 		toBeInstalled = _.difference(targetServiceIds, currentServiceIds)
 		for serviceId in toBeInstalled
-			serviceToInstall = _.find(targetServices, (s) -> s.serviceId == serviceId)
+			serviceToInstall = _.find(targetServices, { serviceId })
 			if serviceToInstall?
 				installPairs.push({
 					current: null
@@ -508,8 +465,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		currentServicesPerId = {}
 		targetServicesPerId = _.keyBy(targetServices, 'serviceId')
 		for serviceId in toBeMaybeUpdated
-			currentServiceContainers = _.filter currentServices, (service) ->
-				return service.serviceId == serviceId
+			currentServiceContainers = _.filter(currentServices, { serviceId })
 			if currentServiceContainers.length > 1
 				currentServicesPerId[serviceId] = _.maxBy(currentServiceContainers, 'createdAt')
 				# All but the latest container for this service are spurious and should be removed
@@ -525,12 +481,14 @@ module.exports = class ApplicationManager extends EventEmitter
 		# Returns true if a service matches its target except it should be running and it is not, but we've
 		# already started it before. In this case it means it just exited so we don't want to start it again.
 		alreadyStarted = (serviceId) =>
-			currentServicesPerId[serviceId].isEqualExceptForRunningState(targetServicesPerId[serviceId]) and
+			return (
+				currentServicesPerId[serviceId].isEqualExceptForRunningState(targetServicesPerId[serviceId]) and
 				targetServicesPerId[serviceId].running  and
 				@_containerStarted[currentServicesPerId[serviceId].containerId]
+			)
 
 		needUpdate = _.filter toBeMaybeUpdated, (serviceId) ->
-			return !currentServicesPerId[serviceId].isEqual(targetServicesPerId[serviceId]) and !alreadyStarted(serviceId)
+			!currentServicesPerId[serviceId].isEqual(targetServicesPerId[serviceId]) and !alreadyStarted(serviceId)
 		for serviceId in needUpdate
 			updatePairs.push({
 				current: currentServicesPerId[serviceId]
@@ -599,26 +557,24 @@ module.exports = class ApplicationManager extends EventEmitter
 			name = _.split(volume, ':')[0]
 			_.some volumePairs, (pair) ->
 				"#{service.appId}_#{pair.current?.name}" == name
-		if hasVolume
-			return true
-		return false
+		return hasVolume
 
 	# TODO: account for volumes-from, networks-from, links, etc
 	# TODO: support networks instead of only networkMode
 	_dependenciesMetForServiceStart: (target, networkPairs, volumePairs, pendingPairs) ->
 		# for dependsOn, check no install or update pairs have that service
 		dependencyUnmet = _.some target.dependsOn ? [], (dependency) ->
-			_.find(pendingPairs, (pair) -> pair.target?.serviceName == dependency)?
+			_.some(pendingPairs, (pair) -> pair.target?.serviceName == dependency)
 		if dependencyUnmet
 			return false
 		# for networks and volumes, check no network pairs have that volume name
-		if _.find(networkPairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == target.networkMode)?
+		if _.some(networkPairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == target.networkMode)
 			return false
 		volumeUnmet = _.some target.volumes, (volumeDefinition) ->
 			[ sourceName, destName ] = volumeDefinition.split(':')
 			if !destName? # If this is not a named volume, ignore it
 				return false
-			return _.find(volumePairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == sourceName)?
+			return _.some(volumePairs, (pair) -> "#{target.appId}_#{pair.target?.name}" == sourceName)
 		return !volumeUnmet
 
 	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
@@ -627,8 +583,8 @@ module.exports = class ApplicationManager extends EventEmitter
 	_dependenciesMetForServiceKill: (target, targetApp, availableImages) =>
 		if target.dependsOn?
 			for dependency in target.dependsOn
-				dependencyService = _.find(targetApp.services, (s) -> s.serviceName == dependency)
-				if !_.find(availableImages, (image) => image.dockerImageId == dependencyService.image or @images.isSameImage(image, { name: dependencyService.imageName }))?
+				dependencyService = _.find(targetApp.services, serviceName: dependency)
+				if !_.some(availableImages, (image) => image.dockerImageId == dependencyService.image or @images.isSameImage(image, { name: dependencyService.imageName }))
 					return false
 		return true
 
@@ -644,7 +600,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				# we have to kill them before removing the network/volume (e.g. when we're only updating the network config)
 				steps = []
 				for dependency in dependencies
-					if dependency.status != 'Stopping' and !_.some(changingPairs, (pair) -> pair.serviceId == dependency.serviceId)
+					if dependency.status != 'Stopping' and !_.some(changingPairs, serviceId: dependency.serviceId)
 						steps.push(serviceAction('kill', dependency.serviceId, dependency))
 				return steps
 		else if target?
@@ -696,7 +652,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		'hand-over': (current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout) ->
 			if needsDownload
 				return fetchAction(target)
-			else if needsSpecialKill && dependenciesMetForKill()
+			else if needsSpecialKill and dependenciesMetForKill()
 				return serviceAction('kill', target.serviceId, current, target)
 			else if dependenciesMetForStart()
 				return serviceAction('handover', target.serviceId, current, target, timeout: timeout)
@@ -747,8 +703,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		else
 			# Create the default network for the target app
 			targetApp.networks['default'] ?= {}
-		if !currentApp?
-			currentApp = emptyApp
+		currentApp ?= emptyApp
 		if currentApp.services?.length == 1 and targetApp.services?.length == 1 and
 			targetApp.services[0].serviceName == currentApp.services[0].serviceName and
 			checkTruthy(currentApp.services[0].labels['io.resin.legacy-container'])
@@ -828,10 +783,15 @@ module.exports = class ApplicationManager extends EventEmitter
 			@config.get('extendedEnvOptions')
 			@docker.getNetworkGateway(constants.supervisorNetworkInterface)
 			.catchReturn('127.0.0.1')
-			(opts, supervisorApiHost) =>
+			Promise.props({
+				firmware: pathExistsOnHost('/lib/firmware')
+				modules: pathExistsOnHost('/lib/modules')
+			})
+			(opts, supervisorApiHost, hostPathExists) =>
 				configOpts = {
 					appName: app.name
 					supervisorApiHost
+					hostPathExists
 				}
 				_.assign(configOpts, opts)
 				volumes = JSON.parse(app.volumes)
@@ -931,10 +891,10 @@ module.exports = class ApplicationManager extends EventEmitter
 		allImagesForTargetApp = (app) -> _.map(app.services, imageForService)
 		allImagesForCurrentApp = (app) ->
 			_.map app.services, (service) ->
-				_.omit(_.find(available, (image) -> image.dockerImageId == service.image and image.imageId == service.imageId), [ 'dockerImageId', 'id' ])
+				_.omit(_.find(available, { dockerImageId: service.image, imageId: service.imageId }), [ 'dockerImageId', 'id' ])
 		availableWithoutIds = _.map(available, (image) -> _.omit(image, [ 'dockerImageId', 'id' ]))
-		currentImages = _.flatten(_.map(current.local.apps, allImagesForCurrentApp))
-		targetImages = _.flatten(_.map(target.local.apps, allImagesForTargetApp))
+		currentImages = _.flatMap(current.local.apps, allImagesForCurrentApp)
+		targetImages = _.flatMap(target.local.apps, allImagesForTargetApp)
 		availableAndUnused = _.filter availableWithoutIds, (image) ->
 			!_.some currentImages.concat(targetImages), (imageInUse) -> _.isEqual(image, imageInUse)
 		imagesToDownload = _.filter targetImages, (targetImage) =>
@@ -942,13 +902,13 @@ module.exports = class ApplicationManager extends EventEmitter
 		# Images that are available but we don't have them in the DB with the exact metadata:
 		imagesToSave = _.filter targetImages, (targetImage) =>
 			_.some(available, (availableImage) => @images.isSameImage(availableImage, targetImage)) and
-				!_.find(availableWithoutIds, (img) -> _.isEqual(img, targetImage))?
+				!_.some(availableWithoutIds, (img) -> _.isEqual(img, targetImage))
 
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)
 		proxyvisorImages = @proxyvisor.imagesInUse(current, target)
 		imagesToRemove = _.filter availableAndUnused, (image) =>
-			notUsedForDelta = !_.some deltaSources, (deltaSource) -> deltaSource == image.name
+			notUsedForDelta = !_.includes(deltaSources, image.name)
 			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) => @images.isSameImage(image, { name: proxyvisorImage })
 			return notUsedForDelta and notUsedByProxyvisor
 		return { imagesToSave, imagesToRemove }
@@ -986,7 +946,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			if !ignoreImages and delta and newDownloads > 0
 				downloadsToBlock = downloading.length + newDownloads - constants.maxDeltaDownloads
 				while downloadsToBlock > 0
-					_.pull(nextSteps, _.find(nextSteps, (s) -> s.action == 'fetch'))
+					_.pull(nextSteps, _.find(nextSteps, action: 'fetch'))
 					downloadsToBlock -= 1
 			if !ignoreImages and _.isEmpty(nextSteps) and !_.isEmpty(downloading)
 				nextSteps.push({ action: 'noop' })
@@ -1002,7 +962,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	_lockingIfNecessary: (appId, { force = false, skipLock = false } = {}, fn) =>
 		if skipLock
-			return Promise.try( -> fn())
+			return Promise.try(fn)
 		@config.get('lockOverride')
 		.then (lockOverride) ->
 			return checkTruthy(lockOverride) or force
@@ -1026,7 +986,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, conf) =>
 				@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
 				.then (nextSteps) =>
-					if ignoreImages and _.some(nextSteps, (step) -> step.action == 'fetch')
+					if ignoreImages and _.some(nextSteps, action: 'fetch')
 						throw new Error('Cannot fetch images while executing an API action')
 					@proxyvisor.getRequiredSteps(availableImages, downloading, currentState, targetState, nextSteps)
 					.then (proxyvisorSteps) ->

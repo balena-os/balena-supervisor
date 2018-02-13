@@ -7,6 +7,8 @@ APIBinder = require './api-binder'
 DeviceState = require './device-state'
 SupervisorAPI = require './supervisor-api'
 
+constants = require './lib/constants'
+
 startupConfigFields = [
 	'uuid'
 	'listenPort'
@@ -44,7 +46,7 @@ module.exports = class Supervisor extends EventEmitter
 			.then =>
 				# initialize API
 				console.log('Starting API server')
-				@api.listen(@config.constants.allowedInterfaces, conf.listenPort, conf.apiTimeout)
+				@api.listen(constants.allowedInterfaces, conf.listenPort, conf.apiTimeout)
 				@deviceState.on('shutdown', => @api.stop())
 			.then =>
 				@apiBinder.init() # this will first try to provision if it's a new device

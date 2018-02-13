@@ -44,10 +44,10 @@ module.exports = class DeviceConfig
 			connectivityCheckEnabled: { envVarName: 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', varType: 'bool', defaultValue: 'true' }
 			loggingEnabled: { envVarName: 'RESIN_SUPERVISOR_LOG_CONTROL', varType: 'bool', defaultValue: 'true' }
 			delta: { envVarName: 'RESIN_SUPERVISOR_DELTA', varType: 'bool', defaultValue: 'false' }
-			deltaRequestTimeout: { envVarName: 'RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT', varType: 'int' }
+			deltaRequestTimeout: { envVarName: 'RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT', varType: 'int', defaultValue: '30000' }
 			deltaApplyTimeout: { envVarName: 'RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT', varType: 'int' }
-			deltaRetryCount: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_COUNT', varType: 'int' }
-			deltaRetryInterval: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL', varType: 'int' }
+			deltaRetryCount: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_COUNT', varType: 'int', defaultValue: '30' }
+			deltaRetryInterval: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL', varType: 'int', defaultValue: '10000' }
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
 		}
 		@validKeys = [ 'RESIN_HOST_LOG_TO_DISPLAY', 'RESIN_SUPERVISOR_VPN_CONTROL', 'RESIN_OVERRIDE_LOCK' ].concat(_.map(@configKeys, 'envVarName'))
@@ -57,18 +57,16 @@ module.exports = class DeviceConfig
 				@config.set(step.target)
 				.then =>
 					@logger.logConfigChange(step.humanReadableTarget, { success: true })
-				.catch (err) =>
+				.tapCatch (err) =>
 					@logger.logConfigChange(step.humanReadableTarget, { err })
-					throw err
 			setLogToDisplay: (step) =>
 				logValue = { RESIN_HOST_LOG_TO_DISPLAY: step.target }
 				@logger.logConfigChange(logValue)
 				@setLogToDisplay(step.target)
 				.then =>
 					@logger.logConfigChange(logValue, { success: true })
-				.catch (err) =>
+				.tapCatch (err) =>
 					@logger.logConfigChange(logValue, { err })
-					throw err
 			setVPNEnabled: (step, { initial = false } = {}) =>
 				logValue = { RESIN_SUPERVISOR_VPN_CONTROL: step.target }
 				if !initial
@@ -77,9 +75,8 @@ module.exports = class DeviceConfig
 				.then =>
 					if !initial
 						@logger.logConfigChange(logValue, { success: true })
-				.catch (err) =>
+				.tapCatch (err) =>
 					@logger.logConfigChange(logValue, { err })
-					throw err
 			setBootConfig: (step) =>
 				@config.get('deviceType')
 				.then (deviceType) =>
@@ -138,7 +135,7 @@ module.exports = class DeviceConfig
 					@logger.logSystemMessage(err, { error: err }, 'Apply boot config error')
 					throw new Error(err)
 			return true
-		else return false
+		return false
 
 	getRequiredSteps: (currentState, targetState) =>
 		current = _.clone(currentState.local?.config ? {})
@@ -191,8 +188,7 @@ module.exports = class DeviceConfig
 					action: 'reboot'
 				})
 			return
-		.then ->
-			return steps
+		.return(steps)
 
 	executeStepAction: (step, opts) =>
 		@actionExecutors[step.action](step, opts)
@@ -251,7 +247,7 @@ module.exports = class DeviceConfig
 		gosuper.get('/v1/log-to-display', { json: true })
 		.spread (res, body) ->
 			if res.statusCode == 404
-				return undefined
+				return
 			if res.statusCode != 200
 				throw new Error("Error getting log to display status: #{res.statusCode} #{body.Error}")
 			return Boolean(body.Data)
@@ -293,9 +289,8 @@ module.exports = class DeviceConfig
 				@logger.logSystemMessage("Applied boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config success')
 				@rebootRequired = true
 				return true
-		.catch (err) =>
+		.tapCatch (err) =>
 			@logger.logSystemMessage("Error setting boot config: #{err}", { error: err }, 'Apply boot config error')
-			throw err
 
 	getVPNEnabled: ->
 		gosuper.get('/v1/vpncontrol', { json: true })
@@ -304,9 +299,8 @@ module.exports = class DeviceConfig
 				throw new Error("Error getting vpn status: #{res.statusCode} #{body.Error}")
 			@gosuperHealthy = true
 			return Boolean(body.Data)
-		.catch (err) =>
+		.tapCatch (err) =>
 			@gosuperHealthy = false
-			throw err
 
 	setVPNEnabled: (val) ->
 		enable = checkTruthy(val) ? true

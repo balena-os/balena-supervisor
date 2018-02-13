@@ -66,7 +66,6 @@ module.exports = class ServiceManager extends EventEmitter
 				throw err
 			.tap =>
 				delete @containerHasDied[containerId]
-			.tap =>
 				@logger.logSystemEvent(logTypes.stopServiceSuccess, { service })
 			.catch (err) =>
 				@logger.logSystemEvent(logTypes.stopServiceError, { service, error: err })
@@ -101,13 +100,11 @@ module.exports = class ServiceManager extends EventEmitter
 			.tap (container) =>
 				service.containerId = container.id
 				Promise.map nets, ({ name, endpointConfig }) =>
-					console.log('Connecting ' + container.id + ' to network ' + name)
 					@docker.getNetwork(name).connect({ Container: container.id, EndpointConfig: endpointConfig })
 			.tap =>
 				@logger.logSystemEvent(logTypes.installServiceSuccess, { service })
-		.catch (err) =>
+		.tapCatch (err) =>
 			@logger.logSystemEvent(logTypes.installServiceError, { service, error: err })
-			throw err
 		.finally =>
 			@reportChange(mockContainerId)
 
@@ -135,12 +132,12 @@ module.exports = class ServiceManager extends EventEmitter
 				else
 					# rethrow the same error
 					throw err
-			.catch (err) =>
+			.tapCatch (err) =>
 				# If starting the container failed, we remove it so that it doesn't litter
 				container.remove(v: true)
-				.finally =>
+				.catch(_.noop)
+				.then =>
 					@logger.logSystemEvent(logTypes.startServiceError, { service, error: err })
-					throw err
 			.then =>
 				@logger.attach(@docker, container.id, service.serviceId)
 		.tap =>
@@ -176,7 +173,7 @@ module.exports = class ServiceManager extends EventEmitter
 		.then (services) =>
 			status = _.clone(@volatileState)
 			for service in services
-				status[service.containerId] ?= _.pick(service, [ 'appId', 'imageId', 'status', 'releaseId', 'commit' ])
+				status[service.containerId] ?= _.pick(service, [ 'appId', 'imageId', 'status', 'releaseId', 'commit', 'createdAt' ])
 			return _.values(status)
 
 	getByDockerContainerId: (containerId) =>
@@ -233,7 +230,7 @@ module.exports = class ServiceManager extends EventEmitter
 		@docker.getEvents(filters: type: [ 'container' ])
 		.then (stream) =>
 			stream.on 'error', (err) ->
-				console.error('Error on docker events stream:', err, err.stack)
+				console.error('Error on docker events stream:', err)
 			parser = JSONStream.parse()
 			parser.on 'data', (data) =>
 				if data?.status in ['die', 'start']
@@ -257,9 +254,8 @@ module.exports = class ServiceManager extends EventEmitter
 				parser
 				.on 'error', (err) ->
 					console.error('Error on docker events stream', err)
-					reject()
+					reject(err)
 				.on 'end', ->
-					console.error('Docker events stream ended, restarting listener')
 					resolve()
 				stream.pipe(parser)
 		.catch (err) ->

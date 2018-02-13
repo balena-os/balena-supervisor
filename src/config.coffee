@@ -4,7 +4,7 @@ Lock = require 'rwlock'
 deviceRegister = require 'resin-register-device'
 fs = Promise.promisifyAll(require('fs'))
 EventEmitter = require 'events'
-
+path = require 'path'
 { writeAndSyncFile, writeFileAtomic } = require './lib/fs-utils'
 osRelease = require './lib/os-release'
 supervisorVersion = require './lib/supervisor-version'
@@ -12,10 +12,6 @@ constants = require './lib/constants'
 
 module.exports = class Config extends EventEmitter
 	constructor: ({ @db, @configPath }) ->
-		# These are values that come from env vars or hardcoded defaults and can be resolved synchronously
-		# Defaults needed for both gosuper and node supervisor are declared in entry.sh
-		@constants = constants
-
 		@funcs =
 			version: ->
 				Promise.resolve(supervisorVersion)
@@ -40,18 +36,18 @@ module.exports = class Config extends EventEmitter
 				# Fall back to checking if an API endpoint was passed via env vars if there's none in config.json (legacy)
 				@get('apiEndpoint')
 				.then (apiEndpoint) ->
-					return apiEndpoint ? @constants.apiEndpointFromEnv
+					return apiEndpoint ? constants.apiEndpointFromEnv
 
 			provisioned: =>
 				@getMany([ 'uuid', 'resinApiEndpoint', 'registered_at', 'deviceId' ])
 				.then (requiredValues) ->
 					return _.every(_.values(requiredValues), Boolean)
 
-			osVersion: =>
-				osRelease.getOSVersion(@constants.hostOSVersionPath)
+			osVersion: ->
+				osRelease.getOSVersion(constants.hostOSVersionPath)
 
-			osVariant: =>
-				osRelease.getOSVariant(@constants.hostOSVersionPath)
+			osVariant: ->
+				osRelease.getOSVariant(constants.hostOSVersionPath)
 
 			provisioningOptions: =>
 				@getMany([
@@ -111,9 +107,9 @@ module.exports = class Config extends EventEmitter
 			registered_at: { source: 'config.json', mutable: true }
 			applicationId: { source: 'config.json' }
 			appUpdatePollInterval: { source: 'config.json', mutable: true, default: 60000 }
-			pubnubSubscribeKey: { source: 'config.json', default: @constants.defaultPubnubSubscribeKey }
-			pubnubPublishKey: { source: 'config.json', default: @constants.defaultPubnubPublishKey }
-			mixpanelToken: { source: 'config.json', default: @constants.defaultMixpanelToken }
+			pubnubSubscribeKey: { source: 'config.json', default: constants.defaultPubnubSubscribeKey }
+			pubnubPublishKey: { source: 'config.json', default: constants.defaultPubnubPublishKey }
+			mixpanelToken: { source: 'config.json', default: constants.defaultMixpanelToken }
 			bootstrapRetryDelay: { source: 'config.json', default: 30000 }
 			supervisorOfflineMode: { source: 'config.json', default: false }
 			hostname: { source: 'config.json', mutable: true }
@@ -141,41 +137,41 @@ module.exports = class Config extends EventEmitter
 			loggingEnabled: { source: 'db', mutable: true, default: 'true' }
 			connectivityCheckEnabled: { source: 'db', mutable: true, default: 'true' }
 			delta: { source: 'db', mutable: true, default: 'false' }
-			deltaRequestTimeout: { source: 'db', mutable: true, default: '' }
+			deltaRequestTimeout: { source: 'db', mutable: true, default: '30000' }
 			deltaApplyTimeout: { source: 'db', mutable: true, default: '' }
-			deltaRetryCount: { source: 'db', mutable: true, default: '' }
-			deltaRetryInterval: { source: 'db', mutable: true, default: '' }
+			deltaRetryCount: { source: 'db', mutable: true, default: '30' }
+			deltaRetryInterval: { source: 'db', mutable: true, default: '10000' }
 			lockOverride: { source: 'db', mutable: true, default: 'false' }
 			legacyAppsPresent: { source: 'db', mutable: true, default: 'false' }
 		}
 
 		@configJsonCache = {}
 
-		@_lock = new Lock()
-		@_writeLock = Promise.promisify(@_lock.async.writeLock)
-		@writeLockConfigJson = =>
-			@_writeLock('config.json')
+		_lock = new Lock()
+		_writeLock = Promise.promisify(_lock.async.writeLock)
+		@writeLockConfigJson = ->
+			_writeLock('config.json')
 			.disposer (release) ->
 				release()
 
-		@_readLock = Promise.promisify(@_lock.async.readLock)
-		@readLockConfigJson = =>
-			@_readLock('config.json')
+		_readLock = Promise.promisify(_lock.async.readLock)
+		@readLockConfigJson = ->
+			_readLock('config.json')
 			.disposer (release) ->
 				release()
 
 	writeConfigJson: =>
 		atomicWritePossible = true
 		@configJsonPathOnHost()
-		.catch (err) =>
+		.catch (err) ->
 			console.error(err.message)
 			atomicWritePossible = false
-			return @constants.configJsonNonAtomicPath
-		.then (path) =>
+			return constants.configJsonNonAtomicPath
+		.then (configPath) =>
 			if atomicWritePossible
-				writeFileAtomic(path, JSON.stringify(@configJsonCache))
+				writeFileAtomic(configPath, JSON.stringify(@configJsonCache))
 			else
-				writeAndSyncFile(path, JSON.stringify(@configJsonCache))
+				writeAndSyncFile(configPath, JSON.stringify(@configJsonCache))
 
 
 	configJsonSet: (keyVals) =>
@@ -195,48 +191,46 @@ module.exports = class Config extends EventEmitter
 	configJsonRemove: (key) =>
 		changed = false
 		Promise.using @writeLockConfigJson(), =>
-			Promise.try =>
-				if @configJsonCache[key]?
-					delete @configJsonCache[key]
-					changed = true
-			.then =>
-				if changed
-					@writeConfigJson()
+			if @configJsonCache[key]?
+				delete @configJsonCache[key]
+				changed = true
+			if changed
+				@writeConfigJson()
 
 	configJsonPathOnHost: =>
 		Promise.try =>
 			if @configPath?
 				return @configPath
-			if @constants.configJsonPathOnHost?
-				return @constants.configJsonPathOnHost
-			osRelease.getOSVersion(@constants.hostOSVersionPath)
-			.then (osVersion) =>
+			if constants.configJsonPathOnHost?
+				return constants.configJsonPathOnHost
+			osRelease.getOSVersion(constants.hostOSVersionPath)
+			.then (osVersion) ->
 				if /^Resin OS 2./.test(osVersion)
-					return "#{@constants.bootMountPointFromEnv}/config.json"
+					return path.join(constants.bootMountPointFromEnv, 'config.json')
 				else if /^Resin OS 1./.test(osVersion)
 					# In Resin OS 1.12, $BOOT_MOUNTPOINT was added and it coincides with config.json's path
-					if @constants.bootMountPointFromEnv
-						return "#{@constants.bootMountPointFromEnv}/config.json"
+					if constants.bootMountPointFromEnv
+						return path.join(constants.bootMountPointFromEnv, 'config.json')
 					# Older 1.X versions have config.json here
 					return '/mnt/conf/config.json'
 				else
 					# In non-resinOS hosts (or older than 1.0.0), if CONFIG_JSON_PATH wasn't passed then we can't do atomic changes
 					# (only access to config.json we have is in /boot, which is assumed to be a file bind mount where rename is impossible)
 					throw new Error('Could not determine config.json path on host, atomic write will not be possible')
-		.then (path) =>
-			return "#{@constants.rootMountPoint}#{path}"
+		.then (pathOnHost) ->
+			return path.join(constants.rootMountPoint, pathOnHost)
 
 	configJsonPath: =>
 		@configJsonPathOnHost()
-		.catch (err) =>
+		.catch (err) ->
 			console.error(err.message)
-			return @constants.configJsonNonAtomicPath
+			return constants.configJsonNonAtomicPath
 
 	readConfigJson: =>
 		@configJsonPath()
-		.then (path) ->
-			fs.readFileAsync(path)
-			.then(JSON.parse)
+		.then (configPath) ->
+			fs.readFileAsync(configPath)
+		.then(JSON.parse)
 
 	newUniqueKey: ->
 		deviceRegister.generateUniqueKey()
@@ -282,7 +276,7 @@ module.exports = class Config extends EventEmitter
 
 	getMany: (keys, trx) =>
 		# Get the values for several keys in an array
-		Promise.all(_.map(keys, (key) => @get(key, trx) ))
+		Promise.map(keys, (key) => @get(key, trx))
 		.then (values) ->
 			out = {}
 			for key, i in keys
