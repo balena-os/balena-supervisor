@@ -4,7 +4,7 @@ express = require 'express'
 fs = Promise.promisifyAll require 'fs'
 { request } = require './lib/request'
 constants = require './lib/constants'
-{ checkInt } = require './lib/validation'
+{ checkInt, validStringOrUndefined, validObjectOrUndefined } = require './lib/validation'
 path = require 'path'
 mkdirp = Promise.promisify(require('mkdirp'))
 bodyParser = require 'body-parser'
@@ -21,12 +21,6 @@ parseDeviceFields = (device) ->
 	device.targetConfig = JSON.parse(device.targetConfig ? '{}')
 	device.targetEnvironment = JSON.parse(device.targetEnvironment ? '{}')
 	return _.omit(device, 'markedForDeletion', 'logs_channel')
-
-# TODO move to lib/validation
-validStringOrUndefined = (s) ->
-	_.isUndefined(s) or !_.isEmpty(s)
-validObjectOrUndefined = (o) ->
-	_.isUndefined(o) or _.isObject(o)
 
 tarDirectory = (appId) ->
 	return "/data/dependent-assets/#{appId}"
@@ -54,11 +48,9 @@ cleanupTars = (appId, commit) ->
 	.catchReturn([])
 	.then (files) ->
 		if fileToKeep?
-			files = _.filter files, (file) ->
-				return file isnt fileToKeep
+			files = _.reject(files, fileToKeep)
 		Promise.map files, (file) ->
-			if !fileToKeep? or (file isnt fileToKeep)
-				fs.unlinkAsync(path.join(dir, file))
+			fs.unlinkAsync(path.join(dir, file))
 
 formatTargetAsState = (device) ->
 	return {
@@ -76,168 +68,168 @@ formatCurrentAsState = (device) ->
 		config: device.config
 	}
 
-class ProxyvisorRouter
-	constructor: (@proxyvisor) ->
-		{ @config, @logger, @db, @docker } = @proxyvisor
-		@router = express.Router()
-		@router.use(bodyParser.urlencoded(extended: true))
-		@router.use(bodyParser.json())
-		@router.get '/v1/devices', (req, res) =>
-			@db.models('dependentDevice').select()
-			.map(parseDeviceFields)
-			.then (devices) ->
-				res.json(devices)
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+createProxyvisorRouter = (proxyvisor) ->
+	{ db } = proxyvisor
+	router = express.Router()
+	router.use(bodyParser.urlencoded(extended: true))
+	router.use(bodyParser.json())
+	router.get '/v1/devices', (req, res) ->
+		db.models('dependentDevice').select()
+		.map(parseDeviceFields)
+		.then (devices) ->
+			res.json(devices)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.post '/v1/devices', (req, res) =>
-			{ appId, device_type } = req.body
+	router.post '/v1/devices', (req, res) ->
+		{ appId, device_type } = req.body
 
-			if !appId? or _.isNaN(parseInt(appId)) or parseInt(appId) <= 0
-				res.status(400).send('appId must be a positive integer')
+		if !appId? or _.isNaN(parseInt(appId)) or parseInt(appId) <= 0
+			res.status(400).send('appId must be a positive integer')
+			return
+		device_type = 'generic' if !device_type?
+		d =
+			belongs_to__application: req.body.appId
+			device_type: device_type
+		proxyvisor.apiBinder.provisionDependentDevice(d)
+		.then (dev) ->
+			# If the response has id: null then something was wrong in the request
+			# but we don't know precisely what.
+			if !dev.id?
+				res.status(400).send('Provisioning failed, invalid appId or credentials')
 				return
-			device_type = 'generic' if !device_type?
-			d =
-				belongs_to__application: req.body.appId
-				device_type: device_type
-			@proxyvisor.apiBinder.provisionDependentDevice(d)
-			.then (dev) =>
-				# If the response has id: null then something was wrong in the request
-				# but we don't know precisely what.
-				if !dev.id?
-					res.status(400).send('Provisioning failed, invalid appId or credentials')
-					return
-				deviceForDB = {
-					uuid: dev.uuid
-					appId
-					device_type: dev.device_type
-					deviceId: dev.id
-					name: dev.name
-					status: dev.status
-					logs_channel: dev.logs_channel
-				}
-				@db.models('dependentDevice').insert(deviceForDB)
-				.then ->
-					res.status(201).send(dev)
-			.catch (err) ->
-				console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
-				res.status(503).send(err?.message or err or 'Unknown error')
-
-		@router.get '/v1/devices/:uuid', (req, res) =>
-			uuid = req.params.uuid
-			@db.models('dependentDevice').select().where({ uuid })
-			.then ([ device ]) ->
-				return res.status(404).send('Device not found') if !device?
-				return res.status(410).send('Device deleted') if device.markedForDeletion
-				res.json(parseDeviceFields(device))
-			.catch (err) ->
-				console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
-				res.status(503).send(err?.message or err or 'Unknown error')
-
-		@router.post '/v1/devices/:uuid/logs', (req, res) =>
-			uuid = req.params.uuid
-			m = {
-				message: req.body.message
-				timestamp: req.body.timestamp or Date.now()
+			deviceForDB = {
+				uuid: dev.uuid
+				appId
+				device_type: dev.device_type
+				deviceId: dev.id
+				name: dev.name
+				status: dev.status
+				logs_channel: dev.logs_channel
 			}
-			m.isSystem = req.body.isSystem if req.body.isSystem?
+			db.models('dependentDevice').insert(deviceForDB)
+			.then ->
+				res.status(201).send(dev)
+		.catch (err) ->
+			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-			@db.models('dependentDevice').select().where({ uuid })
-			.then ([ device ]) =>
-				return res.status(404).send('Device not found') if !device?
-				return res.status(410).send('Device deleted') if device.markedForDeletion
-				@logger.log(m, { channel: "device-#{device.logs_channel}-logs" })
-				res.status(202).send('OK')
-			.catch (err) ->
-				console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.get '/v1/devices/:uuid', (req, res) ->
+		uuid = req.params.uuid
+		db.models('dependentDevice').select().where({ uuid })
+		.then ([ device ]) ->
+			return res.status(404).send('Device not found') if !device?
+			return res.status(410).send('Device deleted') if device.markedForDeletion
+			res.json(parseDeviceFields(device))
+		.catch (err) ->
+			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.put '/v1/devices/:uuid', (req, res) =>
-			uuid = req.params.uuid
-			{ status, is_online, commit, releaseId, environment, config } = req.body
-			validateDeviceFields = ->
-				if isDefined(is_online) and !_.isBoolean(is_online)
-					return 'is_online must be a boolean'
-				if !validStringOrUndefined(status)
-					return 'status must be a non-empty string'
-				if !validStringOrUndefined(commit)
-					return 'commit must be a non-empty string'
-				if !validStringOrUndefined(releaseId)
-					return 'commit must be a non-empty string'
-				if !validObjectOrUndefined(environment)
-					return 'environment must be an object'
-				if !validObjectOrUndefined(config)
-					return 'config must be an object'
-				return null
-			requestError = validateDeviceFields()
-			if requestError?
-				res.status(400).send(requestError)
-				return
+	router.post '/v1/devices/:uuid/logs', (req, res) ->
+		uuid = req.params.uuid
+		m = {
+			message: req.body.message
+			timestamp: req.body.timestamp or Date.now()
+		}
+		m.isSystem = req.body.isSystem if req.body.isSystem?
 
-			environment = JSON.stringify(environment) if isDefined(environment)
-			config = JSON.stringify(config) if isDefined(config)
+		db.models('dependentDevice').select().where({ uuid })
+		.then ([ device ]) ->
+			return res.status(404).send('Device not found') if !device?
+			return res.status(410).send('Device deleted') if device.markedForDeletion
+			proxyvisor.logger.log(m, { channel: "device-#{device.logs_channel}-logs" })
+			res.status(202).send('OK')
+		.catch (err) ->
+			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-			fieldsToUpdateOnDB = _.pickBy({ status, is_online, commit, releaseId, config, environment }, isDefined)
-			fieldsToUpdateOnAPI = _.pick(fieldsToUpdateOnDB, 'status', 'is_online', 'commit', 'releaseId')
+	router.put '/v1/devices/:uuid', (req, res) ->
+		uuid = req.params.uuid
+		{ status, is_online, commit, releaseId, environment, config } = req.body
+		validateDeviceFields = ->
+			if isDefined(is_online) and !_.isBoolean(is_online)
+				return 'is_online must be a boolean'
+			if !validStringOrUndefined(status)
+				return 'status must be a non-empty string'
+			if !validStringOrUndefined(commit)
+				return 'commit must be a non-empty string'
+			if !validStringOrUndefined(releaseId)
+				return 'commit must be a non-empty string'
+			if !validObjectOrUndefined(environment)
+				return 'environment must be an object'
+			if !validObjectOrUndefined(config)
+				return 'config must be an object'
+			return null
+		requestError = validateDeviceFields()
+		if requestError?
+			res.status(400).send(requestError)
+			return
 
-			if _.isEmpty(fieldsToUpdateOnDB)
-				res.status(400).send('At least one device attribute must be updated')
-				return
+		environment = JSON.stringify(environment) if isDefined(environment)
+		config = JSON.stringify(config) if isDefined(config)
 
-			@db.models('dependentDevice').select().where({ uuid })
-			.then ([ device ]) =>
-				return res.status(404).send('Device not found') if !device?
-				return res.status(410).send('Device deleted') if device.markedForDeletion
-				throw new Error('Device is invalid') if !device.deviceId?
-				Promise.try =>
-					if !_.isEmpty(fieldsToUpdateOnAPI)
-						@proxyvisor.apiBinder.patchDevice(device.deviceId, fieldsToUpdateOnAPI)
-				.then =>
-					@db.models('dependentDevice').update(fieldsToUpdateOnDB).where({ uuid })
-				.then =>
-					@db.models('dependentDevice').select().where({ uuid })
-				.then ([ device ]) ->
-					res.json(parseDeviceFields(device))
-			.catch (err) ->
-				console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
-				res.status(503).send(err?.message or err or 'Unknown error')
+		fieldsToUpdateOnDB = _.pickBy({ status, is_online, commit, releaseId, config, environment }, isDefined)
+		fieldsToUpdateOnAPI = _.pick(fieldsToUpdateOnDB, 'status', 'is_online', 'commit', 'releaseId')
 
-		@router.get '/v1/dependent-apps/:appId/assets/:commit', (req, res) =>
-			@db.models('dependentApp').select().where(_.pick(req.params, 'appId', 'commit'))
-			.then ([ app ]) =>
-				return res.status(404).send('Not found') if !app
-				dest = tarPath(app.appId, app.commit)
-				fs.lstatAsync(dest)
-				.catch =>
-					Promise.using @docker.imageRootDirMounted(app.image), (rootDir) ->
-						getTarArchive(rootDir + '/assets', dest)
-				.then ->
-					res.sendFile(dest)
-			.catch (err) ->
-				console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
-				res.status(503).send(err?.message or err or 'Unknown error')
+		if _.isEmpty(fieldsToUpdateOnDB)
+			res.status(400).send('At least one device attribute must be updated')
+			return
 
-		@router.get '/v1/dependent-apps', (req, res) =>
-			@db.models('dependentApp').select()
-			.map (app) ->
-				return {
-					id: parseInt(app.appId)
-					commit: app.commit
-					name: app.name
-					config: JSON.parse(app.config ? '{}')
-				}
-			.then (apps) ->
-				res.json(apps)
-			.catch (err) ->
-				console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
-				res.status(503).send(err?.message or err or 'Unknown error')
+		db.models('dependentDevice').select().where({ uuid })
+		.then ([ device ]) ->
+			return res.status(404).send('Device not found') if !device?
+			return res.status(410).send('Device deleted') if device.markedForDeletion
+			throw new Error('Device is invalid') if !device.deviceId?
+			Promise.try ->
+				if !_.isEmpty(fieldsToUpdateOnAPI)
+					proxyvisor.apiBinder.patchDevice(device.deviceId, fieldsToUpdateOnAPI)
+			.then ->
+				db.models('dependentDevice').update(fieldsToUpdateOnDB).where({ uuid })
+			.then ->
+				db.models('dependentDevice').select().where({ uuid })
+			.then ([ device ]) ->
+				res.json(parseDeviceFields(device))
+		.catch (err) ->
+			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	router.get '/v1/dependent-apps/:appId/assets/:commit', (req, res) ->
+		db.models('dependentApp').select().where(_.pick(req.params, 'appId', 'commit'))
+		.then ([ app ]) ->
+			return res.status(404).send('Not found') if !app
+			dest = tarPath(app.appId, app.commit)
+			fs.lstatAsync(dest)
+			.catch ->
+				Promise.using proxyvisor.docker.imageRootDirMounted(app.image), (rootDir) ->
+					getTarArchive(rootDir + '/assets', dest)
+			.then ->
+				res.sendFile(dest)
+		.catch (err) ->
+			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	router.get '/v1/dependent-apps', (req, res) ->
+		db.models('dependentApp').select()
+		.map (app) ->
+			return {
+				id: parseInt(app.appId)
+				commit: app.commit
+				name: app.name
+				config: JSON.parse(app.config ? '{}')
+			}
+		.then (apps) ->
+			res.json(apps)
+		.catch (err) ->
+			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	return router
 
 module.exports = class Proxyvisor
 	constructor: ({ @config, @logger, @db, @docker, @images, @applications }) ->
 		@acknowledgedState = {}
 		@lastRequestForDevice = {}
-		@_router = new ProxyvisorRouter(this)
-		@router = @_router.router
+		@router = createProxyvisorRouter(this)
 		@actionExecutors = {
 			updateDependentTargets: (step) =>
 				@config.getMany([ 'currentApiKey', 'apiTimeout' ])
@@ -460,7 +452,7 @@ module.exports = class Proxyvisor
 		return images
 
 	_imageAvailable: (image, available) ->
-		_.some(available, (availableImage) -> availableImage.name == image)
+		_.some(available, name: image)
 
 	_getHookStep: (currentDevices, appId) =>
 		hookStep = {
@@ -572,7 +564,7 @@ module.exports = class Proxyvisor
 			for appId in allAppIds
 				devicesForApp = (devices) ->
 					_.filter devices, (d) ->
-						_.includes(_.keys(d.apps), appId)
+						_.has(d.apps, appId)
 
 				currentDevices = devicesForApp(current.dependent.devices)
 				targetDevices = devicesForApp(target.dependent.devices)
@@ -590,8 +582,7 @@ module.exports = class Proxyvisor
 		.then (parentApp) =>
 			Promise.map parentApp?.services ? [], (service) =>
 				@docker.getImageEnv(service.image)
-				.then (imageEnv) ->
-					return imageEnv.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS
+				.get('RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS')
 			.then (imageHookAddresses) ->
 				for addr in imageHookAddresses
 					return addr if addr?

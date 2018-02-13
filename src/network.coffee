@@ -8,6 +8,7 @@ fs = Promise.promisifyAll(require('fs'))
 constants = require './lib/constants'
 { checkTruthy } = require './lib/validation'
 blink = require './lib/blink'
+{ EEXIST } = require './lib/errors'
 
 networkPattern =
 	blinks: 4
@@ -40,9 +41,6 @@ vpnStatusInotifyCallback = ->
 	.catch ->
 		pauseConnectivityCheck = false
 
-# Use the following to catch EEXIST errors
-EEXIST = (err) -> err.code is 'EEXIST'
-
 exports.startConnectivityCheck = _.once (apiEndpoint, enable, onChangeCallback) ->
 	exports.enableConnectivityCheck(enable)
 	if !apiEndpoint?
@@ -62,8 +60,7 @@ exports.startConnectivityCheck = _.once (apiEndpoint, enable, onChangeCallback) 
 		port: parsedUrl.port ? (if parsedUrl.protocol is 'https:' then 443 else 80)
 		interval: 10 * 1000
 		(connected) ->
-			if onChangeCallback?
-				onChangeCallback(connected)
+			onChangeCallback?(connected)
 			if connected
 				console.log('Internet Connectivity: OK')
 				blink.pattern.stop()
@@ -91,9 +88,9 @@ exports.getIPAddresses = ->
 	# - the docker network for the supervisor API (supervisor0)
 	# - custom docker network bridges (br- + 12 hex characters)
 	_.flatten(_.map(_.omitBy(os.networkInterfaces(), (interfaceFields, interfaceName) ->
-		/^(balena[0-9]+)|(docker[0-9]+)|(rce[0-9]+)|(tun[0-9]+)|(resin-vpn)|(lo)|(resin-dns)|(supervisor0)|(br-[0-9a-f]{12})$/.test(interfaceName))
+		/^(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|resin-dns|supervisor0|br-[0-9a-f]{12}$/.test(interfaceName))
 	, (validInterfaces) ->
-		_.map(_.omitBy(validInterfaces, (a) -> a.family != 'IPv4' ), 'address'))
+		_.map(_.pickBy(validInterfaces, family: 'IPv4'), 'address'))
 	)
 
 exports.startIPAddressUpdate = do ->

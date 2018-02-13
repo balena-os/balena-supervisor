@@ -41,78 +41,77 @@ validateState = Promise.method (state) ->
 	if state.dependent?
 		validateDependentState(state.dependent)
 
-class DeviceStateRouter
-	constructor: (@deviceState) ->
-		{ @applications, @config } = @deviceState
-		@router = express.Router()
-		@router.use(bodyParser.urlencoded(extended: true))
-		@router.use(bodyParser.json())
+createDeviceStateRouter = (deviceState) ->
+	router = express.Router()
+	router.use(bodyParser.urlencoded(extended: true))
+	router.use(bodyParser.json())
 
-		@router.post '/v1/reboot', (req, res) =>
-			force = validation.checkTruthy(req.body.force)
-			@deviceState.executeStepAction({ action: 'reboot' }, { force })
-			.then (response) ->
-				res.status(202).json(response)
-			.catch (err) ->
-				if err instanceof updateLock.UpdatesLockedError
-					status = 423
-				else
-					status = 500
-				res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
+	router.post '/v1/reboot', (req, res) ->
+		force = validation.checkTruthy(req.body.force)
+		deviceState.executeStepAction({ action: 'reboot' }, { force })
+		.then (response) ->
+			res.status(202).json(response)
+		.catch (err) ->
+			if err instanceof updateLock.UpdatesLockedError
+				status = 423
+			else
+				status = 500
+			res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
 
-		@router.post '/v1/shutdown', (req, res) =>
-			force = validation.checkTruthy(req.body.force)
-			@deviceState.executeStepAction({ action: 'shutdown' }, { force })
-			.then (response) ->
-				res.status(202).json(response)
-			.catch (err) ->
-				if err instanceof updateLock.UpdatesLockedError
-					status = 423
-				else
-					status = 500
-				res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
+	router.post '/v1/shutdown', (req, res) ->
+		force = validation.checkTruthy(req.body.force)
+		deviceState.executeStepAction({ action: 'shutdown' }, { force })
+		.then (response) ->
+			res.status(202).json(response)
+		.catch (err) ->
+			if err instanceof updateLock.UpdatesLockedError
+				status = 423
+			else
+				status = 500
+			res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
 
-		@router.get '/v1/device/host-config', (req, res) ->
-			hostConfig.get()
-			.then (conf) ->
-				res.json(conf)
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.get '/v1/device/host-config', (req, res) ->
+		hostConfig.get()
+		.then (conf) ->
+			res.json(conf)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.patch '/v1/device/host-config', (req, res) =>
-			hostConfig.patch(req.body, @config)
-			.then ->
-				res.status(200).send('OK')
-			.catch (err) ->
-				res.status(503).send(err?.message or err or 'Unknown error')
+	router.patch '/v1/device/host-config', (req, res) ->
+		hostConfig.patch(req.body, deviceState.config)
+		.then ->
+			res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
 
-		@router.get '/v1/device', (req, res) =>
-			@deviceState.getStatus()
-			.then (state) ->
-				stateToSend = _.pick(state.local, [
-					'api_port'
-					'ip_address'
-					'os_version'
-					'supervisor_version'
-					'update_pending'
-					'update_failed'
-					'update_downloaded'
-				])
-				if state.local.is_on__commit?
-					stateToSend.commit = state.local.is_on__commit
-				# Will produce nonsensical results for multicontainer apps...
-				service = _.toPairs(_.toPairs(state.local.apps)[0]?[1]?.services)[0]?[1]
-				if service?
-					stateToSend.status = service.status
-					# For backwards compatibility, we adapt Running to the old "Idle"
-					if stateToSend.status == 'Running'
-						stateToSend.status = 'Idle'
-					stateToSend.download_progress = service.download_progress
-				res.json(stateToSend)
-			.catch (err) ->
-				res.status(500).json({ Data: '', Error: err?.message or err or 'Unknown error' })
+	router.get '/v1/device', (req, res) ->
+		deviceState.getStatus()
+		.then (state) ->
+			stateToSend = _.pick(state.local, [
+				'api_port'
+				'ip_address'
+				'os_version'
+				'supervisor_version'
+				'update_pending'
+				'update_failed'
+				'update_downloaded'
+			])
+			if state.local.is_on__commit?
+				stateToSend.commit = state.local.is_on__commit
+			# Will produce nonsensical results for multicontainer apps...
+			service = _.toPairs(_.toPairs(state.local.apps)[0]?[1]?.services)[0]?[1]
+			if service?
+				stateToSend.status = service.status
+				# For backwards compatibility, we adapt Running to the old "Idle"
+				if stateToSend.status == 'Running'
+					stateToSend.status = 'Idle'
+				stateToSend.download_progress = service.download_progress
+			res.json(stateToSend)
+		.catch (err) ->
+			res.status(500).json({ Data: '', Error: err?.message or err or 'Unknown error' })
 
-		@router.use(@applications.router)
+	router.use(deviceState.applications.router)
+	return router
 
 module.exports = class DeviceState extends EventEmitter
 	constructor: ({ @db, @config, @eventTracker }) ->
@@ -131,27 +130,20 @@ module.exports = class DeviceState extends EventEmitter
 		@lastApplyStart = process.hrtime()
 		@scheduledApply = null
 		@shuttingDown = false
-		@_router = new DeviceStateRouter(this)
-		@router = @_router.router
+		@router = createDeviceStateRouter(this)
 		@on 'apply-target-state-end', (err) ->
 			if err?
 				console.log("Apply error #{err}")
 			else
 				console.log('Apply success!')
-		#@on 'step-completed', (err) ->
-		#	if err?
-		#		console.log("Step completed with error #{err}")
-		#	else
-		#		console.log('Step success!')
-		#@on 'step-error', (err) ->
-		#	console.log("Step error #{err}")
-
 		@applications.on('change', @reportCurrentState)
 
 	healthcheck: =>
 		@config.getMany([ 'appUpdatePollInterval', 'offlineMode' ])
 		.then (conf) =>
-			cycleTimeWithinInterval = process.hrtime(@lastApplyStart)[0] - @applications.timeSpentFetching < 2 * conf.appUpdatePollInterval
+			cycleTime = process.hrtime(@lastApplyStart)
+			cycleTimeMs = cycleTime[0] * 1000 + cycleTime[1] / 1e6
+			cycleTimeWithinInterval = cycleTimeMs - @applications.timeSpentFetching < 2 * conf.appUpdatePollInterval
 			applyTargetHealthy = conf.offlineMode or !@applyInProgress or @applications.fetchesInProgress > 0 or cycleTimeWithinInterval
 			return applyTargetHealthy and @deviceConfig.gosuperHealthy
 
@@ -228,7 +220,7 @@ module.exports = class DeviceState extends EventEmitter
 			@reportCurrentState(
 				ip_address: addresses.join(' ')
 			)
-		, @config.constants.ipAddressUpdateInterval
+		, constants.ipAddressUpdateInterval
 
 	saveInitialConfig: =>
 		@deviceConfig.getCurrent()
@@ -331,7 +323,7 @@ module.exports = class DeviceState extends EventEmitter
 				if _.isArray(stateFromFile)
 					# This is a legacy apps.json
 					stateFromFile = @_convertLegacyAppsJson(stateFromFile)
-				images = _.flatten(_.map(stateFromFile.apps, (app, appId) =>
+				images = _.flatMap stateFromFile.apps, (app, appId) =>
 					_.map app.services, (service, serviceId) =>
 						svc = {
 							imageName: service.image
@@ -342,7 +334,6 @@ module.exports = class DeviceState extends EventEmitter
 							appId
 						}
 						return @applications.imageForService(svc)
-				))
 				Promise.map images, (img) =>
 					@applications.images.normalise(img.name)
 					.then (name) =>
@@ -350,12 +341,12 @@ module.exports = class DeviceState extends EventEmitter
 						@applications.images.save(img)
 				.then =>
 					@deviceConfig.getCurrent()
-					.then (deviceConf) =>
-						_.defaults(stateFromFile.config, deviceConf)
-						stateFromFile.name ?= ''
-						@setTarget({
-							local: stateFromFile
-						})
+				.then (deviceConf) =>
+					_.defaults(stateFromFile.config, deviceConf)
+					stateFromFile.name ?= ''
+					@setTarget({
+						local: stateFromFile
+					})
 		.catch (err) =>
 			@eventTracker.track('Loading preloaded apps failed', { error: err })
 
@@ -364,17 +355,18 @@ module.exports = class DeviceState extends EventEmitter
 		.then =>
 			@logger.logSystemMessage('Rebooting', {}, 'Reboot')
 			device.reboot()
-			.tap =>
-				@emit('shutdown')
+		.tap =>
+			@shuttingDown = true
+			@emitAsync('shutdown')
 
 	shutdown: (force, skipLock) =>
 		@applications.stopAll({ force, skipLock })
 		.then =>
 			@logger.logSystemMessage('Shutting down', {}, 'Shutdown')
 			device.shutdown()
-			.tap =>
-				@shuttingDown = true
-				@emitAsync('shutdown')
+		.tap =>
+			@shuttingDown = true
+			@emitAsync('shutdown')
 
 	executeStepAction: (step, { force, initial, skipLock }) =>
 		Promise.try =>
@@ -397,27 +389,25 @@ module.exports = class DeviceState extends EventEmitter
 		if @shuttingDown
 			return
 		@executeStepAction(step, { force, initial, skipLock })
-		.catch (err) =>
+		.tapCatch (err) =>
 			@emitAsync('step-error', err, step)
-			throw err
 		.then (stepResult) =>
 			@emitAsync('step-completed', null, step, stepResult)
 
 	applyError: (err, { force, initial, intermediate }) =>
 		@emitAsync('apply-target-state-error', err)
 		@emitAsync('apply-target-state-end', err)
-		if !intermediate
-			@failedUpdates += 1
-			@reportCurrentState(update_failed: true)
-			if @scheduledApply?
-				console.log("Updating failed, but there's another update scheduled immediately: ", err)
-			else
-				delay = Math.min((2 ** @failedUpdates) * 500, 30000)
-				# If there was an error then schedule another attempt briefly in the future.
-				console.log('Scheduling another update attempt due to failure: ', delay, err)
-				@triggerApplyTarget({ force, delay, initial })
-		else
+		if intermediate
 			throw err
+		@failedUpdates += 1
+		@reportCurrentState(update_failed: true)
+		if @scheduledApply?
+			console.log("Updating failed, but there's another update scheduled immediately: ", err)
+		else
+			delay = Math.min((2 ** @failedUpdates) * 500, 30000)
+			# If there was an error then schedule another attempt briefly in the future.
+			console.log('Scheduling another update attempt due to failure: ', delay, err)
+			@triggerApplyTarget({ force, delay, initial })
 
 	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false } = {}) =>
 		nextDelay = 200
@@ -453,8 +443,7 @@ module.exports = class DeviceState extends EventEmitter
 				nextDelay = 1000
 			Promise.map steps, (step) =>
 				@applyStep(step, { force, initial, intermediate, skipLock })
-			.then ->
-				Promise.delay(nextDelay)
+			.delay(nextDelay)
 			.then =>
 				@applyTarget({ force, initial, intermediate, skipLock })
 		.catch (err) =>
@@ -497,13 +486,13 @@ module.exports = class DeviceState extends EventEmitter
 			@lastApplyStart = process.hrtime()
 			console.log('Applying target state')
 			@applyTarget({ force, initial })
-			.finally =>
-				@applyInProgress = false
-				@reportCurrentState()
-				if @scheduledApply?
-					@triggerApplyTarget(@scheduledApply)
-					@scheduledApply = null
-		return
+		.finally =>
+			@applyInProgress = false
+			@reportCurrentState()
+			if @scheduledApply?
+				@triggerApplyTarget(@scheduledApply)
+				@scheduledApply = null
+		return null
 
 	applyIntermediateTarget: (intermediateTarget, { force = false, skipLock = false } = {}) =>
 		@intermediateTarget = _.cloneDeep(intermediateTarget)

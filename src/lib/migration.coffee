@@ -19,16 +19,9 @@ exports.singleToMulticontainerApp = (app) ->
 	}
 	defaultVolume = exports.defaultLegacyVolume()
 	newApp.volumes[defaultVolume] = {}
-	updateStrategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
-	if !updateStrategy?
-		updateStrategy = 'download-then-kill'
-	handoverTimeout = conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
-	if !handoverTimeout?
-		handoverTimeout = ''
-	restartPolicy = conf['RESIN_APP_RESTART_POLICY']
-	if !restartPolicy?
-		restartPolicy = 'always'
-
+	updateStrategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY'] ? 'download-then-kill'
+	handoverTimeout = conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT'] ? ''
+	restartPolicy = conf['RESIN_APP_RESTART_POLICY'] ? 'always'
 	newApp.services = {
 		'1': {
 			appId: appId

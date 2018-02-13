@@ -31,8 +31,8 @@ module.exports = class DockerUtils extends DockerToolbelt
 		super(opts)
 		@dockerProgress = new DockerProgress(dockerToolbelt: this)
 		@supervisorTagPromise = @normaliseImageName(constants.supervisorImage)
-		@InvalidNetGatewayError = class InvalidNetGatewayError extends TypedError
-		return this
+
+	InvalidNetGatewayError: class InvalidNetGatewayError extends TypedError
 
 	getRepoAndTag: (image) =>
 		@getRegistryAndName(image)
@@ -71,14 +71,14 @@ module.exports = class DockerUtils extends DockerToolbelt
 			url = "#{tokenEndpoint}?service=#{dstInfo.registry}&scope=repository:#{dstInfo.imageName}:pull&scope=repository:#{srcInfo.imageName}:pull"
 			request.getAsync(url, opts)
 			.get(1)
-			.then (b) ->
+			.then (responseBody) ->
 				opts =
 					followRedirect: false
 					timeout: requestTimeout
 
-				if b?.token?
+				if responseBody?.token?
 					opts.auth =
-						bearer: b.token
+						bearer: responseBody.token
 						sendImmediately: true
 				new Promise (resolve, reject) ->
 					request.get("#{deltaEndpoint}/api/v2/delta?src=#{deltaSource}&dest=#{imgDest}", opts)
@@ -116,8 +116,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 	getImageEnv: (id) ->
 		@getImage(id).inspect()
 		.get('Config').get('Env')
-		.then (env) ->
-			envArrayToObject(env)
+		.then(envArrayToObject)
 		.catch (err) ->
 			console.log('Error getting env from image', err, err.stack)
 			return {}

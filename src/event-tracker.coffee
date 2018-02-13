@@ -27,14 +27,13 @@ module.exports = class EventTracker
 		if properties instanceof Error
 			properties = error: properties
 
+		properties = _.cloneDeep(properties)
 		# If the properties has an error argument that is an Error object then it treats it nicely,
 		# rather than letting it become `{}`
 		if properties.error instanceof Error
 			properties.error =
 				message: properties.error.message
 				stack: properties.error.stack
-
-		properties = _.cloneDeep(properties)
 
 		# Don't log private env vars (e.g. api keys) or other secrets - use a whitelist to mask what we send
 		properties = mask(properties, mixpanelMask)

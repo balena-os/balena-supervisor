@@ -1,6 +1,5 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
-fs = Promise.promisifyAll(require('fs'))
 path = require 'path'
 
 logTypes = require '../lib/log-types'
@@ -8,6 +7,7 @@ constants = require '../lib/constants'
 { checkInt } = require '../lib/validation'
 { NotFoundError } = require '../lib/errors'
 { defaultLegacyVolume } = require '../lib/migration'
+{ safeRename } = require '../lib/fs-utils'
 
 module.exports = class Volumes
 	constructor: ({ @docker, @logger }) ->
@@ -31,18 +31,16 @@ module.exports = class Volumes
 			volumes = response.Volumes ? []
 			Promise.map volumes, (volume) =>
 				@docker.getVolume(volume.Name).inspect()
-				.then (vol) =>
-					@format(vol)
+				.then(@format)
 
 	getAllByAppId: (appId) =>
 		@getAll()
 		.then (volumes) ->
-			_.filter(volumes, (v) -> v.appId == appId)
+			_.filter(volumes, { appId })
 
 	get: ({ name, appId }) ->
 		@docker.getVolume("#{appId}_#{name}").inspect()
-		.then (volume) =>
-			return @format(volume)
+		.then(@format)
 
 	defaultLabels: ->
 		return {
@@ -67,25 +65,17 @@ module.exports = class Volumes
 				Labels: labels
 				DriverOpts: driverOpts
 			})
-		.catch (err) =>
+		.tapCatch (err) =>
 			@logger.logSystemEvent(logTypes.createVolumeError, { volume: { name }, error: err })
-			throw err
 
 	createFromLegacy: (appId) =>
 		name = defaultLegacyVolume()
 		@create({ name, appId })
-		.then (v) ->
-			v.inspect()
+		.call('inspect')
 		.then (v) ->
 			volumePath = path.join(constants.rootMountPoint, v.Mountpoint)
 			legacyPath = path.join(constants.rootMountPoint, constants.dataPath, appId.toString())
-			fs.renameAsync(legacyPath, volumePath)
-			.then ->
-				fs.openAsync(path.dirname(volumePath))
-			.then (parent) ->
-				fs.fsyncAsync(parent)
-				.then ->
-					fs.closeAsync(parent)
+			safeRename(legacyPath, volumePath)
 		.catch (err) ->
 			@logger.logSystemMessage("Warning: could not migrate legacy /data volume: #{err.message}", { error: err }, 'Volume migration error')
 

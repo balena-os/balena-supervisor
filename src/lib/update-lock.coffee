@@ -39,25 +39,23 @@ exports.lock = do ->
 					Promise.map _.clone(locksTaken), (lockName) ->
 						_.pull(locksTaken, lockName)
 						lockFile.unlockAsync(lockName)
-					.finally ->
-						release()
+					.finally(release)
 				_writeLock(appId)
 				.tap (release) ->
 					theLockDir = path.join(constants.rootMountPoint, baseLockPath(appId))
 					fs.readdirAsync(theLockDir)
-					.catch ENOENT, -> []
+					.catchReturn(ENOENT, [])
 					.mapSeries (serviceName) ->
 						tmpLockName = lockFileOnHost(appId, serviceName)
 						Promise.try ->
 							lockFile.unlockAsync(tmpLockName) if force == true
 						.then ->
 							lockFile.lockAsync(tmpLockName)
-							.then ->
-								locksTaken.push(tmpLockName)
-						.catch ENOENT, _.noop
+						.then ->
+							locksTaken.push(tmpLockName)
+						.catchReturn(ENOENT, null)
 						.catch (err) ->
 							dispose(release)
-							.finally ->
-								throw new exports.UpdatesLockedError("Updates are locked: #{err.message}")
+							.throw(new exports.UpdatesLockedError("Updates are locked: #{err.message}"))
 				.disposer(dispose)
 		Promise.using takeTheLock(), -> fn()
