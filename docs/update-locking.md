@@ -19,7 +19,7 @@ The old lock has the problem that the supervisor has to clear whenever it starts
 has taken the lock before the supervisor starts up, the lock will be cleared and the app can operate under the false
 assumption that updates are locked (see [issue #20](https://github.com/resin-io/resin-supervisor/issues/20)). We therefore strongly recommend switching to the new lock location as soon as possible.
 
-In supervisors >= v4.0.0 and any OS that is not resinOS 1.x, the old lock location is completely ignored.
+For supervisors >= v4.0.0 and any OS that is not resinOS 1.x, the old lock location is completely ignored.
 
 ### Creating the lockfile
 
