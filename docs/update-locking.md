@@ -1,20 +1,25 @@
-## Update locking
+---
+title: Application update locks
+excerpt: Locking application updates on your resin.io devices
+---
 
-Locking updates means that the Supervisor will not be able to kill your application. This is meant to be used at critical sections of your code where you don't want to be interrupted, or to ensure that updates are only installed at certain times.
+# Application update locks
 
-In order to do this, users can create a lockfile called `resin-updates.lock` in a way that it has exclusive access, which will prevent the Supervisor from killing and restarting the app. As with any other lockfile, the Supervisor itself will create such a file before killing the app, so you should only create it in exclusive mode. This means that the lockfile should only be created if it doesn't already exist. The exclusive access is achieved by opening the lockfile with the [O_EXCL and O_CREAT flags](https://linux.die.net/man/3/open), and several tools exist to simplify this process with examples given [below](#creating-the-lockfile).
+Locking updates means that the resin.io device supervisor will not be able to kill your application. This is meant to be used at critical sections of your code where you don't want to be interrupted, or to ensure that updates are only installed at certain times.
+
+In order to do this, users can create a lockfile called `resin-updates.lock` in a way that it has exclusive access, which will prevent the device supervisor from killing and restarting the app. As with any other lockfile, the supervisor itself will create such a file before killing the app, so you should only create it in exclusive mode. This means that the lockfile should only be created if it doesn't already exist. The exclusive access is achieved by opening the lockfile with the [O_EXCL and O_CREAT flags](https://linux.die.net/man/3/open), and several tools exist to simplify this process with examples given [below](#creating-the-lockfile).
 
 ### Location of the lockfile
 
 In supervisor v4.0.0 and higher, the lock is located at `/tmp/resin/resin-updates.lock`. This lock is cleared automatically when the device reboots, so the user app must take it every time it starts up.
 
-Older supervisors have the lock at `/data/resin-updates.lock`. This lock is still supported on devices running ResinOS 1.X. In this case, newer supervisors will try to take *both* locks before killing the application.
+Older supervisors have the lock at `/data/resin-updates.lock`. This lock is still supported on devices running resinOS 1.X. In this case, newer supervisors will try to take *both* locks before killing the application.
 
 The old lock has the problem that the supervisor has to clear whenever it starts up to avoid deadlocks. If the user app
 has taken the lock before the supervisor starts up, the lock will be cleared and the app can operate under the false
 assumption that updates are locked (see [issue #20](https://github.com/resin-io/resin-supervisor/issues/20)). We therefore strongly recommend switching to the new lock location as soon as possible.
 
-In supervisors >= v4.0.0 and any OS that is not Resin OS 1.X, the old lock location is completely ignored.
+In supervisors >= v4.0.0 and any OS that is not resinOS 1.x, the old lock location is completely ignored.
 
 ### Creating the lockfile
 
