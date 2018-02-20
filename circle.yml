@@ -48,7 +48,7 @@ defaults: &defaults
               export PUSH_IMAGES=false
             fi
             # start the build for this architecture
-            export TAG=${CIRCLE_BRANCH}
+            export TAG=$(echo ${CIRCLE_BRANCH} | sed 's/[^a-z0-9A-Z_.-]/-/g')
             export ARCH=${ARCH}
             bash automation/build.sh
             if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_RESIN}" = "true" ]; then
