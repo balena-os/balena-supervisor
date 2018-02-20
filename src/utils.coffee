@@ -275,8 +275,6 @@ exports.defaultBinds = (dataPath, includeV1Binds) ->
 	binds = [
 		exports.getDataPath(dataPath) + ':/data'
 		"/tmp/resin-supervisor/#{dataPath}:/tmp/resin"
-		'/lib/modules:/lib/modules'
-		'/lib/firmware:/lib/firmware'
 		'/run/dbus:/host/run/dbus'
 	]
 	if includeV1Binds

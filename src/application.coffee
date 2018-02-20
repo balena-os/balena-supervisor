@@ -279,6 +279,16 @@ shouldMountKmod = (image) ->
 			console.error('Error getting app OS release: ', err)
 			return false
 
+shouldMountModules = ->
+	fs.statAsync('/mnt/root/lib/modules')
+	.return(true)
+	.catchReturn(false)
+
+shouldMountFirmware = ->
+	fs.statAsync('/mnt/root/lib/firmware')
+	.return(true)
+	.catchReturn(false)
+
 isExecFormatError = (err) ->
 	message = ''
 	try
@@ -340,24 +350,33 @@ application.start = start = (app) ->
 							cmd = [ '/bin/bash', '-c', '/start' ]
 
 						restartPolicy = createRestartPolicy({ name: conf['RESIN_APP_RESTART_POLICY'], maximumRetryCount: conf['RESIN_APP_RESTART_RETRIES'] })
-						shouldMountKmod(app.imageId)
-						.then (shouldMount) ->
-							binds.push('/bin/kmod:/bin/kmod:ro') if shouldMount
-							docker.createContainer(
-								name: name
-								Image: app.imageId
-								Cmd: cmd
-								Tty: true
-								Volumes: volumes
-								Env: _.map env, (v, k) -> k + '=' + v
-								ExposedPorts: ports
-								HostConfig:
-									Privileged: true
-									NetworkMode: 'host'
-									PortBindings: portBindings
-									Binds: binds
-									RestartPolicy: restartPolicy
-							)
+						Promise.join(
+							shouldMountKmod(app.imageId)
+							shouldMountModules()
+							shouldMountFirmware()
+							(mountKmod, mountModules, mountFirmware) ->
+								if mountKmod
+									binds.push('/bin/kmod:/bin/kmod:ro')
+								if mountModules
+									binds.push('/lib/modules:/lib/modules')
+								if mountFirmware
+									binds.push('/lib/firmware:/lib/firmware')
+								docker.createContainer(
+									name: name
+									Image: app.imageId
+									Cmd: cmd
+									Tty: true
+									Volumes: volumes
+									Env: _.map env, (v, k) -> k + '=' + v
+									ExposedPorts: ports
+									HostConfig:
+										Privileged: true
+										NetworkMode: 'host'
+										PortBindings: portBindings
+										Binds: binds
+										RestartPolicy: restartPolicy
+								)
+						)
 					.tap ->
 						logSystemEvent(logTypes.installAppSuccess, app)
 					.catch (err) ->
