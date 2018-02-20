@@ -45,7 +45,7 @@ module.exports = class DeviceConfig
 			loggingEnabled: { envVarName: 'RESIN_SUPERVISOR_LOG_CONTROL', varType: 'bool', defaultValue: 'true' }
 			delta: { envVarName: 'RESIN_SUPERVISOR_DELTA', varType: 'bool', defaultValue: 'false' }
 			deltaRequestTimeout: { envVarName: 'RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT', varType: 'int', defaultValue: '30000' }
-			deltaApplyTimeout: { envVarName: 'RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT', varType: 'int' }
+			deltaApplyTimeout: { envVarName: 'RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT', varType: 'int', defaultValue: '' }
 			deltaRetryCount: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_COUNT', varType: 'int', defaultValue: '30' }
 			deltaRetryInterval: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL', varType: 'int', defaultValue: '10000' }
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
@@ -105,7 +105,7 @@ module.exports = class DeviceConfig
 			if initial or !conf.RESIN_SUPERVISOR_VPN_CONTROL?
 				conf.RESIN_SUPERVISOR_VPN_CONTROL = 'true'
 			for own k, { envVarName, defaultValue } of @configKeys
-				conf[envVarName] ?= defaultValue ? ''
+				conf[envVarName] ?= defaultValue
 			return conf
 
 	getCurrent: =>
@@ -124,6 +124,13 @@ module.exports = class DeviceConfig
 						currentConf[envVarName] = (conf[key] ? '').toString()
 					return _.assign(currentConf, bootConfig)
 			)
+
+	getDefaults: =>
+		Promise.try =>
+			return _.extend({
+				RESIN_HOST_LOG_TO_DISPLAY: ''
+				RESIN_SUPERVISOR_VPN_CONTROL: 'true'
+			}, _.mapValues(_.mapKeys(@configKeys, 'envVarName'), 'defaultValue'))
 
 	bootConfigChangeRequired: (deviceType, current, target) =>
 		targetBootConfig = @envToBootConfig(target)
