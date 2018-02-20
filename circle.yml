@@ -41,11 +41,15 @@ defaults: &defaults
               export EXTRA_TAG=$VERSION_TAG
             fi
             echo "Starting build.sh"
-            docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+            if [ "$DOCKER_PASSWORD" != "" ]; then
+              docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+              export PUSH_IMAGES=${PUSH_IMAGES}
+            else
+              export PUSH_IMAGES=false
+            fi
             # start the build for this architecture
             export TAG=${CIRCLE_BRANCH}
             export ARCH=${ARCH}
-            export PUSH_IMAGES=${PUSH_IMAGES}
             bash automation/build.sh
             if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_RESIN}" = "true" ]; then
               echo "Deploying to Resin API (staging)"
