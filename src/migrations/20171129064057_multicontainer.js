@@ -1,8 +1,4 @@
 
-var defaultLegacyVolume = function (appId) {
-	return `resin-app-${appId}`
-}
-
 var tryParse = function (obj) {
 	try {
 		return JSON.parse(obj)
@@ -32,7 +28,7 @@ var singleToMulticontainerApp = function (app) {
 		networks: {},
 		volumes: {}
 	}
-	const defaultVolume = defaultLegacyVolume(appId)
+	const defaultVolume = 'resin-data'
 	newApp.volumes[defaultVolume] = {}
 	let updateStrategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
 	if (updateStrategy == null) {
@@ -68,7 +64,6 @@ var singleToMulticontainerApp = function (app) {
 				'io.resin.features.resin-api': '1',
 				'io.resin.update.strategy': updateStrategy,
 				'io.resin.update.handover-timeout': handoverTimeout,
-				'io.resin.legacy-container': '1'
 			},
 			environment: environment,
 			restart: restartPolicy,
