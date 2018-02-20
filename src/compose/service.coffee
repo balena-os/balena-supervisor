@@ -691,11 +691,11 @@ module.exports = class Service
 
 		# This can be very useful for debugging so I'm leaving it commented for now.
 		# Uncomment to see the services whenever they don't match.
-		if !isEq
-			console.log(JSON.stringify(this, null, 2))
-			console.log(JSON.stringify(otherService, null, 2))
-			diff = _.omitBy this, (prop, k) -> _.isEqual(prop, otherService[k])
-			console.log(JSON.stringify(diff, null, 2))
+		#if !isEq
+		#	console.log(JSON.stringify(this, null, 2))
+		#	console.log(JSON.stringify(otherService, null, 2))
+		#	diff = _.omitBy this, (prop, k) -> _.isEqual(prop, otherService[k])
+		#	console.log(JSON.stringify(diff, null, 2))
 
 		return isEq
 
