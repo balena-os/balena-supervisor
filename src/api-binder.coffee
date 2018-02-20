@@ -60,11 +60,11 @@ module.exports = class APIBinder
 		@_writeLock('getTarget').disposer (release) ->
 			release()
 
-	init: (startServices = true) ->
-		@config.getMany([ 'offlineMode', 'resinApiEndpoint', 'bootstrapRetryDelay', 'currentApiKey' ])
-		.then ({ offlineMode, resinApiEndpoint, bootstrapRetryDelay, currentApiKey }) =>
+	initClient: =>
+		@config.getMany([ 'offlineMode', 'resinApiEndpoint', 'currentApiKey'  ])
+		.then ({ offlineMode, resinApiEndpoint, currentApiKey }) =>
 			if offlineMode
-				console.log('Offline Mode is set, skipping API binder initialization')
+				console.log('Offline Mode is set, skipping API client initialization')
 				return
 			baseUrl = url.resolve(resinApiEndpoint, '/v4/')
 			passthrough = _.cloneDeep(requestOpts)
@@ -78,7 +78,12 @@ module.exports = class APIBinder
 				apiPrefix: baseUrlLegacy
 				passthrough: passthrough
 			@cachedResinApi = @resinApi.clone({}, cache: {})
-			if !startServices
+
+	start: =>
+		@config.getMany([ 'offlineMode', 'bootstrapRetryDelay' ])
+		.then ({ offlineMode, bootstrapRetryDelay }) =>
+			if offlineMode
+				console.log('Offline Mode is set, skipping API binder initialization')
 				return
 			console.log('Ensuring device is provisioned')
 			@provisionDevice()
@@ -244,6 +249,27 @@ module.exports = class APIBinder
 				id: id
 				body: updatedFields
 			.timeout(conf.apiTimeout)
+
+	_sendLogsRequest: (uuid, data) =>
+		reqBody = _.map(data, (msg) -> _.mapKeys(msg, (v, k) -> _.snakeCase(k)))
+		@config.get('resinApiEndpoint')
+		.then (resinApiEndpoint) =>
+			endpoint = url.resolve(resinApiEndpoint, "/device/v2/#{uuid}/logs")
+			requestParams = _.extend
+				method: 'POST'
+				url: endpoint
+				body: reqBody
+			, @cachedResinApi.passthrough
+
+			@cachedResinApi._request(requestParams)
+
+	logDependent: (uuid, msg) =>
+		@_sendLogsRequest(uuid, [ msg ])
+
+	logBatch: (messages) =>
+		@config.get('uuid')
+		.then (uuid) =>
+			@_sendLogsRequest(uuid, messages)
 
 	# Creates the necessary config vars in the API to match the current device state,
 	# without overwriting any variables that are already set.
