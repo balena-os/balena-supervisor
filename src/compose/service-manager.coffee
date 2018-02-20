@@ -139,7 +139,7 @@ module.exports = class ServiceManager extends EventEmitter
 				.then =>
 					@logger.logSystemEvent(logTypes.startServiceError, { service, error: err })
 			.then =>
-				@logger.attach(@docker, container.id, service.serviceId)
+				@logger.attach(@docker, container.id, service)
 		.tap =>
 			if alreadyStarted
 				@logger.logSystemEvent(logTypes.startServiceNoop, { service })
@@ -253,7 +253,7 @@ module.exports = class ServiceManager extends EventEmitter
 								@emit('change')
 								delete @containerHasDied[data.id]
 								@logger.logSystemEvent(logTypes.serviceRestart, { service })
-								@logger.attach(@docker, data.id, service.serviceId)
+								@logger.attach(@docker, data.id, service)
 					.catch (err) ->
 						console.error('Error on docker event:', err, err.stack)
 					return
@@ -278,4 +278,4 @@ module.exports = class ServiceManager extends EventEmitter
 		@getAll()
 		.map (service) =>
 			@logger.logSystemEvent(logTypes.startServiceNoop, { service })
-			@logger.attach(@docker, service.containerId, service.serviceId)
+			@logger.attach(@docker, service.containerId, service)

@@ -5,36 +5,91 @@ es = require 'event-stream'
 Lock = require 'rwlock'
 { checkTruthy } = require './lib/validation'
 
-LOG_PUBLISH_INTERVAL = 110
+class NativeLoggerBackend
+	constructor: ->
+		@logPublishInterval = 1000
+		@maxLogLinesPerBatch = 10
+		@maxQueueSize = 100
+		@maxLineLength = 300
+		@publishQueue = []
+		@intervalHandle = null
+		@publishEnabled = false
+		@offlineMode = false
+		@shouldStop = false
 
-# Pubnub's message size limit is 32KB (unclear on whether it's KB or actually KiB,
-# but we'll be conservative). So we limit a log message to 2 bytes less to account
-# for the [ and ] in the array.
-MAX_LOG_BYTE_SIZE = 30000
-MAX_MESSAGE_INDEX = 9
+	publishLoop: =>
+		startTime = process.hrtime()
+		Promise.try =>
+			return if @offlineMode or !@publishEnabled or @publishQueue.length is 0
+			currentBatch = @publishQueue.splice(0, @maxLogLinesPerBatch)
+			# Silently ignore errors sending logs (just like with pubnub)
+			@apiBinder.logBatch(currentBatch)
+		.catchReturn()
+		.then =>
+			elapsedTime = process.hrtime(startTime)
+			elapsedTimeMs = elapsedTime[0] * 1000 + elapsedTime[1] / 1e6
+			nextDelay = Math.max(@logPublishInterval - elapsedTimeMs, 0)
+			Promise.delay(nextDelay)
+		.then =>
+			if !@shouldStop
+				@publishLoop()
 
-module.exports = class Logger
-	constructor: ({ @eventTracker }) ->
+	_truncateToMaxLength: (message) =>
+		if message.message.length > @maxLineLength
+			message = _.clone(message)
+			message.message = _.truncate(message.message, { length: @maxLineLength, omission: '[...]' })
+		return message
+
+	logDependent: (msg, { uuid }) =>
+		msg = @_truncateToMaxLength(msg)
+		@apiBinder.logDependent(uuid, msg)
+
+	log: (message) =>
+		return if @offlineMode or !@publishEnabled or @publishQueue.length >= @maxQueueSize
+		if _.isString(message)
+			message = { message: message }
+
+		message = _.defaults({}, message, {
+			timestamp: Date.now()
+			message: ''
+		})
+
+		message = @_truncateToMaxLength(message)
+
+		if @publishQueue.length < @maxQueueSize - 1
+			@publishQueue.push(_.pick(message, [ 'message', 'timestamp', 'isSystem', 'isStderr', 'imageId' ]))
+		else
+			@publishQueue.push({
+				message: 'Warning! Some logs dropped due to high load'
+				timestamp: Date.now()
+				isSystem: true
+				isStderr: true
+			})
+
+	start: (opts) =>
+		console.log('Starting native logger')
+		@apiBinder = opts.apiBinder
+		@publishEnabled = checkTruthy(opts.enable)
+		@offlineMode = checkTruthy(opts.offlineMode)
+		@publishLoop()
+		return null
+
+	stop: =>
+		console.log('Stopping native logger')
+		@shouldStop = true
+
+class PubnubLoggerBackend
+	constructor: ->
 		@publishQueue = [[]]
 		@messageIndex = 0
-		@publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE
+		@maxMessageIndex = 9
+		# Pubnub's message size limit is 32KB (unclear on whether it's KB or actually KiB,
+		# but we'll be conservative). So we limit a log message to 2 bytes less to account
+		# for the [ and ] in the array.
+		@maxLogByteSize = 30000
+		@publishQueueRemainingBytes = @maxLogByteSize
 		@logsOverflow = false
-		_lock = new Lock()
-		@_writeLock = Promise.promisify(_lock.async.writeLock)
-		@attached = {}
-		@offlineMode = false
-		@publishEnabled = false
-
-	init: ({ pubnub, channel, offlineMode, enable }) =>
-		Promise.try =>
-			@pubnub = PUBNUB.init(pubnub)
-			@channel = channel
-			@publishEnabled = checkTruthy(enable)
-			@offlineMode = checkTruthy(offlineMode)
-			setInterval(@doPublish, LOG_PUBLISH_INTERVAL)
-
-	enable: (val) =>
-		@publishEnabled = checkTruthy(val) ? true
+		@logPublishInterval = 110
 
 	doPublish: =>
 		return if @offlineMode or !@publishEnabled or @publishQueue[0].length is 0
@@ -42,77 +97,142 @@ module.exports = class Logger
 		@pubnub.publish({ @channel, message })
 		if @publishQueue.length is 0
 			@publishQueue = [[]]
-			@publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE
+			@publishQueueRemainingBytes = @maxLogByteSize
 		@messageIndex = Math.max(@messageIndex - 1, 0)
-		@logsOverflow = false if @messageIndex < MAX_MESSAGE_INDEX
+		@logsOverflow = false if @messageIndex < @maxMessageIndex
 
-	publish: (message) =>
-		# Disable sending logs for bandwidth control
-		return if @offlineMode or !@publishEnabled or (@messageIndex >= MAX_MESSAGE_INDEX and @publishQueueRemainingBytes <= 0)
+	logDependent: (message, { channel }) ->
+		@pubnub.publish({ channel, message })
+
+	log: (msg) =>
+		return if @offlineMode or !@publishEnabled or (@messageIndex >= @maxMessageIndex and @publishQueueRemainingBytes <= 0)
 		if _.isString(message)
-			message = { m: message }
+			message = { m: msg }
+		else
+			message = {
+				m: msg.message
+				t: msg.timestamp
+			}
+			if msg.isSystem
+				message.s = 1
+			if msg.serviceId?
+				message.c = msg.serviceId
+			if msg.isStderr
+				message.e = 1
 
 		_.defaults message,
 			t: Date.now()
 			m: ''
+
 		msgLength = Buffer.byteLength(encodeURIComponent(JSON.stringify(message)), 'utf8')
-		return if msgLength > MAX_LOG_BYTE_SIZE # Unlikely, but we can't allow this
+		return if msgLength > @maxLogByteSize # Unlikely, but we can't allow this
 		remaining = @publishQueueRemainingBytes - msgLength
 		if remaining >= 0
 			@publishQueue[@messageIndex].push(message)
 			@publishQueueRemainingBytes = remaining
-		else if @messageIndex < MAX_MESSAGE_INDEX
+		else if @messageIndex < @maxMessageIndex
 			@messageIndex += 1
 			@publishQueue[@messageIndex] = [ message ]
-			@publishQueueRemainingBytes = MAX_LOG_BYTE_SIZE - msgLength
+			@publishQueueRemainingBytes = @maxLogByteSize - msgLength
 		else if !@logsOverflow
 			@logsOverflow = true
 			@messageIndex += 1
 			@publishQueue[@messageIndex] = [ { m: 'Warning! Some logs dropped due to high load', t: Date.now(), s: 1 } ]
 			@publishQueueRemainingBytes = 0
 
-	# log allows publishing logs through the regular way which includes a queue and has a specific channel
-	# or, when a channel is specified, publishing directly to that channel
-	log: (msg, opts = {}) =>
-		if opts.channel?
-			@pubnub.publish({ channel: opts.channel, message: msg })
-		else
-			@publish(msg)
+	start: (opts) =>
+		console.log('Starting pubnub logger')
+		@pubnub = PUBNUB.init(opts.pubnub)
+		@channel = opts.channel
+		@publishEnabled = checkTruthy(opts.enable)
+		@offlineMode = checkTruthy(opts.offlineMode)
+		@intervalHandle = setInterval(@doPublish, @logPublishInterval)
 
-	logSystemMessage: (message, obj, eventName) =>
-		messageObj = { m: message, s: 1 }
-		if obj?.serviceId?
-			messageObj.c = obj.serviceId
+	stop: =>
+		console.log('Stopping pubnub logger')
+		clearInterval(@intervalHandle)
+
+module.exports = class Logger
+	constructor: ({ @eventTracker }) ->
+		_lock = new Lock()
+		@_writeLock = Promise.promisify(_lock.async.writeLock)
+		@attached = { stdout: {}, stderr: {} }
+		@opts = {}
+		@backend = null
+
+	init: (opts) =>
+		Promise.try =>
+			@opts = opts
+			@_startBackend()
+
+	_startBackend: =>
+		if checkTruthy(@opts.nativeLogger)
+			@backend = new NativeLoggerBackend()
+		else
+			@backend = new PubnubLoggerBackend()
+		@backend.start(@opts)
+
+	switchBackend: (nativeLogger) =>
+		if checkTruthy(nativeLogger) != checkTruthy(@opts.nativeLogger)
+			@opts.nativeLogger = nativeLogger
+			@backend.stop()
+			@_startBackend()
+
+	enable: (val) =>
+		@opts.enable = val
+		@backend.publishEnabled = checkTruthy(val) ? true
+
+	logDependent: (msg, device) =>
+		@backend.logDependent(msg, device)
+
+	log: (msg) =>
+		@backend.log(msg)
+
+	logSystemMessage: (msg, obj, eventName) =>
+		messageObj = { message: msg, isSystem: true }
+		if obj?.error?
+			messageObj.isStderr = true
 		@log(messageObj)
-		@eventTracker.track(eventName ? message, obj)
+		@eventTracker.track(eventName ? msg, obj)
 
 	lock: (containerId) =>
 		@_writeLock(containerId)
 		.disposer (release) ->
 			release()
 
-	attach: (docker, containerId, serviceId) =>
-		Promise.using @lock(containerId), =>
-			if !@attached[containerId]
+	_attachStream: (docker, stdoutOrStderr, containerId, { serviceId, imageId }) =>
+		Promise.try =>
+			if stdoutOrStderr not in [ 'stdout', 'stderr' ]
+				throw new Error("Invalid log selection #{stdoutOrStderr}")
+			if !@attached[stdoutOrStderr][containerId]
+				logsOpts = { follow: true, stdout: stdoutOrStderr == 'stdout', stderr: stdoutOrStderr == 'stderr', timestamps: true }
 				docker.getContainer(containerId)
-				.logs({ follow: true, stdout: true, stderr: true, timestamps: true })
+				.logs(logsOpts)
 				.then (stream) =>
-					@attached[containerId] = true
+					@attached[stdoutOrStderr][containerId] = true
 					stream
 					.on 'error', (err) =>
 						console.error('Error on container logs', err, err.stack)
-						@attached[containerId] = false
+						@attached[stdoutOrStderr][containerId] = false
 					.pipe(es.split())
 					.on 'data', (logLine) =>
 						space = logLine.indexOf(' ')
 						if space > 0
-							msg = { t: logLine.substr(0, space), m: logLine.substr(space + 1), c: serviceId }
-							@publish(msg)
+							msg = { timestamp: logLine.substr(0, space), message: logLine.substr(space + 1), serviceId, imageId }
+							if stdoutOrStderr == 'stderr'
+								msg.isStderr = true
+							@log(msg)
 					.on 'error', (err) =>
 						console.error('Error on container logs', err, err.stack)
-						@attached[containerId] = false
+						@attached[stdoutOrStderr][containerId] = false
 					.on 'end', =>
-						@attached[containerId] = false
+						@attached[stdoutOrStderr][containerId] = false
+
+	attach: (docker, containerId, serviceInfo) =>
+		Promise.using @lock(containerId), =>
+			@_attachStream(docker, 'stdout', containerId, serviceInfo)
+		.then =>
+			@_attachStream(docker, 'stderr', containerId, serviceInfo)
 
 	objectNameForLogs: (obj = {}) ->
 		if obj.service?.serviceName? and obj.service?.image?
