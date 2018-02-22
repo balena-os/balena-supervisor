@@ -13,8 +13,7 @@ bootConfigEnvVarPrefix = hostConfigConfigVarPrefix + 'CONFIG_'
 bootBlockDevice = '/dev/mmcblk0p1'
 bootMountPoint = constants.rootMountPoint + constants.bootMountPoint
 bootConfigPath = bootMountPoint + '/config.txt'
-configRegex = ->
-	new RegExp('(' + _.escapeRegExp(bootConfigEnvVarPrefix) + ')(.+)')
+configRegex = new RegExp('(' + _.escapeRegExp(bootConfigEnvVarPrefix) + ')(.+)')
 forbiddenConfigKeys = [
 	'disable_commandline_tags'
 	'cmdline'
@@ -205,7 +204,7 @@ module.exports = class DeviceConfig
 		parsedEnv = _.pickBy env, (val, key) ->
 			return _.startsWith(key, bootConfigEnvVarPrefix)
 		parsedEnv = _.mapKeys parsedEnv, (val, key) ->
-			key.replace(configRegex(), '$2')
+			key.replace(configRegex, '$2')
 		parsedEnv = _.mapValues parsedEnv, (val, key) ->
 			if _.includes(arrayConfigKeys, key)
 				if !_.startsWith(val, '"')

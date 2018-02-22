@@ -12,7 +12,7 @@ constants = require '../lib/constants'
 module.exports = class Volumes
 	constructor: ({ @docker, @logger }) ->
 
-	format: (volume) =>
+	format: (volume) ->
 		m = volume.Name.match(/^([0-9]+)_(.+)$/)
 		appId = checkInt(m[1])
 		name = m[2]
@@ -20,7 +20,7 @@ module.exports = class Volumes
 			name: name
 			appId: appId
 			config: {
-				labels: _.omit(volume.Labels, _.keys(@defaultLabels(appId)))
+				labels: _.omit(volume.Labels, _.keys(constants.defaultVolumeLabels))
 				driverOpts: volume.Options
 			}
 		}
@@ -42,18 +42,13 @@ module.exports = class Volumes
 		@docker.getVolume("#{appId}_#{name}").inspect()
 		.then(@format)
 
-	defaultLabels: ->
-		return {
-			'io.resin.supervised': 'true'
-		}
-
 	# TODO: what config values are relevant/whitelisted?
 	# For now we only care about driverOpts and labels
 	create: ({ name, config = {}, appId }) =>
 		config = _.mapKeys(config, (v, k) -> _.camelCase(k))
 		@logger.logSystemEvent(logTypes.createVolume, { volume: { name } })
 		labels = _.clone(config.labels) ? {}
-		_.assign(labels, @defaultLabels())
+		_.assign(labels, constants.defaultVolumeLabels)
 		driverOpts = config.driverOpts ? {}
 		@get({ name, appId })
 		.then (vol) =>

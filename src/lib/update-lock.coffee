@@ -20,11 +20,11 @@ lockFileOnHost = (appId, serviceName) ->
 	return path.join(constants.rootMountPoint, exports.lockPath(appId, serviceName), 'resin-updates.lock')
 
 exports.UpdatesLockedError = class UpdatesLockedError extends TypedError
-locksTaken = []
+locksTaken = {}
 
 # Try to clean up any existing locks when the program exits
 process.on 'exit', ->
-	for lockName in locksTaken
+	for lockName of locksTaken
 		try
 			lockFile.unlockSync(lockName)
 
@@ -36,8 +36,8 @@ exports.lock = do ->
 			Promise.try ->
 				return if !appId?
 				dispose = (release) ->
-					Promise.map _.clone(locksTaken), (lockName) ->
-						_.pull(locksTaken, lockName)
+					Promise.map _.keys(locksTaken), (lockName) ->
+						delete locksTaken[lockName]
 						lockFile.unlockAsync(lockName)
 					.finally(release)
 				_writeLock(appId)
@@ -52,7 +52,7 @@ exports.lock = do ->
 						.then ->
 							lockFile.lockAsync(tmpLockName)
 						.then ->
-							locksTaken.push(tmpLockName)
+							locksTaken[tmpLockName] = true
 						.catchReturn(ENOENT, null)
 						.catch (err) ->
 							dispose(release)

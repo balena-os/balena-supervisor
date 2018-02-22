@@ -405,10 +405,10 @@ module.exports = class Service
 	killmeFullPathOnHost: =>
 		return "#{constants.rootMountPoint}#{@killmePath()}/resin-kill-me"
 
-	defaultBinds: ->
+	defaultBinds: =>
 		return defaultBinds(@appId, @serviceName)
 
-	@fromContainer: (container) ->
+	@fromContainer: (container, containerToService) ->
 		if container.State.Running
 			status = 'Running'
 		else if container.State.Status == 'created'
@@ -439,12 +439,18 @@ module.exports = class Service
 		nameComponents = container.Name.match(/.*_(\d+)_(\d+)$/)
 		imageId = checkInt(nameComponents?[1])
 		releaseId = checkInt(nameComponents?[2])
+
+		networkMode = container.HostConfig.NetworkMode
+		if _.startsWith(networkMode, 'container:')
+			networkMode = 'service:' + containerToService[_.replace(networkMode, 'container:', '')]
+
 		hostname = container.Config.Hostname
 		# A hostname equal to the first part of the container ID actually
 		# means no hostname was specified
 		if hostname == container.Id.substr(0, 12) or
-			(container.HostConfig.NetworkMode == 'host' and hostname == os.hostname())
+			(networkMode == 'host' and hostname == os.hostname())
 				hostname = ''
+
 		service = {
 			appId: appId
 			serviceId: serviceId
@@ -452,7 +458,7 @@ module.exports = class Service
 			imageId: imageId
 			command: container.Config.Cmd
 			entrypoint: container.Config.Entrypoint
-			networkMode: container.HostConfig.NetworkMode
+			networkMode: networkMode
 			volumes: _.concat(container.HostConfig.Binds ? [], _.keys(container.Config.Volumes ? {}))
 			image: container.Config.Image
 			environment: conversions.envArrayToObject(container.Config.Env)
@@ -551,6 +557,9 @@ module.exports = class Service
 		tmpfs = {}
 		for dir in @tmpfs
 			tmpfs[dir] = ''
+		networkMode = @networkMode
+		if _.startsWith(networkMode, 'service:')
+			networkMode = "container:#{_.replace(networkMode, 'service:', '')}_#{@imageId}_#{@releaseId}"
 		conf = {
 			name: "#{@serviceName}_#{@imageId}_#{@releaseId}"
 			Image: @image
@@ -568,7 +577,7 @@ module.exports = class Service
 				MemoryReservation: @memReservation
 				ShmSize: @shmSize
 				Privileged: @privileged
-				NetworkMode: @networkMode
+				NetworkMode: networkMode
 				PortBindings: @portBindings
 				Binds: binds
 				CapAdd: @capAdd
@@ -643,8 +652,6 @@ module.exports = class Service
 			'labels'
 			'portBindings'
 			'exposedPorts'
-			#'memLimit'
-			#'memReservation'
 			'shmSize'
 			'cpuShares'
 			'cpuQuota'
@@ -683,21 +690,11 @@ module.exports = class Service
 			'groupAdd'
 			'securityOpt'
 		]
-		isEq = _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
+		return _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
 			_.isEqual(_.omit(@environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ]), _.omit(otherService.environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ])) and
 			@hasSameNetworks(otherService) and
 			_.every arraysToCompare, (property) =>
 				_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
-
-		# This can be very useful for debugging so I'm leaving it commented for now.
-		# Uncomment to see the services whenever they don't match.
-		#if !isEq
-		#	console.log(JSON.stringify(this, null, 2))
-		#	console.log(JSON.stringify(otherService, null, 2))
-		#	diff = _.omitBy this, (prop, k) -> _.isEqual(prop, otherService[k])
-		#	console.log(JSON.stringify(diff, null, 2))
-
-		return isEq
 
 	isEqualExceptForRunningState: (otherService) =>
 		return @isSameContainer(otherService) and
