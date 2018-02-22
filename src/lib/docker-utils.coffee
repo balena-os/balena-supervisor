@@ -110,8 +110,8 @@ module.exports = class DockerUtils extends DockerToolbelt
 					password: currentApiKey,
 					serveraddress: registry
 			@dockerProgress.pull(image, onProgress, dockerOptions)
-			.then =>
-				@getImage(image).inspect().get('Id')
+		.then =>
+			@getImage(image).inspect().get('Id')
 
 	getImageEnv: (id) ->
 		@getImage(id).inspect()

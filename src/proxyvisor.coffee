@@ -381,11 +381,11 @@ module.exports = class Proxyvisor
 					appClone.appId = checkInt(appId)
 					return appClone
 				Promise.map(appsArray, @normaliseDependentAppForDB)
-				.then (appsForDB) =>
+				.tap (appsForDB) =>
 					Promise.map appsForDB, (app) =>
 						@db.upsertModel('dependentAppTarget', app, { appId: app.appId }, trx)
-					.then ->
-						trx('dependentAppTarget').whereNotIn('appId', _.map(appsForDB, 'appId')).del()
+				.then (appsForDB) ->
+					trx('dependentAppTarget').whereNotIn('appId', _.map(appsForDB, 'appId')).del()
 		.then =>
 			if dependent?.devices?
 				devicesArray = _.map dependent.devices, (dev, uuid) ->

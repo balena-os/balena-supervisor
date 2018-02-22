@@ -141,7 +141,7 @@ createApplicationManagerRouter = (applications) ->
 
 	router.get '/v1/apps/:appId', (req, res) ->
 		appId = checkInt(req.params.appId)
-		eventTracker.track('GET app (v1)', appId)
+		eventTracker.track('GET app (v1)', { appId })
 		if !appId?
 			return res.status(400).send('Missing app id')
 		Promise.join(
@@ -203,8 +203,8 @@ createApplicationManagerRouter = (applications) ->
 					return res.status(404).send(errMsg)
 				applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
 				applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { skipLock: true })
-				.then ->
-					res.status(200).send('OK')
+			.then ->
+				res.status(200).send('OK')
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -367,8 +367,9 @@ module.exports = class ApplicationManager extends EventEmitter
 					if !image.dependent
 						apps[appId] ?= {}
 						apps[appId].services ?= {}
-						apps[appId].services[image.imageId] ?= _.pick(image, [ 'status', 'releaseId' ])
-						apps[appId].services[image.imageId].download_progress = image.downloadProgress
+						if !apps[appId].services[image.imageId]?
+							apps[appId].services[image.imageId] = _.pick(image, [ 'status', 'releaseId' ])
+							apps[appId].services[image.imageId].download_progress = image.downloadProgress
 					else if image.imageId?
 						dependent[appId] ?= {}
 						dependent[appId].images ?= {}
@@ -563,7 +564,7 @@ module.exports = class ApplicationManager extends EventEmitter
 	# TODO: support networks instead of only networkMode
 	_dependenciesMetForServiceStart: (target, networkPairs, volumePairs, pendingPairs) ->
 		# for dependsOn, check no install or update pairs have that service
-		dependencyUnmet = _.some target.dependsOn ? [], (dependency) ->
+		dependencyUnmet = _.some target.dependsOn, (dependency) ->
 			_.some(pendingPairs, (pair) -> pair.target?.serviceName == dependency)
 		if dependencyUnmet
 			return false
@@ -826,11 +827,11 @@ module.exports = class ApplicationManager extends EventEmitter
 					appClone.appId = checkInt(appId)
 					return appClone
 				Promise.map(appsArray, @normaliseAppForDB)
-				.then (appsForDB) =>
+				.tap (appsForDB) =>
 					Promise.map appsForDB, (app) =>
 						@db.upsertModel('app', app, { appId: app.appId }, trx)
-					.then ->
-						trx('app').whereNotIn('appId', _.map(appsForDB, 'appId')).del()
+				.then (appsForDB) ->
+					trx('app').whereNotIn('appId', _.map(appsForDB, 'appId')).del()
 			.then =>
 				@proxyvisor.setTargetInTransaction(dependent, trx)
 
@@ -918,7 +919,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			delta = checkTruthy(delta)
 			if checkTruthy(localMode)
 				target = _.cloneDeep(target)
-				target.local.apps = _.mapValues target.local.apps ? {}, (app) ->
+				target.local.apps = _.mapValues target.local.apps, (app) ->
 					app.services = []
 					return app
 				ignoreImages = true

@@ -74,7 +74,7 @@ module.exports = class ServiceManager extends EventEmitter
 					@reportChange(containerId)
 			if wait
 				return killPromise
-			return
+			return null
 
 	kill: (service, { removeContainer = true, wait = false } = {}) =>
 		@_killContainer(service.containerId, service, { removeContainer, wait })
@@ -90,8 +90,8 @@ module.exports = class ServiceManager extends EventEmitter
 		mockContainerId = @config.newUniqueKey()
 		@get(service)
 		.then (existingService) =>
-			if existingService?
-				return @docker.getContainer(existingService.containerId)
+			return @docker.getContainer(existingService.containerId)
+		.catch NotFoundError, =>
 			conf = service.toContainerConfig()
 			nets = service.extraNetworksToJoin()
 			@logger.logSystemEvent(logTypes.installService, { service })
@@ -135,7 +135,7 @@ module.exports = class ServiceManager extends EventEmitter
 			.tapCatch (err) =>
 				# If starting the container failed, we remove it so that it doesn't litter
 				container.remove(v: true)
-				.catch(_.noop)
+				.catchReturn()
 				.then =>
 					@logger.logSystemEvent(logTypes.startServiceError, { service, error: err })
 			.then =>
@@ -145,7 +145,7 @@ module.exports = class ServiceManager extends EventEmitter
 				@logger.logSystemEvent(logTypes.startServiceNoop, { service })
 			else
 				@logger.logSystemEvent(logTypes.startServiceSuccess, { service })
-		.tap (container) ->
+		.tap ->
 			service.running = true
 		.finally =>
 			@reportChange(containerId)
@@ -161,12 +161,19 @@ module.exports = class ServiceManager extends EventEmitter
 				if @volatileState[service.containerId]?.status?
 					service.status = @volatileState[service.containerId].status
 				return service
+			.catchReturn(NotFoundError, null)
+		.filter(_.negate(_.isNil))
 
-	# Returns an array with the container(s) matching a service by appId, commit, image and environment
+	# Returns the first container matching a service definition
 	get: (service) =>
 		@getAll("io.resin.service-id=#{service.serviceId}")
 		.filter((currentService) -> currentService.isSameContainer(service))
-		.get(0)
+		.then (services) ->
+			if services.length == 0
+				e = new Error('Could not find a container matching this service definition')
+				e.statusCode = 404
+				throw e
+			return services[0]
 
 	getStatus: =>
 		@getAll()

@@ -95,7 +95,7 @@ module.exports = class APIBinder
 				@readyForUpdates = true
 				console.log('Starting target state poll')
 				@startTargetStatePoll()
-			return
+			return null
 
 	fetchDevice: (uuid, apiKey, timeout) =>
 		@resinApi.get
@@ -316,7 +316,7 @@ module.exports = class APIBinder
 				clearInterval(@_targetStateInterval)
 			@_targetStateInterval = setInterval(@getAndSetTargetState, appUpdatePollInterval)
 			@getAndSetTargetState()
-			return
+			return null
 
 	startTargetStatePoll: ->
 		if !@resinApi?
@@ -378,7 +378,7 @@ module.exports = class APIBinder
 			Promise.delay(REPORT_RETRY_DELAY)
 			.then =>
 				@_reportCurrentState()
-		return
+		return null
 
 	startCurrentStateReport: =>
 		if !@resinApi?

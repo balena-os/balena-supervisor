@@ -38,11 +38,11 @@ module.exports = class Images extends EventEmitter
 			delete @volatileState[imageId]
 			@emit('change')
 
-	triggerFetch: (image, opts, onFinish) =>
+	triggerFetch: (image, opts, onFinish = _.noop) =>
 		onProgress = (progress) =>
-			@reportChange(image.imageId, { downloadProgress: progress.percentage })
-
-		onFinish ?= _.noop
+			# Only report the percentage if we haven't finished fetching
+			if @volatileState[image.imageId]?
+				@reportChange(image.imageId, { downloadProgress: progress.percentage })
 
 		@normalise(image.name)
 		.then (imageName) =>
@@ -55,7 +55,7 @@ module.exports = class Images extends EventEmitter
 					@db.models('image').update({ dockerImageId: img.Id }).where(image)
 			.then ->
 				onFinish(true)
-				return
+				return null
 			.catch =>
 				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', downloadProgress: 0 }))
 				Promise.try =>
@@ -65,11 +65,11 @@ module.exports = class Images extends EventEmitter
 						.then (srcImage) =>
 							opts.deltaSourceId = srcImage.Id
 							@docker.rsyncImageWithProgress(imageName, opts, onProgress)
-							.tap (id) =>
-								if !hasDigest(imageName)
-									@docker.getRepoAndTag(imageName)
-									.then ({ repo, tag }) =>
-										@docker.getImage(id).tag({ repo, tag })
+						.tap (id) =>
+							if !hasDigest(imageName)
+								@docker.getRepoAndTag(imageName)
+								.then ({ repo, tag }) =>
+									@docker.getImage(id).tag({ repo, tag })
 					else
 						@logger.logSystemEvent(logTypes.downloadImage, { image })
 						@docker.fetchImageWithProgress(imageName, opts, onProgress)
@@ -84,8 +84,8 @@ module.exports = class Images extends EventEmitter
 				.then (success) =>
 					@reportChange(image.imageId)
 					onFinish(success)
-					return
-				return
+					return null
+				return null
 
 	format: (image) ->
 		image.serviceId ?= null
