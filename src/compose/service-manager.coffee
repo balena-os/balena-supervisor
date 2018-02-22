@@ -12,6 +12,12 @@ Service = require './service'
 
 { NotFoundError } = require '../lib/errors'
 
+containerToServiceMapping = (containers) ->
+	_.fromPairs(_.map(containers, (container) -> [ container.Id, container.Labels['io.resin.service-name'] ]))
+
+serviceToContainerMapping = (containers) ->
+	_.fromPairs(_.map(containers, (container) -> [ container.Labels['io.resin.service-name'], container.Id ]))
+
 module.exports = class ServiceManager extends EventEmitter
 	constructor: ({ @docker, @logger, @config }) ->
 		@containerHasDied = {}
@@ -100,15 +106,18 @@ module.exports = class ServiceManager extends EventEmitter
 		.then (existingService) =>
 			return @docker.getContainer(existingService.containerId)
 		.catch NotFoundError, =>
-			conf = service.toContainerConfig()
-			nets = service.extraNetworksToJoin()
-			@logger.logSystemEvent(logTypes.installService, { service })
-			@reportNewStatus(mockContainerId, service, 'Installing')
-			@docker.createContainer(conf)
-			.tap (container) =>
-				service.containerId = container.id
-				Promise.map nets, ({ name, endpointConfig }) =>
-					@docker.getNetwork(name).connect({ Container: container.id, EndpointConfig: endpointConfig })
+			@getAllContainers(extraLabelFilters)
+			.then (containers) =>
+				serviceToContainer = serviceToContainerMapping(containers)
+				conf = service.toContainerConfig(serviceToContainer)
+				nets = service.extraNetworksToJoin()
+				@logger.logSystemEvent(logTypes.installService, { service })
+				@reportNewStatus(mockContainerId, service, 'Installing')
+				@docker.createContainer(conf)
+				.tap (container) =>
+					service.containerId = container.id
+					Promise.map nets, ({ name, endpointConfig }) =>
+						@docker.getNetwork(name).connect({ Container: container.id, EndpointConfig: endpointConfig })
 			.tap =>
 				@logger.logSystemEvent(logTypes.installServiceSuccess, { service })
 		.tapCatch (err) =>
@@ -158,18 +167,23 @@ module.exports = class ServiceManager extends EventEmitter
 		.finally =>
 			@reportChange(containerId)
 
-	# Gets all existing containers that correspond to apps
-	getAll: (extraLabelFilters = []) =>
+	getAllContainers: (extraLabelFilters = []) =>
 		filters = label: [ 'io.resin.supervised' ].concat(extraLabelFilters)
 		@docker.listContainers({ all: true, filters })
-		.mapSeries (container) =>
-			@docker.getContainer(container.Id).inspect()
-			.then(Service.fromContainer)
-			.then (service) =>
-				if @volatileState[service.containerId]?.status?
-					service.status = @volatileState[service.containerId].status
-				return service
-			.catchReturn(NotFoundError, null)
+
+	# Gets all existing containers that correspond to apps
+	getAll: (extraLabelFilters = []) =>
+		@getAllContainers(extraLabelFilters)
+		.then (containers) =>
+			containerToService = containerToServiceMapping(containers)
+			Promise.mapSeries containers, (container) =>
+				@docker.getContainer(container.Id).inspect()
+				.then((c) -> Service.fromContainer(c, containerToService))
+				.then (service) =>
+					if @volatileState[service.containerId]?.status?
+						service.status = @volatileState[service.containerId].status
+					return service
+				.catchReturn(NotFoundError, null)
 		.filter(_.negate(_.isNil))
 
 	# Returns the first container matching a service definition
@@ -192,11 +206,14 @@ module.exports = class ServiceManager extends EventEmitter
 			return _.values(status)
 
 	getByDockerContainerId: (containerId) =>
-		@docker.getContainer(containerId).inspect()
-		.then (container) ->
-			if !container.Config.Labels['io.resin.supervised']?
-				return null
-			return Service.fromContainer(container)
+		Promise.join(
+			@docker.getContainer(containerId).inspect()
+			@getAllContainers()
+			.then(containerToServiceMapping)
+			(container, containerToService) ->
+				if !container.Config.Labels['io.resin.supervised']?
+					return null
+				return Service.fromContainer(container, containerToService)
 
 	waitToKill: (service, timeout) ->
 		pollInterval = 100

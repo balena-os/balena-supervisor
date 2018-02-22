@@ -570,14 +570,15 @@ module.exports = class Service
 				volumes[vol] = {}
 		return { binds, volumes }
 
-	toContainerConfig: =>
+	toContainerConfig: (serviceToContainer) =>
 		{ binds, volumes } = @getBindsAndVolumes()
 		tmpfs = {}
 		for dir in @tmpfs
 			tmpfs[dir] = ''
 		networkMode = @networkMode
 		if _.startsWith(networkMode, 'service:')
-			networkMode = "container:#{_.replace(networkMode, 'service:', '')}_#{@imageId}_#{@releaseId}"
+			networkModeContainerId = serviceToContainer(_.replace(networkMode, 'service:', ''))
+			networkMode = "container:#{networkModeContainerId}"
 		conf = {
 			name: "#{@serviceName}_#{@imageId}_#{@releaseId}"
 			Image: @image
