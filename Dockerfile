@@ -36,7 +36,11 @@ ARG BUILDER_UID=1000
 ARG BUILDER_GID=1000
 
 COPY base-image /source
-RUN cd /source && bash -ex build.sh
+WORKDIR /source
+
+ARG SKIP_BASE_IMAGE_BUILD=false
+ARG CLEAR_BUILD_FOLDERS=true
+RUN bash -ex build.sh
 
 ##############################################################################
 

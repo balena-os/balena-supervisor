@@ -2,6 +2,11 @@
 
 set -o errexit
 
+if [ "$SKIP_BASE_IMAGE_BUILD" = "true" ]; then
+	echo "Skipping base image build"
+	exit 0
+fi
+
 BUILD_DIR='/home/builder/tmp'
 
 case "$ARCH" in
@@ -37,18 +42,28 @@ mkdir -p $SHARED_DOWNLOADS
 mkdir -p $SHARED_SSTATE
 mkdir -p $DEST_DIR
 
-groupadd -g $BUILDER_GID builder
-useradd -m -u $BUILDER_UID -g $BUILDER_GID builder
+if [ -z "$BUILDER_GID" ]; then
+	BUILDER_GID=1000
+fi
+if [ -z "$BUILDER_UID" ]; then
+	BUILDER_UID=1000
+fi
+
+groupadd -g $BUILDER_GID builder || true
+useradd -m -u $BUILDER_UID -g $BUILDER_GID builder || true
 sudo -H -u builder \
 	/bin/bash -c "mkdir -p $BUILD_DIR \
 	&& cp -r $SOURCE_DIR/* $BUILD_DIR/ \
 	&& cd $BUILD_DIR \
 	&& source oe-core/oe-init-build-env build bitbake \
-	&& DL_DIR=$SHARED_DOWNLOADS SSTATE_DIR=$SHARED_SSTATE MACHINE=$TARGET_MACHINE $BUILD_DIR/bitbake/bin/bitbake core-image-minimal > /dev/null"
+	&& DL_DIR=$SHARED_DOWNLOADS SSTATE_DIR=$SHARED_SSTATE MACHINE=$TARGET_MACHINE $BUILD_DIR/bitbake/bin/bitbake core-image-minimal"
 tar xzf $BUILD_DIR/build/tmp-glibc/deploy/images/$TARGET_MACHINE/core-image-minimal-$TARGET_MACHINE.tar.gz  -C $DEST_DIR
 # Delete the sstate and downloads directory so that the resulting image isn't huge
 # If https://github.com/moby/moby/issues/32507 gets implemented we can start using
 # a bind mounted cached directory instead
-rm -rf $SHARED_DOWNLOADS
-rm -rf $SHARED_SSTATE
-rm -rf $BUILD_DIR
+
+if [ "$CLEAR_BUILD_FOLDERS" = "true" ]; then
+	rm -rf $SHARED_DOWNLOADS
+	rm -rf $SHARED_SSTATE
+	rm -rf $BUILD_DIR
+fi
