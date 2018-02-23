@@ -28,7 +28,7 @@
     "buffer-equal-constant-time": "^1.0.1",
     "coffee-loader": "^0.7.3",
     "coffee-script": "~1.11.0",
-    "docker-delta": "^2.0.3",
+    "docker-delta": "^2.0.4",
     "docker-progress": "^2.7.2",
     "docker-toolbelt": "^3.2.1",
     "event-stream": "^3.0.20",
