@@ -106,15 +106,15 @@ RUN rsync -a --delete /go/bin/gosuper /build/
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM resin/rpi-node:6.5-slim as rpi-node-base
-FROM resin/armv7hf-node:6.5-slim as armv7hf-node-base
-FROM resin/aarch64-node:6.5-slim as aarch64-node-base
+FROM resin/rpi-node:8.9-slim as rpi-node-base
+FROM resin/armv7hf-node:8.9-slim as armv7hf-node-base
+FROM resin/aarch64-node:8.9-slim as aarch64-node-base
 
-FROM resin/amd64-node:6.5-slim as amd64-node-base
+FROM resin/amd64-node:8.9-slim as amd64-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM resin/i386-node:6.5-slim as i386-node-base
+FROM resin/i386-node:8.9-slim as i386-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
