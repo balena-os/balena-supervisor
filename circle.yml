@@ -84,14 +84,6 @@ jobs:
       PUSH_IMAGES: "true"
       STAGING_API_ENDPOINT: https://api.resinstaging.io
       PRODUCTION_API_ENDPOINT: https://api.resin.io
-  armel:
-    <<: *defaults
-    environment:
-      DOCKER_USERNAME: travisciresin
-      ARCH: armel
-      PUSH_IMAGES: "true"
-      STAGING_API_ENDPOINT: https://api.resinstaging.io
-      PRODUCTION_API_ENDPOINT: https://api.resin.io
   armv7hf:
     <<: *defaults
     environment:
