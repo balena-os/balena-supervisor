@@ -242,7 +242,7 @@ fetch = (app, { deltaSource, setDeviceUpdateState = true } = {}) ->
 		Promise.try ->
 			conf = JSON.parse(app.config)
 			Promise.join utils.getConfig('apiKey'), utils.getConfig('uuid'), (apiKey, uuid) ->
-				if conf['RESIN_SUPERVISOR_DELTA'] == '1'
+				if checkTruthy(conf['RESIN_SUPERVISOR_DELTA'])
 					logSystemEvent(logTypes.downloadAppDelta, app)
 					deltaOpts = {
 						uuid, apiKey, deltaSource
@@ -834,8 +834,8 @@ application.update = update = (force, scheduled = false) ->
 							app = remoteApps[appId]
 							conf = JSON.parse(app.config)
 							forceThisApp =
-								conf['RESIN_SUPERVISOR_OVERRIDE_LOCK'] == '1' ||
-								conf['RESIN_OVERRIDE_LOCK'] == '1'
+								checkTruthy(conf['RESIN_SUPERVISOR_OVERRIDE_LOCK']) ||
+								checkTruthy(conf['RESIN_OVERRIDE_LOCK'])
 							strategy = conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
 							timeout = conf['RESIN_SUPERVISOR_HANDOVER_TIMEOUT']
 							updateUsingStrategy strategy, {
