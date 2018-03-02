@@ -28,17 +28,29 @@ createRestartPolicy = (name) ->
 		name = 'always'
 	return { Name: name, MaximumRetryCount: 0 }
 
+processCommandStr = (s) ->
+	# Escape dollars
+	s.replace(/(\$)/g, '\\$1')
+
+processCommandParsedArrayElement = (arg) ->
+	if _.isObject(arg)
+		if arg.op == 'glob'
+			return arg.pattern
+		return arg.op
+	return arg
+
+ensureCommandIsArray = (s) ->
+	if _.isString(s)
+		s = _.map(parseCommand(processCommandStr(s)), processCommandParsedArrayElement)
+	return s
+
 getCommand = (service, imageInfo) ->
 	cmd = service.command ? imageInfo?.Config?.Cmd ? null
-	if _.isString(cmd)
-		cmd = parseCommand(cmd)
-	return cmd
+	return ensureCommandIsArray(cmd)
 
 getEntrypoint = (service, imageInfo) ->
 	entry = service.entrypoint ? imageInfo?.Config?.Entrypoint ? null
-	if _.isString(entry)
-		entry = parseCommand(entry)
-	return entry
+	return ensureCommandIsArray(entry)
 
 getStopSignal = (service, imageInfo) ->
 	sig = service.stopSignal ? imageInfo?.Config?.StopSignal ? null
