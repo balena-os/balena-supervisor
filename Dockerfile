@@ -108,7 +108,6 @@ RUN rsync -a --delete /go/bin/gosuper /build/
 # specified in the base-image subdirectory in the project
 FROM resin/rpi-node:6.5-slim as rpi-node-base
 FROM resin/armv7hf-node:6.5-slim as armv7hf-node-base
-FROM resin/armel-node:6.5-slim as armel-node-base
 FROM resin/aarch64-node:6.5-slim as aarch64-node-base
 
 FROM resin/amd64-node:6.5-slim as amd64-node-base
