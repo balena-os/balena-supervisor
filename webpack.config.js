@@ -4,6 +4,7 @@ var fs = require('fs');
 var _ = require('lodash');
 var path = require('path');
 var UglifyPlugin = require("uglifyjs-webpack-plugin");
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 var externalModules = [
 	'mkfifo',
@@ -54,7 +55,17 @@ module.exports = function (env) {
 	let plugins = [
 		new webpack.DefinePlugin({
 			'process.env.NODE_ENV': '"production"',
-		})
+		}),
+		new CopyWebpackPlugin([
+			{
+				from: './src/migrations',
+				to: 'migrations'
+			}
+		]),
+		new webpack.ContextReplacementPlugin(
+			/\.\/migrations/,
+			path.resolve(__dirname, 'src/migrations')
+		)
 	]
 	if (env == null || !env.noOptimize) {
 		plugins.push(new UglifyPlugin())
@@ -69,8 +80,15 @@ module.exports = function (env) {
 			extensions: [".js", ".json", ".coffee"]
 		},
 		target: 'node',
+		node: {
+			__dirname: false
+		},
 		module: {
 			rules: [
+				{
+					test: /knex\/lib\/migrate\/index\.js$/,
+					use: require.resolve('./hardcode-migrations')
+				},
 				{
 					test: /JSONStream\/index\.js$/,
 					use: require.resolve('./fix-jsonstream')

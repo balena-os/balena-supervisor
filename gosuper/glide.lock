@@ -6,31 +6,10 @@ imports:
   subpackages:
   - dbus
   - login1
-- name: github.com/docker/go-units
-  version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
-- name: github.com/go-ole/go-ole
-  version: 02d3668a0cf01f58411cc85cd37c174c257ec7c2
-  subpackages:
-  - oleutil
 - name: github.com/godbus/dbus
   version: 012f3c27dcbdbe5d1285634e604e4ef869d83f7d
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: bcd8bc72b08df0f70df986b97f95590779502d31
-- name: github.com/samalba/dockerclient
-  version: a3036261847103270e9f732509f43b5f98710ace
-- name: github.com/shirou/gopsutil
-  version: e30b7839cd6161b2fbef5f187377a345157abe04
-  subpackages:
-  - cpu
-  - host
-  - internal/common
-  - mem
-  - net
-  - process
-- name: github.com/shirou/w32
-  version: bb4de0191aa41b5507caa14b0650cdbddcd9280b
-- name: github.com/StackExchange/wmi
-  version: ea383cf3ba6ec950874b8486cd72356d007c768f
 testImports: []
