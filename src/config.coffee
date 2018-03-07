@@ -143,7 +143,7 @@ module.exports = class Config extends EventEmitter
 			deltaRetryInterval: { source: 'db', mutable: true, default: '10000' }
 			lockOverride: { source: 'db', mutable: true, default: 'false' }
 			legacyAppsPresent: { source: 'db', mutable: true, default: 'false' }
-			nativeLogger: { source: 'db', mutable: true, default: 'false' }
+			nativeLogger: { source: 'db', mutable: true, default: 'true' }
 		}
 
 		@configJsonCache = {}
