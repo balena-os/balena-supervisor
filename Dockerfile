@@ -1,45 +1,4 @@
 ARG ARCH=amd64
-FROM debian:jessie-20170723 as base
-ARG ARCH
-# Install the following utilities (required by openembedded)
-# http://www.openembedded.org/wiki/Getting_started#Ubuntu_.2F_Debian
-RUN apt-get -qq update \
-	&& apt-get -qq install -y \
-		build-essential \
-		chrpath \
-		cpio \
-		curl \
-		diffstat \
-		file \
-		gawk \
-		git-core \
-		libsdl1.2-dev \
-		locales \
-		python3 \
-		texinfo \
-		unzip \
-		wget \
-		xterm \
-		sudo \
-	&& rm -rf /var/lib/apt/lists/*
-
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LC_ALL en_US.UTF-8
-
-ENV SOURCE_DIR /source
-ENV DEST_DIR /dest
-ENV SHARED_DOWNLOADS /yocto/shared-downloads
-ENV SHARED_SSTATE /yocto/shared-sstate
-
-ARG BUILDER_UID=1000
-ARG BUILDER_GID=1000
-
-COPY base-image /source
-RUN cd /source && bash -ex build.sh
-
-##############################################################################
-
 # Build golang supervisor
 FROM debian:jessie-20170723 as gosuper
 
@@ -201,14 +160,12 @@ RUN [ "cross-build-end" ]
 ##############################################################################
 
 # Minimal runtime image
-FROM scratch
+FROM resin/$ARCH-supervisor-base:v1.1.0
 ARG ARCH
 ARG VERSION=master
 ARG DEFAULT_PUBNUB_PUBLISH_KEY=pub-c-bananas
 ARG DEFAULT_PUBNUB_SUBSCRIBE_KEY=sub-c-bananas
 ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
-
-COPY --from=base /dest/ /
 
 WORKDIR /usr/src/app
 
@@ -229,5 +186,3 @@ ENV CONFIG_MOUNT_POINT=/boot/config.json \
 
 HEALTHCHECK --interval=5m --start-period=1m --timeout=30s --retries=3 \
 	CMD wget -qO- http://127.0.0.1:${LISTEN_PORT:-48484}/v1/healthy || exit 1
-
-CMD [ "/sbin/init" ]

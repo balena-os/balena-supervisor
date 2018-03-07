@@ -112,9 +112,6 @@ function parseOptions {
 
 function buildSupervisor {
 	echo "Building and deploying for architecture $ARCH and tagging as $TAG"
-	git submodule update --init --recursive
-	git clean -fxd base-image
-	git submodule foreach --recursive git clean -fxd
 	ARCH="$ARCH" TAG="$TAG" bash automation/build.sh
 }
 

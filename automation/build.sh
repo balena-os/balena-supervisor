@@ -17,7 +17,6 @@
 # Will produce and push an image tagged as resin/$ARCH-supervisor:$TAG
 #
 # It pulls intermediate images for caching, if available:
-# resin/$ARCH-supervisor-base:$TAG
 # resin/$ARCH-supervisor-node:$TAG
 # resin/$ARCH-supervisor-go:$TAG
 #
@@ -30,11 +29,6 @@
 # If ENABLE_TESTS is "true", tests will be run.
 #
 # Requires docker >= 17.05, and make.
-#
-# If you just cloned the repo, run this to populate the yocto dependencies before running this script:
-# git submodule update --init --recursive
-# git clean -fxd base-image
-# git submodule foreach --recursive git clean -fxd
 #
 
 set -e
@@ -53,19 +47,16 @@ function tryRemove() {
 TARGET_IMAGE=resin/$ARCH-supervisor:$TAG
 
 # Intermediate images and cache
-BASE_IMAGE=resin/$ARCH-supervisor-base:$TAG
 NODE_IMAGE=resin/$ARCH-supervisor-node:$TAG
 NODE_BUILD_IMAGE=resin/$ARCH-supervisor-node:$TAG-build
 GO_IMAGE=resin/$ARCH-supervisor-go:$TAG
 
 TARGET_CACHE=$TARGET_IMAGE
-BASE_CACHE=$BASE_IMAGE
 GO_CACHE=$GO_IMAGE
 NODE_CACHE=$NODE_IMAGE
 NODE_BUILD_CACHE=$NODE_BUILD_IMAGE
 
 TARGET_CACHE_MASTER=resin/$ARCH-supervisor:master
-BASE_CACHE_MASTER=resin/$ARCH-supervisor-base:master
 GO_CACHE_MASTER=resin/$ARCH-supervisor-go:master
 NODE_CACHE_MASTER=resin/$ARCH-supervisor-node:master
 NODE_BUILD_CACHE_MASTER=resin/$ARCH-supervisor-node:master-build
@@ -82,8 +73,6 @@ function tryPullForCache() {
 # Only if the pull succeeds we add a --cache-from option
 tryPullForCache $TARGET_CACHE
 tryPullForCache $TARGET_CACHE_MASTER
-tryPullForCache $BASE_CACHE
-tryPullForCache $BASE_CACHE_MASTER
 tryPullForCache $GO_CACHE
 tryPullForCache $GO_CACHE_MASTER
 tryPullForCache $NODE_CACHE
@@ -100,12 +89,6 @@ export ARCH
 export PUBNUB_PUBLISH_KEY
 export PUBNUB_SUBSCRIBE_KEY
 export MIXPANEL_TOKEN
-
-make IMAGE=$BASE_IMAGE base
-if [ "$PUSH_IMAGES" = "true" ]; then
-	make IMAGE=$BASE_IMAGE deploy || true
-fi
-export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${BASE_IMAGE}"
 
 make IMAGE=$GO_IMAGE gosuper
 if [ "$PUSH_IMAGES" = "true" ]; then
@@ -140,13 +123,11 @@ fi
 if [ "$CLEANUP" = "true" ]; then
 	tryRemove $TARGET_IMAGE
 
-	tryRemove $BASE_IMAGE
 	tryRemove $GO_IMAGE
 	tryRemove $NODE_IMAGE
 	tryRemove $NODE_BUILD_IMAGE
 
 	tryRemove $TARGET_CACHE
-	tryRemove $BASE_CACHE
 	tryRemove $GO_CACHE
 	tryRemove $NODE_BUILD_CACHE
 	tryRemove $NODE_CACHE
