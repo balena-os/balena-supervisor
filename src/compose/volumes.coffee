@@ -23,6 +23,7 @@ module.exports = class Volumes
 				labels: _.omit(volume.Labels, _.keys(constants.defaultVolumeLabels))
 				driverOpts: volume.Options
 			}
+			handle: volume
 		}
 
 	getAll: =>
@@ -50,8 +51,9 @@ module.exports = class Volumes
 		labels = _.clone(config.labels) ? {}
 		_.assign(labels, constants.defaultVolumeLabels)
 		driverOpts = config.driverOpts ? {}
+
 		@get({ name, appId })
-		.then (vol) =>
+		.tap (vol) =>
 			if !@isEqualConfig(vol.config, config)
 				throw new Error("Trying to create volume '#{name}', but a volume with same name and different configuration exists")
 		.catch NotFoundError, =>
@@ -59,19 +61,20 @@ module.exports = class Volumes
 				Name: "#{appId}_#{name}"
 				Labels: labels
 				DriverOpts: driverOpts
-			})
+			}).inspect().then(@format)
 		.tapCatch (err) =>
 			@logger.logSystemEvent(logTypes.createVolumeError, { volume: { name }, error: err })
 
 	createFromLegacy: (appId) =>
 		name = defaultLegacyVolume()
 		@create({ name, appId })
-		.call('inspect')
+		.get('handle')
 		.then (v) ->
-			volumePath = path.join(constants.rootMountPoint, v.Mountpoint)
-			legacyPath = path.join(constants.rootMountPoint, constants.dataPath, appId.toString())
+			# Convert the path to be of the same mountpoint so that rename can work
+			volumePath = path.join(constants.rootMountPoint, 'mnt/data', v.Mountpoint.split(path.sep).slice(3)...)
+			legacyPath = path.join(constants.rootMountPoint, 'mnt/data/resin-data', appId.toString())
 			safeRename(legacyPath, volumePath)
-		.catch (err) ->
+		.catch (err) =>
 			@logger.logSystemMessage("Warning: could not migrate legacy /data volume: #{err.message}", { error: err }, 'Volume migration error')
 
 	remove: ({ name, appId }) ->
