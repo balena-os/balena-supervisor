@@ -153,8 +153,9 @@ module.exports = class DeviceState extends EventEmitter
 		.then =>
 			console.log('Migrating legacy app volumes')
 			@applications.getTargetApps()
-		.map (app) =>
-			@applications.volumes.createFromLegacy(app.appId)
+			.then(_.keys)
+		.map (appId) =>
+			@applications.volumes.createFromLegacy(appId)
 		.then =>
 			@config.set({ legacyAppsPresent: 'false' })
 
