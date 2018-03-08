@@ -19,6 +19,6 @@ exports.writeFileAtomic = (path, data) ->
 exports.safeRename = (src, dest) ->
 	fs.renameAsync(src, dest)
 	.then ->
-		fs.openAsync(path.dirname(dest))
+		fs.openAsync(path.dirname(dest), 'r')
 	.tap(fs.fsyncAsync)
 	.then(fs.closeAsync)
