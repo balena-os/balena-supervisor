@@ -136,10 +136,10 @@ createApplicationManagerRouter = (applications) ->
 				.then (app) ->
 					service = app?.services?[0]
 					if !service?
-						return res.status(400).send('App not found after running action')
+						throw new Error('App not found after running action')
 					return service
-		.then (service) ->
-			res.status(200).json({ containerId: service.containerId })
+			.then (service) ->
+				res.status(200).json({ containerId: service.containerId })
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -213,8 +213,8 @@ createApplicationManagerRouter = (applications) ->
 					return res.status(404).send(errMsg)
 				applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
 				applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { skipLock: true })
-			.then ->
-				res.status(200).send('OK')
+				.then ->
+					res.status(200).send('OK')
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
