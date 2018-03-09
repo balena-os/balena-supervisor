@@ -38,7 +38,7 @@ var singleToMulticontainerApp = function (app) {
 		{
 			serviceId: 1,
 			appId: appId,
-			serviceName: app.name.toLowerCase(),
+			serviceName: 'main',
 			imageId: 1,
 			commit: app.commit,
 			releaseId: 1,
