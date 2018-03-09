@@ -61,7 +61,7 @@ module.exports = class Volumes
 				Name: "#{appId}_#{name}"
 				Labels: labels
 				DriverOpts: driverOpts
-			}).inspect().then(@format)
+			}).call('inspect').then(@format)
 		.tapCatch (err) =>
 			@logger.logSystemEvent(logTypes.createVolumeError, { volume: { name }, error: err })
 
