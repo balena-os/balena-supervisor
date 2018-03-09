@@ -124,7 +124,8 @@ func getUnitStatus(unitName string) (state bool, err error) {
 		err = fmt.Errorf("Unable to get unit status: %v", e)
 		return
 	} else {
-		state = activeState.Value.String() == `"active"`
+		activeStateStr := activeState.Value.String()
+		state = activeStateStr != `"inactive"` && activeStateStr != `"deactivating"`
 		return
 	}
 }
