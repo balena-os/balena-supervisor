@@ -12,7 +12,7 @@ constants = require './lib/constants'
 validation = require './lib/validation'
 device = require './lib/device'
 updateLock = require './lib/update-lock'
-{ singleToMulticontainerApp } = './lib/migration'
+{ singleToMulticontainerApp } = require './lib/migration'
 
 DeviceConfig = require './device-config'
 ApplicationManager = require './application-manager'
