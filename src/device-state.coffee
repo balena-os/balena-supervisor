@@ -5,6 +5,7 @@ EventEmitter = require 'events'
 fs = Promise.promisifyAll(require('fs'))
 express = require 'express'
 bodyParser = require 'body-parser'
+debug = require('debug')('Resin-supervisor:device-state')
 hostConfig = require './host-config'
 network = require './network'
 
@@ -17,10 +18,10 @@ updateLock = require './lib/update-lock'
 DeviceConfig = require './device-config'
 ApplicationManager = require './application-manager'
 
-validateLocalState = (state) ->
+validateLocalState = (state, debug) ->
 	if !state.name? or !validation.isValidShortText(state.name)
 		throw new Error('Invalid device name')
-	if !state.apps? or !validation.isValidAppsObject(state.apps)
+	if !state.apps? or !validation.isValidAppsObject(state.apps, debug)
 		throw new Error('Invalid apps')
 	if !state.config? or !validation.isValidEnv(state.config)
 		throw new Error('Invalid device configuration')
@@ -31,12 +32,12 @@ validateDependentState = (state) ->
 	if state.devices? and !validation.isValidDependentDevicesObject(state.devices)
 		throw new Error('Invalid dependent devices')
 
-validateState = Promise.method (state) ->
+validateState = Promise.method (state, debug) ->
 	if !_.isObject(state)
 		throw new Error('State must be an object')
 	if !_.isObject(state.local)
 		throw new Error('Local state must be an object')
-	validateLocalState(state.local)
+	validateLocalState(state.local, debug)
 	if state.dependent?
 		validateDependentState(state.dependent)
 
@@ -131,6 +132,9 @@ module.exports = class DeviceState extends EventEmitter
 			else
 				console.log('Apply success!')
 		@applications.on('change', @reportCurrentState)
+		@debug = debug
+		@config.get('debugMode').then((mode) -> @debug.enabled = mode)
+
 
 	healthcheck: =>
 		@config.getMany([ 'appUpdatePollInterval', 'offlineMode' ])
@@ -241,7 +245,10 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.using @_inferStepsLock, -> fn()
 
 	setTarget: (target) ->
-		validateState(target)
+		target = local:
+			test:
+				'asd'
+		validateState(target, @debug)
 		.then =>
 			@usingWriteLockTarget =>
 				# Apps, deviceConfig, dependent

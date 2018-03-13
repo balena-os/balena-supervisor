@@ -1,4 +1,5 @@
 _ = require 'lodash'
+debug = require('debug')('Resin-supervisor:validation')
 
 exports.checkInt = checkInt = (s, options = {}) ->
 	# Make sure `s` exists and is not an empty string.
@@ -26,13 +27,20 @@ exports.checkTruthy = (v) ->
 
 exports.isValidShortText = isValidShortText = (t) ->
 	_.isString(t) and t.length <= 255
-exports.isValidEnv = isValidEnv = (obj) ->
+
+exports.isValidEnv = isValidEnv = (debug, obj) ->
 	_.isObject(obj) and _.every obj, (val, key) ->
 		isValidShortText(key) and /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) and _.isString(val)
 
-exports.isValidLabelsObject = isValidLabelsObject = (obj) ->
-	_.isObject(obj) and _.every obj, (val, key) ->
-		isValidShortText(key) and /^[a-zA-Z][a-zA-Z0-9\.\-]*$/.test(key) and _.isString(val)
+exports.isValidLabelsObject = isValidLabelsObject = (debug, obj) ->
+	if _.isObject(obj)
+		debug('Labels object is not an object')
+		return false
+	return _.every obj, (val, key) ->
+		res = isValidShortText(key) and /^[a-zA-Z][a-zA-Z0-9\.\-]*$/.test(key) and _.isString(val)
+		if !res
+			debug("Labels pair (#{key}, #{val}) did not pass validation")
+		return res
 
 undefinedOrValidEnv = (val) ->
 	if val? and !isValidEnv(val)
@@ -52,24 +60,65 @@ exports.isValidDependentAppsObject = (apps) ->
 			environment: undefinedOrValidEnv
 		})
 
-isValidService = (service, serviceId) ->
-	return false if !isValidShortText(serviceId) or !checkInt(serviceId)
+checkPred = (predicate, message, debug, input) ->
+	res = predicate(input)
+	if !res
+		debug(message)
+	return res
+
+createPred = _.curry(checkPred)
+
+isValidService = (debug, service, serviceId) ->
+	if !isValidShortText(serviceId) or !checkInt(serviceId)
+		debug("Service ID is not valid for service #{service}")
+		return false
+
 	return _.conformsTo(service, {
-		serviceName: isValidShortText
-		image: isValidShortText
-		environment: isValidEnv
-		imageId: (i) -> checkInt(i)?
-		labels: isValidLabelsObject
+		serviceName: createPred(isValidShortText,
+			"Service name is not valid for service #{service}",
+			debug,
+		)
+		image: createPred(isValidShortText,
+			"Image name is not valid for service #{service}",
+			debug,
+		)
+		environment: createPred(_.partial(isValidEnv, debug),
+			"Environment variables are not valid for service #{service}",
+			debug,
+		)
+		imageId: createPred(
+			(i) -> checkInt(i)?,
+			"Image ID is not an integer for service #{service}",
+			debug,
+		)
+		labels: createPred(_.partial(isValidLabelsObject, debug),
+			"Labels object is not valid for service #{service}",
+			debug,
+		)
 	})
 
-exports.isValidAppsObject = (obj) ->
-	return false if !_.isObject(obj)
+exports.isValidAppsObject = (obj, debug = _.noop) ->
+	if !_.isObject(obj)
+		debug('Apps object is not an object!')
+		return false
+
 	return _.every obj, (val, appId) ->
-		return false if !isValidShortText(appId) or !checkInt(appId)?
+		if !isValidShortText(appId) or !checkInt(appId)?
+			debug('App id is not valid short text or integer')
+			return false
+
 		return _.conformsTo(_.defaults(_.clone(val), { releaseId: undefined }), {
-			name: isValidShortText
-			releaseId: (r) -> !r? or checkInt(r)?
-			services: (s) -> _.isObject(s) and _.every(s, isValidService)
+			name: _.partial(checkPred, isValidShortText, 'Application name is not valid', debug)
+			releaseId: _.partial(checkPred,
+				(r) -> !r? or checkInt(r)?
+				'Release ID is not null or an integer'
+				debug
+			)
+			services: _.partial(checkPred,
+				(s) -> _.isObject(s) and _.every(s, _.partial(isValidService, debug))
+				'Services is not an object or a service is not valid'
+				debug
+			)
 		})
 
 exports.isValidDependentDevicesObject = (devices) ->
