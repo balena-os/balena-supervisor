@@ -32,10 +32,9 @@ module.exports = class ServiceManager extends EventEmitter
 		if status?
 			@volatileState[containerId] ?= {}
 			_.merge(@volatileState[containerId], status)
-			@emit('change')
 		else if containerId? and @volatileState[containerId]?
 			delete @volatileState[containerId]
-			@emit('change')
+		@emit('change')
 
 	reportNewStatus: (containerId, service, status) =>
 		@reportChange(containerId, _.merge({ status }, _.pick(service, [ 'imageId', 'appId', 'releaseId', 'commit' ])))
@@ -218,6 +217,8 @@ module.exports = class ServiceManager extends EventEmitter
 		@get(service)
 		.then (svc) =>
 			@docker.getContainer(svc.containerId).rename(name: "#{service.serviceName}_#{imageId}_#{releaseId}")
+		.then =>
+			@reportChange()
 
 	handover: (currentService, targetService) =>
 		# We set the running container to not restart so that in case of a poweroff
