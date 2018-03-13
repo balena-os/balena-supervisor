@@ -19,6 +19,7 @@ DeviceConfig = require './device-config'
 ApplicationManager = require './application-manager'
 
 validateLocalState = (state, debug) ->
+	debug(state)
 	if !state.name? or !validation.isValidShortText(state.name)
 		throw new Error('Invalid device name')
 	if !state.apps? or !validation.isValidAppsObject(state.apps, debug)
@@ -133,7 +134,7 @@ module.exports = class DeviceState extends EventEmitter
 				console.log('Apply success!')
 		@applications.on('change', @reportCurrentState)
 		@debug = debug
-		@config.get('debugMode').then((mode) -> @debug.enabled = mode)
+		debug.enabled = true
 
 
 	healthcheck: =>
@@ -245,9 +246,6 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.using @_inferStepsLock, -> fn()
 
 	setTarget: (target) ->
-		target = local:
-			test:
-				'asd'
 		validateState(target, @debug)
 		.then =>
 			@usingWriteLockTarget =>
