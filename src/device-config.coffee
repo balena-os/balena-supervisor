@@ -148,8 +148,8 @@ module.exports = class DeviceConfig
 		current = _.clone(currentState.local?.config ? {})
 		target = _.clone(targetState.local?.config ? {})
 		steps = []
-		@config.get('deviceType')
-		.then (deviceType) =>
+		@config.getMany([ 'deviceType', 'offlineMode' ])
+		.then ({ deviceType, offlineMode }) =>
 			configChanges = {}
 			humanReadableConfigChanges = {}
 			match = {
@@ -178,11 +178,13 @@ module.exports = class DeviceConfig
 						action: 'setLogToDisplay'
 						target: target['RESIN_HOST_LOG_TO_DISPLAY']
 					})
-			if !_.isEmpty(target['RESIN_SUPERVISOR_VPN_CONTROL']) && checkTruthy(current['RESIN_SUPERVISOR_VPN_CONTROL']) != checkTruthy(target['RESIN_SUPERVISOR_VPN_CONTROL'])
-				steps.push({
-					action: 'setVPNEnabled'
-					target: target['RESIN_SUPERVISOR_VPN_CONTROL']
-				})
+			if !checkTruthy(offlineMode) &&
+				!_.isEmpty(target['RESIN_SUPERVISOR_VPN_CONTROL']) &&
+				checkTruthy(current['RESIN_SUPERVISOR_VPN_CONTROL']) != checkTruthy(target['RESIN_SUPERVISOR_VPN_CONTROL'])
+					steps.push({
+						action: 'setVPNEnabled'
+						target: target['RESIN_SUPERVISOR_VPN_CONTROL']
+					})
 			if @bootConfigChangeRequired(deviceType, current, target)
 				steps.push({
 					action: 'setBootConfig'
