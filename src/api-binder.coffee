@@ -7,6 +7,7 @@ deviceRegister = require 'resin-register-device'
 express = require 'express'
 bodyParser = require 'body-parser'
 Lock = require 'rwlock'
+debug = require('debug')('Resin-supervisor:api-binder')
 { request, requestOpts } = require './lib/request'
 { checkTruthy } = require './lib/validation'
 
@@ -364,6 +365,7 @@ module.exports = class APIBinder
 		return _.pickBy(diff, _.negate(_.isEmpty))
 
 	_sendReportPatch: (stateDiff, conf) =>
+		debug("Sending to the patch endpoint: \n #{JSON.stringify(stateDiff, null, 2)}")
 		endpoint = url.resolve(conf.resinApiEndpoint, "/device/v2/#{conf.uuid}/state")
 		requestParams = _.extend
 			method: 'PATCH'
@@ -379,6 +381,7 @@ module.exports = class APIBinder
 			stateDiff = @_getStateDiff()
 			if _.size(stateDiff) is 0
 				return
+
 			@_sendReportPatch(stateDiff, conf)
 			.timeout(conf.apiTimeout)
 			.then =>
