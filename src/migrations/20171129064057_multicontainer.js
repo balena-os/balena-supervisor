@@ -56,6 +56,7 @@ var singleToMulticontainerApp = function (app) {
 				'io.resin.features.resin-api': '1',
 				'io.resin.update.strategy': updateStrategy,
 				'io.resin.update.handover-timeout': handoverTimeout,
+				'io.resin.legacy-container': '1'
 			},
 			environment: environment,
 			restart: restartPolicy,
