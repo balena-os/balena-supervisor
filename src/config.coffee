@@ -65,7 +65,7 @@ module.exports = class Config extends EventEmitter
 						applicationId: conf.applicationId
 						userId: conf.userId
 						deviceType: conf.deviceType
-						provisioningApiKey: conf.apiKey
+						apiKey: conf.apiKey
 						deviceApiKey: conf.deviceApiKey
 						apiEndpoint: conf.resinApiEndpoint
 						apiTimeout: conf.apiTimeout

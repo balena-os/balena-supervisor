@@ -128,7 +128,7 @@ module.exports = class APIBinder
 			if device?
 				return device
 			# If it's not valid/doesn't exist then we try to use the user/provisioning api key for the exchange
-			@fetchDevice(opts.uuid, opts.provisioningApiKey, opts.apiTimeout)
+			@fetchDevice(opts.uuid, opts.apiKey, opts.apiTimeout)
 			.tap (device) ->
 				if not device?
 					throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
@@ -138,7 +138,7 @@ module.exports = class APIBinder
 					body:
 						apiKey: opts.deviceApiKey
 					headers:
-						Authorization: "Bearer #{opts.provisioningApiKey}"
+						Authorization: "Bearer #{opts.apiKey}"
 				})
 				.spread (res, body) ->
 					if res.statusCode != 200
@@ -157,7 +157,7 @@ module.exports = class APIBinder
 	_provision: =>
 		@config.get('provisioningOptions')
 		.then (opts) =>
-			if opts.registered_at? and opts.deviceId? and !opts.provisioningApiKey?
+			if opts.registered_at? and opts.deviceId? and !opts.apiKey?
 				return
 			Promise.try =>
 				if opts.registered_at? and !opts.deviceId?
@@ -172,7 +172,7 @@ module.exports = class APIBinder
 						@_exchangeKeyAndGetDeviceOrRegenerate(opts)
 					.tap ->
 						opts.registered_at = Date.now()
-				else if opts.provisioningApiKey?
+				else if opts.apiKey?
 					console.log('Device is registered but we still have an apiKey, attempting key exchange')
 					@_exchangeKeyAndGetDevice(opts)
 			.then ({ id }) =>
