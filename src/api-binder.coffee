@@ -103,13 +103,15 @@ module.exports = class APIBinder
 			return null
 
 	fetchDevice: (uuid, apiKey, timeout) =>
-		@resinApi.get
+		reqOpts = {
 			resource: 'device'
 			options:
 				filter:
 					uuid: uuid
 			passthrough:
-				headers: Authorization: "Bearer: #{apiKey}"
+				headers: Authorization: "Bearer #{apiKey}"
+		}
+		@resinApi.get(reqOpts)
 		.get(0)
 		.catchReturn(null)
 		.timeout(timeout)
