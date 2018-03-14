@@ -523,6 +523,7 @@ module.exports = class Service
 			ipc: container.HostConfig.IpcMode
 			macAddress: container.Config.MacAddress
 			user: container.Config.User
+			workingDir: container.Config.WorkingDir
 		}
 		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
 		if service.restartPolicy.Name == ''
@@ -584,6 +585,7 @@ module.exports = class Service
 			Labels: @labels
 			Domainname: @domainname
 			User: @user
+			WorkingDir: @workingDir
 			HostConfig:
 				Memory: @memLimit
 				MemoryReservation: @memReservation
@@ -687,6 +689,7 @@ module.exports = class Service
 			'ipc'
 			'macAddress'
 			'user'
+			'workingDir'
 		]
 		arraysToCompare = [
 			'volumes'
