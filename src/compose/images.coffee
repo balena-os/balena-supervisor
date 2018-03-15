@@ -228,9 +228,10 @@ module.exports = class Images extends EventEmitter
 		images = []
 		Promise.join(
 			@docker.getRegistryAndName(constants.supervisorImage)
+			@docker.getImage(constants.supervisorImage).inspect()
 			@db.models('image').select('dockerImageId')
 			.map((image) -> image.dockerImageId)
-			(supervisorImageInfo, usedImageIds) =>
+			(supervisorImageInfo, supervisorImage, usedImageIds) =>
 				isDangling = (image) ->
 					# Looks like dangling images show up with these weird RepoTags and RepoDigests sometimes
 					(_.isEmpty(image.RepoTags) or _.isEqual(image.RepoTags, [ '<none>:<none>' ])) and
@@ -240,7 +241,7 @@ module.exports = class Images extends EventEmitter
 					# Cleanup should remove truly dangling images (i.e. dangling and with no digests)
 					if isDangling(image) and not (image.Id in usedImageIds)
 						images.push(image.Id)
-					else if !_.isEmpty(image.RepoTags)
+					else if !_.isEmpty(image.RepoTags) and image.Id != supervisorImage.Id
 						# We also remove images from the supervisor repository with a different tag
 						Promise.map image.RepoTags, (repoTag) =>
 							@docker.getRegistryAndName(repoTag)
