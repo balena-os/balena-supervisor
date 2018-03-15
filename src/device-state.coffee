@@ -45,9 +45,11 @@ createDeviceStateRouter = (deviceState) ->
 	router.use(bodyParser.urlencoded(extended: true))
 	router.use(bodyParser.json())
 
-	router.post '/v1/reboot', (req, res) ->
-		force = validation.checkTruthy(req.body.force)
-		deviceState.executeStepAction({ action: 'reboot' }, { force })
+	rebootOrShutdown = (req, res, action) ->
+		deviceState.config.get('lockOverride')
+		.then (lockOverride) ->
+			force = validation.checkTruthy(req.body.force) or validation.checkTruthy(lockOverride)
+			deviceState.executeStepAction({ action }, { force })
 		.then (response) ->
 			res.status(202).json(response)
 		.catch (err) ->
@@ -57,17 +59,11 @@ createDeviceStateRouter = (deviceState) ->
 				status = 500
 			res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
 
+	router.post '/v1/reboot', (req, res) ->
+		rebootOrShutdown(req, res, 'reboot')
+
 	router.post '/v1/shutdown', (req, res) ->
-		force = validation.checkTruthy(req.body.force)
-		deviceState.executeStepAction({ action: 'shutdown' }, { force })
-		.then (response) ->
-			res.status(202).json(response)
-		.catch (err) ->
-			if err instanceof updateLock.UpdatesLockedError
-				status = 423
-			else
-				status = 500
-			res.status(status).json({ Data: '', Error: err?.message or err or 'Unknown error' })
+		rebootOrShutdown(req, res, 'shutdown')
 
 	router.get '/v1/device/host-config', (req, res) ->
 		hostConfig.get()
