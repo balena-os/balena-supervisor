@@ -59,6 +59,8 @@ module.exports = class Config extends EventEmitter
 					'deviceType'
 					'resinApiEndpoint'
 					'apiTimeout'
+					'registered_at'
+					'deviceId'
 				]).then (conf) ->
 					return {
 						uuid: conf.uuid
@@ -69,6 +71,8 @@ module.exports = class Config extends EventEmitter
 						deviceApiKey: conf.deviceApiKey
 						apiEndpoint: conf.resinApiEndpoint
 						apiTimeout: conf.apiTimeout
+						registered_at: conf.registered_at
+						deviceId: conf.deviceId
 					}
 
 			mixpanelHost: =>
