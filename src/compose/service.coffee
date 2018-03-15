@@ -257,6 +257,9 @@ module.exports = class Service
 					return "#{@appId}_#{k}"
 				return k
 
+			if @networkMode == 'host' and @hostname == ''
+				@hostname = opts.hostnameOnHost
+
 			@networks[@networkMode] ?= {}
 
 			@restartPolicy = createRestartPolicy(serviceProperties.restart)
@@ -459,9 +462,8 @@ module.exports = class Service
 		hostname = container.Config.Hostname
 		# A hostname equal to the first part of the container ID actually
 		# means no hostname was specified
-		if hostname == container.Id.substr(0, 12) or
-			(networkMode == 'host' and hostname == os.hostname())
-				hostname = ''
+		if hostname.length is 12 and container.Id.startsWith(hostname)
+			hostname = ''
 
 		service = {
 			appId: appId
@@ -523,6 +525,7 @@ module.exports = class Service
 			ipc: container.HostConfig.IpcMode
 			macAddress: container.Config.MacAddress
 			user: container.Config.User
+			workingDir: container.Config.WorkingDir
 		}
 		# I've seen docker use either 'no' or '' for no restart policy, so we normalise to 'no'.
 		if service.restartPolicy.Name == ''
@@ -584,6 +587,7 @@ module.exports = class Service
 			Labels: @labels
 			Domainname: @domainname
 			User: @user
+			WorkingDir: @workingDir
 			HostConfig:
 				Memory: @memLimit
 				MemoryReservation: @memReservation
@@ -687,6 +691,7 @@ module.exports = class Service
 			'ipc'
 			'macAddress'
 			'user'
+			'workingDir'
 		]
 		arraysToCompare = [
 			'volumes'

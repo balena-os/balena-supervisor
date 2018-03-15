@@ -799,11 +799,13 @@ module.exports = class ApplicationManager extends EventEmitter
 				firmware: pathExistsOnHost('/lib/firmware')
 				modules: pathExistsOnHost('/lib/modules')
 			})
-			(opts, supervisorApiHost, hostPathExists) =>
+			fs.readFileAsync(path.join(constants.rootMountPoint, '/etc/hostname')).then(String)
+			(opts, supervisorApiHost, hostPathExists, hostnameOnHost) =>
 				configOpts = {
 					appName: app.name
 					supervisorApiHost
 					hostPathExists
+					hostnameOnHost
 				}
 				_.assign(configOpts, opts)
 				volumes = JSON.parse(app.volumes)
