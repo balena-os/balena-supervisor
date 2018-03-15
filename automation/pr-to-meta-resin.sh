@@ -6,8 +6,9 @@
 #
 # If $PR_1X is "true", an additional PR for 1.X will be created.
 #
-# Requires $GITHUB_USER and $GITHUB_PASSWORD to push and create the pull-request.
+# Requires ssh keys set up to push and create the pull-request.
 # Requires $TAG to be set to the supervisor version to use.
+# Requires hub to be installed (see https://github.com/github/hub)
 #
 
 set -e
@@ -18,13 +19,7 @@ if [ -z "$TAG" ]; then
 	exit 1
 fi
 
-if [[ -z "$GITHUB_PASSWORD" || -z "$GITHUB_USER" ]]; then
-	echo "GITHUB_USER and GITHUB_PASSWORD are required"
-	exit 1
-fi
-
-REPO_URL=https://github.com/resin-os/meta-resin.git
-REPO_URL_WITH_CREDENTIALS=https://${GITHUB_USER}:${GITHUB_PASSWORD}@github.com/resin-os/meta-resin.git
+REPO_URL="git@github.com:resin-os/meta-resin.git"
 USER=${USER:-$(whoami)}
 
 function prepareBranches() {
@@ -52,7 +47,7 @@ Changelog-Entry: Update supervisor to ${TAG}
 Change-Type: patch
 "
 
-	git push $REPO_URL_WITH_CREDENTIALS $HEAD
+	git push origin $HEAD
 
 	hub pull-request -b ${BASE} -m "${BASE}: Update supervisor to ${TAG}
 
