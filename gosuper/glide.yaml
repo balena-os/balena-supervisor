@@ -1,9 +1,0 @@
-package: resin-supervisor/gosuper
-import:
-- package: github.com/coreos/go-systemd
-  version: ^14.0.0
-  subpackages:
-  - dbus
-  - login1
-- package: github.com/gorilla/mux
-  version: ^1.4.0
