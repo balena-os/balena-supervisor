@@ -18,7 +18,6 @@
 #
 # It pulls intermediate images for caching, if available:
 # resin/$ARCH-supervisor-node:$TAG
-# resin/$ARCH-supervisor-go:$TAG
 #
 # In all of these cases it will use "master" if $TAG is not found.
 #
@@ -49,15 +48,12 @@ TARGET_IMAGE=resin/$ARCH-supervisor:$TAG
 # Intermediate images and cache
 NODE_IMAGE=resin/$ARCH-supervisor-node:$TAG
 NODE_BUILD_IMAGE=resin/$ARCH-supervisor-node:$TAG-build
-GO_IMAGE=resin/$ARCH-supervisor-go:$TAG
 
 TARGET_CACHE=$TARGET_IMAGE
-GO_CACHE=$GO_IMAGE
 NODE_CACHE=$NODE_IMAGE
 NODE_BUILD_CACHE=$NODE_BUILD_IMAGE
 
 TARGET_CACHE_MASTER=resin/$ARCH-supervisor:master
-GO_CACHE_MASTER=resin/$ARCH-supervisor-go:master
 NODE_CACHE_MASTER=resin/$ARCH-supervisor-node:master
 NODE_BUILD_CACHE_MASTER=resin/$ARCH-supervisor-node:master-build
 
@@ -73,28 +69,16 @@ function tryPullForCache() {
 # Only if the pull succeeds we add a --cache-from option
 tryPullForCache $TARGET_CACHE
 tryPullForCache $TARGET_CACHE_MASTER
-tryPullForCache $GO_CACHE
-tryPullForCache $GO_CACHE_MASTER
 tryPullForCache $NODE_CACHE
 tryPullForCache $NODE_CACHE_MASTER
 tryPullForCache $NODE_BUILD_CACHE
 tryPullForCache $NODE_BUILD_CACHE_MASTER
-
-if [ "$ENABLE_TESTS" = "true" ]; then
-	make ARCH=$ARCH IMAGE=$GO_IMAGE test-gosuper
-fi
 
 export DOCKER_BUILD_OPTIONS=${CACHE_FROM}
 export ARCH
 export PUBNUB_PUBLISH_KEY
 export PUBNUB_SUBSCRIBE_KEY
 export MIXPANEL_TOKEN
-
-make IMAGE=$GO_IMAGE gosuper
-if [ "$PUSH_IMAGES" = "true" ]; then
-	make IMAGE=$GO_IMAGE deploy || true
-fi
-export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${GO_IMAGE}"
 
 make IMAGE=$NODE_BUILD_IMAGE nodebuild
 if [ "$PUSH_IMAGES" = "true" ]; then
@@ -123,12 +107,10 @@ fi
 if [ "$CLEANUP" = "true" ]; then
 	tryRemove $TARGET_IMAGE
 
-	tryRemove $GO_IMAGE
 	tryRemove $NODE_IMAGE
 	tryRemove $NODE_BUILD_IMAGE
 
 	tryRemove $TARGET_CACHE
-	tryRemove $GO_CACHE
 	tryRemove $NODE_BUILD_CACHE
 	tryRemove $NODE_CACHE
 fi

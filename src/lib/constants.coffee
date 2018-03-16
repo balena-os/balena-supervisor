@@ -8,7 +8,6 @@ supervisorNetworkInterface = 'supervisor0'
 module.exports =
 	rootMountPoint: rootMountPoint
 	databasePath: checkString(process.env.DATABASE_PATH) ? '/data/database.sqlite'
-	gosuperAddress: "http://unix:#{process.env.GOSUPER_SOCKET}:"
 	dockerSocket: process.env.DOCKER_SOCKET ? '/var/run/docker.sock'
 	supervisorImage: checkString(process.env.SUPERVISOR_IMAGE) ? 'resin/rpi-supervisor'
 	ledFile: checkString(process.env.LED_FILE) ? '/sys/class/leds/led0/brightness'

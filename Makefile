@@ -6,7 +6,6 @@
 # Build targets (require Docker 17.05 or greater):
 # * supervisor (default) - builds a resin-supervisor image
 # * deploy - pushes a resin-supervisor image to the registry, retrying up to 3 times
-# * gosuper - builds the "gosuper" component (a golang image with the Go supervisor component at /go/bin/gosuper and /build/gosuper)
 # * nodedeps, nodebuild - builds the node component, with the node_modules and src at /usr/src/app and /build (also includes a rootfs-overlay there)
 # * supervisor-dind: build the development docker-in-docker supervisor that run-supervisor uses (requires a SUPERVISOR_IMAGE to be available locally)
 #
@@ -19,8 +18,6 @@
 #
 # Test/development targets:
 # * run-supervisor, stop-supervisor - build and start or stop a docker-in-docker resin-supervisor (requires aufs, ability to run privileged containers, and a SUPERVISOR_IMAGE to be available locally)
-# * format-gosuper, test-gosuper - build a gosuper image and run formatting or unit tests
-# * test-integration - run an integration test (see gosuper/supertest). Requires a docker-in-docker supervisor to be running
 #
 # Variables for test/dev targets:
 # * IMAGE: image to build and run (either for run-supervisor or test-gosuper/integration)
@@ -193,33 +190,4 @@ nodedeps:
 nodebuild:
 	$(MAKE) -f $(THIS_FILE) TARGET_COMPONENT=node-build IMAGE=$(IMAGE) ARCH=$(ARCH) supervisor-image
 
-gosuper:
-	$(MAKE) -f $(THIS_FILE) TARGET_COMPONENT=gosuper IMAGE=$(IMAGE) ARCH=$(ARCH) supervisor-image
-
-test-gosuper: gosuper
-	docker run \
-		--rm \
-		-v /var/run/dbus:/mnt/root/run/dbus \
-		-e DBUS_SYSTEM_BUS_ADDRESS="/mnt/root/run/dbus/system_bus_socket" \
-		$(IMAGE) bash -c \
-			'./test_formatting.sh && go test -v ./gosuper'
-
-format-gosuper: gosuper
-	docker run \
-		--rm \
-		-v $(shell pwd)/gosuper:/go/src/resin-supervisor/gosuper \
-		$(IMAGE) \
-			go fmt ./...
-
-test-integration: gosuper
-	docker run \
-		--rm \
-		--net=host \
-		-e SUPERVISOR_IP="$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' resin_supervisor_1)" \
-		--volumes-from resin_supervisor_1 \
-		-v /var/run/dbus:/mnt/root/run/dbus \
-		-e DBUS_SYSTEM_BUS_ADDRESS="/mnt/root/run/dbus/system_bus_socket" \
-		$(IMAGE) \
-			go test -v ./supertest
-
-.PHONY: supervisor deploy nodedeps nodebuild gosuper supervisor-dind run-supervisor
+.PHONY: supervisor deploy nodedeps nodebuild supervisor-dind run-supervisor

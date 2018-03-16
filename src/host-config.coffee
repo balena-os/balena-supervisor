@@ -1,6 +1,6 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
-gosuper = require './lib/gosuper'
+systemd = require './lib/systemd'
 path = require 'path'
 constants = require './lib/constants'
 fs = Promise.promisifyAll(require('fs'))
@@ -28,17 +28,9 @@ redsocksFooter = '}\n'
 
 proxyFields = [ 'type', 'ip', 'port', 'login', 'password' ]
 
-proxyBasePath = path.join('/mnt/root', constants.bootMountPoint, 'system-proxy')
+proxyBasePath = path.join(constants.rootMountPoint, constants.bootMountPoint, 'system-proxy')
 redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf')
 noProxyPath = path.join(proxyBasePath, 'no_proxy')
-
-restartSystemdService = (serviceName) ->
-	gosuper.post('/v1/restart-service', { json: true, body: Name: serviceName })
-	.spread (response, body) ->
-		if response.statusCode != 200
-			err = new Error("Error restarting service #{serviceName}: #{response.statusCode} #{body}")
-			err.statusCode = response.statusCode
-			throw err
 
 readProxy = ->
 	fs.readFileAsync(redsocksConfPath)
@@ -97,11 +89,11 @@ setProxy = (conf) ->
 				redsocksConf += redsocksFooter
 				writeFileAtomic(redsocksConfPath, redsocksConf)
 	.then ->
-		restartSystemdService('resin-proxy-config')
+		systemd.restartService('resin-proxy-config')
 	.then ->
-		restartSystemdService('redsocks')
+		systemd.restartService('redsocks')
 
-hostnamePath = '/mnt/root/etc/hostname'
+hostnamePath = path.join(constants.rootMountPoint, '/etc/hostname')
 readHostname = ->
 	fs.readFileAsync(hostnamePath)
 	.then (hostnameData) ->
@@ -110,7 +102,7 @@ readHostname = ->
 setHostname = (val, configModel) ->
 	configModel.set(hostname: val)
 	.then ->
-		restartSystemdService('resin-hostname')
+		systemd.restartService('resin-hostname')
 
 
 exports.get = ->

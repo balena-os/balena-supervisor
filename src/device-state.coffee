@@ -10,7 +10,7 @@ network = require './network'
 
 constants = require './lib/constants'
 validation = require './lib/validation'
-device = require './lib/device'
+systemd = require './lib/systemd'
 updateLock = require './lib/update-lock'
 { singleToMulticontainerApp } = require './lib/migration'
 
@@ -139,7 +139,7 @@ module.exports = class DeviceState extends EventEmitter
 			cycleTimeMs = cycleTime[0] * 1000 + cycleTime[1] / 1e6
 			cycleTimeWithinInterval = cycleTimeMs - @applications.timeSpentFetching < 2 * conf.appUpdatePollInterval
 			applyTargetHealthy = conf.offlineMode or !@applyInProgress or @applications.fetchesInProgress > 0 or cycleTimeWithinInterval
-			return applyTargetHealthy and @deviceConfig.gosuperHealthy
+			return applyTargetHealthy
 
 	normaliseLegacy: =>
 		# When legacy apps are present, we kill their containers and migrate their /data to a named volume
@@ -345,7 +345,7 @@ module.exports = class DeviceState extends EventEmitter
 		@applications.stopAll({ force, skipLock })
 		.then =>
 			@logger.logSystemMessage('Rebooting', {}, 'Reboot')
-			device.reboot()
+			systemd.reboot()
 		.tap =>
 			@shuttingDown = true
 			@emitAsync('shutdown')
@@ -354,7 +354,7 @@ module.exports = class DeviceState extends EventEmitter
 		@applications.stopAll({ force, skipLock })
 		.then =>
 			@logger.logSystemMessage('Shutting down', {}, 'Shutdown')
-			device.shutdown()
+			systemd.shutdown()
 		.tap =>
 			@shuttingDown = true
 			@emitAsync('shutdown')

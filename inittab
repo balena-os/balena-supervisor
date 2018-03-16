@@ -1,7 +1,0 @@
-# busybox inittab
-# format: tty:ignored:action:command
-
-stdout::sysinit:/usr/src/app/entry.sh
-
-stdout::respawn:/usr/src/app/run.sh node /usr/src/app/dist/app.js
-stdout::respawn:/usr/src/app/run.sh /usr/src/app/gosuper

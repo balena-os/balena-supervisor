@@ -18,7 +18,7 @@ Alternatively, the Resin API (api.resin.io) has a proxy endpoint at `POST /super
 
 The API is versioned (currently at v1), except for `/ping`.
 
-You might notice that the formats of some responses differ. This is because they were implemented later, and in Go instead of node.js.
+You might notice that the formats of some responses differ. This is because they were implemented later, and in Go instead of node.js - even if the Go pieces were later removed, so we kept the response format for backwards compatibility.
 
 Here's the full list of endpoints implemented so far. In all examples, replace everything between `< >` for the corresponding values.
 
@@ -119,7 +119,6 @@ When successful, responds with 202 accepted and a JSON object:
 	"Error": ""
 }
 ```
-(This is implemented in Go)
 
 #### Request body
 Can contain a `force` property, which if set to `true` will cause the update lock to be overridden.
@@ -158,7 +157,6 @@ When successful, responds with 202 accepted and a JSON object:
 	"Error": ""
 }
 ```
-(This is implemented in Go)
 
 #### Request body
 Can contain a `force` property, which if set to `true` will cause the update lock to be overridden.
@@ -196,8 +194,6 @@ When successful, responds with 200 and a JSON object:
 	"Error": ""
 }
 ```
-
-(This is implemented in Go)
 
 #### Request body
 Has to be a JSON object with an `appId` property, corresponding to the ID of the application the device is running.

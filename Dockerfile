@@ -1,63 +1,4 @@
 ARG ARCH=amd64
-# Build golang supervisor
-FROM debian:jessie-20170723 as gosuper
-
-RUN apt-get update \
-	&& apt-get install -y \
-		build-essential \
-		curl \
-		rsync \
-	&& rm -rf /var/lib/apt/lists/
-
-ENV GOLANG_VERSION 1.8.3
-ENV GOLANG_DOWNLOAD_URL https://golang.org/dl/go$GOLANG_VERSION.linux-amd64.tar.gz
-ENV GOLANG_DOWNLOAD_SHA256 1862f4c3d3907e59b04a757cfda0ea7aa9ef39274af99a784f5be843c80c6772
-
-COPY gosuper/go-${GOLANG_VERSION}-patches /go-${GOLANG_VERSION}-patches
-
-RUN mkdir /usr/src/go \
-	&& cd /usr/src/go \
-	&& curl -L -o go.tar.gz $GOLANG_DOWNLOAD_URL \
-	&& echo "${GOLANG_DOWNLOAD_SHA256}  go.tar.gz" | sha256sum -c - \
-	&& tar xzf go.tar.gz -C /usr/local \
-	&& cd /usr/src \
-	&& rm -rf go \
-	&& export GOROOT_BOOTSTRAP=/usr/local/go-bootstrap \
-	&& cp -r /usr/local/go /usr/local/go-bootstrap \
-	&& cd /usr/local/go/src \
-	&& patch -p2 -i /go-${GOLANG_VERSION}-patches/0001-dont-fail-when-no-mmx.patch \
-	&& patch -p2 -i /go-${GOLANG_VERSION}-patches/0002-implement-atomic-quadword-ops-with-FILD-FISTP.patch \
-	&& ./make.bash \
-	&& rm -rf /usr/local/go-bootstrap
-
-ENV UPX_VERSION 3.94
-# UPX doesn't provide fingerprints so I checked this one manually
-ENV UPX_SHA256 e1fc0d55c88865ef758c7e4fabbc439e4b5693b9328d219e0b9b3604186abe20
-
-RUN mkdir /usr/src/upx \
-	&& cd /usr/src/upx \
-	&& curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v$UPX_VERSION/upx-$UPX_VERSION-amd64_linux.tar.xz \
-	&& echo "${UPX_SHA256}  upx.tar.xz" | sha256sum -c - \
-	&& tar xf upx.tar.xz --strip-components=1 \
-	&& cp ./upx /usr/bin/ \
-	&& cd /usr/src \
-	&& rm -rf upx
-
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
-
-COPY ./gosuper /go/src/resin-supervisor/gosuper
-
-WORKDIR /go/src/resin-supervisor/gosuper
-
-ENV GOOS linux
-ENV GO386=387
-
-ARG ARCH
-RUN bash ./build.sh
-RUN rsync -a --delete /go/bin/gosuper /build/
-
-##############################################################################
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
@@ -146,12 +87,7 @@ RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
 	&& find . -type f -path '*/node_modules/knex/build*' -delete \
 	&& rm -rf node_modules/sqlite3/node.dtps
 
-# Create /var/run/resin for the gosuper to place its socket in
-RUN mkdir -p rootfs-overlay/var/run/resin
-
-COPY entry.sh run.sh package.json rootfs-overlay/usr/src/app/
-
-COPY inittab rootfs-overlay/etc/inittab
+COPY entry.sh package.json rootfs-overlay/usr/src/app/
 
 RUN rsync -a --delete node_modules rootfs-overlay /build
 
@@ -171,7 +107,6 @@ WORKDIR /usr/src/app
 
 COPY --from=node-build /usr/src/app/dist ./dist
 COPY --from=node-deps /build/node_modules ./node_modules
-COPY --from=gosuper /build/gosuper ./gosuper
 COPY --from=node-deps /build/rootfs-overlay/ /
 
 VOLUME /data
@@ -186,3 +121,5 @@ ENV CONFIG_MOUNT_POINT=/boot/config.json \
 
 HEALTHCHECK --interval=5m --start-period=1m --timeout=30s --retries=3 \
 	CMD wget -qO- http://127.0.0.1:${LISTEN_PORT:-48484}/v1/healthy || exit 1
+
+CMD [ "./entry.sh" ]
