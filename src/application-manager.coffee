@@ -127,7 +127,7 @@ createApplicationManagerRouter = (applications) ->
 			if app.services.length > 1
 				return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
 			applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
-			applications.executeStepAction(serviceAction(action, service.serviceId, service, service), { force })
+			applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { force })
 			.then ->
 				if action == 'stop'
 					return service
