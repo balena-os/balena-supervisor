@@ -799,7 +799,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				firmware: pathExistsOnHost('/lib/firmware')
 				modules: pathExistsOnHost('/lib/modules')
 			})
-			fs.readFileAsync(path.join(constants.rootMountPoint, '/etc/hostname')).then(String)
+			fs.readFileAsync(path.join(constants.rootMountPoint, '/etc/hostname'), 'utf8').then(_.trim)
 			(opts, supervisorApiHost, hostPathExists, hostnameOnHost) =>
 				configOpts = {
 					appName: app.name
