@@ -108,7 +108,9 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 ### POST /v1/reboot
 
-Reboots the device
+Reboots the device. This will first try to stop applications, and fail if there is an update lock.
+An optional "force" parameter in the body overrides the lock when true (and the lock can also be overridden from
+the dashboard).
 
 When successful, responds with 202 accepted and a JSON object:
 ```json
@@ -118,6 +120,9 @@ When successful, responds with 202 accepted and a JSON object:
 }
 ```
 (This is implemented in Go)
+
+#### Request body
+Can contain a `force` property, which if set to `true` will cause the update lock to be overridden.
 
 #### Examples:
 From the app on the device:
@@ -142,7 +147,9 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 ### POST /v1/shutdown
 
-**Dangerous**. Shuts down the device.
+**Dangerous**. Shuts down the device. This will first try to stop applications, and fail if there is an update lock.
+An optional "force" parameter in the body overrides the lock when true (and the lock can also be overridden from
+the dashboard).
 
 When successful, responds with 202 accepted and a JSON object:
 ```json
@@ -152,6 +159,9 @@ When successful, responds with 202 accepted and a JSON object:
 }
 ```
 (This is implemented in Go)
+
+#### Request body
+Can contain a `force` property, which if set to `true` will cause the update lock to be overridden.
 
 #### Examples:
 From the app on the device:
