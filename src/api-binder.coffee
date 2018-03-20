@@ -8,7 +8,7 @@ express = require 'express'
 bodyParser = require 'body-parser'
 Lock = require 'rwlock'
 { request, requestOpts } = require './lib/request'
-{ checkTruthy } = require './lib/validation'
+{ checkTruthy, checkInt } = require './lib/validation'
 
 DuplicateUuidError = (err) ->
 	_.startsWith(err.message, '"uuid" must be unique')
@@ -26,6 +26,7 @@ createAPIBinderRouter = (apiBinder) ->
 		apiBinder.eventTracker.track('Update notification')
 		if apiBinder.readyForUpdates
 			apiBinder.getAndSetTargetState(req.body.force)
+			.catchReturn()
 		res.sendStatus(204)
 	return router
 
@@ -40,6 +41,7 @@ module.exports = class APIBinder
 		@_targetStateInterval = null
 		@reportPending = false
 		@stateReportErrors = 0
+		@targetStateFetchErrors = 0
 		@router = createAPIBinderRouter(this)
 		_lock = new Lock()
 		@_writeLock = Promise.promisify(_lock.async.writeLock)
@@ -332,27 +334,31 @@ module.exports = class APIBinder
 					.then =>
 						@lastTarget = _.cloneDeep(targetState)
 						@deviceState.triggerApplyTarget({ force })
-		.catch (err) ->
+		.tapCatch (err) ->
 			console.error("Failed to get target state for device: #{err}")
 		.finally =>
 			@lastTargetStateFetch = process.hrtime()
 
 	_pollTargetState: =>
-		@config.get('appUpdatePollInterval')
-		.then (appUpdatePollInterval) =>
-			if @_targetStateInterval?
-				clearInterval(@_targetStateInterval)
-			@_targetStateInterval = setInterval(@getAndSetTargetState, appUpdatePollInterval)
-			@getAndSetTargetState()
-			return null
+		@getAndSetTargetState()
+		.then =>
+			@targetStateFetchErrors = 0
+			@config.get('appUpdatePollInterval')
+		.catch =>
+			@targetStateFetchErrors += 1
+			@config.get('appUpdatePollInterval')
+			.then (appUpdatePollInterval) =>
+				Math.min(appUpdatePollInterval, 15000 * 2 ** (@targetStateFetchErrors - 1))
+		.then(checkInt)
+		.then(Promise.delay)
+		.then(@_pollTargetState)
 
-	startTargetStatePoll: ->
-		if !@resinApi?
-			throw new Error('Trying to start poll without initializing API client')
-		@_pollTargetState()
-		@config.on 'change', (changedConfig) =>
-			if changedConfig.appUpdatePollInterval?
-				@_pollTargetState()
+	startTargetStatePoll: =>
+		Promise.try =>
+			if !@resinApi?
+				throw new Error('Trying to start poll without initializing API client')
+			@_pollTargetState()
+			return null
 
 	_getStateDiff: =>
 		diff = {
