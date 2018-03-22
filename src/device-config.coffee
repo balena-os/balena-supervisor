@@ -4,9 +4,10 @@ childProcess = Promise.promisifyAll(require('child_process'))
 fs = Promise.promisifyAll(require('fs'))
 
 constants = require './lib/constants'
-gosuper = require './lib/gosuper'
+systemd = require './lib/systemd'
 fsUtils = require './lib/fs-utils'
 { checkTruthy, checkInt } = require './lib/validation'
+{ UnitNotLoadedError } = require './lib/errors'
 
 hostConfigConfigVarPrefix = 'RESIN_HOST_'
 bootConfigEnvVarPrefix = hostConfigConfigVarPrefix + 'CONFIG_'
@@ -33,10 +34,12 @@ forbiddenConfigKeys = [
 ]
 arrayConfigKeys = [ 'dtparam', 'dtoverlay', 'device_tree_param', 'device_tree_overlay' ]
 
+logToDisplayServiceName = 'resin-info@tty1'
+vpnServiceName = 'openvpn-resin'
+
 module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 		@rebootRequired = false
-		@gosuperHealthy = true
 		@configKeys = {
 			appUpdatePollInterval: { envVarName: 'RESIN_SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
 			localMode: { envVarName: 'RESIN_SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
@@ -253,27 +256,33 @@ module.exports = class DeviceConfig
 				return @bootConfigToEnv(conf)
 
 	getLogToDisplay: ->
-		gosuper.get('/v1/log-to-display', { json: true })
-		.spread (res, body) ->
-			if res.statusCode == 404
-				return
-			if res.statusCode != 200
-				throw new Error("Error getting log to display status: #{res.statusCode} #{body.Error}")
-			return Boolean(body.Data)
+		systemd.serviceActiveState(logToDisplayServiceName)
+		.then (activeState) ->
+			return activeState not in [ 'inactive', 'deactivating' ]
+		.catchReturn(UnitNotLoadedError, null)
 
 	setLogToDisplay: (val) =>
 		Promise.try =>
 			enable = checkTruthy(val)
 			if !enable?
 				throw new Error("Invalid value in call to setLogToDisplay: #{val}")
-			gosuper.post('/v1/log-to-display', { json: true, body: Enable: enable })
-			.spread (response, body) =>
-				if response.statusCode != 200
-					throw new Error("#{response.statusCode} #{body.Error}")
+			@getLogToDisplay()
+			.then (currentState) ->
+				if !currentState? or currentState == enable
+					return false
+				if enable
+					systemd.startService(logToDisplayServiceName)
+					.then ->
+						systemd.enableService(logToDisplayServiceName)
+					.return(true)
 				else
-					if body.Data == true
-						@rebootRequired = true
-					return body.Data
+					systemd.stopService(logToDisplayServiceName)
+					.then ->
+						systemd.disableService(logToDisplayServiceName)
+					.return(true)
+		.tap (changed) =>
+			if changed
+				@rebootRequired = true
 
 	setBootConfig: (deviceType, target) =>
 		Promise.try =>
@@ -302,18 +311,14 @@ module.exports = class DeviceConfig
 			@logger.logSystemMessage("Error setting boot config: #{err}", { error: err }, 'Apply boot config error')
 
 	getVPNEnabled: ->
-		gosuper.get('/v1/vpncontrol', { json: true })
-		.spread (res, body) ->
-			if res.statusCode != 200
-				throw new Error("Error getting vpn status: #{res.statusCode} #{body.Error}")
-			@gosuperHealthy = true
-			return Boolean(body.Data)
-		.tapCatch (err) =>
-			@gosuperHealthy = false
+		systemd.serviceActiveState(vpnServiceName)
+		.then (activeState) ->
+			return activeState not in [ 'inactive', 'deactivating' ]
+		.catchReturn(UnitNotLoadedError, null)
 
 	setVPNEnabled: (val) ->
 		enable = checkTruthy(val) ? true
-		gosuper.post('/v1/vpncontrol', { json: true, body: Enable: enable })
-		.spread (response, body) ->
-			if response.statusCode != 202
-				throw new Error("#{response.statusCode} #{body?.Error}")
+		if enable
+			systemd.startService(vpnServiceName)
+		else
+			systemd.stopService(vpnServiceName)
