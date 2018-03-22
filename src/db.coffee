@@ -13,7 +13,10 @@ module.exports = class DB
 		)
 
 	init: =>
-		@knex.migrate.latest(directory: path.join(__dirname, 'migrations'))
+		@knex('knex_migrations_lock').update({ is_locked: 0 })
+		.catch(->) # Knex doesn't return a bluebird promise here so we can't catchReturn :(
+		.then =>
+			@knex.migrate.latest(directory: path.join(__dirname, 'migrations'))
 
 	# Returns a knex object for one of the models (tables)
 	models: (modelName) =>
