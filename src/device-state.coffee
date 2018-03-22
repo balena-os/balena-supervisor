@@ -5,7 +5,6 @@ EventEmitter = require 'events'
 fs = Promise.promisifyAll(require('fs'))
 express = require 'express'
 bodyParser = require 'body-parser'
-debug = require('debug')('Resin-supervisor:device-state')
 hostConfig = require './host-config'
 network = require './network'
 
@@ -14,17 +13,17 @@ validation = require './lib/validation'
 systemd = require './lib/systemd'
 updateLock = require './lib/update-lock'
 { singleToMulticontainerApp } = require './lib/migration'
+debugLib = require('./lib/debug')
 
 DeviceConfig = require './device-config'
 ApplicationManager = require './application-manager'
 
 validateLocalState = (state, debug) ->
-	debug(state)
 	if !state.name? or !validation.isValidShortText(state.name)
 		throw new Error('Invalid device name')
 	if !state.apps? or !validation.isValidAppsObject(state.apps, debug)
 		throw new Error('Invalid apps')
-	if !state.config? or !validation.isValidEnv(state.config)
+	if !state.config? or !validation.isValidEnv(state.config, debug)
 		throw new Error('Invalid device configuration')
 
 validateDependentState = (state) ->
@@ -133,9 +132,7 @@ module.exports = class DeviceState extends EventEmitter
 			else
 				console.log('Apply success!')
 		@applications.on('change', @reportCurrentState)
-		@debug = debug
-		debug.enabled = true
-
+		@debug = debugLib('device-state', @config)
 
 	healthcheck: =>
 		@config.getMany([ 'appUpdatePollInterval', 'offlineMode' ])
@@ -246,6 +243,7 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.using @_inferStepsLock, -> fn()
 
 	setTarget: (target) ->
+		@debug("Validating state: #{JSON.stringify(target, null, 2)}")
 		validateState(target, @debug)
 		.then =>
 			@usingWriteLockTarget =>

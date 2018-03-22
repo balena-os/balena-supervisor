@@ -1,5 +1,4 @@
 _ = require 'lodash'
-debug = require('debug')('Resin-supervisor:validation')
 
 exports.checkInt = checkInt = (s, options = {}) ->
 	# Make sure `s` exists and is not an empty string.
@@ -28,12 +27,12 @@ exports.checkTruthy = (v) ->
 exports.isValidShortText = isValidShortText = (t) ->
 	_.isString(t) and t.length <= 255
 
-exports.isValidEnv = isValidEnv = (debug, obj) ->
+exports.isValidEnv = isValidEnv = (obj, debug) ->
 	_.isObject(obj) and _.every obj, (val, key) ->
 		isValidShortText(key) and /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) and _.isString(val)
 
-exports.isValidLabelsObject = isValidLabelsObject = (debug, obj) ->
-	if _.isObject(obj)
+exports.isValidLabelsObject = isValidLabelsObject = (obj, debug) ->
+	if !_.isObject(obj)
 		debug('Labels object is not an object')
 		return false
 	return _.every obj, (val, key) ->
@@ -42,8 +41,8 @@ exports.isValidLabelsObject = isValidLabelsObject = (debug, obj) ->
 			debug("Labels pair (#{key}, #{val}) did not pass validation")
 		return res
 
-undefinedOrValidEnv = (val) ->
-	if val? and !isValidEnv(val)
+undefinedOrValidEnv = (val, debug = _.noop) ->
+	if val? and !isValidEnv(val, debug)
 		return false
 	return true
 
@@ -69,30 +68,31 @@ checkPred = (predicate, message, debug, input) ->
 createPred = _.curry(checkPred)
 
 isValidService = (debug, service, serviceId) ->
+	dbgMsg = (msg) -> "#{msg} for service #{JSON.stringify(service)}"
 	if !isValidShortText(serviceId) or !checkInt(serviceId)
-		debug("Service ID is not valid for service #{service}")
+		debug(dbgMsg('Service ID is not valid'))
 		return false
 
 	return _.conformsTo(service, {
 		serviceName: createPred(isValidShortText,
-			"Service name is not valid for service #{service}",
+			dbgMsg('Service name is not valid'),
 			debug,
 		)
 		image: createPred(isValidShortText,
-			"Image name is not valid for service #{service}",
+			dbgMsg('Image name is not valid'),
 			debug,
 		)
-		environment: createPred(_.partial(isValidEnv, debug),
-			"Environment variables are not valid for service #{service}",
+		environment: createPred(_.partialRight(isValidEnv, debug),
+			dbgMsg('Environment variables are not valid'),
 			debug,
 		)
 		imageId: createPred(
 			(i) -> checkInt(i)?,
-			"Image ID is not an integer for service #{service}",
+			dbgMsg('Image ID is not an integer'),
 			debug,
 		)
-		labels: createPred(_.partial(isValidLabelsObject, debug),
-			"Labels object is not valid for service #{service}",
+		labels: createPred(_.partialRight(isValidLabelsObject, debug),
+			dbgMsg('Labels object is not valid'),
 			debug,
 		)
 	})
