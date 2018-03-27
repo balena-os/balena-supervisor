@@ -327,6 +327,7 @@ module.exports = class APIBinder
 				url: "#{endpoint}"
 			, @cachedResinApi.passthrough
 
+			@debug('Retrieving target state')
 			@cachedResinApi._request(requestParams)
 			.timeout(apiTimeout)
 
@@ -335,7 +336,6 @@ module.exports = class APIBinder
 		Promise.using @_lockGetTarget(), =>
 			@getTargetState()
 			.then (targetState) =>
-				@debug("Got target state: #{JSON.stringify(targetState, null, 2)}")
 				if !_.isEqual(targetState, @lastTarget)
 					@deviceState.setTarget(targetState)
 					.then =>

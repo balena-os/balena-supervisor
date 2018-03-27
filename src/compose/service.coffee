@@ -13,18 +13,22 @@ validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 # Adapted from https://github.com/docker/docker-py/blob/master/docker/utils/ports.py#L3
 PORTS_REGEX = /^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/
 
-parseMemoryNumber = (numAsString, defaultVal) ->
+# TODO: All invocations in this file
+parseMemoryNumber = (numAsString, defaultVal, debug = _.noop) ->
 	m = numAsString?.toString().match(/^([0-9]+)([bkmg]?)$/)
 	if !m? and defaultVal?
+		debug("Could not parse memory number: #{numAsString}, using default")
 		return parseMemoryNumber(defaultVal)
 	num = m[1]
 	pow = { '': 0, 'b': 0, 'B': 0, 'K': 1, 'k': 1, 'm': 2, 'M': 2, 'g': 3, 'G': 3 }
 	return parseInt(num) * 1024 ** pow[m[2]]
 
+# TODO: All invocations in this file
 # Construct a restart policy based on its name.
 # The default policy (if name is not a valid policy) is "always".
-createRestartPolicy = (name) ->
+createRestartPolicy = (name, debug = _.noop) ->
 	if name not in validRestartPolicies
+		debug("Restart policy: #{name} not recognised, using default")
 		name = 'always'
 	return { Name: name, MaximumRetryCount: 0 }
 

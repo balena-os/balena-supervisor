@@ -1,6 +1,7 @@
 _ = require 'lodash'
 
-exports.envArrayToObject = (env) ->
+exports.envArrayToObject = (env, debug = _.noop) ->
+	debug("envArrayToObject: #{JSON.stringify(env, null, 2)}")
 	# env is an array of strings that say 'key=value'
 	toPair = (keyVal) ->
 		m = keyVal.match(/^([^=]+)=(.*)$/)
