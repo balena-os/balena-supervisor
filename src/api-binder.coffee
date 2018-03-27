@@ -9,6 +9,7 @@ bodyParser = require 'body-parser'
 Lock = require 'rwlock'
 { request, requestOpts } = require './lib/request'
 { checkTruthy } = require './lib/validation'
+debugLib = require './lib/debug'
 
 DuplicateUuidError = (err) ->
 	_.startsWith(err.message, '"uuid" must be unique')
@@ -44,6 +45,7 @@ module.exports = class APIBinder
 		_lock = new Lock()
 		@_writeLock = Promise.promisify(_lock.async.writeLock)
 		@readyForUpdates = false
+		@debug = debugLib('ApiBinder', @config)
 
 	healthcheck: =>
 		@config.getMany([ 'appUpdatePollInterval', 'offlineMode', 'connectivityCheckEnabled' ])
@@ -54,6 +56,7 @@ module.exports = class APIBinder
 			timeSinceLastFetchMs = timeSinceLastFetch[0] * 1000 + timeSinceLastFetch[1] / 1e6
 			stateFetchHealthy = timeSinceLastFetchMs < 2 * conf.appUpdatePollInterval
 			stateReportHealthy = !conf.connectivityCheckEnabled or !@deviceState.connected or @stateReportErrors < 3
+			@debug("Healthcheck - fetchHealthy: #{stateFetchHealthy}, reportHealthy: #{stateReportHealthy}")
 			return stateFetchHealthy and stateReportHealthy
 
 	_lockGetTarget: =>
@@ -114,6 +117,7 @@ module.exports = class APIBinder
 		@resinApi.get(reqOpts)
 		.get(0)
 		.catchReturn(null)
+		.tap (dev) -> @debug("Device info fetched: #{dev}")
 		.timeout(timeout)
 
 	_exchangeKeyAndGetDevice: (opts) ->
@@ -128,12 +132,14 @@ module.exports = class APIBinder
 				@fetchDevice(opts.uuid, opts.deviceApiKey, opts.apiTimeout)
 		.then (device) =>
 			if device?
+				@debug('Provisioner: Using existing device api key')
 				return device
 			# If it's not valid/doesn't exist then we try to use the user/provisioning api key for the exchange
 			@fetchDevice(opts.uuid, opts.provisioningApiKey, opts.apiTimeout)
 			.tap (device) ->
 				if not device?
 					throw new ExchangeKeyError("Couldn't fetch device with provisioning key")
+				@debug('Provisioner: Registering device api key')
 				# We found the device, we can try to register a working device key for it
 				request.postAsync("#{opts.apiEndpoint}/api-key/device/#{device.id}/device-key", {
 					json: true
@@ -229,6 +235,7 @@ module.exports = class APIBinder
 				logs_channel: deviceRegister.generateUniqueKey()
 				registered_at: Math.floor(Date.now() / 1000)
 			})
+			@debug("Provisioning dependent device with params #{JSON.stringify(device, null, 2)}")
 			@resinApi.post
 				resource: 'device'
 				body: device
@@ -294,6 +301,7 @@ module.exports = class APIBinder
 							device: deviceId
 							name: key
 						}
+						@debug("Reporting initial env: #{JSON.stringify(envVar, null, 2)}")
 						@resinApi.post
 							resource: 'device_config_variable'
 							body: envVar
@@ -319,6 +327,7 @@ module.exports = class APIBinder
 				url: "#{endpoint}"
 			, @cachedResinApi.passthrough
 
+			@debug('Retrieving target state')
 			@cachedResinApi._request(requestParams)
 			.timeout(apiTimeout)
 
@@ -364,6 +373,7 @@ module.exports = class APIBinder
 		return _.pickBy(diff, _.negate(_.isEmpty))
 
 	_sendReportPatch: (stateDiff, conf) =>
+		@debug("Sending to the patch endpoint: \n #{JSON.stringify(stateDiff, null, 2)}")
 		endpoint = url.resolve(conf.resinApiEndpoint, "/device/v2/#{conf.uuid}/state")
 		requestParams = _.extend
 			method: 'PATCH'
@@ -379,6 +389,7 @@ module.exports = class APIBinder
 			stateDiff = @_getStateDiff()
 			if _.size(stateDiff) is 0
 				return
+
 			@_sendReportPatch(stateDiff, conf)
 			.timeout(conf.apiTimeout)
 			.then =>

@@ -148,6 +148,8 @@ module.exports = class Config extends EventEmitter
 			lockOverride: { source: 'db', mutable: true, default: 'false' }
 			legacyAppsPresent: { source: 'db', mutable: true, default: 'false' }
 			nativeLogger: { source: 'db', mutable: true, default: 'true' }
+			# FIXME: Change default
+			debugMode: { source: 'db', mutable: true, default: 'true' }
 		}
 
 		@configJsonCache = {}
