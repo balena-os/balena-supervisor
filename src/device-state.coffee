@@ -368,9 +368,13 @@ module.exports = class DeviceState extends EventEmitter
 			else
 				switch step.action
 					when 'reboot'
-						@reboot(force, skipLock)
+						# There isn't really a way that these methods can fail,
+						# and if they do, we wouldn't know about it until after
+						# the response has been sent back to the API. Just return
+						# "OK" for this and the below action
+						@reboot(force, skipLock).return(Data: 'OK', Error: null)
 					when 'shutdown'
-						@shutdown(force, skipLock)
+						@shutdown(force, skipLock).return(Data: 'OK', Error: null)
 					when 'noop'
 						Promise.resolve()
 					else
