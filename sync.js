@@ -9,11 +9,19 @@
 // onto the supervisor container at the specified IP. It will also restart the supervisor container.
 // The device must be a development variant of Resin OS and the supervisor must be running.
 
+fs = require('fs');
+
 doSync = require('resin-sync').sync('local-resin-os-device').sync;
+
+// Avoid a super confusing error where the cwd doesn't exist
+dir = __dirname + '/dist';
+if (!fs.existsSync(dir)) {
+	fs.mkdirSync(dir);
+}
 
 opts = {
 	deviceIp: process.argv[2],
-	baseDir: __dirname + '/dist',
+	baseDir: dir,
 	destination: '/usr/src/app/dist',
 	appName: 'resin_supervisor',
 	skipGitignore: true,
