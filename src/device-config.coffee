@@ -34,7 +34,6 @@ forbiddenConfigKeys = [
 ]
 arrayConfigKeys = [ 'dtparam', 'dtoverlay', 'device_tree_param', 'device_tree_overlay' ]
 
-logToDisplayServiceName = 'resin-info@tty1'
 vpnServiceName = 'openvpn-resin'
 
 module.exports = class DeviceConfig
@@ -53,7 +52,7 @@ module.exports = class DeviceConfig
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
 			nativeLogger: { envVarName: 'RESIN_SUPERVISOR_NATIVE_LOGGER', varType: 'bool', defaultValue: 'true' }
 		}
-		@validKeys = [ 'RESIN_HOST_LOG_TO_DISPLAY', 'RESIN_SUPERVISOR_VPN_CONTROL', 'RESIN_OVERRIDE_LOCK' ].concat(_.map(@configKeys, 'envVarName'))
+		@validKeys = [ 'RESIN_SUPERVISOR_VPN_CONTROL', 'RESIN_OVERRIDE_LOCK' ].concat(_.map(@configKeys, 'envVarName'))
 		@actionExecutors = {
 			changeConfig: (step) =>
 				@logger.logConfigChange(step.humanReadableTarget)
@@ -62,14 +61,6 @@ module.exports = class DeviceConfig
 					@logger.logConfigChange(step.humanReadableTarget, { success: true })
 				.tapCatch (err) =>
 					@logger.logConfigChange(step.humanReadableTarget, { err })
-			setLogToDisplay: (step) =>
-				logValue = { RESIN_HOST_LOG_TO_DISPLAY: step.target }
-				@logger.logConfigChange(logValue)
-				@setLogToDisplay(step.target)
-				.then =>
-					@logger.logConfigChange(logValue, { success: true })
-				.tapCatch (err) =>
-					@logger.logConfigChange(logValue, { err })
 			setVPNEnabled: (step, { initial = false } = {}) =>
 				logValue = { RESIN_SUPERVISOR_VPN_CONTROL: step.target }
 				if !initial
@@ -104,7 +95,6 @@ module.exports = class DeviceConfig
 			return JSON.parse(devConfig.targetValues)
 		.then (conf) =>
 			conf = @filterConfigKeys(conf)
-			conf.RESIN_HOST_LOG_TO_DISPLAY ?= ''
 			if initial or !conf.RESIN_SUPERVISOR_VPN_CONTROL?
 				conf.RESIN_SUPERVISOR_VPN_CONTROL = 'true'
 			for own k, { envVarName, defaultValue } of @configKeys
@@ -115,12 +105,10 @@ module.exports = class DeviceConfig
 		@config.getMany([ 'deviceType' ].concat(_.keys(@configKeys)))
 		.then (conf) =>
 			Promise.join(
-				@getLogToDisplay()
 				@getVPNEnabled()
 				@getBootConfig(conf.deviceType)
-				(logToDisplayStatus, vpnStatus, bootConfig) =>
+				(vpnStatus, bootConfig) =>
 					currentConf = {
-						RESIN_HOST_LOG_TO_DISPLAY: (logToDisplayStatus ? '').toString()
 						RESIN_SUPERVISOR_VPN_CONTROL: (vpnStatus ? 'true').toString()
 					}
 					for own key, { envVarName } of @configKeys
@@ -131,7 +119,6 @@ module.exports = class DeviceConfig
 	getDefaults: =>
 		Promise.try =>
 			return _.extend({
-				RESIN_HOST_LOG_TO_DISPLAY: ''
 				RESIN_SUPERVISOR_VPN_CONTROL: 'true'
 			}, _.mapValues(_.mapKeys(@configKeys, 'envVarName'), 'defaultValue'))
 
@@ -175,12 +162,6 @@ module.exports = class DeviceConfig
 					humanReadableTarget: humanReadableConfigChanges
 				})
 				return
-			if !_.isUndefined(current['RESIN_HOST_LOG_TO_DISPLAY'])
-				if !_.isEmpty(target['RESIN_HOST_LOG_TO_DISPLAY']) && checkTruthy(current['RESIN_HOST_LOG_TO_DISPLAY']) != checkTruthy(target['RESIN_HOST_LOG_TO_DISPLAY'])
-					steps.push({
-						action: 'setLogToDisplay'
-						target: target['RESIN_HOST_LOG_TO_DISPLAY']
-					})
 			if !checkTruthy(offlineMode) &&
 				!_.isEmpty(target['RESIN_SUPERVISOR_VPN_CONTROL']) &&
 				checkTruthy(current['RESIN_SUPERVISOR_VPN_CONTROL']) != checkTruthy(target['RESIN_SUPERVISOR_VPN_CONTROL'])
@@ -254,35 +235,6 @@ module.exports = class DeviceConfig
 						if keyValue?
 							conf[keyValue[1]] = keyValue[2]
 				return @bootConfigToEnv(conf)
-
-	getLogToDisplay: ->
-		systemd.serviceActiveState(logToDisplayServiceName)
-		.then (activeState) ->
-			return activeState not in [ 'inactive', 'deactivating' ]
-		.catchReturn(UnitNotLoadedError, null)
-
-	setLogToDisplay: (val) =>
-		Promise.try =>
-			enable = checkTruthy(val)
-			if !enable?
-				throw new Error("Invalid value in call to setLogToDisplay: #{val}")
-			@getLogToDisplay()
-			.then (currentState) ->
-				if !currentState? or currentState == enable
-					return false
-				if enable
-					systemd.startService(logToDisplayServiceName)
-					.then ->
-						systemd.enableService(logToDisplayServiceName)
-					.return(true)
-				else
-					systemd.stopService(logToDisplayServiceName)
-					.then ->
-						systemd.disableService(logToDisplayServiceName)
-					.return(true)
-		.tap (changed) =>
-			if changed
-				@rebootRequired = true
 
 	setBootConfig: (deviceType, target) =>
 		Promise.try =>
