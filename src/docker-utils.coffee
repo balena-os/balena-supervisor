@@ -70,7 +70,7 @@ do ->
 				console.log("Using delta source #{imgSrc}")
 				Promise.join docker.getRegistryAndName(imgDest), docker.getRegistryAndName(imgSrc), (dstInfo, srcInfo) ->
 					tokenEndpoint = "#{config.apiEndpoint}/auth/v1/token"
-					opts =
+					authOpts =
 						auth:
 							user: 'd_' + uuid
 							pass: apiKey
@@ -78,19 +78,19 @@ do ->
 						json: true
 						timeout: requestTimeout
 					url = "#{tokenEndpoint}?service=#{dstInfo.registry}&scope=repository:#{dstInfo.imageName}:pull&scope=repository:#{srcInfo.imageName}:pull"
-					request.getAsync(url, opts)
+					request.getAsync(url, authOpts)
 					.get(1)
 					.then (b) ->
-						opts =
+						authOpts =
 							followRedirect: false
 							timeout: requestTimeout
 
 						if b?.token?
-							opts.auth =
+							authOpts.auth =
 								bearer: b.token
 								sendImmediately: true
 						new Promise (resolve, reject) ->
-							request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", opts)
+							request.get("#{config.deltaHost}/api/v2/delta?src=#{imgSrc}&dest=#{imgDest}", authOpts)
 							.on 'response', (res) ->
 								res.resume() # discard response body -- we only care about response headers
 								if res.statusCode in [ 502, 504 ]
