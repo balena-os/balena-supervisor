@@ -37,7 +37,7 @@ defaults: &defaults
         no_output_timeout: 10800
         command: |
             VERSION_TAG=v$(jq .version package.json | sed 's/"//g')
-            if [ "${CIRCLE_BRANCH}" = "master" ]; then
+            if [ "${CIRCLE_BRANCH}" = "master" ] || [ "${CIRCLE_BRANCH}" = "6.x" ]; then
               export EXTRA_TAG=$VERSION_TAG
             fi
             echo "Starting build.sh"
