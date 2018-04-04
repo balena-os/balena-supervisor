@@ -12,7 +12,7 @@
     "build": "webpack",
     "lint": "resin-lint src/",
     "versionist": "versionist",
-    "test": "mocha -r coffee-script/register test/**/*"
+    "test": "npm run lint && mocha -r coffee-script/register test/**/*"
   },
   "dependencies": {
     "mkfifo": "^0.1.5",
