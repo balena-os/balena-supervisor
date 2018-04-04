@@ -14,7 +14,7 @@ validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
 PORTS_REGEX = /^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/
 
 parseMemoryNumber = (numAsString, defaultVal) ->
-	m = numAsString?.toString().match(/^([0-9]+)([bkmg]?)$/)
+	m = numAsString?.toString().match(/^([0-9]+)([bkmg])?b?$/i)
 	if !m? and defaultVal?
 		return parseMemoryNumber(defaultVal)
 	num = m[1]
