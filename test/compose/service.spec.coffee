@@ -4,7 +4,6 @@ ComposeService = require '../../src/compose/service'
 describe 'compose/service.cofee', ->
 	describe 'parseMemoryNumber()', ->
 		makeComposeServiceWithLimit = (memLimit) ->
-			console.log('MAKING SERVICE WITH LIMIT', memLimit)
 			new ComposeService(
 				appId: 123456
 				serviceId: 123456
@@ -14,6 +13,12 @@ describe 'compose/service.cofee', ->
 
 		it 'should correctly parse memory number strings without a unit', ->
 			expect(makeComposeServiceWithLimit('64').memLimit).to.equal(64)
+
+		it 'should correctly apply the default value', ->
+			expect(makeComposeServiceWithLimit(undefined).memLimit).to.equal(0)
+
+		it 'should correctly support parsing numbers as memory limits', ->
+			expect(makeComposeServiceWithLimit(64).memLimit).to.equal(64)
 
 		it 'should correctly parse memory number strings that use a byte unit', ->
 			expect(makeComposeServiceWithLimit('64b').memLimit).to.equal(64)
