@@ -10,7 +10,7 @@
   "scripts": {
     "start": "./entry.sh",
     "build": "webpack",
-    "lint": "resin-lint src/",
+    "lint": "resin-lint src/ test/",
     "versionist": "versionist",
     "test": "npm run lint && mocha -r coffee-script/register test/**/*"
   },
