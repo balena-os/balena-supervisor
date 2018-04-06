@@ -70,6 +70,21 @@ module.exports = class SupervisorAPI
 	listen: (allowedInterfaces, port, apiTimeout) =>
 		iptables.rejectOnAllInterfacesExcept(allowedInterfaces, port)
 		.then =>
+			@config.on 'change', (changedConfig) =>
+				if changedConfig.localMode?
+					if checkTruthy(changedConfig.localMode)
+						iptables.removeRejections(port)
+						.then ->
+							console.log('Supervisor API now listening on all interfaces')
+					else
+						iptables.rejectOnAllInterfacesExcept(allowedInterfaces, port)
+						.then ->
+							console.log('Supervisor API now listening only on allowed interfaces')
+						.catch (err) =>
+							# We don't want to expose the API unwantedly, so we'd rather stop it
+							# (eventually the supervisor will be marked as unhealthy and then restarted)
+							console.log('Error changing iptables rules, stopping supervisor API', err)
+							@stop()
 			@server = @_api.listen(port)
 			@server.timeout = apiTimeout
 

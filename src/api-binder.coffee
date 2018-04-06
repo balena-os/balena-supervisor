@@ -381,11 +381,16 @@ module.exports = class APIBinder
 		Promise.using @_lockGetTarget(), =>
 			@getTargetState()
 			.then (targetState) =>
-				if !_.isEqual(targetState, @lastTarget)
-					@deviceState.setTarget(targetState)
-					.then =>
-						@lastTarget = _.cloneDeep(targetState)
-						@deviceState.triggerApplyTarget({ force })
+				# If we're in local mode, we only set the target state if it will deactivate local mode
+				@config.get('localMode')
+				.then(checkTruthy)
+				.then (localMode) ->
+					localModeTarget = checkTruthy(targetState.local.config['RESIN_SUPERVISOR_LOCAL_MODE'])
+					if !_.isEqual(targetState, @lastTarget) and (!localMode or !localModeTarget)
+						@deviceState.setTarget(targetState)
+						.then =>
+							@lastTarget = _.cloneDeep(targetState)
+							@deviceState.triggerApplyTarget({ force })
 		.tapCatch (err) ->
 			console.error("Failed to get target state for device: #{err}")
 		.finally =>

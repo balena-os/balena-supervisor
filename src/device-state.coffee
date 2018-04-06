@@ -105,6 +105,35 @@ createDeviceStateRouter = (deviceState) ->
 		.catch (err) ->
 			res.status(500).json({ Data: '', Error: err?.message or err or 'Unknown error' })
 
+	router.get '/v2/device/target-state', (req, res) ->
+		deviceState.config.get('localMode')
+		.then (localMode) ->
+			# The information in the target state can be sensitive so we only expose it in local mode,
+			# which is by definition only on development devices
+			if !validation.checkTruthy(localMode)
+				return res.status(400).send('Target state can only be retrieved when in local mode')
+			deviceState.getTarget()
+			.then (targetState) ->
+				res.json(targetState)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	router.post '/v2/device/target-state', (req, res) ->
+		deviceState.config.get('localMode')
+		.then (localMode) ->
+			if !validation.checkTruthy(localMode)
+				return res.status(400).send('Target state can only be set when in local mode')
+			force = req.body.force
+			targetState = req.body
+			deviceState.setTarget(targetState)
+			.then ->
+				deviceState.triggerApplyTarget({ force })
+				res.status(200).send('OK')
+			.catch (err) ->
+				res.status(400).send(err.message)
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
 	router.use(deviceState.applications.router)
 	return router
 

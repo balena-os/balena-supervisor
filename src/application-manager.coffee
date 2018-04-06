@@ -782,10 +782,6 @@ module.exports = class ApplicationManager extends EventEmitter
 		Promise.try =>
 			delta = checkTruthy(delta)
 			if checkTruthy(localMode)
-				target = _.cloneDeep(target)
-				target.local.apps = _.mapValues target.local.apps, (app) ->
-					app.services = []
-					return app
 				ignoreImages = true
 			currentByAppId = current.local.apps ? {}
 			targetByAppId = target.local.apps ? {}

@@ -4,15 +4,19 @@ import * as childProcess from 'child_process';
 // The following is exported so that we stub it in the tests
 export const execAsync = Promise.promisify(childProcess.exec);
 
+function clearIptablesRule(rule: string): Promise<void> {
+	return execAsync(`iptables -D ${rule}`).return();
+}
+
 function clearAndAppendIptablesRule(rule: string): Promise<void> {
-	return execAsync(`iptables -D ${rule}`)
+	return clearIptablesRule(rule)
 		.catchReturn(null)
 		.then(() => execAsync(`iptables -A ${rule}`))
 		.return();
 }
 
 function clearAndInsertIptablesRule(rule: string): Promise<void> {
-	return execAsync(`iptables -D ${rule}`)
+	return clearIptablesRule(rule)
 		.catchReturn(null)
 		.then(() => execAsync(`iptables -I ${rule}`))
 		.return();
@@ -28,5 +32,13 @@ export function rejectOnAllInterfacesExcept(
 		.then(() => clearAndAppendIptablesRule(`INPUT -p tcp --dport ${port} -j REJECT`))
 		// On systems without REJECT support, fall back to DROP
 		.catch(() => clearAndAppendIptablesRule(`INPUT -p tcp --dport ${port} -j DROP`))
+		.return();
+}
+
+export function removeRejections(port: string | number): Promise<void> {
+	return clearIptablesRule(`INPUT -p tcp --dport ${port} -j REJECT`)
+		.catchReturn(null)
+		.then(() => clearIptablesRule(`INPUT -p tcp --dport ${port} -j DROP`))
+		.catchReturn(null)
 		.return();
 }
