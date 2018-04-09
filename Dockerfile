@@ -2,15 +2,15 @@ ARG ARCH=amd64
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM resin/rpi-node:6.5-slim as rpi-node-base
-FROM resin/armv7hf-node:6.5-slim as armv7hf-node-base
-FROM resin/aarch64-node:6.5-slim as aarch64-node-base
+FROM resin/rpi-node:6.13.1-slim as rpi-node-base
+FROM resin/armv7hf-node:6.13.1-slim as armv7hf-node-base
+FROM resin/aarch64-node:6.13.1-slim as aarch64-node-base
 
-FROM resin/amd64-node:6.5-slim as amd64-node-base
+FROM resin/amd64-node:6.13.1-slim as amd64-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM resin/i386-node:6.5-slim as i386-node-base
+FROM resin/i386-node:6.13.1-slim as i386-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
@@ -97,7 +97,7 @@ RUN [ "cross-build-end" ]
 ##############################################################################
 
 # Minimal runtime image
-FROM resin/$ARCH-supervisor-base:v1.1.0
+FROM resin/$ARCH-supervisor-base:v1.2.0
 ARG ARCH
 ARG VERSION=master
 ARG DEFAULT_PUBNUB_PUBLISH_KEY=pub-c-bananas
