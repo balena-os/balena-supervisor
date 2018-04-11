@@ -15,6 +15,13 @@ module.exports =
 		eventName: 'Service stop error'
 		humanName: 'Failed to kill service'
 
+	removeDeadService:
+		eventName: 'Remove dead container'
+		humanName: 'Removing dead container'
+	removeDeadServiceError:
+		eventName: 'Remove dead container error'
+		humanName: 'Error removing dead container'
+
 	downloadImage:
 		eventName: 'Docker image download'
 		humanName: 'Downloading image'
