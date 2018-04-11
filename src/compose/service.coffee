@@ -367,14 +367,15 @@ module.exports = class Service
 		return @labels
 
 	extendAndSanitiseExposedPorts: (imageInfo) =>
-		@expose = _.clone(@expose)
-		@expose = _.map(@expose, String)
+		@expose = _.map @expose, (p) ->
+			p = new String(p)
+			if /^[0-9]*$/.test(p)
+				p += '/tcp'
+			return p
 		if imageInfo?.Config?.ExposedPorts?
-			for own k, v of imageInfo.Config.ExposedPorts
-				port = k.match(/^([0-9]*)\/tcp$/)?[1]
-				if port? and !_.find(@expose, port)
+			for own port, _v of imageInfo.Config.ExposedPorts
+				if !_.find(@expose, port)
 					@expose.push(port)
-
 		return @expose
 
 	extendAndSanitiseVolumes: (imageInfo) =>
@@ -553,7 +554,7 @@ module.exports = class Service
 							portBindings["#{containerPort}/#{protocol}"] = [ { HostIp: host, HostPort: hostPort } ]
 		if @expose?
 			for port in @expose
-				exposedPorts[port + '/tcp'] = {}
+				exposedPorts[port] = {}
 		return { exposedPorts, portBindings }
 
 	getBindsAndVolumes: =>

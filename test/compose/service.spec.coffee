@@ -1,10 +1,112 @@
 { expect } = require 'chai'
-ComposeService = require '../../src/compose/service'
+Service = require '../../src/compose/service'
 
 describe 'compose/service.cofee', ->
+
+	it 'extends environment variables properly', ->
+		extendEnvVarsOpts = {
+			uuid: '1234'
+			appName: 'awesomeApp'
+			commit: 'abcdef'
+			name: 'awesomeDevice'
+			version: 'v1.0.0'
+			deviceType: 'raspberry-pi'
+			osVersion: 'Resin OS 2.0.2'
+		}
+		service = {
+			appId: '23'
+			releaseId: 2
+			serviceId: 3
+			imageId: 4
+			serviceName: 'serviceName'
+			environment:
+				FOO: 'bar'
+				A_VARIABLE: 'ITS_VALUE'
+		}
+		s = new Service(service, extendEnvVarsOpts)
+
+		expect(s.environment).to.deep.equal({
+			FOO: 'bar'
+			A_VARIABLE: 'ITS_VALUE'
+			RESIN_APP_ID: '23'
+			RESIN_APP_NAME: 'awesomeApp'
+			RESIN_DEVICE_UUID: '1234'
+			RESIN_DEVICE_NAME_AT_INIT: 'awesomeDevice'
+			RESIN_DEVICE_TYPE: 'raspberry-pi'
+			RESIN_HOST_OS_VERSION: 'Resin OS 2.0.2'
+			RESIN_SERVICE_NAME: 'serviceName'
+			RESIN_SUPERVISOR_VERSION: 'v1.0.0'
+			RESIN_APP_LOCK_PATH: '/tmp/resin/resin-updates.lock'
+			RESIN_SERVICE_KILL_ME_PATH: '/tmp/resin/resin-kill-me'
+			RESIN: '1'
+			USER: 'root'
+		})
+
+	it 'returns the correct default bind mounts', ->
+		s = new Service({
+			appId: '1234'
+			serviceName: 'foo'
+			releaseId: 2
+			serviceId: 3
+			imageId: 4
+		})
+		binds = s.defaultBinds()
+		expect(binds).to.deep.equal([
+			'/tmp/resin-supervisor/services/1234/foo:/tmp/resin'
+		])
+
+	it 'produces the correct port bindings and exposed ports', ->
+		s = new Service({
+			appId: '1234'
+			serviceName: 'foo'
+			releaseId: 2
+			serviceId: 3
+			imageId: 4
+			expose: [
+				1000,
+				'243/udp'
+			],
+			ports: [
+				'2344'
+				'2345:2354'
+				'2346:2367/udp'
+			]
+		}, {
+			imageInfo: Config: {
+				ExposedPorts: {
+					'53/tcp': {}
+					'53/udp': {}
+					'2354/tcp': {}
+				}
+			}
+		})
+		expect(s.portBindings).to.deep.equal({
+			'2344/tcp': [{
+				HostIp: '',
+				HostPort: '2344'
+			}],
+			'2354/tcp': [{
+				HostIp: '',
+				HostPort: '2345'
+			}],
+			'2367/udp': [{
+				HostIp: '',
+				HostPort: '2346'
+			}]
+		})
+		expect(s.exposedPorts).to.deep.equal({
+			'1000/tcp': {}
+			'243/udp': {}
+			'2344/tcp': {}
+			'2354/tcp': {}
+			'2367/udp': {}
+			'53/tcp': {}
+			'53/udp': {}
+		})
+
 	describe 'parseMemoryNumber()', ->
 		makeComposeServiceWithLimit = (memLimit) ->
-			new ComposeService(
+			new Service(
 				appId: 123456
 				serviceId: 123456
 				serviceName: 'foobar'
