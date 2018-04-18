@@ -24,7 +24,9 @@ applyDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress) ->
 				deltaStream = dockerDelta.applyDelta(imgSrc, timeout: applyTimeout)
 				res.pipe(deltaStream)
 				.on('id', (id) -> resolve('sha256:' + id))
-				.on('error', req.abort.bind(req))
+				.on 'error', (err) ->
+					req.abort()
+					reject(err)
 
 module.exports = class DockerUtils extends DockerToolbelt
 	constructor: (opts) ->
