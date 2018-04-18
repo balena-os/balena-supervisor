@@ -9,7 +9,8 @@ _ = require 'lodash'
 { envArrayToObject } = require './conversions'
 { checkInt } = require './validation'
 
-applyDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress) ->
+applyDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress, log) ->
+	log('Applying delta...')
 	new Promise (resolve, reject) ->
 		req = resumable(Object.assign({ url: deltaUrl }, opts))
 		.on('progress', onProgress)
@@ -25,7 +26,8 @@ applyDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress) ->
 				res.pipe(deltaStream)
 				.on('id', (id) -> resolve('sha256:' + id))
 				.on 'error', (err) ->
-					req.abort()
+					log("Delta stream emitted error: #{err}")
+					req.abort(err)
 					reject(err)
 
 module.exports = class DockerUtils extends DockerToolbelt
@@ -59,8 +61,11 @@ module.exports = class DockerUtils extends DockerToolbelt
 		applyTimeout = checkInt(deltaApplyTimeout)
 		deltaSource = 'resin/scratch' if startFromEmpty or !deltaSource?
 		deltaSourceId ?= deltaSource
-		# I'll leave this debug log here in case we ever wonder what delta source a device is using in production
-		console.log("Using delta source #{deltaSource}")
+
+		log = (str) ->
+			console.log("delta(#{deltaSource}): #{str}")
+
+		log("Starting delta to #{imgDest}")
 		Promise.join @getRegistryAndName(imgDest), @getRegistryAndName(deltaSource), (dstInfo, srcInfo) ->
 			tokenEndpoint = "#{resinApiEndpoint}/auth/v1/token"
 			opts =
@@ -97,11 +102,16 @@ module.exports = class DockerUtils extends DockerToolbelt
 							else
 								deltaSrc = deltaSourceId
 							resumeOpts = { timeout: requestTimeout, maxRetries: retryCount, retryInterval }
-							resolve(applyDelta(deltaSrc, deltaUrl, applyTimeout, resumeOpts, onProgress))
+							resolve(applyDelta(deltaSrc, deltaUrl, applyTimeout, resumeOpts, onProgress, log))
 					.on 'error', reject
 		.catch dockerDelta.OutOfSyncError, (err) =>
-			console.log('Falling back to regular pull')
+			log('Falling back to regular pull')
 			@fetchImageWithProgress(imgDest, fullDeltaOpts, onProgress)
+		.tap ->
+			log('Delta applied successfully')
+		.tapCatch (err) ->
+			log("Delta failed with: #{err}")
+
 
 	fetchImageWithProgress: (image, { uuid, currentApiKey }, onProgress) =>
 		@getRegistryAndName(image)
