@@ -266,6 +266,9 @@ module.exports = class ApplicationManager extends EventEmitter
 						delete @_containerStarted[step.current.containerId]
 						if step.options?.removeImage
 							@images.removeByDockerId(step.current.image)
+			remove: (step) =>
+				# Only called for dead containers, so no need to take locks or anything
+				@services.remove(step.current)
 			updateMetadata: (step, { force = false, skipLock = false } = {}) =>
 				skipLock or= checkTruthy(step.current.labels['io.resin.legacy-container'])
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
@@ -677,6 +680,10 @@ module.exports = class ApplicationManager extends EventEmitter
 		if current?.status == 'Stopping'
 			# There is already a kill step in progress for this service, so we wait
 			return { action: 'noop' }
+
+		if current?.status == 'Dead'
+			# Dead containers have to be removed
+			return serviceAction('remove', current.serviceId, current)
 
 		needsDownload = !_.some availableImages, (image) =>
 			image.dockerImageId == target?.image or @images.isSameImage(image, { name: target.imageName })

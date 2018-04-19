@@ -29,7 +29,7 @@ RUN curl -sL https://raw.githubusercontent.com/resin-os/balena/${BALENA_VERSION}
 RUN passwd -d root
 
 # Change os release to a resin-sync compatible one
-RUN sed -i 's/\(PRETTY_NAME=\).*/\1"ResinOS 1.2.1+dind"/' /etc/os-release
+RUN sed -i 's/\(PRETTY_NAME=\).*/\1"Resin OS 2.12.5+dind"/' /etc/os-release
 RUN echo 'VARIANT_ID="dev"' >> /etc/os-release
 
 COPY config/openvpn/ /etc/openvpn/

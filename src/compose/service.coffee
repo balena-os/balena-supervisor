@@ -429,6 +429,8 @@ module.exports = class Service
 			status = 'Running'
 		else if container.State.Status == 'created'
 			status = 'Installed'
+		else if container.State.Status == 'dead'
+			status = 'Dead'
 		else
 			status = 'Stopped'
 

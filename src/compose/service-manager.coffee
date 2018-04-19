@@ -78,6 +78,15 @@ module.exports = class ServiceManager extends EventEmitter
 	kill: (service, { removeContainer = true, wait = false } = {}) =>
 		@_killContainer(service.containerId, service, { removeContainer, wait })
 
+	remove: (service) =>
+		@logger.logSystemEvent(logTypes.removeDeadService, { service })
+		@get(service)
+		.then (existingService) =>
+			@docker.getContainer(existingService.containerId).remove(v: true)
+		.catchReturn(NotFoundError, null)
+		.tapCatch (err) =>
+			@logger.logSystemEvent(logTypes.removeDeadServiceError, { service, error: err })
+
 	getAllByAppId: (appId) =>
 		@getAll("io.resin.app-id=#{appId}")
 
@@ -278,5 +287,6 @@ module.exports = class ServiceManager extends EventEmitter
 	attachToRunning: =>
 		@getAll()
 		.map (service) =>
-			@logger.logSystemEvent(logTypes.startServiceNoop, { service })
-			@logger.attach(@docker, service.containerId, service)
+			if service.status == 'Running'
+				@logger.logSystemEvent(logTypes.startServiceNoop, { service })
+				@logger.attach(@docker, service.containerId, service)
