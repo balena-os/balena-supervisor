@@ -4,29 +4,24 @@ Join our online chat at [![Gitter chat](https://badges.gitter.im/resin-io/chat.p
 
 This is [resin.io](https://resin.io)'s supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as resin.io's API informs it to.
 
-The supervisor is for now a Node.js program, with a subset of its functionality implemented in Go.
-
-We are using [waffle.io](https://waffle.io) to manage our tickets / issues, so if you want to track our progress or contribute take a look at [our board there](https://waffle.io/resin-io/resin-supervisor).
+The supervisor is a Node.js program.
 
 ## Running a supervisor locally
 
 This process will allow you to run a development instance of the supervisor on your local computer. It is not recommended for production scenarios, but allows someone developing on the supervisor to test changes quickly.
-The supervisor is run inside a Docker-in-Docker container that roughly emulates its environment when running on a resinOS device.
+The supervisor is run inside a resinOS instance running in a container, so effectively it's a Docker-in-Docker instance (or more precisely, [balena](https://github.com/resin-os/balena)-in-Docker).
 
 ### Set up `config.json`
 
-Add a `tools/dind/config.json` file from a staging or production device image. It should be configured for an x86 or amd64 device type (e.g. an Intel Nuc) so that you can push apps to it and they run properly on your computer.
+To configure the supervisor, you'll need a `tools/dind/config.json` file. There's two options on how to get this file:
 
-Note: Don't use staging for production devices. This is for development purposes only. A production (resin.io) `config.json` should work just as well for this local supervisor, but we also don't recommend using this in production scenarios - resinOS is better suited for that.
-
-A `config.json` file can be obtained in several ways, for instance:
-
-* Log in to the dashboard on resinstaging (https://dashboard.resinstaging.io), create or select an application, click "Download OS" and on the Advanced section select "Download configuration only".
-* Install the resin CLI with `npm install -g resin-cli`, then login with `resin login` and finally run `resin config generate --app <appName> -o config.json` (choose the default settings whenever prompted). Check [this section](https://github.com/resin-io/resin-cli#how-do-i-point-the-resin-cli-to-staging) on how to point resin CLI to a device on staging.
+* Log in to the [resin dashboard](https://dashboard.resin.io), create or select an application, click "Add device" and on the Advanced section select "Download configuration file only". Make sure you use an x86 or amd64 device type for your application, for example Intel NUC.
+* Install the resin CLI with `npm install -g resin-cli`, then login with `resin login` and finally run `resin config generate --app <appName> -o config.json` (choose the default settings whenever prompted).
 
 The `config.json` file should look something like this:
 
 (Please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
+
 ```
 {
 	"applicationId": "2167", /* Id of the app this supervisor will run */
@@ -73,46 +68,23 @@ This will mount the ./dist folder into the supervisor container and build the co
 ```
 
 ### Testing with preloaded apps
-To test preloaded apps, add a `tools/dind/apps.json` file according to the preloaded apps spec.
 
-It should look something like this:
+To test preloaded apps, run `resin preload` (see the [resin CLI docs](https://docs.resin.io/tools/cli/#preload-60-image-62-) on an OS image for the app you are testing with. Then copy the `apps.json` file from the `resin-data` partition into `tools/dind/apps.json`. 
 
-(As before, please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
-
-```
-[{
-	"appId": "2167", /* Id of the app we are running */
-	"name": "myapplication", /* Name of the app we are running */
-	"commit": "commithash", /* Current git commit for the app */
-	"imageId": "registry.resinstaging.io/path/to/image", /* Id of the Docker image for this app */
-	"env": { /* Environment variables for the app */
-		"KEY": "value"
-	},
-	"config": { /* Device configuration variables */
-		"RESIN_SUPERVISOR_DELTA": "1"
-	}
-}]
-```
+This file has a format equivalent to the `local` part of the target state endpoint on the resin API.
 
 Make sure the `config.json` file doesn't have uuid, registered_at or deviceId populated from a previous run.
 
 Then run the supervisor like this:
+
 ```bash
 ./dindctl run --image resin/amd64-supervisor:master --preload
 ```
-This will make the Docker-in-Docker instance pull the image specified in `apps.json` before running the supervisor, simulating a preloaded resinOS image (where `resin preload` has been used on the image, see [the resin CLI docs](https://docs.resin.io/tools/cli/#preload-60-image-62-)).
 
-### Enabling passwordless dropbear access
-
-If you want to enable passwordless dropbear login (e.g. while testing `resin sync`) you can set the `--ssh` option, like:
-
-```bash
-./dindctl run --image resin/amd64-supervisor:master --ssh
-```
-
-This will run an ssh daemon **with no password** inside the Docker-in-Docker instance, so use with caution.
+This will make the Docker-in-Docker instance pull the image specified in `apps.json` before running the supervisor, simulating a preloaded resinOS image.
 
 ### View the supervisor's logs
+
 ```bash
 ./dindctl logs
 ```
@@ -125,15 +97,18 @@ additional options, for instance, to see the logs from the supervisor service:
 ```
 
 ### Stop the supervisor
+
 ```bash
 ./dindctl stop
 ```
+
 This will stop the container and remove it, also removing its volumes.
 
 ## Developing with a resinOS device
 
 If you want to test local changes (only changes to the Node.js code are supported) on a real resinOS device, provision
 a [development OS image](https://docs.resin.io/understanding/understanding-devices/2.0.0/#dev-vs-prod-images) and power up the device. On the resin.io dashboard, take note of the device's IP address. Then run:
+
 ```
 ./sync.js <device IP>
 ```
@@ -142,73 +117,32 @@ This will build the supervisor code and sync it onto the running supervisor cont
 
 ## Build a local supervisor image
 
-This should rarely be needed as `--mount-dist` allows you to test any changes to the Node.js code without a full rebuild. However, if you've changed code in gosuper, base-image or the Dockerfile you will need to build the proper
+This should rarely be needed as `--mount-dist` allows you to test any changes to the Node.js code without a full rebuild. However, if you've changed code in the base image or the Dockerfile you will need to build the proper
 supervisor Docker image.
 
 Build the supervisor with a specific tag, and for a specific architecture, like this:
+
 ```bash
 ./dindctl build --tag master --arch amd64
 ```
 
 This will build the supervisor Docker image locally. If you then run `docker images` you should see the repo/tag you
-set there. Keep in mind several images will be pulled for caching purposes - if the base image is not cached the build
-can take a few hours.
+set there. Keep in mind several images will be pulled for caching purposes.
 
-The Docker caching system can be tricky, so it might try to build the base image anyways; if you see that the build hangs at something like:
+## Base image
 
-```
-### Shell environment set up for builds. ###
-
-You can now run 'bitbake <target>'
-
-Common targets are:
-    core-image-minimal
-    core-image-sato
-    meta-toolchain
-    meta-ide-support
-
-You can also run generated qemu images with a command like 'runqemu qemux86'
-```
-
-...don't be alarmed, it means it is building the base image and will take a few hours without any output. Go grab some coffee or play a game of Risk.
-
-## Working with the Go supervisor
-
-The code for the Go supervisor lives in the `gosuper` directory.
-
-To build it, run (with the ARCH and IMAGE you want):
-```bash
-make ARCH=amd64 IMAGE=username/gosuper:master gosuper
-```
-This will build a Docker image that builds the Go supervisor and has the executable at /go/bin/gosuper inside the image.
-
-### Adding Go dependencies
-This project uses [glide](https://github.com/Masterminds/glide) to manage its Go dependencies. Refer to its repository for instructions on adding packages.
-
-In order for go utilities to work, this repo needs to be within the `src` directory in a valid Go workspace. This can easily be achieved by having the repo as a child of a directory named `src` and setting the `GOPATH` environment variable to such directory's parent.
+The supervisor uses the [resin-supervisor-base](https://github.com/resin-io/resin-supervisor-base) as a base image.
+This is a minimal Linux image containing busybox, rsync and Node.js, and it's built with the [Yocto project](https://www.yoctoproject.org/).
 
 ## Testing
 
-We're working on adding more tests to this repo, but here's what you can run in the meantime:
+You can run some unit tests with:
 
-### Gosuper
-
-The Go supervisor can be tested by running:
-```bash
-make ARCH=amd64 test-gosuper
 ```
-The test suite is at [gosuper/main_test.go](./gosuper/main_test.go).
-
-### Integration test
-The integration test tests the supervisor API by hitting its endpoints. To run it, first run the supervisor as explained in the first section of this document.
-
-Once it's running, you can run the test with:
-```bash
-make ARCH=amd64 test-integration
+npm test
 ```
 
-The tests will fail if the supervisor API is down - bear in mind that the supervisor image takes a while to start the actual supervisor program, so you might have to wait a few minutes between running the supervisor and testing it.
-The test expects the supervisor to be already running the application (so that the app is already on the SQLite database), so check the dashboard to see if the app has already downloaded.
+You'll need Node.js 6 installed, and having run `npm install` first. The supervisor runs on Node 6.13.1, so using that specific version will ensure tests run in the same environment as production.
 
 ## Contributing
 
