@@ -9,8 +9,8 @@ _ = require 'lodash'
 { envArrayToObject } = require './conversions'
 { checkInt } = require './validation'
 
-applyDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress, log) ->
-	log('Applying delta...')
+applyRsyncDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress, log) ->
+	log('Applying rsync delta...')
 	new Promise (resolve, reject) ->
 		req = resumable(Object.assign({ url: deltaUrl }, opts))
 		.on('progress', onProgress)
@@ -22,13 +22,22 @@ applyDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress, log) ->
 			else if parseInt(res.headers['content-length']) is 0
 				reject(new Error('Invalid delta URL.'))
 			else
-				deltaStream = dockerDelta.applyDelta(imgSrc, timeout: applyTimeout)
+				deltaStream = dockerDelta.applyDelta(imgSrc, { log, timeout: applyTimeout })
 				res.pipe(deltaStream)
 				.on('id', (id) -> resolve('sha256:' + id))
 				.on 'error', (err) ->
 					log("Delta stream emitted error: #{err}")
 					req.abort(err)
 					reject(err)
+
+applyBalenaDelta = (docker, deltaImg, token, onProgress, log) ->
+	log('Applying balena delta...')
+	if token?
+		log('Using registry auth token')
+		auth = { authconfig: registrytoken: token }
+	docker.dockerProgress.pull(deltaImg, onProgress, auth)
+	.then =>
+		docker.getImage(deltaImg).inspect().get('Id')
 
 module.exports = class DockerUtils extends DockerToolbelt
 	constructor: (opts) ->
@@ -48,22 +57,28 @@ module.exports = class DockerUtils extends DockerToolbelt
 				repoName = imageName
 			return { repo: repoName, tag: tagName }
 
-	# TODO: somehow fix this to work with image names having repo digests instead of tags
-	rsyncImageWithProgress: (imgDest, fullDeltaOpts, onProgress) =>
+	fetchDeltaWithProgress: (imgDest, fullDeltaOpts, onProgress) =>
 		{
 			deltaRequestTimeout, deltaApplyTimeout, deltaRetryCount, deltaRetryInterval,
 			uuid, currentApiKey, deltaEndpoint, resinApiEndpoint,
-			deltaSource, deltaSourceId, startFromEmpty = false
+			deltaSource, deltaSourceId, deltaVersion, startFromEmpty = false
 		} = fullDeltaOpts
 		retryCount = checkInt(deltaRetryCount)
 		retryInterval = checkInt(deltaRetryInterval)
 		requestTimeout = checkInt(deltaRequestTimeout)
 		applyTimeout = checkInt(deltaApplyTimeout)
+		version = checkInt(deltaVersion)
 		deltaSource = 'resin/scratch' if startFromEmpty or !deltaSource?
 		deltaSourceId ?= deltaSource
 
 		log = (str) ->
 			console.log("delta(#{deltaSource}): #{str}")
+
+		if not (version in [ 2, 3 ])
+			log("Unsupported delta version: #{version}. Falling back to regular pull")
+			return @fetchImageWithProgress(imgDest, fullDeltaOpts, onProgress)
+
+		docker = this
 
 		log("Starting delta to #{imgDest}")
 		Promise.join @getRegistryAndName(imgDest), @getRegistryAndName(deltaSource), (dstInfo, srcInfo) ->
@@ -79,31 +94,38 @@ module.exports = class DockerUtils extends DockerToolbelt
 			request.getAsync(url, opts)
 			.get(1)
 			.then (responseBody) ->
+				token = responseBody?.token
 				opts =
 					followRedirect: false
 					timeout: requestTimeout
 
-				if responseBody?.token?
+				if token?
 					opts.auth =
-						bearer: responseBody.token
+						bearer: token
 						sendImmediately: true
-				new Promise (resolve, reject) ->
-					request.get("#{deltaEndpoint}/api/v2/delta?src=#{deltaSource}&dest=#{imgDest}", opts)
-					.on 'response', (res) ->
-						res.resume() # discard response body -- we only care about response headers
-						if res.statusCode in [ 502, 504 ]
-							reject(new Error('Delta server is still processing the delta, will retry'))
-						else if not (300 <= res.statusCode < 400 and res.headers['location']?)
-							reject(new Error("Got #{res.statusCode} when requesting image from delta server."))
-						else
+				request.getAsync("#{deltaEndpoint}/api/v#{version}/delta?src=#{deltaSource}&dest=#{imgDest}", opts)
+				.spread (res, data) ->
+					if res.statusCode in [ 502, 504 ]
+						throw new Error('Delta server is still processing the delta, will retry')
+					switch version
+						when 2
+							if not (300 <= res.statusCode < 400 and res.headers['location']?)
+								throw new Error("Got #{res.statusCode} when requesting image from delta server.")
 							deltaUrl = res.headers['location']
 							if deltaSource is 'resin/scratch'
 								deltaSrc = null
 							else
 								deltaSrc = deltaSourceId
 							resumeOpts = { timeout: requestTimeout, maxRetries: retryCount, retryInterval }
-							resolve(applyDelta(deltaSrc, deltaUrl, applyTimeout, resumeOpts, onProgress, log))
-					.on 'error', reject
+							applyRsyncDelta(deltaSrc, deltaUrl, applyTimeout, resumeOpts, onProgress, log)
+						when 3
+							if res.statusCode isnt 200
+								throw new Error("Got #{res.statusCode} when requesting image from delta server.")
+							name = JSON.parse(data).name
+							applyBalenaDelta(docker, name, token, onProgress, log)
+						else
+							# we guard against arbitrary versions above, so this can't really happen
+							throw new Error("Unsupported delta version: #{version}")
 		.catch dockerDelta.OutOfSyncError, (err) =>
 			log('Falling back to regular pull')
 			@fetchImageWithProgress(imgDest, fullDeltaOpts, onProgress)
