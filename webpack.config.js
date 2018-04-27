@@ -77,7 +77,7 @@ module.exports = function (env) {
 			path: path.resolve(__dirname, 'dist')
 		},
 		resolve: {
-			extensions: [".js", ".json", ".coffee"]
+			extensions: [".js", ".ts", ".json", ".coffee"]
 		},
 		target: 'node',
 		node: {
@@ -96,6 +96,14 @@ module.exports = function (env) {
 				{
 					test: /\.coffee$/,
 					use: require.resolve('coffee-loader')
+				},
+				{
+					test: /\.ts$/,
+					use: [
+						{
+							loader: 'ts-loader',
+						}
+					]
 				}
 			]
 		},
