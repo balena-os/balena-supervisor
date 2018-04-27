@@ -147,3 +147,17 @@ describe 'compose/service.cofee', ->
 			expect(makeComposeServiceWithLimit('64gb').memLimit).to.equal(68719476736)
 			expect(makeComposeServiceWithLimit('64Gb').memLimit).to.equal(68719476736)
 
+	describe 'getWorkingDir', ->
+		makeComposeServiceWithWorkdir = (workdir) ->
+			new Service(
+				appId: 123456,
+				serviceId: 123456,
+				serviceName: 'foobar'
+				workingDir: workdir
+			)
+
+		it 'should remove a trailing slash', ->
+			expect(makeComposeServiceWithWorkdir('/usr/src/app/').workingDir).to.equal('/usr/src/app')
+			expect(makeComposeServiceWithWorkdir('/').workingDir).to.equal('/')
+			expect(makeComposeServiceWithWorkdir('/usr/src/app').workingDir).to.equal('/usr/src/app')
+			expect(makeComposeServiceWithWorkdir('').workingDir).to.equal('')

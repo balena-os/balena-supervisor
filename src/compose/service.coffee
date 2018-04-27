@@ -62,7 +62,7 @@ getUser = (service, imageInfo) ->
 	return service.user ? imageInfo?.Config?.User ? ''
 
 getWorkingDir = (service, imageInfo) ->
-	return service.workingDir ? imageInfo?.Config?.WorkingDir ? ''
+	return (service.workingDir ? imageInfo?.Config?.WorkingDir ? '').replace(/(^.+)\/$/, '$1')
 
 buildHealthcheckTest = (test) ->
 	if _.isString(test)
