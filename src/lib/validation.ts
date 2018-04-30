@@ -16,13 +16,15 @@ export interface LabelObject {
 const ENV_VAR_KEY_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
 
+type NullableString = string | undefined | null;
+
 /**
  * checkInt
  *
  * Check an input string as a number, optionally specifying a requirement
  * to be positive
  */
-export function checkInt(s: string | null, options: CheckIntOptions = {}): number | void {
+export function checkInt(s: NullableString, options: CheckIntOptions = {}): number | void {
 	if (s == null) {
 		return;
 	}
@@ -45,7 +47,7 @@ export function checkInt(s: string | null, options: CheckIntOptions = {}): numbe
  *
  * Check that a string exists, and is not an empty string, 'null', or 'undefined'
  */
-export function checkString(s: string): string | void {
+export function checkString(s: NullableString): string | void {
 	if (s == null || !_.isString(s) || _.includes([ 'null', 'undefined', '' ], s)) {
 		return;
 	}
@@ -104,13 +106,13 @@ export function isValidEnv(obj: EnvVarObject): boolean {
 	return _.every(obj, (val, key) => {
 		if (!isValidShortText(key)) {
 			console.log('debug: Non-valid short text env var key passed to validation.isValidEnv');
-			console.log(`\tKey: ${inspect(key)}`)
+			console.log(`\tKey: ${inspect(key)}`);
 			return false;
 		}
 
 		if (!ENV_VAR_KEY_REGEX.test(key)) {
 			console.log('debug: Invalid env var key passed to validation.isValidEnv');
-			console.log(`\tKey: ${inspect(key)}`)
+			console.log(`\tKey: ${inspect(key)}`);
 			return false;
 		}
 
@@ -230,7 +232,7 @@ export function isValidDependentAppsObject(apps: any): boolean {
 					return false;
 				}
 				return true;
-			}
+			},
 		});
 	});
 }
@@ -282,7 +284,7 @@ function isValidService(service: any, serviceId: string): boolean {
 				return false;
 			}
 			return true;
-		}
+		},
 	});
 }
 
@@ -340,7 +342,7 @@ export function isValidAppsObject(obj: any): boolean {
 					}
 					return true;
 				});
-			}
+			},
 		});
 	});
 }
@@ -405,10 +407,10 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 								return false;
 							}
 							return true;
-						}
+						},
 					});
 				});
-			}
+			},
 		});
 	});
 }
