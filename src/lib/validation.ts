@@ -1,16 +1,10 @@
 import * as _ from 'lodash';
 import { inspect } from 'util';
 
+import { EnvVarObject, LabelObject } from './types';
+
 export interface CheckIntOptions {
 	positive?: boolean;
-}
-
-export interface EnvVarObject {
-	[name: string]: string;
-}
-
-export interface LabelObject {
-	[name: string]: string;
 }
 
 const ENV_VAR_KEY_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
