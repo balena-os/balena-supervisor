@@ -10,7 +10,7 @@
   "scripts": {
     "start": "./entry.sh",
     "build": "webpack",
-    "lint": "resin-lint src/ test/",
+    "lint": "resin-lint --typescript src/ test/",
     "test": "npm run lint && JUNIT_REPORT_PATH=report.xml mocha --exit -r ts-node/register -r coffee-script/register -r register-coffee-coverage test/*.{js,coffee} && npm run coverage",
     "versionist": "versionist",
     "coverage": "istanbul report text && istanbul report html"
@@ -58,7 +58,7 @@
     "pubnub": "^3.7.13",
     "register-coffee-coverage": "0.0.1",
     "request": "^2.51.0",
-    "resin-lint": "^1.3.1",
+    "resin-lint": "^1.5.7",
     "resin-register-device": "^3.0.0",
     "resin-sync": "^9.3.0",
     "resumable-request": "^2.0.0",
