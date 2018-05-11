@@ -13,7 +13,6 @@ Config = require('../src/config')
 Service = require '../src/compose/service'
 
 mockedInitialConfig = {
-	'RESIN_HOST_LOG_TO_DISPLAY': '1'
 	'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': 'true'
 	'RESIN_SUPERVISOR_DELTA': 'false'
 	'RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT': ''
@@ -32,7 +31,6 @@ testTarget1 = {
 		name: 'aDevice'
 		config: {
 			'RESIN_HOST_CONFIG_gpu_mem': '256'
-			'RESIN_HOST_LOG_TO_DISPLAY': '0'
 			'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': 'true'
 			'RESIN_SUPERVISOR_DELTA': 'false'
 			'RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT': ''
@@ -78,7 +76,6 @@ testTarget2 = {
 		name: 'aDeviceWithDifferentName'
 		config: {
 			'RESIN_HOST_CONFIG_gpu_mem': '512'
-			'RESIN_HOST_LOG_TO_DISPLAY': '1'
 		}
 		apps: {
 			'1234': {
@@ -115,7 +112,6 @@ testTargetWithDefaults2 = {
 		name: 'aDeviceWithDifferentName'
 		config: {
 			'RESIN_HOST_CONFIG_gpu_mem': '512'
-			'RESIN_HOST_LOG_TO_DISPLAY': '1'
 			'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': 'true'
 			'RESIN_SUPERVISOR_DELTA': 'false'
 			'RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT': ''
@@ -152,7 +148,6 @@ testTargetInvalid = {
 		name: 'aDeviceWithDifferentName'
 		config: {
 			'RESIN_HOST_CONFIG_gpu_mem': '512'
-			'RESIN_HOST_LOG_TO_DISPLAY': '1'
 		}
 		apps: [
 			{
