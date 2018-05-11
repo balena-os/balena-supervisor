@@ -12,6 +12,7 @@ Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
 { NotFoundError } = require './lib/errors'
+{ appNotFoundMessage } = require './lib/messages'
 
 ServiceManager = require './compose/service-manager'
 Service = require './compose/service'
@@ -21,8 +22,8 @@ Volumes = require './compose/volumes'
 
 Proxyvisor = require './proxyvisor'
 
-serviceAction = (action, serviceId, current, target, options = {}) ->
-	return { action, serviceId, current, target, options }
+{ createV1Api } = require './device-api/v1'
+{ doRestart, doPurge, serviceAction } = require './device-api/common'
 
 # TODO: move this to an Image class?
 imageForService = (service) ->
@@ -48,156 +49,15 @@ pathExistsOnHost = (p) ->
 	.return(true)
 	.catchReturn(false)
 
-appNotFoundMsg = "App not found: an app needs to be installed for this endpoint to work.
-				If you've recently moved this device from another app,
-				please push an app and wait for it to be installed first."
-
 # TODO: implement additional v2 endpoints
 # Some v1 endpoins only work for single-container apps as they assume the app has a single service.
 createApplicationManagerRouter = (applications) ->
-	{ eventTracker, deviceState, _lockingIfNecessary, logger } = applications
+	{ _lockingIfNecessary } = applications
 	router = express.Router()
 	router.use(bodyParser.urlencoded(extended: true))
 	router.use(bodyParser.json())
 
-	doRestart = (appId, force) ->
-		_lockingIfNecessary appId, { force }, ->
-			deviceState.getCurrentForComparison()
-			.then (currentState) ->
-				app = currentState.local.apps[appId]
-				imageIds = _.map(app.services, 'imageId')
-				applications.clearTargetVolatileForServices(imageIds)
-				stoppedApp = _.cloneDeep(app)
-				stoppedApp.services = []
-				currentState.local.apps[appId] = stoppedApp
-				deviceState.pausingApply ->
-					deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.then ->
-						currentState.local.apps[appId] = app
-						deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-				.finally ->
-					deviceState.triggerApplyTarget()
-
-	doPurge = (appId, force) ->
-		logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
-		_lockingIfNecessary appId, { force }, ->
-			deviceState.getCurrentForComparison()
-			.then (currentState) ->
-				app = currentState.local.apps[appId]
-				if !app?
-					throw new Error(appNotFoundMsg)
-				purgedApp = _.cloneDeep(app)
-				purgedApp.services = []
-				purgedApp.volumes = {}
-				currentState.local.apps[appId] = purgedApp
-				deviceState.pausingApply ->
-					deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.then ->
-						currentState.local.apps[appId] = app
-						deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-				.finally ->
-					deviceState.triggerApplyTarget()
-		.tap ->
-			logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
-		.tapCatch (err) ->
-			logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
-
-	router.post '/v1/restart', (req, res) ->
-		appId = checkInt(req.body.appId)
-		force = checkTruthy(req.body.force)
-		eventTracker.track('Restart container (v1)', { appId })
-		if !appId?
-			return res.status(400).send('Missing app id')
-		doRestart(appId, force)
-		.then ->
-			res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	v1StopOrStart = (req, res, action) ->
-		appId = checkInt(req.params.appId)
-		force = checkTruthy(req.body.force)
-		if !appId?
-			return res.status(400).send('Missing app id')
-		applications.getCurrentApp(appId)
-		.then (app) ->
-			service = app?.services?[0]
-			if !service?
-				return res.status(400).send('App not found')
-			if app.services.length > 1
-				return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-			applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
-			applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { force })
-			.then ->
-				if action == 'stop'
-					return service
-				# We refresh the container id in case we were starting an app with no container yet
-				applications.getCurrentApp(appId)
-				.then (app) ->
-					service = app?.services?[0]
-					if !service?
-						throw new Error('App not found after running action')
-					return service
-			.then (service) ->
-				res.status(200).json({ containerId: service.containerId })
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v1/apps/:appId/stop', (req, res) ->
-		v1StopOrStart(req, res, 'stop')
-
-	router.post '/v1/apps/:appId/start', (req, res) ->
-		v1StopOrStart(req, res, 'start')
-
-	router.get '/v1/apps/:appId', (req, res) ->
-		appId = checkInt(req.params.appId)
-		eventTracker.track('GET app (v1)', { appId })
-		if !appId?
-			return res.status(400).send('Missing app id')
-		Promise.join(
-			applications.getCurrentApp(appId)
-			applications.getStatus()
-			(app, status) ->
-				service = app?.services?[0]
-				if !service?
-					return res.status(400).send('App not found')
-				if app.services.length > 1
-					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-				# Don't return data that will be of no use to the user
-				appToSend = {
-					appId
-					containerId: service.containerId
-					env: _.omit(service.environment, constants.privateAppEnvVars)
-					releaseId: service.releaseId
-					imageId: service.image
-				}
-				if status.commit?
-					appToSend.commit = status.commit
-				res.json(appToSend)
-		)
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v1/purge', (req, res) ->
-		appId = checkInt(req.body.appId)
-		force = checkTruthy(req.body.force)
-		if !appId?
-			errMsg = 'Invalid or missing appId'
-			return res.status(400).send(errMsg)
-		doPurge(appId, force)
-		.then ->
-			res.status(200).json(Data: 'OK', Error: '')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v2/applications/:appId/purge', (req, res) ->
-		{ force } = req.body
-		{ appId } = req.params
-		doPurge(appId, force)
-		.then ->
-			res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+	createV1Api(router, applications)
 
 	handleServiceAction = (req, res, action) ->
 		{ imageId, force } = req.body
@@ -206,7 +66,7 @@ createApplicationManagerRouter = (applications) ->
 			applications.getCurrentApp(appId)
 			.then (app) ->
 				if !app?
-					return res.status(404).send(appNotFoundMsg)
+					return res.status(404).send(appNotFoundMessage)
 				service = _.find(app.services, { imageId })
 				if !service?
 					errMsg = 'Service not found, a container must exist for this endpoint to work.'
@@ -215,6 +75,15 @@ createApplicationManagerRouter = (applications) ->
 				applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { skipLock: true })
 				.then ->
 					res.status(200).send('OK')
+		.catch (err) ->
+			res.status(503).send(err?.message or err or 'Unknown error')
+
+	router.post '/v2/applications/:appId/purge', (req, res) ->
+		{ force } = req.body
+		{ appId } = req.params
+		doPurge(applications, appId, force)
+		.then ->
+			res.status(200).send('OK')
 		.catch (err) ->
 			res.status(503).send(err?.message or err or 'Unknown error')
 
@@ -230,7 +99,7 @@ createApplicationManagerRouter = (applications) ->
 	router.post '/v2/applications/:appId/restart', (req, res) ->
 		{ force } = req.body
 		{ appId } = req.params
-		doRestart(appId, force)
+		doRestart(applications, appId, force)
 		.then ->
 			res.status(200).send('OK')
 		.catch (err) ->
