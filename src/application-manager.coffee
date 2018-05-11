@@ -12,7 +12,6 @@ Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
 { NotFoundError } = require './lib/errors'
-{ appNotFoundMessage } = require './lib/messages'
 
 ServiceManager = require './compose/service-manager'
 Service = require './compose/service'
@@ -23,7 +22,8 @@ Volumes = require './compose/volumes'
 Proxyvisor = require './proxyvisor'
 
 { createV1Api } = require './device-api/v1'
-{ doRestart, doPurge, serviceAction } = require './device-api/common'
+{ createV2Api } = require './device-api/v2'
+{ serviceAction } = require './device-api/common'
 
 # TODO: move this to an Image class?
 imageForService = (service) ->
@@ -52,58 +52,12 @@ pathExistsOnHost = (p) ->
 # TODO: implement additional v2 endpoints
 # Some v1 endpoins only work for single-container apps as they assume the app has a single service.
 createApplicationManagerRouter = (applications) ->
-	{ _lockingIfNecessary } = applications
 	router = express.Router()
 	router.use(bodyParser.urlencoded(extended: true))
 	router.use(bodyParser.json())
 
 	createV1Api(router, applications)
-
-	handleServiceAction = (req, res, action) ->
-		{ imageId, force } = req.body
-		{ appId } = req.params
-		_lockingIfNecessary appId, { force }, ->
-			applications.getCurrentApp(appId)
-			.then (app) ->
-				if !app?
-					return res.status(404).send(appNotFoundMessage)
-				service = _.find(app.services, { imageId })
-				if !service?
-					errMsg = 'Service not found, a container must exist for this endpoint to work.'
-					return res.status(404).send(errMsg)
-				applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
-				applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { skipLock: true })
-				.then ->
-					res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v2/applications/:appId/purge', (req, res) ->
-		{ force } = req.body
-		{ appId } = req.params
-		doPurge(applications, appId, force)
-		.then ->
-			res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v2/applications/:appId/restart-service', (req, res) ->
-		handleServiceAction(req, res, 'restart')
-
-	router.post '/v2/applications/:appId/stop-service', (req, res) ->
-		handleServiceAction(req, res, 'stop')
-
-	router.post '/v2/applications/:appId/start-service', (req, res) ->
-		handleServiceAction(req, res, 'start')
-
-	router.post '/v2/applications/:appId/restart', (req, res) ->
-		{ force } = req.body
-		{ appId } = req.params
-		doRestart(applications, appId, force)
-		.then ->
-			res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+	createV2Api(router, applications)
 
 	router.use(applications.proxyvisor.router)
 
