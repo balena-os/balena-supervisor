@@ -270,56 +270,6 @@ $ curl -X POST --header "Content-Type:application/json" \
 	"https://api.resin.io/supervisor/v1/restart"
 ```
 
-<hr>
-
-### POST /v1/tcp-ping
-
-When the device's connection to the Resin VPN is down, by default the device performs a TCP ping heartbeat to check for connectivity. This endpoint enables such TCP ping in case it has been disabled (see DELETE /v1/tcp-ping).
-
-When successful, responds with an empty 204:
-
-#### Examples:
-From the app on the device:
-```bash
-$ curl -X POST --header "Content-Type:application/json" \
-	"$RESIN_SUPERVISOR_ADDRESS/v1/tcp-ping?apikey=$RESIN_SUPERVISOR_API_KEY"
-```
-
-(Empty response)
-
-Remotely via the API proxy:
-```bash
-$ curl -X POST --header "Content-Type:application/json" \
-	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>}' \
-	"https://api.resin.io/supervisor/v1/tcp-ping"
-```
-
-<hr>
-
-### DELETE /v1/tcp-ping
-
-When the device's connection to the Resin VPN is down, by default the device performs a TCP ping heartbeat to check for connectivity. This endpoint disables such TCP ping.
-
-When successful, responds with an empty 204:
-
-#### Examples:
-From the app on the device:
-```bash
-$ curl -X DELETE --header "Content-Type:application/json" \
-	"$RESIN_SUPERVISOR_ADDRESS/v1/tcp-ping?apikey=$RESIN_SUPERVISOR_API_KEY"
-```
-
-(Empty response)
-
-Remotely via the API proxy:
-```bash
-$ curl -X POST --header "Content-Type:application/json" \
-	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "method": "DELETE"}' \
-	"https://api.resin.io/supervisor/v1/tcp-ping"
-```
-
 ### POST /v1/regenerate-api-key
 
 Invalidates the current `RESIN_SUPERVISOR_API_KEY` and generates a new one. Responds with the new API key, but **the application will be restarted on the next update cycle** to update the API key environment variable.
@@ -392,6 +342,8 @@ Introduced in supervisor v1.8.
 Temporarily stops a user application container. A reboot or supervisor restart will cause the container to start again.
 The container is not removed with this endpoint.
 
+This is only supported on single-container devices, and will return 400 on devices running multiple containers.
+
 When successful, responds with 200 and the Id of the stopped container.
 
 The appId must be specified in the URL.
@@ -428,6 +380,8 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 Introduced in supervisor v1.8.
 Starts a user application container, usually after it has been stopped with `/v1/stop`.
+
+This is only supported on single-container devices, and will return 400 on devices running multiple containers.
 
 When successful, responds with 200 and the Id of the started container.
 
@@ -470,6 +424,8 @@ The app is a JSON object that contains the following:
 * `env`: A key-value store of the app's environment variables.
 
 The appId must be specified in the URL.
+
+This is only supported on single-container devices, and will return 400 on devices running multiple containers.
 
 #### Examples:
 From the app on the device:
