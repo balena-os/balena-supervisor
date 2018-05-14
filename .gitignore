@@ -9,8 +9,7 @@
 tools/dind/config/
 tools/dind/config.json*
 tools/dind/apps.json
-test/data/config.json
-test/data/config-apibinder.json
+test/data/config*.json
 test/data/*.sqlite
 test/data/led_file
 /coverage/
