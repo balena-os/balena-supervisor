@@ -82,19 +82,28 @@ module.exports = class APIBinder
 			@cachedResinApi = @resinApi.clone({}, cache: {})
 
 	start: =>
-		@config.getMany([ 'offlineMode', 'bootstrapRetryDelay' ])
-		.then ({ offlineMode, bootstrapRetryDelay }) =>
+		@config.getMany([ 'resinApiEndpoint', 'offlineMode', 'bootstrapRetryDelay' ])
+		.then ({ resinApiEndpoint, offlineMode, bootstrapRetryDelay }) =>
 			if offlineMode
 				console.log('Offline Mode is set, skipping API binder initialization')
+				# If we are offline because there is no apiEndpoint, there's a chance
+				# we've went through a deprovision. We need to set the initialConfigReported
+				# value to '', to ensure that when we do re-provision, we'll report
+				# the config and hardward-specific options won't be lost
+				if !Boolean(resinApiEndpoint)
+					return @config.set({ initialConfigReported: '' })
 				return
 			console.log('Ensuring device is provisioned')
 			@provisionDevice()
 			.then =>
-				@config.get('initialConfigReported')
-				.then (reported) =>
-					if !checkTruthy(reported)
+				@config.getMany([ 'initialConfigReported', 'resinApiEndpoint' ])
+				.then ({ initialConfigReported, resinApiEndpoint }) =>
+
+					# Either we haven't reported our initial config or we've
+					# been re-provisioned
+					if resinApiEndpoint != initialConfigReported
 						console.log('Reporting initial configuration')
-						@reportInitialConfig(bootstrapRetryDelay)
+						@reportInitialConfig(resinApiEndpoint, bootstrapRetryDelay)
 			.then =>
 				console.log('Starting current state report')
 				@startCurrentStateReport()
@@ -277,7 +286,7 @@ module.exports = class APIBinder
 
 	# Creates the necessary config vars in the API to match the current device state,
 	# without overwriting any variables that are already set.
-	_reportInitialEnv: =>
+	_reportInitialEnv: (apiEndpoint) =>
 		Promise.join(
 			@deviceState.getCurrentForComparison()
 			@getTargetState()
@@ -301,15 +310,15 @@ module.exports = class APIBinder
 							body: envVar
 		)
 		.then =>
-			@config.set({ initialConfigReported: 'true' })
+			@config.set({ initialConfigReported: apiEndpoint })
 
-	reportInitialConfig: (retryDelay) =>
-		@_reportInitialEnv()
+	reportInitialConfig: (apiEndpoint, retryDelay) =>
+		@_reportInitialEnv(apiEndpoint)
 		.catch (err) =>
 			console.error('Error reporting initial configuration, will retry', err)
 			Promise.delay(retryDelay)
 			.then =>
-				@reportInitialConfig(retryDelay)
+				@reportInitialConfig(apiEndpoint, retryDelay)
 
 	getTargetState: =>
 		@config.getMany([ 'uuid', 'resinApiEndpoint', 'apiTimeout' ])
