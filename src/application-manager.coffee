@@ -440,7 +440,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		).get(appId)
 
 	getTargetApp: (appId) =>
-		@db.models('app').where({ appId }).select()
+		@config.get('resinApiEndpoint').then (endpoint = '') ->
+			@db.models('app').where({ appId, source: endpoint }).select()
 		.then ([ app ]) =>
 			if !app?
 				return
@@ -776,6 +777,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				appId: app.appId
 				commit: app.commit
 				name: app.name
+				source: app.source
 				releaseId: app.releaseId
 				services: JSON.stringify(services)
 				networks: JSON.stringify(app.networks ? {})
@@ -839,12 +841,13 @@ module.exports = class ApplicationManager extends EventEmitter
 					return outApp
 		)
 
-	setTarget: (apps, dependent , trx) =>
+	setTarget: (apps, dependent , source, trx) =>
 		setInTransaction = (trx) =>
 			Promise.try =>
 				appsArray = _.map apps, (app, appId) ->
 					appClone = _.clone(app)
 					appClone.appId = checkInt(appId)
+					appClone.source = source
 					return appClone
 				Promise.map(appsArray, @normaliseAppForDB)
 				.tap (appsForDB) =>
@@ -872,7 +875,8 @@ module.exports = class ApplicationManager extends EventEmitter
 			@_targetVolatilePerImageId[imageId] = {}
 
 	getTargetApps: =>
-		Promise.map(@db.models('app').select(), @normaliseAndExtendAppFromDB)
+		@config.get('resinApiEndpoint'). then (source = '') =>
+			Promise.map(@db.models('app').where({ source }), @normaliseAndExtendAppFromDB)
 		.map (app) =>
 			if !_.isEmpty(app.services)
 				app.services = _.map app.services, (service) =>
