@@ -36,6 +36,9 @@ arrayConfigKeys = [ 'dtparam', 'dtoverlay', 'device_tree_param', 'device_tree_ov
 
 vpnServiceName = 'openvpn-resin'
 
+isRPiDeviceType = (deviceType) ->
+	_.startsWith(deviceType, 'raspberry') or deviceType == 'fincm3'
+
 module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 		@rebootRequired = false
@@ -216,7 +219,7 @@ module.exports = class DeviceConfig
 
 	getBootConfig: (deviceType) =>
 		Promise.try =>
-			if !_.startsWith(deviceType, 'raspberry')
+			if !isRPiDeviceType(deviceType)
 				return {}
 			@readBootConfig()
 			.then (configTxt) =>
@@ -239,7 +242,7 @@ module.exports = class DeviceConfig
 	setBootConfig: (deviceType, target) =>
 		Promise.try =>
 			conf = @envToBootConfig(target)
-			if !_.startsWith(deviceType, 'raspberry')
+			if !isRPiDeviceType(deviceType)
 				return false
 			@logger.logSystemMessage("Applying boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config in progress')
 			configStatements = []
