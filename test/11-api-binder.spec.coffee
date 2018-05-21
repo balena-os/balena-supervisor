@@ -12,11 +12,11 @@ Config = require('../src/config')
 DeviceState = require('../src/device-state')
 APIBinder = require('../src/api-binder')
 
-initModels = ->
+initModels = (filename) ->
 	@timeout(5000)
 	prepare()
 	@db = new DB()
-	@config = new Config({ @db, configPath: '/config-apibinder.json' })
+	@config = new Config({ @db, configPath: filename })
 	@eventTracker = {
 		track: stub().callsFake (ev, props) ->
 			console.log(ev, props)
@@ -49,7 +49,7 @@ describe 'APIBinder', ->
 	# We do not support older OS versions anymore, so we only test this case
 	describe 'on an OS with deviceApiKey support', ->
 		before ->
-			initModels.call(this)
+			initModels.call(this, '/config-apibinder.json')
 
 		it 'provisions a device', ->
 			promise = @apiBinder.provisionDevice()
@@ -79,7 +79,7 @@ describe 'APIBinder', ->
 
 	describe 'fetchDevice', ->
 		before ->
-			initModels.call(this)
+			initModels.call(this, '/config-apibinder.json')
 
 		it 'gets a device by its uuid from the Resin API', ->
 			# Manually add a device to the mocked API
@@ -97,7 +97,7 @@ describe 'APIBinder', ->
 
 	describe '_exchangeKeyAndGetDevice', ->
 		before ->
-			initModels.call(this)
+			initModels.call(this, '/config-apibinder.json')
 
 		it 'returns the device if it can fetch it with the deviceApiKey', ->
 			spy(resinAPI.resinBackend, 'deviceKeyHandler')
@@ -135,3 +135,27 @@ describe 'APIBinder', ->
 				expect(@apiBinder.fetchDevice).to.be.calledTwice
 				@apiBinder.fetchDevice.restore()
 				resinAPI.resinBackend.deviceKeyHandler.restore()
+
+	describe 'offline mode', ->
+		before ->
+			initModels.call(this, '/config-apibinder-offline.json')
+
+		it 'does not generate a key if the device is in offline mode', ->
+			@config.get('offlineMode').then (mode) =>
+				# Ensure offline mode is set
+				expect(mode).to.equal(true)
+				# Check that there is no deviceApiKey
+				@config.getMany([ 'deviceApiKey', 'uuid' ]).then (conf) ->
+					expect(conf['deviceApiKey']).to.be.undefined
+					expect(conf['uuid']).to.not.be.undefined
+
+		describe 'Minimal config offline mode', ->
+			before ->
+				initModels.call(this, '/config-apibinder-offline2.json')
+
+			it 'does not generate a key with the minimal config', ->
+				@config.get('offlineMode').then (mode) =>
+					expect(mode).to.equal(true)
+					@config.getMany([ 'deviceApiKey', 'uuid' ]).then (conf) ->
+						expect(conf['deviceApiKey']).to.be.undefined
+						expect(conf['uuid']).to.not.be.undefined

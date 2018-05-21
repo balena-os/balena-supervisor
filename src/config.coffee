@@ -241,14 +241,20 @@ module.exports = class Config extends EventEmitter
 		deviceRegister.generateUniqueKey()
 
 	generateRequiredFields: =>
-		@getMany([ 'uuid', 'deviceApiKey', 'apiSecret', 'logsChannelSecret' ])
-		.then ({ uuid, deviceApiKey, apiSecret, logsChannelSecret }) =>
-			if !uuid? or !deviceApiKey? or !apiSecret? or !logsChannelSecret?
+		@getMany([ 'uuid', 'deviceApiKey', 'apiSecret', 'logsChannelSecret', 'offlineMode' ])
+		.then ({ uuid, deviceApiKey, apiSecret, logsChannelSecret, offlineMode }) =>
+			# These fields need to be set regardless
+			if !uuid? or !apiSecret?
 				uuid ?= @newUniqueKey()
-				deviceApiKey ?= @newUniqueKey()
 				apiSecret ?= @newUniqueKey()
-				logsChannelSecret ?= @newUniqueKey()
-				@set({ uuid, deviceApiKey, apiSecret, logsChannelSecret })
+			@set({ uuid, apiSecret })
+			.then =>
+				# These fields only need set when we're not in offlineMode
+				return if offlineMode
+				if !deviceApiKey? or !logsChannelSecret?
+					deviceApiKey ?= @newUniqueKey()
+					logsChannelSecret ?= @newUniqueKey()
+					@set({ deviceApiKey, logsChannelSecret })
 
 	regenerateRegistrationFields: =>
 		uuid = deviceRegister.generateUniqueKey()
