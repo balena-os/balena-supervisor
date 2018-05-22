@@ -142,8 +142,7 @@ module.exports = class Service
 			@capDrop
 			@status
 			@devices
-			@exposedPorts
-			@portBindings
+			@portMappings
 			@networks
 			@memLimit
 			@memReservation
@@ -194,8 +193,6 @@ module.exports = class Service
 		@capAdd ?= []
 		@capDrop ?= []
 		@devices ?= []
-		@exposedPorts ?= {}
-		@portBindings ?= {}
 
 		@memLimit = parseMemoryNumber(@memLimit, '0')
 		@memReservation = parseMemoryNumber(@memReservation, '0')
@@ -240,6 +237,8 @@ module.exports = class Service
 		if _.isEmpty(@ipc)
 			@ipc = 'shareable'
 
+		@portMappings ?= @getPortsAndPortBindings()
+
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
 			if !@networkMode?
@@ -271,7 +270,6 @@ module.exports = class Service
 			@extendLabels(opts.imageInfo)
 			@extendAndSanitiseVolumes(opts.imageInfo)
 			@extendAndSanitiseExposedPorts(opts.imageInfo)
-			@portMappings = @getPortsAndPortBindings()
 			@devices = formatDevices(@devices)
 			@addFeaturesFromLabels(opts)
 			if @dns?
@@ -449,6 +447,8 @@ module.exports = class Service
 			if containerPort? and !_.includes(boundContainerPorts, containerPort)
 				expose.push(containerPort)
 
+		portMappings = PortMap.fromDockerOpts(container.HostConfig.PortBindings)
+
 		appId = checkInt(container.Config.Labels['io.resin.app-id'])
 		serviceId = checkInt(container.Config.Labels['io.resin.service-id'])
 		serviceName = container.Config.Labels['io.resin.service-name']
@@ -483,8 +483,7 @@ module.exports = class Service
 			running: container.State.Running
 			createdAt: new Date(container.Created)
 			restartPolicy: container.HostConfig.RestartPolicy
-			ports: ports
-			expose: expose
+			portMappings: portMappings
 			containerId: container.Id
 			capAdd: container.HostConfig.CapAdd
 			capDrop: container.HostConfig.CapDrop
@@ -664,9 +663,6 @@ module.exports = class Service
 		_.isEmpty(_.xor(_.keys(@networks), _.keys(otherService.networks)))
 
 	isSameContainer: (otherService) =>
-		# We need computed fields to be present to compare two services
-		@portMappings ?= @getPortsAndPortBindings()
-		otherService.portMappings ?= otherService.getPortsAndPortBindings()
 
 		propertiesToCompare = [
 			'image'
