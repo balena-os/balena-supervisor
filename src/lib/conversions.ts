@@ -4,7 +4,7 @@ import { EnvVarObject } from './types';
 
 export function envArrayToObject(env: string[]): EnvVarObject {
 	const toPair = (keyVal: string) => {
-		const m = keyVal.match(/^([^=]+)=(.*)$/);
+		const m = keyVal.match(/^([^=]+)=\s*(.*)\s*$/);
 		if (m == null) {
 			console.log(`WARNING: Could not correctly parse env var ${keyVal}. ` +
 				'Please fix this var and recreate the container.');
