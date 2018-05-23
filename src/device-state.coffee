@@ -241,17 +241,20 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.using @_inferStepsLock, -> fn()
 
 	setTarget: (target) ->
-		validateState(target)
-		.then =>
-			@usingWriteLockTarget =>
-				# Apps, deviceConfig, dependent
-				@db.transaction (trx) =>
-					Promise.try =>
-						@config.set({ name: target.local.name }, trx)
-					.then =>
-						@deviceConfig.setTarget(target.local.config, trx)
-					.then =>
-						@applications.setTarget(target.local.apps, target.dependent, trx)
+		Promise.join(
+			@config.get('resinApiEndpoint'),
+			validateState(target),
+			(source) =>
+				@usingWriteLockTarget =>
+					# Apps, deviceConfig, dependent
+					@db.transaction (trx) =>
+						Promise.try =>
+							@config.set({ name: target.local.name }, trx)
+						.then =>
+							@deviceConfig.setTarget(target.local.config, trx)
+						.then =>
+							@applications.setTarget(target.local.apps, target.dependent, source, trx)
+		)
 
 	getTarget: ({ initial = false, intermediate = false } = {}) =>
 		@usingReadLockTarget =>

@@ -19,6 +19,7 @@ appDBFormatNormalised = {
 	commit: 'bar'
 	releaseId: 2
 	name: 'app'
+	source: 'https://api.resin.io'
 	services: JSON.stringify([
 		{
 			appId: 1234
@@ -41,6 +42,9 @@ appStateFormat = {
 	commit: 'bar'
 	releaseId: 2
 	name: 'app'
+	# This technically is not part of the appStateFormat, but in general
+	# usage is added before calling normaliseAppForDB
+	source: 'https://api.resin.io'
 	services: {
 		'4': {
 			appId: 1234
