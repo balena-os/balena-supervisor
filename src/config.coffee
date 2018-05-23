@@ -94,6 +94,7 @@ module.exports = class Config extends EventEmitter
 					'deltaApplyTimeout'
 					'deltaRetryCount'
 					'deltaRetryInterval'
+					'deltaVersion'
 				])
 
 		@schema = {
@@ -131,6 +132,7 @@ module.exports = class Config extends EventEmitter
 			extendedEnvOptions: { source: 'func' }
 			fetchOptions: { source: 'func' }
 
+			# NOTE: all 'db' values are stored and loaded as *strings*
 			apiSecret: { source: 'db', mutable: true }
 			logsChannelSecret: { source: 'db', mutable: true }
 			name: { source: 'db', mutable: true }
@@ -145,6 +147,7 @@ module.exports = class Config extends EventEmitter
 			deltaApplyTimeout: { source: 'db', mutable: true, default: '' }
 			deltaRetryCount: { source: 'db', mutable: true, default: '30' }
 			deltaRetryInterval: { source: 'db', mutable: true, default: '10000' }
+			deltaVersion: { source: 'db', mutable: true, default: '2' }
 			lockOverride: { source: 'db', mutable: true, default: 'false' }
 			legacyAppsPresent: { source: 'db', mutable: true, default: 'false' }
 			nativeLogger: { source: 'db', mutable: true, default: 'true' }

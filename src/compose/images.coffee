@@ -64,7 +64,7 @@ module.exports = class Images extends EventEmitter
 						@inspectByName(opts.deltaSource)
 						.then (srcImage) =>
 							opts.deltaSourceId = srcImage.Id
-							@docker.rsyncImageWithProgress(imageName, opts, onProgress)
+							@docker.fetchDeltaWithProgress(imageName, opts, onProgress)
 						.tap (id) =>
 							if !hasDigest(imageName)
 								@docker.getRepoAndTag(imageName)
