@@ -9,6 +9,8 @@ Locking updates means that the resin.io device supervisor will not be able to ki
 
 In order to do this, users can create a lockfile called `resin-updates.lock` in a way that it has exclusive access, which will prevent the device supervisor from killing and restarting the app. As with any other lockfile, the supervisor itself will create such a file before killing the app, so you should only create it in exclusive mode. This means that the lockfile should only be created if it doesn't already exist. The exclusive access is achieved by opening the lockfile with the [O_EXCL and O_CREAT flags](https://linux.die.net/man/3/open), and several tools exist to simplify this process with examples given [below](#creating-the-lockfile).
 
+The presence of a lockfile will ensure that your application does not get killed, but updates will still be downloaded by the supervisor, ready to be applied once the lockfile no longer exists.
+
 ### Location of the lockfile
 
 In supervisor v4.0.0 and higher, the lock is located at `/tmp/resin/resin-updates.lock`. This lock is cleared automatically when the device reboots, so the user app must take it every time it starts up.
