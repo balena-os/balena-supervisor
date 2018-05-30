@@ -198,6 +198,20 @@ module.exports = class APIBinder
 				@config.set(configToUpdate)
 			.then =>
 				@eventTracker.track('Device bootstrap success')
+		# Check if we need to pin the device, regardless of if we provisioned
+		.then =>
+			@config.get('pinDevice')
+			.then(JSON.parse)
+			.tapCatch ->
+				console.log('Warning: Malformed pinDevice value in supervisor database')
+			.catchReturn(null)
+			.then (pinValue) =>
+				if pinValue?
+					if !pinValue.app? or !pinValue.commit?
+						console.log("Malformed pinDevice fields in supervisor database: #{pinValue}")
+						return
+					console.log('Attempting to pin device to preloaded release...')
+					@pinDevice(pinValue)
 
 	_provisionOrRetry: (retryDelay) =>
 		@eventTracker.track('Device bootstrap')
@@ -214,9 +228,10 @@ module.exports = class APIBinder
 			'provisioned'
 			'bootstrapRetryDelay'
 			'apiKey'
+			'pinDevice'
 		])
 		.tap (conf) =>
-			if !conf.provisioned or conf.apiKey?
+			if !conf.provisioned or conf.apiKey? or conf.pinDevice?
 				@_provisionOrRetry(conf.bootstrapRetryDelay)
 
 	provisionDependentDevice: (device) =>
@@ -262,6 +277,34 @@ module.exports = class APIBinder
 				id: id
 				body: updatedFields
 			.timeout(conf.apiTimeout)
+
+	pinDevice: ({ app, commit }) =>
+		@config.get('deviceId')
+		.then (deviceId) =>
+			@resinApi.get
+				resource: 'release'
+				options:
+					filter:
+						belongs_to__application: app
+						commit: commit
+						status: 'success'
+					select: 'id'
+			.then (release) =>
+				releaseId = _.get(release, '[0].id')
+				if !releaseId?
+					throw new Error('Cannot continue pinning preloaded device! No release found!')
+				@resinApi.patch
+					resource: 'device'
+					id: deviceId
+					body:
+						should_be_running__release: releaseId
+			.then =>
+				# Set the config value for pinDevice to null, so that we know the
+				# task has been completed
+				@config.remove('pinDevice')
+			.tapCatch (e) ->
+				console.log('Could not pin device to release!')
+				console.log('Error: ', e)
 
 	_sendLogsRequest: (uuid, data) =>
 		reqBody = _.map(data, (msg) -> _.mapKeys(msg, (v, k) -> _.snakeCase(k)))
