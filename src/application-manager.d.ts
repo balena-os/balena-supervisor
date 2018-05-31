@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 
 import { ServiceAction } from './device-api/common';
+import { DeviceApplicationState } from './types/state';
 
 import Images = require('./compose/images');
 import ServiceManager = require('./compose/service-manager');
@@ -45,7 +46,8 @@ export class ApplicationManager extends EventEmitter {
 
 	public executeStepAction(serviceAction: ServiceAction, opts: Options): Promise<void>;
 
+	public getStatus(): Promise<DeviceApplicationState>;
+
 }
 
 export default ApplicationManager;
-

@@ -1,11 +1,11 @@
 import * as Bluebird from 'bluebird';
-import { Response, Request, Router } from 'express';
+import { Request, Response, Router } from 'express';
 import * as _ from 'lodash';
 
-import ApplicationManager from '../application-manager';
-import { doPurge, doRestart, serviceAction } from './common';
-
+import { ApplicationManager } from '../application-manager';
 import { appNotFoundMessage, serviceNotFoundMessage } from '../lib/messages';
+import Service from '../types/service';
+import { doPurge, doRestart, serviceAction } from './common';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 
@@ -26,7 +26,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						res.status(404).send(appNotFoundMessage);
 						return;
 					}
-					const service = _.find(app.services, { imageId });
+					const service = _.find(app.services, { imageId }) as Service | null;
 					if (service == null) {
 						res.status(404).send(serviceNotFoundMessage);
 						return;
