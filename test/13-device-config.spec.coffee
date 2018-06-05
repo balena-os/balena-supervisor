@@ -135,5 +135,39 @@ describe 'DeviceConfig', ->
 				childProcess.execAsync.restore()
 				@fakeLogger.logSystemMessage.reset()
 
+	describe 'Extlinux files', ->
+
+		it 'should correctly write to extlinux.conf files', ->
+			stub(fsUtils, 'writeFileAtomic').resolves()
+			stub(childProcess, 'execAsync').resolves()
+
+			current = {
+			}
+			target = {
+				RESIN_HOST_EXTLINUX_isolcpus: '2'
+			}
+
+			promise = Promise.try =>
+				@deviceConfig.bootConfigChangeRequired('jetson-tx2', current, target)
+			expect(promise).to.eventually.equal(true)
+			promise.then =>
+				@deviceConfig.setBootConfig('jetson-tx2', target)
+				.then =>
+					expect(childProcess.execAsync).to.be.calledOnce
+					expect(@fakeLogger.logSystemMessage).to.be.calledTwice
+					expect(@fakeLogger.logSystemMessage.getCall(1).args[2]).to.equal('Apply boot config success')
+					expect(fsUtils.writeFileAtomic).to.be.calledWith('./test/data/mnt/boot/extlinux/extlinux.conf', '\
+						DEFAULT primary\n\
+						TIMEOUT 30\n\
+						MENU TITLE Boot Options\n\
+						LABEL primary\n\
+									MENU LABEL primary Image\n\
+									LINUX /Image\n\
+									APPEND ${cbootargs} ${resin_kernel_root} ro rootwait isolcpus=2\n\
+					')
+					fsUtils.writeFileAtomic.restore()
+					childProcess.execAsync.restore()
+					@fakeLogger.logSystemMessage.reset()
+
 	# This will require stubbing device.reboot, gosuper.post, config.get/set
 	it 'applies the target state'
