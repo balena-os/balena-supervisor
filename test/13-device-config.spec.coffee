@@ -54,19 +54,6 @@ describe 'DeviceConfig', ->
 				RESIN_HOST_CONFIG_gpu_mem: '16'
 			})
 
-	it 'correctly transforms environments to boot config objects', ->
-		bootConfig = @deviceConfig.envToBootConfig({
-			RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
-			RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
-			RESIN_HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
-			RESIN_HOST_CONFIG_foobar: 'baz'
-		})
-		expect(bootConfig).to.deep.equal({
-			initramfs: 'initramf.gz 0x00800000'
-			dtparam: [ 'i2c=on', 'audio=on' ]
-			dtoverlay: [ 'ads7846', 'lirc-rpi,gpio_out_pin=17,gpio_in_pin=13' ]
-			foobar: 'baz'
-		})
 	# Test that the format for special values like initramfs and array variables is preserved
 	it 'does not allow setting forbidden keys', ->
 		current = {

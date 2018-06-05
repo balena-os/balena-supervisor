@@ -17,7 +17,9 @@
   },
   "dependencies": {
     "@types/lodash": "^4.14.108",
+    "@types/mz": "0.0.32",
     "mkfifo": "^0.1.5",
+    "mz": "^2.7.0",
     "sqlite3": "^3.1.0"
   },
   "engines": {

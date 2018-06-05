@@ -1,20 +1,12 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
-childProcess = Promise.promisifyAll(require('child_process'))
 fs = Promise.promisifyAll(require('fs'))
 
-constants = require './lib/constants'
 systemd = require './lib/systemd'
-fsUtils = require './lib/fs-utils'
 { checkTruthy, checkInt } = require './lib/validation'
 { UnitNotLoadedError } = require './lib/errors'
+configUtils = require './lib/config-utils'
 
-hostConfigConfigVarPrefix = 'RESIN_HOST_'
-bootConfigEnvVarPrefix = hostConfigConfigVarPrefix + 'CONFIG_'
-bootBlockDevice = '/dev/mmcblk0p1'
-bootMountPoint = constants.rootMountPoint + constants.bootMountPoint
-bootConfigPath = bootMountPoint + '/config.txt'
-configRegex = new RegExp('(' + _.escapeRegExp(bootConfigEnvVarPrefix) + ')(.+)')
 forbiddenConfigKeys = [
 	'disable_commandline_tags'
 	'cmdline'
@@ -32,12 +24,8 @@ forbiddenConfigKeys = [
 	'boot_delay_ms'
 	'avoid_safe_mode'
 ]
-arrayConfigKeys = [ 'dtparam', 'dtoverlay', 'device_tree_param', 'device_tree_overlay' ]
 
 vpnServiceName = 'openvpn-resin'
-
-isRPiDeviceType = (deviceType) ->
-	_.startsWith(deviceType, 'raspberry') or deviceType == 'fincm3'
 
 module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
@@ -89,16 +77,15 @@ module.exports = class DeviceConfig
 		}
 		db('deviceConfig').update(confToUpdate)
 
-	filterConfigKeys: (conf) =>
-		_.pickBy conf, (v, k) =>
-			_.includes(@validKeys, k) or _.startsWith(k, bootConfigEnvVarPrefix)
-
 	getTarget: ({ initial = false } = {}) =>
 		@db.models('deviceConfig').select('targetValues')
-		.then ([ devConfig ]) ->
-			return JSON.parse(devConfig.targetValues)
-		.then (conf) =>
-			conf = @filterConfigKeys(conf)
+		.then ([ devConfig ]) =>
+			return Promise.all [
+				JSON.parse(devConfig.targetValues)
+				@config.get('deviceType')
+			]
+		.then ([ conf, deviceType ]) =>
+			conf = configUtils.filterConfigKeys(deviceType, @validKeys, conf)
 			if initial or !conf.RESIN_SUPERVISOR_VPN_CONTROL?
 				conf.RESIN_SUPERVISOR_VPN_CONTROL = 'true'
 			for own k, { envVarName, defaultValue } of @configKeys
@@ -127,8 +114,8 @@ module.exports = class DeviceConfig
 			}, _.mapValues(_.mapKeys(@configKeys, 'envVarName'), 'defaultValue'))
 
 	bootConfigChangeRequired: (deviceType, current, target) =>
-		targetBootConfig = @envToBootConfig(target)
-		currentBootConfig = @envToBootConfig(current)
+		targetBootConfig = configUtils.envToBootConfig(deviceType, target)
+		currentBootConfig = configUtils.envToBootConfig(deviceType, current)
 		if !_.isEqual(currentBootConfig, targetBootConfig)
 			for key in forbiddenConfigKeys
 				if currentBootConfig[key] != targetBootConfig[key]
@@ -190,75 +177,27 @@ module.exports = class DeviceConfig
 	executeStepAction: (step, opts) =>
 		@actionExecutors[step.action](step, opts)
 
-	envToBootConfig: (env) ->
-		# We ensure env doesn't have garbage
-		parsedEnv = _.pickBy env, (val, key) ->
-			return _.startsWith(key, bootConfigEnvVarPrefix)
-		parsedEnv = _.mapKeys parsedEnv, (val, key) ->
-			key.replace(configRegex, '$2')
-		parsedEnv = _.mapValues parsedEnv, (val, key) ->
-			if _.includes(arrayConfigKeys, key)
-				if !_.startsWith(val, '"')
-					return [ val ]
-				else
-					return JSON.parse("[#{val}]")
-			else
-				return val
-		return parsedEnv
-
-	bootConfigToEnv: (config) ->
-		confWithEnvKeys = _.mapKeys config, (val, key) ->
-			return bootConfigEnvVarPrefix + key
-		return _.mapValues confWithEnvKeys, (val, key) ->
-			if _.isArray(val)
-				return JSON.stringify(val).replace(/^\[(.*)\]$/, '$1')
-			else
-				return val
-
-	readBootConfig: ->
-		fs.readFileAsync(bootConfigPath, 'utf8')
+	readBootConfig: (deviceType) ->
+		fs.readFileAsync(configUtils.getBootConfigPath(deviceType), 'utf8')
 
 	getBootConfig: (deviceType) =>
 		Promise.try =>
-			if !isRPiDeviceType(deviceType)
+			if !configUtils.isConfigDeviceType(deviceType)
 				return {}
-			@readBootConfig()
-			.then (configTxt) =>
-				conf = {}
-				configStatements = configTxt.split(/\r?\n/)
-				for configStr in configStatements
-					keyValue = /^([^#=]+)=(.+)/.exec(configStr)
-					if keyValue?
-						if !_.includes(arrayConfigKeys, keyValue[1])
-							conf[keyValue[1]] = keyValue[2]
-						else
-							conf[keyValue[1]] ?= []
-							conf[keyValue[1]].push(keyValue[2])
-					else
-						keyValue = /^(initramfs) (.+)/.exec(configStr)
-						if keyValue?
-							conf[keyValue[1]] = keyValue[2]
-				return @bootConfigToEnv(conf)
+			@readBootConfig(deviceType)
+			.then (configTxt) ->
+
+				config = configUtils.parseBootConfig(deviceType, configTxt)
+				return configUtils.bootConfigToEnv(deviceType, config)
 
 	setBootConfig: (deviceType, target) =>
 		Promise.try =>
-			conf = @envToBootConfig(target)
-			if !isRPiDeviceType(deviceType)
+			if !configUtils.isConfigDeviceType(deviceType)
 				return false
+			conf = configUtils.envToBootConfig(deviceType, target)
 			@logger.logSystemMessage("Applying boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config in progress')
-			configStatements = []
-			for own key, val of conf
-				if key is 'initramfs'
-					configStatements.push("#{key} #{val}")
-				else if _.isArray(val)
-					configStatements = configStatements.concat(_.map(val, (entry) -> "#{key}=#{entry}"))
-				else
-					configStatements.push("#{key}=#{val}")
 
-			# Here's the dangerous part:
-			childProcess.execAsync("mount -t vfat -o remount,rw #{bootBlockDevice} #{bootMountPoint}")
-			.then ->
-				fsUtils.writeFileAtomic(bootConfigPath, configStatements.join('\n') + '\n')
+			configUtils.setBootConfig(deviceType, conf)
 			.then =>
 				@logger.logSystemMessage("Applied boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config success')
 				@rebootRequired = true

@@ -39,6 +39,7 @@ const constants = {
 	defaultVolumeLabels: {
 		'io.resin.supervised': 'true',
 	},
+	bootBlockDevice: '/dev/mmcblk0p1',
 };
 
 if (process.env.DOCKER_HOST == null) {
