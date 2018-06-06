@@ -21,7 +21,7 @@ interface ExtlinuxFile {
 	globals: { [directive: string]: string };
 }
 
-const bootMountPoint = constants.rootMountPoint + constants.bootMountPoint;
+const bootMountPoint = `${constants.rootMountPoint}${constants.bootMountPoint}`;
 
 function remountAndWriteAtomic(file: string, data: string): Promise<void> {
 	// TODO: Find out why the below Promise.resolve() is required
@@ -145,7 +145,6 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 		let confStatements: string[] = [];
 
 		_.each(opts, (value, key) => {
-
 			if (key === 'initramfs') {
 				confStatements.push(`${key} ${value}`);
 			} else if(_.isArray(value)) {
@@ -155,7 +154,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 			}
 		});
 
-		const confStr = confStatements.join('\n') + '\n';
+		const confStr = `${confStatements.join('\n')}\n`;
 
 		return remountAndWriteAtomic(RPiConfigBackend.bootConfigPath, confStr);
 	}
@@ -301,7 +300,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 	}
 
 	public createConfigVarName(configName: string): string {
-		return ExtlinuxConfigBackend.bootConfigVarPrefix + configName;
+		return `${ExtlinuxConfigBackend.bootConfigVarPrefix}${configName}`;
 	}
 
 	private static parseExtlinuxFile(confStr: string): ExtlinuxFile {
@@ -332,7 +331,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 			// Special handling for the MENU directive
 			if (directive === 'MENU') {
 				const parts = value.split(' ');
-				directive = 'MENU ' + parts[0];
+				directive = `MENU ${parts[0]}`;
 				value = parts.slice(1).join(' ');
 			}
 
