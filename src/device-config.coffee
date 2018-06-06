@@ -1,29 +1,10 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
-fs = Promise.promisifyAll(require('fs'))
 
 systemd = require './lib/systemd'
 { checkTruthy, checkInt } = require './lib/validation'
 { UnitNotLoadedError } = require './lib/errors'
 configUtils = require './lib/config-utils'
-
-forbiddenConfigKeys = [
-	'disable_commandline_tags'
-	'cmdline'
-	'kernel'
-	'kernel_address'
-	'kernel_old'
-	'ramfsfile'
-	'ramfsaddr'
-	'initramfs'
-	'device_tree_address'
-	'init_uart_baud'
-	'init_uart_clock'
-	'init_emmc_clock'
-	'boot_delay'
-	'boot_delay_ms'
-	'avoid_safe_mode'
-]
 
 vpnServiceName = 'openvpn-resin'
 
@@ -64,11 +45,20 @@ module.exports = class DeviceConfig
 				.tapCatch (err) =>
 					@logger.logConfigChange(logValue, { err })
 			setBootConfig: (step) =>
-				@config.get('deviceType')
-				.then (deviceType) =>
-					@setBootConfig(deviceType, step.target)
+				@getConfigBackend()
+				.then (configBackend ) =>
+					@setBootConfig(configBackend, step.target)
 		}
 		@validActions = _.keys(@actionExecutors)
+		@configBackend = null
+
+	getConfigBackend: =>
+		if @configBackend?
+			Promise.resolve(@configBackend)
+		else
+			@config.get('deviceType').then (deviceType) =>
+				@configBackend = configUtils.getConfigBackend(deviceType)
+				return @configBackend
 
 	setTarget: (target, trx) =>
 		db = trx ? @db.models
@@ -82,10 +72,10 @@ module.exports = class DeviceConfig
 		.then ([ devConfig ]) =>
 			return Promise.all [
 				JSON.parse(devConfig.targetValues)
-				@config.get('deviceType')
+				@getConfigBackend()
 			]
-		.then ([ conf, deviceType ]) =>
-			conf = configUtils.filterConfigKeys(deviceType, @validKeys, conf)
+		.then ([ conf, configBackend ]) =>
+			conf = configUtils.filterConfigKeys(configBackend, @validKeys, conf)
 			if initial or !conf.RESIN_SUPERVISOR_VPN_CONTROL?
 				conf.RESIN_SUPERVISOR_VPN_CONTROL = 'true'
 			for own k, { envVarName, defaultValue } of @configKeys
@@ -93,11 +83,14 @@ module.exports = class DeviceConfig
 			return conf
 
 	getCurrent: =>
-		@config.getMany([ 'deviceType' ].concat(_.keys(@configKeys)))
-		.then (conf) =>
+		Promise.all [
+			@config.getMany([ 'deviceType' ].concat(_.keys(@configKeys)))
+			@getConfigBackend()
+		]
+		.then ([ conf, configBackend ]) =>
 			Promise.join(
 				@getVPNEnabled()
-				@getBootConfig(conf.deviceType)
+				@getBootConfig(configBackend)
 				(vpnStatus, bootConfig) =>
 					currentConf = {
 						RESIN_SUPERVISOR_VPN_CONTROL: (vpnStatus ? 'true').toString()
@@ -113,15 +106,17 @@ module.exports = class DeviceConfig
 				RESIN_SUPERVISOR_VPN_CONTROL: 'true'
 			}, _.mapValues(_.mapKeys(@configKeys, 'envVarName'), 'defaultValue'))
 
-	bootConfigChangeRequired: (deviceType, current, target) =>
-		targetBootConfig = configUtils.envToBootConfig(deviceType, target)
-		currentBootConfig = configUtils.envToBootConfig(deviceType, current)
+	bootConfigChangeRequired: (configBackend, current, target) =>
+		targetBootConfig = configUtils.envToBootConfig(configBackend, target)
+		currentBootConfig = configUtils.envToBootConfig(configBackend, current)
+
 		if !_.isEqual(currentBootConfig, targetBootConfig)
-			for key in forbiddenConfigKeys
-				if currentBootConfig[key] != targetBootConfig[key]
-					err = "Attempt to change blacklisted config value #{key}"
-					@logger.logSystemMessage(err, { error: err }, 'Apply boot config error')
-					throw new Error(err)
+			_.each targetBootConfig, (value, key) =>
+				if not configBackend.isSupportedConfig(key)
+					if currentBootConfig[key] != value
+						err = "Attempt to change blacklisted config value #{key}"
+						@logger.logSystemMessage(err, { error: err }, 'Apply boot config error')
+						throw new Error(err)
 			return true
 		return false
 
@@ -129,8 +124,11 @@ module.exports = class DeviceConfig
 		current = _.clone(currentState.local?.config ? {})
 		target = _.clone(targetState.local?.config ? {})
 		steps = []
-		@config.getMany([ 'deviceType', 'offlineMode' ])
-		.then ({ deviceType, offlineMode }) =>
+		Promise.all [
+			@config.getMany([ 'deviceType', 'offlineMode' ])
+			@getConfigBackend()
+		]
+		.then ([{ deviceType, offlineMode }, configBackend ]) =>
 			configChanges = {}
 			humanReadableConfigChanges = {}
 			match = {
@@ -160,7 +158,7 @@ module.exports = class DeviceConfig
 						action: 'setVPNEnabled'
 						target: target['RESIN_SUPERVISOR_VPN_CONTROL']
 					})
-			if @bootConfigChangeRequired(deviceType, current, target)
+			if @bootConfigChangeRequired(configBackend, current, target)
 				steps.push({
 					action: 'setBootConfig'
 					target
@@ -177,27 +175,22 @@ module.exports = class DeviceConfig
 	executeStepAction: (step, opts) =>
 		@actionExecutors[step.action](step, opts)
 
-	readBootConfig: (deviceType) ->
-		fs.readFileAsync(configUtils.getBootConfigPath(deviceType), 'utf8')
-
-	getBootConfig: (deviceType) =>
-		Promise.try =>
-			if !configUtils.isConfigDeviceType(deviceType)
+	getBootConfig: (configBackend) ->
+		Promise.try ->
+			if !configBackend?
 				return {}
-			@readBootConfig(deviceType)
-			.then (configTxt) ->
+			configBackend.getBootConfig()
+			.then (config) ->
+				return configUtils.bootConfigToEnv(configBackend, config)
 
-				config = configUtils.parseBootConfig(deviceType, configTxt)
-				return configUtils.bootConfigToEnv(deviceType, config)
-
-	setBootConfig: (deviceType, target) =>
+	setBootConfig: (configBackend, target) =>
 		Promise.try =>
-			if !configUtils.isConfigDeviceType(deviceType)
+			if !configBackend?
 				return false
-			conf = configUtils.envToBootConfig(deviceType, target)
+			conf = configUtils.envToBootConfig(configBackend, target)
 			@logger.logSystemMessage("Applying boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config in progress')
 
-			configUtils.setBootConfig(deviceType, conf)
+			configBackend.setBootConfig(conf)
 			.then =>
 				@logger.logSystemMessage("Applied boot config: #{JSON.stringify(conf)}", {}, 'Apply boot config success')
 				@rebootRequired = true

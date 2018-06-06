@@ -40,6 +40,7 @@ const constants = {
 		'io.resin.supervised': 'true',
 	},
 	bootBlockDevice: '/dev/mmcblk0p1',
+	hostConfigVarPrefix: 'RESIN_HOST_',
 };
 
 if (process.env.DOCKER_HOST == null) {

@@ -1,7 +1,14 @@
 m = require 'mochainon'
 { expect } = m.chai
+{ stub } = m.sinon
+
+{ fs } = require 'mz'
 
 configUtils = require '../src/lib/config-utils'
+{ ExtlinuxConfigBackend, RPiConfigBackend } = require '../src/lib/config-backend'
+
+extlinuxBackend = new ExtlinuxConfigBackend()
+rpiBackend = new RPiConfigBackend()
 
 describe 'Config Utilities', ->
 
@@ -10,7 +17,7 @@ describe 'Config Utilities', ->
 		describe 'Env <-> Config', ->
 
 			it 'correctly transforms environments to boot config objects', ->
-				bootConfig = configUtils.envToBootConfig('raspberry-pi', {
+				bootConfig = configUtils.envToBootConfig(rpiBackend, {
 					RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
 					RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
 					RESIN_HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
@@ -38,7 +45,7 @@ describe 'Config Utilities', ->
 					APPEND ${cbootargs} ${resin_kernel_root} ro rootwait
 				'''
 
-				parsed = configUtils.parseExtlinuxFile(text)
+				parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text)
 				expect(parsed.globals).to.have.property('DEFAULT').that.equals('primary')
 				expect(parsed.globals).to.have.property('TIMEOUT').that.equals('30')
 				expect(parsed.globals).to.have.property('MENU TITLE').that.equals('Boot Options')
@@ -64,7 +71,7 @@ describe 'Config Utilities', ->
 					APPEND test4
 				'''
 
-				parsed = configUtils.parseExtlinuxFile(text)
+				parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text)
 				expect(parsed.labels).to.have.property('primary').that.deep.equals({
 					LINUX: 'test1'
 					APPEND: 'test2'
@@ -87,9 +94,11 @@ describe 'Config Utilities', ->
 					APPEND ${cbootargs} ${resin_kernel_root} ro rootwait isolcpus=3
 				'''
 
-				parsed = configUtils.parseExtlinuxBootConfig(text)
+				stub(fs, 'readFile').resolves(text)
+				parsed = extlinuxBackend.getBootConfig()
 
-				expect(parsed).to.have.property('isolcpus').that.equals('3')
+				expect(parsed).to.eventually.have.property('isolcpus').that.equals('3')
+				fs.readFile.restore()
 
 
 				text = '''
@@ -103,7 +112,10 @@ describe 'Config Utilities', ->
 					LINUX /Image
 					APPEND ${cbootargs} ${resin_kernel_root} ro rootwait isolcpus=3,4,5
 				'''
+				stub(fs, 'readFile').resolves(text)
 
-				parsed = configUtils.parseExtlinuxBootConfig(text)
+				parsed = extlinuxBackend.getBootConfig()
 
-				expect(parsed).to.have.property('isolcpus').that.equals('3,4,5')
+				fs.readFile.restore()
+
+				expect(parsed).to.eventually.have.property('isolcpus').that.equals('3,4,5')

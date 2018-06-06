@@ -1,13 +1,18 @@
 Promise = require 'bluebird'
-prepare = require './lib/prepare'
+{ fs } = require 'mz'
 
 m = require 'mochainon'
 { expect } = m.chai
 { stub, spy } = m.sinon
 
+prepare = require './lib/prepare'
 fsUtils = require '../src/lib/fs-utils'
 
 DeviceConfig = require '../src/device-config'
+{ ExtlinuxConfigBackend, RPiConfigBackend } = require '../src/lib/config-backend'
+
+extlinuxBackend = new ExtlinuxConfigBackend()
+rpiConfigBackend = new RPiConfigBackend()
 
 childProcess = require 'child_process'
 
@@ -25,7 +30,8 @@ describe 'DeviceConfig', ->
 
 	# Test that the format for special values like initramfs and array variables is parsed correctly
 	it 'allows getting boot config with getBootConfig', ->
-		stub(@deviceConfig, 'readBootConfig').resolves('\
+
+		stub(fs, 'readFile').resolves('\
 			initramfs initramf.gz 0x00800000\n\
 			dtparam=i2c=on\n\
 			dtparam=audio=on\n\
@@ -33,9 +39,9 @@ describe 'DeviceConfig', ->
 			dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13\n\
 			foobar=baz\n\
 		')
-		@deviceConfig.getBootConfig('raspberry-pi')
-		.then (conf) =>
-			@deviceConfig.readBootConfig.restore()
+		@deviceConfig.getBootConfig(rpiConfigBackend)
+		.then (conf) ->
+			fs.readFile.restore()
 			expect(conf).to.deep.equal({
 				RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
 				RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
@@ -44,7 +50,7 @@ describe 'DeviceConfig', ->
 			})
 
 	it 'properly reads a real config.txt file', ->
-		@deviceConfig.getBootConfig('raspberrypi3')
+		@deviceConfig.getBootConfig(rpiConfigBackend)
 		.then (conf) ->
 			expect(conf).to.deep.equal({
 				RESIN_HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"'
@@ -69,7 +75,7 @@ describe 'DeviceConfig', ->
 			RESIN_HOST_CONFIG_foobar: 'baz'
 		}
 		promise = Promise.try =>
-			@deviceConfig.bootConfigChangeRequired('raspberry-pi', current, target)
+			@deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target)
 		expect(promise).to.be.rejected
 		promise.catch (err) =>
 			expect(@fakeLogger.logSystemMessage).to.be.calledOnce
@@ -92,7 +98,7 @@ describe 'DeviceConfig', ->
 			RESIN_HOST_CONFIG_foobar: 'baz'
 		}
 		promise = Promise.try =>
-			@deviceConfig.bootConfigChangeRequired('raspberry-pi', current, target)
+			@deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target)
 		expect(promise).to.eventually.equal(false)
 		promise.then =>
 			expect(@fakeLogger.logSystemMessage).to.not.be.called
@@ -115,10 +121,10 @@ describe 'DeviceConfig', ->
 			RESIN_HOST_CONFIG_foobaz: 'bar'
 		}
 		promise = Promise.try =>
-			@deviceConfig.bootConfigChangeRequired('raspberry-pi', current, target)
+			@deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target)
 		expect(promise).to.eventually.equal(true)
 		promise.then =>
-			@deviceConfig.setBootConfig('raspberry-pi', target)
+			@deviceConfig.setBootConfig(rpiConfigBackend, target)
 			.then =>
 				expect(childProcess.execAsync).to.be.calledOnce
 				expect(@fakeLogger.logSystemMessage).to.be.calledTwice
@@ -148,10 +154,10 @@ describe 'DeviceConfig', ->
 			}
 
 			promise = Promise.try =>
-				@deviceConfig.bootConfigChangeRequired('jetson-tx2', current, target)
+				@deviceConfig.bootConfigChangeRequired(extlinuxBackend, current, target)
 			expect(promise).to.eventually.equal(true)
 			promise.then =>
-				@deviceConfig.setBootConfig('jetson-tx2', target)
+				@deviceConfig.setBootConfig(extlinuxBackend, target)
 				.then =>
 					expect(childProcess.execAsync).to.be.calledOnce
 					expect(@fakeLogger.logSystemMessage).to.be.calledTwice
