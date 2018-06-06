@@ -12,7 +12,7 @@ export interface ConfigOptions {
 	[key: string]: string | string[];
 }
 
-interface ExtLinuxFile {
+interface ExtlinuxFile {
 	labels: {
 		[labelName: string]: {
 			[directive: string]: string;
@@ -304,9 +304,9 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		return ExtlinuxConfigBackend.bootConfigVarPrefix + configName;
 	}
 
-	private static parseExtlinuxFile(confStr: string): ExtLinuxFile {
+	private static parseExtlinuxFile(confStr: string): ExtlinuxFile {
 
-		const file: ExtLinuxFile = {
+		const file: ExtlinuxFile = {
 			globals: { },
 			labels: { },
 		};
@@ -354,7 +354,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		return file;
 	}
 
-	private static extlinuxFileToString(file: ExtLinuxFile): string {
+	private static extlinuxFileToString(file: ExtlinuxFile): string {
 		let ret = '';
 		_.each(file.globals, (value, directive) => {
 			ret += `${directive} ${value}\n`;
