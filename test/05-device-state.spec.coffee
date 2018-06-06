@@ -9,6 +9,7 @@ prepare = require './lib/prepare'
 DeviceState = require '../src/device-state'
 DB = require('../src/db')
 Config = require('../src/config')
+{ RPiConfigBackend } = require('../src/lib/config-backend')
 
 Service = require '../src/compose/service'
 
@@ -208,6 +209,7 @@ describe 'deviceState', ->
 				err = new Error()
 				err.statusCode = 404
 				throw err
+		@deviceState.deviceConfig.configBackend = new RPiConfigBackend()
 		@db.init()
 		.then =>
 			@config.init()

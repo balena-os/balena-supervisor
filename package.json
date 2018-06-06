@@ -1,7 +1,7 @@
 {
   "name": "resin-supervisor",
   "description": "This is resin.io's Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.",
-  "version": "7.9.1",
+  "version": "7.10.0",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -17,7 +17,9 @@
   },
   "dependencies": {
     "@types/lodash": "^4.14.108",
+    "@types/mz": "0.0.32",
     "mkfifo": "^0.1.5",
+    "mz": "^2.7.0",
     "sqlite3": "^3.1.0"
   },
   "engines": {
