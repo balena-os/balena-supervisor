@@ -16,16 +16,17 @@
     "coverage": "istanbul report text && istanbul report html"
   },
   "dependencies": {
-    "@types/lodash": "^4.14.108",
-    "@types/mz": "0.0.32",
     "mkfifo": "^0.1.5",
-    "mz": "^2.7.0",
     "sqlite3": "^3.1.0"
   },
   "engines": {
     "node": "^6.13.1"
   },
   "devDependencies": {
+    "@types/bluebird": "^3.5.20",
+    "@types/lodash": "^4.14.109",
+    "@types/mz": "0.0.32",
+    "@types/node": "^10.3.1",
     "JSONStream": "^1.1.2",
     "blinking": "~0.0.2",
     "bluebird": "^3.5.0",
@@ -53,6 +54,7 @@
     "mkdirp": "^0.5.1",
     "mocha": "^5.1.1",
     "mochainon": "^2.0.0",
+    "mz": "^2.7.0",
     "network-checker": "~0.0.5",
     "node-loader": "^0.6.0",
     "null-loader": "^0.1.1",
