@@ -576,9 +576,7 @@ module.exports = class Service
 			networkMode = "container:#{_.replace(networkMode, 'service:', '')}_#{@imageId}_#{@releaseId}"
 
 		# Generate port options
-		maps = @generatePortBindings()
-		portBindings = maps.portBindings
-		exposedPorts = maps.exposedPorts
+		{ portBindings, exposedPorts } = @generatePortBindings()
 
 		conf = {
 			name: "#{@serviceName}_#{@imageId}_#{@releaseId}"

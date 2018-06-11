@@ -30,43 +30,33 @@ interface PortRange {
 
 export class PortMap {
 
-	private internalStart: number;
-	private internalEnd: number;
-	private externalStart: number;
-	private externalEnd: number;
-	private protocol: string;
-	private host: string;
+	private ports: PortRange;
 
 	public constructor(portStrOrObj: string | PortRange) {
 		if (_.isString(portStrOrObj)) {
 			this.parsePortString(portStrOrObj);
 		} else {
-			this.internalStart = portStrOrObj.internalStart;
-			this.internalEnd = portStrOrObj.internalEnd;
-			this.externalStart = portStrOrObj.externalStart;
-			this.externalEnd = portStrOrObj.externalEnd;
-			this.protocol = portStrOrObj.protocol;
-			this.host = portStrOrObj.host;
+			this.ports = portStrOrObj;
 		}
 	}
 
 	public toDockerOpts(): DockerPortOptions {
-		const internalRange = this.generatePortRange(this.internalStart, this.internalEnd);
-		const externalRange = this.generatePortRange(this.externalStart, this.externalEnd);
+		const internalRange = this.generatePortRange(this.ports.internalStart, this.ports.internalEnd);
+		const externalRange = this.generatePortRange(this.ports.externalStart, this.ports.externalEnd);
 
-		const exposed: { [key: string]: {} } = {};
+		const exposedPorts: { [key: string]: {} } = {};
 		const portBindings: PortBindings = {};
 
 		_.zipWith(internalRange, externalRange, (internal, external) => {
-			exposed[`${internal}/${this.protocol}`] = {};
+			exposedPorts[`${internal}/${this.ports.protocol}`] = {};
 
-			portBindings[`${internal}/${this.protocol}`] = [
-				{ HostIp: this.host, HostPort: external!.toString() },
+			portBindings[`${internal}/${this.ports.protocol}`] = [
+				{ HostIp: this.ports.host, HostPort: external.toString() },
 			];
 		});
 
 		return {
-			exposedPorts: exposed,
+			exposedPorts,
 			portBindings,
 		};
 	}
@@ -117,24 +107,22 @@ export class PortMap {
 	public static normalisePortMaps(portMaps: PortMap[]): PortMap[] {
 		// Fold any ranges into each other if possible
 		return _(portMaps)
-			.sortBy((p) => p.protocol)
-			.sortBy((p) => p.host)
-			.sortBy((p) => p.internalStart)
+			.sortBy((p) => p.ports.protocol)
+			.sortBy((p) => p.ports.host)
+			.sortBy((p) => p.ports.internalStart)
 			.reduce((res: PortMap[], p: PortMap) => {
 				const last = _.last(res);
-				if (last == null) {
-					res.push(p);
+
+				if (last != null &&
+					last.ports.internalEnd + 1 === p.ports.internalStart &&
+					last.ports.externalEnd + 1 === p.ports.externalStart &&
+					last.ports.protocol === p.ports.protocol &&
+					last.ports.host === p.ports.host
+				) {
+					last.ports.internalEnd += 1;
+					last.ports.externalEnd += 1;
 				} else {
-					if (last.internalEnd + 1 === p.internalStart &&
-						last.externalEnd + 1 === p.externalStart &&
-						last.protocol === p.protocol &&
-						last.host === p.host
-					) {
-						last.internalEnd += 1;
-						last.externalEnd += 1;
-					} else {
-						res.push(p);
-					}
+					res.push(p);
 				}
 				return res;
 			}, []);
@@ -146,15 +134,14 @@ export class PortMap {
 			throw new InvalidPortDefinition(`Could not parse port definition: ${portStr}`);
 		}
 
-		let [
-			,
-			host = '',
-			external,
-			externalEnd,
-			internal,
-			internalEnd,
-			protocol = 'tcp',
-		] = match;
+		// Ignore the first parameter (the complete match) and separate the matched
+		// values into constants and things that can change.
+		const host = match[1] || '';
+		const internal = match[4];
+		const protocol = match[6] || 'tcp';
+		let external = match[2];
+		let externalEnd = match[3];
+		let internalEnd = match[5];
 
 		if (external == null) {
 			external = internal;
@@ -174,15 +161,17 @@ export class PortMap {
 			}
 		}
 
-		this.internalStart = parseInt(internal, 10);
-		this.internalEnd = parseInt(internalEnd, 10);
-		this.externalStart = parseInt(external, 10);
-		this.externalEnd = parseInt(externalEnd, 10);
-		this.host = host;
-		this.protocol = protocol;
+		this.ports = {
+			internalStart: parseInt(internal, 10),
+			internalEnd: parseInt(internalEnd, 10),
+			externalStart: parseInt(external, 10),
+			externalEnd: parseInt(externalEnd, 10),
+			host,
+			protocol,
+		};
 
 		// Ensure we have the same range
-		if (this.internalEnd - this.internalStart !== this.externalEnd - this.externalStart) {
+		if (this.ports.internalEnd - this.ports.internalStart !== this.ports.externalEnd - this.ports.externalStart) {
 			throw new InvalidPortDefinition(
 				`Range for internal and external ports does not match: ${portStr}`,
 			);
@@ -192,9 +181,6 @@ export class PortMap {
 	private generatePortRange(start: number, end: number): number[] {
 		if (start > end) {
 			throw new Error('Incorrect port range! The end port cannot be larger than the start port!');
-		}
-		if (start === end) {
-			return [ start ];
 		}
 
 		return _.range(start, end + 1);
