@@ -267,7 +267,7 @@ module.exports = class Config extends EventEmitter
 		@set({ uuid, deviceApiKey })
 
 	get: (key, trx) =>
-		db = trx ? @db.models
+		db = trx ? @db.models.bind(@db)
 		# Get value for "key" from config.json or db
 		Promise.try =>
 			switch @schema[key]?.source
