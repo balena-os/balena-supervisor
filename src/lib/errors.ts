@@ -10,8 +10,8 @@ export function ENOENT(err: { code: string, [key: string]: any }): boolean {
 	return err.code === 'ENOENT';
 }
 
-export function EEXISTS(err: { code: string, [key: string]: any }): boolean {
-	return err.code === 'EEXISTS';
+export function EEXIST(err: { code: string, [key: string]: any }): boolean {
+	return err.code === 'EEXIST';
 }
 
 export function UnitNotLoadedError(err: string[]): boolean {
