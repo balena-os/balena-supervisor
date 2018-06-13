@@ -151,6 +151,8 @@ module.exports = class Config extends EventEmitter
 			lockOverride: { source: 'db', mutable: true, default: 'false' }
 			legacyAppsPresent: { source: 'db', mutable: true, default: 'false' }
 			nativeLogger: { source: 'db', mutable: true, default: 'true' }
+			# A JSON value, which is either null, or { app: number, commit: string }
+			pinDevice: { source: 'db', mutable: true, default: 'null' }
 		}
 
 		@configJsonCache = {}

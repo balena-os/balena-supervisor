@@ -235,6 +235,19 @@ describe 'deviceState', ->
 			@deviceState.applications.images.save.restore()
 			@deviceState.deviceConfig.getCurrent.restore()
 
+	it 'stores info for pinning a device after loading an apps.json with a pinDevice field', ->
+		stub(@deviceState.applications.images, 'save').returns(Promise.resolve())
+		stub(@deviceState.deviceConfig, 'getCurrent').returns(Promise.resolve(mockedInitialConfig))
+		@deviceState.loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps-pin.json')
+		.then =>
+			@deviceState.applications.images.save.restore()
+			@deviceState.deviceConfig.getCurrent.restore()
+
+			@config.get('pinDevice').then (pinnedString) ->
+				pinned = JSON.parse(pinnedString)
+				expect(pinned).to.have.property('app').that.equals('1234')
+				expect(pinned).to.have.property('commit').that.equals('abcdef')
+
 	it 'emits a change event when a new state is reported', ->
 		@deviceState.reportCurrentState({ someStateDiff: 'someValue' })
 		expect(@deviceState).to.emit('change')
