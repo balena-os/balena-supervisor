@@ -18,7 +18,7 @@ module.exports = class Config extends EventEmitter
 			currentApiKey: =>
 				@getMany([ 'apiKey', 'deviceApiKey' ])
 				.then ({ apiKey, deviceApiKey }) ->
-					return apiKey ? deviceApiKey
+					return deviceApiKey ? apiKey
 			offlineMode: =>
 				@getMany([ 'resinApiEndpoint', 'supervisorOfflineMode' ])
 				.then ({ resinApiEndpoint, supervisorOfflineMode }) ->
