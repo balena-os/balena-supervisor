@@ -1,4 +1,5 @@
 import { endsWith } from 'lodash';
+import TypedError = require('typed-error');
 
 import { checkInt } from './validation';
 
@@ -17,3 +18,5 @@ export function EEXIST(err: { code: string, [key: string]: any }): boolean {
 export function UnitNotLoadedError(err: string[]): boolean {
 	return endsWith(err[0], 'not loaded.');
 }
+
+export class InvalidNetGatewayError extends TypedError { }
