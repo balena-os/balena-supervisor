@@ -20,3 +20,5 @@ export function UnitNotLoadedError(err: string[]): boolean {
 }
 
 export class InvalidNetGatewayError extends TypedError { }
+
+export class DeltaStillProcessingError extends TypedError { }

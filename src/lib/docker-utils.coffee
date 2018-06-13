@@ -6,7 +6,7 @@ dockerDelta = require 'docker-delta'
 _ = require 'lodash'
 { request, resumable } = require './request'
 { envArrayToObject } = require './conversions'
-{ InvalidNetGatewayError } = require './errors'
+{ DeltaStillProcessingError, InvalidNetGatewayError } = require './errors'
 { checkInt } = require './validation'
 
 applyRsyncDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress, log) ->
@@ -104,7 +104,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 				request.getAsync("#{deltaEndpoint}/api/v#{version}/delta?src=#{deltaSource}&dest=#{imgDest}", opts)
 				.spread (res, data) ->
 					if res.statusCode in [ 502, 504 ]
-						throw new Error('Delta server is still processing the delta, will retry')
+						throw new DeltaStillProcessingError()
 					switch version
 						when 2
 							if not (300 <= res.statusCode < 400 and res.headers['location']?)
