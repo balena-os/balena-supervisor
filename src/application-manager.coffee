@@ -288,6 +288,8 @@ module.exports = class ApplicationManager extends EventEmitter
 				@services.start(step.target)
 				.then (container) =>
 					@_containerStarted[container.id] = true
+			updateCommit: (step) =>
+				@config.set({ currentCommit: step.target })
 			handover: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.handover(step.current, step.target)
@@ -349,8 +351,9 @@ module.exports = class ApplicationManager extends EventEmitter
 		Promise.join(
 			@services.getStatus()
 			@images.getStatus()
+			@config.get('currentCommit')
 			@db.models('app').select([ 'appId', 'releaseId', 'commit' ])
-			(services, images, targetApps) ->
+			(services, images, currentCommit, targetApps) ->
 				apps = {}
 				dependent = {}
 				releaseId = null
@@ -393,15 +396,14 @@ module.exports = class ApplicationManager extends EventEmitter
 						console.log('Ignoring legacy dependent image', image)
 
 				obj = { local: apps, dependent }
-				if releaseId and targetApps[0]?.releaseId == releaseId
-					obj.commit = targetApps[0].commit
+				obj.commit = currentCommit
 				return obj
 		)
 
 	getDependentState: =>
 		@proxyvisor.getCurrentStates()
 
-	_buildApps: (services, networks, volumes) ->
+	_buildApps: (services, networks, volumes, currentCommit) ->
 		apps = {}
 
 		# We iterate over the current running services and add them to the current state
@@ -421,6 +423,9 @@ module.exports = class ApplicationManager extends EventEmitter
 			apps[appId] ?= { appId, services: [], volumes: {}, networks: {} }
 			apps[appId].volumes[volume.name] = volume.config
 
+		for appId, app of apps
+			app.commit = currentCommit
+
 		return apps
 
 	getCurrentForComparison: =>
@@ -428,6 +433,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.getAll()
 			@networks.getAll()
 			@volumes.getAll()
+			@config.get('currentCommit')
 			@_buildApps
 		)
 
@@ -436,6 +442,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.getAllByAppId(appId)
 			@networks.getAllByAppId(appId)
 			@volumes.getAllByAppId(appId)
+			@config.get('currentCommit')
 			@_buildApps
 		).get(appId)
 
@@ -759,6 +766,12 @@ module.exports = class ApplicationManager extends EventEmitter
 		for pair in volumePairs
 			pairSteps = @_nextStepsForVolume(pair, currentApp, removePairs.concat(updatePairs))
 			steps = steps.concat(pairSteps)
+
+		if _.isEmpty(steps) and currentApp.commit != targetApp.commit
+			steps.push({
+				action: 'updateCommit'
+				target: targetApp.commit
+			})
 		return _.map(steps, (step) -> _.assign({}, step, { appId }))
 
 	normaliseAppForDB: (app) =>

@@ -153,6 +153,7 @@ module.exports = class Config extends EventEmitter
 			nativeLogger: { source: 'db', mutable: true, default: 'true' }
 			# A JSON value, which is either null, or { app: number, commit: string }
 			pinDevice: { source: 'db', mutable: true, default: 'null' }
+			currentCommit: { source: 'db', mutable: true }
 		}
 
 		@configJsonCache = {}
