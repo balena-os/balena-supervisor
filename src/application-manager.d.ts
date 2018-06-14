@@ -1,6 +1,12 @@
-import { EventEmitter }  from 'events';
+import { EventEmitter } from 'events';
 
 import { ServiceAction } from './device-api/common';
+
+import Images = require('./compose/images');
+import ServiceManager = require('./compose/service-manager');
+import DB = require('./db');
+
+import { Service } from './types/service';
 
 declare interface Options {
 	force?: boolean;
@@ -8,19 +14,14 @@ declare interface Options {
 	skipLock?: boolean;
 }
 
-export interface Service {
-	imageId: number;
-	serviceId: number;
-}
-
 // TODO: This needs to be moved to the correct module's typings
 declare interface Application {
-	services: Array<Service>;
+	services: Service[];
 }
 
 // This is a non-exhaustive typing for ApplicationManager to avoid
 // having to recode the entire class (and all requirements in TS).
-declare class ApplicationManager extends EventEmitter {
+export class ApplicationManager extends EventEmitter {
 
 	// These probably could be typed, but the types are so messy that we're
 	// best just waiting for the relevant module to be recoded in typescript.
@@ -32,6 +33,10 @@ declare class ApplicationManager extends EventEmitter {
 	public logger: any;
 	public deviceState: any;
 	public eventTracker: any;
+
+	public services: ServiceManager;
+	public db: DB;
+	public images: Images;
 
 	public getCurrentApp(appId: number): Promise<Application | null>;
 

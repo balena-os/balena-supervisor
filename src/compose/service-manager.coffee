@@ -188,7 +188,15 @@ module.exports = class ServiceManager extends EventEmitter
 		.then (services) =>
 			status = _.clone(@volatileState)
 			for service in services
-				status[service.containerId] ?= _.pick(service, [ 'appId', 'imageId', 'status', 'releaseId', 'commit', 'createdAt' ])
+				status[service.containerId] ?= _.pick(service, [
+					'appId',
+					'imageId',
+					'status',
+					'releaseId',
+					'commit',
+					'createdAt',
+					'serviceName',
+				])
 			return _.values(status)
 
 	getByDockerContainerId: (containerId) =>
