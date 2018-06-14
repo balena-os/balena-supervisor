@@ -3,10 +3,10 @@ DockerToolbelt = require 'docker-toolbelt'
 { DockerProgress } = require 'docker-progress'
 Promise = require 'bluebird'
 dockerDelta = require 'docker-delta'
-TypedError = require 'typed-error'
 _ = require 'lodash'
 { request, resumable } = require './request'
 { envArrayToObject } = require './conversions'
+{ DeltaStillProcessingError, InvalidNetGatewayError } = require './errors'
 { checkInt } = require './validation'
 
 applyRsyncDelta = (imgSrc, deltaUrl, applyTimeout, opts, onProgress, log) ->
@@ -36,7 +36,7 @@ applyBalenaDelta = (docker, deltaImg, token, onProgress, log) ->
 		log('Using registry auth token')
 		auth = { authconfig: registrytoken: token }
 	docker.dockerProgress.pull(deltaImg, onProgress, auth)
-	.then =>
+	.then ->
 		docker.getImage(deltaImg).inspect().get('Id')
 
 module.exports = class DockerUtils extends DockerToolbelt
@@ -44,8 +44,6 @@ module.exports = class DockerUtils extends DockerToolbelt
 		super(opts)
 		@dockerProgress = new DockerProgress(dockerToolbelt: this)
 		@supervisorTagPromise = @normaliseImageName(constants.supervisorImage)
-
-	InvalidNetGatewayError: class InvalidNetGatewayError extends TypedError
 
 	getRepoAndTag: (image) =>
 		@getRegistryAndName(image)
@@ -106,7 +104,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 				request.getAsync("#{deltaEndpoint}/api/v#{version}/delta?src=#{deltaSource}&dest=#{imgDest}", opts)
 				.spread (res, data) ->
 					if res.statusCode in [ 502, 504 ]
-						throw new Error('Delta server is still processing the delta, will retry')
+						throw new DeltaStillProcessingError()
 					switch version
 						when 2
 							if not (300 <= res.statusCode < 400 and res.headers['location']?)
@@ -158,8 +156,8 @@ module.exports = class DockerUtils extends DockerToolbelt
 	getNetworkGateway: (netName) =>
 		return Promise.resolve('127.0.0.1') if netName == 'host'
 		@getNetwork(netName).inspect()
-		.then (netInfo) =>
+		.then (netInfo) ->
 			conf = netInfo?.IPAM?.Config?[0]
 			return conf.Gateway if conf?.Gateway?
 			return conf.Subnet.replace('.0/16', '.1') if _.endsWith(conf?.Subnet, '.0/16')
-			throw new @InvalidNetGatewayError("Cannot determine network gateway for #{netName}")
+			throw new InvalidNetGatewayError("Cannot determine network gateway for #{netName}")

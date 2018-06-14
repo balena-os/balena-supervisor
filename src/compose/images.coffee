@@ -5,7 +5,7 @@ logTypes = require '../lib/log-types'
 constants = require '../lib/constants'
 validation = require '../lib/validation'
 
-{ NotFoundError } = require '../lib/errors'
+{ DeltaStillProcessingError, NotFoundError } = require '../lib/errors'
 
 # image = {
 # 	name: image registry/repo@digest or registry/repo:tag
@@ -78,6 +78,12 @@ module.exports = class Images extends EventEmitter
 				.then =>
 					@logger.logSystemEvent(logTypes.downloadImageSuccess, { image })
 					return true
+				.catch DeltaStillProcessingError, =>
+					# If this is a delta image pull, and the delta still hasn't finished generating,
+					# don't show a failure message, and instead just inform the user that it's remotely
+					# processing
+					@logger.logSystemEvent(logTypes.deltaStillProcessingError)
+					return false
 				.catch (err) =>
 					@logger.logSystemEvent(logTypes.downloadImageError, { image, error: err })
 					return false

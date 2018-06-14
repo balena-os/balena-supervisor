@@ -57,6 +57,9 @@ module.exports =
 	imageAlreadyDeleted:
 		eventName: 'Image already deleted'
 		humanName: 'Image already deleted'
+	deltaStillProcessingError:
+		eventName: 'Delta still processing remotely.'
+		humanName: 'Delta still processing remotely. Will retry...'
 
 	startService:
 		eventName: 'Service start'
