@@ -18,11 +18,11 @@ describe 'Config', ->
 			@conf.init()
 
 	it 'uses the correct config.json path', ->
-		expect(@conf.configJsonPath()).to.eventually.equal('test/data/config.json')
+		expect(@conf.configJsonBackend.path()).to.eventually.equal('test/data/config.json')
 
 	it 'uses the correct config.json path from the root mount when passed as argument to the constructor', ->
 		conf2 = new Config({ @db, configPath: '/foo.json' })
-		expect(conf2.configJsonPath()).to.eventually.equal('test/data/foo.json')
+		expect(conf2.configJsonBackend.path()).to.eventually.equal('test/data/foo.json')
 
 	it 'initializes correctly', ->
 		expect(@initialization).to.be.fulfilled
