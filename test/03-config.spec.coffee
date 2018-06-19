@@ -114,3 +114,20 @@ describe 'Config', ->
 		.then (osVariant) ->
 			constants.hostOSVersionPath = oldPath
 			expect(osVariant).to.be.undefined
+
+	describe.only 'Function config providers', ->
+		it 'should allow setting of mutable function config options', ->
+			@conf.set({ logsChannelSecret: 'test' })
+			.then =>
+				expect(@conf.get('logsChannelSecret')).to.eventually.equal('test')
+
+		it 'should allow removing of mutabe function config options', ->
+			@conf.remove('logsChannelSecret')
+			.then =>
+				expect(@conf.get('logsChannelSecret')).to.eventually.be.undefined
+
+		it 'should throw if a non-mutable function provider is set', ->
+			expect(@conf.set({ version: 'some-version' })).to.be.rejected
+
+		it 'should throw if a non-mutbale function provider is removed', ->
+			expect(@conf.remove('version')).to.be.rejected
