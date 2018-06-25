@@ -7,11 +7,9 @@ constants = require '../lib/constants'
 conversions =  require '../lib/conversions'
 parseCommand = require('shell-quote').parse
 Duration = require 'duration-js'
+{ PortMap } = require './ports'
 
 validRestartPolicies = [ 'no', 'always', 'on-failure', 'unless-stopped' ]
-
-# Adapted from https://github.com/docker/docker-py/blob/master/docker/utils/ports.py#L3
-PORTS_REGEX = /^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/
 
 parseMemoryNumber = (numAsString, defaultVal) ->
 	m = numAsString?.toString().match(/^([0-9]+)([bkmg]?)b?$/i)
@@ -144,8 +142,7 @@ module.exports = class Service
 			@capDrop
 			@status
 			@devices
-			@exposedPorts
-			@portBindings
+			@portMappings
 			@networks
 			@memLimit
 			@memReservation
@@ -196,8 +193,6 @@ module.exports = class Service
 		@capAdd ?= []
 		@capDrop ?= []
 		@devices ?= []
-		@exposedPorts ?= {}
-		@portBindings ?= {}
 
 		@memLimit = parseMemoryNumber(@memLimit, '0')
 		@memReservation = parseMemoryNumber(@memReservation, '0')
@@ -242,6 +237,8 @@ module.exports = class Service
 		if _.isEmpty(@ipc)
 			@ipc = 'shareable'
 
+		@portMappings ?= @getPortsAndPortBindings()
+
 		# If the service has no containerId, it is a target service and has to be normalised and extended
 		if !@containerId?
 			if !@networkMode?
@@ -273,7 +270,6 @@ module.exports = class Service
 			@extendLabels(opts.imageInfo)
 			@extendAndSanitiseVolumes(opts.imageInfo)
 			@extendAndSanitiseExposedPorts(opts.imageInfo)
-			{ @exposedPorts, @portBindings } = @getPortsAndPortBindings()
 			@devices = formatDevices(@devices)
 			@addFeaturesFromLabels(opts)
 			if @dns?
@@ -451,6 +447,8 @@ module.exports = class Service
 			if containerPort? and !_.includes(boundContainerPorts, containerPort)
 				expose.push(containerPort)
 
+		portMappings = PortMap.fromDockerOpts(container.HostConfig.PortBindings)
+
 		appId = checkInt(container.Config.Labels['io.resin.app-id'])
 		serviceId = checkInt(container.Config.Labels['io.resin.service-id'])
 		serviceName = container.Config.Labels['io.resin.service-name']
@@ -485,8 +483,7 @@ module.exports = class Service
 			running: container.State.Running
 			createdAt: new Date(container.Created)
 			restartPolicy: container.HostConfig.RestartPolicy
-			ports: ports
-			expose: expose
+			portMappings: portMappings
 			containerId: container.Id
 			capAdd: container.HostConfig.CapAdd
 			capDrop: container.HostConfig.CapDrop
@@ -537,27 +534,26 @@ module.exports = class Service
 
 	# TODO: map ports for any of the possible formats "container:host/protocol", port ranges, etc.
 	getPortsAndPortBindings: =>
-		exposedPorts = {}
+		portMaps = _.map @ports, (p) -> new PortMap(p)
+		return PortMap.normalisePortMaps(portMaps)
+
+	generatePortBindings: =>
 		portBindings = {}
-		if @ports?
-			for port in @ports
-				m = port.match(PORTS_REGEX)
-				if m? # Ignore invalid port mappings
-					[ _unused, host = '', external, externalEnd, internal, internalEnd, protocol = 'tcp' ] = m
-					external ?= internal
-					internalEnd ?= internal
-					externalEnd ?= external
-					externalRange = _.map([external..externalEnd], String)
-					internalRange = _.map([internal..internalEnd], String)
-					if externalRange.length == internalRange.length # Ignore invalid port mappings
-						for hostPort, ind in externalRange
-							containerPort = internalRange[ind]
-							exposedPorts["#{containerPort}/#{protocol}"] = {}
-							portBindings["#{containerPort}/#{protocol}"] = [ { HostIp: host, HostPort: hostPort } ]
+		exposedPorts = {}
+		for portMap in @portMappings
+			ports = portMap.toDockerOpts()
+			_.merge(portBindings, ports.portBindings)
+			_.merge(exposedPorts, ports.exposedPorts)
+
+		# Any additonal exposed ports
 		if @expose?
 			for port in @expose
 				exposedPorts[port] = {}
-		return { exposedPorts, portBindings }
+
+		return {
+			portBindings,
+			exposedPorts
+		}
 
 	getBindsAndVolumes: =>
 		binds = []
@@ -578,6 +574,10 @@ module.exports = class Service
 		networkMode = @networkMode
 		if _.startsWith(networkMode, 'service:')
 			networkMode = "container:#{_.replace(networkMode, 'service:', '')}_#{@imageId}_#{@releaseId}"
+
+		# Generate port options
+		{ portBindings, exposedPorts } = @generatePortBindings()
+
 		conf = {
 			name: "#{@serviceName}_#{@imageId}_#{@releaseId}"
 			Image: @image
@@ -586,7 +586,7 @@ module.exports = class Service
 			Tty: true
 			Volumes: volumes
 			Env: _.map @environment, (v, k) -> k + '=' + v
-			ExposedPorts: @exposedPorts
+			ExposedPorts: exposedPorts
 			Labels: @labels
 			Domainname: @domainname
 			User: @user
@@ -597,7 +597,7 @@ module.exports = class Service
 				ShmSize: @shmSize
 				Privileged: @privileged
 				NetworkMode: networkMode
-				PortBindings: @portBindings
+				PortBindings: portBindings
 				Binds: binds
 				CapAdd: @capAdd
 				CapDrop: @capDrop
@@ -661,6 +661,7 @@ module.exports = class Service
 		_.isEmpty(_.xor(_.keys(@networks), _.keys(otherService.networks)))
 
 	isSameContainer: (otherService) =>
+
 		propertiesToCompare = [
 			'image'
 			'command'
@@ -669,8 +670,7 @@ module.exports = class Service
 			'privileged'
 			'restartPolicy'
 			'labels'
-			'portBindings'
-			'exposedPorts'
+			'portMappings'
 			'shmSize'
 			'cpuShares'
 			'cpuQuota'
@@ -710,11 +710,19 @@ module.exports = class Service
 			'groupAdd'
 			'securityOpt'
 		]
-		return _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare)) and
-			_.isEqual(_.omit(@environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ]), _.omit(otherService.environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ])) and
-			@hasSameNetworks(otherService) and
-			_.every arraysToCompare, (property) =>
-				_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
+
+		equalProps = _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare))
+		equalEnv = _.isEqual(
+			_.omit(@environment, [ 'RESIN_DEVICE_NAME_AT_INIT ']),
+			_.omit(otherService.environment, [ 'RESIN_DEVICE_NAME_AT_INIT '])
+		)
+		equalNetworks = @hasSameNetworks(otherService)
+		equalArrays = _.every arraysToCompare, (property) =>
+			_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
+
+		equal = equalProps and equalEnv and equalNetworks and equalArrays
+
+		return equal
 
 	isEqualExceptForRunningState: (otherService) =>
 		return @isSameContainer(otherService) and

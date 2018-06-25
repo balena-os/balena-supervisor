@@ -81,7 +81,8 @@ describe 'compose/service.cofee', ->
 				}
 			}
 		})
-		expect(s.portBindings).to.deep.equal({
+		ports = s.generatePortBindings()
+		expect(ports.portBindings).to.deep.equal({
 			'2344/tcp': [{
 				HostIp: '',
 				HostPort: '2344'
@@ -95,7 +96,7 @@ describe 'compose/service.cofee', ->
 				HostPort: '2346'
 			}]
 		})
-		expect(s.exposedPorts).to.deep.equal({
+		expect(ports.exposedPorts).to.deep.equal({
 			'1000/tcp': {}
 			'243/udp': {}
 			'2344/tcp': {}
@@ -104,6 +105,68 @@ describe 'compose/service.cofee', ->
 			'53/tcp': {}
 			'53/udp': {}
 		})
+
+	it 'correctly handles port ranges', ->
+		s = new Service({
+			appId: '1234'
+			serviceName: 'foo'
+			releaseId: 2
+			serviceId: 3
+			imageId: 4
+			expose: [
+				1000,
+				'243/udp'
+			],
+			ports: [
+				'1000-1003:2000-2003'
+			]
+		})
+
+		ports = s.generatePortBindings()
+		expect(ports.portBindings).to.deep.equal({
+			'2000/tcp': [
+				HostIp: ''
+				HostPort: '1000'
+			],
+			'2001/tcp': [
+				HostIp: ''
+				HostPort: '1001'
+			],
+			'2002/tcp': [
+				HostIp: ''
+				HostPort: '1002'
+			],
+			'2003/tcp': [
+				HostIp: ''
+				HostPort: '1003'
+			]
+		})
+
+		expect(ports.exposedPorts).to.deep.equal({
+			'1000/tcp': {}
+			'2000/tcp': {}
+			'2001/tcp': {}
+			'2002/tcp': {}
+			'2003/tcp': {}
+			'243/udp': {}
+		})
+
+	it 'should correctly handle large port ranges', ->
+		@timeout(60000)
+		s = new Service({
+			appId: '1234'
+			serviceName: 'foo'
+			releaseId: 2
+			serviceId: 3
+			imageId: 4
+			ports: [
+				'5-65536:5-65536/tcp'
+				'5-65536:5-65536/udp'
+			]
+		})
+
+		expect(s.generatePortBindings()).to.not.throw
+
 
 	describe 'parseMemoryNumber()', ->
 		makeComposeServiceWithLimit = (memLimit) ->
