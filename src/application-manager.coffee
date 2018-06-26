@@ -21,8 +21,9 @@ Volumes = require './compose/volumes'
 
 Proxyvisor = require './proxyvisor'
 
-serviceAction = (action, serviceId, current, target, options = {}) ->
-	return { action, serviceId, current, target, options }
+{ createV1Api } = require './device-api/v1'
+{ createV2Api } = require './device-api/v2'
+{ serviceAction } = require './device-api/common'
 
 # TODO: move this to an Image class?
 imageForService = (service) ->
@@ -48,193 +49,15 @@ pathExistsOnHost = (p) ->
 	.return(true)
 	.catchReturn(false)
 
-appNotFoundMsg = "App not found: an app needs to be installed for this endpoint to work.
-				If you've recently moved this device from another app,
-				please push an app and wait for it to be installed first."
-
 # TODO: implement additional v2 endpoints
 # Some v1 endpoins only work for single-container apps as they assume the app has a single service.
 createApplicationManagerRouter = (applications) ->
-	{ eventTracker, deviceState, _lockingIfNecessary, logger } = applications
 	router = express.Router()
 	router.use(bodyParser.urlencoded(extended: true))
 	router.use(bodyParser.json())
 
-	doRestart = (appId, force) ->
-		_lockingIfNecessary appId, { force }, ->
-			deviceState.getCurrentForComparison()
-			.then (currentState) ->
-				app = currentState.local.apps[appId]
-				imageIds = _.map(app.services, 'imageId')
-				applications.clearTargetVolatileForServices(imageIds)
-				stoppedApp = _.cloneDeep(app)
-				stoppedApp.services = []
-				currentState.local.apps[appId] = stoppedApp
-				deviceState.pausingApply ->
-					deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.then ->
-						currentState.local.apps[appId] = app
-						deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-				.finally ->
-					deviceState.triggerApplyTarget()
-
-	doPurge = (appId, force) ->
-		logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
-		_lockingIfNecessary appId, { force }, ->
-			deviceState.getCurrentForComparison()
-			.then (currentState) ->
-				app = currentState.local.apps[appId]
-				if !app?
-					throw new Error(appNotFoundMsg)
-				purgedApp = _.cloneDeep(app)
-				purgedApp.services = []
-				purgedApp.volumes = {}
-				currentState.local.apps[appId] = purgedApp
-				deviceState.pausingApply ->
-					deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-					.then ->
-						currentState.local.apps[appId] = app
-						deviceState.applyIntermediateTarget(currentState, { skipLock: true })
-				.finally ->
-					deviceState.triggerApplyTarget()
-		.tap ->
-			logger.logSystemMessage('Purged data', { appId }, 'Purge data success')
-		.tapCatch (err) ->
-			logger.logSystemMessage("Error purging data: #{err}", { appId, error: err }, 'Purge data error')
-
-	router.post '/v1/restart', (req, res) ->
-		appId = checkInt(req.body.appId)
-		force = checkTruthy(req.body.force)
-		eventTracker.track('Restart container (v1)', { appId })
-		if !appId?
-			return res.status(400).send('Missing app id')
-		doRestart(appId, force)
-		.then ->
-			res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	v1StopOrStart = (req, res, action) ->
-		appId = checkInt(req.params.appId)
-		force = checkTruthy(req.body.force)
-		if !appId?
-			return res.status(400).send('Missing app id')
-		applications.getCurrentApp(appId)
-		.then (app) ->
-			service = app?.services?[0]
-			if !service?
-				return res.status(400).send('App not found')
-			if app.services.length > 1
-				return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-			applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
-			applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { force })
-			.then ->
-				if action == 'stop'
-					return service
-				# We refresh the container id in case we were starting an app with no container yet
-				applications.getCurrentApp(appId)
-				.then (app) ->
-					service = app?.services?[0]
-					if !service?
-						throw new Error('App not found after running action')
-					return service
-			.then (service) ->
-				res.status(200).json({ containerId: service.containerId })
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v1/apps/:appId/stop', (req, res) ->
-		v1StopOrStart(req, res, 'stop')
-
-	router.post '/v1/apps/:appId/start', (req, res) ->
-		v1StopOrStart(req, res, 'start')
-
-	router.get '/v1/apps/:appId', (req, res) ->
-		appId = checkInt(req.params.appId)
-		eventTracker.track('GET app (v1)', { appId })
-		if !appId?
-			return res.status(400).send('Missing app id')
-		Promise.join(
-			applications.getCurrentApp(appId)
-			applications.getStatus()
-			(app, status) ->
-				service = app?.services?[0]
-				if !service?
-					return res.status(400).send('App not found')
-				if app.services.length > 1
-					return res.status(400).send('Some v1 endpoints are only allowed on single-container apps')
-				# Don't return data that will be of no use to the user
-				appToSend = {
-					appId
-					containerId: service.containerId
-					env: _.omit(service.environment, constants.privateAppEnvVars)
-					releaseId: service.releaseId
-					imageId: service.image
-				}
-				if status.commit?
-					appToSend.commit = status.commit
-				res.json(appToSend)
-		)
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v1/purge', (req, res) ->
-		appId = checkInt(req.body.appId)
-		force = checkTruthy(req.body.force)
-		if !appId?
-			errMsg = 'Invalid or missing appId'
-			return res.status(400).send(errMsg)
-		doPurge(appId, force)
-		.then ->
-			res.status(200).json(Data: 'OK', Error: '')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v2/applications/:appId/purge', (req, res) ->
-		{ force } = req.body
-		{ appId } = req.params
-		doPurge(appId, force)
-		.then ->
-			res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	handleServiceAction = (req, res, action) ->
-		{ imageId, force } = req.body
-		{ appId } = req.params
-		_lockingIfNecessary appId, { force }, ->
-			applications.getCurrentApp(appId)
-			.then (app) ->
-				if !app?
-					return res.status(404).send(appNotFoundMsg)
-				service = _.find(app.services, { imageId })
-				if !service?
-					errMsg = 'Service not found, a container must exist for this endpoint to work.'
-					return res.status(404).send(errMsg)
-				applications.setTargetVolatileForService(service.imageId, running: action != 'stop')
-				applications.executeStepAction(serviceAction(action, service.serviceId, service, service, { wait: true }), { skipLock: true })
-				.then ->
-					res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
-	router.post '/v2/applications/:appId/restart-service', (req, res) ->
-		handleServiceAction(req, res, 'restart')
-
-	router.post '/v2/applications/:appId/stop-service', (req, res) ->
-		handleServiceAction(req, res, 'stop')
-
-	router.post '/v2/applications/:appId/start-service', (req, res) ->
-		handleServiceAction(req, res, 'start')
-
-	router.post '/v2/applications/:appId/restart', (req, res) ->
-		{ force } = req.body
-		{ appId } = req.params
-		doRestart(appId, force)
-		.then ->
-			res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+	createV1Api(router, applications)
+	createV2Api(router, applications)
 
 	router.use(applications.proxyvisor.router)
 
@@ -288,6 +111,8 @@ module.exports = class ApplicationManager extends EventEmitter
 				@services.start(step.target)
 				.then (container) =>
 					@_containerStarted[container.id] = true
+			updateCommit: (step) =>
+				@config.set({ currentCommit: step.target })
 			handover: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.handover(step.current, step.target)
@@ -349,8 +174,9 @@ module.exports = class ApplicationManager extends EventEmitter
 		Promise.join(
 			@services.getStatus()
 			@images.getStatus()
+			@config.get('currentCommit')
 			@db.models('app').select([ 'appId', 'releaseId', 'commit' ])
-			(services, images, targetApps) ->
+			(services, images, currentCommit, targetApps) ->
 				apps = {}
 				dependent = {}
 				releaseId = null
@@ -393,15 +219,14 @@ module.exports = class ApplicationManager extends EventEmitter
 						console.log('Ignoring legacy dependent image', image)
 
 				obj = { local: apps, dependent }
-				if releaseId and targetApps[0]?.releaseId == releaseId
-					obj.commit = targetApps[0].commit
+				obj.commit = currentCommit
 				return obj
 		)
 
 	getDependentState: =>
 		@proxyvisor.getCurrentStates()
 
-	_buildApps: (services, networks, volumes) ->
+	_buildApps: (services, networks, volumes, currentCommit) ->
 		apps = {}
 
 		# We iterate over the current running services and add them to the current state
@@ -421,6 +246,11 @@ module.exports = class ApplicationManager extends EventEmitter
 			apps[appId] ?= { appId, services: [], volumes: {}, networks: {} }
 			apps[appId].volumes[volume.name] = volume.config
 
+		# multi-app warning!
+		# This is just wrong on every level
+		for app in apps
+			app.commit = currentCommit
+
 		return apps
 
 	getCurrentForComparison: =>
@@ -428,6 +258,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.getAll()
 			@networks.getAll()
 			@volumes.getAll()
+			@config.get('currentCommit')
 			@_buildApps
 		)
 
@@ -436,6 +267,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.getAllByAppId(appId)
 			@networks.getAllByAppId(appId)
 			@volumes.getAllByAppId(appId)
+			@configget('currentCommit')
 			@_buildApps
 		).get(appId)
 
@@ -759,6 +591,13 @@ module.exports = class ApplicationManager extends EventEmitter
 		for pair in volumePairs
 			pairSteps = @_nextStepsForVolume(pair, currentApp, removePairs.concat(updatePairs))
 			steps = steps.concat(pairSteps)
+
+		if _.isEmpty(steps) and currentApp.commit != targetApp.commit
+			steps.push({
+				action: 'updateCommit'
+				target: targetApp.commit
+			})
+
 		return _.map(steps, (step) -> _.assign({}, step, { appId }))
 
 	normaliseAppForDB: (app) =>
