@@ -6,137 +6,22 @@ import { generateUniqueKey } from 'resin-register-device';
 
 import ConfigJsonConfigBackend from './config/configJson';
 
+import { ConfigProviderFunctions, createProviderFunctions } from './config/functions';
 import * as constants from './lib/constants';
-import * as osRelease from './lib/os-release';
 import { ConfigMap, ConfigSchema, ConfigValue } from './lib/types';
 
 import DB = require('./db');
-import supervisorVersion = require('./lib/supervisor-version');
 
 interface ConfigOpts {
 	db: DB;
 	configPath: string;
 }
 
-// A provider for schema entries with source 'func'
-type ConfigFunction = (...args: any[]) => Bluebird<any>;
-
 class Config extends EventEmitter {
 
 	private db: DB;
 	private configJsonBackend: ConfigJsonConfigBackend;
-
-	private funcs: { [functionName: string]: ConfigFunction } = {
-		version: () => {
-			return Bluebird.resolve(supervisorVersion);
-		},
-		currentApiKey: () => {
-			return this.getMany([ 'apiKey', 'deviceApiKey' ])
-				.then(({ apiKey, deviceApiKey }) => {
-					return apiKey || deviceApiKey;
-				});
-		},
-		offlineMode: () => {
-			return this.getMany([ 'resinApiEndpoint', 'supervisorOfflineMode' ])
-				.then(({ resinApiEndpoint, supervisorOfflineMode }) => {
-					return Boolean(supervisorOfflineMode) || !Boolean(resinApiEndpoint);
-				});
-		},
-		pubnub: () => {
-			return this.getMany([ 'pubnubSubscribeKey', 'pubnubPublishKey' ])
-				.then(({ pubnubSubscribeKey, pubnubPublishKey }) => {
-					return {
-						subscribe_key: pubnubSubscribeKey,
-						publish_key: pubnubPublishKey,
-						ssl: true,
-					};
-				});
-		},
-		resinApiEndpoint: () => {
-			// Fallback to checking if an API endpoint was passed via env vars if there's none
-			// in config.json (legacy)
-			return this.get('apiEndpoint')
-				.then((apiEndpoint) => {
-					return apiEndpoint || constants.apiEndpointFromEnv;
-				});
-		},
-		provisioned: () => {
-			return this.getMany([
-				'uuid',
-				'resinApiEndpoint',
-				'registered_at',
-				'deviceId',
-			])
-				.then((requiredValues) => {
-					return _.every(_.values(requiredValues), Boolean);
-				});
-		},
-		osVersion: () => {
-			return osRelease.getOSVersion(constants.hostOSVersionPath);
-		},
-		osVariant: () => {
-			return osRelease.getOSVariant(constants.hostOSVersionPath);
-		},
-		provisioningOptions: () => {
-			return this.getMany([
-				'uuid',
-				'userId',
-				'applicationId',
-				'apiKey',
-				'deviceApiKey',
-				'deviceType',
-				'resinApiEndpoint',
-				'apiTimeout',
-				'registered_at',
-				'deviceId',
-			]).then((conf) => {
-				return {
-					uuid: conf.uuid,
-					applicationId: conf.applicationId,
-					userId: conf.userId,
-					deviceType: conf.deviceType,
-					provisioningApiKey: conf.apiKey,
-					deviceApiKey: conf.deviceApiKey,
-					apiEndpoint: conf.resinApiEndpoint,
-					apiTimeout: conf.apiTimeout,
-					registered_at: conf.registered_at,
-					deviceId: conf.deviceId,
-				};
-			});
-		},
-		mixpanelHost: () => {
-			return this.get('resinApiEndpoint')
-				.then((apiEndpoint) => {
-					return `${apiEndpoint}/mixpanel`;
-				});
-		},
-		extendedEnvOptions: () => {
-			return this.getMany([
-				'uuid',
-				'listenPort',
-				'name',
-				'apiSecret',
-				'deviceApiKey',
-				'version',
-				'deviceType',
-				'osVersion',
-			]);
-		},
-		fetchOptions: () => {
-			return this.getMany([
-				'uuid',
-				'currentApiKey',
-				'resinApiEndpoint',
-				'deltaEndpoint',
-				'delta',
-				'deltaRequestTimeout',
-				'deltaApplyTimeout',
-				'deltaRetryCount',
-				'deltaRetryInterval',
-				'deltaVersion',
-			]);
-		},
-	};
+	private providerFunctions: ConfigProviderFunctions;
 
 	public schema: ConfigSchema = {
 		apiEndpoint: { source: 'config.json' },
@@ -175,7 +60,6 @@ class Config extends EventEmitter {
 
 		// NOTE: all 'db' values are stored and loaded as *strings*,
 		apiSecret: { source: 'db', mutable: true },
-		logsChannelSecret: { source: 'db', mutable: true },
 		name: { source: 'db', mutable: true },
 		initialConfigReported: { source: 'db', mutable: true, default: 'false' },
 		initialConfigSaved: { source: 'db', mutable: true, default: 'false' },
@@ -195,12 +79,16 @@ class Config extends EventEmitter {
 		// a JSON value, which is either null, or { app: number, commit: string }
 		pinDevice: { source: 'db', mutable: true, default: 'null' },
 		currentCommit: { source: 'db', mutable: true },
+
+		// Mutable functions, defined in mutableFuncs
+		logsChannelSecret: { source: 'func', mutable: true },
 	};
 
 	public constructor({ db, configPath }: ConfigOpts) {
 		super();
 		this.db = db;
 		this.configJsonBackend = new ConfigJsonConfigBackend(this.schema, configPath);
+		this.providerFunctions = createProviderFunctions(this, db);
 	}
 
 	public init(): Bluebird<void> {
@@ -219,7 +107,7 @@ class Config extends EventEmitter {
 			}
 			switch(this.schema[key].source) {
 				case 'func':
-					return this.funcs[key]()
+					return this.providerFunctions[key].get()
 						.catch((e) => {
 							console.error(`Error getting config value for ${key}`, e, e.stack);
 							return null;
@@ -254,9 +142,10 @@ class Config extends EventEmitter {
 
 	public set(keyValues: ConfigMap, trx?: Transaction): Bluebird<void> {
 		return Bluebird.try(() => {
-			// Split the values into database and configJson values
-			type SplitConfigBackend = { configJsonVals: ConfigMap, dbVals: ConfigMap };
-			const { configJsonVals, dbVals }: SplitConfigBackend = _.reduce(keyValues, (acc: SplitConfigBackend, val, key) => {
+
+			// Split the values based on which storage backend they use
+			type SplitConfigBackend = { configJsonVals: ConfigMap, dbVals: ConfigMap, fnVals: ConfigMap };
+			const { configJsonVals, dbVals, fnVals }: SplitConfigBackend = _.reduce(keyValues, (acc: SplitConfigBackend, val, key) => {
 				if (this.schema[key] == null || !this.schema[key].mutable) {
 					throw new Error(`Config field ${key} not found or is immutable in config.set`);
 				}
@@ -264,12 +153,15 @@ class Config extends EventEmitter {
 					acc.configJsonVals[key] = val;
 				} else if (this.schema[key].source === 'db') {
 					acc.dbVals[key] = val;
+				} else if (this.schema[key].source === 'func') {
+					acc.fnVals[key] = val;
 				} else {
 					throw new Error(`Unknown config backend for key: ${key}, backend: ${this.schema[key].source}`);
 				}
 				return acc;
-			}, { configJsonVals: { }, dbVals: { } });
+			}, { configJsonVals: { }, dbVals: { }, fnVals: { } });
 
+			// Set these values, taking into account the knex transaction
 			const setValuesInTransaction = (tx: Transaction): Bluebird<void> => {
 				const dbKeys = _.keys(dbVals);
 				return this.getMany(dbKeys, tx)
@@ -279,6 +171,15 @@ class Config extends EventEmitter {
 							if (oldValues[key] !== value) {
 								return this.db.upsertModel('config', { key, value }, { key }, tx);
 							}
+						});
+					})
+					.then(() => {
+						return Bluebird.map(_.toPairs(fnVals), ([key, value]) => {
+							const fn = this.providerFunctions[key];
+							if (fn.set == null) {
+								throw new Error(`Attempting to set provider function without set() method implemented - key: ${key}`);
+							}
+							return fn.set(value, tx);
 						});
 					})
 					.then(() => {
@@ -313,6 +214,15 @@ class Config extends EventEmitter {
 				return this.configJsonBackend.remove(key);
 			} else if (this.schema[key].source === 'db') {
 				return this.db.models('config').del().where({ key });
+			} else if (this.schema[key].source === 'func') {
+				const mutFn = this.providerFunctions[key];
+				if (mutFn == null) {
+					throw new Error(`Could not find provider function for config ${key}!`);
+				}
+				if (mutFn.remove == null) {
+					throw new Error(`Could not find removal provider function for config ${key}`);
+				}
+				return mutFn.remove();
 			} else {
 				throw new Error(`Unknown or unsupported config backend: ${this.schema[key].source}`);
 			}
