@@ -61,7 +61,7 @@ module.exports = class DeviceConfig
 				return @configBackend
 
 	setTarget: (target, trx) =>
-		db = trx ? @db.models
+		db = trx ? @db.models.bind(@db)
 		confToUpdate = {
 			targetValues: JSON.stringify(target)
 		}
