@@ -267,7 +267,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.getAllByAppId(appId)
 			@networks.getAllByAppId(appId)
 			@volumes.getAllByAppId(appId)
-			@configget('currentCommit')
+			@config.get('currentCommit')
 			@_buildApps
 		).get(appId)
 
