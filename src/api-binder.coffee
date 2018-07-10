@@ -252,7 +252,6 @@ module.exports = class APIBinder
 				belongs_to__user: conf.userId
 				is_managed_by__device: conf.deviceId
 				uuid: deviceRegister.generateUniqueKey()
-				logs_channel: deviceRegister.generateUniqueKey()
 				registered_at: Math.floor(Date.now() / 1000)
 			})
 			@resinApi.post
@@ -305,27 +304,6 @@ module.exports = class APIBinder
 			.tapCatch (e) ->
 				console.log('Could not pin device to release!')
 				console.log('Error: ', e)
-
-	_sendLogsRequest: (uuid, data) =>
-		reqBody = _.map(data, (msg) -> _.mapKeys(msg, (v, k) -> _.snakeCase(k)))
-		@config.get('resinApiEndpoint')
-		.then (resinApiEndpoint) =>
-			endpoint = url.resolve(resinApiEndpoint, "/device/v2/#{uuid}/logs")
-			requestParams = _.extend
-				method: 'POST'
-				url: endpoint
-				body: reqBody
-			, @cachedResinApi.passthrough
-
-			@cachedResinApi._request(requestParams)
-
-	logDependent: (uuid, msg) =>
-		@_sendLogsRequest(uuid, [ msg ])
-
-	logBatch: (messages) =>
-		@config.get('uuid')
-		.then (uuid) =>
-			@_sendLogsRequest(uuid, messages)
 
 	# Creates the necessary config vars in the API to match the current device state,
 	# without overwriting any variables that are already set.

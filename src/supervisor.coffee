@@ -13,15 +13,14 @@ constants = require './lib/constants'
 startupConfigFields = [
 	'uuid'
 	'listenPort'
+	'apiEndpoint'
 	'apiSecret'
 	'apiTimeout'
 	'offlineMode'
+	'deviceApiKey'
 	'mixpanelToken'
 	'mixpanelHost'
-	'logsChannelSecret'
-	'pubnub'
 	'loggingEnabled'
-	'nativeLogger'
 ]
 
 module.exports = class Supervisor extends EventEmitter
@@ -41,7 +40,7 @@ module.exports = class Supervisor extends EventEmitter
 	init: =>
 		@db.init()
 		.tap =>
-			@config.init() # Ensures uuid, deviceApiKey, apiSecret and logsChannel
+			@config.init() # Ensures uuid, deviceApiKey, apiSecret
 		.then =>
 			@config.getMany(startupConfigFields)
 		.then (conf) =>
@@ -52,10 +51,9 @@ module.exports = class Supervisor extends EventEmitter
 				@apiBinder.initClient()
 			.then =>
 				@logger.init({
-					nativeLogger: conf.nativeLogger
-					apiBinder: @apiBinder
-					pubnub: conf.pubnub
-					channel: "device-#{conf.logsChannelSecret}-logs"
+					apiEndpoint: conf.apiEndpoint
+					uuid: conf.uuid
+					deviceApiKey: conf.deviceApiKey
 					offlineMode: conf.offlineMode
 					enable: conf.loggingEnabled
 				})
