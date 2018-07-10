@@ -163,13 +163,11 @@ module.exports = class DeviceState extends EventEmitter
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.loggingEnabled?
 				@logger.enable(changedConfig.loggingEnabled)
-			if changedConfig.nativeLogger?
-				@logger.switchBackend(changedConfig.nativeLogger)
 			if changedConfig.apiSecret?
 				@reportCurrentState(api_secret: changedConfig.apiSecret)
 
 		@config.getMany([
-			'initialConfigSaved', 'listenPort', 'apiSecret', 'osVersion', 'osVariant', 'logsChannelSecret',
+			'initialConfigSaved', 'listenPort', 'apiSecret', 'osVersion', 'osVariant',
 			'version', 'provisioned', 'resinApiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent'
 		])
 		.then (conf) =>
@@ -193,7 +191,7 @@ module.exports = class DeviceState extends EventEmitter
 					provisioning_progress: null
 					provisioning_state: ''
 					status: 'Idle'
-					logs_channel: conf.logsChannelSecret
+					logs_channel: null
 					update_failed: false
 					update_pending: false
 					update_downloaded: false
