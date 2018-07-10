@@ -78,16 +78,13 @@ class Config extends EventEmitter {
 		// a JSON value, which is either null, or { app: number, commit: string }
 		pinDevice: { source: 'db', mutable: true, default: 'null' },
 		currentCommit: { source: 'db', mutable: true },
-
-		// Mutable functions, defined in mutableFuncs
-		logsChannelSecret: { source: 'func', mutable: true },
 	};
 
 	public constructor({ db, configPath }: ConfigOpts) {
 		super();
 		this.db = db;
 		this.configJsonBackend = new ConfigJsonConfigBackend(this.schema, configPath);
-		this.providerFunctions = createProviderFunctions(this, db);
+		this.providerFunctions = createProviderFunctions(this);
 	}
 
 	public init(): Bluebird<void> {
@@ -244,10 +241,9 @@ class Config extends EventEmitter {
 			'uuid',
 			'deviceApiKey',
 			'apiSecret',
-			'logsChannelSecret',
 			'offlineMode',
 		])
-			.then(({ uuid, deviceApiKey, apiSecret, logsChannelSecret, offlineMode }) => {
+			.then(({ uuid, deviceApiKey, apiSecret, offlineMode }) => {
 				// These fields need to be set regardless
 				if (uuid == null || apiSecret == null) {
 					uuid = uuid || this.newUniqueKey();
@@ -258,10 +254,8 @@ class Config extends EventEmitter {
 						if (offlineMode) {
 							return;
 						}
-						if (deviceApiKey == null || logsChannelSecret == null) {
-							deviceApiKey = deviceApiKey || this.newUniqueKey();
-							logsChannelSecret = logsChannelSecret || this.newUniqueKey();
-							return this.set({ deviceApiKey, logsChannelSecret });
+						if (deviceApiKey == null) {
+							return this.set({ deviceApiKey: this.newUniqueKey() });
 						}
 					});
 			});
