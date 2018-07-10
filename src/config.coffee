@@ -132,7 +132,6 @@ module.exports = class Config extends EventEmitter
 			fetchOptions: { source: 'func' }
 
 			apiSecret: { source: 'db', mutable: true }
-			logsChannelSecret: { source: 'db', mutable: true }
 			name: { source: 'db', mutable: true }
 			initialConfigReported: { source: 'db', mutable: true, default: 'false' }
 			initialConfigSaved: { source: 'db', mutable: true, default: 'false' }
@@ -241,14 +240,13 @@ module.exports = class Config extends EventEmitter
 		deviceRegister.generateUniqueKey()
 
 	generateRequiredFields: =>
-		@getMany([ 'uuid', 'deviceApiKey', 'apiSecret', 'logsChannelSecret' ])
-		.then ({ uuid, deviceApiKey, apiSecret, logsChannelSecret }) =>
-			if !uuid? or !deviceApiKey? or !apiSecret? or !logsChannelSecret?
+		@getMany([ 'uuid', 'deviceApiKey', 'apiSecret' ])
+		.then ({ uuid, deviceApiKey, apiSecret }) =>
+			if !uuid? or !deviceApiKey? or !apiSecret?
 				uuid ?= @newUniqueKey()
 				deviceApiKey ?= @newUniqueKey()
 				apiSecret ?= @newUniqueKey()
-				logsChannelSecret ?= @newUniqueKey()
-				@set({ uuid, deviceApiKey, apiSecret, logsChannelSecret })
+				@set({ uuid, deviceApiKey, apiSecret })
 
 	regenerateRegistrationFields: =>
 		uuid = deviceRegister.generateUniqueKey()
@@ -339,10 +337,10 @@ module.exports = class Config extends EventEmitter
 
 	init: =>
 		# Read config.json and cache its values
-		# get or generate apiSecret, logsChannelSecret, uuid
+		# get or generate apiSecret, uuid
 		@readConfigJson()
 		.then (configJson) =>
 			_.assign(@configJsonCache, configJson)
 		.then =>
-			# get or generate uuid, apiSecret, logsChannelSecret
+			# get or generate uuid, apiSecret
 			@generateRequiredFields()
