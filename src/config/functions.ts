@@ -75,9 +75,9 @@ export function createProviderFunctions(config: Config, db: DB): ConfigProviderF
 		},
 		offlineMode: {
 			get: () => {
-				return config.getMany([ 'resinApiEndpoint', 'supervisorOfflineMode' ])
-					.then(({ resinApiEndpoint, supervisorOfflineMode }) => {
-						return Boolean(supervisorOfflineMode) || !Boolean(resinApiEndpoint);
+				return config.getMany([ 'apiEndpoint', 'supervisorOfflineMode' ])
+					.then(({ apiEndpoint, supervisorOfflineMode }) => {
+						return Boolean(supervisorOfflineMode) || !Boolean(apiEndpoint);
 					});
 			},
 		},
@@ -93,21 +93,11 @@ export function createProviderFunctions(config: Config, db: DB): ConfigProviderF
 					});
 			},
 		},
-		resinApiEndpoint: {
-			get: () => {
-				// Fallback to checking if an API endpoint was passed via env vars if there's none
-				// in config.json (legacy)
-				return config.get('apiEndpoint')
-					.then((apiEndpoint) => {
-						return apiEndpoint || (constants.apiEndpointFromEnv || '');
-					});
-			},
-		},
 		provisioned: {
 			get: () => {
 				return config.getMany([
 					'uuid',
-					'resinApiEndpoint',
+					'apiEndpoint',
 					'registered_at',
 					'deviceId',
 				])
@@ -135,7 +125,7 @@ export function createProviderFunctions(config: Config, db: DB): ConfigProviderF
 					'apiKey',
 					'deviceApiKey',
 					'deviceType',
-					'resinApiEndpoint',
+					'apiEndpoint',
 					'apiTimeout',
 					'registered_at',
 					'deviceId',
@@ -147,7 +137,7 @@ export function createProviderFunctions(config: Config, db: DB): ConfigProviderF
 						deviceType: conf.deviceType,
 						provisioningApiKey: conf.apiKey,
 						deviceApiKey: conf.deviceApiKey,
-						apiEndpoint: conf.resinApiEndpoint,
+						apiEndpoint: conf.apiEndpoint,
 						apiTimeout: conf.apiTimeout,
 						registered_at: conf.registered_at,
 						deviceId: conf.deviceId,
@@ -157,7 +147,7 @@ export function createProviderFunctions(config: Config, db: DB): ConfigProviderF
 		},
 		mixpanelHost: {
 			get: () => {
-				return config.get('resinApiEndpoint')
+				return config.get('apiEndpoint')
 					.then((apiEndpoint) => {
 						return `${apiEndpoint}/mixpanel`;
 					});
@@ -182,7 +172,7 @@ export function createProviderFunctions(config: Config, db: DB): ConfigProviderF
 				return config.getMany([
 					'uuid',
 					'currentApiKey',
-					'resinApiEndpoint',
+					'apiEndpoint',
 					'deltaEndpoint',
 					'delta',
 					'deltaRequestTimeout',

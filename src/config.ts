@@ -49,7 +49,6 @@ class Config extends EventEmitter {
 		currentApiKey: { source: 'func' },
 		offlineMode: { source: 'func' },
 		pubnub: { source: 'func' },
-		resinApiEndpoint: { source: 'func' },
 		provisioned: { source: 'func' },
 		osVersion: { source: 'func' },
 		osVariant: { source: 'func' },

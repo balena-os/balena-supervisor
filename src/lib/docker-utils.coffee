@@ -58,7 +58,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 	fetchDeltaWithProgress: (imgDest, fullDeltaOpts, onProgress) =>
 		{
 			deltaRequestTimeout, deltaApplyTimeout, deltaRetryCount, deltaRetryInterval,
-			uuid, currentApiKey, deltaEndpoint, resinApiEndpoint,
+			uuid, currentApiKey, deltaEndpoint, apiEndpoint,
 			deltaSource, deltaSourceId, deltaVersion, startFromEmpty = false
 		} = fullDeltaOpts
 		retryCount = checkInt(deltaRetryCount)
@@ -80,7 +80,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 
 		log("Starting delta to #{imgDest}")
 		Promise.join @getRegistryAndName(imgDest), @getRegistryAndName(deltaSource), (dstInfo, srcInfo) ->
-			tokenEndpoint = "#{resinApiEndpoint}/auth/v1/token"
+			tokenEndpoint = "#{apiEndpoint}/auth/v1/token"
 			opts =
 				auth:
 					user: 'd_' + uuid

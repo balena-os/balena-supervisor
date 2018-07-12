@@ -166,7 +166,7 @@ module.exports = class DeviceState extends EventEmitter
 
 		@config.getMany([
 			'initialConfigSaved', 'listenPort', 'apiSecret', 'osVersion', 'osVariant', 'logsChannelSecret',
-			'version', 'provisioned', 'resinApiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent'
+			'version', 'provisioned', 'apiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent'
 		])
 		.then (conf) =>
 			Promise.try =>
@@ -200,8 +200,8 @@ module.exports = class DeviceState extends EventEmitter
 			.then =>
 				@triggerApplyTarget({ initial: true })
 
-	initNetworkChecks: ({ resinApiEndpoint, connectivityCheckEnabled }) =>
-		network.startConnectivityCheck resinApiEndpoint, connectivityCheckEnabled, (connected) =>
+	initNetworkChecks: ({ apiEndpoint, connectivityCheckEnabled }) =>
+		network.startConnectivityCheck apiEndpoint, connectivityCheckEnabled, (connected) =>
 			@connected = connected
 		@config.on 'change', (changedConfig) ->
 			if changedConfig.connectivityCheckEnabled?
@@ -242,7 +242,7 @@ module.exports = class DeviceState extends EventEmitter
 
 	setTarget: (target) ->
 		Promise.join(
-			@config.get('resinApiEndpoint'),
+			@config.get('apiEndpoint'),
 			validateState(target),
 			(source) =>
 				@usingWriteLockTarget =>

@@ -63,47 +63,47 @@ module.exports = class APIBinder
 			release()
 
 	initClient: =>
-		@config.getMany([ 'offlineMode', 'resinApiEndpoint', 'currentApiKey'  ])
-		.then ({ offlineMode, resinApiEndpoint, currentApiKey }) =>
+		@config.getMany([ 'offlineMode', 'apiEndpoint', 'currentApiKey'  ])
+		.then ({ offlineMode, apiEndpoint, currentApiKey }) =>
 			if offlineMode
 				console.log('Offline Mode is set, skipping API client initialization')
 				return
-			baseUrl = url.resolve(resinApiEndpoint, '/v4/')
+			baseUrl = url.resolve(apiEndpoint, '/v4/')
 			passthrough = _.cloneDeep(requestOpts)
 			passthrough.headers ?= {}
 			passthrough.headers.Authorization = "Bearer #{currentApiKey}"
 			@resinApi = new PinejsClient
 				apiPrefix: baseUrl
 				passthrough: passthrough
-			baseUrlLegacy = url.resolve(resinApiEndpoint, '/v2/')
+			baseUrlLegacy = url.resolve(apiEndpoint, '/v2/')
 			@resinApiLegacy = new PinejsClient
 				apiPrefix: baseUrlLegacy
 				passthrough: passthrough
 			@cachedResinApi = @resinApi.clone({}, cache: {})
 
 	start: =>
-		@config.getMany([ 'resinApiEndpoint', 'offlineMode', 'bootstrapRetryDelay' ])
-		.then ({ resinApiEndpoint, offlineMode, bootstrapRetryDelay }) =>
+		@config.getMany([ 'apiEndpoint', 'offlineMode', 'bootstrapRetryDelay' ])
+		.then ({ apiEndpoint, offlineMode, bootstrapRetryDelay }) =>
 			if offlineMode
 				console.log('Offline Mode is set, skipping API binder initialization')
 				# If we are offline because there is no apiEndpoint, there's a chance
 				# we've went through a deprovision. We need to set the initialConfigReported
 				# value to '', to ensure that when we do re-provision, we'll report
 				# the config and hardward-specific options won't be lost
-				if !Boolean(resinApiEndpoint)
+				if !Boolean(apiEndpoint)
 					return @config.set({ initialConfigReported: '' })
 				return
 			console.log('Ensuring device is provisioned')
 			@provisionDevice()
 			.then =>
-				@config.getMany([ 'initialConfigReported', 'resinApiEndpoint' ])
-				.then ({ initialConfigReported, resinApiEndpoint }) =>
+				@config.getMany([ 'initialConfigReported', 'apiEndpoint' ])
+				.then ({ initialConfigReported, apiEndpoint }) =>
 
 					# Either we haven't reported our initial config or we've
 					# been re-provisioned
-					if resinApiEndpoint != initialConfigReported
+					if apiEndpoint != initialConfigReported
 						console.log('Reporting initial configuration')
-						@reportInitialConfig(resinApiEndpoint, bootstrapRetryDelay)
+						@reportInitialConfig(apiEndpoint, bootstrapRetryDelay)
 			.then =>
 				console.log('Starting current state report')
 				@startCurrentStateReport()
@@ -308,7 +308,7 @@ module.exports = class APIBinder
 
 	_sendLogsRequest: (uuid, data) =>
 		reqBody = _.map(data, (msg) -> _.mapKeys(msg, (v, k) -> _.snakeCase(k)))
-		@config.get('resinApiEndpoint')
+		@config.get('apiEndpoint')
 		.then (resinApiEndpoint) =>
 			endpoint = url.resolve(resinApiEndpoint, "/device/v2/#{uuid}/logs")
 			requestParams = _.extend
@@ -364,9 +364,9 @@ module.exports = class APIBinder
 				@reportInitialConfig(apiEndpoint, retryDelay)
 
 	getTargetState: =>
-		@config.getMany([ 'uuid', 'resinApiEndpoint', 'apiTimeout' ])
-		.then ({ uuid, resinApiEndpoint, apiTimeout }) =>
-			endpoint = url.resolve(resinApiEndpoint, "/device/v2/#{uuid}/state")
+		@config.getMany([ 'uuid', 'apiEndpoint', 'apiTimeout' ])
+		.then ({ uuid, apiEndpoint, apiTimeout }) =>
+			endpoint = url.resolve(apiEndpoint, "/device/v2/#{uuid}/state")
 
 			requestParams = _.extend
 				method: 'GET'
@@ -422,7 +422,7 @@ module.exports = class APIBinder
 		return _.pickBy(diff, _.negate(_.isEmpty))
 
 	_sendReportPatch: (stateDiff, conf) =>
-		endpoint = url.resolve(conf.resinApiEndpoint, "/device/v2/#{conf.uuid}/state")
+		endpoint = url.resolve(conf.apiEndpoint, "/device/v2/#{conf.uuid}/state")
 		requestParams = _.extend
 			method: 'PATCH'
 			url: "#{endpoint}"
@@ -432,7 +432,7 @@ module.exports = class APIBinder
 		@cachedResinApi._request(requestParams)
 
 	_report: =>
-		@config.getMany([ 'deviceId', 'apiTimeout', 'resinApiEndpoint', 'uuid' ])
+		@config.getMany([ 'deviceId', 'apiTimeout', 'apiEndpoint', 'uuid' ])
 		.then (conf) =>
 			stateDiff = @_getStateDiff()
 			if _.size(stateDiff) is 0
