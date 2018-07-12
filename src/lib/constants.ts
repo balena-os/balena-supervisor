@@ -25,7 +25,6 @@ const constants = {
 	configJsonPathOnHost: checkString(process.env.CONFIG_JSON_PATH),
 	proxyvisorHookReceiver:
 		checkString(process.env.RESIN_PROXYVISOR_HOOK_RECEIVER) || 'http://0.0.0.0:1337',
-	apiEndpointFromEnv: checkString(process.env.API_ENDPOINT),
 	configJsonNonAtomicPath: '/boot/config.json',
 	defaultPubnubSubscribeKey: process.env.DEFAULT_PUBNUB_SUBSCRIBE_KEY,
 	defaultPubnubPublishKey: process.env.DEFAULT_PUBNUB_PUBLISH_KEY,

@@ -272,7 +272,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		).get(appId)
 
 	getTargetApp: (appId) =>
-		@config.get('resinApiEndpoint').then (endpoint = '') ->
+		@config.get('apiEndpoint').then (endpoint = '') ->
 			@db.models('app').where({ appId, source: endpoint }).select()
 		.then ([ app ]) =>
 			if !app?
@@ -714,7 +714,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@_targetVolatilePerImageId[imageId] = {}
 
 	getTargetApps: =>
-		@config.get('resinApiEndpoint'). then (source = '') =>
+		@config.get('apiEndpoint'). then (source = '') =>
 			Promise.map(@db.models('app').where({ source }), @normaliseAndExtendAppFromDB)
 		.map (app) =>
 			if !_.isEmpty(app.services)
