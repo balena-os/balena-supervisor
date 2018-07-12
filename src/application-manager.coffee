@@ -248,7 +248,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 		# multi-app warning!
 		# This is just wrong on every level
-		for app in apps
+		_.each apps, (app) ->
 			app.commit = currentCommit
 
 		return apps
