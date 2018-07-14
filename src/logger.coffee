@@ -187,7 +187,7 @@ module.exports = class Logger
 			if stdoutOrStderr not in [ 'stdout', 'stderr' ]
 				throw new Error("Invalid log selection #{stdoutOrStderr}")
 			if !@attached[stdoutOrStderr][containerId]
-				logsOpts = { follow: true, stdout: stdoutOrStderr == 'stdout', stderr: stdoutOrStderr == 'stderr', timestamps: true }
+				logsOpts = { follow: true, stdout: stdoutOrStderr == 'stdout', stderr: stdoutOrStderr == 'stderr', timestamps: true, since: Math.floor(Date.now() / 1000) }
 				docker.getContainer(containerId)
 				.logs(logsOpts)
 				.then (stream) =>
