@@ -115,7 +115,13 @@ describe 'Config', ->
 			constants.hostOSVersionPath = oldPath
 			expect(osVariant).to.be.undefined
 
-	describe.only 'Function config providers', ->
+	describe 'Function config providers', ->
+		before ->
+			prepare()
+			@db = new DB()
+			@conf = new Config({ @db })
+			@initialization = @db.init().then =>
+				@conf.init()
 		it 'should allow setting of mutable function config options', ->
 			@conf.set({ logsChannelSecret: 'test' })
 			.then =>
