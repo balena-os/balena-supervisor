@@ -1,12 +1,12 @@
 import * as _ from 'lodash';
 
+import { EnvVarObject } from '../lib/types';
 import {
 	ConfigOptions,
 	DeviceConfigBackend,
 	ExtlinuxConfigBackend,
 	RPiConfigBackend,
-} from './config-backend';
-import { EnvVarObject } from './types';
+} from './backend';
 
 
 const configBackends = [

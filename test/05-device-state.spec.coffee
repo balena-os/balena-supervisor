@@ -9,7 +9,7 @@ prepare = require './lib/prepare'
 DeviceState = require '../src/device-state'
 DB = require('../src/db')
 Config = require('../src/config')
-{ RPiConfigBackend } = require('../src/lib/config-backend')
+{ RPiConfigBackend } = require('../src/config/backend')
 
 Service = require '../src/compose/service'
 

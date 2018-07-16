@@ -4,7 +4,7 @@ _ = require 'lodash'
 systemd = require './lib/systemd'
 { checkTruthy, checkInt } = require './lib/validation'
 { UnitNotLoadedError } = require './lib/errors'
-configUtils = require './lib/config-utils'
+configUtils = require './config/utils'
 
 vpnServiceName = 'openvpn-resin'
 
