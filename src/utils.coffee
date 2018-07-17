@@ -9,7 +9,6 @@ blink = require('blinking')(config.ledFile)
 url = require 'url'
 randomHexString = require './lib/random-hex-string'
 request = Promise.promisifyAll require 'request'
-logger = require './lib/logger'
 TypedError = require 'typed-error'
 
 # Parses package.json and returns resin-supervisor's version
@@ -170,11 +169,6 @@ exports.enableConnectivityCheck = (val) ->
 	bool = val is 'false'
 	disableCheck(bool)
 	console.log("Connectivity check enabled: #{not bool}")
-
-# Callback function to enable/disable logs
-exports.resinLogControl = (val) ->
-	logger.disableLogPublishing(val == 'false')
-	console.log('Logs enabled: ' + val)
 
 # Callback function to enable/disable VPN
 exports.vpnControl = (val) ->

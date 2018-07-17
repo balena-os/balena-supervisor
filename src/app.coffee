@@ -15,12 +15,12 @@ knex.init.then ->
 	console.log('Starting connectivity check..')
 	utils.connectivityCheck()
 
-	Promise.join bootstrap.startBootstrapping(), utils.getOrGenerateSecret('api'), utils.getOrGenerateSecret('logsChannel'), (uuid, secret, logsChannel) ->
+	Promise.join bootstrap.startBootstrapping(), utils.getOrGenerateSecret('api'), (uuid, secret) ->
 		# Persist the uuid in subsequent metrics
 		utils.mixpanelProperties.uuid = uuid
 
 		api = require './api'
-		application = require('./application')(logsChannel, bootstrap.offlineMode)
+		application = require('./application')(bootstrap.offlineMode)
 		device = require './device'
 
 		console.log('Starting API server..')
@@ -41,7 +41,7 @@ knex.init.then ->
 				provisioning_progress: null
 				provisioning_state: ''
 				download_progress: null
-				logs_channel: logsChannel
+				logs_channel: null
 			)
 
 		console.log('Starting Apps..')
