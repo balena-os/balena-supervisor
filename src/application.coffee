@@ -140,7 +140,7 @@ application.healthy = ->
 	return bootstrap.offlineMode or updateStatus.currentlyDownloading or timeSinceLastCycle - updateStatus.timeSpentPulling <= 2 * config.appUpdatePollInterval
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
-	logger.log({ m: message, s: 1 })
+	logger.log({ message: message, isSystem: true })
 	utils.mixpanelTrack(eventName ? message, obj)
 
 logSystemEvent = (logType, app = {}, error) ->
@@ -527,7 +527,7 @@ specialActionConfigVars = [
 	[ 'RESIN_SUPERVISOR_VPN_CONTROL', utils.vpnControl ]
 	[ 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', utils.enableConnectivityCheck ]
 	[ 'RESIN_SUPERVISOR_POLL_INTERVAL', apiPollInterval ]
-	[ 'RESIN_SUPERVISOR_LOG_CONTROL', utils.resinLogControl ]
+	[ 'RESIN_SUPERVISOR_LOG_CONTROL', logger.resinLogControl ]
 ]
 specialActionConfigKeys = _.map(specialActionConfigVars, 0)
 
@@ -692,6 +692,7 @@ parseEnvAndFormatRemoteApps = (remoteApps, uuid, deviceApiKey) ->
 				env: JSON.stringify(env)
 				config: JSON.stringify(app.config)
 				name: app.name
+				serviceId: app.serviceId
 				markedForDeletion: false
 			}
 	Promise.props(appsWithEnv)
@@ -699,7 +700,7 @@ parseEnvAndFormatRemoteApps = (remoteApps, uuid, deviceApiKey) ->
 formatLocalApps = (apps) ->
 	apps = _.keyBy(apps, 'appId')
 	localApps = _.mapValues apps, (app) ->
-		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name', 'markedForDeletion' ])
+		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name', 'markedForDeletion', 'serviceId' ])
 		app.markedForDeletion = checkTruthy(app.markedForDeletion)
 		return app
 	return localApps
@@ -976,10 +977,8 @@ application.initialize = ->
 		application.poll()
 		application.update()
 
-module.exports = (logsChannel, offlineMode) ->
+module.exports = (offlineMode) ->
 	logger.init(
-		pubnub: config.pubnub
-		channel: "device-#{logsChannel}-logs"
 		offlineMode: offlineMode
 	)
 	return application
