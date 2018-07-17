@@ -210,7 +210,7 @@ do ->
 		_.merge(updateState, value)
 
 	exports.getState = ->
-		fieldsToOmit = ['api_secret', 'logs_channel', 'provisioning_progress', 'provisioning_state']
+		fieldsToOmit = ['api_secret', 'provisioning_progress', 'provisioning_state']
 		state = _.omit(targetState, fieldsToOmit)
 		_.merge(state, updateState)
 		return state

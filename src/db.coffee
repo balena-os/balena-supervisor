@@ -44,11 +44,13 @@ knex.init = Promise.all([
 				t.boolean('privileged')
 				t.json('env')
 				t.json('config')
+				t.integer('serviceId')
 		else
 			Promise.all [
 				addColumn('app', 'commit', 'string')
 				addColumn('app', 'appId', 'string')
 				addColumn('app', 'config', 'json')
+				addColumn('app', 'serviceId', 'integer')
 			]
 
 	knex.schema.hasTable('image')
