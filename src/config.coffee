@@ -32,6 +32,5 @@ module.exports = config =
 	successMessage: 'SUPERVISOR OK'
 	forceSecret:
 		api: process.env.RESIN_SUPERVISOR_SECRET ? null
-		logsChannel: process.env.RESIN_SUPERVISOR_LOGS_CHANNEL ? null
 	vpnStatusPath: process.env.VPN_STATUS_PATH ? '/mnt/root/run/openvpn/vpn_status'
 	checkInt: checkInt
