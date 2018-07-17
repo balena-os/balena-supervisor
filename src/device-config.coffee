@@ -24,14 +24,20 @@ module.exports = class DeviceConfig
 			deltaVersion: { envVarName: 'RESIN_SUPERVISOR_DELTA_VERSION', varType: 'int', defaultValue: '2' }
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
 			nativeLogger: { envVarName: 'RESIN_SUPERVISOR_NATIVE_LOGGER', varType: 'bool', defaultValue: 'true' }
+			persistentLogging: { envVarName: 'RESIN_SUPERVISOR_PERSISTENT_LOGGING', varType: 'bool', defaultValue: 'false', rebootRequired: true }
 		}
-		@validKeys = [ 'RESIN_SUPERVISOR_VPN_CONTROL', 'RESIN_OVERRIDE_LOCK' ].concat(_.map(@configKeys, 'envVarName'))
+		@validKeys = [
+			'RESIN_SUPERVISOR_VPN_CONTROL',
+			'RESIN_OVERRIDE_LOCK',
+		].concat(_.map(@configKeys, 'envVarName'))
 		@actionExecutors = {
 			changeConfig: (step) =>
 				@logger.logConfigChange(step.humanReadableTarget)
 				@config.set(step.target)
 				.then =>
 					@logger.logConfigChange(step.humanReadableTarget, { success: true })
+					if step.rebootRequired
+						@rebootRequired = true
 				.tapCatch (err) =>
 					@logger.logConfigChange(step.humanReadableTarget, { err })
 			setVPNEnabled: (step, { initial = false } = {}) =>
@@ -140,29 +146,37 @@ module.exports = class DeviceConfig
 			# If the legacy lock override is used, place it as the new variable
 			if checkTruthy(target['RESIN_OVERRIDE_LOCK'])
 				target['RESIN_SUPERVISOR_OVERRIDE_LOCK'] = target['RESIN_OVERRIDE_LOCK']
-			for own key, { envVarName, varType } of @configKeys
+			reboot = false
+			for own key, { envVarName, varType, rebootRequired } of @configKeys
 				if !match[varType](current[envVarName], target[envVarName])
 					configChanges[key] = target[envVarName]
 					humanReadableConfigChanges[envVarName] = target[envVarName]
+					reboot = reboot || (rebootRequired ? false)
 			if !_.isEmpty(configChanges)
 				steps.push({
 					action: 'changeConfig'
 					target: configChanges
 					humanReadableTarget: humanReadableConfigChanges
+					rebootRequired: reboot
 				})
 				return
+
+			# Check if we need to perform special case actions for the VPN
 			if !checkTruthy(offlineMode) &&
 				!_.isEmpty(target['RESIN_SUPERVISOR_VPN_CONTROL']) &&
-				checkTruthy(current['RESIN_SUPERVISOR_VPN_CONTROL']) != checkTruthy(target['RESIN_SUPERVISOR_VPN_CONTROL'])
-					steps.push({
-						action: 'setVPNEnabled'
-						target: target['RESIN_SUPERVISOR_VPN_CONTROL']
-					})
+					@checkBoolChanged(current, target, 'RESIN_SUPERVISOR_VPN_CONTROL')
+						steps.push({
+							action: 'setVPNEnabled'
+							target: target['RESIN_SUPERVISOR_VPN_CONTROL']
+						})
+
+			# Do we need to change the boot config?
 			if @bootConfigChangeRequired(configBackend, current, target)
 				steps.push({
 					action: 'setBootConfig'
 					target
 				})
+
 			if !_.isEmpty(steps)
 				return
 			if @rebootRequired
@@ -210,3 +224,6 @@ module.exports = class DeviceConfig
 			systemd.startService(vpnServiceName)
 		else
 			systemd.stopService(vpnServiceName)
+
+	checkBoolChanged: (current, target, key) ->
+		checkTruthy(current[key]) != checkTruthy(target[key])
