@@ -12,11 +12,8 @@ utils = require './utils'
 device = require './device'
 bodyParser = require 'body-parser'
 appConfig = require './config'
-PUBNUB = require 'pubnub'
 execAsync = Promise.promisify(require('child_process').exec)
 url = require 'url'
-
-pubnub = PUBNUB.init(appConfig.pubnub)
 
 isDefined = _.negate(_.isUndefined)
 
@@ -30,7 +27,7 @@ parseDeviceFields = (device) ->
 	device.environment = JSON.parse(device.environment ? '{}')
 	device.targetConfig = JSON.parse(device.targetConfig ? '{}')
 	device.targetEnvironment = JSON.parse(device.targetEnvironment ? '{}')
-	return _.omit(device, 'markedForDeletion', 'logs_channel')
+	return _.omit(device, 'markedForDeletion')
 
 
 router.get '/v1/devices', (req, res) ->
@@ -54,7 +51,7 @@ router.post '/v1/devices', (req, res) ->
 		utils.getConfig('userId')
 		device.getID()
 		randomHexString.generate()
-		(apiKey, userId, deviceId, logsChannel) ->
+		(apiKey, userId, deviceId) ->
 			uuid = deviceRegister.generateUniqueKey()
 			d =
 				user: userId
@@ -63,7 +60,7 @@ router.post '/v1/devices', (req, res) ->
 				device_type: device_type
 				device: deviceId
 				registered_at: Math.floor(Date.now() / 1000)
-				logs_channel: logsChannel
+				logs_channel: null
 				status: 'Provisioned'
 			resinApi.post
 				resource: 'device'
@@ -84,7 +81,7 @@ router.post '/v1/devices', (req, res) ->
 					deviceId: dev.id
 					name: dev.name
 					status: d.status
-					logs_channel: d.logs_channel
+					logs_channel: null
 				}
 				knex('dependentDevice').insert(deviceForDB)
 				.then ->
@@ -117,7 +114,8 @@ router.post '/v1/devices/:uuid/logs', (req, res) ->
 	.then ([ device ]) ->
 		return res.status(404).send('Device not found') if !device?
 		return res.status(410).send('Device deleted') if device.markedForDeletion
-		pubnub.publish({ channel: "device-#{device.logs_channel}-logs", message: m })
+
+		logger.logDependent(m, uuid)
 		res.status(202).send('OK')
 	.catch (err) ->
 		console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
@@ -293,7 +291,7 @@ exports.fetchAndSetTargetsForDependentApps = (state, fetchFn, apiKey) ->
 							is_online: dev.is_online
 							name: dev.name
 							status: dev.status
-							logs_channel: dev.logs_channel
+							logs_channel: null
 							targetCommit
 							targetConfig
 							targetEnvironment
