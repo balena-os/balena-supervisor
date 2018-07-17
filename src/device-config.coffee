@@ -11,6 +11,7 @@ vpnServiceName = 'openvpn-resin'
 module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 		@rebootRequired = false
+
 		@configKeys = {
 			appUpdatePollInterval: { envVarName: 'RESIN_SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
 			localMode: { envVarName: 'RESIN_SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
@@ -27,11 +28,14 @@ module.exports = class DeviceConfig
 			persistentLogging: { envVarName: 'RESIN_SUPERVISOR_PERSISTENT_LOGGING', varType: 'bool', defaultValue: 'false', rebootRequired: true }
 			dnsServers: { envVarName: 'RESIN_SUPERVISOR_DNS_SERVERS', varType: 'string', defaultValue: '', rebootRequired: true }
 			ntpServers: { envVarName: 'RESIN_SUPERVISOR_NTP_SERVERS', varType: 'string', defaultValue: '', rebootRequired: true }
+			country: { envVarName: 'RESIN_SUPERVISOR_COUNTRY', varType: 'string', defaultValue: '', rebootRequired: true }
 		}
+
 		@validKeys = [
 			'RESIN_SUPERVISOR_VPN_CONTROL',
 			'RESIN_OVERRIDE_LOCK',
 		].concat(_.map(@configKeys, 'envVarName'))
+
 		@actionExecutors = {
 			changeConfig: (step) =>
 				@logger.logConfigChange(step.humanReadableTarget)
