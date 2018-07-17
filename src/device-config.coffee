@@ -26,6 +26,7 @@ module.exports = class DeviceConfig
 			nativeLogger: { envVarName: 'RESIN_SUPERVISOR_NATIVE_LOGGER', varType: 'bool', defaultValue: 'true' }
 			persistentLogging: { envVarName: 'RESIN_SUPERVISOR_PERSISTENT_LOGGING', varType: 'bool', defaultValue: 'false', rebootRequired: true }
 			dnsServers: { envVarName: 'RESIN_SUPERVISOR_DNS_SERVERS', varType: 'string', defaultValue: '', rebootRequired: true }
+			ntpServers: { envVarName: 'RESIN_SUPERVISOR_NTP_SERVERS', varType: 'string', defaultValue: '', rebootRequired: true }
 		}
 		@validKeys = [
 			'RESIN_SUPERVISOR_VPN_CONTROL',
