@@ -9,7 +9,7 @@ prepare = require './lib/prepare'
 DeviceState = require '../src/device-state'
 DB = require('../src/db')
 Config = require('../src/config')
-{ RPiConfigBackend } = require('../src/lib/config-backend')
+{ RPiConfigBackend } = require('../src/config/backend')
 
 Service = require '../src/compose/service'
 
@@ -46,6 +46,7 @@ testTarget1 = {
 			'RESIN_SUPERVISOR_OVERRIDE_LOCK': 'false'
 			'RESIN_SUPERVISOR_POLL_INTERVAL': '60000'
 			'RESIN_SUPERVISOR_VPN_CONTROL': 'true'
+			'RESIN_SUPERVISOR_PERSISTENT_LOGGING': 'false'
 		}
 		apps: {
 			'1234': {
@@ -128,6 +129,7 @@ testTargetWithDefaults2 = {
 			'RESIN_SUPERVISOR_OVERRIDE_LOCK': 'false'
 			'RESIN_SUPERVISOR_POLL_INTERVAL': '60000'
 			'RESIN_SUPERVISOR_VPN_CONTROL': 'true'
+			'RESIN_SUPERVISOR_PERSISTENT_LOGGING': 'false'
 		}
 		apps: {
 			'1234': {

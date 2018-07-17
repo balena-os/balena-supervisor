@@ -4,8 +4,8 @@ m = require 'mochainon'
 
 { fs } = require 'mz'
 
-configUtils = require '../src/lib/config-utils'
-{ ExtlinuxConfigBackend, RPiConfigBackend } = require '../src/lib/config-backend'
+configUtils = require '../src/config/utils'
+{ ExtlinuxConfigBackend, RPiConfigBackend } = require '../src/config/backend'
 
 extlinuxBackend = new ExtlinuxConfigBackend()
 rpiBackend = new RPiConfigBackend()

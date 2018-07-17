@@ -44,6 +44,7 @@ class Config extends EventEmitter {
 		bootstrapRetryDelay: { source: 'config.json', default: 30000 },
 		supervisorOfflineMode: { source: 'config.json', default: false },
 		hostname: { source: 'config.json', mutable: true },
+		persistentLogging: { source: 'config.json', default: false, mutable: true },
 
 		version: { source: 'func' },
 		currentApiKey: { source: 'func' },

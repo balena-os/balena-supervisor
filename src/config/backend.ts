@@ -3,8 +3,8 @@ import * as childProcessSync from 'child_process';
 import * as _ from 'lodash';
 import { fs } from 'mz';
 
-import * as constants from './constants';
-import * as fsUtils from './fs-utils';
+import * as constants from '../lib/constants';
+import * as fsUtils from '../lib/fs-utils';
 
 const childProcess: any = Promise.promisifyAll(childProcessSync);
 
