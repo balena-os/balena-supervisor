@@ -123,7 +123,7 @@ application.UpdatesLockedError = UpdatesLockedError
 application.localMode = false
 
 application.logSystemMessage = logSystemMessage = (message, obj, eventName) ->
-	logger.log({ m: message, s: 1 })
+	logger.log({ message: message, isSystem: true })
 	utils.mixpanelTrack(eventName ? message, obj)
 
 logSystemEvent = (logType, app = {}, error) ->
@@ -485,7 +485,7 @@ specialActionConfigVars = [
 	[ 'RESIN_SUPERVISOR_VPN_CONTROL', utils.vpnControl ]
 	[ 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', utils.enableConnectivityCheck ]
 	[ 'RESIN_SUPERVISOR_POLL_INTERVAL', apiPollInterval ]
-	[ 'RESIN_SUPERVISOR_LOG_CONTROL', utils.resinLogControl ]
+	[ 'RESIN_SUPERVISOR_LOG_CONTROL', logger.resinLogControl ]
 ]
 
 executedSpecialActionConfigVars = {}
@@ -648,13 +648,14 @@ parseEnvAndFormatRemoteApps = (remoteApps, uuid, apiKey) ->
 				env: JSON.stringify(env)
 				config: JSON.stringify(app.config)
 				name: app.name
+				serviceId: app.serviceId
 			}
 	Promise.props(appsWithEnv)
 
 formatLocalApps = (apps) ->
 	apps = _.keyBy(apps, 'appId')
 	localApps = _.mapValues apps, (app) ->
-		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name' ])
+		app = _.pick(app, [ 'appId', 'commit', 'imageId', 'env', 'config', 'name', 'serviceId' ])
 	return localApps
 
 restartVars = (conf) ->
@@ -876,10 +877,8 @@ application.initialize = ->
 		application.poll()
 		application.update()
 
-module.exports = (logsChannel, offlineMode) ->
+module.exports = (offlineMode) ->
 	logger.init(
-		pubnub: config.pubnub
-		channel: "device-#{logsChannel}-logs"
 		offlineMode: offlineMode
 	)
 	return application
