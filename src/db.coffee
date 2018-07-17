@@ -48,12 +48,14 @@ knex.init = Promise.all([
 				t.json('env')
 				t.json('config')
 				t.boolean('markedForDeletion')
+				t.integer('serviceId')
 		else
 			Promise.all [
 				addColumn('app', 'commit', 'string')
 				addColumn('app', 'appId', 'string')
 				addColumn('app', 'config', 'json')
 				addColumn('app', 'markedForDeletion', 'boolean')
+				addColumn('app', 'serviceId', 'integer')
 			]
 			.then ->
 				# When updating from older supervisors, config can be null

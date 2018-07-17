@@ -9,7 +9,6 @@ blink = require('blinking')(config.ledFile)
 url = require 'url'
 randomHexString = require './lib/random-hex-string'
 { request } = require './request'
-logger = require './lib/logger'
 TypedError = require 'typed-error'
 execAsync = Promise.promisify(require('child_process').exec)
 device = require './device'
@@ -182,12 +181,6 @@ exports.enableConnectivityCheck = (val) ->
 	enabled = checkTruthy(val) ? true
 	disableCheck(!enabled)
 	console.log("Connectivity check enabled: #{enabled}")
-
-# Callback function to enable/disable logs
-exports.resinLogControl = (val) ->
-	logEnabled = checkTruthy(val) ? true
-	logger.disableLogPublishing(!logEnabled)
-	console.log('Logs enabled: ' + val)
 
 emptyHostRequest = request.defaults({ headers: Host: '' })
 gosuperRequest = (method, endpoint, options = {}, callback) ->
