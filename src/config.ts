@@ -45,6 +45,7 @@ class Config extends EventEmitter {
 		supervisorOfflineMode: { source: 'config.json', default: false },
 		hostname: { source: 'config.json', mutable: true },
 		persistentLogging: { source: 'config.json', default: false, mutable: true },
+		dnsServers: { source: 'config.json', default: '', mutable: true },
 
 		version: { source: 'func' },
 		currentApiKey: { source: 'func' },

@@ -25,6 +25,7 @@ module.exports = class DeviceConfig
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
 			nativeLogger: { envVarName: 'RESIN_SUPERVISOR_NATIVE_LOGGER', varType: 'bool', defaultValue: 'true' }
 			persistentLogging: { envVarName: 'RESIN_SUPERVISOR_PERSISTENT_LOGGING', varType: 'bool', defaultValue: 'false', rebootRequired: true }
+			dnsServers: { envVarName: 'RESIN_SUPERVISOR_DNS_SERVERS', varType: 'string', defaultValue: '', rebootRequired: true }
 		}
 		@validKeys = [
 			'RESIN_SUPERVISOR_VPN_CONTROL',
@@ -142,16 +143,20 @@ module.exports = class DeviceConfig
 					checkTruthy(a) == checkTruthy(b)
 				'int': (a, b) ->
 					checkInt(a) == checkInt(b)
+				'string': (a, b) ->
+					a.toString().trim() == b.toString().trim()
 			}
 			# If the legacy lock override is used, place it as the new variable
 			if checkTruthy(target['RESIN_OVERRIDE_LOCK'])
 				target['RESIN_SUPERVISOR_OVERRIDE_LOCK'] = target['RESIN_OVERRIDE_LOCK']
+
 			reboot = false
 			for own key, { envVarName, varType, rebootRequired } of @configKeys
 				if !match[varType](current[envVarName], target[envVarName])
 					configChanges[key] = target[envVarName]
 					humanReadableConfigChanges[envVarName] = target[envVarName]
 					reboot = reboot || (rebootRequired ? false)
+
 			if !_.isEmpty(configChanges)
 				steps.push({
 					action: 'changeConfig'
