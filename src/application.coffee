@@ -366,7 +366,7 @@ specialActionEnvVars =
 	'RESIN_SUPERVISOR_VPN_CONTROL': utils.vpnControl
 	'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': utils.enableConnectivityCheck
 	'RESIN_SUPERVISOR_POLL_INTERVAL': apiPollInterval
-	'RESIN_SUPERVISOR_LOG_CONTROL': utils.resinLogControl
+	'RESIN_SUPERVISOR_LOG_CONTROL': logger.resinLogControl
 
 executedSpecialActionEnvVars = {}
 
@@ -698,10 +698,8 @@ application.initialize = ->
 		application.poll()
 		application.update()
 
-module.exports = (logsChannel) ->
+module.exports = ->
 	logger.init(
 		dockerSocket: config.dockerSocket
-		pubnub: config.pubnub
-		channel: "device-#{logsChannel}-logs"
 	)
 	return application
