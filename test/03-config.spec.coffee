@@ -35,10 +35,6 @@ describe 'Config', ->
 		promise = @conf.getMany([ 'applicationId', 'apiEndpoint' ])
 		expect(promise).to.eventually.deep.equal({ applicationId: 78373, apiEndpoint: 'https://api.resin.io' })
 
-	it 'provides the correct pubnub config', ->
-		promise = @conf.get('pubnub')
-		expect(promise).to.eventually.deep.equal({ subscribe_key: 'foo', publish_key: 'bar', ssl: true })
-
 	it 'generates a uuid and stores it in config.json', ->
 		promise = @conf.get('uuid')
 		promise2 = fs.readFileAsync('./test/data/config.json').then(JSON.parse).get('uuid')
