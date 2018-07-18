@@ -10,7 +10,7 @@
 # * PUSH_IMAGES
 # * CLEANUP
 # * ENABLE_TESTS
-# * PUBNUB_SUBSCRIBE_KEY, PUBNUB_PUBLISH_KEY, MIXPANEL_TOKEN: default keys to inject in the supervisor image
+# * MIXPANEL_TOKEN: default key to inject in the supervisor image
 # * EXTRA_TAG: when PUSH_IMAGES is true, additional tag to push to the registries
 #
 # Builds the supervisor for the architecture defined by $ARCH.
@@ -86,8 +86,6 @@ fi
 
 export DOCKER_BUILD_OPTIONS=${CACHE_FROM}
 export ARCH
-export PUBNUB_PUBLISH_KEY
-export PUBNUB_SUBSCRIBE_KEY
 export MIXPANEL_TOKEN
 
 make IMAGE=$GO_IMAGE gosuper

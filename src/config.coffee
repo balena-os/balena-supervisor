@@ -23,15 +23,6 @@ module.exports = class Config extends EventEmitter
 				@getMany([ 'resinApiEndpoint', 'supervisorOfflineMode' ])
 				.then ({ resinApiEndpoint, supervisorOfflineMode }) ->
 					return Boolean(supervisorOfflineMode) or !Boolean(resinApiEndpoint)
-			pubnub: =>
-				@getMany([ 'pubnubSubscribeKey', 'pubnubPublishKey' ])
-				.then ({ pubnubSubscribeKey, pubnubPublishKey }) ->
-					pubnub = {
-						subscribe_key: pubnubSubscribeKey
-						publish_key: pubnubPublishKey
-						ssl: true
-					}
-					return pubnub
 			resinApiEndpoint: =>
 				# Fall back to checking if an API endpoint was passed via env vars if there's none in config.json (legacy)
 				@get('apiEndpoint')
@@ -111,8 +102,6 @@ module.exports = class Config extends EventEmitter
 			registered_at: { source: 'config.json', mutable: true }
 			applicationId: { source: 'config.json' }
 			appUpdatePollInterval: { source: 'config.json', mutable: true, default: 60000 }
-			pubnubSubscribeKey: { source: 'config.json', default: constants.defaultPubnubSubscribeKey }
-			pubnubPublishKey: { source: 'config.json', default: constants.defaultPubnubPublishKey }
 			mixpanelToken: { source: 'config.json', default: constants.defaultMixpanelToken }
 			bootstrapRetryDelay: { source: 'config.json', default: 30000 }
 			supervisorOfflineMode: { source: 'config.json', default: false }
@@ -121,7 +110,6 @@ module.exports = class Config extends EventEmitter
 			version: { source: 'func' }
 			currentApiKey: { source: 'func' }
 			offlineMode: { source: 'func' }
-			pubnub: { source: 'func' }
 			resinApiEndpoint: { source: 'func' }
 			provisioned: { source: 'func' }
 			osVersion: { source: 'func' }
