@@ -32,8 +32,6 @@ The `config.json` file should look something like this:
 	"apiEndpoint": "https://api.resinstaging.io", /* Endpoint for the resin.io API */
 	"deltaEndpoint": "https://delta.resinstaging.io", /* Endpoint for the delta server to download Docker binary diffs */
 	"vpnEndpoint": "vpn.resinstaging.io", /* Endpoint for the resin.io VPN server */
-	"pubnubSubscribeKey": "sub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Subscribe key for Pubnub for logs */
-	"pubnubPublishKey": "pub-c-aaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", /* Publish key for Pubnub for logs */
 	"listenPort": 48484, /* Listen port for the supervisor API */
 	"mixpanelToken": "aaaaaaaaaaaaaaaaaaaaaaaaaa", /* Mixpanel token to report events */
 }

@@ -62,7 +62,6 @@
     "node-loader": "^0.6.0",
     "null-loader": "^0.1.1",
     "pinejs-client": "^2.4.0",
-    "pubnub": "^3.7.13",
     "register-coffee-coverage": "0.0.1",
     "request": "^2.51.0",
     "resin-lint": "^1.5.7",
