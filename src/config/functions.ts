@@ -47,18 +47,6 @@ export function createProviderFunctions(config: Config): ConfigProviderFunctions
 					});
 			},
 		},
-		pubnub: {
-			get: () => {
-				return config.getMany([ 'pubnubSubscribeKey', 'pubnubPublishKey' ])
-					.then(({ pubnubSubscribeKey, pubnubPublishKey }) => {
-						return {
-							subscribe_key: pubnubSubscribeKey,
-							publish_key: pubnubPublishKey,
-							ssl: true,
-						};
-					});
-			},
-		},
 		provisioned: {
 			get: () => {
 				return config.getMany([

@@ -35,10 +35,6 @@ describe 'Config', ->
 		promise = @conf.getMany([ 'applicationId', 'apiEndpoint' ])
 		expect(promise).to.eventually.deep.equal({ applicationId: 78373, apiEndpoint: 'https://api.resin.io' })
 
-	it 'provides the correct pubnub config', ->
-		promise = @conf.get('pubnub')
-		expect(promise).to.eventually.deep.equal({ subscribe_key: 'foo', publish_key: 'bar', ssl: true })
-
 	it 'generates a uuid and stores it in config.json', ->
 		promise = @conf.get('uuid')
 		promise2 = fs.readFileAsync('./test/data/config.json').then(JSON.parse).get('uuid')
@@ -116,15 +112,6 @@ describe 'Config', ->
 			expect(osVariant).to.be.undefined
 
 	describe.only 'Function config providers', ->
-		it 'should allow setting of mutable function config options', ->
-			@conf.set({ logsChannelSecret: 'test' })
-			.then =>
-				expect(@conf.get('logsChannelSecret')).to.eventually.equal('test')
-
-		it 'should allow removing of mutabe function config options', ->
-			@conf.remove('logsChannelSecret')
-			.then =>
-				expect(@conf.get('logsChannelSecret')).to.eventually.be.undefined
 
 		it 'should throw if a non-mutable function provider is set', ->
 			expect(@conf.set({ version: 'some-version' })).to.be.rejected
