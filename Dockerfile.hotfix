@@ -1,0 +1,51 @@
+ARG ARCH=amd64
+
+# The node version here should match the version of the runtime image which is
+# specified in the base-image subdirectory in the project
+FROM resin/rpi-node:0.10.40-slim as rpi-node-base
+FROM resin/armv7hf-node:0.10.40-slim as armv7hf-node-base
+FROM resin/armel-node:0.10.40-slim as armel-node-base
+
+FROM resin/amd64-node:0.10.40-slim as amd64-node-base
+RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
+	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
+
+FROM resin/i386-node:0.10.40-slim as i386-node-base
+RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
+	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
+
+FROM i386-node-base as i386-nlp-node-base
+
+##############################################################################
+
+# We always do the webpack build on amd64, cause it's way faster
+FROM amd64-node-base as node-build
+
+WORKDIR /app
+
+RUN apt-get update \
+	&& apt-get install -y \
+		g++ \
+		git \
+		libsqlite3-dev \
+		make \
+		python \
+		rsync \
+		wget \
+	&& rm -rf /var/lib/apt/lists/
+
+COPY package.json postinstall.sh /app/
+
+# Install only the production modules
+RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
+	&& npm dedupe
+
+# Copy source
+COPY . /app/
+
+RUN /app/node_modules/.bin/coffee -c /app/src
+
+# Minimal runtime image
+FROM resin/$ARCH-supervisor:v1.8.0
+
+COPY --from=node-build /app/src ./src
