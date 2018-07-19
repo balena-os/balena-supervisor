@@ -339,7 +339,6 @@ module.exports = class Service
 			RESIN_APP_NAME: appName
 			RESIN_SERVICE_NAME: @serviceName
 			RESIN_DEVICE_UUID: uuid
-			RESIN_DEVICE_NAME_AT_INIT: name
 			RESIN_DEVICE_TYPE: deviceType
 			RESIN_HOST_OS_VERSION: osVersion
 			RESIN_SUPERVISOR_VERSION: version
@@ -713,9 +712,10 @@ module.exports = class Service
 
 		equalProps = _.isEqual(_.pick(this, propertiesToCompare), _.pick(otherService, propertiesToCompare))
 		equalEnv = _.isEqual(
-			_.omit(@environment, [ 'RESIN_DEVICE_NAME_AT_INIT ']),
-			_.omit(otherService.environment, [ 'RESIN_DEVICE_NAME_AT_INIT '])
+			_.omit(@environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ]),
+			_.omit(otherService.environment, [ 'RESIN_DEVICE_NAME_AT_INIT' ])
 		)
+
 		equalNetworks = @hasSameNetworks(otherService)
 		equalArrays = _.every arraysToCompare, (property) =>
 			_.isEmpty(_.xorWith(this[property], otherService[property], _.isEqual))
