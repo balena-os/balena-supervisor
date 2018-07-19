@@ -7,6 +7,7 @@ _ = require 'lodash'
 Docker = require 'dockerode'
 Promise = require 'bluebird'
 es = require 'event-stream'
+bootstrap = require '../bootstrap'
 config = require '../config'
 utils = require '../utils'
 
@@ -161,7 +162,10 @@ exports.logDependent = (msg, uuid) ->
 
 exports.log = _.noop
 
-Promise.join utils.getConfig('uuid'), utils.getConfig('apiKey'), (uuid, apiKey) ->
+bootstrap.done
+.then ->
+	Promise.all([ utils.getConfig('uuid'), utils.getConfig('apiKey') ])
+.spread (uuid, apiKey) ->
 	logger = new LogBackend(uuid, apiKey)
 
 	exports.log = (msg) ->
