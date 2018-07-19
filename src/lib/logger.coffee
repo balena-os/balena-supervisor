@@ -10,6 +10,7 @@ es = require 'event-stream'
 Lock = require 'rwlock'
 { docker } = require '../docker-utils'
 { checkTruthy } = require './validation'
+bootstrap = require '../bootstrap'
 config = require '../config'
 utils = require '../utils'
 
@@ -168,7 +169,10 @@ exports.init = (config) ->
 
 exports.log = _.noop
 
-Promise.join utils.getConfig('uuid'), utils.getConfig('apiKey'), (uuid, apiKey) ->
+bootstrap.done
+.then ->
+	Promise.all([ utils.getConfig('uuid'), utils.getConfig('apiKey') ])
+.spread (uuid, apiKey) ->
 	logger = new LogBackend(uuid, apiKey)
 
 	exports.log = (msg) ->
