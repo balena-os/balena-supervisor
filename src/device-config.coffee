@@ -23,7 +23,6 @@ module.exports = class DeviceConfig
 			deltaRetryInterval: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL', varType: 'int', defaultValue: '10000' }
 			deltaVersion: { envVarName: 'RESIN_SUPERVISOR_DELTA_VERSION', varType: 'int', defaultValue: '2' }
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
-			nativeLogger: { envVarName: 'RESIN_SUPERVISOR_NATIVE_LOGGER', varType: 'bool', defaultValue: 'true' }
 			persistentLogging: { envVarName: 'RESIN_SUPERVISOR_PERSISTENT_LOGGING', varType: 'bool', defaultValue: 'false', rebootRequired: true }
 		}
 		@validKeys = [

@@ -26,8 +26,6 @@ const constants = {
 	proxyvisorHookReceiver:
 		checkString(process.env.RESIN_PROXYVISOR_HOOK_RECEIVER) || 'http://0.0.0.0:1337',
 	configJsonNonAtomicPath: '/boot/config.json',
-	defaultPubnubSubscribeKey: process.env.DEFAULT_PUBNUB_SUBSCRIBE_KEY,
-	defaultPubnubPublishKey: process.env.DEFAULT_PUBNUB_PUBLISH_KEY,
 	defaultMixpanelToken: process.env.DEFAULT_MIXPANEL_TOKEN,
 	supervisorNetworkInterface: supervisorNetworkInterface,
 	allowedInterfaces: [ 'resin-vpn', 'tun0', 'docker0', 'lo', supervisorNetworkInterface ],

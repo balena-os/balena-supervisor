@@ -3,7 +3,6 @@ import { Transaction } from 'knex';
 import * as _ from 'lodash';
 
 import Config = require('../config');
-import DB = require('../db');
 import supervisorVersion = require('../lib/supervisor-version');
 
 import * as constants from '../lib/constants';
@@ -25,41 +24,8 @@ export interface ConfigProviderFunctions {
 	[key: string]: ConfigProviderFunction;
 }
 
-export function createProviderFunctions(config: Config, db: DB): ConfigProviderFunctions {
+export function createProviderFunctions(config: Config): ConfigProviderFunctions {
 	return {
-		logsChannelSecret: {
-			get: () => {
-				// Return the logsChannelSecret which corresponds to the current backend
-				return config.get('apiEndpoint')
-					.then((backend = '') => {
-						return db.models('logsChannelSecret').select('secret').where({ backend });
-					})
-					.then(([ conf ]) => {
-						if (conf != null) {
-							return conf.secret;
-						}
-						return;
-					});
-			},
-			set: (value: string, tx?: Transaction) => {
-				// Store the secret with the current backend
-				return config.get('apiEndpoint')
-					.then((backend: string) => {
-						return db.upsertModel(
-							'logsChannelSecret',
-							{ backend: backend || '', secret: value },
-							{ backend: backend || '' },
-							tx,
-						);
-					});
-			},
-			remove: () => {
-				return config.get('apiEndpoint')
-					.then((backend) => {
-						return db.models('logsChannelSecret').where({ backend: backend || '' }).del();
-					});
-			},
-		},
 		version: {
 			get: () => {
 				return Bluebird.resolve(supervisorVersion);
@@ -78,18 +44,6 @@ export function createProviderFunctions(config: Config, db: DB): ConfigProviderF
 				return config.getMany([ 'apiEndpoint', 'supervisorOfflineMode' ])
 					.then(({ apiEndpoint, supervisorOfflineMode }) => {
 						return Boolean(supervisorOfflineMode) || !Boolean(apiEndpoint);
-					});
-			},
-		},
-		pubnub: {
-			get: () => {
-				return config.getMany([ 'pubnubSubscribeKey', 'pubnubPublishKey' ])
-					.then(({ pubnubSubscribeKey, pubnubPublishKey }) => {
-						return {
-							subscribe_key: pubnubSubscribeKey,
-							publish_key: pubnubPublishKey,
-							ssl: true,
-						};
 					});
 			},
 		},

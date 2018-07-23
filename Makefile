@@ -12,7 +12,7 @@
 # Variables for build targets:
 # * ARCH: amd64/rpi/i386/armv7hf/armel/aarch64 architecture for which to build the supervisor - default: amd64
 # * IMAGE: image to build or deploy - default: resin/$(ARCH)-supervisor:latest
-# * MIXPANEL_TOKEN, PUBNUB_SUBSCRIBE_KEY, PUBNUB_PUBLISH_KEY: (optional) default pubnub and mixpanel keys to embed in the supervisor image
+# * MIXPANEL_TOKEN: (optional) default mixpanel key to embed in the supervisor image
 # * DISABLE_CACHE: if set to true, run build with no cache - default: false
 # * DOCKER_BUILD_OPTIONS: Additional options for docker build, like --cache-from parameters
 #
@@ -69,9 +69,7 @@ DOCKER_MAJOR_VERSION:=$(word 1, $(subst ., ,$(DOCKER_VERSION)))
 DOCKER_MINOR_VERSION:=$(word 2, $(subst ., ,$(DOCKER_VERSION)))
 DOCKER_GE_17_05 := $(shell [ $(DOCKER_MAJOR_VERSION) -gt 17 -o \( $(DOCKER_MAJOR_VERSION) -eq 17 -a $(DOCKER_MINOR_VERSION) -ge 5 \) ] && echo true)
 
-# Default values for Pubnub and Mixpanel keys
-PUBNUB_SUBSCRIBE_KEY ?= sub-c-bananas
-PUBNUB_PUBLISH_KEY ?= pub-c-bananas
+# Default values for Mixpanel key
 MIXPANEL_TOKEN ?= bananasbananas
 
 # Default architecture and output image
@@ -151,8 +149,6 @@ endif
 		--no-cache=$(DISABLE_CACHE) \
 		--build-arg ARCH=$(ARCH) \
 		--build-arg VERSION=$(shell jq -r .version package.json) \
-		--build-arg DEFAULT_PUBNUB_PUBLISH_KEY=$(PUBNUB_PUBLISH_KEY) \
-		--build-arg DEFAULT_PUBNUB_SUBSCRIBE_KEY=$(PUBNUB_SUBSCRIBE_KEY) \
 		--build-arg DEFAULT_MIXPANEL_TOKEN=$(MIXPANEL_TOKEN) \
 		-t $(IMAGE) .
 
