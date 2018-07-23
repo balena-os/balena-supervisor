@@ -16,7 +16,8 @@ updateLock = require './lib/update-lock'
 ServiceManager = require './compose/service-manager'
 Service = require './compose/service'
 Images = require './compose/images'
-Networks = require './compose/networks'
+{ NetworkManager } = require './compose/network-manager'
+{ Network } = require './compose/network'
 Volumes = require './compose/volumes'
 
 Proxyvisor = require './proxyvisor'
@@ -68,7 +69,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@docker = new Docker()
 		@images = new Images({ @docker, @logger, @db })
 		@services = new ServiceManager({ @docker, @logger, @images, @config })
-		@networks = new Networks({ @docker, @logger })
+		@networks = new NetworkManager({ @docker, @logger })
 		@volumes = new Volumes({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
 		@timeSpentFetching = 0
@@ -142,11 +143,23 @@ module.exports = class ApplicationManager extends EventEmitter
 			cleanup: (step) =>
 				@images.cleanup()
 			createNetworkOrVolume: (step) =>
-				model = if step.model is 'volume' then @volumes else @networks
-				model.create(step.target)
+				if step.model is 'network'
+					Network.fromComposeObject({ @docker, @logger },
+						step.target.name,
+						step.appId,
+						step.target
+					).create()
+				else
+					@volumes.create(step.target)
 			removeNetworkOrVolume: (step) =>
-				model = if step.model is 'volume' then @volumes else @networks
-				model.remove(step.current)
+				if step.model is 'network'
+					Network.fromComposeObject({ @docker, @logger },
+						step.current.name,
+						step.appId,
+						step.current
+					).remove()
+				else
+					@volumes.remove(step.current)
 			ensureSupervisorNetwork: =>
 				@networks.ensureSupervisorNetwork()
 		}
@@ -370,8 +383,27 @@ module.exports = class ApplicationManager extends EventEmitter
 					config: target[name]
 				}
 			})
-		toBeUpdated = _.filter _.intersection(targetNames, currentNames), (name) ->
-			!model.isEqualConfig(current[name], target[name])
+		toBeUpdated = _.filter _.intersection(targetNames, currentNames), (name) =>
+			# While we're in this in-between state of a network-manager, but not
+			# a volume-manager, we'll have to inspect the object to detect a
+			# network-manager
+			if model instanceof NetworkManager
+				opts = docker: @docker, logger: @logger
+				currentNet = Network.fromComposeObject(
+					opts,
+					name,
+					appId,
+					current[name]
+				)
+				targetNet = Network.fromComposeObject(
+					opts,
+					name,
+					appId,
+					target[name]
+				)
+				return !currentNet.isEqualConfig(targetNet)
+			else
+				return !model.isEqualConfig(current[name], target[name])
 		for name in toBeUpdated
 			outputPairs.push({
 				current: {
