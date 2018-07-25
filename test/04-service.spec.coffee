@@ -32,7 +32,6 @@ describe 'compose/service.cofee', ->
 			RESIN_APP_ID: '23'
 			RESIN_APP_NAME: 'awesomeApp'
 			RESIN_DEVICE_UUID: '1234'
-			RESIN_DEVICE_NAME_AT_INIT: 'awesomeDevice'
 			RESIN_DEVICE_TYPE: 'raspberry-pi'
 			RESIN_HOST_OS_VERSION: 'Resin OS 2.0.2'
 			RESIN_SERVICE_NAME: 'serviceName'
