@@ -399,7 +399,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					opts,
 					name,
 					appId,
-					target[name]
+					target[name].config
 				)
 				return !currentNet.isEqualConfig(targetNet)
 			else

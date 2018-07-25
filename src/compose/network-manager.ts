@@ -4,12 +4,12 @@ import { fs } from 'mz';
 import * as constants from '../lib/constants';
 import Docker = require('../lib/docker-utils');
 import { ENOENT, NotFoundError } from '../lib/errors';
+import { Logger } from '../logger';
 import { Network, NetworkOptions } from './network';
 
 export class NetworkManager {
 	private docker: Docker;
-	// FIXME: Type this
-	private logger: any;
+	private logger: Logger;
 
 	constructor(opts: NetworkOptions) {
 		this.docker = opts.docker;
@@ -25,7 +25,7 @@ export class NetworkManager {
 			.map((network: { Name: string }) => {
 				return this.docker.getNetwork(network.Name).inspect()
 					.then((net) => {
-						return Network.fromDockerodeNetwork({
+						return Network.fromDockerNetwork({
 							docker: this.docker,
 							logger: this.logger,
 						}, net);
@@ -39,7 +39,7 @@ export class NetworkManager {
 	}
 
 	public get(network: { name: string, appId: number }): Bluebird<Network> {
-		return Network.fromAppIdAndName({
+		return Network.fromNameAndAppId({
 			logger: this.logger,
 			docker: this.docker,
 		}, network.name, network.appId);
@@ -54,9 +54,8 @@ export class NetworkManager {
 				return network.Options['com.docker.network.bridge.name'] ===
 					constants.supervisorNetworkInterface;
 			})
-			// FIXME: Types seem to be wrong here?
-			.catchReturn(NotFoundError as any, false)
-			.catchReturn(ENOENT as any, false);
+			.catchReturn(NotFoundError, false)
+			.catchReturn(ENOENT, false);
 	}
 
 	public ensureSupervisorNetwork(): Bluebird<void> {
