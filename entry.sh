@@ -2,6 +2,12 @@
 
 set -o errexit
 
+# Start Avahi to allow MDNS lookups
+mkdir -p /var/run/dbus
+rm -f /var/run/avahi-daemon/pid
+/etc/init.d/dbus-1 start
+/etc/init.d/avahi-daemon start
+
 [ -d /mnt/root/tmp/resin-supervisor ] ||
     mkdir -p /mnt/root/tmp/resin-supervisor
 

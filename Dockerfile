@@ -98,7 +98,7 @@ RUN [ "cross-build-end" ]
 ##############################################################################
 
 # Minimal runtime image
-FROM resin/$ARCH-supervisor-base:v1.2.0
+FROM resin/$ARCH-supervisor-base:v1.3.0
 ARG ARCH
 ARG VERSION=master
 ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
@@ -108,6 +108,9 @@ WORKDIR /usr/src/app
 COPY --from=node-build /usr/src/app/dist ./dist
 COPY --from=node-deps /build/node_modules ./node_modules
 COPY --from=node-deps /build/rootfs-overlay/ /
+
+# Remove default nproc limit for Avahi for it to work in-container
+COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 
 VOLUME /data
 
