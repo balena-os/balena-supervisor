@@ -189,15 +189,13 @@ do ->
 		if !attached[app.containerId]
 			dockerPromise.then (docker) ->
 				docker.getContainer(app.containerId)
-				.logsAsync({ follow: true, stdout: true, stderr: true, timestamps: true, since: Math.floor(Date.now() / 1000) })
+				.attachAsync({ stream: true, stdout: true, stderr: true, tty: true })
 				.then (stream) ->
 					attached[app.containerId] = true
 					stream.pipe(es.split())
 					.on 'data', (logLine) ->
-						space = logLine.indexOf(' ')
-						if space > 0
-							msg = { timestamp: (new Date(logLine.substr(0, space))).getTime(), message: logLine.substr(space + 1) }
-							exports.log(msg)
+						msg = { timestamp: Date.now(), message: logLine }
+						exports.log(msg)
 					.on 'error', (err) ->
 						console.error('Error on container logs', err, err.stack)
 						attached[app.containerId] = false
