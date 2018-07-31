@@ -16,7 +16,7 @@ DuplicateUuidError = (err) ->
 ExchangeKeyError = class ExchangeKeyError extends TypedError
 
 REPORT_SUCCESS_DELAY = 1000
-REPORT_RETRY_DELAY = 5000
+MAX_REPORT_RETRY_DELAY = 60000
 
 createAPIBinderRouter = (apiBinder) ->
 	router = express.Router()
@@ -439,7 +439,8 @@ module.exports = class APIBinder
 		.catch (err) =>
 			@stateReportErrors += 1
 			@eventTracker.track('Device state report failure', { error: err })
-			Promise.delay(REPORT_RETRY_DELAY)
+			delay = Math.min((2 ** @stateReportErrors) * 500, MAX_REPORT_RETRY_DELAY)
+			Promise.delay(delay)
 			.then =>
 				@_reportCurrentState()
 		return null
