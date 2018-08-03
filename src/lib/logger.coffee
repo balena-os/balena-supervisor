@@ -7,9 +7,9 @@ _ = require 'lodash'
 Docker = require 'dockerode'
 Promise = require 'bluebird'
 es = require 'event-stream'
+knex = require '../db'
 bootstrap = require '../bootstrap'
 config = require '../config'
-utils = require '../utils'
 
 ZLIB_TIMEOUT = 100
 COOLDOWN_PERIOD = 5 * 1000
@@ -162,9 +162,14 @@ exports.logDependent = (msg, uuid) ->
 
 exports.log = _.noop
 
+getConfig = (key) ->
+	knex('config').select('value').where({ key })
+	.then ([ conf ]) ->
+		return conf?.value
+
 bootstrap.done
 .then ->
-	Promise.all([ utils.getConfig('uuid'), utils.getConfig('apiKey') ])
+	Promise.all([ getConfig('uuid'), getConfig('apiKey') ])
 .spread (uuid, apiKey) ->
 	logger = new LogBackend(uuid, apiKey)
 
