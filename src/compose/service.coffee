@@ -671,6 +671,7 @@ module.exports = class Service
 			'labels'
 			'portMappings'
 			'shmSize'
+			'memLimit'
 			'cpuShares'
 			'cpuQuota'
 			'nanoCpus'
