@@ -567,3 +567,52 @@ $ curl -X POST --header "Content-Type:application/json" \
 	--data '{"uuid": <uuid>, "method": "GET"}' \
 	"https://api.resin.io/supervisor/v1/device/host-config"
 ```
+
+### GET /v2/applications/state
+
+Added in supervisor v7.12.0
+
+Get a list of applications, services and their statuses. This will reflect the
+current state of the supervisor, and not the target state.
+
+From the user container:
+```bash
+$ curl "$RESIN_SUPERVISOR_ADDRESS/v2/applications/state?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+  "appname": {
+    "appId": 1011165,
+    "commit": "217d55237092995e4576367e529ebb03",
+    "services": {
+      "main": {
+        "status": "Downloaded",
+        "releaseId": 557617,
+        "downloadProgress": null
+      },
+      "frontend": {
+        "status": "Downloading",
+        "releaseId": 557631,
+        "downloadProgress": 0
+      },
+      "proxy": {
+        "status": "Downloaded",
+        "releaseId": 557631,
+        "downloadProgress": null
+      },
+      "data": {
+        "status": "Downloading",
+        "releaseId": 557631,
+        "downloadProgress": 7
+      },
+      "metrics": {
+        "status": "Downloading",
+        "releaseId": 557631,
+        "downloadProgress": 35
+      }
+    }
+  }
+}
+```
