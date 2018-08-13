@@ -101,24 +101,25 @@ module.exports = class ServiceManager extends EventEmitter
 			return @docker.getContainer(existingService.containerId)
 		.catch NotFoundError, =>
 
-			conf = service.toContainerConfig()
-			nets = service.extraNetworksToJoin()
-
 			@config.get('name')
 			.then (deviceName) =>
+
 				service.environment['RESIN_DEVICE_NAME_AT_INIT'] = deviceName
+
+				conf = service.toContainerConfig()
+				nets = service.extraNetworksToJoin()
 
 				@logger.logSystemEvent(logTypes.installService, { service })
 				@reportNewStatus(mockContainerId, service, 'Installing')
 
 				@docker.createContainer(conf)
-			.tap (container) =>
-				service.containerId = container.id
+				.tap (container) =>
+					service.containerId = container.id
 
-				Promise.map nets, ({ name, endpointConfig }) =>
-					@docker
-					.getNetwork(name)
-					.connect({ Container: container.id, EndpointConfig: endpointConfig })
+					Promise.map nets, ({ name, endpointConfig }) =>
+						@docker
+						.getNetwork(name)
+						.connect({ Container: container.id, EndpointConfig: endpointConfig })
 			.tap =>
 				@logger.logSystemEvent(logTypes.installServiceSuccess, { service })
 		.tapCatch (err) =>
