@@ -1,7 +1,7 @@
 {
   "name": "resin-supervisor",
   "description": "This is resin.io's Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as Resin's API informs it to.",
-  "version": "7.16.7",
+  "version": "7.17.0",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -12,6 +12,9 @@
     "build": "webpack",
     "lint": "resin-lint --typescript src/ test/",
     "test": "npm run lint && JUNIT_REPORT_PATH=report.xml mocha --exit -r ts-node/register -r coffee-script/register -r register-coffee-coverage test/*.{js,coffee} && npm run coverage",
+    "test:fast": "mocha --exit -r ts-node/register -r coffee-script/register test/*.{js,coffee}",
+    "test:build": "tsc && coffee -m -c -o build . && cp -r test/data build/test/ && cp -r src/migrations build/src && cp package.json build",
+    "test:debug": "npm run test:build && mocha --inspect-brk build/test/*.js",
     "versionist": "versionist",
     "coverage": "istanbul report text && istanbul report html"
   },
