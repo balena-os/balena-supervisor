@@ -5,7 +5,7 @@ JSONStream = require 'JSONStream'
 fs = Promise.promisifyAll(require('fs'))
 
 logTypes = require '../lib/log-types'
-{ checkInt } = require '../lib/validation'
+{ checkInt, isValidDeviceName } = require '../lib/validation'
 constants = require '../lib/constants'
 
 Service = require './service'
@@ -103,6 +103,11 @@ module.exports = class ServiceManager extends EventEmitter
 
 			@config.get('name')
 			.then (deviceName) =>
+				if !isValidDeviceName(deviceName)
+					throw new Error(
+						'The device name contains a newline, which is unsupported by balena. ' +
+						'Please fix the device name.'
+					)
 
 				service.environment['RESIN_DEVICE_NAME_AT_INIT'] = deviceName
 
