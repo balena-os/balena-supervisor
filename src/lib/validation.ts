@@ -154,6 +154,15 @@ export function isValidLabelsObject(obj: LabelObject): boolean {
 	});
 }
 
+export function isValidDeviceName(name: string): boolean {
+	// currently the only disallowed value in a device name is a newline
+	const newline = name.indexOf('\n') !== -1;
+	if (newline) {
+		console.log('debug: newline found in device name. This is invalid and should be removed');
+	}
+	return !newline;
+}
+
 function undefinedOrValidEnv(val: EnvVarObject): boolean {
 	return val == null || isValidEnv(val);
 }
