@@ -7,7 +7,7 @@ m = require 'mochainon'
 { expect } = m.chai
 { stub } = m.sinon
 
-Logger = require '../src/logger'
+{ Logger } = require '../src/logger'
 describe 'Logger', ->
 	beforeEach ->
 		@_req = new stream.PassThrough()
@@ -32,6 +32,7 @@ describe 'Logger', ->
 			uuid: 'deadbeef'
 			deviceApiKey: 'secretkey'
 			offlineMode: false
+			enableLogs: true
 		})
 
 	afterEach ->

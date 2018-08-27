@@ -158,7 +158,7 @@ module.exports = class DeviceState extends EventEmitter
 	init: ->
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.loggingEnabled?
-				@logger.enable(changedConfig.loggingEnabled)
+				@logger.enable(validation.checkTruthy(changedConfig.loggingEnabled))
 			if changedConfig.apiSecret?
 				@reportCurrentState(api_secret: changedConfig.apiSecret)
 

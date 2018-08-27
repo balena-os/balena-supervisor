@@ -7,6 +7,7 @@ APIBinder = require './api-binder'
 DeviceState = require './device-state'
 SupervisorAPI = require './supervisor-api'
 Logger = require './logger'
+{ checkTruthy } = require './lib/validation';
 
 constants = require './lib/constants'
 
@@ -51,11 +52,11 @@ module.exports = class Supervisor extends EventEmitter
 				@apiBinder.initClient()
 			.then =>
 				@logger.init({
-					apiEndpoint: conf.apiEndpoint
-					uuid: conf.uuid
-					deviceApiKey: conf.deviceApiKey
-					offlineMode: conf.offlineMode
-					enable: conf.loggingEnabled
+					apiEndpoint: conf.apiEndpoint,
+					uuid: conf.uuid,
+					deviceApiKey: conf.deviceApiKey,
+					offlineMode: checkTruthy(conf.offlineMode),
+					enableLogs: checkTruthy(conf.loggingEnabled),
 				})
 			.then =>
 				@deviceState.init()
