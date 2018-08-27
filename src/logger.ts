@@ -245,6 +245,7 @@ export class Logger {
 	) {
 		this.backend = new ResinLogBackend(apiEndpoint, uuid, deviceApiKey);
 		this.backend.offlineMode = offlineMode;
+		this.backend.publishEnabled = enableLogs;
 	}
 
 	public enable(value: boolean = true) {
