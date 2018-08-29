@@ -76,6 +76,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 		'dtoverlay',
 		'device_tree_param',
 		'device_tree_overlay',
+		'gpio',
 	];
 	private static forbiddenConfigKeys = [
 		'disable_commandline_tags',
