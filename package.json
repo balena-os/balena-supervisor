@@ -18,6 +18,7 @@
     "versionist": "versionist",
     "coverage": "istanbul report text && istanbul report html"
   },
+  "private": "true",
   "dependencies": {
     "mkfifo": "^0.1.5",
     "sqlite3": "^3.1.0"
