@@ -565,7 +565,7 @@ module.exports = class Service
 				volumes[vol] = {}
 		return { binds, volumes }
 
-	toContainerConfig: =>
+	toContainerConfig: ->
 		{ binds, volumes } = @getBindsAndVolumes()
 		tmpfs = {}
 		for dir in @tmpfs
@@ -651,7 +651,7 @@ module.exports = class Service
 		return conf
 
 	# TODO: when we support network configuration properly, return endpointConfig: conf
-	extraNetworksToJoin: =>
+	extraNetworksToJoin: ->
 		_.map _.pickBy(@networks, (conf, net) => net != @networkMode), (conf, net) ->
 			return { name: net, endpointConfig: {} }
 
