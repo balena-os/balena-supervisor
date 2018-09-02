@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import mask = require('json-mask');
 import * as _ from 'lodash';
+import * as memoizee from 'memoizee';
 
 import Mixpanel = require('mixpanel');
 
@@ -12,6 +13,10 @@ interface InitArgs {
 	mixpanelHost: string;
 	mixpanelToken: string;
 }
+
+// The minimum amount of time to wait between sending
+// events of the same type
+const eventDebounceTime = 60000;
 
 const mixpanelMask = [
 	'appId',
@@ -78,8 +83,15 @@ export class EventTracker {
 		}
 
 		properties = this.assignDefaultProperties(properties);
-		this.client.track(event, properties);
+		this.debouncedLogger(event)(properties);
 	}
+
+	private debouncedLogger = memoizee((event: string) => {
+		// Call this function at maximum once every minute
+		return _.debounce((properties) => {
+			this.client.track(event, properties);
+		}, eventDebounceTime, { leading: true });
+	}, { primitive: true });
 
 	private logEvent(...args: string[]) {
 		console.log(...args);

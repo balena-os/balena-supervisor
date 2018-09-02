@@ -77,3 +77,39 @@ describe 'EventTracker', ->
 			uuid: 'barbaz'
 			distinct_id: 'barbaz'
 		})
+
+	describe 'Rate limiting', ->
+
+		it 'should rate limit events of the same type', ->
+			@eventTracker.client.track.reset()
+
+			@eventTracker.track('test', { });
+			@eventTracker.track('test', { });
+			@eventTracker.track('test', { });
+			@eventTracker.track('test', { });
+			@eventTracker.track('test', { });
+
+			expect(@eventTracker.client.track).to.have.callCount(1)
+
+		it 'should rate limit events of the same type with different arguments', ->
+			@eventTracker.client.track.reset()
+
+			@eventTracker.track('test2', { a: 1 });
+			@eventTracker.track('test2', { b: 2 });
+			@eventTracker.track('test2', { c: 3 });
+			@eventTracker.track('test2', { d: 4 });
+			@eventTracker.track('test2', { e: 5 });
+
+			expect(@eventTracker.client.track).to.have.callCount(1)
+
+		it 'should not rate limit events of different types', ->
+			@eventTracker.client.track.reset()
+
+			@eventTracker.track('test3', { a: 1 });
+			@eventTracker.track('test4', { b: 2 });
+			@eventTracker.track('test5', { c: 3 });
+			@eventTracker.track('test6', { d: 4 });
+			@eventTracker.track('test7', { e: 5 });
+
+			expect(@eventTracker.client.track).to.have.callCount(5)
+
