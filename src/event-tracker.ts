@@ -5,6 +5,8 @@ import * as memoizee from 'memoizee';
 
 import Mixpanel = require('mixpanel');
 
+import supervisorVersion = require('./lib/supervisor-version');
+
 export type EventTrackProperties = Dictionary<any>;
 
 interface InitArgs {
@@ -49,6 +51,7 @@ export class EventTracker {
 			this.defaultProperties = {
 				distinct_id: uuid,
 				uuid,
+				supervisorVersion,
 			};
 			if (offlineMode) {
 				return;
