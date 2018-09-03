@@ -8,7 +8,10 @@
 		"removeComments": true,
 		"sourceMap": true,
 		"strictNullChecks": true,
-		"outDir": "./build/src/"
+		"outDir": "./build/src/",
+		"lib": [
+			"es2015",
+		]
 	},
 	"include": [
 		"src/**/*.ts",
