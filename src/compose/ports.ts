@@ -15,7 +15,7 @@ export interface PortBindings {
 }
 
 export interface DockerPortOptions {
-	exposedPorts: Map<string, {}>;
+	exposedPorts: Dictionary<{}>;
 	portBindings: PortBindings;
 }
 

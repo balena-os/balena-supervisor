@@ -1,169 +1,174 @@
-export const stopService= {
+export interface LogType {
+	eventName: string;
+	humanName: string;
+}
+
+export const stopService: LogType = {
 	eventName: 'Service kill',
 	humanName: 'Killing service',
 };
-export const stopServiceSuccess= {
+export const stopServiceSuccess: LogType = {
 	eventName: 'Service stop',
 	humanName: 'Killed service',
 };
-export const stopServiceNoop = {
+export const stopServiceNoop: LogType  = {
 	eventName: 'Service already stopped',
 	humanName: 'Service is already stopped, removing container',
 };
-export const stopRemoveServiceNoop = {
+export const stopRemoveServiceNoop: LogType  = {
 	eventName: 'Service already stopped and container removed',
 	humanName: 'Service is already stopped and the container removed',
 };
-export const stopServiceError = {
+export const stopServiceError: LogType  = {
 	eventName: 'Service stop error',
 	humanName: 'Failed to kill service',
 };
 
-export const removeDeadService = {
+export const removeDeadService: LogType  = {
 	eventName: 'Remove dead container',
 	humanName: 'Removing dead container',
 };
-export const removeDeadServiceError = {
+export const removeDeadServiceError: LogType  = {
 	eventName: 'Remove dead container error',
 	humanName: 'Error removing dead container',
 };
 
-export const downloadImage = {
+export const downloadImage: LogType  = {
 	eventName: 'Docker image download',
 	humanName: 'Downloading image',
 };
-export const downloadImageDelta = {
+export const downloadImageDelta: LogType  = {
 	eventName: 'Delta image download',
 	humanName: 'Downloading delta for image',
 };
-export const downloadImageSuccess = {
+export const downloadImageSuccess: LogType  = {
 	eventName: 'Image downloaded',
 	humanName: 'Downloaded image',
 };
-export const downloadImageError = {
+export const downloadImageError: LogType  = {
 	eventName: 'Image download error',
 	humanName: 'Failed to download image',
 };
 
-export const installService = {
+export const installService: LogType  = {
 	eventName: 'Service install',
 	humanName: 'Installing service',
 };
-export const installServiceSuccess = {
+export const installServiceSuccess: LogType  = {
 	eventName: 'Service installed',
 	humanName: 'Installed service',
 };
-export const installServiceError = {
+export const installServiceError: LogType  = {
 	eventName: 'Service install error',
 	humanName: 'Failed to install service',
 };
 
-export const deleteImage = {
+export const deleteImage: LogType  = {
 	eventName: 'Image removal',
 	humanName: 'Deleting image',
 };
-export const deleteImageSuccess = {
+export const deleteImageSuccess: LogType  = {
 	eventName: 'Image removed',
 	humanName: 'Deleted image',
 };
-export const deleteImageError = {
+export const deleteImageError: LogType  = {
 	eventName: 'Image removal error',
 	humanName: 'Failed to delete image',
 };
-export const imageAlreadyDeleted = {
+export const imageAlreadyDeleted: LogType  = {
 	eventName: 'Image already deleted',
 	humanName: 'Image already deleted',
 };
-export const deltaStillProcessingError = {
+export const deltaStillProcessingError: LogType  = {
 	eventName: 'Delta still processing remotely.',
 	humanName: 'Delta still processing remotely. Will retry...',
 };
 
-export const startService = {
+export const startService: LogType  = {
 	eventName: 'Service start',
 	humanName: 'Starting service',
 };
-export const startServiceSuccess = {
+export const startServiceSuccess: LogType  = {
 	eventName: 'Service started',
 	humanName: 'Started service',
 };
-export const startServiceNoop = {
+export const startServiceNoop: LogType  = {
 	eventName: 'Service already running',
 	humanName: 'Service is already running',
 };
-export const startServiceError = {
+export const startServiceError: LogType  = {
 	eventName: 'Service start error',
 	humanName: 'Failed to start service',
 };
 
-export const updateService = {
+export const updateService: LogType  = {
 	eventName: 'Service update',
 	humanName: 'Updating service',
 };
-export const updateServiceError = {
+export const updateServiceError: LogType  = {
 	eventName: 'Service update error',
 	humanName: 'Failed to update service',
 };
 
-export const serviceExit = {
+export const serviceExit: LogType  = {
 	eventName: 'Service exit',
 	humanName: 'Service exited',
 };
 
-export const serviceRestart = {
+export const serviceRestart: LogType  = {
 	eventName: 'Service restart',
 	humanName: 'Restarting service',
 };
 
-export const updateServiceConfig = {
+export const updateServiceConfig: LogType  = {
 	eventName: 'Service config update',
 	humanName: 'Updating config for service',
 };
-export const updateServiceConfigSuccess = {
+export const updateServiceConfigSuccess: LogType  = {
 	eventName: 'Service config updated',
 	humanName: 'Updated config for service',
 };
-export const updateServiceConfigError = {
+export const updateServiceConfigError: LogType  = {
 	eventName: 'Service config update error',
 	humanName: 'Failed to update config for service',
 };
 
-export const createVolume = {
+export const createVolume: LogType  = {
 	eventName: 'Volume creation',
 	humanName: 'Creating volume',
 };
 
-export const createVolumeError = {
+export const createVolumeError: LogType  = {
 	eventName: 'Volume creation error',
 	humanName: 'Error creating volume',
 };
 
-export const removeVolume = {
+export const removeVolume: LogType  = {
 	eventName: 'Volume removal',
 	humanName: 'Removing volume',
 };
 
-export const removeVolumeError = {
+export const removeVolumeError: LogType  = {
 	eventName: 'Volume removal error',
 	humanName: 'Error removing volume',
 };
 
-export const createNetwork = {
+export const createNetwork: LogType  = {
 	eventName: 'Network creation',
 	humanName: 'Creating network',
 };
 
-export const createNetworkError = {
+export const createNetworkError: LogType  = {
 	eventName: 'Network creation error',
 	humanName: 'Error creating network',
 };
 
-export const removeNetwork = {
+export const removeNetwork: LogType  = {
 	eventName: 'Network removal',
 	humanName: 'Removing network',
 };
 
-export const removeNetworkError = {
+export const removeNetworkError: LogType  = {
 	eventName: 'Network removal error',
 	humanName: 'Error removing network',
 };

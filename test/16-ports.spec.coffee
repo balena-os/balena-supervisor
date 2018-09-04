@@ -1,7 +1,7 @@
 m = require 'mochainon'
 { expect } = m.chai
 
-{ PortMap } = require '../src/compose/ports.ts'
+{ PortMap } = require '../src/compose/ports'
 
 describe 'Ports', ->
 

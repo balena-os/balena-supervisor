@@ -1,0 +1,93 @@
+import * as Bluebird from 'bluebird';
+import mask = require('json-mask');
+import * as _ from 'lodash';
+
+import Mixpanel = require('mixpanel');
+
+export type EventTrackProperties = Dictionary<any>;
+
+interface InitArgs {
+	uuid: string;
+	offlineMode: boolean;
+	mixpanelHost: string;
+	mixpanelToken: string;
+}
+
+const mixpanelMask = [
+	'appId',
+	'delay',
+	'error',
+	'interval',
+	'image',
+	'app(appId,name)',
+	'service(appId,serviceId,serviceName,commit,releaseId,image,labels)',
+	'stateDiff/local(os_version,superisor_version,ip_address,apps/*/services)',
+].join(',');
+
+export class EventTracker {
+
+	private defaultProperties: EventTrackProperties | null;
+	private client: any;
+
+	public constructor() {
+		this.client = null;
+		this.defaultProperties = null;
+	}
+
+	public init({
+		offlineMode,
+		mixpanelHost,
+		mixpanelToken,
+		uuid,
+	}: InitArgs): Bluebird<void> {
+		return Bluebird.try(() => {
+			this.defaultProperties = {
+				distinct_id: uuid,
+				uuid,
+			};
+			if (offlineMode) {
+				return;
+			}
+			this.client = Mixpanel.init(mixpanelToken, { host: mixpanelHost });
+		});
+	}
+
+	public track(
+		event: string,
+		properties: EventTrackProperties | Error,
+	) {
+
+		if (properties instanceof Error) {
+			properties = { error: properties };
+		}
+
+		properties = _.cloneDeep(properties);
+		if (properties.error instanceof Error) {
+			// Format the error for printing, to avoid display as { }
+			properties.error = {
+				message: properties.error.message,
+				stack: properties.error.stack,
+			};
+		}
+
+		// Don't send potentially sensitive information, by using a whitelist
+		properties = mask(properties, mixpanelMask);
+		this.logEvent('Event:', event, JSON.stringify(properties));
+		if (this.client == null) {
+			return;
+		}
+
+		properties = this.assignDefaultProperties(properties);
+		this.client.track(event, properties);
+	}
+
+	private logEvent(...args: string[]) {
+		console.log(...args);
+	}
+
+	private assignDefaultProperties(
+		properties: EventTrackProperties,
+	): EventTrackProperties {
+		return _.merge({ }, properties, this.defaultProperties);
+	}
+}
