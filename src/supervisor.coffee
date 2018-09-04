@@ -6,7 +6,7 @@ Config = require './config'
 APIBinder = require './api-binder'
 DeviceState = require './device-state'
 SupervisorAPI = require './supervisor-api'
-Logger = require './logger'
+{ Logger } = require './logger'
 { checkTruthy } = require './lib/validation';
 
 constants = require './lib/constants'
