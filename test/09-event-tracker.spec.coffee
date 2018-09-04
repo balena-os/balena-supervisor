@@ -87,6 +87,9 @@ describe 'EventTracker', ->
 			supervisorVersion
 		})
 
+	it 'should handle being passed no properties object', ->
+		expect(@eventTracker.track('no-options')).to.not.throw
+
 	describe 'Rate limiting', ->
 
 		it 'should rate limit events of the same type', ->

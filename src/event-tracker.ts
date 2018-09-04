@@ -62,7 +62,7 @@ export class EventTracker {
 
 	public track(
 		event: string,
-		properties: EventTrackProperties | Error,
+		properties: EventTrackProperties | Error = { },
 	) {
 
 		if (properties instanceof Error) {
