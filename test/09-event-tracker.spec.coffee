@@ -4,6 +4,8 @@ m = require 'mochainon'
 { expect } = m.chai
 { stub } = m.sinon
 
+supervisorVersion = require '../src/lib/supervisor-version'
+
 { EventTracker } = require '../src/event-tracker'
 describe 'EventTracker', ->
 	before ->
@@ -48,7 +50,12 @@ describe 'EventTracker', ->
 	it 'calls the mixpanel client track function with the event, properties and uuid as distinct_id', ->
 		@eventTracker.track('Test event 2', { appId: 'someOtherValue' })
 		expect(@eventTracker.logEvent).to.be.calledWith('Event:', 'Test event 2', JSON.stringify({ appId: 'someOtherValue' }))
-		expect(@eventTracker.client.track).to.be.calledWith('Test event 2', { appId: 'someOtherValue', uuid: 'barbaz', distinct_id: 'barbaz' })
+		expect(@eventTracker.client.track).to.be.calledWith('Test event 2', {
+			appId: 'someOtherValue'
+			uuid: 'barbaz'
+			distinct_id: 'barbaz'
+			supervisorVersion
+		})
 
 	it 'can be passed an Error and it is added to the event properties', ->
 		theError = new Error('something went wrong')
@@ -59,6 +66,7 @@ describe 'EventTracker', ->
 				stack: theError.stack
 			uuid: 'barbaz'
 			distinct_id: 'barbaz'
+			supervisorVersion
 		})
 
 	it 'hides service environment variables, to avoid logging keys or secrets', ->
@@ -76,4 +84,41 @@ describe 'EventTracker', ->
 			service: { appId: '1' }
 			uuid: 'barbaz'
 			distinct_id: 'barbaz'
+			supervisorVersion
 		})
+
+	describe 'Rate limiting', ->
+
+		it 'should rate limit events of the same type', ->
+			@eventTracker.client.track.reset()
+
+			@eventTracker.track('test', { });
+			@eventTracker.track('test', { });
+			@eventTracker.track('test', { });
+			@eventTracker.track('test', { });
+			@eventTracker.track('test', { });
+
+			expect(@eventTracker.client.track).to.have.callCount(1)
+
+		it 'should rate limit events of the same type with different arguments', ->
+			@eventTracker.client.track.reset()
+
+			@eventTracker.track('test2', { a: 1 });
+			@eventTracker.track('test2', { b: 2 });
+			@eventTracker.track('test2', { c: 3 });
+			@eventTracker.track('test2', { d: 4 });
+			@eventTracker.track('test2', { e: 5 });
+
+			expect(@eventTracker.client.track).to.have.callCount(1)
+
+		it 'should not rate limit events of different types', ->
+			@eventTracker.client.track.reset()
+
+			@eventTracker.track('test3', { a: 1 });
+			@eventTracker.track('test4', { b: 2 });
+			@eventTracker.track('test5', { c: 3 });
+			@eventTracker.track('test6', { d: 4 });
+			@eventTracker.track('test7', { e: 5 });
+
+			expect(@eventTracker.client.track).to.have.callCount(5)
+
