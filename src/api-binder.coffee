@@ -18,6 +18,12 @@ ExchangeKeyError = class ExchangeKeyError extends TypedError
 REPORT_SUCCESS_DELAY = 1000
 MAX_REPORT_RETRY_DELAY = 60000
 
+INTERNAL_STATE_KEYS = [
+	'update_pending',
+	'update_downloaded',
+	'update_failed',
+]
+
 createAPIBinderRouter = (apiBinder) ->
 	router = express.Router()
 	router.use(bodyParser.urlencoded(extended: true))
@@ -392,10 +398,14 @@ module.exports = class APIBinder
 
 	_getStateDiff: =>
 		diff = {
-			local: _.omitBy @stateForReport.local, (val, key) =>
-				_.isEqual(@lastReportedState.local[key], val)
-			dependent: _.omitBy @stateForReport.dependent, (val, key) =>
-				_.isEqual(@lastReportedState.dependent[key], val)
+			local: _(@stateForReport.local)
+				.omitBy((val, key) => _.isEqual(@lastReportedState.local[key], val))
+				.omit(INTERNAL_STATE_KEYS)
+				.value()
+			dependent: _(@stateForReport.dependent)
+				.omitBy((val, key) => _.isEqual(@lastReportedState.dependent[key], val))
+				.omit(INTERNAL_STATE_KEYS)
+				.value()
 		}
 		return _.pickBy(diff, _.negate(_.isEmpty))
 
