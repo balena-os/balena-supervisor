@@ -11,6 +11,7 @@ vpnServiceName = 'openvpn-resin'
 module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 		@rebootRequired = false
+
 		@configKeys = {
 			appUpdatePollInterval: { envVarName: 'RESIN_SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
 			localMode: { envVarName: 'RESIN_SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
@@ -24,11 +25,16 @@ module.exports = class DeviceConfig
 			deltaVersion: { envVarName: 'RESIN_SUPERVISOR_DELTA_VERSION', varType: 'int', defaultValue: '2' }
 			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
 			persistentLogging: { envVarName: 'RESIN_SUPERVISOR_PERSISTENT_LOGGING', varType: 'bool', defaultValue: 'false', rebootRequired: true }
+			dnsServers: { envVarName: 'RESIN_SUPERVISOR_DNS_SERVERS', varType: 'string', defaultValue: '', rebootRequired: true }
+			ntpServers: { envVarName: 'RESIN_SUPERVISOR_NTP_SERVERS', varType: 'string', defaultValue: '', rebootRequired: true }
+			country: { envVarName: 'RESIN_SUPERVISOR_COUNTRY', varType: 'string', defaultValue: '', rebootRequired: true }
 		}
+
 		@validKeys = [
 			'RESIN_SUPERVISOR_VPN_CONTROL',
 			'RESIN_OVERRIDE_LOCK',
 		].concat(_.map(@configKeys, 'envVarName'))
+
 		@actionExecutors = {
 			changeConfig: (step) =>
 				@logger.logConfigChange(step.humanReadableTarget)
@@ -141,16 +147,20 @@ module.exports = class DeviceConfig
 					checkTruthy(a) == checkTruthy(b)
 				'int': (a, b) ->
 					checkInt(a) == checkInt(b)
+				'string': (a, b) ->
+					a.toString().trim() == b.toString().trim()
 			}
 			# If the legacy lock override is used, place it as the new variable
 			if checkTruthy(target['RESIN_OVERRIDE_LOCK'])
 				target['RESIN_SUPERVISOR_OVERRIDE_LOCK'] = target['RESIN_OVERRIDE_LOCK']
+
 			reboot = false
 			for own key, { envVarName, varType, rebootRequired } of @configKeys
 				if !match[varType](current[envVarName], target[envVarName])
 					configChanges[key] = target[envVarName]
 					humanReadableConfigChanges[envVarName] = target[envVarName]
 					reboot = reboot || (rebootRequired ? false)
+
 			if !_.isEmpty(configChanges)
 				steps.push({
 					action: 'changeConfig'
