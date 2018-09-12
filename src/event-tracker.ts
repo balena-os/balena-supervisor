@@ -86,12 +86,12 @@ export class EventTracker {
 		}
 
 		properties = this.assignDefaultProperties(properties);
-		this.debouncedLogger(event)(properties);
+		this.throttleddLogger(event)(properties);
 	}
 
-	private debouncedLogger = memoizee((event: string) => {
+	private throttleddLogger = memoizee((event: string) => {
 		// Call this function at maximum once every minute
-		return _.debounce((properties) => {
+		return _.throttle((properties) => {
 			this.client.track(event, properties);
 		}, eventDebounceTime, { leading: true });
 	}, { primitive: true });
