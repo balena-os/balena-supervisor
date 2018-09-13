@@ -3,15 +3,25 @@ import TypedError = require('typed-error');
 
 import { checkInt } from './validation';
 
-export function NotFoundError(err: { statusCode?: string }): boolean {
+// To keep the bluebird typings happy, we need to accept
+// an error, and in this case, it would also contain a status code
+interface StatusCodeError extends Error {
+	statusCode?: string;
+}
+
+interface CodedSysError extends Error {
+	code?: string;
+}
+
+export function NotFoundError(err: StatusCodeError): boolean {
 	return checkInt(err.statusCode) === 404;
 }
 
-export function ENOENT(err: { code: string, [key: string]: any }): boolean {
+export function ENOENT(err: CodedSysError): boolean {
 	return err.code === 'ENOENT';
 }
 
-export function EEXIST(err: { code: string, [key: string]: any }): boolean {
+export function EEXIST(err: CodedSysError): boolean {
 	return err.code === 'EEXIST';
 }
 
