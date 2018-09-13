@@ -335,7 +335,7 @@ export class Logger {
 			eventName = 'Apply config change error';
 			obj.error = err;
 		} else {
-			message = `Applying configuration change #{JSON.stringify(config)}`;
+			message = `Applying configuration change ${JSON.stringify(config)}`;
 			eventName = 'Apply config change in progress';
 		}
 
