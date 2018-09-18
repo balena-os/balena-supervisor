@@ -10,9 +10,7 @@ prepare = require './lib/prepare'
 DeviceState = require '../src/device-state'
 DB = require('../src/db')
 Config = require('../src/config')
-Service = require '../src/compose/service'
-
-{ currentState, targetState, availableImages } = require './lib/application-manager-test-states'
+{ Service } = require '../src/compose/service'
 
 appDBFormatNormalised = {
 	appId: 1234
@@ -103,6 +101,8 @@ dependentStateFormatNormalised = {
 	imageId: 45
 }
 
+currentState = targetState = availableImages = null
+
 dependentDBFormat = {
 	appId: 1234
 	image: 'foo/bar:latest'
@@ -137,19 +137,19 @@ describe 'ApplicationManager', ->
 				}
 			})
 		stub(@applications.docker, 'getNetworkGateway').returns(Promise.resolve('172.17.0.1'))
-		stub(Service.prototype, 'extendEnvVars').callsFake (env) ->
-			@environment['ADDITIONAL_ENV_VAR'] = 'foo'
-			return @environment
+		stub(Service, 'extendEnvVars').callsFake (env) ->
+			env['ADDITIONAL_ENV_VAR'] = 'foo'
+			return env
 		@normaliseCurrent = (current) ->
 			Promise.map current.local.apps, (app) ->
 				Promise.map app.services, (service) ->
-					new Service(service)
+					Service.fromComposeObject(service, { appName: 'test' })
 				.then (normalisedServices) ->
-					appCloned = _.clone(app)
+					appCloned = _.cloneDeep(app)
 					appCloned.services = normalisedServices
 					return appCloned
 			.then (normalisedApps) ->
-				currentCloned = _.clone(current)
+				currentCloned = _.cloneDeep(current)
 				currentCloned.local.apps = normalisedApps
 				return currentCloned
 
@@ -163,9 +163,9 @@ describe 'ApplicationManager', ->
 				# We mock what createTargetService does when an image is available
 				targetCloned.local.apps = _.map apps, (app) ->
 					app.services = _.map app.services, (service) ->
-						img = _.find(available, (i) -> i.name == service.image)
+						img = _.find(available, (i) -> i.name == service.config.image)
 						if img?
-							service.image = img.dockerImageId
+							service.config.image = img.dockerImageId
 						return service
 					return app
 				return targetCloned
@@ -173,10 +173,13 @@ describe 'ApplicationManager', ->
 		.then =>
 			@config.init()
 
+	beforeEach ->
+		{ currentState, targetState, availableImages } = require './lib/application-manager-test-states'
+
 	after ->
 		@applications.images.inspectByName.restore()
 		@applications.docker.getNetworkGateway.restore()
-		Service.prototype.extendEnvVars.restore()
+		Service.extendEnvVars.restore()
 
 	it 'infers a start step when all that changes is a running state', ->
 		Promise.join(
@@ -366,7 +369,7 @@ describe 'ApplicationManager', ->
 			opts = { imageInfo: { Config: { Cmd: [ 'someCommand' ], Entrypoint: [ 'theEntrypoint' ] } } }
 			appStateFormatWithDefaults.services = _.map appStateFormatWithDefaults.services, (service) ->
 				service.imageName = service.image
-				return new Service(service, opts)
+				return Service.fromComposeObject(service, opts)
 			expect(JSON.parse(JSON.stringify(app))).to.deep.equal(JSON.parse(JSON.stringify(appStateFormatWithDefaults)))
 
 	it 'converts a dependent app in DB format into state format', ->

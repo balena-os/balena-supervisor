@@ -198,10 +198,6 @@ class ResinLogBackend extends LogBackend {
 	}
 }
 
-interface LoggerConstructOptions {
-	eventTracker: EventTracker;
-}
-
 interface LoggerSetupOptions {
 	apiEndpoint: string;
 	uuid: string;
@@ -215,6 +211,10 @@ type LogEventObject = Dictionary<any> | null;
 enum OutputStream {
 	Stdout,
 	Stderr,
+}
+
+interface LoggerConstructOptions {
+	eventTracker: EventTracker;
 }
 
 export class Logger {
@@ -410,9 +410,9 @@ export class Logger {
 		}
 		if (eventObj.service != null &&
 			eventObj.service.serviceName != null &&
-			eventObj.service.image != null
+			eventObj.service.config.image != null
 		) {
-			return `${eventObj.service.serviceName} ${eventObj.service.image}`;
+			return `${eventObj.service.serviceName} ${eventObj.service.config.image}`;
 		}
 
 		if (eventObj.image != null) {
@@ -425,6 +425,10 @@ export class Logger {
 
 		if (eventObj.volume != null && eventObj.volume.name != null) {
 			return eventObj.volume.name;
+		}
+
+		if (eventObj.fields != null) {
+			return eventObj.fields.join(',');
 		}
 
 		return null;

@@ -11,6 +11,7 @@ const ENV_VAR_KEY_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
 
 type NullableString = string | undefined | null;
+type NullableLiteral = number | NullableString;
 
 /**
  * checkInt
@@ -18,12 +19,14 @@ type NullableString = string | undefined | null;
  * Check an input string as a number, optionally specifying a requirement
  * to be positive
  */
-export function checkInt(s: NullableString, options: CheckIntOptions = {}): number | void {
+export function checkInt(s: NullableLiteral, options: CheckIntOptions = {}): number | void {
 	if (s == null) {
 		return;
 	}
 
-	const i = parseInt(s, 10);
+	// parseInt will happily take a number, but the typings won't accept it,
+	// simply cast it here
+	const i = parseInt(s as string, 10);
 
 	if (isNaN(i)) {
 		return;
@@ -41,7 +44,7 @@ export function checkInt(s: NullableString, options: CheckIntOptions = {}): numb
  *
  * Check that a string exists, and is not an empty string, 'null', or 'undefined'
  */
-export function checkString(s: NullableString): string | void {
+export function checkString(s: NullableLiteral): string | void {
 	if (s == null || !_.isString(s) || _.includes([ 'null', 'undefined', '' ], s)) {
 		return;
 	}

@@ -334,9 +334,7 @@ currentState[0] = {
 
 						}
 						privileged: false
-						restartPolicy:
-							Name: 'always'
-							MaximumRetryCount: 0
+						restart: 'always'
 						volumes: [
 							'/tmp/resin-supervisor/services/1234/aservice:/tmp/resin'
 						]
@@ -349,8 +347,8 @@ currentState[0] = {
 						running: true
 						createdAt: new Date()
 						containerId: '1'
-						networkMode: '1234_default'
-						networks: { '1234_default': {} }
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'aservice' ] } }
 						command: [ 'someCommand' ]
 						entrypoint: [ 'theEntrypoint' ]
 					},
@@ -370,9 +368,7 @@ currentState[0] = {
 							'/tmp/resin-supervisor/services/1234/anotherService:/tmp/resin'
 						]
 						privileged: false
-						restartPolicy:
-							Name: 'always'
-							MaximumRetryCount: 0
+						restart: 'always'
 						labels: {
 							'io.resin.app-id': '1234'
 							'io.resin.service-id': '24'
@@ -382,8 +378,8 @@ currentState[0] = {
 						running: false
 						createdAt: new Date()
 						containerId: '2'
-						networkMode: '1234_default'
-						networks: { '1234_default': {} }
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'anotherService' ] } }
 						command: [ 'someCommand' ]
 						entrypoint: [ 'theEntrypoint' ]
 					}
@@ -447,9 +443,7 @@ currentState[2] = {
 							'ADDITIONAL_ENV_VAR': 'foo'
 						}
 						privileged: false
-						restartPolicy:
-							Name: 'always'
-							MaximumRetryCount: 0
+						restart: 'always'
 						volumes: [
 							'/tmp/resin-supervisor/services/1234/aservice:/tmp/resin'
 						]
@@ -462,8 +456,8 @@ currentState[2] = {
 						running: true
 						createdAt: new Date()
 						containerId: '1'
-						networkMode: '1234_default'
-						networks: { '1234_default': {} }
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'aservice' ] } }
 						command: [ 'someCommand' ]
 						entrypoint: [ 'theEntrypoint' ]
 					}
@@ -505,9 +499,7 @@ currentState[3] = {
 							'ADDITIONAL_ENV_VAR': 'foo'
 						}
 						privileged: false
-						restartPolicy:
-							Name: 'always'
-							MaximumRetryCount: 0
+						restart: 'always'
 						volumes: [
 							'/tmp/resin-supervisor/services/1234/aservice:/tmp/resin'
 						]
@@ -520,8 +512,8 @@ currentState[3] = {
 						running: true
 						createdAt: new Date(0)
 						containerId: '1'
-						networkMode: '1234_default'
-						networks: { '1234_default': {} }
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'aservice' ] } }
 						command: [ 'someCommand' ]
 						entrypoint: [ 'theEntrypoint' ]
 					},
@@ -540,9 +532,7 @@ currentState[3] = {
 							'ADDITIONAL_ENV_VAR': 'foo'
 						}
 						privileged: false
-						restartPolicy:
-							Name: 'always'
-							MaximumRetryCount: 0
+						restart: 'always'
 						volumes: [
 							'/tmp/resin-supervisor/services/1234/aservice:/tmp/resin'
 						]
@@ -555,8 +545,8 @@ currentState[3] = {
 						running: true
 						createdAt: new Date(1)
 						containerId: '2'
-						networkMode: '1234_default'
-						networks: { '1234_default': {} }
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'aservice' ] } }
 						command: [ 'someCommand' ]
 						entrypoint: [ 'theEntrypoint' ]
 					}
@@ -599,9 +589,7 @@ currentState[4] = {
 							'/tmp/resin-supervisor/services/1234/anotherService:/tmp/resin'
 						]
 						privileged: false
-						restartPolicy:
-							Name: 'always'
-							MaximumRetryCount: 0
+						restart: 'always'
 						labels: {
 							'io.resin.app-id': '1234'
 							'io.resin.service-id': '24'
@@ -611,8 +599,8 @@ currentState[4] = {
 						running: false
 						createdAt: new Date()
 						containerId: '2'
-						networkMode: '1234_default'
-						networks: { '1234_default': {} }
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'aservice' ] } }
 						command: [ 'someCommand' ]
 						entrypoint: [ 'theEntrypoint' ]
 					}

@@ -10,7 +10,7 @@
 		"strictNullChecks": true,
 		"outDir": "./build/src/",
 		"lib": [
-			"es2015",
+			"es6"
 		]
 	},
 	"include": [

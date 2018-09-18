@@ -19,3 +19,7 @@ export function envArrayToObject(env: string[]): EnvVarObject {
 		.fromPairs()
 		.value();
 }
+
+export function envObjectToArray(env: EnvVarObject): string[] {
+	return _.map(env, (v, k) => `${k}=${v}`);
+}
