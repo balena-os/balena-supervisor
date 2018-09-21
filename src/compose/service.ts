@@ -255,6 +255,7 @@ export class Service {
 		// Sanity check the incoming boolean values
 		config.oomKillDisable = Boolean(config.oomKillDisable);
 		config.readOnly = Boolean(config.readOnly);
+		config.tty = Boolean(config.tty);
 
 		if (_.isArray(config.sysctls)) {
 			config.sysctls = _.fromPairs(_.map(config.sysctls, (v) => _.split(v, '=')));
@@ -340,6 +341,7 @@ export class Service {
 			hostname: '',
 			user: '',
 			workingDir: '',
+			tty: false,
 		});
 
 		// Mutate service with extra features
@@ -467,6 +469,7 @@ export class Service {
 			macAddress: (container.Config as any).MacAddress || '',
 			user: container.Config.User || '',
 			workingDir: container.Config.WorkingDir || '',
+			tty: container.Config.Tty || false,
 		};
 
 		svc.appId = checkInt(container.Config.Labels['io.resin.app-id']) || null;
@@ -491,7 +494,7 @@ export class Service {
 		});
 
 		return {
-			Tty: true,
+			Tty: this.config.tty,
 			Cmd: this.config.command,
 			Volumes: volumes,
 			// Typings are wrong here, the docker daemon accepts a string or string[],

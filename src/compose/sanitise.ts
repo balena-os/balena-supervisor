@@ -55,6 +55,7 @@ const supportedComposeFields = [
 	'shmSize',
 	'user',
 	'workingDir',
+	'tty',
 ];
 
 export function sanitiseComposeConfig(

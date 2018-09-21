@@ -86,6 +86,7 @@ export interface ServiceComposeConfig {
 	shmSize?: string;
 	user?: string;
 	workingDir?: string;
+	tty?: boolean;
 }
 
 // This is identical to ServiceComposeConfig, except for the
@@ -150,6 +151,7 @@ export interface ServiceConfig {
 	shmSize: number;
 	user: string;
 	workingDir: string;
+	tty: boolean;
 }
 
 export type ServiceConfigArrayField = 'volumes' |
