@@ -3,8 +3,8 @@ import { Request, Response, Router } from 'express';
 import * as _ from 'lodash';
 
 import { ApplicationManager } from '../application-manager';
+import { Service } from '../compose/service';
 import { appNotFoundMessage, serviceNotFoundMessage } from '../lib/messages';
-import Service from '../types/service';
 import { doPurge, doRestart, serviceAction } from './common';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
@@ -32,13 +32,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						return;
 					}
 					applications.setTargetVolatileForService(
-						service.imageId,
+						service.imageId!,
 						{ running: action !== 'stop' },
 					);
 					return applications.executeStepAction(
 						serviceAction(
 							action,
-							service.serviceId,
+							service.serviceId!,
 							service,
 							service,
 							{ wait: true },
