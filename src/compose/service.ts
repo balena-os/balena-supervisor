@@ -99,7 +99,6 @@ export class Service {
 		// We don't need this value
 		delete appConfig.commit;
 
-
 		// Get rid of any extra values and report them to the user
 		const config = sanitiseComposeConfig(appConfig);
 
@@ -493,6 +492,11 @@ export class Service {
 			tmpFs[tmp] = '';
 		});
 
+		const mainNetwork = _.pickBy(
+			this.config.networks,
+			(_v, k) => k === this.config.networkMode,
+		) as ServiceConfig['networks'];
+
 		return {
 			Tty: this.config.tty,
 			Cmd: this.config.command,
@@ -503,7 +507,7 @@ export class Service {
 			ExposedPorts: exposedPorts,
 			Image: this.config.image,
 			Labels: this.config.labels,
-			NetworkingConfig: ComposeUtils.serviceNetworksToDockerNetworks(this.config.networks),
+			NetworkingConfig: ComposeUtils.serviceNetworksToDockerNetworks(mainNetwork),
 			StopSignal: this.config.stopSignal,
 			Domainname: this.config.domainname,
 			Hostname: this.config.hostname,

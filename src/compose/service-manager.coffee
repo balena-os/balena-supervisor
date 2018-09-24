@@ -114,8 +114,6 @@ module.exports = class ServiceManager extends EventEmitter
 				# TODO: Don't mutate service like this, use an interface
 				service.config.environment['RESIN_DEVICE_NAME_AT_INIT'] = deviceName
 
-				nets = service.extraNetworksToJoin()
-
 				@logger.logSystemEvent(logTypes.installService, { service })
 				@reportNewStatus(mockContainerId, service, 'Installing')
 
