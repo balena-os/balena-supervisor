@@ -50,6 +50,8 @@ export class ApplicationManager extends EventEmitter {
 
 	public getStatus(): Promise<DeviceApplicationState>;
 
+	public serviceNameFromId(serviceId: number): Promise<string>;
+
 }
 
 export default ApplicationManager;

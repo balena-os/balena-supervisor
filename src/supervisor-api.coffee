@@ -68,10 +68,33 @@ module.exports = class SupervisorAPI
 			@_api.use(router)
 
 	listen: (allowedInterfaces, port, apiTimeout) =>
-		iptables.rejectOnAllInterfacesExcept(allowedInterfaces, port)
+		@config.get('localMode').then (localMode) =>
+			@applyListeningRules(checkTruthy(localMode), port, allowedInterfaces)
+		.then =>
+			# Monitor the switching of local mode, and change which interfaces will
+			# be listented to based on that
+			@config.on 'change', (changedConfig) =>
+				if changedConfig.localMode?
+					@applyListeningRules(changedConfig.localMode, port, allowedInterfaces)
 		.then =>
 			@server = @_api.listen(port)
 			@server.timeout = apiTimeout
+
+	applyListeningRules: (allInterfaces, port, allowedInterfaces) =>
+		Promise.try ->
+			if checkTruthy(allInterfaces)
+				iptables.removeRejections(port).then ->
+					console.log('Supervisor API listening on all interfaces')
+			else
+				iptables.rejectOnAllInterfacesExcept(allowedInterfaces, port).then ->
+					console.log('Supervisor API listening on allowed interfaces only')
+		.catch (e) =>
+			# If there's an error, stop the supervisor api from answering any endpoints,
+			# and this will eventually be restarted by the healthcheck
+			console.log('Error on switching supervisor API listening rules - stopping API.')
+			console.log('  ', e)
+			if @server?
+				@stop()
 
 	stop: ->
 		@server.close()

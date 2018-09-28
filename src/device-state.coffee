@@ -40,6 +40,8 @@ validateState = Promise.method (state) ->
 	if state.dependent?
 		validateDependentState(state.dependent)
 
+# TODO (refactor): This shouldn't be here, and instead should be part of the other
+# device api stuff in ./device-api
 createDeviceStateRouter = (deviceState) ->
 	router = express.Router()
 	router.use(bodyParser.urlencoded(extended: true))
@@ -238,11 +240,14 @@ module.exports = class DeviceState extends EventEmitter
 	usingInferStepsLock: (fn) =>
 		Promise.using @_inferStepsLock, -> fn()
 
-	setTarget: (target) ->
+	setTarget: (target, localSource = false) ->
 		Promise.join(
-			@config.get('apiEndpoint'),
+			@config.getMany(['apiEndpoint', 'localMode']),
 			validateState(target),
-			(source) =>
+			({ apiEndpoint, localMode }) =>
+				source = apiEndpoint
+				if (validation.checkTruthy(localMode))
+					source = 'local'
 				@usingWriteLockTarget =>
 					# Apps, deviceConfig, dependent
 					@db.transaction (trx) =>
@@ -251,7 +256,10 @@ module.exports = class DeviceState extends EventEmitter
 						.then =>
 							@deviceConfig.setTarget(target.local.config, trx)
 						.then =>
-							@applications.setTarget(target.local.apps, target.dependent, source, trx)
+							if localSource
+								@applications.setTarget(target.local.apps, target.dependent, source, trx)
+							else
+								@applications.setTarget(target.local.apps, target.dependent, apiEndpoint, trx)
 		)
 
 	getTarget: ({ initial = false, intermediate = false } = {}) =>

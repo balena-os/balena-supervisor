@@ -6,11 +6,24 @@ import { fs } from 'mz';
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
 import { appNotFoundMessage, serviceNotFoundMessage } from '../lib/messages';
+import { checkTruthy } from '../lib/validation';
 import { doPurge, doRestart, serviceAction } from './common';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 
-	const { _lockingIfNecessary } = applications;
+	const { _lockingIfNecessary, deviceState } = applications;
+
+	const messageFromError = (err?: Error | string | null): string => {
+		let message = 'Unknown error';
+		if (err != null) {
+			if (_.isError(err) && err.message != null) {
+				message = err.message;
+			} else {
+				message = err as string;
+			}
+		}
+		return message;
+	};
 
 	const handleServiceAction = (
 		req: Request,
@@ -51,17 +64,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						});
 				})
 				.catch((err) => {
-					let message;
-					if (err != null) {
-						if (err.message != null) {
-							message = err.message;
-						} else {
-							message = err;
-						}
-					} else {
-						message = 'Unknown error';
-					}
-					res.status(503).send(message);
+					res.status(503).send(messageFromError(err));
 				});
 		});
 	};
@@ -109,16 +112,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				res.status(200).send('OK');
 			})
 			.catch((err) => {
-				let message;
-				if (err != null) {
-					message = err.message;
-					if (message == null) {
-						message = err;
-					}
-				} else {
-					message = 'Unknown error';
-				}
-				res.status(503).send(message);
+				res.status(503).send(messageFromError(err));
 			});
 	});
 
@@ -241,8 +235,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			const force = req.body.force;
 			const targetState = req.body;
 			try {
-				await deviceState.setTarget(targetState);
-				await deviceState.config.set({ localModeTargetSet: true });
+				await deviceState.setTarget(targetState, true);
 				await deviceState.triggerApplyTarget({ force });
 				res.status(200).json({
 					status: 'success',

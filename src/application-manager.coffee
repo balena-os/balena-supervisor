@@ -141,7 +141,9 @@ module.exports = class ApplicationManager extends EventEmitter
 			saveImage: (step) =>
 				@images.save(step.image)
 			cleanup: (step) =>
-				@images.cleanup()
+				@config.get('localMode').then (localMode) ->
+					if !checkTruthy(localMode)
+						@images.cleanup()
 			createNetworkOrVolume: (step) =>
 				if step.model is 'network'
 					# TODO: These step targets should be the actual compose objects,
@@ -186,9 +188,13 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	# Returns the status of applications and their services
 	getStatus: =>
+		@config.get('localMode').then (localMode) =>
+			@_getStatus(localMode)
+
+	_getStatus: (localMode) =>
 		Promise.join(
 			@services.getStatus()
-			@images.getStatus()
+			@images.getStatus(localMode)
 			@config.get('currentCommit')
 			@db.models('app').select([ 'appId', 'releaseId', 'commit' ])
 			(services, images, currentCommit, targetApps) ->
@@ -545,7 +551,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				return null
 	}
 
-	_nextStepForService: ({ current, target }, updateContext) =>
+	_nextStepForService: ({ current, target }, updateContext, localMode) =>
 		{ targetApp, networkPairs, volumePairs, installPairs, updatePairs, availableImages, downloading } = updateContext
 		if current?.status == 'Stopping'
 			# There is already a kill step in progress for this service, so we wait
@@ -555,8 +561,11 @@ module.exports = class ApplicationManager extends EventEmitter
 			# Dead containers have to be removed
 			return serviceAction('remove', current.serviceId, current)
 
-		needsDownload = !_.some availableImages, (image) =>
-			image.dockerImageId == target?.config.image or @images.isSameImage(image, { name: target.imageName })
+		needsDownload = false
+		# Don't attempt to fetch any images in local mode, they should already be there
+		if !localMode
+			needsDownload = !_.some availableImages, (image) =>
+				image.dockerImageId == target?.config.image or @images.isSameImage(image, { name: target.imageName })
 
 		# This service needs an image download but it's currently downloading, so we wait
 		if needsDownload and target?.imageId in downloading
@@ -585,7 +594,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			timeout = checkInt(target.config.labels['io.resin.update.handover-timeout'])
 			return @_strategySteps[strategy](current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout)
 
-	_nextStepsForAppUpdate: (currentApp, targetApp, availableImages = [], downloading = []) =>
+	_nextStepsForAppUpdate: (currentApp, targetApp, localMode, availableImages = [], downloading = []) =>
 		emptyApp = { services: [], volumes: {}, networks: {} }
 		if !targetApp?
 			targetApp = emptyApp
@@ -618,7 +627,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		# next step for install pairs in download - start order, but start requires dependencies, networks and volumes met
 		# next step for update pairs in order by update strategy. start requires dependencies, networks and volumes met.
 		for pair in installPairs.concat(updatePairs)
-			step = @_nextStepForService(pair, { targetApp, networkPairs, volumePairs, installPairs, updatePairs, availableImages, downloading })
+			step = @_nextStepForService(pair, { targetApp, networkPairs, volumePairs, installPairs, updatePairs, availableImages, downloading }, localMode)
 			if step?
 				steps.push(step)
 		# next step for network pairs - remove requires services killed, create kill if no pairs or steps affect that service
@@ -730,8 +739,6 @@ module.exports = class ApplicationManager extends EventEmitter
 				.tap (appsForDB) =>
 					Promise.map appsForDB, (app) =>
 						@db.upsertModel('app', app, { appId: app.appId }, trx)
-				.then (appsForDB) ->
-					trx('app').whereNotIn('appId', _.map(appsForDB, 'appId')).del()
 			.then =>
 				@proxyvisor.setTargetInTransaction(dependent, trx)
 
@@ -752,7 +759,10 @@ module.exports = class ApplicationManager extends EventEmitter
 			@_targetVolatilePerImageId[imageId] = {}
 
 	getTargetApps: =>
-		@config.get('apiEndpoint'). then (source = '') =>
+		@config.getMany(['apiEndpoint', 'localMode']). then ({ apiEndpoint, localMode }) =>
+			source = apiEndpoint
+			if checkTruthy(localMode)
+				source = 'local'
 			Promise.map(@db.models('app').where({ source }), @normaliseAndExtendAppFromDB)
 		.map (app) =>
 			if !_.isEmpty(app.services)
@@ -788,8 +798,7 @@ module.exports = class ApplicationManager extends EventEmitter
 	# imagesToSave: images that
 	# - are locally available (i.e. an image with the same digest exists)
 	# - are not saved to the DB with all their metadata (serviceId, serviceName, etc)
-	_compareImages: (current, target, available) =>
-
+	_compareImages: (current, target, available, localMode) =>
 		allImagesForTargetApp = (app) -> _.map(app.services, imageForService)
 		allImagesForCurrentApp = (app) ->
 			_.map app.services, (service) ->
@@ -807,9 +816,11 @@ module.exports = class ApplicationManager extends EventEmitter
 			!_.some available, (availableImage) => @images.isSameImage(availableImage, targetImage)
 
 		# Images that are available but we don't have them in the DB with the exact metadata:
-		imagesToSave = _.filter targetImages, (targetImage) =>
-			_.some(available, (availableImage) => @images.isSameImage(availableImage, targetImage)) and
-				!_.some(availableWithoutIds, (img) -> _.isEqual(img, targetImage))
+		imagesToSave = []
+		if !localMode
+			imagesToSave = _.filter targetImages, (targetImage) =>
+				_.some(available, (availableImage) => @images.isSameImage(availableImage, targetImage)) and
+					!_.some availableWithoutIds, (img) -> _.isEqual(img, targetImage)
 
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)
@@ -836,7 +847,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				if !ignoreImages and _.isEmpty(downloading)
 					if cleanupNeeded
 						nextSteps.push({ action: 'cleanup' })
-					{ imagesToRemove, imagesToSave } = @_compareImages(current, target, availableImages)
+					{ imagesToRemove, imagesToSave } = @_compareImages(current, target, availableImages, localMode)
 					for image in imagesToSave
 						nextSteps.push({ action: 'saveImage', image })
 					if _.isEmpty(imagesToSave)
@@ -846,7 +857,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				if _.isEmpty(nextSteps)
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
 					for appId in allAppIds
-						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], availableImages, downloading))
+						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], localMode, availableImages, downloading))
 			newDownloads = _.filter(nextSteps, (s) -> s.action == 'fetch').length
 			if !ignoreImages and delta and newDownloads > 0
 				downloadsToBlock = downloading.length + newDownloads - constants.maxDeltaDownloads
@@ -882,18 +893,32 @@ module.exports = class ApplicationManager extends EventEmitter
 		@actionExecutors[step.action](step, { force, skipLock })
 
 	getRequiredSteps: (currentState, targetState, ignoreImages = false) =>
-		Promise.join(
-			@images.isCleanupNeeded()
-			@images.getAvailable()
-			@images.getDownloadingImageIds()
-			@networks.supervisorNetworkReady()
-			@config.getMany([ 'localMode', 'delta' ])
-			(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, conf) =>
-				@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
-				.then (nextSteps) =>
-					if ignoreImages and _.some(nextSteps, action: 'fetch')
-						throw new Error('Cannot fetch images while executing an API action')
-					@proxyvisor.getRequiredSteps(availableImages, downloading, currentState, targetState, nextSteps)
-					.then (proxyvisorSteps) ->
-						return nextSteps.concat(proxyvisorSteps)
-		)
+		@config.get('localMode').then (localMode) =>
+			Promise.join(
+				@images.isCleanupNeeded()
+				@images.getAvailable(localMode)
+				@images.getDownloadingImageIds()
+				@networks.supervisorNetworkReady()
+				@config.get('delta')
+				(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, delta) =>
+					conf = { delta, localMode }
+					if localMode
+						cleanupNeeded = false
+					@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
+					.then (nextSteps) =>
+						if ignoreImages and _.some(nextSteps, action: 'fetch')
+							throw new Error('Cannot fetch images while executing an API action')
+						@proxyvisor.getRequiredSteps(availableImages, downloading, currentState, targetState, nextSteps)
+						.then (proxyvisorSteps) ->
+							return nextSteps.concat(proxyvisorSteps)
+			)
+
+	serviceNameFromId: (serviceId) =>
+		@getTargetApps().then (apps) ->
+			# Multi-app warning!
+			# We assume here that there will only be a single
+			# application
+			for appId, app of apps
+				return _.find app.services, (svc) ->
+					svc.serviceId == serviceId
+		.get('serviceName')
