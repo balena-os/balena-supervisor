@@ -61,6 +61,13 @@ export class PortMap {
 		};
 	}
 
+	public toExposedPortArray(): string[] {
+		const internalRange = this.generatePortRange(this.ports.internalStart, this.ports.internalEnd);
+		return _.map(internalRange, (internal) => {
+			return `${internal}/${this.ports.protocol}`;
+		});
+	}
+
 	/**
 	 * fromDockerOpts
 	 *

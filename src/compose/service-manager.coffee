@@ -8,7 +8,7 @@ logTypes = require '../lib/log-types'
 { checkInt, isValidDeviceName } = require '../lib/validation'
 constants = require '../lib/constants'
 
-Service = require './service'
+{ Service } = require './service'
 
 { NotFoundError } = require '../lib/errors'
 
@@ -100,6 +100,8 @@ module.exports = class ServiceManager extends EventEmitter
 		.then (existingService) =>
 			return @docker.getContainer(existingService.containerId)
 		.catch NotFoundError, =>
+			conf = service.toDockerContainer()
+			nets = service.extraNetworksToJoin()
 
 			@config.get('name')
 			.then (deviceName) =>
@@ -109,10 +111,8 @@ module.exports = class ServiceManager extends EventEmitter
 						'Please fix the device name.'
 					)
 
-				service.environment['RESIN_DEVICE_NAME_AT_INIT'] = deviceName
-
-				conf = service.toContainerConfig()
-				nets = service.extraNetworksToJoin()
+				# TODO: Don't mutate service like this, use an interface
+				service.config.environment['RESIN_DEVICE_NAME_AT_INIT'] = deviceName
 
 				@logger.logSystemEvent(logTypes.installService, { service })
 				@reportNewStatus(mockContainerId, service, 'Installing')
@@ -121,7 +121,7 @@ module.exports = class ServiceManager extends EventEmitter
 				.tap (container) =>
 					service.containerId = container.id
 
-					Promise.map nets, ({ name, endpointConfig }) =>
+					Promise.all _.map nets, (endpointConfig, name) =>
 						@docker
 						.getNetwork(name)
 						.connect({ Container: container.id, EndpointConfig: endpointConfig })
@@ -180,7 +180,7 @@ module.exports = class ServiceManager extends EventEmitter
 		@docker.listContainers({ all: true, filters })
 		.mapSeries (container) =>
 			@docker.getContainer(container.Id).inspect()
-			.then(Service.fromContainer)
+			.then(Service.fromDockerContainer)
 			.then (service) =>
 				if @volatileState[service.containerId]?.status?
 					service.status = @volatileState[service.containerId].status
@@ -191,7 +191,7 @@ module.exports = class ServiceManager extends EventEmitter
 	# Returns the first container matching a service definition
 	get: (service) =>
 		@getAll("io.resin.service-id=#{service.serviceId}")
-		.filter((currentService) -> currentService.isSameContainer(service))
+		.filter((currentService) -> currentService.isEqualConfig(service))
 		.then (services) ->
 			if services.length == 0
 				e = new Error('Could not find a container matching this service definition')
@@ -220,7 +220,7 @@ module.exports = class ServiceManager extends EventEmitter
 		.then (container) ->
 			if !container.Config.Labels['io.resin.supervised']?
 				return null
-			return Service.fromContainer(container)
+			return Service.fromDockerContainer(container)
 
 	waitToKill: (service, timeout) ->
 		pollInterval = 100
@@ -260,7 +260,7 @@ module.exports = class ServiceManager extends EventEmitter
 		.then =>
 			@start(targetService)
 		.then =>
-			@waitToKill(currentService, targetService.labels['io.resin.update.handover-timeout'])
+			@waitToKill(currentService, targetService.config.labels['io.resin.update.handover-timeout'])
 		.then =>
 			@kill(currentService)
 

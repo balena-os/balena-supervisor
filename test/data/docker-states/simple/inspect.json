@@ -1,0 +1,227 @@
+{
+	"Id": "5bff0c9e6ef8ae4fdc02b7ba05050078c8599775e8773ce039982e987107a4a4",
+	"Created": "2018-08-16T13:00:47.100056946Z",
+	"Path": "/usr/bin/entry.sh",
+	"Args": [
+		"/bin/sh",
+		"-c",
+		"./call-supervisor.sh"
+	],
+	"State": {
+		"Status": "restarting",
+		"Running": true,
+		"Paused": false,
+		"Restarting": true,
+		"OOMKilled": false,
+		"Dead": false,
+		"Pid": 0,
+		"ExitCode": 0,
+		"Error": "",
+		"StartedAt": "2018-08-16T13:22:17.991455639Z",
+		"FinishedAt": "2018-08-16T13:22:18.845432218Z"
+	},
+	"Image": "sha256:f9e0fa6e3e68caedbcbb4ef35d5a8dce2a8d33e39cc94115d567800f25d826f4",
+	"ResolvConfPath": "/var/lib/docker/containers/5bff0c9e6ef8ae4fdc02b7ba05050078c8599775e8773ce039982e987107a4a4/resolv.conf",
+	"HostnamePath": "/var/lib/docker/containers/5bff0c9e6ef8ae4fdc02b7ba05050078c8599775e8773ce039982e987107a4a4/hostname",
+	"HostsPath": "/var/lib/docker/containers/5bff0c9e6ef8ae4fdc02b7ba05050078c8599775e8773ce039982e987107a4a4/hosts",
+	"LogPath": "",
+	"Name": "/main_431889_572579",
+	"RestartCount": 29,
+	"Driver": "aufs",
+	"Platform": "linux",
+	"MountLabel": "",
+	"ProcessLabel": "",
+	"AppArmorProfile": "",
+	"ExecIDs": null,
+	"HostConfig": {
+		"Binds": [
+			"/tmp/resin-supervisor/services/1011165/main:/tmp/resin"
+		],
+		"ContainerIDFile": "",
+		"LogConfig": {
+			"Type": "journald",
+			"Config": {}
+		},
+		"NetworkMode": "1011165_default",
+		"PortBindings": {},
+		"RestartPolicy": {
+			"Name": "always",
+			"MaximumRetryCount": 0
+		},
+		"AutoRemove": false,
+		"VolumeDriver": "",
+		"VolumesFrom": null,
+		"CapAdd": [],
+		"CapDrop": [],
+		"Dns": [],
+		"DnsOptions": null,
+		"DnsSearch": [],
+		"ExtraHosts": [],
+		"GroupAdd": [],
+		"IpcMode": "shareable",
+		"Cgroup": "",
+		"Links": null,
+		"OomScoreAdj": 0,
+		"PidMode": "",
+		"Privileged": false,
+		"PublishAllPorts": false,
+		"ReadonlyRootfs": false,
+		"SecurityOpt": [],
+		"UTSMode": "",
+		"UsernsMode": "",
+		"ShmSize": 67108864,
+		"Runtime": "runc",
+		"ConsoleSize": [
+			0,
+			0
+		],
+		"Isolation": "",
+		"CpuShares": 0,
+		"Memory": 0,
+		"NanoCpus": 0,
+		"CgroupParent": "",
+		"BlkioWeight": 0,
+		"BlkioWeightDevice": null,
+		"BlkioDeviceReadBps": null,
+		"BlkioDeviceWriteBps": null,
+		"BlkioDeviceReadIOps": null,
+		"BlkioDeviceWriteIOps": null,
+		"CpuPeriod": 0,
+		"CpuQuota": 0,
+		"CpuRealtimePeriod": 0,
+		"CpuRealtimeRuntime": 0,
+		"CpusetCpus": "",
+		"CpusetMems": "",
+		"Devices": [],
+		"DeviceCgroupRules": null,
+		"DiskQuota": 0,
+		"KernelMemory": 0,
+		"MemoryReservation": 0,
+		"MemorySwap": 0,
+		"MemorySwappiness": -1,
+		"OomKillDisable": false,
+		"PidsLimit": 0,
+		"Ulimits": [],
+		"CpuCount": 0,
+		"CpuPercent": 0,
+		"IOMaximumIOps": 0,
+		"IOMaximumBandwidth": 0
+	},
+	"GraphDriver": {
+		"Data": null,
+		"Name": "aufs"
+	},
+	"Mounts": [
+		{
+			"Type": "bind",
+			"Source": "/tmp/resin-supervisor/services/1011165/main",
+			"Destination": "/tmp/resin",
+			"Mode": "",
+			"RW": true,
+			"Propagation": "rprivate"
+		}
+	],
+	"Config": {
+		"Hostname": "5bff0c9e6ef8",
+		"Domainname": "",
+		"User": "",
+		"AttachStdin": false,
+		"AttachStdout": false,
+		"AttachStderr": false,
+		"Tty": true,
+		"OpenStdin": false,
+		"StdinOnce": false,
+		"Env": [
+			"RESIN_APP_ID=1011165",
+			"RESIN_APP_NAME=supervisortest",
+			"RESIN_SERVICE_NAME=main",
+			"RESIN_DEVICE_UUID=7dadabd4edec3067948d5952c2f2f26f",
+			"RESIN_DEVICE_TYPE=raspberrypi3",
+			"RESIN_HOST_OS_VERSION=Resin OS 2.13.6+rev1",
+			"RESIN_SUPERVISOR_VERSION=7.16.6",
+			"RESIN_APP_LOCK_PATH=/tmp/resin/resin-updates.lock",
+			"RESIN_SERVICE_KILL_ME_PATH=/tmp/resin/resin-kill-me",
+			"RESIN=1",
+			"USER=root",
+			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+			"UDEV=on"
+		],
+		"Cmd": [
+			"/bin/sh",
+			"-c",
+			"./call-supervisor.sh"
+		],
+		"Image": "sha256:f9e0fa6e3e68caedbcbb4ef35d5a8dce2a8d33e39cc94115d567800f25d826f4",
+		"Volumes": null,
+		"WorkingDir": "/usr/src/app",
+		"Entrypoint": [
+			"/usr/bin/entry.sh"
+		],
+		"OnBuild": null,
+		"Labels": {
+			"io.resin.app-id": "1011165",
+			"io.resin.architecture": "armv7hf",
+			"io.resin.device-type": "raspberry-pi2",
+			"io.resin.qemu.version": "2.9.0.resin1-arm",
+			"io.resin.service-id": "43697",
+			"io.resin.service-name": "main",
+			"io.resin.supervised": "true"
+		}
+	},
+	"NetworkSettings": {
+		"Bridge": "",
+		"SandboxID": "9124030ea083331f46529d0ffb1549f780b5ca913e912d438726e31fc5c716da",
+		"HairpinMode": false,
+		"LinkLocalIPv6Address": "",
+		"LinkLocalIPv6PrefixLen": 0,
+		"Ports": {},
+		"SandboxKey": "/var/run/balena/netns/9124030ea083",
+		"SecondaryIPAddresses": null,
+		"SecondaryIPv6Addresses": null,
+		"EndpointID": "",
+		"Gateway": "",
+		"GlobalIPv6Address": "",
+		"GlobalIPv6PrefixLen": 0,
+		"IPAddress": "",
+		"IPPrefixLen": 0,
+		"IPv6Gateway": "",
+		"MacAddress": "",
+		"Networks": {
+			"1011165_default": {
+				"IPAMConfig": null,
+				"Links": null,
+				"Aliases": [
+					"main",
+					"5bff0c9e6ef8"
+				],
+				"NetworkID": "4afe52d663d8de16ea7cbd3c3faaff0705109d2f246e4f18cbed3b2789ce0a7a",
+				"EndpointID": "",
+				"Gateway": "",
+				"IPAddress": "",
+				"IPPrefixLen": 0,
+				"IPv6Gateway": "",
+				"GlobalIPv6Address": "",
+				"GlobalIPv6PrefixLen": 0,
+				"MacAddress": "",
+				"DriverOpts": null
+			},
+			"supervisor0": {
+				"IPAMConfig": null,
+				"Links": null,
+				"Aliases": [
+					"5bff0c9e6ef8"
+				],
+				"NetworkID": "2ad3a9f0a52d912fff9990837167cd7a3d9f1133e73a40cbed6438be81a96126",
+				"EndpointID": "",
+				"Gateway": "",
+				"IPAddress": "",
+				"IPPrefixLen": 0,
+				"IPv6Gateway": "",
+				"GlobalIPv6Address": "",
+				"GlobalIPv6PrefixLen": 0,
+				"MacAddress": "",
+				"DriverOpts": null
+			}
+		}
+	}
+}

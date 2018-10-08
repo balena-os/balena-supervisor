@@ -1,0 +1,210 @@
+{
+	"Id": "52cfd7a64d50236376741dd2578c4fbb0178d90e2e4fae55f3e14cd905e9ac9e",
+	"Created": "2018-09-12T14:38:42.696028995Z",
+	"Path": "/bin/sh",
+	"Args": [
+		"-c",
+		"while true; do echo 'hello'; sleep 5; done;"
+	],
+	"State": {
+		"Status": "exited",
+		"Running": false,
+		"Paused": false,
+		"Restarting": false,
+		"OOMKilled": false,
+		"Dead": false,
+		"Pid": 0,
+		"ExitCode": 137,
+		"Error": "",
+		"StartedAt": "2018-09-12T14:38:45.408574694Z",
+		"FinishedAt": "2018-09-12T14:38:46.462783621Z"
+	},
+	"Image": "sha256:7f54fa690ce19a1f625b04479ae1f12f44d36112a74be7edfefa777ecfdb194b",
+	"ResolvConfPath": "/var/lib/docker/containers/52cfd7a64d50236376741dd2578c4fbb0178d90e2e4fae55f3e14cd905e9ac9e/resolv.conf",
+	"HostnamePath": "/var/lib/docker/containers/52cfd7a64d50236376741dd2578c4fbb0178d90e2e4fae55f3e14cd905e9ac9e/hostname",
+	"HostsPath": "/var/lib/docker/containers/52cfd7a64d50236376741dd2578c4fbb0178d90e2e4fae55f3e14cd905e9ac9e/hosts",
+	"LogPath": "",
+	"Name": "/nifty_swartz",
+	"RestartCount": 0,
+	"Driver": "aufs",
+	"Platform": "linux",
+	"MountLabel": "",
+	"ProcessLabel": "",
+	"AppArmorProfile": "",
+	"ExecIDs": null,
+	"HostConfig": {
+		"Binds": [
+			"/tmp/resin-supervisor/services/1011165/main:/tmp/resin"
+		],
+		"ContainerIDFile": "",
+		"LogConfig": {
+			"Type": "journald",
+			"Config": {}
+		},
+		"NetworkMode": "1011165_default",
+		"PortBindings": {},
+		"RestartPolicy": {
+			"Name": "always",
+			"MaximumRetryCount": 0
+		},
+		"AutoRemove": false,
+		"VolumeDriver": "",
+		"VolumesFrom": null,
+		"CapAdd": [],
+		"CapDrop": [],
+		"Dns": [],
+		"DnsOptions": [],
+		"DnsSearch": [],
+		"ExtraHosts": [],
+		"GroupAdd": [],
+		"IpcMode": "shareable",
+		"Cgroup": "",
+		"Links": null,
+		"OomScoreAdj": 0,
+		"PidMode": "",
+		"Privileged": false,
+		"PublishAllPorts": false,
+		"ReadonlyRootfs": false,
+		"SecurityOpt": [],
+		"UTSMode": "",
+		"UsernsMode": "",
+		"ShmSize": 67108864,
+		"Runtime": "runc",
+		"ConsoleSize": [
+			0,
+			0
+		],
+		"Isolation": "",
+		"CpuShares": 0,
+		"Memory": 0,
+		"NanoCpus": 0,
+		"CgroupParent": "",
+		"BlkioWeight": 0,
+		"BlkioWeightDevice": null,
+		"BlkioDeviceReadBps": null,
+		"BlkioDeviceWriteBps": null,
+		"BlkioDeviceReadIOps": null,
+		"BlkioDeviceWriteIOps": null,
+		"CpuPeriod": 0,
+		"CpuQuota": 0,
+		"CpuRealtimePeriod": 0,
+		"CpuRealtimeRuntime": 0,
+		"CpusetCpus": "",
+		"CpusetMems": "",
+		"Devices": [],
+		"DeviceCgroupRules": null,
+		"DiskQuota": 0,
+		"KernelMemory": 0,
+		"MemoryReservation": 0,
+		"MemorySwap": 0,
+		"MemorySwappiness": -1,
+		"OomKillDisable": false,
+		"PidsLimit": 0,
+		"Ulimits": [],
+		"CpuCount": 0,
+		"CpuPercent": 0,
+		"IOMaximumIOps": 0,
+		"IOMaximumBandwidth": 0,
+		"Init": false
+	},
+	"GraphDriver": {
+		"Data": null,
+		"Name": "aufs"
+	},
+	"Mounts": [
+		{
+			"Type": "bind",
+			"Source": "/tmp/resin-supervisor/services/1011165/main",
+			"Destination": "/tmp/resin",
+			"Mode": "",
+			"RW": true,
+			"Propagation": "rprivate"
+		}
+	],
+	"Config": {
+		"Hostname": "52cfd7a64d50",
+		"Domainname": "",
+		"User": "",
+		"AttachStdin": false,
+		"AttachStdout": false,
+		"AttachStderr": false,
+		"Tty": true,
+		"OpenStdin": false,
+		"StdinOnce": false,
+		"Env": [
+			"RESIN_APP_ID=1011165",
+			"RESIN_APP_NAME=supervisortest",
+			"RESIN_SERVICE_NAME=main",
+			"RESIN_DEVICE_UUID=a7feb967fac7f559ccf2a006a36bcf5d",
+			"RESIN_DEVICE_TYPE=raspberrypi3",
+			"RESIN_HOST_OS_VERSION=Resin OS 2.13.6+rev1",
+			"RESIN_SUPERVISOR_VERSION=7.18.0",
+			"RESIN_APP_LOCK_PATH=/tmp/resin/resin-updates.lock",
+			"RESIN_SERVICE_KILL_ME_PATH=/tmp/resin/resin-kill-me",
+			"RESIN=1",
+			"USER=root",
+			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+		],
+		"Cmd": [
+			"/bin/sh",
+			"-c",
+			"while true; do echo 'hello'; sleep 5; done;"
+		],
+		"Healthcheck": {
+			"Test": [
+				"NONE"
+			]
+		},
+		"Image": "sha256:7f54fa690ce19a1f625b04479ae1f12f44d36112a74be7edfefa777ecfdb194b",
+		"Volumes": null,
+		"WorkingDir": "",
+		"Entrypoint": null,
+		"OnBuild": null,
+		"Labels": {
+			"io.resin.app-id": "1011165",
+			"io.resin.service-id": "43697",
+			"io.resin.service-name": "main",
+			"io.resin.supervised": "true"
+		},
+		"StopTimeout": 0
+	},
+	"NetworkSettings": {
+		"Bridge": "",
+		"SandboxID": "bf4952b7f6695a8f05da1807946723b37e1041b8f41588678d6dece310270990",
+		"HairpinMode": false,
+		"LinkLocalIPv6Address": "",
+		"LinkLocalIPv6PrefixLen": 0,
+		"Ports": {},
+		"SandboxKey": "/var/run/balena/netns/bf4952b7f669",
+		"SecondaryIPAddresses": null,
+		"SecondaryIPv6Addresses": null,
+		"EndpointID": "",
+		"Gateway": "",
+		"GlobalIPv6Address": "",
+		"GlobalIPv6PrefixLen": 0,
+		"IPAddress": "",
+		"IPPrefixLen": 0,
+		"IPv6Gateway": "",
+		"MacAddress": "",
+		"Networks": {
+			"1011165_default": {
+				"IPAMConfig": {},
+				"Links": null,
+				"Aliases": [
+					"main",
+					"52cfd7a64d50"
+				],
+				"NetworkID": "f88716ed3d340f1b9aa61df22d92ce6ad8aa752d8bf8e4aa6e74142dea677465",
+				"EndpointID": "",
+				"Gateway": "",
+				"IPAddress": "",
+				"IPPrefixLen": 0,
+				"IPv6Gateway": "",
+				"GlobalIPv6Address": "",
+				"GlobalIPv6PrefixLen": 0,
+				"MacAddress": "",
+				"DriverOpts": null
+			}
+		}
+	}
+}

@@ -7,7 +7,7 @@ import Images = require('./compose/images');
 import ServiceManager = require('./compose/service-manager');
 import DB = require('./db');
 
-import { Service } from './types/service';
+import { Service } from './compose/service';
 
 declare interface Options {
 	force?: boolean;

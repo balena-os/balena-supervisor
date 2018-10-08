@@ -32,3 +32,9 @@ export function UnitNotLoadedError(err: string[]): boolean {
 export class InvalidNetGatewayError extends TypedError { }
 
 export class DeltaStillProcessingError extends TypedError { }
+
+export class InvalidAppIdError extends TypedError {
+	public constructor(public appId: any) {
+		super(`Invalid appId: ${appId}`);
+	}
+}

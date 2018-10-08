@@ -1,5 +1,5 @@
 import ApplicationManager from '../application-manager';
-import { Service } from '../types/service';
+import { Service } from '../compose/service';
 
 export interface ServiceAction {
 	action: string;

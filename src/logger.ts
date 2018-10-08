@@ -198,10 +198,6 @@ class ResinLogBackend extends LogBackend {
 	}
 }
 
-interface LoggerConstructOptions {
-	eventTracker: EventTracker;
-}
-
 interface LoggerSetupOptions {
 	apiEndpoint: string;
 	uuid: string;
@@ -215,6 +211,10 @@ type LogEventObject = Dictionary<any> | null;
 enum OutputStream {
 	Stdout,
 	Stderr,
+}
+
+interface LoggerConstructOptions {
+	eventTracker: EventTracker;
 }
 
 export class Logger {
@@ -375,13 +375,15 @@ export class Logger {
 							this.attached[streamType][containerId] = false;
 						})
 						.pipe(es.split())
-						.on('data', (logBuf: Buffer) => {
-							const logLine = logBuf.toString();
-							const space = logLine.indexOf(' ');
-							if (space > 0) {
+						.on('data', (logBuf: Buffer | string) => {
+							if (_.isString(logBuf)) {
+								logBuf = Buffer.from(logBuf);
+							}
+							const logMsg = Logger.extractContainerMessage(logBuf);
+							if (logMsg != null) {
 								const message: LogMessage = {
-									timestamp: (new Date(logLine.substr(0, space))).getTime(),
-									message: logLine.substr(space + 1),
+									message: logMsg.message,
+									timestamp: logMsg.timestamp,
 									serviceId,
 									imageId,
 								};
@@ -410,9 +412,9 @@ export class Logger {
 		}
 		if (eventObj.service != null &&
 			eventObj.service.serviceName != null &&
-			eventObj.service.image != null
+			eventObj.service.config.image != null
 		) {
-			return `${eventObj.service.serviceName} ${eventObj.service.image}`;
+			return `${eventObj.service.serviceName} ${eventObj.service.config.image}`;
 		}
 
 		if (eventObj.image != null) {
@@ -427,6 +429,33 @@ export class Logger {
 			return eventObj.volume.name;
 		}
 
+		if (eventObj.fields != null) {
+			return eventObj.fields.join(',');
+		}
+
+		return null;
+	}
+
+	private static extractContainerMessage(
+		msgBuf: Buffer,
+	): { message: string, timestamp: number } | null {
+		// Non-tty message format from:
+		// https://docs.docker.com/engine/api/v1.30/#operation/ContainerAttach
+		if (
+			msgBuf[0] in [0, 1, 2] &&
+			_.every(msgBuf.slice(1, 7), (c) => c === 0)
+		) {
+			// Take the header from this message, and parse it as normal
+			msgBuf = msgBuf.slice(8);
+		}
+		const logLine = msgBuf.toString();
+		const space = logLine.indexOf(' ');
+		if (space > 0) {
+			return {
+				timestamp: (new Date(logLine.substr(0, space))).getTime(),
+				message: logLine.substr(space + 1),
+			};
+		}
 		return null;
 	}
 }

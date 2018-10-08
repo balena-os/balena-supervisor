@@ -14,9 +14,10 @@ updateLock = require './lib/update-lock'
 { NotFoundError } = require './lib/errors'
 
 ServiceManager = require './compose/service-manager'
-Service = require './compose/service'
+{ Service } = require './compose/service'
 Images = require './compose/images'
-Networks = require './compose/networks'
+{ NetworkManager } = require './compose/network-manager'
+{ Network } = require './compose/network'
 Volumes = require './compose/volumes'
 
 Proxyvisor = require './proxyvisor'
@@ -68,7 +69,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@docker = new Docker()
 		@images = new Images({ @docker, @logger, @db })
 		@services = new ServiceManager({ @docker, @logger, @images, @config })
-		@networks = new Networks({ @docker, @logger })
+		@networks = new NetworkManager({ @docker, @logger })
 		@volumes = new Volumes({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
 		@timeSpentFetching = 0
@@ -88,12 +89,12 @@ module.exports = class ApplicationManager extends EventEmitter
 					.then =>
 						delete @_containerStarted[step.current.containerId]
 						if step.options?.removeImage
-							@images.removeByDockerId(step.current.image)
+							@images.removeByDockerId(step.current.config.image)
 			remove: (step) =>
 				# Only called for dead containers, so no need to take locks or anything
 				@services.remove(step.current)
 			updateMetadata: (step, { force = false, skipLock = false } = {}) =>
-				skipLock or= checkTruthy(step.current.labels['io.resin.legacy-container'])
+				skipLock or= checkTruthy(step.current.config.labels['io.resin.legacy-container'])
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.updateMetadata(step.current, step.target)
 			restart: (step, { force = false, skipLock = false } = {}) =>
@@ -142,11 +143,25 @@ module.exports = class ApplicationManager extends EventEmitter
 			cleanup: (step) =>
 				@images.cleanup()
 			createNetworkOrVolume: (step) =>
-				model = if step.model is 'volume' then @volumes else @networks
-				model.create(step.target)
+				if step.model is 'network'
+					# TODO: These step targets should be the actual compose objects,
+					# rather than recreating them
+					Network.fromComposeObject({ @docker, @logger },
+						step.target.name,
+						step.appId,
+						step.target.config
+					).create()
+				else
+					@volumes.create(step.target)
 			removeNetworkOrVolume: (step) =>
-				model = if step.model is 'volume' then @volumes else @networks
-				model.remove(step.current)
+				if step.model is 'network'
+					Network.fromComposeObject({ @docker, @logger },
+						step.current.name,
+						step.appId,
+						step.current.config
+					).remove()
+				else
+					@volumes.remove(step.current)
 			ensureSupervisorNetwork: =>
 				@networks.ensureSupervisorNetwork()
 		}
@@ -316,6 +331,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			currentServiceContainers = _.filter(currentServices, { serviceId })
 			if currentServiceContainers.length > 1
 				currentServicesPerId[serviceId] = _.maxBy(currentServiceContainers, 'createdAt')
+
 				# All but the latest container for this service are spurious and should be removed
 				for service in _.without(currentServiceContainers, currentServicesPerId[serviceId])
 					removePairs.push({
@@ -331,12 +347,13 @@ module.exports = class ApplicationManager extends EventEmitter
 		alreadyStarted = (serviceId) =>
 			return (
 				currentServicesPerId[serviceId].isEqualExceptForRunningState(targetServicesPerId[serviceId]) and
-				targetServicesPerId[serviceId].running  and
+				targetServicesPerId[serviceId].config.running  and
 				@_containerStarted[currentServicesPerId[serviceId].containerId]
 			)
 
 		needUpdate = _.filter toBeMaybeUpdated, (serviceId) ->
 			!currentServicesPerId[serviceId].isEqual(targetServicesPerId[serviceId]) and !alreadyStarted(serviceId)
+
 		for serviceId in needUpdate
 			updatePairs.push({
 				current: currentServicesPerId[serviceId]
@@ -370,8 +387,27 @@ module.exports = class ApplicationManager extends EventEmitter
 					config: target[name]
 				}
 			})
-		toBeUpdated = _.filter _.intersection(targetNames, currentNames), (name) ->
-			!model.isEqualConfig(current[name], target[name])
+		toBeUpdated = _.filter _.intersection(targetNames, currentNames), (name) =>
+			# While we're in this in-between state of a network-manager, but not
+			# a volume-manager, we'll have to inspect the object to detect a
+			# network-manager
+			if model instanceof NetworkManager
+				opts = docker: @docker, logger: @logger
+				currentNet = Network.fromComposeObject(
+					opts,
+					name,
+					appId,
+					current[name]
+				)
+				targetNet = Network.fromComposeObject(
+					opts,
+					name,
+					appId,
+					target[name]
+				)
+				return !currentNet.isEqualConfig(targetNet)
+			else
+				return !model.isEqualConfig(current[name], target[name])
 		for name in toBeUpdated
 			outputPairs.push({
 				current: {
@@ -456,13 +492,14 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	_nextStepsForNetwork: ({ current, target }, currentApp, changingPairs) =>
 		dependencyComparisonFn = (service, current) ->
-			service.networkMode == "#{service.appId}_#{current?.name}"
+			service.config.networkMode == "#{service.appId}_#{current?.name}"
+
 		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'network')
 
 	_nextStepsForVolume: ({ current, target }, currentApp, changingPairs) ->
 		# Check none of the currentApp.services use this network or volume
 		dependencyComparisonFn = (service, current) ->
-			_.some service.volumes, (volumeDefinition) ->
+			_.some service.config.volumes, (volumeDefinition) ->
 				[ sourceName, destName ] = volumeDefinition.split(':')
 				destName? and sourceName == "#{service.appId}_#{current?.name}"
 		@_nextStepsForNetworkOrVolume({ current, target }, currentApp, changingPairs, dependencyComparisonFn, 'volume')
@@ -471,7 +508,7 @@ module.exports = class ApplicationManager extends EventEmitter
 	_updateContainerStep: (current, target) ->
 		if current.releaseId != target.releaseId or current.imageId != target.imageId
 			return serviceAction('updateMetadata', target.serviceId, current, target)
-		else if target.running
+		else if target.config.running
 			return serviceAction('start', target.serviceId, current, target)
 		else
 			return serviceAction('stop', target.serviceId, current, target)
@@ -519,7 +556,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			return serviceAction('remove', current.serviceId, current)
 
 		needsDownload = !_.some availableImages, (image) =>
-			image.dockerImageId == target?.image or @images.isSameImage(image, { name: target.imageName })
+			image.dockerImageId == target?.config.image or @images.isSameImage(image, { name: target.imageName })
 
 		# This service needs an image download but it's currently downloading, so we wait
 		if needsDownload and target?.imageId in downloading
@@ -534,18 +571,18 @@ module.exports = class ApplicationManager extends EventEmitter
 		# even if its strategy is handover
 		needsSpecialKill = @_hasCurrentNetworksOrVolumes(current, networkPairs, volumePairs)
 
-		if current?.isSameContainer(target)
+		if current?.isEqualConfig(target)
 			# We're only stopping/starting it
 			return @_updateContainerStep(current, target)
 		else if !current?
 			# Either this is a new service, or the current one has already been killed
 			return @_fetchOrStartStep(current, target, needsDownload, dependenciesMetForStart)
 		else
-			strategy = checkString(target.labels['io.resin.update.strategy'])
+			strategy = checkString(target.config.labels['io.resin.update.strategy'])
 			validStrategies = [ 'download-then-kill', 'kill-then-download', 'delete-then-download', 'hand-over' ]
 			if !_.includes(validStrategies, strategy)
 				strategy = 'download-then-kill'
-			timeout = checkInt(target.labels['io.resin.update.handover-timeout'])
+			timeout = checkInt(target.config.labels['io.resin.update.handover-timeout'])
 			return @_strategySteps[strategy](current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout)
 
 	_nextStepsForAppUpdate: (currentApp, targetApp, availableImages = [], downloading = []) =>
@@ -558,12 +595,12 @@ module.exports = class ApplicationManager extends EventEmitter
 		currentApp ?= emptyApp
 		if currentApp.services?.length == 1 and targetApp.services?.length == 1 and
 			targetApp.services[0].serviceName == currentApp.services[0].serviceName and
-			checkTruthy(currentApp.services[0].labels['io.resin.legacy-container'])
+			checkTruthy(currentApp.services[0].config.labels['io.resin.legacy-container'])
 				# This is a legacy preloaded app or container, so we didn't have things like serviceId.
 				# We hack a few things to avoid an unnecessary restart of the preloaded app
 				# (but ensuring it gets updated if it actually changed)
-				targetApp.services[0].labels['io.resin.legacy-container'] = currentApp.services[0].labels['io.resin.legacy-container']
-				targetApp.services[0].labels['io.resin.service-id'] = currentApp.services[0].labels['io.resin.service-id']
+				targetApp.services[0].config.labels['io.resin.legacy-container'] = currentApp.services[0].labels['io.resin.legacy-container']
+				targetApp.services[0].config.labels['io.resin.service-id'] = currentApp.services[0].labels['io.resin.service-id']
 				targetApp.services[0].serviceId = currentApp.services[0].serviceId
 
 		appId = targetApp.appId ? currentApp.appId
@@ -577,6 +614,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				steps.push(serviceAction('kill', pair.current.serviceId, pair.current, null))
 			else
 				steps.push({ action: 'noop' })
+
 		# next step for install pairs in download - start order, but start requires dependencies, networks and volumes met
 		# next step for update pairs in order by update strategy. start requires dependencies, networks and volumes met.
 		for pair in installPairs.concat(updatePairs)
@@ -636,7 +674,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			service.imageName = service.image
 			if imageInfo?.Id?
 				service.image = imageInfo.Id
-			return new Service(service, serviceOpts)
+			return Service.fromComposeObject(service, serviceOpts)
 
 	normaliseAndExtendAppFromDB: (app) =>
 		Promise.join(
@@ -755,15 +793,19 @@ module.exports = class ApplicationManager extends EventEmitter
 		allImagesForTargetApp = (app) -> _.map(app.services, imageForService)
 		allImagesForCurrentApp = (app) ->
 			_.map app.services, (service) ->
-				img = _.find(available, { dockerImageId: service.image, imageId: service.imageId }) ? _.find(available, { dockerImageId: service.image })
+				img = _.find(available, { dockerImageId: service.config.image, imageId: service.imageId }) ? _.find(available, { dockerImageId: service.config.image })
 				return _.omit(img, [ 'dockerImageId', 'id' ])
+
 		availableWithoutIds = _.map(available, (image) -> _.omit(image, [ 'dockerImageId', 'id' ]))
 		currentImages = _.flatMap(current.local.apps, allImagesForCurrentApp)
 		targetImages = _.flatMap(target.local.apps, allImagesForTargetApp)
+
 		availableAndUnused = _.filter availableWithoutIds, (image) ->
 			!_.some currentImages.concat(targetImages), (imageInUse) -> _.isEqual(image, imageInUse)
+
 		imagesToDownload = _.filter targetImages, (targetImage) =>
 			!_.some available, (availableImage) => @images.isSameImage(availableImage, targetImage)
+
 		# Images that are available but we don't have them in the DB with the exact metadata:
 		imagesToSave = _.filter targetImages, (targetImage) =>
 			_.some(available, (availableImage) => @images.isSameImage(availableImage, targetImage)) and
@@ -772,6 +814,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)
 		proxyvisorImages = @proxyvisor.imagesInUse(current, target)
+
 		imagesToRemove = _.filter availableAndUnused, (image) =>
 			notUsedForDelta = !_.includes(deltaSources, image.name)
 			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) => @images.isSameImage(image, { name: proxyvisorImage })

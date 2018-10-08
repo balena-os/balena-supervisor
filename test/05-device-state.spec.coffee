@@ -11,7 +11,7 @@ DB = require('../src/db')
 Config = require('../src/config')
 { RPiConfigBackend } = require('../src/config/backend')
 
-Service = require '../src/compose/service'
+{ Service } = require '../src/compose/service'
 
 mockedInitialConfig = {
 	'RESIN_SUPERVISOR_CONNECTIVITY_CHECK': 'true'
@@ -199,9 +199,9 @@ describe 'deviceState', ->
 		eventTracker = {
 			track: console.log
 		}
-		stub(Service.prototype, 'extendEnvVars').callsFake (env) ->
-			@environment['ADDITIONAL_ENV_VAR'] = 'foo'
-			return @environment
+		stub(Service, 'extendEnvVars').callsFake (env) ->
+			env['ADDITIONAL_ENV_VAR'] = 'foo'
+			return env
 		@deviceState = new DeviceState({ @db, @config, eventTracker })
 		stub(@deviceState.applications.docker, 'getNetworkGateway').returns(Promise.resolve('172.17.0.1'))
 		stub(@deviceState.applications.images, 'inspectByName').callsFake ->
@@ -215,7 +215,7 @@ describe 'deviceState', ->
 			@config.init()
 
 	after ->
-		Service.prototype.extendEnvVars.restore()
+		Service.extendEnvVars.restore()
 		@deviceState.applications.docker.getNetworkGateway.restore()
 		@deviceState.applications.images.inspectByName.restore()
 
@@ -229,7 +229,7 @@ describe 'deviceState', ->
 			testTarget = _.cloneDeep(testTarget1)
 			testTarget.local.apps['1234'].services = _.map testTarget.local.apps['1234'].services, (s) ->
 				s.imageName = s.image
-				return new Service(s)
+				return Service.fromComposeObject(s, { appName: 'superapp' })
 			# We serialize and parse JSON to avoid checking fields that are functions or undefined
 			expect(JSON.parse(JSON.stringify(targetState))).to.deep.equal(JSON.parse(JSON.stringify(testTarget)))
 			@deviceState.applications.images.save.restore()
@@ -261,7 +261,7 @@ describe 'deviceState', ->
 			.then (imageName) ->
 				s.image = imageName
 				s.imageName = imageName
-				new Service(s)
+				Service.fromComposeObject(s, { appName: 'supertest' })
 		.then (services) =>
 			testTarget.local.apps['1234'].services = services
 			@deviceState.setTarget(testTarget2)
