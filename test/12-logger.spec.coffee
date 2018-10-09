@@ -33,6 +33,7 @@ describe 'Logger', ->
 			deviceApiKey: 'secretkey'
 			offlineMode: false
 			enableLogs: true
+			localMode: false
 		})
 
 	afterEach ->
