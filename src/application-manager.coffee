@@ -822,13 +822,10 @@ module.exports = class ApplicationManager extends EventEmitter
 		return { imagesToSave, imagesToRemove }
 
 	_inferNextSteps: (cleanupNeeded, availableImages, downloading, supervisorNetworkReady, current, target, ignoreImages, { localMode, delta }) =>
+		localMode = checkTruthy(localMode)
+		delta = checkTruthy(delta)
 		Promise.try =>
-			delta = checkTruthy(delta)
-			if checkTruthy(localMode)
-				target = _.cloneDeep(target)
-				target.local.apps = _.mapValues target.local.apps, (app) ->
-					app.services = []
-					return app
+			if localMode
 				ignoreImages = true
 			currentByAppId = current.local.apps ? {}
 			targetByAppId = target.local.apps ? {}
