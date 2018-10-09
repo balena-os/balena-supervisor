@@ -284,4 +284,14 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			});
 		}
 	});
+
+	router.get('/v2/local/logs', async (_req, res) => {
+		const backend = applications.logger.getLocalBackend();
+		backend.assignServiceNameResolver(applications.serviceNameFromId.bind(applications));
+
+		// Get the stream, and stream it into res
+		const listenStream = backend.attachListener();
+
+		listenStream.pipe(res);
+	});
 }

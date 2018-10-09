@@ -298,6 +298,10 @@ export class Logger {
 		const logLine = msgBuf.toString();
 		const space = logLine.indexOf(' ');
 		if (space > 0) {
+			let timestamp = (new Date(logLine.substr(0, space))).getTime();
+			if (_.isNaN(timestamp)) {
+				timestamp = Date.now();
+			}
 			return {
 				timestamp: (new Date(logLine.substr(0, space))).getTime(),
 				message: logLine.substr(space + 1),
