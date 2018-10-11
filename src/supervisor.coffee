@@ -60,11 +60,6 @@ module.exports = class Supervisor extends EventEmitter
 					enableLogs: checkTruthy(conf.loggingEnabled),
 					localMode: checkTruthy(conf.localMode)
 				})
-
-				# Setup log backend switching for local mode changes
-				@config.on 'change', (changed) =>
-					if changed.localMode?
-						@logger.switchBackend(checkTruthy(changed.localMode))
 			.then =>
 				@deviceState.init()
 			.then =>

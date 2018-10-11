@@ -9,6 +9,7 @@ path = require 'path'
 constants = require './lib/constants'
 
 Docker = require './lib/docker-utils'
+{ LocalModeManager } = require './local-mode'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
 { NotFoundError } = require './lib/errors'
@@ -72,6 +73,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@networks = new NetworkManager({ @docker, @logger })
 		@volumes = new Volumes({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
+		@localModeManager = new LocalModeManager(@config, @docker, @logger, @db)
 		@timeSpentFetching = 0
 		@fetchesInProgress = 0
 		@_targetVolatilePerImageId = {}
@@ -181,6 +183,8 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	init: =>
 		@images.cleanupDatabase()
+		.then =>
+			@localModeManager.init()
 		.then =>
 			@services.attachToRunning()
 		.then =>
