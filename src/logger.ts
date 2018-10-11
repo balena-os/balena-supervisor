@@ -303,7 +303,7 @@ export class Logger {
 				timestamp = Date.now();
 			}
 			return {
-				timestamp: (new Date(logLine.substr(0, space))).getTime(),
+				timestamp,
 				message: logLine.substr(space + 1),
 			};
 		}
