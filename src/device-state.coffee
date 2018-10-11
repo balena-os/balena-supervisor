@@ -242,12 +242,10 @@ module.exports = class DeviceState extends EventEmitter
 
 	setTarget: (target, localSource = false) ->
 		Promise.join(
-			@config.getMany(['apiEndpoint', 'localMode']),
+			@config.get('apiEndpoint'),
 			validateState(target),
-			({ apiEndpoint, localMode }) =>
+			(apiEndpoint) =>
 				source = apiEndpoint
-				if (validation.checkTruthy(localMode))
-					source = 'local'
 				@usingWriteLockTarget =>
 					# Apps, deviceConfig, dependent
 					@db.transaction (trx) =>
@@ -257,7 +255,7 @@ module.exports = class DeviceState extends EventEmitter
 							@deviceConfig.setTarget(target.local.config, trx)
 						.then =>
 							if localSource
-								@applications.setTarget(target.local.apps, target.dependent, source, trx)
+								@applications.setTarget(target.local.apps, target.dependent, 'local', trx)
 							else
 								@applications.setTarget(target.local.apps, target.dependent, apiEndpoint, trx)
 		)
@@ -492,6 +490,7 @@ module.exports = class DeviceState extends EventEmitter
 
 	triggerApplyTarget: ({ force = false, delay = 0, initial = false } = {}) =>
 		if @applyInProgress
+			console.log('==> Apply in progress')
 			if !@scheduledApply?
 				@scheduledApply = { force, delay }
 			else
@@ -507,6 +506,7 @@ module.exports = class DeviceState extends EventEmitter
 			console.log('Applying target state')
 			@applyTarget({ force, initial })
 		.finally =>
+			console.log('==> Done applying target state!')
 			@applyInProgress = false
 			@reportCurrentState()
 			if @scheduledApply?
