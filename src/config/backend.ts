@@ -88,11 +88,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 		'ramfsaddr',
 		'initramfs',
 		'device_tree_address',
-		'init_uart_baud',
-		'init_uart_clock',
 		'init_emmc_clock',
-		'boot_delay',
-		'boot_delay_ms',
 		'avoid_safe_mode',
 	];
 
