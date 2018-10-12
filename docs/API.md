@@ -617,6 +617,16 @@ Response:
 }
 ```
 
+
+Remotely via the API proxy:
+```bash
+curl -X POST \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <auth token>' \
+  -d '{"uuid": "<uuid>", "method": "GET"}' \
+  "https://api.resin.io/supervisor/v2/applications/state"
+```
+
 ### GET /v2/applications/:appId/state
 
 Added in supervisor version v7.12.0.
