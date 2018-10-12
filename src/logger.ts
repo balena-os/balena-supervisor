@@ -259,6 +259,7 @@ export class Logger {
 		}
 		if (eventObj.service != null &&
 			eventObj.service.serviceName != null &&
+			eventObj.service.config != null &&
 			eventObj.service.config.image != null
 		) {
 			return `${eventObj.service.serviceName} ${eventObj.service.config.image}`;
