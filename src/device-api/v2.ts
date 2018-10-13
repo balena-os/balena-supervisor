@@ -9,6 +9,8 @@ import { appNotFoundMessage, serviceNotFoundMessage } from '../lib/messages';
 import { checkTruthy } from '../lib/validation';
 import { doPurge, doRestart, serviceAction } from './common';
 
+import supervisorVersion = require('../lib/supervisor-version');
+
 export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	const { _lockingIfNecessary, deviceState } = applications;
@@ -293,5 +295,12 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		const listenStream = backend.attachListener();
 
 		listenStream.pipe(res);
+	});
+
+	router.get('/v2/version', (_req, res) => {
+		res.status(200).json({
+			status: 'success',
+			version: supervisorVersion,
+		});
 	});
 }
