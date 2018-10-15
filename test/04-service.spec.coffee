@@ -18,7 +18,7 @@ configs = {
 	}
 }
 
-describe 'compose/service.coffee', ->
+describe 'compose/service', ->
 
 	it 'extends environment variables properly', ->
 		extendEnvVarsOpts = {
@@ -52,9 +52,19 @@ describe 'compose/service.coffee', ->
 			RESIN_HOST_OS_VERSION: 'Resin OS 2.0.2'
 			RESIN_SERVICE_NAME: 'serviceName'
 			RESIN_SUPERVISOR_VERSION: 'v1.0.0'
-			RESIN_APP_LOCK_PATH: '/tmp/resin/resin-updates.lock'
-			RESIN_SERVICE_KILL_ME_PATH: '/tmp/resin/resin-kill-me'
+			RESIN_APP_LOCK_PATH: '/tmp/balena/updates.lock'
+			RESIN_SERVICE_KILL_ME_PATH: '/tmp/balena/handover-complete'
 			RESIN: '1'
+			BALENA_APP_ID: '23'
+			BALENA_APP_NAME: 'awesomeApp'
+			BALENA_DEVICE_UUID: '1234'
+			BALENA_DEVICE_TYPE: 'raspberry-pi'
+			BALENA_HOST_OS_VERSION: 'Resin OS 2.0.2'
+			BALENA_SERVICE_NAME: 'serviceName'
+			BALENA_SUPERVISOR_VERSION: 'v1.0.0'
+			BALENA_APP_LOCK_PATH: '/tmp/balena/updates.lock'
+			BALENA_SERVICE_HANDOVER_COMPLETE_PATH: '/tmp/balena/handover-complete'
+			BALENA: '1'
 			USER: 'root'
 		})
 
@@ -68,7 +78,8 @@ describe 'compose/service.coffee', ->
 		}, { appName: 'foo' })
 		binds = Service.defaultBinds(s.appId, s.serviceName)
 		expect(binds).to.deep.equal([
-			'/tmp/resin-supervisor/services/1234/foo:/tmp/resin'
+			'/tmp/balena-supervisor/services/1234/foo:/tmp/resin'
+			'/tmp/balena-supervisor/services/1234/foo:/tmp/balena'
 		])
 
 	it 'produces the correct port bindings and exposed ports', ->

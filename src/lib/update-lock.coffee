@@ -11,13 +11,14 @@ constants = require './constants'
 { ENOENT } = require './errors'
 
 baseLockPath = (appId) ->
-	return path.join('/tmp/resin-supervisor/services', appId.toString())
+	return path.join('/tmp/balena-supervisor/services', appId.toString())
 
 exports.lockPath = (appId, serviceName) ->
 	return path.join(baseLockPath(appId), serviceName)
 
-lockFileOnHost = (appId, serviceName) ->
-	return path.join(constants.rootMountPoint, exports.lockPath(appId, serviceName), 'resin-updates.lock')
+lockFilesOnHost = (appId, serviceName) ->
+	return _.map [ 'updates.lock', 'resin-updates.lock' ], (fileName) ->
+		path.join(constants.rootMountPoint, exports.lockPath(appId, serviceName), fileName)
 
 exports.UpdatesLockedError = class UpdatesLockedError extends TypedError
 locksTaken = {}
@@ -46,14 +47,14 @@ exports.lock = do ->
 					fs.readdirAsync(theLockDir)
 					.catchReturn(ENOENT, [])
 					.mapSeries (serviceName) ->
-						tmpLockName = lockFileOnHost(appId, serviceName)
-						Promise.try ->
-							lockFile.unlockAsync(tmpLockName) if force == true
-						.then ->
-							lockFile.lockAsync(tmpLockName)
-						.then ->
-							locksTaken[tmpLockName] = true
-						.catchReturn(ENOENT, null)
+						Promise.mapSeries lockFilesOnHost(appId, serviceName), (tmpLockName) ->
+							Promise.try ->
+								lockFile.unlockAsync(tmpLockName) if force == true
+							.then ->
+								lockFile.lockAsync(tmpLockName)
+							.then ->
+								locksTaken[tmpLockName] = true
+							.catchReturn(ENOENT, null)
 						.catch (err) ->
 							dispose(release)
 							.throw(new exports.UpdatesLockedError("Updates are locked: #{err.message}"))

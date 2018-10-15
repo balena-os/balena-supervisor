@@ -336,7 +336,8 @@ currentState[0] = {
 						privileged: false
 						restart: 'always'
 						volumes: [
-							'/tmp/resin-supervisor/services/1234/aservice:/tmp/resin'
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/balena'
 						]
 						labels: {
 							'io.resin.app-id': '1234'
@@ -365,7 +366,8 @@ currentState[0] = {
 							'ADDITIONAL_ENV_VAR': 'foo'
 						}
 						volumes: [
-							'/tmp/resin-supervisor/services/1234/anotherService:/tmp/resin'
+							'/tmp/balena-supervisor/services/1234/anotherService:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/anotherService:/tmp/balena'
 						]
 						privileged: false
 						restart: 'always'
@@ -445,7 +447,8 @@ currentState[2] = {
 						privileged: false
 						restart: 'always'
 						volumes: [
-							'/tmp/resin-supervisor/services/1234/aservice:/tmp/resin'
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/balena'
 						]
 						labels: {
 							'io.resin.app-id': '1234'
@@ -501,7 +504,8 @@ currentState[3] = {
 						privileged: false
 						restart: 'always'
 						volumes: [
-							'/tmp/resin-supervisor/services/1234/aservice:/tmp/resin'
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/balena'
 						]
 						labels: {
 							'io.resin.app-id': '1234'
@@ -534,7 +538,8 @@ currentState[3] = {
 						privileged: false
 						restart: 'always'
 						volumes: [
-							'/tmp/resin-supervisor/services/1234/aservice:/tmp/resin'
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/balena'
 						]
 						labels: {
 							'io.resin.app-id': '1234'
@@ -586,7 +591,8 @@ currentState[4] = {
 							'ADDITIONAL_ENV_VAR': 'foo'
 						}
 						volumes: [
-							'/tmp/resin-supervisor/services/1234/anotherService:/tmp/resin'
+							'/tmp/balena-supervisor/services/1234/anotherService:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/anotherService:/tmp/balena'
 						]
 						privileged: false
 						restart: 'always'
