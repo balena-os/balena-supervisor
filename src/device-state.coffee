@@ -40,6 +40,8 @@ validateState = Promise.method (state) ->
 	if state.dependent?
 		validateDependentState(state.dependent)
 
+# TODO (refactor): This shouldn't be here, and instead should be part of the other
+# device api stuff in ./device-api
 createDeviceStateRouter = (deviceState) ->
 	router = express.Router()
 	router.use(bodyParser.urlencoded(extended: true))
@@ -238,11 +240,12 @@ module.exports = class DeviceState extends EventEmitter
 	usingInferStepsLock: (fn) =>
 		Promise.using @_inferStepsLock, -> fn()
 
-	setTarget: (target) ->
+	setTarget: (target, localSource = false) ->
 		Promise.join(
 			@config.get('apiEndpoint'),
 			validateState(target),
-			(source) =>
+			(apiEndpoint) =>
+				source = apiEndpoint
 				@usingWriteLockTarget =>
 					# Apps, deviceConfig, dependent
 					@db.transaction (trx) =>
@@ -251,7 +254,10 @@ module.exports = class DeviceState extends EventEmitter
 						.then =>
 							@deviceConfig.setTarget(target.local.config, trx)
 						.then =>
-							@applications.setTarget(target.local.apps, target.dependent, source, trx)
+							if localSource
+								@applications.setTarget(target.local.apps, target.dependent, 'local', trx)
+							else
+								@applications.setTarget(target.local.apps, target.dependent, apiEndpoint, trx)
 		)
 
 	getTarget: ({ initial = false, intermediate = false } = {}) =>
@@ -484,6 +490,7 @@ module.exports = class DeviceState extends EventEmitter
 
 	triggerApplyTarget: ({ force = false, delay = 0, initial = false } = {}) =>
 		if @applyInProgress
+			console.log('==> Apply in progress')
 			if !@scheduledApply?
 				@scheduledApply = { force, delay }
 			else
@@ -499,6 +506,7 @@ module.exports = class DeviceState extends EventEmitter
 			console.log('Applying target state')
 			@applyTarget({ force, initial })
 		.finally =>
+			console.log('==> Done applying target state!')
 			@applyInProgress = false
 			@reportCurrentState()
 			if @scheduledApply?

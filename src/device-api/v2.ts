@@ -1,15 +1,31 @@
 import * as Bluebird from 'bluebird';
 import { Request, Response, Router } from 'express';
 import * as _ from 'lodash';
+import { fs } from 'mz';
 
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
 import { appNotFoundMessage, serviceNotFoundMessage } from '../lib/messages';
+import { checkTruthy } from '../lib/validation';
 import { doPurge, doRestart, serviceAction } from './common';
+
+import supervisorVersion = require('../lib/supervisor-version');
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 
-	const { _lockingIfNecessary } = applications;
+	const { _lockingIfNecessary, deviceState } = applications;
+
+	const messageFromError = (err?: Error | string | null): string => {
+		let message = 'Unknown error';
+		if (err != null) {
+			if (_.isError(err) && err.message != null) {
+				message = err.message;
+			} else {
+				message = err as string;
+			}
+		}
+		return message;
+	};
 
 	const handleServiceAction = (
 		req: Request,
@@ -50,17 +66,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						});
 				})
 				.catch((err) => {
-					let message;
-					if (err != null) {
-						if (err.message != null) {
-							message = err.message;
-						} else {
-							message = err;
-						}
-					} else {
-						message = 'Unknown error';
-					}
-					res.status(503).send(message);
+					res.status(503).send(messageFromError(err));
 				});
 		});
 	};
@@ -108,16 +114,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				res.status(200).send('OK');
 			})
 			.catch((err) => {
-				let message;
-				if (err != null) {
-					message = err.message;
-					if (message == null) {
-						message = err;
-					}
-				} else {
-					message = 'Unknown error';
-				}
-				res.status(503).send(message);
+				res.status(503).send(messageFromError(err));
 			});
 	});
 
@@ -198,5 +195,112 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			.then((apps) => {
 				res.status(200).json(apps);
 			});
+	});
+
+	router.get('/v2/local/target-state', async (_req, res) => {
+		try {
+			const localMode = checkTruthy(await deviceState.config.get('localMode'));
+			if (!localMode) {
+				return res.status(400).json({
+					status: 'failed',
+					message: 'Target state can only be retrieved when in local mode',
+				});
+			}
+
+			res.status(200).json({
+				status: 'success',
+				state: await deviceState.getTarget(),
+			});
+		} catch (err) {
+			res.status(503).send({
+				status: 'failed',
+				message: messageFromError(err),
+			});
+		}
+	});
+
+	router.post('/v2/local/target-state', async (req, res) => {
+		// let's first ensure that we're in local mode, otherwise
+		// this function should not do anything
+		// TODO: We really should refactor the config module to provide bools
+		// as bools etc
+		try {
+			const localMode = checkTruthy(await deviceState.config.get('localMode'));
+			if (!localMode) {
+				return res.status(400).json({
+					status: 'failed',
+					message: 'Target state can only set when device is in local mode',
+				});
+			}
+
+			// Now attempt to set the state
+			const force = req.body.force;
+			const targetState = req.body;
+			try {
+				await deviceState.setTarget(targetState, true);
+				await deviceState.triggerApplyTarget({ force });
+				res.status(200).json({
+					status: 'success',
+					message: 'OK',
+				});
+			} catch (e) {
+				res.status(400).json({
+					status: 'failed',
+					message: e.message,
+				});
+			}
+
+		} catch (e) {
+			const message = 'Could not apply target state: ';
+			res.status(503).json({
+				status: 'failed',
+				message: message + messageFromError(e),
+			});
+		}
+	});
+
+	router.get('/v2/local/device-info', async (_req, res) => {
+		// Return the device type and slug so that local mode builds can use this to
+		// resolve builds
+		try {
+
+			// FIXME: We should be mounting the following file into the supervisor from the
+			// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
+			const data = await fs.readFile('/mnt/root/resin-boot/device-type.json', 'utf8');
+			const deviceInfo = JSON.parse(data);
+
+
+			return res.status(200).json({
+				status: 'sucess',
+				info: {
+					arch: deviceInfo.arch,
+					deviceType: deviceInfo.slug,
+				},
+			});
+
+		} catch (e) {
+			const message = 'Could not fetch device information: ';
+			res.status(503).json({
+				status: 'failed',
+				message: message + messageFromError(e),
+			});
+		}
+	});
+
+	router.get('/v2/local/logs', async (_req, res) => {
+		const backend = applications.logger.getLocalBackend();
+		backend.assignServiceNameResolver(applications.serviceNameFromId.bind(applications));
+
+		// Get the stream, and stream it into res
+		const listenStream = backend.attachListener();
+
+		listenStream.pipe(res);
+	});
+
+	router.get('/v2/version', (_req, res) => {
+		res.status(200).json({
+			status: 'success',
+			version: supervisorVersion,
+		});
 	});
 }

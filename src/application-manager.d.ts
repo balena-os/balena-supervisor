@@ -2,6 +2,8 @@ import { EventEmitter } from 'events';
 
 import { ServiceAction } from './device-api/common';
 import { DeviceApplicationState } from './types/state';
+import { Logger } from './logger';
+import { EventTracker } from './event-tracker';
 
 import Images = require('./compose/images');
 import ServiceManager = require('./compose/service-manager');
@@ -31,9 +33,9 @@ export class ApplicationManager extends EventEmitter {
 	// TODO: When the module which is/declares these fields is converted to
 	// typecript, type the following
 	public _lockingIfNecessary: any;
-	public logger: any;
+	public logger: Logger;
 	public deviceState: any;
-	public eventTracker: any;
+	public eventTracker: EventTracker;
 
 	public services: ServiceManager;
 	public db: DB;
@@ -47,6 +49,8 @@ export class ApplicationManager extends EventEmitter {
 	public executeStepAction(serviceAction: ServiceAction, opts: Options): Promise<void>;
 
 	public getStatus(): Promise<DeviceApplicationState>;
+
+	public serviceNameFromId(serviceId: number): Promise<string>;
 
 }
 

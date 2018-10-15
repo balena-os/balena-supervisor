@@ -37,7 +37,6 @@
     "@types/node": "^10.3.1",
     "@types/rwlock": "^5.0.2",
     "@types/shell-quote": "^1.6.0",
-    "JSONStream": "^1.1.2",
     "blinking": "~0.0.2",
     "bluebird": "^3.5.0",
     "body-parser": "^1.12.0",

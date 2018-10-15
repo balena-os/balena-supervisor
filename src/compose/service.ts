@@ -77,17 +77,21 @@ export class Service {
 
 		appConfig = ComposeUtils.camelCaseConfig(appConfig);
 
+		const intOrNull = (val: string | number | null | undefined): number | null => {
+			return checkInt(val) || null;
+		};
+
 		// Seperate the application information from the docker
 		// container configuration
-		service.imageId = appConfig.imageId;
+		service.imageId = intOrNull(appConfig.imageId);
 		delete appConfig.imageId;
 		service.serviceName = appConfig.serviceName;
 		delete appConfig.serviceName;
-		service.appId = appConfig.appId;
+		service.appId = intOrNull(appConfig.appId);
 		delete appConfig.appId;
-		service.releaseId = appConfig.releaseId;
+		service.releaseId = intOrNull(appConfig.releaseId);
 		delete appConfig.releaseId;
-		service.serviceId = appConfig.serviceId;
+		service.serviceId = intOrNull(appConfig.serviceId);
 		delete appConfig.serviceId;
 		service.imageName = appConfig.imageName;
 		delete appConfig.imageName;

@@ -22,6 +22,7 @@ startupConfigFields = [
 	'mixpanelToken'
 	'mixpanelHost'
 	'loggingEnabled'
+	'localMode'
 ]
 
 module.exports = class Supervisor extends EventEmitter
@@ -57,6 +58,7 @@ module.exports = class Supervisor extends EventEmitter
 					deviceApiKey: conf.deviceApiKey,
 					offlineMode: checkTruthy(conf.offlineMode),
 					enableLogs: checkTruthy(conf.loggingEnabled),
+					localMode: checkTruthy(conf.localMode)
 				})
 			.then =>
 				@deviceState.init()

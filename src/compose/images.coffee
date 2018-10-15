@@ -193,9 +193,16 @@ module.exports = class Images extends EventEmitter
 			@_matchesTagOrDigest(image, dockerImage) or image.dockerImageId == dockerImage.Id
 
 	# Gets all images that are supervised, in an object containing name, appId, serviceId, serviceName, imageId, dependent.
-	getAvailable: =>
+	getAvailable: (localMode) =>
 		@_withImagesFromDockerAndDB (dockerImages, supervisedImages) =>
 			_.filter(supervisedImages, (image) => @_isAvailableInDocker(image, dockerImages))
+		.then (images) =>
+			if localMode
+				# Get all images present on the local daemon which are tagged as local images
+				return @_getLocalModeImages().then (localImages) ->
+					images.concat(localImages)
+			return images
+
 
 	getDownloadingImageIds: =>
 		Promise.try =>
@@ -218,8 +225,8 @@ module.exports = class Images extends EventEmitter
 			ids = _.map(imagesToRemove, 'id')
 			@db.models('image').del().whereIn('id', ids)
 
-	getStatus: =>
-		@getAvailable()
+	getStatus: (localMode) =>
+		@getAvailable(localMode)
 		.map (image) ->
 			image.status = 'Downloaded'
 			image.downloadProgress = null
@@ -304,3 +311,6 @@ module.exports = class Images extends EventEmitter
 		return image1.name == image2.name or Images.hasSameDigest(image1.name, image2.name)
 
 	isSameImage: @isSameImage
+
+	_getLocalModeImages: =>
+		@docker.listImages(filters: label: [ 'io.resin.local.image=1' ])

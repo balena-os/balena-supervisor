@@ -420,8 +420,9 @@ module.exports = class APIBinder
 		@cachedResinApi._request(requestParams)
 
 	_report: =>
-		@config.getMany([ 'deviceId', 'apiTimeout', 'apiEndpoint', 'uuid' ])
+		@config.getMany([ 'deviceId', 'apiTimeout', 'apiEndpoint', 'uuid', 'localMode' ])
 		.then (conf) =>
+			return if checkTruthy(conf.localMode)
 			stateDiff = @_getStateDiff()
 			if _.size(stateDiff) is 0
 				return
