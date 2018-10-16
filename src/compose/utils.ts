@@ -190,8 +190,13 @@ function getNanoseconds(timeStr: string): number {
 
 export function composeHealthcheckToServiceHealthcheck(
 	healthcheck: ComposeHealthcheck | null | undefined,
-): ServiceHealthcheck {
-	if (healthcheck == null || healthcheck.disable) {
+): ServiceHealthcheck | { } {
+
+	if (healthcheck == null) {
+		return  { };
+	}
+
+	if (healthcheck.disable) {
 		return { test: [ 'NONE' ] };
 	}
 
@@ -230,7 +235,8 @@ export function getHealthcheck(
 		composeHealthcheck,
 	);
 
-	return _.defaults(composeServiceHealthcheck, imageServiceHealthcheck);
+	// Overlay any compose healthcheck fields on the image healthchecks
+	return _.assign({ test: [ 'NONE' ] }, imageServiceHealthcheck, composeServiceHealthcheck);
 }
 
 export function serviceHealthcheckToDockerHealthcheck(
