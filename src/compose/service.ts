@@ -19,6 +19,7 @@ import * as ComposeUtils from './utils';
 
 import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
+import * as constants from '../lib/constants';
 
 export class Service {
 
@@ -653,6 +654,17 @@ export class Service {
 		});
 
 		return _.reject(validVolumes, _.isNil);
+	}
+
+	public handoverCompleteFullPathsOnHost(): string[] {
+		return [
+			path.join(handoverCompletePathOnHost(), 'handover-complete'),
+			path.join(handoverCompletePathOnHost(), 'resin-kill-me'),
+		];
+	}
+
+	private handoverCompletePathOnHost(): string {
+		return path.join(constants.rootMountPoint, updateLock.lockPath(this.appId, this.serviceName));
 	}
 
 	private getBindsAndVolumes(): {
