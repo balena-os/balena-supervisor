@@ -61,7 +61,6 @@ export interface ServiceComposeConfig {
 	securityOpt?: string[];
 	stopGracePeriod?: string;
 	stopSignal?: string;
-	storageOpt?: { [opt: string]: string };
 	sysctls?: { [name: string]: string };
 	ulimits?: {
 		[ulimitName: string]: number | { soft: number, hard: number };
@@ -126,7 +125,6 @@ export interface ServiceConfig {
 	securityOpt: string[];
 	stopGracePeriod: number;
 	stopSignal: string;
-	storageOpt: { [opt: string]: string };
 	sysctls: { [name: string]: string };
 	ulimits: {
 		[ulimitName: string]: { soft: number, hard: number };

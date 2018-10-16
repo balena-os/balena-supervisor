@@ -60,7 +60,6 @@ export class Service {
 		// This field is passed at container creation, but is not
 		// reported on a container inspect, so we cannot use it
 		// to compare containers
-		'storageOpt',
 		'cpus',
 	].concat(Service.configArrayFields);
 
@@ -321,7 +320,6 @@ export class Service {
 			securityOpt: [ ],
 			stopGracePeriod,
 			stopSignal: '',
-			storageOpt: { },
 			sysctls: { },
 			tmpfs,
 			usernsMode: '',
@@ -464,9 +462,6 @@ export class Service {
 			pid: container.HostConfig.PidMode || '',
 			pidsLimit: container.HostConfig.PidsLimit || 0,
 			securityOpt: container.HostConfig.SecurityOpt || [ ],
-			// StorageOpt is present on container creation, but not
-			// when you inspect the container
-			storageOpt: { },
 			usernsMode: container.HostConfig.UsernsMode || '',
 			ipc: container.HostConfig.IpcMode || '',
 			macAddress: (container.Config as any).MacAddress || '',
@@ -552,7 +547,6 @@ export class Service {
 				ReadonlyRootfs: this.config.readOnly,
 				ShmSize: this.config.shmSize,
 				Tmpfs: tmpFs,
-				StorageOpt: this.config.storageOpt,
 				UsernsMode: this.config.usernsMode,
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
