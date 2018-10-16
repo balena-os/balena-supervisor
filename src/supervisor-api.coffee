@@ -29,6 +29,7 @@ module.exports = class SupervisorAPI
 	constructor: ({ @config, @eventTracker, @routers, @healthchecks }) ->
 		@server = null
 		@_api = express()
+		@_api.disable('x-powered-by')
 
 		@_api.get '/v1/healthy', (req, res) =>
 			Promise.map @healthchecks, (fn) ->
