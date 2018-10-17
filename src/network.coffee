@@ -88,7 +88,7 @@ exports.getIPAddresses = ->
 	# - the docker network for the supervisor API (supervisor0)
 	# - custom docker network bridges (br- + 12 hex characters)
 	_.flatten(_.map(_.omitBy(os.networkInterfaces(), (interfaceFields, interfaceName) ->
-		/^(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|resin-dns|supervisor0|br-[0-9a-f]{12}$/.test(interfaceName))
+		/^(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|resin-dns|supervisor0|balena-redsocks|resin-redsocks|br-[0-9a-f]{12}$/.test(interfaceName))
 	, (validInterfaces) ->
 		_.map(_.pickBy(validInterfaces, family: 'IPv4'), 'address'))
 	)
