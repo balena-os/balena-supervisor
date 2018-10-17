@@ -37,7 +37,7 @@ const constants = {
 		'io.balena.supervised': 'true',
 	},
 	bootBlockDevice: '/dev/mmcblk0p1',
-	hostConfigVarPrefix: 'RESIN_HOST_',
+	hostConfigVarPrefix: 'HOST_',
 };
 
 if (process.env.DOCKER_HOST == null) {

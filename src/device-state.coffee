@@ -306,23 +306,28 @@ module.exports = class DeviceState extends EventEmitter
 		@emitAsync('change')
 
 	_convertLegacyAppsJson: (appsArray) =>
-		config = _.reduce(appsArray, (conf, app) =>
-			return _.merge({}, conf, @deviceConfig.filterConfigKeys(app.config))
+		deviceConf = _.reduce(appsArray, (conf, app) =>
+			return _.merge({}, conf, app.config)
 		, {})
 		apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId')
-		return { apps, config }
+		@deviceConfig.filterAndFormatConfigKeys(deviceConf)
+		.then (filteredDeviceConf)->
+			return { apps, config: filteredDeviceConf }
 
 	loadTargetFromFile: (appsPath) ->
 		appsPath ?= constants.appsJsonPath
 		fs.readFileAsync(appsPath, 'utf8')
 		.then(JSON.parse)
 		.then (stateFromFile) =>
+			if _.isArray(stateFromFile)
+					# This is a legacy apps.json
+					return @_convertLegacyAppsJson(stateFromFile)
+			else
+				return stateFromFile
+		.then (stateFromFile) =>
 			commitToPin = null
 			appToPin = null
 			if !_.isEmpty(stateFromFile)
-				if _.isArray(stateFromFile)
-					# This is a legacy apps.json
-					stateFromFile = @_convertLegacyAppsJson(stateFromFile)
 				images = _.flatMap stateFromFile.apps, (app, appId) =>
 					# multi-app warning!
 					# The following will need to be changed once running multiple applications is possible

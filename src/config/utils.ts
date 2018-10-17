@@ -54,15 +54,31 @@ export function bootConfigToEnv(
 		.value();
 }
 
-export function filterConfigKeys(
+function filterNamespaceFromConfig(
+	namespace: RegExp,
+	conf: { [key: string]: any },
+): { [key: string]: any } {
+	return _.mapKeys(_.pickBy(conf, (_v, k) => {
+		return namespace.test(k);
+	}), (_v,k) => {
+		return k.replace(namespace, '$1');
+	});
+}
+
+export function filterAndFormatConfigKeys(
 	configBackend: DeviceConfigBackend | null,
 	allowedKeys: string[],
 	conf: { [key: string]: any },
 ): { [key: string]: any } {
 
 	const isConfigType = configBackend != null;
+	const namespaceRegex = /^BALENA_(.*)/;
+	const legacyNamespaceRegex = /^RESIN_(.*)/;
+	const confFromNamespace = filterNamespaceFromConfig(namespaceRegex, conf);
+	const confFromLegacyNamespace = filterNamespaceFromConfig(legacyNamespaceRegex, conf);
+	const confWithoutNamespace = _.defaults(confFromNamespace, confFromLegacyNamespace);
 
-	return _.pickBy(conf, (_v, k) => {
+	return _.pickBy(confWithoutNamespace, (_v, k) => {
 		return _.includes(allowedKeys, k) || (isConfigType && configBackend!.isBootConfigVar(k));
 	});
 }
