@@ -658,13 +658,13 @@ export class Service {
 
 	public handoverCompleteFullPathsOnHost(): string[] {
 		return [
-			path.join(handoverCompletePathOnHost(), 'handover-complete'),
-			path.join(handoverCompletePathOnHost(), 'resin-kill-me'),
+			path.join(this.handoverCompletePathOnHost(), 'handover-complete'),
+			path.join(this.handoverCompletePathOnHost(), 'resin-kill-me'),
 		];
 	}
 
 	private handoverCompletePathOnHost(): string {
-		return path.join(constants.rootMountPoint, updateLock.lockPath(this.appId, this.serviceName));
+		return path.join(constants.rootMountPoint, updateLock.lockPath(this.appId || 0, this.serviceName || ''));
 	}
 
 	private getBindsAndVolumes(): {
