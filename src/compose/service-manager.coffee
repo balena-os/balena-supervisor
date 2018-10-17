@@ -233,7 +233,7 @@ module.exports = class ServiceManager extends EventEmitter
 			Promise.any _.map handoverCompletePaths, (file) ->
 					fs.statAsync(file)
 					.then ->
-						fs.unlinkAsync(handoverCompletePaths).catch(_.noop)
+						fs.unlinkAsync(file).catch(_.noop)
 			.catch ->
 				if Date.now() < deadline
 					Promise.delay(pollInterval).then(wait)
