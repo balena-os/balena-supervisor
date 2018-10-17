@@ -88,7 +88,7 @@ module.exports = class ServiceManager extends EventEmitter
 			@logger.logSystemEvent(logTypes.removeDeadServiceError, { service, error: err })
 
 	getAllByAppId: (appId) =>
-		@getAll("io.resin.app-id=#{appId}")
+		@getAll("app-id=#{appId}")
 
 	stopAllByAppId: (appId) =>
 		Promise.map @getAllByAppId(appId), (service) =>
@@ -174,10 +174,20 @@ module.exports = class ServiceManager extends EventEmitter
 		.finally =>
 			@reportChange(containerId)
 
+	_listWithBothLabels: (labelList) =>
+		listWithPrefix = (prefix) =>
+			@docker.listContainers({ all: true, filters: label: _.map(labelList, (v) -> prefix + v) })
+		Promise.join(
+			listWithPrefix('io.resin.')
+			listWithPrefix('io.balena.')
+			(legacyContainers, currentContainers) ->
+				_.unionBy(legacyContainers, currentContainers, 'Id')
+		)
+
 	# Gets all existing containers that correspond to apps
 	getAll: (extraLabelFilters = []) =>
-		filters = label: [ 'io.resin.supervised' ].concat(extraLabelFilters)
-		@docker.listContainers({ all: true, filters })
+		filterLabels = [ 'supervised' ].concat(extraLabelFilters)
+		@_listWithBothLabels(filterLabels)
 		.mapSeries (container) =>
 			@docker.getContainer(container.Id).inspect()
 			.then(Service.fromDockerContainer)
@@ -190,7 +200,7 @@ module.exports = class ServiceManager extends EventEmitter
 
 	# Returns the first container matching a service definition
 	get: (service) =>
-		@getAll("io.resin.service-id=#{service.serviceId}")
+		@getAll("service-id=#{service.serviceId}")
 		.filter((currentService) -> currentService.isEqualConfig(service))
 		.then (services) ->
 			if services.length == 0
@@ -218,7 +228,7 @@ module.exports = class ServiceManager extends EventEmitter
 	getByDockerContainerId: (containerId) =>
 		@docker.getContainer(containerId).inspect()
 		.then (container) ->
-			if !container.Config.Labels['io.resin.supervised']?
+			if !(container.Config.Labels['io.balena.supervised']? or container.Config.Labels['io.resin.supervised']?)
 				return null
 			return Service.fromDockerContainer(container)
 
@@ -267,7 +277,7 @@ module.exports = class ServiceManager extends EventEmitter
 		.then =>
 			@start(targetService)
 		.then =>
-			@waitToKill(currentService, targetService.config.labels['io.resin.update.handover-timeout'])
+			@waitToKill(currentService, targetService.config.labels['io.balena.update.handover-timeout'])
 		.then =>
 			@kill(currentService)
 

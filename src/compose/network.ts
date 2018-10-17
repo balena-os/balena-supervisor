@@ -9,6 +9,7 @@ import {
 import logTypes = require('../lib/log-types');
 import { checkInt } from '../lib/validation';
 import { Logger } from '../logger';
+import * as ComposeUtils from './utils';
 
 import {
 	DockerIPAMConfig,
@@ -83,7 +84,7 @@ export class Network {
 			},
 			enableIPv6: network.EnableIPv6,
 			internal: network.Internal,
-			labels: _.omit(network.Labels, [ 'io.resin.supervised' ]),
+			labels: _.omit(ComposeUtils.normalizeLabels(network.Labels), [ 'io.balena.supervised' ]),
 			options: network.Options,
 		};
 
@@ -125,6 +126,7 @@ export class Network {
 			labels: { },
 			options: { },
 		});
+		net.config.labels = ComposeUtils.normalizeLabels(net.config.labels);
 
 		return net;
 	}
@@ -177,7 +179,7 @@ export class Network {
 			EnableIPv6: this.config.enableIPv6,
 			Internal: this.config.internal,
 			Labels: _.merge({}, {
-				'io.resin.supervised': 'true',
+				'io.balena.supervised': 'true',
 			}, this.config.labels),
 		};
 	}

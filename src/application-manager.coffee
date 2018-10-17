@@ -96,7 +96,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				# Only called for dead containers, so no need to take locks or anything
 				@services.remove(step.current)
 			updateMetadata: (step, { force = false, skipLock = false } = {}) =>
-				skipLock or= checkTruthy(step.current.config.labels['io.resin.legacy-container'])
+				skipLock or= checkTruthy(step.current.config.labels['io.balena.legacy-container'])
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
 					@services.updateMetadata(step.current, step.target)
 			restart: (step, { force = false, skipLock = false } = {}) =>
@@ -591,11 +591,11 @@ module.exports = class ApplicationManager extends EventEmitter
 			# Either this is a new service, or the current one has already been killed
 			return @_fetchOrStartStep(current, target, needsDownload, dependenciesMetForStart)
 		else
-			strategy = checkString(target.config.labels['io.resin.update.strategy'])
+			strategy = checkString(target.config.labels['io.balena.update.strategy'])
 			validStrategies = [ 'download-then-kill', 'kill-then-download', 'delete-then-download', 'hand-over' ]
 			if !_.includes(validStrategies, strategy)
 				strategy = 'download-then-kill'
-			timeout = checkInt(target.config.labels['io.resin.update.handover-timeout'])
+			timeout = checkInt(target.config.labels['io.balena.update.handover-timeout'])
 			return @_strategySteps[strategy](current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout)
 
 	_nextStepsForAppUpdate: (currentApp, targetApp, localMode, availableImages = [], downloading = []) =>
@@ -608,12 +608,12 @@ module.exports = class ApplicationManager extends EventEmitter
 		currentApp ?= emptyApp
 		if currentApp.services?.length == 1 and targetApp.services?.length == 1 and
 			targetApp.services[0].serviceName == currentApp.services[0].serviceName and
-			checkTruthy(currentApp.services[0].config.labels['io.resin.legacy-container'])
+			checkTruthy(currentApp.services[0].config.labels['io.balena.legacy-container'])
 				# This is a legacy preloaded app or container, so we didn't have things like serviceId.
 				# We hack a few things to avoid an unnecessary restart of the preloaded app
 				# (but ensuring it gets updated if it actually changed)
-				targetApp.services[0].config.labels['io.resin.legacy-container'] = currentApp.services[0].labels['io.resin.legacy-container']
-				targetApp.services[0].config.labels['io.resin.service-id'] = currentApp.services[0].labels['io.resin.service-id']
+				targetApp.services[0].config.labels['io.balena.legacy-container'] = currentApp.services[0].labels['io.balena.legacy-container']
+				targetApp.services[0].config.labels['io.balena.service-id'] = currentApp.services[0].labels['io.balena.service-id']
 				targetApp.services[0].serviceId = currentApp.services[0].serviceId
 
 		appId = targetApp.appId ? currentApp.appId

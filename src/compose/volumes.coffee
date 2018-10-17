@@ -8,6 +8,7 @@ constants = require '../lib/constants'
 { NotFoundError } = require '../lib/errors'
 { defaultLegacyVolume } = require '../lib/migration'
 { safeRename } = require '../lib/fs-utils'
+ComposeUtils = require './utils'
 
 module.exports = class Volumes
 	constructor: ({ @docker, @logger }) ->
@@ -20,19 +21,27 @@ module.exports = class Volumes
 			name: name
 			appId: appId
 			config: {
-				labels: _.omit(volume.Labels, _.keys(constants.defaultVolumeLabels))
+				labels: _.omit(ComposeUtils.normalizeLabels(volume.Labels), _.keys(constants.defaultVolumeLabels))
 				driverOpts: volume.Options
 			}
 			handle: volume
 		}
 
+	_listWithBothLabels: =>
+		Promise.join(
+			@docker.listVolumes(filters: label: [ 'io.resin.supervised' ])
+			@docker.listVolumes(filters: label: [ 'io.balena.supervised' ])
+			(legacyVolumesResponse, currentVolumesResponse) ->
+				legacyVolumes = legacyVolumesResponse.Volumes ? []
+				currentVolumes = currentVolumesResponse.Volumes ? []
+				return _.unionBy(legacyVolumes, currentVolumes, 'Name')
+		)
+
 	getAll: =>
-		@docker.listVolumes(filters: label: [ 'io.resin.supervised' ])
-		.then (response) =>
-			volumes = response.Volumes ? []
-			Promise.map volumes, (volume) =>
-				@docker.getVolume(volume.Name).inspect()
-				.then(@format)
+		@_listWithBothLabels()
+		.map (volume) =>
+			@docker.getVolume(volume.Name).inspect()
+			.then(@format)
 
 	getAllByAppId: (appId) =>
 		@getAll()

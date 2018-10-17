@@ -3,7 +3,7 @@ m = require 'mochainon'
 
 { Network } = require '../src/compose/network'
 
-describe 'compose/network.coffee', ->
+describe 'compose/network', ->
 
 	describe 'compose config -> internal config', ->
 
@@ -70,6 +70,6 @@ describe 'compose/network.coffee', ->
 				EnableIPv6: false,
 				Internal: false,
 				Labels: {
-					'io.resin.supervised': 'true'
+					'io.balena.supervised': 'true'
 				}
 			})
