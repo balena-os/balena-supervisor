@@ -12,22 +12,22 @@ module.exports = class DeviceConfig
 	constructor: ({ @db, @config, @logger }) ->
 		@rebootRequired = false
 		@configKeys = {
-			appUpdatePollInterval: { envVarName: 'RESIN_SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
-			localMode: { envVarName: 'RESIN_SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
-			connectivityCheckEnabled: { envVarName: 'RESIN_SUPERVISOR_CONNECTIVITY_CHECK', varType: 'bool', defaultValue: 'true' }
-			loggingEnabled: { envVarName: 'RESIN_SUPERVISOR_LOG_CONTROL', varType: 'bool', defaultValue: 'true' }
-			delta: { envVarName: 'RESIN_SUPERVISOR_DELTA', varType: 'bool', defaultValue: 'false' }
-			deltaRequestTimeout: { envVarName: 'RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT', varType: 'int', defaultValue: '30000' }
-			deltaApplyTimeout: { envVarName: 'RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT', varType: 'int', defaultValue: '' }
-			deltaRetryCount: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_COUNT', varType: 'int', defaultValue: '30' }
-			deltaRetryInterval: { envVarName: 'RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL', varType: 'int', defaultValue: '10000' }
-			deltaVersion: { envVarName: 'RESIN_SUPERVISOR_DELTA_VERSION', varType: 'int', defaultValue: '2' }
-			lockOverride: { envVarName: 'RESIN_SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
-			persistentLogging: { envVarName: 'RESIN_SUPERVISOR_PERSISTENT_LOGGING', varType: 'bool', defaultValue: 'false', rebootRequired: true }
+			appUpdatePollInterval: { envVarName: 'SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
+			localMode: { envVarName: 'SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
+			connectivityCheckEnabled: { envVarName: 'SUPERVISOR_CONNECTIVITY_CHECK', varType: 'bool', defaultValue: 'true' }
+			loggingEnabled: { envVarName: 'SUPERVISOR_LOG_CONTROL', varType: 'bool', defaultValue: 'true' }
+			delta: { envVarName: 'SUPERVISOR_DELTA', varType: 'bool', defaultValue: 'false' }
+			deltaRequestTimeout: { envVarName: 'SUPERVISOR_DELTA_REQUEST_TIMEOUT', varType: 'int', defaultValue: '30000' }
+			deltaApplyTimeout: { envVarName: 'SUPERVISOR_DELTA_APPLY_TIMEOUT', varType: 'int', defaultValue: '' }
+			deltaRetryCount: { envVarName: 'SUPERVISOR_DELTA_RETRY_COUNT', varType: 'int', defaultValue: '30' }
+			deltaRetryInterval: { envVarName: 'SUPERVISOR_DELTA_RETRY_INTERVAL', varType: 'int', defaultValue: '10000' }
+			deltaVersion: { envVarName: 'SUPERVISOR_DELTA_VERSION', varType: 'int', defaultValue: '2' }
+			lockOverride: { envVarName: 'SUPERVISOR_OVERRIDE_LOCK', varType: 'bool', defaultValue: 'false' }
+			persistentLogging: { envVarName: 'SUPERVISOR_PERSISTENT_LOGGING', varType: 'bool', defaultValue: 'false', rebootRequired: true }
 		}
 		@validKeys = [
-			'RESIN_SUPERVISOR_VPN_CONTROL',
-			'RESIN_OVERRIDE_LOCK',
+			'SUPERVISOR_VPN_CONTROL',
+			'OVERRIDE_LOCK',
 		].concat(_.map(@configKeys, 'envVarName'))
 		@actionExecutors = {
 			changeConfig: (step) =>
@@ -40,7 +40,7 @@ module.exports = class DeviceConfig
 				.tapCatch (err) =>
 					@logger.logConfigChange(step.humanReadableTarget, { err })
 			setVPNEnabled: (step, { initial = false } = {}) =>
-				logValue = { RESIN_SUPERVISOR_VPN_CONTROL: step.target }
+				logValue = { SUPERVISOR_VPN_CONTROL: step.target }
 				if !initial
 					@logger.logConfigChange(logValue)
 				@setVPNEnabled(step.target)
@@ -80,9 +80,9 @@ module.exports = class DeviceConfig
 				@getConfigBackend()
 			]
 		.then ([ conf, configBackend ]) =>
-			conf = configUtils.filterConfigKeys(configBackend, @validKeys, conf)
-			if initial or !conf.RESIN_SUPERVISOR_VPN_CONTROL?
-				conf.RESIN_SUPERVISOR_VPN_CONTROL = 'true'
+			conf = configUtils.filterAndFormatConfigKeys(configBackend, @validKeys, conf)
+			if initial or !conf.SUPERVISOR_VPN_CONTROL?
+				conf.SUPERVISOR_VPN_CONTROL = 'true'
 			for own k, { envVarName, defaultValue } of @configKeys
 				conf[envVarName] ?= defaultValue
 			return conf
@@ -98,17 +98,22 @@ module.exports = class DeviceConfig
 				@getBootConfig(configBackend)
 				(vpnStatus, bootConfig) =>
 					currentConf = {
-						RESIN_SUPERVISOR_VPN_CONTROL: (vpnStatus ? 'true').toString()
+						SUPERVISOR_VPN_CONTROL: (vpnStatus ? 'true').toString()
 					}
 					for own key, { envVarName } of @configKeys
 						currentConf[envVarName] = (conf[key] ? '').toString()
 					return _.assign(currentConf, bootConfig)
 			)
 
+	filterAndFormatConfigKeys: (conf) =>
+		@getConfigBackend()
+		.then (configBackend) =>
+			configUtils.filterAndFormatConfigKeys(configBackend, @validKeys, conf)
+
 	getDefaults: =>
 		Promise.try =>
 			return _.extend({
-				RESIN_SUPERVISOR_VPN_CONTROL: 'true'
+				SUPERVISOR_VPN_CONTROL: 'true'
 			}, _.mapValues(_.mapKeys(@configKeys, 'envVarName'), 'defaultValue'))
 
 	bootConfigChangeRequired: (configBackend, current, target) =>
@@ -143,8 +148,8 @@ module.exports = class DeviceConfig
 					checkInt(a) == checkInt(b)
 			}
 			# If the legacy lock override is used, place it as the new variable
-			if checkTruthy(target['RESIN_OVERRIDE_LOCK'])
-				target['RESIN_SUPERVISOR_OVERRIDE_LOCK'] = target['RESIN_OVERRIDE_LOCK']
+			if checkTruthy(target['OVERRIDE_LOCK'])
+				target['SUPERVISOR_OVERRIDE_LOCK'] = target['OVERRIDE_LOCK']
 			reboot = false
 			for own key, { envVarName, varType, rebootRequired } of @configKeys
 				if !match[varType](current[envVarName], target[envVarName])
@@ -162,11 +167,11 @@ module.exports = class DeviceConfig
 
 			# Check if we need to perform special case actions for the VPN
 			if !checkTruthy(offlineMode) &&
-				!_.isEmpty(target['RESIN_SUPERVISOR_VPN_CONTROL']) &&
-					@checkBoolChanged(current, target, 'RESIN_SUPERVISOR_VPN_CONTROL')
+				!_.isEmpty(target['SUPERVISOR_VPN_CONTROL']) &&
+					@checkBoolChanged(current, target, 'SUPERVISOR_VPN_CONTROL')
 						steps.push({
 							action: 'setVPNEnabled'
-							target: target['RESIN_SUPERVISOR_VPN_CONTROL']
+							target: target['SUPERVISOR_VPN_CONTROL']
 						})
 
 			# Do we need to change the boot config?

@@ -21,7 +21,14 @@ describe 'DeviceConfig', ->
 		@timeout(5000)
 		prepare()
 		@fakeDB = {}
-		@fakeConfig = {}
+		@fakeConfig = {
+			get: (key) ->
+				Promise.try ->
+					if key == 'deviceType'
+						return 'raspberrypi3'
+					else
+						throw new Error('Unknown fake config key')
+		}
 		@fakeLogger = {
 			logSystemMessage: spy()
 		}
@@ -43,36 +50,36 @@ describe 'DeviceConfig', ->
 		.then (conf) ->
 			fs.readFile.restore()
 			expect(conf).to.deep.equal({
-				RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
-				RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
-				RESIN_HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
-				RESIN_HOST_CONFIG_foobar: 'baz'
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
+				HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
+				HOST_CONFIG_foobar: 'baz'
 			})
 
 	it 'properly reads a real config.txt file', ->
 		@deviceConfig.getBootConfig(rpiConfigBackend)
 		.then (conf) ->
 			expect(conf).to.deep.equal({
-				RESIN_HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"'
-				RESIN_HOST_CONFIG_enable_uart: '1'
-				RESIN_HOST_CONFIG_disable_splash: '1'
-				RESIN_HOST_CONFIG_avoid_warnings: '1'
-				RESIN_HOST_CONFIG_gpu_mem: '16'
+				HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"'
+				HOST_CONFIG_enable_uart: '1'
+				HOST_CONFIG_disable_splash: '1'
+				HOST_CONFIG_avoid_warnings: '1'
+				HOST_CONFIG_gpu_mem: '16'
 			})
 
 	# Test that the format for special values like initramfs and array variables is preserved
 	it 'does not allow setting forbidden keys', ->
 		current = {
-			RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
-			RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
-			RESIN_HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
-			RESIN_HOST_CONFIG_foobar: 'baz'
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
+			HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
+			HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
+			HOST_CONFIG_foobar: 'baz'
 		}
 		target = {
-			RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00810000'
-			RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
-			RESIN_HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
-			RESIN_HOST_CONFIG_foobar: 'baz'
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00810000'
+			HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
+			HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
+			HOST_CONFIG_foobar: 'baz'
 		}
 		promise = Promise.try =>
 			@deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target)
@@ -86,16 +93,16 @@ describe 'DeviceConfig', ->
 
 	it 'does not try to change config.txt if it should not change', ->
 		current = {
-			RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
-			RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
-			RESIN_HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
-			RESIN_HOST_CONFIG_foobar: 'baz'
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
+			HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
+			HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
+			HOST_CONFIG_foobar: 'baz'
 		}
 		target = {
-			RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
-			RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
-			RESIN_HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
-			RESIN_HOST_CONFIG_foobar: 'baz'
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
+			HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
+			HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
+			HOST_CONFIG_foobar: 'baz'
 		}
 		promise = Promise.try =>
 			@deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target)
@@ -108,17 +115,17 @@ describe 'DeviceConfig', ->
 		stub(fsUtils, 'writeFileAtomic').resolves()
 		stub(childProcess, 'execAsync').resolves()
 		current = {
-			RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
-			RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
-			RESIN_HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
-			RESIN_HOST_CONFIG_foobar: 'baz'
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
+			HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
+			HOST_CONFIG_dtoverlay: '"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
+			HOST_CONFIG_foobar: 'baz'
 		}
 		target = {
-			RESIN_HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
-			RESIN_HOST_CONFIG_dtparam: '"i2c=on","audio=off"'
-			RESIN_HOST_CONFIG_dtoverlay: '"lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
-			RESIN_HOST_CONFIG_foobar: 'bat'
-			RESIN_HOST_CONFIG_foobaz: 'bar'
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
+			HOST_CONFIG_dtparam: '"i2c=on","audio=off"'
+			HOST_CONFIG_dtoverlay: '"lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"'
+			HOST_CONFIG_foobar: 'bat'
+			HOST_CONFIG_foobaz: 'bar'
 		}
 		promise = Promise.try =>
 			@deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target)
@@ -141,6 +148,23 @@ describe 'DeviceConfig', ->
 				childProcess.execAsync.restore()
 				@fakeLogger.logSystemMessage.reset()
 
+	it 'accepts RESIN_ and BALENA_ variables', ->
+		@deviceConfig.filterAndFormatConfigKeys({
+				FOO: 'bar',
+				BAR: 'baz',
+				RESIN_HOST_CONFIG_foo: 'foobaz',
+				BALENA_HOST_CONFIG_foo: 'foobar',
+				RESIN_HOST_CONFIG_other: 'val',
+				BALENA_HOST_CONFIG_baz: 'bad',
+				BALENA_SUPERVISOR_POLL_INTERVAL: '100',
+		}).then (filteredConf) ->
+			expect(filteredConf).to.deep.equal({
+				HOST_CONFIG_foo: 'foobar',
+				HOST_CONFIG_other: 'val',
+				HOST_CONFIG_baz: 'bad',
+				SUPERVISOR_POLL_INTERVAL: '100',
+			});
+
 	describe 'Extlinux files', ->
 
 		it 'should correctly write to extlinux.conf files', ->
@@ -150,7 +174,7 @@ describe 'DeviceConfig', ->
 			current = {
 			}
 			target = {
-				RESIN_HOST_EXTLINUX_isolcpus: '2'
+				HOST_EXTLINUX_isolcpus: '2'
 			}
 
 			promise = Promise.try =>

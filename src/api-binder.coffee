@@ -324,13 +324,15 @@ module.exports = class APIBinder
 				targetConfig = targetState.local.config
 				Promise.mapSeries _.toPairs(currentConfig), ([ key, value ]) =>
 					# We never want to disable VPN if, for instance, it failed to start so far
-					if key == 'RESIN_SUPERVISOR_VPN_CONTROL'
+					if key == 'SUPERVISOR_VPN_CONTROL'
 						value = 'true'
 					if !targetConfig[key]? and value != defaultConfig[key]
+						# At some point the namespace in the API should change to BALENA_
+						# but for now we only have RESIN_
 						envVar = {
 							value
 							device: deviceId
-							name: key
+							name: 'RESIN_' + key
 						}
 						@resinApi.post
 							resource: 'device_config_variable'
