@@ -323,9 +323,13 @@ export function addFeaturesFromLabels(
 	}
 
 	if (checkTruthy(service.config.labels['io.balena.features.balena-socket'])) {
-		service.config.volumes.push('/var/run/balena.sock:/var/run/balena.sock');
+		service.config.volumes.push(`${constants.dockerSocket}:${constants.dockerSocket}`);
 		if (service.config.environment['DOCKER_HOST'] == null) {
-			service.config.environment['DOCKER_HOST'] = 'unix:///var/run/balena.sock';
+			service.config.environment['DOCKER_HOST'] = `unix://${constants.dockerSocket}`;
+		}
+		// We keep balena.sock for backwards compatibility
+		if (constants.dockerSocket != '/var/run/balena.sock') {
+			service.config.volumes.push(`${constants.dockerSocket}:/var/run/balena.sock`);
 		}
 	}
 

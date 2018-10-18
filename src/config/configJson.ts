@@ -136,7 +136,7 @@ export default class ConfigJsonConfigBackend {
 					if (osVersion == null) {
 						throw new Error('Failed to detect OS version!');
 					}
-					if (/^Resin OS (1|2)./.test(osVersion)) {
+					if (/^(Resin OS|balenaOS)/.test(osVersion)) {
 						// In Resin OS 1.12, $BOOT_MOUNTPOINT was added and it coincides with config.json's path
 						if (constants.bootMountPointFromEnv != null) {
 							return path.join(constants.bootMountPointFromEnv, 'config.json');
