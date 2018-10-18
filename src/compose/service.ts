@@ -425,7 +425,10 @@ export class Service {
 			entrypoint: container.Config.Entrypoint || '',
 			volumes: _.concat(container.HostConfig.Binds || [], _.keys(container.Config.Volumes || { })),
 			image: container.Config.Image,
-			environment: conversions.envArrayToObject(container.Config.Env || [ ]),
+			environment: _.omit(conversions.envArrayToObject(container.Config.Env || [ ]), [
+				'RESIN_DEVICE_NAME_AT_INIT',
+				'BALENA_DEVICE_NAME_AT_INIT',
+			]),
 			privileged: container.HostConfig.Privileged || false,
 			labels: ComposeUtils.normalizeLabels(container.Config.Labels || { }),
 			running: container.State.Running,
@@ -483,7 +486,7 @@ export class Service {
 		return svc;
 	}
 
-	public toDockerContainer(): Dockerode.ContainerCreateOptions {
+	public toDockerContainer(opts: { deviceName: string }): Dockerode.ContainerCreateOptions {
 		const { binds, volumes } = this.getBindsAndVolumes();
 		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
 
@@ -503,7 +506,10 @@ export class Service {
 			Volumes: volumes,
 			// Typings are wrong here, the docker daemon accepts a string or string[],
 			Entrypoint: this.config.entrypoint as string,
-			Env: conversions.envObjectToArray(this.config.environment),
+			Env: conversions.envObjectToArray(_.assign({
+				RESIN_DEVICE_NAME_AT_INIT: opts.deviceName,
+				BALENA_DEVICE_NAME_AT_INIT: opts.deviceName,
+			}, this.config.environment)),
 			ExposedPorts: exposedPorts,
 			Image: this.config.image,
 			Labels: this.config.labels,

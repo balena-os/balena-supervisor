@@ -100,8 +100,6 @@ module.exports = class ServiceManager extends EventEmitter
 		.then (existingService) =>
 			return @docker.getContainer(existingService.containerId)
 		.catch NotFoundError, =>
-			conf = service.toDockerContainer()
-			nets = service.extraNetworksToJoin()
 
 			@config.get('name')
 			.then (deviceName) =>
@@ -111,9 +109,8 @@ module.exports = class ServiceManager extends EventEmitter
 						'Please fix the device name.'
 					)
 
-				# TODO: Don't mutate service like this, use an interface
-				service.config.environment['RESIN_DEVICE_NAME_AT_INIT'] = deviceName
-				service.config.environment['BALENA_DEVICE_NAME_AT_INIT'] = deviceName
+				conf = service.toDockerContainer({ deviceName })
+				nets = service.extraNetworksToJoin()
 
 				@logger.logSystemEvent(logTypes.installService, { service })
 				@reportNewStatus(mockContainerId, service, 'Installing')
