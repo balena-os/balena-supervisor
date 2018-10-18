@@ -113,6 +113,7 @@ module.exports = class ServiceManager extends EventEmitter
 
 				# TODO: Don't mutate service like this, use an interface
 				service.config.environment['RESIN_DEVICE_NAME_AT_INIT'] = deviceName
+				service.config.environment['BALENA_DEVICE_NAME_AT_INIT'] = deviceName
 
 				@logger.logSystemEvent(logTypes.installService, { service })
 				@reportNewStatus(mockContainerId, service, 'Installing')
