@@ -8,8 +8,15 @@ rm -f /var/run/avahi-daemon/pid
 /etc/init.d/dbus-1 start
 /etc/init.d/avahi-daemon start
 
-[ -d /mnt/root/tmp/resin-supervisor ] ||
-    mkdir -p /mnt/root/tmp/resin-supervisor
+# If the legacy /tmp/resin-supervisor exists on the host, a container might
+# already be using to take an update lock, so we symlink it to the new
+# location so that the supervisor can see it
+[ -d /mnt/root/tmp/resin-supervisor ] &&
+    ( [ -d /mnt/root/tmp/balena-supervisor ] || ln ./resin-supervisor /mnt/root/tmp/balena-supervisor )
+
+# Otherwise, if the lockfiles directory doesn't exist
+[ -d /mnt/root/tmp/balena-supervisor ] ||
+    mkdir -p /mnt/root/tmp/balena-supervisor
 
 # If DOCKER_ROOT isn't set then default it
 if [ -z "${DOCKER_ROOT}" ]; then

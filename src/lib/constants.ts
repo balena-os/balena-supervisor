@@ -18,13 +18,13 @@ const constants = {
 	privateAppEnvVars: [
 		'RESIN_SUPERVISOR_API_KEY',
 		'RESIN_API_KEY',
+		'BALENA_SUPERVISOR_API_KEY',
+		'BALENA_API_KEY',
 	],
-	dataPath: checkString(process.env.RESIN_DATA_PATH) || '/resin-data',
 	bootMountPointFromEnv,
 	bootMountPoint: bootMountPointFromEnv || '/boot',
 	configJsonPathOnHost: checkString(process.env.CONFIG_JSON_PATH),
-	proxyvisorHookReceiver:
-		checkString(process.env.RESIN_PROXYVISOR_HOOK_RECEIVER) || 'http://0.0.0.0:1337',
+	proxyvisorHookReceiver: 'http://0.0.0.0:1337',
 	configJsonNonAtomicPath: '/boot/config.json',
 	defaultMixpanelToken: process.env.DEFAULT_MIXPANEL_TOKEN,
 	supervisorNetworkInterface: supervisorNetworkInterface,

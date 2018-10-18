@@ -227,16 +227,23 @@ module.exports = class ServiceManager extends EventEmitter
 		timeout = checkInt(timeout, positive: true) ? 60000
 		deadline = Date.now() + timeout
 
-		killmePath = service.killmeFullPathOnHost()
+		handoverCompletePaths = service.handoverCompleteFullPathsOnHost()
 
 		wait = ->
-			fs.statAsync(killmePath)
-			.then ->
-				fs.unlinkAsync(killmePath).catch(_.noop)
-			.catch (err) ->
+			Promise.any _.map handoverCompletePaths, (file) ->
+					fs.statAsync(file)
+					.then ->
+						fs.unlinkAsync(file).catch(_.noop)
+			.catch ->
 				if Date.now() < deadline
 					Promise.delay(pollInterval).then(wait)
+				else
+					console.log('Handover timeout has passed, assuming handover was completed')
+
+		console.log('Waiting for handover to be completed')
 		wait()
+		.then ->
+			console.log('Handover complete')
 
 	prepareForHandover: (service) =>
 		@get(service)

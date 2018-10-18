@@ -19,6 +19,7 @@ import * as ComposeUtils from './utils';
 
 import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
+import * as constants from '../lib/constants';
 
 export class Service {
 
@@ -655,6 +656,17 @@ export class Service {
 		return _.reject(validVolumes, _.isNil);
 	}
 
+	public handoverCompleteFullPathsOnHost(): string[] {
+		return [
+			path.join(this.handoverCompletePathOnHost(), 'handover-complete'),
+			path.join(this.handoverCompletePathOnHost(), 'resin-kill-me'),
+		];
+	}
+
+	private handoverCompletePathOnHost(): string {
+		return path.join(constants.rootMountPoint, updateLock.lockPath(this.appId || 0, this.serviceName || ''));
+	}
+
 	private getBindsAndVolumes(): {
 		binds: string[],
 		volumes: { [volName: string]: { } }
@@ -699,20 +711,25 @@ export class Service {
 		appId: number,
 		serviceName: string,
 	): { [envVarName: string]: string } {
-		let env = _.defaults(environment, {
-			RESIN_APP_ID: appId.toString(),
-			RESIN_APP_NAME: options.appName,
-			RESIN_SERVICE_NAME: serviceName,
-			RESIN_DEVICE_UUID: options.uuid,
-			RESIN_DEVICE_TYPE: options.deviceType,
-			RESIN_HOST_OS_VERSION: options.osVersion,
-			RESIN_SUPERVISOR_VERSION: options.version,
-			RESIN_APP_LOCK_PATH: '/tmp/resin/resin-updates.lock',
-			RESIN_SERVICE_KILL_ME_PATH: '/tmp/resin/resin-kill-me',
-			RESIN: '1',
-			USER: 'root',
-		});
+		let defaultEnv: { [ envVarName: string]: string } = {};
+		for(let namespace of [ 'BALENA', 'RESIN' ]){
+			_.assign(defaultEnv, _.mapKeys({
+				APP_ID: appId.toString(),
+				APP_NAME: options.appName,
+				SERVICE_NAME: serviceName,
+				DEVICE_UUID: options.uuid,
+				DEVICE_TYPE: options.deviceType,
+				HOST_OS_VERSION: options.osVersion,
+				SUPERVISOR_VERSION: options.version,
+				APP_LOCK_PATH: '/tmp/balena/updates.lock',
+			}, (_val, key) =>  `${namespace}_${key}`));
+			defaultEnv[namespace] = '1';
+		}
+		defaultEnv['RESIN_SERVICE_KILL_ME_PATH'] = '/tmp/balena/handover-complete';
+		defaultEnv['BALENA_SERVICE_HANDOVER_COMPLETE_PATH'] = '/tmp/balena/handover-complete';
+		defaultEnv['USER'] = 'root';
 
+		let env = _.defaults(environment, defaultEnv);
 		const imageInfoEnv = _.get(options.imageInfo, 'Config.Env', []);
 		env = _.defaults(env, conversions.envArrayToObject(imageInfoEnv));
 		return env;
@@ -819,6 +836,7 @@ export class Service {
 	private static defaultBinds(appId: number, serviceName: string): string[] {
 		return [
 			`${updateLock.lockPath(appId, serviceName)}:/tmp/resin`,
+			`${updateLock.lockPath(appId, serviceName)}:/tmp/balena`,
 		];
 	}
 

@@ -35,7 +35,8 @@
 	"ExecIDs": null,
 	"HostConfig": {
 		"Binds": [
-			"/tmp/resin-supervisor/services/1011165/main:/tmp/resin"
+			"/tmp/balena-supervisor/services/1011165/main:/tmp/resin",
+			"/tmp/balena-supervisor/services/1011165/main:/tmp/balena"
 		],
 		"ContainerIDFile": "",
 		"LogConfig": {
@@ -114,8 +115,16 @@
 	"Mounts": [
 		{
 			"Type": "bind",
-			"Source": "/tmp/resin-supervisor/services/1011165/main",
+			"Source": "/tmp/balena-supervisor/services/1011165/main",
 			"Destination": "/tmp/resin",
+			"Mode": "",
+			"RW": true,
+			"Propagation": "rprivate"
+		},
+		{
+			"Type": "bind",
+			"Source": "/tmp/balena-supervisor/services/1011165/main",
+			"Destination": "/tmp/balena",
 			"Mode": "",
 			"RW": true,
 			"Propagation": "rprivate"
@@ -139,9 +148,19 @@
 			"RESIN_DEVICE_TYPE=raspberrypi3",
 			"RESIN_HOST_OS_VERSION=Resin OS 2.13.6+rev1",
 			"RESIN_SUPERVISOR_VERSION=7.16.6",
-			"RESIN_APP_LOCK_PATH=/tmp/resin/resin-updates.lock",
-			"RESIN_SERVICE_KILL_ME_PATH=/tmp/resin/resin-kill-me",
+			"RESIN_APP_LOCK_PATH=/tmp/balena/updates.lock",
+			"RESIN_SERVICE_KILL_ME_PATH=/tmp/balena/handover-complete",
 			"RESIN=1",
+			"BALENA_APP_ID=1011165",
+			"BALENA_APP_NAME=supervisortest",
+			"BALENA_SERVICE_NAME=main",
+			"BALENA_DEVICE_UUID=7dadabd4edec3067948d5952c2f2f26f",
+			"BALENA_DEVICE_TYPE=raspberrypi3",
+			"BALENA_HOST_OS_VERSION=Resin OS 2.13.6+rev1",
+			"BALENA_SUPERVISOR_VERSION=7.16.6",
+			"BALENA_APP_LOCK_PATH=/tmp/balena/updates.lock",
+			"BALENA_SERVICE_HANDOVER_COMPLETE_PATH=/tmp/balena/handover-complete",
+			"BALENA=1",
 			"USER=root",
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			"UDEV=on"
