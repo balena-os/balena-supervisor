@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# resin-supervisor automated build
+# balena-supervisor automated build
 #
 # Required variables:
 # * ARCH
@@ -14,10 +14,10 @@
 # * EXTRA_TAG: when PUSH_IMAGES is true, additional tag to push to the registries
 #
 # Builds the supervisor for the architecture defined by $ARCH.
-# Will produce and push an image tagged as resin/$ARCH-supervisor:$TAG
+# Will produce and push an image tagged as balena/$ARCH-supervisor:$TAG
 #
 # It pulls intermediate images for caching, if available:
-# resin/$ARCH-supervisor-node:$TAG
+# balena/$ARCH-supervisor-node:$TAG
 #
 # In all of these cases it will use "master" if $TAG is not found.
 #
@@ -43,19 +43,19 @@ function tryRemove() {
 }
 
 # This is the supervisor image we will produce
-TARGET_IMAGE=resin/$ARCH-supervisor:$TAG
+TARGET_IMAGE=balena/$ARCH-supervisor:$TAG
 
 # Intermediate images and cache
-NODE_IMAGE=resin/$ARCH-supervisor-node:$TAG
-NODE_BUILD_IMAGE=resin/$ARCH-supervisor-node:$TAG-build
+NODE_IMAGE=balena/$ARCH-supervisor-node:$TAG
+NODE_BUILD_IMAGE=balena/$ARCH-supervisor-node:$TAG-build
 
 TARGET_CACHE=$TARGET_IMAGE
 NODE_CACHE=$NODE_IMAGE
 NODE_BUILD_CACHE=$NODE_BUILD_IMAGE
 
-TARGET_CACHE_MASTER=resin/$ARCH-supervisor:master
-NODE_CACHE_MASTER=resin/$ARCH-supervisor-node:master
-NODE_BUILD_CACHE_MASTER=resin/$ARCH-supervisor-node:master-build
+TARGET_CACHE_MASTER=balena/$ARCH-supervisor:master
+NODE_CACHE_MASTER=balena/$ARCH-supervisor-node:master
+NODE_BUILD_CACHE_MASTER=balena/$ARCH-supervisor-node:master-build
 
 CACHE_FROM=""
 function tryPullForCache() {
@@ -97,8 +97,8 @@ if [ "$PUSH_IMAGES" = "true" ]; then
 	make IMAGE=$TARGET_IMAGE deploy
 
 	if [ -n "$EXTRA_TAG" ]; then
-		docker tag $TARGET_IMAGE resin/$ARCH-supervisor:$EXTRA_TAG
-		make IMAGE=resin/$ARCH-supervisor:$EXTRA_TAG deploy
+		docker tag $TARGET_IMAGE balena/$ARCH-supervisor:$EXTRA_TAG
+		make IMAGE=balena/$ARCH-supervisor:$EXTRA_TAG deploy
 	fi
 fi
 

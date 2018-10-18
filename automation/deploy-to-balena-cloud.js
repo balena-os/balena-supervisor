@@ -1,4 +1,4 @@
-// Deploy a supervisor image as a supervisor_release in the Resin API
+// Deploy a supervisor image as a supervisor_release in the balena API
 //
 // Environment variables:
 // This program deploys for all device types, or only device types where the architecture matches $ARCH, if specified.
@@ -53,15 +53,15 @@ if (!_.isEmpty(apiToken)) {
 
 
 const apiEndpointWithPrefix = url.resolve(apiEndpoint, '/v2/')
-const resinApi = new PineJsClient({
+const balenaApi = new PineJsClient({
 	apiPrefix: apiEndpointWithPrefix,
 	passthrough: requestOpts
 });
 
-resinApi._request(_.extend({
+balenaApi._request(_.extend({
 	url: apiEndpoint + '/config/device-types',
 	method: 'GET'
-}, resinApi.passthrough))
+}, balenaApi.passthrough))
 .then( (deviceTypes) => {
 	// This is a critical step so we better do it serially
 	return Promise.mapSeries(deviceTypes, (deviceType) => {
@@ -75,10 +75,10 @@ resinApi._request(_.extend({
 				arch = 'i386-nlp';
 			}
 			console.log(`Deploying ${tag} for ${deviceType.slug}`);
-			return resinApi.post({
+			return balenaApi.post({
 				resource: 'supervisor_release',
 				body: {
-					image_name: `resin/${arch}-supervisor`,
+					image_name: `balena/${arch}-supervisor`,
 					supervisor_version: tag,
 					device_type: deviceType.slug,
 					is_public: true

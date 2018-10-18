@@ -53,11 +53,11 @@ defaults: &defaults
             export TAG=$(echo ${CIRCLE_BRANCH} | sed 's/[^a-z0-9A-Z_.-]/-/g')
             export ARCH=${ARCH}
             bash automation/build.sh
-            if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_RESIN}" = "true" ]; then
-              echo "Deploying to Resin API (staging)"
-              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$STAGING_API_KEY API_ENDPOINT=$STAGING_API_ENDPOINT node automation/deploy-to-resin.js
-              echo "Deploying to Resin API (production)"
-              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$PRODUCTION_API_KEY API_ENDPOINT=$PRODUCTION_API_ENDPOINT node automation/deploy-to-resin.js
+            if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_BALENA}" = "true" ]; then
+              echo "Deploying to balena API (staging)"
+              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$STAGING_API_KEY API_ENDPOINT=$STAGING_API_ENDPOINT node automation/deploy-to-balena-cloud.js
+              echo "Deploying to balena API (production)"
+              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$PRODUCTION_API_KEY API_ENDPOINT=$PRODUCTION_API_ENDPOINT node automation/deploy-to-balena-cloud.js
             fi
 
 version: 2
@@ -68,48 +68,48 @@ jobs:
       DOCKER_USERNAME: travisciresin
       ARCH: amd64
       PUSH_IMAGES: "true"
-      STAGING_API_ENDPOINT: https://api.resinstaging.io
-      PRODUCTION_API_ENDPOINT: https://api.resin.io
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
   i386:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: i386
       PUSH_IMAGES: "true"
-      STAGING_API_ENDPOINT: https://api.resinstaging.io
-      PRODUCTION_API_ENDPOINT: https://api.resin.io
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
   i386-nlp:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: i386-nlp
       PUSH_IMAGES: "true"
-      STAGING_API_ENDPOINT: https://api.resinstaging.io
-      PRODUCTION_API_ENDPOINT: https://api.resin.io
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
   armv7hf:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: armv7hf
       PUSH_IMAGES: "true"
-      STAGING_API_ENDPOINT: https://api.resinstaging.io
-      PRODUCTION_API_ENDPOINT: https://api.resin.io
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
   aarch64:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: aarch64
       PUSH_IMAGES: "true"
-      STAGING_API_ENDPOINT: https://api.resinstaging.io
-      PRODUCTION_API_ENDPOINT: https://api.resin.io
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
   rpi:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: rpi
       PUSH_IMAGES: "true"
-      STAGING_API_ENDPOINT: https://api.resinstaging.io
-      PRODUCTION_API_ENDPOINT: https://api.resin.io
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
 
 workflows:
   version: 2

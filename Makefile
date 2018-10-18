@@ -1,23 +1,23 @@
-# resin-supervisor Makefile
+# balena-supervisor Makefile
 #
 # If you're looking for an easy way to develop on the supervisor, check ./tools/dev/dindctl, which provides a simplified interface
 # to this makefile.
 #
 # Build targets (require Docker 17.05 or greater):
-# * supervisor (default) - builds a resin-supervisor image
-# * deploy - pushes a resin-supervisor image to the registry, retrying up to 3 times
+# * supervisor (default) - builds a balena-supervisor image
+# * deploy - pushes a balena-supervisor image to the registry, retrying up to 3 times
 # * nodedeps, nodebuild - builds the node component, with the node_modules and src at /usr/src/app and /build (also includes a rootfs-overlay there)
 # * supervisor-dind: build the development docker-in-docker supervisor that run-supervisor uses (requires a SUPERVISOR_IMAGE to be available locally)
 #
 # Variables for build targets:
 # * ARCH: amd64/rpi/i386/armv7hf/armel/aarch64 architecture for which to build the supervisor - default: amd64
-# * IMAGE: image to build or deploy - default: resin/$(ARCH)-supervisor:latest
+# * IMAGE: image to build or deploy - default: balena/$(ARCH)-supervisor:latest
 # * MIXPANEL_TOKEN: (optional) default mixpanel key to embed in the supervisor image
 # * DISABLE_CACHE: if set to true, run build with no cache - default: false
 # * DOCKER_BUILD_OPTIONS: Additional options for docker build, like --cache-from parameters
 #
 # Test/development targets:
-# * run-supervisor, stop-supervisor - build and start or stop a docker-in-docker resin-supervisor (requires aufs, ability to run privileged containers, and a SUPERVISOR_IMAGE to be available locally)
+# * run-supervisor, stop-supervisor - build and start or stop a docker-in-docker balena-supervisor (requires aufs, ability to run privileged containers, and a SUPERVISOR_IMAGE to be available locally)
 #
 # Variables for test/dev targets:
 # * IMAGE: image to build and run (either for run-supervisor or test-gosuper/integration)
@@ -74,10 +74,10 @@ MIXPANEL_TOKEN ?= bananasbananas
 
 # Default architecture and output image
 ARCH ?= amd64
-IMAGE ?= resin/$(ARCH)-supervisor:master
+IMAGE ?= balena/$(ARCH)-supervisor:master
 
 # Default values for run-supervisor
-SUPERVISOR_IMAGE ?= resin/$(ARCH)-supervisor:master
+SUPERVISOR_IMAGE ?= balena/$(ARCH)-supervisor:master
 CONTAINER_NAME ?= supervisor
 CONFIG_FILENAME ?= config.json
 DIND_IMAGE ?= resin/resinos:2.12.5_rev1-intel-nuc
