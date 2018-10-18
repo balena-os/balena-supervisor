@@ -458,5 +458,5 @@ export function normalizeLabels(
 	});
 	const balenaLabels = _.pickBy(labels, (_v, k) => _.startsWith(k, 'io.balena.'));
 	const otherLabels = _.pickBy(labels, (_v, k) => !(_.startsWith(k, 'io.balena.') || _.startsWith(k, 'io.resin.')));
-	return _.assign({}, otherLabels, legacyLabels, balenaLabels);
+	return _.assign({}, otherLabels, legacyLabels, balenaLabels) as { [key: string]: string };
 }

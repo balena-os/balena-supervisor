@@ -490,7 +490,6 @@ module.exports = class DeviceState extends EventEmitter
 
 	triggerApplyTarget: ({ force = false, delay = 0, initial = false } = {}) =>
 		if @applyInProgress
-			console.log('==> Apply in progress')
 			if !@scheduledApply?
 				@scheduledApply = { force, delay }
 			else
@@ -506,7 +505,6 @@ module.exports = class DeviceState extends EventEmitter
 			console.log('Applying target state')
 			@applyTarget({ force, initial })
 		.finally =>
-			console.log('==> Done applying target state!')
 			@applyInProgress = false
 			@reportCurrentState()
 			if @scheduledApply?

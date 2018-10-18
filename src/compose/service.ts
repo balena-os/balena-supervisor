@@ -501,6 +501,7 @@ export class Service {
 		) as ServiceConfig['networks'];
 
 		return {
+			name: `${this.serviceName}_${this.imageId}_${this.releaseId}`,
 			Tty: this.config.tty,
 			Cmd: this.config.command,
 			Volumes: volumes,
@@ -608,10 +609,12 @@ export class Service {
 			// so that if we end up in a restart loop, we know exactly why
 			console.log(`Replacing container for service ${this.serviceName} because of config changes:`);
 			if (!nonArrayEquals) {
-				console.log('  Non-array fields: ', JSON.stringify(diff(
-					thisOmitted,
-					otherOmitted,
-				)));
+				// Try not to leak any sensitive information
+				const diffObj = diff(thisOmitted, otherOmitted) as ServiceConfig;
+				if (diffObj.environment != null) {
+					diffObj.environment = _.mapValues(diffObj.environment, () => 'hidden');
+				}
+				console.log('  Non-array fields: ', JSON.stringify(diffObj));
 			}
 			if (differentArrayFields.length > 0) {
 				console.log('  Array Fields: ', differentArrayFields.join(','));
