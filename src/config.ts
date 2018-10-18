@@ -119,7 +119,7 @@ class Config extends EventEmitter {
 		})
 			.then((value) => {
 				const schemaEntry = this.schema[key];
-				if (value == null && schemaEntry != null && schemaEntry.default) {
+				if (value == null && schemaEntry != null && schemaEntry.default != null) {
 					return schemaEntry.default;
 				}
 				return value;
