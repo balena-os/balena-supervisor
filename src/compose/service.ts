@@ -501,6 +501,7 @@ export class Service {
 		) as ServiceConfig['networks'];
 
 		return {
+			name: `${this.serviceName}_${this.imageId}_${this.releaseId}`,
 			Tty: this.config.tty,
 			Cmd: this.config.command,
 			Volumes: volumes,
