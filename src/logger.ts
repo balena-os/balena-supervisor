@@ -10,7 +10,7 @@ import {
 	LocalLogBackend,
 	LogBackend,
 	LogMessage,
-	ResinLogBackend,
+	BalenaLogBackend,
 } from './logging-backends';
 
 interface LoggerSetupOptions {
@@ -39,7 +39,7 @@ export class Logger {
 	);
 
 	private backend: LogBackend | null = null;
-	private resinBackend: ResinLogBackend | null = null;
+	private balenaBackend: BalenaLogBackend | null = null;
 	private localBackend: LocalLogBackend | null = null;
 
 	private eventTracker: EventTracker;
@@ -64,10 +64,10 @@ export class Logger {
 		localMode,
 	}: LoggerSetupOptions,
 	) {
-		this.resinBackend = new ResinLogBackend(apiEndpoint, uuid, deviceApiKey);
+		this.balenaBackend = new BalenaLogBackend(apiEndpoint, uuid, deviceApiKey);
 		this.localBackend = new LocalLogBackend();
 
-		this.backend = localMode ? this.localBackend : this.resinBackend;
+		this.backend = localMode ? this.localBackend : this.balenaBackend;
 
 		this.backend.offlineMode = offlineMode;
 		this.backend.publishEnabled = enableLogs;
@@ -79,9 +79,9 @@ export class Logger {
 			this.backend = this.localBackend;
 			console.log('Switching logging backend to LocalLogBackend');
 		} else {
-			// Use the resin backend
-			this.backend = this.resinBackend;
-			console.log('Switching logging backend to ResinLogBackend');
+			// Use the balena backend
+			this.backend = this.balenaBackend;
+			console.log('Switching logging backend to BalenaLogBackend');
 		}
 	}
 

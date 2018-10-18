@@ -245,7 +245,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 	}
 
 	public setBootConfig(opts: ConfigOptions): Promise<void> {
-		// First get a representation of the configuration file, with all resin-supported configuration removed
+		// First get a representation of the configuration file, with all balena-supported configuration removed
 		return Promise.resolve(fs.readFile(ExtlinuxConfigBackend.bootConfigPath))
 			.then((data) => {
 				const extlinuxFile = ExtlinuxConfigBackend.parseExtlinuxFile(data.toString());

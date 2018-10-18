@@ -583,12 +583,14 @@ module.exports = class Proxyvisor
 		.then (parentApp) =>
 			Promise.map parentApp?.services ? [], (service) =>
 				@docker.getImageEnv(service.image)
-				.get('RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS')
-			.then (imageHookAddresses) ->
+			.then (imageEnvs) ->
+				imageHookAddresses = _.map imageEnvs, (env) ->
+					return env.BALENA_DEPENDENT_DEVICES_HOOK_ADDRESS ? env.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS
 				for addr in imageHookAddresses
 					return addr if addr?
-				return parentApp?.config?.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
-						"#{constants.proxyvisorHookReceiver}/v1/devices/"
+				return parentApp?.config?.BALENA_DEPENDENT_DEVICES_HOOK_ADDRESS  ?
+					parentApp?.config?.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ?
+					"#{constants.proxyvisorHookReceiver}/v1/devices/"
 
 	sendUpdate: (device, timeout, endpoint) =>
 		request.putAsync "#{endpoint}#{device.uuid}", {

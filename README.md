@@ -1,22 +1,22 @@
-# resin-supervisor [![Tickets in Progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=flow/in-progress&title=Tickets%20in%20progress)](https://waffle.io/resin-io/resin-supervisor)
+# balena-supervisor [![Tickets in Progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=flow/in-progress&title=Tickets%20in%20progress)](https://waffle.io/resin-io/resin-supervisor)
 
 Join our online chat at [![Gitter chat](https://badges.gitter.im/resin-io/chat.png)](https://gitter.im/resin-io/chat)
 
-This is [resin.io](https://resin.io)'s supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as resin.io's API informs it to.
+This is [balena](https://balena.io)'s supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as the balena API informs it to.
 
 The supervisor is a Node.js program.
 
 ## Running a supervisor locally
 
 This process will allow you to run a development instance of the supervisor on your local computer. It is not recommended for production scenarios, but allows someone developing on the supervisor to test changes quickly.
-The supervisor is run inside a resinOS instance running in a container, so effectively it's a Docker-in-Docker instance (or more precisely, [balena](https://github.com/resin-os/balena)-in-Docker).
+The supervisor is run inside a resinOS instance running in a container, so effectively it's a Docker-in-Docker instance (or more precisely, [balenaEngine](https://github.com/resin-os/balena-engine)-in-Docker).
 
 ### Set up `config.json`
 
 To configure the supervisor, you'll need a `tools/dind/config.json` file. There's two options on how to get this file:
 
-* Log in to the [resin dashboard](https://dashboard.resin.io), create or select an application, click "Add device" and on the Advanced section select "Download configuration file only". Make sure you use an x86 or amd64 device type for your application, for example Intel NUC.
-* Install the resin CLI with `npm install -g resin-cli`, then login with `resin login` and finally run `resin config generate --app <appName> -o config.json` (choose the default settings whenever prompted).
+* Log in to the [balenaCloud dashboard](https://dashboard.balena-cloud.com), create or select an application, click "Add device" and on the Advanced section select "Download configuration file only". Make sure you use an x86 or amd64 device type for your application, for example Intel NUC.
+* Install the balena CLI with `npm install -g balena-cli`, then login with `balena login` and finally run `balena config generate --app <appName> -o config.json` (choose the default settings whenever prompted).
 
 The `config.json` file should look something like this:
 
@@ -25,36 +25,36 @@ The `config.json` file should look something like this:
 ```
 {
 	"applicationId": "2167", /* Id of the app this supervisor will run */
-	"apiKey": "supersecretapikey", /* The API key to provision the device on the resin.io API */
+	"apiKey": "supersecretapikey", /* The API key to provision the device on the balena API */
 	"userId": "141", /* User ID for the user who owns the app */
 	"username": "gh_pcarranzav", /* User name for the user who owns the app */
 	"deviceType": "intel-nuc", /* The device type corresponding to the test application */
-	"apiEndpoint": "https://api.resinstaging.io", /* Endpoint for the resin.io API */
-	"deltaEndpoint": "https://delta.resinstaging.io", /* Endpoint for the delta server to download Docker binary diffs */
-	"vpnEndpoint": "vpn.resinstaging.io", /* Endpoint for the resin.io VPN server */
+	"apiEndpoint": "https://api.balena-cloud.com", /* Endpoint for the balena API */
+	"deltaEndpoint": "https://delta.balena-cloud.com", /* Endpoint for the delta server to download Docker binary diffs */
+	"vpnEndpoint": "vpn.balena-cloud.com", /* Endpoint for the balena VPN server */
 	"listenPort": 48484, /* Listen port for the supervisor API */
 	"mixpanelToken": "aaaaaaaaaaaaaaaaaaaaaaaaaa", /* Mixpanel token to report events */
 }
 ```
 
-Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the resin API. Other fields may be present (the format has evolved over time and will likely continue to do so) but they are not used by the supervisor.
+Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the balena API. Other fields may be present (the format has evolved over time and will likely continue to do so) but they are not used by the supervisor.
 
 ### Start the supervisor instance
 
 Ensure your kernel supports aufs (in Ubuntu, install `linux-image-extra-$(uname -r)`) and the `aufs` module is loaded (if necessary, run `sudo modprobe aufs`).
 
 ```bash
-./dindctl run --image resin/amd64-supervisor:master
+./dindctl run --image balena/amd64-supervisor:master
 ```
 
-This will setup a Docker-in-Docker instance with an image that runs the supervisor image. You can replace `:master` for a specific tag (see the [tags in Dockerhub](https://hub.docker.com/r/resin/amd64-supervisor/tags/)) to run
+This will setup a Docker-in-Docker instance with an image that runs the supervisor image. You can replace `:master` for a specific tag (see the [tags in Dockerhub](https://hub.docker.com/r/balena/amd64-supervisor/tags/)) to run
 a supervisor from a branch or specific version. The script will pull the image if it is not already available in your
 local Docker instance.
 
 If you want to develop and test your changes, you can run:
 
 ```bash
-./dindctl run --image resin/amd64-supervisor:master --mount-dist
+./dindctl run --image balena/amd64-supervisor:master --mount-dist
 ```
 
 Note: Using `--mount-dist` requires a Node.js 6.x installed on your computer.
@@ -67,19 +67,19 @@ This will mount the ./dist folder into the supervisor container and build the co
 
 ### Testing with preloaded apps
 
-To test preloaded apps, run `resin preload` (see the [resin CLI docs](https://docs.resin.io/tools/cli/#preload-60-image-62-) on an OS image for the app you are testing with. Then copy the `apps.json` file from the `resin-data` partition into `tools/dind/apps.json`. 
+To test preloaded apps, run `balena preload` (see the [balena CLI docs](https://docs.balena.io/tools/cli/#preload-60-image-62-) on an OS image for the app you are testing with. Then copy the `apps.json` file from the `resin-data` partition into `tools/dind/apps.json`.
 
-This file has a format equivalent to the `local` part of the target state endpoint on the resin API.
+This file has a format equivalent to the `local` part of the target state endpoint on the balena API.
 
 Make sure the `config.json` file doesn't have uuid, registered_at or deviceId populated from a previous run.
 
 Then run the supervisor like this:
 
 ```bash
-./dindctl run --image resin/amd64-supervisor:master --preload
+./dindctl run --image balena/amd64-supervisor:master --preload
 ```
 
-This will make the Docker-in-Docker instance pull the image specified in `apps.json` before running the supervisor, simulating a preloaded resinOS image.
+This will make the Docker-in-Docker instance pull the image specified in `apps.json` before running the supervisor, simulating a preloaded balenaOS image.
 
 ### View the supervisor's logs
 
@@ -91,7 +91,7 @@ This will show the output of `journalctl` inside the Docker-in-Docker container.
 additional options, for instance, to see the logs from the supervisor service:
 
 ```bash
-./dindctl logs -fn 100 -u resin-supervisor-dind
+./dindctl logs -fn 100 -u resin-supervisor
 ```
 
 ### Stop the supervisor
@@ -102,10 +102,10 @@ additional options, for instance, to see the logs from the supervisor service:
 
 This will stop the container and remove it, also removing its volumes.
 
-## Developing with a resinOS device
+## Developing with a balenaOS device
 
-If you want to test local changes (only changes to the Node.js code are supported) on a real resinOS device, provision
-a [development OS image](https://docs.resin.io/understanding/understanding-devices/2.0.0/#dev-vs-prod-images) and power up the device. On the resin.io dashboard, take note of the device's IP address. Then run:
+If you want to test local changes (only changes to the Node.js code are supported) on a real balenaOS device, provision
+a [development OS image](https://docs.balena.io/understanding/understanding-devices/2.0.0/#dev-vs-prod-images) and power up the device. On the balenaCloud dashboard, take note of the device's IP address. Then run:
 
 ```
 ./sync.js <device IP>

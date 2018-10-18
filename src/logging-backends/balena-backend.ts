@@ -20,7 +20,7 @@ interface Options extends url.UrlWithParsedQuery {
 	headers: Dictionary<string>;
 }
 
-export class ResinLogBackend extends LogBackend {
+export class BalenaLogBackend extends LogBackend {
 
 	private req: ClientRequest | null = null;
 	private dropCount: number = 0;

@@ -12,7 +12,7 @@ validation = require '../lib/validation'
 # 	appId
 # 	serviceId
 # 	serviceName
-# 	imageId (from resin API)
+# 	imageId (from balena API)
 # 	releaseId
 # 	dependent
 # 	dockerImageId

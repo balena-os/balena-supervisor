@@ -7,7 +7,7 @@
 //
 // The script will first build a non-optimized version of the js code and sync the resulting app.js
 // onto the supervisor container at the specified IP. It will also restart the supervisor container.
-// The device must be a development variant of Resin OS and the supervisor must be running.
+// The device must be a development variant of balenaOS and the supervisor must be running.
 
 fs = require('fs');
 
