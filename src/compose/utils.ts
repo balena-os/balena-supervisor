@@ -300,45 +300,48 @@ export function addFeaturesFromLabels(
 	service: Service,
 	options: DeviceMetadata,
 ): void {
-	if (checkTruthy(service.config.labels['io.resin.features.dbus'])) {
+	const setEnvVariables = function (key: string, val: string) {
+		service.config.environment[`RESIN_${key}`] = val;
+		service.config.environment[`BALENA_${key}`] = val;
+	};
+	if (checkTruthy(service.config.labels['io.balena.features.dbus'])) {
 		service.config.volumes.push('/run/dbus:/host/run/dbus');
 	}
 
 	if (
-		checkTruthy(service.config.labels['io.resin.features.kernel-modules']) &&
+		checkTruthy(service.config.labels['io.balena.features.kernel-modules']) &&
 		options.hostPathExists.modules
 	) {
 		service.config.volumes.push('/lib/modules:/lib/modules');
 	}
 
 	if (
-		checkTruthy(service.config.labels['io.resin.features.firmware']) &&
+		checkTruthy(service.config.labels['io.balena.features.firmware']) &&
 		options.hostPathExists.firmware
 	) {
 		service.config.volumes.push('/lib/firmware:/lib/firmware');
 	}
 
-	if (checkTruthy(service.config.labels['io.resin.features.balena-socket'])) {
+	if (checkTruthy(service.config.labels['io.balena.features.balena-socket'])) {
 		service.config.volumes.push('/var/run/balena.sock:/var/run/balena.sock');
 		if (service.config.environment['DOCKER_HOST'] == null) {
 			service.config.environment['DOCKER_HOST'] = 'unix:///var/run/balena.sock';
 		}
 	}
 
-	if (checkTruthy('io.resin.features.resin-api')) {
-		service.config.environment['RESIN_API_KEY'] = options.deviceApiKey;
+	if (checkTruthy('io.balena.features.balena-api')) {
+		setEnvVariables('API_KEY', options.deviceApiKey);
 	}
 
-	if (checkTruthy(service.config.labels['io.resin.features.supervisor-api'])) {
-		service.config.environment['RESIN_SUPERVISOR_PORT'] = options.listenPort.toString();
-		service.config.environment['RESIN_SUPERVISOR_API_KEY'] = options.apiSecret;
+	if (checkTruthy(service.config.labels['io.balena.features.supervisor-api'])) {
+		setEnvVariables('SUPERVISOR_PORT', options.listenPort.toString());
+		setEnvVariables('SUPERVISOR_API_KEY', options.apiSecret);
 		if (service.config.networkMode === 'host') {
-			service.config.environment['RESIN_SUPERVISOR_HOST'] = '127.0.0.1';
-			service.config.environment['RESIN_SUPERVISOR_ADDRESS'] = `http://127.0.0.1:${options.listenPort}`;
+			setEnvVariables('SUPERVISOR_HOST', '127.0.0.1');
+			setEnvVariables('SUPERVISOR_ADDRESS', `http://127.0.0.1:${options.listenPort}`);
 		} else {
-			service.config.environment['RESIN_SUPERVISOR_HOST'] = options.supervisorApiHost;
-			service.config.environment['RESIN_SUPERVISOR_ADDRESS'] =
-				`http://${options.supervisorApiHost}:${options.listenPort}`;
+			setEnvVariables('SUPERVISOR_HOST', options.supervisorApiHost);
+			setEnvVariables('SUPERVISOR_ADDRESS', `http://${options.supervisorApiHost}:${options.listenPort}`);
 			service.config.networks[constants.supervisorNetworkInterface] = { };
 		}
 	} else {
@@ -441,4 +444,15 @@ export function normalizeNullValues(obj: Dictionary<any>): void {
 			normalizeNullValues(v);
 		}
 	});
+}
+
+export function normalizeLabels(
+	labels: { [key: string]: string },
+): { [key: string]: string } {
+	const legacyLabels = _.mapKeys(_.pickBy(labels, (_v, k) => _.startsWith(k, 'io.resin.')), (_v, k) => {
+		return k.replace(/resin/g, 'balena'); // e.g. io.resin.features.resin-api -> io.balena.features.balena-api
+	});
+	const balenaLabels = _.pickBy(labels, (_v, k) => _.startsWith(k, 'io.balena.'));
+	const otherLabels = _.pickBy(labels, (_v, k) => !(_.startsWith(k, 'io.balena.') || _.startsWith(k, 'io.resin.')));
+	return _.assign({}, otherLabels, legacyLabels, balenaLabels);
 }

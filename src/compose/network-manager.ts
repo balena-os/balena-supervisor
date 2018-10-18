@@ -1,5 +1,6 @@
 import * as Bluebird from 'bluebird';
 import { fs } from 'mz';
+import * as _ from 'lodash';
 
 import * as constants from '../lib/constants';
 import Docker = require('../lib/docker-utils');
@@ -17,11 +18,7 @@ export class NetworkManager {
 	}
 
 	public getAll(): Bluebird<Network[]> {
-		return Bluebird.resolve(this.docker.listNetworks({
-			filters: {
-				label: [ 'io.resin.supervised' ],
-			},
-		}))
+		return this.getWithBothLabels()
 			.map((network: { Name: string }) => {
 				return this.docker.getNetwork(network.Name).inspect()
 					.then((net) => {
@@ -88,6 +85,24 @@ export class NetworkManager {
 					},
 				}));
 			});
+	}
+
+	private getWithBothLabels() {
+		return Bluebird.join(
+			this.docker.listNetworks({
+				filters: {
+					label: [ 'io.resin.supervised' ],
+				},
+			}),
+			this.docker.listNetworks({
+				filters: {
+					label: [ 'io.balena.supervised' ],
+				},
+			}),
+			(legacyNetworks, currentNetworks) => {
+				return _.unionBy(currentNetworks, legacyNetworks, 'Id');
+			},
+		);
 	}
 
 }

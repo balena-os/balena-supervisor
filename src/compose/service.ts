@@ -201,13 +201,13 @@ export class Service {
 			service.appId || 0,
 			service.serviceName || '',
 		);
-		config.labels = Service.extendLabels(
+		config.labels = ComposeUtils.normalizeLabels(Service.extendLabels(
 			config.labels || { },
 			options,
 			service.appId || 0,
 			service.serviceId || 0,
 			service.serviceName || '',
-		);
+		));
 
 		// Any other special case handling
 		if (config.networkMode === 'host' && !config.hostname) {
@@ -425,9 +425,12 @@ export class Service {
 			entrypoint: container.Config.Entrypoint || '',
 			volumes: _.concat(container.HostConfig.Binds || [], _.keys(container.Config.Volumes || { })),
 			image: container.Config.Image,
-			environment: conversions.envArrayToObject(container.Config.Env || [ ]),
+			environment: _.omit(conversions.envArrayToObject(container.Config.Env || [ ]), [
+				'RESIN_DEVICE_NAME_AT_INIT',
+				'BALENA_DEVICE_NAME_AT_INIT',
+			]),
 			privileged: container.HostConfig.Privileged || false,
-			labels: container.Config.Labels || { },
+			labels: ComposeUtils.normalizeLabels(container.Config.Labels || { }),
 			running: container.State.Running,
 			restart,
 			capAdd: container.HostConfig.CapAdd || [ ],
@@ -471,9 +474,9 @@ export class Service {
 			tty: container.Config.Tty || false,
 		};
 
-		svc.appId = checkInt(container.Config.Labels['io.resin.app-id']) || null;
-		svc.serviceId = checkInt(container.Config.Labels['io.resin.service-id']) || null;
-		svc.serviceName = container.Config.Labels['io.resin.service-name'];
+		svc.appId = checkInt(svc.config.labels['io.balena.app-id']) || null;
+		svc.serviceId = checkInt(svc.config.labels['io.balena.service-id']) || null;
+		svc.serviceName = svc.config.labels['io.balena.service-name'];
 		const nameMatch = container.Name.match(/.*_(\d+)_(\d+)$/);
 
 		svc.imageId = nameMatch != null ? checkInt(nameMatch[1]) || null : null;
@@ -483,7 +486,7 @@ export class Service {
 		return svc;
 	}
 
-	public toDockerContainer(): Dockerode.ContainerCreateOptions {
+	public toDockerContainer(opts: { deviceName: string }): Dockerode.ContainerCreateOptions {
 		const { binds, volumes } = this.getBindsAndVolumes();
 		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
 
@@ -503,7 +506,10 @@ export class Service {
 			Volumes: volumes,
 			// Typings are wrong here, the docker daemon accepts a string or string[],
 			Entrypoint: this.config.entrypoint as string,
-			Env: conversions.envObjectToArray(this.config.environment),
+			Env: conversions.envObjectToArray(_.assign({
+				RESIN_DEVICE_NAME_AT_INIT: opts.deviceName,
+				BALENA_DEVICE_NAME_AT_INIT: opts.deviceName,
+			}, this.config.environment)),
 			ExposedPorts: exposedPorts,
 			Image: this.config.image,
 			Labels: this.config.labels,
@@ -788,10 +794,10 @@ export class Service {
 		serviceName: string,
 	): { [labelName: string]: string } {
 		let newLabels = _.defaults(labels, {
-			'io.resin.supervised': 'true',
-			'io.resin.app-id': appId.toString(),
-			'io.resin.service-id': serviceId.toString(),
-			'io.resin.service-name': serviceName,
+			'io.balena.supervised': 'true',
+			'io.balena.app-id': appId.toString(),
+			'io.balena.service-id': serviceId.toString(),
+			'io.balena.service-name': serviceName,
 		});
 
 		const imageLabels = _.get(imageInfo, 'Config.Labels', { });

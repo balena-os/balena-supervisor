@@ -305,7 +305,7 @@ describe 'compose/service', ->
 					"balena": {
 						"ipv4Address": "1.2.3.4"
 					}
-				}).toDockerContainer().NetworkingConfig).to.deep.equal({
+				}).toDockerContainer({ deviceName: 'foo' }).NetworkingConfig).to.deep.equal({
 					EndpointsConfig: {
 						"123456_balena": {
 							IPAMConfig: {
@@ -323,7 +323,7 @@ describe 'compose/service', ->
 						ipv6Address: '5.6.7.8'
 						linkLocalIps: [ '123.123.123' ]
 					}
-				}).toDockerContainer().NetworkingConfig).to.deep.equal({
+				}).toDockerContainer({ deviceName: 'foo' }).NetworkingConfig).to.deep.equal({
 					EndpointsConfig: {
 						"123456_balena": {
 							IPAMConfig: {

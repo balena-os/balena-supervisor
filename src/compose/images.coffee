@@ -313,4 +313,9 @@ module.exports = class Images extends EventEmitter
 	isSameImage: @isSameImage
 
 	_getLocalModeImages: =>
-		@docker.listImages(filters: label: [ 'io.resin.local.image=1' ])
+		Promise.join(
+			@docker.listImages(filters: label: [ 'io.resin.local.image=1' ])
+			@docker.listImages(filters: label: [ 'io.balena.local.image=1' ])
+			(legacyImages, currentImages) ->
+				_.unionBy(legacyImages, currentImages, 'Id')
+		)

@@ -34,7 +34,7 @@ const constants = {
 	imageCleanupErrorIgnoreTimeout: 3600 * 1000,
 	maxDeltaDownloads: 3,
 	defaultVolumeLabels: {
-		'io.resin.supervised': 'true',
+		'io.balena.supervised': 'true',
 	},
 	bootBlockDevice: '/dev/mmcblk0p1',
 	hostConfigVarPrefix: 'RESIN_HOST_',
