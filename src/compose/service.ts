@@ -258,7 +258,9 @@ export class Service {
 		// Sanity check the incoming boolean values
 		config.oomKillDisable = Boolean(config.oomKillDisable);
 		config.readOnly = Boolean(config.readOnly);
-		config.tty = Boolean(config.tty);
+		if (config.tty != null) {
+			config.tty = Boolean(config.tty);
+		}
 
 		if (_.isArray(config.sysctls)) {
 			config.sysctls = _.fromPairs(_.map(config.sysctls, (v) => _.split(v, '=')));
@@ -343,7 +345,7 @@ export class Service {
 			hostname: '',
 			user: '',
 			workingDir: '',
-			tty: false,
+			tty: true,
 		});
 
 		// Mutate service with extra features
