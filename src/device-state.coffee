@@ -166,7 +166,8 @@ module.exports = class DeviceState extends EventEmitter
 
 		@config.getMany([
 			'initialConfigSaved', 'listenPort', 'apiSecret', 'osVersion', 'osVariant',
-			'version', 'provisioned', 'apiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent'
+			'version', 'provisioned', 'apiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent',
+			'targetStateSet'
 		])
 		.then (conf) =>
 			Promise.try =>
@@ -195,8 +196,20 @@ module.exports = class DeviceState extends EventEmitter
 					update_downloaded: false
 				)
 			.then =>
-				if !conf.provisioned
+				@applications.getTargetApps()
+			.then (targetApps) =>
+				if !conf.provisioned or (_.isEmpty(targetApps) and !validation.checkTruthy(conf.targetStateSet))
 					@loadTargetFromFile()
+					.finally =>
+						@config.set({ targetStateSet: 'true' })
+				else
+					console.log('Skipping preloading')
+					if conf.provisioned and !_.isEmpty(targetApps)
+						# If we're in this case, it's because we've updated from an older supervisor
+						# and we need to mark that the target state has been set so that
+						# the supervisor doesn't try to preload again if in the future target
+						# apps are empty again (which may happen with multi-app).
+						@config.set({ targetStateSet: 'true' })
 			.then =>
 				@triggerApplyTarget({ initial: true })
 
@@ -315,12 +328,14 @@ module.exports = class DeviceState extends EventEmitter
 			return { apps, config: filteredDeviceConf }
 
 	loadTargetFromFile: (appsPath) ->
+		console.log('Attempting to load preloaded apps...')
 		appsPath ?= constants.appsJsonPath
 		fs.readFileAsync(appsPath, 'utf8')
 		.then(JSON.parse)
 		.then (stateFromFile) =>
 			if _.isArray(stateFromFile)
 					# This is a legacy apps.json
+					console.log('Legacy apps.json detected')
 					return @_convertLegacyAppsJson(stateFromFile)
 			else
 				return stateFromFile
@@ -357,9 +372,11 @@ module.exports = class DeviceState extends EventEmitter
 						local: stateFromFile
 					})
 				.then =>
+					console.log('Preloading complete')
 					if stateFromFile.pinDevice
 						# multi-app warning!
 						# The following will need to be changed once running multiple applications is possible
+						console.log('Device will be pinned')
 						if commitToPin? and appToPin?
 							@config.set
 								pinDevice: JSON.stringify {
