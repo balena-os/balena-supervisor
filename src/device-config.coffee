@@ -67,20 +67,17 @@ module.exports = class DeviceConfig
 
 	setTarget: (target, trx) =>
 		db = trx ? @db.models.bind(@db)
-		confToUpdate = {
-			targetValues: JSON.stringify(target)
-		}
-		db('deviceConfig').update(confToUpdate)
+		@formatConfigKeys(target)
+		.then (formattedTarget) ->
+			confToUpdate = {
+				targetValues: JSON.stringify(formattedTarget)
+			}
+			db('deviceConfig').update(confToUpdate)
 
 	getTarget: ({ initial = false } = {}) =>
 		@db.models('deviceConfig').select('targetValues')
 		.then ([ devConfig ]) =>
-			return Promise.all [
-				JSON.parse(devConfig.targetValues)
-				@getConfigBackend()
-			]
-		.then ([ conf, configBackend ]) =>
-			conf = configUtils.filterAndFormatConfigKeys(configBackend, @validKeys, conf)
+			conf = JSON.parse(devConfig.targetValues)
 			if initial or !conf.SUPERVISOR_VPN_CONTROL?
 				conf.SUPERVISOR_VPN_CONTROL = 'true'
 			for own k, { envVarName, defaultValue } of @configKeys
@@ -105,10 +102,10 @@ module.exports = class DeviceConfig
 					return _.assign(currentConf, bootConfig)
 			)
 
-	filterAndFormatConfigKeys: (conf) =>
+	formatConfigKeys: (conf) =>
 		@getConfigBackend()
 		.then (configBackend) =>
-			configUtils.filterAndFormatConfigKeys(configBackend, @validKeys, conf)
+			configUtils.formatConfigKeys(configBackend, @validKeys, conf)
 
 	getDefaults: =>
 		Promise.try =>
