@@ -319,13 +319,12 @@ module.exports = class DeviceState extends EventEmitter
 		@emitAsync('change')
 
 	_convertLegacyAppsJson: (appsArray) =>
-		deviceConf = _.reduce(appsArray, (conf, app) =>
-			return _.merge({}, conf, app.config)
-		, {})
-		apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId')
-		@deviceConfig.filterAndFormatConfigKeys(deviceConf)
-		.then (filteredDeviceConf)->
-			return { apps, config: filteredDeviceConf }
+		Promise.try =>
+			deviceConf = _.reduce(appsArray, (conf, app) =>
+				return _.merge({}, conf, app.config)
+			, {})
+			apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId')
+			return { apps, config: deviceConf }
 
 	loadTargetFromFile: (appsPath) ->
 		console.log('Attempting to load preloaded apps...')
@@ -366,11 +365,13 @@ module.exports = class DeviceState extends EventEmitter
 				.then =>
 					@deviceConfig.getCurrent()
 				.then (deviceConf) =>
-					_.defaults(stateFromFile.config, deviceConf)
-					stateFromFile.name ?= ''
-					@setTarget({
-						local: stateFromFile
-					})
+					@deviceConfig.formatConfigKeys(stateFromFile.config)
+					.then (formattedConf) =>
+						stateFromFile.config = _.defaults(formattedConf, deviceConf)
+						stateFromFile.name ?= ''
+						@setTarget({
+							local: stateFromFile
+						})
 				.then =>
 					console.log('Preloading complete')
 					if stateFromFile.pinDevice

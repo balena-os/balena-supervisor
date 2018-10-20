@@ -65,7 +65,7 @@ function filterNamespaceFromConfig(
 	});
 }
 
-export function filterAndFormatConfigKeys(
+export function formatConfigKeys(
 	configBackend: DeviceConfigBackend | null,
 	allowedKeys: string[],
 	conf: { [key: string]: any },
@@ -76,7 +76,10 @@ export function filterAndFormatConfigKeys(
 	const legacyNamespaceRegex = /^RESIN_(.*)/;
 	const confFromNamespace = filterNamespaceFromConfig(namespaceRegex, conf);
 	const confFromLegacyNamespace = filterNamespaceFromConfig(legacyNamespaceRegex, conf);
-	const confWithoutNamespace = _.defaults(confFromNamespace, confFromLegacyNamespace);
+	const noNamespaceConf = _.pickBy(conf, (_v,k) => {
+		return !_.startsWith(k, 'RESIN_') && !_.startsWith(k, 'BALENA_');
+	});
+	const confWithoutNamespace = _.defaults(confFromNamespace, confFromLegacyNamespace, noNamespaceConf);
 
 	return _.pickBy(confWithoutNamespace, (_v, k) => {
 		return _.includes(allowedKeys, k) || (isConfigType && configBackend!.isBootConfigVar(k));

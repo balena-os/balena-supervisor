@@ -149,7 +149,7 @@ describe 'DeviceConfig', ->
 				@fakeLogger.logSystemMessage.reset()
 
 	it 'accepts RESIN_ and BALENA_ variables', ->
-		@deviceConfig.filterAndFormatConfigKeys({
+		@deviceConfig.formatConfigKeys({
 				FOO: 'bar',
 				BAR: 'baz',
 				RESIN_HOST_CONFIG_foo: 'foobaz',
