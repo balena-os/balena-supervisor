@@ -28,6 +28,7 @@
 # 	--config | -c [file]	path to config.json, relative to tools/dind ( default: config.json )
 # 	--tag | -t [tag]		for the "build" action, specify the tag to build (default: master)
 # 	--no-clean				for the "stop" action, skip removing the data, boot and state volumes
+# 	--skip-build			when --mount-dist is set, skip the webpack build of the supervisor source
 #
 # See README.md for examples.
 #
@@ -53,6 +54,7 @@ OPTIMIZE="true"
 CONFIG_FILENAME="config.json"
 TAG="master"
 CLEAN_VOLUMES="true"
+SKIP_BUILD="false"
 
 function showHelp {
 	cat $THIS_FILE | awk '{if(/^#/)print;else exit}' | tail -n +2 | sed 's/\#//' | sed 's|dindctl|'$THIS_FILE'|'
@@ -101,6 +103,9 @@ function parseOptions {
 			--no-clean)
 				CLEAN_VOLUMES="false"
 				;;
+			--skip-build)
+				SKIP_BUILD="true"
+				;;
 			*)
 				echo "Warning: unknown argument: $arg"
 				;;
@@ -115,12 +120,16 @@ function buildSupervisor {
 }
 
 function buildSupervisorSrc {
-	if [ "$OPTIMIZE" = "true" ]; then
-		echo "Rebuilding supervisor source"
-		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build )
+	if [ "$SKIP_BUILD" = "true" ]; then
+		echo "Skipping supervisor source build"
 	else
-		echo "Rebuilding supervisor source without optimizations"
-		( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build -- --env.noOptimize )
+		if [ "$OPTIMIZE" = "true" ]; then
+			echo "Rebuilding supervisor source"
+			( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build )
+		else
+			echo "Rebuilding supervisor source without optimizations"
+			( cd "$SUPERVISOR_BASE_DIR" && npm install && npm run build -- --env.noOptimize )
+		fi
 	fi
 }
 
