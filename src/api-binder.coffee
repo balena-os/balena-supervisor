@@ -316,7 +316,8 @@ module.exports = class APIBinder
 	_reportInitialEnv: (apiEndpoint) =>
 		Promise.join(
 			@deviceState.getCurrentForComparison()
-			@getTargetState()
+			@getTargetState().then (conf) =>
+				@deviceState.deviceConfig.formatConfigKeys(conf)
 			@deviceState.deviceConfig.getDefaults()
 			@config.get('deviceId')
 			(currentState, targetState, defaultConfig, deviceId) =>

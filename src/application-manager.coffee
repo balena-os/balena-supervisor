@@ -612,8 +612,8 @@ module.exports = class ApplicationManager extends EventEmitter
 				# This is a legacy preloaded app or container, so we didn't have things like serviceId.
 				# We hack a few things to avoid an unnecessary restart of the preloaded app
 				# (but ensuring it gets updated if it actually changed)
-				targetApp.services[0].config.labels['io.balena.legacy-container'] = currentApp.services[0].labels['io.balena.legacy-container']
-				targetApp.services[0].config.labels['io.balena.service-id'] = currentApp.services[0].labels['io.balena.service-id']
+				targetApp.services[0].config.labels['io.balena.legacy-container'] = currentApp.services[0].config.labels['io.balena.legacy-container']
+				targetApp.services[0].config.labels['io.balena.service-id'] = currentApp.services[0].config.labels['io.balena.service-id']
 				targetApp.services[0].serviceId = currentApp.services[0].serviceId
 
 		appId = targetApp.appId ? currentApp.appId
