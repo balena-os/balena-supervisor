@@ -316,13 +316,12 @@ module.exports = class APIBinder
 	_reportInitialEnv: (apiEndpoint) =>
 		Promise.join(
 			@deviceState.getCurrentForComparison()
-			@getTargetState().then (conf) =>
-				@deviceState.deviceConfig.formatConfigKeys(conf)
+			@getTargetState().then (targetState) =>
+				@deviceState.deviceConfig.formatConfigKeys(targetState.local.config)
 			@deviceState.deviceConfig.getDefaults()
 			@config.get('deviceId')
-			(currentState, targetState, defaultConfig, deviceId) =>
+			(currentState, targetConfig, defaultConfig, deviceId) =>
 				currentConfig = currentState.local.config
-				targetConfig = targetState.local.config
 				Promise.mapSeries _.toPairs(currentConfig), ([ key, value ]) =>
 					# We never want to disable VPN if, for instance, it failed to start so far
 					if key == 'SUPERVISOR_VPN_CONTROL'
