@@ -143,7 +143,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			saveImage: (step) =>
 				@images.save(step.image)
 			cleanup: (step) =>
-				@config.get('localMode').then (localMode) ->
+				@config.get('localMode').then (localMode) =>
 					if !checkTruthy(localMode)
 						@images.cleanup()
 			createNetworkOrVolume: (step) =>
