@@ -16,6 +16,7 @@ defaults: &defaults
             jq \
             git \
             bash \
+            grep \
             nodejs \
             nodejs-npm \
             openssh-client
@@ -36,8 +37,9 @@ defaults: &defaults
         name: Build $ARCH-supervisor
         no_output_timeout: 10800
         command: |
-            VERSION_TAG=v$(jq .version package.json | sed 's/"//g')
-            if [ "${CIRCLE_BRANCH}" = "master" ]; then
+            VERSION_TAG=v$(jq --raw-output .version package.json)
+            GIT_TAG=$(git describe --tags | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+            if [ "${VERSION_TAG}" = "${GIT_TAG}" ]; then
               export EXTRA_TAG=$VERSION_TAG
             fi
             echo "Starting build.sh"
