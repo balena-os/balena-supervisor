@@ -200,8 +200,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@services.getStatus()
 			@images.getStatus(localMode)
 			@config.get('currentCommit')
-			@db.models('app').select([ 'appId', 'releaseId', 'commit' ])
-			(services, images, currentCommit, targetApps) ->
+			(services, images, currentCommit) ->
 				apps = {}
 				dependent = {}
 				releaseId = null
@@ -808,10 +807,15 @@ module.exports = class ApplicationManager extends EventEmitter
 			_.map app.services, (service) ->
 				img = _.find(available, { dockerImageId: service.config.image, imageId: service.imageId }) ? _.find(available, { dockerImageId: service.config.image })
 				return _.omit(img, [ 'dockerImageId', 'id' ])
+		allImageDockerIdsForTargetApp = (app) ->
+				_(app.services).map((svc) -> [ svc.imageName, svc.config.image ])
+				.filter((img) -> img[1]?)
+				.value()
 
 		availableWithoutIds = _.map(available, (image) -> _.omit(image, [ 'dockerImageId', 'id' ]))
 		currentImages = _.flatMap(current.local.apps, allImagesForCurrentApp)
 		targetImages = _.flatMap(target.local.apps, allImagesForTargetApp)
+		targetImageDockerIds = _.fromPairs(_.flatMap(target.local.apps, allImageDockerIdsForTargetApp))
 
 		availableAndUnused = _.filter availableWithoutIds, (image) ->
 			!_.some currentImages.concat(targetImages), (imageInUse) -> _.isEqual(image, imageInUse)
@@ -823,8 +827,16 @@ module.exports = class ApplicationManager extends EventEmitter
 		imagesToSave = []
 		if !localMode
 			imagesToSave = _.filter targetImages, (targetImage) =>
-				_.some(available, (availableImage) => @images.isSameImage(availableImage, targetImage)) and
-					!_.some availableWithoutIds, (img) -> _.isEqual(img, targetImage)
+				isActuallyAvailable = _.some(
+					available, (availableImage) =>
+						if @images.isSameImage(availableImage, targetImage)
+							return true
+						if availableImage.dockerImageId == targetImageDockerIds[targetImage.name]
+							return true
+						return false
+				)
+				isNotSaved = !_.some availableWithoutIds, (img) -> _.isEqual(img, targetImage)
+				return isActuallyAvailable and isNotSaved
 
 		deltaSources = _.map imagesToDownload, (image) =>
 			return @bestDeltaSource(image, available)
