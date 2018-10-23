@@ -12,7 +12,7 @@ rm -f /var/run/avahi-daemon/pid
 # already be using to take an update lock, so we symlink it to the new
 # location so that the supervisor can see it
 [ -d /mnt/root/tmp/resin-supervisor ] &&
-    ( [ -d /mnt/root/tmp/balena-supervisor ] || ln ./resin-supervisor /mnt/root/tmp/balena-supervisor )
+    ( [ -d /mnt/root/tmp/balena-supervisor ] || ln -s ./resin-supervisor /mnt/root/tmp/balena-supervisor )
 
 # Otherwise, if the lockfiles directory doesn't exist
 [ -d /mnt/root/tmp/balena-supervisor ] ||
