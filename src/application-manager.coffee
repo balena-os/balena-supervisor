@@ -905,8 +905,8 @@ module.exports = class ApplicationManager extends EventEmitter
 				@networks.supervisorNetworkReady()
 				@config.get('delta')
 				(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, delta) =>
-					conf = { delta, localMode }
-					if localMode
+					conf = _.mapValues({ delta, localMode }, (v) -> checkTruthy(v))
+					if conf.localMode
 						cleanupNeeded = false
 					@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
 					.then (nextSteps) =>
