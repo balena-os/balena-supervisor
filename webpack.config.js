@@ -7,7 +7,6 @@ var UglifyPlugin = require("uglifyjs-webpack-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 var externalModules = [
-	'mkfifo',
 	'sqlite3',
 	'mysql2',
 	'pg',
