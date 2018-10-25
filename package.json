@@ -20,7 +20,6 @@
   },
   "private": "true",
   "dependencies": {
-    "mkfifo": "^0.1.5",
     "sqlite3": "^3.1.0"
   },
   "engines": {
@@ -47,7 +46,7 @@
     "copy-webpack-plugin": "^4.2.3",
     "dbus-native": "^0.2.5",
     "deep-object-diff": "^1.1.0",
-    "docker-delta": "^2.1.0",
+    "docker-delta": "^2.2.2",
     "docker-progress": "^3.0.2",
     "docker-toolbelt": "^3.3.2",
     "duration-js": "^4.0.0",
