@@ -793,7 +793,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		for availableImage in available
 			if availableImage.appId == image.appId
 				return availableImage.name
-		return 'resin/scratch'
+		return null
 
 	# returns:
 	# imagesToRemove: images that
