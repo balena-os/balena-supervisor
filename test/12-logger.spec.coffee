@@ -45,7 +45,7 @@ describe 'Logger', ->
 		clock.tick(4999)
 		clock.restore()
 
-		Promise.delay(10)
+		Promise.delay(100)
 		.then =>
 			expect(@_req.body).to.equal('')
 
@@ -55,7 +55,7 @@ describe 'Logger', ->
 		clock.tick(61000)
 		clock.restore()
 
-		Promise.delay(10)
+		Promise.delay(100)
 		.then =>
 			expect(@_req.end.calledOnce).to.be.true
 
@@ -80,7 +80,7 @@ describe 'Logger', ->
 		})
 
 		# small delay for the streams to propagate data
-		Promise.delay(10)
+		Promise.delay(100)
 		.then =>
 			lines = @_req.body.split('\n')
 			expect(lines.length).to.equal(3)
@@ -97,7 +97,7 @@ describe 'Logger', ->
 		clock.tick(10000)
 		clock.restore()
 
-		Promise.delay(10)
+		Promise.delay(100)
 		.then =>
 			expect(@fakeEventTracker.track).to.be.calledWith('Some event name', { someProp: 'someVal' })
 			lines = @_req.body.split('\n')
