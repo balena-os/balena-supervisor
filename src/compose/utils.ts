@@ -333,7 +333,7 @@ export function addFeaturesFromLabels(
 		}
 	}
 
-	if (checkTruthy('io.balena.features.balena-api')) {
+	if (checkTruthy(service.config.labels['io.balena.features.balena-api'])) {
 		setEnvVariables('API_KEY', options.deviceApiKey);
 	}
 
