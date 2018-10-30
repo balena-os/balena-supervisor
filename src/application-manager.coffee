@@ -742,6 +742,8 @@ module.exports = class ApplicationManager extends EventEmitter
 				.tap (appsForDB) =>
 					Promise.map appsForDB, (app) =>
 						@db.upsertModel('app', app, { appId: app.appId }, trx)
+				.then (appsForDB) ->
+					trx('app').where({ source }).whereNotIn('appId', _.map(appsForDB, 'appId')).del()
 			.then =>
 				@proxyvisor.setTargetInTransaction(dependent, trx)
 
