@@ -31,7 +31,7 @@ createAPIBinderRouter = (apiBinder) ->
 	router.post '/v1/update', (req, res) ->
 		apiBinder.eventTracker.track('Update notification')
 		if apiBinder.readyForUpdates
-			apiBinder.getAndSetTargetState(req.body.force)
+			apiBinder.getAndSetTargetState(req.body.force, true)
 			.catchReturn()
 		res.sendStatus(204)
 	return router
@@ -363,11 +363,11 @@ module.exports = class APIBinder
 			.timeout(apiTimeout)
 
 	# Get target state from API, set it on @deviceState and trigger a state application
-	getAndSetTargetState: (force) =>
+	getAndSetTargetState: (force, isFromAPI = false) =>
 		Promise.using @_lockGetTarget(), =>
 			@getTargetState()
 			.then (targetState) =>
-				if !_.isEqual(targetState, @lastTarget)
+				if isFromAPI or !_.isEqual(targetState, @lastTarget)
 					@deviceState.setTarget(targetState)
 					.then =>
 						@lastTarget = _.cloneDeep(targetState)
