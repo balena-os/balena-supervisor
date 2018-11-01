@@ -5,6 +5,9 @@ ARG ARCH=amd64
 FROM resin/rpi-node:6.13.1-slim as rpi-node-base
 FROM resin/armv7hf-node:6.13.1-slim as armv7hf-node-base
 FROM resin/aarch64-node:6.13.1-slim as aarch64-node-base
+RUN [ "cross-build-start" ]
+RUN sed -i '/security.debian.org jessie/d' /etc/apt/sources.list
+RUN [ "cross-build-end" ]
 
 FROM resin/amd64-node:6.13.1-slim as amd64-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \

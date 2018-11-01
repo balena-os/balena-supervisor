@@ -245,6 +245,11 @@ module.exports = class Images extends EventEmitter
 			@db.models('image').select('dockerImageId')
 			.map((image) -> image.dockerImageId)
 			(supervisorImageInfo, supervisorImage, usedImageIds) =>
+				isSupervisorRepoTag = ({ imageName, tagName }) ->
+					supervisorRepos = [ supervisorImageInfo.imageName ]
+					if _.startsWith(supervisorImageInfo.imageName, 'balena/') # We're on a new balena/ARCH-supervisor image
+						supervisorRepos.push(supervisorImageInfo.imageName.replace(/^balena/, 'resin/'))
+					return _.some(supervisorRepos, (repo) -> imageName == img) and tagName != supervisorImageInfo.tagName
 				isDangling = (image) ->
 					# Looks like dangling images show up with these weird RepoTags and RepoDigests sometimes
 					(_.isEmpty(image.RepoTags) or _.isEqual(image.RepoTags, [ '<none>:<none>' ])) and
@@ -258,8 +263,8 @@ module.exports = class Images extends EventEmitter
 						# We also remove images from the supervisor repository with a different tag
 						Promise.map image.RepoTags, (repoTag) =>
 							@docker.getRegistryAndName(repoTag)
-							.then ({ imageName, tagName }) ->
-								if imageName == supervisorImageInfo.imageName and tagName != supervisorImageInfo.tagName
+							.then (imageNameComponents) ->
+								if isSupervisorRepoTag(imageNameComponents)
 									images.push(image.Id)
 		)
 		.then =>
