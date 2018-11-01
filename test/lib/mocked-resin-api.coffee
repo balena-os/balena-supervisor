@@ -26,7 +26,7 @@ api.resinBackend = {
 api.post '/device/register', (req, res) ->
 	api.resinBackend.registerHandler(req, res)
 
-api.get '/v4/device', (req, res) ->
+api.get '/v5/device', (req, res) ->
 	api.resinBackend.getDeviceHandler(req, res)
 
 api.post '/api-key/device/:deviceId/device-key', (req, res) ->

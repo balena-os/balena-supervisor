@@ -169,6 +169,9 @@ createProxyvisorRouter = (proxyvisor) ->
 
 		fieldsToUpdateOnDB = _.pickBy({ status, is_online, commit, releaseId, config, environment }, isDefined)
 		fieldsToUpdateOnAPI = _.pick(fieldsToUpdateOnDB, 'status', 'is_online', 'commit', 'releaseId')
+		if fieldsToUpdateOnAPI.commit?
+			fieldsToUpdateOnAPI.is_on__commit = fieldsToUpdateOnAPI.commit
+			delete fieldsToUpdateOnAPI.commit
 
 		if _.isEmpty(fieldsToUpdateOnDB)
 			res.status(400).send('At least one device attribute must be updated')

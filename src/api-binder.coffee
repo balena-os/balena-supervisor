@@ -74,16 +74,12 @@ module.exports = class APIBinder
 			if offlineMode
 				console.log('Offline Mode is set, skipping API client initialization')
 				return
-			baseUrl = url.resolve(apiEndpoint, '/v4/')
+			baseUrl = url.resolve(apiEndpoint, '/v5/')
 			passthrough = _.cloneDeep(requestOpts)
 			passthrough.headers ?= {}
 			passthrough.headers.Authorization = "Bearer #{currentApiKey}"
 			@resinApi = new PinejsClient
 				apiPrefix: baseUrl
-				passthrough: passthrough
-			baseUrlLegacy = url.resolve(apiEndpoint, '/v2/')
-			@resinApiLegacy = new PinejsClient
-				apiPrefix: baseUrlLegacy
 				passthrough: passthrough
 			@cachedResinApi = @resinApi.clone({}, cache: {})
 
@@ -265,7 +261,6 @@ module.exports = class APIBinder
 				body: device
 			.timeout(conf.apiTimeout)
 
-	# This uses resin API v2 for now, as the proxyvisor expects to be able to patch the device's commit
 	patchDevice: (id, updatedFields) =>
 		@config.getMany([
 			'offlineMode'
@@ -277,7 +272,7 @@ module.exports = class APIBinder
 				throw new Error('Cannot update dependent device in offline mode')
 			if !conf.provisioned
 				throw new Error('Device must be provisioned to update a dependent device')
-			@resinApiLegacy.patch
+			@resinApi.patch
 				resource: 'device'
 				id: id
 				body: updatedFields
