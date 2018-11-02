@@ -130,7 +130,13 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 						if (conf[key] == null) {
 							conf[key] = [];
 						}
-						(conf[key] as string[]).push(value);
+						const confArr = conf[key];
+						if (!_.isArray(confArr)) {
+							throw new Error(
+								`Expected '${key}' to have a config array but got ${typeof confArr}`,
+							);
+						}
+						confArr.push(value);
 					}
 					continue;
 				}
