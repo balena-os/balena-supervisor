@@ -176,7 +176,7 @@ export class Logger {
 
 	public logConfigChange(
 		config: { [configName: string]: string },
-		{ success = false, err = null }: { success?: boolean; err?: Error } = {},
+		{ success = false, err }: { success?: boolean; err?: Error } = {},
 	) {
 		const obj: LogEventObject = { config };
 		let message: string;
