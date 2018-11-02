@@ -18,72 +18,93 @@ export class NetworkManager {
 	}
 
 	public getAll(): Bluebird<Network[]> {
-		return this.getWithBothLabels()
-			.map((network: { Name: string }) => {
-				return this.docker.getNetwork(network.Name).inspect()
-					.then((net) => {
-						return Network.fromDockerNetwork({
+		return this.getWithBothLabels().map((network: { Name: string }) => {
+			return this.docker
+				.getNetwork(network.Name)
+				.inspect()
+				.then(net => {
+					return Network.fromDockerNetwork(
+						{
 							docker: this.docker,
 							logger: this.logger,
-						}, net);
-					});
-			});
+						},
+						net,
+					);
+				});
+		});
 	}
 
 	public getAllByAppId(appId: number): Bluebird<Network[]> {
-		return this.getAll()
-			.filter((network: Network) => network.appId === appId);
+		return this.getAll().filter((network: Network) => network.appId === appId);
 	}
 
-	public get(network: { name: string, appId: number }): Bluebird<Network> {
-		return Network.fromNameAndAppId({
-			logger: this.logger,
-			docker: this.docker,
-		}, network.name, network.appId);
+	public get(network: { name: string; appId: number }): Bluebird<Network> {
+		return Network.fromNameAndAppId(
+			{
+				logger: this.logger,
+				docker: this.docker,
+			},
+			network.name,
+			network.appId,
+		);
 	}
 
 	public supervisorNetworkReady(): Bluebird<boolean> {
-		return Bluebird.resolve(fs.stat(`/sys/class/net/${constants.supervisorNetworkInterface}`))
+		return Bluebird.resolve(
+			fs.stat(`/sys/class/net/${constants.supervisorNetworkInterface}`),
+		)
 			.then(() => {
-				return this.docker.getNetwork(constants.supervisorNetworkInterface).inspect();
+				return this.docker
+					.getNetwork(constants.supervisorNetworkInterface)
+					.inspect();
 			})
-			.then((network) => {
-				return network.Options['com.docker.network.bridge.name'] ===
-					constants.supervisorNetworkInterface;
+			.then(network => {
+				return (
+					network.Options['com.docker.network.bridge.name'] ===
+					constants.supervisorNetworkInterface
+				);
 			})
 			.catchReturn(NotFoundError, false)
 			.catchReturn(ENOENT, false);
 	}
 
 	public ensureSupervisorNetwork(): Bluebird<void> {
-
 		const removeIt = () => {
-			return Bluebird.resolve(this.docker.getNetwork(constants.supervisorNetworkInterface).remove())
-				.then(() => {
-					this.docker.getNetwork(constants.supervisorNetworkInterface).inspect();
-				});
+			return Bluebird.resolve(
+				this.docker.getNetwork(constants.supervisorNetworkInterface).remove(),
+			).then(() => {
+				this.docker.getNetwork(constants.supervisorNetworkInterface).inspect();
+			});
 		};
 
-		return Bluebird.resolve(this.docker.getNetwork(constants.supervisorNetworkInterface).inspect())
-			.then((net) => {
-				if (net.Options['com.docker.network.bridge.name'] !== constants.supervisorNetworkInterface) {
+		return Bluebird.resolve(
+			this.docker.getNetwork(constants.supervisorNetworkInterface).inspect(),
+		)
+			.then(net => {
+				if (
+					net.Options['com.docker.network.bridge.name'] !==
+					constants.supervisorNetworkInterface
+				) {
 					return removeIt();
 				} else {
 					return Bluebird.resolve(
 						fs.stat(`/sys/class/net/${constants.supervisorNetworkInterface}`),
 					)
-					.catch(ENOENT, removeIt)
-					.return();
+						.catch(ENOENT, removeIt)
+						.return();
 				}
 			})
 			.catch(NotFoundError, () => {
 				console.log(`Creating ${constants.supervisorNetworkInterface} network`);
-				return Bluebird.resolve(this.docker.createNetwork({
-					Name: constants.supervisorNetworkInterface,
-					Options: {
-						'com.docker.network.bridge.name': constants.supervisorNetworkInterface,
-					},
-				}));
+				return Bluebird.resolve(
+					this.docker.createNetwork({
+						Name: constants.supervisorNetworkInterface,
+						Options: {
+							'com.docker.network.bridge.name':
+								constants.supervisorNetworkInterface,
+						},
+					}),
+				);
 			});
 	}
 
@@ -91,12 +112,12 @@ export class NetworkManager {
 		return Bluebird.join(
 			this.docker.listNetworks({
 				filters: {
-					label: [ 'io.resin.supervised' ],
+					label: ['io.resin.supervised'],
 				},
 			}),
 			this.docker.listNetworks({
 				filters: {
-					label: [ 'io.balena.supervised' ],
+					label: ['io.balena.supervised'],
 				},
 			}),
 			(legacyNetworks, currentNetworks) => {
@@ -104,5 +125,4 @@ export class NetworkManager {
 			},
 		);
 	}
-
 }

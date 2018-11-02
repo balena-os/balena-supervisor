@@ -1,7 +1,6 @@
 import { ContainerInspectInfo } from 'dockerode';
 
 declare module 'dockerode' {
-
 	// Extend the HostConfig interface with the missing fields.
 	// TODO: Add these upstream to DefinitelyTyped
 	interface HostConfig {
@@ -22,5 +21,4 @@ declare module 'dockerode' {
 		Healthcheck?: DockerHealthcheck;
 		StopTimeout?: number;
 	}
-
 }

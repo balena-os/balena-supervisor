@@ -6,7 +6,10 @@ import { generateUniqueKey } from 'resin-register-device';
 
 import ConfigJsonConfigBackend from './config/configJson';
 
-import { ConfigProviderFunctions, createProviderFunctions } from './config/functions';
+import {
+	ConfigProviderFunctions,
+	createProviderFunctions,
+} from './config/functions';
 import * as constants from './lib/constants';
 import { ConfigMap, ConfigSchema, ConfigValue } from './lib/types';
 
@@ -18,7 +21,6 @@ interface ConfigOpts {
 }
 
 class Config extends EventEmitter {
-
 	private db: DB;
 	private configJsonBackend: ConfigJsonConfigBackend;
 	private providerFunctions: ConfigProviderFunctions;
@@ -37,8 +39,15 @@ class Config extends EventEmitter {
 		deviceId: { source: 'config.json', mutable: true },
 		registered_at: { source: 'config.json', mutable: true },
 		applicationId: { source: 'config.json' },
-		appUpdatePollInterval: { source: 'config.json', mutable: true, default: 60000 },
-		mixpanelToken: { source: 'config.json', default: constants.defaultMixpanelToken },
+		appUpdatePollInterval: {
+			source: 'config.json',
+			mutable: true,
+			default: 60000,
+		},
+		mixpanelToken: {
+			source: 'config.json',
+			default: constants.defaultMixpanelToken,
+		},
 		bootstrapRetryDelay: { source: 'config.json', default: 30000 },
 		supervisorOfflineMode: { source: 'config.json', default: false },
 		hostname: { source: 'config.json', mutable: true },
@@ -81,15 +90,17 @@ class Config extends EventEmitter {
 	public constructor({ db, configPath }: ConfigOpts) {
 		super();
 		this.db = db;
-		this.configJsonBackend = new ConfigJsonConfigBackend(this.schema, configPath);
+		this.configJsonBackend = new ConfigJsonConfigBackend(
+			this.schema,
+			configPath,
+		);
 		this.providerFunctions = createProviderFunctions(this);
 	}
 
 	public init(): Bluebird<void> {
-		return this.configJsonBackend.init()
-			.then(() => {
-				return this.generateRequiredFields();
-			});
+		return this.configJsonBackend.init().then(() => {
+			return this.generateRequiredFields();
+		});
 	}
 
 	public get(key: string, trx?: Transaction): Bluebird<ConfigValue> {
@@ -99,71 +110,90 @@ class Config extends EventEmitter {
 			if (this.schema[key] == null) {
 				throw new Error(`Unknown config value ${key}`);
 			}
-			switch(this.schema[key].source) {
+			switch (this.schema[key].source) {
 				case 'func':
-					return this.providerFunctions[key].get()
-						.catch((e) => {
-							console.error(`Error getting config value for ${key}`, e, e.stack);
-							return null;
-						});
+					return this.providerFunctions[key].get().catch(e => {
+						console.error(`Error getting config value for ${key}`, e, e.stack);
+						return null;
+					});
 				case 'config.json':
 					return this.configJsonBackend.get(key);
 				case 'db':
-					return db('config').select('value').where({ key })
-						.then(([ conf ]: [{ value: string }]) => {
+					return db('config')
+						.select('value')
+						.where({ key })
+						.then(([conf]: [{ value: string }]) => {
 							if (conf != null) {
 								return conf.value;
 							}
 							return;
 						});
 			}
-		})
-			.then((value) => {
-				const schemaEntry = this.schema[key];
-				if (value == null && schemaEntry != null && schemaEntry.default != null) {
-					return schemaEntry.default;
-				}
-				return value;
-			});
+		}).then(value => {
+			const schemaEntry = this.schema[key];
+			if (value == null && schemaEntry != null && schemaEntry.default != null) {
+				return schemaEntry.default;
+			}
+			return value;
+		});
 	}
 
 	public getMany(keys: string[], trx?: Transaction): Bluebird<ConfigMap> {
-		return Bluebird.map(keys, (key: string) => this.get(key, trx))
-			.then((values) => {
+		return Bluebird.map(keys, (key: string) => this.get(key, trx)).then(
+			values => {
 				return _.zipObject(keys, values);
-			});
+			},
+		);
 	}
 
 	public set(keyValues: ConfigMap, trx?: Transaction): Bluebird<void> {
 		return Bluebird.try(() => {
-
 			// Split the values based on which storage backend they use
-			type SplitConfigBackend = { configJsonVals: ConfigMap, dbVals: ConfigMap, fnVals: ConfigMap };
-			const { configJsonVals, dbVals, fnVals }: SplitConfigBackend = _.reduce(keyValues, (acc: SplitConfigBackend, val, key) => {
-				if (this.schema[key] == null || !this.schema[key].mutable) {
-					throw new Error(`Config field ${key} not found or is immutable in config.set`);
-				}
-				if (this.schema[key].source === 'config.json') {
-					acc.configJsonVals[key] = val;
-				} else if (this.schema[key].source === 'db') {
-					acc.dbVals[key] = val;
-				} else if (this.schema[key].source === 'func') {
-					acc.fnVals[key] = val;
-				} else {
-					throw new Error(`Unknown config backend for key: ${key}, backend: ${this.schema[key].source}`);
-				}
-				return acc;
-			}, { configJsonVals: { }, dbVals: { }, fnVals: { } });
+			type SplitConfigBackend = {
+				configJsonVals: ConfigMap;
+				dbVals: ConfigMap;
+				fnVals: ConfigMap;
+			};
+			const { configJsonVals, dbVals, fnVals }: SplitConfigBackend = _.reduce(
+				keyValues,
+				(acc: SplitConfigBackend, val, key) => {
+					if (this.schema[key] == null || !this.schema[key].mutable) {
+						throw new Error(
+							`Config field ${key} not found or is immutable in config.set`,
+						);
+					}
+					if (this.schema[key].source === 'config.json') {
+						acc.configJsonVals[key] = val;
+					} else if (this.schema[key].source === 'db') {
+						acc.dbVals[key] = val;
+					} else if (this.schema[key].source === 'func') {
+						acc.fnVals[key] = val;
+					} else {
+						throw new Error(
+							`Unknown config backend for key: ${key}, backend: ${
+								this.schema[key].source
+							}`,
+						);
+					}
+					return acc;
+				},
+				{ configJsonVals: {}, dbVals: {}, fnVals: {} },
+			);
 
 			// Set these values, taking into account the knex transaction
 			const setValuesInTransaction = (tx: Transaction): Bluebird<void> => {
 				const dbKeys = _.keys(dbVals);
 				return this.getMany(dbKeys, tx)
-					.then((oldValues) => {
+					.then(oldValues => {
 						return Bluebird.map(dbKeys, (key: string) => {
 							const value = dbVals[key];
 							if (oldValues[key] !== value) {
-								return this.db.upsertModel('config', { key, value }, { key }, tx);
+								return this.db.upsertModel(
+									'config',
+									{ key, value },
+									{ key },
+									tx,
+								);
 							}
 						});
 					})
@@ -171,7 +201,9 @@ class Config extends EventEmitter {
 						return Bluebird.map(_.toPairs(fnVals), ([key, value]) => {
 							const fn = this.providerFunctions[key];
 							if (fn.set == null) {
-								throw new Error(`Attempting to set provider function without set() method implemented - key: ${key}`);
+								throw new Error(
+									`Attempting to set provider function without set() method implemented - key: ${key}`,
+								);
 							}
 							return fn.set(value, tx);
 						});
@@ -186,11 +218,12 @@ class Config extends EventEmitter {
 			if (trx != null) {
 				return setValuesInTransaction(trx).return();
 			} else {
-				return this.db.transaction((tx) => {
-					return setValuesInTransaction(tx);
-				}).return();
+				return this.db
+					.transaction(tx => {
+						return setValuesInTransaction(tx);
+					})
+					.return();
 			}
-
 		})
 			.then(() => {
 				return setImmediate(() => {
@@ -203,23 +236,34 @@ class Config extends EventEmitter {
 	public remove(key: string): Bluebird<void> {
 		return Bluebird.try(() => {
 			if (this.schema[key] == null || !this.schema[key].mutable) {
-				throw new Error(`Attempt to delete non-existent or immutable key ${key}`);
+				throw new Error(
+					`Attempt to delete non-existent or immutable key ${key}`,
+				);
 			}
 			if (this.schema[key].source === 'config.json') {
 				return this.configJsonBackend.remove(key);
 			} else if (this.schema[key].source === 'db') {
-				return this.db.models('config').del().where({ key });
+				return this.db
+					.models('config')
+					.del()
+					.where({ key });
 			} else if (this.schema[key].source === 'func') {
 				const mutFn = this.providerFunctions[key];
 				if (mutFn == null) {
-					throw new Error(`Could not find provider function for config ${key}!`);
+					throw new Error(
+						`Could not find provider function for config ${key}!`,
+					);
 				}
 				if (mutFn.remove == null) {
-					throw new Error(`Could not find removal provider function for config ${key}`);
+					throw new Error(
+						`Could not find removal provider function for config ${key}`,
+					);
 				}
 				return mutFn.remove();
 			} else {
-				throw new Error(`Unknown or unsupported config backend: ${this.schema[key].source}`);
+				throw new Error(
+					`Unknown or unsupported config backend: ${this.schema[key].source}`,
+				);
 			}
 		});
 	}
@@ -241,23 +285,21 @@ class Config extends EventEmitter {
 			'deviceApiKey',
 			'apiSecret',
 			'offlineMode',
-		])
-			.then(({ uuid, deviceApiKey, apiSecret, offlineMode }) => {
-				// These fields need to be set regardless
-				if (uuid == null || apiSecret == null) {
-					uuid = uuid || this.newUniqueKey();
-					apiSecret = apiSecret || this.newUniqueKey();
+		]).then(({ uuid, deviceApiKey, apiSecret, offlineMode }) => {
+			// These fields need to be set regardless
+			if (uuid == null || apiSecret == null) {
+				uuid = uuid || this.newUniqueKey();
+				apiSecret = apiSecret || this.newUniqueKey();
+			}
+			return this.set({ uuid, apiSecret }).then(() => {
+				if (offlineMode) {
+					return;
 				}
-				return this.set({ uuid, apiSecret })
-					.then(() => {
-						if (offlineMode) {
-							return;
-						}
-						if (deviceApiKey == null) {
-							return this.set({ deviceApiKey: this.newUniqueKey() });
-						}
-					});
+				if (deviceApiKey == null) {
+					return this.set({ deviceApiKey: this.newUniqueKey() });
+				}
 			});
+		});
 	}
 }
 

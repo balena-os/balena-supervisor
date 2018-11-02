@@ -1,4 +1,3 @@
-
 export type LogMessage = Dictionary<any>;
 
 export abstract class LogBackend {

@@ -23,12 +23,14 @@ class DB {
 			},
 			useNullAsDefault: true,
 		});
-
 	}
 
 	public init(): Bluebird<void> {
-		return this.knex('knex_migrations_lock').update({ is_locked: 0})
-			.catch(() => { return; })
+		return this.knex('knex_migrations_lock')
+			.update({ is_locked: 0 })
+			.catch(() => {
+				return;
+			})
 			.then(() => {
 				return this.knex.migrate.latest({
 					directory: path.join(__dirname, 'migrations'),
@@ -43,13 +45,14 @@ class DB {
 	public upsertModel(
 		modelName: string,
 		obj: any,
-		id: number | { [key: string]: string},
+		id: number | { [key: string]: string },
 		trx?: Knex.Transaction,
 	): Bluebird<any> {
-
 		const knex = trx || this.knex;
 
-		return knex(modelName).update(obj).where(id)
+		return knex(modelName)
+			.update(obj)
+			.where(id)
 			.then((n: number) => {
 				if (n === 0) {
 					return knex(modelName).insert(obj);
@@ -60,7 +63,6 @@ class DB {
 	public transaction(cb: DBTransactionCallback): Bluebird<Knex.Transaction> {
 		return this.knex.transaction(cb);
 	}
-
 }
 
 export = DB;

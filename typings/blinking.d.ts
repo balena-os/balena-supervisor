@@ -1,5 +1,4 @@
 declare module 'blinking' {
-
 	interface Pattern {
 		blinks?: number;
 		onDuration?: number;
@@ -8,7 +7,7 @@ declare module 'blinking' {
 	}
 
 	interface Blink {
-		start: (pattern: Pattern) => void
+		start: (pattern: Pattern) => void;
 		stop: () => void;
 	}
 

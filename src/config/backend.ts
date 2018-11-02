@@ -26,7 +26,13 @@ const bootMountPoint = `${constants.rootMountPoint}${constants.bootMountPoint}`;
 function remountAndWriteAtomic(file: string, data: string): Promise<void> {
 	// TODO: Find out why the below Promise.resolve() is required
 	// Here's the dangerous part:
-	return Promise.resolve(childProcess.execAsync(`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ${bootMountPoint}`))
+	return Promise.resolve(
+		childProcess.execAsync(
+			`mount -t vfat -o remount,rw ${
+				constants.bootBlockDevice
+			} ${bootMountPoint}`,
+		),
+	)
 		.then(() => {
 			return fsUtils.writeFileAtomic(file, data);
 		})
@@ -34,7 +40,6 @@ function remountAndWriteAtomic(file: string, data: string): Promise<void> {
 }
 
 export abstract class DeviceConfigBackend {
-
 	// Does this config backend support the given device type?
 	public abstract matches(deviceType: string): boolean;
 
@@ -59,17 +64,24 @@ export abstract class DeviceConfigBackend {
 
 	// Process the value if the environment variable, ready to be written to
 	// the backend
-	public abstract processConfigVarValue(key: string, value: string): string | string[];
+	public abstract processConfigVarValue(
+		key: string,
+		value: string,
+	): string | string[];
 
 	// Return the env var name for this config option
 	public abstract createConfigVarName(configName: string): string;
 }
 
 export class RPiConfigBackend extends DeviceConfigBackend {
-	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}CONFIG_`;
+	private static bootConfigVarPrefix = `${
+		constants.hostConfigVarPrefix
+	}CONFIG_`;
 	private static bootConfigPath = `${bootMountPoint}/config.txt`;
 
-	public static bootConfigVarRegex = new RegExp('(' + _.escapeRegExp(RPiConfigBackend.bootConfigVarPrefix) + ')(.+)');
+	public static bootConfigVarRegex = new RegExp(
+		'(' + _.escapeRegExp(RPiConfigBackend.bootConfigVarPrefix) + ')(.+)',
+	);
 
 	private static arrayConfigKeys = [
 		'dtparam',
@@ -97,45 +109,46 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 	}
 
 	public getBootConfig(): Promise<ConfigOptions> {
-		return Promise.resolve(fs.readFile(RPiConfigBackend.bootConfigPath, 'utf-8'))
-			.then((confStr) => {
+		return Promise.resolve(
+			fs.readFile(RPiConfigBackend.bootConfigPath, 'utf-8'),
+		).then(confStr => {
+			const conf: ConfigOptions = {};
+			const configStatements = confStr.split(/\r?\n/);
 
-				const conf: ConfigOptions = { };
-				const configStatements = confStr.split(/\r?\n/);
-
-				for (const configStr of configStatements) {
-					// Don't show warnings for comments and empty lines
-					const trimmed = _.trimStart(configStr);
-					if (_.startsWith(trimmed, '#') || trimmed === '') {
-						continue;
-					}
-					let keyValue = /^([^=]+)=(.*)$/.exec(configStr);
-					if (keyValue != null) {
-						const [ , key, value ] = keyValue;
-						if (!_.includes(RPiConfigBackend.arrayConfigKeys, key)) {
-							conf[key] = value;
-						} else {
-							if (conf[key] == null) {
-								conf[key] = [];
-							}
-							(conf[key] as string[]).push(value);
-						}
-						continue;
-					}
-
-					// Try the next regex instead
-					keyValue = /^(initramfs) (.+)/.exec(configStr);
-					if (keyValue != null) {
-						const [ , key, value ] = keyValue;
+			for (const configStr of configStatements) {
+				// Don't show warnings for comments and empty lines
+				const trimmed = _.trimStart(configStr);
+				if (_.startsWith(trimmed, '#') || trimmed === '') {
+					continue;
+				}
+				let keyValue = /^([^=]+)=(.*)$/.exec(configStr);
+				if (keyValue != null) {
+					const [, key, value] = keyValue;
+					if (!_.includes(RPiConfigBackend.arrayConfigKeys, key)) {
 						conf[key] = value;
 					} else {
-						console.log(`Warning - Could not parse config.txt entry: ${configStr}. Ignoring.`);
+						if (conf[key] == null) {
+							conf[key] = [];
+						}
+						(conf[key] as string[]).push(value);
 					}
-
+					continue;
 				}
 
-				return conf;
-			});
+				// Try the next regex instead
+				keyValue = /^(initramfs) (.+)/.exec(configStr);
+				if (keyValue != null) {
+					const [, key, value] = keyValue;
+					conf[key] = value;
+				} else {
+					console.log(
+						`Warning - Could not parse config.txt entry: ${configStr}. Ignoring.`,
+					);
+				}
+			}
+
+			return conf;
+		});
 	}
 
 	public setBootConfig(opts: ConfigOptions): Promise<void> {
@@ -144,8 +157,10 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 		_.each(opts, (value, key) => {
 			if (key === 'initramfs') {
 				confStatements.push(`${key} ${value}`);
-			} else if(_.isArray(value)) {
-				confStatements = confStatements.concat(_.map(value, (entry) => `${key}=${entry}`));
+			} else if (_.isArray(value)) {
+				confStatements = confStatements.concat(
+					_.map(value, entry => `${key}=${entry}`),
+				);
 			} else {
 				confStatements.push(`${key}=${value}`);
 			}
@@ -171,7 +186,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 	public processConfigVarValue(key: string, value: string): string | string[] {
 		if (_.includes(RPiConfigBackend.arrayConfigKeys, key)) {
 			if (!_.startsWith(value, '"')) {
-				return [ value ];
+				return [value];
 			} else {
 				return JSON.parse(`[${value}]`);
 			}
@@ -185,99 +200,122 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 }
 
 export class ExtlinuxConfigBackend extends DeviceConfigBackend {
-	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
+	private static bootConfigVarPrefix = `${
+		constants.hostConfigVarPrefix
+	}EXTLINUX_`;
 	private static bootConfigPath = `${bootMountPoint}/extlinux/extlinux.conf`;
 
-	public static bootConfigVarRegex = new RegExp('(' + _.escapeRegExp(ExtlinuxConfigBackend.bootConfigVarPrefix) + ')(.+)');
+	public static bootConfigVarRegex = new RegExp(
+		'(' + _.escapeRegExp(ExtlinuxConfigBackend.bootConfigVarPrefix) + ')(.+)',
+	);
 
-	private static suppportedConfigKeys = [
-		'isolcpus',
-	];
+	private static suppportedConfigKeys = ['isolcpus'];
 
 	public matches(deviceType: string): boolean {
 		return _.startsWith(deviceType, 'jetson-tx');
 	}
 
 	public getBootConfig(): Promise<ConfigOptions> {
-		return Promise.resolve(fs.readFile(ExtlinuxConfigBackend.bootConfigPath, 'utf-8'))
-			.then((confStr) => {
-				const parsedBootFile = ExtlinuxConfigBackend.parseExtlinuxFile(confStr);
+		return Promise.resolve(
+			fs.readFile(ExtlinuxConfigBackend.bootConfigPath, 'utf-8'),
+		).then(confStr => {
+			const parsedBootFile = ExtlinuxConfigBackend.parseExtlinuxFile(confStr);
 
-				// First find the default label name
-				const defaultLabel = _.find(parsedBootFile.globals, (_v, l) => {
-					if (l === 'DEFAULT') {
-						return true;
-					}
-					return false;
-				});
-
-				if (defaultLabel == null) {
-					throw new Error('Could not find default entry for extlinux.conf file');
+			// First find the default label name
+			const defaultLabel = _.find(parsedBootFile.globals, (_v, l) => {
+				if (l === 'DEFAULT') {
+					return true;
 				}
-
-				const labelEntry = parsedBootFile.labels[defaultLabel];
-
-				if (labelEntry == null) {
-					throw new Error(`Cannot find default label entry (label: ${defaultLabel}) for extlinux.conf file`);
-				}
-
-				// All configuration options come from the `APPEND` directive in the default label entry
-				const appendEntry = labelEntry.APPEND;
-
-				if (appendEntry == null) {
-					throw new Error('Could not find APPEND directive in default extlinux.conf boot entry');
-				}
-
-				const conf: ConfigOptions = { };
-				const values = appendEntry.split(' ');
-				for(const value of values) {
-					const parts = value.split('=');
-					if (this.isSupportedConfig(parts[0])) {
-						if (parts.length !== 2) {
-							throw new Error(`Could not parse extlinux configuration entry: ${values} [value with error: ${value}]`);
-						}
-						conf[parts[0]] = parts[1];
-					}
-				}
-
-				return conf;
+				return false;
 			});
+
+			if (defaultLabel == null) {
+				throw new Error('Could not find default entry for extlinux.conf file');
+			}
+
+			const labelEntry = parsedBootFile.labels[defaultLabel];
+
+			if (labelEntry == null) {
+				throw new Error(
+					`Cannot find default label entry (label: ${defaultLabel}) for extlinux.conf file`,
+				);
+			}
+
+			// All configuration options come from the `APPEND` directive in the default label entry
+			const appendEntry = labelEntry.APPEND;
+
+			if (appendEntry == null) {
+				throw new Error(
+					'Could not find APPEND directive in default extlinux.conf boot entry',
+				);
+			}
+
+			const conf: ConfigOptions = {};
+			const values = appendEntry.split(' ');
+			for (const value of values) {
+				const parts = value.split('=');
+				if (this.isSupportedConfig(parts[0])) {
+					if (parts.length !== 2) {
+						throw new Error(
+							`Could not parse extlinux configuration entry: ${values} [value with error: ${value}]`,
+						);
+					}
+					conf[parts[0]] = parts[1];
+				}
+			}
+
+			return conf;
+		});
 	}
 
 	public setBootConfig(opts: ConfigOptions): Promise<void> {
 		// First get a representation of the configuration file, with all balena-supported configuration removed
-		return Promise.resolve(fs.readFile(ExtlinuxConfigBackend.bootConfigPath))
-			.then((data) => {
-				const extlinuxFile = ExtlinuxConfigBackend.parseExtlinuxFile(data.toString());
-				const defaultLabel = extlinuxFile.globals.DEFAULT;
-				if (defaultLabel == null) {
-					throw new Error('Could not find DEFAULT directive entry in extlinux.conf');
-				}
-				const defaultEntry = extlinuxFile.labels[defaultLabel];
-				if (defaultEntry == null) {
-					throw new Error(`Could not find default extlinux.conf entry: ${defaultLabel}`);
-				}
+		return Promise.resolve(
+			fs.readFile(ExtlinuxConfigBackend.bootConfigPath),
+		).then(data => {
+			const extlinuxFile = ExtlinuxConfigBackend.parseExtlinuxFile(
+				data.toString(),
+			);
+			const defaultLabel = extlinuxFile.globals.DEFAULT;
+			if (defaultLabel == null) {
+				throw new Error(
+					'Could not find DEFAULT directive entry in extlinux.conf',
+				);
+			}
+			const defaultEntry = extlinuxFile.labels[defaultLabel];
+			if (defaultEntry == null) {
+				throw new Error(
+					`Could not find default extlinux.conf entry: ${defaultLabel}`,
+				);
+			}
 
-				if (defaultEntry.APPEND == null) {
-					throw new Error(`extlinux.conf APPEND directive not found for default entry: ${defaultLabel}, not sure how to proceed!`);
-				}
+			if (defaultEntry.APPEND == null) {
+				throw new Error(
+					`extlinux.conf APPEND directive not found for default entry: ${defaultLabel}, not sure how to proceed!`,
+				);
+			}
 
-				const appendLine = _.filter(defaultEntry.APPEND.split(' '), (entry) => {
-					const lhs = entry.split('=');
-					return !this.isSupportedConfig(lhs[0]);
-				});
-
-				// Apply the new configuration to the "plain" append line above
-
-				_.each(opts, (value, key) => {
-					appendLine.push(`${key}=${value}`);
-				});
-
-				defaultEntry.APPEND = appendLine.join(' ');
-				const extlinuxString = ExtlinuxConfigBackend.extlinuxFileToString(extlinuxFile);
-
-				return remountAndWriteAtomic(ExtlinuxConfigBackend.bootConfigPath, extlinuxString);
+			const appendLine = _.filter(defaultEntry.APPEND.split(' '), entry => {
+				const lhs = entry.split('=');
+				return !this.isSupportedConfig(lhs[0]);
 			});
+
+			// Apply the new configuration to the "plain" append line above
+
+			_.each(opts, (value, key) => {
+				appendLine.push(`${key}=${value}`);
+			});
+
+			defaultEntry.APPEND = appendLine.join(' ');
+			const extlinuxString = ExtlinuxConfigBackend.extlinuxFileToString(
+				extlinuxFile,
+			);
+
+			return remountAndWriteAtomic(
+				ExtlinuxConfigBackend.bootConfigPath,
+				extlinuxString,
+			);
+		});
 	}
 
 	public isSupportedConfig(configName: string): boolean {
@@ -301,15 +339,14 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 	}
 
 	private static parseExtlinuxFile(confStr: string): ExtlinuxFile {
-
 		const file: ExtlinuxFile = {
-			globals: { },
-			labels: { },
+			globals: {},
+			labels: {},
 		};
 
 		// Firstly split by line and filter any comments and empty lines
 		let lines = confStr.split(/\r?\n/);
-		lines = _.filter(lines, (l) => {
+		lines = _.filter(lines, l => {
 			const trimmed = _.trimStart(l);
 			return trimmed !== '' && !_.startsWith(trimmed, '#');
 		});
@@ -342,9 +379,8 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 				}
 			} else {
 				lastLabel = value;
-				file.labels[lastLabel] = { };
+				file.labels[lastLabel] = {};
 			}
-
 		}
 
 		return file;
@@ -363,5 +399,4 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		});
 		return ret;
 	}
-
 }

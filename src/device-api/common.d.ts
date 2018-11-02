@@ -9,9 +9,17 @@ export interface ServiceAction {
 	options: any;
 }
 
-declare function doRestart(applications: ApplicationManager, appId: number, force: boolean): Promise<void>;
+declare function doRestart(
+	applications: ApplicationManager,
+	appId: number,
+	force: boolean,
+): Promise<void>;
 
-declare function doPurge(applications: ApplicationManager, appId: number, force: boolean): Promise<void>;
+declare function doPurge(
+	applications: ApplicationManager,
+	appId: number,
+	force: boolean,
+): Promise<void>;
 
 declare function serviceAction(
 	action: string,

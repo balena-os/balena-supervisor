@@ -19,7 +19,10 @@ type NullableLiteral = number | NullableString;
  * Check an input string as a number, optionally specifying a requirement
  * to be positive
  */
-export function checkInt(s: NullableLiteral, options: CheckIntOptions = {}): number | void {
+export function checkInt(
+	s: NullableLiteral,
+	options: CheckIntOptions = {},
+): number | void {
 	if (s == null) {
 		return;
 	}
@@ -45,7 +48,7 @@ export function checkInt(s: NullableLiteral, options: CheckIntOptions = {}): num
  * Check that a string exists, and is not an empty string, 'null', or 'undefined'
  */
 export function checkString(s: NullableLiteral): string | void {
-	if (s == null || !_.isString(s) || _.includes([ 'null', 'undefined', '' ], s)) {
+	if (s == null || !_.isString(s) || _.includes(['null', 'undefined', ''], s)) {
 		return;
 	}
 
@@ -59,7 +62,7 @@ export function checkString(s: NullableLiteral): string | void {
  * which represents if the input was truthy
  */
 export function checkTruthy(v: string | boolean | number): boolean | void {
-	switch(v) {
+	switch (v) {
 		case '1':
 		case 'true':
 		case true:
@@ -102,7 +105,9 @@ export function isValidEnv(obj: EnvVarObject): boolean {
 
 	return _.every(obj, (val, key) => {
 		if (!isValidShortText(key)) {
-			console.log('debug: Non-valid short text env var key passed to validation.isValidEnv');
+			console.log(
+				'debug: Non-valid short text env var key passed to validation.isValidEnv',
+			);
 			console.log(`\tKey: ${inspect(key)}`);
 			return false;
 		}
@@ -136,19 +141,25 @@ export function isValidLabelsObject(obj: LabelObject): boolean {
 
 	return _.every(obj, (val, key) => {
 		if (!isValidShortText(key)) {
-			console.log('debug: Non-valid short text label key passed to validation.isValidLabelsObject');
+			console.log(
+				'debug: Non-valid short text label key passed to validation.isValidLabelsObject',
+			);
 			console.log(`\tkey: ${inspect(key)}`);
 			return false;
 		}
 
 		if (!LABEL_NAME_REGEX.test(key)) {
-			console.log('debug: Invalid label name passed to validation.isValidLabelsObject');
+			console.log(
+				'debug: Invalid label name passed to validation.isValidLabelsObject',
+			);
 			console.log(`\tkey: ${inspect(key)}`);
 			return false;
 		}
 
 		if (!_.isString(val)) {
-			console.log('debug: Non-string value passed to validation.isValidLabelsObject');
+			console.log(
+				'debug: Non-string value passed to validation.isValidLabelsObject',
+			);
 			console.log(`\tval: ${inspect(val)}`);
 			return false;
 		}
@@ -161,7 +172,9 @@ export function isValidDeviceName(name: string): boolean {
 	// currently the only disallowed value in a device name is a newline
 	const newline = name.indexOf('\n') !== -1;
 	if (newline) {
-		console.log('debug: newline found in device name. This is invalid and should be removed');
+		console.log(
+			'debug: newline found in device name. This is invalid and should be removed',
+		);
 	}
 	return !newline;
 }
@@ -179,7 +192,9 @@ function undefinedOrValidEnv(val: EnvVarObject): boolean {
  */
 export function isValidDependentAppsObject(apps: any): boolean {
 	if (!_.isObject(apps)) {
-		console.log('debug: non-object passed to validation.isValidDependentAppsObject');
+		console.log(
+			'debug: non-object passed to validation.isValidDependentAppsObject',
+		);
 		console.log(`\tapps: ${inspect(apps)}`);
 		return false;
 	}
@@ -193,7 +208,9 @@ export function isValidDependentAppsObject(apps: any): boolean {
 		});
 
 		if (!isValidShortText(appId) || !checkInt(appId)) {
-			console.log('debug: Invalid appId passed to validation.isValidDependentAppsObject');
+			console.log(
+				'debug: Invalid appId passed to validation.isValidDependentAppsObject',
+			);
 			console.log(`\tappId: ${inspect(appId)}`);
 			return false;
 		}
@@ -201,7 +218,9 @@ export function isValidDependentAppsObject(apps: any): boolean {
 		return _.conformsTo(val, {
 			name: (n: any) => {
 				if (!isValidShortText(n)) {
-					console.log('debug: Invalid name passed to validation.isValidDependentAppsObject');
+					console.log(
+						'debug: Invalid name passed to validation.isValidDependentAppsObject',
+					);
 					console.log(`\tname: ${inspect(n)}`);
 					return false;
 				}
@@ -209,7 +228,9 @@ export function isValidDependentAppsObject(apps: any): boolean {
 			},
 			image: (i: any) => {
 				if (val.commit != null && !isValidShortText(i)) {
-					console.log('debug: non valid image passed to validation.isValidDependentAppsObject');
+					console.log(
+						'debug: non valid image passed to validation.isValidDependentAppsObject',
+					);
 					console.log(`\timage: ${inspect(i)}`);
 					return false;
 				}
@@ -217,7 +238,9 @@ export function isValidDependentAppsObject(apps: any): boolean {
 			},
 			commit: (c: any) => {
 				if (c != null && !isValidShortText(c)) {
-					console.log('debug: invalid commit passed to validation.isValidDependentAppsObject');
+					console.log(
+						'debug: invalid commit passed to validation.isValidDependentAppsObject',
+					);
 					console.log(`\tcommit: ${inspect(c)}`);
 					return false;
 				}
@@ -225,7 +248,9 @@ export function isValidDependentAppsObject(apps: any): boolean {
 			},
 			config: (c: any) => {
 				if (!undefinedOrValidEnv(c)) {
-					console.log('debug; Invalid config passed to validation.isValidDependentAppsObject');
+					console.log(
+						'debug; Invalid config passed to validation.isValidDependentAppsObject',
+					);
 					console.log(`\tconfig: ${inspect(c)}`);
 					return false;
 				}
@@ -233,7 +258,9 @@ export function isValidDependentAppsObject(apps: any): boolean {
 			},
 			environment: (e: any) => {
 				if (!undefinedOrValidEnv(e)) {
-					console.log('debug; Invalid environment passed to validation.isValidDependentAppsObject');
+					console.log(
+						'debug; Invalid environment passed to validation.isValidDependentAppsObject',
+					);
 					console.log(`\tenvironment: ${inspect(e)}`);
 					return false;
 				}
@@ -245,7 +272,9 @@ export function isValidDependentAppsObject(apps: any): boolean {
 
 function isValidService(service: any, serviceId: string): boolean {
 	if (!isValidShortText(serviceId) || !checkInt(serviceId)) {
-		console.log('debug: Invalid service id passed to validation.isValidService');
+		console.log(
+			'debug: Invalid service id passed to validation.isValidService',
+		);
 		console.log(`\tserviceId: ${inspect(serviceId)}`);
 		return false;
 	}
@@ -253,7 +282,9 @@ function isValidService(service: any, serviceId: string): boolean {
 	return _.conformsTo(service, {
 		serviceName: (n: any) => {
 			if (!isValidShortText(n)) {
-				console.log('debug: Invalid service name passed to validation.isValidService');
+				console.log(
+					'debug: Invalid service name passed to validation.isValidService',
+				);
 				console.log(`\tserviceName: ${inspect(n)}`);
 				return false;
 			}
@@ -277,7 +308,9 @@ function isValidService(service: any, serviceId: string): boolean {
 		},
 		imageId: (i: any) => {
 			if (checkInt(i) == null) {
-				console.log('debug: Invalid image id passed to validation.isValidService');
+				console.log(
+					'debug: Invalid image id passed to validation.isValidService',
+				);
 				console.log(`\timageId: ${inspect(i)}`);
 				return false;
 			}
@@ -285,7 +318,9 @@ function isValidService(service: any, serviceId: string): boolean {
 		},
 		labels: (l: any) => {
 			if (!isValidLabelsObject(l)) {
-				console.log('debug: Invalid labels object passed to validation.isValidService');
+				console.log(
+					'debug: Invalid labels object passed to validation.isValidService',
+				);
 				console.log(`\tlabels: ${inspect(l)}`);
 				return false;
 			}
@@ -311,7 +346,9 @@ export function isValidAppsObject(obj: any): boolean {
 
 	return _.every(obj, (val, appId) => {
 		if (!isValidShortText(appId) || !checkInt(appId)) {
-			console.log('debug: Invalid appId passed to validation.isValidAppsObject');
+			console.log(
+				'debug: Invalid appId passed to validation.isValidAppsObject',
+			);
 			console.log(`\tappId: ${inspect(appId)}`);
 			return false;
 		}
@@ -319,7 +356,9 @@ export function isValidAppsObject(obj: any): boolean {
 		return _.conformsTo(_.defaults(_.clone(val), { releaseId: undefined }), {
 			name: (n: any) => {
 				if (!isValidShortText(n)) {
-					console.log('debug: Invalid service name passed to validation.isValidAppsObject');
+					console.log(
+						'debug: Invalid service name passed to validation.isValidAppsObject',
+					);
 					console.log(`\tname: ${inspect(n)}`);
 					return false;
 				}
@@ -327,7 +366,9 @@ export function isValidAppsObject(obj: any): boolean {
 			},
 			releaseId: (r: any) => {
 				if (r != null && checkInt(r) == null) {
-					console.log('debug: Invalid releaseId passed to validation.isValidAppsObject');
+					console.log(
+						'debug: Invalid releaseId passed to validation.isValidAppsObject',
+					);
 					console.log(`\treleaseId: ${inspect(r)}`);
 					return false;
 				}
@@ -335,14 +376,18 @@ export function isValidAppsObject(obj: any): boolean {
 			},
 			services: (s: any) => {
 				if (!_.isObject(s)) {
-					console.log('debug: Non-object service passed to validation.isValidAppsObject');
+					console.log(
+						'debug: Non-object service passed to validation.isValidAppsObject',
+					);
 					console.log(`\tservices: ${inspect(s)}`);
 					return false;
 				}
 
 				return _.every(s, (svc, svcId) => {
 					if (!isValidService(svc, svcId)) {
-						console.log('debug: Invalid service object passed to validation.isValidAppsObject');
+						console.log(
+							'debug: Invalid service object passed to validation.isValidAppsObject',
+						);
 						console.log(`\tsvc: ${inspect(svc)}`);
 						return false;
 					}
@@ -359,17 +404,19 @@ export function isValidAppsObject(obj: any): boolean {
  * Validate a dependent devices object from the state endpoint.
  */
 export function isValidDependentDevicesObject(devices: any): boolean {
-
 	if (!_.isObject(devices)) {
-		console.log('debug: Non-object passed to validation.isValidDependentDevicesObject');
+		console.log(
+			'debug: Non-object passed to validation.isValidDependentDevicesObject',
+		);
 		console.log(`\tdevices: ${inspect(devices)}`);
 		return false;
 	}
 
 	return _.every(devices, (val, uuid) => {
-
 		if (!isValidShortText(uuid)) {
-			console.log('debug: Invalid uuid passed to validation.isValidDependentDevicesObject');
+			console.log(
+				'debug: Invalid uuid passed to validation.isValidDependentDevicesObject',
+			);
 			console.log(`\tuuid: ${inspect(uuid)}`);
 			return false;
 		}
@@ -377,7 +424,9 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 		return _.conformsTo(val, {
 			name: (n: any) => {
 				if (!isValidShortText(n)) {
-					console.log('debug: Invalid device name passed to validation.isValidDependentDevicesObject');
+					console.log(
+						'debug: Invalid device name passed to validation.isValidDependentDevicesObject',
+					);
 					console.log(`\tname: ${inspect(n)}`);
 					return false;
 				}
@@ -385,22 +434,31 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 			},
 			apps: (a: any) => {
 				if (!_.isObject(a)) {
-					console.log('debug: Invalid apps object passed to validation.isValidDependentDevicesObject');
+					console.log(
+						'debug: Invalid apps object passed to validation.isValidDependentDevicesObject',
+					);
 					console.log(`\tapps: ${inspect(a)}`);
 					return false;
 				}
 
 				if (_.isEmpty(a)) {
-					console.log('debug: Empty object passed to validation.isValidDependentDevicesObject');
+					console.log(
+						'debug: Empty object passed to validation.isValidDependentDevicesObject',
+					);
 					return false;
 				}
 
-				return _.every(a, (app) => {
-					app = _.defaults(_.clone(app), { config: undefined, environment: undefined });
+				return _.every(a, app => {
+					app = _.defaults(_.clone(app), {
+						config: undefined,
+						environment: undefined,
+					});
 					return _.conformsTo(app, {
 						config: (c: any) => {
 							if (!undefinedOrValidEnv(c)) {
-								console.log('debug: Invalid config passed to validation.isValidDependentDevicesObject');
+								console.log(
+									'debug: Invalid config passed to validation.isValidDependentDevicesObject',
+								);
 								console.log(`\tconfig: ${inspect(c)}`);
 								return false;
 							}
@@ -408,7 +466,9 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 						},
 						environment: (e: any) => {
 							if (!undefinedOrValidEnv(e)) {
-								console.log('debug: Invalid environment passed to validation.isValidDependentDevicesObject');
+								console.log(
+									'debug: Invalid environment passed to validation.isValidDependentDevicesObject',
+								);
 								console.log(`\tconfig: ${inspect(e)}`);
 								return false;
 							}

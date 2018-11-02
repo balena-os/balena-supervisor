@@ -38,7 +38,12 @@ export interface NetworkConfig {
 	driver: string;
 	ipam: {
 		driver: string;
-		config: Array<{ subnet: string, gateway: string, ipRange?: string, auxAddress?: string }>;
+		config: Array<{
+			subnet: string;
+			gateway: string;
+			ipRange?: string;
+			auxAddress?: string;
+		}>;
 		options: { [optName: string]: string };
 	};
 	enableIPv6: boolean;

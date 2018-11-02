@@ -7,14 +7,19 @@ const supervisorNetworkInterface = 'supervisor0';
 
 const constants = {
 	rootMountPoint,
-	databasePath: checkString(process.env.DATABASE_PATH) || '/data/database.sqlite',
+	databasePath:
+		checkString(process.env.DATABASE_PATH) || '/data/database.sqlite',
 	dockerSocket: process.env.DOCKER_SOCKET || '/var/run/docker.sock',
-	supervisorImage: checkString(process.env.SUPERVISOR_IMAGE) || 'resin/rpi-supervisor',
-	ledFile: checkString(process.env.LED_FILE) || '/sys/class/leds/led0/brightness',
+	supervisorImage:
+		checkString(process.env.SUPERVISOR_IMAGE) || 'resin/rpi-supervisor',
+	ledFile:
+		checkString(process.env.LED_FILE) || '/sys/class/leds/led0/brightness',
 	vpnStatusPath:
-		checkString(process.env.VPN_STATUS_PATH) || `${rootMountPoint}/run/openvpn/vpn_status`,
+		checkString(process.env.VPN_STATUS_PATH) ||
+		`${rootMountPoint}/run/openvpn/vpn_status`,
 	hostOSVersionPath:
-		checkString(process.env.HOST_OS_VERSION_PATH) || `${rootMountPoint}/etc/os-release`,
+		checkString(process.env.HOST_OS_VERSION_PATH) ||
+		`${rootMountPoint}/etc/os-release`,
 	privateAppEnvVars: [
 		'RESIN_SUPERVISOR_API_KEY',
 		'RESIN_API_KEY',
@@ -28,7 +33,13 @@ const constants = {
 	configJsonNonAtomicPath: '/boot/config.json',
 	defaultMixpanelToken: process.env.DEFAULT_MIXPANEL_TOKEN,
 	supervisorNetworkInterface: supervisorNetworkInterface,
-	allowedInterfaces: [ 'resin-vpn', 'tun0', 'docker0', 'lo', supervisorNetworkInterface ],
+	allowedInterfaces: [
+		'resin-vpn',
+		'tun0',
+		'docker0',
+		'lo',
+		supervisorNetworkInterface,
+	],
 	appsJsonPath: process.env.APPS_JSON_PATH || '/boot/apps.json',
 	ipAddressUpdateInterval: 30 * 1000,
 	imageCleanupErrorIgnoreTimeout: 3600 * 1000,

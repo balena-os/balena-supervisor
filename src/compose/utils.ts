@@ -16,7 +16,9 @@ import {
 	ServiceHealthcheck,
 } from './types/service';
 
-export function camelCaseConfig(literalConfig: ConfigMap): ServiceComposeConfig {
+export function camelCaseConfig(
+	literalConfig: ConfigMap,
+): ServiceComposeConfig {
 	const config = _.mapKeys(literalConfig, (_v, k) => _.camelCase(k));
 
 	// Networks can either be an object or array, but given _.isObject
@@ -31,7 +33,10 @@ export function camelCaseConfig(literalConfig: ConfigMap): ServiceComposeConfig 
 	return config as ServiceComposeConfig;
 }
 
-export function parseMemoryNumber(valueAsString: string | null | undefined, defaultValue?: string): number {
+export function parseMemoryNumber(
+	valueAsString: string | null | undefined,
+	defaultValue?: string,
+): number {
 	if (valueAsString == null) {
 		if (defaultValue != null) {
 			return parseMemoryNumber(defaultValue);
@@ -46,7 +51,17 @@ export function parseMemoryNumber(valueAsString: string | null | undefined, defa
 		return 0;
 	}
 	const num = match[1];
-	const pow: { [key: string]: number } = { '': 0, b: 0, B: 0, K: 1, k: 1, m: 2, M: 2, g: 3, G: 3 };
+	const pow: { [key: string]: number } = {
+		'': 0,
+		b: 0,
+		B: 0,
+		K: 1,
+		k: 1,
+		m: 2,
+		M: 2,
+		g: 3,
+		G: 3,
+	};
 	return parseInt(num, 10) * 1024 ** pow[match[2]];
 }
 
@@ -57,9 +72,7 @@ export const validRestartPolicies = [
 	'unless-stopped',
 ];
 
-export function createRestartPolicy(
-	name?: string,
-): string {
+export function createRestartPolicy(name?: string): string {
 	if (name == null) {
 		return 'always';
 	}
@@ -67,12 +80,14 @@ export function createRestartPolicy(
 	// Ensure that name is a string, otherwise the below could
 	// throw
 	if (!_.isString(name)) {
-		console.log(`Warning: Non-string argument for restart field: ${name} - ignoring.`);
+		console.log(
+			`Warning: Non-string argument for restart field: ${name} - ignoring.`,
+		);
 		return 'always';
 	}
 
 	name = name.toLowerCase().trim();
-	if(!_.includes(validRestartPolicies, name)) {
+	if (!_.includes(validRestartPolicies, name)) {
 		return 'always';
 	}
 
@@ -87,7 +102,9 @@ function processCommandString(command: string): string {
 	return command.replace(/(\$)/g, '\\$1');
 }
 
-function processCommandParsedArrayElement(arg: string | { [key: string]: string}): string {
+function processCommandParsedArrayElement(
+	arg: string | { [key: string]: string },
+): string {
 	if (_.isString(arg)) {
 		return arg;
 	}
@@ -150,7 +167,7 @@ export function dockerHealthcheckToServiceHealthcheck(
 	healthcheck?: Dockerode.DockerHealthcheck,
 ): ServiceHealthcheck {
 	if (healthcheck == null || _.isEmpty(healthcheck)) {
-		return { test: [ 'NONE' ] };
+		return { test: ['NONE'] };
 	}
 	const serviceHC: ServiceHealthcheck = {
 		test: healthcheck.Test,
@@ -175,11 +192,9 @@ export function dockerHealthcheckToServiceHealthcheck(
 	return serviceHC;
 }
 
-function buildHealthcheckTest(
-	test: string | string[],
-): string[] {
+function buildHealthcheckTest(test: string | string[]): string[] {
 	if (_.isString(test)) {
-		return [ 'CMD-SHELL', test];
+		return ['CMD-SHELL', test];
 	}
 	return test;
 }
@@ -190,14 +205,13 @@ function getNanoseconds(timeStr: string): number {
 
 export function composeHealthcheckToServiceHealthcheck(
 	healthcheck: ComposeHealthcheck | null | undefined,
-): ServiceHealthcheck | { } {
-
+): ServiceHealthcheck | {} {
 	if (healthcheck == null) {
-		return  { };
+		return {};
 	}
 
 	if (healthcheck.disable) {
-		return { test: [ 'NONE' ] };
+		return { test: ['NONE'] };
 	}
 
 	const serviceHC: ServiceHealthcheck = {
@@ -236,7 +250,11 @@ export function getHealthcheck(
 	);
 
 	// Overlay any compose healthcheck fields on the image healthchecks
-	return _.assign({ test: [ 'NONE' ] }, imageServiceHealthcheck, composeServiceHealthcheck);
+	return _.assign(
+		{ test: ['NONE'] },
+		imageServiceHealthcheck,
+		composeServiceHealthcheck,
+	);
 }
 
 export function serviceHealthcheckToDockerHealthcheck(
@@ -255,8 +273,10 @@ export function getWorkingDir(
 	workingDir: string | null | undefined,
 	imageInfo?: Dockerode.ImageInspectInfo,
 ): string {
-	return (workingDir != null ? workingDir : _.get(imageInfo, 'Config.WorkingDir', ''))
-		.replace(/(^.+)\/$/, '$1');
+	return (workingDir != null
+		? workingDir
+		: _.get(imageInfo, 'Config.WorkingDir', '')
+	).replace(/(^.+)\/$/, '$1');
 }
 
 export function getUser(
@@ -266,20 +286,16 @@ export function getUser(
 	return user != null ? user : _.get(imageInfo, 'Config.User', '');
 }
 
-export function sanitiseExposeFromCompose(
-	portStr: string,
-): string {
+export function sanitiseExposeFromCompose(portStr: string): string {
 	if (/^[0-9]*$/.test(portStr)) {
 		return `${portStr}/tcp`;
 	}
 	return portStr;
 }
 
-export function formatDevice(
-	deviceStr: string,
-): DockerDevice {
-	const [ pathOnHost, ...parts ] = deviceStr.split(':');
-	let [ pathInContainer, cgroup ] = parts;
+export function formatDevice(deviceStr: string): DockerDevice {
+	const [pathOnHost, ...parts] = deviceStr.split(':');
+	let [pathInContainer, cgroup] = parts;
 	if (pathInContainer == null) {
 		pathInContainer = pathOnHost;
 	}
@@ -300,7 +316,7 @@ export function addFeaturesFromLabels(
 	service: Service,
 	options: DeviceMetadata,
 ): void {
-	const setEnvVariables = function (key: string, val: string) {
+	const setEnvVariables = function(key: string, val: string) {
 		service.config.environment[`RESIN_${key}`] = val;
 		service.config.environment[`BALENA_${key}`] = val;
 	};
@@ -323,13 +339,19 @@ export function addFeaturesFromLabels(
 	}
 
 	if (checkTruthy(service.config.labels['io.balena.features.balena-socket'])) {
-		service.config.volumes.push(`${constants.dockerSocket}:${constants.dockerSocket}`);
+		service.config.volumes.push(
+			`${constants.dockerSocket}:${constants.dockerSocket}`,
+		);
 		if (service.config.environment['DOCKER_HOST'] == null) {
-			service.config.environment['DOCKER_HOST'] = `unix://${constants.dockerSocket}`;
+			service.config.environment['DOCKER_HOST'] = `unix://${
+				constants.dockerSocket
+			}`;
 		}
 		// We keep balena.sock for backwards compatibility
 		if (constants.dockerSocket != '/var/run/balena.sock') {
-			service.config.volumes.push(`${constants.dockerSocket}:/var/run/balena.sock`);
+			service.config.volumes.push(
+				`${constants.dockerSocket}:/var/run/balena.sock`,
+			);
 		}
 	}
 
@@ -342,72 +364,78 @@ export function addFeaturesFromLabels(
 		setEnvVariables('SUPERVISOR_API_KEY', options.apiSecret);
 		if (service.config.networkMode === 'host') {
 			setEnvVariables('SUPERVISOR_HOST', '127.0.0.1');
-			setEnvVariables('SUPERVISOR_ADDRESS', `http://127.0.0.1:${options.listenPort}`);
+			setEnvVariables(
+				'SUPERVISOR_ADDRESS',
+				`http://127.0.0.1:${options.listenPort}`,
+			);
 		} else {
 			setEnvVariables('SUPERVISOR_HOST', options.supervisorApiHost);
-			setEnvVariables('SUPERVISOR_ADDRESS', `http://${options.supervisorApiHost}:${options.listenPort}`);
-			service.config.networks[constants.supervisorNetworkInterface] = { };
+			setEnvVariables(
+				'SUPERVISOR_ADDRESS',
+				`http://${options.supervisorApiHost}:${options.listenPort}`,
+			);
+			service.config.networks[constants.supervisorNetworkInterface] = {};
 		}
 	} else {
 		// Ensure that the user hasn't added 'supervisor0' to the service's list
 		// of networks
 		delete service.config.networks[constants.supervisorNetworkInterface];
 	}
-
 }
 
 export function serviceUlimitsToDockerUlimits(
 	ulimits: ServiceConfig['ulimits'] | null | undefined,
-): Array<{ Name: string, Soft: number, Hard: number }> {
-
-	const ret: Array<{ Name: string, Soft: number, Hard: number }> = [];
+): Array<{ Name: string; Soft: number; Hard: number }> {
+	const ret: Array<{ Name: string; Soft: number; Hard: number }> = [];
 	_.each(ulimits, ({ soft, hard }, name) => {
 		ret.push({ Name: name, Soft: soft, Hard: hard });
 	});
 	return ret;
 }
 
-export function serviceRestartToDockerRestartPolicy(restart: string): { Name: string, MaximumRetryCount: number } {
+export function serviceRestartToDockerRestartPolicy(
+	restart: string,
+): { Name: string; MaximumRetryCount: number } {
 	return {
 		Name: restart,
 		MaximumRetryCount: 0,
 	};
 }
 
-export function serviceNetworksToDockerNetworks(networks: ServiceConfig['networks'])
-	: Dockerode.ContainerCreateOptions['NetworkingConfig'] {
+export function serviceNetworksToDockerNetworks(
+	networks: ServiceConfig['networks'],
+): Dockerode.ContainerCreateOptions['NetworkingConfig'] {
+	const dockerNetworks: Dockerode.ContainerCreateOptions['NetworkingConfig'] = {
+		EndpointsConfig: {},
+	};
 
-		const dockerNetworks: Dockerode.ContainerCreateOptions['NetworkingConfig'] = {
-			EndpointsConfig: { },
-		};
+	_.each(networks, (net, name) => {
+		// WHY??? This shouldn't be necessary, as we define it above...
+		if (dockerNetworks.EndpointsConfig != null) {
+			dockerNetworks.EndpointsConfig[name] = {};
+			const conf = dockerNetworks.EndpointsConfig[name];
+			conf.IPAMConfig = {};
+			conf.Aliases = [];
+			_.each(net, (v, k) => {
+				switch (k) {
+					case 'ipv4Address':
+						conf.IPAMConfig.IPV4Address = v;
+						break;
+					case 'ipv6Address':
+						conf.IPAMConfig.IPV6Address = v;
+						break;
+					case 'linkLocalIps':
+						conf.IPAMConfig.LinkLocalIps = v;
+						break;
+					case 'aliases':
+						conf.Aliases = v;
+						break;
+				}
+			});
+		}
+	});
 
-		_.each(networks, (net, name) => {
-			// WHY??? This shouldn't be necessary, as we define it above...
-			if (dockerNetworks.EndpointsConfig != null) {
-				dockerNetworks.EndpointsConfig[name] = { };
-				const conf = dockerNetworks.EndpointsConfig[name];
-				conf.IPAMConfig = { };
-				conf.Aliases = [ ];
-				_.each(net, (v, k) => {
-					switch(k) {
-						case 'ipv4Address':
-							conf.IPAMConfig.IPV4Address = v;
-							break;
-						case 'ipv6Address':
-							conf.IPAMConfig.IPV6Address = v;
-							break;
-						case 'linkLocalIps':
-							conf.IPAMConfig.LinkLocalIps = v;
-							break;
-						case 'aliases':
-							conf.Aliases = v;
-							break;
-					}
-				});
-			}
-		});
-
-		return dockerNetworks;
+	return dockerNetworks;
 }
 
 export function dockerNetworkToServiceNetwork(
@@ -415,10 +443,10 @@ export function dockerNetworkToServiceNetwork(
 ): ServiceConfig['networks'] {
 	// Take the input network object, filter out any nullish fields, extract things to
 	// the correct level and return
-	const networks: ServiceConfig['networks'] = {	};
+	const networks: ServiceConfig['networks'] = {};
 
 	_.each(dockerNetworks, (net, name) => {
-		networks[name] = { };
+		networks[name] = {};
 		if (net.Aliases != null && !_.isEmpty(net.Aliases)) {
 			networks[name].aliases = net.Aliases;
 		}
@@ -444,19 +472,29 @@ export function normalizeNullValues(obj: Dictionary<any>): void {
 	_.each(obj, (v, k) => {
 		if (v == null) {
 			obj[k] = undefined;
-		} else if(_.isObject(v)) {
+		} else if (_.isObject(v)) {
 			normalizeNullValues(v);
 		}
 	});
 }
 
-export function normalizeLabels(
-	labels: { [key: string]: string },
-): { [key: string]: string } {
-	const legacyLabels = _.mapKeys(_.pickBy(labels, (_v, k) => _.startsWith(k, 'io.resin.')), (_v, k) => {
-		return k.replace(/resin/g, 'balena'); // e.g. io.resin.features.resin-api -> io.balena.features.balena-api
-	});
-	const balenaLabels = _.pickBy(labels, (_v, k) => _.startsWith(k, 'io.balena.'));
-	const otherLabels = _.pickBy(labels, (_v, k) => !(_.startsWith(k, 'io.balena.') || _.startsWith(k, 'io.resin.')));
-	return _.assign({}, otherLabels, legacyLabels, balenaLabels) as { [key: string]: string };
+export function normalizeLabels(labels: {
+	[key: string]: string;
+}): { [key: string]: string } {
+	const legacyLabels = _.mapKeys(
+		_.pickBy(labels, (_v, k) => _.startsWith(k, 'io.resin.')),
+		(_v, k) => {
+			return k.replace(/resin/g, 'balena'); // e.g. io.resin.features.resin-api -> io.balena.features.balena-api
+		},
+	);
+	const balenaLabels = _.pickBy(labels, (_v, k) =>
+		_.startsWith(k, 'io.balena.'),
+	);
+	const otherLabels = _.pickBy(
+		labels,
+		(_v, k) => !(_.startsWith(k, 'io.balena.') || _.startsWith(k, 'io.resin.')),
+	);
+	return _.assign({}, otherLabels, legacyLabels, balenaLabels) as {
+		[key: string]: string;
+	};
 }

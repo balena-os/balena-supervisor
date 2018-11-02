@@ -28,11 +28,21 @@ export function rejectOnAllInterfacesExcept(
 ): Promise<void> {
 	// We delete each rule and create it again to ensure ordering (all ACCEPTs before the REJECT/DROP).
 	// This is especially important after a supervisor update.
-	return Promise.each(allowedInterfaces, (iface) => clearAndInsertIptablesRule(`INPUT -p tcp --dport ${port} -i ${iface} -j ACCEPT`))
-		.then(() => clearAndAppendIptablesRule(`INPUT -p tcp --dport ${port} -j REJECT`))
-		// On systems without REJECT support, fall back to DROP
-		.catch(() => clearAndAppendIptablesRule(`INPUT -p tcp --dport ${port} -j DROP`))
-		.return();
+	return (
+		Promise.each(allowedInterfaces, iface =>
+			clearAndInsertIptablesRule(
+				`INPUT -p tcp --dport ${port} -i ${iface} -j ACCEPT`,
+			),
+		)
+			.then(() =>
+				clearAndAppendIptablesRule(`INPUT -p tcp --dport ${port} -j REJECT`),
+			)
+			// On systems without REJECT support, fall back to DROP
+			.catch(() =>
+				clearAndAppendIptablesRule(`INPUT -p tcp --dport ${port} -j DROP`),
+			)
+			.return()
+	);
 }
 
 export function removeRejections(port: number): Promise<void> {

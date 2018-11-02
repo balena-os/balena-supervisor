@@ -21,7 +21,6 @@ interface Options extends url.UrlWithParsedQuery {
 }
 
 export class BalenaLogBackend extends LogBackend {
-
 	private req: ClientRequest | null = null;
 	private dropCount: number = 0;
 	private writable: boolean = true;
@@ -30,11 +29,7 @@ export class BalenaLogBackend extends LogBackend {
 	private stream: stream.PassThrough;
 	timeout: NodeJS.Timer;
 
-	public constructor(
-		apiEndpoint: string,
-		uuid: string,
-		deviceApiKey: string,
-	) {
+	public constructor(apiEndpoint: string, uuid: string, deviceApiKey: string) {
 		super();
 
 		this.opts = url.parse(`${apiEndpoint}/device/v2/${uuid}/log-stream`) as any;
@@ -62,7 +57,9 @@ export class BalenaLogBackend extends LogBackend {
 			this.flush();
 			if (this.dropCount > 0) {
 				this.write({
-					message: `Warning: Suppressed ${this.dropCount} message(s) due to high load`,
+					message: `Warning: Suppressed ${
+						this.dropCount
+					} message(s) due to high load`,
 					timestamp: Date.now(),
 					isSystem: true,
 					isStdErr: true,
@@ -81,10 +78,13 @@ export class BalenaLogBackend extends LogBackend {
 			return;
 		}
 
-		message = _.assign({
-			timestamp: Date.now(),
-			message: '',
-		}, message);
+		message = _.assign(
+			{
+				timestamp: Date.now(),
+				message: '',
+			},
+			message,
+		);
 
 		if (!message.isSystem && message.serviceId == null) {
 			return;
@@ -104,14 +104,17 @@ export class BalenaLogBackend extends LogBackend {
 		// Since we haven't sent the request body yet, and never will,the
 		// only reason for the server to prematurely respond is to
 		// communicate an error. So teardown the connection immediately
-		this.req.on('response', (res) => {
-			console.log('LogBackend: server responded with status code:', res.statusCode);
+		this.req.on('response', res => {
+			console.log(
+				'LogBackend: server responded with status code:',
+				res.statusCode,
+			);
 			this.teardown();
 		});
 
 		this.req.on('timeout', () => this.teardown());
 		this.req.on('close', () => this.teardown());
-		this.req.on('error', (err) => {
+		this.req.on('error', err => {
 			console.log('LogBackend: unexpected error:', err);
 			this.teardown();
 		});
@@ -119,7 +122,6 @@ export class BalenaLogBackend extends LogBackend {
 		// Immediately flush the headers. This gives a chance to the server to
 		// respond with potential errors such as 401 authentication error
 		this.req.flushHeaders();
-
 
 		// We want a very low writable high watermark to prevent having many
 		// chunks stored in the writable queue of @_gzip and have them in
@@ -142,7 +144,6 @@ export class BalenaLogBackend extends LogBackend {
 				this.flush();
 			}
 		}, RESPONSE_GRACE_PERIOD);
-
 	}, COOLDOWN_PERIOD);
 
 	private snooze = _.debounce(this.teardown, KEEPALIVE_TIMEOUT);
@@ -150,11 +151,15 @@ export class BalenaLogBackend extends LogBackend {
 	// Flushing every ZLIB_TIMEOUT hits a balance between compression and
 	// latency. When ZLIB_TIMEOUT is 0 the compression ratio is around 5x
 	// whereas when ZLIB_TIMEOUT is infinity the compession ratio is around 10x.
-	private flush = _.throttle(() => {
-		if (this.gzip != null) {
-			this.gzip.flush(zlib.Z_SYNC_FLUSH);
-		}
-	}, ZLIB_TIMEOUT, { leading: false });
+	private flush = _.throttle(
+		() => {
+			if (this.gzip != null) {
+				this.gzip.flush(zlib.Z_SYNC_FLUSH);
+			}
+		},
+		ZLIB_TIMEOUT,
+		{ leading: false },
+	);
 
 	private teardown() {
 		if (this.req != null) {

@@ -6,8 +6,10 @@ export function envArrayToObject(env: string[]): EnvVarObject {
 	const toPair = (keyVal: string) => {
 		const m = keyVal.match(/^([^=]+)=\s*(.*)\s*$/);
 		if (m == null) {
-			console.log(`WARNING: Could not correctly parse env var ${keyVal}. ` +
-				'Please fix this var and recreate the container.');
+			console.log(
+				`WARNING: Could not correctly parse env var ${keyVal}. ` +
+					'Please fix this var and recreate the container.',
+			);
 			return [null, null];
 		}
 		return m.slice(1);

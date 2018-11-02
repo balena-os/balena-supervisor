@@ -25,7 +25,6 @@ declare interface Application {
 // This is a non-exhaustive typing for ApplicationManager to avoid
 // having to recode the entire class (and all requirements in TS).
 export class ApplicationManager extends EventEmitter {
-
 	// These probably could be typed, but the types are so messy that we're
 	// best just waiting for the relevant module to be recoded in typescript.
 	// At least any types we can be sure of then.
@@ -46,12 +45,14 @@ export class ApplicationManager extends EventEmitter {
 	// TODO: This actually returns an object, but we don't need the values just yet
 	public setTargetVolatileForService(serviceId: number, opts: Options): void;
 
-	public executeStepAction(serviceAction: ServiceAction, opts: Options): Promise<void>;
+	public executeStepAction(
+		serviceAction: ServiceAction,
+		opts: Options,
+	): Promise<void>;
 
 	public getStatus(): Promise<DeviceApplicationState>;
 
 	public serviceNameFromId(serviceId: number): Promise<string>;
-
 }
 
 export default ApplicationManager;

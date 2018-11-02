@@ -16,9 +16,9 @@ export interface ConfigMap {
 
 export interface ConfigSchema {
 	[key: string]: {
-		source: string,
-		default?: any,
-		mutable?: boolean,
-		removeIfNull?: boolean,
+		source: string;
+		default?: any;
+		mutable?: boolean;
+		removeIfNull?: boolean;
 	};
 }
