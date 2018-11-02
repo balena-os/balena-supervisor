@@ -12,7 +12,7 @@ validation = require '../lib/validation'
 # 	appId
 # 	serviceId
 # 	serviceName
-# 	imageId (from resin API)
+# 	imageId (from balena API)
 # 	releaseId
 # 	dependent
 # 	dockerImageId
@@ -59,7 +59,7 @@ module.exports = class Images extends EventEmitter
 			.catch =>
 				@reportChange(image.imageId, _.merge(_.clone(image), { status: 'Downloading', downloadProgress: 0 }))
 				Promise.try =>
-					if validation.checkTruthy(opts.delta) and opts.deltaSource? and opts.deltaSource != 'resin/scratch'
+					if validation.checkTruthy(opts.delta) and opts.deltaSource?
 						@logger.logSystemEvent(logTypes.downloadImageDelta, { image })
 						@inspectByName(opts.deltaSource)
 						.then (srcImage) =>

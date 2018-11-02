@@ -54,7 +54,7 @@ module.exports = class SupervisorAPI
 			res.sendStatus(200)
 
 		# Expires the supervisor's API key and generates a new one.
-		# It also communicates the new key to the Resin API.
+		# It also communicates the new key to the balena API.
 		@_api.post '/v1/regenerate-api-key', (req, res) =>
 			@config.newUniqueKey()
 			.then (secret) =>

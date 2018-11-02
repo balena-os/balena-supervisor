@@ -1,25 +1,25 @@
-# Using the Resin Supervisor to manage dependent applications
+# Using the balena Supervisor to manage dependent applications
 
-Since version 2.5.0 the Resin Supervisor can act as a proxy for dependent apps.
+Since version 2.5.0 the balena Supervisor can act as a proxy for dependent apps.
 
 Only Supervisors after version 2.5.0 have this functionality, and some of the endpoints appeared in later versions (we've noted it down where this is the case).
 
 ## What is a dependent application
 
-A **dependent application** is a resin application that targets devices not capable of interacting directly with the Resin API - the reasons can be several, the most common are:
+A **dependent application** is a balena application that targets devices not capable of interacting directly with the balena API - the reasons can be several, the most common are:
 
 - no direct Internet capabilities
-- not able to run Resin OS (being a microcontroller, for example)
+- not able to run balenaOS (being a microcontroller, for example)
 
-The **dependent application** is scoped under a resin application, which gets the definition of **gateway application**.
+The **dependent application** is scoped under a balena application, which gets the definition of **gateway application**.
 
-The **gateway application** is responsible for detecting, provisioning and managing **dependent devices** belonging to one of its **dependent applications**. This is possible leveraging a new set of endpoints exposed by the Resin Supervisor.
+The **gateway application** is responsible for detecting, provisioning and managing **dependent devices** belonging to one of its **dependent applications**. This is possible leveraging a new set of endpoints exposed by the balena Supervisor.
 
 When a new version of the dependent application is git pushed, the supervisor will download the docker image and expose the assets in one of the endpoints detailed below. It is then the gateway application (i.e. the user app that is run by the supervisor) that is responsible for ensuring those assets get deployed to the dependent devices, using the provided endpoints to perform the management.
 
-A dependent application follows the same development cycle of a conventional resin application:
+A dependent application follows the same development cycle of a conventional balena application:
 
-- it binds to your git workspace via the **resin remote**
+- it binds to your git workspace via the **balena remote**
 - it consists in a Docker application
 - it offers the same environment and configuration variables management
 
@@ -29,13 +29,13 @@ There are some differences:
 - the Dockerfile must target either an `x86` or `amd64` base image
 - the actual firmware/business logic must be stored in the `/assets` folder within the built docker image.
   - You can either just `COPY` a pre-built artifact in that folder, or build your artifact at push time and then store it in the `/assets` folder.
-- **a dependent application Docker image is only used to build, package and deliver the firmware on the dependent device via resin-supervisor - it won't be run at any point.**
+- **a dependent application Docker image is only used to build, package and deliver the firmware on the dependent device via balena-supervisor - it won't be run at any point.**
 
 ## How a dependent application works
 
 ### Endpoints
 
-The supervisor exposes a REST API to interact with the dependent applications and dependent devices models that come from the Resin API - it also allows using a set of hooks to have push functionality, both documented below.
+The supervisor exposes a REST API to interact with the dependent applications and dependent devices models that come from the balena API - it also allows using a set of hooks to have push functionality, both documented below.
 
 # HTTP API reference
 
@@ -47,7 +47,7 @@ Dependent Applications List
 **Example**
 
 ```bash
-curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/dependent-apps?apikey=$RESIN_SUPERVISOR_API_KEY
+curl -X GET $BALENA_SUPERVISOR_ADDRESS/v1/dependent-apps?apikey=$BALENA_SUPERVISOR_API_KEY
 ```
 
 **Response**
@@ -76,7 +76,7 @@ Dependent Application Updates Registry
 **Example**
 
 ```bash
-curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/dependent-apps/<appId>/assets/<commit>?apikey=$RESIN_SUPERVISOR_API_KEY
+curl -X GET $BALENA_SUPERVISOR_ADDRESS/v1/dependent-apps/<appId>/assets/<commit>?apikey=$BALENA_SUPERVISOR_API_KEY
 ```
 
 **Response**
@@ -95,7 +95,7 @@ Dependent Devices List
 **Example**
 
 ```bash
-curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KEY
+curl -X GET $BALENA_SUPERVISOR_ADDRESS/v1/devices?apikey=$BALENA_SUPERVISOR_API_KEY
 ```
 
 **Response**
@@ -155,7 +155,7 @@ application with the deprecated `edge` device type.
 ```bash
 curl -H "Content-Type: application/json" -X POST --data '{"appId": <appId>,
 "device_type": "edge"}' /
-$RESIN_SUPERVISOR_ADDRESS/v1/devices?apikey=$RESIN_SUPERVISOR_API_KEY
+$BALENA_SUPERVISOR_ADDRESS/v1/devices?apikey=$BALENA_SUPERVISOR_API_KEY
 ```
 
 **Response**
@@ -178,7 +178,7 @@ Dependent Device Information
 **Example**
 
 ```bash
-curl -X GET $RESIN_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$RESIN_SUPERVISOR_API_KEY
+curl -X GET $BALENA_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$BALENA_SUPERVISOR_API_KEY
 ```
 
 **Response**
@@ -211,7 +211,7 @@ Dependent Device Information Update
 ```bash
 curl -H "Content-Type: application/json" -X PUT --data /
 '{"is_online":true, "status": "Updating", "commit": "339125a7529cb2c2a8c93a0bbd8af69f2d96286ab4f4552cb5cfe99b0d3ee9"}' /
-$RESIN_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$RESIN_SUPERVISOR_API_KEY
+$BALENA_SUPERVISOR_ADDRESS/v1/devices/<uuid>?apikey=$BALENA_SUPERVISOR_API_KEY
 ```
 
 **Response**
@@ -243,18 +243,18 @@ Dependent Device Log
 
 ```bash
 curl -H "Content-Type: application/json" -X POST --data '{"message":"detected movement","timestamp":1472142960}' /
-$RESIN_SUPERVISOR_ADDRESS/v1/devices/<uuid>/logs?apikey=$RESIN_SUPERVISOR_API_KEY
+$BALENA_SUPERVISOR_ADDRESS/v1/devices/<uuid>/logs?apikey=$BALENA_SUPERVISOR_API_KEY
 ```
 **Response**
 `HTTP/1.1 202 ACCEPTED`
 
-## Hooks (the requests the Resin Supervisor performs)
+## Hooks (the requests the balena Supervisor performs)
 
 ### Hook configuration
 
 You can point the supervisor where to find the hook server via a configuration variable.
 
-- `RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS` _(defaults to `http://0.0.0.0:1337/v1/devices/`)_
+- `BALENA_DEPENDENT_DEVICES_HOOK_ADDRESS` _(defaults to `http://0.0.0.0:1337/v1/devices/`)_
 
 It's worth mentioning (as described below) that the supervisor will append the dependent device uuid (`<uuid>` in the hook descriptions) to every hook request URL
 

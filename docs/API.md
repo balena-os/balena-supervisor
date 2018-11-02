@@ -482,7 +482,7 @@ Added in supervisor v6.6.0.
 This endpoint allows setting some configuration values for the host OS. Currently it supports
 proxy and hostname configuration.
 
-For proxy configuration, resinOS 2.0.7 and higher provides a transparent proxy redirector (redsocks) that makes all connections be routed to a SOCKS or HTTP proxy. This endpoint allows user applications to modify these proxy settings at runtime.
+For proxy configuration, balenaOS 2.0.7 and higher provides a transparent proxy redirector (redsocks) that makes all connections be routed to a SOCKS or HTTP proxy. This endpoint allows user applications to modify these proxy settings at runtime.
 
 
 #### Request body
@@ -513,7 +513,7 @@ guaranteed to work, especially if they block connections that the balena service
 Keep in mind that, even if transparent proxy redirection will take effect immediately after the API call (i.e. all new connections will go through the proxy), open connections will not be closed. So, if for example, the device has managed to connect to the balenaCloud VPN without the proxy, it will stay connected directly without trying to reconnect through the proxy, unless the connection breaks - any reconnection attempts will then go through the proxy. To force *all* connections to go through the proxy, the best way is to reboot the device (see the /v1/reboot endpoint). In most networks were no connections to the Internet can be made if not through a proxy, this should not be necessary (as there will be no open connections before configuring the proxy settings).
 
 The "noProxy" setting for the proxy is an optional array of IP addresses/subnets that should not be routed through the
-proxy. Keep in mind that local/reserved subnets are already [excluded by resinOS automatically](https://github.com/resin-os/meta-resin/blob/master/meta-resin-common/recipes-connectivity/resin-proxy-config/resin-proxy-config/resin-proxy-config#L48).
+proxy. Keep in mind that local/reserved subnets are already [excluded by balenaOS automatically](https://github.com/resin-os/meta-resin/blob/master/meta-resin-common/recipes-connectivity/resin-proxy-config/resin-proxy-config/resin-proxy-config#L48).
 
 If either "proxy" or "hostname" are null or empty values (i.e. `{}` for proxy or an empty string for hostname), they will be cleared to their default values (i.e. not using a proxy, and a hostname equal to the first 7 characters of the device's uuid, respectively).
 

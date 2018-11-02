@@ -59,14 +59,13 @@ module.exports = class DockerUtils extends DockerToolbelt
 		{
 			deltaRequestTimeout, deltaApplyTimeout, deltaRetryCount, deltaRetryInterval,
 			uuid, currentApiKey, deltaEndpoint, apiEndpoint,
-			deltaSource, deltaSourceId, deltaVersion, startFromEmpty = false
+			deltaSource, deltaSourceId, deltaVersion
 		} = fullDeltaOpts
 		retryCount = checkInt(deltaRetryCount)
 		retryInterval = checkInt(deltaRetryInterval)
 		requestTimeout = checkInt(deltaRequestTimeout)
 		applyTimeout = checkInt(deltaApplyTimeout)
 		version = checkInt(deltaVersion)
-		deltaSource = 'resin/scratch' if startFromEmpty or !deltaSource?
 		deltaSourceId ?= deltaSource
 
 		log = (str) ->
@@ -74,6 +73,12 @@ module.exports = class DockerUtils extends DockerToolbelt
 
 		if not (version in [ 2, 3 ])
 			log("Unsupported delta version: #{version}. Falling back to regular pull")
+			return @fetchImageWithProgress(imgDest, fullDeltaOpts, onProgress)
+
+		# Since the supervisor never calls this function without a source anymore,
+		# this should never happen, but we handle it anyways.
+		if !deltaSource?
+			log("Falling back to regular pull due to lack of a delta source")
 			return @fetchImageWithProgress(imgDest, fullDeltaOpts, onProgress)
 
 		docker = this
@@ -110,7 +115,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 							if not (300 <= res.statusCode < 400 and res.headers['location']?)
 								throw new Error("Got #{res.statusCode} when requesting image from delta server.")
 							deltaUrl = res.headers['location']
-							if deltaSource is 'resin/scratch'
+							if !deltaSource?
 								deltaSrc = null
 							else
 								deltaSrc = deltaSourceId

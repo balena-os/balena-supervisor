@@ -1,6 +1,6 @@
 prepare = require './lib/prepare'
 Promise = require 'bluebird'
-resinAPI = require './lib/mocked-resin-api'
+balenaAPI = require './lib/mocked-balena-api'
 fs = Promise.promisifyAll(require('fs'))
 
 m = require 'mochainon'
@@ -39,10 +39,10 @@ mockProvisioningOpts = {
 
 describe 'APIBinder', ->
 	before ->
-		spy(resinAPI.resinBackend, 'registerHandler')
-		@server = resinAPI.listen(3000)
+		spy(balenaAPI.balenaBackend, 'registerHandler')
+		@server = balenaAPI.listen(3000)
 	after ->
-		resinAPI.resinBackend.registerHandler.restore()
+		balenaAPI.balenaBackend.registerHandler.restore()
 		try
 			@server.close()
 
@@ -55,8 +55,8 @@ describe 'APIBinder', ->
 			promise = @apiBinder.provisionDevice()
 			expect(promise).to.be.fulfilled
 			.then =>
-				expect(resinAPI.resinBackend.registerHandler).to.be.calledOnce
-				resinAPI.resinBackend.registerHandler.reset()
+				expect(balenaAPI.balenaBackend.registerHandler).to.be.calledOnce
+				balenaAPI.balenaBackend.registerHandler.reset()
 				expect(@eventTracker.track).to.be.calledWith('Device bootstrap success')
 
 		it 'deletes the provisioning key', ->
@@ -66,7 +66,7 @@ describe 'APIBinder', ->
 			fs.readFileAsync('./test/data/config-apibinder.json')
 			.then(JSON.parse)
 			.then (conf) ->
-				expect(resinAPI.resinBackend.devices).to.deep.equal({
+				expect(balenaAPI.balenaBackend.devices).to.deep.equal({
 					'1': {
 						id: 1
 						user: conf.userId
@@ -81,9 +81,9 @@ describe 'APIBinder', ->
 		before ->
 			initModels.call(this, '/config-apibinder.json')
 
-		it 'gets a device by its uuid from the Resin API', ->
+		it 'gets a device by its uuid from the balena API', ->
 			# Manually add a device to the mocked API
-			resinAPI.resinBackend.devices[3] = {
+			balenaAPI.balenaBackend.devices[3] = {
 				id: 3
 				user: 'foo'
 				application: 1337
@@ -93,48 +93,48 @@ describe 'APIBinder', ->
 			}
 			@apiBinder.fetchDevice('abcd', 'someApiKey', 30000)
 			.then (theDevice) ->
-				expect(theDevice).to.deep.equal(resinAPI.resinBackend.devices[3])
+				expect(theDevice).to.deep.equal(balenaAPI.balenaBackend.devices[3])
 
 	describe '_exchangeKeyAndGetDevice', ->
 		before ->
 			initModels.call(this, '/config-apibinder.json')
 
 		it 'returns the device if it can fetch it with the deviceApiKey', ->
-			spy(resinAPI.resinBackend, 'deviceKeyHandler')
+			spy(balenaAPI.balenaBackend, 'deviceKeyHandler')
 			fetchDeviceStub = stub(@apiBinder, 'fetchDevice')
 			fetchDeviceStub.onCall(0).resolves({ id: 1 })
 			@apiBinder._exchangeKeyAndGetDevice(mockProvisioningOpts)
 			.then (device) =>
-				expect(resinAPI.resinBackend.deviceKeyHandler).to.not.be.called
+				expect(balenaAPI.balenaBackend.deviceKeyHandler).to.not.be.called
 				expect(device).to.deep.equal({ id: 1 })
 				expect(@apiBinder.fetchDevice).to.be.calledOnce
 				@apiBinder.fetchDevice.restore()
-				resinAPI.resinBackend.deviceKeyHandler.restore()
+				balenaAPI.balenaBackend.deviceKeyHandler.restore()
 
 		it 'throws if it cannot get the device with any of the keys', ->
-			spy(resinAPI.resinBackend, 'deviceKeyHandler')
+			spy(balenaAPI.balenaBackend, 'deviceKeyHandler')
 			stub(@apiBinder, 'fetchDevice').returns(Promise.resolve(null))
 			promise = @apiBinder._exchangeKeyAndGetDevice(mockProvisioningOpts)
 			promise.catch(->)
 			expect(promise).to.be.rejected
 			.then =>
-				expect(resinAPI.resinBackend.deviceKeyHandler).to.not.be.called
+				expect(balenaAPI.balenaBackend.deviceKeyHandler).to.not.be.called
 				expect(@apiBinder.fetchDevice).to.be.calledTwice
 				@apiBinder.fetchDevice.restore()
-				resinAPI.resinBackend.deviceKeyHandler.restore()
+				balenaAPI.balenaBackend.deviceKeyHandler.restore()
 
 		it 'exchanges the key and returns the device if the provisioning key is valid', ->
-			spy(resinAPI.resinBackend, 'deviceKeyHandler')
+			spy(balenaAPI.balenaBackend, 'deviceKeyHandler')
 			fetchDeviceStub = stub(@apiBinder, 'fetchDevice')
 			fetchDeviceStub.onCall(0).returns(Promise.resolve(null))
 			fetchDeviceStub.onCall(1).returns(Promise.resolve({ id: 1 }))
 			@apiBinder._exchangeKeyAndGetDevice(mockProvisioningOpts)
 			.then (device) =>
-				expect(resinAPI.resinBackend.deviceKeyHandler).to.be.calledOnce
+				expect(balenaAPI.balenaBackend.deviceKeyHandler).to.be.calledOnce
 				expect(device).to.deep.equal({ id: 1 })
 				expect(@apiBinder.fetchDevice).to.be.calledTwice
 				@apiBinder.fetchDevice.restore()
-				resinAPI.resinBackend.deviceKeyHandler.restore()
+				balenaAPI.balenaBackend.deviceKeyHandler.restore()
 
 	describe 'offline mode', ->
 		before ->

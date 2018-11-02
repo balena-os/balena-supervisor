@@ -38,8 +38,8 @@ createAPIBinderRouter = (apiBinder) ->
 
 module.exports = class APIBinder
 	constructor: ({ @config, @db, @deviceState, @eventTracker }) ->
-		@resinApi = null
-		@cachedResinApi = null
+		@balenaApi = null
+		@cachedBalenaApi = null
 		@lastReportedState = { local: {}, dependent: {} }
 		@stateForReport = { local: {}, dependent: {} }
 		@lastTarget = {}
@@ -78,10 +78,10 @@ module.exports = class APIBinder
 			passthrough = _.cloneDeep(requestOpts)
 			passthrough.headers ?= {}
 			passthrough.headers.Authorization = "Bearer #{currentApiKey}"
-			@resinApi = new PinejsClient
+			@balenaApi = new PinejsClient
 				apiPrefix: baseUrl
 				passthrough: passthrough
-			@cachedResinApi = @resinApi.clone({}, cache: {})
+			@cachedBalenaApi = @balenaApi.clone({}, cache: {})
 
 	start: =>
 		@config.getMany([ 'apiEndpoint', 'offlineMode', 'bootstrapRetryDelay' ])
@@ -124,7 +124,7 @@ module.exports = class APIBinder
 			passthrough:
 				headers: Authorization: "Bearer #{apiKey}"
 		}
-		@resinApi.get(reqOpts)
+		@balenaApi.get(reqOpts)
 		.get(0)
 		.catchReturn(null)
 		.timeout(timeout)
@@ -191,7 +191,7 @@ module.exports = class APIBinder
 					console.log('Device is registered but we still have an apiKey, attempting key exchange')
 					@_exchangeKeyAndGetDevice(opts)
 			.then ({ id }) =>
-				@resinApi.passthrough.headers.Authorization = "Bearer #{opts.deviceApiKey}"
+				@balenaApi.passthrough.headers.Authorization = "Bearer #{opts.deviceApiKey}"
 				configToUpdate = {
 					registered_at: opts.registered_at
 					deviceId: id
@@ -224,7 +224,7 @@ module.exports = class APIBinder
 				@_provisionOrRetry(retryDelay)
 
 	provisionDevice: =>
-		if !@resinApi?
+		if !@balenaApi?
 			throw new Error('Trying to provision device without initializing API client')
 		@config.getMany([
 			'provisioned'
@@ -256,7 +256,7 @@ module.exports = class APIBinder
 				uuid: deviceRegister.generateUniqueKey()
 				registered_at: Math.floor(Date.now() / 1000)
 			})
-			@resinApi.post
+			@balenaApi.post
 				resource: 'device'
 				body: device
 			.timeout(conf.apiTimeout)
@@ -272,7 +272,7 @@ module.exports = class APIBinder
 				throw new Error('Cannot update dependent device in offline mode')
 			if !conf.provisioned
 				throw new Error('Device must be provisioned to update a dependent device')
-			@resinApi.patch
+			@balenaApi.patch
 				resource: 'device'
 				id: id
 				body: updatedFields
@@ -281,7 +281,7 @@ module.exports = class APIBinder
 	pinDevice: ({ app, commit }) =>
 		@config.get('deviceId')
 		.then (deviceId) =>
-			@resinApi.get
+			@balenaApi.get
 				resource: 'release'
 				options:
 					filter:
@@ -293,7 +293,7 @@ module.exports = class APIBinder
 				releaseId = _.get(release, '[0].id')
 				if !releaseId?
 					throw new Error('Cannot continue pinning preloaded device! No release found!')
-				@resinApi.patch
+				@balenaApi.patch
 					resource: 'device'
 					id: deviceId
 					body:
@@ -329,7 +329,7 @@ module.exports = class APIBinder
 							device: deviceId
 							name: 'RESIN_' + key
 						}
-						@resinApi.post
+						@balenaApi.post
 							resource: 'device_config_variable'
 							body: envVar
 		)
@@ -352,9 +352,9 @@ module.exports = class APIBinder
 			requestParams = _.extend
 				method: 'GET'
 				url: "#{endpoint}"
-			, @cachedResinApi.passthrough
+			, @cachedBalenaApi.passthrough
 
-			@cachedResinApi._request(requestParams)
+			@cachedBalenaApi._request(requestParams)
 			.timeout(apiTimeout)
 
 	# Get target state from API, set it on @deviceState and trigger a state application
@@ -388,7 +388,7 @@ module.exports = class APIBinder
 
 	startTargetStatePoll: =>
 		Promise.try =>
-			if !@resinApi?
+			if !@balenaApi?
 				throw new Error('Trying to start poll without initializing API client')
 			@_pollTargetState()
 			return null
@@ -412,9 +412,9 @@ module.exports = class APIBinder
 			method: 'PATCH'
 			url: "#{endpoint}"
 			body: stateDiff
-		, @cachedResinApi.passthrough
+		, @cachedBalenaApi.passthrough
 
-		@cachedResinApi._request(requestParams)
+		@cachedBalenaApi._request(requestParams)
 
 	_report: =>
 		@config.getMany([ 'deviceId', 'apiTimeout', 'apiEndpoint', 'uuid', 'localMode' ])
@@ -454,7 +454,7 @@ module.exports = class APIBinder
 		return null
 
 	startCurrentStateReport: =>
-		if !@resinApi?
+		if !@balenaApi?
 			throw new Error('Trying to start state reporting without initializing API client')
 		# patch to the device(id) endpoint
 		@deviceState.on 'change', =>
