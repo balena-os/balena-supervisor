@@ -4,3 +4,6 @@ export const appNotFoundMessage = `App not found: an app needs to be installed f
 
 export const serviceNotFoundMessage =
 	'Service not found, a container must exist for this endpoint to work';
+
+export const v2ServiceEndpointInputErrorMessage =
+	'This endpoint requires one of imageId or serviceName';
