@@ -8,10 +8,11 @@
 		"removeComments": true,
 		"sourceMap": true,
 		"strictNullChecks": true,
-		"outDir": "./build/src/",
+		"outDir": "./build/",
 		"lib": [
 			"es6"
-		]
+		],
+		"resolveJsonModule": true
 	},
 	"include": [
 		"src/**/*.ts",
