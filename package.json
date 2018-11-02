@@ -19,7 +19,6 @@
     "test:fast": "mocha --exit -r ts-node/register/transpile-only -r coffee-script/register test/*.{js,coffee}",
     "test:build": "tsc && coffee -m -c -o build . && cp -r test/data build/test/ && cp -r src/migrations build/src && cp package.json build",
     "test:debug": "npm run test:build && mocha --inspect-brk build/test/*.js",
-    "versionist": "versionist",
     "coverage": "istanbul report text && istanbul report html"
   },
   "private": "true",
@@ -90,7 +89,6 @@
     "typed-error": "^2.0.0",
     "typescript": "^3.1.6",
     "uglifyjs-webpack-plugin": "^1.0.1",
-    "versionist": "^2.8.0",
     "webpack": "^3.0.0"
   }
 }
