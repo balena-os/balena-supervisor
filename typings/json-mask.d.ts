@@ -1,5 +1,4 @@
 declare module 'json-mask' {
-
 	function mask(obj: Dictionary<any>, mask: string): Dictionary<any>;
 
 	// These types are not strictly correct, but they don't need to be for our usage

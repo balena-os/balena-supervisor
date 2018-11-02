@@ -2,16 +2,15 @@ import * as _ from 'lodash';
 import TypedError = require('typed-error');
 
 // Adapted from https://github.com/docker/docker-py/blob/master/docker/utils/ports.py#L3
-const PORTS_REGEX =
-	/^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/;
+const PORTS_REGEX = /^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/;
 
 // A regex to extract the protocol and internal port of the incoming Docker options
-const DOCKER_OPTS_PORTS_REGEX =  /(\d+)(?:\/?([a-z]+))?/i;
+const DOCKER_OPTS_PORTS_REGEX = /(\d+)(?:\/?([a-z]+))?/i;
 
-export class InvalidPortDefinition extends TypedError { }
+export class InvalidPortDefinition extends TypedError {}
 
 export interface PortBindings {
-	[key: string]: Array<{ HostIp: string, HostPort: string }>;
+	[key: string]: Array<{ HostIp: string; HostPort: string }>;
 }
 
 export interface DockerPortOptions {
@@ -29,7 +28,6 @@ interface PortRange {
 }
 
 export class PortMap {
-
 	private ports: PortRange;
 
 	public constructor(portStrOrObj: string | PortRange) {
@@ -41,8 +39,14 @@ export class PortMap {
 	}
 
 	public toDockerOpts(): DockerPortOptions {
-		const internalRange = this.generatePortRange(this.ports.internalStart, this.ports.internalEnd);
-		const externalRange = this.generatePortRange(this.ports.externalStart, this.ports.externalEnd);
+		const internalRange = this.generatePortRange(
+			this.ports.internalStart,
+			this.ports.internalEnd,
+		);
+		const externalRange = this.generatePortRange(
+			this.ports.externalStart,
+			this.ports.externalEnd,
+		);
 
 		const exposedPorts: { [key: string]: {} } = {};
 		const portBindings: PortBindings = {};
@@ -62,8 +66,11 @@ export class PortMap {
 	}
 
 	public toExposedPortArray(): string[] {
-		const internalRange = this.generatePortRange(this.ports.internalStart, this.ports.internalEnd);
-		return _.map(internalRange, (internal) => {
+		const internalRange = this.generatePortRange(
+			this.ports.internalStart,
+			this.ports.internalEnd,
+		);
+		return _.map(internalRange, internal => {
 			return `${internal}/${this.ports.protocol}`;
 		});
 	}
@@ -80,14 +87,10 @@ export class PortMap {
 	 * and produces a list of PortMap objects, which can then be compared.
 	 *
 	 */
-	public static fromDockerOpts(
-		portBindings: PortBindings,
-	): PortMap[] {
-
+	public static fromDockerOpts(portBindings: PortBindings): PortMap[] {
 		// Create a list of portBindings, rather than the map (which we can't
 		// order)
 		const portMaps = _.map(portBindings, (hostObj, internalStr) => {
-
 			const match = internalStr.match(DOCKER_OPTS_PORTS_REGEX);
 			if (match == null) {
 				throw new Error(`Could not parse docker port output: ${internalStr}`);
@@ -114,13 +117,14 @@ export class PortMap {
 	public static normalisePortMaps(portMaps: PortMap[]): PortMap[] {
 		// Fold any ranges into each other if possible
 		return _(portMaps)
-			.sortBy((p) => p.ports.protocol)
-			.sortBy((p) => p.ports.host)
-			.sortBy((p) => p.ports.internalStart)
+			.sortBy(p => p.ports.protocol)
+			.sortBy(p => p.ports.host)
+			.sortBy(p => p.ports.internalStart)
 			.reduce((res: PortMap[], p: PortMap) => {
 				const last = _.last(res);
 
-				if (last != null &&
+				if (
+					last != null &&
 					last.ports.internalEnd + 1 === p.ports.internalStart &&
 					last.ports.externalEnd + 1 === p.ports.externalStart &&
 					last.ports.protocol === p.ports.protocol &&
@@ -138,7 +142,9 @@ export class PortMap {
 	private parsePortString(portStr: string): void {
 		const match = portStr.match(PORTS_REGEX);
 		if (match == null) {
-			throw new InvalidPortDefinition(`Could not parse port definition: ${portStr}`);
+			throw new InvalidPortDefinition(
+				`Could not parse port definition: ${portStr}`,
+			);
 		}
 
 		// Ignore the first parameter (the complete match) and separate the matched
@@ -178,7 +184,10 @@ export class PortMap {
 		};
 
 		// Ensure we have the same range
-		if (this.ports.internalEnd - this.ports.internalStart !== this.ports.externalEnd - this.ports.externalStart) {
+		if (
+			this.ports.internalEnd - this.ports.internalStart !==
+			this.ports.externalEnd - this.ports.externalStart
+		) {
 			throw new InvalidPortDefinition(
 				`Range for internal and external ports does not match: ${portStr}`,
 			);
@@ -187,7 +196,9 @@ export class PortMap {
 
 	private generatePortRange(start: number, end: number): number[] {
 		if (start > end) {
-			throw new Error('Incorrect port range! The end port cannot be larger than the start port!');
+			throw new Error(
+				'Incorrect port range! The end port cannot be larger than the start port!',
+			);
 		}
 
 		return _.range(start, end + 1);

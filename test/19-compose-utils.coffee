@@ -1,8 +1,8 @@
-require('mocha');
+require('mocha')
 
-{ expect } = require('chai');
+{ expect } = require('chai')
 
-ComposeUtils = require('../src/compose/utils');
+ComposeUtils = require('../src/compose/utils')
 
 describe 'Composition utilities', ->
 

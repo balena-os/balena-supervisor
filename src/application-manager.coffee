@@ -810,9 +810,9 @@ module.exports = class ApplicationManager extends EventEmitter
 				img = _.find(available, { dockerImageId: service.config.image, imageId: service.imageId }) ? _.find(available, { dockerImageId: service.config.image })
 				return _.omit(img, [ 'dockerImageId', 'id' ])
 		allImageDockerIdsForTargetApp = (app) ->
-				_(app.services).map((svc) -> [ svc.imageName, svc.config.image ])
-				.filter((img) -> img[1]?)
-				.value()
+			_(app.services).map((svc) -> [ svc.imageName, svc.config.image ])
+			.filter((img) -> img[1]?)
+			.value()
 
 		availableWithoutIds = _.map(available, (image) -> _.omit(image, [ 'dockerImageId', 'id' ]))
 		currentImages = _.flatMap(current.local.apps, allImagesForCurrentApp)

@@ -46,8 +46,8 @@ export class Logger {
 	private attached: {
 		[key in OutputStream]: { [containerId: string]: boolean }
 	} = {
-		[OutputStream.Stderr]: { },
-		[OutputStream.Stdout]: { },
+		[OutputStream.Stderr]: {},
+		[OutputStream.Stdout]: {},
 	};
 
 	public constructor({ eventTracker }: LoggerConstructOptions) {
@@ -62,8 +62,7 @@ export class Logger {
 		offlineMode,
 		enableLogs,
 		localMode,
-	}: LoggerSetupOptions,
-	) {
+	}: LoggerSetupOptions) {
 		this.balenaBackend = new BalenaLogBackend(apiEndpoint, uuid, deviceApiKey);
 		this.localBackend = new LocalLogBackend();
 
@@ -126,27 +125,35 @@ export class Logger {
 		this.log(msgObj);
 		this.eventTracker.track(
 			eventName != null ? eventName : message,
-			eventObj != null ? eventObj : { },
+			eventObj != null ? eventObj : {},
 		);
 	}
 
 	public lock(containerId: string): Bluebird.Disposer<() => void> {
-		return this.writeLock(containerId)
-			.disposer((release) => {
-				release();
-			});
+		return this.writeLock(containerId).disposer(release => {
+			release();
+		});
 	}
 
 	public attach(
 		docker: Docker,
 		containerId: string,
-		serviceInfo: { serviceId: string, imageId: string },
+		serviceInfo: { serviceId: string; imageId: string },
 	): Bluebird<void> {
 		return Bluebird.using(this.lock(containerId), () => {
-			return this.attachStream(docker, OutputStream.Stdout, containerId, serviceInfo)
-				.then(() => {
-					return this.attachStream(docker, OutputStream.Stderr, containerId, serviceInfo);
-				});
+			return this.attachStream(
+				docker,
+				OutputStream.Stdout,
+				containerId,
+				serviceInfo,
+			).then(() => {
+				return this.attachStream(
+					docker,
+					OutputStream.Stderr,
+					containerId,
+					serviceInfo,
+				);
+			});
 		});
 	}
 
@@ -169,7 +176,7 @@ export class Logger {
 
 	public logConfigChange(
 		config: { [configName: string]: string },
-		{ success = false, err = null }: { success?: boolean, err?: Error } = { },
+		{ success = false, err = null }: { success?: boolean; err?: Error } = {},
 	) {
 		const obj: LogEventObject = { config };
 		let message: string;
@@ -177,7 +184,7 @@ export class Logger {
 		if (success) {
 			message = `Applied configuration change ${JSON.stringify(config)}`;
 			eventName = 'Apply config change success';
-		} else if(err != null) {
+		} else if (err != null) {
 			message = `Error applying configuration change: ${err}`;
 			eventName = 'Apply config change error';
 			obj.error = err;
@@ -196,9 +203,8 @@ export class Logger {
 		docker: Docker,
 		streamType: OutputStream,
 		containerId: string,
-		{ serviceId, imageId }: { serviceId: string, imageId: string },
+		{ serviceId, imageId }: { serviceId: string; imageId: string },
 	): Bluebird<void> {
-
 		return Bluebird.try(() => {
 			if (this.attached[streamType][containerId]) {
 				return;
@@ -212,12 +218,14 @@ export class Logger {
 				since: Math.floor(Date.now() / 1000),
 			};
 
-			return docker.getContainer(containerId).logs(logsOpts)
-				.then((stream) => {
+			return docker
+				.getContainer(containerId)
+				.logs(logsOpts)
+				.then(stream => {
 					this.attached[streamType][containerId] = true;
 
 					stream
-						.on('error', (err) => {
+						.on('error', err => {
 							console.error('Error on container logs', err);
 							this.attached[streamType][containerId] = false;
 						})
@@ -240,7 +248,7 @@ export class Logger {
 								this.log(message);
 							}
 						})
-						.on('error', (err) => {
+						.on('error', err => {
 							console.error('Error on container logs', err);
 							this.attached[streamType][containerId] = false;
 						})
@@ -248,16 +256,15 @@ export class Logger {
 							this.attached[streamType][containerId] = false;
 						});
 				});
-
 		});
-
 	}
 
 	private objectNameForLogs(eventObj: LogEventObject): string | null {
 		if (eventObj == null) {
 			return null;
 		}
-		if (eventObj.service != null &&
+		if (
+			eventObj.service != null &&
 			eventObj.service.serviceName != null &&
 			eventObj.service.config != null &&
 			eventObj.service.config.image != null
@@ -286,20 +293,17 @@ export class Logger {
 
 	private static extractContainerMessage(
 		msgBuf: Buffer,
-	): { message: string, timestamp: number } | null {
+	): { message: string; timestamp: number } | null {
 		// Non-tty message format from:
 		// https://docs.docker.com/engine/api/v1.30/#operation/ContainerAttach
-		if (
-			msgBuf[0] in [0, 1, 2] &&
-			_.every(msgBuf.slice(1, 7), (c) => c === 0)
-		) {
+		if (msgBuf[0] in [0, 1, 2] && _.every(msgBuf.slice(1, 7), c => c === 0)) {
 			// Take the header from this message, and parse it as normal
 			msgBuf = msgBuf.slice(8);
 		}
 		const logLine = msgBuf.toString();
 		const space = logLine.indexOf(' ');
 		if (space > 0) {
-			let timestamp = (new Date(logLine.substr(0, space))).getTime();
+			let timestamp = new Date(logLine.substr(0, space)).getTime();
 			if (_.isNaN(timestamp)) {
 				timestamp = Date.now();
 			}

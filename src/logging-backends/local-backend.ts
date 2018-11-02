@@ -6,14 +6,12 @@ import { checkInt } from '../lib/validation';
 import { LogBackend, LogMessage } from './log-backend';
 
 export class LocalLogBackend extends LogBackend {
-
 	private globalListeners: Readable[] = [];
 
 	private serviceNameResolver: (serviceId: number) => Bluebird<string>;
 
 	public log(message: LogMessage): void {
 		if (this.publishEnabled) {
-
 			Bluebird.try(() => {
 				if (!message.isSystem) {
 					if (this.serviceNameResolver == null) {
@@ -23,27 +21,29 @@ export class LocalLogBackend extends LogBackend {
 					}
 					const svcId = checkInt(message.serviceId);
 					if (svcId == null) {
-						console.log('Warning: Non-integer service id found in local logs: ');
+						console.log(
+							'Warning: Non-integer service id found in local logs: ',
+						);
 						console.log(`   ${JSON.stringify(message)}`);
 						return null;
 					}
 					// TODO: Can we cache this value? The service ids are reused, so
 					// we would need a way of invalidating the cache
-					return this.serviceNameResolver(svcId).then((serviceName) => {
+					return this.serviceNameResolver(svcId).then(serviceName => {
 						return _.assign({}, { serviceName }, message);
 					});
 				} else {
 					return message;
 				}
 			})
-			.then((message: LogMessage | null) => {
-				if (message != null) {
-					_.each(this.globalListeners, (listener) => {
-						listener.push(`${JSON.stringify(message)}\n`);
-					});
-				}
-			})
-				.catch((e) => {
+				.then((message: LogMessage | null) => {
+					if (message != null) {
+						_.each(this.globalListeners, listener => {
+							listener.push(`${JSON.stringify(message)}\n`);
+						});
+					}
+				})
+				.catch(e => {
 					console.log('Error streaming local log output: ', e);
 				});
 		}
@@ -62,10 +62,11 @@ export class LocalLogBackend extends LogBackend {
 		return stream;
 	}
 
-	public assignServiceNameResolver(resolver: (serviceId: number) => Bluebird<string>) {
+	public assignServiceNameResolver(
+		resolver: (serviceId: number) => Bluebird<string>,
+	) {
 		this.serviceNameResolver = resolver;
 	}
-
 }
 
 export default LocalLogBackend;

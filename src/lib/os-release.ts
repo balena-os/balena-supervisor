@@ -7,10 +7,10 @@ function getOSReleaseField(path: string, field: string): string | undefined {
 	try {
 		const releaseData = fs.readFileSync(path, 'utf-8');
 		const lines = releaseData.split('\n');
-		const releaseItems: { [field: string]: string} = { };
+		const releaseItems: { [field: string]: string } = {};
 
 		for (const line of lines) {
-			const [ key, value ] = line.split('=');
+			const [key, value] = line.split('=');
 			releaseItems[_.trim(key)] = _.trim(value);
 		}
 
@@ -20,7 +20,7 @@ function getOSReleaseField(path: string, field: string): string | undefined {
 
 		// Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
 		return releaseItems[field].replace(/^"(.+(?="$))"$/, '$1');
-	} catch(err) {
+	} catch (err) {
 		console.log('Could not get OS release field: ', err.message);
 		return;
 	}

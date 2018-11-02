@@ -258,7 +258,6 @@ module.exports = class DeviceState extends EventEmitter
 			@config.get('apiEndpoint'),
 			validateState(target),
 			(apiEndpoint) =>
-				source = apiEndpoint
 				@usingWriteLockTarget =>
 					# Apps, deviceConfig, dependent
 					@db.transaction (trx) =>
@@ -318,9 +317,9 @@ module.exports = class DeviceState extends EventEmitter
 		_.assign(@_currentVolatile, newState)
 		@emitAsync('change')
 
-	_convertLegacyAppsJson: (appsArray) =>
-		Promise.try =>
-			deviceConf = _.reduce(appsArray, (conf, app) =>
+	_convertLegacyAppsJson: (appsArray) ->
+		Promise.try ->
+			deviceConf = _.reduce(appsArray, (conf, app) ->
 				return _.merge({}, conf, app.config)
 			, {})
 			apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId')
@@ -333,9 +332,9 @@ module.exports = class DeviceState extends EventEmitter
 		.then(JSON.parse)
 		.then (stateFromFile) =>
 			if _.isArray(stateFromFile)
-					# This is a legacy apps.json
-					console.log('Legacy apps.json detected')
-					return @_convertLegacyAppsJson(stateFromFile)
+				# This is a legacy apps.json
+				console.log('Legacy apps.json detected')
+				return @_convertLegacyAppsJson(stateFromFile)
 			else
 				return stateFromFile
 		.then (stateFromFile) =>

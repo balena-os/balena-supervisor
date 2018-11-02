@@ -7,14 +7,14 @@ _ = require 'lodash'
 
 configs = {
 	simple: {
-		compose: require('./data/docker-states/simple/compose.json');
-		imageInfo: require('./data/docker-states/simple/imageInfo.json');
-		inspect: require('./data/docker-states/simple/inspect.json');
+		compose: require('./data/docker-states/simple/compose.json')
+		imageInfo: require('./data/docker-states/simple/imageInfo.json')
+		inspect: require('./data/docker-states/simple/inspect.json')
 	}
 	entrypoint: {
-		compose: require('./data/docker-states/entrypoint/compose.json');
-		imageInfo: require('./data/docker-states/entrypoint/imageInfo.json');
-		inspect: require('./data/docker-states/entrypoint/inspect.json');
+		compose: require('./data/docker-states/entrypoint/compose.json')
+		imageInfo: require('./data/docker-states/entrypoint/imageInfo.json')
+		inspect: require('./data/docker-states/entrypoint/inspect.json')
 	}
 }
 
@@ -199,8 +199,8 @@ describe 'compose/service', ->
 			serviceId: 123456,
 			serviceName: 'test',
 			ports: [
-				"80:80"
-				"100:100"
+				'80:80'
+				'100:100'
 			]
 		}, { appName: 'test' })
 
@@ -302,14 +302,14 @@ describe 'compose/service', ->
 					}, { appName: 'test' })
 
 				expect(makeComposeServiceWithNetwork({
-					"balena": {
-						"ipv4Address": "1.2.3.4"
+					'balena': {
+						'ipv4Address': '1.2.3.4'
 					}
 				}).toDockerContainer({ deviceName: 'foo' }).NetworkingConfig).to.deep.equal({
 					EndpointsConfig: {
-						"123456_balena": {
+						'123456_balena': {
 							IPAMConfig: {
-								IPV4Address: "1.2.3.4"
+								IPV4Address: '1.2.3.4'
 							},
 							Aliases: []
 						}
@@ -325,7 +325,7 @@ describe 'compose/service', ->
 					}
 				}).toDockerContainer({ deviceName: 'foo' }).NetworkingConfig).to.deep.equal({
 					EndpointsConfig: {
-						"123456_balena": {
+						'123456_balena': {
 							IPAMConfig: {
 								IPV4Address: '1.2.3.4'
 								IPV6Address: '5.6.7.8'
@@ -337,23 +337,23 @@ describe 'compose/service', ->
 				})
 
 			it 'should correctly convert Docker format to service format', ->
-				dockerCfg = require('./data/docker-states/simple/inspect.json');
+				dockerCfg = require('./data/docker-states/simple/inspect.json')
 				makeServiceFromDockerWithNetwork = (networks) ->
 					Service.fromDockerContainer(
-						newConfig = _.cloneDeep(dockerCfg);
+						newConfig = _.cloneDeep(dockerCfg)
 						newConfig.NetworkSettings = { Networks: networks }
 					)
 
 				expect(makeServiceFromDockerWithNetwork({
 					'123456_balena': {
 						IPAMConfig: {
-							IPv4Address: "1.2.3.4"
+							IPv4Address: '1.2.3.4'
 						},
 						Aliases: []
 					}
 				}).config.networks).to.deep.equal({
 					'123456_balena': {
-						"ipv4Address": "1.2.3.4"
+						'ipv4Address': '1.2.3.4'
 					}
 				})
 

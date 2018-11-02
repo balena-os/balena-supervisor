@@ -12,7 +12,6 @@ import { doPurge, doRestart, serviceAction } from './common';
 import supervisorVersion = require('../lib/supervisor-version');
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
-
 	const { _lockingIfNecessary, deviceState } = applications;
 
 	const messageFromError = (err?: Error | string | null): string => {
@@ -36,8 +35,9 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		const { appId } = req.params;
 
 		return _lockingIfNecessary(appId, { force }, () => {
-			return applications.getCurrentApp(appId)
-				.then((app) => {
+			return applications
+				.getCurrentApp(appId)
+				.then(app => {
 					if (app == null) {
 						res.status(404).send(appNotFoundMessage);
 						return;
@@ -47,90 +47,100 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						res.status(404).send(serviceNotFoundMessage);
 						return;
 					}
-					applications.setTargetVolatileForService(
-						service.imageId!,
-						{ running: action !== 'stop' },
-					);
-					return applications.executeStepAction(
-						serviceAction(
-							action,
-							service.serviceId!,
-							service,
-							service,
-							{ wait: true },
-						),
-						{ skipLock: true },
-					)
+					applications.setTargetVolatileForService(service.imageId!, {
+						running: action !== 'stop',
+					});
+					return applications
+						.executeStepAction(
+							serviceAction(action, service.serviceId!, service, service, {
+								wait: true,
+							}),
+							{ skipLock: true },
+						)
 						.then(() => {
 							res.status(200).send('OK');
 						});
 				})
-				.catch((err) => {
+				.catch(err => {
 					res.status(503).send(messageFromError(err));
 				});
 		});
 	};
 
-	router.post('/v2/applications/:appId/purge', (req: Request, res: Response) => {
-		const { force } = req.body;
-		const { appId } = req.params;
+	router.post(
+		'/v2/applications/:appId/purge',
+		(req: Request, res: Response) => {
+			const { force } = req.body;
+			const { appId } = req.params;
 
-		return doPurge(applications, appId, force)
-			.then(() => {
-				res.status(200).send('OK');
-			})
-			.catch((err) => {
-				let message;
-				if (err != null) {
-					message = err.message;
-					if (message == null) {
-						message = err;
+			return doPurge(applications, appId, force)
+				.then(() => {
+					res.status(200).send('OK');
+				})
+				.catch(err => {
+					let message;
+					if (err != null) {
+						message = err.message;
+						if (message == null) {
+							message = err;
+						}
+					} else {
+						message = 'Unknown error';
 					}
-				} else {
-					message = 'Unknown error';
-				}
-				res.status(503).send(message);
-			});
-	});
+					res.status(503).send(message);
+				});
+		},
+	);
 
-	router.post('/v2/applications/:appId/restart-service', (req: Request, res: Response) => {
-		return handleServiceAction(req, res, 'restart');
-	});
+	router.post(
+		'/v2/applications/:appId/restart-service',
+		(req: Request, res: Response) => {
+			return handleServiceAction(req, res, 'restart');
+		},
+	);
 
-	router.post('/v2/applications/:appId/stop-service', (req: Request, res: Response) => {
-		return handleServiceAction(req, res, 'stop');
-	});
+	router.post(
+		'/v2/applications/:appId/stop-service',
+		(req: Request, res: Response) => {
+			return handleServiceAction(req, res, 'stop');
+		},
+	);
 
-	router.post('/v2/applications/:appId/start-service', (req: Request, res: Response) => {
-		return handleServiceAction(req, res, 'start');
-	});
+	router.post(
+		'/v2/applications/:appId/start-service',
+		(req: Request, res: Response) => {
+			return handleServiceAction(req, res, 'start');
+		},
+	);
 
-	router.post('/v2/applications/:appId/restart', (req: Request, res: Response) => {
-		const { force } = req.body;
-		const { appId } = req.params;
+	router.post(
+		'/v2/applications/:appId/restart',
+		(req: Request, res: Response) => {
+			const { force } = req.body;
+			const { appId } = req.params;
 
-		return doRestart(applications, appId, force)
-			.then(() => {
-				res.status(200).send('OK');
-			})
-			.catch((err) => {
-				res.status(503).send(messageFromError(err));
-			});
-	});
+			return doRestart(applications, appId, force)
+				.then(() => {
+					res.status(200).send('OK');
+				})
+				.catch(err => {
+					res.status(503).send(messageFromError(err));
+				});
+		},
+	);
 
 	// TODO: Support dependent applications when this feature is complete
 	router.get('/v2/applications/state', (_req: Request, res: Response) => {
-
 		// It's kinda hacky to access the services and db via the application manager
 		// maybe refactor this code
 		Bluebird.join(
 			applications.services.getStatus(),
 			applications.images.getStatus(),
-			applications.db.models('app').select([ 'appId', 'commit', 'name' ]),
+			applications.db.models('app').select(['appId', 'commit', 'name']),
 			(
 				services,
 				images,
-				apps: Array<{ appId: string, commit: string, name: string }>,
+				apps: Array<{ appId: string; commit: string; name: string }>,
 			) => {
 				// Create an object which is keyed my application name
 				const response: {
@@ -142,25 +152,25 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 								status: string;
 								releaseId: number;
 								downloadProgress: number | null;
-							}
-						}
-					}
-				} = { };
+							};
+						};
+					};
+				} = {};
 
-				const appNameById: { [id: number]: string } = { };
+				const appNameById: { [id: number]: string } = {};
 
-				apps.forEach((app) => {
+				apps.forEach(app => {
 					const appId = parseInt(app.appId, 10);
 					response[app.name] = {
 						appId,
 						commit: app.commit,
-						services: { },
+						services: {},
 					};
 
 					appNameById[appId] = app.name;
 				});
 
-				images.forEach((img) => {
+				images.forEach(img => {
 					const appName = appNameById[img.appId];
 					if (appName == null) {
 						console.log('Image found for unknown application!');
@@ -186,16 +196,19 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				});
 
 				res.status(200).json(response);
-			});
+			},
+		);
 	});
 
-	router.get('/v2/applications/:appId/state', (_req: Request, res: Response) => {
-		// Get all services and their statuses, and return it
-		applications.getStatus()
-			.then((apps) => {
+	router.get(
+		'/v2/applications/:appId/state',
+		(_req: Request, res: Response) => {
+			// Get all services and their statuses, and return it
+			applications.getStatus().then(apps => {
 				res.status(200).json(apps);
 			});
-	});
+		},
+	);
 
 	router.get('/v2/local/target-state', async (_req, res) => {
 		try {
@@ -249,7 +262,6 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 					message: e.message,
 				});
 			}
-
 		} catch (e) {
 			const message = 'Could not apply target state: ';
 			res.status(503).json({
@@ -263,12 +275,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		// Return the device type and slug so that local mode builds can use this to
 		// resolve builds
 		try {
-
 			// FIXME: We should be mounting the following file into the supervisor from the
 			// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
-			const data = await fs.readFile('/mnt/root/resin-boot/device-type.json', 'utf8');
+			const data = await fs.readFile(
+				'/mnt/root/resin-boot/device-type.json',
+				'utf8',
+			);
 			const deviceInfo = JSON.parse(data);
-
 
 			return res.status(200).json({
 				status: 'sucess',
@@ -277,7 +290,6 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 					deviceType: deviceInfo.slug,
 				},
 			});
-
 		} catch (e) {
 			const message = 'Could not fetch device information: ';
 			res.status(503).json({
@@ -289,7 +301,9 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get('/v2/local/logs', async (_req, res) => {
 		const backend = applications.logger.getLocalBackend();
-		backend.assignServiceNameResolver(applications.serviceNameFromId.bind(applications));
+		backend.assignServiceNameResolver(
+			applications.serviceNameFromId.bind(applications),
+		);
 
 		// Get the stream, and stream it into res
 		const listenStream = backend.attachListener();

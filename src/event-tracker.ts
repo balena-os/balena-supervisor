@@ -32,7 +32,6 @@ const mixpanelMask = [
 ].join(',');
 
 export class EventTracker {
-
 	private defaultProperties: EventTrackProperties | null;
 	private client: any;
 
@@ -60,11 +59,7 @@ export class EventTracker {
 		});
 	}
 
-	public track(
-		event: string,
-		properties: EventTrackProperties | Error = { },
-	) {
-
+	public track(event: string, properties: EventTrackProperties | Error = {}) {
 		if (properties instanceof Error) {
 			properties = { error: properties };
 		}
@@ -89,12 +84,19 @@ export class EventTracker {
 		this.throttleddLogger(event)(properties);
 	}
 
-	private throttleddLogger = memoizee((event: string) => {
-		// Call this function at maximum once every minute
-		return _.throttle((properties) => {
-			this.client.track(event, properties);
-		}, eventDebounceTime, { leading: true });
-	}, { primitive: true });
+	private throttleddLogger = memoizee(
+		(event: string) => {
+			// Call this function at maximum once every minute
+			return _.throttle(
+				properties => {
+					this.client.track(event, properties);
+				},
+				eventDebounceTime,
+				{ leading: true },
+			);
+		},
+		{ primitive: true },
+	);
 
 	private logEvent(...args: string[]) {
 		console.log(...args);
@@ -103,6 +105,6 @@ export class EventTracker {
 	private assignDefaultProperties(
 		properties: EventTrackProperties,
 	): EventTrackProperties {
-		return _.merge({ }, properties, this.defaultProperties);
+		return _.merge({}, properties, this.defaultProperties);
 	}
 }

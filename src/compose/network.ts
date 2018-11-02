@@ -2,10 +2,7 @@ import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import Docker = require('../lib/docker-utils');
-import {
-	InvalidAppIdError,
-	NotFoundError,
-} from '../lib/errors';
+import { InvalidAppIdError, NotFoundError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import { checkInt } from '../lib/validation';
 import { Logger } from '../logger';
@@ -30,7 +27,6 @@ export interface NetworkOptions {
 }
 
 export class Network {
-
 	public appId: number;
 	public name: string;
 	public config: NetworkConfig;
@@ -66,7 +62,7 @@ export class Network {
 			driver: network.Driver,
 			ipam: {
 				driver: network.IPAM.Driver,
-				config: _.map(network.IPAM.Config, (conf) => {
+				config: _.map(network.IPAM.Config, conf => {
 					const newConf: NetworkConfig['ipam']['config'][0] = {
 						subnet: conf.Subnet,
 						gateway: conf.Gateway,
@@ -80,11 +76,13 @@ export class Network {
 					}
 					return newConf;
 				}),
-				options: network.IPAM.Options == null ? { } : network.IPAM.Options,
+				options: network.IPAM.Options == null ? {} : network.IPAM.Options,
 			},
 			enableIPv6: network.EnableIPv6,
 			internal: network.Internal,
-			labels: _.omit(ComposeUtils.normalizeLabels(network.Labels), [ 'io.balena.supervised' ]),
+			labels: _.omit(ComposeUtils.normalizeLabels(network.Labels), [
+				'io.balena.supervised',
+			]),
 			options: network.Options,
 		};
 
@@ -119,12 +117,12 @@ export class Network {
 			ipam: {
 				driver: 'default',
 				config: [],
-				options: { },
+				options: {},
 			},
 			enableIPv6: false,
 			internal: false,
-			labels: { },
-			options: { },
+			labels: {},
+			options: {},
 		});
 		net.config.labels = ComposeUtils.normalizeLabels(net.config.labels);
 
@@ -132,10 +130,12 @@ export class Network {
 	}
 
 	public create(): Bluebird<void> {
-		this.logger.logSystemEvent(logTypes.createNetwork, { network: { name: this.name } });
+		this.logger.logSystemEvent(logTypes.createNetwork, {
+			network: { name: this.name },
+		});
 
 		return Network.fromNameAndAppId(this.networkOpts, this.name, this.appId)
-			.then((current) => {
+			.then(current => {
 				if (!this.isEqualConfig(current)) {
 					throw new ResourceRecreationAttemptError('network', this.name);
 				}
@@ -146,7 +146,7 @@ export class Network {
 			.catch(NotFoundError, () => {
 				return this.docker.createNetwork(this.toDockerConfig());
 			})
-			.tapCatch((err) => {
+			.tapCatch(err => {
 				this.logger.logSystemEvent(logTypes.createNetworkError, {
 					network: { name: this.name, appId: this.appId },
 					error: err,
@@ -161,7 +161,7 @@ export class Network {
 			CheckDuplicate: true,
 			IPAM: {
 				Driver: this.config.ipam.driver,
-				Config: _.map(this.config.ipam.config, (conf) => {
+				Config: _.map(this.config.ipam.config, conf => {
 					const ipamConf: DockerIPAMConfig = {
 						Subnet: conf.subnet,
 						Gateway: conf.gateway,
@@ -178,30 +178,32 @@ export class Network {
 			},
 			EnableIPv6: this.config.enableIPv6,
 			Internal: this.config.internal,
-			Labels: _.merge({}, {
-				'io.balena.supervised': 'true',
-			}, this.config.labels),
+			Labels: _.merge(
+				{},
+				{
+					'io.balena.supervised': 'true',
+				},
+				this.config.labels,
+			),
 		};
 	}
 
 	public remove(): Bluebird<void> {
-		this.logger.logSystemEvent(
-			logTypes.removeNetwork,
-			{ network: { name: this.name, appId: this.appId } },
-		);
+		this.logger.logSystemEvent(logTypes.removeNetwork, {
+			network: { name: this.name, appId: this.appId },
+		});
 
-		return Bluebird.resolve(this.docker.getNetwork(this.getDockerName()).remove())
-			.tapCatch((error) => {
-				this.logger.logSystemEvent(
-					logTypes.createNetworkError,
-					{ network: { name: this.name, appId: this.appId }, error },
-				);
+		return Bluebird.resolve(
+			this.docker.getNetwork(this.getDockerName()).remove(),
+		).tapCatch(error => {
+			this.logger.logSystemEvent(logTypes.createNetworkError, {
+				network: { name: this.name, appId: this.appId },
+				error,
 			});
-
+		});
 	}
 
 	public isEqualConfig(network: Network): boolean {
-
 		// don't compare the ipam.config if it's not present
 		// in the target state (as it will be present in the
 		// current state, due to docker populating it with
@@ -221,15 +223,12 @@ export class Network {
 
 	private static validateComposeConfig(config: NetworkConfig): void {
 		// Check if every ipam config entry has both a subnet and a gateway
-		_.each(
-			_.get(config, 'config.ipam.config', []),
-			({ subnet, gateway }) => {
-				if (subnet == null || gateway == null) {
-					throw new InvalidNetworkConfigurationError(
-						'Network IPAM config entries must have both a subnet and gateway',
-					);
-				}
-			},
-		);
+		_.each(_.get(config, 'config.ipam.config', []), ({ subnet, gateway }) => {
+			if (subnet == null || gateway == null) {
+				throw new InvalidNetworkConfigurationError(
+					'Network IPAM config entries must have both a subnet and gateway',
+				);
+			}
+		});
 	}
 }

@@ -225,7 +225,7 @@ describe 'deviceState', ->
 		@deviceState.loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps.json')
 		.then =>
 			@deviceState.getTarget()
-		.then (targetState) =>
+		.then (targetState) ->
 			testTarget = _.cloneDeep(testTarget1)
 			testTarget.local.apps['1234'].services = _.map testTarget.local.apps['1234'].services, (s) ->
 				s.imageName = s.image

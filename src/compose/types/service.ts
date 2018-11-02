@@ -47,14 +47,16 @@ export interface ServiceComposeConfig {
 	labels?: { [labelName: string]: string };
 	running: boolean;
 	networkMode?: string;
-	networks?: string[] | {
-		[networkName: string]: {
-			aliases?: string[];
-			ipv4Address?: string;
-			ipv6Address?: string;
-			linkLocalIps?: string[];
-		}
-	};
+	networks?:
+		| string[]
+		| {
+				[networkName: string]: {
+					aliases?: string[];
+					ipv4Address?: string;
+					ipv6Address?: string;
+					linkLocalIps?: string[];
+				};
+		  };
 	pid?: string;
 	pidsLimit?: number;
 	ports?: string[];
@@ -63,7 +65,7 @@ export interface ServiceComposeConfig {
 	stopSignal?: string;
 	sysctls?: { [name: string]: string };
 	ulimits?: {
-		[ulimitName: string]: number | { soft: number, hard: number };
+		[ulimitName: string]: number | { soft: number; hard: number };
 	};
 	usernsMode?: string;
 	volumes?: string[];
@@ -118,7 +120,7 @@ export interface ServiceConfig {
 			ipv4Address?: string;
 			ipv6Address?: string;
 			linkLocalIps?: string[];
-		}
+		};
 	};
 	pid: string;
 	pidsLimit: number;
@@ -127,7 +129,7 @@ export interface ServiceConfig {
 	stopSignal: string;
 	sysctls: { [name: string]: string };
 	ulimits: {
-		[ulimitName: string]: { soft: number, hard: number };
+		[ulimitName: string]: { soft: number; hard: number };
 	};
 	usernsMode: string;
 	volumes: string[];
@@ -152,19 +154,20 @@ export interface ServiceConfig {
 	tty: boolean;
 }
 
-export type ServiceConfigArrayField = 'volumes' |
-	'devices' |
-	'capAdd' |
-	'capDrop' |
-	'dns' |
-	'dnsSearch' |
-	'dnsOpt' |
-	'expose' |
-	'tmpfs' |
-	'extraHosts' |
-	'ulimitsArray' |
-	'groupAdd' |
-	'securityOpt';
+export type ServiceConfigArrayField =
+	| 'volumes'
+	| 'devices'
+	| 'capAdd'
+	| 'capDrop'
+	| 'dns'
+	| 'dnsSearch'
+	| 'dnsOpt'
+	| 'expose'
+	| 'tmpfs'
+	| 'extraHosts'
+	| 'ulimitsArray'
+	| 'groupAdd'
+	| 'securityOpt';
 
 // The config directly from the application manager, which contains
 // application information, plus the compose data
@@ -201,4 +204,3 @@ export interface DockerDevice {
 	PathInContainer: string;
 	CgroupPermissions: string;
 }
-

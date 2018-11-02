@@ -29,9 +29,9 @@ export function UnitNotLoadedError(err: string[]): boolean {
 	return endsWith(err[0], 'not loaded.');
 }
 
-export class InvalidNetGatewayError extends TypedError { }
+export class InvalidNetGatewayError extends TypedError {}
 
-export class DeltaStillProcessingError extends TypedError { }
+export class DeltaStillProcessingError extends TypedError {}
 
 export class InvalidAppIdError extends TypedError {
 	public constructor(public appId: any) {

@@ -71,7 +71,11 @@ export function sanitiseComposeConfig(
 	}) as ServiceComposeConfig;
 
 	if (filtered.length > 0) {
-		console.log(`Warning: Ignoring unsupported or unknown compose fields: ${filtered.join(', ')}`);
+		console.log(
+			`Warning: Ignoring unsupported or unknown compose fields: ${filtered.join(
+				', ',
+			)}`,
+		);
 	}
 
 	return toReturn;

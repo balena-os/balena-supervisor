@@ -26,7 +26,7 @@ describe 'Logger', ->
 			track: m.sinon.spy()
 		}
 
-		@logger = new Logger({eventTracker: @fakeEventTracker})
+		@logger = new Logger({ eventTracker: @fakeEventTracker })
 		@logger.init({
 			apiEndpoint: 'https://example.com'
 			uuid: 'deadbeef'
@@ -41,7 +41,7 @@ describe 'Logger', ->
 
 	it 'waits the grace period before sending any logs', ->
 		clock = m.sinon.useFakeTimers()
-		@logger.log({message: 'foobar', serviceId: 15})
+		@logger.log({ message: 'foobar', serviceId: 15 })
 		clock.tick(4999)
 		clock.restore()
 
@@ -51,7 +51,7 @@ describe 'Logger', ->
 
 	it 'tears down the connection after inactivity', ->
 		clock = m.sinon.useFakeTimers()
-		@logger.log({message: 'foobar', serviceId: 15})
+		@logger.log({ message: 'foobar', serviceId: 15 })
 		clock.tick(61000)
 		clock.restore()
 

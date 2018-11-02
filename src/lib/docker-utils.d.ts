@@ -19,17 +19,20 @@ declare class DockerUtils extends DockerToolbelt {
 
 	getRepoAndTag(image: string): Bluebird<TaggedRepoImage>;
 
-	fetchDeltaWithProgress(imgDest: string, fullDeltaOpts: any, onProgress: (args: any) => void): Bluebird<void>;
+	fetchDeltaWithProgress(
+		imgDest: string,
+		fullDeltaOpts: any,
+		onProgress: (args: any) => void,
+	): Bluebird<void>;
 
 	fetchImageWithProgress(
 		image: string,
-		config: { uuid: string, currentApiKey: string },
+		config: { uuid: string; currentApiKey: string },
 		onProgress: (args: any) => void,
 	): Bluebird<void>;
 
 	getImageEnv(id: string): Bluebird<EnvVarObject>;
 	getNetworkGateway(netName: string): Bluebird<string>;
-
 }
 
 export = DockerUtils;
