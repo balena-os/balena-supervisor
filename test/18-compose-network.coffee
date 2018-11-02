@@ -10,13 +10,13 @@ describe 'compose/network', ->
 		it 'should convert a compose configuration to an internal representation', ->
 
 			network = Network.fromComposeObject({ logger: null, docker: null }, 'test', 123, {
-				'driver':'bridge',
-				'ipam':{
-					'driver':'default',
-					'config':[
+				'driver': 'bridge',
+				'ipam': {
+					'driver': 'default',
+					'config': [
 						{
-							'subnet':'172.25.0.0/25',
-							'gateway':'172.25.0.1'
+							'subnet': '172.25.0.0/25',
+							'gateway': '172.25.0.1'
 						}
 					]
 				}
@@ -30,12 +30,12 @@ describe 'compose/network', ->
 						subnet: '172.25.0.0/25'
 						gateway: '172.25.0.1'
 					]
-					options: { }
+					options: {}
 				}
 				enableIPv6: false,
 				internal: false,
-				labels: { }
-				options: { }
+				labels: {}
+				options: {}
 			})
 
 	describe 'internal config -> docker config', ->
@@ -43,13 +43,13 @@ describe 'compose/network', ->
 		it 'should convert an internal representation to a docker representation', ->
 
 			network = Network.fromComposeObject({ logger: null, docker: null }, 'test', 123, {
-				'driver':'bridge',
-				'ipam':{
-					'driver':'default',
-					'config':[
+				'driver': 'bridge',
+				'ipam': {
+					'driver': 'default',
+					'config': [
 						{
-							'subnet':'172.25.0.0/25',
-							'gateway':'172.25.0.1'
+							'subnet': '172.25.0.0/25',
+							'gateway': '172.25.0.1'
 						}
 					]
 				}
@@ -65,7 +65,7 @@ describe 'compose/network', ->
 						Subnet: '172.25.0.0/25'
 						Gateway: '172.25.0.1'
 					}]
-					Options: { }
+					Options: {}
 				}
 				EnableIPv6: false,
 				Internal: false,

@@ -78,7 +78,7 @@ module.exports = class DockerUtils extends DockerToolbelt
 		# Since the supervisor never calls this function without a source anymore,
 		# this should never happen, but we handle it anyways.
 		if !deltaSource?
-			log("Falling back to regular pull due to lack of a delta source")
+			log('Falling back to regular pull due to lack of a delta source')
 			return @fetchImageWithProgress(imgDest, fullDeltaOpts, onProgress)
 
 		docker = this

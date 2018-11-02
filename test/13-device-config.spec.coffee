@@ -150,20 +150,20 @@ describe 'DeviceConfig', ->
 
 	it 'accepts RESIN_ and BALENA_ variables', ->
 		@deviceConfig.formatConfigKeys({
-				FOO: 'bar',
-				BAR: 'baz',
-				RESIN_HOST_CONFIG_foo: 'foobaz',
-				BALENA_HOST_CONFIG_foo: 'foobar',
-				RESIN_HOST_CONFIG_other: 'val',
-				BALENA_HOST_CONFIG_baz: 'bad',
-				BALENA_SUPERVISOR_POLL_INTERVAL: '100',
+			FOO: 'bar',
+			BAR: 'baz',
+			RESIN_HOST_CONFIG_foo: 'foobaz',
+			BALENA_HOST_CONFIG_foo: 'foobar',
+			RESIN_HOST_CONFIG_other: 'val',
+			BALENA_HOST_CONFIG_baz: 'bad',
+			BALENA_SUPERVISOR_POLL_INTERVAL: '100',
 		}).then (filteredConf) ->
 			expect(filteredConf).to.deep.equal({
 				HOST_CONFIG_foo: 'foobar',
 				HOST_CONFIG_other: 'val',
 				HOST_CONFIG_baz: 'bad',
 				SUPERVISOR_POLL_INTERVAL: '100',
-			});
+			})
 
 	describe 'Extlinux files', ->
 
