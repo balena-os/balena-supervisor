@@ -3,7 +3,6 @@ var path = require('path');
 var fs = require('fs');
 var _ = require('lodash');
 var path = require('path');
-var UglifyPlugin = require("uglifyjs-webpack-plugin");
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 var externalModules = [
@@ -54,9 +53,6 @@ console.log('Using the following dependencies as external:', externalModules);
 
 module.exports = function (env) {
 	let plugins = [
-		new webpack.DefinePlugin({
-			'process.env.NODE_ENV': '"production"',
-		}),
 		new CopyWebpackPlugin([
 			{
 				from: './src/migrations',
@@ -68,10 +64,8 @@ module.exports = function (env) {
 			path.resolve(__dirname, 'src/migrations')
 		)
 	]
-	if (env == null || !env.noOptimize) {
-		plugins.push(new UglifyPlugin())
-	}
 	return {
+		mode: env == null || !env.noOptimize ? 'production' : 'development',
 		entry: './src/app.coffee',
 		output: {
 			filename: 'app.js',
