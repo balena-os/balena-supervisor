@@ -494,7 +494,5 @@ export function normalizeLabels(labels: {
 		labels,
 		(_v, k) => !(_.startsWith(k, 'io.balena.') || _.startsWith(k, 'io.resin.')),
 	);
-	return _.assign({}, otherLabels, legacyLabels, balenaLabels) as {
-		[key: string]: string;
-	};
+	return _.assign({}, otherLabels, legacyLabels, balenaLabels);
 }
