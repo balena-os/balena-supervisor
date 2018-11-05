@@ -85,11 +85,11 @@ module.exports = function (env) {
 		module: {
 			rules: [
 				{
-					test: /knex\/lib\/migrate\/index\.js$/,
+					test: new RegExp(_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'index.js')) + '$'),
 					use: require.resolve('./hardcode-migrations')
 				},
 				{
-					test: /JSONStream\/index\.js$/,
+					test: new RegExp(_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$'),
 					use: require.resolve('./fix-jsonstream')
 				},
 				{
