@@ -2,7 +2,7 @@ Promise = require 'bluebird'
 _ = require 'lodash'
 url = require 'url'
 TypedError = require 'typed-error'
-PinejsClient = require 'pinejs-client'
+{ PinejsClientRequest } = require 'pinejs-client-request'
 deviceRegister = require 'resin-register-device'
 express = require 'express'
 bodyParser = require 'body-parser'
@@ -81,7 +81,7 @@ module.exports = class APIBinder
 			passthrough = _.cloneDeep(requestOpts)
 			passthrough.headers ?= {}
 			passthrough.headers.Authorization = "Bearer #{currentApiKey}"
-			@balenaApi = new PinejsClient
+			@balenaApi = new PinejsClientRequest
 				apiPrefix: baseUrl
 				passthrough: passthrough
 			@cachedBalenaApi = @balenaApi.clone({}, cache: {})
@@ -139,7 +139,7 @@ module.exports = class APIBinder
 		reqOpts = {
 			resource: 'device'
 			options:
-				filter:
+				$filter:
 					uuid: uuid
 			passthrough:
 				headers: Authorization: "Bearer #{apiKey}"
@@ -304,11 +304,11 @@ module.exports = class APIBinder
 			@balenaApi.get
 				resource: 'release'
 				options:
-					filter:
+					$filter:
 						belongs_to__application: app
 						commit: commit
 						status: 'success'
-					select: 'id'
+					$select: 'id'
 			.then (release) =>
 				releaseId = _.get(release, '[0].id')
 				if !releaseId?

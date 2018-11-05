@@ -6,7 +6,7 @@
 // (if both are set, API_TOKEN is preferred).
 // The tag to deploy must be passed as $TAG.
 //
-const PineJsClient = require('pinejs-client');
+const { PinejsClientRequest } = require('pinejs-client-request');
 const Promise = require('bluebird');
 const _ = require('lodash');
 const url = require('url');
@@ -53,7 +53,7 @@ if (!_.isEmpty(apiToken)) {
 
 
 const apiEndpointWithPrefix = url.resolve(apiEndpoint, '/v2/')
-const balenaApi = new PineJsClient({
+const balenaApi = new PinejsClientRequest({
 	apiPrefix: apiEndpointWithPrefix,
 	passthrough: requestOpts
 });
@@ -66,10 +66,10 @@ balenaApi._request(_.extend({
 	// This is a critical step so we better do it serially
 	return Promise.mapSeries(deviceTypes, (deviceType) => {
 		if (archs.indexOf(deviceType.arch) >= 0) {
-			const customOptions = {};
+			const options = {};
 			let arch = deviceType.arch;
 			if (_.isEmpty(apiToken)) {
-				customOptions.apikey = apikey;
+				options.apikey = apikey;
 			}
 			if (quarkSlugs.indexOf(deviceType.slug) >= 0) {
 				arch = 'i386-nlp';
@@ -83,7 +83,7 @@ balenaApi._request(_.extend({
 					device_type: deviceType.slug,
 					is_public: true
 				},
-				customOptions
+				options
 			});
 		}
 	});
