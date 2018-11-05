@@ -5,7 +5,11 @@ import { fs } from 'mz';
 
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
-import { appNotFoundMessage, serviceNotFoundMessage } from '../lib/messages';
+import {
+	appNotFoundMessage,
+	serviceNotFoundMessage,
+	v2ServiceEndpointInputErrorMessage,
+} from '../lib/messages';
 import { checkTruthy } from '../lib/validation';
 import { doPurge, doRestart, serviceAction } from './common';
 
@@ -31,7 +35,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		res: Response,
 		action: any,
 	): Bluebird<void> => {
-		const { imageId, force } = req.body;
+		const { imageId, serviceName, force } = req.body;
 		const { appId } = req.params;
 
 		return _lockingIfNecessary(appId, { force }, () => {
@@ -42,7 +46,23 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						res.status(404).send(appNotFoundMessage);
 						return;
 					}
-					const service = _.find(app.services, { imageId }) as Service | null;
+
+					// Work if we have a service name or an image id
+					if (imageId == null) {
+						if (serviceName == null) {
+							throw new Error(v2ServiceEndpointInputErrorMessage);
+						}
+					}
+
+					let service: Service | undefined;
+					if (imageId != null) {
+						service = _.find(app.services, svc => svc.imageId === imageId);
+					} else {
+						service = _.find(
+							app.services,
+							svc => svc.serviceName === serviceName,
+						);
+					}
 					if (service == null) {
 						res.status(404).send(serviceNotFoundMessage);
 						return;

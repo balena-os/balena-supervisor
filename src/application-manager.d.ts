@@ -1,3 +1,4 @@
+import * as Bluebird from 'bluebird';
 import { EventEmitter } from 'events';
 
 import { ServiceAction } from './device-api/common';
@@ -40,7 +41,7 @@ export class ApplicationManager extends EventEmitter {
 	public db: DB;
 	public images: Images;
 
-	public getCurrentApp(appId: number): Promise<Application | null>;
+	public getCurrentApp(appId: number): Bluebird<Application | null>;
 
 	// TODO: This actually returns an object, but we don't need the values just yet
 	public setTargetVolatileForService(serviceId: number, opts: Options): void;
@@ -48,11 +49,11 @@ export class ApplicationManager extends EventEmitter {
 	public executeStepAction(
 		serviceAction: ServiceAction,
 		opts: Options,
-	): Promise<void>;
+	): Bluebird<void>;
 
 	public getStatus(): Promise<DeviceApplicationState>;
 
-	public serviceNameFromId(serviceId: number): Promise<string>;
+	public serviceNameFromId(serviceId: number): Bluebird<string>;
 }
 
 export default ApplicationManager;
