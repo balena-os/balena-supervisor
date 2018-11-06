@@ -3,6 +3,7 @@ import * as Knex from 'knex';
 import * as path from 'path';
 
 import * as constants from './lib/constants';
+import { checkTruthy } from './lib/validation';
 
 interface DBOpts {
 	databasePath?: string;
@@ -26,10 +27,19 @@ class DB {
 	}
 
 	public init(): Bluebird<void> {
-		return this.knex('knex_migrations_lock')
-			.update({ is_locked: 0 })
-			.catch(() => {
-				return;
+		return Bluebird.try(() => {
+			// Don't use the journalling system on CI. This should make
+			// things faster
+			if (process.env.CI != null && checkTruthy(process.env.CI)) {
+				return this.knex.raw('PRAGMA journal_mode = OFF');
+			}
+		})
+			.then(() => {
+				this.knex('knex_migrations_lock')
+					.update({ is_locked: 0 })
+					.catch(() => {
+						return;
+					});
 			})
 			.then(() => {
 				return this.knex.migrate.latest({
