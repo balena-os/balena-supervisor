@@ -18,7 +18,6 @@ childProcess = require 'child_process'
 
 describe 'DeviceConfig', ->
 	before ->
-		@timeout(5000)
 		prepare()
 		@fakeDB = {}
 		@fakeConfig = {
