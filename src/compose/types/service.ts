@@ -19,6 +19,15 @@ export interface ServiceHealthcheck {
 	retries?: number;
 }
 
+export interface ServiceNetworkDictionary {
+	[networkName: string]: {
+		aliases?: string[];
+		ipv4Address?: string;
+		ipv6Address?: string;
+		linkLocalIps?: string[];
+	};
+}
+
 // This is the config directly from the compose file (after running it
 // through _.camelCase)
 export interface ServiceComposeConfig {
@@ -47,16 +56,7 @@ export interface ServiceComposeConfig {
 	labels?: { [labelName: string]: string };
 	running: boolean;
 	networkMode?: string;
-	networks?:
-		| string[]
-		| {
-				[networkName: string]: {
-					aliases?: string[];
-					ipv4Address?: string;
-					ipv6Address?: string;
-					linkLocalIps?: string[];
-				};
-		  };
+	networks?: string[] | ServiceNetworkDictionary;
 	pid?: string;
 	pidsLimit?: number;
 	ports?: string[];
