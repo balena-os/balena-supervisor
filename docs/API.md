@@ -616,3 +616,352 @@ Response:
   }
 }
 ```
+
+### GET /v2/applications/:appId/state
+
+Added in supervisor version v7.12.0.
+
+Use this endpoint to get the state of a single application, given the appId.
+
+From the user container:
+```bash
+curl "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/state?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+  "local": {
+    "1234": {
+      "services": {
+        "5678": {
+          "status": "Running",
+          "releaseId": 99999,
+          "download_progress": null
+        }
+      }
+    }
+  },
+  "dependent": {},
+  "commit": "7fc9c5bea8e361acd49886fe6cc1e1cd"
+}
+```
+
+### Service Actions
+
+#### The application ID
+
+For the following endpoints the application id is required in the url. The
+easiest way to get the application id from the device is to use the following
+process (note that you will need jq and curl inside your container):
+
+From the user container:
+```bash
+APPNAME="supervisortest"
+APPID=$(curl --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/state?apikey=$RESIN_SUPERVISOR_API_KEY" | jq ".$APPNAME.appId")
+```
+
+The easiest way to find your application from the dashboard is to look at the
+url when on the device list.
+
+#### Restart a service (POST /v2/applications/:appId/restart-service)
+
+Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
+`imageId` added in v8.2.2.
+
+Use this endpoint to restart a service in the application with application id
+passed in with the url.
+
+From the user container:
+```bash
+curl --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/restart-service?apikey=$RESIN_SUPERVISOR_API_KEY" -d '{"serviceName": "my-service"}'
+curl --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/restart-service?apikey=$RESIN_SUPERVISOR_API_KEY" -d '{"imageId": 1234}'
+```
+
+Response:
+```
+OK
+```
+
+This endpoint can also take an extra optional boolean, `force`, which if true informs the supervisor to ignore any update locks which have been taken.
+
+#### Stop a service (POST /v2/applications/:appId:/stop-service)
+
+Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
+`imageId` added in v8.2.2.
+
+Use this endpoint to stop a service in the application with application id
+passed in with the url.
+
+From the user container:
+```bash
+curl --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/stop-service?apikey=$RESIN_SUPERVISOR_API_KEY" -d '{"serviceName": "my-service"}'
+curl --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/stop-service?apikey=$RESIN_SUPERVISOR_API_KEY" -d '{"imageId": 1234}'
+```
+
+Response:
+```
+OK
+```
+
+This endpoint can also take an extra optional boolean, `force`, which if true informs the supervisor to ignore any update locks which have been taken.
+
+#### Start a service (POST /v2/applications/:appId/start-service)
+
+Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
+`imageId` added in v8.2.2.
+
+Use this endpoint to start a service in the application with application id
+passed in with the url.
+
+From the user container:
+```bash
+curl --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/start-service?apikey=$RESIN_SUPERVISOR_API_KEY" -d '{"serviceName": "my-service"}'
+curl --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/start-service?apikey=$RESIN_SUPERVISOR_API_KEY" -d '{"imageId": 1234}'
+```
+
+Response:
+```
+OK
+```
+
+This endpoint can also take an extra optional boolean, `force`, which if true informs the supervisor to ignore any update locks which have been taken.
+
+#### Restart all services in an application (POST /v2/applications/:appId/restart)
+
+Added in supervisor version v7.0.0.
+
+Use this endpoint to restart every service in an application.
+
+From the user container:
+```bash
+curl -X POST --header "Content-Type: application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/restart?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+
+Response:
+```
+OK
+```
+
+This endpoint can also take an extra optional boolean, `force`, which if true informs the supervisor to ignore any update locks which have been taken.
+
+### Purge an application data (POST /v2/applications/:appId/purge)
+
+Added in supervisor version v7.0.0.
+
+Use this endpoint to purge all user data for a given application id.
+
+From the user container:
+```bash
+curl -X POST --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/applications/$APPID/purge?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+
+Response:
+```
+OK
+```
+
+This endpoint can also take an extra optional boolean, `force`, which if true informs the supervisor to ignore any update locks which have been taken.
+
+
+### Supervisor version (GET /v2/version)
+
+Added in supervisor v7.21.0
+
+This endpoint returns the supervisor version currently running the device api.
+
+From the user container:
+```
+$ curl "$BALENA_SUPERVISOR_ADDRESS/v2/version?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"version": "v7.21.0"
+}
+```
+
+### Local mode endpoints
+
+These endpoints are mainly for use by the CLI, for working with a local mode device.
+As such they are not recommended for general use.
+
+The device must be in local mode before these endpoints are called.
+
+#### Get current target state (GET /v2/local/target-state)
+
+Added in supervisor version v7.21.0.
+
+Get the current target state. Note that if a local mode target state has not been
+set then the apps section of the response will always be empty.
+
+Request:
+```bash
+curl "$RESIN_SUPERVISOR_ADDRESS/v2/local/target-state"
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"state": {
+		"local": {
+			"name": "my-device",
+			"config": {
+				"HOST_CONFIG_disable_splash": "1",
+				"HOST_CONFIG_dtparam": "\"i2c_arm=on\",\"spi=on\",\"audio=on\"",
+				"HOST_CONFIG_enable_uart": "1",
+				"HOST_CONFIG_gpu_mem": "16",
+				"SUPERVISOR_LOCAL_MODE": "1",
+				"SUPERVISOR_PERSISTENT_LOGGING": "",
+				"SUPERVISOR_POLL_INTERVAL": "600000",
+				"SUPERVISOR_VPN_CONTROL": "true",
+				"SUPERVISOR_CONNECTIVITY_CHECK": "true",
+				"SUPERVISOR_LOG_CONTROL": "true",
+				"SUPERVISOR_DELTA": "false",
+				"SUPERVISOR_DELTA_REQUEST_TIMEOUT": "30000",
+				"SUPERVISOR_DELTA_APPLY_TIMEOUT": "",
+				"SUPERVISOR_DELTA_RETRY_COUNT": "30",
+				"SUPERVISOR_DELTA_RETRY_INTERVAL": "10000",
+				"SUPERVISOR_DELTA_VERSION": "2",
+				"SUPERVISOR_OVERRIDE_LOCK": "false"
+			},
+			"apps": {}
+		},
+		"dependent": {
+			"apps": [],
+			"devices": []
+		}
+	}
+}
+```
+
+#### Set a target state (POST /v2/local/target-state)
+
+Added in supervisor version v7.21.0.
+
+Set the current target state.
+
+Request:
+```bash
+TARGET_STATE='{
+	"local": {
+		"name": "Home",
+		"config": {
+			"HOST_CONFIG_disable_splash": "1",
+			"HOST_CONFIG_dtparam": "i2c_arm=on,i2s=on",
+			"HOST_CONFIG_enable_uart": "1",
+			"HOST_CONFIG_gpio": "\"2=op\",\"3=op\"",
+			"HOST_CONFIG_gpu_mem": "16",
+			"SUPERVISOR_LOCAL_MODE": "1",
+			"SUPERVISOR_POLL_INTERVAL": "600000",
+			"SUPERVISOR_VPN_CONTROL": "true",
+			"SUPERVISOR_CONNECTIVITY_CHECK": "true",
+			"SUPERVISOR_LOG_CONTROL": "true",
+			"SUPERVISOR_DELTA": "false",
+			"SUPERVISOR_DELTA_REQUEST_TIMEOUT": "30000",
+			"SUPERVISOR_DELTA_APPLY_TIMEOUT": "",
+			"SUPERVISOR_DELTA_RETRY_COUNT": "30",
+			"SUPERVISOR_DELTA_RETRY_INTERVAL": "10000",
+			"SUPERVISOR_DELTA_VERSION": "2",
+			"SUPERVISOR_OVERRIDE_LOCK": "false",
+			"SUPERVISOR_PERSISTENT_LOGGING": "false"
+		},
+		"apps": {
+			"1": {
+				"name": "localapp",
+				"commit": "localcommit",
+				"releaseId": "1",
+				"services": {
+					"1": {
+						"environment": {},
+						"labels": {},
+						"imageId": 1,
+						"serviceName": "one",
+						"serviceId": 1,
+						"image": "local_image_one:latest",
+						"running": true
+					},
+					"2": {
+						"environment": {},
+						"labels": {},
+						"network_mode": "container:one",
+						"imageId": 2,
+						"serviceName": "two",
+						"serviceId": 2,
+						"image": "local_image_two:latest",
+						"running": true
+					}
+				},
+				"volumes": {},
+				"networks": {}
+			}
+		}
+	},
+	"dependent": {
+		"apps": [],
+		"devices": []
+	}
+}
+'
+
+curl -X POST --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v2/local/target-state" -d $TARGET_STATE
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"message": "OK"
+}
+```
+
+#### Get the device type information
+
+Added in supervisor version v7.21.0.
+
+Get the architecture and device type of the device.
+
+Request:
+```bash
+curl "$RESIN_SUPERVISOR_ADDRESS/v2/local/device-info"
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"info": {
+		"arch": "armv7hf",
+		"deviceType": "raspberry-pi3
+	}
+}
+```
+
+#### Stream local mode application logs from device
+
+Added in supervisor version v7.21.0.
+
+This endpoint will stream the logs of the applications containers and the supervisor. The logs
+come in as NDJSON.
+
+Request:
+```bash
+curl "$RESIN_SUPERVISOR_ADDRESS/v2/local/logs"
+```
+
+Response:
+```json
+{
+	"message": "log line text",
+	"timestamp": 1541508467072,
+	"serviceName": "main"
+}
+{
+	"message": "another log line",
+	"timestamp": 1541508467072,
+	"serviceName": "main"
+}
+```
