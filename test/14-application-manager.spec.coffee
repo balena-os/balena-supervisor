@@ -117,7 +117,6 @@ dependentDBFormat = {
 
 describe 'ApplicationManager', ->
 	before ->
-		@timeout(5000)
 		prepare()
 		@db = new DB()
 		@config = new Config({ @db })
