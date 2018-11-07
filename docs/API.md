@@ -945,7 +945,7 @@ Response:
 	"status": "success",
 	"info": {
 		"arch": "armv7hf",
-		"deviceType": "raspberry-pi3
+		"deviceType": "raspberry-pi3"
 	}
 }
 ```
