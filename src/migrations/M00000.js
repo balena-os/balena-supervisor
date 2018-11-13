@@ -8,13 +8,13 @@ exports.up = function (knex, Promise) {
 		.then((devConfigs) => {
 			const devConfig = devConfigs[0];
 			const targetValues = JSON.parse(devConfig.targetValues);
-			const filteredTargetValues = _.mapKeys( (_v, k) => {
+			const filteredTargetValues = _.mapKeys(targetValues, (_v, k) => {
 				return k.replace(/^(?:RESIN|BALENA)_(.*)/, '$1');
 			});
 			return knex('deviceConfig').update({ targetValues: JSON.stringify(filteredTargetValues) });
 		});
-}
+};
 
 exports.down = function (knex, Promise) {
 	return Promise.reject(new Error('Not Implemented'));
-}
+};
