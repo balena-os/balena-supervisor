@@ -27,6 +27,7 @@ describe 'EventTracker', ->
 		promise = @eventTrackerOffline.init({
 			offlineMode: true
 			uuid: 'foobar'
+			mixpanelHost: { host: '', path: '' }
 		})
 		expect(promise).to.be.fulfilled
 		.then =>
@@ -40,6 +41,7 @@ describe 'EventTracker', ->
 		promise = @eventTracker.init({
 			mixpanelToken: 'someToken'
 			uuid: 'barbaz'
+			mixpanelHost: { host: '', path: '' }
 		})
 		expect(promise).to.be.fulfilled
 		.then =>

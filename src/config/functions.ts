@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import { Transaction } from 'knex';
 import * as _ from 'lodash';
+import { URL } from 'url';
 
 import Config = require('../config');
 import supervisorVersion = require('../lib/supervisor-version');
@@ -107,7 +108,8 @@ export function createProviderFunctions(
 		mixpanelHost: {
 			get: () => {
 				return config.get('apiEndpoint').then(apiEndpoint => {
-					return `${apiEndpoint}/mixpanel`;
+					const url = new URL(apiEndpoint as string);
+					return { host: url.host, path: '/mixpanel' };
 				});
 			},
 		},

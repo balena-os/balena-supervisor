@@ -12,7 +12,7 @@ export type EventTrackProperties = Dictionary<any>;
 interface InitArgs {
 	uuid: string;
 	offlineMode: boolean;
-	mixpanelHost: string;
+	mixpanelHost: { host: string; path: string };
 	mixpanelToken: string;
 }
 
@@ -55,7 +55,10 @@ export class EventTracker {
 			if (offlineMode) {
 				return;
 			}
-			this.client = Mixpanel.init(mixpanelToken, { host: mixpanelHost });
+			this.client = Mixpanel.init(mixpanelToken, {
+				host: mixpanelHost.host,
+				path: mixpanelHost.path,
+			});
 		});
 	}
 
