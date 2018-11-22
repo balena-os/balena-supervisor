@@ -151,7 +151,7 @@ export class Service {
 		delete config.shmSize;
 
 		// time strings
-		let stopGracePeriod = 0;
+		let stopGracePeriod = 10;
 		if (config.stopGracePeriod != null) {
 			stopGracePeriod = new Duration(config.stopGracePeriod).seconds();
 		}
@@ -493,7 +493,7 @@ export class Service {
 			extraHosts: container.HostConfig.ExtraHosts || [],
 			ulimits,
 			stopSignal: (container.Config as any).StopSignal || '',
-			stopGracePeriod: (container.Config as any).StopTimeout || 0,
+			stopGracePeriod: (container.Config as any).StopTimeout || 10,
 			healthcheck: ComposeUtils.dockerHealthcheckToServiceHealthcheck(
 				(container.Config as any).Healthcheck || {},
 			),
