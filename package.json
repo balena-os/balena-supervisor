@@ -73,7 +73,6 @@
     "network-checker": "^0.1.1",
     "pinejs-client": "^2.4.0",
     "prettier": "^1.14.3",
-    "register-coffee-coverage": "0.0.1",
     "request": "^2.51.0",
     "resin-lint": "^2.0.1",
     "resin-register-device": "^3.0.0",
