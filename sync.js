@@ -11,7 +11,7 @@
 
 fs = require('fs');
 
-doSync = require('resin-sync').sync('local-resin-os-device').sync;
+doSync = require('balena-sync').sync('local-resin-os-device').sync;
 
 // Avoid a super confusing error where the cwd doesn't exist
 dir = __dirname + '/dist';
