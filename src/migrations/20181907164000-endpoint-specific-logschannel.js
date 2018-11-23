@@ -26,9 +26,13 @@ exports.up = function (knex, Promise) {
 		.tap(() => {
 			// take the logsChannelSecret, and the apiEndpoint config field,
 			// and store them in a new table
-			return knex.schema.createTableIfNotExists('logsChannelSecret', (t) => {
-				t.string('backend');
-				t.string('secret');
+			return knex.schema.hasTable('logsChannelSecret').then((exists) => {
+				if (!exists) {
+					return knex.schema.createTable('logsChannelSecret', (t) => {
+						t.string('backend');
+						t.string('secret');
+					});
+				}
 			});
 		})
 		.then((config) => {
