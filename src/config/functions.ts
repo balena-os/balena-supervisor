@@ -108,6 +108,9 @@ export function createProviderFunctions(
 		mixpanelHost: {
 			get: () => {
 				return config.get('apiEndpoint').then(apiEndpoint => {
+					if (!apiEndpoint) {
+						return null;
+					}
 					const url = new URL(apiEndpoint as string);
 					return { host: url.host, path: '/mixpanel' };
 				});
