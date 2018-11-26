@@ -33,7 +33,7 @@ class Config extends EventEmitter {
 		uuid: { source: 'config.json', mutable: true },
 		apiKey: { source: 'config.json', mutable: true, removeIfNull: true },
 		deviceApiKey: { source: 'config.json', mutable: true },
-		deviceType: { source: 'config.json', default: 'raspberry-pi' },
+		deviceType: { source: 'config.json', default: 'unknown' },
 		username: { source: 'config.json' },
 		userId: { source: 'config.json' },
 		deviceId: { source: 'config.json', mutable: true },
