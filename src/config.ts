@@ -26,7 +26,7 @@ class Config extends EventEmitter {
 	private providerFunctions: ConfigProviderFunctions;
 
 	public schema: ConfigSchema = {
-		apiEndpoint: { source: 'config.json' },
+		apiEndpoint: { source: 'config.json', default: '' },
 		apiTimeout: { source: 'config.json', default: 15 * 60 * 1000 },
 		listenPort: { source: 'config.json', default: 48484 },
 		deltaEndpoint: { source: 'config.json', default: 'https://delta.resin.io' },
