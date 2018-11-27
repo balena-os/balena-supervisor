@@ -70,7 +70,7 @@
     "mocha": "^5.1.1",
     "mochainon": "^2.0.0",
     "mz": "^2.7.0",
-    "network-checker": "~0.0.5",
+    "network-checker": "^0.1.1",
     "pinejs-client": "^2.4.0",
     "prettier": "^1.14.3",
     "register-coffee-coverage": "0.0.1",
