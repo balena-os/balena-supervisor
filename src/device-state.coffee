@@ -168,7 +168,7 @@ module.exports = class DeviceState extends EventEmitter
 		@config.getMany([
 			'initialConfigSaved', 'listenPort', 'apiSecret', 'osVersion', 'osVariant',
 			'version', 'provisioned', 'apiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent',
-			'targetStateSet'
+			'targetStateSet', 'offlineMode'
 		])
 		.then (conf) =>
 			Promise.try =>
@@ -214,7 +214,8 @@ module.exports = class DeviceState extends EventEmitter
 			.then =>
 				@triggerApplyTarget({ initial: true })
 
-	initNetworkChecks: ({ apiEndpoint, connectivityCheckEnabled }) =>
+	initNetworkChecks: ({ apiEndpoint, connectivityCheckEnabled, offlineMode }) =>
+		return if validation.checkTruthy(offlineMode)
 		network.startConnectivityCheck apiEndpoint, connectivityCheckEnabled, (connected) =>
 			@connected = connected
 		@config.on 'change', (changedConfig) ->
