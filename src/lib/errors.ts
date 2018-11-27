@@ -25,6 +25,10 @@ export function EEXIST(err: CodedSysError): boolean {
 	return err.code === 'EEXIST';
 }
 
+export function EISDIR(err: CodedSysError): boolean {
+	return err.code === 'EISDIR';
+}
+
 export function UnitNotLoadedError(err: string[]): boolean {
 	return endsWith(err[0], 'not loaded.');
 }

@@ -13,6 +13,7 @@ validation = require './lib/validation'
 systemd = require './lib/systemd'
 updateLock = require './lib/update-lock'
 { singleToMulticontainerApp } = require './lib/migration'
+{ ENOENT, EISDIR } = require './lib/errors'
 
 DeviceConfig = require './device-config'
 ApplicationManager = require './application-manager'
@@ -383,6 +384,12 @@ module.exports = class DeviceState extends EventEmitter
 									commit: commitToPin,
 									app: appToPin,
 								}
+		# Ensure that this is actually a file, and not an empty path
+		# It can be an empty path because if the file does not exist
+		# on host, the docker daemon creates an empty directory when
+		# the bind mount is added
+		.catch ENOENT, EISDIR, ->
+			console.log('No apps.json file present, skipping preload')
 		.catch (err) =>
 			@eventTracker.track('Loading preloaded apps failed', { error: err })
 
