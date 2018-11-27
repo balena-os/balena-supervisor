@@ -349,7 +349,7 @@ export class Service {
 			pidsLimit: 0,
 			securityOpt: [],
 			stopGracePeriod,
-			stopSignal: '',
+			stopSignal: 'SIGTERM',
 			sysctls: {},
 			tmpfs,
 			usernsMode: '',

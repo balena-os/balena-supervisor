@@ -159,7 +159,7 @@ export function getStopSignal(
 		}
 		return composeStop;
 	}
-	return _.get(imageInfo, 'Config.StopSignal', '');
+	return _.get(imageInfo, 'Config.StopSignal', 'SIGTERM');
 }
 
 // TODO: Move healthcheck stuff into seperate module
