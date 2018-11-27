@@ -52,6 +52,7 @@ class Config extends EventEmitter {
 		supervisorOfflineMode: { source: 'config.json', default: false },
 		hostname: { source: 'config.json', mutable: true },
 		persistentLogging: { source: 'config.json', default: false, mutable: true },
+		localMode: { source: 'config.json', mutable: true, default: 'false' },
 
 		version: { source: 'func' },
 		currentApiKey: { source: 'func' },
@@ -70,7 +71,6 @@ class Config extends EventEmitter {
 		initialConfigReported: { source: 'db', mutable: true, default: 'false' },
 		initialConfigSaved: { source: 'db', mutable: true, default: 'false' },
 		containersNormalised: { source: 'db', mutable: true, default: 'false' },
-		localMode: { source: 'db', mutable: true, default: 'false' },
 		loggingEnabled: { source: 'db', mutable: true, default: 'true' },
 		connectivityCheckEnabled: { source: 'db', mutable: true, default: 'true' },
 		delta: { source: 'db', mutable: true, default: 'false' },
