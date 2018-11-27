@@ -349,7 +349,7 @@ export class Service {
 			pidsLimit: 0,
 			securityOpt: [],
 			stopGracePeriod,
-			stopSignal: '',
+			stopSignal: 'SIGTERM',
 			sysctls: {},
 			tmpfs,
 			usernsMode: '',
@@ -492,7 +492,7 @@ export class Service {
 			tmpfs,
 			extraHosts: container.HostConfig.ExtraHosts || [],
 			ulimits,
-			stopSignal: (container.Config as any).StopSignal || '',
+			stopSignal: (container.Config as any).StopSignal || 'SIGTERM',
 			stopGracePeriod: (container.Config as any).StopTimeout || 10,
 			healthcheck: ComposeUtils.dockerHealthcheckToServiceHealthcheck(
 				(container.Config as any).Healthcheck || {},
