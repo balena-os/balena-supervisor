@@ -11,7 +11,7 @@ declare module 'blinking' {
 		stop: () => void;
 	}
 
-	function blinking(ledFile: string): Blink;
+	function blinking(ledFile: string): { pattern: Blink };
 
 	export = blinking;
 }
