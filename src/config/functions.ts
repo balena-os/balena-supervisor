@@ -9,6 +9,7 @@ import supervisorVersion = require('../lib/supervisor-version');
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
 import { ConfigValue } from '../lib/types';
+import { checkTruthy } from '../lib/validation';
 
 // A provider for schema entries with source 'func'
 type ConfigProviderFunctionGetter = () => Bluebird<any>;
@@ -51,7 +52,9 @@ export function createProviderFunctions(
 				return config
 					.getMany(['apiEndpoint', 'supervisorOfflineMode'])
 					.then(({ apiEndpoint, supervisorOfflineMode }) => {
-						return Boolean(supervisorOfflineMode) || !Boolean(apiEndpoint);
+						return (
+							checkTruthy(supervisorOfflineMode as boolean) || !apiEndpoint
+						);
 					});
 			},
 		},
@@ -108,6 +111,9 @@ export function createProviderFunctions(
 		mixpanelHost: {
 			get: () => {
 				return config.get('apiEndpoint').then(apiEndpoint => {
+					if (!apiEndpoint) {
+						return null;
+					}
 					const url = new URL(apiEndpoint as string);
 					return { host: url.host, path: '/mixpanel' };
 				});

@@ -296,7 +296,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		).get(appId)
 
 	getTargetApp: (appId) =>
-		@config.get('apiEndpoint').then (endpoint = '') ->
+		@config.get('apiEndpoint').then (endpoint) ->
 			@db.models('app').where({ appId, source: endpoint }).select()
 		.then ([ app ]) =>
 			if !app?

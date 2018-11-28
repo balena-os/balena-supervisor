@@ -145,7 +145,7 @@ describe 'APIBinder', ->
 				expect(mode).to.equal(true)
 				# Check that there is no deviceApiKey
 				@config.getMany([ 'deviceApiKey', 'uuid' ]).then (conf) ->
-					expect(conf['deviceApiKey']).to.be.undefined
+					expect(conf['deviceApiKey']).to.be.empty
 					expect(conf['uuid']).to.not.be.undefined
 
 		describe 'Minimal config offline mode', ->
@@ -156,5 +156,5 @@ describe 'APIBinder', ->
 				@config.get('offlineMode').then (mode) =>
 					expect(mode).to.equal(true)
 					@config.getMany([ 'deviceApiKey', 'uuid' ]).then (conf) ->
-						expect(conf['deviceApiKey']).to.be.undefined
+						expect(conf['deviceApiKey']).to.be.empty
 						expect(conf['uuid']).to.not.be.undefined

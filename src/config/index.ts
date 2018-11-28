@@ -4,16 +4,13 @@ import { Transaction } from 'knex';
 import * as _ from 'lodash';
 import { generateUniqueKey } from 'resin-register-device';
 
-import ConfigJsonConfigBackend from './config/configJson';
+import ConfigJsonConfigBackend from './configJson';
 
-import {
-	ConfigProviderFunctions,
-	createProviderFunctions,
-} from './config/functions';
-import * as constants from './lib/constants';
-import { ConfigMap, ConfigSchema, ConfigValue } from './lib/types';
+import { ConfigProviderFunctions, createProviderFunctions } from './functions';
+import * as constants from '../lib/constants';
+import { ConfigMap, ConfigSchema, ConfigValue } from '../lib/types';
 
-import DB = require('./db');
+import DB = require('../db');
 
 interface ConfigOpts {
 	db: DB;
@@ -26,14 +23,14 @@ class Config extends EventEmitter {
 	private providerFunctions: ConfigProviderFunctions;
 
 	public schema: ConfigSchema = {
-		apiEndpoint: { source: 'config.json' },
+		apiEndpoint: { source: 'config.json', default: '' },
 		apiTimeout: { source: 'config.json', default: 15 * 60 * 1000 },
 		listenPort: { source: 'config.json', default: 48484 },
 		deltaEndpoint: { source: 'config.json', default: 'https://delta.resin.io' },
 		uuid: { source: 'config.json', mutable: true },
 		apiKey: { source: 'config.json', mutable: true, removeIfNull: true },
-		deviceApiKey: { source: 'config.json', mutable: true },
-		deviceType: { source: 'config.json', default: 'raspberry-pi' },
+		deviceApiKey: { source: 'config.json', mutable: true, default: '' },
+		deviceType: { source: 'config.json', default: 'unknown' },
 		username: { source: 'config.json' },
 		userId: { source: 'config.json' },
 		deviceId: { source: 'config.json', mutable: true },
@@ -52,6 +49,7 @@ class Config extends EventEmitter {
 		supervisorOfflineMode: { source: 'config.json', default: false },
 		hostname: { source: 'config.json', mutable: true },
 		persistentLogging: { source: 'config.json', default: false, mutable: true },
+		localMode: { source: 'config.json', mutable: true, default: 'false' },
 
 		version: { source: 'func' },
 		currentApiKey: { source: 'func' },
@@ -70,7 +68,6 @@ class Config extends EventEmitter {
 		initialConfigReported: { source: 'db', mutable: true, default: 'false' },
 		initialConfigSaved: { source: 'db', mutable: true, default: 'false' },
 		containersNormalised: { source: 'db', mutable: true, default: 'false' },
-		localMode: { source: 'db', mutable: true, default: 'false' },
 		loggingEnabled: { source: 'db', mutable: true, default: 'true' },
 		connectivityCheckEnabled: { source: 'db', mutable: true, default: 'true' },
 		delta: { source: 'db', mutable: true, default: 'false' },
@@ -295,7 +292,7 @@ class Config extends EventEmitter {
 				if (offlineMode) {
 					return;
 				}
-				if (deviceApiKey == null) {
+				if (!deviceApiKey) {
 					return this.set({ deviceApiKey: this.newUniqueKey() });
 				}
 			});
