@@ -309,7 +309,7 @@ describe 'compose/service', ->
 					EndpointsConfig: {
 						'123456_balena': {
 							IPAMConfig: {
-								IPV4Address: '1.2.3.4'
+								IPv4Address: '1.2.3.4'
 							},
 							Aliases: []
 						}
@@ -327,9 +327,9 @@ describe 'compose/service', ->
 					EndpointsConfig: {
 						'123456_balena': {
 							IPAMConfig: {
-								IPV4Address: '1.2.3.4'
-								IPV6Address: '5.6.7.8'
-								LinkLocalIps: [ '123.123.123' ]
+								IPv4Address: '1.2.3.4'
+								IPv6Address: '5.6.7.8'
+								LinkLocalIPs: [ '123.123.123' ]
 							}
 							Aliases: [ 'test', '1123' ]
 						}
