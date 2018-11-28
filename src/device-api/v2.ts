@@ -337,4 +337,42 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			version: supervisorVersion,
 		});
 	});
+
+	router.get('/v2/containerId', async (req, res) => {
+		try {
+			const services = await applications.services.getAll();
+
+			if (req.query.serviceName != null || req.query.service != null) {
+				const serviceName = req.query.serviceName || req.query.service;
+				const service = _.find(
+					services,
+					svc => svc.serviceName === serviceName,
+				);
+				if (service != null) {
+					res.status(200).json({
+						status: 'success',
+						containerId: service.containerId,
+					});
+				} else {
+					res.status(503).json({
+						status: 'failed',
+						message: 'Could not find service with that name',
+					});
+				}
+			} else {
+				res.status(200).json({
+					status: 'success',
+					services: _(services)
+						.keyBy('serviceName')
+						.mapValues('containerId')
+						.value(),
+				});
+			}
+		} catch (e) {
+			res.status(503).json({
+				status: 'failed',
+				message: messageFromError(e),
+			});
+		}
+	});
 }

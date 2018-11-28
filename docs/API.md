@@ -793,6 +793,41 @@ Response:
 }
 ```
 
+### Container ID (GET /v2/containerId)
+
+Added in supervisor v8.6.0
+
+Use this endpoint to match a service name to a container ID.
+
+From the user container:
+```
+$ curl "$BALENA_SUPERVISOR_ADDRESS/v2/containerId?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"services": {
+		"service-one": "ad6d5d32576ad3cb1fcaa59b564b8f6f22b079631080ab1a3bbac9199953eb7d",
+		"service-two": "756535dc6e9ab9b560f84c85063f55952273a23192641fc2756aa9721d9d1000"
+	}
+}
+```
+
+You can also specify a service, to return only that container id:
+```
+$ curl "$BALENA_SUPERVISOR_ADDRESS/v2/containerId?apikey=$BALENA_SUPERVISOR_API_KEY&service=service-one"
+```
+
+Response:
+```json
+{
+	"status": "sucess",
+	"containerId": "ad6d5d32576ad3cb1fcaa59b564b8f6f22b079631080ab1a3bbac9199953eb7d"
+}
+```
+
 ### Local mode endpoints
 
 These endpoints are mainly for use by the CLI, for working with a local mode device.
