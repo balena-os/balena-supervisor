@@ -23,6 +23,7 @@ startupConfigFields = [
 	'mixpanelHost'
 	'loggingEnabled'
 	'localMode'
+	'legacyAppsPresent'
 ]
 
 module.exports = class Supervisor extends EventEmitter
@@ -60,6 +61,10 @@ module.exports = class Supervisor extends EventEmitter
 					enableLogs: checkTruthy(conf.loggingEnabled),
 					localMode: checkTruthy(conf.localMode)
 				})
+			.then =>
+				if checkTruthy(conf.legacyAppsPresent)
+					console.log('Legacy app detected, running migration')
+					@deviceState.normaliseLegacy(@apiBinder.balenaApi)
 			.then =>
 				@deviceState.init()
 			.then =>
