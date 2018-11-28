@@ -417,18 +417,20 @@ export function serviceNetworksToDockerNetworks(
 			conf.IPAMConfig = {};
 			conf.Aliases = [];
 			_.each(net, (v, k) => {
+				// We know that IPAMConfig is set because of the intialisation
+				// above, but typescript doesn't agree, so use !
 				switch (k) {
 					case 'ipv4Address':
-						conf.IPAMConfig.IPV4Address = v;
+						conf.IPAMConfig!.IPv4Address = v as string;
 						break;
 					case 'ipv6Address':
-						conf.IPAMConfig.IPV6Address = v;
+						conf.IPAMConfig!.IPv6Address = v as string;
 						break;
 					case 'linkLocalIps':
-						conf.IPAMConfig.LinkLocalIps = v;
+						conf.IPAMConfig!.LinkLocalIPs = v as string[];
 						break;
 					case 'aliases':
-						conf.Aliases = v;
+						conf.Aliases = v as string[];
 						break;
 				}
 			});
