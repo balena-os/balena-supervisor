@@ -29,7 +29,7 @@ class Config extends EventEmitter {
 		deltaEndpoint: { source: 'config.json', default: 'https://delta.resin.io' },
 		uuid: { source: 'config.json', mutable: true },
 		apiKey: { source: 'config.json', mutable: true, removeIfNull: true },
-		deviceApiKey: { source: 'config.json', mutable: true },
+		deviceApiKey: { source: 'config.json', mutable: true, default: '' },
 		deviceType: { source: 'config.json', default: 'unknown' },
 		username: { source: 'config.json' },
 		userId: { source: 'config.json' },
@@ -292,7 +292,7 @@ class Config extends EventEmitter {
 				if (offlineMode) {
 					return;
 				}
-				if (deviceApiKey == null) {
+				if (!deviceApiKey) {
 					return this.set({ deviceApiKey: this.newUniqueKey() });
 				}
 			});
