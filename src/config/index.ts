@@ -4,16 +4,13 @@ import { Transaction } from 'knex';
 import * as _ from 'lodash';
 import { generateUniqueKey } from 'resin-register-device';
 
-import ConfigJsonConfigBackend from './config/configJson';
+import ConfigJsonConfigBackend from './configJson';
 
-import {
-	ConfigProviderFunctions,
-	createProviderFunctions,
-} from './config/functions';
-import * as constants from './lib/constants';
-import { ConfigMap, ConfigSchema, ConfigValue } from './lib/types';
+import { ConfigProviderFunctions, createProviderFunctions } from './functions';
+import * as constants from '../lib/constants';
+import { ConfigMap, ConfigSchema, ConfigValue } from '../lib/types';
 
-import DB = require('./db');
+import DB = require('../db');
 
 interface ConfigOpts {
 	db: DB;
