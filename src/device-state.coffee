@@ -19,8 +19,8 @@ DeviceConfig = require './device-config'
 ApplicationManager = require './application-manager'
 
 validateLocalState = (state) ->
-	if !state.name? or !validation.isValidShortText(state.name)
-		throw new Error('Invalid device name')
+	if state.name?
+		throw new Error('Invalid device name') if not validation.isValidShortText(state.name)
 	if !state.apps? or !validation.isValidAppsObject(state.apps)
 		throw new Error('Invalid apps')
 	if !state.config? or !validation.isValidEnv(state.config)

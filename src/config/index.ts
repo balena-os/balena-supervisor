@@ -64,7 +64,7 @@ class Config extends EventEmitter {
 
 		// NOTE: all 'db' values are stored and loaded as *strings*,
 		apiSecret: { source: 'db', mutable: true },
-		name: { source: 'db', mutable: true },
+		name: { source: 'db', mutable: true, default: 'local' },
 		initialConfigReported: { source: 'db', mutable: true, default: 'false' },
 		initialConfigSaved: { source: 'db', mutable: true, default: 'false' },
 		containersNormalised: { source: 'db', mutable: true, default: 'false' },

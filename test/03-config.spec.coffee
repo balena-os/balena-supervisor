@@ -58,8 +58,8 @@ describe 'Config', ->
 		expect(promise).to.eventually.deep.equal({ appUpdatePollInterval: 30000, name: 'a new device name' })
 
 	it 'allows removing a db key', ->
-		promise = @conf.remove('name').then =>
-			@conf.get('name')
+		promise = @conf.remove('apiSecret').then =>
+			@conf.get('apiSecret')
 		expect(promise).to.be.fulfilled
 		expect(promise).to.eventually.be.undefined
 
