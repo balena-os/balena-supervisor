@@ -51,7 +51,7 @@
     "dbus-native": "^0.2.5",
     "deep-object-diff": "^1.1.0",
     "docker-delta": "^2.2.2",
-    "docker-progress": "^3.0.2",
+    "docker-progress": "^3.0.3",
     "docker-toolbelt": "^3.3.2",
     "duration-js": "^4.0.0",
     "event-stream": "3.3.5",
