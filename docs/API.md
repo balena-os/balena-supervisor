@@ -12,6 +12,8 @@ Only Supervisors after version 1.1.0 have this functionality, and some of the en
 
 The supervisor exposes an HTTP API on port 48484 (`BALENA_SUPERVISOR_PORT`).
 
+To enable these Supervisor environment variables, the `io.balena.features.supervisor-api` label must be applied for each service that requires them. See [here](https://www.balena.io/docs/learn/develop/multicontainer/#labels) for further details.
+
 **All endpoints require an apikey parameter, which is exposed to the application as `BALENA_SUPERVISOR_API_KEY`.**
 
 The full address for the API, i.e. `"http://127.0.0.1:48484"`, is available as `BALENA_SUPERVISOR_ADDRESS`. **Always use these variables when communicating via the API, since address and port could change**.
