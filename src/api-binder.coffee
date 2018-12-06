@@ -7,8 +7,11 @@ deviceRegister = require 'resin-register-device'
 express = require 'express'
 bodyParser = require 'body-parser'
 Lock = require 'rwlock'
+path = require 'path'
 { request, requestOpts } = require './lib/request'
 { checkTruthy, checkInt } = require './lib/validation'
+{ pathExistsOnHost } = require './lib/fs-utils'
+constants = require './lib/constants'
 
 DuplicateUuidError = (err) ->
 	_.startsWith(err.message, '"uuid" must be unique')
@@ -83,6 +86,21 @@ module.exports = class APIBinder
 				passthrough: passthrough
 			@cachedBalenaApi = @balenaApi.clone({}, cache: {})
 
+	loadBackupFromMigration: (retryDelay) =>
+		pathExistsOnHost(path.join('mnt/data', constants.migrationBackupFile))
+		.then (exists) =>
+			if !exists
+				return
+			console.log('Migration backup detected')
+			@getTargetState()
+			.then (targetState) =>
+				@deviceState.restoreBackup(targetState)
+		.catch (err) =>
+			console.log('Error restoring migration backup, retrying: ', err)
+			Promise.delay(retryDelay)
+			.then =>
+				@loadBackupFromMigration(retryDelay)
+
 	start: =>
 		@config.getMany([ 'apiEndpoint', 'offlineMode', 'bootstrapRetryDelay' ])
 		.then ({ apiEndpoint, offlineMode, bootstrapRetryDelay }) =>
@@ -109,6 +127,8 @@ module.exports = class APIBinder
 			.then =>
 				console.log('Starting current state report')
 				@startCurrentStateReport()
+			.then =>
+				@loadBackupFromMigration(bootstrapRetryDelay)
 			.then =>
 				@readyForUpdates = true
 				console.log('Starting target state poll')

@@ -49,6 +49,7 @@ const constants = {
 	},
 	bootBlockDevice: '/dev/mmcblk0p1',
 	hostConfigVarPrefix: 'HOST_',
+	migrationBackupFile: 'backup.tgz',
 };
 
 if (process.env.DOCKER_HOST == null) {

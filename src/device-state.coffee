@@ -7,6 +7,9 @@ express = require 'express'
 bodyParser = require 'body-parser'
 hostConfig = require './host-config'
 network = require './network'
+execAsync = Promise.promisify(require('child_process').exec)
+mkdirp = Promise.promisify(require('mkdirp'))
+path = require 'path'
 
 constants = require './lib/constants'
 validation = require './lib/validation'
@@ -40,6 +43,9 @@ validateState = Promise.method (state) ->
 	validateLocalState(state.local)
 	if state.dependent?
 		validateDependentState(state.dependent)
+
+rimraf = (p) ->
+	execAsync("rm -rf \"#{p.replace(/"/g, '\\"')}\"")
 
 # TODO (refactor): This shouldn't be here, and instead should be part of the other
 # device api stuff in ./device-api
@@ -405,6 +411,39 @@ module.exports = class DeviceState extends EventEmitter
 			, {})
 			apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId')
 			return { apps, config: deviceConf }
+
+	restoreBackup: (targetState) =>
+		@setTarget(targetState)
+		.then =>
+			appId = _.keys(targetState.local.apps)[0]
+			if !appId?
+				throw new Error('No appId in target state')
+			volumes = targetState.local.apps[appId].volumes
+			backupPath = path.join(constants.rootMountPoint, 'mnt/data/backup')
+			rimraf(backupPath) # We clear this path in case it exists from an incomplete run of this function
+			.then ->
+				mkdirp(backupPath)
+			.then ->
+				execAsync("tar -xzf backup.tgz -C #{backupPath} .", cwd: path.join(constants.rootMountPoint, 'mnt/data'))
+			.then ->
+				fs.readdirAsync(backupPath)
+			.then (dirContents) =>
+				Promise.mapSeries dirContents, (volumeName) =>
+					if volumes[volumeName]?
+						console.log("Creating volume #{volumeName} from backup")
+						# If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
+						@applications.volumes.get({ appId, name: volumeName })
+						.then =>
+							@applications.volumes.remove({ appId, name: volumeName })
+						.catch(NotFoundError, _.noop)
+						.then =>
+							@applications.volumes.createFromPath({ appId, name: volumeName, config: volumes[volumeName] }, path.join(backupPath, volumeName))
+					else
+						console.log("WARNING: #{volumeName} is present in backup but not in target state, ignoring")
+			.then ->
+				rimraf(backupPath)
+			.then ->
+				rimraf(path.join(constants.rootMountPoint, 'mnt/data', constants.migrationBackupFile))
 
 	loadTargetFromFile: (appsPath) ->
 		console.log('Attempting to load preloaded apps...')

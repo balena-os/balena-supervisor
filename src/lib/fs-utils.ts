@@ -1,6 +1,8 @@
 import * as Bluebird from 'bluebird';
 import { fs } from 'mz';
 import * as path from 'path';
+import * as constants from './constants';
+import { ENOENT } from './errors';
 
 export function writeAndSyncFile(path: string, data: string): Bluebird<void> {
 	return Bluebird.resolve(fs.open(path, 'w')).then(fd => {
@@ -21,4 +23,10 @@ export function safeRename(src: string, dest: string): Bluebird<void> {
 		.then(() => fs.open(path.dirname(dest), 'r'))
 		.tap(fs.fsync)
 		.then(fs.close);
+}
+
+export function pathExistsOnHost(p: string): Bluebird<boolean> {
+	return Bluebird.resolve(fs.stat(path.join(constants.rootMountPoint, p)))
+		.return(true)
+		.catchReturn(ENOENT, false);
 }
