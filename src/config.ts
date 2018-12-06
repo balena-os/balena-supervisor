@@ -195,7 +195,7 @@ class Config extends EventEmitter {
 				return setImmediate(() => {
 					this.emit('change', keyValues);
 				});
-			});
+			}).return();
 	}
 
 	public remove(key: string): Bluebird<void> {
