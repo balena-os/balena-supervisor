@@ -212,10 +212,10 @@ interface LoggerSetupOptions {
 
 type LogEventObject = Dictionary<any> | null;
 
-enum OutputStream {
-	Stdout,
-	Stderr,
-}
+const OutputStream = {
+	Stderr: 'Stderr',
+	Stdout: 'Stdout',
+};
 
 export class Logger {
 	private writeLock: (key: string) => Bluebird<() => void> = Bluebird.promisify(
@@ -224,10 +224,10 @@ export class Logger {
 	private backend: LogBackend | null = null;
 	private eventTracker: EventTracker;
 	private attached: {
-		[key in OutputStream]: { [containerId: string]: boolean }
+		[key: string]: { [containerId: string]: boolean }
 	} = {
-		[OutputStream.Stderr]: { },
-		[OutputStream.Stdout]: { },
+		['Stderr']: { },
+		['Stdout']: { },
 	};
 
 	public constructor({ eventTracker }: LoggerConstructOptions) {
@@ -347,7 +347,7 @@ export class Logger {
 	// by the Compose/Service-Manager module, as an accessor
 	private attachStream(
 		docker: Docker,
-		streamType: OutputStream,
+		streamType: string,
 		containerId: string,
 		{ serviceId, imageId }: { serviceId: string, imageId: string},
 	): Bluebird<void> {
