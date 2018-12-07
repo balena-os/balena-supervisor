@@ -149,5 +149,33 @@ export function createProviderFunctions(
 				]);
 			},
 		},
+		unmanaged: {
+			get: () => {
+				return config.get('apiEndpoint').then(apiEndpoint => {
+					if (!apiEndpoint) {
+						return true;
+					} else {
+						return false;
+					}
+				});
+			},
+		},
+
+		localMode: {
+			get: () => {
+				// if local mode has been set explicitly, or
+				// we are in unmanaged mode, enable local mode
+				return config
+					.getMany(['explicitLocalMode', 'unmanaged'])
+					.then(({ explicitLocalMode, unmanaged }) => {
+						return explicitLocalMode || unmanaged;
+					});
+			},
+			set: value => {
+				return config.set({
+					explicitLocalMode: checkTruthy(value || false) || false,
+				});
+			},
+		},
 	};
 }
