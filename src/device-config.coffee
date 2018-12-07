@@ -13,6 +13,7 @@ module.exports = class DeviceConfig
 		@rebootRequired = false
 		@configKeys = {
 			appUpdatePollInterval: { envVarName: 'SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
+			localMode: { envVarName: 'SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
 			connectivityCheckEnabled: { envVarName: 'SUPERVISOR_CONNECTIVITY_CHECK', varType: 'bool', defaultValue: 'true' }
 			loggingEnabled: { envVarName: 'SUPERVISOR_LOG_CONTROL', varType: 'bool', defaultValue: 'true' }
 			delta: { envVarName: 'SUPERVISOR_DELTA', varType: 'bool', defaultValue: 'false' }
