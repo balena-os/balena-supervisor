@@ -99,6 +99,10 @@ ifeq ($(MOUNT_NODE_MODULES), true)
 	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/../../node_modules:/resin-supervisor/node_modules
 endif
 
+ifeq ($(MOUNT_BACKUP), true)
+	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/backup.tgz:/mnt/data/backup.tgz.mounted
+endif
+
 ifdef TARGET_COMPONENT
 	DOCKER_TARGET_COMPONENT := "--target=${TARGET_COMPONENT}"
 else

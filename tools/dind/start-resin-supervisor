@@ -23,6 +23,10 @@ if [ -d /resin-supervisor/node_modules ]; then
     EXTRA_MOUNTS="${EXTRA_MOUNTS} -v /resin-supervisor/node_modules:/usr/src/app/node_modules"
 fi
 
+if [ -f /mnt/data/backup.tgz.mounted ]; then
+  cp /mnt/data/backup.tgz.mounted /mnt/data/backup.tgz
+fi
+
 SUPERVISOR_IMAGE_ID=$(balena inspect --format='{{.Id}}' $SUPERVISOR_IMAGE:$SUPERVISOR_TAG)
 SUPERVISOR_CONTAINER_IMAGE_ID=$(balena inspect --format='{{.Image}}' resin_supervisor || echo "")
 

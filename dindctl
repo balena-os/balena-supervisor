@@ -11,23 +11,24 @@
 # Usage: dindctl action [options]
 #
 # Actions:
-# 	build					build local supervisor image. By default it will be balena/amd64-supervisor:master, you can override the tag with --tag.
-# 	run [options]			build dind host container, run it (with name balena_supervisor_1), which will include the specified supervisor image and run it.
-# 	buildrun [options]		run 'build' and then immediately 'run' the built container.
-# 	refresh					recompile sources in './src' and restart supervisor container on dind host - requires --mount-dist in order to work properly.
-# 	logs [-f]				print out supervisor log files - use '-f' to follow instead, or any other arguments you'd send to journalctl.
-# 	stop					stop dind supervisor host container.
+#   build                   build local supervisor image. By default it will be balena/amd64-supervisor:master, you can override the tag with --tag.
+#   run [options]           build dind host container, run it (with name balena_supervisor_1), which will include the specified supervisor image and run it.
+#   buildrun [options]      run 'build' and then immediately 'run' the built container.
+#   refresh                 recompile sources in './src' and restart supervisor container on dind host - requires --mount-dist in order to work properly.
+#   logs [-f]               print out supervisor log files - use '-f' to follow instead, or any other arguments you'd send to journalctl.
+#   stop                    stop dind supervisor host container.
 # Options:
-# 	--arch | -a  [arch]		architecture of the supervisor to build (default: amd64 )
-# 	--image | -i [image]	image name for supervisor image to build/use ( default: balena/$ARCH-supervisor:master )
-# 	--dind-image [image]	image to use for the resinos-in-container host (default: resin/resinos:2.12.5_rev1-intel-nuc)
-# 	--dind-container [name]	container name suffix for the dind host container ( default: "supervisor", which will produce a container named resinos-in-container-supervisor)
-# 	--mount-dist			bind-mount './dist/' (where webpack stores the built js) from local development environment into supervisor container.
-# 	--mount-nm				bind-mount './node_modules/' from local development environment into supervisor container.
-# 	--preload | -p			use tools/dind/apps.json to preload an application image into the dind host.
-# 	--config | -c [file]	path to config.json, relative to tools/dind ( default: config.json )
-# 	--tag | -t [tag]		for the "build" action, specify the tag to build (default: master)
-# 	--no-clean				for the "stop" action, skip removing the data, boot and state volumes
+#   --arch | -a [arch]      architecture of the supervisor to build (default: amd64 )
+#   --image | -i [image]    image name for supervisor image to build/use ( default: balena/$ARCH-supervisor:master )
+#   --dind-image [image]    image to use for the resinos-in-container host (default: resin/resinos:2.12.5_rev1-intel-nuc)
+#   --dind-container [name] container name suffix for the dind host container ( default: "supervisor", which will produce a container named resinos-in-container-supervisor)
+#   --mount-dist            bind-mount './dist/' (where webpack stores the built js) from local development environment into supervisor container.
+#   --mount-nm              bind-mount './node_modules/' from local development environment into supervisor container.
+#   --mount-backup          bind-mount './tools/dind/backup.tgz' to simulate a migration backup.
+#   --preload | -p          use tools/dind/apps.json to preload an application image into the dind host.
+#   --config | -c [file]    path to config.json, relative to tools/dind ( default: config.json )
+#   --tag | -t [tag]        for the "build" action, specify the tag to build (default: master)
+#   --no-clean              for the "stop" action, skip removing the data, boot and state volumes
 #
 # See README.md for examples.
 #
@@ -44,7 +45,7 @@ SUPERVISOR_BASE_DIR="${DIR}"
 
 ARCH="amd64"
 SUPERVISOR_IMAGE="balena/${ARCH}-supervisor:master"
-DIND_IMAGE="resin/resinos:2.12.5_rev1-intel-nuc"
+DIND_IMAGE="resin/resinos:2.27.0_rev1-intel-nuc"
 MOUNT_DIST="false"
 MOUNT_NODE_MODULES="false"
 CONTAINER_NAME="supervisor"
@@ -53,6 +54,7 @@ OPTIMIZE="true"
 CONFIG_FILENAME="config.json"
 TAG="master"
 CLEAN_VOLUMES="true"
+MOUNT_BACKUP="false"
 
 function showHelp {
 	cat $THIS_FILE | awk '{if(/^#/)print;else exit}' | tail -n +2 | sed 's/\#//' | sed 's|dindctl|'$THIS_FILE'|'
@@ -67,6 +69,9 @@ function parseOptions {
 				;;
 			--mount-nm)
 				MOUNT_NODE_MODULES="true"
+				;;
+			--mount-backup)
+				MOUNT_BACKUP="true"
 				;;
 			-p|--preload)
 				PRELOADED_IMAGE="true"
@@ -151,6 +156,7 @@ function runDind {
 		SUPERVISOR_IMAGE="$SUPERVISOR_IMAGE" \
 		MOUNT_DIST="$MOUNT_DIST" \
 		MOUNT_NODE_MODULES="$MOUNT_NODE_MODULES" \
+		MOUNT_BACKUP="$MOUNT_BACKUP" \
 		PRELOADED_IMAGE="$PRELOADED_IMAGE" \
 		CONTAINER_NAME="$CONTAINER_NAME" \
 		CONFIG_FILENAME="$CONFIG_FILENAME" \
