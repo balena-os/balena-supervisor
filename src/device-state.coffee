@@ -301,7 +301,7 @@ module.exports = class DeviceState extends EventEmitter
 			if changedConfig.connectivityCheckEnabled?
 				network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled)
 		console.log('Starting periodic check for IP addresses')
-		network.startIPAddressUpdate (addresses) =>
+		network.startIPAddressUpdate() (addresses) =>
 			@reportCurrentState(
 				ip_address: addresses.join(' ')
 			)
