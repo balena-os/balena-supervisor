@@ -429,17 +429,21 @@ module.exports = class DeviceState extends EventEmitter
 				fs.readdirAsync(backupPath)
 			.then (dirContents) =>
 				Promise.mapSeries dirContents, (volumeName) =>
-					if volumes[volumeName]?
-						console.log("Creating volume #{volumeName} from backup")
-						# If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
-						@applications.volumes.get({ appId, name: volumeName })
-						.then =>
-							@applications.volumes.remove({ appId, name: volumeName })
-						.catch(NotFoundError, _.noop)
-						.then =>
-							@applications.volumes.createFromPath({ appId, name: volumeName, config: volumes[volumeName] }, path.join(backupPath, volumeName))
-					else
-						console.log("WARNING: #{volumeName} is present in backup but not in target state, ignoring")
+					fs.statAsync(path.join(backupPath, volumeName))
+					.then (s) =>
+						if !s.isDirectory()
+							throw new Error("Invalid backup: #{volumeName} is not a directory")
+						if volumes[volumeName]?
+							console.log("Creating volume #{volumeName} from backup")
+							# If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
+							@applications.volumes.get({ appId, name: volumeName })
+							.then =>
+								@applications.volumes.remove({ appId, name: volumeName })
+							.catch(NotFoundError, _.noop)
+							.then =>
+								@applications.volumes.createFromPath({ appId, name: volumeName, config: volumes[volumeName] }, path.join(backupPath, volumeName))
+						else
+							throw new Error("Invalid backup: #{volumeName} is present in backup but not in target state")
 			.then ->
 				rimraf(backupPath)
 			.then ->
