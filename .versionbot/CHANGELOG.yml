@@ -1,3 +1,19 @@
+- commits:
+    - subject: 'versionbot: Add changelog yml file'
+      hash: 3134f0dcebb8cda4bf0f9e94038c9363df9ad535
+      body: |
+        This file allows other components to uniquely parse the information that
+        is contained in the changelog. It will be automatically managed by
+        versionist by appending the new commits on top. This is needed to
+        provide nested-changelogs.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Giovanni Garufi <giovanni@resin.io>
+        signed-off-by: Giovanni Garufi <giovanni@resin.io>
+      author: Giovanni Garufi
+  version: 8.6.9
+  date: 2018-12-11T15:33:19.564Z
 - version: 8.6.8
   date: 2018-12-07T00:00:00.000Z
   commits:
