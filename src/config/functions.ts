@@ -149,5 +149,12 @@ export function createProviderFunctions(
 				]);
 			},
 		},
+		unmanaged: {
+			get: () => {
+				return config.get('apiEndpoint').then(apiEndpoint => {
+					return !apiEndpoint;
+				});
+			},
+		},
 	};
 }

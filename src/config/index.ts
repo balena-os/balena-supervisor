@@ -60,6 +60,7 @@ class Config extends EventEmitter {
 		mixpanelHost: { source: 'func' },
 		extendedEnvOptions: { source: 'func' },
 		fetchOptions: { source: 'func' },
+		unmanaged: { source: 'func' },
 
 		// NOTE: all 'db' values are stored and loaded as *strings*,
 		apiSecret: { source: 'db', mutable: true },
