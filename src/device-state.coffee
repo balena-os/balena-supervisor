@@ -10,6 +10,7 @@ network = require './network'
 execAsync = Promise.promisify(require('child_process').exec)
 mkdirp = Promise.promisify(require('mkdirp'))
 path = require 'path'
+rimraf = Promise.promisify(require('rimraf'))
 
 constants = require './lib/constants'
 validation = require './lib/validation'
@@ -43,9 +44,6 @@ validateState = Promise.method (state) ->
 	validateLocalState(state.local)
 	if state.dependent?
 		validateDependentState(state.dependent)
-
-rimraf = (p) ->
-	execAsync("rm -rf \"#{p.replace(/"/g, '\\"')}\"")
 
 # TODO (refactor): This shouldn't be here, and instead should be part of the other
 # device api stuff in ./device-api
