@@ -248,7 +248,7 @@ module.exports = class Images extends EventEmitter
 				isSupervisorRepoTag = ({ imageName, tagName }) ->
 					supervisorRepos = [ supervisorImageInfo.imageName ]
 					if _.startsWith(supervisorImageInfo.imageName, 'balena/') # We're on a new balena/ARCH-supervisor image
-						supervisorRepos.push(supervisorImageInfo.imageName.replace(/^balena/, 'resin/'))
+						supervisorRepos.push(supervisorImageInfo.imageName.replace(/^balena/, 'resin'))
 					return _.some(supervisorRepos, (repo) -> imageName == repo) and tagName != supervisorImageInfo.tagName
 				isDangling = (image) ->
 					# Looks like dangling images show up with these weird RepoTags and RepoDigests sometimes
