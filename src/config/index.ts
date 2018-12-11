@@ -49,7 +49,6 @@ class Config extends EventEmitter {
 		supervisorOfflineMode: { source: 'config.json', default: false },
 		hostname: { source: 'config.json', mutable: true },
 		persistentLogging: { source: 'config.json', default: false, mutable: true },
-		localMode: { source: 'config.json', mutable: true, default: 'false' },
 
 		version: { source: 'func' },
 		currentApiKey: { source: 'func' },
@@ -82,6 +81,7 @@ class Config extends EventEmitter {
 		pinDevice: { source: 'db', mutable: true, default: 'null' },
 		currentCommit: { source: 'db', mutable: true },
 		targetStateSet: { source: 'db', mutable: true, default: 'false' },
+		localMode: { source: 'db', mutable: true, default: 'false' },
 	};
 
 	public constructor({ db, configPath }: ConfigOpts) {
