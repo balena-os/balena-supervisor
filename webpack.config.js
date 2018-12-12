@@ -16,7 +16,9 @@ var externalModules = [
 	'strong-oracle',
 	'oracle',
 	'oracledb',
-	'pg-query-stream'
+	'pg-query-stream',
+	'tedious',
+	/mssql\/.*/
 ]
 
 var requiredModules = []

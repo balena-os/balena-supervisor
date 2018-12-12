@@ -4,6 +4,6 @@
 module.exports = function (source) {
 	return source
 		.toString()
+		.replace(/require\(_path2\.default\.join\(_?this\._absoluteConfigDir\(\), name\)\);/g, "require('./migrations/' + name);")
 		.replace("require(directory + '/' + name);", "require('./migrations/' + name);")
-		.replace("require(_path2.default.join(this._absoluteConfigDir(), name));", "require('./migrations/' + name);")
 }
