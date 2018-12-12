@@ -38,6 +38,7 @@
     "@types/memoizee": "^0.4.2",
     "@types/mz": "0.0.32",
     "@types/node": "^10.3.1",
+    "@types/request": "^2.48.1",
     "@types/rwlock": "^5.0.2",
     "@types/shell-quote": "^1.6.0",
     "blinking": "~0.0.2",
