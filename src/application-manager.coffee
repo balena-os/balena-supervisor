@@ -906,26 +906,29 @@ module.exports = class ApplicationManager extends EventEmitter
 			return Promise.reject(new Error("Invalid action #{step.action}"))
 		@actionExecutors[step.action](step, { force, skipLock })
 
-	getRequiredSteps: (currentState, targetState, ignoreImages = false) =>
+	getExtraStateForComparison: =>
 		@config.get('localMode').then (localMode) =>
-			Promise.join(
-				@images.isCleanupNeeded()
-				@images.getAvailable(localMode)
-				@images.getDownloadingImageIds()
-				@networks.supervisorNetworkReady()
-				@config.get('delta')
-				(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, delta) =>
-					conf = _.mapValues({ delta, localMode }, (v) -> checkTruthy(v))
-					if conf.localMode
-						cleanupNeeded = false
-					@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
-					.then (nextSteps) =>
-						if ignoreImages and _.some(nextSteps, action: 'fetch')
-							throw new Error('Cannot fetch images while executing an API action')
-						@proxyvisor.getRequiredSteps(availableImages, downloading, currentState, targetState, nextSteps)
-						.then (proxyvisorSteps) ->
-							return nextSteps.concat(proxyvisorSteps)
-			)
+			Promise.props({
+				cleanupNeeded: @images.isCleanupNeeded()
+				availableImages: @images.getAvailable(localMode)
+				downloading: @images.getDownloadingImageIds()
+				supervisorNetworkReady: @networks.supervisorNetworkReady()
+				delta: @config.get('delta')
+				localMode
+			})
+
+	getRequiredSteps: (currentState, targetState, extraState, ignoreImages = false) =>
+		{ cleanupNeeded, availableImages, downloading, supervisorNetworkReady, delta, localMode } = extraState
+		conf = _.mapValues({ delta, localMode }, (v) -> checkTruthy(v))
+		if conf.localMode
+			cleanupNeeded = false
+		@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
+		.then (nextSteps) =>
+			if ignoreImages and _.some(nextSteps, action: 'fetch')
+				throw new Error('Cannot fetch images while executing an API action')
+			@proxyvisor.getRequiredSteps(availableImages, downloading, currentState, targetState, nextSteps)
+			.then (proxyvisorSteps) ->
+				return nextSteps.concat(proxyvisorSteps)
 
 	serviceNameFromId: (serviceId) =>
 		@getTargetApps().then (apps) ->

@@ -584,17 +584,19 @@ module.exports = class DeviceState extends EventEmitter
 				@applyBlocker
 		.then =>
 			@usingInferStepsLock =>
-				Promise.join(
-					@getCurrentForComparison()
-					@getTarget({ initial, intermediate })
-					(currentState, targetState) =>
+				@applications.getExtraStateForComparison()
+				.then (extraState) =>
+					Promise.all([
+						@getCurrentForComparison()
+						@getTarget({ initial, intermediate })
+					])
+					.then ([ currentState, targetState ]) =>
 						@deviceConfig.getRequiredSteps(currentState, targetState)
 						.then (deviceConfigSteps) =>
 							if !_.isEmpty(deviceConfigSteps)
 								return deviceConfigSteps
 							else
-								@applications.getRequiredSteps(currentState, targetState, intermediate)
-				)
+								@applications.getRequiredSteps(currentState, targetState, extraState, intermediate)
 		.then (steps) =>
 			if _.isEmpty(steps)
 				@emitAsync('apply-target-state-end', null)
