@@ -1,4 +1,27 @@
 - commits:
+    - subject: 'dindctl: Allow mounting a backup.tgz to test migration backups'
+      hash: 42c39ed36d2012e3a6d3d84e1e11d6ae229001f5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: >-
+        Add the ability to restore volumes from a backup.tgz in the data
+        partition
+      hash: 501272266baf73011a5259666ffed63074ca99ac
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 8.7.0
+  date: 2018-12-12T17:25:29.819Z
+- commits:
     - subject: Update lodash to v4.17.5
       hash: b52c92a044486724c154a5d1f06e3c4cf8c4039d
       body: ''
