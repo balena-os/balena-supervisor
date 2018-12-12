@@ -13,6 +13,7 @@ Docker = require './lib/docker-utils'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
 { NotFoundError } = require './lib/errors'
+{ pathExistsOnHost } = require './lib/fs-utils'
 
 ServiceManager = require './compose/service-manager'
 { Service } = require './compose/service'
@@ -45,11 +46,6 @@ fetchAction = (service) ->
 		image: imageForService(service)
 		serviceId: service.serviceId
 	}
-
-pathExistsOnHost = (p) ->
-	fs.statAsync(path.join(constants.rootMountPoint, p))
-	.return(true)
-	.catchReturn(false)
 
 # TODO: implement additional v2 endpoints
 # Some v1 endpoins only work for single-container apps as they assume the app has a single service.

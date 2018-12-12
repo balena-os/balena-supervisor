@@ -7,6 +7,10 @@ express = require 'express'
 bodyParser = require 'body-parser'
 hostConfig = require './host-config'
 network = require './network'
+execAsync = Promise.promisify(require('child_process').exec)
+mkdirp = Promise.promisify(require('mkdirp'))
+path = require 'path'
+rimraf = Promise.promisify(require('rimraf'))
 
 constants = require './lib/constants'
 validation = require './lib/validation'
@@ -405,6 +409,43 @@ module.exports = class DeviceState extends EventEmitter
 			, {})
 			apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId')
 			return { apps, config: deviceConf }
+
+	restoreBackup: (targetState) =>
+		@setTarget(targetState)
+		.then =>
+			appId = _.keys(targetState.local.apps)[0]
+			if !appId?
+				throw new Error('No appId in target state')
+			volumes = targetState.local.apps[appId].volumes
+			backupPath = path.join(constants.rootMountPoint, 'mnt/data/backup')
+			rimraf(backupPath) # We clear this path in case it exists from an incomplete run of this function
+			.then ->
+				mkdirp(backupPath)
+			.then ->
+				execAsync("tar -xzf backup.tgz -C #{backupPath} .", cwd: path.join(constants.rootMountPoint, 'mnt/data'))
+			.then ->
+				fs.readdirAsync(backupPath)
+			.then (dirContents) =>
+				Promise.mapSeries dirContents, (volumeName) =>
+					fs.statAsync(path.join(backupPath, volumeName))
+					.then (s) =>
+						if !s.isDirectory()
+							throw new Error("Invalid backup: #{volumeName} is not a directory")
+						if volumes[volumeName]?
+							console.log("Creating volume #{volumeName} from backup")
+							# If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
+							@applications.volumes.get({ appId, name: volumeName })
+							.then =>
+								@applications.volumes.remove({ appId, name: volumeName })
+							.catch(NotFoundError, _.noop)
+							.then =>
+								@applications.volumes.createFromPath({ appId, name: volumeName, config: volumes[volumeName] }, path.join(backupPath, volumeName))
+						else
+							throw new Error("Invalid backup: #{volumeName} is present in backup but not in target state")
+			.then ->
+				rimraf(backupPath)
+			.then ->
+				rimraf(path.join(constants.rootMountPoint, 'mnt/data', constants.migrationBackupFile))
 
 	loadTargetFromFile: (appsPath) ->
 		console.log('Attempting to load preloaded apps...')

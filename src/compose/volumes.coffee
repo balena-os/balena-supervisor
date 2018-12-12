@@ -76,15 +76,19 @@ module.exports = class Volumes
 
 	createFromLegacy: (appId) =>
 		name = defaultLegacyVolume()
-		@create({ name, appId })
+		legacyPath = path.join(constants.rootMountPoint, 'mnt/data/resin-data', appId.toString())
+		@createFromPath({ name, appId }, legacyPath)
+		.catch (err) =>
+			@logger.logSystemMessage("Warning: could not migrate legacy /data volume: #{err.message}", { error: err }, 'Volume migration error')
+
+	# oldPath must be a path inside /mnt/data
+	createFromPath: ({ name, config = {}, appId }, oldPath) =>
+		@create({ name, config, appId })
 		.get('handle')
 		.then (v) ->
 			# Convert the path to be of the same mountpoint so that rename can work
 			volumePath = path.join(constants.rootMountPoint, 'mnt/data', v.Mountpoint.split(path.sep).slice(3)...)
-			legacyPath = path.join(constants.rootMountPoint, 'mnt/data/resin-data', appId.toString())
-			safeRename(legacyPath, volumePath)
-		.catch (err) =>
-			@logger.logSystemMessage("Warning: could not migrate legacy /data volume: #{err.message}", { error: err }, 'Volume migration error')
+			safeRename(oldPath, volumePath)
 
 	remove: ({ name, appId }) ->
 		@logger.logSystemEvent(logTypes.removeVolume, { volume: { name } })
