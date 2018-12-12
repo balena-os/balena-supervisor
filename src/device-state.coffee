@@ -351,7 +351,7 @@ module.exports = class DeviceState extends EventEmitter
 						.then =>
 							@deviceConfig.setTarget(target.local.config, trx)
 						.then =>
-							if localSource
+							if localSource or not apiEndpoint
 								@applications.setTarget(target.local.apps, target.dependent, 'local', trx)
 							else
 								@applications.setTarget(target.local.apps, target.dependent, apiEndpoint, trx)
