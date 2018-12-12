@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix typo that prevented deleting old resin/ supervisor images
+      hash: a52683ade09d45eaa8ba3c691a2f67c3720bdc4d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 8.6.10
+  date: 2018-12-11T16:31:31.692Z
+- commits:
     - subject: 'versionbot: Add changelog yml file'
       hash: 3134f0dcebb8cda4bf0f9e94038c9363df9ad535
       body: |
