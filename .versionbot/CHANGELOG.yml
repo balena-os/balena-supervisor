@@ -1,4 +1,47 @@
 - commits:
+    - subject: Update lodash to v4.17.5
+      hash: b52c92a044486724c154a5d1f06e3c4cf8c4039d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: Remove the unused register-coffee-coverage
+      hash: 3c52faea54a82c6b24f28e7055456baf155333f9
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: Update knex to 0.15.2 and sqlite3 to 4.0.4
+      hash: d5b2fcd4dde845a13ba2535c835121e9c9836d10
+      body: >
+        We also replace a createTableIfNotExists in the migrations with hasTable
+        then createTable, to
+
+        avoid a warning message about it being not recommended.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: 'sync.js: Switch from resin-sync to balena-sync'
+      hash: cbcf046d9154b76140fbcb48712319d154b92c46
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 8.6.11
+  date: 2018-12-12T16:45:21.021Z
+- commits:
     - subject: Fix typo that prevented deleting old resin/ supervisor images
       hash: a52683ade09d45eaa8ba3c691a2f67c3720bdc4d
       body: ''
