@@ -132,10 +132,10 @@ module.exports = class DeviceConfig
 		target = _.clone(targetState.local?.config ? {})
 		steps = []
 		Promise.all [
-			@config.getMany([ 'deviceType', 'offlineMode' ])
+			@config.getMany([ 'deviceType', 'unmanaged' ])
 			@getConfigBackend()
 		]
-		.then ([{ deviceType, offlineMode }, configBackend ]) =>
+		.then ([{ deviceType, unmanaged }, configBackend ]) =>
 			configChanges = {}
 			humanReadableConfigChanges = {}
 			match = {
@@ -163,7 +163,7 @@ module.exports = class DeviceConfig
 				return
 
 			# Check if we need to perform special case actions for the VPN
-			if !checkTruthy(offlineMode) &&
+			if !checkTruthy(unmanaged) &&
 				!_.isEmpty(target['SUPERVISOR_VPN_CONTROL']) &&
 					@checkBoolChanged(current, target, 'SUPERVISOR_VPN_CONTROL')
 						steps.push({

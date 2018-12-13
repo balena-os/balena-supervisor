@@ -31,7 +31,7 @@ describe 'Logger', ->
 			apiEndpoint: 'https://example.com'
 			uuid: 'deadbeef'
 			deviceApiKey: 'secretkey'
-			offlineMode: false
+			unmanaged: false
 			enableLogs: true
 			localMode: false
 		})

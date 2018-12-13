@@ -140,7 +140,7 @@ describe 'APIBinder', ->
 			initModels.call(this, '/config-apibinder-offline.json')
 
 		it 'does not generate a key if the device is in offline mode', ->
-			@config.get('offlineMode').then (mode) =>
+			@config.get('unmanaged').then (mode) =>
 				# Ensure offline mode is set
 				expect(mode).to.equal(true)
 				# Check that there is no deviceApiKey
@@ -153,7 +153,7 @@ describe 'APIBinder', ->
 				initModels.call(this, '/config-apibinder-offline2.json')
 
 			it 'does not generate a key with the minimal config', ->
-				@config.get('offlineMode').then (mode) =>
+				@config.get('unmanaged').then (mode) =>
 					expect(mode).to.equal(true)
 					@config.getMany([ 'deviceApiKey', 'uuid' ]).then (conf) ->
 						expect(conf['deviceApiKey']).to.be.empty

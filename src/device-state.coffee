@@ -140,12 +140,12 @@ module.exports = class DeviceState extends EventEmitter
 		@applications.on('change', @reportCurrentState)
 
 	healthcheck: =>
-		@config.getMany([ 'appUpdatePollInterval', 'offlineMode' ])
+		@config.getMany([ 'appUpdatePollInterval', 'unmanaged' ])
 		.then (conf) =>
 			cycleTime = process.hrtime(@lastApplyStart)
 			cycleTimeMs = cycleTime[0] * 1000 + cycleTime[1] / 1e6
 			cycleTimeWithinInterval = cycleTimeMs - @applications.timeSpentFetching < 2 * conf.appUpdatePollInterval
-			applyTargetHealthy = conf.offlineMode or !@applyInProgress or @applications.fetchesInProgress > 0 or cycleTimeWithinInterval
+			applyTargetHealthy = conf.unmanaged or !@applyInProgress or @applications.fetchesInProgress > 0 or cycleTimeWithinInterval
 			return applyTargetHealthy
 
 	migrateLegacyApps: (balenaApi) =>
@@ -255,7 +255,7 @@ module.exports = class DeviceState extends EventEmitter
 		@config.getMany([
 			'initialConfigSaved', 'listenPort', 'apiSecret', 'osVersion', 'osVariant',
 			'version', 'provisioned', 'apiEndpoint', 'connectivityCheckEnabled', 'legacyAppsPresent',
-			'targetStateSet', 'offlineMode'
+			'targetStateSet', 'unmanaged'
 		])
 		.then (conf) =>
 			@applications.init()
@@ -297,8 +297,8 @@ module.exports = class DeviceState extends EventEmitter
 			.then =>
 				@triggerApplyTarget({ initial: true })
 
-	initNetworkChecks: ({ apiEndpoint, connectivityCheckEnabled, offlineMode }) =>
-		return if validation.checkTruthy(offlineMode)
+	initNetworkChecks: ({ apiEndpoint, connectivityCheckEnabled, unmanaged }) =>
+		return if validation.checkTruthy(unmanaged)
 		network.startConnectivityCheck apiEndpoint, connectivityCheckEnabled, (connected) =>
 			@connected = connected
 		@config.on 'change', (changedConfig) ->

@@ -25,7 +25,7 @@ describe 'EventTracker', ->
 
 	it 'initializes in offline mode', ->
 		promise = @eventTrackerOffline.init({
-			offlineMode: true
+			unmanaged: true
 			uuid: 'foobar'
 			mixpanelHost: { host: '', path: '' }
 		})

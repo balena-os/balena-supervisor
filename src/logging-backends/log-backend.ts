@@ -1,7 +1,7 @@
 export type LogMessage = Dictionary<any>;
 
 export abstract class LogBackend {
-	public offlineMode: boolean;
+	public unmanaged: boolean;
 	public publishEnabled: boolean = true;
 
 	public abstract log(message: LogMessage): void;

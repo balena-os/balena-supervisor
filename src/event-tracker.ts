@@ -11,7 +11,7 @@ export type EventTrackProperties = Dictionary<any>;
 
 interface InitArgs {
 	uuid: string;
-	offlineMode: boolean;
+	unmanaged: boolean;
 	mixpanelHost: { host: string; path: string } | null;
 	mixpanelToken: string;
 }
@@ -41,7 +41,7 @@ export class EventTracker {
 	}
 
 	public init({
-		offlineMode,
+		unmanaged,
 		mixpanelHost,
 		mixpanelToken,
 		uuid,
@@ -52,7 +52,7 @@ export class EventTracker {
 				uuid,
 				supervisorVersion,
 			};
-			if (offlineMode || mixpanelHost == null) {
+			if (unmanaged || mixpanelHost == null) {
 				return;
 			}
 			this.client = Mixpanel.init(mixpanelToken, {

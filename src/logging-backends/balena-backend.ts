@@ -70,7 +70,7 @@ export class BalenaLogBackend extends LogBackend {
 	}
 
 	public log(message: LogMessage) {
-		if (this.offlineMode || !this.publishEnabled) {
+		if (this.unmanaged || !this.publishEnabled) {
 			return;
 		}
 
