@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix sync.js after move to balena-sync
+      hash: 63d9d8df3879a5fadff69a2e5e0af523c25dc4ac
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 8.7.1
+  date: 2018-12-13T14:21:44.452Z
+- commits:
     - subject: 'dindctl: Allow mounting a backup.tgz to test migration backups'
       hash: 42c39ed36d2012e3a6d3d84e1e11d6ae229001f5
       body: ''
