@@ -11,7 +11,7 @@
 
 fs = require('fs');
 
-doSync = require('balena-sync').sync('local-resin-os-device').sync;
+doSync = require('balena-sync').sync('local-balena-os-device').sync;
 
 // Avoid a super confusing error where the cwd doesn't exist
 dir = __dirname + '/dist';
@@ -25,7 +25,7 @@ opts = {
 	destination: '/usr/src/app/dist',
 	appName: 'resin_supervisor',
 	skipGitignore: true,
-	before: 'npm install && npm run build -- --env.noOptimize'
+	before: 'npm install && npm run build -- --env.noOptimize',
 };
 
 doSync(opts);
