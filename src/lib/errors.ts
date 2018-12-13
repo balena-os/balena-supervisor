@@ -42,3 +42,5 @@ export class InvalidAppIdError extends TypedError {
 		super(`Invalid appId: ${appId}`);
 	}
 }
+
+export class UpdatesLockedError extends TypedError {}

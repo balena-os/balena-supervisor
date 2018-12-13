@@ -1,0 +1,105 @@
+import * as Bluebird from 'bluebird';
+import * as lockFileLib from 'lockfile';
+import * as _ from 'lodash';
+import { fs } from 'mz';
+import * as path from 'path';
+import * as Lock from 'rwlock';
+
+import constants = require('./constants');
+import { ENOENT, UpdatesLockedError } from './errors';
+
+type asyncLockFile = typeof lockFileLib & {
+	unlockAsync(path: string): Bluebird<void>;
+	lockAsync(path: string): Bluebird<void>;
+};
+const lockFile = Bluebird.promisifyAll(lockFileLib) as asyncLockFile;
+export type LockCallback = (
+	appId: number,
+	opts: { force: boolean },
+	fn: () => PromiseLike<void>,
+) => Bluebird<void>;
+
+function baseLockPath(appId: number): string {
+	return path.join('/tmp/balena-supervisor/services', appId.toString());
+}
+
+export function lockPath(appId: number, serviceName: string): string {
+	return path.join(baseLockPath(appId), serviceName);
+}
+
+function lockFilesOnHost(appId: number, serviceName: string): string[] {
+	return ['updates.lock', 'resin-updates.lock'].map(filename =>
+		path.join(constants.rootMountPoint, lockPath(appId, serviceName), filename),
+	);
+}
+
+const locksTaken: { [lockName: string]: boolean } = {};
+
+// Try to clean up any existing locks when the program exits
+process.on('exit', () => {
+	for (const lockName of _.keys(locksTaken)) {
+		try {
+			lockFile.unlockSync(lockName);
+		} catch (e) {
+			// Ignore unlocking errors
+		}
+	}
+});
+
+const locker = new Lock();
+const writeLock = Bluebird.promisify(locker.async.writeLock).bind(locker);
+
+function dispose(release: () => void): Bluebird<void> {
+	return Bluebird.map(_.keys(locksTaken), lockName => {
+		delete locksTaken[lockName];
+		return lockFile.unlockAsync(lockName);
+	})
+		.finally(release)
+		.return();
+}
+
+export function lock(
+	appId: number | null,
+	{ force = false }: { force: boolean },
+	fn: () => PromiseLike<void>,
+): Bluebird<void> {
+	const takeTheLock = () => {
+		if (appId == null) {
+			return;
+		}
+		return writeLock(appId)
+			.tap((release: () => void) => {
+				const lockDir = path.join(
+					constants.rootMountPoint,
+					baseLockPath(appId),
+				);
+
+				return Bluebird.resolve(fs.readdir(lockDir))
+					.catchReturn(ENOENT, [])
+					.mapSeries(serviceName => {
+						return Bluebird.mapSeries(
+							lockFilesOnHost(appId, serviceName),
+							tmpLockName => {
+								return Bluebird.try(() => {
+									if (force) {
+										return lockFile.unlockAsync(tmpLockName);
+									}
+								})
+									.then(() => lockFile.lockAsync(tmpLockName))
+									.then(() => {
+										locksTaken[tmpLockName] = true;
+									})
+									.catchReturn(ENOENT, undefined);
+							},
+						).catch(err => {
+							return dispose(release).throw(
+								new UpdatesLockedError(`Updates are locked: ${err.message}`),
+							);
+						});
+					});
+			})
+			.disposer(dispose);
+	};
+
+	return Bluebird.using(takeTheLock(), fn);
+}
