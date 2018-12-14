@@ -186,7 +186,7 @@ class Config extends EventEmitter {
 							if (oldValues[key] !== value) {
 								return this.db.upsertModel(
 									'config',
-									{ key, value },
+									{ key, value: (value || '').toString() },
 									{ key },
 									tx,
 								);
