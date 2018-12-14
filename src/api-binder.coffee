@@ -338,6 +338,9 @@ module.exports = class APIBinder
 			(currentState, targetConfig, defaultConfig, deviceId) =>
 				currentConfig = currentState.local.config
 				Promise.mapSeries _.toPairs(currentConfig), ([ key, value ]) =>
+					# We want to disable local mode when joining a cloud
+					if key == 'SUPERVISOR_LOCAL_MODE'
+						value = 'false'
 					# We never want to disable VPN if, for instance, it failed to start so far
 					if key == 'SUPERVISOR_VPN_CONTROL'
 						value = 'true'
