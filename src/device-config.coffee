@@ -75,11 +75,16 @@ module.exports = class DeviceConfig
 			db('deviceConfig').update(confToUpdate)
 
 	getTarget: ({ initial = false } = {}) =>
-		@db.models('deviceConfig').select('targetValues')
-		.then ([ devConfig ]) =>
+		Promise.all([
+			@config.get('unmanaged')
+			@db.models('deviceConfig').select('targetValues')
+		])
+		.then ([unmanaged, [ devConfig ]]) =>
 			conf = JSON.parse(devConfig.targetValues)
 			if initial or !conf.SUPERVISOR_VPN_CONTROL?
 				conf.SUPERVISOR_VPN_CONTROL = 'true'
+			if unmanaged and !conf.SUPERVISOR_LOCAL_MODE?
+				conf.SUPERVISOR_LOCAL_MODE = 'true'
 			for own k, { envVarName, defaultValue } of @configKeys
 				conf[envVarName] ?= defaultValue
 			return conf
