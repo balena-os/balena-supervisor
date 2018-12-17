@@ -75,7 +75,7 @@ module.exports = class APIBinder
 		@config.getMany([ 'unmanaged', 'apiEndpoint', 'currentApiKey'  ])
 		.then ({ unmanaged, apiEndpoint, currentApiKey }) =>
 			if unmanaged
-				console.log('Offline Mode is set, skipping API client initialization')
+				console.log('Unmanaged Mode is set, skipping API client initialization')
 				return
 			baseUrl = url.resolve(apiEndpoint, '/v5/')
 			passthrough = _.cloneDeep(requestOpts)
@@ -105,7 +105,7 @@ module.exports = class APIBinder
 		@config.getMany([ 'apiEndpoint', 'unmanaged', 'bootstrapRetryDelay' ])
 		.then ({ apiEndpoint, unmanaged, bootstrapRetryDelay }) =>
 			if unmanaged
-				console.log('Offline Mode is set, skipping API binder initialization')
+				console.log('Unmanaged Mode is set, skipping API binder initialization')
 				# If we are offline because there is no apiEndpoint, there's a chance
 				# we've went through a deprovision. We need to set the initialConfigReported
 				# value to '', to ensure that when we do re-provision, we'll report
@@ -266,7 +266,7 @@ module.exports = class APIBinder
 		])
 		.then (conf) =>
 			if conf.unmanaged
-				throw new Error('Cannot provision dependent device in offline mode')
+				throw new Error('Cannot provision dependent device in unmanaged mode')
 			if !conf.provisioned
 				throw new Error('Device must be provisioned to provision a dependent device')
 			# TODO: when API supports it as per https://github.com/resin-io/hq/pull/949 remove userId
@@ -289,7 +289,7 @@ module.exports = class APIBinder
 		])
 		.then (conf) =>
 			if conf.unmanaged
-				throw new Error('Cannot update dependent device in offline mode')
+				throw new Error('Cannot update dependent device in unmanaged mode')
 			if !conf.provisioned
 				throw new Error('Device must be provisioned to update a dependent device')
 			@balenaApi.patch
