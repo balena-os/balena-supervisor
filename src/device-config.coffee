@@ -13,6 +13,7 @@ module.exports = class DeviceConfig
 		@rebootRequired = false
 		@configKeys = {
 			appUpdatePollInterval: { envVarName: 'SUPERVISOR_POLL_INTERVAL', varType: 'int', defaultValue: '60000' }
+			localMode: { envVarName: 'SUPERVISOR_LOCAL_MODE', varType: 'bool', defaultValue: 'false' }
 			connectivityCheckEnabled: { envVarName: 'SUPERVISOR_CONNECTIVITY_CHECK', varType: 'bool', defaultValue: 'true' }
 			loggingEnabled: { envVarName: 'SUPERVISOR_LOG_CONTROL', varType: 'bool', defaultValue: 'true' }
 			delta: { envVarName: 'SUPERVISOR_DELTA', varType: 'bool', defaultValue: 'false' }
@@ -74,11 +75,16 @@ module.exports = class DeviceConfig
 			db('deviceConfig').update(confToUpdate)
 
 	getTarget: ({ initial = false } = {}) =>
-		@db.models('deviceConfig').select('targetValues')
-		.then ([ devConfig ]) =>
+		Promise.all([
+			@config.get('unmanaged')
+			@db.models('deviceConfig').select('targetValues')
+		])
+		.then ([unmanaged, [ devConfig ]]) =>
 			conf = JSON.parse(devConfig.targetValues)
 			if initial or !conf.SUPERVISOR_VPN_CONTROL?
 				conf.SUPERVISOR_VPN_CONTROL = 'true'
+			if unmanaged and !conf.SUPERVISOR_LOCAL_MODE?
+				conf.SUPERVISOR_LOCAL_MODE = 'true'
 			for own k, { envVarName, defaultValue } of @configKeys
 				conf[envVarName] ?= defaultValue
 			return conf
@@ -131,10 +137,10 @@ module.exports = class DeviceConfig
 		target = _.clone(targetState.local?.config ? {})
 		steps = []
 		Promise.all [
-			@config.getMany([ 'deviceType', 'offlineMode' ])
+			@config.getMany([ 'deviceType', 'unmanaged' ])
 			@getConfigBackend()
 		]
-		.then ([{ deviceType, offlineMode }, configBackend ]) =>
+		.then ([{ deviceType, unmanaged }, configBackend ]) =>
 			configChanges = {}
 			humanReadableConfigChanges = {}
 			match = {
@@ -162,7 +168,7 @@ module.exports = class DeviceConfig
 				return
 
 			# Check if we need to perform special case actions for the VPN
-			if !checkTruthy(offlineMode) &&
+			if !checkTruthy(unmanaged) &&
 				!_.isEmpty(target['SUPERVISOR_VPN_CONTROL']) &&
 					@checkBoolChanged(current, target, 'SUPERVISOR_VPN_CONTROL')
 						steps.push({

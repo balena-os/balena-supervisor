@@ -40,9 +40,20 @@ export class LocalModeManager {
 			}
 		});
 
-		const localMode = checkTruthy(
-			(await this.config.get('localMode')) || false,
-		);
+		// On startup, check if we're in unmanaged mode,
+		// as local mode needs to be set
+		let unmanagedLocalMode = false;
+		if (checkTruthy((await this.config.get('unmanaged')) || false)) {
+			console.log('Starting up in unmanaged mode, activating local mode');
+			await this.config.set({ localMode: true });
+			unmanagedLocalMode = true;
+		}
+
+		const localMode =
+			// short circuit the next get if we know we're in local mode
+			unmanagedLocalMode ||
+			checkTruthy((await this.config.get('localMode')) || false);
+
 		if (!localMode) {
 			// Remove any leftovers if necessary
 			await this.removeLocalModeArtifacts();

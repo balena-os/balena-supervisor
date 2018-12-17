@@ -135,12 +135,12 @@ describe 'APIBinder', ->
 				@apiBinder.fetchDevice.restore()
 				balenaAPI.balenaBackend.deviceKeyHandler.restore()
 
-	describe 'offline mode', ->
+	describe 'unmanaged mode', ->
 		before ->
 			initModels.call(this, '/config-apibinder-offline.json')
 
-		it 'does not generate a key if the device is in offline mode', ->
-			@config.get('offlineMode').then (mode) =>
+		it 'does not generate a key if the device is in unmanaged mode', ->
+			@config.get('unmanaged').then (mode) =>
 				# Ensure offline mode is set
 				expect(mode).to.equal(true)
 				# Check that there is no deviceApiKey
@@ -148,12 +148,12 @@ describe 'APIBinder', ->
 					expect(conf['deviceApiKey']).to.be.empty
 					expect(conf['uuid']).to.not.be.undefined
 
-		describe 'Minimal config offline mode', ->
+		describe 'Minimal config unmanaged mode', ->
 			before ->
 				initModels.call(this, '/config-apibinder-offline2.json')
 
 			it 'does not generate a key with the minimal config', ->
-				@config.get('offlineMode').then (mode) =>
+				@config.get('unmanaged').then (mode) =>
 					expect(mode).to.equal(true)
 					@config.getMany([ 'deviceApiKey', 'uuid' ]).then (conf) ->
 						expect(conf['deviceApiKey']).to.be.empty

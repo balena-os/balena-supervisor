@@ -11,19 +11,23 @@ authenticate = (config) ->
 		header = req.get('Authorization') ? ''
 		match = header.match(/^ApiKey (\w+)$/)
 		headerKey = match?[1]
-		config.getMany([ 'apiSecret', 'localMode' ])
+		config.getMany([ 'apiSecret', 'localMode', 'unmanaged', 'osVariant' ])
 		.then (conf) ->
-			if queryKey? && bufferEq(new Buffer(queryKey), new Buffer(conf.apiSecret))
-				next()
-			else if headerKey? && bufferEq(new Buffer(headerKey), new Buffer(conf.apiSecret))
-				next()
-			else if checkTruthy(conf.localMode)
-				next()
+			needsAuth = if conf.unmanaged
+				conf.osVariant is 'prod'
 			else
-				res.sendStatus(401)
+				not conf.localMode
+
+			if needsAuth
+				key = queryKey ? headerKey
+				if bufferEq(Buffer.from(key), Buffer.from(conf.apiSecret))
+					next()
+				else
+					res.sendStatus(401)
+			else
+				next()
 		.catch (err) ->
-			# This should never happen...
-			res.status(503).send('Invalid API key in supervisor')
+			res.status(503).send("Unexpected error: #{err}")
 
 module.exports = class SupervisorAPI
 	constructor: ({ @config, @eventTracker, @routers, @healthchecks }) ->

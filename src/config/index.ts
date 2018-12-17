@@ -46,14 +46,11 @@ class Config extends EventEmitter {
 			default: constants.defaultMixpanelToken,
 		},
 		bootstrapRetryDelay: { source: 'config.json', default: 30000 },
-		supervisorOfflineMode: { source: 'config.json', default: false },
 		hostname: { source: 'config.json', mutable: true },
 		persistentLogging: { source: 'config.json', default: false, mutable: true },
-		localMode: { source: 'config.json', mutable: true, default: 'false' },
 
 		version: { source: 'func' },
 		currentApiKey: { source: 'func' },
-		offlineMode: { source: 'func' },
 		provisioned: { source: 'func' },
 		osVersion: { source: 'func' },
 		osVariant: { source: 'func' },
@@ -61,6 +58,7 @@ class Config extends EventEmitter {
 		mixpanelHost: { source: 'func' },
 		extendedEnvOptions: { source: 'func' },
 		fetchOptions: { source: 'func' },
+		unmanaged: { source: 'func' },
 
 		// NOTE: all 'db' values are stored and loaded as *strings*,
 		apiSecret: { source: 'db', mutable: true },
@@ -82,6 +80,7 @@ class Config extends EventEmitter {
 		pinDevice: { source: 'db', mutable: true, default: 'null' },
 		currentCommit: { source: 'db', mutable: true },
 		targetStateSet: { source: 'db', mutable: true, default: 'false' },
+		localMode: { source: 'db', mutable: true, default: 'false' },
 	};
 
 	public constructor({ db, configPath }: ConfigOpts) {
@@ -187,7 +186,7 @@ class Config extends EventEmitter {
 							if (oldValues[key] !== value) {
 								return this.db.upsertModel(
 									'config',
-									{ key, value },
+									{ key, value: (value || '').toString() },
 									{ key },
 									tx,
 								);
@@ -281,15 +280,15 @@ class Config extends EventEmitter {
 			'uuid',
 			'deviceApiKey',
 			'apiSecret',
-			'offlineMode',
-		]).then(({ uuid, deviceApiKey, apiSecret, offlineMode }) => {
+			'unmanaged',
+		]).then(({ uuid, deviceApiKey, apiSecret, unmanaged }) => {
 			// These fields need to be set regardless
 			if (uuid == null || apiSecret == null) {
 				uuid = uuid || this.newUniqueKey();
 				apiSecret = apiSecret || this.newUniqueKey();
 			}
 			return this.set({ uuid, apiSecret }).then(() => {
-				if (offlineMode) {
+				if (unmanaged) {
 					return;
 				}
 				if (!deviceApiKey) {

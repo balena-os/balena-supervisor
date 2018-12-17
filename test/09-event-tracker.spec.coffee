@@ -23,9 +23,9 @@ describe 'EventTracker', ->
 		EventTracker.prototype.logEvent.restore()
 		mixpanel.init.restore()
 
-	it 'initializes in offline mode', ->
+	it 'initializes in unmanaged mode', ->
 		promise = @eventTrackerOffline.init({
-			offlineMode: true
+			unmanaged: true
 			uuid: 'foobar'
 			mixpanelHost: { host: '', path: '' }
 		})
@@ -33,11 +33,11 @@ describe 'EventTracker', ->
 		.then =>
 			expect(@eventTrackerOffline.client).to.be.null
 
-	it 'logs events in offline mode, with the correct properties', ->
+	it 'logs events in unmanaged mode, with the correct properties', ->
 		@eventTrackerOffline.track('Test event', { appId: 'someValue' })
 		expect(@eventTrackerOffline.logEvent).to.be.calledWith('Event:', 'Test event', JSON.stringify({ appId: 'someValue' }))
 
-	it 'initializes a mixpanel client when not in offline mode', ->
+	it 'initializes a mixpanel client when not in unmanaged mode', ->
 		promise = @eventTracker.init({
 			mixpanelToken: 'someToken'
 			uuid: 'barbaz'

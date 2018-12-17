@@ -17,7 +17,7 @@ interface LoggerSetupOptions {
 	apiEndpoint: string;
 	uuid: string;
 	deviceApiKey: string;
-	offlineMode: boolean;
+	unmanaged: boolean;
 	enableLogs: boolean;
 	localMode: boolean;
 }
@@ -59,7 +59,7 @@ export class Logger {
 		apiEndpoint,
 		uuid,
 		deviceApiKey,
-		offlineMode,
+		unmanaged,
 		enableLogs,
 		localMode,
 	}: LoggerSetupOptions) {
@@ -68,7 +68,7 @@ export class Logger {
 
 		this.backend = localMode ? this.localBackend : this.balenaBackend;
 
-		this.backend.offlineMode = offlineMode;
+		this.backend.unmanaged = unmanaged;
 		this.backend.publishEnabled = enableLogs;
 	}
 

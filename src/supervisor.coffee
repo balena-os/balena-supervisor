@@ -17,7 +17,7 @@ startupConfigFields = [
 	'apiEndpoint'
 	'apiSecret'
 	'apiTimeout'
-	'offlineMode'
+	'unmanaged'
 	'deviceApiKey'
 	'mixpanelToken'
 	'mixpanelHost'
@@ -57,7 +57,7 @@ module.exports = class Supervisor extends EventEmitter
 					apiEndpoint: conf.apiEndpoint,
 					uuid: conf.uuid,
 					deviceApiKey: conf.deviceApiKey,
-					offlineMode: checkTruthy(conf.offlineMode),
+					unmanaged: checkTruthy(conf.unmanaged),
 					enableLogs: checkTruthy(conf.loggingEnabled),
 					localMode: checkTruthy(conf.localMode)
 				})

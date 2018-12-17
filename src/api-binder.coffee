@@ -57,9 +57,9 @@ module.exports = class APIBinder
 		@readyForUpdates = false
 
 	healthcheck: =>
-		@config.getMany([ 'appUpdatePollInterval', 'offlineMode', 'connectivityCheckEnabled' ])
+		@config.getMany([ 'appUpdatePollInterval', 'unmanaged', 'connectivityCheckEnabled' ])
 		.then (conf) =>
-			if conf.offlineMode
+			if conf.unmanaged
 				return true
 			timeSinceLastFetch = process.hrtime(@lastTargetStateFetch)
 			timeSinceLastFetchMs = timeSinceLastFetch[0] * 1000 + timeSinceLastFetch[1] / 1e6
@@ -72,10 +72,10 @@ module.exports = class APIBinder
 			release()
 
 	initClient: =>
-		@config.getMany([ 'offlineMode', 'apiEndpoint', 'currentApiKey'  ])
-		.then ({ offlineMode, apiEndpoint, currentApiKey }) =>
-			if offlineMode
-				console.log('Offline Mode is set, skipping API client initialization')
+		@config.getMany([ 'unmanaged', 'apiEndpoint', 'currentApiKey'  ])
+		.then ({ unmanaged, apiEndpoint, currentApiKey }) =>
+			if unmanaged
+				console.log('Unmanaged Mode is set, skipping API client initialization')
 				return
 			baseUrl = url.resolve(apiEndpoint, '/v5/')
 			passthrough = _.cloneDeep(requestOpts)
@@ -102,10 +102,10 @@ module.exports = class APIBinder
 				@loadBackupFromMigration(retryDelay)
 
 	start: =>
-		@config.getMany([ 'apiEndpoint', 'offlineMode', 'bootstrapRetryDelay' ])
-		.then ({ apiEndpoint, offlineMode, bootstrapRetryDelay }) =>
-			if offlineMode
-				console.log('Offline Mode is set, skipping API binder initialization')
+		@config.getMany([ 'apiEndpoint', 'unmanaged', 'bootstrapRetryDelay' ])
+		.then ({ apiEndpoint, unmanaged, bootstrapRetryDelay }) =>
+			if unmanaged
+				console.log('Unmanaged Mode is set, skipping API binder initialization')
 				# If we are offline because there is no apiEndpoint, there's a chance
 				# we've went through a deprovision. We need to set the initialConfigReported
 				# value to '', to ensure that when we do re-provision, we'll report
@@ -258,15 +258,15 @@ module.exports = class APIBinder
 
 	provisionDependentDevice: (device) =>
 		@config.getMany([
-			'offlineMode'
+			'unmanaged'
 			'provisioned'
 			'apiTimeout'
 			'userId'
 			'deviceId'
 		])
 		.then (conf) =>
-			if conf.offlineMode
-				throw new Error('Cannot provision dependent device in offline mode')
+			if conf.unmanaged
+				throw new Error('Cannot provision dependent device in unmanaged mode')
 			if !conf.provisioned
 				throw new Error('Device must be provisioned to provision a dependent device')
 			# TODO: when API supports it as per https://github.com/resin-io/hq/pull/949 remove userId
@@ -283,13 +283,13 @@ module.exports = class APIBinder
 
 	patchDevice: (id, updatedFields) =>
 		@config.getMany([
-			'offlineMode'
+			'unmanaged'
 			'provisioned'
 			'apiTimeout'
 		])
 		.then (conf) =>
-			if conf.offlineMode
-				throw new Error('Cannot update dependent device in offline mode')
+			if conf.unmanaged
+				throw new Error('Cannot update dependent device in unmanaged mode')
 			if !conf.provisioned
 				throw new Error('Device must be provisioned to update a dependent device')
 			@balenaApi.patch
@@ -338,6 +338,9 @@ module.exports = class APIBinder
 			(currentState, targetConfig, defaultConfig, deviceId) =>
 				currentConfig = currentState.local.config
 				Promise.mapSeries _.toPairs(currentConfig), ([ key, value ]) =>
+					# We want to disable local mode when joining a cloud
+					if key == 'SUPERVISOR_LOCAL_MODE'
+						value = 'false'
 					# We never want to disable VPN if, for instance, it failed to start so far
 					if key == 'SUPERVISOR_VPN_CONTROL'
 						value = 'true'

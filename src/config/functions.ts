@@ -9,7 +9,6 @@ import supervisorVersion = require('../lib/supervisor-version');
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
 import { ConfigValue } from '../lib/types';
-import { checkTruthy } from '../lib/validation';
 
 // A provider for schema entries with source 'func'
 type ConfigProviderFunctionGetter = () => Bluebird<any>;
@@ -44,17 +43,6 @@ export function createProviderFunctions(
 					.getMany(['apiKey', 'deviceApiKey'])
 					.then(({ apiKey, deviceApiKey }) => {
 						return apiKey || deviceApiKey;
-					});
-			},
-		},
-		offlineMode: {
-			get: () => {
-				return config
-					.getMany(['apiEndpoint', 'supervisorOfflineMode'])
-					.then(({ apiEndpoint, supervisorOfflineMode }) => {
-						return (
-							checkTruthy(supervisorOfflineMode as boolean) || !apiEndpoint
-						);
 					});
 			},
 		},
@@ -147,6 +135,13 @@ export function createProviderFunctions(
 					'deltaRetryInterval',
 					'deltaVersion',
 				]);
+			},
+		},
+		unmanaged: {
+			get: () => {
+				return config.get('apiEndpoint').then(apiEndpoint => {
+					return !apiEndpoint;
+				});
 			},
 		},
 	};
