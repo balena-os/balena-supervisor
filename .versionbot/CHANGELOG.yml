@@ -1,4 +1,89 @@
 - commits:
+    - subject: 'unmanaged: Default to local mode in target state when unmanaged'
+      hash: c533631f70f76893d5907a911c6304fd7ebd080f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'config: Force config values to strings when storing in db'
+      hash: 151af309fb16029b7339b69149cc64ad03cdaa8f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'join: Disable local mode when joining a cloud'
+      hash: 3ca1d7c864c6a71cd52d20aef0024eeeef866bef
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'config: Replace supervisorOfflineMode and offlineMode with unmanaged'
+      hash: 82602abf8d312aa871ece3f12f39a8ca76ee1553
+      body: ''
+      footer:
+        Change-type: major
+        change-type: major
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'fix: Give unmanaged target states a source of ''local'''
+      hash: 5bea0fdc9d0b2e347e339ec354425abc8368a156
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Require an apikey for supervisor api in production unmanaged
+      hash: 178e80d92a158167137a24483bf589a436421668
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Switch to local mode in unmanaged mode
+      hash: 5bb3820d6a135127ca2806ce04da7a145485ba13
+      body: ''
+      footer:
+        Change-type: major
+        change-type: major
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Move config.json flag back to the database
+      hash: 91a634056333e53c4905bee35af6e3ec6f9ce750
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'Revert "localMode: Remove local mode from device-config"'
+      hash: 19f8b7576646b4ceaeead02642f74327c79d979b
+      body: |
+        This reverts commit eda477ff8628c8f2d7afdefe3b282a045f8f5308.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.0.0
+  date: 2018-12-17T10:53:36.565Z
+- commits:
     - subject: Fix sync.js after move to balena-sync
       hash: 63d9d8df3879a5fadff69a2e5e0af523c25dc4ac
       body: ''
