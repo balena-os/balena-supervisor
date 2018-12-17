@@ -1,4 +1,48 @@
 - commits:
+    - subject: >-
+        Fix a race condition that could cause an unnecessary restart of a
+        service immediately after download
+      hash: 42737cb9e96b889d0fdfd48926778a38566d927b
+      body: >
+        Up to now, there was a slim but non-zero chance that an image would be
+        downloaded between the call to `@getTarget` inside deviceState
+
+        (which gets the target state and creates Service objects using
+        information from available images), and the call to
+
+        `@images.getAvailable` in ApplicationManager (which is used to determine
+        whether we should keep waiting for a download or start the
+
+        service). If this race condition happened, then the ApplicationManager
+        would infer that a service was ready to be started (because
+
+        the image appears as available), but would have incomplete information
+        about the service because the image wasn't available when
+
+        the Service object was created. The result would be that the service
+        would be started, and then immediately on the next applyTarget
+
+        the ApplicationManager would try to kill it and restart it to update it
+        with the complete information from the image.
+
+
+        This patch changes this behavior by ensuring that all of the additional
+        information about the current state, which includes available images,
+
+        is gathered *before* building the current and target states that we
+        compare. This means that if the image is downloaded after the call to
+        getAvailable, the Service might be constructed with all the information
+        about the image, but it won't be started until the next pass, because
+        ApplicationManager will treat it as still downloading.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.0.1
+  date: 2018-12-17T18:44:43.029Z
+- commits:
     - subject: 'unmanaged: Default to local mode in target state when unmanaged'
       hash: c533631f70f76893d5907a911c6304fd7ebd080f
       body: ''
