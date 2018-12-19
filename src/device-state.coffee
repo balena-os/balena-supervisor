@@ -17,7 +17,7 @@ validation = require './lib/validation'
 systemd = require './lib/systemd'
 updateLock = require './lib/update-lock'
 { singleToMulticontainerApp } = require './lib/migration'
-{ ENOENT, EISDIR, NotFoundError } = require './lib/errors'
+{ ENOENT, EISDIR, NotFoundError, UpdatesLockedError } = require './lib/errors'
 
 DeviceConfig = require './device-config'
 ApplicationManager = require './application-manager'
@@ -60,7 +60,7 @@ createDeviceStateRouter = (deviceState) ->
 		.then (response) ->
 			res.status(202).json(response)
 		.catch (err) ->
-			if err instanceof updateLock.UpdatesLockedError
+			if err instanceof UpdatesLockedError
 				status = 423
 			else
 				status = 500
