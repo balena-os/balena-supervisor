@@ -1,5 +1,6 @@
 Promise = require 'bluebird'
 express = require 'express'
+morgan = require 'morgan'
 bufferEq = require 'buffer-equal-constant-time'
 blink = require './lib/blink'
 iptables = require './lib/iptables'
@@ -29,11 +30,22 @@ authenticate = (config) ->
 		.catch (err) ->
 			res.status(503).send("Unexpected error: #{err}")
 
+expressLogger = morgan (tokens, req, res) -> [
+		'Supervisor API:'
+		tokens.method(req, res)
+		req.path
+		tokens.status(req, res)
+		'-'
+		tokens['response-time'](req, res)
+		'ms'
+	].join(' ')
+
 module.exports = class SupervisorAPI
 	constructor: ({ @config, @eventTracker, @routers, @healthchecks }) ->
 		@server = null
 		@_api = express()
 		@_api.disable('x-powered-by')
+		@_api.use(expressLogger)
 
 		@_api.get '/v1/healthy', (req, res) =>
 			Promise.map @healthchecks, (fn) ->
