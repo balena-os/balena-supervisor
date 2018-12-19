@@ -1,4 +1,43 @@
 - commits:
+    - subject: 'refactor: Convert update-lock module to typescript'
+      hash: b977b30dfee0b9d309133c2569ffe6a9e5af783c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Convert systemd module to typescript'
+      hash: ec37db597dbcf1965735b1d2b31a62fe7ad9540d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Convert request module to typescript'
+      hash: e00954babd455700bbc53e4e5003b42efbab2663
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Convert migration module to typescript'
+      hash: 2ea657c95db960783b027e6cbc769376eef31c1b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.0.3
+  date: 2018-12-19T14:09:07.239Z
+- commits:
     - subject: 'VersionBot: Fix incomplete version in CHANGELOG.yml'
       hash: c87123f585874c07960935ce6accb3f6946813a6
       body: ''
