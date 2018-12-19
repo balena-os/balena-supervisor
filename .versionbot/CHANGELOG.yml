@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'device-api: Add morgan to log api requests'
+      hash: 45b322b7e093abfa60ebb476c2cc477800de06b7
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#834'
+        closes: '#834'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.1.0
+  date: 2018-12-19T14:31:25.055Z
+- commits:
     - subject: 'refactor: Convert update-lock module to typescript'
       hash: b977b30dfee0b9d309133c2569ffe6a9e5af783c
       body: ''
