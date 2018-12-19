@@ -169,11 +169,11 @@ module.exports = class DeviceState extends EventEmitter
 			balenaApi.get(
 				resource: 'release'
 				options:
-					filter:
+					$filter:
 						belongs_to__application: app.appId
 						commit: app.commit
 						status: 'success'
-					expand:
+					$expand:
 						contains__image: [ 'image' ]
 			)
 			.then (releasesFromAPI) =>

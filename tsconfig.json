@@ -9,6 +9,7 @@
 		"sourceMap": true,
 		"strictNullChecks": true,
 		"outDir": "./build/",
+		"skipLibCheck": true,
 		"lib": [
 			"es6"
 		],
