@@ -366,31 +366,31 @@
     - subject: >-
         Device-api: Also support serviceName in v2 service endpoints [Cameron
         Diver]
-- version: v8.2.4
+- version: 8.2.4
   date: 2018-11-05T00:00:00.000Z
   commits:
     - subject: 'Remove some type casts [Pagan Gazzard]'
     - subject: >-
         Remove versionist from package.json, it's handled by versionbot [Pagan
         Gazzard]
-- version: v8.2.3
+- version: 8.2.3
   date: 2018-11-02T00:00:00.000Z
   commits:
     - subject: 'Update to typescript 3 [Pagan Gazzard]'
-- version: v8.2.2
+- version: 8.2.2
   date: 2018-11-02T00:00:00.000Z
   commits:
     - subject: >-
         Update to resin-lint 2 and add a precommit hook for prettier [Pagan
         Gazzard]
     - subject: 'Run resin-lint for both coffee and typescript [Pagan Gazzard]'
-- version: v8.2.1
+- version: 8.2.1
   date: 2018-11-02T00:00:00.000Z
   commits:
     - subject: >-
         Add a .resinci.yml to disable regular docker and npm builds [Pablo
         Carranza Velez]
-- version: v8.2.0
+- version: 8.2.0
   date: 2018-11-02T00:00:00.000Z
   commits:
     - subject: >-
@@ -399,7 +399,7 @@
     - subject: >-
         Rename most of the documentation and variable names from resin to balena
         [Pablo Carranza Velez]
-- version: v8.1.0
+- version: 8.1.0
   date: 2018-11-01T00:00:00.000Z
   commits:
     - subject: >-
@@ -411,37 +411,37 @@
     - subject: >-
         Rename package to balena-supervisor and push to balena repos in
         DockerHub [Pablo Carranza Velez]
-- version: v8.0.0
+- version: 8.0.0
   date: 2018-11-01T00:00:00.000Z
   commits:
     - subject: 'Api-binder: Use API v5 [Akis Kesoglou]'
-- version: v7.25.13
+- version: 7.25.13
   date: 2018-10-31T00:00:00.000Z
   commits:
     - subject: >-
         Fix: When calling the /v1/update endpoint, always trigger a target state
         apply [Pablo Carranza Velez]
-- version: v7.25.12
+- version: 7.25.12
   date: 2018-10-31T00:00:00.000Z
   commits:
     - subject: >-
         Fix: Properly check for the balena-api label to inject the API key env
         vars [Pablo Carranza Velez]
-- version: v7.25.11
+- version: 7.25.11
   date: 2018-10-31T00:00:00.000Z
   commits:
     - subject: >-
         Fix: When setting target state, delete old apps from the same source
         [Pablo Carranza Velez]
-- version: v7.25.10
+- version: 7.25.10
   date: 2018-10-25T00:00:00.000Z
   commits:
     - subject: 'Test: Use longer delays in logger tests [Pablo Carranza Velez]'
-- version: v7.25.9
+- version: 7.25.9
   date: 2018-10-25T00:00:00.000Z
   commits:
     - subject: 'Update docker-delta to v2.2.2 [Pablo Carranza Velez]'
-- version: v7.25.8
+- version: 7.25.8
   date: 2018-10-23T00:00:00.000Z
   commits:
     - subject: >-
@@ -450,24 +450,24 @@
     - subject: >-
         Entry.sh: Use symbolic link to link to legacy lock path [Pablo Carranza
         Velez]
-- version: v7.25.7
+- version: 7.25.7
   date: 2018-10-23T00:00:00.000Z
   commits:
     - subject: >-
         Circle.yml: Only push tagged images on tagged commits [Pablo Carranza
         Velez]
-- version: v7.25.
+- version: 7.25.4
   date: 2018-10-23T00:00:00.000Z
   commits:
     - subject: 'Fix: Use fat arrow for cleanup method [Cameron Diver]'
     - subject: 'Fix: Run checkTruthy on config values before using them [Cameron Diver]'
-- version: v7.25.5
+- version: 7.25.5
   date: 2018-10-22T00:00:00.000Z
   commits:
     - subject: >-
         Fix: Properly get the config from target state before comparing during
         initial config reporting [Pablo Carranza Velez]
-- version: v7.25.4
+- version: 7.25.4
   date: 2018-10-20T00:00:00.000Z
   commits:
     - subject: >-
@@ -476,29 +476,29 @@
     - subject: >-
         Fix: Avoid trying to report duplicated values in initial config [Pablo
         Carranza Velez]
-- version: v7.25.3
+- version: 7.25.3
   date: 2018-10-20T00:00:00.000Z
   commits:
     - subject: >-
         Fix: Store and retrieve device config without namespaces [Pablo Carranza
         Velez]
-- version: v7.25.2
+- version: 7.25.2
   date: 2018-10-19T00:00:00.000Z
   commits:
     - subject: >-
         Keep defaulting tty to true to avoid accidental breakage [Pablo Carranza
         Velez]
-- version: v7.25.1
+- version: 7.25.1
   date: 2018-10-19T00:00:00.000Z
   commits:
     - subject: >-
         Fix preloading in flasher images by reading apps.json if target hasn't
         been set [Pablo Carranza Velez]
-- version: v7.25.0
+- version: 7.25.0
   date: 2018-10-18T00:00:00.000Z
   commits:
     - subject: 'DeviceConfig: allow BALENA_ config variables [Pablo Carranza Velez]'
-- version: v7.24.1
+- version: 7.24.1
   date: 2018-10-18T00:00:00.000Z
   commits:
     - subject: 'Fix: Add typescript cast to fix type error [Cameron Diver]'
@@ -507,7 +507,7 @@
     - subject: >-
         Fix: Always set the container name when generating creation options
         [Cameron Diver]
-- version: v7.24.0
+- version: 7.24.0
   date: 2018-10-18T00:00:00.000Z
   commits:
     - subject: >-
@@ -519,7 +519,7 @@
     - subject: >-
         Use the DOCKER_SOCKET env var for the user container's balena socket
         mount [Pablo Carranza Velez]
-- version: v7.23.0
+- version: 7.23.0
   date: 2018-10-18T00:00:00.000Z
   commits:
     - subject: >-
@@ -531,7 +531,7 @@
     - subject: >-
         Replace io.resin labels (and their env vars) with io.balena equivalents
         [Pablo Carranza Velez]
-- version: v7.22.0
+- version: 7.22.0
   date: 2018-10-17T00:00:00.000Z
   commits:
     - subject: >-
@@ -540,33 +540,33 @@
     - subject: >-
         Move the handover and lock files to /tmp/balena, rename them, and add
         BALENA_ env vars [Pablo Carranza Velez]
-- version: v7.21.5
+- version: 7.21.5
   date: 2018-10-16T00:00:00.000Z
   commits:
     - subject: 'Disable express'' x-powered-by header [Pagan Gazzard]'
-- version: v7.21.4
+- version: 7.21.4
   date: 2018-10-16T00:00:00.000Z
   commits:
     - subject: 'Fix: overlay compose fields on image for healthcheck [Cameron Diver]'
     - subject: 'Fix: Remove support for broken storageOpt option [Cameron Diver]'
-- version: v7.21.3
+- version: 7.21.3
   date: 2018-10-15T00:00:00.000Z
   commits:
     - subject: >-
         Deltas: Bump docker-progress to pick up support for balena-engine
         [Cameron Diver]
-- version: v7.21.2
+- version: 7.21.2
   date: 2018-10-15T00:00:00.000Z
   commits:
     - subject: 'Remove a few blacklisted config.txt options [Zubair Lutfullah Kakakhel]'
-- version: v7.21.1
+- version: 7.21.1
   date: 2018-10-15T00:00:00.000Z
   commits:
     - subject: 'Fix: Return void from config setter [Cameron Diver]'
     - subject: >-
         Fix: Don't assume config is defined for legacy images in logger [Cameron
         Diver]
-- version: v7.21.0
+- version: 7.21.0
   date: 2018-10-13T00:00:00.000Z
   commits:
     - subject: 'Device-api: Add supervisor version endpoint [Cameron Diver]'
@@ -587,7 +587,7 @@
         Correctly type service-manager logger and event tracker fields [Cameron
         Diver]
     - subject: 'Don''t set empty target state in local mode [Cameron Diver]'
-- version: v7.20.0
+- version: 7.20.0
   date: 2018-10-08T00:00:00.000Z
   commits:
     - subject: >-
@@ -609,30 +609,30 @@
     - subject: >-
         Refactor: Split Networks class to Network and NetworkManager [Cameron
         Diver]
-- version: v7.19.7
+- version: 7.19.7
   date: 2018-09-13T00:00:00.000Z
   commits:
     - subject: 'Logger: Fix reporting the configuration change variables [Cameron Diver]'
-- version: v7.19.6
+- version: 7.19.6
   date: 2018-09-13T00:00:00.000Z
   commits:
     - subject: >-
         Lib/errors: Improve typings by extending Error class for predicates
         [Cameron Diver]
-- version: v7.19.5
+- version: 7.19.5
   date: 2018-09-12T00:00:00.000Z
   commits:
     - subject: ''
       Fix: >-
         Use throttle not debounce when ensuring we don't spam mixpanel [Cameron
         Diver]
-- version: v7.19.4
+- version: 7.19.4
   date: 2018-09-05T00:00:00.000Z
   commits:
     - subject: >-
         Fix: Don't send internal state tracking information to the API [Cameron
         Diver]
-- version: v7.19.3
+- version: 7.19.3
   date: 2018-09-04T00:00:00.000Z
   commits:
     - subject: 'Fix: Fix event-tracker being passed no options object [Cameron Diver]'
@@ -646,7 +646,7 @@
     - subject: >-
         Memory: Reduce memory usage by applying node command line flags [Mathew
         Heard]
-- version: v7.19.2
+- version: 7.19.2
   date: 2018-09-04T00:00:00.000Z
   commits:
     - subject: 'Fix: Add es2015 lib to tsconfig.json [Cameron Diver]'
@@ -661,113 +661,113 @@
         Diver]
     - subject: 'Refactor: Make exported log-types implement interface [Cameron Diver]'
     - subject: 'Refactor: Convert event tracker module to typescript [Cameron Diver]'
-- version: v7.19.1
+- version: 7.19.1
   date: 2018-08-29T00:00:00.000Z
   commits:
     - subject: 'Fix: Dont bind service class methods in declaration [Cameron Diver]'
-- version: v7.19.0
+- version: 7.19.0
   date: 2018-08-29T00:00:00.000Z
   commits:
     - subject: 'Housekeeping: Add private:true to package.json [Cameron Diver]'
     - subject: 'Feature(host_config): Support gpio field as an array [Cameron Diver]'
-- version: v7.18.0
+- version: 7.18.0
   date: 2018-08-24T00:00:00.000Z
   commits:
     - subject: 'Network: Add MDNS support for `.local` domains #713 [Heds Simons]'
-- version: v7.17.1
+- version: 7.17.1
   date: 2018-08-17T00:00:00.000Z
   commits:
     - subject: >-
         Ux: Warn on invalid device name when trying to start a service #729
         [Cameron Diver]
-- version: v7.17.0
+- version: 7.17.0
   date: 2018-08-16T00:00:00.000Z
   commits:
     - subject: 'Fix: Fix importing of service type location #726 [Cameron Diver]'
     - subject: >-
         Dev: Add package.json tasks to aid debugging supervisor tests #726
         [Cameron Diver]
-- version: v7.16.7
+- version: 7.16.7
   date: 2018-08-16T00:00:00.000Z
   commits:
     - subject: 'Update docker-toolbelt to pull in typings #727 [Cameron Diver]'
     - subject: 'Refactor: Add docker-utils typings #727 [Cameron Diver]'
     - subject: 'Refactor: Convert log-types module to typescript #727 [Cameron Diver]'
-- version: v7.16.6
+- version: 7.16.6
   date: 2018-08-13T00:00:00.000Z
   commits:
     - subject: >-
         Docs: Add documentation for the v2/applications/state endpoint #722
         [Cameron Diver]
-- version: v7.16.5
+- version: 7.16.5
   date: 2018-08-13T00:00:00.000Z
   commits:
     - subject: >-
         Fix: Apply device name before generating container config #724 [Cameron
         Diver]
-- version: v7.16.4
+- version: 7.16.4
   date: 2018-08-07T00:00:00.000Z
   commits:
     - subject: >-
         Fix: Restart a service when it's memory limit changes #721 [Cameron
         Diver]
-- version: v7.16.3
+- version: 7.16.3
   date: 2018-08-01T00:00:00.000Z
   commits:
     - subject: 'Add a backoff mechanism for state reporting errors #715 [Pagan Gazzard]'
-- version: v7.16.2
+- version: 7.16.2
   date: 2018-07-25T00:00:00.000Z
   commits:
     - subject: >-
         Fix: Fix scoping issue with variables in service-manager #711 [Cameron
         Diver]
-- version: v7.16.1
+- version: 7.16.1
   date: 2018-07-25T00:00:00.000Z
   commits:
     - subject: 'Dont restart service on device name change #704 [Cameron Diver]'
-- version: v7.16.0
+- version: 7.16.0
   date: 2018-07-23T00:00:00.000Z
   commits:
     - subject: 'Logger: Add unit tests #701 [Petros Angelatos]'
     - subject: 'Logger: Remove pubnub leftovers #701 [Petros Angelatos]'
     - subject: 'Logger: Only send logs produced after attaching #701 [Petros Angelatos]'
     - subject: 'Logger: Use the new logging backend #701 [Petros Angelatos]'
-- version: v7.15.0
+- version: 7.15.0
   date: 2018-07-17T00:00:00.000Z
   commits:
     - subject: >-
         Allow the enabling and disabling of persistent logging via env var #700
         [Cameron Diver]
     - subject: 'Refactor config code to be consistent in location #700 [Cameron Diver]'
-- version: v7.14.1
+- version: 7.14.1
   date: 2018-07-16T00:00:00.000Z
   commits:
     - subject: 'Re-enable majority of tests #699 [Cameron Diver]'
-- version: v7.14.0
+- version: 7.14.0
   date: 2018-07-12T00:00:00.000Z
   commits:
     - subject: >-
         Remove resinApiEndpoint meta-endpoint and use config.json entry instead
         #692 [Cameron Diver]
-- version: v7.13.3
+- version: 7.13.3
   date: 2018-07-12T00:00:00.000Z
   commits:
     - subject: >-
         Correctly apply current commit value to applications #691 [Cameron
         Diver]
-- version: v7.13.2
+- version: 7.13.2
   date: 2018-07-09T00:00:00.000Z
   commits:
     - subject: 'Fix typo in config method call #688 [Cameron Diver]'
-- version: v7.13.1
+- version: 7.13.1
   date: 2018-06-28T00:00:00.000Z
   commits:
     - subject: 'Bind db handle to fn variable #687 [Cameron Diver]'
-- version: v7.13.0
+- version: 7.13.0
   date: 2018-06-27T00:00:00.000Z
   commits:
     - subject: 'Change config function providers to be mutable #684 [Cameron Diver]'
-- version: v7.12.0
+- version: 7.12.0
   date: 2018-06-26T00:00:00.000Z
   commits:
     - subject: >-
@@ -779,14 +779,14 @@
         modules #652 [Cameron Diver]
     - subject: 'Move v2 endpoints to separate module #652 [Cameron Diver]'
     - subject: 'Refactor v1 api into seperate modules #652 [Cameron Diver]'
-- version: v7.11.3
+- version: 7.11.3
   date: 2018-06-25T00:00:00.000Z
   commits:
     - subject: >-
         Add fromDockerOpts and normalization to PortMap class, and use in
         fromContainer #655 [Cameron Diver]
     - subject: 'Store port ranges as ranges, to reduce memory usage #655 [Cameron Diver]'
-- version: v7.11.2
+- version: 7.11.2
   date: 2018-06-18T00:00:00.000Z
   commits:
     - subject: 'Convert config module to typescript #682 [Cameron Diver]'
@@ -796,7 +796,7 @@
         Convert supervisor_version module to typescript, and add typings for
         json #682 [Cameron Diver]
     - subject: 'Convert db module to typescript #682 [Cameron Diver]'
-- version: v7.11.1
+- version: 7.11.1
   date: 2018-06-14T00:00:00.000Z
   commits:
     - subject: >-
@@ -805,22 +805,22 @@
     - subject: >-
         Upgrade TypedError and move docker-utils error to error module #680
         [Cameron Diver]
-- version: v7.11.0
+- version: 7.11.0
   date: 2018-06-13T00:00:00.000Z
   commits:
     - subject: >-
         Pin a device to a commit when preload has a pinDevice field #669
         [Cameron Diver]
-- version: v7.10.2
+- version: 7.10.2
   date: 2018-06-11T00:00:00.000Z
   commits:
     - subject: 'Fix typo in EEXIST error predicate #677 [Cameron Diver]'
-- version: v7.10.1
+- version: 7.10.1
   date: 2018-06-11T00:00:00.000Z
   commits:
     - subject: 'Convert iptables module to typescript #641 [Cameron Diver]'
     - subject: 'Convert errors module to typescript #641 [Cameron Diver]'
-- version: v7.10.0
+- version: 7.10.0
   date: 2018-06-06T00:00:00.000Z
   commits:
     - subject: >-
@@ -831,16 +831,16 @@
         Move boot config related code to config-utils module #672 [Cameron
         Diver]
     - subject: 'Add types for fs-utils module #672 [Cameron Diver]'
-- version: v7.9.1
+- version: 7.9.1
   date: 2018-05-29T00:00:00.000Z
   commits:
     - subject: 'Update update-locking documentation #667 [Cameron Diver]'
-- version: v7.9.0
+- version: 7.9.0
   date: 2018-05-23T00:00:00.000Z
   commits:
     - subject: 'Add support for Balena deltas #632 [Akis Kesoglou]'
     - subject: 'Log delta debugging information #632 [Akis Kesoglou]'
-- version: v7.8.0
+- version: 7.8.0
   date: 2018-05-23T00:00:00.000Z
   commits:
     - subject: >-
@@ -849,43 +849,43 @@
     - subject: >-
         Add migration for source field to be added to app table #662 [Cameron
         Diver]
-- version: v7.7.2
+- version: 7.7.2
   date: 2018-05-22T00:00:00.000Z
   commits:
     - subject: >-
         Ignore leading and trailing whitespace when parsing env vars #665
         [Cameron Diver]
-- version: v7.7.1
+- version: 7.7.1
   date: 2018-05-21T00:00:00.000Z
   commits:
     - subject: 'Don''t generate config fields in offline mode #651 [Cameron Diver]'
-- version: v7.7.0
+- version: 7.7.0
   date: 2018-05-18T00:00:00.000Z
   commits:
     - subject: >-
         Add support for changing config.txt on balena fin devices #663 [Pablo
         Carranza Velez]
-- version: v7.6.0
+- version: 7.6.0
   date: 2018-05-16T00:00:00.000Z
   commits:
     - subject: >-
         Change intialConfigReported value to be an api endpoint #657 [Cameron
         Diver]
-- version: v7.5.6
+- version: 7.5.6
   date: 2018-05-14T00:00:00.000Z
   commits:
     - subject: 'Update gitignore to ignore new test files #653 [Cameron Diver]'
-- version: v7.5.5
+- version: 7.5.5
   date: 2018-05-11T00:00:00.000Z
   commits:
     - subject: 'Update docs with multicontainer API breakages #654 [Tim Perry]'
-- version: v7.5.4
+- version: 7.5.4
   date: 2018-05-11T00:00:00.000Z
   commits:
     - subject: >-
         Fix handling of systemd errors when polling for log to display #612
         [Cameron Diver]
-- version: v7.5.3
+- version: 7.5.3
   date: 2018-05-02T00:00:00.000Z
   commits:
     - subject: 'Add typescript linting to supervisor tests #638 [Cameron Diver]'
@@ -894,108 +894,108 @@
     - subject: 'Convert blink module to typescript #638 [Cameron Diver]'
     - subject: 'Convert lib/constants module to typescript #638 [Cameron Diver]'
     - subject: 'Type parameters for validation functions better #638 [Cameron Diver]'
-- version: v7.5.2
+- version: 7.5.2
   date: 2018-05-01T00:00:00.000Z
   commits:
     - subject: >-
         Add some more unit tests to the multicontainer supervisor #519 [Pablo
         Carranza Velez]
-- version: v7.5.1
+- version: 7.5.1
   date: 2018-04-29T00:00:00.000Z
   commits:
     - subject: >-
         Remove trailing slashes from working directories of services #637
         [Cameron Diver]
-- version: v7.5.0
+- version: 7.5.0
   date: 2018-04-27T00:00:00.000Z
   commits:
     - subject: 'Add tests for validation code #636 [Cameron Diver]'
     - subject: >-
         Start initial typescript conversion, and add validation debugging #636
         [Cameron Diver]
-- version: v7.4.4
+- version: 7.4.4
   date: 2018-04-23T00:00:00.000Z
   commits:
     - subject: >-
         Use resinos-in-container for the development dind supervisor #630 [Pablo
         Carranza Velez]
-- version: v7.4.3
+- version: 7.4.3
   date: 2018-04-19T00:00:00.000Z
   commits:
     - subject: >-
         On startup, only attach to logs for running containers, and remove any
         containers marked as dead #625 [Pablo Carranza Velez]
-- version: v7.4.2
+- version: 7.4.2
   date: 2018-04-18T00:00:00.000Z
   commits:
     - subject: 'Properly propagate delta failure #628 [Akis Kesoglou]'
-- version: v7.4.1
+- version: 7.4.1
   date: 2018-04-11T00:00:00.000Z
   commits:
     - subject: >-
         Allow services (and their images) to expose udp ports besides tcp #622
         [Pablo Carranza Velez]
-- version: v7.4.0
+- version: 7.4.0
   date: 2018-04-11T00:00:00.000Z
   commits:
     - subject: >-
         Add ability to use self-signed CAs passed via `config.json`. #602 [Heds
         Simons]
-- version: v7.3.0
+- version: 7.3.0
   date: 2018-04-10T00:00:00.000Z
   commits:
     - subject: 'Move to Node 6.13.1. #624 [Heds Simons]'
-- version: v7.2.0
+- version: 7.2.0
   date: 2018-04-04T00:00:00.000Z
   commits:
     - subject: 'Run test suite on CI #616 [Cameron Diver]'
     - subject: 'Add mocha to enable unit testing #616 [Lucian Buzzo]'
     - subject: 'Fix regex for parsing memory numbers #616 [Cameron Diver]'
-- version: v7.1.24
+- version: 7.1.24
   date: 2018-03-29T00:00:00.000Z
   commits:
     - subject: >-
         Respond to reboot and shutdown endpoints with a success object #608
         [Cameron Diver]
-- version: v7.1.23
+- version: 7.1.23
   date: 2018-03-29T00:00:00.000Z
   commits:
     - subject: >-
         Avoid weird cwd errors when dist does not exist with sync #606 [Cameron
         Diver]
-- version: v7.1.22
+- version: 7.1.22
   date: 2018-03-29T00:00:00.000Z
   commits:
     - subject: >-
         Back off fetching the target state exponentially, for faster retries
         when there's no connectivity #596 [Pablo Carranza Velez]
-- version: v7.1.21
+- version: 7.1.21
   date: 2018-03-27T00:00:00.000Z
   commits:
     - subject: >-
         Handle incorrectly parsed env vars from docker inspect #605 [Cameron
         Diver]
-- version: v7.1.20
+- version: 7.1.20
   date: 2018-03-22T00:00:00.000Z
   commits:
     - subject: >-
         Replace the gosuper component with a node module that handles
         communication with systemd, and stop using an init system in the
         supervisor container #592 [Pablo Carranza Velez]
-- version: v7.1.19
+- version: 7.1.19
   date: 2018-03-22T00:00:00.000Z
   commits:
     - subject: >-
         Remove any leftover knex migrations locks before running migrations #599
         [Pablo Carranza Velez]
-- version: v7.1.18
+- version: 7.1.18
   date: 2018-03-19T00:00:00.000Z
   commits:
     - subject: >-
         Trim whitespace from the hostname file on the host before passing it as
         the hostname for containers with host network #595 [Pablo Carranza
         Velez]
-- version: v7.1.17
+- version: 7.1.17
   date: 2018-03-19T00:00:00.000Z
   commits:
     - subject: >-
@@ -1004,25 +1004,25 @@
     - subject: >-
         Force reboots and shutdowns if lock override is enabled #591 [Pablo
         Carranza Velez]
-- version: v7.1.16
+- version: 7.1.16
   date: 2018-03-16T00:00:00.000Z
   commits:
     - subject: >-
         In /v1/apps/:appId/stop, wait for the service to exit before responding
         #593 [Pablo Carranza Velez]
-- version: v7.1.15
+- version: 7.1.15
   date: 2018-03-15T00:00:00.000Z
   commits:
     - subject: >-
         Automation: Use ssh instead of https to PR to meta-resin #572 [Pablo
         Carranza Velez]
-- version: v7.1.14
+- version: 7.1.14
   date: 2018-03-15T00:00:00.000Z
   commits:
     - subject: >-
         Avoid trying to clean up the supervisor image if it has several tags
         (even though it would never succeed) #589 [Pablo Carranza Velez]
-- version: v7.1.13
+- version: 7.1.13
   date: 2018-03-15T00:00:00.000Z
   commits:
     - subject: >-
@@ -1032,7 +1032,7 @@
         Fix the check for whether the device is provisioned by correctly getting
         registered_at and deviceId from config.json into the ApiBinder #588
         [Pablo Carranza Velez]
-- version: v7.1.12
+- version: 7.1.12
   date: 2018-03-15T00:00:00.000Z
   commits:
     - subject: >-
@@ -1041,13 +1041,13 @@
     - subject: >-
         Pass the correct working_dir to the container config, and compare
         containers for working dir changes #586 [Pablo Carranza Velez]
-- version: v7.1.11
+- version: 7.1.11
   date: 2018-03-14T00:00:00.000Z
   commits:
     - subject: >-
         DeviceConfig: avoid trying to enable or disable the VPN when in offline
         mode #585 [Pablo Carranza Velez]
-- version: v7.1.10
+- version: 7.1.10
   date: 2018-03-14T00:00:00.000Z
   commits:
     - subject: >-
@@ -1057,7 +1057,7 @@
     - subject: >-
         Compose: Emit a change event when a container is renamed, so that the
         updated imageId and releaseId are reported #584 [Pablo Carranza Velez]
-- version: v7.1.9
+- version: 7.1.9
   date: 2018-03-13T00:00:00.000Z
   commits:
     - subject: >-
@@ -1066,7 +1066,7 @@
     - subject: >-
         When migrating from legacy supervisors, mark the temporary composition
         as legacy #581 [Pablo Carranza Velez]
-- version: v7.1.8
+- version: 7.1.8
   date: 2018-03-13T00:00:00.000Z
   commits:
     - subject: >-
@@ -1075,13 +1075,13 @@
     - subject: >-
         Fix passing a target service to start in /v1/apps/:appId/start, and
         getting the containerId #579 [Pablo Carranza Velez]
-- version: v7.1.7
+- version: 7.1.7
   date: 2018-03-09T00:00:00.000Z
   commits:
     - subject: >-
         Gosuper: Treat systemd unit states that are not "inactive" or
         "deactivating" as enabled states #577 [Pablo Carranza Velez]
-- version: v7.1.6
+- version: 7.1.6
   date: 2018-03-09T00:00:00.000Z
   commits:
     - subject: >-
@@ -1091,33 +1091,33 @@
         ApplicationManager: only use dockerImageId to identify images for
         current apps, to avoid trying to delete an image that is in use #575
         [Pablo Carranza Velez]
-- version: v7.1.5
+- version: 7.1.5
   date: 2018-03-09T00:00:00.000Z
   commits:
     - subject: >-
         Fix bug in require for migrations for legacy preload #574 [Cameron
         Diver]
-- version: v7.1.4
+- version: 7.1.4
   date: 2018-03-09T00:00:00.000Z
   commits:
     - subject: >-
         Compose: fix type error, createVolume returns a promise #571 [Petros
         Angelatos]
-- version: v7.1.3
+- version: 7.1.3
   date: 2018-03-08T00:00:00.000Z
   commits:
     - subject: 'Lib: add missing flag to openAsync() #570 [Petros Angelatos]'
-- version: v7.1.2
+- version: 7.1.2
   date: 2018-03-08T00:00:00.000Z
   commits:
     - subject: 'Compose: fix volume migration code #569 [Petros Angelatos]'
-- version: v7.1.1
+- version: 7.1.1
   date: 2018-03-08T00:00:00.000Z
   commits:
     - subject: >-
         Convert object to array when normalising legacy target apps #568
         [Cameron Diver]
-- version: v7.1.0
+- version: 7.1.0
   date: 2018-03-07T00:00:00.000Z
   commits:
     - subject: >-
@@ -1127,7 +1127,7 @@
         Start using an externally built resin/$ARCH-supervisor-base:v1.1.0 as
         base image, which adds the verbatim option to dns.lookup #566 [Pablo
         Carranza Velez]
-- version: v7.0.0
+- version: 7.0.0
   date: 2018-03-07T00:00:00.000Z
   commits:
     - subject: 'Send logs to the resin API by default #482 [Pablo Carranza Velez]'
@@ -1169,123 +1169,123 @@
         configuration management to avoid duplication between fields in
         config.json and fields in the internal database #482 [Pablo Carranza
         Velez]
-- version: v6.6.9
+- version: 6.6.9
   date: 2018-03-05T00:00:00.000Z
   commits:
     - subject: 'Update update-locking.md #565 [zwalchuk]'
-- version: v6.6.8
+- version: 6.6.8
   date: 2018-02-27T00:00:00.000Z
   commits:
     - subject: >-
         Allow truthy values for deltas and lock override (i.e. the string 'true'
         besides '1') #561 [Pablo Carranza Velez]
-- version: v6.6.7
+- version: 6.6.7
   date: 2018-02-27T00:00:00.000Z
   commits:
     - subject: >-
         Since armel builds are disabled, do not pull an armel node base image,
         and ensure we never deploy an armel supervisor #560 [Pablo Carranza
         Velez]
-- version: v6.6.6
+- version: 6.6.6
   date: 2018-02-27T00:00:00.000Z
   commits:
     - subject: 'Update docker-delta to 2.0.4 #558 [Akis Kesoglou]'
-- version: v6.6.5
+- version: 6.6.5
   date: 2018-02-21T00:00:00.000Z
   commits:
     - subject: >-
         Circle.yml: escape branch name to ensure we always have a valid tag #556
         [Pablo Carranza Velez]
-- version: v6.6.4
+- version: 6.6.4
   date: 2018-02-20T00:00:00.000Z
   commits:
     - subject: >-
         Circle.yml: Do not push images to dockerhub if building without a docker
         password #555 [Pablo Carranza Velez]
-- version: v6.6.3
+- version: 6.6.3
   date: 2018-02-06T00:00:00.000Z
   commits:
     - subject: 'Update resumable-request to v2.0 #551 [Akis Kesoglou]'
-- version: v6.6.2
+- version: 6.6.2
   date: 2018-01-24T00:00:00.000Z
   commits:
     - subject: >-
         Use i386-nlp for supervisor releases for quark boards #549 [Pablo
         Carranza Velez]
-- version: v6.6.1
+- version: 6.6.1
   date: 2018-01-19T00:00:00.000Z
   commits:
     - subject: >-
         Improve caching in dindctl build and update README #526 [Pablo Carranza
         Velez]
-- version: v6.6.0
+- version: 6.6.0
   date: 2018-01-18T00:00:00.000Z
   commits:
     - subject: >-
         Implement an API for proxy and hostname configuration, and centralize
         management of config.json #547 [Pablo Carranza Velez]
-- version: v6.5.9
+- version: 6.5.9
   date: 2018-01-12T00:00:00.000Z
   commits:
     - subject: >-
         Fix saving deviceApiKey to the DB (to fix the RESIN_API_KEY env var)
         when updating from some older supervisors #544 [Pablo Carranza Velez]
-- version: v6.5.8
+- version: 6.5.8
   date: 2018-01-10T00:00:00.000Z
   commits:
     - subject: >-
         Update docker-toolbelt to v3.2.1 to fix a bug in deltas #543 [Pablo
         Carranza Velez]
-- version: v6.5.7
+- version: 6.5.7
   date: 2018-01-05T00:00:00.000Z
   commits:
     - subject: >-
         Avoid problems with null app names or invalid container names when
         migrating from old supervisors #541 [Pablo Carranza Velez]
-- version: v6.5.6
+- version: 6.5.6
   date: 2017-12-15T00:00:00.000Z
   commits:
     - subject: >-
         Update-locking: updating the documentation with extra  information and
         tools #528 [Gergely Imreh]
-- version: v6.5.5
+- version: 6.5.5
   date: 2017-12-14T00:00:00.000Z
   commits:
     - subject: >-
         Update resin-sync to allow syncing to devices that use balena #533
         [Pablo Carranza Velez]
-- version: v6.5.4
+- version: 6.5.4
   date: 2017-12-14T00:00:00.000Z
   commits:
     - subject: >-
         Do the webpack build in an amd64 image to improve build times #539
         [Pablo Carranza Velez]
-- version: v6.5.3
+- version: 6.5.3
   date: 2017-12-12T00:00:00.000Z
   commits:
     - subject: >-
         Gosuper: When getting IP addresses, ignore balena and the resin-dns
         bridge #536 [Pablo Carranza Velez]
-- version: v6.5.2
+- version: 6.5.2
   date: 2017-12-12T00:00:00.000Z
   commits:
     - subject: >-
         Dockerfile: improve caching by installing devDependencies before copying
         the code #535 [Pablo Carranza Velez]
-- version: v6.5.1
+- version: 6.5.1
   date: 2017-12-11T00:00:00.000Z
   commits:
     - subject: >-
         Avoid marking the supervisor as unhealthy if update is not happening
         because it's in offline mode #534 [Pablo Carranza Velez]
-- version: v6.5.0
+- version: 6.5.0
   date: 2017-12-11T00:00:00.000Z
   commits:
     - subject: >-
         Add a /v1/healthy endpoint that fails if the supervisor is unhealthy,
         and a HEALTHCHECK command to the Dockerfile that uses it #530 [Pablo
         Carranza Velez]
-- version: v6.4.9
+- version: 6.4.9
   date: 2017-12-11T00:00:00.000Z
   commits:
     - subject: >-
@@ -1295,62 +1295,62 @@
         Avoid stopping the VPN until a remote target state has been fetched, and
         retry applying config variables when they fail #532 [Pablo Carranza
         Velez]
-- version: v6.4.8
+- version: 6.4.8
   date: 2017-12-01T00:00:00.000Z
   commits:
     - subject: >-
         When listenPort is not specified, use 48484 as default #529 [Pablo
         Carranza Velez]
-- version: v6.4.7
+- version: 6.4.7
   date: 2017-11-20T00:00:00.000Z
   commits:
     - subject: >-
         Sync.js: Fix command to build the source code without optimizations #527
         [Pablo Carranza Velez]
-- version: v6.4.6
+- version: 6.4.6
   date: 2017-11-10T00:00:00.000Z
   commits:
     - subject: >-
         Dind: Add a .gitkeep to docker.service.d to avoid dind build errors #525
         [Pablo Carranza Velez]
-- version: v6.4.5
+- version: 6.4.5
   date: 2017-11-09T00:00:00.000Z
   commits:
     - subject: >-
         Use uglifyjs-webpack-plugin ^1.0.1 to optimize the supervisor code #524
         [Pablo Carranza Velez]
-- version: v6.4.4
+- version: 6.4.4
   date: 2017-11-08T00:00:00.000Z
   commits:
     - subject: >-
         Dindctl: Use balena to refresh the supervisor container #523 [Pablo
         Carranza Velez]
-- version: v6.4.3
+- version: 6.4.3
   date: 2017-11-03T00:00:00.000Z
   commits:
     - subject: >-
         Use balena 17.06 and resin-base v2.9.2 for the docker-in-docker
         supervisor #518 [Pablo Carranza Velez]
-- version: v6.4.2
+- version: 6.4.2
   date: 2017-11-03T00:00:00.000Z
   commits:
     - subject: >-
         Avoid an indefinite recursion that grows the call stack when reporting
         the current state fails #480 [Pablo Carranza Velez]
-- version: v6.4.1
+- version: 6.4.1
   date: 2017-11-02T00:00:00.000Z
   commits:
     - subject: 'Improve caching when building gosuper #520 [Pablo Carranza Velez]'
     - subject: >-
         Automation: Always try to cache using the latest master build #520
         [Pablo Carranza Velez]
-- version: v6.4.0
+- version: 6.4.0
   date: 2017-11-01T00:00:00.000Z
   commits:
     - subject: >-
         Fixes #511, add support for new supervisor image for x86 with quark cpu
         boards. #512 [Trong Nghia Nguyen]
-- version: v6.3.11
+- version: 6.3.11
   date: 2017-11-01T00:00:00.000Z
   commits:
     - subject: >-
@@ -1359,13 +1359,13 @@
     - subject: >-
         Tunnel all mixpanel events through the resin API #500 [Pablo Carranza
         Velez]
-- version: v6.3.10
+- version: 6.3.10
   date: 2017-10-31T00:00:00.000Z
   commits:
     - subject: >-
         Use a custom webpack loader to avoid uncaught exceptions from JSONStream
         #517 [Pablo Carranza Velez]
-- version: v6.3.9
+- version: 6.3.9
   date: 2017-10-30T00:00:00.000Z
   commits:
     - subject: >-
@@ -1377,19 +1377,19 @@
     - subject: >-
         Use container name instead of id to identify apps, and avoid duplicated
         containers #507 [Pablo Carranza Velez]
-- version: v6.3.8
+- version: 6.3.8
   date: 2017-10-30T00:00:00.000Z
   commits:
     - subject: >-
         If a device is already provisioned but the key exchange fails, retry it
         until it succeeds #513 [Pablo Carranza Velez]
-- version: v6.3.7
+- version: 6.3.7
   date: 2017-10-25T00:00:00.000Z
   commits:
     - subject: >-
         Change the update retry to back off to the standard update check
         interval #515 [Pagan Gazzard]
-- version: v6.3.6
+- version: 6.3.6
   date: 2017-10-24T00:00:00.000Z
   commits:
     - subject: >-
@@ -1404,23 +1404,23 @@
         Ensure preloaded apps get the deviceApiKey in the env vars, and apps
         never get the provisioning key, and improve detection of cases when the
         device has been pre-provisioned #510 [Pablo Carranza Velez]
-- version: v6.3.5
+- version: 6.3.5
   date: 2017-10-19T00:00:00.000Z
   commits:
     - subject: >-
         Update docker-toolbelt to fix applying deltas on overlay2 with huge
         images #509 [Akis Kesoglou]
-- version: v6.3.4
+- version: 6.3.4
   date: 2017-10-17T00:00:00.000Z
   commits:
     - subject: 'Delta improvements #504 [Akis Kesoglou]'
-- version: v6.3.3
+- version: 6.3.3
   date: 2017-10-17T00:00:00.000Z
   commits:
     - subject: >-
         Update docker-progress to improve identification of Balena #505 [Akis
         Kesoglou]
-- version: v6.3.2
+- version: 6.3.2
   date: 2017-10-11T00:00:00.000Z
   commits:
     - subject: >-
@@ -1429,87 +1429,87 @@
     - subject: >-
         Allow specifying a container name for the docker-in-docker development
         supervisor #503 [Pablo Carranza Velez]
-- version: v6.3.1
+- version: 6.3.1
   date: 2017-10-04T00:00:00.000Z
   commits:
     - subject: 'Update docker-progress #502 [Akis Kesoglou]'
-- version: v6.3.0
+- version: 6.3.0
   date: 2017-10-03T00:00:00.000Z
   commits:
     - subject: 'Update docker-progress #501 [Akis Kesoglou]'
-- version: v6.2.9
+- version: 6.2.9
   date: 2017-09-15T00:00:00.000Z
   commits:
     - subject: >-
         Explicitly define the source for deltas, allow cross-app deltas, and
         iterate serially through apps when updating #499 [Pablo Carranza Velez]
-- version: v6.2.8
+- version: 6.2.8
   date: 2017-09-12T00:00:00.000Z
   commits:
     - subject: >-
         Fix problem catching errors when killing a container that doesn't exist
         #496 [Pablo Carranza Velez]
-- version: v6.2.7
+- version: 6.2.7
   date: 2017-09-01T00:00:00.000Z
   commits:
     - subject: >-
         Prefer err.message when reporting errors from dockerode, then err.json
         and err.reason #490 [Pablo Carranza Velez]
-- version: v6.2.6
+- version: 6.2.6
   date: 2017-08-29T00:00:00.000Z
   commits:
     - subject: >-
         Add a sync.js script to allow syncing a running supervisor container on
         a local device #494 [Pablo Carranza Velez]
-- version: v6.2.5
+- version: 6.2.5
   date: 2017-08-28T00:00:00.000Z
   commits:
     - subject: 'Forward resume options #492 [Akis Kesoglou]'
-- version: v6.2.4
+- version: 6.2.4
   date: 2017-08-28T00:00:00.000Z
   commits:
     - subject: 'Update docker-progress to v2.6.3 #493 [Pablo Carranza Velez]'
-- version: v6.2.3
+- version: 6.2.3
   date: 2017-08-26T00:00:00.000Z
   commits:
     - subject: 'Deploy all archs by default to Resin #489 [Akis Kesoglou]'
-- version: v6.2.2
+- version: 6.2.2
   date: 2017-08-25T00:00:00.000Z
   commits:
     - subject: >-
         Remove an unnecessary directory from sqlite3 that took 30MB #491 [Pablo
         Carranza Velez]
-- version: v6.2.1
+- version: 6.2.1
   date: 2017-08-18T00:00:00.000Z
   commits:
     - subject: >-
         Ensure /var/run/resin exists before trying to mount it as tmpfs #486
         [Pablo Carranza Velez]
-- version: v6.2.0
+- version: 6.2.0
   date: 2017-08-16T00:00:00.000Z
   commits:
     - subject: >-
         Try to resume the download of a delta if it fails due to flaky network
         #483 [Akis Kesoglou]
-- version: v6.1.4
+- version: 6.1.4
   date: 2017-08-07T00:00:00.000Z
   commits:
     - subject: >-
         Fix references in deploy-to-resin.js and use github credentials when
         pushing in pr-to-meta-resin.sh #481 [Pablo Carranza Velez]
-- version: v6.1.3
+- version: 6.1.3
   date: 2017-08-03T00:00:00.000Z
   commits:
     - subject: >-
         Avoid starting apps on startup if device has to reboot due to a
         configuration change [Pablo Carranza Velez]
-- version: v6.1.2
+- version: 6.1.2
   date: 2017-07-27T00:00:00.000Z
   commits:
     - subject: >-
         When the device is about to reboot or shutdown, close the API server and
         avoid applying updates [Pablo Carranza Velez]
-- version: v6.1.1
+- version: 6.1.1
   date: 2017-07-27T00:00:00.000Z
   commits:
     - subject: >-
@@ -1518,13 +1518,13 @@
     - subject: >-
         Do not persist the uuid when in offline mode, so that the supervisor
         tries to provision if it goes out of offline mode [Pablo Carranza Velez]
-- version: v6.1.0
+- version: 6.1.0
   date: 2017-07-27T00:00:00.000Z
   commits:
     - subject: >-
         Update docker-delta to 1.1.1, docker-toolbelt to 3.0.1, docker-progress
         to 2.6.0 to add support for deltas and overlay2 [Pablo Carranza Velez]
-- version: v6.0.5
+- version: 6.0.5
   date: 2017-07-27T00:00:00.000Z
   commits:
     - subject: >-
@@ -1536,19 +1536,19 @@
     - subject: >-
         Fix preloading and parsing of arguments in the dind supervisor [Pablo
         Carranza Velez]
-- version: v6.0.4
+- version: 6.0.4
   date: 2017-07-26T00:00:00.000Z
   commits:
     - subject: >-
         Fix the message shown when docker gives a 500 error when starting a
         container [Pablo Carranza Velez]
-- version: v6.0.3
+- version: 6.0.3
   date: 2017-07-25T00:00:00.000Z
   commits:
     - subject: >-
         Use a pinned build of the debian image to build base and gosuper, to
         avoid unnecessary rebuilds [Pablo Carranza Velez]
-- version: v6.0.2
+- version: 6.0.2
   date: 2017-07-24T00:00:00.000Z
   commits:
     - subject: 'Disable armel builds [Pablo Carranza Velez]'
@@ -1577,61 +1577,61 @@
     - subject: >-
         Add a single Dockerfile to build the supervisor as a multi-stage build
         [Pablo Carranza Velez]
-- version: v6.0.1
+- version: 6.0.1
   date: 2017-07-12T00:00:00.000Z
   commits:
     - subject: 'Use webpack to join all modules [Pablo Carranza Velez]'
-- version: v6.0.0
+- version: 6.0.0
   date: 2017-07-07T00:00:00.000Z
   commits:
     - subject: 'Deprecate edge device type [Joe Roberts]'
-- version: v5.1.1
+- version: 5.1.1
   date: 2017-07-04T00:00:00.000Z
   commits:
     - subject: >-
         Fix semver comparison for OS version when determining if the device has
         deviceApiKey support [Pablo Carranza Velez]
-- version: v5.1.0
+- version: 5.1.0
   date: 2017-07-01T00:00:00.000Z
   commits:
     - subject: 'Switch to glide for Go dependencies [Pablo Carranza Velez]'
     - subject: 'Add support for aarch64 [Pablo Carranza Velez]'
-- version: v5.0.2
+- version: 5.0.2
   date: 2017-07-01T00:00:00.000Z
   commits:
     - subject: >-
         Dind: Set DELTA_ENDPOINT, insert variant into os-release, and fix vpn
         apikeys [Pablo Carranza Velez]
-- version: v5.0.1
+- version: 5.0.1
   date: 2017-07-01T00:00:00.000Z
   commits:
     - subject: >-
         Allow registering the deviceApiKey in a non-compatible OS by making the
         apiKey equal the deviceApiKey, and add an fsync to all config.json
         writes [Pablo Carranza Velez]
-- version: v5.0.0
+- version: 5.0.0
   date: 2017-06-26T00:00:00.000Z
   commits:
     - subject: >-
         Remove the undocumented and unused sideload and compose APIs [Pablo
         Carranza Velez]
-- version: v4.5.0
+- version: 4.5.0
   date: 2017-06-26T00:00:00.000Z
   commits:
     - subject: 'Update docker-delta to 1.0.3 to support docker 17 [Pablo Carranza Velez]'
-- version: v4.4.2
+- version: 4.4.2
   date: 2017-06-26T00:00:00.000Z
   commits:
     - subject: >-
         Fix provisioning key exchange by passing apikey in the request [Pablo
         Carranza Velez]
-- version: v4.4.1
+- version: 4.4.1
   date: 2017-06-24T00:00:00.000Z
   commits:
     - subject: >-
         Make cleanup in jenkins build less aggressive, but remove all created
         tags [Pablo Carranza Velez]
-- version: v4.4.0
+- version: 4.4.0
   date: 2017-06-15T00:00:00.000Z
   commits:
     - subject: >-
@@ -1640,32 +1640,32 @@
     - subject: >-
         Fix mixpanel initialization when not in offline mode [Pablo Carranza
         Velez]
-- version: v4.3.2
+- version: 4.3.2
   date: 2017-06-14T00:00:00.000Z
   commits:
     - subject: 'Update dependent device DB [Joe Roberts]'
-- version: v4.3.1
+- version: 4.3.1
   date: 2017-06-13T00:00:00.000Z
   commits:
     - subject: 'Enable SSL when connecting to pubnub [Petros Angelatos]'
-- version: v4.3.0
+- version: 4.3.0
   date: 2017-06-05T00:00:00.000Z
   commits:
     - subject: >-
         Switch to generating the BASE_IMAGE_VERSION in the makefile, so that the
         makefile targets can use an accurate version by default [Pagan Gazzard]
-- version: v4.2.4
+- version: 4.2.4
   date: 2017-05-12T00:00:00.000Z
   commits:
     - subject: 'Fix typo in how hostOSVersionPath was camel-cased [Pablo Carranza Velez]'
-- version: v4.2.3
+- version: 4.2.3
   date: 2017-05-11T00:00:00.000Z
   commits:
     - subject: 'Properly handle errors when requesting deltas [Pablo Carranza Velez]'
     - subject: >-
         Add aufs-tools to the dind supervisor for use when running on aufs
         [Pagan Gazzard]
-- version: v4.2.2
+- version: 4.2.2
   date: 2017-04-27T00:00:00.000Z
   commits:
     - subject: >-
@@ -1674,7 +1674,7 @@
     - subject: >-
         Avoid writing target device config to DB if it hasn't changed [Pablo
         Carranza Velez]
-- version: v4.2.1
+- version: 4.2.1
   date: 2017-04-26T00:00:00.000Z
   commits:
     - subject: >-
@@ -1683,7 +1683,7 @@
     - subject: >-
         Fix the case of being registered with a version of the cli/sdk that does
         not support device api keys. [Pagan Gazzard]
-- version: v4.2.0
+- version: 4.2.0
   date: 2017-04-24T00:00:00.000Z
   commits:
     - subject: >-
@@ -1696,7 +1696,7 @@
     - subject: >-
         Docs/API.md: Fix documentation command sent via the API proxy for POST
         /v1/update. [Horia Delicoti]
-- version: v4.1.2
+- version: 4.1.2
   date: 2017-04-10T00:00:00.000Z
   commits:
     - subject: >-
@@ -1705,7 +1705,7 @@
     - subject: >-
         Report the OS variant as a separate field and not as part of the OS
         version [Pablo Carranza Velez]
-- version: v4.1.1
+- version: 4.1.1
   date: 2017-03-30T00:00:00.000Z
   commits:
     - subject: >-
@@ -1714,7 +1714,7 @@
     - subject: >-
         Issue #410: Cleanup images before running an update, preserving the ones
         that will be used in the target state [Pablo Carranza Velez]
-- version: v4.1.0
+- version: 4.1.0
   date: 2017-03-29T00:00:00.000Z
   commits:
     - subject: >-
@@ -1730,7 +1730,7 @@
         Issue #230: Add a custom User-Agent header to all requests [Pablo
         Carranza Velez]
     - subject: 'Update waffle badge [Sabith]'
-- version: v4.0.0
+- version: 4.0.0
   date: 2017-03-09T00:00:00.000Z
   commits:
     - subject: >-
@@ -1760,13 +1760,13 @@
     - subject: >-
         Issue #386: Allow forcing updates when an update was already scheduled
         [Pablo Carranza Velez]
-- version: v3.0.1
+- version: 3.0.1
   date: 2017-02-15T00:00:00.000Z
   commits:
     - subject: >-
         Issue #381: Set target deviceConfig values from preloaded apps [Pablo
         Carranza Velez]
-- version: v3.0.0
+- version: 3.0.0
   date: 2017-01-18T00:00:00.000Z
   commits:
     - subject: >-
@@ -1781,21 +1781,21 @@
     - subject: >-
         Do not bind mount kmod if the host is not Resin OS 1.X [Pablo Carranza
         Velez]
-- version: v2.9.0
+- version: 2.9.0
   date: 2016-12-20T00:00:00.000Z
   commits:
     - subject: >-
         Bump docker-delta to v1.0.1 to fix deltas on aufs when there's many
         layers [Pablo Carranza Velez]
     - subject: 'Document dependent apps feature [curcuz]'
-- version: v2.8.5
+- version: 2.8.5
   date: 2016-12-20T00:00:00.000Z
   commits:
     - subject: >-
         Fix error applying device configuration because deviceConfig table is
         empty [Pablo Carranza Velez]
     - subject: 'Make the base image hash more deterministic [Pablo Carranza Velez]'
-- version: v2.8.4
+- version: 2.8.4
   date: 2016-12-16T00:00:00.000Z
   commits:
     - subject: 'Use versionist''s default configuration [Pablo Carranza Velez]'
@@ -1804,13 +1804,13 @@
         Start using versionist for versioning and changelog [Pablo Carranza
         Velez]
     - subject: 'Bump the MAX_BASIS_DIRS limit for rsync [Michal Mazurek]'
-- version: v2.8.3
+- version: 2.8.3
   date: 2016-11-23T00:00:00.000Z
   commits:
     - subject: >-
         Fallback to DROP when iptables REJECT is not available [Pablo Carranza
         Velez]
-- version: v2.8.2
+- version: 2.8.2
   date: 2016-11-07T00:00:00.000Z
   commits:
     - subject: >-
@@ -1826,13 +1826,13 @@
     - subject: >-
         Only iterate through remote apps to set device config [Pablo Carranza
         Velez]
-- version: v2.8.1
+- version: 2.8.1
   date: 2016-10-31T00:00:00.000Z
   commits:
     - subject: >-
         Properly delete dependent apps and their corresponding devices [Pablo
         Carranza Velez]
-- version: v2.8.0
+- version: 2.8.0
   date: 2016-10-30T00:00:00.000Z
   commits:
     - subject: >-
@@ -1843,7 +1843,7 @@
         Velez]
     - subject: 'Stop all apps before rebooting or shutting down [Pablo Carranza Velez]'
     - subject: 'Update request-progress to v2.0.1 [Pablo Carranza Velez]'
-- version: v2.7.1
+- version: 2.7.1
   date: 2016-10-24T00:00:00.000Z
   commits:
     - subject: 'Use multiArgs to promisify gosuper requests [Pablo Carranza Velez]'
@@ -1853,7 +1853,7 @@
     - subject: >-
         Log whether deltas are being used when downloading an app [Pablo
         Carranza Velez]
-- version: v2.7.0
+- version: 2.7.0
   date: 2016-10-23T00:00:00.000Z
   commits:
     - subject: 'Upgrade docker-progress to v2.3.1 [Pablo Carranza Velez]'
@@ -1873,23 +1873,23 @@
     - subject: >-
         gosuper: support i386 platforms without MMX instructions [Petros
         Angelatos]
-- version: v2.6.3
+- version: 2.6.3
   date: 2016-10-13T00:00:00.000Z
   commits:
     - subject: >-
         Properly set device name, and set undefined arguments to setConfig as
         null [Pablo Carranza Velez]
-- version: v2.6.2
+- version: 2.6.2
   date: 2016-10-11T00:00:00.000Z
   commits:
     - subject: Updated knex to ~0.12.3
-- version: v2.6.1
+- version: 2.6.1
   date: 2016-10-11T00:00:00.000Z
   commits:
     - subject: >-
         Do not use parsed JSON to compare dep. device state [Pablo Carranza
         Velez]
-- version: v2.6.0
+- version: 2.6.0
   date: 2016-10-10T00:00:00.000Z
   commits:
     - subject: >-
@@ -1909,12 +1909,12 @@
         Omit some fields when responding with a device object [Pablo Carranza
         Velez]
     - subject: 'Add validation to dependent device provisioning [Pablo Carranza Velez]'
-- version: v2.5.2
+- version: 2.5.2
   date: 2016-10-07T00:00:00.000Z
   commits:
     - subject: 'Removed obsolete resolv.conf bind-mount [Petros Angelatos]'
     - subject: 'Updated to pinejs-client 2 [Pagan Gazzard]'
-- version: v2.5.1
+- version: 2.5.1
   date: 2016-10-06T00:00:00.000Z
   commits:
     - subject: >-
@@ -1939,7 +1939,7 @@
         In cleanup, normalize all image tags for comparison [Pablo Carranza
         Velez]
     - subject: 'Use getRegistryAndName from docker-toolbelt 1.2.0 [Pablo Carranza Velez]'
-- version: v2.5.0
+- version: 2.5.0
   date: 2016-10-01T00:00:00.000Z
   commits:
     - subject: 'Switch to v2 api to be able to set is_online [Pagan Gazzard]'
@@ -1959,23 +1959,23 @@
     - subject: >-
         Add missing error handler on a stream in docker-utils [Pablo Carranza
         Velez]
-- version: v2.4.0
+- version: 2.4.0
   date: 2016-09-30T00:00:00.000Z
   commits:
     - subject: >-
         On cleanup, force removal for images and containers, and remove
         container volumes [Pablo Carranza Velez]
     - subject: 'Add system logs for Shutdown, Reboot and Purge [Pablo Carranza Velez]'
-- version: v2.3.0
+- version: 2.3.0
   date: 2016-09-26T00:00:00.000Z
   commits:
     - subject: 'Implement delete-then-download update strategy [Pablo Carranza Velez]'
     - subject: 'Bump node-docker-delta to 0.0.12 [Pablo, Kostas]'
-- version: v2.2.1
+- version: 2.2.1
   date: 2016-09-26T00:00:00.000Z
   commits:
     - subject: 'Fix ENV bug in build process [Petros Angelatos]'
-- version: v2.2.0
+- version: 2.2.0
   date: 2016-09-23T00:00:00.000Z
   commits:
     - subject: 'Add resin-vpn interface IP filtering to gosupervisor [Praneeth]'
@@ -1988,7 +1988,7 @@
     - subject: >-
         DRY up calls to gosuper API, and use empty Host header [Pablo Carranza
         Velez]
-- version: v2.1.1
+- version: 2.1.1
   date: 2016-09-09T00:00:00.000Z
   commits:
     - subject: >-
@@ -1996,36 +1996,36 @@
         [Praneeth]
     - subject: 'Updated to coffee-script ~1.10.0 [Pagan Gazzard]'
     - subject: 'Catch exec format error and provide friendlier error message [Aleksis]'
-- version: v2.1.0
+- version: 2.1.0
   date: 2016-09-05T00:00:00.000Z
   commits:
     - subject: >-
         Pick up new variable from hostOS, pointing to the mount point of the
         hostOS's boot partition [Theodor Gherzan]
-- version: v2.0.0
+- version: 2.0.0
   date: 2016-08-31T00:00:00.000Z
   commits:
     - subject: >-
         **[Breaking]** Change the logger to send at a specific interval and with
         a different message format [Pablo Carranza Velez]
-- version: v1.14.0
+- version: 1.14.0
   date: 2016-08-16T00:00:00.000Z
   commits:
     - subject: 'Allow using an HTTP header for auth [Pablo Carranza Velez]'
     - subject: >-
         Add iptables rules to block requests to the supervisor API from all
         interfaces except vpn, docker and local [Pablo Carranza Velez]
-- version: v1.13.2
+- version: 1.13.2
   date: 2016-08-09T00:00:00.000Z
   commits:
     - subject: >-
         bootstrap: if offlineMode is enabled, persist only the uuid [Petros
         Angelatos]
-- version: v1.13.1
+- version: 1.13.1
   date: 2016-07-28T00:00:00.000Z
   commits:
     - subject: 'Using `links` in compose files is now allowed [Petros Angelatos]'
-- version: v1.13.0
+- version: 1.13.0
   date: 2016-07-27T00:00:00.000Z
   commits:
     - subject: 'Allow the supervisor to work in offline mode [Pablo Carranza Velez]'
@@ -2037,47 +2037,47 @@
         Default to not bind mounting kmod if container distro can't be found
         [Pablo Carranza Velez]
     - subject: 'Use log-timestamp to add timestamps to logs [Pablo Carranza Velez]'
-- version: v1.12.2
+- version: 1.12.2
   date: 2016-07-15T00:00:00.000Z
   commits:
     - subject: >-
         Bind mount kmod if the container is debian or raspbian [Pablo Carranza
         Velez]
-- version: v1.12.1
+- version: 1.12.1
   date: 2016-07-08T00:00:00.000Z
   commits:
     - subject: Fix preloaded apps by passing appId to extendEnvVars
-- version: v1.12.0
+- version: 1.12.0
   date: 2016-06-28T00:00:00.000Z
   commits:
     - subject: 'Add endpoints for docker-compose up and down [Pablo Carranza Velez]'
-- version: v1.11.6
+- version: 1.11.6
   date: 2016-06-23T00:00:00.000Z
   commits:
     - subject: 'Fixed deltas for older docker daemon versions [Petros Angelatos]'
-- version: v1.11.5
+- version: 1.11.5
   date: 2016-06-23T00:00:00.000Z
   commits:
     - subject: 'Fix entry.sh when DOCKER_ROOT isn''t set [Pagan Gazzard]'
-- version: v1.11.4
+- version: 1.11.4
   date: 2016-06-17T00:00:00.000Z
   commits:
     - subject: 'Cleanup docker images if delta failed [Petros Angelatos]'
     - subject: 'Make the data path configurable [Pablo Carranza Velez]'
-- version: v1.11.3
+- version: 1.11.3
   date: 2016-06-11T00:00:00.000Z
   commits:
     - subject: >-
         Add listener for container events and reattach on restart [Pablo
         Carranza Velez]
     - subject: 'fix deltas by not using the supervisor as source [Pablo Carranza Velez]'
-- version: v1.11.2
+- version: 1.11.2
   date: 2016-06-10T00:00:00.000Z
   commits:
     - subject: >-
         fix delta error handling by listening for the 'error' event [Petros
         Angelatos]
-- version: v1.11.1
+- version: 1.11.1
   date: 2016-06-09T00:00:00.000Z
   commits:
     - subject: 'Use sh for postinstall as alpine has no bash [Pablo Carranza Velez]'
@@ -2085,21 +2085,21 @@
     - subject: >-
         symlink docker root to default path if not already there [Petros
         Angelatos]
-- version: v1.11.0
+- version: 1.11.0
   date: 2016-06-07T00:00:00.000Z
   commits:
     - subject: 'Add restart policies and change default to auto-restart [Aleksis]'
-- version: v1.10.1
+- version: 1.10.1
   date: 2016-06-07T00:00:00.000Z
   commits:
     - subject: 'Switch to docker-delta library to use deltas v2 [Petros Angelatos]'
     - subject: 'Correctly compare container image name on cleanup [Pablo Carranza Velez]'
     - subject: 'Log useful supervisor info to stdout/stderr [Kostas Lekkas]'
-- version: v1.10.0
+- version: 1.10.0
   date: 2016-05-26T00:00:00.000Z
   commits:
     - subject: 'Fix progress bars on docker version 1.10 [Aleksis]'
-- version: v1.9.0
+- version: 1.9.0
   date: 2016-05-24T00:00:00.000Z
   commits:
     - subject: >-
@@ -2119,14 +2119,14 @@
     - subject: 'Only use bodyParser for endpoints that need it [Pablo Carranza Velez]'
     - subject: 'Add RESIN_APP_ID variable [Pablo Carranza Velez]'
     - subject: 'Increase delta request timeout to 15 minutes [Pablo Carranza Velez]'
-- version: v1.8.0
+- version: 1.8.0
   date: 2016-04-25T00:00:00.000Z
   commits:
     - subject: 'Add endpoints to start, stop and get app [Pablo, Kostas]'
     - subject: >-
         Removed a bunch ofobsolete code for the old terminal, reducing the
         supervisor size considerably. [Pagan Gazzard]
-- version: v1.7.0
+- version: 1.7.0
   date: 2016-03-28T00:00:00.000Z
   commits:
     - subject: 'Add RESIN_HOST_LOG_TO_DISPLAY variable [Pablo Carranza Velez]'
@@ -2141,11 +2141,11 @@
     - subject: >-
         Add RESIN_SUPERVISOR_DELTA to special list so that app is not restarted
         when it changes [Pablo Carranza Velez]
-- version: v1.6.1
+- version: 1.6.1
   date: 2016-03-08T00:00:00.000Z
   commits:
     - subject: 'Reduce noise in logs [Kostas Lekkas]'
-- version: v1.6.0
+- version: 1.6.0
   date: 2016-02-22T00:00:00.000Z
   commits:
     - subject: 'Add endpoint to get device state [Pablo Carranza Velez]'
@@ -2153,11 +2153,11 @@
         Check for valid strings or ints in all config values [Pablo Carranza
         Velez]
     - subject: 'Remove quotes in OS version [Pablo Carranza Velez]'
-- version: v1.5.0
+- version: 1.5.0
   date: 2016-02-09T00:00:00.000Z
   commits:
     - subject: 'Add support for delta image download [petrosagg and Pablo]'
-- version: v1.4.0
+- version: 1.4.0
   date: 2016-01-28T00:00:00.000Z
   commits:
     - subject: 'Report Host OS version to the API [Pablo Carranza Velez]'
@@ -2173,17 +2173,17 @@
     - subject: >-
         Add OOM protection for the supervisor container, openvpn and connmand
         [Praneeth]
-- version: v1.3.2
+- version: 1.3.2
   date: 2015-12-17T00:00:00.000Z
   commits:
     - subject: 'Do not report the tun addresses to API [Praneeth]'
-- version: v1.3.1
+- version: 1.3.1
   date: 2015-12-07T00:00:00.000Z
   commits:
     - subject: >-
         Only save the app if starting the container was successful [Pablo
         Carranza Velez]
-- version: v1.3.0
+- version: 1.3.0
   date: 2015-12-01T00:00:00.000Z
   commits:
     - subject: 'Remove volumes when removing a container [Pablo Carranza Velez]'
@@ -2198,27 +2198,27 @@
         [Praneeth]
     - subject: 'Switched to docker-progress for pull progress. [Pagan Gazzard]'
     - subject: 'Fix semver versioning in tcp-ping endpoint. [Praneeth]'
-- version: v1.2.1
+- version: 1.2.1
   date: 2015-11-04T00:00:00.000Z
   commits:
     - subject: >-
         Use random name for PubNub channel and report to API [Pablo Carranza
         Velez]
-- version: v1.2.0
+- version: 1.2.0
   date: 2015-10-16T00:00:00.000Z
   commits:
     - subject: >-
         Don't bind mount (the sometimes non-existent) docker.sock [Pablo
         Carranza Velez]
     - subject: 'Expose a RESIN_SUPERVISOR_VERSION env var to app [Pablo Carranza Velez]'
-- version: v1.1.1
+- version: 1.1.1
   date: 2015-10-15T00:00:00.000Z
   commits:
     - subject: 'Prevent non-fatal errors from causing the supervisor to exit [Lorenzo]'
     - subject: >-
         Use buildtime env vars as the default Pubnub and Mixpanel keys [Pablo
         Carranza Velez]
-- version: v1.1.0
+- version: 1.1.0
   date: 2015-10-09T00:00:00.000Z
   commits:
     - subject: 'Switch back to using arch-based node images [Pablo Carranza Velez]'
@@ -2229,13 +2229,13 @@
         Allow control of VPN + TCP check + Pub nub logs with Device Environment
         variables [Praneeth]
     - subject: 'Add GO api for openvpn control [Praneeth]'
-- version: v1.0.2
+- version: 1.0.2
   date: 2015-10-08T00:00:00.000Z
   commits:
     - subject: >-
         Fix getting API key from DB by returning its .value [Pablo Carranza
         Velez]
-- version: v1.0.1
+- version: 1.0.1
   date: 2015-10-07T00:00:00.000Z
   commits:
     - subject: >-
@@ -2248,7 +2248,7 @@
     - subject: >-
         Wait 10 seconds after sending SIGTERM and before sending SIGKILL when
         stopping a container [Petros Angelatos]
-- version: v1.0.0
+- version: 1.0.0
   date: 2015-10-02T00:00:00.000Z
   commits:
     - subject: >-
@@ -2257,13 +2257,13 @@
     - subject: >-
         Only apply special actions / boot config on change, and always persist
         to DB [Pablo Carranza Velez]
-- version: v0.0.18
+- version: 0.0.18
   date: 2015-10-01T00:00:00.000Z
   commits:
     - subject: >-
         Fix preloaded apps so that they have the complete environment [Pablo
         Carranza Velez]
-- version: v0.0.17
+- version: 0.0.17
   date: 2015-09-29T00:00:00.000Z
   commits:
     - subject: >-
@@ -2294,7 +2294,7 @@
         Allow updates to be forced via an env var or an API call [Pablo Carranza
         Velez]
     - subject: 'Use lockfile to lock updates per app [Pablo Carranza Velez]'
-- version: v0.0.16
+- version: 0.0.16
   date: 2015-09-07T00:00:00.000Z
   commits:
     - subject: 'Disabled the TCP ping whilst the VPN is connected. [Praneeth]'
@@ -2306,7 +2306,7 @@
     - subject: 'Fixed spaces in env vars for web terminal. [Petros]'
     - subject: 'Added missing return when no app id specified. [Pablo Carranza Velez]'
     - subject: 'Try to populate the docker cache before building. [Pagan Gazzard]'
-- version: v0.0.15
+- version: 0.0.15
   date: 2015-07-23T00:00:00.000Z
   commits:
     - subject: 'Make resolv.conf writable from a user container. [Praneeth]'
@@ -2322,7 +2322,7 @@
         Write the `registered_at` time to config.json as well, in case there is
         a failure between writing to config.json and writing to knex [Pagan
         Gazzard]
-- version: v0.0.14
+- version: 0.0.14
   date: 2015-05-12T00:00:00.000Z
   commits:
     - subject: 'Clean up tmp files left behind by npm [Pagan Gazzard]'
@@ -2336,13 +2336,13 @@
     - subject: >-
         Stop caching config.json, avoids a race that could cause getting stuck
         repeatedly trying to register [Pagan Gazzard]
-- version: v0.0.13
+- version: 0.0.13
   date: 2015-05-05T00:00:00.000Z
   commits:
     - subject: >-
         Bind mount /etc/resolv.conf as ro for application containers and
         supervisor [Praneeth]
-- version: v0.0.12
+- version: 0.0.12
   date: 2015-04-15T00:00:00.000Z
   commits:
     - subject: >-
