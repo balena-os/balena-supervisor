@@ -115,9 +115,24 @@ workflows:
   version: 2
   build_and_maybe_deploy:
     jobs:
-      - amd64
-      - i386
-      - rpi
-      - armv7hf
-      - aarch64
-      - i386-nlp
+      - amd64: {}
+      - i386:
+          filters:
+            branches:
+              only: master
+      - rpi:
+          filters:
+            branches:
+              only: master
+      - armv7hf:
+          filters:
+            branches:
+              only: master
+      - aarch64:
+          filters:
+            branches:
+              only: master
+      - i386-nlp:
+          filters:
+            branches:
+              only: master
