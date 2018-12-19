@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'VersionBot: Fix incomplete version in CHANGELOG.yml'
+      hash: c87123f585874c07960935ce6accb3f6946813a6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Giovanni Garufi <giovanni@balena.io>
+        signed-off-by: Giovanni Garufi <giovanni@balena.io>
+      author: Giovanni Garufi
+  version: 9.0.2
+  date: 2018-12-18T17:24:35.636Z
+- commits:
     - subject: >-
         Fix a race condition that could cause an unnecessary restart of a
         service immediately after download
