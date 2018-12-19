@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update pinejs-client to pinejs-client-request 5.x
+      hash: 019190646e5dbcc24a1aaa4fd4ed5d9274fce575
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 9.2.1
+  date: 2018-12-19T17:57:15.609Z
+- commits:
     - subject: Update to webpack 4
       hash: 655c476ccdb40639f814eebd68a8170bc000f8e5
       body: ''
