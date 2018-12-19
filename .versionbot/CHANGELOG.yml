@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update to webpack 4
+      hash: 655c476ccdb40639f814eebd68a8170bc000f8e5
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+  version: 9.2.0
+  date: 2018-12-19T17:16:14.411Z
+- commits:
     - subject: 'device-api: Add morgan to log api requests'
       hash: 45b322b7e093abfa60ebb476c2cc477800de06b7
       body: ''
