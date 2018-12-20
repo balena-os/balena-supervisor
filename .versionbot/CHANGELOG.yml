@@ -1,4 +1,21 @@
 - commits:
+    - subject: 'Force `devtool: none` to avoid issues with env.noOptimize'
+      hash: 1130ecd3ce83e379a4f1aa41981836be2470151c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Use fork-ts-checker to speed up the webpack build
+      hash: 77dd1d0a44dad250186c6f7625226fa994a4f0e5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 9.2.4
+  date: 2018-12-20T16:49:22.103Z
+- commits:
     - subject: 'fix: Correctly type top level network IPAM config'
       hash: 9fab0fc5cc924a9c1a89a38682b7d440c7c3a649
       body: ''
