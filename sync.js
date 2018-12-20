@@ -1,31 +1,44 @@
 #!/usr/bin/env node
 
-// Sync changes in the javascript code to a running supervisor on a device  in the local network
-//
-// Usage:
-//   ./sync.js <device IP>
-//
-// The script will first build a non-optimized version of the js code and sync the resulting app.js
-// onto the supervisor container at the specified IP. It will also restart the supervisor container.
-// The device must be a development variant of balenaOS and the supervisor must be running.
+if (!process.argv[2] || ['help', '-h', '--help'].includes(process.argv[2])) {
+	console.log(`
+Sync changes in the javascript code to a running supervisor on a device  in the local network
 
-fs = require('fs');
+Usage:
+  ./sync.js <device IP>
 
-doSync = require('balena-sync').sync('local-balena-os-device').sync;
-
-// Avoid a super confusing error where the cwd doesn't exist
-dir = __dirname + '/dist';
-if (!fs.existsSync(dir)) {
-	fs.mkdirSync(dir);
+The script will first build a non-optimized version of the js code and sync the resulting app.js
+onto the supervisor container at the specified IP. It will also restart the supervisor container.
+The device must be a development variant of balenaOS and the supervisor must be running.
+	`)
+	process.exit(1)
 }
 
-opts = {
+const childProcess = require('child_process');
+
+const webpack = require('webpack');
+const webpackConfig = require('./webpack.config');
+const compiler = webpack(webpackConfig({ noOptimize: true }));
+
+const doSync = require('balena-sync').sync('local-balena-os-device').sync;
+
+const syncOpts = {
 	deviceIp: process.argv[2],
-	baseDir: dir,
+	baseDir: __dirname + '/dist',
 	destination: '/usr/src/app/dist',
 	appName: 'resin_supervisor',
 	skipGitignore: true,
-	before: 'npm install && npm run build -- --env.noOptimize',
 };
 
-doSync(opts);
+childProcess.execSync('npm install', { stdio: 'inherit' });
+
+compiler.watch({
+	ignored: /node_modules/,
+}, (err, stats) => {
+	if (err) {
+		console.error(err);
+		return;
+	}
+	console.log(stats.toString({ colors: true }));
+	doSync(syncOpts);
+});
