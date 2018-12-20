@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'fix: Correctly type top level network IPAM config'
+      hash: 9fab0fc5cc924a9c1a89a38682b7d440c7c3a649
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.2.3
+  date: 2018-12-20T10:08:34.889Z
+- commits:
     - subject: 'deps: Pin event-stream to avoid false audit warning'
       hash: 0bae497e4d2e8371d1e69c6bd536d143e9029a35
       body: ''
