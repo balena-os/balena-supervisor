@@ -63,17 +63,21 @@ export class Network {
 			ipam: {
 				driver: network.IPAM.Driver,
 				config: _.map(network.IPAM.Config, conf => {
-					const newConf: NetworkConfig['ipam']['config'][0] = {
-						subnet: conf.Subnet,
-						gateway: conf.Gateway,
-					};
+					const newConf: NetworkConfig['ipam']['config'][0] = {};
 
+					if (conf.Subnet != null) {
+						newConf.subnet = conf.Subnet;
+					}
+					if (conf.Gateway != null) {
+						newConf.gateway = conf.Gateway;
+					}
 					if (conf.IPRange != null) {
 						newConf.ipRange = conf.IPRange;
 					}
 					if (conf.AuxAddress != null) {
 						newConf.auxAddress = conf.AuxAddress;
 					}
+
 					return newConf;
 				}),
 				options: network.IPAM.Options == null ? {} : network.IPAM.Options,
@@ -162,10 +166,13 @@ export class Network {
 			IPAM: {
 				Driver: this.config.ipam.driver,
 				Config: _.map(this.config.ipam.config, conf => {
-					const ipamConf: DockerIPAMConfig = {
-						Subnet: conf.subnet,
-						Gateway: conf.gateway,
-					};
+					const ipamConf: DockerIPAMConfig = {};
+					if (conf.subnet != null) {
+						ipamConf.Subnet = conf.subnet;
+					}
+					if (conf.gateway != null) {
+						ipamConf.Gateway = conf.gateway;
+					}
 					if (conf.auxAddress != null) {
 						ipamConf.AuxAddress = conf.auxAddress;
 					}

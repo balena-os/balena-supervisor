@@ -39,8 +39,8 @@ export interface NetworkConfig {
 	ipam: {
 		driver: string;
 		config: Array<{
-			subnet: string;
-			gateway: string;
+			subnet?: string;
+			gateway?: string;
 			ipRange?: string;
 			auxAddress?: string;
 		}>;
@@ -53,9 +53,9 @@ export interface NetworkConfig {
 }
 
 export interface DockerIPAMConfig {
-	Subnet: string;
+	Subnet?: string;
 	IPRange?: string;
-	Gateway: string;
+	Gateway?: string;
 	AuxAddress?: string;
 }
 
