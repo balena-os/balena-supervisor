@@ -8,7 +8,7 @@ import { EventTracker } from './event-tracker';
 
 import Images = require('./compose/images');
 import ServiceManager = require('./compose/service-manager');
-import DB = require('./db');
+import DB from './db';
 
 import { Service } from './compose/service';
 

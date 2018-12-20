@@ -3,7 +3,7 @@ import * as Docker from 'dockerode';
 import * as _ from 'lodash';
 
 import Config = require('./config');
-import Database = require('./db');
+import Database from './db';
 import { checkTruthy } from './lib/validation';
 import { Logger } from './logger';
 

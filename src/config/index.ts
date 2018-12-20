@@ -6,11 +6,11 @@ import { generateUniqueKey } from 'resin-register-device';
 
 import ConfigJsonConfigBackend from './configJson';
 
-import { ConfigProviderFunctions, createProviderFunctions } from './functions';
 import * as constants from '../lib/constants';
 import { ConfigMap, ConfigSchema, ConfigValue } from '../lib/types';
+import { ConfigProviderFunctions, createProviderFunctions } from './functions';
 
-import DB = require('../db');
+import DB from '../db';
 
 interface ConfigOpts {
 	db: DB;
@@ -215,7 +215,7 @@ class Config extends EventEmitter {
 				return setValuesInTransaction(trx).return();
 			} else {
 				return this.db
-					.transaction(tx => {
+					.transaction((tx: Transaction) => {
 						return setValuesInTransaction(tx);
 					})
 					.return();

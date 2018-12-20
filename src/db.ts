@@ -10,7 +10,9 @@ interface DBOpts {
 
 type DBTransactionCallback = (trx: Knex.Transaction) => void;
 
-class DB {
+export type Transaction = Knex.Transaction;
+
+export class DB {
 	private databasePath: string;
 	private knex: Knex;
 
@@ -65,4 +67,4 @@ class DB {
 	}
 }
 
-export = DB;
+export default DB;

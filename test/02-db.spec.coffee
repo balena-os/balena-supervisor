@@ -4,7 +4,7 @@ m = require 'mochainon'
 { expect } = m.chai
 fs = Promise.promisifyAll(require('fs'))
 Knex = require('knex')
-DB = require('../src/db')
+{ DB } = require('../src/db')
 
 createOldDatabase = (path) ->
 	knex = new Knex(
