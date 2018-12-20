@@ -1,4 +1,14 @@
 - commits:
+    - subject: Use webpack watching for sync.js for a faster dev cycle
+      hash: c0c805d072d6fb7daca3a9d51dd4e324886df269
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 9.2.5
+  date: 2018-12-20T17:42:34.493Z
+- commits:
     - subject: 'Force `devtool: none` to avoid issues with env.noOptimize'
       hash: 1130ecd3ce83e379a4f1aa41981836be2470151c
       body: ''
