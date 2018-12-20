@@ -55,6 +55,7 @@ console.log('Using the following dependencies as external:', externalModules);
 module.exports = function (env) {
 	return {
 		mode: env == null || !env.noOptimize ? 'production' : 'development',
+		devtool: 'none',
 		entry: './src/app.coffee',
 		output: {
 			filename: 'app.js',
