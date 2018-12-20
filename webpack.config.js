@@ -106,7 +106,9 @@ module.exports = function (env) {
 			return callback()
 		},
 		plugins: [
-			new ForkTsCheckerWebpackPlugin(),
+			new ForkTsCheckerWebpackPlugin({
+				async: false
+			}),
 			new CopyWebpackPlugin([
 				{
 					from: './src/migrations',
