@@ -4,6 +4,7 @@ var fs = require('fs');
 var _ = require('lodash');
 var path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+var ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 var externalModules = [
 	'sqlite3',
@@ -52,20 +53,9 @@ externalModules.push(new RegExp('^(' + _.reject(maybeOptionalModules, requiredMo
 console.log('Using the following dependencies as external:', externalModules);
 
 module.exports = function (env) {
-	let plugins = [
-		new CopyWebpackPlugin([
-			{
-				from: './src/migrations',
-				to: 'migrations'
-			}
-		]),
-		new webpack.ContextReplacementPlugin(
-			/\.\/migrations/,
-			path.resolve(__dirname, 'src/migrations')
-		)
-	]
 	return {
 		mode: env == null || !env.noOptimize ? 'production' : 'development',
+		devtool: 'none',
 		entry: './src/app.coffee',
 		output: {
 			filename: 'app.js',
@@ -97,6 +87,9 @@ module.exports = function (env) {
 					use: [
 						{
 							loader: 'ts-loader',
+							options: {
+								transpileOnly: true,
+							}
 						}
 					]
 				}
@@ -112,6 +105,18 @@ module.exports = function (env) {
 			}
 			return callback()
 		},
-		plugins: plugins
+		plugins: [
+			new ForkTsCheckerWebpackPlugin(),
+			new CopyWebpackPlugin([
+				{
+					from: './src/migrations',
+					to: 'migrations'
+				}
+			]),
+			new webpack.ContextReplacementPlugin(
+				/\.\/migrations/,
+				path.resolve(__dirname, 'src/migrations')
+			),
+		]
 	};
 }
