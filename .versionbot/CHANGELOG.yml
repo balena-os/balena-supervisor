@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'deps: Pin event-stream to avoid false audit warning'
+      hash: 0bae497e4d2e8371d1e69c6bd536d143e9029a35
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.2.2
+  date: 2018-12-20T09:51:18.661Z
+- commits:
     - subject: Update pinejs-client to pinejs-client-request 5.x
       hash: 019190646e5dbcc24a1aaa4fd4ed5d9274fce575
       body: ''
