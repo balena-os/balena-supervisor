@@ -8,7 +8,7 @@ m = require 'mochainon'
 prepare = require './lib/prepare'
 fsUtils = require '../src/lib/fs-utils'
 
-DeviceConfig = require '../src/device-config'
+{ DeviceConfig } = require '../src/device-config'
 { ExtlinuxConfigBackend, RPiConfigBackend } = require '../src/config/backend'
 
 extlinuxBackend = new ExtlinuxConfigBackend()

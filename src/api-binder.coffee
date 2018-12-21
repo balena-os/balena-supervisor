@@ -329,13 +329,13 @@ module.exports = class APIBinder
 	# Creates the necessary config vars in the API to match the current device state,
 	# without overwriting any variables that are already set.
 	_reportInitialEnv: (apiEndpoint) =>
+		defaultConfig = @deviceState.deviceConfig.getDefaults()
 		Promise.join(
 			@deviceState.getCurrentForComparison()
 			@getTargetState().then (targetState) =>
 				@deviceState.deviceConfig.formatConfigKeys(targetState.local.config)
-			@deviceState.deviceConfig.getDefaults()
 			@config.get('deviceId')
-			(currentState, targetConfig, defaultConfig, deviceId) =>
+			(currentState, targetConfig, deviceId) =>
 				currentConfig = currentState.local.config
 				Promise.mapSeries _.toPairs(currentConfig), ([ key, value ]) =>
 					# We want to disable local mode when joining a cloud

@@ -8,7 +8,7 @@ import { EventTracker } from './event-tracker';
 
 import Images = require('./compose/images');
 import ServiceManager = require('./compose/service-manager');
-import DB = require('./db');
+import DB from './db';
 
 import { Service } from './compose/service';
 
@@ -51,7 +51,9 @@ export class ApplicationManager extends EventEmitter {
 		opts: Options,
 	): Bluebird<void>;
 
-	public getStatus(): Promise<DeviceApplicationState>;
+	// FIXME: Type this properly as it's some mutant state between
+	// the state endpoint and the ApplicationManager internals
+	public getStatus(): Promise<Dictionay<any>>;
 
 	public serviceNameFromId(serviceId: number): Bluebird<string>;
 }

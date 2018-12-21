@@ -315,3 +315,5 @@ export class Logger {
 		return null;
 	}
 }
+
+export default Logger;

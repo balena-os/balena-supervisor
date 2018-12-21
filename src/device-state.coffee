@@ -19,7 +19,7 @@ updateLock = require './lib/update-lock'
 { singleToMulticontainerApp } = require './lib/migration'
 { ENOENT, EISDIR, NotFoundError, UpdatesLockedError } = require './lib/errors'
 
-DeviceConfig = require './device-config'
+{ DeviceConfig } = require './device-config'
 ApplicationManager = require './application-manager'
 
 validateLocalState = (state) ->
@@ -534,7 +534,7 @@ module.exports = class DeviceState extends EventEmitter
 
 	executeStepAction: (step, { force, initial, skipLock }) =>
 		Promise.try =>
-			if _.includes(@deviceConfig.validActions, step.action)
+			if @deviceConfig.isValidAction(step.action)
 				@deviceConfig.executeStepAction(step, { initial })
 			else if _.includes(@applications.validActions, step.action)
 				@applications.executeStepAction(step, { force, skipLock })
