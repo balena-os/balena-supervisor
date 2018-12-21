@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'misc: Exclude typescript files from resulting image'
+      hash: 34e5a7b0481b3eb70414c748fae0d2a1d393f371
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.2.6
+  date: 2018-12-21T09:27:44.035Z
+- commits:
     - subject: Use webpack watching for sync.js for a faster dev cycle
       hash: c0c805d072d6fb7daca3a9d51dd4e324886df269
       body: ''
