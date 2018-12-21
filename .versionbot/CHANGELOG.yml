@@ -1,4 +1,54 @@
 - commits:
+    - subject: 'refactor: Convert DeviceConfig module to typescript'
+      hash: b32fba43e1cb61dab101c38088bdb0e312690550
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'types: Make DeviceApplicationState reflect state endpoint'
+      hash: 7ba1ab981c2c785a8ceb247dfce2460d1ddfb9e5
+      body: |
+        Also change the return format of ApplicationManager.getStatus(), which
+        does not conform to the above.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Change export style of db to named'
+      hash: de5157c04c56e74709d49749dde7de470393e917
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Add default export to logger module'
+      hash: 64db38204f840ec71fd2666f34af67f2dd0107d7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Convert host-config module to typescript'
+      hash: f4f67a5afc43542f35aa9285312d311aadbb43fd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.2.7
+  date: 2018-12-21T17:19:29.895Z
+- commits:
     - subject: 'misc: Exclude typescript files from resulting image'
       hash: 34e5a7b0481b3eb70414c748fae0d2a1d393f371
       body: ''
