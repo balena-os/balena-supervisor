@@ -2,18 +2,15 @@ import * as Promise from 'bluebird';
 import * as _ from 'lodash';
 import { fs } from 'mz';
 import * as path from 'path';
-import * as Lock from 'rwlock';
 
 import { ConfigSchema, ConfigValue } from '../lib/types';
+import { readLock, writeLock } from '../lib/update-lock';
 
 import * as constants from '../lib/constants';
 import { writeAndSyncFile, writeFileAtomic } from '../lib/fs-utils';
 import * as osRelease from '../lib/os-release';
 
-type LockCallback = (file: string) => Promise<() => void>;
-
 export default class ConfigJsonConfigBackend {
-	private lock: Lock;
 	private readLockConfigJson: () => Promise.Disposer<() => void>;
 	private writeLockConfigJson: () => Promise.Disposer<() => void>;
 
@@ -25,12 +22,7 @@ export default class ConfigJsonConfigBackend {
 	public constructor(schema: ConfigSchema, configPath?: string) {
 		this.configPath = configPath;
 		this.schema = schema;
-		this.lock = new Lock();
 
-		const writeLock: LockCallback = Promise.promisify(
-			this.lock.async.writeLock,
-		);
-		const readLock: LockCallback = Promise.promisify(this.lock.async.readLock);
 		this.writeLockConfigJson = () =>
 			writeLock('config.json').disposer(release => release());
 		this.readLockConfigJson = () =>

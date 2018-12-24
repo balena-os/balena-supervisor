@@ -46,8 +46,14 @@ process.on('exit', () => {
 	}
 });
 
+type LockFn = (key: string | number) => Bluebird<() => void>;
 const locker = new Lock();
-const writeLock = Bluebird.promisify(locker.async.writeLock).bind(locker);
+export const writeLock: LockFn = Bluebird.promisify(locker.async.writeLock, {
+	context: locker,
+});
+export const readLock: LockFn = Bluebird.promisify(locker.async.readLock, {
+	context: locker,
+});
 
 function dispose(release: () => void): Bluebird<void> {
 	return Bluebird.map(_.keys(locksTaken), lockName => {
@@ -101,5 +107,10 @@ export function lock(
 			.disposer(dispose);
 	};
 
-	return Bluebird.using(takeTheLock(), fn);
+	const disposer = takeTheLock();
+	if (disposer) {
+		return Bluebird.using(disposer, fn);
+	} else {
+		return Bluebird.resolve(fn());
+	}
 }
