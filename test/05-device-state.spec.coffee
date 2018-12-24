@@ -8,7 +8,7 @@ m.chai.use(require('chai-events'))
 prepare = require './lib/prepare'
 DeviceState = require '../src/device-state'
 { DB } = require('../src/db')
-Config = require('../src/config')
+{ Config } = require('../src/config')
 { RPiConfigBackend } = require('../src/config/backend')
 
 { Service } = require '../src/compose/service'

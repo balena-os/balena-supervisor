@@ -3,9 +3,9 @@ import { Transaction } from 'knex';
 import * as _ from 'lodash';
 import { URL } from 'url';
 
-import Config = require('../config');
 import supervisorVersion = require('../lib/supervisor-version');
 
+import Config from '.';
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
 import { ConfigValue } from '../lib/types';

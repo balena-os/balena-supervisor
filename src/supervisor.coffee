@@ -2,7 +2,7 @@ EventEmitter = require 'events'
 
 { EventTracker } = require './event-tracker'
 { DB } = require './db'
-Config = require './config'
+{ Config } = require './config'
 APIBinder = require './api-binder'
 DeviceState = require './device-state'
 SupervisorAPI = require './supervisor-api'

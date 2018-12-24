@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import Config = require('./config');
+import Config from './config';
 import Database, { Transaction } from './db';
 import Logger from './logger';
 

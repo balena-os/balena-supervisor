@@ -8,7 +8,7 @@ m = require 'mochainon'
 { stub, spy } = m.sinon
 
 { DB } = require('../src/db')
-Config = require('../src/config')
+{ Config } = require('../src/config')
 DeviceState = require('../src/device-state')
 APIBinder = require('../src/api-binder')
 

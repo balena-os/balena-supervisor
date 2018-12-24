@@ -6,7 +6,7 @@ fs = Promise.promisifyAll(require('fs'))
 m.chai.use(require('chai-events'))
 
 { DB } = require('../src/db')
-Config = require('../src/config')
+{ Config } = require('../src/config')
 constants = require('../src/lib/constants')
 
 describe 'Config', ->
