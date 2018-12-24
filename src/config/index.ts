@@ -271,7 +271,7 @@ export class Config extends EventEmitter {
 		});
 	}
 
-	private newUniqueKey(): string {
+	public newUniqueKey(): string {
 		return generateUniqueKey();
 	}
 

@@ -7,7 +7,7 @@ declare module 'blinking' {
 	}
 
 	interface Blink {
-		start: (pattern: Pattern) => void;
+		start: (pattern?: Pattern) => void;
 		stop: () => void;
 	}
 

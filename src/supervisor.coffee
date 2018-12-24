@@ -5,7 +5,7 @@ EventEmitter = require 'events'
 { Config } = require './config'
 APIBinder = require './api-binder'
 DeviceState = require './device-state'
-SupervisorAPI = require './supervisor-api'
+{ SupervisorAPI } = require './supervisor-api'
 { Logger } = require './logger'
 { checkTruthy } = require './lib/validation'
 

@@ -1,0 +1,196 @@
+import * as express from 'express';
+import { Server } from 'http';
+import * as _ from 'lodash';
+import * as morgan from 'morgan';
+
+import Config from './config';
+import { EventTracker } from './event-tracker';
+import blink = require('./lib/blink');
+import * as iptables from './lib/iptables';
+import { checkTruthy } from './lib/validation';
+
+function getKeyFromReq(req: express.Request): string | null {
+	const queryKey = req.query.apikey;
+	if (queryKey != null) {
+		return queryKey;
+	}
+	const maybeHeaderKey = req.get('Authorization');
+	if (!maybeHeaderKey) {
+		return null;
+	}
+
+	const match = maybeHeaderKey.match(/^ApiKey (\w+)$/);
+	return match != null ? match[1] : null;
+}
+
+function authenticate(config: Config): express.RequestHandler {
+	return async (req, res, next) => {
+		try {
+			const conf = await config.getMany([
+				'apiSecret',
+				'localMode',
+				'unmanaged',
+				'osVariant',
+			]);
+
+			const needsAuth = conf.unmanaged
+				? conf.osVariant === 'prod'
+				: !conf.localMode;
+
+			if (needsAuth) {
+				// Only get the key if we need it
+				const key = getKeyFromReq(req);
+				if (key && conf.apiSecret && key === conf.apiSecret) {
+					return next();
+				} else {
+					return res.sendStatus(401);
+				}
+			} else {
+				return next();
+			}
+		} catch (err) {
+			res.status(503).send(`Unexpected error: ${err}`);
+		}
+	};
+}
+
+const expressLogger = morgan((tokens, req, res) =>
+	[
+		'Supervisor API:',
+		tokens.method(req, res),
+		req.path,
+		tokens.status(req, res),
+		'-',
+		tokens['response-time'](req, res),
+		'ms',
+	].join(' '),
+);
+
+interface SupervisorAPIConstructOpts {
+	config: Config;
+	eventTracker: EventTracker;
+	routers: express.Router[];
+	healthchecks: Array<() => Promise<boolean>>;
+}
+
+export class SupervisorAPI {
+	private config: Config;
+	private eventTracker: EventTracker;
+	private routers: express.Router[];
+	private healthchecks: Array<() => Promise<boolean>>;
+
+	private api = express();
+	private server: Server | null = null;
+
+	public constructor({
+		config,
+		eventTracker,
+		routers,
+		healthchecks,
+	}: SupervisorAPIConstructOpts) {
+		this.config = config;
+		this.eventTracker = eventTracker;
+		this.routers = routers;
+		this.healthchecks = healthchecks;
+
+		this.api.disable('x-powered-by');
+		this.api.use(expressLogger);
+		this.api.use(authenticate(this.config));
+
+		this.api.get('/v1/healthy', async (_req, res) => {
+			try {
+				const healths = await Promise.all(this.healthchecks.map(fn => fn()));
+				if (!_.every(healths)) {
+					throw new Error('Unhealthy');
+				}
+				return res.sendStatus(200);
+			} catch (e) {
+				res.sendStatus(500);
+			}
+		});
+
+		this.api.get('/ping', (_req, res) => res.send('OK'));
+
+		this.api.post('/v1/blink', (_req, res) => {
+			this.eventTracker.track('Device blink');
+			blink.pattern.start();
+			setTimeout(blink.pattern.stop, 15000);
+			return res.sendStatus(200);
+		});
+
+		// Expires the supervisor's API key and generates a new one.
+		// It also communicates the new key to the balena API.
+		this.api.post('/v1/regenerate-api-key', async (_req, res) => {
+			try {
+				const secret = await this.config.newUniqueKey();
+				await this.config.set({ apiSecret: secret });
+				res.status(200).send(secret);
+			} catch (e) {
+				res.status(503).send(e != null ? e.message : e || 'Unknown error');
+			}
+		});
+
+		// And assign all external routers
+		for (const router of this.routers) {
+			this.api.use(router);
+		}
+	}
+
+	public async listen(
+		allowedInterfaces: string[],
+		port: number,
+		apiTimeout: number,
+	): Promise<void> {
+		const localMode = (await this.config.get('localMode')) || false;
+		await this.applyListeningRules(
+			checkTruthy(localMode) || false,
+			port,
+			allowedInterfaces,
+		);
+
+		// Monitor the switching of local mode, and change which interfaces will
+		// be listened to based on that
+		this.config.on('change', (changedConfig: Dictionary<string>) => {
+			if (changedConfig.localMode != null) {
+				this.applyListeningRules(
+					checkTruthy(changedConfig.localMode || false) || false,
+					port,
+					allowedInterfaces,
+				);
+			}
+		});
+
+		this.server = this.api.listen(port);
+		this.server.timeout = apiTimeout;
+	}
+
+	private async applyListeningRules(
+		allInterfaces: boolean,
+		port: number,
+		allowedInterfaces: string[],
+	): Promise<void> {
+		try {
+			if (checkTruthy(allInterfaces)) {
+				await iptables.removeRejections(port);
+				console.log('Supervisor API listening on all interfaces');
+			} else {
+				await iptables.rejectOnAllInterfacesExcept(allowedInterfaces, port);
+				console.log('Supervisor API listening on allowed interfaces only');
+			}
+		} catch (err) {
+			console.log(
+				'Error on switching supervisor API listening rules - stopping API.',
+			);
+			console.log('  ', err);
+			this.stop();
+		}
+	}
+
+	public stop() {
+		if (this.server != null) {
+			this.server.close();
+		}
+	}
+}
+
+export default SupervisorAPI;
