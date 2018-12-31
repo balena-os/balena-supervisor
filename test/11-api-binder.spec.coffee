@@ -10,7 +10,7 @@ m = require 'mochainon'
 { DB } = require('../src/db')
 { Config } = require('../src/config')
 DeviceState = require('../src/device-state')
-APIBinder = require('../src/api-binder')
+{ APIBinder } = require('../src/api-binder')
 
 initModels = (filename) ->
 	prepare()
@@ -94,7 +94,7 @@ describe 'APIBinder', ->
 			.then (theDevice) ->
 				expect(theDevice).to.deep.equal(balenaAPI.balenaBackend.devices[3])
 
-	describe '_exchangeKeyAndGetDevice', ->
+	describe 'exchangeKeyAndGetDevice', ->
 		before ->
 			initModels.call(this, '/config-apibinder.json')
 
@@ -102,7 +102,7 @@ describe 'APIBinder', ->
 			spy(balenaAPI.balenaBackend, 'deviceKeyHandler')
 			fetchDeviceStub = stub(@apiBinder, 'fetchDevice')
 			fetchDeviceStub.onCall(0).resolves({ id: 1 })
-			@apiBinder._exchangeKeyAndGetDevice(mockProvisioningOpts)
+			@apiBinder.exchangeKeyAndGetDevice(mockProvisioningOpts)
 			.then (device) =>
 				expect(balenaAPI.balenaBackend.deviceKeyHandler).to.not.be.called
 				expect(device).to.deep.equal({ id: 1 })
@@ -113,7 +113,7 @@ describe 'APIBinder', ->
 		it 'throws if it cannot get the device with any of the keys', ->
 			spy(balenaAPI.balenaBackend, 'deviceKeyHandler')
 			stub(@apiBinder, 'fetchDevice').returns(Promise.resolve(null))
-			promise = @apiBinder._exchangeKeyAndGetDevice(mockProvisioningOpts)
+			promise = @apiBinder.exchangeKeyAndGetDevice(mockProvisioningOpts)
 			promise.catch(->)
 			expect(promise).to.be.rejected
 			.then =>
@@ -127,7 +127,7 @@ describe 'APIBinder', ->
 			fetchDeviceStub = stub(@apiBinder, 'fetchDevice')
 			fetchDeviceStub.onCall(0).returns(Promise.resolve(null))
 			fetchDeviceStub.onCall(1).returns(Promise.resolve({ id: 1 }))
-			@apiBinder._exchangeKeyAndGetDevice(mockProvisioningOpts)
+			@apiBinder.exchangeKeyAndGetDevice(mockProvisioningOpts)
 			.then (device) =>
 				expect(balenaAPI.balenaBackend.deviceKeyHandler).to.be.calledOnce
 				expect(device).to.deep.equal({ id: 1 })

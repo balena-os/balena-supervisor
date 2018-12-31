@@ -3,4 +3,5 @@
 // and upstream types to the repo
 declare module 'resin-register-device' {
 	export function generateUniqueKey(): string;
+	export function register(opts: Dictionary<any>): Bluebird<{ id: string }>;
 }

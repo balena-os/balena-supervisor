@@ -14,6 +14,6 @@ export interface DeviceApplicationState {
 		};
 	};
 	// TODO
-	dependent: any;
-	commit: string;
+	dependent?: any;
+	commit?: string;
 }
