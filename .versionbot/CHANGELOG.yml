@@ -1,4 +1,33 @@
 - commits:
+    - subject: 'refactor: Generate and normalise PortMaps from compose ports in-class'
+      hash: dc34025545984dc035fac18aec8160ea095e5ca2
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'compose: Normalise target ports for comparison with docker''s output'
+      hash: 557c32b80e09051e9fe3633a94fe38cd5a49fcdb
+      body: |
+        Docker always returns ports in ascending order, so if they aren't
+        specified like that in the compose, a restart loop would occur. This
+        patch changes the port maps to be stored in ascending order, based on
+        an alphabetical sort of the internalStart port (not taking into account
+        the protocol). This is the same as how Docker returns them, so they will
+        match, regardless of input form.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#824'
+        closes: '#824'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.2.8
+  date: 2019-01-02T12:20:55.151Z
+- commits:
     - subject: 'refactor: Convert DeviceConfig module to typescript'
       hash: b32fba43e1cb61dab101c38088bdb0e312690550
       body: ''
