@@ -1,0 +1,14 @@
+{
+	"imageId": 730944,
+	"serviceName": "port-service",
+	"image": "sha256:6d101a6659bf5c10616bacd696feb80c927d56c0f14baadf8cf1f8956c492905",
+	"running": true,
+	"environment": {},
+	"labels": {},
+	"ports": ["80-90", "10:1000", "300/udp", "20/udp"],
+	"appId": 1032480,
+	"releaseId": 720081,
+	"serviceId": 155981,
+	"commit": "a41cede6b2dde6553476d02feba34a5e",
+	"imageName": "registry2.balena-cloud.com/v2/fa91ca88f7df77517ead234e4ea7e381@sha256:08a9abf8dbc21540a5db17caea829ac236bfa8c387c83fa56c8ec1c7975a0952"
+}

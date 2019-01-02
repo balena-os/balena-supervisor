@@ -1,0 +1,16 @@
+{
+	"1000/tcp": [{ "HostIp": "", "HostPort": "10" }],
+	"20/udp": [{ "HostIp": "", "HostPort": "20" }],
+	"300/udp": [{ "HostIp": "", "HostPort": "300" }],
+	"80/tcp": [{ "HostIp": "", "HostPort": "80" }],
+	"81/tcp": [{ "HostIp": "", "HostPort": "81" }],
+	"82/tcp": [{ "HostIp": "", "HostPort": "82" }],
+	"83/tcp": [{ "HostIp": "", "HostPort": "83" }],
+	"84/tcp": [{ "HostIp": "", "HostPort": "84" }],
+	"85/tcp": [{ "HostIp": "", "HostPort": "85" }],
+	"86/tcp": [{ "HostIp": "", "HostPort": "86" }],
+	"87/tcp": [{ "HostIp": "", "HostPort": "87" }],
+	"88/tcp": [{ "HostIp": "", "HostPort": "88" }],
+	"89/tcp": [{ "HostIp": "", "HostPort": "89" }],
+	"90/tcp": [{ "HostIp": "", "HostPort": "90" }]
+}
