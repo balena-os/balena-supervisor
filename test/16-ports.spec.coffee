@@ -248,8 +248,7 @@ describe 'Ports', ->
 			portBindings = require('./data/ports/not-ascending/port-bindings.json')
 			compose = require('./data/ports/not-ascending/compose.json')
 			portMapsCurrent = PortMap.fromDockerOpts(portBindings)
-			portMapsTarget = compose.ports.map((p) -> new PortMap(p))
-			portMapsTarget = PortMap.normaliseComposePorts(portMapsTarget)
+			portMapsTarget = PortMap.fromComposePorts(compose.ports)
 
 			expect(portMapsTarget).to.deep.equal(portMapsCurrent)
 

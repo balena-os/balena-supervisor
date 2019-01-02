@@ -30,7 +30,7 @@ interface PortRange {
 export class PortMap {
 	private ports: PortRange;
 
-	public constructor(portStrOrObj: string | PortRange) {
+	private constructor(portStrOrObj: string | PortRange) {
 		if (_.isString(portStrOrObj)) {
 			this.parsePortString(portStrOrObj);
 		} else {
@@ -139,10 +139,11 @@ export class PortMap {
 			}, []);
 	}
 
-	public static normaliseComposePorts(portMaps: PortMap[]): PortMap[] {
-		return _.sortBy(portMaps, p => {
-			return p.ports.internalStart;
-		});
+	public static fromComposePorts(ports: string[]): PortMap[] {
+		return _(ports)
+			.map(p => new PortMap(p))
+			.sortBy(p => p.ports.internalStart)
+			.value();
 	}
 
 	private parsePortString(portStr: string): void {
