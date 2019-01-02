@@ -253,7 +253,9 @@ export class Service {
 
 		let portMaps: PortMap[] = [];
 		if (config.ports != null) {
-			portMaps = _.map(config.ports, p => new PortMap(p));
+			portMaps = PortMap.normaliseComposePorts(
+				_.map(config.ports, p => new PortMap(p)),
+			);
 		}
 		delete config.ports;
 

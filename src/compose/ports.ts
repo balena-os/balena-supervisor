@@ -139,6 +139,12 @@ export class PortMap {
 			}, []);
 	}
 
+	public static normaliseComposePorts(portMaps: PortMap[]): PortMap[] {
+		return _.sortBy(portMaps, p => {
+			return p.ports.internalStart;
+		});
+	}
+
 	private parsePortString(portStr: string): void {
 		const match = portStr.match(PORTS_REGEX);
 		if (match == null) {
