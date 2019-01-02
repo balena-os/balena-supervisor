@@ -243,6 +243,16 @@ describe 'Ports', ->
 				})
 			])
 
+	describe 'Running container comparison', ->
+		it 'should not consider order when comparing current and target state', ->
+			portBindings = require('./data/ports/not-ascending/port-bindings.json')
+			compose = require('./data/ports/not-ascending/compose.json')
+			portMapsCurrent = PortMap.fromDockerOpts(portBindings)
+			portMapsTarget = PortMap.fromComposePorts(compose.ports)
+
+			expect(portMapsTarget).to.deep.equal(portMapsCurrent)
+
+
 	describe 'normalisePortMaps', ->
 
 		it 'should correctly normalise PortMap lists', ->
