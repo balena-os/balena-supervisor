@@ -13,7 +13,7 @@ export interface DeviceApplicationState {
 			};
 		};
 	};
-	// TODO
+	// TODO: Type the dependent entry correctly
 	dependent?: any;
 	commit?: string;
 }
