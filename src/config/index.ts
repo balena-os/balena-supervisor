@@ -108,7 +108,7 @@ export class Config extends EventEmitter {
 			}
 			switch (this.schema[key].source) {
 				case 'func':
-					return this.providerFunctions[key].get().catch(e => {
+					return this.providerFunctions[key]().catch(e => {
 						console.error(`Error getting config value for ${key}`, e, e.stack);
 						return null;
 					});
@@ -162,8 +162,6 @@ export class Config extends EventEmitter {
 						acc.configJsonVals[key] = val;
 					} else if (this.schema[key].source === 'db') {
 						acc.dbVals[key] = val;
-					} else if (this.schema[key].source === 'func') {
-						acc.fnVals[key] = val;
 					} else {
 						throw new Error(
 							`Unknown config backend for key: ${key}, backend: ${

@@ -1,5 +1,4 @@
 import * as Bluebird from 'bluebird';
-import { Transaction } from 'knex';
 import * as _ from 'lodash';
 import { URL } from 'url';
 
@@ -8,21 +7,8 @@ import supervisorVersion = require('../lib/supervisor-version');
 import Config from '.';
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
-import { ConfigValue } from '../lib/types';
 
-// A provider for schema entries with source 'func'
-type ConfigProviderFunctionGetter = () => Bluebird<any>;
-type ConfigProviderFunctionSetter = (
-	value: ConfigValue,
-	tx?: Transaction,
-) => Bluebird<void>;
-type ConfigProviderFunctionRemover = () => Bluebird<void>;
-
-interface ConfigProviderFunction {
-	get: ConfigProviderFunctionGetter;
-	set?: ConfigProviderFunctionSetter;
-	remove?: ConfigProviderFunctionRemover;
-}
+type ConfigProviderFunction = () => Bluebird<any>;
 
 export interface ConfigProviderFunctions {
 	[key: string]: ConfigProviderFunction;
@@ -32,117 +18,97 @@ export function createProviderFunctions(
 	config: Config,
 ): ConfigProviderFunctions {
 	return {
-		version: {
-			get: () => {
-				return Bluebird.resolve(supervisorVersion);
-			},
+		version: () => {
+			return Bluebird.resolve(supervisorVersion);
 		},
-		currentApiKey: {
-			get: () => {
-				return config
-					.getMany(['apiKey', 'deviceApiKey'])
-					.then(({ apiKey, deviceApiKey }) => {
-						return apiKey || deviceApiKey;
-					});
-			},
-		},
-		provisioned: {
-			get: () => {
-				return config
-					.getMany(['uuid', 'apiEndpoint', 'registered_at', 'deviceId'])
-					.then(requiredValues => {
-						return _.every(_.values(requiredValues), Boolean);
-					});
-			},
-		},
-		osVersion: {
-			get: () => {
-				return osRelease.getOSVersion(constants.hostOSVersionPath);
-			},
-		},
-		osVariant: {
-			get: () => {
-				return osRelease.getOSVariant(constants.hostOSVersionPath);
-			},
-		},
-		provisioningOptions: {
-			get: () => {
-				return config
-					.getMany([
-						'uuid',
-						'userId',
-						'applicationId',
-						'apiKey',
-						'deviceApiKey',
-						'deviceType',
-						'apiEndpoint',
-						'apiTimeout',
-						'registered_at',
-						'deviceId',
-					])
-					.then(conf => {
-						return {
-							uuid: conf.uuid,
-							applicationId: conf.applicationId,
-							userId: conf.userId,
-							deviceType: conf.deviceType,
-							provisioningApiKey: conf.apiKey,
-							deviceApiKey: conf.deviceApiKey,
-							apiEndpoint: conf.apiEndpoint,
-							apiTimeout: conf.apiTimeout,
-							registered_at: conf.registered_at,
-							deviceId: conf.deviceId,
-						};
-					});
-			},
-		},
-		mixpanelHost: {
-			get: () => {
-				return config.get('apiEndpoint').then(apiEndpoint => {
-					if (!apiEndpoint) {
-						return null;
-					}
-					const url = new URL(apiEndpoint as string);
-					return { host: url.host, path: '/mixpanel' };
+		currentApiKey: () => {
+			return config
+				.getMany(['apiKey', 'deviceApiKey'])
+				.then(({ apiKey, deviceApiKey }) => {
+					return apiKey || deviceApiKey;
 				});
-			},
 		},
-		extendedEnvOptions: {
-			get: () => {
-				return config.getMany([
+		provisioned: () => {
+			return config
+				.getMany(['uuid', 'apiEndpoint', 'registered_at', 'deviceId'])
+				.then(requiredValues => {
+					return _.every(_.values(requiredValues), Boolean);
+				});
+		},
+		osVersion: () => {
+			return osRelease.getOSVersion(constants.hostOSVersionPath);
+		},
+		osVariant: () => {
+			return osRelease.getOSVariant(constants.hostOSVersionPath);
+		},
+		provisioningOptions: () => {
+			return config
+				.getMany([
 					'uuid',
-					'listenPort',
-					'name',
-					'apiSecret',
+					'userId',
+					'applicationId',
+					'apiKey',
 					'deviceApiKey',
-					'version',
 					'deviceType',
-					'osVersion',
-				]);
-			},
-		},
-		fetchOptions: {
-			get: () => {
-				return config.getMany([
-					'uuid',
-					'currentApiKey',
 					'apiEndpoint',
-					'deltaEndpoint',
-					'delta',
-					'deltaRequestTimeout',
-					'deltaApplyTimeout',
-					'deltaRetryCount',
-					'deltaRetryInterval',
-					'deltaVersion',
-				]);
-			},
-		},
-		unmanaged: {
-			get: () => {
-				return config.get('apiEndpoint').then(apiEndpoint => {
-					return !apiEndpoint;
+					'apiTimeout',
+					'registered_at',
+					'deviceId',
+				])
+				.then(conf => {
+					return {
+						uuid: conf.uuid,
+						applicationId: conf.applicationId,
+						userId: conf.userId,
+						deviceType: conf.deviceType,
+						provisioningApiKey: conf.apiKey,
+						deviceApiKey: conf.deviceApiKey,
+						apiEndpoint: conf.apiEndpoint,
+						apiTimeout: conf.apiTimeout,
+						registered_at: conf.registered_at,
+						deviceId: conf.deviceId,
+					};
 				});
-			},
+		},
+		mixpanelHost: () => {
+			return config.get('apiEndpoint').then(apiEndpoint => {
+				if (!apiEndpoint) {
+					return null;
+				}
+				const url = new URL(apiEndpoint as string);
+				return { host: url.host, path: '/mixpanel' };
+			});
+		},
+		extendedEnvOptions: () => {
+			return config.getMany([
+				'uuid',
+				'listenPort',
+				'name',
+				'apiSecret',
+				'deviceApiKey',
+				'version',
+				'deviceType',
+				'osVersion',
+			]);
+		},
+		fetchOptions: () => {
+			return config.getMany([
+				'uuid',
+				'currentApiKey',
+				'apiEndpoint',
+				'deltaEndpoint',
+				'delta',
+				'deltaRequestTimeout',
+				'deltaApplyTimeout',
+				'deltaRetryCount',
+				'deltaRetryInterval',
+				'deltaVersion',
+			]);
+		},
+		unmanaged: () => {
+			return config.get('apiEndpoint').then(apiEndpoint => {
+				return !apiEndpoint;
+			});
 		},
 	};
 }
