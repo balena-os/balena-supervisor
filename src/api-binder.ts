@@ -543,7 +543,8 @@ export class APIBinder {
 			++this.targetStateFetchErrors;
 		}
 
-		return Bluebird.delay(pollInterval).then(this.pollTargetState);
+		await Bluebird.delay(pollInterval);
+		await this.pollTargetState();
 	}
 
 	private async pinDevice({ app, commit }: DevicePinInfo) {
