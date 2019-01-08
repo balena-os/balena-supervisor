@@ -1,4 +1,43 @@
 - commits:
+    - subject: 'refactor: Convert ApiBinder module to typescript'
+      hash: 01ed7bb103b4df8fb0679cf858220db42d4a0b92
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Only promisify read and write locks once'
+      hash: d5f4ac690ff1c344599a576619ee7f00e1cc0ce1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Convert supervisor api module to typescript'
+      hash: 9decea1d3bd4c7bd5741d805062214d70646ec2f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Change config modules export type to new-style'
+      hash: 3a130f4f9cec919a76b6879dc33c9df0cf262213
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.2.9
+  date: 2019-01-08T12:05:10.664Z
+- commits:
     - subject: 'refactor: Generate and normalise PortMaps from compose ports in-class'
       hash: dc34025545984dc035fac18aec8160ea095e5ca2
       body: ''
