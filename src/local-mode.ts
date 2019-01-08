@@ -2,7 +2,7 @@ import * as Bluebird from 'bluebird';
 import * as Docker from 'dockerode';
 import * as _ from 'lodash';
 
-import Config = require('./config');
+import Config from './config';
 import Database from './db';
 import { checkTruthy } from './lib/validation';
 import { Logger } from './logger';

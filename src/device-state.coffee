@@ -1,6 +1,5 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
-Lock = require 'rwlock'
 EventEmitter = require 'events'
 fs = Promise.promisifyAll(require('fs'))
 express = require 'express'
@@ -122,9 +121,8 @@ module.exports = class DeviceState extends EventEmitter
 		@on 'error', (err) ->
 			console.error('Error in deviceState: ', err, err.stack)
 		@_currentVolatile = {}
-		_lock = new Lock()
-		@_writeLock = Promise.promisify(_lock.async.writeLock)
-		@_readLock = Promise.promisify(_lock.async.readLock)
+		@_writeLock = updateLock.writeLock
+		@_readLock = updateLock.readLock
 		@lastSuccessfulUpdate = null
 		@failedUpdates = 0
 		@applyInProgress = false

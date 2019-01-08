@@ -26,7 +26,7 @@ const DEFAULT_REQUEST_TIMEOUT = 30000; // ms
 const DEFAULT_REQUEST_RETRY_INTERVAL = 10000; // ms
 const DEFAULT_REQUEST_RETRY_COUNT = 30;
 
-export const requestOpts = {
+export const requestOpts: requestLib.CoreOptions = {
 	gzip: true,
 	timeout: DEFAULT_REQUEST_TIMEOUT,
 	headers: {
@@ -40,9 +40,20 @@ const resumableOpts = {
 	retryInterval: DEFAULT_REQUEST_RETRY_INTERVAL,
 };
 
+type PromisifiedRequest = typeof requestLib & {
+	postAsync: (
+		uri: string | requestLib.CoreOptions,
+		options?: requestLib.CoreOptions | undefined,
+	) => Bluebird<any>;
+	getAsync: (
+		uri: string | requestLib.CoreOptions,
+		options?: requestLib.CoreOptions | undefined,
+	) => Bluebird<any>;
+};
+
 const requestHandle = requestLib.defaults(exports.requestOpts);
 
 export const request = Bluebird.promisifyAll(requestHandle, {
 	multiArgs: true,
-});
+}) as PromisifiedRequest;
 export const resumable = resumableRequestLib.defaults(resumableOpts);

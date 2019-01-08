@@ -5,7 +5,7 @@ import * as mkdirCb from 'mkdirp';
 import { fs } from 'mz';
 import * as path from 'path';
 
-import Config = require('./config');
+import Config from './config';
 import * as constants from './lib/constants';
 import { ENOENT } from './lib/errors';
 import { writeFileAtomic } from './lib/fs-utils';

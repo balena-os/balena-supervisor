@@ -17,7 +17,7 @@ interface ConfigOpts {
 	configPath: string;
 }
 
-class Config extends EventEmitter {
+export class Config extends EventEmitter {
 	private db: DB;
 	private configJsonBackend: ConfigJsonConfigBackend;
 	private providerFunctions: ConfigProviderFunctions;
@@ -271,7 +271,7 @@ class Config extends EventEmitter {
 		});
 	}
 
-	private newUniqueKey(): string {
+	public newUniqueKey(): string {
 		return generateUniqueKey();
 	}
 
@@ -299,4 +299,4 @@ class Config extends EventEmitter {
 	}
 }
 
-export = Config;
+export default Config;

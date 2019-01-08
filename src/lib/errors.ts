@@ -1,4 +1,4 @@
-import { endsWith } from 'lodash';
+import { endsWith, startsWith } from 'lodash';
 import TypedError = require('typed-error');
 
 import { checkInt } from './validation';
@@ -44,3 +44,11 @@ export class InvalidAppIdError extends TypedError {
 }
 
 export class UpdatesLockedError extends TypedError {}
+
+export function DuplicateUuidError(err: Error) {
+	return startsWith(err.message, '"uuid" must be unique');
+}
+
+export class ExchangeKeyError extends TypedError {}
+
+export class InternalInconsistencyError extends TypedError {}

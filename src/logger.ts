@@ -1,11 +1,11 @@
 import * as Bluebird from 'bluebird';
 import * as es from 'event-stream';
 import * as _ from 'lodash';
-import * as Lock from 'rwlock';
 
 import { EventTracker } from './event-tracker';
 import Docker = require('./lib/docker-utils');
 import { LogType } from './lib/log-types';
+import { writeLock } from './lib/update-lock';
 import {
 	LocalLogBackend,
 	LogBackend,
@@ -34,10 +34,6 @@ interface LoggerConstructOptions {
 }
 
 export class Logger {
-	private writeLock: (key: string) => Bluebird<() => void> = Bluebird.promisify(
-		new Lock().async.writeLock,
-	);
-
 	private backend: LogBackend | null = null;
 	private balenaBackend: BalenaLogBackend | null = null;
 	private localBackend: LocalLogBackend | null = null;
@@ -130,7 +126,7 @@ export class Logger {
 	}
 
 	public lock(containerId: string): Bluebird.Disposer<() => void> {
-		return this.writeLock(containerId).disposer(release => {
+		return writeLock(containerId).disposer(release => {
 			release();
 		});
 	}
