@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix context bind errors by switching to async/await
+      hash: a970ec5377987bdc845a571c16514d3f15e8eadb
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.2.10
+  date: 2019-01-08T16:23:42.125Z
+- commits:
     - subject: 'refactor: Convert ApiBinder module to typescript'
       hash: 01ed7bb103b4df8fb0679cf858220db42d4a0b92
       body: ''
