@@ -52,3 +52,11 @@ export function DuplicateUuidError(err: Error) {
 export class ExchangeKeyError extends TypedError {}
 
 export class InternalInconsistencyError extends TypedError {}
+
+export class ConfigurationValidationError extends TypedError {
+	public constructor(key: string, value: unknown) {
+		super(
+			`There was an error validating configuration input for key: ${key}, with value: ${value}`,
+		);
+	}
+}

@@ -243,9 +243,8 @@ describe 'deviceState', ->
 			@deviceState.applications.images.save.restore()
 			@deviceState.deviceConfig.getCurrent.restore()
 
-			@config.get('pinDevice').then (pinnedString) ->
-				pinned = JSON.parse(pinnedString)
-				expect(pinned).to.have.property('app').that.equals('1234')
+			@config.get('pinDevice').then (pinned) ->
+				expect(pinned).to.have.property('app').that.equals(1234)
 				expect(pinned).to.have.property('commit').that.equals('abcdef')
 
 	it 'emits a change event when a new state is reported', ->

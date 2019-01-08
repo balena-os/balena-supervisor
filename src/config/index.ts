@@ -4,93 +4,39 @@ import { Transaction } from 'knex';
 import * as _ from 'lodash';
 import { generateUniqueKey } from 'resin-register-device';
 
+import { Either } from 'fp-ts/lib/Either';
+import * as t from 'io-ts';
+
 import ConfigJsonConfigBackend from './configJson';
 
-import * as constants from '../lib/constants';
-import { ConfigMap, ConfigSchema, ConfigValue } from '../lib/types';
-import { ConfigProviderFunctions, createProviderFunctions } from './functions';
+import * as FnSchema from './functions';
+import * as Schema from './schema';
+import { SchemaReturn, SchemaTypeKey, schemaTypes } from './schema-type';
 
 import DB from '../db';
+import {
+	ConfigurationValidationError,
+	InternalInconsistencyError,
+} from '../lib/errors';
 
 interface ConfigOpts {
 	db: DB;
 	configPath: string;
 }
 
+type ConfigMap<T extends SchemaTypeKey> = { [key in T]: SchemaReturn<key> };
+
 export class Config extends EventEmitter {
 	private db: DB;
 	private configJsonBackend: ConfigJsonConfigBackend;
-	private providerFunctions: ConfigProviderFunctions;
-
-	public schema: ConfigSchema = {
-		apiEndpoint: { source: 'config.json', default: '' },
-		apiTimeout: { source: 'config.json', default: 15 * 60 * 1000 },
-		listenPort: { source: 'config.json', default: 48484 },
-		deltaEndpoint: { source: 'config.json', default: 'https://delta.resin.io' },
-		uuid: { source: 'config.json', mutable: true },
-		apiKey: { source: 'config.json', mutable: true, removeIfNull: true },
-		deviceApiKey: { source: 'config.json', mutable: true, default: '' },
-		deviceType: { source: 'config.json', default: 'unknown' },
-		username: { source: 'config.json' },
-		userId: { source: 'config.json' },
-		deviceId: { source: 'config.json', mutable: true },
-		registered_at: { source: 'config.json', mutable: true },
-		applicationId: { source: 'config.json' },
-		appUpdatePollInterval: {
-			source: 'config.json',
-			mutable: true,
-			default: 60000,
-		},
-		mixpanelToken: {
-			source: 'config.json',
-			default: constants.defaultMixpanelToken,
-		},
-		bootstrapRetryDelay: { source: 'config.json', default: 30000 },
-		hostname: { source: 'config.json', mutable: true },
-		persistentLogging: { source: 'config.json', default: false, mutable: true },
-
-		version: { source: 'func' },
-		currentApiKey: { source: 'func' },
-		provisioned: { source: 'func' },
-		osVersion: { source: 'func' },
-		osVariant: { source: 'func' },
-		provisioningOptions: { source: 'func' },
-		mixpanelHost: { source: 'func' },
-		extendedEnvOptions: { source: 'func' },
-		fetchOptions: { source: 'func' },
-		unmanaged: { source: 'func' },
-
-		// NOTE: all 'db' values are stored and loaded as *strings*,
-		apiSecret: { source: 'db', mutable: true },
-		name: { source: 'db', mutable: true, default: 'local' },
-		initialConfigReported: { source: 'db', mutable: true, default: 'false' },
-		initialConfigSaved: { source: 'db', mutable: true, default: 'false' },
-		containersNormalised: { source: 'db', mutable: true, default: 'false' },
-		loggingEnabled: { source: 'db', mutable: true, default: 'true' },
-		connectivityCheckEnabled: { source: 'db', mutable: true, default: 'true' },
-		delta: { source: 'db', mutable: true, default: 'false' },
-		deltaRequestTimeout: { source: 'db', mutable: true, default: '30000' },
-		deltaApplyTimeout: { source: 'db', mutable: true, default: '' },
-		deltaRetryCount: { source: 'db', mutable: true, default: '30' },
-		deltaRetryInterval: { source: 'db', mutable: true, default: '10000' },
-		deltaVersion: { source: 'db', mutable: true, default: '2' },
-		lockOverride: { source: 'db', mutable: true, default: 'false' },
-		legacyAppsPresent: { source: 'db', mutable: true, default: 'false' },
-		// a JSON value, which is either null, or { app: number, commit: string }
-		pinDevice: { source: 'db', mutable: true, default: 'null' },
-		currentCommit: { source: 'db', mutable: true },
-		targetStateSet: { source: 'db', mutable: true, default: 'false' },
-		localMode: { source: 'db', mutable: true, default: 'false' },
-	};
 
 	public constructor({ db, configPath }: ConfigOpts) {
 		super();
 		this.db = db;
 		this.configJsonBackend = new ConfigJsonConfigBackend(
-			this.schema,
+			Schema.schema,
 			configPath,
 		);
-		this.providerFunctions = createProviderFunctions(this);
 	}
 
 	public init(): Bluebird<void> {
@@ -99,164 +45,155 @@ export class Config extends EventEmitter {
 		});
 	}
 
-	public get(key: string, trx?: Transaction): Bluebird<ConfigValue> {
+	public get<T extends SchemaTypeKey>(
+		key: T,
+		trx?: Transaction,
+	): Bluebird<SchemaReturn<T>> {
 		const db = trx || this.db.models.bind(this.db);
 
 		return Bluebird.try(() => {
-			if (this.schema[key] == null) {
+			if (Schema.schema.hasOwnProperty(key)) {
+				const schemaKey = key as Schema.SchemaKey;
+
+				return this.getSchema(schemaKey, db).then(value => {
+					if (value == null) {
+						const defaultValue = schemaTypes[key].default;
+						if (defaultValue instanceof t.Type) {
+							// The only reason that this would be the case in a non-function
+							// schema key is for the meta nullOrUndefined value. We check this
+							// by first decoding the value undefined with the default type, and
+							// then return undefined
+							const decoded = (defaultValue as t.Type<any>).decode(undefined);
+
+							this.checkValueDecode(decoded, key, undefined);
+							return decoded.value;
+						}
+						return defaultValue as SchemaReturn<T>;
+					}
+					const decoded = this.decodeSchema(schemaKey, value);
+
+					this.checkValueDecode(decoded, key, value);
+
+					return decoded.value;
+				});
+			} else if (FnSchema.fnSchema.hasOwnProperty(key)) {
+				const fnKey = key as FnSchema.FnSchemaKey;
+				// Cast the promise as something that produes an unknown, and this means that
+				// we can validate the output of the function as well, ensuring that the type matches
+				const promiseValue = FnSchema.fnSchema[fnKey](this) as Bluebird<
+					unknown
+				>;
+				return promiseValue.then((value: unknown) => {
+					const decoded = schemaTypes[key].type.decode(value);
+
+					this.checkValueDecode(decoded, key, value);
+
+					return decoded.value as SchemaReturn<T>;
+				});
+			} else {
 				throw new Error(`Unknown config value ${key}`);
 			}
-			switch (this.schema[key].source) {
-				case 'func':
-					return this.providerFunctions[key]().catch(e => {
-						console.error(`Error getting config value for ${key}`, e, e.stack);
-						return null;
-					});
-				case 'config.json':
-					return this.configJsonBackend.get(key);
-				case 'db':
-					return db('config')
-						.select('value')
-						.where({ key })
-						.then(([conf]: [{ value: string }]) => {
-							if (conf != null) {
-								return conf.value;
-							}
-							return;
-						});
-			}
-		}).then(value => {
-			const schemaEntry = this.schema[key];
-			if (value == null && schemaEntry != null && schemaEntry.default != null) {
-				return schemaEntry.default;
-			}
-			return value;
 		});
 	}
 
-	public getMany(keys: string[], trx?: Transaction): Bluebird<ConfigMap> {
-		return Bluebird.map(keys, (key: string) => this.get(key, trx)).then(
-			values => {
-				return _.zipObject(keys, values);
-			},
-		);
+	public getMany<T extends SchemaTypeKey>(
+		keys: T[],
+		trx?: Transaction,
+	): Bluebird<{ [key in T]: SchemaReturn<key> }> {
+		return Bluebird.map(keys, (key: T) => this.get(key, trx)).then(values => {
+			return _.zipObject(keys, values);
+		});
 	}
 
-	public set(keyValues: ConfigMap, trx?: Transaction): Bluebird<void> {
-		return Bluebird.try(() => {
-			// Split the values based on which storage backend they use
-			type SplitConfigBackend = {
-				configJsonVals: ConfigMap;
-				dbVals: ConfigMap;
-				fnVals: ConfigMap;
-			};
-			const { configJsonVals, dbVals, fnVals }: SplitConfigBackend = _.reduce(
-				keyValues,
-				(acc: SplitConfigBackend, val, key) => {
-					if (this.schema[key] == null || !this.schema[key].mutable) {
-						throw new Error(
-							`Config field ${key} not found or is immutable in config.set`,
-						);
-					}
-					if (this.schema[key].source === 'config.json') {
-						acc.configJsonVals[key] = val;
-					} else if (this.schema[key].source === 'db') {
-						acc.dbVals[key] = val;
-					} else {
-						throw new Error(
-							`Unknown config backend for key: ${key}, backend: ${
-								this.schema[key].source
-							}`,
-						);
-					}
-					return acc;
-				},
-				{ configJsonVals: {}, dbVals: {}, fnVals: {} },
-			);
+	public set<T extends SchemaTypeKey>(
+		keyValues: ConfigMap<T>,
+		trx?: Transaction,
+	): Bluebird<void> {
+		const setValuesInTransaction = (tx: Transaction) => {
+			const configJsonVals: Dictionary<unknown> = {};
+			const dbVals: Dictionary<unknown> = {};
 
-			// Set these values, taking into account the knex transaction
-			const setValuesInTransaction = (tx: Transaction): Bluebird<void> => {
-				const dbKeys = _.keys(dbVals);
-				return this.getMany(dbKeys, tx)
-					.then(oldValues => {
-						return Bluebird.map(dbKeys, (key: string) => {
-							const value = dbVals[key];
-							if (oldValues[key] !== value) {
-								return this.db.upsertModel(
-									'config',
-									{ key, value: (value || '').toString() },
-									{ key },
-									tx,
-								);
-							}
-						});
-					})
-					.then(() => {
-						return Bluebird.map(_.toPairs(fnVals), ([key, value]) => {
-							const fn = this.providerFunctions[key];
-							if (fn.set == null) {
-								throw new Error(
-									`Attempting to set provider function without set() method implemented - key: ${key}`,
-								);
-							}
-							return fn.set(value, tx);
-						});
-					})
-					.then(() => {
-						if (!_.isEmpty(configJsonVals)) {
-							return this.configJsonBackend.set(configJsonVals);
+			_.each(keyValues, (v, k: T) => {
+				const schemaKey = k as Schema.SchemaKey;
+				const source = Schema.schema[schemaKey].source;
+
+				switch (source) {
+					case 'config.json':
+						configJsonVals[schemaKey] = v;
+						break;
+					case 'db':
+						dbVals[schemaKey] = v;
+						break;
+					default:
+						throw new Error(
+							`Unknown configuration source: ${source} for config key: ${k}`,
+						);
+						break;
+				}
+			});
+
+			const dbKeys = _.keys(dbVals) as T[];
+			return this.getMany(dbKeys, tx)
+				.then(oldValues => {
+					return Bluebird.map(dbKeys, (key: T) => {
+						const value = dbVals[key];
+
+						// if we have anything other than a string, it must be converted to
+						// a string before being stored in the db
+						const strValue = Config.valueToString(value);
+
+						if (oldValues[key] !== value) {
+							return this.db.upsertModel(
+								'config',
+								{ key, value: strValue },
+								{ key },
+								tx,
+							);
 						}
 					});
-			};
+				})
+				.then(() => {
+					if (!_.isEmpty(configJsonVals)) {
+						return this.configJsonBackend.set(configJsonVals as {
+							[key in Schema.SchemaKey]: unknown
+						});
+					}
+				});
+		};
+
+		return Bluebird.try(() => {
+			// Firstly validate all of the types as they are being set
+			this.validateConfigMap(keyValues);
 
 			if (trx != null) {
 				return setValuesInTransaction(trx).return();
 			} else {
 				return this.db
-					.transaction((tx: Transaction) => {
-						return setValuesInTransaction(tx);
-					})
+					.transaction((tx: Transaction) => setValuesInTransaction(tx))
 					.return();
 			}
-		})
-			.then(() => {
-				return setImmediate(() => {
-					this.emit('change', keyValues);
-				});
-			})
-			.return();
+		}).then(() => {
+			this.emit('change', keyValues);
+		});
 	}
 
-	public remove(key: string): Bluebird<void> {
+	public remove<T extends Schema.SchemaKey>(key: T): Bluebird<void> {
 		return Bluebird.try(() => {
-			if (this.schema[key] == null || !this.schema[key].mutable) {
+			if (Schema.schema[key] == null || !Schema.schema[key].mutable) {
 				throw new Error(
 					`Attempt to delete non-existent or immutable key ${key}`,
 				);
 			}
-			if (this.schema[key].source === 'config.json') {
+			if (Schema.schema[key].source === 'config.json') {
 				return this.configJsonBackend.remove(key);
-			} else if (this.schema[key].source === 'db') {
+			} else if (Schema.schema[key].source === 'db') {
 				return this.db
 					.models('config')
 					.del()
 					.where({ key });
-			} else if (this.schema[key].source === 'func') {
-				const mutFn = this.providerFunctions[key];
-				if (mutFn == null) {
-					throw new Error(
-						`Could not find provider function for config ${key}!`,
-					);
-				}
-				if (mutFn.remove == null) {
-					throw new Error(
-						`Could not find removal provider function for config ${key}`,
-					);
-				}
-				return mutFn.remove();
 			} else {
 				throw new Error(
-					`Unknown or unsupported config backend: ${this.schema[key].source}`,
+					`Unknown or unsupported config backend: ${Schema.schema[key].source}`,
 				);
 			}
 		});
@@ -271,6 +208,72 @@ export class Config extends EventEmitter {
 
 	public newUniqueKey(): string {
 		return generateUniqueKey();
+	}
+
+	private async getSchema<T extends Schema.SchemaKey>(
+		key: T,
+		db: Transaction,
+	): Promise<unknown> {
+		let value: unknown;
+		switch (Schema.schema[key].source) {
+			case 'config.json':
+				value = await this.configJsonBackend.get(key);
+				break;
+			case 'db':
+				value = await db('config')
+					.select('value')
+					.where({ key })
+					.then(([conf]: [{ value: string }]) => {
+						if (conf != null) {
+							return conf.value;
+						}
+						return;
+					});
+				break;
+		}
+
+		return value;
+	}
+
+	private decodeSchema<T extends Schema.SchemaKey>(
+		key: T,
+		value: unknown,
+	): Either<t.Errors, SchemaReturn<T>> {
+		return schemaTypes[key].type.decode(value);
+	}
+
+	private validateConfigMap<T extends SchemaTypeKey>(configMap: ConfigMap<T>) {
+		// Just loop over every value, run the decode function, and
+		// throw if any value fails verification
+		_.map(configMap, (value, key) => {
+			if (
+				!Schema.schema.hasOwnProperty(key) ||
+				!Schema.schema[key as Schema.SchemaKey].mutable
+			) {
+				throw new Error(
+					`Attempt to set value for non-mutable schema key: ${key}`,
+				);
+			}
+
+			// If the default entry in the schema is a type and not a value,
+			// use this in the validation of the value
+			const schemaTypesEntry = schemaTypes[key as SchemaTypeKey];
+			let type: t.Type<unknown>;
+			if (schemaTypesEntry.default instanceof t.Type) {
+				type = t.union([schemaTypesEntry.type, schemaTypesEntry.default]);
+			} else {
+				type = schemaTypesEntry.type;
+			}
+
+			const decoded = type.decode(value);
+			if (decoded.isLeft()) {
+				throw new Error(
+					`Cannot set value for ${key}, as value failed validation: ${
+						decoded.value
+					}`,
+				);
+			}
+		});
 	}
 
 	private generateRequiredFields() {
@@ -294,6 +297,31 @@ export class Config extends EventEmitter {
 				}
 			});
 		});
+	}
+
+	private static valueToString(value: unknown) {
+		switch (typeof value) {
+			case 'object':
+				return JSON.stringify(value);
+			case 'number':
+			case 'string':
+			case 'boolean':
+				return value.toString();
+			default:
+				throw new InternalInconsistencyError(
+					`Could not convert configuration value to string for storage, value: ${value}, type: ${typeof value}`,
+				);
+		}
+	}
+
+	private checkValueDecode(
+		decoded: Either<t.Errors, unknown>,
+		key: string,
+		value: unknown,
+	): void {
+		if (decoded.isLeft()) {
+			throw new ConfigurationValidationError(key, value);
+		}
 	}
 }
 
