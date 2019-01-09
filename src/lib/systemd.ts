@@ -4,10 +4,21 @@ import * as dbus from 'dbus-native';
 const bus = dbus.systemBus();
 const invokeAsync = Bluebird.promisify(bus.invoke).bind(bus);
 
+const defaultPathInfo = {
+	path: '/org/freedesktop/systemd1',
+	destination: 'org.freedesktop.systemd1',
+	interface: 'org.freedesktop.systemd1.Manager',
+};
+
 const systemdManagerMethodCall = (
 	method: string,
 	signature?: string,
 	body?: any[],
+	pathInfo: {
+		path: string;
+		destination: string;
+		interface: string;
+	} = defaultPathInfo,
 ) => {
 	if (signature == null) {
 		signature = '';
@@ -16,9 +27,7 @@ const systemdManagerMethodCall = (
 		body = [];
 	}
 	return invokeAsync({
-		path: '/org/freedesktop/systemd1',
-		destination: 'org.freedesktop.systemd1',
-		interface: 'org.freedesktop.systemd1.Manager',
+		...pathInfo,
 		member: method,
 		signature,
 		body,
@@ -62,11 +71,27 @@ export function disableService(serviceName: string) {
 }
 
 export const reboot = Bluebird.method(() =>
-	setTimeout(() => systemdManagerMethodCall('Reboot'), 1000),
+	setTimeout(
+		() =>
+			systemdManagerMethodCall('Reboot', 'b', [false], {
+				path: '/org/freedesktop/login1',
+				destination: 'org.freedesktop.login1',
+				interface: 'org.freedesktop.login1.Manager',
+			}),
+		1000,
+	),
 );
 
 export const shutdown = Bluebird.method(() =>
-	setTimeout(() => systemdManagerMethodCall('PowerOff'), 1000),
+	setTimeout(
+		() =>
+			systemdManagerMethodCall('PowerOff', 'b', [false], {
+				path: '/org/freedesktop/login1',
+				destination: 'org.freedesktop.login1',
+				interface: 'org.freedesktop.login1.Manager',
+			}),
+		1000,
+	),
 );
 
 function getUnitProperty(unitName: string, property: string) {
