@@ -54,7 +54,7 @@ createDeviceStateRouter = (deviceState) ->
 	rebootOrShutdown = (req, res, action) ->
 		deviceState.config.get('lockOverride')
 		.then (lockOverride) ->
-			force = validation.checkTruthy(req.body.force) or validation.checkTruthy(lockOverride)
+			force = validation.checkTruthy(req.body.force) or lockOverride
 			deviceState.executeStepAction({ action }, { force })
 		.then (response) ->
 			res.status(202).json(response)
@@ -246,7 +246,7 @@ module.exports = class DeviceState extends EventEmitter
 	init: ->
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.loggingEnabled?
-				@logger.enable(validation.checkTruthy(changedConfig.loggingEnabled))
+				@logger.enable(changedConfig.loggingEnabled)
 			if changedConfig.apiSecret?
 				@reportCurrentState(api_secret: changedConfig.apiSecret)
 
@@ -258,7 +258,7 @@ module.exports = class DeviceState extends EventEmitter
 		.then (conf) =>
 			@applications.init()
 			.then =>
-				if !validation.checkTruthy(conf.initialConfigSaved)
+				if !conf.initialConfigSaved
 					@saveInitialConfig()
 			.then =>
 				@initNetworkChecks(conf)
@@ -280,7 +280,7 @@ module.exports = class DeviceState extends EventEmitter
 			.then =>
 				@applications.getTargetApps()
 			.then (targetApps) =>
-				if !conf.provisioned or (_.isEmpty(targetApps) and !validation.checkTruthy(conf.targetStateSet))
+				if !conf.provisioned or (_.isEmpty(targetApps) and !conf.targetStateSet)
 					@loadTargetFromFile()
 					.finally =>
 						@config.set({ targetStateSet: 'true' })
@@ -296,7 +296,7 @@ module.exports = class DeviceState extends EventEmitter
 				@triggerApplyTarget({ initial: true })
 
 	initNetworkChecks: ({ apiEndpoint, connectivityCheckEnabled, unmanaged }) =>
-		return if validation.checkTruthy(unmanaged)
+		return if unmanaged
 		network.startConnectivityCheck apiEndpoint, connectivityCheckEnabled, (connected) =>
 			@connected = connected
 		@config.on 'change', (changedConfig) ->
@@ -499,9 +499,9 @@ module.exports = class DeviceState extends EventEmitter
 						console.log('Device will be pinned')
 						if commitToPin? and appToPin?
 							@config.set
-								pinDevice: JSON.stringify {
+								pinDevice: {
 									commit: commitToPin,
-									app: appToPin,
+									app: parseInt(appToPin, 10),
 								}
 		# Ensure that this is actually a file, and not an empty path
 		# It can be an empty path because if the file does not exist

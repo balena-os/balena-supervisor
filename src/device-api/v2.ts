@@ -10,7 +10,6 @@ import {
 	serviceNotFoundMessage,
 	v2ServiceEndpointInputErrorMessage,
 } from '../lib/messages';
-import { checkTruthy } from '../lib/validation';
 import { doPurge, doRestart, serviceAction } from './common';
 
 import supervisorVersion = require('../lib/supervisor-version');
@@ -232,7 +231,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get('/v2/local/target-state', async (_req, res) => {
 		try {
-			const localMode = checkTruthy(await deviceState.config.get('localMode'));
+			const localMode = await deviceState.config.get('localMode');
 			if (!localMode) {
 				return res.status(400).json({
 					status: 'failed',
@@ -258,7 +257,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		// TODO: We really should refactor the config module to provide bools
 		// as bools etc
 		try {
-			const localMode = checkTruthy(await deviceState.config.get('localMode'));
+			const localMode = await deviceState.config.get('localMode');
 			if (!localMode) {
 				return res.status(400).json({
 					status: 'failed',

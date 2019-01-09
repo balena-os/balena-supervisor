@@ -7,7 +7,6 @@ EventEmitter = require 'events'
 DeviceState = require './device-state'
 { SupervisorAPI } = require './supervisor-api'
 { Logger } = require './logger'
-{ checkTruthy } = require './lib/validation'
 
 constants = require './lib/constants'
 
@@ -57,12 +56,12 @@ module.exports = class Supervisor extends EventEmitter
 					apiEndpoint: conf.apiEndpoint,
 					uuid: conf.uuid,
 					deviceApiKey: conf.deviceApiKey,
-					unmanaged: checkTruthy(conf.unmanaged),
-					enableLogs: checkTruthy(conf.loggingEnabled),
-					localMode: checkTruthy(conf.localMode)
+					unmanaged: conf.unmanaged,
+					enableLogs: conf.loggingEnabled,
+					localMode: conf.localMode
 				})
 			.then =>
-				if checkTruthy(conf.legacyAppsPresent)
+				if conf.legacyAppsPresent
 					console.log('Legacy app detected, running migration')
 					@deviceState.normaliseLegacy(@apiBinder.balenaApi)
 			.then =>

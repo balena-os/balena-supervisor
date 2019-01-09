@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 
 import Config from './config';
+import { SchemaTypeKey } from './config/schema-type';
 import Database, { Transaction } from './db';
 import Logger from './logger';
 
@@ -60,7 +61,7 @@ export class DeviceConfig {
 	private actionExecutors: DeviceActionExecutors;
 	private configBackend: DeviceConfigBackend | null = null;
 
-	private static configKeys: Dictionary<ConfigOption> = {
+	private static readonly configKeys: Dictionary<ConfigOption> = {
 		appUpdatePollInterval: {
 			envVarName: 'SUPERVISOR_POLL_INTERVAL',
 			varType: 'int',
@@ -144,7 +145,9 @@ export class DeviceConfig {
 					if (!_.isObject(step.target)) {
 						throw new Error('Non-dictionary value passed to changeConfig');
 					}
-					await this.config.set(step.target as Dictionary<string>);
+					// TODO: Change the typing of step so that the types automatically
+					// work out and we don't need this cast to any
+					await this.config.set(step.target as { [key in SchemaTypeKey]: any });
 					if (step.humanReadableTarget) {
 						this.logger.logConfigChange(step.humanReadableTarget, {
 							success: true,
@@ -200,9 +203,6 @@ export class DeviceConfig {
 			return this.configBackend;
 		}
 		const dt = await this.config.get('deviceType');
-		if (!_.isString(dt)) {
-			throw new Error('Could not detect device type');
-		}
 
 		this.configBackend = configUtils.getConfigBackend(dt) || null;
 
@@ -253,9 +253,9 @@ export class DeviceConfig {
 	}
 
 	public async getCurrent() {
-		const conf = await this.config.getMany(
-			['deviceType'].concat(_.keys(DeviceConfig.configKeys)),
-		);
+		const conf = await this.config.getMany(['deviceType'].concat(
+			_.keys(DeviceConfig.configKeys),
+		) as SchemaTypeKey[]);
 
 		const configBackend = await this.getConfigBackend();
 
@@ -271,7 +271,7 @@ export class DeviceConfig {
 
 		for (const key in DeviceConfig.configKeys) {
 			const { envVarName } = DeviceConfig.configKeys[key];
-			const confValue = conf[key];
+			const confValue = conf[key as SchemaTypeKey];
 			currentConf[envVarName] = confValue != null ? confValue.toString() : '';
 		}
 
@@ -391,7 +391,7 @@ export class DeviceConfig {
 
 		// Check for special case actions for the VPN
 		if (
-			!checkTruthy(unmanaged || false) &&
+			!unmanaged &&
 			!_.isEmpty(target['SUPERVISOR_VPN_CONTROL']) &&
 			DeviceConfig.checkBoolChanged(current, target, 'SUPERVISOR_VPN_CONTROL')
 		) {
