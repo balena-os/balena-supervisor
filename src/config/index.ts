@@ -78,7 +78,7 @@ export class Config extends EventEmitter {
 				});
 			} else if (FnSchema.fnSchema.hasOwnProperty(key)) {
 				const fnKey = key as FnSchema.FnSchemaKey;
-				// Cast the promise as something that produes an unknown, and this means that
+				// Cast the promise as something that produces an unknown, and this means that
 				// we can validate the output of the function as well, ensuring that the type matches
 				const promiseValue = FnSchema.fnSchema[fnKey](this) as Bluebird<
 					unknown
@@ -220,15 +220,12 @@ export class Config extends EventEmitter {
 				value = await this.configJsonBackend.get(key);
 				break;
 			case 'db':
-				value = await db('config')
+				const [conf] = await db('config')
 					.select('value')
-					.where({ key })
-					.then(([conf]: [{ value: string }]) => {
-						if (conf != null) {
-							return conf.value;
-						}
-						return;
-					});
+					.where({ key });
+				if (conf != null) {
+					return conf.value;
+				}
 				break;
 		}
 

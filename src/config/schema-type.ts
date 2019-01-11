@@ -24,7 +24,7 @@ export const schemaTypes = {
 	},
 	deltaEndpoint: {
 		type: t.string,
-		default: 'https://delta.resin.io',
+		default: 'https://delta.balena-cloud.com',
 	},
 	uuid: {
 		type: t.string,

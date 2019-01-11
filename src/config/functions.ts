@@ -23,7 +23,7 @@ export const fnSchema = {
 		return config
 			.getMany(['uuid', 'apiEndpoint', 'registered_at', 'deviceId'])
 			.then(requiredValues => {
-				return _.every(_.values(requiredValues), Boolean);
+				return _.every(_.values(requiredValues));
 			});
 	},
 	osVersion: () => {
