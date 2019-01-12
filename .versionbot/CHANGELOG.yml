@@ -1,4 +1,47 @@
 - commits:
+    - subject: 'refactor: Remove unnecessary validations and casts'
+      hash: 6a3148ff80989ac061b33332938181ed7c1ca3ba
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Fully type and validate config module set and get'
+      hash: db74e748a15d33d3ea81c7afee7ed59890da8604
+      body: |
+        We define the type for each config value, and validate the data when
+        retrieving and setting it.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Remove scaffolding for unused mutable config functions'
+      hash: ac4866170eb55b956a480a57c1e05dfa14c6b953
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'fix: Use logind manager to request reboots and shutdowns'
+      hash: 81b17faab15a241bf0e99fc8856823fa687ea1e2
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#861'
+        closes: '#861'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.3.0
+  date: 2019-01-11T10:39:50.571Z
+- commits:
     - subject: Fix context bind errors by switching to async/await
       hash: a970ec5377987bdc845a571c16514d3f15e8eadb
       body: ''
