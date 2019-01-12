@@ -20,10 +20,10 @@ import {
 } from './lib/errors';
 import { pathExistsOnHost } from './lib/fs-utils';
 import { request, requestOpts } from './lib/request';
-import { ConfigValue } from './lib/types';
 import { writeLock } from './lib/update-lock';
-import { checkInt, checkTruthy } from './lib/validation';
 import { DeviceApplicationState } from './types/state';
+
+import { SchemaReturn as ConfigSchemaType } from './config/schema-type';
 
 const REPORT_SUCCESS_DELAY = 1000;
 const MAX_REPORT_RETRY_DELAY = 60000;
@@ -46,16 +46,8 @@ interface APIBinderConstructOpts {
 	eventTracker: EventTracker;
 }
 
-interface KeyExchangeOpts {
-	uuid: ConfigValue;
-	deviceApiKey: ConfigValue;
-	apiTimeout: ConfigValue;
-	apiEndpoint: ConfigValue;
-	provisioningApiKey: ConfigValue;
-}
-
 interface Device {
-	id: string;
+	id: number;
 
 	[key: string]: unknown;
 }
@@ -64,6 +56,8 @@ interface DevicePinInfo {
 	app: number;
 	commit: string;
 }
+
+type KeyExchangeOpts = ConfigSchemaType<'provisioningOptions'>;
 
 export class APIBinder {
 	public router: express.Router;
@@ -126,8 +120,7 @@ export class APIBinder {
 		const timeSinceLastFetch = process.hrtime(this.lastTargetStateFetch);
 		const timeSinceLastFetchMs =
 			timeSinceLastFetch[0] * 1000 + timeSinceLastFetch[1] / 1e6;
-		const stateFetchHealthy =
-			timeSinceLastFetchMs < 2 * (appUpdatePollInterval as number);
+		const stateFetchHealthy = timeSinceLastFetchMs < 2 * appUpdatePollInterval;
 		const stateReportHealthy =
 			!connectivityCheckEnabled ||
 			!this.deviceState.connected ||
@@ -146,7 +139,7 @@ export class APIBinder {
 			return;
 		}
 
-		const baseUrl = url.resolve(apiEndpoint as string, '/v5/');
+		const baseUrl = url.resolve(apiEndpoint, '/v5/');
 		const passthrough = _.cloneDeep(requestOpts);
 		passthrough.headers =
 			passthrough.headers != null ? passthrough.headers : {};
@@ -210,16 +203,13 @@ export class APIBinder {
 		// Either we haven't reported our initial config or we've been re-provisioned
 		if (apiEndpoint !== initialConfigReported) {
 			console.log('Reporting initial configuration');
-			await this.reportInitialConfig(
-				apiEndpoint as string,
-				bootstrapRetryDelay as number,
-			);
+			await this.reportInitialConfig(apiEndpoint, bootstrapRetryDelay);
 		}
 
 		console.log('Starting current state report');
 		await this.startCurrentStateReport();
 
-		await this.loadBackupFromMigration(bootstrapRetryDelay as number);
+		await this.loadBackupFromMigration(bootstrapRetryDelay);
 
 		this.readyForUpdates = true;
 		console.log('Starting target state poll');
@@ -288,7 +278,7 @@ export class APIBinder {
 				id,
 				body: updatedFields,
 			})
-			.timeout(conf.apiTimeout as number);
+			.timeout(conf.apiTimeout);
 	}
 
 	public async provisionDependentDevice(device: Device): Promise<Device> {
@@ -325,7 +315,7 @@ export class APIBinder {
 		return (await this.balenaApi
 			.post({ resource: 'device', body: device })
 			// TODO: Remove the `as number` when we fix the config typings
-			.timeout(conf.apiTimeout as number)) as Device;
+			.timeout(conf.apiTimeout)) as Device;
 	}
 
 	public async getTargetState(): Promise<DeviceApplicationState> {
@@ -354,7 +344,7 @@ export class APIBinder {
 
 		return await this.cachedBalenaApi
 			._request(requestParams)
-			.timeout(apiTimeout as number);
+			.timeout(apiTimeout);
 	}
 
 	// TODO: Once 100% typescript, change this to a native promise
@@ -451,7 +441,7 @@ export class APIBinder {
 			'localMode',
 		]);
 
-		if (checkTruthy(conf.localMode || false)) {
+		if (conf.localMode) {
 			return;
 		}
 
@@ -460,12 +450,17 @@ export class APIBinder {
 			return 0;
 		}
 
+		const apiEndpoint = conf.apiEndpoint;
+		const uuid = conf.uuid;
+		if (uuid == null || apiEndpoint == null) {
+			throw new InternalInconsistencyError(
+				'No uuid or apiEndpoint provided to ApiBinder.report',
+			);
+		}
+
 		await Bluebird.resolve(
-			this.sendReportPatch(stateDiff, conf as {
-				uuid: string;
-				apiEndpoint: string;
-			}),
-		).timeout(conf.apiTimeout as number);
+			this.sendReportPatch(stateDiff, { apiEndpoint, uuid }),
+		).timeout(conf.apiTimeout);
 
 		this.stateReportErrors = 0;
 		_.assign(this.lastReportedState.local, stateDiff.local);
@@ -523,14 +518,7 @@ export class APIBinder {
 
 	private async pollTargetState(): Promise<void> {
 		// TODO: Remove the checkInt here with the config changes
-		let pollInterval = checkInt((await this.config.get(
-			'appUpdatePollInterval',
-		)) as string);
-		if (!_.isNumber(pollInterval)) {
-			throw new InternalInconsistencyError(
-				'appUpdatePollInterval not a number in ApiBinder.pollTargetState',
-			);
-		}
+		let pollInterval = await this.config.get('appUpdatePollInterval');
 
 		try {
 			await this.getAndSetTargetState(false);
@@ -556,6 +544,13 @@ export class APIBinder {
 
 		try {
 			const deviceId = await this.config.get('deviceId');
+
+			if (deviceId == null) {
+				throw new InternalInconsistencyError(
+					'Device ID not defined in ApiBinder.pinDevice',
+				);
+			}
+
 			const release = await this.balenaApi.get({
 				resource: 'release',
 				options: {
@@ -577,7 +572,7 @@ export class APIBinder {
 
 			await this.balenaApi.patch({
 				resource: 'device',
-				id: deviceId as number,
+				id: deviceId,
 				body: {
 					should_be_running__release: releaseId,
 				},
@@ -665,15 +660,11 @@ export class APIBinder {
 		opts?: KeyExchangeOpts,
 	): Promise<Device> {
 		if (opts == null) {
-			// FIXME: This casting shouldn't be necessary and stems from the
-			// meta-option provioningOptions not returning a ConfigValue
-			opts = ((await this.config.get(
-				'provisioningOptions',
-			)) as any) as KeyExchangeOpts;
+			opts = await this.config.get('provisioningOptions');
 		}
 
-		const uuid = opts.uuid as string;
-		const apiTimeout = opts.apiTimeout as number;
+		const uuid = opts.uuid;
+		const apiTimeout = opts.apiTimeout;
 		if (!(uuid && apiTimeout)) {
 			throw new InternalInconsistencyError(
 				'UUID and apiTimeout should be defined in exchangeKeyAndGetDevice',
@@ -685,7 +676,7 @@ export class APIBinder {
 		if (opts.deviceApiKey != null) {
 			const device = await this.fetchDevice(
 				uuid,
-				opts.deviceApiKey as string,
+				opts.deviceApiKey,
 				apiTimeout,
 			);
 			if (device != null) {
@@ -695,9 +686,14 @@ export class APIBinder {
 
 		// If it's not valid or doesn't exist then we try to use the
 		// user/provisioning api key for the exchange
+		if (!opts.provisioningApiKey) {
+			throw new InternalInconsistencyError(
+				'Required a provisioning key in exchangeKeyAndGetDevice',
+			);
+		}
 		const device = await this.fetchDevice(
 			uuid,
-			opts.provisioningApiKey as string,
+			opts.provisioningApiKey,
 			apiTimeout,
 		);
 
@@ -746,10 +742,7 @@ export class APIBinder {
 	private async provision() {
 		let device: Device | null = null;
 		// FIXME: Config typing
-		const opts = ((await this.config.get(
-			'provisioningOptions',
-		)) as any) as Dictionary<any>;
-
+		const opts = await this.config.get('provisioningOptions');
 		if (
 			opts.registered_at != null &&
 			opts.deviceId != null &&
@@ -762,10 +755,7 @@ export class APIBinder {
 			console.log(
 				'Device is registered but no device id available, attempting key exchange',
 			);
-			device =
-				(await this.exchangeKeyAndGetDeviceOrRegenerate(
-					opts as KeyExchangeOpts,
-				)) || null;
+			device = (await this.exchangeKeyAndGetDeviceOrRegenerate(opts)) || null;
 		} else if (opts.registered_at == null) {
 			console.log('New device detected. Provisioning...');
 			try {
@@ -774,9 +764,7 @@ export class APIBinder {
 			} catch (err) {
 				if (DuplicateUuidError(err)) {
 					console.log('UUID already registered, trying a key exchange');
-					await this.exchangeKeyAndGetDeviceOrRegenerate(
-						opts as KeyExchangeOpts,
-					);
+					await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
 				} else {
 					throw err;
 				}
@@ -785,7 +773,7 @@ export class APIBinder {
 			console.log(
 				'Device is registered but we still have an apiKey, attempting key exchange',
 			);
-			device = await this.exchangeKeyAndGetDevice(opts as KeyExchangeOpts);
+			device = await this.exchangeKeyAndGetDevice(opts);
 		}
 
 		if (!device) {
@@ -811,13 +799,7 @@ export class APIBinder {
 		this.eventTracker.track('Device bootstrap success');
 
 		// Now check if we need to pin the device
-		const toPin = await this.config.get('pinDevice');
-		let pinValue: DevicePinInfo | null = null;
-		try {
-			pinValue = JSON.parse(toPin as string);
-		} catch (e) {
-			console.log('Warning: Malformed pinDevice value in supervisor database');
-		}
+		const pinValue = await this.config.get('pinDevice');
 
 		if (pinValue != null) {
 			if (pinValue.app == null || pinValue.commit == null) {

@@ -3,8 +3,8 @@ import * as _ from 'lodash';
 import { fs } from 'mz';
 import * as path from 'path';
 
-import { ConfigSchema, ConfigValue } from '../lib/types';
 import { readLock, writeLock } from '../lib/update-lock';
+import * as Schema from './schema';
 
 import * as constants from '../lib/constants';
 import { writeAndSyncFile, writeFileAtomic } from '../lib/fs-utils';
@@ -15,11 +15,11 @@ export default class ConfigJsonConfigBackend {
 	private writeLockConfigJson: () => Promise.Disposer<() => void>;
 
 	private configPath?: string;
-	private cache: { [key: string]: ConfigValue } = {};
+	private cache: { [key: string]: unknown } = {};
 
-	private schema: ConfigSchema;
+	private schema: Schema.Schema;
 
-	public constructor(schema: ConfigSchema, configPath?: string) {
+	public constructor(schema: Schema.Schema, configPath?: string) {
 		this.configPath = configPath;
 		this.schema = schema;
 
@@ -35,10 +35,12 @@ export default class ConfigJsonConfigBackend {
 		});
 	}
 
-	public set(keyVals: { [key: string]: ConfigValue }): Promise<void> {
+	public set<T extends Schema.SchemaKey>(
+		keyVals: { [key in T]: unknown },
+	): Promise<void> {
 		let changed = false;
 		return Promise.using(this.writeLockConfigJson(), () => {
-			return Promise.mapSeries(_.keys(keyVals), (key: string) => {
+			return Promise.mapSeries(_.keys(keyVals) as T[], (key: T) => {
 				const value = keyVals[key];
 
 				if (this.cache[key] !== value) {
@@ -62,7 +64,7 @@ export default class ConfigJsonConfigBackend {
 		});
 	}
 
-	public get(key: string): Promise<ConfigValue> {
+	public get(key: string): Promise<unknown> {
 		return Promise.using(this.readLockConfigJson(), () => {
 			return Promise.resolve(this.cache[key]);
 		});

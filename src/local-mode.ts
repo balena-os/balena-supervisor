@@ -3,8 +3,8 @@ import * as Docker from 'dockerode';
 import * as _ from 'lodash';
 
 import Config from './config';
+import { SchemaReturn, SchemaTypeKey } from './config/schema-type';
 import Database from './db';
-import { checkTruthy } from './lib/validation';
 import { Logger } from './logger';
 
 /**
@@ -25,25 +25,28 @@ export class LocalModeManager {
 
 	public async init() {
 		// Setup a listener to catch state changes relating to local mode
-		this.config.on('change', changed => {
-			if (changed.localMode != null) {
-				const localMode = checkTruthy(changed.localMode) || false;
+		this.config.on(
+			'change',
+			(changed: { [key in SchemaTypeKey]: SchemaReturn<key> }) => {
+				if (changed.localMode != null) {
+					const localMode = changed.localMode || false;
 
-				// First switch the logger to it's correct state
-				this.logger.switchBackend(localMode);
+					// First switch the logger to it's correct state
+					this.logger.switchBackend(localMode);
 
-				// If we're leaving local mode, make sure to remove all of the
-				// leftover artifacts
-				if (!localMode) {
-					this.removeLocalModeArtifacts();
+					// If we're leaving local mode, make sure to remove all of the
+					// leftover artifacts
+					if (!localMode) {
+						this.removeLocalModeArtifacts();
+					}
 				}
-			}
-		});
+			},
+		);
 
 		// On startup, check if we're in unmanaged mode,
 		// as local mode needs to be set
 		let unmanagedLocalMode = false;
-		if (checkTruthy((await this.config.get('unmanaged')) || false)) {
+		if (await this.config.get('unmanaged')) {
 			console.log('Starting up in unmanaged mode, activating local mode');
 			await this.config.set({ localMode: true });
 			unmanagedLocalMode = true;
@@ -51,8 +54,7 @@ export class LocalModeManager {
 
 		const localMode =
 			// short circuit the next get if we know we're in local mode
-			unmanagedLocalMode ||
-			checkTruthy((await this.config.get('localMode')) || false);
+			unmanagedLocalMode || (await this.config.get('localMode'));
 
 		if (!localMode) {
 			// Remove any leftovers if necessary

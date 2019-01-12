@@ -140,7 +140,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				@images.save(step.image)
 			cleanup: (step) =>
 				@config.get('localMode').then (localMode) =>
-					if !checkTruthy(localMode)
+					if !localMode
 						@images.cleanup()
 			createNetworkOrVolume: (step) =>
 				if step.model is 'network'
@@ -762,7 +762,7 @@ module.exports = class ApplicationManager extends EventEmitter
 	getTargetApps: =>
 		@config.getMany(['apiEndpoint', 'localMode']). then ({ apiEndpoint, localMode }) =>
 			source = apiEndpoint
-			if checkTruthy(localMode)
+			if localMode
 				source = 'local'
 			Promise.map(@db.models('app').where({ source }), @normaliseAndExtendAppFromDB)
 		.map (app) =>
@@ -847,8 +847,6 @@ module.exports = class ApplicationManager extends EventEmitter
 		return { imagesToSave, imagesToRemove }
 
 	_inferNextSteps: (cleanupNeeded, availableImages, downloading, supervisorNetworkReady, current, target, ignoreImages, { localMode, delta }) =>
-		localMode = checkTruthy(localMode)
-		delta = checkTruthy(delta)
 		Promise.try =>
 			if localMode
 				ignoreImages = true
@@ -895,7 +893,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			return Promise.try(fn)
 		@config.get('lockOverride')
 		.then (lockOverride) ->
-			return checkTruthy(lockOverride) or force
+			return lockOverride or force
 		.then (force) ->
 			updateLock.lock(appId, { force }, fn)
 
@@ -919,7 +917,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	getRequiredSteps: (currentState, targetState, extraState, ignoreImages = false) =>
 		{ cleanupNeeded, availableImages, downloading, supervisorNetworkReady, delta, localMode } = extraState
-		conf = _.mapValues({ delta, localMode }, (v) -> checkTruthy(v))
+		conf = { delta, localMode }
 		if conf.localMode
 			cleanupNeeded = false
 		@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
