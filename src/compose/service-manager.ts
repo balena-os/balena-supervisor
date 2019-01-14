@@ -667,3 +667,5 @@ export class ServiceManager extends (EventEmitter as {
 		});
 	}
 }
+
+export default ServiceManager;

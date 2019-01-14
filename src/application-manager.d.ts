@@ -11,6 +11,7 @@ import ServiceManager from './compose/service-manager';
 import DB from './db';
 
 import { Service } from './compose/service';
+import Config from './config';
 
 declare interface Options {
 	force?: boolean;
@@ -38,6 +39,7 @@ export class ApplicationManager extends EventEmitter {
 	public eventTracker: EventTracker;
 
 	public services: ServiceManager;
+	public config: Config;
 	public db: DB;
 	public images: Images;
 
