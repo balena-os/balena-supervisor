@@ -57,7 +57,7 @@
     "copy-webpack-plugin": "^4.6.0",
     "dbus-native": "^0.2.5",
     "deep-object-diff": "^1.1.0",
-    "docker-delta": "^2.2.4",
+    "docker-delta": "^2.2.9",
     "docker-progress": "^3.0.3",
     "docker-toolbelt": "^3.3.7",
     "duration-js": "^4.0.0",

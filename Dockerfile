@@ -2,23 +2,33 @@ ARG ARCH=amd64
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM balenalib/rpi-node:6.16.0 as rpi-node-base
-FROM balenalib/armv7hf-node:6.16.0 as armv7hf-node-base
-FROM balenalib/aarch64-node:6.16.0 as aarch64-node-base
+FROM balenalib/raspberry-pi-node:8-run as rpi-node-base
+FROM balenalib/armv7hf-node:8-run as armv7hf-node-base
+FROM balenalib/aarch64-node:8-run as aarch64-node-base
 RUN [ "cross-build-start" ]
 RUN sed -i '/security.debian.org jessie/d' /etc/apt/sources.list
 RUN [ "cross-build-end" ]
 
-FROM balenalib/amd64-node:6.16.0 as amd64-node-base
+FROM balenalib/amd64-node:8-run as amd64-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM balenalib/i386-node:6.16.0 as i386-node-base
+FROM balenalib/i386-node:8-run as i386-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM i386-node-base as i386-nlp-node-base
+FROM balenalib/i386-nlp-node:6-run as i386-nlp-node-base
+RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
+	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
+# Setup webpack building base images
+# We always do the webpack build on amd64, cause it's way faster
+FROM amd64-node-base as rpi-node-build
+FROM amd64-node-base as amd64-node-build
+FROM amd64-node-base as armv7hf-node-build
+FROM amd64-node-base as aarch64-node-build
+FROM amd64-node-base as i386-node-build
+FROM balenalib/amd64-node:6-build as i386-nlp-node-build
 ##############################################################################
 
 # We always do the webpack build on amd64, cause it's way faster
@@ -103,7 +113,7 @@ RUN [ "cross-build-end" ]
 ##############################################################################
 
 # Minimal runtime image
-FROM resin/$ARCH-supervisor-base:v1.3.0
+FROM balena/$ARCH-supervisor-base:v1.4.4
 ARG ARCH
 ARG VERSION=master
 ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
