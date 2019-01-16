@@ -1,4 +1,16 @@
 - commits:
+    - subject: Send connection message when streaming local mode logs
+      hash: 06cdaddd714b3310574dcacabc6e416d03646b33
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.3.1
+  date: 2019-01-16T13:18:15.975Z
+- commits:
     - subject: 'refactor: Remove unnecessary validations and casts'
       hash: 6a3148ff80989ac061b33332938181ed7c1ca3ba
       body: ''
