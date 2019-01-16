@@ -2,18 +2,18 @@ ARG ARCH=amd64
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM balenalib/raspberry-pi-node:8-run as rpi-node-base
-FROM balenalib/armv7hf-node:8-run as armv7hf-node-base
-FROM balenalib/aarch64-node:8-run as aarch64-node-base
+FROM balenalib/raspberry-pi-node:10-run as rpi-node-base
+FROM balenalib/armv7hf-node:10-run as armv7hf-node-base
+FROM balenalib/aarch64-node:10-run as aarch64-node-base
 RUN [ "cross-build-start" ]
 RUN sed -i '/security.debian.org jessie/d' /etc/apt/sources.list
 RUN [ "cross-build-end" ]
 
-FROM balenalib/amd64-node:8-run as amd64-node-base
+FROM balenalib/amd64-node:10-run as amd64-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM balenalib/i386-node:8-run as i386-node-base
+FROM balenalib/i386-debian as i386-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
@@ -31,8 +31,7 @@ FROM amd64-node-base as i386-node-build
 FROM balenalib/amd64-node:6-build as i386-nlp-node-build
 ##############################################################################
 
-# We always do the webpack build on amd64, cause it's way faster
-FROM amd64-node-base as node-build
+FROM $ARCH-node-build as node-build
 
 WORKDIR /usr/src/app
 
@@ -113,7 +112,7 @@ RUN [ "cross-build-end" ]
 ##############################################################################
 
 # Minimal runtime image
-FROM balena/$ARCH-supervisor-base:v1.4.4
+FROM balena/$ARCH-supervisor-base:v1.4.6
 ARG ARCH
 ARG VERSION=master
 ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
