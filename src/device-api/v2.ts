@@ -327,6 +327,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		// Get the stream, and stream it into res
 		const listenStream = backend.attachListener();
 
+		// The http connection doesn't correctly intialise until some data is sent,
+		// which means any callers waiting on the data being returned will hang
+		// until the first logs comes through. To avoid this we send an initial
+		// message
+		res.write(
+			`${JSON.stringify({ message: 'Streaming logs', isSystem: true })}\n`,
+		);
 		listenStream.pipe(res);
 	});
 
