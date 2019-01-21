@@ -4,7 +4,6 @@ import * as _ from 'lodash';
 import * as morgan from 'morgan';
 
 import Config from './config';
-import { SchemaReturn, SchemaTypeKey } from './config/schema-type';
 import { EventTracker } from './event-tracker';
 import blink = require('./lib/blink');
 import * as iptables from './lib/iptables';
@@ -147,18 +146,15 @@ export class SupervisorAPI {
 
 		// Monitor the switching of local mode, and change which interfaces will
 		// be listened to based on that
-		this.config.on(
-			'change',
-			(changedConfig: { [key in SchemaTypeKey]: SchemaReturn<key> }) => {
-				if (changedConfig.localMode != null) {
-					this.applyListeningRules(
-						changedConfig.localMode || false,
-						port,
-						allowedInterfaces,
-					);
-				}
-			},
-		);
+		this.config.on('change', changedConfig => {
+			if (changedConfig.localMode != null) {
+				this.applyListeningRules(
+					changedConfig.localMode || false,
+					port,
+					allowedInterfaces,
+				);
+			}
+		});
 
 		this.server = this.api.listen(port);
 		this.server.timeout = apiTimeout;

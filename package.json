@@ -91,6 +91,7 @@
     "rimraf": "^2.6.2",
     "rwlock": "^5.0.0",
     "shell-quote": "^1.6.1",
+    "strict-event-emitter-types": "^2.0.0",
     "ts-loader": "^5.3.0",
     "typed-error": "^2.0.0",
     "typescript": "^3.2.2",
