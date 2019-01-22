@@ -149,12 +149,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	);
 
 	// TODO: Support dependent applications when this feature is complete
-	router.get('/v2/applications/state', (_req: Request, res: Response) => {
+	router.get('/v2/applications/state', async (_req: Request, res: Response) => {
 		// It's kinda hacky to access the services and db via the application manager
 		// maybe refactor this code
+		const localMode = await deviceState.config.get('localMode');
 		Bluebird.join(
 			applications.services.getStatus(),
-			applications.images.getStatus(),
+			applications.images.getStatus(localMode),
 			applications.db.models('app').select(['appId', 'commit', 'name']),
 			(
 				services,
@@ -210,7 +211,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 					response[appName].services[img.serviceName] = {
 						status,
 						releaseId: img.releaseId,
-						downloadProgress: img.downloadProgress,
+						downloadProgress: img.downloadProgress || null,
 					};
 				});
 

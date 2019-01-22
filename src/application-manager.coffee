@@ -17,7 +17,7 @@ updateLock = require './lib/update-lock'
 
 ServiceManager = require './compose/service-manager'
 { Service } = require './compose/service'
-Images = require './compose/images'
+{ Images } = require './compose/images'
 { NetworkManager } = require './compose/network-manager'
 { Network } = require './compose/network'
 Volumes = require './compose/volumes'
@@ -469,11 +469,11 @@ module.exports = class ApplicationManager extends EventEmitter
 	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
 	# to kill a service once the images for the services it depends on have been downloaded, so as to minimize
 	# downtime (but not block the killing too much, potentially causing a deadlock)
-	_dependenciesMetForServiceKill: (target, targetApp, availableImages) =>
+	_dependenciesMetForServiceKill: (target, targetApp, availableImages) ->
 		if target.dependsOn?
 			for dependency in target.dependsOn
 				dependencyService = _.find(targetApp.services, serviceName: dependency)
-				if !_.some(availableImages, (image) => image.dockerImageId == dependencyService.image or @images.isSameImage(image, { name: dependencyService.imageName }))
+				if !_.some(availableImages, (image) -> image.dockerImageId == dependencyService.image or Images.isSameImage(image, { name: dependencyService.imageName }))
 					return false
 		return true
 
@@ -563,8 +563,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		needsDownload = false
 		# Don't attempt to fetch any images in local mode, they should already be there
 		if !localMode
-			needsDownload = !_.some availableImages, (image) =>
-				image.dockerImageId == target?.config.image or @images.isSameImage(image, { name: target.imageName })
+			needsDownload = !_.some availableImages, (image) ->
+				image.dockerImageId == target?.config.image or Images.isSameImage(image, { name: target.imageName })
 
 		# This service needs an image download but it's currently downloading, so we wait
 		if needsDownload and target?.imageId in downloading
@@ -671,7 +671,9 @@ module.exports = class ApplicationManager extends EventEmitter
 			return dbApp
 
 	createTargetService: (service, opts) ->
-		@images.inspectByName(service.image)
+		# The image class now returns a native promise, so wrap
+		# this in a bluebird promise until we convert this to typescript
+		Promise.resolve(@images.inspectByName(service.image))
 		.catchReturn(NotFoundError, undefined)
 		.then (imageInfo) ->
 			serviceOpts = {
@@ -818,16 +820,16 @@ module.exports = class ApplicationManager extends EventEmitter
 		availableAndUnused = _.filter availableWithoutIds, (image) ->
 			!_.some currentImages.concat(targetImages), (imageInUse) -> _.isEqual(image, imageInUse)
 
-		imagesToDownload = _.filter targetImages, (targetImage) =>
-			!_.some available, (availableImage) => @images.isSameImage(availableImage, targetImage)
+		imagesToDownload = _.filter targetImages, (targetImage) ->
+			!_.some available, (availableImage) -> Images.isSameImage(availableImage, targetImage)
 
 		# Images that are available but we don't have them in the DB with the exact metadata:
 		imagesToSave = []
 		if !localMode
-			imagesToSave = _.filter targetImages, (targetImage) =>
+			imagesToSave = _.filter targetImages, (targetImage) ->
 				isActuallyAvailable = _.some(
-					available, (availableImage) =>
-						if @images.isSameImage(availableImage, targetImage)
+					available, (availableImage) ->
+						if Images.isSameImage(availableImage, targetImage)
 							return true
 						if availableImage.dockerImageId == targetImageDockerIds[targetImage.name]
 							return true
@@ -840,9 +842,9 @@ module.exports = class ApplicationManager extends EventEmitter
 			return @bestDeltaSource(image, available)
 		proxyvisorImages = @proxyvisor.imagesInUse(current, target)
 
-		imagesToRemove = _.filter availableAndUnused, (image) =>
+		imagesToRemove = _.filter availableAndUnused, (image) ->
 			notUsedForDelta = !_.includes(deltaSources, image.name)
-			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) => @images.isSameImage(image, { name: proxyvisorImage })
+			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) -> Images.isSameImage(image, { name: proxyvisorImage })
 			return notUsedForDelta and notUsedByProxyvisor
 		return { imagesToSave, imagesToRemove }
 
