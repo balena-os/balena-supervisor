@@ -47,7 +47,7 @@ export class DB {
 	public upsertModel(
 		modelName: string,
 		obj: any,
-		id: number | { [key: string]: string },
+		id: number | { [key: string]: unknown },
 		trx?: Knex.Transaction,
 	): Bluebird<any> {
 		const knex = trx || this.knex;
