@@ -20,7 +20,7 @@ ServiceManager = require './compose/service-manager'
 { Images } = require './compose/images'
 { NetworkManager } = require './compose/network-manager'
 { Network } = require './compose/network'
-Volumes = require './compose/volumes'
+{ Volumes } = require './compose/volumes'
 
 Proxyvisor = require './proxyvisor'
 
