@@ -244,10 +244,6 @@ export class Images extends (EventEmitter as {
 				),
 		);
 
-		// if (localMode) {
-		// 	// Get all images present on the local daemon which are tagged as local images
-		// 	return images.concat(await this.getLocalModeImages());
-		// }
 		return images;
 	}
 
@@ -285,9 +281,8 @@ export class Images extends (EventEmitter as {
 						}
 					}
 				}
-				return _.filter(
-					supervisedImages,
-					image => !this.isAvailableInDocker(image, dockerImages),
+				return _.reject(supervisedImages, image =>
+					this.isAvailableInDocker(image, dockerImages),
 				);
 			},
 		);
@@ -384,7 +379,8 @@ export class Images extends (EventEmitter as {
 				}
 			}
 		}
-		const toCleanup = _(images)
+
+		return _(images)
 			.uniq()
 			.filter(
 				image =>
@@ -393,7 +389,6 @@ export class Images extends (EventEmitter as {
 						constants.imageCleanupErrorIgnoreTimeout,
 			)
 			.value();
-		return toCleanup;
 	}
 
 	public async inspectByName(
@@ -454,19 +449,6 @@ export class Images extends (EventEmitter as {
 			Images.hasSameDigest(image1.name, image2.name)
 		);
 	}
-
-	// private async getLocalModeImages() {
-	// 	const [legacy, current] = await Promise.all([
-	// 		this.docker.listImages({
-	// 			filters: { label: ['io.resin.local.image=1'] },
-	// 		}),
-	// 		this.docker.listImages({
-	// 			filters: { label: ['io.balena.local.image=1'] },
-	// 		}),
-	// 	]);
-
-	// 	const dockerImages = _.unionBy(legacy, current, 'Id');
-	// }
 
 	private normalise(imageName: string): Bluebird<string> {
 		return this.docker.normaliseImageName(imageName);
@@ -623,17 +605,18 @@ export class Images extends (EventEmitter as {
 
 	// TODO: find out if imageId can actually be null
 	private reportChange(imageId: Nullable<number>, status?: Partial<Image>) {
-		if (imageId != null) {
-			if (status != null) {
-				if (this.volatileState[imageId] == null) {
-					this.volatileState[imageId] = { imageId } as Image;
-				}
-				_.merge(this.volatileState[imageId], status);
-				return this.emit('change');
-			} else if (this.volatileState[imageId] != null) {
-				delete this.volatileState[imageId];
-				return this.emit('change');
+		if (imageId == null) {
+			return;
+		}
+		if (status != null) {
+			if (this.volatileState[imageId] == null) {
+				this.volatileState[imageId] = { imageId } as Image;
 			}
+			_.merge(this.volatileState[imageId], status);
+			return this.emit('change');
+		} else if (this.volatileState[imageId] != null) {
+			delete this.volatileState[imageId];
+			return this.emit('change');
 		}
 	}
 
@@ -642,10 +625,7 @@ export class Images extends (EventEmitter as {
 			return false;
 		}
 		const parts = name.split('@');
-		if (parts[1] == null) {
-			return false;
-		}
-		return true;
+		return parts[1] != null;
 	}
 }
 
