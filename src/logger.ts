@@ -7,10 +7,10 @@ import Docker from './lib/docker-utils';
 import { LogType } from './lib/log-types';
 import { writeLock } from './lib/update-lock';
 import {
+	BalenaLogBackend,
 	LocalLogBackend,
 	LogBackend,
 	LogMessage,
-	BalenaLogBackend,
 } from './logging-backends';
 
 interface LoggerSetupOptions {

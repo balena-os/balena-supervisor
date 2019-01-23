@@ -1,6 +1,6 @@
 import * as Bluebird from 'bluebird';
-import { fs } from 'mz';
 import * as _ from 'lodash';
+import { fs } from 'mz';
 
 import * as constants from '../lib/constants';
 import Docker from '../lib/docker-utils';
