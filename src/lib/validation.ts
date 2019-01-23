@@ -10,8 +10,7 @@ export interface CheckIntOptions {
 const ENV_VAR_KEY_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
 
-type NullableString = string | undefined | null;
-type NullableLiteral = number | NullableString;
+type NullableLiteral = Nullable<number | string>;
 
 /**
  * checkInt

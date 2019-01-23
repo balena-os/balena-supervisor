@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { Transaction } from 'knex';
 import * as _ from 'lodash';
 import { generateUniqueKey } from 'resin-register-device';
+import StrictEventEmitter from 'strict-event-emitter-types';
 
 import { Either } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
@@ -25,8 +26,19 @@ interface ConfigOpts {
 }
 
 type ConfigMap<T extends SchemaTypeKey> = { [key in T]: SchemaReturn<key> };
+type ConfigChangeMap<T extends SchemaTypeKey> = {
+	[key in T]: SchemaReturn<key> | undefined
+};
 
-export class Config extends EventEmitter {
+interface ConfigEvents {
+	change: ConfigChangeMap<SchemaTypeKey>;
+}
+
+type ConfigEventEmitter = StrictEventEmitter<EventEmitter, ConfigEvents>;
+
+export class Config extends (EventEmitter as {
+	new (): ConfigEventEmitter;
+}) {
 	private db: DB;
 	private configJsonBackend: ConfigJsonConfigBackend;
 
@@ -173,7 +185,7 @@ export class Config extends EventEmitter {
 					.return();
 			}
 		}).then(() => {
-			this.emit('change', keyValues);
+			this.emit('change', keyValues as ConfigMap<SchemaTypeKey>);
 		});
 	}
 

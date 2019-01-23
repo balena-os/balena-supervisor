@@ -3,7 +3,6 @@ import * as Docker from 'dockerode';
 import * as _ from 'lodash';
 
 import Config from './config';
-import { SchemaReturn, SchemaTypeKey } from './config/schema-type';
 import Database from './db';
 import { Logger } from './logger';
 
@@ -25,23 +24,20 @@ export class LocalModeManager {
 
 	public async init() {
 		// Setup a listener to catch state changes relating to local mode
-		this.config.on(
-			'change',
-			(changed: { [key in SchemaTypeKey]: SchemaReturn<key> }) => {
-				if (changed.localMode != null) {
-					const localMode = changed.localMode || false;
+		this.config.on('change', changed => {
+			if (changed.localMode != null) {
+				const localMode = changed.localMode || false;
 
-					// First switch the logger to it's correct state
-					this.logger.switchBackend(localMode);
+				// First switch the logger to it's correct state
+				this.logger.switchBackend(localMode);
 
-					// If we're leaving local mode, make sure to remove all of the
-					// leftover artifacts
-					if (!localMode) {
-						this.removeLocalModeArtifacts();
-					}
+				// If we're leaving local mode, make sure to remove all of the
+				// leftover artifacts
+				if (!localMode) {
+					this.removeLocalModeArtifacts();
 				}
-			},
-		);
+			}
+		});
 
 		// On startup, check if we're in unmanaged mode,
 		// as local mode needs to be set
