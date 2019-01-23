@@ -1,4 +1,70 @@
 - commits:
+    - subject: 'refactor: Convert volumes module to typescript'
+      hash: 32acde0a99c0a3fdffe8b6abfd289ddc212b18f7
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Convert compose/images module to typescript'
+      hash: 91b553dd329fe9d42fd4bb0e6e716860e506cf88
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'deps: Update docker-toolbelt for typing fixes'
+      hash: f10ad00e0141b17a5df23275278df2506732ad8c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'typings: Improve database typings by allowing unknown dictionary keys'
+      hash: 1af13d3373f16dd3f303eedcf773ea80376a7661
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'typings: Improve docker-utils typings'
+      hash: fed01c355c8728e5088fd16c620582566bcd8c08
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'misc: Add Nullable<T> helper type'
+      hash: d1e1297f6db4b00ed382cd96e345b4c9637f7211
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'config: Properly type the change events from config module'
+      hash: 0505c0f97666ffcf1fcea6c5add50f38901b0db4
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.4.0
+  date: 2019-01-23T09:15:45.444Z
+- commits:
     - subject: Send connection message when streaming local mode logs
       hash: 06cdaddd714b3310574dcacabc6e416d03646b33
       body: ''
