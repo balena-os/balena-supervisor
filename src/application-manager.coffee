@@ -8,7 +8,7 @@ path = require 'path'
 
 constants = require './lib/constants'
 
-Docker = require './lib/docker-utils'
+{ DockerUtils: Docker } = require './lib/docker-utils'
 { LocalModeManager } = require './local-mode'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
@@ -689,8 +689,7 @@ module.exports = class ApplicationManager extends EventEmitter
 	normaliseAndExtendAppFromDB: (app) =>
 		Promise.join(
 			@config.get('extendedEnvOptions')
-			@docker.getNetworkGateway(constants.supervisorNetworkInterface)
-			.catchReturn('127.0.0.1')
+			@docker.getNetworkGateway(constants.supervisorNetworkInterface).catch(-> '127.0.0.1')
 			Promise.props({
 				firmware: pathExistsOnHost('/lib/firmware')
 				modules: pathExistsOnHost('/lib/modules')

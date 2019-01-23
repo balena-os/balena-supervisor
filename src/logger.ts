@@ -3,7 +3,7 @@ import * as es from 'event-stream';
 import * as _ from 'lodash';
 
 import { EventTracker } from './event-tracker';
-import Docker = require('./lib/docker-utils');
+import Docker from './lib/docker-utils';
 import { LogType } from './lib/log-types';
 import { writeLock } from './lib/update-lock';
 import {

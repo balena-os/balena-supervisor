@@ -3,7 +3,7 @@ import { fs } from 'mz';
 import * as _ from 'lodash';
 
 import * as constants from '../lib/constants';
-import Docker = require('../lib/docker-utils');
+import Docker from '../lib/docker-utils';
 import { ENOENT, NotFoundError } from '../lib/errors';
 import { Logger } from '../logger';
 import { Network, NetworkOptions } from './network';
