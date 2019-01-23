@@ -629,7 +629,7 @@ export class APIBinder {
 
 			if (targetConfig[key] == null && value !== defaultConfig[key]) {
 				const envVar = {
-					varValue,
+					value: varValue,
 					device: deviceId,
 					name: 'RESIN_' + key,
 				};
