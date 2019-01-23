@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'fix: Fix intial config reporting'
+      hash: 9a97451e7a43524dc512f7f56e704a97369caa4b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.4.2
+  date: 2019-01-23T18:02:33.894Z
+- commits:
     - subject: Clear up images.ts module code for simiplicity
       hash: 24ce72a2c339e52ac98099f61c235bb2c23d4f97
       body: ''
