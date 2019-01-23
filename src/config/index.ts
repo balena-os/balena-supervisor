@@ -27,7 +27,7 @@ interface ConfigOpts {
 
 type ConfigMap<T extends SchemaTypeKey> = { [key in T]: SchemaReturn<key> };
 type ConfigChangeMap<T extends SchemaTypeKey> = {
-	[key in T]: SchemaReturn<key> | undefined
+	[key in T]?: SchemaReturn<key>
 };
 
 interface ConfigEvents {
