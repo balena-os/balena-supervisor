@@ -15,7 +15,7 @@ updateLock = require './lib/update-lock'
 { NotFoundError } = require './lib/errors'
 { pathExistsOnHost } = require './lib/fs-utils'
 
-ServiceManager = require './compose/service-manager'
+{ ServiceManager } = require './compose/service-manager'
 { Service } = require './compose/service'
 { Images } = require './compose/images'
 { NetworkManager } = require './compose/network-manager'
