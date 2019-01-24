@@ -134,7 +134,7 @@ export class Logger {
 	public attach(
 		docker: Docker,
 		containerId: string,
-		serviceInfo: { serviceId: string; imageId: string },
+		serviceInfo: { serviceId: number; imageId: number },
 	): Bluebird<void> {
 		return Bluebird.using(this.lock(containerId), () => {
 			return this.attachStream(
@@ -199,7 +199,7 @@ export class Logger {
 		docker: Docker,
 		streamType: OutputStream,
 		containerId: string,
-		{ serviceId, imageId }: { serviceId: string; imageId: string },
+		{ serviceId, imageId }: { serviceId: number; imageId: number },
 	): Bluebird<void> {
 		return Bluebird.try(() => {
 			if (this.attached[streamType][containerId]) {
