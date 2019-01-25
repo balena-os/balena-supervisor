@@ -1,4 +1,36 @@
 - commits:
+    - subject: 'refactor: Convert ServiceManager to typescript'
+      hash: ba000a73fc1873c87eb7f6003ca0ab961704184a
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Improve error and logger typings
+      hash: e5893c0ee05b2003fa6ab5147e52b6d1a4faae1e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'refactor: Convert docker-utils module to typescript'
+      hash: 02736113a394563dbb265cfe206e8e2aa65f9e6d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#868'
+        closes: '#868'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.5.0
+  date: 2019-01-25T14:00:21.080Z
+- commits:
     - subject: 'fix: Fix intial config reporting'
       hash: 9a97451e7a43524dc512f7f56e704a97369caa4b
       body: ''
