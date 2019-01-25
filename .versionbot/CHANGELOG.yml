@@ -1,4 +1,16 @@
 - commits:
+    - subject: Upgrade to node 8 for supported architectures
+      hash: 338ba4cdd7c6a0a7036e3c9d932622fbe5216436
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.6.0
+  date: 2019-01-25T18:29:42.903Z
+- commits:
     - subject: 'refactor: Convert ServiceManager to typescript'
       hash: ba000a73fc1873c87eb7f6003ca0ab961704184a
       body: ''
