@@ -17,9 +17,9 @@ import {
 } from './types/service';
 import * as ComposeUtils from './utils';
 
+import * as constants from '../lib/constants';
 import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
-import * as constants from '../lib/constants';
 
 export class Service {
 	public appId: number | null;

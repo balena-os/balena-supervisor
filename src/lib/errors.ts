@@ -5,8 +5,8 @@ import { checkInt } from './validation';
 
 // To keep the bluebird typings happy, we need to accept
 // an error, and in this case, it would also contain a status code
-interface StatusCodeError extends Error {
-	statusCode?: string;
+export interface StatusCodeError extends Error {
+	statusCode?: string | number;
 }
 
 interface CodedSysError extends Error {

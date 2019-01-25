@@ -7,6 +7,8 @@ import * as osRelease from './os-release';
 
 import supervisorVersion = require('./supervisor-version');
 
+export { requestLib };
+
 const osVersion = osRelease.getOSVersionSync(constants.hostOSVersionPath);
 const osVariant = osRelease.getOSVariantSync(constants.hostOSVersionPath);
 

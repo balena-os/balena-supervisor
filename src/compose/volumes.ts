@@ -2,7 +2,7 @@ import * as Dockerode from 'dockerode';
 import * as _ from 'lodash';
 import * as path from 'path';
 
-import Docker = require('../lib/docker-utils');
+import Docker from '../lib/docker-utils';
 import Logger from '../logger';
 
 import constants = require('../lib/constants');
@@ -205,7 +205,8 @@ export class Volumes {
 	private async listWithBothLabels(): Promise<Dockerode.VolumeInspectInfo[]> {
 		// We have to cast the listVolumes call from any[] to any below, until the
 		// relevant PR: https://github.com/DefinitelyTyped/DefinitelyTyped/pull/32383
-		// is merged and released
+		// is merged and released - we can also replace Dockerode here with the Docker
+		// DockerUtils class imported above
 		const [legacyResponse, currentResponse]: [
 			Dockerode.VolumeInfoList,
 			Dockerode.VolumeInfoList

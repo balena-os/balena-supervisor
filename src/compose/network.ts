@@ -1,7 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
-import Docker = require('../lib/docker-utils');
+import Docker from '../lib/docker-utils';
 import { InvalidAppIdError, NotFoundError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import { checkInt } from '../lib/validation';

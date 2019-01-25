@@ -3,14 +3,14 @@ import * as es from 'event-stream';
 import * as _ from 'lodash';
 
 import { EventTracker } from './event-tracker';
-import Docker = require('./lib/docker-utils');
+import Docker from './lib/docker-utils';
 import { LogType } from './lib/log-types';
 import { writeLock } from './lib/update-lock';
 import {
+	BalenaLogBackend,
 	LocalLogBackend,
 	LogBackend,
 	LogMessage,
-	BalenaLogBackend,
 } from './logging-backends';
 
 interface LoggerSetupOptions {
@@ -134,7 +134,7 @@ export class Logger {
 	public attach(
 		docker: Docker,
 		containerId: string,
-		serviceInfo: { serviceId: string; imageId: string },
+		serviceInfo: { serviceId: number; imageId: number },
 	): Bluebird<void> {
 		return Bluebird.using(this.lock(containerId), () => {
 			return this.attachStream(
@@ -199,7 +199,7 @@ export class Logger {
 		docker: Docker,
 		streamType: OutputStream,
 		containerId: string,
-		{ serviceId, imageId }: { serviceId: string; imageId: string },
+		{ serviceId, imageId }: { serviceId: number; imageId: number },
 	): Bluebird<void> {
 		return Bluebird.try(() => {
 			if (this.attached[streamType][containerId]) {

@@ -4,10 +4,13 @@ import { EventEmitter } from 'events';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
-import { SchemaReturn } from '../config/schema-type';
 import Database from '../db';
 import * as constants from '../lib/constants';
-import DockerUtils = require('../lib/docker-utils');
+import {
+	DeltaFetchOptions,
+	DockerUtils,
+	FetchOptions,
+} from '../lib/docker-utils';
 import { DeltaStillProcessingError, NotFoundError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import * as validation from '../lib/validation';
@@ -28,25 +31,6 @@ interface ImageConstructOpts {
 interface FetchProgressEvent {
 	percentage: number;
 }
-
-// TODO: This is copied from src/lib/docker-utils.d.ts but because of the
-// export mechanism used, we can't export it. Once we convert docker-utils
-// to typescript, remove this
-interface DeltaFetchOptions {
-	deltaRequestTimeout: number;
-	deltaApplyTimeout: number;
-	deltaRetryCount: number;
-	deltaRetryInterval: number;
-	uuid: string;
-	currentApiKey: string;
-	deltaEndpoint: string;
-	apiEndpoint: string;
-	deltaSource: string;
-	deltaSourceId: string;
-	deltaVersion: string;
-}
-
-type FetchOptions = SchemaReturn<'fetchOptions'> & { deltaSource?: string };
 
 export interface Image {
 	id: number;
@@ -133,7 +117,7 @@ export class Images extends (EventEmitter as {
 
 			try {
 				let id;
-				if (opts.delta && opts.deltaSource != null) {
+				if (opts.delta && (opts as DeltaFetchOptions).deltaSource != null) {
 					id = await this.fetchDelta(image, opts, onProgress);
 				} else {
 					id = await this.fetchImage(image, opts, onProgress);
@@ -598,7 +582,7 @@ export class Images extends (EventEmitter as {
 		image: Image,
 		opts: FetchOptions,
 		onProgress: (evt: FetchProgressEvent) => void,
-	): Bluebird<string> {
+	): Promise<string> {
 		this.logger.logSystemEvent(LogTypes.downloadImage, { image });
 		return this.docker.fetchImageWithProgress(image.name, opts, onProgress);
 	}
