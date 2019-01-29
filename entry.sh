@@ -5,6 +5,7 @@ set -o errexit
 # Start Avahi to allow MDNS lookups
 mkdir -p /var/run/dbus
 rm -f /var/run/avahi-daemon/pid
+rm -f /var/run/dbus/pid
 /etc/init.d/dbus-1 start
 /etc/init.d/avahi-daemon start
 

@@ -95,7 +95,6 @@ export class SupervisorAPI {
 
 		this.api.disable('x-powered-by');
 		this.api.use(expressLogger);
-		this.api.use(authenticate(this.config));
 
 		this.api.get('/v1/healthy', async (_req, res) => {
 			try {
@@ -108,6 +107,8 @@ export class SupervisorAPI {
 				res.sendStatus(500);
 			}
 		});
+
+		this.api.use(authenticate(this.config));
 
 		this.api.get('/ping', (_req, res) => res.send('OK'));
 
