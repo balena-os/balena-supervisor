@@ -226,6 +226,15 @@ export class ServiceManager extends (EventEmitter as {
 			}
 		}
 	}
+	public getAllByAppId(appId: number) {
+		return this.getAll(`app-id=${appId}`);
+	}
+
+	public async stopAllByAppId(appId: number) {
+		for (const app of await this.getAllByAppId(appId)) {
+			await this.kill(app, { removeContainer: false });
+		}
+	}
 
 	public async create(service: Service) {
 		const mockContainerId = this.config.newUniqueKey();
