@@ -1,4 +1,34 @@
 - commits:
+    - subject: 'fix: Properly bind context to healthchecks'
+      hash: 6a9ca2a60df0b4eafc42cbac86d3161651eee68b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'fix: Only apply supervisor api authentication after healthcheck entry'
+      hash: 707ddb5f450734ba58179682cfb30236311b3a94
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'fix: Clear dbus pid file on startup'
+      hash: ec87d26be194685ca91f376d7ee3dd3a6b764b3c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.6.2
+  date: 2019-01-29T14:20:48.328Z
+- commits:
     - subject: Add missing ServiceManager methods
       hash: 8315413046e4b54278f504fd31398154f2ff4782
       body: ''
