@@ -1,4 +1,16 @@
 - commits:
+    - subject: Add missing ServiceManager methods
+      hash: 8315413046e4b54278f504fd31398154f2ff4782
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.6.1
+  date: 2019-01-29T11:52:53.041Z
+- commits:
     - subject: Upgrade to node 8 for supported architectures
       hash: 338ba4cdd7c6a0a7036e3c9d932622fbe5216436
       body: ''
