@@ -882,7 +882,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			return _.uniqWith(nextSteps, _.isEqual)
 
 	stopAll: ({ force = false, skipLock = false } = {}) =>
-		@services.getAll()
+		Promise.resolve(@services.getAll())
 		.map (service) =>
 			@_lockingIfNecessary service.appId, { force, skipLock }, =>
 				@services.kill(service, { removeContainer: false, wait: true })
