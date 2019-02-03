@@ -1,13 +1,6 @@
 import ApplicationManager from '../application-manager';
 import { Service } from '../compose/service';
-
-export interface ServiceAction {
-	action: string;
-	serviceId: number;
-	current: Service;
-	target: Service;
-	options: any;
-}
+import { ActionExecutorStep } from '../actions';
 
 declare function doRestart(
 	applications: ApplicationManager,
@@ -25,6 +18,6 @@ declare function serviceAction(
 	action: string,
 	serviceId: number,
 	current: Service,
-	target: Service,
-	options: any,
-): ServiceAction;
+	target?: Service,
+	options?: any,
+): ActionExecutorStep;

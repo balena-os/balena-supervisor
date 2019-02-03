@@ -111,3 +111,5 @@ export class EventTracker {
 		return _.merge({}, properties, this.defaultProperties);
 	}
 }
+
+export default EventTracker;

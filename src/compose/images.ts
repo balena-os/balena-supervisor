@@ -79,7 +79,7 @@ export class Images extends (EventEmitter as {
 	public async triggerFetch(
 		image: Image,
 		opts: FetchOptions,
-		onFinish = _.noop,
+		onFinish: (success: boolean) => unknown = _.noop,
 	): Promise<null> {
 		const onProgress = (progress: FetchProgressEvent) => {
 			// Only report the percentage if we haven't finished fetching
@@ -220,15 +220,13 @@ export class Images extends (EventEmitter as {
 		);
 	}
 
-	public async getAvailable(_localMode: boolean): Promise<Image[]> {
-		const images = await this.withImagesFromDockerAndDB(
+	public async getAvailable(): Promise<Image[]> {
+		return await this.withImagesFromDockerAndDB(
 			(dockerImages, supervisedImages) =>
 				_.filter(supervisedImages, image =>
 					this.isAvailableInDocker(image, dockerImages),
 				),
 		);
-
-		return images;
 	}
 
 	// TODO: Why does this need a Bluebird.try?

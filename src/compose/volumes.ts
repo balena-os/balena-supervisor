@@ -29,7 +29,7 @@ export interface ComposeVolume {
 	dockerVolume: Dockerode.VolumeInspectInfo;
 }
 
-interface VolumeNameOpts {
+export interface VolumeNameOpts {
 	name: string;
 	appId: number;
 }
@@ -39,7 +39,7 @@ interface VolumeNameOpts {
 // If we instead split the tasks into createFromCompose and createFromDocker, we will no
 // longer have this issue (and weird typing)
 type VolumeConfig = ComposeVolume['config'] | Dockerode.VolumeInspectInfo | {};
-type VolumeCreateOpts = VolumeNameOpts & {
+export type VolumeCreateOpts = VolumeNameOpts & {
 	config?: VolumeConfig;
 };
 

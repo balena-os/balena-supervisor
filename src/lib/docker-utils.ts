@@ -17,7 +17,7 @@ import { EnvVarObject } from './types';
 
 export type FetchOptions = SchemaReturn<'fetchOptions'>;
 export type DeltaFetchOptions = FetchOptions & {
-	deltaSourceId: string;
+	deltaSourceId?: string;
 	deltaSource: string;
 };
 
@@ -30,7 +30,7 @@ interface RsyncApplyOptions {
 export class DockerUtils extends DockerToolbelt {
 	public dockerProgress: DockerProgress;
 
-	public constructor(opts: Dockerode.DockerOptions) {
+	public constructor(opts: Dockerode.DockerOptions = {}) {
 		super(opts);
 		this.dockerProgress = new DockerProgress({ dockerToolbelt: this });
 	}

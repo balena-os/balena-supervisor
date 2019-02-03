@@ -1,19 +1,37 @@
 export interface DeviceApplicationState {
-	local?: {
-		config?: Dictionary<string>;
-		apps?: {
-			[appId: string]: {
-				services: {
-					[serviceId: string]: {
-						status: string;
-						releaseId: number;
-						download_progress: number | null;
-					};
+	local?: DeviceApplicationLocalState;
+	dependent?: DependentDeviceApplicationState;
+	commit?: string;
+}
+
+export interface DeviceApplicationLocalState {
+	config?: Dictionary<string>;
+	apps?: {
+		[appId: string]: {
+			services?: {
+				[serviceId: string]: {
+					status: string;
+					releaseId: number;
+					download_progress: number | null;
 				};
 			};
 		};
 	};
-	// TODO: Type the dependent entry correctly
-	dependent?: any;
+}
+
+export interface DeviceApplicationStateForReport {
+	local?: DeviceApplicationLocalState['apps'];
+	dependent: DependentDeviceApplicationState;
 	commit?: string;
+}
+
+export interface DependentDeviceApplicationState {
+	[appId: number]: {
+		images: {
+			[imageId: number]: {
+				status: string;
+				download_progress: number | null;
+			};
+		};
+	};
 }
