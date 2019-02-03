@@ -1,4 +1,16 @@
 - commits:
+    - subject: Wrap services.getAll in a bluebird promise
+      hash: ef7d993db6a92964809ea779bf63a5fc68f880ca
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.6.3
+  date: 2019-01-31T10:12:57.322Z
+- commits:
     - subject: 'fix: Properly bind context to healthchecks'
       hash: 6a9ca2a60df0b4eafc42cbac86d3161651eee68b
       body: ''
