@@ -36,6 +36,9 @@ FROM $ARCH-node-build as node-build
 
 WORKDIR /usr/src/app
 
+# install the newer NPM so we can use npm ci
+RUN npm install -g npm@4 && npm install -g npm@5 && npm install -g npm@6
+
 RUN apt-get update \
 	&& apt-get install -y \
 		g++ \
@@ -48,9 +51,6 @@ RUN apt-get update \
 	&& rm -rf /var/lib/apt/lists/
 
 COPY package.json package-lock.json /usr/src/app/
-
-# install the newer NPM so we can use npm ci
-RUN npm install -g npm@6
 
 RUN JOBS=MAX npm ci --no-optional --unsafe-perm
 
@@ -72,6 +72,9 @@ RUN [ "cross-build-start" ]
 
 WORKDIR /usr/src/app
 
+# install the newer NPM so we can use npm ci
+RUN npm install -g npm@4 && npm install -g npm@5 && npm install -g npm@6
+
 RUN apt-get update \
 	&& apt-get install -y \
 		g++ \
@@ -87,9 +90,6 @@ RUN mkdir -p rootfs-overlay && \
 	ln -s /lib rootfs-overlay/lib64
 
 COPY package.json package-lock.json /usr/src/app/
-
-# install the newer NPM so we can use npm ci
-RUN npm install -g npm@6
 
 # Install only the production modules that have C extensions
 RUN JOBS=MAX npm ci --production --no-optional --unsafe-perm \
