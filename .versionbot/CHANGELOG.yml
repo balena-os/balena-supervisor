@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'fix: Don''t attempt a pull if the token requests fails'
+      hash: d8085a6ef896ff7b63ee295765031829eb07de2b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#879'
+        closes: '#879'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.6.5
+  date: 2019-02-04T17:51:58.573Z
+- commits:
     - subject: Pin terser version to avoid breaking change in minor update
       hash: 28d09f2772a224a4d2efb9dd35c333b21bbbc57a
       body: ''
