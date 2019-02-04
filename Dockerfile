@@ -49,7 +49,10 @@ RUN apt-get update \
 
 COPY package.json package-lock.json /usr/src/app/
 
-RUN JOBS=MAX npm ci --no-optional --unsafe-perm || JOBS=MAX npm install --no-optional --unsafe-perm
+# install the newer NPM so we can use npm ci
+RUN npm install -g npm@6
+
+RUN JOBS=MAX npm ci --no-optional --unsafe-perm
 
 COPY webpack.config.js fix-jsonstream.js hardcode-migrations.js tsconfig.json /usr/src/app/
 COPY src /usr/src/app/src
@@ -85,10 +88,11 @@ RUN mkdir -p rootfs-overlay && \
 
 COPY package.json package-lock.json /usr/src/app/
 
+# install the newer NPM so we can use npm ci
+RUN npm install -g npm@6
+
 # Install only the production modules that have C extensions
-# First try to install with npm ci, then fallback to npm install
-RUN (JOBS=MAX npm ci --production --no-optional --unsafe-perm || \
- JOBS=MAX npm install --production --no-optional --unsafe-perm) \
+RUN JOBS=MAX npm ci --production --no-optional --unsafe-perm \
 	&& npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space
