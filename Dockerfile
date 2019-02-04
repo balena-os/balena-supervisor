@@ -47,9 +47,9 @@ RUN apt-get update \
 		wget \
 	&& rm -rf /var/lib/apt/lists/
 
-COPY package.json /usr/src/app/
+COPY package.json package-lock.json /usr/src/app/
 
-RUN JOBS=MAX npm install --no-optional --unsafe-perm
+RUN JOBS=MAX npm ci --no-optional --unsafe-perm || JOBS=MAX npm install --no-optional --unsafe-perm
 
 COPY webpack.config.js fix-jsonstream.js hardcode-migrations.js tsconfig.json /usr/src/app/
 COPY src /usr/src/app/src
@@ -83,10 +83,12 @@ RUN apt-get update \
 RUN mkdir -p rootfs-overlay && \
 	ln -s /lib rootfs-overlay/lib64
 
-COPY package.json /usr/src/app/
+COPY package.json package-lock.json /usr/src/app/
 
 # Install only the production modules that have C extensions
-RUN JOBS=MAX npm install --production --no-optional --unsafe-perm \
+# First try to install with npm ci, then fallback to npm install
+RUN (JOBS=MAX npm ci --production --no-optional --unsafe-perm || \
+ JOBS=MAX npm install --production --no-optional --unsafe-perm) \
 	&& npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space
