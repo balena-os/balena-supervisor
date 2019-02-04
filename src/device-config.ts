@@ -216,9 +216,15 @@ export class DeviceConfig {
 		const db = trx != null ? trx : this.db.models.bind(this.db);
 
 		const formatted = await this.formatConfigKeys(target);
+		// check for legacy keys
+		if (formatted['OVERRIDE_LOCK'] != null) {
+			formatted['SUPERVISOR_OVERRIDE_LOCK'] = formatted['OVERRIDE_LOCK'];
+		}
+
 		const confToUpdate = {
 			targetValues: JSON.stringify(formatted),
 		};
+
 		await db('deviceConfig').update(confToUpdate);
 	}
 
@@ -355,11 +361,6 @@ export class DeviceConfig {
 		const configChanges: Dictionary<string> = {};
 		const humanReadableConfigChanges: Dictionary<string> = {};
 		let reboot = false;
-
-		// If the legacy lock override is used, place it as the new variable
-		if (checkTruthy(target['OVERRIDE_LOCK'])) {
-			target['SUPERVISOR_OVERRIDE_LOCK'] = target['OVERRIDE_LOCK'];
-		}
 
 		_.each(
 			DeviceConfig.configKeys,
