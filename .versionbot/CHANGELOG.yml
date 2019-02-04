@@ -1,4 +1,45 @@
 - commits:
+    - subject: Pin terser version to avoid breaking change in minor update
+      hash: 28d09f2772a224a4d2efb9dd35c333b21bbbc57a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'Build: Respect package-lock when building'
+      hash: a92d9cef3db8a7c11f06e68a743f05a780a0f3b0
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Move legacy renaming to formatting function
+      hash: d75c58f09dc8f15ac154741238fd98db642a562b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Fix typo in OVERRIDE_LOCK
+      hash: f12f4745162b4f63db1dc6c5b425a6b133cf58c9
+      body: ''
+      footer:
+        Closes: '#885'
+        closes: '#885'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.6.4
+  date: 2019-02-04T11:58:57.552Z
+- commits:
     - subject: Wrap services.getAll in a bluebird promise
       hash: ef7d993db6a92964809ea779bf63a5fc68f880ca
       body: ''
