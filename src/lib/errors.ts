@@ -60,3 +60,5 @@ export class ConfigurationValidationError extends TypedError {
 		);
 	}
 }
+
+export class ImageAuthenticationError extends TypedError {}
