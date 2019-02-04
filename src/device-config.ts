@@ -127,7 +127,7 @@ export class DeviceConfig {
 
 	static validKeys = [
 		'SUPERVISOR_VPN_CONTROL',
-		'OVERRRIDE_LOCK',
+		'OVERRIDE_LOCK',
 		..._.map(DeviceConfig.configKeys, 'envVarName'),
 	];
 
