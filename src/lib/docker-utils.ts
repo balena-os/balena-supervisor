@@ -11,6 +11,7 @@ import {
 	DeltaStillProcessingError,
 	InternalInconsistencyError,
 	InvalidNetGatewayError,
+	ImageAuthenticationError,
 } from './errors';
 import { request, requestLib, resumable } from './request';
 import { EnvVarObject } from './types';
@@ -113,17 +114,18 @@ export class DockerUtils extends DockerToolbelt {
 		const tokenResponseBody = (await request.getAsync(tokenUrl, tokenOpts))[1];
 		const token = tokenResponseBody != null ? tokenResponseBody.token : null;
 
+		if (token == null) {
+			throw new ImageAuthenticationError();
+		}
+
 		const opts: requestLib.CoreOptions = {
 			followRedirect: false,
 			timeout: deltaOpts.deltaRequestTimeout,
-		};
-
-		if (token != null) {
-			opts.auth = {
+			auth: {
 				bearer: token,
 				sendImmediately: true,
-			};
-		}
+			},
+		};
 
 		const url = `${deltaOpts.deltaEndpoint}/api/v${
 			deltaOpts.deltaVersion
