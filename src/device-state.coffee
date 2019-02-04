@@ -570,7 +570,7 @@ module.exports = class DeviceState extends EventEmitter
 		if @scheduledApply?
 			console.log("Updating failed, but there's another update scheduled immediately: ", err)
 		else
-			delay = Math.min((2 ** @failedUpdates) * 500, 30000)
+			delay = Math.min((2 ** @failedUpdates) * constants.backoffIncrement, constants.maxBackoffTime)
 			# If there was an error then schedule another attempt briefly in the future.
 			console.log('Scheduling another update attempt due to failure: ', delay, err)
 			@triggerApplyTarget({ force, delay, initial })

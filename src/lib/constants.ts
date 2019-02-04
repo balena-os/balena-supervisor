@@ -32,7 +32,7 @@ const constants = {
 	proxyvisorHookReceiver: 'http://0.0.0.0:1337',
 	configJsonNonAtomicPath: '/boot/config.json',
 	defaultMixpanelToken: process.env.DEFAULT_MIXPANEL_TOKEN,
-	supervisorNetworkInterface: supervisorNetworkInterface,
+	supervisorNetworkInterface,
 	allowedInterfaces: [
 		'resin-vpn',
 		'tun0',
@@ -50,6 +50,11 @@ const constants = {
 	bootBlockDevice: '/dev/mmcblk0p1',
 	hostConfigVarPrefix: 'HOST_',
 	migrationBackupFile: 'backup.tgz',
+	// Use this failure multiplied by 2**Number of failures to increase
+	// the backoff on subsequent failures
+	backoffIncrement: 500,
+	// The maximum time to backoff on repeated failure
+	maxBackoffTime: 30000,
 };
 
 if (process.env.DOCKER_HOST == null) {
