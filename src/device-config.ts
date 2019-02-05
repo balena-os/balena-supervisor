@@ -5,7 +5,7 @@ import { SchemaTypeKey } from './config/schema-type';
 import Database, { Transaction } from './db';
 import Logger from './logger';
 
-import { DeviceConfigBackend } from './config/backend';
+import { DeviceConfigBackend, ConfigOptions } from './config/backend';
 import * as configUtils from './config/utils';
 import { UnitNotLoadedError } from './lib/errors';
 import * as systemd from './lib/systemd';
@@ -311,12 +311,20 @@ export class DeviceConfig {
 		configBackend: DeviceConfigBackend | null,
 		current: Dictionary<string>,
 		target: Dictionary<string>,
+		deviceType: string,
 	): boolean {
-		const targetBootConfig = configUtils.envToBootConfig(configBackend, target);
+		let targetBootConfig = configUtils.envToBootConfig(configBackend, target);
 		const currentBootConfig = configUtils.envToBootConfig(
 			configBackend,
 			current,
 		);
+
+		if (deviceType === 'fincm3') {
+			// current will always have the balena-fin dtoverlay, but the target does
+			// not have to as this is one that we enforce. If there is no balena-fin in the
+			// target state, add it
+			targetBootConfig = DeviceConfig.ensureFinOverlay(targetBootConfig);
+		}
 
 		if (!_.isEqual(currentBootConfig, targetBootConfig)) {
 			_.each(targetBootConfig, (value, key) => {
@@ -355,7 +363,10 @@ export class DeviceConfig {
 
 		const steps: ConfigStep[] = [];
 
-		const unmanaged = await this.config.get('unmanaged');
+		const { deviceType, unmanaged } = await this.config.getMany([
+			'deviceType',
+			'unmanaged',
+		]);
 		const backend = await this.getConfigBackend();
 
 		const configChanges: Dictionary<string> = {};
@@ -403,7 +414,7 @@ export class DeviceConfig {
 		}
 
 		// Do we need to change the boot config?
-		if (this.bootConfigChangeRequired(backend, current, target)) {
+		if (this.bootConfigChangeRequired(backend, current, target, deviceType)) {
 			steps.push({
 				action: 'setBootConfig',
 				target,
@@ -447,12 +458,17 @@ export class DeviceConfig {
 			return false;
 		}
 
-		const conf = configUtils.envToBootConfig(backend, target);
+		let conf = configUtils.envToBootConfig(backend, target);
 		this.logger.logSystemMessage(
 			`Applying boot config: ${JSON.stringify(conf)}`,
 			{},
 			'Apply boot config in progress',
 		);
+
+		// Ensure that the fin always has it's dtoverlay
+		if ((await this.config.get('deviceType')) === 'fincm3') {
+			conf = DeviceConfig.ensureFinOverlay(conf);
+		}
 
 		try {
 			await backend.setBootConfig(conf);
@@ -513,6 +529,23 @@ export class DeviceConfig {
 		key: string,
 	): boolean {
 		return checkTruthy(current[key]) !== checkTruthy(target[key]);
+	}
+
+	// Modifies conf
+	private static ensureFinOverlay(conf: ConfigOptions) {
+		if (conf.dtoverlay != null) {
+			if (_.isArray(conf.dtoverlay)) {
+				if (!_.includes(conf.dtoverlay, 'balena-fin')) {
+					conf.dtoverlay.push('balena-fin');
+				}
+			} else if (conf.dtoverlay !== 'balena-fin') {
+				conf.dtoverlay = [conf.dtoverlay, 'balena-fin'];
+			}
+		} else {
+			conf.dtoverlay = ['balena-fin'];
+		}
+		conf.dtoverlay = (conf.dtoverlay as string[]).filter(s => !_.isEmpty(s));
+		return conf;
 	}
 }
 
