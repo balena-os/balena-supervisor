@@ -206,7 +206,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 					if (svc == null) {
 						status = img.status;
 					} else {
-						status = svc.status;
+						status = svc.status || img.status;
 					}
 					response[appName].services[img.serviceName] = {
 						status,
@@ -381,5 +381,59 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				message: messageFromError(e),
 			});
 		}
+	});
+
+	router.get('/v2/state/status', async (_req, res) => {
+		const localMode = await applications.config.get('localMode');
+		const currentRelease = await applications.config.get('currentCommit');
+
+		const pending = applications.deviceState.applyInProgress;
+		const containerStates = (await applications.services.getAll()).map(svc =>
+			_.pick(
+				svc,
+				'status',
+				'serviceName',
+				'appId',
+				'imageId',
+				'serviceId',
+				'containerId',
+				'createdAt',
+			),
+		);
+
+		let downloadProgressTotal = 0;
+		let downloads = 0;
+		const imagesStates = (await applications.images.getStatus(localMode)).map(
+			img => {
+				if (img.downloadProgress != null) {
+					downloadProgressTotal += img.downloadProgress;
+					downloads += 1;
+				}
+				return _.pick(
+					img,
+					'name',
+					'appId',
+					'serviceName',
+					'imageId',
+					'dockerImageId',
+					'status',
+					'downloadProgress',
+				);
+			},
+		);
+
+		let overallDownloadProgress = null;
+		if (downloads > 0) {
+			overallDownloadProgress = downloadProgressTotal / downloads;
+		}
+
+		return res.status(200).send({
+			status: 'success',
+			appState: pending ? 'applying' : 'applied',
+			overallDownloadProgress,
+			containers: containerStates,
+			images: imagesStates,
+			release: currentRelease,
+		});
 	});
 }
