@@ -53,8 +53,6 @@ const constants = {
 	// Use this failure multiplied by 2**Number of failures to increase
 	// the backoff on subsequent failures
 	backoffIncrement: 500,
-	// The maximum time to backoff on repeated failure
-	maxBackoffTime: 30000,
 };
 
 if (process.env.DOCKER_HOST == null) {

@@ -4,6 +4,7 @@ import { EventEmitter } from 'events';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
+import Config from '../config';
 import Database from '../db';
 import * as constants from '../lib/constants';
 import {
@@ -27,6 +28,7 @@ interface ImageConstructOpts {
 	docker: DockerUtils;
 	logger: Logger;
 	db: Database;
+	config: Config;
 }
 
 interface FetchProgressEvent {
@@ -65,6 +67,8 @@ export class Images extends (EventEmitter as {
 	private logger: Logger;
 	private db: Database;
 
+	public appUpdatePollInterval: number;
+
 	private imageFetchFailures: Dictionary<number> = {};
 	private imageFetchLastFailureTime: Dictionary<
 		ReturnType<typeof process.hrtime>
@@ -92,7 +96,7 @@ export class Images extends (EventEmitter as {
 			// engine, and ensure that we wait a bit lnger
 			const minDelay = Math.min(
 				2 ** this.imageFetchFailures[image.name] * constants.backoffIncrement,
-				constants.maxBackoffTime,
+				this.appUpdatePollInterval,
 			);
 			const timeSinceLastError = process.hrtime(
 				this.imageFetchLastFailureTime[image.name],

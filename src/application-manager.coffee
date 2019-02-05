@@ -64,7 +64,7 @@ createApplicationManagerRouter = (applications) ->
 module.exports = class ApplicationManager extends EventEmitter
 	constructor: ({ @logger, @config, @db, @eventTracker, @deviceState }) ->
 		@docker = new Docker()
-		@images = new Images({ @docker, @logger, @db })
+		@images = new Images({ @docker, @logger, @db, @config })
 		@services = new ServiceManager({ @docker, @logger, @images, @config })
 		@networks = new NetworkManager({ @docker, @logger })
 		@volumes = new Volumes({ @docker, @logger })
@@ -74,6 +74,11 @@ module.exports = class ApplicationManager extends EventEmitter
 		@fetchesInProgress = 0
 		@_targetVolatilePerImageId = {}
 		@_containerStarted = {}
+
+		@config.on 'change', (changedConfig) =>
+			if changedConfig.appUpdatePollInterval
+				@images.appUpdatePollInterval = changedConfig.appUpdatePollInterval
+
 		@actionExecutors = {
 			stop: (step, { force = false, skipLock = false } = {}) =>
 				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
@@ -178,7 +183,10 @@ module.exports = class ApplicationManager extends EventEmitter
 		@emit('change', data)
 
 	init: =>
-		@images.cleanupDatabase()
+		@config.get('appUpdatePollInterval')
+		.then (interval) =>
+			@images.appUpdatePollInterval = interval
+			@images.cleanupDatabase()
 		.then =>
 			@localModeManager.init()
 		.then =>
