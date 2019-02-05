@@ -4,6 +4,7 @@ import { EventEmitter } from 'events';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
+import Config from '../config';
 import Database from '../db';
 import * as constants from '../lib/constants';
 import {
@@ -15,6 +16,7 @@ import { DeltaStillProcessingError, NotFoundError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import * as validation from '../lib/validation';
 import Logger from '../logger';
+import { ImageDownloadBackoffError } from './errors';
 
 interface ImageEvents {
 	change: void;
@@ -26,6 +28,7 @@ interface ImageConstructOpts {
 	docker: DockerUtils;
 	logger: Logger;
 	db: Database;
+	config: Config;
 }
 
 interface FetchProgressEvent {
@@ -64,6 +67,12 @@ export class Images extends (EventEmitter as {
 	private logger: Logger;
 	private db: Database;
 
+	public appUpdatePollInterval: number;
+
+	private imageFetchFailures: Dictionary<number> = {};
+	private imageFetchLastFailureTime: Dictionary<
+		ReturnType<typeof process.hrtime>
+	> = {};
 	private imageCleanupFailures: Dictionary<number> = {};
 	// A store of volatile state for images (e.g. download progress), indexed by imageId
 	private volatileState: { [imageId: number]: Image } = {};
@@ -81,6 +90,24 @@ export class Images extends (EventEmitter as {
 		opts: FetchOptions,
 		onFinish = _.noop,
 	): Promise<null> {
+		if (this.imageFetchFailures[image.name] != null) {
+			// If we are retrying a pull within the backoff time of the last failure,
+			// we need to throw an error, which will be caught in the device-state
+			// engine, and ensure that we wait a bit lnger
+			const minDelay = Math.min(
+				2 ** this.imageFetchFailures[image.name] * constants.backoffIncrement,
+				this.appUpdatePollInterval,
+			);
+			const timeSinceLastError = process.hrtime(
+				this.imageFetchLastFailureTime[image.name],
+			);
+			const timeSinceLastErrorMs =
+				timeSinceLastError[0] * 1000 + timeSinceLastError[1] / 1e6;
+			if (timeSinceLastErrorMs < minDelay) {
+				throw new ImageDownloadBackoffError();
+			}
+		}
+
 		const onProgress = (progress: FetchProgressEvent) => {
 			// Only report the percentage if we haven't finished fetching
 			if (this.volatileState[image.imageId] != null) {
@@ -108,6 +135,13 @@ export class Images extends (EventEmitter as {
 			return null;
 		} catch (e) {
 			if (!NotFoundError(e)) {
+				if (!(e instanceof ImageDownloadBackoffError)) {
+					this.imageFetchLastFailureTime[image.name] = process.hrtime();
+					this.imageFetchFailures[image.name] =
+						this.imageFetchFailures[image.name] != null
+							? this.imageFetchFailures[image.name] + 1
+							: 1;
+				}
 				throw e;
 			}
 			this.reportChange(
@@ -130,6 +164,8 @@ export class Images extends (EventEmitter as {
 
 				this.logger.logSystemEvent(LogTypes.downloadImageSuccess, { image });
 				success = true;
+				delete this.imageFetchFailures[image.name];
+				delete this.imageFetchLastFailureTime[image.name];
 			} catch (err) {
 				if (err instanceof DeltaStillProcessingError) {
 					// If this is a delta image pull, and the delta still hasn't finished generating,
