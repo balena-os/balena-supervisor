@@ -1,4 +1,18 @@
 - commits:
+    - subject: Ensure the balena-fin always has it's overlay assigned
+      hash: 2e09ed071c5d1c080b21303b45421cf65249f652
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#884'
+        closes: '#884'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.6.6
+  date: 2019-02-05T16:20:13.225Z
+- commits:
     - subject: 'fix: Don''t attempt a pull if the token requests fails'
       hash: d8085a6ef896ff7b63ee295765031829eb07de2b
       body: ''
