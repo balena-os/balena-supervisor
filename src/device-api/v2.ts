@@ -385,6 +385,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get('/v2/state/status', async (_req, res) => {
 		const localMode = await applications.config.get('localMode');
+		const currentRelease = await applications.config.get('currentCommit');
 
 		const pending = applications.deviceState.applyInProgress;
 		const containerStates = (await applications.services.getAll()).map(svc =>
@@ -432,6 +433,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			overallDownloadProgress,
 			containers: containerStates,
 			images: imagesStates,
+			release: currentRelease,
 		});
 	});
 }
