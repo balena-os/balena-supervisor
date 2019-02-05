@@ -198,5 +198,35 @@ describe 'DeviceConfig', ->
 					childProcess.execAsync.restore()
 					@fakeLogger.logSystemMessage.reset()
 
+	describe 'Balena fin', ->
+		it 'should always add the balena-fin dtoverlay', ->
+			expect(DeviceConfig.ensureFinOverlay({})).to.deep.equal({ dtoverlay: ['balena-fin'] })
+			expect(DeviceConfig.ensureFinOverlay({ test: '123', test2: ['123'], test3: ['123', '234'] })).to
+				.deep.equal({ test: '123', test2: ['123'], test3: ['123', '234'], dtoverlay: ['balena-fin'] })
+			expect(DeviceConfig.ensureFinOverlay({ dtoverlay: 'test' })).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] })
+			expect(DeviceConfig.ensureFinOverlay({ dtoverlay: ['test'] })).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] })
+
+		it 'should not cause a config change when the cloud does not specify the balena-fin overlay', ->
+			expect(@deviceConfig.bootConfigChangeRequired(
+				rpiConfigBackend,
+				{ HOST_CONFIG_dtoverlay: '"test","balena-fin"' },
+				{ HOST_CONFIG_dtoverlay: '"test"' },
+				'fincm3'
+			)).to.equal(false)
+
+			expect(@deviceConfig.bootConfigChangeRequired(
+				rpiConfigBackend,
+				{ HOST_CONFIG_dtoverlay: '"test","balena-fin"' },
+				{ HOST_CONFIG_dtoverlay: 'test' },
+				'fincm3'
+			)).to.equal(false)
+
+			expect(@deviceConfig.bootConfigChangeRequired(
+				rpiConfigBackend,
+				{ HOST_CONFIG_dtoverlay: '"test","test2","balena-fin"' },
+				{ HOST_CONFIG_dtoverlay: '"test","test2"' },
+				'fincm3'
+			)).to.equal(false)
+
 	# This will require stubbing device.reboot, gosuper.post, config.get/set
 	it 'applies the target state'
