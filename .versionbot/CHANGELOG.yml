@@ -1,4 +1,45 @@
 - commits:
+    - subject: Make the failure backoff time the same as the appUpdatePollTime
+      hash: 828a0fc345a5dad567730dfe5a717dd7da305853
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Backoff on image download error
+      hash: 146267b40248c0ace957c038fd03c7eb48d6b942
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#873'
+        closes: '#873'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add the release to the status endpoint
+      hash: c0e68bb069741af72a57b4996e3d00cdda450748
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add application status endpoint
+      hash: 769e2f3c519d0fa0f5d728c16f40a775ee255bf1
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.7.0
+  date: 2019-02-05T18:42:06.007Z
+- commits:
     - subject: Ensure the balena-fin always has it's overlay assigned
       hash: 2e09ed071c5d1c080b21303b45421cf65249f652
       body: ''
