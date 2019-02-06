@@ -545,8 +545,8 @@ module.exports = class ApplicationManager extends EventEmitter
 				return null
 		'kill-then-download': (current, target) ->
 			return serviceAction('kill', target.serviceId, current, target)
-		'delete-then-download': (current, target, needsDownload) ->
-			return serviceAction('kill', target.serviceId, current, target, removeImage: needsDownload)
+		'delete-then-download': (current, target) ->
+			return serviceAction('kill', target.serviceId, current, target)
 		'hand-over': (current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout) ->
 			if needsDownload
 				return fetchAction(target)
@@ -849,7 +849,10 @@ module.exports = class ApplicationManager extends EventEmitter
 			return @bestDeltaSource(image, available)
 		proxyvisorImages = @proxyvisor.imagesInUse(current, target)
 
-		imagesToRemove = _.filter availableAndUnused, (image) ->
+		potentialDeleteThenDownload = _.filter current.local.apps.services, (svc) ->
+			svc.config.labels['io.balena.update.strategy'] == 'delete-then-download' and svc.status == 'Stopped'
+
+		imagesToRemove = _.filter availableAndUnused.concat(potentialDeleteThenDownload), (image) ->
 			notUsedForDelta = !_.includes(deltaSources, image.name)
 			notUsedByProxyvisor = !_.some proxyvisorImages, (proxyvisorImage) -> Images.isSameImage(image, { name: proxyvisorImage })
 			return notUsedForDelta and notUsedByProxyvisor
