@@ -1,4 +1,23 @@
 - commits:
+    - subject: 'fix: Rework delete-then-download handling in state engine'
+      hash: e9b51bbcd741fd65851190e73428d00ab18f7443
+      body: |
+        In the original implementation it was possible that the delete did not
+        wait for the kill step to be finished, so it would not be deleted.
+
+        We seperate this process into two steps, to allow for the container to
+        have stopped before proceeding.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#841'
+        closes: '#841'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.7.1
+  date: 2019-02-06T11:41:48.551Z
+- commits:
     - subject: Make the failure backoff time the same as the appUpdatePollTime
       hash: 828a0fc345a5dad567730dfe5a717dd7da305853
       body: ''
