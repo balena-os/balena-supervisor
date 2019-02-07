@@ -353,6 +353,16 @@ describe 'ApplicationManager', ->
 				])
 		)
 
+	it 'does not consider leading whitespace in environments', ->
+		Promise.join(
+			@normaliseCurrent(currentState[5])
+			@normaliseTarget(targetState[6], availableImages[3])
+			(current, target) =>
+				steps = @applications._inferNextSteps(false, availableImages[3], [], true, current, target, false, {})
+				# anything but a start step is wrong
+				expect(steps).eventually.have.property(0).that.has.property('action').that.equals('start')
+		)
+
 	it 'converts an app from a state format to a db format, adding missing networks and volumes and normalising the image name', ->
 		app = @applications.normaliseAppForDB(appStateFormat)
 		expect(app).to.eventually.deep.equal(appDBFormatNormalised)

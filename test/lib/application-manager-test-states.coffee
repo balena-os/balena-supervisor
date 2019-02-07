@@ -305,6 +305,45 @@ targetState[5] = {
 	dependent: { apps: [], devices: [] }
 }
 
+targetState[6] = {
+	local: {
+		name: 'deviceName'
+		config: {
+			'RESIN_HOST_CONFIG_gpu_mem': '512'
+			'RESIN_HOST_LOG_TO_DISPLAY': '1'
+		}
+		apps: [
+			{
+				appId: 1234
+				name: 'superapp'
+				commit: 'afafafa'
+				releaseId: 2
+				services: {
+					'23': {
+						appId: 1234
+						serviceName: 'aservice'
+						commit: 'afafafa'
+						imageId: 12345
+						image: 'registry2.resin.io/superapp/edfabc:latest'
+						environment: {
+							'FOO': ' this has a leading whitespace'
+							'FOO2': '\t as does this'
+							'ADDITIONAL_ENV_VAR': 'foo'
+						}
+						privileged: false
+						volumes: []
+						labels: {}
+						running: true
+					}
+				}
+				volumes: {}
+				networks: {}
+			}
+		]
+	}
+	dependent: { apps: [], devices: [] }
+}
+
 exports.currentState = currentState = []
 currentState[0] = {
 	local: {
@@ -619,6 +658,62 @@ currentState[4] = {
 	dependent: { apps: [], devices: [] }
 }
 
+currentState[5] = {
+	local: {
+		name: 'deviceName'
+		config: {
+			'RESIN_HOST_CONFIG_gpu_mem': '512'
+			'RESIN_HOST_LOG_TO_DISPLAY': '1'
+		}
+		apps: [
+			{
+				appId: 1234
+				name: 'superapp'
+				commit: 'afafafa'
+				releaseId: 2
+				services: [
+					{
+						appId: 1234
+						serviceId: 23
+						releaseId: 2
+						commit: 'afafafa'
+						serviceName: 'aservice'
+						imageId: 12345
+						image: 'id1'
+						environment: {
+							'FOO': 'this has a leading whitespace'
+							'FOO2': 'as does this'
+							'ADDITIONAL_ENV_VAR': 'foo'
+						}
+						volumes: [
+							'/tmp/balena-supervisor/services/1234/anotherService:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/anotherService:/tmp/balena'
+						]
+						privileged: false
+						restart: 'always'
+						labels: {
+							'io.resin.app-id': '1234'
+							'io.resin.service-id': '24'
+							'io.resin.supervised': 'true'
+							'io.resin.service-name': 'aservice'
+						}
+						running: false
+						createdAt: new Date()
+						containerId: '2'
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'aservice' ] } }
+						command: [ 'someCommand' ]
+						entrypoint: [ 'theEntrypoint' ]
+					}
+				]
+				volumes: {}
+				networks: { default: {} }
+			}
+		]
+	}
+	dependent: { apps: [], devices: [] }
+}
+
 exports.availableImages = availableImages = []
 availableImages[0] = [
 	{
@@ -675,5 +770,18 @@ availableImages[2] = [
 		releaseId: 2
 		dependent: 0
 		dockerImageId: 'id2'
+	}
+]
+
+availableImages[3] = [
+	{
+		name: 'registry2.resin.io/superapp/edfabc:latest'
+		appId: 1234
+		serviceId: 23
+		serviceName: 'aservice'
+		imageId: 12345
+		releaseId: 2
+		dependent: 0
+		dockerImageId: 'id1'
 	}
 ]

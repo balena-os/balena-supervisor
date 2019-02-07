@@ -61,6 +61,7 @@ export class Service {
 		// reported on a container inspect, so we cannot use it
 		// to compare containers
 		'cpus',
+		'environment',
 	].concat(Service.configArrayFields);
 
 	private constructor() {}
@@ -619,6 +620,10 @@ export class Service {
 
 	public isEqualConfig(service: Service): boolean {
 		// Check all of the networks for any changes
+		// We compare these seperately as the docker daemon
+		// changes some settings on the current state, which
+		// when they are not defined in the target state, they
+		// are not considered in the comparison
 		let sameNetworks = true;
 		_.each(service.config.networks, (network, name) => {
 			if (this.config.networks[name] == null) {
@@ -628,6 +633,32 @@ export class Service {
 			sameNetworks =
 				sameNetworks && this.isSameNetwork(this.config.networks[name], network);
 		});
+
+		// We want to compare the environment without leading whitespace,
+		// so do this seperately
+		// We ignore leading whitespace as it is stripped by docker on container creation
+		let sameEnvironment = true;
+		const envDiff = diff(
+			this.config.environment,
+			service.config.environment,
+		) as {
+			added: Dictionary<string>;
+			deleted: Dictionary<string>;
+			updated: Dictionary<string>;
+		};
+		if (!_.isEmpty(envDiff.added) || !_.isEmpty(envDiff.deleted)) {
+			sameEnvironment = false;
+		} else {
+			_.each(envDiff.updated, (_v, k) => {
+				if (
+					this.config.environment[k].trimLeft() !==
+					service.config.environment[k].trimLeft()
+				) {
+					sameEnvironment = false;
+					return false;
+				}
+			});
+		}
 
 		// Check the configuration for any changes
 		const thisOmitted = _.omit(this.config, Service.omitFields);
@@ -657,7 +688,7 @@ export class Service {
 				);
 			});
 
-		if (!(sameConfig && sameNetworks)) {
+		if (!(sameConfig && sameNetworks && sameEnvironment)) {
 			// Add some console output for why a service is not matching
 			// so that if we end up in a restart loop, we know exactly why
 			console.log(
@@ -668,12 +699,6 @@ export class Service {
 			if (!nonArrayEquals) {
 				// Try not to leak any sensitive information
 				const diffObj = diff(thisOmitted, otherOmitted) as ServiceConfig;
-				if (diffObj.environment != null) {
-					diffObj.environment = _.mapValues(
-						diffObj.environment,
-						() => 'hidden',
-					);
-				}
 				console.log('  Non-array fields: ', JSON.stringify(diffObj));
 			}
 			if (differentArrayFields.length > 0) {
@@ -683,8 +708,20 @@ export class Service {
 			if (!sameNetworks) {
 				console.log('  Network changes detected');
 			}
+			if (!sameEnvironment) {
+				console.log(
+					'Environment variable changes: ',
+					// hide the env var values
+					JSON.stringify(
+						_.mapValues(
+							diff(this.config.environment, service.config.environment),
+							v => _.mapValues(v, 'hidden'),
+						),
+					),
+				);
+			}
 		}
-		return sameNetworks && sameConfig;
+		return sameNetworks && sameConfig && sameEnvironment;
 	}
 
 	public extraNetworksToJoin(): ServiceConfig['networks'] {
