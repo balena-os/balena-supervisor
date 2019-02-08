@@ -252,6 +252,15 @@ describe 'Ports', ->
 
 			expect(portMapsTarget).to.deep.equal(portMapsCurrent)
 
+	describe 'fromComposePorts', ->
+		it 'should normalise compose ports', ->
+			expect(PortMap.fromComposePorts([
+				'80:80',
+				'81:81',
+				'82:82',
+			])).to.deep.equal([
+				new PortMap('80-82')
+			])
 
 	describe 'normalisePortMaps', ->
 
