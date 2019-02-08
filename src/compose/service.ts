@@ -651,8 +651,8 @@ export class Service {
 		} else {
 			_.each(envDiff.updated, (_v, k) => {
 				if (
-					this.config.environment[k].trimLeft() !==
-					service.config.environment[k].trimLeft()
+					this.config.environment[k] /*.trimLeft()*/ !==
+					service.config.environment[k] /*.trimLeft()*/
 				) {
 					sameEnvironment = false;
 					return false;
