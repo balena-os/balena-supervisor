@@ -122,7 +122,7 @@ export const schemaTypes = {
 	},
 	deltaApplyTimeout: {
 		type: PermissiveNumber,
-		default: NullOrUndefined,
+		default: 0,
 	},
 	deltaRetryCount: {
 		type: PermissiveNumber,
@@ -232,7 +232,7 @@ export const schemaTypes = {
 			deltaEndpoint: t.string,
 			delta: PermissiveBoolean,
 			deltaRequestTimeout: PermissiveNumber,
-			deltaApplyTimeout: t.union([PermissiveNumber, NullOrUndefined]),
+			deltaApplyTimeout: PermissiveNumber,
 			deltaRetryCount: PermissiveNumber,
 			deltaRetryInterval: PermissiveNumber,
 			deltaVersion: PermissiveNumber,
