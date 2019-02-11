@@ -33,7 +33,6 @@ interface FetchProgressEvent {
 }
 
 export interface Image {
-	id: number;
 	// image registry/repo@digest or registry/repo:tag
 	name: string;
 	appId: number;
@@ -43,8 +42,8 @@ export interface Image {
 	imageId: number;
 	releaseId: number;
 	dependent: number;
-	dockerImageId: string;
-	status: 'Downloading' | 'Downloaded' | 'Deleting';
+	dockerImageId?: string;
+	status?: string;
 	downloadProgress: Nullable<number>;
 }
 
@@ -276,8 +275,8 @@ export class Images extends (EventEmitter as {
 			.whereIn('id', ids);
 	}
 
-	public async getStatus(localMode: boolean) {
-		const images = await this.getAvailable(localMode);
+	public async getStatus() {
+		const images = await this.getAvailable();
 		for (const image of images) {
 			image.status = 'Downloaded';
 			image.downloadProgress = null;
@@ -432,7 +431,7 @@ export class Images extends (EventEmitter as {
 		);
 	}
 
-	private normalise(imageName: string): Bluebird<string> {
+	public normalise(imageName: string): Bluebird<string> {
 		return this.docker.normaliseImageName(imageName);
 	}
 

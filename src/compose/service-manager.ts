@@ -7,6 +7,7 @@ import { fs } from 'mz';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
 import Config from '../config';
+import Database from '../db';
 import Docker from '../lib/docker-utils';
 import Logger from '../logger';
 
@@ -25,6 +26,7 @@ interface ServiceConstructOpts {
 	docker: Docker;
 	logger: Logger;
 	config: Config;
+	db: Database;
 }
 
 interface ServiceManagerEvents {
@@ -40,10 +42,20 @@ interface KillOpts {
 	wait?: boolean;
 }
 
+export interface ServiceStatus {
+	appId: number;
+	imageId: number;
+	status: string;
+	releaseId: number;
+	createdAt: Date;
+	serviceName: string;
+}
+
 export class ServiceManager extends (EventEmitter as {
 	new (): ServiceManagerEventEmitter;
 }) {
 	private docker: Docker;
+	private db: Database;
 	private logger: Logger;
 	private config: Config;
 
@@ -52,13 +64,14 @@ export class ServiceManager extends (EventEmitter as {
 	private listening = false;
 	// Volatile state of containers, indexed by containerId (or random strings if
 	// we don't yet have an id)
-	private volatileState: Dictionary<Partial<Service>> = {};
+	private volatileState: Dictionary<Partial<ServiceStatus>> = {};
 
 	public constructor(opts: ServiceConstructOpts) {
 		super();
 		this.docker = opts.docker;
 		this.logger = opts.logger;
 		this.config = opts.config;
+		this.db = opts.db;
 	}
 
 	public async getAll(
@@ -69,10 +82,11 @@ export class ServiceManager extends (EventEmitter as {
 
 		const services = await Bluebird.map(containers, async container => {
 			try {
-				const serviceInspect = await this.docker
-					.getContainer(container.Id)
-					.inspect();
-				const service = Service.fromDockerContainer(serviceInspect);
+				const service = await this.getByDockerContainerId(container.Id);
+				if (service == null) {
+					return null;
+				}
+
 				// We know that the containerId is set below, because `fromDockerContainer`
 				// always sets it
 				const vState = this.volatileState[service.containerId!];
@@ -106,7 +120,7 @@ export class ServiceManager extends (EventEmitter as {
 		return services[0];
 	}
 
-	public async getStatus() {
+	public async getStatus(): Promise<ServiceStatus[]> {
 		const services = await this.getAll();
 		const status = _.clone(this.volatileState);
 
@@ -122,10 +136,9 @@ export class ServiceManager extends (EventEmitter as {
 					'imageId',
 					'status',
 					'releaseId',
-					'commit',
 					'createdAt',
 					'serviceName',
-				]) as Partial<Service>;
+				]) as ServiceStatus;
 			}
 		}
 
@@ -142,7 +155,35 @@ export class ServiceManager extends (EventEmitter as {
 		) {
 			return null;
 		}
-		return Service.fromDockerContainer(container);
+		// Fetch the appropriate information from the database for this image
+		const [imageInfo] = await this.db
+			.models('image')
+			.where({ dockerImageId: container.Image });
+
+		if (imageInfo == null) {
+			throw new InternalInconsistencyError(
+				`Image database values missing for image: ${container.Image}`,
+			);
+		}
+		const appId = imageInfo.appId;
+		const imageId = imageInfo.imageId;
+		const imageName = imageInfo.name;
+		const releaseId = imageInfo.releaseId;
+		const serviceName = imageInfo.serviceName;
+		const serviceId = imageInfo.serviceId;
+
+		return Service.fromDockerContainer(
+			{
+				containerId: container.Id,
+				appId,
+				imageId,
+				imageName,
+				releaseId,
+				serviceName,
+				serviceId,
+			},
+			container,
+		);
 	}
 
 	public async updateMetadata(
@@ -496,7 +537,7 @@ export class ServiceManager extends (EventEmitter as {
 		}
 	}
 
-	private reportChange(containerId?: string, status?: Partial<Service>) {
+	private reportChange(containerId?: string, status?: Partial<ServiceStatus>) {
 		if (containerId != null) {
 			if (status != null) {
 				this.volatileState[containerId] = {};

@@ -19,16 +19,27 @@ import * as ComposeUtils from './utils';
 
 import * as constants from '../lib/constants';
 import * as updateLock from '../lib/update-lock';
-import { sanitiseComposeConfig } from './sanitise';
+import { sanitiseServiceComposeConfig } from './sanitise';
+import { ComparibleComposeObject } from './types/comparable';
 
-export class Service {
-	public appId: number | null;
-	public imageId: number | null;
+export interface ServiceCreateOpts {
+	appId: number;
+	imageId: number;
+	serviceName: string;
+	releaseId: number;
+	serviceId: number;
+	imageName: string;
+	containerId?: string;
+}
+
+export class Service extends ComparibleComposeObject {
+	public appId: number;
+	public imageId: number;
 	public config: ServiceConfig;
-	public serviceName: string | null;
-	public releaseId: number | null;
-	public serviceId: number | null;
-	public imageName: string | null;
+	public serviceName: string;
+	public releaseId: number;
+	public serviceId: number;
+	public imageName: string;
 	public containerId: string | null;
 
 	public dependsOn: string[] | null;
@@ -63,38 +74,30 @@ export class Service {
 		'cpus',
 	].concat(Service.configArrayFields);
 
-	private constructor() {}
+	private constructor(opts: ServiceCreateOpts) {
+		super();
+		this.appId = opts.appId;
+		this.imageId = opts.imageId;
+		this.serviceName = opts.serviceName;
+		this.releaseId = opts.releaseId;
+		this.serviceId = opts.serviceId;
+		this.imageName = opts.imageName;
+		this.containerId = opts.containerId || null;
+	}
 
 	// The type here is actually ServiceComposeConfig, except that the
 	// keys must be camelCase'd first
 	public static fromComposeObject(
+		opts: ServiceCreateOpts,
 		appConfig: ConfigMap,
 		options: DeviceMetadata,
 	): Service {
-		const service = new Service();
+		const service = new Service(opts);
 
 		appConfig = ComposeUtils.camelCaseConfig(appConfig);
 
-		const intOrNull = (
-			val: string | number | null | undefined,
-		): number | null => {
-			return checkInt(val) || null;
-		};
-
 		// Seperate the application information from the docker
 		// container configuration
-		service.imageId = intOrNull(appConfig.imageId);
-		delete appConfig.imageId;
-		service.serviceName = appConfig.serviceName;
-		delete appConfig.serviceName;
-		service.appId = intOrNull(appConfig.appId);
-		delete appConfig.appId;
-		service.releaseId = intOrNull(appConfig.releaseId);
-		delete appConfig.releaseId;
-		service.serviceId = intOrNull(appConfig.serviceId);
-		delete appConfig.serviceId;
-		service.imageName = appConfig.imageName;
-		delete appConfig.imageName;
 		service.dependsOn = appConfig.dependsOn || null;
 		delete appConfig.dependsOn;
 		service.createdAt = appConfig.createdAt;
@@ -104,7 +107,7 @@ export class Service {
 		delete appConfig.commit;
 
 		// Get rid of any extra values and report them to the user
-		const config = sanitiseComposeConfig(appConfig);
+		const config = sanitiseServiceComposeConfig(appConfig);
 
 		// Process some values into the correct format, delete them from
 		// the original object, and add them to the defaults object below
@@ -382,9 +385,10 @@ export class Service {
 	}
 
 	public static fromDockerContainer(
+		opts: ServiceCreateOpts,
 		container: Dockerode.ContainerInspectInfo,
 	): Service {
-		const svc = new Service();
+		const svc = new Service(opts);
 
 		if (container.State.Running) {
 			svc.status = 'Running';

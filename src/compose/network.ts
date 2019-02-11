@@ -20,13 +20,14 @@ import {
 	InvalidNetworkNameError,
 	ResourceRecreationAttemptError,
 } from './errors';
+import { ComparibleComposeObject } from './types/comparable';
 
 export interface NetworkOptions {
 	docker: Docker;
 	logger: Logger;
 }
 
-export class Network {
+export class Network extends ComparibleComposeObject {
 	public appId: number;
 	public name: string;
 	public config: NetworkConfig;
@@ -36,6 +37,7 @@ export class Network {
 	private networkOpts: NetworkOptions;
 
 	private constructor(opts: NetworkOptions) {
+		super();
 		this.docker = opts.docker;
 		this.logger = opts.logger;
 		this.networkOpts = opts;

@@ -18,30 +18,34 @@ import { Network } from './compose/network';
 import NetworkManager from './compose/network-manager';
 import { Service } from './compose/service';
 import ServiceManager from './compose/service-manager';
-import Volumes, { ComposeVolume } from './compose/volumes';
+import Volume from './compose/volume';
+import VolumeManager from './compose/volume-manager';
 import { createV1Api } from './device-api/v1';
 import { createV2Api } from './device-api/v2';
 import LocalModeManager from './local-mode';
 
 import {
+	ActionExecutorKeys,
 	ActionExecutors,
 	ActionExecutorStep,
-	ActionExecutorKeys,
 	ActionExecutorStepT,
 } from './actions';
 import { NetworkConfig } from './compose/types/network';
+import { ConfigMap } from './compose/types/service';
 import { InternalInconsistencyError } from './lib/errors';
 import * as UpdateLock from './lib/update-lock';
-import { checkTruthy, checkString, checkInt } from './lib/validation';
+import { checkString, checkTruthy, checkInt } from './lib/validation';
 import {
 	DependentDeviceApplicationState,
 	DeviceApplicationLocalState,
 	DeviceApplicationStateForReport,
-	DeviceApplicationState,
+	DeviceApplicationCompositionState,
+	ComposeService,
 } from './types/state';
+import { ComparibleComposeObject } from './compose/types/comparable';
 
 interface ApplicationManagerEvents {
-	change: undefined | { update_downloaded: boolean };
+	change: void | { update_downloaded: boolean };
 }
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
@@ -60,46 +64,48 @@ interface ApplicationsObject {
 	[appId: number]: {
 		appId: number;
 		services: Service[];
-		volumes: { [name: string]: ComposeVolume['config'] };
-		networks: { [name: string]: Network['config'] };
+		// TODO: Type these explicitly, and use io-ts to validate it
+		volumes: { [name: string]: ConfigMap };
+		networks: { [name: string]: ConfigMap };
 		commit?: string;
 	};
 }
 
+// This is a similar data structure to the one above,
+// but the services, volumes and networks have all been
+// converted to their respective class instances
+interface ComposeApplication {
+	appId?: number;
+	services: Service[];
+	volumes: Volume[];
+	networks: Network[];
+	commit?: string;
+}
+
 interface UpdateContext {
-	targetApp: ApplicationsObject[0];
+	targetApp: ComposeApplication;
 	networkPairs: NetworkChangePair[];
 	volumePairs: VolumeChangePair[];
 	installPairs: ServiceChangePair[];
 	availableImages: Image[];
-	// FIXME: Check this is the correct type
+	updatePairs: ServiceChangePair[];
 	downloading: number[];
 }
-
-// TODO: Reduce and consolidate these types
-// They currently reflect all of the data structures
-// that were used as part of the coffeescript implementation,
-// but they make little sense in typescript. We should define
-// a standard way of passing around pairs of resources, and
-// only use that everywhere
-interface ComparisonPairs<T extends { config: any }> {
-	current: {
-		[name: string]: Partial<T['config']>;
-	};
-	target: {
-		[name: string]: Partial<T['config']>;
-	};
-}
-type VolumeComparisonPairs = ComparisonPairs<ComposeVolume>;
-type NetworkComparisonPairs = ComparisonPairs<Network>;
 
 interface ChangePair<T> {
 	current: T | null;
 	target: T | null;
 }
-type VolumeChangePair = ChangePair<ComposeVolume>;
+type VolumeChangePair = ChangePair<Volume>;
 type NetworkChangePair = ChangePair<Network>;
 type ServiceChangePair = ChangePair<Service>;
+type Comparison<T> = {
+	current: { [name: string]: T };
+	target: { [name: string]: T };
+};
+type VolumesComparison = Comparison<Volume>;
+type NetworksComparison = Comparison<Network>;
+type ServicesComparison = Comparison<Service>;
 
 // Helper to check the various flags we need to be configured in action steps
 // Example:
@@ -157,7 +163,7 @@ export class ApplicationManager extends (EventEmitter as {
 	private images: Images;
 	private services: ServiceManager;
 	private networks: NetworkManager;
-	private volumes: Volumes;
+	private volumes: VolumeManager;
 	private proxyvisor: Proxyvisor;
 	private localModeManager: LocalModeManager;
 
@@ -199,7 +205,7 @@ export class ApplicationManager extends (EventEmitter as {
 
 		this.services = new ServiceManager(constructOpts);
 		this.networks = new NetworkManager(constructOpts);
-		this.volumes = new Volumes(constructOpts);
+		this.volumes = new VolumeManager(constructOpts);
 		this.proxyvisor = new Proxyvisor(constructOpts);
 		this.localModeManager = new LocalModeManager(
 			this.config,
@@ -359,30 +365,10 @@ export class ApplicationManager extends (EventEmitter as {
 				}
 			},
 			createNetworkOrVolume: async step => {
-				if (step.model === 'network') {
-					// TODO: These step targets should be the actual compose
-					// objects, rather than recreating them
-					await Network.fromComposeObject(
-						{ docker: this.docker, logger: this.logger },
-						step.target.name,
-						step.appId,
-						step.target.config,
-					).create();
-				} else {
-					await this.volumes.create(step.target);
-				}
+				await step.target.create();
 			},
 			removeNetworkOrVolume: async step => {
-				if (step.model === 'network') {
-					await Network.fromComposeObject(
-						{ docker: this.docker, logger: this.logger },
-						step.current.name,
-						step.appId,
-						step.current.config,
-					).remove();
-				} else {
-					await this.volumes.remove(step.current);
-				}
+				await step.current.remove();
 			},
 			ensureSupervisorNetwork: async () => {
 				await this.networks.ensureSupervisorNetwork();
@@ -440,16 +426,12 @@ export class ApplicationManager extends (EventEmitter as {
 		// of the app they belong to.
 		for (const service of services) {
 			const appId = service.appId;
-			if (appId == null) {
+			if (service.status == null) {
 				throw new InternalInconsistencyError(
-					`appId not defined in ApplicationManager.internalGetStatus: ${service}`,
+					`service.status not defined in ApplicationManager.internalGetStatus: ${service}`,
 				);
 			}
-			if (service.imageId == null || service.status == null) {
-				throw new InternalInconsistencyError(
-					`service.imageId or service.status not defined in ApplicationManager.internalGetStatus: ${service}`,
-				);
-			}
+
 			ensureField(apps, appId, {});
 			ensureField(apps[appId], 'services', {});
 			ensureField(creationTimesAndReleases, appId, {});
@@ -457,7 +439,7 @@ export class ApplicationManager extends (EventEmitter as {
 			// We only send commit if all services have the same release, and it
 			// matches the target release
 			if (releaseId == null) {
-				releaseId = service.releaseId || null;
+				releaseId = service.releaseId;
 			} else if (releaseId !== service.releaseId) {
 				releaseId = null;
 			}
@@ -466,9 +448,7 @@ export class ApplicationManager extends (EventEmitter as {
 				apps[appId].services![service.imageId] = _.merge(
 					{ download_progress: null },
 					_.pick(service, ['status', 'releaseId']),
-					// We need the any here, as status may be undefined in the typings
-					// but we've ensured it exists above, so this is fine
-				) as any;
+				);
 				creationTimesAndReleases[appId][service.imageId] = _.pick(service, [
 					'createdAt',
 					'releaseId',
@@ -493,8 +473,8 @@ export class ApplicationManager extends (EventEmitter as {
 				if (apps[appId].services![image.imageId] == null) {
 					apps[appId].services![image.imageId] = _.merge(
 						{ download_progress: null },
-						_.pick(image, ['status', 'release']),
-					) as any;
+						_.pick(image, ['status', 'releaseId']),
+					);
 				}
 			} else if (image.imageId != null) {
 				ensureField(dependent, appId, { images: {} });
@@ -541,7 +521,7 @@ export class ApplicationManager extends (EventEmitter as {
 
 	public async getTargetApp(appId: number) {
 		const apiEndpoint = this.config.get('apiEndpoint');
-		const [app] = this.db
+		const [app] = await this.db
 			.models('app')
 			.where({ appId, source: apiEndpoint })
 			.select();
@@ -671,14 +651,26 @@ export class ApplicationManager extends (EventEmitter as {
 	}
 
 	private compareNetworksOrVolumesForUpdate(
-		model: Volumes | NetworkManager,
-		{ current, target }: VolumeComparisonPairs | NetworkComparisonPairs,
-		appId: number,
+		model: VolumeManager,
+		comp: VolumesComparison,
+	): Array<{
+		current: Volume | null;
+		target: Volume | null;
+	}>;
+	private compareNetworksOrVolumesForUpdate(
+		model: NetworkManager,
+		comp: NetworksComparison,
+	): Array<{
+		current: Network | null;
+		target: Network | null;
+	}>;
+	private compareNetworksOrVolumesForUpdate(
+		model: VolumeManager | NetworkManager,
+		{ current, target }: VolumesComparison | NetworksComparison,
 	) {
-		type Output = { name: string; appId: number; config: Dictionary<unknown> };
 		const outputPairs: Array<{
-			current: Output | null;
-			target: Output | null;
+			current: Volume | Network | null;
+			target: Volume | Network | null;
 		}> = [];
 		const currentNames = _.keys(current);
 		const targetNames = _.keys(target);
@@ -686,11 +678,7 @@ export class ApplicationManager extends (EventEmitter as {
 
 		for (const name in toBeRemoved) {
 			outputPairs.push({
-				current: {
-					name,
-					appId,
-					config: current[name],
-				},
+				current: current![name],
 				target: null,
 			});
 		}
@@ -699,82 +687,41 @@ export class ApplicationManager extends (EventEmitter as {
 		for (const name of toBeInstalled) {
 			outputPairs.push({
 				current: null,
-				target: {
-					name,
-					appId,
-					config: target[name],
-				},
+				target: target![name],
 			});
 		}
 
 		const toBeUpdated = _(targetNames)
 			.intersection(currentNames)
-			.reject(name => {
-				// While we're in this in-between state of having a network manager,
-				// but not a volume manager, we'll have to inspect the object to detect
-				// a network manager
-				if (model instanceof NetworkManager) {
-					const opts = { docker: this.docker, logger: this.logger };
-					const currentNet = Network.fromComposeObject(
-						opts,
-						name,
-						appId,
-						current[name] as NetworkConfig,
-					);
-					const targetNet = Network.fromComposeObject(opts, name, appId, target[
-						name
-					] as NetworkConfig);
-					return currentNet.isEqualConfig(targetNet);
-				} else {
-					return (model as Volumes).isEqualConfig(current[name], target[name]);
-				}
-			})
+			.reject(name =>
+				(current[name] as ComparibleComposeObject).isEqualConfig(target[name]),
+			)
 			.value();
 
 		for (const name of toBeUpdated) {
 			outputPairs.push({
-				current: {
-					name,
-					appId,
-					config: current[name],
-				},
-				target: {
-					name,
-					appId,
-					config: target[name],
-				},
+				current: current[name],
+				target: target[name],
 			});
 		}
 
 		return outputPairs;
 	}
 
-	private compareNetworksForUpdate(
-		networks: NetworkComparisonPairs,
-		appId: number,
-	) {
-		return this.compareNetworksOrVolumesForUpdate(
-			this.networks,
-			networks,
-			appId,
-		);
+	private compareNetworksForUpdate(networks: NetworksComparison) {
+		return this.compareNetworksOrVolumesForUpdate(this.networks, networks);
 	}
 
-	private compareVolumesForUpdate(
-		volumes: VolumeComparisonPairs,
-		appId: number,
-	) {
-		return this.compareNetworksOrVolumesForUpdate(this.volumes, volumes, appId);
+	private compareVolumesForUpdate(volumes: VolumesComparison) {
+		return this.compareNetworksOrVolumesForUpdate(this.volumes, volumes);
 	}
 
+	// Does a service contain a reference to a network or volume?
 	private hasCurrentNetworksOrVolumes(
 		service: Service,
 		networkPairs: NetworkChangePair[],
 		volumePairs: VolumeChangePair[],
 	) {
-		if (service == null) {
-			return false;
-		}
 		const hasNetwork = _.some(networkPairs, pair => {
 			if (pair.current == null) {
 				return false;
@@ -855,7 +802,7 @@ export class ApplicationManager extends (EventEmitter as {
 	// downtime (but not block the killing too much, potentially causing a deadlock)
 	private dependenciesMetForServiceKill(
 		target: Service,
-		targetApp: ApplicationsObject[0],
+		targetApp: ComposeApplication,
 		availableImages: Image[],
 	) {
 		for (const dep of target.dependsOn || []) {
@@ -878,14 +825,11 @@ export class ApplicationManager extends (EventEmitter as {
 		return true;
 	}
 
-	private nextStepsForNetworkOrVolume<T extends Network | ComposeVolume>(
+	private nextStepsForNetworkOrVolume<T extends Network | Volume>(
 		netOrVolPair: ChangePair<T>,
-		currentApp: ApplicationsObject[0],
+		currentApp: ComposeApplication,
 		changingPairs: ServiceChangePair[],
-		dependencyComparisonFn: (
-			service: Service,
-			potentialDep: ChangePair<T>['current'],
-		) => boolean,
+		dependencyComparisonFn: (service: Service, potentialDep: T) => boolean,
 		model: 'network' | 'volume',
 	): ActionExecutorStep[] {
 		const { current, target } = netOrVolPair;
@@ -895,7 +839,7 @@ export class ApplicationManager extends (EventEmitter as {
 				dependencyComparisonFn(service, current),
 			);
 			if (_.isEmpty(deps)) {
-				return [{ action: 'removeNetworkOrVolume', model, current }];
+				return [serviceAction('removeNetworkOrVolume', { model, current })];
 			} else {
 				// If the current update doesn't require killing the services that use
 				// this network/volume we have to kill them before removing the network/volume
@@ -906,15 +850,13 @@ export class ApplicationManager extends (EventEmitter as {
 						dep.status !== 'Stopping' &&
 						!_.some(changingPairs, { serviceId: dep.serviceId })
 					) {
-						steps.push(
-							ApplicationManager.serviceAction('kill', { current: dep }),
-						);
+						steps.push(serviceAction('kill', { current: dep }));
 					}
 				}
 				return steps;
 			}
 		} else if (target != null) {
-			return [{ action: 'createNetworkOrVolume', model, target }];
+			return [serviceAction('createNetworkOrVolume', { model, target })];
 		} else {
 			return [];
 		}
@@ -922,16 +864,11 @@ export class ApplicationManager extends (EventEmitter as {
 
 	private nextStepsForNetwork(
 		opts: NetworkChangePair,
-		currentApp: ApplicationsObject[0],
+		currentApp: ComposeApplication,
 		changingPairs: ServiceChangePair[],
 	) {
-		const dependencyComparisonFn = (
-			service: Service,
-			current: ChangePair<Network>['current'],
-		) => {
+		const dependencyComparisonFn = (service: Service, current: Network) => {
 			// TODO: Handle multiple networks here, not jus network mode
-			// The typings say that this can't be null, but the coffeescript handled
-			// the null case anyway. TODO: Ensure that this can't be null
 			return current != null
 				? service.config.networkMode === `${service.appId}_${current.name}`
 				: false;
@@ -948,13 +885,10 @@ export class ApplicationManager extends (EventEmitter as {
 
 	private nextStepsForVolume(
 		opts: VolumeChangePair,
-		currentApp: ApplicationsObject[0],
+		currentApp: ComposeApplication,
 		changingPairs: ServiceChangePair[],
 	) {
-		const dependencyComparisonFn = (
-			service: Service,
-			current: ChangePair<ComposeVolume>['current'],
-		) =>
+		const dependencyComparisonFn = (service: Service, current: Volume) =>
 			_.some(service.config.volumes, volume => {
 				const [sourceName, destName] = volume.split(':');
 				return current != null
@@ -1161,34 +1095,12 @@ export class ApplicationManager extends (EventEmitter as {
 	}
 
 	private nextStepsForAppUpdate(
-		currentApp: {
-			// XXX: Sort out these types
-			services: Service[];
-			volumes: Dictionary<ComposeVolume['config']>;
-			networks: Dictionary<Partial<NetworkConfig>>;
-			appId: number;
-		},
-		targetApp: {
-			services: Service[];
-			volumes: Dictionary<ComposeVolume['config']>;
-			networks: Dictionary<Partial<NetworkConfig>>;
-			appId: number;
-		},
+		currentApp: ComposeApplication | null,
+		targetApp: ComposeApplication,
 		localMode: boolean,
 		availableImages: Image[] = [],
-		downloading: string[] = [],
+		downloading: number[] = [],
 	) {
-		// FIXME: What the hell is going on with appId here? It's sometimes set,
-		// sometimes not, but depended on downstream??
-		const emptyApp = { services: [], volumes: {}, networks: {}, appId: 1 };
-		if (targetApp == null) {
-			targetApp = emptyApp;
-		} else {
-			// Create the default network for the target app
-			ensureField(targetApp, 'networks', {});
-			ensureField(targetApp.networks!, 'default', {});
-		}
-
 		if (currentApp == null) {
 			currentApp = targetApp;
 		}
@@ -1221,17 +1133,14 @@ export class ApplicationManager extends (EventEmitter as {
 			);
 		}
 
-		const networkPairs = this.compareNetworksForUpdate(
-			{ current: currentApp.networks || {}, target: targetApp.networks || {} },
-			appId,
-		);
-		const volumePairs = this.compareVolumesForUpdate(
-			{
-				current: currentApp.volumes || {},
-				target: targetApp.volumes || {},
-			},
-			appId,
-		);
+		const networkPairs = this.compareNetworksForUpdate({
+			current: _.keyBy(currentApp.networks, 'name'),
+			target: _.keyBy(targetApp.networks, 'name'),
+		});
+		const volumePairs = this.compareVolumesForUpdate({
+			current: _.keyBy(currentApp.volumes, 'name'),
+			target: _.keyBy(targetApp.volumes, 'name'),
+		});
 
 		const {
 			removePairs,
@@ -1242,7 +1151,7 @@ export class ApplicationManager extends (EventEmitter as {
 			targetApp.services || [],
 		);
 
-		const steps = [];
+		let steps = [];
 		// All removePairs get a 'kill' action
 		for (const pair of removePairs) {
 			if (pair.current && pair.current.status !== 'Stopping') {
@@ -1270,13 +1179,80 @@ export class ApplicationManager extends (EventEmitter as {
 				},
 				localMode,
 			);
+			if (step != null) {
+				steps.push(step);
+			}
 		}
+
+		for (const pair of networkPairs) {
+			const pairSteps = this.nextStepsForNetwork(
+				pair,
+				currentApp,
+				removePairs.concat(updatePairs),
+			);
+			steps = steps.concat(pairSteps);
+		}
+
+		for (const pair of volumePairs) {
+			const pairSteps = this.nextStepsForVolume(
+				pair,
+				currentApp,
+				removePairs.concat(updatePairs),
+			);
+			steps = steps.concat(pairSteps);
+		}
+
+		if (_.isEmpty(steps) && currentApp.commit !== targetApp.commit) {
+			if (targetApp.commit == null) {
+				throw new InternalInconsistencyError(
+					`Attempt to update commit to a null commit! Target app: ${targetApp}`,
+				);
+			}
+			steps.push(serviceAction('updateCommit', { target: targetApp.commit }));
+		}
+
+		return steps;
+	}
+
+	// TODO: When the database typings are in place, set the return type properly here
+	// FIXME: Make static
+	// TODO: Because this class is so big, we should extract methods like this to another
+	//  helper class
+	private async normaliseAppForDB(
+		app: DeviceApplicationCompositionState & { appId: number; source: string },
+	): Promise<Dictionary<unknown>> {
+		const services = _.map(app.services, (s, svcId) => {
+			const service = _.cloneDeep(s);
+			service.appId = app.appId;
+			service.releaseId = app.releaseId;
+			// TODO I'm not sure we still need this checkInt, and we
+			// definitely won't when we validate the incoming target state
+			// with io-ts
+			service.serviceId = checkInt(svcId);
+			service.commit = app.commit;
+			return service;
+		});
+
+		for (const service of services) {
+			service.image = await this.images.normalise(service.image);
+		}
+
+		return {
+			appId: app.appId,
+			commit: app.commit,
+			name: app.name,
+			source: app.source,
+			releaseId: app.releaseId,
+			services: JSON.stringify(services),
+			networks: JSON.stringify(app.networks || {}),
+			volumes: JSON.stringify(app.volumes || {}),
+		};
 	}
 
 	private buildApps(
 		services: Service[],
 		networks: Network[],
-		volumes: ComposeVolume[],
+		volumes: Volume[],
 		currentCommit: string | undefined,
 	): ApplicationsObject {
 		const apps: ApplicationsObject = {};
@@ -1343,8 +1319,7 @@ export class ApplicationManager extends (EventEmitter as {
 		UpdateLock.lock(appId, { force: force || lockOverride }, fn);
 	}
 
-	private static serviceAction = serviceAction;
-	private static imageForService(service: Service): ServiceImage {
+	private static imageForService(service: Service): Image {
 		const allSet = _(service)
 			.pick([
 				'name',
@@ -1363,21 +1338,27 @@ export class ApplicationManager extends (EventEmitter as {
 		}
 
 		return {
-			name: service.imageName!,
-			appId: service.appId!,
-			serviceId: service.serviceId!,
-			serviceName: service.serviceName!,
-			imageId: service.imageId!,
-			releaseId: service.releaseId!,
+			name: service.imageName,
+			appId: service.appId,
+			serviceId: service.serviceId,
+			serviceName: service.serviceName,
+			imageId: service.imageId,
+			releaseId: service.releaseId,
 			dependent: 0,
+			downloadProgress: null,
 		};
 	}
 
+	// FIXME: Properly type the opts value
+	private async createTargetService(
+		service: ComposeService,
+		opts: Dictionary<unknown>,
+	): Service {}
+
 	private static fetchAction(service: Service): ActionExecutorStepT<'fetch'> {
-		return {
-			action: 'fetch',
+		return serviceAction('fetch', {
 			image: ApplicationManager.imageForService(service),
-		};
+		});
 	}
 
 	private static createRouter(apps: ApplicationManager): express.Router {

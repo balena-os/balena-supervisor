@@ -1,16 +1,7 @@
+import { Image } from '../compose/images';
+import { Network } from '../compose/network';
 import { Service } from '../compose/service';
-import { NetworkConfig } from '../compose/types/network';
-import { VolumeCreateOpts, VolumeNameOpts } from '../compose/volumes';
-
-export interface ServiceImage {
-	name: string;
-	appId: number;
-	serviceId: number;
-	serviceName: string;
-	imageId: number;
-	releaseId: number;
-	dependent: number;
-}
+import Volume from '../compose/volume';
 
 export interface ActionOptions {
 	skipLock?: boolean;
@@ -49,34 +40,33 @@ interface ActionExecutorTypes {
 		target: Service;
 	};
 	fetch: {
-		image: ServiceImage;
+		image: Image;
 	};
 	removeImage: {
-		image: ServiceImage;
+		image: Image;
 	};
 	saveImage: {
-		image: ServiceImage;
+		image: Image;
 	};
 	cleanup: {};
 	createNetworkOrVolume:
 		| {
 				model: 'network';
-				target: { name: string; config: NetworkConfig };
-				appId: number;
+				target: Network;
 		  }
 		| {
 				model: 'volume';
-				target: VolumeCreateOpts;
+				target: Volume;
 		  };
 	removeNetworkOrVolume:
 		| {
 				model: 'network';
-				current: { name: string; config: NetworkConfig };
+				current: Network;
 				appId: number;
 		  }
 		| {
 				model: 'volume';
-				current: VolumeNameOpts;
+				current: Volume;
 		  };
 	ensureSupervisorNetwork: {};
 	noop: {};

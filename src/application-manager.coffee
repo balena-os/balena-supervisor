@@ -65,7 +65,7 @@ module.exports = class ApplicationManager extends EventEmitter
 	constructor: ({ @logger, @config, @db, @eventTracker, @deviceState }) ->
 		@docker = new Docker()
 		@images = new Images({ @docker, @logger, @db })
-		@services = new ServiceManager({ @docker, @logger, @images, @config })
+		@services = new ServiceManager({ @docker, @logger, @images, @config, @db })
 		@networks = new NetworkManager({ @docker, @logger })
 		@volumes = new Volumes({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
