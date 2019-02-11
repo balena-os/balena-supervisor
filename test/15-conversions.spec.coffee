@@ -43,9 +43,11 @@ describe 'conversions', ->
 			'key2=test\ntest',
 			'key3=test ',
 			'key4= test '
+			'key5=test\r\ntest',
 		])).to.deep.equal({
 			key1: ' test',
 			key2: 'test\ntest',
 			key3: 'test ',
 			key4: ' test ',
+			key5: 'test\r\ntest'
 		})
