@@ -1,4 +1,27 @@
 - commits:
+    - subject: 'fix: Normalize ports from compose file on instantiation'
+      hash: f3264862ca73e9b059da7fa7ce19aa67bfb9c296
+      body: |
+        Adjacent ports are always grouped together by docker when reporting the
+        container state (from an inspect), so adjacent ports defined in the
+        compose file would not match as they would not have been normalized.
+
+        We make sure to always normalize the input port configuration, so that
+        it will match the docker output (if it should).
+
+        We also don't sort in the fromComposePorts function anymore as that is
+        handled by the normalize function.
+      footer:
+        Closes: '#897'
+        closes: '#897'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.7.2
+  date: 2019-02-09T21:43:47.044Z
+- commits:
     - subject: 'fix: Rework delete-then-download handling in state engine'
       hash: e9b51bbcd741fd65851190e73428d00ab18f7443
       body: |
