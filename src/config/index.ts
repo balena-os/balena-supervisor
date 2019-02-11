@@ -174,8 +174,8 @@ export class Config extends (EventEmitter as {
 		};
 
 		return Bluebird.try(() => {
-			// Firstly validate all of the types as they are being set
-			this.validateConfigMap(keyValues);
+			// Firstly validate and coerce all of the types as they are being set
+			keyValues = this.validateConfigMap(keyValues);
 
 			if (trx != null) {
 				return setValuesInTransaction(trx).return();
@@ -251,10 +251,12 @@ export class Config extends (EventEmitter as {
 		return schemaTypes[key].type.decode(value);
 	}
 
-	private validateConfigMap<T extends SchemaTypeKey>(configMap: ConfigMap<T>) {
+	private validateConfigMap<T extends SchemaTypeKey>(
+		configMap: ConfigMap<T>,
+	): ConfigMap<T> {
 		// Just loop over every value, run the decode function, and
 		// throw if any value fails verification
-		_.map(configMap, (value, key) => {
+		return _.mapValues(configMap, (value, key) => {
 			if (
 				!Schema.schema.hasOwnProperty(key) ||
 				!Schema.schema[key as Schema.SchemaKey].mutable
@@ -276,13 +278,14 @@ export class Config extends (EventEmitter as {
 
 			const decoded = type.decode(value);
 			if (decoded.isLeft()) {
-				throw new Error(
+				throw new TypeError(
 					`Cannot set value for ${key}, as value failed validation: ${
 						decoded.value
 					}`,
 				);
 			}
-		});
+			return decoded.value;
+		}) as ConfigMap<T>;
 	}
 
 	private generateRequiredFields() {
