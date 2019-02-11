@@ -140,10 +140,7 @@ export class PortMap {
 	}
 
 	public static fromComposePorts(ports: string[]): PortMap[] {
-		return _(ports)
-			.map(p => new PortMap(p))
-			.sortBy(p => p.ports.internalStart)
-			.value();
+		return PortMap.normalisePortMaps(ports.map(p => new PortMap(p)));
 	}
 
 	private parsePortString(portStr: string): void {
