@@ -37,13 +37,15 @@ describe 'conversions', ->
 			expect(conversion.envArrayToObject([])).to.deep.equal({})
 			expect(conversion.envArrayToObject(1)).to.deep.equal({})
 
-		it 'should ignore leading and trailing whitespace', ->
-			expect(conversion.envArrayToObject([
-				'TEST=\ntest'
-				'TEST2=test\n'
-				'TEST3=\ntest\n'
-			])).to.deep.equal({
-				TEST: 'test'
-				TEST2: 'test'
-				TEST3: 'test'
-			})
+	it 'should correctly handle whitespace', ->
+		expect(conversion.envArrayToObject([
+			'key1= test',
+			'key2=test\ntest',
+			'key3=test ',
+			'key4= test '
+		])).to.deep.equal({
+			key1: ' test',
+			key2: 'test\ntest',
+			key3: 'test ',
+			key4: ' test ',
+		})
