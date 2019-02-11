@@ -95,7 +95,7 @@ export class DeviceConfig {
 		deltaApplyTimeout: {
 			envVarName: 'SUPERVISOR_DELTA_APPLY_TIMEOUT',
 			varType: 'int',
-			defaultValue: '',
+			defaultValue: '0',
 		},
 		deltaRetryCount: {
 			envVarName: 'SUPERVISOR_DELTA_RETRY_COUNT',

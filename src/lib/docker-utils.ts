@@ -9,9 +9,8 @@ import { SchemaReturn } from '../config/schema-type';
 import { envArrayToObject } from './conversions';
 import {
 	DeltaStillProcessingError,
-	InternalInconsistencyError,
-	InvalidNetGatewayError,
 	ImageAuthenticationError,
+	InvalidNetGatewayError,
 } from './errors';
 import { request, requestLib, resumable } from './request';
 import { EnvVarObject } from './types';
@@ -63,12 +62,6 @@ export class DockerUtils extends DockerToolbelt {
 				: deltaOpts.deltaSource;
 
 		const timeout = deltaOpts.deltaApplyTimeout;
-
-		if (timeout == null) {
-			throw new InternalInconsistencyError(
-				'A delta apply timeout is not set in fetchDeltaWithProgress!',
-			);
-		}
 
 		const log = (str: string) =>
 			console.log(`delta(${deltaOpts.deltaSource}): ${str}`);
