@@ -1,4 +1,24 @@
 - commits:
+    - subject: Make sure to correctly convert config emit events after validation
+      hash: 3d6dc88eb0c77d4bdeec93645d01d730c54e87d7
+      body: |
+        We were validating the input configuration values by coercing them to
+        the correct type, and then using the initial value to be saved (which
+        currently is always converted to a string).
+
+        We now use the coerced value as the actual value we will store, and more
+        importantly emit. This means that the config.on('change' ...) calls will
+        always be properly typed, which before this change was not a guarantee
+        that we could make.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.7.4
+  date: 2019-02-11T11:24:08.324Z
+- commits:
     - subject: Set default delta apply timeout of 0
       hash: 88f19b414737b2f3ab2bf9587464450e46460ff3
       body: ''
