@@ -1,4 +1,22 @@
 - commits:
+    - subject: Don't treat a non-200 status response on patch as report errors
+      hash: 06580bf437c49b18213d7e0e5ed72c2cfc427c7f
+      body: |
+        Non-200 errors were causing the watchdog to restart the supervisor,
+        which in some cases could cause a restart loop. Instead we change the
+        code to only treat communication failures as an error, and report status
+        code failures directly.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#843'
+        closes: '#843'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.7.6
+  date: 2019-02-12T13:57:35.558Z
+- commits:
     - subject: Allow newlines to be part of environment variables
       hash: 49dbaaba123b6f99f59b89e5ac0eae322949b4b2
       body: |
