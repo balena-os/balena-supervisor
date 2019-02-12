@@ -82,7 +82,7 @@
     "morgan": "^1.9.1",
     "mz": "^2.7.0",
     "network-checker": "^0.1.1",
-    "pinejs-client-request": "^5.1.0",
+    "pinejs-client-request": "^5.2.0",
     "prettier": "^1.15.3",
     "request": "^2.51.0",
     "resin-lint": "^2.0.1",
