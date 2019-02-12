@@ -56,3 +56,8 @@ export interface DependentDeviceApplicationState {
 		};
 	};
 }
+
+export type NormalisedComposeApp = DeviceApplicationCompositionState & {
+	source: string;
+	appId: number;
+};

@@ -9,7 +9,7 @@ import * as path from 'path';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
 import Config from './config';
-import Database from './db';
+import Database, { Transaction } from './db';
 import DeviceState = require('./device-state');
 import EventTracker from './event-tracker';
 import constants = require('./lib/constants');
@@ -36,7 +36,11 @@ import {
 	ActionExecutorStepT,
 } from './actions';
 import { ComparibleComposeObject } from './compose/types/comparable';
-import { ConfigMap, DeviceMetadata } from './compose/types/service';
+import {
+	ConfigMap,
+	DeviceMetadata,
+	ServiceConfig,
+} from './compose/types/service';
 import { InternalInconsistencyError, NotFoundError } from './lib/errors';
 import * as UpdateLock from './lib/update-lock';
 import { checkInt, checkString, checkTruthy } from './lib/validation';
@@ -46,6 +50,7 @@ import {
 	DeviceApplicationCompositionState,
 	DeviceApplicationLocalState,
 	DeviceApplicationStateForReport,
+	NormalisedComposeApp,
 } from './types/state';
 
 interface ApplicationManagerEvents {
@@ -80,10 +85,12 @@ interface ApplicationsObject {
 // converted to their respective class instances
 interface ComposeApplication {
 	appId?: number;
+	name: string;
+	commit?: string;
+	releaseId?: number;
 	services: Service[];
 	volumes: Volume[];
 	networks: Network[];
-	commit?: string;
 }
 
 interface UpdateContext {
@@ -171,7 +178,7 @@ export class ApplicationManager extends (EventEmitter as {
 	private timeSpentFetching = 0;
 	private fetchesInProgress = 0;
 	// FIXME: change these unknowns
-	private targetVolatilePerImageId: Dictionary<unknown> = {};
+	private targetVolatilePerImageId: Dictionary<Partial<ServiceConfig>> = {};
 	private containerStarted: Dictionary<unknown> = {};
 
 	private actionExecutors: ActionExecutors;
@@ -530,6 +537,72 @@ export class ApplicationManager extends (EventEmitter as {
 			return;
 		}
 		return await this.normaliseAndExtendAppFromDB(app);
+	}
+
+	public async setTarget(
+		apps: DeviceApplicationLocalState['apps'],
+		dependent: unknown,
+		source: string,
+		trx?: Transaction,
+	): Promise<void> {
+		const setInTransaction = async (trx: Transaction) => {
+			const appsArray = _.map(apps, (app, appId) => {
+				// TODO: Database typings here
+				const appClone: Dictionary<unknown> = _.clone(app);
+				appClone.appId = checkInt(appId);
+				appClone.source = source;
+				return appClone as NormalisedComposeApp;
+			});
+
+			const appsForDb = await Promise.all(
+				appsArray.map(app => this.normaliseAppForDB(app)),
+			);
+			const appIds: number[] = [];
+			for (const app of appsForDb) {
+				await this.db.upsertModel('app', app, { appId: app.appId }, trx);
+				appIds.push(app.appId as number);
+			}
+
+			await trx('app')
+				.where({ source })
+				.whereNotIn('appId', appIds)
+				.del();
+			await this.proxyvisor.setTargetInTransaction(dependent, trx);
+		};
+
+		if (trx != null) {
+			await setInTransaction(trx);
+		} else {
+			await this.db.transaction(setInTransaction);
+		}
+
+		this.targetVolatilePerImageId = {};
+	}
+
+	public setTargetVolatileForService(
+		imageId: number,
+		target: Partial<ServiceConfig>,
+	) {
+		if (this.targetVolatilePerImageId[imageId] == null) {
+			this.targetVolatilePerImageId[imageId] = {};
+		}
+		_.assign(this.targetVolatilePerImageId[imageId], target);
+	}
+
+	public clearTargetVolatileForServices(imageIds: number[]) {
+		for (const imageId of imageIds) {
+			this.targetVolatilePerImageId[imageId] = {};
+		}
+	}
+
+	public async getTargetApps(): Promise<{
+		[appId: number]: ComposeApplication;
+	}> {
+		const { apiEndpoint, localmode } = await this.config.getMany([
+			'apiEndpoint',
+			'localMode',
+		]);
+		here;
 	}
 
 	// Compares current and target services and returns a list of service pairs to be updated/removed/installed.
@@ -1374,7 +1447,9 @@ export class ApplicationManager extends (EventEmitter as {
 	}
 
 	// TODO: When the database schema is fully typed, change the below
-	private async normaliseAndExtendAppFromDB(app: Dictionary<unknown>) {
+	private async normaliseAndExtendAppFromDB(
+		app: Dictionary<unknown>,
+	): Promise<ComposeApplication> {
 		const opts = await this.config.get('extendedEnvOptions');
 		const supervisorApiHost = await this.docker
 			.getNetworkGateway(constants.supervisorNetworkInterface)
@@ -1388,6 +1463,8 @@ export class ApplicationManager extends (EventEmitter as {
 			'utf8',
 		)).trim();
 
+		const appId = app.appId as number;
+
 		const configOpts = _.assign(
 			{
 				appName: app.name as string,
@@ -1398,20 +1475,25 @@ export class ApplicationManager extends (EventEmitter as {
 			opts,
 		);
 
-		const volumes = _.mapValues(
+		const volumes = _.map(
 			JSON.parse(app.volumes as string),
-			volumeConfig => {
+			(volumeConfig, name) => {
 				if (volumeConfig == null) {
 					volumeConfig = {};
 				}
-				if (volumeConfig.labels == null) {
-					volumeConfig.label = {};
-				}
-				return volumeConfig;
+				return Volume.fromComposeObject(
+					{
+						name,
+						appId,
+						docker: this.docker,
+						logger: this.logger,
+					},
+					volumeConfig,
+				);
 			},
 		);
 
-		let services: Service[] = [];
+		const services: Service[] = [];
 		for (const svc of JSON.parse(app.services as string)) {
 			services.push(
 				await this.createTargetService(
@@ -1429,7 +1511,50 @@ export class ApplicationManager extends (EventEmitter as {
 			);
 		}
 
-		HERE;
+		// if a named volume is defined in a service, we add it app-wide so
+		// we can track it and purge it
+		for (const s of services) {
+			const serviceNamedVolumes = s.getNamedVolumes();
+			for (const name of serviceNamedVolumes) {
+				if (_.find(volumes, { name }) == null) {
+					volumes.push(
+						Volume.fromComposeObject(
+							{
+								name,
+								appId,
+								docker: this.docker,
+								logger: this.logger,
+							},
+							{},
+						),
+					);
+				}
+			}
+		}
+
+		const networks = _.map(
+			JSON.parse(app.networks as string),
+			(networkConfig, name) =>
+				Network.fromComposeObject(
+					{
+						docker: this.docker,
+						logger: this.logger,
+					},
+					name,
+					appId,
+					networkConfig,
+				),
+		);
+
+		return {
+			appId,
+			name: app.name as string,
+			commit: app.commit as string,
+			releaseId: app.releaseId as number,
+			services,
+			volumes,
+			networks,
+		};
 	}
 
 	private static fetchAction(service: Service): ActionExecutorStepT<'fetch'> {

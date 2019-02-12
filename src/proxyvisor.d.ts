@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import Config from './config';
 import Logger from './logger';
-import Database from './db';
+import Database, { Transaction } from './db';
 import Docker from './lib/docker-utils';
 import Images from './compose/images';
 import ApplicationManager from './application-manager';
@@ -21,5 +21,6 @@ class Proxyvisor {
 	});
 
 	public getCurrentStates(): Promise<unknown>;
+	public setTargetInTransaction(dependent: unknown, trx: Transaction);
 }
 export = Proxyvisor;

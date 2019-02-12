@@ -6,9 +6,9 @@ import Docker from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
 import Logger from '../logger';
 import { sanitiseVolumeComposeConfig } from './sanitise';
+import { ComparibleComposeObject } from './types/comparable';
 import { ConfigMap } from './types/service';
 import * as ComposeUtils from './utils';
-import { ComparibleComposeObject } from './types/comparable';
 
 export interface VolumeConfig {
 	driver: string;
