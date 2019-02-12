@@ -1,4 +1,28 @@
 - commits:
+    - subject: Allow newlines to be part of environment variables
+      hash: 49dbaaba123b6f99f59b89e5ac0eae322949b4b2
+      body: |
+        We were not allowing newlines previously by virtue of the regex not
+        allowing them. The docker daemon and supervisor handling code both
+        support them, so we allow them in the parsing code too.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Remove environment variable whitespace trimming
+      hash: 6bf008cc85104a0a9c3c969a0a9f49c66ccc4f7e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.7.5
+  date: 2019-02-12T11:24:23.730Z
+- commits:
     - subject: Make sure to correctly convert config emit events after validation
       hash: 3d6dc88eb0c77d4bdeec93645d01d730c54e87d7
       body: |
