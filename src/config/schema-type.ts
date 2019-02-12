@@ -28,7 +28,8 @@ export const schemaTypes = {
 	},
 	uuid: {
 		type: t.string,
-		default: NullOrUndefined,
+		// This is a required field, so it will always be set
+		default: t.never,
 	},
 	apiKey: {
 		type: t.string,
@@ -86,7 +87,8 @@ export const schemaTypes = {
 	// Database types
 	apiSecret: {
 		type: t.string,
-		default: NullOrUndefined,
+		// This is a required field, and will always be set
+		default: t.never,
 	},
 	name: {
 		type: t.string,
@@ -194,7 +196,7 @@ export const schemaTypes = {
 			// config values they're made from
 			// TODO: It would be nice if we could take the type values
 			// from the definitions above and still have the types work
-			uuid: t.union([t.string, NullOrUndefined]),
+			uuid: t.string,
 			applicationId: t.union([PermissiveNumber, NullOrUndefined]),
 			userId: t.union([PermissiveNumber, NullOrUndefined]),
 			deviceType: t.string,
@@ -213,10 +215,10 @@ export const schemaTypes = {
 	},
 	extendedEnvOptions: {
 		type: t.interface({
-			uuid: t.union([t.string, NullOrUndefined]),
+			uuid: t.string,
 			listenPort: PermissiveNumber,
 			name: t.string,
-			apiSecret: t.union([t.string, NullOrUndefined]),
+			apiSecret: t.string,
 			deviceApiKey: t.string,
 			version: t.string,
 			deviceType: t.string,
@@ -226,7 +228,7 @@ export const schemaTypes = {
 	},
 	fetchOptions: {
 		type: t.interface({
-			uuid: t.union([t.string, NullOrUndefined]),
+			uuid: t.string,
 			currentApiKey: t.string,
 			apiEndpoint: t.string,
 			deltaEndpoint: t.string,

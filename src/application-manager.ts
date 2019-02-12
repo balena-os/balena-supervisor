@@ -1,22 +1,27 @@
 import * as Bluebird from 'bluebird';
 import bodyParser = require('body-parser');
+import { ImageInspectInfo } from 'dockerode';
 import { EventEmitter } from 'events';
 import * as express from 'express';
 import * as _ from 'lodash';
+import { fs } from 'mz';
+import * as path from 'path';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
 import Config from './config';
 import Database from './db';
 import DeviceState = require('./device-state');
 import EventTracker from './event-tracker';
+import constants = require('./lib/constants');
 import Docker, { DeltaFetchOptions } from './lib/docker-utils';
+import { pathExistsOnHost } from './lib/fs-utils';
 import Logger from './logger';
 import Proxyvisor = require('./proxyvisor');
 
 import Images, { Image } from './compose/images';
 import { Network } from './compose/network';
 import NetworkManager from './compose/network-manager';
-import { Service } from './compose/service';
+import { Service, ServiceCreateOpts } from './compose/service';
 import ServiceManager from './compose/service-manager';
 import Volume from './compose/volume';
 import VolumeManager from './compose/volume-manager';
@@ -30,19 +35,18 @@ import {
 	ActionExecutorStep,
 	ActionExecutorStepT,
 } from './actions';
-import { NetworkConfig } from './compose/types/network';
-import { ConfigMap } from './compose/types/service';
-import { InternalInconsistencyError } from './lib/errors';
+import { ComparibleComposeObject } from './compose/types/comparable';
+import { ConfigMap, DeviceMetadata } from './compose/types/service';
+import { InternalInconsistencyError, NotFoundError } from './lib/errors';
 import * as UpdateLock from './lib/update-lock';
-import { checkString, checkTruthy, checkInt } from './lib/validation';
+import { checkInt, checkString, checkTruthy } from './lib/validation';
 import {
+	ComposeService,
 	DependentDeviceApplicationState,
+	DeviceApplicationCompositionState,
 	DeviceApplicationLocalState,
 	DeviceApplicationStateForReport,
-	DeviceApplicationCompositionState,
-	ComposeService,
 } from './types/state';
-import { ComparibleComposeObject } from './compose/types/comparable';
 
 interface ApplicationManagerEvents {
 	change: void | { update_downloaded: boolean };
@@ -139,10 +143,7 @@ const ensureField = <T extends object, U extends keyof T>(
 // file remove the serviceAction function
 const serviceAction = <T extends ActionExecutorKeys>(
 	action: T,
-	args: Pick<
-		ActionExecutorStepT<T>,
-		Exclude<keyof ActionExecutorStepT<T>, 'action'>
-	>,
+	args: Omit<ActionExecutorStepT<T>, 'action'>,
 ): ActionExecutorStepT<T> => {
 	return {
 		action,
@@ -1352,8 +1353,84 @@ export class ApplicationManager extends (EventEmitter as {
 	// FIXME: Properly type the opts value
 	private async createTargetService(
 		service: ComposeService,
-		opts: Dictionary<unknown>,
-	): Service {}
+		createOpts: ServiceCreateOpts,
+		opts: Omit<DeviceMetadata, 'imageInfo'>,
+	): Promise<Service> {
+		let imageInfo: ImageInspectInfo | null;
+		try {
+			imageInfo = await this.images.inspectByName(service.image);
+		} catch (e) {
+			if (!NotFoundError(e)) {
+				throw e;
+			}
+			imageInfo = null;
+		}
+
+		const deviceOpts: DeviceMetadata = _.assign({ imageInfo }, opts);
+		if (imageInfo != null && imageInfo.Id != null) {
+			service.image = imageInfo.Id;
+		}
+		return Service.fromComposeObject(createOpts, service, deviceOpts);
+	}
+
+	// TODO: When the database schema is fully typed, change the below
+	private async normaliseAndExtendAppFromDB(app: Dictionary<unknown>) {
+		const opts = await this.config.get('extendedEnvOptions');
+		const supervisorApiHost = await this.docker
+			.getNetworkGateway(constants.supervisorNetworkInterface)
+			.catch(() => '127.0.0.1');
+		const hostPathExists = await Bluebird.props({
+			firmware: pathExistsOnHost('/lib/firmware'),
+			modules: pathExistsOnHost('/lib/modules'),
+		});
+		const hostnameOnHost = (await fs.readFile(
+			path.join(constants.rootMountPoint, '/etc/hostname'),
+			'utf8',
+		)).trim();
+
+		const configOpts = _.assign(
+			{
+				appName: app.name as string,
+				supervisorApiHost,
+				hostPathExists,
+				hostnameOnHost,
+			},
+			opts,
+		);
+
+		const volumes = _.mapValues(
+			JSON.parse(app.volumes as string),
+			volumeConfig => {
+				if (volumeConfig == null) {
+					volumeConfig = {};
+				}
+				if (volumeConfig.labels == null) {
+					volumeConfig.label = {};
+				}
+				return volumeConfig;
+			},
+		);
+
+		let services: Service[] = [];
+		for (const svc of JSON.parse(app.services as string)) {
+			services.push(
+				await this.createTargetService(
+					svc,
+					{
+						appId: svc.appId,
+						imageId: svc.imageId,
+						serviceName: svc.serviceName,
+						releaseId: svc.releaseId,
+						serviceId: svc.serviceId,
+						imageName: svc.image,
+					},
+					configOpts,
+				),
+			);
+		}
+
+		HERE;
+	}
 
 	private static fetchAction(service: Service): ActionExecutorStepT<'fetch'> {
 		return serviceAction('fetch', {

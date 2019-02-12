@@ -7,3 +7,5 @@ interface Callback<T> {
 }
 
 type Nullable<T> = T | null | undefined;
+
+type Omit<T extends object, U extends keyof T> = Pick<T, Exclude<keyof T, U>>;
