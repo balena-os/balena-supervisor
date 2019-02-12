@@ -3,7 +3,7 @@ import * as bodyParser from 'body-parser';
 import * as express from 'express';
 import * as _ from 'lodash';
 import * as Path from 'path';
-import { PinejsClientRequest } from 'pinejs-client-request';
+import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
 import * as deviceRegister from 'resin-register-device';
 import * as url from 'url';
 
@@ -460,7 +460,18 @@ export class APIBinder {
 
 		await Bluebird.resolve(
 			this.sendReportPatch(stateDiff, { apiEndpoint, uuid }),
-		).timeout(conf.apiTimeout);
+		)
+			.catch(StatusError, (e: StatusError) => {
+				// We don't want this to be classed as a report error, as this will cause
+				// the watchdog to kill the supervisor - and killing the supervisor will
+				// not help in this situation
+				console.error(
+					`Non-200 response from API! Status code: ${e.statusCode} - message: ${
+						e.message
+					}`,
+				);
+			})
+			.timeout(conf.apiTimeout);
 
 		this.stateReportErrors = 0;
 		_.assign(this.lastReportedState.local, stateDiff.local);
