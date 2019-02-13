@@ -1,4 +1,34 @@
 - commits:
+    - subject: 'Improve error messages, and add description to ImageAuth error'
+      hash: 7bd7f7e0259896f6024b4b12131f4eb0f5a15bd1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'fix: Request image authentication token with explicitly as json'
+      hash: 81ec85c5815dff1bfaf99dca7386ca9b49470eb1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Always back off on image fetch failure
+      hash: d9177404b5a1d270032aeeca13096ca30c71882c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.7.7
+  date: 2019-02-13T15:47:20.508Z
+- commits:
     - subject: Don't treat a non-200 status response on patch as report errors
       hash: 06580bf437c49b18213d7e0e5ed72c2cfc427c7f
       body: |
