@@ -97,6 +97,7 @@ export class DockerUtils extends DockerToolbelt {
 				pass: deltaOpts.currentApiKey,
 				sendImmediately: true,
 			},
+			json: true,
 		};
 		const tokenUrl = `${tokenEndpoint}?service=${
 			dstInfo.registry
