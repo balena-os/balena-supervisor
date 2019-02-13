@@ -584,7 +584,9 @@ module.exports = class DeviceState extends EventEmitter
 			delay = Math.min((2 ** @failedUpdates) * constants.backoffIncrement, @maxPollTime)
 			# If there was an error then schedule another attempt briefly in the future.
 			if err instanceof UpdatesLockedError
-				console.log("Updates are locked, retrying in #{delay}ms...")
+				message = "Updates are locked, retrying in #{delay}ms..."
+				@logger.logSystemMessage(message)
+				console.log(message)
 			else
 				console.log('Scheduling another update attempt due to failure: ', delay, err)
 			@triggerApplyTarget({ force, delay, initial })
