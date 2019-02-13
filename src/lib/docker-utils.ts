@@ -109,7 +109,7 @@ export class DockerUtils extends DockerToolbelt {
 		const token = tokenResponseBody != null ? tokenResponseBody.token : null;
 
 		if (token == null) {
-			throw new ImageAuthenticationError();
+			throw new ImageAuthenticationError('Authentication error');
 		}
 
 		const opts: requestLib.CoreOptions = {

@@ -162,7 +162,8 @@ export class Logger {
 		if (obj && obj.error != null) {
 			let errorMessage = obj.error.message;
 			if (_.isEmpty(errorMessage)) {
-				errorMessage = 'Unknown cause';
+				errorMessage =
+					obj.error.name !== 'Error' ? obj.error.name : 'Unknown cause';
 				console.error('Warning: invalid error message', obj.error);
 			}
 			message += ` due to '${errorMessage}'`;
