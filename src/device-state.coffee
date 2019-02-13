@@ -132,7 +132,8 @@ module.exports = class DeviceState extends EventEmitter
 		@router = createDeviceStateRouter(this)
 		@on 'apply-target-state-end', (err) ->
 			if err?
-				console.log("Apply error #{err}")
+				if not (err instanceof UpdatesLockedError)
+					console.log("Apply error #{err}")
 			else
 				console.log('Apply success!')
 		@applications.on('change', @reportCurrentState)
@@ -577,11 +578,15 @@ module.exports = class DeviceState extends EventEmitter
 		@failedUpdates += 1
 		@reportCurrentState(update_failed: true)
 		if @scheduledApply?
-			console.log("Updating failed, but there's another update scheduled immediately: ", err)
+			if not (err instanceof UpdatesLockedError)
+				console.log("Updating failed, but there's another update scheduled immediately: ", err)
 		else
 			delay = Math.min((2 ** @failedUpdates) * constants.backoffIncrement, @maxPollTime)
 			# If there was an error then schedule another attempt briefly in the future.
-			console.log('Scheduling another update attempt due to failure: ', delay, err)
+			if err instanceof UpdatesLockedError
+				console.log("Updates are locked, retrying in #{delay}ms...")
+			else
+				console.log('Scheduling another update attempt due to failure: ', delay, err)
 			@triggerApplyTarget({ force, delay, initial })
 
 	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false, nextDelay = 200, retryCount = 0 } = {}) =>
