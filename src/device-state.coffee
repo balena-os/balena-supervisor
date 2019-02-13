@@ -342,6 +342,10 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.using @_inferStepsLock, -> fn()
 
 	setTarget: (target, localSource = false) ->
+		# When we get a new target state, clear any built up apply errors
+		# This means that we can attempt to apply the new state instantly
+		@failedUpdates = 0
+
 		Promise.join(
 			@config.get('apiEndpoint'),
 			validateState(target),
