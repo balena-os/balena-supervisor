@@ -4,6 +4,7 @@ EventEmitter = require 'events'
 fs = Promise.promisifyAll(require('fs'))
 express = require 'express'
 bodyParser = require 'body-parser'
+prettyMs = require 'pretty-ms'
 hostConfig = require './host-config'
 network = require './network'
 execAsync = Promise.promisify(require('child_process').exec)
@@ -584,7 +585,7 @@ module.exports = class DeviceState extends EventEmitter
 			delay = Math.min((2 ** @failedUpdates) * constants.backoffIncrement, @maxPollTime)
 			# If there was an error then schedule another attempt briefly in the future.
 			if err instanceof UpdatesLockedError
-				message = "Updates are locked, retrying in #{delay}ms..."
+				message = "Updates are locked, retrying in #{prettyMs(delay, compact: true)}..."
 				@logger.logSystemMessage(message)
 				console.log(message)
 			else

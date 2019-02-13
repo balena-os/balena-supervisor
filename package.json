@@ -84,6 +84,7 @@
     "network-checker": "^0.1.1",
     "pinejs-client-request": "^5.2.0",
     "prettier": "^1.15.3",
+    "pretty-ms": "^4.0.0",
     "request": "^2.51.0",
     "resin-lint": "^2.0.1",
     "resin-register-device": "^3.0.0",
