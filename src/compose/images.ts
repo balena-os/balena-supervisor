@@ -136,11 +136,7 @@ export class Images extends (EventEmitter as {
 		} catch (e) {
 			if (!NotFoundError(e)) {
 				if (!(e instanceof ImageDownloadBackoffError)) {
-					this.imageFetchLastFailureTime[image.name] = process.hrtime();
-					this.imageFetchFailures[image.name] =
-						this.imageFetchFailures[image.name] != null
-							? this.imageFetchFailures[image.name] + 1
-							: 1;
+					this.addImageFailure(image.name);
 				}
 				throw e;
 			}
@@ -173,6 +169,7 @@ export class Images extends (EventEmitter as {
 					// processing
 					this.logger.logSystemEvent(LogTypes.deltaStillProcessingError, {});
 				} else {
+					this.addImageFailure(image.name);
 					this.logger.logSystemEvent(LogTypes.downloadImageError, {
 						image,
 						error: err,
@@ -230,6 +227,14 @@ export class Images extends (EventEmitter as {
 			this.db.models('image').select(),
 			cb,
 		);
+	}
+
+	private addImageFailure(imageName: string, time = process.hrtime()) {
+		this.imageFetchLastFailureTime[imageName] = time;
+		this.imageFetchFailures[imageName] =
+			this.imageFetchFailures[imageName] != null
+				? this.imageFetchFailures[imageName] + 1
+				: 1;
 	}
 
 	private matchesTagOrDigest(
