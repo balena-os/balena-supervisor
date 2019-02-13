@@ -51,6 +51,7 @@ import {
 	DeviceApplicationLocalState,
 	DeviceApplicationStateForReport,
 	NormalisedComposeApp,
+	DeviceApplicationState,
 } from './types/state';
 
 interface ApplicationManagerEvents {
@@ -598,11 +599,30 @@ export class ApplicationManager extends (EventEmitter as {
 	public async getTargetApps(): Promise<{
 		[appId: number]: ComposeApplication;
 	}> {
-		const { apiEndpoint, localmode } = await this.config.getMany([
+		const { apiEndpoint, localMode } = await this.config.getMany([
 			'apiEndpoint',
 			'localMode',
 		]);
-		here;
+		const source = localMode ? 'local' : apiEndpoint;
+		const dbApps = await this.db.models('app').where({ source });
+		const apps: ComposeApplication[] = [];
+		for (const dbApp of dbApps) {
+			apps.push(await this.normaliseAndExtendAppFromDB(dbApp));
+		}
+
+		for (const app of apps) {
+			if (!_.isEmpty(app.services)) {
+				app.services.forEach(svc => {
+					_.merge(svc.config, this.targetVolatilePerImageId[svc.imageId]);
+				});
+			}
+		}
+
+		return _.keyBy(apps, 'appId');
+	}
+
+	public getDependentTargets() {
+		return this.proxyvisor.getTarget();
 	}
 
 	// Compares current and target services and returns a list of service pairs to be updated/removed/installed.
@@ -1574,6 +1594,102 @@ export class ApplicationManager extends (EventEmitter as {
 		router.use(apps.proxyvisor.router);
 
 		return router;
+	}
+
+	private bestDeltaSource(image: Image, available: Image[]): string | null {
+		// Go through the entire array, working out which images fulfill the role
+		// of a delta source and splitting them into their respective priority lists
+		const sources = _.reduce(
+			available,
+			(accum, availableImage) => {
+				if (
+					availableImage.serviceName === image.serviceName &&
+					availableImage.appId === image.appId
+				) {
+					accum[0].push(availableImage.name);
+				} else if (availableImage.serviceName === image.serviceName) {
+					accum[1].push(availableImage.name);
+				} else if (availableImage.appId === image.appId) {
+					accum[2].push(availableImage.name);
+				}
+				return accum;
+			},
+			[[], [], []] as [string[], string[], string[]],
+		);
+
+		if (!image.dependent) {
+			if (sources[0].length > 0) {
+				return sources[0][0];
+			}
+			if (sources[1].length > 0) {
+				return sources[1][0];
+			}
+		}
+		if (sources[2].length > 0) {
+			return sources[2][0];
+		}
+		return null;
+	}
+
+	private compareImages(
+		current: DeviceApplicationState,
+		target: DeviceApplicationState,
+		available: Image[],
+		localMode: boolean,
+	) {
+		if (current.local == null) {
+			throw new InternalInconsistencyError(
+				'No local component for current application state in compareImages!',
+			);
+		}
+		if (target.local == null) {
+			throw new InternalInconsistencyError(
+				'No local compoennt for current application state in compareImages!',
+			);
+		}
+
+		const allImagesForTargetApp = (app: ComposeApplication) =>
+			_.map(app.services, ApplicationManager.imageForService);
+		const allImagesForCurrentApp = (app: ComposeApplication) =>
+			_.map(app.services, service => {
+				// TODO: Avoid running _.find twice on available
+				const img =
+					_.find(available, {
+						dockerImageId: service.config.image,
+						imageId: service.imageId,
+					}) || _.find(available, { dockerImageId: service.config.image });
+				return _.omit(img, ['dockerImageId', 'id']);
+			});
+		const allImageDockerIdsForTargetApp = (app: ComposeApplication) =>
+			_(app.services)
+				.map(svc => [svc.imageName, svc.config.image])
+				.filter(img => img[1] != null)
+				.value();
+
+		const availableWithoutIds = _.map(available, image =>
+			_.omit(image, ['dockerImageId', 'id']),
+		);
+
+		// TODO: These flatMap calls need forced casting, find out why
+		const currentImages = (_.flatMap(
+			current.local.apps,
+			allImagesForCurrentApp,
+		) as unknown) as Image[];
+		const targetImages = (_.flatMap(
+			target.local.apps,
+			allImagesForTargetApp,
+		) as unknown) as Image[];
+		const targetImageDockerIds = _.fromPairs((_.flatMap(
+			target.local.apps,
+			allImageDockerIdsForTargetApp,
+		) as unknown) as string[][]);
+
+		const inUse = currentImages.concat(targetImages);
+		const availableAndUnused = _.reject(
+			availableWithoutIds,
+			image => _.some(inUse, imageInUse => _.isEqual(image, imageInUse)),
+		);
+		const imagesToDownload = _.reject(targetImages, (targetImage) => here
 	}
 }
 

@@ -22,5 +22,6 @@ class Proxyvisor {
 
 	public getCurrentStates(): Promise<unknown>;
 	public setTargetInTransaction(dependent: unknown, trx: Transaction);
+	public getTarget(): Promise<{ apps: unknown; devices: unknown }>;
 }
 export = Proxyvisor;
