@@ -1,4 +1,16 @@
 - commits:
+    - subject: Don't mount /lib/modules if it is already mounted
+      hash: fae2548f27fbf6bf3e76fb56f1e8356afaac5bdd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.8.1
+  date: 2019-02-14T13:52:37.276Z
+- commits:
     - subject: Apply iptables rules to ipv6
       hash: 5f82f6fd3f341adc0659fd7fd7ed6813e4015d7d
       body: ''
