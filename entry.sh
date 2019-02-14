@@ -48,7 +48,9 @@ fi
 
 # Mount the host kernel module path onto the expected location
 # We need to do this as busybox doesn't support using a custom location
-ln -s /mnt/root/lib/modules /lib/modules
+if [ ! -d /lib/modules ]; then
+	ln -s /mnt/root/lib/modules /lib/modules
+fi
 # Now load the ip6_tables kernel module, so we can do filtering on ipv6 addresses
 modprobe ip6_tables
 
