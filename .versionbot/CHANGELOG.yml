@@ -1,4 +1,27 @@
 - commits:
+    - subject: Apply iptables rules to ipv6
+      hash: 5f82f6fd3f341adc0659fd7fd7ed6813e4015d7d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#867'
+        closes: '#867'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Symlink kernel modules and modprobe ip6_tables
+      hash: 93c24298fff93e6f74d8883733f2f2e7c645fd39
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.8.0
+  date: 2019-02-13T20:58:34.540Z
+- commits:
     - subject: 'Improve error messages, and add description to ImageAuth error'
       hash: 7bd7f7e0259896f6024b4b12131f4eb0f5a15bd1
       body: ''
