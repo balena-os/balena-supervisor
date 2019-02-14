@@ -586,7 +586,7 @@ module.exports = class DeviceState extends EventEmitter
 			# If there was an error then schedule another attempt briefly in the future.
 			if err instanceof UpdatesLockedError
 				message = "Updates are locked, retrying in #{prettyMs(delay, compact: true)}..."
-				@logger.logSystemMessage(message)
+				@logger.logSystemMessage(message, {}, 'updateLocked', false)
 				console.log(message)
 			else
 				console.log('Scheduling another update attempt due to failure: ', delay, err)
