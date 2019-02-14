@@ -113,16 +113,19 @@ export class Logger {
 		message: string,
 		eventObj?: LogEventObject,
 		eventName?: string,
+		track: boolean = true,
 	) {
 		const msgObj: LogMessage = { message, isSystem: true };
 		if (eventObj != null && eventObj.error != null) {
 			msgObj.isStdErr = true;
 		}
 		this.log(msgObj);
-		this.eventTracker.track(
-			eventName != null ? eventName : message,
-			eventObj != null ? eventObj : {},
-		);
+		if (track) {
+			this.eventTracker.track(
+				eventName != null ? eventName : message,
+				eventObj != null ? eventObj : {},
+			);
+		}
 	}
 
 	public lock(containerId: string): Bluebird.Disposer<() => void> {
@@ -153,7 +156,11 @@ export class Logger {
 		});
 	}
 
-	public logSystemEvent(logType: LogType, obj: LogEventObject): void {
+	public logSystemEvent(
+		logType: LogType,
+		obj: LogEventObject,
+		track: boolean = true,
+	): void {
 		let message = logType.humanName;
 		const objectName = this.objectNameForLogs(obj);
 		if (objectName != null) {
@@ -168,7 +175,7 @@ export class Logger {
 			}
 			message += ` due to '${errorMessage}'`;
 		}
-		this.logSystemMessage(message, obj, logType.eventName);
+		this.logSystemMessage(message, obj, logType.eventName, track);
 	}
 
 	public logConfigChange(
