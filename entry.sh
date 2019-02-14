@@ -46,4 +46,10 @@ if [ ! -z "${BALENA_ROOT_CA}" ]; then
 	fi
 fi
 
+# Mount the host kernel module path onto the expected location
+# We need to do this as busybox doesn't support using a custom location
+ln -s /mnt/root/lib/modules /lib/modules
+# Now load the ip6_tables kernel module, so we can do filtering on ipv6 addresses
+modprobe ip6_tables
+
 exec node /usr/src/app/dist/app.js

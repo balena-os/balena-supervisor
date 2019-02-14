@@ -1,35 +1,42 @@
-import * as Promise from 'bluebird';
+import * as Bluebird from 'bluebird';
 import * as childProcess from 'child_process';
 
 // The following is exported so that we stub it in the tests
-export const execAsync = Promise.promisify(childProcess.exec);
+export const execAsync: (args: string) => Bluebird<string> = Bluebird.promisify(
+	childProcess.exec,
+);
 
-function clearIptablesRule(rule: string): Promise<void> {
-	return execAsync(`iptables -D ${rule}`).return();
+function applyIptablesArgs(args: string): Bluebird<void> {
+	return Bluebird.all([
+		execAsync(`iptables ${args}`),
+		execAsync(`ip6tables ${args}`),
+	]).return();
 }
 
-function clearAndAppendIptablesRule(rule: string): Promise<void> {
-	return clearIptablesRule(rule)
-		.catchReturn(null)
-		.then(() => execAsync(`iptables -A ${rule}`))
-		.return();
+function clearIptablesRule(rule: string): Bluebird<void> {
+	return applyIptablesArgs(`-D ${rule}`);
 }
 
-function clearAndInsertIptablesRule(rule: string): Promise<void> {
+function clearAndAppendIptablesRule(rule: string): Bluebird<void> {
 	return clearIptablesRule(rule)
 		.catchReturn(null)
-		.then(() => execAsync(`iptables -I ${rule}`))
-		.return();
+		.then(() => applyIptablesArgs(`-A ${rule}`));
+}
+
+function clearAndInsertIptablesRule(rule: string): Bluebird<void> {
+	return clearIptablesRule(rule)
+		.catchReturn(null)
+		.then(() => applyIptablesArgs(`-I ${rule}`));
 }
 
 export function rejectOnAllInterfacesExcept(
 	allowedInterfaces: string[],
 	port: number,
-): Promise<void> {
+): Bluebird<void> {
 	// We delete each rule and create it again to ensure ordering (all ACCEPTs before the REJECT/DROP).
 	// This is especially important after a supervisor update.
 	return (
-		Promise.each(allowedInterfaces, iface =>
+		Bluebird.each(allowedInterfaces, iface =>
 			clearAndInsertIptablesRule(
 				`INPUT -p tcp --dport ${port} -i ${iface} -j ACCEPT`,
 			),
@@ -41,11 +48,10 @@ export function rejectOnAllInterfacesExcept(
 			.catch(() =>
 				clearAndAppendIptablesRule(`INPUT -p tcp --dport ${port} -j DROP`),
 			)
-			.return()
 	);
 }
 
-export function removeRejections(port: number): Promise<void> {
+export function removeRejections(port: number): Bluebird<void> {
 	return clearIptablesRule(`INPUT -p tcp --dport ${port} -j REJECT`)
 		.catchReturn(null)
 		.then(() => clearIptablesRule(`INPUT -p tcp --dport ${port} -j DROP`))
