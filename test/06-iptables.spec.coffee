@@ -29,7 +29,7 @@ describe 'iptables', ->
 	it "falls back to blocking the port with DROP if there's no REJECT support", ->
 		stub(iptables, 'execAsync').callsFake (cmd) ->
 			if /REJECT$/.test(cmd)
-				Promise.reject()
+				Promise.reject(new Error())
 			else
 				Promise.resolve()
 		iptables.rejectOnAllInterfacesExcept(['foo', 'bar'], 42)
