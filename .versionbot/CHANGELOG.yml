@@ -1,4 +1,16 @@
 - commits:
+    - subject: Run iptables rules synchronous to avoid locking errors
+      hash: 911ee7f009f5daa85067e7b7781ce79ca1e85424
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.8.3
+  date: 2019-02-19T17:44:47.346Z
+- commits:
     - subject: Revert "Upgrade to node 8 for supported architectures"
       hash: b3a07da8e47433f6e20fa7fe7a1da020ea49ef2b
       body: |
