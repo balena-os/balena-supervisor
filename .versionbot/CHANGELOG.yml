@@ -1,4 +1,21 @@
 - commits:
+    - subject: Revert "Upgrade to node 8 for supported architectures"
+      hash: b3a07da8e47433f6e20fa7fe7a1da020ea49ef2b
+      body: |
+        This reverts commit 338ba4cdd7c6a0a7036e3c9d932622fbe5216436.
+
+        This is to unblock the release of the supervisor version, pending the
+        fix of the introduction of the race condition currently affecting v2
+        deltas.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.8.2
+  date: 2019-02-19T14:53:35.739Z
+- commits:
     - subject: Don't mount /lib/modules if it is already mounted
       hash: fae2548f27fbf6bf3e76fb56f1e8356afaac5bdd
       body: ''
