@@ -7,10 +7,17 @@ export const execAsync: (args: string) => Bluebird<string> = Bluebird.promisify(
 );
 
 function applyIptablesArgs(args: string): Bluebird<void> {
-	return Bluebird.all([
-		execAsync(`iptables ${args}`),
-		execAsync(`ip6tables ${args}`),
-	]).return();
+	let err: Error | null = null;
+	// We want to run both commands regardless, but also rethrow an error
+	// if one of them fails
+	return execAsync(`iptables ${args}`)
+		.catch(e => (err = e))
+		.then(() => execAsync(`ip6tables ${args}`).catch(e => (err = e)))
+		.then(() => {
+			if (err != null) {
+				throw err;
+			}
+		});
 }
 
 function clearIptablesRule(rule: string): Bluebird<void> {
