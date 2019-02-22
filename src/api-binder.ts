@@ -683,7 +683,7 @@ export class APIBinder {
 		}
 
 		// If we have an existing device key we first check if it's
-		// valid, becaise of ot os we can just use that
+		// valid, becaise of it is we can just use that
 		if (opts.deviceApiKey != null) {
 			const device = await this.fetchDevice(
 				uuid,
@@ -771,15 +771,15 @@ export class APIBinder {
 			console.log('New device detected. Provisioning...');
 			try {
 				device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
-				opts.registered_at = Date.now();
 			} catch (err) {
 				if (DuplicateUuidError(err)) {
 					console.log('UUID already registered, trying a key exchange');
-					await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
+					device = await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
 				} else {
 					throw err;
 				}
 			}
+			opts.registered_at = Date.now();
 		} else if (opts.provisioningApiKey != null) {
 			console.log(
 				'Device is registered but we still have an apiKey, attempting key exchange',
@@ -815,7 +815,7 @@ export class APIBinder {
 		if (pinValue != null) {
 			if (pinValue.app == null || pinValue.commit == null) {
 				console.log(
-					`Malformed pinDEvice fields in supervisor database: ${pinValue}`,
+					`Malformed pinDevice fields in supervisor database: ${pinValue}`,
 				);
 				return;
 			}
