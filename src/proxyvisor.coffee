@@ -71,8 +71,8 @@ formatCurrentAsState = (device) ->
 createProxyvisorRouter = (proxyvisor) ->
 	{ db } = proxyvisor
 	router = express.Router()
-	router.use(bodyParser.urlencoded(extended: true))
-	router.use(bodyParser.json())
+	router.use(bodyParser.urlencoded(limit: '10mb', extended: true))
+	router.use(bodyParser.json(limit: '10mb'))
 	router.get '/v1/devices', (req, res) ->
 		db.models('dependentDevice').select()
 		.map(parseDeviceFields)

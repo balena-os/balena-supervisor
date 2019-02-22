@@ -51,8 +51,8 @@ fetchAction = (service) ->
 # Some v1 endpoins only work for single-container apps as they assume the app has a single service.
 createApplicationManagerRouter = (applications) ->
 	router = express.Router()
-	router.use(bodyParser.urlencoded(extended: true))
-	router.use(bodyParser.json())
+	router.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }))
+	router.use(bodyParser.json({ limit: '10mb' }))
 
 	createV1Api(router, applications)
 	createV2Api(router, applications)

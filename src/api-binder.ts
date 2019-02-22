@@ -867,8 +867,8 @@ export class APIBinder {
 	private createAPIBinderRouter(apiBinder: APIBinder): express.Router {
 		const router = express.Router();
 
-		router.use(bodyParser.urlencoded({ extended: true }));
-		router.use(bodyParser.json());
+		router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+		router.use(bodyParser.json({ limit: '10mb' }));
 
 		router.post('/v1/update', (req, res) => {
 			apiBinder.eventTracker.track('Update notification');
