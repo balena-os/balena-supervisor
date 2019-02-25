@@ -1,4 +1,16 @@
 - commits:
+    - subject: Increase max payload size in bodyparser to avoid PayloadTooLarge errors
+      hash: c9507e013c83758c2c27321af05bd6f049037c1f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.8.5
+  date: 2019-02-25T12:21:00.112Z
+- commits:
     - subject: Fix provisioning workflow when UUID already exists
       hash: 0e3f2609781c460dbb7f91932d385fdabbbd5def
       body: ''
