@@ -4,6 +4,7 @@ import { Transaction } from 'knex';
 import * as _ from 'lodash';
 import { generateUniqueKey } from 'resin-register-device';
 import StrictEventEmitter from 'strict-event-emitter-types';
+import { inspect } from 'util';
 
 import { Either } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
@@ -279,9 +280,10 @@ export class Config extends (EventEmitter as {
 			const decoded = type.decode(value);
 			if (decoded.isLeft()) {
 				throw new TypeError(
-					`Cannot set value for ${key}, as value failed validation: ${
-						decoded.value
-					}`,
+					`Cannot set value for ${key}, as value failed validation: ${inspect(
+						value,
+						{ depth: Infinity },
+					)}`,
 				);
 			}
 			return decoded.value;
