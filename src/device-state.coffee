@@ -48,8 +48,8 @@ validateState = Promise.method (state) ->
 # device api stuff in ./device-api
 createDeviceStateRouter = (deviceState) ->
 	router = express.Router()
-	router.use(bodyParser.urlencoded(extended: true))
-	router.use(bodyParser.json())
+	router.use(bodyParser.urlencoded(limit: '10mb', extended: true))
+	router.use(bodyParser.json(limit: '10mb'))
 
 	rebootOrShutdown = (req, res, action) ->
 		deviceState.config.get('lockOverride')
