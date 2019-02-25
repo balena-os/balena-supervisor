@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## 9.8.4 - 2019-02-22
 
-* Fix provisioning workflow when UUID already exists [Cameron Diver]
+* Increase max payload size in bodyparser to avoid PayloadTooLarge errors [Cameron Diver]
 
 ## 9.8.3 - 2019-02-19
 

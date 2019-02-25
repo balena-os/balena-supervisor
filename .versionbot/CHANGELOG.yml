@@ -1,6 +1,6 @@
 - commits:
-    - subject: Fix provisioning workflow when UUID already exists
-      hash: 0e3f2609781c460dbb7f91932d385fdabbbd5def
+    - subject: Increase max payload size in bodyparser to avoid PayloadTooLarge errors
+      hash: a278a7d62c82c6121b2e5adb30503b0bbfeb2078
       body: ''
       footer:
         Change-type: patch
@@ -9,7 +9,7 @@
         signed-off-by: Cameron Diver <cameron@balena.io>
       author: Cameron Diver
   version: 9.8.4
-  date: 2019-02-22T11:22:59.375Z
+  date: 2019-02-22T10:24:45.183Z
 - commits:
     - subject: Run iptables rules synchronous to avoid locking errors
       hash: 911ee7f009f5daa85067e7b7781ce79ca1e85424
