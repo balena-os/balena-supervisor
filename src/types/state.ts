@@ -25,8 +25,8 @@ export type ComposeService = {
 
 export interface DeviceApplicationCompositionState {
 	name: string;
-	commit: string;
-	releaseId: number;
+	commit?: string;
+	releaseId?: number;
 	services?: {
 		[serviceId: string]: ComposeService;
 	};
@@ -36,6 +36,11 @@ export interface DeviceApplicationCompositionState {
 	volumes?: {
 		[name: string]: ConfigMap;
 	};
+}
+
+export interface KeyedApplicationCompositionState {
+	// TODO: This should be a number, once we're sure of the output
+	[appId: string]: DeviceApplicationCompositionState;
 }
 
 // FIXME: We need to define the data that we send back seperate to

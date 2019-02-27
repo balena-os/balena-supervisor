@@ -6,6 +6,8 @@ import Database, { Transaction } from './db';
 import Docker from './lib/docker-utils';
 import Images from './compose/images';
 import ApplicationManager from './application-manager';
+import { DeviceApplicationState } from './types/state';
+import { ActionExecutorStep } from './actions';
 
 class Proxyvisor {
 	public router: express.Router;
@@ -23,5 +25,17 @@ class Proxyvisor {
 	public getCurrentStates(): Promise<unknown>;
 	public setTargetInTransaction(dependent: unknown, trx: Transaction);
 	public getTarget(): Promise<{ apps: unknown; devices: unknown }>;
+	public imagesInUse(
+		current: DeviceApplicationState,
+		available: DeviceApplicationState,
+	): string[];
+	public executeStepAction(step: ActionExecutorStep): Promise<unknown>;
+	public getRequiredSteps(
+		availableImages: Image[],
+		downloading: number[],
+		currentState: Dictionary<unknown>,
+		targetState: Dictionary<unknown>,
+		nextSteps: ActionExecutorStep[],
+	);
 }
 export = Proxyvisor;

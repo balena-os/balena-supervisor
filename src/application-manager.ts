@@ -36,6 +36,7 @@ import {
 	ActionExecutorStepT,
 } from './actions';
 import { ComparibleComposeObject } from './compose/types/comparable';
+import { NetworkConfig } from './compose/types/network';
 import {
 	ConfigMap,
 	DeviceMetadata,
@@ -51,7 +52,6 @@ import {
 	DeviceApplicationLocalState,
 	DeviceApplicationStateForReport,
 	NormalisedComposeApp,
-	DeviceApplicationState,
 } from './types/state';
 
 interface ApplicationManagerEvents {
@@ -70,6 +70,15 @@ interface ApplicationManagerConstructOpts {
 	deviceState: DeviceState;
 }
 
+interface ApplicationManagerExtraState {
+	cleanupNeeded: boolean;
+	availableImages: Image[];
+	downloading: number[];
+	supervisorNetworkReady: boolean;
+	delta: boolean;
+	localMode: boolean;
+}
+
 interface ApplicationsObject {
 	[appId: number]: {
 		appId: number;
@@ -78,6 +87,8 @@ interface ApplicationsObject {
 		volumes: { [name: string]: ConfigMap };
 		networks: { [name: string]: ConfigMap };
 		commit?: string;
+		releaseId?: number;
+		name: string;
 	};
 }
 
@@ -85,7 +96,7 @@ interface ApplicationsObject {
 // but the services, volumes and networks have all been
 // converted to their respective class instances
 interface ComposeApplication {
-	appId?: number;
+	appId: number;
 	name: string;
 	commit?: string;
 	releaseId?: number;
@@ -111,13 +122,12 @@ interface ChangePair<T> {
 type VolumeChangePair = ChangePair<Volume>;
 type NetworkChangePair = ChangePair<Network>;
 type ServiceChangePair = ChangePair<Service>;
-type Comparison<T> = {
+interface Comparison<T> {
 	current: { [name: string]: T };
 	target: { [name: string]: T };
-};
+}
 type VolumesComparison = Comparison<Volume>;
 type NetworksComparison = Comparison<Network>;
-type ServicesComparison = Comparison<Service>;
 
 // Helper to check the various flags we need to be configured in action steps
 // Example:
@@ -404,101 +414,7 @@ export class ApplicationManager extends (EventEmitter as {
 	}
 
 	public async getStatus() {
-		const localMode = await this.config.get('localMode');
-		return await this.internalGetStatus(localMode);
-	}
-
-	private async internalGetStatus(
-		localMode: boolean,
-	): Promise<DeviceApplicationStateForReport> {
-		// TODO: The types become very messy in this function, and it mainly
-		// stems from the fact that the Service class reperesents both target
-		// state and current state, meaning things like status, serviceId, appId,
-		// containerId, etc are typed as optional. There should be two different
-		// types of service, TargetService and CurrentService, both of which extend
-		// the base service class. This means that we can always expect a CurrentService
-		// when we need these fields to exist, and skip a lot of the checking and casting
-		// below
-		const [services, images, currentCommit] = await Promise.all([
-			this.services.getStatus(),
-			this.images.getStatus(localMode),
-			this.config.get('currentCommit'),
-		]);
-
-		const apps: DeviceApplicationLocalState['apps'] = {};
-		const dependent: DependentDeviceApplicationState = {};
-		let releaseId: number | null = null;
-		// FIXME: Typing
-		const creationTimesAndReleases: Dictionary<any> = {};
-
-		// We iterate over the current running services and add them to the current state
-		// of the app they belong to.
-		for (const service of services) {
-			const appId = service.appId;
-			if (service.status == null) {
-				throw new InternalInconsistencyError(
-					`service.status not defined in ApplicationManager.internalGetStatus: ${service}`,
-				);
-			}
-
-			ensureField(apps, appId, {});
-			ensureField(apps[appId], 'services', {});
-			ensureField(creationTimesAndReleases, appId, {});
-
-			// We only send commit if all services have the same release, and it
-			// matches the target release
-			if (releaseId == null) {
-				releaseId = service.releaseId;
-			} else if (releaseId !== service.releaseId) {
-				releaseId = null;
-			}
-
-			if (apps[appId].services![service.imageId] == null) {
-				apps[appId].services![service.imageId] = _.merge(
-					{ download_progress: null },
-					_.pick(service, ['status', 'releaseId']),
-				);
-				creationTimesAndReleases[appId][service.imageId] = _.pick(service, [
-					'createdAt',
-					'releaseId',
-				]);
-				apps[appId].services![service.imageId].download_progress = null;
-			} else {
-				// There is two container with the same imageId, so this has to be a handover
-				apps[appId].services![service.imageId].releaseId = _.minBy(
-					[creationTimesAndReleases[appId][service.imageId], service],
-					'createdAt',
-				).releaseId;
-				apps[appId].services![service.imageId].status = 'Handing over';
-			}
-		}
-
-		for (const image of images) {
-			const appId = image.appId;
-			// TODO: This is defined as a number, but it should definitely be a boolean
-			if (!image.dependent) {
-				ensureField(apps, appId, {});
-				ensureField(apps[appId], 'services', {});
-				if (apps[appId].services![image.imageId] == null) {
-					apps[appId].services![image.imageId] = _.merge(
-						{ download_progress: null },
-						_.pick(image, ['status', 'releaseId']),
-					);
-				}
-			} else if (image.imageId != null) {
-				ensureField(dependent, appId, { images: {} });
-				dependent[appId].images[image.imageId] = _.merge(
-					{ download_progress: null },
-					_.pick(image, 'status'),
-				);
-			} else {
-				console.log('Ignoring legacy dependent image', image);
-			}
-		}
-
-		const obj: DeviceApplicationStateForReport = { local: apps, dependent };
-		obj.commit = currentCommit == null ? undefined : currentCommit;
-		return obj;
+		return await this.internalGetStatus();
 	}
 
 	public getDependentState() {
@@ -623,6 +539,119 @@ export class ApplicationManager extends (EventEmitter as {
 
 	public getDependentTargets() {
 		return this.proxyvisor.getTarget();
+	}
+
+	public async stopAll(opts: { force?: boolean; skipLock?: boolean } = {}) {
+		const services = await this.services.getAll();
+		for (const service of services) {
+			this.lockingIfNecessary(service.appId, opts, async () => {
+				await this.services.kill(service, {
+					removeContainer: false,
+					wait: true,
+				});
+				delete this.containerStarted[service.containerId!];
+			});
+		}
+	}
+
+	public executeStepAction<T extends ActionExecutorKeys>(
+		step: ActionExecutorStepT<T>,
+		{
+			force = false,
+			skipLock = false,
+		}: { force?: boolean; skipLock?: boolean } = {},
+	) {
+		if (_.includes(this.proxyvisor.validActions, step.action)) {
+			return this.proxyvisor.executeStepAction(step);
+		}
+		if (!_.includes(this.validActions, step.action)) {
+			return Promise.reject(new Error(`Invalid action ${step.action}`));
+		}
+		const executor = this.actionExecutors[step.action] as ActionExecutors[T];
+		// TODO: Fix the necessity of this any
+		return executor(step as any, {
+			force,
+			skipLock,
+		});
+	}
+
+	public async getExtraStateForComparison(): Promise<
+		ApplicationManagerExtraState
+	> {
+		const { localMode, delta } = await this.config.getMany([
+			'localMode',
+			'delta',
+		]);
+		return {
+			cleanupNeeded: await this.images.isCleanupNeeded(),
+			availableImages: await this.images.getAvailable(),
+			downloading: await this.images.getDownloadingImageIds(),
+			supervisorNetworkReady: await this.networks.supervisorNetworkReady(),
+			delta,
+			localMode,
+		};
+	}
+
+	public async getRequiredSteps(
+		currentState: ApplicationsObject,
+		targetState: ApplicationsObject,
+		extraState: ApplicationManagerExtraState,
+		ignoreImages: boolean = false,
+	) {
+		const {
+			availableImages,
+			downloading,
+			supervisorNetworkReady,
+			delta,
+			localMode,
+		} = extraState;
+		let { cleanupNeeded } = extraState;
+
+		if (localMode) {
+			cleanupNeeded = false;
+		}
+
+		const nextSteps = await this.inferNextSteps(
+			cleanupNeeded,
+			availableImages,
+			downloading,
+			supervisorNetworkReady,
+			currentState,
+			targetState,
+			ignoreImages,
+			{ localMode, delta },
+		);
+
+		if (ignoreImages && _.some(nextSteps, ({ action }) => action === 'fetch')) {
+			throw new Error('Cannot fetch images while executing an API action');
+		}
+
+		return nextSteps.concat(
+			await this.proxyvisor.getRequiredSteps(
+				availableImages,
+				downloading,
+				currentState,
+				targetState,
+				nextSteps,
+			),
+		);
+	}
+
+	public async serviceNameFromId(serviceId: number) {
+		const apps = await this.getTargetApps();
+		// Multi-app warning! This won't work properly with multiple applications
+		let name = null;
+		_.each(apps, app => {
+			const svc = _.find(
+				app.services,
+				(svc: Service) => svc.serviceId === serviceId,
+			);
+			if (svc != null) {
+				name = svc.serviceName;
+				return false;
+			}
+		});
+		return name;
 	}
 
 	// Compares current and target services and returns a list of service pairs to be updated/removed/installed.
@@ -770,7 +799,7 @@ export class ApplicationManager extends (EventEmitter as {
 		const targetNames = _.keys(target);
 		const toBeRemoved = _.difference(currentNames, targetNames);
 
-		for (const name in toBeRemoved) {
+		for (const name of _.keys(toBeRemoved)) {
 			outputPairs.push({
 				current: current![name],
 				target: null,
@@ -1357,7 +1386,8 @@ export class ApplicationManager extends (EventEmitter as {
 			.map('appId')
 			.uniq()
 			.each(appId =>
-				ensureField(apps, appId, {
+				// FIXME: Wrong
+				ensureField(apps as any, appId, {
 					appId,
 					services: [],
 					volumes: {},
@@ -1631,23 +1661,13 @@ export class ApplicationManager extends (EventEmitter as {
 		return null;
 	}
 
+	// TODO: This function is doing wayyyy too much
 	private compareImages(
-		current: DeviceApplicationState,
-		target: DeviceApplicationState,
+		current: ApplicationsObject,
+		target: ApplicationsObject,
 		available: Image[],
 		localMode: boolean,
 	) {
-		if (current.local == null) {
-			throw new InternalInconsistencyError(
-				'No local component for current application state in compareImages!',
-			);
-		}
-		if (target.local == null) {
-			throw new InternalInconsistencyError(
-				'No local compoennt for current application state in compareImages!',
-			);
-		}
-
 		const allImagesForTargetApp = (app: ComposeApplication) =>
 			_.map(app.services, ApplicationManager.imageForService);
 		const allImagesForCurrentApp = (app: ComposeApplication) =>
@@ -1666,30 +1686,256 @@ export class ApplicationManager extends (EventEmitter as {
 				.filter(img => img[1] != null)
 				.value();
 
-		const availableWithoutIds = _.map(available, image =>
+		// FIXME: The coffeescript code omitted the id field, but the typings imply
+		// it does not exist - work out which is correct
+		const availableWithoutIds = (_.map(available, image =>
 			_.omit(image, ['dockerImageId', 'id']),
-		);
+		) as unknown) as Array<Omit<Image, 'dockerImageId' /*| 'id'*/>>;
 
 		// TODO: These flatMap calls need forced casting, find out why
 		const currentImages = (_.flatMap(
-			current.local.apps,
+			current,
 			allImagesForCurrentApp,
 		) as unknown) as Image[];
 		const targetImages = (_.flatMap(
-			target.local.apps,
+			target,
 			allImagesForTargetApp,
 		) as unknown) as Image[];
 		const targetImageDockerIds = _.fromPairs((_.flatMap(
-			target.local.apps,
+			target,
 			allImageDockerIdsForTargetApp,
 		) as unknown) as string[][]);
 
 		const inUse = currentImages.concat(targetImages);
-		const availableAndUnused = _.reject(
-			availableWithoutIds,
-			image => _.some(inUse, imageInUse => _.isEqual(image, imageInUse)),
+		const availableAndUnused = _.reject(availableWithoutIds, image =>
+			_.some(inUse, imageInUse => _.isEqual(image, imageInUse)),
 		);
-		const imagesToDownload = _.reject(targetImages, (targetImage) => here
+
+		const imagesToDownload = _.reject(targetImages, targetImage =>
+			_.some(available, availableImage =>
+				Images.isSameImage(availableImage, targetImage),
+			),
+		);
+
+		// Images that are available but we don't have them in the DB with the exact metadata
+		let imagesToSave: Image[] = [];
+		if (!localMode) {
+			imagesToSave = _.filter(targetImages, targetImage => {
+				const isActuallyAvailable = _.some(available, availableImage => {
+					return (
+						Images.isSameImage(availableImage, targetImage) ||
+						availableImage.dockerImageId ===
+							targetImageDockerIds[targetImage.name]
+					);
+				});
+				const isNotSaved = !_.some(availableWithoutIds, img =>
+					_.isEqual(img, targetImage),
+				);
+				return isActuallyAvailable && isNotSaved;
+			});
+		}
+
+		const deltaSources = imagesToDownload
+			.map(image => this.bestDeltaSource(image, available))
+			.filter(source => source != null) as string[];
+
+		const proxyvisorImages = this.proxyvisor.imagesInUse(current, target);
+		const imagesToRemove = _.filter(availableAndUnused, image => {
+			const notUsedForDelta = !_.includes(deltaSources, image.name);
+			const notUsedByProxyvisor = !_.some(proxyvisorImages, pImg =>
+				Images.isSameImage(image, { name: pImg }),
+			);
+			return notUsedForDelta && notUsedByProxyvisor;
+		});
+
+		return { imagesToSave, imagesToRemove };
+	}
+
+	private async inferNextSteps(
+		cleanupNeeded: boolean,
+		availableImages: Image[],
+		downloading: number[],
+		supervisorNetworkReady: boolean,
+		current: ApplicationsObject,
+		target: ApplicationsObject,
+		ignoreImages: boolean,
+		{ localMode, delta }: { localMode: boolean; delta: boolean },
+	) {
+		if (localMode) {
+			ignoreImages = true;
+		}
+
+		let nextSteps: ActionExecutorStep[] = [];
+		if (!supervisorNetworkReady) {
+			nextSteps.push(serviceAction('ensureSupervisorNetwork', {}));
+		} else {
+			if (!ignoreImages && _.isEmpty(downloading)) {
+				if (cleanupNeeded) {
+					nextSteps.push(serviceAction('cleanup', {}));
+				}
+				const { imagesToRemove, imagesToSave } = this.compareImages(
+					current,
+					target,
+					availableImages,
+					localMode,
+				);
+				for (const image of imagesToSave) {
+					nextSteps.push(serviceAction('saveImage', { image }));
+				}
+				if (_.isEmpty(imagesToSave)) {
+					for (const image of imagesToRemove) {
+						nextSteps.push(serviceAction('removeImage', { image }));
+					}
+				}
+				// If we have to remove any images, we do that before anything else
+				if (_.isEmpty(nextSteps)) {
+					const allByAppIds = _.union(_.keys(current), _.keys(target)).map(n =>
+						parseInt(n, 10),
+					);
+					for (const appId of allByAppIds) {
+						nextSteps = nextSteps.concat(
+							this.nextStepsForAppUpdate(
+								// FIXME: One of these is likely wrong
+								this.normalizeApp(current[appId]),
+								this.normalizeApp(target[appId]),
+								localMode,
+								availableImages,
+								downloading,
+							),
+						);
+					}
+				}
+			}
+		}
+		const newDownloadCount = _.filter(nextSteps, { action: 'fetch' }).length;
+		if (!ignoreImages && delta && newDownloadCount > 0) {
+			let downloadsToBlock =
+				downloading.length + newDownloadCount - constants.maxDeltaDownloads;
+			while (downloadsToBlock > 0) {
+				_.pull(nextSteps, _.find(nextSteps, { action: 'fetch' }));
+				downloadsToBlock -= 1;
+			}
+		}
+		if (!ignoreImages && _.isEmpty(nextSteps) && !_.isEmpty(downloading)) {
+			nextSteps.push(serviceAction('noop', {}));
+		}
+		return _.uniqWith(nextSteps, _.isEqual);
+	}
+
+	private normalizeApp(apps: ApplicationsObject[0]): ComposeApplication {
+		return {
+			name: apps.name,
+			appId: apps.appId,
+			commit: apps.commit,
+			networks: _.map(apps.networks, (network, name) =>
+				Network.fromComposeObject(
+					{ docker: this.docker, logger: this.logger },
+					name,
+					apps.appId,
+					network as NetworkConfig,
+				),
+			),
+			volumes: _.map(apps.volumes, (volume, name) =>
+				Volume.fromComposeObject(
+					{ docker: this.docker, logger: this.logger, name, appId: apps.appId },
+					volume,
+				),
+			),
+			services: apps.services,
+		};
+	}
+
+	private async internalGetStatus(): Promise<DeviceApplicationStateForReport> {
+		// TODO: The types become very messy in this function, and it mainly
+		// stems from the fact that the Service class reperesents both target
+		// state and current state, meaning things like status, serviceId, appId,
+		// containerId, etc are typed as optional. There should be two different
+		// types of service, TargetService and CurrentService, both of which extend
+		// the base service class. This means that we can always expect a CurrentService
+		// when we need these fields to exist, and skip a lot of the checking and casting
+		// below
+		const [services, images, currentCommit] = await Promise.all([
+			this.services.getStatus(),
+			this.images.getStatus(),
+			this.config.get('currentCommit'),
+		]);
+
+		// FIXME: We need to type the input and output state endpoints to
+		// avoid any of this
+		const apps: any = {};
+		const dependent: DependentDeviceApplicationState = {};
+		let releaseId: number | null = null;
+		// FIXME: Typing
+		const creationTimesAndReleases: Dictionary<any> = {};
+
+		// We iterate over the current running services and add them to the current state
+		// of the app they belong to.
+		for (const service of services) {
+			const appId = service.appId;
+			if (service.status == null) {
+				throw new InternalInconsistencyError(
+					`service.status not defined in ApplicationManager.internalGetStatus: ${service}`,
+				);
+			}
+
+			ensureField(apps, appId, {});
+			ensureField(apps[appId], 'services', {});
+			ensureField(creationTimesAndReleases, appId, {});
+
+			// We only send commit if all services have the same release, and it
+			// matches the target release
+			if (releaseId == null) {
+				releaseId = service.releaseId;
+			} else if (releaseId !== service.releaseId) {
+				releaseId = null;
+			}
+
+			if (apps[appId].services![service.imageId] == null) {
+				apps[appId].services![service.imageId] = _.merge(
+					{ download_progress: null },
+					_.pick(service, ['status', 'releaseId']),
+				);
+				creationTimesAndReleases[appId][service.imageId] = _.pick(service, [
+					'createdAt',
+					'releaseId',
+				]);
+				apps[appId].services![service.imageId].download_progress = null;
+			} else {
+				// There is two container with the same imageId, so this has to be a handover
+				apps[appId].services![service.imageId].releaseId = _.minBy(
+					[creationTimesAndReleases[appId][service.imageId], service],
+					'createdAt',
+				).releaseId;
+				apps[appId].services![service.imageId].status = 'Handing over';
+			}
+		}
+
+		for (const image of images) {
+			const appId = image.appId;
+			// TODO: This is defined as a number, but it should definitely be a boolean
+			if (!image.dependent) {
+				ensureField(apps, appId, {});
+				ensureField(apps[appId], 'services', {});
+				if (apps[appId].services![image.imageId] == null) {
+					apps[appId].services![image.imageId] = _.merge(
+						{ download_progress: null },
+						_.pick(image, ['status', 'releaseId']),
+					);
+				}
+			} else if (image.imageId != null) {
+				ensureField(dependent, appId, { images: {} });
+				dependent[appId].images[image.imageId] = _.merge(
+					{ download_progress: null, status: 'unknown' },
+					_.pick(image, 'status'),
+				);
+			} else {
+				console.log('Ignoring legacy dependent image', image);
+			}
+		}
+
+		const obj: DeviceApplicationStateForReport = { local: apps, dependent };
+		obj.commit = currentCommit == null ? undefined : currentCommit;
+		return obj;
 	}
 }
 

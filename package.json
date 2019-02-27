@@ -13,7 +13,7 @@
     "precommit": "lint-staged",
     "prettify": "prettier --config ./node_modules/resin-lint/config/.prettierrc --write \"{src,test,typings}/**/*.ts\"",
     "lint:coffee": "resin-lint src/ test/",
-    "lint:typescript": "resin-lint --typescript src/ test/ typings/ && tsc --noEmit",
+    "lint:typescript": "resin-lint --typescript src/ test/ && tsc --noEmit",
     "lint": "npm run lint:coffee && npm run lint:typescript",
     "test": "npm run lint && npm run test:build && JUNIT_REPORT_PATH=report.xml istanbul cover _mocha && npm run coverage",
     "test:fast": "npm run test:build && mocha",

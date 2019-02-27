@@ -229,13 +229,15 @@ export class Images extends (EventEmitter as {
 	}
 
 	// TODO: Why does this need a Bluebird.try?
-	public getDownloadingImageIds() {
-		return Bluebird.try(() =>
-			_(this.volatileState)
-				.pickBy({ status: 'Downloading' })
-				.keys()
-				.map(validation.checkInt)
-				.value(),
+	public getDownloadingImageIds(): Bluebird<number[]> {
+		return Bluebird.try(
+			() =>
+				_(this.volatileState)
+					.pickBy({ status: 'Downloading' })
+					.keys()
+					.map(validation.checkInt)
+					.filter((i?: number) => i != null)
+					.value() as number[],
 		);
 	}
 
@@ -424,7 +426,10 @@ export class Images extends (EventEmitter as {
 		}
 	}
 
-	public static isSameImage(image1: Image, image2: Image): boolean {
+	public static isSameImage(
+		image1: Pick<Image, 'name'>,
+		image2: Pick<Image, 'name'>,
+	): boolean {
 		return (
 			image1.name === image2.name ||
 			Images.hasSameDigest(image1.name, image2.name)

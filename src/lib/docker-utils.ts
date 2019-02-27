@@ -18,7 +18,7 @@ import { EnvVarObject } from './types';
 export type FetchOptions = SchemaReturn<'fetchOptions'>;
 export type DeltaFetchOptions = FetchOptions & {
 	deltaSourceId?: string;
-	deltaSource: string;
+	deltaSource: string | null;
 };
 
 interface RsyncApplyOptions {
@@ -82,8 +82,8 @@ export class DockerUtils extends DockerToolbelt {
 		}
 
 		// Since the supevisor never calls this function with a source anymore,
-		// this should never happen, but w ehandle it anyway
-		if (deltaOpts.deltaSource == null) {
+		// this should never happen, but we handle it anyway
+		if (deltaOpts.deltaSource == null || deltaSourceId == null) {
 			log('Falling back to regular pull due to lack of a delta source');
 			return this.fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 		}
