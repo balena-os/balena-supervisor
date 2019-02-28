@@ -218,6 +218,7 @@ export const schemaTypes = {
 			name: t.string,
 			apiSecret: t.union([t.string, NullOrUndefined]),
 			deviceApiKey: t.string,
+			apiEndpoint: t.string,
 			version: t.string,
 			deviceType: t.string,
 			osVersion: t.union([t.string, NullOrUndefined]),
