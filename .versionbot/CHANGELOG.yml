@@ -1,4 +1,32 @@
 - commits:
+    - subject: >-
+        feature: Add `BALENA_API_URL` environment variable when using the
+        `balena-api` feature label
+      hash: aeb96aa807fea81f2e2aa4e3881bfb55b75b8618
+      body: >
+        When using the label `io.balena.features.balena-api` the supervisor will
+        inject 2 environment
+
+        variables into the container:
+
+        - BALENA_API_KEY
+
+        - BALENA_API_URL
+
+
+        This allows the container to access the currently associated API using
+        the KEY.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+        Connects-to: '#847'
+        connects-to: '#847'
+      author: Rich Bayliss
+  version: 9.8.7
+  date: 2019-02-28T11:45:00.053Z
+- commits:
     - subject: 'debug: Print more information about failing validations'
       hash: 987de0e0975a7c468a3e2b606bb43e8dedcd2df8
       body: ''
