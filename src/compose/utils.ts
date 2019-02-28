@@ -357,6 +357,7 @@ export function addFeaturesFromLabels(
 
 	if (checkTruthy(service.config.labels['io.balena.features.balena-api'])) {
 		setEnvVariables('API_KEY', options.deviceApiKey);
+		setEnvVariables('API_URL', options.apiEndpoint);
 	}
 
 	if (checkTruthy(service.config.labels['io.balena.features.supervisor-api'])) {

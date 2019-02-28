@@ -76,6 +76,7 @@ export const fnSchema = {
 			'listenPort',
 			'name',
 			'apiSecret',
+			'apiEndpoint',
 			'deviceApiKey',
 			'version',
 			'deviceType',
