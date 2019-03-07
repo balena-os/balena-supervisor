@@ -1,4 +1,48 @@
 - commits:
+    - subject: 'state-engine: Add an exponential backoff for device-config noops'
+      hash: 1aa58fd7b94e95a855b31dcb6fca8a374972a47b
+      body: |
+        To avoid unnecesarilly using resources, we add an exponential backoff
+        when the noops explicitly come from the device-config module.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'fix: Fix connectivity active VPN check'
+      hash: ea1b247d3fad9587ee9f71ff8831e14e3d6854c6
+      body: |
+        During the conversion to typescript, the VPN active check was being
+        performed on the directory, and not the file that the VPN creates,
+        meaning it would always return true (as we explicitly create the
+        directory on startup if it does not exist).
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'state-engine: Add rate limited steps to device-config'
+      hash: 6f797020998251384f6a6251f6ffe5614e4054fc
+      body: |
+        In the case of an airgapped supervisor, with a target state that
+        requests the vpn be enabled, the supervisor will constantly loop on
+        trying to set the vpn to on. Unfortunately the vpn requires an internet
+        connection to be configured, so it will never be turned on.
+
+        We add the concept of no-ops to the device-config state change steps,
+        and don't end the state engine transition while these are present
+        (similar to how image pulls are implemented).
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.9.0
+  date: 2019-03-07T18:41:44.457Z
+- commits:
     - subject: >-
         feature: Add `BALENA_API_URL` environment variable when using the
         `balena-api` feature label
