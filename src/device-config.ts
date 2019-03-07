@@ -32,7 +32,7 @@ interface ConfigStep {
 	// TODO: This is a bit of a mess, the DeviceConfig class shouldn't
 	// know that the reboot action exists as it is implemented by
 	// DeviceState. Fix this weird circular dependency
-	action: keyof DeviceActionExecutors | 'reboot';
+	action: keyof DeviceActionExecutors | 'reboot' | 'noop';
 	humanReadableTarget?: Dictionary<string>;
 	target?: string | Dictionary<string>;
 	rebootRequired?: boolean;
@@ -130,6 +130,17 @@ export class DeviceConfig {
 		'OVERRIDE_LOCK',
 		..._.map(DeviceConfig.configKeys, 'envVarName'),
 	];
+
+	private rateLimits: Dictionary<{
+		duration: number;
+		lastAttempt: number | null;
+	}> = {
+		setVPNEnabled: {
+			// Only try to switch the VPN once an hour
+			duration: 60 * 60 * 1000,
+			lastAttempt: null,
+		},
+	};
 
 	public constructor({ db, config, logger }: DeviceConfigConstructOpts) {
 		this.db = db;
@@ -361,7 +372,7 @@ export class DeviceConfig {
 			{},
 		);
 
-		const steps: ConfigStep[] = [];
+		let steps: ConfigStep[] = [];
 
 		const { deviceType, unmanaged } = await this.config.getMany([
 			'deviceType',
@@ -413,6 +424,27 @@ export class DeviceConfig {
 			});
 		}
 
+		const now = Date.now();
+		steps = _.map(steps, step => {
+			const action = step.action;
+			if (action in this.rateLimits) {
+				const lastAttempt = this.rateLimits[action].lastAttempt;
+				this.rateLimits[action].lastAttempt = now;
+
+				// If this step should be rate limited, we replace it with a noop.
+				// We do this instead of removing it, as we don't actually want the
+				// state engine to think that it's successfully applied the target state,
+				// as it won't reattempt the change until the target state changes
+				if (
+					lastAttempt != null &&
+					Date.now() - lastAttempt < this.rateLimits[action].duration
+				) {
+					return { action: 'noop' } as ConfigStep;
+				}
+			}
+			return step;
+		});
+
 		// Do we need to change the boot config?
 		if (this.bootConfigChangeRequired(backend, current, target, deviceType)) {
 			steps.push({
@@ -431,7 +463,7 @@ export class DeviceConfig {
 	}
 
 	public executeStepAction(step: ConfigStep, opts: DeviceActionExecutorOpts) {
-		if (step.action !== 'reboot') {
+		if (step.action !== 'reboot' && step.action !== 'noop') {
 			return this.actionExecutors[step.action](step, opts);
 		}
 	}
