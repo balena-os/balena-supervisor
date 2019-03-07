@@ -594,10 +594,16 @@ module.exports = class DeviceState extends EventEmitter
 					.then ([ currentState, targetState ]) =>
 						@deviceConfig.getRequiredSteps(currentState, targetState)
 						.then (deviceConfigSteps) =>
-							if !_.isEmpty(deviceConfigSteps)
+							noConfigSteps = _.every(deviceConfigSteps, ({ action }) -> action is 'noop')
+							if not noConfigSteps
 								return deviceConfigSteps
 							else
 								@applications.getRequiredSteps(currentState, targetState, extraState, intermediate)
+								.then (appSteps) ->
+									# We need to forward to no-ops to the next step if the application state is done
+									if _.isEmpty(appSteps) and noConfigSteps
+										return deviceConfigSteps
+									return appSteps
 		.then (steps) =>
 			if _.isEmpty(steps)
 				@emitAsync('apply-target-state-end', null)
