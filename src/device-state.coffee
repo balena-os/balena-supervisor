@@ -578,8 +578,7 @@ module.exports = class DeviceState extends EventEmitter
 			console.log('Scheduling another update attempt due to failure: ', delay, err)
 			@triggerApplyTarget({ force, delay, initial })
 
-	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false } = {}) =>
-		nextDelay = 200
+	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false, nextDelay = 200, retryCount = 0 } = {}) =>
 		Promise.try =>
 			if !intermediate
 				@applyBlocker
@@ -596,15 +595,21 @@ module.exports = class DeviceState extends EventEmitter
 						.then (deviceConfigSteps) =>
 							noConfigSteps = _.every(deviceConfigSteps, ({ action }) -> action is 'noop')
 							if not noConfigSteps
-								return deviceConfigSteps
+								return [false, deviceConfigSteps]
 							else
 								@applications.getRequiredSteps(currentState, targetState, extraState, intermediate)
 								.then (appSteps) ->
 									# We need to forward to no-ops to the next step if the application state is done
+									# The true and false values below represent whether we should add an exponential
+									# backoff if the steps are all no-ops. the reason that this has to be different
+									# is that a noop step from the application manager means that we should keep running
+									# in a tight loop, waiting for an image to download (for example). The device-config
+									# steps generally have a much higher time to wait before the no-ops will stop, so we
+									# should try to reduce the effect that this will have
 									if _.isEmpty(appSteps) and noConfigSteps
-										return deviceConfigSteps
-									return appSteps
-		.then (steps) =>
+										return [true, deviceConfigSteps]
+									return [false, appSteps]
+		.then ([backoff, steps]) =>
 			if _.isEmpty(steps)
 				@emitAsync('apply-target-state-end', null)
 				if !intermediate
@@ -617,12 +622,17 @@ module.exports = class DeviceState extends EventEmitter
 			if !intermediate
 				@reportCurrentState(update_pending: true)
 			if _.every(steps, (step) -> step.action == 'noop')
-				nextDelay = 1000
+				if backoff
+					retryCount += 1
+					# Backoff to a maximum of 10 minutes
+					nextDelay = Math.min(2 ** retryCount * 1000, 60 * 10 * 1000)
+				else
+					nextDelay = 1000
 			Promise.map steps, (step) =>
 				@applyStep(step, { force, initial, intermediate, skipLock })
 			.delay(nextDelay)
 			.then =>
-				@applyTarget({ force, initial, intermediate, skipLock })
+				@applyTarget({ force, initial, intermediate, skipLock, nextDelay, retryCount })
 		.catch (err) =>
 			@applyError(err, { force, initial, intermediate })
 
