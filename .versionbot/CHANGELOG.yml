@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'codeowners: Add @CameronDiver, @pcarranzav and @Page-'
+      hash: 68a28955ad1b5dc40b8f23c8ed1b998e195bc36d
+      body: ''
+      footer:
+        Connects-to: '#926'
+        connects-to: '#926'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Heds Simons <heds@balena.io>
+        signed-off-by: Heds Simons <heds@balena.io>
+      author: Heds Simons
+  version: 9.9.1
+  date: 2019-03-08T15:38:29.388Z
+- commits:
     - subject: 'state-engine: Add an exponential backoff for device-config noops'
       hash: 1aa58fd7b94e95a855b31dcb6fca8a374972a47b
       body: |
