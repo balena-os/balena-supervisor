@@ -477,7 +477,12 @@ module.exports = class ApplicationManager extends EventEmitter
 	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
 	# to kill a service once the images for the services it depends on have been downloaded, so as to minimize
 	# downtime (but not block the killing too much, potentially causing a deadlock)
-	_dependenciesMetForServiceKill: (target, targetApp, availableImages) ->
+	_dependenciesMetForServiceKill: (target, targetApp, availableImages, localMode) ->
+		# Because we only check for an image being available, in local mode this will always
+		# be the case, so return true regardless. If this function ever checks for anything else,
+		# we'll need to change the logic here
+		if localMode
+			return true
 		if target.dependsOn?
 			for dependency in target.dependsOn
 				dependencyService = _.find(targetApp.services, serviceName: dependency)
@@ -581,7 +586,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		dependenciesMetForStart = =>
 			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs))
 		dependenciesMetForKill = =>
-			!needsDownload and @_dependenciesMetForServiceKill(target, targetApp, availableImages)
+			!needsDownload and @_dependenciesMetForServiceKill(target, targetApp, availableImages, localMode)
 
 		# If the service is using a network or volume that is being updated, we need to kill it
 		# even if its strategy is handover
