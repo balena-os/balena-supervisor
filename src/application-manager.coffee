@@ -547,7 +547,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				# We only kill when dependencies are already met, so that we minimize downtime
 				return serviceAction('kill', target.serviceId, current, target)
 			else
-				return null
+				return { action: 'noop' }
 		'kill-then-download': (current, target) ->
 			return serviceAction('kill', target.serviceId, current, target)
 		'delete-then-download': (current, target) ->
@@ -560,7 +560,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			else if dependenciesMetForStart()
 				return serviceAction('handover', target.serviceId, current, target, timeout: timeout)
 			else
-				return null
+				return { action: 'noop' }
 	}
 
 	_nextStepForService: ({ current, target }, updateContext, localMode) =>
