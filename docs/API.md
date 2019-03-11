@@ -695,6 +695,48 @@ Response:
 }
 ```
 
+### GET /v2/state/status
+Added in supervisor version v9.7.0
+
+This will return a list of images, containers, the overall download progress and the status of the state engine.
+
+From the user container:
+```bash
+curl "$BALENA_SUPERVISOR_ADDRESS/v2/state/status?apikey=$RESIN_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+  "status": "success",
+  "appState": "applied",
+  "overallDownloadProgress": null,
+  "containers": [
+    {
+      "status": "Running",
+      "serviceName": "main",
+      "appId": 1032480,
+      "imageId": 959262,
+      "serviceId": 29396,
+      "containerId": "be4a860e34ffca609866f8af3596e9ee7b869e1e0bb9f51406d0b120b0a81cdd",
+      "createdAt": "2019-03-11T16:05:34.506Z"
+    }
+  ],
+  "images": [
+    {
+      "name": "registry2.balena-cloud.com/v2/fbf67cf6574fb0f8da3c8998226fde9e@sha256:9e328a53813e3c2337393c63cfd6c2f5294872cf0d03dc9f74d02e66b9ca1221",
+      "appId": 1032480,
+      "serviceName": "main",
+      "imageId": 959262,
+      "dockerImageId": "sha256:2662fc0ca0c7dd0f549e87e224f454165f260ff54aac59308d2641d99ca95e58",
+      "status": "Downloaded",
+      "downloadProgress": null
+    }
+  ],
+  "release": "804281fb17e8291c542f9640814ef546"
+}
+```
+
 ### Service Actions
 
 #### The application ID
