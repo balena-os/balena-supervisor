@@ -1,4 +1,16 @@
 - commits:
+    - subject: Pin lodash types to avoid compile error
+      hash: af734ad00800d8d845042f761754db6750cd9c20
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.10.1
+  date: 2019-03-12T13:39:15.973Z
+- commits:
     - subject: 'docs: Standardise naming and json in api documentation'
       hash: d9bc26bd83b12f15bf099359e5425f4d956247a0
       body: ''
