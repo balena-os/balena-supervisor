@@ -1102,3 +1102,27 @@ Response:
 	"serviceName": "main"
 }
 ```
+
+### V2 Device Information
+
+#### Device name
+
+Added in supervisor version v9.11.0
+
+Get the last returned device name from the balena API. Note that this differs from the
+`BALENA_DEVICE_NAME_AT_INIT` environment variable provided to containers, as this will
+not change throughout the runtime of the container, but the endpoint will always return
+the latest known device name.
+
+From an application container:
+```
+$ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/name?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"deviceName": "holy-wildflower"
+}
+```

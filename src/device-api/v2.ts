@@ -436,4 +436,19 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			release: currentRelease,
 		});
 	});
+
+	router.get('/v2/device/name', async (_req, res) => {
+		try {
+			const deviceName = await applications.config.get('name');
+			res.json({
+				status: 'success',
+				deviceName,
+			});
+		} catch (e) {
+			res.status(503).json({
+				status: 'failed',
+				message: messageFromError(e),
+			});
+		}
+	});
 }
