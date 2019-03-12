@@ -1126,3 +1126,29 @@ Response:
 	"deviceName": "holy-wildflower"
 }
 ```
+
+#### Device tags
+
+Added in supervisor version v9.11.0
+
+Retrieve any device tags from the balena API. Note that this endpoint will not work when
+the device does not have an available connection to the balena API.
+
+From an application container:
+```
+$ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/tags?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"tags": [
+		{
+			"id": 188303,
+			"name": "DeviceLocation",
+			"value": "warehouse #3"
+		}
+	]
+}
+```

@@ -451,4 +451,19 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			});
 		}
 	});
+
+	router.get('/v2/device/tags', async (_req, res) => {
+		try {
+			const tags = await applications.apiBinder.fetchDeviceTags();
+			return res.json({
+				status: 'success',
+				tags,
+			});
+		} catch (e) {
+			res.status(503).json({
+				status: 'failed',
+				message: messageFromError(e),
+			});
+		}
+	});
 }

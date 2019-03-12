@@ -1,6 +1,8 @@
 import * as Bluebird from 'bluebird';
 import * as bodyParser from 'body-parser';
 import * as express from 'express';
+import { isLeft } from 'fp-ts/lib/Either';
+import * as t from 'io-ts';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
@@ -55,6 +57,12 @@ interface Device {
 interface DevicePinInfo {
 	app: number;
 	commit: string;
+}
+
+interface DeviceTag {
+	id: number;
+	name: string;
+	value: string;
 }
 
 type KeyExchangeOpts = ConfigSchemaType<'provisioningOptions'>;
@@ -374,6 +382,39 @@ export class APIBinder {
 			}
 		});
 		return this.reportCurrentState();
+	}
+
+	public async fetchDeviceTags(): Promise<DeviceTag[]> {
+		if (this.balenaApi == null) {
+			throw new Error(
+				'Attempt to communicate with API, without initialized client',
+			);
+		}
+		const tags = (await this.balenaApi.get({
+			resource: 'device_tag',
+			options: {
+				$select: ['id', 'tag_key', 'value'],
+			},
+		})) as Array<Dictionary<unknown>>;
+
+		return tags.map(tag => {
+			// Do some type safe decoding and throw if we get an unexpected value
+			const id = t.number.decode(tag.id);
+			const name = t.string.decode(tag.tag_key);
+			const value = t.string.decode(tag.value);
+			if (isLeft(id) || isLeft(name) || isLeft(value)) {
+				throw new Error(
+					`There was an error parsing device tags from the api. Device tag: ${JSON.stringify(
+						tag,
+					)}`,
+				);
+			}
+			return {
+				id: id.value,
+				name: name.value,
+				value: value.value,
+			};
+		});
 	}
 
 	private getStateDiff(): DeviceApplicationState {
