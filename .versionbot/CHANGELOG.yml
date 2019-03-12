@@ -1,4 +1,25 @@
 - commits:
+    - subject: 'docs: Standardise naming and json in api documentation'
+      hash: d9bc26bd83b12f15bf099359e5425f4d956247a0
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'docs: Add documentation for v2/state/status endpoint'
+      hash: 4a17f704ab86b542a9140782ff5aa502ceac6cfd
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.10.0
+  date: 2019-03-11T16:41:00.776Z
+- commits:
     - subject: 'codeowners: Add @CameronDiver, @pcarranzav and @Page-'
       hash: 68a28955ad1b5dc40b8f23c8ed1b998e195bc36d
       body: ''
