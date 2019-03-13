@@ -20,6 +20,7 @@ import {
 import * as LogTypes from '../lib/log-types';
 import { checkInt, isValidDeviceName } from '../lib/validation';
 import { Service } from './service';
+import { serviceNetworksToDockerNetworks } from './utils';
 
 interface ServiceConstructOpts {
 	docker: Docker;
@@ -266,7 +267,9 @@ export class ServiceManager extends (EventEmitter as {
 			}
 
 			const conf = service.toDockerContainer({ deviceName });
-			const nets = service.extraNetworksToJoin();
+			const nets = serviceNetworksToDockerNetworks(
+				service.extraNetworksToJoin(),
+			);
 
 			this.logger.logSystemEvent(LogTypes.installService, { service });
 			this.reportNewStatus(mockContainerId, service, 'Installing');
@@ -275,7 +278,7 @@ export class ServiceManager extends (EventEmitter as {
 			service.containerId = container.id;
 
 			await Promise.all(
-				_.map(nets, (endpointConfig, name) =>
+				_.map((nets || {}).EndpointsConfig, (endpointConfig, name) =>
 					this.docker.getNetwork(name).connect({
 						Container: container.id,
 						EndpointConfig: endpointConfig,

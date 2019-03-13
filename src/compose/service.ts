@@ -122,6 +122,17 @@ export class Service {
 		}
 		// Prefix the network entries with the app id
 		networks = _.mapKeys(networks, (_v, k) => `${service.appId}_${k}`);
+		// Ensure that we add an alias of the service name
+		networks = _.mapValues(networks, v => {
+			if (v.aliases == null) {
+				v.aliases = [];
+			}
+			const serviceName: string = service.serviceName || '';
+			if (!_.includes(v.aliases, serviceName)) {
+				v.aliases.push(serviceName);
+			}
+			return v;
+		});
 		delete config.networks;
 
 		// Check for unsupported networkMode entries
@@ -837,24 +848,11 @@ export class Service {
 				const currentAliases = _.filter(current.aliases, (alias: string) => {
 					return !_.startsWith(this.containerId!, alias);
 				});
-				const targetAliases = _.filter(current.aliases, (alias: string) => {
-					return !_.startsWith(this.containerId!, alias);
-				});
+				const targetAliases = target.aliases || [];
 
-				// Docker adds container ids to the alias list, directly after
-				// the service name, to detect this, check for both target having
-				// exactly half of the amount of entries as the current, and check
-				// that every second entry (starting from 0) is equal
-				if (currentAliases.length === targetAliases.length * 2) {
-					sameNetwork = _(currentAliases)
-						.filter((_v, k) => k % 2 === 0)
-						.isEqual(targetAliases);
-				} else {
-					// Otherwise compare them literally
-					sameNetwork = _.isEmpty(
-						_.xorWith(currentAliases, targetAliases, _.isEqual),
-					);
-				}
+				sameNetwork = _.isEmpty(
+					_.xorWith(currentAliases, targetAliases, _.isEqual),
+				);
 			}
 		}
 		if (target.ipv4Address != null) {
