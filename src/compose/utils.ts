@@ -348,7 +348,7 @@ export function addFeaturesFromLabels(
 			}`;
 		}
 		// We keep balena.sock for backwards compatibility
-		if (constants.dockerSocket != '/var/run/balena.sock') {
+		if (constants.dockerSocket !== '/var/run/balena.sock') {
 			service.config.volumes.push(
 				`${constants.dockerSocket}:/var/run/balena.sock`,
 			);

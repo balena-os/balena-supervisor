@@ -802,8 +802,8 @@ export class Service {
 		appId: number,
 		serviceName: string,
 	): { [envVarName: string]: string } {
-		let defaultEnv: { [envVarName: string]: string } = {};
-		for (let namespace of ['BALENA', 'RESIN']) {
+		const defaultEnv: { [envVarName: string]: string } = {};
+		for (const namespace of ['BALENA', 'RESIN']) {
 			_.assign(
 				defaultEnv,
 				_.mapKeys(
