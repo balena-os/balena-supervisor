@@ -257,12 +257,12 @@ describe 'ApplicationManager', ->
 			@normaliseTarget(targetState[4], availableImages[2])
 			(current, target) =>
 				steps = @applications._inferNextSteps(false, availableImages[2], [], true, current, target, false, {})
-				expect(steps).to.eventually.deep.equal([{
+				expect(steps).to.eventually.have.deep.members([{
 					action: 'fetch'
 					image: @applications.imageForService(target.local.apps[0].services[0])
 					serviceId: 23
 					appId: 1234
-				}])
+				}, { action: 'noop', appId: 1234 }])
 		)
 
 	it 'infers to kill several services as long as there is no unmet dependency', ->
