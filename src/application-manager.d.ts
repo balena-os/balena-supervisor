@@ -12,6 +12,7 @@ import DB from './db';
 
 import { Service } from './compose/service';
 import Config from './config';
+import { APIBinder } from './api-binder';
 
 declare interface Options {
 	force?: boolean;
@@ -37,6 +38,7 @@ export class ApplicationManager extends EventEmitter {
 	public logger: Logger;
 	public deviceState: any;
 	public eventTracker: EventTracker;
+	public apiBinder: APIBinder;
 
 	public services: ServiceManager;
 	public config: Config;
