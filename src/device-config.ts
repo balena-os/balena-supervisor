@@ -68,6 +68,11 @@ export class DeviceConfig {
 			varType: 'int',
 			defaultValue: '60000',
 		},
+		instantUpdates: {
+			envVarName: 'SUPERVISOR_INSTANT_UPDATE_TRIGGER',
+			varType: 'bool',
+			defaultValue: 'true',
+		},
 		localMode: {
 			envVarName: 'SUPERVISOR_LOCAL_MODE',
 			varType: 'bool',

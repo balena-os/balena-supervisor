@@ -66,6 +66,10 @@ export const schemaTypes = {
 		type: PermissiveNumber,
 		default: 60000,
 	},
+	instantUpdates: {
+		type: PermissiveBoolean,
+		default: true,
+	},
 	mixpanelToken: {
 		type: t.string,
 		default: constants.defaultMixpanelToken,
