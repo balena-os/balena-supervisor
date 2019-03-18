@@ -172,7 +172,8 @@ module.exports = class DeviceState extends EventEmitter
 						commit: app.commit
 						status: 'success'
 					$expand:
-						contains__image: [ 'image' ]
+						contains__image:
+							$expand: 'image'
 			)
 			.then (releasesFromAPI) =>
 				if releasesFromAPI.length == 0
