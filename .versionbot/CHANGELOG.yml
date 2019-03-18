@@ -1,4 +1,49 @@
 - commits:
+    - subject: >-
+        fix: Correct use of $expand to avoid an exception when updating from a
+        legacy OS
+      hash: d64dcb4b4060d3e6fd84382d3b12c6d8a3fe2310
+      body: >
+        The last update of pinejs-client to pinejs-client-request made the way
+        we were
+
+        using $expand on the migration break. This switches to the correct way
+        of doing it now.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: 'device-api: Add v2/device/tags api endpoint'
+      hash: b922789deeb29568b7105ef2ffc3b6ec8900f97f
+      body: |
+        This endpoint will fetch the device tags from the balena api
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#890'
+        closes: '#890'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'device-api: Add v2/device/name endpoint'
+      hash: 3f231e8ff3af80fd6006064d951013858bddcba3
+      body: |
+        This endpoint returns the last known device name from the API. This
+        differs from the BALENA_DEVICE_NAME_AT_INIT env var because this will
+        not change throughout the runtime of the container.
+      footer:
+        Closes: '#908'
+        closes: '#908'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.11.0
+  date: 2019-03-18T16:56:09.031Z
+- commits:
     - subject: 'state-engine: Return a noop when waiting for a dependency'
       hash: 84356b82b814b10c14c12a285ffe71dac278ea19
       body: |
