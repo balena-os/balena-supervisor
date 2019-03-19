@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix typo when getting device config default values
+      hash: f32de99aff525db866500c19a8bd24b8f216852e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.11.1
+  date: 2019-03-19T20:50:22.269Z
+- commits:
     - subject: >-
         fix: Correct use of $expand to avoid an exception when updating from a
         legacy OS
