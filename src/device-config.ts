@@ -313,7 +313,7 @@ export class DeviceConfig {
 			},
 			_.mapValues(
 				_.mapKeys(DeviceConfig.configKeys, 'envVarName'),
-				'defaultValues',
+				'defaultValue',
 			),
 		);
 	}
