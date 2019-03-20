@@ -704,7 +704,7 @@ export class APIBinder {
 		} catch (err) {
 			console.error('Error reporting initial configuration, will retry', err);
 			await Bluebird.delay(retryDelay);
-			this.reportInitialConfig(apiEndpoint, retryDelay);
+			await this.reportInitialConfig(apiEndpoint, retryDelay);
 		}
 	}
 
