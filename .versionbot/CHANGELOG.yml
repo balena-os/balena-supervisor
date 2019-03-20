@@ -1,4 +1,22 @@
 - commits:
+    - subject: >-
+        fix: Await reporting the initial config before continuing APIBinder
+        initialization
+      hash: b374bd81dd2a8829078e2ae97d96700eebd63dce
+      body: >
+        This avoid a race condition, in which config.txt can be cleared if a
+        target state is fetched before the
+
+        initial values have been created as config vars.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.11.2
+  date: 2019-03-20T19:32:19.214Z
+- commits:
     - subject: Fix typo when getting device config default values
       hash: f32de99aff525db866500c19a8bd24b8f216852e
       body: ''
