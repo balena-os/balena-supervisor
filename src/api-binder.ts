@@ -875,7 +875,7 @@ export class APIBinder {
 				delay: retryDelay,
 			});
 			await Bluebird.delay(retryDelay);
-			this.provisionOrRetry(retryDelay);
+			return this.provisionOrRetry(retryDelay);
 		}
 	}
 
