@@ -796,59 +796,57 @@ export class APIBinder {
 		// FIXME: Config typing
 		const opts = await this.config.get('provisioningOptions');
 		if (
-			opts.registered_at != null &&
-			opts.deviceId != null &&
-			opts.provisioningApiKey == null
+			opts.registered_at == null ||
+			opts.deviceId == null ||
+			opts.provisioningApiKey != null
 		) {
-			return;
-		}
-
-		if (opts.registered_at != null && opts.deviceId == null) {
-			console.log(
-				'Device is registered but no device id available, attempting key exchange',
-			);
-			device = (await this.exchangeKeyAndGetDeviceOrRegenerate(opts)) || null;
-		} else if (opts.registered_at == null) {
-			console.log('New device detected. Provisioning...');
-			try {
-				device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
-			} catch (err) {
-				if (DuplicateUuidError(err)) {
-					console.log('UUID already registered, trying a key exchange');
-					device = await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
-				} else {
-					throw err;
+			if (opts.registered_at != null && opts.deviceId == null) {
+				console.log(
+					'Device is registered but no device id available, attempting key exchange',
+				);
+				device = (await this.exchangeKeyAndGetDeviceOrRegenerate(opts)) || null;
+			} else if (opts.registered_at == null) {
+				console.log('New device detected. Provisioning...');
+				try {
+					device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
+				} catch (err) {
+					if (DuplicateUuidError(err)) {
+						console.log('UUID already registered, trying a key exchange');
+						device = await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
+					} else {
+						throw err;
+					}
 				}
+				opts.registered_at = Date.now();
+			} else if (opts.provisioningApiKey != null) {
+				console.log(
+					'Device is registered but we still have an apiKey, attempting key exchange',
+				);
+				device = await this.exchangeKeyAndGetDevice(opts);
 			}
-			opts.registered_at = Date.now();
-		} else if (opts.provisioningApiKey != null) {
-			console.log(
-				'Device is registered but we still have an apiKey, attempting key exchange',
-			);
-			device = await this.exchangeKeyAndGetDevice(opts);
-		}
 
-		if (!device) {
-			// TODO: Type this?
-			throw new Error(`Failed to provision device!`);
-		}
-		const { id } = device;
-		if (!this.balenaApi) {
-			throw new InternalInconsistencyError(
-				'Attempting to provision a device without an initialized API client',
-			);
-		}
-		this.balenaApi.passthrough.headers.Authorization = `Bearer ${
-			opts.deviceApiKey
-		}`;
+			if (!device) {
+				// TODO: Type this?
+				throw new Error(`Failed to provision device!`);
+			}
+			const { id } = device;
+			if (!this.balenaApi) {
+				throw new InternalInconsistencyError(
+					'Attempting to provision a device without an initialized API client',
+				);
+			}
+			this.balenaApi.passthrough.headers.Authorization = `Bearer ${
+				opts.deviceApiKey
+			}`;
 
-		const configToUpdate = {
-			registered_at: opts.registered_at,
-			deviceId: id,
-			apiKey: null,
-		};
-		await this.config.set(configToUpdate);
-		this.eventTracker.track('Device bootstrap success');
+			const configToUpdate = {
+				registered_at: opts.registered_at,
+				deviceId: id,
+				apiKey: null,
+			};
+			await this.config.set(configToUpdate);
+			this.eventTracker.track('Device bootstrap success');
+		}
 
 		// Now check if we need to pin the device
 		const pinValue = await this.config.get('pinDevice');
@@ -875,7 +873,7 @@ export class APIBinder {
 				delay: retryDelay,
 			});
 			await Bluebird.delay(retryDelay);
-			this.provisionOrRetry(retryDelay);
+			return this.provisionOrRetry(retryDelay);
 		}
 	}
 
