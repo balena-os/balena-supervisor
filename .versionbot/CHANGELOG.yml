@@ -1,5 +1,48 @@
 - commits:
     - subject: >-
+        fix: When pinning a preloaded device, ensure the pinning is done when
+        retrying after a failure
+      hash: 22a5b331969af7e8f84bc8b5054ff80ff6c33dad
+      body: >
+        Without this patch, if for some reason device pinning fails (e.g.
+        connectivity goes down) or anything
+
+        interrupts the initialization after provisioning completes but before
+        pinning is completed, after a retry
+
+        the supervisor would just skip the pinning code, leaving the device
+        unpinned. This patch ensures that the
+
+        pinning procedure is run even if the device was already provisioned (as
+        long as the pinning flag has been set,
+
+        of course). This matches the behavior that the CoffeeScript code had
+        from before the TypeScript conversion.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: >-
+        fix: Return a promise when retrying provisioning to avoid continuing
+        after a failure
+      hash: 6e3bedeb1d1fe8e1facb2bb3330d2ecc499118b1
+      body: >
+        Otherwise we'll keep doing the rest of the APIBinder init steps, like
+        reporting initial config,
+
+        potentially before completing the provisioning.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.11.3
+  date: 2019-03-21T00:56:45.740Z
+- commits:
+    - subject: >-
         fix: Await reporting the initial config before continuing APIBinder
         initialization
       hash: b374bd81dd2a8829078e2ae97d96700eebd63dce
