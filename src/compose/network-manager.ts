@@ -61,7 +61,9 @@ export class NetworkManager {
 			.then(network => {
 				return (
 					network.Options['com.docker.network.bridge.name'] ===
-					constants.supervisorNetworkInterface
+						constants.supervisorNetworkInterface &&
+					network.IPAM.Config[0].Subnet === constants.supervisorNetworkSubnet &&
+					network.IPAM.Config[0].Gateway === constants.supervisorNetworkGateway
 				);
 			})
 			.catchReturn(NotFoundError, false)
@@ -73,7 +75,9 @@ export class NetworkManager {
 			return Bluebird.resolve(
 				this.docker.getNetwork(constants.supervisorNetworkInterface).remove(),
 			).then(() => {
-				this.docker.getNetwork(constants.supervisorNetworkInterface).inspect();
+				return this.docker
+					.getNetwork(constants.supervisorNetworkInterface)
+					.inspect();
 			});
 		};
 
@@ -83,7 +87,9 @@ export class NetworkManager {
 			.then(net => {
 				if (
 					net.Options['com.docker.network.bridge.name'] !==
-					constants.supervisorNetworkInterface
+						constants.supervisorNetworkInterface ||
+					net.IPAM.Config[0].Subnet !== constants.supervisorNetworkSubnet ||
+					net.IPAM.Config[0].Gateway !== constants.supervisorNetworkGateway
 				) {
 					return removeIt();
 				} else {
@@ -102,6 +108,15 @@ export class NetworkManager {
 						Options: {
 							'com.docker.network.bridge.name':
 								constants.supervisorNetworkInterface,
+						},
+						IPAM: {
+							Driver: 'default',
+							Config: [
+								{
+									Subnet: constants.supervisorNetworkSubnet,
+									Gateway: constants.supervisorNetworkGateway,
+								},
+							],
 						},
 					}),
 				);
