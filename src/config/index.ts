@@ -223,6 +223,23 @@ export class Config extends (EventEmitter as {
 		return generateUniqueKey();
 	}
 
+	public valueIsValid<T extends SchemaTypeKey>(
+		key: T,
+		value: unknown,
+	): boolean {
+		// If the default entry in the schema is a type and not a value,
+		// use this in the validation of the value
+		const schemaTypesEntry = schemaTypes[key as SchemaTypeKey];
+		let type: t.Type<unknown>;
+		if (schemaTypesEntry.default instanceof t.Type) {
+			type = t.union([schemaTypesEntry.type, schemaTypesEntry.default]);
+		} else {
+			type = schemaTypesEntry.type;
+		}
+
+		return type.decode(value).isRight();
+	}
+
 	private async getSchema<T extends Schema.SchemaKey>(
 		key: T,
 		db: Transaction,
