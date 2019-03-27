@@ -405,11 +405,6 @@ export class DeviceConfig {
 						// Save the change if it is both valid and different
 						changingValue = target[envVarName];
 					} else {
-						console.log(
-							`Warning: Ignoring invalid device configuration value for ${key}, value: ${inspect(
-								target[envVarName],
-							)}. Falling back to default (${defaultValue})`,
-						);
 						if (
 							!DeviceConfig.configTest(
 								varType,
@@ -417,6 +412,15 @@ export class DeviceConfig {
 								defaultValue,
 							)
 						) {
+							const message = `Warning: Ignoring invalid device configuration value for ${key}, value: ${inspect(
+								target[envVarName],
+							)}. Falling back to default (${defaultValue})`;
+							this.logger.logSystemMessage(
+								message,
+								{ key: envVarName, value: target[envVarName] },
+								'invalidDeviceConfig',
+								false,
+							);
 							// Set it to the default value if it is different to the current
 							changingValue = defaultValue;
 						}
