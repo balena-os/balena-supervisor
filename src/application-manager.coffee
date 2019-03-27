@@ -871,7 +871,20 @@ module.exports = class ApplicationManager extends EventEmitter
 			targetByAppId = target.local.apps ? {}
 			nextSteps = []
 			if !supervisorNetworkReady
-				nextSteps.push({ action: 'ensureSupervisorNetwork' })
+				# if the supervisor0 network isn't ready and there's any containers using it, we need
+				# to kill them
+				containersUsingSupervisorNetwork = false
+				for appId in _.keys(currentByAppId)
+					services = currentByAppId[appId].services
+					for n of services
+						if checkTruthy(services[n].config.labels['io.balena.features.supervisor-api'])
+							containersUsingSupervisorNetwork = true
+							if services[n].status != 'Stopping'
+								nextSteps.push(serviceAction('kill', services[n].serviceId, services[n]))
+							else
+								nextSteps.push({ action: 'noop' })
+				if !containersUsingSupervisorNetwork
+					nextSteps.push({ action: 'ensureSupervisorNetwork' })
 			else
 				if !ignoreImages and _.isEmpty(downloading)
 					if cleanupNeeded

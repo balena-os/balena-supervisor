@@ -53,6 +53,8 @@ const constants = {
 	// Use this failure multiplied by 2**Number of failures to increase
 	// the backoff on subsequent failures
 	backoffIncrement: 500,
+	supervisorNetworkSubnet: '10.114.104.0/25',
+	supervisorNetworkGateway: '10.114.104.1',
 };
 
 if (process.env.DOCKER_HOST == null) {
