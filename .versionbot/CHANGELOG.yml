@@ -1,5 +1,33 @@
 - commits:
     - subject: >-
+        Ensure the supervisor0 network uses a subnet less likely to cause
+        conflicts
+      hash: dab5d7546c94145e9d0e0bae40b9b0cafcc58330
+      body: >
+        We put the supervisor0 network in the 10.114.104.0/25 subnet to avoid
+        issues when the device
+
+        is in a network using the 172.17.* network.
+
+
+        We also ensure we recreate this network if it was created in the
+        incorrect subnet (i.e. if we're updating
+
+        from an old supervisor that didn't do this), for which we have to kill
+        any containers using this network.
+
+
+        Closes #731
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.11.4
+  date: 2019-03-21T23:06:34.550Z
+- commits:
+    - subject: >-
         fix: When pinning a preloaded device, ensure the pinning is done when
         retrying after a failure
       hash: 22a5b331969af7e8f84bc8b5054ff80ff6c33dad
