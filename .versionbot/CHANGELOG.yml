@@ -1,4 +1,22 @@
 - commits:
+    - subject: 'fix: Correctly compare and generate network membership aliases'
+      hash: b3192679c765940d3d6401efd85c845652b1f0f8
+      body: |
+        Before this change, service name resolution would only occur in the
+        default network. This was because we were not explicitly adding aliases
+        of the service names to the aliases fields.
+
+        We also fix the comparison, which would do funny things based on
+        container IDs, which was correct but unnecessary.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.12.1
+  date: 2019-03-28T10:28:41.386Z
+- commits:
     - subject: 'misc: Update build stages to debian stretch'
       hash: 1191b39ee50ab5c8d7135733d55e498dc1b4e3fd
       body: |
