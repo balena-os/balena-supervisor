@@ -67,12 +67,13 @@ function tryPullForCache() {
 
 # Attempt to pull images for cache
 # Only if the pull succeeds we add a --cache-from option
-tryPullForCache $TARGET_CACHE
-tryPullForCache $TARGET_CACHE_MASTER
-tryPullForCache $NODE_CACHE
-tryPullForCache $NODE_CACHE_MASTER
-tryPullForCache $NODE_BUILD_CACHE
-tryPullForCache $NODE_BUILD_CACHE_MASTER
+tryPullForCache $TARGET_CACHE &
+tryPullForCache $TARGET_CACHE_MASTER &
+tryPullForCache $NODE_CACHE &
+tryPullForCache $NODE_CACHE_MASTER &
+tryPullForCache $NODE_BUILD_CACHE &
+tryPullForCache $NODE_BUILD_CACHE_MASTER &
+wait
 
 export DOCKER_BUILD_OPTIONS=${CACHE_FROM}
 export ARCH
