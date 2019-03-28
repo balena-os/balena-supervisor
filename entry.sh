@@ -52,6 +52,8 @@ if [ ! -d /lib/modules ]; then
 	ln -s /mnt/root/lib/modules /lib/modules
 fi
 # Now load the ip6_tables kernel module, so we can do filtering on ipv6 addresses
-modprobe ip6_tables
+if [ -z "$(cat /proc/config.gz | gunzip | grep CONFIG_IP6_NF_IPTABLES=y || true)" ]; then
+  modprobe ip6_tables
+fi
 
 exec node /usr/src/app/dist/app.js
