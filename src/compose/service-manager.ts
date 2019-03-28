@@ -364,9 +364,7 @@ export class ServiceManager extends (EventEmitter as {
 
 			this.logger.attach(this.docker, container.id, { serviceId, imageId });
 
-			if (alreadyStarted) {
-				this.logger.logSystemEvent(LogTypes.startServiceNoop, { service });
-			} else {
+			if (!alreadyStarted) {
 				this.logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
 			}
 
@@ -471,8 +469,6 @@ export class ServiceManager extends (EventEmitter as {
 		const services = await this.getAll();
 		for (const service of services) {
 			if (service.status === 'Running') {
-				this.logger.logSystemEvent(LogTypes.startServiceNoop, { service });
-
 				const serviceId = service.serviceId;
 				const imageId = service.imageId;
 				if (serviceId == null || imageId == null) {
