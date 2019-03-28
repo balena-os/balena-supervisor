@@ -1,4 +1,20 @@
 - commits:
+    - subject: Only modprobe ip6_tables if it's necessary
+      hash: de051653166f3ad3388b76e305f18efe6db1768b
+      body: >
+        If the kernel was built with support for ip6tables, there's no need to
+        load the module. This is the case when running
+
+        balenaOS in a container in Mac OS, which also can't do modprobes easily.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.12.4
+  date: 2019-03-28T18:15:29.681Z
+- commits:
     - subject: Parallelise cache pulling for builds
       hash: 9af416c7c01a70feb2c67b625ad45b8dce6dbc4f
       body: ''
