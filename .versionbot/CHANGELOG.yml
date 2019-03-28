@@ -1,4 +1,14 @@
 - commits:
+    - subject: Parallelise cache pulling for builds
+      hash: 9af416c7c01a70feb2c67b625ad45b8dce6dbc4f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 9.12.3
+  date: 2019-03-28T14:15:13.930Z
+- commits:
     - subject: Fix typo in delta request error message
       hash: 175cbfee500332b47d55350c7a5c89eae211be06
       body: ''
