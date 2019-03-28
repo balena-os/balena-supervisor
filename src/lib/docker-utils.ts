@@ -141,7 +141,9 @@ export class DockerUtils extends DockerToolbelt {
 						)
 					) {
 						throw new Error(
-							`Got ${res.statusCode} when request image from delta server.`,
+							`Got ${
+								res.statusCode
+							} when requesting an image from delta server.`,
 						);
 					}
 					const deltaUrl = res.headers['location'];
