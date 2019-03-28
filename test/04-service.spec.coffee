@@ -311,7 +311,9 @@ describe 'compose/service', ->
 							IPAMConfig: {
 								IPv4Address: '1.2.3.4'
 							},
-							Aliases: []
+							Aliases: [
+								'test'
+							]
 						}
 					}
 				})
