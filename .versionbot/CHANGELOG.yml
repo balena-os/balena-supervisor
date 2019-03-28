@@ -1,31 +1,49 @@
 - commits:
-    - subject: >-
-        Ensure the supervisor0 network uses a subnet less likely to cause
-        conflicts
-      hash: dab5d7546c94145e9d0e0bae40b9b0cafcc58330
-      body: >
-        We put the supervisor0 network in the 10.114.104.0/25 subnet to avoid
-        issues when the device
-
-        is in a network using the 172.17.* network.
-
-
-        We also ensure we recreate this network if it was created in the
-        incorrect subnet (i.e. if we're updating
-
-        from an old supervisor that didn't do this), for which we have to kill
-        any containers using this network.
-
-
-        Closes #731
+    - subject: 'misc: Update build stages to debian stretch'
+      hash: 1191b39ee50ab5c8d7135733d55e498dc1b4e3fd
+      body: |
+        Jessie recently had the jessie-updates repos dropped. We upgrade to
+        stretch to avoid a 404 on update (and to update things anyway).
       footer:
         Change-type: patch
         change-type: patch
-        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
-        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
-      author: Pablo Carranza Velez
-  version: 9.11.4
-  date: 2019-03-21T23:06:34.550Z
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'device-config: Show invalid values in dashboard logs'
+      hash: c7499a6b128582e540d2e0d3e51f4acc698ea7f1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'events: Allow system messages to not be tracked'
+      hash: 83d53cfb563c83b24f856279466859edeb06c4af
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'device-config: Use default values for any invalid target values'
+      hash: c211efe399d642840b7abd751c3ea1dce01935cd
+      body: |
+        If a value is requested which does not pass validation, we instead set
+        it to the default value, to ensure that the state engine continues to
+        work and move towards the target state.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#938'
+        closes: '#938'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.12.0
+  date: 2019-03-27T14:20:21.282Z
 - commits:
     - subject: >-
         fix: When pinning a preloaded device, ensure the pinning is done when
