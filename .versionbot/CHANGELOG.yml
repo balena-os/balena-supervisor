@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix typo in delta request error message
+      hash: 175cbfee500332b47d55350c7a5c89eae211be06
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.12.2
+  date: 2019-03-28T12:34:19.072Z
+- commits:
     - subject: 'fix: Correctly compare and generate network membership aliases'
       hash: b3192679c765940d3d6401efd85c845652b1f0f8
       body: |
