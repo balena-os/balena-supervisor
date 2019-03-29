@@ -35,6 +35,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 * Events: Allow system messages to not be tracked [Cameron Diver]
 * Device-config: Use default values for any invalid target values [Cameron Diver]
 
+## 9.11.4 - 2019-03-21
+
+* Ensure the supervisor0 network uses a subnet less likely to cause conflicts [Pablo Carranza Velez]
+
 ## 9.11.3 - 2019-03-21
 
 * Fix: When pinning a preloaded device, ensure the pinning is done when retrying after a failure [Pablo Carranza Velez]
