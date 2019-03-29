@@ -920,17 +920,33 @@ export class APIBinder {
 		router.post('/v1/update', (req, res) => {
 			apiBinder.eventTracker.track('Update notification');
 			if (apiBinder.readyForUpdates) {
-				this.config.get('instantUpdates').then(instantUpdates => {
-					if (instantUpdates) {
-						apiBinder.getAndSetTargetState(req.body.force, true).catch(_.noop);
-					} else {
-						console.log(
-							'Ignoring update notification because instant updates are disabled',
-						);
-					}
-				});
+				this.config
+					.get('instantUpdates')
+					.then(instantUpdates => {
+						if (instantUpdates) {
+							apiBinder
+								.getAndSetTargetState(req.body.force, true)
+								.catch(_.noop);
+							res.sendStatus(204);
+						} else {
+							console.log(
+								'Ignoring update notification because instant updates are disabled',
+							);
+							res.sendStatus(202);
+						}
+					})
+					.catch(err => {
+						const msg =
+							err.message != null
+								? err.message
+								: err != null
+								? err
+								: 'Unknown error';
+						res.status(503).send(msg);
+					});
+			} else {
+				res.sendStatus(202);
 			}
-			res.sendStatus(204);
 		});
 
 		return router;
