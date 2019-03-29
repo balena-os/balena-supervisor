@@ -1,4 +1,34 @@
 - commits:
+    - subject: >-
+        Fix migration of legacy apps when there's more than one app in the local
+        DB
+      hash: c90270660000a0043b3f48751ea5186e69904368
+      body: >
+        In an edge case observed in the field, a supervisor's database held two
+        applications
+
+        because the device had been moved and the update lock was set in the old
+        app. This causes
+
+        the updated supervisor to be unable to start, logging "No compatible
+        releases found in API",
+
+        because it can't fetch the release for the app it was moved from.
+
+
+        This commit changes the migration code to iterate through all apps, and
+        remove any for which
+
+        we can't get a release.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.12.6
+  date: 2019-03-29T00:18:13.744Z
+- commits:
     - subject: 'test: Add a test case for deviceConfig.getDefaults'
       hash: ea6ebf822312665280903424d3f4bff1edd0476c
       body: |
