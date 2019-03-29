@@ -153,80 +153,81 @@ module.exports = class DeviceState extends EventEmitter
 			if apps.length == 0
 				console.log('No app to migrate')
 				return
-			app = apps[0]
-			services = JSON.parse(app.services)
-			# Check there's a main service, with legacy-container set
-			if services.length != 1
-				console.log("App doesn't have a single service, ignoring")
-				return
-			service = services[0]
-			if !service.labels['io.resin.legacy-container'] and !service.labels['io.balena.legacy-container']
-				console.log('Service is not marked as legacy, ignoring')
-				return
-			console.log("Getting release #{app.commit} for app #{app.appId} from API")
-			balenaApi.get(
-				resource: 'release'
-				options:
-					$filter:
-						belongs_to__application: app.appId
-						commit: app.commit
-						status: 'success'
-					$expand:
-						contains__image:
-							$expand: 'image'
-			)
-			.then (releasesFromAPI) =>
-				if releasesFromAPI.length == 0
-					throw new Error('No compatible releases found in API')
-				release = releasesFromAPI[0]
-				releaseId = release.id
-				image = release.contains__image[0].image[0]
-				imageId = image.id
-				serviceId = image.is_a_build_of__service.__id
-				imageUrl = image.is_stored_at__image_location
-				if image.content_hash
-					imageUrl += "@#{image.content_hash}"
-				console.log("Found a release with releaseId #{releaseId}, imageId #{imageId}, serviceId #{serviceId}")
-				console.log("Image location is #{imageUrl}")
-				Promise.join(
-					@applications.docker.getImage(service.image).inspect().catchReturn(NotFoundError, null)
-					@db.models('image').where(name: service.image).select()
-					(imageFromDocker, imagesFromDB) =>
-						@db.transaction (trx) ->
-							Promise.try ->
-								if imagesFromDB.length > 0
-									console.log('Deleting existing image entry in db')
-									trx('image').where(name: service.image).del()
-								else
-									console.log('No image in db to delete')
-							.then ->
-								if imageFromDocker?
-									console.log('Inserting fixed image entry in db')
-									newImage = {
-										name: imageUrl,
-										appId: app.appId,
-										serviceId: serviceId,
-										serviceName: service.serviceName,
-										imageId: imageId,
-										releaseId: releaseId,
-										dependent: 0
-										dockerImageId: imageFromDocker.Id
-									}
-									trx('image').insert(newImage)
-								else
-									console.log('Image is not downloaded, so not saving it to db')
-							.then ->
-								service.image = imageUrl
-								service.serviceID = serviceId
-								service.imageId = imageId
-								service.releaseId = releaseId
-								delete service.labels['io.resin.legacy-container']
-								delete service.labels['io.balena.legacy-container']
-								app.services = JSON.stringify([ service ])
-								app.releaseId = releaseId
-								console.log('Updating app entry in db')
-								trx('app').update(app).where({ appId: app.appId })
+			Promise.map apps, (app) =>
+				services = JSON.parse(app.services)
+				# Check there's a main service, with legacy-container set
+				if services.length != 1
+					console.log("App doesn't have a single service, ignoring")
+					return
+				service = services[0]
+				if !service.labels['io.resin.legacy-container'] and !service.labels['io.balena.legacy-container']
+					console.log('Service is not marked as legacy, ignoring')
+					return
+				console.log("Getting release #{app.commit} for app #{app.appId} from API")
+				balenaApi.get(
+					resource: 'release'
+					options:
+						$filter:
+							belongs_to__application: app.appId
+							commit: app.commit
+							status: 'success'
+						$expand:
+							contains__image:
+								$expand: 'image'
 				)
+				.then (releasesFromAPI) =>
+					if releasesFromAPI.length == 0
+						console.log("No compatible releases found in API, removing #{app.appId} from target state")
+						return @db.models('app').where({ appId: app.appId }).del()
+					release = releasesFromAPI[0]
+					releaseId = release.id
+					image = release.contains__image[0].image[0]
+					imageId = image.id
+					serviceId = image.is_a_build_of__service.__id
+					imageUrl = image.is_stored_at__image_location
+					if image.content_hash
+						imageUrl += "@#{image.content_hash}"
+					console.log("Found a release with releaseId #{releaseId}, imageId #{imageId}, serviceId #{serviceId}")
+					console.log("Image location is #{imageUrl}")
+					Promise.join(
+						@applications.docker.getImage(service.image).inspect().catchReturn(NotFoundError, null)
+						@db.models('image').where(name: service.image).select()
+						(imageFromDocker, imagesFromDB) =>
+							@db.transaction (trx) ->
+								Promise.try ->
+									if imagesFromDB.length > 0
+										console.log('Deleting existing image entry in db')
+										trx('image').where(name: service.image).del()
+									else
+										console.log('No image in db to delete')
+								.then ->
+									if imageFromDocker?
+										console.log('Inserting fixed image entry in db')
+										newImage = {
+											name: imageUrl,
+											appId: app.appId,
+											serviceId: serviceId,
+											serviceName: service.serviceName,
+											imageId: imageId,
+											releaseId: releaseId,
+											dependent: 0
+											dockerImageId: imageFromDocker.Id
+										}
+										trx('image').insert(newImage)
+									else
+										console.log('Image is not downloaded, so not saving it to db')
+								.then ->
+									service.image = imageUrl
+									service.serviceID = serviceId
+									service.imageId = imageId
+									service.releaseId = releaseId
+									delete service.labels['io.resin.legacy-container']
+									delete service.labels['io.balena.legacy-container']
+									app.services = JSON.stringify([ service ])
+									app.releaseId = releaseId
+									console.log('Updating app entry in db')
+									trx('app').update(app).where({ appId: app.appId })
+					)
 
 	normaliseLegacy: (balenaApi) =>
 		# When legacy apps are present, we kill their containers and migrate their /data to a named volume
