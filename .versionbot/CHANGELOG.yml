@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'test: Add a test case for deviceConfig.getDefaults'
+      hash: ea6ebf822312665280903424d3f4bff1edd0476c
+      body: |
+        This would help avoid bugs like the one fixed in 9.11.1.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.12.5
+  date: 2019-03-28T23:05:09.952Z
+- commits:
     - subject: Only modprobe ip6_tables if it's necessary
       hash: de051653166f3ad3388b76e305f18efe6db1768b
       body: >
