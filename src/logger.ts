@@ -1,5 +1,4 @@
 import * as Bluebird from 'bluebird';
-import * as es from 'event-stream';
 import * as _ from 'lodash';
 
 import { EventTracker } from './event-tracker';
@@ -8,10 +7,11 @@ import { LogType } from './lib/log-types';
 import { writeLock } from './lib/update-lock';
 import {
 	BalenaLogBackend,
+	ContainerLogs,
 	LocalLogBackend,
 	LogBackend,
 	LogMessage,
-} from './logging-backends';
+} from './logging';
 
 interface LoggerSetupOptions {
 	apiEndpoint: string;
@@ -24,11 +24,6 @@ interface LoggerSetupOptions {
 
 type LogEventObject = Dictionary<any> | null;
 
-enum OutputStream {
-	Stdout,
-	Stderr,
-}
-
 interface LoggerConstructOptions {
 	eventTracker: EventTracker;
 }
@@ -39,12 +34,7 @@ export class Logger {
 	private localBackend: LocalLogBackend | null = null;
 
 	private eventTracker: EventTracker;
-	private attached: {
-		[key in OutputStream]: { [containerId: string]: boolean }
-	} = {
-		[OutputStream.Stderr]: {},
-		[OutputStream.Stdout]: {},
-	};
+	private containerLogs: { [containerId: string]: ContainerLogs } = {};
 
 	public constructor({ eventTracker }: LoggerConstructOptions) {
 		this.backend = null;
@@ -139,20 +129,24 @@ export class Logger {
 		containerId: string,
 		serviceInfo: { serviceId: number; imageId: number },
 	): Bluebird<void> {
+		// First detect if we already have an attached log stream
+		// for this container
+		if (containerId in this.containerLogs) {
+			return Bluebird.resolve();
+		}
+
 		return Bluebird.using(this.lock(containerId), () => {
-			return this.attachStream(
-				docker,
-				OutputStream.Stdout,
-				containerId,
-				serviceInfo,
-			).then(() => {
-				return this.attachStream(
-					docker,
-					OutputStream.Stderr,
-					containerId,
-					serviceInfo,
-				);
+			const logs = new ContainerLogs(containerId, docker);
+			this.containerLogs[containerId] = logs;
+			logs.on('error', err => {
+				console.error(`Container log retrieval error: ${err}`);
+				delete this.containerLogs[containerId];
 			});
+			logs.on('log', logMessage => {
+				this.log(_.merge({}, serviceInfo, logMessage));
+			});
+			logs.on('closed', () => delete this.containerLogs[containerId]);
+			return logs.attach();
 		});
 	}
 
@@ -200,69 +194,6 @@ export class Logger {
 		this.logSystemMessage(message, obj, eventName);
 	}
 
-	// TODO: This function interacts with the docker daemon directly,
-	// using the container id, but it would be better if this was provided
-	// by the Compose/Service-Manager module, as an accessor
-	private attachStream(
-		docker: Docker,
-		streamType: OutputStream,
-		containerId: string,
-		{ serviceId, imageId }: { serviceId: number; imageId: number },
-	): Bluebird<void> {
-		return Bluebird.try(() => {
-			if (this.attached[streamType][containerId]) {
-				return;
-			}
-
-			const logsOpts = {
-				follow: true,
-				stdout: streamType === OutputStream.Stdout,
-				stderr: streamType === OutputStream.Stderr,
-				timestamps: true,
-				since: Math.floor(Date.now() / 1000),
-			};
-
-			return docker
-				.getContainer(containerId)
-				.logs(logsOpts)
-				.then(stream => {
-					this.attached[streamType][containerId] = true;
-
-					stream
-						.on('error', err => {
-							console.error('Error on container logs', err);
-							this.attached[streamType][containerId] = false;
-						})
-						.pipe(es.split())
-						.on('data', (logBuf: Buffer | string) => {
-							if (_.isString(logBuf)) {
-								logBuf = Buffer.from(logBuf);
-							}
-							const logMsg = Logger.extractContainerMessage(logBuf);
-							if (logMsg != null) {
-								const message: LogMessage = {
-									message: logMsg.message,
-									timestamp: logMsg.timestamp,
-									serviceId,
-									imageId,
-								};
-								if (streamType === OutputStream.Stderr) {
-									message.isStdErr = true;
-								}
-								this.log(message);
-							}
-						})
-						.on('error', err => {
-							console.error('Error on container logs', err);
-							this.attached[streamType][containerId] = false;
-						})
-						.on('end', () => {
-							this.attached[streamType][containerId] = false;
-						});
-				});
-		});
-	}
-
 	private objectNameForLogs(eventObj: LogEventObject): string | null {
 		if (eventObj == null) {
 			return null;
@@ -292,30 +223,6 @@ export class Logger {
 			return eventObj.fields.join(',');
 		}
 
-		return null;
-	}
-
-	private static extractContainerMessage(
-		msgBuf: Buffer,
-	): { message: string; timestamp: number } | null {
-		// Non-tty message format from:
-		// https://docs.docker.com/engine/api/v1.30/#operation/ContainerAttach
-		if (msgBuf[0] in [0, 1, 2] && _.every(msgBuf.slice(1, 7), c => c === 0)) {
-			// Take the header from this message, and parse it as normal
-			msgBuf = msgBuf.slice(8);
-		}
-		const logLine = msgBuf.toString();
-		const space = logLine.indexOf(' ');
-		if (space > 0) {
-			let timestamp = new Date(logLine.substr(0, space)).getTime();
-			if (_.isNaN(timestamp)) {
-				timestamp = Date.now();
-			}
-			return {
-				timestamp,
-				message: logLine.substr(space + 1),
-			};
-		}
 		return null;
 	}
 }
