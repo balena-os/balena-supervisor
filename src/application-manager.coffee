@@ -75,6 +75,16 @@ module.exports = class ApplicationManager extends EventEmitter
 		@_targetVolatilePerImageId = {}
 		@_containerStarted = {}
 
+		# Rather than relying on removing out of data database entries when we're no
+		# longer using them, set a task that runs periodically to clear out the database
+		# This has the advantage that if for some reason a container is removed while the
+		# supervisor is down, we won't have zombie entries in the db
+		setInterval =>
+			@docker.listContainers(all: true).then (containers) =>
+				@logger.clearOutOfDateDBLogs(_.map(containers, 'Id'))
+		# Once a day
+		, 1000 * 60 * 60 * 24
+
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.appUpdatePollInterval
 				@images.appUpdatePollInterval = changedConfig.appUpdatePollInterval

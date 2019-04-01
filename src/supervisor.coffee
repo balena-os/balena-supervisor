@@ -30,7 +30,7 @@ module.exports = class Supervisor extends EventEmitter
 		@db = new DB()
 		@config = new Config({ @db })
 		@eventTracker = new EventTracker()
-		@logger = new Logger({ @eventTracker })
+		@logger = new Logger({ @db, @eventTracker })
 		@deviceState = new DeviceState({ @config, @db, @eventTracker, @logger })
 		@apiBinder = new APIBinder({ @config, @db, @deviceState, @eventTracker })
 

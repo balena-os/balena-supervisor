@@ -8,6 +8,7 @@ m = require 'mochainon'
 { stub } = m.sinon
 
 { Logger } = require '../src/logger'
+{ ContainerLogs } = require '../src/logging/container'
 describe 'Logger', ->
 	beforeEach ->
 		@_req = new stream.PassThrough()
@@ -111,7 +112,7 @@ describe 'Logger', ->
 		message = '\u0001\u0000\u0000\u0000\u0000\u0000\u0000?2018-09-21T12:37:09.819134000Z this is the message'
 		buffer = Buffer.from(message)
 
-		expect(Logger.extractContainerMessage(buffer)).to.deep.equal({
+		expect(ContainerLogs.extractMessage(buffer)).to.deep.equal({
 			message: 'this is the message',
 			timestamp: 1537533429819
 		})

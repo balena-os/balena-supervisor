@@ -27,11 +27,11 @@ export class ContainerLogs extends (EventEmitter as {
 		super();
 	}
 
-	public async attach() {
+	public async attach(lastSentTimestamp: number) {
 		const logOpts = {
 			follow: true,
 			timestamps: true,
-			since: Math.floor(Date.now() / 1000),
+			since: Math.floor(lastSentTimestamp / 1000),
 		};
 		const stdoutLogOpts = { stdout: true, stderr: false, ...logOpts };
 		const stderrLogOpts = { stderr: true, stdout: false, ...logOpts };

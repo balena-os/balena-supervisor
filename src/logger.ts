@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
+import DB from './db';
 import { EventTracker } from './event-tracker';
 import Docker from './lib/docker-utils';
 import { LogType } from './lib/log-types';
@@ -25,6 +26,7 @@ interface LoggerSetupOptions {
 type LogEventObject = Dictionary<any> | null;
 
 interface LoggerConstructOptions {
+	db: DB;
 	eventTracker: EventTracker;
 }
 
@@ -34,11 +36,13 @@ export class Logger {
 	private localBackend: LocalLogBackend | null = null;
 
 	private eventTracker: EventTracker;
+	private db: DB;
 	private containerLogs: { [containerId: string]: ContainerLogs } = {};
 
-	public constructor({ eventTracker }: LoggerConstructOptions) {
+	public constructor({ db, eventTracker }: LoggerConstructOptions) {
 		this.backend = null;
 		this.eventTracker = eventTracker;
+		this.db = db;
 	}
 
 	public init({
@@ -135,18 +139,41 @@ export class Logger {
 			return Bluebird.resolve();
 		}
 
-		return Bluebird.using(this.lock(containerId), () => {
+		return Bluebird.using(this.lock(containerId), async () => {
 			const logs = new ContainerLogs(containerId, docker);
 			this.containerLogs[containerId] = logs;
 			logs.on('error', err => {
 				console.error(`Container log retrieval error: ${err}`);
 				delete this.containerLogs[containerId];
 			});
-			logs.on('log', logMessage => {
+			logs.on('log', async logMessage => {
 				this.log(_.merge({}, serviceInfo, logMessage));
+
+				// Take the timestamp and set it in the database as the last
+				// log sent for this
+				await this.db
+					.models('containerLogs')
+					.where({ containerId })
+					.update({ lastSentTimestamp: logMessage.timestamp });
 			});
+
 			logs.on('closed', () => delete this.containerLogs[containerId]);
-			return logs.attach();
+
+			// Get the timestamp of the last sent log for this container
+			let [timestampObj] = await this.db
+				.models('containerLogs')
+				.select('lastSentTimestamp')
+				.where({ containerId });
+
+			if (timestampObj == null) {
+				timestampObj = { lastSentTimestamp: 0 };
+				// Create the row so we have something to update
+				await this.db
+					.models('containerLogs')
+					.insert({ containerId, lastSentTimestamp: 0 });
+			}
+			const { lastSentTimestamp } = timestampObj;
+			return logs.attach(lastSentTimestamp);
 		});
 	}
 
@@ -192,6 +219,14 @@ export class Logger {
 		}
 
 		this.logSystemMessage(message, obj, eventName);
+	}
+
+	public async clearOutOfDateDBLogs(containerIds: string[]) {
+		console.log('Performing database cleanup for container log timestamps');
+		await this.db
+			.models('containerLogs')
+			.whereNotIn('containerId', containerIds)
+			.delete();
 	}
 
 	private objectNameForLogs(eventObj: LogEventObject): string | null {
