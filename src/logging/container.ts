@@ -72,10 +72,13 @@ export class ContainerLogs extends (EventEmitter as {
 
 	private static extractMessage(
 		msgBuf: Buffer,
-	): { message: string; timestamp: number } | null {
+	): { message: string; timestamp: number } | undefined {
 		// Non-tty message format from:
 		// https://docs.docker.com/engine/api/v1.30/#operation/ContainerAttach
-		if (msgBuf[0] in [0, 1, 2] && _.every(msgBuf.slice(1, 7), c => c === 0)) {
+		if (
+			_.includes([0, 1, 2], msgBuf[0]) &&
+			_.every(msgBuf.slice(1, 7), c => c === 0)
+		) {
 			// Take the header from this message, and parse it as normal
 			msgBuf = msgBuf.slice(8);
 		}
@@ -91,7 +94,7 @@ export class ContainerLogs extends (EventEmitter as {
 				message: logLine.substr(space + 1),
 			};
 		}
-		return null;
+		return;
 	}
 }
 
