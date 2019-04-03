@@ -363,7 +363,7 @@ export class APIBinder {
 					'Trying to start poll without initializing API client',
 				);
 			}
-			this.pollTargetState();
+			this.pollTargetState(true);
 			return null;
 		});
 	}
@@ -568,19 +568,27 @@ export class APIBinder {
 			});
 	}
 
-	private async pollTargetState(): Promise<void> {
+	private async pollTargetState(isInitialCall: boolean = false): Promise<void> {
 		// TODO: Remove the checkInt here with the config changes
-		let pollInterval = await this.config.get('appUpdatePollInterval');
+		const { appUpdatePollInterval, instantUpdates } = await this.config.getMany(
+			['appUpdatePollInterval', 'instantUpdates'],
+		);
 
-		try {
-			await this.getAndSetTargetState(false);
-			this.targetStateFetchErrors = 0;
-		} catch (e) {
-			pollInterval = Math.min(
-				pollInterval,
-				15000 * 2 ** this.targetStateFetchErrors,
-			);
-			++this.targetStateFetchErrors;
+		// We add jitter to the poll interval so that it's between 0.5 and 1.5 times
+		// the configured interval
+		let pollInterval = (0.5 + Math.random()) * appUpdatePollInterval;
+
+		if (instantUpdates || !isInitialCall) {
+			try {
+				await this.getAndSetTargetState(false);
+				this.targetStateFetchErrors = 0;
+			} catch (e) {
+				pollInterval = Math.min(
+					appUpdatePollInterval,
+					15000 * 2 ** this.targetStateFetchErrors,
+				);
+				++this.targetStateFetchErrors;
+			}
 		}
 
 		await Bluebird.delay(pollInterval);
@@ -912,9 +920,33 @@ export class APIBinder {
 		router.post('/v1/update', (req, res) => {
 			apiBinder.eventTracker.track('Update notification');
 			if (apiBinder.readyForUpdates) {
-				apiBinder.getAndSetTargetState(req.body.force, true).catch(_.noop);
+				this.config
+					.get('instantUpdates')
+					.then(instantUpdates => {
+						if (instantUpdates) {
+							apiBinder
+								.getAndSetTargetState(req.body.force, true)
+								.catch(_.noop);
+							res.sendStatus(204);
+						} else {
+							console.log(
+								'Ignoring update notification because instant updates are disabled',
+							);
+							res.sendStatus(202);
+						}
+					})
+					.catch(err => {
+						const msg =
+							err.message != null
+								? err.message
+								: err != null
+								? err
+								: 'Unknown error';
+						res.status(503).send(msg);
+					});
+			} else {
+				res.sendStatus(202);
 			}
-			res.sendStatus(204);
 		});
 
 		return router;
