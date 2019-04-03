@@ -1,4 +1,21 @@
 - commits:
+    - subject: Fix service comparison when starting a stopped service
+      hash: 9a343316b21522e34a94a66f2391e63a96516114
+      body: |
+        When comparing a stopped container after a start request, the container
+        ID will be present in the target state (where usually it is not). We
+        were already filtering this value out of the current state, but
+        neglected to do so for the target state. This change now ensures we
+        remove it from both alias lists if it exists.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.12.7
+  date: 2019-04-03T12:12:48.672Z
+- commits:
     - subject: >-
         Fix migration of legacy apps when there's more than one app in the local
         DB
