@@ -650,22 +650,15 @@ export class Service {
 		const differentArrayFields: string[] = [];
 		sameConfig =
 			sameConfig &&
-			_.every(Service.configArrayFields, (field: ServiceConfigArrayField) => {
-				return _.isEmpty(
-					_.xorWith(
-						// TODO: The typings here aren't accepted, even though we
-						// know it's fine
-						(this.config as any)[field],
-						(service.config as any)[field],
-						(a, b) => {
-							const eq = _.isEqual(a, b);
-							if (!eq) {
-								differentArrayFields.push(field);
-							}
-							return eq;
-						},
-					),
+			_.every(Service.configArrayFields, (field: keyof ServiceConfig) => {
+				const eq = _.isEqual(
+					_.sortBy(this.config[field] as Array<unknown>),
+					_.sortBy(service.config[field] as Array<unknown>),
 				);
+				if (!eq) {
+					differentArrayFields.push(field);
+				}
+				return eq;
 			});
 
 		if (!(sameConfig && sameNetworks)) {
@@ -844,15 +837,20 @@ export class Service {
 			if (current.aliases == null) {
 				sameNetwork = false;
 			} else {
-				// Remove the auto-added docker container id
-				const currentAliases = _.filter(current.aliases, (alias: string) => {
-					return !_.startsWith(this.containerId!, alias);
-				});
-				const targetAliases = target.aliases || [];
-
-				sameNetwork = _.isEmpty(
-					_.xorWith(currentAliases, targetAliases, _.isEqual),
+				// Take out the container id from both aliases, as it *will* be present
+				// in a currently running container, and can also be present in the target
+				// for example when doing a start-service
+				// Also sort the aliases, so we can do a simple comparison
+				const [currentAliases, targetAliases] = [
+					current.aliases,
+					target.aliases,
+				].map(aliases =>
+					_.sortBy(
+						aliases.filter(a => !_.startsWith(this.containerId || '', a)),
+					),
 				);
+
+				sameNetwork = _.isEqual(currentAliases, targetAliases);
 			}
 		}
 		if (target.ipv4Address != null) {
