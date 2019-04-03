@@ -1,4 +1,52 @@
 - commits:
+    - subject: 'In /v1/update, return 202 when we''re not updating immediately'
+      hash: 9961ebb41d37c14b18b2bf4545eefae343a2c026
+      body: >
+        We also add a catch to any errors when getting configuration, and send
+        503 in this case, even if it's
+
+        unlikely.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: >-
+        Add a random jitter to target state polls, and a config var to ignore
+        update notifications and not poll immediately after startup
+      hash: 8f07bf62de4a509ac74380af8be42b2acf3c1b76
+      body: >
+        This commit does two related things:
+
+
+        * We make the poll interval a random time between 0.5 and 1.5 times the
+        configured interval.
+
+        * We introduce the BALENA_SUPERVISOR_INSTANT_UPDATE_TRIGGER
+        configuration variable, that defaults to true. If this variable is set
+
+        to false, then calls to /v1/update are ignored, and on startup the
+        supervisor waits for a poll interval before getting the target state.
+
+
+        This will help especially on cases where there's a large number of
+        devices on a single network. By disabling instant updates and setting a
+        large
+
+        poll interval, we can now achieve a sitation where not all devices apply
+        an update at the same time, which can help avoid
+
+        overwhelming the network.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.13.0
+  date: 2019-04-03T16:18:11.345Z
+- commits:
     - subject: Fix service comparison when starting a stopped service
       hash: 9a343316b21522e34a94a66f2391e63a96516114
       body: |
