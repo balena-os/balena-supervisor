@@ -84,6 +84,9 @@ module.exports = class ApplicationManager extends EventEmitter
 				@logger.clearOutOfDateDBLogs(_.map(containers, 'Id'))
 		# Once a day
 		, 1000 * 60 * 60 * 24
+		# But also run it in the background on startup
+		@docker.listContainers(all: true).then (containers) =>
+			@logger.clearOutOfDateDBLogs(_.map(containers, 'Id'))
 
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.appUpdatePollInterval
