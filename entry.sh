@@ -2,7 +2,9 @@
 
 set -o errexit
 
-# Start Avahi to allow MDNS lookups
+# Start Avahi to allow MDNS lookups and remove
+# any pre-defined services
+rm -f /etc/avahi/services/*
 mkdir -p /var/run/dbus
 rm -f /var/run/avahi-daemon/pid
 rm -f /var/run/dbus/pid
