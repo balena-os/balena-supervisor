@@ -1,4 +1,76 @@
 - commits:
+    - subject: Run database cleanup on startup in addition to once a day
+      hash: 5943d3117c36b18466cc91c02be3a1805d34020f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'fix: Fix non-tty container message parsing'
+      hash: 760b18dd2aaa725bc283af29623ed3c913ec7d21
+      body: |
+        This had a bug where it was using the `in` operator on a list. It may
+        have worked for some cases, but would have failed for others.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Report all logs from a container's runtime
+      hash: e148ce052903460ae369b23e67abe54cf22769b6
+      body: |
+        We add a database table, which holds information about the last
+        timestamp of a log successfully reported to a backend (local or remote).
+        We then use this value to calculate from which point in time to start
+        reporting logs from the container. If this is the first time we've seen
+        a container, we get all logs, and for every log reported we save the
+        timestamp. If it is not the first time we've seen a container, we
+        request all logs since the last reported time, ensuring no interruption
+        of service.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#937'
+        closes: '#937'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Refactor container logging interface and rename logging-backends
+      hash: 25fd11bed3a9f3b59db85b7c647765e371a50a74
+      body: |
+        Container logging is now handled by a class which attaches and emits
+        information from the container. We add these to the directory
+        logging-backends/, and rename it to logging/.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'ux: Show a supervisor starting log message in dashboard'
+      hash: 196f173e13b7bd12c7f95cf7cd1273438a1d4fd7
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'ux: Remove service already running log message'
+      hash: 0504776169be98894a213315095602ecc7e4882d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.0
+  date: 2019-04-05T09:07:32.071Z
+- commits:
     - subject: 'In /v1/update, return 202 when we''re not updating immediately'
       hash: 9961ebb41d37c14b18b2bf4545eefae343a2c026
       body: >
