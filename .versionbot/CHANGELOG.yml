@@ -1,4 +1,22 @@
 - commits:
+    - subject: 'avahi: Remove default service definitions'
+      hash: 24ba07571c388e33720d8c3c9911dcc0ca33d297
+      body: |
+        Removes default 'example' service definitions that
+        are included by Avahi 0.7+. These conflict with
+        our balenaOS advertised services, causing potential
+        issues.
+      footer:
+        Connects-to: '#957'
+        connects-to: '#957'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Heds Simons <heds@balena.io>
+        signed-off-by: Heds Simons <heds@balena.io>
+      author: Heds Simons
+  version: 9.14.1
+  date: 2019-04-05T12:38:07.278Z
+- commits:
     - subject: Run database cleanup on startup in addition to once a day
       hash: 5943d3117c36b18466cc91c02be3a1805d34020f
       body: ''
