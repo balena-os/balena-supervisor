@@ -30,7 +30,7 @@ module.exports = class Supervisor extends EventEmitter
 		@db = new DB()
 		@config = new Config({ @db })
 		@eventTracker = new EventTracker()
-		@logger = new Logger({ @eventTracker })
+		@logger = new Logger({ @db, @eventTracker })
 		@deviceState = new DeviceState({ @config, @db, @eventTracker, @logger })
 		@apiBinder = new APIBinder({ @config, @db, @deviceState, @eventTracker })
 
@@ -60,12 +60,16 @@ module.exports = class Supervisor extends EventEmitter
 		.then =>
 			@config.getMany(startupConfigFields)
 		.then (conf) =>
+			# We can't print to the dashboard until the logger has started up,
+			# so we leave a trail of breadcrumbs in the logs in case runtime
+			# fails to get to the first dashboard logs
+			console.log('Starting event tracker')
 			@eventTracker.init(conf)
 			.then =>
-				@eventTracker.track('Supervisor start')
-			.then =>
+				console.log('Starting up api binder')
 				@apiBinder.initClient()
 			.then =>
+				console.log('Starting logging infrastructure')
 				@logger.init({
 					apiEndpoint: conf.apiEndpoint,
 					uuid: conf.uuid,
@@ -74,6 +78,8 @@ module.exports = class Supervisor extends EventEmitter
 					enableLogs: conf.loggingEnabled,
 					localMode: conf.localMode
 				})
+			.then =>
+				@logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start')
 			.then =>
 				if conf.legacyAppsPresent
 					console.log('Legacy app detected, running migration')
