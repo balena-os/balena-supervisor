@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'types: Upgrade dockerode types, and remove fixes which are superceded'
+      hash: 80031b76e4e27fb39b4c5cdaf9d131a503a3d124
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.2
+  date: 2019-04-08T09:48:10.111Z
+- commits:
     - subject: 'avahi: Remove default service definitions'
       hash: 24ba07571c388e33720d8c3c9911dcc0ca33d297
       body: |
