@@ -203,20 +203,13 @@ export class Volumes {
 	}
 
 	private async listWithBothLabels(): Promise<Dockerode.VolumeInspectInfo[]> {
-		// We have to cast the listVolumes call from any[] to any below, until the
-		// relevant PR: https://github.com/DefinitelyTyped/DefinitelyTyped/pull/32383
-		// is merged and released - we can also replace Dockerode here with the Docker
-		// DockerUtils class imported above
-		const [legacyResponse, currentResponse]: [
-			Dockerode.VolumeInfoList,
-			Dockerode.VolumeInfoList
-		] = await Promise.all([
+		const [legacyResponse, currentResponse] = await Promise.all([
 			this.docker.listVolumes({
 				filters: { label: ['io.resin.supervised'] },
-			}) as Promise<any>,
+			}),
 			this.docker.listVolumes({
 				filters: { label: ['io.balena.supervised'] },
-			}) as Promise<any>,
+			}),
 		]);
 
 		const legacyVolumes = _.get(legacyResponse, 'Volumes', []);
