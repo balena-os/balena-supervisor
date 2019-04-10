@@ -530,6 +530,12 @@ export class APIBinder {
 				_.assign(this.stateForReport.local, currentDeviceState.local);
 				_.assign(this.stateForReport.dependent, currentDeviceState.dependent);
 
+				console.log('==================================================');
+				console.log('==================== HEY RICH ====================');
+				console.log('Im sending the state endpoint the following chunk:');
+				console.log(JSON.stringify(this.stateForReport));
+				console.log('==================================================');
+
 				const stateDiff = this.getStateDiff();
 				if (_.size(stateDiff) === 0) {
 					this.reportPending = false;
