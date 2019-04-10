@@ -521,6 +521,9 @@ export class APIBinder {
 
 	private reportCurrentState(): null {
 		(async () => {
+			if ((await this.config.get('localMode')) === true) {
+				return;
+			}
 			this.reportPending = true;
 			try {
 				const currentDeviceState = await this.deviceState.getStatus();
