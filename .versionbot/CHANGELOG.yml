@@ -1,4 +1,20 @@
 - commits:
+    - subject: Don't attempt to report any state during local mode
+      hash: 892cf1961e5f86589f875e86294990dc8c6ed3bb
+      body: |
+        Even though this would never have attempted to report the state to the
+        api during local mode, it leaves behind artifacts which would cause the
+        state to be sometimes reported when exiting local mode. This would cause
+        the api to reject the update unecessarily.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.3
+  date: 2019-04-10T14:43:23.197Z
+- commits:
     - subject: 'types: Upgrade dockerode types, and remove fixes which are superceded'
       hash: 80031b76e4e27fb39b4c5cdaf9d131a503a3d124
       body: ''
