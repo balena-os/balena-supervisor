@@ -1,4 +1,20 @@
 - commits:
+    - subject: 'compose: Remove unique expose entries after adding all entries'
+      hash: 9e3fae585236c464fd25ab591b00d278c7d6463f
+      body: |
+        Prior to this change, we would `_.uniq` the expose value before adding
+        values from the port mappings. This could cause ports to get added
+        twice, which would cause the supervisor to think that there is a
+        configuration mismatch.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.4
+  date: 2019-04-11T09:41:48.891Z
+- commits:
     - subject: Don't attempt to report any state during local mode
       hash: 892cf1961e5f86589f875e86294990dc8c6ed3bb
       body: |
