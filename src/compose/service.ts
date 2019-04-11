@@ -279,12 +279,12 @@ export class Service {
 			{},
 		);
 		expose = expose.concat(_.keys(imageExposedPorts));
-		expose = _.uniq(expose);
 		// Also add any exposed ports which are implied from the portMaps
 		const exposedFromPortMappings = _.flatMap(portMaps, port =>
 			port.toExposedPortArray(),
 		);
 		expose = expose.concat(exposedFromPortMappings);
+		expose = _.uniq(expose);
 		delete config.expose;
 
 		let devices: DockerDevice[] = [];
