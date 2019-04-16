@@ -75,19 +75,6 @@ module.exports = class ApplicationManager extends EventEmitter
 		@_targetVolatilePerImageId = {}
 		@_containerStarted = {}
 
-		# Rather than relying on removing out of data database entries when we're no
-		# longer using them, set a task that runs periodically to clear out the database
-		# This has the advantage that if for some reason a container is removed while the
-		# supervisor is down, we won't have zombie entries in the db
-		setInterval =>
-			@docker.listContainers(all: true).then (containers) =>
-				@logger.clearOutOfDateDBLogs(_.map(containers, 'Id'))
-		# Once a day
-		, 1000 * 60 * 60 * 24
-		# But also run it in the background on startup
-		@docker.listContainers(all: true).then (containers) =>
-			@logger.clearOutOfDateDBLogs(_.map(containers, 'Id'))
-
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.appUpdatePollInterval
 				@images.appUpdatePollInterval = changedConfig.appUpdatePollInterval
@@ -200,6 +187,20 @@ module.exports = class ApplicationManager extends EventEmitter
 		.then (interval) =>
 			@images.appUpdatePollInterval = interval
 			@images.cleanupDatabase()
+		.then =>
+
+			cleanup = =>
+				@docker.listContainers(all: true).then (containers) =>
+					@logger.clearOutOfDateDBLogs(_.map(containers, 'Id'))
+			# Rather than relying on removing out of date database entries when we're no
+			# longer using them, set a task that runs periodically to clear out the database
+			# This has the advantage that if for some reason a container is removed while the
+			# supervisor is down, we won't have zombie entries in the db
+
+			# Once a day
+			setInterval(cleanup, 1000 * 60 * 60 * 24)
+			# But also run it in on startup
+			cleanup()
 		.then =>
 			@localModeManager.init()
 		.then =>
