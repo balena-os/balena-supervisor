@@ -90,24 +90,25 @@ export class PortMap {
 	public static fromDockerOpts(portBindings: PortBindings): PortMap[] {
 		// Create a list of portBindings, rather than the map (which we can't
 		// order)
-		const portMaps = _.map(portBindings, (hostObj, internalStr) => {
+		const portMaps = _.flatMap(portBindings, (hostObj, internalStr) => {
 			const match = internalStr.match(DOCKER_OPTS_PORTS_REGEX);
 			if (match == null) {
 				throw new Error(`Could not parse docker port output: ${internalStr}`);
 			}
 			const internal = parseInt(match[1], 10);
-			const external = parseInt(hostObj[0].HostPort, 10);
-
-			const host = hostObj[0].HostIp;
 			const proto = match[2] || 'tcp';
 
-			return new PortMap({
-				internalStart: internal,
-				internalEnd: internal,
-				externalStart: external,
-				externalEnd: external,
-				protocol: proto,
-				host,
+			return _.map(hostObj, ({ HostIp, HostPort }) => {
+				const external = parseInt(HostPort, 10);
+				const host = HostIp;
+				return new PortMap({
+					internalStart: internal,
+					internalEnd: internal,
+					externalStart: external,
+					externalEnd: external,
+					protocol: proto,
+					host,
+				});
 			});
 		});
 
