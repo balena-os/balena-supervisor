@@ -20,7 +20,10 @@ initModels = (filename) ->
 		track: stub().callsFake (ev, props) ->
 			console.log(ev, props)
 	}
-	@deviceState = new DeviceState({ @db, @config, @eventTracker })
+	@logger = {
+		clearOutOfDateDBLogs: ->
+	}
+	@deviceState = new DeviceState({ @db, @config, @eventTracker, @logger })
 	@apiBinder = new APIBinder({ @db, @config, @eventTracker, @deviceState })
 	@db.init()
 	.then =>

@@ -198,13 +198,16 @@ describe 'deviceState', ->
 		prepare()
 		@db = new DB()
 		@config = new Config({ @db })
+		@logger = {
+			clearOutOfDateDBLogs: ->
+		}
 		eventTracker = {
 			track: console.log
 		}
 		stub(Service, 'extendEnvVars').callsFake (env) ->
 			env['ADDITIONAL_ENV_VAR'] = 'foo'
 			return env
-		@deviceState = new DeviceState({ @db, @config, eventTracker })
+		@deviceState = new DeviceState({ @db, @config, eventTracker, @logger })
 		stub(@deviceState.applications.docker, 'getNetworkGateway').returns(Promise.resolve('172.17.0.1'))
 		stub(@deviceState.applications.images, 'inspectByName').callsFake ->
 			Promise.try ->

@@ -123,7 +123,10 @@ describe 'ApplicationManager', ->
 		eventTracker = {
 			track: console.log
 		}
-		@deviceState = new DeviceState({ @db, @config, eventTracker })
+		@logger = {
+			clearOutOfDateDBLogs: ->
+		}
+		@deviceState = new DeviceState({ @db, @config, eventTracker, @logger })
 		@applications = @deviceState.applications
 		stub(@applications.images, 'inspectByName').callsFake (imageName) ->
 			Promise.resolve({

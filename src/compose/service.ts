@@ -775,7 +775,12 @@ export class Service {
 		_.each(this.config.portMaps, pmap => {
 			const { exposedPorts, portBindings } = pmap.toDockerOpts();
 			_.merge(exposed, exposedPorts);
-			_.merge(ports, portBindings);
+			_.mergeWith(ports, portBindings, (destVal, srcVal) => {
+				if (destVal == null) {
+					return srcVal;
+				}
+				return destVal.concat(srcVal);
+			});
 		});
 
 		// We also want to merge the compose and image exposedPorts
