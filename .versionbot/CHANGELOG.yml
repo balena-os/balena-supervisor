@@ -1,4 +1,22 @@
 - commits:
+    - subject: 'fix: Correctly handle multiple hosts ports pointing to a container port'
+      hash: 0fa47f635bc9a05fea2d0f9b20a6cdc5a1797855
+      body: |
+        When assigning multiple host ports to a single container port before
+        this change, the supervisor would incorrectly take only the first host
+        port into consideration. This change makes it so that every host port
+        per container port is considered.
+      footer:
+        Closes: '#986'
+        closes: '#986'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.5
+  date: 2019-04-25T12:51:16.516Z
+- commits:
     - subject: 'compose: Remove unique expose entries after adding all entries'
       hash: 9e3fae585236c464fd25ab591b00d278c7d6463f
       body: |
