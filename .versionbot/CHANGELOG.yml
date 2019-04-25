@@ -1,4 +1,19 @@
 - commits:
+    - subject: 'fix: Run db log cleanup on init - after migrations'
+      hash: 9fae4bab620cebfc974b4e19464fa0c4ccb9a295
+      body: |
+        Before this change the first time the cleanup code runs would be before
+        the migrations have had a chance to execute. This change makes it so
+        that the cleanup code always runs once the migrations have finished.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.6
+  date: 2019-04-25T15:59:45.568Z
+- commits:
     - subject: 'fix: Correctly handle multiple hosts ports pointing to a container port'
       hash: 0fa47f635bc9a05fea2d0f9b20a6cdc5a1797855
       body: |
