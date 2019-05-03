@@ -1,4 +1,16 @@
 - commits:
+    - subject: Perform case-insensitive checking when converting booleans from strings
+      hash: 8424fb44f6524fc745b47bce6e517b9d18133ef9
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.7
+  date: 2019-05-03T10:34:42.043Z
+- commits:
     - subject: 'fix: Run db log cleanup on init - after migrations'
       hash: 9fae4bab620cebfc974b4e19464fa0c4ccb9a295
       body: |
