@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'docs: fix up some stray resin references'
+      hash: 331b109a6473fe880ad70522c54fb527c1c2b15d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 9.14.8
+  date: 2019-05-03T11:01:56.292Z
+- commits:
     - subject: Perform case-insensitive checking when converting booleans from strings
       hash: 8424fb44f6524fc745b47bce6e517b9d18133ef9
       body: ''
