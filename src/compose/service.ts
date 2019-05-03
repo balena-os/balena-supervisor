@@ -448,7 +448,7 @@ export class Service {
 
 		// We cannot use || for this value, as the empty string is a
 		// valid restart policy but will equate to null in an OR
-		let restart = (container.HostConfig.RestartPolicy || {}).Name;
+		let restart = _.get(container.HostConfig.RestartPolicy, 'Name');
 		if (restart == null) {
 			restart = 'always';
 		}
@@ -462,7 +462,9 @@ export class Service {
 		// the entire ContainerInspectInfo object, or upstream the extra
 		// fields to DefinitelyTyped
 		svc.config = {
-			networkMode: container.HostConfig.NetworkMode,
+			// The typings say that this is optional, but it's
+			// always set by docker
+			networkMode: container.HostConfig.NetworkMode!,
 
 			portMaps,
 			expose,

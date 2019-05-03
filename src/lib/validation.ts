@@ -61,6 +61,9 @@ export function checkString(s: NullableLiteral): string | void {
  * which represents if the input was truthy
  */
 export function checkTruthy(v: string | boolean | number): boolean | void {
+	if (_.isString(v)) {
+		v = v.toLowerCase();
+	}
 	switch (v) {
 		case '1':
 		case 'true':

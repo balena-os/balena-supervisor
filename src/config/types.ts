@@ -19,8 +19,8 @@ export const PermissiveBoolean = new t.Type<boolean, t.TypeOf<PermissiveType>>(
 	(m, c) =>
 		permissiveValue.validate(m, c).chain(v => {
 			switch (typeof v) {
-				case 'boolean':
 				case 'string':
+				case 'boolean':
 				case 'number':
 					const val = checkTruthy(v);
 					if (val == null) {
