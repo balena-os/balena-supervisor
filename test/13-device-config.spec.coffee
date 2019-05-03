@@ -164,6 +164,25 @@ describe 'DeviceConfig', ->
 				SUPERVISOR_POLL_INTERVAL: '100',
 			})
 
+	it 'returns default configuration values', ->
+		conf = @deviceConfig.getDefaults()
+		expect(conf).to.deep.equal({
+			SUPERVISOR_VPN_CONTROL: 'true'
+			SUPERVISOR_POLL_INTERVAL: '60000',
+			SUPERVISOR_LOCAL_MODE: 'false',
+			SUPERVISOR_CONNECTIVITY_CHECK: 'true',
+			SUPERVISOR_LOG_CONTROL: 'true',
+			SUPERVISOR_DELTA: 'false',
+			SUPERVISOR_DELTA_REQUEST_TIMEOUT: '30000',
+			SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',
+			SUPERVISOR_DELTA_RETRY_COUNT: '30',
+			SUPERVISOR_DELTA_RETRY_INTERVAL: '10000',
+			SUPERVISOR_DELTA_VERSION: '2',
+			SUPERVISOR_INSTANT_UPDATE_TRIGGER: 'true',
+			SUPERVISOR_OVERRIDE_LOCK: 'false',
+			SUPERVISOR_PERSISTENT_LOGGING: 'false',
+		})
+
 	describe 'Extlinux files', ->
 
 		it 'should correctly write to extlinux.conf files', ->

@@ -188,6 +188,20 @@ module.exports = class ApplicationManager extends EventEmitter
 			@images.appUpdatePollInterval = interval
 			@images.cleanupDatabase()
 		.then =>
+
+			cleanup = =>
+				@docker.listContainers(all: true).then (containers) =>
+					@logger.clearOutOfDateDBLogs(_.map(containers, 'Id'))
+			# Rather than relying on removing out of date database entries when we're no
+			# longer using them, set a task that runs periodically to clear out the database
+			# This has the advantage that if for some reason a container is removed while the
+			# supervisor is down, we won't have zombie entries in the db
+
+			# Once a day
+			setInterval(cleanup, 1000 * 60 * 60 * 24)
+			# But also run it in on startup
+			cleanup()
+		.then =>
 			@localModeManager.init()
 		.then =>
 			@services.attachToRunning()
@@ -477,7 +491,12 @@ module.exports = class ApplicationManager extends EventEmitter
 	# Unless the update strategy requires an early kill (i.e. kill-then-download, delete-then-download), we only want
 	# to kill a service once the images for the services it depends on have been downloaded, so as to minimize
 	# downtime (but not block the killing too much, potentially causing a deadlock)
-	_dependenciesMetForServiceKill: (target, targetApp, availableImages) ->
+	_dependenciesMetForServiceKill: (target, targetApp, availableImages, localMode) ->
+		# Because we only check for an image being available, in local mode this will always
+		# be the case, so return true regardless. If this function ever checks for anything else,
+		# we'll need to change the logic here
+		if localMode
+			return true
 		if target.dependsOn?
 			for dependency in target.dependsOn
 				dependencyService = _.find(targetApp.services, serviceName: dependency)
@@ -542,7 +561,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				# We only kill when dependencies are already met, so that we minimize downtime
 				return serviceAction('kill', target.serviceId, current, target)
 			else
-				return null
+				return { action: 'noop' }
 		'kill-then-download': (current, target) ->
 			return serviceAction('kill', target.serviceId, current, target)
 		'delete-then-download': (current, target) ->
@@ -555,7 +574,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			else if dependenciesMetForStart()
 				return serviceAction('handover', target.serviceId, current, target, timeout: timeout)
 			else
-				return null
+				return { action: 'noop' }
 	}
 
 	_nextStepForService: ({ current, target }, updateContext, localMode) =>
@@ -581,7 +600,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		dependenciesMetForStart = =>
 			@_dependenciesMetForServiceStart(target, networkPairs, volumePairs, installPairs.concat(updatePairs))
 		dependenciesMetForKill = =>
-			!needsDownload and @_dependenciesMetForServiceKill(target, targetApp, availableImages)
+			!needsDownload and @_dependenciesMetForServiceKill(target, targetApp, availableImages, localMode)
 
 		# If the service is using a network or volume that is being updated, we need to kill it
 		# even if its strategy is handover
@@ -866,7 +885,20 @@ module.exports = class ApplicationManager extends EventEmitter
 			targetByAppId = target.local.apps ? {}
 			nextSteps = []
 			if !supervisorNetworkReady
-				nextSteps.push({ action: 'ensureSupervisorNetwork' })
+				# if the supervisor0 network isn't ready and there's any containers using it, we need
+				# to kill them
+				containersUsingSupervisorNetwork = false
+				for appId in _.keys(currentByAppId)
+					services = currentByAppId[appId].services
+					for n of services
+						if checkTruthy(services[n].config.labels['io.balena.features.supervisor-api'])
+							containersUsingSupervisorNetwork = true
+							if services[n].status != 'Stopping'
+								nextSteps.push(serviceAction('kill', services[n].serviceId, services[n]))
+							else
+								nextSteps.push({ action: 'noop' })
+				if !containersUsingSupervisorNetwork
+					nextSteps.push({ action: 'ensureSupervisorNetwork' })
 			else
 				if !ignoreImages and _.isEmpty(downloading)
 					if cleanupNeeded

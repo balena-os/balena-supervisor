@@ -2,7 +2,9 @@
 
 set -o errexit
 
-# Start Avahi to allow MDNS lookups
+# Start Avahi to allow MDNS lookups and remove
+# any pre-defined services
+rm -f /etc/avahi/services/*
 mkdir -p /var/run/dbus
 rm -f /var/run/avahi-daemon/pid
 rm -f /var/run/dbus/pid
@@ -52,6 +54,8 @@ if [ ! -d /lib/modules ]; then
 	ln -s /mnt/root/lib/modules /lib/modules
 fi
 # Now load the ip6_tables kernel module, so we can do filtering on ipv6 addresses
-modprobe ip6_tables
+if [ -z "$(cat /proc/config.gz | gunzip | grep CONFIG_IP6_NF_IPTABLES=y || true)" ]; then
+  modprobe ip6_tables
+fi
 
 exec node /usr/src/app/dist/app.js

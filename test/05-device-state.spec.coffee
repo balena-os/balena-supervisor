@@ -21,6 +21,7 @@ mockedInitialConfig = {
 	'RESIN_SUPERVISOR_DELTA_RETRY_COUNT': '30'
 	'RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL': '10000'
 	'RESIN_SUPERVISOR_DELTA_VERSION': '2'
+	'RESIN_SUPERVISOR_INSTANT_UPDATE_TRIGGER': 'true'
 	'RESIN_SUPERVISOR_LOCAL_MODE': 'false'
 	'RESIN_SUPERVISOR_LOG_CONTROL': 'true'
 	'RESIN_SUPERVISOR_OVERRIDE_LOCK': 'false'
@@ -40,6 +41,7 @@ testTarget1 = {
 			'SUPERVISOR_DELTA_RETRY_COUNT': '30'
 			'SUPERVISOR_DELTA_RETRY_INTERVAL': '10000'
 			'SUPERVISOR_DELTA_VERSION': '2'
+			'SUPERVISOR_INSTANT_UPDATE_TRIGGER': 'true'
 			'SUPERVISOR_LOCAL_MODE': 'false'
 			'SUPERVISOR_LOG_CONTROL': 'true'
 			'SUPERVISOR_OVERRIDE_LOCK': 'false'
@@ -122,6 +124,7 @@ testTargetWithDefaults2 = {
 			'SUPERVISOR_DELTA_RETRY_COUNT': '30'
 			'SUPERVISOR_DELTA_RETRY_INTERVAL': '10000'
 			'SUPERVISOR_DELTA_VERSION': '2'
+			'SUPERVISOR_INSTANT_UPDATE_TRIGGER': 'true'
 			'SUPERVISOR_LOCAL_MODE': 'false'
 			'SUPERVISOR_LOG_CONTROL': 'true'
 			'SUPERVISOR_OVERRIDE_LOCK': 'false'
@@ -195,13 +198,16 @@ describe 'deviceState', ->
 		prepare()
 		@db = new DB()
 		@config = new Config({ @db })
+		@logger = {
+			clearOutOfDateDBLogs: ->
+		}
 		eventTracker = {
 			track: console.log
 		}
 		stub(Service, 'extendEnvVars').callsFake (env) ->
 			env['ADDITIONAL_ENV_VAR'] = 'foo'
 			return env
-		@deviceState = new DeviceState({ @db, @config, eventTracker })
+		@deviceState = new DeviceState({ @db, @config, eventTracker, @logger })
 		stub(@deviceState.applications.docker, 'getNetworkGateway').returns(Promise.resolve('172.17.0.1'))
 		stub(@deviceState.applications.images, 'inspectByName').callsFake ->
 			Promise.try ->

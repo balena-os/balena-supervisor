@@ -1,4 +1,598 @@
 - commits:
+    - subject: 'docs: fix up some stray resin references'
+      hash: 331b109a6473fe880ad70522c54fb527c1c2b15d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 9.14.8
+  date: 2019-05-03T11:01:56.292Z
+- commits:
+    - subject: Perform case-insensitive checking when converting booleans from strings
+      hash: 8424fb44f6524fc745b47bce6e517b9d18133ef9
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.7
+  date: 2019-05-03T10:34:42.043Z
+- commits:
+    - subject: 'fix: Run db log cleanup on init - after migrations'
+      hash: 9fae4bab620cebfc974b4e19464fa0c4ccb9a295
+      body: |
+        Before this change the first time the cleanup code runs would be before
+        the migrations have had a chance to execute. This change makes it so
+        that the cleanup code always runs once the migrations have finished.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.6
+  date: 2019-04-25T15:59:45.568Z
+- commits:
+    - subject: 'fix: Correctly handle multiple hosts ports pointing to a container port'
+      hash: 0fa47f635bc9a05fea2d0f9b20a6cdc5a1797855
+      body: |
+        When assigning multiple host ports to a single container port before
+        this change, the supervisor would incorrectly take only the first host
+        port into consideration. This change makes it so that every host port
+        per container port is considered.
+      footer:
+        Closes: '#986'
+        closes: '#986'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.5
+  date: 2019-04-25T12:51:16.516Z
+- commits:
+    - subject: 'compose: Remove unique expose entries after adding all entries'
+      hash: 9e3fae585236c464fd25ab591b00d278c7d6463f
+      body: |
+        Prior to this change, we would `_.uniq` the expose value before adding
+        values from the port mappings. This could cause ports to get added
+        twice, which would cause the supervisor to think that there is a
+        configuration mismatch.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.4
+  date: 2019-04-11T09:41:48.891Z
+- commits:
+    - subject: Don't attempt to report any state during local mode
+      hash: 892cf1961e5f86589f875e86294990dc8c6ed3bb
+      body: |
+        Even though this would never have attempted to report the state to the
+        api during local mode, it leaves behind artifacts which would cause the
+        state to be sometimes reported when exiting local mode. This would cause
+        the api to reject the update unecessarily.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.3
+  date: 2019-04-10T14:43:23.197Z
+- commits:
+    - subject: 'types: Upgrade dockerode types, and remove fixes which are superceded'
+      hash: 80031b76e4e27fb39b4c5cdaf9d131a503a3d124
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.2
+  date: 2019-04-08T09:48:10.111Z
+- commits:
+    - subject: 'avahi: Remove default service definitions'
+      hash: 24ba07571c388e33720d8c3c9911dcc0ca33d297
+      body: |
+        Removes default 'example' service definitions that
+        are included by Avahi 0.7+. These conflict with
+        our balenaOS advertised services, causing potential
+        issues.
+      footer:
+        Connects-to: '#957'
+        connects-to: '#957'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Heds Simons <heds@balena.io>
+        signed-off-by: Heds Simons <heds@balena.io>
+      author: Heds Simons
+  version: 9.14.1
+  date: 2019-04-05T12:38:07.278Z
+- commits:
+    - subject: Run database cleanup on startup in addition to once a day
+      hash: 5943d3117c36b18466cc91c02be3a1805d34020f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'fix: Fix non-tty container message parsing'
+      hash: 760b18dd2aaa725bc283af29623ed3c913ec7d21
+      body: |
+        This had a bug where it was using the `in` operator on a list. It may
+        have worked for some cases, but would have failed for others.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Report all logs from a container's runtime
+      hash: e148ce052903460ae369b23e67abe54cf22769b6
+      body: |
+        We add a database table, which holds information about the last
+        timestamp of a log successfully reported to a backend (local or remote).
+        We then use this value to calculate from which point in time to start
+        reporting logs from the container. If this is the first time we've seen
+        a container, we get all logs, and for every log reported we save the
+        timestamp. If it is not the first time we've seen a container, we
+        request all logs since the last reported time, ensuring no interruption
+        of service.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#937'
+        closes: '#937'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Refactor container logging interface and rename logging-backends
+      hash: 25fd11bed3a9f3b59db85b7c647765e371a50a74
+      body: |
+        Container logging is now handled by a class which attaches and emits
+        information from the container. We add these to the directory
+        logging-backends/, and rename it to logging/.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'ux: Show a supervisor starting log message in dashboard'
+      hash: 196f173e13b7bd12c7f95cf7cd1273438a1d4fd7
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'ux: Remove service already running log message'
+      hash: 0504776169be98894a213315095602ecc7e4882d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.0
+  date: 2019-04-05T09:07:32.071Z
+- commits:
+    - subject: 'In /v1/update, return 202 when we''re not updating immediately'
+      hash: 9961ebb41d37c14b18b2bf4545eefae343a2c026
+      body: >
+        We also add a catch to any errors when getting configuration, and send
+        503 in this case, even if it's
+
+        unlikely.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: >-
+        Add a random jitter to target state polls, and a config var to ignore
+        update notifications and not poll immediately after startup
+      hash: 8f07bf62de4a509ac74380af8be42b2acf3c1b76
+      body: >
+        This commit does two related things:
+
+
+        * We make the poll interval a random time between 0.5 and 1.5 times the
+        configured interval.
+
+        * We introduce the BALENA_SUPERVISOR_INSTANT_UPDATE_TRIGGER
+        configuration variable, that defaults to true. If this variable is set
+
+        to false, then calls to /v1/update are ignored, and on startup the
+        supervisor waits for a poll interval before getting the target state.
+
+
+        This will help especially on cases where there's a large number of
+        devices on a single network. By disabling instant updates and setting a
+        large
+
+        poll interval, we can now achieve a sitation where not all devices apply
+        an update at the same time, which can help avoid
+
+        overwhelming the network.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.13.0
+  date: 2019-04-03T16:18:11.345Z
+- commits:
+    - subject: Fix service comparison when starting a stopped service
+      hash: 9a343316b21522e34a94a66f2391e63a96516114
+      body: |
+        When comparing a stopped container after a start request, the container
+        ID will be present in the target state (where usually it is not). We
+        were already filtering this value out of the current state, but
+        neglected to do so for the target state. This change now ensures we
+        remove it from both alias lists if it exists.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.12.7
+  date: 2019-04-03T12:12:48.672Z
+- commits:
+    - subject: >-
+        Fix migration of legacy apps when there's more than one app in the local
+        DB
+      hash: c90270660000a0043b3f48751ea5186e69904368
+      body: >
+        In an edge case observed in the field, a supervisor's database held two
+        applications
+
+        because the device had been moved and the update lock was set in the old
+        app. This causes
+
+        the updated supervisor to be unable to start, logging "No compatible
+        releases found in API",
+
+        because it can't fetch the release for the app it was moved from.
+
+
+        This commit changes the migration code to iterate through all apps, and
+        remove any for which
+
+        we can't get a release.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.12.6
+  date: 2019-03-29T00:18:13.744Z
+- commits:
+    - subject: 'test: Add a test case for deviceConfig.getDefaults'
+      hash: ea6ebf822312665280903424d3f4bff1edd0476c
+      body: |
+        This would help avoid bugs like the one fixed in 9.11.1.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.12.5
+  date: 2019-03-28T23:05:09.952Z
+- commits:
+    - subject: Only modprobe ip6_tables if it's necessary
+      hash: de051653166f3ad3388b76e305f18efe6db1768b
+      body: >
+        If the kernel was built with support for ip6tables, there's no need to
+        load the module. This is the case when running
+
+        balenaOS in a container in Mac OS, which also can't do modprobes easily.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.12.4
+  date: 2019-03-28T18:15:29.681Z
+- commits:
+    - subject: Parallelise cache pulling for builds
+      hash: 9af416c7c01a70feb2c67b625ad45b8dce6dbc4f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 9.12.3
+  date: 2019-03-28T14:15:13.930Z
+- commits:
+    - subject: Fix typo in delta request error message
+      hash: 175cbfee500332b47d55350c7a5c89eae211be06
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.12.2
+  date: 2019-03-28T12:34:19.072Z
+- commits:
+    - subject: 'fix: Correctly compare and generate network membership aliases'
+      hash: b3192679c765940d3d6401efd85c845652b1f0f8
+      body: |
+        Before this change, service name resolution would only occur in the
+        default network. This was because we were not explicitly adding aliases
+        of the service names to the aliases fields.
+
+        We also fix the comparison, which would do funny things based on
+        container IDs, which was correct but unnecessary.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.12.1
+  date: 2019-03-28T10:28:41.386Z
+- commits:
+    - subject: 'misc: Update build stages to debian stretch'
+      hash: 1191b39ee50ab5c8d7135733d55e498dc1b4e3fd
+      body: |
+        Jessie recently had the jessie-updates repos dropped. We upgrade to
+        stretch to avoid a 404 on update (and to update things anyway).
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'device-config: Show invalid values in dashboard logs'
+      hash: c7499a6b128582e540d2e0d3e51f4acc698ea7f1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'events: Allow system messages to not be tracked'
+      hash: 83d53cfb563c83b24f856279466859edeb06c4af
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'device-config: Use default values for any invalid target values'
+      hash: c211efe399d642840b7abd751c3ea1dce01935cd
+      body: |
+        If a value is requested which does not pass validation, we instead set
+        it to the default value, to ensure that the state engine continues to
+        work and move towards the target state.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#938'
+        closes: '#938'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.12.0
+  date: 2019-03-27T14:20:21.282Z
+- commits:
+    - subject: >-
+        fix: When pinning a preloaded device, ensure the pinning is done when
+        retrying after a failure
+      hash: 22a5b331969af7e8f84bc8b5054ff80ff6c33dad
+      body: >
+        Without this patch, if for some reason device pinning fails (e.g.
+        connectivity goes down) or anything
+
+        interrupts the initialization after provisioning completes but before
+        pinning is completed, after a retry
+
+        the supervisor would just skip the pinning code, leaving the device
+        unpinned. This patch ensures that the
+
+        pinning procedure is run even if the device was already provisioned (as
+        long as the pinning flag has been set,
+
+        of course). This matches the behavior that the CoffeeScript code had
+        from before the TypeScript conversion.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: >-
+        fix: Return a promise when retrying provisioning to avoid continuing
+        after a failure
+      hash: 6e3bedeb1d1fe8e1facb2bb3330d2ecc499118b1
+      body: >
+        Otherwise we'll keep doing the rest of the APIBinder init steps, like
+        reporting initial config,
+
+        potentially before completing the provisioning.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.11.3
+  date: 2019-03-21T00:56:45.740Z
+- commits:
+    - subject: >-
+        fix: Await reporting the initial config before continuing APIBinder
+        initialization
+      hash: b374bd81dd2a8829078e2ae97d96700eebd63dce
+      body: >
+        This avoid a race condition, in which config.txt can be cleared if a
+        target state is fetched before the
+
+        initial values have been created as config vars.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.11.2
+  date: 2019-03-20T19:32:19.214Z
+- commits:
+    - subject: Fix typo when getting device config default values
+      hash: f32de99aff525db866500c19a8bd24b8f216852e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.11.1
+  date: 2019-03-19T20:50:22.269Z
+- commits:
+    - subject: >-
+        fix: Correct use of $expand to avoid an exception when updating from a
+        legacy OS
+      hash: d64dcb4b4060d3e6fd84382d3b12c6d8a3fe2310
+      body: >
+        The last update of pinejs-client to pinejs-client-request made the way
+        we were
+
+        using $expand on the migration break. This switches to the correct way
+        of doing it now.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+    - subject: 'device-api: Add v2/device/tags api endpoint'
+      hash: b922789deeb29568b7105ef2ffc3b6ec8900f97f
+      body: |
+        This endpoint will fetch the device tags from the balena api
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#890'
+        closes: '#890'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'device-api: Add v2/device/name endpoint'
+      hash: 3f231e8ff3af80fd6006064d951013858bddcba3
+      body: |
+        This endpoint returns the last known device name from the API. This
+        differs from the BALENA_DEVICE_NAME_AT_INIT env var because this will
+        not change throughout the runtime of the container.
+      footer:
+        Closes: '#908'
+        closes: '#908'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.11.0
+  date: 2019-03-18T16:56:09.031Z
+- commits:
+    - subject: 'state-engine: Return a noop when waiting for a dependency'
+      hash: 84356b82b814b10c14c12a285ffe71dac278ea19
+      body: |
+        We run the risk of the state engine exiting early when a dependency is
+        not ready, especially in local mode. This changes forces a noop to be
+        returned when we are waiting on another service, which is the process
+        used elsewhere in the state engine.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Skip dependency check on kill in local mode
+      hash: 8f2d6f4d7b8293518600260acd986b8cb4ba53fe
+      body: |
+        This function would usually check that an image is present for a
+        dependency, but in local mode the images would have never been inserted
+        into the database.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.10.2
+  date: 2019-03-13T10:36:16.473Z
+- commits:
+    - subject: Pin lodash types to avoid compile error
+      hash: af734ad00800d8d845042f761754db6750cd9c20
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.10.1
+  date: 2019-03-12T13:39:15.973Z
+- commits:
+    - subject: 'docs: Standardise naming and json in api documentation'
+      hash: d9bc26bd83b12f15bf099359e5425f4d956247a0
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'docs: Add documentation for v2/state/status endpoint'
+      hash: 4a17f704ab86b542a9140782ff5aa502ceac6cfd
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.10.0
+  date: 2019-03-11T16:41:00.776Z
+- commits:
+    - subject: 'codeowners: Add @CameronDiver, @pcarranzav and @Page-'
+      hash: 68a28955ad1b5dc40b8f23c8ed1b998e195bc36d
+      body: ''
+      footer:
+        Connects-to: '#926'
+        connects-to: '#926'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Heds Simons <heds@balena.io>
+        signed-off-by: Heds Simons <heds@balena.io>
+      author: Heds Simons
+  version: 9.9.1
+  date: 2019-03-08T15:38:29.388Z
+- commits:
     - subject: 'state-engine: Add an exponential backoff for device-config noops'
       hash: 1aa58fd7b94e95a855b31dcb6fca8a374972a47b
       body: |

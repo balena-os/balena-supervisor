@@ -243,6 +243,28 @@ describe 'Ports', ->
 				})
 			])
 
+		it 'should correctly detect multiple hosts ports on an internal port', ->
+			expect(PortMap.fromDockerOpts({
+				'100/tcp': [{ HostIp: '123', HostPort: 200 }, { HostIp: '123', HostPort: 201 }]
+			})).to.deep.equal([
+				new PortMap({
+					internalStart: 100,
+					internalEnd: 100,
+					externalStart: 200,
+					externalEnd: 200,
+					protocol: 'tcp',
+					host: '123'
+				})
+				new PortMap({
+					internalStart: 100,
+					internalEnd: 100,
+					externalStart: 201,
+					externalEnd: 201,
+					protocol: 'tcp',
+					host: '123'
+				})
+			])
+
 	describe 'Running container comparison', ->
 		it 'should not consider order when comparing current and target state', ->
 			portBindings = require('./data/ports/not-ascending/port-bindings.json')

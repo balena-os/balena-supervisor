@@ -122,6 +122,17 @@ export class Service {
 		}
 		// Prefix the network entries with the app id
 		networks = _.mapKeys(networks, (_v, k) => `${service.appId}_${k}`);
+		// Ensure that we add an alias of the service name
+		networks = _.mapValues(networks, v => {
+			if (v.aliases == null) {
+				v.aliases = [];
+			}
+			const serviceName: string = service.serviceName || '';
+			if (!_.includes(v.aliases, serviceName)) {
+				v.aliases.push(serviceName);
+			}
+			return v;
+		});
 		delete config.networks;
 
 		// Check for unsupported networkMode entries
@@ -268,12 +279,12 @@ export class Service {
 			{},
 		);
 		expose = expose.concat(_.keys(imageExposedPorts));
-		expose = _.uniq(expose);
 		// Also add any exposed ports which are implied from the portMaps
 		const exposedFromPortMappings = _.flatMap(portMaps, port =>
 			port.toExposedPortArray(),
 		);
 		expose = expose.concat(exposedFromPortMappings);
+		expose = _.uniq(expose);
 		delete config.expose;
 
 		let devices: DockerDevice[] = [];
@@ -437,7 +448,7 @@ export class Service {
 
 		// We cannot use || for this value, as the empty string is a
 		// valid restart policy but will equate to null in an OR
-		let restart = (container.HostConfig.RestartPolicy || {}).Name;
+		let restart = _.get(container.HostConfig.RestartPolicy, 'Name');
 		if (restart == null) {
 			restart = 'always';
 		}
@@ -451,7 +462,9 @@ export class Service {
 		// the entire ContainerInspectInfo object, or upstream the extra
 		// fields to DefinitelyTyped
 		svc.config = {
-			networkMode: container.HostConfig.NetworkMode,
+			// The typings say that this is optional, but it's
+			// always set by docker
+			networkMode: container.HostConfig.NetworkMode!,
 
 			portMaps,
 			expose,
@@ -639,22 +652,15 @@ export class Service {
 		const differentArrayFields: string[] = [];
 		sameConfig =
 			sameConfig &&
-			_.every(Service.configArrayFields, (field: ServiceConfigArrayField) => {
-				return _.isEmpty(
-					_.xorWith(
-						// TODO: The typings here aren't accepted, even though we
-						// know it's fine
-						(this.config as any)[field],
-						(service.config as any)[field],
-						(a, b) => {
-							const eq = _.isEqual(a, b);
-							if (!eq) {
-								differentArrayFields.push(field);
-							}
-							return eq;
-						},
-					),
+			_.every(Service.configArrayFields, (field: keyof ServiceConfig) => {
+				const eq = _.isEqual(
+					_.sortBy(this.config[field] as Array<unknown>),
+					_.sortBy(service.config[field] as Array<unknown>),
 				);
+				if (!eq) {
+					differentArrayFields.push(field);
+				}
+				return eq;
 			});
 
 		if (!(sameConfig && sameNetworks)) {
@@ -771,7 +777,12 @@ export class Service {
 		_.each(this.config.portMaps, pmap => {
 			const { exposedPorts, portBindings } = pmap.toDockerOpts();
 			_.merge(exposed, exposedPorts);
-			_.merge(ports, portBindings);
+			_.mergeWith(ports, portBindings, (destVal, srcVal) => {
+				if (destVal == null) {
+					return srcVal;
+				}
+				return destVal.concat(srcVal);
+			});
 		});
 
 		// We also want to merge the compose and image exposedPorts
@@ -791,8 +802,8 @@ export class Service {
 		appId: number,
 		serviceName: string,
 	): { [envVarName: string]: string } {
-		let defaultEnv: { [envVarName: string]: string } = {};
-		for (let namespace of ['BALENA', 'RESIN']) {
+		const defaultEnv: { [envVarName: string]: string } = {};
+		for (const namespace of ['BALENA', 'RESIN']) {
 			_.assign(
 				defaultEnv,
 				_.mapKeys(
@@ -833,28 +844,20 @@ export class Service {
 			if (current.aliases == null) {
 				sameNetwork = false;
 			} else {
-				// Remove the auto-added docker container id
-				const currentAliases = _.filter(current.aliases, (alias: string) => {
-					return !_.startsWith(this.containerId!, alias);
-				});
-				const targetAliases = _.filter(current.aliases, (alias: string) => {
-					return !_.startsWith(this.containerId!, alias);
-				});
+				// Take out the container id from both aliases, as it *will* be present
+				// in a currently running container, and can also be present in the target
+				// for example when doing a start-service
+				// Also sort the aliases, so we can do a simple comparison
+				const [currentAliases, targetAliases] = [
+					current.aliases,
+					target.aliases,
+				].map(aliases =>
+					_.sortBy(
+						aliases.filter(a => !_.startsWith(this.containerId || '', a)),
+					),
+				);
 
-				// Docker adds container ids to the alias list, directly after
-				// the service name, to detect this, check for both target having
-				// exactly half of the amount of entries as the current, and check
-				// that every second entry (starting from 0) is equal
-				if (currentAliases.length === targetAliases.length * 2) {
-					sameNetwork = _(currentAliases)
-						.filter((_v, k) => k % 2 === 0)
-						.isEqual(targetAliases);
-				} else {
-					// Otherwise compare them literally
-					sameNetwork = _.isEmpty(
-						_.xorWith(currentAliases, targetAliases, _.isEqual),
-					);
-				}
+				sameNetwork = _.isEqual(currentAliases, targetAliases);
 			}
 		}
 		if (target.ipv4Address != null) {

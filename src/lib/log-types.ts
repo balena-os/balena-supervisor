@@ -92,10 +92,6 @@ export const startServiceSuccess: LogType = {
 	eventName: 'Service started',
 	humanName: 'Started service',
 };
-export const startServiceNoop: LogType = {
-	eventName: 'Service already running',
-	humanName: 'Service is already running',
-};
 export const startServiceError: LogType = {
 	eventName: 'Service start error',
 	humanName: 'Failed to start service',

@@ -9,8 +9,6 @@ do ->
 			return lookup(name, { verbatim: true }, opts)
 		return lookup(name, Object.assign({ verbatim: true }, opts), cb)
 
-require('log-timestamp')
-
 Supervisor = require './supervisor'
 
 supervisor = new Supervisor()

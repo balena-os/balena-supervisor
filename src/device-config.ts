@@ -1,11 +1,12 @@
 import * as _ from 'lodash';
+import { inspect } from 'util';
 
 import Config from './config';
 import { SchemaTypeKey } from './config/schema-type';
 import Database, { Transaction } from './db';
 import Logger from './logger';
 
-import { DeviceConfigBackend, ConfigOptions } from './config/backend';
+import { ConfigOptions, DeviceConfigBackend } from './config/backend';
 import * as configUtils from './config/utils';
 import { UnitNotLoadedError } from './lib/errors';
 import * as systemd from './lib/systemd';
@@ -66,6 +67,11 @@ export class DeviceConfig {
 			envVarName: 'SUPERVISOR_POLL_INTERVAL',
 			varType: 'int',
 			defaultValue: '60000',
+		},
+		instantUpdates: {
+			envVarName: 'SUPERVISOR_INSTANT_UPDATE_TRIGGER',
+			varType: 'bool',
+			defaultValue: 'true',
 		},
 		localMode: {
 			envVarName: 'SUPERVISOR_LOCAL_MODE',
@@ -313,7 +319,7 @@ export class DeviceConfig {
 			},
 			_.mapValues(
 				_.mapKeys(DeviceConfig.configKeys, 'envVarName'),
-				'defaultValues',
+				'defaultValue',
 			),
 		);
 	}
@@ -386,7 +392,8 @@ export class DeviceConfig {
 
 		_.each(
 			DeviceConfig.configKeys,
-			({ envVarName, varType, rebootRequired }, key) => {
+			({ envVarName, varType, rebootRequired, defaultValue }, key) => {
+				let changingValue: null | string = null;
 				// Test if the key is different
 				if (
 					!DeviceConfig.configTest(
@@ -395,10 +402,39 @@ export class DeviceConfig {
 						target[envVarName],
 					)
 				) {
-					// Save the change if it is
-					configChanges[key] = target[envVarName];
-					humanReadableConfigChanges[envVarName] = target[envVarName];
-					reboot = rebootRequired || reboot;
+					// Check that the difference is not due to the variable having an invalid
+					// value set from the cloud
+					if (
+						this.config.valueIsValid(key as SchemaTypeKey, target[envVarName])
+					) {
+						// Save the change if it is both valid and different
+						changingValue = target[envVarName];
+					} else {
+						if (
+							!DeviceConfig.configTest(
+								varType,
+								current[envVarName],
+								defaultValue,
+							)
+						) {
+							const message = `Warning: Ignoring invalid device configuration value for ${key}, value: ${inspect(
+								target[envVarName],
+							)}. Falling back to default (${defaultValue})`;
+							this.logger.logSystemMessage(
+								message,
+								{ key: envVarName, value: target[envVarName] },
+								'invalidDeviceConfig',
+								false,
+							);
+							// Set it to the default value if it is different to the current
+							changingValue = defaultValue;
+						}
+					}
+					if (changingValue != null) {
+						configChanges[key] = changingValue;
+						humanReadableConfigChanges[envVarName] = changingValue;
+						reboot = rebootRequired || reboot;
+					}
 				}
 			},
 		);

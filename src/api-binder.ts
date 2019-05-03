@@ -1,6 +1,8 @@
 import * as Bluebird from 'bluebird';
 import * as bodyParser from 'body-parser';
 import * as express from 'express';
+import { isLeft } from 'fp-ts/lib/Either';
+import * as t from 'io-ts';
 import * as _ from 'lodash';
 import * as Path from 'path';
 import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
@@ -55,6 +57,12 @@ interface Device {
 interface DevicePinInfo {
 	app: number;
 	commit: string;
+}
+
+interface DeviceTag {
+	id: number;
+	name: string;
+	value: string;
 }
 
 type KeyExchangeOpts = ConfigSchemaType<'provisioningOptions'>;
@@ -355,7 +363,7 @@ export class APIBinder {
 					'Trying to start poll without initializing API client',
 				);
 			}
-			this.pollTargetState();
+			this.pollTargetState(true);
 			return null;
 		});
 	}
@@ -374,6 +382,39 @@ export class APIBinder {
 			}
 		});
 		return this.reportCurrentState();
+	}
+
+	public async fetchDeviceTags(): Promise<DeviceTag[]> {
+		if (this.balenaApi == null) {
+			throw new Error(
+				'Attempt to communicate with API, without initialized client',
+			);
+		}
+		const tags = (await this.balenaApi.get({
+			resource: 'device_tag',
+			options: {
+				$select: ['id', 'tag_key', 'value'],
+			},
+		})) as Array<Dictionary<unknown>>;
+
+		return tags.map(tag => {
+			// Do some type safe decoding and throw if we get an unexpected value
+			const id = t.number.decode(tag.id);
+			const name = t.string.decode(tag.tag_key);
+			const value = t.string.decode(tag.value);
+			if (isLeft(id) || isLeft(name) || isLeft(value)) {
+				throw new Error(
+					`There was an error parsing device tags from the api. Device tag: ${JSON.stringify(
+						tag,
+					)}`,
+				);
+			}
+			return {
+				id: id.value,
+				name: name.value,
+				value: value.value,
+			};
+		});
 	}
 
 	private getStateDiff(): DeviceApplicationState {
@@ -480,6 +521,9 @@ export class APIBinder {
 
 	private reportCurrentState(): null {
 		(async () => {
+			if ((await this.config.get('localMode')) === true) {
+				return;
+			}
 			this.reportPending = true;
 			try {
 				const currentDeviceState = await this.deviceState.getStatus();
@@ -527,19 +571,27 @@ export class APIBinder {
 			});
 	}
 
-	private async pollTargetState(): Promise<void> {
+	private async pollTargetState(isInitialCall: boolean = false): Promise<void> {
 		// TODO: Remove the checkInt here with the config changes
-		let pollInterval = await this.config.get('appUpdatePollInterval');
+		const { appUpdatePollInterval, instantUpdates } = await this.config.getMany(
+			['appUpdatePollInterval', 'instantUpdates'],
+		);
 
-		try {
-			await this.getAndSetTargetState(false);
-			this.targetStateFetchErrors = 0;
-		} catch (e) {
-			pollInterval = Math.min(
-				pollInterval,
-				15000 * 2 ** this.targetStateFetchErrors,
-			);
-			++this.targetStateFetchErrors;
+		// We add jitter to the poll interval so that it's between 0.5 and 1.5 times
+		// the configured interval
+		let pollInterval = (0.5 + Math.random()) * appUpdatePollInterval;
+
+		if (instantUpdates || !isInitialCall) {
+			try {
+				await this.getAndSetTargetState(false);
+				this.targetStateFetchErrors = 0;
+			} catch (e) {
+				pollInterval = Math.min(
+					appUpdatePollInterval,
+					15000 * 2 ** this.targetStateFetchErrors,
+				);
+				++this.targetStateFetchErrors;
+			}
 		}
 
 		await Bluebird.delay(pollInterval);
@@ -663,7 +715,7 @@ export class APIBinder {
 		} catch (err) {
 			console.error('Error reporting initial configuration, will retry', err);
 			await Bluebird.delay(retryDelay);
-			this.reportInitialConfig(apiEndpoint, retryDelay);
+			await this.reportInitialConfig(apiEndpoint, retryDelay);
 		}
 	}
 
@@ -755,59 +807,57 @@ export class APIBinder {
 		// FIXME: Config typing
 		const opts = await this.config.get('provisioningOptions');
 		if (
-			opts.registered_at != null &&
-			opts.deviceId != null &&
-			opts.provisioningApiKey == null
+			opts.registered_at == null ||
+			opts.deviceId == null ||
+			opts.provisioningApiKey != null
 		) {
-			return;
-		}
-
-		if (opts.registered_at != null && opts.deviceId == null) {
-			console.log(
-				'Device is registered but no device id available, attempting key exchange',
-			);
-			device = (await this.exchangeKeyAndGetDeviceOrRegenerate(opts)) || null;
-		} else if (opts.registered_at == null) {
-			console.log('New device detected. Provisioning...');
-			try {
-				device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
-			} catch (err) {
-				if (DuplicateUuidError(err)) {
-					console.log('UUID already registered, trying a key exchange');
-					device = await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
-				} else {
-					throw err;
+			if (opts.registered_at != null && opts.deviceId == null) {
+				console.log(
+					'Device is registered but no device id available, attempting key exchange',
+				);
+				device = (await this.exchangeKeyAndGetDeviceOrRegenerate(opts)) || null;
+			} else if (opts.registered_at == null) {
+				console.log('New device detected. Provisioning...');
+				try {
+					device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
+				} catch (err) {
+					if (DuplicateUuidError(err)) {
+						console.log('UUID already registered, trying a key exchange');
+						device = await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
+					} else {
+						throw err;
+					}
 				}
+				opts.registered_at = Date.now();
+			} else if (opts.provisioningApiKey != null) {
+				console.log(
+					'Device is registered but we still have an apiKey, attempting key exchange',
+				);
+				device = await this.exchangeKeyAndGetDevice(opts);
 			}
-			opts.registered_at = Date.now();
-		} else if (opts.provisioningApiKey != null) {
-			console.log(
-				'Device is registered but we still have an apiKey, attempting key exchange',
-			);
-			device = await this.exchangeKeyAndGetDevice(opts);
-		}
 
-		if (!device) {
-			// TODO: Type this?
-			throw new Error(`Failed to provision device!`);
-		}
-		const { id } = device;
-		if (!this.balenaApi) {
-			throw new InternalInconsistencyError(
-				'Attempting to provision a device without an initialized API client',
-			);
-		}
-		this.balenaApi.passthrough.headers.Authorization = `Bearer ${
-			opts.deviceApiKey
-		}`;
+			if (!device) {
+				// TODO: Type this?
+				throw new Error(`Failed to provision device!`);
+			}
+			const { id } = device;
+			if (!this.balenaApi) {
+				throw new InternalInconsistencyError(
+					'Attempting to provision a device without an initialized API client',
+				);
+			}
+			this.balenaApi.passthrough.headers.Authorization = `Bearer ${
+				opts.deviceApiKey
+			}`;
 
-		const configToUpdate = {
-			registered_at: opts.registered_at,
-			deviceId: id,
-			apiKey: null,
-		};
-		await this.config.set(configToUpdate);
-		this.eventTracker.track('Device bootstrap success');
+			const configToUpdate = {
+				registered_at: opts.registered_at,
+				deviceId: id,
+				apiKey: null,
+			};
+			await this.config.set(configToUpdate);
+			this.eventTracker.track('Device bootstrap success');
+		}
 
 		// Now check if we need to pin the device
 		const pinValue = await this.config.get('pinDevice');
@@ -834,7 +884,7 @@ export class APIBinder {
 				delay: retryDelay,
 			});
 			await Bluebird.delay(retryDelay);
-			this.provisionOrRetry(retryDelay);
+			return this.provisionOrRetry(retryDelay);
 		}
 	}
 
@@ -873,9 +923,33 @@ export class APIBinder {
 		router.post('/v1/update', (req, res) => {
 			apiBinder.eventTracker.track('Update notification');
 			if (apiBinder.readyForUpdates) {
-				apiBinder.getAndSetTargetState(req.body.force, true).catch(_.noop);
+				this.config
+					.get('instantUpdates')
+					.then(instantUpdates => {
+						if (instantUpdates) {
+							apiBinder
+								.getAndSetTargetState(req.body.force, true)
+								.catch(_.noop);
+							res.sendStatus(204);
+						} else {
+							console.log(
+								'Ignoring update notification because instant updates are disabled',
+							);
+							res.sendStatus(202);
+						}
+					})
+					.catch(err => {
+						const msg =
+							err.message != null
+								? err.message
+								: err != null
+								? err
+								: 'Unknown error';
+						res.status(503).send(msg);
+					});
+			} else {
+				res.sendStatus(202);
 			}
-			res.sendStatus(204);
 		});
 
 		return router;
