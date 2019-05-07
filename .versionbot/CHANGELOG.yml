@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'docs: make headers consistent'
+      hash: acb38dfcfa8a7a658f083fe66455295bed503c51
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 9.14.9
+  date: 2019-05-06T16:49:56.428Z
+- commits:
     - subject: 'docs: fix up some stray resin references'
       hash: 331b109a6473fe880ad70522c54fb527c1c2b15d
       body: ''
