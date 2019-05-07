@@ -845,7 +845,7 @@ OK
 
 This endpoint can also take an extra optional boolean, `force`, which if true informs the supervisor to ignore any update locks which have been taken.
 
-### Purge an application data (POST /v2/applications/:appId/purge)
+#### Purge an application data (POST /v2/applications/:appId/purge)
 
 **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
