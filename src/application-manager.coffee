@@ -45,6 +45,7 @@ fetchAction = (service) ->
 		action: 'fetch'
 		image: imageForService(service)
 		serviceId: service.serviceId
+		serviceName: service.serviceName
 	}
 
 # TODO: implement additional v2 endpoints
@@ -138,6 +139,7 @@ module.exports = class ApplicationManager extends EventEmitter
 								# and it's relevant mostly for the legacy GET /v1/device endpoint
 								# that assumes a single-container app
 								@reportCurrentState(update_downloaded: true)
+						, step.serviceName
 				)
 			removeImage: (step) =>
 				@images.remove(step.image)
