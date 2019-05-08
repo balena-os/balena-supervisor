@@ -25,40 +25,41 @@ defaults: &defaults
         name: Install npm dependencies
         working_directory: /tmp/build/automation
         command: |
-            JOBS=max npm install \
-              && npm cache clean
+          JOBS=max npm install \
+            && npm cache clean
     - run:
         name: Initialize the submodules (yocto layers)
         command: |
-            git submodule update --init --recursive
-            git clean -fxd base-image
-            git submodule foreach --recursive git clean -fxd
+          git submodule update --init --recursive
+          git clean -fxd base-image
+          git submodule foreach --recursive git clean -fxd
     - run:
         name: Build $ARCH-supervisor
         no_output_timeout: 10800
         command: |
-            VERSION_TAG=v$(jq --raw-output .version package.json)
-            GIT_TAG=$(git describe --tags | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
-            if [ "${VERSION_TAG}" = "${GIT_TAG}" ]; then
-              export EXTRA_TAG=$VERSION_TAG
-            fi
-            echo "Starting build.sh"
-            if [ "$DOCKER_PASSWORD" != "" ]; then
-              docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
-              export PUSH_IMAGES=${PUSH_IMAGES}
-            else
-              export PUSH_IMAGES=false
-            fi
-            # start the build for this architecture
-            export TAG=$(echo ${CIRCLE_BRANCH} | sed 's/[^a-z0-9A-Z_.-]/-/g')
-            export ARCH=${ARCH}
-            bash automation/build.sh
-            if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_BALENA}" = "true" ]; then
-              echo "Deploying to balena API (staging)"
-              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$STAGING_API_KEY API_ENDPOINT=$STAGING_API_ENDPOINT node automation/deploy-to-balena-cloud.js
-              echo "Deploying to balena API (production)"
-              ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$PRODUCTION_API_KEY API_ENDPOINT=$PRODUCTION_API_ENDPOINT node automation/deploy-to-balena-cloud.js
-            fi
+          VERSION_TAG_NO_DEBUG=v$(jq --raw-output .version package.json)
+          GIT_TAG=$(git describe --tags | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+          if [ "${VERSION_TAG_NO_DEBUG}" = "${GIT_TAG}" ]; then
+            export EXTRA_TAG=$VERSION_TAG$DEBUG
+          fi
+          VERSION_TAG=${VERSION_TAG_NO_DEBUG}${DEBUG}
+          echo "Starting build.sh"
+          if [ "$DOCKER_PASSWORD" != "" ]; then
+            docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+            export PUSH_IMAGES=${PUSH_IMAGES}
+          else
+            export PUSH_IMAGES=false
+          fi
+          # start the build for this architecture
+          export TAG=$(echo ${CIRCLE_BRANCH} | sed 's/[^a-z0-9A-Z_.-]/-/g')
+          export ARCH=${ARCH}
+          bash automation/build.sh
+          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_BALENA}" = "true" ]; then
+            echo "Deploying to balena API (staging)"
+            ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$STAGING_API_KEY API_ENDPOINT=$STAGING_API_ENDPOINT node automation/deploy-to-balena-cloud.js
+            echo "Deploying to balena API (production)"
+            ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$PRODUCTION_API_KEY API_ENDPOINT=$PRODUCTION_API_ENDPOINT node automation/deploy-to-balena-cloud.js
+          fi
 
 version: 2
 jobs:
@@ -67,49 +68,109 @@ jobs:
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: amd64
-      PUSH_IMAGES: "true"
+      PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: https://api.balena-staging.com
       PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: ''
   i386:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: i386
-      PUSH_IMAGES: "true"
+      PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: https://api.balena-staging.com
       PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: ''
   i386-nlp:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: i386-nlp
-      PUSH_IMAGES: "true"
+      PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: https://api.balena-staging.com
       PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: ''
   armv7hf:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: armv7hf
-      PUSH_IMAGES: "true"
+      PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: https://api.balena-staging.com
       PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: ''
   aarch64:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: aarch64
-      PUSH_IMAGES: "true"
+      PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: https://api.balena-staging.com
       PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: ''
   rpi:
     <<: *defaults
     environment:
       DOCKER_USERNAME: travisciresin
       ARCH: rpi
-      PUSH_IMAGES: "true"
+      PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: https://api.balena-staging.com
       PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: ''
+  amd64-debug:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: amd64
+      PUSH_IMAGES: 'true'
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: '-debug'
+  i386-debug:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: i386
+      PUSH_IMAGES: 'true'
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: '-debug'
+  i386-nlp-debug:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: i386-nlp
+      PUSH_IMAGES: 'true'
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: '-debug'
+  armv7hf-debug:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: armv7hf
+      PUSH_IMAGES: 'true'
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: '-debug'
+  aarch64-debug:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: aarch64
+      PUSH_IMAGES: 'true'
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: '-debug'
+  rpi-debug:
+    <<: *defaults
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: rpi
+      PUSH_IMAGES: 'true'
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: '-debug'
 
 workflows:
   version: 2
@@ -121,3 +182,9 @@ workflows:
       - armv7hf
       - aarch64
       - i386-nlp
+      - amd64-debug
+      - i386-debug
+      - rpi-debug
+      - armv7hf-debug
+      - aarch64-debug
+      - i386-nlp-debug

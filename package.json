@@ -10,6 +10,7 @@
   "scripts": {
     "start": "./entry.sh",
     "build": "webpack",
+    "build:debug": "tsc && cp -r build/src/* build && rm -rf build/src && coffee -m -c -o build src && cp -r src/migrations build/ && cp package.json build/",
     "precommit": "lint-staged",
     "prettify": "prettier --config ./node_modules/resin-lint/config/.prettierrc --write \"{src,test,typings}/**/*.ts\"",
     "lint:coffee": "resin-lint src/ test/",
