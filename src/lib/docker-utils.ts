@@ -55,6 +55,7 @@ export class DockerUtils extends DockerToolbelt {
 		imgDest: string,
 		deltaOpts: DeltaFetchOptions,
 		onProgress: ProgressCallback,
+		serviceName: string,
 	): Promise<string> {
 		const deltaSourceId =
 			deltaOpts.deltaSourceId != null
@@ -64,7 +65,7 @@ export class DockerUtils extends DockerToolbelt {
 		const timeout = deltaOpts.deltaApplyTimeout;
 
 		const log = (str: string) =>
-			console.log(`delta(${deltaOpts.deltaSource}): ${str}`);
+			console.log(`delta([${serviceName}] ${deltaOpts.deltaSource}): ${str}`);
 
 		if (!_.includes([2, 3], deltaOpts.deltaVersion)) {
 			log(
