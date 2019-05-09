@@ -2,20 +2,26 @@ ARG ARCH=amd64
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM balenalib/raspberry-pi-node:8-run as rpi-base
-FROM balenalib/armv7hf-node:8-run as armv7hf-base
-FROM balenalib/aarch64-node:8-run as aarch64-base
+FROM balenalib/raspberry-pi-node:10-run as rpi-base
+FROM balenalib/armv7hf-node:10-run as armv7hf-base
+FROM balenalib/aarch64-node:10-run as aarch64-base
 RUN [ "cross-build-start" ]
 RUN sed -i '/security.debian.org jessie/d' /etc/apt/sources.list
 RUN [ "cross-build-end" ]
 
-FROM balenalib/amd64-node:8-run as amd64-base
+FROM balenalib/amd64-node:10-run as amd64-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM balenalib/i386-node:8-run as i386-base
+FROM balenalib/i386-debian as i386-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
+
+# node has stopped releasing node for i386 binaries. We
+# build it ourselves here
+RUN apt-get update && apt-get install build-essential python make git
+RUN git clone https://github.com/nodejs/node && cd node && git checkout v10.15.0 && \
+	./configure && make -j 4 && make install
 
 FROM resin/i386-node:6.13.1-slim as i386-nlp-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \

@@ -70,13 +70,13 @@ WORKDIR /usr/src/app
 
 RUN apt-get update \
 	&& apt-get install -y \
-		g++ \
-		git \
-		libsqlite3-dev \
-		make \
-		python \
-		rsync \
-		wget \
+	g++ \
+	git \
+	libsqlite3-dev \
+	make \
+	python \
+	rsync \
+	wget \
 	&& rm -rf /var/lib/apt/lists/
 
 RUN mkdir -p rootfs-overlay && \
@@ -87,18 +87,18 @@ COPY package.json package-lock.json /usr/src/app/
 # Install only the production modules that have C extensions
 # First try to install with npm ci, then fallback to npm install
 RUN (JOBS=MAX npm ci --production --no-optional --unsafe-perm || \
- JOBS=MAX npm install --production --no-optional --unsafe-perm) \
+	JOBS=MAX npm install --production --no-optional --unsafe-perm) \
 	&& npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space
 # We also remove the spurious node.dtps, see https://github.com/mapbox/node-sqlite3/issues/861
 RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
-		-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
-		-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
-		-o -name '*.h'          -o -name '*.html'   -o -name '*.markdown' \
-		-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
-		-o -name '*.yml'        -o -name "*.ts" \
-		-delete \
+	-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
+	-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
+	-o -name '*.h'          -o -name '*.html'   -o -name '*.markdown' \
+	-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
+	-o -name '*.yml'        -o -name "*.ts" \
+	-delete \
 	&& find . -type f -path '*/node_modules/sqlite3/deps*' -delete \
 	&& find . -type f -path '*/node_modules/knex/build*' -delete \
 	&& rm -rf node_modules/sqlite3/node.dtps
