@@ -1,4 +1,22 @@
 - commits:
+    - subject: Fix supervisor tests for node v10.12.0 and above
+      hash: 932a6f29973547b1e9fd6b8bbbb1f075cc13669f
+      body: |
+        Changes in the node engine related to streams would cause the gzip
+        streams flush function to be called at the wrong times. The sinon fake
+        timers were also interacting with this.
+
+        We use setImmediate to call the flush function, and remove sinon timers
+        for the logging tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.11
+  date: 2019-05-10T11:36:26.579Z
+- commits:
     - subject: Cache delta auth token request results for 10 minutes
       hash: 51703621a572ae4bd71b7f0ef01cf53364b97939
       body: ''
