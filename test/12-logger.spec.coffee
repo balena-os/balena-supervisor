@@ -62,43 +62,39 @@ describe 'Logger', ->
 
 
 	it 'sends logs as gzipped ndjson', ->
-		clock = m.sinon.useFakeTimers()
+		timestamp = Date.now()
 		@logger.log({ message: 'foobar', serviceId: 15 })
 		@logger.log({ timestamp: 1337, message: 'foobar', serviceId: 15 })
 		@logger.log({ message: 'foobar' }) # shold be ignored
-		clock.tick(10000)
-		clock.restore()
 
-		expect(https.request.calledOnce).to.be.true
-		opts = https.request.firstCall.args[0]
+		Promise.delay(5500).then =>
+			expect(https.request.calledOnce).to.be.true
+			opts = https.request.firstCall.args[0]
 
-		expect(opts.href).to.equal('https://example.com/device/v2/deadbeef/log-stream')
-		expect(opts.method).to.equal('POST')
-		expect(opts.headers).to.deep.equal({
-			'Authorization': 'Bearer secretkey'
-			'Content-Type': 'application/x-ndjson'
-			'Content-Encoding': 'gzip'
-		})
+			expect(opts.href).to.equal('https://example.com/device/v2/deadbeef/log-stream')
+			expect(opts.method).to.equal('POST')
+			expect(opts.headers).to.deep.equal({
+				'Authorization': 'Bearer secretkey'
+				'Content-Type': 'application/x-ndjson'
+				'Content-Encoding': 'gzip'
+			})
 
-		# small delay for the streams to propagate data
-		Promise.delay(100)
-		.then =>
 			lines = @_req.body.split('\n')
 			expect(lines.length).to.equal(3)
 			expect(lines[2]).to.equal('')
 
 			msg = JSON.parse(lines[0])
-			expect(msg).to.deep.equal({ timestamp: 0, message: 'foobar', serviceId: 15 })
+			expect(msg).to.have.property('message').that.equals('foobar')
+			expect(msg).to.have.property('serviceId').that.equals(15)
+			expect(msg).to.have.property('timestamp').that.is.at.least(timestamp)
 			msg = JSON.parse(lines[1])
 			expect(msg).to.deep.equal({ timestamp: 1337, message: 'foobar', serviceId: 15 })
 
 	it 'allows logging system messages which are also reported to the eventTracker', ->
-		clock = m.sinon.useFakeTimers()
+		timestamp = Date.now()
 		@logger.logSystemMessage('Hello there!', { someProp: 'someVal' }, 'Some event name')
-		clock.tick(10000)
-		clock.restore()
 
-		Promise.delay(100)
+		Promise.delay(5500)
 		.then =>
 			expect(@fakeEventTracker.track).to.be.calledWith('Some event name', { someProp: 'someVal' })
 			lines = @_req.body.split('\n')
@@ -106,7 +102,9 @@ describe 'Logger', ->
 			expect(lines[1]).to.equal('')
 
 			msg = JSON.parse(lines[0])
-			expect(msg).to.deep.equal({ message: 'Hello there!', timestamp: 0, isSystem: true })
+			expect(msg).to.have.property('message').that.equals('Hello there!')
+			expect(msg).to.have.property('isSystem').that.equals(true)
+			expect(msg).to.have.property('timestamp').that.is.at.least(timestamp)
 
 	it 'should support non-tty log lines', ->
 		message = '\u0001\u0000\u0000\u0000\u0000\u0000\u0000?2018-09-21T12:37:09.819134000Z this is the message'

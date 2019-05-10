@@ -141,7 +141,7 @@ export class BalenaLogBackend extends LogBackend {
 		this.timeout = setTimeout(() => {
 			if (this.gzip != null) {
 				this.stream.pipe(this.gzip);
-				this.flush();
+				setImmediate(this.flush);
 			}
 		}, RESPONSE_GRACE_PERIOD);
 	}, COOLDOWN_PERIOD);
