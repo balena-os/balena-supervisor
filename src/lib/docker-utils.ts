@@ -1,6 +1,7 @@
 import { DockerProgress, ProgressCallback } from 'docker-progress';
 import * as Dockerode from 'dockerode';
 import * as _ from 'lodash';
+import * as memoizee from 'memoizee';
 
 import { applyDelta, OutOfSyncError } from 'docker-delta';
 import DockerToolbelt = require('docker-toolbelt');
@@ -26,6 +27,18 @@ interface RsyncApplyOptions {
 	maxRetries: number;
 	retryInterval: number;
 }
+
+// TODO: Correctly export this from docker-toolbelt
+interface ImageNameParts {
+	registry: string;
+	imageName: string;
+	tagName: string;
+	digest: string;
+}
+
+// How long do we keep a delta token before invalidating it
+// (10 mins)
+const DELTA_TOKEN_TIMEOUT = 10 * 60 * 1000;
 
 export class DockerUtils extends DockerToolbelt {
 	public dockerProgress: DockerProgress;
@@ -90,27 +103,7 @@ export class DockerUtils extends DockerToolbelt {
 			this.getRegistryAndName(deltaOpts.deltaSource),
 		]);
 
-		const tokenEndpoint = `${deltaOpts.apiEndpoint}/auth/v1/token`;
-		const tokenOpts: requestLib.CoreOptions = {
-			auth: {
-				user: `d_${deltaOpts.uuid}`,
-				pass: deltaOpts.currentApiKey,
-				sendImmediately: true,
-			},
-			json: true,
-		};
-		const tokenUrl = `${tokenEndpoint}?service=${
-			dstInfo.registry
-		}&scope=repository:${dstInfo.imageName}:pull&scope=repository:${
-			srcInfo.imageName
-		}:pull`;
-
-		const tokenResponseBody = (await request.getAsync(tokenUrl, tokenOpts))[1];
-		const token = tokenResponseBody != null ? tokenResponseBody.token : null;
-
-		if (token == null) {
-			throw new ImageAuthenticationError('Authentication error');
-		}
+		const token = await this.getAuthToken(srcInfo, dstInfo, deltaOpts);
 
 		const opts: requestLib.CoreOptions = {
 			followRedirect: false,
@@ -324,6 +317,42 @@ export class DockerUtils extends DockerToolbelt {
 		await docker.dockerProgress.pull(deltaImg, onProgress, auth);
 		return (await docker.getImage(deltaImg).inspect()).Id;
 	}
+
+	private getAuthToken = memoizee(
+		async (
+			srcInfo: ImageNameParts,
+			dstInfo: ImageNameParts,
+			deltaOpts: DeltaFetchOptions,
+		): Promise<string> => {
+			const tokenEndpoint = `${deltaOpts.apiEndpoint}/auth/v1/token`;
+			const tokenOpts: requestLib.CoreOptions = {
+				auth: {
+					user: `d_${deltaOpts.uuid}`,
+					pass: deltaOpts.currentApiKey,
+					sendImmediately: true,
+				},
+				json: true,
+			};
+			const tokenUrl = `${tokenEndpoint}?service=${
+				dstInfo.registry
+			}&scope=repository:${dstInfo.imageName}:pull&scope=repository:${
+				srcInfo.imageName
+			}:pull`;
+
+			const tokenResponseBody = (await request.getAsync(
+				tokenUrl,
+				tokenOpts,
+			))[1];
+			const token = tokenResponseBody != null ? tokenResponseBody.token : null;
+
+			if (token == null) {
+				throw new ImageAuthenticationError('Authentication error');
+			}
+
+			return token;
+		},
+		{ maxAge: DELTA_TOKEN_TIMEOUT, promise: true },
+	);
 }
 
 export default DockerUtils;
