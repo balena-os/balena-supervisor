@@ -1,4 +1,16 @@
 - commits:
+    - subject: Cache delta auth token request results for 10 minutes
+      hash: 51703621a572ae4bd71b7f0ef01cf53364b97939
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.10
+  date: 2019-05-10T10:17:52.132Z
+- commits:
     - subject: 'docs: make headers consistent'
       hash: acb38dfcfa8a7a658f083fe66455295bed503c51
       body: ''
