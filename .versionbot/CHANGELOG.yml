@@ -1,4 +1,53 @@
 - commits:
+    - subject: Allow system messages to not be tracked
+      hash: 4e783fcd86c3058ccf28477730e2d269d8f2cca8
+      body: |
+        Also don't track update lock events
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Format update lock logs with pretty-ms
+      hash: 50fdee429055fd94db868b76ab89a0ff7a1d2ea8
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Display update lock notification in dashboard logs
+      hash: 27b68b584583ebbdfc9864d59b320660d6d45329
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Show better logs for UpdatesLockedError
+      hash: 5894a9baf3c243b1c9647530da3ca68d65bc6cfb
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Clear backoff counter on new target state
+      hash: 5ace459ad2ff35718cf3b986c0bf737343d667bc
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.14.12
+  date: 2019-05-15T09:23:24.953Z
+- commits:
     - subject: Fix supervisor tests for node v10.12.0 and above
       hash: 932a6f29973547b1e9fd6b8bbbb1f075cc13669f
       body: |
