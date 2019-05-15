@@ -226,6 +226,7 @@ describe 'ApplicationManager', ->
 					image: @applications.imageForService(target.local.apps[0].services[1])
 					serviceId: 24
 					appId: 1234
+					serviceName: 'anotherService'
 				}])
 		)
 
@@ -264,7 +265,8 @@ describe 'ApplicationManager', ->
 					action: 'fetch'
 					image: @applications.imageForService(target.local.apps[0].services[0])
 					serviceId: 23
-					appId: 1234
+					appId: 1234,
+					serviceName: 'aservice'
 				}, { action: 'noop', appId: 1234 }])
 		)
 

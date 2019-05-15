@@ -8,7 +8,13 @@ rm -f /etc/avahi/services/*
 mkdir -p /var/run/dbus
 rm -f /var/run/avahi-daemon/pid
 rm -f /var/run/dbus/pid
-/etc/init.d/dbus-1 start
+if [ -x /etc/init.d/dbus-1 ]; then
+	/etc/init.d/dbus-1 start;
+elif [ -x /etc/init.d/dbus ]; then
+	/etc/init.d/dbus start;
+else
+	echo "Could not start container local dbus daemon. Avahi services may fail!";
+fi;
 /etc/init.d/avahi-daemon start
 
 # If the legacy /tmp/resin-supervisor exists on the host, a container might

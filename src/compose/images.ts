@@ -89,6 +89,7 @@ export class Images extends (EventEmitter as {
 		image: Image,
 		opts: FetchOptions,
 		onFinish = _.noop,
+		serviceName: string,
 	): Promise<null> {
 		if (this.imageFetchFailures[image.name] != null) {
 			// If we are retrying a pull within the backoff time of the last failure,
@@ -148,7 +149,7 @@ export class Images extends (EventEmitter as {
 			try {
 				let id;
 				if (opts.delta && (opts as DeltaFetchOptions).deltaSource != null) {
-					id = await this.fetchDelta(image, opts, onProgress);
+					id = await this.fetchDelta(image, opts, onProgress, serviceName);
 				} else {
 					id = await this.fetchImage(image, opts, onProgress);
 				}
@@ -598,6 +599,7 @@ export class Images extends (EventEmitter as {
 		image: Image,
 		opts: FetchOptions,
 		onProgress: (evt: FetchProgressEvent) => void,
+		serviceName: string,
 	): Promise<string> {
 		this.logger.logSystemEvent(LogTypes.downloadImageDelta, { image });
 
@@ -609,6 +611,7 @@ export class Images extends (EventEmitter as {
 			image.name,
 			deltaOpts,
 			onProgress,
+			serviceName,
 		);
 
 		if (!Images.hasDigest(image.name)) {

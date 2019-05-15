@@ -2,27 +2,36 @@ ARG ARCH=amd64
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM balenalib/rpi-node:6.16.0 as rpi-node-base
-FROM balenalib/armv7hf-node:6.16.0 as armv7hf-node-base
-FROM balenalib/aarch64-node:6.16.0 as aarch64-node-base
+FROM balenalib/raspberry-pi-node:10-run as rpi-node-base
+FROM balenalib/armv7hf-node:10-run as armv7hf-node-base
+FROM balenalib/aarch64-node:10-run as aarch64-node-base
 RUN [ "cross-build-start" ]
 RUN sed -i '/security.debian.org jessie/d' /etc/apt/sources.list
 RUN [ "cross-build-end" ]
 
-FROM balenalib/amd64-node:6.16.0 as amd64-node-base
+FROM balenalib/amd64-node:10-run as amd64-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM balenalib/i386-node:6.16.0 as i386-node-base
+FROM balenalib/i386-node:10-run as i386-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM i386-node-base as i386-nlp-node-base
+FROM balenalib/i386-nlp-node:6-run as i386-nlp-node-base
+RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
+	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
+# Setup webpack building base images
+# We always do the webpack build on amd64, cause it's way faster
+FROM amd64-node-base as rpi-node-build
+FROM amd64-node-base as amd64-node-build
+FROM amd64-node-base as armv7hf-node-build
+FROM amd64-node-base as aarch64-node-build
+FROM amd64-node-base as i386-node-build
+FROM balenalib/amd64-node:6-build as i386-nlp-node-build
 ##############################################################################
 
-# We always do the webpack build on amd64, cause it's way faster
-FROM amd64-node-base as node-build
+FROM $ARCH-node-build as node-build
 
 WORKDIR /usr/src/app
 
@@ -61,13 +70,13 @@ WORKDIR /usr/src/app
 
 RUN apt-get update \
 	&& apt-get install -y \
-		g++ \
-		git \
-		libsqlite3-dev \
-		make \
-		python \
-		rsync \
-		wget \
+	g++ \
+	git \
+	libsqlite3-dev \
+	make \
+	python \
+	rsync \
+	wget \
 	&& rm -rf /var/lib/apt/lists/
 
 RUN mkdir -p rootfs-overlay && \
@@ -76,20 +85,21 @@ RUN mkdir -p rootfs-overlay && \
 COPY package.json package-lock.json /usr/src/app/
 
 # Install only the production modules that have C extensions
-# First try to install with npm ci, then fallback to npm install
-RUN (JOBS=MAX npm ci --production --no-optional --unsafe-perm || \
- JOBS=MAX npm install --production --no-optional --unsafe-perm) \
-	&& npm dedupe
+RUN (if [ $ARCH = "i386-nlp" ]; then \
+ JOBS=MAX npm install --no-optional --unsafe-perm; \
+else \
+ JOBS=MAX npm ci --no-optional --unsafe-perm; \
+fi) && npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space
 # We also remove the spurious node.dtps, see https://github.com/mapbox/node-sqlite3/issues/861
 RUN find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
-		-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
-		-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
-		-o -name '*.h'          -o -name '*.html'   -o -name '*.markdown' \
-		-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
-		-o -name '*.yml'        -o -name "*.ts" \
-		-delete \
+	-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
+	-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
+	-o -name '*.h'          -o -name '*.html'   -o -name '*.markdown' \
+	-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
+	-o -name '*.yml'        -o -name "*.ts" \
+	-delete \
 	&& find . -type f -path '*/node_modules/sqlite3/deps*' -delete \
 	&& find . -type f -path '*/node_modules/knex/build*' -delete \
 	&& rm -rf node_modules/sqlite3/node.dtps
@@ -103,7 +113,7 @@ RUN [ "cross-build-end" ]
 ##############################################################################
 
 # Minimal runtime image
-FROM resin/$ARCH-supervisor-base:v1.3.0
+FROM balena/$ARCH-supervisor-base:v1.4.6
 ARG ARCH
 ARG VERSION=master
 ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
