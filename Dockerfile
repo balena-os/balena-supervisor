@@ -85,10 +85,11 @@ RUN mkdir -p rootfs-overlay && \
 COPY package.json package-lock.json /usr/src/app/
 
 # Install only the production modules that have C extensions
-# First try to install with npm ci, then fallback to npm install
-RUN (JOBS=MAX npm ci --production --no-optional --unsafe-perm || \
-	JOBS=MAX npm install --production --no-optional --unsafe-perm) \
-	&& npm dedupe
+RUN (if [ $ARCH = "i386-nlp" ]; then \
+ JOBS=MAX npm install --no-optional --unsafe-perm; \
+else \
+ JOBS=MAX npm ci --no-optional --unsafe-perm; \
+fi) && npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space
 # We also remove the spurious node.dtps, see https://github.com/mapbox/node-sqlite3/issues/861

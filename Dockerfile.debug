@@ -27,6 +27,7 @@ RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/c
 FROM $ARCH-base AS node-build
 FROM $ARCH-base AS node-deps
 
+ARG ARCH
 ARG VERSION=master
 ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
 
@@ -40,7 +41,12 @@ RUN apt-get update && apt-get install ca-certificates \
 
 COPY package*.json ./
 
-RUN JOBS=MAX npm ci --no-optional --unsafe-perm || JOBS=MAX npm install --no-optional --unsafe-perm
+# i386-nlp doesn't have an npm version which supports ci
+RUN if [ $ARCH = "i386-nlp" ]; then \
+ JOBS=MAX npm install --no-optional --unsafe-perm; \
+else \
+ JOBS=MAX npm ci --no-optional --unsafe-perm; \
+fi
 
 COPY src src/
 COPY typings typings/
