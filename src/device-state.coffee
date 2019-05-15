@@ -4,6 +4,7 @@ EventEmitter = require 'events'
 fs = Promise.promisifyAll(require('fs'))
 express = require 'express'
 bodyParser = require 'body-parser'
+prettyMs = require 'pretty-ms'
 hostConfig = require './host-config'
 network = require './network'
 execAsync = Promise.promisify(require('child_process').exec)
@@ -132,7 +133,8 @@ module.exports = class DeviceState extends EventEmitter
 		@router = createDeviceStateRouter(this)
 		@on 'apply-target-state-end', (err) ->
 			if err?
-				console.log("Apply error #{err}")
+				if not (err instanceof UpdatesLockedError)
+					console.log("Apply error #{err}")
 			else
 				console.log('Apply success!')
 		@applications.on('change', @reportCurrentState)
@@ -342,6 +344,10 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.using @_inferStepsLock, -> fn()
 
 	setTarget: (target, localSource = false) ->
+		# When we get a new target state, clear any built up apply errors
+		# This means that we can attempt to apply the new state instantly
+		@failedUpdates = 0
+
 		Promise.join(
 			@config.get('apiEndpoint'),
 			validateState(target),
@@ -573,11 +579,17 @@ module.exports = class DeviceState extends EventEmitter
 		@failedUpdates += 1
 		@reportCurrentState(update_failed: true)
 		if @scheduledApply?
-			console.log("Updating failed, but there's another update scheduled immediately: ", err)
+			if not (err instanceof UpdatesLockedError)
+				console.log("Updating failed, but there's another update scheduled immediately: ", err)
 		else
 			delay = Math.min((2 ** @failedUpdates) * constants.backoffIncrement, @maxPollTime)
 			# If there was an error then schedule another attempt briefly in the future.
-			console.log('Scheduling another update attempt due to failure: ', delay, err)
+			if err instanceof UpdatesLockedError
+				message = "Updates are locked, retrying in #{prettyMs(delay, compact: true)}..."
+				@logger.logSystemMessage(message, {}, 'updateLocked', false)
+				console.log(message)
+			else
+				console.log('Scheduling another update attempt due to failure: ', delay, err)
 			@triggerApplyTarget({ force, delay, initial })
 
 	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false, nextDelay = 200, retryCount = 0 } = {}) =>
