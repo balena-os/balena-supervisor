@@ -37,7 +37,7 @@ WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get install ca-certificates \
 	iptables libnss-mdns nodejs rsync git python make wget g++ \
-	kmod
+	kmod vim
 
 COPY package*.json ./
 
@@ -53,11 +53,11 @@ COPY typings typings/
 COPY tsconfig.json hardcode-migrations.js fix-jsonstream.js ./
 
 RUN npm run build:debug
-RUN mkdir dist && echo "require('../build/app.js')" > dist/app.js
+RUN mkdir -p dist && echo "require('../build/app.js')" > dist/app.js
 
 COPY entry.sh .
 
-RUN mkdir -p rootfs-overlay && 	ln -s /lib rootfs-overlay/lib64
+RUN mkdir -p rootfs-overlay && 	([ ! -e rootfs-overlay/lib64 ] && ln -s /lib rootfs-overlay/lib64)
 
 ENV CONFIG_MOUNT_POINT=/boot/config.json \
 	LED_FILE=/dev/null \
