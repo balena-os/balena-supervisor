@@ -1,4 +1,88 @@
 - commits:
+    - subject: Add livepush capabilities for debug builds
+      hash: 73f207a76faaafbb60694304194a981c1a5018fe
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Change install step to not mask errors
+      hash: 6bfeaf7ae77f08b89941867fa452a19fbe40d884
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Update sqlite3 to 4.0.9 to avoid arm build errors
+      hash: 0428ca31b0a2953f674d023ccaf104624a6f536d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Use balenalib base image for i386 base
+      hash: 3ff9c5a9b17d7a9a9357d8b28dcad19e440800df
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade debug builds to node 10 for supported architectures
+      hash: 2e6f03006317616f5c2884196c904399994ec87d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add debug build infrastructure and configuration
+      hash: 4e779608a395a6e59bb413ef4e1f66597623ebc1
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Make delta application logs easier to parse for multicontainer
+      hash: 1155d757e4937436a8fffb2ef81d1535e4579882
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade to node 10 for supported architectures
+      hash: 56bac3a7ea90077dfce69d55cf90ce9a4b3a0997
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade to node 8 for supported architectures
+      hash: b84f354ded674a1af127975f0ed9ec1cb9328678
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.0
+  date: 2019-05-15T11:51:30.227Z
+- commits:
     - subject: Allow system messages to not be tracked
       hash: 4e783fcd86c3058ccf28477730e2d269d8f2cca8
       body: |
