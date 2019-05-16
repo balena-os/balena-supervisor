@@ -39,10 +39,10 @@ defaults: &defaults
         command: |
           VERSION_TAG_NO_DEBUG=v$(jq --raw-output .version package.json)
           GIT_TAG=$(git describe --tags | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+          VERSION_TAG="${VERSION_TAG_NO_DEBUG}${DEBUG}"
           if [ "${VERSION_TAG_NO_DEBUG}" = "${GIT_TAG}" ]; then
-            export EXTRA_TAG=$VERSION_TAG$DEBUG
+            export EXTRA_TAG="${VERSION_TAG}"
           fi
-          VERSION_TAG=${VERSION_TAG_NO_DEBUG}${DEBUG}
           echo "Starting build.sh"
           if [ "$DOCKER_PASSWORD" != "" ]; then
             docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
