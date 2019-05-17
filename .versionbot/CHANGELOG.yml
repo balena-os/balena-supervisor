@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix circle deploying of images
+      hash: 954434fc4c3872e4cae53ce249b6d86b97e265c6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.1
+  date: 2019-05-16T10:51:11.858Z
+- commits:
     - subject: Add livepush capabilities for debug builds
       hash: 73f207a76faaafbb60694304194a981c1a5018fe
       body: ''
