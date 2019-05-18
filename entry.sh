@@ -59,9 +59,13 @@ fi
 if [ ! -d /lib/modules ]; then
 	ln -s /mnt/root/lib/modules /lib/modules
 fi
-# Now load the ip6_tables kernel module, so we can do filtering on ipv6 addresses
-if [ -z "$(cat /proc/config.gz | gunzip | grep CONFIG_IP6_NF_IPTABLES=y || true)" ]; then
-  modprobe ip6_tables
-fi
+# Now load the ip6_tables kernel module, so we can do
+# filtering on ipv6 addresses. Don't fail here if the
+# modprobe fails, as this can either be that the module is
+# already loaded or that the kernel module isn't present. In
+# the former case, this is fine for runtime, and in the
+# latter it means that the supervisor will fail later on, so
+# not a problem.
+modprobe ip6_tables || true
 
 exec node /usr/src/app/dist/app.js
