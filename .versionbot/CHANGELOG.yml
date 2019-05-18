@@ -1,4 +1,17 @@
 - commits:
+    - subject: Dont check config.gz for loaded i6tables module
+      hash: 1b1e0ce2f358f2e640aefa7628ad2d575117b0e9
+      body: |
+        We also dont fail the initialisation if we cannot load the module.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.2
+  date: 2019-05-17T16:52:36.048Z
+- commits:
     - subject: Fix circle deploying of images
       hash: 954434fc4c3872e4cae53ce249b6d86b97e265c6
       body: ''
