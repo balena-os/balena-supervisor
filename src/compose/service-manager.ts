@@ -41,9 +41,7 @@ interface KillOpts {
 	wait?: boolean;
 }
 
-export class ServiceManager extends (EventEmitter as {
-	new (): ServiceManagerEventEmitter;
-}) {
+export class ServiceManager extends (EventEmitter as new () => ServiceManagerEventEmitter) {
 	private docker: Docker;
 	private logger: Logger;
 	private config: Config;

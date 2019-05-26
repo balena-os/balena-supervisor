@@ -37,9 +37,7 @@ interface ConfigEvents {
 
 type ConfigEventEmitter = StrictEventEmitter<EventEmitter, ConfigEvents>;
 
-export class Config extends (EventEmitter as {
-	new (): ConfigEventEmitter;
-}) {
+export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 	private db: DB;
 	private configJsonBackend: ConfigJsonConfigBackend;
 
@@ -76,10 +74,12 @@ export class Config extends (EventEmitter as {
 							// schema key is for the meta nullOrUndefined value. We check this
 							// by first decoding the value undefined with the default type, and
 							// then return undefined
-							const decoded = (defaultValue as t.Type<any>).decode(undefined);
+							const maybeDecoded = (defaultValue as t.Type<any>).decode(
+								undefined,
+							);
 
-							this.checkValueDecode(decoded, key, undefined);
-							return decoded.value;
+							this.checkValueDecode(maybeDecoded, key, undefined);
+							return maybeDecoded.value;
 						}
 						return defaultValue as SchemaReturn<T>;
 					}

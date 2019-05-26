@@ -1,4 +1,6 @@
-// Adapted from: https://gist.github.com/TianyiLi/a231afa2f804d8fa0805baa4830f9242
+// Adapted from:
+// https://gist.github.com/TianyiLi/a231afa2f804d8fa0805baa4830f9242
+// tslint:disable
 declare module 'dbus-native' {
 	import * as net from 'net';
 	import * as events from 'events';

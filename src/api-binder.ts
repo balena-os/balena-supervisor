@@ -737,13 +737,13 @@ export class APIBinder {
 		// If we have an existing device key we first check if it's
 		// valid, becaise of it is we can just use that
 		if (opts.deviceApiKey != null) {
-			const device = await this.fetchDevice(
+			const deviceFromApi = await this.fetchDevice(
 				uuid,
 				opts.deviceApiKey,
 				apiTimeout,
 			);
-			if (device != null) {
-				return device;
+			if (deviceFromApi != null) {
+				return deviceFromApi;
 			}
 		}
 

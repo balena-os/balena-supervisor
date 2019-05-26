@@ -131,7 +131,7 @@ export class DeviceConfig {
 		},
 	};
 
-	static validKeys = [
+	public static validKeys = [
 		'SUPERVISOR_VPN_CONTROL',
 		'OVERRIDE_LOCK',
 		..._.map(DeviceConfig.configKeys, 'envVarName'),
@@ -292,7 +292,7 @@ export class DeviceConfig {
 			SUPERVISOR_VPN_CONTROL: vpnStatus != null ? vpnStatus.toString() : 'true',
 		};
 
-		for (const key in DeviceConfig.configKeys) {
+		for (const key of _.keys(DeviceConfig.configKeys)) {
 			const { envVarName } = DeviceConfig.configKeys[key];
 			const confValue = conf[key as SchemaTypeKey];
 			currentConf[envVarName] = confValue != null ? confValue.toString() : '';

@@ -1,6 +1,6 @@
 import * as Bluebird from 'bluebird';
 import { fs } from 'mz';
-import * as path from 'path';
+import * as Path from 'path';
 import * as constants from './constants';
 import { ENOENT } from './errors';
 
@@ -20,13 +20,13 @@ export function writeFileAtomic(path: string, data: string): Bluebird<void> {
 
 export function safeRename(src: string, dest: string): Bluebird<void> {
 	return Bluebird.resolve(fs.rename(src, dest))
-		.then(() => fs.open(path.dirname(dest), 'r'))
+		.then(() => fs.open(Path.dirname(dest), 'r'))
 		.tap(fs.fsync)
 		.then(fs.close);
 }
 
 export function pathExistsOnHost(p: string): Bluebird<boolean> {
-	return Bluebird.resolve(fs.stat(path.join(constants.rootMountPoint, p)))
+	return Bluebird.resolve(fs.stat(Path.join(constants.rootMountPoint, p)))
 		.return(true)
 		.catchReturn(ENOENT, false);
 }

@@ -17,7 +17,7 @@ export function envArrayToObject(env: string[]): EnvVarObject {
 
 	return _(env)
 		.map(toPair)
-		.filter(([_, v]) => v != null)
+		.filter(([_k, v]) => v != null)
 		.fromPairs()
 		.value();
 }
