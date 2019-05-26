@@ -9,140 +9,58 @@ import { ComposeVolume } from '../compose/volumes';
 
 import * as updateLock from '../lib/update-lock';
 
-export type StepAction =
-	| 'stop'
-	| 'kill'
-	| 'remove'
-	| 'updateMetadata'
-	| 'restart'
-	| 'stopAll'
-	| 'start'
-	| 'updateCommit'
-	| 'handover'
-	| 'fetch'
-	| 'removeImage'
-	| 'saveImage'
-	| 'cleanup'
-	| 'createNetwork'
-	| 'createVolume'
-	| 'removeNetwork'
-	| 'removeVolume'
-	| 'ensureSupervisorNetwork';
-
 interface DefaultStepFields {
-	force: boolean;
-	skipLock: boolean;
+	force?: boolean;
+	skipLock?: boolean;
 	application: Application;
 	config: Config;
 }
 
-interface StopStep {
-	wait: boolean;
-	current: Service;
+interface Steps {
+	stop: { wait: boolean; current: Service };
+	kill: { current: Service; removeImage: boolean };
+	remove: { current: Service };
+	updateMetadata: { current: Service; target: Service };
+	restart: { current: Service; target: Service };
+	start: { target: Service };
+	updateCommit: { commit: string };
+	handover: { current: Service; target: Service };
+	// TODO: Maybe switch serviceName to Service below to keep
+	// things consistent
+	fetch: { image: string; serviceName: string };
+	removeImage: { image: string };
+	saveImage: { image: string };
+	createNetwork: { target: Network };
+	createVolume: { target: ComposeVolume };
+	removeNetwork: { current: Network };
+	removeVolume: { current: ComposeVolume };
 }
 
-interface KillStep {
-	current: Service;
-	removeImage: boolean;
+export type UpdateAction = keyof Steps;
+export type UpdateStep<T extends UpdateAction> = { action: T } & Steps[T] &
+	DefaultStepFields;
+
+export function createUpdateAction<T extends UpdateAction>(
+	action: T,
+	options: Steps[T] & DefaultStepFields,
+): UpdateStep<T> {
+	return { action, ...options };
 }
 
-interface RemoveStep {
-	current: Service;
-}
-
-interface UpdateMetadataStep {
-	current: Service;
-	target: Service;
-}
-
-interface RestartStep {
-	current: Service;
-	target: Service;
-}
-
-interface StartStep {
-	target: Service;
-}
-
-interface UpdateCommitStep {
-	commit: string;
-}
-
-interface HandoverStep {
-	current: Service;
-	target: Service;
-}
-
-interface FetchStep {
-	image: string;
-	// TODO: Maybe switch this to the service to keep things
-	// consistent
-	serviceName: string;
-}
-
-interface RemoveImageStep {
-	image: string;
-}
-
-interface SaveImageStep {
-	image: string;
-}
-
-interface CreateNetworkStep {
-	target: Network;
-}
-
-interface CreateVolumeStep {
-	target: ComposeVolume;
-}
-
-interface RemoveNetworkStep {
-	current: Network;
-}
-
-interface RemoveVolumeStep {
-	current: ComposeVolume;
-}
-
-// We associate the interfaces here with their action name
-// this allows us to get properly inferred types when
-// dealing with UpdateSteps generally but also allows us to
-// refer the type of the step spefically
-export type UpdateStepType =
-	| { action: 'stop' } & StopStep
-	| { action: 'kill' } & KillStep
-	| { action: 'remove' } & RemoveStep
-	| { action: 'updateMetadata' } & UpdateMetadataStep
-	| { action: 'restart' } & RestartStep
-	| { action: 'stopAll' }
-	| { action: 'start' } & StartStep
-	| { action: 'updateCommit' } & UpdateCommitStep
-	| { action: 'handover' } & HandoverStep
-	| { action: 'fetch' } & FetchStep
-	| { action: 'removeImage' } & RemoveImageStep
-	| { action: 'saveImage' } & SaveImageStep
-	| { action: 'cleanup' }
-	| { action: 'createNetwork' } & CreateNetworkStep
-	| { action: 'createVolume' } & CreateVolumeStep
-	| { action: 'removeNetwork' } & RemoveNetworkStep
-	| { action: 'removeVolume' } & RemoveVolumeStep
-	// FIXME: This shouldn't be part of the state engine
-	| { action: 'ensureSupervisorNetwork' };
-
-export type UpdateStep = UpdateStepType & DefaultStepFields;
-
-export async function executeUpdateSteps(steps: UpdateStep[]): Promise<void> {
+export async function executeUpdateSteps<T extends UpdateAction>(
+	steps: Array<UpdateStep<T>>,
+): Promise<void> {
 	for (const step of steps) {
 		await executeUpdateStep(step);
 	}
 }
 
-async function executeUpdateStep(step: UpdateStep): Promise<void> {
+async function executeUpdateStep<T extends UpdateAction>(
+	step: UpdateStep<T>,
+): Promise<void> {
 	switch (step.action) {
 		case 'stop':
-			// FIXME: There should be a way to not have this
-			// explicitly typed
-			runStopStep(step);
+			await runStopStep(step as UpdateStep<'stop'>);
 			break;
 		case 'kill':
 			break;
@@ -181,13 +99,16 @@ async function executeUpdateStep(step: UpdateStep): Promise<void> {
 	}
 }
 
-async function runStopStep(step: StopStep) {
+async function runStopStep(step: UpdateStep<'stop'>) {
 	await runLocked(step, async () => {
 		Application.service;
 	});
 }
 
-async function runLocked(step: UpdateStep, fn: () => PromiseLike<void>) {
+async function runLocked<T extends UpdateAction>(
+	step: UpdateStep<T>,
+	fn: () => PromiseLike<void>,
+) {
 	if (step.skipLock) {
 		return Bluebird.try(fn);
 	}
