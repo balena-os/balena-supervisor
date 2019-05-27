@@ -86,9 +86,9 @@ COPY package.json package-lock.json /usr/src/app/
 
 # Install only the production modules that have C extensions
 RUN (if [ $ARCH = "i386-nlp" ]; then \
- JOBS=MAX npm install --no-optional --unsafe-perm; \
+ JOBS=MAX npm install --no-optional --unsafe-perm --production; \
 else \
- JOBS=MAX npm ci --no-optional --unsafe-perm; \
+ JOBS=MAX npm ci --no-optional --unsafe-perm --production; \
 fi) && npm dedupe
 
 # Remove various uneeded filetypes in order to reduce space
