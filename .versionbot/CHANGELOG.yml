@@ -1,4 +1,18 @@
 - commits:
+    - subject: Move to resin-lint 3 and fix lint errors
+      hash: 2a27b1d51f4d82ff79ca7ed2c5e36d981a400c44
+      body: |
+        This is a massive commit, but nothing related to runtime has actually
+        changed, only the lint errors have changed.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.3
+  date: 2019-05-26T17:57:21.428Z
+- commits:
     - subject: Dont check config.gz for loaded i6tables module
       hash: 1b1e0ce2f358f2e640aefa7628ad2d575117b0e9
       body: |
