@@ -1,6 +1,4 @@
-# balena-supervisor [![Tickets in Progress](https://badge.waffle.io/resin-io/resin-supervisor.svg?label=flow/in-progress&title=Tickets%20in%20progress)](https://waffle.io/resin-io/resin-supervisor)
-
-Join our online chat at [![Gitter chat](https://badges.gitter.im/resin-io/chat.png)](https://gitter.im/resin-io/chat)
+# balena-supervisor
 
 This is [balena](https://balena.io)'s supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as the balena API informs it to.
 
