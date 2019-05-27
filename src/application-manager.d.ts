@@ -2,17 +2,17 @@ import * as Bluebird from 'bluebird';
 import { EventEmitter } from 'events';
 
 import { ServiceAction } from './device-api/common';
-import { DeviceApplicationState } from './types/state';
-import { Logger } from './logger';
 import { EventTracker } from './event-tracker';
+import { Logger } from './logger';
+import { DeviceApplicationState } from './types/state';
 
 import Images from './compose/images';
 import ServiceManager from './compose/service-manager';
 import DB from './db';
 
+import { APIBinder } from './api-binder';
 import { Service } from './compose/service';
 import Config from './config';
-import { APIBinder } from './api-binder';
 
 declare interface Options {
 	force?: boolean;

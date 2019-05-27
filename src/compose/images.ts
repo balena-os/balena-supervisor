@@ -60,9 +60,7 @@ type NormalisedDockerImage = Docker.ImageInfo & {
 	NormalisedRepoTags: string[];
 };
 
-export class Images extends (EventEmitter as {
-	new (): ImageEventEmitter;
-}) {
+export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	private docker: DockerUtils;
 	private logger: Logger;
 	private db: Database;

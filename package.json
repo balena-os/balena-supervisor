@@ -22,7 +22,7 @@
     "test:debug": "npm run test:build && mocha --inspect-brk",
     "coverage": "istanbul report text && istanbul report html"
   },
-  "private": "true",
+  "private": true,
   "dependencies": {
     "sqlite3": "^4.0.8"
   },
@@ -89,7 +89,7 @@
     "prettier": "^1.15.3",
     "pretty-ms": "^4.0.0",
     "request": "^2.51.0",
-    "resin-lint": "^2.0.1",
+    "resin-lint": "^3.0.0",
     "resin-register-device": "^3.0.0",
     "resumable-request": "^2.0.0",
     "rimraf": "^2.6.2",

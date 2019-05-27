@@ -26,7 +26,7 @@ export function camelCaseConfig(
 	if (!_.isArray(config.networks)) {
 		const networksTmp = _.cloneDeep(config.networks);
 		_.each(networksTmp, (v, k) => {
-			config.networks[k] = _.mapKeys(v, (_v, k) => _.camelCase(k));
+			config.networks[k] = _.mapKeys(v, (_v, key) => _.camelCase(key));
 		});
 	}
 

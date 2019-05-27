@@ -26,14 +26,14 @@ export class LocalModeManager {
 		// Setup a listener to catch state changes relating to local mode
 		this.config.on('change', changed => {
 			if (changed.localMode != null) {
-				const localMode = changed.localMode || false;
+				const local = changed.localMode || false;
 
 				// First switch the logger to it's correct state
-				this.logger.switchBackend(localMode);
+				this.logger.switchBackend(local);
 
 				// If we're leaving local mode, make sure to remove all of the
 				// leftover artifacts
-				if (!localMode) {
+				if (!local) {
 					this.removeLocalModeArtifacts();
 				}
 			}

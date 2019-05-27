@@ -76,7 +76,7 @@ export const PermissiveNumber = new t.Type<number, string | number>(
 
 // Define this differently, so that we can add a generic to it
 export class StringJSON<T> extends t.Type<T, string> {
-	readonly _tag: 'StringJSON' = 'StringJSON';
+	public readonly _tag: 'StringJSON' = 'StringJSON';
 	constructor(type: t.InterfaceType<any>) {
 		super(
 			'StringJSON',
@@ -102,12 +102,6 @@ export class StringJSON<T> extends t.Type<T, string> {
 				);
 			},
 		);
-		// super(
-		// 	'string',
-		// 	(m): m is string => typeof m === 'string',
-		// 	(m, c) => (this.is(m) ? t.success(m) : t.failure(m, c)),
-		// 	t.identity,
-		// );
 	}
 }
 

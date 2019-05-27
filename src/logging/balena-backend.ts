@@ -27,7 +27,7 @@ export class BalenaLogBackend extends LogBackend {
 	private gzip: zlib.Gzip | null = null;
 	private opts: Options;
 	private stream: stream.PassThrough;
-	timeout: NodeJS.Timer;
+	private timeout: NodeJS.Timer;
 
 	public constructor(apiEndpoint: string, uuid: string, deviceApiKey: string) {
 		super();

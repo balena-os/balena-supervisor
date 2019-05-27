@@ -198,8 +198,8 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						return;
 					}
 
-					const svc = _.find(services, (svc: Service) => {
-						return svc.imageId === img.imageId;
+					const svc = _.find(services, (service: Service) => {
+						return service.imageId === img.imageId;
 					});
 
 					let status: string;

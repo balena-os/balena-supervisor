@@ -36,10 +36,10 @@ export class LocalLogBackend extends LogBackend {
 					return message;
 				}
 			})
-				.then((message: LogMessage | null) => {
-					if (message != null) {
+				.then((msg: LogMessage | null) => {
+					if (msg != null) {
 						_.each(this.globalListeners, listener => {
-							listener.push(`${JSON.stringify(message)}\n`);
+							listener.push(`${JSON.stringify(msg)}\n`);
 						});
 					}
 				})

@@ -20,9 +20,7 @@ interface LogsEvents {
 
 type LogsEventEmitter = StrictEventEmitter<EventEmitter, LogsEvents>;
 
-export class ContainerLogs extends (EventEmitter as {
-	new (): LogsEventEmitter;
-}) {
+export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) {
 	public constructor(public containerId: string, private docker: Docker) {
 		super();
 	}

@@ -1,5 +1,6 @@
 // From: https://github.com/icholy/Duration.js/pull/15
 // Once the above is merged, use the inbuilt module types
+// tslint:disable
 declare module 'duration-js' {
 	type DurationLike = Duration | string | number;
 	type DateLike = Date | number;
