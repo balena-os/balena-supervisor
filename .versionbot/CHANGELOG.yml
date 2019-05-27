@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix regression where node_modules stayed in resulting image
+      hash: 99c08c807b6f0af02ef65e11aba5abaeeacdad44
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.4
+  date: 2019-05-27T12:45:26.298Z
+- commits:
     - subject: Move to resin-lint 3 and fix lint errors
       hash: 2a27b1d51f4d82ff79ca7ed2c5e36d981a400c44
       body: |
