@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'docs: remove legacy waffle link & gitter chat from README'
+      hash: e0f875f07ba10098bd29e6d748dafc50fa6d02d3
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 9.15.5
+  date: 2019-05-27T14:12:14.369Z
+- commits:
     - subject: Fix regression where node_modules stayed in resulting image
       hash: 99c08c807b6f0af02ef65e11aba5abaeeacdad44
       body: ''
