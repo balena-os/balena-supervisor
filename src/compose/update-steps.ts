@@ -3,9 +3,9 @@ import * as Bluebird from 'bluebird';
 import Config from '../config';
 import Application from './application';
 
-import { Network } from '../compose/network';
-import { Service } from '../compose/service';
-import { ComposeVolume } from '../compose/volumes';
+import { Network } from './network';
+import { Service } from './service';
+import { ComposeVolume } from './volumes';
 
 import * as updateLock from '../lib/update-lock';
 
