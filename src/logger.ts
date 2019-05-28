@@ -13,6 +13,7 @@ import {
 	LogBackend,
 	LogMessage,
 } from './logging';
+import LogMonitor from './logging/monitor';
 
 interface LoggerSetupOptions {
 	apiEndpoint: string;
@@ -38,11 +39,13 @@ export class Logger {
 	private eventTracker: EventTracker;
 	private db: DB;
 	private containerLogs: { [containerId: string]: ContainerLogs } = {};
+	private logMonitor: LogMonitor;
 
 	public constructor({ db, eventTracker }: LoggerConstructOptions) {
 		this.backend = null;
 		this.eventTracker = eventTracker;
 		this.db = db;
+		this.logMonitor = new LogMonitor(db);
 	}
 
 	public init({
@@ -151,28 +154,17 @@ export class Logger {
 
 				// Take the timestamp and set it in the database as the last
 				// log sent for this
-				await this.db
-					.models('containerLogs')
-					.where({ containerId })
-					.update({ lastSentTimestamp: logMessage.timestamp });
+				this.logMonitor.updateContainerSentTimestamp(
+					containerId,
+					logMessage.timestamp,
+				);
 			});
 
 			logs.on('closed', () => delete this.containerLogs[containerId]);
 
-			// Get the timestamp of the last sent log for this container
-			let [timestampObj] = await this.db
-				.models('containerLogs')
-				.select('lastSentTimestamp')
-				.where({ containerId });
-
-			if (timestampObj == null) {
-				timestampObj = { lastSentTimestamp: 0 };
-				// Create the row so we have something to update
-				await this.db
-					.models('containerLogs')
-					.insert({ containerId, lastSentTimestamp: 0 });
-			}
-			const { lastSentTimestamp } = timestampObj;
+			const lastSentTimestamp = await this.logMonitor.getContainerSentTimestamp(
+				containerId,
+			);
 			return logs.attach(lastSentTimestamp);
 		});
 	}
