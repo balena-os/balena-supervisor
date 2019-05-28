@@ -1,4 +1,21 @@
 - commits:
+    - subject: 'Add wrapper around container logs saving, to reduce db load'
+      hash: 827967805246f6bc890df90dadf1c58b313521ad
+      body: |
+        Changes are collected together and exist in memory, for querying and
+        saving. Once every 10 mins, every changed timestamp is flushed to the
+        database.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#987'
+        closes: '#987'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.6
+  date: 2019-05-28T14:57:25.572Z
+- commits:
     - subject: 'docs: remove legacy waffle link & gitter chat from README'
       hash: e0f875f07ba10098bd29e6d748dafc50fa6d02d3
       body: ''
