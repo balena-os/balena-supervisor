@@ -72,4 +72,4 @@ HEALTHCHECK --interval=5m --start-period=1m --timeout=30s --retries=3 \
 
 RUN [ "cross-build-end" ]
 
-CMD DEBUG=1 ./entry.sh
+CMD DEBUG=1 ./entry.sh || while true; do echo 'Supervisor runtime exited - waiting for changes'; sleep 100; done;
