@@ -166,6 +166,10 @@ export const schemaTypes = {
 		type: PermissiveBoolean,
 		default: false,
 	},
+	mixpanelReport: {
+		type: PermissiveBoolean,
+		default: true,
+	},
 
 	// Function schema types
 	// The type should be the value that the promise resolves

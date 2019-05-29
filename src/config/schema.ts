@@ -190,6 +190,11 @@ export const schema = {
 		mutable: true,
 		removeIfNull: false,
 	},
+	mixpanelReport: {
+		source: 'db',
+		mutable: true,
+		removeIfNull: false,
+	},
 };
 
 export type Schema = typeof schema;
