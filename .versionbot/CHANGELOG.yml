@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add a controlling variable for mixpanel reporting
+      hash: 1a7ed0f95bb24474ef7326309696da091e68a3d9
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#990'
+        closes: '#990'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.8
+  date: 2019-05-29T10:55:14.997Z
+- commits:
     - subject: Update balena-supervisor-base to v1.4.7
       hash: a4563a78c39a20e815e5347229445df29282008e
       body: ''
