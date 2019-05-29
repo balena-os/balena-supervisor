@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update balena-supervisor-base to v1.4.7
+      hash: a4563a78c39a20e815e5347229445df29282008e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.7
+  date: 2019-05-29T09:04:10.686Z
+- commits:
     - subject: 'Add wrapper around container logs saving, to reduce db load'
       hash: 827967805246f6bc890df90dadf1c58b313521ad
       body: |
