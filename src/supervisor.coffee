@@ -1,3 +1,5 @@
+_ = require 'lodash'
+
 EventEmitter = require 'events'
 
 { EventTracker } = require './event-tracker'
@@ -64,7 +66,7 @@ module.exports = class Supervisor extends EventEmitter
 			# so we leave a trail of breadcrumbs in the logs in case runtime
 			# fails to get to the first dashboard logs
 			console.log('Starting event tracker')
-			@eventTracker.init(conf)
+			@eventTracker.init(_.assign({}, conf, { @config }))
 			.then =>
 				console.log('Starting up api binder')
 				@apiBinder.initClient()

@@ -1,10 +1,10 @@
-import * as Bluebird from 'bluebird';
 import mask = require('json-mask');
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
 
 import Mixpanel = require('mixpanel');
 
+import Config from './config';
 import supervisorVersion = require('./lib/supervisor-version');
 
 export type EventTrackProperties = Dictionary<any>;
@@ -14,6 +14,7 @@ interface InitArgs {
 	unmanaged: boolean;
 	mixpanelHost: { host: string; path: string } | null;
 	mixpanelToken: string;
+	config: Config;
 }
 
 // The minimum amount of time to wait between sending
@@ -34,31 +35,45 @@ const mixpanelMask = [
 export class EventTracker {
 	private defaultProperties: EventTrackProperties | null;
 	private client: any;
+	private isEnabled: boolean = true;
 
 	public constructor() {
 		this.client = null;
 		this.defaultProperties = null;
 	}
 
-	public init({
+	public async init({
 		unmanaged,
 		mixpanelHost,
 		mixpanelToken,
 		uuid,
-	}: InitArgs): Bluebird<void> {
-		return Bluebird.try(() => {
-			this.defaultProperties = {
-				distinct_id: uuid,
-				uuid,
-				supervisorVersion,
-			};
-			if (unmanaged || mixpanelHost == null) {
-				return;
+		config,
+	}: InitArgs): Promise<void> {
+		this.defaultProperties = {
+			distinct_id: uuid,
+			uuid,
+			supervisorVersion,
+		};
+		if (unmanaged || mixpanelHost == null) {
+			return;
+		}
+		this.client = Mixpanel.init(mixpanelToken, {
+			host: mixpanelHost.host,
+			path: mixpanelHost.path,
+		});
+
+		this.isEnabled = await config.get('mixpanelReport');
+		console.log(
+			`Mixpanel reporting is ${this.isEnabled ? 'enabled' : 'disabled'}`,
+		);
+		config.on('change', conf => {
+			const mixpanelReport = conf.mixpanelReport;
+			if (mixpanelReport != null && mixpanelReport !== this.isEnabled) {
+				this.isEnabled = mixpanelReport;
+				console.log(
+					`${mixpanelReport ? 'A' : 'Dea'}ctivating mixpanel reporting`,
+				);
 			}
-			this.client = Mixpanel.init(mixpanelToken, {
-				host: mixpanelHost.host,
-				path: mixpanelHost.path,
-			});
 		});
 	}
 
@@ -79,7 +94,7 @@ export class EventTracker {
 		// Don't send potentially sensitive information, by using a whitelist
 		properties = mask(properties, mixpanelMask);
 		this.logEvent('Event:', event, JSON.stringify(properties));
-		if (this.client == null) {
+		if (this.client == null || !this.isEnabled) {
 			return;
 		}
 
