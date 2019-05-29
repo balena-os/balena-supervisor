@@ -50,9 +50,20 @@ function extractMessage(msgBuf) {
 	return;
 }
 
+let changedFiles = [];
+let deletedFiles = [];
+
+const performLivepush = _.debounce(async livepush => {
+	await livepush.performLivepush(changedFiles, deletedFiles);
+	changedFiles = [];
+	deletedFiles = [];
+}, 1000);
+
 (async () => {
+	console.log('Starting up...');
 	// Get the supervisor container id
 	const container = await docker.getContainer('resin_supervisor').inspect();
+	console.log('Supervisor container id: ', container.Id);
 	const containerId = container.Id;
 	const image = container.Image;
 
@@ -67,20 +78,22 @@ function extractMessage(msgBuf) {
 		docker,
 	);
 
-	// TODO: Debounce these calls
 	chokidar
 		.watch('.', {
 			ignored: /((^|[\/\\])\..|node_modules.*)/,
-			ignoreInitial: true,
+			ignoreInitial: false,
 		})
 		.on('add', path => {
-			livepush.performLivepush([path], []);
+			changedFiles.push(path);
+			performLivepush(livepush);
 		})
 		.on('change', path => {
-			livepush.performLivepush([path], []);
+			changedFiles.push(path);
+			performLivepush(livepush);
 		})
 		.on('unlink', path => {
-			livepush.performLivepush([], [path]);
+			deletedFiles.push(path);
+			performLivepush(livepush);
 		});
 
 	livepush.on('commandExecute', ({ command }) => {
