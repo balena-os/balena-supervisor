@@ -1,4 +1,19 @@
 - commits:
+    - subject: Update and improve debug and development tools
+      hash: 392c56b4d38bab367429d4b9bdaf2ee2c7fa18e6
+      body: |
+        Add a debounce to the livepush invocations, execute on start and also
+        add a wait on the supervisor CMD line for those rare occassions where
+        the supervisor enters a restart loop.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.9
+  date: 2019-05-29T14:07:45.253Z
+- commits:
     - subject: Add a controlling variable for mixpanel reporting
       hash: 1a7ed0f95bb24474ef7326309696da091e68a3d9
       body: ''
