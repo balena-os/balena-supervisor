@@ -113,7 +113,7 @@ RUN [ "cross-build-end" ]
 ##############################################################################
 
 # Minimal runtime image
-FROM balena/$ARCH-supervisor-base:v1.4.6
+FROM balena/$ARCH-supervisor-base:v1.4.7
 ARG ARCH
 ARG VERSION=master
 ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
