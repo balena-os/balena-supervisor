@@ -2,6 +2,8 @@ import * as Bluebird from 'bluebird';
 import * as fs from 'fs';
 import * as _ from 'lodash';
 
+import log from './supervisor-console';
+
 // FIXME: Don't use synchronous file reading and change call sites to support a promise
 function getOSReleaseField(path: string, field: string): string | undefined {
 	try {
@@ -21,7 +23,7 @@ function getOSReleaseField(path: string, field: string): string | undefined {
 		// Remove enclosing quotes: http://stackoverflow.com/a/19156197/2549019
 		return releaseItems[field].replace(/^"(.+(?="$))"$/, '$1');
 	} catch (err) {
-		console.log('Could not get OS release field: ', err.message);
+		log.error('Could not get OS release field: ', err);
 		return;
 	}
 }

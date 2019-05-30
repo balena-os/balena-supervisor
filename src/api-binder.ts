@@ -27,6 +27,8 @@ import { DeviceApplicationState } from './types/state';
 
 import { SchemaReturn as ConfigSchemaType } from './config/schema-type';
 
+import log from './lib/supervisor-console';
+
 const REPORT_SUCCESS_DELAY = 1000;
 const MAX_REPORT_RETRY_DELAY = 60000;
 
@@ -143,7 +145,7 @@ export class APIBinder {
 		);
 
 		if (unmanaged) {
-			console.log('Unmanaged mode is set, skipping API client initialization');
+			log.debug('Unmanaged mode is set, skipping API client initialization');
 			return;
 		}
 
@@ -167,11 +169,11 @@ export class APIBinder {
 			if (!exists) {
 				return;
 			}
-			console.log('Migration backup detected');
+			log.info('Migration backup detected');
 			const targetState = await this.getTargetState();
 			await this.deviceState.restoreBackup(targetState);
 		} catch (err) {
-			console.log('Error restoring migration backup, retrying: ', err);
+			log.error(`Error restoring migration backup, retrying: ${err}`);
 
 			await Bluebird.delay(retryDelay);
 			return this.loadBackupFromMigration(retryDelay);
@@ -188,7 +190,7 @@ export class APIBinder {
 		const { unmanaged, bootstrapRetryDelay } = conf;
 
 		if (unmanaged) {
-			console.log('Unmanaged mode is set, skipping API binder initialization');
+			log.info('Unmanaged mode is set, skipping API binder initialization');
 			// If we are offline because there is no apiEndpoint, there's a chance
 			// we've went through a deprovision. We need to set the initialConfigReported
 			// value to '', to ensure that when we do re-provision, we'll report
@@ -199,7 +201,7 @@ export class APIBinder {
 			return;
 		}
 
-		console.log('Ensuring device is provisioned');
+		log.debug('Ensuring device is provisioned');
 		await this.provisionDevice();
 		const conf2 = await this.config.getMany([
 			'initialConfigReported',
@@ -210,17 +212,17 @@ export class APIBinder {
 
 		// Either we haven't reported our initial config or we've been re-provisioned
 		if (apiEndpoint !== initialConfigReported) {
-			console.log('Reporting initial configuration');
+			log.info('Reporting initial configuration');
 			await this.reportInitialConfig(apiEndpoint, bootstrapRetryDelay);
 		}
 
-		console.log('Starting current state report');
+		log.debug('Starting current state report');
 		await this.startCurrentStateReport();
 
 		await this.loadBackupFromMigration(bootstrapRetryDelay);
 
 		this.readyForUpdates = true;
-		console.log('Starting target state poll');
+		log.debug('Starting target state poll');
 		this.startTargetStatePoll();
 	}
 
@@ -506,7 +508,7 @@ export class APIBinder {
 				// We don't want this to be classed as a report error, as this will cause
 				// the watchdog to kill the supervisor - and killing the supervisor will
 				// not help in this situation
-				console.error(
+				log.error(
 					`Non-200 response from API! Status code: ${e.statusCode} - message: ${
 						e.message
 					}`,
@@ -564,7 +566,7 @@ export class APIBinder {
 			}
 		})
 			.tapCatch(err => {
-				console.error(`Failed to get target state for device: ${err}`);
+				log.error(`Failed to get target state for device: ${err}`);
 			})
 			.finally(() => {
 				this.lastTargetStateFetch = process.hrtime();
@@ -645,8 +647,7 @@ export class APIBinder {
 			// task has been completed
 			await this.config.remove('pinDevice');
 		} catch (e) {
-			console.log('Could not pin device to release!');
-			console.log('Error: ', e);
+			log.error(`Could not pin device to release! ${e}`);
 			throw e;
 		}
 	}
@@ -713,7 +714,7 @@ export class APIBinder {
 		try {
 			await this.reportInitialEnv(apiEndpoint);
 		} catch (err) {
-			console.error('Error reporting initial configuration, will retry', err);
+			log.error('Error reporting initial configuration, will retry', err);
 			await Bluebird.delay(retryDelay);
 			await this.reportInitialConfig(apiEndpoint, retryDelay);
 		}
@@ -791,11 +792,11 @@ export class APIBinder {
 	): Promise<Device> {
 		try {
 			const device = await this.exchangeKeyAndGetDevice(opts);
-			console.log('Key exchange succeeded');
+			log.debug('Key exchange succeeded');
 			return device;
 		} catch (e) {
 			if (e instanceof ExchangeKeyError) {
-				console.log('Exchanging key failed, re-registering...');
+				log.error('Exchanging key failed, re-registering...');
 				await this.config.regenerateRegistrationFields();
 			}
 			throw e;
@@ -804,7 +805,6 @@ export class APIBinder {
 
 	private async provision() {
 		let device: Device | null = null;
-		// FIXME: Config typing
 		const opts = await this.config.get('provisioningOptions');
 		if (
 			opts.registered_at == null ||
@@ -812,17 +812,17 @@ export class APIBinder {
 			opts.provisioningApiKey != null
 		) {
 			if (opts.registered_at != null && opts.deviceId == null) {
-				console.log(
+				log.debug(
 					'Device is registered but no device id available, attempting key exchange',
 				);
 				device = (await this.exchangeKeyAndGetDeviceOrRegenerate(opts)) || null;
 			} else if (opts.registered_at == null) {
-				console.log('New device detected. Provisioning...');
+				log.info('New device detected. Provisioning...');
 				try {
 					device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
 				} catch (err) {
 					if (DuplicateUuidError(err)) {
-						console.log('UUID already registered, trying a key exchange');
+						log.debug('UUID already registered, trying a key exchange');
 						device = await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
 					} else {
 						throw err;
@@ -830,7 +830,7 @@ export class APIBinder {
 				}
 				opts.registered_at = Date.now();
 			} else if (opts.provisioningApiKey != null) {
-				console.log(
+				log.debug(
 					'Device is registered but we still have an apiKey, attempting key exchange',
 				);
 				device = await this.exchangeKeyAndGetDevice(opts);
@@ -864,12 +864,12 @@ export class APIBinder {
 
 		if (pinValue != null) {
 			if (pinValue.app == null || pinValue.commit == null) {
-				console.log(
+				log.error(
 					`Malformed pinDevice fields in supervisor database: ${pinValue}`,
 				);
 				return;
 			}
-			console.log('Attempting to pin device to preloaded release...');
+			log.info('Attempting to pin device to preloaded release...');
 			return this.pinDevice(pinValue);
 		}
 	}
@@ -932,7 +932,7 @@ export class APIBinder {
 								.catch(_.noop);
 							res.sendStatus(204);
 						} else {
-							console.log(
+							log.debug(
 								'Ignoring update notification because instant updates are disabled',
 							);
 							res.sendStatus(202);

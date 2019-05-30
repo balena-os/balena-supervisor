@@ -22,6 +22,8 @@ import { checkInt, isValidDeviceName } from '../lib/validation';
 import { Service } from './service';
 import { serviceNetworksToDockerNetworks } from './utils';
 
+import log from '../lib/supervisor-console';
+
 interface ServiceConstructOpts {
 	docker: Docker;
 	logger: Logger;
@@ -388,7 +390,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			});
 
 			stream.on('error', e => {
-				console.error(`Error on docker events stream:`, e);
+				log.error(`Error on docker events stream:`, e);
 			});
 			const parser = JSONStream.parse();
 			parser.on('data', async (data: { status: string; id: string }) => {
@@ -434,7 +436,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 								}
 							}
 						} catch (e) {
-							console.error('Error on docker event:', e, e.stack);
+							log.error('Error on docker event:', e, e.stack);
 						}
 					}
 				}
@@ -443,7 +445,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			return new Promise((resolve, reject) => {
 				parser
 					.on('error', (e: Error) => {
-						console.error('Error on docker events stream:', e);
+						log.error('Error on docker events stream:', e);
 						reject(e);
 					})
 					.on('end', resolve);
@@ -453,7 +455,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 
 		Bluebird.resolve(listen())
 			.catch(e => {
-				console.error('Error listening to events:', e, e.stack);
+				log.error('Error listening to events:', e, e.stack);
 			})
 			.finally(() => {
 				this.listening = false;
@@ -645,7 +647,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 					await Bluebird.delay(pollInterval);
 					return wait();
 				} else {
-					console.log(
+					log.info(
 						`Handover timeout has passed, assuming handover was completed for service ${
 							service.serviceName
 						}`,
@@ -653,14 +655,14 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				}
 			});
 
-		console.log(
+		log.info(
 			`Waiting for handover to be completed for service: ${
 				service.serviceName
 			}`,
 		);
 
 		return wait().then(() => {
-			console.log(`Handover complete for service ${service.serviceName}`);
+			log.success(`Handover complete for service ${service.serviceName}`);
 		});
 	}
 }

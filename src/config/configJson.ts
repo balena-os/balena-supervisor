@@ -10,6 +10,8 @@ import * as constants from '../lib/constants';
 import { writeAndSyncFile, writeFileAtomic } from '../lib/fs-utils';
 import * as osRelease from '../lib/os-release';
 
+import log from '../lib/supervisor-console';
+
 export default class ConfigJsonConfigBackend {
 	private readLockConfigJson: () => Promise.Disposer<() => void>;
 	private writeLockConfigJson: () => Promise.Disposer<() => void>;
@@ -88,7 +90,7 @@ export default class ConfigJsonConfigBackend {
 
 	public path(): Promise<string> {
 		return this.pathOnHost().catch(err => {
-			console.error(err.message);
+			log.error('There was an error detecting the config.json path', err);
 			return constants.configJsonNonAtomicPath;
 		});
 	}
@@ -97,7 +99,7 @@ export default class ConfigJsonConfigBackend {
 		let atomicWritePossible = true;
 		return this.pathOnHost()
 			.catch(err => {
-				console.error(err.message);
+				log.error('There was an error detecting the config.json path', err);
 				atomicWritePossible = false;
 				return constants.configJsonNonAtomicPath;
 			})

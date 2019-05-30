@@ -16,6 +16,8 @@ import {
 	ServiceHealthcheck,
 } from './types/service';
 
+import log from '../lib/supervisor-console';
+
 export function camelCaseConfig(
 	literalConfig: ConfigMap,
 ): ServiceComposeConfig {
@@ -80,9 +82,7 @@ export function createRestartPolicy(name?: string): string {
 	// Ensure that name is a string, otherwise the below could
 	// throw
 	if (!_.isString(name)) {
-		console.log(
-			`Warning: Non-string argument for restart field: ${name} - ignoring.`,
-		);
+		log.warn(`Non-string argument for restart field: ${name} - ignoring.`);
 		return 'always';
 	}
 

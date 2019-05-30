@@ -11,6 +11,8 @@ import { checkTruthy } from './lib/validation';
 
 import blink = require('./lib/blink');
 
+import log from './lib/supervisor-console';
+
 const networkPattern = {
 	blinks: 4,
 	pause: 1000,
@@ -57,13 +59,13 @@ export const startConnectivityCheck = _.once(
 	) => {
 		enableConnectivityCheck(enable);
 		if (!apiEndpoint) {
-			console.log('No API endpoint specified, skipping connectivity check');
+			log.debug('No API endpoint specified, skipping connectivity check');
 			return;
 		}
 
 		await Bluebird.resolve(fs.mkdir(constants.vpnStatusPath))
 			.catch(EEXIST, () => {
-				console.log('VPN status path exists.');
+				log.debug('VPN status path exists.');
 			})
 			.then(() => {
 				fs.watch(constants.vpnStatusPath, vpnStatusInotifyCallback);
@@ -88,10 +90,10 @@ export const startConnectivityCheck = _.once(
 					onChangeCallback(connected);
 				}
 				if (connected) {
-					console.log('Internet Connectivity: OK');
+					log.info('Internet Connectivity: OK');
 					blink.pattern.stop();
 				} else {
-					console.log('Waiting for connectivity...');
+					log.info('Waiting for connectivity...');
 					blink.pattern.start(networkPattern);
 				}
 			},
@@ -103,7 +105,7 @@ export function enableConnectivityCheck(enable: boolean) {
 	const boolEnable = checkTruthy(enable);
 	enable = boolEnable != null ? boolEnable : true;
 	enableCheck(enable);
-	console.log(`Connectivity check enabled: ${enable}`);
+	log.debug(`Connectivity check enabled: ${enable}`);
 }
 
 export const connectivityCheckEnabled = Bluebird.method(

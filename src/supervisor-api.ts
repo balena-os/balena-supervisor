@@ -9,6 +9,8 @@ import blink = require('./lib/blink');
 import * as iptables from './lib/iptables';
 import { checkTruthy } from './lib/validation';
 
+import log from './lib/supervisor-console';
+
 function getKeyFromReq(req: express.Request): string | null {
 	const queryKey = req.query.apikey;
 	if (queryKey != null) {
@@ -54,16 +56,19 @@ function authenticate(config: Config): express.RequestHandler {
 	};
 }
 
-const expressLogger = morgan((tokens, req, res) =>
-	[
-		'Supervisor API:',
-		tokens.method(req, res),
-		req.path,
-		tokens.status(req, res),
-		'-',
-		tokens['response-time'](req, res),
-		'ms',
-	].join(' '),
+const expressLogger = morgan(
+	(tokens, req, res) =>
+		[
+			tokens.method(req, res),
+			req.path,
+			tokens.status(req, res),
+			'-',
+			tokens['response-time'](req, res),
+			'ms',
+		].join(' '),
+	{
+		stream: { write: d => log.api(d.toString().trimRight()) },
+	},
 );
 
 interface SupervisorAPIConstructOpts {
@@ -169,16 +174,16 @@ export class SupervisorAPI {
 		try {
 			if (checkTruthy(allInterfaces)) {
 				await iptables.removeRejections(port);
-				console.log('Supervisor API listening on all interfaces');
+				log.debug('Supervisor API listening on all interfaces');
 			} else {
 				await iptables.rejectOnAllInterfacesExcept(allowedInterfaces, port);
-				console.log('Supervisor API listening on allowed interfaces only');
+				log.debug('Supervisor API listening on allowed interfaces only');
 			}
 		} catch (err) {
-			console.log(
-				'Error on switching supervisor API listening rules - stopping API.',
+			log.error(
+				'Error on switching supervisor API listening rules - stopping API.\n',
+				err,
 			);
-			console.log('  ', err);
 			this.stop();
 		}
 	}

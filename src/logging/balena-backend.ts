@@ -7,6 +7,8 @@ import * as zlib from 'zlib';
 
 import { LogBackend, LogMessage } from './log-backend';
 
+import log from '../lib/supervisor-console';
+
 const ZLIB_TIMEOUT = 100;
 const COOLDOWN_PERIOD = 5 * 1000;
 const KEEPALIVE_TIMEOUT = 60 * 1000;
@@ -105,7 +107,7 @@ export class BalenaLogBackend extends LogBackend {
 		// only reason for the server to prematurely respond is to
 		// communicate an error. So teardown the connection immediately
 		this.req.on('response', res => {
-			console.log(
+			log.error(
 				'LogBackend: server responded with status code:',
 				res.statusCode,
 			);
@@ -115,7 +117,7 @@ export class BalenaLogBackend extends LogBackend {
 		this.req.on('timeout', () => this.teardown());
 		this.req.on('close', () => this.teardown());
 		this.req.on('error', err => {
-			console.log('LogBackend: unexpected error:', err);
+			log.error('LogBackend: unexpected error:', err);
 			this.teardown();
 		});
 

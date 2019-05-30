@@ -16,6 +16,8 @@ import {
 import { request, requestLib, resumable } from './request';
 import { EnvVarObject } from './types';
 
+import log from './supervisor-console';
+
 export type FetchOptions = SchemaReturn<'fetchOptions'>;
 export type DeltaFetchOptions = FetchOptions & {
 	deltaSourceId: string;
@@ -77,11 +79,11 @@ export class DockerUtils extends DockerToolbelt {
 
 		const timeout = deltaOpts.deltaApplyTimeout;
 
-		const log = (str: string) =>
-			console.log(`delta([${serviceName}] ${deltaOpts.deltaSource}): ${str}`);
+		const logFn = (str: string) =>
+			log.debug(`delta([${serviceName}] ${deltaOpts.deltaSource}): ${str}`);
 
 		if (!_.includes([2, 3], deltaOpts.deltaVersion)) {
-			log(
+			logFn(
 				`Unsupported delta version: ${
 					deltaOpts.deltaVersion
 				}. Failling back to regular pull`,
@@ -92,12 +94,12 @@ export class DockerUtils extends DockerToolbelt {
 		// Since the supevisor never calls this function with a source anymore,
 		// this should never happen, but w ehandle it anyway
 		if (deltaOpts.deltaSource == null) {
-			log('Falling back to regular pull due to lack of a delta source');
+			logFn('Falling back to regular pull due to lack of a delta source');
 			return this.fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 		}
 
 		const docker = this;
-		log(`Starting delta to ${imgDest}`);
+		logFn(`Starting delta to ${imgDest}`);
 
 		const [dstInfo, srcInfo] = await Promise.all([
 			this.getRegistryAndName(imgDest),
@@ -153,7 +155,7 @@ export class DockerUtils extends DockerToolbelt {
 						timeout,
 						resumeOpts,
 						onProgress,
-						log,
+						logFn,
 					);
 					break;
 				case 3:
@@ -177,7 +179,7 @@ export class DockerUtils extends DockerToolbelt {
 						name,
 						token,
 						onProgress,
-						log,
+						logFn,
 					);
 					break;
 				default:
@@ -187,19 +189,19 @@ export class DockerUtils extends DockerToolbelt {
 			}
 		} catch (e) {
 			if (e instanceof OutOfSyncError) {
-				log('Falling back to regular pull due to delta out of sync error');
+				logFn('Falling back to regular pull due to delta out of sync error');
 				return await this.fetchImageWithProgress(
 					imgDest,
 					deltaOpts,
 					onProgress,
 				);
 			} else {
-				log(`Delta failed with ${e}`);
+				logFn(`Delta failed with ${e}`);
 				throw e;
 			}
 		}
 
-		log(`Delta applied successfully`);
+		logFn(`Delta applied successfully`);
 		return id;
 	}
 
@@ -228,7 +230,7 @@ export class DockerUtils extends DockerToolbelt {
 		try {
 			return envArrayToObject(_.get(inspect, ['Config', 'Env'], []));
 		} catch (e) {
-			console.log('Error getting env from image', e, e.stack);
+			log.error('Error getting env from image', e);
 			return {};
 		}
 	}
@@ -259,9 +261,9 @@ export class DockerUtils extends DockerToolbelt {
 		applyTimeout: number,
 		opts: RsyncApplyOptions,
 		onProgress: ProgressCallback,
-		log: (str: string) => void,
+		logFn: (str: string) => void,
 	): Promise<string> {
-		log('Applying rsync delta...');
+		logFn('Applying rsync delta...');
 
 		return new Promise((resolve, reject) => {
 			const req = resumable(Object.assign({ url: deltaUrl }, opts));
@@ -280,14 +282,14 @@ export class DockerUtils extends DockerToolbelt {
 						reject(new Error('Invalid delta URL'));
 					} else {
 						const deltaStream = applyDelta(imgSrc, {
-							log,
+							log: logFn,
 							timeout: applyTimeout,
 						});
 						res
 							.pipe(deltaStream)
 							.on('id', id => resolve(`sha256:${id}`))
 							.on('error', err => {
-								log(`Delta stream emitted error: ${err}`);
+								logFn(`Delta stream emitted error: ${err}`);
 								req.abort();
 								reject(err);
 							});
@@ -301,13 +303,13 @@ export class DockerUtils extends DockerToolbelt {
 		deltaImg: string,
 		token: string | null,
 		onProgress: ProgressCallback,
-		log: (str: string) => void,
+		logFn: (str: string) => void,
 	): Promise<string> {
-		log('Applying balena delta...');
+		logFn('Applying balena delta...');
 
 		let auth: Dictionary<unknown> | undefined;
 		if (token != null) {
-			log('Using registry auth token');
+			logFn('Using registry auth token');
 			auth = {
 				authconfig: {
 					registrytoken: token,

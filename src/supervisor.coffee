@@ -10,6 +10,9 @@ DeviceState = require './device-state'
 { SupervisorAPI } = require './supervisor-api'
 { Logger } = require './logger'
 
+version = require './lib/supervisor-version'
+{ log } = require './lib/supervisor-console'
+
 constants = require './lib/constants'
 
 startupConfigFields = [
@@ -56,6 +59,9 @@ module.exports = class Supervisor extends EventEmitter
 		})
 
 	init: =>
+
+		log.info("Supervisor v#{version} starting up...")
+
 		@db.init()
 		.tap =>
 			@config.init() # Ensures uuid, deviceApiKey, apiSecret
@@ -65,13 +71,13 @@ module.exports = class Supervisor extends EventEmitter
 			# We can't print to the dashboard until the logger has started up,
 			# so we leave a trail of breadcrumbs in the logs in case runtime
 			# fails to get to the first dashboard logs
-			console.log('Starting event tracker')
+			log.debug('Starting event tracker')
 			@eventTracker.init(_.assign({}, conf, { @config }))
 			.then =>
-				console.log('Starting up api binder')
+				log.debug('Starting up api binder')
 				@apiBinder.initClient()
 			.then =>
-				console.log('Starting logging infrastructure')
+				log.debug('Starting logging infrastructure')
 				@logger.init({
 					apiEndpoint: conf.apiEndpoint,
 					uuid: conf.uuid,
@@ -84,13 +90,13 @@ module.exports = class Supervisor extends EventEmitter
 				@logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start')
 			.then =>
 				if conf.legacyAppsPresent
-					console.log('Legacy app detected, running migration')
+					log.info('Legacy app detected, running migration')
 					@deviceState.normaliseLegacy(@apiBinder.balenaApi)
 			.then =>
 				@deviceState.init()
 			.then =>
 				# initialize API
-				console.log('Starting API server')
+				log.info('Starting API server')
 				@api.listen(constants.allowedInterfaces, conf.listenPort, conf.apiTimeout)
 				@deviceState.on('shutdown', => @api.stop())
 			.then =>

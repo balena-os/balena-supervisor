@@ -2,6 +2,8 @@ import * as _ from 'lodash';
 
 import { ConfigMap, ServiceComposeConfig } from './types/service';
 
+import log from '../lib/supervisor-console';
+
 // TODO: Generate these fields from the interface we define
 // in service-types.
 const supportedComposeFields = [
@@ -71,10 +73,8 @@ export function sanitiseComposeConfig(
 	}) as ServiceComposeConfig;
 
 	if (filtered.length > 0) {
-		console.log(
-			`Warning: Ignoring unsupported or unknown compose fields: ${filtered.join(
-				', ',
-			)}`,
+		log.warn(
+			`Ignoring unsupported or unknown compose fields: ${filtered.join(', ')}`,
 		);
 	}
 

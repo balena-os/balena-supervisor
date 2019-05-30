@@ -12,6 +12,7 @@ import {
 } from '../lib/messages';
 import { doPurge, doRestart, serviceAction } from './common';
 
+import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
@@ -193,8 +194,11 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				images.forEach(img => {
 					const appName = appNameById[img.appId];
 					if (appName == null) {
-						console.log('Image found for unknown application!');
-						console.log('  Image: ', JSON.stringify(img));
+						log.warn(
+							`Image found for unknown application!\nImage: ${JSON.stringify(
+								img,
+							)}`,
+						);
 						return;
 					}
 

@@ -8,6 +8,8 @@ import { ENOENT, NotFoundError } from '../lib/errors';
 import { Logger } from '../logger';
 import { Network, NetworkOptions } from './network';
 
+import log from '../lib/supervisor-console';
+
 export class NetworkManager {
 	private docker: Docker;
 	private logger: Logger;
@@ -101,7 +103,7 @@ export class NetworkManager {
 				}
 			})
 			.catch(NotFoundError, () => {
-				console.log(`Creating ${constants.supervisorNetworkInterface} network`);
+				log.debug(`Creating ${constants.supervisorNetworkInterface} network`);
 				return Bluebird.resolve(
 					this.docker.createNetwork({
 						Name: constants.supervisorNetworkInterface,

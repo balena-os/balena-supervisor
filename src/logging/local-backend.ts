@@ -5,6 +5,8 @@ import { Readable } from 'stream';
 import { checkInt } from '../lib/validation';
 import { LogBackend, LogMessage } from './log-backend';
 
+import log from '../lib/supervisor-console';
+
 export class LocalLogBackend extends LogBackend {
 	private globalListeners: Readable[] = [];
 
@@ -21,10 +23,10 @@ export class LocalLogBackend extends LogBackend {
 					}
 					const svcId = checkInt(message.serviceId);
 					if (svcId == null) {
-						console.log(
-							'Warning: Non-integer service id found in local logs: ',
+						log.warn(
+							'Non-integer service id found in local logs:\n',
+							JSON.stringify(message),
 						);
-						console.log(`   ${JSON.stringify(message)}`);
 						return null;
 					}
 					// TODO: Can we cache this value? The service ids are reused, so
@@ -44,7 +46,7 @@ export class LocalLogBackend extends LogBackend {
 					}
 				})
 				.catch(e => {
-					console.log('Error streaming local log output: ', e);
+					log.error('Error streaming local log output:', e);
 				});
 		}
 	}

@@ -11,6 +11,8 @@ bodyParser = require 'body-parser'
 execAsync = Promise.promisify(require('child_process').exec)
 url = require 'url'
 
+{ log } = require './lib/supervisor-console'
+
 isDefined = _.negate(_.isUndefined)
 
 parseDeviceFields = (device) ->
@@ -110,7 +112,7 @@ createProxyvisorRouter = (proxyvisor) ->
 			.then ->
 				res.status(201).send(dev)
 		.catch (err) ->
-			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			log.error("Error on #{req.method} #{url.parse(req.url).pathname}", err)
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	router.get '/v1/devices/:uuid', (req, res) ->
@@ -121,7 +123,7 @@ createProxyvisorRouter = (proxyvisor) ->
 			return res.status(410).send('Device deleted') if device.markedForDeletion
 			res.json(parseDeviceFields(device))
 		.catch (err) ->
-			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			log.error("Error on #{req.method} #{url.parse(req.url).pathname}", err)
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	router.post '/v1/devices/:uuid/logs', (req, res) ->
@@ -139,7 +141,7 @@ createProxyvisorRouter = (proxyvisor) ->
 			proxyvisor.logger.logDependent(m, uuid)
 			res.status(202).send('OK')
 		.catch (err) ->
-			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			log.error("Error on #{req.method} #{url.parse(req.url).pathname}", err)
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	router.put '/v1/devices/:uuid', (req, res) ->
@@ -192,7 +194,7 @@ createProxyvisorRouter = (proxyvisor) ->
 			.then ([ device ]) ->
 				res.json(parseDeviceFields(device))
 		.catch (err) ->
-			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			log.error("Error on #{req.method} #{url.parse(req.url).pathname}", err)
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	router.get '/v1/dependent-apps/:appId/assets/:commit', (req, res) ->
@@ -207,7 +209,7 @@ createProxyvisorRouter = (proxyvisor) ->
 			.then ->
 				res.sendFile(dest)
 		.catch (err) ->
-			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			log.error("Error on #{req.method} #{url.parse(req.url).pathname}", err)
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	router.get '/v1/dependent-apps', (req, res) ->
@@ -222,7 +224,7 @@ createProxyvisorRouter = (proxyvisor) ->
 		.then (apps) ->
 			res.json(apps)
 		.catch (err) ->
-			console.error("Error on #{req.method} #{url.parse(req.url).pathname}", err, err.stack)
+			log.error("Error on #{req.method} #{url.parse(req.url).pathname}", err)
 			res.status(503).send(err?.message or err or 'Unknown error')
 
 	return router
@@ -605,7 +607,7 @@ module.exports = class Proxyvisor
 				@acknowledgedState[device.uuid] = null
 				throw new Error("Hook returned #{response.statusCode}: #{body}") if response.statusCode != 202
 		.catch (err) ->
-			return console.error("Error updating device #{device.uuid}", err, err.stack)
+			return log.error("Error updating device #{device.uuid}", err)
 
 	sendDeleteHook: ({ uuid }, timeout, endpoint) =>
 		request.delAsync("#{endpoint}#{uuid}")
@@ -616,7 +618,7 @@ module.exports = class Proxyvisor
 			else
 				throw new Error("Hook returned #{response.statusCode}: #{body}")
 		.catch (err) ->
-			return console.error("Error deleting device #{uuid}", err, err.stack)
+			return log.error("Error deleting device #{uuid}", err)
 
 	sendUpdates: ({ uuid }) =>
 		Promise.join(
@@ -624,7 +626,7 @@ module.exports = class Proxyvisor
 			@config.get('apiTimeout')
 			([ dev ], apiTimeout) =>
 				if !dev?
-					console.log("Warning, trying to send update to non-existent device #{uuid}")
+					log.warn("Trying to send update to non-existent device #{uuid}")
 					return
 				@normaliseDependentDeviceFromDB(dev)
 				.then (device) =>

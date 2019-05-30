@@ -6,6 +6,8 @@ import Config from './config';
 import Database from './db';
 import { Logger } from './logger';
 
+import log from './lib/supervisor-console';
+
 /**
  * This class handles any special cases necessary for switching
  * modes in localMode.
@@ -43,7 +45,7 @@ export class LocalModeManager {
 		// as local mode needs to be set
 		let unmanagedLocalMode = false;
 		if (await this.config.get('unmanaged')) {
-			console.log('Starting up in unmanaged mode, activating local mode');
+			log.info('Starting up in unmanaged mode, activating local mode');
 			await this.config.set({ localMode: true });
 			unmanagedLocalMode = true;
 		}
@@ -64,11 +66,11 @@ export class LocalModeManager {
 			const containers = await this.getLocalModeContainers(images);
 
 			await Bluebird.map(containers, containerId => {
-				console.log('Removing local mode container: ', containerId);
+				log.debug('Removing local mode container: ', containerId);
 				return this.docker.getContainer(containerId).remove({ force: true });
 			});
 			await Bluebird.map(images, imageId => {
-				console.log('Removing local mode image: ', imageId);
+				log.debug('Removing local mode image: ', imageId);
 				return this.docker.getImage(imageId).remove({ force: true });
 			});
 
@@ -78,7 +80,7 @@ export class LocalModeManager {
 				.del()
 				.where({ source: 'local' });
 		} catch (e) {
-			console.log('There was an error clearing local mode artifacts: ', e);
+			log.error('There was an error clearing local mode artifacts: ', e);
 		}
 	}
 
