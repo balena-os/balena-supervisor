@@ -18,6 +18,8 @@ import * as validation from '../lib/validation';
 import Logger from '../logger';
 import { ImageDownloadBackoffError } from './errors';
 
+import log from '../lib/supervisor-console';
+
 interface ImageEvents {
 	change: void;
 }
@@ -214,18 +216,18 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		);
 	}
 
-	private withImagesFromDockerAndDB<T>(
+	private async withImagesFromDockerAndDB<T>(
 		cb: (dockerImages: NormalisedDockerImage[], composeImages: Image[]) => T,
 	) {
-		return Bluebird.join(
-			Bluebird.resolve(this.docker.listImages({ digests: true })).map(image => {
-				const newImage: Dictionary<unknown> = _.clone(image);
-				newImage.NormalisedRepoTags = this.getNormalisedTags(image);
-				return Bluebird.props(newImage);
-			}),
-			this.db.models('image').select(),
-			cb,
-		);
+		const images = await this.docker.listImages({ digests: true });
+		const newImages = await Bluebird.map(images, async image => {
+			const newImage = _.clone(image) as NormalisedDockerImage;
+			newImage.NormalisedRepoTags = await this.getNormalisedTags(image);
+			return newImage;
+		});
+
+		const dbImages = await this.db.models('images').select();
+		return cb(newImages, dbImages);
 	}
 
 	private addImageFailure(imageName: string, time = process.hrtime()) {
@@ -452,7 +454,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	public async cleanup() {
 		const images = await this.getImagesForCleanup();
 		for (const image of images) {
-			console.log(`Cleaning up ${image}`);
+			log.debug(`Cleaning up ${image}`);
 			try {
 				await this.docker.getImage(image).remove({ force: true });
 				delete this.imageCleanupFailures[image];
@@ -576,7 +578,11 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 	private async markAsSupervised(image: Image): Promise<void> {
 		image = this.format(image);
-		await this.db.upsertModel('image', image, image);
+		// TODO: Get rid of this janky cast once the database is
+		// more strongly typed
+		await this.db.upsertModel('image', image, (image as unknown) as Dictionary<
+			unknown
+		>);
 	}
 
 	private format(image: MaybeImage): Image {

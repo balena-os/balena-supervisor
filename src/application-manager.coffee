@@ -260,7 +260,7 @@ module.exports = class ApplicationManager extends EventEmitter
 						dependent[appId].images[image.imageId] = _.pick(image, [ 'status' ])
 						dependent[appId].images[image.imageId].download_progress = image.downloadProgress
 					else
-						console.log('Ignoring legacy dependent image', image)
+						log.debug('Ignoring legacy dependent image', image)
 
 				obj = { local: apps, dependent }
 				obj.commit = currentCommit

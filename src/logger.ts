@@ -15,6 +15,8 @@ import {
 } from './logging';
 import LogMonitor from './logging/monitor';
 
+import log from './lib/supervisor-console';
+
 interface LoggerSetupOptions {
 	apiEndpoint: string;
 	uuid: string;
@@ -69,11 +71,11 @@ export class Logger {
 		if (localMode) {
 			// Use the local mode backend
 			this.backend = this.localBackend;
-			console.log('Switching logging backend to LocalLogBackend');
+			log.info('Switching logging backend to LocalLogBackend');
 		} else {
 			// Use the balena backend
 			this.backend = this.balenaBackend;
-			console.log('Switching logging backend to BalenaLogBackend');
+			log.info('Switching logging backend to BalenaLogBackend');
 		}
 	}
 
@@ -146,7 +148,7 @@ export class Logger {
 			const logs = new ContainerLogs(containerId, docker);
 			this.containerLogs[containerId] = logs;
 			logs.on('error', err => {
-				console.error(`Container log retrieval error: ${err}`);
+				log.error('Container log retrieval error', err);
 				delete this.containerLogs[containerId];
 			});
 			logs.on('log', async logMessage => {
@@ -184,7 +186,7 @@ export class Logger {
 			if (_.isEmpty(errorMessage)) {
 				errorMessage =
 					obj.error.name !== 'Error' ? obj.error.name : 'Unknown cause';
-				console.error('Warning: invalid error message', obj.error);
+				log.warn('Invalid error message', obj.error);
 			}
 			message += ` due to '${errorMessage}'`;
 		}
@@ -214,7 +216,7 @@ export class Logger {
 	}
 
 	public async clearOutOfDateDBLogs(containerIds: string[]) {
-		console.log('Performing database cleanup for container log timestamps');
+		log.debug('Performing database cleanup for container log timestamps');
 		await this.db
 			.models('containerLogs')
 			.whereNotIn('containerId', containerIds)

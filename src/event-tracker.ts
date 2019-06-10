@@ -5,6 +5,7 @@ import * as memoizee from 'memoizee';
 import Mixpanel = require('mixpanel');
 
 import Config from './config';
+import log from './lib/supervisor-console';
 import supervisorVersion = require('./lib/supervisor-version');
 
 export type EventTrackProperties = Dictionary<any>;
@@ -63,16 +64,14 @@ export class EventTracker {
 		});
 
 		this.isEnabled = await config.get('mixpanelReport');
-		console.log(
+		log.info(
 			`Mixpanel reporting is ${this.isEnabled ? 'enabled' : 'disabled'}`,
 		);
 		config.on('change', conf => {
 			const mixpanelReport = conf.mixpanelReport;
 			if (mixpanelReport != null && mixpanelReport !== this.isEnabled) {
 				this.isEnabled = mixpanelReport;
-				console.log(
-					`${mixpanelReport ? 'A' : 'Dea'}ctivating mixpanel reporting`,
-				);
+				log.info(`${mixpanelReport ? 'A' : 'Dea'}ctivating mixpanel reporting`);
 			}
 		});
 	}
@@ -117,7 +116,7 @@ export class EventTracker {
 	);
 
 	private logEvent(...args: string[]) {
-		console.log(...args);
+		log.event(...args);
 	}
 
 	private assignDefaultProperties(

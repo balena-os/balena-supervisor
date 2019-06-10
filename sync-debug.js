@@ -20,6 +20,20 @@ const dockerode = require('dockerode');
 const chokidar = require('chokidar');
 const _ = require('lodash');
 
+require('ts-node/register');
+const { ContainerLogs } = require('./src/logging/container');
+
+const setupLogs = (containerId, docker) => {
+	console.log('Setting up logs');
+	const logs = new ContainerLogs(containerId, docker);
+	logs.on('log', ({ message }) => {
+		if (message.trim().length !== 0) {
+			console.log(message);
+		}
+	});
+	logs.attach(Date.now());
+};
+
 const docker = new dockerode({
 	host: ip,
 	port: 2375,
@@ -53,10 +67,11 @@ function extractMessage(msgBuf) {
 let changedFiles = [];
 let deletedFiles = [];
 
-const performLivepush = _.debounce(async livepush => {
+const performLivepush = _.debounce(async (livepush, containerId, docker) => {
 	await livepush.performLivepush(changedFiles, deletedFiles);
 	changedFiles = [];
 	deletedFiles = [];
+	setupLogs(containerId, docker);
 }, 1000);
 
 (async () => {
@@ -85,15 +100,15 @@ const performLivepush = _.debounce(async livepush => {
 		})
 		.on('add', path => {
 			changedFiles.push(path);
-			performLivepush(livepush);
+			performLivepush(livepush, containerId, docker);
 		})
 		.on('change', path => {
 			changedFiles.push(path);
-			performLivepush(livepush);
+			performLivepush(livepush, containerId, docker);
 		})
 		.on('unlink', path => {
 			deletedFiles.push(path);
-			performLivepush(livepush);
+			performLivepush(livepush, containerId, docker);
 		});
 
 	livepush.on('commandExecute', ({ command }) => {

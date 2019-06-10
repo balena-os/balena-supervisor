@@ -22,6 +22,8 @@ updateLock = require './lib/update-lock'
 { DeviceConfig } = require './device-config'
 ApplicationManager = require './application-manager'
 
+{ log } = require './lib/supervisor-console'
+
 validateLocalState = (state) ->
 	if state.name?
 		throw new Error('Invalid device name') if not validation.isValidShortText(state.name)
@@ -120,7 +122,7 @@ module.exports = class DeviceState extends EventEmitter
 		@deviceConfig = new DeviceConfig({ @db, @config, @logger })
 		@applications = new ApplicationManager({ @config, @logger, @db, @eventTracker, deviceState: this })
 		@on 'error', (err) ->
-			console.error('Error in deviceState: ', err, err.stack)
+			log.error('deviceState error: ', err)
 		@_currentVolatile = {}
 		@_writeLock = updateLock.writeLock
 		@_readLock = updateLock.readLock
@@ -134,9 +136,9 @@ module.exports = class DeviceState extends EventEmitter
 		@on 'apply-target-state-end', (err) ->
 			if err?
 				if not (err instanceof UpdatesLockedError)
-					console.log("Apply error #{err}")
+					log.error('Device state apply error', err)
 			else
-				console.log('Apply success!')
+				log.success('Device state apply success')
 		@applications.on('change', @reportCurrentState)
 
 	healthcheck: =>
@@ -149,23 +151,23 @@ module.exports = class DeviceState extends EventEmitter
 			return applyTargetHealthy
 
 	migrateLegacyApps: (balenaApi) =>
-		console.log('Migrating ids for legacy app...')
+		log.info('Migrating ids for legacy app...')
 		@db.models('app').select()
 		.then (apps) =>
 			if apps.length == 0
-				console.log('No app to migrate')
+				log.debug('No app to migrate')
 				return
 			Promise.map apps, (app) =>
 				services = JSON.parse(app.services)
 				# Check there's a main service, with legacy-container set
 				if services.length != 1
-					console.log("App doesn't have a single service, ignoring")
+					log.debug("App doesn't have a single service, ignoring")
 					return
 				service = services[0]
 				if !service.labels['io.resin.legacy-container'] and !service.labels['io.balena.legacy-container']
-					console.log('Service is not marked as legacy, ignoring')
+					log.debug('Service is not marked as legacy, ignoring')
 					return
-				console.log("Getting release #{app.commit} for app #{app.appId} from API")
+				log.debug("Getting release #{app.commit} for app #{app.appId} from API")
 				balenaApi.get(
 					resource: 'release'
 					options:
@@ -179,7 +181,7 @@ module.exports = class DeviceState extends EventEmitter
 				)
 				.then (releasesFromAPI) =>
 					if releasesFromAPI.length == 0
-						console.log("No compatible releases found in API, removing #{app.appId} from target state")
+						log.warn("No compatible releases found in API, removing #{app.appId} from target state")
 						return @db.models('app').where({ appId: app.appId }).del()
 					release = releasesFromAPI[0]
 					releaseId = release.id
@@ -189,8 +191,7 @@ module.exports = class DeviceState extends EventEmitter
 					imageUrl = image.is_stored_at__image_location
 					if image.content_hash
 						imageUrl += "@#{image.content_hash}"
-					console.log("Found a release with releaseId #{releaseId}, imageId #{imageId}, serviceId #{serviceId}")
-					console.log("Image location is #{imageUrl}")
+					log.debug("Found a release with releaseId #{releaseId}, imageId #{imageId}, serviceId #{serviceId}\nImage location is #{imageUrl}")
 					Promise.join(
 						@applications.docker.getImage(service.image).inspect().catchReturn(NotFoundError, null)
 						@db.models('image').where(name: service.image).select()
@@ -198,13 +199,13 @@ module.exports = class DeviceState extends EventEmitter
 							@db.transaction (trx) ->
 								Promise.try ->
 									if imagesFromDB.length > 0
-										console.log('Deleting existing image entry in db')
+										log.debug('Deleting existing image entry in db')
 										trx('image').where(name: service.image).del()
 									else
-										console.log('No image in db to delete')
+										log.debug('No image in db to delete')
 								.then ->
 									if imageFromDocker?
-										console.log('Inserting fixed image entry in db')
+										log.debug('Inserting fixed image entry in db')
 										newImage = {
 											name: imageUrl,
 											appId: app.appId,
@@ -217,7 +218,7 @@ module.exports = class DeviceState extends EventEmitter
 										}
 										trx('image').insert(newImage)
 									else
-										console.log('Image is not downloaded, so not saving it to db')
+										log.debug('Image is not downloaded, so not saving it to db')
 								.then ->
 									service.image = imageUrl
 									service.serviceID = serviceId
@@ -227,7 +228,8 @@ module.exports = class DeviceState extends EventEmitter
 									delete service.labels['io.balena.legacy-container']
 									app.services = JSON.stringify([ service ])
 									app.releaseId = releaseId
-									console.log('Updating app entry in db')
+									log.debug('Updating app entry in db')
+									log.success('Successfully migrated legacy applciation')
 									trx('app').update(app).where({ appId: app.appId })
 					)
 
@@ -236,10 +238,10 @@ module.exports = class DeviceState extends EventEmitter
 		# We also need to get the releaseId, serviceId, imageId and updated image URL
 		@migrateLegacyApps(balenaApi)
 		.then =>
-			console.log('Killing legacy containers')
+			log.debug('Killing legacy containers')
 			@applications.services.killAllLegacy()
 		.then =>
-			console.log('Migrating legacy app volumes')
+			log.debug('Migrating legacy app volumes')
 			@applications.getTargetApps()
 			.then(_.keys)
 		.map (appId) =>
@@ -269,7 +271,7 @@ module.exports = class DeviceState extends EventEmitter
 					@saveInitialConfig()
 			.then =>
 				@initNetworkChecks(conf)
-				console.log('Reporting initial state, supervisor version and API info')
+				log.info('Reporting initial state, supervisor version and API info')
 				@reportCurrentState(
 					api_port: conf.listenPort
 					api_secret: conf.apiSecret
@@ -292,7 +294,7 @@ module.exports = class DeviceState extends EventEmitter
 					.finally =>
 						@config.set({ targetStateSet: 'true' })
 				else
-					console.log('Skipping preloading')
+					log.debug('Skipping preloading')
 					if conf.provisioned and !_.isEmpty(targetApps)
 						# If we're in this case, it's because we've updated from an older supervisor
 						# and we need to mark that the target state has been set so that
@@ -309,7 +311,7 @@ module.exports = class DeviceState extends EventEmitter
 		@config.on 'change', (changedConfig) ->
 			if changedConfig.connectivityCheckEnabled?
 				network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled)
-		console.log('Starting periodic check for IP addresses')
+		log.debug('Starting periodic check for IP addresses')
 		network.startIPAddressUpdate() (addresses) =>
 			@reportCurrentState(
 				ip_address: addresses.join(' ')
@@ -441,7 +443,7 @@ module.exports = class DeviceState extends EventEmitter
 						if !s.isDirectory()
 							throw new Error("Invalid backup: #{volumeName} is not a directory")
 						if volumes[volumeName]?
-							console.log("Creating volume #{volumeName} from backup")
+							log.debug("Creating volume #{volumeName} from backup")
 							# If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
 							@applications.volumes.get({ appId, name: volumeName })
 							.then =>
@@ -457,14 +459,14 @@ module.exports = class DeviceState extends EventEmitter
 				rimraf(path.join(constants.rootMountPoint, 'mnt/data', constants.migrationBackupFile))
 
 	loadTargetFromFile: (appsPath) ->
-		console.log('Attempting to load preloaded apps...')
+		log.info('Attempting to load preloaded apps...')
 		appsPath ?= constants.appsJsonPath
 		fs.readFileAsync(appsPath, 'utf8')
 		.then(JSON.parse)
 		.then (stateFromFile) =>
 			if _.isArray(stateFromFile)
 				# This is a legacy apps.json
-				console.log('Legacy apps.json detected')
+				log.debug('Legacy apps.json detected')
 				return @_convertLegacyAppsJson(stateFromFile)
 			else
 				return stateFromFile
@@ -503,11 +505,11 @@ module.exports = class DeviceState extends EventEmitter
 							local: stateFromFile
 						})
 				.then =>
-					console.log('Preloading complete')
+					log.success('Preloading complete')
 					if stateFromFile.pinDevice
 						# multi-app warning!
 						# The following will need to be changed once running multiple applications is possible
-						console.log('Device will be pinned')
+						log.debug('Device will be pinned')
 						if commitToPin? and appToPin?
 							@config.set
 								pinDevice: {
@@ -519,7 +521,7 @@ module.exports = class DeviceState extends EventEmitter
 		# on host, the docker daemon creates an empty directory when
 		# the bind mount is added
 		.catch ENOENT, EISDIR, ->
-			console.log('No apps.json file present, skipping preload')
+			log.debug('No apps.json file present, skipping preload')
 		.catch (err) =>
 			@eventTracker.track('Loading preloaded apps failed', { error: err })
 
@@ -580,16 +582,16 @@ module.exports = class DeviceState extends EventEmitter
 		@reportCurrentState(update_failed: true)
 		if @scheduledApply?
 			if not (err instanceof UpdatesLockedError)
-				console.log("Updating failed, but there's another update scheduled immediately: ", err)
+				log.error("Updating failed, but there's another update scheduled immediately: ", err)
 		else
 			delay = Math.min((2 ** @failedUpdates) * constants.backoffIncrement, @maxPollTime)
 			# If there was an error then schedule another attempt briefly in the future.
 			if err instanceof UpdatesLockedError
 				message = "Updates are locked, retrying in #{prettyMs(delay, compact: true)}..."
 				@logger.logSystemMessage(message, {}, 'updateLocked', false)
-				console.log(message)
+				log.info(message)
 			else
-				console.log('Scheduling another update attempt due to failure: ', delay, err)
+				log.error("Scheduling another update attempt in #{delay}ms due to failure: ", err)
 			@triggerApplyTarget({ force, delay, initial })
 
 	applyTarget: ({ force = false, initial = false, intermediate = false, skipLock = false, nextDelay = 200, retryCount = 0 } = {}) =>
@@ -627,7 +629,7 @@ module.exports = class DeviceState extends EventEmitter
 			if _.isEmpty(steps)
 				@emitAsync('apply-target-state-end', null)
 				if !intermediate
-					console.log('Finished applying target state')
+					log.debug('Finished applying target state')
 					@applications.timeSpentFetching = 0
 					@failedUpdates = 0
 					@lastSuccessfulUpdate = Date.now()
@@ -685,7 +687,7 @@ module.exports = class DeviceState extends EventEmitter
 		Promise.delay(delay)
 		.then =>
 			@lastApplyStart = process.hrtime()
-			console.log('Applying target state')
+			log.info('Applying target state')
 			@applyTarget({ force, initial })
 		.finally =>
 			@applyInProgress = false

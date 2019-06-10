@@ -1,5 +1,7 @@
 import Database from '../db';
 
+import log from '../lib/supervisor-console';
+
 // Flush every 10 mins
 const DB_FLUSH_INTERVAL = 10 * 60 * 1000;
 
@@ -46,8 +48,9 @@ export class LogMonitor {
 					this.timestamps[containerId] = timestampObj.lastSentTimestamp;
 				}
 			} catch (e) {
-				console.error(
-					`There was an error retrieving the container log timestamps: ${e}`,
+				log.error(
+					'There was an error retrieving the container log timestamps:',
+					e,
 				);
 			}
 		}
@@ -55,7 +58,7 @@ export class LogMonitor {
 	}
 
 	private async flushDb() {
-		console.log('Attempting container log timestamp flush...');
+		log.debug('Attempting container log timestamp flush...');
 		const containerIds = Object.getOwnPropertyNames(this.timestamps);
 		try {
 			for (const containerId of containerIds) {
@@ -71,11 +74,9 @@ export class LogMonitor {
 				this.writeRequired[containerId] = false;
 			}
 		} catch (e) {
-			console.error(
-				`There was an error storing the container log timestamps: ${e}`,
-			);
+			log.error('There was an error storing the container log timestamps:', e);
 		}
-		console.log('Container log timestamp flush complete');
+		log.debug('Container log timestamp flush complete');
 	}
 }
 

@@ -21,6 +21,8 @@ import * as constants from '../lib/constants';
 import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
 
+import log from '../lib/supervisor-console';
+
 export class Service {
 	public appId: number | null;
 	public imageId: number | null;
@@ -138,13 +140,13 @@ export class Service {
 		// Check for unsupported networkMode entries
 		if (config.networkMode != null) {
 			if (/service:(\s*)?.+/.test(config.networkMode)) {
-				console.log(
-					'Warning: A network_mode referencing a service is not yet supported. Ignoring.',
+				log.warn(
+					'A network_mode referencing a service is not yet supported. Ignoring.',
 				);
 				delete config.networkMode;
 			} else if (/container:(\s*)?.+/.test(config.networkMode)) {
-				console.log(
-					'Warning: A network_mode referencing a container is not supported. Ignoring.',
+				log.warn(
+					'A network_mode referencing a container is not supported. Ignoring.',
 				);
 				delete config.networkMode;
 			}
@@ -317,8 +319,11 @@ export class Service {
 		if (config.cpus != null) {
 			config.cpus = Math.round(Number(config.cpus) * 10 ** 9);
 			if (_.isNaN(config.cpus)) {
-				console.log('Warning: config.cpus value cannot be parsed. Ignoring.');
-				console.log(`  Value: ${config.cpus}`);
+				log.warn(
+					`config.cpus value cannot be parsed. Ignoring.\n  Value:${
+						config.cpus
+					}`,
+				);
 				config.cpus = undefined;
 			}
 		}
@@ -666,7 +671,7 @@ export class Service {
 		if (!(sameConfig && sameNetworks)) {
 			// Add some console output for why a service is not matching
 			// so that if we end up in a restart loop, we know exactly why
-			console.log(
+			log.debug(
 				`Replacing container for service ${
 					this.serviceName
 				} because of config changes:`,
@@ -680,14 +685,14 @@ export class Service {
 						() => 'hidden',
 					);
 				}
-				console.log('  Non-array fields: ', JSON.stringify(diffObj));
+				log.debug('  Non-array fields: ', JSON.stringify(diffObj));
 			}
 			if (differentArrayFields.length > 0) {
-				console.log('  Array Fields: ', differentArrayFields.join(','));
+				log.debug('  Array Fields: ', differentArrayFields.join(','));
 			}
 
 			if (!sameNetworks) {
-				console.log('  Network changes detected');
+				log.debug('  Network changes detected');
 			}
 		}
 		return sameNetworks && sameConfig;
@@ -725,10 +730,9 @@ export class Service {
 			if (!path.isAbsolute(bindSource)) {
 				const match = bindSource.match(/[0-9]+_(.+)/);
 				if (match == null) {
-					console.log(
-						'Error: There was an error parsing a volume bind source, ignoring.',
+					log.error(
+						`Error: There was an error parsing a volume bind source, ignoring.\nBind source: ${bindSource}`,
 					);
-					console.log('  bind source: ', bindSource);
 					return null;
 				}
 				return match[1];
@@ -914,7 +918,7 @@ export class Service {
 					}
 					volumes.push(volumeDef);
 				} else {
-					console.log(`Ignoring invalid bind mount ${volume}`);
+					log.warn(`Ignoring invalid bind mount ${volume}`);
 				}
 			} else {
 				volumes.push(volume);

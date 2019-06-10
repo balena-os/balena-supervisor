@@ -8,6 +8,8 @@ import * as fsUtils from '../lib/fs-utils';
 
 const childProcess: any = Promise.promisifyAll(childProcessSync);
 
+import log from '../lib/supervisor-console';
+
 export interface ConfigOptions {
 	[key: string]: string | string[];
 }
@@ -147,9 +149,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 					const [, key, value] = keyValue;
 					conf[key] = value;
 				} else {
-					console.log(
-						`Warning - Could not parse config.txt entry: ${configStr}. Ignoring.`,
-					);
+					log.warn(`Could not parse config.txt entry: ${configStr}. Ignoring.`);
 				}
 			}
 
@@ -362,7 +362,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		for (const line of lines) {
 			const match = line.match(/^\s*(\w+)\s?(.*)$/);
 			if (match == null) {
-				console.log('Warning - Could not read extlinux entry: ${line}');
+				log.warn(`Could not read extlinux entry: ${line}`);
 				continue;
 			}
 			let directive = match[1].toUpperCase();
