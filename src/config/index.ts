@@ -115,7 +115,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 	): Bluebird<{ [key in T]: SchemaReturn<key> }> {
 		return Bluebird.map(keys, (key: T) => this.get(key, trx)).then(values => {
 			return _.zipObject(keys, values);
-		});
+		}) as Bluebird<{ [key in T]: SchemaReturn<key> }>;
 	}
 
 	public set<T extends SchemaTypeKey>(
