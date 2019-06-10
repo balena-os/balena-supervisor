@@ -219,15 +219,15 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	private async withImagesFromDockerAndDB<T>(
 		cb: (dockerImages: NormalisedDockerImage[], composeImages: Image[]) => T,
 	) {
-		const images = await this.docker.listImages({ digests: true });
-		const newImages = await Bluebird.map(images, async image => {
-			const newImage = _.clone(image) as NormalisedDockerImage;
-			newImage.NormalisedRepoTags = await this.getNormalisedTags(image);
-			return newImage;
-		});
-
-		const dbImages = await this.db.models('images').select();
-		return cb(newImages, dbImages);
+		const [normalisedImages, dbImages] = await Promise.all([
+			Bluebird.map(this.docker.listImages({ digests: true }), async image => {
+				const newImage = _.clone(image) as NormalisedDockerImage;
+				newImage.NormalisedRepoTags = await this.getNormalisedTags(image);
+				return newImage;
+			}),
+			this.db.models('images').select(),
+		]);
+		return cb(normalisedImages, dbImages);
 	}
 
 	private addImageFailure(imageName: string, time = process.hrtime()) {
