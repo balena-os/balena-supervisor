@@ -42,9 +42,6 @@ describe 'EventTracker', ->
 			mixpanelToken: 'someToken'
 			uuid: 'barbaz'
 			mixpanelHost: { host: '', path: '' }
-			config:
-				get: -> Promise.resolve(true)
-				on: ->
 		})
 		expect(promise).to.be.fulfilled
 		.then =>

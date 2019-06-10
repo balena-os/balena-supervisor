@@ -129,11 +129,6 @@ export class DeviceConfig {
 			defaultValue: 'false',
 			rebootRequired: true,
 		},
-		mixpanelReport: {
-			envVarName: 'SUPERVISOR_MIXPANEL_REPORT',
-			varType: 'bool',
-			defaultValue: 'true',
-		},
 	};
 
 	public static validKeys = [
