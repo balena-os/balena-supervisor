@@ -1,4 +1,17 @@
 - commits:
+    - subject: Revert "Add a controlling variable for mixpanel reporting"
+      hash: 9c486275c9fcc1f7d1c322ff8142bd994d94117c
+      body: |
+        This reverts commit 1a7ed0f95bb24474ef7326309696da091e68a3d9.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.16.1
+  date: 2019-06-10T19:53:04.103Z
+- commits:
     - subject: Upgrade typescript and fix warnings
       hash: ea64f0b0b3c57e6bd2e01ef4483e73d037288fc8
       body: ''
