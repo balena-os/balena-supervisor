@@ -86,7 +86,7 @@
     "mz": "^2.7.0",
     "network-checker": "^0.1.1",
     "pinejs-client-request": "^5.2.0",
-    "prettier": "^1.15.3",
+    "prettier": "1.17.0",
     "pretty-ms": "^4.0.0",
     "request": "^2.51.0",
     "resin-lint": "^3.0.0",
