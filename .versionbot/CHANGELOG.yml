@@ -1,4 +1,36 @@
 - commits:
+    - subject: Upgrade typescript and fix warnings
+      hash: ea64f0b0b3c57e6bd2e01ef4483e73d037288fc8
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Pin prettier version to avoid changes in non-ci installs
+      hash: 0593aadcacaedc9d358e0bfbd23cf3cc05613f4c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Standardise all supervisor output logging
+      hash: 2276dd54e12915cf2a505a56e971231c45e58328
+      body: |
+        Also use the supervisor's own container logging monitoring code when
+        running livepush on the supervisor container.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.16.0
+  date: 2019-06-10T14:39:11.669Z
+- commits:
     - subject: Update and improve debug and development tools
       hash: 392c56b4d38bab367429d4b9bdaf2ee2c7fa18e6
       body: |
