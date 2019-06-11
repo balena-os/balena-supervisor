@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix typo in image selection
+      hash: 65019bb5bc11a31817a6ade7f904d02376146aef
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.16.3
+  date: 2019-06-11T12:12:37.928Z
+- commits:
     - subject: Re-parallelise current image retrieval code
       hash: b1e4e8399b69c1c817a615b4e9b7f219d30538bc
       body: ''
