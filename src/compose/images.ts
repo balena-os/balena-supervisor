@@ -225,7 +225,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 				newImage.NormalisedRepoTags = await this.getNormalisedTags(image);
 				return newImage;
 			}),
-			this.db.models('images').select(),
+			this.db.models('image').select(),
 		]);
 		return cb(normalisedImages, dbImages);
 	}
