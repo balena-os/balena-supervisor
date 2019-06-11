@@ -1,4 +1,16 @@
 - commits:
+    - subject: Re-parallelise current image retrieval code
+      hash: b1e4e8399b69c1c817a615b4e9b7f219d30538bc
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.16.2
+  date: 2019-06-11T06:50:59.287Z
+- commits:
     - subject: Revert "Add a controlling variable for mixpanel reporting"
       hash: 9c486275c9fcc1f7d1c322ff8142bd994d94117c
       body: |
