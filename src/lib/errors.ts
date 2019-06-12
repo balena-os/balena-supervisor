@@ -51,6 +51,8 @@ export function DuplicateUuidError(err: Error) {
 
 export class ExchangeKeyError extends TypedError {}
 
+export class DevMountPopulationError extends TypedError {}
+
 export class InternalInconsistencyError extends TypedError {}
 
 export class ConfigurationValidationError extends TypedError {

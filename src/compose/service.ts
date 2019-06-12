@@ -5,7 +5,7 @@ import * as _ from 'lodash';
 import * as path from 'path';
 
 import * as conversions from '../lib/conversions';
-import { checkInt } from '../lib/validation';
+import { checkInt, checkTruthy } from '../lib/validation';
 import { DockerPortOptions, PortMap } from './ports';
 import {
 	ConfigMap,
@@ -22,6 +22,7 @@ import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
 
 import log from '../lib/supervisor-console';
+import DevMount from '../lib/dev-mount';
 
 export class Service {
 	public appId: number | null;
@@ -64,6 +65,8 @@ export class Service {
 		// to compare containers
 		'cpus',
 	].concat(Service.configArrayFields);
+
+	public devMount?: DevMount;
 
 	private constructor() {}
 
@@ -755,6 +758,12 @@ export class Service {
 			path.join(this.handoverCompletePathOnHost(), 'handover-complete'),
 			path.join(this.handoverCompletePathOnHost(), 'resin-kill-me'),
 		];
+	}
+
+	public devMountRequested(): boolean {
+		return (
+			checkTruthy(this.config.labels['io.balena.features.mount-dev']) || false
+		);
 	}
 
 	private handoverCompletePathOnHost(): string {

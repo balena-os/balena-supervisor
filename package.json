@@ -31,6 +31,7 @@
   },
   "private": true,
   "dependencies": {
+    "mknod": "^1.1.0",
     "sqlite3": "^4.0.8"
   },
   "engines": {

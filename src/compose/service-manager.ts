@@ -23,6 +23,7 @@ import { Service } from './service';
 import { serviceNetworksToDockerNetworks } from './utils';
 
 import log from '../lib/supervisor-console';
+import DevMount from '../lib/dev-mount';
 
 interface ServiceConstructOpts {
 	docker: Docker;
@@ -270,6 +271,22 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			const nets = serviceNetworksToDockerNetworks(
 				service.extraNetworksToJoin(),
 			);
+
+			// If we must mount a dev directory into the
+			// container, we first need to create it
+			if (service.devMountRequested()) {
+				if (service.appId == null || service.serviceName == null) {
+					throw new InternalInconsistencyError(
+						'Attempt to create a service without an appId or serviceName',
+					);
+				}
+
+				const devMount = await DevMount.init(
+					service.appId,
+					service.serviceName,
+				);
+				service.devMount = devMount;
+			}
 
 			this.logger.logSystemEvent(LogTypes.installService, { service });
 			this.reportNewStatus(mockContainerId, service, 'Installing');

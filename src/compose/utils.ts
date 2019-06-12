@@ -17,6 +17,8 @@ import {
 } from './types/service';
 
 import log from '../lib/supervisor-console';
+import DevMount from '../lib/dev-mount';
+import { InternalInconsistencyError } from '../lib/errors';
 
 export function camelCaseConfig(
 	literalConfig: ConfigMap,
@@ -322,6 +324,26 @@ export function addFeaturesFromLabels(
 	};
 	if (checkTruthy(service.config.labels['io.balena.features.dbus'])) {
 		service.config.volumes.push('/run/dbus:/host/run/dbus');
+	}
+
+	if (checkTruthy(service.config.labels['io.balena.features.mount-dev'])) {
+		if (service.appId == null) {
+			throw new InternalInconsistencyError(
+				'No appId set on service in addFeaturesFromLabels',
+			);
+		}
+		if (service.serviceName == null) {
+			throw new InternalInconsistencyError(
+				'No service name set on service in addFeaturesFromLabels',
+			);
+		}
+		log.debug(
+			'Adding dev mount location at ',
+			DevMount.hostLocation(service.appId, service.serviceName),
+		);
+		service.config.volumes.push(
+			`${DevMount.hostLocation(service.appId, service.serviceName)}:/dev-test`,
+		);
 	}
 
 	if (
