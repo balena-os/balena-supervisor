@@ -14,6 +14,8 @@ import { EnvVarObject } from './lib/types';
 import { checkInt, checkTruthy } from './lib/validation';
 import { DeviceApplicationState } from './types/state';
 
+import log from './lib/supervisor-console';
+
 const vpnServiceName = 'openvpn-resin';
 
 interface DeviceConfigConstructOpts {
@@ -136,6 +138,8 @@ export class DeviceConfig {
 		'OVERRIDE_LOCK',
 		..._.map(DeviceConfig.configKeys, 'envVarName'),
 	];
+
+	public static validNamespaces = ['HOST_CONFIG_UDEV'];
 
 	private rateLimits: Dictionary<{
 		duration: number;
@@ -308,6 +312,7 @@ export class DeviceConfig {
 		return await configUtils.formatConfigKeys(
 			backend,
 			DeviceConfig.validKeys,
+			DeviceConfig.validNamespaces,
 			conf,
 		);
 	}
@@ -372,7 +377,7 @@ export class DeviceConfig {
 			['local', 'config'],
 			{},
 		);
-		const target: Dictionary<string> = _.get(
+		let target: Dictionary<string> = _.get(
 			targetState,
 			['local', 'config'],
 			{},
@@ -389,6 +394,17 @@ export class DeviceConfig {
 		const configChanges: Dictionary<string> = {};
 		const humanReadableConfigChanges: Dictionary<string> = {};
 		let reboot = false;
+
+		// Look through the target values for any reserved
+		// namespaces which we handle differently
+		// TODO: Make this more efficient
+		const namespaced = _.pickBy(target, (_v, k) =>
+			DeviceConfig.isPartOfValidNamespace(k),
+		);
+		target = _.omitBy(target, (_v, k) =>
+			DeviceConfig.isPartOfValidNamespace(k),
+		);
+		await this.handleNamespacedVars(namespaced);
 
 		_.each(
 			DeviceConfig.configKeys,
@@ -508,6 +524,30 @@ export class DeviceConfig {
 		return _.includes(_.keys(this.actionExecutors), action);
 	}
 
+	private async handleNamespacedVars(vars: Dictionary<string>): Promise<void> {
+		// Currently there's only a single namespace, so we just
+		// assume that
+		// When there's more than one, this function will need
+		// to change
+
+		const toMerge = _(vars)
+			.mapKeys((_v, k) => k.replace(`${DeviceConfig.validNamespaces[0]}_`, ''))
+			.omitBy((_v, k) => {
+				if (k.length === 0) {
+					log.warn('Ignoring invalid namespaced variable');
+					return false;
+				}
+				return true;
+			})
+			.value();
+		let currentConfig = await this.config.get('udevRules');
+		if (currentConfig == null) {
+			currentConfig = {};
+		}
+		_.assign(currentConfig, toMerge);
+		await this.config.set({ udevRules: currentConfig });
+	}
+
 	private async getBootConfig(
 		backend: DeviceConfigBackend | null,
 	): Promise<EnvVarObject> {
@@ -614,6 +654,12 @@ export class DeviceConfig {
 		}
 		conf.dtoverlay = (conf.dtoverlay as string[]).filter(s => !_.isEmpty(s));
 		return conf;
+	}
+
+	private static isPartOfValidNamespace(key: string): boolean {
+		return _.some(DeviceConfig.validNamespaces, n =>
+			_.startsWith(key, `${n}_`),
+		);
 	}
 }
 
