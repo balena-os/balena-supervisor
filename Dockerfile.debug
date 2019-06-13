@@ -50,7 +50,7 @@ fi
 
 COPY src src/
 COPY typings typings/
-COPY tsconfig.json hardcode-migrations.js fix-jsonstream.js ./
+COPY tsconfig.json tsconfig.release.json hardcode-migrations.js fix-jsonstream.js ./
 
 RUN npm run build:debug
 RUN mkdir -p dist && echo "require('../build/app.js')" > dist/app.js

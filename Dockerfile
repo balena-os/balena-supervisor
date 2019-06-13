@@ -50,7 +50,7 @@ COPY package.json package-lock.json /usr/src/app/
 
 RUN JOBS=MAX npm ci --no-optional --unsafe-perm || JOBS=MAX npm install --no-optional --unsafe-perm
 
-COPY webpack.config.js fix-jsonstream.js hardcode-migrations.js tsconfig.json /usr/src/app/
+COPY webpack.config.js fix-jsonstream.js hardcode-migrations.js tsconfig.json tsconfig.release.json /usr/src/app/
 COPY src /usr/src/app/src
 COPY test /usr/src/app/test
 COPY typings /usr/src/app/typings
