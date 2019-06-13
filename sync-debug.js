@@ -20,58 +20,55 @@ const dockerode = require('dockerode');
 const chokidar = require('chokidar');
 const _ = require('lodash');
 
-require('ts-node/register');
-const { ContainerLogs } = require('./src/logging/container');
-
-const setupLogs = (containerId, docker) => {
-	console.log('Setting up logs');
-	const logs = new ContainerLogs(containerId, docker);
-	logs.on('log', ({ message }) => {
-		if (message.trim().length !== 0) {
-			console.log(message);
-		}
+let lastReadTimestamp = null;
+const setupLogs = async (containerId, docker) => {
+	const container = docker.getContainer(containerId);
+	const stream = await container.logs({
+		stdout: true,
+		stderr: true,
+		follow: true,
+		timestamps: true,
+		// We start from 0, as we risk not getting any logs to
+		// properly seed the value if the host and remote times differ
+		since: lastReadTimestamp != null ? lastReadTimestamp : 0,
 	});
-	logs.attach(Date.now());
+	stream.on('data', chunk => {
+		const { message, timestamp } = extractMessage(chunk);
+		lastReadTimestamp = Math.floor(timestamp.getTime() / 1000);
+		process.stdout.write(message);
+	});
+	stream.on('end', () => {
+		setupLogs(containerId, docker);
+	});
 };
+
+function extractMessage(msgBuf) {
+	// Non-tty message format from:
+	// https://docs.docker.com/engine/api/v1.30/#operation/ContainerAttach
+	if (_.includes([0, 1, 2], msgBuf[0])) {
+		// Take the header from this message, and parse it as normal
+		msgBuf = msgBuf.slice(8);
+	}
+	const str = msgBuf.toString();
+	const space = str.indexOf(' ');
+	return {
+		timestamp: new Date(str.slice(0, space)),
+		message: str.slice(space + 1),
+	};
+}
 
 const docker = new dockerode({
 	host: ip,
 	port: 2375,
 });
 
-function extractMessage(msgBuf) {
-	// Non-tty message format from:
-	// https://docs.docker.com/engine/api/v1.30/#operation/ContainerAttach
-	if (
-		_.includes([0, 1, 2], msgBuf[0]) &&
-		_.every(msgBuf.slice(1, 7), c => c === 0)
-	) {
-		// Take the header from this message, and parse it as normal
-		msgBuf = msgBuf.slice(8);
-	}
-	const logLine = msgBuf.toString();
-	const space = logLine.indexOf(' ');
-	if (space > 0) {
-		let timestamp = new Date(logLine.substr(0, space)).getTime();
-		if (_.isNaN(timestamp)) {
-			timestamp = Date.now();
-		}
-		return {
-			timestamp,
-			message: logLine.substr(space + 1),
-		};
-	}
-	return;
-}
-
 let changedFiles = [];
 let deletedFiles = [];
 
-const performLivepush = _.debounce(async (livepush, containerId, docker) => {
+const performLivepush = _.debounce(async livepush => {
 	await livepush.performLivepush(changedFiles, deletedFiles);
 	changedFiles = [];
 	deletedFiles = [];
-	setupLogs(containerId, docker);
 }, 1000);
 
 (async () => {
@@ -81,6 +78,8 @@ const performLivepush = _.debounce(async (livepush, containerId, docker) => {
 	console.log('Supervisor container id: ', container.Id);
 	const containerId = container.Id;
 	const image = container.Image;
+
+	setupLogs(containerId, docker);
 
 	const livepush = await Livepush.init(
 		await fs.readFile('Dockerfile.debug'),
@@ -115,7 +114,15 @@ const performLivepush = _.debounce(async (livepush, containerId, docker) => {
 		console.log('SYNC: executing:', command);
 	});
 	livepush.on('commandOutput', ({ output }) => {
-		console.log(`\t${output.data.toString()}`);
+		const message = output.data.toString();
+		if (message.trim().length !== 0) {
+			process.stdout.write(`\t${message}`);
+		}
+	});
+	livepush.on('commandReturn', ({ returnCode }) => {
+		if (returnCode !== 0) {
+			console.log(`\tSYNC: Command return non zero exit status: ${returnCode}`);
+		}
 	});
 	livepush.on('containerRestart', () => {
 		console.log('SYNC: Restarting container...');
