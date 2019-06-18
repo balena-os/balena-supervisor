@@ -57,7 +57,8 @@ RUN mkdir -p dist && echo "require('../build/app.js')" > dist/app.js
 
 COPY entry.sh .
 
-RUN mkdir -p rootfs-overlay && 	([ ! -e rootfs-overlay/lib64 ] && ln -s /lib rootfs-overlay/lib64)
+RUN mkdir -p rootfs-overlay && \
+	(([ ! -d rootfs-overlay/lib64 ] && ln -s /lib rootfs-overlay/lib64) || true)
 
 ENV CONFIG_MOUNT_POINT=/boot/config.json \
 	LED_FILE=/dev/null \
