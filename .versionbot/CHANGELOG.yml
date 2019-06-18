@@ -1,4 +1,16 @@
 - commits:
+    - subject: Make sync-debug much more reliable with logs
+      hash: 6c7234f84bb8a46c01b8c7eb870d5031c7401213
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.16.4
+  date: 2019-06-18T12:34:25.345Z
+- commits:
     - subject: Fix typo in image selection
       hash: 65019bb5bc11a31817a6ade7f904d02376146aef
       body: ''
