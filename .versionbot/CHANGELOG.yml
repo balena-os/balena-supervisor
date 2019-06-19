@@ -1,4 +1,16 @@
 - commits:
+    - subject: Allow writing test files in typescript
+      hash: 9dab00d1566bdff6c2a3b74a3c86865aa69cb415
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.16.5
+  date: 2019-06-19T09:57:54.774Z
+- commits:
     - subject: Make sync-debug much more reliable with logs
       hash: 6c7234f84bb8a46c01b8c7eb870d5031c7401213
       body: ''
