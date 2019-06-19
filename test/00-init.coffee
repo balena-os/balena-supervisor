@@ -6,9 +6,7 @@ process.env.DATABASE_PATH_2 = './test/data/database2.sqlite'
 process.env.DATABASE_PATH_3 = './test/data/database3.sqlite'
 process.env.LED_FILE = './test/data/led_file'
 
-m = require 'mochainon'
-
-{ stub } = m.sinon
+{ stub } = require 'sinon'
 
 dbus = require 'dbus-native'
 

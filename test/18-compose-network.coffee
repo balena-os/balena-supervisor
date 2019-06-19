@@ -1,5 +1,4 @@
-m = require 'mochainon'
-{ expect } = m.chai
+{ expect } = require './lib/chai-config'
 
 { Network } = require '../src/compose/network'
 

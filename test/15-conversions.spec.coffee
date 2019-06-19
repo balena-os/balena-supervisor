@@ -1,5 +1,4 @@
-m = require 'mochainon'
-{ expect } = m.chai
+{ expect } = require './lib/chai-config'
 
 conversion = require '../src/lib/conversions'
 

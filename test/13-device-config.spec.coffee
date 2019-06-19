@@ -1,9 +1,8 @@
 Promise = require 'bluebird'
 { fs } = require 'mz'
 
-m = require 'mochainon'
-{ expect } = m.chai
-{ stub, spy } = m.sinon
+{ expect } = require './lib/chai-config'
+{ stub, spy } = require 'sinon'
 
 prepare = require './lib/prepare'
 fsUtils = require '../src/lib/fs-utils'
@@ -88,7 +87,7 @@ describe 'DeviceConfig', ->
 			expect(@fakeLogger.logSystemMessage).to.be.calledWith('Attempt to change blacklisted config value initramfs', {
 				error: 'Attempt to change blacklisted config value initramfs'
 			}, 'Apply boot config error')
-			@fakeLogger.logSystemMessage.reset()
+			@fakeLogger.logSystemMessage.resetHistory()
 
 	it 'does not try to change config.txt if it should not change', ->
 		current = {
@@ -108,7 +107,7 @@ describe 'DeviceConfig', ->
 		expect(promise).to.eventually.equal(false)
 		promise.then =>
 			expect(@fakeLogger.logSystemMessage).to.not.be.called
-			@fakeLogger.logSystemMessage.reset()
+			@fakeLogger.logSystemMessage.resetHistory()
 
 	it 'writes the target config.txt', ->
 		stub(fsUtils, 'writeFileAtomic').resolves()
@@ -145,7 +144,7 @@ describe 'DeviceConfig', ->
 				')
 				fsUtils.writeFileAtomic.restore()
 				childProcess.execAsync.restore()
-				@fakeLogger.logSystemMessage.reset()
+				@fakeLogger.logSystemMessage.resetHistory()
 
 	it 'accepts RESIN_ and BALENA_ variables', ->
 		@deviceConfig.formatConfigKeys({
@@ -215,7 +214,7 @@ describe 'DeviceConfig', ->
 					')
 					fsUtils.writeFileAtomic.restore()
 					childProcess.execAsync.restore()
-					@fakeLogger.logSystemMessage.reset()
+					@fakeLogger.logSystemMessage.resetHistory()
 
 	describe 'Balena fin', ->
 		it 'should always add the balena-fin dtoverlay', ->

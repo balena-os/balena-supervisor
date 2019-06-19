@@ -1,6 +1,5 @@
 prepare = require './lib/prepare'
-m = require 'mochainon'
-{ expect } = m.chai
+{ expect } = require './lib/chai-config'
 constants = require '../src/lib/constants'
 
 describe 'constants', ->

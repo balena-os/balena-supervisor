@@ -1,9 +1,9 @@
 prepare = require './lib/prepare'
 Promise = require 'bluebird'
-m = require 'mochainon'
-{ expect } = m.chai
+chai = require './lib/chai-config'
+chai.use(require('chai-events'))
+{ expect } = chai
 fs = Promise.promisifyAll(require('fs'))
-m.chai.use(require('chai-events'))
 
 { DB } = require('../src/db')
 { Config } = require('../src/config')

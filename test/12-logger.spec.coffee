@@ -3,17 +3,17 @@ stream = require 'stream'
 zlib = require 'zlib'
 
 Promise = require 'bluebird'
-m = require 'mochainon'
-{ expect } = m.chai
-{ stub } = m.sinon
+{ expect } = require './lib/chai-config'
+sinon = require 'sinon'
+{ stub } = sinon
 
 { Logger } = require '../src/logger'
 { ContainerLogs } = require '../src/logging/container'
 describe 'Logger', ->
 	beforeEach ->
 		@_req = new stream.PassThrough()
-		@_req.flushHeaders = m.sinon.spy()
-		@_req.end = m.sinon.spy()
+		@_req.flushHeaders = sinon.spy()
+		@_req.end = sinon.spy()
 
 		@_req.body = ''
 		@_req
@@ -24,7 +24,7 @@ describe 'Logger', ->
 		stub(https, 'request').returns(@_req)
 
 		@fakeEventTracker = {
-			track: m.sinon.spy()
+			track: sinon.spy()
 		}
 
 		@logger = new Logger({ eventTracker: @fakeEventTracker })
@@ -41,7 +41,7 @@ describe 'Logger', ->
 		https.request.restore()
 
 	it 'waits the grace period before sending any logs', ->
-		clock = m.sinon.useFakeTimers()
+		clock = sinon.useFakeTimers()
 		@logger.log({ message: 'foobar', serviceId: 15 })
 		clock.tick(4999)
 		clock.restore()
@@ -51,7 +51,7 @@ describe 'Logger', ->
 			expect(@_req.body).to.equal('')
 
 	it 'tears down the connection after inactivity', ->
-		clock = m.sinon.useFakeTimers()
+		clock = sinon.useFakeTimers()
 		@logger.log({ message: 'foobar', serviceId: 15 })
 		clock.tick(61000)
 		clock.restore()

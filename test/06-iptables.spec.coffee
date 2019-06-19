@@ -1,9 +1,8 @@
 Promise = require 'bluebird'
 iptables = require '../src/lib/iptables'
 
-m = require 'mochainon'
-{ stub } = m.sinon
-{ expect } = m.chai
+{ stub } = require 'sinon'
+{ expect } = require './lib/chai-config'
 
 describe 'iptables', ->
 	it 'calls iptables to delete and recreate rules to block a port', ->

@@ -1,7 +1,6 @@
 prepare = require './lib/prepare'
 Promise = require 'bluebird'
-m = require 'mochainon'
-{ expect } = m.chai
+{ expect } = require './lib/chai-config'
 fs = Promise.promisifyAll(require('fs'))
 Knex = require('knex')
 { DB } = require('../src/db')

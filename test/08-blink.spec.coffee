@@ -2,8 +2,7 @@ Promise = require 'bluebird'
 constants = require '../src/lib/constants'
 fs = Promise.promisifyAll(require('fs'))
 blink = require('../src/lib/blink')
-m = require 'mochainon'
-{ expect } = m.chai
+{ expect } = require './lib/chai-config'
 
 describe 'blink', ->
 	it 'is a blink function', ->
