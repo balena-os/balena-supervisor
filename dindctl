@@ -45,7 +45,7 @@ SUPERVISOR_BASE_DIR="${DIR}"
 
 ARCH="amd64"
 SUPERVISOR_IMAGE="balena/${ARCH}-supervisor:master"
-DIND_IMAGE="resin/resinos:2.27.0_rev1-intel-nuc"
+DIND_IMAGE="resin/resinos:2.36.0_rev2-intel-nuc"
 MOUNT_DIST="false"
 MOUNT_NODE_MODULES="false"
 CONTAINER_NAME="supervisor"
