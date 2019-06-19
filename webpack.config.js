@@ -18,14 +18,14 @@ var externalModules = [
 	'oracledb',
 	'pg-query-stream',
 	'tedious',
-	/mssql\/.*/
-]
+	/mssql\/.*/,
+];
 
-var requiredModules = []
-var maybeOptionalModules = []
-lookForOptionalDeps = function (sourceDir) {
+var requiredModules = [];
+var maybeOptionalModules = [];
+lookForOptionalDeps = function(sourceDir) {
 	// We iterate over the node modules and mark all optional dependencies as external
-	var dirs = fs.readdirSync(sourceDir)
+	var dirs = fs.readdirSync(sourceDir);
 	for (let dir of dirs) {
 		let packageJson = {};
 		let internalNodeModules = path.join(sourceDir, dir, 'node_modules');
@@ -33,54 +33,72 @@ lookForOptionalDeps = function (sourceDir) {
 			lookForOptionalDeps(internalNodeModules);
 		}
 		try {
-			packageJson = JSON.parse(fs.readFileSync(path.join(sourceDir, dir, '/package.json')));
-		}
-		catch (e) {
+			packageJson = JSON.parse(
+				fs.readFileSync(path.join(sourceDir, dir, '/package.json'))
+			);
+		} catch (e) {
 			continue;
 		}
-		if (packageJson.optionalDependencies != null){
-			maybeOptionalModules = maybeOptionalModules.concat(_.keys(packageJson.optionalDependencies))
+		if (packageJson.optionalDependencies != null) {
+			maybeOptionalModules = maybeOptionalModules.concat(
+				_.keys(packageJson.optionalDependencies)
+			);
 		}
-		if (packageJson.dependencies != null){
-			requiredModules = requiredModules.concat(_.keys(packageJson.dependencies))
+		if (packageJson.dependencies != null) {
+			requiredModules = requiredModules.concat(
+				_.keys(packageJson.dependencies)
+			);
 		}
 	}
-}
+};
 
-lookForOptionalDeps('./node_modules')
-externalModules.push(new RegExp('^(' + _.reject(maybeOptionalModules, requiredModules).map(_.escapeRegExp).join('|') + ')(/.*)?$'));
+lookForOptionalDeps('./node_modules');
+externalModules.push(
+	new RegExp(
+		'^(' +
+			_.reject(maybeOptionalModules, requiredModules)
+				.map(_.escapeRegExp)
+				.join('|') +
+			')(/.*)?$'
+	)
+);
 
 console.log('Using the following dependencies as external:', externalModules);
 
-module.exports = function (env) {
+module.exports = function(env) {
 	return {
 		mode: env == null || !env.noOptimize ? 'production' : 'development',
 		devtool: 'none',
 		entry: './src/app.coffee',
 		output: {
 			filename: 'app.js',
-			path: path.resolve(__dirname, 'dist')
+			path: path.resolve(__dirname, 'dist'),
 		},
 		resolve: {
-			extensions: [".js", ".ts", ".json", ".coffee"]
+			extensions: ['.js', '.ts', '.json', '.coffee'],
 		},
 		target: 'node',
 		node: {
-			__dirname: false
+			__dirname: false,
 		},
 		module: {
 			rules: [
 				{
-					test: new RegExp(_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'index.js')) + '$'),
-					use: require.resolve('./hardcode-migrations')
+					test: new RegExp(
+						_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'index.js')) +
+							'$'
+					),
+					use: require.resolve('./hardcode-migrations'),
 				},
 				{
-					test: new RegExp(_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$'),
-					use: require.resolve('./fix-jsonstream')
+					test: new RegExp(
+						_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$'
+					),
+					use: require.resolve('./fix-jsonstream'),
 				},
 				{
 					test: /\.coffee$/,
-					use: require.resolve('coffee-loader')
+					use: require.resolve('coffee-loader'),
 				},
 				{
 					test: /\.ts$/,
@@ -89,36 +107,40 @@ module.exports = function (env) {
 							loader: 'ts-loader',
 							options: {
 								transpileOnly: true,
-							}
-						}
-					]
-				}
-			]
+								configFile: 'tsconfig.release.json',
+							},
+						},
+					],
+				},
+			],
 		},
 		externals: (context, request, callback) => {
 			for (let m of externalModules) {
-				if ((typeof m === 'string' && m === request) || (m instanceof RegExp && m.test(request))) {
+				if (
+					(typeof m === 'string' && m === request) ||
+					(m instanceof RegExp && m.test(request))
+				) {
 					return callback(null, 'commonjs ' + request);
 				} else if (typeof m != 'string' && !(m instanceof RegExp)) {
 					throw new Error('Invalid entry in external modules: ' + m);
 				}
 			}
-			return callback()
+			return callback();
 		},
 		plugins: [
 			new ForkTsCheckerWebpackPlugin({
-				async: false
+				async: false,
 			}),
 			new CopyWebpackPlugin([
 				{
 					from: './src/migrations',
-					to: 'migrations'
-				}
+					to: 'migrations',
+				},
 			]),
 			new webpack.ContextReplacementPlugin(
 				/\.\/migrations/,
 				path.resolve(__dirname, 'src/migrations')
 			),
-		]
+		],
 	};
-}
+};

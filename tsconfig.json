@@ -2,21 +2,13 @@
 	"compilerOptions": {
 		"module": "commonjs",
 		"noImplicitAny": true,
-		"noUnusedParameters": true,
-		"noUnusedLocals": true,
 		"preserveConstEnums": true,
-		"removeComments": true,
-		"sourceMap": true,
+		"inlineSourceMap": true,
 		"strictNullChecks": true,
 		"outDir": "./build/",
 		"skipLibCheck": true,
-		"lib": [
-			"es6"
-		],
+		"lib": ["es6"],
 		"resolveJsonModule": true
 	},
-	"include": [
-		"src/**/*.ts",
-		"typings/**/*.d.ts"
-	]
+	"include": ["src/**/*.ts", "test/**/*.ts", "typings/**/*.d.ts"]
 }

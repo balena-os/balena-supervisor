@@ -16,3 +16,4 @@ test/data/led_file
 /coverage/
 report.xml
 .DS_Store
+.tsbuildinfo
