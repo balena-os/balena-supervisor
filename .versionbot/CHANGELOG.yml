@@ -1,4 +1,16 @@
 - commits:
+    - subject: Remove mochainon dependnecy
+      hash: 3f5239b07f247e9da8a6fe03a4fa4251d12cd296
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.16.6
+  date: 2019-06-19T20:37:15.140Z
+- commits:
     - subject: Allow writing test files in typescript
       hash: 9dab00d1566bdff6c2a3b74a3c86865aa69cb415
       body: ''
