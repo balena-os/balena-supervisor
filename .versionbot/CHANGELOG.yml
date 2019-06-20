@@ -1,4 +1,20 @@
 - commits:
+    - subject: Report device state in local mode
+      hash: 024b9c45f493526d135a3e6926d0eda39c259446
+      body: |
+        In local mode, we now update device status on the backend,
+        but omit applications info in our updates.
+      footer:
+        Closes: '#959'
+        closes: '#959'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.17.0
+  date: 2019-06-20T12:45:10.472Z
+- commits:
     - subject: Don't drop failed api patch data
       hash: 8c69ae7645763cca7af90b500076f8d176265b02
       body: ''
