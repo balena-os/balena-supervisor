@@ -38,7 +38,7 @@ const INTERNAL_STATE_KEYS = [
 	'update_failed',
 ];
 
-interface APIBinderConstructOpts {
+export interface APIBinderConstructOpts {
 	config: Config;
 	// FIXME: Remove this
 	db: Database;
@@ -450,12 +450,22 @@ export class APIBinder {
 
 	private async sendReportPatch(
 		stateDiff: DeviceApplicationState,
-		conf: { apiEndpoint: string; uuid: string },
+		conf: { apiEndpoint: string; uuid: string; localMode: boolean },
 	) {
 		if (this.cachedBalenaApi == null) {
 			throw new InternalInconsistencyError(
 				'Attempt to send report patch without an API client',
 			);
+		}
+
+		let body = stateDiff;
+		if (conf.localMode) {
+			body = this.stripDeviceStateInLocalMode(stateDiff);
+			// In local mode, check if it still makes sense to send any updates after data strip.
+			if (_.isEmpty(body.local)) {
+				// Nothing to send.
+				return;
+			}
 		}
 
 		const endpoint = url.resolve(
@@ -467,12 +477,24 @@ export class APIBinder {
 			{
 				method: 'PATCH',
 				url: endpoint,
-				body: stateDiff,
+				body,
 			},
 			this.cachedBalenaApi.passthrough,
 		);
 
 		await this.cachedBalenaApi._request(requestParams);
+	}
+
+	// Returns an object that contains only status fields relevant for the local mode.
+	// It basically removes information about applications state.
+	public stripDeviceStateInLocalMode(
+		state: DeviceApplicationState,
+	): DeviceApplicationState {
+		return {
+			local: _.cloneDeep(
+				_.omit(state.local, 'apps', 'is_on__commit', 'logs_channel'),
+			),
+		};
 	}
 
 	private async report() {
@@ -484,17 +506,12 @@ export class APIBinder {
 			'localMode',
 		]);
 
-		if (conf.localMode) {
-			return;
-		}
-
 		const stateDiff = this.getStateDiff();
 		if (_.size(stateDiff) === 0) {
 			return 0;
 		}
 
-		const apiEndpoint = conf.apiEndpoint;
-		const uuid = conf.uuid;
+		const { apiEndpoint, uuid, localMode } = conf;
 		if (uuid == null || apiEndpoint == null) {
 			throw new InternalInconsistencyError(
 				'No uuid or apiEndpoint provided to ApiBinder.report',
@@ -503,7 +520,7 @@ export class APIBinder {
 
 		try {
 			await Bluebird.resolve(
-				this.sendReportPatch(stateDiff, { apiEndpoint, uuid }),
+				this.sendReportPatch(stateDiff, { apiEndpoint, uuid, localMode }),
 			).timeout(conf.apiTimeout);
 
 			this.stateReportErrors = 0;
@@ -526,9 +543,6 @@ export class APIBinder {
 
 	private reportCurrentState(): null {
 		(async () => {
-			if ((await this.config.get('localMode')) === true) {
-				return;
-			}
 			this.reportPending = true;
 			try {
 				const currentDeviceState = await this.deviceState.getStatus();
