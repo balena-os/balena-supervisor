@@ -1,4 +1,16 @@
 - commits:
+    - subject: Don't drop failed api patch data
+      hash: 8c69ae7645763cca7af90b500076f8d176265b02
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.16.7
+  date: 2019-06-20T11:58:45.206Z
+- commits:
     - subject: Remove mochainon dependnecy
       hash: 3f5239b07f247e9da8a6fe03a4fa4251d12cd296
       body: ''
