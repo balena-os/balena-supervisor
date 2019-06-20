@@ -1,9 +1,9 @@
 Promise = require 'bluebird'
 _ = require 'lodash'
-m = require 'mochainon'
-{ stub } = m.sinon
-m.chai.use(require('chai-events'))
-{ expect } = m.chai
+{ stub } = require 'sinon'
+chai = require './lib/chai-config'
+chai.use(require('chai-events'))
+{ expect } = chai
 
 prepare = require './lib/prepare'
 DeviceState = require '../src/device-state'

@@ -1,6 +1,5 @@
 _ = require 'lodash'
-m = require 'mochainon'
-{ expect } = m.chai
+{ expect } = require './lib/chai-config'
 
 validation = require '../src/lib/validation'
 

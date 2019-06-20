@@ -1,6 +1,5 @@
-m = require 'mochainon'
-{ expect } = m.chai
-{ stub } = m.sinon
+{ expect } = require './lib/chai-config'
+{ stub } = require 'sinon'
 
 { fs } = require 'mz'
 

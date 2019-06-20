@@ -3,9 +3,8 @@ Promise = require 'bluebird'
 balenaAPI = require './lib/mocked-balena-api'
 fs = Promise.promisifyAll(require('fs'))
 
-m = require 'mochainon'
-{ expect } = m.chai
-{ stub, spy } = m.sinon
+{ expect } = require './lib/chai-config'
+{ stub, spy } = require 'sinon'
 
 { DB } = require('../src/db')
 { Config } = require('../src/config')
@@ -58,7 +57,7 @@ describe 'APIBinder', ->
 			expect(promise).to.be.fulfilled
 			.then =>
 				expect(balenaAPI.balenaBackend.registerHandler).to.be.calledOnce
-				balenaAPI.balenaBackend.registerHandler.reset()
+				balenaAPI.balenaBackend.registerHandler.resetHistory()
 				expect(@eventTracker.track).to.be.calledWith('Device bootstrap success')
 
 		it 'deletes the provisioning key', ->

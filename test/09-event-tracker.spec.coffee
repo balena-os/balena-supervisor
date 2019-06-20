@@ -1,8 +1,7 @@
 mixpanel = require 'mixpanel'
 
-m = require 'mochainon'
-{ expect } = m.chai
-{ stub } = m.sinon
+{ expect } = require './lib/chai-config'
+{ stub } = require 'sinon'
 
 supervisorVersion = require '../src/lib/supervisor-version'
 

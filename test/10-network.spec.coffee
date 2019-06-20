@@ -1,8 +1,7 @@
 os = require 'os'
 
-m = require 'mochainon'
-{ expect } = m.chai
-{ stub } = m.sinon
+{ expect } = require './lib/chai-config'
+{ stub } = require 'sinon'
 
 network = require '../src/network'
 describe 'network', ->

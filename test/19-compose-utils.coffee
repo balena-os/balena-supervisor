@@ -1,6 +1,6 @@
 require('mocha')
 
-{ expect } = require('chai')
+{ expect } = require './lib/chai-config'
 
 ComposeUtils = require('../src/compose/utils')
 
