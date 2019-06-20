@@ -56,6 +56,7 @@
     "@types/request": "^2.48.1",
     "@types/rwlock": "^5.0.2",
     "@types/shell-quote": "^1.6.0",
+    "@types/sinon": "^7.0.13",
     "balena-sync": "^10.0.0",
     "blinking": "~0.0.2",
     "bluebird": "^3.5.3",
