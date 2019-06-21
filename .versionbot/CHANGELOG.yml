@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update the resinos version for the dind supervisor
+      hash: f5aedffa055baa4037dc912db8962468e5f42b8b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 9.17.1
+  date: 2019-06-21T12:35:30.821Z
+- commits:
     - subject: Report device state in local mode
       hash: 024b9c45f493526d135a3e6926d0eda39c259446
       body: |
