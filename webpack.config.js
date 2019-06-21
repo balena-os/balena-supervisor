@@ -69,7 +69,7 @@ module.exports = function(env) {
 	return {
 		mode: env == null || !env.noOptimize ? 'production' : 'development',
 		devtool: 'none',
-		entry: './src/app.coffee',
+		entry: './src/app.ts',
 		output: {
 			filename: 'app.js',
 			path: path.resolve(__dirname, 'dist'),

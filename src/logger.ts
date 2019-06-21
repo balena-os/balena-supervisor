@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
+import { ConfigType } from './config';
 import DB from './db';
 import { EventTracker } from './event-tracker';
 import Docker from './lib/docker-utils';
@@ -18,12 +19,13 @@ import LogMonitor from './logging/monitor';
 import log from './lib/supervisor-console';
 
 interface LoggerSetupOptions {
-	apiEndpoint: string;
-	uuid: string;
-	deviceApiKey: string;
-	unmanaged: boolean;
+	apiEndpoint: ConfigType<'apiEndpoint'>;
+	uuid: ConfigType<'uuid'>;
+	deviceApiKey: ConfigType<'deviceApiKey'>;
+	unmanaged: ConfigType<'unmanaged'>;
+	localMode: ConfigType<'localMode'>;
+
 	enableLogs: boolean;
-	localMode: boolean;
 }
 
 type LogEventObject = Dictionary<any> | null;
@@ -58,7 +60,16 @@ export class Logger {
 		enableLogs,
 		localMode,
 	}: LoggerSetupOptions) {
-		this.balenaBackend = new BalenaLogBackend(apiEndpoint, uuid, deviceApiKey);
+		this.balenaBackend = new BalenaLogBackend(
+			apiEndpoint,
+			// This is definitely not correct, but this is indeed
+			// what has been happening before the conversion of
+			// `supervisor.coffee` to typescript. We need to fix
+			// the wider problem of the backend attempting to
+			// communicate with the api without being provisioned
+			uuid || '',
+			deviceApiKey,
+		);
 		this.localBackend = new LocalLogBackend();
 
 		this.backend = localMode ? this.localBackend : this.balenaBackend;

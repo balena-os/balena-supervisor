@@ -23,13 +23,17 @@ import {
 
 interface ConfigOpts {
 	db: DB;
-	configPath: string;
+	configPath?: string;
 }
 
 type ConfigMap<T extends SchemaTypeKey> = { [key in T]: SchemaReturn<key> };
 type ConfigChangeMap<T extends SchemaTypeKey> = {
 	[key in T]?: SchemaReturn<key>
 };
+
+// Export this type renamed, for storing config keys
+export type ConfigKey = SchemaTypeKey;
+export type ConfigType<T extends ConfigKey> = SchemaReturn<T>;
 
 interface ConfigEvents {
 	change: ConfigChangeMap<SchemaTypeKey>;

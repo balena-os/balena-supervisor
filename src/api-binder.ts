@@ -9,7 +9,7 @@ import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
 import * as deviceRegister from 'resin-register-device';
 import * as url from 'url';
 
-import Config from './config';
+import Config, { ConfigType } from './config';
 import Database from './db';
 import DeviceConfig from './device-config';
 import { EventTracker } from './event-tracker';
@@ -25,9 +25,9 @@ import { request, requestOpts } from './lib/request';
 import { writeLock } from './lib/update-lock';
 import { DeviceApplicationState } from './types/state';
 
-import { SchemaReturn as ConfigSchemaType } from './config/schema-type';
-
 import log from './lib/supervisor-console';
+
+import DeviceState = require('./device-state');
 
 const REPORT_SUCCESS_DELAY = 1000;
 const MAX_REPORT_RETRY_DELAY = 60000;
@@ -42,11 +42,7 @@ export interface APIBinderConstructOpts {
 	config: Config;
 	// FIXME: Remove this
 	db: Database;
-	// TODO: Typings
-	deviceState: {
-		deviceConfig: DeviceConfig;
-		[key: string]: any;
-	};
+	deviceState: DeviceState;
 	eventTracker: EventTracker;
 }
 
@@ -67,7 +63,7 @@ interface DeviceTag {
 	value: string;
 }
 
-type KeyExchangeOpts = ConfigSchemaType<'provisioningOptions'>;
+type KeyExchangeOpts = ConfigType<'provisioningOptions'>;
 
 export class APIBinder {
 	public router: express.Router;
@@ -79,7 +75,7 @@ export class APIBinder {
 	};
 	private eventTracker: EventTracker;
 
-	private balenaApi: PinejsClientRequest | null = null;
+	public balenaApi: PinejsClientRequest | null = null;
 	private cachedBalenaApi: PinejsClientRequest | null = null;
 	private lastReportedState: DeviceApplicationState = {
 		local: {},
@@ -972,3 +968,5 @@ export class APIBinder {
 		return router;
 	}
 }
+
+export default APIBinder;

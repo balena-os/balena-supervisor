@@ -5,16 +5,17 @@ import * as memoizee from 'memoizee';
 
 import Mixpanel = require('mixpanel');
 
+import { ConfigType } from './config';
 import log from './lib/supervisor-console';
 import supervisorVersion = require('./lib/supervisor-version');
 
 export type EventTrackProperties = Dictionary<any>;
 
 interface InitArgs {
-	uuid: string;
-	unmanaged: boolean;
-	mixpanelHost: { host: string; path: string } | null;
-	mixpanelToken: string;
+	uuid: ConfigType<'uuid'>;
+	unmanaged: ConfigType<'unmanaged'>;
+	mixpanelHost: ConfigType<'mixpanelHost'>;
+	mixpanelToken: ConfigType<'mixpanelToken'>;
 }
 
 // The minimum amount of time to wait between sending
@@ -112,3 +113,5 @@ export class EventTracker {
 		return _.merge({}, properties, this.defaultProperties);
 	}
 }
+
+export default EventTracker;
