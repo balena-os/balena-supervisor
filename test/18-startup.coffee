@@ -1,6 +1,6 @@
 { expect } = require './lib/chai-config'
 
-Supervisor = require '../src/supervisor'
+{ Supervisor } = require '../src/supervisor'
 
 describe 'Startup', ->
 	it 'should startup correctly', ->

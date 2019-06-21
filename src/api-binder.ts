@@ -528,7 +528,9 @@ export class APIBinder {
 				// the watchdog to kill the supervisor - and killing the supervisor will
 				// not help in this situation
 				log.error(
-					'Non-200 response from the API! Status code: ${e.statusCode} - message:',
+					`Non-200 response from the API! Status code: ${
+						e.statusCode
+					} - message:`,
 					e,
 				);
 			} else {

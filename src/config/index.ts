@@ -26,8 +26,10 @@ interface ConfigOpts {
 	configPath?: string;
 }
 
-type ConfigMap<T extends SchemaTypeKey> = { [key in T]: SchemaReturn<key> };
-type ConfigChangeMap<T extends SchemaTypeKey> = {
+export type ConfigMap<T extends SchemaTypeKey> = {
+	[key in T]: SchemaReturn<key>
+};
+export type ConfigChangeMap<T extends SchemaTypeKey> = {
 	[key in T]?: SchemaReturn<key>
 };
 

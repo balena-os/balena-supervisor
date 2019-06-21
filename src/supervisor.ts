@@ -89,7 +89,11 @@ export class Supervisor {
 		await this.apiBinder.initClient();
 
 		log.debug('Starting logging infrastructure');
-		this.logger.init({ enableLogs: conf.loggingEnabled, ...conf });
+		this.logger.init({
+			enableLogs: conf.loggingEnabled,
+			config: this.config,
+			...conf,
+		});
 
 		this.logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
 		if (conf.legacyAppsPresent) {
