@@ -1,4 +1,5 @@
 ARG ARCH=amd64
+ARG NPM_VERSION=6.9.0
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
@@ -33,6 +34,8 @@ FROM balenalib/amd64-node:6-build as i386-nlp-node-build
 
 FROM $ARCH-node-build as node-build
 
+ARG NPM_VERSION
+
 WORKDIR /usr/src/app
 
 RUN apt-get update \
@@ -43,12 +46,20 @@ RUN apt-get update \
 		make \
 		python \
 		rsync \
-		wget \
+		curl \
 	&& rm -rf /var/lib/apt/lists/
 
 COPY package.json package-lock.json /usr/src/app/
 
-RUN JOBS=MAX npm ci --no-optional --unsafe-perm || JOBS=MAX npm install --no-optional --unsafe-perm
+# We first ensure that every architecture has an npm version
+# which can do an npm ci, then we perform the ci using this
+# temporary version
+RUN curl -LOJ https://www.npmjs.com/install.sh && \
+	# This is required to avoid a bug in uid-number
+	# https://github.com/npm/uid-number/issues/7
+	npm config set unsafe-perm true && \
+	npm_install="#{NPM_VERSION}" npm_config_prefix=/tmp sh ./install.sh && \
+	JOBS=MAX /tmp/bin/npm ci --no-optional --unsafe-perm
 
 COPY webpack.config.js fix-jsonstream.js hardcode-migrations.js tsconfig.json tsconfig.release.json /usr/src/app/
 COPY src /usr/src/app/src
@@ -63,6 +74,7 @@ RUN npm test \
 # Build nodejs dependencies
 FROM $ARCH-node-base as node-deps
 ARG ARCH
+ARG NPM_VERSION
 
 RUN [ "cross-build-start" ]
 
@@ -76,7 +88,7 @@ RUN apt-get update \
 	make \
 	python \
 	rsync \
-	wget \
+	curl \
 	&& rm -rf /var/lib/apt/lists/
 
 RUN mkdir -p rootfs-overlay && \
@@ -85,11 +97,10 @@ RUN mkdir -p rootfs-overlay && \
 COPY package.json package-lock.json /usr/src/app/
 
 # Install only the production modules that have C extensions
-RUN (if [ $ARCH = "i386-nlp" ]; then \
- JOBS=MAX npm install --no-optional --unsafe-perm --production; \
-else \
- JOBS=MAX npm ci --no-optional --unsafe-perm --production; \
-fi) && npm dedupe
+RUN curl -LOJ https://www.npmjs.com/install.sh && \
+	npm config set unsafe-perm true && \
+	npm_install="${NPM_VERSION}" npm_config_prefix=/tmp sh ./install.sh && \
+	JOBS=MAX /tmp/bin/npm ci --no-optional --unsafe-perm --production
 
 # Remove various uneeded filetypes in order to reduce space
 # We also remove the spurious node.dtps, see https://github.com/mapbox/node-sqlite3/issues/861
