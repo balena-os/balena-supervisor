@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as Docker from 'dockerode';
 import * as _ from 'lodash';
+
 import Config from './config';
 import Database from './db';
 import log from './lib/supervisor-console';
@@ -39,10 +40,10 @@ export class EngineSnapshot {
 
 	public toString(): string {
 		return (
-			`containers [${this.containers}], ` +
-			`images [${this.images}], ` +
-			`volumes [${this.volumes}], ` +
-			`networks [${this.networks}]`
+			`${this.containers.length} containers, ` +
+			`${this.images.length} images, ` +
+			`${this.volumes.length} volumes, ` +
+			`${this.networks.length} networks`
 		);
 	}
 }
@@ -71,6 +72,9 @@ export class LocalModeManager {
 		public db: Database,
 	) {}
 
+	// Indicates that switch from or to the local mode is not complete.
+	private switchInProgress: Bluebird<void> | null = null;
+
 	public async init() {
 		// Setup a listener to catch state changes relating to local mode
 		this.config.on('change', changed => {
@@ -80,7 +84,7 @@ export class LocalModeManager {
 				// First switch the logger to it's correct state
 				this.logger.switchBackend(local);
 
-				this.handleLocalModeStateChange(local);
+				this.startLocalModeChangeHandling(local);
 			}
 		});
 
@@ -103,6 +107,14 @@ export class LocalModeManager {
 		}
 	}
 
+	public startLocalModeChangeHandling(local: boolean) {
+		this.switchInProgress = Bluebird.resolve(
+			this.handleLocalModeStateChange(local),
+		).finally(() => {
+			this.switchInProgress = null;
+		});
+	}
+
 	// Query the engine to get currently running containers and installed images.
 	public async collectEngineSnapshot(): Promise<EngineSnapshotRecord> {
 		const containersPromise = this.docker
@@ -118,16 +130,20 @@ export class LocalModeManager {
 			.listNetworks()
 			.then(resp => _.map(resp, 'Id'));
 
-		const data = await Bluebird.all([
+		const [containers, images, volumes, networks] = await Bluebird.all([
 			containersPromise,
 			imagesPromise,
 			volumesPromise,
 			networksPromise,
 		]);
 		return new EngineSnapshotRecord(
-			new EngineSnapshot(data[0], data[1], data[2], data[3]),
+			new EngineSnapshot(containers, images, volumes, networks),
 			new Date(),
 		);
+	}
+
+	private async cleanEngineSnapshots() {
+		await this.db.models('engineSnapshot').delete();
 	}
 
 	// Store engine snapshot data in the local database.
@@ -136,8 +152,8 @@ export class LocalModeManager {
 		log.debug(
 			`Storing engine snapshot in the database. Timestamp: ${timestamp}`,
 		);
-		await this.db.models('engineSnapshot').delete();
-		return this.db.models('engineSnapshot').insert({
+		await this.cleanEngineSnapshots();
+		await this.db.models('engineSnapshot').insert({
 			snapshot: JSON.stringify(record.snapshot),
 			timestamp,
 		});
@@ -210,22 +226,33 @@ export class LocalModeManager {
 
 			const previousRecord = await this.retrieveLatestSnapshot();
 			if (!previousRecord) {
-				log.warn('Previous engine snapshot was not stored. Skipping clanup.');
+				log.info('Previous engine snapshot was not stored. Skipping cleanup.');
 				return;
 			}
 
 			log.debug(
 				`Leaving local mode and cleaning up objects since ${previousRecord.timestamp.toISOString()}`,
 			);
-			return await this.removeLocalModeArtifacts(
+			await this.removeLocalModeArtifacts(
 				currentRecord.snapshot.diff(previousRecord.snapshot),
 			);
+			await this.cleanEngineSnapshots();
 		} catch (e) {
 			log.error(
 				`Problems managing engine state on local mode switch. Local mode: ${local}.`,
 				e,
 			);
+		} finally {
+			log.debug('Handling of local mode switch is completed');
 		}
+	}
+
+	// Returns a promise to await local mode switch completion started previously.
+	public async switchCompletion() {
+		if (this.switchInProgress == null) {
+			return;
+		}
+		await this.switchInProgress;
 	}
 }
 

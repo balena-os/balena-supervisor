@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import * as Docker from 'dockerode';
 import * as sinon from 'sinon';
 import * as tmp from 'tmp';
+
 import Config from '../src/config';
 import DB from '../src/db';
 import log from '../src/lib/supervisor-console';
@@ -16,6 +17,13 @@ describe('LocalModeManager', () => {
 	let db: DB;
 	let localMode: LocalModeManager;
 	let dockerStub: sinon.SinonStubbedInstance<Docker>;
+
+	const recordsCount = async () =>
+		await db
+			.models('engineSnapshot')
+			.count('* as cnt')
+			.first()
+			.then(r => r.cnt);
 
 	// Cleanup the database (to make sure nothing is left since last tests).
 	beforeEach(async () => {
@@ -236,17 +244,43 @@ describe('LocalModeManager', () => {
 				expect(dockerStub.getNetwork.notCalled).to.be.true;
 				removeStubs.forEach(s => expect(s.remove.notCalled).to.be.true);
 			});
+
+			it('can be awaited', async () => {
+				const removeStubs = stubRemoveMethods(false);
+				await storeCurrentSnapshot([], [], [], []);
+
+				// Run asynchronously (like on config change).
+				localMode.startLocalModeChangeHandling(false);
+
+				// Await like it's done by DeviceState.
+				await localMode.switchCompletion();
+
+				removeStubs.forEach(s => expect(s.remove.calledTwice).to.be.true);
+			});
+
+			it('cleans the last snapshot so that nothing is done on restart', async () => {
+				const removeStubs = stubRemoveMethods(false);
+				await storeCurrentSnapshot([], [], [], []);
+
+				await localMode.handleLocalModeStateChange(false);
+
+				// The database should be empty now.
+				expect(await recordsCount()).to.be.equal(0);
+
+				// This has to be no ops.
+				await localMode.handleLocalModeStateChange(false);
+				// So our stubs must be called only once.
+				// We delete 2 objects of each type during the first call, so number of getXXX and remove calls is 2.
+				expect(dockerStub.getImage.callCount).to.be.equal(2);
+				expect(dockerStub.getContainer.callCount).to.be.equal(2);
+				expect(dockerStub.getVolume.callCount).to.be.equal(2);
+				expect(dockerStub.getNetwork.callCount).to.be.equal(2);
+				removeStubs.forEach(s => expect(s.remove.callCount).to.be.equal(2));
+			});
 		});
 	});
 
 	describe('engine snapshot storage', () => {
-		const recordsCount = async () =>
-			await db
-				.models('engineSnapshot')
-				.count('* as cnt')
-				.first()
-				.then(r => r.cnt);
-
 		const recordSample = new EngineSnapshotRecord(
 			new EngineSnapshot(
 				['c1', 'c2'],
