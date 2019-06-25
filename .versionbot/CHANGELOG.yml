@@ -1,4 +1,15 @@
 - commits:
+    - subject: Change to https for cloning resinos-in-container submodule
+      hash: 81b0d3142ec7209f75f5b6b009d295b95bb920a4
+      body: |
+        May require a `git submodule sync` to update existing local config
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 9.17.2
+  date: 2019-06-25T13:26:00.531Z
+- commits:
     - subject: Update the resinos version for the dind supervisor
       hash: f5aedffa055baa4037dc912db8962468e5f42b8b
       body: ''
