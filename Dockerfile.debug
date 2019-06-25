@@ -18,11 +18,9 @@ FROM balenalib/i386-node:10-run as i386-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM resin/i386-node:6.13.1-slim as i386-nlp-base
+FROM balenalib/i386-nlp-node:6-jessie as i386-nlp-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
-	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end \
-	# TODO: Move this to a balenalib image so this isn't necessary
-	&& sed -i '/jessie-updates/{s/^/#/}' /etc/apt/sources.list
+	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
 # A little hack to make this work with the makefile
 FROM $ARCH-base AS node-build
