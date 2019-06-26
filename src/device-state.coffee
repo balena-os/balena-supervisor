@@ -599,6 +599,8 @@ module.exports = class DeviceState extends EventEmitter
 			if !intermediate
 				@applyBlocker
 		.then =>
+			@applications.localModeSwitchCompletion()
+		.then =>
 			@usingInferStepsLock =>
 				@applications.getExtraStateForComparison()
 				.then (extraState) =>

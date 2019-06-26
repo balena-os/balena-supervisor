@@ -983,3 +983,6 @@ module.exports = class ApplicationManager extends EventEmitter
 				return _.find app.services, (svc) ->
 					svc.serviceId == serviceId
 		.get('serviceName')
+
+
+	localModeSwitchCompletion: => @localModeManager.switchCompletion()
