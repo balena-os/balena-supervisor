@@ -579,7 +579,7 @@ export class APIBinder {
 			if (isFromApi || !_.isEqual(targetState, this.lastTarget)) {
 				await this.deviceState.setTarget(targetState);
 				this.lastTarget = _.cloneDeep(targetState);
-				this.deviceState.triggerApplyTarget({ force });
+				this.deviceState.triggerApplyTarget({ force, isFromApi });
 			}
 		})
 			.tapCatch(err => {

@@ -129,6 +129,8 @@ module.exports = class DeviceState extends EventEmitter
 		@lastSuccessfulUpdate = null
 		@failedUpdates = 0
 		@applyInProgress = false
+		@applyCancelled = false
+		@cancelDelay = null
 		@lastApplyStart = process.hrtime()
 		@scheduledApply = null
 		@shuttingDown = false
@@ -675,19 +677,31 @@ module.exports = class DeviceState extends EventEmitter
 		@applyUnblocker?()
 		return
 
-	triggerApplyTarget: ({ force = false, delay = 0, initial = false } = {}) =>
+	triggerApplyTarget: ({ force = false, delay = 0, initial = false, isFromApi = false } = {}) =>
 		if @applyInProgress
-			if !@scheduledApply?
+			if !@scheduledApply? || (isFromApi && @cancelDelay)
 				@scheduledApply = { force, delay }
+				if isFromApi
+					# Cancel promise delay if call came from api to prevent waiting due to backoff
+					@cancelDelay()
 			else
 				# If a delay has been set it's because we need to hold off before applying again,
 				# so we need to respect the maximum delay that has been passed
 				@scheduledApply.delay = Math.max(delay, @scheduledApply.delay)
 				@scheduledApply.force or= force
 			return
+		@applyCancelled = false
 		@applyInProgress = true
-		Promise.delay(delay)
+		new Promise (resolve, reject) =>
+			setTimeout(resolve, delay)
+			@cancelDelay = reject
+		.catch =>
+			@applyCancelled = true
 		.then =>
+			@cancelDelay = null
+			if @applyCancelled
+				log.info('Skipping applyTarget because of a cancellation')
+				return
 			@lastApplyStart = process.hrtime()
 			log.info('Applying target state')
 			@applyTarget({ force, initial })
