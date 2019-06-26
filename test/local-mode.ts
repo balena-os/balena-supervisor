@@ -1,3 +1,4 @@
+import * as assert from 'assert';
 import { expect } from 'chai';
 import * as Docker from 'dockerode';
 import * as sinon from 'sinon';
@@ -277,6 +278,24 @@ describe('LocalModeManager', () => {
 				expect(dockerStub.getNetwork.callCount).to.be.equal(2);
 				removeStubs.forEach(s => expect(s.remove.callCount).to.be.equal(2));
 			});
+
+			it.only('skips cleanup in case of data corruption', async () => {
+				const removeStubs = stubRemoveMethods(false);
+
+				await db.models('engineSnapshot').insert({
+					snapshot: 'bad json',
+					timestamp: new Date().toISOString(),
+				});
+
+				localMode.startLocalModeChangeHandling(false);
+				await localMode.switchCompletion();
+
+				expect(dockerStub.getImage.notCalled).to.be.true;
+				expect(dockerStub.getContainer.notCalled).to.be.true;
+				expect(dockerStub.getVolume.notCalled).to.be.true;
+				expect(dockerStub.getNetwork.notCalled).to.be.true;
+				removeStubs.forEach(s => expect(s.remove.notCalled).to.be.true);
+			});
 		});
 	});
 
@@ -309,6 +328,45 @@ describe('LocalModeManager', () => {
 			await localMode.storeEngineSnapshot(recordSample);
 			await localMode.storeEngineSnapshot(recordSample);
 			expect(await recordsCount()).to.equal(1);
+		});
+
+		describe('in case of data corruption', () => {
+			beforeEach(async () => {
+				await db.models('engineSnapshot').delete();
+			});
+
+			it('deals with snapshot data corruption', async () => {
+				// Write bad data to simulate corruption.
+				await db.models('engineSnapshot').insert({
+					snapshot: 'bad json',
+					timestamp: new Date().toISOString(),
+				});
+
+				try {
+					await localMode.retrieveLatestSnapshot();
+					assert.fail('Parsing error was expected');
+				} catch (e) {
+					console.log(e.message);
+					expect(e.message).to.contain('bad json');
+				}
+			});
+
+			it('deals with snapshot timestamp corruption', async () => {
+				// Write bad data to simulate corruption.
+				await db.models('engineSnapshot').insert({
+					snapshot:
+						'{"containers": [], "images": [], "volumes": [], "networks": []}',
+					timestamp: 'bad timestamp',
+				});
+
+				try {
+					await localMode.retrieveLatestSnapshot();
+					assert.fail('Parsing error was expected');
+				} catch (e) {
+					console.log(e.message);
+					expect(e.message).to.contain('bad timestamp');
+				}
+			});
 		});
 	});
 

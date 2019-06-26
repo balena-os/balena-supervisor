@@ -159,6 +159,16 @@ export class LocalModeManager {
 		});
 	}
 
+	// Ensures an error is thrown id timestamp string cannot be parsed.
+	// Date.parse may both throw or return NaN depending on a case.
+	private static parseTimestamp(input: string): Date {
+		const ms = Date.parse(input);
+		if (isNaN(ms)) {
+			throw new Error('bad date string - got Nan parsing it');
+		}
+		return new Date(ms);
+	}
+
 	// Read the latest stored snapshot from the database.
 	public async retrieveLatestSnapshot(): Promise<EngineSnapshotRecord | null> {
 		const r = await this.db
@@ -170,10 +180,18 @@ export class LocalModeManager {
 		if (!r) {
 			return null;
 		}
-		return new EngineSnapshotRecord(
-			EngineSnapshot.fromJSON(r.snapshot),
-			new Date(Date.parse(r.timestamp)),
-		);
+		try {
+			return new EngineSnapshotRecord(
+				EngineSnapshot.fromJSON(r.snapshot),
+				LocalModeManager.parseTimestamp(r.timestamp),
+			);
+		} catch (e) {
+			// Some parsing error happened. Ensure we add data details to the error description.
+			throw new Error(
+				`Cannot parse snapshot data ${JSON.stringify(r)}.` +
+					`Original message: [${e.message}].`,
+			);
+		}
 	}
 
 	private async removeLocalModeArtifacts(objects: EngineSnapshot) {
