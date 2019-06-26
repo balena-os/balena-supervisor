@@ -1,4 +1,52 @@
 - commits:
+    - subject: Ensure we get input on parsing errors
+      hash: 645bc6c185b804df0e6d2088c5239eabcfa4ce80
+      body: >
+        We wrap JSON and date parsing code to ensure input data is logged in
+        case of an error.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+    - subject: Ensure local mode switch runs before target state
+      hash: 7c4d8d765348425559115b0b8bf08903bef84f52
+      body: >
+        This change makes DeviceState to wait until local mode switch is
+        definitely
+
+        completed before actually applying the state, which avoids races in
+        state cleanup.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+    - subject: Clean up local mode engine objects using snapshots
+      hash: 4974c9200c3955d40bfb0348d8972eb9c6dba02d
+      body: >
+        Snapshot is collected to compare with engine state when local mode is
+        turned off.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+    - subject: Add sinon types
+      hash: bc3c56da4e86941e4c143f066fb4e179ae21ba6b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.18.0
+  date: 2019-06-26T15:01:34.535Z
+- commits:
     - subject: Change to https for cloning resinos-in-container submodule
       hash: 81b0d3142ec7209f75f5b6b009d295b95bb920a4
       body: |
