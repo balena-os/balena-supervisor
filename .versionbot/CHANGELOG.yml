@@ -1,4 +1,18 @@
 - commits:
+    - subject: Fix tests run removing .only
+      hash: aad1129f2619f3de48d577f107fa17be7589e556
+      body: >
+        The issue was introduced with one of the recent changes related to local
+        mode cleanup.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.18.1
+  date: 2019-06-27T12:01:21.922Z
+- commits:
     - subject: Ensure we get input on parsing errors
       hash: 645bc6c185b804df0e6d2088c5239eabcfa4ce80
       body: >
