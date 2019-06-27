@@ -279,7 +279,7 @@ describe('LocalModeManager', () => {
 				removeStubs.forEach(s => expect(s.remove.callCount).to.be.equal(2));
 			});
 
-			it.only('skips cleanup in case of data corruption', async () => {
+			it('skips cleanup in case of data corruption', async () => {
 				const removeStubs = stubRemoveMethods(false);
 
 				await db.models('engineSnapshot').insert({
