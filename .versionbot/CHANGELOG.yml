@@ -1,4 +1,31 @@
 - commits:
+    - subject: Use jessie base images for i386-nlp
+      hash: 92aa9b40ab77316f052533cf7d0b12ec96000d0b
+      body: |
+        This fixes potential SIGILL errors with the supervisor on i386-nlp.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Ensure that all architectures use a node version that supports ci
+      hash: 557f88965a8f076cf7a1a02ad965264f1c5beab9
+      body: |
+        We do this by using the standalone installer pinned at v6.9.0. We use
+        the standalone installer because npm itself fails to upgrade on the
+        i386-nlp build (npm v3). The standalone installer is installed in /tmp,
+        and then to avoid mysterious CI errors, we use the original npm to run
+        the tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.18.2
+  date: 2019-06-27T16:13:21.666Z
+- commits:
     - subject: Fix tests run removing .only
       hash: aad1129f2619f3de48d577f107fa17be7589e556
       body: >
