@@ -708,7 +708,7 @@ export class APIBinder {
 				varValue = 'true';
 			}
 
-			if (targetConfig[key] == null && value !== defaultConfig[key]) {
+			if (targetConfig[key] == null && varValue !== defaultConfig[key]) {
 				const envVar = {
 					value: varValue,
 					device: deviceId,
