@@ -17,7 +17,6 @@
     "coverage": "istanbul report text && istanbul report html",
     "test:fast": "npm run test:build && mocha",
     "test:debug": "npm run test:build && mocha --inspect-brk",
-    "precommit": "lint-staged",
     "prettify": "prettier --config ./node_modules/resin-lint/config/.prettierrc --write \"{src,test,typings}/**/*.ts\"",
     "typescript:test-build": "tsc --project tsconfig.json",
     "typescript:release": "tsc --project tsconfig.release.json && cp -r build/src/* build && rm -rf build/src",
@@ -118,5 +117,10 @@
     "webpack": "^4.25.0",
     "webpack-cli": "^3.1.2",
     "winston": "^3.2.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged && automation/lint-mocha-tests.js"
+    }
   }
 }
