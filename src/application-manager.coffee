@@ -153,24 +153,16 @@ module.exports = class ApplicationManager extends EventEmitter
 						@images.cleanup()
 			createNetworkOrVolume: (step) =>
 				if step.model is 'network'
-					# TODO: These step targets should be the actual compose objects,
-					# rather than recreating them
-					Network.fromComposeObject({ @docker, @logger },
-						step.target.name,
-						step.appId,
-						step.target.config
-					).create()
+					# TODO: The network model allows the network
+					# itself to check for duplicates on creation, and
+					# this differs from the volume module, which has
+					# better encapsulation, so we should change the
+					# following to use the NetworkManager class instead
+					step.target.create()
 				else
 					@volumes.create(step.target)
-			removeNetworkOrVolume: (step) =>
-				if step.model is 'network'
-					Network.fromComposeObject({ @docker, @logger },
-						step.current.name,
-						step.appId,
-						step.current.config
-					).remove()
-				else
-					step.current.remove()
+			removeNetworkOrVolume: (step) ->
+				step.current.remove()
 			ensureSupervisorNetwork: =>
 				@networks.ensureSupervisorNetwork()
 		}
@@ -285,7 +277,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		for network in networks
 			appId = network.appId
 			apps[appId] ?= { appId, services: [], volumes: {}, networks: {} }
-			apps[appId].networks[network.name] = network.config
+			apps[appId].networks[network.name] = network
 
 		for volume in volumes
 			appId = volume.appId
@@ -400,70 +392,20 @@ module.exports = class ApplicationManager extends EventEmitter
 		targetNames = _.keys(target)
 		toBeRemoved = _.difference(currentNames, targetNames)
 		for name in toBeRemoved
-			if model instanceof NetworkManager
-				outputPairs.push({
-					current: current {
-						name
-						appId
-						config: current[name]
-					}
-					target: null
-				})
-			else
-				outputPairs.push({ current: current[name], target: null })
+			outputPairs.push({ current: current[name], target: null })
 		toBeInstalled = _.difference(targetNames, currentNames)
 		for name in toBeInstalled
-			if model instanceof NetworkManager
-				outputPairs.push({
-					current: null
-					target: {
-						name
-						appId
-						config: target[name]
-					}
-				})
-			else
-				outputPairs.push({ current: null, target: target[name] })
-		toBeUpdated = _.filter _.intersection(targetNames, currentNames), (name) =>
+			outputPairs.push({ current: null, target: target[name] })
+		toBeUpdated = _.filter _.intersection(targetNames, currentNames), (name) ->
 			# While we're in this in-between state of a network-manager, but not
 			# a volume-manager, we'll have to inspect the object to detect a
 			# network-manager
-			if model instanceof NetworkManager
-				opts = docker: @docker, logger: @logger
-				currentNet = Network.fromComposeObject(
-					opts,
-					name,
-					appId,
-					current[name]
-				)
-				targetNet = Network.fromComposeObject(
-					opts,
-					name,
-					appId,
-					target[name]
-				)
-				return !currentNet.isEqualConfig(targetNet)
-			else
-				return !current[name].isEqualConfig(target[name])
+			return !current[name].isEqualConfig(target[name])
 		for name in toBeUpdated
-			if model instanceof NetworkManager
-				outputPairs.push({
-					current: {
-						name
-						appId
-						config: current[name]
-					}
-					target: {
-						name
-						appId
-						config: target[name]
-					}
-				})
-			else
-				outputPairs.push({
-					current: current[name],
-					target: target[name]
-				})
+			outputPairs.push({
+				current: current[name],
+				target: target[name]
+			})
 		return outputPairs
 
 	compareNetworksForUpdate: ({ current, target }, appId) =>
@@ -642,7 +584,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			targetApp = emptyApp
 		else
 			# Create the default network for the target app
-			targetApp.networks['default'] ?= {}
+			targetApp.networks['default'] ?= @createTargetNetwork('default', targetApp.appId, {})
 		currentApp ?= emptyApp
 		if currentApp.services?.length == 1 and targetApp.services?.length == 1 and
 			targetApp.services[0].serviceName == currentApp.services[0].serviceName and
@@ -737,6 +679,15 @@ module.exports = class ApplicationManager extends EventEmitter
 			{ @docker, @logger }
 		)
 
+	createTargetNetwork: (name, appId, network) ->
+		# FIXME: Re-order the construct options to match volume
+		return Network.fromComposeObject(
+			{ @docker, @logger },
+			name,
+			appId,
+			network
+		)
+
 	normaliseAndExtendAppFromDB: (app) =>
 		Promise.join(
 			@config.get('extendedEnvOptions')
@@ -761,6 +712,11 @@ module.exports = class ApplicationManager extends EventEmitter
 					volumeConfig.labels ?= {}
 					@createTargetVolume(volumeName, app.appId, volumeConfig)
 
+				networks = JSON.parse(app.networks)
+				networks = _.mapValues networks, (networkConfig, networkName) =>
+					networkConfig ? {}
+					@createTargetNetwork(networkName, app.appId, networkConfig)
+
 				Promise.map(JSON.parse(app.services), (service) => @createTargetService(service, configOpts))
 				.then (services) =>
 					# If a named volume is defined in a service, we add it app-wide so that we can track it and purge it
@@ -774,8 +730,8 @@ module.exports = class ApplicationManager extends EventEmitter
 						commit: app.commit
 						releaseId: app.releaseId
 						services: services
-						networks: JSON.parse(app.networks)
-						volumes: volumes
+						networks
+						volumes
 					}
 					return outApp
 		)

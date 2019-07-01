@@ -11,6 +11,7 @@ DeviceState = require '../src/device-state'
 { DB } = require('../src/db')
 { Config } = require('../src/config')
 { Service } = require '../src/compose/service'
+{ Network } = require '../src/compose/network'
 
 appDBFormatNormalised = {
 	appId: 1234
@@ -143,12 +144,19 @@ describe 'ApplicationManager', ->
 			env['ADDITIONAL_ENV_VAR'] = 'foo'
 			return env
 		@normaliseCurrent = (current) ->
-			Promise.map current.local.apps, (app) ->
+			Promise.map current.local.apps, (app) =>
 				Promise.map app.services, (service) ->
 					Service.fromComposeObject(service, { appName: 'test' })
-				.then (normalisedServices) ->
+				.then (normalisedServices) =>
 					appCloned = _.cloneDeep(app)
 					appCloned.services = normalisedServices
+					appCloned.networks = _.mapValues appCloned.networks, (config, name) =>
+						Network.fromComposeObject(
+							{ docker: @applications.docker, @logger }
+							name,
+							app.appId,
+							config
+						)
 					return appCloned
 			.then (normalisedApps) ->
 				currentCloned = _.cloneDeep(current)
