@@ -7,6 +7,7 @@ fs = Promise.promisifyAll(require('fs'))
 path = require 'path'
 
 constants = require './lib/constants'
+{ log } = require './lib/supervisor-console'
 
 { DockerUtils: Docker } = require './lib/docker-utils'
 { LocalModeManager } = require './local-mode'
@@ -20,7 +21,8 @@ updateLock = require './lib/update-lock'
 { Images } = require './compose/images'
 { NetworkManager } = require './compose/network-manager'
 { Network } = require './compose/network'
-{ Volumes } = require './compose/volumes'
+{ VolumeManager } = require './compose/volume-manager'
+{ Volume } = require './compose/volume'
 
 Proxyvisor = require './proxyvisor'
 
@@ -68,7 +70,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@images = new Images({ @docker, @logger, @db, @config })
 		@services = new ServiceManager({ @docker, @logger, @images, @config })
 		@networks = new NetworkManager({ @docker, @logger })
-		@volumes = new Volumes({ @docker, @logger })
+		@volumes = new VolumeManager({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
 		@localModeManager = new LocalModeManager(@config, @docker, @logger, @db)
 		@timeSpentFetching = 0
@@ -168,7 +170,7 @@ module.exports = class ApplicationManager extends EventEmitter
 						step.current.config
 					).remove()
 				else
-					@volumes.remove(step.current)
+					step.current.remove()
 			ensureSupervisorNetwork: =>
 				@networks.ensureSupervisorNetwork()
 		}
@@ -288,7 +290,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		for volume in volumes
 			appId = volume.appId
 			apps[appId] ?= { appId, services: [], volumes: {}, networks: {} }
-			apps[appId].volumes[volume.name] = volume.config
+			apps[appId].volumes[volume.name] = volume
 
 		# multi-app warning!
 		# This is just wrong on every level
@@ -398,24 +400,30 @@ module.exports = class ApplicationManager extends EventEmitter
 		targetNames = _.keys(target)
 		toBeRemoved = _.difference(currentNames, targetNames)
 		for name in toBeRemoved
-			outputPairs.push({
-				current: {
-					name
-					appId
-					config: current[name]
-				}
-				target: null
-			})
+			if model instanceof NetworkManager
+				outputPairs.push({
+					current: current {
+						name
+						appId
+						config: current[name]
+					}
+					target: null
+				})
+			else
+				outputPairs.push({ current: current[name], target: null })
 		toBeInstalled = _.difference(targetNames, currentNames)
 		for name in toBeInstalled
-			outputPairs.push({
-				current: null
-				target: {
-					name
-					appId
-					config: target[name]
-				}
-			})
+			if model instanceof NetworkManager
+				outputPairs.push({
+					current: null
+					target: {
+						name
+						appId
+						config: target[name]
+					}
+				})
+			else
+				outputPairs.push({ current: null, target: target[name] })
 		toBeUpdated = _.filter _.intersection(targetNames, currentNames), (name) =>
 			# While we're in this in-between state of a network-manager, but not
 			# a volume-manager, we'll have to inspect the object to detect a
@@ -436,20 +444,26 @@ module.exports = class ApplicationManager extends EventEmitter
 				)
 				return !currentNet.isEqualConfig(targetNet)
 			else
-				return !model.isEqualConfig(current[name], target[name])
+				return !current[name].isEqualConfig(target[name])
 		for name in toBeUpdated
-			outputPairs.push({
-				current: {
-					name
-					appId
-					config: current[name]
-				}
-				target: {
-					name
-					appId
-					config: target[name]
-				}
-			})
+			if model instanceof NetworkManager
+				outputPairs.push({
+					current: {
+						name
+						appId
+						config: current[name]
+					}
+					target: {
+						name
+						appId
+						config: target[name]
+					}
+				})
+			else
+				outputPairs.push({
+					current: current[name],
+					target: target[name]
+				})
 		return outputPairs
 
 	compareNetworksForUpdate: ({ current, target }, appId) =>
@@ -715,6 +729,14 @@ module.exports = class ApplicationManager extends EventEmitter
 				service.image = imageInfo.Id
 			return Service.fromComposeObject(service, serviceOpts)
 
+	createTargetVolume: (name, appId, volume) ->
+		return Volume.fromComposeVolume(
+			name,
+			appId,
+			volume,
+			{ @docker, @logger }
+		)
+
 	normaliseAndExtendAppFromDB: (app) =>
 		Promise.join(
 			@config.get('extendedEnvOptions')
@@ -732,18 +754,20 @@ module.exports = class ApplicationManager extends EventEmitter
 					hostnameOnHost
 				}
 				_.assign(configOpts, opts)
+
 				volumes = JSON.parse(app.volumes)
-				volumes = _.mapValues volumes, (volumeConfig) ->
+				volumes = _.mapValues volumes, (volumeConfig, volumeName) =>
 					volumeConfig ?= {}
 					volumeConfig.labels ?= {}
-					return volumeConfig
+					@createTargetVolume(volumeName, app.appId, volumeConfig)
+
 				Promise.map(JSON.parse(app.services), (service) => @createTargetService(service, configOpts))
-				.then (services) ->
+				.then (services) =>
 					# If a named volume is defined in a service, we add it app-wide so that we can track it and purge it
 					for s in services
 						serviceNamedVolumes = s.getNamedVolumes()
 						for name in serviceNamedVolumes
-							volumes[name] ?= { labels: {} }
+							volumes[name] = @createTargetVolume(name, app.appId, { labels: {} })
 					outApp = {
 						appId: app.appId
 						name: app.name
@@ -983,6 +1007,5 @@ module.exports = class ApplicationManager extends EventEmitter
 				return _.find app.services, (svc) ->
 					svc.serviceId == serviceId
 		.get('serviceName')
-
 
 	localModeSwitchCompletion: => @localModeManager.switchCompletion()
