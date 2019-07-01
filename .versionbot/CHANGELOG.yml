@@ -1,4 +1,20 @@
 - commits:
+    - subject: Add mocha tests linter
+      hash: 36fa23ab7dcd76e7eb207e59b2ebcca8560a015f
+      body: >
+        A simple script that detects presence of .only statements in tests.
+
+        The idea is to avoid comitting them, so that all the tests are run with
+        npm test.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.18.3
+  date: 2019-06-29T13:44:31.994Z
+- commits:
     - subject: Use jessie base images for i386-nlp
       hash: 92aa9b40ab77316f052533cf7d0b12ec96000d0b
       body: |
