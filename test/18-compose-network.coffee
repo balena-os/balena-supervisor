@@ -8,7 +8,7 @@ describe 'compose/network', ->
 
 		it 'should convert a compose configuration to an internal representation', ->
 
-			network = Network.fromComposeObject({ logger: null, docker: null }, 'test', 123, {
+			network = Network.fromComposeObject('test', 123, {
 				'driver': 'bridge',
 				'ipam': {
 					'driver': 'default',
@@ -19,7 +19,7 @@ describe 'compose/network', ->
 						}
 					]
 				}
-			})
+			}, { logger: null, docker: null })
 
 			expect(network.config).to.deep.equal({
 				driver: 'bridge'
@@ -41,7 +41,7 @@ describe 'compose/network', ->
 
 		it 'should convert an internal representation to a docker representation', ->
 
-			network = Network.fromComposeObject({ logger: null, docker: null }, 'test', 123, {
+			network = Network.fromComposeObject('test', 123, {
 				'driver': 'bridge',
 				'ipam': {
 					'driver': 'default',
@@ -52,7 +52,7 @@ describe 'compose/network', ->
 						}
 					]
 				}
-			})
+			}, { logger: null, docker: null })
 
 			expect(network.toDockerConfig()).to.deep.equal({
 				Name: '123_test',

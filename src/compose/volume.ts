@@ -57,7 +57,7 @@ export class Volume {
 		return new Volume(name, appId, config, opts);
 	}
 
-	public static fromComposeVolume(
+	public static fromComposeObject(
 		name: string,
 		appId: number,
 		config: Partial<VolumeConfig>,
@@ -86,8 +86,6 @@ export class Volume {
 		this.logger.logSystemEvent(LogTypes.createVolume, {
 			volume: { name: this.name },
 		});
-		// Check that we're not trying to recreate a volume that
-		// already exists
 		await this.docker.createVolume({
 			Name: Volume.generateDockerName(this.appId, this.name),
 			Labels: this.config.labels,

@@ -2,7 +2,7 @@ import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import Docker from '../lib/docker-utils';
-import { InvalidAppIdError, NotFoundError } from '../lib/errors';
+import { InvalidAppIdError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import { checkInt } from '../lib/validation';
 import { Logger } from '../logger';
@@ -18,7 +18,6 @@ import {
 import {
 	InvalidNetworkConfigurationError,
 	InvalidNetworkNameError,
-	ResourceRecreationAttemptError,
 } from './errors';
 
 export interface NetworkOptions {
@@ -33,12 +32,10 @@ export class Network {
 
 	private docker: Docker;
 	private logger: Logger;
-	private networkOpts: NetworkOptions;
 
 	private constructor(opts: NetworkOptions) {
 		this.docker = opts.docker;
 		this.logger = opts.logger;
-		this.networkOpts = opts;
 	}
 
 	public static fromDockerNetwork(
@@ -93,20 +90,11 @@ export class Network {
 		return ret;
 	}
 
-	public static async fromNameAndAppId(
-		opts: NetworkOptions,
-		name: string,
-		appId: number,
-	): Bluebird<Network> {
-		const network = await opts.docker.getNetwork(`${appId}_${name}`).inspect();
-		return Network.fromDockerNetwork(opts, network);
-	}
-
 	public static fromComposeObject(
-		opts: NetworkOptions,
 		name: string,
 		appId: number,
 		network: NetworkConfig,
+		opts: NetworkOptions,
 	): Network {
 		const net = new Network(opts);
 		net.name = name;
@@ -133,34 +121,17 @@ export class Network {
 		return net;
 	}
 
-	public create(): Bluebird<void> {
+	public async create(): Promise<void> {
 		this.logger.logSystemEvent(logTypes.createNetwork, {
 			network: { name: this.name },
 		});
 
-		return Network.fromNameAndAppId(this.networkOpts, this.name, this.appId)
-			.then(current => {
-				if (!this.isEqualConfig(current)) {
-					throw new ResourceRecreationAttemptError('network', this.name);
-				}
-
-				// We have a network with the same config and name already created -
-				// we can skip this.
-			})
-			.catch(NotFoundError, () => {
-				return this.docker.createNetwork(this.toDockerConfig());
-			})
-			.tapCatch(err => {
-				this.logger.logSystemEvent(logTypes.createNetworkError, {
-					network: { name: this.name, appId: this.appId },
-					error: err,
-				});
-			});
+		return await this.docker.createNetwork(this.toDockerConfig());
 	}
 
 	public toDockerConfig(): DockerNetworkConfig {
 		return {
-			Name: this.getDockerName(),
+			Name: Network.generateDockerName(this.appId, this.name),
 			Driver: this.config.driver,
 			CheckDuplicate: true,
 			IPAM: {
@@ -201,7 +172,9 @@ export class Network {
 		});
 
 		return Bluebird.resolve(
-			this.docker.getNetwork(this.getDockerName()).remove(),
+			this.docker
+				.getNetwork(Network.generateDockerName(this.appId, this.name))
+				.remove(),
 		).tapCatch(error => {
 			this.logger.logSystemEvent(logTypes.createNetworkError, {
 				network: { name: this.name, appId: this.appId },
@@ -224,10 +197,6 @@ export class Network {
 		return _.isEqual(configToCompare, network.config);
 	}
 
-	public getDockerName(): string {
-		return `${this.appId}_${this.name}`;
-	}
-
 	private static validateComposeConfig(config: NetworkConfig): void {
 		// Check if every ipam config entry has both a subnet and a gateway
 		_.each(_.get(config, 'config.ipam.config', []), ({ subnet, gateway }) => {
@@ -237,5 +206,9 @@ export class Network {
 				);
 			}
 		});
+	}
+
+	public static generateDockerName(appId: number, name: string) {
+		return `${appId}_${name}`;
 	}
 }

@@ -5,11 +5,12 @@ import unionBy = require('lodash/unionBy');
 import * as Path from 'path';
 
 import constants = require('../lib/constants');
-import { InternalInconsistencyError, NotFoundError } from '../lib/errors';
+import { NotFoundError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
 import * as LogTypes from '../lib/log-types';
 import { defaultLegacyVolume } from '../lib/migration';
 import Logger from '../logger';
+import { ResourceRecreationAttemptError } from './errors';
 import Volume, { VolumeConfig } from './volume';
 
 export interface VolumeMangerConstructOpts {
@@ -65,11 +66,7 @@ export class VolumeManager {
 			});
 
 			if (!volume.isEqualConfig(existing)) {
-				throw new InternalInconsistencyError(
-					`Trying to create volume '${
-						volume.name
-					}', but a volume with the same name and different configuration exists`,
-				);
+				throw new ResourceRecreationAttemptError('volume', volume.name);
 			}
 		} catch (e) {
 			if (!NotFoundError(e)) {
@@ -82,6 +79,12 @@ export class VolumeManager {
 
 			await volume.create();
 		}
+	}
+
+	// We simply forward this to the volume object, but we
+	// add this method to provide a consistent interface
+	public async remove(volume: Volume) {
+		await volume.remove();
 	}
 
 	public async createFromLegacy(appId: number): Promise<Volume | void> {
@@ -108,7 +111,7 @@ export class VolumeManager {
 		config: Partial<VolumeConfig>,
 		oldPath: string,
 	): Promise<Volume> {
-		const volume = Volume.fromComposeVolume(name, appId, config, {
+		const volume = Volume.fromComposeObject(name, appId, config, {
 			logger: this.logger,
 			docker: this.docker,
 		});

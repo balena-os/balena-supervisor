@@ -152,10 +152,10 @@ describe 'ApplicationManager', ->
 					appCloned.services = normalisedServices
 					appCloned.networks = _.mapValues appCloned.networks, (config, name) =>
 						Network.fromComposeObject(
-							{ docker: @applications.docker, @logger }
 							name,
 							app.appId,
 							config
+							{ docker: @applications.docker, @logger }
 						)
 					return appCloned
 			.then (normalisedApps) ->
