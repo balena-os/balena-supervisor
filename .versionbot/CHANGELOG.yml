@@ -1,4 +1,78 @@
 - commits:
+    - subject: Use jessie base images for i386-nlp
+      hash: 2233ff8f10652cc26eddd52b73cb24f982f5280b
+      body: |
+        This fixes potential SIGILL errors with the supervisor on i386-nlp.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Ensure that all architectures use a node version that supports ci
+      hash: 77a0397687dba26256212910eb12156438088324
+      body: |
+        We do this by using the standalone installer pinned at v6.9.0. We use
+        the standalone installer because npm itself fails to upgrade on the
+        i386-nlp build (npm v3). The standalone installer is installed in /tmp,
+        and then to avoid mysterious CI errors, we use the original npm to run
+        the tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Re-parallelise current image retrieval code
+      hash: 3bb22e56ed8d02914cd8dde40ca0ca177e873846
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add repo.yml which declares ESR version 9.15.x
+      hash: c1bb3be9d96724b2e32638b56558b537cc029251
+      body: ''
+      footer:
+        Backport-to: next
+        backport-to: next
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Giovanni Garufi <giovanni@balena.io>
+        signed-off-by: Giovanni Garufi <giovanni@balena.io>
+      author: Giovanni Garufi
+    - subject: Don't drop failed api patch data
+      hash: 49cd4d82b4ce73b52c26d2759e977325f44ca585
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Pin prettier version to avoid changes in non-ci installs
+      hash: 8bcd851bd6b948b7d48698fec1c3bd87ccd77848
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade typescript and fix warnings
+      hash: c595f328e044ac831b38fd279435f3a2e6fb45d2
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.10
+  date: 2019-07-01T09:00:41.870Z
+- commits:
     - subject: Update and improve debug and development tools
       hash: 392c56b4d38bab367429d4b9bdaf2ee2c7fa18e6
       body: |
