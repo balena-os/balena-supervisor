@@ -499,10 +499,16 @@ export class APIBinder {
 			);
 		}
 
-		await Bluebird.resolve(
-			this.sendReportPatch(stateDiff, { apiEndpoint, uuid }),
-		)
-			.catch(StatusError, (e: StatusError) => {
+		try {
+			await Bluebird.resolve(
+				this.sendReportPatch(stateDiff, { apiEndpoint, uuid }),
+			).timeout(conf.apiTimeout);
+
+			this.stateReportErrors = 0;
+			_.assign(this.lastReportedState.local, stateDiff.local);
+			_.assign(this.lastReportedState.dependent, stateDiff.dependent);
+		} catch (e) {
+			if (e instanceof StatusError) {
 				// We don't want this to be classed as a report error, as this will cause
 				// the watchdog to kill the supervisor - and killing the supervisor will
 				// not help in this situation
@@ -511,12 +517,10 @@ export class APIBinder {
 						e.message
 					}`,
 				);
-			})
-			.timeout(conf.apiTimeout);
-
-		this.stateReportErrors = 0;
-		_.assign(this.lastReportedState.local, stateDiff.local);
-		_.assign(this.lastReportedState.dependent, stateDiff.dependent);
+			} else {
+				throw e;
+			}
+		}
 	}
 
 	private reportCurrentState(): null {

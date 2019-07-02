@@ -214,18 +214,18 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		);
 	}
 
-	private withImagesFromDockerAndDB<T>(
+	private async withImagesFromDockerAndDB<T>(
 		cb: (dockerImages: NormalisedDockerImage[], composeImages: Image[]) => T,
 	) {
-		return Bluebird.join(
-			Bluebird.resolve(this.docker.listImages({ digests: true })).map(image => {
-				const newImage: Dictionary<unknown> = _.clone(image);
-				newImage.NormalisedRepoTags = this.getNormalisedTags(image);
-				return Bluebird.props(newImage);
+		const [normalisedImages, dbImages] = await Promise.all([
+			Bluebird.map(this.docker.listImages({ digests: true }), async image => {
+				const newImage = _.clone(image) as NormalisedDockerImage;
+				newImage.NormalisedRepoTags = await this.getNormalisedTags(image);
+				return newImage;
 			}),
-			this.db.models('image').select(),
-			cb,
-		);
+			this.db.models('images').select(),
+		]);
+		return cb(normalisedImages, dbImages);
 	}
 
 	private addImageFailure(imageName: string, time = process.hrtime()) {
@@ -576,7 +576,11 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 	private async markAsSupervised(image: Image): Promise<void> {
 		image = this.format(image);
-		await this.db.upsertModel('image', image, image);
+		// TODO: Get rid of this janky cast once the database is
+		// more strongly typed
+		await this.db.upsertModel('image', image, (image as unknown) as Dictionary<
+			unknown
+		>);
 	}
 
 	private format(image: MaybeImage): Image {
