@@ -9,6 +9,7 @@ import { Logger } from '../logger';
 import * as ComposeUtils from './utils';
 
 import {
+	ComposeNetworkConfig,
 	DockerIPAMConfig,
 	DockerNetworkConfig,
 	NetworkConfig,
@@ -93,7 +94,7 @@ export class Network {
 	public static fromComposeObject(
 		name: string,
 		appId: number,
-		network: NetworkConfig,
+		network: Partial<ComposeNetworkConfig>,
 		opts: NetworkOptions,
 	): Network {
 		const net = new Network(opts);
@@ -102,23 +103,43 @@ export class Network {
 
 		Network.validateComposeConfig(network);
 
-		// Assign the default values for a network inspect,
-		// so when we come to compare, it will match
-		net.config = _.defaultsDeep(network, {
-			driver: 'bridge',
-			ipam: {
-				driver: 'default',
-				config: [],
-				options: {},
-			},
-			enableIPv6: false,
-			internal: false,
-			labels: {},
-			options: {},
-		});
+		const ipam =
+			network.ipam != null
+				? network.ipam
+				: {
+						driver: 'default',
+						config: [],
+						options: {},
+				  };
+		if (ipam.config == null) {
+			ipam.config = [];
+		}
+		if (ipam.options == null) {
+			ipam.options = {};
+		}
+		net.config = {
+			driver: network.driver || 'bridge',
+			ipam,
+			enableIPv6: network.enable_ipv6 || false,
+			internal: network.internal || false,
+			labels: network.labels || {},
+			options: network.driver_opts || {},
+		};
+
 		net.config.labels = ComposeUtils.normalizeLabels(net.config.labels);
 
 		return net;
+	}
+
+	public toComposeObject(): ComposeNetworkConfig {
+		return {
+			driver: this.config.driver,
+			driver_opts: this.config.options,
+			enable_ipv6: this.config.enableIPv6,
+			internal: this.config.internal,
+			ipam: this.config.ipam,
+			labels: this.config.labels,
+		};
 	}
 
 	public async create(): Promise<void> {
@@ -197,7 +218,9 @@ export class Network {
 		return _.isEqual(configToCompare, network.config);
 	}
 
-	private static validateComposeConfig(config: NetworkConfig): void {
+	private static validateComposeConfig(
+		config: Partial<ComposeNetworkConfig>,
+	): void {
 		// Check if every ipam config entry has both a subnet and a gateway
 		_.each(_.get(config, 'config.ipam.config', []), ({ subnet, gateway }) => {
 			if (subnet == null || gateway == null) {

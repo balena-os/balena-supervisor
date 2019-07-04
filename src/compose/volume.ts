@@ -19,6 +19,11 @@ export interface VolumeConfig {
 	driverOpts: Docker.VolumeInspectInfo['Options'];
 }
 
+export interface ComposeVolumeConfig {
+	driver_opts: Dictionary<string>;
+	labels: LabelObject;
+}
+
 export class Volume {
 	public appId: number;
 	public name: string;
@@ -60,11 +65,11 @@ export class Volume {
 	public static fromComposeObject(
 		name: string,
 		appId: number,
-		config: Partial<VolumeConfig>,
+		config: Partial<ComposeVolumeConfig>,
 		opts: VolumeConstructOpts,
 	) {
 		const filledConfig: VolumeConfig = {
-			driverOpts: config.driverOpts || {},
+			driverOpts: config.driver_opts || {},
 			labels: ComposeUtils.normalizeLabels(config.labels || {}),
 		};
 
@@ -73,6 +78,13 @@ export class Volume {
 		assign(filledConfig.labels, constants.defaultVolumeLabels);
 
 		return new Volume(name, appId, filledConfig, opts);
+	}
+
+	public toComposeObject(): ComposeVolumeConfig {
+		return {
+			driver_opts: this.config.driverOpts!,
+			labels: this.config.labels,
+		};
 	}
 
 	public isEqualConfig(volume: Volume): boolean {
