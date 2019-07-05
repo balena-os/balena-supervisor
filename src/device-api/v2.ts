@@ -485,4 +485,18 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			});
 		}
 	});
+
+	router.get('/v2/cleanup-volumes', async (_req, res) => {
+		try {
+			await applications.volumes.removeOrphanedVolumes();
+			res.json({
+				status: 'success',
+			});
+		} catch (e) {
+			res.status(503).json({
+				status: 'failed',
+				message: messageFromError(e),
+			});
+		}
+	});
 }
