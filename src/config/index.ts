@@ -159,7 +159,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 
 						// if we have anything other than a string, it must be converted to
 						// a string before being stored in the db
-						const strValue = Config.valueToString(value);
+						const strValue = Config.valueToString(value, key);
 
 						if (oldValues[key] !== value) {
 							return this.db.upsertModel(
@@ -336,7 +336,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		});
 	}
 
-	private static valueToString(value: unknown) {
+	private static valueToString(value: unknown, name: string) {
 		switch (typeof value) {
 			case 'object':
 				return JSON.stringify(value);
@@ -346,7 +346,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 				return value.toString();
 			default:
 				throw new InternalInconsistencyError(
-					`Could not convert configuration value to string for storage, value: ${value}, type: ${typeof value}`,
+					`Could not convert configuration value to string for storage, name: ${name}, value: ${value}, type: ${typeof value}`,
 				);
 		}
 	}
