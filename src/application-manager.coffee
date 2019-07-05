@@ -622,7 +622,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			pairSteps = @_nextStepsForVolume(pair, currentApp, removePairs.concat(updatePairs))
 			steps = steps.concat(pairSteps)
 
-		if _.isEmpty(steps) and currentApp.commit != targetApp.commit
+		if _.isEmpty(steps) and targetApp.commit? and currentApp.commit != targetApp.commit
 			steps.push({
 				action: 'updateCommit'
 				target: targetApp.commit
