@@ -542,6 +542,13 @@ export class Service {
 		return svc;
 	}
 
+	public toComposeObject(): ServiceConfig {
+		// This isn't techinically correct as we do some changes
+		// to the configuration which we cannot reverse. We also
+		// represent the ports as a class, which isn't ideal
+		return this.config;
+	}
+
 	public toDockerContainer(opts: {
 		deviceName: string;
 	}): Dockerode.ContainerCreateOptions {

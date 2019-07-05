@@ -5,10 +5,12 @@ import { fs } from 'mz';
 import * as constants from '../lib/constants';
 import Docker from '../lib/docker-utils';
 import { ENOENT, NotFoundError } from '../lib/errors';
+import logTypes = require('../lib/log-types');
 import { Logger } from '../logger';
 import { Network, NetworkOptions } from './network';
 
 import log from '../lib/supervisor-console';
+import { ResourceRecreationAttemptError } from './errors';
 
 export class NetworkManager {
 	private docker: Docker;
@@ -40,15 +42,49 @@ export class NetworkManager {
 		return this.getAll().filter((network: Network) => network.appId === appId);
 	}
 
-	public get(network: { name: string; appId: number }): Bluebird<Network> {
-		return Network.fromNameAndAppId(
-			{
-				logger: this.logger,
-				docker: this.docker,
-			},
-			network.name,
-			network.appId,
+	public async get(network: {
+		name: string;
+		appId: number;
+	}): Bluebird<Network> {
+		const dockerNet = await this.docker
+			.getNetwork(Network.generateDockerName(network.appId, network.name))
+			.inspect();
+		return Network.fromDockerNetwork(
+			{ docker: this.docker, logger: this.logger },
+			dockerNet,
 		);
+	}
+
+	public async create(network: Network) {
+		try {
+			const existing = await this.get({
+				name: network.name,
+				appId: network.appId,
+			});
+			if (!network.isEqualConfig(existing)) {
+				throw new ResourceRecreationAttemptError('network', network.name);
+			}
+
+			// We have a network with the same config and name
+			// already created, we can skip this
+		} catch (e) {
+			if (!NotFoundError(e)) {
+				this.logger.logSystemEvent(logTypes.createNetworkError, {
+					network: { name: network.name, appId: network.appId },
+					error: e,
+				});
+				throw e;
+			}
+
+			// If we got a not found error, create the network
+			await network.create();
+		}
+	}
+
+	public async remove(network: Network) {
+		// We simply forward this to the network object, but we
+		// add this method to provide a consistent interface
+		await network.remove();
 	}
 
 	public supervisorNetworkReady(): Bluebird<boolean> {

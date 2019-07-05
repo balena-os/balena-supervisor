@@ -244,9 +244,26 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				});
 			}
 
+			// TODO: This should really return the config as it
+			// is returned from the api, but currently that's not
+			// the easiest thing due to the way their stored and
+			// retrieved from the db - when all of the application
+			// manager is strongly typed, revisit this. The best
+			// thing to do would be to represent the input with
+			// io-ts and make sure the below conforms to it
+			const target = _.cloneDeep(await deviceState.getTarget());
+			if (target.local != null && !_.isEmpty(target.local.apps)) {
+				target.local.apps = _.mapValues(target.local.apps, app => {
+					app.services = _.map(app.services, s => s.toComposeObject());
+					app.volumes = _.mapValues(app.volumes, v => v.toComposeObject());
+					app.networks = _.mapValues(app.networks, n => n.toComposeObject());
+					return app;
+				});
+			}
+
 			res.status(200).json({
 				status: 'success',
-				state: await deviceState.getTarget(),
+				state: target,
 			});
 		} catch (err) {
 			res.status(503).send({
@@ -259,8 +276,6 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	router.post('/v2/local/target-state', async (req, res) => {
 		// let's first ensure that we're in local mode, otherwise
 		// this function should not do anything
-		// TODO: We really should refactor the config module to provide bools
-		// as bools etc
 		try {
 			const localMode = await deviceState.config.get('localMode');
 			if (!localMode) {
