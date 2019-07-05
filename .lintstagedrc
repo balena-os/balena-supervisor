@@ -7,4 +7,10 @@
 		"resin-lint --typescript --no-prettier",
 		"git add"
 	],
+	"test/**/*.coffee": [
+		"resin-lint --tests"
+	],
+	"test/**/*.ts": [
+		"resin-lint --typescript --no-prettier --tests"
+	],
 }
