@@ -38,9 +38,6 @@ RUN apt-get update && apt-get install ca-certificates \
 	iptables libnss-mdns nodejs rsync git python make curl g++ \
 	kmod vim
 
-COPY package*.json ./
-
-
 # We first ensure that every architecture has an npm version
 # which can do an npm ci, then we perform the ci using this
 # temporary version
@@ -48,8 +45,10 @@ RUN curl -LOJ https://www.npmjs.com/install.sh && \
 	# This is required to avoid a bug in uid-number
 	# https://github.com/npm/uid-number/issues/7
 	npm config set unsafe-perm true && \
-	npm_install="${NPM_VERSION}" npm_config_prefix=/tmp sh ./install.sh && \
-	JOBS=MAX /tmp/bin/npm ci --no-optional --unsafe-perm
+	npm_install="${NPM_VERSION}" npm_config_prefix=/tmp sh ./install.sh
+
+COPY package*.json ./
+RUN JOBS=MAX /tmp/bin/npm ci --no-optional --unsafe-perm
 
 COPY src src/
 COPY typings typings/
