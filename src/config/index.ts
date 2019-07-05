@@ -23,7 +23,7 @@ import {
 
 interface ConfigOpts {
 	db: DB;
-	configPath: string;
+	configPath?: string;
 }
 
 type ConfigMap<T extends SchemaTypeKey> = { [key in T]: SchemaReturn<key> };

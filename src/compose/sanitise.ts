@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import { ConfigMap, ServiceComposeConfig } from './types/service';
+import { ComposeServiceConfig, ConfigMap } from './types/service';
 
 import log from '../lib/supervisor-console';
 
@@ -62,7 +62,7 @@ const supportedComposeFields = [
 
 export function sanitiseComposeConfig(
 	composeConfig: ConfigMap,
-): ServiceComposeConfig {
+): ComposeServiceConfig {
 	const filtered: string[] = [];
 	const toReturn = _.pickBy(composeConfig, (_v, k) => {
 		const included = _.includes(supportedComposeFields, k);
@@ -70,7 +70,7 @@ export function sanitiseComposeConfig(
 			filtered.push(k);
 		}
 		return included;
-	}) as ServiceComposeConfig;
+	}) as ComposeServiceConfig;
 
 	if (filtered.length > 0) {
 		log.warn(

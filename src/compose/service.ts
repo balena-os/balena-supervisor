@@ -8,10 +8,10 @@ import * as conversions from '../lib/conversions';
 import { checkInt } from '../lib/validation';
 import { DockerPortOptions, PortMap } from './ports';
 import {
+	ComposeServiceConfig,
 	ConfigMap,
 	DeviceMetadata,
 	DockerDevice,
-	ServiceComposeConfig,
 	ServiceConfig,
 	ServiceConfigArrayField,
 } from './types/service';
@@ -724,7 +724,7 @@ export class Service {
 		);
 	}
 
-	public getNamedVolumes() {
+	public getNamedVolumes(): string[] {
 		const defaults = Service.defaultBinds(
 			this.appId || 0,
 			this.serviceName || '',
@@ -906,7 +906,7 @@ export class Service {
 	}
 
 	private static extendAndSanitiseVolumes(
-		composeVolumes: ServiceComposeConfig['volumes'],
+		composeVolumes: ComposeServiceConfig['volumes'],
 		imageInfo: Dockerode.ImageInspectInfo | undefined,
 		appId: number,
 		serviceName: string,
@@ -946,3 +946,5 @@ export class Service {
 		];
 	}
 }
+
+export default Service;

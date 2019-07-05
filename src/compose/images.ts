@@ -476,7 +476,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		);
 	}
 
-	private normalise(imageName: string): Bluebird<string> {
+	public normalise(imageName: string): Bluebird<string> {
 		return this.docker.normaliseImageName(imageName);
 	}
 

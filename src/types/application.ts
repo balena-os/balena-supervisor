@@ -1,4 +1,4 @@
-import { ServiceComposeConfig } from '../compose/types/service';
+import { ComposeServiceConfig } from '../compose/types/service';
 
 export class Application {
 	public appId: number;
@@ -8,5 +8,5 @@ export class Application {
 	public networks: Dictionary<any>;
 	public volumes: Dictionary<any>;
 
-	public services: Dictionary<ServiceComposeConfig>;
+	public services: Dictionary<ComposeServiceConfig>;
 }

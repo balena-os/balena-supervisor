@@ -30,7 +30,7 @@ export interface ServiceNetworkDictionary {
 
 // This is the config directly from the compose file (after running it
 // through _.camelCase)
-export interface ServiceComposeConfig {
+export interface ComposeServiceConfig {
 	// Used for converting these fields in a programmatic fashion
 	// Unfortunately even keys known at compiler time don't work
 	// with the type system, as least at the moment

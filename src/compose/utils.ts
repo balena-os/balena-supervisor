@@ -8,10 +8,10 @@ import { checkTruthy } from '../lib/validation';
 import { Service } from './service';
 import {
 	ComposeHealthcheck,
+	ComposeServiceConfig,
 	ConfigMap,
 	DeviceMetadata,
 	DockerDevice,
-	ServiceComposeConfig,
 	ServiceConfig,
 	ServiceHealthcheck,
 } from './types/service';
@@ -20,7 +20,7 @@ import log from '../lib/supervisor-console';
 
 export function camelCaseConfig(
 	literalConfig: ConfigMap,
-): ServiceComposeConfig {
+): ComposeServiceConfig {
 	const config = _.mapKeys(literalConfig, (_v, k) => _.camelCase(k));
 
 	// Networks can either be an object or array, but given _.isObject
@@ -32,7 +32,7 @@ export function camelCaseConfig(
 		});
 	}
 
-	return config as ServiceComposeConfig;
+	return config as ComposeServiceConfig;
 }
 
 export function parseMemoryNumber(

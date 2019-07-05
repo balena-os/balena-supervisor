@@ -45,7 +45,7 @@ const DELTA_TOKEN_TIMEOUT = 10 * 60 * 1000;
 export class DockerUtils extends DockerToolbelt {
 	public dockerProgress: DockerProgress;
 
-	public constructor(opts: Dockerode.DockerOptions) {
+	public constructor(opts?: Dockerode.DockerOptions) {
 		super(opts);
 		this.dockerProgress = new DockerProgress({ dockerToolbelt: this });
 	}

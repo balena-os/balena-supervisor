@@ -21,3 +21,5 @@ export class ResourceRecreationAttemptError extends TypedError {
 export class InvalidNetworkConfigurationError extends TypedError {}
 
 export class ImageDownloadBackoffError extends TypedError {}
+
+export class ApplicationParseError extends TypedError {}

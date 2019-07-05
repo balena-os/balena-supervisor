@@ -10,8 +10,11 @@ process.env.LED_FILE = './test/data/led_file'
 
 dbus = require 'dbus-native'
 
-stub(dbus, 'systemBus').returns({
-	invoke: (obj, cb) ->
-		console.log(obj)
-		cb()
-})
+before ->
+	stub(dbus, 'systemBus').returns({
+		invoke: (obj, cb) ->
+			console.log(obj)
+			cb()
+	})
+after ->
+	dbus.systemBus.restore()

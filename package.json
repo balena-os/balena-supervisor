@@ -16,6 +16,7 @@
     "test:build": "npm run typescript:test-build && npm run coffeescript:test  && npm run testitems:copy && npm run migrations:copy-test && npm run packagejson:copy",
     "coverage": "istanbul report text && istanbul report html",
     "test:fast": "mocha --opts test/fast-mocha.opts",
+    "test:watch": "mocha --opts test/fast-mocha.opts --watch --watch-extensions coffee,ts",
     "test:debug": "npm run test:build && mocha --inspect-brk",
     "prettify": "prettier --config ./node_modules/resin-lint/config/.prettierrc --write \"{src,test,typings}/**/*.ts\"",
     "typescript:test-build": "tsc --project tsconfig.json",

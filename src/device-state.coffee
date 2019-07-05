@@ -21,6 +21,7 @@ updateLock = require './lib/update-lock'
 
 { DeviceConfig } = require './device-config'
 ApplicationManager = require './application-manager'
+{ ApplicationManager: tmpAppMan }  = require './compose/application-manager'
 
 { log } = require './lib/supervisor-console'
 
@@ -121,6 +122,7 @@ module.exports = class DeviceState extends EventEmitter
 	constructor: ({ @db, @config, @eventTracker, @logger }) ->
 		@deviceConfig = new DeviceConfig({ @db, @config, @logger })
 		@applications = new ApplicationManager({ @config, @logger, @db, @eventTracker, deviceState: this })
+		@applicationsTmp = new tmpAppMan()
 		@on 'error', (err) ->
 			log.error('deviceState error: ', err)
 		@_currentVolatile = {}
@@ -363,8 +365,10 @@ module.exports = class DeviceState extends EventEmitter
 							@deviceConfig.setTarget(target.local.config, trx)
 						.then =>
 							if localSource or not apiEndpoint
+								@applicationsTmp.setTarget(target.local.apps, target.dependent, 'local', trx)
 								@applications.setTarget(target.local.apps, target.dependent, 'local', trx)
 							else
+								@applicationsTmp.setTarget(target.local.apps, target.dependent, apiEndpoint, trx)
 								@applications.setTarget(target.local.apps, target.dependent, apiEndpoint, trx)
 		)
 
