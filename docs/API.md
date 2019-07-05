@@ -1152,3 +1152,33 @@ Response:
 	]
 }
 ```
+### V2 Utilities
+
+#### Cleanup volumes with no references
+Added in supervisor version v10.0.0
+
+Starting with balena-supervisor v10.0.0, volumes which have no
+references are no longer automatically removed as part of
+the standard update flow. To cleanup up any orphaned
+volumes, use this supervisor endpoint:
+
+From an application container:
+```
+$ curl "$BALENA_SUPERVISOR_ADDRESS/v2/cleanup-volumes?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+Successful response:
+```
+{
+       "status": "success"
+}
+```
+
+Unsuccessful response:
+```
+{
+       "status": "failed",
+       "message": "the error message"
+}
+```
+
