@@ -305,6 +305,26 @@ targetState[5] = {
 	dependent: { apps: [], devices: [] }
 }
 
+targetState[6] = {
+	local: {
+		name: 'volumeTest'
+		config: {
+		}
+		apps: [
+			{
+				appId: 12345
+				name: 'volumeApp'
+				commit: 'asd'
+				releaseId: 3
+				services: {}
+				volumes: {}
+				networks: {}
+			}
+		]
+	}
+	dependent: { apps: [], devices: [] }
+}
+
 exports.currentState = currentState = []
 currentState[0] = {
 	local: {
@@ -607,6 +627,124 @@ currentState[4] = {
 						containerId: '2'
 						networkMode: 'default'
 						networks: { 'default': { aliases: [ 'aservice' ] } }
+						command: [ 'someCommand' ]
+						entrypoint: [ 'theEntrypoint' ]
+					}
+				]
+				volumes: {}
+				networks: { default: {} }
+			}
+		]
+	}
+	dependent: { apps: [], devices: [] }
+}
+
+currentState[5] = {
+	local: {
+		name: 'volumeTest'
+		config: {}
+		apps: [
+			{
+				appId: 12345
+				name: 'volumeApp'
+				commit: 'asd'
+				releaseId: 3
+				services: []
+				volumes: {}
+				networks: { default: {} }
+			},
+			{
+				appId: 12,
+				name: 'previous-app',
+				commit: '123',
+				releaseId: 10
+				services: [],
+				networks: {},
+				volumes: {
+					my_volume: {}
+				}
+			}
+		]
+	}
+	dependent: { apps: [], devices: [] }
+}
+
+currentState[6] = {
+	local: {
+		name: 'aDeviceWithDifferentName'
+		config: {
+			'RESIN_HOST_CONFIG_gpu_mem': '512'
+			'RESIN_HOST_LOG_TO_DISPLAY': '1'
+		}
+		apps: [
+			{
+				appId: 1234
+				name: 'superapp'
+				commit: 'afafafa'
+				releaseId: 2
+				services: [
+					{
+						appId: 1234
+						serviceId: 23
+						releaseId: 2
+						commit: 'afafafa'
+						serviceName: 'aservice'
+						imageId: 12345
+						image: 'id1'
+						environment: {
+							'FOO': 'bar'
+							'ADDITIONAL_ENV_VAR': 'foo'
+
+						}
+						privileged: false
+						restart: 'always'
+						volumes: [
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/aservice:/tmp/balena'
+						]
+						labels: {
+							'io.resin.app-id': '1234'
+							'io.resin.service-id': '23'
+							'io.resin.supervised': 'true'
+							'io.resin.service-name': 'aservice'
+						}
+						running: true
+						createdAt: new Date()
+						containerId: '1'
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'aservice' ] } }
+						command: [ 'someCommand' ]
+						entrypoint: [ 'theEntrypoint' ]
+					},
+					{
+						appId: 1234
+						serviceId: 24
+						releaseId: 2
+						commit: 'afafafa'
+						serviceName: 'anotherService'
+						imageId: 12346
+						image: 'id0'
+						environment: {
+							'FOO': 'bro'
+							'ADDITIONAL_ENV_VAR': 'foo'
+						}
+						volumes: [
+							'/tmp/balena-supervisor/services/1234/anotherService:/tmp/resin',
+							'/tmp/balena-supervisor/services/1234/anotherService:/tmp/balena'
+						]
+						privileged: false
+						restart: 'always'
+						labels: {
+							'io.resin.app-id': '1234'
+							'io.resin.service-id': '24'
+							'io.resin.supervised': 'true'
+							'io.resin.service-name': 'anotherService'
+						}
+						running: true
+						createdAt: new Date()
+						containerId: '2'
+						networkMode: 'default'
+						networks: { 'default': { aliases: [ 'anotherService' ] } }
 						command: [ 'someCommand' ]
 						entrypoint: [ 'theEntrypoint' ]
 					}

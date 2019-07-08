@@ -12,6 +12,7 @@ DeviceState = require '../src/device-state'
 { Config } = require('../src/config')
 { Service } = require '../src/compose/service'
 { Network } = require '../src/compose/network'
+{ Volume } = require '../src/compose/volume'
 
 appDBFormatNormalised = {
 	appId: 1234
@@ -160,7 +161,7 @@ describe 'ApplicationManager', ->
 					return appCloned
 			.then (normalisedApps) ->
 				currentCloned = _.cloneDeep(current)
-				currentCloned.local.apps = normalisedApps
+				currentCloned.local.apps = _.keyBy(normalisedApps, 'appId')
 				return currentCloned
 
 		@normaliseTarget = (target, available) =>
@@ -178,6 +179,7 @@ describe 'ApplicationManager', ->
 							service.config.image = img.dockerImageId
 						return service
 					return app
+				targetCloned.local.apps = _.keyBy(targetCloned.local.apps, 'appId')
 				return targetCloned
 		@db.init()
 		.then =>
@@ -199,8 +201,8 @@ describe 'ApplicationManager', ->
 				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {})
 				expect(steps).to.eventually.deep.equal([{
 					action: 'start'
-					current: current.local.apps[0].services[1]
-					target: target.local.apps[0].services[1]
+					current: current.local.apps['1234'].services[1]
+					target: target.local.apps['1234'].services[1]
 					serviceId: 24
 					appId: 1234
 					options: {}
@@ -215,7 +217,7 @@ describe 'ApplicationManager', ->
 				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {})
 				expect(steps).to.eventually.deep.equal([{
 					action: 'kill'
-					current: current.local.apps[0].services[1]
+					current: current.local.apps['1234'].services[1]
 					target: null
 					serviceId: 24
 					appId: 1234
@@ -231,7 +233,7 @@ describe 'ApplicationManager', ->
 				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {})
 				expect(steps).to.eventually.deep.equal([{
 					action: 'fetch'
-					image: @applications.imageForService(target.local.apps[0].services[1])
+					image: @applications.imageForService(target.local.apps['1234'].services[1])
 					serviceId: 24
 					appId: 1234
 					serviceName: 'anotherService'
@@ -243,7 +245,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[0])
 			@normaliseTarget(targetState[2], availableImages[0])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[0], [ target.local.apps[0].services[1].imageId ], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[0], [ target.local.apps['1234'].services[1].imageId ], true, current, target, false, {})
 				expect(steps).to.eventually.deep.equal([{ action: 'noop', appId: 1234 }])
 		)
 
@@ -255,8 +257,8 @@ describe 'ApplicationManager', ->
 				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {})
 				expect(steps).to.eventually.deep.equal([{
 					action: 'kill'
-					current: current.local.apps[0].services[1]
-					target: target.local.apps[0].services[1]
+					current: current.local.apps['1234'].services[1]
+					target: target.local.apps['1234'].services[1]
 					serviceId: 24
 					appId: 1234
 					options: {}
@@ -271,7 +273,7 @@ describe 'ApplicationManager', ->
 				steps = @applications._inferNextSteps(false, availableImages[2], [], true, current, target, false, {})
 				expect(steps).to.eventually.have.deep.members([{
 					action: 'fetch'
-					image: @applications.imageForService(target.local.apps[0].services[0])
+					image: @applications.imageForService(target.local.apps['1234'].services[0])
 					serviceId: 23
 					appId: 1234,
 					serviceName: 'aservice'
@@ -287,16 +289,16 @@ describe 'ApplicationManager', ->
 				expect(steps).to.eventually.have.deep.members([
 					{
 						action: 'kill'
-						current: current.local.apps[0].services[0]
-						target: target.local.apps[0].services[0]
+						current: current.local.apps['1234'].services[0]
+						target: target.local.apps['1234'].services[0]
 						serviceId: 23
 						appId: 1234
 						options: {}
 					},
 					{
 						action: 'kill'
-						current: current.local.apps[0].services[1]
-						target: target.local.apps[0].services[1]
+						current: current.local.apps['1234'].services[1]
+						target: target.local.apps['1234'].services[1]
 						serviceId: 24
 						appId: 1234
 						options: {}
@@ -314,7 +316,7 @@ describe 'ApplicationManager', ->
 					{
 						action: 'start'
 						current: null
-						target: target.local.apps[0].services[0]
+						target: target.local.apps['1234'].services[0]
 						serviceId: 23
 						appId: 1234
 						options: {}
@@ -332,7 +334,7 @@ describe 'ApplicationManager', ->
 					{
 						action: 'start'
 						current: null
-						target: target.local.apps[0].services[1]
+						target: target.local.apps['1234'].services[1]
 						serviceId: 24
 						appId: 1234
 						options: {}
@@ -349,7 +351,7 @@ describe 'ApplicationManager', ->
 				expect(steps).to.eventually.have.deep.members([
 					{
 						action: 'kill'
-						current: current.local.apps[0].services[0]
+						current: current.local.apps['1234'].services[0]
 						target: null
 						serviceId: 23
 						appId: 1234
@@ -358,7 +360,7 @@ describe 'ApplicationManager', ->
 					{
 						action: 'start'
 						current: null
-						target: target.local.apps[0].services[1]
+						target: target.local.apps['1234'].services[1]
 						serviceId: 24
 						appId: 1234
 						options: {}
@@ -387,3 +389,37 @@ describe 'ApplicationManager', ->
 	it 'converts a dependent app in DB format into state format', ->
 		app = @applications.proxyvisor.normaliseDependentAppFromDB(dependentDBFormat)
 		expect(app).to.eventually.deep.equal(dependentStateFormatNormalised)
+
+	describe 'Volumes', ->
+
+		before ->
+			stub(@applications, 'removeAllVolumesForApp').returns(Promise.resolve([{
+				action: 'removeVolume',
+				current:	Volume.fromComposeObject('my_volume', 12, {}, { docker: null, logger: null })
+			}]))
+
+		after ->
+			@applications.removeAllVolumesForApp.restore()
+
+		it 'should not remove volumes when they are no longer referenced', ->
+			Promise.join(
+				@normaliseCurrent(currentState[6]),
+				@normaliseTarget(targetState[0], availableImages[0])
+				(current, target) =>
+					@applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {}).then (steps) ->
+						expect(
+							_.every(steps, (s) -> s.action != 'removeVolume'),
+							'Volumes from current app should not be removed'
+						).to.be.true
+			)
+
+		it 'should remove volumes from previous applications', ->
+			Promise.join(
+				@normaliseCurrent(currentState[5])
+				@normaliseTarget(targetState[6], [])
+				(current, target) =>
+					@applications._inferNextSteps(false, [], [], true, current, target, false, {}).then (steps) ->
+						expect(steps).to.have.length(1)
+						expect(steps[0]).to.have.property('action').that.equals('removeVolume')
+						expect(steps[0].current).to.have.property('appId').that.equals(12)
+			)
