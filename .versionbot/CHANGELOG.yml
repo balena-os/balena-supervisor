@@ -1,4 +1,16 @@
 - commits:
+    - subject: Use resin-lint for mocha tests check
+      hash: bea97f47a7c2b5748ca50632a7de93f7f18af5fd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.18.5
+  date: 2019-07-08T16:23:26.845Z
+- commits:
     - subject: 'Fix network composition parsing, and correctly report compose config'
       hash: 89807c21fa599d952b0fd5f61302f94539f3b3ea
       body: ''
