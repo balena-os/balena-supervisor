@@ -100,7 +100,7 @@
     "prettier": "1.17.0",
     "pretty-ms": "^4.0.0",
     "request": "^2.51.0",
-    "resin-lint": "^3.0.0",
+    "resin-lint": "^3.1.0",
     "resin-register-device": "^3.0.0",
     "resumable-request": "^2.0.0",
     "rimraf": "^2.6.2",
@@ -121,7 +121,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged && automation/lint-mocha-tests.js"
+      "pre-commit": "lint-staged"
     }
   }
 }
