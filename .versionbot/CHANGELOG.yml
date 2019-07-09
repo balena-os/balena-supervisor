@@ -1,4 +1,25 @@
 - commits:
+    - subject: Don't attempt to setup a log stream to the cloud before provision
+      hash: 37945b4aa5325dba3b17aec19075f87b9ca9d20e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add more typescript conversions and export utilities from existing
+      hash: 20a83e8e0a1e128e82a54fc05665c923d8e3d6d1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.18.7
+  date: 2019-07-09T12:23:09.900Z
+- commits:
     - subject: >-
         Apply targetState immediately after update request Cancel delayed
         promise if exists and schedule a new one without delay, when /v1/update
