@@ -1,7 +1,7 @@
 {
   "name": "balena-supervisor",
   "description": "This is balena's Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as the balena API informs it to.",
-  "version": "9.18.0",
+  "version": "9.18.5",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -15,9 +15,8 @@
     "test": "npm run lint && npm run test:build && JUNIT_REPORT_PATH=report.xml istanbul cover _mocha && npm run coverage",
     "test:build": "npm run typescript:test-build && npm run coffeescript:test  && npm run testitems:copy && npm run migrations:copy-test && npm run packagejson:copy",
     "coverage": "istanbul report text && istanbul report html",
-    "test:fast": "npm run test:build && mocha",
+    "test:fast": "mocha --opts test/fast-mocha.opts",
     "test:debug": "npm run test:build && mocha --inspect-brk",
-    "precommit": "lint-staged",
     "prettify": "prettier --config ./node_modules/resin-lint/config/.prettierrc --write \"{src,test,typings}/**/*.ts\"",
     "typescript:test-build": "tsc --project tsconfig.json",
     "typescript:release": "tsc --project tsconfig.release.json && cp -r build/src/* build && rm -rf build/src",
@@ -86,7 +85,7 @@
     "json-mask": "^0.3.8",
     "knex": "~0.15.2",
     "lint-staged": "^8.1.0",
-    "livepush": "^2.0.1",
+    "livepush": "^2.0.2",
     "lockfile": "^1.0.1",
     "lodash": "^4.17.5",
     "log-timestamp": "^0.1.2",
@@ -101,7 +100,7 @@
     "prettier": "1.17.0",
     "pretty-ms": "^4.0.0",
     "request": "^2.51.0",
-    "resin-lint": "^3.0.0",
+    "resin-lint": "^3.1.0",
     "resin-register-device": "^3.0.0",
     "resumable-request": "^2.0.0",
     "rimraf": "^2.6.2",
@@ -113,10 +112,16 @@
     "terser": "^3.14.1",
     "tmp": "^0.1.0",
     "ts-loader": "^5.3.0",
+    "ts-node": "^8.3.0",
     "typed-error": "^2.0.0",
     "typescript": "^3.5.1",
     "webpack": "^4.25.0",
     "webpack-cli": "^3.1.2",
     "winston": "^3.2.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
   }
 }

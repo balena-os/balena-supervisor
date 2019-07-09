@@ -34,6 +34,25 @@ export interface NetworkInspect {
 	Labels: { [labelName: string]: string };
 }
 
+export interface ComposeNetworkConfig {
+	driver: string;
+	driver_opts: Dictionary<string>;
+	ipam: {
+		driver: string;
+		config: Array<
+			Partial<{
+				subnet: string;
+				ip_range: string;
+				gateway: string;
+				aux_addresses: Dictionary<string>;
+			}>
+		>;
+		options: Dictionary<string>;
+	};
+	enable_ipv6: boolean;
+	internal: boolean;
+	labels: Dictionary<string>;
+}
 export interface NetworkConfig {
 	driver: string;
 	ipam: {

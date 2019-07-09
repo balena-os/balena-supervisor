@@ -449,7 +449,8 @@ module.exports = class DeviceState extends EventEmitter
 							# If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
 							@applications.volumes.get({ appId, name: volumeName })
 							.then =>
-								@applications.volumes.remove({ appId, name: volumeName })
+								@applications.volumes.get({ appId, name: volumeName }).then (volume) ->
+									volume.remove()
 							.catch(NotFoundError, _.noop)
 							.then =>
 								@applications.volumes.createFromPath({ appId, name: volumeName, config: volumes[volumeName] }, path.join(backupPath, volumeName))

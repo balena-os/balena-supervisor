@@ -1,0 +1,5 @@
+--exit
+--require ts-node/register/transpile-only
+--require coffeescript/register
+--timeout 30000
+test/*.{ts,coffee}

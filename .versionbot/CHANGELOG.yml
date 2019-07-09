@@ -1,4 +1,143 @@
 - commits:
+    - subject: Use resin-lint for mocha tests check
+      hash: bea97f47a7c2b5748ca50632a7de93f7f18af5fd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.18.5
+  date: 2019-07-08T16:23:26.845Z
+- commits:
+    - subject: 'Fix network composition parsing, and correctly report compose config'
+      hash: 89807c21fa599d952b0fd5f61302f94539f3b3ea
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Keep the network and volume models consistent across usage
+      hash: e5d7379b74861c31b0cd2b6a94b4fdecf23cd35a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Pass around instantiated Network objects when comparing state
+      hash: eaff3a2ee574a404c0ebf610867556f4afead176
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Seperate volume handling into manager and object classes
+      hash: 23e564389daaa29feb231d1b091e07df82a7a300
+      body: |
+        This change also makes sure that in the application-manager workflow we
+        pass around instances of the Volume class, rather than just the config.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: >-
+        fix: When reporting initial config, avoid creating a "VPN enabled"
+        unnecessary override
+      hash: 743c8406c973af7ef85ff31ea8bb0bc99d4592fb
+      body: >
+        Since we were comparing the VPN's value before adding the explicit
+        "true", there were cases
+
+        were the VPN is off, and therefore "value" didn't match the default, so
+        the supervisor would
+
+        create a device specific SUPERVISOR_VPN_CONTROL = true, which is
+        unnecessary and causes issues if
+
+        users don't expect this and move the device to an app that has VPN
+        disabled. The correct behavior
+
+        is to compare "varValue" and only create a device config var if this
+        value differs from the default.
+
+
+        (This was the behavior before the TS conversion in
+        01ed7bb103b4df8fb0679cf858220db42d4a0b92 )
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+        signed-off-by: Pablo Carranza Velez <pablo@balena.io>
+      author: Pablo Carranza Velez
+  version: 9.18.4
+  date: 2019-07-04T10:49:36.786Z
+- commits:
+    - subject: Add mocha tests linter
+      hash: 36fa23ab7dcd76e7eb207e59b2ebcca8560a015f
+      body: >
+        A simple script that detects presence of .only statements in tests.
+
+        The idea is to avoid comitting them, so that all the tests are run with
+        npm test.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.18.3
+  date: 2019-06-29T13:44:31.994Z
+- commits:
+    - subject: Use jessie base images for i386-nlp
+      hash: 92aa9b40ab77316f052533cf7d0b12ec96000d0b
+      body: |
+        This fixes potential SIGILL errors with the supervisor on i386-nlp.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Ensure that all architectures use a node version that supports ci
+      hash: 557f88965a8f076cf7a1a02ad965264f1c5beab9
+      body: |
+        We do this by using the standalone installer pinned at v6.9.0. We use
+        the standalone installer because npm itself fails to upgrade on the
+        i386-nlp build (npm v3). The standalone installer is installed in /tmp,
+        and then to avoid mysterious CI errors, we use the original npm to run
+        the tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.18.2
+  date: 2019-06-27T16:13:21.666Z
+- commits:
+    - subject: Fix tests run removing .only
+      hash: aad1129f2619f3de48d577f107fa17be7589e556
+      body: >
+        The issue was introduced with one of the recent changes related to local
+        mode cleanup.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 9.18.1
+  date: 2019-06-27T12:01:21.922Z
+- commits:
     - subject: Ensure we get input on parsing errors
       hash: 645bc6c185b804df0e6d2088c5239eabcfa4ce80
       body: >
