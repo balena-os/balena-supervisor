@@ -290,6 +290,22 @@ describe 'deviceState', ->
 			done()
 		, 5
 
+	it 'cancels current promise applying the target state', (done) ->
+		@deviceState.scheduledApply = { force: false, delay: 100 }
+		@deviceState.applyInProgress = true
+		@deviceState.applyCancelled = false
+		new Promise (resolve, reject) =>
+			setTimeout(resolve, 100000)
+			@deviceState.cancelDelay = reject
+		.catch =>
+			@deviceState.applyCancelled = true
+		.finally =>
+			expect(@deviceState.scheduledApply).to.deep.equal({ force: true, delay: 0 })
+			expect(@deviceState.applyCancelled).to.be.true
+			done()
+		@deviceState.triggerApplyTarget({ force: true, isFromApi: true })
+
+
 	it 'applies the target state for device config'
 
 	it 'applies the target state for applications'
