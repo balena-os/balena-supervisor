@@ -45,6 +45,8 @@ export class ApplicationManager extends EventEmitter {
 	public db: DB;
 	public images: Images;
 
+	public proxyvisor: any;
+
 	public getCurrentApp(appId: number): Bluebird<Application | null>;
 
 	// TODO: This actually returns an object, but we don't need the values just yet

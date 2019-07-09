@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
+import Config, { ConfigChangeMap, ConfigKey, ConfigType } from './config';
 import DB from './db';
 import { EventTracker } from './event-tracker';
 import Docker from './lib/docker-utils';
@@ -18,12 +19,14 @@ import LogMonitor from './logging/monitor';
 import log from './lib/supervisor-console';
 
 interface LoggerSetupOptions {
-	apiEndpoint: string;
-	uuid: string;
-	deviceApiKey: string;
-	unmanaged: boolean;
+	apiEndpoint: ConfigType<'apiEndpoint'>;
+	uuid: ConfigType<'uuid'>;
+	deviceApiKey: ConfigType<'deviceApiKey'>;
+	unmanaged: ConfigType<'unmanaged'>;
+	localMode: ConfigType<'localMode'>;
+
 	enableLogs: boolean;
-	localMode: boolean;
+	config: Config;
 }
 
 type LogEventObject = Dictionary<any> | null;
@@ -57,6 +60,7 @@ export class Logger {
 		unmanaged,
 		enableLogs,
 		localMode,
+		config,
 	}: LoggerSetupOptions) {
 		this.balenaBackend = new BalenaLogBackend(apiEndpoint, uuid, deviceApiKey);
 		this.localBackend = new LocalLogBackend();
@@ -65,6 +69,44 @@ export class Logger {
 
 		this.backend.unmanaged = unmanaged;
 		this.backend.publishEnabled = enableLogs;
+
+		// Only setup a config listener if we have to
+		if (!this.balenaBackend.isIntialised()) {
+			const handler = async (values: ConfigChangeMap<ConfigKey>) => {
+				if (
+					'uuid' in values ||
+					'apiEndpoint' in values ||
+					'deviceApiKey' in values
+				) {
+					// If any of the values we're interested in have
+					// changed, retrieve all of the values, check that
+					// they're all set, and provide them to the
+					// balenaBackend
+
+					const conf = await config.getMany([
+						'uuid',
+						'apiEndpoint',
+						'deviceApiKey',
+					]);
+
+					// We use Boolean here, as deviceApiKey when unset
+					// is '' for legacy reasons. Once we're totally
+					// typescript, we can make it have a default value
+					// of undefined.
+					if (_.every(conf, Boolean)) {
+						// Everything is set, provide the values to the
+						// balenaBackend, and remove our listener
+						this.balenaBackend!.assignFields(
+							conf.apiEndpoint,
+							conf.uuid!,
+							conf.deviceApiKey,
+						);
+						config.removeListener('change', handler);
+					}
+				}
+			};
+			config.on('change', handler);
+		}
 	}
 
 	public switchBackend(localMode: boolean) {

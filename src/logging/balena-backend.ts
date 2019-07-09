@@ -31,17 +31,18 @@ export class BalenaLogBackend extends LogBackend {
 	private stream: stream.PassThrough;
 	private timeout: NodeJS.Timer;
 
-	public constructor(apiEndpoint: string, uuid: string, deviceApiKey: string) {
+	public initialised = false;
+
+	public constructor(
+		apiEndpoint: string,
+		uuid: Nullable<string>,
+		deviceApiKey: string,
+	) {
 		super();
 
-		this.opts = url.parse(`${apiEndpoint}/device/v2/${uuid}/log-stream`) as any;
-		this.opts.method = 'POST';
-		this.opts.headers = {
-			Authorization: `Bearer ${deviceApiKey}`,
-			'Content-Type': 'application/x-ndjson',
-			'Content-Encoding': 'gzip',
-		};
-
+		if (uuid != null && deviceApiKey !== '') {
+			this.assignFields(apiEndpoint, uuid, deviceApiKey);
+		}
 		// This stream serves serves as a message buffer during reconnections
 		// while we unpipe the old, malfunctioning connection and then repipe a
 		// new one.
@@ -71,8 +72,15 @@ export class BalenaLogBackend extends LogBackend {
 		});
 	}
 
+	public isIntialised(): boolean {
+		return this.initialised;
+	}
+
 	public log(message: LogMessage) {
-		if (this.unmanaged || !this.publishEnabled) {
+		// TODO: Perhaps don't just drop logs when we haven't
+		// yet initialised (this happens when a device has not yet
+		// been provisioned)
+		if (this.unmanaged || !this.publishEnabled || !this.initialised) {
 			return;
 		}
 
@@ -98,6 +106,18 @@ export class BalenaLogBackend extends LogBackend {
 		});
 
 		this.write(message);
+	}
+
+	public assignFields(apiEndpoint: string, uuid: string, deviceApiKey: string) {
+		this.opts = url.parse(`${apiEndpoint}/device/v2/${uuid}/log-stream`) as any;
+		this.opts.method = 'POST';
+		this.opts.headers = {
+			Authorization: `Bearer ${deviceApiKey}`,
+			'Content-Type': 'application/x-ndjson',
+			'Content-Encoding': 'gzip',
+		};
+
+		this.initialised = true;
 	}
 
 	private setup = _.throttle(() => {
