@@ -1,4 +1,17 @@
 - commits:
+    - subject: >-
+        Apply targetState immediately after update request Cancel delayed
+        promise if exists and schedule a new one without delay, when /v1/update
+        is called
+      hash: 7a42b6719a25275363b458b4e2fac07298b73b59
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Michel Wohlert
+  version: 9.18.6
+  date: 2019-07-09T11:52:07.902Z
+- commits:
     - subject: Use resin-lint for mocha tests check
       hash: bea97f47a7c2b5748ca50632a7de93f7f18af5fd
       body: ''
