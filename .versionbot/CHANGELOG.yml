@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'docs: fix up broken meta-balena proxy link'
+      hash: baa0e875134e56418083962f40028f6a4dcb892e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 9.18.8
+  date: 2019-07-10T08:13:42.514Z
+- commits:
     - subject: Don't attempt to setup a log stream to the cloud before provision
       hash: 37945b4aa5325dba3b17aec19075f87b9ca9d20e
       body: ''
