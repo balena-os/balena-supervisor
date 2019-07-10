@@ -1,7 +1,5 @@
 import * as Docker from 'dockerode';
-import filter = require('lodash/filter');
-import get = require('lodash/get');
-import unionBy = require('lodash/unionBy');
+import * as _ from 'lodash';
 import * as Path from 'path';
 
 import constants = require('../lib/constants');
@@ -53,7 +51,7 @@ export class VolumeManager {
 
 	public async getAllByAppId(appId: number): Promise<Volume[]> {
 		const all = await this.getAll();
-		return filter(all, { appId });
+		return _.filter(all, { appId });
 	}
 
 	public async create(volume: Volume): Promise<void> {
@@ -131,6 +129,34 @@ export class VolumeManager {
 		return volume;
 	}
 
+	public async removeOrphanedVolumes(): Promise<void> {
+		// Iterate through every container, and track the
+		// references to a volume
+		// Note that we're not just interested in containers
+		// which are part of the private state, and instead
+		// *all* containers. This means we don't remove
+		// something that's part of a sideloaded container
+		const [dockerContainers, dockerVolumes] = await Promise.all([
+			this.docker.listContainers(),
+			this.docker.listVolumes(),
+		]);
+
+		const containerVolumes = _(dockerContainers)
+			.flatMap(c => c.Mounts)
+			.filter(m => m.Type === 'volume')
+			// We know that the name must be set, if the mount is
+			// a volume
+			.map(m => m.Name as string)
+			.uniq()
+			.value();
+		const volumeNames = _.map(dockerVolumes.Volumes, 'Name');
+
+		const volumesToRemove = _.difference(volumeNames, containerVolumes);
+		await Promise.all(
+			volumesToRemove.map(v => this.docker.getVolume(v).remove()),
+		);
+	}
+
 	private async listWithBothLabels(): Promise<Docker.VolumeInspectInfo[]> {
 		const [legacyResponse, currentResponse] = await Promise.all([
 			this.docker.listVolumes({
@@ -141,9 +167,9 @@ export class VolumeManager {
 			}),
 		]);
 
-		const legacyVolumes = get(legacyResponse, 'Volumes', []);
-		const currentVolumes = get(currentResponse, 'Volumes', []);
-		return unionBy(legacyVolumes, currentVolumes, 'Name');
+		const legacyVolumes = _.get(legacyResponse, 'Volumes', []);
+		const currentVolumes = _.get(currentResponse, 'Volumes', []);
+		return _.unionBy(legacyVolumes, currentVolumes, 'Name');
 	}
 }
 

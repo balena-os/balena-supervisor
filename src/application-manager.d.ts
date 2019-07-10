@@ -14,6 +14,9 @@ import { APIBinder } from './api-binder';
 import { Service } from './compose/service';
 import Config from './config';
 
+import NetworkManager from './compose/network-manager';
+import VolumeManager from './compose/volume-manager';
+
 declare interface Options {
 	force?: boolean;
 	running?: boolean;
@@ -41,6 +44,8 @@ export class ApplicationManager extends EventEmitter {
 	public apiBinder: APIBinder;
 
 	public services: ServiceManager;
+	public volumes: VolumeManager;
+	public networks: NetworkManager;
 	public config: Config;
 	public db: DB;
 	public images: Images;

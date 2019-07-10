@@ -156,11 +156,10 @@ module.exports = class ApplicationManager extends EventEmitter
 					@networks.create(step.target)
 				else
 					@volumes.create(step.target)
-			removeNetworkOrVolume: (step) =>
-				if step.model is 'network'
-					@networks.remove(step.current)
-				else
-					@volumes.remove(step.current)
+			removeNetwork: (step) =>
+				@networks.remove(step.current)
+			removeVolume: (step) =>
+				@volumes.remove(step.current)
 			ensureSupervisorNetwork: =>
 				@networks.ensureSupervisorNetwork()
 		}
@@ -467,7 +466,9 @@ module.exports = class ApplicationManager extends EventEmitter
 			dependencies = _.filter currentApp.services, (service) ->
 				dependencyComparisonFn(service, current)
 			if _.isEmpty(dependencies)
-				return [{ action: 'removeNetworkOrVolume', model, current }]
+				if model is 'network'
+					return [{ action: 'removeNetwork', current }]
+				return []
 			else
 				# If the current update doesn't require killing the services that use this network/volume,
 				# we have to kill them before removing the network/volume (e.g. when we're only updating the network config)
@@ -622,7 +623,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			pairSteps = @_nextStepsForVolume(pair, currentApp, removePairs.concat(updatePairs))
 			steps = steps.concat(pairSteps)
 
-		if _.isEmpty(steps) and currentApp.commit != targetApp.commit
+		if _.isEmpty(steps) and targetApp.commit? and currentApp.commit != targetApp.commit
 			steps.push({
 				action: 'updateCommit'
 				target: targetApp.commit
@@ -858,11 +859,36 @@ module.exports = class ApplicationManager extends EventEmitter
 		return { imagesToSave, imagesToRemove }
 
 	_inferNextSteps: (cleanupNeeded, availableImages, downloading, supervisorNetworkReady, current, target, ignoreImages, { localMode, delta }) =>
+		volumePromises = []
 		Promise.try =>
 			if localMode
 				ignoreImages = true
 			currentByAppId = current.local.apps ? {}
 			targetByAppId = target.local.apps ? {}
+
+			# Given we need to detect when a device is moved
+			# between applications, we do it this way. This code
+			# is going to change to an application-manager +
+			# application model, which means that we can just
+			# detect when an application is no longer referenced
+			# in the target state, and run the teardown that way.
+			# Until then, this essentially does the same thing. We
+			# check when every other part of the teardown for an
+			# application has been complete, and then append the
+			# volume removal steps.
+			# We also don't want to remove cloud volumes when
+			# switching to local mode
+			# multi-app warning: this will break
+			oldApps = null
+			if !localMode
+				currentAppIds = _.keys(current.local.apps).map((n) -> checkInt(n))
+				targetAppIds = _.keys(target.local.apps).map((n) -> checkInt(n))
+				if targetAppIds.length > 1
+					throw new Error('Current supervisor does not support multiple applications')
+				diff = _.difference(currentAppIds, targetAppIds)
+				if diff.length > 0
+					oldApps = diff
+
 			nextSteps = []
 			if !supervisorNetworkReady
 				# if the supervisor0 network isn't ready and there's any containers using it, we need
@@ -894,6 +920,12 @@ module.exports = class ApplicationManager extends EventEmitter
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
 					for appId in allAppIds
 						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], localMode, availableImages, downloading))
+						if oldApps != null and _.includes(oldApps, checkInt(appId))
+							# We check if everything else has been done for
+							# the old app to be removed. If it has, we then
+							# remove all of the volumes
+							if _.every(nextSteps, { action: 'noop' })
+								volumePromises.push(@removeAllVolumesForApp(checkInt(appId)))
 			newDownloads = _.filter(nextSteps, (s) -> s.action == 'fetch').length
 			if !ignoreImages and delta and newDownloads > 0
 				downloadsToBlock = downloading.length + newDownloads - constants.maxDeltaDownloads
@@ -903,6 +935,11 @@ module.exports = class ApplicationManager extends EventEmitter
 			if !ignoreImages and _.isEmpty(nextSteps) and !_.isEmpty(downloading)
 				nextSteps.push({ action: 'noop' })
 			return _.uniqWith(nextSteps, _.isEqual)
+		.then (nextSteps) ->
+			Promise.all(volumePromises).then (volSteps) ->
+				nextSteps = nextSteps.concat(_.flatten(volSteps))
+				return nextSteps
+
 
 	stopAll: ({ force = false, skipLock = false } = {}) =>
 		Promise.resolve(@services.getAll())
@@ -961,5 +998,9 @@ module.exports = class ApplicationManager extends EventEmitter
 				return _.find app.services, (svc) ->
 					svc.serviceId == serviceId
 		.get('serviceName')
+
+	removeAllVolumesForApp: (appId) =>
+		@volumes.getAllByAppId(appId).then (volumes) ->
+			return volumes.map((v) -> { action: 'removeVolume', current: v })
 
 	localModeSwitchCompletion: => @localModeManager.switchCompletion()
