@@ -1,4 +1,61 @@
 - commits:
+    - subject: Don't remove volumes when switching into local mode
+      hash: e076622fe627d936f0b8e8c8f9ec9f9fba25de4f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add volume tests and fix test fixture setup for applications
+      hash: 050c10dbb03dbd13adf6f5ad8447eb8460e327df
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add a supervisor endpoint to cleanup orphaned volumes
+      hash: 3304825216ad10fab15fcc1491c00671a144d142
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Only remove volumes when we're moving between applications
+      hash: 5357d4729d777b48edeb4230bfab7b81ed67b460
+      body: ''
+      footer:
+        Change-type: major
+        change-type: major
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Reorder debug dockerfile to faster livepushes
+      hash: 9fdd1d7427b77f0d38820c0f2150b63f8f7c6312
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Dont try to set the commit if it's undefined
+      hash: bb549a445be3109308be123ba703d7de29d02b62
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.0.0
+  date: 2019-07-10T13:27:43.106Z
+- commits:
     - subject: 'docs: fix up broken meta-balena proxy link'
       hash: baa0e875134e56418083962f40028f6a4dcb892e
       body: ''
