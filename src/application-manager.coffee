@@ -875,16 +875,19 @@ module.exports = class ApplicationManager extends EventEmitter
 			# Until then, this essentially does the same thing. We
 			# check when every other part of the teardown for an
 			# application has been complete, and then append the
-			# volume removal steps
+			# volume removal steps.
+			# We also don't want to remove cloud volumes when
+			# switching to local mode
 			# multi-app warning: this will break
-			currentAppIds = _.keys(current.local.apps).map((n) -> checkInt(n))
-			targetAppIds = _.keys(target.local.apps).map((n) -> checkInt(n))
 			oldApps = null
-			if targetAppIds.length > 1
-				throw new Error('Current supervisor does not support multiple applications')
-			diff = _.difference(currentAppIds, targetAppIds)
-			if diff.length > 0
-				oldApps = diff
+			if !localMode
+				currentAppIds = _.keys(current.local.apps).map((n) -> checkInt(n))
+				targetAppIds = _.keys(target.local.apps).map((n) -> checkInt(n))
+				if targetAppIds.length > 1
+					throw new Error('Current supervisor does not support multiple applications')
+				diff = _.difference(currentAppIds, targetAppIds)
+				if diff.length > 0
+					oldApps = diff
 
 			nextSteps = []
 			if !supervisorNetworkReady
