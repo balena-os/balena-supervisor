@@ -1,4 +1,24 @@
 - commits:
+    - subject: Don't attempt to cleanup any target state referenced volumes
+      hash: a796777967facb96ade32f5a06e256b3b92d1e4b
+      body: |
+        The code before this change could potentially remove a volume which
+        should not be removed if a container was deleted before the call that
+        references said volume.
+
+        To avoid this, we additionally filter the list of volumes to cleanup by
+        any that are referenced in the target state. This means that cleanup
+        will never remove it, as long as it's still supposed to be there,
+        regardless of if a container references it or not.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.0.1
+  date: 2019-07-11T15:40:11.157Z
+- commits:
     - subject: Don't remove volumes when switching into local mode
       hash: e076622fe627d936f0b8e8c8f9ec9f9fba25de4f
       body: ''
