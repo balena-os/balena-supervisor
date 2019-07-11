@@ -12,6 +12,7 @@ import {
 } from '../lib/messages';
 import { doPurge, doRestart, serviceAction } from './common';
 
+import Volume from '../compose/volume';
 import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 
@@ -488,7 +489,16 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get('/v2/cleanup-volumes', async (_req, res) => {
 		try {
-			await applications.volumes.removeOrphanedVolumes();
+			const targetState = await applications.getTargetApps();
+			const referencedVolumes: string[] = [];
+			_.each(targetState, app => {
+				_.each(app.volumes, vol => {
+					referencedVolumes.push(
+						Volume.generateDockerName(vol.appId, vol.name),
+					);
+				});
+			});
+			await applications.volumes.removeOrphanedVolumes(referencedVolumes);
 			res.json({
 				status: 'success',
 			});
