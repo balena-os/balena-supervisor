@@ -129,7 +129,9 @@ export class VolumeManager {
 		return volume;
 	}
 
-	public async removeOrphanedVolumes(): Promise<void> {
+	public async removeOrphanedVolumes(
+		referencedVolumes: string[],
+	): Promise<void> {
 		// Iterate through every container, and track the
 		// references to a volume
 		// Note that we're not just interested in containers
@@ -151,7 +153,13 @@ export class VolumeManager {
 			.value();
 		const volumeNames = _.map(dockerVolumes.Volumes, 'Name');
 
-		const volumesToRemove = _.difference(volumeNames, containerVolumes);
+		const volumesToRemove = _.difference(
+			volumeNames,
+			containerVolumes,
+			// Don't remove any volume which is still referenced
+			// in the target state
+			referencedVolumes,
+		);
 		await Promise.all(
 			volumesToRemove.map(v => this.docker.getVolume(v).remove()),
 		);

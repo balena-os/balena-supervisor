@@ -11,11 +11,14 @@ import ServiceManager from './compose/service-manager';
 import DB from './db';
 
 import { APIBinder } from './api-binder';
-import { Service } from './compose/service';
 import Config from './config';
 
 import NetworkManager from './compose/network-manager';
 import VolumeManager from './compose/volume-manager';
+
+import Network from './compose/network';
+import Service from './compose/service';
+import Volume from './compose/volume';
 
 declare interface Options {
 	force?: boolean;
@@ -65,6 +68,14 @@ export class ApplicationManager extends EventEmitter {
 	// FIXME: Type this properly as it's some mutant state between
 	// the state endpoint and the ApplicationManager internals
 	public getStatus(): Promise<Dictionay<any>>;
+	// The return type is incompleted
+	public getTargetApps(): Promise<
+		Dictionary<{
+			services: Dictionary<Service>;
+			volumes: Dictionary<Volume>;
+			networks: Dictionary<Network>;
+		}>
+	>;
 
 	public serviceNameFromId(serviceId: number): Bluebird<string>;
 }
