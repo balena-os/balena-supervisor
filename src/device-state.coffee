@@ -605,13 +605,13 @@ module.exports = class DeviceState extends EventEmitter
 			@applications.localModeSwitchCompletion()
 		.then =>
 			@usingInferStepsLock =>
-				@applications.getExtraStateForComparison()
-				.then (extraState) =>
-					Promise.all([
-						@getCurrentForComparison()
-						@getTarget({ initial, intermediate })
-					])
-					.then ([ currentState, targetState ]) =>
+				Promise.all([
+					@getCurrentForComparison()
+					@getTarget({ initial, intermediate })
+				])
+				.then ([ currentState, targetState ]) =>
+					@applications.getExtraStateForComparison(currentState, targetState)
+					.then (extraState) =>
 						@deviceConfig.getRequiredSteps(currentState, targetState)
 						.then (deviceConfigSteps) =>
 							noConfigSteps = _.every(deviceConfigSteps, ({ action }) -> action is 'noop')

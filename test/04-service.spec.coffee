@@ -14,6 +14,11 @@ configs = {
 		compose: require('./data/docker-states/entrypoint/compose.json')
 		imageInfo: require('./data/docker-states/entrypoint/imageInfo.json')
 		inspect: require('./data/docker-states/entrypoint/inspect.json')
+	},
+	networkModeService: {
+		compose: require('./data/docker-states/network-mode-service/compose.json')
+		imageInfo: require('./data/docker-states/network-mode-service/imageInfo.json')
+		inspect: require('./data/docker-states/network-mode-service/inspect.json')
 	}
 }
 
@@ -375,3 +380,74 @@ describe 'compose/service', ->
 						aliases: [ 'test', '1123' ]
 					}
 				})
+
+		describe 'Network mode=service:', ->
+			it 'should correctly add a depends_on entry for the service', ->
+				s = Service.fromComposeObject({
+					appId: '1234'
+					serviceName: 'foo'
+					releaseId: 2
+					serviceId: 3
+					imageId: 4
+					network_mode: 'service: test'
+				}, { appName: 'test' })
+
+				expect(s.dependsOn).to.deep.equal(['test'])
+
+				s = Service.fromComposeObject({
+					appId: '1234'
+					serviceName: 'foo'
+					releaseId: 2
+					serviceId: 3
+					imageId: 4
+					depends_on: [
+						'another_service'
+					]
+					network_mode: 'service: test'
+				}, { appName: 'test' })
+
+				expect(s.dependsOn).to.deep.equal([
+					'another_service',
+					'test'
+				])
+
+			it 'should correctly convert a network_mode service: to a container:', ->
+				s = Service.fromComposeObject({
+					appId: '1234'
+					serviceName: 'foo'
+					releaseId: 2
+					serviceId: 3
+					imageId: 4
+					network_mode: 'service: test'
+				}, { appName: 'test' })
+				expect(s.toDockerContainer({ deviceName: '', containerIds: { test: 'abcdef' } }))
+					.to.have.property('HostConfig')
+					.that.has.property('NetworkMode')
+					.that.equals('container:abcdef')
+
+			it 'should not cause a container restart if a service: container has not changed', ->
+				composeSvc = Service.fromComposeObject(configs.networkModeService.compose, configs.networkModeService.imageInfo)
+				dockerSvc = Service.fromDockerContainer(configs.networkModeService.inspect)
+
+				composeConfig = omitConfigForComparison(composeSvc.config)
+				dockerConfig = omitConfigForComparison(dockerSvc.config)
+				expect(composeConfig).to.not.deep.equal(dockerConfig)
+
+				expect(dockerSvc.isEqualConfig(
+					composeSvc,
+					{ test: 'abcdef' }
+				)).to.be.true
+
+			it 'should restart a container when its dependent network mode container changes', ->
+				composeSvc = Service.fromComposeObject(configs.networkModeService.compose, configs.networkModeService.imageInfo)
+				dockerSvc = Service.fromDockerContainer(configs.networkModeService.inspect)
+
+				composeConfig = omitConfigForComparison(composeSvc.config)
+				dockerConfig = omitConfigForComparison(dockerSvc.config)
+				expect(composeConfig).to.not.deep.equal(dockerConfig)
+
+				expect(dockerSvc.isEqualConfig(
+					composeSvc,
+					{ test: 'qwerty' }
+				)).to.be.false
+

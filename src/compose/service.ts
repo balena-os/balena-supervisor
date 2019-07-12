@@ -23,6 +23,9 @@ import { sanitiseComposeConfig } from './sanitise';
 
 import log from '../lib/supervisor-console';
 
+const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
+const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
+
 export class Service {
 	public appId: number | null;
 	public imageId: number | null;
@@ -33,7 +36,7 @@ export class Service {
 	public imageName: string | null;
 	public containerId: string | null;
 
-	public dependsOn: string | null;
+	public dependsOn: string[] | null;
 
 	public status: string;
 	public createdAt: Date | null;
@@ -63,6 +66,9 @@ export class Service {
 		// reported on a container inspect, so we cannot use it
 		// to compare containers
 		'cpus',
+		// These fields are special case, due to network_mode:service:<service>
+		'networkMode',
+		'hostname',
 	].concat(Service.configArrayFields);
 
 	private constructor() {}
@@ -137,21 +143,6 @@ export class Service {
 		});
 		delete config.networks;
 
-		// Check for unsupported networkMode entries
-		if (config.networkMode != null) {
-			if (/service:(\s*)?.+/.test(config.networkMode)) {
-				log.warn(
-					'A network_mode referencing a service is not yet supported. Ignoring.',
-				);
-				delete config.networkMode;
-			} else if (/container:(\s*)?.+/.test(config.networkMode)) {
-				log.warn(
-					'A network_mode referencing a container is not supported. Ignoring.',
-				);
-				delete config.networkMode;
-			}
-		}
-
 		// memory strings
 		const memLimit = ComposeUtils.parseMemoryNumber(config.memLimit, '0');
 		const memReservation = ComposeUtils.parseMemoryNumber(
@@ -190,8 +181,27 @@ export class Service {
 			config.dnsSearch = [config.dnsSearch];
 		}
 
-		// Assign network_mode to a default value if necessary
-		if (!config.networkMode) {
+		// Special case network modes
+		let serviceNetworkMode = false;
+		if (config.networkMode != null) {
+			const match = config.networkMode.match(SERVICE_NETWORK_MODE_REGEX);
+			if (match != null) {
+				// We need to add a depends on here to ensure that
+				// the needed container has started up by the time
+				// we try to start this service
+				if (service.dependsOn == null) {
+					service.dependsOn = [];
+				}
+				service.dependsOn.push(match[1]);
+				serviceNetworkMode = true;
+			} else if (CONTAINER_NETWORK_MODE_REGEX.test(config.networkMode)) {
+				log.warn(
+					'A network_mode referencing a container is not supported. Ignoring.',
+				);
+				delete config.networkMode;
+			}
+		} else {
+			// Assign network_mode to a default value if necessary
 			if (!_.isEmpty(networks)) {
 				config.networkMode = _.keys(networks)[0];
 			} else {
@@ -203,7 +213,7 @@ export class Service {
 			config.networkMode !== 'bridge' &&
 			config.networkMode !== 'none'
 		) {
-			if (networks[config.networkMode] == null) {
+			if (networks[config.networkMode!] == null && !serviceNetworkMode) {
 				// The network mode has not been set explicitly
 				config.networkMode = `${service.appId}_${config.networkMode}`;
 				// If we don't have any networks, we need to
@@ -551,6 +561,7 @@ export class Service {
 
 	public toDockerContainer(opts: {
 		deviceName: string;
+		containerIds: Dictionary<string>;
 	}): Dockerode.ContainerCreateOptions {
 		const { binds, volumes } = this.getBindsAndVolumes();
 		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
@@ -565,6 +576,16 @@ export class Service {
 			(_v, k) => k === this.config.networkMode,
 		) as ServiceConfig['networks'];
 
+		const match = this.config.networkMode.match(SERVICE_NETWORK_MODE_REGEX);
+		if (match != null) {
+			const containerId = opts.containerIds[match[1]];
+			if (!containerId) {
+				throw new Error(
+					`No container for network_mode: 'service: ${match[1]}'`,
+				);
+			}
+			this.config.networkMode = `container:${containerId}`;
+		}
 		return {
 			name: `${this.serviceName}_${this.imageId}_${this.releaseId}`,
 			Tty: this.config.tty,
@@ -642,7 +663,10 @@ export class Service {
 		};
 	}
 
-	public isEqualConfig(service: Service): boolean {
+	public isEqualConfig(
+		service: Service,
+		currentContainerIds: Dictionary<string>,
+	): boolean {
 		// Check all of the networks for any changes
 		let sameNetworks = true;
 		_.each(service.config.networks, (network, name) => {
@@ -702,24 +726,73 @@ export class Service {
 				log.debug('  Network changes detected');
 			}
 		}
-		return sameNetworks && sameConfig;
+
+		// Check the network mode separetely, as if it is a
+		// service: network mode, the container id needs to be
+		// checked against the running containers
+
+		// When this function is called, it's with the current
+		// state as a parameter and the target as the instance.
+		// We shouldn't rely on that because it's not enforced
+		// anywhere. For that reason we need to consider both
+		// network_modes in the correct way
+		let sameNetworkMode = false;
+		for (const [a, b] of [
+			[this.config.networkMode, service.config.networkMode],
+			[service.config.networkMode, this.config.networkMode],
+		]) {
+			const aMatch = a.match(SERVICE_NETWORK_MODE_REGEX);
+			const bMatch = b.match(SERVICE_NETWORK_MODE_REGEX);
+
+			if (aMatch !== null) {
+				if (bMatch === null) {
+					const containerMatch = b.match(CONTAINER_NETWORK_MODE_REGEX);
+					if (
+						containerMatch !== null &&
+						currentContainerIds[aMatch[1]] === containerMatch[1]
+					) {
+						sameNetworkMode = true;
+						break;
+					}
+				} else {
+					// They're both service entries, we shouldn't get here
+					// but it's technically an equal configuration
+					if (a === b) {
+						sameNetworkMode = true;
+						break;
+					}
+				}
+			} else if (a === b && this.config.hostname === service.config.hostname) {
+				// We consider the hostname when it's not a service: entry
+				sameNetworkMode = true;
+				break;
+			}
+		}
+
+		return sameNetworks && sameConfig && sameNetworkMode;
 	}
 
 	public extraNetworksToJoin(): ServiceConfig['networks'] {
 		return _.omit(this.config.networks, this.config.networkMode);
 	}
 
-	public isEqualExceptForRunningState(service: Service): boolean {
+	public isEqualExceptForRunningState(
+		service: Service,
+		currentContainerIds: Dictionary<string>,
+	): boolean {
 		return (
-			this.isEqualConfig(service) &&
+			this.isEqualConfig(service, currentContainerIds) &&
 			this.releaseId === service.releaseId &&
 			this.imageId === service.imageId
 		);
 	}
 
-	public isEqual(service: Service): boolean {
+	public isEqual(
+		service: Service,
+		currentContainerIds: Dictionary<string>,
+	): boolean {
 		return (
-			this.isEqualExceptForRunningState(service) &&
+			this.isEqualExceptForRunningState(service, currentContainerIds) &&
 			this.config.running === service.config.running
 		);
 	}

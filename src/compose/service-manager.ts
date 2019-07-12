@@ -93,9 +93,13 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 	}
 
 	public async get(service: Service) {
+		// Get the container ids for special network handling
+		const containerIds = await this.getContainerIdMap(service.appId!);
 		const services = (await this.getAll(
 			`service-id=${service.serviceId}`,
-		)).filter(currentService => currentService.isEqualConfig(service));
+		)).filter(currentService =>
+			currentService.isEqualConfig(service, containerIds),
+		);
 
 		if (services.length === 0) {
 			const e: StatusCodeError = new Error(
@@ -266,7 +270,17 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				);
 			}
 
-			const conf = service.toDockerContainer({ deviceName });
+			// Get all created services so far
+			if (service.appId == null) {
+				throw new InternalInconsistencyError(
+					'Attempt to start a service without an existing application ID',
+				);
+			}
+			const serviceContainerIds = await this.getContainerIdMap(service.appId);
+			const conf = service.toDockerContainer({
+				deviceName,
+				containerIds: serviceContainerIds,
+			});
 			const nets = serviceNetworksToDockerNetworks(
 				service.extraNetworksToJoin(),
 			);
@@ -492,6 +506,13 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				});
 			}
 		}
+	}
+
+	public async getContainerIdMap(appId: number): Promise<Dictionary<string>> {
+		return _(await this.getAllByAppId(appId))
+			.keyBy('serviceName')
+			.mapValues('containerId')
+			.value() as Dictionary<string>;
 	}
 
 	private reportChange(containerId?: string, status?: Partial<Service>) {

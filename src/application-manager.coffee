@@ -317,7 +317,7 @@ module.exports = class ApplicationManager extends EventEmitter
 	# Compares current and target services and returns a list of service pairs to be updated/removed/installed.
 	# The returned list is an array of objects where the "current" and "target" properties define the update pair, and either can be null
 	# (in the case of an install or removal).
-	compareServicesForUpdate: (currentServices, targetServices) =>
+	compareServicesForUpdate: (currentServices, targetServices, containerIds) =>
 		removePairs = []
 		installPairs = []
 		updatePairs = []
@@ -366,13 +366,13 @@ module.exports = class ApplicationManager extends EventEmitter
 		# already started it before. In this case it means it just exited so we don't want to start it again.
 		alreadyStarted = (serviceId) =>
 			return (
-				currentServicesPerId[serviceId].isEqualExceptForRunningState(targetServicesPerId[serviceId]) and
+				currentServicesPerId[serviceId].isEqualExceptForRunningState(targetServicesPerId[serviceId], containerIds) and
 				targetServicesPerId[serviceId].config.running  and
 				@_containerStarted[currentServicesPerId[serviceId].containerId]
 			)
 
 		needUpdate = _.filter toBeMaybeUpdated, (serviceId) ->
-			!currentServicesPerId[serviceId].isEqual(targetServicesPerId[serviceId]) and !alreadyStarted(serviceId)
+			!currentServicesPerId[serviceId].isEqual(targetServicesPerId[serviceId], containerIds) and !alreadyStarted(serviceId)
 
 		for serviceId in needUpdate
 			updatePairs.push({
@@ -535,7 +535,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				return { action: 'noop' }
 	}
 
-	_nextStepForService: ({ current, target }, updateContext, localMode) =>
+	_nextStepForService: ({ current, target }, updateContext, localMode, containerIds) =>
 		{ targetApp, networkPairs, volumePairs, installPairs, updatePairs, availableImages, downloading } = updateContext
 		if current?.status == 'Stopping'
 			# There is already a kill step in progress for this service, so we wait
@@ -564,7 +564,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		# even if its strategy is handover
 		needsSpecialKill = @_hasCurrentNetworksOrVolumes(current, networkPairs, volumePairs)
 
-		if current?.isEqualConfig(target)
+		if current?.isEqualConfig(target, containerIds)
 			# We're only stopping/starting it
 			return @_updateContainerStep(current, target)
 		else if !current?
@@ -578,7 +578,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			timeout = checkInt(target.config.labels['io.balena.update.handover-timeout'])
 			return @_strategySteps[strategy](current, target, needsDownload, dependenciesMetForStart, dependenciesMetForKill, needsSpecialKill, timeout)
 
-	_nextStepsForAppUpdate: (currentApp, targetApp, localMode, availableImages = [], downloading = []) =>
+	_nextStepsForAppUpdate: (currentApp, targetApp, localMode, containerIds, availableImages = [], downloading = []) =>
 		emptyApp = { services: [], volumes: {}, networks: {} }
 		if !targetApp?
 			targetApp = emptyApp
@@ -599,7 +599,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		appId = targetApp.appId ? currentApp.appId
 		networkPairs = @compareNetworksForUpdate({ current: currentApp.networks, target: targetApp.networks }, appId)
 		volumePairs = @compareVolumesForUpdate({ current: currentApp.volumes, target: targetApp.volumes }, appId)
-		{ removePairs, installPairs, updatePairs } = @compareServicesForUpdate(currentApp.services, targetApp.services)
+		{ removePairs, installPairs, updatePairs } = @compareServicesForUpdate(currentApp.services, targetApp.services, containerIds)
 		steps = []
 		# All removePairs get a 'kill' action
 		for pair in removePairs
@@ -611,7 +611,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		# next step for install pairs in download - start order, but start requires dependencies, networks and volumes met
 		# next step for update pairs in order by update strategy. start requires dependencies, networks and volumes met.
 		for pair in installPairs.concat(updatePairs)
-			step = @_nextStepForService(pair, { targetApp, networkPairs, volumePairs, installPairs, updatePairs, availableImages, downloading }, localMode)
+			step = @_nextStepForService(pair, { targetApp, networkPairs, volumePairs, installPairs, updatePairs, availableImages, downloading }, localMode, containerIds)
 			if step?
 				steps.push(step)
 		# next step for network pairs - remove requires services killed, create kill if no pairs or steps affect that service
@@ -858,7 +858,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			return notUsedForDelta and notUsedByProxyvisor
 		return { imagesToSave, imagesToRemove }
 
-	_inferNextSteps: (cleanupNeeded, availableImages, downloading, supervisorNetworkReady, current, target, ignoreImages, { localMode, delta }) =>
+	_inferNextSteps: (cleanupNeeded, availableImages, downloading, supervisorNetworkReady, current, target, ignoreImages, { localMode, delta }, containerIds) =>
 		volumePromises = []
 		Promise.try =>
 			if localMode
@@ -919,7 +919,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				if _.isEmpty(nextSteps)
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
 					for appId in allAppIds
-						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], localMode, availableImages, downloading))
+						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], localMode, containerIds[appId], availableImages, downloading))
 						if oldApps != null and _.includes(oldApps, checkInt(appId))
 							# We check if everything else has been done for
 							# the old app to be removed. If it has, we then
@@ -965,7 +965,16 @@ module.exports = class ApplicationManager extends EventEmitter
 			return Promise.reject(new Error("Invalid action #{step.action}"))
 		@actionExecutors[step.action](step, { force, skipLock })
 
-	getExtraStateForComparison: =>
+	getExtraStateForComparison: (currentState, targetState) =>
+		containerIdsByAppId = {}
+		_(currentState.local.apps)
+			.keys()
+			.concat(_.keys(targetState.local.apps))
+			.uniq()
+			.each (id) =>
+				intId = checkInt(id)
+				containerIdsByAppId[intId] = @services.getContainerIdMap(intId)
+
 		@config.get('localMode').then (localMode) =>
 			Promise.props({
 				cleanupNeeded: @images.isCleanupNeeded()
@@ -973,15 +982,16 @@ module.exports = class ApplicationManager extends EventEmitter
 				downloading: @images.getDownloadingImageIds()
 				supervisorNetworkReady: @networks.supervisorNetworkReady()
 				delta: @config.get('delta')
+				containerIds: Promise.props(containerIdsByAppId)
 				localMode
 			})
 
 	getRequiredSteps: (currentState, targetState, extraState, ignoreImages = false) =>
-		{ cleanupNeeded, availableImages, downloading, supervisorNetworkReady, delta, localMode } = extraState
+		{ cleanupNeeded, availableImages, downloading, supervisorNetworkReady, delta, localMode, containerIds } = extraState
 		conf = { delta, localMode }
 		if conf.localMode
 			cleanupNeeded = false
-		@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf)
+		@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf, containerIds)
 		.then (nextSteps) =>
 			if ignoreImages and _.some(nextSteps, action: 'fetch')
 				throw new Error('Cannot fetch images while executing an API action')
