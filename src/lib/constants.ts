@@ -9,6 +9,7 @@ const constants = {
 	rootMountPoint,
 	databasePath:
 		checkString(process.env.DATABASE_PATH) || '/data/database.sqlite',
+	containerId: checkString(process.env.SUPERVISOR_CONTAINER_ID) || undefined,
 	dockerSocket: process.env.DOCKER_SOCKET || '/var/run/docker.sock',
 	supervisorImage:
 		checkString(process.env.SUPERVISOR_IMAGE) || 'resin/rpi-supervisor',

@@ -4,6 +4,7 @@ import * as _ from 'lodash';
 
 import Config from './config';
 import Database from './db';
+import * as constants from './lib/constants';
 import log from './lib/supervisor-console';
 import { Logger } from './logger';
 
@@ -56,6 +57,9 @@ export class EngineSnapshotRecord {
 	) {}
 }
 
+/** Container name used to inspect own resources when container ID cannot be resolved. */
+const SUPERVISOR_CONTAINER_NAME_FALLBACK = 'resin_supervisor';
+
 /**
  * This class handles any special cases necessary for switching
  * modes in localMode.
@@ -70,6 +74,7 @@ export class LocalModeManager {
 		public docker: Docker,
 		public logger: Logger,
 		public db: Database,
+		private containerId: string | undefined = constants.containerId,
 	) {}
 
 	// Indicates that switch from or to the local mode is not complete.
@@ -140,6 +145,39 @@ export class LocalModeManager {
 			new EngineSnapshot(containers, images, volumes, networks),
 			new Date(),
 		);
+	}
+
+	private async collectContainerResources(
+		nameOrId: string,
+	): Promise<EngineSnapshot> {
+		const inspectInfo = await this.docker.getContainer(nameOrId).inspect();
+		return new EngineSnapshot(
+			[inspectInfo.Id],
+			[inspectInfo.Image],
+			inspectInfo.Mounts.filter(m => m.Name !== undefined).map(m => m.Name!),
+			_.values(inspectInfo.NetworkSettings.Networks).map(ns => ns.NetworkID),
+		);
+	}
+
+	// Determine what engine objects are linked to our own container.
+	private async collectOwnResources(): Promise<EngineSnapshot> {
+		try {
+			return this.collectContainerResources(
+				this.containerId || SUPERVISOR_CONTAINER_NAME_FALLBACK,
+			);
+		} catch (e) {
+			if (this.containerId !== undefined) {
+				// Inspect operation fails (container ID is out of sync?).
+				const fallback = SUPERVISOR_CONTAINER_NAME_FALLBACK;
+				log.warn(
+					'Supervisor container resources cannot be obtained by container ID. ' +
+						`Using '${fallback}' name instead.`,
+					e.message,
+				);
+				return this.collectContainerResources(fallback);
+			}
+			throw e;
+		}
 	}
 
 	private async cleanEngineSnapshots() {
@@ -248,11 +286,16 @@ export class LocalModeManager {
 				return;
 			}
 
+			const supervisorResources = await this.collectOwnResources();
+			log.debug(`${supervisorResources} are linked to current supervisor`);
+
 			log.debug(
 				`Leaving local mode and cleaning up objects since ${previousRecord.timestamp.toISOString()}`,
 			);
 			await this.removeLocalModeArtifacts(
-				currentRecord.snapshot.diff(previousRecord.snapshot),
+				currentRecord.snapshot
+					.diff(previousRecord.snapshot)
+					.diff(supervisorResources),
 			);
 			await this.cleanEngineSnapshots();
 		} catch (e) {
