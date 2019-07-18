@@ -247,7 +247,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 			// TODO: This should really return the config as it
 			// is returned from the api, but currently that's not
-			// the easiest thing due to the way their stored and
+			// the easiest thing due to the way they are stored and
 			// retrieved from the db - when all of the application
 			// manager is strongly typed, revisit this. The best
 			// thing to do would be to represent the input with
@@ -324,7 +324,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			const deviceInfo = JSON.parse(data);
 
 			return res.status(200).json({
-				status: 'sucess',
+				status: 'success',
 				info: {
 					arch: deviceInfo.arch,
 					deviceType: deviceInfo.slug,
