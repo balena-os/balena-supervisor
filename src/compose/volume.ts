@@ -1,6 +1,7 @@
 import * as Docker from 'dockerode';
 import assign = require('lodash/assign');
 import isEqual = require('lodash/isEqual');
+import omitBy = require('lodash/omitBy');
 
 import constants = require('../lib/constants');
 import { InternalInconsistencyError } from '../lib/errors';
@@ -90,7 +91,10 @@ export class Volume {
 	public isEqualConfig(volume: Volume): boolean {
 		return (
 			isEqual(this.config.driverOpts, volume.config.driverOpts) &&
-			isEqual(this.config.labels, volume.config.labels)
+			isEqual(
+				Volume.omitSupervisorLabels(this.config.labels),
+				Volume.omitSupervisorLabels(volume.config.labels),
+			)
 		);
 	}
 
@@ -147,6 +151,14 @@ export class Volume {
 			appId,
 			name: match[2],
 		};
+	}
+
+	private static omitSupervisorLabels(labels: LabelObject): LabelObject {
+		// TODO: Export these to a constant
+		return omitBy(
+			labels,
+			(_v, k) => k === 'io.resin.supervised' || k === 'io.balena.supervised',
+		);
 	}
 }
 
