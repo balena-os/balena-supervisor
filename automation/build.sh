@@ -81,13 +81,13 @@ export MIXPANEL_TOKEN
 
 make IMAGE=$NODE_BUILD_IMAGE nodebuild
 if [ "$PUSH_IMAGES" = "true" ]; then
-	make IMAGE=$NODE_BUILD_IMAGE deploy || true
+	make IMAGE=$NODE_BUILD_IMAGE deploy &
 fi
 export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${NODE_BUILD_IMAGE}"
 
 make IMAGE=$NODE_IMAGE nodedeps
 if [ "$PUSH_IMAGES" = "true" ]; then
-	make IMAGE=$NODE_IMAGE deploy || true
+	make IMAGE=$NODE_IMAGE deploy &
 fi
 export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${NODE_IMAGE}"
 
@@ -103,6 +103,8 @@ if [ "$PUSH_IMAGES" = "true" ]; then
 	fi
 fi
 
+# Wait for any ongoing deploys
+wait
 if [ "$CLEANUP" = "true" ]; then
 	tryRemove $TARGET_IMAGE
 
