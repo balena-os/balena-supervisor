@@ -43,6 +43,7 @@ RUN apt-get update \
 	curl \
 	vim
 
+ARG NPM_VERSION
 # We first ensure that every architecture has an npm version
 # which can do an npm ci, then we perform the ci using this
 # temporary version
