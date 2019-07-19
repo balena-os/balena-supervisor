@@ -58,21 +58,21 @@ NODE_CACHE_MASTER=balena/$ARCH-supervisor-node:master$DEBUG
 NODE_BUILD_CACHE_MASTER=balena/$ARCH-supervisor-node:master-build$DEBUG
 
 CACHE_FROM=""
-function tryPullForCache() {
+function useCache() {
 	image=$1
-	docker pull $image && {
-		CACHE_FROM="$CACHE_FROM --cache-from $image"
-	} || true
+	# Always add the cache because we can't do it from
+	# a subshell and specifying a missing image is fine
+	CACHE_FROM="$CACHE_FROM --cache-from $image"
+	# Pull in parallel for speed
+	docker pull $image &
 }
 
-# Attempt to pull images for cache
-# Only if the pull succeeds we add a --cache-from option
-tryPullForCache $TARGET_CACHE &
-tryPullForCache $TARGET_CACHE_MASTER &
-tryPullForCache $NODE_CACHE &
-tryPullForCache $NODE_CACHE_MASTER &
-tryPullForCache $NODE_BUILD_CACHE &
-tryPullForCache $NODE_BUILD_CACHE_MASTER &
+useCache $TARGET_CACHE
+useCache $TARGET_CACHE_MASTER
+useCache $NODE_CACHE
+useCache $NODE_CACHE_MASTER
+useCache $NODE_BUILD_CACHE
+useCache $NODE_BUILD_CACHE_MASTER
 wait
 
 export DOCKER_BUILD_OPTIONS=${CACHE_FROM}
