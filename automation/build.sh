@@ -45,10 +45,6 @@ TARGET_IMAGE=balena/$ARCH-supervisor:$TAG$DEBUG
 NODE_IMAGE=balena/$ARCH-supervisor-node:$TAG$DEBUG
 NODE_BUILD_IMAGE=balena/$ARCH-supervisor-node:$TAG-build$DEBUG
 
-TARGET_CACHE=$TARGET_IMAGE
-NODE_CACHE=$NODE_IMAGE
-NODE_BUILD_CACHE=$NODE_BUILD_IMAGE
-
 TARGET_CACHE_MASTER=balena/$ARCH-supervisor:master$DEBUG
 NODE_CACHE_MASTER=balena/$ARCH-supervisor-node:master$DEBUG
 NODE_BUILD_CACHE_MASTER=balena/$ARCH-supervisor-node:master-build$DEBUG
@@ -63,23 +59,29 @@ function useCache() {
 	docker pull $image &
 }
 
-useCache $TARGET_CACHE
+useCache $TARGET_IMAGE
 useCache $TARGET_CACHE_MASTER
-useCache $NODE_CACHE
+useCache $NODE_IMAGE
 useCache $NODE_CACHE_MASTER
-useCache $NODE_BUILD_CACHE
-useCache $NODE_BUILD_CACHE_MASTER
+# Debug images don't include nodebuild
+if [ -z "$DEBUG" ]; then
+	useCache $NODE_BUILD_IMAGE
+	useCache $NODE_BUILD_CACHE_MASTER
+fi
 wait
 
 export DOCKER_BUILD_OPTIONS=${CACHE_FROM}
 export ARCH
 export MIXPANEL_TOKEN
 
-make IMAGE=$NODE_BUILD_IMAGE nodebuild
-if [ "$PUSH_IMAGES" = "true" ]; then
-	make IMAGE=$NODE_BUILD_IMAGE deploy &
+# Debug images don't include nodebuild
+if [ -z "$DEBUG" ]; then
+	make IMAGE=$NODE_BUILD_IMAGE nodebuild
+	if [ "$PUSH_IMAGES" = "true" ]; then
+		make IMAGE=$NODE_BUILD_IMAGE deploy &
+	fi
+	export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${NODE_BUILD_IMAGE}"
 fi
-export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${NODE_BUILD_IMAGE}"
 
 make IMAGE=$NODE_IMAGE nodedeps
 if [ "$PUSH_IMAGES" = "true" ]; then
@@ -106,7 +108,5 @@ if [ "$CLEANUP" = "true" ]; then
 		$TARGET_IMAGE \
 		$NODE_IMAGE \
 		$NODE_BUILD_IMAGE \
-		$TARGET_CACHE \
-		$NODE_BUILD_CACHE \
-		$NODE_CACHE
+		$TARGET_CACHE
 fi

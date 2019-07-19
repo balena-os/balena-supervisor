@@ -22,8 +22,6 @@ FROM balenalib/i386-nlp-node:6-jessie as i386-nlp-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-# A little hack to make this work with the makefile
-FROM $ARCH-node-base AS node-build
 FROM $ARCH-node-base AS node-deps
 
 RUN [ "cross-build-start" ]
