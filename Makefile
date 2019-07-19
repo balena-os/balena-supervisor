@@ -154,7 +154,7 @@ endif
 		--build-arg ARCH=$(ARCH) \
 		--build-arg VERSION=$(shell jq -r .version package.json) \
 		--build-arg DEFAULT_MIXPANEL_TOKEN=$(MIXPANEL_TOKEN) \
-		`if [ -z "$$DEBUG" ]; then echo ''; else echo '-f Dockerfile.debug'; fi` \
+		`if [ -n "$$DEBUG" ]; then echo '-f Dockerfile.debug'; fi` \
 		-t $(IMAGE) .
 
 supervisor:
