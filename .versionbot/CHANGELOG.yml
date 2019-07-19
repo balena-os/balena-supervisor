@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'fix: Don''t consider volume supervised labels when comparing'
+      hash: cbb079e8dc03b9ef85336a8fbd22b85574c7db7e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1039'
+        closes: '#1039'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.0.3
+  date: 2019-07-19T11:20:19.861Z
+- commits:
     - subject: 'device-api: fix up small typos'
       hash: 2cb6ecc150c207704c08dee52cf8940a16d760c6
       body: ''
