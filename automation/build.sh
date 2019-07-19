@@ -63,11 +63,22 @@ useCache $TARGET_IMAGE
 useCache $TARGET_CACHE_MASTER
 useCache $NODE_IMAGE
 useCache $NODE_CACHE_MASTER
-# Debug images don't include nodebuild
+# Debug images don't include nodebuild or use the supervisor-base image
 if [ -z "$DEBUG" ]; then
 	useCache $NODE_BUILD_IMAGE
 	useCache $NODE_BUILD_CACHE_MASTER
+
+	docker pull balenalib/amd64-node:6-build &
+	docker pull balena/$ARCH-supervisor-base:v1.4.7 &
 fi
+# Pull images we depend on in parallel to avoid needing
+# to do it in serial during the build
+docker pull balenalib/raspberry-pi-node:10-run &
+docker pull balenalib/armv7hf-node:10-run &
+docker pull balenalib/aarch64-node:10-run &
+docker pull balenalib/amd64-node:10-run &
+docker pull balenalib/i386-node:10-run &
+docker pull balenalib/i386-nlp-node:6-jessie &
 wait
 
 export DOCKER_BUILD_OPTIONS=${CACHE_FROM}
