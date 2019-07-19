@@ -38,10 +38,6 @@ if [ -z "$ARCH" ] || [ -z "$TAG" ]; then
 	exit 1
 fi
 
-function tryRemove() {
-	docker rmi $1 || true
-}
-
 # This is the supervisor image we will produce
 TARGET_IMAGE=balena/$ARCH-supervisor:$TAG$DEBUG
 
@@ -106,12 +102,11 @@ fi
 # Wait for any ongoing deploys
 wait
 if [ "$CLEANUP" = "true" ]; then
-	tryRemove $TARGET_IMAGE
-
-	tryRemove $NODE_IMAGE
-	tryRemove $NODE_BUILD_IMAGE
-
-	tryRemove $TARGET_CACHE
-	tryRemove $NODE_BUILD_CACHE
-	tryRemove $NODE_CACHE
+	docker rmi \
+		$TARGET_IMAGE \
+		$NODE_IMAGE \
+		$NODE_BUILD_IMAGE \
+		$TARGET_CACHE \
+		$NODE_BUILD_CACHE \
+		$NODE_CACHE
 fi
