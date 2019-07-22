@@ -34,7 +34,6 @@ FROM balenalib/amd64-node:6-build as i386-nlp-node-build
 
 FROM $ARCH-node-build as node-build
 
-ARG NPM_VERSION
 
 WORKDIR /usr/src/app
 
@@ -51,6 +50,7 @@ RUN apt-get update \
 
 COPY package.json package-lock.json /usr/src/app/
 
+ARG NPM_VERSION
 # We first ensure that every architecture has an npm version
 # which can do an npm ci, then we perform the ci using this
 # temporary version
@@ -73,8 +73,6 @@ RUN npm test \
 
 # Build nodejs dependencies
 FROM $ARCH-node-base as node-deps
-ARG ARCH
-ARG NPM_VERSION
 
 RUN [ "cross-build-start" ]
 
@@ -96,6 +94,7 @@ RUN mkdir -p rootfs-overlay && \
 
 COPY package.json package-lock.json /usr/src/app/
 
+ARG NPM_VERSION
 # Install only the production modules that have C extensions
 RUN curl -LOJ https://www.npmjs.com/install.sh && \
 	npm config set unsafe-perm true && \
@@ -125,9 +124,6 @@ RUN [ "cross-build-end" ]
 
 # Minimal runtime image
 FROM balena/$ARCH-supervisor-base:v1.4.7
-ARG ARCH
-ARG VERSION=master
-ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
 
 WORKDIR /usr/src/app
 
@@ -140,6 +136,9 @@ COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 
 VOLUME /data
 
+ARG ARCH
+ARG VERSION=master
+ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
 ENV CONFIG_MOUNT_POINT=/boot/config.json \
 	LED_FILE=/dev/null \
 	SUPERVISOR_IMAGE=resin/$ARCH-supervisor \

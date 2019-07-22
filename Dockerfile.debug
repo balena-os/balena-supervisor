@@ -3,41 +3,47 @@ ARG NPM_VERSION=6.9.0
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM balenalib/raspberry-pi-node:10-run as rpi-base
-FROM balenalib/armv7hf-node:10-run as armv7hf-base
-FROM balenalib/aarch64-node:10-run as aarch64-base
+FROM balenalib/raspberry-pi-node:10-run as rpi-node-base
+FROM balenalib/armv7hf-node:10-run as armv7hf-node-base
+FROM balenalib/aarch64-node:10-run as aarch64-node-base
 RUN [ "cross-build-start" ]
 RUN sed -i '/security.debian.org jessie/d' /etc/apt/sources.list
 RUN [ "cross-build-end" ]
 
-FROM balenalib/amd64-node:10-run as amd64-base
+FROM balenalib/amd64-node:10-run as amd64-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM balenalib/i386-node:10-run as i386-base
+FROM balenalib/i386-node:10-run as i386-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM balenalib/i386-nlp-node:6-jessie as i386-nlp-base
+FROM balenalib/i386-nlp-node:6-jessie as i386-nlp-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-# A little hack to make this work with the makefile
-FROM $ARCH-base AS node-build
-FROM $ARCH-base AS node-deps
-
-ARG ARCH
-ARG VERSION=master
-ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
+FROM $ARCH-node-base AS node-deps
 
 RUN [ "cross-build-start" ]
 
 WORKDIR /usr/src/app
 
-RUN apt-get update && apt-get install ca-certificates \
-	iptables libnss-mdns nodejs rsync git python make curl g++ \
-	kmod vim
+RUN apt-get update \
+	&& apt-get install -y \
+	ca-certificates \
+	g++ \
+	git \
+	kmod \
+	iptables \
+	libnss-mdns \
+	make \
+	nodejs \
+	python \
+	rsync \
+	curl \
+	vim
 
+ARG NPM_VERSION
 # We first ensure that every architecture has an npm version
 # which can do an npm ci, then we perform the ci using this
 # temporary version
@@ -62,6 +68,9 @@ COPY entry.sh .
 RUN mkdir -p rootfs-overlay && \
 	(([ ! -d rootfs-overlay/lib64 ] && ln -s /lib rootfs-overlay/lib64) || true)
 
+ARG ARCH
+ARG VERSION=master
+ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
 ENV CONFIG_MOUNT_POINT=/boot/config.json \
 	LED_FILE=/dev/null \
 	SUPERVISOR_IMAGE=resin/$ARCH-supervisor \
