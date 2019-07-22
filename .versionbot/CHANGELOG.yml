@@ -1,4 +1,70 @@
 - commits:
+    - subject: Pre-emptively pull required images in parallel
+      hash: 565ef27b1b2c7e86d1b26571cec140e9da0ac14c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Avoid unnecessary else in Makefile
+      hash: 3945bb3a87eb18c6bcd175123d1cfa5afea78faf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Fix installing the specified npm version in debug builds
+      hash: 34983651d059de7e57cbb7171cf916bb1c033622
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Remove the dummy node-build step for debug images
+      hash: ec816d115e98f0309ab0accbb69a45ba7c54fbab
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Reduce differences between the debug and standard dockerfiles
+      hash: 31257f8f391e3a3500ca3772f0ab7cccb904b622
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Run image cleanup in parallel
+      hash: 34af6e9b2a1306111033578632e5483ff5e07e66
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Do intermediate build pushing in parallel
+      hash: 39e87414027525bc46467ea27cf864a49b89e8fc
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Minimise the amount of cache busted by a changed ARG
+      hash: 1366abc7b113216fc007c78797a6c4e34d267a45
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Fix cache usage for builds
+      hash: 0ad5d8688c2c09dc48cacd4a4af5bf7d8118709c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.0.4
+  date: 2019-07-19T18:00:31.121Z
+- commits:
     - subject: 'fix: Don''t consider volume supervised labels when comparing'
       hash: cbb079e8dc03b9ef85336a8fbd22b85574c7db7e
       body: ''
