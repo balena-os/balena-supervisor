@@ -489,7 +489,13 @@ export class DeviceConfig {
 			});
 		}
 
-		if (_.isEmpty(steps) && this.rebootRequired) {
+		// Check if there is either no steps, or they are all
+		// noops, and we need to reboot. We want to do this
+		// because in a preloaded setting with no internet
+		// connection, the device will try to start containers
+		// before any boot config has been applied, which can
+		// cause problems
+		if (_.every(steps, { action: 'noop' }) && this.rebootRequired) {
 			steps.push({
 				action: 'reboot',
 			});
