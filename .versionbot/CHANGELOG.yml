@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'fix: Always reboot when applying boot config'
+      hash: e91fa6e7b33f4c859a47bd97ec837ff85049164f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1037'
+        closes: '#1037'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.0.5
+  date: 2019-07-22T15:10:57.680Z
+- commits:
     - subject: Pre-emptively pull required images in parallel
       hash: 565ef27b1b2c7e86d1b26571cec140e9da0ac14c
       body: ''
