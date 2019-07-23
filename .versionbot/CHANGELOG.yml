@@ -1,4 +1,28 @@
 - commits:
+    - subject: 'Support network_modes of service:<servicename>'
+      hash: c109a24874650f5f8d5a80fa11c8a62163e4d36b
+      body: |
+        That way that this is performed is by first adding a depends_on entry
+        for the target service if it appears in a network mode. Then when we
+        generate the docker container for this service, we use the containerId
+        of the target container and replace the network_mode with
+        `container:<id>`.
+
+        When comparing state, we check that the containerId still points to the
+        contianerId of the target container, and in this way we ensure that
+        when a network mode target container changes, we change the dependent
+        container too.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#851'
+        closes: '#851'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.1.0
+  date: 2019-07-23T12:55:18.311Z
+- commits:
     - subject: 'fix: Always reboot when applying boot config'
       hash: e91fa6e7b33f4c859a47bd97ec837ff85049164f
       body: ''
