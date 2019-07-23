@@ -88,7 +88,7 @@ const performLivepush = _.debounce(async livepush => {
 		// a bit of a hack, as the multistage images aren't
 		// present, but it shouldn't make a difference as these
 		// will never change
-		_.times(7, () => image),
+		_.times(6, () => image),
 		docker,
 	);
 
