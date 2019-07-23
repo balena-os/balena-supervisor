@@ -155,8 +155,8 @@ export class LocalModeManager {
 		return new EngineSnapshot(
 			[inspectInfo.Id],
 			[inspectInfo.Image],
-			inspectInfo.Mounts.filter(m => m.Name !== undefined).map(m => m.Name!),
-			_.values(inspectInfo.NetworkSettings.Networks).map(ns => ns.NetworkID),
+			inspectInfo.Mounts.filter(m => m.Name != null).map(m => m.Name!),
+			_.map(inspectInfo.NetworkSettings.Networks, n => n.NetworkID),
 		);
 	}
 
