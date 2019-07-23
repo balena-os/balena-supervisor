@@ -5,6 +5,7 @@ import * as _ from 'lodash';
 import Config from './config';
 import Database from './db';
 import * as constants from './lib/constants';
+import { SupervisorContainerNotFoundError } from './lib/errors';
 import log from './lib/supervisor-console';
 import { Logger } from './logger';
 
@@ -176,7 +177,7 @@ export class LocalModeManager {
 				);
 				return this.collectContainerResources(fallback);
 			}
-			throw e;
+			throw new SupervisorContainerNotFoundError(e);
 		}
 	}
 

@@ -62,3 +62,9 @@ export class ConfigurationValidationError extends TypedError {
 }
 
 export class ImageAuthenticationError extends TypedError {}
+
+/**
+ * An error thrown if our own container cannot be inspected.
+ * See LocalModeManager for a usage example.
+ */
+export class SupervisorContainerNotFoundError extends TypedError {}
