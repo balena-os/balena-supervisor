@@ -1,0 +1,128 @@
+{
+	"serviceName": "main",
+	"imageInfo": {
+		"Id": "sha256:f9e0fa6e3e68caedbcbb4ef35d5a8dce2a8d33e39cc94115d567800f25d826f4",
+		"RepoTags": [],
+		"RepoDigests": [
+			"registry2.resin.io/v2/8ddbe4a22e881f06def0f31400bfb6de@sha256:09b0db9e71cead5f91107fc9254b1af7088444cc6da55afa2da595940f72a34a"
+		],
+		"Parent": "",
+		"Comment": "",
+		"Created": "2018-08-15T12:43:06.43392045Z",
+		"Container": "b6cc9227f272b905512a58926b6d515b38de34b604386031aa3c21e94d9dbb4a",
+		"ContainerConfig": {
+			"Hostname": "f15babe8256c",
+			"Domainname": "",
+			"User": "",
+			"AttachStdin": false,
+			"AttachStdout": false,
+			"AttachStderr": false,
+			"Tty": false,
+			"OpenStdin": false,
+			"StdinOnce": false,
+			"Env": [
+				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+				"UDEV=on"
+			],
+			"Cmd": [
+				"/bin/sh",
+				"-c",
+				"#(nop) ",
+				"CMD [\"/bin/sh\" \"-c\" \"./call-supervisor.sh\"]"
+			],
+			"ArgsEscaped": true,
+			"Image": "sha256:828d725f5e6d09ee9abc214f6c11fadf69192ba4871b050984cc9c4cec37b208",
+			"Volumes": null,
+			"WorkingDir": "/usr/src/app",
+			"Entrypoint": [
+				"/usr/bin/entry.sh"
+			],
+			"OnBuild": [],
+			"Labels": {
+				"io.resin.architecture": "armv7hf",
+				"io.resin.device-type": "raspberry-pi2",
+				"io.resin.qemu.version": "2.9.0.resin1-arm"
+			}
+		},
+		"DockerVersion": "17.05.0-ce",
+		"Author": "",
+		"Config": {
+			"Hostname": "f15babe8256c",
+			"Domainname": "",
+			"User": "",
+			"AttachStdin": false,
+			"AttachStdout": false,
+			"AttachStderr": false,
+			"Tty": false,
+			"OpenStdin": false,
+			"StdinOnce": false,
+			"Env": [
+				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+				"UDEV=on"
+			],
+			"Cmd": [
+				"/bin/sh",
+				"-c",
+				"./call-supervisor.sh"
+			],
+			"ArgsEscaped": true,
+			"Image": "sha256:828d725f5e6d09ee9abc214f6c11fadf69192ba4871b050984cc9c4cec37b208",
+			"Volumes": null,
+			"WorkingDir": "/usr/src/app",
+			"Entrypoint": [
+				"/usr/bin/entry.sh"
+			],
+			"OnBuild": [],
+			"Labels": {
+				"io.resin.architecture": "armv7hf",
+				"io.resin.device-type": "raspberry-pi2",
+				"io.resin.qemu.version": "2.9.0.resin1-arm"
+			}
+		},
+		"Architecture": "arm64",
+		"Os": "linux",
+		"Size": 38692178,
+		"VirtualSize": 38692178,
+		"GraphDriver": {
+			"Data": null,
+			"Name": "aufs"
+		},
+		"RootFS": {
+			"Type": "layers",
+			"Layers": [
+				"sha256:7c30ac6ce381873d5388b7d23b346af7d1e5f6af000a84b97e6203ed9e6dcab2",
+				"sha256:450b73019ae79e6a99774fcd37c18769f95065c8b271be936dfb3f93afadc4a8",
+				"sha256:54742c4169d9ff56328f60aea070a6c67f507d4b82389f3432a2c5d92742223c",
+				"sha256:1f609e3b26a8772335a4658ee1980e9b34019d55ac8ee5dcb281f1d4cd5e8e9c",
+				"sha256:c062d099c615146d6dc095254c11babbe120edf06d66419aeef955b88d8543ce",
+				"sha256:2b57e2af57a24bcbafc5bfa04d928ab11695232df7942c294a7c1ca115ba42ca",
+				"sha256:6eb88b69d374abd577336ddc8ab01b25b970020537bb6605676496dcb041b462",
+				"sha256:e410a938934a7ad4f44334cceca97084df7405a5654eefc30cede0aa5bbe8394",
+				"sha256:201b3de34ff5e12e1ada0331d0ce4d0b041059ff9350cb26d8ee15c7be50fe57",
+				"sha256:115ca022a36d9de6fb7a4ba3917545711a0c20564dacf3b189567f68e381e73e",
+				"sha256:4fdd323f81af620a5f19a544a1caa21093f2567d83671ebf24fbde77cefde67c",
+				"sha256:e9a758756b9b5537fe624f87d02f16dd7a523c27a1688de9820f5d2157e5d37d",
+				"sha256:2d082f247d32fd789dbd46fc50054e16810c79a64fa9ea47e0e4845226a0e011",
+				"sha256:6ab67aaf666bfb7001ab93deffe785f24775f4e0da3d6d421ad6096ba869fd0d"
+			]
+		},
+		"Metadata": {
+			"LastTagTime": "0001-01-01T00:00:00Z"
+		}
+	},
+	"appName": "supervisortest",
+	"supervisorApiHost": "172.17.0.1",
+	"hostPathExists": {
+		"firmware": true,
+		"modules": true
+	},
+	"hostnameOnHost": "7dadabd",
+	"uuid": "7dadabd4edec3067948d5952c2f2f26f",
+	"listenPort": "48484",
+	"name": "Office",
+	"apiSecret": "d4bf8369519c32adaa5dd1f84367aa817403f2a3ce976be9c9bacd4d344fdd",
+	"deviceApiKey": "ff89e1d8db58a7ca52a435f2adea319a",
+	"version": "7.16.6",
+	"deviceType": "raspberrypi3",
+	"osVersion": "Resin OS 2.13.6+rev1"
+}

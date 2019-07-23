@@ -141,6 +141,7 @@ describe 'ApplicationManager', ->
 				}
 			})
 		stub(@applications.docker, 'getNetworkGateway').returns(Promise.resolve('172.17.0.1'))
+		stub(@applications.docker, 'listContainers').returns(Promise.resolve([]))
 		stub(Service, 'extendEnvVars').callsFake (env) ->
 			env['ADDITIONAL_ENV_VAR'] = 'foo'
 			return env
@@ -191,6 +192,7 @@ describe 'ApplicationManager', ->
 	after ->
 		@applications.images.inspectByName.restore()
 		@applications.docker.getNetworkGateway.restore()
+		@applications.docker.listContainers.restore()
 		Service.extendEnvVars.restore()
 
 	it 'infers a start step when all that changes is a running state', ->
@@ -198,7 +200,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[0])
 			@normaliseTarget(targetState[0], availableImages[0])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {}, {})
 				expect(steps).to.eventually.deep.equal([{
 					action: 'start'
 					current: current.local.apps['1234'].services[1]
@@ -214,7 +216,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[0])
 			@normaliseTarget(targetState[1], availableImages[0])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {}, {})
 				expect(steps).to.eventually.deep.equal([{
 					action: 'kill'
 					current: current.local.apps['1234'].services[1]
@@ -230,7 +232,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[0])
 			@normaliseTarget(targetState[2], availableImages[0])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {}, {})
 				expect(steps).to.eventually.deep.equal([{
 					action: 'fetch'
 					image: @applications.imageForService(target.local.apps['1234'].services[1])
@@ -245,7 +247,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[0])
 			@normaliseTarget(targetState[2], availableImages[0])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[0], [ target.local.apps['1234'].services[1].imageId ], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[0], [ target.local.apps['1234'].services[1].imageId ], true, current, target, false, {}, {})
 				expect(steps).to.eventually.deep.equal([{ action: 'noop', appId: 1234 }])
 		)
 
@@ -254,7 +256,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[0])
 			@normaliseTarget(targetState[3], availableImages[0])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {}, {})
 				expect(steps).to.eventually.deep.equal([{
 					action: 'kill'
 					current: current.local.apps['1234'].services[1]
@@ -270,7 +272,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[4])
 			@normaliseTarget(targetState[4], availableImages[2])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[2], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[2], [], true, current, target, false, {}, {})
 				expect(steps).to.eventually.have.deep.members([{
 					action: 'fetch'
 					image: @applications.imageForService(target.local.apps['1234'].services[0])
@@ -285,7 +287,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[0])
 			@normaliseTarget(targetState[5], availableImages[1])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[1], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[1], [], true, current, target, false, {}, {})
 				expect(steps).to.eventually.have.deep.members([
 					{
 						action: 'kill'
@@ -311,7 +313,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[1])
 			@normaliseTarget(targetState[4], availableImages[1])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[1], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[1], [], true, current, target, false, {}, {})
 				expect(steps).to.eventually.have.deep.members([
 					{
 						action: 'start'
@@ -329,7 +331,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[2])
 			@normaliseTarget(targetState[4], availableImages[1])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[1], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[1], [], true, current, target, false, {}, {}, {})
 				expect(steps).to.eventually.have.deep.members([
 					{
 						action: 'start'
@@ -347,7 +349,7 @@ describe 'ApplicationManager', ->
 			@normaliseCurrent(currentState[3])
 			@normaliseTarget(targetState[4], availableImages[1])
 			(current, target) =>
-				steps = @applications._inferNextSteps(false, availableImages[1], [], true, current, target, false, {})
+				steps = @applications._inferNextSteps(false, availableImages[1], [], true, current, target, false, {}, {})
 				expect(steps).to.eventually.have.deep.members([
 					{
 						action: 'kill'
@@ -406,7 +408,7 @@ describe 'ApplicationManager', ->
 				@normaliseCurrent(currentState[6]),
 				@normaliseTarget(targetState[0], availableImages[0])
 				(current, target) =>
-					@applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {}).then (steps) ->
+					@applications._inferNextSteps(false, availableImages[0], [], true, current, target, false, {}, {}).then (steps) ->
 						expect(
 							_.every(steps, (s) -> s.action != 'removeVolume'),
 							'Volumes from current app should not be removed'
@@ -418,7 +420,7 @@ describe 'ApplicationManager', ->
 				@normaliseCurrent(currentState[5])
 				@normaliseTarget(targetState[6], [])
 				(current, target) =>
-					@applications._inferNextSteps(false, [], [], true, current, target, false, {}).then (steps) ->
+					@applications._inferNextSteps(false, [], [], true, current, target, false, {}, {}).then (steps) ->
 						expect(steps).to.have.length(1)
 						expect(steps[0]).to.have.property('action').that.equals('removeVolume')
 						expect(steps[0].current).to.have.property('appId').that.equals(12)
