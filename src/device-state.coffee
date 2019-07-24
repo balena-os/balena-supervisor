@@ -307,7 +307,6 @@ module.exports = class DeviceState extends EventEmitter
 				@triggerApplyTarget({ initial: true })
 
 	initNetworkChecks: ({ apiEndpoint, connectivityCheckEnabled, unmanaged }) =>
-		return if unmanaged
 		network.startConnectivityCheck apiEndpoint, connectivityCheckEnabled, (connected) =>
 			@connected = connected
 		@config.on 'change', (changedConfig) ->
