@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'api: Perform network checks if device is unmanaged'
+      hash: f9aa4681fa07a28cd5b9d63e697d76cff0faf4e6
+      body: |
+        Without these checks the API GET /v1/device doesn't return a
+        value for `ip_address`.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.1.2
+  date: 2019-07-24T14:44:11.596Z
+- commits:
     - subject: Fix invocation of livepush with sync-debug
       hash: 37ea6a92836faaf819a77568f43b3efc05e460a5
       body: ''
