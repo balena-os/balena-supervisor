@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'docs: update APPID to BALENA_APP_ID as exposed from the env'
+      hash: f2bb8a768e655513cc72a4bd286f7803745c0f07
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.1.3
+  date: 2019-07-24T22:42:58.009Z
+- commits:
     - subject: 'api: Perform network checks if device is unmanaged'
       hash: f9aa4681fa07a28cd5b9d63e697d76cff0faf4e6
       body: |
