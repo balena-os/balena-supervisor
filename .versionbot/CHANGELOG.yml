@@ -1,4 +1,48 @@
 - commits:
+    - subject: Filter both null and omitted values
+      hash: 4688524e4564b4f55870ce7a44a7a5c7d90c21ce
+      body: |
+        The docker daemon can sometimes return null for various fields,
+        or omit the field altogether. The best thing to do with using
+        the docker api is to always use == null to cover both instances.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+    - subject: Use typed error to report inspection problems
+      hash: 4b56022d93812852d9771e8c4ed1fa4f8e414d7f
+      body: |
+        This will throw a typed error in case when supervisor cannot inspect
+        its own container.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+    - subject: Prevent supervisor from deleting itself
+      hash: 4846acb25ebd5b1400e3a74bc3a3c607ae98be8e
+      body: >
+        With recent changes to local mode behavior, supervisor removes all
+        engine objects
+
+        that were not present before entering local mode.
+
+        With this change, supervisor also detects its own resources and does not
+        delete them
+
+        if it was updated during local mode operations.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.1.4
+  date: 2019-07-25T10:06:17.925Z
+- commits:
     - subject: 'docs: update APPID to BALENA_APP_ID as exposed from the env'
       hash: f2bb8a768e655513cc72a4bd286f7803745c0f07
       body: ''
