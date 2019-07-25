@@ -19,6 +19,8 @@ describe('LocalModeManager', () => {
 	let localMode: LocalModeManager;
 	let dockerStub: sinon.SinonStubbedInstance<Docker>;
 
+	const supervisorContainerId = 'super-container-1';
+
 	const recordsCount = async () =>
 		await db
 			.models('engineSnapshot')
@@ -46,6 +48,7 @@ describe('LocalModeManager', () => {
 			(dockerStub as unknown) as Docker,
 			loggerStub,
 			db,
+			supervisorContainerId,
 		);
 	});
 
@@ -126,6 +129,32 @@ describe('LocalModeManager', () => {
 		});
 
 		describe('local mode switch', () => {
+			// Info returned when we inspect our own container.
+			const supervisorContainer = {
+				Id: 'super-container-1',
+				State: {
+					Status: 'running',
+					Running: true,
+				},
+				Image: 'super-image-1',
+				HostConfig: {
+					ContainerIDFile: '/resin-data/resin-supervisor/container-id',
+				},
+				Mounts: [
+					{
+						Type: 'volume',
+						Name: 'super-volume-1',
+					},
+				],
+				NetworkSettings: {
+					Networks: {
+						'some-name': {
+							NetworkID: 'super-network-1',
+						},
+					},
+				},
+			};
+
 			const storeCurrentSnapshot = async (
 				containers: string[],
 				images: string[],
@@ -140,20 +169,21 @@ describe('LocalModeManager', () => {
 				);
 			};
 
-			interface RemoveableObject {
+			interface EngineStubbedObject {
 				remove(): Promise<void>;
+				inspect(): Promise<any>;
 			}
 
 			// Stub get<Object> methods on docker, so we can verify remove calls.
-			const stubRemoveMethods = (
+			const stubEngineObjectMethods = (
 				removeThrows: boolean,
-			): Array<sinon.SinonStubbedInstance<RemoveableObject>> => {
+			): Array<sinon.SinonStubbedInstance<EngineStubbedObject>> => {
 				const resArray: Array<
-					sinon.SinonStubbedInstance<RemoveableObject>
+					sinon.SinonStubbedInstance<EngineStubbedObject>
 				> = [];
 
 				const stub = <T>(
-					c: sinon.StubbableType<RemoveableObject>,
+					c: sinon.StubbableType<EngineStubbedObject>,
 					type: string,
 				) => {
 					const res = sinon.createStubInstance(c);
@@ -162,6 +192,11 @@ describe('LocalModeManager', () => {
 					} else {
 						res.remove.resolves();
 					}
+
+					if (c === Docker.Container) {
+						res.inspect.resolves(supervisorContainer);
+					}
+
 					resArray.push(res);
 					return (res as unknown) as T;
 				};
@@ -187,9 +222,9 @@ describe('LocalModeManager', () => {
 			});
 
 			it('deletes newly created objects on local mode exit', async () => {
-				const removeStubs = stubRemoveMethods(false);
+				const removeStubs = stubEngineObjectMethods(false);
 				// All the objects returned by list<Objects> are not included into this snapshot.
-				// Hence, removal shoulf be called twice (stubbed methods return 2 objects per type).
+				// Hence, removal should be called twice (stubbed methods return 2 objects per type).
 				await storeCurrentSnapshot(
 					['previous-container'],
 					['previous-image'],
@@ -203,7 +238,7 @@ describe('LocalModeManager', () => {
 			});
 
 			it('keeps objects from the previous snapshot on local mode exit', async () => {
-				const removeStubs = stubRemoveMethods(false);
+				const removeStubs = stubEngineObjectMethods(false);
 				// With this snapshot, only <object>-2 must be removed from the engine.
 				await storeCurrentSnapshot(
 					['container-1'],
@@ -223,7 +258,7 @@ describe('LocalModeManager', () => {
 			});
 
 			it('logs but consumes cleanup errors on local mode exit', async () => {
-				const removeStubs = stubRemoveMethods(true);
+				const removeStubs = stubEngineObjectMethods(true);
 				// This snapshot will cause the logic to remove everything.
 				await storeCurrentSnapshot([], [], [], []);
 
@@ -235,7 +270,7 @@ describe('LocalModeManager', () => {
 			});
 
 			it('skips cleanup without previous snapshot on local mode exit', async () => {
-				const removeStubs = stubRemoveMethods(false);
+				const removeStubs = stubEngineObjectMethods(false);
 
 				await localMode.handleLocalModeStateChange(false);
 
@@ -247,7 +282,7 @@ describe('LocalModeManager', () => {
 			});
 
 			it('can be awaited', async () => {
-				const removeStubs = stubRemoveMethods(false);
+				const removeStubs = stubEngineObjectMethods(false);
 				await storeCurrentSnapshot([], [], [], []);
 
 				// Run asynchronously (like on config change).
@@ -260,7 +295,7 @@ describe('LocalModeManager', () => {
 			});
 
 			it('cleans the last snapshot so that nothing is done on restart', async () => {
-				const removeStubs = stubRemoveMethods(false);
+				const removeStubs = stubEngineObjectMethods(false);
 				await storeCurrentSnapshot([], [], [], []);
 
 				await localMode.handleLocalModeStateChange(false);
@@ -273,14 +308,14 @@ describe('LocalModeManager', () => {
 				// So our stubs must be called only once.
 				// We delete 2 objects of each type during the first call, so number of getXXX and remove calls is 2.
 				expect(dockerStub.getImage.callCount).to.be.equal(2);
-				expect(dockerStub.getContainer.callCount).to.be.equal(2);
+				expect(dockerStub.getContainer.callCount).to.be.equal(3); // +1 for supervisor inspect call.
 				expect(dockerStub.getVolume.callCount).to.be.equal(2);
 				expect(dockerStub.getNetwork.callCount).to.be.equal(2);
 				removeStubs.forEach(s => expect(s.remove.callCount).to.be.equal(2));
 			});
 
 			it('skips cleanup in case of data corruption', async () => {
-				const removeStubs = stubRemoveMethods(false);
+				const removeStubs = stubEngineObjectMethods(false);
 
 				await db.models('engineSnapshot').insert({
 					snapshot: 'bad json',
@@ -295,6 +330,39 @@ describe('LocalModeManager', () => {
 				expect(dockerStub.getVolume.notCalled).to.be.true;
 				expect(dockerStub.getNetwork.notCalled).to.be.true;
 				removeStubs.forEach(s => expect(s.remove.notCalled).to.be.true);
+			});
+
+			describe('with supervisor being updated', () => {
+				beforeEach(() => {
+					// We make supervisor own resources to match currently listed objects.
+					supervisorContainer.Id = 'container-1';
+					supervisorContainer.Image = 'image-1';
+					supervisorContainer.NetworkSettings.Networks['some-name'].NetworkID =
+						'network-1';
+					supervisorContainer.Mounts[0].Name = 'volume-1';
+				});
+
+				it('does not delete its own object', async () => {
+					const removeStubs = stubEngineObjectMethods(false);
+					// All the current engine objects will be new, including container-1 which is the supervisor.
+					await storeCurrentSnapshot(
+						['previous-container'],
+						['previous-image'],
+						['previous-volume'],
+						['previous-network'],
+					);
+
+					await localMode.handleLocalModeStateChange(false);
+
+					// Ensure we inspect our own container.
+					const [, containerStub] = removeStubs;
+					expect(containerStub.inspect.calledOnce).to.be.true;
+
+					// Current engine objects include 2 entities of each type.
+					// Container-1, network-1, image-1, and volume-1 are resources associated with currently running supervisor.
+					// Only xxx-2 objects must be deleted.
+					removeStubs.forEach(s => expect(s.remove.calledOnce).to.be.true);
+				});
 			});
 		});
 	});
