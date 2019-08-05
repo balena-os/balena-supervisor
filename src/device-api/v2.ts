@@ -245,6 +245,12 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				});
 			}
 
+			const targetState = await deviceState.getTarget();
+
+			// We avoid using cloneDeep here, as the class
+			// instances can cause a maximum call stack exceeded
+			// error
+
 			// TODO: This should really return the config as it
 			// is returned from the api, but currently that's not
 			// the easiest thing due to the way they are stored and
@@ -252,14 +258,32 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			// manager is strongly typed, revisit this. The best
 			// thing to do would be to represent the input with
 			// io-ts and make sure the below conforms to it
-			const target = _.cloneDeep(await deviceState.getTarget());
-			if (target.local != null && !_.isEmpty(target.local.apps)) {
-				target.local.apps = _.mapValues(target.local.apps, app => {
-					app.services = _.map(app.services, s => s.toComposeObject());
-					app.volumes = _.mapValues(app.volumes, v => v.toComposeObject());
-					app.networks = _.mapValues(app.networks, n => n.toComposeObject());
-					return app;
-				});
+
+			const target: any = {
+				local: {
+					config: {},
+				},
+				dependent: {
+					config: {},
+				},
+			};
+			if (targetState.local != null) {
+				target.local = {
+					name: targetState.local.name,
+					config: _.cloneDeep(targetState.local.config),
+					apps: _.mapValues(targetState.local.apps, app => ({
+						appId: app.appId,
+						name: app.name,
+						commit: app.commit,
+						releaseId: app.releaseId,
+						services: _.map(app.services, s => s.toComposeObject()),
+						volumes: _.mapValues(app.volumes, v => v.toComposeObject()),
+						networks: _.mapValues(app.networks, n => n.toComposeObject()),
+					})),
+				};
+			}
+			if (targetState.dependent != null) {
+				target.dependent = _.cloneDeep(target.dependent);
 			}
 
 			res.status(200).json({
