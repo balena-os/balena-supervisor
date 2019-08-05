@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'api: Avoid cloneDeep when copying target state.'
+      hash: c62f4afe8d5bbf2803359b804372e512d70b3745
+      body: |
+        This can cause issues where the stack is exhausted
+        on large applications.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Heds Simons <heds@balena.io>
+        signed-off-by: Heds Simons <heds@balena.io>
+      author: Cameron Diver
+  version: 10.1.5
+  date: 2019-07-25T14:43:36.876Z
+- commits:
     - subject: Filter both null and omitted values
       hash: 4688524e4564b4f55870ce7a44a7a5c7d90c21ce
       body: |
