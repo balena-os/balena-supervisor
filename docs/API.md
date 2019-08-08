@@ -912,7 +912,7 @@ $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/containerId?apikey=$BALENA_SUPERVISOR_API_
 Response:
 ```json
 {
-	"status": "sucess",
+	"status": "success",
 	"containerId": "ad6d5d32576ad3cb1fcaa59b564b8f6f22b079631080ab1a3bbac9199953eb7d"
 }
 ```
