@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add an endpoint and module for reading journald logs
+      hash: 43cbf7dbba20f9a84697ad24cf532fc20e6384b7
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#1003'
+        closes: '#1003'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.2.0
+  date: 2019-08-09T10:10:42.609Z
+- commits:
     - subject: 'api: Avoid cloneDeep when copying target state.'
       hash: c62f4afe8d5bbf2803359b804372e512d70b3745
       body: |
