@@ -1149,6 +1149,7 @@ Response:
 	]
 }
 ```
+
 ### V2 Utilities
 
 #### Cleanup volumes with no references
@@ -1179,3 +1180,37 @@ Unsuccessful response:
 }
 ```
 
+#### Journald logs
+
+Added in supervisor version v10.1.0
+
+Retrieve a stream to the journald logs on device. This is
+equivalent to running `journalctl -o export`. Options
+supported are:
+
+##### all: boolean
+Show all fields in full, equivalent to `journalctl --all`.
+
+##### follow: boolean
+Continuously stream logs as they are generated, equivalent
+to `journalctl --follow`.
+
+##### count: integer
+Show the most recent `count` events, equivalent to
+`journalctl --line=<count>`.
+
+##### unit
+Show journal logs from `unit` only, equivalent to
+`journalctl --unit=<unit>`.
+
+Fields should be provided via POST body in JSON format.
+
+From an application container (with systemd installed):
+```
+$ curl -X POST --data '{"follow":true,"all":true}' "$BALENA_SUPERVISOR_ADDRESS/v2/journal-logs?apikey=$BALENA_SUPERVISOR_API_KEY" | systemd-journal-remote - -o log.journal
+```
+
+The `log.journal` file can then be viewed with
+```
+journalctl --file log.journal -f
+```

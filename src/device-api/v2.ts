@@ -13,8 +13,11 @@ import {
 import { doPurge, doRestart, serviceAction } from './common';
 
 import Volume from '../compose/volume';
+import { spawnJournalctl } from '../lib/journald';
+
 import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
+import { checkInt, checkTruthy } from '../lib/validation';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 	const { _lockingIfNecessary, deviceState } = applications;
@@ -528,6 +531,34 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			});
 		} catch (e) {
 			res.status(503).json({
+				status: 'failed',
+				message: messageFromError(e),
+			});
+		}
+	});
+
+	router.post('/v2/journal-logs', (req, res) => {
+		try {
+			const all = checkTruthy(req.body.all) || false;
+			const follow = checkTruthy(req.body.follow) || false;
+			const count = checkInt(req.body.count, { positive: true }) || undefined;
+			const unit = req.body.unit;
+
+			const journald = spawnJournalctl({ all, follow, count, unit });
+			res.status(200);
+			journald.stdout.pipe(res);
+			res.on('close', () => {
+				journald.kill('SIGKILL');
+			});
+			journald.on('exit', () => {
+				res.end();
+			});
+		} catch (e) {
+			log.error('There was an error reading the journalctl process', e);
+			if (res.headersSent) {
+				return;
+			}
+			res.json({
 				status: 'failed',
 				message: messageFromError(e),
 			});
