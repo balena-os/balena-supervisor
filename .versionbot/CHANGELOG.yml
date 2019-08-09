@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'docs: fix up typo "sucess" -> "success"'
+      hash: 8c9f974b072364283520e43bb3d0969eb8122d3d
+      body: |
+        Related to https://github.com/balena-io/docs/pull/1065
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.2.2
+  date: 2019-08-09T14:39:08.547Z
+- commits:
     - subject: Fix version documentation for journald endpoint
       hash: 1794b334a0c806b516745a4544d4af75111b390a
       body: ''
