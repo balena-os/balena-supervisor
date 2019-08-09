@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix version documentation for journald endpoint
+      hash: 1794b334a0c806b516745a4544d4af75111b390a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.2.1
+  date: 2019-08-09T11:50:43.023Z
+- commits:
     - subject: Add an endpoint and module for reading journald logs
       hash: 43cbf7dbba20f9a84697ad24cf532fc20e6384b7
       body: ''
