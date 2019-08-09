@@ -1182,7 +1182,7 @@ Unsuccessful response:
 
 #### Journald logs
 
-Added in supervisor version v10.1.0
+Added in supervisor version v10.2.0
 
 Retrieve a stream to the journald logs on device. This is
 equivalent to running `journalctl -o export`. Options
