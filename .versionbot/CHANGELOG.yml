@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'meta: remove pcarranzav as codeowner'
+      hash: c3fe0f4d37a5d5a665dd64e8424eab8ff7f372b3
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.2.3
+  date: 2019-08-14T17:59:58.749Z
+- commits:
     - subject: 'docs: fix up typo "sucess" -> "success"'
       hash: 8c9f974b072364283520e43bb3d0969eb8122d3d
       body: |
