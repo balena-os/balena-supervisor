@@ -689,10 +689,7 @@ export class Service {
 		sameConfig =
 			sameConfig &&
 			_.every(Service.configArrayFields, (field: keyof ServiceConfig) => {
-				const eq = _.isEqual(
-					_.sortBy(this.config[field] as unknown[]),
-					_.sortBy(service.config[field] as unknown[]),
-				);
+				const eq = _.isEqual(this.config[field], service.config[field]);
 				if (!eq) {
 					differentArrayFields.push(field);
 				}
