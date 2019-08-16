@@ -76,6 +76,7 @@ export class ApplicationManager extends EventEmitter {
 			networks: Dictionary<Network>;
 		}>
 	>;
+	public stopAll(opts: { force?: boolean; skipLock?: boolean }): Promise<void>;
 
 	public serviceNameFromId(serviceId: number): Bluebird<string>;
 }

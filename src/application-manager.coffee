@@ -23,6 +23,7 @@ updateLock = require './lib/update-lock'
 { Network } = require './compose/network'
 { VolumeManager } = require './compose/volume-manager'
 { Volume } = require './compose/volume'
+compositionSteps = require './compose/composition-steps'
 
 Proxyvisor = require './proxyvisor'
 
@@ -82,87 +83,30 @@ module.exports = class ApplicationManager extends EventEmitter
 			if changedConfig.appUpdatePollInterval
 				@images.appUpdatePollInterval = changedConfig.appUpdatePollInterval
 
-		@actionExecutors = {
-			stop: (step, { force = false, skipLock = false } = {}) =>
-				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
-					wait = step.options?.wait ? false
-					@services.kill(step.current, { removeContainer: false, wait })
-					.then =>
-						delete @_containerStarted[step.current.containerId]
-			kill: (step, { force = false, skipLock = false } = {}) =>
-				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
-					@services.kill(step.current)
-					.then =>
-						delete @_containerStarted[step.current.containerId]
-						if step.options?.removeImage
-							@images.removeByDockerId(step.current.config.image)
-			remove: (step) =>
-				# Only called for dead containers, so no need to take locks or anything
-				@services.remove(step.current)
-			updateMetadata: (step, { force = false, skipLock = false } = {}) =>
-				skipLock or= checkTruthy(step.current.config.labels['io.balena.legacy-container'])
-				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
-					@services.updateMetadata(step.current, step.target)
-			restart: (step, { force = false, skipLock = false } = {}) =>
-				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
-					@services.kill(step.current, { wait: true })
-					.then =>
-						delete @_containerStarted[step.current.containerId]
-					.then =>
-						@services.start(step.target)
-					.then (container) =>
-						@_containerStarted[container.id] = true
-			stopAll: (step, { force = false, skipLock = false } = {}) =>
-				@stopAll({ force, skipLock })
-			start: (step) =>
-				@services.start(step.target)
-				.then (container) =>
-					@_containerStarted[container.id] = true
-			updateCommit: (step) =>
-				@config.set({ currentCommit: step.target })
-			handover: (step, { force = false, skipLock = false } = {}) =>
-				@_lockingIfNecessary step.current.appId, { force, skipLock: skipLock or step.options?.skipLock }, =>
-					@services.handover(step.current, step.target)
-			fetch: (step) =>
-				startTime = process.hrtime()
-				@fetchesInProgress += 1
-				Promise.join(
-					@config.get('fetchOptions')
-					@images.getAvailable()
-					(opts, availableImages) =>
-						opts.deltaSource = @bestDeltaSource(step.image, availableImages)
-						@images.triggerFetch step.image, opts, (success) =>
-							@fetchesInProgress -= 1
-							elapsed = process.hrtime(startTime)
-							elapsedMs = elapsed[0] * 1000 + elapsed[1] / 1e6
-							@timeSpentFetching += elapsedMs
-							if success
-								# update_downloaded is true if *any* image has been downloaded,
-								# and it's relevant mostly for the legacy GET /v1/device endpoint
-								# that assumes a single-container app
-								@reportCurrentState(update_downloaded: true)
-						, step.serviceName
-				)
-			removeImage: (step) =>
-				@images.remove(step.image)
-			saveImage: (step) =>
-				@images.save(step.image)
-			cleanup: (step) =>
-				@config.get('localMode').then (localMode) =>
-					if !localMode
-						@images.cleanup()
-			createNetworkOrVolume: (step) =>
-				if step.model is 'network'
-					@networks.create(step.target)
-				else
-					@volumes.create(step.target)
-			removeNetwork: (step) =>
-				@networks.remove(step.current)
-			removeVolume: (step) =>
-				@volumes.remove(step.current)
-			ensureSupervisorNetwork: =>
-				@networks.ensureSupervisorNetwork()
-		}
+		@actionExecutors = compositionSteps.getExecutors({
+			lockFn: @_lockingIfNecessary,
+			services: @services,
+			networks: @networks,
+			volumes: @volumes,
+			applications: this,
+			images: @images,
+			config: @config,
+			callbacks: {
+				containerStarted: (id) =>
+					@_containerStarted[id] = true
+				containerKilled: (id) =>
+					delete @_containerStarted[id]
+				fetchStart: =>
+					@fetchesInProgress += 1
+				fetchEnd: =>
+					@fetchesInProgress -= 1
+				fetchTime: (time) =>
+					@timeSpentFetching += time
+				stateReport: (state) =>
+					@reportCurrentState(state)
+				bestDeltaSource: @bestDeltaSource
+			}
+		})
 		@validActions = _.keys(@actionExecutors).concat(@proxyvisor.validActions)
 		@router = createApplicationManagerRouter(this)
 		@images.on('change', @reportCurrentState)
@@ -963,7 +907,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			return @proxyvisor.executeStepAction(step)
 		if !_.includes(@validActions, step.action)
 			return Promise.reject(new Error("Invalid action #{step.action}"))
-		@actionExecutors[step.action](step, { force, skipLock })
+		@actionExecutors[step.action](_.merge({}, step, { force, skipLock }))
 
 	getExtraStateForComparison: (currentState, targetState) =>
 		containerIdsByAppId = {}
