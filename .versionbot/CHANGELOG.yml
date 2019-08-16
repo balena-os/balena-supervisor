@@ -1,4 +1,18 @@
 - commits:
+    - subject: Take order into account when comparing service config arrays
+      hash: 86e8a8564054b15003ec75440e6dd94507f64708
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1060'
+        closes: '#1060'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.2.4
+  date: 2019-08-15T16:09:11.152Z
+- commits:
     - subject: 'meta: remove pcarranzav as codeowner'
       hash: c3fe0f4d37a5d5a665dd64e8424eab8ff7f372b3
       body: ''
