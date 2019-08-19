@@ -1,4 +1,19 @@
 - commits:
+    - subject: Only consider certain array fields without order
+      hash: 76de276b924edbbeb30cdad41ed491ad20129492
+      body: |
+        Various fields returned from the docker daemon don't retain order (for
+        example the volumes field). We now only select certain array values to
+        compare taking order into account.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.2.5
+  date: 2019-08-19T14:02:34.739Z
+- commits:
     - subject: Take order into account when comparing service config arrays
       hash: 86e8a8564054b15003ec75440e6dd94507f64708
       body: ''
