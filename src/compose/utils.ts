@@ -499,3 +499,60 @@ export function normalizeLabels(labels: {
 	);
 	return _.assign({}, otherLabels, legacyLabels, balenaLabels);
 }
+
+function compareArrayField(
+	arr1: unknown[],
+	arr2: unknown[],
+	ordered: boolean,
+): boolean {
+	if (!ordered) {
+		arr1 = _.sortBy(arr1);
+		arr2 = _.sortBy(arr2);
+	}
+	return _.isEqual(arr1, arr2);
+}
+
+export function compareArrayFields<T extends Dictionary<unknown>>(
+	obj1: T,
+	obj2: T,
+	nonOrderedFields: Array<keyof T>,
+	orderedFields: Array<keyof T>,
+): { equal: false; difference: string[] };
+export function compareArrayFields<T extends Dictionary<unknown>>(
+	obj1: T,
+	obj2: T,
+	nonOrderedFields: Array<keyof T>,
+	orderedFields: Array<keyof T>,
+): { equal: true };
+export function compareArrayFields<T extends Dictionary<unknown>>(
+	obj1: T,
+	obj2: T,
+	nonOrderedFields: Array<keyof T>,
+	orderedFields: Array<keyof T>,
+): { equal: boolean; difference?: string[] } {
+	let equal = true;
+	const difference: string[] = [];
+	for (const { fields, ordered } of [
+		{ fields: nonOrderedFields, ordered: false },
+		{ fields: orderedFields, ordered: true },
+	]) {
+		for (const field of fields) {
+			if (
+				!compareArrayField(
+					obj1[field] as unknown[],
+					obj2[field] as unknown[],
+					ordered,
+				)
+			) {
+				equal = false;
+				difference.push(field as string);
+			}
+		}
+	}
+
+	if (equal) {
+		return { equal };
+	} else {
+		return { equal, difference };
+	}
+}

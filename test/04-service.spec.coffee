@@ -1,4 +1,4 @@
-{ expect } = require './lib/chai-config'
+{ assert, expect } = require './lib/chai-config'
 
 _ = require 'lodash'
 
@@ -209,6 +209,101 @@ describe 'compose/service', ->
 		}, { appName: 'test' })
 
 		expect(service.config).to.have.property('expose').that.deep.equals(['80/tcp', '100/tcp'])
+
+	describe 'Ordered array parameters', ->
+		it 'Should correctly compare ordered array parameters', ->
+			svc1 = Service.fromComposeObject({
+				appId: 1,
+				serviceId: 1,
+				serviceName: 'test',
+				dns: [
+					'8.8.8.8',
+					'1.1.1.1',
+				]
+			}, { appName: 'test' })
+			svc2 = Service.fromComposeObject({
+				appId: 1,
+				serviceId: 1,
+				serviceName: 'test',
+				dns: [
+					'8.8.8.8',
+					'1.1.1.1',
+				]
+			}, { appName: 'test' })
+			assert(svc1.isEqualConfig(svc2))
+
+			svc2 = Service.fromComposeObject({
+				appId: 1,
+				serviceId: 1,
+				serviceName: 'test',
+				dns: [
+					'1.1.1.1',
+					'8.8.8.8',
+				]
+			}, { appName: 'test' })
+			assert(!svc1.isEqualConfig(svc2))
+
+		it 'should correctly compare non-ordered array parameters', ->
+			svc1 = Service.fromComposeObject({
+				appId: 1,
+				serviceId: 1,
+				serviceName: 'test',
+				volumes: [
+					'abcdef',
+					'ghijk',
+				]
+			}, { appName: 'test' })
+			svc2 = Service.fromComposeObject({
+				appId: 1,
+				serviceId: 1,
+				serviceName: 'test',
+				volumes: [
+					'abcdef',
+					'ghijk',
+				]
+			}, { appName: 'test' })
+			assert(svc1.isEqualConfig(svc2))
+
+			svc2 = Service.fromComposeObject({
+				appId: 1,
+				serviceId: 1,
+				serviceName: 'test',
+				volumes: [
+					'ghijk',
+					'abcdef',
+				]
+			}, { appName: 'test' })
+			assert(svc1.isEqualConfig(svc2))
+
+		it 'should correctly compare both ordered and non-ordered array parameters', ->
+			svc1 = Service.fromComposeObject({
+				appId: 1,
+				serviceId: 1,
+				serviceName: 'test',
+				volumes: [
+					'abcdef',
+					'ghijk',
+				],
+				dns: [
+					'8.8.8.8',
+					'1.1.1.1',
+				]
+			}, { appName: 'test' })
+			svc2 = Service.fromComposeObject({
+				appId: 1,
+				serviceId: 1,
+				serviceName: 'test',
+				volumes: [
+					'ghijk',
+					'abcdef',
+				],
+				dns: [
+					'8.8.8.8',
+					'1.1.1.1',
+				]
+			}, { appName: 'test' })
+			assert(svc1.isEqualConfig(svc2))
+
 
 	describe 'parseMemoryNumber()', ->
 		makeComposeServiceWithLimit = (memLimit) ->

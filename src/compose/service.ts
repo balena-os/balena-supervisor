@@ -46,8 +46,6 @@ export class Service {
 		'devices',
 		'capAdd',
 		'capDrop',
-		'dns',
-		'dnsSearch',
 		'dnsOpt',
 		'tmpfs',
 		'extraHosts',
@@ -56,6 +54,13 @@ export class Service {
 		'groupAdd',
 		'securityOpt',
 	];
+	public static orderedConfigArrayFields: ServiceConfigArrayField[] = [
+		'dns',
+		'dnsSearch',
+	];
+	public static allConfigArrayFields: ServiceConfigArrayField[] = Service.configArrayFields.concat(
+		Service.orderedConfigArrayFields,
+	);
 
 	// A list of fields to ignore when comparing container configuration
 	private static omitFields = [
@@ -69,7 +74,7 @@ export class Service {
 		// These fields are special case, due to network_mode:service:<service>
 		'networkMode',
 		'hostname',
-	].concat(Service.configArrayFields);
+	].concat(Service.allConfigArrayFields);
 
 	private constructor() {}
 
@@ -684,17 +689,23 @@ export class Service {
 		let sameConfig = _.isEqual(thisOmitted, otherOmitted);
 		const nonArrayEquals = sameConfig;
 
-		// Check for array fields which don't match
-		const differentArrayFields: string[] = [];
-		sameConfig =
-			sameConfig &&
-			_.every(Service.configArrayFields, (field: keyof ServiceConfig) => {
-				const eq = _.isEqual(this.config[field], service.config[field]);
-				if (!eq) {
-					differentArrayFields.push(field);
-				}
-				return eq;
-			});
+		// Because the service config does not have an index
+		// field, we must first convert to unknown. We know that
+		// this conversion is fine as the
+		// Service.configArrayFields and
+		// Service.orderedConfigArrayFields are defined as
+		// fields inside of Service.config
+		const arrayEq = ComposeUtils.compareArrayFields(
+			(this.config as unknown) as Dictionary<unknown>,
+			(service.config as unknown) as Dictionary<unknown>,
+			Service.configArrayFields,
+			Service.orderedConfigArrayFields,
+		);
+		sameConfig = sameConfig && arrayEq.equal;
+		let differentArrayFields: string[] = [];
+		if (!arrayEq.equal) {
+			differentArrayFields = arrayEq.difference;
+		}
 
 		if (!(sameConfig && sameNetworks)) {
 			// Add some console output for why a service is not matching
