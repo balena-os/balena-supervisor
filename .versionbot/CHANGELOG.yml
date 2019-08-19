@@ -1,4 +1,25 @@
 - commits:
+    - subject: Extract composition step work out to typescript compose module
+      hash: 4f31b1867059d944469073551687da6ac25100c9
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Remove unused local mode parameter from images.getAvailable
+      hash: 55ee5a468f088612c5df3629cf1a7216d000bb94
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.2.6
+  date: 2019-08-19T16:02:20.801Z
+- commits:
     - subject: Only consider certain array fields without order
       hash: 76de276b924edbbeb30cdad41ed491ad20129492
       body: |
