@@ -262,7 +262,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		);
 	}
 
-	public async getAvailable(_localMode: boolean): Promise<Image[]> {
+	public async getAvailable(): Promise<Image[]> {
 		const images = await this.withImagesFromDockerAndDB(
 			(dockerImages, supervisedImages) =>
 				_.filter(supervisedImages, image =>
@@ -320,8 +320,8 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			.whereIn('id', ids);
 	}
 
-	public async getStatus(localMode: boolean) {
-		const images = await this.getAvailable(localMode);
+	public async getStatus() {
+		const images = await this.getAvailable();
 		for (const image of images) {
 			image.status = 'Downloaded';
 			image.downloadProgress = null;

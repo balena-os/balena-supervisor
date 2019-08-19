@@ -235,3 +235,5 @@ export class Network {
 		return `${appId}_${name}`;
 	}
 }
+
+export default Network;

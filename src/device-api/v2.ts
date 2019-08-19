@@ -157,10 +157,9 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	router.get('/v2/applications/state', async (_req: Request, res: Response) => {
 		// It's kinda hacky to access the services and db via the application manager
 		// maybe refactor this code
-		const localMode = await deviceState.config.get('localMode');
 		Bluebird.join(
 			applications.services.getStatus(),
-			applications.images.getStatus(localMode),
+			applications.images.getStatus(),
 			applications.db.models('app').select(['appId', 'commit', 'name']),
 			(
 				services,
@@ -431,7 +430,6 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/state/status', async (_req, res) => {
-		const localMode = await applications.config.get('localMode');
 		const currentRelease = await applications.config.get('currentCommit');
 
 		const pending = applications.deviceState.applyInProgress;
@@ -450,24 +448,22 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 		let downloadProgressTotal = 0;
 		let downloads = 0;
-		const imagesStates = (await applications.images.getStatus(localMode)).map(
-			img => {
-				if (img.downloadProgress != null) {
-					downloadProgressTotal += img.downloadProgress;
-					downloads += 1;
-				}
-				return _.pick(
-					img,
-					'name',
-					'appId',
-					'serviceName',
-					'imageId',
-					'dockerImageId',
-					'status',
-					'downloadProgress',
-				);
-			},
-		);
+		const imagesStates = (await applications.images.getStatus()).map(img => {
+			if (img.downloadProgress != null) {
+				downloadProgressTotal += img.downloadProgress;
+				downloads += 1;
+			}
+			return _.pick(
+				img,
+				'name',
+				'appId',
+				'serviceName',
+				'imageId',
+				'dockerImageId',
+				'status',
+				'downloadProgress',
+			);
+		});
 
 		let overallDownloadProgress = null;
 		if (downloads > 0) {
