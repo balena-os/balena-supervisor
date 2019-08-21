@@ -539,8 +539,9 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			const follow = checkTruthy(req.body.follow) || false;
 			const count = checkInt(req.body.count, { positive: true }) || undefined;
 			const unit = req.body.unit;
+			const format = req.body.format || 'short';
 
-			const journald = spawnJournalctl({ all, follow, count, unit });
+			const journald = spawnJournalctl({ all, follow, count, unit, format });
 			res.status(200);
 			journald.stdout.pipe(res);
 			res.on('close', () => {

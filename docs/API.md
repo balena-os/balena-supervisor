@@ -1185,7 +1185,7 @@ Unsuccessful response:
 Added in supervisor version v10.2.0
 
 Retrieve a stream to the journald logs on device. This is
-equivalent to running `journalctl -o export`. Options
+equivalent to running `journalctl --no-pager`. Options
 supported are:
 
 ##### all: boolean
@@ -1202,6 +1202,11 @@ Show the most recent `count` events, equivalent to
 ##### unit
 Show journal logs from `unit` only, equivalent to
 `journalctl --unit=<unit>`.
+
+##### format
+The format which will be streamed from journalctl, formats
+are described here: 
+https://www.freedesktop.org/software/systemd/man/journalctl.html#-o
 
 Fields should be provided via POST body in JSON format.
 
