@@ -3,18 +3,18 @@ ARG NPM_VERSION=6.9.0
 
 # The node version here should match the version of the runtime image which is
 # specified in the base-image subdirectory in the project
-FROM balenalib/raspberry-pi-node:10-run as rpi-node-base
-FROM balenalib/armv7hf-node:10-run as armv7hf-node-base
-FROM balenalib/aarch64-node:10-run as aarch64-node-base
+FROM balenalib/raspberry-pi-node:10-stretch-run as rpi-node-base
+FROM balenalib/armv7hf-node:10-stretch-run as armv7hf-node-base
+FROM balenalib/aarch64-node:10-stretch-run as aarch64-node-base
 RUN [ "cross-build-start" ]
 RUN sed -i '/security.debian.org jessie/d' /etc/apt/sources.list
 RUN [ "cross-build-end" ]
 
-FROM balenalib/amd64-node:10-run as amd64-node-base
+FROM balenalib/amd64-node:10-stretch-run as amd64-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
-FROM balenalib/i386-node:10-run as i386-node-base
+FROM balenalib/i386-node:10-stretch-run as i386-node-base
 RUN echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-start && chmod +x /usr/bin/cross-build-start \
 	&& echo '#!/bin/sh\nexit 0' > /usr/bin/cross-build-end && chmod +x /usr/bin/cross-build-end
 
