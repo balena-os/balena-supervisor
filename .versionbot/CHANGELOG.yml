@@ -1,4 +1,16 @@
 - commits:
+    - subject: Correctly generate network or volume creation steps
+      hash: ded828da9a284c28f1617cd49ba6fbbd09f489a9
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.2.7
+  date: 2019-08-21T09:51:54.225Z
+- commits:
     - subject: Extract composition step work out to typescript compose module
       hash: 4f31b1867059d944469073551687da6ac25100c9
       body: ''
