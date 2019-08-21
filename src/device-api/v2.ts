@@ -547,6 +547,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				journald.kill('SIGKILL');
 			});
 			journald.on('exit', () => {
+				journald.stdout.unpipe();
 				res.end();
 			});
 		} catch (e) {

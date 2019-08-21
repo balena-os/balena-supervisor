@@ -1207,7 +1207,7 @@ Fields should be provided via POST body in JSON format.
 
 From an application container (with systemd installed):
 ```
-$ curl -X POST --data '{"follow":true,"all":true}' "$BALENA_SUPERVISOR_ADDRESS/v2/journal-logs?apikey=$BALENA_SUPERVISOR_API_KEY" | systemd-journal-remote - -o log.journal
+$ curl -X POST -H "Content-Type: application/json" --data '{"follow":true,"all":true}' "$BALENA_SUPERVISOR_ADDRESS/v2/journal-logs?apikey=$BALENA_SUPERVISOR_API_KEY" | systemd-journal-remote - -o log.journal
 ```
 
 The `log.journal` file can then be viewed with
