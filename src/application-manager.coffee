@@ -422,7 +422,8 @@ module.exports = class ApplicationManager extends EventEmitter
 						steps.push(serviceAction('kill', dependency.serviceId, dependency))
 				return steps
 		else if target?
-			return [{ action: 'createNetworkOrVolume', model, target }]
+			action = if model is 'network' then 'createNetwork' else 'createVolume'
+			return [{ action, target }]
 
 	_nextStepsForNetwork: ({ current, target }, currentApp, changingPairs) =>
 		dependencyComparisonFn = (service, current) ->
