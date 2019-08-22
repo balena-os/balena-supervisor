@@ -595,10 +595,12 @@ module.exports = class Proxyvisor
 					"#{constants.proxyvisorHookReceiver}/v1/devices/"
 
 	sendUpdate: (device, timeout, endpoint) =>
-		request.putAsync "#{endpoint}#{device.uuid}", {
-			json: true
-			body: device.target
-		}
+		Promise.resolve(request.getRequestInstance())
+		.then (instance) ->
+			instance.putAsync "#{endpoint}#{device.uuid}", {
+				json: true
+				body: device.target
+			}
 		.timeout(timeout)
 		.spread (response, body) =>
 			if response.statusCode == 200
@@ -610,7 +612,9 @@ module.exports = class Proxyvisor
 			return log.error("Error updating device #{device.uuid}", err)
 
 	sendDeleteHook: ({ uuid }, timeout, endpoint) =>
-		request.delAsync("#{endpoint}#{uuid}")
+		Promise.resolve(request.getRequestInstance())
+		.then (instance) ->
+			instance.delAsync("#{endpoint}#{uuid}")
 		.timeout(timeout)
 		.spread (response, body) =>
 			if response.statusCode == 200

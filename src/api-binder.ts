@@ -21,7 +21,7 @@ import {
 	InternalInconsistencyError,
 } from './lib/errors';
 import { pathExistsOnHost } from './lib/fs-utils';
-import { request, requestOpts } from './lib/request';
+import * as request from './lib/request';
 import { writeLock } from './lib/update-lock';
 import { DeviceApplicationState } from './types/state';
 
@@ -146,7 +146,7 @@ export class APIBinder {
 		}
 
 		const baseUrl = url.resolve(apiEndpoint, '/v5/');
-		const passthrough = _.cloneDeep(requestOpts);
+		const passthrough = _.cloneDeep(await request.getRequestOptions());
 		passthrough.headers =
 			passthrough.headers != null ? passthrough.headers : {};
 		passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
@@ -781,7 +781,7 @@ export class APIBinder {
 		}
 
 		// We found the device so we can try to register a working device key for it
-		const [res] = await request
+		const [res] = await (await request.getRequestInstance())
 			.postAsync(`${opts.apiEndpoint}/api-key/device/${device.id}/device-key`, {
 				json: true,
 				body: {

@@ -1,4 +1,5 @@
 import * as Bluebird from 'bluebird';
+import once = require('lodash/once');
 import * as requestLib from 'request';
 import * as resumableRequestLib from 'resumable-request';
 
@@ -9,38 +10,12 @@ import supervisorVersion = require('./supervisor-version');
 
 export { requestLib };
 
-const osVersion = osRelease.getOSVersionSync(constants.hostOSVersionPath);
-const osVariant = osRelease.getOSVariantSync(constants.hostOSVersionPath);
-
-let userAgent = `Supervisor/${supervisorVersion}`;
-if (osVersion != null) {
-	if (osVariant != null) {
-		userAgent += ` (Linux; ${osVersion}; ${osVariant})`;
-	} else {
-		userAgent += ` (Linux; ${osVersion})`;
-	}
-}
-
 // With these settings, the device must be unable to receive a single byte
 // from the network for a continuous period of 20 minutes before we give up.
 // (reqTimeout + retryInterval) * retryCount / 1000ms / 60sec ~> minutes
 const DEFAULT_REQUEST_TIMEOUT = 30000; // ms
 const DEFAULT_REQUEST_RETRY_INTERVAL = 10000; // ms
 const DEFAULT_REQUEST_RETRY_COUNT = 30;
-
-export const requestOpts: requestLib.CoreOptions = {
-	gzip: true,
-	timeout: DEFAULT_REQUEST_TIMEOUT,
-	headers: {
-		'User-Agent': userAgent,
-	},
-};
-
-const resumableOpts = {
-	timeout: DEFAULT_REQUEST_TIMEOUT,
-	maxRetries: DEFAULT_REQUEST_RETRY_COUNT,
-	retryInterval: DEFAULT_REQUEST_RETRY_INTERVAL,
-};
 
 type PromisifiedRequest = typeof requestLib & {
 	postAsync: (
@@ -53,9 +28,55 @@ type PromisifiedRequest = typeof requestLib & {
 	) => Bluebird<any>;
 };
 
-const requestHandle = requestLib.defaults(exports.requestOpts);
+const getRequestInstances = once(async () => {
+	// Generate the user agents with out versions
+	const osVersion = await osRelease.getOSVersion(constants.hostOSVersionPath);
+	const osVariant = await osRelease.getOSVariant(constants.hostOSVersionPath);
+	let userAgent = `Supervisor/${supervisorVersion}`;
+	if (osVersion != null) {
+		if (osVariant != null) {
+			userAgent += ` (Linux; ${osVersion}; ${osVariant})`;
+		} else {
+			userAgent += ` (Linux; ${osVersion})`;
+		}
+	}
 
-export const request = Bluebird.promisifyAll(requestHandle, {
-	multiArgs: true,
-}) as PromisifiedRequest;
-export const resumable = resumableRequestLib.defaults(resumableOpts);
+	const requestOpts: requestLib.CoreOptions = {
+		gzip: true,
+		timeout: DEFAULT_REQUEST_TIMEOUT,
+		headers: {
+			'User-Agent': userAgent,
+		},
+	};
+
+	const resumableOpts = {
+		timeout: DEFAULT_REQUEST_TIMEOUT,
+		maxRetries: DEFAULT_REQUEST_RETRY_COUNT,
+		retryInterval: DEFAULT_REQUEST_RETRY_INTERVAL,
+	};
+
+	const requestHandle = requestLib.defaults(exports.requestOpts);
+
+	const request = Bluebird.promisifyAll(requestHandle, {
+		multiArgs: true,
+	}) as PromisifiedRequest;
+	const resumable = resumableRequestLib.defaults(resumableOpts);
+
+	return {
+		requestOpts,
+		request,
+		resumable,
+	};
+});
+
+export const getRequestInstance = once(async () => {
+	return (await getRequestInstances()).request;
+});
+
+export const getRequestOptions = once(async () => {
+	return (await getRequestInstances()).requestOpts;
+});
+
+export const getResumableRequest = once(async () => {
+	return (await getRequestInstances()).resumable;
+});
