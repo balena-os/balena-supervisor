@@ -1,4 +1,16 @@
 - commits:
+    - subject: Pin debug builds to stretch base images to match non-debug builds
+      hash: 93e3bc620ae07f30a3f28c6c40f72516d702ea5b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.3.1
+  date: 2019-08-22T08:50:34.612Z
+- commits:
     - subject: Add usage example repo to documentation
       hash: da0534b3c8f239f8c6f1ded911d2509fb0230b05
       body: ''
