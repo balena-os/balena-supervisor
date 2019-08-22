@@ -1185,7 +1185,7 @@ Unsuccessful response:
 Added in supervisor version v10.2.0
 
 Retrieve a stream to the journald logs on device. This is
-equivalent to running `journalctl -o export`. Options
+equivalent to running `journalctl --no-pager`. Options
 supported are:
 
 ##### all: boolean
@@ -1203,14 +1203,19 @@ Show the most recent `count` events, equivalent to
 Show journal logs from `unit` only, equivalent to
 `journalctl --unit=<unit>`.
 
+##### format
+Added in supervisor version v10.3.0
+
+The format which will be streamed from journalctl, formats
+are described here:
+https://www.freedesktop.org/software/systemd/man/journalctl.html#-o
+
 Fields should be provided via POST body in JSON format.
 
-From an application container (with systemd installed):
+From an application container:
 ```
-$ curl -X POST --data '{"follow":true,"all":true}' "$BALENA_SUPERVISOR_ADDRESS/v2/journal-logs?apikey=$BALENA_SUPERVISOR_API_KEY" | systemd-journal-remote - -o log.journal
+$ curl -X POST -H "Content-Type: application/json" --data '{"follow":true,"all":true}' "$BALENA_SUPERVISOR_ADDRESS/v2/journal-logs?apikey=$BALENA_SUPERVISOR_API_KEY" > log.journal
 ```
 
-The `log.journal` file can then be viewed with
-```
-journalctl --file log.journal -f
-```
+An example project using this endpoint can be found
+[in this repository](https://github.com/balena-io-playground/device-cloud-logging).

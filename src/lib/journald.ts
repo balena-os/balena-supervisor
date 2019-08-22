@@ -8,13 +8,12 @@ export function spawnJournalctl(opts: {
 	follow: boolean;
 	count?: number;
 	unit?: string;
+	format: string;
 }): ChildProcess {
 	const args = [
 		// The directory we want to run the chroot from
 		constants.rootMountPoint,
 		'journalctl',
-		'-o',
-		'export',
 	];
 	if (opts.all) {
 		args.push('-a');
@@ -30,6 +29,8 @@ export function spawnJournalctl(opts: {
 		args.push('-n');
 		args.push(opts.count.toString());
 	}
+	args.push('-o');
+	args.push(opts.format);
 
 	log.debug('Spawning journald with: chroot ', args.join(' '));
 
