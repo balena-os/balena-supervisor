@@ -1,4 +1,34 @@
 - commits:
+    - subject: Add usage example repo to documentation
+      hash: da0534b3c8f239f8c6f1ded911d2509fb0230b05
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add journald format flag
+      hash: 48bccd34dba569a574110a045cc264201d26f4a1
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Update documentation and explicitly unpipe journald stream
+      hash: 2d924b83fcfedc84b1d0ea2325a53cd7e89fc5c5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.3.0
+  date: 2019-08-21T17:36:24.736Z
+- commits:
     - subject: Correctly generate network or volume creation steps
       hash: ded828da9a284c28f1617cd49ba6fbbd09f489a9
       body: ''
