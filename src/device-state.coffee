@@ -434,7 +434,7 @@ module.exports = class DeviceState extends EventEmitter
 			.then ->
 				mkdirp(backupPath)
 			.then ->
-				execAsync("tar -xzf backup.tgz -C #{backupPath} .", cwd: path.join(constants.rootMountPoint, 'mnt/data'))
+				execAsync("tar -xzf backup.tgz -C #{backupPath}", cwd: path.join(constants.rootMountPoint, 'mnt/data'))
 			.then ->
 				fs.readdirAsync(backupPath)
 			.then (dirContents) =>
