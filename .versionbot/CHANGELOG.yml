@@ -1,4 +1,16 @@
 - commits:
+    - subject: Modification to unpacking volume backup
+      hash: e3c1c333f0ff1658e2dc9f9699d0f818599199b7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Thomas
+  version: 10.3.2
+  date: 2019-09-02T12:30:57.957Z
+- commits:
     - subject: Pin debug builds to stretch base images to match non-debug builds
       hash: 93e3bc620ae07f30a3f28c6c40f72516d702ea5b
       body: ''
