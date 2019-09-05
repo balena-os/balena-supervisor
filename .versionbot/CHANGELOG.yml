@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'entry.sh: conform to shellcheck syntax'
+      hash: cda39ab9e16cb6e3d0979b1727792bd7e55917ec
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.3.3
+  date: 2019-09-02T16:41:17.966Z
+- commits:
     - subject: Modification to unpacking volume backup
       hash: e3c1c333f0ff1658e2dc9f9699d0f818599199b7
       body: ''
