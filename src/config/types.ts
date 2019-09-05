@@ -1,3 +1,4 @@
+import { either, isRight } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import * as _ from 'lodash';
 
@@ -17,7 +18,7 @@ export const PermissiveBoolean = new t.Type<boolean, t.TypeOf<PermissiveType>>(
 	'PermissiveBoolean',
 	_.isBoolean,
 	(m, c) =>
-		permissiveValue.validate(m, c).chain(v => {
+		either.chain(permissiveValue.validate(m, c), v => {
 			switch (typeof v) {
 				case 'string':
 				case 'boolean':
@@ -50,23 +51,20 @@ export const PermissiveNumber = new t.Type<number, string | number>(
 	'PermissiveNumber',
 	_.isNumber,
 	(m, c) =>
-		t
-			.union([t.string, t.number])
-			.validate(m, c)
-			.chain(v => {
-				switch (typeof v) {
-					case 'number':
-						return t.success(v);
-					case 'string':
-						const i = parseInt(v, 10);
-						if (_.isNaN(i)) {
-							return t.failure(v, c);
-						}
-						return t.success(i);
-					default:
+		either.chain(t.union([t.string, t.number]).validate(m, c), v => {
+			switch (typeof v) {
+				case 'number':
+					return t.success(v);
+				case 'string':
+					const i = parseInt(v, 10);
+					if (_.isNaN(i)) {
 						return t.failure(v, c);
-				}
-			}),
+					}
+					return t.success(i);
+				default:
+					return t.failure(v, c);
+			}
+		}),
 	() => {
 		throw new InternalInconsistencyError(
 			'Encode not defined for PermissiveNumber',
@@ -80,22 +78,19 @@ export class StringJSON<T> extends t.Type<T, string> {
 	constructor(type: t.InterfaceType<any>) {
 		super(
 			'StringJSON',
-			(m): m is T => type.decode(m).isRight(),
+			(m): m is T => isRight(type.decode(m)),
 			(m, c) =>
 				// Accept either an object, or a string which represents the
 				// object
-				t
-					.union([t.string, type])
-					.validate(m, c)
-					.chain(v => {
-						let obj: T;
-						if (typeof v === 'string') {
-							obj = JSON.parse(v);
-						} else {
-							obj = v;
-						}
-						return type.decode(obj);
-					}),
+				either.chain(t.union([t.string, type]).validate(m, c), v => {
+					let obj: T;
+					if (typeof v === 'string') {
+						obj = JSON.parse(v);
+					} else {
+						obj = v;
+					}
+					return type.decode(obj);
+				}),
 			() => {
 				throw new InternalInconsistencyError(
 					'Encode not defined for StringJSON',

@@ -408,9 +408,9 @@ export class APIBinder {
 				);
 			}
 			return {
-				id: id.value,
-				name: name.value,
-				value: value.value,
+				id: id.right,
+				name: name.right,
+				value: value.right,
 			};
 		});
 	}

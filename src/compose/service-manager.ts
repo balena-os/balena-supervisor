@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as Dockerode from 'dockerode';
 import { EventEmitter } from 'events';
+import { isLeft } from 'fp-ts/lib/Either';
 import * as JSONStream from 'JSONStream';
 import * as _ from 'lodash';
 import { fs } from 'mz';
@@ -326,14 +327,14 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				// Get the statusCode from the original cause and make sure it's
 				// definitely an int for comparison reasons
 				const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
-				if (maybeStatusCode.isLeft()) {
+				if (isLeft(maybeStatusCode)) {
 					remove = true;
 					err = new Error(
 						`Could not parse status code from docker error:  ${e}`,
 					);
 					throw err;
 				}
-				const statusCode = maybeStatusCode.value;
+				const statusCode = maybeStatusCode.right;
 				const message = e.message;
 
 				// 304 means the container was already started, precisely what we want
@@ -568,12 +569,12 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 					// Get the statusCode from the original cause and make sure it's
 					// definitely an int for comparison reasons
 					const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
-					if (maybeStatusCode.isLeft()) {
+					if (isLeft(maybeStatusCode)) {
 						throw new Error(
 							`Could not parse status code from docker error:  ${e}`,
 						);
 					}
-					const statusCode = maybeStatusCode.value;
+					const statusCode = maybeStatusCode.right;
 
 					// 304 means the container was already stopped, so we can just remove it
 					if (statusCode === 304) {

@@ -6,7 +6,7 @@ import { generateUniqueKey } from 'resin-register-device';
 import StrictEventEmitter from 'strict-event-emitter-types';
 import { inspect } from 'util';
 
-import { Either } from 'fp-ts/lib/Either';
+import { Either, isLeft, isRight, Right } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 
 import ConfigJsonConfigBackend from './configJson';
@@ -84,16 +84,19 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 								undefined,
 							);
 
-							this.checkValueDecode(maybeDecoded, key, undefined);
-							return maybeDecoded.value;
+							return (
+								this.checkValueDecode(maybeDecoded, key, undefined) &&
+								maybeDecoded.right
+							);
 						}
 						return defaultValue as SchemaReturn<T>;
 					}
 					const decoded = this.decodeSchema(schemaKey, value);
 
-					this.checkValueDecode(decoded, key, value);
-
-					return decoded.value;
+					// The following function will throw if the value
+					// is not correct, so we chain it this way to keep
+					// the type system happy
+					return this.checkValueDecode(decoded, key, value) && decoded.right;
 				});
 			} else if (FnSchema.fnSchema.hasOwnProperty(key)) {
 				const fnKey = key as FnSchema.FnSchemaKey;
@@ -105,9 +108,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 				return promiseValue.then((value: unknown) => {
 					const decoded = schemaTypes[key].type.decode(value);
 
-					this.checkValueDecode(decoded, key, value);
-
-					return decoded.value as SchemaReturn<T>;
+					return this.checkValueDecode(decoded, key, value) && decoded.right;
 				});
 			} else {
 				throw new Error(`Unknown config value ${key}`);
@@ -147,7 +148,6 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 						throw new Error(
 							`Unknown configuration source: ${source} for config key: ${k}`,
 						);
-						break;
 				}
 			});
 
@@ -181,7 +181,8 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		};
 
 		return Bluebird.try(() => {
-			// Firstly validate and coerce all of the types as they are being set
+			// Firstly validate and coerce all of the types as
+			// they are being set
 			keyValues = this.validateConfigMap(keyValues);
 
 			if (trx != null) {
@@ -243,7 +244,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 			type = schemaTypesEntry.type;
 		}
 
-		return type.decode(value).isRight();
+		return isRight(type.decode(value));
 	}
 
 	private async getSchema<T extends Schema.SchemaKey>(
@@ -301,7 +302,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 			}
 
 			const decoded = type.decode(value);
-			if (decoded.isLeft()) {
+			if (isLeft(decoded)) {
 				throw new TypeError(
 					`Cannot set value for ${key}, as value failed validation: ${inspect(
 						value,
@@ -309,7 +310,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 					)}`,
 				);
 			}
-			return decoded.value;
+			return decoded.right;
 		}) as ConfigMap<T>;
 	}
 
@@ -355,10 +356,11 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		decoded: Either<t.Errors, unknown>,
 		key: string,
 		value: unknown,
-	): void {
-		if (decoded.isLeft()) {
+	): decoded is Right<unknown> {
+		if (isLeft(decoded)) {
 			throw new ConfigurationValidationError(key, value);
 		}
+		return true;
 	}
 }
 
