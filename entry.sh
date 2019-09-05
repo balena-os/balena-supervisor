@@ -46,7 +46,7 @@ fi
 export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket"
 
 # Include self-signed CAs, should they exist
-if [ ! -z "${BALENA_ROOT_CA}" ]; then
+if [ -n "${BALENA_ROOT_CA}" ]; then
 	if [ ! -e '/etc/ssl/certs/balenaRootCA.pem' ]; then
 		mkdir -p /usr/local/share/ca-certificates
 		echo "${BALENA_ROOT_CA}" > /usr/local/share/ca-certificates/balenaRootCA.crt
