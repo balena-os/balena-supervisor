@@ -683,7 +683,7 @@ module.exports = class DeviceState extends EventEmitter
 				@scheduledApply = { force, delay }
 				if isFromApi
 					# Cancel promise delay if call came from api to prevent waiting due to backoff
-					@cancelDelay()
+					@cancelDelay = true
 			else
 				# If a delay has been set it's because we need to hold off before applying again,
 				# so we need to respect the maximum delay that has been passed
@@ -694,7 +694,8 @@ module.exports = class DeviceState extends EventEmitter
 		@applyInProgress = true
 		new Promise (resolve, reject) =>
 			setTimeout(resolve, delay)
-			@cancelDelay = reject
+			if @cancelDelay
+				@cancelDelay = reject()
 		.catch =>
 			@applyCancelled = true
 		.then =>
