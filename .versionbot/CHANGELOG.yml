@@ -1,4 +1,23 @@
 - commits:
+    - subject: 'device-state: correctly call volume creation on backup restore step'
+      hash: ca9f8ffca1e306d4f4551a505b93b0bc7c679c81
+      body: |
+        The `createFromPath` method takes 3 parameters, while in a previous
+        version it was only 2 (the new format splits the old format's first
+        parameter into two, and keeping the last), before the refactor in commit
+        23e564389daaa29feb231d1b091e07df82a7a300 (supervisor v9.18.4)
+        The backup restoration call has not been updated and thus calls that
+        function the old (wrong) way, resulting in failed restore, and volume
+        management errors on a device that attempted a restore.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Gergely Imreh <gergely@balena.io>
+        signed-off-by: Gergely Imreh <gergely@balena.io>
+      author: Gergely Imreh
+  version: 10.3.4
+  date: 2019-09-11T11:15:16.606Z
+- commits:
     - subject: 'entry.sh: conform to shellcheck syntax'
       hash: cda39ab9e16cb6e3d0979b1727792bd7e55917ec
       body: ''
