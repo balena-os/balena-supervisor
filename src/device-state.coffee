@@ -452,7 +452,7 @@ module.exports = class DeviceState extends EventEmitter
 									volume.remove()
 							.catch(NotFoundError, _.noop)
 							.then =>
-								@applications.volumes.createFromPath({ appId, name: volumeName, config: volumes[volumeName] }, path.join(backupPath, volumeName))
+								@applications.volumes.createFromPath({ appId, name: volumeName }, volumes[volumeName], path.join(backupPath, volumeName))
 						else
 							throw new Error("Invalid backup: #{volumeName} is present in backup but not in target state")
 			.then ->
