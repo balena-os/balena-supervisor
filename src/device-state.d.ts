@@ -24,6 +24,11 @@ class DeviceState extends EventEmitter {
 
 	public healthcheck(): Promise<void>;
 	public normaliseLegacy(client: PinejsClientRequest): Promise<void>;
+	public loadTargetFromFile(filename: string): Promise<void>;
+	public getTarget(): Promise<any>;
+	public setTarget(target: any): Promise<any>;
+	public triggerApplyTarget(opts: any): Promise<any>;
+	public reportCurrentState(state: any);
 
 	public async init();
 }
