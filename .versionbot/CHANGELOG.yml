@@ -1,4 +1,16 @@
 - commits:
+    - subject: Correctly handle partial IPAM configurations for networks
+      hash: e78f8eccdc2fe23b02da15b8c469979a8146db41
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.3.5
+  date: 2019-09-16T11:30:37.265Z
+- commits:
     - subject: 'device-state: correctly call volume creation on backup restore step'
       hash: ca9f8ffca1e306d4f4551a505b93b0bc7c679c81
       body: |
