@@ -103,14 +103,10 @@ export class Network {
 
 		Network.validateComposeConfig(network);
 
-		const ipam =
-			network.ipam != null
-				? network.ipam
-				: {
-						driver: 'default',
-						config: [],
-						options: {},
-				  };
+		const ipam: Partial<ComposeNetworkConfig['ipam']> = network.ipam || {};
+		if (ipam.driver == null) {
+			ipam.driver = 'default';
+		}
 		if (ipam.config == null) {
 			ipam.config = [];
 		}
@@ -119,7 +115,7 @@ export class Network {
 		}
 		net.config = {
 			driver: network.driver || 'bridge',
-			ipam,
+			ipam: ipam as ComposeNetworkConfig['ipam'],
 			enableIPv6: network.enable_ipv6 || false,
 			internal: network.internal || false,
 			labels: network.labels || {},
