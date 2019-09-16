@@ -37,6 +37,36 @@ describe 'compose/network', ->
 				options: {}
 			})
 
+		it 'should handle an incomplete ipam configuration', ->
+			network = Network.fromComposeObject('test', 123, {
+				ipam: {
+					config: [
+						{
+							subnet: '172.25.0.0/25',
+							gateway: '172.25.0.1'
+						}
+					]
+				}
+			}, { logger: null, docker: null })
+
+			expect(network.config).to.deep.equal({
+				driver: 'bridge',
+				enableIPv6: false,
+				internal: false,
+				labels: {}
+				options: {}
+				ipam: {
+					driver: 'default',
+					options: {},
+					config: [
+						{
+							subnet: '172.25.0.0/25',
+							gateway: '172.25.0.1'
+						}
+					]
+				}
+			})
+
 	describe 'internal config -> docker config', ->
 
 		it 'should convert an internal representation to a docker representation', ->
