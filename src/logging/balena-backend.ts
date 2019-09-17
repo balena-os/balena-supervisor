@@ -203,8 +203,12 @@ export class BalenaLogBackend extends LogBackend {
 		}
 
 		if (this.writable) {
-			this.writable = this.stream.write(JSON.stringify(message) + '\n');
-			this.flush();
+			try {
+				this.writable = this.stream.write(JSON.stringify(message) + '\n');
+				this.flush();
+			} catch (e) {
+				log.error('Failed to write to logging stream, dropping message.', e);
+			}
 		} else {
 			this.dropCount += 1;
 		}
