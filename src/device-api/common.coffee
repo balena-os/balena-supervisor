@@ -1,3 +1,4 @@
+Bluebird = require('bluebird')
 _ = require('lodash')
 
 { appNotFoundMessage } = require('../lib/messages')
@@ -23,7 +24,7 @@ exports.doRestart = (applications, appId, force) ->
 				deviceState.triggerApplyTarget()
 
 exports.doPurge = (applications, appId, force) ->
-	{ logger, _lockingIfNecessary, deviceState } = applications
+	{ logger, _lockingIfNecessary, deviceState, volumes } = applications
 
 	logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
 	_lockingIfNecessary appId, { force }, ->
@@ -38,6 +39,12 @@ exports.doPurge = (applications, appId, force) ->
 			currentState.local.apps[appId] = purgedApp
 			deviceState.pausingApply ->
 				deviceState.applyIntermediateTarget(currentState, { skipLock: true })
+				.then ->
+					# Now that we're not running anything, explicitly
+					# remove the volumes, we must do this here, as the
+					# application-manager will not remove any volumes
+					# which are part of an active application
+					Bluebird.each(volumes.getAllByAppId(appId), (vol) -> vol.remove())
 				.then ->
 					currentState.local.apps[appId] = app
 					deviceState.applyIntermediateTarget(currentState, { skipLock: true })
