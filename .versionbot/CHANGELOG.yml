@@ -1,4 +1,31 @@
 - commits:
+    - subject: Explicitly remove volumes when purging
+      hash: 15a1f45fd70117c4d819af436b95cb6f796dccba
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1083'
+        closes: '#1083'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Catch and report cloud stream writing errors
+      hash: 7d1da3818479e33141890a8f3d09557303331872
+      body: |
+        If an error fires when writing to the cloud stream, it can stop any
+        calling processes from completing. Given that a logging failure should
+        not cause other processes to cancel, we catch and report the error but
+        otherwise do nothing else.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.3.6
+  date: 2019-09-18T07:50:28.062Z
+- commits:
     - subject: Correctly handle partial IPAM configurations for networks
       hash: e78f8eccdc2fe23b02da15b8c469979a8146db41
       body: ''
