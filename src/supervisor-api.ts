@@ -113,9 +113,9 @@ export class SupervisorAPI {
 			}
 		});
 
-		this.api.use(authenticate(this.config));
-
 		this.api.get('/ping', (_req, res) => res.send('OK'));
+
+		this.api.use(authenticate(this.config));
 
 		this.api.post('/v1/blink', (_req, res) => {
 			this.eventTracker.track('Device blink');
