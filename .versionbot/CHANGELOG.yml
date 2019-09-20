@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'ping: move /ping out from authentication'
+      hash: 8d5633a11f15cee356854e9c21502ada4b89e7c7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.3.7
+  date: 2019-09-20T13:19:51.070Z
+- commits:
     - subject: Explicitly remove volumes when purging
       hash: 15a1f45fd70117c4d819af436b95cb6f796dccba
       body: ''
