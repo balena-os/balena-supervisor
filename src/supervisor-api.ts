@@ -1,3 +1,4 @@
+import { NextFunction, Request, Response } from 'express';
 import * as express from 'express';
 import { Server } from 'http';
 import * as _ from 'lodash';
@@ -102,15 +103,11 @@ export class SupervisorAPI {
 		this.api.use(expressLogger);
 
 		this.api.get('/v1/healthy', async (_req, res) => {
-			try {
-				const healths = await Promise.all(this.healthchecks.map(fn => fn()));
-				if (!_.every(healths)) {
-					throw new Error('Unhealthy');
-				}
-				return res.sendStatus(200);
-			} catch (e) {
-				res.sendStatus(500);
+			const healths = await Promise.all(this.healthchecks.map(fn => fn()));
+			if (!_.every(healths)) {
+				throw new Error('Unhealthy');
 			}
+			return res.sendStatus(200);
 		});
 
 		this.api.get('/ping', (_req, res) => res.send('OK'));
@@ -127,19 +124,44 @@ export class SupervisorAPI {
 		// Expires the supervisor's API key and generates a new one.
 		// It also communicates the new key to the balena API.
 		this.api.post('/v1/regenerate-api-key', async (_req, res) => {
-			try {
-				const secret = await this.config.newUniqueKey();
-				await this.config.set({ apiSecret: secret });
-				res.status(200).send(secret);
-			} catch (e) {
-				res.status(503).send(e != null ? e.message : e || 'Unknown error');
-			}
+			const secret = await this.config.newUniqueKey();
+			await this.config.set({ apiSecret: secret });
+			res.status(200).send(secret);
 		});
 
 		// And assign all external routers
 		for (const router of this.routers) {
 			this.api.use(router);
 		}
+
+		// Error handling.
+
+		const messageFromError = (err?: Error | string | null): string => {
+			let message = 'Unknown error';
+			if (err != null) {
+				if (_.isError(err) && err.message != null) {
+					message = err.message;
+				} else {
+					message = err as string;
+				}
+			}
+			return message;
+		};
+
+		this.api.use(
+			(err: Error, req: Request, res: Response, next: NextFunction) => {
+				if (res.headersSent) {
+					// Error happens while we are writing the response - default handler closes the connection.
+					next(err);
+					return;
+				}
+				log.error(`Error on ${req.method} ${req.path}: `, err);
+				res.status(503).send({
+					status: 'failed',
+					message: messageFromError(err),
+				});
+			},
+		);
 	}
 
 	public async listen(

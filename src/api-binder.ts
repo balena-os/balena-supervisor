@@ -935,7 +935,7 @@ export class APIBinder {
 		router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 		router.use(bodyParser.json({ limit: '10mb' }));
 
-		router.post('/v1/update', (req, res) => {
+		router.post('/v1/update', (req, res, next) => {
 			apiBinder.eventTracker.track('Update notification');
 			if (apiBinder.readyForUpdates) {
 				this.config
@@ -953,15 +953,7 @@ export class APIBinder {
 							res.sendStatus(202);
 						}
 					})
-					.catch(err => {
-						const msg =
-							err.message != null
-								? err.message
-								: err != null
-								? err
-								: 'Unknown error';
-						res.status(503).send(msg);
-					});
+					.catch(next);
 			} else {
 				res.sendStatus(202);
 			}

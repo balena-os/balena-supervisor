@@ -9,7 +9,7 @@ exports.createV1Api = (router, applications) ->
 
 	{ eventTracker } = applications
 
-	router.post '/v1/restart', (req, res) ->
+	router.post '/v1/restart', (req, res, next) ->
 		appId = checkInt(req.body.appId)
 		force = checkTruthy(req.body.force)
 		eventTracker.track('Restart container (v1)', { appId })
@@ -18,10 +18,9 @@ exports.createV1Api = (router, applications) ->
 		doRestart(applications, appId, force)
 		.then ->
 			res.status(200).send('OK')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+		.catch(next)
 
-	v1StopOrStart = (req, res, action) ->
+	v1StopOrStart = (req, res, next, action) ->
 		appId = checkInt(req.params.appId)
 		force = checkTruthy(req.body.force)
 		if !appId?
@@ -47,16 +46,14 @@ exports.createV1Api = (router, applications) ->
 					return service
 			.then (service) ->
 				res.status(200).json({ containerId: service.containerId })
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+		.catch(next)
 
-	router.post '/v1/apps/:appId/stop', (req, res) ->
-		v1StopOrStart(req, res, 'stop')
+	createV1StopOrStartHandler = (action) -> _.partial(v1StopOrStart, _, _, _, action)
 
-	router.post '/v1/apps/:appId/start', (req, res) ->
-		v1StopOrStart(req, res, 'start')
+	router.post('/v1/apps/:appId/stop', createV1StopOrStartHandler('stop'))
+	router.post('/v1/apps/:appId/start', createV1StopOrStartHandler('start'))
 
-	router.get '/v1/apps/:appId', (req, res) ->
+	router.get '/v1/apps/:appId', (req, res, next) ->
 		appId = checkInt(req.params.appId)
 		eventTracker.track('GET app (v1)', { appId })
 		if !appId?
@@ -82,10 +79,9 @@ exports.createV1Api = (router, applications) ->
 					appToSend.commit = status.commit
 				res.json(appToSend)
 		)
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
+		.catch(next)
 
-	router.post '/v1/purge', (req, res) ->
+	router.post '/v1/purge', (req, res, next) ->
 		appId = checkInt(req.body.appId)
 		force = checkTruthy(req.body.force)
 		if !appId?
@@ -94,6 +90,4 @@ exports.createV1Api = (router, applications) ->
 		doPurge(applications, appId, force)
 		.then ->
 			res.status(200).json(Data: 'OK', Error: '')
-		.catch (err) ->
-			res.status(503).send(err?.message or err or 'Unknown error')
-
+		.catch(next)
