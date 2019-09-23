@@ -1,4 +1,36 @@
 - commits:
+    - subject: Unify API errors processing
+      hash: 8b4c9837fa39bcb6642f7fd3208afa8d26b9af46
+      body: >
+        With this change, we define a custom error handler as express middleware
+
+        which renders 503 error with JSON response that includes status and
+        message
+
+        fields.
+
+
+        The handler also logs the error, so the stack can be inspected in
+        supervisor
+
+        logs. It's also a point where we can report the error to analytics
+        services.
+
+
+        This removes a bunch of error handlers written in every request handler
+
+        function. Behaviour should remain unchanged except the fact that
+
+        /healthy endpoint now returns 503 in case of failure instead of 500.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.3.8
+  date: 2019-09-23T14:24:38.467Z
+- commits:
     - subject: 'ping: move /ping out from authentication'
       hash: 8d5633a11f15cee356854e9c21502ada4b89e7c7
       body: ''
