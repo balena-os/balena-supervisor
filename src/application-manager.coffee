@@ -16,6 +16,8 @@ updateLock = require './lib/update-lock'
 { NotFoundError } = require './lib/errors'
 { pathExistsOnHost } = require './lib/fs-utils'
 
+{ ApplicationTargetStateWrapper } = require './target-state'
+
 { ServiceManager } = require './compose/service-manager'
 { Service } = require './compose/service'
 { Images } = require './compose/images'
@@ -78,6 +80,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		@fetchesInProgress = 0
 		@_targetVolatilePerImageId = {}
 		@_containerStarted = {}
+
+		@targetStateWrapper = new ApplicationTargetStateWrapper(this, @config, @db)
 
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.appUpdatePollInterval
@@ -251,9 +255,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		).get(appId)
 
 	getTargetApp: (appId) =>
-		@config.get('apiEndpoint').then (endpoint) ->
-			@db.models('app').where({ appId, source: endpoint }).select()
-		.then ([ app ]) =>
+		@targetStateWrapper.getTargetApp(appId).then (app) =>
 			if !app?
 				return
 			@normaliseAndExtendAppFromDB(app)
@@ -690,8 +692,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					return appClone
 				Promise.map(appsArray, @normaliseAppForDB)
 				.tap (appsForDB) =>
-					Promise.map appsForDB, (app) =>
-						@db.upsertModel('app', app, { appId: app.appId }, trx)
+					@targetStateWrapper.setTargetApps(appsForDB, trx)
 				.then (appsForDB) ->
 					trx('app').where({ source }).whereNotIn('appId', _.map(appsForDB, 'appId')).del()
 			.then =>
@@ -714,11 +715,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@_targetVolatilePerImageId[imageId] = {}
 
 	getTargetApps: =>
-		@config.getMany(['apiEndpoint', 'localMode']). then ({ apiEndpoint, localMode }) =>
-			source = apiEndpoint
-			if localMode
-				source = 'local'
-			Promise.map(@db.models('app').where({ source }), @normaliseAndExtendAppFromDB)
+		Promise.map(@targetStateWrapper.getTargetApps(), @normaliseAndExtendAppFromDB)
 		.map (app) =>
 			if !_.isEmpty(app.services)
 				app.services = _.map app.services, (service) =>
