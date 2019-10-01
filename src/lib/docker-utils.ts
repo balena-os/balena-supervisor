@@ -13,7 +13,7 @@ import {
 	ImageAuthenticationError,
 	InvalidNetGatewayError,
 } from './errors';
-import { request, requestLib, resumable } from './request';
+import * as request from './request';
 import { EnvVarObject } from './types';
 
 import log from './supervisor-console';
@@ -108,7 +108,7 @@ export class DockerUtils extends DockerToolbelt {
 
 		const token = await this.getAuthToken(srcInfo, dstInfo, deltaOpts);
 
-		const opts: requestLib.CoreOptions = {
+		const opts: request.requestLib.CoreOptions = {
 			followRedirect: false,
 			timeout: deltaOpts.deltaRequestTimeout,
 			auth: {
@@ -121,7 +121,10 @@ export class DockerUtils extends DockerToolbelt {
 			deltaOpts.deltaVersion
 		}/delta?src=${deltaOpts.deltaSource}&dest=${imgDest}`;
 
-		const [res, data] = await request.getAsync(url, opts);
+		const [res, data] = await (await request.getRequestInstance()).getAsync(
+			url,
+			opts,
+		);
 		if (res.statusCode === 502 || res.statusCode === 504) {
 			throw new DeltaStillProcessingError();
 		}
@@ -265,7 +268,8 @@ export class DockerUtils extends DockerToolbelt {
 	): Promise<string> {
 		logFn('Applying rsync delta...');
 
-		return new Promise((resolve, reject) => {
+		return new Promise(async (resolve, reject) => {
+			const resumable = await request.getResumableRequest();
 			const req = resumable(Object.assign({ url: deltaUrl }, opts));
 			req
 				.on('progress', onProgress)
@@ -328,7 +332,7 @@ export class DockerUtils extends DockerToolbelt {
 			deltaOpts: DeltaFetchOptions,
 		): Promise<string> => {
 			const tokenEndpoint = `${deltaOpts.apiEndpoint}/auth/v1/token`;
-			const tokenOpts: requestLib.CoreOptions = {
+			const tokenOpts: request.requestLib.CoreOptions = {
 				auth: {
 					user: `d_${deltaOpts.uuid}`,
 					pass: deltaOpts.currentApiKey,
@@ -342,7 +346,7 @@ export class DockerUtils extends DockerToolbelt {
 				srcInfo.imageName
 			}:pull`;
 
-			const tokenResponseBody = (await request.getAsync(
+			const tokenResponseBody = (await (await request.getRequestInstance()).getAsync(
 				tokenUrl,
 				tokenOpts,
 			))[1];

@@ -113,6 +113,8 @@ export class Service {
 		service.createdAt = appConfig.createdAt;
 		delete appConfig.createdAt;
 
+		delete appConfig.contract;
+
 		// We don't need this value
 		delete appConfig.commit;
 

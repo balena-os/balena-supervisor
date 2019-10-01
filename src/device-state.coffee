@@ -17,7 +17,12 @@ validation = require './lib/validation'
 systemd = require './lib/systemd'
 updateLock = require './lib/update-lock'
 { singleToMulticontainerApp } = require './lib/migration'
-{ ENOENT, EISDIR, NotFoundError, UpdatesLockedError } = require './lib/errors'
+{
+	ENOENT,
+	EISDIR,
+	NotFoundError,
+	UpdatesLockedError
+} = require './lib/errors'
 
 { DeviceConfig } = require './device-config'
 ApplicationManager = require './application-manager'

@@ -51,6 +51,7 @@ export class Supervisor {
 			db: this.db,
 			deviceState: this.deviceState,
 			eventTracker: this.eventTracker,
+			logger: this.logger,
 		});
 
 		// FIXME: rearchitect proxyvisor to avoid this circular dependency

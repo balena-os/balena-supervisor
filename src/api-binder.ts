@@ -16,18 +16,21 @@ import { EventTracker } from './event-tracker';
 
 import * as constants from './lib/constants';
 import {
+	ContractValidationError,
+	ContractViolationError,
 	DuplicateUuidError,
 	ExchangeKeyError,
 	InternalInconsistencyError,
 } from './lib/errors';
 import { pathExistsOnHost } from './lib/fs-utils';
-import { request, requestOpts } from './lib/request';
+import * as request from './lib/request';
 import { writeLock } from './lib/update-lock';
 import { DeviceApplicationState } from './types/state';
 
 import log from './lib/supervisor-console';
 
 import DeviceState = require('./device-state');
+import Logger from './logger';
 
 const REPORT_SUCCESS_DELAY = 1000;
 const MAX_REPORT_RETRY_DELAY = 60000;
@@ -44,6 +47,7 @@ export interface APIBinderConstructOpts {
 	db: Database;
 	deviceState: DeviceState;
 	eventTracker: EventTracker;
+	logger: Logger;
 }
 
 interface Device {
@@ -74,6 +78,7 @@ export class APIBinder {
 		[key: string]: any;
 	};
 	private eventTracker: EventTracker;
+	private logger: Logger;
 
 	public balenaApi: PinejsClientRequest | null = null;
 	private cachedBalenaApi: PinejsClientRequest | null = null;
@@ -96,10 +101,12 @@ export class APIBinder {
 		config,
 		deviceState,
 		eventTracker,
+		logger,
 	}: APIBinderConstructOpts) {
 		this.config = config;
 		this.deviceState = deviceState;
 		this.eventTracker = eventTracker;
+		this.logger = logger;
 
 		this.router = this.createAPIBinderRouter(this);
 	}
@@ -146,7 +153,7 @@ export class APIBinder {
 		}
 
 		const baseUrl = url.resolve(apiEndpoint, '/v5/');
-		const passthrough = _.cloneDeep(requestOpts);
+		const passthrough = _.cloneDeep(await request.getRequestOptions());
 		passthrough.headers =
 			passthrough.headers != null ? passthrough.headers : {};
 		passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
@@ -408,9 +415,9 @@ export class APIBinder {
 				);
 			}
 			return {
-				id: id.value,
-				name: name.value,
-				value: value.value,
+				id: id.right,
+				name: name.right,
+				value: value.right,
 			};
 		});
 	}
@@ -580,9 +587,25 @@ export class APIBinder {
 				this.deviceState.triggerApplyTarget({ force, isFromApi });
 			}
 		})
-			.tapCatch(err => {
-				log.error(`Failed to get target state for device: ${err}`);
+			.tapCatch(ContractValidationError, ContractViolationError, e => {
+				log.error(`Could not store target state for device: ${e}`);
+				this.logger.logSystemMessage(
+					`Could not move to new release: ${e.message}`,
+					{},
+					'targetStateRejection',
+					false,
+				);
 			})
+			.tapCatch(
+				(e: unknown) =>
+					!(
+						e instanceof ContractValidationError ||
+						e instanceof ContractViolationError
+					),
+				err => {
+					log.error(`Failed to get target state for device: ${err}`);
+				},
+			)
 			.finally(() => {
 				this.lastTargetStateFetch = process.hrtime();
 			});
@@ -781,7 +804,7 @@ export class APIBinder {
 		}
 
 		// We found the device so we can try to register a working device key for it
-		const [res] = await request
+		const [res] = await (await request.getRequestInstance())
 			.postAsync(`${opts.apiEndpoint}/api-key/device/${device.id}/device-key`, {
 				json: true,
 				body: {

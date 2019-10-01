@@ -9,12 +9,15 @@ path = require 'path'
 constants = require './lib/constants'
 { log } = require './lib/supervisor-console'
 
+{ containerContractsFulfilled, validateContract } = require './lib/contracts'
 { DockerUtils: Docker } = require './lib/docker-utils'
 { LocalModeManager } = require './local-mode'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
-{ NotFoundError } = require './lib/errors'
+{ ContractViolationError, ContractValidationError, NotFoundError } = require './lib/errors'
 { pathExistsOnHost } = require './lib/fs-utils'
+
+{ ApplicationTargetStateWrapper } = require './target-state'
 
 { ServiceManager } = require './compose/service-manager'
 { Service } = require './compose/service'
@@ -78,6 +81,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		@fetchesInProgress = 0
 		@_targetVolatilePerImageId = {}
 		@_containerStarted = {}
+
+		@targetStateWrapper = new ApplicationTargetStateWrapper(this, @config, @db)
 
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.appUpdatePollInterval
@@ -251,9 +256,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		).get(appId)
 
 	getTargetApp: (appId) =>
-		@config.get('apiEndpoint').then (endpoint) ->
-			@db.models('app').where({ appId, source: endpoint }).select()
-		.then ([ app ]) =>
+		@targetStateWrapper.getTargetApp(appId).then (app) =>
 			if !app?
 				return
 			@normaliseAndExtendAppFromDB(app)
@@ -681,29 +684,67 @@ module.exports = class ApplicationManager extends EventEmitter
 		)
 
 	setTarget: (apps, dependent , source, trx) =>
-		setInTransaction = (trx) =>
+		# We look at the container contracts here, as if we
+		# cannot run the release, we don't want it to be added
+		# to the database, overwriting the current release. This
+		# is because if we just reject the release, but leave it
+		# in the db, if for any reason the current state stops
+		# running, we won't restart it, leaving the device useless
+		contractsFulfilled = _.mapValues apps, (app) ->
+			serviceContracts = {}
+			_.each app.services, (s) ->
+				if s.contract?
+					try
+						validateContract(s)
+					catch e
+						throw new ContractValidationError(s.serviceName, e.message)
+					serviceContracts[s.serviceName] = s.contract
+
+			if !_.isEmpty(serviceContracts)
+				containerContractsFulfilled(serviceContracts)
+			else
+				{ valid: true }
+
+
+		setInTransaction = (filteredApps, trx) =>
 			Promise.try =>
-				appsArray = _.map apps, (app, appId) ->
+				appsArray = _.map filteredApps, (app, appId) ->
 					appClone = _.clone(app)
 					appClone.appId = checkInt(appId)
 					appClone.source = source
 					return appClone
 				Promise.map(appsArray, @normaliseAppForDB)
 				.tap (appsForDB) =>
-					Promise.map appsForDB, (app) =>
-						@db.upsertModel('app', app, { appId: app.appId }, trx)
+					@targetStateWrapper.setTargetApps(appsForDB, trx)
 				.then (appsForDB) ->
-					trx('app').where({ source }).whereNotIn('appId', _.map(appsForDB, 'appId')).del()
+					trx('app').where({ source }).whereNotIn('appId',
+						# Use apps here, rather than filteredApps, to
+						# avoid removing a release from the database
+						# without an application to replace it.
+						# Currently this will only happen if the release
+						# which would replace it fails a contract
+						# validation check
+						_.map(apps, (_, appId) -> checkInt(appId))
+					).del()
 			.then =>
 				@proxyvisor.setTargetInTransaction(dependent, trx)
 
-		Promise.try =>
+		contractViolators = {}
+		Promise.props(contractsFulfilled).then (fulfilledContracts) ->
+			filteredApps = _.cloneDeep(apps)
+			_.each fulfilledContracts, ({ valid, unmetServices }, appId) ->
+				if not valid
+					contractViolators[apps[appId].name] = unmetServices
+					delete filteredApps[appId]
 			if trx?
-				setInTransaction(trx)
+				setInTransaction(filteredApps, trx)
 			else
 				@db.transaction(setInTransaction)
 		.then =>
 			@_targetVolatilePerImageId = {}
+		.finally ->
+			if not _.isEmpty(contractViolators)
+				throw new ContractViolationError(contractViolators)
 
 	setTargetVolatileForService: (imageId, target) =>
 		@_targetVolatilePerImageId[imageId] ?= {}
@@ -714,11 +755,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			@_targetVolatilePerImageId[imageId] = {}
 
 	getTargetApps: =>
-		@config.getMany(['apiEndpoint', 'localMode']). then ({ apiEndpoint, localMode }) =>
-			source = apiEndpoint
-			if localMode
-				source = 'local'
-			Promise.map(@db.models('app').where({ source }), @normaliseAndExtendAppFromDB)
+		Promise.map(@targetStateWrapper.getTargetApps(), @normaliseAndExtendAppFromDB)
 		.map (app) =>
 			if !_.isEmpty(app.services)
 				app.services = _.map app.services, (service) =>
@@ -936,6 +973,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		conf = { delta, localMode }
 		if conf.localMode
 			cleanupNeeded = false
+
 		@_inferNextSteps(cleanupNeeded, availableImages, downloading, supervisorNetworkReady, currentState, targetState, ignoreImages, conf, containerIds)
 		.then (nextSteps) =>
 			if ignoreImages and _.some(nextSteps, action: 'fetch')
