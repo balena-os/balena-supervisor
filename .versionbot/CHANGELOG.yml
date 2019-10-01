@@ -1,4 +1,72 @@
 - commits:
+    - subject: Add support for container contracts
+      hash: 14e442f94376f4589f9d469ad823d92d9af9818d
+      body: |
+        These contracts can specify an OS version and supervisor version that
+        they require. If any of the containers in a release have requirements
+        that are not met, the release is rejected, and the previous release
+        continues to run.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Closes: '#1086'
+        closes: '#1086'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade io-ts and fp-ts to 2.0.0
+      hash: 9843f62e2475225e3f66cfe3a6847f8c8428f79b
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: 'Add contract resolution code, which checks release requirements'
+      hash: 5ce8ba8acfb05e8035c340f80442edcb5237d13a
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Avoid synchronous file accesses for os release info
+      hash: 2d168784b2987a96993a256970174ff88f8c36f3
+      body: |
+        This also required refactoring the request library to be generated with
+        a promise, as we now no longer get the information synchronously.
+
+        We also cache the release info, to avoid grabbing it again within the
+        same runtime, which does not make sense.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add test number to test files name
+      hash: 487e2c54a1bf2b2df535ff99b5563c866da5ac2f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add a cache around the database application target state
+      hash: 7239b93f4a04851e4adbf1478af95c4a337aaadd
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.4.0
+  date: 2019-10-01T15:19:51.369Z
+- commits:
     - subject: Unify API errors processing
       hash: 8b4c9837fa39bcb6642f7fd3208afa8d26b9af46
       body: >
