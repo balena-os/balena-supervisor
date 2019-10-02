@@ -2,8 +2,7 @@ import * as Bluebird from 'bluebird';
 import mask = require('json-mask');
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
-
-import Mixpanel = require('mixpanel');
+import * as mixpanel from 'mixpanel';
 
 import { ConfigType } from './config';
 import log from './lib/supervisor-console';
@@ -35,7 +34,7 @@ const mixpanelMask = [
 
 export class EventTracker {
 	private defaultProperties: EventTrackProperties | null;
-	private client: any;
+	private client: mixpanel.Mixpanel | null;
 
 	public constructor() {
 		this.client = null;
@@ -54,10 +53,10 @@ export class EventTracker {
 				uuid,
 				supervisorVersion,
 			};
-			if (unmanaged || mixpanelHost == null) {
+			if (unmanaged || mixpanelHost == null || mixpanelToken == null) {
 				return;
 			}
-			this.client = Mixpanel.init(mixpanelToken, {
+			this.client = mixpanel.init(mixpanelToken, {
 				host: mixpanelHost.host,
 				path: mixpanelHost.path,
 			});
@@ -94,7 +93,9 @@ export class EventTracker {
 			// Call this function at maximum once every minute
 			return _.throttle(
 				properties => {
-					this.client.track(event, properties);
+					if (this.client != null) {
+						this.client.track(event, properties);
+					}
 				},
 				eventDebounceTime,
 				{ leading: true },

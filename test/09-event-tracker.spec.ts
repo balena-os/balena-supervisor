@@ -1,5 +1,6 @@
+import { Mixpanel } from 'mixpanel';
 import * as mixpanel from 'mixpanel';
-import { stub } from 'sinon';
+import { SinonStub, stub } from 'sinon';
 
 import { expect } from './lib/chai-config';
 
@@ -9,12 +10,16 @@ import supervisorVersion = require('../src/lib/supervisor-version');
 describe('EventTracker', () => {
 	let eventTrackerOffline: EventTracker;
 	let eventTracker: EventTracker;
+	let initStub: SinonStub;
 
 	before(() => {
-		stub(mixpanel, 'init').callsFake(token => ({
-			token,
-			track: stub().returns(undefined),
-		}));
+		initStub = stub(mixpanel, 'init').callsFake(
+			token =>
+				(({
+					token,
+					track: stub().returns(undefined),
+				} as unknown) as Mixpanel),
+		);
 
 		eventTrackerOffline = new EventTracker();
 		eventTracker = new EventTracker();
@@ -23,7 +28,7 @@ describe('EventTracker', () => {
 
 	after(() => {
 		(EventTracker.prototype as any).logEvent.restore();
-		return mixpanel.init.restore();
+		return initStub.restore();
 	});
 
 	it('initializes in unmanaged mode', () => {
