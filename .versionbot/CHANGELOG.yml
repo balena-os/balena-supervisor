@@ -1,4 +1,16 @@
 - commits:
+    - subject: Correctly validate container contracts
+      hash: d16403f65496cc94dc2839de7e38b3c3173005eb
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.4.1
+  date: 2019-10-02T14:51:35.443Z
+- commits:
     - subject: Add support for container contracts
       hash: 14e442f94376f4589f9d469ad823d92d9af9818d
       body: |
