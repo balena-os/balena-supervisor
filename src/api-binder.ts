@@ -589,12 +589,13 @@ export class APIBinder {
 		})
 			.tapCatch(ContractValidationError, ContractViolationError, e => {
 				log.error(`Could not store target state for device: ${e}`);
-				this.logger.logSystemMessage(
-					`Could not move to new release: ${e.message}`,
-					{},
-					'targetStateRejection',
-					false,
-				);
+				// the dashboard does not display lines correctly,
+				// split them explcitly here
+				const lines = e.message.split(/\r?\n/);
+				lines[0] = `Could not move to new release: ${lines[0]}`;
+				for (const line of lines) {
+					this.logger.logSystemMessage(line, {}, 'targetStateRejection', false);
+				}
 			})
 			.tapCatch(
 				(e: unknown) =>
