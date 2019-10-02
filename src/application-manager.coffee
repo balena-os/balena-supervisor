@@ -695,7 +695,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			_.each app.services, (s) ->
 				if s.contract?
 					try
-						validateContract(s)
+						validateContract(s.contract)
 					catch e
 						throw new ContractValidationError(s.serviceName, e.message)
 					serviceContracts[s.serviceName] = s.contract
