@@ -20,7 +20,7 @@ export type DatabaseApps = DatabaseApp[];
  * line. This can very quickly cause serious memory problems
  * and database connection timeouts.
  */
-export class ApplicationTargetStateWrapper {
+export class TargetStateAccessor {
 	private targetState?: DatabaseApps;
 
 	public constructor(
@@ -77,4 +77,4 @@ export class ApplicationTargetStateWrapper {
 	}
 }
 
-export default ApplicationTargetStateWrapper;
+export default TargetStateAccessor;

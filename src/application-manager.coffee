@@ -17,7 +17,7 @@ updateLock = require './lib/update-lock'
 { ContractViolationError, ContractValidationError, NotFoundError } = require './lib/errors'
 { pathExistsOnHost } = require './lib/fs-utils'
 
-{ ApplicationTargetStateWrapper } = require './target-state'
+{ TargetStateAccessor } = require './target-state'
 
 { ServiceManager } = require './compose/service-manager'
 { Service } = require './compose/service'
@@ -82,7 +82,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@_targetVolatilePerImageId = {}
 		@_containerStarted = {}
 
-		@targetStateWrapper = new ApplicationTargetStateWrapper(this, @config, @db)
+		@targetStateWrapper = new TargetStateAccessor(this, @config, @db)
 
 		@config.on 'change', (changedConfig) =>
 			if changedConfig.appUpdatePollInterval
