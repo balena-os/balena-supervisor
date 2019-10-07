@@ -1,4 +1,16 @@
 - commits:
+    - subject: Add a cache around the database application target state
+      hash: 7b8e7ea8ca32849be29e4103ce8c215e99a2bac9
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.5.0
+  date: 2019-10-07T13:18:33.096Z
+- commits:
     - subject: Correctly validate container contracts
       hash: d16403f65496cc94dc2839de7e38b3c3173005eb
       body: ''
