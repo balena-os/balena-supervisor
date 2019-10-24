@@ -59,8 +59,28 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
-Starts a blink pattern on a LED for 15 seconds, if your device has one.
+Starts a blink pattern on a LED for 15 seconds, if your device has one and no request body is provided.
 Responds with an empty 200 response. It implements the "identify device" feature from the dashboard.
+
+#### Request body
+
+Is a optional JSON object with optional fields. If a field is not defined it will fall back to the default value. The field functions are as follows:
+* `blinks` determines the amount of blinks that occur before it pauses. A blink will last the sum of `onDuration` and `offDuration`. The default value is `1`.
+* `onDuration` sets the duration in milliseconds, that the led will stay on during a blink. The default value is `200`.
+* `offDuration` sets the duration in milliseconds, that the led will stay off during a blink. The default value is `200`.
+* `pause` sets the duration in milliseconds, that the algorithm will wait after all blinks are executed before restarting the blinks.. The default value is `0`.
+* `timeout` sets the duration in milliseconds, that the algorithm will run before beeing stopped. There is no default value.
+
+
+```json
+{
+	"blinks": 5,
+	"onDuration": 200,
+	"offDuration": 200,
+	"pause": 1000,
+	"timeout": 15000
+}
+```
 
 #### Examples:
 From an application container:
@@ -74,6 +94,32 @@ $ curl -X POST --header "Content-Type:application/json" \
 Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
+	--header "Authorization: Bearer <auth token>" \
+	--data '{"uuid": <uuid>}' \
+	"https://api.balena-cloud.com/supervisor/v1/blink"
+```
+
+<hr>
+
+### DELETE /v1/blink
+
+**Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+
+Stops a blink pattern on a LED, if a pattern was started.
+Responds with an empty 200 response.
+
+#### Examples:
+From an application container:
+```bash
+$ curl -X DELETE --header "Content-Type:application/json" \
+	"$BALENA_SUPERVISOR_ADDRESS/v1/blink?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+(Empty response)
+
+Remotely via the API proxy:
+```bash
+$ curl -X DELETE --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
 	--data '{"uuid": <uuid>}' \
 	"https://api.balena-cloud.com/supervisor/v1/blink"
