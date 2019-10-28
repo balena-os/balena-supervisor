@@ -146,6 +146,10 @@ module.exports = class DeviceState extends EventEmitter
 					log.error('Device state apply error', err)
 			else
 				log.success('Device state apply success')
+				# We also let the device-config module know that we
+				# successfully reached the target state and that it
+				# should clear any rate limiting it's applied
+				@deviceConfig.resetRateLimits()
 		@applications.on('change', @reportCurrentState)
 
 	healthcheck: =>
