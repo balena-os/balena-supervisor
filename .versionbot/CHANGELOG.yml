@@ -1,4 +1,23 @@
 - commits:
+    - subject: >-
+        Bump handlebars from 4.0.12 to 4.5.1 Bumps
+        [handlebars](https://github.com/wycats/handlebars.js) from 4.0.12 to
+        4.5.1. - [Release
+        notes](https://github.com/wycats/handlebars.js/releases) -
+        [Changelog](https://github.com/wycats/handlebars.js/blob/v4.5.1/release-notes.md)
+        -
+        [Commits](https://github.com/wycats/handlebars.js/compare/v4.0.12...v4.5.1)
+      hash: d767bada4eb5fd14c30a4fbd1e890848598318ff
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.5.2
+  date: 2019-10-29T11:48:48.695Z
+- commits:
     - subject: Ensure that we reset rate limits after a successful target apply
       hash: 9651bc70281afc885a6ae11d1fb7bf668611181c
       body: ''
