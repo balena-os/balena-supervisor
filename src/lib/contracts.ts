@@ -13,13 +13,20 @@ import supervisorVersion = require('./supervisor-version');
 export { ContractObject };
 
 export interface ServiceContracts {
-	[serviceName: string]: ContractObject;
+	[serviceName: string]: { contract?: ContractObject; optional: boolean };
 }
 
 export async function containerContractsFulfilled(
 	serviceContracts: ServiceContracts,
-): Promise<{ valid: boolean; unmetServices: string[] }> {
-	const containers = _.values(serviceContracts);
+): Promise<{
+	valid: boolean;
+	unmetServices: string[];
+	fulfilledServices: string[];
+}> {
+	const containers = _(serviceContracts)
+		.map('contract')
+		.compact()
+		.value();
 
 	const osContract = new Contract({
 		slug: 'balenaOS',
@@ -51,11 +58,11 @@ export async function containerContractsFulfilled(
 		type: 'meta.universe',
 	});
 
-	universe.addChildren(
-		[osContract, supervisorContract].concat(
-			containers.map(c => new Contract(c)),
-		),
-	);
+	universe.addChildren([
+		osContract,
+		supervisorContract,
+		...containers.map(c => new Contract(c)),
+	]);
 
 	const solution = blueprint.reproduce(universe);
 
@@ -65,7 +72,11 @@ export async function containerContractsFulfilled(
 		);
 	}
 	if (solution.length === 0) {
-		return { valid: false, unmetServices: _.keys(serviceContracts) };
+		return {
+			valid: false,
+			unmetServices: _.keys(serviceContracts),
+			fulfilledServices: [],
+		};
 	}
 
 	// Detect how many containers are present in the resulting
@@ -75,23 +86,42 @@ export async function containerContractsFulfilled(
 	});
 
 	if (children.length === containers.length) {
-		return { valid: true, unmetServices: [] };
+		return {
+			valid: true,
+			unmetServices: [],
+			fulfilledServices: _.keys(serviceContracts),
+		};
 	} else {
-		// Work out which service violated the contracts they
-		// provided
-		const unmetServices = _(serviceContracts)
-			.map((contract, serviceName) => {
-				const found = _.find(children, child => {
-					return _.isEqual((child as any).raw, contract);
-				});
-				if (found == null) {
-					return serviceName;
+		// If we got here, it means that at least one of the
+		// container contracts was not fulfilled. If *all* of
+		// those containers whose contract was not met are
+		// marked as optional, the target state is still valid,
+		// but we ignore the optional containers
+
+		const [fulfilledServices, unfulfilledServices] = _.partition(
+			_.keys(serviceContracts),
+			serviceName => {
+				const { contract } = serviceContracts[serviceName];
+				if (!contract) {
+					return true;
 				}
-				return;
-			})
-			.filter(n => n != null)
-			.value() as string[];
-		return { valid: false, unmetServices };
+				// Did we find the contract in the generated state?
+				return _.some(children, child =>
+					_.isEqual((child as any).raw, contract),
+				);
+			},
+		);
+
+		const valid = !_.some(
+			unfulfilledServices,
+			svcName => !serviceContracts[svcName].optional,
+		);
+
+		return {
+			valid,
+			unmetServices: unfulfilledServices,
+			fulfilledServices,
+		};
 	}
 }
 
