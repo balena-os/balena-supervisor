@@ -1,4 +1,18 @@
 - commits:
+    - subject: Ensure that we reset rate limits after a successful target apply
+      hash: 9651bc70281afc885a6ae11d1fb7bf668611181c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1117'
+        closes: '#1117'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.5.1
+  date: 2019-10-28T12:03:08.990Z
+- commits:
     - subject: Add a cache around the database application target state
       hash: 7b8e7ea8ca32849be29e4103ce8c215e99a2bac9
       body: ''
