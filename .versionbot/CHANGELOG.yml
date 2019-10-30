@@ -1,4 +1,32 @@
 - commits:
+    - subject: Convert some coffeescript tests to typescript
+      hash: b5a427f2b984114e93a02233efb85df125dbbec5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Bump mixin-deep from 1.3.1 to 1.3.2
+      hash: d0f35359b3f32a87804f760c1d5303c380ea730f
+      body: >
+        Bumps [mixin-deep](https://github.com/jonschlinkert/mixin-deep) from
+        1.3.1 to 1.3.2.
+
+        - [Release notes](https://github.com/jonschlinkert/mixin-deep/releases)
+
+        -
+        [Commits](https://github.com/jonschlinkert/mixin-deep/compare/1.3.1...1.3.2)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.5.3
+  date: 2019-10-30T11:00:45.668Z
+- commits:
     - subject: >-
         Bump handlebars from 4.0.12 to 4.5.1 Bumps
         [handlebars](https://github.com/wycats/handlebars.js) from 4.0.12 to
