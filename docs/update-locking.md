@@ -70,7 +70,7 @@ lockFile.lock '/tmp/balena/updates.lock', (err) ->
 In Python you can use the [`lockfile` library](http://pythonhosted.org/lockfile/lockfile.html#examples)
 ```python
 from lockfile import LockFile
-lock = LockFile("/tmp/balena/updates.lock")
+lock = LockFile("/tmp/balena/updates")
 with lock:
     print lock.path, 'is locked.'
 ```
