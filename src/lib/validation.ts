@@ -12,8 +12,6 @@ export interface CheckIntOptions {
 const ENV_VAR_KEY_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
 
-type NullableLiteral = Nullable<number | string>;
-
 /**
  * checkInt
  *
@@ -21,7 +19,7 @@ type NullableLiteral = Nullable<number | string>;
  * to be positive
  */
 export function checkInt(
-	s: NullableLiteral,
+	s: unknown,
 	options: CheckIntOptions = {},
 ): number | void {
 	if (s == null) {
@@ -48,7 +46,7 @@ export function checkInt(
  *
  * Check that a string exists, and is not an empty string, 'null', or 'undefined'
  */
-export function checkString(s: NullableLiteral): string | void {
+export function checkString(s: unknown): string | void {
 	if (s == null || !_.isString(s) || _.includes(['null', 'undefined', ''], s)) {
 		return;
 	}
@@ -62,7 +60,7 @@ export function checkString(s: NullableLiteral): string | void {
  * Given a value which can be a string, boolean or number, return a boolean
  * which represents if the input was truthy
  */
-export function checkTruthy(v: string | boolean | number): boolean | void {
+export function checkTruthy(v: unknown): boolean | void {
 	if (_.isString(v)) {
 		v = v.toLowerCase();
 	}
@@ -90,7 +88,7 @@ export function checkTruthy(v: string | boolean | number): boolean | void {
  * Check that the input string is definitely a string,
  * and has a length which is less than 255
  */
-export function isValidShortText(t: string): boolean {
+export function isValidShortText(t: unknown): boolean {
 	return _.isString(t) && t.length <= 255;
 }
 

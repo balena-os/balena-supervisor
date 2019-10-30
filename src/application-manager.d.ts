@@ -19,6 +19,7 @@ import VolumeManager from './compose/volume-manager';
 import Network from './compose/network';
 import Service from './compose/service';
 import Volume from './compose/volume';
+import DockerUtils from './lib/docker-utils';
 
 declare interface Options {
 	force?: boolean;
@@ -45,6 +46,7 @@ export class ApplicationManager extends EventEmitter {
 	public deviceState: any;
 	public eventTracker: EventTracker;
 	public apiBinder: APIBinder;
+	public docker: DockerUtils;
 
 	public services: ServiceManager;
 	public volumes: VolumeManager;
