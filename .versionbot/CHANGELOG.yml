@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'docs: update lockfile Python snippet'
+      hash: d12c10b0c2092615ac5d94168db703b23744006b
+      body: >
+        Port over the downstream changes from
+        https://github.com/balena-io/docs/pull/1184
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.5.4
+  date: 2019-10-30T13:04:37.635Z
+- commits:
     - subject: Convert some coffeescript tests to typescript
       hash: b5a427f2b984114e93a02233efb85df125dbbec5
       body: ''
