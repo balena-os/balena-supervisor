@@ -36,6 +36,7 @@ describe('compose/service', () => {
 			name: 'awesomeDevice',
 			version: 'v1.0.0',
 			deviceType: 'raspberry-pi',
+			osVariant: 'dev',
 			osVersion: 'Resin OS 2.0.2',
 		};
 		const service = {
@@ -58,6 +59,7 @@ describe('compose/service', () => {
 			RESIN_APP_NAME: 'awesomeApp',
 			RESIN_DEVICE_UUID: '1234',
 			RESIN_DEVICE_TYPE: 'raspberry-pi',
+			RESIN_HOST_OS_VARIANT: 'dev',
 			RESIN_HOST_OS_VERSION: 'Resin OS 2.0.2',
 			RESIN_SERVICE_NAME: 'serviceName',
 			RESIN_SUPERVISOR_VERSION: 'v1.0.0',
@@ -68,6 +70,7 @@ describe('compose/service', () => {
 			BALENA_APP_NAME: 'awesomeApp',
 			BALENA_DEVICE_UUID: '1234',
 			BALENA_DEVICE_TYPE: 'raspberry-pi',
+			BALENA_HOST_OS_VARIANT: 'dev',
 			BALENA_HOST_OS_VERSION: 'Resin OS 2.0.2',
 			BALENA_SERVICE_NAME: 'serviceName',
 			BALENA_SUPERVISOR_VERSION: 'v1.0.0',
@@ -450,7 +453,7 @@ describe('compose/service', () => {
 			expect(dockerSvc.isEqualConfig(composeSvc, {})).to.be.true;
 		});
 
-		it('should correct convert formats with a null entrypoint', () => {
+		it('should correctly convert formats with a null entrypoint', () => {
 			const composeSvc = Service.fromComposeObject(
 				configs.entrypoint.compose,
 				configs.entrypoint.imageInfo,

@@ -907,6 +907,7 @@ export class Service {
 						SERVICE_NAME: serviceName,
 						DEVICE_UUID: options.uuid,
 						DEVICE_TYPE: options.deviceType,
+						HOST_OS_VARIANT: options.osVariant,
 						HOST_OS_VERSION: options.osVersion,
 						SUPERVISOR_VERSION: options.version,
 						APP_LOCK_PATH: '/tmp/balena/updates.lock',

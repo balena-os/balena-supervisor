@@ -80,6 +80,7 @@ export const fnSchema = {
 			'deviceApiKey',
 			'version',
 			'deviceType',
+			'osVariant',
 			'osVersion',
 		]);
 	},

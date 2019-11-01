@@ -51,7 +51,7 @@ export async function getOSVersion(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'PRETTY_NAME');
 }
 
-export function getOSVariant(path: string): Promise<string | undefined> {
+export async function getOSVariant(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'VARIANT_ID');
 }
 

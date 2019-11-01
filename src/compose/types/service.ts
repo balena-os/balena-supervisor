@@ -192,6 +192,7 @@ export interface DeviceMetadata {
 	listenPort: number;
 	apiSecret: string;
 	supervisorApiHost: string;
+	osVariant: string;
 	osVersion: string;
 	hostnameOnHost: string;
 	hostPathExists: {

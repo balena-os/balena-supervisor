@@ -225,6 +225,7 @@ export const schemaTypes = {
 			apiEndpoint: t.string,
 			version: t.string,
 			deviceType: t.string,
+			osVariant: t.union([t.string, NullOrUndefined]),
 			osVersion: t.union([t.string, NullOrUndefined]),
 		}),
 		default: t.never,

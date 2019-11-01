@@ -98,5 +98,6 @@
 	"deviceApiKey": "ff89e1d8db58a7ca52a435f2adea319a",
 	"version": "7.18.0",
 	"deviceType": "raspberrypi3",
+	"osVariant": "dev",
 	"osVersion": "Resin OS 2.13.6+rev1"
 }
