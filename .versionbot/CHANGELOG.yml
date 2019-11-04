@@ -1,4 +1,20 @@
 - commits:
+    - subject: Ensure that we reset rate limits after a successful target apply
+      hash: e8ffd681f44874c179e20666d9945f912aa78c0f
+      body: ''
+      footer:
+        Backport-to: current
+        backport-to: current
+        Change-type: patch
+        change-type: patch
+        Closes: '#1117'
+        closes: '#1117'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 9.15.11
+  date: 2019-11-04T08:58:16.404Z
+- commits:
     - subject: Use jessie base images for i386-nlp
       hash: 2233ff8f10652cc26eddd52b73cb24f982f5280b
       body: |
