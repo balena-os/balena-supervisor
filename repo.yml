@@ -1,4 +1,4 @@
-type: docker
+type: node
 esr:
   version: 9.15
   line: next

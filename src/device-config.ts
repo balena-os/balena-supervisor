@@ -329,6 +329,12 @@ export class DeviceConfig {
 		);
 	}
 
+	public resetRateLimits() {
+		_.each(this.rateLimits, action => {
+			action.lastAttempt = null;
+		});
+	}
+
 	private bootConfigChangeRequired(
 		configBackend: DeviceConfigBackend | null,
 		current: Dictionary<string>,
