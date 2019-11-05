@@ -98,8 +98,11 @@ describe('Container contracts', () => {
 			expect(
 				await containerContractsFulfilled({
 					service: {
-						type: 'sw.container',
-						slug: 'user-container',
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+						},
+						optional: false,
 					},
 				}),
 			)
@@ -108,12 +111,18 @@ describe('Container contracts', () => {
 			expect(
 				await containerContractsFulfilled({
 					service: {
-						type: 'sw.container',
-						slug: 'user-container1',
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container1',
+						},
+						optional: false,
 					},
 					service2: {
-						type: 'sw.container',
-						slug: 'user-container2',
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container2',
+						},
+						optional: false,
 					},
 				}),
 			)
@@ -125,15 +134,18 @@ describe('Container contracts', () => {
 			expect(
 				await containerContractsFulfilled({
 					service: {
-						type: 'sw.container',
-						name: 'user-container',
-						slug: 'user-container',
-						requires: [
-							{
-								type: 'sw.os',
-								version: '>2.0.0',
-							},
-						],
+						contract: {
+							type: 'sw.container',
+							name: 'user-container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.os',
+									version: '>2.0.0',
+								},
+							],
+						},
+						optional: false,
 					},
 				}),
 			)
@@ -143,15 +155,18 @@ describe('Container contracts', () => {
 			expect(
 				await containerContractsFulfilled({
 					service: {
-						type: 'sw.container',
-						name: 'user-container',
-						slug: 'user-container',
-						requires: [
-							{
-								type: 'sw.supervisor',
-								version: `<${supervisorVersionGreater}`,
-							},
-						],
+						contract: {
+							type: 'sw.container',
+							name: 'user-container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.supervisor',
+									version: `<${supervisorVersionGreater}`,
+								},
+							],
+						},
+						optional: false,
 					},
 				}),
 			)
@@ -161,15 +176,18 @@ describe('Container contracts', () => {
 			expect(
 				await containerContractsFulfilled({
 					service: {
-						type: 'sw.container',
-						name: 'user-container',
-						slug: 'user-container',
-						requires: [
-							{
-								type: 'sw.supervisor',
-								version: `>${supervisorVersionLesser}`,
-							},
-						],
+						contract: {
+							type: 'sw.container',
+							name: 'user-container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.supervisor',
+									version: `>${supervisorVersionLesser}`,
+								},
+							],
+						},
+						optional: false,
 					},
 				}),
 			)
@@ -179,19 +197,22 @@ describe('Container contracts', () => {
 			expect(
 				await containerContractsFulfilled({
 					service: {
-						type: 'sw.container',
-						name: 'user-container',
-						slug: 'user-container',
-						requires: [
-							{
-								type: 'sw.supervisor',
-								version: `>${supervisorVersionLesser}`,
-							},
-							{
-								type: 'sw.os',
-								version: '<3.0.0',
-							},
-						],
+						contract: {
+							type: 'sw.container',
+							name: 'user-container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.supervisor',
+									version: `>${supervisorVersionLesser}`,
+								},
+								{
+									type: 'sw.os',
+									version: '<3.0.0',
+								},
+							],
+						},
+						optional: false,
 					},
 				}),
 			)
@@ -200,26 +221,32 @@ describe('Container contracts', () => {
 			expect(
 				await containerContractsFulfilled({
 					service: {
-						type: 'sw.container',
-						name: 'user-container1',
-						slug: 'user-container1',
-						requires: [
-							{
-								type: 'sw.supervisor',
-								version: `>${supervisorVersionLesser}`,
-							},
-						],
+						contract: {
+							type: 'sw.container',
+							name: 'user-container1',
+							slug: 'user-container1',
+							requires: [
+								{
+									type: 'sw.supervisor',
+									version: `>${supervisorVersionLesser}`,
+								},
+							],
+						},
+						optional: false,
 					},
 					service2: {
-						type: 'sw.container',
-						name: 'user-container1',
-						slug: 'user-container1',
-						requires: [
-							{
-								type: 'sw.os',
-								version: '<3.0.0',
-							},
-						],
+						contract: {
+							type: 'sw.container',
+							name: 'user-container1',
+							slug: 'user-container1',
+							requires: [
+								{
+									type: 'sw.os',
+									version: '<3.0.0',
+								},
+							],
+						},
+						optional: false,
 					},
 				}),
 			)
@@ -230,15 +257,18 @@ describe('Container contracts', () => {
 		it('Should refuse to run containers whose requirements are not satisfied', async () => {
 			let fulfilled = await containerContractsFulfilled({
 				service: {
-					type: 'sw.container',
-					name: 'user-container',
-					slug: 'user-container',
-					requires: [
-						{
-							type: 'sw.os',
-							version: '>=3.0.0',
-						},
-					],
+					contract: {
+						type: 'sw.container',
+						name: 'user-container',
+						slug: 'user-container',
+						requires: [
+							{
+								type: 'sw.os',
+								version: '>=3.0.0',
+							},
+						],
+					},
+					optional: false,
 				},
 			});
 			expect(fulfilled)
@@ -250,19 +280,22 @@ describe('Container contracts', () => {
 
 			fulfilled = await containerContractsFulfilled({
 				service2: {
-					type: 'sw.container',
-					name: 'user-container2',
-					slug: 'user-container2',
-					requires: [
-						{
-							type: 'sw.supervisor',
-							version: `>=${supervisorVersionLesser}`,
-						},
-						{
-							type: 'sw.os',
-							version: '>3.0.0',
-						},
-					],
+					contract: {
+						type: 'sw.container',
+						name: 'user-container2',
+						slug: 'user-container2',
+						requires: [
+							{
+								type: 'sw.supervisor',
+								version: `>=${supervisorVersionLesser}`,
+							},
+							{
+								type: 'sw.os',
+								version: '>3.0.0',
+							},
+						],
+					},
+					optional: false,
 				},
 			});
 			expect(fulfilled)
@@ -274,26 +307,32 @@ describe('Container contracts', () => {
 
 			fulfilled = await containerContractsFulfilled({
 				service: {
-					type: 'sw.container',
-					name: 'user-container1',
-					slug: 'user-container1',
-					requires: [
-						{
-							type: 'sw.supervisor',
-							version: `>=${supervisorVersionLesser}`,
-						},
-					],
+					contract: {
+						type: 'sw.container',
+						name: 'user-container1',
+						slug: 'user-container1',
+						requires: [
+							{
+								type: 'sw.supervisor',
+								version: `>=${supervisorVersionLesser}`,
+							},
+						],
+					},
+					optional: false,
 				},
 				service2: {
-					type: 'sw.container',
-					name: 'user-container2',
-					slug: 'user-container2',
-					requires: [
-						{
-							type: 'sw.supervisor',
-							version: `<=${supervisorVersionLesser}`,
-						},
-					],
+					contract: {
+						type: 'sw.container',
+						name: 'user-container2',
+						slug: 'user-container2',
+						requires: [
+							{
+								type: 'sw.supervisor',
+								version: `<=${supervisorVersionLesser}`,
+							},
+						],
+					},
+					optional: false,
 				},
 			});
 			expect(fulfilled)
@@ -302,6 +341,65 @@ describe('Container contracts', () => {
 			expect(fulfilled)
 				.to.have.property('unmetServices')
 				.that.deep.equals(['service2']);
+		});
+
+		describe('Optional containers', () => {
+			it('should correctly run passing optional containers', async () => {
+				const {
+					valid,
+					unmetServices,
+					fulfilledServices,
+				} = await containerContractsFulfilled({
+					service1: {
+						contract: {
+							type: 'sw.container',
+							slug: 'service1',
+							requires: [
+								{
+									type: 'sw.os',
+									version: `<${supervisorVersionGreater}`,
+								},
+							],
+						},
+						optional: true,
+					},
+				});
+				expect(valid).to.equal(true);
+				expect(unmetServices).to.deep.equal([]);
+				expect(fulfilledServices).to.deep.equal(['service1']);
+			});
+
+			it('should corrrectly omit failing optional containers', async () => {
+				const {
+					valid,
+					unmetServices,
+					fulfilledServices,
+				} = await containerContractsFulfilled({
+					service1: {
+						contract: {
+							type: 'sw.container',
+							slug: 'service1',
+							requires: [
+								{
+									type: 'sw.os',
+									version: `>${supervisorVersionGreater}`,
+								},
+							],
+						},
+						optional: true,
+					},
+					service2: {
+						contract: {
+							type: 'sw.container',
+							slug: 'service2',
+						},
+						optional: false,
+					},
+				});
+				expect(valid).to.equal(true);
+				expect(unmetServices).to.deep.equal(['service1']);
+				expect(fulfilledServices).to.deep.equal(['service2']);
+			});
 		});
 	});
 });

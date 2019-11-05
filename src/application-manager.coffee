@@ -689,7 +689,8 @@ module.exports = class ApplicationManager extends EventEmitter
 		# to the database, overwriting the current release. This
 		# is because if we just reject the release, but leave it
 		# in the db, if for any reason the current state stops
-		# running, we won't restart it, leaving the device useless
+		# running, we won't restart it, leaving the device
+		# useless
 		contractsFulfilled = _.mapValues apps, (app) ->
 			serviceContracts = {}
 			_.each app.services, (s) ->
@@ -698,12 +699,16 @@ module.exports = class ApplicationManager extends EventEmitter
 						validateContract(s.contract)
 					catch e
 						throw new ContractValidationError(s.serviceName, e.message)
-					serviceContracts[s.serviceName] = s.contract
+					serviceContracts[s.serviceName] =
+						contract: s.contract,
+						optional: checkTruthy(s.labels['io.balena.features.optional']) ? false
+				else
+					serviceContracts[s.serviceName] = { contract: null, optional: false }
 
 			if !_.isEmpty(serviceContracts)
 				containerContractsFulfilled(serviceContracts)
 			else
-				{ valid: true }
+				{ valid: true, fulfilledServices: _.map(app.services, 'serviceName') }
 
 
 		setInTransaction = (filteredApps, trx) =>
@@ -730,12 +735,23 @@ module.exports = class ApplicationManager extends EventEmitter
 				@proxyvisor.setTargetInTransaction(dependent, trx)
 
 		contractViolators = {}
-		Promise.props(contractsFulfilled).then (fulfilledContracts) ->
+		Promise.props(contractsFulfilled).then (fulfilledContracts) =>
 			filteredApps = _.cloneDeep(apps)
-			_.each fulfilledContracts, ({ valid, unmetServices }, appId) ->
-				if not valid
-					contractViolators[apps[appId].name] = unmetServices
-					delete filteredApps[appId]
+			_.each(
+				fulfilledContracts,
+				({ valid, unmetServices, fulfilledServices, unmetAndOptional }, appId) =>
+					if not valid
+						contractViolators[apps[appId].name] = unmetServices
+						delete filteredApps[appId]
+					else
+						# valid is true, but we could still be missing
+						# some optional containers, and need to filter
+						# these out of the target state
+						filteredApps[appId].services = _.pickBy filteredApps[appId].services, ({ serviceName }) ->
+							fulfilledServices.includes(serviceName)
+						if unmetAndOptional.length != 0
+							@reportOptionalContainers(unmetAndOptional)
+			)
 			if trx?
 				setInTransaction(filteredApps, trx)
 			else
@@ -997,3 +1013,12 @@ module.exports = class ApplicationManager extends EventEmitter
 			return volumes.map((v) -> { action: 'removeVolume', current: v })
 
 	localModeSwitchCompletion: => @localModeManager.switchCompletion()
+
+	reportOptionalContainers: (serviceNames) =>
+		# Print logs to the console and dashboard, letting the
+		# user know that we're not going to run certain services
+		# because of their contract
+		message = "Not running containers because of contract violations: #{serviceNames.join('. ')}"
+		log.info(message)
+		@logger.logSystemMessage(message, {}, 'optionalContainerViolation', true)
+
