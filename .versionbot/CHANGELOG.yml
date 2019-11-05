@@ -1,4 +1,25 @@
 - commits:
+    - subject: Report any optional containers that aren't being run
+      hash: 8223bf2ccb8e3c50a79860088b5d12607ad71671
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Support optional containers based on their contract
+      hash: f75b8aad2bc7661de803b80dc7008de9a2c6a6af
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.0
+  date: 2019-11-05T14:48:39.493Z
+- commits:
     - subject: Bump lodash from 4.17.11 to 4.17.13
       hash: 835ef7908e8daba1c0362fae8aaa4b592b2d1b2f
       body: >
