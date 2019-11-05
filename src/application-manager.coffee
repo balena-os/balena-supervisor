@@ -735,18 +735,23 @@ module.exports = class ApplicationManager extends EventEmitter
 				@proxyvisor.setTargetInTransaction(dependent, trx)
 
 		contractViolators = {}
-		Promise.props(contractsFulfilled).then (fulfilledContracts) ->
+		Promise.props(contractsFulfilled).then (fulfilledContracts) =>
 			filteredApps = _.cloneDeep(apps)
-			_.each fulfilledContracts, ({ valid, unmetServices, fulfilledServices }, appId) ->
-				if not valid
-					contractViolators[apps[appId].name] = unmetServices
-					delete filteredApps[appId]
-				else
-					# valid is true, but we could still be missing
-					# some optional containers, and need to filter
-					# these out of the target state
-					filteredApps[appId].services = _.pickBy filteredApps[appId].services, ({ serviceName }) ->
-						fulfilledServices.includes(serviceName)
+			_.each(
+				fulfilledContracts,
+				({ valid, unmetServices, fulfilledServices, unmetAndOptional }, appId) =>
+					if not valid
+						contractViolators[apps[appId].name] = unmetServices
+						delete filteredApps[appId]
+					else
+						# valid is true, but we could still be missing
+						# some optional containers, and need to filter
+						# these out of the target state
+						filteredApps[appId].services = _.pickBy filteredApps[appId].services, ({ serviceName }) ->
+							fulfilledServices.includes(serviceName)
+						if unmetAndOptional.length != 0
+							@reportOptionalContainers(unmetAndOptional)
+			)
 			if trx?
 				setInTransaction(filteredApps, trx)
 			else
@@ -1008,3 +1013,12 @@ module.exports = class ApplicationManager extends EventEmitter
 			return volumes.map((v) -> { action: 'removeVolume', current: v })
 
 	localModeSwitchCompletion: => @localModeManager.switchCompletion()
+
+	reportOptionalContainers: (serviceNames) =>
+		# Print logs to the console and dashboard, letting the
+		# user know that we're not going to run certain services
+		# because of their contract
+		message = "Not running containers because of contract violations: #{serviceNames.join('. ')}"
+		log.info(message)
+		@logger.logSystemMessage(message, {}, 'optionalContainerViolation', true)
+

@@ -22,6 +22,7 @@ export async function containerContractsFulfilled(
 	valid: boolean;
 	unmetServices: string[];
 	fulfilledServices: string[];
+	unmetAndOptional: string[];
 }> {
 	const containers = _(serviceContracts)
 		.map('contract')
@@ -76,6 +77,7 @@ export async function containerContractsFulfilled(
 			valid: false,
 			unmetServices: _.keys(serviceContracts),
 			fulfilledServices: [],
+			unmetAndOptional: [],
 		};
 	}
 
@@ -90,6 +92,7 @@ export async function containerContractsFulfilled(
 			valid: true,
 			unmetServices: [],
 			fulfilledServices: _.keys(serviceContracts),
+			unmetAndOptional: [],
 		};
 	} else {
 		// If we got here, it means that at least one of the
@@ -112,15 +115,18 @@ export async function containerContractsFulfilled(
 			},
 		);
 
-		const valid = !_.some(
+		const [unmetAndRequired, unmetAndOptional] = _.partition(
 			unfulfilledServices,
-			svcName => !serviceContracts[svcName].optional,
+			serviceName => {
+				return !serviceContracts[serviceName].optional;
+			},
 		);
 
 		return {
-			valid,
+			valid: unmetAndRequired.length === 0,
 			unmetServices: unfulfilledServices,
 			fulfilledServices,
+			unmetAndOptional,
 		};
 	}
 }
