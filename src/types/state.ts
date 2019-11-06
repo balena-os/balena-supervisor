@@ -59,3 +59,14 @@ export type TargetApplication = LocalTargetState['apps'][0];
 export type AppsJsonFormat = Omit<TargetState['local'], 'name'> & {
 	pinDevice?: boolean;
 };
+
+export type ApplicationDatabaseFormat = Array<{
+	appId: number;
+	commit: string;
+	name: string;
+	source: string;
+	releaseId: number;
+	services: string;
+	networks: string;
+	volumes: string;
+}>;
