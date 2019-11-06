@@ -1,10 +1,12 @@
 import * as _ from 'lodash';
 
-import { Application } from '../types/application';
+import { AppsJsonFormat, TargetApplication } from '../types/state';
 
 export const defaultLegacyVolume = () => 'resin-data';
 
-export function singleToMulticontainerApp(app: Dictionary<any>): Application {
+export function singleToMulticontainerApp(
+	app: Dictionary<any>,
+): TargetApplication & { appId: string } {
 	const environment: Dictionary<string> = {};
 	for (const key in app.env) {
 		if (!/^RESIN_/.test(key)) {
@@ -14,15 +16,15 @@ export function singleToMulticontainerApp(app: Dictionary<any>): Application {
 
 	const { appId } = app;
 	const conf = app.config != null ? app.config : {};
-	const newApp = new Application();
-	_.assign(newApp, {
-		appId,
+	const newApp: TargetApplication & { appId: string } = {
+		appId: appId.toString(),
 		commit: app.commit,
 		name: app.name,
 		releaseId: 1,
 		networks: {},
 		volumes: {},
-	});
+		services: {},
+	};
 	const defaultVolume = exports.defaultLegacyVolume();
 	newApp.volumes[defaultVolume] = {};
 	const updateStrategy =
@@ -66,4 +68,17 @@ export function singleToMulticontainerApp(app: Dictionary<any>): Application {
 		},
 	};
 	return newApp;
+}
+
+export function convertLegacyAppsJson(appsArray: any[]): AppsJsonFormat {
+	const deviceConfig = _.reduce(
+		appsArray,
+		(conf, app) => {
+			return _.merge({}, conf, app.config);
+		},
+		{},
+	);
+
+	const apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId');
+	return { apps, config: deviceConfig } as AppsJsonFormat;
 }

@@ -14,6 +14,8 @@ import { RPiConfigBackend } from '../src/config/backend';
 import DB from '../src/db';
 import DeviceState = require('../src/device-state');
 
+import { loadTargetFromFile } from '../src/device-state/preload';
+
 import Service from '../src/compose/service';
 
 const mockedInitialConfig = {
@@ -260,8 +262,9 @@ describe('deviceState', () => {
 		);
 
 		try {
-			await deviceState.loadTargetFromFile(
+			await loadTargetFromFile(
 				process.env.ROOT_MOUNTPOINT + '/apps.json',
+				deviceState,
 			);
 			const targetState = await deviceState.getTarget();
 
@@ -288,21 +291,22 @@ describe('deviceState', () => {
 		stub(deviceState.deviceConfig, 'getCurrent').returns(
 			Promise.resolve(mockedInitialConfig),
 		);
-		deviceState
-			.loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps-pin.json')
-			.then(() => {
-				(deviceState as any).applications.images.save.restore();
-				(deviceState as any).deviceConfig.getCurrent.restore();
+		loadTargetFromFile(
+			process.env.ROOT_MOUNTPOINT + '/apps-pin.json',
+			deviceState,
+		).then(() => {
+			(deviceState as any).applications.images.save.restore();
+			(deviceState as any).deviceConfig.getCurrent.restore();
 
-				config.get('pinDevice').then(pinned => {
-					expect(pinned)
-						.to.have.property('app')
-						.that.equals(1234);
-					expect(pinned)
-						.to.have.property('commit')
-						.that.equals('abcdef');
-				});
+			config.get('pinDevice').then(pinned => {
+				expect(pinned)
+					.to.have.property('app')
+					.that.equals(1234);
+				expect(pinned)
+					.to.have.property('commit')
+					.that.equals('abcdef');
 			});
+		});
 	});
 
 	it('emits a change event when a new state is reported', () => {

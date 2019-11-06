@@ -14,6 +14,8 @@ class DeviceState extends EventEmitter {
 	public applications: ApplicationManager;
 	public router: Router;
 	public deviceConfig: DeviceConfig;
+	public config: Config;
+	public eventTracker: EventTracker;
 
 	public constructor(args: {
 		config: Config;
