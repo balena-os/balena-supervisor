@@ -1,4 +1,20 @@
 - commits:
+    - subject: 'event-tracker: Use std mixpanel types'
+      hash: 2143180d27d9ba0939a365ebcfd56fa069f6e2c8
+      body: >
+        Custom type definitions are removed for mixpanel module since they are
+        embedded
+
+        into their npm package.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.6.1
+  date: 2019-11-05T21:14:55.593Z
+- commits:
     - subject: Report any optional containers that aren't being run
       hash: 8223bf2ccb8e3c50a79860088b5d12607ad71671
       body: ''
