@@ -1,4 +1,16 @@
 - commits:
+    - subject: Extract normaliseLegacy as normalise to migration module
+      hash: cf79ed8cdb96431a5a5fbe94885c1e96680df75c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Theodor Gherzan <theodor@balena.io>
+        signed-off-by: Theodor Gherzan <theodor@balena.io>
+      author: Theodor Gherzan
+  version: 10.6.3
+  date: 2019-11-07T17:52:39.365Z
+- commits:
     - subject: Define the database type of the application
       hash: 053e111626330ab4cc7a7dc545c94aa0674405ee
       body: ''
