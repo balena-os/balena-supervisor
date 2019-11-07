@@ -16,10 +16,9 @@ constants = require './lib/constants'
 validation = require './lib/validation'
 systemd = require './lib/systemd'
 updateLock = require './lib/update-lock'
+{ loadTargetFromFile } =  require './device-state/preload'
 { singleToMulticontainerApp } = require './lib/migration'
 {
-	ENOENT,
-	EISDIR,
 	NotFoundError,
 	UpdatesLockedError
 } = require './lib/errors'
@@ -301,7 +300,7 @@ module.exports = class DeviceState extends EventEmitter
 				@applications.getTargetApps()
 			.then (targetApps) =>
 				if !conf.provisioned or (_.isEmpty(targetApps) and !conf.targetStateSet)
-					@loadTargetFromFile()
+					loadTargetFromFile(null, this)
 					.finally =>
 						@config.set({ targetStateSet: 'true' })
 				else
@@ -423,14 +422,6 @@ module.exports = class DeviceState extends EventEmitter
 		_.assign(@_currentVolatile, newState)
 		@emitAsync('change')
 
-	_convertLegacyAppsJson: (appsArray) ->
-		Promise.try ->
-			deviceConf = _.reduce(appsArray, (conf, app) ->
-				return _.merge({}, conf, app.config)
-			, {})
-			apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId')
-			return { apps, config: deviceConf }
-
 	restoreBackup: (targetState) =>
 		@setTarget(targetState)
 		.then =>
@@ -468,73 +459,6 @@ module.exports = class DeviceState extends EventEmitter
 				rimraf(backupPath)
 			.then ->
 				rimraf(path.join(constants.rootMountPoint, 'mnt/data', constants.migrationBackupFile))
-
-	loadTargetFromFile: (appsPath) ->
-		log.info('Attempting to load preloaded apps...')
-		appsPath ?= constants.appsJsonPath
-		fs.readFileAsync(appsPath, 'utf8')
-		.then(JSON.parse)
-		.then (stateFromFile) =>
-			if _.isArray(stateFromFile)
-				# This is a legacy apps.json
-				log.debug('Legacy apps.json detected')
-				return @_convertLegacyAppsJson(stateFromFile)
-			else
-				return stateFromFile
-		.then (stateFromFile) =>
-			commitToPin = null
-			appToPin = null
-			if !_.isEmpty(stateFromFile)
-				images = _.flatMap stateFromFile.apps, (app, appId) =>
-					# multi-app warning!
-					# The following will need to be changed once running multiple applications is possible
-					commitToPin = app.commit
-					appToPin = appId
-					_.map app.services, (service, serviceId) =>
-						svc = {
-							imageName: service.image
-							serviceName: service.serviceName
-							imageId: service.imageId
-							serviceId
-							releaseId: app.releaseId
-							appId
-						}
-						return @applications.imageForService(svc)
-				Promise.map images, (img) =>
-					@applications.images.normalise(img.name)
-					.then (name) =>
-						img.name = name
-						@applications.images.save(img)
-				.then =>
-					@deviceConfig.getCurrent()
-				.then (deviceConf) =>
-					@deviceConfig.formatConfigKeys(stateFromFile.config)
-					.then (formattedConf) =>
-						stateFromFile.config = _.defaults(formattedConf, deviceConf)
-						stateFromFile.name ?= ''
-						@setTarget({
-							local: stateFromFile
-						})
-				.then =>
-					log.success('Preloading complete')
-					if stateFromFile.pinDevice
-						# multi-app warning!
-						# The following will need to be changed once running multiple applications is possible
-						log.debug('Device will be pinned')
-						if commitToPin? and appToPin?
-							@config.set
-								pinDevice: {
-									commit: commitToPin,
-									app: parseInt(appToPin, 10),
-								}
-		# Ensure that this is actually a file, and not an empty path
-		# It can be an empty path because if the file does not exist
-		# on host, the docker daemon creates an empty directory when
-		# the bind mount is added
-		.catch ENOENT, EISDIR, ->
-			log.debug('No apps.json file present, skipping preload')
-		.catch (err) =>
-			@eventTracker.track('Loading preloaded apps failed', { error: err })
 
 	reboot: (force, skipLock) =>
 		@applications.stopAll({ force, skipLock })

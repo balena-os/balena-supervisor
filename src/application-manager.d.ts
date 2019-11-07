@@ -6,7 +6,7 @@ import { EventTracker } from './event-tracker';
 import { Logger } from './logger';
 import { DeviceApplicationState } from './types/state';
 
-import Images from './compose/images';
+import ImageManager, { Image } from './compose/images';
 import ServiceManager from './compose/service-manager';
 import DB from './db';
 
@@ -53,7 +53,7 @@ export class ApplicationManager extends EventEmitter {
 	public networks: NetworkManager;
 	public config: Config;
 	public db: DB;
-	public images: Images;
+	public images: ImageManager;
 
 	public proxyvisor: any;
 
@@ -81,6 +81,7 @@ export class ApplicationManager extends EventEmitter {
 	public stopAll(opts: { force?: boolean; skipLock?: boolean }): Promise<void>;
 
 	public serviceNameFromId(serviceId: number): Bluebird<string>;
+	public imageForService(svc: any): Promise<Image>;
 }
 
 export default ApplicationManager;
