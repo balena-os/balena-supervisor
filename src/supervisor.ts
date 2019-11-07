@@ -2,6 +2,7 @@ import APIBinder from './api-binder';
 import Config, { ConfigKey } from './config';
 import Database from './db';
 import EventTracker from './event-tracker';
+import { normaliseLegacyDatabase } from './lib/migration';
 import Logger from './logger';
 import SupervisorAPI from './supervisor-api';
 
@@ -97,9 +98,14 @@ export class Supervisor {
 		});
 
 		this.logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
-		if (conf.legacyAppsPresent) {
+		if (conf.legacyAppsPresent && this.apiBinder.balenaApi != null) {
 			log.info('Legacy app detected, running migration');
-			this.deviceState.normaliseLegacy(this.apiBinder.balenaApi);
+			await normaliseLegacyDatabase(
+				this.deviceState.config,
+				this.deviceState.applications,
+				this.db,
+				this.apiBinder.balenaApi,
+			);
 		}
 
 		await this.deviceState.init();
