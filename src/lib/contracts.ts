@@ -12,6 +12,8 @@ import supervisorVersion = require('./supervisor-version');
 
 export { ContractObject };
 
+const VALID_REQUIRE_TYPES = ['sw.os', 'sw.supervisor'];
+
 export interface ServiceContracts {
 	[serviceName: string]: { contract?: ContractObject; optional: boolean };
 }
@@ -152,6 +154,16 @@ export function validateContract(
 
 	if (isLeft(result)) {
 		throw new Error(reporter(result).join('\n'));
+	}
+	const contractObj = result.right;
+	if (contractObj.requires != null) {
+		for (const require of contractObj.requires) {
+			if (!_.includes(VALID_REQUIRE_TYPES, require.type)) {
+				throw new Error(
+					`${require.type} is not a valid contract requirement target`,
+				);
+			}
+		}
 	}
 
 	return true;

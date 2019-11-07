@@ -71,6 +71,17 @@ describe('Container contracts', () => {
 				}),
 			).to.throw();
 		});
+
+		it('should not validate a contract with incorrect requirements', () => {
+			expect(() => {
+				validateContract({
+					slug: 'user-container',
+					type: 'sw.container',
+					name: 'user-container',
+					requires: [{ type: 'sw.oss', version: '>3.0.0' }],
+				});
+			}).to.throw();
+		});
 	});
 
 	describe('Requirement resolution', () => {
