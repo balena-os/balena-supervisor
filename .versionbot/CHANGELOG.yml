@@ -1,4 +1,43 @@
 - commits:
+    - subject: Define the database type of the application
+      hash: 053e111626330ab4cc7a7dc545c94aa0674405ee
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Extract loadTargetFromFile function to preload module
+      hash: 09a8231fdee467b8b726269a2ef1bc8338733a19
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Define TargetApplicationState in types and remove Application type
+      hash: fea80c52059752fe7d97ce9032828243355c9981
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade typescript to 3.7
+      hash: 1d89174caf116236e856ee849369f35445f29d9d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.2
+  date: 2019-11-07T09:49:48.602Z
+- commits:
     - subject: 'event-tracker: Use std mixpanel types'
       hash: 2143180d27d9ba0939a365ebcfd56fa069f6e2c8
       body: >
