@@ -17,6 +17,9 @@ class DeviceState extends EventEmitter {
 	public config: Config;
 	public eventTracker: EventTracker;
 
+	// FIXME: I should be removed once device-state is refactored
+	public connected: boolean;
+
 	public constructor(args: {
 		config: Config;
 		db: Database;
@@ -31,6 +34,8 @@ class DeviceState extends EventEmitter {
 	public setTarget(target: any): Promise<any>;
 	public triggerApplyTarget(opts: any): Promise<any>;
 	public reportCurrentState(state: any);
+	public getCurrentForComparison(): Promise<any>;
+	public getStatus(): Promise<any>;
 
 	public async init();
 }

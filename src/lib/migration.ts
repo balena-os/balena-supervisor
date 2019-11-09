@@ -1,15 +1,27 @@
+import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
+import * as mkdirp from 'mkdirp';
+import { child_process, fs } from 'mz';
+import * as path from 'path';
 import { PinejsClientRequest } from 'pinejs-client-request';
+import * as rimraf from 'rimraf';
+
+const mkdirpAsync = Bluebird.promisify(mkdirp);
+const rimrafAsync = Bluebird.promisify(rimraf);
 
 import ApplicationManager from '../application-manager';
 import Config from '../config';
 import Database, { Transaction } from '../db';
-import { DatabaseParseError, NotFoundError } from '../lib/errors';
+import DeviceState = require('../device-state');
+import * as constants from '../lib/constants';
+import { BackupError, DatabaseParseError, NotFoundError } from '../lib/errors';
+import { pathExistsOnHost } from '../lib/fs-utils';
 import { log } from '../lib/supervisor-console';
 import {
 	ApplicationDatabaseFormat,
 	AppsJsonFormat,
 	TargetApplication,
+	TargetState,
 } from '../types/state';
 
 export const defaultLegacyVolume = () => 'resin-data';
@@ -175,12 +187,12 @@ export async function normaliseLegacyDatabase(
 		const imageFromDocker = await application.docker
 			.getImage(service.image)
 			.inspect()
-			.catch(e => {
-				if (e instanceof NotFoundError) {
+			.catch(error => {
+				if (error instanceof NotFoundError) {
 					return;
 				}
 
-				throw e;
+				throw error;
 			});
 		const imagesFromDatabase = await db
 			.models('image')
@@ -251,4 +263,89 @@ export async function normaliseLegacyDatabase(
 	await config.set({
 		legacyAppsPresent: false,
 	});
+}
+
+export async function loadBackupFromMigration(
+	deviceState: DeviceState,
+	targetState: TargetState,
+	retryDelay: number,
+): Promise<void> {
+	try {
+		const exists = await pathExistsOnHost(
+			path.join('mnt/data', constants.migrationBackupFile),
+		);
+		if (!exists) {
+			return;
+		}
+		log.info('Migration backup detected');
+
+		await deviceState.setTarget(targetState);
+
+		// multi-app warning!
+		const appId = parseInt(_.keys(targetState.local?.apps)[0], 10);
+
+		if (isNaN(appId)) {
+			throw new BackupError('No appId in target state');
+		}
+
+		const volumes = targetState.local?.apps?.[appId].volumes;
+
+		const backupPath = path.join(constants.rootMountPoint, 'mnt/data/backup');
+		// We clear this path in case it exists from an incomplete run of this function
+		await rimrafAsync(backupPath);
+		await mkdirpAsync(backupPath);
+		await child_process.exec(`tar -xzf backup.tgz -C ${backupPath}`, {
+			cwd: path.join(constants.rootMountPoint, 'mnt/data'),
+		});
+
+		for (const volumeName of await fs.readdir(backupPath)) {
+			const statInfo = await fs.stat(path.join(backupPath, volumeName));
+
+			if (!statInfo.isDirectory()) {
+				throw new BackupError(
+					`Invalid backup: ${volumeName} is not a directory`,
+				);
+			}
+
+			if (volumes[volumeName] != null) {
+				log.debug(`Creating volume ${volumeName} from backup`);
+				// If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
+				await deviceState.applications.volumes
+					.get({ appId, name: volumeName })
+					.then(volume => {
+						return volume.remove();
+					})
+					.catch(error => {
+						if (error instanceof NotFoundError) {
+							return;
+						}
+						throw error;
+					});
+
+				await deviceState.applications.volumes.createFromPath(
+					{ appId, name: volumeName },
+					volumes[volumeName],
+					path.join(backupPath, volumeName),
+				);
+			} else {
+				throw new BackupError(
+					`Invalid backup: ${volumeName} is present in backup but not in target state`,
+				);
+			}
+		}
+
+		await rimrafAsync(backupPath);
+		await rimrafAsync(
+			path.join(
+				constants.rootMountPoint,
+				'mnt/data',
+				constants.migrationBackupFile,
+			),
+		);
+	} catch (err) {
+		log.error(`Error restoring migration backup, retrying: ${err}`);
+
+		await Bluebird.delay(retryDelay);
+		return loadBackupFromMigration(deviceState, targetState, retryDelay);
+	}
 }
