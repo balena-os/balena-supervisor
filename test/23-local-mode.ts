@@ -178,9 +178,9 @@ describe('LocalModeManager', () => {
 			const stubEngineObjectMethods = (
 				removeThrows: boolean,
 			): Array<sinon.SinonStubbedInstance<EngineStubbedObject>> => {
-				const resArray: Array<
-					sinon.SinonStubbedInstance<EngineStubbedObject>
-				> = [];
+				const resArray: Array<sinon.SinonStubbedInstance<
+					EngineStubbedObject
+				>> = [];
 
 				const stub = <T>(
 					c: sinon.StubbableType<EngineStubbedObject>,

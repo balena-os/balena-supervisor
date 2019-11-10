@@ -30,9 +30,7 @@ function remountAndWriteAtomic(file: string, data: string): Promise<void> {
 	// Here's the dangerous part:
 	return Promise.resolve(
 		childProcess.execAsync(
-			`mount -t vfat -o remount,rw ${
-				constants.bootBlockDevice
-			} ${bootMountPoint}`,
+			`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ${bootMountPoint}`,
 		),
 	)
 		.then(() => {
@@ -76,9 +74,7 @@ export abstract class DeviceConfigBackend {
 }
 
 export class RPiConfigBackend extends DeviceConfigBackend {
-	private static bootConfigVarPrefix = `${
-		constants.hostConfigVarPrefix
-	}CONFIG_`;
+	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}CONFIG_`;
 	private static bootConfigPath = `${bootMountPoint}/config.txt`;
 
 	public static bootConfigVarRegex = new RegExp(
@@ -206,9 +202,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 }
 
 export class ExtlinuxConfigBackend extends DeviceConfigBackend {
-	private static bootConfigVarPrefix = `${
-		constants.hostConfigVarPrefix
-	}EXTLINUX_`;
+	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
 	private static bootConfigPath = `${bootMountPoint}/extlinux/extlinux.conf`;
 
 	public static bootConfigVarRegex = new RegExp(

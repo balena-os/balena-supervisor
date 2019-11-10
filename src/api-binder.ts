@@ -143,9 +143,15 @@ export class APIBinder {
 	}
 
 	public async initClient() {
-		const { unmanaged, apiEndpoint, currentApiKey } = await this.config.getMany(
-			['unmanaged', 'apiEndpoint', 'currentApiKey'],
-		);
+		const {
+			unmanaged,
+			apiEndpoint,
+			currentApiKey,
+		} = await this.config.getMany([
+			'unmanaged',
+			'apiEndpoint',
+			'currentApiKey',
+		]);
 
 		if (unmanaged) {
 			log.debug('Unmanaged mode is set, skipping API client initialization');
@@ -325,10 +331,12 @@ export class APIBinder {
 			registered_at: Math.floor(Date.now() / 1000),
 		});
 
-		return (await this.balenaApi
-			.post({ resource: 'device', body: device })
-			// TODO: Remove the `as number` when we fix the config typings
-			.timeout(conf.apiTimeout)) as Device;
+		return (
+			(await this.balenaApi
+				.post({ resource: 'device', body: device })
+				// TODO: Remove the `as number` when we fix the config typings
+				.timeout(conf.apiTimeout)) as Device
+		);
 	}
 
 	public async getTargetState(): Promise<DeviceApplicationState> {
@@ -535,9 +543,7 @@ export class APIBinder {
 				// the watchdog to kill the supervisor - and killing the supervisor will
 				// not help in this situation
 				log.error(
-					`Non-200 response from the API! Status code: ${
-						e.statusCode
-					} - message:`,
+					`Non-200 response from the API! Status code: ${e.statusCode} - message:`,
 					e,
 				);
 			} else {
@@ -614,9 +620,10 @@ export class APIBinder {
 
 	private async pollTargetState(isInitialCall: boolean = false): Promise<void> {
 		// TODO: Remove the checkInt here with the config changes
-		const { appUpdatePollInterval, instantUpdates } = await this.config.getMany(
-			['appUpdatePollInterval', 'instantUpdates'],
-		);
+		const {
+			appUpdatePollInterval,
+			instantUpdates,
+		} = await this.config.getMany(['appUpdatePollInterval', 'instantUpdates']);
 
 		// We add jitter to the poll interval so that it's between 0.5 and 1.5 times
 		// the configured interval
@@ -885,9 +892,7 @@ export class APIBinder {
 					'Attempting to provision a device without an initialized API client',
 				);
 			}
-			this.balenaApi.passthrough.headers.Authorization = `Bearer ${
-				opts.deviceApiKey
-			}`;
+			this.balenaApi.passthrough.headers.Authorization = `Bearer ${opts.deviceApiKey}`;
 
 			const configToUpdate = {
 				registered_at: opts.registered_at,

@@ -208,9 +208,10 @@ export class DeviceConfig {
 						'Non-dictionary passed to DeviceConfig.setBootConfig',
 					);
 				}
-				await this.setBootConfig(configBackend, step.target as Dictionary<
-					string
-				>);
+				await this.setBootConfig(
+					configBackend,
+					step.target as Dictionary<string>,
+				);
 			},
 		};
 	}
@@ -276,9 +277,9 @@ export class DeviceConfig {
 	}
 
 	public async getCurrent() {
-		const conf = await this.config.getMany(['deviceType'].concat(
-			_.keys(DeviceConfig.configKeys),
-		) as SchemaTypeKey[]);
+		const conf = await this.config.getMany(
+			['deviceType'].concat(_.keys(DeviceConfig.configKeys)) as SchemaTypeKey[],
+		);
 
 		const configBackend = await this.getConfigBackend();
 

@@ -152,9 +152,7 @@ export async function normaliseLegacyDatabase(
 
 		if (releases.length === 0) {
 			log.warn(
-				`No compatible releases found in API, removing ${
-					app.appId
-				} from target state`,
+				`No compatible releases found in API, removing ${app.appId} from target state`,
 			);
 			await db
 				.models('app')
@@ -171,9 +169,7 @@ export async function normaliseLegacyDatabase(
 			: `${image.is_stored_at__image_location}@${image.content_hash}`;
 
 		log.debug(
-			`Found a release with releaseId ${release.id}, imageId ${
-				image.id
-			}, serviceId ${serviceId}\nImage location is ${imageUrl}`,
+			`Found a release with releaseId ${release.id}, imageId ${image.id}, serviceId ${serviceId}\nImage location is ${imageUrl}`,
 		);
 
 		const imageFromDocker = await application.docker

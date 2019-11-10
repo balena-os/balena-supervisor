@@ -580,9 +580,11 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		image = this.format(image);
 		// TODO: Get rid of this janky cast once the database is
 		// more strongly typed
-		await this.db.upsertModel('image', image, (image as unknown) as Dictionary<
-			unknown
-		>);
+		await this.db.upsertModel(
+			'image',
+			image,
+			(image as unknown) as Dictionary<unknown>,
+		);
 	}
 
 	private format(image: MaybeImage): Image {

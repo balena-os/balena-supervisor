@@ -337,9 +337,7 @@ export class Service {
 			config.cpus = Math.round(Number(config.cpus) * 10 ** 9);
 			if (_.isNaN(config.cpus)) {
 				log.warn(
-					`config.cpus value cannot be parsed. Ignoring.\n  Value:${
-						config.cpus
-					}`,
+					`config.cpus value cannot be parsed. Ignoring.\n  Value:${config.cpus}`,
 				);
 				config.cpus = undefined;
 			}
@@ -713,9 +711,7 @@ export class Service {
 			// Add some console output for why a service is not matching
 			// so that if we end up in a restart loop, we know exactly why
 			log.debug(
-				`Replacing container for service ${
-					this.serviceName
-				} because of config changes:`,
+				`Replacing container for service ${this.serviceName} because of config changes:`,
 			);
 			if (!nonArrayEquals) {
 				// Try not to leak any sensitive information

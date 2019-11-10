@@ -38,34 +38,35 @@ export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) 
 		const stdoutStream = await container.logs(stdoutLogOpts);
 		const stderrStream = await container.logs(stderrLogOpts);
 
-		[[stdoutStream, true], [stderrStream, false]].forEach(
-			([stream, isStdout]: [Stream.Readable, boolean]) => {
-				stream
-					.on('error', err => {
-						this.emit(
-							'error',
-							new Error(`Error on container logs: ${err} ${err.stack}`),
-						);
-					})
-					.pipe(es.split())
-					.on('data', (logBuf: Buffer | string) => {
-						if (_.isString(logBuf)) {
-							logBuf = Buffer.from(logBuf);
-						}
-						const logMsg = ContainerLogs.extractMessage(logBuf);
-						if (logMsg != null) {
-							this.emit('log', { isStdout, ...logMsg });
-						}
-					})
-					.on('error', err => {
-						this.emit(
-							'error',
-							new Error(`Error on container logs: ${err} ${err.stack}`),
-						);
-					})
-					.on('end', () => this.emit('closed'));
-			},
-		);
+		[
+			[stdoutStream, true],
+			[stderrStream, false],
+		].forEach(([stream, isStdout]: [Stream.Readable, boolean]) => {
+			stream
+				.on('error', err => {
+					this.emit(
+						'error',
+						new Error(`Error on container logs: ${err} ${err.stack}`),
+					);
+				})
+				.pipe(es.split())
+				.on('data', (logBuf: Buffer | string) => {
+					if (_.isString(logBuf)) {
+						logBuf = Buffer.from(logBuf);
+					}
+					const logMsg = ContainerLogs.extractMessage(logBuf);
+					if (logMsg != null) {
+						this.emit('log', { isStdout, ...logMsg });
+					}
+				})
+				.on('error', err => {
+					this.emit(
+						'error',
+						new Error(`Error on container logs: ${err} ${err.stack}`),
+					);
+				})
+				.on('end', () => this.emit('closed'));
+		});
 	}
 
 	private static extractMessage(
