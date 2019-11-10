@@ -85,7 +85,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		'/v2/applications/:appId/purge',
 		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
-			const { appId } = req.params;
+			const appId = checkInt(req.params.appId);
+			if (!appId) {
+				return res.status(400).json({
+					status: 'failed',
+					message: 'Missing app id',
+				});
+			}
 
 			return doPurge(applications, appId, force)
 				.then(() => {
