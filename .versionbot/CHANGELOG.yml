@@ -1,4 +1,16 @@
 - commits:
+    - subject: Check if appId is a number before purging
+      hash: 597f95e1696f3934b6072a775949e7fd7010340e
+      body: ''
+      footer:
+        Change-Type: patch
+        change-type: patch
+        Signed-off-by: Michel Wohlert <michel@1012consulting.io>
+        signed-off-by: Michel Wohlert <michel@1012consulting.io>
+      author: Michel Wohlert
+  version: 10.6.4
+  date: 2019-11-11T11:00:29.945Z
+- commits:
     - subject: Extract normaliseLegacy as normalise to migration module
       hash: cf79ed8cdb96431a5a5fbe94885c1e96680df75c
       body: ''
