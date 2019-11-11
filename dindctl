@@ -107,7 +107,7 @@ function parseOptions {
 				CLEAN_VOLUMES="false"
 				;;
 			*)
-				echo "Warning: unknown argument: $arg"
+				echo "Warning: unknown argument: $1"
 				;;
 		esac
 		shift
