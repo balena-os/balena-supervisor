@@ -136,8 +136,8 @@ function refreshSupervisorSrc {
 }
 
 function runDind {
-	if [ ! -f "tools/dind/resinos-in-container/resinos-in-container.sh" ]; then
-		git submodule update --init
+	if [ ! -f "$SUPERVISOR_BASE_DIR/tools/dind/resinos-in-container/resinos-in-container.sh" ]; then
+		(cd $SUPERVISOR_BASE_DIR; git submodule update --init)
 	fi
 	if [ "$MOUNT_DIST" = "true" ]; then
 		buildSupervisorSrc
