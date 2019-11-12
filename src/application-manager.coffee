@@ -9,12 +9,12 @@ path = require 'path'
 constants = require './lib/constants'
 { log } = require './lib/supervisor-console'
 
-{ containerContractsFulfilled, validateContract } = require './lib/contracts'
+{ validateTargetContracts } = require './lib/contracts'
 { DockerUtils: Docker } = require './lib/docker-utils'
 { LocalModeManager } = require './local-mode'
 updateLock = require './lib/update-lock'
 { checkTruthy, checkInt, checkString } = require './lib/validation'
-{ ContractViolationError, ContractValidationError, NotFoundError } = require './lib/errors'
+{ ContractViolationError, NotFoundError } = require './lib/errors'
 { pathExistsOnHost } = require './lib/fs-utils'
 
 { TargetStateAccessor } = require './target-state'
@@ -683,34 +683,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					return outApp
 		)
 
-	setTarget: (apps, dependent , source, trx) =>
-		# We look at the container contracts here, as if we
-		# cannot run the release, we don't want it to be added
-		# to the database, overwriting the current release. This
-		# is because if we just reject the release, but leave it
-		# in the db, if for any reason the current state stops
-		# running, we won't restart it, leaving the device
-		# useless
-		contractsFulfilled = _.mapValues apps, (app) ->
-			serviceContracts = {}
-			_.each app.services, (s) ->
-				if s.contract?
-					try
-						validateContract(s.contract)
-					catch e
-						throw new ContractValidationError(s.serviceName, e.message)
-					serviceContracts[s.serviceName] =
-						contract: s.contract,
-						optional: checkTruthy(s.labels['io.balena.features.optional']) ? false
-				else
-					serviceContracts[s.serviceName] = { contract: null, optional: false }
-
-			if !_.isEmpty(serviceContracts)
-				containerContractsFulfilled(serviceContracts)
-			else
-				{ valid: true, fulfilledServices: _.map(app.services, 'serviceName') }
-
-
+	setTarget: (apps, dependent , source, trx) ->
 		setInTransaction = (filteredApps, trx) =>
 			Promise.try =>
 				appsArray = _.map filteredApps, (app, appId) ->
@@ -734,8 +707,18 @@ module.exports = class ApplicationManager extends EventEmitter
 			.then =>
 				@proxyvisor.setTargetInTransaction(dependent, trx)
 
+		# We look at the container contracts here, as if we
+		# cannot run the release, we don't want it to be added
+		# to the database, overwriting the current release. This
+		# is because if we just reject the release, but leave it
+		# in the db, if for any reason the current state stops
+		# running, we won't restart it, leaving the device
+		# useless - The exception to this rule is when the only
+		# failing services are marked as optional, then we
+		# filter those out and add the target state to the database
 		contractViolators = {}
-		Promise.props(contractsFulfilled).then (fulfilledContracts) =>
+		Promise.resolve(validateTargetContracts(apps))
+		.then (fulfilledContracts) =>
 			filteredApps = _.cloneDeep(apps)
 			_.each(
 				fulfilledContracts,
