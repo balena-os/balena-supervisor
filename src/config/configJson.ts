@@ -141,7 +141,7 @@ export default class ConfigJsonConfigBackend {
 						// Older 1.X versions have config.json here
 						return '/mnt/conf/config.json';
 					} else {
-						// In non-resinOS hosts (or older than 1.0.0), if CONFIG_JSON_PATH wasn't passed
+						// In non-balenaOS hosts (or older than 1.0.0), if CONFIG_JSON_PATH wasn't passed
 						// then we can't do atomic changes (only access to config.json we have is in /boot,
 						// which is assumed to be a file bind mount where rename is impossible)
 						throw new Error(

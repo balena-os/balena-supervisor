@@ -25,9 +25,9 @@
 # * PRELOADED_IMAGE: If true, will preload user app image from tools/dev/apps.json and bind mount apps.json into the docker-in-docker supervisor
 # * MOUNT_DIST: If true, mount the dist folder into the docker-in-docker supervisor
 # * MOUNT_NODE_MODULES: If true, mount the node_modules folder into the docker-in-docker supervisor
-# * CONTAINER_NAME: For run-supervisor, specify the container name for the docker-in-docker container (default: supervisor which produces container resinos-in-container-supervisor)
+# * CONTAINER_NAME: For run-supervisor, specify the container name for the docker-in-docker container (default: supervisor which produces container balena-container-supervisor)
 # * CONFIG_FILENAME: For run-supervisor, specify the filename to mount as config.json, relative to tools/dind/ (default: config.json)
-# * DIND_IMAGE: For run-supervisor, specify the resinOS image to use (default: resin/resinos:2.12.5_rev1-intel-nuc)
+# * DIND_IMAGE: For run-supervisor, specify the balenaOS image to use (default: resin/resinos:2.12.5_rev1-intel-nuc)
 #
 
 # Based on https://stackoverflow.com/a/8540718/2549019
@@ -128,7 +128,7 @@ supervisor-dind: supervisor-tar supervisor-conf
 
 run-supervisor: supervisor-dind
 	cd tools/dind \
-	&& ./resinos-in-container/resinos-in-container.sh \
+	&& ./balenaos-in-container/balenaos-in-container.sh \
 		--detach \
 		--config "$(CONFIG_FILENAME)" \
 		--image $(DIND_IMAGE) \
@@ -136,8 +136,8 @@ run-supervisor: supervisor-dind
 		--extra-args "${SUPERVISOR_DIND_MOUNTS}"
 
 stop-supervisor:
-	-docker stop resinos-in-container-$(CONTAINER_NAME) > /dev/null || true
-	-docker rm -f --volumes resinos-in-container-$(CONTAINER_NAME) > /dev/null || true
+	-docker stop balena-container-$(CONTAINER_NAME) > /dev/null || true
+	-docker rm -f --volumes balena-container-$(CONTAINER_NAME) > /dev/null || true
 
 supervisor-image:
 ifneq ($(DOCKER_GE_17_05),true)
