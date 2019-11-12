@@ -1,4 +1,28 @@
 - commits:
+    - subject: Allow specifying an absolute path for the dind config.json
+      hash: 9e660f1081cdb3da561a410b04c91807dab13133
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Fix dindctl when run from another dir
+      hash: 57d4a19f1d6c077cca5cb966de185c6a3cca695f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Fix dindctl unknown arg error message
+      hash: b4ad29ec14a9fdffe038116b98ee293210b5d34e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.5
+  date: 2019-11-12T11:36:45.442Z
+- commits:
     - subject: Check if appId is a number before purging
       hash: 597f95e1696f3934b6072a775949e7fd7010340e
       body: ''
