@@ -130,7 +130,7 @@ run-supervisor: supervisor-dind
 	cd tools/dind \
 	&& ./resinos-in-container/resinos-in-container.sh \
 		--detach \
-		--config "$$(pwd)/$(CONFIG_FILENAME)" \
+		--config "$(CONFIG_FILENAME)" \
 		--image $(DIND_IMAGE) \
 		--id $(CONTAINER_NAME) \
 		--extra-args "${SUPERVISOR_DIND_MOUNTS}"
