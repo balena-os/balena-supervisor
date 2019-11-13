@@ -20,8 +20,8 @@
 # Options:
 #   --arch | -a [arch]      architecture of the supervisor to build (default: amd64 )
 #   --image | -i [image]    image name for supervisor image to build/use ( default: balena/$ARCH-supervisor:master )
-#   --dind-image [image]    image to use for the resinos-in-container host (default: resin/resinos:2.12.5_rev1-intel-nuc)
-#   --dind-container [name] container name suffix for the dind host container ( default: "supervisor", which will produce a container named resinos-in-container-supervisor)
+#   --dind-image [image]    image to use for the balenaos-in-container host (default: resin/resinos:2.12.5_rev1-intel-nuc)
+#   --dind-container [name] container name suffix for the dind host container ( default: "supervisor", which will produce a container named balena-container-supervisor)
 #   --mount-dist            bind-mount './dist/' (where webpack stores the built js) from local development environment into supervisor container.
 #   --mount-nm              bind-mount './node_modules/' from local development environment into supervisor container.
 #   --mount-backup          bind-mount './tools/dind/backup.tgz' to simulate a migration backup.
@@ -132,11 +132,11 @@ function buildSupervisorSrc {
 function refreshSupervisorSrc {
 	buildSupervisorSrc
 	echo "Restarting the supervisor container"
-	docker exec -ti resinos-in-container-$CONTAINER_NAME systemctl restart resin-supervisor
+	docker exec -ti balena-container-$CONTAINER_NAME systemctl restart resin-supervisor
 }
 
 function runDind {
-	if [ ! -f "$SUPERVISOR_BASE_DIR/tools/dind/resinos-in-container/resinos-in-container.sh" ]; then
+	if [ ! -f "$SUPERVISOR_BASE_DIR/tools/dind/balenaos-in-container/balenaos-in-container.sh" ]; then
 		(cd $SUPERVISOR_BASE_DIR; git submodule update --init)
 	fi
 	if [ "$MOUNT_DIST" = "true" ]; then
@@ -178,7 +178,7 @@ function cleanDind {
 }
 
 function logs {
-	docker exec -ti resinos-in-container-$CONTAINER_NAME journalctl $@
+	docker exec -ti balena-container-$CONTAINER_NAME journalctl $@
 }
 
 action="$1"
