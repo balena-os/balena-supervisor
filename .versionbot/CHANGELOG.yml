@@ -1,4 +1,14 @@
 - commits:
+    - subject: Switch to balenaos-in-container
+      hash: 05a566dcb595ccacc432de1290ab2500ac380b6f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.6
+  date: 2019-11-12T13:52:25.726Z
+- commits:
     - subject: Allow specifying an absolute path for the dind config.json
       hash: 9e660f1081cdb3da561a410b04c91807dab13133
       body: ''
