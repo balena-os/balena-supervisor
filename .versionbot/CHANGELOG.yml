@@ -1,4 +1,14 @@
 - commits:
+    - subject: Rebase start-resin-supervisor on latest meta-balena
+      hash: a1ddf3682d18bdd7c8dad0dd5d46cb2eb27110b7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.7
+  date: 2019-11-13T20:25:49.837Z
+- commits:
     - subject: Switch to balenaos-in-container
       hash: 05a566dcb595ccacc432de1290ab2500ac380b6f
       body: ''
