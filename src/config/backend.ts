@@ -106,51 +106,58 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 		return _.startsWith(deviceType, 'raspberry') || deviceType === 'fincm3';
 	}
 
-	public getBootConfig(): Promise<ConfigOptions> {
-		return Promise.resolve(
-			fs.readFile(RPiConfigBackend.bootConfigPath, 'utf-8'),
-		).then(confStr => {
-			const conf: ConfigOptions = {};
-			const configStatements = confStr.split(/\r?\n/);
+	public async getBootConfig(): Promise<ConfigOptions> {
+		let configContents = '';
 
-			for (const configStr of configStatements) {
-				// Don't show warnings for comments and empty lines
-				const trimmed = _.trimStart(configStr);
-				if (_.startsWith(trimmed, '#') || trimmed === '') {
-					continue;
-				}
-				let keyValue = /^([^=]+)=(.*)$/.exec(configStr);
-				if (keyValue != null) {
-					const [, key, value] = keyValue;
-					if (!_.includes(RPiConfigBackend.arrayConfigKeys, key)) {
-						conf[key] = value;
-					} else {
-						if (conf[key] == null) {
-							conf[key] = [];
-						}
-						const confArr = conf[key];
-						if (!_.isArray(confArr)) {
-							throw new Error(
-								`Expected '${key}' to have a config array but got ${typeof confArr}`,
-							);
-						}
-						confArr.push(value);
-					}
-					continue;
-				}
+		if (await fs.exists(RPiConfigBackend.bootConfigPath)) {
+			configContents = await fs.readFile(
+				RPiConfigBackend.bootConfigPath,
+				'utf-8',
+			);
+		} else {
+			await fs.writeFile(RPiConfigBackend.bootConfigPath, '');
+		}
 
-				// Try the next regex instead
-				keyValue = /^(initramfs) (.+)/.exec(configStr);
-				if (keyValue != null) {
-					const [, key, value] = keyValue;
+		const conf: ConfigOptions = {};
+		const configStatements = configContents.split(/\r?\n/);
+
+		for (const configStr of configStatements) {
+			// Don't show warnings for comments and empty lines
+			const trimmed = _.trimStart(configStr);
+			if (_.startsWith(trimmed, '#') || trimmed === '') {
+				continue;
+			}
+			let keyValue = /^([^=]+)=(.*)$/.exec(configStr);
+			if (keyValue != null) {
+				const [, key, value] = keyValue;
+				if (!_.includes(RPiConfigBackend.arrayConfigKeys, key)) {
 					conf[key] = value;
 				} else {
-					log.warn(`Could not parse config.txt entry: ${configStr}. Ignoring.`);
+					if (conf[key] == null) {
+						conf[key] = [];
+					}
+					const confArr = conf[key];
+					if (!_.isArray(confArr)) {
+						throw new Error(
+							`Expected '${key}' to have a config array but got ${typeof confArr}`,
+						);
+					}
+					confArr.push(value);
 				}
+				continue;
 			}
 
-			return conf;
-		});
+			// Try the next regex instead
+			keyValue = /^(initramfs) (.+)/.exec(configStr);
+			if (keyValue != null) {
+				const [, key, value] = keyValue;
+				conf[key] = value;
+			} else {
+				log.warn(`Could not parse config.txt entry: ${configStr}. Ignoring.`);
+			}
+		}
+
+		return conf;
 	}
 
 	public setBootConfig(opts: ConfigOptions): Promise<void> {
