@@ -1,4 +1,18 @@
 - commits:
+    - subject: Extract backup logic to migration
+      hash: 659697ff795c4f9282321223c7963a6d8932a8d1
+      body: |
+        Part of device-state refactor
+        Fix the wrong usage of TargetState as DeviceApplicationState
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Theodor Gherzan <theodor@balena.io>
+        signed-off-by: Theodor Gherzan <theodor@balena.io>
+      author: Theodor Gherzan
+  version: 10.6.8
+  date: 2019-11-15T17:42:19.314Z
+- commits:
     - subject: Rebase start-resin-supervisor on latest meta-balena
       hash: a1ddf3682d18bdd7c8dad0dd5d46cb2eb27110b7
       body: ''
