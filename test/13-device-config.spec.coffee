@@ -13,7 +13,7 @@ fsUtils = require '../src/lib/fs-utils'
 extlinuxBackend = new ExtlinuxConfigBackend()
 rpiConfigBackend = new RPiConfigBackend()
 
-childProcess = require 'child_process'
+{ child_process } = require 'mz'
 
 describe 'DeviceConfig', ->
 	before ->
@@ -111,7 +111,7 @@ describe 'DeviceConfig', ->
 
 	it 'writes the target config.txt', ->
 		stub(fsUtils, 'writeFileAtomic').resolves()
-		stub(childProcess, 'execAsync').resolves()
+		stub(child_process, 'exec').resolves()
 		current = {
 			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000'
 			HOST_CONFIG_dtparam: '"i2c=on","audio=on"'
@@ -131,7 +131,7 @@ describe 'DeviceConfig', ->
 		promise.then =>
 			@deviceConfig.setBootConfig(rpiConfigBackend, target)
 			.then =>
-				expect(childProcess.execAsync).to.be.calledOnce
+				expect(child_process.exec).to.be.calledOnce
 				expect(@fakeLogger.logSystemMessage).to.be.calledTwice
 				expect(@fakeLogger.logSystemMessage.getCall(1).args[2]).to.equal('Apply boot config success')
 				expect(fsUtils.writeFileAtomic).to.be.calledWith('./test/data/mnt/boot/config.txt', '\
@@ -143,7 +143,7 @@ describe 'DeviceConfig', ->
 					foobaz=bar\n\
 				')
 				fsUtils.writeFileAtomic.restore()
-				childProcess.execAsync.restore()
+				child_process.exec.restore()
 				@fakeLogger.logSystemMessage.resetHistory()
 
 	it 'accepts RESIN_ and BALENA_ variables', ->
@@ -186,7 +186,7 @@ describe 'DeviceConfig', ->
 
 		it 'should correctly write to extlinux.conf files', ->
 			stub(fsUtils, 'writeFileAtomic').resolves()
-			stub(childProcess, 'execAsync').resolves()
+			stub(child_process, 'exec').resolves()
 
 			current = {
 			}
@@ -200,7 +200,7 @@ describe 'DeviceConfig', ->
 			promise.then =>
 				@deviceConfig.setBootConfig(extlinuxBackend, target)
 				.then =>
-					expect(childProcess.execAsync).to.be.calledOnce
+					expect(child_process.exec).to.be.calledOnce
 					expect(@fakeLogger.logSystemMessage).to.be.calledTwice
 					expect(@fakeLogger.logSystemMessage.getCall(1).args[2]).to.equal('Apply boot config success')
 					expect(fsUtils.writeFileAtomic).to.be.calledWith('./test/data/mnt/boot/extlinux/extlinux.conf', '\
@@ -213,7 +213,7 @@ describe 'DeviceConfig', ->
 									APPEND ${cbootargs} ${resin_kernel_root} ro rootwait isolcpus=2\n\
 					')
 					fsUtils.writeFileAtomic.restore()
-					childProcess.execAsync.restore()
+					child_process.exec.restore()
 					@fakeLogger.logSystemMessage.resetHistory()
 
 	describe 'Balena fin', ->

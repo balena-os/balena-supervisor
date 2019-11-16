@@ -1,12 +1,8 @@
-import * as Promise from 'bluebird';
-import * as childProcessSync from 'child_process';
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { child_process, fs } from 'mz';
 
 import * as constants from '../lib/constants';
-import * as fsUtils from '../lib/fs-utils';
-
-const childProcess: any = Promise.promisifyAll(childProcessSync);
+import { writeFileAtomic } from '../lib/fs-utils';
 
 import log from '../lib/supervisor-console';
 
@@ -25,18 +21,15 @@ interface ExtlinuxFile {
 
 const bootMountPoint = `${constants.rootMountPoint}${constants.bootMountPoint}`;
 
-function remountAndWriteAtomic(file: string, data: string): Promise<void> {
-	// TODO: Find out why the below Promise.resolve() is required
+async function remountAndWriteAtomic(
+	file: string,
+	data: string,
+): Promise<void> {
 	// Here's the dangerous part:
-	return Promise.resolve(
-		childProcess.execAsync(
-			`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ${bootMountPoint}`,
-		),
-	)
-		.then(() => {
-			return fsUtils.writeFileAtomic(file, data);
-		})
-		.return();
+	await child_process.exec(
+		`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ${bootMountPoint}`,
+	);
+	await writeFileAtomic(file, data);
 }
 
 export abstract class DeviceConfigBackend {
@@ -160,7 +153,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 		return conf;
 	}
 
-	public setBootConfig(opts: ConfigOptions): Promise<void> {
+	public async setBootConfig(opts: ConfigOptions): Promise<void> {
 		let confStatements: string[] = [];
 
 		_.each(opts, (value, key) => {
@@ -177,7 +170,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 
 		const confStr = `${confStatements.join('\n')}\n`;
 
-		return remountAndWriteAtomic(RPiConfigBackend.bootConfigPath, confStr);
+		await remountAndWriteAtomic(RPiConfigBackend.bootConfigPath, confStr);
 	}
 
 	public isSupportedConfig(configName: string): boolean {
@@ -222,107 +215,131 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		return _.startsWith(deviceType, 'jetson-tx');
 	}
 
-	public getBootConfig(): Promise<ConfigOptions> {
-		return Promise.resolve(
-			fs.readFile(ExtlinuxConfigBackend.bootConfigPath, 'utf-8'),
-		).then(confStr => {
-			const parsedBootFile = ExtlinuxConfigBackend.parseExtlinuxFile(confStr);
+	public async getBootConfig(): Promise<ConfigOptions> {
+		let confContents: string;
 
-			// First find the default label name
-			const defaultLabel = _.find(parsedBootFile.globals, (_v, l) => {
-				if (l === 'DEFAULT') {
-					return true;
-				}
-				return false;
-			});
+		try {
+			confContents = await fs.readFile(
+				ExtlinuxConfigBackend.bootConfigPath,
+				'utf-8',
+			);
+		} catch {
+			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
+			// We do not have any backup to fallback too; warn the user of a possible brick
+			throw new Error(
+				'Could not find extlinux file. Device is possibly bricked',
+			);
+		}
 
-			if (defaultLabel == null) {
-				throw new Error('Could not find default entry for extlinux.conf file');
+		const parsedBootFile = ExtlinuxConfigBackend.parseExtlinuxFile(
+			confContents,
+		);
+
+		// First find the default label name
+		const defaultLabel = _.find(parsedBootFile.globals, (_v, l) => {
+			if (l === 'DEFAULT') {
+				return true;
 			}
-
-			const labelEntry = parsedBootFile.labels[defaultLabel];
-
-			if (labelEntry == null) {
-				throw new Error(
-					`Cannot find default label entry (label: ${defaultLabel}) for extlinux.conf file`,
-				);
-			}
-
-			// All configuration options come from the `APPEND` directive in the default label entry
-			const appendEntry = labelEntry.APPEND;
-
-			if (appendEntry == null) {
-				throw new Error(
-					'Could not find APPEND directive in default extlinux.conf boot entry',
-				);
-			}
-
-			const conf: ConfigOptions = {};
-			const values = appendEntry.split(' ');
-			for (const value of values) {
-				const parts = value.split('=');
-				if (this.isSupportedConfig(parts[0])) {
-					if (parts.length !== 2) {
-						throw new Error(
-							`Could not parse extlinux configuration entry: ${values} [value with error: ${value}]`,
-						);
-					}
-					conf[parts[0]] = parts[1];
-				}
-			}
-
-			return conf;
+			return false;
 		});
+
+		if (defaultLabel == null) {
+			throw new Error('Could not find default entry for extlinux.conf file');
+		}
+
+		const labelEntry = parsedBootFile.labels[defaultLabel];
+
+		if (labelEntry == null) {
+			throw new Error(
+				`Cannot find default label entry (label: ${defaultLabel}) for extlinux.conf file`,
+			);
+		}
+
+		// All configuration options come from the `APPEND` directive in the default label entry
+		const appendEntry = labelEntry.APPEND;
+
+		if (appendEntry == null) {
+			throw new Error(
+				'Could not find APPEND directive in default extlinux.conf boot entry',
+			);
+		}
+
+		const conf: ConfigOptions = {};
+		const values = appendEntry.split(' ');
+		for (const value of values) {
+			const parts = value.split('=');
+			if (this.isSupportedConfig(parts[0])) {
+				if (parts.length !== 2) {
+					throw new Error(
+						`Could not parse extlinux configuration entry: ${values} [value with error: ${value}]`,
+					);
+				}
+				conf[parts[0]] = parts[1];
+			}
+		}
+
+		return conf;
 	}
 
-	public setBootConfig(opts: ConfigOptions): Promise<void> {
+	public async setBootConfig(opts: ConfigOptions): Promise<void> {
 		// First get a representation of the configuration file, with all balena-supported configuration removed
-		return Promise.resolve(
-			fs.readFile(ExtlinuxConfigBackend.bootConfigPath),
-		).then(data => {
-			const extlinuxFile = ExtlinuxConfigBackend.parseExtlinuxFile(
-				data.toString(),
-			);
-			const defaultLabel = extlinuxFile.globals.DEFAULT;
-			if (defaultLabel == null) {
-				throw new Error(
-					'Could not find DEFAULT directive entry in extlinux.conf',
-				);
-			}
-			const defaultEntry = extlinuxFile.labels[defaultLabel];
-			if (defaultEntry == null) {
-				throw new Error(
-					`Could not find default extlinux.conf entry: ${defaultLabel}`,
-				);
-			}
+		let confContents: string;
 
-			if (defaultEntry.APPEND == null) {
-				throw new Error(
-					`extlinux.conf APPEND directive not found for default entry: ${defaultLabel}, not sure how to proceed!`,
-				);
-			}
-
-			const appendLine = _.filter(defaultEntry.APPEND.split(' '), entry => {
-				const lhs = entry.split('=');
-				return !this.isSupportedConfig(lhs[0]);
-			});
-
-			// Apply the new configuration to the "plain" append line above
-
-			_.each(opts, (value, key) => {
-				appendLine.push(`${key}=${value}`);
-			});
-
-			defaultEntry.APPEND = appendLine.join(' ');
-			const extlinuxString = ExtlinuxConfigBackend.extlinuxFileToString(
-				extlinuxFile,
-			);
-
-			return remountAndWriteAtomic(
+		try {
+			confContents = await fs.readFile(
 				ExtlinuxConfigBackend.bootConfigPath,
-				extlinuxString,
+				'utf-8',
 			);
+		} catch {
+			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
+			// We do not have any backup to fallback too; warn the user of a possible brick
+			throw new Error(
+				'Could not find extlinux file. Device is possibly bricked',
+			);
+		}
+
+		const extlinuxFile = ExtlinuxConfigBackend.parseExtlinuxFile(
+			confContents.toString(),
+		);
+		const defaultLabel = extlinuxFile.globals.DEFAULT;
+		if (defaultLabel == null) {
+			throw new Error(
+				'Could not find DEFAULT directive entry in extlinux.conf',
+			);
+		}
+		const defaultEntry = extlinuxFile.labels[defaultLabel];
+		if (defaultEntry == null) {
+			throw new Error(
+				`Could not find default extlinux.conf entry: ${defaultLabel}`,
+			);
+		}
+
+		if (defaultEntry.APPEND == null) {
+			throw new Error(
+				`extlinux.conf APPEND directive not found for default entry: ${defaultLabel}, not sure how to proceed!`,
+			);
+		}
+
+		const appendLine = _.filter(defaultEntry.APPEND.split(' '), entry => {
+			const lhs = entry.split('=');
+			return !this.isSupportedConfig(lhs[0]);
 		});
+
+		// Apply the new configuration to the "plain" append line above
+
+		_.each(opts, (value, key) => {
+			appendLine.push(`${key}=${value}`);
+		});
+
+		defaultEntry.APPEND = appendLine.join(' ');
+		const extlinuxString = ExtlinuxConfigBackend.extlinuxFileToString(
+			extlinuxFile,
+		);
+
+		await remountAndWriteAtomic(
+			ExtlinuxConfigBackend.bootConfigPath,
+			extlinuxString,
+		);
 	}
 
 	public isSupportedConfig(configName: string): boolean {
