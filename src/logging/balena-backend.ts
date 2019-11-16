@@ -60,9 +60,7 @@ export class BalenaLogBackend extends LogBackend {
 			this.flush();
 			if (this.dropCount > 0) {
 				this.write({
-					message: `Warning: Suppressed ${
-						this.dropCount
-					} message(s) due to high load`,
+					message: `Warning: Suppressed ${this.dropCount} message(s) due to high load`,
 					timestamp: Date.now(),
 					isSystem: true,
 					isStdErr: true,

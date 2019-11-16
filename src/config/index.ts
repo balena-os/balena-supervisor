@@ -27,10 +27,10 @@ interface ConfigOpts {
 }
 
 export type ConfigMap<T extends SchemaTypeKey> = {
-	[key in T]: SchemaReturn<key>
+	[key in T]: SchemaReturn<key>;
 };
 export type ConfigChangeMap<T extends SchemaTypeKey> = {
-	[key in T]?: SchemaReturn<key>
+	[key in T]?: SchemaReturn<key>;
 };
 
 // Export this type renamed, for storing config keys
@@ -173,9 +173,11 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 				})
 				.then(() => {
 					if (!_.isEmpty(configJsonVals)) {
-						return this.configJsonBackend.set(configJsonVals as {
-							[key in Schema.SchemaKey]: unknown
-						});
+						return this.configJsonBackend.set(
+							configJsonVals as {
+								[key in Schema.SchemaKey]: unknown;
+							},
+						);
 					}
 				});
 		};

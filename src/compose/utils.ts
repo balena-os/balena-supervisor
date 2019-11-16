@@ -343,9 +343,9 @@ export function addFeaturesFromLabels(
 			`${constants.dockerSocket}:${constants.dockerSocket}`,
 		);
 		if (service.config.environment['DOCKER_HOST'] == null) {
-			service.config.environment['DOCKER_HOST'] = `unix://${
-				constants.dockerSocket
-			}`;
+			service.config.environment[
+				'DOCKER_HOST'
+			] = `unix://${constants.dockerSocket}`;
 		}
 		// We keep balena.sock for backwards compatibility
 		if (constants.dockerSocket !== '/var/run/balena.sock') {

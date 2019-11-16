@@ -111,7 +111,7 @@ export function generateStep<T extends CompositionStepAction>(
 }
 
 type Executors<T extends CompositionStepAction> = {
-	[key in T]: (step: CompositionStep<key>) => Promise<unknown>
+	[key in T]: (step: CompositionStep<key>) => Promise<unknown>;
 };
 type LockingFn = (
 	// TODO: Once the entire codebase is typescript, change

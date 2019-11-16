@@ -84,9 +84,7 @@ export class DockerUtils extends DockerToolbelt {
 
 		if (!_.includes([2, 3], deltaOpts.deltaVersion)) {
 			logFn(
-				`Unsupported delta version: ${
-					deltaOpts.deltaVersion
-				}. Failling back to regular pull`,
+				`Unsupported delta version: ${deltaOpts.deltaVersion}. Failling back to regular pull`,
 			);
 			return await this.fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 		}
@@ -117,9 +115,7 @@ export class DockerUtils extends DockerToolbelt {
 			},
 		};
 
-		const url = `${deltaOpts.deltaEndpoint}/api/v${
-			deltaOpts.deltaVersion
-		}/delta?src=${deltaOpts.deltaSource}&dest=${imgDest}`;
+		const url = `${deltaOpts.deltaEndpoint}/api/v${deltaOpts.deltaVersion}/delta?src=${deltaOpts.deltaSource}&dest=${imgDest}`;
 
 		const [res, data] = await (await request.getRequestInstance()).getAsync(
 			url,
@@ -140,9 +136,7 @@ export class DockerUtils extends DockerToolbelt {
 						)
 					) {
 						throw new Error(
-							`Got ${
-								res.statusCode
-							} when requesting an image from delta server.`,
+							`Got ${res.statusCode} when requesting an image from delta server.`,
 						);
 					}
 					const deltaUrl = res.headers['location'];
@@ -164,9 +158,7 @@ export class DockerUtils extends DockerToolbelt {
 				case 3:
 					if (res.statusCode !== 200) {
 						throw new Error(
-							`Got ${
-								res.statusCode
-							} when requesting v3 delta from delta server.`,
+							`Got ${res.statusCode} when requesting v3 delta from delta server.`,
 						);
 					}
 					let name;
@@ -340,16 +332,11 @@ export class DockerUtils extends DockerToolbelt {
 				},
 				json: true,
 			};
-			const tokenUrl = `${tokenEndpoint}?service=${
-				dstInfo.registry
-			}&scope=repository:${dstInfo.imageName}:pull&scope=repository:${
-				srcInfo.imageName
-			}:pull`;
+			const tokenUrl = `${tokenEndpoint}?service=${dstInfo.registry}&scope=repository:${dstInfo.imageName}:pull&scope=repository:${srcInfo.imageName}:pull`;
 
-			const tokenResponseBody = (await (await request.getRequestInstance()).getAsync(
-				tokenUrl,
-				tokenOpts,
-			))[1];
+			const tokenResponseBody = (
+				await (await request.getRequestInstance()).getAsync(tokenUrl, tokenOpts)
+			)[1];
 			const token = tokenResponseBody != null ? tokenResponseBody.token : null;
 
 			if (token == null) {
