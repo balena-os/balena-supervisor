@@ -1,0 +1,6 @@
+[Unit]
+Description=Fake service
+
+[Service]
+ExecStart=
+ExecStart=/bin/true

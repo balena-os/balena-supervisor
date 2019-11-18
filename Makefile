@@ -83,7 +83,28 @@ CONFIG_FILENAME ?= config.json
 DIND_IMAGE ?= resin/resinos:2.12.5_rev1-intel-nuc
 
 # Bind mounts and variables for the run-supervisor target
-SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/config/supervisor-image.tar:/usr/src/supervisor-image.tar:ro -v $$(pwd)/start-resin-supervisor:/usr/bin/start-resin-supervisor:ro -v $$(pwd)/config/supervisor.conf:/etc/resin-supervisor/supervisor.conf
+SUPERVISOR_DIND_MOUNTS := -v $$(pwd)/config/supervisor-image.tar:/usr/src/supervisor-image.tar:ro
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/start-resin-supervisor:/usr/bin/start-resin-supervisor:ro
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/config/supervisor.conf:/etc/resin-supervisor/supervisor.conf
+
+# required
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v /dev/null:/usr/lib/sysctl.d/balena-os-sysctl.conf
+# definitely work
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/etc/systemd/system/rngd.service
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/etc/systemd/system/systemd-udevd.service
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/true:/usr/lib/balena/balena-healthcheck
+# probably work
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/lib/systemd/system/chronyd.service
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/etc/systemd/system/chronyd.service.d/chronyd.conf
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/lib/systemd/system/os-udevrules.service
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/lib/systemd/system/ModemManager.service
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/lib/systemd/system/NetworkManager.service
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/lib/systemd/system/avahi-daemon.service
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/etc/systemd/system/avahi-daemon.service.d/avahi-daemon.conf
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/true:/usr/lib/resin-supervisor/resin-supervisor-healthcheck
+# maybe works
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/lib/systemd/system/systemd-udev-settle.service
+SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/fake.service:/lib/systemd/system/systemd-udev-trigger.service
 
 ifeq ($(PRELOADED_IMAGE),true)
 	SUPERVISOR_DIND_MOUNTS := ${SUPERVISOR_DIND_MOUNTS} -v $$(pwd)/apps.json:/mnt/data/apps.json
@@ -114,8 +135,10 @@ all: supervisor
 
 supervisor-tar:
 	cd tools/dind \
-	&& mkdir -p config \
-	&& docker save --output config/supervisor-image.tar $(SUPERVISOR_IMAGE)
+	&& mkdir -p config
+	# TODO: Need to change this to only happen once for a given image so spinning up
+	# multiple dind supervisors doesn't hammer the disk as much
+	# && docker save --output config/supervisor-image.tar $(SUPERVISOR_IMAGE)
 
 supervisor-conf:
 	cd tools/dind \
@@ -137,7 +160,9 @@ run-supervisor: supervisor-dind
 
 stop-supervisor:
 	-docker stop balena-container-$(CONTAINER_NAME) > /dev/null || true
-	-docker rm -f --volumes balena-container-$(CONTAINER_NAME) > /dev/null || true
+	# TODO: Don't remove volumes for dind supervisors by default since recreating and reloading
+	# the supervisor image every time is slow
+	# -docker rm -f --volumes balena-container-$(CONTAINER_NAME) > /dev/null || true
 
 supervisor-image:
 ifneq ($(DOCKER_GE_17_05),true)
