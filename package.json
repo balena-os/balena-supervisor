@@ -88,7 +88,7 @@
     "io-ts-reporters": "^1.0.0",
     "istanbul": "^0.4.5",
     "json-mask": "^0.3.8",
-    "knex": "~0.15.2",
+    "knex": "~0.19.5",
     "lint-staged": "^8.1.0",
     "livepush": "^2.0.2",
     "lockfile": "^1.0.1",
