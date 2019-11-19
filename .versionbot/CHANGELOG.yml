@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update balenaos-in-container
+      hash: 072a2f951a653f56f3f01532706897c3a15b9c01
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.10
+  date: 2019-11-19T11:30:09.713Z
+- commits:
     - subject: Create config.txt if there isn't one already
       hash: 1570fd424b8c192844ce308761ac8f329dac48f5
       body: ''
