@@ -1,4 +1,25 @@
 - commits:
+    - subject: Bump js-yaml from 3.12.0 to 3.13.1
+      hash: 9c88d8fb722c6005465754dff900379d091eb324
+      body: >
+        Bumps [js-yaml](https://github.com/nodeca/js-yaml) from 3.12.0 to
+        3.13.1.
+
+        - [Release notes](https://github.com/nodeca/js-yaml/releases)
+
+        -
+        [Changelog](https://github.com/nodeca/js-yaml/blob/master/CHANGELOG.md)
+
+        - [Commits](https://github.com/nodeca/js-yaml/compare/3.12.0...3.13.1)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.6.11
+  date: 2019-11-19T20:14:15.729Z
+- commits:
     - subject: Update balenaos-in-container
       hash: 072a2f951a653f56f3f01532706897c3a15b9c01
       body: ''
