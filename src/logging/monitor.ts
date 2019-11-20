@@ -1,3 +1,5 @@
+import * as _ from 'lodash';
+
 import Database from '../db';
 
 import log from '../lib/supervisor-console';
@@ -38,14 +40,14 @@ export class LogMonitor {
 					.select('lastSentTimestamp')
 					.where({ containerId });
 
-				if (timestampObj == null) {
+				if (timestampObj == null || _.isEmpty(timestampObj)) {
 					// Create a row in the db so there's something to
 					// update
 					await this.db
 						.models('containerLogs')
 						.insert({ containerId, lastSentTimestamp: 0 });
 				} else {
-					this.timestamps[containerId] = timestampObj.lastSentTimestamp;
+					this.timestamps[containerId] = timestampObj[0].lastSentTimestamp;
 				}
 			} catch (e) {
 				log.error(
