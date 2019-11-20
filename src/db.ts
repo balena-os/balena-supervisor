@@ -28,8 +28,9 @@ export class DB {
 	}
 
 	public init(): Bluebird<void> {
-		return this.knex('knex_migrations_lock')
-			.update({ is_locked: 0 })
+		return Bluebird.resolve(
+			this.knex('knex_migrations_lock').update({ is_locked: 0 }),
+		)
 			.catch(() => {
 				return;
 			})
@@ -52,18 +53,20 @@ export class DB {
 	): Bluebird<any> {
 		const knex = trx || this.knex;
 
-		return knex(modelName)
-			.update(obj)
-			.where(id)
-			.then((n: number) => {
-				if (n === 0) {
-					return knex(modelName).insert(obj);
-				}
-			});
+		return Bluebird.resolve(
+			knex(modelName)
+				.update(obj)
+				.where(id)
+				.then((n: number) => {
+					if (n === 0) {
+						return knex(modelName).insert(obj);
+					}
+				}),
+		);
 	}
 
 	public transaction(cb: DBTransactionCallback): Bluebird<Knex.Transaction> {
-		return this.knex.transaction(cb);
+		return Bluebird.resolve(this.knex.transaction(cb));
 	}
 }
 

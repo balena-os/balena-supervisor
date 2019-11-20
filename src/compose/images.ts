@@ -360,10 +360,9 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		] = await Promise.all([
 			this.docker.getRegistryAndName(constants.supervisorImage),
 			this.docker.getImage(constants.supervisorImage).inspect(),
-			this.db
-				.models('image')
-				.select('dockerImageId')
-				.map((img: Image) => img.dockerImageId),
+			Bluebird.resolve(this.db.models('image').select('dockerImageId')).map(
+				(img: Image) => img.dockerImageId,
+			),
 		]);
 
 		const supervisorRepos = [supervisorImageInfo.imageName];
@@ -546,7 +545,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 						dockerImage.RepoTags.length > 1 &&
 						_.includes(dockerImage.RepoTags, img.name) &&
 						_.some(dockerImage.RepoTags, t =>
-							_.some(differentTags, { name: t }),
+							_.some(differentTags as Array<{ name?: string }>, { name: t }),
 						)
 					) {
 						await this.docker.getImage(img.name).remove({ noprune: true });

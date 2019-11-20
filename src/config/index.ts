@@ -209,10 +209,12 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 			if (Schema.schema[key].source === 'config.json') {
 				return this.configJsonBackend.remove(key);
 			} else if (Schema.schema[key].source === 'db') {
-				return this.db
-					.models('config')
-					.del()
-					.where({ key });
+				return Bluebird.resolve(
+					this.db
+						.models('config')
+						.del()
+						.where({ key }),
+				).return();
 			} else {
 				throw new Error(
 					`Unknown or unsupported config backend: ${Schema.schema[key].source}`,
