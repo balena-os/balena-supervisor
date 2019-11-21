@@ -1,4 +1,17 @@
 - commits:
+    - subject: Fix typo in image selection
+      hash: 37b63f1d487d0bf029ad0a962167e53dcbc8ca66
+      body: |
+        Backporting from v9.16.3
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Cameron Diver
+  version: 9.15.12
+  date: 2019-11-21T18:45:34.988Z
+- commits:
     - subject: Ensure that we reset rate limits after a successful target apply
       hash: e8ffd681f44874c179e20666d9945f912aa78c0f
       body: ''
