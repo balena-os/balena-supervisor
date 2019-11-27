@@ -1,4 +1,26 @@
 - commits:
+    - subject: Consider linux4tegra versions in container contracts
+      hash: 1a6c9d489ae1417d20a61c4240ba84bee6c8df29
+      body: |
+        Also remove ability to match on OS versions
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade prettier and resin-lint
+      hash: bba6d3d728a2f96977694a2c70f76da9d7b7629d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.13
+  date: 2019-11-27T10:25:23.493Z
+- commits:
     - subject: Fix retrieval of container log timestamp from db
       hash: e44c7073f990c42336e4914e9926f4205520cfee
       body: ''
