@@ -1,4 +1,20 @@
 - commits:
+    - subject: Add regression test for app manager init
+      hash: f487711ba496328ea69ac815c68870975facf186
+      body: >
+        If we had it eearlier, it would have prevented #1148.
+
+        When init is called, withImagesFromDockerAndDB in images.ts is called as
+        well.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.6.14
+  date: 2019-11-27T18:04:03.732Z
+- commits:
     - subject: Consider linux4tegra versions in container contracts
       hash: 1a6c9d489ae1417d20a61c4240ba84bee6c8df29
       body: |
