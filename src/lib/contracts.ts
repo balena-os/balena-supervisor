@@ -5,48 +5,84 @@ import * as _ from 'lodash';
 
 import { Blueprint, Contract, ContractObject } from '@balena/contrato';
 
-import constants = require('./constants');
-import { InternalInconsistencyError } from './errors';
+import { ContractValidationError, InternalInconsistencyError } from './errors';
 import * as osRelease from './os-release';
 import supervisorVersion = require('./supervisor-version');
+import { checkTruthy } from './validation';
 
 export { ContractObject };
+
+// TODO{type}: When target and current state are correctly
+// defined, replace this
+interface AppWithContracts {
+	services: {
+		[key: string]: {
+			serviceName: string;
+			contract?: ContractObject;
+			labels?: Dictionary<string>;
+		};
+	};
+}
+
+export interface ApplicationContractResult {
+	valid: boolean;
+	unmetServices: string[];
+	fulfilledServices: string[];
+	unmetAndOptional: string[];
+}
 
 export interface ServiceContracts {
 	[serviceName: string]: { contract?: ContractObject; optional: boolean };
 }
 
+type PotentialContractRequirements = 'sw.supervisor' | 'sw.l4t';
+type ContractRequirementVersions = {
+	[key in PotentialContractRequirements]?: string;
+};
+
+let contractRequirementVersions = async () => {
+	const versions: ContractRequirementVersions = {
+		'sw.supervisor': supervisorVersion,
+	};
+	const l4tVersion = await osRelease.getL4tVersion();
+	if (l4tVersion != null) {
+		versions['sw.l4t'] = l4tVersion;
+	}
+
+	return versions;
+};
+
+// When running in tests, we need this function to be
+// repeatedly executed, but on-device, this should only be
+// executed once per run
+if (process.env.TEST !== '1') {
+	contractRequirementVersions = _.once(contractRequirementVersions);
+}
+
+function isValidRequirementType(
+	requirementVersions: ContractRequirementVersions,
+	requirement: string,
+) {
+	return requirement in requirementVersions;
+}
+
 export async function containerContractsFulfilled(
 	serviceContracts: ServiceContracts,
-): Promise<{
-	valid: boolean;
-	unmetServices: string[];
-	fulfilledServices: string[];
-	unmetAndOptional: string[];
-}> {
+): Promise<ApplicationContractResult> {
 	const containers = _(serviceContracts)
 		.map('contract')
 		.compact()
 		.value();
 
-	const osContract = new Contract({
-		slug: 'balenaOS',
-		type: 'sw.os',
-		name: 'balenaOS',
-		version: await osRelease.getOSSemver(constants.hostOSVersionPath),
-	});
+	const versions = await contractRequirementVersions();
 
-	const supervisorContract = new Contract({
-		slug: 'balena-supervisor',
-		type: 'sw.supervisor',
-		name: 'balena-supervisor',
-		version: supervisorVersion,
-	});
-
+	const blueprintMembership: Dictionary<number> = {};
+	for (const component of _.keys(versions)) {
+		blueprintMembership[component] = 1;
+	}
 	const blueprint = new Blueprint(
 		{
-			'sw.os': 1,
-			'sw.supervisor': 1,
+			...blueprintMembership,
 			'sw.container': '1+',
 		},
 		{
@@ -59,11 +95,11 @@ export async function containerContractsFulfilled(
 		type: 'meta.universe',
 	});
 
-	universe.addChildren([
-		osContract,
-		supervisorContract,
-		...containers.map(c => new Contract(c)),
-	]);
+	universe.addChildren(
+		[...getContractsFromVersions(versions), ...containers].map(
+			c => new Contract(c),
+		),
+	);
 
 	const solution = blueprint.reproduce(universe);
 
@@ -145,14 +181,76 @@ const contractObjectValidator = t.type({
 	]),
 });
 
-export function validateContract(
-	contract: unknown,
-): contract is ContractObject {
+function getContractsFromVersions(versions: ContractRequirementVersions) {
+	return _.map(versions, (version, component) => ({
+		type: component,
+		slug: component,
+		name: component,
+		version,
+	}));
+}
+
+export async function validateContract(contract: unknown): Promise<boolean> {
 	const result = contractObjectValidator.decode(contract);
 
 	if (isLeft(result)) {
 		throw new Error(reporter(result).join('\n'));
 	}
 
+	const requirementVersions = await contractRequirementVersions();
+
+	for (const { type } of result.right.requires || []) {
+		if (!isValidRequirementType(requirementVersions, type)) {
+			throw new Error(`${type} is not a valid contract requirement type`);
+		}
+	}
+
 	return true;
+}
+export async function validateTargetContracts(
+	apps: Dictionary<AppWithContracts>,
+): Promise<Dictionary<ApplicationContractResult>> {
+	const appsFulfilled: Dictionary<ApplicationContractResult> = {};
+
+	for (const appId of _.keys(apps)) {
+		const app = apps[appId];
+		const serviceContracts: ServiceContracts = {};
+
+		for (const svcId of _.keys(app.services)) {
+			const svc = app.services[svcId];
+
+			if (svc.contract) {
+				try {
+					await validateContract(svc.contract);
+
+					serviceContracts[svc.serviceName] = {
+						contract: svc.contract,
+						optional:
+							checkTruthy(svc.labels?.['io.balena.features.optional']) || false,
+					};
+				} catch (e) {
+					throw new ContractValidationError(svc.serviceName, e.message);
+				}
+			} else {
+				serviceContracts[svc.serviceName] = {
+					contract: undefined,
+					optional: false,
+				};
+			}
+
+			if (!_.isEmpty(serviceContracts)) {
+				appsFulfilled[appId] = await containerContractsFulfilled(
+					serviceContracts,
+				);
+			} else {
+				appsFulfilled[appId] = {
+					valid: true,
+					fulfilledServices: _.map(app.services, 'serviceName'),
+					unmetAndOptional: [],
+					unmetServices: [],
+				};
+			}
+		}
+	}
+	return appsFulfilled;
 }

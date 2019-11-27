@@ -1,5 +1,7 @@
 import { assert, expect } from 'chai';
+import { SinonStub, stub } from 'sinon';
 
+import { child_process } from 'mz';
 import * as semver from 'semver';
 
 import * as constants from '../src/lib/constants';
@@ -11,56 +13,63 @@ import * as osRelease from '../src/lib/os-release';
 import supervisorVersion = require('../src/lib/supervisor-version');
 
 describe('Container contracts', () => {
+	let execStub: SinonStub;
+	before(() => {
+		execStub = stub(child_process, 'exec').returns(
+			Promise.resolve([
+				Buffer.from('4.9.140-l4t-r32.2+g3dcbed5'),
+				Buffer.from(''),
+			]),
+		);
+	});
+
+	after(() => {
+		execStub.restore();
+	});
+
 	describe('Contract validation', () => {
-		it('should correctly validate a contract with no requirements', () => {
-			assert(
+		it('should correctly validate a contract with no requirements', () =>
+			expect(
 				validateContract({
 					slug: 'user-container',
 				}),
-			);
-		});
+			).to.be.fulfilled);
 
-		it('should correctly validate a contract with extra fields', () => {
-			assert(
+		it('should correctly validate a contract with extra fields', () =>
+			expect(
 				validateContract({
 					slug: 'user-container',
 					name: 'user-container',
 					version: '3.0.0',
 				}),
-			);
-		});
+			).to.be.fulfilled);
 
 		it('should not validate a contract without the minimum required fields', () => {
-			expect(() => {
-				validateContract({});
-			}).to.throw();
-			expect(() => {
-				validateContract({ name: 'test' });
-			}).to.throw();
-			expect(() => {
-				validateContract({ requires: [] });
-			}).to.throw();
+			return Promise.all([
+				expect(validateContract({})).to.be.rejected,
+				expect(validateContract({ name: 'test' })).to.be.rejected,
+				expect(validateContract({ requires: [] })).to.be.rejected,
+			]);
 		});
 
-		it('should correctly validate a contract with requirements', () => {
-			assert(
+		it('should correctly validate a contract with requirements', () =>
+			expect(
 				validateContract({
 					slug: 'user-container',
 					requires: [
 						{
-							type: 'sw.os',
-							version: '>3.0.0',
+							type: 'sw.l4t',
+							version: '32.2',
 						},
 						{
 							type: 'sw.supervisor',
 						},
 					],
 				}),
-			);
-		});
+			).to.be.fulfilled);
 
 		it('should not validate a contract with requirements without the minimum required fields', () => {
-			expect(() =>
+			return expect(
 				validateContract({
 					slug: 'user-container',
 					requires: [
@@ -69,7 +78,7 @@ describe('Container contracts', () => {
 						},
 					],
 				}),
-			).to.throw();
+			).to.be.rejected;
 		});
 	});
 
@@ -140,8 +149,8 @@ describe('Container contracts', () => {
 							slug: 'user-container',
 							requires: [
 								{
-									type: 'sw.os',
-									version: '>2.0.0',
+									type: 'sw.supervisor',
+									version: `>${supervisorVersionLesser}`,
 								},
 							],
 						},
@@ -207,8 +216,8 @@ describe('Container contracts', () => {
 									version: `>${supervisorVersionLesser}`,
 								},
 								{
-									type: 'sw.os',
-									version: '<3.0.0',
+									type: 'sw.l4t',
+									version: '32.2',
 								},
 							],
 						},
@@ -263,8 +272,8 @@ describe('Container contracts', () => {
 						slug: 'user-container',
 						requires: [
 							{
-								type: 'sw.os',
-								version: '>=3.0.0',
+								type: 'sw.supervisor',
+								version: `>=${supervisorVersionGreater}`,
 							},
 						],
 					},
@@ -286,12 +295,8 @@ describe('Container contracts', () => {
 						slug: 'user-container2',
 						requires: [
 							{
-								type: 'sw.supervisor',
-								version: `>=${supervisorVersionLesser}`,
-							},
-							{
-								type: 'sw.os',
-								version: '>3.0.0',
+								type: 'sw.l4t',
+								version: '28.2',
 							},
 						],
 					},
@@ -356,7 +361,7 @@ describe('Container contracts', () => {
 							slug: 'service1',
 							requires: [
 								{
-									type: 'sw.os',
+									type: 'sw.supervisor',
 									version: `<${supervisorVersionGreater}`,
 								},
 							],
@@ -381,7 +386,7 @@ describe('Container contracts', () => {
 							slug: 'service1',
 							requires: [
 								{
-									type: 'sw.os',
+									type: 'sw.supervisor',
 									version: `>${supervisorVersionGreater}`,
 								},
 							],
@@ -401,5 +406,40 @@ describe('Container contracts', () => {
 				expect(fulfilledServices).to.deep.equal(['service2']);
 			});
 		});
+	});
+});
+
+describe('L4T version detection', () => {
+	it('should correctly parse L4T version strings', async () => {
+		let execStub = stub(child_process, 'exec').returns(
+			Promise.resolve([
+				Buffer.from('4.9.140-l4t-r32.2+g3dcbed5'),
+				Buffer.from(''),
+			]),
+		);
+
+		expect(await osRelease.getL4tVersion()).to.equal('32.2');
+		expect(execStub.callCount).to.equal(1);
+
+		execStub.restore();
+
+		execStub = stub(child_process, 'exec').returns(
+			Promise.resolve([
+				Buffer.from('4.4.38-l4t-r28.2+g174510d'),
+				Buffer.from(''),
+			]),
+		);
+		expect(await osRelease.getL4tVersion()).to.equal('28.2');
+		expect(execStub.callCount).to.equal(1);
+		execStub.restore();
+	});
+
+	it('should return undefined when there is no l4t string in uname', async () => {
+		const execStub = stub(child_process, 'exec').returns(
+			Promise.resolve([Buffer.from('4.18.14-yocto-standard'), Buffer.from('')]),
+		);
+
+		expect(await osRelease.getL4tVersion()).to.be.undefined;
+		execStub.restore();
 	});
 });
