@@ -1,4 +1,18 @@
 - commits:
+    - subject: Handle cancelDelay not being a function
+      hash: f4605d897eea8286a3923060aea999a8eab9bc91
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1080'
+        closes: '#1080'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.15
+  date: 2019-11-28T11:31:03.427Z
+- commits:
     - subject: Add regression test for app manager init
       hash: f487711ba496328ea69ac815c68870975facf186
       body: >
