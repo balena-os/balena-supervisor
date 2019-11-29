@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'codeowners: Add richbayliss as a code owner'
+      hash: c816b863f82dc4d73b67a69220ebbbddab3573ea
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.6.16
+  date: 2019-11-29T10:13:03.432Z
+- commits:
     - subject: Handle cancelDelay not being a function
       hash: f4605d897eea8286a3923060aea999a8eab9bc91
       body: ''
