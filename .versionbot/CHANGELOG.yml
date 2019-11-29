@@ -1,4 +1,20 @@
 - commits:
+    - subject: Set a mock l4t version for use with optional containers
+      hash: 8cece238a9a7d552d5366ffa4170ba8998bb8bbf
+      body: |
+        Before this change a mixed device fleet with a subset using l4t would
+        not be able to have containers which only run on the l4t based boards.
+        We add a mock l4t version so the contracts will always be denied on
+        non-l4t boards, but the release itself won't fail to validate.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.17
+  date: 2019-11-29T11:09:22.902Z
+- commits:
     - subject: 'codeowners: Add richbayliss as a code owner'
       hash: c816b863f82dc4d73b67a69220ebbbddab3573ea
       body: ''
