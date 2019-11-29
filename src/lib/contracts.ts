@@ -44,10 +44,11 @@ let contractRequirementVersions = async () => {
 	const versions: ContractRequirementVersions = {
 		'sw.supervisor': supervisorVersion,
 	};
-	const l4tVersion = await osRelease.getL4tVersion();
-	if (l4tVersion != null) {
-		versions['sw.l4t'] = l4tVersion;
-	}
+	// We add a mock l4t version if one doesn't exist. This
+	// means that contracts used on mixed device fleets will
+	// still work when only a subset of the devices have an
+	// l4t string (for example a mixed fleet of rpi4 and tx2)
+	versions['sw.l4t'] = (await osRelease.getL4tVersion()) || '0';
 
 	return versions;
 };
