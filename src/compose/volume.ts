@@ -17,34 +17,28 @@ export interface VolumeConstructOpts {
 
 export interface VolumeConfig {
 	labels: LabelObject;
+	driver: string;
 	driverOpts: Docker.VolumeInspectInfo['Options'];
 }
 
 export interface ComposeVolumeConfig {
+	driver: string;
 	driver_opts: Dictionary<string>;
 	labels: LabelObject;
 }
 
 export class Volume {
-	public appId: number;
-	public name: string;
-	public config: VolumeConfig;
-
 	private logger: Logger;
 	private docker: Docker;
 
 	private constructor(
-		name: string,
-		appId: number,
-		config: VolumeConfig,
+		public name: string,
+		public appId: number,
+		public config: VolumeConfig,
 		opts: VolumeConstructOpts,
 	) {
-		this.name = name;
-		this.appId = appId;
-
 		this.logger = opts.logger;
 		this.docker = opts.docker;
-		this.config = config;
 	}
 
 	public static fromDockerVolume(
@@ -54,6 +48,7 @@ export class Volume {
 		// Convert the docker inspect to the config
 		const config: VolumeConfig = {
 			labels: inspect.Labels || {},
+			driver: inspect.Driver,
 			driverOpts: inspect.Options || {},
 		};
 
@@ -71,6 +66,7 @@ export class Volume {
 	) {
 		const filledConfig: VolumeConfig = {
 			driverOpts: config.driver_opts || {},
+			driver: config.driver || 'local',
 			labels: ComposeUtils.normalizeLabels(config.labels || {}),
 		};
 
@@ -83,6 +79,7 @@ export class Volume {
 
 	public toComposeObject(): ComposeVolumeConfig {
 		return {
+			driver: this.config.driver,
 			driver_opts: this.config.driverOpts!,
 			labels: this.config.labels,
 		};
@@ -90,6 +87,7 @@ export class Volume {
 
 	public isEqualConfig(volume: Volume): boolean {
 		return (
+			isEqual(this.config.driver, volume.config.driver) &&
 			isEqual(this.config.driverOpts, volume.config.driverOpts) &&
 			isEqual(
 				Volume.omitSupervisorLabels(this.config.labels),
@@ -105,6 +103,7 @@ export class Volume {
 		await this.docker.createVolume({
 			Name: Volume.generateDockerName(this.appId, this.name),
 			Labels: this.config.labels,
+			Driver: this.config.driver,
 			DriverOpts: this.config.driverOpts,
 		});
 	}

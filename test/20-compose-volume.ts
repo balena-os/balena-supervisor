@@ -44,9 +44,13 @@ describe('Compose volumes', () => {
 				.to.have.property('config')
 				.that.has.property('driverOpts')
 				.that.deep.equals({});
+			expect(volume)
+				.to.have.property('config')
+				.that.has.property('driver')
+				.that.equals('local');
 		});
 
-		it('should correctly parse compose volumes', () => {
+		it('should correctly parse compose volumes without an explicit driver', () => {
 			const volume = Volume.fromComposeObject(
 				'one_volume',
 				1032480,
@@ -80,6 +84,51 @@ describe('Compose volumes', () => {
 				.that.deep.equals({
 					opt1: 'test',
 				});
+			expect(volume)
+				.to.have.property('config')
+				.that.has.property('driver')
+				.that.equals('local');
+		});
+
+		it('should correctly parse compose volumes with an explicit driver', () => {
+			const volume = Volume.fromComposeObject(
+				'one_volume',
+				1032480,
+				{
+					driver: 'other',
+					driver_opts: {
+						opt1: 'test',
+					},
+					labels: {
+						'my-label': 'test-label',
+					},
+				},
+				opts,
+			);
+
+			expect(volume)
+				.to.have.property('appId')
+				.that.equals(1032480);
+			expect(volume)
+				.to.have.property('name')
+				.that.equals('one_volume');
+			expect(volume)
+				.to.have.property('config')
+				.that.has.property('labels')
+				.that.deep.equals({
+					'io.balena.supervised': 'true',
+					'my-label': 'test-label',
+				});
+			expect(volume)
+				.to.have.property('config')
+				.that.has.property('driverOpts')
+				.that.deep.equals({
+					opt1: 'test',
+				});
+			expect(volume)
+				.to.have.property('config')
+				.that.has.property('driver')
+				.that.equals('other');
 		});
 	});
 

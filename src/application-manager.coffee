@@ -666,11 +666,12 @@ module.exports = class ApplicationManager extends EventEmitter
 
 				Promise.map(JSON.parse(app.services), (service) => @createTargetService(service, configOpts))
 				.then (services) =>
-					# If a named volume is defined in a service, we add it app-wide so that we can track it and purge it
+					# If a named volume is defined in a service but NOT in the volumes of the compose file, we add it app-wide so that we can track it and purge it
+					# !! DEPRECATED, WILL BE REMOVED IN NEXT MAJOR RELEASE !!
 					for s in services
 						serviceNamedVolumes = s.getNamedVolumes()
 						for name in serviceNamedVolumes
-							volumes[name] = @createTargetVolume(name, app.appId, { labels: {} })
+							volumes[name] ?= @createTargetVolume(name, app.appId, { labels: {} })
 					outApp = {
 						appId: app.appId
 						name: app.name
