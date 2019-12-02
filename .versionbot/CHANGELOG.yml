@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'volumes: Allow the use of the ''driver'' setting in volumes'
+      hash: c3cf8fbca25d3f6dae5c58cf29f11b2c89d10353
+      body: |
+        A compose file can now contain a volume which uses a different driver
+        from the default one; local.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.6.18
+  date: 2019-12-02T12:02:23.535Z
+- commits:
     - subject: Set a mock l4t version for use with optional containers
       hash: 8cece238a9a7d552d5366ffa4170ba8998bb8bbf
       body: |
