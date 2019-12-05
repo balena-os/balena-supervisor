@@ -89,6 +89,20 @@ export class DockerUtils extends DockerToolbelt {
 			return await this.fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 		}
 
+		// We need to make sure that we're not trying to apply a
+		// v3 delta on top of a v2 delta, as this will cause the
+		// update to fail, and we must fall back to a standard
+		// image pull
+		if (
+			deltaOpts.deltaVersion === 3 &&
+			(await DockerUtils.isV2DeltaImage(this, deltaOpts.deltaSourceId))
+		) {
+			logFn(
+				`Cannot create a delta from V2 to V3, falling back to regular pull`,
+			);
+			return await this.fetchImageWithProgress(imgDest, deltaOpts, onProgress);
+		}
+
 		// Since the supevisor never calls this function with a source anymore,
 		// this should never happen, but w ehandle it anyway
 		if (deltaOpts.deltaSource == null) {
@@ -315,6 +329,19 @@ export class DockerUtils extends DockerToolbelt {
 
 		await docker.dockerProgress.pull(deltaImg, onProgress, auth);
 		return (await docker.getImage(deltaImg).inspect()).Id;
+	}
+
+	public static async isV2DeltaImage(
+		docker: DockerUtils,
+		imageName: string,
+	): Promise<boolean> {
+		const inspect = await docker.getImage(imageName).inspect();
+
+		// It's extremely unlikely that an image is valid if
+		// it's smaller than 40 bytes, but a v2 delta always is.
+		// For this reason, this is the method that we use to
+		// detect when an image is a v2 delta
+		return inspect.Size < 40 && inspect.VirtualSize < 40;
 	}
 
 	private getAuthToken = memoizee(
