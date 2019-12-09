@@ -1,4 +1,18 @@
 - commits:
+    - subject: Always filter environment configuration
+      hash: 03a701cdedf6a40aa707ca5ca22af8f1c9a14d40
+      body: |
+        This means that if an image is created with a committed container, we
+        won't assume that it does not contain the balena env vars
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.19
+  date: 2019-12-09T11:33:43.344Z
+- commits:
     - subject: 'volumes: Allow the use of the ''driver'' setting in volumes'
       hash: c3cf8fbca25d3f6dae5c58cf29f11b2c89d10353
       body: |
