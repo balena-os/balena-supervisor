@@ -1,4 +1,20 @@
 - commits:
+    - subject: Hide init method in configJson
+      hash: d9c669ebad7b115f018a922f6b329950fd86b6b1
+      body: |
+        ConfigJson users now don't need to worry about initialization.
+        It's done lazily on the first public method call.
+
+        Implementation is also rewritten to follow async/await pattern.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.6.20
+  date: 2019-12-11T18:14:09.414Z
+- commits:
     - subject: Always filter environment configuration
       hash: 03a701cdedf6a40aa707ca5ca22af8f1c9a14d40
       body: |
