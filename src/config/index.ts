@@ -56,10 +56,8 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		);
 	}
 
-	public init(): Bluebird<void> {
-		return this.configJsonBackend.init().then(() => {
-			return this.generateRequiredFields();
-		});
+	public async init() {
+		await this.generateRequiredFields();
 	}
 
 	public get<T extends SchemaTypeKey>(
@@ -316,7 +314,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		}) as ConfigMap<T>;
 	}
 
-	private generateRequiredFields() {
+	private async generateRequiredFields() {
 		return this.getMany([
 			'uuid',
 			'deviceApiKey',
