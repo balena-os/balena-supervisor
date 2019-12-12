@@ -774,9 +774,6 @@ module.exports = class ApplicationManager extends EventEmitter
 			for availableImage in available
 				if availableImage.serviceName == image.serviceName and availableImage.appId == image.appId
 					return availableImage.name
-			for availableImage in available
-				if availableImage.serviceName == image.serviceName
-					return availableImage.name
 		for availableImage in available
 			if availableImage.appId == image.appId
 				return availableImage.name
