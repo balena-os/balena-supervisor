@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add steps info to applyState error message
+      hash: 4895bb300a9675c70f5baa31ec04c91088a8d443
+      body: |
+        This helps to debug/diagnose problems with state application faster.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.6.21
+  date: 2019-12-12T14:27:33.589Z
+- commits:
     - subject: Hide init method in configJson
       hash: d9c669ebad7b115f018a922f6b329950fd86b6b1
       body: |
