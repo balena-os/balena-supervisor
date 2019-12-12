@@ -440,6 +440,9 @@ module.exports = class DeviceState extends EventEmitter
 			.delay(nextDelay)
 			.then =>
 				@applyTarget({ force, initial, intermediate, skipLock, nextDelay, retryCount })
+			.catch (err) =>
+				detailedError = new Error('Failed to apply state transition steps. ' + err.message + ' Steps:' + JSON.stringify(_.map(steps, 'action')))
+				@applyError(detailedError, { force, initial, intermediate })
 		.catch (err) =>
 			@applyError(err, { force, initial, intermediate })
 
