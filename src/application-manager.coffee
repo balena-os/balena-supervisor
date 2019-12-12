@@ -906,11 +906,28 @@ module.exports = class ApplicationManager extends EventEmitter
 							if _.every(nextSteps, { action: 'noop' })
 								volumePromises.push(@removeAllVolumesForApp(checkInt(appId)))
 			newDownloads = _.filter(nextSteps, (s) -> s.action == 'fetch').length
+
 			if !ignoreImages and delta and newDownloads > 0
+				# Check that this is not the first pull for an
+				# application, as we want to download all images then
+				# Otherwise we want to limit the downloading of
+				# deltas to constants.maxDeltaDownloads
+				appImages = _.groupBy(availableImages, 'appId')
 				downloadsToBlock = downloading.length + newDownloads - constants.maxDeltaDownloads
-				while downloadsToBlock > 0
-					_.pull(nextSteps, _.find(nextSteps, action: 'fetch'))
-					downloadsToBlock -= 1
+
+				nextSteps = _.filter nextSteps, (step, idx) ->
+					if step.action == 'fetch' && downloadsToBlock > 0
+						imagesForThisApp = appImages[step.image.appId]
+						if !imagesForThisApp? or imagesForThisApp.length == 0
+							# There isn't a valid image for the fetch
+							# step, so we keep it
+							return true
+						else
+							downloadsToBlock -= 1
+							return false
+					else
+						return true
+
 			if !ignoreImages and _.isEmpty(nextSteps) and !_.isEmpty(downloading)
 				nextSteps.push({ action: 'noop' })
 			return _.uniqWith(nextSteps, _.isEqual)
