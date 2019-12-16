@@ -1,4 +1,16 @@
 - commits:
+    - subject: Don't allow cross-app delta requests
+      hash: 4a74dffea96328b44cb6a4efa1938e3fb756f99a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.23
+  date: 2019-12-16T13:00:29.779Z
+- commits:
     - subject: 'fix: ⬇️ Force a regular pull when moving from v2 to v3 deltas'
       hash: 6db1f03411897ec6f8bcf6433782557c75864bd7
       body: ''
