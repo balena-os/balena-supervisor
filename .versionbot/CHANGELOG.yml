@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'fix: ⬇️ Force a regular pull when moving from v2 to v3 deltas'
+      hash: 6db1f03411897ec6f8bcf6433782557c75864bd7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Fixes: '#1072'
+        fixes: '#1072'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.22
+  date: 2019-12-16T10:45:23.315Z
+- commits:
     - subject: Add steps info to applyState error message
       hash: 4895bb300a9675c70f5baa31ec04c91088a8d443
       body: |
