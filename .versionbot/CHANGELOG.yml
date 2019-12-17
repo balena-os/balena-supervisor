@@ -1,4 +1,16 @@
 - commits:
+    - subject: Always do a standard docker download on first pull
+      hash: 8317a1843b3d3365b362cc90b2aad1e5e61a463f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.24
+  date: 2019-12-17T10:36:33.272Z
+- commits:
     - subject: Don't allow cross-app delta requests
       hash: 4a74dffea96328b44cb6a4efa1938e3fb756f99a
       body: ''
