@@ -1,4 +1,16 @@
 - commits:
+    - subject: Report the correct error when we cannot remove a network
+      hash: 2d4ac244031bdaccace508c0ca3a77df77e4c368
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.26
+  date: 2019-12-18T15:05:24.037Z
+- commits:
     - subject: Fix healthcheck on supervisor debug builds
       hash: 4ff54f45c189b62124d8de9293fac23b0bb32835
       body: |
