@@ -193,7 +193,7 @@ export class Network {
 				.getNetwork(Network.generateDockerName(this.appId, this.name))
 				.remove(),
 		).tapCatch(error => {
-			this.logger.logSystemEvent(logTypes.createNetworkError, {
+			this.logger.logSystemEvent(logTypes.removeNetworkError, {
 				network: { name: this.name, appId: this.appId },
 				error,
 			});
