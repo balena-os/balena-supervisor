@@ -1,12 +1,11 @@
 import APIBinder from './api-binder';
 import Config, { ConfigKey } from './config';
 import Database from './db';
+import DeviceState from './device-state';
 import EventTracker from './event-tracker';
 import { normaliseLegacyDatabase } from './lib/migration';
 import Logger from './logger';
 import SupervisorAPI from './supervisor-api';
-
-import DeviceState = require('./device-state');
 
 import constants = require('./lib/constants');
 import log from './lib/supervisor-console';

@@ -11,6 +11,7 @@ import { DeviceStatus, InstancedAppState } from './types/state';
 import ImageManager, { Image } from './compose/images';
 import ServiceManager from './compose/service-manager';
 import DB from './db';
+import DeviceState from './device-state';
 
 import { APIBinder } from './api-binder';
 import Config from './config';
@@ -49,7 +50,7 @@ class ApplicationManager extends EventEmitter {
 	// typecript, type the following
 	public _lockingIfNecessary: any;
 	public logger: Logger;
-	public deviceState: any;
+	public deviceState: DeviceState;
 	public eventTracker: EventTracker;
 	public apiBinder: APIBinder;
 	public docker: DockerUtils;
@@ -62,6 +63,22 @@ class ApplicationManager extends EventEmitter {
 	public images: ImageManager;
 
 	public proxyvisor: any;
+	public timeSpentFetching: number;
+	public fetchesInProgress: number;
+
+	public validActions: string[];
+
+	public router: Router;
+
+	public constructor({
+		logger: Logger,
+		config: Config,
+		db: DB,
+		eventTracker: EventTracker,
+		deviceState: DeviceState,
+	});
+
+	public init(): Promise<void>;
 
 	public getCurrentApp(appId: number): Bluebird<Application | null>;
 

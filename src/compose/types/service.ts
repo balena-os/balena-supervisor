@@ -54,7 +54,7 @@ export interface ServiceComposeConfig {
 	image: string;
 	init?: string | boolean;
 	labels?: { [labelName: string]: string };
-	running: boolean;
+	running?: boolean;
 	networkMode?: string;
 	networks?: string[] | ServiceNetworkDictionary;
 	pid?: string;

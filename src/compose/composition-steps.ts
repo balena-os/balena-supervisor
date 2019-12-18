@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 
 import Config from '../config';
 
-import ApplicationManager from '../application-manager';
+import ApplicationManager = require('../application-manager');
 import Images, { Image } from './images';
 import Network from './network';
 import Service from './service';
@@ -95,9 +95,9 @@ interface CompositionStepArgs {
 	ensureSupervisorNetwork: {};
 }
 
-type CompositionStepAction = keyof CompositionStepArgs;
-type CompositionStep<T extends CompositionStepAction> = {
-	step: T;
+export type CompositionStepAction = keyof CompositionStepArgs;
+export type CompositionStep<T extends CompositionStepAction> = {
+	action: T;
 } & CompositionStepArgs[T];
 
 export function generateStep<T extends CompositionStepAction>(
@@ -105,7 +105,7 @@ export function generateStep<T extends CompositionStepAction>(
 	args: CompositionStepArgs[T],
 ): CompositionStep<T> {
 	return {
-		step: action,
+		action,
 		...args,
 	};
 }

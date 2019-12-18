@@ -12,7 +12,7 @@ import { UnitNotLoadedError } from './lib/errors';
 import * as systemd from './lib/systemd';
 import { EnvVarObject } from './lib/types';
 import { checkInt, checkTruthy } from './lib/validation';
-import { DeviceApplicationState } from './types/state';
+import { DeviceStatus } from './types/state';
 
 const vpnServiceName = 'openvpn-resin';
 
@@ -29,7 +29,9 @@ interface ConfigOption {
 	rebootRequired?: boolean;
 }
 
-interface ConfigStep {
+// FIXME: Bring this and the deviceState and
+// applicationState steps together
+export interface ConfigStep {
 	// TODO: This is a bit of a mess, the DeviceConfig class shouldn't
 	// know that the reboot action exists as it is implemented by
 	// DeviceState. Fix this weird circular dependency
@@ -367,8 +369,8 @@ export class DeviceConfig {
 	}
 
 	public async getRequiredSteps(
-		currentState: DeviceApplicationState,
-		targetState: DeviceApplicationState,
+		currentState: DeviceStatus,
+		targetState: { local?: { config?: Dictionary<string> } },
 	): Promise<ConfigStep[]> {
 		const current: Dictionary<string> = _.get(
 			currentState,
