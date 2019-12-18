@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import { fs } from 'mz';
 
 import { Image } from '../compose/images';
-import DeviceState = require('../device-state');
+import DeviceState from '../device-state';
 
 import constants = require('../lib/constants');
 import { AppsJsonParseError, EISDIR, ENOENT } from '../lib/errors';

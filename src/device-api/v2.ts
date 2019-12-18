@@ -3,7 +3,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 import * as _ from 'lodash';
 import { fs } from 'mz';
 
-import { ApplicationManager } from '../application-manager';
+import ApplicationManager = require('../application-manager');
 import { Service } from '../compose/service';
 import {
 	appNotFoundMessage,

@@ -9,10 +9,10 @@ import * as rimraf from 'rimraf';
 const mkdirpAsync = Bluebird.promisify(mkdirp);
 const rimrafAsync = Bluebird.promisify(rimraf);
 
-import ApplicationManager from '../application-manager';
+import ApplicationManager = require('../application-manager');
 import Config from '../config';
 import Database, { Transaction } from '../db';
-import DeviceState = require('../device-state');
+import DeviceState from '../device-state';
 import * as constants from '../lib/constants';
 import { BackupError, DatabaseParseError, NotFoundError } from '../lib/errors';
 import { pathExistsOnHost } from '../lib/fs-utils';

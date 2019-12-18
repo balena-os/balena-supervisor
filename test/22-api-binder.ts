@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { APIBinder, APIBinderConstructOpts } from '../src/api-binder';
-import { DeviceApplicationState } from '../src/types/state';
+import { DeviceStatus } from '../src/types/state';
 
 describe('APIBinder', () => {
 	let apiBinder: APIBinder;
@@ -27,7 +27,7 @@ describe('APIBinder', () => {
 				is_on__commit: 'whatever',
 			},
 			dependent: { apps: {} },
-		} as DeviceApplicationState;
+		} as DeviceStatus;
 
 		it('should strip applications data', () => {
 			const result = apiBinder.stripDeviceStateInLocalMode(

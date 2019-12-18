@@ -12,7 +12,7 @@ const { expect } = chai;
 import Config from '../src/config';
 import { RPiConfigBackend } from '../src/config/backend';
 import DB from '../src/db';
-import DeviceState = require('../src/device-state');
+import DeviceState from '../src/device-state';
 
 import { loadTargetFromFile } from '../src/device-state/preload';
 
@@ -112,6 +112,8 @@ const testTarget2 = {
 						labels: {},
 					},
 				},
+				volumes: {},
+				networks: {},
 			},
 		},
 	},
@@ -310,7 +312,7 @@ describe('deviceState', () => {
 	});
 
 	it('emits a change event when a new state is reported', () => {
-		deviceState.reportCurrentState({ someStateDiff: 'someValue' });
+		deviceState.reportCurrentState({ someStateDiff: 'someValue' } as any);
 		return (expect as any)(deviceState).to.emit('change');
 	});
 
@@ -339,7 +341,7 @@ describe('deviceState', () => {
 	});
 
 	it('does not allow setting an invalid target state', () => {
-		expect(deviceState.setTarget(testTargetInvalid)).to.be.rejected;
+		expect(deviceState.setTarget(testTargetInvalid as any)).to.be.rejected;
 	});
 
 	it('allows triggering applying the target state', done => {

@@ -25,11 +25,11 @@ import {
 } from './lib/errors';
 import * as request from './lib/request';
 import { writeLock } from './lib/update-lock';
-import { DeviceApplicationState, TargetState } from './types/state';
+import { DeviceStatus, TargetState } from './types/state';
 
 import log from './lib/supervisor-console';
 
-import DeviceState = require('./device-state');
+import DeviceState from './device-state';
 import Logger from './logger';
 
 // The exponential backoff starts at 15s
@@ -80,11 +80,11 @@ export class APIBinder {
 	public balenaApi: PinejsClientRequest | null = null;
 	// TODO{type}: Retype me when all types are sorted
 	private cachedBalenaApi: PinejsClientRequest | null = null;
-	private lastReportedState: DeviceApplicationState = {
+	private lastReportedState: DeviceStatus = {
 		local: {},
 		dependent: {},
 	};
-	private stateForReport: DeviceApplicationState = {
+	private stateForReport: DeviceStatus = {
 		local: {},
 		dependent: {},
 	};
@@ -410,7 +410,7 @@ export class APIBinder {
 		});
 	}
 
-	private getStateDiff(): DeviceApplicationState {
+	private getStateDiff(): DeviceStatus {
 		const lastReportedLocal = this.lastReportedState.local;
 		const lastReportedDependent = this.lastReportedState.dependent;
 		if (lastReportedLocal == null || lastReportedDependent == null) {
@@ -423,13 +423,13 @@ export class APIBinder {
 
 		const diff = {
 			local: _(this.stateForReport.local)
-				.omitBy((val, key: keyof DeviceApplicationState['local']) =>
+				.omitBy((val, key: keyof DeviceStatus['local']) =>
 					_.isEqual(lastReportedLocal[key], val),
 				)
 				.omit(INTERNAL_STATE_KEYS)
 				.value(),
 			dependent: _(this.stateForReport.dependent)
-				.omitBy((val, key: keyof DeviceApplicationState['dependent']) =>
+				.omitBy((val, key: keyof DeviceStatus['dependent']) =>
 					_.isEqual(lastReportedDependent[key], val),
 				)
 				.omit(INTERNAL_STATE_KEYS)
@@ -440,7 +440,7 @@ export class APIBinder {
 	}
 
 	private async sendReportPatch(
-		stateDiff: DeviceApplicationState,
+		stateDiff: DeviceStatus,
 		conf: { apiEndpoint: string; uuid: string; localMode: boolean },
 	) {
 		if (this.cachedBalenaApi == null) {
@@ -478,9 +478,7 @@ export class APIBinder {
 
 	// Returns an object that contains only status fields relevant for the local mode.
 	// It basically removes information about applications state.
-	public stripDeviceStateInLocalMode(
-		state: DeviceApplicationState,
-	): DeviceApplicationState {
+	public stripDeviceStateInLocalMode(state: DeviceStatus): DeviceStatus {
 		return {
 			local: _.cloneDeep(
 				_.omit(state.local, 'apps', 'is_on__commit', 'logs_channel'),
@@ -710,6 +708,11 @@ export class APIBinder {
 		);
 		const deviceId = await this.config.get('deviceId');
 
+		if (!currentState.local.config) {
+			throw new InternalInconsistencyError(
+				'No config defined in reportInitialEnv',
+			);
+		}
 		const currentConfig: Dictionary<string> = currentState.local.config;
 		for (const [key, value] of _.toPairs(currentConfig)) {
 			let varValue = value;
