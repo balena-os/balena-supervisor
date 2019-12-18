@@ -103,7 +103,7 @@
     "network-checker": "^0.1.1",
     "pinejs-client-request": "^5.2.0",
     "prettier": "1.19.1",
-    "pretty-ms": "^4.0.0",
+    "pretty-ms": "^5.1.0",
     "request": "^2.51.0",
     "resin-lint": "^3.2.4",
     "resin-register-device": "^3.0.0",
