@@ -80,7 +80,7 @@ COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 
 VOLUME /data
 HEALTHCHECK --interval=5m --start-period=1m --timeout=30s --retries=3 \
-	CMD wget -qO- http://127.0.0.1:${LISTEN_PORT:-48484}/v1/healthy || exit 1
+	CMD curl --fail http://127.0.0.1:${LISTEN_PORT:-48484}/v1/healthy
 
 RUN [ "cross-build-end" ]
 
