@@ -1,4 +1,18 @@
 - commits:
+    - subject: Fix healthcheck on supervisor debug builds
+      hash: 4ff54f45c189b62124d8de9293fac23b0bb32835
+      body: |
+        We were relying on wget which was not brought into the image, so we
+        switch this to curl, which is present.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.25
+  date: 2019-12-18T14:39:21.218Z
+- commits:
     - subject: Always do a standard docker download on first pull
       hash: 8317a1843b3d3365b362cc90b2aad1e5e61a463f
       body: ''
