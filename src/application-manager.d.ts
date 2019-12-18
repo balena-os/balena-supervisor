@@ -1,10 +1,12 @@
 import * as Bluebird from 'bluebird';
 import { EventEmitter } from 'events';
+import { Router } from 'express';
+import Knex = require('knex');
 
 import { ServiceAction } from './device-api/common';
 import { EventTracker } from './event-tracker';
 import { Logger } from './logger';
-import { DeviceApplicationState } from './types/state';
+import { DeviceStatus, InstancedAppState } from './types/state';
 
 import ImageManager, { Image } from './compose/images';
 import ServiceManager from './compose/service-manager';
@@ -16,6 +18,10 @@ import Config from './config';
 import NetworkManager from './compose/network-manager';
 import VolumeManager from './compose/volume-manager';
 
+import {
+	CompositionStep,
+	CompositionStepAction,
+} from './compose/composition-steps';
 import Network from './compose/network';
 import Service from './compose/service';
 import Volume from './compose/volume';
@@ -34,7 +40,7 @@ declare interface Application {
 
 // This is a non-exhaustive typing for ApplicationManager to avoid
 // having to recode the entire class (and all requirements in TS).
-export class ApplicationManager extends EventEmitter {
+class ApplicationManager extends EventEmitter {
 	// These probably could be typed, but the types are so messy that we're
 	// best just waiting for the relevant module to be recoded in typescript.
 	// At least any types we can be sure of then.
@@ -67,21 +73,31 @@ export class ApplicationManager extends EventEmitter {
 		opts: Options,
 	): Bluebird<void>;
 
-	// FIXME: Type this properly as it's some mutant state between
-	// the state endpoint and the ApplicationManager internals
-	public getStatus(): Promise<Dictionay<any>>;
+	public setTarget(
+		local: any,
+		dependent: any,
+		source: string,
+		transaction: Knex.Transaction,
+	): Promise<void>;
+
+	public getStatus(): Promise<DeviceStatus>;
 	// The return type is incompleted
-	public getTargetApps(): Promise<
-		Dictionary<{
-			services: Dictionary<Service>;
-			volumes: Dictionary<Volume>;
-			networks: Dictionary<Network>;
-		}>
-	>;
+	public getTargetApps(): Promise<InstancedAppState>;
 	public stopAll(opts: { force?: boolean; skipLock?: boolean }): Promise<void>;
 
 	public serviceNameFromId(serviceId: number): Bluebird<string>;
 	public imageForService(svc: any): Promise<Image>;
+	public getDependentTargets(): Promise<any>;
+	public getCurrentForComparison(): Promise<any>;
+	public getDependentState(): Promise<any>;
+	public getExtraStateForComparison(current: any, target: any): Promise<any>;
+	public getRequiredSteps(
+		currentState: any,
+		targetState: any,
+		extraState: any,
+		ignoreImages?: boolean,
+	): Promise<Array<CompositionStep<CompositionStepAction>>>;
+	public localModeSwitchCompletion(): Promise<void>;
 }
 
-export default ApplicationManager;
+export = ApplicationManager;
