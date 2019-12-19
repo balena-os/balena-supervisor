@@ -1,4 +1,18 @@
 - commits:
+    - subject: Throttle state report patches to once per 10 seconds
+      hash: 4b0f431f9b4eadcec30a21483a5ee5e3c2ecb14b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1158'
+        closes: '#1158'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.27
+  date: 2019-12-19T12:35:53.720Z
+- commits:
     - subject: Report the correct error when we cannot remove a network
       hash: 2d4ac244031bdaccace508c0ca3a77df77e4c368
       body: ''
