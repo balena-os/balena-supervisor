@@ -13,6 +13,7 @@ import Database from './db';
 import { EventTracker } from './event-tracker';
 import { loadBackupFromMigration } from './lib/migration';
 
+import constants = require('./lib/constants');
 import {
 	ContractValidationError,
 	ContractViolationError,
@@ -485,7 +486,7 @@ export class APIBinder {
 		};
 	}
 
-	private async report() {
+	private report = _.throttle(async () => {
 		const conf = await this.config.getMany([
 			'deviceId',
 			'apiTimeout',
@@ -531,7 +532,7 @@ export class APIBinder {
 				throw e;
 			}
 		}
-	}
+	}, constants.maxReportFrequency);
 
 	private reportCurrentState(): null {
 		(async () => {
@@ -600,7 +601,6 @@ export class APIBinder {
 	}
 
 	private async pollTargetState(isInitialCall: boolean = false): Promise<void> {
-		// TODO: Remove the checkInt here with the config changes
 		const {
 			appUpdatePollInterval,
 			instantUpdates,
