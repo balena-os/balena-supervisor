@@ -56,6 +56,8 @@ const constants = {
 	backoffIncrement: 500,
 	supervisorNetworkSubnet: '10.114.104.0/25',
 	supervisorNetworkGateway: '10.114.104.1',
+	// How often can we report our state to the server in ms
+	maxReportFrequency: 10 * 1000,
 };
 
 if (process.env.DOCKER_HOST == null) {
