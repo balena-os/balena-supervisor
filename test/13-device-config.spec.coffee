@@ -218,11 +218,11 @@ describe 'DeviceConfig', ->
 
 	describe 'Balena fin', ->
 		it 'should always add the balena-fin dtoverlay', ->
-			expect(DeviceConfig.ensureFinOverlay({})).to.deep.equal({ dtoverlay: ['balena-fin'] })
-			expect(DeviceConfig.ensureFinOverlay({ test: '123', test2: ['123'], test3: ['123', '234'] })).to
+			expect(DeviceConfig.ensureRequiredOverlay('fincm3', {})).to.deep.equal({ dtoverlay: ['balena-fin'] })
+			expect(DeviceConfig.ensureRequiredOverlay('fincm3', { test: '123', test2: ['123'], test3: ['123', '234'] })).to
 				.deep.equal({ test: '123', test2: ['123'], test3: ['123', '234'], dtoverlay: ['balena-fin'] })
-			expect(DeviceConfig.ensureFinOverlay({ dtoverlay: 'test' })).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] })
-			expect(DeviceConfig.ensureFinOverlay({ dtoverlay: ['test'] })).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] })
+			expect(DeviceConfig.ensureRequiredOverlay('fincm3', { dtoverlay: 'test' })).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] })
+			expect(DeviceConfig.ensureRequiredOverlay('fincm3', { dtoverlay: ['test'] })).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] })
 
 		it 'should not cause a config change when the cloud does not specify the balena-fin overlay', ->
 			expect(@deviceConfig.bootConfigChangeRequired(
@@ -244,6 +244,36 @@ describe 'DeviceConfig', ->
 				{ HOST_CONFIG_dtoverlay: '"test","test2","balena-fin"' },
 				{ HOST_CONFIG_dtoverlay: '"test","test2"' },
 				'fincm3'
+			)).to.equal(false)
+
+	describe 'Raspberry pi4', ->
+		it 'should always add the vc4-fkms-v3d dtoverlay', ->
+			expect(DeviceConfig.ensureRequiredOverlay('raspberrypi4-64', {})).to.deep.equal({ dtoverlay: ['vc4-fkms-v3d'] })
+			expect(DeviceConfig.ensureRequiredOverlay('raspberrypi4-64', { test: '123', test2: ['123'], test3: ['123', '234'] })).to
+				.deep.equal({ test: '123', test2: ['123'], test3: ['123', '234'], dtoverlay: ['vc4-fkms-v3d'] })
+			expect(DeviceConfig.ensureRequiredOverlay('raspberrypi4-64', { dtoverlay: 'test' })).to.deep.equal({ dtoverlay: ['test', 'vc4-fkms-v3d'] })
+			expect(DeviceConfig.ensureRequiredOverlay('raspberrypi4-64', { dtoverlay: ['test'] })).to.deep.equal({ dtoverlay: ['test', 'vc4-fkms-v3d'] })
+
+		it 'should not cause a config change when the cloud does not specify the pi4 overlay', ->
+			expect(@deviceConfig.bootConfigChangeRequired(
+				rpiConfigBackend,
+				{ HOST_CONFIG_dtoverlay: '"test","vc4-fkms-v3d"' },
+				{ HOST_CONFIG_dtoverlay: '"test"' },
+				'raspberrypi4-64'
+			)).to.equal(false)
+
+			expect(@deviceConfig.bootConfigChangeRequired(
+				rpiConfigBackend,
+				{ HOST_CONFIG_dtoverlay: '"test","vc4-fkms-v3d"' },
+				{ HOST_CONFIG_dtoverlay: 'test' },
+				'raspberrypi4-64'
+			)).to.equal(false)
+
+			expect(@deviceConfig.bootConfigChangeRequired(
+				rpiConfigBackend,
+				{ HOST_CONFIG_dtoverlay: '"test","test2","vc4-fkms-v3d"' },
+				{ HOST_CONFIG_dtoverlay: '"test","test2"' },
+				'raspberrypi4-64'
 			)).to.equal(false)
 
 	# This will require stubbing device.reboot, gosuper.post, config.get/set
