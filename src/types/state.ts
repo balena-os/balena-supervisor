@@ -107,20 +107,22 @@ export type ApplicationDatabaseFormat = Array<{
 	volumes: string;
 }>;
 
+export interface InstancedApp {
+	appId: number;
+	commit: string;
+	releaseId: number;
+	name: string;
+	services: Service[];
+	volumes: { [name: string]: Volume };
+	networks: { [name: string]: Network };
+}
+
 // This structure is the internal representation of both
 // target and current state. We create instances of compose
 // objects and these are what the state engine uses to
 // detect what it should do to move between them
 export interface InstancedAppState {
-	[appId: number]: {
-		appId: number;
-		commit: string;
-		releaseId: number;
-		name: string;
-		services: Service[];
-		volumes: { [name: string]: Volume };
-		networks: { [name: string]: Network };
-	};
+	[appId: number]: InstancedApp;
 }
 
 export interface InstancedDeviceState {
