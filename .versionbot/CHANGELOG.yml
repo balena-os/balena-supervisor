@@ -1,4 +1,18 @@
 - commits:
+    - subject: Ensure that we always have the pi4 overlay assigned
+      hash: 426d8cd10ad22fcf79b019dc49e2c2f6c27cd06d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1171'
+        closes: '#1171'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.28
+  date: 2020-01-08T17:08:33.840Z
+- commits:
     - subject: Throttle state report patches to once per 10 seconds
       hash: 4b0f431f9b4eadcec30a21483a5ee5e3c2ecb14b
       body: ''
