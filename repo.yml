@@ -1,0 +1,4 @@
+type: node
+esr:
+  line: next
+  version: 10.3
