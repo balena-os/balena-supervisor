@@ -34,6 +34,7 @@ function lockFilesOnHost(appId: number, serviceName: string): string[] {
 }
 
 const locksTaken: { [lockName: string]: boolean } = {};
+const existingLocks: { [lockName: string]: boolean } = {};
 
 // Try to clean up any existing locks when the program exits
 process.on('exit', () => {
@@ -58,7 +59,11 @@ export const readLock: LockFn = Bluebird.promisify(locker.async.readLock, {
 function dispose(release: () => void): Bluebird<void> {
 	return Bluebird.map(_.keys(locksTaken), lockName => {
 		delete locksTaken[lockName];
-		return lockFile.unlockAsync(lockName);
+		if (_.keys(existingLocks).indexOf(lockName) === -1) {
+			return lockFile.unlockAsync(lockName);
+		} else {
+			delete existingLocks[lockName];
+		}
 	})
 		.finally(release)
 		.return();
@@ -66,7 +71,7 @@ function dispose(release: () => void): Bluebird<void> {
 
 export function lock(
 	appId: number | null,
-	{ force = false }: { force: boolean },
+	{ force = false, keepLocks = false }: { force: boolean; keepLocks: boolean },
 	fn: () => PromiseLike<void>,
 ): Bluebird<void> {
 	const takeTheLock = () => {
@@ -88,6 +93,9 @@ export function lock(
 							tmpLockName => {
 								return Bluebird.try(() => {
 									if (force) {
+										if (lockFile.checkSync(tmpLockName) && keepLocks) {
+											existingLocks[tmpLockName] = true;
+										}
 										return lockFile.unlockAsync(tmpLockName);
 									}
 								})

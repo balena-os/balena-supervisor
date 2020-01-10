@@ -27,7 +27,7 @@ exports.doPurge = (applications, appId, force) ->
 	{ logger, _lockingIfNecessary, deviceState, volumes } = applications
 
 	logger.logSystemMessage("Purging data for app #{appId}", { appId }, 'Purge data')
-	_lockingIfNecessary appId, { force }, ->
+	_lockingIfNecessary appId, { force, keepLocks: true }, ->
 		deviceState.getCurrentForComparison()
 		.then (currentState) ->
 			app = currentState.local.apps[appId]

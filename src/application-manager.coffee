@@ -945,14 +945,14 @@ module.exports = class ApplicationManager extends EventEmitter
 				.then =>
 					delete @_containerStarted[service.containerId]
 
-	_lockingIfNecessary: (appId, { force = false, skipLock = false } = {}, fn) =>
+	_lockingIfNecessary: (appId, { force = false, skipLock = false, keepLocks = false } = {}, fn) =>
 		if skipLock
 			return Promise.try(fn)
 		@config.get('lockOverride')
 		.then (lockOverride) ->
 			return lockOverride or force
 		.then (force) ->
-			updateLock.lock(appId, { force }, fn)
+			updateLock.lock(appId, { force, keepLocks }, fn)
 
 	executeStepAction: (step, { force = false, skipLock = false } = {}) =>
 		if _.includes(@proxyvisor.validActions, step.action)
