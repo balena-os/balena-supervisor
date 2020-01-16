@@ -86,9 +86,7 @@ export const startConnectivityCheck = _.once(
 				interval: 10 * 1000,
 			},
 			connected => {
-				if (_.isFunction(onChangeCallback)) {
-					onChangeCallback(connected);
-				}
+				onChangeCallback?.(connected);
 				if (connected) {
 					log.info('Internet Connectivity: OK');
 					blink.pattern.stop();

@@ -27,9 +27,16 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		res: Response,
 		next: NextFunction,
 		action: any,
-	): Bluebird<void> => {
+	): Resolvable<void> => {
 		const { imageId, serviceName, force } = req.body;
-		const { appId } = req.params;
+		const appId = checkInt(req.params.appId);
+		if (!appId) {
+			res.status(400).json({
+				status: 'failed',
+				message: 'Missing app id',
+			});
+			return;
+		}
 
 		return _lockingIfNecessary(appId, { force }, () => {
 			return applications
@@ -120,7 +127,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		'/v2/applications/:appId/restart',
 		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
-			const { appId } = req.params;
+			const appId = checkInt(req.params.appId);
+			if (!appId) {
+				return res.status(400).json({
+					status: 'failed',
+					message: 'Missing app id',
+				});
+			}
 
 			return doRestart(applications, appId, force)
 				.then(() => {
