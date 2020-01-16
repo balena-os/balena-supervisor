@@ -6,7 +6,7 @@ defaults: &defaults
   steps:
     - setup_remote_docker:
         version: 17.06.0-ce
-        reusable: true
+        docker_layer_caching: true
     - run:
         name: Check docker is running and install git
         command: |
