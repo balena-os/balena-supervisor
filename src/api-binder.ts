@@ -30,8 +30,8 @@ import log from './lib/supervisor-console';
 import DeviceState = require('./device-state');
 import Logger from './logger';
 
-const REPORT_SUCCESS_DELAY = 1000;
-const MAX_REPORT_RETRY_DELAY = 60000;
+// The exponential backoff starts at 15s
+const MINIMUM_BACKOFF_DELAY = 15000;
 
 const INTERNAL_STATE_KEYS = [
 	'update_pending',
@@ -549,13 +549,15 @@ export class APIBinder {
 				}
 
 				await this.report();
-				await Bluebird.delay(REPORT_SUCCESS_DELAY);
 				await this.reportCurrentState();
 			} catch (e) {
 				this.eventTracker.track('Device state report failure', { error: e });
+				// We use the poll interval as the upper limit of
+				// the exponential backoff
+				const maxDelay = await this.config.get('appUpdatePollInterval');
 				const delay = Math.min(
-					2 ** this.stateReportErrors * 500,
-					MAX_REPORT_RETRY_DELAY,
+					2 ** this.stateReportErrors * MINIMUM_BACKOFF_DELAY,
+					maxDelay,
 				);
 
 				++this.stateReportErrors;
