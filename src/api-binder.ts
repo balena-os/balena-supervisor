@@ -549,7 +549,7 @@ export class APIBinder {
 				}
 
 				await this.report();
-				await this.reportCurrentState();
+				this.reportCurrentState();
 			} catch (e) {
 				this.eventTracker.track('Device state report failure', { error: e });
 				// We use the poll interval as the upper limit of
@@ -562,7 +562,7 @@ export class APIBinder {
 
 				++this.stateReportErrors;
 				await Bluebird.delay(delay);
-				await this.reportCurrentState();
+				this.reportCurrentState();
 			}
 		})();
 		return null;
