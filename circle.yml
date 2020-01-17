@@ -1,20 +1,19 @@
 ---
 defaults: &defaults
   docker:
-    - image: library/docker:17.06.0-ce
+    - image: library/docker:19-git
   working_directory: /tmp/build
   steps:
     - setup_remote_docker:
-        version: 17.06.0-ce
-        reusable: true
+        version: 18.09.3
+        docker_layer_caching: true
     - run:
         name: Check docker is running and install git
         command: |
           docker info
-          apk update && apk upgrade && apk add --nocache \
+          apk update && apk upgrade && apk add --no-cache \
             make \
             jq \
-            git \
             bash \
             grep \
             nodejs \
@@ -26,7 +25,7 @@ defaults: &defaults
         working_directory: /tmp/build/automation
         command: |
           JOBS=max npm install \
-            && npm cache clean
+            && npm cache clean --force
     - run:
         name: Initialize the submodules (yocto layers)
         command: |
