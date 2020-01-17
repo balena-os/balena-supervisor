@@ -1,4 +1,28 @@
 - commits:
+    - subject: Update docker used for CI builds
+      hash: 9dc9e0704b69f3e8980c8747cb341004b9be8399
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update the deprecated `reusable` key to `docker_layer_caching` for CI
+      hash: f4f7af042d49d8b5c3720883d5fe41b2e6b6664f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Push all images in parallel for CI builds
+      hash: 7e794629289756dc42bcc459c5c715b6a2dfce34
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.31
+  date: 2020-01-17T17:03:23.152Z
+- commits:
     - subject: Update knex types
       hash: 027701297b5366dd512ff31e7896d0a33065c52e
       body: ''
