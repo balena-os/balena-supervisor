@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import { inspect } from 'util';
 
+import { TargetState } from '../types/state';
 import { EnvVarObject, LabelObject } from './types';
 
 import log from './supervisor-console';
@@ -206,7 +207,7 @@ function undefinedOrValidEnv(val: EnvVarObject): boolean {
  *
  * TODO: Type the input
  */
-export function isValidDependentAppsObject(apps: any): boolean {
+export function isValidDependentAppsObject(apps: unknown): boolean {
 	if (!_.isObject(apps)) {
 		log.debug(
 			'Non-object passed to validation.isValidDependentAppsObject\nApps:',
@@ -215,8 +216,8 @@ export function isValidDependentAppsObject(apps: any): boolean {
 		return false;
 	}
 
-	return _.every(apps, (val, appId) => {
-		val = _.defaults(_.clone(val), {
+	return _.every(apps, (v, appId) => {
+		const val: TargetState['dependent']['apps'][any] = _.defaults(_.clone(v), {
 			config: undefined,
 			environment: undefined,
 			commit: undefined,
@@ -366,7 +367,7 @@ export function isValidAppsObject(obj: any): boolean {
 		return false;
 	}
 
-	return _.every(obj, (val, appId) => {
+	return _.every(obj, (v, appId) => {
 		if (!isValidShortText(appId) || !checkInt(appId)) {
 			log.debug(
 				'Invalid appId passed to validation.isValidAppsObject\nApp ID:',
@@ -375,7 +376,13 @@ export function isValidAppsObject(obj: any): boolean {
 			return false;
 		}
 
-		return _.conformsTo(_.defaults(_.clone(val), { releaseId: undefined }), {
+		// TODO: Remove this partial and validate the extra fields
+		const val: Partial<TargetState['local']['apps'][any]> = _.defaults(
+			_.clone(v),
+			{ releaseId: undefined },
+		);
+
+		return _.conformsTo(val, {
 			name: (n: any) => {
 				if (!isValidShortText(n)) {
 					log.debug(
@@ -443,7 +450,7 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 			return false;
 		}
 
-		return _.conformsTo(val, {
+		return _.conformsTo(val as TargetState['dependent']['devices'][any], {
 			name: (n: any) => {
 				if (!isValidShortText(n)) {
 					log.debug(
@@ -470,34 +477,37 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 					return false;
 				}
 
-				return _.every(a, app => {
-					app = _.defaults(_.clone(app), {
-						config: undefined,
-						environment: undefined,
-					});
-					return _.conformsTo(app, {
-						config: (c: any) => {
-							if (!undefinedOrValidEnv(c)) {
-								log.debug(
-									'Invalid config passed to validation.isValidDependentDevicesObject\nConfig:',
-									inspect(c),
-								);
-								return false;
-							}
-							return true;
-						},
-						environment: (e: any) => {
-							if (!undefinedOrValidEnv(e)) {
-								log.debug(
-									'Invalid environment passed to validation.isValidDependentDevicesObject\nConfig:',
-									inspect(e),
-								);
-								return false;
-							}
-							return true;
-						},
-					});
-				});
+				return _.every(
+					a as TargetState['dependent']['devices'][any]['apps'],
+					app => {
+						app = _.defaults(_.clone(app), {
+							config: undefined,
+							environment: undefined,
+						});
+						return _.conformsTo(app, {
+							config: (c: any) => {
+								if (!undefinedOrValidEnv(c)) {
+									log.debug(
+										'Invalid config passed to validation.isValidDependentDevicesObject\nConfig:',
+										inspect(c),
+									);
+									return false;
+								}
+								return true;
+							},
+							environment: (e: any) => {
+								if (!undefinedOrValidEnv(e)) {
+									log.debug(
+										'Invalid environment passed to validation.isValidDependentDevicesObject\nConfig:',
+										inspect(e),
+									);
+									return false;
+								}
+								return true;
+							},
+						});
+					},
+				);
 			},
 		});
 	});

@@ -1,6 +1,7 @@
 import { ComposeNetworkConfig } from '../compose/types/network';
 import { ServiceComposeConfig } from '../compose/types/service';
 import { ComposeVolumeConfig } from '../compose/volume';
+import { EnvVarObject, LabelObject } from '../lib/types';
 
 export interface DeviceApplicationState {
 	local?: {
@@ -27,7 +28,7 @@ export interface DeviceApplicationState {
 export interface TargetState {
 	local: {
 		name: string;
-		config: Dictionary<string>;
+		config: EnvVarObject;
 		apps: {
 			[appId: string]: {
 				name: string;
@@ -35,12 +36,12 @@ export interface TargetState {
 				releaseId: number;
 				services: {
 					[serviceId: string]: {
-						labels: Dictionary<string>;
+						labels: LabelObject;
 						imageId: number;
 						serviceName: string;
 						image: string;
 						running: boolean;
-						environment: Dictionary<string>;
+						environment: EnvVarObject;
 					} & ServiceComposeConfig;
 				};
 				volumes: Dictionary<Partial<ComposeVolumeConfig>>;
@@ -50,7 +51,22 @@ export interface TargetState {
 	};
 	// TODO: Correctly type this once dependent devices are
 	// actually properly supported
-	dependent: Dictionary<any>;
+	dependent: {
+		apps: Dictionary<{
+			name?: string;
+			image?: string;
+			commit?: string;
+			config?: EnvVarObject;
+			environment?: EnvVarObject;
+		}>;
+		devices: Dictionary<{
+			name?: string;
+			apps?: Dictionary<{
+				config?: EnvVarObject;
+				environment?: EnvVarObject;
+			}>;
+		}>;
+	};
 }
 
 export type LocalTargetState = TargetState['local'];
