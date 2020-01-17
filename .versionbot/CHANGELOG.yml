@@ -1,4 +1,18 @@
 - commits:
+    - subject: ⌛Increase minimum backoff delay and use poll interval as max
+      hash: 53b6e8f1bbd94228a170f581f3d38963143dd436
+      body: |
+        This change will start the minimum backoff from 15s (up from 500ms) and
+        will use the appUpdatePollInterval configuration variable as the max.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.29
+  date: 2020-01-17T12:34:53.143Z
+- commits:
     - subject: Ensure that we always have the pi4 overlay assigned
       hash: 426d8cd10ad22fcf79b019dc49e2c2f6c27cd06d
       body: ''
