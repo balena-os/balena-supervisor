@@ -1,4 +1,28 @@
 - commits:
+    - subject: Update knex types
+      hash: 027701297b5366dd512ff31e7896d0a33065c52e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update lodash types
+      hash: 1a393dbb1934e5821aa778c9316838adf0e429f5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update types and fix issue with treating string as a number
+      hash: 0ef9cc189b66b66815d965591c31c05904bd815c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.30
+  date: 2020-01-17T14:55:05.405Z
+- commits:
     - subject: ⌛Increase minimum backoff delay and use poll interval as max
       hash: 53b6e8f1bbd94228a170f581f3d38963143dd436
       body: |
