@@ -1,4 +1,16 @@
 - commits:
+    - subject: Set docker type and update CHANGELOG.md to the correct format
+      hash: d1a3663d47b5e79c611929802c3a63b375e1a24f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Giovanni Garufi <giovanni@balena.io>
+        signed-off-by: Giovanni Garufi <giovanni@balena.io>
+      author: Giovanni Garufi
+  version: 10.6.32
+  date: 2020-01-28T00:22:10.551Z
+- commits:
     - subject: Update docker used for CI builds
       hash: 9dc9e0704b69f3e8980c8747cb341004b9be8399
       body: ''
