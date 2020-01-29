@@ -922,7 +922,9 @@ Response:
 These endpoints are mainly for use by the CLI, for working with a local mode device.
 As such they are not recommended for general use.
 
-The device must be in local mode before these endpoints are called.
+The device must be in local mode before these endpoints are
+called, with the exception of `GET /v2/local/target-state`,
+which can be called when the device is not in local mode.
 
 #### Get current target state (GET /v2/local/target-state)
 
