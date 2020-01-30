@@ -234,14 +234,6 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	);
 
 	router.get('/v2/local/target-state', async (_req, res) => {
-		const localMode = await deviceState.config.get('localMode');
-		if (!localMode) {
-			return res.status(400).json({
-				status: 'failed',
-				message: 'Target state can only be retrieved when in local mode',
-			});
-		}
-
 		const targetState = await deviceState.getTarget();
 
 		// We avoid using cloneDeep here, as the class
