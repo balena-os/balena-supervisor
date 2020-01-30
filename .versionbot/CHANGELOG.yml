@@ -1,4 +1,18 @@
 - commits:
+    - subject: Allow getting the target state when not in local mode
+      hash: 3ff3bce605ebf9e53a6df4e2646031cde2a8831c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1176'
+        closes: '#1176'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.33
+  date: 2020-01-30T11:27:33.298Z
+- commits:
     - subject: Set docker type and update CHANGELOG.md to the correct format
       hash: d1a3663d47b5e79c611929802c3a63b375e1a24f
       body: ''
