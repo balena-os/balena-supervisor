@@ -87,15 +87,15 @@ export class Supervisor {
 		log.debug('Starting event tracker');
 		await this.eventTracker.init(conf);
 
-		log.debug('Starting api binder');
-		await this.apiBinder.initClient();
-
 		log.debug('Starting logging infrastructure');
 		this.logger.init({
 			enableLogs: conf.loggingEnabled,
 			config: this.config,
 			...conf,
 		});
+
+		log.debug('Starting api binder');
+		await this.apiBinder.initClient();
 
 		this.logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
 		if (conf.legacyAppsPresent && this.apiBinder.balenaApi != null) {
