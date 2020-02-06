@@ -8,6 +8,8 @@ import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
 import * as deviceRegister from 'resin-register-device';
 import * as url from 'url';
 
+import * as globalEventBus from './event-bus';
+
 import Config, { ConfigType } from './config';
 import Database from './db';
 import { EventTracker } from './event-tracker';
@@ -929,7 +931,9 @@ export class APIBinder {
 		]);
 
 		if (!conf.provisioned || conf.apiKey != null || conf.pinDevice != null) {
-			return this.provisionOrRetry(conf.bootstrapRetryDelay as number);
+			await this.provisionOrRetry(conf.bootstrapRetryDelay);
+			globalEventBus.getInstance().emit('deviceProvisioned');
+			return;
 		}
 
 		return conf;
