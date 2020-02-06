@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'bug: Delay sending logs until the device is provisioned'
+      hash: fe5fd2b7ef5f40d688ee85c874934487d0c2d702
+      body: ''
+      footer:
+        Connects-to: '#1189'
+        connects-to: '#1189'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.6.34
+  date: 2020-02-06T10:43:04.222Z
+- commits:
     - subject: Allow getting the target state when not in local mode
       hash: 3ff3bce605ebf9e53a6df4e2646031cde2a8831c
       body: ''
