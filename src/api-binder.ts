@@ -5,8 +5,8 @@ import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import * as _ from 'lodash';
 import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
-import * as deviceRegister from 'resin-register-device';
 import * as url from 'url';
+import * as deviceRegister from './lib/register-device';
 
 import * as globalEventBus from './event-bus';
 
