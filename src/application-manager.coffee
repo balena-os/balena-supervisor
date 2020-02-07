@@ -862,11 +862,7 @@ module.exports = class ApplicationManager extends EventEmitter
 			if !localMode
 				currentAppIds = _.keys(current.local.apps).map((n) -> checkInt(n))
 				targetAppIds = _.keys(target.local.apps).map((n) -> checkInt(n))
-				if targetAppIds.length > 1
-					throw new Error('Current supervisor does not support multiple applications')
-				diff = _.difference(currentAppIds, targetAppIds)
-				if diff.length > 0
-					oldApps = diff
+				appsForVolumeRemoval = _.difference(currentAppIds, targetAppIds)
 
 			nextSteps = []
 			if !supervisorNetworkReady
@@ -899,7 +895,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					allAppIds = _.union(_.keys(currentByAppId), _.keys(targetByAppId))
 					for appId in allAppIds
 						nextSteps = nextSteps.concat(@_nextStepsForAppUpdate(currentByAppId[appId], targetByAppId[appId], localMode, containerIds[appId], availableImages, downloading))
-						if oldApps != null and _.includes(oldApps, checkInt(appId))
+						if _.includes(appsForVolumeRemoval, checkInt(appId))
 							# We check if everything else has been done for
 							# the old app to be removed. If it has, we then
 							# remove all of the volumes
