@@ -3,9 +3,7 @@
 		"resin-lint"
 	],
 	"*.ts": [
-		"prettier --config ./node_modules/resin-lint/config/.prettierrc --write",
-		"resin-lint --typescript --no-prettier",
-		"git add"
+		"resin-lint --typescript --fix",
 	],
 	"test/**/*.coffee": [
 		"resin-lint --tests"
