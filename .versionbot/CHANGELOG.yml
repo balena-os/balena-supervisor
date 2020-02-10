@@ -1,4 +1,14 @@
 - commits:
+    - subject: Switch to using resin-lint for automatic lint fixing
+      hash: ab63f46b7e2c308e3cfd0b1a886d0a03bc577de6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.36
+  date: 2020-02-10T10:46:23.653Z
+- commits:
     - subject: Dont error on a target state with multiple apps
       hash: a27ce4f1dce2d157366b350e37caf86d871b1f52
       body: ''
