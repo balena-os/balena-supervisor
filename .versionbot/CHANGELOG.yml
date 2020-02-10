@@ -1,4 +1,16 @@
 - commits:
+    - subject: Dont error on a target state with multiple apps
+      hash: a27ce4f1dce2d157366b350e37caf86d871b1f52
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.35
+  date: 2020-02-10T05:09:03.570Z
+- commits:
     - subject: 'bug: Delay sending logs until the device is provisioned'
       hash: fe5fd2b7ef5f40d688ee85c874934487d0c2d702
       body: ''
