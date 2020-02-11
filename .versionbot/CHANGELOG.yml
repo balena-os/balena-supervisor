@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update balenaos-in-container to pickup aufs2overlay changes
+      hash: 4da1faced6746b9a9d90a90aa00bee18d581bc1e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.37
+  date: 2020-02-10T16:36:43.597Z
+- commits:
     - subject: Switch to using resin-lint for automatic lint fixing
       hash: ab63f46b7e2c308e3cfd0b1a886d0a03bc577de6
       body: ''
