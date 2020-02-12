@@ -338,6 +338,10 @@ export function addFeaturesFromLabels(
 		service.config.volumes.push('/lib/firmware:/lib/firmware');
 	}
 
+	if (checkTruthy(service.config.labels['io.balena.features.usb'])) {
+		service.config.volumes.push('/dev/bus/usb:/dev/bus/usb');
+	}
+
 	if (checkTruthy(service.config.labels['io.balena.features.balena-socket'])) {
 		service.config.volumes.push(
 			`${constants.dockerSocket}:${constants.dockerSocket}`,
