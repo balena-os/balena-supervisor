@@ -1,4 +1,24 @@
 - commits:
+    - subject: Add a noinit option to sync-debug
+      hash: c47ef6d42abfe840cfa833a9f8f3789e142299e6
+      body: |
+        The noinit option will avoid doing a complete sync to the supervisor
+        on startup. This is useful when there has only been code changes, and no
+        modules etc have been added. It can be helpful when running on a network
+        with no external internet access, as everything needed is already inside
+        the container.
+
+        To aid this we also move to yargs, rather than try to do all of the
+        parsing ourselves.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.7.0
+  date: 2020-02-12T09:36:50.912Z
+- commits:
     - subject: Update balenaos-in-container to pickup aufs2overlay changes
       hash: 4da1faced6746b9a9d90a90aa00bee18d581bc1e
       body: ''
