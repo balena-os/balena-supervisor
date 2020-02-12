@@ -371,6 +371,8 @@ export function addFeaturesFromLabels(
 			);
 		},
 		'io.balena.features.sysfs': () => service.config.volumes.push('/sys:/sys'),
+		'io.balena.features.procfs': () =>
+			service.config.volumes.push('/proc:/proc'),
 	};
 
 	_.each(features, (fn, label) => {
