@@ -370,6 +370,7 @@ export function addFeaturesFromLabels(
 				`http://${host}:${options.listenPort}`,
 			);
 		},
+		'io.balena.features.sysfs': () => service.config.volumes.push('/sys:/sys'),
 	};
 
 	_.each(features, (fn, label) => {
