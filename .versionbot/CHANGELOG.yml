@@ -1,4 +1,40 @@
 - commits:
+    - subject: Add procfs label
+      hash: 89a9d85e8743926cecbc82e8c53d37bca6f845b9
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add a sysfs feature label
+      hash: 947deb3cc62ddabb5f7309eb4ccaefaed1379b08
+      body: |
+        The new label `io.balena.features.sysfs` will mount the host /sys into
+        the container at /sys.
+
+        Relates to issue: #743
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Clean up the feature label function
+      hash: 7dcb4fa887a6141475d40583f08acd500731a3f5
+      body: |
+        Bring the labels into a more declarative format and run through them to
+        apply the various labels and env vars.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.8.0
+  date: 2020-02-13T04:03:23.393Z
+- commits:
     - subject: Add a noinit option to sync-debug
       hash: c47ef6d42abfe840cfa833a9f8f3789e142299e6
       body: |
