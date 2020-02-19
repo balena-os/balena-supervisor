@@ -72,14 +72,14 @@ export interface TargetState {
 	// TODO: Correctly type this once dependent devices are
 	// actually properly supported
 	dependent: {
-		apps: Dictionary<{
+		apps: Array<{
 			name?: string;
 			image?: string;
 			commit?: string;
 			config?: EnvVarObject;
 			environment?: EnvVarObject;
 		}>;
-		devices: Dictionary<{
+		devices: Array<{
 			name?: string;
 			apps?: Dictionary<{
 				config?: EnvVarObject;

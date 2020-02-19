@@ -70,12 +70,16 @@ function validateState(state: any): asserts state is TargetState {
 	if (!_.isObject(state)) {
 		throw new Error('State must be an object');
 	}
-	if (!_.isObject(state.local)) {
+	// these any typings seem unnecessary but the `isObject`
+	// call above tells typescript that state is of type
+	// `object` - which apparently does not allow any fields
+	// to be accessed
+	if (!_.isObject((state as any).local)) {
 		throw new Error('Local state must be an object');
 	}
-	validateLocalState(state.local);
-	if (state.dependent != null) {
-		return validateDependentState(state.dependent);
+	validateLocalState((state as any).local);
+	if ((state as any).dependent != null) {
+		return validateDependentState((state as any).dependent);
 	}
 }
 
