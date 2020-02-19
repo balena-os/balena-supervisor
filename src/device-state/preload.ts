@@ -34,7 +34,7 @@ export async function loadTargetFromFile(
 
 		if (_.isArray(stateFromFile)) {
 			log.debug('Detected a legacy apps.json, converting...');
-			stateFromFile = convertLegacyAppsJson(stateFromFile);
+			stateFromFile = convertLegacyAppsJson(stateFromFile as any[]);
 		}
 		const preloadState = stateFromFile as AppsJsonFormat;
 
@@ -80,12 +80,15 @@ export async function loadTargetFromFile(
 			preloadState.config,
 		);
 		preloadState.config = { ...formattedConf, ...deviceConf };
-		const localState = { local: { name: '', ...preloadState } };
+		const localState = {
+			local: { name: '', ...preloadState },
+			dependent: { apps: [], devices: [] },
+		};
 
 		await deviceState.setTarget(localState);
 
 		log.success('Preloading complete');
-		if (stateFromFile.pinDevice) {
+		if (preloadState.pinDevice) {
 			// Multi-app warning!
 			// The following will need to be changed once running
 			// multiple applications is possible
