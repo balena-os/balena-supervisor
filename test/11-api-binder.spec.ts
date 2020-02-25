@@ -11,7 +11,7 @@ const { expect } = chai;
 import ApiBinder from '../src/api-binder';
 import Config from '../src/config';
 import DB from '../src/db';
-import DeviceState = require('../src/device-state');
+import DeviceState from '../src/device-state';
 
 const initModels = async (obj: Dictionary<any>, filename: string) => {
 	prepare();

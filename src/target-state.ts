@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import ApplicationManager from './application-manager';
+import ApplicationManager = require('./application-manager');
 import Config from './config';
 import Database, { Transaction } from './db';
 

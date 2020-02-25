@@ -410,6 +410,7 @@ export class Service {
 			user: '',
 			workingDir: '',
 			tty: true,
+			running: true,
 		});
 
 		// Mutate service with extra features
