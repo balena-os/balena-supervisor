@@ -8,6 +8,7 @@ export function spawnJournalctl(opts: {
 	follow: boolean;
 	count?: number;
 	unit?: string;
+	containerId?: string;
 	format: string;
 }): ChildProcess {
 	const args = [
@@ -24,6 +25,10 @@ export function spawnJournalctl(opts: {
 	if (opts.unit != null) {
 		args.push('-u');
 		args.push(opts.unit);
+	}
+	if (opts.containerId != null) {
+		args.push('-t');
+		args.push(opts.containerId);
 	}
 	if (opts.count != null) {
 		args.push('-n');
