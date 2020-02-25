@@ -1,4 +1,34 @@
 - commits:
+    - subject: Convert device-state module to typescript
+      hash: c21da8f3dbafe965ad0fae12b027066208debd12
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Improve application-manager typings
+      hash: 23094425555f0d1ef9c04c2bc500c19f62984503
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Improve and extend internal typings
+      hash: e161888516e7f234154245cfc8c9f82b6e2b656b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.9.1
+  date: 2020-02-25T07:53:23.189Z
+- commits:
     - subject: >-
         Add a containerId request parameter for journal-logs api endpoint, and
         pass it along to journalctl process options.
