@@ -1,4 +1,18 @@
 - commits:
+    - subject: >-
+        Add a containerId request parameter for journal-logs api endpoint, and
+        pass it along to journalctl process options.
+      hash: b5772740ae3685fceceeda513fca4ff86a183d14
+      body: ''
+      footer:
+        Change-Type: minor
+        change-type: minor
+        Signed-off-by: Ivan <ivanign04.alt@gmail.com>
+        signed-off-by: Ivan <ivanign04.alt@gmail.com>
+      author: Ivan
+  version: 10.9.0
+  date: 2020-02-24T00:17:42.799Z
+- commits:
     - subject: Add procfs label
       hash: 89a9d85e8743926cecbc82e8c53d37bca6f845b9
       body: ''
