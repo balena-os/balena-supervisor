@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'config: Support loading SSDT via ConfigFS'
+      hash: e0d2bdfaa98fe8c8d56fe981e530e6c96aef92a6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.9.2
+  date: 2020-03-05T13:33:03.818Z
+- commits:
     - subject: Convert device-state module to typescript
       hash: c21da8f3dbafe965ad0fae12b027066208debd12
       body: ''
