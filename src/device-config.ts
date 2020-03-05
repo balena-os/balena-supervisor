@@ -223,8 +223,10 @@ export class DeviceConfig {
 			return this.configBackend;
 		}
 		const dt = await this.config.get('deviceType');
-
-		this.configBackend = configUtils.getConfigBackend(dt) || null;
+		this.configBackend =
+			(await configUtils.initialiseConfigBackend(dt, {
+				logger: this.logger,
+			})) ?? null;
 
 		return this.configBackend;
 	}
