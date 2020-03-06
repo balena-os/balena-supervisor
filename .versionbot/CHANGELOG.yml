@@ -1,4 +1,30 @@
 - commits:
+    - subject: Allow semver comparison on l4t versions in contracts
+      hash: 5c50f656c33954de6f4c07f8b6c892b4bf9953cf
+      body: |
+        We add an implicit .0 to the end of l4t versions which do not fulfill
+        semver, which allows us to always match using comparison operators, such
+        as < and <=.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Allow l4t versions with three numbers as well as two
+      hash: 7d47661928288160c0a636cb630cb0ccc2292d91
+      body: ''
+      footer:
+        Closes: '#1210'
+        closes: '#1210'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.10.0
+  date: 2020-03-06T15:56:42.924Z
+- commits:
     - subject: 'config: Support loading SSDT via ConfigFS'
       hash: e0d2bdfaa98fe8c8d56fe981e530e6c96aef92a6
       body: ''
