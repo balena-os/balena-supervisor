@@ -59,7 +59,7 @@ export function getOSSemver(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'VERSION');
 }
 
-const L4T_REGEX = /^.*-l4t-r(\d+\.\d+).*$/;
+const L4T_REGEX = /^.*-l4t-r(\d+\.\d+(\.?\d+)?).*$/;
 export async function getL4tVersion(): Promise<string | undefined> {
 	// We call `uname -r` on the host, and look for l4t
 	try {
@@ -69,7 +69,15 @@ export async function getL4tVersion(): Promise<string | undefined> {
 			return;
 		}
 
-		return match[1];
+		let res = match[1];
+		if (match[2] == null) {
+			// We were only provided with 2 version numbers
+			// We add a .0 onto the end, to allow always being
+			// able to use semver comparisons
+			res += '.0';
+		}
+
+		return res;
 	} catch (e) {
 		log.error('Could not detect l4t version! Error: ', e);
 		return;
