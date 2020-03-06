@@ -69,7 +69,15 @@ export async function getL4tVersion(): Promise<string | undefined> {
 			return;
 		}
 
-		return match[1];
+		let res = match[1];
+		if (match[2] == null) {
+			// We were only provided with 2 version numbers
+			// We add a .0 onto the end, to allow always being
+			// able to use semver comparisons
+			res += '.0';
+		}
+
+		return res;
 	} catch (e) {
 		log.error('Could not detect l4t version! Error: ', e);
 		return;

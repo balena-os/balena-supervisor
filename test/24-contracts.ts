@@ -410,36 +410,127 @@ describe('Container contracts', () => {
 });
 
 describe('L4T version detection', () => {
-	it('should correctly parse L4T version strings', async () => {
-		let execStub = stub(child_process, 'exec').returns(
-			Promise.resolve([
-				Buffer.from('4.9.140-l4t-r32.2+g3dcbed5'),
-				Buffer.from(''),
-			]),
-		);
+	let execStub: SinonStub;
 
-		expect(await osRelease.getL4tVersion()).to.equal('32.2');
-		expect(execStub.callCount).to.equal(1);
-
-		execStub.restore();
-
+	const seedExec = (version: string) => {
 		execStub = stub(child_process, 'exec').returns(
-			Promise.resolve([
-				Buffer.from('4.4.38-l4t-r28.2+g174510d'),
-				Buffer.from(''),
-			]),
+			Promise.resolve([Buffer.from(version), Buffer.from('')]),
 		);
-		expect(await osRelease.getL4tVersion()).to.equal('28.2');
-		expect(execStub.callCount).to.equal(1);
+	};
+
+	afterEach(() => {
 		execStub.restore();
 	});
 
-	it('should return undefined when there is no l4t string in uname', async () => {
-		const execStub = stub(child_process, 'exec').returns(
-			Promise.resolve([Buffer.from('4.18.14-yocto-standard'), Buffer.from('')]),
-		);
-
-		expect(await osRelease.getL4tVersion()).to.be.undefined;
+	it('should correctly parse L4T version strings', async () => {
+		seedExec('4.9.140-l4t-r32.2+g3dcbed5');
+		expect(await osRelease.getL4tVersion()).to.equal('32.2.0');
+		expect(execStub.callCount).to.equal(1);
 		execStub.restore();
+
+		seedExec('4.4.38-l4t-r28.2+g174510d');
+		expect(await osRelease.getL4tVersion()).to.equal('28.2.0');
+		expect(execStub.callCount).to.equal(1);
+	});
+
+	it('should correctly handle l4t versions which contain three numbers', async () => {
+		seedExec('4.4.38-l4t-r32.3.1+g174510d');
+		expect(await osRelease.getL4tVersion()).to.equal('32.3.1');
+		expect(execStub.callCount).to.equal(1);
+	});
+
+	it('should return undefined when there is no l4t string in uname', async () => {
+		seedExec('4.18.14-yocto-standard');
+		expect(await osRelease.getL4tVersion()).to.be.undefined;
+	});
+
+	describe('L4T comparison', () => {
+		it('should allow semver matching even when l4t does not fulfill semver', async () => {
+			seedExec('4.4.38-l4t-r31.0');
+
+			expect(
+				await containerContractsFulfilled({
+					service: {
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.l4t',
+									version: '>=31.0.0',
+								},
+							],
+						},
+						optional: false,
+					},
+				}),
+			)
+				.to.have.property('valid')
+				.that.equals(true);
+
+			expect(
+				await containerContractsFulfilled({
+					service: {
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.l4t',
+									version: '<31.0.0',
+								},
+							],
+						},
+						optional: false,
+					},
+				}),
+			)
+				.to.have.property('valid')
+				.that.equals(false);
+		});
+
+		it('should allow semver matching when l4t does fulfill semver', async () => {
+			seedExec('4.4.38-l4t-r31.0.1');
+
+			expect(
+				await containerContractsFulfilled({
+					service: {
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.l4t',
+									version: '>=31.0.0',
+								},
+							],
+						},
+						optional: false,
+					},
+				}),
+			)
+				.to.have.property('valid')
+				.that.equals(true);
+
+			expect(
+				await containerContractsFulfilled({
+					service: {
+						contract: {
+							type: 'sw.container',
+							slug: 'user-container',
+							requires: [
+								{
+									type: 'sw.l4t',
+									version: '<31.0.0',
+								},
+							],
+						},
+						optional: false,
+					},
+				}),
+			)
+				.to.have.property('valid')
+				.that.equals(false);
+		});
 	});
 });
