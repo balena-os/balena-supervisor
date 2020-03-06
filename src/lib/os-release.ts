@@ -59,7 +59,7 @@ export function getOSSemver(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'VERSION');
 }
 
-const L4T_REGEX = /^.*-l4t-r(\d+\.\d+).*$/;
+const L4T_REGEX = /^.*-l4t-r(\d+\.\d+(\.?\d+)?).*$/;
 export async function getL4tVersion(): Promise<string | undefined> {
 	// We call `uname -r` on the host, and look for l4t
 	try {
