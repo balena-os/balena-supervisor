@@ -383,7 +383,7 @@ export class Service {
 			groupAdd: [],
 			healthcheck,
 			pid: '',
-			pidsLimit: 0,
+			pidsLimit: -1,
 			securityOpt: [],
 			stopGracePeriod,
 			stopSignal: 'SIGTERM',
