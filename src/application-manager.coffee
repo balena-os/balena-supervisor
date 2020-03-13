@@ -202,9 +202,7 @@ module.exports = class ApplicationManager extends EventEmitter
 					else
 						log.debug('Ignoring legacy dependent image', image)
 
-				obj = { local: apps, dependent }
-				obj.commit = currentCommit
-				return obj
+				return { local: apps, dependent, commit: currentCommit }
 		)
 
 	getDependentState: =>
@@ -1015,4 +1013,3 @@ module.exports = class ApplicationManager extends EventEmitter
 		message = "Not running containers because of contract violations: #{serviceNames.join('. ')}"
 		log.info(message)
 		@logger.logSystemMessage(message, {}, 'optionalContainerViolation', true)
-
