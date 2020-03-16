@@ -1,4 +1,19 @@
 - commits:
+    - subject: Bump acorn from 5.7.3 to 5.7.4
+      hash: f8363fc72b21386cc3561be576d8f21ec0463c89
+      body: |
+        Bumps [acorn](https://github.com/acornjs/acorn) from 5.7.3 to 5.7.4.
+        - [Release notes](https://github.com/acornjs/acorn/releases)
+        - [Commits](https://github.com/acornjs/acorn/compare/5.7.3...5.7.4)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.10.2
+  date: 2020-03-16T15:05:54.513Z
+- commits:
     - subject: Update dependencies
       hash: 6e3db3bd602d30ae3d377a1526c9b904c90a6cf3
       body: ''
