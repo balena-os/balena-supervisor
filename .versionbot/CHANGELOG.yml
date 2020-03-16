@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'logging: fix up some typos'
+      hash: ab7e8b55140cc3169e9337f8c29a77468b13be7c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.10.3
+  date: 2020-03-16T19:31:23.505Z
+- commits:
     - subject: Bump acorn from 5.7.3 to 5.7.4
       hash: f8363fc72b21386cc3561be576d8f21ec0463c89
       body: |
