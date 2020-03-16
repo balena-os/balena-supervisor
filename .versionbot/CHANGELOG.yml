@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update dependencies
+      hash: 6e3db3bd602d30ae3d377a1526c9b904c90a6cf3
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.1
+  date: 2020-03-13T17:21:22.854Z
+- commits:
     - subject: Allow semver comparison on l4t versions in contracts
       hash: 5c50f656c33954de6f4c07f8b6c892b4bf9953cf
       body: |
