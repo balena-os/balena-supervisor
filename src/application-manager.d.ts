@@ -97,7 +97,11 @@ class ApplicationManager extends EventEmitter {
 		transaction: Knex.Transaction,
 	): Promise<void>;
 
-	public getStatus(): Promise<DeviceStatus>;
+	public getStatus(): Promise<{
+		local: DeviceStatus.local.apps;
+		dependent: DeviceStatus.dependent;
+		commit: DeviceStatus.commit;
+	}>;
 	// The return type is incompleted
 	public getTargetApps(): Promise<InstancedAppState>;
 	public stopAll(opts: { force?: boolean; skipLock?: boolean }): Promise<void>;

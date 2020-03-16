@@ -7,6 +7,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 var ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 var externalModules = [
+	'async_hooks',
 	'sqlite3',
 	'mysql2',
 	'pg',
