@@ -66,7 +66,7 @@ COPY src /usr/src/app/src
 COPY test /usr/src/app/test
 COPY typings /usr/src/app/typings
 
-RUN npm test \
+RUN npm run test-nolint \
 	&& npm run build
 
 ##############################################################################
