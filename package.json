@@ -17,7 +17,7 @@
     "coverage": "istanbul report text && istanbul report html",
     "test:fast": "TEST=1 mocha --opts test/fast-mocha.opts",
     "test:debug": "npm run test:build && TEST=1 mocha --inspect-brk",
-    "prettify": "resin-lint --typescript --fix src/ test/ typings/",
+    "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ webpack.config.js",
     "typescript:test-build": "tsc --project tsconfig.json",
     "typescript:release": "tsc --project tsconfig.release.json && cp -r build/src/* build && rm -rf build/src",
     "coffeescript:test": "coffee -m -c -o build .",
@@ -26,8 +26,8 @@
     "migrations:copy-test": "cp -r src/migrations build/src",
     "packagejson:copy": "cp package.json build/",
     "testitems:copy": "cp -r test/data build/test/",
-    "lint:coffee": "resin-lint src/ test/",
-    "lint:typescript": "resin-lint --typescript src/ test/ typings/ && tsc --noEmit"
+    "lint:coffee": "balena-lint src/ test/",
+    "lint:typescript": "balena-lint -e ts -e js --typescript src/ test/ typings/ && tsc --noEmit"
   },
   "private": true,
   "dependencies": {
@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@balena/contrato": "^0.2.1",
+    "@balena/lint": "^4.1.0",
     "@types/bluebird": "^3.5.30",
     "@types/chai": "^4.2.10",
     "@types/chai-as-promised": "^7.1.2",
@@ -104,7 +105,6 @@
     "pinejs-client-request": "^5.2.0",
     "pretty-ms": "^5.1.0",
     "request": "^2.88.2",
-    "resin-lint": "^3.2.4",
     "resin-register-device": "^3.0.0",
     "resumable-request": "^2.0.0",
     "rimraf": "^2.6.2",

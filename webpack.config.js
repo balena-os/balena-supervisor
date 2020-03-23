@@ -2,7 +2,6 @@ var webpack = require('webpack');
 var path = require('path');
 var fs = require('fs');
 var _ = require('lodash');
-var path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 var ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
@@ -122,7 +121,7 @@ module.exports = function(env) {
 					(m instanceof RegExp && m.test(request))
 				) {
 					return callback(null, 'commonjs ' + request);
-				} else if (typeof m != 'string' && !(m instanceof RegExp)) {
+				} else if (typeof m !== 'string' && !(m instanceof RegExp)) {
 					throw new Error('Invalid entry in external modules: ' + m);
 				}
 			}

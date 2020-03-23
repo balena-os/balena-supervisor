@@ -2,7 +2,7 @@
 	"*.coffee": [
 		"resin-lint"
 	],
-	"*.ts": [
+	"*.ts$|!(*webpack.config).js$": [
 		"resin-lint --typescript --fix",
 	],
 	"test/**/*.coffee": [
