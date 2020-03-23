@@ -101,7 +101,7 @@ module.exports = function(env) {
 					use: require.resolve('coffee-loader'),
 				},
 				{
-					test: /\.ts$/,
+					test: /\.ts$|\.js$/,
 					use: [
 						{
 							loader: 'ts-loader',
@@ -133,13 +133,13 @@ module.exports = function(env) {
 			}),
 			new CopyWebpackPlugin([
 				{
-					from: './src/migrations',
+					from: './build/migrations',
 					to: 'migrations',
 				},
 			]),
 			new webpack.ContextReplacementPlugin(
 				/\.\/migrations/,
-				path.resolve(__dirname, 'src/migrations')
+				path.resolve(__dirname, 'build/migrations')
 			),
 		],
 	};
