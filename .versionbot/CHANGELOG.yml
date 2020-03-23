@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'docs: Clarify update locks for multicontainer applications'
+      hash: a6b0c50d8effc9c63fe92d68cb4efbe397a1e05f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Gareth Davies <gareth@balena.io>
+        signed-off-by: Gareth Davies <gareth@balena.io>
+      author: Gareth Davies
+  version: 10.10.4
+  date: 2020-03-16T21:12:52.849Z
+- commits:
     - subject: 'logging: fix up some typos'
       hash: ab7e8b55140cc3169e9337f8c29a77468b13be7c
       body: ''
