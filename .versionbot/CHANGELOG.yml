@@ -1,4 +1,14 @@
 - commits:
+    - subject: 'Tests: Add missing await'
+      hash: 7e6d32516de84dbaed222651e48895dc0136b2e7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.5
+  date: 2020-03-23T19:05:23.280Z
+- commits:
     - subject: 'docs: Clarify update locks for multicontainer applications'
       hash: a6b0c50d8effc9c63fe92d68cb4efbe397a1e05f
       body: ''
