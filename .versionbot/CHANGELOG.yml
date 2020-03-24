@@ -1,4 +1,28 @@
 - commits:
+    - subject: Pin resin-cli-visuals to avoid build error of lzma-native
+      hash: 35e73941c57ff63164cf0876fbb9509107e5e3f2
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Update dependencies
+      hash: f2c606e1f9d37b6fefc345e42659b9ed364cba40
+      body: |
+        We also pin livepush in place while
+        https://github.com/balena-io-modules/livepush/issues/67
+        is fixed.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.10.8
+  date: 2020-03-24T14:54:44.950Z
+- commits:
     - subject: Avoid any transpilation of node_modules
       hash: 8fccc4a107fa965dfd60a861ba5e831c12632631
       body: ''
