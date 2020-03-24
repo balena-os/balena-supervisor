@@ -169,7 +169,7 @@ export function get(): Bluebird<HostConfig> {
 }
 
 export function patch(conf: HostConfig, configModel: Config): Bluebird<void> {
-	const promises = [];
+	const promises: Array<Promise<void>> = [];
 	if (conf != null && conf.network != null) {
 		if (conf.network.proxy != null) {
 			promises.push(setProxy(conf.network.proxy));

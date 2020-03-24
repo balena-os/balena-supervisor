@@ -420,7 +420,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			);
 		});
 
-		let overallDownloadProgress = null;
+		let overallDownloadProgress: number | null = null;
 		if (downloads > 0) {
 			overallDownloadProgress = downloadProgressTotal / downloads;
 		}

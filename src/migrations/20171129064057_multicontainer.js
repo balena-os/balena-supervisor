@@ -315,6 +315,6 @@ exports.up = function(knex, Promise) {
 		});
 };
 
-exports.down = function(knex, Promise) {
+exports.down = function(_knex, Promise) {
 	return Promise.reject(new Error('Not implemented'));
 };
