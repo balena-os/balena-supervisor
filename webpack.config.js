@@ -102,6 +102,7 @@ module.exports = function(env) {
 				},
 				{
 					test: /\.ts$|\.js$/,
+					exclude: /node_modules/,
 					use: [
 						{
 							loader: 'ts-loader',
