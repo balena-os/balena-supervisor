@@ -1,4 +1,29 @@
 - commits:
+    - subject: Add transpilation for javascript files to ease node 6 compatibility
+      hash: 8fc11df95912c6fd15d05c1cdc9fcdba854b2727
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Add a precheck that linting/tests work on node 10
+      hash: 7945bb5a77f29775233dea2695e1c20d79545f57
+      body: |
+        This allows us to avoid re-linting for every arch
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update to balena-lint and enable javascript linting
+      hash: 81966446d97b3989e65be22b7d2dec379d3bcb32
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.6
+  date: 2020-03-24T09:31:13.247Z
+- commits:
     - subject: 'Tests: Add missing await'
       hash: 7e6d32516de84dbaed222651e48895dc0136b2e7
       body: ''
