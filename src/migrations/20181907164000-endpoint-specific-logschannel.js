@@ -2,7 +2,7 @@ const fs = require('fs');
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 exports.up = function(knex, Promise) {
-	return new Promise((resolve, reject) => {
+	return new Promise(resolve => {
 		if (!configJsonPath) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
@@ -65,6 +65,6 @@ exports.up = function(knex, Promise) {
 		});
 };
 
-exports.down = function(knex, Promise) {
+exports.down = function(_knex, Promise) {
 	return Promise.reject(new Error('Not Implemented'));
 };

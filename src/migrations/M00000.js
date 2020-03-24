@@ -3,7 +3,7 @@ const _ = require('lodash');
 // We take legacy deviceConfig targets and store them without the RESIN_ prefix
 // (we also strip the BALENA_ prefix for completeness, even though no supervisors
 // using this prefix made it to production)
-exports.up = function(knex, Promise) {
+exports.up = function(knex) {
 	return knex('deviceConfig')
 		.select('targetValues')
 		.then(devConfigs => {
@@ -18,6 +18,6 @@ exports.up = function(knex, Promise) {
 		});
 };
 
-exports.down = function(knex, Promise) {
+exports.down = function(_knex, Promise) {
 	return Promise.reject(new Error('Not Implemented'));
 };

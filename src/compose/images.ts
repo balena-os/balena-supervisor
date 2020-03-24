@@ -347,7 +347,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	private async getImagesForCleanup(): Promise<string[]> {
-		const images = [];
+		const images: string[] = [];
 
 		const [
 			supervisorImageInfo,

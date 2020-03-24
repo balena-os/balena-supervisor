@@ -798,7 +798,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		// TODO: This function is a bit of a mess
 		const pause = () => {
 			return Bluebird.try(() => {
-				let res = null;
+				let res;
 				this.applyBlocker = new Promise(resolve => {
 					res = resolve;
 				});
