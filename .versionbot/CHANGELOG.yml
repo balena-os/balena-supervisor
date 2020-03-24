@@ -1,4 +1,14 @@
 - commits:
+    - subject: Add type checking for javascript files
+      hash: 9c3295c91248f125e20ccfb10a064f2a2def0431
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.9
+  date: 2020-03-24T16:40:43.161Z
+- commits:
     - subject: Pin resin-cli-visuals to avoid build error of lzma-native
       hash: 35e73941c57ff63164cf0876fbb9509107e5e3f2
       body: ''
