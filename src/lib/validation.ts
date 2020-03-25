@@ -61,7 +61,7 @@ export function checkString(s: unknown): string | void {
  * Given a value which can be a string, boolean or number, return a boolean
  * which represents if the input was truthy
  */
-export function checkTruthy(v: unknown): boolean | void {
+export function checkTruthy(v: unknown): boolean | undefined {
 	if (_.isString(v)) {
 		v = v.toLowerCase();
 	}
