@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update livepush
+      hash: 2ff8fccb5e71a851634f8bd668f63526f48ea4c4
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.10.10
+  date: 2020-03-24T18:10:13.063Z
+- commits:
     - subject: Add type checking for javascript files
       hash: 9c3295c91248f125e20ccfb10a064f2a2def0431
       body: ''
