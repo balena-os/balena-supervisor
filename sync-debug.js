@@ -95,16 +95,16 @@ const performLivepush = _.debounce(async livepush => {
 
 	setupLogs(containerId, docker);
 
-	const livepush = await Livepush.init(
-		await fs.readFile('Dockerfile.debug'),
-		'.',
+	const livepush = await Livepush.init({
+		dockerfileContent: await fs.readFile('Dockerfile.debug'),
+		context: '.',
 		containerId,
 		// a bit of a hack, as the multistage images aren't
 		// present, but it shouldn't make a difference as these
 		// will never change
-		_.times(6, () => image),
+		stageImages: _.times(6, () => image),
 		docker,
-	);
+	});
 
 	chokidar
 		.watch('.', {
