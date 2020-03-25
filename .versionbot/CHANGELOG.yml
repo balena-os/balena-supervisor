@@ -1,4 +1,14 @@
 - commits:
+    - subject: Convert device-api/v1 to javascript
+      hash: 56c13fb96346e9100a60f1da881f6cf670c2793f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.11
+  date: 2020-03-25T12:19:20.194Z
+- commits:
     - subject: Update livepush
       hash: 2ff8fccb5e71a851634f8bd668f63526f48ea4c4
       body: ''
