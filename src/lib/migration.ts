@@ -9,7 +9,7 @@ import * as rimraf from 'rimraf';
 const mkdirpAsync = Bluebird.promisify(mkdirp);
 const rimrafAsync = Bluebird.promisify(rimraf);
 
-import ApplicationManager = require('../application-manager');
+import { ApplicationManager } from '../application-manager';
 import Config from '../config';
 import Database, { Transaction } from '../db';
 import DeviceState from '../device-state';

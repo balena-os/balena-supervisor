@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 
 import Config from '../config';
 
-import ApplicationManager = require('../application-manager');
+import { ApplicationManager } from '../application-manager';
 import Images, { Image } from './images';
 import Network from './network';
 import Service from './service';

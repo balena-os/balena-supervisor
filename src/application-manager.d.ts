@@ -121,4 +121,4 @@ class ApplicationManager extends EventEmitter {
 	public localModeSwitchCompletion(): Promise<void>;
 }
 
-export = ApplicationManager;
+export { ApplicationManager };

@@ -68,7 +68,7 @@ createApplicationManagerRouter = (applications) ->
 
 	return router
 
-module.exports = class ApplicationManager extends EventEmitter
+exports.ApplicationManager = class ApplicationManager extends EventEmitter
 	constructor: ({ @logger, @config, @db, @eventTracker, @deviceState }) ->
 		@docker = new Docker()
 		@images = new Images({ @docker, @logger, @db, @config })

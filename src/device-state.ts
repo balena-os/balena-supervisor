@@ -25,7 +25,7 @@ import * as updateLock from './lib/update-lock';
 import * as validation from './lib/validation';
 import * as network from './network';
 
-import ApplicationManager = require('./application-manager');
+import { ApplicationManager } from './application-manager';
 import DeviceConfig, { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
 import {
