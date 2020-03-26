@@ -18,7 +18,7 @@
     "coverage": "istanbul report text && istanbul report html",
     "test:fast": "TEST=1 mocha --opts test/fast-mocha.opts",
     "test:debug": "npm run test:build && TEST=1 mocha --inspect-brk",
-    "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ webpack.config.js",
+    "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/",
     "typescript:test-build": "tsc --project tsconfig.json",
     "typescript:release": "tsc --project tsconfig.release.json && cp -r build/src/* build && rm -rf build/src",
     "coffeescript:test": "coffee -m -c -o build .",

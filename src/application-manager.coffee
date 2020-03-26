@@ -28,7 +28,7 @@ updateLock = require './lib/update-lock'
 { Volume } = require './compose/volume'
 compositionSteps = require './compose/composition-steps'
 
-Proxyvisor = require './proxyvisor'
+{ Proxyvisor } = require './proxyvisor'
 
 { createV1Api } = require './device-api/v1'
 { createV2Api } = require './device-api/v2'
