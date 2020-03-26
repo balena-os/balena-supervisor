@@ -129,7 +129,7 @@ interface CompositionCallbacks {
 	fetchStart: () => void;
 	fetchEnd: () => void;
 	fetchTime: (time: number) => void;
-	stateReport: (state: Dictionary<unknown>) => Promise<void>;
+	stateReport: (state: Dictionary<unknown>) => boolean;
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
 }
 

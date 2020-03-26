@@ -25,6 +25,6 @@ declare function serviceAction(
 	action: string,
 	serviceId: number,
 	current: Service,
-	target: Service,
-	options: any,
+	target?: Service,
+	options?: any,
 ): ServiceAction;
