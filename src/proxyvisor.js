@@ -1,7 +1,7 @@
 import * as Promise from 'bluebird';
 import * as _ from 'lodash';
 import * as express from 'express';
-import * as fs from 'fs';
+import { fs, child_process as childProcess } from 'mz';
 import * as request from './lib/request';
 import * as constants from './lib/constants';
 import {
@@ -12,16 +12,10 @@ import {
 import * as path from 'path';
 import * as mkdirp from 'mkdirp';
 import * as bodyParser from 'body-parser';
-import * as childProcess from 'child_process';
 import * as url from 'url';
 
 import { log } from './lib/supervisor-console';
 
-/** @type {(command: string, options: childProcess.ExecOptions) => Promise<string>} */
-const execAsync = Promise.promisify(childProcess.exec);
-const lstatAsync = Promise.promisify(fs.lstat);
-const unlinkAsync = Promise.promisify(fs.unlink);
-const readdirAsync = Promise.promisify(fs.readdir);
 const mkdirpAsync = Promise.promisify(mkdirp);
 
 const isDefined = _.negate(_.isUndefined);
@@ -44,11 +38,13 @@ const tarPath = (appId, commit) =>
 	`${tarDirectory(appId)}/${tarFilename(appId, commit)}`;
 
 const getTarArchive = (source, destination) =>
-	lstatAsync(destination).catch(() =>
-		mkdirpAsync(path.dirname(destination)).then(() =>
-			execAsync(`tar -cvf '${destination}' *`, { cwd: source }),
-		),
-	);
+	fs
+		.lstat(destination)
+		.catch(() =>
+			mkdirpAsync(path.dirname(destination)).then(() =>
+				childProcess.exec(`tar -cvf '${destination}' *`, { cwd: source }),
+			),
+		);
 
 const cleanupTars = function(appId, commit) {
 	let fileToKeep;
@@ -58,13 +54,14 @@ const cleanupTars = function(appId, commit) {
 		fileToKeep = null;
 	}
 	const dir = tarDirectory(appId);
-	return readdirAsync(dir)
-		.catchReturn([])
+	return fs
+		.readdir(dir)
+		.catch(() => [])
 		.then(function(files) {
 			if (fileToKeep != null) {
 				files = _.reject(files, fileToKeep);
 			}
-			return Promise.map(files, file => unlinkAsync(path.join(dir, file)));
+			return Promise.map(files, file => fs.unlink(path.join(dir, file)));
 		});
 };
 
@@ -315,7 +312,8 @@ const createProxyvisorRouter = function(proxyvisor) {
 					return res.status(404).send('Not found');
 				}
 				const dest = tarPath(app.appId, app.commit);
-				return lstatAsync(dest)
+				return fs
+					.lstat(dest)
 					.catch(() =>
 						Promise.using(
 							proxyvisor.docker.imageRootDirMounted(app.image),
