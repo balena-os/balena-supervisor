@@ -18,6 +18,14 @@ const DEFAULT_REQUEST_RETRY_INTERVAL = 10000; // ms
 const DEFAULT_REQUEST_RETRY_COUNT = 30;
 
 type PromisifiedRequest = typeof requestLib & {
+	delAsync: (
+		uri: string | requestLib.CoreOptions,
+		options?: requestLib.CoreOptions | undefined,
+	) => Bluebird<any>;
+	putAsync: (
+		uri: string | requestLib.CoreOptions,
+		options?: requestLib.CoreOptions | undefined,
+	) => Bluebird<any>;
 	postAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions | undefined,
