@@ -1,4 +1,21 @@
 - commits:
+    - subject: Remove unnecessary code from application-manager
+      hash: 686f72ecf78d3f7a1b93102fd161cca8c562bfb7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Switch to a named export for application-manager
+      hash: 968e2ba0fb1dc99b826e8f32a23d10945697f340
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.12
+  date: 2020-03-26T23:53:03.757Z
+- commits:
     - subject: Convert device-api/v1 to javascript
       hash: 56c13fb96346e9100a60f1da881f6cf670c2793f
       body: ''
