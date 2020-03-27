@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 
 import Config from '../config';
 
-import ApplicationManager = require('../application-manager');
+import { ApplicationManager } from '../application-manager';
 import Images, { Image } from './images';
 import Network from './network';
 import Service from './service';
@@ -129,7 +129,7 @@ interface CompositionCallbacks {
 	fetchStart: () => void;
 	fetchEnd: () => void;
 	fetchTime: (time: number) => void;
-	stateReport: (state: Dictionary<unknown>) => Promise<void>;
+	stateReport: (state: Dictionary<unknown>) => boolean;
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
 }
 

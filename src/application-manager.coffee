@@ -68,11 +68,11 @@ createApplicationManagerRouter = (applications) ->
 
 	return router
 
-module.exports = class ApplicationManager extends EventEmitter
+exports.ApplicationManager = class ApplicationManager extends EventEmitter
 	constructor: ({ @logger, @config, @db, @eventTracker, @deviceState }) ->
 		@docker = new Docker()
 		@images = new Images({ @docker, @logger, @db, @config })
-		@services = new ServiceManager({ @docker, @logger, @images, @config })
+		@services = new ServiceManager({ @docker, @logger, @config })
 		@networks = new NetworkManager({ @docker, @logger })
 		@volumes = new VolumeManager({ @docker, @logger })
 		@proxyvisor = new Proxyvisor({ @config, @logger, @db, @docker, @images, applications: this })
@@ -152,13 +152,9 @@ module.exports = class ApplicationManager extends EventEmitter
 
 	# Returns the status of applications and their services
 	getStatus: =>
-		@config.get('localMode').then (localMode) =>
-			@_getStatus(localMode)
-
-	_getStatus: (localMode) =>
 		Promise.join(
 			@services.getStatus()
-			@images.getStatus(localMode)
+			@images.getStatus()
 			@config.get('currentCommit')
 			(services, images, currentCommit) ->
 				apps = {}
@@ -328,7 +324,7 @@ module.exports = class ApplicationManager extends EventEmitter
 
 		return { removePairs, installPairs, updatePairs }
 
-	_compareNetworksOrVolumesForUpdate: (model, { current, target }, appId) ->
+	_compareNetworksOrVolumesForUpdate: (model, { current, target }) ->
 		outputPairs = []
 		currentNames = _.keys(current)
 		targetNames = _.keys(target)
@@ -351,11 +347,11 @@ module.exports = class ApplicationManager extends EventEmitter
 
 		return outputPairs
 
-	compareNetworksForUpdate: ({ current, target }, appId) =>
-		@_compareNetworksOrVolumesForUpdate(@networks, { current, target }, appId)
+	compareNetworksForUpdate: ({ current, target }) =>
+		@_compareNetworksOrVolumesForUpdate(@networks, { current, target })
 
-	compareVolumesForUpdate: ({ current, target }, appId) =>
-		@_compareNetworksOrVolumesForUpdate(@volumes, { current, target }, appId)
+	compareVolumesForUpdate: ({ current, target }) =>
+		@_compareNetworksOrVolumesForUpdate(@volumes, { current, target })
 
 	# Checks if a service is using a network or volume that is about to be updated
 	_hasCurrentNetworksOrVolumes: (service, networkPairs, volumePairs) ->
@@ -542,9 +538,8 @@ module.exports = class ApplicationManager extends EventEmitter
 				targetApp.services[0].config.labels['io.balena.service-id'] = currentApp.services[0].config.labels['io.balena.service-id']
 				targetApp.services[0].serviceId = currentApp.services[0].serviceId
 
-		appId = targetApp.appId ? currentApp.appId
-		networkPairs = @compareNetworksForUpdate({ current: currentApp.networks, target: targetApp.networks }, appId)
-		volumePairs = @compareVolumesForUpdate({ current: currentApp.volumes, target: targetApp.volumes }, appId)
+		networkPairs = @compareNetworksForUpdate({ current: currentApp.networks, target: targetApp.networks })
+		volumePairs = @compareVolumesForUpdate({ current: currentApp.volumes, target: targetApp.volumes })
 		{ removePairs, installPairs, updatePairs } = @compareServicesForUpdate(currentApp.services, targetApp.services, containerIds)
 		steps = []
 		# All removePairs get a 'kill' action
@@ -575,6 +570,7 @@ module.exports = class ApplicationManager extends EventEmitter
 				target: targetApp.commit
 			})
 
+		appId = targetApp.appId ? currentApp.appId
 		return _.map(steps, (step) -> _.assign({}, step, { appId }))
 
 	normaliseAppForDB: (app) =>
@@ -691,9 +687,9 @@ module.exports = class ApplicationManager extends EventEmitter
 					appClone.source = source
 					return appClone
 				Promise.map(appsArray, @normaliseAppForDB)
-				.tap (appsForDB) =>
+				.then (appsForDB) =>
 					@targetStateWrapper.setTargetApps(appsForDB, trx)
-				.then (appsForDB) ->
+				.then ->
 					trx('app').where({ source }).whereNotIn('appId',
 						# Use apps here, rather than filteredApps, to
 						# avoid removing a release from the database
@@ -856,7 +852,6 @@ module.exports = class ApplicationManager extends EventEmitter
 			# We also don't want to remove cloud volumes when
 			# switching to local mode
 			# multi-app warning: this will break
-			oldApps = null
 			if !localMode
 				currentAppIds = _.keys(current.local.apps).map((n) -> checkInt(n))
 				targetAppIds = _.keys(target.local.apps).map((n) -> checkInt(n))
@@ -968,7 +963,7 @@ module.exports = class ApplicationManager extends EventEmitter
 		@config.get('localMode').then (localMode) =>
 			Promise.props({
 				cleanupNeeded: @images.isCleanupNeeded()
-				availableImages: @images.getAvailable(localMode)
+				availableImages: @images.getAvailable()
 				downloading: @images.getDownloadingImageIds()
 				supervisorNetworkReady: @networks.supervisorNetworkReady()
 				delta: @config.get('delta')

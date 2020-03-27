@@ -465,7 +465,10 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		}
 	}
 
-	public static isSameImage(image1: Image, image2: Image): boolean {
+	public static isSameImage(
+		image1: Pick<Image, 'name'>,
+		image2: Pick<Image, 'name'>,
+	): boolean {
 		return (
 			image1.name === image2.name ||
 			Images.hasSameDigest(image1.name, image2.name)
