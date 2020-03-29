@@ -1,4 +1,14 @@
 - commits:
+    - subject: Convert src/device-api/common.coffee to javascript
+      hash: 15fca80d2ddb16b368f0d2c34fb56b5b9bb6217f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.14
+  date: 2020-03-28T13:43:13.705Z
+- commits:
     - subject: Switch to mz for the proxyvisor
       hash: 6ab69e1a69cf839538812aff3b9dc72c5a7937ef
       body: ''
