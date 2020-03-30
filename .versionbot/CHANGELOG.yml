@@ -1,4 +1,16 @@
 - commits:
+    - subject: "\U0001F527 Update resin-lint -> balena-lint in lintstaged"
+      hash: 2433f9a343d26233fff3d5bed14a548feded23ad
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.11.1
+  date: 2020-03-30T17:41:43.882Z
+- commits:
     - subject: Add BALENA_DEVICE_ARCH environment variable for containers
       hash: 3af89cd13fce04f43332c1d4502e2edf07a22141
       body: ''
