@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add BALENA_DEVICE_ARCH environment variable for containers
+      hash: 3af89cd13fce04f43332c1d4502e2edf07a22141
+      body: ''
+      footer:
+        Closes: '#1232'
+        closes: '#1232'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.11.0
+  date: 2020-03-30T15:42:53.398Z
+- commits:
     - subject: Don't throw an error when getting an unhealthy state
       hash: 6b827a3f57f242e36e2a008632a28199ba569f63
       body: ''
