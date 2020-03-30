@@ -3,16 +3,20 @@ const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 const { checkTruthy } = require('../lib/validation');
 
-exports.up = function (knex, Promise) {
+exports.up = function(knex, Promise) {
 	return new Promise(resolve => {
 		if (!configJsonPath) {
-			console.log('Unable to locate config.json! Things may fail unexpectedly!');
+			console.log(
+				'Unable to locate config.json! Things may fail unexpectedly!',
+			);
 			return resolve(false);
 		}
 
 		fs.readFile(configJsonPath, (err, data) => {
 			if (err) {
-				console.log('Failed to read config.json! Things may fail unexpectedly!');
+				console.log(
+					'Failed to read config.json! Things may fail unexpectedly!',
+				);
 				return resolve();
 			}
 			try {
@@ -22,7 +26,9 @@ exports.up = function (knex, Promise) {
 				}
 				return resolve(false);
 			} catch (e) {
-				console.log('Failed to parse config.json! Things may fail unexpectedly!');
+				console.log(
+					'Failed to parse config.json! Things may fail unexpectedly!',
+				);
 				return resolve(false);
 			}
 		});
@@ -36,6 +42,6 @@ exports.up = function (knex, Promise) {
 	});
 };
 
-exports.down = function (knex, Promise) {
+exports.down = function(_knex, Promise) {
 	return Promise.reject(new Error('Not Implemented'));
 };

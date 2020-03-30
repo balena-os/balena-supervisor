@@ -12,7 +12,7 @@ import { UnitNotLoadedError } from './lib/errors';
 import * as systemd from './lib/systemd';
 import { EnvVarObject } from './lib/types';
 import { checkInt, checkTruthy } from './lib/validation';
-import { DeviceApplicationState } from './types/state';
+import { DeviceStatus } from './types/state';
 
 const vpnServiceName = 'openvpn-resin';
 
@@ -29,7 +29,9 @@ interface ConfigOption {
 	rebootRequired?: boolean;
 }
 
-interface ConfigStep {
+// FIXME: Bring this and the deviceState and
+// applicationState steps together
+export interface ConfigStep {
 	// TODO: This is a bit of a mess, the DeviceConfig class shouldn't
 	// know that the reboot action exists as it is implemented by
 	// DeviceState. Fix this weird circular dependency
@@ -221,8 +223,10 @@ export class DeviceConfig {
 			return this.configBackend;
 		}
 		const dt = await this.config.get('deviceType');
-
-		this.configBackend = configUtils.getConfigBackend(dt) || null;
+		this.configBackend =
+			(await configUtils.initialiseConfigBackend(dt, {
+				logger: this.logger,
+			})) ?? null;
 
 		return this.configBackend;
 	}
@@ -337,18 +341,14 @@ export class DeviceConfig {
 		target: Dictionary<string>,
 		deviceType: string,
 	): boolean {
-		let targetBootConfig = configUtils.envToBootConfig(configBackend, target);
+		const targetBootConfig = configUtils.envToBootConfig(configBackend, target);
 		const currentBootConfig = configUtils.envToBootConfig(
 			configBackend,
 			current,
 		);
 
-		if (deviceType === 'fincm3') {
-			// current will always have the balena-fin dtoverlay, but the target does
-			// not have to as this is one that we enforce. If there is no balena-fin in the
-			// target state, add it
-			targetBootConfig = DeviceConfig.ensureFinOverlay(targetBootConfig);
-		}
+		// Some devices require specific overlays, here we apply them
+		DeviceConfig.ensureRequiredOverlay(deviceType, targetBootConfig);
 
 		if (!_.isEqual(currentBootConfig, targetBootConfig)) {
 			_.each(targetBootConfig, (value, key) => {
@@ -371,8 +371,8 @@ export class DeviceConfig {
 	}
 
 	public async getRequiredSteps(
-		currentState: DeviceApplicationState,
-		targetState: DeviceApplicationState,
+		currentState: DeviceStatus,
+		targetState: { local?: { config?: Dictionary<string> } },
 	): Promise<ConfigStep[]> {
 		const current: Dictionary<string> = _.get(
 			currentState,
@@ -539,17 +539,18 @@ export class DeviceConfig {
 			return false;
 		}
 
-		let conf = configUtils.envToBootConfig(backend, target);
+		const conf = configUtils.envToBootConfig(backend, target);
 		this.logger.logSystemMessage(
 			`Applying boot config: ${JSON.stringify(conf)}`,
 			{},
 			'Apply boot config in progress',
 		);
 
-		// Ensure that the fin always has it's dtoverlay
-		if ((await this.config.get('deviceType')) === 'fincm3') {
-			conf = DeviceConfig.ensureFinOverlay(conf);
-		}
+		// Ensure devices already have required overlays
+		DeviceConfig.ensureRequiredOverlay(
+			await this.config.get('deviceType'),
+			conf,
+		);
 
 		try {
 			await backend.setBootConfig(conf);
@@ -613,19 +614,34 @@ export class DeviceConfig {
 	}
 
 	// Modifies conf
-	private static ensureFinOverlay(conf: ConfigOptions) {
-		if (conf.dtoverlay != null) {
-			if (_.isArray(conf.dtoverlay)) {
-				if (!_.includes(conf.dtoverlay, 'balena-fin')) {
-					conf.dtoverlay.push('balena-fin');
-				}
-			} else if (conf.dtoverlay !== 'balena-fin') {
-				conf.dtoverlay = [conf.dtoverlay, 'balena-fin'];
-			}
-		} else {
-			conf.dtoverlay = ['balena-fin'];
+	private static ensureRequiredOverlay(
+		deviceType: string,
+		conf: ConfigOptions,
+	) {
+		switch (deviceType) {
+			case 'fincm3':
+				this.ensureDtoverlay(conf, 'balena-fin');
+				break;
+			case 'raspberrypi4-64':
+				this.ensureDtoverlay(conf, 'vc4-fkms-v3d');
+				break;
 		}
-		conf.dtoverlay = (conf.dtoverlay as string[]).filter(s => !_.isEmpty(s));
+
+		return conf;
+	}
+
+	// Modifies conf
+	private static ensureDtoverlay(conf: ConfigOptions, field: string) {
+		if (conf.dtoverlay == null) {
+			conf.dtoverlay = [];
+		} else if (_.isString(conf.dtoverlay)) {
+			conf.dtoverlay = [conf.dtoverlay];
+		}
+		if (!_.includes(conf.dtoverlay, field)) {
+			conf.dtoverlay.push(field);
+		}
+		conf.dtoverlay = conf.dtoverlay.filter(s => !_.isEmpty(s));
+
 		return conf;
 	}
 }

@@ -8,6 +8,8 @@ import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
 import * as deviceRegister from 'resin-register-device';
 import * as url from 'url';
 
+import * as globalEventBus from './event-bus';
+
 import Config, { ConfigType } from './config';
 import Database from './db';
 import { EventTracker } from './event-tracker';
@@ -23,15 +25,15 @@ import {
 } from './lib/errors';
 import * as request from './lib/request';
 import { writeLock } from './lib/update-lock';
-import { DeviceApplicationState, TargetState } from './types/state';
+import { DeviceStatus, TargetState } from './types/state';
 
 import log from './lib/supervisor-console';
 
-import DeviceState = require('./device-state');
+import DeviceState from './device-state';
 import Logger from './logger';
 
-const REPORT_SUCCESS_DELAY = 1000;
-const MAX_REPORT_RETRY_DELAY = 60000;
+// The exponential backoff starts at 15s
+const MINIMUM_BACKOFF_DELAY = 15000;
 
 const INTERNAL_STATE_KEYS = [
 	'update_pending',
@@ -78,11 +80,11 @@ export class APIBinder {
 	public balenaApi: PinejsClientRequest | null = null;
 	// TODO{type}: Retype me when all types are sorted
 	private cachedBalenaApi: PinejsClientRequest | null = null;
-	private lastReportedState: DeviceApplicationState = {
+	private lastReportedState: DeviceStatus = {
 		local: {},
 		dependent: {},
 	};
-	private stateForReport: DeviceApplicationState = {
+	private stateForReport: DeviceStatus = {
 		local: {},
 		dependent: {},
 	};
@@ -408,7 +410,7 @@ export class APIBinder {
 		});
 	}
 
-	private getStateDiff(): DeviceApplicationState {
+	private getStateDiff(): DeviceStatus {
 		const lastReportedLocal = this.lastReportedState.local;
 		const lastReportedDependent = this.lastReportedState.dependent;
 		if (lastReportedLocal == null || lastReportedDependent == null) {
@@ -421,13 +423,13 @@ export class APIBinder {
 
 		const diff = {
 			local: _(this.stateForReport.local)
-				.omitBy((val, key: keyof DeviceApplicationState['local']) =>
+				.omitBy((val, key: keyof DeviceStatus['local']) =>
 					_.isEqual(lastReportedLocal[key], val),
 				)
 				.omit(INTERNAL_STATE_KEYS)
 				.value(),
 			dependent: _(this.stateForReport.dependent)
-				.omitBy((val, key: keyof DeviceApplicationState['dependent']) =>
+				.omitBy((val, key: keyof DeviceStatus['dependent']) =>
 					_.isEqual(lastReportedDependent[key], val),
 				)
 				.omit(INTERNAL_STATE_KEYS)
@@ -438,7 +440,7 @@ export class APIBinder {
 	}
 
 	private async sendReportPatch(
-		stateDiff: DeviceApplicationState,
+		stateDiff: DeviceStatus,
 		conf: { apiEndpoint: string; uuid: string; localMode: boolean },
 	) {
 		if (this.cachedBalenaApi == null) {
@@ -476,9 +478,7 @@ export class APIBinder {
 
 	// Returns an object that contains only status fields relevant for the local mode.
 	// It basically removes information about applications state.
-	public stripDeviceStateInLocalMode(
-		state: DeviceApplicationState,
-	): DeviceApplicationState {
+	public stripDeviceStateInLocalMode(state: DeviceStatus): DeviceStatus {
 		return {
 			local: _.cloneDeep(
 				_.omit(state.local, 'apps', 'is_on__commit', 'logs_channel'),
@@ -549,18 +549,20 @@ export class APIBinder {
 				}
 
 				await this.report();
-				await Bluebird.delay(REPORT_SUCCESS_DELAY);
-				await this.reportCurrentState();
+				this.reportCurrentState();
 			} catch (e) {
 				this.eventTracker.track('Device state report failure', { error: e });
+				// We use the poll interval as the upper limit of
+				// the exponential backoff
+				const maxDelay = await this.config.get('appUpdatePollInterval');
 				const delay = Math.min(
-					2 ** this.stateReportErrors * 500,
-					MAX_REPORT_RETRY_DELAY,
+					2 ** this.stateReportErrors * MINIMUM_BACKOFF_DELAY,
+					maxDelay,
 				);
 
 				++this.stateReportErrors;
 				await Bluebird.delay(delay);
-				await this.reportCurrentState();
+				this.reportCurrentState();
 			}
 		})();
 		return null;
@@ -706,6 +708,11 @@ export class APIBinder {
 		);
 		const deviceId = await this.config.get('deviceId');
 
+		if (!currentState.local.config) {
+			throw new InternalInconsistencyError(
+				'No config defined in reportInitialEnv',
+			);
+		}
 		const currentConfig: Dictionary<string> = currentState.local.config;
 		for (const [key, value] of _.toPairs(currentConfig)) {
 			let varValue = value;
@@ -927,7 +934,9 @@ export class APIBinder {
 		]);
 
 		if (!conf.provisioned || conf.apiKey != null || conf.pinDevice != null) {
-			return this.provisionOrRetry(conf.bootstrapRetryDelay as number);
+			await this.provisionOrRetry(conf.bootstrapRetryDelay);
+			globalEventBus.getInstance().emit('deviceProvisioned');
+			return;
 		}
 
 		return conf;

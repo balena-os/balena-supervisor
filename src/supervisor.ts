@@ -1,12 +1,11 @@
 import APIBinder from './api-binder';
 import Config, { ConfigKey } from './config';
 import Database from './db';
+import DeviceState from './device-state';
 import EventTracker from './event-tracker';
 import { normaliseLegacyDatabase } from './lib/migration';
 import Logger from './logger';
 import SupervisorAPI from './supervisor-api';
-
-import DeviceState = require('./device-state');
 
 import constants = require('./lib/constants');
 import log from './lib/supervisor-console';
@@ -87,15 +86,15 @@ export class Supervisor {
 		log.debug('Starting event tracker');
 		await this.eventTracker.init(conf);
 
-		log.debug('Starting api binder');
-		await this.apiBinder.initClient();
-
 		log.debug('Starting logging infrastructure');
 		this.logger.init({
 			enableLogs: conf.loggingEnabled,
 			config: this.config,
 			...conf,
 		});
+
+		log.debug('Starting api binder');
+		await this.apiBinder.initClient();
 
 		this.logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
 		if (conf.legacyAppsPresent && this.apiBinder.balenaApi != null) {

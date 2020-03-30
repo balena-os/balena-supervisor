@@ -53,10 +53,6 @@ export interface Image {
 	downloadProgress: Nullable<number>;
 }
 
-// TODO: This is necessary for the format() method, but I'm not sure
-// why, and it seems like a bad idea as it is. Fix the need for this.
-type MaybeImage = { [key in keyof Image]: Image[key] | null };
-
 // TODO: Remove the need for this type...
 type NormalisedDockerImage = Docker.ImageInfo & {
 	NormalisedRepoTags: string[];
@@ -336,11 +332,11 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	public async update(image: Image): Promise<void> {
-		image = this.format(image);
+		const formattedImage = this.format(image);
 		await this.db
 			.models('image')
-			.update(image)
-			.where({ name: image.name });
+			.update(formattedImage)
+			.where({ name: formattedImage.name });
 	}
 
 	public async save(image: Image): Promise<void> {
@@ -351,7 +347,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	private async getImagesForCleanup(): Promise<string[]> {
-		const images = [];
+		const images: string[] = [];
 
 		const [
 			supervisorImageInfo,
@@ -469,7 +465,10 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		}
 	}
 
-	public static isSameImage(image1: Image, image2: Image): boolean {
+	public static isSameImage(
+		image1: Pick<Image, 'name'>,
+		image2: Pick<Image, 'name'>,
+	): boolean {
 		return (
 			image1.name === image2.name ||
 			Images.hasSameDigest(image1.name, image2.name)
@@ -577,17 +576,17 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	private async markAsSupervised(image: Image): Promise<void> {
-		image = this.format(image);
-		// TODO: Get rid of this janky cast once the database is
-		// more strongly typed
+		const formattedImage = this.format(image);
 		await this.db.upsertModel(
 			'image',
-			image,
-			(image as unknown) as Dictionary<unknown>,
+			formattedImage,
+			// TODO: Upsert to new values only when they already match? This is likely a bug
+			// and currently acts like an "insert if not exists"
+			formattedImage,
 		);
 	}
 
-	private format(image: MaybeImage): Image {
+	private format(image: Image): Omit<Image, 'id'> {
 		return _(image)
 			.defaults({
 				serviceId: null,
@@ -598,7 +597,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 				dockerImageId: null,
 			})
 			.omit('id')
-			.value() as Image;
+			.value();
 	}
 
 	private async fetchDelta(

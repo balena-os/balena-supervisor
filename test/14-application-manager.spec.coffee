@@ -7,7 +7,7 @@ chai.use(require('chai-events'))
 { expect } = chai
 
 prepare = require './lib/prepare'
-DeviceState = require '../src/device-state'
+{ DeviceState } = require '../src/device-state'
 { DB } = require('../src/db')
 { Config } = require('../src/config')
 { Service } = require '../src/compose/service'

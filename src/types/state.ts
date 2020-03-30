@@ -1,8 +1,29 @@
 import { ComposeNetworkConfig } from '../compose/types/network';
 import { ServiceComposeConfig } from '../compose/types/service';
-import { ComposeVolumeConfig } from '../compose/volume';
+import Volume, { ComposeVolumeConfig } from '../compose/volume';
+import { EnvVarObject, LabelObject } from '../lib/types';
 
-export interface DeviceApplicationState {
+import Network from '../compose/network';
+import Service from '../compose/service';
+
+export type DeviceReportFields = Partial<{
+	api_port: number;
+	api_secret: string | null;
+	ip_address: string;
+	os_version: string | null;
+	os_variant: string | null;
+	supervisor_version: string;
+	provisioning_progress: null | number;
+	provisioning_state: string;
+	status: string;
+	update_failed: boolean;
+	update_pending: boolean;
+	update_downloaded: boolean;
+	is_on__commit: string;
+	logs_channel: null;
+}>;
+
+export interface DeviceStatus {
 	local?: {
 		config?: Dictionary<string>;
 		apps?: {
@@ -16,7 +37,7 @@ export interface DeviceApplicationState {
 				};
 			};
 		};
-	};
+	} & DeviceReportFields;
 	// TODO: Type the dependent entry correctly
 	dependent?: any;
 	commit?: string;
@@ -27,7 +48,7 @@ export interface DeviceApplicationState {
 export interface TargetState {
 	local: {
 		name: string;
-		config: Dictionary<string>;
+		config: EnvVarObject;
 		apps: {
 			[appId: string]: {
 				name: string;
@@ -35,11 +56,11 @@ export interface TargetState {
 				releaseId: number;
 				services: {
 					[serviceId: string]: {
-						labels: Dictionary<string>;
+						labels: LabelObject;
 						imageId: number;
 						serviceName: string;
 						image: string;
-						running: boolean;
+						running?: boolean;
 						environment: Dictionary<string>;
 					} & ServiceComposeConfig;
 				};
@@ -50,7 +71,22 @@ export interface TargetState {
 	};
 	// TODO: Correctly type this once dependent devices are
 	// actually properly supported
-	dependent: Dictionary<any>;
+	dependent: {
+		apps: Array<{
+			name?: string;
+			image?: string;
+			commit?: string;
+			config?: EnvVarObject;
+			environment?: EnvVarObject;
+		}>;
+		devices: Array<{
+			name?: string;
+			apps?: Dictionary<{
+				config?: EnvVarObject;
+				environment?: EnvVarObject;
+			}>;
+		}>;
+	};
 }
 
 export type LocalTargetState = TargetState['local'];
@@ -70,3 +106,28 @@ export type ApplicationDatabaseFormat = Array<{
 	networks: string;
 	volumes: string;
 }>;
+
+// This structure is the internal representation of both
+// target and current state. We create instances of compose
+// objects and these are what the state engine uses to
+// detect what it should do to move between them
+export interface InstancedAppState {
+	[appId: number]: {
+		appId: number;
+		commit: string;
+		releaseId: number;
+		name: string;
+		services: Service[];
+		volumes: Dictionary<Volume>;
+		networks: Dictionary<Network>;
+	};
+}
+
+export interface InstancedDeviceState {
+	local: {
+		name: string;
+		config: Dictionary<string>;
+		apps: InstancedAppState;
+	};
+	dependent: any;
+}

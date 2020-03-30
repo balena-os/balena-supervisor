@@ -393,7 +393,10 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 
 		const listen = async () => {
 			const stream = await this.docker.getEvents({
-				filters: { type: ['container'] },
+				// Remove the as any once
+				// https://github.com/DefinitelyTyped/DefinitelyTyped/pull/43100
+				// is merged and released
+				filters: { type: ['container'] } as any,
 			});
 
 			stream.on('error', e => {

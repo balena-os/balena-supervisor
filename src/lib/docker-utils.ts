@@ -45,7 +45,7 @@ const DELTA_TOKEN_TIMEOUT = 10 * 60 * 1000;
 export class DockerUtils extends DockerToolbelt {
 	public dockerProgress: DockerProgress;
 
-	public constructor(opts: Dockerode.DockerOptions) {
+	public constructor(opts?: Dockerode.DockerOptions) {
 		super(opts);
 		this.dockerProgress = new DockerProgress({ dockerToolbelt: this });
 	}
@@ -84,7 +84,7 @@ export class DockerUtils extends DockerToolbelt {
 
 		if (!_.includes([2, 3], deltaOpts.deltaVersion)) {
 			logFn(
-				`Unsupported delta version: ${deltaOpts.deltaVersion}. Failling back to regular pull`,
+				`Unsupported delta version: ${deltaOpts.deltaVersion}. Falling back to regular pull`,
 			);
 			return await this.fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 		}
@@ -193,7 +193,7 @@ export class DockerUtils extends DockerToolbelt {
 					break;
 				default:
 					throw new Error(
-						`Unsupposed delta version: ${deltaOpts.deltaVersion}`,
+						`Unsupported delta version: ${deltaOpts.deltaVersion}`,
 					);
 			}
 		} catch (e) {

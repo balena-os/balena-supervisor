@@ -2,11 +2,11 @@ var webpack = require('webpack');
 var path = require('path');
 var fs = require('fs');
 var _ = require('lodash');
-var path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 var ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 var externalModules = [
+	'async_hooks',
 	'sqlite3',
 	'mysql2',
 	'pg',
@@ -101,7 +101,8 @@ module.exports = function(env) {
 					use: require.resolve('coffee-loader'),
 				},
 				{
-					test: /\.ts$/,
+					test: /\.ts$|\.js$/,
+					exclude: /node_modules/,
 					use: [
 						{
 							loader: 'ts-loader',
@@ -121,7 +122,7 @@ module.exports = function(env) {
 					(m instanceof RegExp && m.test(request))
 				) {
 					return callback(null, 'commonjs ' + request);
-				} else if (typeof m != 'string' && !(m instanceof RegExp)) {
+				} else if (typeof m !== 'string' && !(m instanceof RegExp)) {
 					throw new Error('Invalid entry in external modules: ' + m);
 				}
 			}
@@ -133,13 +134,13 @@ module.exports = function(env) {
 			}),
 			new CopyWebpackPlugin([
 				{
-					from: './src/migrations',
+					from: './build/migrations',
 					to: 'migrations',
 				},
 			]),
 			new webpack.ContextReplacementPlugin(
 				/\.\/migrations/,
-				path.resolve(__dirname, 'src/migrations')
+				path.resolve(__dirname, 'build/migrations')
 			),
 		],
 	};

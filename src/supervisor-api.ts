@@ -103,11 +103,17 @@ export class SupervisorAPI {
 		this.api.use(expressLogger);
 
 		this.api.get('/v1/healthy', async (_req, res) => {
-			const healths = await Promise.all(this.healthchecks.map(fn => fn()));
-			if (!_.every(healths)) {
-				throw new Error('Unhealthy');
+			try {
+				const healths = await Promise.all(this.healthchecks.map(fn => fn()));
+				if (!_.every(healths)) {
+					log.error('Healthcheck failed');
+					return res.status(500).send('Unhealthy');
+				}
+				return res.sendStatus(200);
+			} catch (_e) {
+				log.error('Healthcheck failed');
+				return res.status(500).send('Unhealthy');
 			}
-			return res.sendStatus(200);
 		});
 
 		this.api.get('/ping', (_req, res) => res.send('OK'));

@@ -410,6 +410,7 @@ export class Service {
 			user: '',
 			workingDir: '',
 			tty: true,
+			running: true,
 		});
 
 		// Mutate service with extra features
@@ -908,6 +909,7 @@ export class Service {
 						SERVICE_NAME: serviceName,
 						DEVICE_UUID: options.uuid,
 						DEVICE_TYPE: options.deviceType,
+						DEVICE_ARCH: options.deviceArch,
 						HOST_OS_VERSION: options.osVersion,
 						SUPERVISOR_VERSION: options.version,
 						APP_LOCK_PATH: '/tmp/balena/updates.lock',

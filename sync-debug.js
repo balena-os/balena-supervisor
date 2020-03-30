@@ -1,18 +1,32 @@
 #!/usr/bin/env node
 
-if (!process.argv[2] || ['help', '-h', '--help'].includes(process.argv[2])) {
-	console.log(`
-Sync changes in the javascript code to a running local mode supervisor on a device on the local network
+const helpText = `Sync changes in the javascript code to a running local mode supervisor on a device on the local network
 
 Usage:
   ./sync-debug.js <device IP>
 
-Note that the device should be running a debug image.
-	`);
-	process.exit(1);
-}
+Note that the device should be running a debug image.`;
 
-const ip = process.argv[2];
+const argv = require('yargs')
+	.command(
+		'$0 <device IP>',
+		'Sync changes in code to a running debug mode supervisor on a local device',
+		yargs =>
+			yargs.positional('device IP', {
+				type: 'string',
+				describe: 'The address of a local device',
+			}),
+	)
+	.usage(helpText)
+	.version(false)
+	.option('noinit', {
+		boolean: true,
+		describe: "Don't do an initial sync of files",
+		default: false,
+	})
+	.alias('h', 'help').argv;
+
+const ip = argv.deviceIP;
 
 const { Livepush } = require('livepush');
 const { fs } = require('mz');
@@ -81,21 +95,21 @@ const performLivepush = _.debounce(async livepush => {
 
 	setupLogs(containerId, docker);
 
-	const livepush = await Livepush.init(
-		await fs.readFile('Dockerfile.debug'),
-		'.',
+	const livepush = await Livepush.init({
+		dockerfileContent: await fs.readFile('Dockerfile.debug'),
+		context: '.',
 		containerId,
 		// a bit of a hack, as the multistage images aren't
 		// present, but it shouldn't make a difference as these
 		// will never change
-		_.times(6, () => image),
+		stageImages: _.times(6, () => image),
 		docker,
-	);
+	});
 
 	chokidar
 		.watch('.', {
 			ignored: /((^|[\/\\])\..|node_modules.*)/,
-			ignoreInitial: false,
+			ignoreInitial: argv.noinit,
 		})
 		.on('add', path => {
 			changedFiles.push(path);

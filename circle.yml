@@ -1,20 +1,19 @@
 ---
 defaults: &defaults
   docker:
-    - image: library/docker:17.06.0-ce
+    - image: library/docker:19-git
   working_directory: /tmp/build
   steps:
     - setup_remote_docker:
-        version: 17.06.0-ce
-        reusable: true
+        version: 18.09.3
+        docker_layer_caching: true
     - run:
         name: Check docker is running and install git
         command: |
           docker info
-          apk update && apk upgrade && apk add --nocache \
+          apk update && apk upgrade && apk add --no-cache \
             make \
             jq \
-            git \
             bash \
             grep \
             nodejs \
@@ -25,8 +24,7 @@ defaults: &defaults
         name: Install npm dependencies
         working_directory: /tmp/build/automation
         command: |
-          JOBS=max npm install \
-            && npm cache clean
+          JOBS=max npm install
     - run:
         name: Initialize the submodules (yocto layers)
         command: |
@@ -63,6 +61,22 @@ defaults: &defaults
 
 version: 2
 jobs:
+  generic:
+    docker:
+      - image: library/node:10
+    steps:
+      - checkout
+      - run:
+          name: Run tests
+          command: |
+            JOBS=max npm ci && npm test
+    environment:
+      DOCKER_USERNAME: travisciresin
+      ARCH: amd64
+      PUSH_IMAGES: 'true'
+      STAGING_API_ENDPOINT: https://api.balena-staging.com
+      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      DEBUG: ''
   amd64:
     <<: *defaults
     environment:
@@ -176,15 +190,40 @@ workflows:
   version: 2
   build_and_maybe_deploy:
     jobs:
-      - amd64
-      - i386
-      - rpi
-      - armv7hf
-      - aarch64
-      - i386-nlp
-      - amd64-debug
-      - i386-debug
-      - rpi-debug
-      - armv7hf-debug
-      - aarch64-debug
-      - i386-nlp-debug
+      - generic
+      - amd64:
+          requires:
+            - generic
+      - i386:
+          requires:
+            - generic
+      - rpi:
+          requires:
+            - generic
+      - armv7hf:
+          requires:
+            - generic
+      - aarch64:
+          requires:
+            - generic
+      - i386-nlp:
+          requires:
+            - generic
+      - amd64-debug:
+          requires:
+            - generic
+      - i386-debug:
+          requires:
+            - generic
+      - rpi-debug:
+          requires:
+            - generic
+      - armv7hf-debug:
+          requires:
+            - generic
+      - aarch64-debug:
+          requires:
+            - generic
+      - i386-nlp-debug:
+          requires:
+            - generic

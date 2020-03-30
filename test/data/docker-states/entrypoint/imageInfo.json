@@ -97,6 +97,7 @@
 	"apiSecret": "d4bf8369519c32adaa5dd1f84367aa817403f2a3ce976be9c9bacd4d344fdd",
 	"deviceApiKey": "ff89e1d8db58a7ca52a435f2adea319a",
 	"version": "7.18.0",
+	"deviceArch": "amd64",
 	"deviceType": "raspberrypi3",
 	"osVersion": "Resin OS 2.13.6+rev1"
 }

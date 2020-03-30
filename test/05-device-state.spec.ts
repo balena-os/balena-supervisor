@@ -12,7 +12,7 @@ const { expect } = chai;
 import Config from '../src/config';
 import { RPiConfigBackend } from '../src/config/backend';
 import DB from '../src/db';
-import DeviceState = require('../src/device-state');
+import DeviceState from '../src/device-state';
 
 import { loadTargetFromFile } from '../src/device-state/preload';
 
@@ -112,6 +112,8 @@ const testTarget2 = {
 						labels: {},
 					},
 				},
+				volumes: {},
+				networks: {},
 			},
 		},
 	},
@@ -286,31 +288,29 @@ describe('deviceState', () => {
 		}
 	});
 
-	it('stores info for pinning a device after loading an apps.json with a pinDevice field', () => {
+	it('stores info for pinning a device after loading an apps.json with a pinDevice field', async () => {
 		stub(deviceState.applications.images, 'save').returns(Promise.resolve());
 		stub(deviceState.deviceConfig, 'getCurrent').returns(
 			Promise.resolve(mockedInitialConfig),
 		);
-		loadTargetFromFile(
+		await loadTargetFromFile(
 			process.env.ROOT_MOUNTPOINT + '/apps-pin.json',
 			deviceState,
-		).then(() => {
-			(deviceState as any).applications.images.save.restore();
-			(deviceState as any).deviceConfig.getCurrent.restore();
+		);
+		(deviceState as any).applications.images.save.restore();
+		(deviceState as any).deviceConfig.getCurrent.restore();
 
-			config.get('pinDevice').then(pinned => {
-				expect(pinned)
-					.to.have.property('app')
-					.that.equals(1234);
-				expect(pinned)
-					.to.have.property('commit')
-					.that.equals('abcdef');
-			});
-		});
+		const pinned = await config.get('pinDevice');
+		expect(pinned)
+			.to.have.property('app')
+			.that.equals(1234);
+		expect(pinned)
+			.to.have.property('commit')
+			.that.equals('abcdef');
 	});
 
 	it('emits a change event when a new state is reported', () => {
-		deviceState.reportCurrentState({ someStateDiff: 'someValue' });
+		deviceState.reportCurrentState({ someStateDiff: 'someValue' } as any);
 		return (expect as any)(deviceState).to.emit('change');
 	});
 
@@ -339,7 +339,7 @@ describe('deviceState', () => {
 	});
 
 	it('does not allow setting an invalid target state', () => {
-		expect(deviceState.setTarget(testTargetInvalid)).to.be.rejected;
+		expect(deviceState.setTarget(testTargetInvalid as any)).to.be.rejected;
 	});
 
 	it('allows triggering applying the target state', done => {
