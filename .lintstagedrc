@@ -1,17 +1,17 @@
 {
 	"*.coffee": [
-		"resin-lint"
+		"balena-lint"
 	],
 	"*.ts": [
-		"resin-lint --typescript --fix",
+		"balena-lint --typescript --fix",
 	],
 	"*!(*webpack.config).js": [
-		"resin-lint --typescript --fix",
+		"balena-lint --typescript --fix",
 	],
 	"test/**/*.coffee": [
-		"resin-lint --tests"
+		"balena-lint --tests"
 	],
 	"test/**/*.ts": [
-		"resin-lint --typescript --no-prettier --tests"
+		"balena-lint --typescript --no-prettier --tests"
 	],
 }
