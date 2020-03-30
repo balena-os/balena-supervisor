@@ -1,7 +1,6 @@
 import * as Bluebird from 'bluebird';
 import { NextFunction, Request, Response, Router } from 'express';
 import * as _ from 'lodash';
-import { fs } from 'mz';
 
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
@@ -311,23 +310,25 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/local/device-info', async (_req, res) => {
-		// Return the device type and slug so that local mode builds can use this to
-		// resolve builds
-		// FIXME: We should be mounting the following file into the supervisor from the
-		// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
-		const data = await fs.readFile(
-			'/mnt/root/resin-boot/device-type.json',
-			'utf8',
-		);
-		const deviceInfo = JSON.parse(data);
+		try {
+			const { deviceType, deviceArch } = await applications.config.getMany([
+				'deviceType',
+				'deviceArch',
+			]);
 
-		return res.status(200).json({
-			status: 'success',
-			info: {
-				arch: deviceInfo.arch,
-				deviceType: deviceInfo.slug,
-			},
-		});
+			return res.status(200).json({
+				status: 'success',
+				info: {
+					arch: deviceArch,
+					deviceType,
+				},
+			});
+		} catch (e) {
+			res.status(500).json({
+				status: 'failed',
+				message: e.message,
+			});
+		}
 	});
 
 	router.get('/v2/local/logs', async (_req, res) => {

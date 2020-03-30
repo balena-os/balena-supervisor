@@ -1,5 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
+import { fs } from 'mz';
 import { URL } from 'url';
 
 import supervisorVersion = require('../lib/supervisor-version');
@@ -7,6 +8,7 @@ import supervisorVersion = require('../lib/supervisor-version');
 import Config from '.';
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
+import log from '../lib/supervisor-console';
 
 export const fnSchema = {
 	version: () => {
@@ -32,6 +34,22 @@ export const fnSchema = {
 	osVariant: () => {
 		return osRelease.getOSVariant(constants.hostOSVersionPath);
 	},
+	deviceArch: async () => {
+		try {
+			// FIXME: We should be mounting the following file into the supervisor from the
+			// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
+			const data = await fs.readFile(
+				`${constants.rootMountPoint}/resin-boot/device-type.json`,
+				'utf8',
+			);
+			const deviceInfo = JSON.parse(data);
+
+			return deviceInfo.arch;
+		} catch (e) {
+			log.error(`Unable to get architecture: ${e}`);
+			return 'unknown';
+		}
+	},
 	provisioningOptions: (config: Config) => {
 		return config
 			.getMany([
@@ -40,6 +58,7 @@ export const fnSchema = {
 				'applicationId',
 				'apiKey',
 				'deviceApiKey',
+				'deviceArch',
 				'deviceType',
 				'apiEndpoint',
 				'apiTimeout',
@@ -51,6 +70,7 @@ export const fnSchema = {
 					uuid: conf.uuid,
 					applicationId: conf.applicationId,
 					userId: conf.userId,
+					deviceArch: conf.deviceArch,
 					deviceType: conf.deviceType,
 					provisioningApiKey: conf.apiKey,
 					deviceApiKey: conf.deviceApiKey,
@@ -79,6 +99,7 @@ export const fnSchema = {
 			'apiEndpoint',
 			'deviceApiKey',
 			'version',
+			'deviceArch',
 			'deviceType',
 			'osVersion',
 		]);

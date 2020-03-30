@@ -187,6 +187,7 @@ export interface DeviceMetadata {
 	appName: string;
 	version: string;
 	deviceType: string;
+	deviceArch: string;
 	deviceApiKey: string;
 	apiEndpoint: string;
 	listenPort: number;
