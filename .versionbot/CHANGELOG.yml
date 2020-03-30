@@ -1,4 +1,16 @@
 - commits:
+    - subject: Don't throw an error when getting an unhealthy state
+      hash: 6b827a3f57f242e36e2a008632a28199ba569f63
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.10.15
+  date: 2020-03-30T09:10:59.937Z
+- commits:
     - subject: Convert src/device-api/common.coffee to javascript
       hash: 15fca80d2ddb16b368f0d2c34fb56b5b9bb6217f
       body: ''
