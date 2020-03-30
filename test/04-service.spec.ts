@@ -35,6 +35,7 @@ describe('compose/service', () => {
 			commit: 'abcdef',
 			name: 'awesomeDevice',
 			version: 'v1.0.0',
+			deviceArch: 'amd64',
 			deviceType: 'raspberry-pi',
 			osVersion: 'Resin OS 2.0.2',
 		};
@@ -57,6 +58,7 @@ describe('compose/service', () => {
 			RESIN_APP_ID: '23',
 			RESIN_APP_NAME: 'awesomeApp',
 			RESIN_DEVICE_UUID: '1234',
+			RESIN_DEVICE_ARCH: 'amd64',
 			RESIN_DEVICE_TYPE: 'raspberry-pi',
 			RESIN_HOST_OS_VERSION: 'Resin OS 2.0.2',
 			RESIN_SERVICE_NAME: 'serviceName',
@@ -67,6 +69,7 @@ describe('compose/service', () => {
 			BALENA_APP_ID: '23',
 			BALENA_APP_NAME: 'awesomeApp',
 			BALENA_DEVICE_UUID: '1234',
+			BALENA_DEVICE_ARCH: 'amd64',
 			BALENA_DEVICE_TYPE: 'raspberry-pi',
 			BALENA_HOST_OS_VERSION: 'Resin OS 2.0.2',
 			BALENA_SERVICE_NAME: 'serviceName',
