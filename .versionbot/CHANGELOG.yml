@@ -1,4 +1,18 @@
 - commits:
+    - subject: Pass in deviceId when fetching device tags
+      hash: 3c59944ce126570cc814626f20a9d67d6e67ff4d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1237'
+        closes: '#1237'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.11.2
+  date: 2020-03-31T11:48:13.361Z
+- commits:
     - subject: "\U0001F527 Update resin-lint -> balena-lint in lintstaged"
       hash: 2433f9a343d26233fff3d5bed14a548feded23ad
       body: ''
