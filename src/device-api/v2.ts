@@ -445,11 +445,18 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/device/tags', async (_req, res) => {
-		const tags = await applications.apiBinder.fetchDeviceTags();
-		return res.json({
-			status: 'success',
-			tags,
-		});
+		try {
+			const tags = await applications.apiBinder.fetchDeviceTags();
+			return res.json({
+				status: 'success',
+				tags,
+			});
+		} catch (e) {
+			res.status(500).json({
+				status: 'failed',
+				message: e.message,
+			});
+		}
 	});
 
 	router.get('/v2/cleanup-volumes', async (_req, res) => {

@@ -383,8 +383,14 @@ export class APIBinder {
 				'Attempt to communicate with API, without initialized client',
 			);
 		}
+
+		const deviceId = await this.config.get('deviceId');
+		if (deviceId == null) {
+			throw new Error('Attempt to retrieve device tags before provision');
+		}
 		const tags = (await this.balenaApi.get({
 			resource: 'device_tag',
+			id: deviceId,
 			options: {
 				$select: ['id', 'tag_key', 'value'],
 			},
