@@ -6,5 +6,5 @@
 		"preserveConstEnums": true,
 		"removeComments": true
 	},
-	"include": ["src/**/*.ts", "src/**/*.js", "typings/**/*.d.ts"]
+	"include": ["src/**/*", "typings/**/*.d.ts"]
 }

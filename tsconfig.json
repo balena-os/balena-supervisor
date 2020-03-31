@@ -11,5 +11,5 @@
 		"resolveJsonModule": true,
 		"allowJs": true
 	},
-	"include": ["src/**/*.ts", "src/**/*.js", "test/**/*.ts", "typings/**/*.d.ts"]
+	"include": ["src/**/*", "test/**/*", "typings/**/*.d.ts"]
 }
