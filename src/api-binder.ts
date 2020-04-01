@@ -8,8 +8,6 @@ import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
 import * as url from 'url';
 import * as deviceRegister from './lib/register-device';
 
-import * as globalEventBus from './event-bus';
-
 import Config, { ConfigType } from './config';
 import Database from './db';
 import { EventTracker } from './event-tracker';
@@ -30,6 +28,7 @@ import { DeviceStatus, TargetState } from './types/state';
 import log from './lib/supervisor-console';
 
 import DeviceState from './device-state';
+import * as globalEventBus from './event-bus';
 import Logger from './logger';
 
 // The exponential backoff starts at 15s
@@ -207,11 +206,16 @@ export class APIBinder {
 		log.debug('Starting current state report');
 		await this.startCurrentStateReport();
 
-		await loadBackupFromMigration(
-			this.deviceState,
-			await this.getTargetState(),
-			bootstrapRetryDelay,
-		);
+		// When we've provisioned, try to load the backup. We
+		// must wait for the provisioning because we need a
+		// target state on which to apply the backup
+		globalEventBus.getInstance().once('targetStateChanged', async state => {
+			await loadBackupFromMigration(
+				this.deviceState,
+				state,
+				bootstrapRetryDelay,
+			);
+		});
 
 		this.readyForUpdates = true;
 		log.debug('Starting target state poll');

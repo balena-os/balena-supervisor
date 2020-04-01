@@ -1,9 +1,11 @@
 import { EventEmitter } from 'events';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
+import { TargetState } from './types/state';
 
 export interface GlobalEvents {
 	deviceProvisioned: void;
+	targetStateChanged: TargetState;
 }
 
 type GlobalEventEmitter = StrictEventEmitter<EventEmitter, GlobalEvents>;
