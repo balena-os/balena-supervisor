@@ -1,4 +1,56 @@
 - commits:
+    - subject: Convert test/18-startup.coffee to typescript
+      hash: d3221ca235aa0bd22191516f3eeebcabdf32e94b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/19-compose-utils.coffee to javascript
+      hash: 70b07055513f8948bf4c9867718ed4df3df61bc1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/18-compose-network.coffee to javascript
+      hash: 98e956831a4f8dc9e7e08bc98b21c0f8dd89e263
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/17-config-utils.spec.coffee to javascript
+      hash: d3cf650ac48e94a1f7040b72b497e11945671015
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/16-ports.spec.coffee to typescript
+      hash: dcb01cb8632c6a438e3989e6cbcdf2639d0367ba
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/15-conversions.spec.coffee to javascript
+      hash: 515fb059f409ba33b0537c778e7d8191bf387a48
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/12-logger.spec.coffee to javascript
+      hash: fd4cec31e7473d53ffa6a8650b341e7dec49a2cf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.11.3
+  date: 2020-04-02T13:29:44.498Z
+- commits:
     - subject: Pass in deviceId when fetching device tags
       hash: 3c59944ce126570cc814626f20a9d67d6e67ff4d
       body: ''
