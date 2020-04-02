@@ -94,7 +94,9 @@ export class Network {
 	public static fromComposeObject(
 		name: string,
 		appId: number,
-		network: Partial<ComposeNetworkConfig>,
+		network: Partial<Omit<ComposeNetworkConfig, 'ipam'>> & {
+			ipam?: Partial<ComposeNetworkConfig['ipam']>;
+		},
 		opts: NetworkOptions,
 	): Network {
 		const net = new Network(opts);
