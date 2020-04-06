@@ -76,6 +76,7 @@ class ApplicationManager extends EventEmitter {
 		db: DB,
 		eventTracker: EventTracker,
 		deviceState: DeviceState,
+		apiBinder: APIBinder,
 	});
 
 	public init(): Promise<void>;
@@ -95,7 +96,7 @@ class ApplicationManager extends EventEmitter {
 		dependent: any,
 		source: string,
 		transaction: Knex.Transaction,
-	): Promise<void>;
+	): Bluebird<void>;
 
 	public getStatus(): Promise<{
 		local: DeviceStatus.local.apps;
@@ -107,7 +108,7 @@ class ApplicationManager extends EventEmitter {
 	public stopAll(opts: { force?: boolean; skipLock?: boolean }): Promise<void>;
 
 	public serviceNameFromId(serviceId: number): Bluebird<string>;
-	public imageForService(svc: any): Promise<Image>;
+	public imageForService(svc: any): Image;
 	public getDependentTargets(): Promise<any>;
 	public getCurrentForComparison(): Promise<any>;
 	public getDependentState(): Promise<any>;

@@ -26,6 +26,7 @@ import * as updateLock from './lib/update-lock';
 import * as validation from './lib/validation';
 import * as network from './network';
 
+import APIBinder from './api-binder';
 import { ApplicationManager } from './application-manager';
 import DeviceConfig, { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
@@ -179,6 +180,7 @@ interface DeviceStateConstructOpts {
 	config: Config;
 	eventTracker: EventTracker;
 	logger: Logger;
+	apiBinder: APIBinder;
 }
 
 interface DeviceStateEvents {
@@ -243,7 +245,13 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	public connected: boolean;
 	public router: express.Router;
 
-	constructor({ db, config, eventTracker, logger }: DeviceStateConstructOpts) {
+	constructor({
+		db,
+		config,
+		eventTracker,
+		logger,
+		apiBinder,
+	}: DeviceStateConstructOpts) {
 		super();
 		this.db = db;
 		this.config = config;
@@ -260,6 +268,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			db: this.db,
 			eventTracker: this.eventTracker,
 			deviceState: this,
+			apiBinder,
 		});
 
 		this.on('error', err => log.error('deviceState error: ', err));

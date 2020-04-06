@@ -38,7 +38,7 @@ interface FetchProgressEvent {
 }
 
 export interface Image {
-	id: number;
+	id?: number;
 	// image registry/repo@digest or registry/repo:tag
 	name: string;
 	appId: number;
@@ -48,9 +48,9 @@ export interface Image {
 	imageId: number;
 	releaseId: number;
 	dependent: number;
-	dockerImageId: string;
-	status: 'Downloading' | 'Downloaded' | 'Deleting';
-	downloadProgress: Nullable<number>;
+	dockerImageId?: string;
+	status?: 'Downloading' | 'Downloaded' | 'Deleting';
+	downloadProgress?: number | null;
 }
 
 // TODO: Remove the need for this type...
@@ -309,7 +309,10 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			},
 		);
 
-		const ids = _.map(imagesToRemove, 'id');
+		const ids = _(imagesToRemove)
+			.map('id')
+			.compact()
+			.value();
 		await this.db
 			.models('image')
 			.del()

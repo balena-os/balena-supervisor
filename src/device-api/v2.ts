@@ -164,7 +164,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 							commit: string;
 							services: {
 								[serviceName: string]: {
-									status: string;
+									status?: string;
 									releaseId: number;
 									downloadProgress: number | null;
 								};
@@ -200,7 +200,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 							return service.imageId === img.imageId;
 						});
 
-						let status: string;
+						let status: string | undefined;
 						if (svc == null) {
 							status = img.status;
 						} else {
