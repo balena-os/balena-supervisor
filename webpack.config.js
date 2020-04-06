@@ -1,9 +1,10 @@
-var webpack = require('webpack');
-var path = require('path');
-var fs = require('fs');
-var _ = require('lodash');
+const webpack = require('webpack');
+const path = require('path');
+const fs = require('fs');
+const _ = require('lodash');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
-var ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const TerserWebpackPlugin = require('terser-webpack-plugin');
 
 var externalModules = [
 	'async_hooks',
@@ -80,6 +81,17 @@ module.exports = function(env) {
 		target: 'node',
 		node: {
 			__dirname: false,
+		},
+		optimization: {
+			minimize: true,
+			minimizer: [
+				new TerserWebpackPlugin({
+					terserOptions: {
+						mangle: false,
+						keep_classnames: true
+					}
+				})
+			]
 		},
 		module: {
 			rules: [
