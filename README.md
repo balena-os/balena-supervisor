@@ -1,24 +1,105 @@
-# balena-supervisor
+# balenaSupervisor
 
-This is [balena](https://balena.io)'s supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as the balena API informs it to.
+balenaSupervisor is [balena](https://balena.io)'s on-device
+agent, responsible for monitoring and applying changes to an
+IoT device. It communicates with balenaCloud and handles the
+lifecycle of an IoT application.
 
-The supervisor is a Node.js program.
+Using the [balenaEngine](https://balena.io/engine)'s (our
+IoT-centric container engine) remote API, balenaSupervisor
+will install, start, stop and monitor IoT applications,
+delivered and ran as [OCI](https://www.opencontainers.org/)
+compliant containers.
 
-## Running a supervisor locally
+balenaSupervisor is developed using Node.js.
+
+## Contributing
+
+If you're interested in contributing, that's awesome!
+
+> Contributions are not only pull requests! Bug reports and
+> feature requests are also extremely value additions.
+
+### Issues
+
+Feature request and bug reports should be submitted via
+issues. One of the balenaSupervisor team will reply and work
+with the community to plan a route forward. Although we may
+never implement the feature, taking the time to let us know
+what you as a user would like to see really helps our
+decision making processes!
+
+### Pull requests
+
+Here's a few guidelines to make the process easier for everyone involved.
+
+- Every PR _should_ have an associated issue, and the PR's opening comment should say "Fixes #issue" or "Closes #issue".
+- We use [Versionist](https://github.com/resin-io/versionist) to manage versioning (and in particular, [semantic versioning](semver.org)) and generate the changelog for this project.
+- At least one commit in a PR should have a `Change-Type: type` footer, where `type` can be `patch`, `minor` or `major`. The subject of this commit will be added to the changelog.
+- Commits should be squashed as much as makes sense.
+- Commits should be signed-off (`git commit -s`)
+
+## Developing the supervisor
+
+By far the most convenient way to develop the supervisor is
+to download a development image of balenaOS from the
+dashboard, and run it on a device you have to hand. You can
+then use the local network to sync changes using
+[livepush](http://github.com/balena-io-modules/livepush) and
+`npm run sync`.
+
+If you do not have a device available, it's possible to run
+a supervisor locally, using
+[balenaOS-in-container](https://github.com/balena-os/balenaos-in-container).
+These steps are detailed below.
+
+### Sync
+
+Example:
+
+```bash
+$ npm run sync -- d19baeb.local
+
+> balena-supervisor@10.11.3 sync /home/cameron/Balena/modules/balena-supervisor
+> ts-node --project tsconfig.json sync/sync.ts "d19baeb.local"
+
+Step 1/23 : ARG ARCH=amd64
+Step 2/23 : ARG NODE_VERSION=10.19.0
+Step 3/23 : FROM balenalib/$ARCH-alpine-supervisor-base:3.11 as BUILD
+...
+
+```
+
+> Note: For .local resolution to work you must have installed
+> and enabled MDNS. Alternatively you can use the device's
+> local IP.
+
+Sync will first run a new build on the target device (or
+balenaOS container), after livepush has processed the
+livepush specific commands and will start the new supervisor
+image on device.
+
+The supervisor logs are then streamed back from the device,
+and livepush will then watch for changes on the local FS,
+and sync any relevant file changes to the running supervisor
+container. It will then decide if the container should be
+restarted, or let nodemon handle the changes.
+
+### Using balenaOS-in-container
 
 This process will allow you to run a development instance of the supervisor on your local computer. It is not recommended for production scenarios, but allows someone developing on the supervisor to test changes quickly.
 The supervisor is run inside a balenaOS instance running in a container, so effectively it's a Docker-in-Docker instance (or more precisely, [balenaEngine](https://github.com/resin-os/balena-engine)-in-Docker).
 
-### Set up `config.json`
+#### Set up `config.json`
 
 To configure the supervisor, you'll need a `tools/dind/config.json` file. There's two options on how to get this file:
 
-* Log in to the [balenaCloud dashboard](https://dashboard.balena-cloud.com), create or select an application, click "Add device" and on the Advanced section select "Download configuration file only". Make sure you use an x86 or amd64 device type for your application, for example Intel NUC.
-* Install the balena CLI with `npm install -g balena-cli`, then login with `balena login` and finally run `balena config generate --app <appName> -o config.json` (choose the default settings whenever prompted).
+- Log in to the [balenaCloud dashboard](https://dashboard.balena-cloud.com), create or select an application, click "Add device" and on the Advanced section select "Download configuration file only". Make sure you use an x86 or amd64 device type for your application, for example Intel NUC.
+- Install the balena CLI with `npm install -g balena-cli`, then login with `balena login` and finally run `balena config generate --app <appName> -o config.json` (choose the default settings whenever prompted).
 
 The `config.json` file should look something like this:
 
-(Please note we've added comments to the JSON for better explanation - the actual file should be valid json *without* such comments)
+(Please note we've added comments to the JSON for better explanation - the actual file should be valid json _without_ such comments)
 
 ```
 {
@@ -37,7 +118,7 @@ The `config.json` file should look something like this:
 
 Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the balena API. Other fields may be present (the format has evolved over time and will likely continue to do so) but they are not used by the supervisor.
 
-### Start the supervisor instance
+#### Start the supervisor instance
 
 Ensure your kernel supports aufs (in Ubuntu, install `linux-image-extra-$(uname -r)`) and the `aufs` module is loaded (if necessary, run `sudo modprobe aufs`).
 
@@ -63,7 +144,7 @@ This will mount the ./dist folder into the supervisor container and build the co
 ./dindctl refresh
 ```
 
-### Testing with preloaded apps
+#### Testing with preloaded apps
 
 To test preloaded apps, run `balena preload` (see the [balena CLI docs](https://docs.balena.io/tools/cli/#preload-60-image-62-) on an OS image for the app you are testing with. Then copy the `apps.json` file from the `resin-data` partition into `tools/dind/apps.json`.
 
@@ -79,7 +160,7 @@ Then run the supervisor like this:
 
 This will make the Docker-in-Docker instance pull the image specified in `apps.json` before running the supervisor, simulating a preloaded balenaOS image.
 
-### View the supervisor's logs
+#### View the supervisor's logs
 
 ```bash
 ./dindctl logs
@@ -92,43 +173,55 @@ additional options, for instance, to see the logs from the supervisor service:
 ./dindctl logs -fn 100 -u resin-supervisor
 ```
 
-### Stop the supervisor
+#### Stop the supervisor
 
 ```bash
 ./dindctl stop
 ```
 
-This will stop the container and remove it, also removing its volumes.
+This will stop the container and remove it, also removing
+its volumes.
 
-## Developing with a balenaOS device
+## Developing using a production image or device
 
-If you want to test local changes (only changes to the Node.js code are supported) on a real balenaOS device, provision
-a [development OS image](https://docs.balena.io/understanding/understanding-devices/2.0.0/#dev-vs-prod-images) and power up the device. On the balenaCloud dashboard, take note of the device's IP address. Then run:
+A production balena image does not have an open docker
+socket, required for livepush to work. In this situation,
+the `tools/sync.js` script can be used. Note that this
+process is no longer actively developed, so your mileage may
+vary.
 
-```
-./sync.js <device IP>
-```
+Bug reports and pull requests are still accepted for changes
+to `sync.js`, but the balenaSupervisor team will focus on
+`npm run sync` in the future.
 
-This will build the supervisor code and sync it onto the running supervisor container inside the device, and then restart it.
+## Building
 
-## Build a local supervisor image
+### Docker images
 
-This should rarely be needed as `--mount-dist` allows you to test any changes to the Node.js code without a full rebuild. However, if you've changed code in the base image or the Dockerfile you will need to build the proper
-supervisor Docker image.
-
-Build the supervisor with a specific tag, and for a specific architecture, like this:
+To build a docker image for amd64 targets, it's as simple
+as:
 
 ```bash
-./dindctl build --tag master --arch amd64
+docker build . -t my-supervisor
 ```
 
-This will build the supervisor Docker image locally. If you then run `docker images` you should see the repo/tag you
-set there. Keep in mind several images will be pulled for caching purposes.
+For other architectures, one must use the script
+`automation/build.sh`. This is because of emulation specific
+changes we have made to our base images to allow
+cross-compilation.
 
-## Base image
+For example, to build for the raspberry pi 3:
 
-The supervisor uses the [resin-supervisor-base](https://github.com/resin-io/resin-supervisor-base) as a base image.
-This is a minimal Linux image containing busybox, rsync and Node.js, and it's built with the [Yocto project](https://www.yoctoproject.org/).
+```sh
+ARCH=armv7hf automation/build.sh
+```
+
+This will produce an image `balena/armv7hf-supervisor:<git branch name>`.
+To avoid using the branch name, you can set a `TAG` variable
+in your shell, before using the build script.
+
+> Available architectures: `amd64`, `i386`, `aarch64`,
+> `armv7hf` and `rpi`
 
 ## Testing
 
@@ -138,23 +231,16 @@ You can run some unit tests with:
 npm test
 ```
 
-You'll need Node.js 6 installed, and having run `npm install` first. The supervisor runs on Node 6.13.1, so using that specific version will ensure tests run in the same environment as production.
+The supervisor runs on Node v10.19.0, so using that specific
+version will ensure tests run in the same environment as
+production.
 
-## Contributing
-
-If you're interested in contributing, that's awesome!
-
-Here's a few guidelines to make the process easier for everyone involved.
-
-* Every PR *should* have an associated issue, and the PR's opening comment should say "Fixes #issue" or "Closes #issue".
-* We use [Versionist](https://github.com/resin-io/versionist) to manage versioning (and in particular, [semantic versioning](semver.org)) and generate the changelog for this project.
-* At least one commit in a PR should have a `Change-Type: type` footer, where `type` can be `patch`, `minor` or `major`. The subject of this commit will be added to the changelog.
-* Commits should be squashed as much as makes sense.
-* Commits should be signed-off (`git commit -s`)
+Alternatively, tests will be run when building the image,
+which ensures that the environment is exactly the same.
 
 ## License
 
-Copyright 2015 Rulemotion Ltd.
+Copyright 2020 Balena Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

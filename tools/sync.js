@@ -10,8 +10,8 @@ Usage:
 The script will first build a non-optimized version of the js code and sync the resulting app.js
 onto the supervisor container at the specified IP. It will also restart the supervisor container.
 The device must be a development variant of balenaOS and the supervisor must be running.
-	`)
-	process.exit(1)
+	`);
+	process.exit(1);
 }
 
 const childProcess = require('child_process');
@@ -32,17 +32,20 @@ const syncOpts = {
 
 childProcess.execSync('npm install', { stdio: 'inherit' });
 
-compiler.watch({
-	ignored: /node_modules/,
-}, (err, stats) => {
-	if (err) {
-		console.error(err);
-		return;
-	}
-	console.log(stats.toString({ colors: true }));
-	if (stats.hasErrors()) {
-		console.error('Skipping sync due to errors');
-		return;
-	}
-	doSync(syncOpts);
-});
+compiler.watch(
+	{
+		ignored: /node_modules/,
+	},
+	(err, stats) => {
+		if (err) {
+			console.error(err);
+			return;
+		}
+		console.log(stats.toString({ colors: true }));
+		if (stats.hasErrors()) {
+			console.error('Skipping sync due to errors');
+			return;
+		}
+		doSync(syncOpts);
+	},
+);
