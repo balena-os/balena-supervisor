@@ -1,4 +1,16 @@
 - commits:
+    - subject: Don't mangle names when minimising with webpack
+      hash: 6fe3bfa4f2668fd364a977ccf4830e91b07fd47a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.1
+  date: 2020-04-06T12:39:03.990Z
+- commits:
     - subject: ⚡ Update synchronisation scripts for supervisor development
       hash: 8ab63656bd483645fe0238fee2a1824158f3f453
       body: |
