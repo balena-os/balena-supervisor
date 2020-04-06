@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update to balena-register-device 6.0.1
+      hash: 81927d78612aa5944aab8a1322735e32c311d927
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.2
+  date: 2020-04-06T16:47:10.397Z
+- commits:
     - subject: Don't mangle names when minimising with webpack
       hash: 6fe3bfa4f2668fd364a977ccf4830e91b07fd47a
       body: ''
