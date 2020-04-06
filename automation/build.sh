@@ -4,9 +4,9 @@
 #
 # Required variables:
 # * ARCH
-# * TAG
 #
 # Optional variables:
+# * TAG: The default will be the current branch name
 # * PUSH_IMAGES
 # * CLEANUP
 # * MIXPANEL_TOKEN: default key to inject in the supervisor image
@@ -31,9 +31,13 @@
 set -e
 
 THIS_FILE=$0
-if [ -z "$ARCH" ] || [ -z "$TAG" ]; then
+if [ -z "$ARCH" ] ; then
 	awk '{if(/^#/)print;else exit}' "${THIS_FILE}" | tail -n +2 | sed 's/\#//'
 	exit 1
+fi
+
+if [ -z "$TAG" ]; then
+	TAG=$(git rev-parse --abbrev-ref HEAD)
 fi
 
 if ! [ -x "$(command -v npx)" ]; then
