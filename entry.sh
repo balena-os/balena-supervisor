@@ -53,4 +53,9 @@ fi
 # not a problem.
 modprobe ip6_tables || true
 
-exec node /usr/src/app/dist/app.js
+if [ "${LIVEPUSH}" -eq "1" ]; then
+	exec npx nodemon --watch src --watch typings --ignore tests \
+		 --exec node -r ts-node/register/transpile-only -r coffeescript/register src/app.ts
+else
+	exec node /usr/src/app/dist/app.js
+fi
