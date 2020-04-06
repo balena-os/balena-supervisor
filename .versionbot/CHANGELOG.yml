@@ -1,4 +1,43 @@
 - commits:
+    - subject: ⚡ Update synchronisation scripts for supervisor development
+      hash: 8ab63656bd483645fe0238fee2a1824158f3f453
+      body: |
+        We move the old sync.js script to tools/, and delete the now-broken
+        sync-debug.js.
+
+        We add a command `npm run sync`, which starts a livepush process
+        with the supervisor on a device.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: "\U0001F527 Move to an alpine base image and drop i386-nlp support"
+      hash: 3690acbd70df726030b648a1c32a9b2b21015232
+      body: >
+        We also remove the Makefile to go to a simpler build system, as long
+        with
+
+        the retry_docker_push.sh file. We remove the rest of the automation
+        tools
+
+        as they're no longer used and update the circle.yml file.
+
+
+        We also remove debug builds, as these aren't needed moving forward, and
+        were
+
+        only to enable livepush builds.
+      footer:
+        Change-type: major
+        change-type: major
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.0
+  date: 2020-04-06T12:07:51.757Z
+- commits:
     - subject: Convert test/18-startup.coffee to typescript
       hash: d3221ca235aa0bd22191516f3eeebcabdf32e94b
       body: ''
