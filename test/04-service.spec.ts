@@ -240,6 +240,35 @@ describe('compose/service', () => {
 			.that.deep.equals(['80/tcp', '100/tcp']);
 	});
 
+	it('should correctly handle spaces in volume definitions', () => {
+		const service = Service.fromComposeObject(
+			{
+				appId: 123,
+				serviceId: 123,
+				serviceName: 'test',
+				volumes: [
+					'vol1:vol2',
+					'vol3 :/usr/src/app',
+					'vol4: /usr/src/app',
+					'vol5 : vol6',
+				],
+			},
+			{ appName: 'test' } as any,
+		);
+
+		expect(service.config)
+			.to.have.property('volumes')
+			.that.deep.equals([
+				'123_vol1:vol2',
+				'123_vol3:/usr/src/app',
+				'123_vol4:/usr/src/app',
+				'123_vol5:vol6',
+
+				'/tmp/balena-supervisor/services/123/test:/tmp/resin',
+				'/tmp/balena-supervisor/services/123/test:/tmp/balena',
+			]);
+	});
+
 	describe('Ordered array parameters', () => {
 		it('Should correctly compare ordered array parameters', () => {
 			const svc1 = Service.fromComposeObject(
