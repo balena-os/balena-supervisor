@@ -17,6 +17,7 @@ import {
 	CompositionStepAction,
 } from './compose/composition-steps';
 import { loadTargetFromFile } from './device-state/preload';
+import * as globalEventBus from './event-bus';
 import * as hostConfig from './host-config';
 import constants = require('./lib/constants');
 import { InternalInconsistencyError, UpdatesLockedError } from './lib/errors';
@@ -447,6 +448,9 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		this.failedUpdates = 0;
 
 		validateState(target);
+
+		globalEventBus.getInstance().emit('targetStateChanged', target);
+
 		const apiEndpoint = await this.config.get('apiEndpoint');
 
 		await this.usingWriteLockTarget(async () => {
