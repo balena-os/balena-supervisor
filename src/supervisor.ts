@@ -3,7 +3,9 @@ import Config, { ConfigKey } from './config';
 import Database from './db';
 import DeviceState from './device-state';
 import EventTracker from './event-tracker';
+import { intialiseContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/migration';
+import * as osRelease from './lib/os-release';
 import Logger from './logger';
 import SupervisorAPI from './supervisor-api';
 
@@ -91,6 +93,12 @@ export class Supervisor {
 			enableLogs: conf.loggingEnabled,
 			config: this.config,
 			...conf,
+		});
+
+		intialiseContractRequirements({
+			supervisorVersion: version,
+			deviceType: await this.config.get('deviceType'),
+			l4tVersion: await osRelease.getL4tVersion(),
 		});
 
 		log.debug('Starting api binder');

@@ -6,8 +6,6 @@ import * as _ from 'lodash';
 import { Blueprint, Contract, ContractObject } from '@balena/contrato';
 
 import { ContractValidationError, InternalInconsistencyError } from './errors';
-import * as osRelease from './os-release';
-import supervisorVersion = require('./supervisor-version');
 import { checkTruthy } from './validation';
 
 export { ContractObject };
@@ -35,50 +33,43 @@ export interface ServiceContracts {
 	[serviceName: string]: { contract?: ContractObject; optional: boolean };
 }
 
-type PotentialContractRequirements = 'sw.supervisor' | 'sw.l4t';
-type ContractRequirementVersions = {
+type PotentialContractRequirements =
+	| 'sw.supervisor'
+	| 'sw.l4t'
+	| 'hw.device-type';
+type ContractRequirements = {
 	[key in PotentialContractRequirements]?: string;
 };
 
-let contractRequirementVersions = async () => {
-	const versions: ContractRequirementVersions = {
-		'sw.supervisor': supervisorVersion,
-	};
-	// We add a mock l4t version if one doesn't exist. This
-	// means that contracts used on mixed device fleets will
-	// still work when only a subset of the devices have an
-	// l4t string (for example a mixed fleet of rpi4 and tx2)
-	versions['sw.l4t'] = (await osRelease.getL4tVersion()) || '0';
+const contractRequirementVersions: ContractRequirements = {};
 
-	return versions;
-};
-
-// When running in tests, we need this function to be
-// repeatedly executed, but on-device, this should only be
-// executed once per run
-if (process.env.TEST !== '1') {
-	contractRequirementVersions = _.once(contractRequirementVersions);
+export function intialiseContractRequirements(opts: {
+	supervisorVersion: string;
+	deviceType: string;
+	l4tVersion?: string;
+}) {
+	contractRequirementVersions['sw.supervisor'] = opts.supervisorVersion;
+	contractRequirementVersions['sw.l4t'] = opts.l4tVersion;
+	contractRequirementVersions['hw.device-type'] = opts.deviceType;
 }
 
 function isValidRequirementType(
-	requirementVersions: ContractRequirementVersions,
+	requirementVersions: ContractRequirements,
 	requirement: string,
 ) {
 	return requirement in requirementVersions;
 }
 
-export async function containerContractsFulfilled(
+export function containerContractsFulfilled(
 	serviceContracts: ServiceContracts,
-): Promise<ApplicationContractResult> {
+): ApplicationContractResult {
 	const containers = _(serviceContracts)
 		.map('contract')
 		.compact()
 		.value();
 
-	const versions = await contractRequirementVersions();
-
 	const blueprintMembership: Dictionary<number> = {};
-	for (const component of _.keys(versions)) {
+	for (const component of _.keys(contractRequirementVersions)) {
 		blueprintMembership[component] = 1;
 	}
 	const blueprint = new Blueprint(
@@ -97,9 +88,10 @@ export async function containerContractsFulfilled(
 	});
 
 	universe.addChildren(
-		[...getContractsFromVersions(versions), ...containers].map(
-			c => new Contract(c),
-		),
+		[
+			...getContractsFromVersions(contractRequirementVersions),
+			...containers,
+		].map(c => new Contract(c)),
 	);
 
 	const solution = blueprint.reproduce(universe);
@@ -182,23 +174,33 @@ const contractObjectValidator = t.type({
 	]),
 });
 
-function getContractsFromVersions(versions: ContractRequirementVersions) {
-	return _.map(versions, (version, component) => ({
-		type: component,
-		slug: component,
-		name: component,
-		version,
-	}));
+function getContractsFromVersions(components: ContractRequirements) {
+	return _.map(components, (value, component) => {
+		if (component === 'hw.device-type') {
+			return {
+				type: component,
+				slug: component,
+				name: value,
+			};
+		} else {
+			return {
+				type: component,
+				slug: component,
+				name: component,
+				version: value,
+			};
+		}
+	});
 }
 
-export async function validateContract(contract: unknown): Promise<boolean> {
+export function validateContract(contract: unknown): boolean {
 	const result = contractObjectValidator.decode(contract);
 
 	if (isLeft(result)) {
 		throw new Error(reporter(result).join('\n'));
 	}
 
-	const requirementVersions = await contractRequirementVersions();
+	const requirementVersions = contractRequirementVersions;
 
 	for (const { type } of result.right.requires || []) {
 		if (!isValidRequirementType(requirementVersions, type)) {
@@ -208,9 +210,9 @@ export async function validateContract(contract: unknown): Promise<boolean> {
 
 	return true;
 }
-export async function validateTargetContracts(
+export function validateTargetContracts(
 	apps: Dictionary<AppWithContracts>,
-): Promise<Dictionary<ApplicationContractResult>> {
+): Dictionary<ApplicationContractResult> {
 	const appsFulfilled: Dictionary<ApplicationContractResult> = {};
 
 	for (const appId of _.keys(apps)) {
@@ -222,7 +224,7 @@ export async function validateTargetContracts(
 
 			if (svc.contract) {
 				try {
-					await validateContract(svc.contract);
+					validateContract(svc.contract);
 
 					serviceContracts[svc.serviceName] = {
 						contract: svc.contract,
@@ -240,9 +242,7 @@ export async function validateTargetContracts(
 			}
 
 			if (!_.isEmpty(serviceContracts)) {
-				appsFulfilled[appId] = await containerContractsFulfilled(
-					serviceContracts,
-				);
+				appsFulfilled[appId] = containerContractsFulfilled(serviceContracts);
 			} else {
 				appsFulfilled[appId] = {
 					valid: true,

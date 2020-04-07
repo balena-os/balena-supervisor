@@ -17,6 +17,7 @@ import DeviceState from '../src/device-state';
 import { loadTargetFromFile } from '../src/device-state/preload';
 
 import Service from '../src/compose/service';
+import { intialiseContractRequirements } from '../src/lib/contracts';
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',
@@ -225,6 +226,11 @@ describe('deviceState', () => {
 		stub(Service as any, 'extendEnvVars').callsFake(env => {
 			env['ADDITIONAL_ENV_VAR'] = 'foo';
 			return env;
+		});
+
+		intialiseContractRequirements({
+			supervisorVersion: '11.0.0',
+			deviceType: 'intel-nuc',
 		});
 
 		deviceState = new DeviceState({
