@@ -70,10 +70,9 @@ const argv = yargs
 			arch: argv['device-arch'],
 			nocache: argv['nocache'],
 		});
+		// Another newline to seperate build and livepush output
+		console.log(`Supervisor container: ${containerId}\n`);
 
-		console.log('==================================================');
-		console.log('Supervisor container id: ', containerId);
-		console.log('==================================================');
 		await setupLogs(docker, containerId);
 		await startLivepush({
 			dockerfile,
