@@ -1,4 +1,16 @@
 - commits:
+    - subject: Add newTargetState event and use it for backup loading
+      hash: 0a429f60a5dc93a428e5e88932e7d2bbcdb81b36
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.5
+  date: 2020-04-07T13:53:23.726Z
+- commits:
     - subject: Don't wrap UpdatesLockedErrors with a detailed error
       hash: dda627021991f45818ce723e0ee83c085b2c785d
       body: ''
