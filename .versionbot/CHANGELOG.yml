@@ -1,4 +1,18 @@
 - commits:
+    - subject: Allow spaces in volume definitions
+      hash: 0950b66c52f2af10fcd44cb60f1b18007dd8aef0
+      body: ''
+      footer:
+        Closes: '#1247'
+        closes: '#1247'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.3
+  date: 2020-04-07T09:38:43.764Z
+- commits:
     - subject: Update to balena-register-device 6.0.1
       hash: 81927d78612aa5944aab8a1322735e32c311d927
       body: ''
