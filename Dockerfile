@@ -1,5 +1,5 @@
 ARG ARCH=amd64
-ARG NODE_VERSION=10.19.0
+ARG NODE_VERSION=12.16.2
 
 FROM balenalib/$ARCH-alpine-supervisor-base:3.11 as BUILD
 
