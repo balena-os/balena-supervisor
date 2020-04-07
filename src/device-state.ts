@@ -774,17 +774,16 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 					retryCount,
 				});
 			} catch (e) {
-				const detailedError = new Error(
+				if (e instanceof UpdatesLockedError) {
+					// Forward the UpdatesLockedError directly
+					throw e;
+				}
+				throw new Error(
 					'Failed to apply state transition steps. ' +
 						e.message +
 						' Steps:' +
 						JSON.stringify(_.map(steps, 'action')),
 				);
-				return this.applyError(detailedError, {
-					force,
-					initial,
-					intermediate,
-				});
 			}
 		}).catch(err => {
 			return this.applyError(err, { force, initial, intermediate });
