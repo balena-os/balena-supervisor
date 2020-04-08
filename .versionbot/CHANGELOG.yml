@@ -1,4 +1,16 @@
 - commits:
+    - subject: Don't sync test files with livepush
+      hash: 6dda0efa1fc54765450aac235393883f293b9bc5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.6
+  date: 2020-04-08T07:44:13.444Z
+- commits:
     - subject: Add newTargetState event and use it for backup loading
       hash: 0a429f60a5dc93a428e5e88932e7d2bbcdb81b36
       body: ''
