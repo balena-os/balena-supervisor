@@ -29,19 +29,20 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 		},
 	} as any;
 
-	obj.deviceState = new DeviceState({
-		db: obj.db,
-		config: obj.config,
-		eventTracker: obj.eventTracker,
-		logger: obj.logger,
-	});
-
 	obj.apiBinder = new ApiBinder({
 		db: obj.db,
 		config: obj.config,
 		logger: obj.logger,
 		eventTracker: obj.eventTracker,
 		deviceState: obj.deviceState,
+	});
+
+	obj.deviceState = new DeviceState({
+		db: obj.db,
+		config: obj.config,
+		eventTracker: obj.eventTracker,
+		logger: obj.logger,
+		apiBinder: obj.apiBinder,
 	});
 	await obj.db.init();
 	await obj.config.init();

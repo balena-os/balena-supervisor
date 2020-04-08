@@ -40,12 +40,6 @@ export class Supervisor {
 		this.config = new Config({ db: this.db });
 		this.eventTracker = new EventTracker();
 		this.logger = new Logger({ db: this.db, eventTracker: this.eventTracker });
-		this.deviceState = new DeviceState({
-			config: this.config,
-			db: this.db,
-			eventTracker: this.eventTracker,
-			logger: this.logger,
-		});
 		this.apiBinder = new APIBinder({
 			config: this.config,
 			db: this.db,
@@ -53,12 +47,17 @@ export class Supervisor {
 			eventTracker: this.eventTracker,
 			logger: this.logger,
 		});
+		this.deviceState = new DeviceState({
+			config: this.config,
+			db: this.db,
+			eventTracker: this.eventTracker,
+			logger: this.logger,
+			apiBinder: this.apiBinder,
+		});
 
 		// FIXME: rearchitect proxyvisor to avoid this circular dependency
 		// by storing current state and having the APIBinder query and report it / provision devices
 		this.deviceState.applications.proxyvisor.bindToAPI(this.apiBinder);
-		// We could also do without the below dependency, but it's part of a much larger refactor
-		this.deviceState.applications.apiBinder = this.apiBinder;
 
 		this.api = new SupervisorAPI({
 			config: this.config,

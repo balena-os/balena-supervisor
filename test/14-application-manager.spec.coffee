@@ -224,7 +224,7 @@ describe 'ApplicationManager', ->
 				expect(steps).to.eventually.deep.equal([{
 					action: 'kill'
 					current: current.local.apps['1234'].services[1]
-					target: null
+					target: undefined
 					serviceId: 24
 					appId: 1234
 					options: {}
@@ -358,7 +358,7 @@ describe 'ApplicationManager', ->
 					{
 						action: 'kill'
 						current: current.local.apps['1234'].services[0]
-						target: null
+						target: undefined
 						serviceId: 23
 						appId: 1234
 						options: {}

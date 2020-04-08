@@ -232,6 +232,7 @@ describe('deviceState', () => {
 			config,
 			eventTracker: eventTracker as any,
 			logger: logger as any,
+			apiBinder: null as any,
 		});
 
 		stub(deviceState.applications.docker, 'getNetworkGateway').returns(
