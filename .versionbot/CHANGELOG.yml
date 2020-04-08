@@ -1,4 +1,14 @@
 - commits:
+    - subject: Convert application-manager.coffee to javascript
+      hash: a2ec35456b8bc23641144fb0f7136d1d364f1fce
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.7
+  date: 2020-04-08T11:18:00.532Z
+- commits:
     - subject: Don't sync test files with livepush
       hash: 6dda0efa1fc54765450aac235393883f293b9bc5
       body: ''
