@@ -1,4 +1,16 @@
 - commits:
+    - subject: Link sqlite with a system sqlite for quicker builds
+      hash: b6dde69c4f8b52fa4928242d5b04d9c203f64c65
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.8
+  date: 2020-04-08T13:06:43.833Z
+- commits:
     - subject: Convert application-manager.coffee to javascript
       hash: a2ec35456b8bc23641144fb0f7136d1d364f1fce
       body: ''
