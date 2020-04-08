@@ -37,7 +37,7 @@ export async function startLivepush(opts: {
 
 	chokidar
 		.watch('.', {
-			ignored: /((^|[\/\\])\..|node_modules.*|sync\/.*)/,
+			ignored: /((^|[\/\\])\..|(node_modules|sync|test)\/.*)/,
 			ignoreInitial: opts.noinit,
 		})
 		.on('add', path => livepushExecutor(path))
