@@ -43,7 +43,6 @@ export class Supervisor {
 		this.apiBinder = new APIBinder({
 			config: this.config,
 			db: this.db,
-			deviceState: this.deviceState,
 			eventTracker: this.eventTracker,
 			logger: this.logger,
 		});
@@ -54,6 +53,8 @@ export class Supervisor {
 			logger: this.logger,
 			apiBinder: this.apiBinder,
 		});
+		// workaround the circular dependency
+		this.apiBinder.setDeviceState(this.deviceState);
 
 		// FIXME: rearchitect proxyvisor to avoid this circular dependency
 		// by storing current state and having the APIBinder query and report it / provision devices

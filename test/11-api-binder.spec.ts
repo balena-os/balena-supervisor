@@ -34,7 +34,6 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 		config: obj.config,
 		logger: obj.logger,
 		eventTracker: obj.eventTracker,
-		deviceState: obj.deviceState,
 	});
 
 	obj.deviceState = new DeviceState({
@@ -44,6 +43,9 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 		logger: obj.logger,
 		apiBinder: obj.apiBinder,
 	});
+
+	obj.apiBinder.setDeviceState(obj.deviceState);
+
 	await obj.db.init();
 	await obj.config.init();
 	await obj.apiBinder.initClient(); // Initializes the clients but doesn't trigger provisioning
