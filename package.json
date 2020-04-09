@@ -30,6 +30,7 @@
   },
   "private": true,
   "dependencies": {
+    "dbus": "^1.0.7",
     "sqlite3": "^4.1.1"
   },
   "engines": {
@@ -42,6 +43,7 @@
     "@types/chai": "^4.2.11",
     "@types/chai-as-promised": "^7.1.2",
     "@types/common-tags": "^1.8.0",
+    "@types/dbus": "^1.0.0",
     "@types/dockerode": "^2.5.25",
     "@types/event-stream": "^3.3.34",
     "@types/express": "^4.17.3",

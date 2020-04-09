@@ -32,7 +32,8 @@ RUN apk add --no-cache \
 	libstdc++ \
 	libuv \
 	sqlite-libs \
-	sqlite-dev
+	sqlite-dev \
+	dbus-dev
 
 COPY build-conf/node-sums.txt .
 

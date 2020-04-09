@@ -19,6 +19,7 @@ var externalModules = [
 	'oracledb',
 	'pg-query-stream',
 	'tedious',
+	'dbus',
 	/mssql\/.*/,
 ];
 
@@ -35,19 +36,19 @@ lookForOptionalDeps = function(sourceDir) {
 		}
 		try {
 			packageJson = JSON.parse(
-				fs.readFileSync(path.join(sourceDir, dir, '/package.json'))
+				fs.readFileSync(path.join(sourceDir, dir, '/package.json')),
 			);
 		} catch (e) {
 			continue;
 		}
 		if (packageJson.optionalDependencies != null) {
 			maybeOptionalModules = maybeOptionalModules.concat(
-				_.keys(packageJson.optionalDependencies)
+				_.keys(packageJson.optionalDependencies),
 			);
 		}
 		if (packageJson.dependencies != null) {
 			requiredModules = requiredModules.concat(
-				_.keys(packageJson.dependencies)
+				_.keys(packageJson.dependencies),
 			);
 		}
 	}
@@ -60,8 +61,8 @@ externalModules.push(
 			_.reject(maybeOptionalModules, requiredModules)
 				.map(_.escapeRegExp)
 				.join('|') +
-			')(/.*)?$'
-	)
+			')(/.*)?$',
+	),
 );
 
 console.log('Using the following dependencies as external:', externalModules);
@@ -88,23 +89,23 @@ module.exports = function(env) {
 				new TerserWebpackPlugin({
 					terserOptions: {
 						mangle: false,
-						keep_classnames: true
-					}
-				})
-			]
+						keep_classnames: true,
+					},
+				}),
+			],
 		},
 		module: {
 			rules: [
 				{
 					test: new RegExp(
 						_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'index.js')) +
-							'$'
+							'$',
 					),
 					use: require.resolve('./hardcode-migrations'),
 				},
 				{
 					test: new RegExp(
-						_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$'
+						_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$',
 					),
 					use: require.resolve('./fix-jsonstream'),
 				},
@@ -152,7 +153,7 @@ module.exports = function(env) {
 			]),
 			new webpack.ContextReplacementPlugin(
 				/\.\/migrations/,
-				path.resolve(__dirname, 'build/migrations')
+				path.resolve(__dirname, 'build/migrations'),
 			),
 		],
 	};
