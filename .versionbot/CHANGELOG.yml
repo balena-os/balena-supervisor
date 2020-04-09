@@ -1,4 +1,14 @@
 - commits:
+    - subject: Workaround a circular dependency
+      hash: a59af6abe894000cd9cdc43d6963bdfc572e2f2b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.9
+  date: 2020-04-08T16:43:14.411Z
+- commits:
     - subject: Link sqlite with a system sqlite for quicker builds
       hash: b6dde69c4f8b52fa4928242d5b04d9c203f64c65
       body: ''
