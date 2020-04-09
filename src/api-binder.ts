@@ -44,7 +44,6 @@ export interface APIBinderConstructOpts {
 	config: Config;
 	// FIXME: Remove this
 	db: Database;
-	deviceState: DeviceState;
 	eventTracker: EventTracker;
 	logger: Logger;
 }
@@ -94,18 +93,16 @@ export class APIBinder {
 	private targetStateFetchErrors = 0;
 	private readyForUpdates = false;
 
-	public constructor({
-		config,
-		deviceState,
-		eventTracker,
-		logger,
-	}: APIBinderConstructOpts) {
+	public constructor({ config, eventTracker, logger }: APIBinderConstructOpts) {
 		this.config = config;
-		this.deviceState = deviceState;
 		this.eventTracker = eventTracker;
 		this.logger = logger;
 
 		this.router = this.createAPIBinderRouter(this);
+	}
+
+	public setDeviceState(deviceState: DeviceState) {
+		this.deviceState = deviceState;
 	}
 
 	public async healthcheck() {
