@@ -94,7 +94,7 @@
     "json-mask": "^0.3.9",
     "knex": "^0.15.2",
     "lint-staged": "^10.0.8",
-    "livepush": "^3.2.2",
+    "livepush": "^3.3.0",
     "lockfile": "^1.0.4",
     "lodash": "^4.17.15",
     "log-timestamp": "^0.1.2",

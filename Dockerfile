@@ -48,11 +48,10 @@ COPY package*.json ./
 
 RUN npm ci --build-from-source --sqlite=/usr/lib
 
-# TODO: Once we support live copies and live runs, convert
-# these
-# issue: https://github.com/balena-io-modules/livepush/issues/73
-RUN apk add --no-cache ip6tables iptables
-COPY entry.sh .
+# We only run these commands when executing through
+# livepush, so they are presented as livepush directives
+#dev-run=apk add --no-cache ip6tables iptables
+#dev-copy=entry.sh .
 #dev-cmd-live=LIVEPUSH=1 ./entry.sh
 
 COPY webpack.config.js fix-jsonstream.js hardcode-migrations.js tsconfig.json tsconfig.release.json ./
