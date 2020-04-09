@@ -5,7 +5,7 @@
 	"*.ts": [
 		"balena-lint --typescript --fix",
 	],
-	"*!(*webpack.config).js": [
+	"*.js": [
 		"balena-lint --typescript --fix",
 	],
 	"test/**/*.coffee": [
