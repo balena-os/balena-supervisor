@@ -1165,9 +1165,9 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	setTarget(apps, dependent, source, maybeTrx) {
-		const setInTransaction = (filteredApps, trx) => {
+		const setInTransaction = (filtered, trx) => {
 			return Promise.try(() => {
-				const appsArray = _.map(filteredApps, function(app, appId) {
+				const appsArray = _.map(filtered, function(app, appId) {
 					const appClone = _.clone(app);
 					appClone.appId = checkInt(appId);
 					appClone.source = source;
@@ -1208,38 +1208,38 @@ export class ApplicationManager extends EventEmitter {
 		// filter those out and add the target state to the database
 		/** @type { { [appName: string]: string[]; } } */
 		const contractViolators = {};
-		return Promise.resolve(validateTargetContracts(apps))
-			.then(fulfilledContracts => {
-				const filteredApps = _.cloneDeep(apps);
-				_.each(
-					fulfilledContracts,
-					(
-						{ valid, unmetServices, fulfilledServices, unmetAndOptional },
-						appId,
-					) => {
-						if (!valid) {
-							contractViolators[apps[appId].name] = unmetServices;
-							return delete filteredApps[appId];
-						} else {
-							// valid is true, but we could still be missing
-							// some optional containers, and need to filter
-							// these out of the target state
-							filteredApps[appId].services = _.pickBy(
-								filteredApps[appId].services,
-								({ serviceName }) => fulfilledServices.includes(serviceName),
-							);
-							if (unmetAndOptional.length !== 0) {
-								return this.reportOptionalContainers(unmetAndOptional);
-							}
-						}
-					},
-				);
-				if (maybeTrx != null) {
-					return setInTransaction(filteredApps, maybeTrx);
+		const fulfilledContracts = validateTargetContracts(apps);
+		const filteredApps = _.cloneDeep(apps);
+		_.each(
+			fulfilledContracts,
+			(
+				{ valid, unmetServices, fulfilledServices, unmetAndOptional },
+				appId,
+			) => {
+				if (!valid) {
+					contractViolators[apps[appId].name] = unmetServices;
+					return delete filteredApps[appId];
 				} else {
-					return this.db.transaction(setInTransaction);
+					// valid is true, but we could still be missing
+					// some optional containers, and need to filter
+					// these out of the target state
+					filteredApps[appId].services = _.pickBy(
+						filteredApps[appId].services,
+						({ serviceName }) => fulfilledServices.includes(serviceName),
+					);
+					if (unmetAndOptional.length !== 0) {
+						return this.reportOptionalContainers(unmetAndOptional);
+					}
 				}
-			})
+			},
+		);
+		let promise;
+		if (maybeTrx != null) {
+			promise = setInTransaction(filteredApps, maybeTrx);
+		} else {
+			promise = this.db.transaction(setInTransaction);
+		}
+		return promise
 			.then(() => {
 				this._targetVolatilePerImageId = {};
 			})
