@@ -1,4 +1,28 @@
 - commits:
+    - subject: Update copy-webpack-plugin
+      hash: e5f1a6b6ed7473ebfaa9f67ec0d258e9edef38b7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update ts-loader to 6.x
+      hash: 59f300df629422284665b19b5cf9d931bfc30fcf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update fork-ts-checker-webpack-plugin to 4.x
+      hash: 9ed36ec00651199dc92afee1a41e6ef5bb8534c7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.1.1
+  date: 2020-04-10T11:51:52.777Z
+- commits:
     - subject: Support matching on device type within contracts
       hash: c9c0e650cb0f6655ac5a6c545e6b009c6fe6fa1c
       body: ''
