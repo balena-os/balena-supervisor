@@ -34,7 +34,7 @@ function lockFilesOnHost(appId: number, serviceName: string): string[] {
 }
 
 const locksTaken: { [lockName: string]: boolean } = {};
-const existingLocks: { [lockName: string]: boolean } = {};
+const existingLocks: { [lockName: string]: number } = {};
 
 // Try to clean up any existing locks when the program exits
 process.on('exit', () => {
@@ -71,7 +71,11 @@ function dispose(release: () => void): Bluebird<void> {
 
 export function lock(
 	appId: number | null,
-	{ force = false, keepLocks = false }: { force: boolean; keepLocks: boolean },
+	{
+		force = false,
+		keepLocks = false,
+		lockKeepTimeout = 60000,
+	}: { force: boolean; keepLocks: boolean; lockKeepTimeout: number },
 	fn: () => PromiseLike<void>,
 ): Bluebird<void> {
 	const takeTheLock = () => {
@@ -93,10 +97,28 @@ export function lock(
 							tmpLockName => {
 								return Bluebird.try(() => {
 									if (force) {
+										// Save locks that existed before force unlocking them if keepLocks is set
 										if (lockFile.checkSync(tmpLockName) && keepLocks) {
-											existingLocks[tmpLockName] = true;
+											existingLocks[tmpLockName] = Date.now();
 										}
 										return lockFile.unlockAsync(tmpLockName);
+									} else {
+										// Enforce virtual locks, when keepLocks was set previously
+										// This prevents targetState updates for lockKeepTimeout after the
+										// function using keepLocks was active.
+										// A concrete example would be the purge, which could lead to also
+										// apply a appUpdate after the purge completed leading to non-
+										// deterministic behavior.
+										if (
+											existingLocks[tmpLockName] + lockKeepTimeout <
+											Date.now()
+										) {
+											delete existingLocks[tmpLockName];
+										} else {
+											throw new Error(
+												'Lock was set previously and is enforced by reaquire timeout',
+											);
+										}
 									}
 								})
 									.then(() => lockFile.lockAsync(tmpLockName))
