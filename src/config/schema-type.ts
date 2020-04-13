@@ -90,6 +90,10 @@ export const schemaTypes = {
 		type: PermissiveBoolean,
 		default: false,
 	},
+	lockKeepTimeout: {
+		type: PermissiveNumber,
+		default: 60000,
+	},
 
 	// Database types
 	apiSecret: {

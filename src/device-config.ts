@@ -131,6 +131,11 @@ export class DeviceConfig {
 			defaultValue: 'false',
 			rebootRequired: true,
 		},
+		lockKeepTimeout: {
+			envVarName: 'SUPERVISOR_KEEP_LOCK_TIMEOUT',
+			varType: 'int',
+			defaultValue: '60000',
+		},
 	};
 
 	public static validKeys = [
