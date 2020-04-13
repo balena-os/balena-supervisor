@@ -5,10 +5,8 @@ import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import * as _ from 'lodash';
 import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
-import * as deviceRegister from 'resin-register-device';
 import * as url from 'url';
-
-import * as globalEventBus from './event-bus';
+import * as deviceRegister from './lib/register-device';
 
 import Config, { ConfigType } from './config';
 import Database from './db';
@@ -30,6 +28,7 @@ import { DeviceStatus, TargetState } from './types/state';
 import log from './lib/supervisor-console';
 
 import DeviceState from './device-state';
+import * as globalEventBus from './event-bus';
 import Logger from './logger';
 
 // The exponential backoff starts at 15s
@@ -45,7 +44,6 @@ export interface APIBinderConstructOpts {
 	config: Config;
 	// FIXME: Remove this
 	db: Database;
-	deviceState: DeviceState;
 	eventTracker: EventTracker;
 	logger: Logger;
 }
@@ -95,18 +93,16 @@ export class APIBinder {
 	private targetStateFetchErrors = 0;
 	private readyForUpdates = false;
 
-	public constructor({
-		config,
-		deviceState,
-		eventTracker,
-		logger,
-	}: APIBinderConstructOpts) {
+	public constructor({ config, eventTracker, logger }: APIBinderConstructOpts) {
 		this.config = config;
-		this.deviceState = deviceState;
 		this.eventTracker = eventTracker;
 		this.logger = logger;
 
 		this.router = this.createAPIBinderRouter(this);
+	}
+
+	public setDeviceState(deviceState: DeviceState) {
+		this.deviceState = deviceState;
 	}
 
 	public async healthcheck() {
@@ -207,11 +203,16 @@ export class APIBinder {
 		log.debug('Starting current state report');
 		await this.startCurrentStateReport();
 
-		await loadBackupFromMigration(
-			this.deviceState,
-			await this.getTargetState(),
-			bootstrapRetryDelay,
-		);
+		// When we've provisioned, try to load the backup. We
+		// must wait for the provisioning because we need a
+		// target state on which to apply the backup
+		globalEventBus.getInstance().once('targetStateChanged', async state => {
+			await loadBackupFromMigration(
+				this.deviceState,
+				state,
+				bootstrapRetryDelay,
+			);
+		});
 
 		this.readyForUpdates = true;
 		log.debug('Starting target state poll');
@@ -383,8 +384,14 @@ export class APIBinder {
 				'Attempt to communicate with API, without initialized client',
 			);
 		}
+
+		const deviceId = await this.config.get('deviceId');
+		if (deviceId == null) {
+			throw new Error('Attempt to retrieve device tags before provision');
+		}
 		const tags = (await this.balenaApi.get({
 			resource: 'device_tag',
+			id: deviceId,
 			options: {
 				$select: ['id', 'tag_key', 'value'],
 			},

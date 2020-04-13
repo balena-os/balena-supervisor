@@ -3,7 +3,9 @@ import Config, { ConfigKey } from './config';
 import Database from './db';
 import DeviceState from './device-state';
 import EventTracker from './event-tracker';
+import { intialiseContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/migration';
+import * as osRelease from './lib/os-release';
 import Logger from './logger';
 import SupervisorAPI from './supervisor-api';
 
@@ -40,25 +42,25 @@ export class Supervisor {
 		this.config = new Config({ db: this.db });
 		this.eventTracker = new EventTracker();
 		this.logger = new Logger({ db: this.db, eventTracker: this.eventTracker });
+		this.apiBinder = new APIBinder({
+			config: this.config,
+			db: this.db,
+			eventTracker: this.eventTracker,
+			logger: this.logger,
+		});
 		this.deviceState = new DeviceState({
 			config: this.config,
 			db: this.db,
 			eventTracker: this.eventTracker,
 			logger: this.logger,
+			apiBinder: this.apiBinder,
 		});
-		this.apiBinder = new APIBinder({
-			config: this.config,
-			db: this.db,
-			deviceState: this.deviceState,
-			eventTracker: this.eventTracker,
-			logger: this.logger,
-		});
+		// workaround the circular dependency
+		this.apiBinder.setDeviceState(this.deviceState);
 
 		// FIXME: rearchitect proxyvisor to avoid this circular dependency
 		// by storing current state and having the APIBinder query and report it / provision devices
 		this.deviceState.applications.proxyvisor.bindToAPI(this.apiBinder);
-		// We could also do without the below dependency, but it's part of a much larger refactor
-		this.deviceState.applications.apiBinder = this.apiBinder;
 
 		this.api = new SupervisorAPI({
 			config: this.config,
@@ -91,6 +93,12 @@ export class Supervisor {
 			enableLogs: conf.loggingEnabled,
 			config: this.config,
 			...conf,
+		});
+
+		intialiseContractRequirements({
+			supervisorVersion: version,
+			deviceType: await this.config.get('deviceType'),
+			l4tVersion: await osRelease.getL4tVersion(),
 		});
 
 		log.debug('Starting api binder');

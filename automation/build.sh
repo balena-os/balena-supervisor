@@ -4,12 +4,11 @@
 #
 # Required variables:
 # * ARCH
-# * TAG
 #
 # Optional variables:
+# * TAG: The default will be the current branch name
 # * PUSH_IMAGES
 # * CLEANUP
-# * ENABLE_TESTS
 # * MIXPANEL_TOKEN: default key to inject in the supervisor image
 # * EXTRA_TAG: when PUSH_IMAGES is true, additional tag to push to the registries
 #
@@ -25,99 +24,104 @@
 # to the docker registry.
 # If CLEANUP is "true", all images will be removed after pushing - including any relevant images
 # that may have been on the host from before the build, so be careful!
-# If ENABLE_TESTS is "true", tests will be run.
 #
-# Requires docker >= 17.05, and make.
+# Requires docker >= 17.05
 #
 
 set -e
 
 THIS_FILE=$0
-if [ -z "$ARCH" ] || [ -z "$TAG" ]; then
-	cat $THIS_FILE | awk '{if(/^#/)print;else exit}' | tail -n +2 | sed 's/\#//'
+if [ -z "$ARCH" ] ; then
+	awk '{if(/^#/)print;else exit}' "${THIS_FILE}" | tail -n +2 | sed 's/\#//'
 	exit 1
 fi
 
+if [ -z "$TAG" ]; then
+	TAG=$(git rev-parse --abbrev-ref HEAD)
+fi
+
+if ! [ -x "$(command -v npx)" ]; then
+  echo 'NPM/npx is required to execute this script' >&2
+  exit 1
+fi
+
 # This is the supervisor image we will produce
-TARGET_IMAGE=balena/$ARCH-supervisor:$TAG$DEBUG
+TARGET_IMAGE=balena/$ARCH-supervisor:$TAG
+TARGET_BUILD_IMAGE=balena/$ARCH-supervisor:$TAG-build
 
-# Intermediate images and cache
-NODE_IMAGE=balena/$ARCH-supervisor-node:$TAG$DEBUG
-NODE_BUILD_IMAGE=balena/$ARCH-supervisor-node:$TAG-build$DEBUG
-
-TARGET_CACHE_MASTER=balena/$ARCH-supervisor:master$DEBUG
-NODE_CACHE_MASTER=balena/$ARCH-supervisor-node:master$DEBUG
-NODE_BUILD_CACHE_MASTER=balena/$ARCH-supervisor-node:master-build$DEBUG
+MASTER_IMAGE=balena/$ARCH-supervisor:master
+MASTER_BUILD_IMAGE=balena/$ARCH-supervisor:master-build
 
 CACHE_FROM=""
 function useCache() {
 	image=$1
 	# Always add the cache because we can't do it from
 	# a subshell and specifying a missing image is fine
-	CACHE_FROM="$CACHE_FROM --cache-from $image"
+	CACHE_FROM="${CACHE_FROM} --cache-from $image"
 	# Pull in parallel for speed
-	docker pull $image &
+	docker pull "$image" &
 }
 
-useCache $TARGET_IMAGE
-useCache $TARGET_CACHE_MASTER
-useCache $NODE_IMAGE
-useCache $NODE_CACHE_MASTER
-# Debug images don't include nodebuild or use the supervisor-base image
-if [ -z "$DEBUG" ]; then
-	useCache $NODE_BUILD_IMAGE
-	useCache $NODE_BUILD_CACHE_MASTER
+function retryImagePush() {
+	local image=$1
+	local -i retries
+	local success=1
 
-	docker pull balenalib/amd64-node:6-build &
-	docker pull balena/$ARCH-supervisor-base:v1.4.7 &
-fi
-# Pull images we depend on in parallel to avoid needing
-# to do it in serial during the build
-docker pull balenalib/raspberry-pi-node:10-run &
-docker pull balenalib/armv7hf-node:10-run &
-docker pull balenalib/aarch64-node:10-run &
-docker pull balenalib/amd64-node:10-run &
-docker pull balenalib/i386-node:10-run &
-docker pull balenalib/i386-nlp-node:6-jessie &
+	while (( retries < 3 )); do
+		retries+=1
+		if docker push "${image}"; then
+			success=0
+			break
+		fi
+	done
+
+	return $success
+}
+
+# If we're building for an ARM architecture, we uncomment
+# the cross-build commands, to enable emulation
+function processDockerfile() {
+	if [ "${ARCH}" == "aarch64" ] || [ "${ARCH}" == "armv7hf" ] || [ "${ARCH}" == "rpi" ]; then
+		sed -E 's/#(.*"cross-build-(start|end)".*)/\1/g' Dockerfile
+	else
+		cat Dockerfile
+	fi
+}
+
+export ARCH
+
+useCache "${TARGET_IMAGE}"
+useCache "${TARGET_BUILD_IMAGE}"
+useCache "${MASTER_IMAGE}"
+useCache "${MASTER_BUILD_IMAGE}"
+
+# Wait for our cache to be downloaded
 wait
 
-export DOCKER_BUILD_OPTIONS=${CACHE_FROM}
-export ARCH
-export MIXPANEL_TOKEN
+BUILD_ARGS="$CACHE_FROM --build-arg ARCH=${ARCH}"
+# Try to build the first stage
+processDockerfile | docker build -f - -t "${TARGET_BUILD_IMAGE}" --target BUILD ${BUILD_ARGS} .
 
-# Debug images don't include nodebuild
-if [ -z "$DEBUG" ]; then
-	make IMAGE=$NODE_BUILD_IMAGE nodebuild
-	if [ "$PUSH_IMAGES" = "true" ]; then
-		make IMAGE=$NODE_BUILD_IMAGE deploy &
-	fi
-	export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${NODE_BUILD_IMAGE}"
-fi
+# Now try to build the final stage
+processDockerfile | docker build -f - -t "${TARGET_IMAGE}" ${BUILD_ARGS} .
 
-make IMAGE=$NODE_IMAGE nodedeps
-if [ "$PUSH_IMAGES" = "true" ]; then
-	make IMAGE=$NODE_IMAGE deploy &
-fi
-export DOCKER_BUILD_OPTIONS="${DOCKER_BUILD_OPTIONS} --cache-from ${NODE_IMAGE}"
+if [ "${PUSH_IMAGES}" == "true" ]; then
+	retryImagePush "${TARGET_BUILD_IMAGE}" &
+	retryImagePush "${TARGET_IMAGE}" &
 
-# This is the step that actually builds the supervisor
-make IMAGE=$TARGET_IMAGE supervisor
-
-if [ "$PUSH_IMAGES" = "true" ]; then
-	make IMAGE=$TARGET_IMAGE deploy &
-
-	if [ -n "$EXTRA_TAG" ]; then
-		docker tag $TARGET_IMAGE balena/$ARCH-supervisor:$EXTRA_TAG
-		make IMAGE=balena/$ARCH-supervisor:$EXTRA_TAG deploy &
+	if [ -n "${EXTRA_TAG}" ]; then
+		docker tag "${TARGET_IMAGE}" "balena/${ARCH}-supervisor:${EXTRA_TAG}"
+		retryImagePush "balena/${ARCH}-supervisor:${EXTRA_TAG}" &
 	fi
 fi
 
 # Wait for any ongoing deploys
 wait
+
 if [ "$CLEANUP" = "true" ]; then
 	docker rmi \
-		$TARGET_IMAGE \
-		$NODE_IMAGE \
-		$NODE_BUILD_IMAGE \
-		$TARGET_CACHE
+		"${TARGET_IMAGE}" \
+		"${TARGET_BUILD_IMAGE}" \
+		"${MASTER_IMAGE}" \
+		"${MASTER_BUILD_IMAGE}"
 fi

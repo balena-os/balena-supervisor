@@ -48,7 +48,7 @@ export class TargetStateAccessor {
 		return _.find(this.targetState, app => app.appId === appId);
 	}
 
-	public async getTargetApps(): Promise<DatabaseApp> {
+	public async getTargetApps(): Promise<DatabaseApps> {
 		if (this.targetState == null) {
 			const { apiEndpoint, localMode } = await this.config.getMany([
 				'apiEndpoint',

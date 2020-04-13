@@ -1012,9 +1012,9 @@ export class Service {
 				const [bindSource, bindDest, mode] = volume.split(':');
 				if (!path.isAbsolute(bindSource)) {
 					// namespace our volumes by appId
-					let volumeDef = `${appId}_${bindSource}:${bindDest}`;
+					let volumeDef = `${appId}_${bindSource.trim()}:${bindDest.trim()}`;
 					if (mode != null) {
-						volumeDef = `${volumeDef}:${mode}`;
+						volumeDef = `${volumeDef}:${mode.trim()}`;
 					}
 					volumes.push(volumeDef);
 				} else {

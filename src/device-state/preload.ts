@@ -65,7 +65,7 @@ export async function loadTargetFromFile(
 					releaseId: app.releaseId,
 					appId,
 				};
-				images.push(await deviceState.applications.imageForService(svc));
+				images.push(deviceState.applications.imageForService(svc));
 			}
 		}
 

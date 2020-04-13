@@ -7,53 +7,48 @@ import * as semver from 'semver';
 import * as constants from '../src/lib/constants';
 import {
 	containerContractsFulfilled,
+	intialiseContractRequirements,
 	validateContract,
 } from '../src/lib/contracts';
 import * as osRelease from '../src/lib/os-release';
 import supervisorVersion = require('../src/lib/supervisor-version');
 
 describe('Container contracts', () => {
-	let execStub: SinonStub;
 	before(() => {
-		execStub = stub(child_process, 'exec').returns(
-			Promise.resolve([
-				Buffer.from('4.9.140-l4t-r32.2+g3dcbed5'),
-				Buffer.from(''),
-			]),
-		);
-	});
-
-	after(() => {
-		execStub.restore();
+		intialiseContractRequirements({
+			supervisorVersion: '11.0.0',
+			deviceType: 'intel-nuc',
+			l4tVersion: '32.2',
+		});
 	});
 
 	describe('Contract validation', () => {
 		it('should correctly validate a contract with no requirements', () =>
-			expect(
+			expect(() =>
 				validateContract({
 					slug: 'user-container',
 				}),
-			).to.be.fulfilled);
+			).to.be.not.throw());
 
 		it('should correctly validate a contract with extra fields', () =>
-			expect(
+			expect(() =>
 				validateContract({
 					slug: 'user-container',
 					name: 'user-container',
 					version: '3.0.0',
 				}),
-			).to.be.fulfilled);
+			).to.be.not.throw());
 
 		it('should not validate a contract without the minimum required fields', () => {
 			return Promise.all([
-				expect(validateContract({})).to.be.rejected,
-				expect(validateContract({ name: 'test' })).to.be.rejected,
-				expect(validateContract({ requires: [] })).to.be.rejected,
+				expect(() => validateContract({})).to.throw(),
+				expect(() => validateContract({ name: 'test' })).to.throw(),
+				expect(() => validateContract({ requires: [] })).to.throw(),
 			]);
 		});
 
 		it('should correctly validate a contract with requirements', () =>
-			expect(
+			expect(() =>
 				validateContract({
 					slug: 'user-container',
 					requires: [
@@ -66,10 +61,10 @@ describe('Container contracts', () => {
 						},
 					],
 				}),
-			).to.be.fulfilled);
+			).to.not.throw());
 
 		it('should not validate a contract with requirements without the minimum required fields', () => {
-			return expect(
+			return expect(() =>
 				validateContract({
 					slug: 'user-container',
 					requires: [
@@ -78,7 +73,7 @@ describe('Container contracts', () => {
 						},
 					],
 				}),
-			).to.be.rejected;
+			).to.throw();
 		});
 	});
 
@@ -105,7 +100,7 @@ describe('Container contracts', () => {
 
 		it('Should correctly run containers with no requirements', async () => {
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -118,7 +113,7 @@ describe('Container contracts', () => {
 				.to.have.property('valid')
 				.that.equals(true);
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -141,7 +136,7 @@ describe('Container contracts', () => {
 
 		it('should correctly run containers whose requirements are satisfied', async () => {
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -162,7 +157,7 @@ describe('Container contracts', () => {
 				.that.equals(true);
 
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -183,7 +178,7 @@ describe('Container contracts', () => {
 				.that.equals(true);
 
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -204,7 +199,7 @@ describe('Container contracts', () => {
 				.that.equals(true);
 
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -228,7 +223,7 @@ describe('Container contracts', () => {
 				.to.have.property('valid')
 				.that.equals(true);
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -264,7 +259,7 @@ describe('Container contracts', () => {
 		});
 
 		it('Should refuse to run containers whose requirements are not satisfied', async () => {
-			let fulfilled = await containerContractsFulfilled({
+			let fulfilled = containerContractsFulfilled({
 				service: {
 					contract: {
 						type: 'sw.container',
@@ -287,7 +282,7 @@ describe('Container contracts', () => {
 				.to.have.property('unmetServices')
 				.that.deep.equals(['service']);
 
-			fulfilled = await containerContractsFulfilled({
+			fulfilled = containerContractsFulfilled({
 				service2: {
 					contract: {
 						type: 'sw.container',
@@ -310,7 +305,7 @@ describe('Container contracts', () => {
 				.to.have.property('unmetServices')
 				.that.deep.equals(['service2']);
 
-			fulfilled = await containerContractsFulfilled({
+			fulfilled = containerContractsFulfilled({
 				service: {
 					contract: {
 						type: 'sw.container',
@@ -354,7 +349,7 @@ describe('Container contracts', () => {
 					valid,
 					unmetServices,
 					fulfilledServices,
-				} = await containerContractsFulfilled({
+				} = containerContractsFulfilled({
 					service1: {
 						contract: {
 							type: 'sw.container',
@@ -379,7 +374,7 @@ describe('Container contracts', () => {
 					valid,
 					unmetServices,
 					fulfilledServices,
-				} = await containerContractsFulfilled({
+				} = containerContractsFulfilled({
 					service1: {
 						contract: {
 							type: 'sw.container',
@@ -445,11 +440,23 @@ describe('L4T version detection', () => {
 	});
 
 	describe('L4T comparison', () => {
+		const seedEngine = async (version: string) => {
+			if (execStub != null) {
+				execStub.restore();
+			}
+			seedExec(version);
+			intialiseContractRequirements({
+				supervisorVersion: '11.0.0',
+				deviceType: 'intel-nuc',
+				l4tVersion: await osRelease.getL4tVersion(),
+			});
+		};
+
 		it('should allow semver matching even when l4t does not fulfill semver', async () => {
-			seedExec('4.4.38-l4t-r31.0');
+			await seedEngine('4.4.38-l4t-r31.0');
 
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -469,7 +476,7 @@ describe('L4T version detection', () => {
 				.that.equals(true);
 
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -490,10 +497,10 @@ describe('L4T version detection', () => {
 		});
 
 		it('should allow semver matching when l4t does fulfill semver', async () => {
-			seedExec('4.4.38-l4t-r31.0.1');
+			await seedEngine('4.4.38-l4t-r31.0.1');
 
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',
@@ -513,7 +520,7 @@ describe('L4T version detection', () => {
 				.that.equals(true);
 
 			expect(
-				await containerContractsFulfilled({
+				containerContractsFulfilled({
 					service: {
 						contract: {
 							type: 'sw.container',

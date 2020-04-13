@@ -17,6 +17,7 @@ import {
 	CompositionStepAction,
 } from './compose/composition-steps';
 import { loadTargetFromFile } from './device-state/preload';
+import * as globalEventBus from './event-bus';
 import * as hostConfig from './host-config';
 import constants = require('./lib/constants');
 import { InternalInconsistencyError, UpdatesLockedError } from './lib/errors';
@@ -25,6 +26,7 @@ import * as updateLock from './lib/update-lock';
 import * as validation from './lib/validation';
 import * as network from './network';
 
+import APIBinder from './api-binder';
 import { ApplicationManager } from './application-manager';
 import DeviceConfig, { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
@@ -178,6 +180,7 @@ interface DeviceStateConstructOpts {
 	config: Config;
 	eventTracker: EventTracker;
 	logger: Logger;
+	apiBinder: APIBinder;
 }
 
 interface DeviceStateEvents {
@@ -242,7 +245,13 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	public connected: boolean;
 	public router: express.Router;
 
-	constructor({ db, config, eventTracker, logger }: DeviceStateConstructOpts) {
+	constructor({
+		db,
+		config,
+		eventTracker,
+		logger,
+		apiBinder,
+	}: DeviceStateConstructOpts) {
 		super();
 		this.db = db;
 		this.config = config;
@@ -259,6 +268,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			db: this.db,
 			eventTracker: this.eventTracker,
 			deviceState: this,
+			apiBinder,
 		});
 
 		this.on('error', err => log.error('deviceState error: ', err));
@@ -447,6 +457,9 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		this.failedUpdates = 0;
 
 		validateState(target);
+
+		globalEventBus.getInstance().emit('targetStateChanged', target);
+
 		const apiEndpoint = await this.config.get('apiEndpoint');
 
 		await this.usingWriteLockTarget(async () => {
@@ -774,17 +787,16 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 					retryCount,
 				});
 			} catch (e) {
-				const detailedError = new Error(
+				if (e instanceof UpdatesLockedError) {
+					// Forward the UpdatesLockedError directly
+					throw e;
+				}
+				throw new Error(
 					'Failed to apply state transition steps. ' +
 						e.message +
 						' Steps:' +
 						JSON.stringify(_.map(steps, 'action')),
 				);
-				return this.applyError(detailedError, {
-					force,
-					initial,
-					intermediate,
-				});
 			}
 		}).catch(err => {
 			return this.applyError(err, { force, initial, intermediate });

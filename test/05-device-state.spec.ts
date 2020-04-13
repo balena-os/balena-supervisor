@@ -17,6 +17,7 @@ import DeviceState from '../src/device-state';
 import { loadTargetFromFile } from '../src/device-state/preload';
 
 import Service from '../src/compose/service';
+import { intialiseContractRequirements } from '../src/lib/contracts';
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',
@@ -227,11 +228,17 @@ describe('deviceState', () => {
 			return env;
 		});
 
+		intialiseContractRequirements({
+			supervisorVersion: '11.0.0',
+			deviceType: 'intel-nuc',
+		});
+
 		deviceState = new DeviceState({
 			db,
 			config,
 			eventTracker: eventTracker as any,
 			logger: logger as any,
+			apiBinder: null as any,
 		});
 
 		stub(deviceState.applications.docker, 'getNetworkGateway').returns(

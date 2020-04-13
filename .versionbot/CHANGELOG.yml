@@ -1,4 +1,251 @@
 - commits:
+    - subject: Update copy-webpack-plugin
+      hash: e5f1a6b6ed7473ebfaa9f67ec0d258e9edef38b7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update ts-loader to 6.x
+      hash: 59f300df629422284665b19b5cf9d931bfc30fcf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update fork-ts-checker-webpack-plugin to 4.x
+      hash: 9ed36ec00651199dc92afee1a41e6ef5bb8534c7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.1.1
+  date: 2020-04-10T11:51:52.777Z
+- commits:
+    - subject: Support matching on device type within contracts
+      hash: c9c0e650cb0f6655ac5a6c545e6b009c6fe6fa1c
+      body: ''
+      footer:
+        Closes: '#1191'
+        closes: '#1191'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.0
+  date: 2020-04-09T09:47:30.853Z
+- commits:
+    - subject: Workaround a circular dependency
+      hash: a59af6abe894000cd9cdc43d6963bdfc572e2f2b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.9
+  date: 2020-04-08T16:43:14.411Z
+- commits:
+    - subject: Link sqlite with a system sqlite for quicker builds
+      hash: b6dde69c4f8b52fa4928242d5b04d9c203f64c65
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.8
+  date: 2020-04-08T13:06:43.833Z
+- commits:
+    - subject: Convert application-manager.coffee to javascript
+      hash: a2ec35456b8bc23641144fb0f7136d1d364f1fce
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.7
+  date: 2020-04-08T11:18:00.532Z
+- commits:
+    - subject: Don't sync test files with livepush
+      hash: 6dda0efa1fc54765450aac235393883f293b9bc5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.6
+  date: 2020-04-08T07:44:13.444Z
+- commits:
+    - subject: Add newTargetState event and use it for backup loading
+      hash: 0a429f60a5dc93a428e5e88932e7d2bbcdb81b36
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.5
+  date: 2020-04-07T13:53:23.726Z
+- commits:
+    - subject: Don't wrap UpdatesLockedErrors with a detailed error
+      hash: dda627021991f45818ce723e0ee83c085b2c785d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.4
+  date: 2020-04-07T12:15:24.426Z
+- commits:
+    - subject: Allow spaces in volume definitions
+      hash: 0950b66c52f2af10fcd44cb60f1b18007dd8aef0
+      body: ''
+      footer:
+        Closes: '#1247'
+        closes: '#1247'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.3
+  date: 2020-04-07T09:38:43.764Z
+- commits:
+    - subject: Update to balena-register-device 6.0.1
+      hash: 81927d78612aa5944aab8a1322735e32c311d927
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.2
+  date: 2020-04-06T16:47:10.397Z
+- commits:
+    - subject: Don't mangle names when minimising with webpack
+      hash: 6fe3bfa4f2668fd364a977ccf4830e91b07fd47a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.1
+  date: 2020-04-06T12:39:03.990Z
+- commits:
+    - subject: ⚡ Update synchronisation scripts for supervisor development
+      hash: 8ab63656bd483645fe0238fee2a1824158f3f453
+      body: |
+        We move the old sync.js script to tools/, and delete the now-broken
+        sync-debug.js.
+
+        We add a command `npm run sync`, which starts a livepush process
+        with the supervisor on a device.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: "\U0001F527 Move to an alpine base image and drop i386-nlp support"
+      hash: 3690acbd70df726030b648a1c32a9b2b21015232
+      body: >
+        We also remove the Makefile to go to a simpler build system, as long
+        with
+
+        the retry_docker_push.sh file. We remove the rest of the automation
+        tools
+
+        as they're no longer used and update the circle.yml file.
+
+
+        We also remove debug builds, as these aren't needed moving forward, and
+        were
+
+        only to enable livepush builds.
+      footer:
+        Change-type: major
+        change-type: major
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.0
+  date: 2020-04-06T12:07:51.757Z
+- commits:
+    - subject: Convert test/18-startup.coffee to typescript
+      hash: d3221ca235aa0bd22191516f3eeebcabdf32e94b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/19-compose-utils.coffee to javascript
+      hash: 70b07055513f8948bf4c9867718ed4df3df61bc1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/18-compose-network.coffee to javascript
+      hash: 98e956831a4f8dc9e7e08bc98b21c0f8dd89e263
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/17-config-utils.spec.coffee to javascript
+      hash: d3cf650ac48e94a1f7040b72b497e11945671015
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/16-ports.spec.coffee to typescript
+      hash: dcb01cb8632c6a438e3989e6cbcdf2639d0367ba
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/15-conversions.spec.coffee to javascript
+      hash: 515fb059f409ba33b0537c778e7d8191bf387a48
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/12-logger.spec.coffee to javascript
+      hash: fd4cec31e7473d53ffa6a8650b341e7dec49a2cf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.11.3
+  date: 2020-04-02T13:29:44.498Z
+- commits:
+    - subject: Pass in deviceId when fetching device tags
+      hash: 3c59944ce126570cc814626f20a9d67d6e67ff4d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1237'
+        closes: '#1237'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.11.2
+  date: 2020-03-31T11:48:13.361Z
+- commits:
     - subject: "\U0001F527 Update resin-lint -> balena-lint in lintstaged"
       hash: 2433f9a343d26233fff3d5bed14a548feded23ad
       body: ''

@@ -63,7 +63,7 @@ describe('Config', () => {
 			await fs.readFile('./test/data/config.json', 'utf8'),
 		).uuid;
 		expect(uuid).to.be.a('string');
-		expect(uuid).to.have.lengthOf(62);
+		expect(uuid).to.have.lengthOf(32);
 		expect(uuid).to.equal(configJsonUuid);
 	});
 

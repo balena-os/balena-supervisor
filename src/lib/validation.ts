@@ -22,7 +22,7 @@ const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
 export function checkInt(
 	s: unknown,
 	options: CheckIntOptions = {},
-): number | void {
+): number | undefined {
 	if (s == null) {
 		return;
 	}

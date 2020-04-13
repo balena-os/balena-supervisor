@@ -2,9 +2,9 @@ import * as Bluebird from 'bluebird';
 import { EventEmitter } from 'events';
 import { Transaction } from 'knex';
 import * as _ from 'lodash';
-import { generateUniqueKey } from 'resin-register-device';
 import StrictEventEmitter from 'strict-event-emitter-types';
 import { inspect } from 'util';
+import { generateUniqueKey } from '../lib/register-device';
 
 import { Either, isLeft, isRight, Right } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';

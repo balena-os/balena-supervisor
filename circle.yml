@@ -21,11 +21,6 @@ defaults: &defaults
             openssh-client
     - checkout
     - run:
-        name: Install npm dependencies
-        working_directory: /tmp/build/automation
-        command: |
-          JOBS=max npm install
-    - run:
         name: Initialize the submodules (yocto layers)
         command: |
           git submodule update --init --recursive
@@ -95,15 +90,6 @@ jobs:
       STAGING_API_ENDPOINT: https://api.balena-staging.com
       PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
       DEBUG: ''
-  i386-nlp:
-    <<: *defaults
-    environment:
-      DOCKER_USERNAME: travisciresin
-      ARCH: i386-nlp
-      PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
-      DEBUG: ''
   armv7hf:
     <<: *defaults
     environment:
@@ -131,60 +117,6 @@ jobs:
       STAGING_API_ENDPOINT: https://api.balena-staging.com
       PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
       DEBUG: ''
-  amd64-debug:
-    <<: *defaults
-    environment:
-      DOCKER_USERNAME: travisciresin
-      ARCH: amd64
-      PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
-      DEBUG: '-debug'
-  i386-debug:
-    <<: *defaults
-    environment:
-      DOCKER_USERNAME: travisciresin
-      ARCH: i386
-      PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
-      DEBUG: '-debug'
-  i386-nlp-debug:
-    <<: *defaults
-    environment:
-      DOCKER_USERNAME: travisciresin
-      ARCH: i386-nlp
-      PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
-      DEBUG: '-debug'
-  armv7hf-debug:
-    <<: *defaults
-    environment:
-      DOCKER_USERNAME: travisciresin
-      ARCH: armv7hf
-      PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
-      DEBUG: '-debug'
-  aarch64-debug:
-    <<: *defaults
-    environment:
-      DOCKER_USERNAME: travisciresin
-      ARCH: aarch64
-      PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
-      DEBUG: '-debug'
-  rpi-debug:
-    <<: *defaults
-    environment:
-      DOCKER_USERNAME: travisciresin
-      ARCH: rpi
-      PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
-      DEBUG: '-debug'
 
 workflows:
   version: 2
@@ -204,26 +136,5 @@ workflows:
           requires:
             - generic
       - aarch64:
-          requires:
-            - generic
-      - i386-nlp:
-          requires:
-            - generic
-      - amd64-debug:
-          requires:
-            - generic
-      - i386-debug:
-          requires:
-            - generic
-      - rpi-debug:
-          requires:
-            - generic
-      - armv7hf-debug:
-          requires:
-            - generic
-      - aarch64-debug:
-          requires:
-            - generic
-      - i386-nlp-debug:
           requires:
             - generic
