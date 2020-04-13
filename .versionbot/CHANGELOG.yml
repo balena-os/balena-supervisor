@@ -1,4 +1,16 @@
 - commits:
+    - subject: "\U0001F680 Update supervisor to node12"
+      hash: 826eec2e4fe29860d23cf6c2276390b5c7f26a09
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.3
+  date: 2020-04-13T13:40:05.787Z
+- commits:
     - subject: Move from dbus-native to dbus
       hash: 37feb7e325ccf8639680e9a1f274b5755e5d35a2
       body: ''
