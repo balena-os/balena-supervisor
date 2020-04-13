@@ -8,8 +8,8 @@ import Logger from './logger';
 
 import { ConfigOptions, DeviceConfigBackend } from './config/backend';
 import * as configUtils from './config/utils';
+import * as dbus from './lib/dbus';
 import { UnitNotLoadedError } from './lib/errors';
-import * as systemd from './lib/systemd';
 import { EnvVarObject } from './lib/types';
 import { checkInt, checkTruthy } from './lib/validation';
 import { DeviceStatus } from './types/state';
@@ -573,7 +573,7 @@ export class DeviceConfig {
 
 	private async getVPNEnabled(): Promise<boolean> {
 		try {
-			const activeState = await systemd.serviceActiveState(vpnServiceName);
+			const activeState = await dbus.serviceActiveState(vpnServiceName);
 			return !_.includes(['inactive', 'deactivating'], activeState);
 		} catch (e) {
 			if (UnitNotLoadedError(e)) {
@@ -588,9 +588,9 @@ export class DeviceConfig {
 		const enable = v != null ? v : true;
 
 		if (enable) {
-			await systemd.startService(vpnServiceName);
+			await dbus.startService(vpnServiceName);
 		} else {
-			await systemd.stopService(vpnServiceName);
+			await dbus.stopService(vpnServiceName);
 		}
 	}
 

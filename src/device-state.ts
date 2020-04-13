@@ -20,8 +20,8 @@ import { loadTargetFromFile } from './device-state/preload';
 import * as globalEventBus from './event-bus';
 import * as hostConfig from './host-config';
 import constants = require('./lib/constants');
+import * as dbus from './lib/dbus';
 import { InternalInconsistencyError, UpdatesLockedError } from './lib/errors';
-import * as systemd from './lib/systemd';
 import * as updateLock from './lib/update-lock';
 import * as validation from './lib/validation';
 import * as network from './network';
@@ -555,7 +555,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	private async reboot(force?: boolean, skipLock?: boolean) {
 		await this.applications.stopAll({ force, skipLock });
 		this.logger.logSystemMessage('Rebooting', {}, 'Reboot');
-		const reboot = await systemd.reboot();
+		const reboot = await dbus.reboot();
 		this.shuttingDown = true;
 		this.emitAsync('shutdown', undefined);
 		return reboot;
@@ -564,7 +564,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	private async shutdown(force?: boolean, skipLock?: boolean) {
 		await this.applications.stopAll({ force, skipLock });
 		this.logger.logSystemMessage('Shutting down', {}, 'Shutdown');
-		const shutdown = await systemd.shutdown();
+		const shutdown = await dbus.shutdown();
 		this.shuttingDown = true;
 		this.emitAsync('shutdown', undefined);
 		return shutdown;
