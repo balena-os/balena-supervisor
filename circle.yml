@@ -58,9 +58,14 @@ version: 2
 jobs:
   generic:
     docker:
-      - image: library/node:10
+      - image: balenalib/amd64-alpine-node:10
     steps:
       - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add dbus-dev python make \
+            gcc libgcc libc-dev g++
       - run:
           name: Run tests
           command: |

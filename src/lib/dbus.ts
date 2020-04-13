@@ -1,0 +1,132 @@
+import * as Bluebird from 'bluebird';
+import * as dbus from 'dbus';
+import TypedError = require('typed-error');
+
+import log from './supervisor-console';
+
+export class DbusError extends TypedError {}
+
+const bus = dbus.getBus('system');
+const getInterfaceAsync = Bluebird.promisify(bus.getInterface, {
+	context: bus,
+});
+
+async function getSystemdInterface() {
+	try {
+		return await getInterfaceAsync(
+			'org.freedesktop.systemd1',
+			'/org/freedesktop/systemd1',
+			'org.freedesktop.systemd1.Manager',
+		);
+	} catch (e) {
+		throw new DbusError(e);
+	}
+}
+
+export async function getLoginManagerInterface() {
+	try {
+		return await getInterfaceAsync(
+			'org.freedesktop.login1',
+			'/org/freedesktop/login1',
+			'org.freedesktop.login1.Manager',
+		);
+	} catch (e) {
+		throw new DbusError(e);
+	}
+}
+
+export async function restartService(serviceName: string) {
+	const systemd = await getSystemdInterface();
+	try {
+		systemd.RestartUnit(`${serviceName}.service`, 'fail');
+	} catch (e) {
+		throw new DbusError(e);
+	}
+}
+
+export async function startService(serviceName: string) {
+	const systemd = await getSystemdInterface();
+	try {
+		systemd.StartUnit(`${serviceName}.service`, 'fail');
+	} catch (e) {
+		throw new DbusError(e);
+	}
+}
+
+export async function stopService(serviceName: string) {
+	const systemd = await getSystemdInterface();
+	try {
+		systemd.StopUnit(`${serviceName}.service`, 'fail');
+	} catch (e) {
+		throw new DbusError(e);
+	}
+}
+
+export async function enableService(serviceName: string) {
+	const systemd = await getSystemdInterface();
+	try {
+		systemd.EnableUnitFiles([`${serviceName}.service`], false, false);
+	} catch (e) {
+		throw new DbusError(e);
+	}
+}
+
+export async function disableService(serviceName: string) {
+	const systemd = await getSystemdInterface();
+	try {
+		systemd.DisableUnitFiles([`${serviceName}.service`], false);
+	} catch (e) {
+		throw new DbusError(e);
+	}
+}
+
+export const reboot = async () =>
+	setTimeout(async () => {
+		try {
+			const logind = await getLoginManagerInterface();
+			logind.Reboot(false);
+		} catch (e) {
+			log.error(`Unable to reboot: ${e}`);
+		}
+	}, 1000);
+
+export const shutdown = async () =>
+	setTimeout(async () => {
+		try {
+			const logind = await getLoginManagerInterface();
+			logind.PowerOff(false);
+		} catch (e) {
+			log.error(`Unable to shutdown: ${e}`);
+		}
+	}, 1000);
+
+async function getUnitProperty(unitName: string, property: string) {
+	const systemd = await getSystemdInterface();
+	return new Promise((resolve, reject) => {
+		systemd.GetUnit(unitName, async (err: Error, unitPath: string) => {
+			if (err) {
+				return reject(err);
+			}
+			const iface = await getInterfaceAsync(
+				'org.freedesktop.systemd1',
+				unitPath,
+				'org.freedesktop.DBus.Properties',
+			);
+
+			iface.Get(
+				'org.freedesktop.systemd1.Unit',
+				property,
+				(e: Error, value: unknown) => {
+					if (e) {
+						return reject(new DbusError(e));
+					}
+					resolve(value);
+				},
+			);
+		});
+	});
+}
+
+export function serviceActiveState(serviceName: string) {
+	return getUnitProperty(`${serviceName}.service`, 'ActiveState');
+}

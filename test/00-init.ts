@@ -8,11 +8,28 @@ process.env.LED_FILE = './test/data/led_file';
 
 import { stub } from 'sinon';
 
-import dbus = require('dbus-native');
+import * as dbus from 'dbus';
 
-stub(dbus, 'systemBus').returns(({
-	invoke(obj: unknown, cb: () => void) {
-		console.log(obj);
-		return cb();
+// Stub the dbus objects to dynamically generate the methods
+// on request
+stub(dbus, 'getBus').returns({
+	getInterface: (
+		_obj: unknown,
+		cb: (err: Error | undefined, iface: dbus.DBusInterface) => void,
+	) => {
+		return cb(
+			undefined,
+			new Proxy(
+				{},
+				{
+					get(_target, name) {
+						console.log(`Dbus method ${String(name)} requested`);
+						return () => {
+							/* noop */
+						};
+					},
+				},
+			) as any,
+		);
 	},
-} as unknown) as dbus.MessageBus);
+} as any);
