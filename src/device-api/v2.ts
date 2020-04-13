@@ -490,12 +490,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			containerId,
 		});
 		res.status(200);
-		journald.stdout.pipe(res);
+		// We know stdout will be present
+		journald.stdout!.pipe(res);
 		res.on('close', () => {
 			journald.kill('SIGKILL');
 		});
 		journald.on('exit', () => {
-			journald.stdout.unpipe();
+			journald.stdout!.unpipe();
 			res.end();
 		});
 	});

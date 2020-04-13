@@ -55,7 +55,7 @@
     "@types/mocha": "^5.2.7",
     "@types/morgan": "^1.9.0",
     "@types/mz": "0.0.32",
-    "@types/node": "^10.17.17",
+    "@types/node": "^12.12.6",
     "@types/request": "^2.48.4",
     "@types/rimraf": "^2.0.4",
     "@types/rwlock": "^5.0.2",

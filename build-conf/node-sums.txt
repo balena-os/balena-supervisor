@@ -1,5 +1,5 @@
-c1e6e0ee0f3c903151d4118e7068d4ae5ef5b408c969d792b0a4af6dfe04275a  node-no-intl-v10.19.0-linux-alpine-amd64.tar.gz
-ba33990227362ecfe238839ee5e7611b55f3faf860fc44ce694a0aeebb265c2f  node-no-intl-v10.19.0-linux-alpine-i386.tar.gz
-e015cba0a644f9e08a641affec25afc047af8d0103c9353550c12734bba3b423  node-no-intl-v10.19.0-linux-alpine-armv7hf.tar.gz
-9890e656869591cd3f0efeb10046103d324cd48147d40d6d7f6efd1eb680694c  node-no-intl-v10.19.0-linux-alpine-aarch64.tar.gz
-1227cda220cf86d72f1c57790660a3e3ec007ee6946cf4d92f73692eaae3874b  node-no-intl-v10.19.0-linux-alpine-rpi.tar.gz
+6d4ab189ece76bed2f40cffe1f1b4dd2d2a805e6fe10c577ae5ce89fce2ad53b  node-no-intl-v12.16.2-linux-alpine-amd64.tar.gz
+6d81db43dc1285656f6d95807e237e51d33774bed5daafad7f706a4e68b6b546  node-no-intl-v12.16.2-linux-alpine-i386.tar.gz
+d964c84be94d0cf3f30f4c4d61d3f2e0d5439b43137c938d0a0df1b6860961fb  node-no-intl-v12.16.2-linux-alpine-aarch64.tar.gz
+00ac31e6e43319cc3786c0eb97784dad91b5152c5f8be31889215801dcab7712  node-no-intl-v12.16.2-linux-alpine-armv7hf.tar.gz
+8c1cfa75a1523a5b21060201178f4a8cd51f492c93693ecfbd67e8b0a49b23f1  node-no-intl-v12.16.2-linux-alpine-rpi.tar.gz
