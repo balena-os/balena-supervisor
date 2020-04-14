@@ -1,4 +1,34 @@
 - commits:
+    - subject: "\U0001F50E Also watch js files during livepush"
+      hash: aa46be93d43540793245c0f6c2e895f32fb44e1e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Clear changed files after successful livepush invocation
+      hash: 4f2a534075ae2c6037070ef90f38a3066d08c53e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Use livepush commands for copying and running dev specific steps
+      hash: 67c3055fd4be341248a213828550b2b04ccc2677
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.4
+  date: 2020-04-14T09:53:51.068Z
+- commits:
     - subject: "\U0001F680 Update supervisor to node12"
       hash: 826eec2e4fe29860d23cf6c2276390b5c7f26a09
       body: ''
