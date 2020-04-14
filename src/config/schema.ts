@@ -89,6 +89,11 @@ export const schema = {
 		mutable: true,
 		removeIfNull: false,
 	},
+	lockKeepTimeout: {
+		source: 'config.json',
+		mutable: true,
+		removeIfNull: false,
+	},
 
 	apiSecret: {
 		source: 'db',
