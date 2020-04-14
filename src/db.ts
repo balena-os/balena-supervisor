@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as Knex from 'knex';
 import * as path from 'path';
 
@@ -27,42 +26,38 @@ export class DB {
 		});
 	}
 
-	public init(): Bluebird<void> {
-		return this.knex('knex_migrations_lock')
-			.update({ is_locked: 0 })
-			.catch(() => {
-				return;
-			})
-			.then(() => {
-				return this.knex.migrate.latest({
-					directory: path.join(__dirname, 'migrations'),
-				});
-			});
+	public async init(): Promise<void> {
+		try {
+			await this.knex('knex_migrations_lock').update({ is_locked: 0 });
+		} catch {
+			/* ignore */
+		}
+		return this.knex.migrate.latest({
+			directory: path.join(__dirname, 'migrations'),
+		});
 	}
 
 	public models(modelName: string): Knex.QueryBuilder {
 		return this.knex(modelName);
 	}
 
-	public upsertModel(
+	public async upsertModel(
 		modelName: string,
 		obj: any,
 		id: Dictionary<unknown>,
 		trx?: Knex.Transaction,
-	): Bluebird<any> {
+	): Promise<any> {
 		const knex = trx || this.knex;
 
-		return knex(modelName)
+		const n = await knex(modelName)
 			.update(obj)
-			.where(id)
-			.then((n: number) => {
-				if (n === 0) {
-					return knex(modelName).insert(obj);
-				}
-			});
+			.where(id);
+		if (n === 0) {
+			return knex(modelName).insert(obj);
+		}
 	}
 
-	public transaction(cb: DBTransactionCallback): Bluebird<Knex.Transaction> {
+	public transaction(cb: DBTransactionCallback): Promise<Knex.Transaction> {
 		return this.knex.transaction(cb);
 	}
 }
