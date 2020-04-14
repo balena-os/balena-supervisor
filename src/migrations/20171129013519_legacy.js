@@ -7,7 +7,7 @@
 // a few dropColumn and dropTable calls to delete things that were removed throughout the supervisor's
 // history without actually adding drop statements (mostly just becoming unused, but still there).
 
-exports.up = function(knex, Promise) {
+exports.up = function(knex) {
 	const addColumn = function(table, column, type) {
 		return knex.schema.hasColumn(table, column).then(exists => {
 			if (!exists) {
@@ -151,6 +151,6 @@ exports.up = function(knex, Promise) {
 	]);
 };
 
-exports.down = function(_knex, Promise) {
+exports.down = function() {
 	return Promise.reject(new Error('Not implemented'));
 };

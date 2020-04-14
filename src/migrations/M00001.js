@@ -3,7 +3,7 @@ const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 const { checkTruthy } = require('../lib/validation');
 
-exports.up = function(knex, Promise) {
+exports.up = function(knex) {
 	return knex('config')
 		.where({ key: 'localMode' })
 		.select('value')
@@ -61,6 +61,6 @@ exports.up = function(knex, Promise) {
 		});
 };
 
-exports.down = function(_knex, Promise) {
+exports.down = function() {
 	return Promise.reject(new Error('Not Implemented'));
 };
