@@ -40,16 +40,18 @@ export async function startLivepush(opts: {
 			ignored: /((^|[\/\\])\..|(node_modules|sync|test)\/.*)/,
 			ignoreInitial: opts.noinit,
 		})
-		.on('add', path => livepushExecutor(path))
-		.on('change', path => livepushExecutor(path))
-		.on('unlink', path => livepushExecutor(undefined, path));
+		.on('add', (path) => livepushExecutor(path))
+		.on('change', (path) => livepushExecutor(path))
+		.on('unlink', (path) => livepushExecutor(undefined, path));
 }
 
 const getExecutor = (livepush: Livepush) => {
-	const changedFiles: string[] = [];
-	const deletedFiles: string[] = [];
+	let changedFiles: string[] = [];
+	let deletedFiles: string[] = [];
 	const actualExecutor = _.debounce(async () => {
 		await livepush.performLivepush(changedFiles, deletedFiles);
+		changedFiles = [];
+		deletedFiles = [];
 	});
 	return (changed?: string, deleted?: string) => {
 		if (changed) {
