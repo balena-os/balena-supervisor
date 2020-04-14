@@ -37,7 +37,7 @@ export function doPurge(applications, appId, force) {
 		{ appId },
 		'Purge data',
 	);
-	return _lockingIfNecessary(appId, { force }, () =>
+	return _lockingIfNecessary(appId, { force, keepLocks: true }, () =>
 		deviceState.getCurrentForComparison().then(function(currentState) {
 			const app = currentState.local.apps[appId];
 			if (app == null) {
