@@ -1,4 +1,25 @@
 - commits:
+    - subject: ⤴️ Upgrade migrations to work with knex
+      hash: f79142482921bf925e8bbf879b04ea533b5e01cd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: "\U0001F4C4 Upgrade knex to avoid CVE-2019-10757"
+      hash: a43d71d1ac6d6d09b3fb6375a5ad97690fd979c1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.5
+  date: 2020-04-15T12:40:19.254Z
+- commits:
     - subject: "\U0001F50E Also watch js files during livepush"
       hash: aa46be93d43540793245c0f6c2e895f32fb44e1e
       body: ''
