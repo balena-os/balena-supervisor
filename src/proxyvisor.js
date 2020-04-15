@@ -510,16 +510,17 @@ export class Proxyvisor {
 			if (this.actionExecutors[step.action] == null) {
 				throw new Error(`Invalid proxyvisor action ${step.action}`);
 			}
+
 			return this.actionExecutors[step.action](step);
 		});
 	}
 
 	getCurrentStates() {
 		return Promise.join(
-			this.db
-				.models('dependentApp')
-				.select()
-				.map(this.normaliseDependentAppFromDB),
+			Promise.map(
+				this.db.models('dependentApp').select(),
+				this.normaliseDependentAppFromDB,
+			),
 			this.db.models('dependentDevice').select(),
 			function(apps, devicesFromDB) {
 				const devices = _.map(devicesFromDB, function(device) {
@@ -693,14 +694,14 @@ export class Proxyvisor {
 
 	getTarget() {
 		return Promise.props({
-			apps: this.db
-				.models('dependentAppTarget')
-				.select()
-				.map(this.normaliseDependentAppFromDB),
-			devices: this.db
-				.models('dependentDeviceTarget')
-				.select()
-				.map(this.normaliseDependentDeviceTargetFromDB),
+			apps: Promise.map(
+				this.db.models('dependentAppTarget').select(),
+				this.normaliseDependentAppFromDB,
+			),
+			devices: Promise.map(
+				this.db.models('dependentDeviceTarget').select(),
+				this.normaliseDependentDeviceTargetFromDB,
+			),
 		});
 	}
 

@@ -5,6 +5,6 @@ exports.up = knex => {
 	});
 };
 
-exports.down = (_knex, Promise) => {
+exports.down = () => {
 	return Promise.reject(new Error('Not Implemented'));
 };

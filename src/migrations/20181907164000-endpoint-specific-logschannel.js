@@ -1,8 +1,9 @@
+const Bluebird = require('bluebird');
 const fs = require('fs');
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
-exports.up = function(knex, Promise) {
-	return new Promise(resolve => {
+exports.up = function(knex) {
+	return new Bluebird(resolve => {
 		if (!configJsonPath) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
@@ -65,6 +66,6 @@ exports.up = function(knex, Promise) {
 		});
 };
 
-exports.down = function(_knex, Promise) {
+exports.down = function() {
 	return Promise.reject(new Error('Not Implemented'));
 };

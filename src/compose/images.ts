@@ -362,7 +362,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			this.db
 				.models('image')
 				.select('dockerImageId')
-				.map((img: Image) => img.dockerImageId),
+				.then(vals => vals.map((img: Image) => img.dockerImageId)),
 		]);
 
 		const supervisorRepos = [supervisorImageInfo.imageName];

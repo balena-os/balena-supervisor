@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { fs } from 'mz';
 
@@ -16,14 +15,14 @@ import constants = require('../src/lib/constants');
 describe('Config', () => {
 	let db: DB;
 	let conf: Config;
-	let initialization: Bluebird<unknown>;
 
-	before(() => {
+	before(async () => {
 		prepare();
 		db = new DB();
 		conf = new Config({ db });
 
-		initialization = db.init().then(() => conf.init());
+		await db.init();
+		await conf.init();
 	});
 
 	it('uses the correct config.json path', async () => {
@@ -37,10 +36,6 @@ describe('Config', () => {
 		expect(await (conf2 as any).configJsonBackend.path()).to.equal(
 			'test/data/foo.json',
 		);
-	});
-
-	it('initializes correctly', () => {
-		return expect(initialization).to.be.fulfilled;
 	});
 
 	it('reads and exposes values from the config.json', async () => {

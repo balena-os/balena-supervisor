@@ -1,3 +1,4 @@
+const Bluebird = require('bluebird');
 const _ = require('lodash');
 
 var tryParse = function(obj) {
@@ -100,10 +101,9 @@ var imageForDependentApp = function(app) {
 	};
 };
 
-// TODO: this whole thing is WIP
-exports.up = function(knex, Promise) {
-	return knex.schema
-		.createTable('image', t => {
+exports.up = function(knex) {
+	return Bluebird.resolve(
+		knex.schema.createTable('image', t => {
 			t.increments('id').primary();
 			t.string('name');
 			t.integer('appId');
@@ -112,7 +112,8 @@ exports.up = function(knex, Promise) {
 			t.integer('imageId');
 			t.integer('releaseId');
 			t.boolean('dependent');
-		})
+		}),
+	)
 		.then(() =>
 			knex('app')
 				.select()
@@ -171,7 +172,7 @@ exports.up = function(knex, Promise) {
 							RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL: 'deltaRequestTimeout',
 							RESIN_SUPERVISOR_OVERRIDE_LOCK: 'lockOverride',
 						};
-						return Promise.map(Object.keys(values), envVarName => {
+						return Bluebird.map(Object.keys(values), envVarName => {
 							if (configKeys[envVarName] != null) {
 								return knex('config').insert({
 									key: configKeys[envVarName],
@@ -221,7 +222,7 @@ exports.up = function(knex, Promise) {
 					});
 				})
 				.then(() => {
-					return Promise.map(dependentApps, app => {
+					return Bluebird.map(dependentApps, app => {
 						const newApp = {
 							appId: parseInt(app.appId, 10),
 							parentApp: parseInt(app.parentAppId, 10),
@@ -277,7 +278,7 @@ exports.up = function(knex, Promise) {
 					});
 				})
 				.then(() => {
-					return Promise.map(dependentDevices, device => {
+					return Bluebird.map(dependentDevices, device => {
 						const newDevice = _.clone(device);
 						newDevice.appId = parseInt(device.appId, 10);
 						newDevice.deviceId = parseInt(device.deviceId, 10);
@@ -315,6 +316,6 @@ exports.up = function(knex, Promise) {
 		});
 };
 
-exports.down = function(_knex, Promise) {
+exports.down = function() {
 	return Promise.reject(new Error('Not implemented'));
 };
