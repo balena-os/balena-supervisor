@@ -110,7 +110,6 @@ describe('ApiBinder', () => {
 			expect(balenaAPI.balenaBackend!.devices).to.deep.equal({
 				'1': {
 					id: 1,
-					user: conf.userId,
 					application: conf.applicationId,
 					uuid: conf.uuid,
 					device_type: conf.deviceType,

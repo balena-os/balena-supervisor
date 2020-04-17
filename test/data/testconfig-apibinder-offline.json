@@ -1,13 +1,9 @@
 {
-	"applicationName": "supertestrpi3",
 	"applicationId": 78373,
 	"deviceType": "raspberrypi3",
-	"userId": 1001,
-	"username": "someone",
 	"appUpdatePollInterval": 3000,
 	"listenPort": 2345,
 	"vpnPort": 443,
-	"vpnEndpoint": "vpn.resin.io",
 	"registryEndpoint": "registry2.resin.io",
 	"deltaEndpoint": "https://delta.resin.io",
 	"mixpanelToken": "baz",

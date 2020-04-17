@@ -54,7 +54,6 @@ export const fnSchema = {
 		return config
 			.getMany([
 				'uuid',
-				'userId',
 				'applicationId',
 				'apiKey',
 				'deviceApiKey',
@@ -69,7 +68,6 @@ export const fnSchema = {
 				return {
 					uuid: conf.uuid,
 					applicationId: conf.applicationId,
-					userId: conf.userId,
 					deviceArch: conf.deviceArch,
 					deviceType: conf.deviceType,
 					provisioningApiKey: conf.apiKey,

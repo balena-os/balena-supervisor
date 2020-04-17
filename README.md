@@ -105,12 +105,9 @@ The `config.json` file should look something like this:
 {
 	"applicationId": "2167", /* Id of the app this supervisor will run */
 	"apiKey": "supersecretapikey", /* The API key to provision the device on the balena API */
-	"userId": "141", /* User ID for the user who owns the app */
-	"username": "gh_pcarranzav", /* User name for the user who owns the app */
 	"deviceType": "intel-nuc", /* The device type corresponding to the test application */
 	"apiEndpoint": "https://api.balena-cloud.com", /* Endpoint for the balena API */
 	"deltaEndpoint": "https://delta.balena-cloud.com", /* Endpoint for the delta server to download Docker binary diffs */
-	"vpnEndpoint": "vpn.balena-cloud.com", /* Endpoint for the balena VPN server */
 	"listenPort": 48484, /* Listen port for the supervisor API */
 	"mixpanelToken": "aaaaaaaaaaaaaaaaaaaaaaaaaa", /* Mixpanel token to report events */
 }
