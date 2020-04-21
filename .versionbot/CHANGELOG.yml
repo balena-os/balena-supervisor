@@ -1,4 +1,16 @@
 - commits:
+    - subject: Remove double printing of API status error
+      hash: f599799950c9182cf97ef40dd894feb25c833e67
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.6
+  date: 2020-04-21T08:57:07.074Z
+- commits:
     - subject: ⤴️ Upgrade migrations to work with knex
       hash: f79142482921bf925e8bbf879b04ea533b5e01cd
       body: ''
