@@ -1,4 +1,16 @@
 - commits:
+    - subject: Actually remove dbus-native dependency
+      hash: 508708aa32a56f23cc3a8df9e8071d340879a936
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.8
+  date: 2020-04-21T13:30:10.250Z
+- commits:
     - subject: Fix livepush predicate for POSIX sh in entry.sh
       hash: e2eba6280d19e5d74c9e3bb7bbfeea797378b08d
       body: ''
