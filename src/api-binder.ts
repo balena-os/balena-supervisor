@@ -531,10 +531,6 @@ export class APIBinder {
 					`Non-200 response from the API! Status code: ${e.statusCode} - message:`,
 					e,
 				);
-				log.error(
-					`Non-200 response from the API! Status code: ${e.statusCode} - message:`,
-					e,
-				);
 			} else {
 				throw e;
 			}
