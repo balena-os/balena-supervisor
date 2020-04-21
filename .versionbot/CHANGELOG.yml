@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix livepush predicate for POSIX sh in entry.sh
+      hash: e2eba6280d19e5d74c9e3bb7bbfeea797378b08d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.7
+  date: 2020-04-21T11:59:25.840Z
+- commits:
     - subject: Remove double printing of API status error
       hash: f599799950c9182cf97ef40dd894feb25c833e67
       body: ''
