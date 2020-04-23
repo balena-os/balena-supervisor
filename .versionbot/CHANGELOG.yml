@@ -1,4 +1,18 @@
 - commits:
+    - subject: Added protocol to semver.org link
+      hash: f9d7951cc5c1b20e989d04471a73d491118b3dfe
+      body: ''
+      footer:
+        Closes: '#1256'
+        closes: '#1256'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.1.9
+  date: 2020-04-22T21:42:29.017Z
+- commits:
     - subject: Actually remove dbus-native dependency
       hash: 508708aa32a56f23cc3a8df9e8071d340879a936
       body: ''
