@@ -97,10 +97,11 @@ module.exports = function(env) {
 		module: {
 			rules: [
 				{
-					test: new RegExp(
-						_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'index.js')) +
-							'$',
-					),
+					include: [
+						new RegExp(
+							_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'sources')),
+						),
+					],
 					use: require.resolve('./hardcode-migrations'),
 				},
 				{
