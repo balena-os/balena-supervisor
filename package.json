@@ -24,7 +24,7 @@
     "packagejson:copy": "cp package.json build/",
     "testitems:copy": "cp -r test/data build/test/",
     "lint:coffee": "balena-lint test/",
-    "lint:typescript": "balena-lint -e ts -e js --typescript src/ test/ typings/ && tsc --noEmit && tsc --noEmit --project tsconfig.js.json",
+    "lint:typescript": "balena-lint -e ts -e js --typescript src/ test/ typings/ build-utils/ && tsc --noEmit && tsc --noEmit --project tsconfig.js.json",
     "sync": "ts-node sync/sync.ts"
   },
   "private": true,

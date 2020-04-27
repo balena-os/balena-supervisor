@@ -35,7 +35,7 @@ RUN apk add --no-cache \
 	sqlite-dev \
 	dbus-dev
 
-COPY build-conf/node-sums.txt .
+COPY build-utils/node-sums.txt .
 
 # Install node from balena's prebuilt cache
 RUN curl -SLO "${NODE_LOCATION}" \
@@ -54,7 +54,8 @@ RUN npm ci --build-from-source --sqlite=/usr/lib
 #dev-copy=entry.sh .
 #dev-cmd-live=LIVEPUSH=1 ./entry.sh
 
-COPY webpack.config.js fix-jsonstream.js hardcode-migrations.js tsconfig.json tsconfig.release.json ./
+COPY build-utils ./build-utils
+COPY webpack.config.js tsconfig.json tsconfig.release.json ./
 COPY src ./src
 COPY test ./test
 COPY typings ./typings

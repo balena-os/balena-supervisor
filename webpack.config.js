@@ -102,13 +102,13 @@ module.exports = function(env) {
 							_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'sources')),
 						),
 					],
-					use: require.resolve('./hardcode-migrations'),
+					use: require.resolve('./build-utils/hardcode-migrations'),
 				},
 				{
 					test: new RegExp(
 						_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$',
 					),
-					use: require.resolve('./fix-jsonstream'),
+					use: require.resolve('./build-utils/fix-jsonstream'),
 				},
 				{
 					test: /\.coffee$/,

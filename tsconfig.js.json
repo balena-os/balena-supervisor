@@ -4,5 +4,5 @@
 		"noImplicitAny": false,
 		"checkJs": true
 	},
-	"include": ["src/**/*", "test/**/*", "typings/**/*.d.ts"]
+	"include": ["src/**/*", "test/**/*", "typings/**/*.d.ts", "build-utils/**/*"]
 }
