@@ -64,7 +64,7 @@
     "@types/sinon-chai": "^3.2.3",
     "@types/tmp": "^0.1.0",
     "@types/yargs": "^15.0.4",
-    "balena-register-device": "^6.0.1",
+    "balena-register-device": "^6.1.1",
     "blinking": "~0.0.3",
     "bluebird": "^3.7.2",
     "body-parser": "^1.19.0",
