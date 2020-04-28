@@ -238,6 +238,21 @@ production.
 Alternatively, tests will be run when building the image,
 which ensures that the environment is exactly the same.
 
+#### Running specific tests quickly
+
+You can run specific tests quickly with the `test:fast` script by matching with test suites (describe) or test cases (it) using a string or regexp:
+
+```sh
+npm run test:fast -- --grep spawnJournalctl
+
+npm run test:fast -- --grep "detect a V2 delta"
+
+npm run test:fast -- --grep (GET|POST|PUT|DELETE)
+```
+
+The --grep option when specified will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
+
+
 ## License
 
 Copyright 2020 Balena Ltd.
