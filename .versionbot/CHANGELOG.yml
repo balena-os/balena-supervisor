@@ -1,4 +1,18 @@
 - commits:
+    - subject: Remove coverage running and modules
+      hash: 6c360c2273ad2ab66ed254a1172f138d4c1430d8
+      body: |
+        The coverage no longer works with es2020, and nobody really pays any
+        attention to the coverage as it is.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.11
+  date: 2020-04-28T12:56:50.014Z
+- commits:
     - subject: Update balena-register-device to fix provisioning
       hash: 7c27a561a8401054304fb967d5805b446e0cb3a1
       body: ''
