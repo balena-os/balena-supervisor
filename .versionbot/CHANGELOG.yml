@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update balena-register-device to fix provisioning
+      hash: 7c27a561a8401054304fb967d5805b446e0cb3a1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.10
+  date: 2020-04-27T17:48:09.624Z
+- commits:
     - subject: Added protocol to semver.org link
       hash: f9d7951cc5c1b20e989d04471a73d491118b3dfe
       body: ''
