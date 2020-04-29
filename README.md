@@ -39,6 +39,22 @@ Here's a few guidelines to make the process easier for everyone involved.
 - Commits should be squashed as much as makes sense.
 - Commits should be signed-off (`git commit -s`)
 
+## Setup
+
+To get the codebase setup on your development machine follow these steps. For running the supervisor on a device see [Developing the supervisor](#developing-the-supervisor) or [Using balenaOS-in-container](#using-balenaos-in-container).
+
+```sh
+# Clone the repo
+git clone git@github.com:balena-io/balena-supervisor.git
+
+# Install dependencies
+npm ci
+```
+
+We explicitly use `npm ci` over `npm install` to ensure the correct package versions are installed. More documentation for this can be found [here](https://docs.npmjs.com/cli/ci) on the npm cli docs.
+
+You're now ready to start developing. If you get stuck at some point please reference the [troubleshooting](#troubleshooting) section before creating an issue.
+
 ## Developing the supervisor
 
 By far the most convenient way to develop the supervisor is
@@ -228,7 +244,7 @@ You can run some unit tests with:
 npm test
 ```
 
-The supervisor runs on Node v10.19.0, so using that specific
+The supervisor runs on Node v12.16.2, so using that specific
 version will ensure tests run in the same environment as
 production.
 
@@ -249,6 +265,17 @@ npm run test:fast -- --grep (GET|POST|PUT|DELETE)
 
 The --grep option, when specified, will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
 
+## Troubleshooting
+
+Make sure you are running atleast:
+
+```sh
+node -v       # >= 12.16.2
+npm -v        # >= 6.14.0
+git --version # >= 2.13.0
+```
+
+Also, ensure you're installing dependencies with `npm ci` as this will perform a clean install and guarantee the module versions specified are downloaded rather then installed which might attempt to upgrade!
 
 ## License
 
