@@ -1,4 +1,16 @@
 - commits:
+    - subject: Added explanation README for running specific tests
+      hash: a8ac3d0bc9344653d68c43fe3298171b379823d7
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.2.0
+  date: 2020-04-30T19:05:08.820Z
+- commits:
     - subject: Remove coverage running and modules
       hash: 6c360c2273ad2ab66ed254a1172f138d4c1430d8
       body: |
