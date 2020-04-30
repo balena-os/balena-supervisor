@@ -250,7 +250,7 @@ npm run test:fast -- --grep "detect a V2 delta"
 npm run test:fast -- --grep (GET|POST|PUT|DELETE)
 ```
 
-The --grep option when specified will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
+The --grep option, when specified, will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
 
 
 ## License
