@@ -1,4 +1,18 @@
 - commits:
+    - subject: Added Bearer Authorization spec
+      hash: 2007a98940ea93f8064b045fce52133a4b48bac0
+      body: ''
+      footer:
+        Closes: '#1249'
+        closes: '#1249'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.3.0
+  date: 2020-05-04T17:26:19.216Z
+- commits:
     - subject: Added explanation README for running specific tests
       hash: a8ac3d0bc9344653d68c43fe3298171b379823d7
       body: ''
