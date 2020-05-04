@@ -12,18 +12,21 @@ import { checkTruthy } from './lib/validation';
 
 import log from './lib/supervisor-console';
 
-function getKeyFromReq(req: express.Request): string | null {
-	const queryKey = req.query.apikey;
-	if (queryKey != null) {
-		return queryKey;
+function getKeyFromReq(req: express.Request): string | undefined {
+	// Check query for key
+	if (req.query.apikey) {
+		return req.query.apikey;
 	}
-	const maybeHeaderKey = req.get('Authorization');
-	if (!maybeHeaderKey) {
-		return null;
+	// Get Authorization header to search for key
+	const authHeader = req.get('Authorization');
+	// Check header for key
+	if (!authHeader) {
+		return undefined;
 	}
-
-	const match = maybeHeaderKey.match(/^ApiKey (\w+)$/);
-	return match != null ? match[1] : null;
+	// Check authHeader with various schemes
+	const match = authHeader.match(/^(?:ApiKey|Bearer) (\w+)$/i);
+	// Return key from match or undefined
+	return match?.[1];
 }
 
 function authenticate(config: Config): express.RequestHandler {
@@ -87,6 +90,14 @@ export class SupervisorAPI {
 
 	private api = express();
 	private server: Server | null = null;
+	// Holds the function which should apply iptables rules
+	private applyRules: SupervisorAPI['applyListeningRules'] =
+		process.env.TEST === '1'
+			? () => {
+					// don't try to alter iptables
+					// rules while we're running in tests
+			  }
+			: this.applyListeningRules.bind(this);
 
 	public constructor({
 		config,
@@ -176,13 +187,12 @@ export class SupervisorAPI {
 		apiTimeout: number,
 	): Promise<void> {
 		const localMode = await this.config.get('localMode');
-		await this.applyListeningRules(localMode || false, port, allowedInterfaces);
-
+		await this.applyRules(localMode || false, port, allowedInterfaces);
 		// Monitor the switching of local mode, and change which interfaces will
 		// be listened to based on that
 		this.config.on('change', changedConfig => {
 			if (changedConfig.localMode != null) {
-				this.applyListeningRules(
+				this.applyRules(
 					changedConfig.localMode || false,
 					port,
 					allowedInterfaces,
