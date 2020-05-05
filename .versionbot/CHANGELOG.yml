@@ -1,4 +1,43 @@
 - commits:
+    - subject: Remove legacy fallback to DROP rule in iptables
+      hash: 31957566e5f5b21910988319472721ce2a931a38
+      body: |
+        This has not been necessary for a long time, and wwe can now remove it.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add an ESTABLISHED flag to API iptables rules
+      hash: 7b1f03ced509cdbdbea950e079ba2fab5c3699bb
+      body: |
+        This allows a response to an input with dport=`supevisor api port` and
+        is required when the host OS is doing stateful firewalling.
+
+        This should not affect things when stateful firewalling is not in
+        effect, as the standard OUTPUT chain policy is ACCEPT, so we're just
+        being explicit about it.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Backport-to: 'next, current, sunset'
+        backport-to: 'next, current, sunset'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add ESR information to repo.yml
+      hash: 7f5395da885146ccf707fa52f0916afa7c832eeb
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.3.1
+  date: 2020-05-05T11:18:20.667Z
+- commits:
     - subject: Added Bearer Authorization spec
       hash: 2007a98940ea93f8064b045fce52133a4b48bac0
       body: ''
