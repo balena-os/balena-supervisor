@@ -1,4 +1,27 @@
 - commits:
+    - subject: Move build files into build-conf and rename to build-utils
+      hash: 02d088d351327ee5cab46029efb3ca7dce067fd6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Fix knex migration require translation
+      hash: 585bd803134db999425fae322fd4e7259caaa27a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1274'
+        closes: '#1274'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.3.2
+  date: 2020-05-05T16:58:04.403Z
+- commits:
     - subject: Remove legacy fallback to DROP rule in iptables
       hash: 31957566e5f5b21910988319472721ce2a931a38
       body: |
