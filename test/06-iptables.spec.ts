@@ -9,7 +9,7 @@ describe('iptables', async () => {
 		stub(iptables, 'execAsync').returns(Bluebird.resolve(''));
 
 		await iptables.rejectOnAllInterfacesExcept(['foo', 'bar'], 42);
-		expect((iptables.execAsync as sinon.SinonStub).callCount).to.equal(12);
+		expect((iptables.execAsync as sinon.SinonStub).callCount).to.equal(16);
 		expect(iptables.execAsync).to.be.calledWith(
 			'iptables -D INPUT -p tcp --dport 42 -i foo -j ACCEPT',
 		);
@@ -21,6 +21,12 @@ describe('iptables', async () => {
 		);
 		expect(iptables.execAsync).to.be.calledWith(
 			'iptables -I INPUT -p tcp --dport 42 -i bar -j ACCEPT',
+		);
+		expect(iptables.execAsync).to.be.calledWith(
+			'iptables -D OUTPUT -p tcp --sport 42 -m state --state ESTABLISHED -j ACCEPT',
+		);
+		expect(iptables.execAsync).to.be.calledWith(
+			'iptables -A OUTPUT -p tcp --sport 42 -m state --state ESTABLISHED -j ACCEPT',
 		);
 		expect(iptables.execAsync).to.be.calledWith(
 			'iptables -D INPUT -p tcp --dport 42 -j REJECT',
@@ -41,6 +47,12 @@ describe('iptables', async () => {
 			'ip6tables -I INPUT -p tcp --dport 42 -i bar -j ACCEPT',
 		);
 		expect(iptables.execAsync).to.be.calledWith(
+			'ip6tables -D OUTPUT -p tcp --sport 42 -m state --state ESTABLISHED -j ACCEPT',
+		);
+		expect(iptables.execAsync).to.be.calledWith(
+			'ip6tables -A OUTPUT -p tcp --sport 42 -m state --state ESTABLISHED -j ACCEPT',
+		);
+		expect(iptables.execAsync).to.be.calledWith(
 			'ip6tables -D INPUT -p tcp --dport 42 -j REJECT',
 		);
 		expect(iptables.execAsync).to.be.calledWith(
@@ -59,7 +71,7 @@ describe('iptables', async () => {
 		});
 
 		await iptables.rejectOnAllInterfacesExcept(['foo', 'bar'], 42);
-		expect((iptables.execAsync as sinon.SinonStub).callCount).to.equal(16);
+		expect((iptables.execAsync as sinon.SinonStub).callCount).to.equal(20);
 		expect(iptables.execAsync).to.be.calledWith(
 			'iptables -D INPUT -p tcp --dport 42 -i foo -j ACCEPT',
 		);
@@ -71,6 +83,12 @@ describe('iptables', async () => {
 		);
 		expect(iptables.execAsync).to.be.calledWith(
 			'iptables -I INPUT -p tcp --dport 42 -i bar -j ACCEPT',
+		);
+		expect(iptables.execAsync).to.be.calledWith(
+			'iptables -D OUTPUT -p tcp --sport 42 -m state --state ESTABLISHED -j ACCEPT',
+		);
+		expect(iptables.execAsync).to.be.calledWith(
+			'iptables -A OUTPUT -p tcp --sport 42 -m state --state ESTABLISHED -j ACCEPT',
 		);
 		expect(iptables.execAsync).to.be.calledWith(
 			'iptables -D INPUT -p tcp --dport 42 -j REJECT',
@@ -95,6 +113,12 @@ describe('iptables', async () => {
 		);
 		expect(iptables.execAsync).to.be.calledWith(
 			'ip6tables -I INPUT -p tcp --dport 42 -i bar -j ACCEPT',
+		);
+		expect(iptables.execAsync).to.be.calledWith(
+			'ip6tables -D OUTPUT -p tcp --sport 42 -m state --state ESTABLISHED -j ACCEPT',
+		);
+		expect(iptables.execAsync).to.be.calledWith(
+			'ip6tables -A OUTPUT -p tcp --sport 42 -m state --state ESTABLISHED -j ACCEPT',
 		);
 		expect(iptables.execAsync).to.be.calledWith(
 			'ip6tables -D INPUT -p tcp --dport 42 -j REJECT',

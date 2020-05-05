@@ -49,6 +49,11 @@ export function rejectOnAllInterfacesExcept(
 			),
 		)
 			.then(() =>
+				clearAndAppendIptablesRule(
+					`OUTPUT -p tcp --sport ${port} -m state --state ESTABLISHED -j ACCEPT`,
+				),
+			)
+			.then(() =>
 				clearAndAppendIptablesRule(`INPUT -p tcp --dport ${port} -j REJECT`),
 			)
 			// On systems without REJECT support, fall back to DROP
