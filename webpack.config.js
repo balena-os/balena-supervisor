@@ -97,17 +97,18 @@ module.exports = function(env) {
 		module: {
 			rules: [
 				{
-					test: new RegExp(
-						_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'index.js')) +
-							'$',
-					),
-					use: require.resolve('./hardcode-migrations'),
+					include: [
+						new RegExp(
+							_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'sources')),
+						),
+					],
+					use: require.resolve('./build-utils/hardcode-migrations'),
 				},
 				{
 					test: new RegExp(
 						_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$',
 					),
-					use: require.resolve('./fix-jsonstream'),
+					use: require.resolve('./build-utils/fix-jsonstream'),
 				},
 				{
 					test: /\.coffee$/,
