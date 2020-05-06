@@ -99,20 +99,21 @@ async function tarDirectory(
 		const entries = await fs.readdir(path);
 		for (const entry of entries) {
 			const newPath = Path.resolve(path, entry);
-			const stat = await fs.stat(newPath);
+			// Here we filter the things we don't want
+			if (
+				newPath.includes('node_modules/') ||
+				newPath.includes('.git/') ||
+				newPath.includes('build/') ||
+				newPath.includes('coverage/')
+			) {
+				continue;
+			}
+			// We use lstat here, otherwise an error will be
+			// thrown on a symbolic link
+			const stat = await fs.lstat(newPath);
 			if (stat.isDirectory()) {
 				await add(newPath);
 			} else {
-				// Here we filter the things we don't want
-				if (
-					newPath.includes('node_modules/') ||
-					newPath.includes('.git/') ||
-					newPath.includes('build/') ||
-					newPath.includes('coverage/')
-				) {
-					continue;
-				}
-
 				if (newPath.endsWith('Dockerfile')) {
 					pack.entry(
 						{ name: 'Dockerfile', mode: stat.mode, size: stat.size },
