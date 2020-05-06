@@ -80,15 +80,13 @@ export const startConnectivityCheck = _.once(
 
 		customMonitor(
 			{
-				host: parsedUrl.hostname,
+				host: parsedUrl.hostname ?? undefined,
 				port: port || (parsedUrl.protocol === 'https' ? 443 : 80),
 				path: parsedUrl.path || '/',
 				interval: 10 * 1000,
 			},
 			connected => {
-				if (_.isFunction(onChangeCallback)) {
-					onChangeCallback(connected);
-				}
+				onChangeCallback?.(connected);
 				if (connected) {
 					log.info('Internet Connectivity: OK');
 					blink.pattern.stop();

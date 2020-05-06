@@ -1,7 +1,6 @@
 import * as Bluebird from 'bluebird';
 import { NextFunction, Request, Response, Router } from 'express';
 import * as _ from 'lodash';
-import { fs } from 'mz';
 
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
@@ -27,9 +26,16 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		res: Response,
 		next: NextFunction,
 		action: any,
-	): Bluebird<void> => {
+	): Resolvable<void> => {
 		const { imageId, serviceName, force } = req.body;
-		const { appId } = req.params;
+		const appId = checkInt(req.params.appId);
+		if (!appId) {
+			res.status(400).json({
+				status: 'failed',
+				message: 'Missing app id',
+			});
+			return;
+		}
 
 		return _lockingIfNecessary(appId, { force }, () => {
 			return applications
@@ -85,7 +91,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		'/v2/applications/:appId/purge',
 		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
-			const { appId } = req.params;
+			const appId = checkInt(req.params.appId);
+			if (!appId) {
+				return res.status(400).json({
+					status: 'failed',
+					message: 'Missing app id',
+				});
+			}
 
 			return doPurge(applications, appId, force)
 				.then(() => {
@@ -114,7 +126,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		'/v2/applications/:appId/restart',
 		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
-			const { appId } = req.params;
+			const appId = checkInt(req.params.appId);
+			if (!appId) {
+				return res.status(400).json({
+					status: 'failed',
+					message: 'Missing app id',
+				});
+			}
 
 			return doRestart(applications, appId, force)
 				.then(() => {
@@ -146,7 +164,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 							commit: string;
 							services: {
 								[serviceName: string]: {
-									status: string;
+									status?: string;
 									releaseId: number;
 									downloadProgress: number | null;
 								};
@@ -182,7 +200,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 							return service.imageId === img.imageId;
 						});
 
-						let status: string;
+						let status: string | undefined;
 						if (svc == null) {
 							status = img.status;
 						} else {
@@ -215,14 +233,6 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	);
 
 	router.get('/v2/local/target-state', async (_req, res) => {
-		const localMode = await deviceState.config.get('localMode');
-		if (!localMode) {
-			return res.status(400).json({
-				status: 'failed',
-				message: 'Target state can only be retrieved when in local mode',
-			});
-		}
-
 		const targetState = await deviceState.getTarget();
 
 		// We avoid using cloneDeep here, as the class
@@ -300,23 +310,25 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/local/device-info', async (_req, res) => {
-		// Return the device type and slug so that local mode builds can use this to
-		// resolve builds
-		// FIXME: We should be mounting the following file into the supervisor from the
-		// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
-		const data = await fs.readFile(
-			'/mnt/root/resin-boot/device-type.json',
-			'utf8',
-		);
-		const deviceInfo = JSON.parse(data);
+		try {
+			const { deviceType, deviceArch } = await applications.config.getMany([
+				'deviceType',
+				'deviceArch',
+			]);
 
-		return res.status(200).json({
-			status: 'success',
-			info: {
-				arch: deviceInfo.arch,
-				deviceType: deviceInfo.slug,
-			},
-		});
+			return res.status(200).json({
+				status: 'success',
+				info: {
+					arch: deviceArch,
+					deviceType,
+				},
+			});
+		} catch (e) {
+			res.status(500).json({
+				status: 'failed',
+				message: e.message,
+			});
+		}
 	});
 
 	router.get('/v2/local/logs', async (_req, res) => {
@@ -409,7 +421,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			);
 		});
 
-		let overallDownloadProgress = null;
+		let overallDownloadProgress: number | null = null;
 		if (downloads > 0) {
 			overallDownloadProgress = downloadProgressTotal / downloads;
 		}
@@ -433,11 +445,18 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/device/tags', async (_req, res) => {
-		const tags = await applications.apiBinder.fetchDeviceTags();
-		return res.json({
-			status: 'success',
-			tags,
-		});
+		try {
+			const tags = await applications.apiBinder.fetchDeviceTags();
+			return res.json({
+				status: 'success',
+				tags,
+			});
+		} catch (e) {
+			res.status(500).json({
+				status: 'failed',
+				message: e.message,
+			});
+		}
 	});
 
 	router.get('/v2/cleanup-volumes', async (_req, res) => {
@@ -460,15 +479,24 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		const count = checkInt(req.body.count, { positive: true }) || undefined;
 		const unit = req.body.unit;
 		const format = req.body.format || 'short';
+		const containerId = req.body.containerId;
 
-		const journald = spawnJournalctl({ all, follow, count, unit, format });
+		const journald = spawnJournalctl({
+			all,
+			follow,
+			count,
+			unit,
+			format,
+			containerId,
+		});
 		res.status(200);
-		journald.stdout.pipe(res);
+		// We know stdout will be present
+		journald.stdout!.pipe(res);
 		res.on('close', () => {
 			journald.kill('SIGKILL');
 		});
 		journald.on('exit', () => {
-			journald.stdout.unpipe();
+			journald.stdout!.unpipe();
 			res.end();
 		});
 	});

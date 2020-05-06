@@ -2,9 +2,9 @@ import * as Bluebird from 'bluebird';
 import { EventEmitter } from 'events';
 import { Transaction } from 'knex';
 import * as _ from 'lodash';
-import { generateUniqueKey } from 'resin-register-device';
 import StrictEventEmitter from 'strict-event-emitter-types';
 import { inspect } from 'util';
+import { generateUniqueKey } from '../lib/register-device';
 
 import { Either, isLeft, isRight, Right } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
@@ -27,10 +27,10 @@ interface ConfigOpts {
 }
 
 export type ConfigMap<T extends SchemaTypeKey> = {
-	[key in T]: SchemaReturn<key>
+	[key in T]: SchemaReturn<key>;
 };
 export type ConfigChangeMap<T extends SchemaTypeKey> = {
-	[key in T]?: SchemaReturn<key>
+	[key in T]?: SchemaReturn<key>;
 };
 
 // Export this type renamed, for storing config keys
@@ -56,10 +56,8 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		);
 	}
 
-	public init(): Bluebird<void> {
-		return this.configJsonBackend.init().then(() => {
-			return this.generateRequiredFields();
-		});
+	public async init() {
+		await this.generateRequiredFields();
 	}
 
 	public get<T extends SchemaTypeKey>(
@@ -125,11 +123,11 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		}) as Bluebird<{ [key in T]: SchemaReturn<key> }>;
 	}
 
-	public set<T extends SchemaTypeKey>(
+	public async set<T extends SchemaTypeKey>(
 		keyValues: ConfigMap<T>,
 		trx?: Transaction,
-	): Bluebird<void> {
-		const setValuesInTransaction = (tx: Transaction) => {
+	): Promise<void> {
+		const setValuesInTransaction = async (tx: Transaction) => {
 			const configJsonVals: Dictionary<unknown> = {};
 			const dbVals: Dictionary<unknown> = {};
 
@@ -152,75 +150,67 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 			});
 
 			const dbKeys = _.keys(dbVals) as T[];
-			return this.getMany(dbKeys, tx)
-				.then(oldValues => {
-					return Bluebird.map(dbKeys, (key: T) => {
-						const value = dbVals[key];
+			const oldValues = await this.getMany(dbKeys, tx);
+			await Bluebird.map(dbKeys, async (key: T) => {
+				const value = dbVals[key];
 
-						// if we have anything other than a string, it must be converted to
-						// a string before being stored in the db
-						const strValue = Config.valueToString(value, key);
+				// if we have anything other than a string, it must be converted to
+				// a string before being stored in the db
+				const strValue = Config.valueToString(value, key);
 
-						if (oldValues[key] !== value) {
-							return this.db.upsertModel(
-								'config',
-								{ key, value: strValue },
-								{ key },
-								tx,
-							);
-						}
-					});
-				})
-				.then(() => {
-					if (!_.isEmpty(configJsonVals)) {
-						return this.configJsonBackend.set(configJsonVals as {
-							[key in Schema.SchemaKey]: unknown
-						});
-					}
-				});
+				if (oldValues[key] !== value) {
+					await this.db.upsertModel(
+						'config',
+						{ key, value: strValue },
+						{ key },
+						tx,
+					);
+				}
+			});
+
+			if (!_.isEmpty(configJsonVals)) {
+				await this.configJsonBackend.set(
+					configJsonVals as {
+						[name in Schema.SchemaKey]: unknown;
+					},
+				);
+			}
 		};
 
-		return Bluebird.try(() => {
-			// Firstly validate and coerce all of the types as
-			// they are being set
-			keyValues = this.validateConfigMap(keyValues);
+		// Firstly validate and coerce all of the types as
+		// they are being set
+		keyValues = this.validateConfigMap(keyValues);
 
-			if (trx != null) {
-				return setValuesInTransaction(trx).return();
-			} else {
-				return this.db
-					.transaction((tx: Transaction) => setValuesInTransaction(tx))
-					.return();
-			}
-		}).then(() => {
-			this.emit('change', keyValues as ConfigMap<SchemaTypeKey>);
-		});
+		if (trx != null) {
+			await setValuesInTransaction(trx);
+		} else {
+			await this.db.transaction((tx: Transaction) =>
+				setValuesInTransaction(tx),
+			);
+		}
+		this.emit('change', keyValues as ConfigMap<SchemaTypeKey>);
 	}
 
-	public remove<T extends Schema.SchemaKey>(key: T): Bluebird<void> {
-		return Bluebird.try(() => {
-			if (Schema.schema[key] == null || !Schema.schema[key].mutable) {
-				throw new Error(
-					`Attempt to delete non-existent or immutable key ${key}`,
-				);
-			}
-			if (Schema.schema[key].source === 'config.json') {
-				return this.configJsonBackend.remove(key);
-			} else if (Schema.schema[key].source === 'db') {
-				return this.db
-					.models('config')
-					.del()
-					.where({ key });
-			} else {
-				throw new Error(
-					`Unknown or unsupported config backend: ${Schema.schema[key].source}`,
-				);
-			}
-		});
+	public async remove<T extends Schema.SchemaKey>(key: T): Promise<void> {
+		if (Schema.schema[key] == null || !Schema.schema[key].mutable) {
+			throw new Error(`Attempt to delete non-existent or immutable key ${key}`);
+		}
+		if (Schema.schema[key].source === 'config.json') {
+			return this.configJsonBackend.remove(key);
+		} else if (Schema.schema[key].source === 'db') {
+			await this.db
+				.models('config')
+				.del()
+				.where({ key });
+		} else {
+			throw new Error(
+				`Unknown or unsupported config backend: ${Schema.schema[key].source}`,
+			);
+		}
 	}
 
-	public regenerateRegistrationFields(): Bluebird<void> {
-		return this.set({
+	public async regenerateRegistrationFields(): Promise<void> {
+		await this.set({
 			uuid: this.newUniqueKey(),
 			deviceApiKey: this.newUniqueKey(),
 		});
@@ -314,7 +304,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		}) as ConfigMap<T>;
 	}
 
-	private generateRequiredFields() {
+	private async generateRequiredFields() {
 		return this.getMany([
 			'uuid',
 			'deviceApiKey',

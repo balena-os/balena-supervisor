@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import fs = require('mz/fs');
+import { child_process, fs } from 'mz';
 
 import { InternalInconsistencyError } from './errors';
 import log from './supervisor-console';
@@ -57,4 +57,29 @@ export function getOSVariant(path: string): Promise<string | undefined> {
 
 export function getOSSemver(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'VERSION');
+}
+
+const L4T_REGEX = /^.*-l4t-r(\d+\.\d+(\.?\d+)?).*$/;
+export async function getL4tVersion(): Promise<string | undefined> {
+	// We call `uname -r` on the host, and look for l4t
+	try {
+		const [stdout] = await child_process.exec('uname -r');
+		const match = L4T_REGEX.exec(stdout.toString().trim());
+		if (match == null) {
+			return;
+		}
+
+		let res = match[1];
+		if (match[2] == null) {
+			// We were only provided with 2 version numbers
+			// We add a .0 onto the end, to allow always being
+			// able to use semver comparisons
+			res += '.0';
+		}
+
+		return res;
+	} catch (e) {
+		log.error('Could not detect l4t version! Error: ', e);
+		return;
+	}
 }

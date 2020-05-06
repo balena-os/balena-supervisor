@@ -12,6 +12,7 @@ import LocalModeManager, {
 	EngineSnapshotRecord,
 } from '../src/local-mode';
 import Logger from '../src/logger';
+import ShortStackError from './lib/errors';
 
 describe('LocalModeManager', () => {
 	let dbFile: tmp.FileResult;
@@ -178,9 +179,9 @@ describe('LocalModeManager', () => {
 			const stubEngineObjectMethods = (
 				removeThrows: boolean,
 			): Array<sinon.SinonStubbedInstance<EngineStubbedObject>> => {
-				const resArray: Array<
-					sinon.SinonStubbedInstance<EngineStubbedObject>
-				> = [];
+				const resArray: Array<sinon.SinonStubbedInstance<
+					EngineStubbedObject
+				>> = [];
 
 				const stub = <T>(
 					c: sinon.StubbableType<EngineStubbedObject>,
@@ -188,7 +189,7 @@ describe('LocalModeManager', () => {
 				) => {
 					const res = sinon.createStubInstance(c);
 					if (removeThrows) {
-						res.remove.rejects(`test error removing ${type}`);
+						res.remove.rejects(new ShortStackError(`error removing ${type}`));
 					} else {
 						res.remove.resolves();
 					}

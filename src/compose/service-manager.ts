@@ -96,9 +96,9 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 	public async get(service: Service) {
 		// Get the container ids for special network handling
 		const containerIds = await this.getContainerIdMap(service.appId!);
-		const services = (await this.getAll(
-			`service-id=${service.serviceId}`,
-		)).filter(currentService =>
+		const services = (
+			await this.getAll(`service-id=${service.serviceId}`)
+		).filter(currentService =>
 			currentService.isEqualConfig(service, containerIds),
 		);
 
@@ -158,9 +158,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		const svc = await this.get(service);
 		if (svc.containerId == null) {
 			throw new InternalInconsistencyError(
-				`No containerId provided for service ${
-					service.serviceName
-				} in ServiceManager.updateMetadata. Service: ${service}`,
+				`No containerId provided for service ${service.serviceName} in ServiceManager.updateMetadata. Service: ${service}`,
 			);
 		}
 
@@ -184,9 +182,9 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 	public async killAllLegacy(): Promise<void> {
 		// Containers haven't been normalized (this is an updated supervisor)
 		// so we need to stop and remove them
-		const supervisorImageId = (await this.docker
-			.getImage(constants.supervisorImage)
-			.inspect()).Id;
+		const supervisorImageId = (
+			await this.docker.getImage(constants.supervisorImage).inspect()
+		).Id;
 
 		for (const container of await this.docker.listContainers({ all: true })) {
 			if (container.ImageID !== supervisorImageId) {
@@ -212,9 +210,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 
 		if (existingService.containerId == null) {
 			throw new InternalInconsistencyError(
-				`No containerId provided for service ${
-					service.serviceName
-				} in ServiceManager.updateMetadata. Service: ${service}`,
+				`No containerId provided for service ${service.serviceName} in ServiceManager.updateMetadata. Service: ${service}`,
 			);
 		}
 
@@ -248,9 +244,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			const existing = await this.get(service);
 			if (existing.containerId == null) {
 				throw new InternalInconsistencyError(
-					`No containerId provided for service ${
-						service.serviceName
-					} in ServiceManager.updateMetadata. Service: ${service}`,
+					`No containerId provided for service ${service.serviceName} in ServiceManager.updateMetadata. Service: ${service}`,
 				);
 			}
 			return this.docker.getContainer(existing.containerId);
@@ -371,9 +365,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			const imageId = service.imageId;
 			if (serviceId == null || imageId == null) {
 				throw new InternalInconsistencyError(
-					`serviceId and imageId not defined for service: ${
-						service.serviceName
-					} in ServiceManager.start`,
+					`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.start`,
 				);
 			}
 
@@ -401,7 +393,10 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 
 		const listen = async () => {
 			const stream = await this.docker.getEvents({
-				filters: { type: ['container'] },
+				// Remove the as any once
+				// https://github.com/DefinitelyTyped/DefinitelyTyped/pull/43100
+				// is merged and released
+				filters: { type: ['container'] } as any,
 			});
 
 			stream.on('error', e => {
@@ -439,9 +434,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 									const imageId = service.imageId;
 									if (serviceId == null || imageId == null) {
 										throw new InternalInconsistencyError(
-											`serviceId and imageId not defined for service: ${
-												service.serviceName
-											} in ServiceManager.listenToEvents`,
+											`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
 										);
 									}
 									this.logger.attach(this.docker, data.id, {
@@ -488,17 +481,13 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				const imageId = service.imageId;
 				if (serviceId == null || imageId == null) {
 					throw new InternalInconsistencyError(
-						`serviceId and imageId not defined for service: ${
-							service.serviceName
-						} in ServiceManager.start`,
+						`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.start`,
 					);
 				}
 
 				if (service.containerId == null) {
 					throw new InternalInconsistencyError(
-						`containerId not defined for service: ${
-							service.serviceName
-						} in ServiceManager.attachToRunning`,
+						`containerId not defined for service: ${service.serviceName} in ServiceManager.attachToRunning`,
 					);
 				}
 				this.logger.attach(this.docker, service.containerId, {
@@ -638,17 +627,13 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		const svc = await this.get(service);
 		if (svc.containerId == null) {
 			throw new InternalInconsistencyError(
-				`No containerId provided for service ${
-					service.serviceName
-				} in ServiceManager.prepareForHandover. Service: ${service}`,
+				`No containerId provided for service ${service.serviceName} in ServiceManager.prepareForHandover. Service: ${service}`,
 			);
 		}
 		const container = this.docker.getContainer(svc.containerId);
 		await container.update({ RestartPolicy: {} });
 		return await container.rename({
-			name: `old_${service.serviceName}_${service.imageId}_${service.imageId}_${
-				service.releaseId
-			}`,
+			name: `old_${service.serviceName}_${service.imageId}_${service.imageId}_${service.releaseId}`,
 		});
 	}
 
@@ -670,17 +655,13 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 					return wait();
 				} else {
 					log.info(
-						`Handover timeout has passed, assuming handover was completed for service ${
-							service.serviceName
-						}`,
+						`Handover timeout has passed, assuming handover was completed for service ${service.serviceName}`,
 					);
 				}
 			});
 
 		log.info(
-			`Waiting for handover to be completed for service: ${
-				service.serviceName
-			}`,
+			`Waiting for handover to be completed for service: ${service.serviceName}`,
 		);
 
 		return wait().then(() => {

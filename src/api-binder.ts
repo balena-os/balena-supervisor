@@ -4,17 +4,16 @@ import * as express from 'express';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import * as _ from 'lodash';
-import * as Path from 'path';
 import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
-import * as deviceRegister from 'resin-register-device';
 import * as url from 'url';
+import * as deviceRegister from './lib/register-device';
 
 import Config, { ConfigType } from './config';
 import Database from './db';
-import DeviceConfig from './device-config';
 import { EventTracker } from './event-tracker';
+import { loadBackupFromMigration } from './lib/migration';
 
-import * as constants from './lib/constants';
+import constants = require('./lib/constants');
 import {
 	ContractValidationError,
 	ContractViolationError,
@@ -22,18 +21,18 @@ import {
 	ExchangeKeyError,
 	InternalInconsistencyError,
 } from './lib/errors';
-import { pathExistsOnHost } from './lib/fs-utils';
 import * as request from './lib/request';
 import { writeLock } from './lib/update-lock';
-import { DeviceApplicationState } from './types/state';
+import { DeviceStatus, TargetState } from './types/state';
 
 import log from './lib/supervisor-console';
 
-import DeviceState = require('./device-state');
+import DeviceState from './device-state';
+import * as globalEventBus from './event-bus';
 import Logger from './logger';
 
-const REPORT_SUCCESS_DELAY = 1000;
-const MAX_REPORT_RETRY_DELAY = 60000;
+// The exponential backoff starts at 15s
+const MINIMUM_BACKOFF_DELAY = 15000;
 
 const INTERNAL_STATE_KEYS = [
 	'update_pending',
@@ -45,7 +44,6 @@ export interface APIBinderConstructOpts {
 	config: Config;
 	// FIXME: Remove this
 	db: Database;
-	deviceState: DeviceState;
 	eventTracker: EventTracker;
 	logger: Logger;
 }
@@ -73,42 +71,38 @@ export class APIBinder {
 	public router: express.Router;
 
 	private config: Config;
-	private deviceState: {
-		deviceConfig: DeviceConfig;
-		[key: string]: any;
-	};
+	private deviceState: DeviceState;
 	private eventTracker: EventTracker;
 	private logger: Logger;
 
 	public balenaApi: PinejsClientRequest | null = null;
+	// TODO{type}: Retype me when all types are sorted
 	private cachedBalenaApi: PinejsClientRequest | null = null;
-	private lastReportedState: DeviceApplicationState = {
+	private lastReportedState: DeviceStatus = {
 		local: {},
 		dependent: {},
 	};
-	private stateForReport: DeviceApplicationState = {
+	private stateForReport: DeviceStatus = {
 		local: {},
 		dependent: {},
 	};
-	private lastTarget: DeviceApplicationState = {};
+	private lastTarget: TargetState;
 	private lastTargetStateFetch = process.hrtime();
 	private reportPending = false;
 	private stateReportErrors = 0;
 	private targetStateFetchErrors = 0;
 	private readyForUpdates = false;
 
-	public constructor({
-		config,
-		deviceState,
-		eventTracker,
-		logger,
-	}: APIBinderConstructOpts) {
+	public constructor({ config, eventTracker, logger }: APIBinderConstructOpts) {
 		this.config = config;
-		this.deviceState = deviceState;
 		this.eventTracker = eventTracker;
 		this.logger = logger;
 
 		this.router = this.createAPIBinderRouter(this);
+	}
+
+	public setDeviceState(deviceState: DeviceState) {
+		this.deviceState = deviceState;
 	}
 
 	public async healthcheck() {
@@ -143,9 +137,15 @@ export class APIBinder {
 	}
 
 	public async initClient() {
-		const { unmanaged, apiEndpoint, currentApiKey } = await this.config.getMany(
-			['unmanaged', 'apiEndpoint', 'currentApiKey'],
-		);
+		const {
+			unmanaged,
+			apiEndpoint,
+			currentApiKey,
+		} = await this.config.getMany([
+			'unmanaged',
+			'apiEndpoint',
+			'currentApiKey',
+		]);
 
 		if (unmanaged) {
 			log.debug('Unmanaged mode is set, skipping API client initialization');
@@ -162,25 +162,6 @@ export class APIBinder {
 			passthrough,
 		});
 		this.cachedBalenaApi = this.balenaApi.clone({}, { cache: {} });
-	}
-
-	public async loadBackupFromMigration(retryDelay: number): Promise<void> {
-		try {
-			const exists = await pathExistsOnHost(
-				Path.join('mnt/data', constants.migrationBackupFile),
-			);
-			if (!exists) {
-				return;
-			}
-			log.info('Migration backup detected');
-			const targetState = await this.getTargetState();
-			await this.deviceState.restoreBackup(targetState);
-		} catch (err) {
-			log.error(`Error restoring migration backup, retrying: ${err}`);
-
-			await Bluebird.delay(retryDelay);
-			return this.loadBackupFromMigration(retryDelay);
-		}
 	}
 
 	public async start() {
@@ -222,7 +203,16 @@ export class APIBinder {
 		log.debug('Starting current state report');
 		await this.startCurrentStateReport();
 
-		await this.loadBackupFromMigration(bootstrapRetryDelay);
+		// When we've provisioned, try to load the backup. We
+		// must wait for the provisioning because we need a
+		// target state on which to apply the backup
+		globalEventBus.getInstance().once('targetStateChanged', async state => {
+			await loadBackupFromMigration(
+				this.deviceState,
+				state,
+				bootstrapRetryDelay,
+			);
+		});
 
 		this.readyForUpdates = true;
 		log.debug('Starting target state poll');
@@ -327,11 +317,10 @@ export class APIBinder {
 
 		return (await this.balenaApi
 			.post({ resource: 'device', body: device })
-			// TODO: Remove the `as number` when we fix the config typings
 			.timeout(conf.apiTimeout)) as Device;
 	}
 
-	public async getTargetState(): Promise<DeviceApplicationState> {
+	public async getTargetState(): Promise<TargetState> {
 		const { uuid, apiEndpoint, apiTimeout } = await this.config.getMany([
 			'uuid',
 			'apiEndpoint',
@@ -355,9 +344,9 @@ export class APIBinder {
 			this.cachedBalenaApi.passthrough,
 		);
 
-		return await this.cachedBalenaApi
+		return (await this.cachedBalenaApi
 			._request(requestParams)
-			.timeout(apiTimeout);
+			.timeout(apiTimeout)) as TargetState;
 	}
 
 	// TODO: Once 100% typescript, change this to a native promise
@@ -395,8 +384,14 @@ export class APIBinder {
 				'Attempt to communicate with API, without initialized client',
 			);
 		}
+
+		const deviceId = await this.config.get('deviceId');
+		if (deviceId == null) {
+			throw new Error('Attempt to retrieve device tags before provision');
+		}
 		const tags = (await this.balenaApi.get({
 			resource: 'device_tag',
+			id: deviceId,
 			options: {
 				$select: ['id', 'tag_key', 'value'],
 			},
@@ -422,7 +417,7 @@ export class APIBinder {
 		});
 	}
 
-	private getStateDiff(): DeviceApplicationState {
+	private getStateDiff(): DeviceStatus {
 		const lastReportedLocal = this.lastReportedState.local;
 		const lastReportedDependent = this.lastReportedState.dependent;
 		if (lastReportedLocal == null || lastReportedDependent == null) {
@@ -435,13 +430,13 @@ export class APIBinder {
 
 		const diff = {
 			local: _(this.stateForReport.local)
-				.omitBy((val, key: keyof DeviceApplicationState['local']) =>
+				.omitBy((val, key: keyof DeviceStatus['local']) =>
 					_.isEqual(lastReportedLocal[key], val),
 				)
 				.omit(INTERNAL_STATE_KEYS)
 				.value(),
 			dependent: _(this.stateForReport.dependent)
-				.omitBy((val, key: keyof DeviceApplicationState['dependent']) =>
+				.omitBy((val, key: keyof DeviceStatus['dependent']) =>
 					_.isEqual(lastReportedDependent[key], val),
 				)
 				.omit(INTERNAL_STATE_KEYS)
@@ -452,7 +447,7 @@ export class APIBinder {
 	}
 
 	private async sendReportPatch(
-		stateDiff: DeviceApplicationState,
+		stateDiff: DeviceStatus,
 		conf: { apiEndpoint: string; uuid: string; localMode: boolean },
 	) {
 		if (this.cachedBalenaApi == null) {
@@ -490,9 +485,7 @@ export class APIBinder {
 
 	// Returns an object that contains only status fields relevant for the local mode.
 	// It basically removes information about applications state.
-	public stripDeviceStateInLocalMode(
-		state: DeviceApplicationState,
-	): DeviceApplicationState {
+	public stripDeviceStateInLocalMode(state: DeviceStatus): DeviceStatus {
 		return {
 			local: _.cloneDeep(
 				_.omit(state.local, 'apps', 'is_on__commit', 'logs_channel'),
@@ -500,7 +493,7 @@ export class APIBinder {
 		};
 	}
 
-	private async report() {
+	private report = _.throttle(async () => {
 		const conf = await this.config.getMany([
 			'deviceId',
 			'apiTimeout',
@@ -535,16 +528,14 @@ export class APIBinder {
 				// the watchdog to kill the supervisor - and killing the supervisor will
 				// not help in this situation
 				log.error(
-					`Non-200 response from the API! Status code: ${
-						e.statusCode
-					} - message:`,
+					`Non-200 response from the API! Status code: ${e.statusCode} - message:`,
 					e,
 				);
 			} else {
 				throw e;
 			}
 		}
-	}
+	}, constants.maxReportFrequency);
 
 	private reportCurrentState(): null {
 		(async () => {
@@ -561,18 +552,20 @@ export class APIBinder {
 				}
 
 				await this.report();
-				await Bluebird.delay(REPORT_SUCCESS_DELAY);
-				await this.reportCurrentState();
+				this.reportCurrentState();
 			} catch (e) {
 				this.eventTracker.track('Device state report failure', { error: e });
+				// We use the poll interval as the upper limit of
+				// the exponential backoff
+				const maxDelay = await this.config.get('appUpdatePollInterval');
 				const delay = Math.min(
-					2 ** this.stateReportErrors * 500,
-					MAX_REPORT_RETRY_DELAY,
+					2 ** this.stateReportErrors * MINIMUM_BACKOFF_DELAY,
+					maxDelay,
 				);
 
 				++this.stateReportErrors;
 				await Bluebird.delay(delay);
-				await this.reportCurrentState();
+				this.reportCurrentState();
 			}
 		})();
 		return null;
@@ -613,10 +606,10 @@ export class APIBinder {
 	}
 
 	private async pollTargetState(isInitialCall: boolean = false): Promise<void> {
-		// TODO: Remove the checkInt here with the config changes
-		const { appUpdatePollInterval, instantUpdates } = await this.config.getMany(
-			['appUpdatePollInterval', 'instantUpdates'],
-		);
+		const {
+			appUpdatePollInterval,
+			instantUpdates,
+		} = await this.config.getMany(['appUpdatePollInterval', 'instantUpdates']);
 
 		// We add jitter to the poll interval so that it's between 0.5 and 1.5 times
 		// the configured interval
@@ -718,6 +711,11 @@ export class APIBinder {
 		);
 		const deviceId = await this.config.get('deviceId');
 
+		if (!currentState.local.config) {
+			throw new InternalInconsistencyError(
+				'No config defined in reportInitialEnv',
+			);
+		}
 		const currentConfig: Dictionary<string> = currentState.local.config;
 		for (const [key, value] of _.toPairs(currentConfig)) {
 			let varValue = value;
@@ -885,9 +883,7 @@ export class APIBinder {
 					'Attempting to provision a device without an initialized API client',
 				);
 			}
-			this.balenaApi.passthrough.headers.Authorization = `Bearer ${
-				opts.deviceApiKey
-			}`;
+			this.balenaApi.passthrough.headers.Authorization = `Bearer ${opts.deviceApiKey}`;
 
 			const configToUpdate = {
 				registered_at: opts.registered_at,
@@ -941,7 +937,9 @@ export class APIBinder {
 		]);
 
 		if (!conf.provisioned || conf.apiKey != null || conf.pinDevice != null) {
-			return this.provisionOrRetry(conf.bootstrapRetryDelay as number);
+			await this.provisionOrRetry(conf.bootstrapRetryDelay);
+			globalEventBus.getInstance().emit('deviceProvisioned');
+			return;
 		}
 
 		return conf;

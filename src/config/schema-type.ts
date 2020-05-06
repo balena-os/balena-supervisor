@@ -38,6 +38,10 @@ export const schemaTypes = {
 		type: t.string,
 		default: '',
 	},
+	deviceArch: {
+		type: t.string,
+		default: 'unknown',
+	},
 	deviceType: {
 		type: t.string,
 		default: 'unknown',
@@ -225,6 +229,7 @@ export const schemaTypes = {
 			apiEndpoint: t.string,
 			version: t.string,
 			deviceType: t.string,
+			deviceArch: t.string,
 			osVersion: t.union([t.string, NullOrUndefined]),
 		}),
 		default: t.never,

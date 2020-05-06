@@ -1,4 +1,1533 @@
 - commits:
+    - subject: Move build files into build-conf and rename to build-utils
+      hash: 02d088d351327ee5cab46029efb3ca7dce067fd6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Fix knex migration require translation
+      hash: 585bd803134db999425fae322fd4e7259caaa27a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1274'
+        closes: '#1274'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.3.2
+  date: 2020-05-05T16:58:04.403Z
+- commits:
+    - subject: Remove legacy fallback to DROP rule in iptables
+      hash: 31957566e5f5b21910988319472721ce2a931a38
+      body: |
+        This has not been necessary for a long time, and wwe can now remove it.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add an ESTABLISHED flag to API iptables rules
+      hash: 7b1f03ced509cdbdbea950e079ba2fab5c3699bb
+      body: |
+        This allows a response to an input with dport=`supevisor api port` and
+        is required when the host OS is doing stateful firewalling.
+
+        This should not affect things when stateful firewalling is not in
+        effect, as the standard OUTPUT chain policy is ACCEPT, so we're just
+        being explicit about it.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Backport-to: 'next, current, sunset'
+        backport-to: 'next, current, sunset'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add ESR information to repo.yml
+      hash: 7f5395da885146ccf707fa52f0916afa7c832eeb
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.3.1
+  date: 2020-05-05T11:18:20.667Z
+- commits:
+    - subject: Added Bearer Authorization spec
+      hash: 2007a98940ea93f8064b045fce52133a4b48bac0
+      body: ''
+      footer:
+        Closes: '#1249'
+        closes: '#1249'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.3.0
+  date: 2020-05-04T17:26:19.216Z
+- commits:
+    - subject: Added explanation README for running specific tests
+      hash: a8ac3d0bc9344653d68c43fe3298171b379823d7
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.2.0
+  date: 2020-04-30T19:05:08.820Z
+- commits:
+    - subject: Remove coverage running and modules
+      hash: 6c360c2273ad2ab66ed254a1172f138d4c1430d8
+      body: |
+        The coverage no longer works with es2020, and nobody really pays any
+        attention to the coverage as it is.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.11
+  date: 2020-04-28T12:56:50.014Z
+- commits:
+    - subject: Update balena-register-device to fix provisioning
+      hash: 7c27a561a8401054304fb967d5805b446e0cb3a1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.10
+  date: 2020-04-27T17:48:09.624Z
+- commits:
+    - subject: Added protocol to semver.org link
+      hash: f9d7951cc5c1b20e989d04471a73d491118b3dfe
+      body: ''
+      footer:
+        Closes: '#1256'
+        closes: '#1256'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.1.9
+  date: 2020-04-22T21:42:29.017Z
+- commits:
+    - subject: Actually remove dbus-native dependency
+      hash: 508708aa32a56f23cc3a8df9e8071d340879a936
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.8
+  date: 2020-04-21T13:30:10.250Z
+- commits:
+    - subject: Fix livepush predicate for POSIX sh in entry.sh
+      hash: e2eba6280d19e5d74c9e3bb7bbfeea797378b08d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.7
+  date: 2020-04-21T11:59:25.840Z
+- commits:
+    - subject: Remove double printing of API status error
+      hash: f599799950c9182cf97ef40dd894feb25c833e67
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.6
+  date: 2020-04-21T08:57:07.074Z
+- commits:
+    - subject: ⤴️ Upgrade migrations to work with knex
+      hash: f79142482921bf925e8bbf879b04ea533b5e01cd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: "\U0001F4C4 Upgrade knex to avoid CVE-2019-10757"
+      hash: a43d71d1ac6d6d09b3fb6375a5ad97690fd979c1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.5
+  date: 2020-04-15T12:40:19.254Z
+- commits:
+    - subject: "\U0001F50E Also watch js files during livepush"
+      hash: aa46be93d43540793245c0f6c2e895f32fb44e1e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Clear changed files after successful livepush invocation
+      hash: 4f2a534075ae2c6037070ef90f38a3066d08c53e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Use livepush commands for copying and running dev specific steps
+      hash: 67c3055fd4be341248a213828550b2b04ccc2677
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.4
+  date: 2020-04-14T09:53:51.068Z
+- commits:
+    - subject: "\U0001F680 Update supervisor to node12"
+      hash: 826eec2e4fe29860d23cf6c2276390b5c7f26a09
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.3
+  date: 2020-04-13T13:40:05.787Z
+- commits:
+    - subject: Move from dbus-native to dbus
+      hash: 37feb7e325ccf8639680e9a1f274b5755e5d35a2
+      body: ''
+      footer:
+        Closes: '#1049'
+        closes: '#1049'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.2
+  date: 2020-04-13T09:36:34.724Z
+- commits:
+    - subject: Update copy-webpack-plugin
+      hash: e5f1a6b6ed7473ebfaa9f67ec0d258e9edef38b7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update ts-loader to 6.x
+      hash: 59f300df629422284665b19b5cf9d931bfc30fcf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update fork-ts-checker-webpack-plugin to 4.x
+      hash: 9ed36ec00651199dc92afee1a41e6ef5bb8534c7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.1.1
+  date: 2020-04-10T11:51:52.777Z
+- commits:
+    - subject: Support matching on device type within contracts
+      hash: c9c0e650cb0f6655ac5a6c545e6b009c6fe6fa1c
+      body: ''
+      footer:
+        Closes: '#1191'
+        closes: '#1191'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.1.0
+  date: 2020-04-09T09:47:30.853Z
+- commits:
+    - subject: Workaround a circular dependency
+      hash: a59af6abe894000cd9cdc43d6963bdfc572e2f2b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.9
+  date: 2020-04-08T16:43:14.411Z
+- commits:
+    - subject: Link sqlite with a system sqlite for quicker builds
+      hash: b6dde69c4f8b52fa4928242d5b04d9c203f64c65
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.8
+  date: 2020-04-08T13:06:43.833Z
+- commits:
+    - subject: Convert application-manager.coffee to javascript
+      hash: a2ec35456b8bc23641144fb0f7136d1d364f1fce
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.7
+  date: 2020-04-08T11:18:00.532Z
+- commits:
+    - subject: Don't sync test files with livepush
+      hash: 6dda0efa1fc54765450aac235393883f293b9bc5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.6
+  date: 2020-04-08T07:44:13.444Z
+- commits:
+    - subject: Add newTargetState event and use it for backup loading
+      hash: 0a429f60a5dc93a428e5e88932e7d2bbcdb81b36
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.5
+  date: 2020-04-07T13:53:23.726Z
+- commits:
+    - subject: Don't wrap UpdatesLockedErrors with a detailed error
+      hash: dda627021991f45818ce723e0ee83c085b2c785d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.4
+  date: 2020-04-07T12:15:24.426Z
+- commits:
+    - subject: Allow spaces in volume definitions
+      hash: 0950b66c52f2af10fcd44cb60f1b18007dd8aef0
+      body: ''
+      footer:
+        Closes: '#1247'
+        closes: '#1247'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.3
+  date: 2020-04-07T09:38:43.764Z
+- commits:
+    - subject: Update to balena-register-device 6.0.1
+      hash: 81927d78612aa5944aab8a1322735e32c311d927
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.0.2
+  date: 2020-04-06T16:47:10.397Z
+- commits:
+    - subject: Don't mangle names when minimising with webpack
+      hash: 6fe3bfa4f2668fd364a977ccf4830e91b07fd47a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.1
+  date: 2020-04-06T12:39:03.990Z
+- commits:
+    - subject: ⚡ Update synchronisation scripts for supervisor development
+      hash: 8ab63656bd483645fe0238fee2a1824158f3f453
+      body: |
+        We move the old sync.js script to tools/, and delete the now-broken
+        sync-debug.js.
+
+        We add a command `npm run sync`, which starts a livepush process
+        with the supervisor on a device.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: "\U0001F527 Move to an alpine base image and drop i386-nlp support"
+      hash: 3690acbd70df726030b648a1c32a9b2b21015232
+      body: >
+        We also remove the Makefile to go to a simpler build system, as long
+        with
+
+        the retry_docker_push.sh file. We remove the rest of the automation
+        tools
+
+        as they're no longer used and update the circle.yml file.
+
+
+        We also remove debug builds, as these aren't needed moving forward, and
+        were
+
+        only to enable livepush builds.
+      footer:
+        Change-type: major
+        change-type: major
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.0.0
+  date: 2020-04-06T12:07:51.757Z
+- commits:
+    - subject: Convert test/18-startup.coffee to typescript
+      hash: d3221ca235aa0bd22191516f3eeebcabdf32e94b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/19-compose-utils.coffee to javascript
+      hash: 70b07055513f8948bf4c9867718ed4df3df61bc1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/18-compose-network.coffee to javascript
+      hash: 98e956831a4f8dc9e7e08bc98b21c0f8dd89e263
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/17-config-utils.spec.coffee to javascript
+      hash: d3cf650ac48e94a1f7040b72b497e11945671015
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/16-ports.spec.coffee to typescript
+      hash: dcb01cb8632c6a438e3989e6cbcdf2639d0367ba
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/15-conversions.spec.coffee to javascript
+      hash: 515fb059f409ba33b0537c778e7d8191bf387a48
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert test/12-logger.spec.coffee to javascript
+      hash: fd4cec31e7473d53ffa6a8650b341e7dec49a2cf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.11.3
+  date: 2020-04-02T13:29:44.498Z
+- commits:
+    - subject: Pass in deviceId when fetching device tags
+      hash: 3c59944ce126570cc814626f20a9d67d6e67ff4d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1237'
+        closes: '#1237'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.11.2
+  date: 2020-03-31T11:48:13.361Z
+- commits:
+    - subject: "\U0001F527 Update resin-lint -> balena-lint in lintstaged"
+      hash: 2433f9a343d26233fff3d5bed14a548feded23ad
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.11.1
+  date: 2020-03-30T17:41:43.882Z
+- commits:
+    - subject: Add BALENA_DEVICE_ARCH environment variable for containers
+      hash: 3af89cd13fce04f43332c1d4502e2edf07a22141
+      body: ''
+      footer:
+        Closes: '#1232'
+        closes: '#1232'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.11.0
+  date: 2020-03-30T15:42:53.398Z
+- commits:
+    - subject: Don't throw an error when getting an unhealthy state
+      hash: 6b827a3f57f242e36e2a008632a28199ba569f63
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.10.15
+  date: 2020-03-30T09:10:59.937Z
+- commits:
+    - subject: Convert src/device-api/common.coffee to javascript
+      hash: 15fca80d2ddb16b368f0d2c34fb56b5b9bb6217f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.14
+  date: 2020-03-28T13:43:13.705Z
+- commits:
+    - subject: Switch to mz for the proxyvisor
+      hash: 6ab69e1a69cf839538812aff3b9dc72c5a7937ef
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Convert proxyvisor to javascript
+      hash: c1e5b98ae562851be61f74583743298803bf5195
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.13
+  date: 2020-03-27T17:53:13.782Z
+- commits:
+    - subject: Remove unnecessary code from application-manager
+      hash: 686f72ecf78d3f7a1b93102fd161cca8c562bfb7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Switch to a named export for application-manager
+      hash: 968e2ba0fb1dc99b826e8f32a23d10945697f340
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.12
+  date: 2020-03-26T23:53:03.757Z
+- commits:
+    - subject: Convert device-api/v1 to javascript
+      hash: 56c13fb96346e9100a60f1da881f6cf670c2793f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.11
+  date: 2020-03-25T12:19:20.194Z
+- commits:
+    - subject: Update livepush
+      hash: 2ff8fccb5e71a851634f8bd668f63526f48ea4c4
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.10.10
+  date: 2020-03-24T18:10:13.063Z
+- commits:
+    - subject: Add type checking for javascript files
+      hash: 9c3295c91248f125e20ccfb10a064f2a2def0431
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.9
+  date: 2020-03-24T16:40:43.161Z
+- commits:
+    - subject: Pin resin-cli-visuals to avoid build error of lzma-native
+      hash: 35e73941c57ff63164cf0876fbb9509107e5e3f2
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Update dependencies
+      hash: f2c606e1f9d37b6fefc345e42659b9ed364cba40
+      body: |
+        We also pin livepush in place while
+        https://github.com/balena-io-modules/livepush/issues/67
+        is fixed.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.10.8
+  date: 2020-03-24T14:54:44.950Z
+- commits:
+    - subject: Avoid any transpilation of node_modules
+      hash: 8fccc4a107fa965dfd60a861ba5e831c12632631
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.7
+  date: 2020-03-24T12:46:30.864Z
+- commits:
+    - subject: Add transpilation for javascript files to ease node 6 compatibility
+      hash: 8fc11df95912c6fd15d05c1cdc9fcdba854b2727
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Add a precheck that linting/tests work on node 10
+      hash: 7945bb5a77f29775233dea2695e1c20d79545f57
+      body: |
+        This allows us to avoid re-linting for every arch
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update to balena-lint and enable javascript linting
+      hash: 81966446d97b3989e65be22b7d2dec379d3bcb32
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.6
+  date: 2020-03-24T09:31:13.247Z
+- commits:
+    - subject: 'Tests: Add missing await'
+      hash: 7e6d32516de84dbaed222651e48895dc0136b2e7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.5
+  date: 2020-03-23T19:05:23.280Z
+- commits:
+    - subject: 'docs: Clarify update locks for multicontainer applications'
+      hash: a6b0c50d8effc9c63fe92d68cb4efbe397a1e05f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Gareth Davies <gareth@balena.io>
+        signed-off-by: Gareth Davies <gareth@balena.io>
+      author: Gareth Davies
+  version: 10.10.4
+  date: 2020-03-16T21:12:52.849Z
+- commits:
+    - subject: 'logging: fix up some typos'
+      hash: ab7e8b55140cc3169e9337f8c29a77468b13be7c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.10.3
+  date: 2020-03-16T19:31:23.505Z
+- commits:
+    - subject: Bump acorn from 5.7.3 to 5.7.4
+      hash: f8363fc72b21386cc3561be576d8f21ec0463c89
+      body: |
+        Bumps [acorn](https://github.com/acornjs/acorn) from 5.7.3 to 5.7.4.
+        - [Release notes](https://github.com/acornjs/acorn/releases)
+        - [Commits](https://github.com/acornjs/acorn/compare/5.7.3...5.7.4)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.10.2
+  date: 2020-03-16T15:05:54.513Z
+- commits:
+    - subject: Update dependencies
+      hash: 6e3db3bd602d30ae3d377a1526c9b904c90a6cf3
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.10.1
+  date: 2020-03-13T17:21:22.854Z
+- commits:
+    - subject: Allow semver comparison on l4t versions in contracts
+      hash: 5c50f656c33954de6f4c07f8b6c892b4bf9953cf
+      body: |
+        We add an implicit .0 to the end of l4t versions which do not fulfill
+        semver, which allows us to always match using comparison operators, such
+        as < and <=.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Allow l4t versions with three numbers as well as two
+      hash: 7d47661928288160c0a636cb630cb0ccc2292d91
+      body: ''
+      footer:
+        Closes: '#1210'
+        closes: '#1210'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.10.0
+  date: 2020-03-06T15:56:42.924Z
+- commits:
+    - subject: 'config: Support loading SSDT via ConfigFS'
+      hash: e0d2bdfaa98fe8c8d56fe981e530e6c96aef92a6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.9.2
+  date: 2020-03-05T13:33:03.818Z
+- commits:
+    - subject: Convert device-state module to typescript
+      hash: c21da8f3dbafe965ad0fae12b027066208debd12
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Improve application-manager typings
+      hash: 23094425555f0d1ef9c04c2bc500c19f62984503
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Improve and extend internal typings
+      hash: e161888516e7f234154245cfc8c9f82b6e2b656b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.9.1
+  date: 2020-02-25T07:53:23.189Z
+- commits:
+    - subject: >-
+        Add a containerId request parameter for journal-logs api endpoint, and
+        pass it along to journalctl process options.
+      hash: b5772740ae3685fceceeda513fca4ff86a183d14
+      body: ''
+      footer:
+        Change-Type: minor
+        change-type: minor
+        Signed-off-by: Ivan <ivanign04.alt@gmail.com>
+        signed-off-by: Ivan <ivanign04.alt@gmail.com>
+      author: Ivan
+  version: 10.9.0
+  date: 2020-02-24T00:17:42.799Z
+- commits:
+    - subject: Add procfs label
+      hash: 89a9d85e8743926cecbc82e8c53d37bca6f845b9
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add a sysfs feature label
+      hash: 947deb3cc62ddabb5f7309eb4ccaefaed1379b08
+      body: |
+        The new label `io.balena.features.sysfs` will mount the host /sys into
+        the container at /sys.
+
+        Relates to issue: #743
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Clean up the feature label function
+      hash: 7dcb4fa887a6141475d40583f08acd500731a3f5
+      body: |
+        Bring the labels into a more declarative format and run through them to
+        apply the various labels and env vars.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.8.0
+  date: 2020-02-13T04:03:23.393Z
+- commits:
+    - subject: Add a noinit option to sync-debug
+      hash: c47ef6d42abfe840cfa833a9f8f3789e142299e6
+      body: |
+        The noinit option will avoid doing a complete sync to the supervisor
+        on startup. This is useful when there has only been code changes, and no
+        modules etc have been added. It can be helpful when running on a network
+        with no external internet access, as everything needed is already inside
+        the container.
+
+        To aid this we also move to yargs, rather than try to do all of the
+        parsing ourselves.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.7.0
+  date: 2020-02-12T09:36:50.912Z
+- commits:
+    - subject: Update balenaos-in-container to pickup aufs2overlay changes
+      hash: 4da1faced6746b9a9d90a90aa00bee18d581bc1e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.37
+  date: 2020-02-10T16:36:43.597Z
+- commits:
+    - subject: Switch to using resin-lint for automatic lint fixing
+      hash: ab63f46b7e2c308e3cfd0b1a886d0a03bc577de6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.36
+  date: 2020-02-10T10:46:23.653Z
+- commits:
+    - subject: Dont error on a target state with multiple apps
+      hash: a27ce4f1dce2d157366b350e37caf86d871b1f52
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.35
+  date: 2020-02-10T05:09:03.570Z
+- commits:
+    - subject: 'bug: Delay sending logs until the device is provisioned'
+      hash: fe5fd2b7ef5f40d688ee85c874934487d0c2d702
+      body: ''
+      footer:
+        Connects-to: '#1189'
+        connects-to: '#1189'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.6.34
+  date: 2020-02-06T10:43:04.222Z
+- commits:
+    - subject: Allow getting the target state when not in local mode
+      hash: 3ff3bce605ebf9e53a6df4e2646031cde2a8831c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1176'
+        closes: '#1176'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.33
+  date: 2020-01-30T11:27:33.298Z
+- commits:
+    - subject: Set docker type and update CHANGELOG.md to the correct format
+      hash: d1a3663d47b5e79c611929802c3a63b375e1a24f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Giovanni Garufi <giovanni@balena.io>
+        signed-off-by: Giovanni Garufi <giovanni@balena.io>
+      author: Giovanni Garufi
+  version: 10.6.32
+  date: 2020-01-28T00:22:10.551Z
+- commits:
+    - subject: Update docker used for CI builds
+      hash: 9dc9e0704b69f3e8980c8747cb341004b9be8399
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update the deprecated `reusable` key to `docker_layer_caching` for CI
+      hash: f4f7af042d49d8b5c3720883d5fe41b2e6b6664f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Push all images in parallel for CI builds
+      hash: 7e794629289756dc42bcc459c5c715b6a2dfce34
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.31
+  date: 2020-01-17T17:03:23.152Z
+- commits:
+    - subject: Update knex types
+      hash: 027701297b5366dd512ff31e7896d0a33065c52e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update lodash types
+      hash: 1a393dbb1934e5821aa778c9316838adf0e429f5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Update types and fix issue with treating string as a number
+      hash: 0ef9cc189b66b66815d965591c31c05904bd815c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.30
+  date: 2020-01-17T14:55:05.405Z
+- commits:
+    - subject: ⌛Increase minimum backoff delay and use poll interval as max
+      hash: 53b6e8f1bbd94228a170f581f3d38963143dd436
+      body: |
+        This change will start the minimum backoff from 15s (up from 500ms) and
+        will use the appUpdatePollInterval configuration variable as the max.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.29
+  date: 2020-01-17T12:34:53.143Z
+- commits:
+    - subject: Ensure that we always have the pi4 overlay assigned
+      hash: 426d8cd10ad22fcf79b019dc49e2c2f6c27cd06d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1171'
+        closes: '#1171'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.28
+  date: 2020-01-08T17:08:33.840Z
+- commits:
+    - subject: Throttle state report patches to once per 10 seconds
+      hash: 4b0f431f9b4eadcec30a21483a5ee5e3c2ecb14b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1158'
+        closes: '#1158'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.27
+  date: 2019-12-19T12:35:53.720Z
+- commits:
+    - subject: Report the correct error when we cannot remove a network
+      hash: 2d4ac244031bdaccace508c0ca3a77df77e4c368
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.26
+  date: 2019-12-18T15:05:24.037Z
+- commits:
+    - subject: Fix healthcheck on supervisor debug builds
+      hash: 4ff54f45c189b62124d8de9293fac23b0bb32835
+      body: |
+        We were relying on wget which was not brought into the image, so we
+        switch this to curl, which is present.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.25
+  date: 2019-12-18T14:39:21.218Z
+- commits:
+    - subject: Always do a standard docker download on first pull
+      hash: 8317a1843b3d3365b362cc90b2aad1e5e61a463f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.24
+  date: 2019-12-17T10:36:33.272Z
+- commits:
+    - subject: Don't allow cross-app delta requests
+      hash: 4a74dffea96328b44cb6a4efa1938e3fb756f99a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.23
+  date: 2019-12-16T13:00:29.779Z
+- commits:
+    - subject: 'fix: ⬇️ Force a regular pull when moving from v2 to v3 deltas'
+      hash: 6db1f03411897ec6f8bcf6433782557c75864bd7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Fixes: '#1072'
+        fixes: '#1072'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.22
+  date: 2019-12-16T10:45:23.315Z
+- commits:
+    - subject: Add steps info to applyState error message
+      hash: 4895bb300a9675c70f5baa31ec04c91088a8d443
+      body: |
+        This helps to debug/diagnose problems with state application faster.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.6.21
+  date: 2019-12-12T14:27:33.589Z
+- commits:
+    - subject: Hide init method in configJson
+      hash: d9c669ebad7b115f018a922f6b329950fd86b6b1
+      body: |
+        ConfigJson users now don't need to worry about initialization.
+        It's done lazily on the first public method call.
+
+        Implementation is also rewritten to follow async/await pattern.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.6.20
+  date: 2019-12-11T18:14:09.414Z
+- commits:
+    - subject: Always filter environment configuration
+      hash: 03a701cdedf6a40aa707ca5ca22af8f1c9a14d40
+      body: |
+        This means that if an image is created with a committed container, we
+        won't assume that it does not contain the balena env vars
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.19
+  date: 2019-12-09T11:33:43.344Z
+- commits:
+    - subject: 'volumes: Allow the use of the ''driver'' setting in volumes'
+      hash: c3cf8fbca25d3f6dae5c58cf29f11b2c89d10353
+      body: |
+        A compose file can now contain a volume which uses a different driver
+        from the default one; local.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.6.18
+  date: 2019-12-02T12:02:23.535Z
+- commits:
+    - subject: Set a mock l4t version for use with optional containers
+      hash: 8cece238a9a7d552d5366ffa4170ba8998bb8bbf
+      body: |
+        Before this change a mixed device fleet with a subset using l4t would
+        not be able to have containers which only run on the l4t based boards.
+        We add a mock l4t version so the contracts will always be denied on
+        non-l4t boards, but the release itself won't fail to validate.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.17
+  date: 2019-11-29T11:09:22.902Z
+- commits:
+    - subject: 'codeowners: Add richbayliss as a code owner'
+      hash: c816b863f82dc4d73b67a69220ebbbddab3573ea
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 10.6.16
+  date: 2019-11-29T10:13:03.432Z
+- commits:
+    - subject: Handle cancelDelay not being a function
+      hash: f4605d897eea8286a3923060aea999a8eab9bc91
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1080'
+        closes: '#1080'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.15
+  date: 2019-11-28T11:31:03.427Z
+- commits:
+    - subject: Add regression test for app manager init
+      hash: f487711ba496328ea69ac815c68870975facf186
+      body: >
+        If we had it eearlier, it would have prevented #1148.
+
+        When init is called, withImagesFromDockerAndDB in images.ts is called as
+        well.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.6.14
+  date: 2019-11-27T18:04:03.732Z
+- commits:
+    - subject: Consider linux4tegra versions in container contracts
+      hash: 1a6c9d489ae1417d20a61c4240ba84bee6c8df29
+      body: |
+        Also remove ability to match on OS versions
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade prettier and resin-lint
+      hash: bba6d3d728a2f96977694a2c70f76da9d7b7629d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.13
+  date: 2019-11-27T10:25:23.493Z
+- commits:
+    - subject: Fix retrieval of container log timestamp from db
+      hash: e44c7073f990c42336e4914e9926f4205520cfee
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.12
+  date: 2019-11-20T19:26:49.334Z
+- commits:
+    - subject: Bump js-yaml from 3.12.0 to 3.13.1
+      hash: 9c88d8fb722c6005465754dff900379d091eb324
+      body: >
+        Bumps [js-yaml](https://github.com/nodeca/js-yaml) from 3.12.0 to
+        3.13.1.
+
+        - [Release notes](https://github.com/nodeca/js-yaml/releases)
+
+        -
+        [Changelog](https://github.com/nodeca/js-yaml/blob/master/CHANGELOG.md)
+
+        - [Commits](https://github.com/nodeca/js-yaml/compare/3.12.0...3.13.1)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.6.11
+  date: 2019-11-19T20:14:15.729Z
+- commits:
+    - subject: Update balenaos-in-container
+      hash: 072a2f951a653f56f3f01532706897c3a15b9c01
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.10
+  date: 2019-11-19T11:30:09.713Z
+- commits:
+    - subject: Create config.txt if there isn't one already
+      hash: 1570fd424b8c192844ce308761ac8f329dac48f5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Theodor Gherzan <theodor@balena.io>
+        signed-off-by: Theodor Gherzan <theodor@balena.io>
+      author: Theodor Gherzan
+  version: 10.6.9
+  date: 2019-11-19T09:52:10.573Z
+- commits:
+    - subject: Extract backup logic to migration
+      hash: 659697ff795c4f9282321223c7963a6d8932a8d1
+      body: |
+        Part of device-state refactor
+        Fix the wrong usage of TargetState as DeviceApplicationState
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Theodor Gherzan <theodor@balena.io>
+        signed-off-by: Theodor Gherzan <theodor@balena.io>
+      author: Theodor Gherzan
+  version: 10.6.8
+  date: 2019-11-15T17:42:19.314Z
+- commits:
+    - subject: Rebase start-resin-supervisor on latest meta-balena
+      hash: a1ddf3682d18bdd7c8dad0dd5d46cb2eb27110b7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.7
+  date: 2019-11-13T20:25:49.837Z
+- commits:
+    - subject: Switch to balenaos-in-container
+      hash: 05a566dcb595ccacc432de1290ab2500ac380b6f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.6
+  date: 2019-11-12T13:52:25.726Z
+- commits:
+    - subject: Allow specifying an absolute path for the dind config.json
+      hash: 9e660f1081cdb3da561a410b04c91807dab13133
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Fix dindctl when run from another dir
+      hash: 57d4a19f1d6c077cca5cb966de185c6a3cca695f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: Fix dindctl unknown arg error message
+      hash: b4ad29ec14a9fdffe038116b98ee293210b5d34e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 10.6.5
+  date: 2019-11-12T11:36:45.442Z
+- commits:
+    - subject: Check if appId is a number before purging
+      hash: 597f95e1696f3934b6072a775949e7fd7010340e
+      body: ''
+      footer:
+        Change-Type: patch
+        change-type: patch
+        Signed-off-by: Michel Wohlert <michel@1012consulting.io>
+        signed-off-by: Michel Wohlert <michel@1012consulting.io>
+      author: Michel Wohlert
+  version: 10.6.4
+  date: 2019-11-11T11:00:29.945Z
+- commits:
+    - subject: Extract normaliseLegacy as normalise to migration module
+      hash: cf79ed8cdb96431a5a5fbe94885c1e96680df75c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Theodor Gherzan <theodor@balena.io>
+        signed-off-by: Theodor Gherzan <theodor@balena.io>
+      author: Theodor Gherzan
+  version: 10.6.3
+  date: 2019-11-07T17:52:39.365Z
+- commits:
+    - subject: Define the database type of the application
+      hash: 053e111626330ab4cc7a7dc545c94aa0674405ee
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Extract loadTargetFromFile function to preload module
+      hash: 09a8231fdee467b8b726269a2ef1bc8338733a19
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Define TargetApplicationState in types and remove Application type
+      hash: fea80c52059752fe7d97ce9032828243355c9981
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Upgrade typescript to 3.7
+      hash: 1d89174caf116236e856ee849369f35445f29d9d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.2
+  date: 2019-11-07T09:49:48.602Z
+- commits:
+    - subject: 'event-tracker: Use std mixpanel types'
+      hash: 2143180d27d9ba0939a365ebcfd56fa069f6e2c8
+      body: >
+        Custom type definitions are removed for mixpanel module since they are
+        embedded
+
+        into their npm package.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Roman Mazur <roman@balena.io>
+        signed-off-by: Roman Mazur <roman@balena.io>
+      author: Roman Mazur
+  version: 10.6.1
+  date: 2019-11-05T21:14:55.593Z
+- commits:
+    - subject: Report any optional containers that aren't being run
+      hash: 8223bf2ccb8e3c50a79860088b5d12607ad71671
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Support optional containers based on their contract
+      hash: f75b8aad2bc7661de803b80dc7008de9a2c6a6af
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.6.0
+  date: 2019-11-05T14:48:39.493Z
+- commits:
+    - subject: Bump lodash from 4.17.11 to 4.17.13
+      hash: 835ef7908e8daba1c0362fae8aaa4b592b2d1b2f
+      body: >
+        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.11 to
+        4.17.13.
+
+        - [Release notes](https://github.com/lodash/lodash/releases)
+
+        - [Commits](https://github.com/lodash/lodash/compare/4.17.11...4.17.13)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.5.5
+  date: 2019-10-31T16:08:50.326Z
+- commits:
+    - subject: 'docs: update lockfile Python snippet'
+      hash: d12c10b0c2092615ac5d94168db703b23744006b
+      body: >
+        Port over the downstream changes from
+        https://github.com/balena-io/docs/pull/1184
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+  version: 10.5.4
+  date: 2019-10-30T13:04:37.635Z
+- commits:
+    - subject: Convert some coffeescript tests to typescript
+      hash: b5a427f2b984114e93a02233efb85df125dbbec5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Bump mixin-deep from 1.3.1 to 1.3.2
+      hash: d0f35359b3f32a87804f760c1d5303c380ea730f
+      body: >
+        Bumps [mixin-deep](https://github.com/jonschlinkert/mixin-deep) from
+        1.3.1 to 1.3.2.
+
+        - [Release notes](https://github.com/jonschlinkert/mixin-deep/releases)
+
+        -
+        [Commits](https://github.com/jonschlinkert/mixin-deep/compare/1.3.1...1.3.2)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.5.3
+  date: 2019-10-30T11:00:45.668Z
+- commits:
+    - subject: >-
+        Bump handlebars from 4.0.12 to 4.5.1 Bumps
+        [handlebars](https://github.com/wycats/handlebars.js) from 4.0.12 to
+        4.5.1. - [Release
+        notes](https://github.com/wycats/handlebars.js/releases) -
+        [Changelog](https://github.com/wycats/handlebars.js/blob/v4.5.1/release-notes.md)
+        -
+        [Commits](https://github.com/wycats/handlebars.js/compare/v4.0.12...v4.5.1)
+      hash: d767bada4eb5fd14c30a4fbd1e890848598318ff
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+  version: 10.5.2
+  date: 2019-10-29T11:48:48.695Z
+- commits:
+    - subject: Ensure that we reset rate limits after a successful target apply
+      hash: 9651bc70281afc885a6ae11d1fb7bf668611181c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1117'
+        closes: '#1117'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.5.1
+  date: 2019-10-28T12:03:08.990Z
+- commits:
     - subject: Add a cache around the database application target state
       hash: 7b8e7ea8ca32849be29e4103ce8c215e99a2bac9
       body: ''

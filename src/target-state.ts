@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import ApplicationManager from './application-manager';
+import { ApplicationManager } from './application-manager';
 import Config from './config';
 import Database, { Transaction } from './db';
 
@@ -48,7 +48,7 @@ export class TargetStateAccessor {
 		return _.find(this.targetState, app => app.appId === appId);
 	}
 
-	public async getTargetApps(): Promise<DatabaseApp> {
+	public async getTargetApps(): Promise<DatabaseApps> {
 		if (this.targetState == null) {
 			const { apiEndpoint, localMode } = await this.config.getMany([
 				'apiEndpoint',

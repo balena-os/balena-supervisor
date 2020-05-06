@@ -42,10 +42,7 @@ export class NetworkManager {
 		return this.getAll().filter((network: Network) => network.appId === appId);
 	}
 
-	public async get(network: {
-		name: string;
-		appId: number;
-	}): Bluebird<Network> {
+	public async get(network: { name: string; appId: number }): Promise<Network> {
 		const dockerNet = await this.docker
 			.getNetwork(Network.generateDockerName(network.appId, network.name))
 			.inspect();

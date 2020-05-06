@@ -7,7 +7,7 @@ chai.use(require('chai-events'))
 { expect } = chai
 
 prepare = require './lib/prepare'
-DeviceState = require '../src/device-state'
+{ DeviceState } = require '../src/device-state'
 { DB } = require('../src/db')
 { Config } = require('../src/config')
 { Service } = require '../src/compose/service'
@@ -142,6 +142,7 @@ describe 'ApplicationManager', ->
 			})
 		stub(@applications.docker, 'getNetworkGateway').returns(Promise.resolve('172.17.0.1'))
 		stub(@applications.docker, 'listContainers').returns(Promise.resolve([]))
+		stub(@applications.docker, 'listImages').returns(Promise.resolve([]))
 		stub(Service, 'extendEnvVars').callsFake (env) ->
 			env['ADDITIONAL_ENV_VAR'] = 'foo'
 			return env
@@ -195,6 +196,9 @@ describe 'ApplicationManager', ->
 		@applications.docker.listContainers.restore()
 		Service.extendEnvVars.restore()
 
+	it 'should init', ->
+		@applications.init()
+
 	it 'infers a start step when all that changes is a running state', ->
 		Promise.join(
 			@normaliseCurrent(currentState[0])
@@ -220,7 +224,7 @@ describe 'ApplicationManager', ->
 				expect(steps).to.eventually.deep.equal([{
 					action: 'kill'
 					current: current.local.apps['1234'].services[1]
-					target: null
+					target: undefined
 					serviceId: 24
 					appId: 1234
 					options: {}
@@ -354,7 +358,7 @@ describe 'ApplicationManager', ->
 					{
 						action: 'kill'
 						current: current.local.apps['1234'].services[0]
-						target: null
+						target: undefined
 						serviceId: 23
 						appId: 1234
 						options: {}

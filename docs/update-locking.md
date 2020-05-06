@@ -9,6 +9,8 @@ Locking updates means that the balena supervisor will not be able to kill your a
 
 In order to do this, users can create a lockfile in a way that it has exclusive access, which will prevent the device supervisor from killing and restarting the app. As with any other lockfile, the supervisor itself will create such a file before killing the app, so you should only create it in exclusive mode. This means that the lockfile should only be created if it doesn't already exist. The exclusive access is achieved by opening the lockfile with the [O_EXCL and O_CREAT flags](https://linux.die.net/man/3/open), and several tools exist to simplify this process with examples given [below](#creating-the-lockfile).
 
+For multicontainer applications, a release will only be updated if all of the services can be updated. While locks are per-service, having the update lock in a single service will prevent all services from updating to a new release.
+
 The presence of a lockfile will ensure that your application does not get killed, but updates will still be downloaded by the supervisor, ready to be applied once the lockfile no longer exists.
 
 ### Location of the lockfile
@@ -17,7 +19,7 @@ On devices running supervisor 7.22.0 and higher, the lockfile is located at `/tm
 
 On older devices (with v4.0.0 <= supervisor version < v7.22.0) the lock is located at `/tmp/resin/resin-updates.lock`. The latest supervisor versions still take the lock at this legacy path for backwards compatibility.
 
-Legacy supervisors (< v4.0.0) have the lock at `/data/resin-updates.lock`. This lock is only supported on devices running resinOS 1.X.
+Legacy supervisors (< v4.0.0) have the lock at `/data/resin-updates.lock`. This lock is only supported on devices running balenaOS 1.X.
 This old lock has the problem that the supervisor has to clear whenever it starts up to avoid deadlocks. If the user app
 has taken the lock before the supervisor starts up, the lock will be cleared and the app can operate under the false
 assumption that updates are locked (see [issue #20](https://github.com/resin-io/resin-supervisor/issues/20)). We therefore strongly recommend switching to the new lock location as soon as possible.
@@ -70,7 +72,7 @@ lockFile.lock '/tmp/balena/updates.lock', (err) ->
 In Python you can use the [`lockfile` library](http://pythonhosted.org/lockfile/lockfile.html#examples)
 ```python
 from lockfile import LockFile
-lock = LockFile("/tmp/balena/updates.lock")
+lock = LockFile("/tmp/balena/updates")
 with lock:
     print lock.path, 'is locked.'
 ```

@@ -5,40 +5,76 @@ import * as _ from 'lodash';
 
 import { Blueprint, Contract, ContractObject } from '@balena/contrato';
 
-import constants = require('./constants');
-import { InternalInconsistencyError } from './errors';
-import * as osRelease from './os-release';
-import supervisorVersion = require('./supervisor-version');
+import { ContractValidationError, InternalInconsistencyError } from './errors';
+import { checkTruthy } from './validation';
 
 export { ContractObject };
 
-export interface ServiceContracts {
-	[serviceName: string]: ContractObject;
+// TODO{type}: When target and current state are correctly
+// defined, replace this
+interface AppWithContracts {
+	services: {
+		[key: string]: {
+			serviceName: string;
+			contract?: ContractObject;
+			labels?: Dictionary<string>;
+		};
+	};
 }
 
-export async function containerContractsFulfilled(
+export interface ApplicationContractResult {
+	valid: boolean;
+	unmetServices: string[];
+	fulfilledServices: string[];
+	unmetAndOptional: string[];
+}
+
+export interface ServiceContracts {
+	[serviceName: string]: { contract?: ContractObject; optional: boolean };
+}
+
+type PotentialContractRequirements =
+	| 'sw.supervisor'
+	| 'sw.l4t'
+	| 'hw.device-type';
+type ContractRequirements = {
+	[key in PotentialContractRequirements]?: string;
+};
+
+const contractRequirementVersions: ContractRequirements = {};
+
+export function intialiseContractRequirements(opts: {
+	supervisorVersion: string;
+	deviceType: string;
+	l4tVersion?: string;
+}) {
+	contractRequirementVersions['sw.supervisor'] = opts.supervisorVersion;
+	contractRequirementVersions['sw.l4t'] = opts.l4tVersion;
+	contractRequirementVersions['hw.device-type'] = opts.deviceType;
+}
+
+function isValidRequirementType(
+	requirementVersions: ContractRequirements,
+	requirement: string,
+) {
+	return requirement in requirementVersions;
+}
+
+export function containerContractsFulfilled(
 	serviceContracts: ServiceContracts,
-): Promise<{ valid: boolean; unmetServices: string[] }> {
-	const containers = _.values(serviceContracts);
+): ApplicationContractResult {
+	const containers = _(serviceContracts)
+		.map('contract')
+		.compact()
+		.value();
 
-	const osContract = new Contract({
-		slug: 'balenaOS',
-		type: 'sw.os',
-		name: 'balenaOS',
-		version: await osRelease.getOSSemver(constants.hostOSVersionPath),
-	});
-
-	const supervisorContract = new Contract({
-		slug: 'balena-supervisor',
-		type: 'sw.supervisor',
-		name: 'balena-supervisor',
-		version: supervisorVersion,
-	});
-
+	const blueprintMembership: Dictionary<number> = {};
+	for (const component of _.keys(contractRequirementVersions)) {
+		blueprintMembership[component] = 1;
+	}
 	const blueprint = new Blueprint(
 		{
-			'sw.os': 1,
-			'sw.supervisor': 1,
+			...blueprintMembership,
 			'sw.container': '1+',
 		},
 		{
@@ -52,9 +88,10 @@ export async function containerContractsFulfilled(
 	});
 
 	universe.addChildren(
-		[osContract, supervisorContract].concat(
-			containers.map(c => new Contract(c)),
-		),
+		[
+			...getContractsFromVersions(contractRequirementVersions),
+			...containers,
+		].map(c => new Contract(c)),
 	);
 
 	const solution = blueprint.reproduce(universe);
@@ -65,7 +102,12 @@ export async function containerContractsFulfilled(
 		);
 	}
 	if (solution.length === 0) {
-		return { valid: false, unmetServices: _.keys(serviceContracts) };
+		return {
+			valid: false,
+			unmetServices: _.keys(serviceContracts),
+			fulfilledServices: [],
+			unmetAndOptional: [],
+		};
 	}
 
 	// Detect how many containers are present in the resulting
@@ -75,23 +117,46 @@ export async function containerContractsFulfilled(
 	});
 
 	if (children.length === containers.length) {
-		return { valid: true, unmetServices: [] };
+		return {
+			valid: true,
+			unmetServices: [],
+			fulfilledServices: _.keys(serviceContracts),
+			unmetAndOptional: [],
+		};
 	} else {
-		// Work out which service violated the contracts they
-		// provided
-		const unmetServices = _(serviceContracts)
-			.map((contract, serviceName) => {
-				const found = _.find(children, child => {
-					return _.isEqual((child as any).raw, contract);
-				});
-				if (found == null) {
-					return serviceName;
+		// If we got here, it means that at least one of the
+		// container contracts was not fulfilled. If *all* of
+		// those containers whose contract was not met are
+		// marked as optional, the target state is still valid,
+		// but we ignore the optional containers
+
+		const [fulfilledServices, unfulfilledServices] = _.partition(
+			_.keys(serviceContracts),
+			serviceName => {
+				const { contract } = serviceContracts[serviceName];
+				if (!contract) {
+					return true;
 				}
-				return;
-			})
-			.filter(n => n != null)
-			.value() as string[];
-		return { valid: false, unmetServices };
+				// Did we find the contract in the generated state?
+				return _.some(children, child =>
+					_.isEqual((child as any).raw, contract),
+				);
+			},
+		);
+
+		const [unmetAndRequired, unmetAndOptional] = _.partition(
+			unfulfilledServices,
+			serviceName => {
+				return !serviceContracts[serviceName].optional;
+			},
+		);
+
+		return {
+			valid: unmetAndRequired.length === 0,
+			unmetServices: unfulfilledServices,
+			fulfilledServices,
+			unmetAndOptional,
+		};
 	}
 }
 
@@ -109,14 +174,84 @@ const contractObjectValidator = t.type({
 	]),
 });
 
-export function validateContract(
-	contract: unknown,
-): contract is ContractObject {
+function getContractsFromVersions(components: ContractRequirements) {
+	return _.map(components, (value, component) => {
+		if (component === 'hw.device-type') {
+			return {
+				type: component,
+				slug: component,
+				name: value,
+			};
+		} else {
+			return {
+				type: component,
+				slug: component,
+				name: component,
+				version: value,
+			};
+		}
+	});
+}
+
+export function validateContract(contract: unknown): boolean {
 	const result = contractObjectValidator.decode(contract);
 
 	if (isLeft(result)) {
 		throw new Error(reporter(result).join('\n'));
 	}
 
+	const requirementVersions = contractRequirementVersions;
+
+	for (const { type } of result.right.requires || []) {
+		if (!isValidRequirementType(requirementVersions, type)) {
+			throw new Error(`${type} is not a valid contract requirement type`);
+		}
+	}
+
 	return true;
+}
+export function validateTargetContracts(
+	apps: Dictionary<AppWithContracts>,
+): Dictionary<ApplicationContractResult> {
+	const appsFulfilled: Dictionary<ApplicationContractResult> = {};
+
+	for (const appId of _.keys(apps)) {
+		const app = apps[appId];
+		const serviceContracts: ServiceContracts = {};
+
+		for (const svcId of _.keys(app.services)) {
+			const svc = app.services[svcId];
+
+			if (svc.contract) {
+				try {
+					validateContract(svc.contract);
+
+					serviceContracts[svc.serviceName] = {
+						contract: svc.contract,
+						optional:
+							checkTruthy(svc.labels?.['io.balena.features.optional']) || false,
+					};
+				} catch (e) {
+					throw new ContractValidationError(svc.serviceName, e.message);
+				}
+			} else {
+				serviceContracts[svc.serviceName] = {
+					contract: undefined,
+					optional: false,
+				};
+			}
+
+			if (!_.isEmpty(serviceContracts)) {
+				appsFulfilled[appId] = containerContractsFulfilled(serviceContracts);
+			} else {
+				appsFulfilled[appId] = {
+					valid: true,
+					fulfilledServices: _.map(app.services, 'serviceName'),
+					unmetAndOptional: [],
+					unmetServices: [],
+				};
+			}
+		}
+	}
+	return appsFulfilled;
 }

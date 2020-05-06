@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		"target": "ES2019",
 		"module": "commonjs",
 		"noImplicitAny": true,
 		"preserveConstEnums": true,
@@ -8,7 +9,8 @@
 		"outDir": "./build/",
 		"skipLibCheck": true,
 		"lib": ["es6"],
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"allowJs": true
 	},
-	"include": ["src/**/*.ts", "test/**/*.ts", "typings/**/*.d.ts"]
+	"include": ["src/**/*", "test/**/*", "typings/**/*.d.ts"]
 }

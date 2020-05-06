@@ -1,10 +1,7 @@
-import * as Promise from 'bluebird';
+import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { fs } from 'mz';
 import * as path from 'path';
-
-import { readLock, writeLock } from '../lib/update-lock';
-import * as Schema from './schema';
 
 import * as constants from '../lib/constants';
 import { writeAndSyncFile, writeFileAtomic } from '../lib/fs-utils';
@@ -12,14 +9,21 @@ import * as osRelease from '../lib/os-release';
 
 import log from '../lib/supervisor-console';
 
-export default class ConfigJsonConfigBackend {
-	private readLockConfigJson: () => Promise.Disposer<() => void>;
-	private writeLockConfigJson: () => Promise.Disposer<() => void>;
+import { readLock, writeLock } from '../lib/update-lock';
+import * as Schema from './schema';
 
-	private configPath?: string;
+export default class ConfigJsonConfigBackend {
+	private readonly readLockConfigJson: () => Bluebird.Disposer<() => void>;
+	private readonly writeLockConfigJson: () => Bluebird.Disposer<() => void>;
+
+	private readonly schema: Schema.Schema;
+	private readonly configPath?: string;
+
 	private cache: { [key: string]: unknown } = {};
 
-	private schema: Schema.Schema;
+	private readonly init = _.once(async () =>
+		_.assign(this.cache, await this.read()),
+	);
 
 	public constructor(schema: Schema.Schema, configPath?: string) {
 		this.configPath = configPath;
@@ -31,20 +35,13 @@ export default class ConfigJsonConfigBackend {
 			readLock('config.json').disposer(release => release());
 	}
 
-	public init(): Promise<void> {
-		return this.read().then(configJson => {
-			_.assign(this.cache, configJson);
-		});
-	}
-
-	public set<T extends Schema.SchemaKey>(
+	public async set<T extends Schema.SchemaKey>(
 		keyVals: { [key in T]: unknown },
-	): Promise<void> {
-		let changed = false;
-		return Promise.using(this.writeLockConfigJson(), () => {
-			return Promise.mapSeries(_.keys(keyVals) as T[], (key: T) => {
-				const value = keyVals[key];
-
+	) {
+		await this.init();
+		await Bluebird.using(this.writeLockConfigJson(), async () => {
+			let changed = false;
+			_.forOwn(keyVals, (value, key: T) => {
 				if (this.cache[key] !== value) {
 					this.cache[key] = value;
 
@@ -58,41 +55,40 @@ export default class ConfigJsonConfigBackend {
 
 					changed = true;
 				}
-			}).then(() => {
-				if (changed) {
-					return this.write();
-				}
 			});
+			if (changed) {
+				await this.write();
+			}
 		});
 	}
 
-	public get(key: string): Promise<unknown> {
-		return Promise.using(this.readLockConfigJson(), () => {
-			return Promise.resolve(this.cache[key]);
-		});
+	public async get(key: string): Promise<unknown> {
+		await this.init();
+		return Bluebird.using(
+			this.readLockConfigJson(),
+			async () => this.cache[key],
+		);
 	}
 
-	public remove(key: string): Promise<void> {
-		let changed = false;
-		return Promise.using(this.writeLockConfigJson(), () => {
+	public async remove(key: string) {
+		await this.init();
+		return Bluebird.using(this.writeLockConfigJson(), async () => {
+			let changed = false;
+
 			if (this.cache[key] != null) {
 				delete this.cache[key];
 				changed = true;
 			}
 
 			if (changed) {
-				this.write();
+				await this.write();
 			}
-
-			return Promise.resolve();
 		});
 	}
 
-	public path(): Promise<string> {
-		return this.pathOnHost().catch(err => {
-			log.error('There was an error detecting the config.json path', err);
-			return constants.configJsonNonAtomicPath;
-		});
+	public async path(): Promise<string> {
+		await this.init();
+		return await this.pathOnHost();
 	}
 
 	private write(): Promise<void> {
@@ -112,45 +108,50 @@ export default class ConfigJsonConfigBackend {
 			});
 	}
 
-	private read(): Promise<string> {
-		return this.path()
-			.then(filename => {
-				return fs.readFile(filename, 'utf-8');
-			})
-			.then(JSON.parse);
+	private async read(): Promise<string> {
+		const filename = await this.pathOnHost();
+		return JSON.parse(await fs.readFile(filename, 'utf-8'));
 	}
-	private pathOnHost(): Promise<string> {
-		return Promise.try(() => {
-			if (this.configPath != null) {
-				return this.configPath;
+
+	private async resolveConfigPath(): Promise<string> {
+		if (this.configPath != null) {
+			return this.configPath;
+		}
+		if (constants.configJsonPathOnHost != null) {
+			return constants.configJsonPathOnHost;
+		}
+
+		const osVersion = await osRelease.getOSVersion(constants.hostOSVersionPath);
+		if (osVersion == null) {
+			throw new Error('Failed to detect OS version!');
+		}
+
+		if (/^(Resin OS|balenaOS)/.test(osVersion)) {
+			// In Resin OS 1.12, $BOOT_MOUNTPOINT was added and it coincides with config.json's path.
+			if (constants.bootMountPointFromEnv != null) {
+				return path.join(constants.bootMountPointFromEnv, 'config.json');
 			}
-			if (constants.configJsonPathOnHost != null) {
-				return constants.configJsonPathOnHost;
-			}
-			return osRelease
-				.getOSVersion(constants.hostOSVersionPath)
-				.then(osVersion => {
-					if (osVersion == null) {
-						throw new Error('Failed to detect OS version!');
-					}
-					if (/^(Resin OS|balenaOS)/.test(osVersion)) {
-						// In Resin OS 1.12, $BOOT_MOUNTPOINT was added and it coincides with config.json's path
-						if (constants.bootMountPointFromEnv != null) {
-							return path.join(constants.bootMountPointFromEnv, 'config.json');
-						}
-						// Older 1.X versions have config.json here
-						return '/mnt/conf/config.json';
-					} else {
-						// In non-resinOS hosts (or older than 1.0.0), if CONFIG_JSON_PATH wasn't passed
-						// then we can't do atomic changes (only access to config.json we have is in /boot,
-						// which is assumed to be a file bind mount where rename is impossible)
-						throw new Error(
-							'Could not determine config.json path on host, atomic write will not be possible',
-						);
-					}
-				});
-		}).then(file => {
-			return path.join(constants.rootMountPoint, file);
-		});
+			// Older 1.X versions have config.json here
+			return '/mnt/conf/config.json';
+		} else {
+			// In non-balenaOS hosts (or older than 1.0.0), if CONFIG_JSON_PATH wasn't passed
+			// then we can't do atomic changes (only access to config.json we have is in /boot,
+			// which is assumed to be a file bind mount where rename is impossible).
+			throw new Error(
+				'Could not determine config.json path on host, atomic write will not be possible',
+			);
+		}
+	}
+
+	private async pathOnHost(): Promise<string> {
+		try {
+			return path.join(
+				constants.rootMountPoint,
+				await this.resolveConfigPath(),
+			);
+		} catch (err) {
+			log.error('There was an error detecting the config.json path', err);
+			return constants.configJsonNonAtomicPath;
+		}
 	}
 }

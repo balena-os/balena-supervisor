@@ -7,9 +7,9 @@ import * as path from 'path';
 
 import Config from './config';
 import * as constants from './lib/constants';
+import * as dbus from './lib/dbus';
 import { ENOENT } from './lib/errors';
 import { writeFileAtomic } from './lib/fs-utils';
-import * as systemd from './lib/systemd';
 
 const mkdirp = Bluebird.promisify(mkdirCb) as (
 	path: string,
@@ -140,8 +140,8 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 		await writeFileAtomic(redsocksConfPath, redsocksConf);
 	}
 
-	await systemd.restartService('resin-proxy-config');
-	await systemd.restartService('redsocks');
+	await dbus.restartService('resin-proxy-config');
+	await dbus.restartService('redsocks');
 }
 
 const hostnamePath = path.join(constants.rootMountPoint, '/etc/hostname');
@@ -152,7 +152,7 @@ async function readHostname() {
 
 async function setHostname(val: string, configModel: Config) {
 	await configModel.set({ hostname: val });
-	await systemd.restartService('resin-hostname');
+	await dbus.restartService('resin-hostname');
 }
 
 // Don't use async/await here to maintain the bluebird
@@ -169,7 +169,7 @@ export function get(): Bluebird<HostConfig> {
 }
 
 export function patch(conf: HostConfig, configModel: Config): Bluebird<void> {
-	const promises = [];
+	const promises: Array<Promise<void>> = [];
 	if (conf != null && conf.network != null) {
 		if (conf.network.proxy != null) {
 			promises.push(setProxy(conf.network.proxy));

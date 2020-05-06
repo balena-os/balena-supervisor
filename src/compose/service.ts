@@ -22,6 +22,7 @@ import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
 
 import log from '../lib/supervisor-console';
+import { EnvVarObject } from '../lib/types';
 
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
@@ -232,11 +233,16 @@ export class Service {
 		}
 
 		// Add default environment variables and labels
-		config.environment = Service.extendEnvVars(
-			config.environment || {},
-			options,
-			service.appId || 0,
-			service.serviceName || '',
+		// We also omit any device name variables which may have
+		// been input from the image (for example, if you docker
+		// commit a container which has been run on a balena device)
+		config.environment = Service.omitDeviceNameVars(
+			Service.extendEnvVars(
+				config.environment || {},
+				options,
+				service.appId || 0,
+				service.serviceName || '',
+			),
 		);
 		config.labels = ComposeUtils.normalizeLabels(
 			Service.extendLabels(
@@ -337,9 +343,7 @@ export class Service {
 			config.cpus = Math.round(Number(config.cpus) * 10 ** 9);
 			if (_.isNaN(config.cpus)) {
 				log.warn(
-					`config.cpus value cannot be parsed. Ignoring.\n  Value:${
-						config.cpus
-					}`,
+					`config.cpus value cannot be parsed. Ignoring.\n  Value:${config.cpus}`,
 				);
 				config.cpus = undefined;
 			}
@@ -406,6 +410,7 @@ export class Service {
 			user: '',
 			workingDir: '',
 			tty: true,
+			running: true,
 		});
 
 		// Mutate service with extra features
@@ -498,9 +503,8 @@ export class Service {
 				_.keys(container.Config.Volumes || {}),
 			),
 			image: container.Config.Image,
-			environment: _.omit(
+			environment: Service.omitDeviceNameVars(
 				conversions.envArrayToObject(container.Config.Env || []),
-				['RESIN_DEVICE_NAME_AT_INIT', 'BALENA_DEVICE_NAME_AT_INIT'],
 			),
 			privileged: container.HostConfig.Privileged || false,
 			labels: ComposeUtils.normalizeLabels(container.Config.Labels || {}),
@@ -713,9 +717,7 @@ export class Service {
 			// Add some console output for why a service is not matching
 			// so that if we end up in a restart loop, we know exactly why
 			log.debug(
-				`Replacing container for service ${
-					this.serviceName
-				} because of config changes:`,
+				`Replacing container for service ${this.serviceName} because of config changes:`,
 			);
 			if (!nonArrayEquals) {
 				// Try not to leak any sensitive information
@@ -907,6 +909,7 @@ export class Service {
 						SERVICE_NAME: serviceName,
 						DEVICE_UUID: options.uuid,
 						DEVICE_TYPE: options.deviceType,
+						DEVICE_ARCH: options.deviceArch,
 						HOST_OS_VERSION: options.osVersion,
 						SUPERVISOR_VERSION: options.version,
 						APP_LOCK_PATH: '/tmp/balena/updates.lock',
@@ -969,6 +972,13 @@ export class Service {
 		return sameNetwork;
 	}
 
+	private static omitDeviceNameVars(env: EnvVarObject) {
+		return _.omit(env, [
+			'RESIN_DEVICE_NAME_AT_INIT',
+			'BALENA_DEVICE_NAME_AT_INIT',
+		]);
+	}
+
 	private static extendLabels(
 		labels: { [labelName: string]: string } | null | undefined,
 		{ imageInfo }: DeviceMetadata,
@@ -1002,9 +1012,9 @@ export class Service {
 				const [bindSource, bindDest, mode] = volume.split(':');
 				if (!path.isAbsolute(bindSource)) {
 					// namespace our volumes by appId
-					let volumeDef = `${appId}_${bindSource}:${bindDest}`;
+					let volumeDef = `${appId}_${bindSource.trim()}:${bindDest.trim()}`;
 					if (mode != null) {
-						volumeDef = `${volumeDef}:${mode}`;
+						volumeDef = `${volumeDef}:${mode.trim()}`;
 					}
 					volumes.push(volumeDef);
 				} else {

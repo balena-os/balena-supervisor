@@ -101,3 +101,7 @@ export class ContractViolationError extends TypedError {
 		);
 	}
 }
+
+export class AppsJsonParseError extends TypedError {}
+export class DatabaseParseError extends TypedError {}
+export class BackupError extends TypedError {}

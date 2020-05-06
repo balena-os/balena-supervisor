@@ -94,7 +94,9 @@ export class Network {
 	public static fromComposeObject(
 		name: string,
 		appId: number,
-		network: Partial<ComposeNetworkConfig>,
+		network: Partial<Omit<ComposeNetworkConfig, 'ipam'>> & {
+			ipam?: Partial<ComposeNetworkConfig['ipam']>;
+		},
 		opts: NetworkOptions,
 	): Network {
 		const net = new Network(opts);
@@ -193,7 +195,7 @@ export class Network {
 				.getNetwork(Network.generateDockerName(this.appId, this.name))
 				.remove(),
 		).tapCatch(error => {
-			this.logger.logSystemEvent(logTypes.createNetworkError, {
+			this.logger.logSystemEvent(logTypes.removeNetworkError, {
 				network: { name: this.name, appId: this.appId },
 				error,
 			});

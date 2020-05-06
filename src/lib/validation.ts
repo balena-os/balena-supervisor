@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import { inspect } from 'util';
 
+import { TargetState } from '../types/state';
 import { EnvVarObject, LabelObject } from './types';
 
 import log from './supervisor-console';
@@ -12,8 +13,6 @@ export interface CheckIntOptions {
 const ENV_VAR_KEY_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
 
-type NullableLiteral = Nullable<number | string>;
-
 /**
  * checkInt
  *
@@ -21,9 +20,9 @@ type NullableLiteral = Nullable<number | string>;
  * to be positive
  */
 export function checkInt(
-	s: NullableLiteral,
+	s: unknown,
 	options: CheckIntOptions = {},
-): number | void {
+): number | undefined {
 	if (s == null) {
 		return;
 	}
@@ -48,7 +47,7 @@ export function checkInt(
  *
  * Check that a string exists, and is not an empty string, 'null', or 'undefined'
  */
-export function checkString(s: NullableLiteral): string | void {
+export function checkString(s: unknown): string | void {
 	if (s == null || !_.isString(s) || _.includes(['null', 'undefined', ''], s)) {
 		return;
 	}
@@ -62,7 +61,7 @@ export function checkString(s: NullableLiteral): string | void {
  * Given a value which can be a string, boolean or number, return a boolean
  * which represents if the input was truthy
  */
-export function checkTruthy(v: string | boolean | number): boolean | void {
+export function checkTruthy(v: unknown): boolean | undefined {
 	if (_.isString(v)) {
 		v = v.toLowerCase();
 	}
@@ -90,7 +89,7 @@ export function checkTruthy(v: string | boolean | number): boolean | void {
  * Check that the input string is definitely a string,
  * and has a length which is less than 255
  */
-export function isValidShortText(t: string): boolean {
+export function isValidShortText(t: unknown): boolean {
 	return _.isString(t) && t.length <= 255;
 }
 
@@ -208,7 +207,7 @@ function undefinedOrValidEnv(val: EnvVarObject): boolean {
  *
  * TODO: Type the input
  */
-export function isValidDependentAppsObject(apps: any): boolean {
+export function isValidDependentAppsObject(apps: unknown): boolean {
 	if (!_.isObject(apps)) {
 		log.debug(
 			'Non-object passed to validation.isValidDependentAppsObject\nApps:',
@@ -217,8 +216,8 @@ export function isValidDependentAppsObject(apps: any): boolean {
 		return false;
 	}
 
-	return _.every(apps, (val, appId) => {
-		val = _.defaults(_.clone(val), {
+	return _.every(apps, (v, appId) => {
+		const val: TargetState['dependent']['apps'][any] = _.defaults(_.clone(v), {
 			config: undefined,
 			environment: undefined,
 			commit: undefined,
@@ -368,7 +367,7 @@ export function isValidAppsObject(obj: any): boolean {
 		return false;
 	}
 
-	return _.every(obj, (val, appId) => {
+	return _.every(obj, (v, appId) => {
 		if (!isValidShortText(appId) || !checkInt(appId)) {
 			log.debug(
 				'Invalid appId passed to validation.isValidAppsObject\nApp ID:',
@@ -377,7 +376,13 @@ export function isValidAppsObject(obj: any): boolean {
 			return false;
 		}
 
-		return _.conformsTo(_.defaults(_.clone(val), { releaseId: undefined }), {
+		// TODO: Remove this partial and validate the extra fields
+		const val: Partial<TargetState['local']['apps'][any]> = _.defaults(
+			_.clone(v),
+			{ releaseId: undefined },
+		);
+
+		return _.conformsTo(val, {
 			name: (n: any) => {
 				if (!isValidShortText(n)) {
 					log.debug(
@@ -445,7 +450,7 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 			return false;
 		}
 
-		return _.conformsTo(val, {
+		return _.conformsTo(val as TargetState['dependent']['devices'][any], {
 			name: (n: any) => {
 				if (!isValidShortText(n)) {
 					log.debug(
@@ -472,34 +477,37 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 					return false;
 				}
 
-				return _.every(a, app => {
-					app = _.defaults(_.clone(app), {
-						config: undefined,
-						environment: undefined,
-					});
-					return _.conformsTo(app, {
-						config: (c: any) => {
-							if (!undefinedOrValidEnv(c)) {
-								log.debug(
-									'Invalid config passed to validation.isValidDependentDevicesObject\nConfig:',
-									inspect(c),
-								);
-								return false;
-							}
-							return true;
-						},
-						environment: (e: any) => {
-							if (!undefinedOrValidEnv(e)) {
-								log.debug(
-									'Invalid environment passed to validation.isValidDependentDevicesObject\nConfig:',
-									inspect(e),
-								);
-								return false;
-							}
-							return true;
-						},
-					});
-				});
+				return _.every(
+					a as TargetState['dependent']['devices'][any]['apps'],
+					app => {
+						app = _.defaults(_.clone(app), {
+							config: undefined,
+							environment: undefined,
+						});
+						return _.conformsTo(app, {
+							config: (c: any) => {
+								if (!undefinedOrValidEnv(c)) {
+									log.debug(
+										'Invalid config passed to validation.isValidDependentDevicesObject\nConfig:',
+										inspect(c),
+									);
+									return false;
+								}
+								return true;
+							},
+							environment: (e: any) => {
+								if (!undefinedOrValidEnv(e)) {
+									log.debug(
+										'Invalid environment passed to validation.isValidDependentDevicesObject\nConfig:',
+										inspect(e),
+									);
+									return false;
+								}
+								return true;
+							},
+						});
+					},
+				);
 			},
 		});
 	});

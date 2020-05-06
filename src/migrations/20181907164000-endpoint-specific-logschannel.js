@@ -1,16 +1,21 @@
+const Bluebird = require('bluebird');
 const fs = require('fs');
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
-exports.up = function (knex, Promise) {
-	return new Promise((resolve, reject) => {
+exports.up = function(knex) {
+	return new Bluebird(resolve => {
 		if (!configJsonPath) {
-			console.log('Unable to locate config.json! Things may fail unexpectedly!');
+			console.log(
+				'Unable to locate config.json! Things may fail unexpectedly!',
+			);
 			resolve({});
 			return;
 		}
 		fs.readFile(configJsonPath, (err, data) => {
 			if (err) {
-				console.log('Failed to read config.json! Things may fail unexpectedly!');
+				console.log(
+					'Failed to read config.json! Things may fail unexpectedly!',
+				);
 				resolve({});
 				return;
 			}
@@ -18,7 +23,9 @@ exports.up = function (knex, Promise) {
 				const parsed = JSON.parse(data.toString());
 				resolve(parsed);
 			} catch (e) {
-				console.log('Failed to parse config.json! Things may fail unexpectedly!');
+				console.log(
+					'Failed to parse config.json! Things may fail unexpectedly!',
+				);
 				resolve({});
 			}
 		});
@@ -26,18 +33,20 @@ exports.up = function (knex, Promise) {
 		.tap(() => {
 			// take the logsChannelSecret, and the apiEndpoint config field,
 			// and store them in a new table
-			return knex.schema.hasTable('logsChannelSecret').then((exists) => {
+			return knex.schema.hasTable('logsChannelSecret').then(exists => {
 				if (!exists) {
-					return knex.schema.createTable('logsChannelSecret', (t) => {
+					return knex.schema.createTable('logsChannelSecret', t => {
 						t.string('backend');
 						t.string('secret');
 					});
 				}
 			});
 		})
-		.then((config) => {
-			return knex('config').where({ key: 'logsChannelSecret' }).select('value')
-				.then((results) => {
+		.then(config => {
+			return knex('config')
+				.where({ key: 'logsChannelSecret' })
+				.select('value')
+				.then(results => {
 					if (results.length === 0) {
 						return { config, secret: null };
 					}
@@ -47,15 +56,16 @@ exports.up = function (knex, Promise) {
 		.then(({ config, secret }) => {
 			return knex('logsChannelSecret').insert({
 				backend: config.apiEndpoint || '',
-				secret
+				secret,
 			});
 		})
 		.then(() => {
-			return knex('config').where('key', 'logsChannelSecret').del();
+			return knex('config')
+				.where('key', 'logsChannelSecret')
+				.del();
 		});
+};
 
-}
-
-exports.down = function (knex, Promise) {
+exports.down = function() {
 	return Promise.reject(new Error('Not Implemented'));
-}
+};

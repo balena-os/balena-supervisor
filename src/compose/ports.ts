@@ -18,7 +18,7 @@ export interface DockerPortOptions {
 	portBindings: PortBindings;
 }
 
-interface PortRange {
+export interface PortRange {
 	internalStart: number;
 	internalEnd: number;
 	externalStart: number;

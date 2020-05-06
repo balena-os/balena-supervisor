@@ -38,7 +38,7 @@ interface FetchProgressEvent {
 }
 
 export interface Image {
-	id: number;
+	id?: number;
 	// image registry/repo@digest or registry/repo:tag
 	name: string;
 	appId: number;
@@ -48,14 +48,10 @@ export interface Image {
 	imageId: number;
 	releaseId: number;
 	dependent: number;
-	dockerImageId: string;
-	status: 'Downloading' | 'Downloaded' | 'Deleting';
-	downloadProgress: Nullable<number>;
+	dockerImageId?: string;
+	status?: 'Downloading' | 'Downloaded' | 'Deleting';
+	downloadProgress?: number | null;
 }
-
-// TODO: This is necessary for the format() method, but I'm not sure
-// why, and it seems like a bad idea as it is. Fix the need for this.
-type MaybeImage = { [key in keyof Image]: Image[key] | null };
 
 // TODO: Remove the need for this type...
 type NormalisedDockerImage = Docker.ImageInfo & {
@@ -313,7 +309,10 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			},
 		);
 
-		const ids = _.map(imagesToRemove, 'id');
+		const ids = _(imagesToRemove)
+			.map('id')
+			.compact()
+			.value();
 		await this.db
 			.models('image')
 			.del()
@@ -336,11 +335,11 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	public async update(image: Image): Promise<void> {
-		image = this.format(image);
+		const formattedImage = this.format(image);
 		await this.db
 			.models('image')
-			.update(image)
-			.where({ name: image.name });
+			.update(formattedImage)
+			.where({ name: formattedImage.name });
 	}
 
 	public async save(image: Image): Promise<void> {
@@ -351,7 +350,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	private async getImagesForCleanup(): Promise<string[]> {
-		const images = [];
+		const images: string[] = [];
 
 		const [
 			supervisorImageInfo,
@@ -363,7 +362,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			this.db
 				.models('image')
 				.select('dockerImageId')
-				.map((img: Image) => img.dockerImageId),
+				.then(vals => vals.map((img: Image) => img.dockerImageId)),
 		]);
 
 		const supervisorRepos = [supervisorImageInfo.imageName];
@@ -469,14 +468,17 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		}
 	}
 
-	public static isSameImage(image1: Image, image2: Image): boolean {
+	public static isSameImage(
+		image1: Pick<Image, 'name'>,
+		image2: Pick<Image, 'name'>,
+	): boolean {
 		return (
 			image1.name === image2.name ||
 			Images.hasSameDigest(image1.name, image2.name)
 		);
 	}
 
-	private normalise(imageName: string): Bluebird<string> {
+	public normalise(imageName: string): Bluebird<string> {
 		return this.docker.normaliseImageName(imageName);
 	}
 
@@ -577,15 +579,17 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	private async markAsSupervised(image: Image): Promise<void> {
-		image = this.format(image);
-		// TODO: Get rid of this janky cast once the database is
-		// more strongly typed
-		await this.db.upsertModel('image', image, (image as unknown) as Dictionary<
-			unknown
-		>);
+		const formattedImage = this.format(image);
+		await this.db.upsertModel(
+			'image',
+			formattedImage,
+			// TODO: Upsert to new values only when they already match? This is likely a bug
+			// and currently acts like an "insert if not exists"
+			formattedImage,
+		);
 	}
 
-	private format(image: MaybeImage): Image {
+	private format(image: Image): Omit<Image, 'id'> {
 		return _(image)
 			.defaults({
 				serviceId: null,
@@ -596,7 +600,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 				dockerImageId: null,
 			})
 			.omit('id')
-			.value() as Image;
+			.value();
 	}
 
 	private async fetchDelta(

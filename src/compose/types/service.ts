@@ -54,7 +54,7 @@ export interface ServiceComposeConfig {
 	image: string;
 	init?: string | boolean;
 	labels?: { [labelName: string]: string };
-	running: boolean;
+	running?: boolean;
 	networkMode?: string;
 	networks?: string[] | ServiceNetworkDictionary;
 	pid?: string;
@@ -187,6 +187,7 @@ export interface DeviceMetadata {
 	appName: string;
 	version: string;
 	deviceType: string;
+	deviceArch: string;
 	deviceApiKey: string;
 	apiEndpoint: string;
 	listenPort: number;
