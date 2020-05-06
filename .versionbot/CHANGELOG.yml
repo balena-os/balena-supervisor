@@ -1,4 +1,18 @@
 - commits:
+    - subject: Use lstat rather than stat to avoid error with symlinks in sync
+      hash: a7399fd78b914e6dccacd2935cd98f77176d65d8
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1301'
+        closes: '#1301'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.3.3
+  date: 2020-05-06T12:51:38.623Z
+- commits:
     - subject: Move build files into build-conf and rename to build-utils
       hash: 02d088d351327ee5cab46029efb3ca7dce067fd6
       body: ''
