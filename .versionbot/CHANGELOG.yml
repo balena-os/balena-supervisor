@@ -1,4 +1,34 @@
 - commits:
+    - subject: Remove legacy fallback to DROP rule in iptables
+      hash: 0720d99b63f82e769f88c9222e93bc2861f77ef3
+      body: |
+        This has not been necessary for a long time, and wwe can now remove it.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add an ESTABLISHED flag to API iptables rules
+      hash: 939b0391ce46970e519145bcb1b27cb937e2ee1a
+      body: |
+        This allows a response to an input with dport=`supevisor api port` and
+        is required when the host OS is doing stateful firewalling.
+
+        This should not affect things when stateful firewalling is not in
+        effect, as the standard OUTPUT chain policy is ACCEPT, so we're just
+        being explicit about it.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Backport-to: 'next, current, sunset'
+        backport-to: 'next, current, sunset'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 10.8.1
+  date: 2020-05-05T11:30:48.826Z
+- commits:
     - subject: Add procfs label
       hash: 89a9d85e8743926cecbc82e8c53d37bca6f845b9
       body: ''
