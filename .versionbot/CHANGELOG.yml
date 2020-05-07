@@ -1,4 +1,18 @@
 - commits:
+    - subject: Move SupervisorAPI state change logs to appropriate functions
+      hash: 60c07fc2fc2c352091995c2e599752fb12c05148
+      body: ''
+      footer:
+        Closes: '#1277'
+        closes: '#1277'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.3.6
+  date: 2020-05-07T17:53:21.140Z
+- commits:
     - subject: Add 20k-ultra to codeowners
       hash: 74d012dc7f972ad30896007e78386a9c03224a05
       body: ''
