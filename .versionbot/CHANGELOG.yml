@@ -1,4 +1,18 @@
 - commits:
+    - subject: Don't use the openvpn alias to check VPN status
+      hash: 8f09022d1fd85f63d760017e19150b0f23a2884a
+      body: ''
+      footer:
+        Closes: '#1293'
+        closes: '#1293'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.3.4
+  date: 2020-05-06T16:19:09.090Z
+- commits:
     - subject: Use lstat rather than stat to avoid error with symlinks in sync
       hash: a7399fd78b914e6dccacd2935cd98f77176d65d8
       body: ''
