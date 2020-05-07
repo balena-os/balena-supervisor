@@ -14,7 +14,7 @@ import { EnvVarObject } from './lib/types';
 import { checkInt, checkTruthy } from './lib/validation';
 import { DeviceStatus } from './types/state';
 
-const vpnServiceName = 'openvpn-resin';
+const vpnServiceName = 'openvpn';
 
 interface DeviceConfigConstructOpts {
 	db: Database;
