@@ -82,6 +82,10 @@ interface SupervisorAPIConstructOpts {
 	healthchecks: Array<() => Promise<boolean>>;
 }
 
+interface SupervisorAPIStopOpts {
+	errored: boolean;
+}
+
 export class SupervisorAPI {
 	private config: Config;
 	private eventTracker: EventTracker;
@@ -200,8 +204,15 @@ export class SupervisorAPI {
 			}
 		});
 
-		this.server = this.api.listen(port);
-		this.server.timeout = apiTimeout;
+		return new Promise(resolve => {
+			this.server = this.api.listen(port, () => {
+				log.info(`Supervisor API successfully started on port ${port}`);
+				if (this.server) {
+					this.server.timeout = apiTimeout;
+				}
+				return resolve();
+			});
+		});
 	}
 
 	private async applyListeningRules(
@@ -218,17 +229,25 @@ export class SupervisorAPI {
 				log.debug('Supervisor API listening on allowed interfaces only');
 			}
 		} catch (err) {
-			log.error(
-				'Error on switching supervisor API listening rules - stopping API.\n',
-				err,
-			);
-			this.stop();
+			log.error('Error on switching supervisor API listening rules', err);
+			return this.stop({ errored: true });
 		}
 	}
 
-	public stop() {
+	public async stop(options?: SupervisorAPIStopOpts): Promise<void> {
 		if (this.server != null) {
-			this.server.close();
+			return new Promise((resolve, reject) => {
+				this.server?.close((err: Error) => {
+					if (err) {
+						log.error('Failed to stop Supervisor API');
+						return reject(err);
+					}
+					options?.errored
+						? log.error('Stopped Supervisor API')
+						: log.info('Stopped Supervisor API');
+					return resolve();
+				});
+			});
 		}
 	}
 }
