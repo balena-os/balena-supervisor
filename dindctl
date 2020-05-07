@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 #
 # This script can be used to facilitate supervisor development. Its core feature is allowing
 # faster development iterations by bind-mounting the local './dist' directly into the running
@@ -42,16 +43,17 @@ set -o pipefail
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 SUPERVISOR_BASE_DIR="${DIR}"
+DIND_DIR="${SUPERVISOR_BASE_DIR}/tools/dind/"
 
 ARCH="amd64"
 SUPERVISOR_IMAGE="balena/${ARCH}-supervisor:master"
-DIND_IMAGE="resin/resinos:2.36.0_rev2-intel-nuc"
+DIND_IMAGE="resin/resinos:2.48.0_rev3-intel-nuc"
 MOUNT_DIST="false"
 MOUNT_NODE_MODULES="false"
 CONTAINER_NAME="supervisor"
 PRELOADED_IMAGE=""
 OPTIMIZE="true"
-CONFIG_FILENAME="config.json"
+CONFIG_FILENAME="${DIND_DIR}config.json"
 TAG="master"
 CLEAN_VOLUMES="true"
 MOUNT_BACKUP="false"
@@ -114,6 +116,26 @@ function parseOptions {
 	done
 }
 
+
+SUPERVISOR_DIND_MOUNTS="-v ${DIND_DIR}/config/supervisor-image.tar:/usr/src/supervisor-image.tar:ro"
+SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/config/supervisor.conf:/etc/resin-supervisor/supervisor.conf"
+
+if [ "${MOUNT_DIST}" == "true" ]; then
+	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/../../dist:/resin-supervisor/dist"
+fi
+if [ "${PRELOADED_IMAGE}" == "true" ]; then
+	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/apps.json:/mnt/data/apps.json"
+fi
+if [ "${MOUNT_NODE_MODULES}" == "true" ]; then
+	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/../../node_modules:/resin-supervisor/node_modules"
+fi
+if [ "${MOUNT_BACKUP}" == "true" ]; then
+	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/backup.tgz:/mnt/data/backup.tgz.mounted"
+fi
+if [ "${PRELOADED_IMAGE}" == "true" ]; then
+	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/apps.json:/mnt/data/apps.json"
+fi
+
 function buildSupervisor {
 	echo "Building supervisor image for architecture $ARCH and tagging as $TAG"
 	ARCH="$ARCH" TAG="$TAG" bash automation/build.sh
@@ -136,7 +158,7 @@ function refreshSupervisorSrc {
 }
 
 function runDind {
-	if [ ! -f "$SUPERVISOR_BASE_DIR/tools/dind/balenaos-in-container/balenaos-in-container.sh" ]; then
+	if [ ! -f "${DIND_DIR}/balenaos-in-container/balenaos-in-container.sh" ]; then
 		(cd $SUPERVISOR_BASE_DIR; git submodule update --init)
 	fi
 	if [ "$MOUNT_DIST" = "true" ]; then
@@ -150,23 +172,25 @@ function runDind {
 		echo "$SUPERVISOR_IMAGE not available locally, pulling"
 		docker pull $SUPERVISOR_IMAGE
 	fi
+
+	# Save the requested image into a tar file
+	mkdir -p "${DIND_DIR}/config" && docker save --output "${DIND_DIR}/config/supervisor-image.tar" "${SUPERVISOR_IMAGE}"
+	echo "${SUPERVISOR_IMAGE}" | awk -F: '{print "SUPERVISOR_IMAGE="$1"\nSUPERVISOR_TAG="$2"\nLED_FILE=/dev/null"}' > "${DIND_DIR}/config/supervisor.conf"
+
 	echo "Starting dind supervisor"
-	make -C "$SUPERVISOR_BASE_DIR" \
-		ARCH="$ARCH" \
-		SUPERVISOR_IMAGE="$SUPERVISOR_IMAGE" \
-		MOUNT_DIST="$MOUNT_DIST" \
-		MOUNT_NODE_MODULES="$MOUNT_NODE_MODULES" \
-		MOUNT_BACKUP="$MOUNT_BACKUP" \
-		PRELOADED_IMAGE="$PRELOADED_IMAGE" \
-		CONTAINER_NAME="$CONTAINER_NAME" \
-		CONFIG_FILENAME="$CONFIG_FILENAME" \
-		DIND_IMAGE="$DIND_IMAGE" \
-		run-supervisor
+	"${DIND_DIR}/balenaos-in-container/balenaos-in-container.sh" \
+		--detach \
+		--config "${CONFIG_FILENAME}" \
+		--image "${DIND_IMAGE}" \
+		--id "${CONTAINER_NAME}" \
+		--extra-args "${SUPERVISOR_DIND_MOUNTS}"
+
 }
 
 function stopDind {
 	echo "Stopping dind supervisor"
-	make -C "$SUPERVISOR_BASE_DIR" CONTAINER_NAME="$CONTAINER_NAME" stop-supervisor
+	docker stop balena-container-${CONTAINER_NAME} > /dev/null 2>&1 || true
+	docker rm -f --volumes balena-container-${CONTAINER_NAME} > /dev/null 2>&1 || true
 	if [ "$CLEAN_VOLUMES" = "true" ]; then
 		cleanDind
 	fi
