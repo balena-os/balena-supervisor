@@ -1,4 +1,16 @@
 - commits:
+    - subject: Add 20k-ultra to codeowners
+      hash: 74d012dc7f972ad30896007e78386a9c03224a05
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.3.5
+  date: 2020-05-07T16:11:47.494Z
+- commits:
     - subject: Don't use the openvpn alias to check VPN status
       hash: 8f09022d1fd85f63d760017e19150b0f23a2884a
       body: ''
