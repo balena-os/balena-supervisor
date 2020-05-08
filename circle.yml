@@ -58,7 +58,7 @@ version: 2
 jobs:
   generic:
     docker:
-      - image: balenalib/amd64-alpine-node:10
+      - image: balenalib/amd64-alpine-node:12
     steps:
       - checkout
       - run:
