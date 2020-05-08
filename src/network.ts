@@ -42,13 +42,17 @@ export function enableCheck(enable: boolean) {
 	isConnectivityCheckEnabled = enable;
 }
 
-async function vpnStatusInotifyCallback(): Promise<void> {
+export async function isVPNActive(): Promise<boolean> {
 	try {
 		await fs.lstat(`${constants.vpnStatusPath}/active`);
-		isConnectivityCheckPaused = true;
 	} catch {
-		isConnectivityCheckPaused = false;
+		return false;
 	}
+	return true;
+}
+
+async function vpnStatusInotifyCallback(): Promise<void> {
+	isConnectivityCheckPaused = await isVPNActive();
 }
 
 export const startConnectivityCheck = _.once(
