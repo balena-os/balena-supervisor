@@ -1152,6 +1152,29 @@ Response:
 }
 ```
 
+#### Device VPN Information
+
+Added in supervisor version v11.4.0
+
+Retrieve information about the VPN connection running on the device.
+
+From an application container:
+
+```sh
+$ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/vpn?apikey=$BALENA_SUPERVISOR_API_KEY"
+```
+
+Response:
+```json
+{
+	"status": "success",
+	"vpn": {
+		"enabled": true,
+		"connected": true
+	}
+}
+```
+
 ### V2 Utilities
 
 #### Cleanup volumes with no references

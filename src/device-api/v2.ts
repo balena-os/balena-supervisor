@@ -4,19 +4,18 @@ import * as _ from 'lodash';
 
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
+import Volume from '../compose/volume';
+import { spawnJournalctl } from '../lib/journald';
 import {
 	appNotFoundMessage,
 	serviceNotFoundMessage,
 	v2ServiceEndpointInputErrorMessage,
 } from '../lib/messages';
-import { doPurge, doRestart, serviceAction } from './common';
-
-import Volume from '../compose/volume';
-import { spawnJournalctl } from '../lib/journald';
-
 import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
+import { isVPNActive } from '../network';
+import { doPurge, doRestart, serviceAction } from './common';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 	const { _lockingIfNecessary, deviceState } = applications;
@@ -457,6 +456,20 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				message: e.message,
 			});
 		}
+	});
+
+	router.get('/v2/device/vpn', async (_req, res) => {
+		const config = await deviceState.deviceConfig.getCurrent();
+		// Build VPNInfo
+		const info = {
+			enabled: config.SUPERVISOR_VPN_CONTROL === 'true',
+			connected: await isVPNActive(),
+		};
+		// Return payload
+		return res.json({
+			status: 'success',
+			vpn: info,
+		});
 	});
 
 	router.get('/v2/cleanup-volumes', async (_req, res) => {

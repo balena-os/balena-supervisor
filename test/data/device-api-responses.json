@@ -1,0 +1,18 @@
+{
+  "V1": {},
+  "V2": {
+    "GET": {
+      "/device/vpn": {
+        "statusCode": 200,
+        "body": {
+          "status": "success",
+          "vpn": {
+            "enabled": true,
+            "connected": false
+          }
+        }
+      }
+    },
+    "POST": {}
+  }
+}
