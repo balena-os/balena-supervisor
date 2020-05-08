@@ -1,7 +1,7 @@
 ---
 defaults: &defaults
   docker:
-    - image: library/docker:19-git
+    - image: library/docker:18-git
   working_directory: /tmp/build
   steps:
     - setup_remote_docker:
