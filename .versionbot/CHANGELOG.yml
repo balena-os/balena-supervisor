@@ -1,4 +1,21 @@
 - commits:
+    - subject: 'CI: Use node 12 for tests to match runtime version'
+      hash: 095f67c83011b60a06d75c5f0432937b93049ad5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+    - subject: 'CI: Use docker 18 client to match remote'
+      hash: 8c1838fd5ea0d36787857d7040f8359d9618c061
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.3.7
+  date: 2020-05-08T11:43:11.578Z
+- commits:
     - subject: Move SupervisorAPI state change logs to appropriate functions
       hash: 60c07fc2fc2c352091995c2e599752fb12c05148
       body: ''
