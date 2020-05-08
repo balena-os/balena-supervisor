@@ -1,4 +1,14 @@
 - commits:
+    - subject: Remove unnecessary config.json keys
+      hash: 913418bb37aafe1e66dcc9cd6e1f84e89dee4712
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.3.8
+  date: 2020-05-08T11:59:18.907Z
+- commits:
     - subject: 'CI: Use node 12 for tests to match runtime version'
       hash: 095f67c83011b60a06d75c5f0432937b93049ad5
       body: ''
