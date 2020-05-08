@@ -1,7 +1,7 @@
 ---
 defaults: &defaults
   docker:
-    - image: library/docker:19-git
+    - image: library/docker:18-git
   working_directory: /tmp/build
   steps:
     - setup_remote_docker:
@@ -58,7 +58,7 @@ version: 2
 jobs:
   generic:
     docker:
-      - image: balenalib/amd64-alpine-node:10
+      - image: balenalib/amd64-alpine-node:12
     steps:
       - checkout
       - run:
