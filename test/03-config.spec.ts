@@ -63,7 +63,7 @@ describe('Config', () => {
 	});
 
 	it('does not allow setting an immutable field', async () => {
-		const promise = conf.set({ username: 'somebody else' });
+		const promise = conf.set({ deviceType: 'a different device type' });
 		// We catch it to avoid the unhandled error log
 		promise.catch(_.noop);
 		return expect(promise).to.be.rejected;

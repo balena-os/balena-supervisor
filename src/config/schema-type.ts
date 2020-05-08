@@ -46,14 +46,6 @@ export const schemaTypes = {
 		type: t.string,
 		default: 'unknown',
 	},
-	username: {
-		type: t.string,
-		default: NullOrUndefined,
-	},
-	userId: {
-		type: PermissiveNumber,
-		default: NullOrUndefined,
-	},
 	deviceId: {
 		type: PermissiveNumber,
 		default: NullOrUndefined,
@@ -204,7 +196,6 @@ export const schemaTypes = {
 			// from the definitions above and still have the types work
 			uuid: t.union([t.string, NullOrUndefined]),
 			applicationId: t.union([PermissiveNumber, NullOrUndefined]),
-			userId: t.union([PermissiveNumber, NullOrUndefined]),
 			deviceType: t.string,
 			provisioningApiKey: t.union([t.string, NullOrUndefined]),
 			deviceApiKey: t.string,

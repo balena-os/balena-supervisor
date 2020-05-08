@@ -39,16 +39,6 @@ export const schema = {
 		mutable: false,
 		removeIfNull: false,
 	},
-	username: {
-		source: 'config.json',
-		mutable: false,
-		removeIfNull: false,
-	},
-	userId: {
-		source: 'config.json',
-		mutable: false,
-		removeIfNull: false,
-	},
 	deviceId: {
 		source: 'config.json',
 		mutable: true,

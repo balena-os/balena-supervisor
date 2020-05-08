@@ -289,7 +289,6 @@ export class APIBinder {
 			'unmanaged',
 			'provisioned',
 			'apiTimeout',
-			'userId',
 			'deviceId',
 		]);
 
@@ -307,9 +306,7 @@ export class APIBinder {
 			);
 		}
 
-		// TODO: When API supports it as per  https://github.com/resin-io/hq/pull/949 remove userId
 		_.defaults(device, {
-			belongs_to__user: conf.userId,
 			is_managed_by__device: conf.deviceId,
 			uuid: deviceRegister.generateUniqueKey(),
 			registered_at: Math.floor(Date.now() / 1000),
