@@ -1,4 +1,5 @@
-import { ChildProcess, spawn } from 'child_process';
+import { ChildProcess, execSync, spawn } from 'child_process';
+import * as fs from 'fs';
 
 import constants = require('./constants');
 import log from './supervisor-console';
@@ -44,4 +45,14 @@ export function spawnJournalctl(opts: {
 	});
 
 	return journald;
+}
+
+export function setJournalRotationSize(size: string) {
+	const confFile = '/etc/systemd/journald.conf';
+	let confFileStr = fs.readFileSync(confFile).toString();
+	confFileStr = confFileStr.replace(
+		/RuntimeMaxUse=([^\n]+)/g,
+		`RuntimeMaxUse=${size}`,
+	);
+	fs.writeFileSync(confFile, confFileStr);
 }
