@@ -1,4 +1,16 @@
 - commits:
+    - subject: Added more documentation to help new contributors start developing
+      hash: 856e7cba2cc767ded0eeb5186a1cce19ea447735
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.3.10
+  date: 2020-05-11T19:32:42.867Z
+- commits:
     - subject: Fix dindctl script and update balenaos-in-container
       hash: c317b02aef0bd2496f39ab245fa7c670e806f2e3
       body: ''
