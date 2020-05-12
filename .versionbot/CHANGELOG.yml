@@ -1,4 +1,18 @@
 - commits:
+    - subject: Correctly check if value is a valid Integer
+      hash: 838c1ebba4c3d4cba31f5ef233f09020fa3d03f7
+      body: ''
+      footer:
+        Closes: '#1180'
+        closes: '#1180'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.4.1
+  date: 2020-05-12T16:50:20.376Z
+- commits:
     - subject: Added endpoint to check if VPN is connected
       hash: 8295858b328d885782c6f0cead44248b1f17fd50
       body: ''
