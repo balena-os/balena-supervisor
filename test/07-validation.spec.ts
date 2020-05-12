@@ -59,21 +59,30 @@ describe('validation', () => {
 	describe('checkInt', () => {
 		it('returns an integer for a string that can be parsed as one', () => {
 			expect(validation.checkInt('200')).to.equal(200);
+			expect(validation.checkInt('200.00')).to.equal(200); // Allow since no data is being lost
 			expect(validation.checkInt('0')).to.equal(0);
 			expect(validation.checkInt('-3')).to.equal(-3);
 		});
 
 		it('returns the same integer when passed an integer', () => {
 			expect(validation.checkInt(345)).to.equal(345);
-			return expect(validation.checkInt(-345)).to.equal(-345);
+			expect(validation.checkInt(-345)).to.equal(-345);
 		});
 
 		it("returns undefined when passed something that can't be parsed as int", () => {
 			expect(validation.checkInt({})).to.be.undefined;
 			expect(validation.checkInt([])).to.be.undefined;
 			expect(validation.checkInt('foo')).to.be.undefined;
+			expect(validation.checkInt('')).to.be.undefined;
 			expect(validation.checkInt(null)).to.be.undefined;
-			return expect(validation.checkInt(undefined)).to.be.undefined;
+			expect(validation.checkInt(undefined)).to.be.undefined;
+			expect(validation.checkInt('45notanumber')).to.be.undefined;
+			expect(validation.checkInt('000123.45notanumber')).to.be.undefined;
+			expect(validation.checkInt(50.55)).to.be.undefined; // Fractional digits
+			expect(validation.checkInt('50.55')).to.be.undefined; // Fractional digits
+			expect(validation.checkInt('0x11')).to.be.undefined; // Hexadecimal
+			expect(validation.checkInt('0b11')).to.be.undefined; // Binary
+			expect(validation.checkInt('0o11')).to.be.undefined; // Octal
 		});
 
 		it('returns undefined when passed a negative or zero value and the positive option is set', () => {
@@ -196,7 +205,7 @@ describe('validation', () => {
 					},
 				},
 			};
-			expect(validation.isValidAppsObject(apps)).to.equal(true);
+			expect(validation.isValidAppsObject(apps)).to.equal(false);
 		});
 	});
 
@@ -250,9 +259,7 @@ describe('validation', () => {
 					},
 				},
 			};
-			return expect(validation.isValidDependentDevicesObject(devices)).to.equal(
-				false,
-			);
+			expect(validation.isValidDependentDevicesObject(devices)).to.equal(false);
 		});
 	});
 });

@@ -12,6 +12,7 @@ export interface CheckIntOptions {
 
 const ENV_VAR_KEY_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
+const NUMERALS_REGEX = /^-?[0-9]+\.?0*$/; // Allows trailing 0 decimals
 
 /**
  * checkInt
@@ -23,15 +24,14 @@ export function checkInt(
 	s: unknown,
 	options: CheckIntOptions = {},
 ): number | undefined {
-	if (s == null) {
+	// Check for non-numeric characters
+	if (!NUMERALS_REGEX.test(s as string)) {
 		return;
 	}
 
-	// parseInt will happily take a number, but the typings won't accept it,
-	// simply cast it here
-	const i = parseInt(s as string, 10);
+	const i = Number(s);
 
-	if (isNaN(i)) {
+	if (!Number.isInteger(i)) {
 		return;
 	}
 
