@@ -1,4 +1,16 @@
 - commits:
+    - subject: Added endpoint to check if VPN is connected
+      hash: 8295858b328d885782c6f0cead44248b1f17fd50
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.4.0
+  date: 2020-05-12T01:24:43.749Z
+- commits:
     - subject: Fixed stubs for test suite
       hash: f6aa4dd015e8bd07c795f6c1e70adf99a6ffec94
       body: ''
