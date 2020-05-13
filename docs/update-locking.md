@@ -48,23 +48,25 @@ flock /tmp/balena/updates.lock -c '... (command to run while locked)'
 
 For more examples and explanation of the functionality, check the links to the specific tools above.
 
-#### Javascript and Coffeescript
+#### Javascript
 
-Using the [`lockfile` library](https://www.npmjs.com/package/lockfile), the lock can be acquired like in this CoffeeScript example:
-```coffeescript
-lockFile = require 'lockfile'
+Using the [`lockfile` library](https://www.npmjs.com/package/lockfile), the lock can be acquired like in this example:
+```javascript
+import lockFile from 'lockfile';
 
-lockFile.lock '/tmp/balena/updates.lock', (err) ->
-	# A non-null err probably means the supervisor is about to kill us
-	throw new Error('Could not acquire lock: ', err) if err?
+lockFile.lock('/tmp/balena/updates.lock', function(err) {
+	// A non-null err probably means the supervisor is about to kill us
+	if (err != null) { throw new Error('Could not acquire lock: ', err); }
 
-	# Here we have the lock, so we can do critical stuff:
-	doTheHarlemShake()
+	// Here we have the lock, so we can do critical stuff:
+	doTheHarlemShake();
 
-	# Now we release the lock, and we can be killed again
-	lockFile.unlock '/tmp/balena/updates.lock', (err) ->
-		# If err is not null here, something went really wrong
-		throw err if err?
+	// Now we release the lock, and we can be killed again
+	return lockFile.unlock('/tmp/balena/updates.lock', function(err) {
+		// If err is not null here, something went really wrong
+		if (err != null) { throw err; }
+	});
+});
 ```
 
 #### Python

@@ -74,10 +74,10 @@ RUN npm ci --production --no-optional --unsafe-perm --build-from-source --sqlite
 	# We also remove the spurious node.dtps, see https://github.com/mapbox/node-sqlite3/issues/861
 	&& find . -path '*/coverage/*' -o -path '*/test/*' -o -path '*/.nyc_output/*' \
 		-o -name '*.tar.*'      -o -name '*.in'     -o -name '*.cc' \
-		-o -name '*.c'          -o -name '*.coffee' -o -name '*.eslintrc' \
+		-o -name '*.c'          -o -name "*.ts"     -o -name '*.eslintrc' \
 		-o -name '*.h'          -o -name '*.html'   -o -name '*.markdown' \
 		-o -name '*.md'         -o -name '*.patch'  -o -name '*.png' \
-		-o -name '*.yml'        -o -name "*.ts" \
+		-o -name '*.yml' \
 		-delete \
 	&& find . -type f -path '*/node_modules/sqlite3/deps*' -delete \
 	&& find . -type f -path '*/node_modules/knex/build*' -delete \

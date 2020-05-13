@@ -3,7 +3,7 @@
 // It's a bit ugly for a migration (it's unusual that migrations check for existence of tables and columns)
 // but being the first migration for a legacy system, this is the easiest way to bring the db
 // to a known schema to start doing proper migrations afterwards.
-// For reference, compare this to db.coffee in old supervisors (e.g. v6.4.2), but consider we've added
+// For reference, compare this to db.ts in old supervisors (e.g. v6.4.2), but consider we've added
 // a few dropColumn and dropTable calls to delete things that were removed throughout the supervisor's
 // history without actually adding drop statements (mostly just becoming unused, but still there).
 
