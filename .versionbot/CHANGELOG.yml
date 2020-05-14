@@ -1,4 +1,16 @@
 - commits:
+    - subject: Cache service names in local log backend
+      hash: 0bceffffb61a5970db0293a8f6d83fe8015163ef
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.3
+  date: 2020-05-14T08:43:43.453Z
+- commits:
     - subject: Update engine information in package.json
       hash: bbfd87d3257dec064f62dc05ee7d523593e8f415
       body: ''
