@@ -10,7 +10,9 @@ import log from '../lib/supervisor-console';
 export class LocalLogBackend extends LogBackend {
 	private globalListeners: Readable[] = [];
 
-	private serviceNameResolver: (serviceId: number) => Bluebird<string>;
+	private serviceNameResolver: (
+		serviceId: number,
+	) => Promise<string> | Bluebird<string>;
 
 	public log(message: LogMessage): void {
 		if (this.publishEnabled) {
@@ -31,9 +33,11 @@ export class LocalLogBackend extends LogBackend {
 					}
 					// TODO: Can we cache this value? The service ids are reused, so
 					// we would need a way of invalidating the cache
-					return this.serviceNameResolver(svcId).then(serviceName => {
-						return _.assign({}, { serviceName }, message);
-					});
+					return (this.serviceNameResolver(svcId) as Promise<string>).then(
+						(serviceName: string) => {
+							return _.assign({}, { serviceName }, message);
+						},
+					);
 				} else {
 					return message;
 				}
@@ -65,7 +69,7 @@ export class LocalLogBackend extends LogBackend {
 	}
 
 	public assignServiceNameResolver(
-		resolver: (serviceId: number) => Bluebird<string>,
+		resolver: LocalLogBackend['serviceNameResolver'],
 	) {
 		this.serviceNameResolver = resolver;
 	}
