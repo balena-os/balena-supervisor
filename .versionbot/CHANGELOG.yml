@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update engine information in package.json
+      hash: bbfd87d3257dec064f62dc05ee7d523593e8f415
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.2
+  date: 2020-05-13T08:49:32.854Z
+- commits:
     - subject: Correctly check if value is a valid Integer
       hash: 838c1ebba4c3d4cba31f5ef233f09020fa3d03f7
       body: ''
