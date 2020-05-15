@@ -70,7 +70,7 @@ export class PortMap {
 			this.ports.internalStart,
 			this.ports.internalEnd,
 		);
-		return _.map(internalRange, internal => {
+		return _.map(internalRange, (internal) => {
 			return `${internal}/${this.ports.protocol}`;
 		});
 	}
@@ -118,9 +118,9 @@ export class PortMap {
 	public static normalisePortMaps(portMaps: PortMap[]): PortMap[] {
 		// Fold any ranges into each other if possible
 		return _(portMaps)
-			.sortBy(p => p.ports.protocol)
-			.sortBy(p => p.ports.host)
-			.sortBy(p => p.ports.internalStart)
+			.sortBy((p) => p.ports.protocol)
+			.sortBy((p) => p.ports.host)
+			.sortBy((p) => p.ports.internalStart)
 			.reduce((res: PortMap[], p: PortMap) => {
 				const last = _.last(res);
 
@@ -141,7 +141,7 @@ export class PortMap {
 	}
 
 	public static fromComposePorts(ports: string[]): PortMap[] {
-		return PortMap.normalisePortMaps(ports.map(p => new PortMap(p)));
+		return PortMap.normalisePortMaps(ports.map((p) => new PortMap(p)));
 	}
 
 	private parsePortString(portStr: string): void {

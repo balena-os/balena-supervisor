@@ -7,7 +7,7 @@
  */
 import * as fs from 'fs';
 
-export = function() {
+export = function () {
 	try {
 		fs.unlinkSync(process.env.DATABASE_PATH!);
 	} catch (e) {

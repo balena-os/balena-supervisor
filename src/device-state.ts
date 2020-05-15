@@ -121,8 +121,8 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 	router.get('/v1/device/host-config', (_req, res) =>
 		hostConfig
 			.get()
-			.then(conf => res.json(conf))
-			.catch(err =>
+			.then((conf) => res.json(conf))
+			.catch((err) =>
 				res.status(503).send(err?.message ?? err ?? 'Unknown error'),
 			),
 	);
@@ -131,7 +131,7 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 		hostConfig
 			.patch(req.body, deviceState.config)
 			.then(() => res.status(200).send('OK'))
-			.catch(err =>
+			.catch((err) =>
 				res.status(503).send(err?.message ?? err ?? 'Unknown error'),
 			),
 	);
@@ -271,8 +271,8 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			apiBinder,
 		});
 
-		this.on('error', err => log.error('deviceState error: ', err));
-		this.on('apply-target-state-end', function(err) {
+		this.on('error', (err) => log.error('deviceState error: ', err));
+		this.on('apply-target-state-end', function (err) {
 			if (err != null) {
 				if (!(err instanceof UpdatesLockedError)) {
 					return log.error('Device state apply error', err);
@@ -285,7 +285,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 				return this.deviceConfig.resetRateLimits();
 			}
 		});
-		this.applications.on('change', d => this.reportCurrentState(d));
+		this.applications.on('change', (d) => this.reportCurrentState(d));
 		this.router = createDeviceStateRouter(this);
 	}
 
@@ -307,7 +307,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	}
 
 	public async init() {
-		this.config.on('change', changedConfig => {
+		this.config.on('change', (changedConfig) => {
 			if (changedConfig.loggingEnabled != null) {
 				this.logger.enable(changedConfig.loggingEnabled);
 			}
@@ -389,11 +389,11 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		network.startConnectivityCheck(
 			apiEndpoint,
 			connectivityCheckEnabled,
-			connected => {
+			(connected) => {
 				return (this.connected = connected);
 			},
 		);
-		this.config.on('change', function(changedConfig) {
+		this.config.on('change', function (changedConfig) {
 			if (changedConfig.connectivityCheckEnabled != null) {
 				return network.enableConnectivityCheck(
 					changedConfig.connectivityCheckEnabled,
@@ -402,7 +402,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		});
 		log.debug('Starting periodic check for IP addresses');
 
-		await network.startIPAddressUpdate()(async addresses => {
+		await network.startIPAddressUpdate()(async (addresses) => {
 			await this.reportCurrentState({
 				ip_address: addresses.join(' '),
 			});
@@ -433,11 +433,11 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	}
 
 	private readLockTarget = () =>
-		this.readLock('target').disposer(release => release());
+		this.readLock('target').disposer((release) => release());
 	private writeLockTarget = () =>
-		this.writeLock('target').disposer(release => release());
+		this.writeLock('target').disposer((release) => release());
 	private inferStepsLock = () =>
-		this.writeLock('inferSteps').disposer(release => release());
+		this.writeLock('inferSteps').disposer((release) => release());
 	private usingReadLockTarget(fn: () => any) {
 		return Bluebird.using(this.readLockTarget, () => fn());
 	}
@@ -463,7 +463,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		const apiEndpoint = await this.config.get('apiEndpoint');
 
 		await this.usingWriteLockTarget(async () => {
-			await this.db.transaction(async trx => {
+			await this.db.transaction(async (trx) => {
 				await this.config.set({ name: target.local.name }, trx);
 				await this.deviceConfig.setTarget(target.local.config, trx);
 
@@ -762,7 +762,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			if (!intermediate) {
 				this.reportCurrentState({ update_pending: true });
 			}
-			if (_.every(steps, step => step.action === 'noop')) {
+			if (_.every(steps, (step) => step.action === 'noop')) {
 				if (backoff) {
 					retryCount += 1;
 					// Backoff to a maximum of 10 minutes
@@ -774,7 +774,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 			try {
 				await Promise.all(
-					steps.map(s => this.applyStep(s, { force, initial, skipLock })),
+					steps.map((s) => this.applyStep(s, { force, initial, skipLock })),
 				);
 
 				await Bluebird.delay(nextDelay);
@@ -798,20 +798,20 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 						JSON.stringify(_.map(steps, 'action')),
 				);
 			}
-		}).catch(err => {
+		}).catch((err) => {
 			return this.applyError(err, { force, initial, intermediate });
 		});
 	}
 
 	public pausingApply(fn: () => any) {
 		const lock = () => {
-			return this.writeLock('pause').disposer(release => release());
+			return this.writeLock('pause').disposer((release) => release());
 		};
 		// TODO: This function is a bit of a mess
 		const pause = () => {
 			return Bluebird.try(() => {
 				let res;
-				this.applyBlocker = new Promise(resolve => {
+				this.applyBlocker = new Promise((resolve) => {
 					res = resolve;
 				});
 				return res;

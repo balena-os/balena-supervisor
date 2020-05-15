@@ -1,8 +1,8 @@
 import { expect } from './lib/chai-config';
 import * as conversion from '../src/lib/conversions';
 
-describe('conversions', function() {
-	describe('envArrayToObject', function() {
+describe('conversions', function () {
+	describe('envArrayToObject', function () {
 		it('should convert an env array to an object', () =>
 			expect(
 				conversion.envArrayToObject([
@@ -29,7 +29,7 @@ describe('conversions', function() {
 				key1: 'value1',
 			}));
 
-		it('should return an empty object with an empty input', function() {
+		it('should return an empty object with an empty input', function () {
 			// @ts-ignore passing invalid value to test
 			expect(conversion.envArrayToObject(null)).to.deep.equal({});
 			// @ts-ignore passing invalid value to test

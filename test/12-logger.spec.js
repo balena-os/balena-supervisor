@@ -7,14 +7,14 @@ import * as sinon from 'sinon';
 
 import { Logger } from '../src/logger';
 import { ContainerLogs } from '../src/logging/container';
-describe('Logger', function() {
-	beforeEach(function() {
+describe('Logger', function () {
+	beforeEach(function () {
 		this._req = new stream.PassThrough();
 		this._req.flushHeaders = sinon.spy();
 		this._req.end = sinon.spy();
 
 		this._req.body = '';
-		this._req.pipe(zlib.createGunzip()).on('data', chunk => {
+		this._req.pipe(zlib.createGunzip()).on('data', (chunk) => {
 			this._req.body += chunk;
 		});
 
@@ -36,11 +36,11 @@ describe('Logger', function() {
 		});
 	});
 
-	afterEach(function() {
+	afterEach(function () {
 		this.requestStub.restore();
 	});
 
-	it('waits the grace period before sending any logs', function() {
+	it('waits the grace period before sending any logs', function () {
 		const clock = sinon.useFakeTimers();
 		this.logger.log({ message: 'foobar', serviceId: 15 });
 		clock.tick(4999);
@@ -51,7 +51,7 @@ describe('Logger', function() {
 		});
 	});
 
-	it('tears down the connection after inactivity', function() {
+	it('tears down the connection after inactivity', function () {
 		const clock = sinon.useFakeTimers();
 		this.logger.log({ message: 'foobar', serviceId: 15 });
 		clock.tick(61000);
@@ -62,7 +62,7 @@ describe('Logger', function() {
 		});
 	});
 
-	it('sends logs as gzipped ndjson', function() {
+	it('sends logs as gzipped ndjson', function () {
 		const timestamp = Date.now();
 		this.logger.log({ message: 'foobar', serviceId: 15 });
 		this.logger.log({ timestamp: 1337, message: 'foobar', serviceId: 15 });
@@ -87,15 +87,9 @@ describe('Logger', function() {
 			expect(lines[2]).to.equal('');
 
 			let msg = JSON.parse(lines[0]);
-			expect(msg)
-				.to.have.property('message')
-				.that.equals('foobar');
-			expect(msg)
-				.to.have.property('serviceId')
-				.that.equals(15);
-			expect(msg)
-				.to.have.property('timestamp')
-				.that.is.at.least(timestamp);
+			expect(msg).to.have.property('message').that.equals('foobar');
+			expect(msg).to.have.property('serviceId').that.equals(15);
+			expect(msg).to.have.property('timestamp').that.is.at.least(timestamp);
 			msg = JSON.parse(lines[1]);
 			expect(msg).to.deep.equal({
 				timestamp: 1337,
@@ -105,7 +99,7 @@ describe('Logger', function() {
 		});
 	});
 
-	it('allows logging system messages which are also reported to the eventTracker', function() {
+	it('allows logging system messages which are also reported to the eventTracker', function () {
 		const timestamp = Date.now();
 		this.logger.logSystemMessage(
 			'Hello there!',
@@ -122,19 +116,13 @@ describe('Logger', function() {
 			expect(lines[1]).to.equal('');
 
 			const msg = JSON.parse(lines[0]);
-			expect(msg)
-				.to.have.property('message')
-				.that.equals('Hello there!');
-			expect(msg)
-				.to.have.property('isSystem')
-				.that.equals(true);
-			expect(msg)
-				.to.have.property('timestamp')
-				.that.is.at.least(timestamp);
+			expect(msg).to.have.property('message').that.equals('Hello there!');
+			expect(msg).to.have.property('isSystem').that.equals(true);
+			expect(msg).to.have.property('timestamp').that.is.at.least(timestamp);
 		});
 	});
 
-	it('should support non-tty log lines', function() {
+	it('should support non-tty log lines', function () {
 		const message =
 			'\u0001\u0000\u0000\u0000\u0000\u0000\u0000?2018-09-21T12:37:09.819134000Z this is the message';
 		const buffer = Buffer.from(message);

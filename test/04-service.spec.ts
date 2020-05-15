@@ -207,7 +207,7 @@ describe('compose/service', () => {
 		});
 	});
 
-	it('should correctly handle large port ranges', function() {
+	it('should correctly handle large port ranges', function () {
 		this.timeout(60000);
 		const s = Service.fromComposeObject(
 			{

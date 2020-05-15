@@ -63,10 +63,7 @@ function isValidRequirementType(
 export function containerContractsFulfilled(
 	serviceContracts: ServiceContracts,
 ): ApplicationContractResult {
-	const containers = _(serviceContracts)
-		.map('contract')
-		.compact()
-		.value();
+	const containers = _(serviceContracts).map('contract').compact().value();
 
 	const blueprintMembership: Dictionary<number> = {};
 	for (const component of _.keys(contractRequirementVersions)) {
@@ -91,7 +88,7 @@ export function containerContractsFulfilled(
 		[
 			...getContractsFromVersions(contractRequirementVersions),
 			...containers,
-		].map(c => new Contract(c)),
+		].map((c) => new Contract(c)),
 	);
 
 	const solution = blueprint.reproduce(universe);
@@ -132,13 +129,13 @@ export function containerContractsFulfilled(
 
 		const [fulfilledServices, unfulfilledServices] = _.partition(
 			_.keys(serviceContracts),
-			serviceName => {
+			(serviceName) => {
 				const { contract } = serviceContracts[serviceName];
 				if (!contract) {
 					return true;
 				}
 				// Did we find the contract in the generated state?
-				return _.some(children, child =>
+				return _.some(children, (child) =>
 					_.isEqual((child as any).raw, contract),
 				);
 			},
@@ -146,7 +143,7 @@ export function containerContractsFulfilled(
 
 		const [unmetAndRequired, unmetAndOptional] = _.partition(
 			unfulfilledServices,
-			serviceName => {
+			(serviceName) => {
 				return !serviceContracts[serviceName].optional;
 			},
 		);

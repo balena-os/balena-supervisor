@@ -39,7 +39,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		return _lockingIfNecessary(appId, { force }, () => {
 			return applications
 				.getCurrentApp(appId)
-				.then(app => {
+				.then((app) => {
 					if (app == null) {
 						res.status(404).send(appNotFoundMessage);
 						return;
@@ -54,11 +54,11 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 					let service: Service | undefined;
 					if (imageId != null) {
-						service = _.find(app.services, svc => svc.imageId === imageId);
+						service = _.find(app.services, (svc) => svc.imageId === imageId);
 					} else {
 						service = _.find(
 							app.services,
-							svc => svc.serviceName === serviceName,
+							(svc) => svc.serviceName === serviceName,
 						);
 					}
 					if (service == null) {
@@ -173,7 +173,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 					const appNameById: { [id: number]: string } = {};
 
-					apps.forEach(app => {
+					apps.forEach((app) => {
 						const appId = parseInt(app.appId, 10);
 						response[app.name] = {
 							appId,
@@ -184,7 +184,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						appNameById[appId] = app.name;
 					});
 
-					images.forEach(img => {
+					images.forEach((img) => {
 						const appName = appNameById[img.appId];
 						if (appName == null) {
 							log.warn(
@@ -224,7 +224,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			// Get all services and their statuses, and return it
 			applications
 				.getStatus()
-				.then(apps => {
+				.then((apps) => {
 					res.status(200).json(apps);
 				})
 				.catch(next);
@@ -258,14 +258,14 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			target.local = {
 				name: targetState.local.name,
 				config: _.cloneDeep(targetState.local.config),
-				apps: _.mapValues(targetState.local.apps, app => ({
+				apps: _.mapValues(targetState.local.apps, (app) => ({
 					appId: app.appId,
 					name: app.name,
 					commit: app.commit,
 					releaseId: app.releaseId,
-					services: _.map(app.services, s => s.toComposeObject()),
-					volumes: _.mapValues(app.volumes, v => v.toComposeObject()),
-					networks: _.mapValues(app.networks, n => n.toComposeObject()),
+					services: _.map(app.services, (s) => s.toComposeObject()),
+					volumes: _.mapValues(app.volumes, (v) => v.toComposeObject()),
+					networks: _.mapValues(app.networks, (n) => n.toComposeObject()),
 				})),
 			};
 		}
@@ -369,7 +369,10 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 		if (req.query.serviceName != null || req.query.service != null) {
 			const serviceName = req.query.serviceName || req.query.service;
-			const service = _.find(services, svc => svc.serviceName === serviceName);
+			const service = _.find(
+				services,
+				(svc) => svc.serviceName === serviceName,
+			);
 			if (service != null) {
 				res.status(200).json({
 					status: 'success',
@@ -396,7 +399,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		const currentRelease = await applications.config.get('currentCommit');
 
 		const pending = applications.deviceState.applyInProgress;
-		const containerStates = (await applications.services.getAll()).map(svc =>
+		const containerStates = (await applications.services.getAll()).map((svc) =>
 			_.pick(
 				svc,
 				'status',
@@ -411,7 +414,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 		let downloadProgressTotal = 0;
 		let downloads = 0;
-		const imagesStates = (await applications.images.getStatus()).map(img => {
+		const imagesStates = (await applications.images.getStatus()).map((img) => {
 			if (img.downloadProgress != null) {
 				downloadProgressTotal += img.downloadProgress;
 				downloads += 1;
@@ -483,8 +486,8 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	router.get('/v2/cleanup-volumes', async (_req, res) => {
 		const targetState = await applications.getTargetApps();
 		const referencedVolumes: string[] = [];
-		_.each(targetState, app => {
-			_.each(app.volumes, vol => {
+		_.each(targetState, (app) => {
+			_.each(app.volumes, (vol) => {
 				referencedVolumes.push(Volume.generateDockerName(vol.appId, vol.name));
 			});
 		});

@@ -5,7 +5,7 @@ import * as constants from './constants';
 import { ENOENT } from './errors';
 
 export function writeAndSyncFile(path: string, data: string): Bluebird<void> {
-	return Bluebird.resolve(fs.open(path, 'w')).then(fd => {
+	return Bluebird.resolve(fs.open(path, 'w')).then((fd) => {
 		fs.write(fd, data, 0, 'utf8')
 			.then(() => fs.fsync(fd))
 			.then(() => fs.close(fd));

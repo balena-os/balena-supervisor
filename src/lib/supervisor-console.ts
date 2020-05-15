@@ -30,7 +30,7 @@ const maxLevelLength = _(levels)
 
 const uncolorize = winston.format.uncolorize();
 
-const formatter = winston.format.printf(args => {
+const formatter = winston.format.printf((args) => {
 	const { level, message } = args;
 	const { level: strippedLevel } = uncolorize.transform(args, {
 		level: true,
@@ -64,7 +64,7 @@ winston.addColors(colors);
 const messageFormatter = (printFn: (message: string) => void) => {
 	return (...parts: any[]) => {
 		parts
-			.map(p => {
+			.map((p) => {
 				if (p instanceof Error) {
 					return p.stack;
 				}

@@ -27,7 +27,7 @@ describe('LocalModeManager', () => {
 			.models('engineSnapshot')
 			.count('* as cnt')
 			.first()
-			.then(r => r.cnt);
+			.then((r) => r.cnt);
 
 	// Cleanup the database (to make sure nothing is left since last tests).
 	beforeEach(async () => {
@@ -235,7 +235,7 @@ describe('LocalModeManager', () => {
 
 				await localMode.handleLocalModeStateChange(false);
 
-				removeStubs.forEach(s => expect(s.remove.calledTwice).to.be.true);
+				removeStubs.forEach((s) => expect(s.remove.calledTwice).to.be.true);
 			});
 
 			it('keeps objects from the previous snapshot on local mode exit', async () => {
@@ -255,7 +255,7 @@ describe('LocalModeManager', () => {
 					.true;
 				expect(dockerStub.getVolume.calledWithExactly('volume-2')).to.be.true;
 				expect(dockerStub.getNetwork.calledWithExactly('network-2')).to.be.true;
-				removeStubs.forEach(s => expect(s.remove.calledOnce).to.be.true);
+				removeStubs.forEach((s) => expect(s.remove.calledOnce).to.be.true);
 			});
 
 			it('logs but consumes cleanup errors on local mode exit', async () => {
@@ -267,7 +267,7 @@ describe('LocalModeManager', () => {
 				await localMode.handleLocalModeStateChange(false);
 
 				// Even though remove method throws, we still attempt all removals.
-				removeStubs.forEach(s => expect(s.remove.calledTwice).to.be.true);
+				removeStubs.forEach((s) => expect(s.remove.calledTwice).to.be.true);
 			});
 
 			it('skips cleanup without previous snapshot on local mode exit', async () => {
@@ -279,7 +279,7 @@ describe('LocalModeManager', () => {
 				expect(dockerStub.getContainer.notCalled).to.be.true;
 				expect(dockerStub.getVolume.notCalled).to.be.true;
 				expect(dockerStub.getNetwork.notCalled).to.be.true;
-				removeStubs.forEach(s => expect(s.remove.notCalled).to.be.true);
+				removeStubs.forEach((s) => expect(s.remove.notCalled).to.be.true);
 			});
 
 			it('can be awaited', async () => {
@@ -292,7 +292,7 @@ describe('LocalModeManager', () => {
 				// Await like it's done by DeviceState.
 				await localMode.switchCompletion();
 
-				removeStubs.forEach(s => expect(s.remove.calledTwice).to.be.true);
+				removeStubs.forEach((s) => expect(s.remove.calledTwice).to.be.true);
 			});
 
 			it('cleans the last snapshot so that nothing is done on restart', async () => {
@@ -312,7 +312,7 @@ describe('LocalModeManager', () => {
 				expect(dockerStub.getContainer.callCount).to.be.equal(3); // +1 for supervisor inspect call.
 				expect(dockerStub.getVolume.callCount).to.be.equal(2);
 				expect(dockerStub.getNetwork.callCount).to.be.equal(2);
-				removeStubs.forEach(s => expect(s.remove.callCount).to.be.equal(2));
+				removeStubs.forEach((s) => expect(s.remove.callCount).to.be.equal(2));
 			});
 
 			it('skips cleanup in case of data corruption', async () => {
@@ -330,7 +330,7 @@ describe('LocalModeManager', () => {
 				expect(dockerStub.getContainer.notCalled).to.be.true;
 				expect(dockerStub.getVolume.notCalled).to.be.true;
 				expect(dockerStub.getNetwork.notCalled).to.be.true;
-				removeStubs.forEach(s => expect(s.remove.notCalled).to.be.true);
+				removeStubs.forEach((s) => expect(s.remove.notCalled).to.be.true);
 			});
 
 			describe('with supervisor being updated', () => {
@@ -362,7 +362,7 @@ describe('LocalModeManager', () => {
 					// Current engine objects include 2 entities of each type.
 					// Container-1, network-1, image-1, and volume-1 are resources associated with currently running supervisor.
 					// Only xxx-2 objects must be deleted.
-					removeStubs.forEach(s => expect(s.remove.calledOnce).to.be.true);
+					removeStubs.forEach((s) => expect(s.remove.calledOnce).to.be.true);
 				});
 			});
 		});

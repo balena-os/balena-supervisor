@@ -6,12 +6,12 @@ import { expect } from './lib/chai-config';
 describe('journald', () => {
 	let spawn: SinonStub;
 
-	beforeEach(done => {
+	beforeEach((done) => {
 		spawn = stub(require('child_process'), 'spawn');
 		done();
 	});
 
-	afterEach(done => {
+	afterEach((done) => {
 		spawn.restore();
 		done();
 	});
@@ -50,7 +50,7 @@ describe('journald', () => {
 		expect(actualCommand).deep.equal(expectedCommand);
 		expect(actualCoreArgs).deep.equal(expectedCoreArgs);
 
-		expectedOptionalArgs.forEach(arg => {
+		expectedOptionalArgs.forEach((arg) => {
 			expect(actualOptionalArgs).to.include(arg);
 		});
 	});

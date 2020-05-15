@@ -44,10 +44,7 @@ describe('SupervisorAPI', () => {
 
 	describe('/ping', () => {
 		it('responds with OK (without auth)', async () => {
-			await request
-				.get('/ping')
-				.set('Accept', 'application/json')
-				.expect(200);
+			await request.get('/ping').set('Accept', 'application/json').expect(200);
 		});
 		it('responds with OK (with auth)', async () => {
 			await request
@@ -71,7 +68,7 @@ describe('SupervisorAPI', () => {
 					.set('Authorization', `Bearer ${VALID_SECRET}`)
 					.expect('Content-Type', /json/)
 					.expect(sampleResponses.V2.GET['/device/vpn'].statusCode)
-					.then(response => {
+					.then((response) => {
 						expect(response.body).to.deep.equal(
 							sampleResponses.V2.GET['/device/vpn'].body,
 						);

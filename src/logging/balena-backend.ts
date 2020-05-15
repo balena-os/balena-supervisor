@@ -124,7 +124,7 @@ export class BalenaLogBackend extends LogBackend {
 		// Since we haven't sent the request body yet, and never will,the
 		// only reason for the server to prematurely respond is to
 		// communicate an error. So teardown the connection immediately
-		this.req.on('response', res => {
+		this.req.on('response', (res) => {
 			log.error(
 				'LogBackend: server responded with status code:',
 				res.statusCode,
@@ -134,7 +134,7 @@ export class BalenaLogBackend extends LogBackend {
 
 		this.req.on('timeout', () => this.teardown());
 		this.req.on('close', () => this.teardown());
-		this.req.on('error', err => {
+		this.req.on('error', (err) => {
 			log.error('LogBackend: unexpected error:', err);
 			this.teardown();
 		});

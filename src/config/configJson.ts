@@ -30,9 +30,9 @@ export default class ConfigJsonConfigBackend {
 		this.schema = schema;
 
 		this.writeLockConfigJson = () =>
-			writeLock('config.json').disposer(release => release());
+			writeLock('config.json').disposer((release) => release());
 		this.readLockConfigJson = () =>
-			readLock('config.json').disposer(release => release());
+			readLock('config.json').disposer((release) => release());
 	}
 
 	public async set<T extends Schema.SchemaKey>(
@@ -94,12 +94,12 @@ export default class ConfigJsonConfigBackend {
 	private write(): Promise<void> {
 		let atomicWritePossible = true;
 		return this.pathOnHost()
-			.catch(err => {
+			.catch((err) => {
 				log.error('There was an error detecting the config.json path', err);
 				atomicWritePossible = false;
 				return constants.configJsonNonAtomicPath;
 			})
-			.then(configPath => {
+			.then((configPath) => {
 				if (atomicWritePossible) {
 					return writeFileAtomic(configPath, JSON.stringify(this.cache));
 				} else {

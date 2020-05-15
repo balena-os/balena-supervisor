@@ -111,8 +111,8 @@ describe('Config', () => {
 		expect(conf.get('unknownInvalidValue' as any)).to.be.rejected;
 	});
 
-	it('emits a change event when values are set', done => {
-		conf.on('change', val => {
+	it('emits a change event when values are set', (done) => {
+		conf.on('change', (val) => {
 			expect(val).to.deep.equal({ name: 'someValue' });
 			return done();
 		});

@@ -24,7 +24,7 @@ export const fnSchema = {
 	provisioned: (config: Config) => {
 		return config
 			.getMany(['uuid', 'apiEndpoint', 'registered_at', 'deviceId'])
-			.then(requiredValues => {
+			.then((requiredValues) => {
 				return _.every(_.values(requiredValues));
 			});
 	},
@@ -64,7 +64,7 @@ export const fnSchema = {
 				'registered_at',
 				'deviceId',
 			])
-			.then(conf => {
+			.then((conf) => {
 				return {
 					uuid: conf.uuid,
 					applicationId: conf.applicationId,
@@ -80,7 +80,7 @@ export const fnSchema = {
 			});
 	},
 	mixpanelHost: (config: Config) => {
-		return config.get('apiEndpoint').then(apiEndpoint => {
+		return config.get('apiEndpoint').then((apiEndpoint) => {
 			if (!apiEndpoint) {
 				return null;
 			}
@@ -117,7 +117,7 @@ export const fnSchema = {
 		]);
 	},
 	unmanaged: (config: Config) => {
-		return config.get('apiEndpoint').then(apiEndpoint => {
+		return config.get('apiEndpoint').then((apiEndpoint) => {
 			return !apiEndpoint;
 		});
 	},

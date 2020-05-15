@@ -11,8 +11,8 @@ function applyIptablesArgs(args: string): Bluebird<void> {
 	// We want to run both commands regardless, but also rethrow an error
 	// if one of them fails
 	return execAsync(`iptables ${args}`)
-		.catch(e => (err = e))
-		.then(() => execAsync(`ip6tables ${args}`).catch(e => (err = e)))
+		.catch((e) => (err = e))
+		.then(() => execAsync(`ip6tables ${args}`).catch((e) => (err = e)))
 		.then(() => {
 			if (err != null) {
 				throw err;
@@ -42,7 +42,7 @@ export function rejectOnAllInterfacesExcept(
 ): Bluebird<void> {
 	// We delete each rule and create it again to ensure ordering (all ACCEPTs before the REJECT/DROP).
 	// This is especially important after a supervisor update.
-	return Bluebird.each(allowedInterfaces, iface =>
+	return Bluebird.each(allowedInterfaces, (iface) =>
 		clearAndInsertIptablesRule(
 			`INPUT -p tcp --dport ${port} -i ${iface} -j ACCEPT`,
 		),

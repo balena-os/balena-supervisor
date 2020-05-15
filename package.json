@@ -17,7 +17,7 @@
     "test:build": "npm run typescript:test-build && npm run coffeescript:test  && npm run testitems:copy && npm run packagejson:copy",
     "test:fast": "TEST=1 mocha --opts test/fast-mocha.opts",
     "test:debug": "npm run test:build && TEST=1 mocha --inspect-brk",
-    "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/",
+    "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ build-utils/",
     "typescript:test-build": "tsc --project tsconfig.json",
     "typescript:release": "tsc --project tsconfig.release.json && cp -r build/src/* build && rm -rf build/src",
     "coffeescript:test": "coffee -m -c -o build .",
@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@balena/contrato": "^0.2.1",
-    "@balena/lint": "^4.1.0",
+    "@balena/lint": "^5.1.0",
     "@types/bluebird": "^3.5.30",
     "@types/chai": "^4.2.11",
     "@types/chai-as-promised": "^7.1.2",

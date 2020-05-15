@@ -31,7 +31,7 @@ export class TargetStateAccessor {
 		// If we switch backend, the target state also needs to
 		// be invalidated (this includes switching to and from
 		// local mode)
-		this.config.on('change', conf => {
+		this.config.on('change', (conf) => {
 			if (conf.apiEndpoint != null || conf.localMode != null) {
 				this.targetState = undefined;
 			}
@@ -45,7 +45,7 @@ export class TargetStateAccessor {
 			await this.getTargetApps();
 		}
 
-		return _.find(this.targetState, app => app.appId === appId);
+		return _.find(this.targetState, (app) => app.appId === appId);
 	}
 
 	public async getTargetApps(): Promise<DatabaseApps> {
@@ -70,7 +70,7 @@ export class TargetStateAccessor {
 		this.targetState = undefined;
 
 		await Promise.all(
-			apps.map(app =>
+			apps.map((app) =>
 				this.db.upsertModel('app', app, { appId: app.appId }, trx),
 			),
 		);

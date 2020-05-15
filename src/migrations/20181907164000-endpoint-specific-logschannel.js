@@ -2,8 +2,8 @@ const Bluebird = require('bluebird');
 const fs = require('fs');
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
-exports.up = function(knex) {
-	return new Bluebird(resolve => {
+exports.up = function (knex) {
+	return new Bluebird((resolve) => {
 		if (!configJsonPath) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
@@ -33,20 +33,20 @@ exports.up = function(knex) {
 		.tap(() => {
 			// take the logsChannelSecret, and the apiEndpoint config field,
 			// and store them in a new table
-			return knex.schema.hasTable('logsChannelSecret').then(exists => {
+			return knex.schema.hasTable('logsChannelSecret').then((exists) => {
 				if (!exists) {
-					return knex.schema.createTable('logsChannelSecret', t => {
+					return knex.schema.createTable('logsChannelSecret', (t) => {
 						t.string('backend');
 						t.string('secret');
 					});
 				}
 			});
 		})
-		.then(config => {
+		.then((config) => {
 			return knex('config')
 				.where({ key: 'logsChannelSecret' })
 				.select('value')
-				.then(results => {
+				.then((results) => {
 					if (results.length === 0) {
 						return { config, secret: null };
 					}
@@ -60,12 +60,10 @@ exports.up = function(knex) {
 			});
 		})
 		.then(() => {
-			return knex('config')
-				.where('key', 'logsChannelSecret')
-				.del();
+			return knex('config').where('key', 'logsChannelSecret').del();
 		});
 };
 
-exports.down = function() {
+exports.down = function () {
 	return Promise.reject(new Error('Not Implemented'));
 };

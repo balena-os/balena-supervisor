@@ -70,7 +70,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 			if (Schema.schema.hasOwnProperty(key)) {
 				const schemaKey = key as Schema.SchemaKey;
 
-				return this.getSchema(schemaKey, db).then(value => {
+				return this.getSchema(schemaKey, db).then((value) => {
 					if (value == null) {
 						const defaultValue = schemaTypes[key].default;
 						if (defaultValue instanceof t.Type) {
@@ -118,7 +118,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		keys: T[],
 		trx?: Transaction,
 	): Bluebird<{ [key in T]: SchemaReturn<key> }> {
-		return Bluebird.map(keys, (key: T) => this.get(key, trx)).then(values => {
+		return Bluebird.map(keys, (key: T) => this.get(key, trx)).then((values) => {
 			return _.zipObject(keys, values);
 		}) as Bluebird<{ [key in T]: SchemaReturn<key> }>;
 	}
@@ -198,10 +198,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		if (Schema.schema[key].source === 'config.json') {
 			return this.configJsonBackend.remove(key);
 		} else if (Schema.schema[key].source === 'db') {
-			await this.db
-				.models('config')
-				.del()
-				.where({ key });
+			await this.db.models('config').del().where({ key });
 		} else {
 			throw new Error(
 				`Unknown or unsupported config backend: ${Schema.schema[key].source}`,
@@ -247,9 +244,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 				value = await this.configJsonBackend.get(key);
 				break;
 			case 'db':
-				const [conf] = await db('config')
-					.select('value')
-					.where({ key });
+				const [conf] = await db('config').select('value').where({ key });
 				if (conf != null) {
 					return conf.value;
 				}

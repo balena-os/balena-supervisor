@@ -156,7 +156,7 @@ export class DeviceConfig {
 		this.logger = logger;
 
 		this.actionExecutors = {
-			changeConfig: async step => {
+			changeConfig: async (step) => {
 				try {
 					if (step.humanReadableTarget) {
 						this.logger.logConfigChange(step.humanReadableTarget);
@@ -203,7 +203,7 @@ export class DeviceConfig {
 					throw err;
 				}
 			},
-			setBootConfig: async step => {
+			setBootConfig: async (step) => {
 				const configBackend = await this.getConfigBackend();
 				if (!_.isObject(step.target)) {
 					throw new Error(
@@ -330,7 +330,7 @@ export class DeviceConfig {
 	}
 
 	public resetRateLimits() {
-		_.each(this.rateLimits, action => {
+		_.each(this.rateLimits, (action) => {
 			action.lastAttempt = null;
 		});
 	}
@@ -468,7 +468,7 @@ export class DeviceConfig {
 		}
 
 		const now = Date.now();
-		steps = _.map(steps, step => {
+		steps = _.map(steps, (step) => {
 			const action = step.action;
 			if (action in this.rateLimits) {
 				const lastAttempt = this.rateLimits[action].lastAttempt;
@@ -640,7 +640,7 @@ export class DeviceConfig {
 		if (!_.includes(conf.dtoverlay, field)) {
 			conf.dtoverlay.push(field);
 		}
-		conf.dtoverlay = conf.dtoverlay.filter(s => !_.isEmpty(s));
+		conf.dtoverlay = conf.dtoverlay.filter((s) => !_.isEmpty(s));
 
 		return conf;
 	}

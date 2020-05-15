@@ -281,7 +281,7 @@ export class DockerUtils extends DockerToolbelt {
 				.on('progress', onProgress)
 				.on('retry', onProgress)
 				.on('error', reject)
-				.on('response', res => {
+				.on('response', (res) => {
 					if (res.statusCode !== 200) {
 						reject(
 							new Error(
@@ -297,8 +297,8 @@ export class DockerUtils extends DockerToolbelt {
 						});
 						res
 							.pipe(deltaStream)
-							.on('id', id => resolve(`sha256:${id}`))
-							.on('error', err => {
+							.on('id', (id) => resolve(`sha256:${id}`))
+							.on('error', (err) => {
 								logFn(`Delta stream emitted error: ${err}`);
 								req.abort();
 								reject(err);

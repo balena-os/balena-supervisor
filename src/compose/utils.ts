@@ -316,7 +316,7 @@ export function addFeaturesFromLabels(
 	service: Service,
 	options: DeviceMetadata,
 ): void {
-	const setEnvVariables = function(key: string, val: string) {
+	const setEnvVariables = function (key: string, val: string) {
 		service.config.environment[`RESIN_${key}`] = val;
 		service.config.environment[`BALENA_${key}`] = val;
 	};

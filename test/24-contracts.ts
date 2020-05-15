@@ -82,10 +82,12 @@ describe('Container contracts', () => {
 		// package.json will, we generate values which are above
 		// and below the current value, and use these to reason
 		// about the contract engine results
-		const supervisorVersionGreater = `${semver.major(supervisorVersion)! +
-			1}.0.0`;
-		const supervisorVersionLesser = `${semver.major(supervisorVersion)! -
-			1}.0.0`;
+		const supervisorVersionGreater = `${
+			semver.major(supervisorVersion)! + 1
+		}.0.0`;
+		const supervisorVersionLesser = `${
+			semver.major(supervisorVersion)! - 1
+		}.0.0`;
 
 		before(async () => {
 			// We ensure that the versions we're using for testing
@@ -275,9 +277,7 @@ describe('Container contracts', () => {
 					optional: false,
 				},
 			});
-			expect(fulfilled)
-				.to.have.property('valid')
-				.that.equals(false);
+			expect(fulfilled).to.have.property('valid').that.equals(false);
 			expect(fulfilled)
 				.to.have.property('unmetServices')
 				.that.deep.equals(['service']);
@@ -298,9 +298,7 @@ describe('Container contracts', () => {
 					optional: false,
 				},
 			});
-			expect(fulfilled)
-				.to.have.property('valid')
-				.that.equals(false);
+			expect(fulfilled).to.have.property('valid').that.equals(false);
 			expect(fulfilled)
 				.to.have.property('unmetServices')
 				.that.deep.equals(['service2']);
@@ -335,9 +333,7 @@ describe('Container contracts', () => {
 					optional: false,
 				},
 			});
-			expect(fulfilled)
-				.to.have.property('valid')
-				.that.equals(false);
+			expect(fulfilled).to.have.property('valid').that.equals(false);
 			expect(fulfilled)
 				.to.have.property('unmetServices')
 				.that.deep.equals(['service2']);

@@ -144,7 +144,7 @@ export function getExecutors(app: {
 	callbacks: CompositionCallbacks;
 }) {
 	const executors: Executors<CompositionStepAction> = {
-		stop: step => {
+		stop: (step) => {
 			return app.lockFn(
 				step.current.appId,
 				{
@@ -161,7 +161,7 @@ export function getExecutors(app: {
 				},
 			);
 		},
-		kill: step => {
+		kill: (step) => {
 			return app.lockFn(
 				step.current.appId,
 				{
@@ -177,12 +177,12 @@ export function getExecutors(app: {
 				},
 			);
 		},
-		remove: async step => {
+		remove: async (step) => {
 			// Only called for dead containers, so no need to
 			// take locks
 			await app.services.remove(step.current);
 		},
-		updateMetadata: step => {
+		updateMetadata: (step) => {
 			const skipLock =
 				step.skipLock ||
 				checkTruthy(step.current.config.labels['io.balena.legacy-container']);
@@ -197,7 +197,7 @@ export function getExecutors(app: {
 				},
 			);
 		},
-		restart: step => {
+		restart: (step) => {
 			return app.lockFn(
 				step.current.appId,
 				{
@@ -212,20 +212,20 @@ export function getExecutors(app: {
 				},
 			);
 		},
-		stopAll: async step => {
+		stopAll: async (step) => {
 			await app.applications.stopAll({
 				force: step.force,
 				skipLock: step.skipLock,
 			});
 		},
-		start: async step => {
+		start: async (step) => {
 			const container = await app.services.start(step.target);
 			app.callbacks.containerStarted(container.id);
 		},
-		updateCommit: async step => {
+		updateCommit: async (step) => {
 			await app.config.set({ currentCommit: step.target });
 		},
-		handover: step => {
+		handover: (step) => {
 			return app.lockFn(
 				step.current.appId,
 				{
@@ -237,7 +237,7 @@ export function getExecutors(app: {
 				},
 			);
 		},
-		fetch: async step => {
+		fetch: async (step) => {
 			const startTime = process.hrtime();
 			app.callbacks.fetchStart();
 			const [fetchOpts, availableImages] = await Promise.all([
@@ -253,7 +253,7 @@ export function getExecutors(app: {
 			await app.images.triggerFetch(
 				step.image,
 				opts,
-				async success => {
+				async (success) => {
 					app.callbacks.fetchEnd();
 					const elapsed = process.hrtime(startTime);
 					const elapsedMs = elapsed[0] * 1000 + elapsed[1] / 1e6;
@@ -269,10 +269,10 @@ export function getExecutors(app: {
 				step.serviceName,
 			);
 		},
-		removeImage: async step => {
+		removeImage: async (step) => {
 			await app.images.remove(step.image);
 		},
-		saveImage: async step => {
+		saveImage: async (step) => {
 			await app.images.save(step.image);
 		},
 		cleanup: async () => {
@@ -281,16 +281,16 @@ export function getExecutors(app: {
 				await app.images.cleanup();
 			}
 		},
-		createNetwork: async step => {
+		createNetwork: async (step) => {
 			await app.networks.create(step.target);
 		},
-		createVolume: async step => {
+		createVolume: async (step) => {
 			await app.volumes.create(step.target);
 		},
-		removeNetwork: async step => {
+		removeNetwork: async (step) => {
 			await app.networks.remove(step.current);
 		},
-		removeVolume: async step => {
+		removeVolume: async (step) => {
 			await app.volumes.remove(step.current);
 		},
 		ensureSupervisorNetwork: async () => {

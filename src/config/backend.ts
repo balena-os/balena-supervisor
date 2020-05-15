@@ -175,7 +175,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 				confStatements.push(`${key} ${value}`);
 			} else if (_.isArray(value)) {
 				confStatements = confStatements.concat(
-					_.map(value, entry => `${key}=${entry}`),
+					_.map(value, (entry) => `${key}=${entry}`),
 				);
 			} else {
 				confStatements.push(`${key}=${value}`);
@@ -334,7 +334,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 			);
 		}
 
-		const appendLine = _.filter(defaultEntry.APPEND.split(' '), entry => {
+		const appendLine = _.filter(defaultEntry.APPEND.split(' '), (entry) => {
 			const lhs = entry.split('=');
 			return !this.isSupportedConfig(lhs[0]);
 		});
@@ -384,7 +384,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 
 		// Firstly split by line and filter any comments and empty lines
 		let lines = confStr.split(/\r?\n/);
-		lines = _.filter(lines, l => {
+		lines = _.filter(lines, (l) => {
 			const trimmed = _.trimStart(l);
 			return trimmed !== '' && !_.startsWith(trimmed, '#');
 		});
@@ -647,7 +647,7 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 					return [value];
 				} else {
 					// or, it could be parsable as the content of a JSON array; "value" | "value1","value2"
-					return value.split(',').map(v => v.replace('"', '').trim());
+					return value.split(',').map((v) => v.replace('"', '').trim());
 				}
 			default:
 				return value;

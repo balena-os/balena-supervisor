@@ -44,12 +44,12 @@ export class LocalLogBackend extends LogBackend {
 			})
 				.then((msg: LogMessage | null) => {
 					if (msg != null) {
-						_.each(this.globalListeners, listener => {
+						_.each(this.globalListeners, (listener) => {
 							listener.push(`${JSON.stringify(msg)}\n`);
 						});
 					}
 				})
-				.catch(e => {
+				.catch((e) => {
 					log.error('Error streaming local log output:', e);
 				});
 		}

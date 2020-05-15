@@ -6,9 +6,9 @@ const PortMapPublic = (PortMap as any) as new (
 	portStrOrObj: string | PortRange,
 ) => PortMap;
 
-describe('Ports', function() {
-	describe('Port string parsing', function() {
-		it('should correctly parse a port string without a range', function() {
+describe('Ports', function () {
+	describe('Port string parsing', function () {
+		it('should correctly parse a port string without a range', function () {
 			expect(new PortMapPublic('80')).to.deep.equal(
 				new PortMapPublic({
 					internalStart: 80,
@@ -56,7 +56,7 @@ describe('Ports', function() {
 				}),
 			));
 
-		it('should correctly parse a protocol', function() {
+		it('should correctly parse a protocol', function () {
 			expect(new PortMapPublic('80/udp')).to.deep.equal(
 				new PortMapPublic({
 					internalStart: 80,
@@ -95,7 +95,7 @@ describe('Ports', function() {
 			expect(() => new PortMapPublic('80-90:80-85')).to.throw);
 	});
 
-	describe('toDockerOpts', function() {
+	describe('toDockerOpts', function () {
 		it('should correctly generate docker options', () =>
 			expect(new PortMapPublic('80').toDockerOpts()).to.deep.equal({
 				exposedPorts: {
@@ -127,7 +127,7 @@ describe('Ports', function() {
 			}));
 	});
 
-	describe('fromDockerOpts', function() {
+	describe('fromDockerOpts', function () {
 		it('should correctly detect a port range', () =>
 			expect(
 				PortMap.fromDockerOpts({
@@ -297,7 +297,7 @@ describe('Ports', function() {
 	});
 
 	describe('Running container comparison', () =>
-		it('should not consider order when comparing current and target state', function() {
+		it('should not consider order when comparing current and target state', function () {
 			const portBindings = require('./data/ports/not-ascending/port-bindings.json');
 			const compose = require('./data/ports/not-ascending/compose.json');
 			const portMapsCurrent = PortMap.fromDockerOpts(portBindings);
@@ -312,8 +312,8 @@ describe('Ports', function() {
 				PortMap.fromComposePorts(['80:80', '81:81', '82:82']),
 			).to.deep.equal([new PortMapPublic('80-82')])));
 
-	describe('normalisePortMaps', function() {
-		it('should correctly normalise PortMap lists', function() {
+	describe('normalisePortMaps', function () {
+		it('should correctly normalise PortMap lists', function () {
 			expect(
 				PortMap.normalisePortMaps([
 					new PortMapPublic('80:90'),
@@ -340,7 +340,7 @@ describe('Ports', function() {
 			expect(PortMap.normalisePortMaps([])).to.deep.equal([]);
 		});
 
-		it('should correctly consider protocols', function() {
+		it('should correctly consider protocols', function () {
 			expect(
 				PortMap.normalisePortMaps([
 					new PortMapPublic('80:90'),
@@ -376,7 +376,7 @@ describe('Ports', function() {
 			]);
 		});
 
-		it('should correctly consider hosts', function() {
+		it('should correctly consider hosts', function () {
 			expect(
 				PortMap.normalisePortMaps([
 					new PortMapPublic('127.0.0.1:80:80'),

@@ -3,8 +3,8 @@ const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 const { checkTruthy } = require('../lib/validation');
 
-exports.up = function(knex) {
-	return new Promise(resolve => {
+exports.up = function (knex) {
+	return new Promise((resolve) => {
 		if (!configJsonPath) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
@@ -32,7 +32,7 @@ exports.up = function(knex) {
 				return resolve(false);
 			}
 		});
-	}).then(localMode => {
+	}).then((localMode) => {
 		// We can be sure that this does not already exist in the db because of the previous
 		// migration
 		return knex('config').insert({
@@ -42,6 +42,6 @@ exports.up = function(knex) {
 	});
 };
 
-exports.down = function() {
+exports.down = function () {
 	return Promise.reject(new Error('Not Implemented'));
 };

@@ -166,10 +166,7 @@ export async function normaliseLegacyDatabase(
 			log.warn(
 				`No compatible releases found in API, removing ${app.appId} from target state`,
 			);
-			await db
-				.models('app')
-				.where({ appId: app.appId })
-				.del();
+			await db.models('app').where({ appId: app.appId }).del();
 		}
 
 		// We need to get the release.id, serviceId, image.id and updated imageUrl
@@ -187,7 +184,7 @@ export async function normaliseLegacyDatabase(
 		const imageFromDocker = await application.docker
 			.getImage(service.image)
 			.inspect()
-			.catch(error => {
+			.catch((error) => {
 				if (error instanceof NotFoundError) {
 					return;
 				}
@@ -203,9 +200,7 @@ export async function normaliseLegacyDatabase(
 			try {
 				if (imagesFromDatabase.length > 0) {
 					log.debug('Deleting existing image entry in db');
-					await trx('image')
-						.where({ name: service.image })
-						.del();
+					await trx('image').where({ name: service.image }).del();
 				} else {
 					log.debug('No image in db to delete');
 				}
@@ -243,9 +238,7 @@ export async function normaliseLegacyDatabase(
 
 				log.debug('Updating app entry in db');
 				log.success('Successfully migrated legacy application');
-				await trx('app')
-					.update(app)
-					.where({ appId: app.appId });
+				await trx('app').update(app).where({ appId: app.appId });
 			}
 		});
 	}
@@ -312,10 +305,10 @@ export async function loadBackupFromMigration(
 				// If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
 				await deviceState.applications.volumes
 					.get({ appId, name: volumeName })
-					.then(volume => {
+					.then((volume) => {
 						return volume.remove();
 					})
-					.catch(error => {
+					.catch((error) => {
 						if (error instanceof NotFoundError) {
 							return;
 						}

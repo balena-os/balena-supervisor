@@ -41,7 +41,7 @@ export class VolumeManager {
 
 	public async getAll(): Promise<Volume[]> {
 		const volumeInspect = await this.listWithBothLabels();
-		return volumeInspect.map(inspect =>
+		return volumeInspect.map((inspect) =>
 			Volume.fromDockerVolume(
 				{ logger: this.logger, docker: this.docker },
 				inspect,
@@ -144,11 +144,11 @@ export class VolumeManager {
 		]);
 
 		const containerVolumes = _(dockerContainers)
-			.flatMap(c => c.Mounts)
-			.filter(m => m.Type === 'volume')
+			.flatMap((c) => c.Mounts)
+			.filter((m) => m.Type === 'volume')
 			// We know that the name must be set, if the mount is
 			// a volume
-			.map(m => m.Name as string)
+			.map((m) => m.Name as string)
 			.uniq()
 			.value();
 		const volumeNames = _.map(dockerVolumes.Volumes, 'Name');
@@ -161,7 +161,7 @@ export class VolumeManager {
 			referencedVolumes,
 		);
 		await Promise.all(
-			volumesToRemove.map(v => this.docker.getVolume(v).remove()),
+			volumesToRemove.map((v) => this.docker.getVolume(v).remove()),
 		);
 	}
 

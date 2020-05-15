@@ -1,8 +1,8 @@
 const fs = require('fs');
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
-exports.up = function(knex) {
-	return new Promise(resolve => {
+exports.up = function (knex) {
+	return new Promise((resolve) => {
 		if (!configJsonPath) {
 			console.log(
 				'Unable to locate config.json! Things may fail unexpectedly!',
@@ -27,9 +27,9 @@ exports.up = function(knex) {
 				resolve({});
 			}
 		});
-	}).then(config => {
+	}).then((config) => {
 		return knex.schema
-			.table('app', t => {
+			.table('app', (t) => {
 				// Create a new column on the table and add the apiEndpoint config json
 				// field if it exists
 				t.string('source');
@@ -40,6 +40,6 @@ exports.up = function(knex) {
 	});
 };
 
-exports.down = function() {
+exports.down = function () {
 	return Promise.reject(new Error('Not Implemented'));
 };

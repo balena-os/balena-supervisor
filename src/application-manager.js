@@ -42,7 +42,7 @@ import { serviceAction } from './device-api/common';
 const readFileAsync = Promise.promisify(fs.readFile);
 
 // TODO: move this to an Image class?
-const imageForService = service => ({
+const imageForService = (service) => ({
 	name: service.imageName,
 	appId: service.appId,
 	serviceId: service.serviceId,
@@ -52,7 +52,7 @@ const imageForService = service => ({
 	dependent: 0,
 });
 
-const fetchAction = service => ({
+const fetchAction = (service) => ({
 	action: 'fetch',
 	image: imageForService(service),
 	serviceId: service.serviceId,
@@ -61,7 +61,7 @@ const fetchAction = service => ({
 
 // TODO: implement additional v2 endpoints
 // Some v1 endpoins only work for single-container apps as they assume the app has a single service.
-const createApplicationManagerRouter = function(applications) {
+const createApplicationManagerRouter = function (applications) {
 	const router = express.Router();
 	router.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 	router.use(bodyParser.json({ limit: '10mb' }));
@@ -216,7 +216,7 @@ export class ApplicationManager extends EventEmitter {
 			this.db,
 		);
 
-		this.config.on('change', changedConfig => {
+		this.config.on('change', (changedConfig) => {
 			if (changedConfig.appUpdatePollInterval) {
 				this.images.appUpdatePollInterval = changedConfig.appUpdatePollInterval;
 			}
@@ -231,10 +231,10 @@ export class ApplicationManager extends EventEmitter {
 			images: this.images,
 			config: this.config,
 			callbacks: {
-				containerStarted: id => {
+				containerStarted: (id) => {
 					this._containerStarted[id] = true;
 				},
-				containerKilled: id => {
+				containerKilled: (id) => {
 					delete this._containerStarted[id];
 				},
 				fetchStart: () => {
@@ -243,10 +243,10 @@ export class ApplicationManager extends EventEmitter {
 				fetchEnd: () => {
 					this.fetchesInProgress -= 1;
 				},
-				fetchTime: time => {
+				fetchTime: (time) => {
 					this.timeSpentFetching += time;
 				},
-				stateReport: state => this.reportCurrentState(state),
+				stateReport: (state) => this.reportCurrentState(state),
 				bestDeltaSource: this.bestDeltaSource,
 			},
 		});
@@ -265,15 +265,17 @@ export class ApplicationManager extends EventEmitter {
 	init() {
 		return this.config
 			.get('appUpdatePollInterval')
-			.then(interval => {
+			.then((interval) => {
 				this.images.appUpdatePollInterval = interval;
 				return this.images.cleanupDatabase();
 			})
 			.then(() => {
 				const cleanup = () => {
-					return this.docker.listContainers({ all: true }).then(containers => {
-						return this.logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
-					});
+					return this.docker
+						.listContainers({ all: true })
+						.then((containers) => {
+							return this.logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
+						});
 				};
 				// Rather than relying on removing out of date database entries when we're no
 				// longer using them, set a task that runs periodically to clear out the database
@@ -302,7 +304,7 @@ export class ApplicationManager extends EventEmitter {
 			this.services.getStatus(),
 			this.images.getStatus(),
 			this.config.get('currentCommit'),
-			function(services, images, currentCommit) {
+			function (services, images, currentCommit) {
 				const apps = {};
 				const dependent = {};
 				let releaseId = null;
@@ -422,7 +424,7 @@ export class ApplicationManager extends EventEmitter {
 
 		// multi-app warning!
 		// This is just wrong on every level
-		_.each(apps, app => {
+		_.each(apps, (app) => {
 			app.commit = currentCommit;
 		});
 
@@ -450,7 +452,7 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	getTargetApp(appId) {
-		return this.targetStateWrapper.getTargetApp(appId).then(app => {
+		return this.targetStateWrapper.getTargetApp(appId).then((app) => {
 			if (app == null) {
 				return;
 			}
@@ -524,7 +526,7 @@ export class ApplicationManager extends EventEmitter {
 
 		// Returns true if a service matches its target except it should be running and it is not, but we've
 		// already started it before. In this case it means it just exited so we don't want to start it again.
-		const alreadyStarted = serviceId => {
+		const alreadyStarted = (serviceId) => {
 			return (
 				currentServicesPerId[serviceId].isEqualExceptForRunningState(
 					targetServicesPerId[serviceId],
@@ -537,7 +539,7 @@ export class ApplicationManager extends EventEmitter {
 
 		const needUpdate = _.filter(
 			toBeMaybeUpdated,
-			serviceId =>
+			(serviceId) =>
 				!currentServicesPerId[serviceId].isEqual(
 					targetServicesPerId[serviceId],
 					containerIds,
@@ -572,7 +574,7 @@ export class ApplicationManager extends EventEmitter {
 
 		const toBeUpdated = _.filter(
 			_.intersection(targetNames, currentNames),
-			name => !current[name].isEqualConfig(target[name]),
+			(name) => !current[name].isEqualConfig(target[name]),
 		);
 		for (const name of toBeUpdated) {
 			outputPairs.push({
@@ -605,16 +607,17 @@ export class ApplicationManager extends EventEmitter {
 		}
 		const hasNetwork = _.some(
 			networkPairs,
-			pair => `${service.appId}_${pair.current?.name}` === service.networkMode,
+			(pair) =>
+				`${service.appId}_${pair.current?.name}` === service.networkMode,
 		);
 		if (hasNetwork) {
 			return true;
 		}
-		const hasVolume = _.some(service.volumes, function(volume) {
+		const hasVolume = _.some(service.volumes, function (volume) {
 			const name = _.split(volume, ':')[0];
 			return _.some(
 				volumePairs,
-				pair => `${service.appId}_${pair.current?.name}` === name,
+				(pair) => `${service.appId}_${pair.current?.name}` === name,
 			);
 		});
 		return hasVolume;
@@ -629,8 +632,8 @@ export class ApplicationManager extends EventEmitter {
 		pendingPairs,
 	) {
 		// for dependsOn, check no install or update pairs have that service
-		const dependencyUnmet = _.some(target.dependsOn, dependency =>
-			_.some(pendingPairs, pair => pair.target?.serviceName === dependency),
+		const dependencyUnmet = _.some(target.dependsOn, (dependency) =>
+			_.some(pendingPairs, (pair) => pair.target?.serviceName === dependency),
 		);
 		if (dependencyUnmet) {
 			return false;
@@ -639,12 +642,12 @@ export class ApplicationManager extends EventEmitter {
 		if (
 			_.some(
 				networkPairs,
-				pair => `${target.appId}_${pair.target?.name}` === target.networkMode,
+				(pair) => `${target.appId}_${pair.target?.name}` === target.networkMode,
 			)
 		) {
 			return false;
 		}
-		const volumeUnmet = _.some(target.volumes, function(volumeDefinition) {
+		const volumeUnmet = _.some(target.volumes, function (volumeDefinition) {
 			const [sourceName, destName] = volumeDefinition.split(':');
 			if (destName == null) {
 				// If this is not a named volume, ignore it
@@ -652,7 +655,7 @@ export class ApplicationManager extends EventEmitter {
 			}
 			return _.some(
 				volumePairs,
-				pair => `${target.appId}_${pair.target?.name}` === sourceName,
+				(pair) => `${target.appId}_${pair.target?.name}` === sourceName,
 			);
 		});
 		return !volumeUnmet;
@@ -681,7 +684,7 @@ export class ApplicationManager extends EventEmitter {
 				if (
 					!_.some(
 						availableImages,
-						image =>
+						(image) =>
 							image.dockerImageId === dependencyService.image ||
 							Images.isSameImage(image, { name: dependencyService.imageName }),
 					)
@@ -702,7 +705,7 @@ export class ApplicationManager extends EventEmitter {
 	) {
 		// Check none of the currentApp.services use this network or volume
 		if (current != null) {
-			const dependencies = _.filter(currentApp.services, service =>
+			const dependencies = _.filter(currentApp.services, (service) =>
 				dependencyComparisonFn(service, current),
 			);
 			if (_.isEmpty(dependencies)) {
@@ -746,7 +749,7 @@ export class ApplicationManager extends EventEmitter {
 	_nextStepsForVolume({ current, target }, currentApp, changingPairs) {
 		// Check none of the currentApp.services use this network or volume
 		const dependencyComparisonFn = (service, curr) =>
-			_.some(service.config.volumes, function(volumeDefinition) {
+			_.some(service.config.volumes, function (volumeDefinition) {
 				const [sourceName, destName] = volumeDefinition.split(':');
 				return (
 					destName != null && sourceName === `${service.appId}_${curr?.name}`
@@ -815,7 +818,7 @@ export class ApplicationManager extends EventEmitter {
 		if (!localMode) {
 			needsDownload = !_.some(
 				availableImages,
-				image =>
+				(image) =>
 					image.dockerImageId === target?.config.image ||
 					Images.isSameImage(image, { name: target.imageName }),
 			);
@@ -1021,11 +1024,11 @@ export class ApplicationManager extends EventEmitter {
 		}
 
 		const appId = targetApp.appId ?? currentApp.appId;
-		return _.map(steps, step => _.assign({}, step, { appId }));
+		return _.map(steps, (step) => _.assign({}, step, { appId }));
 	}
 
 	normaliseAppForDB(app) {
-		const services = _.map(app.services, function(s, serviceId) {
+		const services = _.map(app.services, function (s, serviceId) {
 			const service = _.clone(s);
 			service.appId = app.appId;
 			service.releaseId = app.releaseId;
@@ -1033,10 +1036,10 @@ export class ApplicationManager extends EventEmitter {
 			service.commit = app.commit;
 			return service;
 		});
-		return Promise.map(services, service => {
+		return Promise.map(services, (service) => {
 			service.image = this.images.normalise(service.image);
 			return Promise.props(service);
-		}).then(function($services) {
+		}).then(function ($services) {
 			const dbApp = {
 				appId: app.appId,
 				commit: app.commit,
@@ -1056,7 +1059,7 @@ export class ApplicationManager extends EventEmitter {
 		// this in a bluebird promise until we convert this to typescript
 		return Promise.resolve(this.images.inspectByName(service.image))
 			.catchReturn(NotFoundError, undefined)
-			.then(function(imageInfo) {
+			.then(function (imageInfo) {
 				const serviceOpts = {
 					serviceName: service.serviceName,
 					imageInfo,
@@ -1134,9 +1137,9 @@ export class ApplicationManager extends EventEmitter {
 					},
 				);
 
-				return Promise.map(JSON.parse(app.services), service =>
+				return Promise.map(JSON.parse(app.services), (service) =>
 					this.createTargetService(service, configOpts),
-				).then(services => {
+				).then((services) => {
 					// If a named volume is defined in a service but NOT in the volumes of the compose file, we add it app-wide so that we can track it and purge it
 					// !! DEPRECATED, WILL BE REMOVED IN NEXT MAJOR RELEASE !!
 					for (const s of services) {
@@ -1167,14 +1170,14 @@ export class ApplicationManager extends EventEmitter {
 	setTarget(apps, dependent, source, maybeTrx) {
 		const setInTransaction = (filtered, trx) => {
 			return Promise.try(() => {
-				const appsArray = _.map(filtered, function(app, appId) {
+				const appsArray = _.map(filtered, function (app, appId) {
 					const appClone = _.clone(app);
 					appClone.appId = checkInt(appId);
 					appClone.source = source;
 					return appClone;
 				});
 				return Promise.map(appsArray, this.normaliseAppForDB)
-					.then(appsForDB => {
+					.then((appsForDB) => {
 						return this.targetStateWrapper.setTargetApps(appsForDB, trx);
 					})
 					.then(() =>
@@ -1243,7 +1246,7 @@ export class ApplicationManager extends EventEmitter {
 			.then(() => {
 				this._targetVolatilePerImageId = {};
 			})
-			.finally(function() {
+			.finally(function () {
 				if (!_.isEmpty(contractViolators)) {
 					throw new ContractViolationError(contractViolators);
 				}
@@ -1259,7 +1262,7 @@ export class ApplicationManager extends EventEmitter {
 
 	clearTargetVolatileForServices(imageIds) {
 		return imageIds.map(
-			imageId => (this._targetVolatilePerImageId[imageId] = {}),
+			(imageId) => (this._targetVolatilePerImageId[imageId] = {}),
 		);
 	}
 
@@ -1268,9 +1271,9 @@ export class ApplicationManager extends EventEmitter {
 			this.targetStateWrapper.getTargetApps(),
 			this.normaliseAndExtendAppFromDB,
 		)
-			.map(app => {
+			.map((app) => {
 				if (!_.isEmpty(app.services)) {
-					app.services = _.map(app.services, service => {
+					app.services = _.map(app.services, (service) => {
 						if (this._targetVolatilePerImageId[service.imageId] != null) {
 							_.merge(service, this._targetVolatilePerImageId[service.imageId]);
 						}
@@ -1279,7 +1282,7 @@ export class ApplicationManager extends EventEmitter {
 				}
 				return app;
 			})
-			.then(apps => _.keyBy(apps, 'appId'));
+			.then((apps) => _.keyBy(apps, 'appId'));
 	}
 
 	getDependentTargets() {
@@ -1314,9 +1317,9 @@ export class ApplicationManager extends EventEmitter {
 	// - are locally available (i.e. an image with the same digest exists)
 	// - are not saved to the DB with all their metadata (serviceId, serviceName, etc)
 	_compareImages(current, target, available, localMode) {
-		const allImagesForTargetApp = app => _.map(app.services, imageForService);
-		const allImagesForCurrentApp = app =>
-			_.map(app.services, function(service) {
+		const allImagesForTargetApp = (app) => _.map(app.services, imageForService);
+		const allImagesForCurrentApp = (app) =>
+			_.map(app.services, function (service) {
 				const img =
 					_.find(available, {
 						dockerImageId: service.config.image,
@@ -1324,13 +1327,13 @@ export class ApplicationManager extends EventEmitter {
 					}) ?? _.find(available, { dockerImageId: service.config.image });
 				return _.omit(img, ['dockerImageId', 'id']);
 			});
-		const allImageDockerIdsForTargetApp = app =>
+		const allImageDockerIdsForTargetApp = (app) =>
 			_(app.services)
-				.map(svc => [svc.imageName, svc.config.image])
-				.filter(img => img[1] != null)
+				.map((svc) => [svc.imageName, svc.config.image])
+				.filter((img) => img[1] != null)
 				.value();
 
-		const availableWithoutIds = _.map(available, image =>
+		const availableWithoutIds = _.map(available, (image) =>
 			_.omit(image, ['dockerImageId', 'id']),
 		);
 		const currentImages = _.flatMap(current.local.apps, allImagesForCurrentApp);
@@ -1341,16 +1344,16 @@ export class ApplicationManager extends EventEmitter {
 
 		const availableAndUnused = _.filter(
 			availableWithoutIds,
-			image =>
-				!_.some(currentImages.concat(targetImages), imageInUse =>
+			(image) =>
+				!_.some(currentImages.concat(targetImages), (imageInUse) =>
 					_.isEqual(image, imageInUse),
 				),
 		);
 
 		const imagesToDownload = _.filter(
 			targetImages,
-			targetImage =>
-				!_.some(available, availableImage =>
+			(targetImage) =>
+				!_.some(available, (availableImage) =>
 					Images.isSameImage(availableImage, targetImage),
 				),
 		);
@@ -1358,8 +1361,10 @@ export class ApplicationManager extends EventEmitter {
 		// Images that are available but we don't have them in the DB with the exact metadata:
 		let imagesToSave = [];
 		if (!localMode) {
-			imagesToSave = _.filter(targetImages, function(targetImage) {
-				const isActuallyAvailable = _.some(available, function(availableImage) {
+			imagesToSave = _.filter(targetImages, function (targetImage) {
+				const isActuallyAvailable = _.some(available, function (
+					availableImage,
+				) {
 					if (Images.isSameImage(availableImage, targetImage)) {
 						return true;
 					}
@@ -1371,31 +1376,33 @@ export class ApplicationManager extends EventEmitter {
 					}
 					return false;
 				});
-				const isNotSaved = !_.some(availableWithoutIds, img =>
+				const isNotSaved = !_.some(availableWithoutIds, (img) =>
 					_.isEqual(img, targetImage),
 				);
 				return isActuallyAvailable && isNotSaved;
 			});
 		}
 
-		const deltaSources = _.map(imagesToDownload, image => {
+		const deltaSources = _.map(imagesToDownload, (image) => {
 			return this.bestDeltaSource(image, available);
 		});
 		const proxyvisorImages = this.proxyvisor.imagesInUse(current, target);
 
 		const potentialDeleteThenDownload = _.filter(
 			current.local.apps.services,
-			svc =>
+			(svc) =>
 				svc.config.labels['io.balena.update.strategy'] ===
 					'delete-then-download' && svc.status === 'Stopped',
 		);
 
 		const imagesToRemove = _.filter(
 			availableAndUnused.concat(potentialDeleteThenDownload),
-			function(image) {
+			function (image) {
 				const notUsedForDelta = !_.includes(deltaSources, image.name);
-				const notUsedByProxyvisor = !_.some(proxyvisorImages, proxyvisorImage =>
-					Images.isSameImage(image, { name: proxyvisorImage }),
+				const notUsedByProxyvisor = !_.some(
+					proxyvisorImages,
+					(proxyvisorImage) =>
+						Images.isSameImage(image, { name: proxyvisorImage }),
 				);
 				return notUsedForDelta && notUsedByProxyvisor;
 			},
@@ -1437,8 +1444,10 @@ export class ApplicationManager extends EventEmitter {
 			// multi-app warning: this will break
 			let appsForVolumeRemoval;
 			if (!localMode) {
-				const currentAppIds = _.keys(current.local.apps).map(n => checkInt(n));
-				const targetAppIds = _.keys(target.local.apps).map(n => checkInt(n));
+				const currentAppIds = _.keys(current.local.apps).map((n) =>
+					checkInt(n),
+				);
+				const targetAppIds = _.keys(target.local.apps).map((n) => checkInt(n));
 				appsForVolumeRemoval = _.difference(currentAppIds, targetAppIds);
 			}
 
@@ -1519,7 +1528,7 @@ export class ApplicationManager extends EventEmitter {
 					}
 				}
 			}
-			const newDownloads = nextSteps.filter(s => s.action === 'fetch').length;
+			const newDownloads = nextSteps.filter((s) => s.action === 'fetch').length;
 
 			if (!ignoreImages && delta && newDownloads > 0) {
 				// Check that this is not the first pull for an
@@ -1530,7 +1539,7 @@ export class ApplicationManager extends EventEmitter {
 				let downloadsToBlock =
 					downloading.length + newDownloads - constants.maxDeltaDownloads;
 
-				nextSteps = nextSteps.filter(function(step) {
+				nextSteps = nextSteps.filter(function (step) {
 					if (step.action === 'fetch' && downloadsToBlock > 0) {
 						const imagesForThisApp = appImages[step.image.appId];
 						if (imagesForThisApp == null || imagesForThisApp.length === 0) {
@@ -1551,8 +1560,8 @@ export class ApplicationManager extends EventEmitter {
 				nextSteps.push({ action: 'noop' });
 			}
 			return _.uniqWith(nextSteps, _.isEqual);
-		}).then(nextSteps =>
-			Promise.all(volumePromises).then(function(volSteps) {
+		}).then((nextSteps) =>
+			Promise.all(volumePromises).then(function (volSteps) {
 				nextSteps = nextSteps.concat(_.flatten(volSteps));
 				return nextSteps;
 			}),
@@ -1561,7 +1570,7 @@ export class ApplicationManager extends EventEmitter {
 
 	stopAll({ force = false, skipLock = false } = {}) {
 		return Promise.resolve(this.services.getAll())
-			.map(service => {
+			.map((service) => {
 				return this._lockingIfNecessary(
 					service.appId,
 					{ force, skipLock },
@@ -1583,8 +1592,8 @@ export class ApplicationManager extends EventEmitter {
 		}
 		return this.config
 			.get('lockOverride')
-			.then(lockOverride => lockOverride || force)
-			.then(lockOverridden =>
+			.then((lockOverride) => lockOverride || force)
+			.then((lockOverridden) =>
 				updateLock.lock(appId, { force: lockOverridden }, fn),
 			);
 	}
@@ -1607,7 +1616,7 @@ export class ApplicationManager extends EventEmitter {
 			.keys()
 			.concat(_.keys(targetState.local.apps))
 			.uniq()
-			.each(id => {
+			.each((id) => {
 				const intId = checkInt(id);
 				if (intId == null) {
 					throw new Error(`Invalid id: ${id}`);
@@ -1615,7 +1624,7 @@ export class ApplicationManager extends EventEmitter {
 				containerIdsByAppId[intId] = this.services.getContainerIdMap(intId);
 			});
 
-		return this.config.get('localMode').then(localMode => {
+		return this.config.get('localMode').then((localMode) => {
 			return Promise.props({
 				cleanupNeeded: this.images.isCleanupNeeded(),
 				availableImages: this.images.getAvailable(),
@@ -1656,7 +1665,7 @@ export class ApplicationManager extends EventEmitter {
 			ignoreImages,
 			conf,
 			containerIds,
-		).then(nextSteps => {
+		).then((nextSteps) => {
 			if (ignoreImages && _.some(nextSteps, { action: 'fetch' })) {
 				throw new Error('Cannot fetch images while executing an API action');
 			}
@@ -1668,12 +1677,12 @@ export class ApplicationManager extends EventEmitter {
 					targetState,
 					nextSteps,
 				)
-				.then(proxyvisorSteps => nextSteps.concat(proxyvisorSteps));
+				.then((proxyvisorSteps) => nextSteps.concat(proxyvisorSteps));
 		});
 	}
 
 	serviceNameFromId(serviceId) {
-		return this.getTargetApps().then(function(apps) {
+		return this.getTargetApps().then(function (apps) {
 			// Multi-app warning!
 			// We assume here that there will only be a single
 			// application
@@ -1681,7 +1690,7 @@ export class ApplicationManager extends EventEmitter {
 				const app = apps[appId];
 				const service = _.find(
 					app.services,
-					svc => svc.serviceId === serviceId,
+					(svc) => svc.serviceId === serviceId,
 				);
 				if (service?.serviceName == null) {
 					throw new InternalInconsistencyError(
@@ -1697,8 +1706,8 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	removeAllVolumesForApp(appId) {
-		return this.volumes.getAllByAppId(appId).then(volumes =>
-			volumes.map(v => ({
+		return this.volumes.getAllByAppId(appId).then((volumes) =>
+			volumes.map((v) => ({
 				action: 'removeVolume',
 				current: v,
 			})),
