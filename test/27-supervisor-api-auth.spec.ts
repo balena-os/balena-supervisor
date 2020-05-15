@@ -8,7 +8,7 @@ const mockedOptions = {
 	timeout: 30000,
 };
 
-const VALID_SECRET = mockedAPI.DEFAULT_SECRET;
+const VALID_SECRET = mockedAPI.STUBBED_VALUES.config.apiSecret;
 const INVALID_SECRET = 'bad_api_secret';
 const ALLOWED_INTERFACES = ['lo']; // Only need loopback since this is for testing
 
