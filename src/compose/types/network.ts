@@ -37,7 +37,7 @@ export interface NetworkInspect {
 export interface ComposeNetworkConfig {
 	driver: string;
 	driver_opts: Dictionary<string>;
-	ipam: {
+	ipam: Partial<{
 		driver: string;
 		config: Array<
 			Partial<{
@@ -48,7 +48,7 @@ export interface ComposeNetworkConfig {
 			}>
 		>;
 		options: Dictionary<string>;
-	};
+	}>;
 	enable_ipv6: boolean;
 	internal: boolean;
 	labels: Dictionary<string>;
