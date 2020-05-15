@@ -21,19 +21,19 @@ type PromisifiedRequest = typeof requestLib & {
 	delAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions | undefined,
-	) => Bluebird<any>;
+	) => Bluebird<[requestLib.Response, any]>;
 	putAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions | undefined,
-	) => Bluebird<any>;
+	) => Bluebird<[requestLib.Response, any]>;
 	postAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions | undefined,
-	) => Bluebird<any>;
+	) => Bluebird<[requestLib.Response, any]>;
 	getAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions | undefined,
-	) => Bluebird<any>;
+	) => Bluebird<[requestLib.Response, any]>;
 };
 
 const getRequestInstances = once(async () => {
@@ -63,7 +63,7 @@ const getRequestInstances = once(async () => {
 		retryInterval: DEFAULT_REQUEST_RETRY_INTERVAL,
 	};
 
-	const requestHandle = requestLib.defaults(exports.requestOpts);
+	const requestHandle = requestLib.defaults(requestOpts);
 
 	const request = Bluebird.promisifyAll(requestHandle, {
 		multiArgs: true,
