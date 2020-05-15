@@ -1,7 +1,7 @@
 const Bluebird = require('bluebird');
 const _ = require('lodash');
 
-var tryParse = function(obj) {
+var tryParse = function (obj) {
 	try {
 		return JSON.parse(obj);
 	} catch (e) {
@@ -9,7 +9,7 @@ var tryParse = function(obj) {
 	}
 };
 
-var singleToMulticontainerApp = function(app) {
+var singleToMulticontainerApp = function (app) {
 	// From *very* old supervisors, env or config may be null
 	// so we ignore errors parsing them
 	const conf = tryParse(app.config);
@@ -68,7 +68,7 @@ var singleToMulticontainerApp = function(app) {
 	return newApp;
 };
 
-var jsonifyAppFields = function(app) {
+var jsonifyAppFields = function (app) {
 	const newApp = _.clone(app);
 	newApp.services = JSON.stringify(app.services);
 	newApp.networks = JSON.stringify(app.networks);
@@ -76,7 +76,7 @@ var jsonifyAppFields = function(app) {
 	return newApp;
 };
 
-var imageForApp = function(app) {
+var imageForApp = function (app) {
 	const service = app.services[0];
 	return {
 		name: service.image,
@@ -89,7 +89,7 @@ var imageForApp = function(app) {
 	};
 };
 
-var imageForDependentApp = function(app) {
+var imageForDependentApp = function (app) {
 	return {
 		name: app.image,
 		appId: app.appId,
@@ -101,9 +101,9 @@ var imageForDependentApp = function(app) {
 	};
 };
 
-exports.up = function(knex) {
+exports.up = function (knex) {
 	return Bluebird.resolve(
-		knex.schema.createTable('image', t => {
+		knex.schema.createTable('image', (t) => {
 			t.increments('id').primary();
 			t.string('name');
 			t.integer('appId');
@@ -120,7 +120,7 @@ exports.up = function(knex) {
 				.whereNot({ markedForDeletion: true })
 				.orWhereNull('markedForDeletion'),
 		)
-		.tap(apps => {
+		.tap((apps) => {
 			if (apps.length > 0) {
 				return knex('config').insert({
 					key: 'legacyAppsPresent',
@@ -132,7 +132,7 @@ exports.up = function(knex) {
 			// We're in a transaction, and it's easier to drop and recreate
 			// than to migrate each field...
 			return knex.schema.dropTable('app').then(() => {
-				return knex.schema.createTable('app', t => {
+				return knex.schema.createTable('app', (t) => {
 					t.increments('id').primary();
 					t.string('name');
 					t.integer('releaseId');
@@ -144,7 +144,7 @@ exports.up = function(knex) {
 				});
 			});
 		})
-		.map(app => {
+		.map((app) => {
 			const migratedApp = singleToMulticontainerApp(app);
 			return knex('app')
 				.insert(jsonifyAppFields(migratedApp))
@@ -157,7 +157,7 @@ exports.up = function(knex) {
 			// to the config table.
 			return knex('deviceConfig')
 				.select()
-				.then(deviceConf => {
+				.then((deviceConf) => {
 					return knex.schema.dropTable('deviceConfig').then(() => {
 						const values = JSON.parse(deviceConf[0].values);
 						const configKeys = {
@@ -172,7 +172,7 @@ exports.up = function(knex) {
 							RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL: 'deltaRequestTimeout',
 							RESIN_SUPERVISOR_OVERRIDE_LOCK: 'lockOverride',
 						};
-						return Bluebird.map(Object.keys(values), envVarName => {
+						return Bluebird.map(Object.keys(values), (envVarName) => {
 							if (configKeys[envVarName] != null) {
 								return knex('config').insert({
 									key: configKeys[envVarName],
@@ -183,18 +183,18 @@ exports.up = function(knex) {
 					});
 				})
 				.then(() => {
-					return knex.schema.createTable('deviceConfig', t => {
+					return knex.schema.createTable('deviceConfig', (t) => {
 						t.json('targetValues');
 					});
 				})
 				.then(() => knex('deviceConfig').insert({ targetValues: '{}' }));
 		})
 		.then(() => knex('dependentApp').select())
-		.then(dependentApps => {
+		.then((dependentApps) => {
 			return knex.schema
 				.dropTable('dependentApp')
 				.then(() => {
-					return knex.schema.createTable('dependentApp', t => {
+					return knex.schema.createTable('dependentApp', (t) => {
 						t.increments('id').primary();
 						t.integer('appId');
 						t.integer('parentApp');
@@ -208,7 +208,7 @@ exports.up = function(knex) {
 					});
 				})
 				.then(() => {
-					return knex.schema.createTable('dependentAppTarget', t => {
+					return knex.schema.createTable('dependentAppTarget', (t) => {
 						t.increments('id').primary();
 						t.integer('appId');
 						t.integer('parentApp');
@@ -222,7 +222,7 @@ exports.up = function(knex) {
 					});
 				})
 				.then(() => {
-					return Bluebird.map(dependentApps, app => {
+					return Bluebird.map(dependentApps, (app) => {
 						const newApp = {
 							appId: parseInt(app.appId, 10),
 							parentApp: parseInt(app.parentAppId, 10),
@@ -242,11 +242,11 @@ exports.up = function(knex) {
 				});
 		})
 		.then(() => knex('dependentDevice').select())
-		.then(dependentDevices => {
+		.then((dependentDevices) => {
 			return knex.schema
 				.dropTable('dependentDevice')
 				.then(() => {
-					return knex.schema.createTable('dependentDevice', t => {
+					return knex.schema.createTable('dependentDevice', (t) => {
 						t.increments('id').primary();
 						t.string('uuid');
 						t.integer('appId');
@@ -270,7 +270,7 @@ exports.up = function(knex) {
 					});
 				})
 				.then(() => {
-					return knex.schema.createTable('dependentDeviceTarget', t => {
+					return knex.schema.createTable('dependentDeviceTarget', (t) => {
 						t.increments('id').primary();
 						t.string('uuid');
 						t.string('name');
@@ -278,7 +278,7 @@ exports.up = function(knex) {
 					});
 				})
 				.then(() => {
-					return Bluebird.map(dependentDevices, device => {
+					return Bluebird.map(dependentDevices, (device) => {
 						const newDevice = _.clone(device);
 						newDevice.appId = parseInt(device.appId, 10);
 						newDevice.deviceId = parseInt(device.deviceId, 10);
@@ -316,6 +316,6 @@ exports.up = function(knex) {
 		});
 };
 
-exports.down = function() {
+exports.down = function () {
 	return Promise.reject(new Error('Not implemented'));
 };

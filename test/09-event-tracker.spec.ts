@@ -14,7 +14,7 @@ describe('EventTracker', () => {
 
 	before(() => {
 		initStub = stub(mixpanel, 'init').callsFake(
-			token =>
+			(token) =>
 				(({
 					token,
 					track: stub().returns(undefined),

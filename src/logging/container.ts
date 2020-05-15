@@ -43,7 +43,7 @@ export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) 
 			[stderrStream, false],
 		].forEach(([stream, isStdout]: [Stream.Readable, boolean]) => {
 			stream
-				.on('error', err => {
+				.on('error', (err) => {
 					this.emit(
 						'error',
 						new Error(`Error on container logs: ${err} ${err.stack}`),
@@ -59,7 +59,7 @@ export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) 
 						this.emit('log', { isStdout, ...logMsg });
 					}
 				})
-				.on('error', err => {
+				.on('error', (err) => {
 					this.emit(
 						'error',
 						new Error(`Error on container logs: ${err} ${err.stack}`),
@@ -76,7 +76,7 @@ export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) 
 		// https://docs.docker.com/engine/api/v1.30/#operation/ContainerAttach
 		if (
 			_.includes([0, 1, 2], msgBuf[0]) &&
-			_.every(msgBuf.slice(1, 7), c => c === 0)
+			_.every(msgBuf.slice(1, 7), (c) => c === 0)
 		) {
 			// Take the header from this message, and parse it as normal
 			msgBuf = msgBuf.slice(8);

@@ -28,12 +28,8 @@ describe('Compose volumes', () => {
 				Scope: 'local',
 			});
 
-			expect(volume)
-				.to.have.property('appId')
-				.that.equals(1032480);
-			expect(volume)
-				.to.have.property('name')
-				.that.equals('one_volume');
+			expect(volume).to.have.property('appId').that.equals(1032480);
+			expect(volume).to.have.property('name').that.equals('one_volume');
 			expect(volume)
 				.to.have.property('config')
 				.that.has.property('labels')
@@ -65,12 +61,8 @@ describe('Compose volumes', () => {
 				opts,
 			);
 
-			expect(volume)
-				.to.have.property('appId')
-				.that.equals(1032480);
-			expect(volume)
-				.to.have.property('name')
-				.that.equals('one_volume');
+			expect(volume).to.have.property('appId').that.equals(1032480);
+			expect(volume).to.have.property('name').that.equals('one_volume');
 			expect(volume)
 				.to.have.property('config')
 				.that.has.property('labels')
@@ -106,12 +98,8 @@ describe('Compose volumes', () => {
 				opts,
 			);
 
-			expect(volume)
-				.to.have.property('appId')
-				.that.equals(1032480);
-			expect(volume)
-				.to.have.property('name')
-				.that.equals('one_volume');
+			expect(volume).to.have.property('appId').that.equals(1032480);
+			expect(volume).to.have.property('name').that.equals('one_volume');
 			expect(volume)
 				.to.have.property('config')
 				.that.has.property('labels')

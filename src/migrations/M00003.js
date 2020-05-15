@@ -1,4 +1,4 @@
-exports.up = function(knex) {
+exports.up = function (knex) {
 	return knex('deviceConfig')
 		.select('targetValues')
 		.then(([target]) => {
@@ -16,6 +16,6 @@ exports.up = function(knex) {
 		});
 };
 
-exports.down = function() {
+exports.down = function () {
 	return Promise.reject(new Error('Not Implemented'));
 };

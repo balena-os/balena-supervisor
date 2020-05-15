@@ -69,7 +69,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		const filterLabels = ['supervised'].concat(extraLabelFilters);
 		const containers = await this.listWithBothLabels(filterLabels);
 
-		const services = await Bluebird.map(containers, async container => {
+		const services = await Bluebird.map(containers, async (container) => {
 			try {
 				const serviceInspect = await this.docker
 					.getContainer(container.Id)
@@ -90,7 +90,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			}
 		});
 
-		return services.filter(s => s != null) as Service[];
+		return services.filter((s) => s != null) as Service[];
 	}
 
 	public async get(service: Service) {
@@ -98,7 +98,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		const containerIds = await this.getContainerIdMap(service.appId!);
 		const services = (
 			await this.getAll(`service-id=${service.serviceId}`)
-		).filter(currentService =>
+		).filter((currentService) =>
 			currentService.isEqualConfig(service, containerIds),
 		);
 
@@ -399,7 +399,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				filters: { type: ['container'] } as any,
 			});
 
-			stream.on('error', e => {
+			stream.on('error', (e) => {
 				log.error(`Error on docker events stream:`, e);
 			});
 			const parser = JSONStream.parse();
@@ -462,7 +462,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		};
 
 		Bluebird.resolve(listen())
-			.catch(e => {
+			.catch((e) => {
 				log.error('Error listening to events:', e, e.stack);
 			})
 			.finally(() => {
@@ -554,7 +554,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 						return containerObj.remove({ v: true });
 					}
 				})
-				.catch(e => {
+				.catch((e) => {
 					// Get the statusCode from the original cause and make sure it's
 					// definitely an int for comparison reasons
 					const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
@@ -585,7 +585,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 					delete this.containerHasDied[containerId];
 					this.logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
 				})
-				.catch(e => {
+				.catch((e) => {
 					this.logger.logSystemEvent(LogTypes.stopServiceError, {
 						service,
 						error: e,
@@ -611,7 +611,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			this.docker.listContainers({
 				all: true,
 				filters: {
-					label: _.map(labelList, v => `${prefix}${v}`),
+					label: _.map(labelList, (v) => `${prefix}${v}`),
 				},
 			});
 
@@ -646,7 +646,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 
 		const wait = (): Bluebird<void> =>
 			Bluebird.any(
-				handoverCompletePaths.map(file =>
+				handoverCompletePaths.map((file) =>
 					fs.stat(file).then(() => fs.unlink(file).catch(_.noop)),
 				),
 			).catch(async () => {

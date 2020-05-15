@@ -61,7 +61,7 @@ const memoizedAuthRegex = _.memoize(
 );
 
 const memoizedRegex = _.memoize(
-	proxyField => new RegExp(proxyField + '\\s*=\\s*([^;\\s]*)\\s*;'),
+	(proxyField) => new RegExp(proxyField + '\\s*=\\s*([^;\\s]*)\\s*;'),
 );
 
 async function readProxy(): Promise<ProxyConfig | undefined> {

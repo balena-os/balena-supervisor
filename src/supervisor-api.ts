@@ -71,7 +71,7 @@ const expressLogger = morgan(
 			'ms',
 		].join(' '),
 	{
-		stream: { write: d => log.api(d.toString().trimRight()) },
+		stream: { write: (d) => log.api(d.toString().trimRight()) },
 	},
 );
 
@@ -119,7 +119,7 @@ export class SupervisorAPI {
 
 		this.api.get('/v1/healthy', async (_req, res) => {
 			try {
-				const healths = await Promise.all(this.healthchecks.map(fn => fn()));
+				const healths = await Promise.all(this.healthchecks.map((fn) => fn()));
 				if (!_.every(healths)) {
 					log.error('Healthcheck failed');
 					return res.status(500).send('Unhealthy');
@@ -194,7 +194,7 @@ export class SupervisorAPI {
 		await this.applyRules(localMode || false, port, allowedInterfaces);
 		// Monitor the switching of local mode, and change which interfaces will
 		// be listened to based on that
-		this.config.on('change', changedConfig => {
+		this.config.on('change', (changedConfig) => {
 			if (changedConfig.localMode != null) {
 				this.applyRules(
 					changedConfig.localMode || false,
@@ -204,7 +204,7 @@ export class SupervisorAPI {
 			}
 		});
 
-		return new Promise(resolve => {
+		return new Promise((resolve) => {
 			this.server = this.api.listen(port, () => {
 				log.info(`Supervisor API successfully started on port ${port}`);
 				if (this.server) {

@@ -40,7 +40,7 @@ api.balenaBackend = {
 				: null;
 		if (uuid != null) {
 			return res.json({
-				d: _.filter(api.balenaBackend!.devices, dev => dev.uuid === uuid),
+				d: _.filter(api.balenaBackend!.devices, (dev) => dev.uuid === uuid),
 			});
 		} else {
 			return res.json({ d: [] });

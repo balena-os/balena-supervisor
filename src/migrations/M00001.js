@@ -3,11 +3,11 @@ const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 const { checkTruthy } = require('../lib/validation');
 
-exports.up = function(knex) {
+exports.up = function (knex) {
 	return knex('config')
 		.where({ key: 'localMode' })
 		.select('value')
-		.then(results => {
+		.then((results) => {
 			if (results.length === 0) {
 				// We don't need to do anything
 				return;
@@ -16,7 +16,7 @@ exports.up = function(knex) {
 			let value = checkTruthy(results[0].value);
 			value = value != null ? value : false;
 
-			return new Promise(resolve => {
+			return new Promise((resolve) => {
 				if (!configJsonPath) {
 					console.log(
 						'Unable to locate config.json! Things may fail unexpectedly!',
@@ -37,7 +37,7 @@ exports.up = function(knex) {
 						// Assign the local mode value
 						parsed.localMode = value;
 
-						fs.writeFile(configJsonPath, JSON.stringify(parsed), err2 => {
+						fs.writeFile(configJsonPath, JSON.stringify(parsed), (err2) => {
 							if (err2) {
 								console.log(
 									'Failed to write config.json! Things may fail unexpectedly!',
@@ -54,13 +54,11 @@ exports.up = function(knex) {
 					}
 				});
 			}).then(() => {
-				return knex('config')
-					.where('key', 'localMode')
-					.del();
+				return knex('config').where('key', 'localMode').del();
 			});
 		});
 };
 
-exports.down = function() {
+exports.down = function () {
 	return Promise.reject(new Error('Not Implemented'));
 };

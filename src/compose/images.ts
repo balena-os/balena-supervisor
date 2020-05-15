@@ -194,10 +194,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	public async getByDockerId(id: string): Promise<Image> {
-		return await this.db
-			.models('image')
-			.where({ dockerImageId: id })
-			.first();
+		return await this.db.models('image').where({ dockerImageId: id }).first();
 	}
 
 	public async removeByDockerId(id: string): Promise<void> {
@@ -216,7 +213,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		cb: (dockerImages: NormalisedDockerImage[], composeImages: Image[]) => T,
 	) {
 		const [normalisedImages, dbImages] = await Promise.all([
-			Bluebird.map(this.docker.listImages({ digests: true }), async image => {
+			Bluebird.map(this.docker.listImages({ digests: true }), async (image) => {
 				const newImage = _.clone(image) as NormalisedDockerImage;
 				newImage.NormalisedRepoTags = await this.getNormalisedTags(image);
 				return newImage;
@@ -240,7 +237,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	): boolean {
 		return (
 			_.includes(dockerImage.NormalisedRepoTags, image.name) ||
-			_.some(dockerImage.RepoDigests, digest =>
+			_.some(dockerImage.RepoDigests, (digest) =>
 				Images.hasSameDigest(image.name, digest),
 			)
 		);
@@ -252,7 +249,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	): boolean {
 		return _.some(
 			dockerImages,
-			dockerImage =>
+			(dockerImage) =>
 				this.matchesTagOrDigest(image, dockerImage) ||
 				image.dockerImageId === dockerImage.Id,
 		);
@@ -261,7 +258,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	public async getAvailable(): Promise<Image[]> {
 		const images = await this.withImagesFromDockerAndDB(
 			(dockerImages, supervisedImages) =>
-				_.filter(supervisedImages, image =>
+				_.filter(supervisedImages, (image) =>
 					this.isAvailableInDocker(image, dockerImages),
 				),
 		);
@@ -288,7 +285,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 					// some entries in the db might need to have the dockerImageId populated
 					if (supervisedImage.dockerImageId == null) {
 						const id = _.get(
-							_.find(dockerImages, dockerImage =>
+							_.find(dockerImages, (dockerImage) =>
 								this.matchesTagOrDigest(supervisedImage, dockerImage),
 							),
 							'Id',
@@ -303,20 +300,14 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 						}
 					}
 				}
-				return _.reject(supervisedImages, image =>
+				return _.reject(supervisedImages, (image) =>
 					this.isAvailableInDocker(image, dockerImages),
 				);
 			},
 		);
 
-		const ids = _(imagesToRemove)
-			.map('id')
-			.compact()
-			.value();
-		await this.db
-			.models('image')
-			.del()
-			.whereIn('id', ids);
+		const ids = _(imagesToRemove).map('id').compact().value();
+		await this.db.models('image').del().whereIn('id', ids);
 	}
 
 	public async getStatus() {
@@ -362,7 +353,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			this.db
 				.models('image')
 				.select('dockerImageId')
-				.then(vals => vals.map((img: Image) => img.dockerImageId)),
+				.then((vals) => vals.map((img: Image) => img.dockerImageId)),
 		]);
 
 		const supervisorRepos = [supervisorImageInfo.imageName];
@@ -381,7 +372,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			tagName: string;
 		}) => {
 			return (
-				_.some(supervisorRepos, repo => imageName === repo) &&
+				_.some(supervisorRepos, (repo) => imageName === repo) &&
 				tagName !== supervisorImageInfo.tagName
 			);
 		};
@@ -408,7 +399,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		return _(images)
 			.uniq()
 			.filter(
-				image =>
+				(image) =>
 					this.imageCleanupFailures[image] == null ||
 					Date.now() - this.imageCleanupFailures[image] >
 						constants.imageCleanupErrorIgnoreTimeout,
@@ -505,10 +496,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 		// We first fetch the image from the DB to ensure it exists,
 		// and get the dockerImageId and any other missing fields
-		const images = await this.db
-			.models('image')
-			.select()
-			.where(image);
+		const images = await this.db.models('image').select().where(image);
 
 		if (images.length === 0) {
 			removed = false;
@@ -547,7 +535,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 					if (
 						dockerImage.RepoTags.length > 1 &&
 						_.includes(dockerImage.RepoTags, img.name) &&
-						_.some(dockerImage.RepoTags, t =>
+						_.some(dockerImage.RepoTags, (t) =>
 							_.some(differentTags, { name: t }),
 						)
 					) {
@@ -568,10 +556,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			this.reportChange(image.imageId);
 		}
 
-		await this.db
-			.models('image')
-			.del()
-			.where({ id: img.id });
+		await this.db.models('image').del().where({ id: img.id });
 
 		if (removed) {
 			this.logger.logSystemEvent(LogTypes.deleteImageSuccess, { image });

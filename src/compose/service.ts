@@ -130,7 +130,7 @@ export class Service {
 		// First process the networks correctly
 		let networks: ServiceConfig['networks'] = {};
 		if (_.isArray(config.networks)) {
-			_.each(config.networks, name => {
+			_.each(config.networks, (name) => {
 				networks[name] = {};
 			});
 		} else if (_.isObject(config.networks)) {
@@ -139,7 +139,7 @@ export class Service {
 		// Prefix the network entries with the app id
 		networks = _.mapKeys(networks, (_v, k) => `${service.appId}_${k}`);
 		// Ensure that we add an alias of the service name
-		networks = _.mapValues(networks, v => {
+		networks = _.mapValues(networks, (v) => {
 			if (v.aliases == null) {
 				v.aliases = [];
 			}
@@ -305,7 +305,7 @@ export class Service {
 		);
 		expose = expose.concat(_.keys(imageExposedPorts));
 		// Also add any exposed ports which are implied from the portMaps
-		const exposedFromPortMappings = _.flatMap(portMaps, port =>
+		const exposedFromPortMappings = _.flatMap(portMaps, (port) =>
 			port.toExposedPortArray(),
 		);
 		expose = expose.concat(exposedFromPortMappings);
@@ -326,11 +326,13 @@ export class Service {
 		}
 
 		if (_.isArray(config.sysctls)) {
-			config.sysctls = _.fromPairs(_.map(config.sysctls, v => _.split(v, '=')));
+			config.sysctls = _.fromPairs(
+				_.map(config.sysctls, (v) => _.split(v, '=')),
+			);
 		}
 		config.sysctls = _.mapValues(config.sysctls, String);
 
-		_.each(['cpuShares', 'cpuQuota', 'oomScoreAdj'], key => {
+		_.each(['cpuShares', 'cpuQuota', 'oomScoreAdj'], (key) => {
 			const numVal = checkInt(config[key]);
 			if (numVal) {
 				config[key] = numVal;
@@ -458,7 +460,7 @@ export class Service {
 
 		const portMaps = PortMap.fromDockerOpts(container.HostConfig.PortBindings);
 		let expose = _.flatMap(
-			_.flatMap(portMaps, p => p.toDockerOpts().exposedPorts),
+			_.flatMap(portMaps, (p) => p.toDockerOpts().exposedPorts),
 			_.keys,
 		);
 		if (container.Config.ExposedPorts != null) {
@@ -578,7 +580,7 @@ export class Service {
 		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
 
 		const tmpFs: Dictionary<''> = {};
-		_.each(this.config.tmpfs, tmp => {
+		_.each(this.config.tmpfs, (tmp) => {
 			tmpFs[tmp] = '';
 		});
 
@@ -814,7 +816,7 @@ export class Service {
 			this.appId || 0,
 			this.serviceName || '',
 		);
-		const validVolumes = _.map(this.config.volumes, volume => {
+		const validVolumes = _.map(this.config.volumes, (volume) => {
 			if (_.includes(defaults, volume) || !_.includes(volume, ':')) {
 				return null;
 			}
@@ -855,7 +857,7 @@ export class Service {
 	} {
 		const binds: string[] = [];
 		const volumes: { [volName: string]: {} } = {};
-		_.each(this.config.volumes, volume => {
+		_.each(this.config.volumes, (volume) => {
 			if (_.includes(volume, ':')) {
 				binds.push(volume);
 			} else {
@@ -870,7 +872,7 @@ export class Service {
 		const exposed: DockerPortOptions['exposedPorts'] = {};
 		const ports: DockerPortOptions['portBindings'] = {};
 
-		_.each(this.config.portMaps, pmap => {
+		_.each(this.config.portMaps, (pmap) => {
 			const { exposedPorts, portBindings } = pmap.toDockerOpts();
 			_.merge(exposed, exposedPorts);
 			_.mergeWith(ports, portBindings, (destVal, srcVal) => {
@@ -884,7 +886,7 @@ export class Service {
 		// We also want to merge the compose and image exposedPorts
 		// into the list of exposedPorts
 		const composeExposed: DockerPortOptions['exposedPorts'] = {};
-		_.each(this.config.expose, port => {
+		_.each(this.config.expose, (port) => {
 			composeExposed[port] = {};
 		});
 		_.merge(exposed, composeExposed);
@@ -948,9 +950,9 @@ export class Service {
 				const [currentAliases, targetAliases] = [
 					current.aliases,
 					target.aliases,
-				].map(aliases =>
+				].map((aliases) =>
 					_.sortBy(
-						aliases.filter(a => !_.startsWith(this.containerId || '', a)),
+						aliases.filter((a) => !_.startsWith(this.containerId || '', a)),
 					),
 				);
 
@@ -1006,7 +1008,7 @@ export class Service {
 	): ServiceConfig['volumes'] {
 		let volumes: ServiceConfig['volumes'] = [];
 
-		_.each(composeVolumes, volume => {
+		_.each(composeVolumes, (volume) => {
 			const isBind = _.includes(volume, ':');
 			if (isBind) {
 				const [bindSource, bindDest, mode] = volume.split(':');

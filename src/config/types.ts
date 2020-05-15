@@ -18,7 +18,7 @@ export const PermissiveBoolean = new t.Type<boolean, t.TypeOf<PermissiveType>>(
 	'PermissiveBoolean',
 	_.isBoolean,
 	(m, c) =>
-		either.chain(permissiveValue.validate(m, c), v => {
+		either.chain(permissiveValue.validate(m, c), (v) => {
 			switch (typeof v) {
 				case 'string':
 				case 'boolean':
@@ -51,7 +51,7 @@ export const PermissiveNumber = new t.Type<number, string | number>(
 	'PermissiveNumber',
 	_.isNumber,
 	(m, c) =>
-		either.chain(t.union([t.string, t.number]).validate(m, c), v => {
+		either.chain(t.union([t.string, t.number]).validate(m, c), (v) => {
 			switch (typeof v) {
 				case 'number':
 					return t.success(v);
@@ -82,7 +82,7 @@ export class StringJSON<T> extends t.Type<T, string> {
 			(m, c) =>
 				// Accept either an object, or a string which represents the
 				// object
-				either.chain(t.union([t.string, type]).validate(m, c), v => {
+				either.chain(t.union([t.string, type]).validate(m, c), (v) => {
 					let obj: T;
 					if (typeof v === 'string') {
 						obj = JSON.parse(v);

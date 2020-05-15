@@ -28,7 +28,7 @@ export function lockPath(appId: number, serviceName: string): string {
 }
 
 function lockFilesOnHost(appId: number, serviceName: string): string[] {
-	return ['updates.lock', 'resin-updates.lock'].map(filename =>
+	return ['updates.lock', 'resin-updates.lock'].map((filename) =>
 		path.join(constants.rootMountPoint, lockPath(appId, serviceName), filename),
 	);
 }
@@ -56,7 +56,7 @@ export const readLock: LockFn = Bluebird.promisify(locker.async.readLock, {
 });
 
 function dispose(release: () => void): Bluebird<void> {
-	return Bluebird.map(_.keys(locksTaken), lockName => {
+	return Bluebird.map(_.keys(locksTaken), (lockName) => {
 		delete locksTaken[lockName];
 		return lockFile.unlockAsync(lockName);
 	})
@@ -82,10 +82,10 @@ export function lock(
 
 				return Bluebird.resolve(fs.readdir(lockDir))
 					.catchReturn(ENOENT, [])
-					.mapSeries(serviceName => {
+					.mapSeries((serviceName) => {
 						return Bluebird.mapSeries(
 							lockFilesOnHost(appId, serviceName),
-							tmpLockName => {
+							(tmpLockName) => {
 								return Bluebird.try(() => {
 									if (force) {
 										return lockFile.unlockAsync(tmpLockName);
@@ -97,7 +97,7 @@ export function lock(
 									})
 									.catchReturn(ENOENT, undefined);
 							},
-						).catch(err => {
+						).catch((err) => {
 							return dispose(release).throw(
 								new UpdatesLockedError(`Updates are locked: ${err.message}`),
 							);

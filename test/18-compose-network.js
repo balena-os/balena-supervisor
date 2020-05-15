@@ -1,9 +1,9 @@
 import { expect } from './lib/chai-config';
 import { Network } from '../src/compose/network';
 
-describe('compose/network', function() {
-	describe('compose config -> internal config', function() {
-		it('should convert a compose configuration to an internal representation', function() {
+describe('compose/network', function () {
+	describe('compose config -> internal config', function () {
+		it('should convert a compose configuration to an internal representation', function () {
 			const network = Network.fromComposeObject(
 				'test',
 				123,
@@ -42,7 +42,7 @@ describe('compose/network', function() {
 			});
 		});
 
-		it('should handle an incomplete ipam configuration', function() {
+		it('should handle an incomplete ipam configuration', function () {
 			const network = Network.fromComposeObject(
 				'test',
 				123,
@@ -81,7 +81,7 @@ describe('compose/network', function() {
 	});
 
 	describe('internal config -> docker config', () =>
-		it('should convert an internal representation to a docker representation', function() {
+		it('should convert an internal representation to a docker representation', function () {
 			const network = Network.fromComposeObject(
 				'test',
 				123,

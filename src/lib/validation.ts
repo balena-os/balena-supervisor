@@ -479,7 +479,7 @@ export function isValidDependentDevicesObject(devices: any): boolean {
 
 				return _.every(
 					a as TargetState['dependent']['devices'][any]['apps'],
-					app => {
+					(app) => {
 						app = _.defaults(_.clone(app), {
 							config: undefined,
 							environment: undefined,

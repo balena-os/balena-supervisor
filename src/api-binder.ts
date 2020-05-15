@@ -206,7 +206,7 @@ export class APIBinder {
 		// When we've provisioned, try to load the backup. We
 		// must wait for the provisioning because we need a
 		// target state on which to apply the backup
-		globalEventBus.getInstance().once('targetStateChanged', async state => {
+		globalEventBus.getInstance().once('targetStateChanged', async (state) => {
 			await loadBackupFromMigration(
 				this.deviceState,
 				state,
@@ -394,7 +394,7 @@ export class APIBinder {
 			},
 		})) as Array<Dictionary<unknown>>;
 
-		return tags.map(tag => {
+		return tags.map((tag) => {
 			// Do some type safe decoding and throw if we get an unexpected value
 			const id = t.number.decode(tag.id);
 			const name = t.string.decode(tag.tag_key);
@@ -577,7 +577,7 @@ export class APIBinder {
 				this.deviceState.triggerApplyTarget({ force, isFromApi });
 			}
 		})
-			.tapCatch(ContractValidationError, ContractViolationError, e => {
+			.tapCatch(ContractValidationError, ContractViolationError, (e) => {
 				log.error(`Could not store target state for device: ${e}`);
 				// the dashboard does not display lines correctly,
 				// split them explcitly here
@@ -593,7 +593,7 @@ export class APIBinder {
 						e instanceof ContractValidationError ||
 						e instanceof ContractViolationError
 					),
-				err => {
+				(err) => {
 					log.error(`Failed to get target state for device: ${err}`);
 				},
 			)
@@ -944,7 +944,7 @@ export class APIBinder {
 	}
 
 	private lockGetTarget() {
-		return writeLock('getTarget').disposer(release => {
+		return writeLock('getTarget').disposer((release) => {
 			release();
 		});
 	}
@@ -960,7 +960,7 @@ export class APIBinder {
 			if (apiBinder.readyForUpdates) {
 				this.config
 					.get('instantUpdates')
-					.then(instantUpdates => {
+					.then((instantUpdates) => {
 						if (instantUpdates) {
 							apiBinder
 								.getAndSetTargetState(req.body.force, true)

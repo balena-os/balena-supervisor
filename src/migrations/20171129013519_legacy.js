@@ -7,27 +7,31 @@
 // a few dropColumn and dropTable calls to delete things that were removed throughout the supervisor's
 // history without actually adding drop statements (mostly just becoming unused, but still there).
 
-exports.up = function(knex) {
-	const addColumn = function(table, column, type) {
-		return knex.schema.hasColumn(table, column).then(exists => {
+exports.up = function (knex) {
+	const addColumn = function (table, column, type) {
+		return knex.schema.hasColumn(table, column).then((exists) => {
 			if (!exists) {
-				return knex.schema.table(table, t => {
+				return knex.schema.table(table, (t) => {
 					return t[type](column);
 				});
 			}
 		});
 	};
-	const dropColumn = function(table, column) {
-		return knex.schema.hasColumn(table, column).then(exists => {
+	const dropColumn = function (table, column) {
+		return knex.schema.hasColumn(table, column).then((exists) => {
 			if (exists) {
-				return knex.schema.table(table, t => {
+				return knex.schema.table(table, (t) => {
 					return t.dropColumn(column);
 				});
 			}
 		});
 	};
-	const createTableOrRun = function(tableName, tableCreator, runIfTableExists) {
-		return knex.schema.hasTable(tableName).then(exists => {
+	const createTableOrRun = function (
+		tableName,
+		tableCreator,
+		runIfTableExists,
+	) {
+		return knex.schema.hasTable(tableName).then((exists) => {
 			if (!exists) {
 				return knex.schema.createTable(tableName, tableCreator);
 			} else if (runIfTableExists != null) {
@@ -35,25 +39,25 @@ exports.up = function(knex) {
 			}
 		});
 	};
-	const dropTable = function(tableName) {
-		return knex.schema.hasTable(tableName).then(exists => {
+	const dropTable = function (tableName) {
+		return knex.schema.hasTable(tableName).then((exists) => {
 			if (exists) {
 				return knex.schema.dropTable(tableName);
 			}
 		});
 	};
 	return Promise.all([
-		createTableOrRun('config', t => {
+		createTableOrRun('config', (t) => {
 			t.string('key').primary();
 			t.string('value');
 		}),
-		createTableOrRun('deviceConfig', t => {
+		createTableOrRun('deviceConfig', (t) => {
 			t.json('values');
 			t.json('targetValues');
 		}).then(() => {
 			return knex('deviceConfig')
 				.select()
-				.then(deviceConfigs => {
+				.then((deviceConfigs) => {
 					if (deviceConfigs.length === 0) {
 						return knex('deviceConfig').insert({
 							values: '{}',
@@ -64,7 +68,7 @@ exports.up = function(knex) {
 		}),
 		createTableOrRun(
 			'app',
-			t => {
+			(t) => {
 				t.increments('id').primary();
 				t.string('name');
 				t.string('containerName');
@@ -99,7 +103,7 @@ exports.up = function(knex) {
 		),
 		createTableOrRun(
 			'dependentApp',
-			t => {
+			(t) => {
 				t.increments('id').primary();
 				t.string('appId');
 				t.string('parentAppId');
@@ -115,7 +119,7 @@ exports.up = function(knex) {
 		),
 		createTableOrRun(
 			'dependentDevice',
-			t => {
+			(t) => {
 				t.increments('id').primary();
 				t.string('uuid');
 				t.string('appId');
@@ -151,6 +155,6 @@ exports.up = function(knex) {
 	]);
 };
 
-exports.down = function() {
+exports.down = function () {
 	return Promise.reject(new Error('Not implemented'));
 };

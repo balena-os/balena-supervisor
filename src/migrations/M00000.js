@@ -3,10 +3,10 @@ const _ = require('lodash');
 // We take legacy deviceConfig targets and store them without the RESIN_ prefix
 // (we also strip the BALENA_ prefix for completeness, even though no supervisors
 // using this prefix made it to production)
-exports.up = function(knex) {
+exports.up = function (knex) {
 	return knex('deviceConfig')
 		.select('targetValues')
-		.then(devConfigs => {
+		.then((devConfigs) => {
 			const devConfig = devConfigs[0];
 			const targetValues = JSON.parse(devConfig.targetValues);
 			const filteredTargetValues = _.mapKeys(targetValues, (_v, k) => {
@@ -18,6 +18,6 @@ exports.up = function(knex) {
 		});
 };
 
-exports.down = function() {
+exports.down = function () {
 	return Promise.reject(new Error('Not Implemented'));
 };

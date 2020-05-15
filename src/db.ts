@@ -49,9 +49,7 @@ export class DB {
 	): Promise<any> {
 		const knex = trx || this.knex;
 
-		const n = await knex(modelName)
-			.update(obj)
-			.where(id);
+		const n = await knex(modelName).update(obj).where(id);
 		if (n === 0) {
 			return knex(modelName).insert(obj);
 		}

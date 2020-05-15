@@ -28,7 +28,7 @@ export const initialiseConfigBackend = async (
 };
 
 function getConfigBackend(deviceType: string): DeviceConfigBackend | undefined {
-	return _.find(configBackends, backend => backend.matches(deviceType));
+	return _.find(configBackends, (backend) => backend.matches(deviceType));
 }
 
 export function envToBootConfig(
@@ -54,7 +54,7 @@ export function bootConfigToEnv(
 ): EnvVarObject {
 	return _(config)
 		.mapKeys((_val, key) => configBackend.createConfigVarName(key))
-		.mapValues(val => {
+		.mapValues((val) => {
 			if (_.isArray(val)) {
 				return JSON.stringify(val).replace(/^\[(.*)\]$/, '$1');
 			}

@@ -4,10 +4,10 @@ import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
 import { doRestart, doPurge, serviceAction } from './common';
 
-export const createV1Api = function(router, applications) {
+export const createV1Api = function (router, applications) {
 	const { eventTracker } = applications;
 
-	router.post('/v1/restart', function(req, res, next) {
+	router.post('/v1/restart', function (req, res, next) {
 		const appId = checkInt(req.body.appId);
 		const force = checkTruthy(req.body.force) ?? false;
 		eventTracker.track('Restart container (v1)', { appId });
@@ -19,7 +19,7 @@ export const createV1Api = function(router, applications) {
 			.catch(next);
 	});
 
-	const v1StopOrStart = function(req, res, next, action) {
+	const v1StopOrStart = function (req, res, next, action) {
 		const appId = checkInt(req.params.appId);
 		const force = checkTruthy(req.body.force) ?? false;
 		if (appId == null) {
@@ -27,7 +27,7 @@ export const createV1Api = function(router, applications) {
 		}
 		return applications
 			.getCurrentApp(appId)
-			.then(function(app) {
+			.then(function (app) {
 				let service = app?.app.services?.[0];
 				if (service == null) {
 					return res.status(400).send('App not found');
@@ -49,12 +49,12 @@ export const createV1Api = function(router, applications) {
 						}),
 						{ force },
 					)
-					.then(function() {
+					.then(function () {
 						if (action === 'stop') {
 							return service;
 						}
 						// We refresh the container id in case we were starting an app with no container yet
-						return applications.getCurrentApp(appId).then(function(app2) {
+						return applications.getCurrentApp(appId).then(function (app2) {
 							service = app2?.services?.[0];
 							if (service == null) {
 								throw new Error('App not found after running action');
@@ -62,20 +62,20 @@ export const createV1Api = function(router, applications) {
 							return service;
 						});
 					})
-					.then(service2 =>
+					.then((service2) =>
 						res.status(200).json({ containerId: service2.containerId }),
 					);
 			})
 			.catch(next);
 	};
 
-	const createV1StopOrStartHandler = action =>
+	const createV1StopOrStartHandler = (action) =>
 		_.partial(v1StopOrStart, _, _, _, action);
 
 	router.post('/v1/apps/:appId/stop', createV1StopOrStartHandler('stop'));
 	router.post('/v1/apps/:appId/start', createV1StopOrStartHandler('start'));
 
-	router.get('/v1/apps/:appId', function(req, res, next) {
+	router.get('/v1/apps/:appId', function (req, res, next) {
 		const appId = checkInt(req.params.appId);
 		eventTracker.track('GET app (v1)', { appId });
 		if (appId == null) {
@@ -84,7 +84,7 @@ export const createV1Api = function(router, applications) {
 		return Promise.join(
 			applications.getCurrentApp(appId),
 			applications.getStatus(),
-			function(app, status) {
+			function (app, status) {
 				const service = app?.services?.[0];
 				if (service == null) {
 					return res.status(400).send('App not found');
@@ -112,7 +112,7 @@ export const createV1Api = function(router, applications) {
 		).catch(next);
 	});
 
-	router.post('/v1/purge', function(req, res, next) {
+	router.post('/v1/purge', function (req, res, next) {
 		const appId = checkInt(req.body.appId);
 		const force = checkTruthy(req.body.force) ?? false;
 		if (appId == null) {

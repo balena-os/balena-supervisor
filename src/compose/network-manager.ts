@@ -26,7 +26,7 @@ export class NetworkManager {
 			return this.docker
 				.getNetwork(network.Name)
 				.inspect()
-				.then(net => {
+				.then((net) => {
 					return Network.fromDockerNetwork(
 						{
 							docker: this.docker,
@@ -93,7 +93,7 @@ export class NetworkManager {
 					.getNetwork(constants.supervisorNetworkInterface)
 					.inspect();
 			})
-			.then(network => {
+			.then((network) => {
 				return (
 					network.Options['com.docker.network.bridge.name'] ===
 						constants.supervisorNetworkInterface &&
@@ -119,7 +119,7 @@ export class NetworkManager {
 		return Bluebird.resolve(
 			this.docker.getNetwork(constants.supervisorNetworkInterface).inspect(),
 		)
-			.then(net => {
+			.then((net) => {
 				if (
 					net.Options['com.docker.network.bridge.name'] !==
 						constants.supervisorNetworkInterface ||

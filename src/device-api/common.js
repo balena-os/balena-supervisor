@@ -6,7 +6,7 @@ export function doRestart(applications, appId, force) {
 	const { _lockingIfNecessary, deviceState } = applications;
 
 	return _lockingIfNecessary(appId, { force }, () =>
-		deviceState.getCurrentForComparison().then(function(currentState) {
+		deviceState.getCurrentForComparison().then(function (currentState) {
 			const app = currentState.local.apps[appId];
 			const imageIds = _.map(app.services, 'imageId');
 			applications.clearTargetVolatileForServices(imageIds);
@@ -17,7 +17,7 @@ export function doRestart(applications, appId, force) {
 				.pausingApply(() =>
 					deviceState
 						.applyIntermediateTarget(currentState, { skipLock: true })
-						.then(function() {
+						.then(function () {
 							currentState.local.apps[appId] = app;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
@@ -38,7 +38,7 @@ export function doPurge(applications, appId, force) {
 		'Purge data',
 	);
 	return _lockingIfNecessary(appId, { force }, () =>
-		deviceState.getCurrentForComparison().then(function(currentState) {
+		deviceState.getCurrentForComparison().then(function (currentState) {
 			const app = currentState.local.apps[appId];
 			if (app == null) {
 				throw new Error(appNotFoundMessage);
@@ -56,11 +56,11 @@ export function doPurge(applications, appId, force) {
 							// remove the volumes, we must do this here, as the
 							// application-manager will not remove any volumes
 							// which are part of an active application
-							return Bluebird.each(volumes.getAllByAppId(appId), vol =>
+							return Bluebird.each(volumes.getAllByAppId(appId), (vol) =>
 								vol.remove(),
 							);
 						})
-						.then(function() {
+						.then(function () {
 							currentState.local.apps[appId] = app;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
@@ -73,7 +73,7 @@ export function doPurge(applications, appId, force) {
 		.tap(() =>
 			logger.logSystemMessage('Purged data', { appId }, 'Purge data success'),
 		)
-		.tapCatch(err =>
+		.tapCatch((err) =>
 			logger.logSystemMessage(
 				`Error purging data: ${err}`,
 				{ appId, error: err },

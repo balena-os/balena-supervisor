@@ -22,23 +22,25 @@ async function createOldDatabase(path: string) {
 		name: string,
 		fn: (trx: Knex.CreateTableBuilder) => void,
 	) =>
-		knex.schema.createTable(name, t => {
+		knex.schema.createTable(name, (t) => {
 			if (fn != null) {
 				return fn(t);
 			}
 		});
 
-	await createEmptyTable('app', t => {
+	await createEmptyTable('app', (t) => {
 		t.increments('id').primary();
 		t.boolean('privileged');
 		return t.string('containerId');
 	});
-	await createEmptyTable('config', t => {
+	await createEmptyTable('config', (t) => {
 		t.string('key');
 		return t.string('value');
 	});
-	await createEmptyTable('dependentApp', t => t.increments('id').primary());
-	await createEmptyTable('dependentDevice', t => t.increments('id').primary());
+	await createEmptyTable('dependentApp', (t) => t.increments('id').primary());
+	await createEmptyTable('dependentDevice', (t) =>
+		t.increments('id').primary(),
+	);
 	return knex;
 }
 
@@ -103,6 +105,6 @@ describe('DB', () => {
 	});
 
 	it('allows performing transactions', () => {
-		return db.transaction(trx => expect(trx.commit()).to.be.fulfilled);
+		return db.transaction((trx) => expect(trx.commit()).to.be.fulfilled);
 	});
 });

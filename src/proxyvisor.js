@@ -20,7 +20,7 @@ const mkdirpAsync = Promise.promisify(mkdirp);
 
 const isDefined = _.negate(_.isUndefined);
 
-const parseDeviceFields = function(device) {
+const parseDeviceFields = function (device) {
 	device.id = parseInt(device.deviceId, 10);
 	device.appId = parseInt(device.appId, 10);
 	device.config = JSON.parse(device.config ?? '{}');
@@ -30,7 +30,7 @@ const parseDeviceFields = function(device) {
 	return _.omit(device, 'markedForDeletion', 'logs_channel');
 };
 
-const tarDirectory = appId => `/data/dependent-assets/${appId}`;
+const tarDirectory = (appId) => `/data/dependent-assets/${appId}`;
 
 const tarFilename = (appId, commit) => `${appId}-${commit}.tar`;
 
@@ -46,7 +46,7 @@ const getTarArchive = (source, destination) =>
 			),
 		);
 
-const cleanupTars = function(appId, commit) {
+const cleanupTars = function (appId, commit) {
 	let fileToKeep;
 	if (commit != null) {
 		fileToKeep = tarFilename(appId, commit);
@@ -57,29 +57,29 @@ const cleanupTars = function(appId, commit) {
 	return fs
 		.readdir(dir)
 		.catch(() => [])
-		.then(function(files) {
+		.then(function (files) {
 			if (fileToKeep != null) {
 				files = _.reject(files, fileToKeep);
 			}
-			return Promise.map(files, file => fs.unlink(path.join(dir, file)));
+			return Promise.map(files, (file) => fs.unlink(path.join(dir, file)));
 		});
 };
 
-const formatTargetAsState = device => ({
+const formatTargetAsState = (device) => ({
 	appId: parseInt(device.appId, 10),
 	commit: device.targetCommit,
 	environment: device.targetEnvironment,
 	config: device.targetConfig,
 });
 
-const formatCurrentAsState = device => ({
+const formatCurrentAsState = (device) => ({
 	appId: parseInt(device.appId, 10),
 	commit: device.commit,
 	environment: device.environment,
 	config: device.config,
 });
 
-const createProxyvisorRouter = function(proxyvisor) {
+const createProxyvisorRouter = function (proxyvisor) {
 	const { db } = proxyvisor;
 	const router = express.Router();
 	router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -89,13 +89,13 @@ const createProxyvisorRouter = function(proxyvisor) {
 			.models('dependentDevice')
 			.select()
 			.map(parseDeviceFields)
-			.then(devices => res.json(devices))
-			.catch(err =>
+			.then((devices) => res.json(devices))
+			.catch((err) =>
 				res.status(503).send(err?.message || err || 'Unknown error'),
 			),
 	);
 
-	router.post('/v1/devices', function(req, res) {
+	router.post('/v1/devices', function (req, res) {
 		let { appId, device_type } = req.body;
 
 		if (
@@ -115,7 +115,7 @@ const createProxyvisorRouter = function(proxyvisor) {
 		};
 		return proxyvisor.apiBinder
 			.provisionDependentDevice(d)
-			.then(function(dev) {
+			.then(function (dev) {
 				// If the response has id: null then something was wrong in the request
 				// but we don't know precisely what.
 				if (dev.id == null) {
@@ -137,19 +137,19 @@ const createProxyvisorRouter = function(proxyvisor) {
 					.insert(deviceForDB)
 					.then(() => res.status(201).send(dev));
 			})
-			.catch(function(err) {
+			.catch(function (err) {
 				log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
 				return res.status(503).send(err?.message || err || 'Unknown error');
 			});
 	});
 
-	router.get('/v1/devices/:uuid', function(req, res) {
+	router.get('/v1/devices/:uuid', function (req, res) {
 		const { uuid } = req.params;
 		return db
 			.models('dependentDevice')
 			.select()
 			.where({ uuid })
-			.then(function([device]) {
+			.then(function ([device]) {
 				if (device == null) {
 					return res.status(404).send('Device not found');
 				}
@@ -158,13 +158,13 @@ const createProxyvisorRouter = function(proxyvisor) {
 				}
 				return res.json(parseDeviceFields(device));
 			})
-			.catch(function(err) {
+			.catch(function (err) {
 				log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
 				return res.status(503).send(err?.message || err || 'Unknown error');
 			});
 	});
 
-	router.post('/v1/devices/:uuid/logs', function(req, res) {
+	router.post('/v1/devices/:uuid/logs', function (req, res) {
 		const { uuid } = req.params;
 		const m = {
 			message: req.body.message,
@@ -178,7 +178,7 @@ const createProxyvisorRouter = function(proxyvisor) {
 			.models('dependentDevice')
 			.select()
 			.where({ uuid })
-			.then(function([device]) {
+			.then(function ([device]) {
 				if (device == null) {
 					return res.status(404).send('Device not found');
 				}
@@ -188,13 +188,13 @@ const createProxyvisorRouter = function(proxyvisor) {
 				proxyvisor.logger.logDependent(m, uuid);
 				return res.status(202).send('OK');
 			})
-			.catch(function(err) {
+			.catch(function (err) {
 				log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
 				return res.status(503).send(err?.message || err || 'Unknown error');
 			});
 	});
 
-	router.put('/v1/devices/:uuid', function(req, res) {
+	router.put('/v1/devices/:uuid', function (req, res) {
 		const { uuid } = req.params;
 		let {
 			status,
@@ -204,7 +204,7 @@ const createProxyvisorRouter = function(proxyvisor) {
 			environment,
 			config,
 		} = req.body;
-		const validateDeviceFields = function() {
+		const validateDeviceFields = function () {
 			if (isDefined(is_online) && !_.isBoolean(is_online)) {
 				return 'is_online must be a boolean';
 			}
@@ -262,7 +262,7 @@ const createProxyvisorRouter = function(proxyvisor) {
 			.models('dependentDevice')
 			.select()
 			.where({ uuid })
-			.then(function([device]) {
+			.then(function ([device]) {
 				if (device == null) {
 					return res.status(404).send('Device not found');
 				}
@@ -272,7 +272,7 @@ const createProxyvisorRouter = function(proxyvisor) {
 				if (device.deviceId == null) {
 					throw new Error('Device is invalid');
 				}
-				return Promise.try(function() {
+				return Promise.try(function () {
 					if (!_.isEmpty(fieldsToUpdateOnAPI)) {
 						return proxyvisor.apiBinder.patchDevice(
 							device.deviceId,
@@ -286,17 +286,12 @@ const createProxyvisorRouter = function(proxyvisor) {
 							.update(fieldsToUpdateOnDB)
 							.where({ uuid }),
 					)
-					.then(() =>
-						db
-							.models('dependentDevice')
-							.select()
-							.where({ uuid }),
-					)
-					.then(function([dbDevice]) {
+					.then(() => db.models('dependentDevice').select().where({ uuid }))
+					.then(function ([dbDevice]) {
 						return res.json(parseDeviceFields(dbDevice));
 					});
 			})
-			.catch(function(err) {
+			.catch(function (err) {
 				log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
 				return res.status(503).send(err?.message || err || 'Unknown error');
 			});
@@ -307,7 +302,7 @@ const createProxyvisorRouter = function(proxyvisor) {
 			.models('dependentApp')
 			.select()
 			.where(_.pick(req.params, 'appId', 'commit'))
-			.then(function([app]) {
+			.then(function ([app]) {
 				if (!app) {
 					return res.status(404).send('Not found');
 				}
@@ -317,12 +312,12 @@ const createProxyvisorRouter = function(proxyvisor) {
 					.catch(() =>
 						Promise.using(
 							proxyvisor.docker.imageRootDirMounted(app.image),
-							rootDir => getTarArchive(rootDir + '/assets', dest),
+							(rootDir) => getTarArchive(rootDir + '/assets', dest),
 						),
 					)
 					.then(() => res.sendFile(dest));
 			})
-			.catch(function(err) {
+			.catch(function (err) {
 				log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
 				return res.status(503).send(err?.message || err || 'Unknown error');
 			}),
@@ -332,14 +327,14 @@ const createProxyvisorRouter = function(proxyvisor) {
 		db
 			.models('dependentApp')
 			.select()
-			.map(app => ({
+			.map((app) => ({
 				id: parseInt(app.appId, 10),
 				commit: app.commit,
 				name: app.name,
 				config: JSON.parse(app.config ?? '{}'),
 			}))
-			.then(apps => res.json(apps))
-			.catch(function(err) {
+			.then((apps) => res.json(apps))
+			.catch(function (err) {
 				log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
 				return res.status(503).send(err?.message || err || 'Unknown error');
 			}),
@@ -375,7 +370,7 @@ export class Proxyvisor {
 		this.lastRequestForDevice = {};
 		this.router = createProxyvisorRouter(this);
 		this.actionExecutors = {
-			updateDependentTargets: step => {
+			updateDependentTargets: (step) => {
 				return this.config
 					.getMany(['currentApiKey', 'apiTimeout'])
 					.then(({ currentApiKey, apiTimeout }) => {
@@ -383,12 +378,10 @@ export class Proxyvisor {
 						// - if update returns 0, then use APIBinder to fetch the device, then store it to the db
 						// - set markedForDeletion: true for devices that are not in the step.devices list
 						// - update dependentApp with step.app
-						return Promise.map(step.devices, device => {
+						return Promise.map(step.devices, (device) => {
 							const { uuid } = device;
 							// Only consider one app per dependent device for now
-							const appId = _(device.apps)
-								.keys()
-								.head();
+							const appId = _(device.apps).keys().head();
 							if (appId == null) {
 								throw new Error(
 									'Could not find an app for the dependent device',
@@ -409,7 +402,7 @@ export class Proxyvisor {
 									name: device.name,
 								})
 								.where({ uuid })
-								.then(n => {
+								.then((n) => {
 									if (n !== 0) {
 										return;
 									}
@@ -417,7 +410,7 @@ export class Proxyvisor {
 									// so we need to fetch it.
 									return this.apiBinder
 										.fetchDevice(uuid, currentApiKey, apiTimeout)
-										.then(dev => {
+										.then((dev) => {
 											const deviceForDB = {
 												uuid,
 												appId,
@@ -446,7 +439,7 @@ export class Proxyvisor {
 							.then(() => {
 								return this.normaliseDependentAppForDB(step.app);
 							})
-							.then(appForDB => {
+							.then((appForDB) => {
 								return this.db.upsertModel('dependentApp', appForDB, {
 									appId: step.appId,
 								});
@@ -455,12 +448,12 @@ export class Proxyvisor {
 					});
 			},
 
-			sendDependentHooks: step => {
+			sendDependentHooks: (step) => {
 				return Promise.join(
 					this.config.get('apiTimeout'),
 					this.getHookEndpoint(step.appId),
 					(apiTimeout, endpoint) => {
-						return Promise.mapSeries(step.devices, device => {
+						return Promise.mapSeries(step.devices, (device) => {
 							return Promise.try(() => {
 								if (this.lastRequestForDevice[device.uuid] != null) {
 									const diff =
@@ -482,17 +475,15 @@ export class Proxyvisor {
 				);
 			},
 
-			removeDependentApp: step => {
+			removeDependentApp: (step) => {
 				// find step.app and delete it from the DB
 				// find devices with step.appId and delete them from the DB
-				return this.db.transaction(trx =>
+				return this.db.transaction((trx) =>
 					trx('dependentApp')
 						.where({ appId: step.appId })
 						.del()
 						.then(() =>
-							trx('dependentDevice')
-								.where({ appId: step.appId })
-								.del(),
+							trx('dependentDevice').where({ appId: step.appId }).del(),
 						)
 						.then(() => cleanupTars(step.appId)),
 				);
@@ -522,8 +513,8 @@ export class Proxyvisor {
 				this.normaliseDependentAppFromDB,
 			),
 			this.db.models('dependentDevice').select(),
-			function(apps, devicesFromDB) {
-				const devices = _.map(devicesFromDB, function(device) {
+			function (apps, devicesFromDB) {
+				const devices = _.map(devicesFromDB, function (device) {
 					const dev = {
 						uuid: device.uuid,
 						name: device.name,
@@ -568,8 +559,8 @@ export class Proxyvisor {
 	}
 
 	normaliseDependentDeviceTargetForDB(device, appCommit) {
-		return Promise.try(function() {
-			const apps = _.mapValues(_.clone(device.apps ?? {}), function(app) {
+		return Promise.try(function () {
+			const apps = _.mapValues(_.clone(device.apps ?? {}), function (app) {
 				app.commit = appCommit || null;
 				if (app.config == null) {
 					app.config = {};
@@ -591,14 +582,14 @@ export class Proxyvisor {
 	setTargetInTransaction(dependent, trx) {
 		return Promise.try(() => {
 			if (dependent?.apps != null) {
-				const appsArray = _.map(dependent.apps, function(app, appId) {
+				const appsArray = _.map(dependent.apps, function (app, appId) {
 					const appClone = _.clone(app);
 					appClone.appId = checkInt(appId);
 					return appClone;
 				});
 				return Promise.map(appsArray, this.normaliseDependentAppForDB)
-					.tap(appsForDB => {
-						return Promise.map(appsForDB, app => {
+					.tap((appsForDB) => {
+						return Promise.map(appsForDB, (app) => {
 							return this.db.upsertModel(
 								'dependentAppTarget',
 								app,
@@ -607,7 +598,7 @@ export class Proxyvisor {
 							);
 						});
 					})
-					.then(appsForDB =>
+					.then((appsForDB) =>
 						trx('dependentAppTarget')
 							.whereNotIn('appId', _.map(appsForDB, 'appId'))
 							.del(),
@@ -615,19 +606,19 @@ export class Proxyvisor {
 			}
 		}).then(() => {
 			if (dependent?.devices != null) {
-				const devicesArray = _.map(dependent.devices, function(dev, uuid) {
+				const devicesArray = _.map(dependent.devices, function (dev, uuid) {
 					const devClone = _.clone(dev);
 					devClone.uuid = uuid;
 					return devClone;
 				});
-				return Promise.map(devicesArray, device => {
+				return Promise.map(devicesArray, (device) => {
 					const appId = _.keys(device.apps)[0];
 					return this.normaliseDependentDeviceTargetForDB(
 						device,
 						dependent.apps[appId]?.commit,
 					);
-				}).then(devicesForDB => {
-					return Promise.map(devicesForDB, device => {
+				}).then((devicesForDB) => {
+					return Promise.map(devicesForDB, (device) => {
 						return this.db.upsertModel(
 							'dependentDeviceTarget',
 							device,
@@ -645,7 +636,7 @@ export class Proxyvisor {
 	}
 
 	normaliseDependentAppFromDB(app) {
-		return Promise.try(function() {
+		return Promise.try(function () {
 			const outApp = {
 				appId: app.appId,
 				name: app.name,
@@ -662,11 +653,11 @@ export class Proxyvisor {
 	}
 
 	normaliseDependentDeviceTargetFromDB(device) {
-		return Promise.try(function() {
+		return Promise.try(function () {
 			const outDevice = {
 				uuid: device.uuid,
 				name: device.name,
-				apps: _.mapValues(JSON.parse(device.apps), function(a) {
+				apps: _.mapValues(JSON.parse(device.apps), function (a) {
 					if (a.commit == null) {
 						a.commit = null;
 					}
@@ -678,7 +669,7 @@ export class Proxyvisor {
 	}
 
 	normaliseDependentDeviceFromDB(device) {
-		return Promise.try(function() {
+		return Promise.try(function () {
 			const outDevice = _.clone(device);
 			for (const prop of [
 				'environment',
@@ -766,7 +757,7 @@ export class Proxyvisor {
 	}
 
 	_compareDevices(currentDevices, targetDevices, appId) {
-		let currentDeviceTargets = _.map(currentDevices, function(dev) {
+		let currentDeviceTargets = _.map(currentDevices, function (dev) {
 			if (dev.markedForDeletion) {
 				return null;
 			}
@@ -783,7 +774,7 @@ export class Proxyvisor {
 		});
 		currentDeviceTargets = _.filter(
 			currentDeviceTargets,
-			dev => !_.isNull(dev),
+			(dev) => !_.isNull(dev),
 		);
 		return !_.isEmpty(
 			_.xorWith(currentDeviceTargets, targetDevices, _.isEqual),
@@ -819,7 +810,7 @@ export class Proxyvisor {
 			];
 		}
 
-		if (_.some(stepsInProgress, step => step.appId === target.parentApp)) {
+		if (_.some(stepsInProgress, (step) => step.appId === target.parentApp)) {
 			return [{ action: 'noop' }];
 		}
 
@@ -886,8 +877,8 @@ export class Proxyvisor {
 
 			let steps = [];
 			for (const appId of allAppIds) {
-				const devicesForApp = devices =>
-					_.filter(devices, d => _.has(d.apps, appId));
+				const devicesForApp = (devices) =>
+					_.filter(devices, (d) => _.has(d.apps, appId));
 
 				const currentDevices = devicesForApp(current.dependent.devices);
 				const targetDevices = devicesForApp(target.dependent.devices);
@@ -915,13 +906,13 @@ export class Proxyvisor {
 			.then(([{ parentApp }]) => {
 				return this.applications.getTargetApp(parentApp);
 			})
-			.then(parentApp => {
-				return Promise.map(parentApp?.services ?? [], service => {
+			.then((parentApp) => {
+				return Promise.map(parentApp?.services ?? [], (service) => {
 					return this.docker.getImageEnv(service.image);
-				}).then(function(imageEnvs) {
+				}).then(function (imageEnvs) {
 					const imageHookAddresses = _.map(
 						imageEnvs,
-						env =>
+						(env) =>
 							env.BALENA_DEPENDENT_DEVICES_HOOK_ADDRESS ??
 							env.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS,
 					);
@@ -941,7 +932,7 @@ export class Proxyvisor {
 
 	sendUpdate(device, timeout, endpoint) {
 		return Promise.resolve(request.getRequestInstance())
-			.then(instance =>
+			.then((instance) =>
 				instance.putAsync(`${endpoint}${device.uuid}`, {
 					json: true,
 					body: device.target,
@@ -958,42 +949,36 @@ export class Proxyvisor {
 					}
 				}
 			})
-			.catch(err => log.error(`Error updating device ${device.uuid}`, err));
+			.catch((err) => log.error(`Error updating device ${device.uuid}`, err));
 	}
 
 	sendDeleteHook({ uuid }, timeout, endpoint) {
 		return Promise.resolve(request.getRequestInstance())
-			.then(instance => instance.delAsync(`${endpoint}${uuid}`))
+			.then((instance) => instance.delAsync(`${endpoint}${uuid}`))
 			.timeout(timeout)
 			.spread((response, body) => {
 				if (response.statusCode === 200) {
-					return this.db
-						.models('dependentDevice')
-						.del()
-						.where({ uuid });
+					return this.db.models('dependentDevice').del().where({ uuid });
 				} else {
 					throw new Error(`Hook returned ${response.statusCode}: ${body}`);
 				}
 			})
-			.catch(err => log.error(`Error deleting device ${uuid}`, err));
+			.catch((err) => log.error(`Error deleting device ${uuid}`, err));
 	}
 
 	sendUpdates({ uuid }) {
 		return Promise.join(
-			this.db
-				.models('dependentDevice')
-				.where({ uuid })
-				.select(),
+			this.db.models('dependentDevice').where({ uuid }).select(),
 			this.config.get('apiTimeout'),
 			([dev], apiTimeout) => {
 				if (dev == null) {
 					log.warn(`Trying to send update to non-existent device ${uuid}`);
 					return;
 				}
-				return this.normaliseDependentDeviceFromDB(dev).then(device => {
+				return this.normaliseDependentDeviceFromDB(dev).then((device) => {
 					const currentState = formatCurrentAsState(device);
 					const targetState = formatTargetAsState(device);
-					return this.getHookEndpoint(device.appId).then(endpoint => {
+					return this.getHookEndpoint(device.appId).then((endpoint) => {
 						if (device.markedForDeletion) {
 							return this.sendDeleteHook(device, apiTimeout, endpoint);
 						} else if (

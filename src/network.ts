@@ -89,7 +89,7 @@ export const startConnectivityCheck = _.once(
 				path: parsedUrl.path || '/',
 				interval: 10 * 1000,
 			},
-			connected => {
+			(connected) => {
 				onChangeCallback?.(connected);
 				if (connected) {
 					log.info('Internet Connectivity: OK');
@@ -127,7 +127,7 @@ export function getIPAddresses(): string[] {
 	// - custom docker network bridges (br- + 12 hex characters)
 	return _(os.networkInterfaces())
 		.omitBy((_interfaceFields, interfaceName) => IP_REGEX.test(interfaceName))
-		.flatMap(validInterfaces => {
+		.flatMap((validInterfaces) => {
 			return _(validInterfaces)
 				.pickBy({ family: 'IPv4' })
 				.map('address')
@@ -144,11 +144,7 @@ export function startIPAddressUpdate(): (
 	return (cb, interval) => {
 		const getAndReportIP = () => {
 			const ips = getIPAddresses();
-			if (
-				!_(ips)
-					.xor(lastIPValues)
-					.isEmpty()
-			) {
+			if (!_(ips).xor(lastIPValues).isEmpty()) {
 				lastIPValues = ips;
 				cb(ips);
 			}

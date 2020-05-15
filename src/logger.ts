@@ -158,7 +158,7 @@ export class Logger {
 	}
 
 	public lock(containerId: string): Bluebird.Disposer<() => void> {
-		return writeLock(containerId).disposer(release => {
+		return writeLock(containerId).disposer((release) => {
 			release();
 		});
 	}
@@ -177,11 +177,11 @@ export class Logger {
 		return Bluebird.using(this.lock(containerId), async () => {
 			const logs = new ContainerLogs(containerId, docker);
 			this.containerLogs[containerId] = logs;
-			logs.on('error', err => {
+			logs.on('error', (err) => {
 				log.error('Container log retrieval error', err);
 				delete this.containerLogs[containerId];
 			});
-			logs.on('log', async logMessage => {
+			logs.on('log', async (logMessage) => {
 				this.log(_.merge({}, serviceInfo, logMessage));
 
 				// Take the timestamp and set it in the database as the last

@@ -223,7 +223,7 @@ describe('deviceState', () => {
 			track: console.log,
 		};
 
-		stub(Service as any, 'extendEnvVars').callsFake(env => {
+		stub(Service as any, 'extendEnvVars').callsFake((env) => {
 			env['ADDITIONAL_ENV_VAR'] = 'foo';
 			return env;
 		});
@@ -308,12 +308,8 @@ describe('deviceState', () => {
 		(deviceState as any).deviceConfig.getCurrent.restore();
 
 		const pinned = await config.get('pinDevice');
-		expect(pinned)
-			.to.have.property('app')
-			.that.equals(1234);
-		expect(pinned)
-			.to.have.property('commit')
-			.that.equals('abcdef');
+		expect(pinned).to.have.property('app').that.equals(1234);
+		expect(pinned).to.have.property('commit').that.equals('abcdef');
 	});
 
 	it('emits a change event when a new state is reported', () => {
@@ -349,7 +345,7 @@ describe('deviceState', () => {
 		expect(deviceState.setTarget(testTargetInvalid as any)).to.be.rejected;
 	});
 
-	it('allows triggering applying the target state', done => {
+	it('allows triggering applying the target state', (done) => {
 		stub(deviceState as any, 'applyTarget').returns(Promise.resolve());
 
 		deviceState.triggerApplyTarget({ force: true });
@@ -365,7 +361,7 @@ describe('deviceState', () => {
 		}, 5);
 	});
 
-	it('cancels current promise applying the target state', done => {
+	it('cancels current promise applying the target state', (done) => {
 		(deviceState as any).scheduledApply = { force: false, delay: 100 };
 		(deviceState as any).applyInProgress = true;
 		(deviceState as any).applyCancelled = false;

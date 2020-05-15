@@ -60,7 +60,7 @@ export class Network {
 			driver: network.Driver,
 			ipam: {
 				driver: network.IPAM.Driver,
-				config: _.map(network.IPAM.Config, conf => {
+				config: _.map(network.IPAM.Config, (conf) => {
 					const newConf: NetworkConfig['ipam']['config'][0] = {};
 
 					if (conf.Subnet != null) {
@@ -155,7 +155,7 @@ export class Network {
 			CheckDuplicate: true,
 			IPAM: {
 				Driver: this.config.ipam.driver,
-				Config: _.map(this.config.ipam.config, conf => {
+				Config: _.map(this.config.ipam.config, (conf) => {
 					const ipamConf: DockerIPAMConfig = {};
 					if (conf.subnet != null) {
 						ipamConf.Subnet = conf.subnet;
@@ -194,7 +194,7 @@ export class Network {
 			this.docker
 				.getNetwork(Network.generateDockerName(this.appId, this.name))
 				.remove(),
-		).tapCatch(error => {
+		).tapCatch((error) => {
 			this.logger.logSystemEvent(logTypes.removeNetworkError, {
 				network: { name: this.name, appId: this.appId },
 				error,
