@@ -58,6 +58,10 @@ const constants = {
 	supervisorNetworkGateway: '10.114.104.1',
 	// How often can we report our state to the server in ms
 	maxReportFrequency: 10 * 1000,
+	// How much of a jitter we can add to our api polling
+	// (this number is used as an upper bound when generating
+	// a random jitter)
+	maxApiJitterDelay: 60 * 1000,
 };
 
 if (process.env.DOCKER_HOST == null) {

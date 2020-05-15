@@ -608,9 +608,10 @@ export class APIBinder {
 			instantUpdates,
 		} = await this.config.getMany(['appUpdatePollInterval', 'instantUpdates']);
 
-		// We add jitter to the poll interval so that it's between 0.5 and 1.5 times
-		// the configured interval
-		let pollInterval = (0.5 + Math.random()) * appUpdatePollInterval;
+		// We add a random jitter up to `maxApiJitterDelay` to
+		// space out poll requests
+		let pollInterval =
+			Math.random() * constants.maxApiJitterDelay + appUpdatePollInterval;
 
 		if (instantUpdates || !isInitialCall) {
 			try {
