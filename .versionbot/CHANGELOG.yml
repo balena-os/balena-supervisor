@@ -1,4 +1,18 @@
 - commits:
+    - subject: Remove CoffeeScript tests and all CoffeeScript tools
+      hash: 466c7999dbbe19acf7bfc2dff260778d229b5524
+      body: ''
+      footer:
+        Closes: '#1318'
+        closes: '#1318'
+        Change-Type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.4.6
+  date: 2020-05-15T17:04:23.719Z
+- commits:
     - subject: Update to @balena/lint 5.x
       hash: 758f3caa48a53c00dd3230fe97e2f704968c4eb6
       body: ''
