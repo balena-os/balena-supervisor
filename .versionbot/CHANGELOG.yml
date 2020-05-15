@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add a random offset to the poll interval with each poll
+      hash: 58c6a69e5a6045e898ce5748089f4dcad7d12bc3
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1242'
+        closes: '#1242'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.4
+  date: 2020-05-15T09:36:33.693Z
+- commits:
     - subject: Cache service names in local log backend
       hash: 0bceffffb61a5970db0293a8f6d83fe8015163ef
       body: ''
