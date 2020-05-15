@@ -77,7 +77,7 @@ module.exports = function(env) {
 			path: path.resolve(__dirname, 'dist'),
 		},
 		resolve: {
-			extensions: ['.js', '.ts', '.json', '.coffee'],
+			extensions: ['.js', '.ts', '.json'],
 		},
 		target: 'node',
 		node: {
@@ -109,10 +109,6 @@ module.exports = function(env) {
 						_.escapeRegExp(path.join('JSONStream', 'index.js')) + '$',
 					),
 					use: require.resolve('./build-utils/fix-jsonstream'),
-				},
-				{
-					test: /\.coffee$/,
-					use: require.resolve('coffee-loader'),
 				},
 				{
 					test: /\.ts$|\.js$/,
