@@ -217,7 +217,9 @@ export class Network {
 	}
 
 	private static validateComposeConfig(
-		config: Partial<ComposeNetworkConfig>,
+		config: Partial<Omit<ComposeNetworkConfig, 'ipam'>> & {
+			ipam?: Partial<ComposeNetworkConfig['ipam']>;
+		},
 	): void {
 		// Check if every ipam config entry has both a subnet and a gateway
 		_.each(_.get(config, 'config.ipam.config', []), ({ subnet, gateway }) => {
