@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update to @balena/lint 5.x
+      hash: 758f3caa48a53c00dd3230fe97e2f704968c4eb6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.4.5
+  date: 2020-05-15T11:11:04.464Z
+- commits:
     - subject: Add a random offset to the poll interval with each poll
       hash: 58c6a69e5a6045e898ce5748089f4dcad7d12bc3
       body: ''
