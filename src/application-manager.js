@@ -1577,16 +1577,31 @@ export class ApplicationManager extends EventEmitter {
 			.return();
 	}
 
-	_lockingIfNecessary(appId, { force = false, skipLock = false } = {}, fn) {
+	_lockingIfNecessary(
+		appId,
+		{ force = false, skipLock = false, keepLocks = false } = {},
+		fn,
+	) {
 		if (skipLock) {
 			return Promise.try(fn);
 		}
 		return this.config
-			.get('lockOverride')
-			.then(lockOverride => lockOverride || force)
-			.then(lockOverridden =>
-				updateLock.lock(appId, { force: lockOverridden }, fn),
-			);
+			.getMany(['lockOverride', 'lockKeepTimeout'])
+			.then(configItems => {
+				configItems.lockOverride = configItems.lockOverride || force;
+				return configItems;
+			})
+			.then(configItems => {
+				return updateLock.lock(
+					appId,
+					{
+						force: configItems.lockOverride,
+						keepLocks,
+						lockKeepTimeout: configItems.lockKeepTimeout,
+					},
+					fn,
+				);
+			});
 	}
 
 	executeStepAction(step, { force = false, skipLock = false } = {}) {
