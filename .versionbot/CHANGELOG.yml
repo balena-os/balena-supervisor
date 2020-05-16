@@ -1,4 +1,14 @@
 - commits:
+    - subject: Fix default request options
+      hash: b05d597ade83fcb1a58021ade0c11f70d232a39f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.4.7
+  date: 2020-05-16T13:08:14.505Z
+- commits:
     - subject: Remove CoffeeScript tests and all CoffeeScript tools
       hash: 466c7999dbbe19acf7bfc2dff260778d229b5524
       body: ''
