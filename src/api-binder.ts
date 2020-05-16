@@ -354,7 +354,16 @@ export class APIBinder {
 					'Trying to start poll without initializing API client',
 				);
 			}
-			this.pollTargetState(true);
+			this.config
+				.get('instantUpdates')
+				.catch(() => {
+					// Default to skipping the initial update if we couldn't fetch the setting
+					// which should be the exceptional case
+					return false;
+				})
+				.then((instantUpdates) => {
+					this.pollTargetState(!instantUpdates);
+				});
 			return null;
 		});
 	}
@@ -602,18 +611,17 @@ export class APIBinder {
 			});
 	}
 
-	private async pollTargetState(isInitialCall: boolean = false): Promise<void> {
-		const {
-			appUpdatePollInterval,
-			instantUpdates,
-		} = await this.config.getMany(['appUpdatePollInterval', 'instantUpdates']);
+	private async pollTargetState(skipFirstGet: boolean = false): Promise<void> {
+		const appUpdatePollInterval = await this.config.get(
+			'appUpdatePollInterval',
+		);
 
 		// We add a random jitter up to `maxApiJitterDelay` to
 		// space out poll requests
 		let pollInterval =
 			Math.random() * constants.maxApiJitterDelay + appUpdatePollInterval;
 
-		if (instantUpdates || !isInitialCall) {
+		if (!skipFirstGet) {
 			try {
 				await this.getAndSetTargetState(false);
 				this.targetStateFetchErrors = 0;
