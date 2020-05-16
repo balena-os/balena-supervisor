@@ -12,6 +12,7 @@ import chai = require('./lib/chai-config');
 import balenaAPI = require('./lib/mocked-balena-api');
 import { schema } from '../src/config/schema';
 import ConfigJsonConfigBackend from '../src/config/configJson';
+import * as TargetState from '../src/device-state/target-state';
 
 const { expect } = chai;
 
@@ -310,10 +311,13 @@ describe('ApiBinder', () => {
 		const components: Dictionary<any> = {};
 		let configStub: SinonStub;
 		let infoLobSpy: SinonSpy;
+		let previousLastFetch: ReturnType<typeof process.hrtime>;
 
 		before(async () => {
 			await initModels(components, '/config-apibinder.json');
+			previousLastFetch = TargetState.lastFetch;
 		});
+
 		after(async () => {
 			// @ts-ignore
 			config.configJsonBackend = defaultConfigBackend;
@@ -330,6 +334,7 @@ describe('ApiBinder', () => {
 		afterEach(() => {
 			configStub.restore();
 			infoLobSpy.restore();
+			(TargetState as any).lastFetch = previousLastFetch;
 		});
 
 		it('passes with correct conditions', async () => {
@@ -340,6 +345,8 @@ describe('ApiBinder', () => {
 				appUpdatePollInterval: 1000,
 				connectivityCheckEnabled: false,
 			});
+			// Set lastFetch to now so it is within appUpdatePollInterval
+			(TargetState as any).lastFetch = process.hrtime();
 			expect(await components.apiBinder.healthcheck()).to.equal(true);
 		});
 
@@ -393,6 +400,8 @@ describe('ApiBinder', () => {
 				appUpdatePollInterval: 1000,
 				connectivityCheckEnabled: true,
 			});
+			// Set lastFetch to now so it is within appUpdatePollInterval
+			(TargetState as any).lastFetch = process.hrtime();
 			// Copy previous values to restore later
 			const previousStateReportErrors = components.apiBinder.stateReportErrors;
 			const previousDeviceStateConnected =

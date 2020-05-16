@@ -23,7 +23,7 @@ import {
 } from './lib/errors';
 import { pathExistsOnHost } from './lib/fs-utils';
 
-import { TargetStateAccessor } from './target-state';
+import { TargetStateAccessor } from './device-state/target-state-cache';
 
 import { ServiceManager } from './compose/service-manager';
 import { Service } from './compose/service';
