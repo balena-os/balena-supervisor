@@ -338,7 +338,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 		await this.applications.init();
 		if (!conf.initialConfigSaved) {
-			return this.saveInitialConfig();
+			await this.saveInitialConfig();
 		}
 
 		this.initNetworkChecks(conf);
