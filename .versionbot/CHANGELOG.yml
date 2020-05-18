@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix leftover spurious return from typescript conversion
+      hash: 6972dcd92d36576517681685a129e89a8a06f722
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.10
+  date: 2020-05-18T14:23:19.048Z
+- commits:
     - subject: Catch errors in the target state poll so polling will always continue
       hash: dc187f0036875345ab489d14889c488eead24dc2
       body: ''
