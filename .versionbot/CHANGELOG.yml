@@ -1,4 +1,14 @@
 - commits:
+    - subject: Avoid querying `instantUpdates` on every state poll
+      hash: afae5d15d49a75168ebe6d4f8911e96918d0da5e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.4.8
+  date: 2020-05-18T12:25:53.833Z
+- commits:
     - subject: Fix default request options
       hash: b05d597ade83fcb1a58021ade0c11f70d232a39f
       body: ''
