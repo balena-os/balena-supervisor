@@ -1,4 +1,14 @@
 - commits:
+    - subject: Switch to balenaApi for the state patch as patching cannot be cached
+      hash: fb90042c3955e9a1a177076a711a12e226e0ab49
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.4.11
+  date: 2020-05-18T18:20:33.615Z
+- commits:
     - subject: Fix leftover spurious return from typescript conversion
       hash: 6972dcd92d36576517681685a129e89a8a06f722
       body: ''
