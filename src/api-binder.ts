@@ -456,7 +456,7 @@ export class APIBinder {
 		stateDiff: DeviceStatus,
 		conf: { apiEndpoint: string; uuid: string; localMode: boolean },
 	) {
-		if (this.cachedBalenaApi == null) {
+		if (this.balenaApi == null) {
 			throw new InternalInconsistencyError(
 				'Attempt to send report patch without an API client',
 			);
@@ -483,10 +483,10 @@ export class APIBinder {
 				url: endpoint,
 				body,
 			},
-			this.cachedBalenaApi.passthrough,
+			this.balenaApi.passthrough,
 		);
 
-		await this.cachedBalenaApi._request(requestParams);
+		await this.balenaApi._request(requestParams);
 	}
 
 	// Returns an object that contains only status fields relevant for the local mode.
