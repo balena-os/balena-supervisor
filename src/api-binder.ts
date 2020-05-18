@@ -612,30 +612,34 @@ export class APIBinder {
 	}
 
 	private async pollTargetState(skipFirstGet: boolean = false): Promise<void> {
-		const appUpdatePollInterval = await this.config.get(
-			'appUpdatePollInterval',
-		);
-
-		// We add a random jitter up to `maxApiJitterDelay` to
-		// space out poll requests
-		let pollInterval =
-			Math.random() * constants.maxApiJitterDelay + appUpdatePollInterval;
-
-		if (!skipFirstGet) {
-			try {
+		let appUpdatePollInterval;
+		try {
+			appUpdatePollInterval = await this.config.get('appUpdatePollInterval');
+			if (!skipFirstGet) {
 				await this.getAndSetTargetState(false);
 				this.targetStateFetchErrors = 0;
-			} catch (e) {
-				pollInterval = Math.min(
-					appUpdatePollInterval,
-					15000 * 2 ** this.targetStateFetchErrors,
-				);
-				++this.targetStateFetchErrors;
 			}
-		}
 
-		await Bluebird.delay(pollInterval);
-		await this.pollTargetState();
+			// We add a random jitter up to `maxApiJitterDelay` to
+			// space out poll requests
+			const pollInterval =
+				Math.random() * constants.maxApiJitterDelay + appUpdatePollInterval;
+
+			await Bluebird.delay(pollInterval);
+		} catch (e) {
+			const pollInterval = Math.min(
+				// If we failed fetching the appUpdatePollInterval then there won't have been any network
+				// requests so we default it to a low value of 10s since we don't need to worry about too
+				// many network requests
+				appUpdatePollInterval ?? 10000,
+				15000 * 2 ** this.targetStateFetchErrors,
+			);
+			++this.targetStateFetchErrors;
+
+			await Bluebird.delay(pollInterval);
+		} finally {
+			await this.pollTargetState();
+		}
 	}
 
 	private async pinDevice({ app, commit }: DevicePinInfo) {
