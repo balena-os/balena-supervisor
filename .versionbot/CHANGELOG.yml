@@ -1,4 +1,14 @@
 - commits:
+    - subject: Catch errors in the target state poll so polling will always continue
+      hash: dc187f0036875345ab489d14889c488eead24dc2
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.4.9
+  date: 2020-05-18T13:17:23.537Z
+- commits:
     - subject: Avoid querying `instantUpdates` on every state poll
       hash: afae5d15d49a75168ebe6d4f8911e96918d0da5e
       body: ''
