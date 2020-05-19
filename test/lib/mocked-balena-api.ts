@@ -29,9 +29,14 @@ api.balenaBackend = {
 	registerHandler: (req, res) => {
 		console.log('/device/register called with ', req.body);
 		const device = req.body;
-		device.id = api.balenaBackend!.currentId++;
-		api.balenaBackend!.devices[device.id] = device;
-		return res.status(201).json(device);
+		switch (req.body.uuid) {
+			case 'not-unique':
+				return res.status(409).json(device);
+			default:
+				device.id = api.balenaBackend!.currentId++;
+				api.balenaBackend!.devices[device.id] = device;
+				return res.status(201).json(device);
+		}
 	},
 	getDeviceHandler: (req, res) => {
 		const uuid =

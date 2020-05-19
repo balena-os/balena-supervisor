@@ -17,7 +17,7 @@ import constants = require('./lib/constants');
 import {
 	ContractValidationError,
 	ContractViolationError,
-	DuplicateUuidError,
+	isHttpConflictError,
 	ExchangeKeyError,
 	InternalInconsistencyError,
 } from './lib/errors';
@@ -868,7 +868,7 @@ export class APIBinder {
 				try {
 					device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
 				} catch (err) {
-					if (DuplicateUuidError(err)) {
+					if (isHttpConflictError(err.response)) {
 						log.debug('UUID already registered, trying a key exchange');
 						device = await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
 					} else {
