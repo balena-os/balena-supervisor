@@ -1,4 +1,18 @@
 - commits:
+    - subject: Improved handling of invalid appId in V2 state endpoint
+      hash: db7c27037cb3cc1e5f3ef8fbc676e0ee4a2ac0a1
+      body: ''
+      footer:
+        Closes: '#1294'
+        closes: '#1294'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.4.12
+  date: 2020-05-19T14:58:36.939Z
+- commits:
     - subject: Switch to balenaApi for the state patch as patching cannot be cached
       hash: fb90042c3955e9a1a177076a711a12e226e0ab49
       body: ''
