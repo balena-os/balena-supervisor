@@ -12,7 +12,7 @@ const mockedOptions = {
 	timeout: 30000,
 };
 
-const VALID_SECRET = mockedAPI.DEFAULT_SECRET;
+const VALID_SECRET = mockedAPI.STUBBED_VALUES.config.apiSecret;
 const ALLOWED_INTERFACES = ['lo']; // Only need loopback since this is for testing
 
 describe('SupervisorAPI', () => {
@@ -20,7 +20,8 @@ describe('SupervisorAPI', () => {
 	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
 
 	before(async () => {
-		// Create test API
+		// The mockedAPI contains stubs that might create unexpected results
+		// See the module to know what has been stubbed
 		api = await mockedAPI.create();
 		// Start test API
 		return api.listen(
@@ -75,6 +76,53 @@ describe('SupervisorAPI', () => {
 					});
 			});
 		});
+
+		describe('GET /v2/applications/:appId/state', () => {
+			it('returns information about a SPECIFIC application', async () => {
+				await request
+					.get('/v2/applications/1/state')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.expect('Content-Type', /json/)
+					.expect(sampleResponses.V2.GET['/applications/1/state'].statusCode)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/applications/1/state'].body,
+						);
+					});
+			});
+
+			it('returns 400 for invalid appId', async () => {
+				await request
+					.get('/v2/applications/123invalid/state')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.expect('Content-Type', /json/)
+					.expect(
+						sampleResponses.V2.GET['/applications/123invalid/state'].statusCode,
+					)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/applications/123invalid/state'].body,
+						);
+					});
+			});
+
+			it('returns 409 because app does not exist', async () => {
+				await request
+					.get('/v2/applications/9000/state')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.expect('Content-Type', /json/)
+					.expect(sampleResponses.V2.GET['/applications/9000/state'].statusCode)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/applications/9000/state'].body,
+						);
+					});
+			});
+		});
+
 		// TODO: add tests for rest of V2 endpoints
 	});
 

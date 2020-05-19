@@ -220,14 +220,41 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get(
 		'/v2/applications/:appId/state',
-		(_req: Request, res: Response, next: NextFunction) => {
-			// Get all services and their statuses, and return it
-			applications
-				.getStatus()
-				.then((apps) => {
-					res.status(200).json(apps);
-				})
-				.catch(next);
+		async (req: Request, res: Response) => {
+			// Check application ID provided is valid
+			const appId = checkInt(req.params.appId);
+			if (!appId) {
+				return res.status(400).json({
+					status: 'failed',
+					message: `Invalid application ID: ${req.params.appId}`,
+				});
+			}
+			// Query device for all applications
+			let apps: any;
+			try {
+				apps = await applications.getStatus();
+			} catch (e) {
+				log.error(e.message);
+				return res.status(500).json({
+					status: 'failed',
+					message: `Unable to retrieve state for application ID: ${appId}`,
+				});
+			}
+			// Check if the application exists
+			if (!(appId in apps.local)) {
+				return res.status(409).json({
+					status: 'failed',
+					message: `Application ID does not exist: ${appId}`,
+				});
+			}
+			// Filter applications we do not want
+			for (const app in apps.local) {
+				if (app !== appId.toString()) {
+					delete apps.local[app];
+				}
+			}
+			// Return filtered applications
+			return res.status(200).json(apps);
 		},
 	);
 
