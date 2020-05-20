@@ -1,7 +1,9 @@
 import { expect } from 'chai';
-import { spy } from 'sinon';
+import { spy, stub, SinonStub } from 'sinon';
 import * as supertest from 'supertest';
 
+import APIBinder from '../src/api-binder';
+import DeviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
 import SupervisorAPI from '../src/supervisor-api';
 import sampleResponses = require('./data/device-api-responses.json');
@@ -17,9 +19,15 @@ const ALLOWED_INTERFACES = ['lo']; // Only need loopback since this is for testi
 
 describe('SupervisorAPI', () => {
 	let api: SupervisorAPI;
+	let healthCheckStubs: SinonStub[];
 	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
 
 	before(async () => {
+		// Stub health checks so we can modify them whenever needed
+		healthCheckStubs = [
+			stub(APIBinder.prototype, 'healthcheck'),
+			stub(DeviceState.prototype, 'healthcheck'),
+		];
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed
 		api = await mockedAPI.create();
@@ -39,6 +47,8 @@ describe('SupervisorAPI', () => {
 				throw e;
 			}
 		}
+		// Restore healthcheck stubs
+		healthCheckStubs.forEach((hc) => hc.restore);
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
 	});
@@ -56,7 +66,43 @@ describe('SupervisorAPI', () => {
 		});
 	});
 
-	describe.skip('V1 endpoints', () => {
+	describe('V1 endpoints', () => {
+		describe('GET /v1/healthy', () => {
+			it('returns OK because all checks pass', async () => {
+				// Make all healthChecks pass
+				healthCheckStubs.forEach((hc) => hc.resolves(true));
+				await request
+					.get('/v1/healthy')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.expect(sampleResponses.V1.GET['/healthy'].statusCode)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V1.GET['/healthy'].body,
+						);
+						expect(response.text).to.deep.equal(
+							sampleResponses.V1.GET['/healthy'].text,
+						);
+					});
+			});
+			it('Fails because some checks did not pass', async () => {
+				// Make one of the healthChecks fail
+				healthCheckStubs[0].resolves(false);
+				await request
+					.get('/v1/healthy')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.expect(sampleResponses.V1.GET['/healthy [2]'].statusCode)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V1.GET['/healthy [2]'].body,
+						);
+						expect(response.text).to.deep.equal(
+							sampleResponses.V1.GET['/healthy [2]'].text,
+						);
+					});
+			});
+		});
 		// TODO: add tests for V1 endpoints
 	});
 
