@@ -1,22 +1,21 @@
 import * as Bluebird from 'bluebird';
+import { stripIndent } from 'common-tags';
 import * as _ from 'lodash';
-import { stub } from 'sinon';
+import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
-// tslint:disable-next-line
-chai.use(require('chai-events'));
-
-const { expect } = chai;
-
+import Log from '../src/lib/supervisor-console';
 import Config from '../src/config';
 import { RPiConfigBackend } from '../src/config/backend';
 import DeviceState from '../src/device-state';
-
 import { loadTargetFromFile } from '../src/device-state/preload';
-
 import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
+
+// tslint:disable-next-line
+chai.use(require('chai-events'));
+const { expect } = chai;
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',
@@ -384,4 +383,63 @@ describe('deviceState', () => {
 	it('applies the target state for device config');
 
 	it('applies the target state for applications');
+
+	describe('healthchecks', () => {
+		let configStub: SinonStub;
+		let infoLobSpy: SinonSpy;
+
+		beforeEach(() => {
+			// This configStub will be modified in each test case so we can
+			// create the exact conditions we want to for testing healthchecks
+			configStub = stub(Config.prototype, 'get');
+			infoLobSpy = spy(Log, 'info');
+		});
+
+		afterEach(() => {
+			configStub.restore();
+			infoLobSpy.restore();
+		});
+
+		it('passes with correct conditions', async () => {
+			// Setup passing condition
+			const previousValue = deviceState.applyInProgress;
+			deviceState.applyInProgress = false;
+			expect(await deviceState.healthcheck()).to.equal(true);
+			// Restore value
+			deviceState.applyInProgress = previousValue;
+		});
+
+		it('passes if unmanaged is true and exit early', async () => {
+			// Setup failing conditions
+			const previousValue = deviceState.applyInProgress;
+			deviceState.applyInProgress = true;
+			// Verify this causes healthcheck to fail
+			expect(await deviceState.healthcheck()).to.equal(false);
+			// Do it again but set unmanaged to true
+			configStub.resolves({
+				unmanaged: true,
+			});
+			expect(await deviceState.healthcheck()).to.equal(true);
+			// Restore value
+			deviceState.applyInProgress = previousValue;
+		});
+
+		it('fails when applyTargetHealthy is false', async () => {
+			// Copy previous values to restore later
+			const previousValue = deviceState.applyInProgress;
+			// Setup failing conditions
+			deviceState.applyInProgress = true;
+			expect(await deviceState.healthcheck()).to.equal(false);
+			expect(Log.info).to.be.calledOnce;
+			expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
+				stripIndent`
+				Healthcheck failure - Atleast ONE of the following conditions must be true:
+					- No applyInProgress      ? false
+					- fetchesInProgress       ? false
+					- cycleTimeWithinInterval ? false`,
+			);
+			// Restore value
+			deviceState.applyInProgress = previousValue;
+		});
+	});
 });

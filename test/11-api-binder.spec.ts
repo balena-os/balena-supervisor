@@ -286,8 +286,8 @@ describe('ApiBinder', () => {
 		let configStub: SinonStub;
 		let infoLobSpy: SinonSpy;
 
-		before(() => {
-			initModels(components, '/config-apibinder.json');
+		before(async () => {
+			await initModels(components, '/config-apibinder.json');
 		});
 
 		beforeEach(() => {
