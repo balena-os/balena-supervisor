@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'check for 409 status code, rather than string matching uuid conflicts'
+      hash: eaaa9c257e750295ab6d464a7e1d2578297df84f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.14
+  date: 2020-05-21T19:01:36.060Z
+- commits:
     - subject: Use safeStateClone to avoid call-stack exceeding errors
       hash: 87278c0d8c56a9c05511db83499f7476efca0edd
       body: ''
