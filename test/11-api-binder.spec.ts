@@ -1,17 +1,17 @@
 import { fs } from 'mz';
 import { Server } from 'net';
-import { spy, stub } from 'sinon';
+import { SinonSpy, spy, stub, SinonStub } from 'sinon';
 
 import chai = require('./lib/chai-config');
 import balenaAPI = require('./lib/mocked-balena-api');
 import prepare = require('./lib/prepare');
-
-const { expect } = chai;
-
 import ApiBinder from '../src/api-binder';
 import Config from '../src/config';
+import Log from '../src/lib/supervisor-console';
 import DB from '../src/db';
 import DeviceState from '../src/device-state';
+
+const { expect } = chai;
 
 const initModels = async (obj: Dictionary<any>, filename: string) => {
 	prepare();
@@ -97,6 +97,45 @@ describe('ApiBinder', () => {
 					'Device bootstrap success',
 				);
 			});
+		});
+
+		it('exchanges keys if resource conflict when provisioning', async () => {
+			// Get current config to extend
+			const currentConfig = await components.apiBinder.config.get(
+				'provisioningOptions',
+			);
+			// Stub config values so we have correct conditions
+			const configStub = stub(Config.prototype, 'get').resolves({
+				...currentConfig,
+				registered_at: null,
+				provisioningApiKey: '123', // Previous test case deleted the provisioningApiKey so add one
+				uuid: 'not-unique', // This UUID is used in mocked-balena-api as an existing registered UUID
+			});
+			// If api-binder reaches this function then tests pass
+			const functionToReach = stub(
+				components.apiBinder,
+				'exchangeKeyAndGetDeviceOrRegenerate',
+			).rejects('expected-rejection'); // We throw an error so we don't have to keep stubbing
+			spy(Log, 'debug');
+
+			try {
+				await components.apiBinder.provision();
+			} catch (e) {
+				// Check that the error thrown is from this test
+				if (e.name !== 'expected-rejection') {
+					throw e;
+				}
+			}
+
+			expect(functionToReach).to.be.calledOnce;
+			expect((Log.debug as SinonSpy).lastCall.lastArg).to.equal(
+				'UUID already registered, trying a key exchange',
+			);
+
+			// Restore stubs
+			functionToReach.restore();
+			configStub.restore();
+			(Log.debug as SinonStub).restore();
 		});
 
 		it('deletes the provisioning key', async () => {
