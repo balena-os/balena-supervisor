@@ -10,7 +10,8 @@ export function doRestart(applications, appId, force) {
 			const app = currentState.local.apps[appId];
 			const imageIds = _.map(app.services, 'imageId');
 			applications.clearTargetVolatileForServices(imageIds);
-			const stoppedApp = _.cloneDeep(app);
+
+			const stoppedApp = safeAppClone(app);
 			stoppedApp.services = [];
 			currentState.local.apps[appId] = stoppedApp;
 			return deviceState
@@ -43,7 +44,8 @@ export function doPurge(applications, appId, force) {
 			if (app == null) {
 				throw new Error(appNotFoundMessage);
 			}
-			const purgedApp = _.cloneDeep(app);
+
+			const purgedApp = safeAppClone(app);
 			purgedApp.services = [];
 			purgedApp.volumes = {};
 			currentState.local.apps[appId] = purgedApp;
@@ -87,4 +89,52 @@ export function serviceAction(action, serviceId, current, target, options) {
 		options = {};
 	}
 	return { action, serviceId, current, target, options };
+}
+
+export function safeStateClone(targetState) {
+	// We avoid using cloneDeep here, as the class
+	// instances can cause a maximum call stack exceeded
+	// error
+
+	// TODO: This should really return the config as it
+	// is returned from the api, but currently that's not
+	// the easiest thing due to the way they are stored and
+	// retrieved from the db - when all of the application
+	// manager is strongly typed, revisit this. The best
+	// thing to do would be to represent the input with
+	// io-ts and make sure the below conforms to it
+
+	const cloned = {
+		local: {
+			config: {},
+		},
+		dependent: {
+			config: {},
+		},
+	};
+
+	if (targetState.local != null) {
+		cloned.local = {
+			name: targetState.local.name,
+			config: _.cloneDeep(targetState.local.config),
+			apps: _.mapValues(targetState.local.apps, safeAppClone),
+		};
+	}
+	if (targetState.dependent != null) {
+		cloned.dependent = _.cloneDeep(targetState.dependent);
+	}
+
+	return cloned;
+}
+
+export function safeAppClone(app) {
+	return {
+		appId: app.appId,
+		name: app.name,
+		commit: app.commit,
+		releaseId: app.releaseId,
+		services: _.map(app.services, (s) => s.toComposeObject()),
+		volumes: _.mapValues(app.volumes, (v) => v.toComposeObject()),
+		networks: _.mapValues(app.networks, (n) => n.toComposeObject()),
+	};
 }
