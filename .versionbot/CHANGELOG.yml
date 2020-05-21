@@ -1,4 +1,16 @@
 - commits:
+    - subject: Use safeStateClone to avoid call-stack exceeding errors
+      hash: 87278c0d8c56a9c05511db83499f7476efca0edd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.13
+  date: 2020-05-21T15:49:55.857Z
+- commits:
     - subject: Improved handling of invalid appId in V2 state endpoint
       hash: db7c27037cb3cc1e5f3ef8fbc676e0ee4a2ac0a1
       body: ''
