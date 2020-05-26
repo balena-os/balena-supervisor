@@ -868,7 +868,10 @@ export class APIBinder {
 				try {
 					device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
 				} catch (err) {
-					if (isHttpConflictError(err.response)) {
+					if (
+						err instanceof deviceRegister.ApiError &&
+						isHttpConflictError(err.response)
+					) {
 						log.debug('UUID already registered, trying a key exchange');
 						device = await this.exchangeKeyAndGetDeviceOrRegenerate(opts);
 					} else {
