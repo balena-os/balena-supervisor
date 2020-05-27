@@ -62,7 +62,7 @@
     "@types/supertest": "^2.0.9",
     "@types/tmp": "^0.1.0",
     "@types/yargs": "^15.0.4",
-    "balena-register-device": "^6.1.5",
+    "balena-register-device": "^6.1.6",
     "blinking": "~0.0.3",
     "bluebird": "^3.7.2",
     "body-parser": "^1.19.0",
