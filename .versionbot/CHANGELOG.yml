@@ -1,4 +1,16 @@
 - commits:
+    - subject: Check for ApiError before using it as such
+      hash: 972b896c95daf1305468137aefe1e12ead0d59ee
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.15
+  date: 2020-05-26T13:47:47.339Z
+- commits:
     - subject: 'check for 409 status code, rather than string matching uuid conflicts'
       hash: eaaa9c257e750295ab6d464a7e1d2578297df84f
       body: ''
