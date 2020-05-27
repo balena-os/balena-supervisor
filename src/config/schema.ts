@@ -80,11 +80,6 @@ export const schema = {
 		removeIfNull: false,
 	},
 
-	apiSecret: {
-		source: 'db',
-		mutable: true,
-		removeIfNull: false,
-	},
 	name: {
 		source: 'db',
 		mutable: true,

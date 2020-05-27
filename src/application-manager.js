@@ -1053,7 +1053,7 @@ export class ApplicationManager extends EventEmitter {
 		// this in a bluebird promise until we convert this to typescript
 		return Promise.resolve(this.images.inspectByName(service.image))
 			.catchReturn(NotFoundError, undefined)
-			.then(function (imageInfo) {
+			.then((imageInfo) => {
 				const serviceOpts = {
 					serviceName: service.serviceName,
 					imageInfo,
@@ -1063,6 +1063,7 @@ export class ApplicationManager extends EventEmitter {
 				if (imageInfo?.Id != null) {
 					service.image = imageInfo.Id;
 				}
+
 				return Service.fromComposeObject(service, serviceOpts);
 			});
 	}

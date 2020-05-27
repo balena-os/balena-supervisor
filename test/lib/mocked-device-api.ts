@@ -3,10 +3,6 @@ import { fs } from 'mz';
 import { stub } from 'sinon';
 
 import { ApplicationManager } from '../../src/application-manager';
-import { Images } from '../../src/compose/images';
-import { NetworkManager } from '../../src/compose/network-manager';
-import { ServiceManager } from '../../src/compose/service-manager';
-import { VolumeManager } from '../../src/compose/volume-manager';
 import Config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
@@ -16,17 +12,23 @@ import DeviceState from '../../src/device-state';
 import EventTracker from '../../src/event-tracker';
 import SupervisorAPI from '../../src/supervisor-api';
 
+import { Images } from '../../src/compose/images';
+import { ServiceManager } from '../../src/compose/service-manager';
+import { NetworkManager } from '../../src/compose/network-manager';
+import { VolumeManager } from '../../src/compose/volume-manager';
+import * as apiSecrets from '../../src/lib/api-secrets';
+
 const DB_PATH = './test/data/supervisor-api.sqlite';
 // Holds all values used for stubbing
 const STUBBED_VALUES = {
 	config: {
-		apiSecret: 'secure_api_secret',
 		currentCommit: '7fc9c5bea8e361acd49886fe6cc1e1cd',
 	},
 	services: [
 		{
 			appId: 1,
 			imageId: 1111,
+			serviceId: 1,
 			status: 'Running',
 			releaseId: 99999,
 			createdAt: new Date('2020-04-25T04:15:23.111Z'),
@@ -35,6 +37,7 @@ const STUBBED_VALUES = {
 		{
 			appId: 1,
 			imageId: 2222,
+			serviceId: 2,
 			status: 'Running',
 			releaseId: 99999,
 			createdAt: new Date('2020-04-25T04:15:23.111Z'),
@@ -42,6 +45,7 @@ const STUBBED_VALUES = {
 		},
 		{
 			appId: 2,
+			serviceId: 3,
 			imageId: 3333,
 			status: 'Running',
 			releaseId: 77777,
@@ -112,6 +116,8 @@ async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 	const mockedConfig = new Config();
 	// Initialize and set values for mocked Config
 	await initConfig(mockedConfig);
+	// Initialise secret keys for the services
+	await initSecrets();
 	// Create EventTracker
 	const tracker = new EventTracker();
 	// Create deviceState
@@ -135,16 +141,22 @@ async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 }
 
 async function initConfig(config: Config): Promise<void> {
-	// Set testing secret
-	await config.set({
-		apiSecret: STUBBED_VALUES.config.apiSecret,
-	});
 	// Set a currentCommit
 	await config.set({
 		currentCommit: STUBBED_VALUES.config.currentCommit,
 	});
 	// Initialize this config
 	return config.init();
+}
+
+async function initSecrets(): Promise<void> {
+	// Prefill the keys by simply requesting them
+	for (const service of STUBBED_VALUES.services) {
+		await apiSecrets.getApiSecretForService(service.appId, service.serviceId, [
+			{ type: 'app', appId: service.appId },
+		]);
+	}
+	await apiSecrets.getCloudApiSecret();
 }
 
 function buildRoutes(appManager: ApplicationManager): Router {
