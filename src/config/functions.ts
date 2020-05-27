@@ -93,7 +93,6 @@ export const fnSchema = {
 			'uuid',
 			'listenPort',
 			'name',
-			'apiSecret',
 			'apiEndpoint',
 			'deviceApiKey',
 			'version',

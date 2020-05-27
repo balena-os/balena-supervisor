@@ -50,7 +50,11 @@ describe('compose/service', () => {
 				A_VARIABLE: 'ITS_VALUE',
 			},
 		};
-		const s = Service.fromComposeObject(service, extendEnvVarsOpts as any);
+		const s = Service.fromComposeObject(
+			service,
+			extendEnvVarsOpts as any,
+			'super-secret-key',
+		);
 
 		expect(s.config.environment).to.deep.equal({
 			FOO: 'bar',
@@ -91,6 +95,7 @@ describe('compose/service', () => {
 				imageId: 4,
 			},
 			{ appName: 'foo' } as any,
+			'super-secret-key',
 		);
 		const binds = (Service as any).defaultBinds(s.appId, s.serviceName);
 		expect(binds).to.deep.equal([
@@ -121,6 +126,7 @@ describe('compose/service', () => {
 					},
 				},
 			} as any,
+			'super-secret-key',
 		);
 
 		const ports = (s as any).generateExposeAndPorts();
@@ -167,6 +173,7 @@ describe('compose/service', () => {
 				ports: ['1000-1003:2000-2003'],
 			},
 			{ appName: 'test' } as any,
+			'super-secret-key',
 		);
 
 		const ports = (s as any).generateExposeAndPorts();
@@ -219,6 +226,7 @@ describe('compose/service', () => {
 				ports: ['5-65536:5-65536/tcp', '5-65536:5-65536/udp'],
 			},
 			{ appName: 'test' } as any,
+			'super-secret-key',
 		);
 
 		expect((s as any).generateExposeAndPorts()).to.not.throw;
@@ -233,6 +241,7 @@ describe('compose/service', () => {
 				ports: ['80:80', '100:100'],
 			},
 			{ appName: 'test' } as any,
+			'super-secret-key',
 		);
 
 		expect(service.config)
@@ -254,6 +263,7 @@ describe('compose/service', () => {
 				],
 			},
 			{ appName: 'test' } as any,
+			'super-secret-key',
 		);
 
 		expect(service.config)
@@ -279,6 +289,7 @@ describe('compose/service', () => {
 					dns: ['8.8.8.8', '1.1.1.1'],
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 			let svc2 = Service.fromComposeObject(
 				{
@@ -288,6 +299,7 @@ describe('compose/service', () => {
 					dns: ['8.8.8.8', '1.1.1.1'],
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 			assert(svc1.isEqualConfig(svc2, {}));
 
@@ -299,6 +311,7 @@ describe('compose/service', () => {
 					dns: ['1.1.1.1', '8.8.8.8'],
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 			assert(!svc1.isEqualConfig(svc2, {}));
 		});
@@ -312,6 +325,7 @@ describe('compose/service', () => {
 					volumes: ['abcdef', 'ghijk'],
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 			let svc2 = Service.fromComposeObject(
 				{
@@ -321,6 +335,7 @@ describe('compose/service', () => {
 					volumes: ['abcdef', 'ghijk'],
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 			assert(svc1.isEqualConfig(svc2, {}));
 
@@ -332,6 +347,7 @@ describe('compose/service', () => {
 					volumes: ['ghijk', 'abcdef'],
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 			assert(svc1.isEqualConfig(svc2, {}));
 		});
@@ -346,6 +362,7 @@ describe('compose/service', () => {
 					dns: ['8.8.8.8', '1.1.1.1'],
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 			const svc2 = Service.fromComposeObject(
 				{
@@ -356,6 +373,7 @@ describe('compose/service', () => {
 					dns: ['8.8.8.8', '1.1.1.1'],
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 			assert(svc1.isEqualConfig(svc2, {}));
 		});
@@ -371,6 +389,7 @@ describe('compose/service', () => {
 					mem_limit: memLimit,
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 
 		it('should correctly parse memory number strings without a unit', () =>
@@ -448,6 +467,7 @@ describe('compose/service', () => {
 					workingDir: workdir,
 				},
 				{ appName: 'test' } as any,
+				'super-secret-key',
 			);
 
 		it('should remove a trailing slash', () => {
@@ -472,6 +492,7 @@ describe('compose/service', () => {
 			const composeSvc = Service.fromComposeObject(
 				configs.simple.compose,
 				configs.simple.imageInfo,
+				'super-secret-key',
 			);
 			const dockerSvc = Service.fromDockerContainer(configs.simple.inspect);
 
@@ -486,6 +507,7 @@ describe('compose/service', () => {
 			const composeSvc = Service.fromComposeObject(
 				configs.entrypoint.compose,
 				configs.entrypoint.imageInfo,
+				'super-secret-key',
 			);
 			const dockerSvc = Service.fromDockerContainer(configs.entrypoint.inspect);
 
@@ -509,6 +531,7 @@ describe('compose/service', () => {
 							networks,
 						},
 						{ appName: 'test' } as any,
+						'super-secret-key',
 					);
 
 				expect(
@@ -613,6 +636,7 @@ describe('compose/service', () => {
 						network_mode: 'service: test',
 					},
 					{ appName: 'test' } as any,
+					'super-secret-key',
 				);
 
 				expect(s.dependsOn).to.deep.equal(['test']);
@@ -628,6 +652,7 @@ describe('compose/service', () => {
 						network_mode: 'service: test',
 					},
 					{ appName: 'test' } as any,
+					'super-secret-key',
 				);
 
 				expect(s.dependsOn).to.deep.equal(['another_service', 'test']);
@@ -644,6 +669,7 @@ describe('compose/service', () => {
 						network_mode: 'service: test',
 					},
 					{ appName: 'test' } as any,
+					'super-secret-key',
 				);
 				return expect(
 					s.toDockerContainer({
@@ -660,6 +686,7 @@ describe('compose/service', () => {
 				const composeSvc = Service.fromComposeObject(
 					configs.networkModeService.compose,
 					configs.networkModeService.imageInfo,
+					'super-secret-key',
 				);
 				const dockerSvc = Service.fromDockerContainer(
 					configs.networkModeService.inspect,
@@ -677,6 +704,7 @@ describe('compose/service', () => {
 				const composeSvc = Service.fromComposeObject(
 					configs.networkModeService.compose,
 					configs.networkModeService.imageInfo,
+					'super-secret-key',
 				);
 				const dockerSvc = Service.fromDockerContainer(
 					configs.networkModeService.inspect,

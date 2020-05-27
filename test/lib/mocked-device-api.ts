@@ -14,18 +14,19 @@ import { Images } from '../../src/compose/images';
 import { ServiceManager } from '../../src/compose/service-manager';
 import { NetworkManager } from '../../src/compose/network-manager';
 import { VolumeManager } from '../../src/compose/volume-manager';
+import * as apiSecrets from '../../src/lib/api-secrets';
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
 // Holds all values used for stubbing
 const STUBBED_VALUES = {
 	config: {
-		apiSecret: 'secure_api_secret',
 		currentCommit: '7fc9c5bea8e361acd49886fe6cc1e1cd',
 	},
 	services: [
 		{
 			appId: 1,
 			imageId: 1111,
+			serviceId: 1,
 			status: 'Running',
 			releaseId: 99999,
 			createdAt: new Date('2020-04-25T04:15:23.111Z'),
@@ -34,6 +35,7 @@ const STUBBED_VALUES = {
 		{
 			appId: 1,
 			imageId: 2222,
+			serviceId: 2,
 			status: 'Running',
 			releaseId: 99999,
 			createdAt: new Date('2020-04-25T04:15:23.111Z'),
@@ -41,6 +43,7 @@ const STUBBED_VALUES = {
 		},
 		{
 			appId: 2,
+			serviceId: 3,
 			imageId: 3333,
 			status: 'Running',
 			releaseId: 77777,
@@ -107,6 +110,8 @@ async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 		databasePath: DB_PATH,
 	});
 	await db.init();
+	// Setup all scoped keys
+	await initSecrets(db);
 	// Create config
 	const mockedConfig = new Config({ db });
 	// Initialize and set values for mocked Config
@@ -130,16 +135,23 @@ async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 }
 
 async function initConfig(config: Config): Promise<void> {
-	// Set testing secret
-	await config.set({
-		apiSecret: STUBBED_VALUES.config.apiSecret,
-	});
 	// Set a currentCommit
 	await config.set({
 		currentCommit: STUBBED_VALUES.config.currentCommit,
 	});
 	// Initialize this config
 	return config.init();
+}
+
+async function initSecrets(db: Database): Promise<void> {
+	// Initialize the api secrets
+	apiSecrets.initApiSecrets(db);
+
+	// Prefill the keys by simply requesting them
+	for (const service of STUBBED_VALUES.services) {
+		await apiSecrets.getApiSecretForService(service.appId, service.serviceId);
+	}
+	await apiSecrets.getCloudApiSecret();
 }
 
 function buildRoutes(appManager: ApplicationManager): Router {

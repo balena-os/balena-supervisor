@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { spy } from 'sinon';
 import * as supertest from 'supertest';
 
+import * as apiSecrets from '../src/lib/api-secrets';
 import Log from '../src/lib/supervisor-console';
 import SupervisorAPI from '../src/supervisor-api';
 import sampleResponses = require('./data/device-api-responses.json');
@@ -12,17 +13,18 @@ const mockedOptions = {
 	timeout: 30000,
 };
 
-const VALID_SECRET = mockedAPI.STUBBED_VALUES.config.apiSecret;
 const ALLOWED_INTERFACES = ['lo']; // Only need loopback since this is for testing
 
 describe('SupervisorAPI', () => {
 	let api: SupervisorAPI;
 	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
+	let cloudKey: string;
 
 	before(async () => {
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed
 		api = await mockedAPI.create();
+		cloudKey = await apiSecrets.getCloudApiSecret();
 		// Start test API
 		return api.listen(
 			ALLOWED_INTERFACES,
@@ -47,11 +49,11 @@ describe('SupervisorAPI', () => {
 		it('responds with OK (without auth)', async () => {
 			await request.get('/ping').set('Accept', 'application/json').expect(200);
 		});
-		it('responds with OK (with auth)', async () => {
+		it('responds with OK (with cloud auth)', async () => {
 			await request
 				.get('/ping')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${VALID_SECRET}`)
+				.set('Authorization', `Bearer ${cloudKey}`)
 				.expect(200);
 		});
 	});
@@ -66,7 +68,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v2/device/vpn')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${cloudKey}`)
 					.expect('Content-Type', /json/)
 					.expect(sampleResponses.V2.GET['/device/vpn'].statusCode)
 					.then((response) => {
@@ -82,7 +84,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v2/applications/1/state')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${cloudKey}`)
 					.expect('Content-Type', /json/)
 					.expect(sampleResponses.V2.GET['/applications/1/state'].statusCode)
 					.then((response) => {
@@ -96,7 +98,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v2/applications/123invalid/state')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${cloudKey}`)
 					.expect('Content-Type', /json/)
 					.expect(
 						sampleResponses.V2.GET['/applications/123invalid/state'].statusCode,
@@ -112,7 +114,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v2/applications/9000/state')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${cloudKey}`)
 					.expect('Content-Type', /json/)
 					.expect(sampleResponses.V2.GET['/applications/9000/state'].statusCode)
 					.then((response) => {

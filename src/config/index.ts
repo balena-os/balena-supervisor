@@ -300,26 +300,28 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 	}
 
 	private async generateRequiredFields() {
-		return this.getMany([
+		const { uuid, deviceApiKey, unmanaged } = await this.getMany([
 			'uuid',
 			'deviceApiKey',
-			'apiSecret',
 			'unmanaged',
-		]).then(({ uuid, deviceApiKey, apiSecret, unmanaged }) => {
-			// These fields need to be set regardless
-			if (uuid == null || apiSecret == null) {
-				uuid = uuid || this.newUniqueKey();
-				apiSecret = apiSecret || this.newUniqueKey();
-			}
-			return this.set({ uuid, apiSecret }).then(() => {
-				if (unmanaged) {
-					return;
-				}
-				if (!deviceApiKey) {
-					return this.set({ deviceApiKey: this.newUniqueKey() });
-				}
-			});
-		});
+		]);
+		const valsToUpdate: Partial<
+			{ [key in SchemaTypeKey]: SchemaReturn<key> }
+		> = {};
+		let update = false;
+		if (uuid == null) {
+			valsToUpdate.uuid = this.newUniqueKey();
+			update = true;
+		}
+		if (!unmanaged && !deviceApiKey) {
+			valsToUpdate.deviceApiKey = this.newUniqueKey();
+			update = true;
+		}
+		if (update) {
+			await this.set(
+				valsToUpdate as { [key in SchemaTypeKey]: SchemaReturn<key> },
+			);
+		}
 	}
 
 	private static valueToString(value: unknown, name: string) {

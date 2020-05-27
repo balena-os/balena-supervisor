@@ -1,5 +1,6 @@
 import * as supertest from 'supertest';
 
+import * as apiSecrets from '../src/lib/api-secrets';
 import SupervisorAPI from '../src/supervisor-api';
 import mockedAPI = require('./lib/mocked-device-api');
 
@@ -8,17 +9,18 @@ const mockedOptions = {
 	timeout: 30000,
 };
 
-const VALID_SECRET = mockedAPI.STUBBED_VALUES.config.apiSecret;
 const INVALID_SECRET = 'bad_api_secret';
 const ALLOWED_INTERFACES = ['lo']; // Only need loopback since this is for testing
 
 describe('SupervisorAPI authentication', () => {
 	let api: SupervisorAPI;
+	let cloudKey: string;
 	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
 
 	before(async () => {
 		// Create test API
 		api = await mockedAPI.create();
+		cloudKey = await apiSecrets.getCloudApiSecret();
 		// Start test API
 		return api.listen(
 			ALLOWED_INTERFACES,
@@ -44,20 +46,20 @@ describe('SupervisorAPI authentication', () => {
 	});
 
 	it('finds apiKey from query', async () => {
-		return request.post(`/v1/blink?apikey=${VALID_SECRET}`).expect(200);
+		return request.post(`/v1/blink?apikey=${cloudKey}`).expect(200);
 	});
 
 	it('finds apiKey from Authorization header (ApiKey scheme)', async () => {
 		return request
 			.post('/v1/blink')
-			.set('Authorization', `ApiKey ${VALID_SECRET}`)
+			.set('Authorization', `ApiKey ${cloudKey}`)
 			.expect(200);
 	});
 
 	it('finds apiKey from Authorization header (Bearer scheme)', async () => {
 		return request
 			.post('/v1/blink')
-			.set('Authorization', `Bearer ${VALID_SECRET}`)
+			.set('Authorization', `Bearer ${cloudKey}`)
 			.expect(200);
 	});
 
@@ -75,7 +77,7 @@ describe('SupervisorAPI authentication', () => {
 		for (const scheme of randomCases) {
 			return request
 				.post('/v1/blink')
-				.set('Authorization', `${scheme} ${VALID_SECRET}`)
+				.set('Authorization', `${scheme} ${cloudKey}`)
 				.expect(200);
 		}
 	});
@@ -96,5 +98,14 @@ describe('SupervisorAPI authentication', () => {
 			.post('/v1/blink')
 			.set('Authorization', `Bearer ${INVALID_SECRET}`)
 			.expect(401);
+	});
+
+	describe('Api secret regeneration', () => {
+		it(`should regenerate all keys when a secret has 'apps' scope`, () => {
+			throw new Error('Do this');
+		});
+		it(`should regenerate keys for a specific app when a secret has 'app' scope`, () => {
+			throw new Error('Do this');
+		});
 	});
 });

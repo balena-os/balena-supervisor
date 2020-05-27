@@ -18,6 +18,7 @@ import { loadTargetFromFile } from '../src/device-state/preload';
 
 import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
+import { initApiSecrets } from '../src/lib/api-secrets';
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',
@@ -210,6 +211,7 @@ const testTargetInvalid = {
 
 describe('deviceState', () => {
 	const db = new DB();
+	initApiSecrets(db);
 	const config = new Config({ db });
 	const logger = {
 		clearOutOfDateDBLogs() {
@@ -282,7 +284,11 @@ describe('deviceState', () => {
 				testTarget.local.apps['1234'].services,
 				(s: any) => {
 					s.imageName = s.image;
-					return Service.fromComposeObject(s, { appName: 'superapp' } as any);
+					return Service.fromComposeObject(
+						s,
+						{ appName: 'superapp' } as any,
+						'super-secret-key',
+					);
 				},
 			) as any;
 
@@ -329,7 +335,11 @@ describe('deviceState', () => {
 			service.image = imageName;
 			(service as any).imageName = imageName;
 			services.push(
-				Service.fromComposeObject(service, { appName: 'supertest' } as any),
+				Service.fromComposeObject(
+					service,
+					{ appName: 'supertest' } as any,
+					'super-secret-key',
+				),
 			);
 		}
 

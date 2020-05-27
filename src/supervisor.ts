@@ -12,12 +12,12 @@ import SupervisorAPI from './supervisor-api';
 import constants = require('./lib/constants');
 import log from './lib/supervisor-console';
 import version = require('./lib/supervisor-version');
+import { initApiSecrets } from './lib/api-secrets';
 
 const startupConfigFields: ConfigKey[] = [
 	'uuid',
 	'listenPort',
 	'apiEndpoint',
-	'apiSecret',
 	'apiTimeout',
 	'unmanaged',
 	'deviceApiKey',
@@ -39,12 +39,12 @@ export class Supervisor {
 
 	public constructor() {
 		this.db = new Database();
+		initApiSecrets(this.db);
 		this.config = new Config({ db: this.db });
 		this.eventTracker = new EventTracker();
 		this.logger = new Logger({ db: this.db, eventTracker: this.eventTracker });
 		this.apiBinder = new APIBinder({
 			config: this.config,
-			db: this.db,
 			eventTracker: this.eventTracker,
 			logger: this.logger,
 		});

@@ -6,11 +6,20 @@ import * as morgan from 'morgan';
 
 import Config from './config';
 import { EventTracker } from './event-tracker';
+import * as apiSecrets from './lib/api-secrets';
 import blink = require('./lib/blink');
 import * as iptables from './lib/iptables';
 import { checkTruthy } from './lib/validation';
 
 import log from './lib/supervisor-console';
+
+export type RequestWithScope = Request & {
+	data: {
+		serviceId?: number;
+		appId?: number;
+		scopes: apiSecrets.ApiSecretScope[];
+	};
+};
 
 function getKeyFromReq(req: express.Request): string | undefined {
 	// Check query for key
@@ -33,7 +42,6 @@ function authenticate(config: Config): express.RequestHandler {
 	return async (req, res, next) => {
 		try {
 			const conf = await config.getMany([
-				'apiSecret',
 				'localMode',
 				'unmanaged',
 				'osVariant',
@@ -46,7 +54,12 @@ function authenticate(config: Config): express.RequestHandler {
 			if (needsAuth) {
 				// Only get the key if we need it
 				const key = getKeyFromReq(req);
-				if (key && conf.apiSecret && key === conf.apiSecret) {
+				if (!key) {
+					return res.sendStatus(401);
+				}
+				const apiSecret = await apiSecrets.lookupKey(key);
+				if (apiSecret) {
+					(req as RequestWithScope).data = apiSecret;
 					return next();
 				} else {
 					return res.sendStatus(401);
@@ -144,11 +157,65 @@ export class SupervisorAPI {
 
 		// Expires the supervisor's API key and generates a new one.
 		// It also communicates the new key to the balena API.
-		this.api.post('/v1/regenerate-api-key', async (_req, res) => {
-			const secret = await this.config.newUniqueKey();
-			await this.config.set({ apiSecret: secret });
-			res.status(200).send(secret);
-		});
+		this.api.post(
+			'/v1/regenerate-api-key',
+			async (req: RequestWithScope, res) => {
+				try {
+					let secrets: apiSecrets.ApiSecret[];
+					// Check the scope which this key has been configured with
+					if (_.find(req.data.scopes, { type: 'apps' })) {
+						// Regenerate all keys
+						secrets = await apiSecrets.regenerateKeys();
+					} else {
+						const apps: number[] = [];
+						req.data.scopes.forEach((s) => {
+							if (s.type === 'app') {
+								apps.push(s.appId);
+							}
+						});
+
+						secrets = await apiSecrets.regenerateKeys(apps);
+
+						// Find out the serviceId of the caller, and send
+						// them their specific key, or if we don't, try
+						// to find a matching key using the standard
+						// attempt below
+						const key = _.find(
+							secrets,
+							({ serviceId }) => serviceId === req.data.serviceId,
+						);
+						if (key != null) {
+							// Bail early if we find an acceptable replacement
+							return res.status(200).send(key.key);
+						}
+					}
+
+					// Find a key which has all of the same scopes
+					// and return that, likely it will be the same
+					// that has been used for this query, but with
+					// the same permissions, it doesn't really
+					// matter.
+					const thisKey = _.find(
+						secrets,
+						({ scopes }) =>
+							_.xorWith(scopes, req.data.scopes, _.isEqual).length === 0,
+					);
+					if (thisKey != null) {
+						return res.status(200).send(thisKey.key);
+					}
+					res.status(500).json({
+						error: true,
+						message:
+							'Keys successfully regenerated, but could not find a matching replacement for caller',
+					});
+				} catch (e) {
+					res.status(500).json({
+						error: true,
+						message: `Key regeneration failed: ${e.message}`,
+					});
+				}
+			},
+		);
 
 		// And assign all external routers
 		for (const router of this.routers) {

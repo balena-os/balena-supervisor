@@ -19,6 +19,7 @@ import {
 import { loadTargetFromFile } from './device-state/preload';
 import * as globalEventBus from './event-bus';
 import * as hostConfig from './host-config';
+import * as apiSecrets from './lib/api-secrets';
 import constants = require('./lib/constants');
 import * as dbus from './lib/dbus';
 import { InternalInconsistencyError, UpdatesLockedError } from './lib/errors';
@@ -311,9 +312,6 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			if (changedConfig.loggingEnabled != null) {
 				this.logger.enable(changedConfig.loggingEnabled);
 			}
-			if (changedConfig.apiSecret != null) {
-				this.reportCurrentState({ api_secret: changedConfig.apiSecret });
-			}
 			if (changedConfig.appUpdatePollInterval != null) {
 				this.maxPollTime = changedConfig.appUpdatePollInterval;
 			}
@@ -322,7 +320,6 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		const conf = await this.config.getMany([
 			'initialConfigSaved',
 			'listenPort',
-			'apiSecret',
 			'osVersion',
 			'osVariant',
 			'version',
@@ -335,6 +332,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			'appUpdatePollInterval',
 		]);
 		this.maxPollTime = conf.appUpdatePollInterval;
+		const cloudSecret = await apiSecrets.getCloudApiSecret();
 
 		await this.applications.init();
 		if (!conf.initialConfigSaved) {
@@ -344,9 +342,9 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		this.initNetworkChecks(conf);
 
 		log.info('Reporting initial state, supervisor version and API info');
-		await this.reportCurrentState({
+		this.reportCurrentState({
 			api_port: conf.listenPort,
-			api_secret: conf.apiSecret,
+			api_secret: cloudSecret,
 			os_version: conf.osVersion,
 			os_variant: conf.osVariant,
 			supervisor_version: conf.version,

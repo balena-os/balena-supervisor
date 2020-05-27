@@ -9,6 +9,7 @@ import * as path from 'path';
 import * as constants from './lib/constants';
 import { log } from './lib/supervisor-console';
 
+import * as apiSecrets from './lib/api-secrets';
 import { validateTargetContracts } from './lib/contracts';
 import { DockerUtils as Docker } from './lib/docker-utils';
 import { LocalModeManager } from './local-mode';
@@ -1059,7 +1060,7 @@ export class ApplicationManager extends EventEmitter {
 		// this in a bluebird promise until we convert this to typescript
 		return Promise.resolve(this.images.inspectByName(service.image))
 			.catchReturn(NotFoundError, undefined)
-			.then(function (imageInfo) {
+			.then(async (imageInfo) => {
 				const serviceOpts = {
 					serviceName: service.serviceName,
 					imageInfo,
@@ -1069,7 +1070,14 @@ export class ApplicationManager extends EventEmitter {
 				if (imageInfo?.Id != null) {
 					service.image = imageInfo.Id;
 				}
-				return Service.fromComposeObject(service, serviceOpts);
+
+				// Get the apiSecret for this service
+				const secret = await apiSecrets.getApiSecretForService(
+					service.appId,
+					service.serviceId,
+				);
+
+				return Service.fromComposeObject(service, serviceOpts, secret.key);
 			});
 	}
 

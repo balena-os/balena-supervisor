@@ -84,6 +84,7 @@ export class Service {
 	public static fromComposeObject(
 		appConfig: ConfigMap,
 		options: DeviceMetadata,
+		apiSecret: string,
 	): Service {
 		const service = new Service();
 
@@ -416,7 +417,7 @@ export class Service {
 		});
 
 		// Mutate service with extra features
-		ComposeUtils.addFeaturesFromLabels(service, options);
+		ComposeUtils.addFeaturesFromLabels(service, options, apiSecret);
 
 		return service;
 	}

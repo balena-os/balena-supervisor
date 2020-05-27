@@ -30,7 +30,6 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 	} as any;
 
 	obj.apiBinder = new ApiBinder({
-		db: obj.db,
 		config: obj.config,
 		logger: obj.logger,
 		eventTracker: obj.eventTracker,

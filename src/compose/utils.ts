@@ -312,10 +312,11 @@ export function formatDevice(deviceStr: string): DockerDevice {
 // TODO: Export these strings to a constant lib, to
 // enable changing them easily
 // Mutates service
-export function addFeaturesFromLabels(
+export async function addFeaturesFromLabels(
 	service: Service,
 	options: DeviceMetadata,
-): void {
+	apiSecret: string,
+): Promise<void> {
 	const setEnvVariables = function (key: string, val: string) {
 		service.config.environment[`RESIN_${key}`] = val;
 		service.config.environment[`BALENA_${key}`] = val;
@@ -354,7 +355,7 @@ export function addFeaturesFromLabels(
 		},
 		'io.balena.features.supervisor-api': () => {
 			setEnvVariables('SUPERVISOR_PORT', options.listenPort.toString());
-			setEnvVariables('SUPERVISOR_API_KEY', options.apiSecret);
+			setEnvVariables('SUPERVISOR_API_KEY', apiSecret);
 
 			let host: string;
 

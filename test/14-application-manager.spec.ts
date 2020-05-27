@@ -14,6 +14,7 @@ import EventTracker from '../src/event-tracker';
 
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
+import { initApiSecrets } from '../src/lib/api-secrets';
 
 // tslint:disable-next-line
 chai.use(require('chai-events'));
@@ -129,6 +130,7 @@ describe('ApplicationManager', function () {
 	before(function () {
 		prepare();
 		this.db = new DB();
+		initApiSecrets(this.db);
 		this.config = new Config({ db: this.db });
 		const eventTracker = new EventTracker();
 		this.logger = {
@@ -173,7 +175,11 @@ describe('ApplicationManager', function () {
 		}) {
 			return Bluebird.Promise.map(current.local.apps, async (app: any) => {
 				return Bluebird.Promise.map(app.services, (service) =>
-					Service.fromComposeObject(service as any, { appName: 'test' } as any),
+					Service.fromComposeObject(
+						service as any,
+						{ appName: 'test' } as any,
+						'super-secret-key',
+					),
 				).then((normalisedServices) => {
 					const appCloned = _.cloneDeep(app);
 					appCloned.services = normalisedServices;
@@ -626,7 +632,11 @@ describe('ApplicationManager', function () {
 					function (service) {
 						// @ts-ignore
 						service.imageName = service.image;
-						return Service.fromComposeObject(service, opts as any);
+						return Service.fromComposeObject(
+							service,
+							opts as any,
+							'super-secret-key',
+						);
 					},
 				);
 				return expect(JSON.parse(JSON.stringify(app))).to.deep.equal(

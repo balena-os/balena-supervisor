@@ -1,5 +1,6 @@
 import * as Knex from 'knex';
 import * as path from 'path';
+import * as _ from 'lodash';
 
 import * as constants from './lib/constants';
 
@@ -11,53 +12,48 @@ type DBTransactionCallback = (trx: Knex.Transaction) => void;
 
 export type Transaction = Knex.Transaction;
 
-export class DB {
-	private databasePath: string;
-	private knex: Knex;
+let databasePath: string;
+let knex: Knex;
 
-	public constructor({ databasePath }: DBOpts = {}) {
-		this.databasePath = databasePath || constants.databasePath;
-		this.knex = Knex({
-			client: 'sqlite3',
-			connection: {
-				filename: this.databasePath,
-			},
-			useNullAsDefault: true,
-		});
+export async function init({ databasePath }: DBOpts = {}): Promise<void> {
+	databasePath = databasePath || constants.databasePath;
+	knex = Knex({
+		client: 'sqlite3',
+		connection: {
+			filename: databasePath,
+		},
+		useNullAsDefault: true,
+	});
+	try {
+		await knex('knex_migrations_lock').update({ is_locked: 0 });
+	} catch {
+		/* ignore */
 	}
+	return knex.migrate.latest({
+		directory: path.join(__dirname, 'migrations'),
+	});
+}
 
-	public async init(): Promise<void> {
-		try {
-			await this.knex('knex_migrations_lock').update({ is_locked: 0 });
-		} catch {
-			/* ignore */
-		}
-		return this.knex.migrate.latest({
-			directory: path.join(__dirname, 'migrations'),
-		});
-	}
+export function models(modelName: string): Knex.QueryBuilder {
+	return knex(modelName);
+}
 
-	public models(modelName: string): Knex.QueryBuilder {
-		return this.knex(modelName);
-	}
+export async function upsertModel(
+	modelName: string,
+	obj: any,
+	id: Dictionary<unknown>,
+	trx?: Knex.Transaction,
+): Promise<any> {
+	const k = trx || knex;
 
-	public async upsertModel(
-		modelName: string,
-		obj: any,
-		id: Dictionary<unknown>,
-		trx?: Knex.Transaction,
-	): Promise<any> {
-		const knex = trx || this.knex;
-
-		const n = await knex(modelName).update(obj).where(id);
-		if (n === 0) {
-			return knex(modelName).insert(obj);
-		}
-	}
-
-	public transaction(cb: DBTransactionCallback): Promise<Knex.Transaction> {
-		return this.knex.transaction(cb);
+	const n = await k(modelName).update(obj).where(id);
+	if (n === 0) {
+		return k(modelName).insert(obj);
 	}
 }
 
-export default DB;
+export function transaction(
+	cb: DBTransactionCallback,
+): Promise<Knex.Transaction> {
+	return knex.transaction(cb);
+}
