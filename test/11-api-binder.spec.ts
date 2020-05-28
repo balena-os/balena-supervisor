@@ -1,23 +1,21 @@
 import { fs } from 'mz';
 import { Server } from 'net';
-import { SinonSpy, spy, stub, SinonStub } from 'sinon';
+import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 
+import ApiBinder from '../src/api-binder';
+import Config from '../src/config';
+import DeviceState from '../src/device-state';
+import Log from '../src/lib/supervisor-console';
 import chai = require('./lib/chai-config');
 import balenaAPI = require('./lib/mocked-balena-api');
 import prepare = require('./lib/prepare');
-import ApiBinder from '../src/api-binder';
-import Config from '../src/config';
-import Log from '../src/lib/supervisor-console';
-import DB from '../src/db';
-import DeviceState from '../src/device-state';
 
 const { expect } = chai;
 
 const initModels = async (obj: Dictionary<any>, filename: string) => {
-	prepare();
+	await prepare();
 
-	obj.db = new DB();
-	obj.config = new Config({ db: obj.db, configPath: filename });
+	obj.config = new Config({ configPath: filename });
 
 	obj.eventTracker = {
 		track: stub().callsFake((ev, props) => console.log(ev, props)),
@@ -30,14 +28,12 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 	} as any;
 
 	obj.apiBinder = new ApiBinder({
-		db: obj.db,
 		config: obj.config,
 		logger: obj.logger,
 		eventTracker: obj.eventTracker,
 	});
 
 	obj.deviceState = new DeviceState({
-		db: obj.db,
 		config: obj.config,
 		eventTracker: obj.eventTracker,
 		logger: obj.logger,
@@ -46,7 +42,6 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 
 	obj.apiBinder.setDeviceState(obj.deviceState);
 
-	await obj.db.init();
 	await obj.config.init();
 	await obj.apiBinder.initClient(); // Initializes the clients but doesn't trigger provisioning
 };

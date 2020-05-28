@@ -32,7 +32,7 @@ declare function serviceAction(
 
 declare function safeStateClone(
 	targetState: InstancedDeviceState,
-	// Use an any here, because it's not an InstancedDeviceState,
-	// and it's also not the exact same type as the API serves from
-	// state endpoint (more details in the function)
-): Dictionary<any>;
+): // Use an any here, because it's not an InstancedDeviceState,
+// and it's also not the exact same type as the API serves from
+// state endpoint (more details in the function)
+Dictionary<any>;

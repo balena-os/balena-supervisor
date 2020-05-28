@@ -9,7 +9,6 @@ import * as url from 'url';
 import * as deviceRegister from './lib/register-device';
 
 import Config, { ConfigType } from './config';
-import Database from './db';
 import { EventTracker } from './event-tracker';
 import { loadBackupFromMigration } from './lib/migration';
 
@@ -17,9 +16,9 @@ import constants = require('./lib/constants');
 import {
 	ContractValidationError,
 	ContractViolationError,
-	isHttpConflictError,
 	ExchangeKeyError,
 	InternalInconsistencyError,
+	isHttpConflictError,
 } from './lib/errors';
 import * as request from './lib/request';
 import { writeLock } from './lib/update-lock';
@@ -42,8 +41,6 @@ const INTERNAL_STATE_KEYS = [
 
 export interface APIBinderConstructOpts {
 	config: Config;
-	// FIXME: Remove this
-	db: Database;
 	eventTracker: EventTracker;
 	logger: Logger;
 }

@@ -15,14 +15,13 @@ import * as FnSchema from './functions';
 import * as Schema from './schema';
 import { SchemaReturn, SchemaTypeKey, schemaTypes } from './schema-type';
 
-import DB from '../db';
+import * as db from '../db';
 import {
 	ConfigurationValidationError,
 	InternalInconsistencyError,
 } from '../lib/errors';
 
 interface ConfigOpts {
-	db: DB;
 	configPath?: string;
 }
 
@@ -44,12 +43,10 @@ interface ConfigEvents {
 type ConfigEventEmitter = StrictEventEmitter<EventEmitter, ConfigEvents>;
 
 export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
-	private db: DB;
 	private configJsonBackend: ConfigJsonConfigBackend;
 
-	public constructor({ db, configPath }: ConfigOpts) {
+	public constructor({ configPath }: ConfigOpts = {}) {
 		super();
-		this.db = db;
 		this.configJsonBackend = new ConfigJsonConfigBackend(
 			Schema.schema,
 			configPath,
@@ -64,13 +61,13 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		key: T,
 		trx?: Transaction,
 	): Bluebird<SchemaReturn<T>> {
-		const db = trx || this.db.models.bind(this.db);
+		const $db = trx || db.models.bind(db);
 
 		return Bluebird.try(() => {
 			if (Schema.schema.hasOwnProperty(key)) {
 				const schemaKey = key as Schema.SchemaKey;
 
-				return this.getSchema(schemaKey, db).then((value) => {
+				return this.getSchema(schemaKey, $db).then((value) => {
 					if (value == null) {
 						const defaultValue = schemaTypes[key].default;
 						if (defaultValue instanceof t.Type) {
@@ -159,12 +156,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 				const strValue = Config.valueToString(value, key);
 
 				if (oldValues[key] !== value) {
-					await this.db.upsertModel(
-						'config',
-						{ key, value: strValue },
-						{ key },
-						tx,
-					);
+					await db.upsertModel('config', { key, value: strValue }, { key }, tx);
 				}
 			});
 
@@ -184,9 +176,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		if (trx != null) {
 			await setValuesInTransaction(trx);
 		} else {
-			await this.db.transaction((tx: Transaction) =>
-				setValuesInTransaction(tx),
-			);
+			await db.transaction((tx: Transaction) => setValuesInTransaction(tx));
 		}
 		this.emit('change', keyValues as ConfigMap<SchemaTypeKey>);
 	}
@@ -198,7 +188,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 		if (Schema.schema[key].source === 'config.json') {
 			return this.configJsonBackend.remove(key);
 		} else if (Schema.schema[key].source === 'db') {
-			await this.db.models('config').del().where({ key });
+			await db.models('config').del().where({ key });
 		} else {
 			throw new Error(
 				`Unknown or unsupported config backend: ${Schema.schema[key].source}`,
@@ -236,7 +226,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 
 	private async getSchema<T extends Schema.SchemaKey>(
 		key: T,
-		db: Transaction,
+		$db: Transaction,
 	): Promise<unknown> {
 		let value: unknown;
 		switch (Schema.schema[key].source) {
@@ -244,7 +234,7 @@ export class Config extends (EventEmitter as new () => ConfigEventEmitter) {
 				value = await this.configJsonBackend.get(key);
 				break;
 			case 'db':
-				const [conf] = await db('config').select('value').where({ key });
+				const [conf] = await $db('config').select('value').where({ key });
 				if (conf != null) {
 					return conf.value;
 				}

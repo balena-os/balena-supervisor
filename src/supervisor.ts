@@ -1,6 +1,6 @@
 import APIBinder from './api-binder';
 import Config, { ConfigKey } from './config';
-import Database from './db';
+import * as db from './db';
 import DeviceState from './device-state';
 import EventTracker from './event-tracker';
 import { intialiseContractRequirements } from './lib/contracts';
@@ -29,7 +29,6 @@ const startupConfigFields: ConfigKey[] = [
 ];
 
 export class Supervisor {
-	private db: Database;
 	private config: Config;
 	private eventTracker: EventTracker;
 	private logger: Logger;
@@ -38,19 +37,16 @@ export class Supervisor {
 	private api: SupervisorAPI;
 
 	public constructor() {
-		this.db = new Database();
-		this.config = new Config({ db: this.db });
+		this.config = new Config();
 		this.eventTracker = new EventTracker();
-		this.logger = new Logger({ db: this.db, eventTracker: this.eventTracker });
+		this.logger = new Logger({ eventTracker: this.eventTracker });
 		this.apiBinder = new APIBinder({
 			config: this.config,
-			db: this.db,
 			eventTracker: this.eventTracker,
 			logger: this.logger,
 		});
 		this.deviceState = new DeviceState({
 			config: this.config,
-			db: this.db,
 			eventTracker: this.eventTracker,
 			logger: this.logger,
 			apiBinder: this.apiBinder,
@@ -76,7 +72,7 @@ export class Supervisor {
 	public async init() {
 		log.info(`Supervisor v${version} starting up...`);
 
-		await this.db.init();
+		await db.initialized;
 		await this.config.init();
 
 		const conf = await this.config.getMany(startupConfigFields);
@@ -110,7 +106,6 @@ export class Supervisor {
 			await normaliseLegacyDatabase(
 				this.deviceState.config,
 				this.deviceState.applications,
-				this.db,
 				this.apiBinder.balenaApi,
 			);
 		}

@@ -1,6 +1,6 @@
 import { endsWith, map } from 'lodash';
-import TypedError = require('typed-error');
 import { Response } from 'request';
+import TypedError = require('typed-error');
 
 import { checkInt } from './validation';
 
