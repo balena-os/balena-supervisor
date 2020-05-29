@@ -11,7 +11,6 @@ const { expect } = chai;
 
 import Config from '../src/config';
 import { RPiConfigBackend } from '../src/config/backend';
-import DB from '../src/db';
 import DeviceState from '../src/device-state';
 
 import { loadTargetFromFile } from '../src/device-state/preload';
@@ -209,8 +208,7 @@ const testTargetInvalid = {
 };
 
 describe('deviceState', () => {
-	const db = new DB();
-	const config = new Config({ db });
+	const config = new Config();
 	const logger = {
 		clearOutOfDateDBLogs() {
 			/* noop */
@@ -218,7 +216,7 @@ describe('deviceState', () => {
 	};
 	let deviceState: DeviceState;
 	before(async () => {
-		prepare();
+		await prepare();
 		const eventTracker = {
 			track: console.log,
 		};
@@ -234,7 +232,6 @@ describe('deviceState', () => {
 		});
 
 		deviceState = new DeviceState({
-			db,
 			config,
 			eventTracker: eventTracker as any,
 			logger: logger as any,
@@ -252,7 +249,6 @@ describe('deviceState', () => {
 		});
 
 		(deviceState as any).deviceConfig.configBackend = new RPiConfigBackend();
-		await db.init();
 		await config.init();
 	});
 

@@ -2,11 +2,9 @@ import * as assert from 'assert';
 import { expect } from 'chai';
 import * as Docker from 'dockerode';
 import * as sinon from 'sinon';
-import * as tmp from 'tmp';
 
 import Config from '../src/config';
-import DB from '../src/db';
-import log from '../src/lib/supervisor-console';
+import * as db from '../src/db';
 import LocalModeManager, {
 	EngineSnapshot,
 	EngineSnapshotRecord,
@@ -15,8 +13,6 @@ import Logger from '../src/logger';
 import ShortStackError from './lib/errors';
 
 describe('LocalModeManager', () => {
-	let dbFile: tmp.FileResult;
-	let db: DB;
 	let localMode: LocalModeManager;
 	let dockerStub: sinon.SinonStubbedInstance<Docker>;
 
@@ -35,10 +31,7 @@ describe('LocalModeManager', () => {
 	});
 
 	before(async () => {
-		dbFile = tmp.fileSync();
-		log.debug(`Test db: ${dbFile.name}`);
-		db = new DB({ databasePath: dbFile.name });
-		await db.init();
+		await db.initialized;
 
 		dockerStub = sinon.createStubInstance(Docker);
 		const configStub = (sinon.createStubInstance(Config) as unknown) as Config;
@@ -48,7 +41,6 @@ describe('LocalModeManager', () => {
 			configStub,
 			(dockerStub as unknown) as Docker,
 			loggerStub,
-			db,
 			supervisorContainerId,
 		);
 	});
@@ -441,6 +433,5 @@ describe('LocalModeManager', () => {
 
 	after(async () => {
 		sinon.restore();
-		dbFile.removeCallback();
 	});
 });

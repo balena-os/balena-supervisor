@@ -3,17 +3,17 @@ import { fs } from 'mz';
 import { stub } from 'sinon';
 
 import { ApplicationManager } from '../../src/application-manager';
+import { Images } from '../../src/compose/images';
+import { NetworkManager } from '../../src/compose/network-manager';
+import { ServiceManager } from '../../src/compose/service-manager';
+import { VolumeManager } from '../../src/compose/volume-manager';
 import Config from '../../src/config';
-import Database from '../../src/db';
+import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
 import { createV2Api } from '../../src/device-api/v2';
 import DeviceState from '../../src/device-state';
 import EventTracker from '../../src/event-tracker';
 import SupervisorAPI from '../../src/supervisor-api';
-import { Images } from '../../src/compose/images';
-import { ServiceManager } from '../../src/compose/service-manager';
-import { NetworkManager } from '../../src/compose/network-manager';
-import { VolumeManager } from '../../src/compose/volume-manager';
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
 // Holds all values used for stubbing
@@ -67,12 +67,11 @@ const STUBBED_VALUES = {
 
 async function create(): Promise<SupervisorAPI> {
 	// Get SupervisorAPI construct options
-	const { db, config, eventTracker, deviceState } = await createAPIOpts();
+	const { config, eventTracker, deviceState } = await createAPIOpts();
 	// Stub functions
 	setupStubs();
 	// Create ApplicationManager
 	const appManager = new ApplicationManager({
-		db,
 		config,
 		eventTracker,
 		logger: null,
@@ -102,27 +101,21 @@ async function cleanUp(): Promise<void> {
 }
 
 async function createAPIOpts(): Promise<SupervisorAPIOpts> {
-	// Create database
-	const db = new Database({
-		databasePath: DB_PATH,
-	});
-	await db.init();
+	await db.initialized;
 	// Create config
-	const mockedConfig = new Config({ db });
+	const mockedConfig = new Config();
 	// Initialize and set values for mocked Config
 	await initConfig(mockedConfig);
 	// Create EventTracker
 	const tracker = new EventTracker();
 	// Create deviceState
 	const deviceState = new DeviceState({
-		db,
 		config: mockedConfig,
 		eventTracker: tracker,
 		logger: null as any,
 		apiBinder: null as any,
 	});
 	return {
-		db,
 		config: mockedConfig,
 		eventTracker: tracker,
 		deviceState,
@@ -172,7 +165,6 @@ function restoreStubs() {
 }
 
 interface SupervisorAPIOpts {
-	db: Database;
 	config: Config;
 	eventTracker: EventTracker;
 	deviceState: DeviceState;

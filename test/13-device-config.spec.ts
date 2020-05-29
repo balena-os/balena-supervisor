@@ -14,9 +14,8 @@ const extlinuxBackend = new ExtlinuxConfigBackend();
 const rpiConfigBackend = new RPiConfigBackend();
 
 describe('DeviceConfig', function () {
-	before(function () {
-		prepare();
-		this.fakeDB = {};
+	before(async function () {
+		await prepare();
 		this.fakeConfig = {
 			get(key: string) {
 				return Promise.try(function () {
@@ -33,7 +32,6 @@ describe('DeviceConfig', function () {
 		};
 		return (this.deviceConfig = new DeviceConfig({
 			logger: this.fakeLogger,
-			db: this.fakeDB,
 			config: this.fakeConfig,
 		}));
 	});
@@ -411,7 +409,6 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 			};
 			this.upboardConfig = new DeviceConfig({
 				logger: this.fakeLogger,
-				db: this.fakeDB,
 				config: fakeConfig as any,
 			});
 

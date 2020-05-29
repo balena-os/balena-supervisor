@@ -5,7 +5,7 @@ import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
 import Config from '../config';
-import Database from '../db';
+import * as db from '../db';
 import * as constants from '../lib/constants';
 import {
 	DeltaFetchOptions,
@@ -29,7 +29,6 @@ type ImageEventEmitter = StrictEventEmitter<EventEmitter, ImageEvents>;
 interface ImageConstructOpts {
 	docker: DockerUtils;
 	logger: Logger;
-	db: Database;
 	config: Config;
 }
 
@@ -61,7 +60,6 @@ type NormalisedDockerImage = Docker.ImageInfo & {
 export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	private docker: DockerUtils;
 	private logger: Logger;
-	private db: Database;
 
 	public appUpdatePollInterval: number;
 
@@ -78,7 +76,6 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 		this.docker = opts.docker;
 		this.logger = opts.logger;
-		this.db = opts.db;
 	}
 
 	public async triggerFetch(
@@ -123,10 +120,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			await this.markAsSupervised(image);
 
 			const img = await this.inspectByName(image.name);
-			await this.db
-				.models('image')
-				.update({ dockerImageId: img.Id })
-				.where(image);
+			await db.models('image').update({ dockerImageId: img.Id }).where(image);
 
 			onFinish(true);
 			return null;
@@ -150,10 +144,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 					id = await this.fetchImage(image, opts, onProgress);
 				}
 
-				await this.db
-					.models('image')
-					.update({ dockerImageId: id })
-					.where(image);
+				await db.models('image').update({ dockerImageId: id }).where(image);
 
 				this.logger.logSystemEvent(LogTypes.downloadImageSuccess, { image });
 				success = true;
@@ -194,7 +185,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	public async getByDockerId(id: string): Promise<Image> {
-		return await this.db.models('image').where({ dockerImageId: id }).first();
+		return await db.models('image').where({ dockerImageId: id }).first();
 	}
 
 	public async removeByDockerId(id: string): Promise<void> {
@@ -218,7 +209,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 				newImage.NormalisedRepoTags = await this.getNormalisedTags(image);
 				return newImage;
 			}),
-			this.db.models('image').select(),
+			db.models('image').select(),
 		]);
 		return cb(normalisedImages, dbImages);
 	}
@@ -292,7 +283,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 						);
 
 						if (id != null) {
-							await this.db
+							await db
 								.models('image')
 								.update({ dockerImageId: id })
 								.where(supervisedImage);
@@ -307,7 +298,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		);
 
 		const ids = _(imagesToRemove).map('id').compact().value();
-		await this.db.models('image').del().whereIn('id', ids);
+		await db.models('image').del().whereIn('id', ids);
 	}
 
 	public async getStatus() {
@@ -327,7 +318,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 	public async update(image: Image): Promise<void> {
 		const formattedImage = this.format(image);
-		await this.db
+		await db
 			.models('image')
 			.update(formattedImage)
 			.where({ name: formattedImage.name });
@@ -350,7 +341,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		] = await Promise.all([
 			this.docker.getRegistryAndName(constants.supervisorImage),
 			this.docker.getImage(constants.supervisorImage).inspect(),
-			this.db
+			db
 				.models('image')
 				.select('dockerImageId')
 				.then((vals) => vals.map((img: Image) => img.dockerImageId)),
@@ -417,11 +408,11 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 				const digest = imageName.split('@')[1];
 				let imagesFromDb: Image[];
 				if (digest != null) {
-					imagesFromDb = await this.db
+					imagesFromDb = await db
 						.models('image')
 						.where('name', 'like', `%@${digest}`);
 				} else {
-					imagesFromDb = await this.db
+					imagesFromDb = await db
 						.models('image')
 						.where({ name: imageName })
 						.select();
@@ -496,7 +487,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 		// We first fetch the image from the DB to ensure it exists,
 		// and get the dockerImageId and any other missing fields
-		const images = await this.db.models('image').select().where(image);
+		const images = await db.models('image').select().where(image);
 
 		if (images.length === 0) {
 			removed = false;
@@ -510,7 +501,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 				await this.docker.getImage(img.name).remove({ force: true });
 				removed = true;
 			} else {
-				const imagesFromDb = await this.db
+				const imagesFromDb = await db
 					.models('image')
 					.where({ dockerImageId: img.dockerImageId })
 					.select();
@@ -556,7 +547,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			this.reportChange(image.imageId);
 		}
 
-		await this.db.models('image').del().where({ id: img.id });
+		await db.models('image').del().where({ id: img.id });
 
 		if (removed) {
 			this.logger.logSystemEvent(LogTypes.deleteImageSuccess, { image });
@@ -565,7 +556,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 	private async markAsSupervised(image: Image): Promise<void> {
 		const formattedImage = this.format(image);
-		await this.db.upsertModel(
+		await db.upsertModel(
 			'image',
 			formattedImage,
 			// TODO: Upsert to new values only when they already match? This is likely a bug

@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 
 import { ApplicationManager } from './application-manager';
 import Config from './config';
-import Database, { Transaction } from './db';
+import * as db from './db';
 
 // Once we have correct types for both applications and the
 // incoming target state this should be changed
@@ -26,7 +26,6 @@ export class TargetStateAccessor {
 	public constructor(
 		protected applications: ApplicationManager,
 		protected config: Config,
-		protected db: Database,
 	) {
 		// If we switch backend, the target state also needs to
 		// be invalidated (this includes switching to and from
@@ -56,23 +55,21 @@ export class TargetStateAccessor {
 			]);
 
 			const source = localMode ? 'local' : apiEndpoint;
-			this.targetState = await this.db.models('app').where({ source });
+			this.targetState = await db.models('app').where({ source });
 		}
 		return this.targetState!;
 	}
 
 	public async setTargetApps(
 		apps: DatabaseApps,
-		trx: Transaction,
+		trx: db.Transaction,
 	): Promise<void> {
 		// We can't cache the value here, as it could be for a
 		// different source
 		this.targetState = undefined;
 
 		await Promise.all(
-			apps.map((app) =>
-				this.db.upsertModel('app', app, { appId: app.appId }, trx),
-			),
+			apps.map((app) => db.upsertModel('app', app, { appId: app.appId }, trx)),
 		);
 	}
 }

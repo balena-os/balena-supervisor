@@ -10,7 +10,6 @@ import { DeviceStatus, InstancedAppState } from './types/state';
 
 import ImageManager, { Image } from './compose/images';
 import ServiceManager from './compose/service-manager';
-import DB from './db';
 import DeviceState from './device-state';
 
 import { APIBinder } from './api-binder';
@@ -59,7 +58,6 @@ class ApplicationManager extends EventEmitter {
 	public volumes: VolumeManager;
 	public networks: NetworkManager;
 	public config: Config;
-	public db: DB;
 	public images: ImageManager;
 
 	public proxyvisor: any;
@@ -73,7 +71,6 @@ class ApplicationManager extends EventEmitter {
 	public constructor({
 		logger: Logger,
 		config: Config,
-		db: DB,
 		eventTracker: EventTracker,
 		deviceState: DeviceState,
 		apiBinder: APIBinder,
@@ -96,7 +93,7 @@ class ApplicationManager extends EventEmitter {
 		dependent: any,
 		source: string,
 		transaction: Knex.Transaction,
-	): Bluebird<void>;
+	): Promise<void>;
 
 	public getStatus(): Promise<{
 		local: DeviceStatus.local.apps;

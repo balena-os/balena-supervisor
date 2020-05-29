@@ -8,7 +8,7 @@ import StrictEventEmitter from 'strict-event-emitter-types';
 import prettyMs = require('pretty-ms');
 
 import Config, { ConfigType } from './config';
-import Database from './db';
+import * as db from './db';
 import EventTracker from './event-tracker';
 import Logger from './logger';
 
@@ -176,7 +176,6 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 }
 
 interface DeviceStateConstructOpts {
-	db: Database;
 	config: Config;
 	eventTracker: EventTracker;
 	logger: Logger;
@@ -219,7 +218,6 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| ConfigStep;
 
 export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {
-	public db: Database;
 	public config: Config;
 	public eventTracker: EventTracker;
 	public logger: Logger;
@@ -246,26 +244,22 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	public router: express.Router;
 
 	constructor({
-		db,
 		config,
 		eventTracker,
 		logger,
 		apiBinder,
 	}: DeviceStateConstructOpts) {
 		super();
-		this.db = db;
 		this.config = config;
 		this.eventTracker = eventTracker;
 		this.logger = logger;
 		this.deviceConfig = new DeviceConfig({
-			db: this.db,
 			config: this.config,
 			logger: this.logger,
 		});
 		this.applications = new ApplicationManager({
 			config: this.config,
 			logger: this.logger,
-			db: this.db,
 			eventTracker: this.eventTracker,
 			deviceState: this,
 			apiBinder,
@@ -463,7 +457,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		const apiEndpoint = await this.config.get('apiEndpoint');
 
 		await this.usingWriteLockTarget(async () => {
-			await this.db.transaction(async (trx) => {
+			await db.transaction(async (trx) => {
 				await this.config.set({ name: target.local.name }, trx);
 				await this.deviceConfig.setTarget(target.local.config, trx);
 

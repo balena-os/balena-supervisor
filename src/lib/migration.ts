@@ -11,7 +11,7 @@ const rimrafAsync = Bluebird.promisify(rimraf);
 
 import { ApplicationManager } from '../application-manager';
 import Config from '../config';
-import Database, { Transaction } from '../db';
+import * as db from '../db';
 import DeviceState from '../device-state';
 import * as constants from '../lib/constants';
 import { BackupError, DatabaseParseError, NotFoundError } from '../lib/errors';
@@ -108,7 +108,6 @@ export function convertLegacyAppsJson(appsArray: any[]): AppsJsonFormat {
 export async function normaliseLegacyDatabase(
 	config: Config,
 	application: ApplicationManager,
-	db: Database,
 	balenaApi: PinejsClientRequest,
 ) {
 	// When legacy apps are present, we kill their containers and migrate their /data to a named volume
@@ -196,7 +195,7 @@ export async function normaliseLegacyDatabase(
 			.where({ name: service.image })
 			.select();
 
-		await db.transaction(async (trx: Transaction) => {
+		await db.transaction(async (trx: db.Transaction) => {
 			try {
 				if (imagesFromDatabase.length > 0) {
 					log.debug('Deleting existing image entry in db');

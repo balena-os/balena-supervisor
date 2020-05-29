@@ -15,6 +15,7 @@ import * as bodyParser from 'body-parser';
 import * as url from 'url';
 
 import { log } from './lib/supervisor-console';
+import * as db from './db';
 
 const mkdirpAsync = Promise.promisify(mkdirp);
 
@@ -80,20 +81,18 @@ const formatCurrentAsState = (device) => ({
 });
 
 const createProxyvisorRouter = function (proxyvisor) {
-	const { db } = proxyvisor;
 	const router = express.Router();
 	router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 	router.use(bodyParser.json({ limit: '10mb' }));
-	router.get('/v1/devices', (_req, res) =>
-		db
-			.models('dependentDevice')
-			.select()
-			.map(parseDeviceFields)
-			.then((devices) => res.json(devices))
-			.catch((err) =>
-				res.status(503).send(err?.message || err || 'Unknown error'),
-			),
-	);
+	router.get('/v1/devices', async (_req, res) => {
+		try {
+			const fields = await db.models('dependentDevice').select();
+			const devices = fields.map(parseDeviceFields);
+			res.json(devices);
+		} catch (err) {
+			res.status(503).send(err?.message || err || 'Unknown error');
+		}
+	});
 
 	router.post('/v1/devices', function (req, res) {
 		let { appId, device_type } = req.body;
@@ -297,54 +296,54 @@ const createProxyvisorRouter = function (proxyvisor) {
 			});
 	});
 
-	router.get('/v1/dependent-apps/:appId/assets/:commit', (req, res) =>
-		db
-			.models('dependentApp')
-			.select()
-			.where(_.pick(req.params, 'appId', 'commit'))
-			.then(function ([app]) {
-				if (!app) {
-					return res.status(404).send('Not found');
-				}
-				const dest = tarPath(app.appId, app.commit);
-				return fs
-					.lstat(dest)
-					.catch(() =>
-						Promise.using(
-							proxyvisor.docker.imageRootDirMounted(app.image),
-							(rootDir) => getTarArchive(rootDir + '/assets', dest),
-						),
-					)
-					.then(() => res.sendFile(dest));
-			})
-			.catch(function (err) {
-				log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
-				return res.status(503).send(err?.message || err || 'Unknown error');
-			}),
-	);
+	router.get('/v1/dependent-apps/:appId/assets/:commit', async (req, res) => {
+		try {
+			const [app] = await db
+				.models('dependentApp')
+				.select()
+				.where(_.pick(req.params, 'appId', 'commit'));
 
-	router.get('/v1/dependent-apps', (req, res) =>
-		db
-			.models('dependentApp')
-			.select()
-			.map((app) => ({
+			if (!app) {
+				return res.status(404).send('Not found');
+			}
+			const dest = tarPath(app.appId, app.commit);
+			try {
+				await fs.lstat(dest);
+			} catch {
+				await Promise.using(
+					proxyvisor.docker.imageRootDirMounted(app.image),
+					(rootDir) => getTarArchive(rootDir + '/assets', dest),
+				);
+			}
+			res.sendFile(dest);
+		} catch (err) {
+			log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
+			return res.status(503).send(err?.message || err || 'Unknown error');
+		}
+	});
+
+	router.get('/v1/dependent-apps', async (req, res) => {
+		try {
+			const apps = await db.models('dependentApp').select();
+
+			const $apps = apps.map((app) => ({
 				id: parseInt(app.appId, 10),
 				commit: app.commit,
 				name: app.name,
 				config: JSON.parse(app.config ?? '{}'),
-			}))
-			.then((apps) => res.json(apps))
-			.catch(function (err) {
-				log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
-				return res.status(503).send(err?.message || err || 'Unknown error');
-			}),
-	);
+			}));
+			res.json($apps);
+		} catch (err) {
+			log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
+			return res.status(503).send(err?.message || err || 'Unknown error');
+		}
+	});
 
 	return router;
 };
 
 export class Proxyvisor {
-	constructor({ config, logger, db, docker, images, applications }) {
+	constructor({ config, logger, docker, images, applications }) {
 		this.bindToAPI = this.bindToAPI.bind(this);
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
@@ -362,7 +361,6 @@ export class Proxyvisor {
 		this.sendUpdates = this.sendUpdates.bind(this);
 		this.config = config;
 		this.logger = logger;
-		this.db = db;
 		this.docker = docker;
 		this.images = images;
 		this.applications = applications;
@@ -392,7 +390,7 @@ export class Proxyvisor {
 								device.apps[appId].environment,
 							);
 							const targetConfig = JSON.stringify(device.apps[appId].config);
-							return this.db
+							return db
 								.models('dependentDevice')
 								.update({
 									appId,
@@ -423,14 +421,12 @@ export class Proxyvisor {
 												targetConfig,
 												targetEnvironment,
 											};
-											return this.db
-												.models('dependentDevice')
-												.insert(deviceForDB);
+											return db.models('dependentDevice').insert(deviceForDB);
 										});
 								});
 						})
 							.then(() => {
-								return this.db
+								return db
 									.models('dependentDevice')
 									.where({ appId: step.appId })
 									.whereNotIn('uuid', _.map(step.devices, 'uuid'))
@@ -440,7 +436,7 @@ export class Proxyvisor {
 								return this.normaliseDependentAppForDB(step.app);
 							})
 							.then((appForDB) => {
-								return this.db.upsertModel('dependentApp', appForDB, {
+								return db.upsertModel('dependentApp', appForDB, {
 									appId: step.appId,
 								});
 							})
@@ -478,7 +474,7 @@ export class Proxyvisor {
 			removeDependentApp: (step) => {
 				// find step.app and delete it from the DB
 				// find devices with step.appId and delete them from the DB
-				return this.db.transaction((trx) =>
+				return db.transaction((trx) =>
 					trx('dependentApp')
 						.where({ appId: step.appId })
 						.del()
@@ -509,10 +505,10 @@ export class Proxyvisor {
 	getCurrentStates() {
 		return Promise.join(
 			Promise.map(
-				this.db.models('dependentApp').select(),
+				db.models('dependentApp').select(),
 				this.normaliseDependentAppFromDB,
 			),
-			this.db.models('dependentDevice').select(),
+			db.models('dependentDevice').select(),
 			function (apps, devicesFromDB) {
 				const devices = _.map(devicesFromDB, function (device) {
 					const dev = {
@@ -590,7 +586,7 @@ export class Proxyvisor {
 				return Promise.map(appsArray, this.normaliseDependentAppForDB)
 					.tap((appsForDB) => {
 						return Promise.map(appsForDB, (app) => {
-							return this.db.upsertModel(
+							return db.upsertModel(
 								'dependentAppTarget',
 								app,
 								{ appId: app.appId },
@@ -619,7 +615,7 @@ export class Proxyvisor {
 					);
 				}).then((devicesForDB) => {
 					return Promise.map(devicesForDB, (device) => {
-						return this.db.upsertModel(
+						return db.upsertModel(
 							'dependentDeviceTarget',
 							device,
 							{ uuid: device.uuid },
@@ -686,11 +682,11 @@ export class Proxyvisor {
 	getTarget() {
 		return Promise.props({
 			apps: Promise.map(
-				this.db.models('dependentAppTarget').select(),
+				db.models('dependentAppTarget').select(),
 				this.normaliseDependentAppFromDB,
 			),
 			devices: Promise.map(
-				this.db.models('dependentDeviceTarget').select(),
+				db.models('dependentDeviceTarget').select(),
 				this.normaliseDependentDeviceTargetFromDB,
 			),
 		});
@@ -899,7 +895,7 @@ export class Proxyvisor {
 	}
 
 	getHookEndpoint(appId) {
-		return this.db
+		return db
 			.models('dependentApp')
 			.select('parentApp')
 			.where({ appId })
@@ -958,7 +954,7 @@ export class Proxyvisor {
 			.timeout(timeout)
 			.spread((response, body) => {
 				if (response.statusCode === 200) {
-					return this.db.models('dependentDevice').del().where({ uuid });
+					return db.models('dependentDevice').del().where({ uuid });
 				} else {
 					throw new Error(`Hook returned ${response.statusCode}: ${body}`);
 				}
@@ -968,7 +964,7 @@ export class Proxyvisor {
 
 	sendUpdates({ uuid }) {
 		return Promise.join(
-			this.db.models('dependentDevice').where({ uuid }).select(),
+			db.models('dependentDevice').where({ uuid }).select(),
 			this.config.get('apiTimeout'),
 			([dev], apiTimeout) => {
 				if (dev == null) {

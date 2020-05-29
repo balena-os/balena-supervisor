@@ -2,7 +2,7 @@ import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import Config, { ConfigType } from './config';
-import DB from './db';
+import * as db from './db';
 import { EventTracker } from './event-tracker';
 import Docker from './lib/docker-utils';
 import { LogType } from './lib/log-types';
@@ -33,7 +33,6 @@ interface LoggerSetupOptions {
 type LogEventObject = Dictionary<any> | null;
 
 interface LoggerConstructOptions {
-	db: DB;
 	eventTracker: EventTracker;
 }
 
@@ -43,15 +42,13 @@ export class Logger {
 	private localBackend: LocalLogBackend | null = null;
 
 	private eventTracker: EventTracker;
-	private db: DB;
 	private containerLogs: { [containerId: string]: ContainerLogs } = {};
 	private logMonitor: LogMonitor;
 
-	public constructor({ db, eventTracker }: LoggerConstructOptions) {
+	public constructor({ eventTracker }: LoggerConstructOptions) {
 		this.backend = null;
 		this.eventTracker = eventTracker;
-		this.db = db;
-		this.logMonitor = new LogMonitor(db);
+		this.logMonitor = new LogMonitor();
 	}
 
 	public init({
@@ -247,7 +244,7 @@ export class Logger {
 
 	public async clearOutOfDateDBLogs(containerIds: string[]) {
 		log.debug('Performing database cleanup for container log timestamps');
-		await this.db
+		await db
 			.models('containerLogs')
 			.whereNotIn('containerId', containerIds)
 			.delete();

@@ -3,7 +3,7 @@ import { inspect } from 'util';
 
 import Config from './config';
 import { SchemaTypeKey } from './config/schema-type';
-import Database, { Transaction } from './db';
+import * as db from './db';
 import Logger from './logger';
 
 import { ConfigOptions, DeviceConfigBackend } from './config/backend';
@@ -17,7 +17,6 @@ import { DeviceStatus } from './types/state';
 const vpnServiceName = 'openvpn';
 
 interface DeviceConfigConstructOpts {
-	db: Database;
 	config: Config;
 	logger: Logger;
 }
@@ -57,7 +56,6 @@ interface DeviceActionExecutors {
 }
 
 export class DeviceConfig {
-	private db: Database;
 	private config: Config;
 	private logger: Logger;
 	private rebootRequired = false;
@@ -150,8 +148,7 @@ export class DeviceConfig {
 		},
 	};
 
-	public constructor({ db, config, logger }: DeviceConfigConstructOpts) {
-		this.db = db;
+	public constructor({ config, logger }: DeviceConfigConstructOpts) {
 		this.config = config;
 		this.logger = logger;
 
@@ -233,9 +230,9 @@ export class DeviceConfig {
 
 	public async setTarget(
 		target: Dictionary<string>,
-		trx?: Transaction,
+		trx?: db.Transaction,
 	): Promise<void> {
-		const db = trx != null ? trx : this.db.models.bind(this.db);
+		const $db = trx ?? db.models.bind(db);
 
 		const formatted = await this.formatConfigKeys(target);
 		// check for legacy keys
@@ -247,13 +244,13 @@ export class DeviceConfig {
 			targetValues: JSON.stringify(formatted),
 		};
 
-		await db('deviceConfig').update(confToUpdate);
+		await $db('deviceConfig').update(confToUpdate);
 	}
 
 	public async getTarget({ initial = false }: { initial?: boolean } = {}) {
 		const [unmanaged, [devConfig]] = await Promise.all([
 			this.config.get('unmanaged'),
-			this.db.models('deviceConfig').select('targetValues'),
+			db.models('deviceConfig').select('targetValues'),
 		]);
 
 		let conf: Dictionary<string>;

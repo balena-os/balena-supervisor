@@ -5,6 +5,7 @@ import * as _ from 'lodash';
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
 import Volume from '../compose/volume';
+import * as db from '../db';
 import { spawnJournalctl } from '../lib/journald';
 import {
 	appNotFoundMessage,
@@ -150,7 +151,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			Bluebird.join(
 				applications.services.getStatus(),
 				applications.images.getStatus(),
-				applications.db.models('app').select(['appId', 'commit', 'name']),
+				db.models('app').select(['appId', 'commit', 'name']),
 				(
 					services,
 					images,
