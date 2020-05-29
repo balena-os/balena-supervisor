@@ -11,6 +11,7 @@ import Config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
 import { createV2Api } from '../../src/device-api/v2';
+import APIBinder from '../../src/api-binder';
 import DeviceState from '../../src/device-state';
 import EventTracker from '../../src/event-tracker';
 import SupervisorAPI from '../../src/supervisor-api';
@@ -67,7 +68,12 @@ const STUBBED_VALUES = {
 
 async function create(): Promise<SupervisorAPI> {
 	// Get SupervisorAPI construct options
-	const { config, eventTracker, deviceState } = await createAPIOpts();
+	const {
+		config,
+		eventTracker,
+		deviceState,
+		apiBinder,
+	} = await createAPIOpts();
 	// Stub functions
 	setupStubs();
 	// Create ApplicationManager
@@ -83,7 +89,7 @@ async function create(): Promise<SupervisorAPI> {
 		config,
 		eventTracker,
 		routers: [buildRoutes(appManager)],
-		healthchecks: [],
+		healthchecks: [deviceState.healthcheck, apiBinder.healthcheck],
 	});
 	// Return SupervisorAPI that is not listening yet
 	return api;
@@ -115,10 +121,16 @@ async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 		logger: null as any,
 		apiBinder: null as any,
 	});
+	const apiBinder = new APIBinder({
+		config: mockedConfig,
+		eventTracker: tracker,
+		logger: null as any,
+	});
 	return {
 		config: mockedConfig,
 		eventTracker: tracker,
 		deviceState,
+		apiBinder,
 	};
 }
 
@@ -168,6 +180,7 @@ interface SupervisorAPIOpts {
 	config: Config;
 	eventTracker: EventTracker;
 	deviceState: DeviceState;
+	apiBinder: APIBinder;
 }
 
 export = { create, cleanUp, STUBBED_VALUES };

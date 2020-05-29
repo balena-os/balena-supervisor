@@ -1,5 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as bodyParser from 'body-parser';
+import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
 import * as express from 'express';
 import * as _ from 'lodash';
@@ -285,19 +286,36 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 	public async healthcheck() {
 		const unmanaged = await this.config.get('unmanaged');
+
+		// Don't have to perform checks for unmanaged
+		if (unmanaged) {
+			return true;
+		}
+
 		const cycleTime = process.hrtime(this.lastApplyStart);
 		const cycleTimeMs = cycleTime[0] * 1000 + cycleTime[1] / 1e6;
-
 		const cycleTimeWithinInterval =
 			cycleTimeMs - this.applications.timeSpentFetching < 2 * this.maxPollTime;
 
+		// Check if target is healthy
 		const applyTargetHealthy =
-			unmanaged ||
 			!this.applyInProgress ||
 			this.applications.fetchesInProgress > 0 ||
 			cycleTimeWithinInterval;
 
-		return applyTargetHealthy;
+		if (!applyTargetHealthy) {
+			log.info(
+				stripIndent`
+				Healthcheck failure - Atleast ONE of the following conditions must be true:
+					- No applyInProgress      ? ${!(this.applyInProgress === true)}
+					- fetchesInProgress       ? ${this.applications.fetchesInProgress > 0}
+					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
+			);
+			return false;
+		}
+
+		// All tests pass!
+		return true;
 	}
 
 	public async init() {
