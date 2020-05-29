@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update dependencies
+      hash: 1decd87c21de6c6b2baf7cb9a93141c8d097b874
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.4.17
+  date: 2020-05-29T18:26:52.490Z
+- commits:
     - subject: Make the db module a singleton
       hash: 1d7381327e3114c0d005316846429d26b01a3e4c
       body: >
