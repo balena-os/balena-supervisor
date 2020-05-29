@@ -1,3 +1,4 @@
+import * as express from 'express';
 import * as _ from 'lodash';
 
 import Database from '../db';
@@ -26,7 +27,7 @@ export type ApiSecretScope =
 			type: 'app';
 			appId: number;
 	  }
-	| { type: 'apps' };
+	| { type: 'all-apps' };
 
 // This does not change throughout the runtime, and storing
 // it allows us to not have to provide it as a parameter to
@@ -168,5 +169,26 @@ function dbFormatToApiSecret(row: DbApiSecret): ApiSecret {
 			row.serviceId !== CLOUD_KEY_SELECTOR.serviceId
 				? row.serviceId
 				: undefined,
+	};
+}
+
+export type RequestWithScope = express.Request & {
+	data: {
+		serviceId?: number;
+		appId?: number;
+		scopes: ApiSecretScope[];
+	};
+};
+
+type Scope = ApiSecretScope['type'];
+
+export function requireScope(types: Scope | Scope[]): express.RequestHandler {
+	return (req: RequestWithScope, res, next) => {
+		for (const type of _.toArray(types)) {
+			if (!_.find(req.data.scopes, { type })) {
+				res.status(401).send();
+			}
+		}
+		next();
 	};
 }

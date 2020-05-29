@@ -16,6 +16,7 @@ import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone, serviceAction } from './common';
+import * as apiSecrets from '../lib/api-secrets';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 	const { _lockingIfNecessary, deviceState } = applications;
@@ -88,6 +89,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.post(
 		'/v2/applications/:appId/purge',
+		apiSecrets.requireScope(['app', 'all-apps']),
 		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);

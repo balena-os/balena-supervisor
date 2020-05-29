@@ -13,14 +13,6 @@ import { checkTruthy } from './lib/validation';
 
 import log from './lib/supervisor-console';
 
-export type RequestWithScope = Request & {
-	data: {
-		serviceId?: number;
-		appId?: number;
-		scopes: apiSecrets.ApiSecretScope[];
-	};
-};
-
 function getKeyFromReq(req: express.Request): string | undefined {
 	// Check query for key
 	if (req.query.apikey) {
@@ -159,7 +151,7 @@ export class SupervisorAPI {
 		// It also communicates the new key to the balena API.
 		this.api.post(
 			'/v1/regenerate-api-key',
-			async (req: RequestWithScope, res) => {
+			async (req: apiSecrets.RequestWithScope, res) => {
 				try {
 					let secrets: apiSecrets.ApiSecret[];
 					// Check the scope which this key has been configured with
