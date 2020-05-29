@@ -1,4 +1,18 @@
 - commits:
+    - subject: Refactor device-state healthchecks to log reason for failure
+      hash: 5550a3a330b6a27addd940c185dc7d489cd89464
+      body: ''
+      footer:
+        Closes: '#1292'
+        closes: '#1292'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.5.0
+  date: 2020-05-29T20:26:07.486Z
+- commits:
     - subject: Update dependencies
       hash: 1decd87c21de6c6b2baf7cb9a93141c8d097b874
       body: ''
