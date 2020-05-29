@@ -92,10 +92,8 @@ export class EventTracker {
 		(event: string) => {
 			// Call this function at maximum once every minute
 			return _.throttle(
-				(properties) => {
-					if (this.client != null) {
-						this.client.track(event, properties);
-					}
+				(properties: EventTrackProperties | Error) => {
+					this.client?.track(event, properties);
 				},
 				eventDebounceTime,
 				{ leading: true },
