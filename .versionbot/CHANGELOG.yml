@@ -1,4 +1,22 @@
 - commits:
+    - subject: Make the db module a singleton
+      hash: 1d7381327e3114c0d005316846429d26b01a3e4c
+      body: >
+        We were treating the database class as a singleton, but still having to
+        pass
+
+        around the db instance. Now we can simply require the db module and have
+
+        access to the database handle.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.16
+  date: 2020-05-29T14:03:57.770Z
+- commits:
     - subject: Check for ApiError before using it as such
       hash: 972b896c95daf1305468137aefe1e12ead0d59ee
       body: ''
