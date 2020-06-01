@@ -112,9 +112,22 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		return services[0];
 	}
 
-	public async getStatus() {
-		const services = await this.getAll();
+	public async getStatus(appId?: number | number[]) {
+		const getPromises: Array<Promise<Service[]>> = [];
+		if (appId) {
+			appId = (_.toArray(appId) as unknown) as number[];
+			getPromises.concat(
+				..._.toArray(appId).map((id) => this.getAllByAppId(id)),
+			);
+		} else {
+			getPromises.push(this.getAll());
+		}
+
 		const status = _.clone(this.volatileState);
+		const services: Service[] = [];
+		for (const appServices of await Promise.all(getPromises)) {
+			services.push(...appServices);
+		}
 
 		for (const service of services) {
 			if (service.containerId == null) {

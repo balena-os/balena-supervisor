@@ -97,7 +97,7 @@ export async function getCloudApiSecret(): Promise<string> {
 		await db.models('apiSecret').insert({
 			...CLOUD_KEY_SELECTOR,
 			key,
-			scopes: stringifyScopes([{ type: 'apps' }]),
+			scopes: stringifyScopes([{ type: 'all-apps' }]),
 		});
 		return key;
 	} else if (secrets.length > 1) {
@@ -180,15 +180,4 @@ export type RequestWithScope = express.Request & {
 	};
 };
 
-type Scope = ApiSecretScope['type'];
-
-export function requireScope(types: Scope | Scope[]): express.RequestHandler {
-	return (req: RequestWithScope, res, next) => {
-		for (const type of _.toArray(types)) {
-			if (!_.find(req.data.scopes, { type })) {
-				res.status(401).send();
-			}
-		}
-		next();
-	};
-}
+export type Scope = ApiSecretScope['type'];

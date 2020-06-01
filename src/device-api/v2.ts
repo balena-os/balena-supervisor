@@ -16,7 +16,13 @@ import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone, serviceAction } from './common';
-import * as apiSecrets from '../lib/api-secrets';
+import {
+	requireScope,
+	RequestWithScope,
+	secretIsScopedToApp as isSecretScopedToApp,
+	requireAppScope,
+	getScopedApps,
+} from '../supervisor-api';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 	const { _lockingIfNecessary, deviceState } = applications;
@@ -89,8 +95,9 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.post(
 		'/v2/applications/:appId/purge',
-		apiSecrets.requireScope(['app', 'all-apps']),
-		(req: Request, res: Response, next: NextFunction) => {
+		requireScope(['app', 'all-apps']),
+		requireAppScope('req.params.appId'),
+		(req: RequestWithScope, res: Response, next: NextFunction) => {
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);
 			if (!appId) {
@@ -110,21 +117,29 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.post(
 		'/v2/applications/:appId/restart-service',
+		requireScope(['app', 'all-apps']),
+		requireAppScope('req.params.appId'),
 		createServiceActionHandler('restart'),
 	);
 
 	router.post(
 		'/v2/applications/:appId/stop-service',
+		requireScope(['app', 'all-apps']),
+		requireAppScope('req.params.appId'),
 		createServiceActionHandler('stop'),
 	);
 
 	router.post(
 		'/v2/applications/:appId/start-service',
+		requireScope(['app', 'all-apps']),
+		requireAppScope('req.params.appId'),
 		createServiceActionHandler('start'),
 	);
 
 	router.post(
 		'/v2/applications/:appId/restart',
+		requireScope(['app', 'all-apps']),
+		requireAppScope('req.params.appId'),
 		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);
@@ -146,11 +161,14 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	// TODO: Support dependent applications when this feature is complete
 	router.get(
 		'/v2/applications/state',
-		async (_req: Request, res: Response, next: NextFunction) => {
+		requireScope(['app', 'all-apps']),
+		async (req: RequestWithScope, res: Response, next: NextFunction) => {
+			const scopedAppIds = getScopedApps(req.data.scopes);
+
 			// It's kinda hacky to access the services and db via the application manager
 			// maybe refactor this code
 			Bluebird.join(
-				applications.services.getStatus(),
+				applications.services.getStatus(scopedAppIds),
 				applications.images.getStatus(),
 				applications.db.models('app').select(['appId', 'commit', 'name']),
 				(

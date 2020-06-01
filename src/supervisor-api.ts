@@ -9,7 +9,7 @@ import { EventTracker } from './event-tracker';
 import * as apiSecrets from './lib/api-secrets';
 import blink = require('./lib/blink');
 import * as iptables from './lib/iptables';
-import { checkTruthy } from './lib/validation';
+import { checkTruthy, checkInt } from './lib/validation';
 
 import log from './lib/supervisor-console';
 
@@ -51,7 +51,7 @@ function authenticate(config: Config): express.RequestHandler {
 				}
 				const apiSecret = await apiSecrets.lookupKey(key);
 				if (apiSecret) {
-					(req as RequestWithScope).data = apiSecret;
+					(req as apiSecrets.RequestWithScope).data = apiSecret;
 					return next();
 				} else {
 					return res.sendStatus(401);
@@ -89,6 +89,87 @@ interface SupervisorAPIConstructOpts {
 
 interface SupervisorAPIStopOpts {
 	errored: boolean;
+}
+
+export type RequestWithScope = apiSecrets.RequestWithScope;
+
+/**
+ * @description Returns a middleware function to ensure only keys which are scoped appropriately can access this route.
+ * The `request` param of the function can be accessed with a `RequestWithScope`.
+ * @export
+ * @param {(apiSecrets.Scope | apiSecrets.Scope[])} types
+ * @returns {express.RequestHandler}
+ */
+export function requireScope(
+	types: apiSecrets.Scope | apiSecrets.Scope[],
+): express.RequestHandler {
+	return (req: RequestWithScope, res, next) => {
+		for (const type of _.toArray(types)) {
+			if (!_.find(req.data.scopes, { type })) {
+				res.status(401).send();
+			}
+		}
+		next();
+	};
+}
+
+export function requireAppScope(
+	pathToId: _.PropertyPath,
+): express.RequestHandler {
+	pathToId = _.toPath(pathToId);
+
+	return (req: RequestWithScope, res, next) => {
+		const appIdValue = _.get(req, pathToId, '');
+		const appId = checkInt(appIdValue);
+
+		if (appId) {
+			if (isSecretScopedToApp(appId, req.data.scopes)) {
+				return next();
+			}
+		}
+
+		// the secret is not scoped to this app...
+		res.status(401).send();
+	};
+}
+
+/**
+ * @description Returns an array of Application IDs which are in-scope, or undefined if scope includes `all-apps`
+ *
+ * @export
+ * @param {apiSecrets.ApiSecretScope[]} scopes
+ * @returns {(number[] | undefined)}
+ */
+export function getScopedApps(
+	scopes: apiSecrets.ApiSecretScope[],
+): number[] | undefined {
+	const scopedIds: number[] = [];
+	for (const scope of scopes) {
+		if (scope.type === 'all-apps') {
+			return undefined;
+		} else if (scope.type === 'app') {
+			scopedIds.push(scope.appId);
+		}
+	}
+
+	return scopedIds;
+}
+
+function isSecretScopedToApp(
+	appId: number,
+	scopes: apiSecrets.ApiSecretScope[],
+): boolean {
+	return (
+		scopes.find((scope) => {
+			if (scope.type === 'all-apps') {
+				return true;
+			}
+
+			if (scope.type === 'app' && scope.appId === appId) {
+				return true;
+			}
+		}) !== undefined
+	);
 }
 
 export class SupervisorAPI {
