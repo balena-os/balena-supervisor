@@ -9,19 +9,15 @@ chai.use(require('chai-events'));
 const { expect } = chai;
 
 import Config from '../src/config';
-import DB from '../src/db';
 import constants = require('../src/lib/constants');
 
 describe('Config', () => {
-	let db: DB;
 	let conf: Config;
 
 	before(async () => {
-		prepare();
-		db = new DB();
-		conf = new Config({ db });
+		await prepare();
+		conf = new Config();
 
-		await db.init();
 		await conf.init();
 	});
 
@@ -32,7 +28,7 @@ describe('Config', () => {
 	});
 
 	it('uses the correct config.json path from the root mount when passed as argument to the constructor', async () => {
-		const conf2 = new Config({ db, configPath: '/foo.json' });
+		const conf2 = new Config({ configPath: '/foo.json' });
 		expect(await (conf2 as any).configJsonBackend.path()).to.equal(
 			'test/data/foo.json',
 		);
@@ -131,10 +127,8 @@ describe('Config', () => {
 
 	describe('Function config providers', () => {
 		before(async () => {
-			prepare();
-			db = new DB();
-			conf = new Config({ db });
-			await db.init();
+			await prepare();
+			conf = new Config();
 			await conf.init();
 		});
 

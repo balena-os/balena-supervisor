@@ -4,26 +4,20 @@ import * as _ from 'lodash';
 
 import * as constants from './lib/constants';
 
-interface DBOpts {
-	databasePath?: string;
-}
-
 type DBTransactionCallback = (trx: Knex.Transaction) => void;
 
 export type Transaction = Knex.Transaction;
 
-let databasePath: string;
-let knex: Knex;
+const databasePath = constants.databasePath;
+const knex = Knex({
+	client: 'sqlite3',
+	connection: {
+		filename: databasePath,
+	},
+	useNullAsDefault: true,
+});
 
-export async function init({ databasePath }: DBOpts = {}): Promise<void> {
-	databasePath = databasePath || constants.databasePath;
-	knex = Knex({
-		client: 'sqlite3',
-		connection: {
-			filename: databasePath,
-		},
-		useNullAsDefault: true,
-	});
+export const initialized = (async () => {
 	try {
 		await knex('knex_migrations_lock').update({ is_locked: 0 });
 	} catch {
@@ -32,7 +26,7 @@ export async function init({ databasePath }: DBOpts = {}): Promise<void> {
 	return knex.migrate.latest({
 		directory: path.join(__dirname, 'migrations'),
 	});
-}
+})();
 
 export function models(modelName: string): Knex.QueryBuilder {
 	return knex(modelName);

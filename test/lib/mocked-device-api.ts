@@ -4,12 +4,14 @@ import { stub } from 'sinon';
 
 import { ApplicationManager } from '../../src/application-manager';
 import Config from '../../src/config';
-import Database from '../../src/db';
+import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
 import { createV2Api } from '../../src/device-api/v2';
+import APIBinder from '../../src/api-binder';
 import DeviceState from '../../src/device-state';
 import EventTracker from '../../src/event-tracker';
 import SupervisorAPI from '../../src/supervisor-api';
+
 import { Images } from '../../src/compose/images';
 import { ServiceManager } from '../../src/compose/service-manager';
 import { NetworkManager } from '../../src/compose/network-manager';
@@ -70,12 +72,16 @@ const STUBBED_VALUES = {
 
 async function create(): Promise<SupervisorAPI> {
 	// Get SupervisorAPI construct options
-	const { db, config, eventTracker, deviceState } = await createAPIOpts();
+	const {
+		config,
+		eventTracker,
+		deviceState,
+		apiBinder,
+	} = await createAPIOpts();
 	// Stub functions
 	setupStubs();
 	// Create ApplicationManager
 	const appManager = new ApplicationManager({
-		db,
 		config,
 		eventTracker,
 		logger: null,
@@ -87,7 +93,7 @@ async function create(): Promise<SupervisorAPI> {
 		config,
 		eventTracker,
 		routers: [buildRoutes(appManager)],
-		healthchecks: [],
+		healthchecks: [deviceState.healthcheck, apiBinder.healthcheck],
 	});
 	// Return SupervisorAPI that is not listening yet
 	return api;
@@ -105,32 +111,32 @@ async function cleanUp(): Promise<void> {
 }
 
 async function createAPIOpts(): Promise<SupervisorAPIOpts> {
-	// Create database
-	const db = new Database({
-		databasePath: DB_PATH,
-	});
-	await db.init();
-	// Setup all scoped keys
-	await initSecrets(db);
+	await db.initialized;
 	// Create config
-	const mockedConfig = new Config({ db });
+	const mockedConfig = new Config();
 	// Initialize and set values for mocked Config
 	await initConfig(mockedConfig);
+	// Initialise secret keys for the services
+	await initSecrets();
 	// Create EventTracker
 	const tracker = new EventTracker();
 	// Create deviceState
 	const deviceState = new DeviceState({
-		db,
 		config: mockedConfig,
 		eventTracker: tracker,
 		logger: null as any,
 		apiBinder: null as any,
 	});
+	const apiBinder = new APIBinder({
+		config: mockedConfig,
+		eventTracker: tracker,
+		logger: null as any,
+	});
 	return {
-		db,
 		config: mockedConfig,
 		eventTracker: tracker,
 		deviceState,
+		apiBinder,
 	};
 }
 
@@ -143,13 +149,12 @@ async function initConfig(config: Config): Promise<void> {
 	return config.init();
 }
 
-async function initSecrets(db: Database): Promise<void> {
-	// Initialize the api secrets
-	apiSecrets.initApiSecrets(db);
-
+async function initSecrets(): Promise<void> {
 	// Prefill the keys by simply requesting them
 	for (const service of STUBBED_VALUES.services) {
-		await apiSecrets.getApiSecretForService(service.appId, service.serviceId);
+		await apiSecrets.getApiSecretForService(service.appId, service.serviceId, [
+			{ type: 'app', appId: service.appId },
+		]);
 	}
 	await apiSecrets.getCloudApiSecret();
 }
@@ -184,10 +189,10 @@ function restoreStubs() {
 }
 
 interface SupervisorAPIOpts {
-	db: Database;
 	config: Config;
 	eventTracker: EventTracker;
 	deviceState: DeviceState;
+	apiBinder: APIBinder;
 }
 
 export = { create, cleanUp, STUBBED_VALUES };

@@ -1,5 +1,18 @@
 {
-  "V1": {},
+  "V1": {
+    "GET": {
+      "/healthy": {
+        "statusCode": 200,
+        "body": {},
+        "text": "OK"
+      },
+      "/healthy [2]": {
+        "statusCode": 500,
+        "body": {},
+        "text": "Unhealthy"
+      }
+    }
+  },
   "V2": {
     "GET": {
       "/device/vpn": {

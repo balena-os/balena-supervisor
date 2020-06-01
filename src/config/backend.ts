@@ -215,6 +215,15 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 	}
 }
 
+// LABEL primary
+// MENU LABEL primary Image
+// LINUX /boot/Image
+// FDT /boot/mycustomdtb.dtb <-- this path should be added, or replaced in extlinux.conf
+// APPEND ${cbootargs} ${resin_kernel_root} isolcpu=3 ro rootwait sdhci_tegra.en_boot_part_access=1 ${os_cmdline}
+
+// BALENA_HOST_EXTLINUX_isolcpus=3
+// BALENA_HOST_EXTLINUX_fdt="[\"12345.ftb\",\"5678.ftb\"]"
+
 export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
 	private static bootConfigPath = `${bootMountPoint}/extlinux/extlinux.conf`;
@@ -223,7 +232,9 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		'(' + _.escapeRegExp(ExtlinuxConfigBackend.bootConfigVarPrefix) + ')(.+)',
 	);
 
+	// BALENA_HOST_EXTLINUX_isolcpus = 3
 	private static suppportedConfigKeys = ['isolcpus'];
+	private static suppportedSpoecialConfigKeys = ['fdt'];
 
 	public matches(deviceType: string): boolean {
 		return _.startsWith(deviceType, 'jetson-tx');

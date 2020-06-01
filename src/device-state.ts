@@ -1,5 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as bodyParser from 'body-parser';
+import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
 import * as express from 'express';
 import * as _ from 'lodash';
@@ -8,7 +9,7 @@ import StrictEventEmitter from 'strict-event-emitter-types';
 import prettyMs = require('pretty-ms');
 
 import Config, { ConfigType } from './config';
-import Database from './db';
+import * as db from './db';
 import EventTracker from './event-tracker';
 import Logger from './logger';
 
@@ -177,7 +178,6 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 }
 
 interface DeviceStateConstructOpts {
-	db: Database;
 	config: Config;
 	eventTracker: EventTracker;
 	logger: Logger;
@@ -220,7 +220,6 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| ConfigStep;
 
 export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {
-	public db: Database;
 	public config: Config;
 	public eventTracker: EventTracker;
 	public logger: Logger;
@@ -247,26 +246,22 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	public router: express.Router;
 
 	constructor({
-		db,
 		config,
 		eventTracker,
 		logger,
 		apiBinder,
 	}: DeviceStateConstructOpts) {
 		super();
-		this.db = db;
 		this.config = config;
 		this.eventTracker = eventTracker;
 		this.logger = logger;
 		this.deviceConfig = new DeviceConfig({
-			db: this.db,
 			config: this.config,
 			logger: this.logger,
 		});
 		this.applications = new ApplicationManager({
 			config: this.config,
 			logger: this.logger,
-			db: this.db,
 			eventTracker: this.eventTracker,
 			deviceState: this,
 			apiBinder,
@@ -292,19 +287,36 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 	public async healthcheck() {
 		const unmanaged = await this.config.get('unmanaged');
+
+		// Don't have to perform checks for unmanaged
+		if (unmanaged) {
+			return true;
+		}
+
 		const cycleTime = process.hrtime(this.lastApplyStart);
 		const cycleTimeMs = cycleTime[0] * 1000 + cycleTime[1] / 1e6;
-
 		const cycleTimeWithinInterval =
 			cycleTimeMs - this.applications.timeSpentFetching < 2 * this.maxPollTime;
 
+		// Check if target is healthy
 		const applyTargetHealthy =
-			unmanaged ||
 			!this.applyInProgress ||
 			this.applications.fetchesInProgress > 0 ||
 			cycleTimeWithinInterval;
 
-		return applyTargetHealthy;
+		if (!applyTargetHealthy) {
+			log.info(
+				stripIndent`
+				Healthcheck failure - Atleast ONE of the following conditions must be true:
+					- No applyInProgress      ? ${!(this.applyInProgress === true)}
+					- fetchesInProgress       ? ${this.applications.fetchesInProgress > 0}
+					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
+			);
+			return false;
+		}
+
+		// All tests pass!
+		return true;
 	}
 
 	public async init() {
@@ -461,7 +473,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		const apiEndpoint = await this.config.get('apiEndpoint');
 
 		await this.usingWriteLockTarget(async () => {
-			await this.db.transaction(async (trx) => {
+			await db.transaction(async (trx) => {
 				await this.config.set({ name: target.local.name }, trx);
 				await this.deviceConfig.setTarget(target.local.config, trx);
 

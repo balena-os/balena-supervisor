@@ -1,23 +1,22 @@
+import { stripIndent } from 'common-tags';
 import { fs } from 'mz';
 import { Server } from 'net';
-import { SinonSpy, spy, stub, SinonStub } from 'sinon';
+import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 
+import ApiBinder from '../src/api-binder';
+import Config from '../src/config';
+import DeviceState from '../src/device-state';
+import Log from '../src/lib/supervisor-console';
 import chai = require('./lib/chai-config');
 import balenaAPI = require('./lib/mocked-balena-api');
 import prepare = require('./lib/prepare');
-import ApiBinder from '../src/api-binder';
-import Config from '../src/config';
-import Log from '../src/lib/supervisor-console';
-import DB from '../src/db';
-import DeviceState from '../src/device-state';
 
 const { expect } = chai;
 
 const initModels = async (obj: Dictionary<any>, filename: string) => {
-	prepare();
+	await prepare();
 
-	obj.db = new DB();
-	obj.config = new Config({ db: obj.db, configPath: filename });
+	obj.config = new Config({ configPath: filename });
 
 	obj.eventTracker = {
 		track: stub().callsFake((ev, props) => console.log(ev, props)),
@@ -36,7 +35,6 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 	});
 
 	obj.deviceState = new DeviceState({
-		db: obj.db,
 		config: obj.config,
 		eventTracker: obj.eventTracker,
 		logger: obj.logger,
@@ -45,7 +43,6 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 
 	obj.apiBinder.setDeviceState(obj.deviceState);
 
-	await obj.db.init();
 	await obj.config.init();
 	await obj.apiBinder.initClient(); // Initializes the clients but doesn't trigger provisioning
 };
@@ -281,6 +278,110 @@ describe('ApiBinder', () => {
 				expect(conf['deviceApiKey']).to.be.empty;
 				return expect(conf['uuid']).to.not.be.undefined;
 			});
+		});
+	});
+
+	describe('healthchecks', () => {
+		const components: Dictionary<any> = {};
+		let configStub: SinonStub;
+		let infoLobSpy: SinonSpy;
+
+		before(async () => {
+			await initModels(components, '/config-apibinder.json');
+		});
+
+		beforeEach(() => {
+			// This configStub will be modified in each test case so we can
+			// create the exact conditions we want to for testing healthchecks
+			configStub = stub(Config.prototype, 'getMany');
+			infoLobSpy = spy(Log, 'info');
+		});
+
+		afterEach(() => {
+			configStub.restore();
+			infoLobSpy.restore();
+		});
+
+		it('passes with correct conditions', async () => {
+			// Set unmanaged to false so we check all values
+			// The other values are stubbed to make it pass
+			configStub.resolves({
+				unmanaged: false,
+				appUpdatePollInterval: 1000,
+				connectivityCheckEnabled: false,
+			});
+			expect(await components.apiBinder.healthcheck()).to.equal(true);
+		});
+
+		it('passes if unmanaged is true and exit early', async () => {
+			// Setup failing conditions
+			configStub.resolves({
+				unmanaged: false,
+				appUpdatePollInterval: null,
+				connectivityCheckEnabled: false,
+			});
+			// Verify this causes healthcheck to fail
+			expect(await components.apiBinder.healthcheck()).to.equal(false);
+			// Do it again but set unmanaged to true
+			configStub.resolves({
+				unmanaged: true,
+				appUpdatePollInterval: null,
+				connectivityCheckEnabled: false,
+			});
+			expect(await components.apiBinder.healthcheck()).to.equal(true);
+		});
+
+		it('fails if appUpdatePollInterval not set in config and exit early', async () => {
+			configStub.resolves({
+				unmanaged: false,
+				appUpdatePollInterval: null,
+				connectivityCheckEnabled: false,
+			});
+			expect(await components.apiBinder.healthcheck()).to.equal(false);
+			expect(Log.info).to.be.calledOnce;
+			expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
+				'Healthcheck failure - Config value `appUpdatePollInterval` cannot be null',
+			);
+		});
+
+		it("fails when hasn't checked target state within poll interval", async () => {
+			configStub.resolves({
+				unmanaged: false,
+				appUpdatePollInterval: 1,
+				connectivityCheckEnabled: false,
+			});
+			expect(await components.apiBinder.healthcheck()).to.equal(false);
+			expect(Log.info).to.be.calledOnce;
+			expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
+				'Healthcheck failure - Device has not fetched target state within appUpdatePollInterval limit',
+			);
+		});
+
+		it('fails when stateReportHealthy is false', async () => {
+			configStub.resolves({
+				unmanaged: false,
+				appUpdatePollInterval: 1000,
+				connectivityCheckEnabled: true,
+			});
+			// Copy previous values to restore later
+			const previousStateReportErrors = components.apiBinder.stateReportErrors;
+			const previousDeviceStateConnected =
+				components.apiBinder.deviceState.connected;
+			// Set additional conditions not in configStub to cause a fail
+			components.apiBinder.stateReportErrors = 4;
+			components.apiBinder.deviceState.connected = true;
+			expect(await components.apiBinder.healthcheck()).to.equal(false);
+			expect(Log.info).to.be.calledOnce;
+			expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
+				stripIndent`
+				Healthcheck failure - Atleast ONE of the following conditions must be true:
+					- No connectivityCheckEnabled   ? false
+					- device state is disconnected  ? false
+					- stateReportErrors less then 3 ? false`,
+			);
+			// Restore previous values
+			components.apiBinder.stateReportErrors = previousStateReportErrors;
+			components.apiBinder.deviceState.connected = previousDeviceStateConnected;
 		});
 	});
 });

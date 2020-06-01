@@ -9,6 +9,25 @@ process.env.LED_FILE = './test/data/led_file';
 import * as dbus from 'dbus';
 import { DBusError, DBusInterface } from 'dbus';
 import { stub } from 'sinon';
+import * as fs from 'fs';
+
+// Make sure they are no database files left over from
+// previous runs
+try {
+	fs.unlinkSync(process.env.DATABASE_PATH);
+} catch {
+	/* noop */
+}
+try {
+	fs.unlinkSync(process.env.DATABASE_PATH_2);
+} catch {
+	/* noop */
+}
+try {
+	fs.unlinkSync(process.env.DATABASE_PATH_3);
+} catch {
+	/* noop */
+}
 
 stub(dbus, 'getBus').returns({
 	getInterface: (

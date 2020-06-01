@@ -2,8 +2,8 @@
 
 // TODO: Upstream types to the repo
 declare module 'balena-register-device' {
-	import TypedError = require('typed-error');
 	import { Response } from 'request';
+	import TypedError = require('typed-error');
 
 	function factory({
 		request,
@@ -13,7 +13,7 @@ declare module 'balena-register-device' {
 	};
 
 	factory.ApiError = class ApiError extends TypedError {
-		response: Response;
+		public response: Response;
 	};
 	export = factory;
 }

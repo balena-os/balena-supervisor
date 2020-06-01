@@ -228,15 +228,13 @@ export class SupervisorAPI {
 			return res.sendStatus(200);
 		});
 
-		// Expires the supervisor's API key and generates a new one.
-		// It also communicates the new key to the balena API.
 		this.api.post(
 			'/v1/regenerate-api-key',
 			async (req: apiSecrets.RequestWithScope, res) => {
 				try {
 					let secrets: apiSecrets.ApiSecret[];
 					// Check the scope which this key has been configured with
-					if (_.find(req.data.scopes, { type: 'apps' })) {
+					if (_.find(req.data.scopes, { type: 'all-apps' })) {
 						// Regenerate all keys
 						secrets = await apiSecrets.regenerateKeys();
 					} else {

@@ -1,7 +1,7 @@
 import * as express from 'express';
 import * as _ from 'lodash';
 
-import Database from '../db';
+import * as db from '../db';
 import { InternalInconsistencyError } from './errors';
 import { generateUniqueKey } from './register-device';
 
@@ -29,28 +29,19 @@ export type ApiSecretScope =
 	  }
 	| { type: 'all-apps' };
 
-// This does not change throughout the runtime, and storing
-// it allows us to not have to provide it as a parameter to
-// every function
-let db: Database | undefined;
-
-export function initApiSecrets(database: Database) {
-	db = database;
-}
-
-function checkInit(
-	database: Database | undefined,
-): asserts database is Database {
-	if (database == null) {
-		throw new InternalInconsistencyError(
-			'ApiSecrets used before initialization!',
-		);
-	}
-}
+const apiSecretMemoizer = (
+	appId: number,
+	serviceId: number,
+	scopes: ApiSecretScope[],
+) => `${appId}:${serviceId}:${JSON.stringify(scopes)}`;
 
 export const getApiSecretForService = _.memoize(
-	async (appId: number, serviceId: number): Promise<ApiSecret> => {
-		checkInit(db);
+	async (
+		appId: number,
+		serviceId: number,
+		scopes: ApiSecretScope[],
+	): Promise<ApiSecret> => {
+		await db.initialized;
 
 		const secrets = await db
 			.models('apiSecret')
@@ -61,7 +52,6 @@ export const getApiSecretForService = _.memoize(
 			// This is the first time we have a request for a
 			// service, so we generate the key
 			const key = generateUniqueKey();
-			const scopes: ApiSecretScope[] = [{ type: 'app', appId }];
 			await db.models('apiSecret').insert({
 				appId,
 				serviceId,
@@ -79,13 +69,26 @@ export const getApiSecretForService = _.memoize(
 				`Multiple keys for service! appId: ${appId} serviceId: ${serviceId}`,
 			);
 		} else {
-			return dbFormatToApiSecret(secrets[0]);
+			const currentSecret = dbFormatToApiSecret(secrets[0]);
+			if (_.xorWith(currentSecret.scopes, scopes, _.isEqual).length !== 0) {
+				// Delete the current key, and regenerate with the
+				// correct scope
+				await db.models('apiSecret').where({ key: currentSecret.key }).del();
+				// Clear this cache entry for this
+				// appId+serviceId+scope combo, to force a refresh
+				getApiSecretForService.cache.delete(
+					apiSecretMemoizer(appId, serviceId, scopes),
+				);
+				return getApiSecretForService(appId, serviceId, scopes);
+			}
+			return currentSecret;
 		}
 	},
+	apiSecretMemoizer,
 );
 
 export async function getCloudApiSecret(): Promise<string> {
-	checkInit(db);
+	await db.initialized;
 
 	const secrets = await db
 		.models('apiSecret')
@@ -108,7 +111,8 @@ export async function getCloudApiSecret(): Promise<string> {
 }
 
 export async function lookupKey(key: string): Promise<ApiSecret | undefined> {
-	checkInit(db);
+	await db.initialized;
+
 	const keys = await db
 		.models('apiSecret')
 		.where({ key })
@@ -125,7 +129,8 @@ export async function lookupKey(key: string): Promise<ApiSecret | undefined> {
 
 // Returns a list of keys which were changed
 export async function regenerateKeys(appIds?: number[]): Promise<ApiSecret[]> {
-	checkInit(db);
+	await db.initialized;
+
 	const secrets = await (appIds != null
 		? db.models('apiSecret').whereIn('appId', appIds).select()
 		: db.models('apiSecret').select());
@@ -180,4 +185,15 @@ export type RequestWithScope = express.Request & {
 	};
 };
 
-export type Scope = ApiSecretScope['type'];
+type Scope = ApiSecretScope['type'];
+
+export function requireScope(types: Scope | Scope[]): express.RequestHandler {
+	return (req: RequestWithScope, res, next) => {
+		for (const type of _.toArray(types)) {
+			if (!_.find(req.data.scopes, { type })) {
+				res.status(401).send();
+			}
+		}
+		next();
+	};
+}

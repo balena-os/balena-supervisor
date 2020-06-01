@@ -3,7 +3,6 @@ import * as _ from 'lodash';
 import { stub } from 'sinon';
 
 import Config from '../src/config';
-import DB from '../src/db';
 
 import Network from '../src/compose/network';
 
@@ -127,11 +126,9 @@ const dependentDBFormat = {
 };
 
 describe('ApplicationManager', function () {
-	before(function () {
-		prepare();
-		this.db = new DB();
-		initApiSecrets(this.db);
-		this.config = new Config({ db: this.db });
+	before(async function () {
+		await prepare();
+		this.config = new Config();
 		const eventTracker = new EventTracker();
 		this.logger = {
 			clearOutOfDateDBLogs: () => {
@@ -139,7 +136,6 @@ describe('ApplicationManager', function () {
 			},
 		} as any;
 		this.deviceState = new DeviceState({
-			db: this.db,
 			config: this.config,
 			eventTracker,
 			logger: this.logger,
@@ -235,9 +231,7 @@ describe('ApplicationManager', function () {
 				return targetCloned;
 			});
 		};
-		return this.db.init().then(() => {
-			return this.config.init();
-		});
+		return this.config.init();
 	});
 
 	beforeEach(

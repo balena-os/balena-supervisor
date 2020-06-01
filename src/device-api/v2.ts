@@ -5,6 +5,7 @@ import * as _ from 'lodash';
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
 import Volume from '../compose/volume';
+import * as db from '../db';
 import { spawnJournalctl } from '../lib/journald';
 import {
 	appNotFoundMessage,
@@ -16,13 +17,7 @@ import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone, serviceAction } from './common';
-import {
-	requireScope,
-	RequestWithScope,
-	secretIsScopedToApp as isSecretScopedToApp,
-	requireAppScope,
-	getScopedApps,
-} from '../supervisor-api';
+import * as apiSecrets from '../lib/api-secrets';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 	const { _lockingIfNecessary, deviceState } = applications;
@@ -97,7 +92,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		'/v2/applications/:appId/purge',
 		requireScope(['app', 'all-apps']),
 		requireAppScope('req.params.appId'),
-		(req: RequestWithScope, res: Response, next: NextFunction) => {
+		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);
 			if (!appId) {
@@ -170,7 +165,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			Bluebird.join(
 				applications.services.getStatus(scopedAppIds),
 				applications.images.getStatus(),
-				applications.db.models('app').select(['appId', 'commit', 'name']),
+				db.models('app').select(['appId', 'commit', 'name']),
 				(
 					services,
 					images,

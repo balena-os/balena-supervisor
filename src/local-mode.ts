@@ -3,7 +3,7 @@ import * as Docker from 'dockerode';
 import * as _ from 'lodash';
 
 import Config from './config';
-import Database from './db';
+import * as db from './db';
 import * as constants from './lib/constants';
 import { SupervisorContainerNotFoundError } from './lib/errors';
 import log from './lib/supervisor-console';
@@ -74,7 +74,6 @@ export class LocalModeManager {
 		public config: Config,
 		public docker: Docker,
 		public logger: Logger,
-		public db: Database,
 		private containerId: string | undefined = constants.containerId,
 	) {}
 
@@ -182,7 +181,7 @@ export class LocalModeManager {
 	}
 
 	private async cleanEngineSnapshots() {
-		await this.db.models('engineSnapshot').delete();
+		await db.models('engineSnapshot').delete();
 	}
 
 	// Store engine snapshot data in the local database.
@@ -192,7 +191,7 @@ export class LocalModeManager {
 			`Storing engine snapshot in the database. Timestamp: ${timestamp}`,
 		);
 		await this.cleanEngineSnapshots();
-		await this.db.models('engineSnapshot').insert({
+		await db.models('engineSnapshot').insert({
 			snapshot: JSON.stringify(record.snapshot),
 			timestamp,
 		});
@@ -210,7 +209,7 @@ export class LocalModeManager {
 
 	// Read the latest stored snapshot from the database.
 	public async retrieveLatestSnapshot(): Promise<EngineSnapshotRecord | null> {
-		const r = await this.db
+		const r = await db
 			.models('engineSnapshot')
 			.select()
 			.orderBy('rowid', 'DESC')
@@ -263,7 +262,7 @@ export class LocalModeManager {
 		});
 
 		// Remove any local mode state added to the database.
-		await this.db
+		await db
 			.models('app')
 			.del()
 			.where({ source: 'local' })

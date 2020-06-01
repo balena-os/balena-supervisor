@@ -1,4 +1,58 @@
 - commits:
+    - subject: Remove unused dependencies and dedupe
+      hash: 6290993a79aa2231ac19bbe80a72af72cd8ae72e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.5.1
+  date: 2020-06-01T08:52:49.304Z
+- commits:
+    - subject: Refactor device-state healthchecks to log reason for failure
+      hash: 5550a3a330b6a27addd940c185dc7d489cd89464
+      body: ''
+      footer:
+        Closes: '#1292'
+        closes: '#1292'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.5.0
+  date: 2020-05-29T20:26:07.486Z
+- commits:
+    - subject: Update dependencies
+      hash: 1decd87c21de6c6b2baf7cb9a93141c8d097b874
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.4.17
+  date: 2020-05-29T18:26:52.490Z
+- commits:
+    - subject: Make the db module a singleton
+      hash: 1d7381327e3114c0d005316846429d26b01a3e4c
+      body: >
+        We were treating the database class as a singleton, but still having to
+        pass
+
+        around the db instance. Now we can simply require the db module and have
+
+        access to the database handle.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.4.16
+  date: 2020-05-29T14:03:57.770Z
+- commits:
     - subject: Check for ApiError before using it as such
       hash: 972b896c95daf1305468137aefe1e12ead0d59ee
       body: ''

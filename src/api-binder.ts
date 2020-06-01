@@ -1,5 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as bodyParser from 'body-parser';
+import { stripIndent } from 'common-tags';
 import * as express from 'express';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
@@ -16,9 +17,9 @@ import constants = require('./lib/constants');
 import {
 	ContractValidationError,
 	ContractViolationError,
-	isHttpConflictError,
 	ExchangeKeyError,
 	InternalInconsistencyError,
+	isHttpConflictError,
 } from './lib/errors';
 import * as request from './lib/request';
 import { writeLock } from './lib/update-lock';
@@ -113,24 +114,49 @@ export class APIBinder {
 			'connectivityCheckEnabled',
 		]);
 
+		// Don't have to perform checks for unmanaged
 		if (unmanaged) {
 			return true;
 		}
 
 		if (appUpdatePollInterval == null) {
+			log.info(
+				'Healthcheck failure - Config value `appUpdatePollInterval` cannot be null',
+			);
 			return false;
 		}
 
+		// Check last time target state has been polled
 		const timeSinceLastFetch = process.hrtime(this.lastTargetStateFetch);
 		const timeSinceLastFetchMs =
 			timeSinceLastFetch[0] * 1000 + timeSinceLastFetch[1] / 1e6;
-		const stateFetchHealthy = timeSinceLastFetchMs < 2 * appUpdatePollInterval;
+
+		if (!(timeSinceLastFetchMs < 2 * appUpdatePollInterval)) {
+			log.info(
+				'Healthcheck failure - Device has not fetched target state within appUpdatePollInterval limit',
+			);
+			return false;
+		}
+
+		// Check if state report is healthy
 		const stateReportHealthy =
 			!connectivityCheckEnabled ||
 			!this.deviceState.connected ||
 			this.stateReportErrors < 3;
 
-		return stateFetchHealthy && stateReportHealthy;
+		if (!stateReportHealthy) {
+			log.info(
+				stripIndent`
+				Healthcheck failure - Atleast ONE of the following conditions must be true:
+					- No connectivityCheckEnabled   ? ${!(connectivityCheckEnabled === true)}
+					- device state is disconnected  ? ${!(this.deviceState.connected === true)}
+					- stateReportErrors less then 3 ? ${this.stateReportErrors < 3}`,
+			);
+			return false;
+		}
+
+		// All tests pass!
+		return true;
 	}
 
 	public async initClient() {

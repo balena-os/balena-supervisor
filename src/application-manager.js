@@ -39,6 +39,8 @@ import { createV1Api } from './device-api/v1';
 import { createV2Api } from './device-api/v2';
 import { serviceAction } from './device-api/common';
 
+import * as db from './db';
+
 /** @type {Function} */
 const readFileAsync = Promise.promisify(fs.readFile);
 
@@ -76,7 +78,7 @@ const createApplicationManagerRouter = function (applications) {
 };
 
 export class ApplicationManager extends EventEmitter {
-	constructor({ logger, config, db, eventTracker, deviceState, apiBinder }) {
+	constructor({ logger, config, eventTracker, deviceState, apiBinder }) {
 		super();
 
 		this.serviceAction = serviceAction;
@@ -168,7 +170,6 @@ export class ApplicationManager extends EventEmitter {
 		this.reportOptionalContainers = this.reportOptionalContainers.bind(this);
 		this.logger = logger;
 		this.config = config;
-		this.db = db;
 		this.eventTracker = eventTracker;
 		this.deviceState = deviceState;
 		this.apiBinder = apiBinder;
@@ -176,7 +177,6 @@ export class ApplicationManager extends EventEmitter {
 		this.images = new Images({
 			docker: this.docker,
 			logger: this.logger,
-			db: this.db,
 			config: this.config,
 		});
 		this.services = new ServiceManager({
@@ -195,7 +195,6 @@ export class ApplicationManager extends EventEmitter {
 		this.proxyvisor = new Proxyvisor({
 			config: this.config,
 			logger: this.logger,
-			db: this.db,
 			docker: this.docker,
 			images: this.images,
 			applications: this,
@@ -204,18 +203,13 @@ export class ApplicationManager extends EventEmitter {
 			this.config,
 			this.docker,
 			this.logger,
-			this.db,
 		);
 		this.timeSpentFetching = 0;
 		this.fetchesInProgress = 0;
 		this._targetVolatilePerImageId = {};
 		this._containerStarted = {};
 
-		this.targetStateWrapper = new TargetStateAccessor(
-			this,
-			this.config,
-			this.db,
-		);
+		this.targetStateWrapper = new TargetStateAccessor(this, this.config);
 
 		this.config.on('change', (changedConfig) => {
 			if (changedConfig.appUpdatePollInterval) {
@@ -1060,7 +1054,7 @@ export class ApplicationManager extends EventEmitter {
 		// this in a bluebird promise until we convert this to typescript
 		return Promise.resolve(this.images.inspectByName(service.image))
 			.catchReturn(NotFoundError, undefined)
-			.then(async (imageInfo) => {
+			.then((imageInfo) => {
 				const serviceOpts = {
 					serviceName: service.serviceName,
 					imageInfo,
@@ -1071,13 +1065,7 @@ export class ApplicationManager extends EventEmitter {
 					service.image = imageInfo.Id;
 				}
 
-				// Get the apiSecret for this service
-				const secret = await apiSecrets.getApiSecretForService(
-					service.appId,
-					service.serviceId,
-				);
-
-				return Service.fromComposeObject(service, serviceOpts, secret.key);
+				return Service.fromComposeObject(service, serviceOpts);
 			});
 	}
 
@@ -1248,7 +1236,7 @@ export class ApplicationManager extends EventEmitter {
 		if (maybeTrx != null) {
 			promise = setInTransaction(filteredApps, maybeTrx);
 		} else {
-			promise = this.db.transaction(setInTransaction);
+			promise = db.transaction(setInTransaction);
 		}
 		return promise
 			.then(() => {

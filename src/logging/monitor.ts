@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import Database from '../db';
+import * as db from '../db';
 
 import log from '../lib/supervisor-console';
 
@@ -15,7 +15,7 @@ export class LogMonitor {
 	private timestamps: { [containerId: string]: number } = {};
 	private writeRequired: { [containerId: string]: boolean } = {};
 
-	public constructor(private db: Database) {
+	public constructor() {
 		setInterval(() => this.flushDb(), DB_FLUSH_INTERVAL);
 	}
 
@@ -35,7 +35,7 @@ export class LogMonitor {
 			// db to avoid multiple db actions at once
 			this.timestamps[containerId] = 0;
 			try {
-				const timestampObj = await this.db
+				const timestampObj = await db
 					.models('containerLogs')
 					.select('lastSentTimestamp')
 					.where({ containerId });
@@ -43,7 +43,7 @@ export class LogMonitor {
 				if (timestampObj == null || _.isEmpty(timestampObj)) {
 					// Create a row in the db so there's something to
 					// update
-					await this.db
+					await db
 						.models('containerLogs')
 						.insert({ containerId, lastSentTimestamp: 0 });
 				} else {
@@ -69,7 +69,7 @@ export class LogMonitor {
 					continue;
 				}
 
-				await this.db
+				await db
 					.models('containerLogs')
 					.where({ containerId })
 					.update({ lastSentTimestamp: this.timestamps[containerId] });

@@ -17,6 +17,7 @@ import {
 } from './types/service';
 
 import log from '../lib/supervisor-console';
+import { getApiSecretForService } from '../lib/api-secrets';
 
 export function camelCaseConfig(
 	literalConfig: ConfigMap,
@@ -315,7 +316,6 @@ export function formatDevice(deviceStr: string): DockerDevice {
 export async function addFeaturesFromLabels(
 	service: Service,
 	options: DeviceMetadata,
-	apiSecret: string,
 ): Promise<void> {
 	const setEnvVariables = function (key: string, val: string) {
 		service.config.environment[`RESIN_${key}`] = val;
@@ -353,9 +353,17 @@ export async function addFeaturesFromLabels(
 			setEnvVariables('API_KEY', options.deviceApiKey);
 			setEnvVariables('API_URL', options.apiEndpoint);
 		},
-		'io.balena.features.supervisor-api': () => {
+		'io.balena.features.supervisor-api': async () => {
 			setEnvVariables('SUPERVISOR_PORT', options.listenPort.toString());
-			setEnvVariables('SUPERVISOR_API_KEY', apiSecret);
+			// TODO: Support more scopes for services
+			setEnvVariables(
+				'SUPERVISOR_API_KEY',
+				(
+					await getApiSecretForService(service.appId!, service.serviceId!, [
+						{ type: 'app', appId: service.appId! },
+					])
+				).key,
+			);
 
 			let host: string;
 
@@ -376,11 +384,12 @@ export async function addFeaturesFromLabels(
 			service.config.volumes.push('/proc:/proc'),
 	};
 
-	_.each(features, (fn, label) => {
-		if (checkTruthy(service.config.labels[label])) {
-			fn();
+	for (const feature of Object.keys(features) as [keyof typeof features]) {
+		const fn = features[feature];
+		if (checkTruthy(service.config.labels[feature])) {
+			await fn();
 		}
-	});
+	}
 
 	// This is a special case, and folding it into the
 	// structure above would unnecessarily complicate things.
