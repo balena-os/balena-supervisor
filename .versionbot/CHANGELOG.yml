@@ -1,4 +1,18 @@
 - commits:
+    - subject: Make the config module a singleton
+      hash: ff4a31a0e6269b823a04eeda2f433665617f583c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Co-authored-by: Pagan Gazzard <page@balena.io>
+        co-authored-by: Pagan Gazzard <page@balena.io>
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.5.2
+  date: 2020-06-02T13:31:37.056Z
+- commits:
     - subject: Remove unused dependencies and dedupe
       hash: 6290993a79aa2231ac19bbe80a72af72cd8ae72e
       body: ''
