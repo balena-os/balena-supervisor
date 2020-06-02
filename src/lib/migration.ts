@@ -15,6 +15,7 @@ import * as db from '../db';
 import DeviceState from '../device-state';
 import * as constants from '../lib/constants';
 import { BackupError, DatabaseParseError, NotFoundError } from '../lib/errors';
+import { docker } from '../lib/docker-utils';
 import { pathExistsOnHost } from '../lib/fs-utils';
 import { log } from '../lib/supervisor-console';
 import {
@@ -179,7 +180,7 @@ export async function normaliseLegacyDatabase(
 			`Found a release with releaseId ${release.id}, imageId ${image.id}, serviceId ${serviceId}\nImage location is ${imageUrl}`,
 		);
 
-		const imageFromDocker = await application.docker
+		const imageFromDocker = await docker
 			.getImage(service.image)
 			.inspect()
 			.catch((error) => {

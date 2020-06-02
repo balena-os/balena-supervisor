@@ -1,13 +1,11 @@
 import { expect } from 'chai';
 import { stub } from 'sinon';
 
-import DockerUtils from '../src/lib/docker-utils';
-
-const dockerUtils = new DockerUtils({});
+import * as dockerUtils from '../src/lib/docker-utils';
 
 describe('Deltas', () => {
 	it('should correctly detect a V2 delta', async () => {
-		const imageStub = stub(dockerUtils, 'getImage').returns({
+		const imageStub = stub(dockerUtils.docker, 'getImage').returns({
 			inspect: () => {
 				return Promise.resolve({
 					Id:
@@ -99,7 +97,7 @@ describe('Deltas', () => {
 			},
 		} as any);
 
-		expect(await DockerUtils.isV2DeltaImage(dockerUtils, 'test')).to.be.true;
+		expect(await dockerUtils.isV2DeltaImage('test')).to.be.true;
 		expect(imageStub.callCount).to.equal(1);
 		imageStub.restore();
 	});

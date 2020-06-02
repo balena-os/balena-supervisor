@@ -8,9 +8,11 @@ import * as db from '../db';
 import * as constants from '../lib/constants';
 import {
 	DeltaFetchOptions,
-	DockerUtils,
 	FetchOptions,
+	docker,
+	dockerToolbelt,
 } from '../lib/docker-utils';
+import * as dockerUtils from '../lib/docker-utils';
 import { DeltaStillProcessingError, NotFoundError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import * as validation from '../lib/validation';
@@ -26,7 +28,6 @@ interface ImageEvents {
 type ImageEventEmitter = StrictEventEmitter<EventEmitter, ImageEvents>;
 
 interface ImageConstructOpts {
-	docker: DockerUtils;
 	logger: Logger;
 }
 
@@ -56,7 +57,6 @@ type NormalisedDockerImage = Docker.ImageInfo & {
 };
 
 export class Images extends (EventEmitter as new () => ImageEventEmitter) {
-	private docker: DockerUtils;
 	private logger: Logger;
 
 	public appUpdatePollInterval: number;
@@ -72,7 +72,6 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	public constructor(opts: ImageConstructOpts) {
 		super();
 
-		this.docker = opts.docker;
 		this.logger = opts.logger;
 	}
 
@@ -202,7 +201,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		cb: (dockerImages: NormalisedDockerImage[], composeImages: Image[]) => T,
 	) {
 		const [normalisedImages, dbImages] = await Promise.all([
-			Bluebird.map(this.docker.listImages({ digests: true }), async (image) => {
+			Bluebird.map(docker.listImages({ digests: true }), async (image) => {
 				const newImage = _.clone(image) as NormalisedDockerImage;
 				newImage.NormalisedRepoTags = await this.getNormalisedTags(image);
 				return newImage;
@@ -337,8 +336,8 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			supervisorImage,
 			usedImageIds,
 		] = await Promise.all([
-			this.docker.getRegistryAndName(constants.supervisorImage),
-			this.docker.getImage(constants.supervisorImage).inspect(),
+			dockerToolbelt.getRegistryAndName(constants.supervisorImage),
+			docker.getImage(constants.supervisorImage).inspect(),
 			db
 				.models('image')
 				.select('dockerImageId')
@@ -366,7 +365,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			);
 		};
 
-		const dockerImages = await this.docker.listImages({ digests: true });
+		const dockerImages = await docker.listImages({ digests: true });
 		for (const image of dockerImages) {
 			// Cleanup should remove truly dangling images (i.e dangling and with no digests)
 			if (Images.isDangling(image) && !_.includes(usedImageIds, image.Id)) {
@@ -377,7 +376,9 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			) {
 				// We also remove images from the supervisor repository with a different tag
 				for (const tag of image.RepoTags) {
-					const imageNameComponents = await this.docker.getRegistryAndName(tag);
+					const imageNameComponents = await dockerToolbelt.getRegistryAndName(
+						tag,
+					);
 					if (isSupervisorRepoTag(imageNameComponents)) {
 						images.push(image.Id);
 					}
@@ -400,7 +401,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		imageName: string,
 	): Promise<Docker.ImageInspectInfo> {
 		try {
-			return await this.docker.getImage(imageName).inspect();
+			return await docker.getImage(imageName).inspect();
 		} catch (e) {
 			if (NotFoundError(e)) {
 				const digest = imageName.split('@')[1];
@@ -418,7 +419,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 				for (const image of imagesFromDb) {
 					if (image.dockerImageId != null) {
-						return await this.docker.getImage(image.dockerImageId).inspect();
+						return await docker.getImage(image.dockerImageId).inspect();
 					}
 				}
 			}
@@ -435,7 +436,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		for (const image of images) {
 			log.debug(`Cleaning up ${image}`);
 			try {
-				await this.docker.getImage(image).remove({ force: true });
+				await docker.getImage(image).remove({ force: true });
 				delete this.imageCleanupFailures[image];
 			} catch (e) {
 				this.logger.logSystemMessage(
@@ -459,7 +460,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	}
 
 	public normalise(imageName: string): Bluebird<string> {
-		return this.docker.normaliseImageName(imageName);
+		return dockerToolbelt.normaliseImageName(imageName);
 	}
 
 	private static isDangling(image: Docker.ImageInfo): boolean {
@@ -496,7 +497,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 			if (img.dockerImageId == null) {
 				// Legacy image from before we started using dockerImageId, so we try to remove it
 				// by name
-				await this.docker.getImage(img.name).remove({ force: true });
+				await docker.getImage(img.name).remove({ force: true });
 				removed = true;
 			} else {
 				const imagesFromDb = await db
@@ -512,11 +513,11 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 						_.merge(_.clone(image), { status: 'Deleting' }),
 					);
 					this.logger.logSystemEvent(LogTypes.deleteImage, { image });
-					this.docker.getImage(img.dockerImageId).remove({ force: true });
+					docker.getImage(img.dockerImageId).remove({ force: true });
 					removed = true;
 				} else if (!Images.hasDigest(img.name)) {
 					// Image has a regular tag, so we might have to remove unnecessary tags
-					const dockerImage = await this.docker
+					const dockerImage = await docker
 						.getImage(img.dockerImageId)
 						.inspect();
 					const differentTags = _.reject(imagesFromDb, { name: img.name });
@@ -528,7 +529,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 							_.some(differentTags, { name: t }),
 						)
 					) {
-						await this.docker.getImage(img.name).remove({ noprune: true });
+						await docker.getImage(img.name).remove({ noprune: true });
 					}
 					removed = false;
 				} else {
@@ -589,7 +590,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		const srcImage = await this.inspectByName(deltaOpts.deltaSource);
 
 		deltaOpts.deltaSourceId = srcImage.Id;
-		const id = await this.docker.fetchDeltaWithProgress(
+		const id = await dockerUtils.fetchDeltaWithProgress(
 			image.name,
 			deltaOpts,
 			onProgress,
@@ -597,8 +598,8 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		);
 
 		if (!Images.hasDigest(image.name)) {
-			const { repo, tag } = await this.docker.getRepoAndTag(image.name);
-			await this.docker.getImage(id).tag({ repo, tag });
+			const { repo, tag } = await dockerUtils.getRepoAndTag(image.name);
+			await docker.getImage(id).tag({ repo, tag });
 		}
 
 		return id;
@@ -610,7 +611,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		onProgress: (evt: FetchProgressEvent) => void,
 	): Promise<string> {
 		this.logger.logSystemEvent(LogTypes.downloadImage, { image });
-		return this.docker.fetchImageWithProgress(image.name, opts, onProgress);
+		return dockerUtils.fetchImageWithProgress(image.name, opts, onProgress);
 	}
 
 	// TODO: find out if imageId can actually be null

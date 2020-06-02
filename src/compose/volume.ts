@@ -4,6 +4,7 @@ import isEqual = require('lodash/isEqual');
 import omitBy = require('lodash/omitBy');
 
 import constants = require('../lib/constants');
+import { docker } from '../lib/docker-utils';
 import { InternalInconsistencyError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import { LabelObject } from '../lib/types';
@@ -12,7 +13,6 @@ import * as ComposeUtils from './utils';
 
 export interface VolumeConstructOpts {
 	logger: Logger;
-	docker: Docker;
 }
 
 export interface VolumeConfig {
@@ -29,7 +29,6 @@ export interface ComposeVolumeConfig {
 
 export class Volume {
 	private logger: Logger;
-	private docker: Docker;
 
 	private constructor(
 		public name: string,
@@ -38,7 +37,6 @@ export class Volume {
 		opts: VolumeConstructOpts,
 	) {
 		this.logger = opts.logger;
-		this.docker = opts.docker;
 	}
 
 	public static fromDockerVolume(
@@ -100,7 +98,7 @@ export class Volume {
 		this.logger.logSystemEvent(LogTypes.createVolume, {
 			volume: { name: this.name },
 		});
-		await this.docker.createVolume({
+		await docker.createVolume({
 			Name: Volume.generateDockerName(this.appId, this.name),
 			Labels: this.config.labels,
 			Driver: this.config.driver,
@@ -114,7 +112,7 @@ export class Volume {
 		});
 
 		try {
-			await this.docker
+			await docker
 				.getVolume(Volume.generateDockerName(this.appId, this.name))
 				.remove();
 		} catch (e) {

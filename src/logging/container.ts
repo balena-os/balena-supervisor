@@ -4,7 +4,7 @@ import * as _ from 'lodash';
 import * as Stream from 'stream';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
-import Docker from '../lib/docker-utils';
+import { docker } from '../lib/docker-utils';
 
 export interface ContainerLog {
 	message: string;
@@ -21,7 +21,7 @@ interface LogsEvents {
 type LogsEventEmitter = StrictEventEmitter<EventEmitter, LogsEvents>;
 
 export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) {
-	public constructor(public containerId: string, private docker: Docker) {
+	public constructor(public containerId: string) {
 		super();
 	}
 
@@ -34,7 +34,7 @@ export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) 
 		const stdoutLogOpts = { stdout: true, stderr: false, ...logOpts };
 		const stderrLogOpts = { stderr: true, stdout: false, ...logOpts };
 
-		const container = this.docker.getContainer(this.containerId);
+		const container = docker.getContainer(this.containerId);
 		const stdoutStream = await container.logs(stdoutLogOpts);
 		const stderrStream = await container.logs(stderrLogOpts);
 

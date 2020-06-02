@@ -1,10 +1,11 @@
-import * as Docker from 'dockerode';
 import * as _ from 'lodash';
 import * as Path from 'path';
+import { VolumeInspectInfo } from 'dockerode';
 
 import constants = require('../lib/constants');
 import { NotFoundError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
+import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
 import { defaultLegacyVolume } from '../lib/migration';
 import Logger from '../logger';
@@ -12,7 +13,6 @@ import { ResourceRecreationAttemptError } from './errors';
 import Volume, { VolumeConfig } from './volume';
 
 export interface VolumeMangerConstructOpts {
-	docker: Docker;
 	logger: Logger;
 }
 
@@ -22,30 +22,23 @@ export interface VolumeNameOpts {
 }
 
 export class VolumeManager {
-	private docker: Docker;
 	private logger: Logger;
 
 	public constructor(opts: VolumeMangerConstructOpts) {
-		this.docker = opts.docker;
 		this.logger = opts.logger;
 	}
 
 	public async get({ name, appId }: VolumeNameOpts): Promise<Volume> {
 		return Volume.fromDockerVolume(
-			{ docker: this.docker, logger: this.logger },
-			await this.docker
-				.getVolume(Volume.generateDockerName(appId, name))
-				.inspect(),
+			{ logger: this.logger },
+			await docker.getVolume(Volume.generateDockerName(appId, name)).inspect(),
 		);
 	}
 
 	public async getAll(): Promise<Volume[]> {
 		const volumeInspect = await this.listWithBothLabels();
 		return volumeInspect.map((inspect) =>
-			Volume.fromDockerVolume(
-				{ logger: this.logger, docker: this.docker },
-				inspect,
-			),
+			Volume.fromDockerVolume({ logger: this.logger }, inspect),
 		);
 	}
 
@@ -111,11 +104,10 @@ export class VolumeManager {
 	): Promise<Volume> {
 		const volume = Volume.fromComposeObject(name, appId, config, {
 			logger: this.logger,
-			docker: this.docker,
 		});
 
 		await this.create(volume);
-		const inspect = await this.docker
+		const inspect = await docker
 			.getVolume(Volume.generateDockerName(volume.appId, volume.name))
 			.inspect();
 
@@ -139,8 +131,8 @@ export class VolumeManager {
 		// *all* containers. This means we don't remove
 		// something that's part of a sideloaded container
 		const [dockerContainers, dockerVolumes] = await Promise.all([
-			this.docker.listContainers(),
-			this.docker.listVolumes(),
+			docker.listContainers(),
+			docker.listVolumes(),
 		]);
 
 		const containerVolumes = _(dockerContainers)
@@ -160,17 +152,15 @@ export class VolumeManager {
 			// in the target state
 			referencedVolumes,
 		);
-		await Promise.all(
-			volumesToRemove.map((v) => this.docker.getVolume(v).remove()),
-		);
+		await Promise.all(volumesToRemove.map((v) => docker.getVolume(v).remove()));
 	}
 
-	private async listWithBothLabels(): Promise<Docker.VolumeInspectInfo[]> {
+	private async listWithBothLabels(): Promise<VolumeInspectInfo[]> {
 		const [legacyResponse, currentResponse] = await Promise.all([
-			this.docker.listVolumes({
+			docker.listVolumes({
 				filters: { label: ['io.resin.supervised'] },
 			}),
-			this.docker.listVolumes({
+			docker.listVolumes({
 				filters: { label: ['io.balena.supervised'] },
 			}),
 		]);

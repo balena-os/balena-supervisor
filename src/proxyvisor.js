@@ -17,6 +17,7 @@ import * as url from 'url';
 import { log } from './lib/supervisor-console';
 import * as db from './db';
 import * as config from './config';
+import * as dockerUtils from './lib/docker-utils';
 
 const mkdirpAsync = Promise.promisify(mkdirp);
 
@@ -344,7 +345,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 };
 
 export class Proxyvisor {
-	constructor({ logger, docker, images, applications }) {
+	constructor({ logger, images, applications }) {
 		this.bindToAPI = this.bindToAPI.bind(this);
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
@@ -361,7 +362,6 @@ export class Proxyvisor {
 		this.sendDeleteHook = this.sendDeleteHook.bind(this);
 		this.sendUpdates = this.sendUpdates.bind(this);
 		this.logger = logger;
-		this.docker = docker;
 		this.images = images;
 		this.applications = applications;
 		this.acknowledgedState = {};
@@ -904,7 +904,7 @@ export class Proxyvisor {
 			})
 			.then((parentApp) => {
 				return Promise.map(parentApp?.services ?? [], (service) => {
-					return this.docker.getImageEnv(service.image);
+					return dockerUtils.getImageEnv(service.image);
 				}).then(function (imageEnvs) {
 					const imageHookAddresses = _.map(
 						imageEnvs,
