@@ -28,6 +28,10 @@ try {
 } catch {
 	/* noop */
 }
+fs.writeFileSync(
+	'./test/data/config.json',
+	fs.readFileSync('./test/data/testconfig.json'),
+);
 
 stub(dbus, 'getBus').returns({
 	getInterface: (

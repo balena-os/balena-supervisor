@@ -3,6 +3,7 @@ import { fs } from 'mz';
 
 import { Image } from '../compose/images';
 import DeviceState from '../device-state';
+import * as config from '../config';
 
 import constants = require('../lib/constants');
 import { AppsJsonParseError, EISDIR, ENOENT } from '../lib/errors';
@@ -94,7 +95,7 @@ export async function loadTargetFromFile(
 			// multiple applications is possible
 			if (commitToPin != null && appToPin != null) {
 				log.debug('Device will be pinned');
-				await deviceState.config.set({
+				await config.set({
 					pinDevice: {
 						commit: commitToPin,
 						app: parseInt(appToPin, 10),

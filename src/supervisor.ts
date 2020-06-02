@@ -1,6 +1,6 @@
 import APIBinder from './api-binder';
-import Config, { ConfigKey } from './config';
 import * as db from './db';
+import * as config from './config';
 import DeviceState from './device-state';
 import EventTracker from './event-tracker';
 import { intialiseContractRequirements } from './lib/contracts';
@@ -13,7 +13,7 @@ import constants = require('./lib/constants');
 import log from './lib/supervisor-console';
 import version = require('./lib/supervisor-version');
 
-const startupConfigFields: ConfigKey[] = [
+const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
 	'listenPort',
 	'apiEndpoint',
@@ -29,7 +29,6 @@ const startupConfigFields: ConfigKey[] = [
 ];
 
 export class Supervisor {
-	private config: Config;
 	private eventTracker: EventTracker;
 	private logger: Logger;
 	private deviceState: DeviceState;
@@ -37,16 +36,13 @@ export class Supervisor {
 	private api: SupervisorAPI;
 
 	public constructor() {
-		this.config = new Config();
 		this.eventTracker = new EventTracker();
 		this.logger = new Logger({ eventTracker: this.eventTracker });
 		this.apiBinder = new APIBinder({
-			config: this.config,
 			eventTracker: this.eventTracker,
 			logger: this.logger,
 		});
 		this.deviceState = new DeviceState({
-			config: this.config,
 			eventTracker: this.eventTracker,
 			logger: this.logger,
 			apiBinder: this.apiBinder,
@@ -59,7 +55,6 @@ export class Supervisor {
 		this.deviceState.applications.proxyvisor.bindToAPI(this.apiBinder);
 
 		this.api = new SupervisorAPI({
-			config: this.config,
 			eventTracker: this.eventTracker,
 			routers: [this.apiBinder.router, this.deviceState.router],
 			healthchecks: [
@@ -73,9 +68,9 @@ export class Supervisor {
 		log.info(`Supervisor v${version} starting up...`);
 
 		await db.initialized;
-		await this.config.init();
+		await config.initialized;
 
-		const conf = await this.config.getMany(startupConfigFields);
+		const conf = await config.getMany(startupConfigFields);
 
 		// We can't print to the dashboard until the logger
 		// has started up, so we leave a trail of breadcrumbs
@@ -87,13 +82,12 @@ export class Supervisor {
 		log.debug('Starting logging infrastructure');
 		this.logger.init({
 			enableLogs: conf.loggingEnabled,
-			config: this.config,
 			...conf,
 		});
 
 		intialiseContractRequirements({
 			supervisorVersion: version,
-			deviceType: await this.config.get('deviceType'),
+			deviceType: await config.get('deviceType'),
 			l4tVersion: await osRelease.getL4tVersion(),
 		});
 
@@ -104,7 +98,6 @@ export class Supervisor {
 		if (conf.legacyAppsPresent && this.apiBinder.balenaApi != null) {
 			log.info('Legacy app detected, running migration');
 			await normaliseLegacyDatabase(
-				this.deviceState.config,
 				this.deviceState.applications,
 				this.apiBinder.balenaApi,
 			);

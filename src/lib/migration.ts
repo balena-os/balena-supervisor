@@ -10,7 +10,7 @@ const mkdirpAsync = Bluebird.promisify(mkdirp);
 const rimrafAsync = Bluebird.promisify(rimraf);
 
 import { ApplicationManager } from '../application-manager';
-import Config from '../config';
+import * as config from '../config';
 import * as db from '../db';
 import DeviceState from '../device-state';
 import * as constants from '../lib/constants';
@@ -106,7 +106,6 @@ export function convertLegacyAppsJson(appsArray: any[]): AppsJsonFormat {
 }
 
 export async function normaliseLegacyDatabase(
-	config: Config,
 	application: ApplicationManager,
 	balenaApi: PinejsClientRequest,
 ) {

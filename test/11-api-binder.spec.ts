@@ -4,19 +4,28 @@ import { Server } from 'net';
 import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 
 import ApiBinder from '../src/api-binder';
-import Config from '../src/config';
+import prepare = require('./lib/prepare');
+import * as config from '../src/config';
 import DeviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
 import chai = require('./lib/chai-config');
 import balenaAPI = require('./lib/mocked-balena-api');
-import prepare = require('./lib/prepare');
+import { schema } from '../src/config/schema';
+import ConfigJsonConfigBackend from '../src/config/configJson';
 
 const { expect } = chai;
 
+const defaultConfigBackend = config.configJsonBackend;
 const initModels = async (obj: Dictionary<any>, filename: string) => {
 	await prepare();
+	config.removeAllListeners();
 
-	obj.config = new Config({ configPath: filename });
+	// @ts-ignore
+	config.configJsonBackend = new ConfigJsonConfigBackend(schema, filename);
+	config.generateRequiredFields();
+	// @ts-expect-error using private properties
+	config.configJsonBackend.cache = await config.configJsonBackend.read();
+	await config.generateRequiredFields();
 
 	obj.eventTracker = {
 		track: stub().callsFake((ev, props) => console.log(ev, props)),
@@ -29,13 +38,11 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 	} as any;
 
 	obj.apiBinder = new ApiBinder({
-		config: obj.config,
 		logger: obj.logger,
 		eventTracker: obj.eventTracker,
 	});
 
 	obj.deviceState = new DeviceState({
-		config: obj.config,
 		eventTracker: obj.eventTracker,
 		logger: obj.logger,
 		apiBinder: obj.apiBinder,
@@ -43,7 +50,6 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 
 	obj.apiBinder.setDeviceState(obj.deviceState);
 
-	await obj.config.init();
 	await obj.apiBinder.initClient(); // Initializes the clients but doesn't trigger provisioning
 };
 
@@ -80,6 +86,12 @@ describe('ApiBinder', () => {
 			return initModels(components, '/config-apibinder.json');
 		});
 
+		after(async () => {
+			// @ts-ignore
+			config.configJsonBackend = defaultConfigBackend;
+			await config.generateRequiredFields();
+		});
+
 		it('provisions a device', () => {
 			// @ts-ignore
 			const promise = components.apiBinder.provisionDevice();
@@ -97,11 +109,9 @@ describe('ApiBinder', () => {
 
 		it('exchanges keys if resource conflict when provisioning', async () => {
 			// Get current config to extend
-			const currentConfig = await components.apiBinder.config.get(
-				'provisioningOptions',
-			);
+			const currentConfig = await config.get('provisioningOptions');
 			// Stub config values so we have correct conditions
-			const configStub = stub(Config.prototype, 'get').resolves({
+			const configStub = stub(config, 'get').resolves({
 				...currentConfig,
 				registered_at: null,
 				provisioningApiKey: '123', // Previous test case deleted the provisioningApiKey so add one
@@ -135,7 +145,7 @@ describe('ApiBinder', () => {
 		});
 
 		it('deletes the provisioning key', async () => {
-			expect(await components.config.get('apiKey')).to.be.undefined;
+			expect(await config.get('apiKey')).to.be.undefined;
 		});
 
 		it('sends the correct parameters when provisioning', async () => {
@@ -158,6 +168,11 @@ describe('ApiBinder', () => {
 		const components: Dictionary<any> = {};
 		before(() => {
 			return initModels(components, '/config-apibinder.json');
+		});
+		after(async () => {
+			// @ts-ignore
+			config.configJsonBackend = defaultConfigBackend;
+			await config.generateRequiredFields();
 		});
 
 		it('gets a device by its uuid from the balena API', async () => {
@@ -184,6 +199,11 @@ describe('ApiBinder', () => {
 		const components: Dictionary<any> = {};
 		before(() => {
 			return initModels(components, '/config-apibinder.json');
+		});
+		after(async () => {
+			// @ts-ignore
+			config.configJsonBackend = defaultConfigBackend;
+			await config.generateRequiredFields();
 		});
 
 		it('returns the device if it can fetch it with the deviceApiKey', async () => {
@@ -254,13 +274,18 @@ describe('ApiBinder', () => {
 		before(() => {
 			return initModels(components, '/config-apibinder-offline.json');
 		});
+		after(async () => {
+			// @ts-ignore
+			config.configJsonBackend = defaultConfigBackend;
+			await config.generateRequiredFields();
+		});
 
 		it('does not generate a key if the device is in unmanaged mode', async () => {
-			const mode = await components.config.get('unmanaged');
+			const mode = await config.get('unmanaged');
 			// Ensure offline mode is set
 			expect(mode).to.equal(true);
 			// Check that there is no deviceApiKey
-			const conf = await components.config.getMany(['deviceApiKey', 'uuid']);
+			const conf = await config.getMany(['deviceApiKey', 'uuid']);
 			expect(conf['deviceApiKey']).to.be.empty;
 			expect(conf['uuid']).to.not.be.undefined;
 		});
@@ -272,9 +297,9 @@ describe('ApiBinder', () => {
 			});
 
 			it('does not generate a key with the minimal config', async () => {
-				const mode = await components2.config.get('unmanaged');
+				const mode = await config.get('unmanaged');
 				expect(mode).to.equal(true);
-				const conf = await components2.config.getMany(['deviceApiKey', 'uuid']);
+				const conf = await config.getMany(['deviceApiKey', 'uuid']);
 				expect(conf['deviceApiKey']).to.be.empty;
 				return expect(conf['uuid']).to.not.be.undefined;
 			});
@@ -289,11 +314,16 @@ describe('ApiBinder', () => {
 		before(async () => {
 			await initModels(components, '/config-apibinder.json');
 		});
+		after(async () => {
+			// @ts-ignore
+			config.configJsonBackend = defaultConfigBackend;
+			await config.generateRequiredFields();
+		});
 
 		beforeEach(() => {
 			// This configStub will be modified in each test case so we can
 			// create the exact conditions we want to for testing healthchecks
-			configStub = stub(Config.prototype, 'getMany');
+			configStub = stub(config, 'getMany');
 			infoLobSpy = spy(Log, 'info');
 		});
 

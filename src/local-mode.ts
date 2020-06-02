@@ -2,7 +2,7 @@ import * as Bluebird from 'bluebird';
 import * as Docker from 'dockerode';
 import * as _ from 'lodash';
 
-import Config from './config';
+import * as config from './config';
 import * as db from './db';
 import * as constants from './lib/constants';
 import { SupervisorContainerNotFoundError } from './lib/errors';
@@ -71,7 +71,6 @@ const SUPERVISOR_CONTAINER_NAME_FALLBACK = 'resin_supervisor';
  */
 export class LocalModeManager {
 	public constructor(
-		public config: Config,
 		public docker: Docker,
 		public logger: Logger,
 		private containerId: string | undefined = constants.containerId,
@@ -82,7 +81,7 @@ export class LocalModeManager {
 
 	public async init() {
 		// Setup a listener to catch state changes relating to local mode
-		this.config.on('change', (changed) => {
+		config.on('change', (changed) => {
 			if (changed.localMode != null) {
 				const local = changed.localMode || false;
 
@@ -96,15 +95,15 @@ export class LocalModeManager {
 		// On startup, check if we're in unmanaged mode,
 		// as local mode needs to be set
 		let unmanagedLocalMode = false;
-		if (await this.config.get('unmanaged')) {
+		if (await config.get('unmanaged')) {
 			log.info('Starting up in unmanaged mode, activating local mode');
-			await this.config.set({ localMode: true });
+			await config.set({ localMode: true });
 			unmanagedLocalMode = true;
 		}
 
 		const localMode =
 			// short circuit the next get if we know we're in local mode
-			unmanagedLocalMode || (await this.config.get('localMode'));
+			unmanagedLocalMode || (await config.get('localMode'));
 
 		if (!localMode) {
 			// Remove any leftovers if necessary

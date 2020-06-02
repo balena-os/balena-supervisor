@@ -5,7 +5,7 @@ import * as mkdirCb from 'mkdirp';
 import { fs } from 'mz';
 import * as path from 'path';
 
-import Config from './config';
+import * as config from './config';
 import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
 import { ENOENT } from './lib/errors';
@@ -150,8 +150,8 @@ async function readHostname() {
 	return _.trim(hostnameData);
 }
 
-async function setHostname(val: string, configModel: Config) {
-	await configModel.set({ hostname: val });
+async function setHostname(val: string) {
+	await config.set({ hostname: val });
 	await dbus.restartService('resin-hostname');
 }
 
@@ -168,14 +168,14 @@ export function get(): Bluebird<HostConfig> {
 	});
 }
 
-export function patch(conf: HostConfig, configModel: Config): Bluebird<void> {
+export function patch(conf: HostConfig): Bluebird<void> {
 	const promises: Array<Promise<void>> = [];
 	if (conf != null && conf.network != null) {
 		if (conf.network.proxy != null) {
 			promises.push(setProxy(conf.network.proxy));
 		}
 		if (conf.network.hostname != null) {
-			promises.push(setHostname(conf.network.hostname, configModel));
+			promises.push(setHostname(conf.network.hostname));
 		}
 	}
 	return Bluebird.all(promises).return();

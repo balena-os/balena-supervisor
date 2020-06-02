@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import Config from '../config';
+import * as config from '../config';
 
 import { ApplicationManager } from '../application-manager';
 import Images, { Image } from './images';
@@ -140,7 +140,6 @@ export function getExecutors(app: {
 	volumes: VolumeManager;
 	applications: ApplicationManager;
 	images: Images;
-	config: Config;
 	callbacks: CompositionCallbacks;
 }) {
 	const executors: Executors<CompositionStepAction> = {
@@ -223,7 +222,7 @@ export function getExecutors(app: {
 			app.callbacks.containerStarted(container.id);
 		},
 		updateCommit: async (step) => {
-			await app.config.set({ currentCommit: step.target });
+			await config.set({ currentCommit: step.target });
 		},
 		handover: (step) => {
 			return app.lockFn(
@@ -241,7 +240,7 @@ export function getExecutors(app: {
 			const startTime = process.hrtime();
 			app.callbacks.fetchStart();
 			const [fetchOpts, availableImages] = await Promise.all([
-				app.config.get('fetchOptions'),
+				config.get('fetchOptions'),
 				app.images.getAvailable(),
 			]);
 
@@ -276,7 +275,7 @@ export function getExecutors(app: {
 			await app.images.save(step.image);
 		},
 		cleanup: async () => {
-			const localMode = await app.config.get('localMode');
+			const localMode = await config.get('localMode');
 			if (!localMode) {
 				await app.images.cleanup();
 			}

@@ -3,34 +3,24 @@ import { fs } from 'mz';
 
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
+import * as conf from '../src/config';
+
+import constants = require('../src/lib/constants');
+import { SchemaTypeKey } from '../src/config/schema-type';
 
 // tslint:disable-next-line
 chai.use(require('chai-events'));
 const { expect } = chai;
 
-import Config from '../src/config';
-import constants = require('../src/lib/constants');
-
 describe('Config', () => {
-	let conf: Config;
-
 	before(async () => {
 		await prepare();
-		conf = new Config();
-
-		await conf.init();
+		await conf.initialized;
 	});
 
 	it('uses the correct config.json path', async () => {
-		expect(await (conf as any).configJsonBackend.path()).to.equal(
+		expect(await conf.configJsonBackend.path()).to.equal(
 			'test/data/config.json',
-		);
-	});
-
-	it('uses the correct config.json path from the root mount when passed as argument to the constructor', async () => {
-		const conf2 = new Config({ configPath: '/foo.json' });
-		expect(await (conf2 as any).configJsonBackend.path()).to.equal(
-			'test/data/foo.json',
 		);
 	});
 
@@ -107,13 +97,20 @@ describe('Config', () => {
 		expect(conf.get('unknownInvalidValue' as any)).to.be.rejected;
 	});
 
-	it('emits a change event when values are set', (done) => {
-		conf.on('change', (val) => {
-			expect(val).to.deep.equal({ name: 'someValue' });
-			return done();
-		});
+	it('emits a change event when values', (done) => {
+		const listener = (val: conf.ConfigChangeMap<SchemaTypeKey>) => {
+			try {
+				if ('name' in val) {
+					expect(val.name).to.equal('someValue');
+					done();
+					conf.removeListener('change', listener);
+				}
+			} catch (e) {
+				done(e);
+			}
+		};
+		conf.on('change', listener);
 		conf.set({ name: 'someValue' });
-		(expect(conf).to as any).emit('change');
 	});
 
 	it("returns an undefined OS variant if it doesn't exist", async () => {
@@ -126,12 +123,6 @@ describe('Config', () => {
 	});
 
 	describe('Function config providers', () => {
-		before(async () => {
-			await prepare();
-			conf = new Config();
-			await conf.init();
-		});
-
 		it('should throw if a non-mutable function provider is set', () => {
 			expect(conf.set({ version: 'some-version' })).to.be.rejected;
 		});

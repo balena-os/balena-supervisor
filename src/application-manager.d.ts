@@ -13,7 +13,7 @@ import ServiceManager from './compose/service-manager';
 import DeviceState from './device-state';
 
 import { APIBinder } from './api-binder';
-import Config from './config';
+import * as config from './config';
 
 import NetworkManager from './compose/network-manager';
 import VolumeManager from './compose/volume-manager';
@@ -57,7 +57,6 @@ class ApplicationManager extends EventEmitter {
 	public services: ServiceManager;
 	public volumes: VolumeManager;
 	public networks: NetworkManager;
-	public config: Config;
 	public images: ImageManager;
 
 	public proxyvisor: any;
@@ -70,7 +69,6 @@ class ApplicationManager extends EventEmitter {
 
 	public constructor({
 		logger: Logger,
-		config: Config,
 		eventTracker: EventTracker,
 		deviceState: DeviceState,
 		apiBinder: APIBinder,

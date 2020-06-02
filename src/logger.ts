@@ -1,7 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
-import Config, { ConfigType } from './config';
+import * as config from './config';
 import * as db from './db';
 import { EventTracker } from './event-tracker';
 import Docker from './lib/docker-utils';
@@ -20,14 +20,13 @@ import * as globalEventBus from './event-bus';
 import log from './lib/supervisor-console';
 
 interface LoggerSetupOptions {
-	apiEndpoint: ConfigType<'apiEndpoint'>;
-	uuid: ConfigType<'uuid'>;
-	deviceApiKey: ConfigType<'deviceApiKey'>;
-	unmanaged: ConfigType<'unmanaged'>;
-	localMode: ConfigType<'localMode'>;
+	apiEndpoint: config.ConfigType<'apiEndpoint'>;
+	uuid: config.ConfigType<'uuid'>;
+	deviceApiKey: config.ConfigType<'deviceApiKey'>;
+	unmanaged: config.ConfigType<'unmanaged'>;
+	localMode: config.ConfigType<'localMode'>;
 
 	enableLogs: boolean;
-	config: Config;
 }
 
 type LogEventObject = Dictionary<any> | null;
@@ -58,7 +57,6 @@ export class Logger {
 		unmanaged,
 		enableLogs,
 		localMode,
-		config,
 	}: LoggerSetupOptions) {
 		this.balenaBackend = new BalenaLogBackend(apiEndpoint, uuid, deviceApiKey);
 		this.localBackend = new LocalLogBackend();
@@ -221,21 +219,21 @@ export class Logger {
 	}
 
 	public logConfigChange(
-		config: { [configName: string]: string },
+		conf: { [configName: string]: string },
 		{ success = false, err }: { success?: boolean; err?: Error } = {},
 	) {
-		const obj: LogEventObject = { config };
+		const obj: LogEventObject = { conf };
 		let message: string;
 		let eventName: string;
 		if (success) {
-			message = `Applied configuration change ${JSON.stringify(config)}`;
+			message = `Applied configuration change ${JSON.stringify(conf)}`;
 			eventName = 'Apply config change success';
 		} else if (err != null) {
 			message = `Error applying configuration change: ${err}`;
 			eventName = 'Apply config change error';
 			obj.error = err;
 		} else {
-			message = `Applying configuration change ${JSON.stringify(config)}`;
+			message = `Applying configuration change ${JSON.stringify(conf)}`;
 			eventName = 'Apply config change in progress';
 		}
 

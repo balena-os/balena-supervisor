@@ -7,7 +7,7 @@ import * as _ from 'lodash';
 import { fs } from 'mz';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
-import Config from '../config';
+import * as config from '../config';
 import Docker from '../lib/docker-utils';
 import Logger from '../logger';
 
@@ -28,7 +28,6 @@ import log from '../lib/supervisor-console';
 interface ServiceConstructOpts {
 	docker: Docker;
 	logger: Logger;
-	config: Config;
 }
 
 interface ServiceManagerEvents {
@@ -47,7 +46,6 @@ interface KillOpts {
 export class ServiceManager extends (EventEmitter as new () => ServiceManagerEventEmitter) {
 	private docker: Docker;
 	private logger: Logger;
-	private config: Config;
 
 	// Whether a container has died, indexed by ID
 	private containerHasDied: Dictionary<boolean> = {};
@@ -60,7 +58,6 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		super();
 		this.docker = opts.docker;
 		this.logger = opts.logger;
-		this.config = opts.config;
 	}
 
 	public async getAll(
@@ -239,7 +236,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 	}
 
 	public async create(service: Service) {
-		const mockContainerId = this.config.newUniqueKey();
+		const mockContainerId = config.newUniqueKey();
 		try {
 			const existing = await this.get(service);
 			if (existing.containerId == null) {
@@ -257,7 +254,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				throw e;
 			}
 
-			const deviceName = await this.config.get('name');
+			const deviceName = await config.get('name');
 			if (!isValidDeviceName(deviceName)) {
 				throw new Error(
 					'The device name contains a newline, which is unsupported by balena. ' +
@@ -340,7 +337,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 					message.trim().match(/exec format error$/)
 				) {
 					// Provide a friendlier error message for "exec format error"
-					const deviceType = await this.config.get('deviceType');
+					const deviceType = await config.get('deviceType');
 					err = new Error(
 						`Application architecture incompatible with ${deviceType}: exec format error`,
 					);

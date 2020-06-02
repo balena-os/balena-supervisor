@@ -7,7 +7,7 @@ import { Images } from '../../src/compose/images';
 import { NetworkManager } from '../../src/compose/network-manager';
 import { ServiceManager } from '../../src/compose/service-manager';
 import { VolumeManager } from '../../src/compose/volume-manager';
-import Config from '../../src/config';
+import * as config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
 import { createV2Api } from '../../src/device-api/v2';
@@ -68,17 +68,11 @@ const STUBBED_VALUES = {
 
 async function create(): Promise<SupervisorAPI> {
 	// Get SupervisorAPI construct options
-	const {
-		config,
-		eventTracker,
-		deviceState,
-		apiBinder,
-	} = await createAPIOpts();
+	const { eventTracker, deviceState, apiBinder } = await createAPIOpts();
 	// Stub functions
 	setupStubs();
 	// Create ApplicationManager
 	const appManager = new ApplicationManager({
-		config,
 		eventTracker,
 		logger: null,
 		deviceState,
@@ -86,7 +80,6 @@ async function create(): Promise<SupervisorAPI> {
 	});
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
-		config,
 		eventTracker,
 		routers: [buildRoutes(appManager)],
 		healthchecks: [deviceState.healthcheck, apiBinder.healthcheck],
@@ -108,33 +101,30 @@ async function cleanUp(): Promise<void> {
 
 async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 	await db.initialized;
-	// Create config
-	const mockedConfig = new Config();
 	// Initialize and set values for mocked Config
-	await initConfig(mockedConfig);
+	await initConfig();
 	// Create EventTracker
 	const tracker = new EventTracker();
 	// Create deviceState
 	const deviceState = new DeviceState({
-		config: mockedConfig,
 		eventTracker: tracker,
 		logger: null as any,
 		apiBinder: null as any,
 	});
 	const apiBinder = new APIBinder({
-		config: mockedConfig,
 		eventTracker: tracker,
 		logger: null as any,
 	});
 	return {
-		config: mockedConfig,
 		eventTracker: tracker,
 		deviceState,
 		apiBinder,
 	};
 }
 
-async function initConfig(config: Config): Promise<void> {
+async function initConfig(): Promise<void> {
+	// Initialize this config
+	await config.initialized;
 	// Set testing secret
 	await config.set({
 		apiSecret: STUBBED_VALUES.config.apiSecret,
@@ -143,8 +133,6 @@ async function initConfig(config: Config): Promise<void> {
 	await config.set({
 		currentCommit: STUBBED_VALUES.config.currentCommit,
 	});
-	// Initialize this config
-	return config.init();
 }
 
 function buildRoutes(appManager: ApplicationManager): Router {
@@ -177,7 +165,6 @@ function restoreStubs() {
 }
 
 interface SupervisorAPIOpts {
-	config: Config;
 	eventTracker: EventTracker;
 	deviceState: DeviceState;
 	apiBinder: APIBinder;
