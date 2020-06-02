@@ -8,6 +8,7 @@ import * as path from 'path';
 
 import * as constants from './lib/constants';
 import { log } from './lib/supervisor-console';
+import * as config from './config';
 
 import { validateTargetContracts } from './lib/contracts';
 import { DockerUtils as Docker } from './lib/docker-utils';
@@ -77,7 +78,7 @@ const createApplicationManagerRouter = function (applications) {
 };
 
 export class ApplicationManager extends EventEmitter {
-	constructor({ logger, config, eventTracker, deviceState, apiBinder }) {
+	constructor({ logger, eventTracker, deviceState, apiBinder }) {
 		super();
 
 		this.serviceAction = serviceAction;
@@ -168,7 +169,6 @@ export class ApplicationManager extends EventEmitter {
 		this.localModeSwitchCompletion = this.localModeSwitchCompletion.bind(this);
 		this.reportOptionalContainers = this.reportOptionalContainers.bind(this);
 		this.logger = logger;
-		this.config = config;
 		this.eventTracker = eventTracker;
 		this.deviceState = deviceState;
 		this.apiBinder = apiBinder;
@@ -176,12 +176,10 @@ export class ApplicationManager extends EventEmitter {
 		this.images = new Images({
 			docker: this.docker,
 			logger: this.logger,
-			config: this.config,
 		});
 		this.services = new ServiceManager({
 			docker: this.docker,
 			logger: this.logger,
-			config: this.config,
 		});
 		this.networks = new NetworkManager({
 			docker: this.docker,
@@ -192,25 +190,20 @@ export class ApplicationManager extends EventEmitter {
 			logger: this.logger,
 		});
 		this.proxyvisor = new Proxyvisor({
-			config: this.config,
 			logger: this.logger,
 			docker: this.docker,
 			images: this.images,
 			applications: this,
 		});
-		this.localModeManager = new LocalModeManager(
-			this.config,
-			this.docker,
-			this.logger,
-		);
+		this.localModeManager = new LocalModeManager(this.docker, this.logger);
 		this.timeSpentFetching = 0;
 		this.fetchesInProgress = 0;
 		this._targetVolatilePerImageId = {};
 		this._containerStarted = {};
 
-		this.targetStateWrapper = new TargetStateAccessor(this, this.config);
+		this.targetStateWrapper = new TargetStateAccessor(this);
 
-		this.config.on('change', (changedConfig) => {
+		config.on('change', (changedConfig) => {
 			if (changedConfig.appUpdatePollInterval) {
 				this.images.appUpdatePollInterval = changedConfig.appUpdatePollInterval;
 			}
@@ -223,7 +216,6 @@ export class ApplicationManager extends EventEmitter {
 			volumes: this.volumes,
 			applications: this,
 			images: this.images,
-			config: this.config,
 			callbacks: {
 				containerStarted: (id) => {
 					this._containerStarted[id] = true;
@@ -257,7 +249,7 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	init() {
-		return this.config
+		return config
 			.get('appUpdatePollInterval')
 			.then((interval) => {
 				this.images.appUpdatePollInterval = interval;
@@ -297,7 +289,7 @@ export class ApplicationManager extends EventEmitter {
 		return Promise.join(
 			this.services.getStatus(),
 			this.images.getStatus(),
-			this.config.get('currentCommit'),
+			config.get('currentCommit'),
 			function (services, images, currentCommit) {
 				const apps = {};
 				const dependent = {};
@@ -430,7 +422,7 @@ export class ApplicationManager extends EventEmitter {
 			this.services.getAll(),
 			this.networks.getAll(),
 			this.volumes.getAll(),
-			this.config.get('currentCommit'),
+			config.get('currentCommit'),
 			this._buildApps,
 		);
 	}
@@ -440,7 +432,7 @@ export class ApplicationManager extends EventEmitter {
 			this.services.getAllByAppId(appId),
 			this.networks.getAllByAppId(appId),
 			this.volumes.getAllByAppId(appId),
-			this.config.get('currentCommit'),
+			config.get('currentCommit'),
 			this._buildApps,
 		).get(appId);
 	}
@@ -1083,7 +1075,7 @@ export class ApplicationManager extends EventEmitter {
 
 	normaliseAndExtendAppFromDB(app) {
 		return Promise.join(
-			this.config.get('extendedEnvOptions'),
+			config.get('extendedEnvOptions'),
 			this.docker
 				.getNetworkGateway(constants.supervisorNetworkInterface)
 				.catch(() => '127.0.0.1'),
@@ -1584,7 +1576,7 @@ export class ApplicationManager extends EventEmitter {
 		if (skipLock) {
 			return Promise.try(fn);
 		}
-		return this.config
+		return config
 			.get('lockOverride')
 			.then((lockOverride) => lockOverride || force)
 			.then((lockOverridden) =>
@@ -1618,13 +1610,13 @@ export class ApplicationManager extends EventEmitter {
 				containerIdsByAppId[intId] = this.services.getContainerIdMap(intId);
 			});
 
-		return this.config.get('localMode').then((localMode) => {
+		return config.get('localMode').then((localMode) => {
 			return Promise.props({
 				cleanupNeeded: this.images.isCleanupNeeded(),
 				availableImages: this.images.getAvailable(),
 				downloading: this.images.getDownloadingImageIds(),
 				supervisorNetworkReady: this.networks.supervisorNetworkReady(),
-				delta: this.config.get('delta'),
+				delta: config.get('delta'),
 				containerIds: Promise.props(containerIdsByAppId),
 				localMode,
 			});

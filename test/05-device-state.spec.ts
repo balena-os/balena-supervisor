@@ -6,7 +6,7 @@ import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
 import Log from '../src/lib/supervisor-console';
-import Config from '../src/config';
+import * as config from '../src/config';
 import { RPiConfigBackend } from '../src/config/backend';
 import DeviceState from '../src/device-state';
 import { loadTargetFromFile } from '../src/device-state/preload';
@@ -207,7 +207,6 @@ const testTargetInvalid = {
 };
 
 describe('deviceState', () => {
-	const config = new Config();
 	const logger = {
 		clearOutOfDateDBLogs() {
 			/* noop */
@@ -231,7 +230,6 @@ describe('deviceState', () => {
 		});
 
 		deviceState = new DeviceState({
-			config,
 			eventTracker: eventTracker as any,
 			logger: logger as any,
 			apiBinder: null as any,
@@ -248,7 +246,6 @@ describe('deviceState', () => {
 		});
 
 		(deviceState as any).deviceConfig.configBackend = new RPiConfigBackend();
-		await config.init();
 	});
 
 	after(() => {
@@ -391,7 +388,7 @@ describe('deviceState', () => {
 		beforeEach(() => {
 			// This configStub will be modified in each test case so we can
 			// create the exact conditions we want to for testing healthchecks
-			configStub = stub(Config.prototype, 'get');
+			configStub = stub(config, 'get');
 			infoLobSpy = spy(Log, 'info');
 		});
 

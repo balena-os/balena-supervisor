@@ -8,7 +8,7 @@ import StrictEventEmitter from 'strict-event-emitter-types';
 
 import prettyMs = require('pretty-ms');
 
-import Config, { ConfigType } from './config';
+import * as config from './config';
 import * as db from './db';
 import EventTracker from './event-tracker';
 import Logger from './logger';
@@ -98,7 +98,7 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 		res: express.Response,
 		action: DeviceStateStepTarget,
 	) => {
-		const override = await deviceState.config.get('lockOverride');
+		const override = await config.get('lockOverride');
 		const force = validation.checkTruthy(req.body.force) || override;
 		try {
 			const response = await deviceState.executeStepAction(
@@ -130,7 +130,7 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 
 	router.patch('/v1/device/host-config', (req, res) =>
 		hostConfig
-			.patch(req.body, deviceState.config)
+			.patch(req.body)
 			.then(() => res.status(200).send('OK'))
 			.catch((err) =>
 				res.status(503).send(err?.message ?? err ?? 'Unknown error'),
@@ -177,7 +177,6 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 }
 
 interface DeviceStateConstructOpts {
-	config: Config;
 	eventTracker: EventTracker;
 	logger: Logger;
 	apiBinder: APIBinder;
@@ -219,7 +218,6 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| ConfigStep;
 
 export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {
-	public config: Config;
 	public eventTracker: EventTracker;
 	public logger: Logger;
 
@@ -244,22 +242,14 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	public connected: boolean;
 	public router: express.Router;
 
-	constructor({
-		config,
-		eventTracker,
-		logger,
-		apiBinder,
-	}: DeviceStateConstructOpts) {
+	constructor({ eventTracker, logger, apiBinder }: DeviceStateConstructOpts) {
 		super();
-		this.config = config;
 		this.eventTracker = eventTracker;
 		this.logger = logger;
 		this.deviceConfig = new DeviceConfig({
-			config: this.config,
 			logger: this.logger,
 		});
 		this.applications = new ApplicationManager({
-			config: this.config,
 			logger: this.logger,
 			eventTracker: this.eventTracker,
 			deviceState: this,
@@ -285,7 +275,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	}
 
 	public async healthcheck() {
-		const unmanaged = await this.config.get('unmanaged');
+		const unmanaged = await config.get('unmanaged');
 
 		// Don't have to perform checks for unmanaged
 		if (unmanaged) {
@@ -319,7 +309,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	}
 
 	public async init() {
-		this.config.on('change', (changedConfig) => {
+		config.on('change', (changedConfig) => {
 			if (changedConfig.loggingEnabled != null) {
 				this.logger.enable(changedConfig.loggingEnabled);
 			}
@@ -331,7 +321,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			}
 		});
 
-		const conf = await this.config.getMany([
+		const conf = await config.getMany([
 			'initialConfigSaved',
 			'listenPort',
 			'apiSecret',
@@ -376,7 +366,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			try {
 				await loadTargetFromFile(null, this);
 			} finally {
-				await this.config.set({ targetStateSet: true });
+				await config.set({ targetStateSet: true });
 			}
 		} else {
 			log.debug('Skipping preloading');
@@ -385,7 +375,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 				// and we need to mark that the target state has been set so that
 				// the supervisor doesn't try to preload again if in the future target
 				// apps are empty again (which may happen with multi-app).
-				await this.config.set({ targetStateSet: true });
+				await config.set({ targetStateSet: true });
 			}
 		}
 		await this.triggerApplyTarget({ initial: true });
@@ -395,8 +385,8 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		apiEndpoint,
 		connectivityCheckEnabled,
 	}: {
-		apiEndpoint: ConfigType<'apiEndpoint'>;
-		connectivityCheckEnabled: ConfigType<'connectivityCheckEnabled'>;
+		apiEndpoint: config.ConfigType<'apiEndpoint'>;
+		connectivityCheckEnabled: config.ConfigType<'connectivityCheckEnabled'>;
 	}) {
 		network.startConnectivityCheck(
 			apiEndpoint,
@@ -405,7 +395,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 				return (this.connected = connected);
 			},
 		);
-		this.config.on('change', function (changedConfig) {
+		config.on('change', function (changedConfig) {
 			if (changedConfig.connectivityCheckEnabled != null) {
 				return network.enableConnectivityCheck(
 					changedConfig.connectivityCheckEnabled,
@@ -425,7 +415,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		const devConf = await this.deviceConfig.getCurrent();
 
 		await this.deviceConfig.setTarget(devConf);
-		await this.config.set({ initialConfigSaved: true });
+		await config.set({ initialConfigSaved: true });
 	}
 
 	// We keep compatibility with the StrictEventEmitter types
@@ -472,11 +462,11 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 		globalEventBus.getInstance().emit('targetStateChanged', target);
 
-		const apiEndpoint = await this.config.get('apiEndpoint');
+		const apiEndpoint = await config.get('apiEndpoint');
 
 		await this.usingWriteLockTarget(async () => {
 			await db.transaction(async (trx) => {
-				await this.config.set({ name: target.local.name }, trx);
+				await config.set({ name: target.local.name }, trx);
 				await this.deviceConfig.setTarget(target.local.config, trx);
 
 				if (localSource || apiEndpoint == null) {
@@ -511,7 +501,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 			return {
 				local: {
-					name: await this.config.get('name'),
+					name: await config.get('name'),
 					config: await this.deviceConfig.getTarget({ initial }),
 					apps: await this.applications.getTargetApps(),
 				},
@@ -540,7 +530,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		DeviceStatus & { local: { name: string } }
 	> {
 		const [name, devConfig, apps, dependent] = await Promise.all([
-			this.config.get('name'),
+			config.get('name'),
 			this.deviceConfig.getCurrent(),
 			this.applications.getCurrentForComparison(),
 			this.applications.getDependentState(),

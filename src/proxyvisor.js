@@ -16,6 +16,7 @@ import * as url from 'url';
 
 import { log } from './lib/supervisor-console';
 import * as db from './db';
+import * as config from './config';
 
 const mkdirpAsync = Promise.promisify(mkdirp);
 
@@ -201,7 +202,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 			commit,
 			releaseId,
 			environment,
-			config,
+			config: conf,
 		} = req.body;
 		const validateDeviceFields = function () {
 			if (isDefined(is_online) && !_.isBoolean(is_online)) {
@@ -219,7 +220,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 			if (!validObjectOrUndefined(environment)) {
 				return 'environment must be an object';
 			}
-			if (!validObjectOrUndefined(config)) {
+			if (!validObjectOrUndefined(conf)) {
 				return 'config must be an object';
 			}
 			return null;
@@ -233,12 +234,12 @@ const createProxyvisorRouter = function (proxyvisor) {
 		if (isDefined(environment)) {
 			environment = JSON.stringify(environment);
 		}
-		if (isDefined(config)) {
-			config = JSON.stringify(config);
+		if (isDefined(conf)) {
+			conf = JSON.stringify(conf);
 		}
 
 		const fieldsToUpdateOnDB = _.pickBy(
-			{ status, is_online, commit, releaseId, config, environment },
+			{ status, is_online, commit, releaseId, config: conf, environment },
 			isDefined,
 		);
 		/** @type {Dictionary<any>} */
@@ -343,7 +344,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 };
 
 export class Proxyvisor {
-	constructor({ config, logger, docker, images, applications }) {
+	constructor({ logger, docker, images, applications }) {
 		this.bindToAPI = this.bindToAPI.bind(this);
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
@@ -359,7 +360,6 @@ export class Proxyvisor {
 		this.sendUpdate = this.sendUpdate.bind(this);
 		this.sendDeleteHook = this.sendDeleteHook.bind(this);
 		this.sendUpdates = this.sendUpdates.bind(this);
-		this.config = config;
 		this.logger = logger;
 		this.docker = docker;
 		this.images = images;
@@ -369,7 +369,7 @@ export class Proxyvisor {
 		this.router = createProxyvisorRouter(this);
 		this.actionExecutors = {
 			updateDependentTargets: (step) => {
-				return this.config
+				return config
 					.getMany(['currentApiKey', 'apiTimeout'])
 					.then(({ currentApiKey, apiTimeout }) => {
 						// - take each of the step.devices and update dependentDevice with it (targetCommit, targetEnvironment, targetConfig)
@@ -446,7 +446,7 @@ export class Proxyvisor {
 
 			sendDependentHooks: (step) => {
 				return Promise.join(
-					this.config.get('apiTimeout'),
+					config.get('apiTimeout'),
 					this.getHookEndpoint(step.appId),
 					(apiTimeout, endpoint) => {
 						return Promise.mapSeries(step.devices, (device) => {
@@ -965,7 +965,7 @@ export class Proxyvisor {
 	sendUpdates({ uuid }) {
 		return Promise.join(
 			db.models('dependentDevice').where({ uuid }).select(),
-			this.config.get('apiTimeout'),
+			config.get('apiTimeout'),
 			([dev], apiTimeout) => {
 				if (dev == null) {
 					log.warn(`Trying to send update to non-existent device ${uuid}`);

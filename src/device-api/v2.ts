@@ -5,6 +5,7 @@ import * as _ from 'lodash';
 import { ApplicationManager } from '../application-manager';
 import { Service } from '../compose/service';
 import Volume from '../compose/volume';
+import * as config from '../config';
 import * as db from '../db';
 import { spawnJournalctl } from '../lib/journald';
 import {
@@ -272,7 +273,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	router.post('/v2/local/target-state', async (req, res) => {
 		// let's first ensure that we're in local mode, otherwise
 		// this function should not do anything
-		const localMode = await deviceState.config.get('localMode');
+		const localMode = await config.get('localMode');
 		if (!localMode) {
 			return res.status(400).json({
 				status: 'failed',
@@ -300,7 +301,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get('/v2/local/device-info', async (_req, res) => {
 		try {
-			const { deviceType, deviceArch } = await applications.config.getMany([
+			const { deviceType, deviceArch } = await config.getMany([
 				'deviceType',
 				'deviceArch',
 			]);
@@ -386,7 +387,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/state/status', async (_req, res) => {
-		const currentRelease = await applications.config.get('currentCommit');
+		const currentRelease = await config.get('currentCommit');
 
 		const pending = applications.deviceState.applyInProgress;
 		const containerStates = (await applications.services.getAll()).map((svc) =>
@@ -437,7 +438,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/device/name', async (_req, res) => {
-		const deviceName = await applications.config.get('name');
+		const deviceName = await config.get('name');
 		res.json({
 			status: 'success',
 			deviceName,
@@ -460,10 +461,10 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/device/vpn', async (_req, res) => {
-		const config = await deviceState.deviceConfig.getCurrent();
+		const conf = await deviceState.deviceConfig.getCurrent();
 		// Build VPNInfo
 		const info = {
-			enabled: config.SUPERVISOR_VPN_CONTROL === 'true',
+			enabled: conf.SUPERVISOR_VPN_CONTROL === 'true',
 			connected: await isVPNActive(),
 		};
 		// Return payload

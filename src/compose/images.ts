@@ -4,7 +4,6 @@ import { EventEmitter } from 'events';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
-import Config from '../config';
 import * as db from '../db';
 import * as constants from '../lib/constants';
 import {
@@ -29,7 +28,6 @@ type ImageEventEmitter = StrictEventEmitter<EventEmitter, ImageEvents>;
 interface ImageConstructOpts {
 	docker: DockerUtils;
 	logger: Logger;
-	config: Config;
 }
 
 interface FetchProgressEvent {

@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import { inspect } from 'util';
 
-import Config from './config';
+import * as config from './config';
 import { SchemaTypeKey } from './config/schema-type';
 import * as db from './db';
 import Logger from './logger';
@@ -17,7 +17,6 @@ import { DeviceStatus } from './types/state';
 const vpnServiceName = 'openvpn';
 
 interface DeviceConfigConstructOpts {
-	config: Config;
 	logger: Logger;
 }
 
@@ -56,7 +55,6 @@ interface DeviceActionExecutors {
 }
 
 export class DeviceConfig {
-	private config: Config;
 	private logger: Logger;
 	private rebootRequired = false;
 	private actionExecutors: DeviceActionExecutors;
@@ -148,8 +146,7 @@ export class DeviceConfig {
 		},
 	};
 
-	public constructor({ config, logger }: DeviceConfigConstructOpts) {
-		this.config = config;
+	public constructor({ logger }: DeviceConfigConstructOpts) {
 		this.logger = logger;
 
 		this.actionExecutors = {
@@ -163,7 +160,7 @@ export class DeviceConfig {
 					}
 					// TODO: Change the typing of step so that the types automatically
 					// work out and we don't need this cast to any
-					await this.config.set(step.target as { [key in SchemaTypeKey]: any });
+					await config.set(step.target as { [key in SchemaTypeKey]: any });
 					if (step.humanReadableTarget) {
 						this.logger.logConfigChange(step.humanReadableTarget, {
 							success: true,
@@ -219,7 +216,7 @@ export class DeviceConfig {
 		if (this.configBackend != null) {
 			return this.configBackend;
 		}
-		const dt = await this.config.get('deviceType');
+		const dt = await config.get('deviceType');
 		this.configBackend =
 			(await configUtils.initialiseConfigBackend(dt, {
 				logger: this.logger,
@@ -249,7 +246,7 @@ export class DeviceConfig {
 
 	public async getTarget({ initial = false }: { initial?: boolean } = {}) {
 		const [unmanaged, [devConfig]] = await Promise.all([
-			this.config.get('unmanaged'),
+			config.get('unmanaged'),
 			db.models('deviceConfig').select('targetValues'),
 		]);
 
@@ -278,7 +275,7 @@ export class DeviceConfig {
 	}
 
 	public async getCurrent() {
-		const conf = await this.config.getMany(
+		const conf = await config.getMany(
 			['deviceType'].concat(_.keys(DeviceConfig.configKeys)) as SchemaTypeKey[],
 		);
 
@@ -384,7 +381,7 @@ export class DeviceConfig {
 
 		let steps: ConfigStep[] = [];
 
-		const { deviceType, unmanaged } = await this.config.getMany([
+		const { deviceType, unmanaged } = await config.getMany([
 			'deviceType',
 			'unmanaged',
 		]);
@@ -408,9 +405,7 @@ export class DeviceConfig {
 				) {
 					// Check that the difference is not due to the variable having an invalid
 					// value set from the cloud
-					if (
-						this.config.valueIsValid(key as SchemaTypeKey, target[envVarName])
-					) {
+					if (config.valueIsValid(key as SchemaTypeKey, target[envVarName])) {
 						// Save the change if it is both valid and different
 						changingValue = target[envVarName];
 					} else {
@@ -544,10 +539,7 @@ export class DeviceConfig {
 		);
 
 		// Ensure devices already have required overlays
-		DeviceConfig.ensureRequiredOverlay(
-			await this.config.get('deviceType'),
-			conf,
-		);
+		DeviceConfig.ensureRequiredOverlay(await config.get('deviceType'), conf);
 
 		try {
 			await backend.setBootConfig(conf);

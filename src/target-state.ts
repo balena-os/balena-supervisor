@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 
 import { ApplicationManager } from './application-manager';
-import Config from './config';
+import * as config from './config';
 import * as db from './db';
 
 // Once we have correct types for both applications and the
@@ -23,14 +23,11 @@ export type DatabaseApps = DatabaseApp[];
 export class TargetStateAccessor {
 	private targetState?: DatabaseApps;
 
-	public constructor(
-		protected applications: ApplicationManager,
-		protected config: Config,
-	) {
+	public constructor(protected applications: ApplicationManager) {
 		// If we switch backend, the target state also needs to
 		// be invalidated (this includes switching to and from
 		// local mode)
-		this.config.on('change', (conf) => {
+		config.on('change', (conf) => {
 			if (conf.apiEndpoint != null || conf.localMode != null) {
 				this.targetState = undefined;
 			}
@@ -49,7 +46,7 @@ export class TargetStateAccessor {
 
 	public async getTargetApps(): Promise<DatabaseApps> {
 		if (this.targetState == null) {
-			const { apiEndpoint, localMode } = await this.config.getMany([
+			const { apiEndpoint, localMode } = await config.getMany([
 				'apiEndpoint',
 				'localMode',
 			]);

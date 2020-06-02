@@ -3,7 +3,6 @@ import { expect } from 'chai';
 import * as Docker from 'dockerode';
 import * as sinon from 'sinon';
 
-import Config from '../src/config';
 import * as db from '../src/db';
 import LocalModeManager, {
 	EngineSnapshot,
@@ -34,11 +33,9 @@ describe('LocalModeManager', () => {
 		await db.initialized;
 
 		dockerStub = sinon.createStubInstance(Docker);
-		const configStub = (sinon.createStubInstance(Config) as unknown) as Config;
 		const loggerStub = (sinon.createStubInstance(Logger) as unknown) as Logger;
 
 		localMode = new LocalModeManager(
-			configStub,
 			(dockerStub as unknown) as Docker,
 			loggerStub,
 			supervisorContainerId,

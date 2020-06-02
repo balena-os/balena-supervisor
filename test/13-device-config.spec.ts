@@ -3,6 +3,7 @@ import { stripIndent } from 'common-tags';
 import { child_process, fs } from 'mz';
 import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 
+import * as config from '../src/config';
 import { ExtlinuxConfigBackend, RPiConfigBackend } from '../src/config/backend';
 import { DeviceConfig } from '../src/device-config';
 import * as fsUtils from '../src/lib/fs-utils';
@@ -32,7 +33,6 @@ describe('DeviceConfig', function () {
 		};
 		return (this.deviceConfig = new DeviceConfig({
 			logger: this.fakeLogger,
-			config: this.fakeConfig,
 		}));
 	});
 
@@ -397,19 +397,16 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 
 	describe('ConfigFS', function () {
 		before(function () {
-			const fakeConfig = {
-				get(key: string) {
-					return Promise.try(function () {
-						if (key === 'deviceType') {
-							return 'up-board';
-						}
-						throw new Error('Unknown fake config key');
-					});
-				},
-			};
+			stub(config, 'get').callsFake((key) => {
+				return Promise.try(function () {
+					if (key === 'deviceType') {
+						return 'up-board';
+					}
+					throw new Error('Unknown fake config key');
+				});
+			});
 			this.upboardConfig = new DeviceConfig({
 				logger: this.fakeLogger,
-				config: fakeConfig as any,
 			});
 
 			stub(child_process, 'exec').resolves();
@@ -438,6 +435,17 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 					'exec not called enough times',
 				);
 			});
+		});
+
+		after(function () {
+			(child_process.exec as SinonStub).restore();
+			(fs.exists as SinonStub).restore();
+			(fs.mkdir as SinonStub).restore();
+			(fs.readdir as SinonStub).restore();
+			(fs.readFile as SinonStub).restore();
+			(fsUtils.writeFileAtomic as SinonStub).restore();
+			(config.get as SinonStub).restore();
+			this.fakeLogger.logSystemMessage.resetHistory();
 		});
 
 		it('should correctly load the configfs.json file', function () {
@@ -490,16 +498,6 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 						this.fakeLogger.logSystemMessage.getCall(1).args[2],
 					).to.equal('Apply boot config success');
 				});
-		});
-
-		return after(function () {
-			(child_process.exec as SinonStub).restore();
-			(fs.exists as SinonStub).restore();
-			(fs.mkdir as SinonStub).restore();
-			(fs.readdir as SinonStub).restore();
-			(fs.readFile as SinonStub).restore();
-			(fsUtils.writeFileAtomic as SinonStub).restore();
-			return this.fakeLogger.logSystemMessage.resetHistory();
 		});
 	});
 

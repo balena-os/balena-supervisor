@@ -4,7 +4,7 @@ import { Server } from 'http';
 import * as _ from 'lodash';
 import * as morgan from 'morgan';
 
-import Config from './config';
+import * as config from './config';
 import { EventTracker } from './event-tracker';
 import blink = require('./lib/blink');
 import * as iptables from './lib/iptables';
@@ -29,7 +29,7 @@ function getKeyFromReq(req: express.Request): string | undefined {
 	return match?.[1];
 }
 
-function authenticate(config: Config): express.RequestHandler {
+function authenticate(): express.RequestHandler {
 	return async (req, res, next) => {
 		try {
 			const conf = await config.getMany([
@@ -76,7 +76,6 @@ const expressLogger = morgan(
 );
 
 interface SupervisorAPIConstructOpts {
-	config: Config;
 	eventTracker: EventTracker;
 	routers: express.Router[];
 	healthchecks: Array<() => Promise<boolean>>;
@@ -87,7 +86,6 @@ interface SupervisorAPIStopOpts {
 }
 
 export class SupervisorAPI {
-	private config: Config;
 	private eventTracker: EventTracker;
 	private routers: express.Router[];
 	private healthchecks: Array<() => Promise<boolean>>;
@@ -104,12 +102,10 @@ export class SupervisorAPI {
 			: this.applyListeningRules.bind(this);
 
 	public constructor({
-		config,
 		eventTracker,
 		routers,
 		healthchecks,
 	}: SupervisorAPIConstructOpts) {
-		this.config = config;
 		this.eventTracker = eventTracker;
 		this.routers = routers;
 		this.healthchecks = healthchecks;
@@ -133,7 +129,7 @@ export class SupervisorAPI {
 
 		this.api.get('/ping', (_req, res) => res.send('OK'));
 
-		this.api.use(authenticate(this.config));
+		this.api.use(authenticate());
 
 		this.api.post('/v1/blink', (_req, res) => {
 			this.eventTracker.track('Device blink');
@@ -145,8 +141,8 @@ export class SupervisorAPI {
 		// Expires the supervisor's API key and generates a new one.
 		// It also communicates the new key to the balena API.
 		this.api.post('/v1/regenerate-api-key', async (_req, res) => {
-			const secret = await this.config.newUniqueKey();
-			await this.config.set({ apiSecret: secret });
+			const secret = config.newUniqueKey();
+			await config.set({ apiSecret: secret });
 			res.status(200).send(secret);
 		});
 
@@ -190,11 +186,11 @@ export class SupervisorAPI {
 		port: number,
 		apiTimeout: number,
 	): Promise<void> {
-		const localMode = await this.config.get('localMode');
+		const localMode = await config.get('localMode');
 		await this.applyRules(localMode || false, port, allowedInterfaces);
 		// Monitor the switching of local mode, and change which interfaces will
 		// be listened to based on that
-		this.config.on('change', (changedConfig) => {
+		config.on('change', (changedConfig) => {
 			if (changedConfig.localMode != null) {
 				this.applyRules(
 					changedConfig.localMode || false,

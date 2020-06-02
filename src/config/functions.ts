@@ -5,7 +5,7 @@ import { URL } from 'url';
 
 import supervisorVersion = require('../lib/supervisor-version');
 
-import Config from '.';
+import * as config from '.';
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
 import log from '../lib/supervisor-console';
@@ -14,14 +14,14 @@ export const fnSchema = {
 	version: () => {
 		return Bluebird.resolve(supervisorVersion);
 	},
-	currentApiKey: (config: Config) => {
+	currentApiKey: () => {
 		return config
 			.getMany(['apiKey', 'deviceApiKey'])
 			.then(({ apiKey, deviceApiKey }) => {
 				return apiKey || deviceApiKey;
 			});
 	},
-	provisioned: (config: Config) => {
+	provisioned: () => {
 		return config
 			.getMany(['uuid', 'apiEndpoint', 'registered_at', 'deviceId'])
 			.then((requiredValues) => {
@@ -50,7 +50,7 @@ export const fnSchema = {
 			return 'unknown';
 		}
 	},
-	provisioningOptions: (config: Config) => {
+	provisioningOptions: () => {
 		return config
 			.getMany([
 				'uuid',
@@ -79,7 +79,7 @@ export const fnSchema = {
 				};
 			});
 	},
-	mixpanelHost: (config: Config) => {
+	mixpanelHost: () => {
 		return config.get('apiEndpoint').then((apiEndpoint) => {
 			if (!apiEndpoint) {
 				return null;
@@ -88,7 +88,7 @@ export const fnSchema = {
 			return { host: url.host, path: '/mixpanel' };
 		});
 	},
-	extendedEnvOptions: (config: Config) => {
+	extendedEnvOptions: () => {
 		return config.getMany([
 			'uuid',
 			'listenPort',
@@ -102,7 +102,7 @@ export const fnSchema = {
 			'osVersion',
 		]);
 	},
-	fetchOptions: (config: Config) => {
+	fetchOptions: () => {
 		return config.getMany([
 			'uuid',
 			'currentApiKey',
@@ -116,7 +116,7 @@ export const fnSchema = {
 			'deltaVersion',
 		]);
 	},
-	unmanaged: (config: Config) => {
+	unmanaged: () => {
 		return config.get('apiEndpoint').then((apiEndpoint) => {
 			return !apiEndpoint;
 		});

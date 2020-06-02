@@ -2,8 +2,6 @@ import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { stub } from 'sinon';
 
-import Config from '../src/config';
-
 import Network from '../src/compose/network';
 
 import Service from '../src/compose/service';
@@ -127,7 +125,6 @@ const dependentDBFormat = {
 describe('ApplicationManager', function () {
 	before(async function () {
 		await prepare();
-		this.config = new Config();
 		const eventTracker = new EventTracker();
 		this.logger = {
 			clearOutOfDateDBLogs: () => {
@@ -135,7 +132,6 @@ describe('ApplicationManager', function () {
 			},
 		} as any;
 		this.deviceState = new DeviceState({
-			config: this.config,
 			eventTracker,
 			logger: this.logger,
 			apiBinder: null as any,
@@ -226,7 +222,6 @@ describe('ApplicationManager', function () {
 				return targetCloned;
 			});
 		};
-		return this.config.init();
 	});
 
 	beforeEach(

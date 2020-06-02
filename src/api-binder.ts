@@ -9,7 +9,7 @@ import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
 import * as url from 'url';
 import * as deviceRegister from './lib/register-device';
 
-import Config, { ConfigType } from './config';
+import * as config from './config';
 import { EventTracker } from './event-tracker';
 import { loadBackupFromMigration } from './lib/migration';
 
@@ -41,7 +41,6 @@ const INTERNAL_STATE_KEYS = [
 ];
 
 export interface APIBinderConstructOpts {
-	config: Config;
 	eventTracker: EventTracker;
 	logger: Logger;
 }
@@ -63,12 +62,11 @@ interface DeviceTag {
 	value: string;
 }
 
-type KeyExchangeOpts = ConfigType<'provisioningOptions'>;
+type KeyExchangeOpts = config.ConfigType<'provisioningOptions'>;
 
 export class APIBinder {
 	public router: express.Router;
 
-	private config: Config;
 	private deviceState: DeviceState;
 	private eventTracker: EventTracker;
 	private logger: Logger;
@@ -91,8 +89,7 @@ export class APIBinder {
 	private targetStateFetchErrors = 0;
 	private readyForUpdates = false;
 
-	public constructor({ config, eventTracker, logger }: APIBinderConstructOpts) {
-		this.config = config;
+	public constructor({ eventTracker, logger }: APIBinderConstructOpts) {
 		this.eventTracker = eventTracker;
 		this.logger = logger;
 
@@ -108,7 +105,7 @@ export class APIBinder {
 			appUpdatePollInterval,
 			unmanaged,
 			connectivityCheckEnabled,
-		} = await this.config.getMany([
+		} = await config.getMany([
 			'appUpdatePollInterval',
 			'unmanaged',
 			'connectivityCheckEnabled',
@@ -160,11 +157,7 @@ export class APIBinder {
 	}
 
 	public async initClient() {
-		const {
-			unmanaged,
-			apiEndpoint,
-			currentApiKey,
-		} = await this.config.getMany([
+		const { unmanaged, apiEndpoint, currentApiKey } = await config.getMany([
 			'unmanaged',
 			'apiEndpoint',
 			'currentApiKey',
@@ -188,7 +181,7 @@ export class APIBinder {
 	}
 
 	public async start() {
-		const conf = await this.config.getMany([
+		const conf = await config.getMany([
 			'apiEndpoint',
 			'unmanaged',
 			'bootstrapRetryDelay',
@@ -203,14 +196,14 @@ export class APIBinder {
 			// value to '', to ensure that when we do re-provision, we'll report
 			// the config and hardward-specific options won't be lost
 			if (!apiEndpoint) {
-				await this.config.set({ initialConfigReported: '' });
+				await config.set({ initialConfigReported: '' });
 			}
 			return;
 		}
 
 		log.debug('Ensuring device is provisioned');
 		await this.provisionDevice();
-		const conf2 = await this.config.getMany([
+		const conf2 = await config.getMany([
 			'initialConfigReported',
 			'apiEndpoint',
 		]);
@@ -278,7 +271,7 @@ export class APIBinder {
 	}
 
 	public async patchDevice(id: number, updatedFields: Dictionary<unknown>) {
-		const conf = await this.config.getMany([
+		const conf = await config.getMany([
 			'unmanaged',
 			'provisioned',
 			'apiTimeout',
@@ -308,7 +301,7 @@ export class APIBinder {
 	}
 
 	public async provisionDependentDevice(device: Device): Promise<Device> {
-		const conf = await this.config.getMany([
+		const conf = await config.getMany([
 			'unmanaged',
 			'provisioned',
 			'apiTimeout',
@@ -341,7 +334,7 @@ export class APIBinder {
 	}
 
 	public async getTargetState(): Promise<TargetState> {
-		const { uuid, apiEndpoint, apiTimeout } = await this.config.getMany([
+		const { uuid, apiEndpoint, apiTimeout } = await config.getMany([
 			'uuid',
 			'apiEndpoint',
 			'apiTimeout',
@@ -377,7 +370,7 @@ export class APIBinder {
 					'Trying to start poll without initializing API client',
 				);
 			}
-			this.config
+			config
 				.get('instantUpdates')
 				.catch(() => {
 					// Default to skipping the initial update if we couldn't fetch the setting
@@ -414,7 +407,7 @@ export class APIBinder {
 			);
 		}
 
-		const deviceId = await this.config.get('deviceId');
+		const deviceId = await config.get('deviceId');
 		if (deviceId == null) {
 			throw new Error('Attempt to retrieve device tags before provision');
 		}
@@ -523,7 +516,7 @@ export class APIBinder {
 	}
 
 	private report = _.throttle(async () => {
-		const conf = await this.config.getMany([
+		const conf = await config.getMany([
 			'deviceId',
 			'apiTimeout',
 			'apiEndpoint',
@@ -586,7 +579,7 @@ export class APIBinder {
 				this.eventTracker.track('Device state report failure', { error: e });
 				// We use the poll interval as the upper limit of
 				// the exponential backoff
-				const maxDelay = await this.config.get('appUpdatePollInterval');
+				const maxDelay = await config.get('appUpdatePollInterval');
 				const delay = Math.min(
 					2 ** this.stateReportErrors * MINIMUM_BACKOFF_DELAY,
 					maxDelay,
@@ -637,7 +630,7 @@ export class APIBinder {
 	private async pollTargetState(skipFirstGet: boolean = false): Promise<void> {
 		let appUpdatePollInterval;
 		try {
-			appUpdatePollInterval = await this.config.get('appUpdatePollInterval');
+			appUpdatePollInterval = await config.get('appUpdatePollInterval');
 			if (!skipFirstGet) {
 				await this.getAndSetTargetState(false);
 				this.targetStateFetchErrors = 0;
@@ -673,7 +666,7 @@ export class APIBinder {
 		}
 
 		try {
-			const deviceId = await this.config.get('deviceId');
+			const deviceId = await config.get('deviceId');
 
 			if (deviceId == null) {
 				throw new InternalInconsistencyError(
@@ -710,7 +703,7 @@ export class APIBinder {
 
 			// Set the config value for pinDevice to null, so that we know the
 			// task has been completed
-			await this.config.remove('pinDevice');
+			await config.remove('pinDevice');
 		} catch (e) {
 			log.error(`Could not pin device to release! ${e}`);
 			throw e;
@@ -742,7 +735,7 @@ export class APIBinder {
 		const targetConfig = await this.deviceState.deviceConfig.formatConfigKeys(
 			targetConfigUnformatted,
 		);
-		const deviceId = await this.config.get('deviceId');
+		const deviceId = await config.get('deviceId');
 
 		if (!currentState.local.config) {
 			throw new InternalInconsistencyError(
@@ -774,7 +767,7 @@ export class APIBinder {
 			}
 		}
 
-		await this.config.set({ initialConfigReported: apiEndpoint });
+		await config.set({ initialConfigReported: apiEndpoint });
 	}
 
 	private async reportInitialConfig(
@@ -794,7 +787,7 @@ export class APIBinder {
 		opts?: KeyExchangeOpts,
 	): Promise<Device> {
 		if (opts == null) {
-			opts = await this.config.get('provisioningOptions');
+			opts = await config.get('provisioningOptions');
 		}
 
 		const uuid = opts.uuid;
@@ -867,7 +860,7 @@ export class APIBinder {
 		} catch (e) {
 			if (e instanceof ExchangeKeyError) {
 				log.error('Exchanging key failed, re-registering...');
-				await this.config.regenerateRegistrationFields();
+				await config.regenerateRegistrationFields();
 			}
 			throw e;
 		}
@@ -875,7 +868,7 @@ export class APIBinder {
 
 	private async provision() {
 		let device: Device | null = null;
-		const opts = await this.config.get('provisioningOptions');
+		const opts = await config.get('provisioningOptions');
 		if (
 			opts.registered_at == null ||
 			opts.deviceId == null ||
@@ -926,12 +919,12 @@ export class APIBinder {
 				deviceId: id,
 				apiKey: null,
 			};
-			await this.config.set(configToUpdate);
+			await config.set(configToUpdate);
 			this.eventTracker.track('Device bootstrap success');
 		}
 
 		// Now check if we need to pin the device
-		const pinValue = await this.config.get('pinDevice');
+		const pinValue = await config.get('pinDevice');
 
 		if (pinValue != null) {
 			if (pinValue.app == null || pinValue.commit == null) {
@@ -965,7 +958,7 @@ export class APIBinder {
 				'Trying to provision a device without initializing API client',
 			);
 		}
-		const conf = await this.config.getMany([
+		const conf = await config.getMany([
 			'provisioned',
 			'bootstrapRetryDelay',
 			'apiKey',
@@ -996,7 +989,7 @@ export class APIBinder {
 		router.post('/v1/update', (req, res, next) => {
 			apiBinder.eventTracker.track('Update notification');
 			if (apiBinder.readyForUpdates) {
-				this.config
+				config
 					.get('instantUpdates')
 					.then((instantUpdates) => {
 						if (instantUpdates) {
