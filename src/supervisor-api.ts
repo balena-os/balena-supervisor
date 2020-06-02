@@ -12,6 +12,7 @@ import * as iptables from './lib/iptables';
 import { checkTruthy, checkInt } from './lib/validation';
 
 import log from './lib/supervisor-console';
+import bodyParser = require('body-parser');
 
 function getKeyFromReq(req: express.Request): string | undefined {
 	// Check query for key
@@ -104,12 +105,15 @@ export function requireScope(
 	types: apiSecrets.Scope | apiSecrets.Scope[],
 ): express.RequestHandler {
 	return (req: RequestWithScope, res, next) => {
-		for (const type of _.toArray(types)) {
-			if (!_.find(req.data.scopes, { type })) {
-				res.status(401).send();
-			}
+		if (
+			_.castArray(types).some((type) =>
+				_.some(req.data.scopes, (s) => s.type === type),
+			)
+		) {
+			return next();
 		}
-		next();
+
+		res.status(401).send();
 	};
 }
 
@@ -142,11 +146,11 @@ export function requireAppScope(
  */
 export function getScopedApps(
 	scopes: apiSecrets.ApiSecretScope[],
-): number[] | undefined {
+): number[] | 'all' {
 	const scopedIds: number[] = [];
 	for (const scope of scopes) {
 		if (scope.type === 'all-apps') {
-			return undefined;
+			return 'all';
 		} else if (scope.type === 'app') {
 			scopedIds.push(scope.appId);
 		}
@@ -159,16 +163,11 @@ function isSecretScopedToApp(
 	appId: number,
 	scopes: apiSecrets.ApiSecretScope[],
 ): boolean {
-	return (
-		scopes.find((scope) => {
-			if (scope.type === 'all-apps') {
-				return true;
-			}
-
-			if (scope.type === 'app' && scope.appId === appId) {
-				return true;
-			}
-		}) !== undefined
+	return _.some(
+		scopes,
+		(scope) =>
+			scope.type === 'all-apps' ||
+			(scope.type === 'app' && scope.appId === appId),
 	);
 }
 
@@ -201,6 +200,7 @@ export class SupervisorAPI {
 		this.healthchecks = healthchecks;
 
 		this.api.disable('x-powered-by');
+		this.api.use(bodyParser.json());
 		this.api.use(expressLogger);
 
 		this.api.get('/v1/healthy', async (_req, res) => {

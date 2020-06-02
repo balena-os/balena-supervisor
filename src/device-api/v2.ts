@@ -18,6 +18,12 @@ import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone, serviceAction } from './common';
 import * as apiSecrets from '../lib/api-secrets';
+import {
+	requireScope,
+	RequestWithScope,
+	getScopedApps,
+	requireAppScope,
+} from '../supervisor-api';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
 	const { _lockingIfNecessary, deviceState } = applications;
@@ -91,7 +97,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	router.post(
 		'/v2/applications/:appId/purge',
 		requireScope(['app', 'all-apps']),
-		requireAppScope('req.params.appId'),
+		requireAppScope('params.appId'),
 		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);
@@ -113,28 +119,28 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	router.post(
 		'/v2/applications/:appId/restart-service',
 		requireScope(['app', 'all-apps']),
-		requireAppScope('req.params.appId'),
+		requireAppScope('params.appId'),
 		createServiceActionHandler('restart'),
 	);
 
 	router.post(
 		'/v2/applications/:appId/stop-service',
 		requireScope(['app', 'all-apps']),
-		requireAppScope('req.params.appId'),
+		requireAppScope('params.appId'),
 		createServiceActionHandler('stop'),
 	);
 
 	router.post(
 		'/v2/applications/:appId/start-service',
 		requireScope(['app', 'all-apps']),
-		requireAppScope('req.params.appId'),
+		requireAppScope('params.appId'),
 		createServiceActionHandler('start'),
 	);
 
 	router.post(
 		'/v2/applications/:appId/restart',
 		requireScope(['app', 'all-apps']),
-		requireAppScope('req.params.appId'),
+		requireAppScope('params.appId'),
 		(req: Request, res: Response, next: NextFunction) => {
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);
@@ -188,6 +194,14 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 					const appNameById: { [id: number]: string } = {};
 
+					// Filter out any application IDs which are not in-scope...
+					if (scopedAppIds !== 'all') {
+						apps = apps.filter((app) =>
+							scopedAppIds.includes(parseInt(app.appId, 10)),
+						);
+						images = images.filter((img) => scopedAppIds.includes(img.appId));
+					}
+
 					apps.forEach((app) => {
 						const appId = parseInt(app.appId, 10);
 						response[app.name] = {
@@ -235,6 +249,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get(
 		'/v2/applications/:appId/state',
+		apiSecrets.requireAppScope('params.appId'),
 		async (req: Request, res: Response) => {
 			// Check application ID provided is valid
 			const appId = checkInt(req.params.appId);
@@ -368,87 +383,119 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		});
 	});
 
-	router.get('/v2/containerId', async (req, res) => {
-		const services = await applications.services.getAll();
+	router.get(
+		'/v2/containerId',
+		apiSecrets.requireAnyScope(['all-apps', 'app']),
+		async (req: apiSecrets.RequestWithScope, res) => {
+			let services = await applications.services.getAll();
 
-		if (req.query.serviceName != null || req.query.service != null) {
-			const serviceName = req.query.serviceName || req.query.service;
-			const service = _.find(
-				services,
-				(svc) => svc.serviceName === serviceName,
-			);
-			if (service != null) {
+			const scopedAppIds = apiSecrets.scopedApps(req);
+			if (scopedAppIds !== 'all') {
+				services = services.filter(
+					(svc) => svc.appId !== null && scopedAppIds.includes(svc.appId),
+				);
+			}
+
+			if (req.query.serviceName != null || req.query.service != null) {
+				const serviceName = req.query.serviceName || req.query.service;
+				const service = _.find(
+					services,
+					(svc) => svc.serviceName === serviceName,
+				);
+				if (service != null) {
+					res.status(200).json({
+						status: 'success',
+						containerId: service.containerId,
+					});
+				} else {
+					res.status(503).json({
+						status: 'failed',
+						message: 'Could not find service with that name',
+					});
+				}
+			} else {
 				res.status(200).json({
 					status: 'success',
-					containerId: service.containerId,
-				});
-			} else {
-				res.status(503).json({
-					status: 'failed',
-					message: 'Could not find service with that name',
+					services: _(services)
+						.keyBy('serviceName')
+						.mapValues('containerId')
+						.value(),
 				});
 			}
-		} else {
-			res.status(200).json({
+		},
+	);
+
+	router.get(
+		'/v2/state/status',
+		async (req: apiSecrets.RequestWithScope, res) => {
+			const scopedAppIds = apiSecrets.scopedApps(req);
+
+			const currentRelease = await applications.config.get('currentCommit');
+
+			const pending = applications.deviceState.applyInProgress;
+			const containerStates = (await applications.services.getAll())
+				.map((svc) =>
+					_.pick(
+						svc,
+						'status',
+						'serviceName',
+						'appId',
+						'imageId',
+						'serviceId',
+						'containerId',
+						'createdAt',
+					),
+				)
+				.filter((container) => {
+					if (scopedAppIds === 'all') {
+						return true;
+					}
+					return (
+						container.appId !== null && scopedAppIds.includes(container.appId)
+					);
+				});
+
+			let downloadProgressTotal = 0;
+			let downloads = 0;
+			const imagesStates = (await applications.images.getStatus())
+				.map((img) => {
+					if (img.downloadProgress != null) {
+						downloadProgressTotal += img.downloadProgress;
+						downloads += 1;
+					}
+					return _.pick(
+						img,
+						'name',
+						'appId',
+						'serviceName',
+						'imageId',
+						'dockerImageId',
+						'status',
+						'downloadProgress',
+					);
+				})
+				.filter((img) => {
+					if (scopedAppIds === 'all') {
+						return true;
+					}
+					return img.appId !== null && scopedAppIds.includes(img.appId);
+				});
+
+			let overallDownloadProgress: number | null = null;
+			if (downloads > 0) {
+				overallDownloadProgress = downloadProgressTotal / downloads;
+			}
+
+			return res.status(200).send({
 				status: 'success',
-				services: _(services)
-					.keyBy('serviceName')
-					.mapValues('containerId')
-					.value(),
+				appState: pending ? 'applying' : 'applied',
+				overallDownloadProgress,
+				containers: containerStates,
+				images: imagesStates,
+				release: currentRelease,
 			});
-		}
-	});
-
-	router.get('/v2/state/status', async (_req, res) => {
-		const currentRelease = await applications.config.get('currentCommit');
-
-		const pending = applications.deviceState.applyInProgress;
-		const containerStates = (await applications.services.getAll()).map((svc) =>
-			_.pick(
-				svc,
-				'status',
-				'serviceName',
-				'appId',
-				'imageId',
-				'serviceId',
-				'containerId',
-				'createdAt',
-			),
-		);
-
-		let downloadProgressTotal = 0;
-		let downloads = 0;
-		const imagesStates = (await applications.images.getStatus()).map((img) => {
-			if (img.downloadProgress != null) {
-				downloadProgressTotal += img.downloadProgress;
-				downloads += 1;
-			}
-			return _.pick(
-				img,
-				'name',
-				'appId',
-				'serviceName',
-				'imageId',
-				'dockerImageId',
-				'status',
-				'downloadProgress',
-			);
-		});
-
-		let overallDownloadProgress: number | null = null;
-		if (downloads > 0) {
-			overallDownloadProgress = downloadProgressTotal / downloads;
-		}
-
-		return res.status(200).send({
-			status: 'success',
-			appState: pending ? 'applying' : 'applied',
-			overallDownloadProgress,
-			containers: containerStates,
-			images: imagesStates,
-			release: currentRelease,
-		});
-	});
+		},
+	);
 
 	router.get('/v2/device/name', async (_req, res) => {
 		const deviceName = await applications.config.get('name');

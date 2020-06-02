@@ -187,13 +187,4 @@ describe('SupervisorAPI authentication', () => {
 			await postWithKey('/v1/blink', newKey).expect(200);
 		});
 	});
-
-	describe('Api secret regeneration', () => {
-		it(`should regenerate all keys when a secret has 'apps' scope`, () => {
-			throw new Error('Do this');
-		});
-		it(`should regenerate keys for a specific app when a secret has 'app' scope`, () => {
-			throw new Error('Do this');
-		});
-	});
 });

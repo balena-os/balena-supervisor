@@ -17,6 +17,7 @@ import { ServiceManager } from '../../src/compose/service-manager';
 import { NetworkManager } from '../../src/compose/network-manager';
 import { VolumeManager } from '../../src/compose/volume-manager';
 import * as apiSecrets from '../../src/lib/api-secrets';
+import _ = require('lodash');
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
 // Holds all values used for stubbing
@@ -58,6 +59,9 @@ const STUBBED_VALUES = {
 	volumes: [],
 };
 
+const logger = {
+	logSystemMessage: _.noop,
+};
 /**
  * THIS MOCKED API CONTAINS STUBS THAT MIGHT CAUSE UNEXPECTED RESULTS
  * IF YOU WANT TO ADD/MODIFY STUBS THAT INVOLVE API OPERATIONS
@@ -84,7 +88,7 @@ async function create(): Promise<SupervisorAPI> {
 	const appManager = new ApplicationManager({
 		config,
 		eventTracker,
-		logger: null,
+		logger,
 		deviceState,
 		apiBinder: null,
 	});

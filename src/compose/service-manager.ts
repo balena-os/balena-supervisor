@@ -112,9 +112,9 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		return services[0];
 	}
 
-	public async getStatus(appId?: number | number[]) {
+	public async getStatus(appId?: number | number[] | 'all') {
 		const getPromises: Array<Promise<Service[]>> = [];
-		if (appId) {
+		if (appId && appId !== 'all') {
 			appId = (_.toArray(appId) as unknown) as number[];
 			getPromises.concat(
 				..._.toArray(appId).map((id) => this.getAllByAppId(id)),

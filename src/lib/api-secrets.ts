@@ -4,6 +4,7 @@ import * as _ from 'lodash';
 import * as db from '../db';
 import { InternalInconsistencyError } from './errors';
 import { generateUniqueKey } from './register-device';
+import { checkInt } from './validation';
 
 const CLOUD_KEY_SELECTOR = { appId: 0, serviceId: 0 };
 
@@ -185,15 +186,62 @@ export type RequestWithScope = express.Request & {
 	};
 };
 
-type Scope = ApiSecretScope['type'];
+export type Scope = ApiSecretScope['type'];
 
-export function requireScope(types: Scope | Scope[]): express.RequestHandler {
+export function scopedApps(req: RequestWithScope): number[] | 'all' {
+	if (_.some(req.data.scopes, (scope) => scope.type === 'all-apps')) {
+		return 'all';
+	}
+
+	return req.data.scopes.reduce((acc, scope) => {
+		if (scope.type === 'app') {
+			acc.push(scope.appId);
+		}
+		return acc;
+	}, new Array<number>());
+}
+
+export function requireAnyScope(
+	types: Scope | Scope[],
+): express.RequestHandler {
 	return (req: RequestWithScope, res, next) => {
 		for (const type of _.toArray(types)) {
-			if (!_.find(req.data.scopes, { type })) {
-				res.status(401).send();
+			const scope = _.find(req.data.scopes, { type });
+			if (scope) {
+				return next();
 			}
 		}
-		next();
+
+		res.status(401).json({
+			status: 'failed',
+			message: `Secret is not correctly scoped for this request`,
+		});
+	};
+}
+
+export function requireAppScope(path: _.PropertyPath): express.RequestHandler {
+	return (req: RequestWithScope, res, next) => {
+		if (_.some(req.data.scopes, (scope) => scope.type === 'all-apps')) {
+			return next();
+		}
+
+		path = _.toPath(path);
+		let canAccess = false;
+		const appId = checkInt(_.get(req, path, ''));
+		if (appId) {
+			canAccess = _.some(
+				req.data.scopes,
+				(scope) => scope.type === 'app' && scope.appId === appId,
+			);
+		}
+
+		if (canAccess) {
+			return next();
+		}
+
+		res.status(401).json({
+			status: 'failed',
+			message: `Invalid application ID: ${_.get(req, path, '')}`,
+		});
 	};
 }

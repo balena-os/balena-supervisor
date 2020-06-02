@@ -40,6 +40,7 @@ export function doPurge(applications, appId, force) {
 	);
 	return _lockingIfNecessary(appId, { force }, () =>
 		deviceState.getCurrentForComparison().then(function (currentState) {
+			console.log(JSON.stringify(currentState, null, 2));
 			const app = currentState.local.apps[appId];
 			if (app == null) {
 				throw new Error(appNotFoundMessage);
