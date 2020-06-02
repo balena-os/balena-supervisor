@@ -1,5 +1,7 @@
 import { expect } from 'chai';
-import { stub } from 'sinon';
+import { stub, SinonStub } from 'sinon';
+
+import { docker } from '../src/lib/docker-utils';
 
 import Volume from '../src/compose/volume';
 import logTypes = require('../src/lib/log-types');
@@ -8,13 +10,18 @@ const fakeLogger = {
 	logSystemMessage: stub(),
 	logSystemEvent: stub(),
 };
-const fakeDocker = {
-	createVolume: stub(),
-};
 
-const opts: any = { logger: fakeLogger, docker: fakeDocker };
+const opts: any = { logger: fakeLogger };
 
 describe('Compose volumes', () => {
+	let createVolumeStub: SinonStub;
+	before(() => {
+		createVolumeStub = stub(docker, 'createVolume');
+	});
+	after(() => {
+		createVolumeStub.restore();
+	});
+
 	describe('Parsing volumes', () => {
 		it('should correctly parse docker volumes', () => {
 			const volume = Volume.fromDockerVolume(opts, {
@@ -122,7 +129,7 @@ describe('Compose volumes', () => {
 
 	describe('Generating docker options', () => {
 		afterEach(() => {
-			fakeDocker.createVolume.reset();
+			createVolumeStub.reset();
 			fakeLogger.logSystemEvent.reset();
 			fakeLogger.logSystemMessage.reset();
 		});
@@ -143,7 +150,7 @@ describe('Compose volumes', () => {
 
 			await volume.create();
 			expect(
-				fakeDocker.createVolume.calledWith({
+				createVolumeStub.calledWith({
 					Labels: {
 						'my-label': 'test-label',
 						'io.balena.supervised': 'true',

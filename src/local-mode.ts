@@ -1,10 +1,10 @@
 import * as Bluebird from 'bluebird';
-import * as Docker from 'dockerode';
 import * as _ from 'lodash';
 
 import * as config from './config';
 import * as db from './db';
 import * as constants from './lib/constants';
+import { docker } from './lib/docker-utils';
 import { SupervisorContainerNotFoundError } from './lib/errors';
 import log from './lib/supervisor-console';
 import { Logger } from './logger';
@@ -71,7 +71,6 @@ const SUPERVISOR_CONTAINER_NAME_FALLBACK = 'resin_supervisor';
  */
 export class LocalModeManager {
 	public constructor(
-		public docker: Docker,
 		public logger: Logger,
 		private containerId: string | undefined = constants.containerId,
 	) {}
@@ -121,16 +120,14 @@ export class LocalModeManager {
 
 	// Query the engine to get currently running containers and installed images.
 	public async collectEngineSnapshot(): Promise<EngineSnapshotRecord> {
-		const containersPromise = this.docker
+		const containersPromise = docker
 			.listContainers()
 			.then((resp) => _.map(resp, 'Id'));
-		const imagesPromise = this.docker
-			.listImages()
-			.then((resp) => _.map(resp, 'Id'));
-		const volumesPromise = this.docker
+		const imagesPromise = docker.listImages().then((resp) => _.map(resp, 'Id'));
+		const volumesPromise = docker
 			.listVolumes()
 			.then((resp) => _.map(resp.Volumes, 'Name'));
-		const networksPromise = this.docker
+		const networksPromise = docker
 			.listNetworks()
 			.then((resp) => _.map(resp, 'Id'));
 
@@ -149,7 +146,7 @@ export class LocalModeManager {
 	private async collectContainerResources(
 		nameOrId: string,
 	): Promise<EngineSnapshot> {
-		const inspectInfo = await this.docker.getContainer(nameOrId).inspect();
+		const inspectInfo = await docker.getContainer(nameOrId).inspect();
 		return new EngineSnapshot(
 			[inspectInfo.Id],
 			[inspectInfo.Image],
@@ -236,25 +233,25 @@ export class LocalModeManager {
 
 		// Delete engine objects. We catch every deletion error, so that we can attempt other objects deletions.
 		await Bluebird.map(objects.containers, (cId) => {
-			return this.docker
+			return docker
 				.getContainer(cId)
 				.remove({ force: true })
 				.catch((e) => log.error(`Unable to delete container ${cId}`, e));
 		});
 		await Bluebird.map(objects.images, (iId) => {
-			return this.docker
+			return docker
 				.getImage(iId)
 				.remove({ force: true })
 				.catch((e) => log.error(`Unable to delete image ${iId}`, e));
 		});
 		await Bluebird.map(objects.networks, (nId) => {
-			return this.docker
+			return docker
 				.getNetwork(nId)
 				.remove()
 				.catch((e) => log.error(`Unable to delete network ${nId}`, e));
 		});
 		await Bluebird.map(objects.volumes, (vId) => {
-			return this.docker
+			return docker
 				.getVolume(vId)
 				.remove()
 				.catch((e) => log.error(`Unable to delete volume ${vId}`, e));

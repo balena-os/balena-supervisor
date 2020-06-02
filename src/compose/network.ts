@@ -1,7 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
-import Docker from '../lib/docker-utils';
+import { docker } from '../lib/docker-utils';
 import { InvalidAppIdError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import { checkInt } from '../lib/validation';
@@ -22,7 +22,6 @@ import {
 } from './errors';
 
 export interface NetworkOptions {
-	docker: Docker;
 	logger: Logger;
 }
 
@@ -31,11 +30,9 @@ export class Network {
 	public name: string;
 	public config: NetworkConfig;
 
-	private docker: Docker;
 	private logger: Logger;
 
 	private constructor(opts: NetworkOptions) {
-		this.docker = opts.docker;
 		this.logger = opts.logger;
 	}
 
@@ -145,7 +142,7 @@ export class Network {
 			network: { name: this.name },
 		});
 
-		return await this.docker.createNetwork(this.toDockerConfig());
+		return await docker.createNetwork(this.toDockerConfig());
 	}
 
 	public toDockerConfig(): DockerNetworkConfig {
@@ -191,7 +188,7 @@ export class Network {
 		});
 
 		return Bluebird.resolve(
-			this.docker
+			docker
 				.getNetwork(Network.generateDockerName(this.appId, this.name))
 				.remove(),
 		).tapCatch((error) => {

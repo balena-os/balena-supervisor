@@ -4,7 +4,7 @@ import APIBinder from '../src/api-binder';
 import { ApplicationManager } from '../src/application-manager';
 import DeviceState from '../src/device-state';
 import * as constants from '../src/lib/constants';
-import { DockerUtils as Docker } from '../src/lib/docker-utils';
+import { docker } from '../src/lib/docker-utils';
 import { Supervisor } from '../src/supervisor';
 import { expect } from './lib/chai-config';
 
@@ -30,9 +30,7 @@ describe('Startup', () => {
 		deviceStateStub = stub(DeviceState.prototype as any, 'applyTarget').returns(
 			Promise.resolve(),
 		);
-		dockerStub = stub(Docker.prototype, 'listContainers').returns(
-			Promise.resolve([]),
-		);
+		dockerStub = stub(docker, 'listContainers').returns(Promise.resolve([]));
 	});
 
 	after(() => {

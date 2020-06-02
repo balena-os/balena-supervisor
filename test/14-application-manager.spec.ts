@@ -8,6 +8,7 @@ import Service from '../src/compose/service';
 import Volume from '../src/compose/volume';
 import DeviceState from '../src/device-state';
 import EventTracker from '../src/event-tracker';
+import * as dockerUtils from '../src/lib/docker-utils';
 
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
@@ -148,13 +149,13 @@ describe('ApplicationManager', function () {
 				},
 			}),
 		);
-		stub(this.applications.docker, 'getNetworkGateway').returns(
+		stub(dockerUtils, 'getNetworkGateway').returns(
 			Bluebird.Promise.resolve('172.17.0.1'),
 		);
-		stub(this.applications.docker, 'listContainers').returns(
+		stub(dockerUtils.docker, 'listContainers').returns(
 			Bluebird.Promise.resolve([]),
 		);
-		stub(this.applications.docker, 'listImages').returns(
+		stub(dockerUtils.docker, 'listImages').returns(
 			Bluebird.Promise.resolve([]),
 		);
 		stub(Service as any, 'extendEnvVars').callsFake(function (env) {
@@ -174,7 +175,6 @@ describe('ApplicationManager', function () {
 						appCloned.networks,
 						(config, name) => {
 							return Network.fromComposeObject(name, app.appId, config, {
-								docker: this.applications.docker,
 								logger: this.logger,
 							});
 						},
@@ -235,8 +235,12 @@ describe('ApplicationManager', function () {
 
 	after(function () {
 		this.applications.images.inspectByName.restore();
-		this.applications.docker.getNetworkGateway.restore();
-		this.applications.docker.listContainers.restore();
+		// @ts-expect-error restore on non-stubbed type
+		dockerUtils.getNetworkGateway.restore();
+		// @ts-expect-error restore on non-stubbed type
+		dockerUtils.docker.listContainers.restore();
+		// @ts-expect-error restore on non-stubbed type
+		dockerUtils.docker.listImages.restore();
 		return (Service as any).extendEnvVars.restore();
 	});
 

@@ -4,6 +4,7 @@ import * as Docker from 'dockerode';
 import * as sinon from 'sinon';
 
 import * as db from '../src/db';
+import { docker } from '../src/lib/docker-utils';
 import LocalModeManager, {
 	EngineSnapshot,
 	EngineSnapshotRecord,
@@ -13,7 +14,7 @@ import ShortStackError from './lib/errors';
 
 describe('LocalModeManager', () => {
 	let localMode: LocalModeManager;
-	let dockerStub: sinon.SinonStubbedInstance<Docker>;
+	let dockerStub: sinon.SinonStubbedInstance<typeof docker>;
 
 	const supervisorContainerId = 'super-container-1';
 
@@ -32,14 +33,14 @@ describe('LocalModeManager', () => {
 	before(async () => {
 		await db.initialized;
 
-		dockerStub = sinon.createStubInstance(Docker);
+		dockerStub = sinon.stub(docker);
 		const loggerStub = (sinon.createStubInstance(Logger) as unknown) as Logger;
 
-		localMode = new LocalModeManager(
-			(dockerStub as unknown) as Docker,
-			loggerStub,
-			supervisorContainerId,
-		);
+		localMode = new LocalModeManager(loggerStub, supervisorContainerId);
+	});
+
+	after(async () => {
+		sinon.restore();
 	});
 
 	describe('EngineSnapshot', () => {
@@ -426,9 +427,5 @@ describe('LocalModeManager', () => {
 				}
 			});
 		});
-	});
-
-	after(async () => {
-		sinon.restore();
 	});
 });

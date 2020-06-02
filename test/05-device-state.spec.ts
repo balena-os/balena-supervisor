@@ -6,6 +6,7 @@ import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
 import Log from '../src/lib/supervisor-console';
+import * as dockerUtils from '../src/lib/docker-utils';
 import * as config from '../src/config';
 import { RPiConfigBackend } from '../src/config/backend';
 import DeviceState from '../src/device-state';
@@ -235,7 +236,7 @@ describe('deviceState', () => {
 			apiBinder: null as any,
 		});
 
-		stub(deviceState.applications.docker, 'getNetworkGateway').returns(
+		stub(dockerUtils, 'getNetworkGateway').returns(
 			Promise.resolve('172.17.0.1'),
 		);
 
@@ -250,8 +251,7 @@ describe('deviceState', () => {
 
 	after(() => {
 		(Service as any).extendEnvVars.restore();
-		(deviceState.applications.docker
-			.getNetworkGateway as sinon.SinonStub).restore();
+		(dockerUtils.getNetworkGateway as sinon.SinonStub).restore();
 		(deviceState.applications.images
 			.inspectByName as sinon.SinonStub).restore();
 	});

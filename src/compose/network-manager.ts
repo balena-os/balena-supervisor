@@ -3,7 +3,7 @@ import * as _ from 'lodash';
 import { fs } from 'mz';
 
 import * as constants from '../lib/constants';
-import Docker from '../lib/docker-utils';
+import { docker } from '../lib/docker-utils';
 import { ENOENT, NotFoundError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import { Logger } from '../logger';
@@ -13,23 +13,20 @@ import log from '../lib/supervisor-console';
 import { ResourceRecreationAttemptError } from './errors';
 
 export class NetworkManager {
-	private docker: Docker;
 	private logger: Logger;
 
 	constructor(opts: NetworkOptions) {
-		this.docker = opts.docker;
 		this.logger = opts.logger;
 	}
 
 	public getAll(): Bluebird<Network[]> {
 		return this.getWithBothLabels().map((network: { Name: string }) => {
-			return this.docker
+			return docker
 				.getNetwork(network.Name)
 				.inspect()
 				.then((net) => {
 					return Network.fromDockerNetwork(
 						{
-							docker: this.docker,
 							logger: this.logger,
 						},
 						net,
@@ -43,13 +40,10 @@ export class NetworkManager {
 	}
 
 	public async get(network: { name: string; appId: number }): Promise<Network> {
-		const dockerNet = await this.docker
+		const dockerNet = await docker
 			.getNetwork(Network.generateDockerName(network.appId, network.name))
 			.inspect();
-		return Network.fromDockerNetwork(
-			{ docker: this.docker, logger: this.logger },
-			dockerNet,
-		);
+		return Network.fromDockerNetwork({ logger: this.logger }, dockerNet);
 	}
 
 	public async create(network: Network) {
@@ -89,7 +83,7 @@ export class NetworkManager {
 			fs.stat(`/sys/class/net/${constants.supervisorNetworkInterface}`),
 		)
 			.then(() => {
-				return this.docker
+				return docker
 					.getNetwork(constants.supervisorNetworkInterface)
 					.inspect();
 			})
@@ -108,16 +102,16 @@ export class NetworkManager {
 	public ensureSupervisorNetwork(): Bluebird<void> {
 		const removeIt = () => {
 			return Bluebird.resolve(
-				this.docker.getNetwork(constants.supervisorNetworkInterface).remove(),
+				docker.getNetwork(constants.supervisorNetworkInterface).remove(),
 			).then(() => {
-				return this.docker
+				return docker
 					.getNetwork(constants.supervisorNetworkInterface)
 					.inspect();
 			});
 		};
 
 		return Bluebird.resolve(
-			this.docker.getNetwork(constants.supervisorNetworkInterface).inspect(),
+			docker.getNetwork(constants.supervisorNetworkInterface).inspect(),
 		)
 			.then((net) => {
 				if (
@@ -138,7 +132,7 @@ export class NetworkManager {
 			.catch(NotFoundError, () => {
 				log.debug(`Creating ${constants.supervisorNetworkInterface} network`);
 				return Bluebird.resolve(
-					this.docker.createNetwork({
+					docker.createNetwork({
 						Name: constants.supervisorNetworkInterface,
 						Options: {
 							'com.docker.network.bridge.name':
@@ -160,12 +154,12 @@ export class NetworkManager {
 
 	private getWithBothLabels() {
 		return Bluebird.join(
-			this.docker.listNetworks({
+			docker.listNetworks({
 				filters: {
 					label: ['io.resin.supervised'],
 				},
 			}),
-			this.docker.listNetworks({
+			docker.listNetworks({
 				filters: {
 					label: ['io.balena.supervised'],
 				},

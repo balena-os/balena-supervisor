@@ -4,7 +4,6 @@ import * as _ from 'lodash';
 import * as config from './config';
 import * as db from './db';
 import { EventTracker } from './event-tracker';
-import Docker from './lib/docker-utils';
 import { LogType } from './lib/log-types';
 import { writeLock } from './lib/update-lock';
 import {
@@ -159,7 +158,6 @@ export class Logger {
 	}
 
 	public attach(
-		docker: Docker,
 		containerId: string,
 		serviceInfo: { serviceId: number; imageId: number },
 	): Bluebird<void> {
@@ -170,7 +168,7 @@ export class Logger {
 		}
 
 		return Bluebird.using(this.lock(containerId), async () => {
-			const logs = new ContainerLogs(containerId, docker);
+			const logs = new ContainerLogs(containerId);
 			this.containerLogs[containerId] = logs;
 			logs.on('error', (err) => {
 				log.error('Container log retrieval error', err);

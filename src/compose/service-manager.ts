@@ -8,7 +8,7 @@ import { fs } from 'mz';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
-import Docker from '../lib/docker-utils';
+import { docker } from '../lib/docker-utils';
 import Logger from '../logger';
 
 import { PermissiveNumber } from '../config/types';
@@ -26,7 +26,6 @@ import { serviceNetworksToDockerNetworks } from './utils';
 import log from '../lib/supervisor-console';
 
 interface ServiceConstructOpts {
-	docker: Docker;
 	logger: Logger;
 }
 
@@ -44,7 +43,6 @@ interface KillOpts {
 }
 
 export class ServiceManager extends (EventEmitter as new () => ServiceManagerEventEmitter) {
-	private docker: Docker;
 	private logger: Logger;
 
 	// Whether a container has died, indexed by ID
@@ -56,7 +54,6 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 
 	public constructor(opts: ServiceConstructOpts) {
 		super();
-		this.docker = opts.docker;
 		this.logger = opts.logger;
 	}
 
@@ -68,7 +65,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 
 		const services = await Bluebird.map(containers, async (container) => {
 			try {
-				const serviceInspect = await this.docker
+				const serviceInspect = await docker
 					.getContainer(container.Id)
 					.inspect();
 				const service = Service.fromDockerContainer(serviceInspect);
@@ -138,7 +135,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 	public async getByDockerContainerId(
 		containerId: string,
 	): Promise<Service | null> {
-		const container = await this.docker.getContainer(containerId).inspect();
+		const container = await docker.getContainer(containerId).inspect();
 		if (
 			container.Config.Labels['io.balena.supervised'] == null &&
 			container.Config.Labels['io.resin.supervised'] == null
@@ -159,7 +156,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			);
 		}
 
-		await this.docker.getContainer(svc.containerId).rename({
+		await docker.getContainer(svc.containerId).rename({
 			name: `${service.serviceName}_${metadata.imageId}_${metadata.releaseId}`,
 		});
 	}
@@ -180,10 +177,10 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		// Containers haven't been normalized (this is an updated supervisor)
 		// so we need to stop and remove them
 		const supervisorImageId = (
-			await this.docker.getImage(constants.supervisorImage).inspect()
+			await docker.getImage(constants.supervisorImage).inspect()
 		).Id;
 
-		for (const container of await this.docker.listContainers({ all: true })) {
+		for (const container of await docker.listContainers({ all: true })) {
 			if (container.ImageID !== supervisorImageId) {
 				await this.killContainer(container.Id, {
 					serviceName: 'legacy',
@@ -212,7 +209,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		}
 
 		try {
-			await this.docker
+			await docker
 				.getContainer(existingService.containerId)
 				.remove({ v: true });
 		} catch (e) {
@@ -244,7 +241,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 					`No containerId provided for service ${service.serviceName} in ServiceManager.updateMetadata. Service: ${service}`,
 				);
 			}
-			return this.docker.getContainer(existing.containerId);
+			return docker.getContainer(existing.containerId);
 		} catch (e) {
 			if (!NotFoundError(e)) {
 				this.logger.logSystemEvent(LogTypes.installServiceError, {
@@ -280,12 +277,12 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			this.logger.logSystemEvent(LogTypes.installService, { service });
 			this.reportNewStatus(mockContainerId, service, 'Installing');
 
-			const container = await this.docker.createContainer(conf);
+			const container = await docker.createContainer(conf);
 			service.containerId = container.id;
 
 			await Promise.all(
 				_.map((nets || {}).EndpointsConfig, (endpointConfig, name) =>
-					this.docker.getNetwork(name).connect({
+					docker.getNetwork(name).connect({
 						Container: container.id,
 						EndpointConfig: endpointConfig,
 					}),
@@ -366,7 +363,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				);
 			}
 
-			this.logger.attach(this.docker, container.id, { serviceId, imageId });
+			this.logger.attach(container.id, { serviceId, imageId });
 
 			if (!alreadyStarted) {
 				this.logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
@@ -389,10 +386,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		this.listening = true;
 
 		const listen = async () => {
-			const stream = await this.docker.getEvents({
-				// Remove the as any once
-				// https://github.com/DefinitelyTyped/DefinitelyTyped/pull/43100
-				// is merged and released
+			const stream = await docker.getEvents({
 				filters: { type: ['container'] } as any,
 			});
 
@@ -434,7 +428,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 											`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
 										);
 									}
-									this.logger.attach(this.docker, data.id, {
+									this.logger.attach(data.id, {
 										serviceId,
 										imageId,
 									});
@@ -487,7 +481,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 						`containerId not defined for service: ${service.serviceName} in ServiceManager.attachToRunning`,
 					);
 				}
-				this.logger.attach(this.docker, service.containerId, {
+				this.logger.attach(service.containerId, {
 					serviceId,
 					imageId,
 				});
@@ -544,7 +538,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				this.reportNewStatus(containerId, service, 'Stopping');
 			}
 
-			const containerObj = this.docker.getContainer(containerId);
+			const containerObj = docker.getContainer(containerId);
 			const killPromise = Bluebird.resolve(containerObj.stop())
 				.then(() => {
 					if (removeContainer) {
@@ -605,7 +599,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		labelList: string[],
 	): Promise<Dockerode.ContainerInfo[]> {
 		const listWithPrefix = (prefix: string) =>
-			this.docker.listContainers({
+			docker.listContainers({
 				all: true,
 				filters: {
 					label: _.map(labelList, (v) => `${prefix}${v}`),
@@ -627,7 +621,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				`No containerId provided for service ${service.serviceName} in ServiceManager.prepareForHandover. Service: ${service}`,
 			);
 		}
-		const container = this.docker.getContainer(svc.containerId);
+		const container = docker.getContainer(svc.containerId);
 		await container.update({ RestartPolicy: {} });
 		return await container.rename({
 			name: `old_${service.serviceName}_${service.imageId}_${service.imageId}_${service.releaseId}`,
