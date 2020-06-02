@@ -1,4 +1,16 @@
 - commits:
+    - subject: Make docker module a singleton
+      hash: aad20e2c2f9bf62dfb2e3092d898b100f911ecc5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.5.3
+  date: 2020-06-02T16:59:27.552Z
+- commits:
     - subject: Make the config module a singleton
       hash: ff4a31a0e6269b823a04eeda2f433665617f583c
       body: ''
