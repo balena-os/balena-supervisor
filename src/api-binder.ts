@@ -22,14 +22,14 @@ import {
 	isHttpConflictError,
 } from './lib/errors';
 import * as request from './lib/request';
-import { writeLock } from './lib/update-lock';
-import { DeviceStatus, TargetState } from './types/state';
+import { DeviceStatus } from './types/state';
 
 import log from './lib/supervisor-console';
 
 import DeviceState from './device-state';
 import * as globalEventBus from './event-bus';
 import Logger from './logger';
+import * as TargetState from './device-state/target-state';
 
 // The exponential backoff starts at 15s
 const MINIMUM_BACKOFF_DELAY = 15000;
@@ -72,8 +72,6 @@ export class APIBinder {
 	private logger: Logger;
 
 	public balenaApi: PinejsClientRequest | null = null;
-	// TODO{type}: Retype me when all types are sorted
-	private cachedBalenaApi: PinejsClientRequest | null = null;
 	private lastReportedState: DeviceStatus = {
 		local: {},
 		dependent: {},
@@ -82,11 +80,8 @@ export class APIBinder {
 		local: {},
 		dependent: {},
 	};
-	private lastTarget: TargetState;
-	private lastTargetStateFetch = process.hrtime();
 	private reportPending = false;
 	private stateReportErrors = 0;
-	private targetStateFetchErrors = 0;
 	private readyForUpdates = false;
 
 	public constructor({ eventTracker, logger }: APIBinderConstructOpts) {
@@ -124,7 +119,7 @@ export class APIBinder {
 		}
 
 		// Check last time target state has been polled
-		const timeSinceLastFetch = process.hrtime(this.lastTargetStateFetch);
+		const timeSinceLastFetch = process.hrtime(TargetState.lastFetch);
 		const timeSinceLastFetchMs =
 			timeSinceLastFetch[0] * 1000 + timeSinceLastFetch[1] / 1e6;
 
@@ -177,7 +172,6 @@ export class APIBinder {
 			apiPrefix: baseUrl,
 			passthrough,
 		});
-		this.cachedBalenaApi = this.balenaApi.clone({}, { cache: {} });
 	}
 
 	public async start() {
@@ -232,7 +226,37 @@ export class APIBinder {
 
 		this.readyForUpdates = true;
 		log.debug('Starting target state poll');
-		this.startTargetStatePoll();
+		TargetState.startPoll();
+		TargetState.emitter.on(
+			'target-state-update',
+			async (targetState, force, isFromApi) => {
+				try {
+					await this.deviceState.setTarget(targetState);
+					this.deviceState.triggerApplyTarget({ force, isFromApi });
+				} catch (err) {
+					if (
+						err instanceof ContractValidationError ||
+						err instanceof ContractViolationError
+					) {
+						log.error(`Could not store target state for device: ${err}`);
+						// the dashboard does not display lines correctly,
+						// split them explcitly here
+						const lines = err.message.split(/\r?\n/);
+						lines[0] = `Could not move to new release: ${lines[0]}`;
+						for (const line of lines) {
+							this.logger.logSystemMessage(
+								line,
+								{},
+								'targetStateRejection',
+								false,
+							);
+						}
+					} else {
+						log.error(`Failed to get target state for device: ${err}`);
+					}
+				}
+			},
+		);
 	}
 
 	public async fetchDevice(
@@ -331,57 +355,6 @@ export class APIBinder {
 		return (await this.balenaApi
 			.post({ resource: 'device', body: device })
 			.timeout(conf.apiTimeout)) as Device;
-	}
-
-	public async getTargetState(): Promise<TargetState> {
-		const { uuid, apiEndpoint, apiTimeout } = await config.getMany([
-			'uuid',
-			'apiEndpoint',
-			'apiTimeout',
-		]);
-
-		if (!_.isString(apiEndpoint)) {
-			throw new InternalInconsistencyError(
-				'Non-string apiEndpoint passed to ApiBinder.getTargetState',
-			);
-		}
-		if (this.cachedBalenaApi == null) {
-			throw new InternalInconsistencyError(
-				'Attempt to get target state without an API client',
-			);
-		}
-
-		const endpoint = url.resolve(apiEndpoint, `/device/v2/${uuid}/state`);
-		const requestParams = _.extend(
-			{ method: 'GET', url: endpoint },
-			this.cachedBalenaApi.passthrough,
-		);
-
-		return (await this.cachedBalenaApi
-			._request(requestParams)
-			.timeout(apiTimeout)) as TargetState;
-	}
-
-	// TODO: Once 100% typescript, change this to a native promise
-	public startTargetStatePoll(): Bluebird<null> {
-		return Bluebird.try(() => {
-			if (this.balenaApi == null) {
-				throw new InternalInconsistencyError(
-					'Trying to start poll without initializing API client',
-				);
-			}
-			config
-				.get('instantUpdates')
-				.catch(() => {
-					// Default to skipping the initial update if we couldn't fetch the setting
-					// which should be the exceptional case
-					return false;
-				})
-				.then((instantUpdates) => {
-					this.pollTargetState(!instantUpdates);
-				});
-			return null;
-		});
 	}
 
 	public startCurrentStateReport() {
@@ -593,71 +566,6 @@ export class APIBinder {
 		return null;
 	}
 
-	private getAndSetTargetState(force: boolean, isFromApi = false) {
-		return Bluebird.using(this.lockGetTarget(), async () => {
-			const targetState = await this.getTargetState();
-			if (isFromApi || !_.isEqual(targetState, this.lastTarget)) {
-				await this.deviceState.setTarget(targetState);
-				this.lastTarget = _.cloneDeep(targetState);
-				this.deviceState.triggerApplyTarget({ force, isFromApi });
-			}
-		})
-			.tapCatch(ContractValidationError, ContractViolationError, (e) => {
-				log.error(`Could not store target state for device: ${e}`);
-				// the dashboard does not display lines correctly,
-				// split them explcitly here
-				const lines = e.message.split(/\r?\n/);
-				lines[0] = `Could not move to new release: ${lines[0]}`;
-				for (const line of lines) {
-					this.logger.logSystemMessage(line, {}, 'targetStateRejection', false);
-				}
-			})
-			.tapCatch(
-				(e: unknown) =>
-					!(
-						e instanceof ContractValidationError ||
-						e instanceof ContractViolationError
-					),
-				(err) => {
-					log.error(`Failed to get target state for device: ${err}`);
-				},
-			)
-			.finally(() => {
-				this.lastTargetStateFetch = process.hrtime();
-			});
-	}
-
-	private async pollTargetState(skipFirstGet: boolean = false): Promise<void> {
-		let appUpdatePollInterval;
-		try {
-			appUpdatePollInterval = await config.get('appUpdatePollInterval');
-			if (!skipFirstGet) {
-				await this.getAndSetTargetState(false);
-				this.targetStateFetchErrors = 0;
-			}
-
-			// We add a random jitter up to `maxApiJitterDelay` to
-			// space out poll requests
-			const pollInterval =
-				Math.random() * constants.maxApiJitterDelay + appUpdatePollInterval;
-
-			await Bluebird.delay(pollInterval);
-		} catch (e) {
-			const pollInterval = Math.min(
-				// If we failed fetching the appUpdatePollInterval then there won't have been any network
-				// requests so we default it to a low value of 10s since we don't need to worry about too
-				// many network requests
-				appUpdatePollInterval ?? 10000,
-				15000 * 2 ** this.targetStateFetchErrors,
-			);
-			++this.targetStateFetchErrors;
-
-			await Bluebird.delay(pollInterval);
-		} finally {
-			await this.pollTargetState();
-		}
-	}
-
 	private async pinDevice({ app, commit }: DevicePinInfo) {
 		if (this.balenaApi == null) {
 			throw new InternalInconsistencyError(
@@ -720,7 +628,7 @@ export class APIBinder {
 		}
 
 		const targetConfigUnformatted = _.get(
-			await this.getTargetState(),
+			await TargetState.get(),
 			'local.config',
 		);
 		if (targetConfigUnformatted == null) {
@@ -974,12 +882,6 @@ export class APIBinder {
 		return conf;
 	}
 
-	private lockGetTarget() {
-		return writeLock('getTarget').disposer((release) => {
-			release();
-		});
-	}
-
 	private createAPIBinderRouter(apiBinder: APIBinder): express.Router {
 		const router = express.Router();
 
@@ -993,9 +895,7 @@ export class APIBinder {
 					.get('instantUpdates')
 					.then((instantUpdates) => {
 						if (instantUpdates) {
-							apiBinder
-								.getAndSetTargetState(req.body.force, true)
-								.catch(_.noop);
+							TargetState.update(req.body.force, true).catch(_.noop);
 							res.sendStatus(204);
 						} else {
 							log.debug(
