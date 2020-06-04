@@ -7,7 +7,6 @@ import Network from '../src/compose/network';
 import Service from '../src/compose/service';
 import Volume from '../src/compose/volume';
 import DeviceState from '../src/device-state';
-import EventTracker from '../src/event-tracker';
 import * as dockerUtils from '../src/lib/docker-utils';
 
 import chai = require('./lib/chai-config');
@@ -126,14 +125,12 @@ const dependentDBFormat = {
 describe('ApplicationManager', function () {
 	before(async function () {
 		await prepare();
-		const eventTracker = new EventTracker();
 		this.logger = {
 			clearOutOfDateDBLogs: () => {
 				/* noop */
 			},
 		} as any;
 		this.deviceState = new DeviceState({
-			eventTracker,
 			logger: this.logger,
 			apiBinder: null as any,
 		});

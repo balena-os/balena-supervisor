@@ -7,6 +7,9 @@ import * as sinon from 'sinon';
 
 import { Logger } from '../src/logger';
 import { ContainerLogs } from '../src/logging/container';
+import * as eventTracker from '../src/event-tracker';
+import { stub } from 'sinon';
+
 describe('Logger', function () {
 	beforeEach(function () {
 		this._req = new stream.PassThrough();
@@ -20,12 +23,9 @@ describe('Logger', function () {
 
 		this.requestStub = sinon.stub(https, 'request').returns(this._req);
 
-		this.fakeEventTracker = {
-			track: sinon.spy(),
-		};
+		this.eventTrackerStub = stub(eventTracker, 'track');
 
-		// @ts-ignore missing db property
-		this.logger = new Logger({ eventTracker: this.fakeEventTracker });
+		this.logger = new Logger();
 		return this.logger.init({
 			apiEndpoint: 'https://example.com',
 			uuid: 'deadbeef',
@@ -38,6 +38,7 @@ describe('Logger', function () {
 
 	afterEach(function () {
 		this.requestStub.restore();
+		this.eventTrackerStub.restore();
 	});
 
 	it('waits the grace period before sending any logs', function () {
@@ -108,7 +109,7 @@ describe('Logger', function () {
 		);
 
 		return Promise.delay(5500).then(() => {
-			expect(this.fakeEventTracker.track).to.be.calledWith('Some event name', {
+			expect(this.eventTrackerStub).to.be.calledWith('Some event name', {
 				someProp: 'someVal',
 			});
 			const lines = this._req.body.split('\n');

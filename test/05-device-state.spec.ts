@@ -216,9 +216,6 @@ describe('deviceState', () => {
 	let deviceState: DeviceState;
 	before(async () => {
 		await prepare();
-		const eventTracker = {
-			track: console.log,
-		};
 
 		stub(Service as any, 'extendEnvVars').callsFake((env) => {
 			env['ADDITIONAL_ENV_VAR'] = 'foo';
@@ -231,7 +228,6 @@ describe('deviceState', () => {
 		});
 
 		deviceState = new DeviceState({
-			eventTracker: eventTracker as any,
 			logger: logger as any,
 			apiBinder: null as any,
 		});

@@ -5,7 +5,7 @@ import * as _ from 'lodash';
 import * as morgan from 'morgan';
 
 import * as config from './config';
-import { EventTracker } from './event-tracker';
+import * as eventTracker from './event-tracker';
 import blink = require('./lib/blink');
 import * as iptables from './lib/iptables';
 import { checkTruthy } from './lib/validation';
@@ -76,7 +76,6 @@ const expressLogger = morgan(
 );
 
 interface SupervisorAPIConstructOpts {
-	eventTracker: EventTracker;
 	routers: express.Router[];
 	healthchecks: Array<() => Promise<boolean>>;
 }
@@ -86,7 +85,6 @@ interface SupervisorAPIStopOpts {
 }
 
 export class SupervisorAPI {
-	private eventTracker: EventTracker;
 	private routers: express.Router[];
 	private healthchecks: Array<() => Promise<boolean>>;
 
@@ -101,12 +99,7 @@ export class SupervisorAPI {
 			  }
 			: this.applyListeningRules.bind(this);
 
-	public constructor({
-		eventTracker,
-		routers,
-		healthchecks,
-	}: SupervisorAPIConstructOpts) {
-		this.eventTracker = eventTracker;
+	public constructor({ routers, healthchecks }: SupervisorAPIConstructOpts) {
 		this.routers = routers;
 		this.healthchecks = healthchecks;
 
@@ -132,7 +125,7 @@ export class SupervisorAPI {
 		this.api.use(authenticate());
 
 		this.api.post('/v1/blink', (_req, res) => {
-			this.eventTracker.track('Device blink');
+			eventTracker.track('Device blink');
 			blink.pattern.start();
 			setTimeout(blink.pattern.stop, 15000);
 			return res.sendStatus(200);

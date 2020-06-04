@@ -1,21 +1,13 @@
-import * as Bluebird from 'bluebird';
 import mask = require('json-mask');
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
 import * as mixpanel from 'mixpanel';
 
-import { ConfigType } from './config';
+import * as config from './config';
 import log from './lib/supervisor-console';
 import supervisorVersion = require('./lib/supervisor-version');
 
 export type EventTrackProperties = Dictionary<any>;
-
-interface InitArgs {
-	uuid: ConfigType<'uuid'>;
-	unmanaged: ConfigType<'unmanaged'>;
-	mixpanelHost: ConfigType<'mixpanelHost'>;
-	mixpanelToken: ConfigType<'mixpanelToken'>;
-}
 
 // The minimum amount of time to wait between sending
 // events of the same type
@@ -32,85 +24,87 @@ const mixpanelMask = [
 	'stateDiff/local(os_version,superisor_version,ip_address,apps/*/services)',
 ].join(',');
 
-export class EventTracker {
-	private defaultProperties: EventTrackProperties | null;
-	private client: mixpanel.Mixpanel | null;
+let defaultProperties: EventTrackProperties;
+// We must export this for the tests, but we make no references
+// to it within the rest of the supervisor codebase
+export let client: mixpanel.Mixpanel | null = null;
 
-	public constructor() {
-		this.client = null;
-		this.defaultProperties = null;
-	}
+export const initialized = (async () => {
+	await config.initialized;
 
-	public init({
+	const {
 		unmanaged,
 		mixpanelHost,
 		mixpanelToken,
 		uuid,
-	}: InitArgs): Bluebird<void> {
-		return Bluebird.try(() => {
-			this.defaultProperties = {
-				distinct_id: uuid,
-				uuid,
-				supervisorVersion,
-			};
-			if (unmanaged || mixpanelHost == null || mixpanelToken == null) {
-				return;
-			}
-			this.client = mixpanel.init(mixpanelToken, {
-				host: mixpanelHost.host,
-				path: mixpanelHost.path,
-			});
-		});
+	} = await config.getMany([
+		'unmanaged',
+		'mixpanelHost',
+		'mixpanelToken',
+		'uuid',
+	]);
+
+	defaultProperties = {
+		distinct_id: uuid,
+		uuid,
+		supervisorVersion,
+	};
+
+	if (unmanaged || mixpanelHost == null || mixpanelToken == null) {
+		return;
+	}
+	client = mixpanel.init(mixpanelToken, {
+		host: mixpanelHost.host,
+		path: mixpanelHost.path,
+	});
+})();
+
+export async function track(
+	event: string,
+	properties: EventTrackProperties | Error = {},
+) {
+	await initialized;
+
+	if (properties instanceof Error) {
+		properties = { error: properties };
 	}
 
-	public track(event: string, properties: EventTrackProperties | Error = {}) {
-		if (properties instanceof Error) {
-			properties = { error: properties };
-		}
-
-		properties = _.cloneDeep(properties);
-		if (properties.error instanceof Error) {
-			// Format the error for printing, to avoid display as { }
-			properties.error = {
-				message: properties.error.message,
-				stack: properties.error.stack,
-			};
-		}
-
-		// Don't send potentially sensitive information, by using a whitelist
-		properties = mask(properties, mixpanelMask);
-		this.logEvent('Event:', event, JSON.stringify(properties));
-		if (this.client == null) {
-			return;
-		}
-
-		properties = this.assignDefaultProperties(properties);
-		this.throttleddLogger(event)(properties);
+	properties = _.cloneDeep(properties);
+	if (properties.error instanceof Error) {
+		// Format the error for printing, to avoid display as { }
+		properties.error = {
+			message: properties.error.message,
+			stack: properties.error.stack,
+		};
 	}
 
-	private throttleddLogger = memoizee(
-		(event: string) => {
-			// Call this function at maximum once every minute
-			return _.throttle(
-				(properties: EventTrackProperties | Error) => {
-					this.client?.track(event, properties);
-				},
-				eventDebounceTime,
-				{ leading: true },
-			);
-		},
-		{ primitive: true },
-	);
-
-	private logEvent(...args: string[]) {
-		log.event(...args);
+	// Don't send potentially sensitive information, by using a whitelist
+	properties = mask(properties, mixpanelMask);
+	log.event('Event:', event, JSON.stringify(properties));
+	if (client == null) {
+		return;
 	}
 
-	private assignDefaultProperties(
-		properties: EventTrackProperties,
-	): EventTrackProperties {
-		return _.merge({}, properties, this.defaultProperties);
-	}
+	properties = assignDefaultProperties(properties);
+	throttleddLogger(event)(properties);
 }
 
-export default EventTracker;
+const throttleddLogger = memoizee(
+	(event: string) => {
+		// Call this function at maximum once every minute
+		return _.throttle(
+			(properties: EventTrackProperties | Error) => {
+				client?.track(event, properties);
+			},
+			eventDebounceTime,
+			{ leading: true },
+		);
+	},
+	{ primitive: true },
+);
+
+function assignDefaultProperties(
+	properties: EventTrackProperties,
+): EventTrackProperties {
+	return _.merge({}, properties, defaultProperties);
+}

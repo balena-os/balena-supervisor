@@ -2,7 +2,7 @@ import APIBinder from './api-binder';
 import * as db from './db';
 import * as config from './config';
 import DeviceState from './device-state';
-import EventTracker from './event-tracker';
+import * as eventTracker from './event-tracker';
 import { intialiseContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/migration';
 import * as osRelease from './lib/os-release';
@@ -29,21 +29,17 @@ const startupConfigFields: config.ConfigKey[] = [
 ];
 
 export class Supervisor {
-	private eventTracker: EventTracker;
 	private logger: Logger;
 	private deviceState: DeviceState;
 	private apiBinder: APIBinder;
 	private api: SupervisorAPI;
 
 	public constructor() {
-		this.eventTracker = new EventTracker();
-		this.logger = new Logger({ eventTracker: this.eventTracker });
+		this.logger = new Logger();
 		this.apiBinder = new APIBinder({
-			eventTracker: this.eventTracker,
 			logger: this.logger,
 		});
 		this.deviceState = new DeviceState({
-			eventTracker: this.eventTracker,
 			logger: this.logger,
 			apiBinder: this.apiBinder,
 		});
@@ -55,7 +51,6 @@ export class Supervisor {
 		this.deviceState.applications.proxyvisor.bindToAPI(this.apiBinder);
 
 		this.api = new SupervisorAPI({
-			eventTracker: this.eventTracker,
 			routers: [this.apiBinder.router, this.deviceState.router],
 			healthchecks: [
 				this.apiBinder.healthcheck.bind(this.apiBinder),
@@ -69,15 +64,9 @@ export class Supervisor {
 
 		await db.initialized;
 		await config.initialized;
+		await eventTracker.initialized;
 
 		const conf = await config.getMany(startupConfigFields);
-
-		// We can't print to the dashboard until the logger
-		// has started up, so we leave a trail of breadcrumbs
-		// in the logs in case runtime fails to get to the
-		// first dashboard logs
-		log.debug('Starting event tracker');
-		await this.eventTracker.init(conf);
 
 		log.debug('Starting logging infrastructure');
 		this.logger.init({

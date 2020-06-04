@@ -3,7 +3,7 @@ import * as _ from 'lodash';
 
 import * as config from './config';
 import * as db from './db';
-import { EventTracker } from './event-tracker';
+import * as eventTracker from './event-tracker';
 import { LogType } from './lib/log-types';
 import { writeLock } from './lib/update-lock';
 import {
@@ -30,22 +30,16 @@ interface LoggerSetupOptions {
 
 type LogEventObject = Dictionary<any> | null;
 
-interface LoggerConstructOptions {
-	eventTracker: EventTracker;
-}
-
 export class Logger {
 	private backend: LogBackend | null = null;
 	private balenaBackend: BalenaLogBackend | null = null;
 	private localBackend: LocalLogBackend | null = null;
 
-	private eventTracker: EventTracker;
 	private containerLogs: { [containerId: string]: ContainerLogs } = {};
 	private logMonitor: LogMonitor;
 
-	public constructor({ eventTracker }: LoggerConstructOptions) {
+	public constructor() {
 		this.backend = null;
-		this.eventTracker = eventTracker;
 		this.logMonitor = new LogMonitor();
 	}
 
@@ -144,7 +138,7 @@ export class Logger {
 		}
 		this.log(msgObj);
 		if (track) {
-			this.eventTracker.track(
+			eventTracker.track(
 				eventName != null ? eventName : message,
 				eventObj != null ? eventObj : {},
 			);

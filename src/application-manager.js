@@ -79,7 +79,7 @@ const createApplicationManagerRouter = function (applications) {
 };
 
 export class ApplicationManager extends EventEmitter {
-	constructor({ logger, eventTracker, deviceState, apiBinder }) {
+	constructor({ logger, deviceState, apiBinder }) {
 		super();
 
 		this.serviceAction = serviceAction;
@@ -170,7 +170,6 @@ export class ApplicationManager extends EventEmitter {
 		this.localModeSwitchCompletion = this.localModeSwitchCompletion.bind(this);
 		this.reportOptionalContainers = this.reportOptionalContainers.bind(this);
 		this.logger = logger;
-		this.eventTracker = eventTracker;
 		this.deviceState = deviceState;
 		this.apiBinder = apiBinder;
 		this.images = new Images({

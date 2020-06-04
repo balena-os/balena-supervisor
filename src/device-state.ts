@@ -10,7 +10,6 @@ import prettyMs = require('pretty-ms');
 
 import * as config from './config';
 import * as db from './db';
-import EventTracker from './event-tracker';
 import Logger from './logger';
 
 import {
@@ -177,7 +176,6 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 }
 
 interface DeviceStateConstructOpts {
-	eventTracker: EventTracker;
 	logger: Logger;
 	apiBinder: APIBinder;
 }
@@ -218,7 +216,6 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| ConfigStep;
 
 export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {
-	public eventTracker: EventTracker;
 	public logger: Logger;
 
 	public applications: ApplicationManager;
@@ -242,16 +239,14 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	public connected: boolean;
 	public router: express.Router;
 
-	constructor({ eventTracker, logger, apiBinder }: DeviceStateConstructOpts) {
+	constructor({ logger, apiBinder }: DeviceStateConstructOpts) {
 		super();
-		this.eventTracker = eventTracker;
 		this.logger = logger;
 		this.deviceConfig = new DeviceConfig({
 			logger: this.logger,
 		});
 		this.applications = new ApplicationManager({
 			logger: this.logger,
-			eventTracker: this.eventTracker,
 			deviceState: this,
 			apiBinder,
 		});

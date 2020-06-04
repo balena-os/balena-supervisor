@@ -7,6 +7,7 @@ import ApiBinder from '../src/api-binder';
 import prepare = require('./lib/prepare');
 import * as config from '../src/config';
 import DeviceState from '../src/device-state';
+import * as eventTracker from '../src/event-tracker';
 import Log from '../src/lib/supervisor-console';
 import chai = require('./lib/chai-config');
 import balenaAPI = require('./lib/mocked-balena-api');
@@ -28,10 +29,6 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 	(config.configJsonBackend as any).cache = await (config.configJsonBackend as any).read();
 	await config.generateRequiredFields();
 
-	obj.eventTracker = {
-		track: stub().callsFake((ev, props) => console.log(ev, props)),
-	} as any;
-
 	obj.logger = {
 		clearOutOfDateDBLogs: () => {
 			/* noop */
@@ -40,11 +37,9 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 
 	obj.apiBinder = new ApiBinder({
 		logger: obj.logger,
-		eventTracker: obj.eventTracker,
 	});
 
 	obj.deviceState = new DeviceState({
-		eventTracker: obj.eventTracker,
 		logger: obj.logger,
 		apiBinder: obj.apiBinder,
 	});
@@ -64,6 +59,14 @@ const mockProvisioningOpts = {
 
 describe('ApiBinder', () => {
 	let server: Server;
+
+	beforeEach(() => {
+		stub(eventTracker, 'track');
+	});
+	afterEach(() => {
+		// @ts-expect-error Restoring a non-stub type function
+		eventTracker.track.restore();
+	});
 
 	before(() => {
 		spy(balenaAPI.balenaBackend!, 'registerHandler');
@@ -102,9 +105,7 @@ describe('ApiBinder', () => {
 
 				// @ts-ignore
 				balenaAPI.balenaBackend!.registerHandler.resetHistory();
-				expect(components.eventTracker.track).to.be.calledWith(
-					'Device bootstrap success',
-				);
+				expect(eventTracker.track).to.be.calledWith('Device bootstrap success');
 			});
 		});
 
