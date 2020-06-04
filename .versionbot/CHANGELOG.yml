@@ -1,4 +1,14 @@
 - commits:
+    - subject: Isolate target state fetching to its own module which emits on update
+      hash: 17a5d8dd4918916c954990cfb9666754434ef527
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+  version: 11.6.0
+  date: 2020-06-03T21:39:57.630Z
+- commits:
     - subject: Make docker module a singleton
       hash: aad20e2c2f9bf62dfb2e3092d898b100f911ecc5
       body: ''
