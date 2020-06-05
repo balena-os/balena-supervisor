@@ -1,4 +1,25 @@
 - commits:
+    - subject: Convert all test files to TS and add .spec to all filenames
+      hash: 9fc2e86322249cfbc17db446bcd204f617b0a63e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+    - subject: 'fix: Pin alpine python version'
+      hash: 846545648bdc98392da7972558390f1ea26bfd24
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 11.6.1
+  date: 2020-06-05T22:42:07.292Z
+- commits:
     - subject: Isolate target state fetching to its own module which emits on update
       hash: 17a5d8dd4918916c954990cfb9666754434ef527
       body: ''
