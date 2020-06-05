@@ -64,7 +64,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add dbus-dev python make \
+            apk add dbus-dev python3 make \
             gcc libgcc libc-dev g++
       - run:
           name: Run tests
