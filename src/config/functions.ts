@@ -8,6 +8,7 @@ import supervisorVersion = require('../lib/supervisor-version');
 import * as config from '.';
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
+import * as macAddress from '../lib/mac-address';
 import log from '../lib/supervisor-console';
 
 export const fnSchema = {
@@ -33,6 +34,9 @@ export const fnSchema = {
 	},
 	osVariant: () => {
 		return osRelease.getOSVariant(constants.hostOSVersionPath);
+	},
+	macAddress: () => {
+		return macAddress.getAll(constants.macAddressPath);
 	},
 	deviceArch: async () => {
 		try {

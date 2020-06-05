@@ -1,0 +1,57 @@
+import * as _ from 'lodash';
+import { promises as fs, exists } from 'mz/fs';
+import * as path from 'path';
+
+import log from './supervisor-console';
+import { shouldReportInterface } from '../network';
+
+import TypedError = require('typed-error');
+export class MacAddressError extends TypedError {}
+
+export async function getAll(sysClassNet: string): Promise<string | undefined> {
+	try {
+		// read the directories in the sysfs...
+		const interfaces = await fs.readdir(sysClassNet);
+
+		return _(
+			await Promise.all(
+				interfaces.map(async (intf) => {
+					try {
+						const [addressFile, typeFile, masterFile] = [
+							'address',
+							'type',
+							'master',
+						].map((f) => path.join(sysClassNet, intf, f));
+
+						const [intfType, intfHasMaster] = await Promise.all([
+							fs.readFile(typeFile, 'utf8'),
+							exists(masterFile),
+						]);
+
+						// check if we should report this interface at all, or if it is physical interface, or if the interface has a master interface (i.e. it's not the root interface)
+						if (
+							!shouldReportInterface(intf) ||
+							intfType.trim() !== '1' ||
+							intfHasMaster
+						) {
+							// we shouldn't report this MAC address
+							return '';
+						}
+
+						const addr = await fs.readFile(addressFile, 'utf8');
+						return addr.split('\n')[0]?.trim()?.toUpperCase() ?? '';
+					} catch (err) {
+						log.warn('Error reading MAC address for interface', intf, err);
+						return '';
+					}
+				}),
+			),
+		)
+			.filter((addr) => addr !== '')
+			.uniq()
+			.join(' ');
+	} catch (err) {
+		log.error(new MacAddressError(`Unable to acquire MAC address: ${err}`));
+		return;
+	}
+}

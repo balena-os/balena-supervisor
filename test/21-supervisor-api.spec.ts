@@ -113,6 +113,17 @@ describe('SupervisorAPI', () => {
 			});
 		});
 		// TODO: add tests for V1 endpoints
+		describe('GET /v1/device', () => {
+			it('returns MAC address', async () => {
+				const response = await request
+					.get('/v1/device')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.expect(200);
+
+				expect(response.body).to.have.property('mac_address').that.is.not.empty;
+			});
+		});
 	});
 
 	describe('V2 endpoints', () => {
