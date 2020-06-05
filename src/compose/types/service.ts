@@ -100,6 +100,7 @@ export interface ServiceConfig {
 	command: string[];
 	cgroupParent: string;
 	devices: DockerDevice[];
+	deviceRequests: Dockerode.DeviceRequest[];
 	dns: string | string[];
 	dnsOpt: string[];
 	dnsSearch: string | string[];

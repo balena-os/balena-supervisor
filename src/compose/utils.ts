@@ -373,6 +373,15 @@ export function addFeaturesFromLabels(
 		'io.balena.features.sysfs': () => service.config.volumes.push('/sys:/sys'),
 		'io.balena.features.procfs': () =>
 			service.config.volumes.push('/proc:/proc'),
+		'io.balena.features.gpu': () =>
+			// TODO once the compose-spec has an implementation we
+			// should probably follow that, for now we copy the
+			// bahavior of docker cli
+			// https://github.com/balena-os/balena-engine-cli/blob/19.03-balena/opts/gpus.go#L81-L89
+			service.config.deviceRequests.push({
+				Count: 1,
+				Capabilities: [['gpu']],
+			} as Dockerode.DeviceRequest),
 	};
 
 	_.each(features, (fn, label) => {
