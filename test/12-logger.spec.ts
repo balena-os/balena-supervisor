@@ -14,7 +14,7 @@ describe('Logger', function () {
 		this._req.end = sinon.spy();
 
 		this._req.body = '';
-		this._req.pipe(zlib.createGunzip()).on('data', (chunk) => {
+		this._req.pipe(zlib.createGunzip()).on('data', (chunk: any) => {
 			this._req.body += chunk;
 		});
 
