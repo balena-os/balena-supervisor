@@ -1,3 +1,4 @@
+import * as bodyParser from 'body-parser';
 import { NextFunction, Request, Response } from 'express';
 import * as express from 'express';
 import { Server } from 'http';
@@ -8,7 +9,7 @@ import * as config from './config';
 import { EventTracker } from './event-tracker';
 import blink = require('./lib/blink');
 import * as iptables from './lib/iptables';
-import { checkTruthy } from './lib/validation';
+import { checkInt, checkTruthy } from './lib/validation';
 
 import log from './lib/supervisor-console';
 
@@ -112,6 +113,8 @@ export class SupervisorAPI {
 
 		this.api.disable('x-powered-by');
 		this.api.use(expressLogger);
+		this.api.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+		this.api.use(bodyParser.json({ limit: '10mb' }));
 
 		this.api.get('/v1/healthy', async (_req, res) => {
 			try {
@@ -131,10 +134,33 @@ export class SupervisorAPI {
 
 		this.api.use(authenticate());
 
-		this.api.post('/v1/blink', (_req, res) => {
+		this.api.post('/v1/blink', (req, res) => {
+			const blinks = checkInt(req.body.blinks) || undefined;
+			const onDuration = checkInt(req.body.onDuration) || undefined;
+			const offDuration = checkInt(req.body.offDuration) || undefined;
+			const pause = checkInt(req.body.pause) || undefined;
+			const timeout = checkInt(req.body.timeout) || undefined;
 			this.eventTracker.track('Device blink');
-			blink.pattern.start();
-			setTimeout(blink.pattern.stop, 15000);
+			blink.pattern.start({
+				blinks,
+				onDuration,
+				offDuration,
+				pause,
+			});
+			if (
+				(blinks === undefined &&
+					onDuration === undefined &&
+					offDuration === undefined &&
+					pause === undefined) ||
+				timeout !== undefined
+			) {
+				setTimeout(blink.pattern.stop, timeout || 15000);
+			}
+			return res.sendStatus(200);
+		});
+
+		this.api.delete('/v1/blink', (_req, res) => {
+			blink.pattern.stop();
 			return res.sendStatus(200);
 		});
 
