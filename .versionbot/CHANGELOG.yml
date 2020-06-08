@@ -1,4 +1,16 @@
 - commits:
+    - subject: Refactored @ts-ignore to @ts-expect-error in test file
+      hash: ffe814e4479a962979e759dfec8618dbfb53008b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.6.4
+  date: 2020-06-08T17:28:46.843Z
+- commits:
     - subject: Make logger module a singleton
       hash: 651e48b1bd8e9a9d356b63f8cb05aaeba622840d
       body: ''
