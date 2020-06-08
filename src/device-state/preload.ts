@@ -4,6 +4,7 @@ import { fs } from 'mz';
 import { Image } from '../compose/images';
 import DeviceState from '../device-state';
 import * as config from '../config';
+import * as eventTracker from '../event-tracker';
 
 import constants = require('../lib/constants');
 import { AppsJsonParseError, EISDIR, ENOENT } from '../lib/errors';
@@ -111,7 +112,7 @@ export async function loadTargetFromFile(
 		if (ENOENT(e) || EISDIR(e)) {
 			log.debug('No apps.json file present, skipping preload');
 		} else {
-			deviceState.eventTracker.track('Loading preloaded apps failed', {
+			eventTracker.track('Loading preloaded apps failed', {
 				error: e,
 			});
 		}

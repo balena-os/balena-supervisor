@@ -1,12 +1,12 @@
 import * as Promise from 'bluebird';
 import * as _ from 'lodash';
+
+import * as eventTracker from '../event-tracker';
 import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
 import { doRestart, doPurge, serviceAction } from './common';
 
 export const createV1Api = function (router, applications) {
-	const { eventTracker } = applications;
-
 	router.post('/v1/restart', function (req, res, next) {
 		const appId = checkInt(req.body.appId);
 		const force = checkTruthy(req.body.force) ?? false;

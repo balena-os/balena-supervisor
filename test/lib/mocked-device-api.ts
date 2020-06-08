@@ -13,7 +13,6 @@ import { createV1Api } from '../../src/device-api/v1';
 import { createV2Api } from '../../src/device-api/v2';
 import APIBinder from '../../src/api-binder';
 import DeviceState from '../../src/device-state';
-import EventTracker from '../../src/event-tracker';
 import SupervisorAPI from '../../src/supervisor-api';
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
@@ -68,19 +67,17 @@ const STUBBED_VALUES = {
 
 async function create(): Promise<SupervisorAPI> {
 	// Get SupervisorAPI construct options
-	const { eventTracker, deviceState, apiBinder } = await createAPIOpts();
+	const { deviceState, apiBinder } = await createAPIOpts();
 	// Stub functions
 	setupStubs();
 	// Create ApplicationManager
 	const appManager = new ApplicationManager({
-		eventTracker,
 		logger: null,
 		deviceState,
 		apiBinder: null,
 	});
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
-		eventTracker,
 		routers: [buildRoutes(appManager)],
 		healthchecks: [deviceState.healthcheck, apiBinder.healthcheck],
 	});
@@ -103,20 +100,15 @@ async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 	await db.initialized;
 	// Initialize and set values for mocked Config
 	await initConfig();
-	// Create EventTracker
-	const tracker = new EventTracker();
 	// Create deviceState
 	const deviceState = new DeviceState({
-		eventTracker: tracker,
 		logger: null as any,
 		apiBinder: null as any,
 	});
 	const apiBinder = new APIBinder({
-		eventTracker: tracker,
 		logger: null as any,
 	});
 	return {
-		eventTracker: tracker,
 		deviceState,
 		apiBinder,
 	};
@@ -165,7 +157,6 @@ function restoreStubs() {
 }
 
 interface SupervisorAPIOpts {
-	eventTracker: EventTracker;
 	deviceState: DeviceState;
 	apiBinder: APIBinder;
 }

@@ -10,7 +10,7 @@ import * as url from 'url';
 import * as deviceRegister from './lib/register-device';
 
 import * as config from './config';
-import { EventTracker } from './event-tracker';
+import * as eventTracker from './event-tracker';
 import { loadBackupFromMigration } from './lib/migration';
 
 import constants = require('./lib/constants');
@@ -41,7 +41,6 @@ const INTERNAL_STATE_KEYS = [
 ];
 
 export interface APIBinderConstructOpts {
-	eventTracker: EventTracker;
 	logger: Logger;
 }
 
@@ -68,7 +67,6 @@ export class APIBinder {
 	public router: express.Router;
 
 	private deviceState: DeviceState;
-	private eventTracker: EventTracker;
 	private logger: Logger;
 
 	public balenaApi: PinejsClientRequest | null = null;
@@ -84,8 +82,7 @@ export class APIBinder {
 	private stateReportErrors = 0;
 	private readyForUpdates = false;
 
-	public constructor({ eventTracker, logger }: APIBinderConstructOpts) {
-		this.eventTracker = eventTracker;
+	public constructor({ logger }: APIBinderConstructOpts) {
 		this.logger = logger;
 
 		this.router = this.createAPIBinderRouter(this);
@@ -549,7 +546,7 @@ export class APIBinder {
 				await this.report();
 				this.reportCurrentState();
 			} catch (e) {
-				this.eventTracker.track('Device state report failure', { error: e });
+				eventTracker.track('Device state report failure', { error: e });
 				// We use the poll interval as the upper limit of
 				// the exponential backoff
 				const maxDelay = await config.get('appUpdatePollInterval');
@@ -828,7 +825,7 @@ export class APIBinder {
 				apiKey: null,
 			};
 			await config.set(configToUpdate);
-			this.eventTracker.track('Device bootstrap success');
+			eventTracker.track('Device bootstrap success');
 		}
 
 		// Now check if we need to pin the device
@@ -847,11 +844,11 @@ export class APIBinder {
 	}
 
 	private async provisionOrRetry(retryDelay: number): Promise<void> {
-		this.eventTracker.track('Device bootstrap');
+		eventTracker.track('Device bootstrap');
 		try {
 			await this.provision();
 		} catch (e) {
-			this.eventTracker.track(`Device bootstrap failed, retrying`, {
+			eventTracker.track(`Device bootstrap failed, retrying`, {
 				error: e,
 				delay: retryDelay,
 			});
@@ -889,7 +886,7 @@ export class APIBinder {
 		router.use(bodyParser.json({ limit: '10mb' }));
 
 		router.post('/v1/update', (req, res, next) => {
-			apiBinder.eventTracker.track('Update notification');
+			eventTracker.track('Update notification');
 			if (apiBinder.readyForUpdates) {
 				config
 					.get('instantUpdates')

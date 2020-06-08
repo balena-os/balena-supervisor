@@ -4,7 +4,6 @@ import { Router } from 'express';
 import Knex = require('knex');
 
 import { ServiceAction } from './device-api/common';
-import { EventTracker } from './event-tracker';
 import { Logger } from './logger';
 import { DeviceStatus, InstancedAppState } from './types/state';
 
@@ -49,7 +48,6 @@ class ApplicationManager extends EventEmitter {
 	public _lockingIfNecessary: any;
 	public logger: Logger;
 	public deviceState: DeviceState;
-	public eventTracker: EventTracker;
 	public apiBinder: APIBinder;
 
 	public services: ServiceManager;
@@ -67,7 +65,6 @@ class ApplicationManager extends EventEmitter {
 
 	public constructor({
 		logger: Logger,
-		eventTracker: EventTracker,
 		deviceState: DeviceState,
 		apiBinder: APIBinder,
 	});
