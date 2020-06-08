@@ -1,4 +1,23 @@
 - commits:
+    - subject: Make logger module a singleton
+      hash: 651e48b1bd8e9a9d356b63f8cb05aaeba622840d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Fix exponential backoff for state polling
+      hash: e37b52dd689692eeca818907cf0d7e5876bec0b3
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.6.3
+  date: 2020-06-08T16:21:57.822Z
+- commits:
     - subject: Make the event-tracker module a singleton
       hash: 389e14ec6b63cf4a997f0d25f8bbe6a6a435dd5c
       body: ''
