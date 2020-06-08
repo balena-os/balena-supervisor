@@ -107,8 +107,7 @@ export class Service {
 		delete appConfig.releaseId;
 		service.serviceId = intOrNull(appConfig.serviceId);
 		delete appConfig.serviceId;
-		service.imageName = appConfig.imageName;
-		delete appConfig.imageName;
+		service.imageName = appConfig.image;
 		service.dependsOn = appConfig.dependsOn || null;
 		delete appConfig.dependsOn;
 		service.createdAt = appConfig.createdAt;
@@ -414,6 +413,12 @@ export class Service {
 			tty: true,
 			running: true,
 		});
+
+		// If we have the docker image ID, we replace the image
+		// with that
+		if (options.imageInfo?.Id != null) {
+			config.image = options.imageInfo.Id;
+		}
 
 		// Mutate service with extra features
 		ComposeUtils.addFeaturesFromLabels(service, options);

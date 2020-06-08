@@ -13,8 +13,8 @@ targetState[0] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
@@ -52,7 +52,7 @@ targetState[0] = {
 				volumes: {},
 				networks: {},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -64,8 +64,8 @@ targetState[1] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
@@ -90,7 +90,7 @@ targetState[1] = {
 				volumes: {},
 				networks: {},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -102,8 +102,8 @@ targetState[2] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
@@ -144,7 +144,7 @@ targetState[2] = {
 				volumes: {},
 				networks: {},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -156,8 +156,8 @@ targetState[3] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
@@ -199,7 +199,7 @@ targetState[3] = {
 				volumes: {},
 				networks: {},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -211,8 +211,8 @@ targetState[4] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
@@ -253,7 +253,7 @@ targetState[4] = {
 				volumes: {},
 				networks: {},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -265,8 +265,8 @@ targetState[5] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
@@ -306,7 +306,7 @@ targetState[5] = {
 				volumes: {},
 				networks: {},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -315,8 +315,8 @@ targetState[6] = {
 	local: {
 		name: 'volumeTest',
 		config: {},
-		apps: [
-			{
+		apps: {
+			12345: {
 				appId: 12345,
 				name: 'volumeApp',
 				commit: 'asd',
@@ -325,7 +325,7 @@ targetState[6] = {
 				volumes: {},
 				networks: {},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -338,14 +338,14 @@ currentState[0] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
 				releaseId: 2,
-				services: [
-					{
+				services: {
+					23: {
 						appId: 1234,
 						serviceId: 23,
 						releaseId: 2,
@@ -377,7 +377,7 @@ currentState[0] = {
 						command: ['someCommand'],
 						entrypoint: ['theEntrypoint'],
 					},
-					{
+					24: {
 						appId: 1234,
 						serviceId: 24,
 						releaseId: 2,
@@ -409,11 +409,11 @@ currentState[0] = {
 						command: ['someCommand'],
 						entrypoint: ['theEntrypoint'],
 					},
-				],
+				},
 				volumes: {},
 				networks: { default: {} },
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -425,17 +425,17 @@ currentState[1] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
 				releaseId: 2,
-				services: [],
+				services: {},
 				volumes: {},
 				networks: { default: {} },
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -447,14 +447,14 @@ currentState[2] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
 				releaseId: 2,
-				services: [
-					{
+				services: {
+					23: {
 						appId: 1234,
 						serviceId: 23,
 						releaseId: 2,
@@ -488,11 +488,11 @@ currentState[2] = {
 						command: ['someCommand'],
 						entrypoint: ['theEntrypoint'],
 					},
-				],
+				},
 				volumes: {},
 				networks: { default: {} },
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -504,14 +504,14 @@ currentState[3] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
 				releaseId: 2,
-				services: [
-					{
+				services: {
+					23: {
 						appId: 1234,
 						serviceId: 23,
 						serviceName: 'aservice',
@@ -545,7 +545,7 @@ currentState[3] = {
 						command: ['someCommand'],
 						entrypoint: ['theEntrypoint'],
 					},
-					{
+					24: {
 						appId: 1234,
 						serviceId: 23,
 						serviceName: 'aservice',
@@ -579,11 +579,11 @@ currentState[3] = {
 						command: ['someCommand'],
 						entrypoint: ['theEntrypoint'],
 					},
-				],
+				},
 				volumes: {},
 				networks: { default: {} },
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -595,14 +595,14 @@ currentState[4] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
 				releaseId: 2,
-				services: [
-					{
+				services: {
+					24: {
 						appId: 1234,
 						serviceId: 24,
 						releaseId: 2,
@@ -634,11 +634,11 @@ currentState[4] = {
 						command: ['someCommand'],
 						entrypoint: ['theEntrypoint'],
 					},
-				],
+				},
 				volumes: {},
 				networks: { default: {} },
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -647,28 +647,28 @@ currentState[5] = {
 	local: {
 		name: 'volumeTest',
 		config: {},
-		apps: [
-			{
+		apps: {
+			12345: {
 				appId: 12345,
 				name: 'volumeApp',
 				commit: 'asd',
 				releaseId: 3,
-				services: [],
+				services: {},
 				volumes: {},
 				networks: { default: {} },
 			},
-			{
+			12: {
 				appId: 12,
 				name: 'previous-app',
 				commit: '123',
 				releaseId: 10,
-				services: [],
+				services: {},
 				networks: {},
 				volumes: {
 					my_volume: {},
 				},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
@@ -680,14 +680,14 @@ currentState[6] = {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 			RESIN_HOST_LOG_TO_DISPLAY: '1',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: 1234,
 				name: 'superapp',
 				commit: 'afafafa',
 				releaseId: 2,
-				services: [
-					{
+				services: {
+					23: {
 						appId: 1234,
 						serviceId: 23,
 						releaseId: 2,
@@ -719,7 +719,7 @@ currentState[6] = {
 						command: ['someCommand'],
 						entrypoint: ['theEntrypoint'],
 					},
-					{
+					24: {
 						appId: 1234,
 						serviceId: 24,
 						releaseId: 2,
@@ -751,11 +751,11 @@ currentState[6] = {
 						command: ['someCommand'],
 						entrypoint: ['theEntrypoint'],
 					},
-				],
+				},
 				volumes: {},
 				networks: { default: {} },
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };

@@ -3,8 +3,6 @@ import * as _ from 'lodash';
 import * as EventEmitter from 'events';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
-import * as fs from 'fs';
-import * as path from 'path';
 
 import * as constants from './lib/constants';
 import { log } from './lib/supervisor-console';
@@ -13,26 +11,21 @@ import * as logger from './logger';
 
 import { validateTargetContracts } from './lib/contracts';
 import { docker } from './lib/docker-utils';
-import * as dockerUtils from './lib/docker-utils';
 import { LocalModeManager } from './local-mode';
 import * as updateLock from './lib/update-lock';
 import { checkTruthy, checkInt, checkString } from './lib/validation';
 import {
 	ContractViolationError,
-	NotFoundError,
 	InternalInconsistencyError,
 } from './lib/errors';
-import { pathExistsOnHost } from './lib/fs-utils';
 
-import * as targetStateCache from './device-state/target-state-cache';
+import * as dbFormat from './device-state/db-format';
 
+import { Network } from './compose/network';
 import { ServiceManager } from './compose/service-manager';
-import { Service } from './compose/service';
 import * as Images from './compose/images';
 import { NetworkManager } from './compose/network-manager';
-import { Network } from './compose/network';
 import { VolumeManager } from './compose/volume-manager';
-import { Volume } from './compose/volume';
 import * as compositionSteps from './compose/composition-steps';
 
 import { Proxyvisor } from './proxyvisor';
@@ -42,9 +35,6 @@ import { createV2Api } from './device-api/v2';
 import { serviceAction } from './device-api/common';
 
 import * as db from './db';
-
-/** @type {Function} */
-const readFileAsync = Promise.promisify(fs.readFile);
 
 // TODO: move this to an Image class?
 const imageForService = (service) => ({
@@ -145,10 +135,6 @@ export class ApplicationManager extends EventEmitter {
 		this._nextStepsForNetwork = this._nextStepsForNetwork.bind(this);
 		this._nextStepForService = this._nextStepForService.bind(this);
 		this._nextStepsForAppUpdate = this._nextStepsForAppUpdate.bind(this);
-		this.normaliseAppForDB = this.normaliseAppForDB.bind(this);
-		this.normaliseAndExtendAppFromDB = this.normaliseAndExtendAppFromDB.bind(
-			this,
-		);
 		this.setTargetVolatileForService = this.setTargetVolatileForService.bind(
 			this,
 		);
@@ -242,9 +228,7 @@ export class ApplicationManager extends EventEmitter {
 		await cleanup();
 		await this.localModeManager.init();
 		await this.services.attachToRunning();
-		this.services.listenToEvents();
-
-		await targetStateCache.initialized;
+		await this.services.listenToEvents();
 	}
 
 	// Returns the status of applications and their services
@@ -401,12 +385,7 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	getTargetApp(appId) {
-		return targetStateCache.getTargetApp(appId).then((app) => {
-			if (app == null) {
-				return;
-			}
-			return this.normaliseAndExtendAppFromDB(app);
-		});
+		return dbFormat.getApp(appId);
 	}
 
 	// Compares current and target services and returns a list of service pairs to be updated/removed/installed.
@@ -865,7 +844,7 @@ export class ApplicationManager extends EventEmitter {
 		} else {
 			// Create the default network for the target app
 			if (targetApp.networks['default'] == null) {
-				targetApp.networks['default'] = this.createTargetNetwork(
+				targetApp.networks['default'] = Network.fromComposeObject(
 					'default',
 					targetApp.appId,
 					{},
@@ -976,171 +955,24 @@ export class ApplicationManager extends EventEmitter {
 		return _.map(steps, (step) => _.assign({}, step, { appId }));
 	}
 
-	normaliseAppForDB(app) {
-		const services = _.map(app.services, function (s, serviceId) {
-			const service = _.clone(s);
-			service.appId = app.appId;
-			service.releaseId = app.releaseId;
-			service.serviceId = checkInt(serviceId);
-			service.commit = app.commit;
-			return service;
-		});
-		return Promise.map(services, (service) => {
-			service.image = Images.normalise(service.image);
-			return Promise.props(service);
-		}).then(function ($services) {
-			const dbApp = {
-				appId: app.appId,
-				commit: app.commit,
-				name: app.name,
-				source: app.source,
-				releaseId: app.releaseId,
-				services: JSON.stringify($services),
-				networks: JSON.stringify(app.networks ?? {}),
-				volumes: JSON.stringify(app.volumes ?? {}),
-			};
-			return dbApp;
-		});
-	}
+	async setTarget(apps, dependent, source, maybeTrx) {
+		const setInTransaction = async (filtered, trx) => {
+			await dbFormat.setApps(filtered, source, trx);
+			await trx('app')
+				.where({ source })
+				.whereNotIn(
+					'appId',
+					// Use apps here, rather than filteredApps, to
+					// avoid removing a release from the database
+					// without an application to replace it.
+					// Currently this will only happen if the release
+					// which would replace it fails a contract
+					// validation check
+					_.map(apps, (_v, appId) => checkInt(appId)),
+				)
+				.del();
 
-	createTargetService(service, opts) {
-		// The image class now returns a native promise, so wrap
-		// this in a bluebird promise until we convert this to typescript
-		return Promise.resolve(Images.inspectByName(service.image))
-			.catchReturn(NotFoundError, undefined)
-			.then(function (imageInfo) {
-				const serviceOpts = {
-					serviceName: service.serviceName,
-					imageInfo,
-					...opts,
-				};
-				service.imageName = service.image;
-				if (imageInfo?.Id != null) {
-					service.image = imageInfo.Id;
-				}
-				return Service.fromComposeObject(service, serviceOpts);
-			});
-	}
-
-	createTargetVolume(name, appId, volume) {
-		return Volume.fromComposeObject(name, appId, volume);
-	}
-
-	createTargetNetwork(name, appId, network) {
-		return Network.fromComposeObject(name, appId, network);
-	}
-
-	normaliseAndExtendAppFromDB(app) {
-		return Promise.join(
-			config.get('extendedEnvOptions'),
-			dockerUtils
-				.getNetworkGateway(constants.supervisorNetworkInterface)
-				.catch(() => '127.0.0.1'),
-			Promise.props({
-				firmware: pathExistsOnHost('/lib/firmware'),
-				modules: pathExistsOnHost('/lib/modules'),
-			}),
-			readFileAsync(
-				path.join(constants.rootMountPoint, '/etc/hostname'),
-				'utf8',
-			).then(_.trim),
-			(opts, supervisorApiHost, hostPathExists, hostnameOnHost) => {
-				const configOpts = {
-					appName: app.name,
-					supervisorApiHost,
-					hostPathExists,
-					hostnameOnHost,
-				};
-				_.assign(configOpts, opts);
-
-				const volumes = _.mapValues(
-					JSON.parse(app.volumes),
-					(volumeConfig, volumeName) => {
-						if (volumeConfig == null) {
-							volumeConfig = {};
-						}
-						if (volumeConfig.labels == null) {
-							volumeConfig.labels = {};
-						}
-						return this.createTargetVolume(volumeName, app.appId, volumeConfig);
-					},
-				);
-
-				const networks = _.mapValues(
-					JSON.parse(app.networks),
-					(networkConfig, networkName) => {
-						if (networkConfig == null) {
-							networkConfig = {};
-						}
-						return this.createTargetNetwork(
-							networkName,
-							app.appId,
-							networkConfig,
-						);
-					},
-				);
-
-				return Promise.map(JSON.parse(app.services), (service) =>
-					this.createTargetService(service, configOpts),
-				).then((services) => {
-					// If a named volume is defined in a service but NOT in the volumes of the compose file, we add it app-wide so that we can track it and purge it
-					// !! DEPRECATED, WILL BE REMOVED IN NEXT MAJOR RELEASE !!
-					for (const s of services) {
-						const serviceNamedVolumes = s.getNamedVolumes();
-						for (const name of serviceNamedVolumes) {
-							if (volumes[name] == null) {
-								volumes[name] = this.createTargetVolume(name, app.appId, {
-									labels: {},
-								});
-							}
-						}
-					}
-					const outApp = {
-						appId: app.appId,
-						name: app.name,
-						commit: app.commit,
-						releaseId: app.releaseId,
-						services,
-						networks,
-						volumes,
-					};
-					return outApp;
-				});
-			},
-		);
-	}
-
-	setTarget(apps, dependent, source, maybeTrx) {
-		const setInTransaction = (filtered, trx) => {
-			return Promise.try(() => {
-				const appsArray = _.map(filtered, function (app, appId) {
-					const appClone = _.clone(app);
-					appClone.appId = checkInt(appId);
-					appClone.source = source;
-					return appClone;
-				});
-				return Promise.map(appsArray, this.normaliseAppForDB)
-					.then((appsForDB) => {
-						return targetStateCache.setTargetApps(appsForDB, trx);
-					})
-					.then(() =>
-						trx('app')
-							.where({ source })
-							.whereNotIn(
-								'appId',
-								// Use apps here, rather than filteredApps, to
-								// avoid removing a release from the database
-								// without an application to replace it.
-								// Currently this will only happen if the release
-								// which would replace it fails a contract
-								// validation check
-								_.map(apps, (_v, appId) => checkInt(appId)),
-							)
-							.del(),
-					);
-			}).then(() => {
-				return this.proxyvisor.setTargetInTransaction(dependent, trx);
-			});
+			await this.proxyvisor.setTargetInTransaction(dependent, trx);
 		};
 
 		// We look at the container contracts here, as if we
@@ -1185,15 +1017,14 @@ export class ApplicationManager extends EventEmitter {
 		} else {
 			promise = db.transaction(setInTransaction);
 		}
-		return promise
-			.then(() => {
-				this._targetVolatilePerImageId = {};
-			})
-			.finally(function () {
-				if (!_.isEmpty(contractViolators)) {
-					throw new ContractViolationError(contractViolators);
-				}
-			});
+		try {
+			await promise;
+			this._targetVolatilePerImageId = {};
+		} finally {
+			if (!_.isEmpty(contractViolators)) {
+				throw new ContractViolationError(contractViolators);
+			}
+		}
 	}
 
 	setTargetVolatileForService(imageId, target) {
@@ -1209,23 +1040,24 @@ export class ApplicationManager extends EventEmitter {
 		);
 	}
 
-	getTargetApps() {
-		return Promise.map(
-			targetStateCache.getTargetApps(),
-			this.normaliseAndExtendAppFromDB,
-		)
-			.map((app) => {
-				if (!_.isEmpty(app.services)) {
-					app.services = _.map(app.services, (service) => {
-						if (this._targetVolatilePerImageId[service.imageId] != null) {
-							_.merge(service, this._targetVolatilePerImageId[service.imageId]);
-						}
-						return service;
-					});
-				}
-				return app;
-			})
-			.then((apps) => _.keyBy(apps, 'appId'));
+	async getTargetApps() {
+		const apps = await dbFormat.getApps();
+
+		_.each(apps, (app) => {
+			if (!_.isEmpty(app.services)) {
+				app.services = _.mapValues(app.services, (svc) => {
+					if (this._targetVolatilePerImageId[svc.imageId] != null) {
+						return {
+							...svc,
+							...this._targetVolatilePerImageId[svc.imageId],
+						};
+					}
+					return svc;
+				});
+			}
+		});
+
+		return apps;
 	}
 
 	getDependentTargets() {
@@ -1300,7 +1132,6 @@ export class ApplicationManager extends EventEmitter {
 					Images.isSameImage(availableImage, targetImage),
 				),
 		);
-
 		// Images that are available but we don't have them in the DB with the exact metadata:
 		let imagesToSave = [];
 		if (!localMode) {

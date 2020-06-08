@@ -62,8 +62,8 @@ const testTarget1 = {
 				name: 'superapp',
 				commit: 'abcdef',
 				releaseId: 1,
-				services: [
-					{
+				services: {
+					23: {
 						appId: 1234,
 						serviceId: 23,
 						imageId: 12345,
@@ -74,7 +74,7 @@ const testTarget1 = {
 							'io.resin.something': 'bar',
 						},
 					},
-				],
+				},
 				volumes: {},
 				networks: {},
 			},
@@ -172,15 +172,15 @@ const testTargetInvalid = {
 		config: {
 			RESIN_HOST_CONFIG_gpu_mem: '512',
 		},
-		apps: [
-			{
+		apps: {
+			1234: {
 				appId: '1234',
 				name: 'superapp',
 				commit: 'afafafa',
 				releaseId: '2',
 				config: {},
-				services: [
-					{
+				services: {
+					23: {
 						serviceId: '23',
 						serviceName: 'aservice',
 						imageId: '12345',
@@ -191,7 +191,7 @@ const testTargetInvalid = {
 						},
 						labels: {},
 					},
-					{
+					24: {
 						serviceId: '24',
 						serviceName: 'anotherService',
 						imageId: '12346',
@@ -202,19 +202,22 @@ const testTargetInvalid = {
 						},
 						labels: {},
 					},
-				],
+				},
 			},
-		],
+		},
 	},
 	dependent: { apps: [], devices: [] },
 };
 
 describe('deviceState', () => {
 	let deviceState: DeviceState;
+	let source: string;
 	const originalImagesSave = images.save;
 	const originalImagesInspect = images.inspectByName;
 	before(async () => {
 		await prepare();
+		await config.initialized;
+		source = await config.get('apiEndpoint');
 
 		stub(Service as any, 'extendEnvVars').callsFake((env) => {
 			env['ADDITIONAL_ENV_VAR'] = 'foo';
@@ -257,6 +260,10 @@ describe('deviceState', () => {
 		images.inspectByName = originalImagesInspect;
 	});
 
+	beforeEach(async () => {
+		await prepare();
+	});
+
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {
 		stub(deviceState.deviceConfig, 'getCurrent').returns(
 			Promise.resolve(mockedInitialConfig),
@@ -270,13 +277,15 @@ describe('deviceState', () => {
 			const targetState = await deviceState.getTarget();
 
 			const testTarget = _.cloneDeep(testTarget1);
-			testTarget.local.apps['1234'].services = _.map(
+			testTarget.local.apps['1234'].services = _.mapValues(
 				testTarget.local.apps['1234'].services,
 				(s: any) => {
 					s.imageName = s.image;
 					return Service.fromComposeObject(s, { appName: 'superapp' } as any);
 				},
 			) as any;
+			// @ts-ignore
+			testTarget.local.apps['1234'].source = source;
 
 			expect(JSON.parse(JSON.stringify(targetState))).to.deep.equal(
 				JSON.parse(JSON.stringify(testTarget)),
@@ -321,7 +330,11 @@ describe('deviceState', () => {
 			);
 		}
 
-		(testTarget as any).local.apps['1234'].services = services;
+		(testTarget as any).local.apps['1234'].services = _.keyBy(
+			services,
+			'serviceId',
+		);
+		(testTarget as any).local.apps['1234'].source = source;
 		await deviceState.setTarget(testTarget2);
 		const target = await deviceState.getTarget();
 		expect(JSON.parse(JSON.stringify(target))).to.deep.equal(

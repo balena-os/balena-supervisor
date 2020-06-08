@@ -1,6 +1,5 @@
 import * as _ from 'lodash';
 
-import { ApplicationManager } from '../application-manager';
 import * as config from '../config';
 import * as db from '../db';
 
