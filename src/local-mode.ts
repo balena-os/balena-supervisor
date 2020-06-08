@@ -7,7 +7,7 @@ import * as constants from './lib/constants';
 import { docker } from './lib/docker-utils';
 import { SupervisorContainerNotFoundError } from './lib/errors';
 import log from './lib/supervisor-console';
-import { Logger } from './logger';
+import * as logger from './logger';
 
 // EngineSnapshot represents a list of containers, images, volumens, and networks present on the engine.
 // A snapshot is taken before entering local mode in order to perform cleanup when we exit local mode.
@@ -71,7 +71,6 @@ const SUPERVISOR_CONTAINER_NAME_FALLBACK = 'resin_supervisor';
  */
 export class LocalModeManager {
 	public constructor(
-		public logger: Logger,
 		private containerId: string | undefined = constants.containerId,
 	) {}
 
@@ -85,7 +84,7 @@ export class LocalModeManager {
 				const local = changed.localMode || false;
 
 				// First switch the logger to it's correct state
-				this.logger.switchBackend(local);
+				logger.switchBackend(local);
 
 				this.startLocalModeChangeHandling(local);
 			}

@@ -18,6 +18,7 @@ import { log } from './lib/supervisor-console';
 import * as db from './db';
 import * as config from './config';
 import * as dockerUtils from './lib/docker-utils';
+import * as logger from './logger';
 
 const mkdirpAsync = Promise.promisify(mkdirp);
 
@@ -186,7 +187,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 				if (device.markedForDeletion) {
 					return res.status(410).send('Device deleted');
 				}
-				proxyvisor.logger.logDependent(m, uuid);
+				logger.logDependent(m, { uuid });
 				return res.status(202).send('OK');
 			})
 			.catch(function (err) {
@@ -345,7 +346,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 };
 
 export class Proxyvisor {
-	constructor({ logger, images, applications }) {
+	constructor({ images, applications }) {
 		this.bindToAPI = this.bindToAPI.bind(this);
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
@@ -361,7 +362,6 @@ export class Proxyvisor {
 		this.sendUpdate = this.sendUpdate.bind(this);
 		this.sendDeleteHook = this.sendDeleteHook.bind(this);
 		this.sendUpdates = this.sendUpdates.bind(this);
-		this.logger = logger;
 		this.images = images;
 		this.applications = applications;
 		this.acknowledgedState = {};

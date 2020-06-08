@@ -4,7 +4,6 @@ import { Router } from 'express';
 import Knex = require('knex');
 
 import { ServiceAction } from './device-api/common';
-import { Logger } from './logger';
 import { DeviceStatus, InstancedAppState } from './types/state';
 
 import ImageManager, { Image } from './compose/images';
@@ -46,7 +45,6 @@ class ApplicationManager extends EventEmitter {
 	// TODO: When the module which is/declares these fields is converted to
 	// typecript, type the following
 	public _lockingIfNecessary: any;
-	public logger: Logger;
 	public deviceState: DeviceState;
 	public apiBinder: APIBinder;
 
@@ -63,11 +61,7 @@ class ApplicationManager extends EventEmitter {
 
 	public router: Router;
 
-	public constructor({
-		logger: Logger,
-		deviceState: DeviceState,
-		apiBinder: APIBinder,
-	});
+	public constructor({ deviceState: DeviceState, apiBinder: APIBinder });
 
 	public init(): Promise<void>;
 

@@ -16,7 +16,7 @@ import * as dockerUtils from '../lib/docker-utils';
 import { DeltaStillProcessingError, NotFoundError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import * as validation from '../lib/validation';
-import Logger from '../logger';
+import * as logger from '../logger';
 import { ImageDownloadBackoffError } from './errors';
 
 import log from '../lib/supervisor-console';
@@ -26,10 +26,6 @@ interface ImageEvents {
 }
 
 type ImageEventEmitter = StrictEventEmitter<EventEmitter, ImageEvents>;
-
-interface ImageConstructOpts {
-	logger: Logger;
-}
 
 interface FetchProgressEvent {
 	percentage: number;
@@ -57,8 +53,6 @@ type NormalisedDockerImage = Docker.ImageInfo & {
 };
 
 export class Images extends (EventEmitter as new () => ImageEventEmitter) {
-	private logger: Logger;
-
 	public appUpdatePollInterval: number;
 
 	private imageFetchFailures: Dictionary<number> = {};
@@ -69,10 +63,8 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 	// A store of volatile state for images (e.g. download progress), indexed by imageId
 	private volatileState: { [imageId: number]: Image } = {};
 
-	public constructor(opts: ImageConstructOpts) {
+	public constructor() {
 		super();
-
-		this.logger = opts.logger;
 	}
 
 	public async triggerFetch(
@@ -143,7 +135,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 
 				await db.models('image').update({ dockerImageId: id }).where(image);
 
-				this.logger.logSystemEvent(LogTypes.downloadImageSuccess, { image });
+				logger.logSystemEvent(LogTypes.downloadImageSuccess, { image });
 				success = true;
 				delete this.imageFetchFailures[image.name];
 				delete this.imageFetchLastFailureTime[image.name];
@@ -152,10 +144,10 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 					// If this is a delta image pull, and the delta still hasn't finished generating,
 					// don't show a failure message, and instead just inform the user that it's remotely
 					// processing
-					this.logger.logSystemEvent(LogTypes.deltaStillProcessingError, {});
+					logger.logSystemEvent(LogTypes.deltaStillProcessingError, {});
 				} else {
 					this.addImageFailure(image.name);
-					this.logger.logSystemEvent(LogTypes.downloadImageError, {
+					logger.logSystemEvent(LogTypes.downloadImageError, {
 						image,
 						error: err,
 					});
@@ -173,7 +165,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		try {
 			await this.removeImageIfNotNeeded(image);
 		} catch (e) {
-			this.logger.logSystemEvent(LogTypes.deleteImageError, {
+			logger.logSystemEvent(LogTypes.deleteImageError, {
 				image,
 				error: e,
 			});
@@ -439,7 +431,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 				await docker.getImage(image).remove({ force: true });
 				delete this.imageCleanupFailures[image];
 			} catch (e) {
-				this.logger.logSystemMessage(
+				logger.logSystemMessage(
 					`Error cleaning up ${image}: ${e.message} - will ignore for 1 hour`,
 					{ error: e },
 					'Image cleanup error',
@@ -512,7 +504,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 						image.imageId,
 						_.merge(_.clone(image), { status: 'Deleting' }),
 					);
-					this.logger.logSystemEvent(LogTypes.deleteImage, { image });
+					logger.logSystemEvent(LogTypes.deleteImage, { image });
 					docker.getImage(img.dockerImageId).remove({ force: true });
 					removed = true;
 				} else if (!Images.hasDigest(img.name)) {
@@ -549,7 +541,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		await db.models('image').del().where({ id: img.id });
 
 		if (removed) {
-			this.logger.logSystemEvent(LogTypes.deleteImageSuccess, { image });
+			logger.logSystemEvent(LogTypes.deleteImageSuccess, { image });
 		}
 	}
 
@@ -584,7 +576,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		onProgress: (evt: FetchProgressEvent) => void,
 		serviceName: string,
 	): Promise<string> {
-		this.logger.logSystemEvent(LogTypes.downloadImageDelta, { image });
+		logger.logSystemEvent(LogTypes.downloadImageDelta, { image });
 
 		const deltaOpts = (opts as unknown) as DeltaFetchOptions;
 		const srcImage = await this.inspectByName(deltaOpts.deltaSource);
@@ -610,7 +602,7 @@ export class Images extends (EventEmitter as new () => ImageEventEmitter) {
 		opts: FetchOptions,
 		onProgress: (evt: FetchProgressEvent) => void,
 	): Promise<string> {
-		this.logger.logSystemEvent(LogTypes.downloadImage, { image });
+		logger.logSystemEvent(LogTypes.downloadImage, { image });
 		return dockerUtils.fetchImageWithProgress(image.name, opts, onProgress);
 	}
 

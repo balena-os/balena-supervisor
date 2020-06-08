@@ -7,6 +7,7 @@ import { Service } from '../compose/service';
 import Volume from '../compose/volume';
 import * as config from '../config';
 import * as db from '../db';
+import * as logger from '../logger';
 import { spawnJournalctl } from '../lib/journald';
 import {
 	appNotFoundMessage,
@@ -323,7 +324,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get('/v2/local/logs', async (_req, res) => {
 		const serviceNameCache: { [sId: number]: string } = {};
-		const backend = applications.logger.getLocalBackend();
+		const backend = logger.getLocalBackend();
 		// Cache the service names to IDs per call to the endpoint
 		backend.assignServiceNameResolver(async (id: number) => {
 			if (id in serviceNameCache) {

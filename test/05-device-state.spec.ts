@@ -208,11 +208,6 @@ const testTargetInvalid = {
 };
 
 describe('deviceState', () => {
-	const logger = {
-		clearOutOfDateDBLogs() {
-			/* noop */
-		},
-	};
 	let deviceState: DeviceState;
 	before(async () => {
 		await prepare();
@@ -228,7 +223,6 @@ describe('deviceState', () => {
 		});
 
 		deviceState = new DeviceState({
-			logger: logger as any,
 			apiBinder: null as any,
 		});
 

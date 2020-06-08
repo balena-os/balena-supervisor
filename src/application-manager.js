@@ -9,6 +9,7 @@ import * as path from 'path';
 import * as constants from './lib/constants';
 import { log } from './lib/supervisor-console';
 import * as config from './config';
+import * as logger from './logger';
 
 import { validateTargetContracts } from './lib/contracts';
 import { docker } from './lib/docker-utils';
@@ -79,7 +80,7 @@ const createApplicationManagerRouter = function (applications) {
 };
 
 export class ApplicationManager extends EventEmitter {
-	constructor({ logger, deviceState, apiBinder }) {
+	constructor({ deviceState, apiBinder }) {
 		super();
 
 		this.serviceAction = serviceAction;
@@ -169,27 +170,17 @@ export class ApplicationManager extends EventEmitter {
 		this.removeAllVolumesForApp = this.removeAllVolumesForApp.bind(this);
 		this.localModeSwitchCompletion = this.localModeSwitchCompletion.bind(this);
 		this.reportOptionalContainers = this.reportOptionalContainers.bind(this);
-		this.logger = logger;
 		this.deviceState = deviceState;
 		this.apiBinder = apiBinder;
-		this.images = new Images({
-			logger: this.logger,
-		});
-		this.services = new ServiceManager({
-			logger: this.logger,
-		});
-		this.networks = new NetworkManager({
-			logger: this.logger,
-		});
-		this.volumes = new VolumeManager({
-			logger: this.logger,
-		});
+		this.images = new Images();
+		this.services = new ServiceManager();
+		this.networks = new NetworkManager();
+		this.volumes = new VolumeManager();
 		this.proxyvisor = new Proxyvisor({
-			logger: this.logger,
 			images: this.images,
 			applications: this,
 		});
-		this.localModeManager = new LocalModeManager(this.logger);
+		this.localModeManager = new LocalModeManager();
 		this.timeSpentFetching = 0;
 		this.fetchesInProgress = 0;
 		this._targetVolatilePerImageId = {};
@@ -252,7 +243,7 @@ export class ApplicationManager extends EventEmitter {
 			.then(() => {
 				const cleanup = () => {
 					return docker.listContainers({ all: true }).then((containers) => {
-						return this.logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
+						return logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
 					});
 				};
 				// Rather than relying on removing out of date database entries when we're no
@@ -1052,15 +1043,11 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	createTargetVolume(name, appId, volume) {
-		return Volume.fromComposeObject(name, appId, volume, {
-			logger: this.logger,
-		});
+		return Volume.fromComposeObject(name, appId, volume);
 	}
 
 	createTargetNetwork(name, appId, network) {
-		return Network.fromComposeObject(name, appId, network, {
-			logger: this.logger,
-		});
+		return Network.fromComposeObject(name, appId, network);
 	}
 
 	normaliseAndExtendAppFromDB(app) {
@@ -1702,7 +1689,7 @@ export class ApplicationManager extends EventEmitter {
 			'. ',
 		)}`;
 		log.info(message);
-		return this.logger.logSystemMessage(
+		return logger.logSystemMessage(
 			message,
 			{},
 			'optionalContainerViolation',

@@ -28,8 +28,8 @@ import log from './lib/supervisor-console';
 
 import DeviceState from './device-state';
 import * as globalEventBus from './event-bus';
-import Logger from './logger';
 import * as TargetState from './device-state/target-state';
+import * as logger from './logger';
 
 // The exponential backoff starts at 15s
 const MINIMUM_BACKOFF_DELAY = 15000;
@@ -39,10 +39,6 @@ const INTERNAL_STATE_KEYS = [
 	'update_downloaded',
 	'update_failed',
 ];
-
-export interface APIBinderConstructOpts {
-	logger: Logger;
-}
 
 interface Device {
 	id: number;
@@ -67,7 +63,6 @@ export class APIBinder {
 	public router: express.Router;
 
 	private deviceState: DeviceState;
-	private logger: Logger;
 
 	public balenaApi: PinejsClientRequest | null = null;
 	private lastReportedState: DeviceStatus = {
@@ -82,9 +77,7 @@ export class APIBinder {
 	private stateReportErrors = 0;
 	private readyForUpdates = false;
 
-	public constructor({ logger }: APIBinderConstructOpts) {
-		this.logger = logger;
-
+	public constructor() {
 		this.router = this.createAPIBinderRouter(this);
 	}
 
@@ -241,12 +234,7 @@ export class APIBinder {
 						const lines = err.message.split(/\r?\n/);
 						lines[0] = `Could not move to new release: ${lines[0]}`;
 						for (const line of lines) {
-							this.logger.logSystemMessage(
-								line,
-								{},
-								'targetStateRejection',
-								false,
-							);
+							logger.logSystemMessage(line, {}, 'targetStateRejection', false);
 						}
 					} else {
 						log.error(`Failed to get target state for device: ${err}`);

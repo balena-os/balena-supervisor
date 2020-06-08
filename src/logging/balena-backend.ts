@@ -70,7 +70,7 @@ export class BalenaLogBackend extends LogBackend {
 		});
 	}
 
-	public isIntialised(): boolean {
+	public isInitialised(): boolean {
 		return this.initialised;
 	}
 

@@ -6,7 +6,7 @@ import * as constants from '../lib/constants';
 import { writeFileAtomic } from '../lib/fs-utils';
 
 import log from '../lib/supervisor-console';
-import Logger from '../logger';
+import * as logger from '../logger';
 
 export interface ConfigOptions {
 	[key: string]: string | string[];
@@ -34,13 +34,7 @@ async function remountAndWriteAtomic(
 	await writeFileAtomic(file, data);
 }
 
-export interface BackendOptions {
-	logger?: Logger;
-}
-
 export abstract class DeviceConfigBackend {
-	protected options: BackendOptions = {};
-
 	// Does this config backend support the given device type?
 	public abstract matches(deviceType: string): boolean;
 
@@ -74,8 +68,7 @@ export abstract class DeviceConfigBackend {
 	public abstract createConfigVarName(configName: string): string;
 
 	// Allow a chosen config backend to be initialised
-	public async initialise(opts: BackendOptions): Promise<DeviceConfigBackend> {
-		this.options = { ...this.options, ...opts };
+	public async initialise(): Promise<DeviceConfigBackend> {
 		return this;
 	}
 }
@@ -484,8 +477,8 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 		// log to system log if the AML doesn't exist...
 		if (!(await fs.exists(amlSrcPath))) {
 			log.error(`Missing AML for \'${aml}\'. Unable to load.`);
-			if (this.options.logger) {
-				this.options.logger.logSystemMessage(
+			if (logger) {
+				logger.logSystemMessage(
 					`Missing AML for \'${aml}\'. Unable to load.`,
 					{ aml, path: amlSrcPath },
 					'Load AML error',
@@ -555,11 +548,9 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 		}
 	}
 
-	public async initialise(
-		opts: BackendOptions,
-	): Promise<ConfigfsConfigBackend> {
+	public async initialise(): Promise<ConfigfsConfigBackend> {
 		try {
-			await super.initialise(opts);
+			await super.initialise();
 
 			// load the acpi_configfs module...
 			await child_process.exec('modprobe acpi_configfs');
@@ -575,13 +566,12 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 			log.success('Initialised ConfigFS');
 		} catch (error) {
 			log.error(error);
-			if (this.options.logger) {
-				this.options.logger.logSystemMessage(
-					'Unable to initialise ConfigFS',
-					{ error },
-					'ConfigFS initialisation error',
-				);
-			}
+			await logger.initialized;
+			logger.logSystemMessage(
+				'Unable to initialise ConfigFS',
+				{ error },
+				'ConfigFS initialisation error',
+			);
 		}
 		return this;
 	}
