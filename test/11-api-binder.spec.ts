@@ -23,10 +23,11 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 	await prepare();
 	config.removeAllListeners();
 
-	// @ts-ignore
+	// @ts-expect-error setting read-only property
 	config.configJsonBackend = new ConfigJsonConfigBackend(schema, filename);
 	config.generateRequiredFields();
-	(config.configJsonBackend as any).cache = await (config.configJsonBackend as any).read();
+	// @ts-expect-error using private properties
+	config.configJsonBackend.cache = await config.configJsonBackend.read();
 	await config.generateRequiredFields();
 
 	obj.logger = {
@@ -71,7 +72,7 @@ describe('ApiBinder', () => {
 	});
 
 	after(() => {
-		// @ts-ignore
+		// @ts-expect-error setting read-only property
 		balenaAPI.balenaBackend!.registerHandler.restore();
 		try {
 			server.close();
@@ -88,19 +89,18 @@ describe('ApiBinder', () => {
 		});
 
 		after(async () => {
-			// @ts-ignore
+			// @ts-expect-error setting read-only property
 			config.configJsonBackend = defaultConfigBackend;
 			await config.generateRequiredFields();
 		});
 
 		it('provisions a device', () => {
-			// @ts-ignore
 			const promise = components.apiBinder.provisionDevice();
 
 			return expect(promise).to.be.fulfilled.then(() => {
 				expect(balenaAPI.balenaBackend!.registerHandler).to.be.calledOnce;
 
-				// @ts-ignore
+				// @ts-expect-error function does not exist on type
 				balenaAPI.balenaBackend!.registerHandler.resetHistory();
 				expect(eventTracker.track).to.be.calledWith('Device bootstrap success');
 			});
@@ -169,7 +169,7 @@ describe('ApiBinder', () => {
 			return initModels(components, '/config-apibinder.json');
 		});
 		after(async () => {
-			// @ts-ignore
+			// @ts-expect-error setting read-only property
 			config.configJsonBackend = defaultConfigBackend;
 			await config.generateRequiredFields();
 		});
@@ -200,7 +200,7 @@ describe('ApiBinder', () => {
 			return initModels(components, '/config-apibinder.json');
 		});
 		after(async () => {
-			// @ts-ignore
+			// @ts-expect-error setting read-only property
 			config.configJsonBackend = defaultConfigBackend;
 			await config.generateRequiredFields();
 		});
@@ -211,7 +211,6 @@ describe('ApiBinder', () => {
 			const fetchDeviceStub = stub(components.apiBinder, 'fetchDevice');
 			fetchDeviceStub.onCall(0).resolves({ id: 1 });
 
-			// @ts-ignore
 			const device = await components.apiBinder.exchangeKeyAndGetDevice(
 				mockProvisioningOpts,
 			);
@@ -220,9 +219,8 @@ describe('ApiBinder', () => {
 			expect(device).to.deep.equal({ id: 1 });
 			expect(components.apiBinder.fetchDevice).to.be.calledOnce;
 
-			// @ts-ignore
 			components.apiBinder.fetchDevice.restore();
-			// @ts-ignore
+			// @ts-expect-error function does not exist on type
 			balenaAPI.balenaBackend.deviceKeyHandler.restore();
 		});
 
@@ -230,7 +228,6 @@ describe('ApiBinder', () => {
 			spy(balenaAPI.balenaBackend!, 'deviceKeyHandler');
 			stub(components.apiBinder, 'fetchDevice').returns(Promise.resolve(null));
 
-			// @ts-ignore
 			const promise = components.apiBinder.exchangeKeyAndGetDevice(
 				mockProvisioningOpts,
 			);
@@ -241,9 +238,8 @@ describe('ApiBinder', () => {
 			return expect(promise).to.be.rejected.then(() => {
 				expect(balenaAPI.balenaBackend!.deviceKeyHandler).to.not.be.called;
 				expect(components.apiBinder.fetchDevice).to.be.calledTwice;
-				// @ts-ignore
 				components.apiBinder.fetchDevice.restore();
-				// @ts-ignore
+				// @ts-expect-error function does not exist on type
 				balenaAPI.balenaBackend.deviceKeyHandler.restore();
 			});
 		});
@@ -254,16 +250,14 @@ describe('ApiBinder', () => {
 			fetchDeviceStub.onCall(0).returns(Promise.resolve(null));
 			fetchDeviceStub.onCall(1).returns(Promise.resolve({ id: 1 }));
 
-			// @ts-ignore
 			const device = await components.apiBinder.exchangeKeyAndGetDevice(
 				mockProvisioningOpts as any,
 			);
 			expect(balenaAPI.balenaBackend!.deviceKeyHandler).to.be.calledOnce;
 			expect(device).to.deep.equal({ id: 1 });
 			expect(components.apiBinder.fetchDevice).to.be.calledTwice;
-			// @ts-ignore
 			components.apiBinder.fetchDevice.restore();
-			// @ts-ignore
+			// @ts-expect-error function does not exist on type
 			balenaAPI.balenaBackend.deviceKeyHandler.restore();
 		});
 	});
@@ -274,7 +268,7 @@ describe('ApiBinder', () => {
 			return initModels(components, '/config-apibinder-offline.json');
 		});
 		after(async () => {
-			// @ts-ignore
+			// @ts-expect-error setting read-only property
 			config.configJsonBackend = defaultConfigBackend;
 			await config.generateRequiredFields();
 		});
@@ -313,7 +307,7 @@ describe('ApiBinder', () => {
 		});
 
 		after(async () => {
-			// @ts-ignore
+			// @ts-expect-error setting read-only property
 			config.configJsonBackend = defaultConfigBackend;
 			await config.generateRequiredFields();
 		});
@@ -362,7 +356,7 @@ describe('ApiBinder', () => {
 		});
 
 		after(async () => {
-			// @ts-ignore
+			// @ts-expect-error setting read-only property
 			config.configJsonBackend = defaultConfigBackend;
 			await config.generateRequiredFields();
 		});
