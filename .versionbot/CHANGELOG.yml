@@ -1,4 +1,16 @@
 - commits:
+    - subject: Make the event-tracker module a singleton
+      hash: 389e14ec6b63cf4a997f0d25f8bbe6a6a435dd5c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.6.2
+  date: 2020-06-08T09:15:03.107Z
+- commits:
     - subject: Convert all test files to TS and add .spec to all filenames
       hash: 9fc2e86322249cfbc17db446bcd204f617b0a63e
       body: ''
