@@ -141,13 +141,13 @@ const poll = async (
 	// Try to fetch latest target state
 	try {
 		await update();
+		// Reset fetchErrors because we successfuly updated
+		fetchErrors = 0;
 	} catch (e) {
 		// Exponential back off if request fails
 		pollInterval = Math.min(appUpdatePollInterval, 15000 * 2 ** fetchErrors);
 		++fetchErrors;
 	} finally {
-		// Reset fetchErrors because we successfuly updated
-		fetchErrors = 0;
 		// Wait to poll again
 		await delayedLoop(pollInterval);
 	}
