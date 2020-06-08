@@ -72,7 +72,6 @@ async function create(): Promise<SupervisorAPI> {
 	setupStubs();
 	// Create ApplicationManager
 	const appManager = new ApplicationManager({
-		logger: null,
 		deviceState,
 		apiBinder: null,
 	});
@@ -102,12 +101,9 @@ async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 	await initConfig();
 	// Create deviceState
 	const deviceState = new DeviceState({
-		logger: null as any,
 		apiBinder: null as any,
 	});
-	const apiBinder = new APIBinder({
-		logger: null as any,
-	});
+	const apiBinder = new APIBinder();
 	return {
 		deviceState,
 		apiBinder,

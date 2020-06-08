@@ -35,12 +35,9 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 		},
 	} as any;
 
-	obj.apiBinder = new ApiBinder({
-		logger: obj.logger,
-	});
+	obj.apiBinder = new ApiBinder();
 
 	obj.deviceState = new DeviceState({
-		logger: obj.logger,
 		apiBinder: obj.apiBinder,
 	});
 

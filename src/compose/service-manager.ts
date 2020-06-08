@@ -9,7 +9,7 @@ import StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import { docker } from '../lib/docker-utils';
-import Logger from '../logger';
+import * as logger from '../logger';
 
 import { PermissiveNumber } from '../config/types';
 import constants = require('../lib/constants');
@@ -25,10 +25,6 @@ import { serviceNetworksToDockerNetworks } from './utils';
 
 import log from '../lib/supervisor-console';
 
-interface ServiceConstructOpts {
-	logger: Logger;
-}
-
 interface ServiceManagerEvents {
 	change: void;
 }
@@ -43,8 +39,6 @@ interface KillOpts {
 }
 
 export class ServiceManager extends (EventEmitter as new () => ServiceManagerEventEmitter) {
-	private logger: Logger;
-
 	// Whether a container has died, indexed by ID
 	private containerHasDied: Dictionary<boolean> = {};
 	private listening = false;
@@ -52,9 +46,8 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 	// we don't yet have an id)
 	private volatileState: Dictionary<Partial<Service>> = {};
 
-	public constructor(opts: ServiceConstructOpts) {
+	public constructor() {
 		super();
-		this.logger = opts.logger;
 	}
 
 	public async getAll(
@@ -199,7 +192,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 	}
 
 	public async remove(service: Service) {
-		this.logger.logSystemEvent(LogTypes.removeDeadService, { service });
+		logger.logSystemEvent(LogTypes.removeDeadService, { service });
 		const existingService = await this.get(service);
 
 		if (existingService.containerId == null) {
@@ -214,7 +207,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				.remove({ v: true });
 		} catch (e) {
 			if (!NotFoundError(e)) {
-				this.logger.logSystemEvent(LogTypes.removeDeadServiceError, {
+				logger.logSystemEvent(LogTypes.removeDeadServiceError, {
 					service,
 					error: e,
 				});
@@ -244,7 +237,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 			return docker.getContainer(existing.containerId);
 		} catch (e) {
 			if (!NotFoundError(e)) {
-				this.logger.logSystemEvent(LogTypes.installServiceError, {
+				logger.logSystemEvent(LogTypes.installServiceError, {
 					service,
 					error: e,
 				});
@@ -274,7 +267,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				service.extraNetworksToJoin(),
 			);
 
-			this.logger.logSystemEvent(LogTypes.installService, { service });
+			logger.logSystemEvent(LogTypes.installService, { service });
 			this.reportNewStatus(mockContainerId, service, 'Installing');
 
 			const container = await docker.createContainer(conf);
@@ -289,7 +282,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				),
 			);
 
-			this.logger.logSystemEvent(LogTypes.installServiceSuccess, { service });
+			logger.logSystemEvent(LogTypes.installServiceSuccess, { service });
 			return container;
 		} finally {
 			this.reportChange(mockContainerId);
@@ -303,7 +296,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		try {
 			const container = await this.create(service);
 			containerId = container.id;
-			this.logger.logSystemEvent(LogTypes.startService, { service });
+			logger.logSystemEvent(LogTypes.startService, { service });
 
 			this.reportNewStatus(containerId, service, 'Starting');
 
@@ -348,7 +341,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				if (remove) {
 					// If starting the container fialed, we remove it so that it doesn't litter
 					await container.remove({ v: true }).catch(_.noop);
-					this.logger.logSystemEvent(LogTypes.startServiceError, {
+					logger.logSystemEvent(LogTypes.startServiceError, {
 						service,
 						error: err,
 					});
@@ -363,10 +356,10 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				);
 			}
 
-			this.logger.attach(container.id, { serviceId, imageId });
+			logger.attach(container.id, { serviceId, imageId });
 
 			if (!alreadyStarted) {
-				this.logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
+				logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
 			}
 
 			service.config.running = true;
@@ -410,14 +403,14 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 							if (service != null) {
 								this.emit('change');
 								if (status === 'die') {
-									this.logger.logSystemEvent(LogTypes.serviceExit, { service });
+									logger.logSystemEvent(LogTypes.serviceExit, { service });
 									this.containerHasDied[data.id] = true;
 								} else if (
 									status === 'start' &&
 									this.containerHasDied[data.id]
 								) {
 									delete this.containerHasDied[data.id];
-									this.logger.logSystemEvent(LogTypes.serviceRestart, {
+									logger.logSystemEvent(LogTypes.serviceRestart, {
 										service,
 									});
 
@@ -428,7 +421,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 											`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
 										);
 									}
-									this.logger.attach(data.id, {
+									logger.attach(data.id, {
 										serviceId,
 										imageId,
 									});
@@ -481,7 +474,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 						`containerId not defined for service: ${service.serviceName} in ServiceManager.attachToRunning`,
 					);
 				}
-				this.logger.attach(service.containerId, {
+				logger.attach(service.containerId, {
 					serviceId,
 					imageId,
 				});
@@ -533,7 +526,7 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 		// TODO: Remove the need for the wait flag
 
 		return Bluebird.try(() => {
-			this.logger.logSystemEvent(LogTypes.stopService, { service });
+			logger.logSystemEvent(LogTypes.stopService, { service });
 			if (service.imageId != null) {
 				this.reportNewStatus(containerId, service, 'Stopping');
 			}
@@ -558,14 +551,14 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 
 					// 304 means the container was already stopped, so we can just remove it
 					if (statusCode === 304) {
-						this.logger.logSystemEvent(LogTypes.stopServiceNoop, { service });
+						logger.logSystemEvent(LogTypes.stopServiceNoop, { service });
 						// Why do we attempt to remove the container again?
 						if (removeContainer) {
 							return containerObj.remove({ v: true });
 						}
 					} else if (statusCode === 404) {
 						// 404 means the container doesn't exist, precisely what we want!
-						this.logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
+						logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
 							service,
 						});
 					} else {
@@ -574,10 +567,10 @@ export class ServiceManager extends (EventEmitter as new () => ServiceManagerEve
 				})
 				.tap(() => {
 					delete this.containerHasDied[containerId];
-					this.logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
+					logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
 				})
 				.catch((e) => {
-					this.logger.logSystemEvent(LogTypes.stopServiceError, {
+					logger.logSystemEvent(LogTypes.stopServiceError, {
 						service,
 						error: e,
 					});

@@ -2,29 +2,29 @@ import { expect } from 'chai';
 import { stub, SinonStub } from 'sinon';
 
 import { docker } from '../src/lib/docker-utils';
+import * as logger from '../src/logger';
 
 import Volume from '../src/compose/volume';
 import logTypes = require('../src/lib/log-types');
 
-const fakeLogger = {
-	logSystemMessage: stub(),
-	logSystemEvent: stub(),
-};
-
-const opts: any = { logger: fakeLogger };
-
 describe('Compose volumes', () => {
 	let createVolumeStub: SinonStub;
+	let logSystemStub: SinonStub;
+	let logMessageStub: SinonStub;
 	before(() => {
 		createVolumeStub = stub(docker, 'createVolume');
+		logSystemStub = stub(logger, 'logSystemEvent');
+		logMessageStub = stub(logger, 'logSystemMessage');
 	});
 	after(() => {
 		createVolumeStub.restore();
+		logSystemStub.restore();
+		logMessageStub.restore();
 	});
 
 	describe('Parsing volumes', () => {
 		it('should correctly parse docker volumes', () => {
-			const volume = Volume.fromDockerVolume(opts, {
+			const volume = Volume.fromDockerVolume({
 				Driver: 'local',
 				Labels: {
 					'io.balena.supervised': 'true',
@@ -54,19 +54,14 @@ describe('Compose volumes', () => {
 		});
 
 		it('should correctly parse compose volumes without an explicit driver', () => {
-			const volume = Volume.fromComposeObject(
-				'one_volume',
-				1032480,
-				{
-					driver_opts: {
-						opt1: 'test',
-					},
-					labels: {
-						'my-label': 'test-label',
-					},
+			const volume = Volume.fromComposeObject('one_volume', 1032480, {
+				driver_opts: {
+					opt1: 'test',
 				},
-				opts,
-			);
+				labels: {
+					'my-label': 'test-label',
+				},
+			});
 
 			expect(volume).to.have.property('appId').that.equals(1032480);
 			expect(volume).to.have.property('name').that.equals('one_volume');
@@ -90,20 +85,15 @@ describe('Compose volumes', () => {
 		});
 
 		it('should correctly parse compose volumes with an explicit driver', () => {
-			const volume = Volume.fromComposeObject(
-				'one_volume',
-				1032480,
-				{
-					driver: 'other',
-					driver_opts: {
-						opt1: 'test',
-					},
-					labels: {
-						'my-label': 'test-label',
-					},
+			const volume = Volume.fromComposeObject('one_volume', 1032480, {
+				driver: 'other',
+				driver_opts: {
+					opt1: 'test',
 				},
-				opts,
-			);
+				labels: {
+					'my-label': 'test-label',
+				},
+			});
 
 			expect(volume).to.have.property('appId').that.equals(1032480);
 			expect(volume).to.have.property('name').that.equals('one_volume');
@@ -130,23 +120,18 @@ describe('Compose volumes', () => {
 	describe('Generating docker options', () => {
 		afterEach(() => {
 			createVolumeStub.reset();
-			fakeLogger.logSystemEvent.reset();
-			fakeLogger.logSystemMessage.reset();
+			logSystemStub.reset();
+			logMessageStub.reset();
 		});
 		it('should correctly generate docker options', async () => {
-			const volume = Volume.fromComposeObject(
-				'one_volume',
-				1032480,
-				{
-					driver_opts: {
-						opt1: 'test',
-					},
-					labels: {
-						'my-label': 'test-label',
-					},
+			const volume = Volume.fromComposeObject('one_volume', 1032480, {
+				driver_opts: {
+					opt1: 'test',
 				},
-				opts,
-			);
+				labels: {
+					'my-label': 'test-label',
+				},
+			});
 
 			await volume.create();
 			expect(
@@ -161,7 +146,7 @@ describe('Compose volumes', () => {
 				}),
 			);
 
-			expect(fakeLogger.logSystemEvent.calledWith(logTypes.createVolume));
+			expect(logSystemStub.calledWith(logTypes.createVolume));
 		});
 	});
 });

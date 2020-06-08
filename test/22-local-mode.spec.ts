@@ -9,7 +9,6 @@ import LocalModeManager, {
 	EngineSnapshot,
 	EngineSnapshotRecord,
 } from '../src/local-mode';
-import Logger from '../src/logger';
 import ShortStackError from './lib/errors';
 
 describe('LocalModeManager', () => {
@@ -34,9 +33,8 @@ describe('LocalModeManager', () => {
 		await db.initialized;
 
 		dockerStub = sinon.stub(docker);
-		const loggerStub = (sinon.createStubInstance(Logger) as unknown) as Logger;
 
-		localMode = new LocalModeManager(loggerStub, supervisorContainerId);
+		localMode = new LocalModeManager(supervisorContainerId);
 	});
 
 	after(async () => {

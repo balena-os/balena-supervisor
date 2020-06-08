@@ -8,13 +8,9 @@ import { safeRename } from '../lib/fs-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
 import { defaultLegacyVolume } from '../lib/migration';
-import Logger from '../logger';
+import * as logger from '../logger';
 import { ResourceRecreationAttemptError } from './errors';
 import Volume, { VolumeConfig } from './volume';
-
-export interface VolumeMangerConstructOpts {
-	logger: Logger;
-}
 
 export interface VolumeNameOpts {
 	name: string;
@@ -22,24 +18,15 @@ export interface VolumeNameOpts {
 }
 
 export class VolumeManager {
-	private logger: Logger;
-
-	public constructor(opts: VolumeMangerConstructOpts) {
-		this.logger = opts.logger;
-	}
-
 	public async get({ name, appId }: VolumeNameOpts): Promise<Volume> {
 		return Volume.fromDockerVolume(
-			{ logger: this.logger },
 			await docker.getVolume(Volume.generateDockerName(appId, name)).inspect(),
 		);
 	}
 
 	public async getAll(): Promise<Volume[]> {
 		const volumeInspect = await this.listWithBothLabels();
-		return volumeInspect.map((inspect) =>
-			Volume.fromDockerVolume({ logger: this.logger }, inspect),
-		);
+		return volumeInspect.map((inspect) => Volume.fromDockerVolume(inspect));
 	}
 
 	public async getAllByAppId(appId: number): Promise<Volume[]> {
@@ -61,7 +48,7 @@ export class VolumeManager {
 			}
 		} catch (e) {
 			if (!NotFoundError(e)) {
-				this.logger.logSystemEvent(LogTypes.createVolumeError, {
+				logger.logSystemEvent(LogTypes.createVolumeError, {
 					volume: { name: volume.name },
 					error: e,
 				});
@@ -89,7 +76,7 @@ export class VolumeManager {
 		try {
 			return await this.createFromPath({ name, appId }, {}, legacyPath);
 		} catch (e) {
-			this.logger.logSystemMessage(
+			logger.logSystemMessage(
 				`Warning: could not migrate legacy /data volume: ${e.message}`,
 				{ error: e },
 				'Volume migration error',
@@ -102,9 +89,7 @@ export class VolumeManager {
 		config: Partial<VolumeConfig>,
 		oldPath: string,
 	): Promise<Volume> {
-		const volume = Volume.fromComposeObject(name, appId, config, {
-			logger: this.logger,
-		});
+		const volume = Volume.fromComposeObject(name, appId, config);
 
 		await this.create(volume);
 		const inspect = await docker

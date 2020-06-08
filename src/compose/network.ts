@@ -5,7 +5,7 @@ import { docker } from '../lib/docker-utils';
 import { InvalidAppIdError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import { checkInt } from '../lib/validation';
-import { Logger } from '../logger';
+import * as logger from '../logger';
 import * as ComposeUtils from './utils';
 
 import {
@@ -21,26 +21,15 @@ import {
 	InvalidNetworkNameError,
 } from './errors';
 
-export interface NetworkOptions {
-	logger: Logger;
-}
-
 export class Network {
 	public appId: number;
 	public name: string;
 	public config: NetworkConfig;
 
-	private logger: Logger;
+	private constructor() {}
 
-	private constructor(opts: NetworkOptions) {
-		this.logger = opts.logger;
-	}
-
-	public static fromDockerNetwork(
-		opts: NetworkOptions,
-		network: NetworkInspect,
-	): Network {
-		const ret = new Network(opts);
+	public static fromDockerNetwork(network: NetworkInspect): Network {
+		const ret = new Network();
 
 		const match = network.Name.match(/^([0-9]+)_(.+)$/);
 		if (match == null) {
@@ -94,9 +83,8 @@ export class Network {
 		network: Partial<Omit<ComposeNetworkConfig, 'ipam'>> & {
 			ipam?: Partial<ComposeNetworkConfig['ipam']>;
 		},
-		opts: NetworkOptions,
 	): Network {
-		const net = new Network(opts);
+		const net = new Network();
 		net.name = name;
 		net.appId = appId;
 
@@ -138,7 +126,7 @@ export class Network {
 	}
 
 	public async create(): Promise<void> {
-		this.logger.logSystemEvent(logTypes.createNetwork, {
+		logger.logSystemEvent(logTypes.createNetwork, {
 			network: { name: this.name },
 		});
 
@@ -183,7 +171,7 @@ export class Network {
 	}
 
 	public remove(): Bluebird<void> {
-		this.logger.logSystemEvent(logTypes.removeNetwork, {
+		logger.logSystemEvent(logTypes.removeNetwork, {
 			network: { name: this.name, appId: this.appId },
 		});
 
@@ -192,7 +180,7 @@ export class Network {
 				.getNetwork(Network.generateDockerName(this.appId, this.name))
 				.remove(),
 		).tapCatch((error) => {
-			this.logger.logSystemEvent(logTypes.removeNetworkError, {
+			logger.logSystemEvent(logTypes.removeNetworkError, {
 				network: { name: this.name, appId: this.appId },
 				error,
 			});

@@ -10,7 +10,7 @@ import prettyMs = require('pretty-ms');
 
 import * as config from './config';
 import * as db from './db';
-import Logger from './logger';
+import * as logger from './logger';
 
 import {
 	CompositionStep,
@@ -176,7 +176,6 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 }
 
 interface DeviceStateConstructOpts {
-	logger: Logger;
 	apiBinder: APIBinder;
 }
 
@@ -216,8 +215,6 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| ConfigStep;
 
 export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {
-	public logger: Logger;
-
 	public applications: ApplicationManager;
 	public deviceConfig: DeviceConfig;
 
@@ -239,14 +236,10 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	public connected: boolean;
 	public router: express.Router;
 
-	constructor({ logger, apiBinder }: DeviceStateConstructOpts) {
+	constructor({ apiBinder }: DeviceStateConstructOpts) {
 		super();
-		this.logger = logger;
-		this.deviceConfig = new DeviceConfig({
-			logger: this.logger,
-		});
+		this.deviceConfig = new DeviceConfig();
 		this.applications = new ApplicationManager({
-			logger: this.logger,
 			deviceState: this,
 			apiBinder,
 		});
@@ -306,7 +299,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	public async init() {
 		config.on('change', (changedConfig) => {
 			if (changedConfig.loggingEnabled != null) {
-				this.logger.enable(changedConfig.loggingEnabled);
+				logger.enable(changedConfig.loggingEnabled);
 			}
 			if (changedConfig.apiSecret != null) {
 				this.reportCurrentState({ api_secret: changedConfig.apiSecret });
@@ -551,7 +544,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 	private async reboot(force?: boolean, skipLock?: boolean) {
 		await this.applications.stopAll({ force, skipLock });
-		this.logger.logSystemMessage('Rebooting', {}, 'Reboot');
+		logger.logSystemMessage('Rebooting', {}, 'Reboot');
 		const reboot = await dbus.reboot();
 		this.shuttingDown = true;
 		this.emitAsync('shutdown', undefined);
@@ -560,7 +553,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 	private async shutdown(force?: boolean, skipLock?: boolean) {
 		await this.applications.stopAll({ force, skipLock });
-		this.logger.logSystemMessage('Shutting down', {}, 'Shutdown');
+		logger.logSystemMessage('Shutting down', {}, 'Shutdown');
 		const shutdown = await dbus.shutdown();
 		this.shuttingDown = true;
 		this.emitAsync('shutdown', undefined);
@@ -670,7 +663,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 				const message = `Updates are locked, retrying in ${prettyMs(delay, {
 					compact: true,
 				})}...`;
-				this.logger.logSystemMessage(message, {}, 'updateLocked', false);
+				logger.logSystemMessage(message, {}, 'updateLocked', false);
 				log.info(message);
 			} else {
 				log.error(

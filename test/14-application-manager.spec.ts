@@ -125,13 +125,7 @@ const dependentDBFormat = {
 describe('ApplicationManager', function () {
 	before(async function () {
 		await prepare();
-		this.logger = {
-			clearOutOfDateDBLogs: () => {
-				/* noop */
-			},
-		} as any;
 		this.deviceState = new DeviceState({
-			logger: this.logger,
 			apiBinder: null as any,
 		});
 		this.applications = this.deviceState.applications;
@@ -171,9 +165,7 @@ describe('ApplicationManager', function () {
 					appCloned.networks = _.mapValues(
 						appCloned.networks,
 						(config, name) => {
-							return Network.fromComposeObject(name, app.appId, config, {
-								logger: this.logger,
-							});
+							return Network.fromComposeObject(name, app.appId, config);
 						},
 					);
 					return appCloned;
@@ -639,10 +631,7 @@ describe('ApplicationManager', function () {
 				Bluebird.Promise.resolve([
 					{
 						action: 'removeVolume',
-						current: Volume.fromComposeObject('my_volume', 12, {}, {
-							docker: null,
-							logger: null,
-						} as any),
+						current: Volume.fromComposeObject('my_volume', 12, {}),
 					},
 				]),
 			);

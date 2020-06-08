@@ -5,13 +5,14 @@ import * as Promise from 'bluebird';
 import { expect } from './lib/chai-config';
 import * as sinon from 'sinon';
 
-import { Logger } from '../src/logger';
 import { ContainerLogs } from '../src/logging/container';
-import * as eventTracker from '../src/event-tracker';
-import { stub } from 'sinon';
+import * as config from '../src/config';
 
 describe('Logger', function () {
-	beforeEach(function () {
+	let logger: typeof import('../src/logger');
+	let configStub: sinon.SinonStub;
+
+	beforeEach(async function () {
 		this._req = new stream.PassThrough();
 		this._req.flushHeaders = sinon.spy();
 		this._req.end = sinon.spy();
@@ -23,27 +24,35 @@ describe('Logger', function () {
 
 		this.requestStub = sinon.stub(https, 'request').returns(this._req);
 
-		this.eventTrackerStub = stub(eventTracker, 'track');
-
-		this.logger = new Logger();
-		return this.logger.init({
-			apiEndpoint: 'https://example.com',
-			uuid: 'deadbeef',
-			deviceApiKey: 'secretkey',
-			unmanaged: false,
-			enableLogs: true,
-			localMode: false,
-		});
+		configStub = sinon.stub(config, 'getMany').returns(
+			// @ts-ignore this should actually work but the type system doesnt like it
+			Promise.resolve({
+				apiEndpoint: 'https://example.com',
+				uuid: 'deadbeef',
+				deviceApiKey: 'secretkey',
+				unmanaged: false,
+				loggingEnabled: true,
+				localMode: false,
+			}),
+		);
+		// delete the require cache for the logger module so we can force a refresh
+		delete require.cache[require.resolve('../src/logger')];
+		logger = await import('../src/logger');
+		await logger.initialized;
 	});
 
 	afterEach(function () {
 		this.requestStub.restore();
-		this.eventTrackerStub.restore();
+		configStub.restore();
+	});
+
+	after(function () {
+		delete require.cache[require.resolve('../src/logger')];
 	});
 
 	it('waits the grace period before sending any logs', function () {
 		const clock = sinon.useFakeTimers();
-		this.logger.log({ message: 'foobar', serviceId: 15 });
+		logger.log({ message: 'foobar', serviceId: 15 });
 		clock.tick(4999);
 		clock.restore();
 
@@ -54,7 +63,7 @@ describe('Logger', function () {
 
 	it('tears down the connection after inactivity', function () {
 		const clock = sinon.useFakeTimers();
-		this.logger.log({ message: 'foobar', serviceId: 15 });
+		logger.log({ message: 'foobar', serviceId: 15 });
 		clock.tick(61000);
 		clock.restore();
 
@@ -65,9 +74,9 @@ describe('Logger', function () {
 
 	it('sends logs as gzipped ndjson', function () {
 		const timestamp = Date.now();
-		this.logger.log({ message: 'foobar', serviceId: 15 });
-		this.logger.log({ timestamp: 1337, message: 'foobar', serviceId: 15 });
-		this.logger.log({ message: 'foobar' }); // shold be ignored
+		logger.log({ message: 'foobar', serviceId: 15 });
+		logger.log({ timestamp: 1337, message: 'foobar', serviceId: 15 });
+		logger.log({ message: 'foobar' }); // shold be ignored
 
 		return Promise.delay(5500).then(() => {
 			expect(this.requestStub.calledOnce).to.be.true;
@@ -102,16 +111,13 @@ describe('Logger', function () {
 
 	it('allows logging system messages which are also reported to the eventTracker', function () {
 		const timestamp = Date.now();
-		this.logger.logSystemMessage(
+		logger.logSystemMessage(
 			'Hello there!',
 			{ someProp: 'someVal' },
 			'Some event name',
 		);
 
 		return Promise.delay(5500).then(() => {
-			expect(this.eventTrackerStub).to.be.calledWith('Some event name', {
-				someProp: 'someVal',
-			});
 			const lines = this._req.body.split('\n');
 			expect(lines.length).to.equal(2);
 			expect(lines[1]).to.equal('');

@@ -2,7 +2,6 @@ import * as _ from 'lodash';
 
 import { EnvVarObject } from '../lib/types';
 import {
-	BackendOptions,
 	ConfigfsConfigBackend,
 	ConfigOptions,
 	DeviceConfigBackend,
@@ -16,13 +15,10 @@ const configBackends = [
 	new ConfigfsConfigBackend(),
 ];
 
-export const initialiseConfigBackend = async (
-	deviceType: string,
-	opts: BackendOptions,
-) => {
+export const initialiseConfigBackend = async (deviceType: string) => {
 	const backend = getConfigBackend(deviceType);
 	if (backend) {
-		await backend.initialise(opts);
+		await backend.initialise();
 		return backend;
 	}
 };

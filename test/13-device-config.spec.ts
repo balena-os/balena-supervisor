@@ -1,13 +1,15 @@
 import { Promise } from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { child_process, fs } from 'mz';
-import { SinonSpy, SinonStub, spy, stub } from 'sinon';
+import { SinonSpy, SinonStub, stub } from 'sinon';
 
 import * as config from '../src/config';
 import { ExtlinuxConfigBackend, RPiConfigBackend } from '../src/config/backend';
 import { DeviceConfig } from '../src/device-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import { expect } from './lib/chai-config';
+
+import * as logger from '../src/logger';
 
 import prepare = require('./lib/prepare');
 
@@ -28,12 +30,12 @@ describe('DeviceConfig', function () {
 				});
 			},
 		};
-		this.fakeLogger = {
-			logSystemMessage: spy(),
-		};
-		return (this.deviceConfig = new DeviceConfig({
-			logger: this.fakeLogger,
-		}));
+		this.logStub = stub(logger, 'logSystemMessage');
+		return (this.deviceConfig = new DeviceConfig());
+	});
+
+	after(function () {
+		this.logStub.restore();
 	});
 
 	// Test that the format for special values like initramfs and array variables is parsed correctly
@@ -97,15 +99,15 @@ describe('DeviceConfig', function () {
 		});
 		expect(promise).to.be.rejected;
 		return promise.catch((_err) => {
-			expect(this.fakeLogger.logSystemMessage).to.be.calledOnce;
-			expect(this.fakeLogger.logSystemMessage).to.be.calledWith(
+			expect(this.logStub).to.be.calledOnce;
+			expect(this.logStub).to.be.calledWith(
 				'Attempt to change blacklisted config value initramfs',
 				{
 					error: 'Attempt to change blacklisted config value initramfs',
 				},
 				'Apply boot config error',
 			);
-			return this.fakeLogger.logSystemMessage.resetHistory();
+			return this.logStub.resetHistory();
 		});
 	});
 
@@ -133,8 +135,8 @@ describe('DeviceConfig', function () {
 		});
 		expect(promise).to.eventually.equal(false);
 		return promise.then(() => {
-			expect(this.fakeLogger.logSystemMessage).to.not.be.called;
-			return this.fakeLogger.logSystemMessage.resetHistory();
+			expect(this.logStub).to.not.be.called;
+			return this.logStub.resetHistory();
 		});
 	});
 
@@ -168,8 +170,8 @@ describe('DeviceConfig', function () {
 				.setBootConfig(rpiConfigBackend, target)
 				.then(() => {
 					expect(child_process.exec).to.be.calledOnce;
-					expect(this.fakeLogger.logSystemMessage).to.be.calledTwice;
-					expect(this.fakeLogger.logSystemMessage.getCall(1).args[2]).to.equal(
+					expect(this.logStub).to.be.calledTwice;
+					expect(this.logStub.getCall(1).args[2]).to.equal(
 						'Apply boot config success',
 					);
 					expect(fsUtils.writeFileAtomic).to.be.calledWith(
@@ -185,7 +187,7 @@ foobaz=bar\n\
 					);
 					(fsUtils.writeFileAtomic as SinonStub).restore();
 					(child_process.exec as SinonStub).restore();
-					return this.fakeLogger.logSystemMessage.resetHistory();
+					return this.logStub.resetHistory();
 				});
 		});
 	});
@@ -254,10 +256,10 @@ foobaz=bar\n\
 					.setBootConfig(extlinuxBackend, target)
 					.then(() => {
 						expect(child_process.exec).to.be.calledOnce;
-						expect(this.fakeLogger.logSystemMessage).to.be.calledTwice;
-						expect(
-							this.fakeLogger.logSystemMessage.getCall(1).args[2],
-						).to.equal('Apply boot config success');
+						expect(this.logStub).to.be.calledTwice;
+						expect(this.logStub.getCall(1).args[2]).to.equal(
+							'Apply boot config success',
+						);
 						expect(fsUtils.writeFileAtomic).to.be.calledWith(
 							'./test/data/mnt/boot/extlinux/extlinux.conf',
 							`\
@@ -272,7 +274,7 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 						);
 						(fsUtils.writeFileAtomic as SinonStub).restore();
 						(child_process.exec as SinonStub).restore();
-						return this.fakeLogger.logSystemMessage.resetHistory();
+						return this.logStub.resetHistory();
 					});
 			});
 		}));
@@ -405,9 +407,7 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 					throw new Error('Unknown fake config key');
 				});
 			});
-			this.upboardConfig = new DeviceConfig({
-				logger: this.fakeLogger,
-			});
+			this.upboardConfig = new DeviceConfig();
 
 			stub(child_process, 'exec').resolves();
 			stub(fs, 'exists').callsFake(() => Promise.resolve(true));
@@ -445,7 +445,7 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 			(fs.readFile as SinonStub).restore();
 			(fsUtils.writeFileAtomic as SinonStub).restore();
 			(config.get as SinonStub).restore();
-			this.fakeLogger.logSystemMessage.resetHistory();
+			this.logStub.resetHistory();
 		});
 
 		it('should correctly load the configfs.json file', function () {
@@ -464,7 +464,7 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 				HOST_CONFIGFS_ssdt: 'spidev1,1',
 			};
 
-			this.fakeLogger.logSystemMessage.resetHistory();
+			this.logStub.resetHistory();
 			(child_process.exec as SinonSpy).resetHistory();
 			(fs.exists as SinonSpy).resetHistory();
 			(fs.mkdir as SinonSpy).resetHistory();
@@ -493,10 +493,10 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 							ssdt: ['spidev1,1'],
 						}),
 					);
-					expect(this.fakeLogger.logSystemMessage).to.be.calledTwice;
-					return expect(
-						this.fakeLogger.logSystemMessage.getCall(1).args[2],
-					).to.equal('Apply boot config success');
+					expect(this.logStub).to.be.calledTwice;
+					return expect(this.logStub.getCall(1).args[2]).to.equal(
+						'Apply boot config success',
+					);
 				});
 		});
 	});

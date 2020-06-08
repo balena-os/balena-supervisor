@@ -4,7 +4,7 @@ import { inspect } from 'util';
 import * as config from './config';
 import { SchemaTypeKey } from './config/schema-type';
 import * as db from './db';
-import Logger from './logger';
+import * as logger from './logger';
 
 import { ConfigOptions, DeviceConfigBackend } from './config/backend';
 import * as configUtils from './config/utils';
@@ -15,10 +15,6 @@ import { checkInt, checkTruthy } from './lib/validation';
 import { DeviceStatus } from './types/state';
 
 const vpnServiceName = 'openvpn';
-
-interface DeviceConfigConstructOpts {
-	logger: Logger;
-}
 
 interface ConfigOption {
 	envVarName: string;
@@ -55,7 +51,6 @@ interface DeviceActionExecutors {
 }
 
 export class DeviceConfig {
-	private logger: Logger;
 	private rebootRequired = false;
 	private actionExecutors: DeviceActionExecutors;
 	private configBackend: DeviceConfigBackend | null = null;
@@ -146,14 +141,12 @@ export class DeviceConfig {
 		},
 	};
 
-	public constructor({ logger }: DeviceConfigConstructOpts) {
-		this.logger = logger;
-
+	public constructor() {
 		this.actionExecutors = {
 			changeConfig: async (step) => {
 				try {
 					if (step.humanReadableTarget) {
-						this.logger.logConfigChange(step.humanReadableTarget);
+						logger.logConfigChange(step.humanReadableTarget);
 					}
 					if (!_.isObject(step.target)) {
 						throw new Error('Non-dictionary value passed to changeConfig');
@@ -162,7 +155,7 @@ export class DeviceConfig {
 					// work out and we don't need this cast to any
 					await config.set(step.target as { [key in SchemaTypeKey]: any });
 					if (step.humanReadableTarget) {
-						this.logger.logConfigChange(step.humanReadableTarget, {
+						logger.logConfigChange(step.humanReadableTarget, {
 							success: true,
 						});
 					}
@@ -171,7 +164,7 @@ export class DeviceConfig {
 					}
 				} catch (err) {
 					if (step.humanReadableTarget) {
-						this.logger.logConfigChange(step.humanReadableTarget, {
+						logger.logConfigChange(step.humanReadableTarget, {
 							err,
 						});
 					}
@@ -185,15 +178,15 @@ export class DeviceConfig {
 				}
 				const logValue = { SUPERVISOR_VPN_CONTROL: step.target };
 				if (!initial) {
-					this.logger.logConfigChange(logValue);
+					logger.logConfigChange(logValue);
 				}
 				try {
 					await this.setVPNEnabled(step.target);
 					if (!initial) {
-						this.logger.logConfigChange(logValue, { success: true });
+						logger.logConfigChange(logValue, { success: true });
 					}
 				} catch (err) {
-					this.logger.logConfigChange(logValue, { err });
+					logger.logConfigChange(logValue, { err });
 					throw err;
 				}
 			},
@@ -218,9 +211,7 @@ export class DeviceConfig {
 		}
 		const dt = await config.get('deviceType');
 		this.configBackend =
-			(await configUtils.initialiseConfigBackend(dt, {
-				logger: this.logger,
-			})) ?? null;
+			(await configUtils.initialiseConfigBackend(dt)) ?? null;
 
 		return this.configBackend;
 	}
@@ -350,7 +341,7 @@ export class DeviceConfig {
 				if (!configBackend!.isSupportedConfig(key)) {
 					if (currentBootConfig[key] !== value) {
 						const err = `Attempt to change blacklisted config value ${key}`;
-						this.logger.logSystemMessage(
+						logger.logSystemMessage(
 							err,
 							{ error: err },
 							'Apply boot config error',
@@ -419,7 +410,7 @@ export class DeviceConfig {
 							const message = `Warning: Ignoring invalid device configuration value for ${key}, value: ${inspect(
 								target[envVarName],
 							)}. Falling back to default (${defaultValue})`;
-							this.logger.logSystemMessage(
+							logger.logSystemMessage(
 								message,
 								{ key: envVarName, value: target[envVarName] },
 								'invalidDeviceConfig',
@@ -532,7 +523,7 @@ export class DeviceConfig {
 		}
 
 		const conf = configUtils.envToBootConfig(backend, target);
-		this.logger.logSystemMessage(
+		logger.logSystemMessage(
 			`Applying boot config: ${JSON.stringify(conf)}`,
 			{},
 			'Apply boot config in progress',
@@ -543,7 +534,7 @@ export class DeviceConfig {
 
 		try {
 			await backend.setBootConfig(conf);
-			this.logger.logSystemMessage(
+			logger.logSystemMessage(
 				`Applied boot config: ${JSON.stringify(conf)}`,
 				{},
 				'Apply boot config success',
@@ -551,7 +542,7 @@ export class DeviceConfig {
 			this.rebootRequired = true;
 			return true;
 		} catch (err) {
-			this.logger.logSystemMessage(
+			logger.logSystemMessage(
 				`Error setting boot config: ${err}`,
 				{ error: err },
 				'Apply boot config error',

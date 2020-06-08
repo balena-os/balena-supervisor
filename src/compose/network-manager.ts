@@ -6,31 +6,20 @@ import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
 import { ENOENT, NotFoundError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
-import { Logger } from '../logger';
-import { Network, NetworkOptions } from './network';
+import * as logger from '../logger';
+import { Network } from './network';
 
 import log from '../lib/supervisor-console';
 import { ResourceRecreationAttemptError } from './errors';
 
 export class NetworkManager {
-	private logger: Logger;
-
-	constructor(opts: NetworkOptions) {
-		this.logger = opts.logger;
-	}
-
 	public getAll(): Bluebird<Network[]> {
 		return this.getWithBothLabels().map((network: { Name: string }) => {
 			return docker
 				.getNetwork(network.Name)
 				.inspect()
 				.then((net) => {
-					return Network.fromDockerNetwork(
-						{
-							logger: this.logger,
-						},
-						net,
-					);
+					return Network.fromDockerNetwork(net);
 				});
 		});
 	}
@@ -43,7 +32,7 @@ export class NetworkManager {
 		const dockerNet = await docker
 			.getNetwork(Network.generateDockerName(network.appId, network.name))
 			.inspect();
-		return Network.fromDockerNetwork({ logger: this.logger }, dockerNet);
+		return Network.fromDockerNetwork(dockerNet);
 	}
 
 	public async create(network: Network) {
@@ -60,7 +49,7 @@ export class NetworkManager {
 			// already created, we can skip this
 		} catch (e) {
 			if (!NotFoundError(e)) {
-				this.logger.logSystemEvent(logTypes.createNetworkError, {
+				logger.logSystemEvent(logTypes.createNetworkError, {
 					network: { name: network.name, appId: network.appId },
 					error: e,
 				});

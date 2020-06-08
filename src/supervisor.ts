@@ -6,7 +6,7 @@ import * as eventTracker from './event-tracker';
 import { intialiseContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/migration';
 import * as osRelease from './lib/os-release';
-import Logger from './logger';
+import * as logger from './logger';
 import SupervisorAPI from './supervisor-api';
 
 import constants = require('./lib/constants');
@@ -29,18 +29,13 @@ const startupConfigFields: config.ConfigKey[] = [
 ];
 
 export class Supervisor {
-	private logger: Logger;
 	private deviceState: DeviceState;
 	private apiBinder: APIBinder;
 	private api: SupervisorAPI;
 
 	public constructor() {
-		this.logger = new Logger();
-		this.apiBinder = new APIBinder({
-			logger: this.logger,
-		});
+		this.apiBinder = new APIBinder();
 		this.deviceState = new DeviceState({
-			logger: this.logger,
 			apiBinder: this.apiBinder,
 		});
 		// workaround the circular dependency
@@ -65,14 +60,10 @@ export class Supervisor {
 		await db.initialized;
 		await config.initialized;
 		await eventTracker.initialized;
+		log.debug('Starting logging infrastructure');
+		await logger.initialized;
 
 		const conf = await config.getMany(startupConfigFields);
-
-		log.debug('Starting logging infrastructure');
-		this.logger.init({
-			enableLogs: conf.loggingEnabled,
-			...conf,
-		});
 
 		intialiseContractRequirements({
 			supervisorVersion: version,
@@ -83,7 +74,7 @@ export class Supervisor {
 		log.debug('Starting api binder');
 		await this.apiBinder.initClient();
 
-		this.logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
+		logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
 		if (conf.legacyAppsPresent && this.apiBinder.balenaApi != null) {
 			log.info('Legacy app detected, running migration');
 			await normaliseLegacyDatabase(
