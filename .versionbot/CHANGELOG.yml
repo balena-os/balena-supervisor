@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'fix: API auth missing on state GET/PATCH'
+      hash: b89425c6079b74c709ef9872c6fc53726ffda6d3
+      body: |
+        When performing a state GET/PATCH the authentication header was being
+        missed off.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss
+        signed-off-by: Rich Bayliss
+      author: Rich Bayliss
+  version: 11.6.5
+  date: 2020-06-09T14:06:37.184Z
+- commits:
     - subject: Refactored @ts-ignore to @ts-expect-error in test file
       hash: ffe814e4479a962979e759dfec8618dbfb53008b
       body: ''
