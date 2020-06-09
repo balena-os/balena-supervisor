@@ -8,6 +8,7 @@ import Volume from '../compose/volume';
 import * as config from '../config';
 import * as db from '../db';
 import * as logger from '../logger';
+import * as images from '../compose/images';
 import { spawnJournalctl } from '../lib/journald';
 import {
 	appNotFoundMessage,
@@ -152,11 +153,11 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			// maybe refactor this code
 			Bluebird.join(
 				applications.services.getStatus(),
-				applications.images.getStatus(),
+				images.getStatus(),
 				db.models('app').select(['appId', 'commit', 'name']),
 				(
 					services,
-					images,
+					imgs,
 					apps: Array<{ appId: string; commit: string; name: string }>,
 				) => {
 					// Create an object which is keyed my application name
@@ -187,7 +188,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						appNameById[appId] = app.name;
 					});
 
-					images.forEach((img) => {
+					imgs.forEach((img) => {
 						const appName = appNameById[img.appId];
 						if (appName == null) {
 							log.warn(
@@ -406,7 +407,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 		let downloadProgressTotal = 0;
 		let downloads = 0;
-		const imagesStates = (await applications.images.getStatus()).map((img) => {
+		const imagesStates = (await images.getStatus()).map((img) => {
 			if (img.downloadProgress != null) {
 				downloadProgressTotal += img.downloadProgress;
 				downloads += 1;

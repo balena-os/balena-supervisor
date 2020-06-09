@@ -14,6 +14,7 @@ import * as mkdirp from 'mkdirp';
 import * as bodyParser from 'body-parser';
 import * as url from 'url';
 
+import { normalise } from './compose/images';
 import { log } from './lib/supervisor-console';
 import * as db from './db';
 import * as config from './config';
@@ -346,7 +347,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 };
 
 export class Proxyvisor {
-	constructor({ images, applications }) {
+	constructor({ applications }) {
 		this.bindToAPI = this.bindToAPI.bind(this);
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
@@ -362,7 +363,6 @@ export class Proxyvisor {
 		this.sendUpdate = this.sendUpdate.bind(this);
 		this.sendDeleteHook = this.sendDeleteHook.bind(this);
 		this.sendUpdates = this.sendUpdates.bind(this);
-		this.images = images;
 		this.applications = applications;
 		this.acknowledgedState = {};
 		this.lastRequestForDevice = {};
@@ -536,7 +536,7 @@ export class Proxyvisor {
 	normaliseDependentAppForDB(app) {
 		let image;
 		if (app.image != null) {
-			image = this.images.normalise(app.image);
+			image = normalise(app.image);
 		} else {
 			image = null;
 		}

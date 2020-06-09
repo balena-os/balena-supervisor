@@ -28,7 +28,7 @@ import { TargetStateAccessor } from './device-state/target-state-cache';
 
 import { ServiceManager } from './compose/service-manager';
 import { Service } from './compose/service';
-import { Images } from './compose/images';
+import * as Images from './compose/images';
 import { NetworkManager } from './compose/network-manager';
 import { Network } from './compose/network';
 import { VolumeManager } from './compose/volume-manager';
@@ -172,12 +172,11 @@ export class ApplicationManager extends EventEmitter {
 		this.reportOptionalContainers = this.reportOptionalContainers.bind(this);
 		this.deviceState = deviceState;
 		this.apiBinder = apiBinder;
-		this.images = new Images();
+
 		this.services = new ServiceManager();
 		this.networks = new NetworkManager();
 		this.volumes = new VolumeManager();
 		this.proxyvisor = new Proxyvisor({
-			images: this.images,
 			applications: this,
 		});
 		this.localModeManager = new LocalModeManager();
@@ -188,19 +187,12 @@ export class ApplicationManager extends EventEmitter {
 
 		this.targetStateWrapper = new TargetStateAccessor(this);
 
-		config.on('change', (changedConfig) => {
-			if (changedConfig.appUpdatePollInterval) {
-				this.images.appUpdatePollInterval = changedConfig.appUpdatePollInterval;
-			}
-		});
-
 		this.actionExecutors = compositionSteps.getExecutors({
 			lockFn: this._lockingIfNecessary,
 			services: this.services,
 			networks: this.networks,
 			volumes: this.volumes,
 			applications: this,
-			images: this.images,
 			callbacks: {
 				containerStarted: (id) => {
 					this._containerStarted[id] = true;
@@ -225,7 +217,7 @@ export class ApplicationManager extends EventEmitter {
 			this.proxyvisor.validActions,
 		);
 		this.router = createApplicationManagerRouter(this);
-		this.images.on('change', this.reportCurrentState);
+		Images.on('change', this.reportCurrentState);
 		this.services.on('change', this.reportCurrentState);
 	}
 
@@ -234,12 +226,8 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	init() {
-		return config
-			.get('appUpdatePollInterval')
-			.then((interval) => {
-				this.images.appUpdatePollInterval = interval;
-				return this.images.cleanupDatabase();
-			})
+		return Images.initialized
+			.then(() => Images.cleanupDatabase())
 			.then(() => {
 				const cleanup = () => {
 					return docker.listContainers({ all: true }).then((containers) => {
@@ -271,7 +259,7 @@ export class ApplicationManager extends EventEmitter {
 	getStatus() {
 		return Promise.join(
 			this.services.getStatus(),
-			this.images.getStatus(),
+			Images.getStatus(),
 			config.get('currentCommit'),
 			function (services, images, currentCommit) {
 				const apps = {};
@@ -1006,7 +994,7 @@ export class ApplicationManager extends EventEmitter {
 			return service;
 		});
 		return Promise.map(services, (service) => {
-			service.image = this.images.normalise(service.image);
+			service.image = Images.normalise(service.image);
 			return Promise.props(service);
 		}).then(function ($services) {
 			const dbApp = {
@@ -1026,7 +1014,7 @@ export class ApplicationManager extends EventEmitter {
 	createTargetService(service, opts) {
 		// The image class now returns a native promise, so wrap
 		// this in a bluebird promise until we convert this to typescript
-		return Promise.resolve(this.images.inspectByName(service.image))
+		return Promise.resolve(Images.inspectByName(service.image))
 			.catchReturn(NotFoundError, undefined)
 			.then(function (imageInfo) {
 				const serviceOpts = {
@@ -1589,9 +1577,9 @@ export class ApplicationManager extends EventEmitter {
 
 		return config.get('localMode').then((localMode) => {
 			return Promise.props({
-				cleanupNeeded: this.images.isCleanupNeeded(),
-				availableImages: this.images.getAvailable(),
-				downloading: this.images.getDownloadingImageIds(),
+				cleanupNeeded: Images.isCleanupNeeded(),
+				availableImages: Images.getAvailable(),
+				downloading: Images.getDownloadingImageIds(),
 				supervisorNetworkReady: this.networks.supervisorNetworkReady(),
 				delta: config.get('delta'),
 				containerIds: Promise.props(containerIdsByAppId),

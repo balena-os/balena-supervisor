@@ -5,6 +5,7 @@ import * as supertest from 'supertest';
 import APIBinder from '../src/api-binder';
 import DeviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
+import * as images from '../src/compose/images';
 import SupervisorAPI from '../src/supervisor-api';
 import sampleResponses = require('./data/device-api-responses.json');
 import mockedAPI = require('./lib/mocked-device-api');
@@ -21,6 +22,7 @@ describe('SupervisorAPI', () => {
 	let api: SupervisorAPI;
 	let healthCheckStubs: SinonStub[];
 	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
+	const originalGetStatus = images.getStatus;
 
 	before(async () => {
 		// Stub health checks so we can modify them whenever needed
@@ -31,6 +33,10 @@ describe('SupervisorAPI', () => {
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed
 		api = await mockedAPI.create();
+
+		// @ts-expect-error assigning to a RO property
+		images.getStatus = () => Promise.resolve([]);
+
 		// Start test API
 		return api.listen(
 			ALLOWED_INTERFACES,
@@ -51,6 +57,9 @@ describe('SupervisorAPI', () => {
 		healthCheckStubs.forEach((hc) => hc.restore);
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
+
+		// @ts-expect-error assigning to a RO property
+		images.getStatus = originalGetStatus;
 	});
 
 	describe('/ping', () => {
