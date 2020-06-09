@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
 import * as url from 'url';
-import type { Headers } from 'request';
 import { delay } from 'bluebird';
 import * as _ from 'lodash';
 import Bluebird = require('bluebird');
@@ -9,9 +8,13 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 import type { TargetState } from '../types/state';
 import { InternalInconsistencyError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
+import { CoreOptions } from 'request';
 import * as config from '../config';
 import { writeLock } from '../lib/update-lock';
 import constants = require('../lib/constants');
+import log from '../lib/supervisor-console';
+
+export class ApiResponseError extends Error {}
 
 interface TargetStateEvents {
 	'target-state-update': (
@@ -70,10 +73,16 @@ export const update = async (
 ): Promise<void> => {
 	await config.initialized;
 	return Bluebird.using(lockGetTarget(), async () => {
-		const { uuid, apiEndpoint, apiTimeout } = await config.getMany([
+		const {
+			uuid,
+			apiEndpoint,
+			apiTimeout,
+			deviceApiKey,
+		} = await config.getMany([
 			'uuid',
 			'apiEndpoint',
 			'apiTimeout',
+			'deviceApiKey',
 		]);
 
 		if (typeof apiEndpoint !== 'string') {
@@ -85,25 +94,26 @@ export const update = async (
 		const endpoint = url.resolve(apiEndpoint, `/device/v2/${uuid}/state`);
 		const request = await getRequestInstance();
 
-		const params: Headers = {
+		const params: CoreOptions = {
 			json: true,
+			headers: {
+				Authorization: `Bearer ${deviceApiKey}`,
+				'If-None-Match': cache?.etag,
+			},
 		};
 
-		if (typeof cache?.etag === 'string') {
-			params.headers = {
-				'If-None-Match': cache.etag,
-			};
-		}
-
 		const [{ statusCode, headers }, body] = await request
-			.getAsync(endpoint, {
-				json: true,
-			})
+			.getAsync(endpoint, params)
 			.timeout(apiTimeout);
 
 		if (statusCode === 304) {
 			// There's no change so no need to update the cache or emit a change event
 			return;
+		}
+
+		if (statusCode < 200 || statusCode >= 300) {
+			log.error(`Error from the API: ${statusCode}`);
+			throw new ApiResponseError(`Error from the API: ${statusCode}`);
 		}
 
 		cache = {
