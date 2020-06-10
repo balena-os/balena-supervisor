@@ -24,7 +24,7 @@ import {
 } from './lib/errors';
 import { pathExistsOnHost } from './lib/fs-utils';
 
-import { TargetStateAccessor } from './device-state/target-state-cache';
+import * as targetStateCache from './device-state/target-state-cache';
 
 import { ServiceManager } from './compose/service-manager';
 import { Service } from './compose/service';
@@ -185,8 +185,6 @@ export class ApplicationManager extends EventEmitter {
 		this._targetVolatilePerImageId = {};
 		this._containerStarted = {};
 
-		this.targetStateWrapper = new TargetStateAccessor(this);
-
 		this.actionExecutors = compositionSteps.getExecutors({
 			lockFn: this._lockingIfNecessary,
 			services: this.services,
@@ -225,34 +223,28 @@ export class ApplicationManager extends EventEmitter {
 		return this.emit('change', data);
 	}
 
-	init() {
-		return Images.initialized
-			.then(() => Images.cleanupDatabase())
-			.then(() => {
-				const cleanup = () => {
-					return docker.listContainers({ all: true }).then((containers) => {
-						return logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
-					});
-				};
-				// Rather than relying on removing out of date database entries when we're no
-				// longer using them, set a task that runs periodically to clear out the database
-				// This has the advantage that if for some reason a container is removed while the
-				// supervisor is down, we won't have zombie entries in the db
-
-				// Once a day
-				setInterval(cleanup, 1000 * 60 * 60 * 24);
-				// But also run it in on startup
-				return cleanup();
-			})
-			.then(() => {
-				return this.localModeManager.init();
-			})
-			.then(() => {
-				return this.services.attachToRunning();
-			})
-			.then(() => {
-				return this.services.listenToEvents();
+	async init() {
+		await Images.initialized;
+		await Images.cleanupDatabase();
+		const cleanup = () => {
+			return docker.listContainers({ all: true }).then((containers) => {
+				return logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
 			});
+		};
+		// Rather than relying on removing out of date database entries when we're no
+		// longer using them, set a task that runs periodically to clear out the database
+		// This has the advantage that if for some reason a container is removed while the
+		// supervisor is down, we won't have zombie entries in the db
+
+		// Once a day
+		setInterval(cleanup, 1000 * 60 * 60 * 24);
+		// But also run it in on startup
+		await cleanup();
+		await this.localModeManager.init();
+		await this.services.attachToRunning();
+		this.services.listenToEvents();
+
+		await targetStateCache.initialized;
 	}
 
 	// Returns the status of applications and their services
@@ -409,7 +401,7 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	getTargetApp(appId) {
-		return this.targetStateWrapper.getTargetApp(appId).then((app) => {
+		return targetStateCache.getTargetApp(appId).then((app) => {
 			if (app == null) {
 				return;
 			}
@@ -1129,7 +1121,7 @@ export class ApplicationManager extends EventEmitter {
 				});
 				return Promise.map(appsArray, this.normaliseAppForDB)
 					.then((appsForDB) => {
-						return this.targetStateWrapper.setTargetApps(appsForDB, trx);
+						return targetStateCache.setTargetApps(appsForDB, trx);
 					})
 					.then(() =>
 						trx('app')
@@ -1219,7 +1211,7 @@ export class ApplicationManager extends EventEmitter {
 
 	getTargetApps() {
 		return Promise.map(
-			this.targetStateWrapper.getTargetApps(),
+			targetStateCache.getTargetApps(),
 			this.normaliseAndExtendAppFromDB,
 		)
 			.map((app) => {
