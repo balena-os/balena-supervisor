@@ -1,4 +1,16 @@
 - commits:
+    - subject: Make images module a singleton
+      hash: 2b3dc2fbcef63ae2024fe5fe41f30b0d56357943
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.6.6
+  date: 2020-06-10T10:32:38.006Z
+- commits:
     - subject: 'fix: API auth missing on state GET/PATCH'
       hash: b89425c6079b74c709ef9872c6fc53726ffda6d3
       body: |
