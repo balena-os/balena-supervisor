@@ -1,45 +1,54 @@
 import { Promise } from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { child_process, fs } from 'mz';
-import { SinonSpy, SinonStub, stub } from 'sinon';
+import { SinonSpy, SinonStub, stub, spy } from 'sinon';
 
+import { expect } from './lib/chai-config';
 import * as config from '../src/config';
-import { ExtlinuxConfigBackend, RPiConfigBackend } from '../src/config/backend';
 import { DeviceConfig } from '../src/device-config';
 import * as fsUtils from '../src/lib/fs-utils';
-import { expect } from './lib/chai-config';
-
 import * as logger from '../src/logger';
-
+import {
+	ExtlinuxConfigBackend,
+	RPiConfigBackend,
+	DeviceConfigBackend,
+} from '../src/config/backend';
 import prepare = require('./lib/prepare');
 
 const extlinuxBackend = new ExtlinuxConfigBackend();
 const rpiConfigBackend = new RPiConfigBackend();
 
-describe('DeviceConfig', function () {
-	before(async function () {
+describe('Device Backend Config', () => {
+	let deviceConfig: DeviceConfig;
+	const logSpy = spy(logger, 'logSystemMessage');
+
+	before(async () => {
 		await prepare();
-		this.fakeConfig = {
-			get(key: string) {
-				return Promise.try(function () {
-					if (key === 'deviceType') {
-						return 'raspberrypi3';
-					} else {
-						throw new Error('Unknown fake config key');
-					}
-				});
-			},
-		};
-		this.logStub = stub(logger, 'logSystemMessage');
-		return (this.deviceConfig = new DeviceConfig());
+		deviceConfig = new DeviceConfig();
 	});
 
-	after(function () {
-		this.logStub.restore();
+	after(() => {
+		logSpy.restore();
 	});
 
-	// Test that the format for special values like initramfs and array variables is parsed correctly
-	it('allows getting boot config with getBootConfig', function () {
+	afterEach(() => {
+		logSpy.resetHistory();
+	});
+
+	it('correctly parses a config.txt file', async () => {
+		// Will try to parse /test/data/mnt/boot/config.txt
+		await expect(
+			// @ts-ignore accessing private value
+			deviceConfig.getBootConfig(rpiConfigBackend),
+		).to.eventually.deep.equal({
+			HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"',
+			HOST_CONFIG_enable_uart: '1',
+			HOST_CONFIG_disable_splash: '1',
+			HOST_CONFIG_avoid_warnings: '1',
+			HOST_CONFIG_gpu_mem: '16',
+		});
+
+		// Stub readFile to return a config that has initramfs and array variables
 		stub(fs, 'readFile').resolves(stripIndent`
 			initramfs initramf.gz 0x00800000\n\
 			dtparam=i2c=on\n\
@@ -48,70 +57,53 @@ describe('DeviceConfig', function () {
 			dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13\n\
 			foobar=baz\n\
 		`);
-		return this.deviceConfig
-			.getBootConfig(rpiConfigBackend)
-			.then(function (conf: any) {
-				(fs.readFile as SinonStub).restore();
-				return expect(conf).to.deep.equal({
-					HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-					HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-					HOST_CONFIG_dtoverlay:
-						'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-					HOST_CONFIG_foobar: 'baz',
-				});
-			});
+
+		await expect(
+			// @ts-ignore accessing private value
+			deviceConfig.getBootConfig(rpiConfigBackend),
+		).to.eventually.deep.equal({
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+			HOST_CONFIG_dtoverlay:
+				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+			HOST_CONFIG_foobar: 'baz',
+		});
+
+		// Restore stub
+		(fs.readFile as SinonStub).restore();
 	});
 
-	it('properly reads a real config.txt file', function () {
-		return this.deviceConfig.getBootConfig(rpiConfigBackend).then((conf: any) =>
-			expect(conf).to.deep.equal({
-				HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"',
-				HOST_CONFIG_enable_uart: '1',
-				HOST_CONFIG_disable_splash: '1',
-				HOST_CONFIG_avoid_warnings: '1',
-				HOST_CONFIG_gpu_mem: '16',
-			}),
+	it('does not allow setting forbidden keys', async () => {
+		const current = {
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+			HOST_CONFIG_dtoverlay:
+				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+			HOST_CONFIG_foobar: 'baz',
+		};
+		// Create another target with only change being initramfs which is blacklisted
+		const target = {
+			...current,
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00810000',
+		};
+
+		expect(() =>
+			// @ts-ignore accessing private value
+			deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target),
+		).to.throw('Attempt to change blacklisted config value initramfs');
+
+		// Check if logs were called
+		expect(logSpy).to.be.calledOnce;
+		expect(logSpy).to.be.calledWith(
+			'Attempt to change blacklisted config value initramfs',
+			{
+				error: 'Attempt to change blacklisted config value initramfs',
+			},
+			'Apply boot config error',
 		);
 	});
 
-	// Test that the format for special values like initramfs and array variables is preserved
-	it('does not allow setting forbidden keys', function () {
-		const current = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-			HOST_CONFIG_dtoverlay:
-				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'baz',
-		};
-		const target = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00810000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-			HOST_CONFIG_dtoverlay:
-				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'baz',
-		};
-		const promise = Promise.try(() => {
-			return this.deviceConfig.bootConfigChangeRequired(
-				rpiConfigBackend,
-				current,
-				target,
-			);
-		});
-		expect(promise).to.be.rejected;
-		return promise.catch((_err) => {
-			expect(this.logStub).to.be.calledOnce;
-			expect(this.logStub).to.be.calledWith(
-				'Attempt to change blacklisted config value initramfs',
-				{
-					error: 'Attempt to change blacklisted config value initramfs',
-				},
-				'Apply boot config error',
-			);
-			return this.logStub.resetHistory();
-		});
-	});
-
-	it('does not try to change config.txt if it should not change', function () {
+	it('does not try to change config.txt if it should not change', async () => {
 		const current = {
 			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
 			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
@@ -126,21 +118,15 @@ describe('DeviceConfig', function () {
 				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
 			HOST_CONFIG_foobar: 'baz',
 		};
-		const promise = Promise.try(() => {
-			return this.deviceConfig.bootConfigChangeRequired(
-				rpiConfigBackend,
-				current,
-				target,
-			);
-		});
-		expect(promise).to.eventually.equal(false);
-		return promise.then(() => {
-			expect(this.logStub).to.not.be.called;
-			return this.logStub.resetHistory();
-		});
+
+		expect(
+			// @ts-ignore accessing private value
+			deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target),
+		).to.equal(false);
+		expect(logSpy).to.not.be.called;
 	});
 
-	it('writes the target config.txt', function () {
+	it('writes the target config.txt', async () => {
 		stub(fsUtils, 'writeFileAtomic').resolves();
 		stub(child_process, 'exec').resolves();
 		const current = {
@@ -157,44 +143,37 @@ describe('DeviceConfig', function () {
 			HOST_CONFIG_foobar: 'bat',
 			HOST_CONFIG_foobaz: 'bar',
 		};
-		const promise = Promise.try(() => {
-			return this.deviceConfig.bootConfigChangeRequired(
-				rpiConfigBackend,
-				current,
-				target,
-			);
-		});
-		expect(promise).to.eventually.equal(true);
-		return promise.then(() => {
-			return this.deviceConfig
-				.setBootConfig(rpiConfigBackend, target)
-				.then(() => {
-					expect(child_process.exec).to.be.calledOnce;
-					expect(this.logStub).to.be.calledTwice;
-					expect(this.logStub.getCall(1).args[2]).to.equal(
-						'Apply boot config success',
-					);
-					expect(fsUtils.writeFileAtomic).to.be.calledWith(
-						'./test/data/mnt/boot/config.txt',
-						`\
-initramfs initramf.gz 0x00800000\n\
-dtparam=i2c=on\n\
-dtparam=audio=off\n\
-dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13\n\
-foobar=bat\n\
-foobaz=bar\n\
-`,
-					);
-					(fsUtils.writeFileAtomic as SinonStub).restore();
-					(child_process.exec as SinonStub).restore();
-					return this.logStub.resetHistory();
-				});
-		});
+
+		expect(
+			// @ts-ignore accessing private value
+			deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target),
+		).to.equal(true);
+
+		// @ts-ignore accessing private value
+		await deviceConfig.setBootConfig(rpiConfigBackend, target);
+		expect(child_process.exec).to.be.calledOnce;
+		expect(logSpy).to.be.calledTwice;
+		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+		expect(fsUtils.writeFileAtomic).to.be.calledWith(
+			'./test/data/mnt/boot/config.txt',
+			stripIndent`\
+				initramfs initramf.gz 0x00800000\n\
+				dtparam=i2c=on\n\
+				dtparam=audio=off\n\
+				dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13\n\
+				foobar=bat\n\
+				foobaz=bar\n\
+			` + '\n', // add newline because stripIndent trims last newline
+		);
+
+		// Restore stubs
+		(fsUtils.writeFileAtomic as SinonStub).restore();
+		(child_process.exec as SinonStub).restore();
 	});
 
-	it('accepts RESIN_ and BALENA_ variables', function () {
-		return this.deviceConfig
-			.formatConfigKeys({
+	it('accepts RESIN_ and BALENA_ variables', async () => {
+		return expect(
+			deviceConfig.formatConfigKeys({
 				FOO: 'bar',
 				BAR: 'baz',
 				RESIN_HOST_CONFIG_foo: 'foobaz',
@@ -202,19 +181,17 @@ foobaz=bar\n\
 				RESIN_HOST_CONFIG_other: 'val',
 				BALENA_HOST_CONFIG_baz: 'bad',
 				BALENA_SUPERVISOR_POLL_INTERVAL: '100',
-			})
-			.then((filteredConf: any) =>
-				expect(filteredConf).to.deep.equal({
-					HOST_CONFIG_foo: 'foobar',
-					HOST_CONFIG_other: 'val',
-					HOST_CONFIG_baz: 'bad',
-					SUPERVISOR_POLL_INTERVAL: '100',
-				}),
-			);
+			}),
+		).to.eventually.deep.equal({
+			HOST_CONFIG_foo: 'foobar',
+			HOST_CONFIG_other: 'val',
+			HOST_CONFIG_baz: 'bad',
+			SUPERVISOR_POLL_INTERVAL: '100',
+		});
 	});
 
-	it('returns default configuration values', function () {
-		const conf = this.deviceConfig.getDefaults();
+	it('returns default configuration values', () => {
+		const conf = deviceConfig.getDefaults();
 		return expect(conf).to.deep.equal({
 			SUPERVISOR_VPN_CONTROL: 'true',
 			SUPERVISOR_POLL_INTERVAL: '60000',
@@ -233,8 +210,108 @@ foobaz=bar\n\
 		});
 	});
 
-	describe('Extlinux files', () =>
-		it('should correctly write to extlinux.conf files', function () {
+	describe('Extlinux files', () => {
+		it('should parse a extlinux.conf file', () => {
+			const text = stripIndent`\
+				DEFAULT primary
+				# Comment
+				TIMEOUT 30
+
+				MENU TITLE Boot Options
+				LABEL primary
+				MENU LABEL primary Image
+				LINUX /Image
+				APPEND \${cbootargs} \${resin_kernel_root} ro rootwait\
+			`;
+
+			// @ts-ignore accessing private method
+			const parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text);
+			expect(parsed.globals).to.have.property('DEFAULT').that.equals('primary');
+			expect(parsed.globals).to.have.property('TIMEOUT').that.equals('30');
+			expect(parsed.globals)
+				.to.have.property('MENU TITLE')
+				.that.equals('Boot Options');
+
+			expect(parsed.labels).to.have.property('primary');
+			const { primary } = parsed.labels;
+			expect(primary)
+				.to.have.property('MENU LABEL')
+				.that.equals('primary Image');
+			expect(primary).to.have.property('LINUX').that.equals('/Image');
+			expect(primary)
+				.to.have.property('APPEND')
+				.that.equals('${cbootargs} ${resin_kernel_root} ro rootwait');
+		});
+
+		it('should parse multiple service entries', () => {
+			const text = stripIndent`\
+				DEFAULT primary
+				# Comment
+				TIMEOUT 30
+
+				MENU TITLE Boot Options
+				LABEL primary
+				LINUX test1
+				APPEND test2
+				LABEL secondary
+				LINUX test3
+				APPEND test4\
+			`;
+
+			// @ts-ignore accessing private method
+			const parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text);
+			expect(parsed.labels).to.have.property('primary').that.deep.equals({
+				LINUX: 'test1',
+				APPEND: 'test2',
+			});
+			expect(parsed.labels).to.have.property('secondary').that.deep.equals({
+				LINUX: 'test3',
+				APPEND: 'test4',
+			});
+		});
+
+		it('should parse configuration options from an extlinux.conf file', () => {
+			let text = stripIndent`\
+				DEFAULT primary
+				# Comment
+				TIMEOUT 30
+
+				MENU TITLE Boot Options
+				LABEL primary
+				MENU LABEL primary Image
+				LINUX /Image
+				APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3\
+			`;
+
+			let readFileStub = stub(fs, 'readFile').resolves(text);
+			let parsed = extlinuxBackend.getBootConfig();
+
+			expect(parsed).to.eventually.have.property('isolcpus').that.equals('3');
+			readFileStub.restore();
+
+			text = stripIndent`\
+				DEFAULT primary
+				# Comment
+				TIMEOUT 30
+
+				MENU TITLE Boot Options
+				LABEL primary
+				MENU LABEL primary Image
+				LINUX /Image
+				APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3,4,5\
+			`;
+			readFileStub = stub(fs, 'readFile').resolves(text);
+
+			parsed = extlinuxBackend.getBootConfig();
+
+			readFileStub.restore();
+
+			expect(parsed)
+				.to.eventually.have.property('isolcpus')
+				.that.equals('3,4,5');
+		});
+
+		it('should correctly write to extlinux.conf files', async () => {
 			stub(fsUtils, 'writeFileAtomic').resolves();
 			stub(child_process, 'exec').resolves();
 
@@ -243,44 +320,37 @@ foobaz=bar\n\
 				HOST_EXTLINUX_isolcpus: '2',
 			};
 
-			const promise = Promise.try(() => {
-				return this.deviceConfig.bootConfigChangeRequired(
-					extlinuxBackend,
-					current,
-					target,
-				);
-			});
-			expect(promise).to.eventually.equal(true);
-			return promise.then(() => {
-				return this.deviceConfig
-					.setBootConfig(extlinuxBackend, target)
-					.then(() => {
-						expect(child_process.exec).to.be.calledOnce;
-						expect(this.logStub).to.be.calledTwice;
-						expect(this.logStub.getCall(1).args[2]).to.equal(
-							'Apply boot config success',
-						);
-						expect(fsUtils.writeFileAtomic).to.be.calledWith(
-							'./test/data/mnt/boot/extlinux/extlinux.conf',
-							`\
-DEFAULT primary\n\
-TIMEOUT 30\n\
-MENU TITLE Boot Options\n\
-LABEL primary\n\
-MENU LABEL primary Image\n\
-LINUX /Image\n\
-APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
-`,
-						);
-						(fsUtils.writeFileAtomic as SinonStub).restore();
-						(child_process.exec as SinonStub).restore();
-						return this.logStub.resetHistory();
-					});
-			});
-		}));
+			expect(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(extlinuxBackend, current, target),
+			).to.equal(true);
 
-	describe('Balena fin', function () {
-		it('should always add the balena-fin dtoverlay', function () {
+			// @ts-ignore accessing private value
+			await deviceConfig.setBootConfig(extlinuxBackend, target);
+			expect(child_process.exec).to.be.calledOnce;
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(fsUtils.writeFileAtomic).to.be.calledWith(
+				'./test/data/mnt/boot/extlinux/extlinux.conf',
+				stripIndent`\
+					DEFAULT primary\n\
+					TIMEOUT 30\n\
+					MENU TITLE Boot Options\n\
+					LABEL primary\n\
+					MENU LABEL primary Image\n\
+					LINUX /Image\n\
+					APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
+				` + '\n', // add newline because stripIndent trims last newline
+			);
+
+			// Restore stubs
+			(fsUtils.writeFileAtomic as SinonStub).restore();
+			(child_process.exec as SinonStub).restore();
+		});
+	});
+
+	describe('Balena fin', () => {
+		it('should always add the balena-fin dtoverlay', () => {
 			expect(
 				(DeviceConfig as any).ensureRequiredOverlay('fincm3', {}),
 			).to.deep.equal({ dtoverlay: ['balena-fin'] });
@@ -301,16 +371,17 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 					dtoverlay: 'test',
 				}),
 			).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] });
-			return expect(
+			expect(
 				(DeviceConfig as any).ensureRequiredOverlay('fincm3', {
 					dtoverlay: ['test'],
 				}),
 			).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] });
 		});
 
-		return it('should not cause a config change when the cloud does not specify the balena-fin overlay', function () {
+		it('should not cause a config change when the cloud does not specify the balena-fin overlay', () => {
 			expect(
-				this.deviceConfig.bootConfigChangeRequired(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
 					rpiConfigBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","balena-fin"' },
 					{ HOST_CONFIG_dtoverlay: '"test"' },
@@ -319,7 +390,8 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 			).to.equal(false);
 
 			expect(
-				this.deviceConfig.bootConfigChangeRequired(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
 					rpiConfigBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","balena-fin"' },
 					{ HOST_CONFIG_dtoverlay: 'test' },
@@ -327,8 +399,9 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 				),
 			).to.equal(false);
 
-			return expect(
-				this.deviceConfig.bootConfigChangeRequired(
+			expect(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
 					rpiConfigBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","test2","balena-fin"' },
 					{ HOST_CONFIG_dtoverlay: '"test","test2"' },
@@ -338,8 +411,8 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 		});
 	});
 
-	describe('Raspberry pi4', function () {
-		it('should always add the vc4-fkms-v3d dtoverlay', function () {
+	describe('Raspberry pi4', () => {
+		it('should always add the vc4-fkms-v3d dtoverlay', () => {
 			expect(
 				(DeviceConfig as any).ensureRequiredOverlay('raspberrypi4-64', {}),
 			).to.deep.equal({ dtoverlay: ['vc4-fkms-v3d'] });
@@ -360,34 +433,35 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 					dtoverlay: 'test',
 				}),
 			).to.deep.equal({ dtoverlay: ['test', 'vc4-fkms-v3d'] });
-			return expect(
+			expect(
 				(DeviceConfig as any).ensureRequiredOverlay('raspberrypi4-64', {
 					dtoverlay: ['test'],
 				}),
 			).to.deep.equal({ dtoverlay: ['test', 'vc4-fkms-v3d'] });
 		});
 
-		return it('should not cause a config change when the cloud does not specify the pi4 overlay', function () {
+		it('should not cause a config change when the cloud does not specify the pi4 overlay', () => {
 			expect(
-				this.deviceConfig.bootConfigChangeRequired(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
 					rpiConfigBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","vc4-fkms-v3d"' },
 					{ HOST_CONFIG_dtoverlay: '"test"' },
 					'raspberrypi4-64',
 				),
 			).to.equal(false);
-
 			expect(
-				this.deviceConfig.bootConfigChangeRequired(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
 					rpiConfigBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","vc4-fkms-v3d"' },
 					{ HOST_CONFIG_dtoverlay: 'test' },
 					'raspberrypi4-64',
 				),
 			).to.equal(false);
-
-			return expect(
-				this.deviceConfig.bootConfigChangeRequired(
+			expect(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
 					rpiConfigBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","test2","vc4-fkms-v3d"' },
 					{ HOST_CONFIG_dtoverlay: '"test","test2"' },
@@ -397,23 +471,18 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 		});
 	});
 
-	describe('ConfigFS', function () {
-		before(function () {
-			stub(config, 'get').callsFake((key) => {
-				return Promise.try(function () {
-					if (key === 'deviceType') {
-						return 'up-board';
-					}
-					throw new Error('Unknown fake config key');
-				});
-			});
-			this.upboardConfig = new DeviceConfig();
+	describe('ConfigFS', () => {
+		const upboardConfig = new DeviceConfig();
+		let upboardConfigBackend: DeviceConfigBackend | null;
 
+		before(async () => {
 			stub(child_process, 'exec').resolves();
-			stub(fs, 'exists').callsFake(() => Promise.resolve(true));
+			stub(fs, 'exists').resolves(true);
 			stub(fs, 'mkdir').resolves();
-			stub(fs, 'readdir').callsFake(() => Promise.resolve([]));
-			stub(fs, 'readFile').callsFake(function (file) {
+			stub(fs, 'readdir').resolves([]);
+			stub(fsUtils, 'writeFileAtomic').resolves();
+
+			stub(fs, 'readFile').callsFake((file) => {
 				if (file === 'test/data/mnt/boot/configfs.json') {
 					return Promise.resolve(
 						JSON.stringify({
@@ -423,21 +492,26 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 				}
 				return Promise.resolve('');
 			});
-			stub(fsUtils, 'writeFileAtomic').resolves();
 
-			return Promise.try(() => {
-				return this.upboardConfig.getConfigBackend();
-			}).then((backend) => {
-				this.upboardConfigBackend = backend;
-				expect(this.upboardConfigBackend).is.not.null;
-				return expect((child_process.exec as SinonSpy).callCount).to.equal(
-					3,
-					'exec not called enough times',
-				);
+			stub(config, 'get').callsFake((key) => {
+				return Promise.try(() => {
+					if (key === 'deviceType') {
+						return 'up-board';
+					}
+					throw new Error('Unknown fake config key');
+				});
 			});
+
+			// @ts-ignore accessing private value
+			upboardConfigBackend = await upboardConfig.getConfigBackend();
+			expect(upboardConfigBackend).is.not.null;
+			expect((child_process.exec as SinonSpy).callCount).to.equal(
+				3,
+				'exec not called enough times',
+			);
 		});
 
-		after(function () {
+		after(() => {
 			(child_process.exec as SinonStub).restore();
 			(fs.exists as SinonStub).restore();
 			(fs.mkdir as SinonStub).restore();
@@ -445,62 +519,50 @@ APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
 			(fs.readFile as SinonStub).restore();
 			(fsUtils.writeFileAtomic as SinonStub).restore();
 			(config.get as SinonStub).restore();
-			this.logStub.resetHistory();
 		});
 
-		it('should correctly load the configfs.json file', function () {
+		it('should correctly load the configfs.json file', () => {
 			expect(child_process.exec).to.be.calledWith('modprobe acpi_configfs');
 			expect(child_process.exec).to.be.calledWith(
 				'cat test/data/boot/acpi-tables/spidev1,1.aml > test/data/sys/kernel/config/acpi/table/spidev1,1/aml',
 			);
-
 			expect((fs.exists as SinonSpy).callCount).to.equal(2);
-			return expect((fs.readFile as SinonSpy).callCount).to.equal(4);
+			expect((fs.readFile as SinonSpy).callCount).to.equal(4);
 		});
 
-		it('should correctly write the configfs.json file', function () {
+		it('should correctly write the configfs.json file', async () => {
 			const current = {};
 			const target = {
 				HOST_CONFIGFS_ssdt: 'spidev1,1',
 			};
 
-			this.logStub.resetHistory();
 			(child_process.exec as SinonSpy).resetHistory();
 			(fs.exists as SinonSpy).resetHistory();
 			(fs.mkdir as SinonSpy).resetHistory();
 			(fs.readdir as SinonSpy).resetHistory();
 			(fs.readFile as SinonSpy).resetHistory();
 
-			return Promise.try(() => {
-				expect(this.upboardConfigBackend).is.not.null;
-				return this.upboardConfig.bootConfigChangeRequired(
-					this.upboardConfigBackend,
-					current,
-					target,
-				);
-			})
-				.then(() => {
-					return this.upboardConfig.setBootConfig(
-						this.upboardConfigBackend,
-						target,
-					);
-				})
-				.then(() => {
-					expect(child_process.exec).to.be.calledOnce;
-					expect(fsUtils.writeFileAtomic).to.be.calledWith(
-						'test/data/mnt/boot/configfs.json',
-						JSON.stringify({
-							ssdt: ['spidev1,1'],
-						}),
-					);
-					expect(this.logStub).to.be.calledTwice;
-					return expect(this.logStub.getCall(1).args[2]).to.equal(
-						'Apply boot config success',
-					);
-				});
+			// @ts-ignore accessing private value
+			upboardConfig.bootConfigChangeRequired(
+				upboardConfigBackend,
+				current,
+				target,
+			);
+			// @ts-ignore accessing private value
+			await upboardConfig.setBootConfig(upboardConfigBackend, target);
+
+			expect(child_process.exec).to.be.calledOnce;
+			expect(fsUtils.writeFileAtomic).to.be.calledWith(
+				'test/data/mnt/boot/configfs.json',
+				JSON.stringify({
+					ssdt: ['spidev1,1'],
+				}),
+			);
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 		});
 	});
 
 	// This will require stubbing device.reboot, gosuper.post, config.get/set
-	return it('applies the target state');
+	it('applies the target state');
 });
