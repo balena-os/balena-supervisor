@@ -5,6 +5,7 @@ import { Image } from '../compose/images';
 import DeviceState from '../device-state';
 import * as config from '../config';
 import * as eventTracker from '../event-tracker';
+import * as images from '../compose/images';
 
 import constants = require('../lib/constants');
 import { AppsJsonParseError, EISDIR, ENOENT } from '../lib/errors';
@@ -47,7 +48,7 @@ export async function loadTargetFromFile(
 			return;
 		}
 
-		const images: Image[] = [];
+		const imgs: Image[] = [];
 		const appIds = _.keys(preloadState.apps);
 		for (const appId of appIds) {
 			const app = preloadState.apps[appId];
@@ -67,14 +68,14 @@ export async function loadTargetFromFile(
 					releaseId: app.releaseId,
 					appId,
 				};
-				images.push(deviceState.applications.imageForService(svc));
+				imgs.push(deviceState.applications.imageForService(svc));
 			}
 		}
 
-		for (const image of images) {
-			const name = await deviceState.applications.images.normalise(image.name);
+		for (const image of imgs) {
+			const name = await images.normalise(image.name);
 			image.name = name;
-			await deviceState.applications.images.save(image);
+			await images.save(image);
 		}
 
 		const deviceConf = await deviceState.deviceConfig.getCurrent();

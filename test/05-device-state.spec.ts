@@ -4,10 +4,12 @@ import * as _ from 'lodash';
 import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 
 import chai = require('./lib/chai-config');
+import { StatusCodeError } from '../src/lib/errors';
 import prepare = require('./lib/prepare');
 import Log from '../src/lib/supervisor-console';
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as config from '../src/config';
+import * as images from '../src/compose/images';
 import { RPiConfigBackend } from '../src/config/backend';
 import DeviceState from '../src/device-state';
 import { loadTargetFromFile } from '../src/device-state/preload';
@@ -209,6 +211,8 @@ const testTargetInvalid = {
 
 describe('deviceState', () => {
 	let deviceState: DeviceState;
+	const originalImagesSave = images.save;
+	const originalImagesInspect = images.inspectByName;
 	before(async () => {
 		await prepare();
 
@@ -230,11 +234,15 @@ describe('deviceState', () => {
 			Promise.resolve('172.17.0.1'),
 		);
 
-		stub(deviceState.applications.images, 'inspectByName').callsFake(() => {
-			const err: any = new Error();
+		// @ts-expect-error Assigning to a RO property
+		images.save = () => Promise.resolve();
+
+		// @ts-expect-error Assigning to a RO property
+		images.inspectByName = () => {
+			const err: StatusCodeError = new Error();
 			err.statusCode = 404;
 			return Promise.reject(err);
-		});
+		};
 
 		(deviceState as any).deviceConfig.configBackend = new RPiConfigBackend();
 	});
@@ -242,12 +250,14 @@ describe('deviceState', () => {
 	after(() => {
 		(Service as any).extendEnvVars.restore();
 		(dockerUtils.getNetworkGateway as sinon.SinonStub).restore();
-		(deviceState.applications.images
-			.inspectByName as sinon.SinonStub).restore();
+
+		// @ts-expect-error Assigning to a RO property
+		images.save = originalImagesSave;
+		// @ts-expect-error Assigning to a RO property
+		images.inspectByName = originalImagesInspect;
 	});
 
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {
-		stub(deviceState.applications.images, 'save').returns(Promise.resolve());
 		stub(deviceState.deviceConfig, 'getCurrent').returns(
 			Promise.resolve(mockedInitialConfig),
 		);
@@ -272,13 +282,11 @@ describe('deviceState', () => {
 				JSON.parse(JSON.stringify(testTarget)),
 			);
 		} finally {
-			(deviceState.applications.images.save as sinon.SinonStub).restore();
 			(deviceState.deviceConfig.getCurrent as sinon.SinonStub).restore();
 		}
 	});
 
 	it('stores info for pinning a device after loading an apps.json with a pinDevice field', async () => {
-		stub(deviceState.applications.images, 'save').returns(Promise.resolve());
 		stub(deviceState.deviceConfig, 'getCurrent').returns(
 			Promise.resolve(mockedInitialConfig),
 		);
@@ -286,7 +294,6 @@ describe('deviceState', () => {
 			process.env.ROOT_MOUNTPOINT + '/apps-pin.json',
 			deviceState,
 		);
-		(deviceState as any).applications.images.save.restore();
 		(deviceState as any).deviceConfig.getCurrent.restore();
 
 		const pinned = await config.get('pinDevice');
@@ -306,8 +313,7 @@ describe('deviceState', () => {
 
 		const services: Service[] = [];
 		for (const service of testTarget.local.apps['1234'].services) {
-			const imageName = await (deviceState.applications
-				.images as any).normalise(service.image);
+			const imageName = await images.normalise(service.image);
 			service.image = imageName;
 			(service as any).imageName = imageName;
 			services.push(

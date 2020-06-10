@@ -3,7 +3,6 @@ import { fs } from 'mz';
 import { stub } from 'sinon';
 
 import { ApplicationManager } from '../../src/application-manager';
-import { Images } from '../../src/compose/images';
 import { NetworkManager } from '../../src/compose/network-manager';
 import { ServiceManager } from '../../src/compose/service-manager';
 import { VolumeManager } from '../../src/compose/volume-manager';
@@ -136,7 +135,6 @@ function buildRoutes(appManager: ApplicationManager): Router {
 
 function setupStubs() {
 	stub(ServiceManager.prototype, 'getStatus').resolves(STUBBED_VALUES.services);
-	stub(Images.prototype, 'getStatus').resolves(STUBBED_VALUES.images);
 	stub(NetworkManager.prototype, 'getAllByAppId').resolves(
 		STUBBED_VALUES.networks,
 	);
@@ -147,7 +145,6 @@ function setupStubs() {
 
 function restoreStubs() {
 	(ServiceManager.prototype as any).getStatus.restore();
-	(Images.prototype as any).getStatus.restore();
 	(NetworkManager.prototype as any).getAllByAppId.restore();
 	(VolumeManager.prototype as any).getAllByAppId.restore();
 }

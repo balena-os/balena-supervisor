@@ -3,7 +3,8 @@ import * as _ from 'lodash';
 import * as config from '../config';
 
 import { ApplicationManager } from '../application-manager';
-import Images, { Image } from './images';
+import type { Image } from './images';
+import * as images from './images';
 import Network from './network';
 import Service from './service';
 import ServiceManager from './service-manager';
@@ -139,7 +140,6 @@ export function getExecutors(app: {
 	networks: NetworkManager;
 	volumes: VolumeManager;
 	applications: ApplicationManager;
-	images: Images;
 	callbacks: CompositionCallbacks;
 }) {
 	const executors: Executors<CompositionStepAction> = {
@@ -171,7 +171,7 @@ export function getExecutors(app: {
 					await app.services.kill(step.current);
 					app.callbacks.containerKilled(step.current.containerId);
 					if (_.get(step, ['options', 'removeImage'])) {
-						await app.images.removeByDockerId(step.current.config.image);
+						await images.removeByDockerId(step.current.config.image);
 					}
 				},
 			);
@@ -241,7 +241,7 @@ export function getExecutors(app: {
 			app.callbacks.fetchStart();
 			const [fetchOpts, availableImages] = await Promise.all([
 				config.get('fetchOptions'),
-				app.images.getAvailable(),
+				images.getAvailable(),
 			]);
 
 			const opts = {
@@ -249,7 +249,7 @@ export function getExecutors(app: {
 				...fetchOpts,
 			};
 
-			await app.images.triggerFetch(
+			await images.triggerFetch(
 				step.image,
 				opts,
 				async (success) => {
@@ -269,15 +269,15 @@ export function getExecutors(app: {
 			);
 		},
 		removeImage: async (step) => {
-			await app.images.remove(step.image);
+			await images.remove(step.image);
 		},
 		saveImage: async (step) => {
-			await app.images.save(step.image);
+			await images.save(step.image);
 		},
 		cleanup: async () => {
 			const localMode = await config.get('localMode');
 			if (!localMode) {
-				await app.images.cleanup();
+				await images.cleanup();
 			}
 		},
 		createNetwork: async (step) => {

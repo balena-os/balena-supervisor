@@ -6,7 +6,7 @@ import Knex = require('knex');
 import { ServiceAction } from './device-api/common';
 import { DeviceStatus, InstancedAppState } from './types/state';
 
-import ImageManager, { Image } from './compose/images';
+import type { Image } from './compose/images';
 import ServiceManager from './compose/service-manager';
 import DeviceState from './device-state';
 
@@ -51,7 +51,6 @@ class ApplicationManager extends EventEmitter {
 	public services: ServiceManager;
 	public volumes: VolumeManager;
 	public networks: NetworkManager;
-	public images: ImageManager;
 
 	public proxyvisor: any;
 	public timeSpentFetching: number;

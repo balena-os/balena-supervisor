@@ -8,6 +8,7 @@ import Service from '../src/compose/service';
 import Volume from '../src/compose/volume';
 import DeviceState from '../src/device-state';
 import * as dockerUtils from '../src/lib/docker-utils';
+import * as images from '../src/compose/images';
 
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
@@ -123,14 +124,17 @@ const dependentDBFormat = {
 };
 
 describe('ApplicationManager', function () {
+	const originalInspectByName = images.inspectByName;
 	before(async function () {
 		await prepare();
 		this.deviceState = new DeviceState({
 			apiBinder: null as any,
 		});
 		this.applications = this.deviceState.applications;
-		stub(this.applications.images, 'inspectByName').callsFake((_imageName) =>
-			Bluebird.Promise.resolve({
+
+		// @ts-expect-error assigning to a RO property
+		images.inspectByName = () =>
+			Promise.resolve({
 				Config: {
 					Cmd: ['someCommand'],
 					Entrypoint: ['theEntrypoint'],
@@ -138,8 +142,8 @@ describe('ApplicationManager', function () {
 					Labels: {},
 					Volumes: [],
 				},
-			}),
-		);
+			});
+
 		stub(dockerUtils, 'getNetworkGateway').returns(
 			Bluebird.Promise.resolve('172.17.0.1'),
 		);
@@ -223,7 +227,8 @@ describe('ApplicationManager', function () {
 	);
 
 	after(function () {
-		this.applications.images.inspectByName.restore();
+		// @ts-expect-error Assigning to a RO property
+		images.inspectByName = originalInspectByName;
 		// @ts-expect-error restore on non-stubbed type
 		dockerUtils.getNetworkGateway.restore();
 		// @ts-expect-error restore on non-stubbed type
