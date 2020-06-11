@@ -1,6 +1,6 @@
 import { expect } from './lib/chai-config';
 import * as configUtils from '../src/config/utils';
-import { RPiConfigBackend } from '../src/config/backend';
+import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
 
 const rpiBackend = new RPiConfigBackend();
 

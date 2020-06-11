@@ -1,13 +1,10 @@
 import * as _ from 'lodash';
 
 import { EnvVarObject } from '../lib/types';
-import {
-	ConfigfsConfigBackend,
-	ConfigOptions,
-	DeviceConfigBackend,
-	ExtlinuxConfigBackend,
-	RPiConfigBackend,
-} from './backend';
+import { ExtlinuxConfigBackend } from './backends/extlinux';
+import { RPiConfigBackend } from './backends/raspberry-pi';
+import { ConfigfsConfigBackend } from './backends/config-fs';
+import { ConfigOptions, DeviceConfigBackend } from './backend';
 
 const configBackends = [
 	new ExtlinuxConfigBackend(),

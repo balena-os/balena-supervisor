@@ -8,11 +8,9 @@ import * as config from '../src/config';
 import { DeviceConfig } from '../src/device-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import * as logger from '../src/logger';
-import {
-	ExtlinuxConfigBackend,
-	RPiConfigBackend,
-	DeviceConfigBackend,
-} from '../src/config/backend';
+import { ExtlinuxConfigBackend } from '../src/config/backends/extlinux';
+import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
+import { DeviceConfigBackend } from '../src/config/backend';
 import prepare = require('./lib/prepare');
 
 const extlinuxBackend = new ExtlinuxConfigBackend();
