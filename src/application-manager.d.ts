@@ -64,7 +64,7 @@ class ApplicationManager extends EventEmitter {
 
 	public init(): Promise<void>;
 
-	public getCurrentApp(appId: number): Bluebird<Application | null>;
+	public getCurrentApp(appId: number): Promise<Application | null>;
 
 	// TODO: This actually returns an object, but we don't need the values just yet
 	public setTargetVolatileForService(serviceId: number, opts: Options): void;
@@ -90,7 +90,7 @@ class ApplicationManager extends EventEmitter {
 	public getTargetApps(): Promise<InstancedAppState>;
 	public stopAll(opts: { force?: boolean; skipLock?: boolean }): Promise<void>;
 
-	public serviceNameFromId(serviceId: number): Bluebird<string>;
+	public serviceNameFromId(serviceId: number): Promise<string>;
 	public imageForService(svc: any): Image;
 	public getDependentTargets(): Promise<any>;
 	public getCurrentForComparison(): Promise<any>;

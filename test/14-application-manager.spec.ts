@@ -12,6 +12,11 @@ import * as images from '../src/compose/images';
 
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
+import * as db from '../src/db';
+import * as dbFormat from '../src/device-state/db-format';
+import * as targetStateCache from '../src/device-state/target-state-cache';
+import * as config from '../src/config';
+import { TargetApplication, TargetApplications } from '../src/types/state';
 
 // tslint:disable-next-line
 chai.use(require('chai-events'));
@@ -19,71 +24,6 @@ const { expect } = chai;
 
 let availableImages: any[] | null;
 let targetState: any[] | null;
-
-const appDBFormatNormalised = {
-	appId: 1234,
-	commit: 'bar',
-	releaseId: 2,
-	name: 'app',
-	source: 'https://api.resin.io',
-	services: JSON.stringify([
-		{
-			appId: 1234,
-			serviceName: 'serv',
-			imageId: 12345,
-			environment: { FOO: 'var2' },
-			labels: {},
-			image: 'foo/bar:latest',
-			releaseId: 2,
-			serviceId: 4,
-			commit: 'bar',
-		},
-	]),
-	networks: '{}',
-	volumes: '{}',
-};
-
-const appStateFormat = {
-	appId: 1234,
-	commit: 'bar',
-	releaseId: 2,
-	name: 'app',
-	// This technically is not part of the appStateFormat, but in general
-	// usage is added before calling normaliseAppForDB
-	source: 'https://api.resin.io',
-	services: {
-		'4': {
-			appId: 1234,
-			serviceName: 'serv',
-			imageId: 12345,
-			environment: { FOO: 'var2' },
-			labels: {},
-			image: 'foo/bar:latest',
-		},
-	},
-};
-
-const appStateFormatNeedsServiceCreate = {
-	appId: 1234,
-	commit: 'bar',
-	releaseId: 2,
-	name: 'app',
-	services: [
-		{
-			appId: 1234,
-			environment: {
-				FOO: 'var2',
-			},
-			imageId: 12345,
-			serviceId: 4,
-			releaseId: 2,
-			serviceName: 'serv',
-			image: 'foo/bar:latest',
-		},
-	],
-	networks: {},
-	volumes: {},
-};
 
 const dependentStateFormat = {
 	appId: 1234,
@@ -157,76 +97,71 @@ describe('ApplicationManager', function () {
 			env['ADDITIONAL_ENV_VAR'] = 'foo';
 			return env;
 		});
-		this.normaliseCurrent = function (current: {
-			local: { apps: Iterable<unknown> | PromiseLike<Iterable<unknown>> };
+
+		this.normaliseCurrent = async function (current: {
+			local: { apps: Dictionary<TargetApplication> };
 		}) {
-			return Bluebird.Promise.map(current.local.apps, async (app: any) => {
-				return Bluebird.Promise.map(app.services, (service) =>
-					Service.fromComposeObject(service as any, { appName: 'test' } as any),
-				).then((normalisedServices) => {
-					const appCloned = _.cloneDeep(app);
-					appCloned.services = normalisedServices;
-					appCloned.networks = _.mapValues(
-						appCloned.networks,
-						(config, name) => {
-							return Network.fromComposeObject(name, app.appId, config);
-						},
-					);
-					return appCloned;
-				});
-			}).then(function (normalisedApps) {
-				const currentCloned = _.cloneDeep(current);
-				// @ts-ignore
-				currentCloned.local.apps = _.keyBy(normalisedApps, 'appId');
-				return currentCloned;
+			const currentCloned: any = _.cloneDeep(current);
+			currentCloned.local.apps = {};
+
+			_.each(current.local.apps, (app, appId) => {
+				const appCloned = {
+					...app,
+					services: _.mapValues(app.services, (svc) =>
+						// @ts-ignore
+						Service.fromComposeObject(svc, { appName: 'test' }),
+					),
+					networks: _.mapValues(app.networks, (conf, name) =>
+						Network.fromComposeObject(name, parseInt(appId, 10), conf),
+					),
+					volumes: _.mapValues(app.volumes, (conf, name) =>
+						Volume.fromComposeObject(name, parseInt(appId, 10), conf),
+					),
+				};
+				currentCloned.local.apps[parseInt(appId, 10)] = appCloned;
 			});
+			return currentCloned;
 		};
 
-		this.normaliseTarget = (
+		this.normaliseTarget = async (
 			target: {
-				local: { apps: Iterable<unknown> | PromiseLike<Iterable<unknown>> };
+				local: { apps: TargetApplications };
 			},
 			available: any,
 		) => {
-			return Bluebird.Promise.map(target.local.apps, (app) => {
-				return this.applications
-					.normaliseAppForDB(app)
-					.then((normalisedApp: any) => {
-						return this.applications.normaliseAndExtendAppFromDB(normalisedApp);
-					});
-			}).then(function (apps) {
-				const targetCloned = _.cloneDeep(target);
-				// We mock what createTargetService does when an image is available
-				targetCloned.local.apps = _.map(apps, function (app) {
-					app.services = _.map(app.services, function (service) {
-						const img = _.find(
-							available,
-							(i) => i.name === service.config.image,
-						);
-						if (img != null) {
-							service.config.image = img.dockerImageId;
-						}
-						return service;
-					});
-					return app;
+			const source = await config.get('apiEndpoint');
+			const cloned: any = _.cloneDeep(target);
+
+			// @ts-ignore types don't quite match up
+			await dbFormat.setApps(target.local.apps, source);
+
+			cloned.local.apps = await dbFormat.getApps();
+
+			// We mock what createTargetService does when an image is available
+			_.each(cloned.local.apps, (app) => {
+				_.each(app.services, (svc) => {
+					const img = _.find(available, (i) => i.name === svc.config.image);
+					if (img != null) {
+						svc.config.image = img.dockerImageId;
+					}
 				});
-				// @ts-ignore
-				targetCloned.local.apps = _.keyBy(targetCloned.local.apps, 'appId');
-				return targetCloned;
 			});
+			return cloned;
 		};
 	});
 
-	beforeEach(
-		() =>
-			({
-				currentState,
-				targetState,
-				availableImages,
-			} = require('./lib/application-manager-test-states')),
-	);
+	beforeEach(async () => {
+		({
+			currentState,
+			targetState,
+			availableImages,
+		} = require('./lib/application-manager-test-states'));
+		await db.models('app').del();
+		// @ts-expect-error modification of a RO property
+		targetStateCache.targetState = undefined;
+	});
 
-	after(function () {
+	after(async function () {
 		// @ts-expect-error Assigning to a RO property
 		images.inspectByName = originalInspectByName;
 		// @ts-expect-error restore on non-stubbed type
@@ -235,7 +170,12 @@ describe('ApplicationManager', function () {
 		dockerUtils.docker.listContainers.restore();
 		// @ts-expect-error restore on non-stubbed type
 		dockerUtils.docker.listImages.restore();
-		return (Service as any).extendEnvVars.restore();
+		// @ts-expect-error use of private function
+		Service.extendEnvVars.restore();
+
+		await db.models('app').del();
+		// @ts-expect-error modification of a RO property
+		targetStateCache.targetState = undefined;
 	});
 
 	it('should init', function () {
@@ -264,8 +204,8 @@ describe('ApplicationManager', function () {
 				return expect(steps).to.eventually.deep.equal([
 					{
 						action: 'start',
-						current: current.local.apps['1234'].services[1],
-						target: target.local.apps['1234'].services[1],
+						current: current.local.apps['1234'].services[24],
+						target: target.local.apps['1234'].services[24],
 						serviceId: 24,
 						appId: 1234,
 						options: {},
@@ -297,7 +237,7 @@ describe('ApplicationManager', function () {
 				return expect(steps).to.eventually.deep.equal([
 					{
 						action: 'kill',
-						current: current.local.apps['1234'].services[1],
+						current: current.local.apps['1234'].services[24],
 						target: undefined,
 						serviceId: 24,
 						appId: 1234,
@@ -331,7 +271,7 @@ describe('ApplicationManager', function () {
 					{
 						action: 'fetch',
 						image: this.applications.imageForService(
-							target.local.apps['1234'].services[1],
+							target.local.apps['1234'].services[24],
 						),
 						serviceId: 24,
 						appId: 1234,
@@ -353,7 +293,7 @@ describe('ApplicationManager', function () {
 					false,
 					// @ts-ignore
 					availableImages[0],
-					[target.local.apps['1234'].services[1].imageId],
+					[target.local.apps['1234'].services[24].imageId],
 					true,
 					current,
 					target,
@@ -390,8 +330,8 @@ describe('ApplicationManager', function () {
 				return expect(steps).to.eventually.deep.equal([
 					{
 						action: 'kill',
-						current: current.local.apps['1234'].services[1],
-						target: target.local.apps['1234'].services[1],
+						current: current.local.apps['1234'].services[24],
+						target: target.local.apps['1234'].services[24],
 						serviceId: 24,
 						appId: 1234,
 						options: {},
@@ -424,7 +364,7 @@ describe('ApplicationManager', function () {
 					{
 						action: 'fetch',
 						image: this.applications.imageForService(
-							target.local.apps['1234'].services[0],
+							target.local.apps['1234'].services[23],
 						),
 						serviceId: 23,
 						appId: 1234,
@@ -458,16 +398,16 @@ describe('ApplicationManager', function () {
 				return expect(steps).to.eventually.have.deep.members([
 					{
 						action: 'kill',
-						current: current.local.apps['1234'].services[0],
-						target: target.local.apps['1234'].services[0],
+						current: current.local.apps['1234'].services[23],
+						target: target.local.apps['1234'].services[23],
 						serviceId: 23,
 						appId: 1234,
 						options: {},
 					},
 					{
 						action: 'kill',
-						current: current.local.apps['1234'].services[1],
-						target: target.local.apps['1234'].services[1],
+						current: current.local.apps['1234'].services[24],
+						target: target.local.apps['1234'].services[24],
 						serviceId: 24,
 						appId: 1234,
 						options: {},
@@ -500,7 +440,7 @@ describe('ApplicationManager', function () {
 					{
 						action: 'start',
 						current: null,
-						target: target.local.apps['1234'].services[0],
+						target: target.local.apps['1234'].services[23],
 						serviceId: 23,
 						appId: 1234,
 						options: {},
@@ -534,7 +474,7 @@ describe('ApplicationManager', function () {
 					{
 						action: 'start',
 						current: null,
-						target: target.local.apps['1234'].services[1],
+						target: target.local.apps['1234'].services[24],
 						serviceId: 24,
 						appId: 1234,
 						options: {},
@@ -566,7 +506,7 @@ describe('ApplicationManager', function () {
 				return expect(steps).to.eventually.have.deep.members([
 					{
 						action: 'kill',
-						current: current.local.apps['1234'].services[0],
+						current: current.local.apps['1234'].services[23],
 						target: undefined,
 						serviceId: 23,
 						appId: 1234,
@@ -575,7 +515,7 @@ describe('ApplicationManager', function () {
 					{
 						action: 'start',
 						current: null,
-						target: target.local.apps['1234'].services[1],
+						target: target.local.apps['1234'].services[24],
 						serviceId: 24,
 						appId: 1234,
 						options: {},
@@ -585,42 +525,11 @@ describe('ApplicationManager', function () {
 		);
 	});
 
-	it('converts an app from a state format to a db format, adding missing networks and volumes and normalising the image name', function () {
-		const app = this.applications.normaliseAppForDB(appStateFormat);
-		return expect(app).to.eventually.deep.equal(appDBFormatNormalised);
-	});
-
 	it('converts a dependent app from a state format to a db format, normalising the image name', function () {
 		const app = this.applications.proxyvisor.normaliseDependentAppForDB(
 			dependentStateFormat,
 		);
 		return expect(app).to.eventually.deep.equal(dependentDBFormat);
-	});
-
-	it('converts an app in DB format into state format, adding default and missing fields', function () {
-		return this.applications
-			.normaliseAndExtendAppFromDB(appDBFormatNormalised)
-			.then(function (app: any) {
-				const appStateFormatWithDefaults = _.cloneDeep(
-					appStateFormatNeedsServiceCreate,
-				);
-				const opts = {
-					imageInfo: {
-						Config: { Cmd: ['someCommand'], Entrypoint: ['theEntrypoint'] },
-					},
-				};
-				(appStateFormatWithDefaults.services as any) = _.map(
-					appStateFormatWithDefaults.services,
-					function (service) {
-						// @ts-ignore
-						service.imageName = service.image;
-						return Service.fromComposeObject(service, opts as any);
-					},
-				);
-				return expect(JSON.parse(JSON.stringify(app))).to.deep.equal(
-					JSON.parse(JSON.stringify(appStateFormatWithDefaults)),
-				);
-			});
 	});
 
 	it('converts a dependent app in DB format into state format', function () {
@@ -678,7 +587,7 @@ describe('ApplicationManager', function () {
 			);
 		});
 
-		return it('should remove volumes from previous applications', function () {
+		it('should remove volumes from previous applications', function () {
 			return Bluebird.Promise.join(
 				// @ts-ignore
 				this.normaliseCurrent(currentState[5]),

@@ -18,12 +18,12 @@ import { BackupError, DatabaseParseError, NotFoundError } from '../lib/errors';
 import { docker } from '../lib/docker-utils';
 import { pathExistsOnHost } from '../lib/fs-utils';
 import { log } from '../lib/supervisor-console';
-import {
-	ApplicationDatabaseFormat,
+import type {
 	AppsJsonFormat,
 	TargetApplication,
 	TargetState,
 } from '../types/state';
+import type { DatabaseApp } from '../device-state/target-state-cache';
 
 export const defaultLegacyVolume = () => 'resin-data';
 
@@ -113,7 +113,7 @@ export async function normaliseLegacyDatabase(
 	// When legacy apps are present, we kill their containers and migrate their /data to a named volume
 	log.info('Migrating ids for legacy app...');
 
-	const apps: ApplicationDatabaseFormat = await db.models('app').select();
+	const apps: DatabaseApp[] = await db.models('app').select();
 
 	if (apps.length === 0) {
 		log.debug('No app to migrate');
