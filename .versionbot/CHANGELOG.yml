@@ -1,4 +1,18 @@
 - commits:
+    - subject: Respect an initialDeviceName field in the config.json
+      hash: b5918f0d84cea641c7ab9aae58aff99454d10253
+      body: ''
+      footer:
+        Closes: '#909'
+        closes: '#909'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.7.0
+  date: 2020-06-10T12:30:37.459Z
+- commits:
     - subject: Make images module a singleton
       hash: 2b3dc2fbcef63ae2024fe5fe41f30b0d56357943
       body: ''
