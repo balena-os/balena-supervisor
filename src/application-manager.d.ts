@@ -13,7 +13,6 @@ import DeviceState from './device-state';
 import { APIBinder } from './api-binder';
 import * as config from './config';
 
-import NetworkManager from './compose/network-manager';
 import VolumeManager from './compose/volume-manager';
 
 import {
@@ -50,7 +49,6 @@ class ApplicationManager extends EventEmitter {
 
 	public services: ServiceManager;
 	public volumes: VolumeManager;
-	public networks: NetworkManager;
 
 	public proxyvisor: any;
 	public timeSpentFetching: number;

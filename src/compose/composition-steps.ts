@@ -11,7 +11,7 @@ import ServiceManager from './service-manager';
 import Volume from './volume';
 
 import { checkTruthy } from '../lib/validation';
-import { NetworkManager } from './network-manager';
+import * as networkManager from './network-manager';
 import VolumeManager from './volume-manager';
 
 interface BaseCompositionStepArgs {
@@ -137,7 +137,6 @@ interface CompositionCallbacks {
 export function getExecutors(app: {
 	lockFn: LockingFn;
 	services: ServiceManager;
-	networks: NetworkManager;
 	volumes: VolumeManager;
 	applications: ApplicationManager;
 	callbacks: CompositionCallbacks;
@@ -281,19 +280,19 @@ export function getExecutors(app: {
 			}
 		},
 		createNetwork: async (step) => {
-			await app.networks.create(step.target);
+			await networkManager.create(step.target);
 		},
 		createVolume: async (step) => {
 			await app.volumes.create(step.target);
 		},
 		removeNetwork: async (step) => {
-			await app.networks.remove(step.current);
+			await networkManager.remove(step.current);
 		},
 		removeVolume: async (step) => {
 			await app.volumes.remove(step.current);
 		},
 		ensureSupervisorNetwork: async () => {
-			app.networks.ensureSupervisorNetwork();
+			networkManager.ensureSupervisorNetwork();
 		},
 	};
 

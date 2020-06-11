@@ -3,7 +3,7 @@ import { fs } from 'mz';
 import { stub } from 'sinon';
 
 import { ApplicationManager } from '../../src/application-manager';
-import { NetworkManager } from '../../src/compose/network-manager';
+import * as networkManager from '../../src/compose/network-manager';
 import { ServiceManager } from '../../src/compose/service-manager';
 import { VolumeManager } from '../../src/compose/volume-manager';
 import * as config from '../../src/config';
@@ -133,20 +133,23 @@ function buildRoutes(appManager: ApplicationManager): Router {
 	return router;
 }
 
+const originalNetGetAll = networkManager.getAllByAppId;
 function setupStubs() {
 	stub(ServiceManager.prototype, 'getStatus').resolves(STUBBED_VALUES.services);
-	stub(NetworkManager.prototype, 'getAllByAppId').resolves(
-		STUBBED_VALUES.networks,
-	);
 	stub(VolumeManager.prototype, 'getAllByAppId').resolves(
 		STUBBED_VALUES.volumes,
 	);
+
+	// @ts-expect-error Assigning to a RO property
+	networkManager.getAllByAppId = () => Promise.resolve(STUBBED_VALUES.networks);
 }
 
 function restoreStubs() {
 	(ServiceManager.prototype as any).getStatus.restore();
-	(NetworkManager.prototype as any).getAllByAppId.restore();
 	(VolumeManager.prototype as any).getAllByAppId.restore();
+
+	// @ts-expect-error Assigning to a RO property
+	networkManager.getAllByAppId = originalNetGetAll;
 }
 
 interface SupervisorAPIOpts {
