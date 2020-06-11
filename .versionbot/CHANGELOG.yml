@@ -1,4 +1,28 @@
 - commits:
+    - subject: Move database app processing out to its own module
+      hash: b31d5007fba001fcb71f5103447823f9a27bbfaa
+      body: |
+        This is part of the work to make the application-manager module much
+        less monolithic, in preperation for system apps and more generally
+        multi-app.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Make target-state-cache a singleton
+      hash: c0e170c61f05a8fc01dc167276ccb041d6d2d846
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.7.1
+  date: 2020-06-11T10:57:36.941Z
+- commits:
     - subject: Respect an initialDeviceName field in the config.json
       hash: b5918f0d84cea641c7ab9aae58aff99454d10253
       body: ''
