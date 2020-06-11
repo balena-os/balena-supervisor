@@ -5,7 +5,7 @@ import { stub } from 'sinon';
 import { ApplicationManager } from '../../src/application-manager';
 import * as networkManager from '../../src/compose/network-manager';
 import { ServiceManager } from '../../src/compose/service-manager';
-import { VolumeManager } from '../../src/compose/volume-manager';
+import * as volumeManager from '../../src/compose/volume-manager';
 import * as config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
@@ -134,22 +134,23 @@ function buildRoutes(appManager: ApplicationManager): Router {
 }
 
 const originalNetGetAll = networkManager.getAllByAppId;
+const originalVolGetAll = volumeManager.getAllByAppId;
 function setupStubs() {
 	stub(ServiceManager.prototype, 'getStatus').resolves(STUBBED_VALUES.services);
-	stub(VolumeManager.prototype, 'getAllByAppId').resolves(
-		STUBBED_VALUES.volumes,
-	);
 
 	// @ts-expect-error Assigning to a RO property
 	networkManager.getAllByAppId = () => Promise.resolve(STUBBED_VALUES.networks);
+	// @ts-expect-error Assigning to a RO property
+	volumeManager.getAllByAppId = () => Promise.resolve(STUBBED_VALUES.volumes);
 }
 
 function restoreStubs() {
 	(ServiceManager.prototype as any).getStatus.restore();
-	(VolumeManager.prototype as any).getAllByAppId.restore();
 
 	// @ts-expect-error Assigning to a RO property
 	networkManager.getAllByAppId = originalNetGetAll;
+	// @ts-expect-error Assigning to a RO property
+	volumeManager.getAllByAppId = originalVolGetAll;
 }
 
 interface SupervisorAPIOpts {

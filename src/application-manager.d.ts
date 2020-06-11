@@ -13,8 +13,6 @@ import DeviceState from './device-state';
 import { APIBinder } from './api-binder';
 import * as config from './config';
 
-import VolumeManager from './compose/volume-manager';
-
 import {
 	CompositionStep,
 	CompositionStepAction,
@@ -48,7 +46,6 @@ class ApplicationManager extends EventEmitter {
 	public apiBinder: APIBinder;
 
 	public services: ServiceManager;
-	public volumes: VolumeManager;
 
 	public proxyvisor: any;
 	public timeSpentFetching: number;

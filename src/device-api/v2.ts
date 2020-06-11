@@ -9,6 +9,7 @@ import * as config from '../config';
 import * as db from '../db';
 import * as logger from '../logger';
 import * as images from '../compose/images';
+import * as volumeManager from '../compose/volume-manager';
 import { spawnJournalctl } from '../lib/journald';
 import {
 	appNotFoundMessage,
@@ -484,7 +485,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				referencedVolumes.push(Volume.generateDockerName(vol.appId, vol.name));
 			});
 		});
-		await applications.volumes.removeOrphanedVolumes(referencedVolumes);
+		await volumeManager.removeOrphanedVolumes(referencedVolumes);
 		res.json({
 			status: 'success',
 		});
