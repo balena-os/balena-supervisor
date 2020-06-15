@@ -49,9 +49,6 @@ export const once: typeof events['once'] = events.once.bind(events);
 export const removeListener: typeof events['removeListener'] = events.removeListener.bind(
 	events,
 );
-export const removeAllListeners: typeof events['removeAllListeners'] = events.removeAllListeners.bind(
-	events,
-);
 
 export async function get<T extends SchemaTypeKey>(
 	key: T,
