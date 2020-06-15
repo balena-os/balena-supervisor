@@ -464,6 +464,42 @@ describe('compose/service', () => {
 		});
 	});
 
+	describe('io.balena.features.gpu: Docker <-> Compose config', () => {
+		const gpuDeviceRequest = {
+			Count: 1,
+			Capabilities: [['gpu']],
+		};
+		it('should succeed from compose object', () => {
+			const s = Service.fromComposeObject(
+				{
+					appId: 123,
+					serviceId: 123,
+					serviceName: 'test',
+					labels: {
+						'io.balena.features.gpu': '1',
+					},
+				},
+				{ appName: 'test' } as any,
+			);
+
+			expect(s.config)
+				.to.have.property('deviceRequests')
+				.that.deep.equals([gpuDeviceRequest]);
+		});
+
+		it('should succeed from docker container', () => {
+			const dockerCfg = _.cloneDeep(
+				require('./data/docker-states/simple/inspect.json'),
+			);
+			dockerCfg.HostConfig.DeviceRequests = [gpuDeviceRequest];
+			const s = Service.fromDockerContainer(dockerCfg);
+
+			expect(s.config)
+				.to.have.property('deviceRequests')
+				.that.deep.equals([gpuDeviceRequest]);
+		});
+	});
+
 	describe('Docker <-> Compose config', () => {
 		const omitConfigForComparison = (config: ServiceConfig) =>
 			_.omit(config, ['running', 'networks']);
