@@ -37,9 +37,11 @@ export async function getApp(id: number): Promise<InstancedApp> {
 export async function getApps(): Promise<InstancedAppState> {
 	const dbApps = await getDBEntry();
 	const apps: InstancedAppState = {};
-	for (const app of dbApps) {
-		apps[app.appId] = await buildApp(app);
-	}
+	await Promise.all(
+		dbApps.map(async (app) => {
+			apps[app.appId] = await buildApp(app);
+		}),
+	);
 	return apps;
 }
 
@@ -98,9 +100,7 @@ async function buildApp(dbApp: targetStateCache.DatabaseApp) {
 					try {
 						imageInfo = await images.inspectByName(svc.image);
 					} catch (e) {
-						if (NotFoundError(e)) {
-							imageInfo = undefined;
-						} else {
+						if (!NotFoundError(e)) {
 							throw e;
 						}
 					}
@@ -140,13 +140,11 @@ export async function setApps(
 	source: string,
 	trx?: db.Transaction,
 ) {
-	const cloned = _.cloneDeep(apps);
-
 	const dbApps = await Promise.all(
-		Object.keys(cloned).map(async (appIdStr) => {
+		Object.keys(apps).map(async (appIdStr) => {
 			const appId = checkInt(appIdStr)!;
 
-			const app = cloned[appId];
+			const app = apps[appId];
 			const services = await Promise.all(
 				_.map(app.services, async (s, sId) => ({
 					...s,
@@ -176,7 +174,6 @@ export async function setApps(
 function getDBEntry(): Promise<targetStateCache.DatabaseApp[]>;
 function getDBEntry(appId: number): Promise<targetStateCache.DatabaseApp>;
 async function getDBEntry(appId?: number) {
-	await config.initialized;
 	await targetStateCache.initialized;
 
 	return appId != null
