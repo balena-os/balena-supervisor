@@ -1,4 +1,16 @@
 - commits:
+    - subject: Db-format module code fixups
+      hash: 695d91d4948aa5b89c602135ccc8fba8321fd8bd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.7.3
+  date: 2020-06-15T09:55:57.277Z
+- commits:
     - subject: Add label to expose gpu to container
       hash: ae646a07ec6a6c96f7cb91f1d37898a94dbab47a
       body: >
