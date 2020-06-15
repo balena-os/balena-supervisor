@@ -6,6 +6,7 @@ import * as path from 'path';
 
 import * as conversions from '../lib/conversions';
 import { checkInt } from '../lib/validation';
+import { InternalInconsistencyError } from '../lib/errors';
 import { DockerPortOptions, PortMap } from './ports';
 import {
 	ConfigMap,
@@ -28,7 +29,7 @@ const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
 
 export class Service {
-	public appId: number | null;
+	public appId: number;
 	public imageId: number | null;
 	public config: ServiceConfig;
 	public serviceName: string | null;
@@ -94,6 +95,13 @@ export class Service {
 		): number | null => {
 			return checkInt(val) || null;
 		};
+		if (!appConfig.appId) {
+			throw new InternalInconsistencyError('No app id for service');
+		}
+		const appId = checkInt(appConfig.appId);
+		if (appId == null) {
+			throw new InternalInconsistencyError('Malformed app id for service');
+		}
 
 		// Seperate the application information from the docker
 		// container configuration
@@ -101,7 +109,7 @@ export class Service {
 		delete appConfig.imageId;
 		service.serviceName = appConfig.serviceName;
 		delete appConfig.serviceName;
-		service.appId = intOrNull(appConfig.appId);
+		service.appId = appId;
 		delete appConfig.appId;
 		service.releaseId = intOrNull(appConfig.releaseId);
 		delete appConfig.releaseId;
