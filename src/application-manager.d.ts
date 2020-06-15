@@ -13,7 +13,7 @@ import * as apiBinder from './api-binder';
 import * as config from './config';
 
 import {
-	CompositionStep,
+	CompositionStepT,
 	CompositionStepAction,
 } from './compose/composition-steps';
 import Network from './compose/network';
@@ -91,7 +91,7 @@ class ApplicationManager extends EventEmitter {
 		targetState: any,
 		extraState: any,
 		ignoreImages?: boolean,
-	): Promise<Array<CompositionStep<CompositionStepAction>>>;
+	): Promise<Array<CompositionStepT<CompositionStepAction>>>;
 	public localModeSwitchCompletion(): Promise<void>;
 }
 

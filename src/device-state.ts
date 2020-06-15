@@ -13,7 +13,7 @@ import * as db from './db';
 import * as logger from './logger';
 
 import {
-	CompositionStep,
+	CompositionStepT,
 	CompositionStepAction,
 } from './compose/composition-steps';
 import { loadTargetFromFile } from './device-state/preload';
@@ -214,7 +214,7 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	  }
 	| { action: 'shutdown' }
 	| { action: 'noop' }
-	| CompositionStep<T extends CompositionStepAction ? T : never>
+	| CompositionStepT<T extends CompositionStepAction ? T : never>
 	| ConfigStep;
 
 // export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {

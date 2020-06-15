@@ -97,14 +97,15 @@ interface CompositionStepArgs {
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;
-export type CompositionStep<T extends CompositionStepAction> = {
+export type CompositionStepT<T extends CompositionStepAction> = {
 	action: T;
 } & CompositionStepArgs[T];
+export type CompositionStep = CompositionStepT<CompositionStepAction>;
 
 export function generateStep<T extends CompositionStepAction>(
 	action: T,
 	args: CompositionStepArgs[T],
-): CompositionStep<T> {
+): CompositionStepT<T> {
 	return {
 		action,
 		...args,
@@ -112,7 +113,7 @@ export function generateStep<T extends CompositionStepAction>(
 }
 
 type Executors<T extends CompositionStepAction> = {
-	[key in T]: (step: CompositionStep<key>) => Promise<unknown>;
+	[key in T]: (step: CompositionStepT<key>) => Promise<unknown>;
 };
 type LockingFn = (
 	// TODO: Once the entire codebase is typescript, change
