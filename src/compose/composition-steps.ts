@@ -7,7 +7,7 @@ import type { Image } from './images';
 import * as images from './images';
 import Network from './network';
 import Service from './service';
-import ServiceManager from './service-manager';
+import * as serviceManager from './service-manager';
 import Volume from './volume';
 
 import { checkTruthy } from '../lib/validation';
@@ -136,7 +136,6 @@ interface CompositionCallbacks {
 
 export function getExecutors(app: {
 	lockFn: LockingFn;
-	services: ServiceManager;
 	applications: ApplicationManager;
 	callbacks: CompositionCallbacks;
 }) {
@@ -150,7 +149,7 @@ export function getExecutors(app: {
 				},
 				async () => {
 					const wait = _.get(step, ['options', 'wait'], false);
-					await app.services.kill(step.current, {
+					await serviceManager.kill(step.current, {
 						removeContainer: false,
 						wait,
 					});
@@ -166,7 +165,7 @@ export function getExecutors(app: {
 					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					await app.services.kill(step.current);
+					await serviceManager.kill(step.current);
 					app.callbacks.containerKilled(step.current.containerId);
 					if (_.get(step, ['options', 'removeImage'])) {
 						await images.removeByDockerId(step.current.config.image);
@@ -177,7 +176,7 @@ export function getExecutors(app: {
 		remove: async (step) => {
 			// Only called for dead containers, so no need to
 			// take locks
-			await app.services.remove(step.current);
+			await serviceManager.remove(step.current);
 		},
 		updateMetadata: (step) => {
 			const skipLock =
@@ -190,7 +189,7 @@ export function getExecutors(app: {
 					skipLock: skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					await app.services.updateMetadata(step.current, step.target);
+					await serviceManager.updateMetadata(step.current, step.target);
 				},
 			);
 		},
@@ -202,9 +201,9 @@ export function getExecutors(app: {
 					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					await app.services.kill(step.current, { wait: true });
+					await serviceManager.kill(step.current, { wait: true });
 					app.callbacks.containerKilled(step.current.containerId);
-					const container = await app.services.start(step.target);
+					const container = await serviceManager.start(step.target);
 					app.callbacks.containerStarted(container.id);
 				},
 			);
@@ -216,7 +215,7 @@ export function getExecutors(app: {
 			});
 		},
 		start: async (step) => {
-			const container = await app.services.start(step.target);
+			const container = await serviceManager.start(step.target);
 			app.callbacks.containerStarted(container.id);
 		},
 		updateCommit: async (step) => {
@@ -230,7 +229,7 @@ export function getExecutors(app: {
 					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					await app.services.handover(step.current, step.target);
+					await serviceManager.handover(step.current, step.target);
 				},
 			);
 		},

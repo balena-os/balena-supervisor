@@ -21,11 +21,11 @@ import {
 
 import * as dbFormat from './device-state/db-format';
 
-import { ServiceManager } from './compose/service-manager';
 import * as Images from './compose/images';
 import { Network } from './compose/network';
 import * as networkManager from './compose/network-manager';
 import * as volumeManager from './compose/volume-manager';
+import * as serviceManager from './compose/service-manager';
 import * as compositionSteps from './compose/composition-steps';
 
 import { Proxyvisor } from './proxyvisor';
@@ -159,7 +159,6 @@ export class ApplicationManager extends EventEmitter {
 		this.deviceState = deviceState;
 		this.apiBinder = apiBinder;
 
-		this.services = new ServiceManager();
 		this.proxyvisor = new Proxyvisor({
 			applications: this,
 		});
@@ -171,7 +170,6 @@ export class ApplicationManager extends EventEmitter {
 
 		this.actionExecutors = compositionSteps.getExecutors({
 			lockFn: this._lockingIfNecessary,
-			services: this.services,
 			applications: this,
 			callbacks: {
 				containerStarted: (id) => {
@@ -198,7 +196,7 @@ export class ApplicationManager extends EventEmitter {
 		);
 		this.router = createApplicationManagerRouter(this);
 		Images.on('change', this.reportCurrentState);
-		this.services.on('change', this.reportCurrentState);
+		serviceManager.on('change', this.reportCurrentState);
 	}
 
 	reportCurrentState(data) {
@@ -223,14 +221,14 @@ export class ApplicationManager extends EventEmitter {
 		// But also run it in on startup
 		await cleanup();
 		await this.localModeManager.init();
-		await this.services.attachToRunning();
-		await this.services.listenToEvents();
+		await serviceManager.attachToRunning();
+		await serviceManager.listenToEvents();
 	}
 
 	// Returns the status of applications and their services
 	getStatus() {
 		return Promise.join(
-			this.services.getStatus(),
+			serviceManager.getStatus(),
 			Images.getStatus(),
 			config.get('currentCommit'),
 			function (services, images, currentCommit) {
@@ -362,7 +360,7 @@ export class ApplicationManager extends EventEmitter {
 
 	getCurrentForComparison() {
 		return Promise.join(
-			this.services.getAll(),
+			serviceManager.getAll(),
 			networkManager.getAll(),
 			volumeManager.getAll(),
 			config.get('currentCommit'),
@@ -372,7 +370,7 @@ export class ApplicationManager extends EventEmitter {
 
 	getCurrentApp(appId) {
 		return Promise.join(
-			this.services.getAllByAppId(appId),
+			serviceManager.getAllByAppId(appId),
 			networkManager.getAllByAppId(appId),
 			volumeManager.getAllByAppId(appId),
 			config.get('currentCommit'),
@@ -1339,13 +1337,13 @@ export class ApplicationManager extends EventEmitter {
 	}
 
 	stopAll({ force = false, skipLock = false } = {}) {
-		return Promise.resolve(this.services.getAll())
+		return Promise.resolve(serviceManager.getAll())
 			.map((service) => {
 				return this._lockingIfNecessary(
 					service.appId,
 					{ force, skipLock },
 					() => {
-						return this.services
+						return serviceManager
 							.kill(service, { removeContainer: false, wait: true })
 							.then(() => {
 								delete this._containerStarted[service.containerId];
@@ -1391,7 +1389,7 @@ export class ApplicationManager extends EventEmitter {
 				if (intId == null) {
 					throw new Error(`Invalid id: ${id}`);
 				}
-				containerIdsByAppId[intId] = this.services.getContainerIdMap(intId);
+				containerIdsByAppId[intId] = serviceManager.getContainerIdMap(intId);
 			});
 
 		return config.get('localMode').then((localMode) => {

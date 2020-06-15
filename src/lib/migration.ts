@@ -13,6 +13,7 @@ import { ApplicationManager } from '../application-manager';
 import * as config from '../config';
 import * as db from '../db';
 import * as volumeManager from '../compose/volume-manager';
+import * as serviceManager from '../compose/service-manager';
 import DeviceState from '../device-state';
 import * as constants from '../lib/constants';
 import { BackupError, DatabaseParseError, NotFoundError } from '../lib/errors';
@@ -244,7 +245,7 @@ export async function normaliseLegacyDatabase(
 	}
 
 	log.debug('Killing legacy containers');
-	await application.services.killAllLegacy();
+	await serviceManager.killAllLegacy();
 	log.debug('Migrating legacy app volumes');
 
 	const targetApps = await application.getTargetApps();

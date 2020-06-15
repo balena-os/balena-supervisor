@@ -7,7 +7,6 @@ import { ServiceAction } from './device-api/common';
 import { DeviceStatus, InstancedAppState } from './types/state';
 
 import type { Image } from './compose/images';
-import ServiceManager from './compose/service-manager';
 import DeviceState from './device-state';
 
 import { APIBinder } from './api-binder';
@@ -44,8 +43,6 @@ class ApplicationManager extends EventEmitter {
 	public _lockingIfNecessary: any;
 	public deviceState: DeviceState;
 	public apiBinder: APIBinder;
-
-	public services: ServiceManager;
 
 	public proxyvisor: any;
 	public timeSpentFetching: number;

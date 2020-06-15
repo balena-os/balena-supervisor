@@ -1,10 +1,9 @@
 import { Router } from 'express';
 import { fs } from 'mz';
-import { stub } from 'sinon';
 
 import { ApplicationManager } from '../../src/application-manager';
 import * as networkManager from '../../src/compose/network-manager';
-import { ServiceManager } from '../../src/compose/service-manager';
+import * as serviceManager from '../../src/compose/service-manager';
 import * as volumeManager from '../../src/compose/volume-manager';
 import * as config from '../../src/config';
 import * as db from '../../src/db';
@@ -135,22 +134,23 @@ function buildRoutes(appManager: ApplicationManager): Router {
 
 const originalNetGetAll = networkManager.getAllByAppId;
 const originalVolGetAll = volumeManager.getAllByAppId;
+const originalSvcGetStatus = serviceManager.getStatus;
 function setupStubs() {
-	stub(ServiceManager.prototype, 'getStatus').resolves(STUBBED_VALUES.services);
-
 	// @ts-expect-error Assigning to a RO property
-	networkManager.getAllByAppId = () => Promise.resolve(STUBBED_VALUES.networks);
+	networkManager.getAllByAppId = async () => STUBBED_VALUES.networks;
 	// @ts-expect-error Assigning to a RO property
-	volumeManager.getAllByAppId = () => Promise.resolve(STUBBED_VALUES.volumes);
+	volumeManager.getAllByAppId = async () => STUBBED_VALUES.volumes;
+	// @ts-expect-error Assigning to a RO property
+	serviceManager.getStatus = async () => STUBBED_VALUES.services;
 }
 
 function restoreStubs() {
-	(ServiceManager.prototype as any).getStatus.restore();
-
 	// @ts-expect-error Assigning to a RO property
 	networkManager.getAllByAppId = originalNetGetAll;
 	// @ts-expect-error Assigning to a RO property
 	volumeManager.getAllByAppId = originalVolGetAll;
+	// @ts-expect-error Assigning to a RO property
+	serviceManager.getStatus = originalSvcGetStatus;
 }
 
 interface SupervisorAPIOpts {

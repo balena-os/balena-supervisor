@@ -10,6 +10,7 @@ import * as db from '../db';
 import * as logger from '../logger';
 import * as images from '../compose/images';
 import * as volumeManager from '../compose/volume-manager';
+import * as serviceManager from '../compose/service-manager';
 import { spawnJournalctl } from '../lib/journald';
 import {
 	appNotFoundMessage,
@@ -153,7 +154,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			// It's kinda hacky to access the services and db via the application manager
 			// maybe refactor this code
 			Bluebird.join(
-				applications.services.getStatus(),
+				serviceManager.getStatus(),
 				images.getStatus(),
 				db.models('app').select(['appId', 'commit', 'name']),
 				(
@@ -359,7 +360,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/containerId', async (req, res) => {
-		const services = await applications.services.getAll();
+		const services = await serviceManager.getAll();
 
 		if (req.query.serviceName != null || req.query.service != null) {
 			const serviceName = req.query.serviceName || req.query.service;
@@ -393,7 +394,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 		const currentRelease = await config.get('currentCommit');
 
 		const pending = applications.deviceState.applyInProgress;
-		const containerStates = (await applications.services.getAll()).map((svc) =>
+		const containerStates = (await serviceManager.getAll()).map((svc) =>
 			_.pick(
 				svc,
 				'status',
