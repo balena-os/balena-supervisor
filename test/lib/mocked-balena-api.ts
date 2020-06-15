@@ -51,7 +51,7 @@ api.post('/device/register', (req, res) =>
 	api.balenaBackend!.registerHandler(req, res, _.noop),
 );
 
-api.get('/v5/device', (req, res) =>
+api.get('/v6/device', (req, res) =>
 	api.balenaBackend!.getDeviceHandler(req, res, _.noop),
 );
 
