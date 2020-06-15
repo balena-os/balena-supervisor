@@ -1,4 +1,38 @@
 - commits:
+    - subject: Add label to expose gpu to container
+      hash: ae646a07ec6a6c96f7cb91f1d37898a94dbab47a
+      body: >
+        In the absence of an upstream implementation of the DeviceRequest API
+        introduced
+
+        as part of Docker API v1.40 we roll our own using a feature label.
+
+
+        As per my comment in the code, we fall back to the default behavior of
+
+        docker cli's `--gpu` and request single device with the `gpu` capabilty.
+
+        The only implementation at the moment is the NVIDIA driver; here:
+
+        https://github.com/balena-os/balena-engine/blob/master/daemon/nvidia_linux.go
+
+
+        Background on the composefile implementation:
+
+        https://github.com/compose-spec/compose-spec/issues/74
+
+        https://github.com/docker/compose/issues/6691
+      footer:
+        Change-type: patch
+        change-type: patch
+        Connects-to: 'https://github.com/balena-os/balena-jetson/pull/75'
+        connects-to: 'https://github.com/balena-os/balena-jetson/pull/75'
+        Signed-off-by: Robert Günzler <robertg@balena.io>
+        signed-off-by: Robert Günzler <robertg@balena.io>
+      author: Robert Günzler
+  version: 11.7.2
+  date: 2020-06-11T12:11:35.793Z
+- commits:
     - subject: Move database app processing out to its own module
       hash: b31d5007fba001fcb71f5103447823f9a27bbfaa
       body: |
