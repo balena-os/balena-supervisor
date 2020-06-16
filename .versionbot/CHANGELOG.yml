@@ -1,4 +1,16 @@
 - commits:
+    - subject: Use API v6
+      hash: 1dccbaecd8a6cd8bf551e3b56131066e9de9ed35
+      body: ''
+      footer:
+        See: 'https://github.com/balena-io/open-balena/issues/80'
+        see: 'https://github.com/balena-io/open-balena/issues/80'
+        Change-type: minor
+        change-type: minor
+      author: Akis Kesoglou
+  version: 11.8.0
+  date: 2020-06-16T09:16:47.483Z
+- commits:
     - subject: Db-format module code fixups
       hash: 695d91d4948aa5b89c602135ccc8fba8321fd8bd
       body: ''
