@@ -283,9 +283,9 @@ export class APIBinder {
 		}
 
 		try {
-			const res = (await this.balenaApi
-				.get(reqOpts)
-				.timeout(timeout)) as Device[];
+			const res = (await Bluebird.resolve(this.balenaApi.get(reqOpts)).timeout(
+				timeout,
+			)) as Device[];
 			return res[0];
 		} catch (e) {
 			return null;
@@ -313,13 +313,13 @@ export class APIBinder {
 			);
 		}
 
-		return this.balenaApi
-			.patch({
+		return Bluebird.resolve(
+			this.balenaApi.patch({
 				resource: 'device',
 				id,
 				body: updatedFields,
-			})
-			.timeout(conf.apiTimeout);
+			}),
+		).timeout(conf.apiTimeout);
 	}
 
 	public async provisionDependentDevice(device: Device): Promise<Device> {
@@ -350,9 +350,9 @@ export class APIBinder {
 			registered_at: Math.floor(Date.now() / 1000),
 		});
 
-		return (await this.balenaApi
-			.post({ resource: 'device', body: device })
-			.timeout(conf.apiTimeout)) as Device;
+		return (await Bluebird.resolve(
+			this.balenaApi.post({ resource: 'device', body: device }),
+		).timeout(conf.apiTimeout)) as Device;
 	}
 
 	public startCurrentStateReport() {
