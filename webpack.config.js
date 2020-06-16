@@ -23,9 +23,9 @@ var externalModules = [
 	/mssql\/.*/,
 ];
 
-var requiredModules = [];
-var maybeOptionalModules = [];
-lookForOptionalDeps = function(sourceDir) {
+let requiredModules = [];
+let maybeOptionalModules = [];
+const lookForOptionalDeps = function (sourceDir) {
 	// We iterate over the node modules and mark all optional dependencies as external
 	var dirs = fs.readdirSync(sourceDir);
 	for (let dir of dirs) {
@@ -36,7 +36,7 @@ lookForOptionalDeps = function(sourceDir) {
 		}
 		try {
 			packageJson = JSON.parse(
-				fs.readFileSync(path.join(sourceDir, dir, '/package.json')),
+				fs.readFileSync(path.join(sourceDir, dir, '/package.json'), 'utf8'),
 			);
 		} catch (e) {
 			continue;
@@ -67,7 +67,7 @@ externalModules.push(
 
 console.log('Using the following dependencies as external:', externalModules);
 
-module.exports = function(env) {
+module.exports = function (env) {
 	return {
 		mode: env == null || !env.noOptimize ? 'production' : 'development',
 		devtool: 'none',
@@ -125,7 +125,7 @@ module.exports = function(env) {
 				},
 			],
 		},
-		externals: (context, request, callback) => {
+		externals: (_context, request, callback) => {
 			for (let m of externalModules) {
 				if (
 					(typeof m === 'string' && m === request) ||
@@ -142,12 +142,14 @@ module.exports = function(env) {
 			new ForkTsCheckerWebpackPlugin({
 				async: false,
 			}),
-			new CopyWebpackPlugin([
-				{
-					from: './build/migrations',
-					to: 'migrations',
-				},
-			]),
+			new CopyWebpackPlugin({
+				patterns: [
+					{
+						from: './build/migrations',
+						to: 'migrations',
+					},
+				],
+			}),
 			new webpack.ContextReplacementPlugin(
 				/\.\/migrations/,
 				path.resolve(__dirname, 'build/migrations'),
