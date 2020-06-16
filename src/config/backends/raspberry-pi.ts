@@ -6,15 +6,19 @@ import {
 	DeviceConfigBackend,
 	bootMountPoint,
 	remountAndWriteAtomic,
-} from '../backend';
+} from './backend';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 
 /**
- * A backend to handle ConfigFS host configuration for ACPI SSDT loading
+ * A backend to handle Raspberry Pi host configuration
  *
  * Supports:
- * 	- {BALENA|RESIN}_HOST_CONFIGFS_ssdt = value | "value" | "value1","value2"
+ * 	- {BALENA|RESIN}_HOST_CONFIG_dtparam = value | "value" | "value1","value2"
+ * 	- {BALENA|RESIN}_HOST_CONFIG_dtoverlay = value | "value" | "value1","value2"
+ * 	- {BALENA|RESIN}_HOST_CONFIG_device_tree_param = value | "value" | "value1","value2"
+ * 	- {BALENA|RESIN}_HOST_CONFIG_device_tree_overlay = value | "value" | "value1","value2"
+ * 	- {BALENA|RESIN}_HOST_CONFIG_gpio = value | "value" | "value1","value2"
  */
 
 export class RPiConfigBackend extends DeviceConfigBackend {
@@ -22,7 +26,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 	private static bootConfigPath = `${bootMountPoint}/config.txt`;
 
 	public static bootConfigVarRegex = new RegExp(
-		'(' + _.escapeRegExp(RPiConfigBackend.bootConfigVarPrefix) + ')(.+)',
+		'(?:' + _.escapeRegExp(RPiConfigBackend.bootConfigVarPrefix) + ')(.+)',
 	);
 
 	private static arrayConfigKeys = [
@@ -47,7 +51,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 	];
 
 	public matches(deviceType: string): boolean {
-		return _.startsWith(deviceType, 'raspberry') || deviceType === 'fincm3';
+		return deviceType.startsWith('raspberry') || deviceType === 'fincm3';
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {
@@ -68,20 +72,20 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 		for (const configStr of configStatements) {
 			// Don't show warnings for comments and empty lines
 			const trimmed = _.trimStart(configStr);
-			if (_.startsWith(trimmed, '#') || trimmed === '') {
+			if (trimmed.startsWith('#') || trimmed === '') {
 				continue;
 			}
 			let keyValue = /^([^=]+)=(.*)$/.exec(configStr);
 			if (keyValue != null) {
 				const [, key, value] = keyValue;
-				if (!_.includes(RPiConfigBackend.arrayConfigKeys, key)) {
+				if (!RPiConfigBackend.arrayConfigKeys.includes(key)) {
 					conf[key] = value;
 				} else {
 					if (conf[key] == null) {
 						conf[key] = [];
 					}
 					const confArr = conf[key];
-					if (!_.isArray(confArr)) {
+					if (!Array.isArray(confArr)) {
 						throw new Error(
 							`Expected '${key}' to have a config array but got ${typeof confArr}`,
 						);
@@ -105,40 +109,34 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 	}
 
 	public async setBootConfig(opts: ConfigOptions): Promise<void> {
-		let confStatements: string[] = [];
-
-		_.each(opts, (value, key) => {
+		const confStatements = _.flatMap(opts, (value, key) => {
 			if (key === 'initramfs') {
-				confStatements.push(`${key} ${value}`);
-			} else if (_.isArray(value)) {
-				confStatements = confStatements.concat(
-					_.map(value, (entry) => `${key}=${entry}`),
-				);
+				return `${key} ${value}`;
+			} else if (Array.isArray(value)) {
+				return value.map((entry) => `${key}=${entry}`);
 			} else {
-				confStatements.push(`${key}=${value}`);
+				return `${key}=${value}`;
 			}
 		});
-
 		const confStr = `${confStatements.join('\n')}\n`;
-
 		await remountAndWriteAtomic(RPiConfigBackend.bootConfigPath, confStr);
 	}
 
 	public isSupportedConfig(configName: string): boolean {
-		return !_.includes(RPiConfigBackend.forbiddenConfigKeys, configName);
+		return !RPiConfigBackend.forbiddenConfigKeys.includes(configName);
 	}
 
 	public isBootConfigVar(envVar: string): boolean {
-		return _.startsWith(envVar, RPiConfigBackend.bootConfigVarPrefix);
+		return envVar.startsWith(RPiConfigBackend.bootConfigVarPrefix);
 	}
 
 	public processConfigVarName(envVar: string): string {
-		return envVar.replace(RPiConfigBackend.bootConfigVarRegex, '$2');
+		return envVar.replace(RPiConfigBackend.bootConfigVarRegex, '$1');
 	}
 
 	public processConfigVarValue(key: string, value: string): string | string[] {
-		if (_.includes(RPiConfigBackend.arrayConfigKeys, key)) {
-			if (!_.startsWith(value, '"')) {
+		if (RPiConfigBackend.arrayConfigKeys.includes(key)) {
+			if (!value.startsWith('"')) {
 				return [value];
 			} else {
 				return JSON.parse(`[${value}]`);

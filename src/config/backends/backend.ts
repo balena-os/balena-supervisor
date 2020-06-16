@@ -1,14 +1,14 @@
 import * as _ from 'lodash';
 import { child_process } from 'mz';
 
-import * as constants from '../lib/constants';
-import { writeFileAtomic } from '../lib/fs-utils';
-
-export const bootMountPoint = `${constants.rootMountPoint}${constants.bootMountPoint}`;
+import * as constants from '../../lib/constants';
+import { writeFileAtomic } from '../../lib/fs-utils';
 
 export interface ConfigOptions {
 	[key: string]: string | string[];
 }
+
+export const bootMountPoint = `${constants.rootMountPoint}${constants.bootMountPoint}`;
 
 export async function remountAndWriteAtomic(
 	file: string,

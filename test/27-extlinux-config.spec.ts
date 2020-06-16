@@ -6,8 +6,121 @@ import { expect } from './lib/chai-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import { ExtlinuxConfigBackend } from '../src/config/backends/extlinux';
 
-describe('EXTLINUX Configuration', () => {
+describe('Extlinux Configuration', () => {
 	const backend = new ExtlinuxConfigBackend();
+
+	it('should parse a extlinux.conf file', () => {
+		const text = stripIndent`\
+			DEFAULT primary
+			# CommentExtlinux files
+
+			TIMEOUT 30
+			MENU TITLE Boot Options
+			LABEL primary
+						MENU LABEL primary Image
+						LINUX /Image
+						FDT /boot/mycustomdtb.dtb
+						APPEND \${cbootargs} \${resin_kernel_root} ro rootwait\
+		`;
+
+		// @ts-ignore accessing private method
+		const parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text);
+		expect(parsed.globals).to.have.property('DEFAULT').that.equals('primary');
+		expect(parsed.globals).to.have.property('TIMEOUT').that.equals('30');
+		expect(parsed.globals)
+			.to.have.property('MENU TITLE')
+			.that.equals('Boot Options');
+
+		expect(parsed.labels).to.have.property('primary');
+		const { primary } = parsed.labels;
+		expect(primary).to.have.property('MENU LABEL').that.equals('primary Image');
+		expect(primary).to.have.property('LINUX').that.equals('/Image');
+		expect(primary)
+			.to.have.property('FDT')
+			.that.equals('/boot/mycustomdtb.dtb');
+		expect(primary)
+			.to.have.property('APPEND')
+			.that.equals('${cbootargs} ${resin_kernel_root} ro rootwait');
+	});
+
+	it('should parse multiple service entries', () => {
+		const text = stripIndent`\
+			DEFAULT primary
+			# Comment
+
+			TIMEOUT 30
+			MENU TITLE Boot Options
+			LABEL primary
+						LINUX test1
+						FDT /boot/mycustomdtb.dtb
+						APPEND test2
+			LABEL secondary
+						LINUX test3
+						FDT /boot/mycustomdtb.dtb
+						APPEND test4\
+		`;
+
+		// @ts-ignore accessing private method
+		const parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text);
+		expect(parsed.labels).to.have.property('primary').that.deep.equals({
+			LINUX: 'test1',
+			FDT: '/boot/mycustomdtb.dtb',
+			APPEND: 'test2',
+		});
+		expect(parsed.labels).to.have.property('secondary').that.deep.equals({
+			LINUX: 'test3',
+			FDT: '/boot/mycustomdtb.dtb',
+			APPEND: 'test4',
+		});
+	});
+
+	it('should parse configuration options from an extlinux.conf file', async () => {
+		let text = stripIndent`\
+			DEFAULT primary
+			# Comment
+
+			TIMEOUT 30
+			MENU TITLE Boot Options
+			LABEL primary
+						MENU LABEL primary Image
+						LINUX /Image
+						FDT /boot/mycustomdtb.dtb
+						APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3\
+		`;
+
+		let readFileStub = stub(fs, 'readFile').resolves(text);
+		let parsed = backend.getBootConfig();
+
+		await expect(parsed)
+			.to.eventually.have.property('isolcpus')
+			.that.equals('3');
+		await expect(parsed)
+			.to.eventually.have.property('fdt')
+			.that.equals('/boot/mycustomdtb.dtb');
+		readFileStub.restore();
+
+		text = stripIndent`\
+			DEFAULT primary
+			# Comment
+
+			TIMEOUT 30
+			MENU TITLE Boot Options
+			LABEL primary
+						MENU LABEL primary Image
+						LINUX /Image
+						FDT /boot/mycustomdtb.dtb
+						APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3,4,5\
+		`;
+		readFileStub = stub(fs, 'readFile').resolves(text);
+
+		parsed = backend.getBootConfig();
+
+		readFileStub.restore();
+
+		await expect(parsed)
+			.to.eventually.have.property('isolcpus')
+			.that.equals('3,4,5');
+	});
 
 	it('only matches supported devices', () => {
 		[
@@ -35,9 +148,11 @@ describe('EXTLINUX Configuration', () => {
 			// Stub bad config
 			stub(fs, 'readFile').resolves(badConfig.contents);
 			// Expect correct rejection from the given bad config
-			await expect(backend.getBootConfig()).to.eventually.be.rejectedWith(
-				badConfig.reason,
-			);
+			try {
+				await backend.getBootConfig();
+			} catch (e) {
+				expect(e.message).to.equal(badConfig.reason);
+			}
 			// Restore stub
 			(fs.readFile as SinonStub).restore();
 		}
@@ -49,17 +164,19 @@ describe('EXTLINUX Configuration', () => {
 
 		// Stub readFile to return a config that has supported values
 		stub(fs, 'readFile').resolves(stripIndent`
-    DEFAULT primary\n
-    TIMEOUT 30\n
-    MENU TITLE Boot Options\n
-    LABEL primary\n
-          MENU LABEL primary Image\n
-          LINUX /Image
+    DEFAULT primary
+    TIMEOUT 30
+		MENU TITLE Boot Options
+    LABEL primary
+					MENU LABEL primary Image
+					LINUX /Image
+					FDT /boot/mycustomdtb.dtb
           APPEND ro rootwait isolcpus=0,4
     `);
 
 		await expect(backend.getBootConfig()).to.eventually.deep.equal({
 			isolcpus: '0,4',
+			fdt: '/boot/mycustomdtb.dtb',
 		});
 
 		// Restore stub
@@ -71,20 +188,21 @@ describe('EXTLINUX Configuration', () => {
 		stub(child_process, 'exec').resolves();
 
 		await backend.setBootConfig({
+			fdt: '/boot/mycustomdtb.dtb',
 			isolcpus: '2',
-			randomValueBut: 'that_is_ok', // The backend just sets what it is told. validation is ended in device-config.ts
 		});
 
 		expect(fsUtils.writeFileAtomic).to.be.calledWith(
 			'./test/data/mnt/boot/extlinux/extlinux.conf',
-			stripIndent`\
-	      DEFAULT primary\n\
-	      TIMEOUT 30\n\
-	      MENU TITLE Boot Options\n\
-	      LABEL primary\n\
-	      MENU LABEL primary Image\n\
-	      LINUX /Image\n\
-	      APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2 randomValueBut=that_is_ok\n\
+			stripIndent`
+	      DEFAULT primary
+	      TIMEOUT 30
+	      MENU TITLE Boot Options
+	      LABEL primary
+							MENU LABEL primary Image
+							LINUX /Image
+							APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2
+							FDT /boot/mycustomdtb.dtb
 	    ` + '\n', // add newline because stripIndent trims last newline
 		);
 
@@ -96,6 +214,7 @@ describe('EXTLINUX Configuration', () => {
 	it('only allows supported configuration options', () => {
 		[
 			{ configName: 'isolcpus', supported: true },
+			{ configName: 'fdt', supported: true },
 			{ configName: '', supported: false },
 			{ configName: 'ro', supported: false }, // not allowed to configure
 			{ configName: 'rootwait', supported: false }, // not allowed to configure
@@ -107,6 +226,7 @@ describe('EXTLINUX Configuration', () => {
 	it('correctly detects boot config variables', () => {
 		[
 			{ config: 'HOST_EXTLINUX_isolcpus', valid: true },
+			{ config: 'HOST_EXTLINUX_fdt', valid: true },
 			{ config: 'HOST_EXTLINUX_rootwait', valid: true },
 			{ config: 'HOST_EXTLINUX_5', valid: true },
 			// TO-DO: { config: 'HOST_EXTLINUX', valid: false },
@@ -121,6 +241,7 @@ describe('EXTLINUX Configuration', () => {
 	it('converts variable to backend formatted name', () => {
 		[
 			{ input: 'HOST_EXTLINUX_isolcpus', output: 'isolcpus' },
+			{ input: 'HOST_EXTLINUX_fdt', output: 'fdt' },
 			{ input: 'HOST_EXTLINUX_rootwait', output: 'rootwait' },
 			{ input: 'HOST_EXTLINUX_something_else', output: 'something_else' },
 			{ input: 'HOST_EXTLINUX_', output: 'HOST_EXTLINUX_' },
@@ -144,6 +265,7 @@ describe('EXTLINUX Configuration', () => {
 	it('returns the environment name for config variable', () => {
 		[
 			{ input: 'isolcpus', output: 'HOST_EXTLINUX_isolcpus' },
+			{ input: 'fdt', output: 'HOST_EXTLINUX_fdt' },
 			{ input: 'rootwait', output: 'HOST_EXTLINUX_rootwait' },
 			{ input: '', output: 'HOST_EXTLINUX_' },
 			{ input: '5', output: 'HOST_EXTLINUX_5' },
@@ -156,10 +278,10 @@ describe('EXTLINUX Configuration', () => {
 const MALFORMED_CONFIGS = [
 	{
 		contents: stripIndent`
-    TIMEOUT 30\n
-    MENU TITLE Boot Options\n
-    LABEL primary\n
-          MENU LABEL primary Image\n
+    TIMEOUT 30
+    MENU TITLE Boot Options
+    LABEL primary
+          MENU LABEL primary Image
           LINUX /Image
           APPEND ro rootwait isolcpus=0,4
     `,
@@ -167,24 +289,23 @@ const MALFORMED_CONFIGS = [
 	},
 	{
 		contents: stripIndent`
-    DEFAULT typo_oops\n
-    TIMEOUT 30\n
-    MENU TITLE Boot Options\n
-    LABEL primary\n
-          MENU LABEL primary Image\n
+    DEFAULT typo_oops
+    TIMEOUT 30
+    MENU TITLE Boot Options
+    LABEL primary
+          MENU LABEL primary Image
           LINUX /Image
           APPEND ro rootwait isolcpus=0,4
     `,
-		reason:
-			'Cannot find default label entry (label: typo_oops) for extlinux.conf file',
+		reason: 'Cannot find label entry (label: typo_oops) for extlinux.conf file',
 	},
 	{
 		contents: stripIndent`
-    DEFAULT primary\n
-    TIMEOUT 30\n
-    MENU TITLE Boot Options\n
-    LABEL primary\n
-          MENU LABEL primary Image\n
+    DEFAULT primary
+    TIMEOUT 30
+    MENU TITLE Boot Options
+    LABEL primary
+          MENU LABEL primary Image
           LINUX /Image
     `,
 		reason:
@@ -192,15 +313,14 @@ const MALFORMED_CONFIGS = [
 	},
 	{
 		contents: stripIndent`
-    DEFAULT primary\n
-    TIMEOUT 30\n
-    MENU TITLE Boot Options\n
-    LABEL primary\n
-          MENU LABEL primary Image\n
+    DEFAULT primary
+    TIMEOUT 30
+    MENU TITLE Boot Options
+    LABEL primary
+          MENU LABEL primary Image
           LINUX /Image
           APPEND ro rootwait isolcpus=0,4=woops
     `,
-		reason:
-			'Could not parse extlinux configuration entry: ro,rootwait,isolcpus=0,4=woops [value with error: isolcpus=0,4=woops]',
+		reason: 'Unable to parse invalid value: isolcpus=0,4=woops',
 	},
 ];

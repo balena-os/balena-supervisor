@@ -4,7 +4,7 @@ import { EnvVarObject } from '../lib/types';
 import { ExtlinuxConfigBackend } from './backends/extlinux';
 import { RPiConfigBackend } from './backends/raspberry-pi';
 import { ConfigfsConfigBackend } from './backends/config-fs';
-import { ConfigOptions, DeviceConfigBackend } from './backend';
+import { ConfigOptions, DeviceConfigBackend } from './backends/backend';
 
 const configBackends = [
 	new ExtlinuxConfigBackend(),

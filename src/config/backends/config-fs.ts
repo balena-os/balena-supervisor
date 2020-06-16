@@ -7,13 +7,13 @@ import {
 	DeviceConfigBackend,
 	bootMountPoint,
 	remountAndWriteAtomic,
-} from '../backend';
+} from './backend';
 import * as constants from '../../lib/constants';
 import * as logger from '../../logger';
 import log from '../../lib/supervisor-console';
 
 /**
- * A backend to handle ConfigFS host configuration for ACPI SSDT loading
+ * A backend to handle ConfigFS host configuration
  *
  * Supports:
  * 	- {BALENA|RESIN}_HOST_CONFIGFS_ssdt = value | "value" | "value1","value2"
@@ -94,7 +94,7 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 				`AML: ${oemId.trim()} ${oemTableId.trim()} (Rev ${oemRevision.trim()})`,
 			);
 		} catch (e) {
-			log.error(e);
+			log.error('Issue while loading AML ${aml}', e);
 		}
 		return true;
 	}
@@ -121,7 +121,7 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 	}
 
 	private async loadConfiguredSsdt(config: ConfigfsConfig): Promise<void> {
-		if (_.isArray(config['ssdt'])) {
+		if (Array.isArray(config['ssdt'])) {
 			log.info('Loading configured SSDTs');
 			for (const aml of config['ssdt']) {
 				await this.loadAML(aml);
@@ -169,7 +169,7 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 
 		// see which SSDTs we have configured...
 		const ssdt = config['ssdt'];
-		if (_.isArray(ssdt) && ssdt.length > 0) {
+		if (Array.isArray(ssdt) && ssdt.length > 0) {
 			// we have some...
 			options['ssdt'] = ssdt;
 		}

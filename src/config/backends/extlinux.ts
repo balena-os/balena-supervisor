@@ -6,38 +6,45 @@ import {
 	DeviceConfigBackend,
 	bootMountPoint,
 	remountAndWriteAtomic,
-} from '../backend';
+} from './backend';
+import {
+	ExtlinuxFile,
+	Directive,
+	AppendDirective,
+	FDTDirective,
+} from './extlinux-file';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
+import { ExtLinuxParseError } from '../../lib/errors';
 
 /**
- * A backend to handle ConfigFS host configuration for ACPI SSDT loading
+ * A backend to handle extlinux host configuration
  *
  * Supports:
- * 	- {BALENA|RESIN}_HOST_CONFIGFS_ssdt = value | "value" | "value1","value2"
+ * 	- {BALENA|RESIN}_HOST_EXTLINUX_isolcpus = value | "value" | "value1","value2"
+ * 	- {BALENA|RESIN}_HOST_EXTLINUX_fdt = value | "value"
  */
-
-interface ExtlinuxFile {
-	labels: {
-		[labelName: string]: {
-			[directive: string]: string;
-		};
-	};
-	globals: { [directive: string]: string };
-}
 
 export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
 	private static bootConfigPath = `${bootMountPoint}/extlinux/extlinux.conf`;
+	private static supportedConfigValues = ['isolcpus', 'fdt'];
+	private static supportedDirectives = ['APPEND', 'FDT'];
 
-	public static bootConfigVarRegex = new RegExp(
-		'(' + _.escapeRegExp(ExtlinuxConfigBackend.bootConfigVarPrefix) + ')(.+)',
+	private fdtDirective = new FDTDirective();
+	private appendDirective = new AppendDirective(
+		// Pass in list of supportedConfigValues that APPEND can have
+		ExtlinuxConfigBackend.supportedConfigValues.filter(
+			(v) => !this.isDirective(v),
+		),
 	);
 
-	private static supportedConfigKeys = ['isolcpus'];
+	public static bootConfigVarRegex = new RegExp(
+		'(?:' + _.escapeRegExp(ExtlinuxConfigBackend.bootConfigVarPrefix) + ')(.+)',
+	);
 
 	public matches(deviceType: string): boolean {
-		return _.startsWith(deviceType, 'jetson-tx');
+		return deviceType.startsWith('jetson-tx');
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {
@@ -51,59 +58,38 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		} catch {
 			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick
-			throw new Error(
+			throw new ExtLinuxParseError(
 				'Could not find extlinux file. Device is possibly bricked',
 			);
 		}
 
+		// Parse ExtlinuxFile from file contents
 		const parsedBootFile = ExtlinuxConfigBackend.parseExtlinuxFile(
 			confContents,
 		);
 
-		// First find the default label name
-		const defaultLabel = _.find(parsedBootFile.globals, (_v, l) => {
-			if (l === 'DEFAULT') {
-				return true;
-			}
-			return false;
-		});
+		// Get default label to know which label entry to parse
+		const defaultLabel = ExtlinuxConfigBackend.findDefaultLabel(parsedBootFile);
 
-		if (defaultLabel == null) {
-			throw new Error('Could not find default entry for extlinux.conf file');
-		}
+		// Get the label entry we will parse
+		const labelEntry = ExtlinuxConfigBackend.getLabelEntry(
+			parsedBootFile,
+			defaultLabel,
+		);
 
-		const labelEntry = parsedBootFile.labels[defaultLabel];
+		// Parse APPEND directive and filter out unsupported values
+		const appendConfig = _.pickBy(
+			this.appendDirective.parse(labelEntry),
+			(_value, key) => this.isSupportedConfig(key),
+		);
 
-		if (labelEntry == null) {
-			throw new Error(
-				`Cannot find default label entry (label: ${defaultLabel}) for extlinux.conf file`,
-			);
-		}
+		// Parse FDT directive
+		const fdtConfig = this.fdtDirective.parse(labelEntry);
 
-		// All configuration options come from the `APPEND` directive in the default label entry
-		const appendEntry = labelEntry.APPEND;
-
-		if (appendEntry == null) {
-			throw new Error(
-				'Could not find APPEND directive in default extlinux.conf boot entry',
-			);
-		}
-
-		const conf: ConfigOptions = {};
-		const values = appendEntry.split(' ');
-		for (const value of values) {
-			const parts = value.split('=');
-			if (this.isSupportedConfig(parts[0])) {
-				if (parts.length !== 2) {
-					throw new Error(
-						`Could not parse extlinux configuration entry: ${values} [value with error: ${value}]`,
-					);
-				}
-				conf[parts[0]] = parts[1];
-			}
-		}
-
-		return conf;
+		return {
+			...appendConfig,
+			...fdtConfig,
+		};
 	}
 
 	public async setBootConfig(opts: ConfigOptions): Promise<void> {
@@ -123,60 +109,55 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 			);
 		}
 
-		const extlinuxFile = ExtlinuxConfigBackend.parseExtlinuxFile(
-			confContents.toString(),
-		);
-		const defaultLabel = extlinuxFile.globals.DEFAULT;
-		if (defaultLabel == null) {
-			throw new Error(
-				'Could not find DEFAULT directive entry in extlinux.conf',
-			);
-		}
-		const defaultEntry = extlinuxFile.labels[defaultLabel];
-		if (defaultEntry == null) {
-			throw new Error(
-				`Could not find default extlinux.conf entry: ${defaultLabel}`,
-			);
-		}
-
-		if (defaultEntry.APPEND == null) {
-			throw new Error(
-				`extlinux.conf APPEND directive not found for default entry: ${defaultLabel}, not sure how to proceed!`,
-			);
-		}
-
-		const appendLine = _.filter(defaultEntry.APPEND.split(' '), (entry) => {
-			const lhs = entry.split('=');
-			return !this.isSupportedConfig(lhs[0]);
-		});
-
-		// Apply the new configuration to the "plain" append line above
-
-		_.each(opts, (value, key) => {
-			appendLine.push(`${key}=${value}`);
-		});
-
-		defaultEntry.APPEND = appendLine.join(' ');
-		const extlinuxString = ExtlinuxConfigBackend.extlinuxFileToString(
-			extlinuxFile,
+		// Parse ExtlinuxFile from file contents
+		const parsedBootFile = ExtlinuxConfigBackend.parseExtlinuxFile(
+			confContents,
 		);
 
-		await remountAndWriteAtomic(
+		// Get default label to know which label entry to edit
+		const defaultLabel = ExtlinuxConfigBackend.findDefaultLabel(parsedBootFile);
+
+		// Get the label entry we will edit
+		const defaultEntry = ExtlinuxConfigBackend.getLabelEntry(
+			parsedBootFile,
+			defaultLabel,
+		);
+
+		// Set `FDT` directive if a value is provided
+		if (opts.fdt) {
+			defaultEntry.FDT = this.fdtDirective.generate(opts);
+		}
+
+		// Remove unsupported options
+		const appendOptions = _.pickBy(
+			opts,
+			// supportedConfigValues has values AND directives so we must filter directives out
+			(_value, key) => this.isSupportedConfig(key) && !this.isDirective(key),
+		);
+
+		// Add config values to `APPEND` directive
+		defaultEntry.APPEND = this.appendDirective.generate(
+			appendOptions,
+			defaultEntry.APPEND,
+		);
+
+		// Write new extlinux configuration
+		return await remountAndWriteAtomic(
 			ExtlinuxConfigBackend.bootConfigPath,
-			extlinuxString,
+			ExtlinuxConfigBackend.extlinuxFileToString(parsedBootFile),
 		);
 	}
 
 	public isSupportedConfig(configName: string): boolean {
-		return _.includes(ExtlinuxConfigBackend.supportedConfigKeys, configName);
+		return ExtlinuxConfigBackend.supportedConfigValues.includes(configName);
 	}
 
 	public isBootConfigVar(envVar: string): boolean {
-		return _.startsWith(envVar, ExtlinuxConfigBackend.bootConfigVarPrefix);
+		return envVar.startsWith(ExtlinuxConfigBackend.bootConfigVarPrefix);
 	}
 
 	public processConfigVarName(envVar: string): string {
-		return envVar.replace(ExtlinuxConfigBackend.bootConfigVarRegex, '$2');
+		return envVar.replace(ExtlinuxConfigBackend.bootConfigVarRegex, '$1');
 	}
 
 	public processConfigVarValue(_key: string, value: string): string {
@@ -187,19 +168,20 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		return `${ExtlinuxConfigBackend.bootConfigVarPrefix}${configName}`;
 	}
 
+	private isDirective(configName: string): boolean {
+		return ExtlinuxConfigBackend.supportedDirectives.includes(
+			configName.toUpperCase(),
+		);
+	}
+
 	private static parseExtlinuxFile(confStr: string): ExtlinuxFile {
 		const file: ExtlinuxFile = {
 			globals: {},
 			labels: {},
 		};
 
-		// Firstly split by line and filter any comments and empty lines
-		let lines = confStr.split(/\r?\n/);
-		lines = _.filter(lines, (l) => {
-			const trimmed = _.trimStart(l);
-			return trimmed !== '' && !_.startsWith(trimmed, '#');
-		});
-
+		// Split by line and filter any comments and empty lines
+		const lines = confStr.split(/(?:\r?\n[\s#]*)+/);
 		let lastLabel = '';
 
 		for (const line of lines) {
@@ -247,5 +229,24 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 			});
 		});
 		return ret;
+	}
+
+	private static findDefaultLabel(file: ExtlinuxFile): string {
+		if (!file.globals.DEFAULT) {
+			throw new ExtLinuxParseError(
+				'Could not find default entry for extlinux.conf file',
+			);
+		}
+		return file.globals.DEFAULT;
+	}
+
+	private static getLabelEntry(file: ExtlinuxFile, label: string): Directive {
+		const labelEntry = file.labels[label];
+		if (labelEntry == null) {
+			throw new ExtLinuxParseError(
+				`Cannot find label entry (label: ${label}) for extlinux.conf file`,
+			);
+		}
+		return labelEntry;
 	}
 }

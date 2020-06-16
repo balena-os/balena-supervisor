@@ -106,3 +106,7 @@ export class ContractViolationError extends TypedError {
 export class AppsJsonParseError extends TypedError {}
 export class DatabaseParseError extends TypedError {}
 export class BackupError extends TypedError {}
+
+export class ExtLinuxParseError extends TypedError {}
+export class AppendDirectiveError extends TypedError {}
+export class FDTDirectiveError extends TypedError {}

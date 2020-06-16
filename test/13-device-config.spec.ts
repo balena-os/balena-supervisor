@@ -10,7 +10,7 @@ import * as fsUtils from '../src/lib/fs-utils';
 import * as logger from '../src/logger';
 import { ExtlinuxConfigBackend } from '../src/config/backends/extlinux';
 import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
-import { DeviceConfigBackend } from '../src/config/backend';
+import { DeviceConfigBackend } from '../src/config/backends/backend';
 import prepare = require('./lib/prepare');
 
 const extlinuxBackend = new ExtlinuxConfigBackend();
@@ -48,12 +48,12 @@ describe('Device Backend Config', () => {
 
 		// Stub readFile to return a config that has initramfs and array variables
 		stub(fs, 'readFile').resolves(stripIndent`
-			initramfs initramf.gz 0x00800000\n\
-			dtparam=i2c=on\n\
-			dtparam=audio=on\n\
-			dtoverlay=ads7846\n\
-			dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13\n\
-			foobar=baz\n\
+			initramfs initramf.gz 0x00800000
+			dtparam=i2c=on
+			dtparam=audio=on
+			dtoverlay=ads7846
+			dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
+			foobar=baz
 		`);
 
 		await expect(
@@ -154,13 +154,13 @@ describe('Device Backend Config', () => {
 		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 		expect(fsUtils.writeFileAtomic).to.be.calledWith(
 			'./test/data/mnt/boot/config.txt',
-			stripIndent`\
-				initramfs initramf.gz 0x00800000\n\
-				dtparam=i2c=on\n\
-				dtparam=audio=off\n\
-				dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13\n\
-				foobar=bat\n\
-				foobaz=bar\n\
+			stripIndent`
+				initramfs initramf.gz 0x00800000
+				dtparam=i2c=on
+				dtparam=audio=off
+				dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
+				foobar=bat
+				foobaz=bar
 			` + '\n', // add newline because stripIndent trims last newline
 		);
 
@@ -209,106 +209,6 @@ describe('Device Backend Config', () => {
 	});
 
 	describe('Extlinux files', () => {
-		it('should parse a extlinux.conf file', () => {
-			const text = stripIndent`\
-				DEFAULT primary
-				# Comment
-				TIMEOUT 30
-
-				MENU TITLE Boot Options
-				LABEL primary
-				MENU LABEL primary Image
-				LINUX /Image
-				APPEND \${cbootargs} \${resin_kernel_root} ro rootwait\
-			`;
-
-			// @ts-ignore accessing private method
-			const parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text);
-			expect(parsed.globals).to.have.property('DEFAULT').that.equals('primary');
-			expect(parsed.globals).to.have.property('TIMEOUT').that.equals('30');
-			expect(parsed.globals)
-				.to.have.property('MENU TITLE')
-				.that.equals('Boot Options');
-
-			expect(parsed.labels).to.have.property('primary');
-			const { primary } = parsed.labels;
-			expect(primary)
-				.to.have.property('MENU LABEL')
-				.that.equals('primary Image');
-			expect(primary).to.have.property('LINUX').that.equals('/Image');
-			expect(primary)
-				.to.have.property('APPEND')
-				.that.equals('${cbootargs} ${resin_kernel_root} ro rootwait');
-		});
-
-		it('should parse multiple service entries', () => {
-			const text = stripIndent`\
-				DEFAULT primary
-				# Comment
-				TIMEOUT 30
-
-				MENU TITLE Boot Options
-				LABEL primary
-				LINUX test1
-				APPEND test2
-				LABEL secondary
-				LINUX test3
-				APPEND test4\
-			`;
-
-			// @ts-ignore accessing private method
-			const parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text);
-			expect(parsed.labels).to.have.property('primary').that.deep.equals({
-				LINUX: 'test1',
-				APPEND: 'test2',
-			});
-			expect(parsed.labels).to.have.property('secondary').that.deep.equals({
-				LINUX: 'test3',
-				APPEND: 'test4',
-			});
-		});
-
-		it('should parse configuration options from an extlinux.conf file', () => {
-			let text = stripIndent`\
-				DEFAULT primary
-				# Comment
-				TIMEOUT 30
-
-				MENU TITLE Boot Options
-				LABEL primary
-				MENU LABEL primary Image
-				LINUX /Image
-				APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3\
-			`;
-
-			let readFileStub = stub(fs, 'readFile').resolves(text);
-			let parsed = extlinuxBackend.getBootConfig();
-
-			expect(parsed).to.eventually.have.property('isolcpus').that.equals('3');
-			readFileStub.restore();
-
-			text = stripIndent`\
-				DEFAULT primary
-				# Comment
-				TIMEOUT 30
-
-				MENU TITLE Boot Options
-				LABEL primary
-				MENU LABEL primary Image
-				LINUX /Image
-				APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3,4,5\
-			`;
-			readFileStub = stub(fs, 'readFile').resolves(text);
-
-			parsed = extlinuxBackend.getBootConfig();
-
-			readFileStub.restore();
-
-			expect(parsed)
-				.to.eventually.have.property('isolcpus')
-				.that.equals('3,4,5');
-		});
-
 		it('should correctly write to extlinux.conf files', async () => {
 			stub(fsUtils, 'writeFileAtomic').resolves();
 			stub(child_process, 'exec').resolves();
@@ -316,6 +216,7 @@ describe('Device Backend Config', () => {
 			const current = {};
 			const target = {
 				HOST_EXTLINUX_isolcpus: '2',
+				HOST_EXTLINUX_fdt: '/boot/mycustomdtb.dtb',
 			};
 
 			expect(
@@ -330,14 +231,15 @@ describe('Device Backend Config', () => {
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 			expect(fsUtils.writeFileAtomic).to.be.calledWith(
 				'./test/data/mnt/boot/extlinux/extlinux.conf',
-				stripIndent`\
-					DEFAULT primary\n\
-					TIMEOUT 30\n\
-					MENU TITLE Boot Options\n\
-					LABEL primary\n\
-					MENU LABEL primary Image\n\
-					LINUX /Image\n\
-					APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2\n\
+				stripIndent`
+					DEFAULT primary
+					TIMEOUT 30
+					MENU TITLE Boot Options
+					LABEL primary
+					MENU LABEL primary Image
+					LINUX /Image
+					APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=2
+					FDT /boot/mycustomdtb.dtb
 				` + '\n', // add newline because stripIndent trims last newline
 			);
 
