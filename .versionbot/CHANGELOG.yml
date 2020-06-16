@@ -1,4 +1,14 @@
 - commits:
+    - subject: Update webpack dependencies
+      hash: e1fb8683f4687aa0844bf73780916db34e3ebd3d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+  version: 11.8.1
+  date: 2020-06-16T12:08:37.495Z
+- commits:
     - subject: Use API v6
       hash: 1dccbaecd8a6cd8bf551e3b56131066e9de9ed35
       body: ''
