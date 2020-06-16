@@ -153,7 +153,7 @@ export class APIBinder {
 			return;
 		}
 
-		const baseUrl = url.resolve(apiEndpoint, '/v5/');
+		const baseUrl = url.resolve(apiEndpoint, '/v6/');
 		const passthrough = _.cloneDeep(await request.getRequestOptions());
 		passthrough.headers =
 			passthrough.headers != null ? passthrough.headers : {};
