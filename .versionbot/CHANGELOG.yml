@@ -1,4 +1,45 @@
 - commits:
+    - subject: Make service-manager module a singleton
+      hash: 0e8d92e08af5f18fce9aa9e3e1e7057c98dee1c3
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Make volume-manager module a singleton
+      hash: adaad786af161a7a3cdf61f2c63926e702fef790
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Make network-manager module a singleton
+      hash: 8fc97b9de89392bb9e6fd562e12d261ced3990cb
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Add supervisor upgrade document
+      hash: 989ec83a27621cab6c53dd026c2407dfe1b1b179
+      body: ''
+      footer:
+        Connects-to: 'https://github.com/balena-io/balena-io/issues/2157'
+        connects-to: 'https://github.com/balena-io/balena-io/issues/2157'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Hugh Brown <hugh@balena.io>
+        signed-off-by: Hugh Brown <hugh@balena.io>
+      author: Hugh Brown
+  version: 11.8.2
+  date: 2020-06-17T14:59:07.731Z
+- commits:
     - subject: Update webpack dependencies
       hash: e1fb8683f4687aa0844bf73780916db34e3ebd3d
       body: ''
