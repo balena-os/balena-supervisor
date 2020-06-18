@@ -78,6 +78,10 @@ module.exports = function (env) {
 		},
 		resolve: {
 			extensions: ['.js', '.ts', '.json'],
+			alias: {
+				// Use the es2018 build instead of the default es2015 build
+				'pinejs-client-core': 'pinejs-client-core/es2018',
+			},
 		},
 		target: 'node',
 		node: {

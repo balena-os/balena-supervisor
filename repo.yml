@@ -4,3 +4,7 @@ backports:
   next: 10.8.x
   current: 10.3.x
   sunset: 9.15.x
+
+upstream:
+  - repo: 'pinejs-client-request'
+    url: 'https://github.com/balena-io-modules/pinejs-client-request'

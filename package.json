@@ -20,7 +20,7 @@
     "test:debug": "npm run test:build && TEST=1 mocha --inspect-brk",
     "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ build-utils/ webpack.config.js",
     "test-build": "tsc --project tsconfig.json",
-    "release": "tsc --project tsconfig.release.json && cp -r build/src/* build && rm -rf build/src",
+    "release": "tsc --project tsconfig.release.json && mv build/src/* build",
     "packagejson:copy": "cp package.json build/",
     "testitems:copy": "cp -r test/data build/test/",
     "sync": "ts-node sync/sync.ts"
@@ -101,7 +101,7 @@
     "mz": "^2.7.0",
     "network-checker": "^0.1.1",
     "nodemon": "^2.0.2",
-    "pinejs-client-request": "^5.2.0",
+    "pinejs-client-request": "^7.0.0",
     "pretty-ms": "^5.1.0",
     "request": "^2.88.2",
     "resin-cli-visuals": "^1.5.2",
