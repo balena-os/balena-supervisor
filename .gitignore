@@ -17,3 +17,4 @@ test/data/led_file
 report.xml
 .DS_Store
 .tsbuildinfo
+.prettierrc

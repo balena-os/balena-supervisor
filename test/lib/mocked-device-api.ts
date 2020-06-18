@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { fs } from 'mz';
-import { stub } from 'sinon';
 
 import { ApplicationManager } from '../../src/application-manager';
-import { NetworkManager } from '../../src/compose/network-manager';
-import { ServiceManager } from '../../src/compose/service-manager';
-import { VolumeManager } from '../../src/compose/volume-manager';
+import * as networkManager from '../../src/compose/network-manager';
+import * as serviceManager from '../../src/compose/service-manager';
+import * as volumeManager from '../../src/compose/volume-manager';
 import * as config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
@@ -133,20 +132,25 @@ function buildRoutes(appManager: ApplicationManager): Router {
 	return router;
 }
 
+const originalNetGetAll = networkManager.getAllByAppId;
+const originalVolGetAll = volumeManager.getAllByAppId;
+const originalSvcGetStatus = serviceManager.getStatus;
 function setupStubs() {
-	stub(ServiceManager.prototype, 'getStatus').resolves(STUBBED_VALUES.services);
-	stub(NetworkManager.prototype, 'getAllByAppId').resolves(
-		STUBBED_VALUES.networks,
-	);
-	stub(VolumeManager.prototype, 'getAllByAppId').resolves(
-		STUBBED_VALUES.volumes,
-	);
+	// @ts-expect-error Assigning to a RO property
+	networkManager.getAllByAppId = async () => STUBBED_VALUES.networks;
+	// @ts-expect-error Assigning to a RO property
+	volumeManager.getAllByAppId = async () => STUBBED_VALUES.volumes;
+	// @ts-expect-error Assigning to a RO property
+	serviceManager.getStatus = async () => STUBBED_VALUES.services;
 }
 
 function restoreStubs() {
-	(ServiceManager.prototype as any).getStatus.restore();
-	(NetworkManager.prototype as any).getAllByAppId.restore();
-	(VolumeManager.prototype as any).getAllByAppId.restore();
+	// @ts-expect-error Assigning to a RO property
+	networkManager.getAllByAppId = originalNetGetAll;
+	// @ts-expect-error Assigning to a RO property
+	volumeManager.getAllByAppId = originalVolGetAll;
+	// @ts-expect-error Assigning to a RO property
+	serviceManager.getStatus = originalSvcGetStatus;
 }
 
 interface SupervisorAPIOpts {

@@ -7,14 +7,10 @@ import { ServiceAction } from './device-api/common';
 import { DeviceStatus, InstancedAppState } from './types/state';
 
 import type { Image } from './compose/images';
-import ServiceManager from './compose/service-manager';
 import DeviceState from './device-state';
 
 import { APIBinder } from './api-binder';
 import * as config from './config';
-
-import NetworkManager from './compose/network-manager';
-import VolumeManager from './compose/volume-manager';
 
 import {
 	CompositionStep,
@@ -47,10 +43,6 @@ class ApplicationManager extends EventEmitter {
 	public _lockingIfNecessary: any;
 	public deviceState: DeviceState;
 	public apiBinder: APIBinder;
-
-	public services: ServiceManager;
-	public volumes: VolumeManager;
-	public networks: NetworkManager;
 
 	public proxyvisor: any;
 	public timeSpentFetching: number;

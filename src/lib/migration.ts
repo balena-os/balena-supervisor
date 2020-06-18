@@ -12,6 +12,8 @@ const rimrafAsync = Bluebird.promisify(rimraf);
 import { ApplicationManager } from '../application-manager';
 import * as config from '../config';
 import * as db from '../db';
+import * as volumeManager from '../compose/volume-manager';
+import * as serviceManager from '../compose/service-manager';
 import DeviceState from '../device-state';
 import * as constants from '../lib/constants';
 import { BackupError, DatabaseParseError, NotFoundError } from '../lib/errors';
@@ -243,13 +245,13 @@ export async function normaliseLegacyDatabase(
 	}
 
 	log.debug('Killing legacy containers');
-	await application.services.killAllLegacy();
+	await serviceManager.killAllLegacy();
 	log.debug('Migrating legacy app volumes');
 
 	const targetApps = await application.getTargetApps();
 
 	for (const appId of _.keys(targetApps)) {
-		await application.volumes.createFromLegacy(parseInt(appId, 10));
+		await volumeManager.createFromLegacy(parseInt(appId, 10));
 	}
 
 	await config.set({
@@ -302,7 +304,7 @@ export async function loadBackupFromMigration(
 			if (volumes[volumeName] != null) {
 				log.debug(`Creating volume ${volumeName} from backup`);
 				// If the volume exists (from a previous incomplete run of this restoreBackup), we delete it first
-				await deviceState.applications.volumes
+				await volumeManager
 					.get({ appId, name: volumeName })
 					.then((volume) => {
 						return volume.remove();
@@ -314,7 +316,7 @@ export async function loadBackupFromMigration(
 						throw error;
 					});
 
-				await deviceState.applications.volumes.createFromPath(
+				await volumeManager.createFromPath(
 					{ appId, name: volumeName },
 					volumes[volumeName],
 					path.join(backupPath, volumeName),
