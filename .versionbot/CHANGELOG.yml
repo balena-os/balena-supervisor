@@ -1,4 +1,19 @@
 - commits:
+    - subject: 'state: Report device MAC address to the API'
+      hash: 1b91ef3405d1d2013cbdd6381ed69256c6432d18
+      body: |
+        When reporting device information, send the MAC address of any
+        interfaces on the system. Also expose in the Supervisor API at
+        the route GET /v1/device.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 11.8.4
+  date: 2020-06-22T09:43:53.370Z
+- commits:
     - subject: Update pinejs-client-request to 7.x
       hash: c15f77434ba3b957dc55f5df207026eb2028bd57
       body: |
