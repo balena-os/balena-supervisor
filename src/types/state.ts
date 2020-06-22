@@ -21,6 +21,7 @@ export type DeviceReportFields = Partial<{
 	update_downloaded: boolean;
 	is_on__commit: string;
 	logs_channel: null;
+	mac_address: string | null;
 }>;
 
 export interface DeviceStatus {

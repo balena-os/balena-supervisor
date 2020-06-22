@@ -7,9 +7,11 @@ import * as constants from '../src/lib/constants';
 import { docker } from '../src/lib/docker-utils';
 import { Supervisor } from '../src/supervisor';
 import { expect } from './lib/chai-config';
+import _ = require('lodash');
 
 describe('Startup', () => {
 	let initClientStub: SinonStub;
+	let reportCurrentStateStub: SinonStub;
 	let startStub: SinonStub;
 	let vpnStatusPathStub: SinonStub;
 	let appManagerStub: SinonStub;
@@ -20,6 +22,10 @@ describe('Startup', () => {
 		initClientStub = stub(APIBinder.prototype as any, 'initClient').returns(
 			Promise.resolve(),
 		);
+		reportCurrentStateStub = stub(
+			DeviceState.prototype as any,
+			'reportCurrentState',
+		).resolves();
 		startStub = stub(APIBinder.prototype as any, 'start').returns(
 			Promise.resolve(),
 		);
@@ -40,6 +46,7 @@ describe('Startup', () => {
 		vpnStatusPathStub.restore();
 		deviceStateStub.restore();
 		dockerStub.restore();
+		reportCurrentStateStub.restore();
 	});
 
 	it('should startup correctly', async () => {
@@ -52,5 +59,20 @@ describe('Startup', () => {
 		expect(anySupervisor.logger).to.not.be.null;
 		expect(anySupervisor.deviceState).to.not.be.null;
 		expect(anySupervisor.apiBinder).to.not.be.null;
+
+		let macAddresses: string[] = [];
+		reportCurrentStateStub.getCalls().forEach((call) => {
+			const m: string = call.args[0]['mac_address'];
+			if (!m) {
+				return;
+			}
+
+			macAddresses = _.union(macAddresses, m.split(' '));
+		});
+
+		const allMacAddresses = macAddresses.join(' ');
+
+		expect(allMacAddresses).to.have.length.greaterThan(0);
+		expect(allMacAddresses).to.not.contain('NO:');
 	});
 });

@@ -327,6 +327,7 @@ The state is a JSON object that contains some or all of the following:
 * `api_port`: Port on which the supervisor is listening.
 * `commit`: Hash of the current commit of the application that is running.
 * `ip_address`: Space-separated list of IP addresses of the device.
+* `mac_address`: Space-seperated list of MAC addresses of the device.
 * `status`: Status of the device regarding the app, as a string, i.e. "Stopping", "Starting", "Downloading", "Installing", "Idle".
 * `download_progress`: Amount of the application image that has been downloaded, expressed as a percentage. If the update has already been downloaded, this will be `null`.
 * `os_version`: Version of the host OS running on the device.

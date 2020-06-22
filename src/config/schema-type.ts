@@ -192,6 +192,10 @@ export const schemaTypes = {
 		type: t.union([t.string, NullOrUndefined]),
 		default: t.never,
 	},
+	macAddress: {
+		type: t.union([t.string, NullOrUndefined]),
+		default: t.never,
+	},
 	provisioningOptions: {
 		type: t.interface({
 			// These types are taken from the types of the individual

@@ -115,6 +115,9 @@ export const connectivityCheckEnabled = Bluebird.method(
 );
 
 const IP_REGEX = /^(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|resin-dns|supervisor0|balena-redsocks|resin-redsocks|br-[0-9a-f]{12}$/;
+
+export const shouldReportInterface = (intf: string) => !IP_REGEX.test(intf);
+
 export function getIPAddresses(): string[] {
 	// We get IP addresses but ignore:
 	// - docker and balena bridges (docker0, docker1, balena0, etc)
@@ -126,10 +129,12 @@ export function getIPAddresses(): string[] {
 	// - the docker network for the supervisor API (supervisor0)
 	// - custom docker network bridges (br- + 12 hex characters)
 	return _(os.networkInterfaces())
-		.omitBy((_interfaceFields, interfaceName) => IP_REGEX.test(interfaceName))
+		.filter((_interfaceFields, interfaceName) =>
+			shouldReportInterface(interfaceName),
+		)
 		.flatMap((validInterfaces) => {
 			return _(validInterfaces)
-				.pickBy({ family: 'IPv4' })
+				.pickBy({ family: 'IPv4', internal: false })
 				.map('address')
 				.value();
 		})

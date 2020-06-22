@@ -143,6 +143,7 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 				'api_port',
 				'ip_address',
 				'os_version',
+				'mac_address',
 				'supervisor_version',
 				'update_pending',
 				'update_failed',
@@ -315,6 +316,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			'apiSecret',
 			'osVersion',
 			'osVariant',
+			'macAddress',
 			'version',
 			'provisioned',
 			'apiEndpoint',
@@ -339,6 +341,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			api_secret: conf.apiSecret,
 			os_version: conf.osVersion,
 			os_variant: conf.osVariant,
+			mac_address: conf.macAddress,
 			supervisor_version: conf.version,
 			provisioning_progress: null,
 			provisioning_state: '',
@@ -393,8 +396,10 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		log.debug('Starting periodic check for IP addresses');
 
 		await network.startIPAddressUpdate()(async (addresses) => {
+			const macAddress = await config.get('macAddress');
 			await this.reportCurrentState({
 				ip_address: addresses.join(' '),
+				mac_address: macAddress,
 			});
 		}, constants.ipAddressUpdateInterval);
 	}

@@ -75,9 +75,15 @@ async function create(): Promise<SupervisorAPI> {
 	});
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
-		routers: [buildRoutes(appManager)],
+		routers: [deviceState.router, buildRoutes(appManager)],
 		healthchecks: [deviceState.healthcheck, apiBinder.healthcheck],
 	});
+
+	const macAddress = await config.get('macAddress');
+	deviceState.reportCurrentState({
+		mac_address: macAddress,
+	});
+
 	// Return SupervisorAPI that is not listening yet
 	return api;
 }
