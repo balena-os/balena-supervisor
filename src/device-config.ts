@@ -48,6 +48,7 @@ interface DeviceActionExecutors {
 	changeConfig: DeviceActionExecutorFn;
 	setVPNEnabled: DeviceActionExecutorFn;
 	setBootConfig: DeviceActionExecutorFn;
+	setJournalRotationSize: DeviceActionExecutorFn;
 }
 
 export class DeviceConfig {
@@ -121,6 +122,10 @@ export class DeviceConfig {
 			varType: 'bool',
 			defaultValue: 'false',
 			rebootRequired: true,
+		},
+		persistentLoggingRotationSize: {
+			envVarName: 'SUPERVISOR_PERSISTENT_LOGGING_ROTATION_SIZE',
+			varType: 'string',
 		},
 	};
 
@@ -201,6 +206,10 @@ export class DeviceConfig {
 					configBackend,
 					step.target as Dictionary<string>,
 				);
+			},
+			setJournalRotationSize: async (setp, opts = {}) => {
+				const size = await this.config.get('persistentLoggingRotationSize');
+				setJournalRotationSize(size);
 			},
 		};
 	}
