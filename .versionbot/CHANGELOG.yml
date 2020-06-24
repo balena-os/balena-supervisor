@@ -1,4 +1,16 @@
 - commits:
+    - subject: Added support for configuring FDT directive in extlinux.conf
+      hash: 59fc589eb23bdf8c79c677734d2792b93380c94c
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+  version: 11.9.0
+  date: 2020-06-23T19:58:27.412Z
+- commits:
     - subject: 'state: Report device MAC address to the API'
       hash: 1b91ef3405d1d2013cbdd6381ed69256c6432d18
       body: |
