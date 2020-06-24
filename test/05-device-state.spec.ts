@@ -10,7 +10,7 @@ import Log from '../src/lib/supervisor-console';
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as config from '../src/config';
 import * as images from '../src/compose/images';
-import { RPiConfigBackend } from '../src/config/backend';
+import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
 import DeviceState from '../src/device-state';
 import { loadTargetFromFile } from '../src/device-state/preload';
 import Service from '../src/compose/service';

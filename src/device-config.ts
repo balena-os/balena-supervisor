@@ -6,7 +6,7 @@ import { SchemaTypeKey } from './config/schema-type';
 import * as db from './db';
 import * as logger from './logger';
 
-import { ConfigOptions, DeviceConfigBackend } from './config/backend';
+import { ConfigOptions, DeviceConfigBackend } from './config/backends/backend';
 import * as configUtils from './config/utils';
 import * as dbus from './lib/dbus';
 import { UnitNotLoadedError } from './lib/errors';
