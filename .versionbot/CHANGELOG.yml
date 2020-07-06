@@ -1,4 +1,19 @@
 - commits:
+    - subject: 'avahi: Control with HOST_DISCOVERABILITY'
+      hash: 03ca0ee9add9872b5577833971b43682ae6cc427
+      body: |
+        The host config variable HOST_DISCOVERABILITY can be set to
+        true or false, controlling the state of the avahi service. This
+        determines if the device advertises it's presence over mDNS.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Cameron Diver
+  version: 11.9.2
+  date: 2020-07-06T12:04:46.333Z
+- commits:
     - subject: 'firewall: Add Host Firewall functionality'
       hash: 28c5a44e714a3f155fbd528d0ec672dec1d96ef8
       body: |
