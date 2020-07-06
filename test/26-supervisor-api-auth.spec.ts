@@ -10,7 +10,6 @@ const mockedOptions = {
 
 const VALID_SECRET = mockedAPI.STUBBED_VALUES.config.apiSecret;
 const INVALID_SECRET = 'bad_api_secret';
-const ALLOWED_INTERFACES = ['lo']; // Only need loopback since this is for testing
 
 describe('SupervisorAPI authentication', () => {
 	let api: SupervisorAPI;
@@ -20,11 +19,7 @@ describe('SupervisorAPI authentication', () => {
 		// Create test API
 		api = await mockedAPI.create();
 		// Start test API
-		return api.listen(
-			ALLOWED_INTERFACES,
-			mockedOptions.listenPort,
-			mockedOptions.timeout,
-		);
+		return api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 	});
 
 	after(async () => {

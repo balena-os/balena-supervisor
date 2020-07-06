@@ -6,6 +6,8 @@ process.env.DATABASE_PATH_2 = './test/data/database2.sqlite';
 process.env.DATABASE_PATH_3 = './test/data/database3.sqlite';
 process.env.LED_FILE = './test/data/led_file';
 
+import './lib/mocked-iptables';
+
 import * as dbus from 'dbus';
 import { DBusError, DBusInterface } from 'dbus';
 import { stub } from 'sinon';

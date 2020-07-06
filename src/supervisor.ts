@@ -9,9 +9,10 @@ import * as osRelease from './lib/os-release';
 import * as logger from './logger';
 import SupervisorAPI from './supervisor-api';
 
-import constants = require('./lib/constants');
 import log from './lib/supervisor-console';
 import version = require('./lib/supervisor-version');
+
+import * as firewall from './lib/firewall';
 
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
@@ -71,6 +72,9 @@ export class Supervisor {
 			l4tVersion: await osRelease.getL4tVersion(),
 		});
 
+		log.info('Starting firewall');
+		await firewall.initialised;
+
 		log.debug('Starting api binder');
 		await this.apiBinder.initClient();
 
@@ -86,11 +90,7 @@ export class Supervisor {
 		await this.deviceState.init();
 
 		log.info('Starting API server');
-		this.api.listen(
-			constants.allowedInterfaces,
-			conf.listenPort,
-			conf.apiTimeout,
-		);
+		this.api.listen(conf.listenPort, conf.apiTimeout);
 		this.deviceState.on('shutdown', () => this.api.stop());
 
 		await this.apiBinder.start();

@@ -122,6 +122,11 @@ export class DeviceConfig {
 			defaultValue: 'false',
 			rebootRequired: true,
 		},
+		firewallMode: {
+			envVarName: 'HOST_FIREWALL_MODE',
+			varType: 'string',
+			defaultValue: 'off',
+		},
 	};
 
 	public static validKeys = [
@@ -580,6 +585,8 @@ export class DeviceConfig {
 				return checkTruthy(a) === checkTruthy(b);
 			case 'int':
 				return checkInt(a) === checkInt(b);
+			case 'string':
+				return a === b;
 			default:
 				throw new Error('Incorrect datatype passed to DeviceConfig.configTest');
 		}

@@ -41,6 +41,7 @@ const testTarget1 = {
 		name: 'aDevice',
 		config: {
 			HOST_CONFIG_gpu_mem: '256',
+			HOST_FIREWALL_MODE: 'off',
 			SUPERVISOR_CONNECTIVITY_CHECK: 'true',
 			SUPERVISOR_DELTA: 'false',
 			SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',
@@ -127,6 +128,7 @@ const testTargetWithDefaults2 = {
 		name: 'aDeviceWithDifferentName',
 		config: {
 			HOST_CONFIG_gpu_mem: '512',
+			HOST_FIREWALL_MODE: 'off',
 			SUPERVISOR_CONNECTIVITY_CHECK: 'true',
 			SUPERVISOR_DELTA: 'false',
 			SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',

@@ -7,8 +7,6 @@ import * as morgan from 'morgan';
 import * as config from './config';
 import * as eventTracker from './event-tracker';
 import blink = require('./lib/blink');
-import * as iptables from './lib/iptables';
-import { checkTruthy } from './lib/validation';
 
 import log from './lib/supervisor-console';
 
@@ -90,14 +88,6 @@ export class SupervisorAPI {
 
 	private api = express();
 	private server: Server | null = null;
-	// Holds the function which should apply iptables rules
-	private applyRules: SupervisorAPI['applyListeningRules'] =
-		process.env.TEST === '1'
-			? () => {
-					// don't try to alter iptables
-					// rules while we're running in tests
-			  }
-			: this.applyListeningRules.bind(this);
 
 	public constructor({ routers, healthchecks }: SupervisorAPIConstructOpts) {
 		this.routers = routers;
@@ -174,25 +164,7 @@ export class SupervisorAPI {
 		);
 	}
 
-	public async listen(
-		allowedInterfaces: string[],
-		port: number,
-		apiTimeout: number,
-	): Promise<void> {
-		const localMode = await config.get('localMode');
-		await this.applyRules(localMode || false, port, allowedInterfaces);
-		// Monitor the switching of local mode, and change which interfaces will
-		// be listened to based on that
-		config.on('change', (changedConfig) => {
-			if (changedConfig.localMode != null) {
-				this.applyRules(
-					changedConfig.localMode || false,
-					port,
-					allowedInterfaces,
-				);
-			}
-		});
-
+	public async listen(port: number, apiTimeout: number): Promise<void> {
 		return new Promise((resolve) => {
 			this.server = this.api.listen(port, () => {
 				log.info(`Supervisor API successfully started on port ${port}`);
@@ -202,25 +174,6 @@ export class SupervisorAPI {
 				return resolve();
 			});
 		});
-	}
-
-	private async applyListeningRules(
-		allInterfaces: boolean,
-		port: number,
-		allowedInterfaces: string[],
-	): Promise<void> {
-		try {
-			if (checkTruthy(allInterfaces)) {
-				await iptables.removeRejections(port);
-				log.debug('Supervisor API listening on all interfaces');
-			} else {
-				await iptables.rejectOnAllInterfacesExcept(allowedInterfaces, port);
-				log.debug('Supervisor API listening on allowed interfaces only');
-			}
-		} catch (err) {
-			log.error('Error on switching supervisor API listening rules', err);
-			return this.stop({ errored: true });
-		}
 	}
 
 	public async stop(options?: SupervisorAPIStopOpts): Promise<void> {

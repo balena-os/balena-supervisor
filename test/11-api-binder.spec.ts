@@ -21,8 +21,6 @@ const { expect } = chai;
 const defaultConfigBackend = config.configJsonBackend;
 const initModels = async (obj: Dictionary<any>, filename: string) => {
 	await prepare();
-	config.removeAllListeners();
-
 	// @ts-expect-error setting read-only property
 	config.configJsonBackend = new ConfigJsonConfigBackend(schema, filename);
 	config.generateRequiredFields();

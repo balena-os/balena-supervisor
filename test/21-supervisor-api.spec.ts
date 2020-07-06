@@ -16,7 +16,6 @@ const mockedOptions = {
 };
 
 const VALID_SECRET = mockedAPI.STUBBED_VALUES.config.apiSecret;
-const ALLOWED_INTERFACES = ['lo']; // Only need loopback since this is for testing
 
 describe('SupervisorAPI', () => {
 	let api: SupervisorAPI;
@@ -38,11 +37,7 @@ describe('SupervisorAPI', () => {
 		images.getStatus = () => Promise.resolve([]);
 
 		// Start test API
-		return api.listen(
-			ALLOWED_INTERFACES,
-			mockedOptions.listenPort,
-			mockedOptions.timeout,
-		);
+		return api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 	});
 
 	after(async () => {
@@ -216,20 +211,12 @@ describe('SupervisorAPI', () => {
 			// @ts-ignore
 			Log.error.restore();
 			// Resume API for other test suites
-			return api.listen(
-				ALLOWED_INTERFACES,
-				mockedOptions.listenPort,
-				mockedOptions.timeout,
-			);
+			return api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 		});
 
 		it('logs successful start', async () => {
 			// Start API
-			await api.listen(
-				ALLOWED_INTERFACES,
-				mockedOptions.listenPort,
-				mockedOptions.timeout,
-			);
+			await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 			// Check if success start was logged
 			// @ts-ignore
 			expect(Log.info.lastCall?.lastArg).to.equal(
@@ -239,11 +226,7 @@ describe('SupervisorAPI', () => {
 
 		it('logs shutdown', async () => {
 			// Start API
-			await api.listen(
-				ALLOWED_INTERFACES,
-				mockedOptions.listenPort,
-				mockedOptions.timeout,
-			);
+			await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 			// Stop API
 			await api.stop();
 			// Check if stopped with info was logged
@@ -253,11 +236,7 @@ describe('SupervisorAPI', () => {
 
 		it('logs errored shutdown', async () => {
 			// Start API
-			await api.listen(
-				ALLOWED_INTERFACES,
-				mockedOptions.listenPort,
-				mockedOptions.timeout,
-			);
+			await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 			// Stop API with error
 			await api.stop({ errored: true });
 			// Check if stopped with error was logged
