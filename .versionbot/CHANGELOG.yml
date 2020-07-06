@@ -1,4 +1,22 @@
 - commits:
+    - subject: 'firewall: Add Host Firewall functionality'
+      hash: 28c5a44e714a3f155fbd528d0ec672dec1d96ef8
+      body: |
+        Controlled by BALENA_HOST_FIREWALL_MODE, the firewall can
+        either be 'on' or 'off'.
+
+        - In the 'off' state, all traffic is allowed.
+        - In the 'on' state, only traffic for the core services provided
+          by Balena is allowed.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+  version: 11.9.1
+  date: 2020-07-01T17:45:22.146Z
+- commits:
     - subject: Added support for configuring FDT directive in extlinux.conf
       hash: 59fc589eb23bdf8c79c677734d2792b93380c94c
       body: ''
