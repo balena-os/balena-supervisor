@@ -35,6 +35,15 @@ export async function getLoginManagerInterface() {
 	}
 }
 
+async function startUnit(unitName: string) {
+	const systemd = await getSystemdInterface();
+	try {
+		systemd.StartUnit(unitName, 'fail');
+	} catch (e) {
+		throw new DbusError(e);
+	}
+}
+
 export async function restartService(serviceName: string) {
 	const systemd = await getSystemdInterface();
 	try {
@@ -45,21 +54,28 @@ export async function restartService(serviceName: string) {
 }
 
 export async function startService(serviceName: string) {
+	return startUnit(`${serviceName}.service`);
+}
+
+export async function startSocket(socketName: string) {
+	return startUnit(`${socketName}.socket`);
+}
+
+async function stopUnit(unitName: string) {
 	const systemd = await getSystemdInterface();
 	try {
-		systemd.StartUnit(`${serviceName}.service`, 'fail');
+		systemd.StopUnit(unitName, 'fail');
 	} catch (e) {
 		throw new DbusError(e);
 	}
 }
 
 export async function stopService(serviceName: string) {
-	const systemd = await getSystemdInterface();
-	try {
-		systemd.StopUnit(`${serviceName}.service`, 'fail');
-	} catch (e) {
-		throw new DbusError(e);
-	}
+	return stopUnit(`${serviceName}.service`);
+}
+
+export async function stopSocket(socketName: string) {
+	return stopUnit(`${socketName}.socket`);
 }
 
 export async function enableService(serviceName: string) {

@@ -42,6 +42,7 @@ const testTarget1 = {
 		config: {
 			HOST_CONFIG_gpu_mem: '256',
 			HOST_FIREWALL_MODE: 'off',
+			HOST_DISCOVERABILITY: 'true',
 			SUPERVISOR_CONNECTIVITY_CHECK: 'true',
 			SUPERVISOR_DELTA: 'false',
 			SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',
@@ -129,6 +130,7 @@ const testTargetWithDefaults2 = {
 		config: {
 			HOST_CONFIG_gpu_mem: '512',
 			HOST_FIREWALL_MODE: 'off',
+			HOST_DISCOVERABILITY: 'true',
 			SUPERVISOR_CONNECTIVITY_CHECK: 'true',
 			SUPERVISOR_DELTA: 'false',
 			SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',

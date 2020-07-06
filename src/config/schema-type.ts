@@ -170,6 +170,10 @@ export const schemaTypes = {
 		type: t.string,
 		default: NullOrUndefined,
 	},
+	hostDiscoverability: {
+		type: PermissiveBoolean,
+		default: true,
+	},
 
 	// Function schema types
 	// The type should be the value that the promise resolves

@@ -127,6 +127,11 @@ export class DeviceConfig {
 			varType: 'string',
 			defaultValue: 'off',
 		},
+		hostDiscoverability: {
+			envVarName: 'HOST_DISCOVERABILITY',
+			varType: 'bool',
+			defaultValue: 'true',
+		},
 	};
 
 	public static validKeys = [

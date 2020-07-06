@@ -192,6 +192,7 @@ describe('Device Backend Config', () => {
 		const conf = deviceConfig.getDefaults();
 		return expect(conf).to.deep.equal({
 			HOST_FIREWALL_MODE: 'off',
+			HOST_DISCOVERABILITY: 'true',
 			SUPERVISOR_VPN_CONTROL: 'true',
 			SUPERVISOR_POLL_INTERVAL: '60000',
 			SUPERVISOR_LOCAL_MODE: 'false',
