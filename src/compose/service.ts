@@ -290,7 +290,7 @@ export class Service {
 		config.volumes = Service.extendAndSanitiseVolumes(
 			config.volumes,
 			options.imageInfo,
-			service.appId || 0,
+			service.appId,
 			service.serviceName || '',
 		);
 
@@ -568,7 +568,13 @@ export class Service {
 			tty: container.Config.Tty || false,
 		};
 
-		svc.appId = checkInt(svc.config.labels['io.balena.app-id']) || null;
+		const appId = checkInt(svc.config.labels['io.balena.app-id']);
+		if (appId == null) {
+			throw new InternalInconsistencyError(
+				`Found a service with no appId! ${svc}`,
+			);
+		}
+		svc.appId = appId;
 		svc.serviceId = checkInt(svc.config.labels['io.balena.service-id']) || null;
 		svc.serviceName = svc.config.labels['io.balena.service-name'];
 		const nameMatch = container.Name.match(/.*_(\d+)_(\d+)$/);
