@@ -44,7 +44,7 @@ interface CompositionStepArgs {
 	} & BaseCompositionStepArgs;
 	updateMetadata: {
 		current: Service;
-		target: { imageId: number; releaseId: number };
+		target: Service;
 		options?: {
 			skipLock?: boolean;
 		};
@@ -68,6 +68,7 @@ interface CompositionStepArgs {
 		target: Service;
 		options?: {
 			skipLock?: boolean;
+			timeout?: number;
 		};
 	} & BaseCompositionStepArgs;
 	fetch: {
@@ -94,6 +95,7 @@ interface CompositionStepArgs {
 		current: Volume;
 	};
 	ensureSupervisorNetwork: {};
+	noop: {};
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;
@@ -105,7 +107,7 @@ export type CompositionStep = CompositionStepT<CompositionStepAction>;
 export function generateStep<T extends CompositionStepAction>(
 	action: T,
 	args: CompositionStepArgs[T],
-): CompositionStepT<T> {
+): CompositionStep {
 	return {
 		action,
 		...args,
@@ -131,7 +133,7 @@ interface CompositionCallbacks {
 	fetchStart: () => void;
 	fetchEnd: () => void;
 	fetchTime: (time: number) => void;
-	stateReport: (state: Dictionary<unknown>) => boolean;
+	stateReport: (state: Dictionary<unknown>) => void;
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
 }
 
@@ -260,7 +262,7 @@ export function getExecutors(app: {
 						// been downloaded ,and it's relevant mostly for
 						// the legacy GET /v1/device endpoint that assumes
 						// a single container app
-						await app.callbacks.stateReport({ update_downloaded: true });
+						app.callbacks.stateReport({ update_downloaded: true });
 					}
 				},
 				step.serviceName,
@@ -292,6 +294,9 @@ export function getExecutors(app: {
 		},
 		ensureSupervisorNetwork: async () => {
 			networkManager.ensureSupervisorNetwork();
+		},
+		noop: async () => {
+			/* async noop */
 		},
 	};
 
