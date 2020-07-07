@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 
 import * as config from '../config';
 
-import { ApplicationManager } from '../application-manager';
+import * as applicationManager from './application-manager';
 import type { Image } from './images';
 import * as images from './images';
 import Network from './network';
@@ -139,7 +139,6 @@ interface CompositionCallbacks {
 
 export function getExecutors(app: {
 	lockFn: LockingFn;
-	applications: ApplicationManager;
 	callbacks: CompositionCallbacks;
 }) {
 	const executors: Executors<CompositionStepAction> = {
@@ -212,7 +211,7 @@ export function getExecutors(app: {
 			);
 		},
 		stopAll: async (step) => {
-			await app.applications.stopAll({
+			await applicationManager.stopAll({
 				force: step.force,
 				skipLock: step.skipLock,
 			});
