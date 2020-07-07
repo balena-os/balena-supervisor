@@ -141,10 +141,7 @@ export async function getByDockerContainerId(
 	return Service.fromDockerContainer(container);
 }
 
-export async function updateMetadata(
-	service: Service,
-	metadata: { imageId: number; releaseId: number },
-) {
+export async function updateMetadata(service: Service, target: Service) {
 	const svc = await get(service);
 	if (svc.containerId == null) {
 		throw new InternalInconsistencyError(
@@ -153,7 +150,7 @@ export async function updateMetadata(
 	}
 
 	await docker.getContainer(svc.containerId).rename({
-		name: `${service.serviceName}_${metadata.imageId}_${metadata.releaseId}`,
+		name: `${service.serviceName}_${target.imageId}_${target.releaseId}`,
 	});
 }
 
