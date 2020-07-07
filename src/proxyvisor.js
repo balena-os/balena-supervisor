@@ -693,6 +693,8 @@ export class Proxyvisor {
 	}
 
 	imagesInUse(current, target) {
+		// FIXME: Do not merge without first fixing this
+		return [];
 		const images = [];
 		if (current.dependent?.apps != null) {
 			for (const app of current.dependent.apps) {

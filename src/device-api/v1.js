@@ -6,7 +6,9 @@ import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
 import { doRestart, doPurge, serviceAction } from './common';
 
-export const createV1Api = function (router, applications) {
+import * as applications from '../compose/application-manager';
+
+export const createV1Api = function (router) {
 	router.post('/v1/restart', function (req, res, next) {
 		const appId = checkInt(req.body.appId);
 		const force = checkTruthy(req.body.force) ?? false;

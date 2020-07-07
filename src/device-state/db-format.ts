@@ -14,6 +14,7 @@ import { NotFoundError } from '../lib/errors';
 import Service from '../compose/service';
 import Network from '../compose/network';
 import Volume from '../compose/volume';
+import App from '../compose/app';
 import type {
 	DeviceMetadata,
 	ServiceComposeConfig,
@@ -99,48 +100,45 @@ async function buildApp(dbApp: targetStateCache.DatabaseApp) {
 
 	// In the db, the services are an array, but here we switch them to an
 	// object so that they are consistent
-	const services = _.keyBy(
-		await Promise.all(
-			(JSON.parse(dbApp.services) ?? []).map(
-				async (svc: ServiceComposeConfig) => {
-					// Try to fill the image id if the image is downloaded
-					let imageInfo: ImageInspectInfo | undefined;
-					try {
-						imageInfo = await images.inspectByName(svc.image);
-					} catch (e) {
-						if (!NotFoundError(e)) {
-							throw e;
-						}
+	const services: Service[] = await Promise.all(
+		(JSON.parse(dbApp.services) ?? []).map(
+			async (svc: ServiceComposeConfig) => {
+				// Try to fill the image id if the image is downloaded
+				let imageInfo: ImageInspectInfo | undefined;
+				try {
+					imageInfo = await images.inspectByName(svc.image);
+				} catch (e) {
+					if (!NotFoundError(e)) {
+						throw e;
 					}
+				}
 
-					const thisSvcOpts = {
-						...svcOpts,
-						imageInfo,
-						serviceName: svc.serviceName,
-					};
-					// We force the casting here as we know that the UUID exists, but the typings do
-					// not
-					return Service.fromComposeObject(
-						svc,
-						(thisSvcOpts as unknown) as DeviceMetadata,
-					);
-				},
-			),
+				const thisSvcOpts = {
+					...svcOpts,
+					imageInfo,
+					serviceName: svc.serviceName,
+				};
+				// FIXME: Typings for DeviceMetadata
+				return Service.fromComposeObject(
+					svc,
+					(thisSvcOpts as unknown) as DeviceMetadata,
+				);
+			},
 		),
-		'serviceId',
-	) as Dictionary<Service>;
-
-	return {
-		appId: dbApp.appId,
-		commit: dbApp.commit,
-		releaseId: dbApp.releaseId,
-		name: dbApp.name,
-		source: dbApp.source,
-
-		services,
-		volumes,
-		networks,
-	};
+	);
+	return new App(
+		{
+			appId: dbApp.appId,
+			commit: dbApp.commit,
+			releaseId: dbApp.releaseId,
+			appName: dbApp.name,
+			source: dbApp.source,
+			services,
+			volumes,
+			networks,
+		},
+		true,
+	);
 }
 
 export async function setApps(

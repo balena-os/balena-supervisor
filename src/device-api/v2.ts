@@ -2,9 +2,14 @@ import * as Bluebird from 'bluebird';
 import { NextFunction, Request, Response, Router } from 'express';
 import * as _ from 'lodash';
 
-import { ApplicationManager } from '../application-manager';
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
+import * as applications from '../compose/application-manager';
+import {
+	CompositionStepAction,
+	generateStep,
+} from '../compose/composition-steps';
+import { getApp } from '../device-state/db-format';
 import { Service } from '../compose/service';
 import Volume from '../compose/volume';
 import * as config from '../config';
@@ -26,14 +31,12 @@ import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone, serviceAction } from './common';
 
-export function createV2Api(router: Router, applications: ApplicationManager) {
-	const { _lockingIfNecessary } = applications;
-
+export function createV2Api(router: Router) {
 	const handleServiceAction = (
 		req: Request,
 		res: Response,
 		next: NextFunction,
-		action: any,
+		action: CompositionStepAction,
 	): Resolvable<void> => {
 		const { imageId, serviceName, force } = req.body;
 		const appId = checkInt(req.params.appId);
@@ -45,9 +48,8 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			return;
 		}
 
-		return _lockingIfNecessary(appId, { force }, () => {
-			return applications
-				.getCurrentApp(appId)
+		return applications.lockingIfNecessary(appId, { force }, () => {
+			return getApp(appId)
 				.then((app) => {
 					if (app == null) {
 						res.status(404).send(appNotFoundMessage);
@@ -74,15 +76,16 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						res.status(404).send(serviceNotFoundMessage);
 						return;
 					}
+
 					applications.setTargetVolatileForService(service.imageId!, {
 						running: action !== 'stop',
 					});
 					return applications
-						.executeStepAction(
-							serviceAction(action, service.serviceId!, service, service, {
-								wait: true,
-							}),
-							{ skipLock: true },
+						.executeStep(
+							generateStep(action, { current: service, wait: true }),
+							{
+								skipLock: true,
+							},
 						)
 						.then(() => {
 							res.status(200).send('OK');
