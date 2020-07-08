@@ -1,4 +1,25 @@
 - commits:
+    - subject: Fix bug where a promise was not resolved in db-format
+      hash: 270f9f854add8db84fadc0a96e127a6035128aef
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+    - subject: Convert deviceConfig module to a singleton
+      hash: 5337c0102cd9bdbaaa41812fb1b8c44796ae9898
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+  version: 11.9.3
+  date: 2020-07-08T11:07:16.427Z
+- commits:
     - subject: 'avahi: Control with HOST_DISCOVERABILITY'
       hash: 03ca0ee9add9872b5577833971b43682ae6cc427
       body: |
