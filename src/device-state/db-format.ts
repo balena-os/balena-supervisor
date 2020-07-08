@@ -66,20 +66,28 @@ async function buildApp(dbApp: targetStateCache.DatabaseApp) {
 		},
 	);
 
-	const opts = await config.get('extendedEnvOptions');
-	const supervisorApiHost = dockerUtils
-		.getNetworkGateway(constants.supervisorNetworkInterface)
-		.catch(() => '127.0.0.1');
-	const hostPathExists = {
-		firmware: await pathExistsOnHost('/lib/firmware'),
-		modules: await pathExistsOnHost('/lib/modules'),
-	};
-	const hostnameOnHost = _.trim(
-		await fs.readFile(
-			path.join(constants.rootMountPoint, '/etc/hostname'),
-			'utf8',
-		),
-	);
+	const [
+		opts,
+		supervisorApiHost,
+		hostPathExists,
+		hostnameOnHost,
+	] = await Promise.all([
+		config.get('extendedEnvOptions'),
+		dockerUtils
+			.getNetworkGateway(constants.supervisorNetworkInterface)
+			.catch(() => '127.0.0.1'),
+		(async () => ({
+			firmware: await pathExistsOnHost('/lib/firmware'),
+			modules: await pathExistsOnHost('/lib/modules'),
+		}))(),
+		(async () =>
+			_.trim(
+				await fs.readFile(
+					path.join(constants.rootMountPoint, '/etc/hostname'),
+					'utf8',
+				),
+			))(),
+	]);
 
 	const svcOpts = {
 		appName: dbApp.name,

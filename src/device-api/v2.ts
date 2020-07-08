@@ -7,6 +7,7 @@ import { Service } from '../compose/service';
 import Volume from '../compose/volume';
 import * as config from '../config';
 import * as db from '../db';
+import * as deviceConfig from '../device-config';
 import * as logger from '../logger';
 import * as images from '../compose/images';
 import * as volumeManager from '../compose/volume-manager';
@@ -465,7 +466,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/device/vpn', async (_req, res) => {
-		const conf = await deviceState.deviceConfig.getCurrent();
+		const conf = await deviceConfig.getCurrent();
 		// Build VPNInfo
 		const info = {
 			enabled: conf.SUPERVISOR_VPN_CONTROL === 'true',

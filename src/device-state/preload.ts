@@ -4,6 +4,7 @@ import { fs } from 'mz';
 import { Image } from '../compose/images';
 import DeviceState from '../device-state';
 import * as config from '../config';
+import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
 import * as images from '../compose/images';
 
@@ -78,8 +79,8 @@ export async function loadTargetFromFile(
 			await images.save(image);
 		}
 
-		const deviceConf = await deviceState.deviceConfig.getCurrent();
-		const formattedConf = await deviceState.deviceConfig.formatConfigKeys(
+		const deviceConf = await deviceConfig.getCurrent();
+		const formattedConf = await deviceConfig.formatConfigKeys(
 			preloadState.config,
 		);
 		preloadState.config = { ...formattedConf, ...deviceConf };

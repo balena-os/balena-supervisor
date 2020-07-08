@@ -10,6 +10,7 @@ import * as url from 'url';
 import * as deviceRegister from './lib/register-device';
 
 import * as config from './config';
+import * as deviceConfig from './device-config';
 import * as eventTracker from './event-tracker';
 import { loadBackupFromMigration } from './lib/migration';
 
@@ -639,10 +640,10 @@ export class APIBinder {
 			);
 		}
 
-		const defaultConfig = this.deviceState.deviceConfig.getDefaults();
+		const defaultConfig = deviceConfig.getDefaults();
 
 		const currentState = await this.deviceState.getCurrentForComparison();
-		const targetConfig = await this.deviceState.deviceConfig.formatConfigKeys(
+		const targetConfig = await deviceConfig.formatConfigKeys(
 			targetConfigUnformatted,
 		);
 

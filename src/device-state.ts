@@ -28,7 +28,8 @@ import * as network from './network';
 
 import APIBinder from './api-binder';
 import { ApplicationManager } from './application-manager';
-import DeviceConfig, { ConfigStep } from './device-config';
+import * as deviceConfig from './device-config';
+import { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
 import {
 	DeviceReportFields,
@@ -217,7 +218,6 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 
 export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {
 	public applications: ApplicationManager;
-	public deviceConfig: DeviceConfig;
 
 	private currentVolatile: DeviceReportFields = {};
 	private writeLock = updateLock.writeLock;
@@ -239,7 +239,6 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 
 	constructor({ apiBinder }: DeviceStateConstructOpts) {
 		super();
-		this.deviceConfig = new DeviceConfig();
 		this.applications = new ApplicationManager({
 			deviceState: this,
 			apiBinder,
@@ -256,7 +255,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 				// We also let the device-config module know that we
 				// successfully reached the target state and that it
 				// should clear any rate limiting it's applied
-				return this.deviceConfig.resetRateLimits();
+				return deviceConfig.resetRateLimits();
 			}
 		});
 		this.applications.on('change', (d) => this.reportCurrentState(d));
@@ -405,9 +404,9 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	}
 
 	private async saveInitialConfig() {
-		const devConf = await this.deviceConfig.getCurrent();
+		const devConf = await deviceConfig.getCurrent();
 
-		await this.deviceConfig.setTarget(devConf);
+		await deviceConfig.setTarget(devConf);
 		await config.set({ initialConfigSaved: true });
 	}
 
@@ -460,7 +459,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		await this.usingWriteLockTarget(async () => {
 			await db.transaction(async (trx) => {
 				await config.set({ name: target.local.name }, trx);
-				await this.deviceConfig.setTarget(target.local.config, trx);
+				await deviceConfig.setTarget(target.local.config, trx);
 
 				if (localSource || apiEndpoint == null) {
 					await this.applications.setTarget(
@@ -495,7 +494,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			return {
 				local: {
 					name: await config.get('name'),
-					config: await this.deviceConfig.getTarget({ initial }),
+					config: await deviceConfig.getTarget({ initial }),
 					apps: await this.applications.getTargetApps(),
 				},
 				dependent: await this.applications.getDependentTargets(),
@@ -524,7 +523,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 	> {
 		const [name, devConfig, apps, dependent] = await Promise.all([
 			config.get('name'),
-			this.deviceConfig.getCurrent(),
+			deviceConfig.getCurrent(),
 			this.applications.getCurrentForComparison(),
 			this.applications.getDependentState(),
 		]);
@@ -573,8 +572,8 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 			skipLock,
 		}: { force?: boolean; initial?: boolean; skipLock?: boolean },
 	) {
-		if (this.deviceConfig.isValidAction(step.action)) {
-			await this.deviceConfig.executeStepAction(step as ConfigStep, {
+		if (deviceConfig.isValidAction(step.action)) {
+			await deviceConfig.executeStepAction(step as ConfigStep, {
 				initial,
 			});
 		} else if (_.includes(this.applications.validActions, step.action)) {
@@ -702,7 +701,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 				currentState,
 				targetState,
 			);
-			const deviceConfigSteps = await this.deviceConfig.getRequiredSteps(
+			const deviceConfigSteps = await deviceConfig.getRequiredSteps(
 				currentState,
 				targetState,
 			);
