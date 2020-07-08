@@ -12,6 +12,7 @@ import * as config from '../src/config';
 import * as images from '../src/compose/images';
 import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
 import DeviceState from '../src/device-state';
+import * as deviceConfig from '../src/device-config';
 import { loadTargetFromFile } from '../src/device-state/preload';
 import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
@@ -218,6 +219,7 @@ describe('deviceState', () => {
 	let source: string;
 	const originalImagesSave = images.save;
 	const originalImagesInspect = images.inspectByName;
+	const originalGetCurrent = deviceConfig.getCurrent;
 	before(async () => {
 		await prepare();
 		await config.initialized;
@@ -251,7 +253,11 @@ describe('deviceState', () => {
 			return Promise.reject(err);
 		};
 
-		(deviceState as any).deviceConfig.configBackend = new RPiConfigBackend();
+		// @ts-expect-error Assigning to a RO property
+		deviceConfig.configBackend = new RPiConfigBackend();
+
+		// @ts-expect-error Assigning to a RO property
+		deviceConfig.getCurrent = async () => mockedInitialConfig;
 	});
 
 	after(() => {
@@ -262,6 +268,8 @@ describe('deviceState', () => {
 		images.save = originalImagesSave;
 		// @ts-expect-error Assigning to a RO property
 		images.inspectByName = originalImagesInspect;
+		// @ts-expect-error Assigning to a RO property
+		deviceConfig.getCurrent = originalGetCurrent;
 	});
 
 	beforeEach(async () => {
@@ -269,45 +277,33 @@ describe('deviceState', () => {
 	});
 
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {
-		stub(deviceState.deviceConfig, 'getCurrent').returns(
-			Promise.resolve(mockedInitialConfig),
+		await loadTargetFromFile(
+			process.env.ROOT_MOUNTPOINT + '/apps.json',
+			deviceState,
 		);
+		const targetState = await deviceState.getTarget();
 
-		try {
-			await loadTargetFromFile(
-				process.env.ROOT_MOUNTPOINT + '/apps.json',
-				deviceState,
-			);
-			const targetState = await deviceState.getTarget();
+		const testTarget = _.cloneDeep(testTarget1);
+		testTarget.local.apps['1234'].services = _.mapValues(
+			testTarget.local.apps['1234'].services,
+			(s: any) => {
+				s.imageName = s.image;
+				return Service.fromComposeObject(s, { appName: 'superapp' } as any);
+			},
+		) as any;
+		// @ts-ignore
+		testTarget.local.apps['1234'].source = source;
 
-			const testTarget = _.cloneDeep(testTarget1);
-			testTarget.local.apps['1234'].services = _.mapValues(
-				testTarget.local.apps['1234'].services,
-				(s: any) => {
-					s.imageName = s.image;
-					return Service.fromComposeObject(s, { appName: 'superapp' } as any);
-				},
-			) as any;
-			// @ts-ignore
-			testTarget.local.apps['1234'].source = source;
-
-			expect(JSON.parse(JSON.stringify(targetState))).to.deep.equal(
-				JSON.parse(JSON.stringify(testTarget)),
-			);
-		} finally {
-			(deviceState.deviceConfig.getCurrent as sinon.SinonStub).restore();
-		}
+		expect(JSON.parse(JSON.stringify(targetState))).to.deep.equal(
+			JSON.parse(JSON.stringify(testTarget)),
+		);
 	});
 
 	it('stores info for pinning a device after loading an apps.json with a pinDevice field', async () => {
-		stub(deviceState.deviceConfig, 'getCurrent').returns(
-			Promise.resolve(mockedInitialConfig),
-		);
 		await loadTargetFromFile(
 			process.env.ROOT_MOUNTPOINT + '/apps-pin.json',
 			deviceState,
 		);
-		(deviceState as any).deviceConfig.getCurrent.restore();
 
 		const pinned = await config.get('pinDevice');
 		expect(pinned).to.have.property('app').that.equals(1234);
