@@ -60,33 +60,29 @@ interface DeviceTag {
 
 type KeyExchangeOpts = config.ConfigType<'provisioningOptions'>;
 
-export class APIBinder {
-	public router: express.Router;
+	export const router = createAPIBinderRouter();
 
-	private deviceState: DeviceState;
+	let deviceState: DeviceState;
 
-	public balenaApi: PinejsClientRequest | null = null;
-	private lastReportedState: DeviceStatus = {
+	export let balenaApi: PinejsClientRequest | null = null;
+	let lastReportedState: DeviceStatus = {
 		local: {},
 		dependent: {},
 	};
-	private stateForReport: DeviceStatus = {
+	let stateForReport: DeviceStatus = {
 		local: {},
 		dependent: {},
 	};
-	private reportPending = false;
-	private stateReportErrors = 0;
-	private readyForUpdates = false;
+	let reportPending = false;
+	let stateReportErrors = 0;
+	let readyForUpdates = false;
 
-	public constructor() {
-		this.router = this.createAPIBinderRouter(this);
+
+	export function setDeviceState(ds: DeviceState) {
+		deviceState = ds;
 	}
 
-	public setDeviceState(deviceState: DeviceState) {
-		this.deviceState = deviceState;
-	}
-
-	public async healthcheck() {
+	export async function healthcheck() {
 		const {
 			appUpdatePollInterval,
 			unmanaged,
@@ -124,16 +120,16 @@ export class APIBinder {
 		// Check if state report is healthy
 		const stateReportHealthy =
 			!connectivityCheckEnabled ||
-			!this.deviceState.connected ||
-			this.stateReportErrors < 3;
+			!deviceState.connected ||
+			stateReportErrors < 3;
 
 		if (!stateReportHealthy) {
 			log.info(
 				stripIndent`
 				Healthcheck failure - Atleast ONE of the following conditions must be true:
 					- No connectivityCheckEnabled   ? ${!(connectivityCheckEnabled === true)}
-					- device state is disconnected  ? ${!(this.deviceState.connected === true)}
-					- stateReportErrors less then 3 ? ${this.stateReportErrors < 3}`,
+					- device state is disconnected  ? ${!(deviceState.connected === true)}
+					- stateReportErrors less then 3 ? ${stateReportErrors < 3}`,
 			);
 			return false;
 		}
@@ -142,7 +138,7 @@ export class APIBinder {
 		return true;
 	}
 
-	public async initClient() {
+	export async function initClient() {
 		const { unmanaged, apiEndpoint, currentApiKey } = await config.getMany([
 			'unmanaged',
 			'apiEndpoint',
@@ -165,7 +161,7 @@ export class APIBinder {
 		});
 	}
 
-	public async start() {
+	export async function start() {
 		const conf = await config.getMany([
 			'apiEndpoint',
 			'unmanaged',
@@ -188,7 +184,7 @@ export class APIBinder {
 		}
 
 		log.debug('Ensuring device is provisioned');
-		await this.provisionDevice();
+		await provisionDevice();
 		const conf2 = await config.getMany([
 			'initialConfigReported',
 			'apiEndpoint',
@@ -206,7 +202,7 @@ export class APIBinder {
 					`Attempt to report initial configuration without a device ID`,
 				);
 			}
-			await this.reportInitialConfig(
+			await reportInitialConfig(
 				apiEndpoint,
 				deviceId,
 				bootstrapRetryDelay,
@@ -215,14 +211,14 @@ export class APIBinder {
 		}
 
 		log.debug('Starting current state report');
-		await this.startCurrentStateReport();
+		await startCurrentStateReport();
 
 		// When we've provisioned, try to load the backup. We
 		// must wait for the provisioning because we need a
 		// target state on which to apply the backup
 		globalEventBus.getInstance().once('targetStateChanged', async (state) => {
 			await loadBackupFromMigration(
-				this.deviceState,
+				deviceState,
 				state,
 				bootstrapRetryDelay,
 			);
@@ -235,8 +231,8 @@ export class APIBinder {
 			'target-state-update',
 			async (targetState, force, isFromApi) => {
 				try {
-					await this.deviceState.setTarget(targetState);
-					this.deviceState.triggerApplyTarget({ force, isFromApi });
+					await deviceState.setTarget(targetState);
+					deviceState.triggerApplyTarget({ force, isFromApi });
 				} catch (err) {
 					if (
 						err instanceof ContractValidationError ||
@@ -258,7 +254,7 @@ export class APIBinder {
 		);
 	}
 
-	public async fetchDevice(
+	export async function fetchDevice(
 		uuid: string,
 		apiKey: string,
 		timeout: number,
@@ -293,7 +289,7 @@ export class APIBinder {
 		}
 	}
 
-	public async patchDevice(id: number, updatedFields: Dictionary<unknown>) {
+	export async function patchDevice(id: number, updatedFields: Dictionary<unknown>) {
 		const conf = await config.getMany([
 			'unmanaged',
 			'provisioned',
@@ -305,17 +301,17 @@ export class APIBinder {
 		}
 
 		if (!conf.provisioned) {
-			throw new Error('DEvice must be provisioned to update a device');
+			throw new Error('Device must be provisioned to update a device');
 		}
 
-		if (this.balenaApi == null) {
+		if (balenaApi == null) {
 			throw new InternalInconsistencyError(
 				'Attempt to patch device without an API client',
 			);
 		}
 
 		return Bluebird.resolve(
-			this.balenaApi.patch({
+			balenaApi.patch({
 				resource: 'device',
 				id,
 				body: updatedFields,
@@ -323,7 +319,7 @@ export class APIBinder {
 		).timeout(conf.apiTimeout);
 	}
 
-	public async provisionDependentDevice(device: Device): Promise<Device> {
+	export async function provisionDependentDevice(device: Device): Promise<Device> {
 		const conf = await config.getMany([
 			'unmanaged',
 			'provisioned',
@@ -339,7 +335,7 @@ export class APIBinder {
 				'Device must be provisioned to provision a dependent device',
 			);
 		}
-		if (this.balenaApi == null) {
+		if (balenaApi == null) {
 			throw new InternalInconsistencyError(
 				'Attempt to provision a dependent device without an API client',
 			);
@@ -352,7 +348,7 @@ export class APIBinder {
 		});
 
 		return (await Bluebird.resolve(
-			this.balenaApi.post({ resource: 'device', body: device }),
+			balenaApi.post({ resource: 'device', body: device }),
 		).timeout(conf.apiTimeout)) as Device;
 	}
 
@@ -944,6 +940,3 @@ export class APIBinder {
 			},
 		});
 	}
-}
-
-export default APIBinder;
