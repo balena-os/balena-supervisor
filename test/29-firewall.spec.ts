@@ -1,4 +1,4 @@
-import { spy } from 'sinon';
+import _ = require('lodash');
 import { expect } from 'chai';
 
 import * as Docker from 'dockerode';
@@ -7,22 +7,33 @@ import * as sinon from 'sinon';
 
 import * as config from '../src/config';
 import * as firewall from '../src/lib/firewall';
+import * as logger from '../src/logger';
 import * as iptablesMock from './lib/mocked-iptables';
 import * as targetStateCache from '../src/device-state/target-state-cache';
 
 import constants = require('../src/lib/constants');
 import { RuleAction } from '../src/lib/iptables';
+import { log } from '../src/lib/supervisor-console';
 
 describe('Host Firewall', function () {
+	const dockerStubs: Dictionary<sinon.SinonStub> = {};
+	let loggerSpy: sinon.SinonSpy;
+	let logSpy: sinon.SinonSpy;
+
 	let apiEndpoint: string;
 	let listenPort: number;
-	let dockerStub: sinon.SinonStubbedInstance<typeof docker>;
 
 	before(async () => {
-		dockerStub = sinon.stub(docker);
-		dockerStub.listContainers.resolves([]);
-		dockerStub.listImages.resolves([]);
-		dockerStub.getImage.returns({
+		// spy the logs...
+		loggerSpy = sinon.spy(logger, 'logSystemMessage');
+		logSpy = sinon.spy(log, 'error');
+
+		// stub the docker calls...
+		dockerStubs.listContainers = sinon
+			.stub(docker, 'listContainers')
+			.resolves([]);
+		dockerStubs.listImages = sinon.stub(docker, 'listImages').resolves([]);
+		dockerStubs.getImage = sinon.stub(docker, 'getImage').returns({
 			id: 'abcde',
 			inspect: async () => {
 				return {};
@@ -37,13 +48,17 @@ describe('Host Firewall', function () {
 	});
 
 	after(async () => {
-		sinon.restore();
+		for (const stub of _.values(dockerStubs)) {
+			stub.restore();
+		}
+		loggerSpy.restore();
+		logSpy.restore();
 	});
 
 	describe('Basic On/Off operation', () => {
 		it('should confirm the `changed` event is handled', async function () {
 			await iptablesMock.whilstMocked(async ({ hasAppliedRules }) => {
-				const changedSpy = spy();
+				const changedSpy = sinon.spy();
 				config.on('change', changedSpy);
 
 				// set the firewall to be in off mode...
@@ -244,6 +259,22 @@ describe('Host Firewall', function () {
 					});
 				},
 			);
+		});
+
+		it('should catch errors when rule changes fail', async () => {
+			await iptablesMock.whilstMocked(async ({ hasAppliedRules }) => {
+				// clear the spies...
+				loggerSpy.resetHistory();
+				logSpy.resetHistory();
+
+				// set the firewall to be in off mode...
+				await config.set({ firewallMode: 'off' });
+				await hasAppliedRules;
+
+				// should have caught the error and logged it
+				expect(logSpy.calledWith('Error applying firewall mode')).to.be.true;
+				expect(loggerSpy.called).to.be.true;
+			}, iptablesMock.realRuleAdaptor);
 		});
 	});
 

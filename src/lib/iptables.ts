@@ -1,8 +1,13 @@
 import * as _ from 'lodash';
 import { child_process } from 'mz';
 import { Readable } from 'stream';
+import TypedError = require('typed-error');
 
-export class IPTablesRuleError extends Error {}
+export class IPTablesRuleError extends TypedError {
+	public constructor(err: string | Error, public ruleset: string) {
+		super(err);
+	}
+}
 
 export enum RuleAction {
 	Insert = '-I',
@@ -98,10 +103,11 @@ export function convertToRestoreRulesFormat(rules: Rule[]): string {
 				if (rule.matches) {
 					rule.matches.forEach((match) => args.push(match));
 				}
-				if (rule.comment) {
-					args.push('-m comment');
-					args.push(`--comment "${rule.comment}"`);
-				}
+				// TODO: Enable this once the support for it can be confirmed...
+				// if (rule.comment) {
+				// 	args.push('-m comment');
+				// 	args.push(`--comment "${rule.comment}"`);
+				// }
 				if (rule.target) {
 					args.push(`-j ${rule.target}`);
 				}
@@ -151,14 +157,14 @@ const iptablesRestoreAdaptor: RuleAdaptor = async (
 			return;
 		}
 
-		const input = rulesFiles[family];
+		const ruleset = rulesFiles[family];
 		const cmd = family === 'v6' ? 'ip6tables-restore' : 'iptables-restore';
 		await new Promise<string>((resolve, reject) => {
 			const args = ['--noflush', '--verbose'];
 
 			// prepare to pipe the rules into iptables-restore...
 			const stdinStream = new Readable();
-			stdinStream.push(input);
+			stdinStream.push(ruleset);
 			stdinStream.push(null);
 
 			// run the restore...
@@ -185,6 +191,7 @@ const iptablesRestoreAdaptor: RuleAdaptor = async (
 					return reject(
 						new IPTablesRuleError(
 							`Error running iptables: ${stderr.join()} (${args.join(' ')})`,
+							ruleset,
 						),
 					);
 				}
