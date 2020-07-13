@@ -4,6 +4,7 @@ import * as config from '../config/index';
 import * as constants from './constants';
 import * as iptables from './iptables';
 import { log } from './supervisor-console';
+import { logSystemMessage } from '../logger';
 
 import * as dbFormat from '../device-state/db-format';
 
@@ -12,7 +13,7 @@ export const initialised = (async () => {
 	await applyFirewall();
 
 	// apply firewall whenever relevant config changes occur...
-	config.on('change', async ({ firewallMode, localMode }) => {
+	config.on('change', ({ firewallMode, localMode }) => {
 		if (firewallMode || localMode != null) {
 			applyFirewall({ firewallMode, localMode });
 		}
@@ -145,48 +146,58 @@ export async function applyFirewallMode(mode: string) {
 
 	log.info(`${LOG_PREFIX} Applying firewall mode: ${mode}`);
 
-	// get an adaptor to manipulate iptables rules...
-	const ruleAdaptor = iptables.getDefaultRuleAdaptor();
+	try {
+		// are we running services in host-network mode?
+		const isServicesInHostNetworkMode = await runningHostBoundServices();
 
-	// are we running services in host-network mode?
-	const isServicesInHostNetworkMode = await runningHostBoundServices();
+		// should we allow only traffic to the balena host services?
+		const returnIfOff: iptables.Rule | iptables.Rule[] =
+			mode === 'off' || (mode === 'auto' && !isServicesInHostNetworkMode)
+				? {
+						comment: `Firewall disabled (${mode})`,
+						action: iptables.RuleAction.Insert,
+						target: 'RETURN',
+				  }
+				: [];
 
-	// should we allow only traffic to the balena host services?
-	const returnIfOff: iptables.Rule | iptables.Rule[] =
-		mode === 'off' || (mode === 'auto' && !isServicesInHostNetworkMode)
-			? {
-					comment: `Firewall disabled (${mode})`,
-					action: iptables.RuleAction.Insert,
-					target: 'RETURN',
-			  }
-			: [];
+		// get an adaptor to manipulate iptables rules...
+		const ruleAdaptor = iptables.getDefaultRuleAdaptor();
 
-	// configure the BALENA-FIREWALL chain...
-	await iptables
-		.build()
-		.forTable('filter', (filter) =>
-			filter
-				.forChain(BALENA_FIREWALL_CHAIN, (chain) =>
-					chain
-						.addRule(prepareChain)
-						.addRule(supervisorAccessRules)
-						.addRule(standardServices)
-						.addRule(standardPolicy)
-						.addRule(returnIfOff),
-				)
-				.forChain('INPUT', (chain) =>
-					chain
-						.addRule({
-							action: iptables.RuleAction.Flush,
-						})
-						.addRule({
-							action: iptables.RuleAction.Append,
-							target: 'BALENA-FIREWALL',
-						}),
-				),
-		)
-		.apply(ruleAdaptor);
+		// configure the BALENA-FIREWALL chain...
+		await iptables
+			.build()
+			.forTable('filter', (filter) =>
+				filter
+					.forChain(BALENA_FIREWALL_CHAIN, (chain) =>
+						chain
+							.addRule(prepareChain)
+							.addRule(supervisorAccessRules)
+							.addRule(standardServices)
+							.addRule(standardPolicy)
+							.addRule(returnIfOff),
+					)
+					.forChain('INPUT', (chain) =>
+						chain
+							.addRule({
+								action: iptables.RuleAction.Flush,
+							})
+							.addRule({
+								action: iptables.RuleAction.Append,
+								target: 'BALENA-FIREWALL',
+							}),
+					),
+			)
+			.apply(ruleAdaptor);
 
-	// all done!
-	log.success(`${LOG_PREFIX} Firewall mode applied`);
+		// all done!
+		log.success(`${LOG_PREFIX} Firewall mode applied`);
+	} catch (err) {
+		logSystemMessage(`${LOG_PREFIX} Firewall mode not applied due to error`);
+		log.error(`${LOG_PREFIX} Firewall mode not applied`);
+		log.error('Error applying firewall mode', err);
+
+		if (err instanceof iptables.IPTablesRuleError) {
+			log.debug(`Ruleset:\r\n${err.ruleset}`);
+		}
+	}
 }

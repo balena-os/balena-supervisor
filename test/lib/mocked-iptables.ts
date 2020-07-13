@@ -1,9 +1,12 @@
 import _ = require('lodash');
 import { expect } from 'chai';
+import { stub } from 'sinon';
+import { child_process } from 'mz';
 
 import * as firewall from '../../src/lib/firewall';
 import * as iptables from '../../src/lib/iptables';
 import { EventEmitter } from 'events';
+import { Writable } from 'stream';
 
 class FakeRuleAdaptor {
 	private rules: iptables.Rule[];
@@ -80,9 +83,15 @@ class FakeRuleAdaptor {
 	}
 }
 
-const fakeRuleAdaptor = new FakeRuleAdaptor();
+export const realRuleAdaptor = iptables.getDefaultRuleAdaptor();
+
+const fakeRuleAdaptorManager = new FakeRuleAdaptor();
+const fakeRuleAdaptor = fakeRuleAdaptorManager.getRuleAdaptor();
+
 // @ts-expect-error Assigning to a RO property
-iptables.getDefaultRuleAdaptor = () => fakeRuleAdaptor.getRuleAdaptor();
+iptables.getDefaultRuleAdaptor = () => {
+	return fakeRuleAdaptor;
+};
 
 export interface MockedState {
 	hasAppliedRules: Promise<void>;
@@ -94,8 +103,37 @@ export interface MockedState {
 export type MockedConext = (state: MockedState) => Promise<any>;
 
 const applyFirewallRules = firewall.applyFirewallMode;
-export const whilstMocked = async (context: MockedConext) => {
-	fakeRuleAdaptor.clearHistory();
+export const whilstMocked = async (
+	context: MockedConext,
+	ruleAdaptor: iptables.RuleAdaptor = fakeRuleAdaptor,
+) => {
+	const getOriginalDefaultRuleAdaptor = iptables.getDefaultRuleAdaptor;
+
+	const spawnStub = stub(child_process, 'spawn').callsFake(() => {
+		const fakeProc = new EventEmitter();
+		(fakeProc as any).stdout = new EventEmitter();
+
+		const stdin = new Writable();
+		stdin._write = (
+			chunk: Buffer,
+			_encoding: string,
+			callback: (err?: Error) => void,
+		) => {
+			console.log(chunk.toString('utf8'));
+			callback();
+			fakeProc.emit('close', 1);
+		};
+		(fakeProc as any).stdin = stdin;
+
+		return fakeProc as any;
+	});
+
+	// @ts-expect-error Assigning to a RO property
+	iptables.getDefaultRuleAdaptor = () => {
+		return ruleAdaptor;
+	};
+
+	fakeRuleAdaptorManager.clearHistory();
 
 	const applied = new EventEmitter();
 
@@ -106,9 +144,9 @@ export const whilstMocked = async (context: MockedConext) => {
 	};
 
 	await context({
-		expectRule: (rule) => fakeRuleAdaptor.expectRule(rule),
-		expectNoRule: (rule) => fakeRuleAdaptor.expectNoRule(rule),
-		clearHistory: () => fakeRuleAdaptor.clearHistory(),
+		expectRule: (rule) => fakeRuleAdaptorManager.expectRule(rule),
+		expectNoRule: (rule) => fakeRuleAdaptorManager.expectNoRule(rule),
+		clearHistory: () => fakeRuleAdaptorManager.clearHistory(),
 		hasAppliedRules: new Promise((resolve) => {
 			applied.once('applied', () => resolve());
 		}),
@@ -116,4 +154,9 @@ export const whilstMocked = async (context: MockedConext) => {
 
 	// @ts-expect-error Assigning to a RO property
 	firewall.applyFirewallMode = applyFirewallRules;
+
+	spawnStub.restore();
+
+	// @ts-expect-error Assigning to a RO property
+	iptables.getDefaultRuleAdaptor = getOriginalDefaultRuleAdaptor;
 };

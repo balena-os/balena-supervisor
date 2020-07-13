@@ -1,6 +1,6 @@
 import { stripIndent } from 'common-tags';
 import { child_process, fs } from 'mz';
-import { SinonStub, stub, spy } from 'sinon';
+import { SinonStub, stub, spy, SinonSpy } from 'sinon';
 
 import { expect } from './lib/chai-config';
 import * as deviceConfig from '../src/device-config';
@@ -14,9 +14,10 @@ const extlinuxBackend = new ExtlinuxConfigBackend();
 const rpiConfigBackend = new RPiConfigBackend();
 
 describe('Device Backend Config', () => {
-	const logSpy = spy(logger, 'logSystemMessage');
+	let logSpy: SinonSpy;
 
 	before(async () => {
+		logSpy = spy(logger, 'logSystemMessage');
 		await prepare();
 	});
 
