@@ -1,4 +1,19 @@
 - commits:
+    - subject: 'bug: Fix unhandled promise rejection'
+      hash: 898c7e71dae28aa046bdd3e075ecf0d6aa364142
+      body: |
+        When invoking iptables-restore it can fail. This wasn't handled
+        and this makes sure that it fails gracefully.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+  version: 11.9.4
+  date: 2020-07-13T12:07:37.513Z
+- commits:
     - subject: Fix bug where a promise was not resolved in db-format
       hash: 270f9f854add8db84fadc0a96e127a6035128aef
       body: ''
