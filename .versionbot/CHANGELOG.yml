@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update ESR version information
+      hash: c2b534a51b3863bf3c787db00c7299517224464f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 11.9.5
+  date: 2020-07-14T14:31:17.340Z
+- commits:
     - subject: 'bug: Fix unhandled promise rejection'
       hash: 898c7e71dae28aa046bdd3e075ecf0d6aa364142
       body: |
