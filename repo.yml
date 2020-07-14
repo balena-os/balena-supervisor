@@ -1,9 +1,9 @@
 type: docker
 
 backports:
-  next: 10.8.x
-  current: 10.3.x
-  sunset: 9.15.x
+  next: 11.9.x
+  current: 10.8.x
+  sunset: 10.3.x
 
 upstream:
   - repo: 'pinejs-client-request'
