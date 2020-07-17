@@ -123,13 +123,8 @@ describe('Extlinux Configuration', () => {
 	});
 
 	it('only matches supported devices', () => {
-		[
-			{ deviceType: 'jetson-tx', supported: true },
-			{ deviceType: 'raspberry', supported: false },
-			{ deviceType: 'fincm3', supported: false },
-			{ deviceType: 'up-board', supported: false },
-		].forEach(({ deviceType, supported }) =>
-			expect(backend.matches(deviceType)).to.equal(supported),
+		MATCH_TESTS.forEach(({ deviceType, metaRelease, supported }) =>
+			expect(backend.matches(deviceType, metaRelease)).to.equal(supported),
 		);
 	});
 
@@ -322,5 +317,86 @@ const MALFORMED_CONFIGS = [
           APPEND ro rootwait isolcpus=0,4=woops
     `,
 		reason: 'Unable to parse invalid value: isolcpus=0,4=woops',
+	},
+];
+
+const SUPPORTED_VERSION = '2.45.0'; // or less
+const UNSUPPORTED_VERSION = '2.47.0'; // or greater
+
+const MATCH_TESTS = [
+	{
+		deviceType: 'jetson-tx1',
+		metaRelease: SUPPORTED_VERSION,
+		supported: true,
+	},
+	{
+		deviceType: 'jetson-tx2',
+		metaRelease: SUPPORTED_VERSION,
+		supported: true,
+	},
+	{
+		deviceType: 'jetson-tx2',
+		metaRelease: UNSUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'jetson-nano',
+		metaRelease: SUPPORTED_VERSION,
+		supported: true,
+	},
+	{
+		deviceType: 'jetson-nano',
+		metaRelease: UNSUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'jetson-xavier',
+		metaRelease: SUPPORTED_VERSION,
+		supported: true,
+	},
+	{
+		deviceType: 'jetson-xavier',
+		metaRelease: UNSUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'intel-nuc',
+		metaRelease: SUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'intel-nuc',
+		metaRelease: UNSUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'raspberry',
+		metaRelease: SUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'raspberry',
+		metaRelease: UNSUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'fincm3',
+		metaRelease: SUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'fincm3',
+		metaRelease: UNSUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'up-board',
+		metaRelease: SUPPORTED_VERSION,
+		supported: false,
+	},
+	{
+		deviceType: 'up-board',
+		metaRelease: UNSUPPORTED_VERSION,
+		supported: false,
 	},
 ];

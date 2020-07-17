@@ -23,7 +23,7 @@ export async function remountAndWriteAtomic(
 
 export abstract class DeviceConfigBackend {
 	// Does this config backend support the given device type?
-	public abstract matches(deviceType: string): boolean;
+	public abstract matches(deviceType: string, metaRelease?: string): boolean;
 
 	// A function which reads and parses the configuration options from
 	// specific boot config
@@ -42,7 +42,7 @@ export abstract class DeviceConfigBackend {
 
 	// Convert a configuration environment variable to a config backend
 	// variable
-	public abstract processConfigVarName(envVar: string): string;
+	public abstract processConfigVarName(envVar: string): string | null;
 
 	// Process the value if the environment variable, ready to be written to
 	// the backend
@@ -52,7 +52,10 @@ export abstract class DeviceConfigBackend {
 	): string | string[];
 
 	// Return the env var name for this config option
-	public abstract createConfigVarName(configName: string): string;
+	// In situations when the configName is not valid the backend is unable
+	// to create the varName equivelant so null is returned.
+	// Example an empty string should return null.
+	public abstract createConfigVarName(configName: string): string | null;
 
 	// Allow a chosen config backend to be initialised
 	public async initialise(): Promise<DeviceConfigBackend> {

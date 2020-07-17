@@ -107,6 +107,29 @@ export class AppsJsonParseError extends TypedError {}
 export class DatabaseParseError extends TypedError {}
 export class BackupError extends TypedError {}
 
+/**
+ * Thrown if we cannot parse an extlinux file.
+ */
 export class ExtLinuxParseError extends TypedError {}
+
+/**
+ * Thrown if there is a problem with the environment of which extlinux config is in.
+ * This can be things like missing config files or config files we cannot write to.
+ */
+export class ExtLinuxEnvError extends TypedError {}
+
+/**
+ * Thrown if we cannot parse the APPEND directive from a extlinux file
+ */
 export class AppendDirectiveError extends TypedError {}
+
+/**
+ * Thrown if we cannot parse the FDT directive from a extlinux file
+ */
 export class FDTDirectiveError extends TypedError {}
+
+/**
+ * Generic error thrown when something goes wrong with handling the ExtraUEnv backend.
+ * This can be things like missing config files or config files we cannot write to.
+ */
+export class ExtraUEnvError extends TypedError {}
