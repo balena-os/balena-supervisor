@@ -1,4 +1,27 @@
 - commits:
+    - subject: Fix purge and restart invocations by providing instanced apps
+      hash: d14d8f31ccee62fa8cec88209cc3674a1b280e34
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+    - subject: Fix purge invocations of new singletons
+      hash: d2a7d3b9653a2afbd8eca009b75871cf54dbf3ac
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 11.9.6
+  date: 2020-07-20T17:25:37.311Z
+- commits:
     - subject: Update ESR version information
       hash: c2b534a51b3863bf3c787db00c7299517224464f
       body: ''
