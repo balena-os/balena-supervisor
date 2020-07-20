@@ -1,6 +1,9 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { appNotFoundMessage } from '../lib/messages';
+import * as logger from '../logger';
+
+import * as volumes from '../compose/volume-manager';
 
 export function doRestart(applications, appId, force) {
 	const { _lockingIfNecessary, deviceState } = applications;
@@ -31,7 +34,7 @@ export function doRestart(applications, appId, force) {
 }
 
 export function doPurge(applications, appId, force) {
-	const { logger, _lockingIfNecessary, deviceState, volumes } = applications;
+	const { _lockingIfNecessary, deviceState } = applications;
 
 	logger.logSystemMessage(
 		`Purging data for app ${appId}`,
@@ -72,16 +75,17 @@ export function doPurge(applications, appId, force) {
 				.finally(() => deviceState.triggerApplyTarget());
 		}),
 	)
-		.tap(() =>
+		.then(() =>
 			logger.logSystemMessage('Purged data', { appId }, 'Purge data success'),
 		)
-		.tapCatch((err) =>
+		.catch((err) => {
 			logger.logSystemMessage(
 				`Error purging data: ${err}`,
 				{ appId, error: err },
 				'Purge data error',
-			),
-		);
+			);
+			throw err;
+		});
 }
 
 export function serviceAction(action, serviceId, current, target, options) {
