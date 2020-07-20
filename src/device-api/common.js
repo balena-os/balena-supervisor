@@ -10,11 +10,11 @@ export function doRestart(applications, appId, force) {
 
 	return _lockingIfNecessary(appId, { force }, () =>
 		deviceState.getCurrentForComparison().then(function (currentState) {
-			const app = currentState.local.apps[appId];
+			const app = safeAppClone(currentState.local.apps[appId]);
 			const imageIds = _.map(app.services, 'imageId');
 			applications.clearTargetVolatileForServices(imageIds);
 
-			const stoppedApp = safeAppClone(app);
+			const stoppedApp = _.cloneDeep(app);
 			stoppedApp.services = [];
 			currentState.local.apps[appId] = stoppedApp;
 			return deviceState
@@ -43,12 +43,12 @@ export function doPurge(applications, appId, force) {
 	);
 	return _lockingIfNecessary(appId, { force }, () =>
 		deviceState.getCurrentForComparison().then(function (currentState) {
-			const app = currentState.local.apps[appId];
-			if (app == null) {
+			if (currentState.local.apps[appId] == null) {
 				throw new Error(appNotFoundMessage);
 			}
+			const app = safeAppClone(currentState.local.apps[appId]);
 
-			const purgedApp = safeAppClone(app);
+			const purgedApp = _.cloneDeep(app);
 			purgedApp.services = [];
 			purgedApp.volumes = {};
 			currentState.local.apps[appId] = purgedApp;
@@ -132,13 +132,36 @@ export function safeStateClone(targetState) {
 }
 
 export function safeAppClone(app) {
+	const containerIdForService = _.fromPairs(
+		_.map(app.services, (svc) => [
+			svc.serviceName,
+			svc.containerId.substr(0, 12),
+		]),
+	);
 	return {
 		appId: app.appId,
 		name: app.name,
 		commit: app.commit,
 		releaseId: app.releaseId,
-		services: _.map(app.services, (s) => s.toComposeObject()),
-		volumes: _.mapValues(app.volumes, (v) => v.toComposeObject()),
-		networks: _.mapValues(app.networks, (n) => n.toComposeObject()),
+		services: _.map(app.services, (svc) => {
+			// This is a bit of a hack, but when applying the target state as if it's
+			// the current state, this will include the previous containerId as a
+			// network alias. The container ID will be there as Docker adds it
+			// implicitly when creating a container. Here, we remove any previous
+			// container IDs before passing it back as target state. We have to do this
+			// here as when passing it back as target state, the service class cannot
+			// know that the alias being given is not in fact a user given one.
+			// TODO: Make the process of moving from a current state to a target state
+			// well-defined (and implemented in a seperate module)
+			const svcCopy = _.cloneDeep(svc);
+			_.each(svcCopy.config.networks, (net) => {
+				net.aliases = net.aliases.filter(
+					(alias) => alias !== containerIdForService[svcCopy.serviceName],
+				);
+			});
+			return svcCopy;
+		}),
+		volumes: _.cloneDeep(app.volumes),
+		networks: _.cloneDeep(app.networks),
 	};
 }
