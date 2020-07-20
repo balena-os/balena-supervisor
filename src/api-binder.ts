@@ -27,7 +27,7 @@ import { DeviceStatus } from './types/state';
 
 import log from './lib/supervisor-console';
 
-import DeviceState from './device-state';
+import * as deviceState from './device-state';
 import * as globalEventBus from './event-bus';
 import * as TargetState from './device-state/target-state';
 import * as logger from './logger';
@@ -63,8 +63,6 @@ type KeyExchangeOpts = config.ConfigType<'provisioningOptions'>;
 export class APIBinder {
 	public router: express.Router;
 
-	private deviceState: DeviceState;
-
 	public balenaApi: PinejsClientRequest | null = null;
 	private lastReportedState: DeviceStatus = {
 		local: {},
@@ -80,10 +78,6 @@ export class APIBinder {
 
 	public constructor() {
 		this.router = this.createAPIBinderRouter(this);
-	}
-
-	public setDeviceState(deviceState: DeviceState) {
-		this.deviceState = deviceState;
 	}
 
 	public async healthcheck() {
@@ -124,7 +118,7 @@ export class APIBinder {
 		// Check if state report is healthy
 		const stateReportHealthy =
 			!connectivityCheckEnabled ||
-			!this.deviceState.connected ||
+			!deviceState.connected ||
 			this.stateReportErrors < 3;
 
 		if (!stateReportHealthy) {
@@ -132,7 +126,7 @@ export class APIBinder {
 				stripIndent`
 				Healthcheck failure - Atleast ONE of the following conditions must be true:
 					- No connectivityCheckEnabled   ? ${!(connectivityCheckEnabled === true)}
-					- device state is disconnected  ? ${!(this.deviceState.connected === true)}
+					- device state is disconnected  ? ${!(deviceState.connected === true)}
 					- stateReportErrors less then 3 ? ${this.stateReportErrors < 3}`,
 			);
 			return false;
@@ -221,11 +215,7 @@ export class APIBinder {
 		// must wait for the provisioning because we need a
 		// target state on which to apply the backup
 		globalEventBus.getInstance().once('targetStateChanged', async (state) => {
-			await loadBackupFromMigration(
-				this.deviceState,
-				state,
-				bootstrapRetryDelay,
-			);
+			await loadBackupFromMigration(state, bootstrapRetryDelay);
 		});
 
 		this.readyForUpdates = true;
@@ -235,8 +225,8 @@ export class APIBinder {
 			'target-state-update',
 			async (targetState, force, isFromApi) => {
 				try {
-					await this.deviceState.setTarget(targetState);
-					this.deviceState.triggerApplyTarget({ force, isFromApi });
+					await deviceState.setTarget(targetState);
+					deviceState.triggerApplyTarget({ force, isFromApi });
 				} catch (err) {
 					if (
 						err instanceof ContractValidationError ||
@@ -362,7 +352,7 @@ export class APIBinder {
 				'Trying to start state reporting without initializing API client',
 			);
 		}
-		this.deviceState.on('change', () => {
+		deviceState.on('change', () => {
 			if (!this.reportPending) {
 				// A latency of 100ms should be acceptable and
 				// allows avoiding catching docker at weird states
@@ -535,7 +525,7 @@ export class APIBinder {
 		(async () => {
 			this.reportPending = true;
 			try {
-				const currentDeviceState = await this.deviceState.getStatus();
+				const currentDeviceState = await deviceState.getStatus();
 				_.assign(this.stateForReport.local, currentDeviceState.local);
 				_.assign(this.stateForReport.dependent, currentDeviceState.dependent);
 
