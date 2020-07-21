@@ -26,7 +26,7 @@ import * as updateLock from './lib/update-lock';
 import * as validation from './lib/validation';
 import * as network from './network';
 
-import APIBinder from './api-binder';
+import * as APIBinder from './api-binder';
 import { ApplicationManager } from './application-manager';
 import * as deviceConfig from './device-config';
 import { ConfigStep } from './device-config';
@@ -178,7 +178,7 @@ function createDeviceStateRouter(deviceState: DeviceState) {
 }
 
 interface DeviceStateConstructOpts {
-	apiBinder: APIBinder;
+	apiBinder: typeof APIBinder;
 }
 
 interface DeviceStateEvents {

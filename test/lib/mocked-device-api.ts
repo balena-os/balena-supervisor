@@ -9,7 +9,7 @@ import * as config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
 import { createV2Api } from '../../src/device-api/v2';
-import APIBinder from '../../src/api-binder';
+import * as APIBinder from '../../src/api-binder';
 import DeviceState from '../../src/device-state';
 import SupervisorAPI from '../../src/supervisor-api';
 
@@ -107,7 +107,7 @@ async function createAPIOpts(): Promise<SupervisorAPIOpts> {
 	const deviceState = new DeviceState({
 		apiBinder: null as any,
 	});
-	const apiBinder = new APIBinder();
+	const apiBinder = APIBinder;
 	return {
 		deviceState,
 		apiBinder,
@@ -161,7 +161,7 @@ function restoreStubs() {
 
 interface SupervisorAPIOpts {
 	deviceState: DeviceState;
-	apiBinder: APIBinder;
+	apiBinder: typeof APIBinder;
 }
 
 export = { create, cleanUp, STUBBED_VALUES };
