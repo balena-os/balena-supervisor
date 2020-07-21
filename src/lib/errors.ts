@@ -14,6 +14,8 @@ interface CodedSysError extends Error {
 	code?: string;
 }
 
+export class DeviceNotFoundError extends TypedError {}
+
 export function NotFoundError(err: StatusCodeError): boolean {
 	return checkInt(err.statusCode) === 404;
 }

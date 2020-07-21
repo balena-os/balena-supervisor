@@ -7,6 +7,7 @@ process.env.DATABASE_PATH_3 = './test/data/database3.sqlite';
 process.env.LED_FILE = './test/data/led_file';
 
 import './lib/mocked-iptables';
+import './lib/mocked-event-tracker';
 
 import * as dbus from 'dbus';
 import { DBusError, DBusInterface } from 'dbus';
