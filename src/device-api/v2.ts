@@ -3,6 +3,8 @@ import { NextFunction, Request, Response, Router } from 'express';
 import * as _ from 'lodash';
 
 import { ApplicationManager } from '../application-manager';
+import * as deviceState from '../device-state';
+import * as apiBinder from '../api-binder';
 import { Service } from '../compose/service';
 import Volume from '../compose/volume';
 import * as config from '../config';
@@ -25,7 +27,7 @@ import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone, serviceAction } from './common';
 
 export function createV2Api(router: Router, applications: ApplicationManager) {
-	const { _lockingIfNecessary, deviceState } = applications;
+	const { _lockingIfNecessary } = applications;
 
 	const handleServiceAction = (
 		req: Request,
@@ -394,7 +396,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	router.get('/v2/state/status', async (_req, res) => {
 		const currentRelease = await config.get('currentCommit');
 
-		const pending = applications.deviceState.applyInProgress;
+		const pending = deviceState.isApplyInProgress();
 		const containerStates = (await serviceManager.getAll()).map((svc) =>
 			_.pick(
 				svc,
@@ -452,7 +454,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 
 	router.get('/v2/device/tags', async (_req, res) => {
 		try {
-			const tags = await applications.apiBinder.fetchDeviceTags();
+			const tags = await apiBinder.fetchDeviceTags();
 			return res.json({
 				status: 'success',
 				tags,

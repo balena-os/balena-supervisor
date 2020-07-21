@@ -6,6 +6,7 @@ process.env.DATABASE_PATH_2 = './test/data/database2.sqlite';
 process.env.DATABASE_PATH_3 = './test/data/database3.sqlite';
 process.env.LED_FILE = './test/data/led_file';
 
+import './lib/mocked-dockerode';
 import './lib/mocked-iptables';
 import './lib/mocked-event-tracker';
 

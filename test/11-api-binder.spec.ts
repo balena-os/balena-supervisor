@@ -5,7 +5,7 @@ import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 
 import prepare = require('./lib/prepare');
 import * as config from '../src/config';
-import DeviceState from '../src/device-state';
+import * as deviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
 import chai = require('./lib/chai-config');
 import balenaAPI = require('./lib/mocked-balena-api');
@@ -47,11 +47,8 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 	await ApiBinder.initialized;
 	obj.apiBinder = ApiBinder;
 
-	obj.deviceState = new DeviceState({
-		apiBinder: obj.apiBinder,
-	});
-
-	obj.apiBinder.setDeviceState(obj.deviceState);
+	await deviceState.initialized;
+	obj.deviceState = deviceState;
 };
 
 const mockProvisioningOpts = {
@@ -462,12 +459,12 @@ describe('ApiBinder', () => {
 			// Copy previous values to restore later
 			const previousStateReportErrors = components.apiBinder.stateReportErrors;
 			const previousDeviceStateConnected =
-				components.apiBinder.deviceState.connected;
+				// @ts-ignore
+				components.deviceState.connected;
 
 			// Set additional conditions not in configStub to cause a fail
-			// @ts-expect-error
-			CurrentState.stateReportErrors = 4;
-			components.apiBinder.deviceState.connected = true;
+			components.apiBinder.stateReportErrors = 4;
+			components.deviceState.connected = true;
 
 			expect(await components.apiBinder.healthcheck()).to.equal(false);
 
@@ -481,9 +478,8 @@ describe('ApiBinder', () => {
 			);
 
 			// Restore previous values
-			// @ts-expect-error
-			CurrentState.stateReportErrors = previousStateReportErrors;
-			components.apiBinder.deviceState.connected = previousDeviceStateConnected;
+			components.apiBinder.stateReportErrors = previousStateReportErrors;
+			components.deviceState.connected = previousDeviceStateConnected;
 		});
 	});
 });

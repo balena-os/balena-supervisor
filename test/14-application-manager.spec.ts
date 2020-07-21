@@ -6,7 +6,7 @@ import Network from '../src/compose/network';
 
 import Service from '../src/compose/service';
 import Volume from '../src/compose/volume';
-import DeviceState from '../src/device-state';
+import * as deviceState from '../src/device-state';
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as images from '../src/compose/images';
 
@@ -67,10 +67,9 @@ describe('ApplicationManager', function () {
 	const originalInspectByName = images.inspectByName;
 	before(async function () {
 		await prepare();
-		this.deviceState = new DeviceState({
-			apiBinder: null as any,
-		});
-		this.applications = this.deviceState.applications;
+		await deviceState.initialized;
+
+		this.applications = deviceState.applications;
 
 		// @ts-expect-error assigning to a RO property
 		images.inspectByName = () =>
