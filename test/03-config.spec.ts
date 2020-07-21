@@ -122,6 +122,11 @@ describe('Config', () => {
 		expect(osVariant).to.be.undefined;
 	});
 
+	it('reads and exposes MAC addresses', async () => {
+		const macAddress = await conf.get('macAddress');
+		expect(macAddress).to.have.length.greaterThan(0);
+	});
+
 	describe('Function config providers', () => {
 		it('should throw if a non-mutable function provider is set', () => {
 			expect(conf.set({ version: 'some-version' })).to.be.rejected;

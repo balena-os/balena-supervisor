@@ -7,15 +7,18 @@ import chai = require('./lib/chai-config');
 import { StatusCodeError } from '../src/lib/errors';
 import prepare = require('./lib/prepare');
 import Log from '../src/lib/supervisor-console';
-import * as dockerUtils from '../src/lib/docker-utils';
-import * as config from '../src/config';
-import * as images from '../src/compose/images';
 import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
-import DeviceState from '../src/device-state';
-import * as deviceConfig from '../src/device-config';
 import { loadTargetFromFile } from '../src/device-state/preload';
+import * as images from '../src/compose/images';
 import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
+
+import * as config from '../src/config';
+import * as deviceConfig from '../src/device-config';
+// import * as deviceState from '../src/device-state';
+import * as dockerUtils from '../src/lib/docker-utils';
+// tslint:disable-next-line
+const deviceState = require('rewire')('../src/device-state');
 
 // tslint:disable-next-line
 chai.use(require('chai-events'));
@@ -215,14 +218,17 @@ const testTargetInvalid = {
 };
 
 describe('deviceState', () => {
-	let deviceState: DeviceState;
 	let source: string;
 	const originalImagesSave = images.save;
 	const originalImagesInspect = images.inspectByName;
 	const originalGetCurrent = deviceConfig.getCurrent;
+
 	before(async () => {
 		await prepare();
 		await config.initialized;
+		await deviceState.initialized;
+		await deviceState.loadInitialState();
+
 		source = await config.get('apiEndpoint');
 
 		stub(Service as any, 'extendEnvVars').callsFake((env) => {
@@ -233,10 +239,6 @@ describe('deviceState', () => {
 		intialiseContractRequirements({
 			supervisorVersion: '11.0.0',
 			deviceType: 'intel-nuc',
-		});
-
-		deviceState = new DeviceState({
-			apiBinder: null as any,
 		});
 
 		stub(dockerUtils, 'getNetworkGateway').returns(
@@ -277,10 +279,7 @@ describe('deviceState', () => {
 	});
 
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {
-		await loadTargetFromFile(
-			process.env.ROOT_MOUNTPOINT + '/apps.json',
-			deviceState,
-		);
+		await loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps.json');
 		const targetState = await deviceState.getTarget();
 
 		const testTarget = _.cloneDeep(testTarget1);
@@ -300,19 +299,16 @@ describe('deviceState', () => {
 	});
 
 	it('stores info for pinning a device after loading an apps.json with a pinDevice field', async () => {
-		await loadTargetFromFile(
-			process.env.ROOT_MOUNTPOINT + '/apps-pin.json',
-			deviceState,
-		);
+		await loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps-pin.json');
 
 		const pinned = await config.get('pinDevice');
 		expect(pinned).to.have.property('app').that.equals(1234);
 		expect(pinned).to.have.property('commit').that.equals('abcdef');
 	});
 
-	it('emits a change event when a new state is reported', () => {
+	it('emits a change event when a new state is reported', (done) => {
+		deviceState.once('change', done);
 		deviceState.reportCurrentState({ someStateDiff: 'someValue' } as any);
-		return (expect as any)(deviceState).to.emit('change');
 	});
 
 	it('returns the current state');
@@ -347,48 +343,32 @@ describe('deviceState', () => {
 	});
 
 	it('allows triggering applying the target state', (done) => {
-		stub(deviceState as any, 'applyTarget').returns(Promise.resolve());
+		const applyTargetStub = stub(deviceState, 'applyTarget').returns(
+			Promise.resolve(),
+		);
 
 		deviceState.triggerApplyTarget({ force: true });
-		expect((deviceState as any).applyTarget).to.not.be.called;
+		expect(applyTargetStub).to.not.be.called;
 
 		setTimeout(() => {
-			expect((deviceState as any).applyTarget).to.be.calledWith({
+			expect(applyTargetStub).to.be.calledWith({
 				force: true,
 				initial: false,
 			});
-			(deviceState as any).applyTarget.restore();
+			applyTargetStub.restore();
 			done();
-		}, 5);
+		}, 1000);
 	});
 
-	it('cancels current promise applying the target state', (done) => {
-		(deviceState as any).scheduledApply = { force: false, delay: 100 };
-		(deviceState as any).applyInProgress = true;
-		(deviceState as any).applyCancelled = false;
+	// TODO: There is no easy way to test this behaviour with the current
+	// interface of device-state. We should really think about the device-state
+	// interface to allow this flexibility (and to avoid having to change module
+	// internal variables)
+	it.skip('cancels current promise applying the target state');
 
-		new Bluebird((resolve, reject) => {
-			setTimeout(resolve, 100000);
-			(deviceState as any).cancelDelay = reject;
-		})
-			.catch(() => {
-				(deviceState as any).applyCancelled = true;
-			})
-			.finally(() => {
-				expect((deviceState as any).scheduledApply).to.deep.equal({
-					force: true,
-					delay: 0,
-				});
-				expect((deviceState as any).applyCancelled).to.be.true;
-				done();
-			});
+	it.skip('applies the target state for device config');
 
-		deviceState.triggerApplyTarget({ force: true, isFromApi: true });
-	});
-
-	it('applies the target state for device config');
-
-	it('applies the target state for applications');
+	it.skip('applies the target state for applications');
 
 	describe('healthchecks', () => {
 		let configStub: SinonStub;
@@ -408,17 +388,20 @@ describe('deviceState', () => {
 
 		it('passes with correct conditions', async () => {
 			// Setup passing condition
-			const previousValue = deviceState.applyInProgress;
-			deviceState.applyInProgress = false;
+			const previousValue = deviceState.__get__('applyInProgress');
+			deviceState.__set__('applyInProgress', false);
+			// deviceState.applyInProgress = false;
 			expect(await deviceState.healthcheck()).to.equal(true);
 			// Restore value
-			deviceState.applyInProgress = previousValue;
+			deviceState.__set__('applyInProgress', previousValue);
 		});
 
 		it('passes if unmanaged is true and exit early', async () => {
 			// Setup failing conditions
-			const previousValue = deviceState.applyInProgress;
-			deviceState.applyInProgress = true;
+			const previousPollTime = deviceState.__get__('maxPollTime');
+			const previousValue = deviceState.__get__('applyInProgress');
+			deviceState.__set__('applyInProgress', true);
+			deviceState.__set__('maxPollTime', 1);
 			// Verify this causes healthcheck to fail
 			expect(await deviceState.healthcheck()).to.equal(false);
 			// Do it again but set unmanaged to true
@@ -427,14 +410,17 @@ describe('deviceState', () => {
 			});
 			expect(await deviceState.healthcheck()).to.equal(true);
 			// Restore value
-			deviceState.applyInProgress = previousValue;
+			deviceState.__set__('applyInProgress', previousValue);
+			deviceState.__set__('maxPollTime', previousPollTime);
 		});
 
 		it('fails when applyTargetHealthy is false', async () => {
 			// Copy previous values to restore later
-			const previousValue = deviceState.applyInProgress;
+			const previousValue = deviceState.__get__('applyInProgress');
+			const previousPollTime = deviceState.__get__('maxPollTime');
 			// Setup failing conditions
-			deviceState.applyInProgress = true;
+			deviceState.__set__('applyInProgress', true);
+			deviceState.__set__('maxPollTime', 1);
 			expect(await deviceState.healthcheck()).to.equal(false);
 			expect(Log.info).to.be.calledOnce;
 			expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
@@ -445,7 +431,8 @@ describe('deviceState', () => {
 					- cycleTimeWithinInterval ? false`,
 			);
 			// Restore value
-			deviceState.applyInProgress = previousValue;
+			deviceState.__set__('applyInProgress', previousValue);
+			deviceState.__set__('maxPollTime', previousPollTime);
 		});
 	});
 });

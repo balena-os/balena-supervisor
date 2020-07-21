@@ -34,6 +34,9 @@ import { createV1Api } from './device-api/v1';
 import { createV2Api } from './device-api/v2';
 import { serviceAction } from './device-api/common';
 
+import * as deviceState from './device-state';
+import * as apiBinder from './api-binder';
+
 import * as db from './db';
 
 // TODO: move this to an Image class?
@@ -70,7 +73,7 @@ const createApplicationManagerRouter = function (applications) {
 };
 
 export class ApplicationManager extends EventEmitter {
-	constructor({ deviceState, apiBinder }) {
+	constructor() {
 		super();
 
 		this.serviceAction = serviceAction;
