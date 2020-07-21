@@ -1,3 +1,5 @@
+process.env.DOCKER_HOST = 'unix:///your/dockerode/mocks/are/not/working';
+
 import * as dockerode from 'dockerode';
 
 export interface TestData {
