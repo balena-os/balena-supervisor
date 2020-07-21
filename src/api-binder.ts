@@ -25,7 +25,7 @@ import { DeviceStatus } from './types/state';
 
 import log from './lib/supervisor-console';
 
-import DeviceState from './device-state';
+import * as deviceState from './device-state';
 import * as globalEventBus from './event-bus';
 import * as TargetState from './device-state/target-state';
 import * as logger from './logger';
@@ -53,7 +53,6 @@ interface DeviceTag {
 	value: string;
 }
 
-export let deviceState: DeviceState;
 const lastReportedState: DeviceStatus = {
 	local: {},
 	dependent: {},
@@ -65,10 +64,6 @@ const stateForReport: DeviceStatus = {
 let reportPending = false;
 export let stateReportErrors = 0;
 let readyForUpdates = false;
-
-export function setDeviceState(newState: DeviceState) {
-	deviceState = newState;
-}
 
 export async function healthcheck() {
 	const {
@@ -179,7 +174,7 @@ export async function start() {
 	// must wait for the provisioning because we need a
 	// target state on which to apply the backup
 	globalEventBus.getInstance().once('targetStateChanged', async (state) => {
-		await loadBackupFromMigration(deviceState, state, bootstrapRetryDelay);
+		await loadBackupFromMigration(state, bootstrapRetryDelay);
 	});
 
 	readyForUpdates = true;
@@ -705,6 +700,7 @@ export let balenaApi: PinejsClientRequest | null = null;
 export const initialized = (async () => {
 	await config.initialized;
 	await eventTracker.initialized;
+	await deviceState.initialized;
 
 	const { unmanaged, apiEndpoint, currentApiKey } = await config.getMany([
 		'unmanaged',
@@ -754,25 +750,3 @@ router.post('/v1/update', (req, res, next) => {
 		res.sendStatus(202);
 	}
 });
-
-// export interface ApiBinder {
-// 	fetchDevice: (
-// 		uuid: string,
-// 		apiKey: string,
-// 		timeout: number,
-// 	) => Promise<Device | null>;
-// 	fetchDeviceTags: () => Promise<DeviceTag[]>;
-// 	healthcheck: () => Promise<void>;
-// 	patchDevice: (
-// 		id: number,
-// 		updatedFields: Dictionary<unknown>,
-// 	) => Promise<void>;
-// 	provisionDependentDevice: (device: Device) => Promise<Device>;
-// 	setDeviceState: (newState: DeviceState) => void;
-// 	startCurrentStateReport: () => void;
-// 	start: () => Promise<void>;
-// 	stripDeviceStateInLocalMode: (state: DeviceStatus) => DeviceStatus;
-// 	balenaApi: PinejsClientRequest;
-// 	initialized: Promise<void>;
-// 	router: express.Router;
-// }

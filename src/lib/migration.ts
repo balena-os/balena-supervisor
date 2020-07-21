@@ -3,20 +3,24 @@ import * as _ from 'lodash';
 import * as mkdirp from 'mkdirp';
 import { child_process, fs } from 'mz';
 import * as path from 'path';
-import { PinejsClientRequest } from 'pinejs-client-request';
 import * as rimraf from 'rimraf';
 
 const mkdirpAsync = Bluebird.promisify(mkdirp);
 const rimrafAsync = Bluebird.promisify(rimraf);
 
-import { ApplicationManager } from '../application-manager';
+import * as apiBinder from '../api-binder';
 import * as config from '../config';
 import * as db from '../db';
 import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
-import DeviceState from '../device-state';
+import * as deviceState from '../device-state';
 import * as constants from '../lib/constants';
-import { BackupError, DatabaseParseError, NotFoundError } from '../lib/errors';
+import {
+	BackupError,
+	DatabaseParseError,
+	NotFoundError,
+	InternalInconsistencyError,
+} from '../lib/errors';
 import { docker } from '../lib/docker-utils';
 import { pathExistsOnHost } from '../lib/fs-utils';
 import { log } from '../lib/supervisor-console';
@@ -108,10 +112,16 @@ export function convertLegacyAppsJson(appsArray: any[]): AppsJsonFormat {
 	return { apps, config: deviceConfig } as AppsJsonFormat;
 }
 
-export async function normaliseLegacyDatabase(
-	application: ApplicationManager,
-	balenaApi: PinejsClientRequest,
-) {
+export async function normaliseLegacyDatabase() {
+	await apiBinder.initialized;
+	await deviceState.initialized;
+
+	if (apiBinder.balenaApi == null) {
+		throw new InternalInconsistencyError(
+			'API binder is not initialized correctly',
+		);
+	}
+
 	// When legacy apps are present, we kill their containers and migrate their /data to a named volume
 	log.info('Migrating ids for legacy app...');
 
@@ -147,7 +157,7 @@ export async function normaliseLegacyDatabase(
 		}
 
 		log.debug(`Getting release ${app.commit} for app ${app.appId} from API`);
-		const releases = (await balenaApi.get({
+		const releases = (await apiBinder.balenaApi.get({
 			resource: 'release',
 			options: {
 				$filter: {
@@ -248,7 +258,7 @@ export async function normaliseLegacyDatabase(
 	await serviceManager.killAllLegacy();
 	log.debug('Migrating legacy app volumes');
 
-	const targetApps = await application.getTargetApps();
+	const targetApps = await deviceState.applications.getTargetApps();
 
 	for (const appId of _.keys(targetApps)) {
 		await volumeManager.createFromLegacy(parseInt(appId, 10));
@@ -260,7 +270,6 @@ export async function normaliseLegacyDatabase(
 }
 
 export async function loadBackupFromMigration(
-	deviceState: DeviceState,
 	targetState: TargetState,
 	retryDelay: number,
 ): Promise<void> {
@@ -340,6 +349,6 @@ export async function loadBackupFromMigration(
 		log.error(`Error restoring migration backup, retrying: ${err}`);
 
 		await Bluebird.delay(retryDelay);
-		return loadBackupFromMigration(deviceState, targetState, retryDelay);
+		return loadBackupFromMigration(targetState, retryDelay);
 	}
 }
