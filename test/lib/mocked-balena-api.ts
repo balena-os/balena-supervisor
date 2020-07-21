@@ -52,6 +52,12 @@ api.get(/\/v6\/device\(uuid=%27([0-9a-f]+)%27\)/, (req, res) =>
 	api.balenaBackend!.getDeviceHandler(req, res, _.noop),
 );
 
+api.get(/\/v6\/device/, (req, res) => {
+	const [, uuid] = /uuid eq '([0-9a-f]+)'/i.exec(req.query['$filter']) ?? [];
+	req.params[0] = uuid;
+	return api.balenaBackend!.getDeviceHandler(req, res, _.noop);
+});
+
 api.post('/api-key/device/:deviceId/device-key', (req, res) =>
 	api.balenaBackend!.deviceKeyHandler(req, res, _.noop),
 );

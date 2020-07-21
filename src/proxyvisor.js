@@ -20,6 +20,7 @@ import * as db from './db';
 import * as config from './config';
 import * as dockerUtils from './lib/docker-utils';
 import * as logger from './logger';
+import * as apiHelper from './lib/api-helper';
 
 const mkdirpAsync = Promise.promisify(mkdirp);
 
@@ -406,8 +407,8 @@ export class Proxyvisor {
 									}
 									// If the device is not in the DB it means it was provisioned externally
 									// so we need to fetch it.
-									return this.apiBinder
-										.fetchDevice(uuid, currentApiKey, apiTimeout)
+									return apiHelper
+										.fetchDevice(this.apiBinder.balenaApi, uuid, currentApiKey, apiTimeout)
 										.then((dev) => {
 											const deviceForDB = {
 												uuid,

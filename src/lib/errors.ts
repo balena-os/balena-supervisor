@@ -14,6 +14,8 @@ interface CodedSysError extends Error {
 	code?: string;
 }
 
+export class DeviceNotFoundError extends TypedError {}
+
 export function NotFoundError(err: StatusCodeError): boolean {
 	return checkInt(err.statusCode) === 404;
 }
@@ -48,6 +50,12 @@ export class UpdatesLockedError extends TypedError {}
 
 export function isHttpConflictError(err: StatusCodeError | Response): boolean {
 	return checkInt(err.statusCode) === 409;
+}
+
+export class FailedToProvisionDeviceError extends TypedError {
+	public constructor() {
+		super('Failed to provision device');
+	}
 }
 
 export class ExchangeKeyError extends TypedError {}
