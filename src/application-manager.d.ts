@@ -7,9 +7,9 @@ import { ServiceAction } from './device-api/common';
 import { DeviceStatus, InstancedAppState } from './types/state';
 
 import type { Image } from './compose/images';
-import DeviceState from './device-state';
+import * as deviceState from './device-state';
+import * as apiBinder from './api-binder';
 
-import { APIBinder } from './api-binder';
 import * as config from './config';
 
 import {
@@ -41,8 +41,6 @@ class ApplicationManager extends EventEmitter {
 	// TODO: When the module which is/declares these fields is converted to
 	// typecript, type the following
 	public _lockingIfNecessary: any;
-	public deviceState: DeviceState;
-	public apiBinder: APIBinder;
 
 	public proxyvisor: any;
 	public timeSpentFetching: number;
@@ -52,7 +50,7 @@ class ApplicationManager extends EventEmitter {
 
 	public router: Router;
 
-	public constructor({ deviceState: DeviceState, apiBinder: APIBinder });
+	public constructor();
 
 	public init(): Promise<void>;
 

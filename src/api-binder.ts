@@ -23,7 +23,7 @@ import * as request from './lib/request';
 
 import log from './lib/supervisor-console';
 
-import DeviceState from './device-state';
+import * as deviceState from './device-state';
 import * as globalEventBus from './event-bus';
 import * as TargetState from './device-state/target-state';
 import * as logger from './logger';
@@ -53,7 +53,6 @@ interface DeviceTag {
 	value: string;
 }
 
-export let deviceState: DeviceState;
 const lastReportedState: DeviceStatus = {
 	local: {},
 	dependent: {},
@@ -65,10 +64,6 @@ const stateForReport: DeviceStatus = {
 let reportPending = false;
 export let stateReportErrors = 0;
 let readyForUpdates = false;
-
-export function setDeviceState(newState: DeviceState) {
-	deviceState = newState;
-}
 
 export async function healthcheck() {
 	const {
@@ -718,6 +713,7 @@ export let balenaApi: PinejsClientRequest | null = null;
 export const initialized = (async () => {
 	await config.initialized;
 	await eventTracker.initialized;
+	await deviceState.initialized;
 
 	const { unmanaged, apiEndpoint, currentApiKey } = await config.getMany([
 		'unmanaged',

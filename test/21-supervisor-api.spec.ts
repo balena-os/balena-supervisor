@@ -3,7 +3,7 @@ import { spy, stub, SinonStub } from 'sinon';
 import * as supertest from 'supertest';
 
 import * as apiBinder from '../src/api-binder';
-import DeviceState from '../src/device-state';
+import * as deviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
 import * as images from '../src/compose/images';
 import SupervisorAPI from '../src/supervisor-api';
@@ -25,11 +25,12 @@ describe('SupervisorAPI', () => {
 
 	before(async () => {
 		await apiBinder.initialized;
+		await deviceState.initialized;
 
 		// Stub health checks so we can modify them whenever needed
 		healthCheckStubs = [
 			stub(apiBinder, 'healthcheck'),
-			stub(DeviceState.prototype, 'healthcheck'),
+			stub(deviceState, 'healthcheck'),
 		];
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed

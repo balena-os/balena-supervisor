@@ -7,7 +7,7 @@ import { DeviceStatus } from '../types/state';
 import { getRequestInstance } from '../lib/request';
 import * as config from '../config';
 import * as eventTracker from '../event-tracker';
-import DeviceState from '../device-state';
+import * as deviceState from '../device-state';
 import { CoreOptions } from 'request';
 import * as url from 'url';
 
@@ -20,7 +20,6 @@ const INTERNAL_STATE_KEYS = [
 	'update_failed',
 ];
 
-let deviceState: DeviceState;
 export let stateReportErrors = 0;
 const lastReportedState: DeviceStatus = {
 	local: {},
@@ -200,9 +199,7 @@ const reportCurrentState = (): null => {
 	return null;
 };
 
-// TODO: Remove the passing in of deviceState once it's a singleton
-export const startReporting = ($deviceState: typeof deviceState) => {
-	deviceState = $deviceState;
+export const startReporting = () => {
 	deviceState.on('change', () => {
 		if (!reportPending) {
 			// A latency of 100ms should be acceptable and
