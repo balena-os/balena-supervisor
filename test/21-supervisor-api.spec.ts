@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { spy, stub, SinonStub } from 'sinon';
 import * as supertest from 'supertest';
 
-import APIBinder from '../src/api-binder';
+import * as apiBinder from '../src/api-binder';
 import DeviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
 import * as images from '../src/compose/images';
@@ -24,9 +24,11 @@ describe('SupervisorAPI', () => {
 	const originalGetStatus = images.getStatus;
 
 	before(async () => {
+		await apiBinder.initialized;
+
 		// Stub health checks so we can modify them whenever needed
 		healthCheckStubs = [
-			stub(APIBinder.prototype, 'healthcheck'),
+			stub(apiBinder, 'healthcheck'),
 			stub(DeviceState.prototype, 'healthcheck'),
 		];
 		// The mockedAPI contains stubs that might create unexpected results
@@ -37,7 +39,7 @@ describe('SupervisorAPI', () => {
 		images.getStatus = () => Promise.resolve([]);
 
 		// Start test API
-		return api.listen(mockedOptions.listenPort, mockedOptions.timeout);
+		await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 	});
 
 	after(async () => {

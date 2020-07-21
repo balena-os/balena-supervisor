@@ -1,6 +1,6 @@
 import { SinonStub, stub } from 'sinon';
 
-import APIBinder from '../src/api-binder';
+import * as APIBinder from '../src/api-binder';
 import { ApplicationManager } from '../src/application-manager';
 import DeviceState from '../src/device-state';
 import * as constants from '../src/lib/constants';
@@ -10,7 +10,6 @@ import { expect } from './lib/chai-config';
 import _ = require('lodash');
 
 describe('Startup', () => {
-	let initClientStub: SinonStub;
 	let reportCurrentStateStub: SinonStub;
 	let startStub: SinonStub;
 	let vpnStatusPathStub: SinonStub;
@@ -19,16 +18,11 @@ describe('Startup', () => {
 	let dockerStub: SinonStub;
 
 	before(() => {
-		initClientStub = stub(APIBinder.prototype as any, 'initClient').returns(
-			Promise.resolve(),
-		);
 		reportCurrentStateStub = stub(
 			DeviceState.prototype as any,
 			'reportCurrentState',
 		).resolves();
-		startStub = stub(APIBinder.prototype as any, 'start').returns(
-			Promise.resolve(),
-		);
+		startStub = stub(APIBinder as any, 'start').returns(Promise.resolve());
 		appManagerStub = stub(ApplicationManager.prototype, 'init').returns(
 			Promise.resolve(),
 		);
@@ -40,7 +34,6 @@ describe('Startup', () => {
 	});
 
 	after(() => {
-		initClientStub.restore();
 		startStub.restore();
 		appManagerStub.restore();
 		vpnStatusPathStub.restore();
