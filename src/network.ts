@@ -43,12 +43,14 @@ export function enableCheck(enable: boolean) {
 }
 
 export async function isVPNActive(): Promise<boolean> {
+	let active: boolean = true;
 	try {
 		await fs.lstat(`${constants.vpnStatusPath}/active`);
-	} catch {
-		return false;
+	} catch (e) {
+		active = false;
 	}
-	return true;
+	log.info(`VPN connection is ${active ? 'active' : 'not active'}.`);
+	return active;
 }
 
 async function vpnStatusInotifyCallback(): Promise<void> {
