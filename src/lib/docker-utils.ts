@@ -188,7 +188,7 @@ export async function fetchDeltaWithProgress(
 	} catch (e) {
 		if (e instanceof OutOfSyncError) {
 			logFn('Falling back to regular pull due to delta out of sync error');
-			return await this.fetchImageWithProgress(imgDest, deltaOpts, onProgress);
+			return await fetchImageWithProgress(imgDest, deltaOpts, onProgress);
 		} else {
 			logFn(`Delta failed with ${e}`);
 			throw e;
@@ -219,7 +219,7 @@ export async function fetchImageWithProgress(
 }
 
 export async function getImageEnv(id: string): Promise<EnvVarObject> {
-	const inspect = await this.getImage(id).inspect();
+	const inspect = await docker.getImage(id).inspect();
 
 	try {
 		return envArrayToObject(_.get(inspect, ['Config', 'Env'], []));
@@ -234,7 +234,7 @@ export async function getNetworkGateway(networkName: string): Promise<string> {
 		return '127.0.0.1';
 	}
 
-	const network = await this.getNetwork(networkName).inspect();
+	const network = await docker.getNetwork(networkName).inspect();
 	const config = _.get(network, ['IPAM', 'Config', '0']);
 	if (config != null) {
 		if (config.Gateway != null) {
