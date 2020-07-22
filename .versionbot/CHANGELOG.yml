@@ -1,4 +1,23 @@
 - commits:
+    - subject: Bump lodash from 4.17.15 to 4.17.19
+      hash: 01655b595555ae63ea1b70d623451c9ad3ec03dd
+      body: >
+        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.15 to
+        4.17.19.
+
+        - [Release notes](https://github.com/lodash/lodash/releases)
+
+        - [Commits](https://github.com/lodash/lodash/compare/4.17.15...4.17.19)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 11.9.8
+  date: 2020-07-22T14:44:00.974Z
+- commits:
     - subject: 'docker-utils: Test network gateway determination logic'
       hash: 6ef3bd2362ebd185053a351490f6561ec10b84d8
       body: ''
