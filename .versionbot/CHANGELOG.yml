@@ -1,4 +1,27 @@
 - commits:
+    - subject: 'docker-utils: Test network gateway determination logic'
+      hash: 6ef3bd2362ebd185053a351490f6561ec10b84d8
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+    - subject: Fix docker-util using incorrect reference for function
+      hash: 3b3babfd62868e986788d6c2f4fcede915fb4711
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 11.9.7
+  date: 2020-07-22T12:19:06.693Z
+- commits:
     - subject: Fix purge and restart invocations by providing instanced apps
       hash: d14d8f31ccee62fa8cec88209cc3674a1b280e34
       body: ''
