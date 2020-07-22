@@ -92,7 +92,7 @@
     "lint-staged": "^10.0.8",
     "livepush": "^3.3.0",
     "lockfile": "^1.0.4",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "memoizee": "^0.4.14",
     "mixpanel": "^0.10.3",
     "mkdirp": "^0.5.3",
