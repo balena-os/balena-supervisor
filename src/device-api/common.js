@@ -154,10 +154,13 @@ export function safeAppClone(app) {
 			// TODO: Make the process of moving from a current state to a target state
 			// well-defined (and implemented in a seperate module)
 			const svcCopy = _.cloneDeep(svc);
+
 			_.each(svcCopy.config.networks, (net) => {
-				net.aliases = net.aliases.filter(
-					(alias) => alias !== containerIdForService[svcCopy.serviceName],
-				);
+				if (Array.isArray(net.aliases)) {
+					net.aliases = net.aliases.filter(
+						(alias) => alias !== containerIdForService[svcCopy.serviceName],
+					);
+				}
 			});
 			return svcCopy;
 		}),
