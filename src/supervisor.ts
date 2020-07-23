@@ -96,6 +96,24 @@ export class Supervisor {
 		this.deviceState.on('shutdown', () => this.api.stop());
 
 		await this.apiBinder.start();
+
+		// When Supervisor recieves SIGTERM sleep then exit
+		process.once('SIGTERM', async function () {
+			console.log('SIGTERM received...');
+			const SLEEP_FOR = process.env.sleep
+				? parseInt(process.env.sleep, 10)
+				: 30000; // use sleep ENV or 30 seconds
+			await sleep(SLEEP_FOR);
+			function sleep(ms: number) {
+				console.log(`Sleeping for ${ms / 1000} seconds...`);
+				return new Promise((resolve) => {
+					setTimeout(() => {
+						console.log('Done sleeping');
+						resolve();
+					}, ms);
+				});
+			}
+		});
 	}
 }
 
