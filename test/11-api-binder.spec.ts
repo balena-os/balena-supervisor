@@ -15,6 +15,7 @@ import { schema } from '../src/config/schema';
 import ConfigJsonConfigBackend from '../src/config/configJson';
 import * as TargetState from '../src/device-state/target-state';
 import { DeviceStatus } from '../src/types/state';
+import * as CurrentState from '../src/device-state/current-state';
 
 const { expect } = chai;
 
@@ -330,7 +331,7 @@ describe('ApiBinder', () => {
 		} as DeviceStatus;
 
 		it('should strip applications data', () => {
-			const result = components.apiBinder.stripDeviceStateInLocalMode(
+			const result = CurrentState.stripDeviceStateInLocalMode(
 				sampleState,
 			) as Dictionary<any>;
 			expect(result).to.not.have.property('dependent');
@@ -442,7 +443,8 @@ describe('ApiBinder', () => {
 			const previousDeviceStateConnected =
 				components.apiBinder.deviceState.connected;
 			// Set additional conditions not in configStub to cause a fail
-			components.apiBinder.stateReportErrors = 4;
+			// @ts-expect-error
+			CurrentState.stateReportErrors = 4;
 			components.apiBinder.deviceState.connected = true;
 			expect(await components.apiBinder.healthcheck()).to.equal(false);
 			expect(Log.info).to.be.calledOnce;
@@ -454,7 +456,8 @@ describe('ApiBinder', () => {
 					- stateReportErrors less then 3 ? false`,
 			);
 			// Restore previous values
-			components.apiBinder.stateReportErrors = previousStateReportErrors;
+			// @ts-expect-error
+			CurrentState.stateReportErrors = previousStateReportErrors;
 			components.apiBinder.deviceState.connected = previousDeviceStateConnected;
 		});
 	});

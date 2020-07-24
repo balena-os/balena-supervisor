@@ -5,7 +5,7 @@ import * as express from 'express';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import * as _ from 'lodash';
-import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
+import { PinejsClientRequest } from 'pinejs-client-request';
 import * as url from 'url';
 import * as deviceRegister from './lib/register-device';
 
@@ -14,7 +14,6 @@ import * as deviceConfig from './device-config';
 import * as eventTracker from './event-tracker';
 import { loadBackupFromMigration } from './lib/migration';
 
-import constants = require('./lib/constants');
 import {
 	ContractValidationError,
 	ContractViolationError,
@@ -23,23 +22,14 @@ import {
 	isHttpConflictError,
 } from './lib/errors';
 import * as request from './lib/request';
-import { DeviceStatus } from './types/state';
 
 import log from './lib/supervisor-console';
 
 import DeviceState from './device-state';
 import * as globalEventBus from './event-bus';
 import * as TargetState from './device-state/target-state';
+import * as CurrentState from './device-state/current-state';
 import * as logger from './logger';
-
-// The exponential backoff starts at 15s
-const MINIMUM_BACKOFF_DELAY = 15000;
-
-const INTERNAL_STATE_KEYS = [
-	'update_pending',
-	'update_downloaded',
-	'update_failed',
-];
 
 interface Device {
 	id: number;
@@ -66,16 +56,6 @@ export class APIBinder {
 	private deviceState: DeviceState;
 
 	public balenaApi: PinejsClientRequest | null = null;
-	private lastReportedState: DeviceStatus = {
-		local: {},
-		dependent: {},
-	};
-	private stateForReport: DeviceStatus = {
-		local: {},
-		dependent: {},
-	};
-	private reportPending = false;
-	private stateReportErrors = 0;
 	private readyForUpdates = false;
 
 	public constructor() {
@@ -125,7 +105,7 @@ export class APIBinder {
 		const stateReportHealthy =
 			!connectivityCheckEnabled ||
 			!this.deviceState.connected ||
-			this.stateReportErrors < 3;
+			CurrentState.stateReportErrors < 3;
 
 		if (!stateReportHealthy) {
 			log.info(
@@ -133,7 +113,7 @@ export class APIBinder {
 				Healthcheck failure - Atleast ONE of the following conditions must be true:
 					- No connectivityCheckEnabled   ? ${!(connectivityCheckEnabled === true)}
 					- device state is disconnected  ? ${!(this.deviceState.connected === true)}
-					- stateReportErrors less then 3 ? ${this.stateReportErrors < 3}`,
+					- stateReportErrors less then 3 ? ${CurrentState.stateReportErrors < 3}`,
 			);
 			return false;
 		}
@@ -215,7 +195,7 @@ export class APIBinder {
 		}
 
 		log.debug('Starting current state report');
-		await this.startCurrentStateReport();
+		await CurrentState.startReporting(this.deviceState);
 
 		// When we've provisioned, try to load the backup. We
 		// must wait for the provisioning because we need a
@@ -356,22 +336,6 @@ export class APIBinder {
 		).timeout(conf.apiTimeout)) as Device;
 	}
 
-	public startCurrentStateReport() {
-		if (this.balenaApi == null) {
-			throw new InternalInconsistencyError(
-				'Trying to start state reporting without initializing API client',
-			);
-		}
-		this.deviceState.on('change', () => {
-			if (!this.reportPending) {
-				// A latency of 100ms should be acceptable and
-				// allows avoiding catching docker at weird states
-				this.reportCurrentState();
-			}
-		});
-		return this.reportCurrentState();
-	}
-
 	public async fetchDeviceTags(): Promise<DeviceTag[]> {
 		if (this.balenaApi == null) {
 			throw new Error(
@@ -409,160 +373,6 @@ export class APIBinder {
 				value: value.right,
 			};
 		});
-	}
-
-	private getStateDiff(): DeviceStatus {
-		const lastReportedLocal = this.lastReportedState.local;
-		const lastReportedDependent = this.lastReportedState.dependent;
-		if (lastReportedLocal == null || lastReportedDependent == null) {
-			throw new InternalInconsistencyError(
-				`No local or dependent component of lastReportedLocal in ApiBinder.getStateDiff: ${JSON.stringify(
-					this.lastReportedState,
-				)}`,
-			);
-		}
-
-		const diff = {
-			local: _(this.stateForReport.local)
-				.omitBy((val, key: keyof DeviceStatus['local']) =>
-					_.isEqual(lastReportedLocal[key], val),
-				)
-				.omit(INTERNAL_STATE_KEYS)
-				.value(),
-			dependent: _(this.stateForReport.dependent)
-				.omitBy((val, key: keyof DeviceStatus['dependent']) =>
-					_.isEqual(lastReportedDependent[key], val),
-				)
-				.omit(INTERNAL_STATE_KEYS)
-				.value(),
-		};
-
-		return _.omitBy(diff, _.isEmpty);
-	}
-
-	private async sendReportPatch(
-		stateDiff: DeviceStatus,
-		conf: { apiEndpoint: string; uuid: string; localMode: boolean },
-	) {
-		if (this.balenaApi == null) {
-			throw new InternalInconsistencyError(
-				'Attempt to send report patch without an API client',
-			);
-		}
-
-		let body = stateDiff;
-		if (conf.localMode) {
-			body = this.stripDeviceStateInLocalMode(stateDiff);
-			// In local mode, check if it still makes sense to send any updates after data strip.
-			if (_.isEmpty(body.local)) {
-				// Nothing to send.
-				return;
-			}
-		}
-
-		const endpoint = url.resolve(
-			conf.apiEndpoint,
-			`/device/v2/${conf.uuid}/state`,
-		);
-
-		const requestParams = _.extend(
-			{
-				method: 'PATCH',
-				url: endpoint,
-				body,
-			},
-			this.balenaApi.passthrough,
-		);
-
-		await this.balenaApi._request(requestParams);
-	}
-
-	// Returns an object that contains only status fields relevant for the local mode.
-	// It basically removes information about applications state.
-	public stripDeviceStateInLocalMode(state: DeviceStatus): DeviceStatus {
-		return {
-			local: _.cloneDeep(
-				_.omit(state.local, 'apps', 'is_on__commit', 'logs_channel'),
-			),
-		};
-	}
-
-	private report = _.throttle(async () => {
-		const conf = await config.getMany([
-			'deviceId',
-			'apiTimeout',
-			'apiEndpoint',
-			'uuid',
-			'localMode',
-		]);
-
-		const stateDiff = this.getStateDiff();
-		if (_.size(stateDiff) === 0) {
-			return 0;
-		}
-
-		const { apiEndpoint, uuid, localMode } = conf;
-		if (uuid == null || apiEndpoint == null) {
-			throw new InternalInconsistencyError(
-				'No uuid or apiEndpoint provided to ApiBinder.report',
-			);
-		}
-
-		try {
-			await Bluebird.resolve(
-				this.sendReportPatch(stateDiff, { apiEndpoint, uuid, localMode }),
-			).timeout(conf.apiTimeout);
-
-			this.stateReportErrors = 0;
-			_.assign(this.lastReportedState.local, stateDiff.local);
-			_.assign(this.lastReportedState.dependent, stateDiff.dependent);
-		} catch (e) {
-			if (e instanceof StatusError) {
-				// We don't want this to be classed as a report error, as this will cause
-				// the watchdog to kill the supervisor - and killing the supervisor will
-				// not help in this situation
-				log.error(
-					`Non-200 response from the API! Status code: ${e.statusCode} - message:`,
-					e,
-				);
-			} else {
-				throw e;
-			}
-		}
-	}, constants.maxReportFrequency);
-
-	private reportCurrentState(): null {
-		(async () => {
-			this.reportPending = true;
-			try {
-				const currentDeviceState = await this.deviceState.getStatus();
-				_.assign(this.stateForReport.local, currentDeviceState.local);
-				_.assign(this.stateForReport.dependent, currentDeviceState.dependent);
-
-				const stateDiff = this.getStateDiff();
-				if (_.size(stateDiff) === 0) {
-					this.reportPending = false;
-					return null;
-				}
-
-				await this.report();
-				this.reportCurrentState();
-			} catch (e) {
-				eventTracker.track('Device state report failure', { error: e });
-				// We use the poll interval as the upper limit of
-				// the exponential backoff
-				const maxDelay = await config.get('appUpdatePollInterval');
-				const delay = Math.min(
-					2 ** this.stateReportErrors * MINIMUM_BACKOFF_DELAY,
-					maxDelay,
-				);
-
-				++this.stateReportErrors;
-				await Bluebird.delay(delay);
-				this.reportCurrentState();
-			}
-		})();
-		return null;
 	}
 
 	private async pinDevice({ app, commit }: DevicePinInfo) {
