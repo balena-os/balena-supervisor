@@ -1,4 +1,17 @@
 - commits:
+    - subject: log detection of changes to VPN status
+      hash: 41987d8e7600550da2d09e050db58c3ad969210e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: dt-rush <nickp@balena.io>
+        signed-off-by: dt-rush <nickp@balena.io>
+      author: dt-rush
+      nested: []
+  version: 11.9.10
+  date: 2020-07-23T23:22:47.297Z
+- commits:
     - subject: 'common: Fix bug where aliases might be undefined'
       hash: 60132134deffd770a40d1e6f18fdd87cb2f9f52e
       body: |
