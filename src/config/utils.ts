@@ -1,27 +1,37 @@
 import * as _ from 'lodash';
 
+import * as constants from '../lib/constants';
+import { getMetaOSRelease } from '../lib/os-release';
 import { EnvVarObject } from '../lib/types';
 import { ExtlinuxConfigBackend } from './backends/extlinux';
+import { ExtraUEnvConfigBackend } from './backends/extra-uEnv';
 import { RPiConfigBackend } from './backends/raspberry-pi';
 import { ConfigfsConfigBackend } from './backends/config-fs';
 import { ConfigOptions, DeviceConfigBackend } from './backends/backend';
 
 const configBackends = [
 	new ExtlinuxConfigBackend(),
+	new ExtraUEnvConfigBackend(),
 	new RPiConfigBackend(),
 	new ConfigfsConfigBackend(),
 ];
 
 export const initialiseConfigBackend = async (deviceType: string) => {
-	const backend = getConfigBackend(deviceType);
+	const backend = await getConfigBackend(deviceType);
 	if (backend) {
 		await backend.initialise();
 		return backend;
 	}
 };
 
-function getConfigBackend(deviceType: string): DeviceConfigBackend | undefined {
-	return _.find(configBackends, (backend) => backend.matches(deviceType));
+async function getConfigBackend(
+	deviceType: string,
+): Promise<DeviceConfigBackend | undefined> {
+	// Some backends are only supported by certain release versions so pass in metaRelease
+	const metaRelease = await getMetaOSRelease(constants.hostOSVersionPath);
+	return _.find(configBackends, (backend) =>
+		backend.matches(deviceType, metaRelease),
+	);
 }
 
 export function envToBootConfig(

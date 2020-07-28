@@ -65,6 +65,8 @@ const constants = {
 	// (this number is used as an upper bound when generating
 	// a random jitter)
 	maxApiJitterDelay: 60 * 1000,
+	// The OS version when extlinux moved to READ ONLY partition
+	extLinuxReadOnly: '2.47.0',
 };
 
 if (process.env.DOCKER_HOST == null) {

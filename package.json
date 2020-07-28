@@ -28,6 +28,7 @@
   "private": true,
   "dependencies": {
     "dbus": "^1.0.7",
+    "semver": "^7.3.2",
     "sqlite3": "^4.1.1"
   },
   "engines": {

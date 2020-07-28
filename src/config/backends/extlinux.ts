@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import { fs } from 'mz';
+import * as semver from 'semver';
 
 import {
 	ConfigOptions,
@@ -15,7 +16,7 @@ import {
 } from './extlinux-file';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
-import { ExtLinuxParseError } from '../../lib/errors';
+import { ExtLinuxEnvError, ExtLinuxParseError } from '../../lib/errors';
 
 /**
  * A backend to handle extlinux host configuration
@@ -43,8 +44,13 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		'(?:' + _.escapeRegExp(ExtlinuxConfigBackend.bootConfigVarPrefix) + ')(.+)',
 	);
 
-	public matches(deviceType: string): boolean {
-		return deviceType.startsWith('jetson-tx');
+	public matches(deviceType: string, metaRelease: string | undefined): boolean {
+		return (
+			// Only test metaRelease with Jetson devices
+			deviceType.startsWith('jetson-') &&
+			typeof metaRelease === 'string' &&
+			semver.lt(metaRelease, constants.extLinuxReadOnly)
+		);
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {
@@ -58,7 +64,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		} catch {
 			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick
-			throw new ExtLinuxParseError(
+			throw new ExtLinuxEnvError(
 				'Could not find extlinux file. Device is possibly bricked',
 			);
 		}
@@ -104,7 +110,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		} catch {
 			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick
-			throw new Error(
+			throw new ExtLinuxEnvError(
 				'Could not find extlinux file. Device is possibly bricked',
 			);
 		}

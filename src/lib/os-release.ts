@@ -59,6 +59,12 @@ export function getOSSemver(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'VERSION');
 }
 
+export async function getMetaOSRelease(
+	path: string,
+): Promise<string | undefined> {
+	return getOSReleaseField(path, 'META_BALENA_VERSION');
+}
+
 const L4T_REGEX = /^.*-l4t-r(\d+\.\d+(\.?\d+)?).*$/;
 export async function getL4tVersion(): Promise<string | undefined> {
 	// We call `uname -r` on the host, and look for l4t
