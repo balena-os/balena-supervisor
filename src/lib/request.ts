@@ -30,6 +30,10 @@ type PromisifiedRequest = typeof requestLib & {
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions | undefined,
 	) => Bluebird<[requestLib.Response, any]>;
+	patchAsync: (
+		uri: string | requestLib.CoreOptions,
+		options?: requestLib.CoreOptions | undefined,
+	) => Bluebird<[requestLib.Response, any]>;
 	getAsync: (
 		uri: string | requestLib.CoreOptions,
 		options?: requestLib.CoreOptions | undefined,
