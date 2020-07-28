@@ -1,4 +1,15 @@
 - commits:
+    - subject: Extract current state reporting to its own module
+      hash: eeda7e3ab17dc68d592acc2e4f58f20dad9a677a
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+      nested: []
+  version: 11.10.0
+  date: 2020-07-24T16:39:30.078Z
+- commits:
     - subject: log detection of changes to VPN status
       hash: 41987d8e7600550da2d09e050db58c3ad969210e
       body: ''
