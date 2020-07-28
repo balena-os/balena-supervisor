@@ -1,4 +1,19 @@
 - commits:
+    - subject: Support setting device/fleet configuration in extra_uEnv.txt
+      hash: cac2e3612c978b5fbcf837d78a4a0bff5ba5166a
+      body: ''
+      footer:
+        Closes: '#1385'
+        closes: '#1385'
+        Change-Type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 11.11.0
+  date: 2020-07-28T20:38:18.462Z
+- commits:
     - subject: Extract current state reporting to its own module
       hash: eeda7e3ab17dc68d592acc2e4f58f20dad9a677a
       body: ''
