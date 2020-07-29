@@ -1,4 +1,17 @@
 - commits:
+    - subject: fix up "atleast" -> "at least"
+      hash: 15c57a86b47c4df3dbf5e20c5dbbbd40a6344812
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+      nested: []
+  version: 11.11.1
+  date: 2020-07-29T15:57:59.129Z
+- commits:
     - subject: Support setting device/fleet configuration in extra_uEnv.txt
       hash: cac2e3612c978b5fbcf837d78a4a0bff5ba5166a
       body: ''
