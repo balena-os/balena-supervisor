@@ -28,7 +28,7 @@ export const createV1Api = function (router, applications) {
 		return applications
 			.getCurrentApp(appId)
 			.then(function (app) {
-				let service = app?.app.services?.[0];
+				let service = app?.services?.[0];
 				if (service == null) {
 					return res.status(400).send('App not found');
 				}
