@@ -110,7 +110,7 @@ export class APIBinder {
 		if (!stateReportHealthy) {
 			log.info(
 				stripIndent`
-				Healthcheck failure - Atleast ONE of the following conditions must be true:
+				Healthcheck failure - At least ONE of the following conditions must be true:
 					- No connectivityCheckEnabled   ? ${!(connectivityCheckEnabled === true)}
 					- device state is disconnected  ? ${!(this.deviceState.connected === true)}
 					- stateReportErrors less then 3 ? ${CurrentState.stateReportErrors < 3}`,

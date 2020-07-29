@@ -267,7 +267,7 @@ The --grep option, when specified, will trigger mocha to only run tests matching
 
 ## Troubleshooting
 
-Make sure you are running atleast:
+Make sure you are running at least:
 
 ```sh
 node -v       # >= 12.16.2

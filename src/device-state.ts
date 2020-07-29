@@ -284,7 +284,7 @@ export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmit
 		if (!applyTargetHealthy) {
 			log.info(
 				stripIndent`
-				Healthcheck failure - Atleast ONE of the following conditions must be true:
+				Healthcheck failure - At least ONE of the following conditions must be true:
 					- No applyInProgress      ? ${!(this.applyInProgress === true)}
 					- fetchesInProgress       ? ${this.applications.fetchesInProgress > 0}
 					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
