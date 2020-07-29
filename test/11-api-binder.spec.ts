@@ -450,7 +450,7 @@ describe('ApiBinder', () => {
 			expect(Log.info).to.be.calledOnce;
 			expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
 				stripIndent`
-				Healthcheck failure - Atleast ONE of the following conditions must be true:
+				Healthcheck failure - At least ONE of the following conditions must be true:
 					- No connectivityCheckEnabled   ? false
 					- device state is disconnected  ? false
 					- stateReportErrors less then 3 ? false`,

@@ -57,7 +57,7 @@ const STUBBED_VALUES = {
  * AND MULTIPLE TEST CASES WILL USE THEM THEN ADD THEM HERE
  * OTHERWISE YOU CAN ADD STUBS ON A PER TEST CASE BASIS
  *
- * EXAMPLE: We stub ApplicationManager so there is atleast 1 running app
+ * EXAMPLE: We stub ApplicationManager so there is at least 1 running app
  *
  * You can see all the stubbed values convientiely in STUBBED_VALUES.
  *

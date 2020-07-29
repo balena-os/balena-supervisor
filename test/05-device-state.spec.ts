@@ -439,7 +439,7 @@ describe('deviceState', () => {
 			expect(Log.info).to.be.calledOnce;
 			expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
 				stripIndent`
-				Healthcheck failure - Atleast ONE of the following conditions must be true:
+				Healthcheck failure - At least ONE of the following conditions must be true:
 					- No applyInProgress      ? false
 					- fetchesInProgress       ? false
 					- cycleTimeWithinInterval ? false`,
