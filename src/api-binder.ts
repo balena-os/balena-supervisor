@@ -440,10 +440,9 @@ export class APIBinder {
 			);
 		}
 
-		const targetConfigUnformatted = _.get(
-			await TargetState.get(),
-			'local.config',
-		);
+		// We force a fresh get to make sure we have the latest state
+		// and can guarantee we don't clash with any already reported config
+		const targetConfigUnformatted = (await TargetState.get())?.local?.config;
 		if (targetConfigUnformatted == null) {
 			throw new InternalInconsistencyError(
 				'Attempt to report initial state with malformed target state',
