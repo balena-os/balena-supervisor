@@ -122,10 +122,12 @@ describe('Extlinux Configuration', () => {
 			.that.equals('3,4,5');
 	});
 
-	it('only matches supported devices', () => {
-		MATCH_TESTS.forEach(({ deviceType, metaRelease, supported }) =>
-			expect(backend.matches(deviceType, metaRelease)).to.equal(supported),
-		);
+	it('only matches supported devices', async () => {
+		for (const { deviceType, metaRelease, supported } of MATCH_TESTS) {
+			await expect(
+				backend.matches(deviceType, metaRelease),
+			).to.eventually.equal(supported);
+		}
 	});
 
 	it('errors when cannot find extlinux.conf', async () => {

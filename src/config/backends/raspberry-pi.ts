@@ -50,7 +50,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 		'avoid_safe_mode',
 	];
 
-	public matches(deviceType: string): boolean {
+	public async matches(deviceType: string): Promise<boolean> {
 		return deviceType.startsWith('raspberry') || deviceType === 'fincm3';
 	}
 

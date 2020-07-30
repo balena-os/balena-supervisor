@@ -29,9 +29,13 @@ async function getConfigBackend(
 ): Promise<DeviceConfigBackend | undefined> {
 	// Some backends are only supported by certain release versions so pass in metaRelease
 	const metaRelease = await getMetaOSRelease(constants.hostOSVersionPath);
-	return _.find(configBackends, (backend) =>
-		backend.matches(deviceType, metaRelease),
-	);
+	let matched;
+	for (const backend of configBackends) {
+		if (await backend.matches(deviceType, metaRelease)) {
+			matched = backend;
+		}
+	}
+	return matched;
 }
 
 export function envToBootConfig(

@@ -1,6 +1,5 @@
 import * as _ from 'lodash';
 import { fs } from 'mz';
-import * as semver from 'semver';
 
 import {
 	ConfigOptions,
@@ -61,14 +60,10 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 			')(.+)',
 	);
 
-	public matches(deviceType: string, metaRelease: string | undefined): boolean {
+	public async matches(deviceType: string): Promise<boolean> {
 		return (
-			deviceType === 'intel-nuc' ||
-			// Test metaRelease for Jetson devices
-			(deviceType.startsWith('jetson') &&
-				// Assume metaRelease is greater than or equal to EXTRA_SUPPORT if undefined
-				(typeof metaRelease === 'undefined' ||
-					semver.gte(metaRelease, constants.extLinuxReadOnly)))
+			(deviceType === 'intel-nuc' || deviceType.startsWith('jetson')) &&
+			(await fs.exists(ExtraUEnvConfigBackend.bootConfigPath))
 		);
 	}
 

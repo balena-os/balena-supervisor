@@ -66,10 +66,13 @@ describe('extra_uEnv Configuration', () => {
 		await expect(backend.getBootConfig()).to.eventually.deep.equal({});
 	});
 
-	it('only matches supported devices', () => {
-		MATCH_TESTS.forEach(({ deviceType, metaRelease, supported }) =>
-			expect(backend.matches(deviceType, metaRelease)).to.equal(supported),
-		);
+	it('only matches supported devices', async () => {
+		const existsStub = stub(fs, 'exists');
+		for (const { hasConfigFile, deviceType, supported } of MATCH_TESTS) {
+			existsStub.resolves(hasConfigFile);
+			await expect(backend.matches(deviceType)).to.eventually.equal(supported);
+		}
+		existsStub.restore();
 	});
 
 	it('errors when cannot find extra_uEnv.txt', async () => {
@@ -235,83 +238,80 @@ const MALFORMED_CONFIGS = [
 	},
 ];
 
-const SUPPORTED_VERSION = '2.47.0'; // or greater
-const UNSUPPORTED_VERSION = '2.45.0'; // or less
-
 const MATCH_TESTS = [
 	{
 		deviceType: 'jetson-tx1',
-		metaRelease: SUPPORTED_VERSION,
+		hasConfigFile: true,
 		supported: true,
 	},
 	{
 		deviceType: 'jetson-tx2',
-		metaRelease: SUPPORTED_VERSION,
+		hasConfigFile: true,
 		supported: true,
 	},
 	{
 		deviceType: 'jetson-tx2',
-		metaRelease: UNSUPPORTED_VERSION,
+		hasConfigFile: false,
 		supported: false,
 	},
 	{
 		deviceType: 'jetson-nano',
-		metaRelease: SUPPORTED_VERSION,
+		hasConfigFile: true,
 		supported: true,
 	},
 	{
 		deviceType: 'jetson-nano',
-		metaRelease: UNSUPPORTED_VERSION,
+		hasConfigFile: false,
 		supported: false,
 	},
 	{
 		deviceType: 'jetson-xavier',
-		metaRelease: SUPPORTED_VERSION,
+		hasConfigFile: true,
 		supported: true,
 	},
 	{
 		deviceType: 'jetson-xavier',
-		metaRelease: UNSUPPORTED_VERSION,
+		hasConfigFile: false,
 		supported: false,
 	},
 	{
 		deviceType: 'intel-nuc',
-		metaRelease: SUPPORTED_VERSION,
+		hasConfigFile: true,
 		supported: true,
 	},
 	{
 		deviceType: 'intel-nuc',
-		metaRelease: UNSUPPORTED_VERSION,
-		supported: true,
-	},
-	{
-		deviceType: 'raspberry',
-		metaRelease: SUPPORTED_VERSION,
+		hasConfigFile: false,
 		supported: false,
 	},
 	{
 		deviceType: 'raspberry',
-		metaRelease: UNSUPPORTED_VERSION,
+		hasConfigFile: true,
+		supported: false,
+	},
+	{
+		deviceType: 'raspberry',
+		hasConfigFile: false,
 		supported: false,
 	},
 	{
 		deviceType: 'fincm3',
-		metaRelease: SUPPORTED_VERSION,
+		hasConfigFile: true,
 		supported: false,
 	},
 	{
 		deviceType: 'fincm3',
-		metaRelease: UNSUPPORTED_VERSION,
+		hasConfigFile: false,
 		supported: false,
 	},
 	{
 		deviceType: 'up-board',
-		metaRelease: SUPPORTED_VERSION,
+		hasConfigFile: true,
 		supported: false,
 	},
 	{
 		deviceType: 'up-board',
-		metaRelease: UNSUPPORTED_VERSION,
+		hasConfigFile: false,
 		supported: false,
 	},
 ];

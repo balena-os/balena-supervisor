@@ -18,6 +18,9 @@ import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { ExtLinuxEnvError, ExtLinuxParseError } from '../../lib/errors';
 
+// The OS version when extlinux moved to READ ONLY partition
+const EXTLINUX_READONLY = '2.47.0';
+
 /**
  * A backend to handle extlinux host configuration
  *
@@ -44,12 +47,15 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		'(?:' + _.escapeRegExp(ExtlinuxConfigBackend.bootConfigVarPrefix) + ')(.+)',
 	);
 
-	public matches(deviceType: string, metaRelease: string | undefined): boolean {
+	public async matches(
+		deviceType: string,
+		metaRelease: string | undefined,
+	): Promise<boolean> {
 		return (
 			// Only test metaRelease with Jetson devices
 			deviceType.startsWith('jetson-') &&
 			typeof metaRelease === 'string' &&
-			semver.lt(metaRelease, constants.extLinuxReadOnly)
+			semver.lt(metaRelease, EXTLINUX_READONLY)
 		);
 	}
 
