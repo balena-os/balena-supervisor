@@ -164,12 +164,10 @@ const poll = async (
 };
 
 /**
- * Get the latest target state, attempting a fetch first if we do not already have one
+ * Checks for target state changes and then returns the latest target state
  */
 export const get = async (): Promise<TargetState> => {
-	if (cache == null) {
-		await update();
-	}
+	await update();
 	return _.cloneDeep(cache.body);
 };
 
