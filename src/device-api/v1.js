@@ -6,7 +6,7 @@ import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
 import { doRestart, doPurge, serviceAction } from './common';
 
-import * as applications from '../compose/application-manager';
+import * as applicationManager from '../compose/application-manager';
 
 export const createV1Api = function (router) {
 	router.post('/v1/restart', function (req, res, next) {
@@ -16,7 +16,7 @@ export const createV1Api = function (router) {
 		if (appId == null) {
 			return res.status(400).send('Missing app id');
 		}
-		return doRestart(applications, appId, force)
+		return doRestart(applicationManager, appId, force)
 			.then(() => res.status(200).send('OK'))
 			.catch(next);
 	});
@@ -27,7 +27,7 @@ export const createV1Api = function (router) {
 		if (appId == null) {
 			return res.status(400).send('Missing app id');
 		}
-		return applications
+		return applicationManager
 			.getCurrentApp(appId)
 			.then(function (app) {
 				let service = app?.app.services?.[0];
@@ -41,10 +41,10 @@ export const createV1Api = function (router) {
 							'Some v1 endpoints are only allowed on single-container apps',
 						);
 				}
-				applications.setTargetVolatileForService(service.imageId, {
+				applicationManager.setTargetVolatileForService(service.imageId, {
 					running: action !== 'stop',
 				});
-				return applications
+				return applicationManager
 					.executeStepAction(
 						serviceAction(action, service.serviceId, service, service, {
 							wait: true,
@@ -56,7 +56,7 @@ export const createV1Api = function (router) {
 							return service;
 						}
 						// We refresh the container id in case we were starting an app with no container yet
-						return applications.getCurrentApp(appId).then(function (app2) {
+						return applicationManager.getCurrentApp(appId).then(function (app2) {
 							service = app2?.services?.[0];
 							if (service == null) {
 								throw new Error('App not found after running action');
@@ -84,8 +84,8 @@ export const createV1Api = function (router) {
 			return res.status(400).send('Missing app id');
 		}
 		return Promise.join(
-			applications.getCurrentApp(appId),
-			applications.getStatus(),
+			applicationManager.getCurrentApp(appId),
+			applicationManager.getStatus(),
 			function (app, status) {
 				const service = app?.services?.[0];
 				if (service == null) {
@@ -121,7 +121,7 @@ export const createV1Api = function (router) {
 			const errMsg = 'Invalid or missing appId';
 			return res.status(400).send(errMsg);
 		}
-		return doPurge(applications, appId, force)
+		return doPurge(applicationManager, appId, force)
 			.then(() => res.status(200).json({ Data: 'OK', Error: '' }))
 			.catch(next);
 	});

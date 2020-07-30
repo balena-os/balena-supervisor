@@ -91,7 +91,7 @@ describe('DB Format', () => {
 		expect(app).to.have.property('services').that.is.an('object');
 		expect(Object.keys(app.services)).to.deep.equal(['567']);
 
-		const service = app.services['567'];
+		const service = app.services[567];
 		expect(service).to.be.instanceof(Service);
 		// Don't do a deep equals here as a bunch of other properties are added that are
 		// tested elsewhere
@@ -138,7 +138,7 @@ describe('DB Format', () => {
 				});
 
 			const app = await dbFormat.getApp(2);
-			const conf = app.services[Object.keys(app.services)[0]].config;
+			const conf = app.services[parseInt(Object.keys(app.services)[0], 10)].config;
 			expect(conf)
 				.to.have.property('entrypoint')
 				.that.deep.equals(['theEntrypoint']);

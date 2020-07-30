@@ -3,16 +3,21 @@ import * as _ from 'lodash';
 import { appNotFoundMessage } from '../lib/messages';
 import * as logger from '../logger';
 
+import * as deviceState from '../device-state';
+import * as applicationManager from '../compose/application-manager';
 import * as volumes from '../compose/volume-manager';
 
-export function doRestart(applications, appId, force) {
-	const { _lockingIfNecessary, deviceState } = applications;
+export async function doRestart(appId, force) {
+	await deviceState.initialized;
+	await applicationManager.initialized;
+
+	const { _lockingIfNecessary } = applicationManager;
 
 	return _lockingIfNecessary(appId, { force }, () =>
 		deviceState.getCurrentForComparison().then(function (currentState) {
 			const app = safeAppClone(currentState.local.apps[appId]);
 			const imageIds = _.map(app.services, 'imageId');
-			applications.clearTargetVolatileForServices(imageIds);
+			applicationManager.clearTargetVolatileForServices(imageIds);
 
 			const stoppedApp = _.cloneDeep(app);
 			stoppedApp.services = [];
@@ -33,8 +38,11 @@ export function doRestart(applications, appId, force) {
 	);
 }
 
-export function doPurge(applications, appId, force) {
-	const { _lockingIfNecessary, deviceState } = applications;
+export async function doPurge(appId, force) {
+	await deviceState.initialized;
+	await applicationManager.initialized;
+	
+	const { _lockingIfNecessary } = applicationManager;
 
 	logger.logSystemMessage(
 		`Purging data for app ${appId}`,

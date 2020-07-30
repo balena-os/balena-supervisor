@@ -26,7 +26,7 @@ import * as updateLock from './lib/update-lock';
 import * as validation from './lib/validation';
 import * as network from './network';
 
-import { ApplicationManager } from './application-manager';
+import * as applicationManager from './compose/application-manager';
 import * as deviceConfig from './device-config';
 import { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
@@ -35,6 +35,7 @@ import {
 	DeviceStatus,
 	InstancedDeviceState,
 	TargetState,
+	InstancedAppState,
 } from './types/state';
 
 function validateLocalState(state: any): asserts state is TargetState['local'] {
@@ -169,7 +170,7 @@ function createDeviceStateRouter() {
 		}
 	});
 
-	router.use(applications.router);
+	router.use(applicationManager.router);
 	return router;
 }
 
@@ -210,15 +211,12 @@ type DeviceStateStepTarget = 'reboot' | 'shutdown' | 'noop';
 type PossibleStepTargets = CompositionStepAction | DeviceStateStepTarget;
 type DeviceStateStep<T extends PossibleStepTargets> =
 	| {
-			action: 'reboot';
-	  }
+		action: 'reboot';
+	}
 	| { action: 'shutdown' }
 	| { action: 'noop' }
 	| CompositionStepT<T extends CompositionStepAction ? T : never>
 	| ConfigStep;
-
-// export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {
-export const applications = new ApplicationManager();
 
 let currentVolatile: DeviceReportFields = {};
 const writeLock = updateLock.writeLock;
@@ -239,7 +237,7 @@ export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
 export let router: express.Router;
-createDeviceStateRouter();
+
 
 events.on('error', (err) => log.error('deviceState error: ', err));
 events.on('apply-target-state-end', function (err) {
@@ -255,10 +253,14 @@ events.on('apply-target-state-end', function (err) {
 		return deviceConfig.resetRateLimits();
 	}
 });
-applications.on('change', (d) => reportCurrentState(d));
+
 
 export const initialized = (async () => {
 	await config.initialized;
+	await applicationManager.initialized;
+
+	applicationManager.on('change', (d) => reportCurrentState(d));
+	createDeviceStateRouter();
 
 	config.on('change', (changedConfig) => {
 		if (changedConfig.loggingEnabled != null) {
@@ -288,12 +290,12 @@ export async function healthcheck() {
 	const cycleTime = process.hrtime(lastApplyStart);
 	const cycleTimeMs = cycleTime[0] * 1000 + cycleTime[1] / 1e6;
 	const cycleTimeWithinInterval =
-		cycleTimeMs - applications.timeSpentFetching < 2 * maxPollTime;
+		cycleTimeMs - applicationManager.timeSpentFetching < 2 * maxPollTime;
 
 	// Check if target is healthy
 	const applyTargetHealthy =
 		!applyInProgress ||
-		applications.fetchesInProgress > 0 ||
+		applicationManager.fetchesInProgress > 0 ||
 		cycleTimeWithinInterval;
 
 	if (!applyTargetHealthy) {
@@ -301,7 +303,7 @@ export async function healthcheck() {
 			stripIndent`
 				Healthcheck failure - Atleast ONE of the following conditions must be true:
 					- No applyInProgress      ? ${!(applyInProgress === true)}
-					- fetchesInProgress       ? ${applications.fetchesInProgress > 0}
+					- fetchesInProgress       ? ${applicationManager.fetchesInProgress > 0}
 					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
 		);
 	}
@@ -344,7 +346,7 @@ async function saveInitialConfig() {
 }
 
 export async function loadInitialState() {
-	await applications.init();
+	await applicationManager.initialized;
 
 	const conf = await config.getMany([
 		'initialConfigSaved',
@@ -387,7 +389,7 @@ export async function loadInitialState() {
 		update_downloaded: false,
 	});
 
-	const targetApps = await applications.getTargetApps();
+	const targetApps = await applicationManager.getTargetApps();
 	if (!conf.provisioned || (_.isEmpty(targetApps) && !conf.targetStateSet)) {
 		try {
 			await loadTargetFromFile(null);
@@ -462,14 +464,14 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 			await deviceConfig.setTarget(target.local.config, trx);
 
 			if (localSource || apiEndpoint == null) {
-				await applications.setTarget(
+				await applicationManager.setTarget(
 					target.local.apps,
 					target.dependent,
 					'local',
 					trx,
 				);
 			} else {
-				await applications.setTarget(
+				await applicationManager.setTarget(
 					target.local.apps,
 					target.dependent,
 					apiEndpoint,
@@ -495,15 +497,15 @@ export function getTarget({
 			local: {
 				name: await config.get('name'),
 				config: await deviceConfig.getTarget({ initial }),
-				apps: await applications.getTargetApps(),
+				apps: await applicationManager.getTargetApps(),
 			},
-			dependent: await applications.getDependentTargets(),
+			dependent: await applicationManager.getDependentTargets(),
 		};
 	}) as Bluebird<InstancedDeviceState>;
 }
 
 export async function getStatus(): Promise<DeviceStatus> {
-	const appsStatus = await applications.getStatus();
+	const appsStatus = await applicationManager.getStatus();
 	const theState: DeepPartial<DeviceStatus> = {
 		local: {},
 		dependent: {},
@@ -524,8 +526,8 @@ export async function getCurrentForComparison(): Promise<
 	const [name, devConfig, apps, dependent] = await Promise.all([
 		config.get('name'),
 		deviceConfig.getCurrent(),
-		applications.getCurrentForComparison(),
-		applications.getDependentState(),
+		applicationManager.getCurrentAppsForReport(),
+		applicationManager.getDependentState(),
 	]);
 	return {
 		local: {
@@ -538,7 +540,7 @@ export async function getCurrentForComparison(): Promise<
 	};
 }
 
-export function reportCurrentState(newState: DeviceReportFields = {}) {
+export function reportCurrentState(newState: DeviceReportFields & Partial<InstancedAppState> = {}) {
 	if (newState == null) {
 		newState = {};
 	}
@@ -547,7 +549,7 @@ export function reportCurrentState(newState: DeviceReportFields = {}) {
 }
 
 export async function reboot(force?: boolean, skipLock?: boolean) {
-	await applications.stopAll({ force, skipLock });
+	await applicationManager.stopAll({ force, skipLock });
 	logger.logSystemMessage('Rebooting', {}, 'Reboot');
 	const $reboot = await dbus.reboot();
 	shuttingDown = true;
@@ -556,7 +558,7 @@ export async function reboot(force?: boolean, skipLock?: boolean) {
 }
 
 export async function shutdown(force?: boolean, skipLock?: boolean) {
-	await applications.stopAll({ force, skipLock });
+	await applicationManager.stopAll({ force, skipLock });
 	logger.logSystemMessage('Shutting down', {}, 'Shutdown');
 	const $shutdown = await dbus.shutdown();
 	shuttingDown = true;
@@ -576,8 +578,8 @@ export async function executeStepAction<T extends PossibleStepTargets>(
 		await deviceConfig.executeStepAction(step as ConfigStep, {
 			initial,
 		});
-	} else if (_.includes(applications.validActions, step.action)) {
-		return applications.executeStepAction(step as any, {
+	} else if (_.includes(applicationManager.validActions, step.action)) {
+		return applicationManager.executeStep(step as any, {
 			force,
 			skipLock,
 		});
@@ -691,17 +693,13 @@ export const applyTarget = async ({
 	if (!intermediate) {
 		await applyBlocker;
 	}
-	await applications.localModeSwitchCompletion();
+	await applicationManager.localModeSwitchCompletion();
 
 	return usingInferStepsLock(async () => {
 		const [currentState, targetState] = await Promise.all([
 			getCurrentForComparison(),
 			getTarget({ initial, intermediate }),
 		]);
-		const extraState = await applications.getExtraStateForComparison(
-			currentState,
-			targetState,
-		);
 		const deviceConfigSteps = await deviceConfig.getRequiredSteps(
 			currentState,
 			targetState,
@@ -718,12 +716,7 @@ export const applyTarget = async ({
 			backoff = false;
 			steps = deviceConfigSteps;
 		} else {
-			const appSteps = await applications.getRequiredSteps(
-				currentState,
-				targetState,
-				extraState,
-				intermediate,
-			);
+			const appSteps = await applicationManager.getRequiredSteps();
 
 			if (_.isEmpty(appSteps)) {
 				// If we retrieve a bunch of no-ops from the
@@ -742,7 +735,7 @@ export const applyTarget = async ({
 			emitAsync('apply-target-state-end', null);
 			if (!intermediate) {
 				log.debug('Finished applying target state');
-				applications.timeSpentFetching = 0;
+				applicationManager.resetTimeSpentFetching();
 				failedUpdates = 0;
 				lastSuccessfulUpdate = Date.now();
 				reportCurrentState({
@@ -788,9 +781,9 @@ export const applyTarget = async ({
 			}
 			throw new Error(
 				'Failed to apply state transition steps. ' +
-					e.message +
-					' Steps:' +
-					JSON.stringify(_.map(steps, 'action')),
+				e.message +
+				' Steps:' +
+				JSON.stringify(_.map(steps, 'action')),
 			);
 		}
 	}).catch((err) => {

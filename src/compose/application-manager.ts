@@ -30,7 +30,7 @@ import Service from './service';
 import { createV1Api } from '../device-api/v1';
 import { createV2Api } from '../device-api/v2';
 import { CompositionStep, generateStep } from './composition-steps';
-import { InstancedAppState, TargetApplications } from '../types/state';
+import { InstancedAppState, TargetApplications, DeviceStatus } from '../types/state';
 import { checkTruthy, checkInt } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
 import * as updateLock from '../lib/update-lock';
@@ -39,7 +39,7 @@ import { EventEmitter } from 'events';
 // FIXME: Correctly type the change value here
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
-	{ change: any }
+	{ change: Partial<InstancedAppState> }
 >;
 const events: ApplicationManagerEventEmitter = new EventEmitter();
 export const on: typeof events['on'] = events.on.bind(events);
@@ -72,8 +72,12 @@ export const router = (() => {
 // We keep track of the containers we've started, to avoid triggering successive start
 // requests for a container
 export let containerStarted: { [containerId: string]: boolean } = {};
-let fetchesInProgress = 0;
-let timeSpentFetching = 0;
+export let fetchesInProgress = 0;
+export let timeSpentFetching = 0;
+
+export function resetTimeSpentFetching(value: number = 0) {
+	timeSpentFetching = value;
+}
 
 const actionExecutors = getExecutors({
 	lockFn: lockingIfNecessary,
@@ -100,7 +104,7 @@ const actionExecutors = getExecutors({
 	},
 });
 
-const validActions = Object.keys(actionExecutors);
+export const validActions = Object.keys(actionExecutors);
 
 // FIXME: This shouldn't be any
 let targetVolatilePerImageId: {
@@ -161,7 +165,7 @@ export async function lockingIfNecessary<T extends unknown>(
 }
 
 export async function getRequiredSteps(
-	ignoreImages: boolean,
+	ignoreImages: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [
@@ -329,11 +333,17 @@ export async function stopAll({ force = false, skipLock = false } = {}) {
 			return lockingIfNecessary(s.appId, { force, skipLock }, async () => {
 				await serviceManager.kill(s, { removeContainer: false, wait: true });
 				if (s.containerId) {
-					delete this.containerStarted[s.containerId];
+					delete containerStarted[s.containerId];
 				}
 			});
 		}),
 	);
+}
+
+export async function getCurrentAppsForReport(): Promise<NonNullable<DeviceStatus['local']>['apps']> {
+	const apps = await getCurrentApps();
+
+	return {}
 }
 
 export async function getCurrentApps(): Promise<InstancedAppState> {
@@ -489,11 +499,11 @@ export async function getTargetApps() {
 			app.services = _.mapValues(app.services, (svc: Service) => {
 				if (
 					svc.imageId &&
-					this._targetVolatilePerImageId[svc.imageId] != null
+					targetVolatilePerImageId[svc.imageId] != null
 				) {
 					return {
 						...svc,
-						...this._targetVolatilePerImageId[svc.imageId],
+						...targetVolatilePerImageId[svc.imageId],
 					};
 				}
 				return svc;
@@ -673,7 +683,7 @@ function saveAndRemoveImages(
 	}
 
 	const deltaSources = _.map(imagesToDownload, (image) => {
-		return this.bestDeltaSource(image, availableImages);
+		return bestDeltaSource(image, availableImages);
 	});
 	const proxyvisorImages = proxyvisor.imagesInUse(current, target);
 
@@ -682,7 +692,7 @@ function saveAndRemoveImages(
 		.filter(
 			(svc) =>
 				svc.config.labels['io.balena.update.strategy'] ===
-					'delete-then-download' && svc.status === 'Stopped',
+				'delete-then-download' && svc.status === 'Stopped',
 		)
 		.value();
 

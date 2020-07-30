@@ -21,6 +21,8 @@ import * as config from './config';
 import * as dockerUtils from './lib/docker-utils';
 import * as logger from './logger';
 
+import * as apiBinder from './api-binder';
+
 const mkdirpAsync = Promise.promisify(mkdirp);
 
 const isDefined = _.negate(_.isUndefined);
@@ -116,7 +118,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 			belongs_to__application: req.body.appId,
 			device_type,
 		};
-		return proxyvisor.apiBinder
+		return apiBinder
 			.provisionDependentDevice(d)
 			.then(function (dev) {
 				// If the response has id: null then something was wrong in the request
@@ -277,7 +279,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 				}
 				return Promise.try(function () {
 					if (!_.isEmpty(fieldsToUpdateOnAPI)) {
-						return proxyvisor.apiBinder.patchDevice(
+						return apiBinder.patchDevice(
 							device.deviceId,
 							fieldsToUpdateOnAPI,
 						);
@@ -348,7 +350,6 @@ const createProxyvisorRouter = function (proxyvisor) {
 
 export class Proxyvisor {
 	constructor({ applications }) {
-		this.bindToAPI = this.bindToAPI.bind(this);
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
 		this.normaliseDependentAppForDB = this.normaliseDependentAppForDB.bind(
@@ -406,7 +407,7 @@ export class Proxyvisor {
 									}
 									// If the device is not in the DB it means it was provisioned externally
 									// so we need to fetch it.
-									return this.apiBinder
+									return apiBinder
 										.fetchDevice(uuid, currentApiKey, apiTimeout)
 										.then((dev) => {
 											const deviceForDB = {
@@ -486,10 +487,6 @@ export class Proxyvisor {
 			},
 		};
 		this.validActions = _.keys(this.actionExecutors);
-	}
-
-	bindToAPI(apiBinder) {
-		return (this.apiBinder = apiBinder);
 	}
 
 	executeStepAction(step) {

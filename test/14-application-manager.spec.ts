@@ -18,6 +18,8 @@ import * as targetStateCache from '../src/device-state/target-state-cache';
 import * as config from '../src/config';
 import { TargetApplication, TargetApplications } from '../src/types/state';
 
+import * as applicationManager from '../src/compose/application-manager';
+
 // tslint:disable-next-line
 chai.use(require('chai-events'));
 const { expect } = chai;
@@ -69,7 +71,7 @@ describe('ApplicationManager', function () {
 		await prepare();
 		await deviceState.initialized;
 
-		this.applications = deviceState.applications;
+		this.applications = applicationManager;
 
 		// @ts-expect-error assigning to a RO property
 		images.inspectByName = () =>

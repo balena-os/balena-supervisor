@@ -9,7 +9,7 @@ import * as applicationManager from '../src/compose/application-manager';
 import Service from '../src/compose/service';
 import Network from '../src/compose/network';
 
-describe.only('compose/application-manager', () => {
+describe('compose/application-manager', () => {
 	beforeEach(() => {
 		appMock.mockSupervisorNetwork(true);
 	});

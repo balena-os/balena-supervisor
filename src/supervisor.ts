@@ -34,10 +34,6 @@ export class Supervisor {
 	private api: SupervisorAPI;
 
 	public constructor() {
-		// FIXME: rearchitect proxyvisor to avoid this circular dependency
-		// by storing current state and having the APIBinder query and report it / provision devices
-		deviceState.applications.proxyvisor.bindToAPI(apiBinder);
-
 		this.api = new SupervisorAPI({
 			routers: [apiBinder.router, deviceState.router],
 			healthchecks: [

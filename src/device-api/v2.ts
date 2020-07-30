@@ -4,7 +4,7 @@ import * as _ from 'lodash';
 
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
-import * as applications from '../compose/application-manager';
+import * as applicationManager from '../compose/application-manager';
 import {
 	CompositionStepAction,
 	generateStep,
@@ -48,7 +48,7 @@ export function createV2Api(router: Router) {
 			return;
 		}
 
-		return applications.lockingIfNecessary(appId, { force }, () => {
+		return applicationManager.lockingIfNecessary(appId, { force }, () => {
 			return getApp(appId)
 				.then((app) => {
 					if (app == null) {
@@ -77,10 +77,10 @@ export function createV2Api(router: Router) {
 						return;
 					}
 
-					applications.setTargetVolatileForService(service.imageId!, {
+					applicationManager.setTargetVolatileForService(service.imageId!, {
 						running: action !== 'stop',
 					});
-					return applications
+					return applicationManager
 						.executeStep(
 							generateStep(action, { current: service, wait: true }),
 							{
@@ -110,7 +110,7 @@ export function createV2Api(router: Router) {
 				});
 			}
 
-			return doPurge(applications, appId, force)
+			return doPurge(appId, force)
 				.then(() => {
 					res.status(200).send('OK');
 				})
@@ -145,7 +145,7 @@ export function createV2Api(router: Router) {
 				});
 			}
 
-			return doRestart(applications, appId, force)
+			return doRestart(appId, force)
 				.then(() => {
 					res.status(200).send('OK');
 				})
@@ -244,7 +244,7 @@ export function createV2Api(router: Router) {
 			// Query device for all applications
 			let apps: any;
 			try {
-				apps = await applications.getStatus();
+				apps = await applicationManager.getStatus();
 			} catch (e) {
 				log.error(e.message);
 				return res.status(500).json({
@@ -339,7 +339,7 @@ export function createV2Api(router: Router) {
 			if (id in serviceNameCache) {
 				return serviceNameCache[id];
 			} else {
-				const name = await applications.serviceNameFromId(id);
+				const name = await applicationManager.serviceNameFromId(id);
 				serviceNameCache[id] = name;
 				return name;
 			}
@@ -485,7 +485,7 @@ export function createV2Api(router: Router) {
 	});
 
 	router.get('/v2/cleanup-volumes', async (_req, res) => {
-		const targetState = await applications.getTargetApps();
+		const targetState = await applicationManager.getTargetApps();
 		const referencedVolumes: string[] = [];
 		_.each(targetState, (app) => {
 			_.each(app.volumes, (vol) => {

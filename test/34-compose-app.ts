@@ -19,6 +19,7 @@ const defaultContext = {
 	localMode: false,
 	availableImages: [],
 	containerIds: {},
+	downloading: []
 };
 
 function createApp(
@@ -71,7 +72,7 @@ function expectStep(
 	return idx;
 }
 
-describe.only('compose/app', () => {
+describe('compose/app', () => {
 	beforeEach(() => {
 		// Sane defaults
 		appMock.mockSupervisorNetwork(true);

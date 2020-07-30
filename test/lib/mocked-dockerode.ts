@@ -2,6 +2,35 @@ process.env.DOCKER_HOST = 'unix:///your/dockerode/mocks/are/not/working';
 
 import * as dockerode from 'dockerode';
 
+const overrides: Dictionary<(...args: any[]) => Resolvable<any>> = {};
+for (const fn of Object.getOwnPropertyNames(dockerode.prototype)) {
+	if (fn !== 'constructor' && typeof (dockerode.prototype as any)[fn] === 'function') {
+		console.log(`Hooking into ${fn}...`);
+		const originalFn = (dockerode.prototype as any)[fn];
+		(dockerode.prototype as any)[fn] = async function(...args: any[]) {
+			console.log(`Calling ${fn}...`);
+			if (overrides[fn] != null) {
+				return overrides[fn](args);
+			}
+			/* Return promise */
+			return Promise.resolve({});
+		};
+	}
+}
+
+const isIterable = (obj: any) => {
+	// checks for null and undefined
+	if (obj == null) {
+	  return false;
+	}
+	return typeof obj[Symbol.iterator] === 'function';
+}
+
+export function registerOverride<T extends keyof dockerode, uA extends Parameters<dockerode[T]>, uR extends ReturnType<dockerode[T]>>(name: T, fn: (...args: uA) => uR) {
+	console.log(`Overriding ${name}...`);
+	overrides[name] = fn;
+}
+
 export interface TestData {
 	networks: Dictionary<any>;
 	images: Dictionary<any>;

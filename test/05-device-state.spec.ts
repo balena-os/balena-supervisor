@@ -15,6 +15,7 @@ import * as config from '../src/config';
 import * as deviceConfig from '../src/device-config';
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as deviceState from '../src/device-state';
+import { registerOverride } from './lib/mocked-dockerode';
 
 // tslint:disable-next-line
 chai.use(require('chai-events'));
@@ -220,6 +221,11 @@ describe('deviceState', () => {
 	const originalGetCurrent = deviceConfig.getCurrent;
 
 	before(async () => {
+
+		registerOverride('listImages', async opts => {
+			return [];
+		})
+
 		await prepare();
 		await config.initialized;
 		await deviceState.initialized;
@@ -239,6 +245,10 @@ describe('deviceState', () => {
 		stub(dockerUtils, 'getNetworkGateway').returns(
 			Promise.resolve('172.17.0.1'),
 		);
+
+
+		// @ts-expect-error Assigning to a RO property
+		images.cleanupDatabase = () => { console.log('Cleanup database called')}
 
 		// @ts-expect-error Assigning to a RO property
 		images.save = () => Promise.resolve();
@@ -267,6 +277,7 @@ describe('deviceState', () => {
 		images.inspectByName = originalImagesInspect;
 		// @ts-expect-error Assigning to a RO property
 		deviceConfig.getCurrent = originalGetCurrent;
+cleanupStub.restore();
 	});
 
 	beforeEach(async () => {
