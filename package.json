@@ -102,7 +102,7 @@
     "mz": "^2.7.0",
     "network-checker": "^0.1.1",
     "nodemon": "^2.0.2",
-    "pinejs-client-request": "^7.0.0",
+    "pinejs-client-request": "^7.1.0",
     "pretty-ms": "^5.1.0",
     "request": "^2.88.2",
     "resin-cli-visuals": "^1.5.2",
