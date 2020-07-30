@@ -1,4 +1,15 @@
 - commits:
+    - subject: Fix an issue with reporting initial config using a stale target state
+      hash: ffe3da6261e486b875c5c1792b7bdc8e0a0f996e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 11.11.2
+  date: 2020-07-30T09:50:26.292Z
+- commits:
     - subject: fix up "atleast" -> "at least"
       hash: 15c57a86b47c4df3dbf5e20c5dbbbd40a6344812
       body: ''
