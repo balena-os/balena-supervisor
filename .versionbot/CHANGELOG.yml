@@ -1,4 +1,21 @@
 - commits:
+    - subject: >-
+        Fixes documentation - ping doesn't need apiKey and minor documentation
+        formatting changes.
+      hash: 82dda7d852773a58ddbdc4a614ef3a3b7ff15462
+      body: ''
+      footer:
+        Change-Type: patch
+        change-type: patch
+        Signed-off-by: Nitish Agarwal <1592163+nitishagar@users.noreply.github.com>
+        signed-off-by: Nitish Agarwal <1592163+nitishagar@users.noreply.github.com>
+        Co-authored-by: xginn8 <xginn8@users.noreply.github.com>
+        co-authored-by: xginn8 <xginn8@users.noreply.github.com>
+      author: Nitish Agarwal
+      nested: []
+  version: 11.11.6
+  date: 2020-07-31T18:10:27.470Z
+- commits:
     - subject: 'Fixes #1299 v1 start/stop endpoint issue with service access.'
       hash: 11cac2dd696dc267758351be131c3db8eae4470e
       body: ''
