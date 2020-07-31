@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'bug: Fix undefined containerId object'
+      hash: 59561132cc11074d2acf4ac06b477196b42cf569
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+  version: 11.11.4
+  date: 2020-07-31T10:53:18.364Z
+- commits:
     - subject: fix matching extra_uEnv backend with unsupported devices
       hash: 9b37ce96f959ccf27963ebb1c3e9eccd2ed998c7
       body: ''
