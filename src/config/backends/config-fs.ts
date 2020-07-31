@@ -157,7 +157,7 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 		return this;
 	}
 
-	public matches(deviceType: string): boolean {
+	public async matches(deviceType: string): Promise<boolean> {
 		return ConfigfsConfigBackend.SupportedDeviceTypes.includes(deviceType);
 	}
 
