@@ -1,4 +1,17 @@
 - commits:
+    - subject: fix matching extra_uEnv backend with unsupported devices
+      hash: 9b37ce96f959ccf27963ebb1c3e9eccd2ed998c7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 11.11.3
+  date: 2020-07-30T18:15:41.698Z
+- commits:
     - subject: Fix an issue with reporting initial config using a stale target state
       hash: ffe3da6261e486b875c5c1792b7bdc8e0a0f996e
       body: ''
