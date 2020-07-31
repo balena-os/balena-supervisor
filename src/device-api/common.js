@@ -135,7 +135,7 @@ export function safeAppClone(app) {
 	const containerIdForService = _.fromPairs(
 		_.map(app.services, (svc) => [
 			svc.serviceName,
-			svc.containerId.substr(0, 12),
+			svc.containerId != null ? svc.containerId.substr(0, 12) : '',
 		]),
 	);
 	return {
