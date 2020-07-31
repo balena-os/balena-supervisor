@@ -95,7 +95,6 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v1/healthy')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
 					.expect(sampleResponses.V1.GET['/healthy [2]'].statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
@@ -107,7 +106,40 @@ describe('SupervisorAPI', () => {
 					});
 			});
 		});
+
 		// TODO: add tests for V1 endpoints
+		describe('GET /v1/apps/:appId', () => {
+			it('returns information about a SPECIFIC application', async () => {
+				await request
+					.get('/v1/apps/2')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.expect('Content-Type', /json/)
+					.expect(sampleResponses.V1.GET['/apps/2'].statusCode)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V1.GET['/apps/2'].body,
+						);
+					});
+			});
+		});
+
+		describe('POST /v1/apps/:appId/stop', () => {
+			it('stops a SPECIFIC application and returns a containerId', async () => {
+				await request
+					.post('/v1/apps/2/stop')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.expect('Content-Type', /json/)
+					.expect(sampleResponses.V1.GET['/apps/2/stop'].statusCode)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V1.GET['/apps/2/stop'].body,
+						);
+					});
+			});
+		});
+
 		describe('GET /v1/device', () => {
 			it('returns MAC address', async () => {
 				const response = await request

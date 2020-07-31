@@ -1,3 +1,4 @@
+import * as _ from 'lodash';
 import { Router } from 'express';
 import { fs } from 'mz';
 
@@ -40,6 +41,7 @@ const STUBBED_VALUES = {
 		{
 			appId: 2,
 			imageId: 3333,
+			containerId: 'abc123',
 			status: 'Running',
 			releaseId: 77777,
 			createdAt: new Date('2020-05-15T19:33:06.088Z'),
@@ -140,7 +142,9 @@ function buildRoutes(appManager: ApplicationManager): Router {
 
 const originalNetGetAll = networkManager.getAllByAppId;
 const originalVolGetAll = volumeManager.getAllByAppId;
+const originalSvcGetAppId = serviceManager.getAllByAppId;
 const originalSvcGetStatus = serviceManager.getStatus;
+
 function setupStubs() {
 	// @ts-expect-error Assigning to a RO property
 	networkManager.getAllByAppId = async () => STUBBED_VALUES.networks;
@@ -148,6 +152,9 @@ function setupStubs() {
 	volumeManager.getAllByAppId = async () => STUBBED_VALUES.volumes;
 	// @ts-expect-error Assigning to a RO property
 	serviceManager.getStatus = async () => STUBBED_VALUES.services;
+	// @ts-expect-error Assigning to a RO property
+	serviceManager.getAllByAppId = async (appId) =>
+		_.filter(STUBBED_VALUES.services, (service) => service.appId === appId);
 }
 
 function restoreStubs() {
@@ -157,6 +164,8 @@ function restoreStubs() {
 	volumeManager.getAllByAppId = originalVolGetAll;
 	// @ts-expect-error Assigning to a RO property
 	serviceManager.getStatus = originalSvcGetStatus;
+	// @ts-expect-error Assigning to a RO property
+	serviceManager.getAllByAppId = originalSvcGetAppId;
 }
 
 interface SupervisorAPIOpts {
