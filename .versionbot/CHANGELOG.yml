@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'Fixes #1299 v1 start/stop endpoint issue with service access.'
+      hash: 11cac2dd696dc267758351be131c3db8eae4470e
+      body: ''
+      footer:
+        Change-Type: patch
+        change-type: patch
+        Signed-off-by: Nitish Agarwal <1592163+nitishagar@users.noreply.github.com>
+        signed-off-by: Nitish Agarwal <1592163+nitishagar@users.noreply.github.com>
+      author: Nitish Agarwal
+      nested: []
+  version: 11.11.5
+  date: 2020-07-31T17:42:23.827Z
+- commits:
     - subject: 'bug: Fix undefined containerId object'
       hash: 59561132cc11074d2acf4ac06b477196b42cf569
       body: ''
