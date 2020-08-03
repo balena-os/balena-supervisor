@@ -243,20 +243,6 @@ export class APIBinder {
 		apiKey: string,
 		timeout: number,
 	): Promise<Device | null> {
-		const reqOpts = {
-			resource: 'device',
-			options: {
-				$filter: {
-					uuid,
-				},
-			},
-			passthrough: {
-				headers: {
-					Authorization: `Bearer ${apiKey}`,
-				},
-			},
-		};
-
 		if (this.balenaApi == null) {
 			throw new InternalInconsistencyError(
 				'fetchDevice called without an initialized API client',
@@ -264,10 +250,19 @@ export class APIBinder {
 		}
 
 		try {
-			const res = (await Bluebird.resolve(this.balenaApi.get(reqOpts)).timeout(
-				timeout,
-			)) as Device[];
-			return res[0];
+			return (await Bluebird.resolve(
+				this.balenaApi.get({
+					resource: 'device',
+					id: {
+						uuid,
+					},
+					passthrough: {
+						headers: {
+							Authorization: `Bearer ${apiKey}`,
+						},
+					},
+				}),
+			).timeout(timeout)) as Device;
 		} catch (e) {
 			return null;
 		}

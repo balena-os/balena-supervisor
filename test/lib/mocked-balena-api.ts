@@ -30,10 +30,7 @@ api.balenaBackend = {
 		}
 	},
 	getDeviceHandler: (req, res) => {
-		const uuid =
-			req.query['$filter'] != null
-				? req.query['$filter'].match(/uuid eq '(.*)'/)[1]
-				: null;
+		const uuid = req.params[0];
 		if (uuid != null) {
 			return res.json({
 				d: _.filter(api.balenaBackend!.devices, (dev) => dev.uuid === uuid),
@@ -51,7 +48,7 @@ api.post('/device/register', (req, res) =>
 	api.balenaBackend!.registerHandler(req, res, _.noop),
 );
 
-api.get('/v6/device', (req, res) =>
+api.get(/\/v6\/device\(uuid=%27([0-9a-f]+)%27\)/, (req, res) =>
 	api.balenaBackend!.getDeviceHandler(req, res, _.noop),
 );
 
