@@ -1,4 +1,81 @@
 - commits:
+    - subject: Bump elliptic from 6.5.2 to 6.5.3
+      hash: c11004cd24fe66e6af7f16a79c0cc9e8847eb415
+      body: >
+        Bumps [elliptic](https://github.com/indutny/elliptic) from 6.5.2 to
+        6.5.3.
+
+        - [Release notes](https://github.com/indutny/elliptic/releases)
+
+        - [Commits](https://github.com/indutny/elliptic/compare/v6.5.2...v6.5.3)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+    - subject: Update pinejs-client-request and make use of a named key
+      hash: 511cbbe74e9dce51490234c66035ded873091b4e
+      body: |
+        Update pinejs-client-request from 7.0.0 to 7.1.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested:
+        - commits:
+            - subject: Update dependencies
+              hash: c46281f165eb6b05def4bd9eed82df37629c56e7
+              body: |
+                Update pinejs-client-core from 6.0.0 to 6.1.0
+              footer:
+                Change-type: minor
+                change-type: minor
+              author: Pagan Gazzard
+              nested:
+                - commits:
+                    - subject: Add support for using named ids
+                      hash: f6035bf5240e8aea1b92997d976cebd9a1857a61
+                      body: ''
+                      footer:
+                        Change-type: minor
+                        change-type: minor
+                      author: Pagan Gazzard
+                  version: pinejs-client-js-6.1.0
+                  date: 2020-07-21T10:31:09.457Z
+                - commits:
+                    - subject: Drop unnecessary async from request()
+                      hash: dfd4c8c39327fe2e1706a8180e3c3f56d4229b77
+                      body: |
+                        This allows consumers like pinejs-client-supertest
+                        to have all the methods returning different Promise
+                        types based solely on the implementation of the
+                        request() method.
+                      footer:
+                        Change-type: patch
+                        change-type: patch
+                        Signed-off-by: Thodoris Greasidis <thodoris@balena.io>
+                        signed-off-by: Thodoris Greasidis <thodoris@balena.io>
+                      author: Thodoris Greasidis
+                  version: pinejs-client-js-6.0.1
+                  date: 2020-06-19T16:55:46.305Z
+          version: pinejs-client-request-7.1.0
+          date: 2020-07-28T10:43:21.213Z
+        - commits:
+            - subject: Increase default timeout to 59s
+              hash: fc17266fe147bf40086feb81b6c96a344bf74f29
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+              nested: []
+          version: pinejs-client-request-7.0.1
+          date: 2020-07-28T10:29:41.385Z
+  version: 11.11.7
+  date: 2020-08-04T09:33:41.743Z
+- commits:
     - subject: >-
         Fixes documentation - ping doesn't need apiKey and minor documentation
         formatting changes.
