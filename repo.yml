@@ -8,3 +8,5 @@ backports:
 upstream:
   - repo: 'pinejs-client-request'
     url: 'https://github.com/balena-io-modules/pinejs-client-request'
+  - repo: 'contrato'
+    url: 'https://github.com/balena-io/contrato'
