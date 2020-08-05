@@ -1,15 +1,20 @@
 import { expect } from 'chai';
-import { fs } from 'mz';
-import { stub, mock } from 'sinon';
+import _ = require('lodash');
 
+import * as dbFormat from '../src/device-state/db-format';
 import * as appMock from './lib/application-state-mock';
 
 import * as applicationManager from '../src/compose/application-manager';
+import * as config from '../src/config';
 
 import Service from '../src/compose/service';
 import Network from '../src/compose/network';
 
 describe('compose/application-manager', () => {
+	before(async () => {
+		await config.initialized;
+		await dbFormat.setApps({}, 'test');
+	});
 	beforeEach(() => {
 		appMock.mockSupervisorNetwork(true);
 	});
@@ -32,8 +37,10 @@ describe('compose/application-manager', () => {
 		expect(Object.keys(apps)).to.have.length(1);
 		const app = apps[1011165];
 		expect(app).to.have.property('appId').that.equals(1011165);
-		expect(app).to.have.property('services').that.has.property('43697');
-		expect(app.services[43697])
+		expect(app).to.have.property('services')
+		const services = _.keyBy(app.services, 'serviceId');
+		expect(services).to.have.property('43697');
+		expect(services[43697])
 			.to.have.property('serviceName')
 			.that.equals('main');
 	});
@@ -86,7 +93,7 @@ describe('compose/application-manager', () => {
 		expect(steps).to.have.length(1);
 		expect(steps[0]).to.have.property('action').that.equals('kill');
 		expect(steps[0])
-			.to.have.property('target')
+			.to.have.property('current')
 			.that.has.property('serviceName')
 			.that.equals('main');
 	});

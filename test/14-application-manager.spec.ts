@@ -65,7 +65,7 @@ const dependentDBFormat = {
 	imageId: 45,
 };
 
-describe('ApplicationManager', function () {
+describe.skip('ApplicationManager', function () {
 	const originalInspectByName = images.inspectByName;
 	before(async function () {
 		await prepare();
@@ -179,8 +179,8 @@ describe('ApplicationManager', function () {
 		targetStateCache.targetState = undefined;
 	});
 
-	it('should init', function () {
-		return this.applications.init();
+	it('should init', async () => {
+		await applicationManager.initialized;
 	});
 
 	it('infers a start step when all that changes is a running state', function () {

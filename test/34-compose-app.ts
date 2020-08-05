@@ -5,6 +5,7 @@ import * as appMock from './lib/application-state-mock';
 
 import * as applicationManager from '../src/compose/application-manager';
 import App from '../src/compose/app';
+import * as config from '../src/config';
 import * as dbFormat from '../src/device-state/db-format';
 
 import Service from '../src/compose/service';
@@ -19,7 +20,7 @@ const defaultContext = {
 	localMode: false,
 	availableImages: [],
 	containerIds: {},
-	downloading: []
+	downloading: [],
 };
 
 function createApp(
@@ -41,7 +42,7 @@ function createApp(
 }
 
 function createService(
-	config: Dictionary<any>,
+	conf: Dictionary<any>,
 	appId = 1,
 	serviceName = 'test',
 	releaseId = 2,
@@ -55,7 +56,7 @@ function createService(
 			releaseId,
 			serviceId,
 			imageId,
-			...config,
+			...conf,
 		},
 		{} as any,
 	);
@@ -73,6 +74,10 @@ function expectStep(
 }
 
 describe('compose/app', () => {
+	before(async () => {
+		await config.initialized;
+		await applicationManager.initialized;
+	});
 	beforeEach(() => {
 		// Sane defaults
 		appMock.mockSupervisorNetwork(true);
@@ -130,7 +135,7 @@ describe('compose/app', () => {
 	});
 
 	// We don't remove volumes until the end
-	it('should correctly not infer a volume remove step', () => {
+	it('should correctly not infer a volume remove step when the app is still referenced', () => {
 		const current = createApp(
 			[],
 			[],
@@ -404,4 +409,22 @@ describe('compose/app', () => {
 	it.skip(
 		'should emit a fetch step when an image has not been downloaded for a service',
 	);
+	it.skip(
+		'should create a start step when all that changes is a running state',
+	);
+	it.skip(
+		'should not infer a fetch step when the download is already in progress',
+	);
+	it.skip(
+		'should create a kill step when a service has to be updated but the strategy is kill-then-download',
+	);
+	it.skip(
+		'should not infer a kill step with the default strategy if a dependency is not downloaded',
+	);
+	it.skip(
+		'should create several kill steps as long as there is no unmet dependencies',
+	);
+	it.skip('should start a dependency container first');
+	it.skip('infers to start a service once its dependencies have been met');
+	it.skip('should remove spurious containers');
 });

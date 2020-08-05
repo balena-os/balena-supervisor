@@ -21,7 +21,7 @@ export function mockManagers(svcs: Service[], vols: Volume[], nets: Network[]) {
 	// @ts-expect-error Assigning to a RO property
 	networkManager.getAll = async () => nets;
 	// @ts-expect-error Assigning to a RO property
-	serviceManager.getAll = async () => svcs;
+	serviceManager.getAll = async () => { console.log('Calling the mock', svcs); return svcs };
 }
 
 function unmockManagers() {

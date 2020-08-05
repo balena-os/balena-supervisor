@@ -24,6 +24,7 @@ import { sanitiseComposeConfig } from './sanitise';
 
 import log from '../lib/supervisor-console';
 import { EnvVarObject } from '../lib/types';
+import { TargetState } from '../types/state';
 
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
@@ -586,11 +587,27 @@ export class Service {
 		return svc;
 	}
 
-	public toComposeObject(): ServiceConfig {
-		// This isn't techinically correct as we do some changes
-		// to the configuration which we cannot reverse. We also
-		// represent the ports as a class, which isn't ideal
-		return this.config;
+public toComposeObject()/*: TargetState['local']['apps'][0]['services'][0]*/ {
+	// Here we try to reverse the fromComposeObject to the best of our ability, as
+	// this is used for the supervisor reporting it's own target state. Some of
+	// these values won't match in a 1-1 comparison, such as `devices`, as we lose
+	// some data about
+	// return {
+	// 	...this.config,
+	// 	imageId: this.imageId!,
+	// 	serviceName: this.serviceName!
+	// 	devices: this.config.devices.map(composeUtils.dockerDeviceToStr),
+	// 	healthcheck: {
+	// 		...this.config.healthcheck,
+	// 		interval: this.config.healthcheck.interval?.toString(),
+	// 		timeout: this.config.healthcheck.timeout?.toString(),
+	// 		startPeriod: this.config.healthcheck.startPeriod?.toString(),
+	// 	},
+	// 	stopGracePeriod: this.config.startGracePeriod?.toString(),
+	// 	memLimit: this.config.memLimit?.toString(),
+	// 	memReservation: this.config.memReservation?.toString(),
+	// };
+	return this.config;
 	}
 
 	public toDockerContainer(opts: {

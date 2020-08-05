@@ -1,4 +1,6 @@
 import * as _ from 'lodash';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 
 import Network from './network';
 import Volume from './volume';
@@ -13,12 +15,18 @@ import {
 	generateStep,
 	CompositionStepAction,
 } from './composition-steps';
+import * as targetStateCache from '../device-state/target-state-cache';
+import * as dockerUtils from '../lib/docker-utils';
+import constants = require('../lib/constants');
 
 import { getStepsFromStrategy } from './update-strategies';
 
-import { InternalInconsistencyError } from '../lib/errors';
+import { InternalInconsistencyError, NotFoundError } from '../lib/errors';
 import * as config from '../config';
 import { checkTruthy, checkString } from '../lib/validation';
+import { ServiceComposeConfig, DeviceMetadata } from './types/service';
+import { ImageInspectInfo } from 'dockerode';
+import { pathExistsOnHost } from '../lib/fs-utils';
 
 export interface AppConstructOpts {
 	appId: number;
@@ -163,6 +171,9 @@ export class App {
 	public async stepsToRemoveApp(
 		state: Omit<UpdateState, 'availableImages'>,
 	): Promise<CompositionStep[]> {
+		console.log('services', this.services);
+		console.log('networks', this.networks);
+		console.log('volumes', this.volumes);
 		if (Object.keys(this.services).length > 0) {
 			return Object.values(this.services).map(service =>
 				generateStep('kill', { current: service }),
@@ -613,6 +624,101 @@ export class App {
 			}
 		}
 		return true;
+	}
+
+	public static async fromTargetState(app: targetStateCache.DatabaseApp): Promise<App> {
+		const volumes = _.mapValues(JSON.parse(app.volumes) ?? {}, (conf, name) => {
+			if (conf == null) {
+				conf = {};
+			}
+			if (conf.labels == null) {
+				conf.labels = {};
+			}
+			return Volume.fromComposeObject(name, app.appId, conf);
+		});
+
+		const networks = _.mapValues(
+			JSON.parse(app.networks) ?? {},
+			(conf, name) => {
+				if (conf == null) {
+					conf = {};
+				}
+				return Network.fromComposeObject(name, app.appId, conf);
+			},
+		);
+
+		const [
+			opts,
+			supervisorApiHost,
+			hostPathExists,
+			hostnameOnHost,
+		] = await Promise.all([
+			config.get('extendedEnvOptions'),
+			dockerUtils
+				.getNetworkGateway(constants.supervisorNetworkInterface)
+				.catch(() => '127.0.0.1'),
+			(async () => ({
+				firmware: await pathExistsOnHost('/lib/firmware'),
+				modules: await pathExistsOnHost('/lib/modules'),
+			}))(),
+			(async () =>
+				_.trim(
+					await fs.readFile(
+						path.join(constants.rootMountPoint, '/etc/hostname'),
+						'utf8',
+					),
+				))(),
+		]);
+
+		const svcOpts = {
+			appName: app.name,
+			supervisorApiHost,
+			hostPathExists,
+			hostnameOnHost,
+			...opts,
+		};
+
+		// In the db, the services are an array, but here we switch them to an
+		// object so that they are consistent
+		const services: Service[] = await Promise.all(
+			(JSON.parse(app.services) ?? []).map(
+				async (svc: ServiceComposeConfig) => {
+					// Try to fill the image id if the image is downloaded
+					let imageInfo: ImageInspectInfo | undefined;
+					try {
+						imageInfo = await imageManager.inspectByName(svc.image);
+					} catch (e) {
+						if (!NotFoundError(e)) {
+							throw e;
+						}
+					}
+
+					const thisSvcOpts = {
+						...svcOpts,
+						imageInfo,
+						serviceName: svc.serviceName,
+					};
+					// FIXME: Typings for DeviceMetadata
+					return Service.fromComposeObject(
+						svc,
+						(thisSvcOpts as unknown) as DeviceMetadata,
+					);
+				},
+			),
+		);
+		return new App(
+			{
+				appId: app.appId,
+				commit: app.commit,
+				releaseId: app.releaseId,
+				appName: app.name,
+				source: app.source,
+				services,
+				volumes,
+				networks,
+			},
+			true,
+		);
 	}
 }
 

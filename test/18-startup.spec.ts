@@ -12,7 +12,6 @@ import { Supervisor } from '../src/supervisor';
 describe('Startup', () => {
 	let startStub: SinonStub;
 	let vpnStatusPathStub: SinonStub;
-	let appManagerStub: SinonStub;
 	let deviceStateStub: SinonStub;
 	let dockerStub: SinonStub;
 
@@ -27,7 +26,6 @@ describe('Startup', () => {
 
 	after(() => {
 		startStub.restore();
-		appManagerStub.restore();
 		vpnStatusPathStub.restore();
 		deviceStateStub.restore();
 		dockerStub.restore();

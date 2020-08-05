@@ -30,11 +30,12 @@ import Service from './service';
 import { createV1Api } from '../device-api/v1';
 import { createV2Api } from '../device-api/v2';
 import { CompositionStep, generateStep } from './composition-steps';
-import { InstancedAppState, TargetApplications, DeviceStatus } from '../types/state';
+import { InstancedAppState, TargetApplications, DeviceStatus, TargetState } from '../types/state';
 import { checkTruthy, checkInt } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
 import * as updateLock from '../lib/update-lock';
 import { EventEmitter } from 'events';
+import { ServiceComposeConfig } from './types/service';
 
 // FIXME: Correctly type the change value here
 type ApplicationManagerEventEmitter = StrictEventEmitter<
@@ -106,7 +107,8 @@ const actionExecutors = getExecutors({
 
 export const validActions = Object.keys(actionExecutors);
 
-// FIXME: This shouldn't be any
+// Volatile state for a single container. This is used for temporarily setting a
+// different state for a container, such as running: false
 let targetVolatilePerImageId: {
 	[imageId: number]: Partial<Service['config']>;
 } = {};
@@ -191,11 +193,13 @@ export async function getRequiredSteps(
 
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
+	console.log('a');
 
 	let steps: CompositionStep[] = [];
 
 	// First check if we need to create the superviosr network
 	if (!(await networkManager.supervisorNetworkReady())) {
+		console.log('b')
 		// If we do need to create it, we first need to kill any services using the api
 		const killSteps = steps.concat(killServicesUsingApi(currentApps));
 		if (killSteps.length > 0) {
@@ -203,11 +207,14 @@ export async function getRequiredSteps(
 		} else {
 			steps.push({ action: 'ensureSupervisorNetwork' });
 		}
+		console.log('b - a')
 	} else {
+		console.log('c')
 		if (!localMode && downloading.length === 0) {
 			if (cleanupNeeded) {
 				steps.push({ action: 'cleanup' });
 			}
+			console.log('c - a')
 
 			// Detect any images which must be saved/removed
 			steps = steps.concat(
@@ -218,13 +225,17 @@ export async function getRequiredSteps(
 					localMode,
 				),
 			);
+			console.log('c - a - b')
 		}
+
+		console.log('d')
 
 		// We want to remove images before moving on to anything else
 		if (steps.length === 0) {
 			const targetAndCurrent = _.intersection(currentAppIds, targetAppIds);
 			const onlyTarget = _.difference(targetAppIds, currentAppIds);
 			const onlyCurrent = _.difference(currentAppIds, targetAppIds);
+			console.log('e')
 
 			// For apps that exist in both current and target state, calculate what we need to
 			// do to move to the target state
@@ -241,9 +252,11 @@ export async function getRequiredSteps(
 					),
 				);
 			}
+			console.log('f')
 
 			// For apps in the current state but not target, we call their "destructor"
 			for (const id of onlyCurrent) {
+				console.log('Id: ', id)
 				steps = steps.concat(
 					await currentApps[id].stepsToRemoveApp({
 						localMode,
@@ -252,6 +265,8 @@ export async function getRequiredSteps(
 					}),
 				);
 			}
+
+			console.log('g')
 
 			// For apps in the target state but not the current state, we generate steps to
 			// create the app by mocking an existing app which contains nothing
@@ -277,11 +292,13 @@ export async function getRequiredSteps(
 					),
 				);
 			}
+			console.log('h');
 		}
 	}
 
 	const newDownloads = steps.filter((s) => s.action === 'fetch').length;
 	if (!ignoreImages && delta && newDownloads > 0) {
+		console.log('j')
 		// Check that this is not the first pull for an
 		// application, as we want to download all images then
 		// Otherwise we want to limit the downloading of
@@ -290,6 +307,7 @@ export async function getRequiredSteps(
 		let downloadsToBlock =
 			downloading.length + newDownloads - constants.maxDeltaDownloads;
 
+		console.log('k')
 		steps = steps.filter((step) => {
 			if (step.action === 'fetch' && downloadsToBlock > 0) {
 				const imagesForThisApp =
@@ -307,6 +325,7 @@ export async function getRequiredSteps(
 			}
 		});
 	}
+	console.log('l')
 
 	if (!ignoreImages && steps.length === 0 && downloading.length > 0) {
 		// We want to keep the state application alive
@@ -322,6 +341,8 @@ export async function getRequiredSteps(
 			steps,
 		),
 	);
+
+	console.log('m')
 
 	return steps;
 }
@@ -343,7 +364,16 @@ export async function stopAll({ force = false, skipLock = false } = {}) {
 export async function getCurrentAppsForReport(): Promise<NonNullable<DeviceStatus['local']>['apps']> {
 	const apps = await getCurrentApps();
 
-	return {}
+	const appsToReport: NonNullable<DeviceStatus['local']>['apps'] = {};
+	for (const appId of Object.getOwnPropertyNames(apps)) {
+		appsToReport[appId] = {
+			services: {
+
+			}
+		}
+	}
+
+	return appsToReport;
 }
 
 export async function getCurrentApps(): Promise<InstancedAppState> {
@@ -362,7 +392,7 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 			return new App(
 				{
 					appId,
-					services: services[appId],
+					services: services[appId] ?? {},
 					networks: _.keyBy(networks[appId], 'name'),
 					volumes: _.keyBy(volumes[appId], 'name'),
 				},
@@ -491,25 +521,31 @@ export async function setTarget(
 	}
 }
 
-export async function getTargetApps() {
-	const apps = await dbFormat.getApps();
+export async function getTargetApps(): Promise<TargetState['local']['apps']> {
+	const apps = await dbFormat.getTargetJson();
+
+	// Whilst it may make sense here to return the target state generated from the
+	// internal instanced representation that we have, we make irreversable
+	// changes to the input target state to avoid having undefined entries into
+	// the instances throughout the supervisor. The target state is derived from
+	// the database entries anyway, so these two things should never be different
+	// (except for the volatile state)
 
 	_.each(apps, (app) => {
 		if (!_.isEmpty(app.services)) {
-			app.services = _.mapValues(app.services, (svc: Service) => {
+			app.services = _.mapValues(app.services, (svc) => {
 				if (
 					svc.imageId &&
 					targetVolatilePerImageId[svc.imageId] != null
 				) {
-					return {
-						...svc,
-						...targetVolatilePerImageId[svc.imageId],
-					};
+					return { ...svc, ...targetVolatilePerImageId };
 				}
 				return svc;
 			});
 		}
 	});
+
+
 
 	return apps;
 }

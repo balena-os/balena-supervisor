@@ -55,9 +55,9 @@ let listening = false;
 // we don't yet have an id)
 const volatileState: Dictionary<Partial<Service>> = {};
 
-export async function getAll(
+export const getAll = async (
 	extraLabelFilters: string | string[] = [],
-): Promise<Service[]> {
+): Promise<Service[]> => {
 	const filterLabels = ['supervised'].concat(extraLabelFilters);
 	const containers = await listWithBothLabels(filterLabels);
 
