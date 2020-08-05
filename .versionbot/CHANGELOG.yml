@@ -1,4 +1,33 @@
 - commits:
+    - subject: Update resumable-request
+      hash: abf5cac4a3d784a6ad1f545f14b15b5149f13afa
+      body: |
+        Update resumable-request from 2.0.0 to 2.0.1
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested:
+        - commits:
+            - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+              hash: e11bf1fd3f505a83eb1c0bd872d3a90ee1ba4137
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+            - subject: Optimize lodash dependency
+              hash: 40146b216300b0b16f7004e8266d16696928ea14
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: resumable-request-2.0.1
+          date: 2020-08-05T09:48:49.433Z
+  version: 11.12.1
+  date: 2020-08-05T11:28:50.822Z
+- commits:
     - subject: Update contrato to 0.5
       hash: 17c370863cca6bf5ddfaceffdbae96b92db24bbc
       body: |
