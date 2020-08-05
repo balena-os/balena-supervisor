@@ -36,7 +36,7 @@
     "npm": "^5.7.0"
   },
   "devDependencies": {
-    "@balena/contrato": "^0.2.1",
+    "@balena/contrato": "^0.5.0",
     "@balena/lint": "^5.1.0",
     "@types/bluebird": "^3.5.31",
     "@types/chai": "^4.2.11",
