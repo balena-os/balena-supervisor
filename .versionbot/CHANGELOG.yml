@@ -1,4 +1,17 @@
 - commits:
+    - subject: Fix device-tag fetching function
+      hash: aa823c1cfca7a026b1c4cf3580e690625fee0d58
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 11.12.2
+  date: 2020-08-05T12:33:50.608Z
+- commits:
     - subject: Update resumable-request
       hash: abf5cac4a3d784a6ad1f545f14b15b5149f13afa
       body: |
