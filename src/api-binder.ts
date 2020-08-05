@@ -344,9 +344,9 @@ export class APIBinder {
 		}
 		const tags = (await this.balenaApi.get({
 			resource: 'device_tag',
-			id: deviceId,
 			options: {
 				$select: ['id', 'tag_key', 'value'],
+				$filter: { device: deviceId },
 			},
 		})) as Array<Dictionary<unknown>>;
 
