@@ -1,4 +1,437 @@
 - commits:
+    - subject: Update contrato to 0.5
+      hash: 17c370863cca6bf5ddfaceffdbae96b92db24bbc
+      body: |
+        Update contrato from 0.2.1 to 0.5.0
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+      nested:
+        - commits:
+            - subject: Remove handlebars-helpers to shrink bundle size
+              hash: 1305553f48747e0e450c89254790e67674c252b7
+              body: >
+                We can re-add specific helpers as necessary without needing to
+                bloat
+
+                with the entirety of the helpers package
+              footer:
+                Change-type: minor
+                change-type: minor
+              author: Pagan Gazzard
+              nested: []
+          version: contrato-0.5.0
+          date: 2020-08-05T08:38:30.030Z
+        - commits:
+            - subject: Update skhema to 5.x
+              hash: 1eb7058e8e34d708c03c5270e849aff4576773e7
+              body: |
+                Update skhema from 2.3.0 to 5.3.2
+              footer:
+                Change-type: minor
+                change-type: minor
+              author: Pagan Gazzard
+              nested:
+                - commits:
+                    - subject: Switch to typed-error
+                      hash: 234c6da3d4b2ca6784d7714a7b7d46813b43310a
+                      body: ''
+                      footer:
+                        Change-type: patch
+                        change-type: patch
+                      author: Pagan Gazzard
+                  version: skhema-5.3.2
+                  date: 2020-08-04T21:33:19.366Z
+                - commits:
+                    - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+                      hash: 7c61cf2f1e120944c3aef29dfe208f2e37139a6a
+                      body: ''
+                      footer:
+                        Change-type: patch
+                        change-type: patch
+                      author: Pagan Gazzard
+                  version: skhema-5.3.1
+                  date: 2020-08-04T21:07:49.365Z
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: ''
+                      footers:
+                        change-type: minor
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: 7e3fd20fb84d71c67e2f11206c4cf60b4b2866c1
+                      subject: 'filter: Throw a custom error if the schema is invalid'
+                  date: '2020-05-05T15:22:49Z'
+                  version: skhema-5.3.0
+                - commits:
+                    - author: StefKors
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Stef Kors <stef@balena.io>
+                      hash: e90802b28b908dfcd4c54e432e72cd36ba390b09
+                      subject: Add test to show .filter() not working correctly
+                    - author: StefKors
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Stef Kors <stef@balena.io>
+                      hash: 4ff1988ca8c78192ad0f92afb7f2bb3d2679fdd2
+                      subject: >-
+                        When combining with baseSchema merge enum with AND
+                        operator
+                  date: '2019-12-12T11:38:32Z'
+                  version: skhema-5.2.9
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: 2f8725cde8fc23de39346860a4fc283ada408eab
+                      subject: Ensure values in "enum" are unique
+                  date: '2019-11-27T20:30:03Z'
+                  version: skhema-5.2.8
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: 5afd0f25d791fe1f0d85957369a46292212de79e
+                      subject: 'filter: Correctly handle "enum" inside "anyOf"'
+                  date: '2019-11-27T19:34:08Z'
+                  version: skhema-5.2.7
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: 0bb8c525b58dc358b80ddd7a2ed53dc95fe662ae
+                      subject: 'merge: Be explicit about additionalProperties'
+                  date: '2019-11-19T09:19:11Z'
+                  version: skhema-5.2.6
+                - commits:
+                    - author: Lucian
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 864db6644a2cddfada888c3cb979498b2107eabe
+                      subject: Add a resolver for the const keyword
+                  date: '2019-05-09T15:49:10Z'
+                  version: skhema-5.2.5
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: >-
+                        This is very similar to the cache class they use by
+                        default, with the
+
+                        difference that it has a limit and won't grow
+                        indefinitely, causing
+
+                        memory leaks on long running applications like
+                        Jellyfish.
+                      footers:
+                        change-type: patch
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: 8dcdde578bdae9dad5786270b451bd45a7204115
+                      subject: Configure AJV instances with an LRU cache
+                  date: '2019-04-15T15:32:41Z'
+                  version: skhema-5.2.4
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: >-
+                        So we don't leak `SchemaObject` in the AJV `_refs`
+                        object.
+                      footers:
+                        change-type: patch
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: f55993458fe587fa2884f116506bd27cb2aa3e87
+                      subject: Set addUsedSchema to false in all AJV instances
+                  date: '2019-04-15T15:15:23Z'
+                  version: skhema-5.2.3
+                - commits:
+                    - author: Lucian
+                      body: 'Fixes #43'
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 90dd1490303d06c0e44be715464ddc4f598f4adb
+                      subject: Fix bug in scoreMatch when handling arrays
+                  date: '2019-03-20T10:24:26Z'
+                  version: skhema-5.2.2
+                - commits:
+                    - author: Lucian
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 846dc2265f73018870d88c704630578e6715afa8
+                      subject: Fix bad require name and .only in tests
+                  date: '2019-03-19T15:47:17Z'
+                  version: skhema-5.2.1
+                - commits:
+                    - author: Lucian Buzzo
+                      body: >-
+                        Only match elements with .filter() if the base schema
+                        (the schema with no
+
+                        anyOf branches) matches the element.
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian Buzzo <lucian.buzzo@gmail.com>
+                      hash: 9652d825d07fd8de0b51a5ae2645f3f6f79ee860
+                      subject: '.filter(): Only match if the base schema matches'
+                  date: '2020-04-30T16:22:18Z'
+                  version: skhema-5.2.10
+                - commits:
+                    - author: Lucian
+                      body: ''
+                      footers:
+                        change-type: minor
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 647943a9d7fad1338ad800509a85636b150d576e
+                      subject: Add ability to provide custom resolvers to merge()
+                  date: '2019-03-19T12:14:12Z'
+                  version: skhema-5.2.0
+                - commits:
+                    - author: Lucian
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: c00be29c12b14858982cd2997088d065ff173870
+                      subject: Split up and optimize lodash dependencies
+                  date: '2019-02-08T11:58:56Z'
+                  version: skhema-5.1.1
+                - commits:
+                    - author: Lucian Buzzo
+                      body: ''
+                      footers:
+                        change-type: minor
+                        signed-off-by: Lucian Buzzo <lucian.buzzo@gmail.com>
+                      hash: 5c48f980bfad6eb0a15d6c18d0898fbe226ddddd
+                      subject: >-
+                        feature: Implement method for restricting a schema by
+                        another schema
+                  date: '2019-01-08T11:00:52Z'
+                  version: skhema-5.1.0
+                - commits:
+                    - author: Lucian
+                      body: >-
+                        Using a strictly defined API allows us to improve
+                        performance
+                      footers:
+                        change-type: major
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 04f497a509e4129977e696a6637fe2724a7fb7e0
+                      subject: Remove ability to add custom keywords or formats
+                  date: '2018-12-31T07:38:57Z'
+                  version: skhema-5.0.0
+                - commits:
+                    - author: Lucian
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 219f90ed5751e2211d9acb0bbd3311c39e12a180
+                      subject: Improve performance of clone operations
+                  date: '2018-12-31T07:20:46Z'
+                  version: skhema-4.0.4
+                - commits:
+                    - author: Lucian
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 61318967874690eb3b85a9921fe27d3ce5c2494d
+                      subject: Don't bust AJV cache
+                  date: '2018-12-10T12:09:43Z'
+                  version: skhema-4.0.3
+                - commits:
+                    - author: Giovanni Garufi
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Giovanni Garufi <giovanni@balena.io>
+                      hash: 1f6c87de94ef905ea39972630364c74beb55057a
+                      subject: Add benchmark tests
+                  date: '2018-12-10T11:47:01Z'
+                  version: skhema-4.0.2
+                - commits:
+                    - author: Lucian
+                      body: 'Fixes #30'
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: d59a81567bf84a90182687a5385538ff7a599ce0
+                      subject: Recurse through nested `anyOf` statements when filtering
+                  date: '2018-12-04T13:29:31Z'
+                  version: skhema-4.0.1
+                - commits:
+                    - author: Lucian
+                      body: This better follows the way that JSON schema works
+                      footers:
+                        change-type: major
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 7c479564ca6c611c1576c32b63ac9dba06c8b2c7
+                      subject: >-
+                        Treat undefined additionalProperties as true instead of
+                        false
+                  date: '2018-12-03T13:40:59Z'
+                  version: skhema-4.0.0
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: 842aaf252085b9a80a1cd84776b0c871c8c949aa
+                      subject: 'stryker: Increase test timeout'
+                    - author: Juan Cruz Viotti
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: 781b74d9ca847acfbfa3883fda66f4828824e3bc
+                      subject: 'test: Configure Stryker for mutative testing'
+                  date: '2018-11-30T16:58:05Z'
+                  version: skhema-3.0.1
+                - commits:
+                    - author: Giovanni Garufi
+                      body: >-
+                        Merge multiple anyOf subschemas that match into a single
+                        one.
+
+                        Add axioms in test
+                      footers:
+                        change-type: minor
+                        signed-off-by: Giovanni Garufi <giovanni@balena.io>
+                      hash: 23cec34382d98b6c10a1d5483113a1155ba6565a
+                      subject: Define additionalProperty inheritance in anyOf
+                    - author: Lucian
+                      body: ''
+                      footers:
+                        change-type: major
+                        signed-off-by: Lucian <lucian.buzzo@gmail.com>
+                      hash: 93a65b6edb10397b3417a3719d4471cd0eeb4f68
+                      subject: Formalising filtering logic
+                    - author: Lucian
+                      body: ''
+                      hash: d55a7cac6bd9ce238918eea99ed64894e5e7d066
+                      subject: Added failing test case with mutation
+                  date: '2018-11-29T17:53:28Z'
+                  version: skhema-3.0.0
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: >-
+                        This is a hack, and should be reverted once we get to
+                        the bottom of it.
+
+                        It will impact performance, but right now there are
+                        things that should
+
+                        be filtered and are not, so lets get this merged for
+                        security purposes.
+
+                        Hopefully this library will be re-written soon.
+                      footers:
+                        change-type: patch
+                        see: 'https://github.com/balena-io/jellyfish/pull/878'
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: fd9841b296007e1ddc04d092c3b28c61a438be6c
+                      subject: >-
+                        hotfix: Make sure things that should be filtered are
+                        filtered
+                  date: '2018-11-07T13:42:47Z'
+                  version: skhema-2.5.2
+                - commits:
+                    - author: Juan Cruz Viotti
+                      body: ''
+                      footers:
+                        change-type: patch
+                        see: 'https://github.com/balena-io/jellyfish/issues/845'
+                        signed-off-by: Juan Cruz Viotti <juan@balena.io>
+                      hash: 3ef59f5e552a11dffa72c6ff758210aebfe35bcb
+                      subject: >-
+                        filter: Force additionalProperties: true on match
+                        schemas
+                  date: '2018-11-06T17:26:53Z'
+                  version: skhema-2.5.1
+                - commits:
+                    - author: Lucian Buzzo
+                      body: ''
+                      footers:
+                        change-type: minor
+                        signed-off-by: Lucian Buzzo <lucian.buzzo@gmail.com>
+                      hash: 3536e75a128f7b79d13727d3a5562df48e6f9d00
+                      subject: >-
+                        Validate against just the schema if `options.schemaOnly`
+                        is true
+                  date: '2018-10-16T11:59:41Z'
+                  version: skhema-2.5.0
+                - commits:
+                    - author: Lucian Buzzo
+                      body: ''
+                      footers:
+                        change-type: patch
+                        signed-off-by: Lucian Buzzo <lucian.buzzo@gmail.com>
+                      hash: 513eeb6d006270ac25a2fb9a802df9c398658548
+                      subject: >-
+                        merge: When merging an empty array, return a wildcard
+                        schema
+                  date: '2018-10-09T20:19:28Z'
+                  version: skhema-2.4.1
+                - commits:
+                    - author: Lucian Buzzo
+                      body: ''
+                      footers:
+                        change-type: minor
+                        signed-off-by: Lucian Buzzo <lucian.buzzo@gmail.com>
+                      hash: 5a3844a72a7bb0bad355d6a991a9a2f005c3a3b9
+                      subject: 'validate: Make object optional'
+                  date: '2018-10-09T16:52:53Z'
+                  version: skhema-2.4.0
+          version: contrato-0.4.0
+          date: 2020-08-04T21:58:55.782Z
+        - commits:
+            - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+              hash: 783273aac70fd631d5a80e33b55ef468be4c3ec7
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: contrato-0.3.1
+          date: 2020-08-04T21:46:25.163Z
+        - commits:
+            - author: Stevche Radevski
+              body: >-
+                Handlebars supports very basic if condition checking, but it
+                only checks for
+
+                existence of a field. There are times when we want to combine
+                conditions in order
+
+                to generate something as part of a blueprint, without defining a
+                completely separate
+
+                blueprint for it (like generating network config schema if a dt
+                has a wifi chip or
+
+                a usb port to which we can connect a dongle).
+              footers:
+                change-type: minor
+                signed-off-by: Stevche Radevski <stevche@balena.io>
+              hash: 90c3356b356920b8a6dd95a478dd6cb39e6ad148
+              subject: Add logical operator support in templates
+          date: '2020-07-17T12:02:34Z'
+          version: contrato-0.3.0
+  version: 11.12.0
+  date: 2020-08-05T09:55:18.695Z
+- commits:
     - subject: Bump elliptic from 6.5.2 to 6.5.3
       hash: c11004cd24fe66e6af7f16a79c0cc9e8847eb415
       body: >
