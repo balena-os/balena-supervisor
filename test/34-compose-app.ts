@@ -15,6 +15,10 @@ import {
 	CompositionStep,
 	CompositionStepAction,
 } from '../src/compose/composition-steps';
+import { ServiceComposeConfig } from '../src/compose/types/service';
+import { registerOverride } from './lib/mocked-dockerode';
+import { Image } from '../src/compose/images';
+import { inspect } from 'util';
 
 const defaultContext = {
 	localMode: false,
@@ -42,14 +46,15 @@ function createApp(
 }
 
 function createService(
-	conf: Dictionary<any>,
+	conf: Partial<ServiceComposeConfig>,
 	appId = 1,
 	serviceName = 'test',
 	releaseId = 2,
 	serviceId = 3,
 	imageId = 4,
+	extraState?: Partial<Service>
 ) {
-	return Service.fromComposeObject(
+	const svc = Service.fromComposeObject(
 		{
 			appId,
 			serviceName,
@@ -60,6 +65,12 @@ function createService(
 		},
 		{} as any,
 	);
+	if (extraState != null) {
+		for (const k of Object.keys(extraState)) {
+			(svc as any)[k] = (extraState as any)[k];
+		}
+	}
+	return svc;
 }
 
 function expectStep(
@@ -68,10 +79,23 @@ function expectStep(
 ): number {
 	const idx = _.findIndex(steps, { action });
 	if (idx === -1) {
+		console.log(inspect({ action, steps }, true, 4, true));
 		throw new Error(`Expected to find step with action: ${action}`);
 	}
 	return idx;
 }
+
+function expectNoStep(
+	action: CompositionStepAction,
+	steps: CompositionStep[],
+) {
+	if (_.some(steps, { action })) {
+		console.log({ action, steps });
+		throw new Error(`Did not expect to find step with action: ${action}`);
+	}
+}
+
+const defaultNetwork = Network.fromComposeObject('default', 1, {});
 
 describe('compose/app', () => {
 	before(async () => {
@@ -390,28 +414,227 @@ describe('compose/app', () => {
 			.that.equals('default');
 	});
 
-	it.skip(
-		'should create a kill step for service which is no longer referenced',
-	);
-	it.skip(
-		'should emit a noop when a service which is no longer referenced is already stopping',
-	);
-	it.skip('should remove a dead container');
-	it.skip('should emit a noop when a service has an image downloading');
-	it.skip(
-		'should emit an updateMetadata step when a service has not changed but the release has',
-	);
-	it.skip('should start a container which has not been started');
-	it.skip('should stop a container which has stoppped as its target');
-	it.skip(
-		'should not start a container when it depends on a service which is being installed',
-	);
-	it.skip(
-		'should emit a fetch step when an image has not been downloaded for a service',
-	);
-	it.skip(
-		'should create a start step when all that changes is a running state',
-	);
+	it('should create a kill step for service which is no longer referenced', async () => {
+		const current = createApp(
+			[createService({}, 1, 'main', 1, 1), createService({}, 1, 'aux', 1, 2)],
+			[Network.fromComposeObject('test-network', 1, {})],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 2, 1)],
+			[Network.fromComposeObject('test-network', 1, {})],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		const idx = expectStep('kill', steps);
+		expect(steps[idx])
+			.to.have.property('current')
+			.that.has.property('serviceName')
+			.that.equals('aux');
+	});
+
+	it('should emit a noop when a service which is no longer referenced is already stopping', async () => {
+		const current = createApp(
+			[createService({}, 1, 'main', 1, 1, 1, { status: 'Stopping' })],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		expectStep('noop', steps);
+	});
+
+	it('should remove a dead container that is still referenced in the target state', () => {
+		const current = createApp(
+			[createService({}, 1, 'main', 1, 1, 1, { status: 'Dead' })],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		expectStep('remove', steps);
+	});
+
+	it('should remove a dead container that is not referenced in the target state', () => {
+		const current = createApp(
+			[createService({}, 1, 'main', 1, 1, 1, { status: 'Dead' })],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		expectStep('remove', steps);
+	});
+
+	it('should emit a noop when a service has an image downloading', () => {
+		const current = createApp(
+			[],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate({...defaultContext, ...{ downloading: [1] }}, target);
+		expectStep('noop', steps);
+	});
+
+	it('should emit an updateMetadata step when a service has not changed but the release has', () => {
+		const current = createApp(
+			[createService({}, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 2, 1, 1)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		expectStep('updateMetadata', steps);
+	});
+
+	it('should start a container which has not been started', () => {
+		const current = createApp(
+			[createService({}, 1, 'main', 1, 1, 1, { status: 'Installed'})],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		expectStep('start', steps);
+	});
+
+	it('should stop a container which has stoppped as its target', () => {
+		const current = createApp(
+			[createService({}, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({ running: false }, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		expectStep('stop', steps);
+	});
+	it.only('should not create a container when it depends on a service which is being installed', () => {
+
+		const mainImage: Image = {
+			appId: 1,
+			dependent: 0,
+			imageId: 1,
+			releaseId: 1,
+			serviceId: 1,
+			name: 'main-image',
+			serviceName: 'main'
+		};
+
+		const depImage: Image = {
+			appId: 1,
+			dependent: 0,
+			imageId: 2,
+			releaseId: 1,
+			serviceId: 2,
+			name: 'dep-image',
+			serviceName: 'dep'
+		};
+
+		const current = createApp(
+			[createService({}, 1, 'dep', 1, 2, 2)],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 1, 1, 1, { dependsOn: ['dep'] }), createService({}, 1, 'dep', 1, 2, 2)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate({...defaultContext, ...{ availableImages: [mainImage, depImage], downloading: [] }}, target);
+		expectStep('bob', steps);
+	});
+	it('should emit a fetch step when an image has not been downloaded for a service', () => {
+		const current = createApp(
+			[],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		expectStep('fetch', steps);
+	});
+
+	it('should stop a container which has stoppped as its target', () => {
+		const current = createApp(
+			[createService({}, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({ running: false }, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		expectStep('stop', steps);
+	});
+	it.skip('should create a start step when all that changes is a running state',);
 	it.skip(
 		'should not infer a fetch step when the download is already in progress',
 	);
@@ -425,6 +648,17 @@ describe('compose/app', () => {
 		'should create several kill steps as long as there is no unmet dependencies',
 	);
 	it.skip('should start a dependency container first');
+	it.skip(
+		'should create a kill step when a service has to be updated but the strategy is kill-then-download',
+	);
+	it.skip(
+		'should not infer a kill step with the default strategy if a dependency is not downloaded',
+	);
+	it.skip(
+		'should create several kill steps as long as there is no unmet dependencies',
+	);
+	it.skip('should start a dependency container first');
 	it.skip('infers to start a service once its dependencies have been met');
 	it.skip('should remove spurious containers');
+	it.skip('should not create a service when its dependencies have not been met'); // no create service, is create network
 });

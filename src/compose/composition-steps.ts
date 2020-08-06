@@ -36,7 +36,6 @@ interface CompositionStepArgs {
 		options?: {
 			skipLock?: boolean;
 			wait?: boolean;
-			removeImage?: boolean;
 		};
 	} & BaseCompositionStepArgs;
 	remove: {
@@ -169,9 +168,6 @@ export function getExecutors(app: {
 				async () => {
 					await serviceManager.kill(step.current);
 					app.callbacks.containerKilled(step.current.containerId);
-					if (_.get(step, ['options', 'removeImage'])) {
-						await images.removeByDockerId(step.current.config.image);
-					}
 				},
 			);
 		},

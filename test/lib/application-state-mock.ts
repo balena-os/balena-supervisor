@@ -39,7 +39,9 @@ export function mockImages(
 	available: imageManager.Image[],
 ) {
 	// @ts-expect-error Assigning to a RO property
-	imageManager.getDownloadingImageIds = () => downloading;
+	imageManager.getDownloadingImageIds = () => {
+		console.log('CALLED'); return downloading;
+	}
 	// @ts-expect-error Assigning to a RO property
 	imageManager.isCleanupNeeded = async () => cleanup;
 	// @ts-expect-error Assigning to a RO property

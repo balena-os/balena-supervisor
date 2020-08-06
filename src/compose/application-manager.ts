@@ -193,13 +193,11 @@ export async function getRequiredSteps(
 
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
-	console.log('a');
 
 	let steps: CompositionStep[] = [];
 
 	// First check if we need to create the superviosr network
 	if (!(await networkManager.supervisorNetworkReady())) {
-		console.log('b')
 		// If we do need to create it, we first need to kill any services using the api
 		const killSteps = steps.concat(killServicesUsingApi(currentApps));
 		if (killSteps.length > 0) {
@@ -207,14 +205,11 @@ export async function getRequiredSteps(
 		} else {
 			steps.push({ action: 'ensureSupervisorNetwork' });
 		}
-		console.log('b - a')
 	} else {
-		console.log('c')
 		if (!localMode && downloading.length === 0) {
 			if (cleanupNeeded) {
 				steps.push({ action: 'cleanup' });
 			}
-			console.log('c - a')
 
 			// Detect any images which must be saved/removed
 			steps = steps.concat(
@@ -225,17 +220,13 @@ export async function getRequiredSteps(
 					localMode,
 				),
 			);
-			console.log('c - a - b')
 		}
-
-		console.log('d')
 
 		// We want to remove images before moving on to anything else
 		if (steps.length === 0) {
 			const targetAndCurrent = _.intersection(currentAppIds, targetAppIds);
 			const onlyTarget = _.difference(targetAppIds, currentAppIds);
 			const onlyCurrent = _.difference(currentAppIds, targetAppIds);
-			console.log('e')
 
 			// For apps that exist in both current and target state, calculate what we need to
 			// do to move to the target state
@@ -252,11 +243,9 @@ export async function getRequiredSteps(
 					),
 				);
 			}
-			console.log('f')
 
 			// For apps in the current state but not target, we call their "destructor"
 			for (const id of onlyCurrent) {
-				console.log('Id: ', id)
 				steps = steps.concat(
 					await currentApps[id].stepsToRemoveApp({
 						localMode,
@@ -265,8 +254,6 @@ export async function getRequiredSteps(
 					}),
 				);
 			}
-
-			console.log('g')
 
 			// For apps in the target state but not the current state, we generate steps to
 			// create the app by mocking an existing app which contains nothing
@@ -292,13 +279,11 @@ export async function getRequiredSteps(
 					),
 				);
 			}
-			console.log('h');
 		}
 	}
 
 	const newDownloads = steps.filter((s) => s.action === 'fetch').length;
 	if (!ignoreImages && delta && newDownloads > 0) {
-		console.log('j')
 		// Check that this is not the first pull for an
 		// application, as we want to download all images then
 		// Otherwise we want to limit the downloading of
@@ -307,7 +292,6 @@ export async function getRequiredSteps(
 		let downloadsToBlock =
 			downloading.length + newDownloads - constants.maxDeltaDownloads;
 
-		console.log('k')
 		steps = steps.filter((step) => {
 			if (step.action === 'fetch' && downloadsToBlock > 0) {
 				const imagesForThisApp =
@@ -325,7 +309,6 @@ export async function getRequiredSteps(
 			}
 		});
 	}
-	console.log('l')
 
 	if (!ignoreImages && steps.length === 0 && downloading.length > 0) {
 		// We want to keep the state application alive
@@ -341,8 +324,6 @@ export async function getRequiredSteps(
 			steps,
 		),
 	);
-
-	console.log('m')
 
 	return steps;
 }

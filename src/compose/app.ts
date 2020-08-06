@@ -93,6 +93,13 @@ export class App {
 
 		let steps: CompositionStep[] = [];
 
+		// Any services which have died get a remove step
+		for (const service of this.services) {
+			if (service.status === 'Dead') {
+				steps.push(generateStep('remove', { current: service }));
+			}
+		}
+
 		const { removePairs, installPairs, updatePairs } = this.compareServices(
 			this.services,
 			target.services,
@@ -112,25 +119,9 @@ export class App {
 		// correct, which requires dependencies, networks and volumes to be met
 		// For every service which needs to be updated, update via update strategy. Start
 		// requires dependencies, services and volumes to be met.
-
 		const servicePairs = updatePairs.concat(installPairs);
 		steps = steps.concat(
 			servicePairs
-				.map(pair =>
-					this.generateStepsForService(pair, {
-						...state,
-						networkPairs: networkChanges,
-						volumePairs: volumeChanges,
-						servicePairs,
-						targetApp: target,
-					}),
-				)
-				.filter(s => s != null) as CompositionStep[],
-		);
-
-		steps = steps.concat(
-			updatePairs
-				.concat(installPairs)
 				.map(pair =>
 					this.generateStepsForService(pair, {
 						...state,
@@ -171,9 +162,6 @@ export class App {
 	public async stepsToRemoveApp(
 		state: Omit<UpdateState, 'availableImages'>,
 	): Promise<CompositionStep[]> {
-		console.log('services', this.services);
-		console.log('networks', this.networks);
-		console.log('volumes', this.volumes);
 		if (Object.keys(this.services).length > 0) {
 			return Object.values(this.services).map(service =>
 				generateStep('kill', { current: service }),
@@ -256,63 +244,61 @@ export class App {
 		removePairs: Array<ChangingPair<Service>>;
 		updatePairs: Array<ChangingPair<Service>>;
 	} {
-		const currentServiceIds = _.map(current, 'serviceId') as number[];
-		const targetServiceIds = _.map(target, 'serviceId') as number[];
+		const currentByServiceId = _.keyBy(current, 'serviceId');
+		const targetByServiceId = _.keyBy(target, 'serviceId');
+
+		const currentServiceIds = Object.keys(currentByServiceId).map((i) => parseInt(i, 10))
+		const targetServiceIds = Object.keys(targetByServiceId).map((i) => parseInt(i, 10))
 
 		const toBeRemoved = _(currentServiceIds)
 			.difference(targetServiceIds)
-			.filter(id => current[id] != null)
-			.map(id => ({ current: current[id] }))
+			.map(id => ({ current: currentByServiceId[id] }))
 			.value();
 
 		const toBeInstalled = _(targetServiceIds)
 			.difference(currentServiceIds)
-			.filter(id => target[id] != null)
-			.map(id => ({ target: target[id] }))
+			.map(id => ({ target: targetByServiceId[id] }))
 			.value();
 
 		const maybeUpdate = _.intersection(targetServiceIds, currentServiceIds);
 
 		// Build up a list of services for a given service ID, always using the latest created
 		// service. Any older services will have kill steps emitted
-		const currentServicesPerId: { [key: number]: Service } = {};
-		const targetServicesPerId = _.keyBy(target, 'serviceId');
 		for (const serviceId of maybeUpdate) {
 			const currentServiceContainers = _.filter(current, { serviceId });
 			if (currentServiceContainers.length > 1) {
-				currentServicesPerId[serviceId] = _.maxBy(currentServiceContainers, 'createdAt')!;
+				currentByServiceId[serviceId] = _.maxBy(currentServiceContainers, 'createdAt')!;
 
-				// All but the latest container for the service are spurious and should be removed
+				// All but the latest container for the service are spurious and should
+				// be removed
 				const otherContainers = _.without(
 					currentServiceContainers,
-					currentServicesPerId[serviceId],
+					currentByServiceId[serviceId],
 				);
 				for (const service of otherContainers) {
 					toBeRemoved.push({ current: service });
 				}
 			} else {
-				currentServicesPerId[serviceId] = currentServiceContainers[0];
+				currentByServiceId[serviceId] = currentServiceContainers[0];
 			}
 		}
 
 		const alreadyStarted = (serviceId: number) =>
-			currentServicesPerId[serviceId].isEqualExceptForRunningState(
-				targetServicesPerId[serviceId],
+			currentByServiceId[serviceId].isEqualExceptForRunningState(
+				targetByServiceId[serviceId],
 				containerIds,
 			) &&
-			targetServicesPerId[serviceId].config.running &&
-			applicationManager.containerStarted[currentServicesPerId[serviceId].containerId!];
+			targetByServiceId[serviceId].config.running &&
+			applicationManager.containerStarted[currentByServiceId[serviceId].containerId!] != null;
+
 
 		const needUpdate = maybeUpdate.filter(
 			serviceId =>
-				!currentServicesPerId[serviceId].isEqual(
-					targetServicesPerId[serviceId],
-					containerIds,
-				) && !alreadyStarted(serviceId),
+			!(currentByServiceId[serviceId].isEqual(targetByServiceId[serviceId], containerIds) && alreadyStarted(serviceId))
 		);
 		const toBeUpdated = needUpdate.map(serviceId => ({
-			current: currentServicesPerId[serviceId],
-			target: targetServicesPerId[serviceId],
+			current: currentByServiceId[serviceId],
+			target: targetByServiceId[serviceId],
 		}));
 
 		return {
@@ -396,10 +382,10 @@ export class App {
 			// this happens
 			return generateStep('noop', {});
 		}
-
 		if (current?.status === 'Dead') {
-			// Dead containers must be removed
-			return generateStep('remove', { current });
+			// A remove step will already have been generated, so we let the state
+			// application loop revisit this service, once the state has settled
+			return;
 		}
 
 		let needsDownload = false;
@@ -421,7 +407,7 @@ export class App {
 
 		if (target && current?.isEqualConfig(target, context.containerIds)) {
 			// we're only starting/stopping a service
-			return App.generateContainerStep(current, target);
+			return this.generateContainerStep(current, target);
 		} else if (current == null) {
 			// Either this is a new service, or the current one has already been killed
 			return this.generateFetchOrStartStep(
@@ -517,10 +503,11 @@ export class App {
 		return false;
 	}
 
-	private static generateContainerStep(current: Service, target: Service) {
+	private generateContainerStep(current: Service, target: Service) {
 		if (current.releaseId !== target.releaseId || current.imageId !== target.imageId) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running) {
+			console.log('a');
 			return generateStep('start', { target });
 		} else {
 			return generateStep('stop', { current });
@@ -543,6 +530,7 @@ export class App {
 		} else if (
 			this.dependenciesMetForServiceStart(target, networkPairs, volumePairs, servicePairs)
 		) {
+			console.log('b');
 			return generateStep('start', { target });
 		}
 	}

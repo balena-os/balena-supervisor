@@ -29,6 +29,8 @@ import { TargetState } from '../types/state';
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
 
+export type ServiceStatus = 'Stopping' | 'Stopped' | 'Running' | 'Installing' | 'Installed' | 'Dead' | 'paused' | 'restarting' | 'removing' | 'exited';
+
 export class Service {
 	public appId: number;
 	public imageId: number | null;
@@ -41,7 +43,13 @@ export class Service {
 
 	public dependsOn: string[] | null;
 
-	public status: string;
+	// This looks weird, and it is. The lowercase statuses come from Docker,
+	// except the dashboard takes these values and displays them on the dashboard.
+	// What we should be doin is defining these container statuses, and have the
+	// dashboard make these human readable instead. Until that happens we have
+	// this halfways state of some captalised statuses, and others coming directly
+	// from docker
+	public status: ServiceStatus;
 	public createdAt: Date | null;
 
 	private static configArrayFields: ServiceConfigArrayField[] = [
@@ -448,7 +456,9 @@ export class Service {
 		} else if (container.State.Status === 'dead') {
 			svc.status = 'Dead';
 		} else {
-			svc.status = container.State.Status;
+			// We know this cast as fine as we represent all of the status available
+			// by docker in the ServiceStatus type
+			svc.status = container.State.Status as ServiceStatus;
 		}
 
 		svc.createdAt = new Date(container.Created);
@@ -822,6 +832,7 @@ public toComposeObject()/*: TargetState['local']['apps'][0]['services'][0]*/ {
 			}
 		}
 
+		console.log({ sameNetworks, sameConfig, sameNetworkMode});
 		return sameNetworks && sameConfig && sameNetworkMode;
 	}
 
