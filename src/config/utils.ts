@@ -3,17 +3,17 @@ import * as _ from 'lodash';
 import * as constants from '../lib/constants';
 import { getMetaOSRelease } from '../lib/os-release';
 import { EnvVarObject } from '../lib/types';
-import { ExtlinuxConfigBackend } from './backends/extlinux';
-import { ExtraUEnvConfigBackend } from './backends/extra-uEnv';
-import { RPiConfigBackend } from './backends/raspberry-pi';
-import { ConfigfsConfigBackend } from './backends/config-fs';
-import { ConfigOptions, DeviceConfigBackend } from './backends/backend';
+import { Extlinux } from './backends/extlinux';
+import { ExtraUEnv } from './backends/extra-uEnv';
+import { ConfigTxt } from './backends/config-txt';
+import { ConfigFs } from './backends/config-fs';
+import { ConfigOptions, ConfigBackend } from './backends/backend';
 
 const configBackends = [
-	new ExtlinuxConfigBackend(),
-	new ExtraUEnvConfigBackend(),
-	new RPiConfigBackend(),
-	new ConfigfsConfigBackend(),
+	new Extlinux(),
+	new ExtraUEnv(),
+	new ConfigTxt(),
+	new ConfigFs(),
 ];
 
 export const initialiseConfigBackend = async (deviceType: string) => {
@@ -26,7 +26,7 @@ export const initialiseConfigBackend = async (deviceType: string) => {
 
 async function getConfigBackend(
 	deviceType: string,
-): Promise<DeviceConfigBackend | undefined> {
+): Promise<ConfigBackend | undefined> {
 	// Some backends are only supported by certain release versions so pass in metaRelease
 	const metaRelease = await getMetaOSRelease(constants.hostOSVersionPath);
 	let matched;
@@ -39,7 +39,7 @@ async function getConfigBackend(
 }
 
 export function envToBootConfig(
-	configBackend: DeviceConfigBackend | null,
+	configBackend: ConfigBackend | null,
 	env: EnvVarObject,
 ): ConfigOptions {
 	if (configBackend == null) {
@@ -56,7 +56,7 @@ export function envToBootConfig(
 }
 
 export function bootConfigToEnv(
-	configBackend: DeviceConfigBackend,
+	configBackend: ConfigBackend,
 	config: ConfigOptions,
 ): EnvVarObject {
 	return _(config)
@@ -85,7 +85,7 @@ function filterNamespaceFromConfig(
 }
 
 export function formatConfigKeys(
-	configBackend: DeviceConfigBackend | null,
+	configBackend: ConfigBackend | null,
 	allowedKeys: string[],
 	conf: { [key: string]: any },
 ): { [key: string]: any } {

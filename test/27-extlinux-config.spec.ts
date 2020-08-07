@@ -4,10 +4,10 @@ import { SinonStub, stub } from 'sinon';
 
 import { expect } from './lib/chai-config';
 import * as fsUtils from '../src/lib/fs-utils';
-import { ExtlinuxConfigBackend } from '../src/config/backends/extlinux';
+import { Extlinux } from '../src/config/backends/extlinux';
 
 describe('Extlinux Configuration', () => {
-	const backend = new ExtlinuxConfigBackend();
+	const backend = new Extlinux();
 
 	it('should parse a extlinux.conf file', () => {
 		const text = stripIndent`\
@@ -24,7 +24,7 @@ describe('Extlinux Configuration', () => {
 		`;
 
 		// @ts-ignore accessing private method
-		const parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text);
+		const parsed = Extlinux.parseExtlinuxFile(text);
 		expect(parsed.globals).to.have.property('DEFAULT').that.equals('primary');
 		expect(parsed.globals).to.have.property('TIMEOUT').that.equals('30');
 		expect(parsed.globals)
@@ -61,7 +61,7 @@ describe('Extlinux Configuration', () => {
 		`;
 
 		// @ts-ignore accessing private method
-		const parsed = ExtlinuxConfigBackend.parseExtlinuxFile(text);
+		const parsed = Extlinux.parseExtlinuxFile(text);
 		expect(parsed.labels).to.have.property('primary').that.deep.equals({
 			LINUX: 'test1',
 			FDT: '/boot/mycustomdtb.dtb',

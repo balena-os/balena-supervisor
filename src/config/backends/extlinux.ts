@@ -4,7 +4,7 @@ import * as semver from 'semver';
 
 import {
 	ConfigOptions,
-	DeviceConfigBackend,
+	ConfigBackend,
 	bootMountPoint,
 	remountAndWriteAtomic,
 } from './backend';
@@ -29,7 +29,7 @@ const EXTLINUX_READONLY = '2.47.0';
  * 	- {BALENA|RESIN}_HOST_EXTLINUX_fdt = value | "value"
  */
 
-export class ExtlinuxConfigBackend extends DeviceConfigBackend {
+export class Extlinux extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
 	private static bootConfigPath = `${bootMountPoint}/extlinux/extlinux.conf`;
 	private static supportedConfigValues = ['isolcpus', 'fdt'];
@@ -38,13 +38,11 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 	private fdtDirective = new FDTDirective();
 	private appendDirective = new AppendDirective(
 		// Pass in list of supportedConfigValues that APPEND can have
-		ExtlinuxConfigBackend.supportedConfigValues.filter(
-			(v) => !this.isDirective(v),
-		),
+		Extlinux.supportedConfigValues.filter((v) => !this.isDirective(v)),
 	);
 
 	public static bootConfigVarRegex = new RegExp(
-		'(?:' + _.escapeRegExp(ExtlinuxConfigBackend.bootConfigVarPrefix) + ')(.+)',
+		'(?:' + _.escapeRegExp(Extlinux.bootConfigVarPrefix) + ')(.+)',
 	);
 
 	public async matches(
@@ -63,10 +61,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		let confContents: string;
 
 		try {
-			confContents = await fs.readFile(
-				ExtlinuxConfigBackend.bootConfigPath,
-				'utf-8',
-			);
+			confContents = await fs.readFile(Extlinux.bootConfigPath, 'utf-8');
 		} catch {
 			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick
@@ -76,18 +71,13 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		}
 
 		// Parse ExtlinuxFile from file contents
-		const parsedBootFile = ExtlinuxConfigBackend.parseExtlinuxFile(
-			confContents,
-		);
+		const parsedBootFile = Extlinux.parseExtlinuxFile(confContents);
 
 		// Get default label to know which label entry to parse
-		const defaultLabel = ExtlinuxConfigBackend.findDefaultLabel(parsedBootFile);
+		const defaultLabel = Extlinux.findDefaultLabel(parsedBootFile);
 
 		// Get the label entry we will parse
-		const labelEntry = ExtlinuxConfigBackend.getLabelEntry(
-			parsedBootFile,
-			defaultLabel,
-		);
+		const labelEntry = Extlinux.getLabelEntry(parsedBootFile, defaultLabel);
 
 		// Parse APPEND directive and filter out unsupported values
 		const appendConfig = _.pickBy(
@@ -109,10 +99,7 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		let confContents: string;
 
 		try {
-			confContents = await fs.readFile(
-				ExtlinuxConfigBackend.bootConfigPath,
-				'utf-8',
-			);
+			confContents = await fs.readFile(Extlinux.bootConfigPath, 'utf-8');
 		} catch {
 			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick
@@ -122,18 +109,13 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 		}
 
 		// Parse ExtlinuxFile from file contents
-		const parsedBootFile = ExtlinuxConfigBackend.parseExtlinuxFile(
-			confContents,
-		);
+		const parsedBootFile = Extlinux.parseExtlinuxFile(confContents);
 
 		// Get default label to know which label entry to edit
-		const defaultLabel = ExtlinuxConfigBackend.findDefaultLabel(parsedBootFile);
+		const defaultLabel = Extlinux.findDefaultLabel(parsedBootFile);
 
 		// Get the label entry we will edit
-		const defaultEntry = ExtlinuxConfigBackend.getLabelEntry(
-			parsedBootFile,
-			defaultLabel,
-		);
+		const defaultEntry = Extlinux.getLabelEntry(parsedBootFile, defaultLabel);
 
 		// Set `FDT` directive if a value is provided
 		if (opts.fdt) {
@@ -155,21 +137,21 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 
 		// Write new extlinux configuration
 		return await remountAndWriteAtomic(
-			ExtlinuxConfigBackend.bootConfigPath,
-			ExtlinuxConfigBackend.extlinuxFileToString(parsedBootFile),
+			Extlinux.bootConfigPath,
+			Extlinux.extlinuxFileToString(parsedBootFile),
 		);
 	}
 
 	public isSupportedConfig(configName: string): boolean {
-		return ExtlinuxConfigBackend.supportedConfigValues.includes(configName);
+		return Extlinux.supportedConfigValues.includes(configName);
 	}
 
 	public isBootConfigVar(envVar: string): boolean {
-		return envVar.startsWith(ExtlinuxConfigBackend.bootConfigVarPrefix);
+		return envVar.startsWith(Extlinux.bootConfigVarPrefix);
 	}
 
 	public processConfigVarName(envVar: string): string {
-		return envVar.replace(ExtlinuxConfigBackend.bootConfigVarRegex, '$1');
+		return envVar.replace(Extlinux.bootConfigVarRegex, '$1');
 	}
 
 	public processConfigVarValue(_key: string, value: string): string {
@@ -177,13 +159,11 @@ export class ExtlinuxConfigBackend extends DeviceConfigBackend {
 	}
 
 	public createConfigVarName(configName: string): string {
-		return `${ExtlinuxConfigBackend.bootConfigVarPrefix}${configName}`;
+		return `${Extlinux.bootConfigVarPrefix}${configName}`;
 	}
 
 	private isDirective(configName: string): boolean {
-		return ExtlinuxConfigBackend.supportedDirectives.includes(
-			configName.toUpperCase(),
-		);
+		return Extlinux.supportedDirectives.includes(configName.toUpperCase());
 	}
 
 	private static parseExtlinuxFile(confStr: string): ExtlinuxFile {

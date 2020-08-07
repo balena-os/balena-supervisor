@@ -10,7 +10,7 @@ import Log from '../src/lib/supervisor-console';
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as config from '../src/config';
 import * as images from '../src/compose/images';
-import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
+import { ConfigTxt } from '../src/config/backends/config-txt';
 import DeviceState from '../src/device-state';
 import * as deviceConfig from '../src/device-config';
 import { loadTargetFromFile } from '../src/device-state/preload';
@@ -254,7 +254,7 @@ describe('deviceState', () => {
 		};
 
 		// @ts-expect-error Assigning to a RO property
-		deviceConfig.configBackend = new RPiConfigBackend();
+		deviceConfig.configBackend = new ConfigTxt();
 
 		// @ts-expect-error Assigning to a RO property
 		deviceConfig.getCurrent = async () => mockedInitialConfig;

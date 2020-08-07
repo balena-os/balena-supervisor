@@ -6,7 +6,7 @@ import { SchemaTypeKey } from './config/schema-type';
 import * as db from './db';
 import * as logger from './logger';
 
-import { ConfigOptions, DeviceConfigBackend } from './config/backends/backend';
+import { ConfigOptions, ConfigBackend } from './config/backends/backend';
 import * as configUtils from './config/utils';
 import * as dbus from './lib/dbus';
 import { UnitNotLoadedError } from './lib/errors';
@@ -108,7 +108,7 @@ const actionExecutors: DeviceActionExecutors = {
 	},
 };
 
-let configBackend: DeviceConfigBackend | null = null;
+let configBackend: ConfigBackend | null = null;
 
 const configKeys: Dictionary<ConfigOption> = {
 	appUpdatePollInterval: {
@@ -314,7 +314,7 @@ export function resetRateLimits() {
 
 // Exported for tests
 export function bootConfigChangeRequired(
-	$configBackend: DeviceConfigBackend | null,
+	$configBackend: ConfigBackend | null,
 	current: Dictionary<string>,
 	target: Dictionary<string>,
 	deviceType: string,
@@ -492,7 +492,7 @@ export function isValidAction(action: string): boolean {
 }
 
 export async function getBootConfig(
-	backend: DeviceConfigBackend | null,
+	backend: ConfigBackend | null,
 ): Promise<EnvVarObject> {
 	if (backend == null) {
 		return {};
@@ -503,7 +503,7 @@ export async function getBootConfig(
 
 // Exported for tests
 export async function setBootConfig(
-	backend: DeviceConfigBackend | null,
+	backend: ConfigBackend | null,
 	target: Dictionary<string>,
 ) {
 	if (backend == null) {

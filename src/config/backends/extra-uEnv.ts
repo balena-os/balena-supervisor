@@ -3,7 +3,7 @@ import { fs } from 'mz';
 
 import {
 	ConfigOptions,
-	DeviceConfigBackend,
+	ConfigBackend,
 	bootMountPoint,
 	remountAndWriteAtomic,
 } from './backend';
@@ -40,7 +40,7 @@ const OPTION_REGEX = /^\s*(\w+)=(.*)$/;
  * 	- {BALENA|RESIN}_HOST_EXTLINUX_fdt = value | "value"
  */
 
-export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
+export class ExtraUEnv extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
 	private static bootConfigPath = `${bootMountPoint}/extra_uEnv.txt`;
 
@@ -50,29 +50,27 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 	};
 
 	private static supportedConfigs: Dictionary<Entry> = {
-		fdt: ExtraUEnvConfigBackend.entries['custom_fdt_file'],
-		isolcpus: ExtraUEnvConfigBackend.entries['extra_os_cmdline'],
+		fdt: ExtraUEnv.entries['custom_fdt_file'],
+		isolcpus: ExtraUEnv.entries['extra_os_cmdline'],
 	};
 
 	public static bootConfigVarRegex = new RegExp(
-		'(?:' +
-			_.escapeRegExp(ExtraUEnvConfigBackend.bootConfigVarPrefix) +
-			')(.+)',
+		'(?:' + _.escapeRegExp(ExtraUEnv.bootConfigVarPrefix) + ')(.+)',
 	);
 
 	public async matches(deviceType: string): Promise<boolean> {
 		return (
 			(deviceType === 'intel-nuc' || deviceType.startsWith('jetson')) &&
-			(await fs.exists(ExtraUEnvConfigBackend.bootConfigPath))
+			(await fs.exists(ExtraUEnv.bootConfigPath))
 		);
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {
 		// Get config contents at bootConfigPath
-		const confContents = await ExtraUEnvConfigBackend.readBootConfigPath();
+		const confContents = await ExtraUEnv.readBootConfigPath();
 
 		// Parse ConfigOptions from bootConfigPath contents
-		const parsedConfigFile = ExtraUEnvConfigBackend.parseOptions(confContents);
+		const parsedConfigFile = ExtraUEnv.parseOptions(confContents);
 
 		// Filter out unsupported values
 		return _.pickBy(parsedConfigFile, (_value, key) =>
@@ -92,24 +90,21 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 
 		// Write new extra_uEnv configuration
 		return await remountAndWriteAtomic(
-			ExtraUEnvConfigBackend.bootConfigPath,
-			ExtraUEnvConfigBackend.configToString(supportedOptions),
+			ExtraUEnv.bootConfigPath,
+			ExtraUEnv.configToString(supportedOptions),
 		);
 	}
 
 	public isSupportedConfig(config: string): boolean {
-		return config in ExtraUEnvConfigBackend.supportedConfigs;
+		return config in ExtraUEnv.supportedConfigs;
 	}
 
 	public isBootConfigVar(envVar: string): boolean {
-		return envVar.startsWith(ExtraUEnvConfigBackend.bootConfigVarPrefix);
+		return envVar.startsWith(ExtraUEnv.bootConfigVarPrefix);
 	}
 
 	public processConfigVarName(envVar: string): string | null {
-		const name = envVar.replace(
-			ExtraUEnvConfigBackend.bootConfigVarRegex,
-			'$1',
-		);
+		const name = envVar.replace(ExtraUEnv.bootConfigVarRegex, '$1');
 		if (name === envVar) {
 			return null;
 		}
@@ -124,7 +119,7 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 		if (configName === '') {
 			return null;
 		}
-		return `${ExtraUEnvConfigBackend.bootConfigVarPrefix}${configName}`;
+		return `${ExtraUEnv.bootConfigVarPrefix}${configName}`;
 	}
 
 	private static parseOptions(configFile: string): ConfigOptions {
@@ -143,7 +138,7 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 			}
 			// Merge new option with existing options
 			return {
-				...ExtraUEnvConfigBackend.parseOption(optionValues),
+				...ExtraUEnv.parseOption(optionValues),
 				...options,
 			};
 		}, {});
@@ -152,13 +147,13 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 	private static parseOption(optionArray: string[]): ConfigOptions {
 		const [, KEY, VALUE] = optionArray;
 		// Check if this key's value is a collection
-		if (ExtraUEnvConfigBackend.entries[KEY as EntryKey]?.collection) {
+		if (ExtraUEnv.entries[KEY as EntryKey]?.collection) {
 			// Return split collection of options
-			return ExtraUEnvConfigBackend.parseOptionCollection(VALUE);
+			return ExtraUEnv.parseOptionCollection(VALUE);
 		}
 		// Find the option that belongs to this entry
 		const optionKey = _.findKey(
-			ExtraUEnvConfigBackend.supportedConfigs,
+			ExtraUEnv.supportedConfigs,
 			(config) => config.key === KEY,
 		);
 		// Check if we found a corresponding option for this entry
@@ -198,12 +193,12 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 
 	private static async readBootConfigPath(): Promise<string> {
 		try {
-			return await fs.readFile(ExtraUEnvConfigBackend.bootConfigPath, 'utf-8');
+			return await fs.readFile(ExtraUEnv.bootConfigPath, 'utf-8');
 		} catch {
 			// In the rare case where the user might have deleted extra_uEnv conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick
 			log.error(
-				`Unable to read extra_uEnv file at: ${ExtraUEnvConfigBackend.bootConfigPath}`,
+				`Unable to read extra_uEnv file at: ${ExtraUEnv.bootConfigPath}`,
 			);
 			throw new ExtraUEnvError(
 				'Could not find extra_uEnv file. Device is possibly bricked',
@@ -213,7 +208,7 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 
 	private static configToString(configs: ConfigOptions): string {
 		// Get Map of ConfigOptions object
-		const configMap = ExtraUEnvConfigBackend.configToMap(configs);
+		const configMap = ExtraUEnv.configToMap(configs);
 		// Iterator over configMap and concat to configString
 		let configString = '';
 		for (const [key, value] of configMap) {
@@ -230,12 +225,12 @@ export class ExtraUEnvConfigBackend extends DeviceConfigBackend {
 				const {
 					key: ENTRY_KEY,
 					collection: ENTRY_IS_COLLECTION,
-				} = ExtraUEnvConfigBackend.supportedConfigs[configKey];
+				} = ExtraUEnv.supportedConfigs[configKey];
 				// Check if we have to build the value for the entry
 				if (ENTRY_IS_COLLECTION) {
 					return configMap.set(
 						ENTRY_KEY,
-						ExtraUEnvConfigBackend.appendToCollection(
+						ExtraUEnv.appendToCollection(
 							configMap.get(ENTRY_KEY),
 							configKey,
 							configValue,

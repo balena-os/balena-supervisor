@@ -5,10 +5,10 @@ import { SinonStub, spy, stub } from 'sinon';
 import { expect } from './lib/chai-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import Log from '../src/lib/supervisor-console';
-import { ExtraUEnvConfigBackend } from '../src/config/backends/extra-uEnv';
+import { ExtraUEnv } from '../src/config/backends/extra-uEnv';
 
 describe('extra_uEnv Configuration', () => {
-	const backend = new ExtraUEnvConfigBackend();
+	const backend = new ExtraUEnv();
 	let readFileStub: SinonStub;
 
 	beforeEach(() => {
@@ -25,7 +25,7 @@ describe('extra_uEnv Configuration', () => {
       extra_os_cmdline=isolcpus=3,4 splash console=tty0
 		`;
 		// @ts-ignore accessing private method
-		const parsed = ExtraUEnvConfigBackend.parseOptions(fileContents);
+		const parsed = ExtraUEnv.parseOptions(fileContents);
 		expect(parsed).to.deep.equal({
 			fdt: 'mycustom.dtb',
 			isolcpus: '3,4',
@@ -138,10 +138,10 @@ describe('extra_uEnv Configuration', () => {
 		const logWarningStub = spy(Log, 'warn');
 
 		// @ts-ignore accessing private value
-		const previousSupportedConfigs = ExtraUEnvConfigBackend.supportedConfigs;
+		const previousSupportedConfigs = ExtraUEnv.supportedConfigs;
 		// Stub isSupportedConfig so we can confirm collections work
 		// @ts-ignore accessing private value
-		ExtraUEnvConfigBackend.supportedConfigs = {
+		ExtraUEnv.supportedConfigs = {
 			fdt: { key: 'custom_fdt_file', collection: false },
 			isolcpus: { key: 'extra_os_cmdline', collection: true },
 			console: { key: 'extra_os_cmdline', collection: true },
@@ -166,7 +166,7 @@ describe('extra_uEnv Configuration', () => {
 		(child_process.exec as SinonStub).restore();
 		logWarningStub.restore();
 		// @ts-ignore accessing private value
-		ExtraUEnvConfigBackend.supportedConfigs = previousSupportedConfigs;
+		ExtraUEnv.supportedConfigs = previousSupportedConfigs;
 	});
 
 	it('only allows supported configuration options', () => {

@@ -1,13 +1,13 @@
 import { expect } from './lib/chai-config';
 import * as configUtils from '../src/config/utils';
-import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
+import { ConfigTxt } from '../src/config/backends/config-txt';
 
-const rpiBackend = new RPiConfigBackend();
+const configTxtBackend = new ConfigTxt();
 
 describe('Config Utilities', () => {
 	describe('Boot config', () => {
 		it('correctly transforms environments to boot config objects', () => {
-			const bootConfig = configUtils.envToBootConfig(rpiBackend, {
+			const bootConfig = configUtils.envToBootConfig(configTxtBackend, {
 				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
 				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
 				HOST_CONFIG_dtoverlay:

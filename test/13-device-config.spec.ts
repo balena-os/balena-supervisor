@@ -6,12 +6,12 @@ import { expect } from './lib/chai-config';
 import * as deviceConfig from '../src/device-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import * as logger from '../src/logger';
-import { ExtlinuxConfigBackend } from '../src/config/backends/extlinux';
-import { RPiConfigBackend } from '../src/config/backends/raspberry-pi';
+import { Extlinux } from '../src/config/backends/extlinux';
+import { ConfigTxt } from '../src/config/backends/config-txt';
 import prepare = require('./lib/prepare');
 
-const extlinuxBackend = new ExtlinuxConfigBackend();
-const rpiConfigBackend = new RPiConfigBackend();
+const extlinuxBackend = new Extlinux();
+const configTxtBackend = new ConfigTxt();
 
 describe('Device Backend Config', () => {
 	let logSpy: SinonSpy;
@@ -33,7 +33,7 @@ describe('Device Backend Config', () => {
 		// Will try to parse /test/data/mnt/boot/config.txt
 		await expect(
 			// @ts-ignore accessing private value
-			deviceConfig.getBootConfig(rpiConfigBackend),
+			deviceConfig.getBootConfig(configTxtBackend),
 		).to.eventually.deep.equal({
 			HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"',
 			HOST_CONFIG_enable_uart: '1',
@@ -54,7 +54,7 @@ describe('Device Backend Config', () => {
 
 		await expect(
 			// @ts-ignore accessing private value
-			deviceConfig.getBootConfig(rpiConfigBackend),
+			deviceConfig.getBootConfig(configTxtBackend),
 		).to.eventually.deep.equal({
 			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
 			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
@@ -83,7 +83,7 @@ describe('Device Backend Config', () => {
 
 		expect(() =>
 			// @ts-ignore accessing private value
-			deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target),
+			deviceConfig.bootConfigChangeRequired(configTxtBackend, current, target),
 		).to.throw('Attempt to change blacklisted config value initramfs');
 
 		// Check if logs were called
@@ -115,7 +115,7 @@ describe('Device Backend Config', () => {
 
 		expect(
 			// @ts-ignore accessing private value
-			deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target),
+			deviceConfig.bootConfigChangeRequired(configTxtBackend, current, target),
 		).to.equal(false);
 		expect(logSpy).to.not.be.called;
 	});
@@ -140,11 +140,11 @@ describe('Device Backend Config', () => {
 
 		expect(
 			// @ts-ignore accessing private value
-			deviceConfig.bootConfigChangeRequired(rpiConfigBackend, current, target),
+			deviceConfig.bootConfigChangeRequired(configTxtBackend, current, target),
 		).to.equal(true);
 
 		// @ts-ignore accessing private value
-		await deviceConfig.setBootConfig(rpiConfigBackend, target);
+		await deviceConfig.setBootConfig(configTxtBackend, target);
 		expect(child_process.exec).to.be.calledOnce;
 		expect(logSpy).to.be.calledTwice;
 		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
@@ -280,7 +280,7 @@ describe('Device Backend Config', () => {
 		it('should not cause a config change when the cloud does not specify the balena-fin overlay', () => {
 			expect(
 				deviceConfig.bootConfigChangeRequired(
-					rpiConfigBackend,
+					configTxtBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","balena-fin"' },
 					{ HOST_CONFIG_dtoverlay: '"test"' },
 					'fincm3',
@@ -289,7 +289,7 @@ describe('Device Backend Config', () => {
 
 			expect(
 				deviceConfig.bootConfigChangeRequired(
-					rpiConfigBackend,
+					configTxtBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","balena-fin"' },
 					{ HOST_CONFIG_dtoverlay: 'test' },
 					'fincm3',
@@ -298,7 +298,7 @@ describe('Device Backend Config', () => {
 
 			expect(
 				deviceConfig.bootConfigChangeRequired(
-					rpiConfigBackend,
+					configTxtBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","test2","balena-fin"' },
 					{ HOST_CONFIG_dtoverlay: '"test","test2"' },
 					'fincm3',
@@ -341,7 +341,7 @@ describe('Device Backend Config', () => {
 		it('should not cause a config change when the cloud does not specify the pi4 overlay', () => {
 			expect(
 				deviceConfig.bootConfigChangeRequired(
-					rpiConfigBackend,
+					configTxtBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","vc4-fkms-v3d"' },
 					{ HOST_CONFIG_dtoverlay: '"test"' },
 					'raspberrypi4-64',
@@ -349,7 +349,7 @@ describe('Device Backend Config', () => {
 			).to.equal(false);
 			expect(
 				deviceConfig.bootConfigChangeRequired(
-					rpiConfigBackend,
+					configTxtBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","vc4-fkms-v3d"' },
 					{ HOST_CONFIG_dtoverlay: 'test' },
 					'raspberrypi4-64',
@@ -357,7 +357,7 @@ describe('Device Backend Config', () => {
 			).to.equal(false);
 			expect(
 				deviceConfig.bootConfigChangeRequired(
-					rpiConfigBackend,
+					configTxtBackend,
 					{ HOST_CONFIG_dtoverlay: '"test","test2","vc4-fkms-v3d"' },
 					{ HOST_CONFIG_dtoverlay: '"test","test2"' },
 					'raspberrypi4-64',
@@ -368,7 +368,7 @@ describe('Device Backend Config', () => {
 
 	// describe('ConfigFS', () => {
 	// 	const upboardConfig = new DeviceConfig();
-	// 	let upboardConfigBackend: DeviceConfigBackend | null;
+	// 	let upboardConfigBackend: ConfigBackend | null;
 
 	// 	before(async () => {
 	// 		stub(child_process, 'exec').resolves();
