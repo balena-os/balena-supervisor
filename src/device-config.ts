@@ -100,15 +100,17 @@ const actionExecutors: DeviceActionExecutors = {
 		}
 	},
 	setBootConfig: async (step) => {
-		const $configBackend = await getConfigBackend();
 		if (!_.isObject(step.target)) {
 			throw new Error('Non-dictionary passed to DeviceConfig.setBootConfig');
 		}
-		await setBootConfig($configBackend, step.target as Dictionary<string>);
+		const backends = await getConfigBackends();
+		for (const backend of backends) {
+			await setBootConfig(backend, step.target as Dictionary<string>);
+		}
 	},
 };
 
-let configBackend: ConfigBackend | null = null;
+const configBackends: ConfigBackend[] = [];
 
 const configKeys: Dictionary<ConfigOption> = {
 	appUpdatePollInterval: {
@@ -206,14 +208,19 @@ const rateLimits: Dictionary<{
 	},
 };
 
-async function getConfigBackend() {
-	if (configBackend != null) {
-		return configBackend;
+async function getConfigBackends(): Promise<ConfigBackend[]> {
+	// Exit early if we already have a list
+	if (configBackends.length > 0) {
+		return configBackends;
 	}
-	const dt = await config.get('deviceType');
-	configBackend = (await configUtils.initialiseConfigBackend(dt)) ?? null;
-
-	return configBackend;
+	// Get all the configurable backends this device supports
+	const backends = await configUtils.getSupportedBackends();
+	// Initialize each backend
+	for (const backend of backends) {
+		await backend.initialise();
+	}
+	// Return list of initialized ConfigBackends
+	return backends;
 }
 
 export async function setTarget(
@@ -264,37 +271,45 @@ export async function getTarget({
 	return conf;
 }
 
-export async function getCurrent() {
+export async function getCurrent(): Promise<Dictionary<string>> {
+	// Build a Dictionary of currently set config values
+	const currentConf: Dictionary<string> = {};
+	// Get environment variables
 	const conf = await config.getMany(
 		['deviceType'].concat(_.keys(configKeys)) as SchemaTypeKey[],
 	);
-
-	const $configBackend = await getConfigBackend();
-
-	const [vpnStatus, bootConfig] = await Promise.all([
-		getVPNEnabled(),
-		getBootConfig($configBackend),
-	]);
-
-	const currentConf: Dictionary<string> = {
-		// TODO: Fix this mess of half strings half boolean values everywhere
-		SUPERVISOR_VPN_CONTROL: vpnStatus != null ? vpnStatus.toString() : 'true',
-	};
-
+	// Add each value
 	for (const key of _.keys(configKeys)) {
 		const { envVarName } = configKeys[key];
 		const confValue = conf[key as SchemaTypeKey];
 		currentConf[envVarName] = confValue != null ? confValue.toString() : '';
 	}
-
-	return _.assign(currentConf, bootConfig);
+	// Add VPN information
+	currentConf['SUPERVISOR_VPN_CONTROL'] = (await isVPNEnabled())
+		? 'true'
+		: 'false';
+	// Get list of configurable backends
+	const backends = await getConfigBackends();
+	// Add each backends configurable values
+	for (const backend of backends) {
+		_.assign(currentConf, await getBootConfig(backend));
+	}
+	// Return compiled configuration
+	return currentConf;
 }
 
 export async function formatConfigKeys(
 	conf: Dictionary<string>,
 ): Promise<Dictionary<any>> {
-	const backend = await getConfigBackend();
-	return configUtils.formatConfigKeys(backend, validKeys, conf);
+	const backends = await getConfigBackends();
+	const formattedKeys: Dictionary<any> = {};
+	for (const backend of backends) {
+		_.assign(
+			formattedKeys,
+			configUtils.formatConfigKeys(backend, validKeys, conf),
+		);
+	}
+	return formattedKeys;
 }
 
 export function getDefaults() {
@@ -314,16 +329,13 @@ export function resetRateLimits() {
 
 // Exported for tests
 export function bootConfigChangeRequired(
-	$configBackend: ConfigBackend | null,
+	configBackend: ConfigBackend | null,
 	current: Dictionary<string>,
 	target: Dictionary<string>,
 	deviceType: string,
 ): boolean {
-	const targetBootConfig = configUtils.envToBootConfig($configBackend, target);
-	const currentBootConfig = configUtils.envToBootConfig(
-		$configBackend,
-		current,
-	);
+	const targetBootConfig = configUtils.envToBootConfig(configBackend, target);
+	const currentBootConfig = configUtils.envToBootConfig(configBackend, current);
 
 	// Some devices require specific overlays, here we apply them
 	ensureRequiredOverlay(deviceType, targetBootConfig);
@@ -331,7 +343,7 @@ export function bootConfigChangeRequired(
 	if (!_.isEqual(currentBootConfig, targetBootConfig)) {
 		_.each(targetBootConfig, (value, key) => {
 			// Ignore null check because we can't get here if configBackend is null
-			if (!$configBackend!.isSupportedConfig(key)) {
+			if (!configBackend!.isSupportedConfig(key)) {
 				if (currentBootConfig[key] !== value) {
 					const err = `Attempt to change blacklisted config value ${key}`;
 					logger.logSystemMessage(
@@ -369,7 +381,6 @@ export async function getRequiredSteps(
 		'deviceType',
 		'unmanaged',
 	]);
-	const backend = await getConfigBackend();
 
 	const configChanges: Dictionary<string> = {};
 	const humanReadableConfigChanges: Dictionary<string> = {};
@@ -455,13 +466,16 @@ export async function getRequiredSteps(
 		return step;
 	});
 
-	// Do we need to change the boot config?
-	if (bootConfigChangeRequired(backend, current, target, deviceType)) {
-		steps.push({
-			action: 'setBootConfig',
-			target,
-		});
-	}
+	const backends = await getConfigBackends();
+	// Check for required bootConfig changes
+	backends.forEach((backend) => {
+		if (bootConfigChangeRequired(backend, current, target, deviceType)) {
+			steps.push({
+				action: 'setBootConfig',
+				target,
+			});
+		}
+	});
 
 	// Check if there is either no steps, or they are all
 	// noops, and we need to reboot. We want to do this
@@ -539,7 +553,7 @@ export async function setBootConfig(
 	}
 }
 
-async function getVPNEnabled(): Promise<boolean> {
+async function isVPNEnabled(): Promise<boolean> {
 	try {
 		const activeState = await dbus.serviceActiveState(vpnServiceName);
 		return !_.includes(['inactive', 'deactivating'], activeState);
