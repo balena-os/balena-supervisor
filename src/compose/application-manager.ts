@@ -1,41 +1,43 @@
-import * as bodyParser from 'body-parser';
-import * as express from 'express';
-import * as _ from 'lodash';
+import * as bodyParser from "body-parser";
+import * as express from "express";
+import * as _ from "lodash";
 
-import * as config from '../config';
-import { transaction, Transaction } from '../db';
-import * as dbFormat from '../device-state/db-format';
-import { validateTargetContracts } from '../lib/contracts';
-import constants = require('../lib/constants');
-import { docker } from '../lib/docker-utils';
-import * as logger from '../logger';
-import log from '../lib/supervisor-console';
-import LocalModeManager from '../local-mode';
+import * as config from "../config";
+import { transaction, Transaction } from "../db";
+import * as dbFormat from "../device-state/db-format";
+import { validateTargetContracts } from "../lib/contracts";
+import constants = require("../lib/constants");
+import { docker } from "../lib/docker-utils";
+import * as logger from "../logger";
+import log from "../lib/supervisor-console";
+import LocalModeManager from "../local-mode";
+import { ContractViolationError, InternalInconsistencyError } from "../lib/errors";
+import StrictEventEmitter from "strict-event-emitter-types";
+
+import App from "./app";
+import * as volumeManager from "./volume-manager";
+import * as networkManager from "./network-manager";
+import * as serviceManager from "./service-manager";
+import * as imageManager from "./images";
+import type { Image } from "./images";
+import { getExecutors, CompositionStepT } from "./composition-steps";
+
+import Service from "./service";
+
+import { createV1Api } from "../device-api/v1";
+import { createV2Api } from "../device-api/v2";
+import { CompositionStep, generateStep } from "./composition-steps";
 import {
-	ContractViolationError,
-	InternalInconsistencyError,
-} from '../lib/errors';
-import StrictEventEmitter from 'strict-event-emitter-types';
-
-import App from './app';
-import * as volumeManager from './volume-manager';
-import * as networkManager from './network-manager';
-import * as serviceManager from './service-manager';
-import * as imageManager from './images';
-import type { Image } from './images';
-import { getExecutors, CompositionStepT } from './composition-steps';
-
-import Service from './service';
-
-import { createV1Api } from '../device-api/v1';
-import { createV2Api } from '../device-api/v2';
-import { CompositionStep, generateStep } from './composition-steps';
-import { InstancedAppState, TargetApplications, DeviceStatus, TargetState } from '../types/state';
-import { checkTruthy, checkInt } from '../lib/validation';
-import { Proxyvisor } from '../proxyvisor';
-import * as updateLock from '../lib/update-lock';
-import { EventEmitter } from 'events';
-import { ServiceComposeConfig } from './types/service';
+	InstancedAppState,
+	TargetApplications,
+	DeviceStatus,
+	TargetState
+} from "../types/state";
+import { checkTruthy, checkInt } from "../lib/validation";
+import { Proxyvisor } from "../proxyvisor";
+import * as updateLock from "../lib/update-lock";
+import { EventEmitter } from "events";
+import { ServiceComposeConfig } from "./types/service";
 
 // FIXME: Correctly type the change value here
 type ApplicationManagerEventEmitter = StrictEventEmitter<
@@ -43,13 +45,13 @@ type ApplicationManagerEventEmitter = StrictEventEmitter<
 	{ change: Partial<InstancedAppState> }
 >;
 const events: ApplicationManagerEventEmitter = new EventEmitter();
-export const on: typeof events['on'] = events.on.bind(events);
-export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] = events.removeListener.bind(
-	events,
+export const on: typeof events["on"] = events.on.bind(events);
+export const once: typeof events["once"] = events.once.bind(events);
+export const removeListener: typeof events["removeListener"] = events.removeListener.bind(
+	events
 );
-export const removeAllListeners: typeof events['removeAllListeners'] = events.removeAllListeners.bind(
-	events,
+export const removeAllListeners: typeof events["removeAllListeners"] = events.removeAllListeners.bind(
+	events
 );
 
 // FIXME: Proxyvisor should pull applicationManager in directly
@@ -59,8 +61,8 @@ const localModeManager = new LocalModeManager();
 
 export const router = (() => {
 	const $router = express.Router();
-	$router.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-	$router.use(bodyParser.json({ limit: '10mb' }));
+	$router.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+	$router.use(bodyParser.json({ limit: "10mb" }));
 
 	createV1Api($router);
 	createV2Api($router);
@@ -95,14 +97,14 @@ const actionExecutors = getExecutors({
 		fetchEnd: () => {
 			fetchesInProgress -= 1;
 		},
-		fetchTime: (time) => {
+		fetchTime: time => {
 			timeSpentFetching += time;
 		},
-		stateReport: (state) => {
+		stateReport: state => {
 			reportCurrentState(state);
 		},
-		bestDeltaSource,
-	},
+		bestDeltaSource
+	}
 });
 
 export const validActions = Object.keys(actionExecutors);
@@ -110,7 +112,7 @@ export const validActions = Object.keys(actionExecutors);
 // Volatile state for a single container. This is used for temporarily setting a
 // different state for a container, such as running: false
 let targetVolatilePerImageId: {
-	[imageId: number]: Partial<Service['config']>;
+	[imageId: number]: Partial<Service["config"]>;
 } = {};
 
 export const initialized = (async () => {
@@ -120,7 +122,7 @@ export const initialized = (async () => {
 	await imageManager.cleanupDatabase();
 	const cleanup = async () => {
 		const containers = await docker.listContainers({ all: true });
-		await logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
+		await logger.clearOutOfDateDBLogs(_.map(containers, "Id"));
 	};
 
 	// Rather than relying on removing out of date database entries when we're no
@@ -137,8 +139,8 @@ export const initialized = (async () => {
 	await serviceManager.attachToRunning();
 	serviceManager.listenToEvents();
 
-	imageManager.on('change', reportCurrentState);
-	serviceManager.on('change', reportCurrentState);
+	imageManager.on("change", reportCurrentState);
+	serviceManager.on("change", reportCurrentState);
 })();
 
 export function getDependentState() {
@@ -147,27 +149,23 @@ export function getDependentState() {
 
 // FIXME: Data type here
 function reportCurrentState(data?: any) {
-	events.emit('change', data);
+	events.emit("change", data);
 }
 
 export async function lockingIfNecessary<T extends unknown>(
 	appId: number,
 	{ force = false, skipLock = false } = {},
-	fn: () => Resolvable<T>,
+	fn: () => Resolvable<T>
 ) {
 	if (skipLock) {
 		return fn();
 	}
-	const lockOverride = (await config.get('lockOverride')) || force;
-	return updateLock.lock(
-		appId,
-		{ force: lockOverride },
-		fn as () => PromiseLike<void>,
-	);
+	const lockOverride = (await config.get("lockOverride")) || force;
+	return updateLock.lock(appId, { force: lockOverride }, fn as () => PromiseLike<void>);
 }
 
 export async function getRequiredSteps(
-	ignoreImages: boolean = false,
+	ignoreImages: boolean = false
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [
@@ -176,14 +174,14 @@ export async function getRequiredSteps(
 		cleanupNeeded,
 		availableImages,
 		currentApps,
-		targetApps,
+		targetApps
 	] = await Promise.all([
-		config.getMany(['localMode', 'delta']),
+		config.getMany(["localMode", "delta"]),
 		imageManager.getDownloadingImageIds(),
 		imageManager.isCleanupNeeded(),
 		imageManager.getAvailable(),
 		getCurrentApps(),
-		dbFormat.getApps(),
+		dbFormat.getApps()
 	]);
 	const containerIdsByAppId = await getAppContainerIds(currentApps);
 
@@ -191,8 +189,8 @@ export async function getRequiredSteps(
 		ignoreImages = localMode;
 	}
 
-	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
-	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
+	const currentAppIds = Object.keys(currentApps).map(i => parseInt(i, 10));
+	const targetAppIds = Object.keys(targetApps).map(i => parseInt(i, 10));
 
 	let steps: CompositionStep[] = [];
 
@@ -203,22 +201,17 @@ export async function getRequiredSteps(
 		if (killSteps.length > 0) {
 			steps = steps.concat(killSteps);
 		} else {
-			steps.push({ action: 'ensureSupervisorNetwork' });
+			steps.push({ action: "ensureSupervisorNetwork" });
 		}
 	} else {
 		if (!localMode && downloading.length === 0) {
 			if (cleanupNeeded) {
-				steps.push({ action: 'cleanup' });
+				steps.push({ action: "cleanup" });
 			}
 
 			// Detect any images which must be saved/removed
 			steps = steps.concat(
-				saveAndRemoveImages(
-					currentApps,
-					targetApps,
-					availableImages,
-					localMode,
-				),
+				saveAndRemoveImages(currentApps, targetApps, availableImages, localMode)
 			);
 		}
 
@@ -237,10 +230,10 @@ export async function getRequiredSteps(
 							localMode,
 							availableImages,
 							containerIds: containerIdsByAppId[id],
-							downloading,
+							downloading
 						},
-						targetApps[id],
-					),
+						targetApps[id]
+					)
 				);
 			}
 
@@ -250,8 +243,8 @@ export async function getRequiredSteps(
 					await currentApps[id].stepsToRemoveApp({
 						localMode,
 						downloading,
-						containerIds: containerIdsByAppId[id],
-					}),
+						containerIds: containerIdsByAppId[id]
+					})
 				);
 			}
 
@@ -265,37 +258,37 @@ export async function getRequiredSteps(
 							localMode,
 							availableImages,
 							containerIds: containerIdsByAppId[id],
-							downloading,
+							downloading
 						},
 						new App(
 							{
 								appId: app.appId,
 								services: [],
 								volumes: {},
-								networks: {},
+								networks: {}
 							},
-							false,
-						),
-					),
+							false
+						)
+					)
 				);
 			}
 		}
 	}
 
-	const newDownloads = steps.filter((s) => s.action === 'fetch').length;
+	const newDownloads = steps.filter(s => s.action === "fetch").length;
 	if (!ignoreImages && delta && newDownloads > 0) {
 		// Check that this is not the first pull for an
 		// application, as we want to download all images then
 		// Otherwise we want to limit the downloading of
 		// deltas to constants.maxDeltaDownloads
-		const appImages = _.groupBy(availableImages, 'appId');
+		const appImages = _.groupBy(availableImages, "appId");
 		let downloadsToBlock =
 			downloading.length + newDownloads - constants.maxDeltaDownloads;
 
-		steps = steps.filter((step) => {
-			if (step.action === 'fetch' && downloadsToBlock > 0) {
+		steps = steps.filter(step => {
+			if (step.action === "fetch" && downloadsToBlock > 0) {
 				const imagesForThisApp =
-					appImages[(step as CompositionStepT<'fetch'>).image.appId];
+					appImages[(step as CompositionStepT<"fetch">).image.appId];
 				if (imagesForThisApp == null || imagesForThisApp.length === 0) {
 					// There isn't a valid image for the fetch
 					// step, so we keep it
@@ -312,7 +305,7 @@ export async function getRequiredSteps(
 
 	if (!ignoreImages && steps.length === 0 && downloading.length > 0) {
 		// We want to keep the state application alive
-		steps.push(generateStep('noop', {}));
+		steps.push(generateStep("noop", {}));
 	}
 
 	steps = steps.concat(
@@ -321,8 +314,8 @@ export async function getRequiredSteps(
 			downloading,
 			currentApps,
 			targetApps,
-			steps,
-		),
+			steps
+		)
 	);
 
 	return steps;
@@ -331,56 +324,56 @@ export async function getRequiredSteps(
 export async function stopAll({ force = false, skipLock = false } = {}) {
 	const services = await serviceManager.getAll();
 	await Promise.all(
-		services.map(async (s) => {
+		services.map(async s => {
 			return lockingIfNecessary(s.appId, { force, skipLock }, async () => {
 				await serviceManager.kill(s, { removeContainer: false, wait: true });
 				if (s.containerId) {
 					delete containerStarted[s.containerId];
 				}
 			});
-		}),
+		})
 	);
 }
 
-export async function getCurrentAppsForReport(): Promise<NonNullable<DeviceStatus['local']>['apps']> {
+export async function getCurrentAppsForReport(): Promise<
+	NonNullable<DeviceStatus["local"]>["apps"]
+> {
 	const apps = await getCurrentApps();
 
-	const appsToReport: NonNullable<DeviceStatus['local']>['apps'] = {};
+	const appsToReport: NonNullable<DeviceStatus["local"]>["apps"] = {};
 	for (const appId of Object.getOwnPropertyNames(apps)) {
 		appsToReport[appId] = {
-			services: {
-
-			}
-		}
+			services: {}
+		};
 	}
 
 	return appsToReport;
 }
 
 export async function getCurrentApps(): Promise<InstancedAppState> {
-	const volumes = _.groupBy(await volumeManager.getAll(), 'appId');
-	const networks = _.groupBy(await networkManager.getAll(), 'appId');
-	const services = _.groupBy(await serviceManager.getAll(), 'appId');
+	const volumes = _.groupBy(await volumeManager.getAll(), "appId");
+	const networks = _.groupBy(await networkManager.getAll(), "appId");
+	const services = _.groupBy(await serviceManager.getAll(), "appId");
 
 	const allAppIds = _.uniq([
 		...Object.keys(volumes),
 		...Object.keys(networks),
-		...Object.keys(services),
-	]).map((i) => parseInt(i, 10));
+		...Object.keys(services)
+	]).map(i => parseInt(i, 10));
 
 	return _.keyBy(
-		allAppIds.map((appId) => {
+		allAppIds.map(appId => {
 			return new App(
 				{
 					appId,
-					services: services[appId] ?? {},
-					networks: _.keyBy(networks[appId], 'name'),
-					volumes: _.keyBy(volumes[appId], 'name'),
+					services: services[appId] ?? [],
+					networks: _.keyBy(networks[appId], "name"),
+					volumes: _.keyBy(volumes[appId], "name")
 				},
-				false,
+				false
 			);
 		}),
-		'appId',
+		"appId"
 	);
 }
 
@@ -389,16 +382,14 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 	_.each(current, (app, appId) => {
 		_.each(app.services, (service, serviceId) => {
 			if (
-				checkTruthy(
-					service.config.labels['io.balena.features.supervisor-api'],
-				) &&
-				service.status !== 'Stopping'
+				checkTruthy(service.config.labels["io.balena.features.supervisor-api"]) &&
+				service.status !== "Stopping"
 			) {
-				steps.push(generateStep('kill', { current: service }));
+				steps.push(generateStep("kill", { current: service }));
 			} else {
 				// We want to output a noop while waiting for a service to stop, as we don't want
 				// the state application loop to stop while this is ongoing
-				steps.push(generateStep('noop', {}));
+				steps.push(generateStep("noop", {}));
 			}
 		});
 	});
@@ -407,7 +398,7 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 
 export async function executeStep(
 	step: CompositionStep,
-	{ force = false, skipLock = false } = {},
+	{ force = false, skipLock = false } = {}
 ): Promise<void> {
 	if (proxyvisor.validActions.includes(step.action)) {
 		return proxyvisor.executeStepAction(step);
@@ -415,9 +406,7 @@ export async function executeStep(
 
 	if (!validActions.includes(step.action)) {
 		return Promise.reject(
-			new InternalInconsistencyError(
-				`Invalid composition step action: ${step.action}`,
-			),
+			new InternalInconsistencyError(`Invalid composition step action: ${step.action}`)
 		);
 	}
 
@@ -425,7 +414,7 @@ export async function executeStep(
 	await actionExecutors[step.action]({
 		...step,
 		force,
-		skipLock,
+		skipLock
 	} as any);
 }
 
@@ -434,24 +423,24 @@ export async function setTarget(
 	apps: TargetApplications,
 	dependent: any,
 	source: string,
-	maybeTrx?: Transaction,
+	maybeTrx?: Transaction
 ) {
 	const setInTransaction = async (
 		$filteredApps: TargetApplications,
-		trx: Transaction,
+		trx: Transaction
 	) => {
 		await dbFormat.setApps($filteredApps, source, trx);
-		await trx('app')
+		await trx("app")
 			.where({ source })
 			.whereNotIn(
-				'appId',
+				"appId",
 				// Use apps here, rather than filteredApps, to
 				// avoid removing a release from the database
 				// without an application to replace it.
 				// Currently this will only happen if the release
 				// which would replace it fails a contract
 				// validation check
-				_.map(apps, (_v, appId) => checkInt(appId)),
+				_.map(apps, (_v, appId) => checkInt(appId))
 			)
 			.del();
 		await proxyvisor.setTargetInTransaction(dependent, trx);
@@ -481,19 +470,19 @@ export async function setTarget(
 				// these out of the target state
 				filteredApps[appId].services = _.pickBy(
 					filteredApps[appId].services,
-					({ serviceName }) => fulfilledServices.includes(serviceName),
+					({ serviceName }) => fulfilledServices.includes(serviceName)
 				);
 				if (unmetAndOptional.length !== 0) {
 					return reportOptionalContainers(unmetAndOptional);
 				}
 			}
-		},
+		}
 	);
 	let promise;
 	if (maybeTrx != null) {
 		promise = setInTransaction(filteredApps, maybeTrx);
 	} else {
-		promise = transaction((trx) => setInTransaction(filteredApps, trx));
+		promise = transaction(trx => setInTransaction(filteredApps, trx));
 	}
 	await promise;
 	targetVolatilePerImageId = {};
@@ -502,7 +491,7 @@ export async function setTarget(
 	}
 }
 
-export async function getTargetApps(): Promise<TargetState['local']['apps']> {
+export async function getTargetApps(): Promise<TargetState["local"]["apps"]> {
 	const apps = await dbFormat.getTargetJson();
 
 	// Whilst it may make sense here to return the target state generated from the
@@ -512,13 +501,10 @@ export async function getTargetApps(): Promise<TargetState['local']['apps']> {
 	// the database entries anyway, so these two things should never be different
 	// (except for the volatile state)
 
-	_.each(apps, (app) => {
+	_.each(apps, app => {
 		if (!_.isEmpty(app.services)) {
-			app.services = _.mapValues(app.services, (svc) => {
-				if (
-					svc.imageId &&
-					targetVolatilePerImageId[svc.imageId] != null
-				) {
+			app.services = _.mapValues(app.services, svc => {
+				if (svc.imageId && targetVolatilePerImageId[svc.imageId] != null) {
 					return { ...svc, ...targetVolatilePerImageId };
 				}
 				return svc;
@@ -526,14 +512,12 @@ export async function getTargetApps(): Promise<TargetState['local']['apps']> {
 		}
 	});
 
-
-
 	return apps;
 }
 
 export function setTargetVolatileForService(
 	imageId: number,
-	target: Partial<Service['config']>,
+	target: Partial<Service["config"]>
 ) {
 	if (targetVolatilePerImageId[imageId] == null) {
 		targetVolatilePerImageId = {};
@@ -559,24 +543,19 @@ export async function serviceNameFromId(serviceId: number) {
 		const service = _.find(app.services, { serviceId });
 		if (service?.serviceName === null) {
 			throw new InternalInconsistencyError(
-				`Could not find a service name for id: ${serviceId}`,
+				`Could not find a service name for id: ${serviceId}`
 			);
 		}
 		return service!.serviceName;
 	}
-	throw new InternalInconsistencyError(
-		`Could not find a service for id: ${serviceId}`,
-	);
+	throw new InternalInconsistencyError(`Could not find a service for id: ${serviceId}`);
 }
 
 export function localModeSwitchCompletion() {
 	return localModeManager.switchCompletion();
 }
 
-export function bestDeltaSource(
-	image: Image,
-	available: Image[],
-): string | null {
+export function bestDeltaSource(image: Image, available: Image[]): string | null {
 	if (!image.dependent) {
 		for (const availableImage of available) {
 			if (
@@ -606,7 +585,7 @@ function saveAndRemoveImages(
 	current: InstancedAppState,
 	target: InstancedAppState,
 	availableImages: imageManager.Image[],
-	localMode: boolean,
+	localMode: boolean
 ): CompositionStep[] {
 	const imageForService = (service: Service): imageManager.Image => ({
 		name: service.imageName!,
@@ -615,9 +594,9 @@ function saveAndRemoveImages(
 		serviceName: service.serviceName!,
 		imageId: service.imageId!,
 		releaseId: service.releaseId!,
-		dependent: 0,
+		dependent: 0
 	});
-	type ImageWithoutID = Omit<imageManager.Image, 'dockerImageId' | 'id'>;
+	type ImageWithoutID = Omit<imageManager.Image, "dockerImageId" | "id">;
 
 	// imagesToRemove: images that
 	// - are not used in the current state, and
@@ -629,104 +608,96 @@ function saveAndRemoveImages(
 
 	const allImageDockerIdsForTargetApp = (app: App) =>
 		_(app.services)
-			.map((svc) => [svc.imageName, svc.config.image])
-			.filter((img) => img[1] != null)
+			.map(svc => [svc.imageName, svc.config.image])
+			.filter(img => img[1] != null)
 			.value();
 
-	const availableWithoutIds: ImageWithoutID[] = _.map(
-		availableImages,
-		(image) => _.omit(image, ['dockerImageId', 'id']),
+	const availableWithoutIds: ImageWithoutID[] = _.map(availableImages, image =>
+		_.omit(image, ["dockerImageId", "id"])
 	);
 
-	const currentImages = _.flatMap(current, (app) =>
+	const currentImages = _.flatMap(current, app =>
 		_.map(
 			app.services,
-			(svc) =>
+			svc =>
 				_.find(availableImages, {
 					dockerImageId: svc.config.image,
-					imageId: svc.imageId,
-				}) ?? _.find(availableImages, { dockerImageId: svc.config.image }),
-		),
+					imageId: svc.imageId
+				}) ?? _.find(availableImages, { dockerImageId: svc.config.image })
+		)
 	) as imageManager.Image[];
-	const targetImages = _.flatMap(target, (app) =>
-		_.map(app.services, imageForService),
-	);
+	const targetImages = _.flatMap(target, app => _.map(app.services, imageForService));
 
 	const availableAndUnused = _.filter(
 		availableImages,
-		(image) =>
+		image =>
 			!_.some(
 				currentImages.concat(targetImages),
-				(imageInUse) =>
+				imageInUse =>
 					imageManager.isSameImage(image, imageInUse) ||
 					image.id === imageInUse.id ||
-					image.dockerImageId === imageInUse.dockerImageId,
-			),
+					image.dockerImageId === imageInUse.dockerImageId
+			)
 	);
 
 	const imagesToDownload = _.filter(
 		targetImages,
-		(targetImage) =>
-			!_.some(availableImages, (available) =>
-				imageManager.isSameImage(available, targetImage),
-			),
+		targetImage =>
+			!_.some(availableImages, available =>
+				imageManager.isSameImage(available, targetImage)
+			)
 	);
 
 	const targetImageDockerIds = _.fromPairs(
-		_.flatMap(target, allImageDockerIdsForTargetApp),
+		_.flatMap(target, allImageDockerIdsForTargetApp)
 	);
 
 	// Images that are available but we don't have them in the DB with the exact metadata:
 	let imagesToSave: imageManager.Image[] = [];
 	if (!localMode) {
-		imagesToSave = _.filter(targetImages, (targetImage) => {
-			const isActuallyAvailable = _.some(availableImages, (availableImage) => {
+		imagesToSave = _.filter(targetImages, targetImage => {
+			const isActuallyAvailable = _.some(availableImages, availableImage => {
 				if (imageManager.isSameImage(availableImage, targetImage)) {
 					return true;
 				}
-				if (
-					availableImage.dockerImageId ===
-					targetImageDockerIds[targetImage.name]
-				) {
+				if (availableImage.dockerImageId === targetImageDockerIds[targetImage.name]) {
 					return true;
 				}
 				return false;
 			});
-			const isNotSaved = !_.some(availableWithoutIds, (img) =>
-				_.isEqual(img, targetImage),
-			);
+			const isNotSaved = !_.some(availableWithoutIds, img => _.isEqual(img, targetImage));
 			return isActuallyAvailable && isNotSaved;
 		});
 	}
 
-	const deltaSources = _.map(imagesToDownload, (image) => {
+	const deltaSources = _.map(imagesToDownload, image => {
 		return bestDeltaSource(image, availableImages);
 	});
 	const proxyvisorImages = proxyvisor.imagesInUse(current, target);
 
 	const potentialDeleteThenDownload = _(current)
-		.flatMap((app) => _.values(app.services))
+		.flatMap(app => _.values(app.services))
 		.filter(
-			(svc) =>
-				svc.config.labels['io.balena.update.strategy'] ===
-				'delete-then-download' && svc.status === 'Stopped',
+			svc =>
+				svc.config.labels["io.balena.update.strategy"] === "delete-then-download" &&
+				svc.status === "Stopped"
 		)
 		.value();
 
 	const imagesToRemove = _.filter(
 		availableAndUnused.concat(potentialDeleteThenDownload.map(imageForService)),
-		(image) => {
+		image => {
 			const notUsedForDelta = !_.includes(deltaSources, image.name);
-			const notUsedByProxyvisor = !_.some(proxyvisorImages, (proxyvisorImage) =>
-				imageManager.isSameImage(image, { name: proxyvisorImage }),
+			const notUsedByProxyvisor = !_.some(proxyvisorImages, proxyvisorImage =>
+				imageManager.isSameImage(image, { name: proxyvisorImage })
 			);
 			return notUsedForDelta && notUsedByProxyvisor;
-		},
+		}
 	);
 
 	return imagesToSave
-		.map((image) => ({ action: 'saveImage', image } as CompositionStep))
-		.concat(imagesToRemove.map((image) => ({ action: 'removeImage', image })));
+		.map(image => ({ action: "saveImage", image } as CompositionStep))
+		.concat(imagesToRemove.map(image => ({ action: "removeImage", image })));
 }
 
 async function getAppContainerIds(currentApps: InstancedAppState) {
@@ -735,7 +706,7 @@ async function getAppContainerIds(currentApps: InstancedAppState) {
 		_.map(currentApps, async (app, appId) => {
 			const intAppId = parseInt(appId, 10);
 			containerIds[intAppId] = await serviceManager.getContainerIdMap(intAppId);
-		}),
+		})
 	]);
 
 	return containerIds;
@@ -746,15 +717,10 @@ function reportOptionalContainers(serviceNames: string[]) {
 	// user know that we're not going to run certain services
 	// because of their contract
 	const message = `Not running containers because of contract violations: ${serviceNames.join(
-		'. ',
+		". "
 	)}`;
 	log.info(message);
-	return logger.logSystemMessage(
-		message,
-		{},
-		'optionalContainerViolation',
-		true,
-	);
+	return logger.logSystemMessage(message, {}, "optionalContainerViolation", true);
 }
 
 export async function getStatus() {
@@ -763,7 +729,7 @@ export async function getStatus() {
 	const [services, images, currentCommit] = await Promise.all([
 		serviceManager.getStatus(),
 		imageManager.getStatus(),
-		config.get('currentCommit'),
+		config.get("currentCommit")
 	]);
 
 	const apps: Dictionary<any> = {};
@@ -792,23 +758,23 @@ export async function getStatus() {
 		}
 		if (imageId == null) {
 			throw new InternalInconsistencyError(
-				`imageId not defined in ApplicationManager.getStatus: ${service}`,
+				`imageId not defined in ApplicationManager.getStatus: ${service}`
 			);
 		}
 		if (apps[appId].services[imageId] == null) {
-			apps[appId].services[imageId] = _.pick(service, ['status', 'releaseId']);
+			apps[appId].services[imageId] = _.pick(service, ["status", "releaseId"]);
 			creationTimesAndReleases[appId][imageId] = _.pick(service, [
-				'createdAt',
-				'releaseId',
+				"createdAt",
+				"releaseId"
 			]);
 			apps[appId].services[imageId].download_progress = null;
 		} else {
 			// There's two containers with the same imageId, so this has to be a handover
 			apps[appId].services[imageId].releaseId = _.minBy(
 				[creationTimesAndReleases[appId][imageId], service],
-				'createdAt',
+				"createdAt"
 			).releaseId;
-			apps[appId].services[imageId].status = 'Handing over';
+			apps[appId].services[imageId].status = "Handing over";
 		}
 	}
 
@@ -822,12 +788,8 @@ export async function getStatus() {
 				apps[appId].services = {};
 			}
 			if (apps[appId].services[image.imageId] == null) {
-				apps[appId].services[image.imageId] = _.pick(image, [
-					'status',
-					'releaseId',
-				]);
-				apps[appId].services[image.imageId].download_progress =
-					image.downloadProgress;
+				apps[appId].services[image.imageId] = _.pick(image, ["status", "releaseId"]);
+				apps[appId].services[image.imageId].download_progress = image.downloadProgress;
 			}
 		} else if (image.imageId != null) {
 			if (dependent[appId] == null) {
@@ -836,11 +798,10 @@ export async function getStatus() {
 			if (dependent[appId].images == null) {
 				dependent[appId].images = {};
 			}
-			dependent[appId].images[image.imageId] = _.pick(image, ['status']);
-			dependent[appId].images[image.imageId].download_progress =
-				image.downloadProgress;
+			dependent[appId].images[image.imageId] = _.pick(image, ["status"]);
+			dependent[appId].images[image.imageId].download_progress = image.downloadProgress;
 		} else {
-			log.debug('Ignoring legacy dependent image', image);
+			log.debug("Ignoring legacy dependent image", image);
 		}
 	}
 
