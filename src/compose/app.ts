@@ -421,13 +421,10 @@ export class App {
 			return generateStep('noop', {});
 		}
 
-		// TODO: This code path is broken... the isEqualConfig isn't accounting for changes in the release/image ID
 		if (target && current?.isEqualConfig(target, context.containerIds)) {
-			console.log('only starting/stopping a service');
 			// we're only starting/stopping a service
 			return this.generateContainerStep(current, target);
 		} else if (current == null) {
-			console.log('Doing it via genereateOrFetchStartStep');
 			// Either this is a new service, or the current one has already been killed
 			return this.generateFetchOrStartStep(
 				target!,
@@ -649,7 +646,7 @@ export class App {
 		availableImages: Image[],
 		localMode: boolean,
 	) {
-		// because we only check for an image being available, in loal mode this will always
+		// because we only check for an image being available, in local mode this will always
 		// be the case, so return true regardless. If this function ever checks anything else,
 		// we'll need to change the logic here
 		if (localMode) {
@@ -662,7 +659,7 @@ export class App {
 					serviceName: dependency,
 				});
 				if (
-					_.some(
+					!_.some(
 						availableImages,
 						image =>
 							image.dockerImageId === dependencyService?.imageId ||
