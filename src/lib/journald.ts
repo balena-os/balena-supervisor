@@ -10,6 +10,7 @@ export function spawnJournalctl(opts: {
 	unit?: string;
 	containerId?: string;
 	format: string;
+	filterString?: string;
 }): ChildProcess {
 	const args = [
 		// The directory we want to run the chroot from
@@ -36,6 +37,10 @@ export function spawnJournalctl(opts: {
 	}
 	args.push('-o');
 	args.push(opts.format);
+
+	if (opts.filterString) {
+		args.push(opts.filterString);
+	}
 
 	log.debug('Spawning journald with: chroot ', args.join(' '));
 

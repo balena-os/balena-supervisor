@@ -1,85 +1,72 @@
-import * as _ from 'lodash';
+import * as JSONstream from 'JSONStream';
+import { delay } from 'bluebird';
 
-import * as db from '../db';
-
+import * as journald from '../lib/journald';
 import log from '../lib/supervisor-console';
 
-// Flush every 10 mins
-const DB_FLUSH_INTERVAL = 10 * 60 * 1000;
+export type MonitorHook = (data: string) => Resolvable<void>;
+// Here we store the hooks for container logs. When we start a container, we will register
+// a hook to be called with the container log
+const containerMonitors: Dictionary<(data: string) => Resolvable<void>> = {};
 
-/**
- * This class provides a wrapper around the database for
- * saving the last timestamp of a container
- */
-export class LogMonitor {
-	private timestamps: { [containerId: string]: number } = {};
-	private writeRequired: { [containerId: string]: boolean } = {};
+// Wait 5s when journalctl failed before trying to read the logs again
+const JOURNALCTL_ERROR_RETRY_DELAY = 5000;
 
-	public constructor() {
-		setInterval(() => this.flushDb(), DB_FLUSH_INTERVAL);
-	}
-
-	public updateContainerSentTimestamp(
-		containerId: string,
-		timestamp: number,
-	): void {
-		this.timestamps[containerId] = timestamp;
-		this.writeRequired[containerId] = true;
-	}
-
-	public async getContainerSentTimestamp(containerId: string): Promise<number> {
-		// If this is the first time we are requesting the
-		// timestamp for this container, request it from the db
-		if (this.timestamps[containerId] == null) {
-			// Set the timestamp to 0 before interacting with the
-			// db to avoid multiple db actions at once
-			this.timestamps[containerId] = 0;
-			try {
-				const timestampObj = await db
-					.models('containerLogs')
-					.select('lastSentTimestamp')
-					.where({ containerId });
-
-				if (timestampObj == null || _.isEmpty(timestampObj)) {
-					// Create a row in the db so there's something to
-					// update
-					await db
-						.models('containerLogs')
-						.insert({ containerId, lastSentTimestamp: 0 });
-				} else {
-					this.timestamps[containerId] = timestampObj[0].lastSentTimestamp;
-				}
-			} catch (e) {
-				log.error(
-					'There was an error retrieving the container log timestamps:',
-					e,
-				);
-			}
-		}
-		return this.timestamps[containerId] || 0;
-	}
-
-	private async flushDb() {
-		log.debug('Attempting container log timestamp flush...');
-		const containerIds = Object.getOwnPropertyNames(this.timestamps);
-		try {
-			for (const containerId of containerIds) {
-				// Avoid writing to the db if we don't need to
-				if (!this.writeRequired[containerId]) {
-					continue;
-				}
-
-				await db
-					.models('containerLogs')
-					.where({ containerId })
-					.update({ lastSentTimestamp: this.timestamps[containerId] });
-				this.writeRequired[containerId] = false;
-			}
-		} catch (e) {
-			log.error('There was an error storing the container log timestamps:', e);
-		}
-		log.debug('Container log timestamp flush complete');
-	}
+// This is nowhere near the amount of fields provided by journald, but simply the ones
+// that we are interested in
+interface JournaldRow {
+	CONTAINER_ID_FULL?: string;
+	CONTAINER_NAME?: string;
+	MESSAGE: string | number[];
 }
 
-export default LogMonitor;
+export function addMonitorForContainer(containerId: string, hook: MonitorHook) {
+	containerMonitors[containerId] = hook;
+}
+
+export function monitorExistsForContainer(containerId: string): boolean {
+	return containerId in containerMonitors;
+}
+
+export function startLogMonitor() {
+	// FIXME: --since
+	const journalctl = journald.spawnJournalctl({
+		all: true,
+		follow: true,
+		format: 'json',
+		filterString: '_SYSTEMD_UNIT=balena.service',
+	});
+
+	journalctl.stdout?.pipe(
+		JSONstream.parse(true).on('data', (row: JournaldRow) => {
+			if (row.CONTAINER_ID_FULL && row.CONTAINER_NAME !== 'resin_supervisor') {
+				// console.log(row);
+				console.log('==================================================');
+				console.log(containerMonitors);
+				console.log(row.CONTAINER_ID_FULL);
+				const id = row.CONTAINER_ID_FULL;
+				console.log('==================================================');
+				const logline = messageFieldToString(row.MESSAGE);
+				if (logline != null && containerMonitors[id] != null) {
+					containerMonitors[id](logline);
+				}
+			}
+		}),
+	);
+	journalctl.stderr?.on('data', async (data: Buffer) => {
+		log.error('Non-empty stderr stream from journalctl log fetching: ', data.toString());
+		await delay(5000);
+		startLogMonitor();
+	});
+}
+
+function messageFieldToString(entry: JournaldRow['MESSAGE']): string | null {
+	if (Array.isArray(entry)) {
+		return String.fromCharCode(...entry);
+	} else if (typeof entry === 'string') {
+		return entry;
+	} else {
+		log.error(`Unknown journald message field type: ${typeof entry}. Dropping log.`);
+		return null;
+	}
+}

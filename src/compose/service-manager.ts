@@ -22,16 +22,14 @@ import * as LogTypes from '../lib/log-types';
 import { checkInt, isValidDeviceName } from '../lib/validation';
 import { Service } from './service';
 import { serviceNetworksToDockerNetworks } from './utils';
+import * as logMonitor from '../logging/log-monitor';
 
 import log from '../lib/supervisor-console';
 
 interface ServiceManagerEvents {
 	change: void;
 }
-type ServiceManagerEventEmitter = StrictEventEmitter<
-	EventEmitter,
-	ServiceManagerEvents
->;
+type ServiceManagerEventEmitter = StrictEventEmitter<EventEmitter, ServiceManagerEvents>;
 const events: ServiceManagerEventEmitter = new EventEmitter();
 
 interface KillOpts {
@@ -61,7 +59,7 @@ export async function getAll(
 	const filterLabels = ['supervised'].concat(extraLabelFilters);
 	const containers = await listWithBothLabels(filterLabels);
 
-	const services = await Bluebird.map(containers, async (container) => {
+	const services = await Bluebird.map(containers, async container => {
 		try {
 			const serviceInspect = await docker.getContainer(container.Id).inspect();
 			const service = Service.fromDockerContainer(serviceInspect);
@@ -80,7 +78,7 @@ export async function getAll(
 		}
 	});
 
-	return services.filter((s) => s != null) as Service[];
+	return services.filter(s => s != null) as Service[];
 }
 
 export async function get(service: Service) {
@@ -88,9 +86,7 @@ export async function get(service: Service) {
 	const containerIds = await getContainerIdMap(service.appId!);
 	const services = (
 		await getAll(`service-id=${service.serviceId}`)
-	).filter((currentService) =>
-		currentService.isEqualConfig(service, containerIds),
-	);
+	).filter(currentService => currentService.isEqualConfig(service, containerIds));
 
 	if (services.length === 0) {
 		const e: StatusCodeError = new Error(
@@ -162,18 +158,14 @@ export async function handover(current: Service, target: Service) {
 	// it doesn't come back after boot.
 	await prepareForHandover(current);
 	await start(target);
-	await waitToKill(
-		current,
-		target.config.labels['io.balena.update.handover-timeout'],
-	);
+	await waitToKill(current, target.config.labels['io.balena.update.handover-timeout']);
 	await kill(current);
 }
 
 export async function killAllLegacy(): Promise<void> {
 	// Containers haven't been normalized (this is an updated supervisor)
-	const supervisorImageId = (
-		await docker.getImage(constants.supervisorImage).inspect()
-	).Id;
+	const supervisorImageId = (await docker.getImage(constants.supervisorImage).inspect())
+		.Id;
 
 	for (const container of await docker.listContainers({ all: true })) {
 		if (container.ImageID !== supervisorImageId) {
@@ -311,6 +303,7 @@ export async function start(service: Service) {
 				err = new Error(`Could not parse status code from docker error:  ${e}`);
 				throw err;
 			}
+
 			const statusCode = maybeStatusCode.right;
 			const message = e.message;
 
@@ -351,8 +344,11 @@ export async function start(service: Service) {
 				`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.start`,
 			);
 		}
-
-		logger.attach(container.id, { serviceId, imageId });
+		logMonitor.addMonitorForContainer(containerId, data => {
+			console.log('Got message for service: ', service.serviceName);
+			console.log(data);
+		});
+		// logger.attach(container.id, { serviceId, imageId });
 
 		if (!alreadyStarted) {
 			logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
@@ -379,7 +375,7 @@ export function listenToEvents() {
 			filters: { type: ['container'] } as any,
 		});
 
-		stream.on('error', (e) => {
+		stream.on('error', e => {
 			log.error(`Error on docker events stream:`, e);
 		});
 		const parser = JSONStream.parse();
@@ -439,7 +435,7 @@ export function listenToEvents() {
 	};
 
 	Bluebird.resolve(listen())
-		.catch((e) => {
+		.catch(e => {
 			log.error('Error listening to events:', e, e.stack);
 		})
 		.finally(() => {
@@ -467,17 +463,18 @@ export async function attachToRunning() {
 					`containerId not defined for service: ${service.serviceName} in ServiceManager.attachToRunning`,
 				);
 			}
-			logger.attach(service.containerId, {
-				serviceId,
-				imageId,
+			logMonitor.addMonitorForContainer(service.containerId, line => {
+				console.log('Got log for service', line);
 			});
+			// logger.attach(service.containerId, {
+			// 	serviceId,
+			// 	imageId,
+			// });
 		}
 	}
 }
 
-export async function getContainerIdMap(
-	appId: number,
-): Promise<Dictionary<string>> {
+export async function getContainerIdMap(appId: number): Promise<Dictionary<string>> {
 	return _(await getAllByAppId(appId))
 		.keyBy('serviceName')
 		.mapValues('containerId')
@@ -495,17 +492,10 @@ function reportChange(containerId?: string, status?: Partial<Service>) {
 	events.emit('change');
 }
 
-function reportNewStatus(
-	containerId: string,
-	service: Partial<Service>,
-	status: string,
-) {
+function reportNewStatus(containerId: string, service: Partial<Service>, status: string) {
 	reportChange(
 		containerId,
-		_.merge(
-			{ status },
-			_.pick(service, ['imageId', 'appId', 'releaseId', 'commit']),
-		),
+		_.merge({ status }, _.pick(service, ['imageId', 'appId', 'releaseId', 'commit'])),
 	);
 }
 
@@ -532,14 +522,12 @@ function killContainer(
 					return containerObj.remove({ v: true });
 				}
 			})
-			.catch((e) => {
+			.catch(e => {
 				// Get the statusCode from the original cause and make sure it's
 				// definitely an int for comparison reasons
 				const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
 				if (isLeft(maybeStatusCode)) {
-					throw new Error(
-						`Could not parse status code from docker error:  ${e}`,
-					);
+					throw new Error(`Could not parse status code from docker error:  ${e}`);
 				}
 				const statusCode = maybeStatusCode.right;
 
@@ -563,7 +551,7 @@ function killContainer(
 				delete containerHasDied[containerId];
 				logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
 			})
-			.catch((e) => {
+			.catch(e => {
 				logger.logSystemEvent(LogTypes.stopServiceError, {
 					service,
 					error: e,
@@ -589,7 +577,7 @@ async function listWithBothLabels(
 		docker.listContainers({
 			all: true,
 			filters: {
-				label: _.map(labelList, (v) => `${prefix}${v}`),
+				label: _.map(labelList, v => `${prefix}${v}`),
 			},
 		});
 
@@ -624,7 +612,7 @@ function waitToKill(service: Service, timeout: number | string) {
 
 	const wait = (): Bluebird<void> =>
 		Bluebird.any(
-			handoverCompletePaths.map((file) =>
+			handoverCompletePaths.map(file =>
 				fs.stat(file).then(() => fs.unlink(file).catch(_.noop)),
 			),
 		).catch(async () => {
@@ -638,9 +626,7 @@ function waitToKill(service: Service, timeout: number | string) {
 			}
 		});
 
-	log.info(
-		`Waiting for handover to be completed for service: ${service.serviceName}`,
-	);
+	log.info(`Waiting for handover to be completed for service: ${service.serviceName}`);
 
 	return wait().then(() => {
 		log.success(`Handover complete for service ${service.serviceName}`);

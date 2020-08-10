@@ -89,9 +89,7 @@ export class Service {
 
 		appConfig = ComposeUtils.camelCaseConfig(appConfig);
 
-		const intOrNull = (
-			val: string | number | null | undefined,
-		): number | null => {
+		const intOrNull = (val: string | number | null | undefined): number | null => {
 			return checkInt(val) || null;
 		};
 
@@ -129,7 +127,7 @@ export class Service {
 		// First process the networks correctly
 		let networks: ServiceConfig['networks'] = {};
 		if (_.isArray(config.networks)) {
-			_.each(config.networks, (name) => {
+			_.each(config.networks, name => {
 				networks[name] = {};
 			});
 		} else if (_.isObject(config.networks)) {
@@ -138,7 +136,7 @@ export class Service {
 		// Prefix the network entries with the app id
 		networks = _.mapKeys(networks, (_v, k) => `${service.appId}_${k}`);
 		// Ensure that we add an alias of the service name
-		networks = _.mapValues(networks, (v) => {
+		networks = _.mapValues(networks, v => {
 			if (v.aliases == null) {
 				v.aliases = [];
 			}
@@ -152,10 +150,7 @@ export class Service {
 
 		// memory strings
 		const memLimit = ComposeUtils.parseMemoryNumber(config.memLimit, '0');
-		const memReservation = ComposeUtils.parseMemoryNumber(
-			config.memReservation,
-			'0',
-		);
+		const memReservation = ComposeUtils.parseMemoryNumber(config.memReservation, '0');
 		const shmSize = ComposeUtils.parseMemoryNumber(config.shmSize, '64m');
 		delete config.memLimit;
 		delete config.memReservation;
@@ -202,9 +197,7 @@ export class Service {
 				service.dependsOn.push(match[1]);
 				serviceNetworkMode = true;
 			} else if (CONTAINER_NETWORK_MODE_REGEX.test(config.networkMode)) {
-				log.warn(
-					'A network_mode referencing a container is not supported. Ignoring.',
-				);
+				log.warn('A network_mode referencing a container is not supported. Ignoring.');
 				delete config.networkMode;
 			}
 		} else {
@@ -259,18 +252,9 @@ export class Service {
 		}
 		config.restart = ComposeUtils.createRestartPolicy(config.restart);
 		config.command = ComposeUtils.getCommand(config.command, options.imageInfo);
-		config.entrypoint = ComposeUtils.getEntryPoint(
-			config.entrypoint,
-			options.imageInfo,
-		);
-		config.stopSignal = ComposeUtils.getStopSignal(
-			config.stopSignal,
-			options.imageInfo,
-		);
-		config.workingDir = ComposeUtils.getWorkingDir(
-			config.workingDir,
-			options.imageInfo,
-		);
+		config.entrypoint = ComposeUtils.getEntryPoint(config.entrypoint, options.imageInfo);
+		config.stopSignal = ComposeUtils.getStopSignal(config.stopSignal, options.imageInfo);
+		config.workingDir = ComposeUtils.getWorkingDir(config.workingDir, options.imageInfo);
 		config.user = ComposeUtils.getUser(config.user, options.imageInfo);
 
 		const healthcheck = ComposeUtils.getHealthcheck(
@@ -297,14 +281,10 @@ export class Service {
 		if (config.expose != null) {
 			expose = _.map(config.expose, ComposeUtils.sanitiseExposeFromCompose);
 		}
-		const imageExposedPorts = _.get(
-			options.imageInfo,
-			'Config.ExposedPorts',
-			{},
-		);
+		const imageExposedPorts = _.get(options.imageInfo, 'Config.ExposedPorts', {});
 		expose = expose.concat(_.keys(imageExposedPorts));
 		// Also add any exposed ports which are implied from the portMaps
-		const exposedFromPortMappings = _.flatMap(portMaps, (port) =>
+		const exposedFromPortMappings = _.flatMap(portMaps, port =>
 			port.toExposedPortArray(),
 		);
 		expose = expose.concat(exposedFromPortMappings);
@@ -325,13 +305,11 @@ export class Service {
 		}
 
 		if (_.isArray(config.sysctls)) {
-			config.sysctls = _.fromPairs(
-				_.map(config.sysctls, (v) => _.split(v, '=')),
-			);
+			config.sysctls = _.fromPairs(_.map(config.sysctls, v => _.split(v, '=')));
 		}
 		config.sysctls = _.mapValues(config.sysctls, String);
 
-		_.each(['cpuShares', 'cpuQuota', 'oomScoreAdj'], (key) => {
+		_.each(['cpuShares', 'cpuQuota', 'oomScoreAdj'], key => {
 			const numVal = checkInt(config[key]);
 			if (numVal) {
 				config[key] = numVal;
@@ -343,9 +321,7 @@ export class Service {
 		if (config.cpus != null) {
 			config.cpus = Math.round(Number(config.cpus) * 10 ** 9);
 			if (_.isNaN(config.cpus)) {
-				log.warn(
-					`config.cpus value cannot be parsed. Ignoring.\n  Value:${config.cpus}`,
-				);
+				log.warn(`config.cpus value cannot be parsed. Ignoring.\n  Value:${config.cpus}`);
 				config.cpus = undefined;
 			}
 		}
@@ -427,9 +403,7 @@ export class Service {
 		return service;
 	}
 
-	public static fromDockerContainer(
-		container: Dockerode.ContainerInspectInfo,
-	): Service {
+	public static fromDockerContainer(container: Dockerode.ContainerInspectInfo): Service {
 		const svc = new Service();
 
 		if (container.State.Running) {
@@ -466,7 +440,7 @@ export class Service {
 
 		const portMaps = PortMap.fromDockerOpts(container.HostConfig.PortBindings);
 		let expose = _.flatMap(
-			_.flatMap(portMaps, (p) => p.toDockerOpts().exposedPorts),
+			_.flatMap(portMaps, p => p.toDockerOpts().exposedPorts),
 			_.keys,
 		);
 		if (container.Config.ExposedPorts != null) {
@@ -587,7 +561,7 @@ export class Service {
 		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
 
 		const tmpFs: Dictionary<''> = {};
-		_.each(this.config.tmpfs, (tmp) => {
+		_.each(this.config.tmpfs, tmp => {
 			tmpFs[tmp] = '';
 		});
 
@@ -600,9 +574,7 @@ export class Service {
 		if (match != null) {
 			const containerId = opts.containerIds[match[1]];
 			if (!containerId) {
-				throw new Error(
-					`No container for network_mode: 'service: ${match[1]}'`,
-				);
+				throw new Error(`No container for network_mode: 'service: ${match[1]}'`);
 			}
 			this.config.networkMode = `container:${containerId}`;
 		}
@@ -625,9 +597,7 @@ export class Service {
 			ExposedPorts: exposedPorts,
 			Image: this.config.image,
 			Labels: this.config.labels,
-			NetworkingConfig: ComposeUtils.serviceNetworksToDockerNetworks(
-				mainNetwork,
-			),
+			NetworkingConfig: ComposeUtils.serviceNetworksToDockerNetworks(mainNetwork),
 			StopSignal: this.config.stopSignal,
 			Domainname: this.config.domainname,
 			Hostname: this.config.hostname,
@@ -654,9 +624,7 @@ export class Service {
 				PidsLimit: this.config.pidsLimit,
 				SecurityOpt: this.config.securityOpt,
 				Sysctls: this.config.sysctls,
-				Ulimits: ComposeUtils.serviceUlimitsToDockerUlimits(
-					this.config.ulimits,
-				),
+				Ulimits: ComposeUtils.serviceUlimitsToDockerUlimits(this.config.ulimits),
 				RestartPolicy: ComposeUtils.serviceRestartToDockerRestartPolicy(
 					this.config.restart,
 				),
@@ -676,6 +644,10 @@ export class Service {
 				UsernsMode: this.config.usernsMode,
 				NanoCpus: this.config.cpus,
 				IpcMode: this.config.ipc,
+				// LogConfig: {
+				// 	Type: 'journald',
+				// 	Config: 'labels=SOMETHING',
+				// },
 			} as Dockerode.ContainerCreateOptions['HostConfig'],
 			Healthcheck: ComposeUtils.serviceHealthcheckToDockerHealthcheck(
 				this.config.healthcheck,
@@ -733,10 +705,7 @@ export class Service {
 				// Try not to leak any sensitive information
 				const diffObj = diff(thisOmitted, otherOmitted) as ServiceConfig;
 				if (diffObj.environment != null) {
-					diffObj.environment = _.mapValues(
-						diffObj.environment,
-						() => 'hidden',
-					);
+					diffObj.environment = _.mapValues(diffObj.environment, () => 'hidden');
 				}
 				log.debug('  Non-array fields: ', JSON.stringify(diffObj));
 			}
@@ -809,10 +778,7 @@ export class Service {
 		);
 	}
 
-	public isEqual(
-		service: Service,
-		currentContainerIds: Dictionary<string>,
-	): boolean {
+	public isEqual(service: Service, currentContainerIds: Dictionary<string>): boolean {
 		return (
 			this.isEqualExceptForRunningState(service, currentContainerIds) &&
 			this.config.running === service.config.running
@@ -820,11 +786,8 @@ export class Service {
 	}
 
 	public getNamedVolumes() {
-		const defaults = Service.defaultBinds(
-			this.appId || 0,
-			this.serviceName || '',
-		);
-		const validVolumes = _.map(this.config.volumes, (volume) => {
+		const defaults = Service.defaultBinds(this.appId || 0, this.serviceName || '');
+		const validVolumes = _.map(this.config.volumes, volume => {
 			if (_.includes(defaults, volume) || !_.includes(volume, ':')) {
 				return null;
 			}
@@ -865,7 +828,7 @@ export class Service {
 	} {
 		const binds: string[] = [];
 		const volumes: { [volName: string]: {} } = {};
-		_.each(this.config.volumes, (volume) => {
+		_.each(this.config.volumes, volume => {
 			if (_.includes(volume, ':')) {
 				binds.push(volume);
 			} else {
@@ -880,7 +843,7 @@ export class Service {
 		const exposed: DockerPortOptions['exposedPorts'] = {};
 		const ports: DockerPortOptions['portBindings'] = {};
 
-		_.each(this.config.portMaps, (pmap) => {
+		_.each(this.config.portMaps, pmap => {
 			const { exposedPorts, portBindings } = pmap.toDockerOpts();
 			_.merge(exposed, exposedPorts);
 			_.mergeWith(ports, portBindings, (destVal, srcVal) => {
@@ -894,7 +857,7 @@ export class Service {
 		// We also want to merge the compose and image exposedPorts
 		// into the list of exposedPorts
 		const composeExposed: DockerPortOptions['exposedPorts'] = {};
-		_.each(this.config.expose, (port) => {
+		_.each(this.config.expose, port => {
 			composeExposed[port] = {};
 		});
 		_.merge(exposed, composeExposed);
@@ -930,8 +893,7 @@ export class Service {
 			defaultEnv[namespace] = '1';
 		}
 		defaultEnv['RESIN_SERVICE_KILL_ME_PATH'] = '/tmp/balena/handover-complete';
-		defaultEnv['BALENA_SERVICE_HANDOVER_COMPLETE_PATH'] =
-			'/tmp/balena/handover-complete';
+		defaultEnv['BALENA_SERVICE_HANDOVER_COMPLETE_PATH'] = '/tmp/balena/handover-complete';
 		defaultEnv['USER'] = 'root';
 
 		let env = _.defaults(environment, defaultEnv);
@@ -958,35 +920,27 @@ export class Service {
 				const [currentAliases, targetAliases] = [
 					current.aliases,
 					target.aliases,
-				].map((aliases) =>
-					_.sortBy(
-						aliases.filter((a) => !_.startsWith(this.containerId || '', a)),
-					),
+				].map(aliases =>
+					_.sortBy(aliases.filter(a => !_.startsWith(this.containerId || '', a))),
 				);
 
 				sameNetwork = _.isEqual(currentAliases, targetAliases);
 			}
 		}
 		if (target.ipv4Address != null) {
-			sameNetwork =
-				sameNetwork && _.isEqual(current.ipv4Address, target.ipv4Address);
+			sameNetwork = sameNetwork && _.isEqual(current.ipv4Address, target.ipv4Address);
 		}
 		if (target.ipv6Address != null) {
-			sameNetwork =
-				sameNetwork && _.isEqual(current.ipv6Address, target.ipv6Address);
+			sameNetwork = sameNetwork && _.isEqual(current.ipv6Address, target.ipv6Address);
 		}
 		if (target.linkLocalIps != null) {
-			sameNetwork =
-				sameNetwork && _.isEqual(current.linkLocalIps, target.linkLocalIps);
+			sameNetwork = sameNetwork && _.isEqual(current.linkLocalIps, target.linkLocalIps);
 		}
 		return sameNetwork;
 	}
 
 	private static omitDeviceNameVars(env: EnvVarObject) {
-		return _.omit(env, [
-			'RESIN_DEVICE_NAME_AT_INIT',
-			'BALENA_DEVICE_NAME_AT_INIT',
-		]);
+		return _.omit(env, ['RESIN_DEVICE_NAME_AT_INIT', 'BALENA_DEVICE_NAME_AT_INIT']);
 	}
 
 	private static extendLabels(
@@ -1016,7 +970,7 @@ export class Service {
 	): ServiceConfig['volumes'] {
 		let volumes: ServiceConfig['volumes'] = [];
 
-		_.each(composeVolumes, (volume) => {
+		_.each(composeVolumes, volume => {
 			const isBind = _.includes(volume, ':');
 			if (isBind) {
 				const [bindSource, bindDest, mode] = volume.split(':');

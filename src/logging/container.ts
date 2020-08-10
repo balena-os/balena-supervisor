@@ -43,11 +43,8 @@ export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) 
 			[stderrStream, false],
 		].forEach(([stream, isStdout]: [Stream.Readable, boolean]) => {
 			stream
-				.on('error', (err) => {
-					this.emit(
-						'error',
-						new Error(`Error on container logs: ${err} ${err.stack}`),
-					);
+				.on('error', err => {
+					this.emit('error', new Error(`Error on container logs: ${err} ${err.stack}`));
 				})
 				.pipe(es.split())
 				.on('data', (logBuf: Buffer | string) => {
@@ -59,11 +56,8 @@ export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) 
 						this.emit('log', { isStdout, ...logMsg });
 					}
 				})
-				.on('error', (err) => {
-					this.emit(
-						'error',
-						new Error(`Error on container logs: ${err} ${err.stack}`),
-					);
+				.on('error', err => {
+					this.emit('error', new Error(`Error on container logs: ${err} ${err.stack}`));
 				})
 				.on('end', () => this.emit('closed'));
 		});
@@ -74,10 +68,7 @@ export class ContainerLogs extends (EventEmitter as new () => LogsEventEmitter) 
 	): { message: string; timestamp: number } | undefined {
 		// Non-tty message format from:
 		// https://docs.docker.com/engine/api/v1.30/#operation/ContainerAttach
-		if (
-			_.includes([0, 1, 2], msgBuf[0]) &&
-			_.every(msgBuf.slice(1, 7), (c) => c === 0)
-		) {
+		if (_.includes([0, 1, 2], msgBuf[0]) && _.every(msgBuf.slice(1, 7), c => c === 0)) {
 			// Take the header from this message, and parse it as normal
 			msgBuf = msgBuf.slice(8);
 		}

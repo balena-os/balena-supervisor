@@ -15,6 +15,9 @@ import version = require('./lib/supervisor-version');
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
 
+import * as journalctl from './lib/journald';
+import { startLogMonitor } from './logging/log-monitor';
+
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
 	'listenPort',
@@ -96,6 +99,9 @@ export class Supervisor {
 		this.deviceState.on('shutdown', () => this.api.stop());
 
 		await this.apiBinder.start();
+
+		console.log('Getting logs');
+		startLogMonitor();
 	}
 }
 

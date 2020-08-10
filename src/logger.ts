@@ -13,7 +13,7 @@ import {
 	LogBackend,
 	LogMessage,
 } from './logging';
-import LogMonitor from './logging/monitor';
+import * as logMonitor from './logging/monitor';
 
 import * as globalEventBus from './event-bus';
 import superConsole from './lib/supervisor-console';
@@ -26,7 +26,6 @@ let balenaBackend: BalenaLogBackend | null = null;
 let localBackend: LocalLogBackend | null = null;
 
 const containerLogs: { [containerId: string]: ContainerLogs } = {};
-const logMonitor = new LogMonitor();
 
 export const initialized = (async () => {
 	await config.initialized;
@@ -54,11 +53,7 @@ export const initialized = (async () => {
 
 	if (!balenaBackend.isInitialised()) {
 		globalEventBus.getInstance().once('deviceProvisioned', async () => {
-			const conf = await config.getMany([
-				'uuid',
-				'apiEndpoint',
-				'deviceApiKey',
-			]);
+			const conf = await config.getMany(['uuid', 'apiEndpoint', 'deviceApiKey']);
 
 			// We use Boolean here, as deviceApiKey when unset
 			// is '' for legacy reasons. Once we're totally
@@ -67,11 +62,7 @@ export const initialized = (async () => {
 			if (_.every(conf, Boolean)) {
 				// Everything is set, provide the values to the
 				// balenaBackend, and remove our listener
-				balenaBackend!.assignFields(
-					conf.apiEndpoint,
-					conf.uuid!,
-					conf.deviceApiKey,
-				);
+				balenaBackend!.assignFields(conf.apiEndpoint, conf.uuid!, conf.deviceApiKey);
 			}
 		});
 	}
@@ -138,7 +129,7 @@ export function logSystemMessage(
 }
 
 export function lock(containerId: string): Bluebird.Disposer<() => void> {
-	return writeLock(containerId).disposer((release) => {
+	return writeLock(containerId).disposer(release => {
 		release();
 	});
 }
@@ -149,33 +140,31 @@ export function attach(
 ): Bluebird<void> {
 	// First detect if we already have an attached log stream
 	// for this container
-	if (containerId in containerLogs) {
+	if (logMonitor.monitorExistsForContainer(containerId)) {
 		return Bluebird.resolve();
 	}
 
 	return Bluebird.using(lock(containerId), async () => {
+		logMonitor.addMonitorForContainer(containerId, (logMsg) => {
+
+		})
 		const logs = new ContainerLogs(containerId);
 		containerLogs[containerId] = logs;
-		logs.on('error', (err) => {
+		logs.on('error', err => {
 			superConsole.error('Container log retrieval error', err);
 			delete containerLogs[containerId];
 		});
-		logs.on('log', async (logMessage) => {
+		logs.on('log', async logMessage => {
 			log(_.merge({}, serviceInfo, logMessage));
 
 			// Take the timestamp and set it in the database as the last
 			// log sent for this
-			logMonitor.updateContainerSentTimestamp(
-				containerId,
-				logMessage.timestamp,
-			);
+			logMonitor.updateContainerSentTimestamp(containerId, logMessage.timestamp);
 		});
 
 		logs.on('closed', () => delete containerLogs[containerId]);
 
-		const lastSentTimestamp = await logMonitor.getContainerSentTimestamp(
-			containerId,
-		);
+		const lastSentTimestamp = await logMonitor.getContainerSentTimestamp(containerId);
 		return logs.attach(lastSentTimestamp);
 	});
 }
@@ -193,8 +182,7 @@ export function logSystemEvent(
 	if (obj && obj.error != null) {
 		let errorMessage = obj.error.message;
 		if (_.isEmpty(errorMessage)) {
-			errorMessage =
-				obj.error.name !== 'Error' ? obj.error.name : 'Unknown cause';
+			errorMessage = obj.error.name !== 'Error' ? obj.error.name : 'Unknown cause';
 			superConsole.warn('Invalid error message', obj.error);
 		}
 		message += ` due to '${errorMessage}'`;
@@ -225,13 +213,8 @@ export function logConfigChange(
 }
 
 export async function clearOutOfDateDBLogs(containerIds: string[]) {
-	superConsole.debug(
-		'Performing database cleanup for container log timestamps',
-	);
-	await db
-		.models('containerLogs')
-		.whereNotIn('containerId', containerIds)
-		.delete();
+	superConsole.debug('Performing database cleanup for container log timestamps');
+	await db.models('containerLogs').whereNotIn('containerId', containerIds).delete();
 }
 
 function objectNameForLogs(eventObj: LogEventObject): string | null {
