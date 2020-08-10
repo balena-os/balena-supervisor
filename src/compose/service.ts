@@ -729,6 +729,15 @@ public toComposeObject()/*: TargetState['local']['apps'][0]['services'][0]*/ {
 		service: Service,
 		currentContainerIds: Dictionary<string>,
 	): boolean {
+
+		// if (this.imageId !== service.imageId) {
+		// 	return false;
+		// }
+
+		// if (this.releaseId !== service.releaseId) {
+		// 	return false;
+		// }
+
 		// Check all of the networks for any changes
 		let sameNetworks = true;
 		_.each(service.config.networks, (network, name) => {
@@ -832,7 +841,6 @@ public toComposeObject()/*: TargetState['local']['apps'][0]['services'][0]*/ {
 			}
 		}
 
-		console.log({ sameNetworks, sameConfig, sameNetworkMode});
 		return sameNetworks && sameConfig && sameNetworkMode;
 	}
 

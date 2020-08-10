@@ -283,14 +283,30 @@ export class App {
 			}
 		}
 
-		const alreadyStarted = (serviceId: number) =>
-			currentByServiceId[serviceId].isEqualExceptForRunningState(
+		const alreadyStarted = (serviceId: number) => {
+
+			const equalExceptForRunning = currentByServiceId[serviceId].isEqualExceptForRunningState(
 				targetByServiceId[serviceId],
 				containerIds,
-			) &&
-			targetByServiceId[serviceId].config.running &&
-			applicationManager.containerStarted[currentByServiceId[serviceId].containerId!] != null;
+			);
+			if (!equalExceptForRunning) {
+				// We need to recreate the container, as the configuration has changed
+				console.log('a');
+				return false;
+			}
 
+			if (targetByServiceId[serviceId].config.running) {
+				// If the container is already running, and we don't need to change it
+				// due to the config, we know it's already been started
+				console.log('b');
+				return true;
+			}
+
+			// We recently ran a start step for this container, it just hasn't
+			// started running yet
+			console.log('c');
+			return applicationManager.containerStarted[currentByServiceId[serviceId].containerId!] != null
+		}
 
 		const needUpdate = maybeUpdate.filter(
 			serviceId =>
@@ -405,10 +421,13 @@ export class App {
 			return generateStep('noop', {});
 		}
 
+		// TODO: This code path is broken... the isEqualConfig isn't accounting for changes in the release/image ID
 		if (target && current?.isEqualConfig(target, context.containerIds)) {
+			console.log('only starting/stopping a service');
 			// we're only starting/stopping a service
 			return this.generateContainerStep(current, target);
 		} else if (current == null) {
+			console.log('Doing it via genereateOrFetchStartStep');
 			// Either this is a new service, or the current one has already been killed
 			return this.generateFetchOrStartStep(
 				target!,
@@ -454,6 +473,7 @@ export class App {
 				context.localMode,
 			);
 
+			console.log({ dependenciesMetForStart, dependenciesMetForKill });
 			return getStepsFromStrategy(strategy, {
 				current,
 				target,
@@ -504,11 +524,20 @@ export class App {
 	}
 
 	private generateContainerStep(current: Service, target: Service) {
+		// if the services release/image don't match, then rename the container... :/
+		/*
+		generateStep('updateMetadata') =>
+			await docker.getContainer(svc.containerId).rename({
+				name: `${service.serviceName}_${target.imageId}_${target.releaseId}`,
+			});
+		*/
 		if (current.releaseId !== target.releaseId || current.imageId !== target.imageId) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running) {
-			console.log('a');
-			return generateStep('start', { target });
+			console.log({ forService: target.serviceName, msg: 'a'});
+			if (!current.config.running) {
+				return generateStep('start', { target });
+			}
 		} else {
 			return generateStep('stop', { current });
 		}
@@ -522,6 +551,7 @@ export class App {
 		servicePairs: Array<ChangingPair<Service>>,
 	): CompositionStep | undefined {
 		if (needsDownload) {
+			console.log('needs download');
 			// We know the service name exists as it always does for targets
 			return generateStep('fetch', {
 				image: imageManager.imageFromService(target),
@@ -543,12 +573,34 @@ export class App {
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
 	): boolean {
+		// Firstly we check if a dependency is not already running (this is
+		// different to a dependency which is in the servicePairs below, as these
+		// are services which are changing). We could have a dependency which is
+		// starting up, but is not yet running.
+		const depInstallingButNotRunning = _.some(this.services, (svc) => {
+			if (target.dependsOn?.includes(svc.serviceName!)) {
+				console.log(`Service ${target.serviceName} depends on ${svc.serviceName} which is running? ${svc.config.running}`);
+				if (!svc.config.running) {
+					return true;
+				}
+			}
+		});
+
+		console.log({ depInstallingButNotRunning })
+
+		if (depInstallingButNotRunning) {
+			return false;
+		}
+
+		// Does the above check cover this too?
+		// ...
 		// For depends on, check no install or update pairs have that service
 		const depedencyUnmet = _.some(target.dependsOn, dep =>
 			_.some(servicePairs, pair => pair.target?.serviceName === dep),
 		);
 
 		if (depedencyUnmet) {
+			console.log('dependency unmet');
 			return false;
 		}
 
@@ -558,21 +610,33 @@ export class App {
 				pair => `${this.appId}_${pair.target?.name}` === target.config.networkMode,
 			)
 		) {
+			console.log('network unmet');
 			return false;
 		}
 
-		const volumeUnmet = _.some(target.config.volumes, function (volumeDefinition) {
+		if (_.some(target.config.volumes, (volumeDefinition) => {
 			const [sourceName, destName] = volumeDefinition.split(':');
 			if (destName == null) {
 				// If this is not a named volume, ignore it
 				return false;
 			}
+			if (sourceName[0] === '/') {
+				// Absolute paths should also be ignored
+				return false;
+			}
+
 			return _.some(
 				volumePairs,
 				pair => `${target.appId}_${pair.target?.name}` === sourceName,
 			);
-		});
-		return !volumeUnmet;
+		})) {
+			console.log('volume unmet');
+			return false;
+		}
+
+		// everything is ready for the service to start...
+		console.log('dependenciesMetForServiceStart');
+		return true;
 	}
 
 	// Unless the update strategy requires an early kill (i.e kill-then-download,

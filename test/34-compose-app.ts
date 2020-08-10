@@ -19,6 +19,9 @@ import { ServiceComposeConfig } from '../src/compose/types/service';
 import { registerOverride } from './lib/mocked-dockerode';
 import { Image } from '../src/compose/images';
 import { inspect } from 'util';
+import { boolean } from 'yargs';
+import { Test } from 'mocha';
+import { Z_BEST_COMPRESSION } from 'mz/zlib';
 
 const defaultContext = {
 	localMode: false,
@@ -73,13 +76,55 @@ function createService(
 	return svc;
 }
 
+type ServicePredicate = string | ((service: Partial<Service>) => boolean);
+type StepTest = Chai.Assertion & {
+	forCurrent: (predicate: ServicePredicate) => Chai.Assertion,
+	forTarget: (predicate: ServicePredicate) => Chai.Assertion,
+}
+
+// tslint:disable: no-unused-expression-chai
+function withSteps(steps: CompositionStep[]) {
+	return {
+		expectStep: (step: CompositionStepAction): StepTest => {
+			const matchingSteps = _.filter(steps, s => s.action === step);
+
+			const assertion: Partial<StepTest> = expect(matchingSteps, `Step for '${step}', not found`);
+
+			const forService = (predicate: ServicePredicate, property: 'current' | 'target') => {
+				const [firstMatch] = _.filter(steps, (s) => {
+					if (s.action !== step) {
+						return false;
+					}
+
+					const t = (s as any)[property];
+					if (!t) {
+						throw new Error(`${property} is not defined for action ${step}`);
+					}
+
+					if (_.isFunction(predicate)) {
+						return predicate(t);
+					} else {
+						return t.serviceName! === predicate
+					}
+				});
+				return expect(firstMatch, `Step for '${step}' matching predicate, not found`);
+			}
+
+			assertion.forCurrent = (service) => forService(service, 'current');
+			assertion.forTarget = (service) => forService(service, 'target');
+
+			return assertion as StepTest;
+		}
+	}
+}
+
 function expectStep(
 	action: CompositionStepAction,
 	steps: CompositionStep[],
 ): number {
 	const idx = _.findIndex(steps, { action });
 	if (idx === -1) {
-		console.log(inspect({ action, steps }, true, 4, true));
+		console.log(inspect({ action, steps }, true, 3, true));
 		throw new Error(`Expected to find step with action: ${action}`);
 	}
 	return idx;
@@ -90,14 +135,14 @@ function expectNoStep(
 	steps: CompositionStep[],
 ) {
 	if (_.some(steps, { action })) {
-		console.log({ action, steps });
+		console.log(inspect({ action, steps }, true, 3, true));
 		throw new Error(`Did not expect to find step with action: ${action}`);
 	}
 }
 
 const defaultNetwork = Network.fromComposeObject('default', 1, {});
 
-describe('compose/app', () => {
+describe.only('compose/app', () => {
 	before(async () => {
 		await config.initialized;
 		await applicationManager.initialized;
@@ -526,7 +571,7 @@ describe('compose/app', () => {
 		expectStep('updateMetadata', steps);
 	});
 
-	it('should start a container which has not been started', () => {
+	it.skip('should start a container which has not been started', () => {
 		const current = createApp(
 			[createService({}, 1, 'main', 1, 1, 1, { status: 'Installed'})],
 			[],
@@ -561,8 +606,50 @@ describe('compose/app', () => {
 		const steps = current.nextStepsForAppUpdate(defaultContext, target);
 		expectStep('stop', steps);
 	});
-	it.only('should not create a container when it depends on a service which is being installed', () => {
 
+	it('should recreate a container if the target configuration changes', () => {
+		const contextWithImages = {
+			...defaultContext,
+			... {
+				availableImages: [
+					{
+						appId: 1,
+						dependent: 0,
+						imageId: 1,
+						releaseId: 1,
+						serviceId: 1,
+						name: 'main-image',
+						serviceName: 'main'
+					}
+				]
+			}
+		}
+		let current = createApp(
+			[createService({}, 1, 'main', 1, 1, 1, {})],
+			[defaultNetwork],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({ privileged: true }, 1, 'main', 1, 1, 1, {})],
+			[defaultNetwork],
+			[],
+			true
+		);
+
+		// should see a 'stop'
+		let steps = current.nextStepsForAppUpdate(contextWithImages, target);
+		withSteps(steps).expectStep('stop').to.exist;
+
+		// remove the service since it's stopped...
+		current = createApp([], [defaultNetwork], [], false);
+
+		// now should see a 'start'
+		steps = current.nextStepsForAppUpdate(contextWithImages, target);
+		withSteps(steps).expectStep('start').forTarget(t => t.serviceName === 'main').to.exist;
+	});
+
+	it('should not start a container when it depends on a service which is being installed', () => {
 		const mainImage: Image = {
 			appId: 1,
 			dependent: 0,
@@ -583,22 +670,58 @@ describe('compose/app', () => {
 			serviceName: 'dep'
 		};
 
-		const current = createApp(
-			[createService({}, 1, 'dep', 1, 2, 2)],
-			[],
-			[],
-			false
-		);
-		const target = createApp(
-			[createService({}, 1, 'main', 1, 1, 1, { dependsOn: ['dep'] }), createService({}, 1, 'dep', 1, 2, 2)],
-			[],
-			[],
-			true
-		);
+		const availableImages = [mainImage, depImage];
+		const contextWithImages = { ...defaultContext, ...{ availableImages } };
 
-		const steps = current.nextStepsForAppUpdate({...defaultContext, ...{ availableImages: [mainImage, depImage], downloading: [] }}, target);
-		expectStep('bob', steps);
+		try {
+			let current = createApp(
+				[createService({ running: false }, 1, 'dep', 1, 2, 2, { status: 'Installing', containerId: 'id' })],
+				[defaultNetwork],
+				[],
+				false
+			);
+			const target = createApp(
+				[createService({}, 1, 'main', 1, 1, 1, { dependsOn: ['dep'] }), createService({}, 1, 'dep', 1, 2, 2)],
+				[defaultNetwork],
+				[],
+				true
+			);
+
+			let steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			withSteps(steps)
+				.expectStep('start')
+				.forTarget(t => t.serviceName === 'dep')
+				.to.exist;
+
+			withSteps(steps)
+				.expectStep('start')
+				.forTarget(t => t.serviceName === 'main')
+				.to.not.exist;
+
+			// we now make our current state have the 'dep' service as started...
+			current = createApp(
+				[createService({}, 1, 'dep', 1, 2, 2, { containerId: 'id' })],
+				[defaultNetwork],
+				[],
+				false
+			);
+
+			// We keep track of the containers that we've tried to start so that we
+			// dont spam start requests if the container hasn't started running
+			applicationManager.containerStarted['id'] = true;
+
+			// we should now see a start for the 'main' service...
+			steps = current.nextStepsForAppUpdate({ ...contextWithImages, ...{ containerIds: { 'dep': 'id' } } }, target);
+			withSteps(steps)
+				.expectStep('start')
+				.forTarget(t => t.serviceName === 'main')
+				.to.exist;
+
+		} finally {
+			delete applicationManager.containerStarted['id'];
+		}
 	});
+
 	it('should emit a fetch step when an image has not been downloaded for a service', () => {
 		const current = createApp(
 			[],
@@ -614,7 +737,7 @@ describe('compose/app', () => {
 		);
 
 		const steps = current.nextStepsForAppUpdate(defaultContext, target);
-		expectStep('fetch', steps);
+		withSteps(steps).expectStep('fetch').to.exist;
 	});
 
 	it('should stop a container which has stoppped as its target', () => {
@@ -632,15 +755,130 @@ describe('compose/app', () => {
 		);
 
 		const steps = current.nextStepsForAppUpdate(defaultContext, target);
-		expectStep('stop', steps);
+		withSteps(steps).expectStep('stop');
 	});
-	it.skip('should create a start step when all that changes is a running state',);
-	it.skip(
-		'should not infer a fetch step when the download is already in progress',
-	);
-	it.skip(
-		'should create a kill step when a service has to be updated but the strategy is kill-then-download',
-	);
+
+	it('should create a start step when all that changes is a running state', () => {
+		const contextWithImages = {
+			...defaultContext,
+			... {
+				availableImages: [
+					{
+						appId: 1,
+						dependent: 0,
+						imageId: 1,
+						releaseId: 1,
+						serviceId: 1,
+						name: 'main-image',
+						serviceName: 'main'
+					}
+				]
+			}
+		}
+		const current = createApp(
+			[createService({ running: false }, 1, 'main', 1, 1, 1, {})],
+			[defaultNetwork],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 1, 1, 1, {})],
+			[defaultNetwork],
+			[],
+			true
+		);
+
+		// now should see a 'start'
+		const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+		withSteps(steps).expectStep('start').forTarget(t => t.serviceName === 'main').to.exist;
+	});
+
+	it('should not infer a fetch step when the download is already in progress', () => {
+		const contextWithDownloading = {
+			...defaultContext,
+			... {
+				downloading: [1]
+			}
+		}
+		const current = createApp(
+			[],
+			[],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({}, 1, 'main', 1, 1, 1)],
+			[],
+			[],
+			true
+		);
+
+		const steps = current.nextStepsForAppUpdate(contextWithDownloading, target);
+		withSteps(steps)
+			.expectStep('fetch')
+			.forTarget('main')
+			.to.not.exist;
+	});
+
+	it('should create a kill step when a service has to be updated but the strategy is kill-then-download', () => {
+		const contextWithImages = {
+			...defaultContext,
+			... {
+				availableImages: [
+					{
+						appId: 1,
+						dependent: 0,
+						imageId: 1,
+						releaseId: 1,
+						serviceId: 1,
+						name: 'main-image',
+						serviceName: 'main'
+					}
+				]
+			}
+		}
+
+		const labels = {
+			'io.balena.update.strategy': 'kill-then-download'
+		}
+
+		const current = createApp(
+			[createService({ labels, image: 'main-image' }, 1, 'main', 1, 1, 1, {})],
+			[defaultNetwork],
+			[],
+			false
+		);
+		const target = createApp(
+			[createService({labels, image: 'main-image-2' }, 1, 'main', 2, 1, 2, {})],
+			[defaultNetwork],
+			[],
+			true
+		);
+
+		let steps = current.nextStepsForAppUpdate(contextWithImages, target);
+		console.log({steps});
+		withSteps(steps)
+			.expectStep('kill')
+			.forCurrent('main')
+			.to.exist;
+
+		// next volatile state...
+		const afterKill = createApp(
+			[],
+			[defaultNetwork],
+			[],
+			false
+		);
+
+		// TODO: here we would expect a kill, before the download... not happening and needs looking at...
+		steps = afterKill.nextStepsForAppUpdate(contextWithImages, target);
+		console.log({steps});
+		const idx = expectStep('fetch', steps);
+		expect(steps[idx]).to.have.property('image').that.has.property('name').that.equals('main-image-2');
+		withSteps(steps)
+			.expectStep('fetch')
+			.to.exist;
+	});
 	it.skip(
 		'should not infer a kill step with the default strategy if a dependency is not downloaded',
 	);

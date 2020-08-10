@@ -17,6 +17,8 @@ export function getStepsFromStrategy(
 	strategy: string,
 	context: StrategyContext,
 ): CompositionStep {
+	console.log('Im here');
+	console.log({ strategy, context });
 	switch (strategy) {
 		case 'download-then-kill':
 			if (context.needsDownload) {
