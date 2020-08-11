@@ -81,7 +81,7 @@ export const getAll = async (
 	});
 
 	return services.filter((s) => s != null) as Service[];
-}
+};
 
 export async function get(service: Service) {
 	// Get the container ids for special network handling

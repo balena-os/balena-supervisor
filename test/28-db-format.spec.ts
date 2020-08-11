@@ -14,8 +14,8 @@ import { TargetApplication } from '../src/types/state';
 
 function getDefaultNetworks(appId: number) {
 	return {
-		'default': Network.fromComposeObject('default', appId, {}),
-	}
+		default: Network.fromComposeObject('default', appId, {}),
+	};
 }
 
 describe('DB Format', () => {
@@ -83,7 +83,7 @@ describe('DB Format', () => {
 
 	it('should retrieve a single app from the database', async () => {
 		const app = await dbFormat.getApp(1);
-		expect(app).to.be.an.instanceOf(App)
+		expect(app).to.be.an.instanceOf(App);
 		expect(app).to.have.property('appId').that.equals(1);
 		expect(app).to.have.property('commit').that.equals('abcdef');
 		expect(app).to.have.property('releaseId').that.equals(123);
@@ -93,7 +93,9 @@ describe('DB Format', () => {
 			.that.deep.equals(await config.get('apiEndpoint'));
 		expect(app).to.have.property('services').that.deep.equals([]);
 		expect(app).to.have.property('volumes').that.deep.equals({});
-		expect(app).to.have.property('networks').that.deep.equals(getDefaultNetworks(1));
+		expect(app)
+			.to.have.property('networks')
+			.that.deep.equals(getDefaultNetworks(1));
 	});
 
 	it('should correctly build services from the database', async () => {
@@ -149,7 +151,8 @@ describe('DB Format', () => {
 				});
 
 			const app = await dbFormat.getApp(2);
-			const conf = app.services[parseInt(Object.keys(app.services)[0], 10)].config;
+			const conf =
+				app.services[parseInt(Object.keys(app.services)[0], 10)].config;
 			expect(conf)
 				.to.have.property('entrypoint')
 				.that.deep.equals(['theEntrypoint']);

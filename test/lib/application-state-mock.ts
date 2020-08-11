@@ -21,7 +21,10 @@ export function mockManagers(svcs: Service[], vols: Volume[], nets: Network[]) {
 	// @ts-expect-error Assigning to a RO property
 	networkManager.getAll = async () => nets;
 	// @ts-expect-error Assigning to a RO property
-	serviceManager.getAll = async () => { console.log('Calling the mock', svcs); return svcs };
+	serviceManager.getAll = async () => {
+		console.log('Calling the mock', svcs);
+		return svcs;
+	};
 }
 
 function unmockManagers() {
@@ -40,8 +43,9 @@ export function mockImages(
 ) {
 	// @ts-expect-error Assigning to a RO property
 	imageManager.getDownloadingImageIds = () => {
-		console.log('CALLED'); return downloading;
-	}
+		console.log('CALLED');
+		return downloading;
+	};
 	// @ts-expect-error Assigning to a RO property
 	imageManager.isCleanupNeeded = async () => cleanup;
 	// @ts-expect-error Assigning to a RO property

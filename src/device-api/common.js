@@ -41,7 +41,7 @@ export async function doRestart(appId, force) {
 export async function doPurge(appId, force) {
 	await deviceState.initialized;
 	await applicationManager.initialized;
-	
+
 	const { _lockingIfNecessary } = applicationManager;
 
 	logger.logSystemMessage(

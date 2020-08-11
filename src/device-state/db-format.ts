@@ -6,7 +6,11 @@ import * as targetStateCache from '../device-state/target-state-cache';
 import App from '../compose/app';
 import * as images from '../compose/images';
 
-import { InstancedAppState, TargetApplication, TargetState } from '../types/state';
+import {
+	InstancedAppState,
+	TargetApplication,
+	TargetState,
+} from '../types/state';
 import { checkInt } from '../lib/validation';
 
 type InstancedApp = InstancedAppState[0];
@@ -74,7 +78,10 @@ export async function getTargetJson(): Promise<TargetState['local']['apps']> {
 		dbApps.map(async (app) => {
 			apps[app.appId] = {
 				..._.omit(app, ['id', 'source']),
-				services: _(JSON.parse(app.services)).keyBy('serviceId').mapValues((svc) => _.omit(svc, 'commit')).value(),
+				services: _(JSON.parse(app.services))
+					.keyBy('serviceId')
+					.mapValues((svc) => _.omit(svc, 'commit'))
+					.value(),
 				networks: JSON.parse(app.networks),
 				volumes: JSON.parse(app.volumes),
 			};

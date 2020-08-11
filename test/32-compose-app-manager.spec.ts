@@ -37,12 +37,10 @@ describe('compose/application-manager', () => {
 		expect(Object.keys(apps)).to.have.length(1);
 		const app = apps[1011165];
 		expect(app).to.have.property('appId').that.equals(1011165);
-		expect(app).to.have.property('services')
+		expect(app).to.have.property('services');
 		const services = _.keyBy(app.services, 'serviceId');
 		expect(services).to.have.property('43697');
-		expect(services[43697])
-			.to.have.property('serviceName')
-			.that.equals('main');
+		expect(services[43697]).to.have.property('serviceName').that.equals('main');
 	});
 
 	it('should create multiple Apps when the current state reflects that', async () => {

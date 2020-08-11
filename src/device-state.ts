@@ -211,8 +211,8 @@ type DeviceStateStepTarget = 'reboot' | 'shutdown' | 'noop';
 type PossibleStepTargets = CompositionStepAction | DeviceStateStepTarget;
 type DeviceStateStep<T extends PossibleStepTargets> =
 	| {
-		action: 'reboot';
-	}
+			action: 'reboot';
+	  }
 	| { action: 'shutdown' }
 	| { action: 'noop' }
 	| CompositionStepT<T extends CompositionStepAction ? T : never>
@@ -238,7 +238,6 @@ export let lastSuccessfulUpdate: number | null = null;
 
 export let router: express.Router;
 
-
 events.on('error', (err) => log.error('deviceState error: ', err));
 events.on('apply-target-state-end', function (err) {
 	if (err != null) {
@@ -253,7 +252,6 @@ events.on('apply-target-state-end', function (err) {
 		return deviceConfig.resetRateLimits();
 	}
 });
-
 
 export const initialized = (async () => {
 	await config.initialized;
@@ -540,7 +538,9 @@ export async function getCurrentForComparison(): Promise<
 	};
 }
 
-export function reportCurrentState(newState: DeviceReportFields & Partial<InstancedAppState> = {}) {
+export function reportCurrentState(
+	newState: DeviceReportFields & Partial<InstancedAppState> = {},
+) {
 	if (newState == null) {
 		newState = {};
 	}
@@ -781,9 +781,9 @@ export const applyTarget = async ({
 			}
 			throw new Error(
 				'Failed to apply state transition steps. ' +
-				e.message +
-				' Steps:' +
-				JSON.stringify(_.map(steps, 'action')),
+					e.message +
+					' Steps:' +
+					JSON.stringify(_.map(steps, 'action')),
 			);
 		}
 	}).catch((err) => {

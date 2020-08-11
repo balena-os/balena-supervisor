@@ -61,4 +61,3 @@ stub(dbus, 'getBus').returns({
 import './lib/mocked-dockerode';
 import './lib/mocked-iptables';
 import './lib/mocked-event-tracker';
-

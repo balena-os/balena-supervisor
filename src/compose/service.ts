@@ -29,7 +29,17 @@ import { TargetState } from '../types/state';
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
 
-export type ServiceStatus = 'Stopping' | 'Stopped' | 'Running' | 'Installing' | 'Installed' | 'Dead' | 'paused' | 'restarting' | 'removing' | 'exited';
+export type ServiceStatus =
+	| 'Stopping'
+	| 'Stopped'
+	| 'Running'
+	| 'Installing'
+	| 'Installed'
+	| 'Dead'
+	| 'paused'
+	| 'restarting'
+	| 'removing'
+	| 'exited';
 
 export class Service {
 	public appId: number;
@@ -597,27 +607,27 @@ export class Service {
 		return svc;
 	}
 
-public toComposeObject()/*: TargetState['local']['apps'][0]['services'][0]*/ {
-	// Here we try to reverse the fromComposeObject to the best of our ability, as
-	// this is used for the supervisor reporting it's own target state. Some of
-	// these values won't match in a 1-1 comparison, such as `devices`, as we lose
-	// some data about
-	// return {
-	// 	...this.config,
-	// 	imageId: this.imageId!,
-	// 	serviceName: this.serviceName!
-	// 	devices: this.config.devices.map(composeUtils.dockerDeviceToStr),
-	// 	healthcheck: {
-	// 		...this.config.healthcheck,
-	// 		interval: this.config.healthcheck.interval?.toString(),
-	// 		timeout: this.config.healthcheck.timeout?.toString(),
-	// 		startPeriod: this.config.healthcheck.startPeriod?.toString(),
-	// 	},
-	// 	stopGracePeriod: this.config.startGracePeriod?.toString(),
-	// 	memLimit: this.config.memLimit?.toString(),
-	// 	memReservation: this.config.memReservation?.toString(),
-	// };
-	return this.config;
+	public toComposeObject() /*: TargetState['local']['apps'][0]['services'][0]*/ {
+		// Here we try to reverse the fromComposeObject to the best of our ability, as
+		// this is used for the supervisor reporting it's own target state. Some of
+		// these values won't match in a 1-1 comparison, such as `devices`, as we lose
+		// some data about
+		// return {
+		// 	...this.config,
+		// 	imageId: this.imageId!,
+		// 	serviceName: this.serviceName!
+		// 	devices: this.config.devices.map(composeUtils.dockerDeviceToStr),
+		// 	healthcheck: {
+		// 		...this.config.healthcheck,
+		// 		interval: this.config.healthcheck.interval?.toString(),
+		// 		timeout: this.config.healthcheck.timeout?.toString(),
+		// 		startPeriod: this.config.healthcheck.startPeriod?.toString(),
+		// 	},
+		// 	stopGracePeriod: this.config.startGracePeriod?.toString(),
+		// 	memLimit: this.config.memLimit?.toString(),
+		// 	memReservation: this.config.memReservation?.toString(),
+		// };
+		return this.config;
 	}
 
 	public toDockerContainer(opts: {
@@ -729,7 +739,6 @@ public toComposeObject()/*: TargetState['local']['apps'][0]['services'][0]*/ {
 		service: Service,
 		currentContainerIds: Dictionary<string>,
 	): boolean {
-
 		// if (this.imageId !== service.imageId) {
 		// 	return false;
 		// }

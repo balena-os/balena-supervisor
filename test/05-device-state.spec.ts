@@ -246,7 +246,9 @@ describe('deviceState', () => {
 		);
 
 		// @ts-expect-error Assigning to a RO property
-		images.cleanupDatabase = () => { console.log('Cleanup database called')}
+		images.cleanupDatabase = () => {
+			console.log('Cleanup database called');
+		};
 
 		// @ts-expect-error Assigning to a RO property
 		images.save = () => Promise.resolve();
@@ -288,7 +290,7 @@ describe('deviceState', () => {
 		const json = await getTargetJson();
 		console.log(json);
 
-		const testTarget =_.cloneDeep(testTarget1);
+		const testTarget = _.cloneDeep(testTarget1);
 
 		expect(JSON.parse(JSON.stringify(targetState))).to.deep.equal(
 			JSON.parse(JSON.stringify(testTarget)),

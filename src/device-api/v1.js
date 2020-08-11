@@ -56,13 +56,15 @@ export const createV1Api = function (router) {
 							return service;
 						}
 						// We refresh the container id in case we were starting an app with no container yet
-						return applicationManager.getCurrentApp(appId).then(function (app2) {
-							service = app2?.services?.[0];
-							if (service == null) {
-								throw new Error('App not found after running action');
-							}
-							return service;
-						});
+						return applicationManager
+							.getCurrentApp(appId)
+							.then(function (app2) {
+								service = app2?.services?.[0];
+								if (service == null) {
+									throw new Error('App not found after running action');
+								}
+								return service;
+							});
 					})
 					.then((service2) =>
 						res.status(200).json({ containerId: service2.containerId }),

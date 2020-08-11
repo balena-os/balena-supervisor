@@ -279,10 +279,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 				}
 				return Promise.try(function () {
 					if (!_.isEmpty(fieldsToUpdateOnAPI)) {
-						return apiBinder.patchDevice(
-							device.deviceId,
-							fieldsToUpdateOnAPI,
-						);
+						return apiBinder.patchDevice(device.deviceId, fieldsToUpdateOnAPI);
 					}
 				})
 					.then(() =>

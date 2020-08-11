@@ -207,4 +207,3 @@ export interface DockerDevice {
 	PathInContainer: string;
 	CgroupPermissions: string;
 }
-
