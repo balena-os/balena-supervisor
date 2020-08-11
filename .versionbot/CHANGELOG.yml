@@ -1,4 +1,19 @@
 - commits:
+    - subject: 'bug: Allow DNS through firewall for local containers'
+      hash: e9b536a889542588e2f79247ed7937c709fdf3d2
+      body: |
+        We provide a local DNS server for containers to use and this
+        was not allowed through the firewall when enabled.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+  version: 11.12.3
+  date: 2020-08-11T14:19:40.945Z
+- commits:
     - subject: Fix device-tag fetching function
       hash: aa823c1cfca7a026b1c4cf3580e690625fee0d58
       body: ''
