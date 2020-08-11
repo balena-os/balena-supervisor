@@ -278,6 +278,28 @@ describe('Host Firewall', function () {
 		});
 	});
 
+	describe('Service rules', () => {
+		it('should have a rule to allow DNS traffic from the balena0 interface', async () => {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules, expectRule }) => {
+					// set the firewall to be in auto mode...
+					await config.set({ firewallMode: 'on' });
+					await hasAppliedRules;
+
+					// expect that we have a rule to allow DNS access...
+					expectRule({
+						action: RuleAction.Append,
+						target: 'ACCEPT',
+						chain: 'BALENA-FIREWALL',
+						family: 4,
+						proto: 'udp',
+						matches: ['--dport 53', '-i balena0'],
+					});
+				},
+			);
+		});
+	});
+
 	describe('Supervisor API access', () => {
 		it('should allow access in localmode', async function () {
 			await iptablesMock.whilstMocked(

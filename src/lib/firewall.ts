@@ -56,6 +56,13 @@ const standardServices: iptables.Rule[] = [
 		proto: 'icmp',
 		target: 'ACCEPT',
 	},
+	{
+		comment: 'DNS',
+		action: iptables.RuleAction.Append,
+		proto: 'udp',
+		matches: ['--dport 53', '-i balena0'],
+		target: 'ACCEPT',
+	},
 ];
 
 const standardPolicy: iptables.Rule[] = [
