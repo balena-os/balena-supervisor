@@ -9,7 +9,8 @@ import * as images from '../compose/images';
 import {
 	InstancedAppState,
 	TargetApplication,
-	TargetState,
+	TargetApplications,
+	TargetApplicationService,
 } from '../types/state';
 import { checkInt } from '../lib/validation';
 
@@ -71,20 +72,31 @@ export async function setApps(
 	await targetStateCache.setTargetApps(dbApps, trx);
 }
 
-export async function getTargetJson(): Promise<TargetState['local']['apps']> {
+export async function getTargetJson(): Promise<TargetApplications> {
 	const dbApps = await getDBEntry();
-	const apps: TargetState['local']['apps'] = {};
+	const apps: TargetApplications = {};
 	await Promise.all(
 		dbApps.map(async (app) => {
+			const parsedServices = JSON.parse(app.services);
+
+			const services = _(parsedServices)
+				.keyBy('serviceId')
+				.mapValues(
+					(svc: TargetApplicationService) =>
+						_.omit(svc, 'commit') as TargetApplicationService,
+				)
+				.value();
+
 			apps[app.appId] = {
+				// We remove the id as this is the supervisor database id, and the
+				// source is internal and isn't used except for when we fetch the target
+				// state
 				..._.omit(app, ['id', 'source']),
-				services: _(JSON.parse(app.services))
-					.keyBy('serviceId')
-					.mapValues((svc) => _.omit(svc, 'commit'))
-					.value(),
+				services,
 				networks: JSON.parse(app.networks),
 				volumes: JSON.parse(app.volumes),
-			};
+				// We can add this cast because it's required in the db
+			} as TargetApplication;
 		}),
 	);
 	return apps;

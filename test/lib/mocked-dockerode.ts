@@ -24,10 +24,6 @@ for (const fn of Object.getOwnPropertyNames(dockerode.prototype)) {
 	}
 }
 
-export function registerStackDump<T extends DockerodeFunction>(name: T) {
-	throw new Error('Dumping stack');
-}
-
 // default overrides needed to startup...
 registerOverride('listImages', async () => []);
 registerOverride(

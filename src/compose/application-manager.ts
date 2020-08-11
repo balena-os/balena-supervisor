@@ -34,13 +34,11 @@ import {
 	InstancedAppState,
 	TargetApplications,
 	DeviceStatus,
-	TargetState,
 } from '../types/state';
 import { checkTruthy, checkInt } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
 import * as updateLock from '../lib/update-lock';
 import { EventEmitter } from 'events';
-import { ServiceComposeConfig } from './types/service';
 
 // FIXME: Correctly type the change value here
 type ApplicationManagerEventEmitter = StrictEventEmitter<
@@ -391,8 +389,8 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 
 function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 	const steps: CompositionStep[] = [];
-	_.each(current, (app, appId) => {
-		_.each(app.services, (service, serviceId) => {
+	_.each(current, (app) => {
+		_.each(app.services, (service) => {
 			if (
 				checkTruthy(
 					service.config.labels['io.balena.features.supervisor-api'],
@@ -507,7 +505,7 @@ export async function setTarget(
 	}
 }
 
-export async function getTargetApps(): Promise<TargetState['local']['apps']> {
+export async function getTargetApps(): Promise<TargetApplications> {
 	const apps = await dbFormat.getTargetJson();
 
 	// Whilst it may make sense here to return the target state generated from the
@@ -732,7 +730,7 @@ function saveAndRemoveImages(
 async function getAppContainerIds(currentApps: InstancedAppState) {
 	const containerIds: { [appId: number]: Dictionary<string> } = {};
 	await Promise.all([
-		_.map(currentApps, async (app, appId) => {
+		_.map(currentApps, async (_app, appId) => {
 			const intAppId = parseInt(appId, 10);
 			containerIds[intAppId] = await serviceManager.getContainerIdMap(intAppId);
 		}),
@@ -757,9 +755,9 @@ function reportOptionalContainers(serviceNames: string[]) {
 	);
 }
 
+// FIXME: This would be better to implement using the App class, and have each one
+// generate its status. For now we use the original from application-manager.coffee.
 export async function getStatus() {
-	// TODO: This would be better to implement using the App class, and have each one
-	// generate its status. For now we use the original from application-manager.coffee.
 	const [services, images, currentCommit] = await Promise.all([
 		serviceManager.getStatus(),
 		imageManager.getStatus(),
@@ -768,7 +766,7 @@ export async function getStatus() {
 
 	const apps: Dictionary<any> = {};
 	const dependent: Dictionary<any> = {};
-	let releaseId = null;
+	let releaseId: number | boolean | null | undefined = null; // ????
 	const creationTimesAndReleases: Dictionary<any> = {};
 	// We iterate over the current running services and add them to the current state
 	// of the app they belong to.

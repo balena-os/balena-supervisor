@@ -9,7 +9,6 @@ import Service from './service';
 import * as imageManager from './images';
 import type { Image } from './images';
 import * as applicationManager from './application-manager';
-import * as serviceManager from './service-manager';
 import {
 	CompositionStep,
 	generateStep,

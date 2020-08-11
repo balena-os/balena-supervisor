@@ -15,9 +15,7 @@ import * as config from '../src/config';
 import * as deviceConfig from '../src/device-config';
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as deviceState from '../src/device-state';
-import App from '../src/compose/app';
 
-import Bluebird = require('bluebird');
 import { getTargetJson } from '../src/device-state/db-format';
 
 // tslint:disable-next-line

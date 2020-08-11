@@ -1,7 +1,6 @@
 import * as _ from 'lodash';
 import { fs } from 'mz';
 
-import * as applicationManager from '../compose/application-manager';
 import { Image, imageFromService } from '../compose/images';
 import * as deviceState from '../device-state';
 import * as config from '../config';

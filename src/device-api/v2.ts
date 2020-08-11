@@ -29,7 +29,7 @@ import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
-import { doPurge, doRestart, safeStateClone, serviceAction } from './common';
+import { doPurge, doRestart, safeStateClone } from './common';
 
 export function createV2Api(router: Router) {
 	const handleServiceAction = (
@@ -487,9 +487,11 @@ export function createV2Api(router: Router) {
 	router.get('/v2/cleanup-volumes', async (_req, res) => {
 		const targetState = await applicationManager.getTargetApps();
 		const referencedVolumes: string[] = [];
-		_.each(targetState, (app) => {
-			_.each(app.volumes, (vol) => {
-				referencedVolumes.push(Volume.generateDockerName(vol.appId, vol.name));
+		_.each(targetState, (app, appId) => {
+			_.each(app.volumes, (_volume, volumeName) => {
+				referencedVolumes.push(
+					Volume.generateDockerName(parseInt(appId, 10), volumeName),
+				);
 			});
 		});
 		await volumeManager.removeOrphanedVolumes(referencedVolumes);

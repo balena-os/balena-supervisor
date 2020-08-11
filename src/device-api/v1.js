@@ -16,7 +16,7 @@ export const createV1Api = function (router) {
 		if (appId == null) {
 			return res.status(400).send('Missing app id');
 		}
-		return doRestart(applicationManager, appId, force)
+		return doRestart(appId, force)
 			.then(() => res.status(200).send('OK'))
 			.catch(next);
 	});
@@ -27,6 +27,8 @@ export const createV1Api = function (router) {
 		if (appId == null) {
 			return res.status(400).send('Missing app id');
 		}
+
+		// FIX-ME: This cannot work, since we will not know which appId is the one to use
 		return applicationManager
 			.getCurrentApp(appId)
 			.then(function (app) {
@@ -123,7 +125,7 @@ export const createV1Api = function (router) {
 			const errMsg = 'Invalid or missing appId';
 			return res.status(400).send(errMsg);
 		}
-		return doPurge(applicationManager, appId, force)
+		return doPurge(appId, force)
 			.then(() => res.status(200).json({ Data: 'OK', Error: '' }))
 			.catch(next);
 	});

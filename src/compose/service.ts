@@ -24,7 +24,6 @@ import { sanitiseComposeConfig } from './sanitise';
 
 import log from '../lib/supervisor-console';
 import { EnvVarObject } from '../lib/types';
-import { TargetState } from '../types/state';
 
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;

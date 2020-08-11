@@ -1,10 +1,8 @@
 import { ComposeNetworkConfig } from '../compose/types/network';
 import { ServiceComposeConfig } from '../compose/types/service';
-import Volume, { ComposeVolumeConfig } from '../compose/volume';
+import { ComposeVolumeConfig } from '../compose/volume';
 import { EnvVarObject, LabelObject } from '../lib/types';
 
-import Network from '../compose/network';
-import Service from '../compose/service';
 import App from '../compose/app';
 
 export type DeviceReportFields = Partial<{
@@ -94,6 +92,7 @@ export interface TargetState {
 export type LocalTargetState = TargetState['local'];
 export type TargetApplications = LocalTargetState['apps'];
 export type TargetApplication = LocalTargetState['apps'][0];
+export type TargetApplicationService = TargetApplication['services'][0];
 export type AppsJsonFormat = Omit<TargetState['local'], 'name'> & {
 	pinDevice?: boolean;
 };

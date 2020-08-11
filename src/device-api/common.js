@@ -6,15 +6,23 @@ import * as logger from '../logger';
 import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
 import * as volumes from '../compose/volume-manager';
+import { InternalInconsistencyError } from '../lib/errors';
 
 export async function doRestart(appId, force) {
 	await deviceState.initialized;
 	await applicationManager.initialized;
 
-	const { _lockingIfNecessary } = applicationManager;
+	const { lockingIfNecessary } = applicationManager;
 
-	return _lockingIfNecessary(appId, { force }, () =>
+	return lockingIfNecessary(appId, { force }, () =>
 		deviceState.getCurrentForComparison().then(function (currentState) {
+			if (currentState.local.apps?.[appId] == null) {
+				throw new InternalInconsistencyError(
+					`Application with ID ${appId} is not in the current state`,
+				);
+			}
+			const allApps = currentState.local.apps;
+
 			const app = safeAppClone(currentState.local.apps[appId]);
 			const imageIds = _.map(app.services, 'imageId');
 			applicationManager.clearTargetVolatileForServices(imageIds);
@@ -27,7 +35,7 @@ export async function doRestart(appId, force) {
 					deviceState
 						.applyIntermediateTarget(currentState, { skipLock: true })
 						.then(function () {
-							currentState.local.apps[appId] = app;
+							allApps[appId] = app;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
 							});
@@ -42,24 +50,26 @@ export async function doPurge(appId, force) {
 	await deviceState.initialized;
 	await applicationManager.initialized;
 
-	const { _lockingIfNecessary } = applicationManager;
+	const { lockingIfNecessary } = applicationManager;
 
 	logger.logSystemMessage(
 		`Purging data for app ${appId}`,
 		{ appId },
 		'Purge data',
 	);
-	return _lockingIfNecessary(appId, { force }, () =>
+	return lockingIfNecessary(appId, { force }, () =>
 		deviceState.getCurrentForComparison().then(function (currentState) {
-			if (currentState.local.apps[appId] == null) {
+			const allApps = currentState.local.apps;
+
+			if (allApps == null || allApps[appId] == null) {
 				throw new Error(appNotFoundMessage);
 			}
-			const app = safeAppClone(currentState.local.apps[appId]);
+			const app = safeAppClone(allApps[appId]);
 
 			const purgedApp = _.cloneDeep(app);
 			purgedApp.services = [];
 			purgedApp.volumes = {};
-			currentState.local.apps[appId] = purgedApp;
+			allApps[appId] = purgedApp;
 			return deviceState
 				.pausingApply(() =>
 					deviceState
@@ -74,7 +84,7 @@ export async function doPurge(appId, force) {
 							);
 						})
 						.then(function () {
-							currentState.local.apps[appId] = app;
+							allApps[appId] = app;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
 							});
