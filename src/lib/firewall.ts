@@ -77,11 +77,6 @@ const standardPolicy: iptables.Rule[] = [
 		matches: ['-m state', '--state ESTABLISHED,RELATED'],
 		target: 'ACCEPT',
 	},
-	{
-		comment: 'Reject everything else',
-		action: iptables.RuleAction.Append,
-		target: 'REJECT',
-	},
 ];
 
 let supervisorAccessRules: iptables.Rule[] = [];
@@ -105,6 +100,15 @@ function updateSupervisorAccessRules(
 			target: 'ACCEPT',
 		}),
 	);
+
+	// now block access to the port for any interface, since the above should have allowed legitimate traffic...
+	supervisorAccessRules.push({
+		comment: 'Supervisor API',
+		action: iptables.RuleAction.Append,
+		proto: 'tcp',
+		matches: [`--dport ${port}`],
+		target: 'REJECT',
+	});
 }
 
 async function runningHostBoundServices(): Promise<boolean> {
@@ -162,7 +166,7 @@ export async function applyFirewallMode(mode: string) {
 			mode === 'off' || (mode === 'auto' && !isServicesInHostNetworkMode)
 				? {
 						comment: `Firewall disabled (${mode})`,
-						action: iptables.RuleAction.Insert,
+						action: iptables.RuleAction.Append,
 						target: 'RETURN',
 				  }
 				: [];
@@ -181,7 +185,12 @@ export async function applyFirewallMode(mode: string) {
 							.addRule(supervisorAccessRules)
 							.addRule(standardServices)
 							.addRule(standardPolicy)
-							.addRule(returnIfOff),
+							.addRule(returnIfOff)
+							.addRule({
+								comment: 'Reject everything else',
+								action: iptables.RuleAction.Append,
+								target: 'REJECT',
+							}),
 					)
 					.forChain('INPUT', (chain) =>
 						chain

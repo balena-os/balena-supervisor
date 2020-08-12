@@ -8,6 +8,12 @@ import * as iptables from '../../src/lib/iptables';
 import { EventEmitter } from 'events';
 import { Writable } from 'stream';
 
+export enum RuleProperty {
+	NotSet,
+}
+
+export type Testable<T> = { [P in keyof T]?: T[P] | RuleProperty | undefined };
+
 class FakeRuleAdaptor {
 	private rules: iptables.Rule[];
 
@@ -40,14 +46,21 @@ class FakeRuleAdaptor {
 	}
 
 	private isSameRule(
-		partial: Partial<iptables.Rule>,
+		testable: Testable<iptables.Rule>,
 		rule: iptables.Rule,
 	): boolean {
-		const props = Object.getOwnPropertyNames(partial);
+		const props = Object.getOwnPropertyNames(testable);
 		for (const prop of props) {
 			if (
+				_.get(testable, prop) === RuleProperty.NotSet &&
+				_.get(rule, prop) === undefined
+			) {
+				return true;
+			}
+
+			if (
 				_.get(rule, prop) === undefined ||
-				!_.isEqual(_.get(rule, prop), _.get(partial, prop))
+				!_.isEqual(_.get(rule, prop), _.get(testable, prop))
 			) {
 				return false;
 			}
@@ -56,17 +69,25 @@ class FakeRuleAdaptor {
 		return true;
 	}
 
-	public expectRule(testRule: Partial<iptables.Rule>) {
-		return expect(
-			_.some(this.rules, (r) => this.isSameRule(testRule, r)),
-		).to.eq(
-			true,
-			`Rule has not been applied: ${JSON.stringify(
-				testRule,
-			)}\n\n${JSON.stringify(this.rules, null, 2)}`,
-		);
+	public expectRule(testRule: Testable<iptables.Rule>) {
+		const matchingIndex = (() => {
+			for (let i = 0; i < this.rules.length; i++) {
+				if (this.isSameRule(testRule, this.rules[i])) {
+					return i;
+				}
+			}
+			return -1;
+		})();
+
+		if (matchingIndex < 0) {
+			console.log({ testRule, rules: this.rules });
+		}
+
+		expect(matchingIndex).to.be.greaterThan(-1, `Rule has not been applied`);
+
+		return matchingIndex;
 	}
-	public expectNoRule(testRule: Partial<iptables.Rule>) {
+	public expectNoRule(testRule: Testable<iptables.Rule>) {
 		return expect(
 			_.some(this.rules, (r) => this.isSameRule(testRule, r)),
 		).to.eq(
@@ -95,8 +116,8 @@ iptables.getDefaultRuleAdaptor = () => {
 
 export interface MockedState {
 	hasAppliedRules: Promise<void>;
-	expectRule: (rule: iptables.Rule) => void;
-	expectNoRule: (rule: iptables.Rule) => void;
+	expectRule: (rule: Testable<iptables.Rule>) => number;
+	expectNoRule: (rule: Testable<iptables.Rule>) => void;
 	clearHistory: () => void;
 }
 
