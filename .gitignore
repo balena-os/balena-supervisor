@@ -13,6 +13,7 @@ tools/dind/backup.tgz
 test/data/config*.json
 test/data/*.sqlite
 test/data/led_file
+test/data/iptables-rules.d/
 /coverage/
 report.xml
 .DS_Store

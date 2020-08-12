@@ -1,13 +1,19 @@
 import * as _ from 'lodash';
-import { child_process } from 'mz';
+import { child_process, fs } from 'mz';
+import * as path from 'path';
 import { Readable } from 'stream';
 import TypedError = require('typed-error');
+import { writeFileAtomic } from './fs-utils';
+import { iptablesRulesDir } from './constants';
 
 export class IPTablesRuleError extends TypedError {
 	public constructor(err: string | Error, public ruleset: string) {
 		super(err);
 	}
 }
+
+export class IPTablesSavingError extends IPTablesRuleError {}
+export class IPTablesApplyError extends IPTablesRuleError {}
 
 export enum RuleAction {
 	Insert = '-I',
@@ -157,7 +163,27 @@ const iptablesRestoreAdaptor: RuleAdaptor = async (
 			return;
 		}
 
+		// get the rules...
 		const ruleset = rulesFiles[family];
+
+		// save the ruleset to the state partition...
+		try {
+			if (!(await fs.exists(iptablesRulesDir))) {
+				await fs.mkdir(iptablesRulesDir);
+			}
+
+			const familyRulesDir = path.join(iptablesRulesDir, family);
+			if (!(await fs.exists(familyRulesDir))) {
+				await fs.mkdir(familyRulesDir);
+			}
+
+			const rulesFile = path.join(familyRulesDir, 'supervisor.rules');
+			await writeFileAtomic(rulesFile, ruleset);
+		} catch (e) {
+			throw new IPTablesSavingError(`Error saving iptables: ${e}`, ruleset);
+		}
+
+		// apply the rules now...
 		const cmd = family === 'v6' ? 'ip6tables-restore' : 'iptables-restore';
 		await new Promise<string>((resolve, reject) => {
 			const args = ['--noflush', '--verbose'];
@@ -189,7 +215,7 @@ const iptablesRestoreAdaptor: RuleAdaptor = async (
 			proc.on('close', (code) => {
 				if (code && code !== 0) {
 					return reject(
-						new IPTablesRuleError(
+						new IPTablesApplyError(
 							`Error running iptables: ${stderr.join()} (${args.join(' ')})`,
 							ruleset,
 						),

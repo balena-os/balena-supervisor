@@ -5,6 +5,7 @@ process.env.DATABASE_PATH = './test/data/database.sqlite';
 process.env.DATABASE_PATH_2 = './test/data/database2.sqlite';
 process.env.DATABASE_PATH_3 = './test/data/database3.sqlite';
 process.env.LED_FILE = './test/data/led_file';
+process.env.FIREWALL_RULESET_PATH = './test/data/iptables-rules.d';
 
 import './lib/mocked-iptables';
 
@@ -27,6 +28,11 @@ try {
 }
 try {
 	fs.unlinkSync(process.env.DATABASE_PATH_3);
+} catch {
+	/* noop */
+}
+try {
+	fs.rmdirSync(process.env.FIREWALL_RULESET_PATH, { recursive: true });
 } catch {
 	/* noop */
 }

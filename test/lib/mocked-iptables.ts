@@ -126,8 +126,19 @@ export type MockedConext = (state: MockedState) => Promise<any>;
 const applyFirewallRules = firewall.applyFirewallMode;
 export const whilstMocked = async (
 	context: MockedConext,
-	ruleAdaptor: iptables.RuleAdaptor = fakeRuleAdaptor,
+	opts?: Partial<{
+		ruleAdaptor: iptables.RuleAdaptor;
+		iptablesExitCode: number;
+	}>,
 ) => {
+	const options = {
+		...{
+			ruleAdaptor: fakeRuleAdaptor,
+			iptablesExitCode: 0,
+		},
+		...opts,
+	};
+
 	const getOriginalDefaultRuleAdaptor = iptables.getDefaultRuleAdaptor;
 
 	const spawnStub = stub(child_process, 'spawn').callsFake(() => {
@@ -142,7 +153,7 @@ export const whilstMocked = async (
 		) => {
 			console.log(chunk.toString('utf8'));
 			callback();
-			fakeProc.emit('close', 1);
+			fakeProc.emit('close', options.iptablesExitCode);
 		};
 		(fakeProc as any).stdin = stdin;
 
@@ -151,7 +162,7 @@ export const whilstMocked = async (
 
 	// @ts-expect-error Assigning to a RO property
 	iptables.getDefaultRuleAdaptor = () => {
-		return ruleAdaptor;
+		return options.ruleAdaptor;
 	};
 
 	fakeRuleAdaptorManager.clearHistory();

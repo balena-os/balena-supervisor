@@ -12,13 +12,22 @@ import * as iptablesMock from './lib/mocked-iptables';
 import * as targetStateCache from '../src/device-state/target-state-cache';
 
 import constants = require('../src/lib/constants');
-import { RuleAction, Rule } from '../src/lib/iptables';
+import {
+	RuleAction,
+	Rule,
+	IPTablesSavingError,
+	IPTablesApplyError,
+} from '../src/lib/iptables';
 import { log } from '../src/lib/supervisor-console';
+import * as fsUtils from '../src/lib/fs-utils';
+import { fs } from 'mz';
+import * as path from 'path';
 
 describe('Host Firewall', function () {
 	const dockerStubs: Dictionary<sinon.SinonStub> = {};
 	let loggerSpy: sinon.SinonSpy;
 	let logSpy: sinon.SinonSpy;
+	let successSpy: sinon.SinonSpy;
 
 	let apiEndpoint: string;
 	let listenPort: number;
@@ -27,6 +36,7 @@ describe('Host Firewall', function () {
 		// spy the logs...
 		loggerSpy = sinon.spy(logger, 'logSystemMessage');
 		logSpy = sinon.spy(log, 'error');
+		successSpy = sinon.spy(log, 'success');
 
 		// stub the docker calls...
 		dockerStubs.listContainers = sinon
@@ -53,6 +63,7 @@ describe('Host Firewall', function () {
 		}
 		loggerSpy.restore();
 		logSpy.restore();
+		successSpy.restore();
 	});
 
 	describe('Basic On/Off operation', () => {
@@ -260,20 +271,95 @@ describe('Host Firewall', function () {
 			);
 		});
 
-		it('should catch errors when rule changes fail', async () => {
-			await iptablesMock.whilstMocked(async ({ hasAppliedRules }) => {
-				// clear the spies...
-				loggerSpy.resetHistory();
-				logSpy.resetHistory();
+		it('should catch saving errors when unable to write rules to the state partition', async () => {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules }) => {
+					// clear the spies...
+					loggerSpy.resetHistory();
+					logSpy.resetHistory();
 
-				// set the firewall to be in off mode...
-				await config.set({ firewallMode: 'off' });
-				await hasAppliedRules;
+					// mock out writeFileAtomic...
+					const writeFileAtomicStub = sinon
+						.stub(fsUtils, 'writeFileAtomic')
+						.rejects(new Error('Unable to write file'));
 
-				// should have caught the error and logged it
-				expect(logSpy.calledWith('Error applying firewall mode')).to.be.true;
-				expect(loggerSpy.called).to.be.true;
-			}, iptablesMock.realRuleAdaptor);
+					// set the firewall to be in off mode...
+					await config.set({ firewallMode: 'off' });
+					await hasAppliedRules;
+
+					// should have caught the error and logged it
+					expect(
+						logSpy.calledWith(
+							'Error applying firewall mode',
+							sinon.match.instanceOf(IPTablesSavingError),
+						),
+					).to.be.true;
+
+					writeFileAtomicStub.restore();
+				},
+				{
+					ruleAdaptor: iptablesMock.realRuleAdaptor,
+				},
+			);
+		});
+
+		it('should catch errors when rule changes fail to apply', async () => {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules }) => {
+					// clear the spies...
+					loggerSpy.resetHistory();
+					logSpy.resetHistory();
+
+					// set the firewall to be in off mode...
+					await config.set({ firewallMode: 'off' });
+					await hasAppliedRules;
+
+					// should have caught the error and logged it
+					expect(
+						logSpy.calledWith(
+							'Error applying firewall mode',
+							sinon.match.instanceOf(IPTablesApplyError),
+						),
+					).to.be.true;
+				},
+				{
+					ruleAdaptor: iptablesMock.realRuleAdaptor,
+					iptablesExitCode: 1,
+				},
+			);
+		});
+
+		it('should run without errors and write out rule files', async () => {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules }) => {
+					// clear the spies...
+					loggerSpy.resetHistory();
+					logSpy.resetHistory();
+					successSpy.resetHistory();
+
+					// set the firewall to be in off mode...
+					await config.set({ firewallMode: 'off' });
+					await hasAppliedRules;
+
+					// should have caught the success and logged it
+					expect(successSpy.called).to.be.true;
+
+					// should have rules in the state partition
+					const hasV4Rules = await fs.exists(
+						path.join(constants.iptablesRulesDir, 'v4', 'supervisor.rules'),
+					);
+					const hasV6Rules = await fs.exists(
+						path.join(constants.iptablesRulesDir, 'v4', 'supervisor.rules'),
+					);
+
+					expect(hasV4Rules).to.be.true;
+					expect(hasV6Rules).to.be.true;
+				},
+				{
+					ruleAdaptor: iptablesMock.realRuleAdaptor,
+					iptablesExitCode: 0,
+				},
+			);
 		});
 	});
 

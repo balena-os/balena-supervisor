@@ -65,6 +65,8 @@ const constants = {
 	// (this number is used as an upper bound when generating
 	// a random jitter)
 	maxApiJitterDelay: 60 * 1000,
+	iptablesRulesDir:
+		checkString(process.env.FIREWALL_RULESET_PATH) || '/data/iptables-rules.d',
 };
 
 if (process.env.DOCKER_HOST == null) {
