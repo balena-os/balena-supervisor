@@ -237,7 +237,7 @@ export async function patchDevice(
 }
 
 export async function provisionDependentDevice(
-	device: Device,
+	device: Partial<Device>,
 ): Promise<Device> {
 	const conf = await config.getMany([
 		'unmanaged',
@@ -285,6 +285,36 @@ export function startCurrentStateReport() {
 		}
 	});
 	return reportCurrentState();
+}
+
+export async function fetchDevice(
+	uuid: string,
+	apiKey: string,
+	timeout: number,
+): Promise<Device | null> {
+	if (this.balenaApi == null) {
+		throw new InternalInconsistencyError(
+			'fetchDevice called without an initialized API client',
+		);
+	}
+
+	try {
+		return (await Bluebird.resolve(
+			this.balenaApi.get({
+				resource: 'device',
+				id: {
+					uuid,
+				},
+				passthrough: {
+					headers: {
+						Authorization: `Bearer ${apiKey}`,
+					},
+				},
+			}),
+		).timeout(timeout)) as Device;
+	} catch (e) {
+		return null;
+	}
 }
 
 export async function fetchDeviceTags(): Promise<DeviceTag[]> {
@@ -557,7 +587,7 @@ async function reportInitialEnv(
 
 	const defaultConfig = deviceConfig.getDefaults();
 
-	const currentState = await deviceState.getCurrentForComparison();
+	const currentState = await deviceState.getCurrentState();
 	const targetConfig = await deviceConfig.formatConfigKeys(
 		targetConfigUnformatted,
 	);

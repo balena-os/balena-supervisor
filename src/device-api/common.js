@@ -15,7 +15,7 @@ export async function doRestart(appId, force) {
 	const { lockingIfNecessary } = applicationManager;
 
 	return lockingIfNecessary(appId, { force }, () =>
-		deviceState.getCurrentForComparison().then(function (currentState) {
+		deviceState.getCurrentState().then(function (currentState) {
 			if (currentState.local.apps?.[appId] == null) {
 				throw new InternalInconsistencyError(
 					`Application with ID ${appId} is not in the current state`,
@@ -23,19 +23,18 @@ export async function doRestart(appId, force) {
 			}
 			const allApps = currentState.local.apps;
 
-			const app = safeAppClone(currentState.local.apps[appId]);
+			const app = allApps[appId];
 			const imageIds = _.map(app.services, 'imageId');
 			applicationManager.clearTargetVolatileForServices(imageIds);
 
-			const stoppedApp = _.cloneDeep(app);
-			stoppedApp.services = [];
-			currentState.local.apps[appId] = stoppedApp;
+			const currentServices = app.services;
+			app.services = [];
 			return deviceState
 				.pausingApply(() =>
 					deviceState
 						.applyIntermediateTarget(currentState, { skipLock: true })
 						.then(function () {
-							allApps[appId] = app;
+							app.services = currentServices;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
 							});
@@ -58,18 +57,21 @@ export async function doPurge(appId, force) {
 		'Purge data',
 	);
 	return lockingIfNecessary(appId, { force }, () =>
-		deviceState.getCurrentForComparison().then(function (currentState) {
+		deviceState.getCurrentState().then(function (currentState) {
 			const allApps = currentState.local.apps;
 
 			if (allApps == null || allApps[appId] == null) {
 				throw new Error(appNotFoundMessage);
 			}
-			const app = safeAppClone(allApps[appId]);
 
-			const purgedApp = _.cloneDeep(app);
-			purgedApp.services = [];
-			purgedApp.volumes = {};
-			allApps[appId] = purgedApp;
+			const app = allApps[appId];
+
+			const currentServices = app.services;
+			const currentVolumes = app.volumes;
+
+			app.services = [];
+			app.volumes = {};
+
 			return deviceState
 				.pausingApply(() =>
 					deviceState
@@ -79,12 +81,13 @@ export async function doPurge(appId, force) {
 							// remove the volumes, we must do this here, as the
 							// application-manager will not remove any volumes
 							// which are part of an active application
-							return Bluebird.each(volumes.getAllByAppId(appId), (vol) =>
+							return Bluebird.each(currentVolumes.getAllByAppId(appId), (vol) =>
 								vol.remove(),
 							);
 						})
-						.then(function () {
-							allApps[appId] = app;
+						.then(() => {
+							app.services = currentServices;
+							app.volumes = currentVolumes;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
 							});

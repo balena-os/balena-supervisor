@@ -6,6 +6,7 @@ import * as appMock from './lib/application-state-mock';
 
 import * as applicationManager from '../src/compose/application-manager';
 import * as config from '../src/config';
+import * as deviceState from '../src/device-state';
 
 import Service from '../src/compose/service';
 import Network from '../src/compose/network';
@@ -67,7 +68,9 @@ describe('compose/application-manager', () => {
 		appMock.mockManagers([], [], []);
 		appMock.mockImages([], false, []);
 
-		const steps = await applicationManager.getRequiredSteps();
+		const target = await deviceState.getTarget();
+
+		const steps = await applicationManager.getRequiredSteps(target.local.apps);
 		expect(steps).to.have.length(1);
 		expect(steps[0])
 			.to.have.property('action')
@@ -86,8 +89,10 @@ describe('compose/application-manager', () => {
 			[],
 		);
 		appMock.mockImages([], false, []);
+		const target = await deviceState.getTarget();
 
-		const steps = await applicationManager.getRequiredSteps();
+		const steps = await applicationManager.getRequiredSteps(target.local.apps);
+
 		expect(steps).to.have.length(1);
 		expect(steps[0]).to.have.property('action').that.equals('kill');
 		expect(steps[0])
@@ -100,7 +105,9 @@ describe('compose/application-manager', () => {
 		appMock.mockManagers([], [], []);
 		appMock.mockImages([], true, []);
 
-		const steps = await applicationManager.getRequiredSteps();
+		const target = await deviceState.getTarget();
+
+		const steps = await applicationManager.getRequiredSteps(target.local.apps);
 		expect(steps).to.have.length(1);
 		expect(steps[0]).to.have.property('action').that.equals('cleanup');
 	});
@@ -119,7 +126,9 @@ describe('compose/application-manager', () => {
 			},
 		]);
 
-		const steps = await applicationManager.getRequiredSteps();
+		const target = await deviceState.getTarget();
+
+		const steps = await applicationManager.getRequiredSteps(target.local.apps);
 		expect(steps).to.have.length(1);
 		expect(steps[0]).to.have.property('action').that.equals('removeImage');
 		expect(steps[0])

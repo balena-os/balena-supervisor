@@ -20,6 +20,7 @@ import * as db from './db';
 import * as config from './config';
 import * as dockerUtils from './lib/docker-utils';
 import * as logger from './logger';
+import { InternalInconsistencyError } from './lib/errors';
 
 import * as apiBinder from './api-binder';
 
@@ -407,6 +408,11 @@ export class Proxyvisor {
 									return apiBinder
 										.fetchDevice(uuid, currentApiKey, apiTimeout)
 										.then((dev) => {
+											if (dev == null) {
+												throw new InternalInconsistencyError(
+													`Could not fetch a device with UUID: ${uuid}`,
+												);
+											}
 											const deviceForDB = {
 												uuid,
 												appId,

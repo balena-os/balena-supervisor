@@ -30,11 +30,15 @@ export const createV1Api = function (router) {
 
 		// FIX-ME: This cannot work, since we will not know which appId is the one to use
 		return applicationManager
-			.getCurrentApp(appId)
-			.then(function (app) {
-				let service = app?.app.services?.[0];
-				if (service == null) {
+			.getCurrentApps()
+			.then(function (apps) {
+				if (apps[appId] == null) {
 					return res.status(400).send('App not found');
+				}
+				const app = apps[appId];
+				let service = app.services[0];
+				if (service == null) {
+					return res.status(400).send('No services on app');
 				}
 				if (app.services.length > 1) {
 					return res
@@ -59,9 +63,10 @@ export const createV1Api = function (router) {
 						}
 						// We refresh the container id in case we were starting an app with no container yet
 						return applicationManager
-							.getCurrentApp(appId)
-							.then(function (app2) {
-								service = app2?.services?.[0];
+							.getCurrentApps(appId)
+							.then(function (apps2) {
+								const app2 = apps2[appId];
+								service = app2.services[0];
 								if (service == null) {
 									throw new Error('App not found after running action');
 								}

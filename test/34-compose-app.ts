@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import * as appMock from './lib/application-state-mock';
 
 import * as applicationManager from '../src/compose/application-manager';
+import * as deviceState from '../src/device-state';
 import App from '../src/compose/app';
 import * as config from '../src/config';
 import * as dbFormat from '../src/device-state/db-format';
@@ -291,7 +292,7 @@ describe('compose/app', () => {
 			.that.equals('test');
 	});
 
-	it('should correctly infer to remove an apps volumes when it is no longer referenced', async () => {
+	it.only('should correctly infer to remove an apps volumes when it is no longer referenced', async () => {
 		appMock.mockManagers(
 			[],
 			[Volume.fromComposeObject('test-volume', 1, {})],
@@ -302,9 +303,12 @@ describe('compose/app', () => {
 		const origFn = dbFormat.getApps;
 		// @ts-expect-error Assigning to a RO property
 		dbFormat.getApps = () => Promise.resolve({});
+		const target = await deviceState.getTarget();
 
 		try {
-			const steps = await applicationManager.getRequiredSteps();
+			const steps = await applicationManager.getRequiredSteps(
+				target.local.apps,
+			);
 			expect(steps).to.have.length(1);
 			expect(steps[0]).to.have.property('action').that.equals('removeVolume');
 		} finally {

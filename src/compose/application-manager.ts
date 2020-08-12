@@ -170,6 +170,7 @@ export async function lockingIfNecessary<T extends unknown>(
 }
 
 export async function getRequiredSteps(
+	targetApps: InstancedAppState,
 	ignoreImages: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
@@ -179,14 +180,12 @@ export async function getRequiredSteps(
 		cleanupNeeded,
 		availableImages,
 		currentApps,
-		targetApps,
 	] = await Promise.all([
 		config.getMany(['localMode', 'delta']),
 		imageManager.getDownloadingImageIds(),
 		imageManager.isCleanupNeeded(),
 		imageManager.getAvailable(),
 		getCurrentApps(),
-		dbFormat.getApps(),
 	]);
 	const containerIdsByAppId = await getAppContainerIds(currentApps);
 

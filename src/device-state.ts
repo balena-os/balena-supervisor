@@ -37,6 +37,7 @@ import {
 	TargetState,
 	InstancedAppState,
 } from './types/state';
+import * as dbFormat from './device-state/db-format';
 
 function validateLocalState(state: any): asserts state is TargetState['local'] {
 	if (state.name != null) {
@@ -222,7 +223,7 @@ let currentVolatile: DeviceReportFields = {};
 const writeLock = updateLock.writeLock;
 const readLock = updateLock.readLock;
 let maxPollTime: number;
-let intermediateTarget: TargetState | null = null;
+let intermediateTarget: InstancedDeviceState | null = null;
 let applyBlocker: Nullable<Promise<void>>;
 let cancelDelay: null | (() => void) = null;
 
@@ -429,13 +430,19 @@ const writeLockTarget = () =>
 	writeLock('target').disposer((release) => release());
 const inferStepsLock = () =>
 	writeLock('inferSteps').disposer((release) => release());
-function usingReadLockTarget(fn: () => any) {
+function usingReadLockTarget<T extends () => any, U extends ReturnType<T>>(
+	fn: T,
+): Bluebird<UnwrappedPromise<U>> {
 	return Bluebird.using(readLockTarget, () => fn());
 }
-function usingWriteLockTarget(fn: () => any) {
+function usingWriteLockTarget<T extends () => any, U extends ReturnType<T>>(
+	fn: T,
+): Bluebird<UnwrappedPromise<U>> {
 	return Bluebird.using(writeLockTarget, () => fn());
 }
-function usingInferStepsLock(fn: () => any) {
+function usingInferStepsLock<T extends () => any, U extends ReturnType<T>>(
+	fn: T,
+): Bluebird<UnwrappedPromise<U>> {
 	return Bluebird.using(inferStepsLock, () => fn());
 }
 
@@ -488,18 +495,18 @@ export function getTarget({
 > {
 	return usingReadLockTarget(async () => {
 		if (intermediate) {
-			return intermediateTarget;
+			return intermediateTarget!;
 		}
 
 		return {
 			local: {
 				name: await config.get('name'),
 				config: await deviceConfig.getTarget({ initial }),
-				apps: await applicationManager.getTargetApps(),
+				apps: await dbFormat.getApps(),
 			},
 			dependent: await applicationManager.getDependentTargets(),
 		};
-	}) as Bluebird<InstancedDeviceState>;
+	});
 }
 
 export async function getStatus(): Promise<DeviceStatus> {
@@ -534,6 +541,24 @@ export async function getCurrentForComparison(): Promise<
 			apps,
 		},
 
+		dependent,
+	};
+}
+
+export async function getCurrentState(): Promise<InstancedDeviceState> {
+	const [name, devConfig, apps, dependent] = await Promise.all([
+		config.get('name'),
+		deviceConfig.getCurrent(),
+		applicationManager.getCurrentApps(),
+		applicationManager.getDependentState(),
+	]);
+
+	return {
+		local: {
+			name,
+			config: devConfig,
+			apps,
+		},
 		dependent,
 	};
 }
@@ -716,7 +741,9 @@ export const applyTarget = async ({
 			backoff = false;
 			steps = deviceConfigSteps;
 		} else {
-			const appSteps = await applicationManager.getRequiredSteps();
+			const appSteps = await applicationManager.getRequiredSteps(
+				targetState.local.apps,
+			);
 
 			if (_.isEmpty(appSteps)) {
 				// If we retrieve a bunch of no-ops from the
@@ -871,11 +898,21 @@ export function triggerApplyTarget({
 }
 
 export function applyIntermediateTarget(
-	intermediate: TargetState,
+	intermediate: InstancedDeviceState,
 	{ force = false, skipLock = false } = {},
 ) {
-	intermediateTarget = _.cloneDeep(intermediate);
+	// TODO: Make sure we don't accidentally overwrite this
+	intermediateTarget = intermediate;
 	return applyTarget({ intermediate: true, force, skipLock }).then(() => {
 		intermediateTarget = null;
 	});
 }
+
+// This is useful as some of the api endpoints will take a current state,
+// perform some modification upon it and set it an intermediate target (for
+// example to restart a service, we remove it from the service list, apply the
+// target, then apply the original again). Here we make sure that all values
+// required in a target state are presesnt and valid
+// export function currentStateToTargetState(
+// 	current: ReturnType<typeof getCurrentForComparison>,
+// ) {}
