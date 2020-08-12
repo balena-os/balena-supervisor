@@ -12,7 +12,7 @@ import * as iptablesMock from './lib/mocked-iptables';
 import * as targetStateCache from '../src/device-state/target-state-cache';
 
 import constants = require('../src/lib/constants');
-import { RuleAction } from '../src/lib/iptables';
+import { RuleAction, Rule } from '../src/lib/iptables';
 import { log } from '../src/lib/supervisor-console';
 
 describe('Host Firewall', function () {
@@ -80,7 +80,6 @@ describe('Host Firewall', function () {
 
 					// expect that we jump to the firewall chain...
 					expectRule({
-						action: RuleAction.Append,
 						target: 'BALENA-FIREWALL',
 						chain: 'INPUT',
 						family: 4,
@@ -88,8 +87,6 @@ describe('Host Firewall', function () {
 
 					// expect to return...
 					expectRule({
-						action: RuleAction.Insert,
-						table: 'filter',
 						chain: 'BALENA-FIREWALL',
 						target: 'RETURN',
 						family: 4,
@@ -114,13 +111,22 @@ describe('Host Firewall', function () {
 					});
 
 					// expect to return...
-					expectRule({
-						action: RuleAction.Insert,
+					const returnRuleIdx = expectRule({
 						table: 'filter',
 						chain: 'BALENA-FIREWALL',
 						target: 'RETURN',
 						family: 4,
 					});
+
+					// ... just before we reject everything
+					const rejectRuleIdx = expectRule({
+						chain: 'BALENA-FIREWALL',
+						target: 'REJECT',
+						matches: iptablesMock.RuleProperty.NotSet,
+						family: 4,
+					});
+
+					expect(returnRuleIdx).to.be.lessThan(rejectRuleIdx);
 				},
 			);
 		});
@@ -132,7 +138,7 @@ describe('Host Firewall', function () {
 					await config.set({ firewallMode: 'on' });
 					await hasAppliedRules;
 
-					// expect that we DO have a rule to use the chain...
+					// expect that we jump to the firewall chain...
 					expectRule({
 						action: RuleAction.Append,
 						target: 'BALENA-FIREWALL',
@@ -140,13 +146,10 @@ describe('Host Firewall', function () {
 						family: 4,
 					});
 
-					// expect to not return...
+					// expect to not return for any reason...
 					expectNoRule({
-						action: RuleAction.Insert,
-						table: 'filter',
 						chain: 'BALENA-FIREWALL',
 						target: 'RETURN',
-						family: 4,
 					});
 				},
 			);
@@ -186,7 +189,7 @@ describe('Host Firewall', function () {
 					await config.set({ firewallMode: 'auto' });
 					await hasAppliedRules;
 
-					// expect that we DO have a rule to use the chain...
+					// expect that we jump to the firewall chain...
 					expectRule({
 						action: RuleAction.Append,
 						target: 'BALENA-FIREWALL',
@@ -196,8 +199,6 @@ describe('Host Firewall', function () {
 
 					// expect to return...
 					expectRule({
-						action: RuleAction.Insert,
-						table: 'filter',
 						chain: 'BALENA-FIREWALL',
 						target: 'RETURN',
 						family: 4,
@@ -241,7 +242,7 @@ describe('Host Firewall', function () {
 					await config.set({ firewallMode: 'auto' });
 					await hasAppliedRules;
 
-					// expect that we DO have a rule to use the chain...
+					// expect that we jump to the firewall chain...
 					expectRule({
 						action: RuleAction.Append,
 						target: 'BALENA-FIREWALL',
@@ -251,8 +252,6 @@ describe('Host Firewall', function () {
 
 					// expect to return...
 					expectNoRule({
-						action: RuleAction.Insert,
-						table: 'filter',
 						chain: 'BALENA-FIREWALL',
 						target: 'RETURN',
 						family: 4,
@@ -279,21 +278,116 @@ describe('Host Firewall', function () {
 	});
 
 	describe('Service rules', () => {
+		const rejectAllRule = {
+			target: 'REJECT',
+			chain: 'BALENA-FIREWALL',
+			matches: iptablesMock.RuleProperty.NotSet,
+		};
+
+		const checkForRules = (
+			rules: Array<iptablesMock.Testable<Rule>> | iptablesMock.Testable<Rule>,
+			expectRule: (rule: iptablesMock.Testable<Rule>) => number,
+		) => {
+			rules = _.castArray(rules);
+			rules.forEach((rule) => {
+				const ruleIdx = expectRule(rule);
+
+				// make sure we reject AFTER the rule...
+				const rejectAllRuleIdx = expectRule(rejectAllRule);
+				expect(ruleIdx).is.lessThan(rejectAllRuleIdx);
+			});
+		};
+
 		it('should have a rule to allow DNS traffic from the balena0 interface', async () => {
 			await iptablesMock.whilstMocked(
 				async ({ hasAppliedRules, expectRule }) => {
-					// set the firewall to be in auto mode...
+					// set the firewall to be on...
 					await config.set({ firewallMode: 'on' });
 					await hasAppliedRules;
 
-					// expect that we have a rule to allow DNS access...
-					expectRule({
-						action: RuleAction.Append,
-						target: 'ACCEPT',
-						chain: 'BALENA-FIREWALL',
-						family: 4,
-						proto: 'udp',
-						matches: ['--dport 53', '-i balena0'],
+					[4, 6].forEach((family: 4 | 6) => {
+						// expect that we have a rule to allow DNS access...
+						checkForRules(
+							{
+								family,
+								target: 'ACCEPT',
+								chain: 'BALENA-FIREWALL',
+								proto: 'udp',
+								matches: ['--dport 53', '-i balena0'],
+							},
+							expectRule,
+						);
+					});
+				},
+			);
+		});
+
+		it('should have a rule to allow SSH traffic any interface', async () => {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules, expectRule }) => {
+					// set the firewall to be on...
+					await config.set({ firewallMode: 'on' });
+					await hasAppliedRules;
+
+					[4, 6].forEach((family: 4 | 6) => {
+						// expect that we have a rule to allow SSH access...
+						checkForRules(
+							{
+								family,
+								target: 'ACCEPT',
+								chain: 'BALENA-FIREWALL',
+								proto: 'tcp',
+								matches: ['--dport 22222'],
+							},
+							expectRule,
+						);
+					});
+				},
+			);
+		});
+
+		it('should have a rule to allow Multicast traffic any interface', async () => {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules, expectRule }) => {
+					// set the firewall to be on...
+					await config.set({ firewallMode: 'on' });
+					await hasAppliedRules;
+
+					[4, 6].forEach((family: 4 | 6) => {
+						// expect that we have a rule to allow multicast...
+						checkForRules(
+							{
+								family,
+								target: 'ACCEPT',
+								chain: 'BALENA-FIREWALL',
+								matches: ['-m addrtype', '--dst-type MULTICAST'],
+							},
+							expectRule,
+						);
+					});
+				},
+			);
+		});
+
+		it('should have a rule to allow balenaEngine traffic any interface', async () => {
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules, expectRule }) => {
+					// set the firewall to be on...
+					await config.set({ firewallMode: 'on' });
+					await hasAppliedRules;
+
+					[4, 6].forEach((family: 4 | 6) => {
+						// expect that we have a rule to allow balenaEngine access...
+						checkForRules(
+							{
+								family,
+								target: 'ACCEPT',
+								chain: 'BALENA-FIREWALL',
+								proto: 'tcp',
+								matches: ['--dport 2375'],
+							},
+							expectRule,
+						);
 					});
 				},
 			);
@@ -308,10 +402,9 @@ describe('Host Firewall', function () {
 					await config.set({ localMode: true });
 					await hasAppliedRules;
 
-					// make sure we have a rule to allow traffic on ANY interface
 					[4, 6].forEach((family: 4 | 6) => {
-						expectRule({
-							action: RuleAction.Append,
+						// make sure we have a rule to allow traffic on ANY interface
+						const allowRuleIdx = expectRule({
 							proto: 'tcp',
 							matches: [`--dport ${listenPort}`],
 							target: 'ACCEPT',
@@ -319,10 +412,24 @@ describe('Host Firewall', function () {
 							table: 'filter',
 							family,
 						});
+
+						// make sure we have a rule to block traffic on ANY interface also
+						const rejectRuleIdx = expectRule({
+							proto: 'tcp',
+							matches: [`--dport ${listenPort}`],
+							target: 'REJECT',
+							chain: 'BALENA-FIREWALL',
+							table: 'filter',
+							family,
+						});
+
+						// we should always reject AFTER we allow
+						expect(allowRuleIdx).to.be.lessThan(rejectRuleIdx);
 					});
 				},
 			);
 		});
+
 		it('should allow limited access in non-localmode', async function () {
 			await iptablesMock.whilstMocked(
 				async ({ hasAppliedRules, expectRule, expectNoRule }) => {
@@ -332,9 +439,7 @@ describe('Host Firewall', function () {
 
 					// ensure we have no unrestricted rule...
 					expectNoRule({
-						action: RuleAction.Append,
 						chain: 'BALENA-FIREWALL',
-						table: 'filter',
 						proto: 'tcp',
 						matches: [`--dport ${listenPort}`],
 						target: 'ACCEPT',
@@ -342,12 +447,11 @@ describe('Host Firewall', function () {
 					});
 
 					// ensure we do have a restricted rule for each interface...
+					let allowRuleIdx = -1;
 					constants.allowedInterfaces.forEach((intf) => {
 						[4, 6].forEach((family: 4 | 6) => {
-							expectRule({
-								action: RuleAction.Append,
+							allowRuleIdx = expectRule({
 								chain: 'BALENA-FIREWALL',
-								table: 'filter',
 								proto: 'tcp',
 								matches: [`--dport ${listenPort}`, `-i ${intf}`],
 								target: 'ACCEPT',
@@ -355,6 +459,18 @@ describe('Host Firewall', function () {
 							});
 						});
 					});
+
+					// make sure we have a rule to block traffic on ANY interface also
+					const rejectRuleIdx = expectRule({
+						proto: 'tcp',
+						matches: [`--dport ${listenPort}`],
+						target: 'REJECT',
+						chain: 'BALENA-FIREWALL',
+						table: 'filter',
+					});
+
+					// we should always reject AFTER we allow
+					expect(allowRuleIdx).to.be.lessThan(rejectRuleIdx);
 				},
 			);
 		});
