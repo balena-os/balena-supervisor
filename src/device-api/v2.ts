@@ -2,9 +2,14 @@ import * as Bluebird from 'bluebird';
 import { NextFunction, Request, Response, Router } from 'express';
 import * as _ from 'lodash';
 
-import { ApplicationManager } from '../application-manager';
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
+import * as applicationManager from '../compose/application-manager';
+import {
+	CompositionStepAction,
+	generateStep,
+} from '../compose/composition-steps';
+import { getApp } from '../device-state/db-format';
 import { Service } from '../compose/service';
 import Volume from '../compose/volume';
 import * as config from '../config';
@@ -24,16 +29,14 @@ import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
-import { doPurge, doRestart, safeStateClone, serviceAction } from './common';
+import { doPurge, doRestart, safeStateClone } from './common';
 
-export function createV2Api(router: Router, applications: ApplicationManager) {
-	const { _lockingIfNecessary } = applications;
-
+export function createV2Api(router: Router) {
 	const handleServiceAction = (
 		req: Request,
 		res: Response,
 		next: NextFunction,
-		action: any,
+		action: CompositionStepAction,
 	): Resolvable<void> => {
 		const { imageId, serviceName, force } = req.body;
 		const appId = checkInt(req.params.appId);
@@ -45,9 +48,8 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			return;
 		}
 
-		return _lockingIfNecessary(appId, { force }, () => {
-			return applications
-				.getCurrentApp(appId)
+		return applicationManager.lockingIfNecessary(appId, { force }, () => {
+			return getApp(appId)
 				.then((app) => {
 					if (app == null) {
 						res.status(404).send(appNotFoundMessage);
@@ -74,15 +76,16 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 						res.status(404).send(serviceNotFoundMessage);
 						return;
 					}
-					applications.setTargetVolatileForService(service.imageId!, {
+
+					applicationManager.setTargetVolatileForService(service.imageId!, {
 						running: action !== 'stop',
 					});
-					return applications
-						.executeStepAction(
-							serviceAction(action, service.serviceId!, service, service, {
-								wait: true,
-							}),
-							{ skipLock: true },
+					return applicationManager
+						.executeStep(
+							generateStep(action, { current: service, wait: true }),
+							{
+								skipLock: true,
+							},
 						)
 						.then(() => {
 							res.status(200).send('OK');
@@ -107,7 +110,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				});
 			}
 
-			return doPurge(applications, appId, force)
+			return doPurge(appId, force)
 				.then(() => {
 					res.status(200).send('OK');
 				})
@@ -142,7 +145,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 				});
 			}
 
-			return doRestart(applications, appId, force)
+			return doRestart(appId, force)
 				.then(() => {
 					res.status(200).send('OK');
 				})
@@ -241,7 +244,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			// Query device for all applications
 			let apps: any;
 			try {
-				apps = await applications.getStatus();
+				apps = await applicationManager.getStatus();
 			} catch (e) {
 				log.error(e.message);
 				return res.status(500).json({
@@ -336,7 +339,7 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 			if (id in serviceNameCache) {
 				return serviceNameCache[id];
 			} else {
-				const name = await applications.serviceNameFromId(id);
+				const name = await applicationManager.serviceNameFromId(id);
 				serviceNameCache[id] = name;
 				return name;
 			}
@@ -482,11 +485,13 @@ export function createV2Api(router: Router, applications: ApplicationManager) {
 	});
 
 	router.get('/v2/cleanup-volumes', async (_req, res) => {
-		const targetState = await applications.getTargetApps();
+		const targetState = await applicationManager.getTargetApps();
 		const referencedVolumes: string[] = [];
-		_.each(targetState, (app) => {
-			_.each(app.volumes, (vol) => {
-				referencedVolumes.push(Volume.generateDockerName(vol.appId, vol.name));
+		_.each(targetState, (app, appId) => {
+			_.each(app.volumes, (_volume, volumeName) => {
+				referencedVolumes.push(
+					Volume.generateDockerName(parseInt(appId, 10), volumeName),
+				);
 			});
 		});
 		await volumeManager.removeOrphanedVolumes(referencedVolumes);

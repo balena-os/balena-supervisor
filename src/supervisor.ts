@@ -33,20 +33,6 @@ const startupConfigFields: config.ConfigKey[] = [
 export class Supervisor {
 	private api: SupervisorAPI;
 
-	public constructor() {
-		// FIXME: rearchitect proxyvisor to avoid this circular dependency
-		// by storing current state and having the APIBinder query and report it / provision devices
-		deviceState.applications.proxyvisor.bindToAPI(apiBinder);
-
-		this.api = new SupervisorAPI({
-			routers: [apiBinder.router, deviceState.router],
-			healthchecks: [
-				apiBinder.healthcheck.bind(apiBinder),
-				deviceState.healthcheck,
-			],
-		});
-	}
-
 	public async init() {
 		log.info(`Supervisor v${version} starting up...`);
 
@@ -82,6 +68,13 @@ export class Supervisor {
 		await deviceState.loadInitialState();
 
 		log.info('Starting API server');
+		this.api = new SupervisorAPI({
+			routers: [apiBinder.router, deviceState.router],
+			healthchecks: [
+				apiBinder.healthcheck.bind(apiBinder),
+				deviceState.healthcheck,
+			],
+		});
 		this.api.listen(conf.listenPort, conf.apiTimeout);
 		deviceState.on('shutdown', () => this.api.stop());
 

@@ -55,9 +55,9 @@ let listening = false;
 // we don't yet have an id)
 const volatileState: Dictionary<Partial<Service>> = {};
 
-export async function getAll(
+export const getAll = async (
 	extraLabelFilters: string | string[] = [],
-): Promise<Service[]> {
+): Promise<Service[]> => {
 	const filterLabels = ['supervised'].concat(extraLabelFilters);
 	const containers = await listWithBothLabels(filterLabels);
 
@@ -81,7 +81,7 @@ export async function getAll(
 	});
 
 	return services.filter((s) => s != null) as Service[];
-}
+};
 
 export async function get(service: Service) {
 	// Get the container ids for special network handling
@@ -141,10 +141,7 @@ export async function getByDockerContainerId(
 	return Service.fromDockerContainer(container);
 }
 
-export async function updateMetadata(
-	service: Service,
-	metadata: { imageId: number; releaseId: number },
-) {
+export async function updateMetadata(service: Service, target: Service) {
 	const svc = await get(service);
 	if (svc.containerId == null) {
 		throw new InternalInconsistencyError(
@@ -153,7 +150,7 @@ export async function updateMetadata(
 	}
 
 	await docker.getContainer(svc.containerId).rename({
-		name: `${service.serviceName}_${metadata.imageId}_${metadata.releaseId}`,
+		name: `${service.serviceName}_${target.imageId}_${target.releaseId}`,
 	});
 }
 

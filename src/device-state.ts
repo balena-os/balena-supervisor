@@ -13,7 +13,7 @@ import * as db from './db';
 import * as logger from './logger';
 
 import {
-	CompositionStep,
+	CompositionStepT,
 	CompositionStepAction,
 } from './compose/composition-steps';
 import { loadTargetFromFile } from './device-state/preload';
@@ -26,7 +26,7 @@ import * as updateLock from './lib/update-lock';
 import * as validation from './lib/validation';
 import * as network from './network';
 
-import { ApplicationManager } from './application-manager';
+import * as applicationManager from './compose/application-manager';
 import * as deviceConfig from './device-config';
 import { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
@@ -35,7 +35,9 @@ import {
 	DeviceStatus,
 	InstancedDeviceState,
 	TargetState,
+	InstancedAppState,
 } from './types/state';
+import * as dbFormat from './device-state/db-format';
 
 function validateLocalState(state: any): asserts state is TargetState['local'] {
 	if (state.name != null) {
@@ -169,7 +171,7 @@ function createDeviceStateRouter() {
 		}
 	});
 
-	router.use(applications.router);
+	router.use(applicationManager.router);
 	return router;
 }
 
@@ -214,17 +216,14 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	  }
 	| { action: 'shutdown' }
 	| { action: 'noop' }
-	| CompositionStep<T extends CompositionStepAction ? T : never>
+	| CompositionStepT<T extends CompositionStepAction ? T : never>
 	| ConfigStep;
-
-// export class DeviceState extends (EventEmitter as new () => DeviceStateEventEmitter) {
-export const applications = new ApplicationManager();
 
 let currentVolatile: DeviceReportFields = {};
 const writeLock = updateLock.writeLock;
 const readLock = updateLock.readLock;
 let maxPollTime: number;
-let intermediateTarget: TargetState | null = null;
+let intermediateTarget: InstancedDeviceState | null = null;
 let applyBlocker: Nullable<Promise<void>>;
 let cancelDelay: null | (() => void) = null;
 
@@ -239,7 +238,6 @@ export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
 export let router: express.Router;
-createDeviceStateRouter();
 
 events.on('error', (err) => log.error('deviceState error: ', err));
 events.on('apply-target-state-end', function (err) {
@@ -255,10 +253,13 @@ events.on('apply-target-state-end', function (err) {
 		return deviceConfig.resetRateLimits();
 	}
 });
-applications.on('change', (d) => reportCurrentState(d));
 
 export const initialized = (async () => {
 	await config.initialized;
+	await applicationManager.initialized;
+
+	applicationManager.on('change', (d) => reportCurrentState(d));
+	createDeviceStateRouter();
 
 	config.on('change', (changedConfig) => {
 		if (changedConfig.loggingEnabled != null) {
@@ -288,20 +289,20 @@ export async function healthcheck() {
 	const cycleTime = process.hrtime(lastApplyStart);
 	const cycleTimeMs = cycleTime[0] * 1000 + cycleTime[1] / 1e6;
 	const cycleTimeWithinInterval =
-		cycleTimeMs - applications.timeSpentFetching < 2 * maxPollTime;
+		cycleTimeMs - applicationManager.timeSpentFetching < 2 * maxPollTime;
 
 	// Check if target is healthy
 	const applyTargetHealthy =
 		!applyInProgress ||
-		applications.fetchesInProgress > 0 ||
+		applicationManager.fetchesInProgress > 0 ||
 		cycleTimeWithinInterval;
 
 	if (!applyTargetHealthy) {
 		log.info(
 			stripIndent`
-				Healthcheck failure - Atleast ONE of the following conditions must be true:
+				Healthcheck failure - At least ONE of the following conditions must be true:
 					- No applyInProgress      ? ${!(applyInProgress === true)}
-					- fetchesInProgress       ? ${applications.fetchesInProgress > 0}
+					- fetchesInProgress       ? ${applicationManager.fetchesInProgress > 0}
 					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
 		);
 	}
@@ -344,7 +345,7 @@ async function saveInitialConfig() {
 }
 
 export async function loadInitialState() {
-	await applications.init();
+	await applicationManager.initialized;
 
 	const conf = await config.getMany([
 		'initialConfigSaved',
@@ -387,7 +388,7 @@ export async function loadInitialState() {
 		update_downloaded: false,
 	});
 
-	const targetApps = await applications.getTargetApps();
+	const targetApps = await applicationManager.getTargetApps();
 	if (!conf.provisioned || (_.isEmpty(targetApps) && !conf.targetStateSet)) {
 		try {
 			await loadTargetFromFile(null);
@@ -429,13 +430,19 @@ const writeLockTarget = () =>
 	writeLock('target').disposer((release) => release());
 const inferStepsLock = () =>
 	writeLock('inferSteps').disposer((release) => release());
-function usingReadLockTarget(fn: () => any) {
+function usingReadLockTarget<T extends () => any, U extends ReturnType<T>>(
+	fn: T,
+): Bluebird<UnwrappedPromise<U>> {
 	return Bluebird.using(readLockTarget, () => fn());
 }
-function usingWriteLockTarget(fn: () => any) {
+function usingWriteLockTarget<T extends () => any, U extends ReturnType<T>>(
+	fn: T,
+): Bluebird<UnwrappedPromise<U>> {
 	return Bluebird.using(writeLockTarget, () => fn());
 }
-function usingInferStepsLock(fn: () => any) {
+function usingInferStepsLock<T extends () => any, U extends ReturnType<T>>(
+	fn: T,
+): Bluebird<UnwrappedPromise<U>> {
 	return Bluebird.using(inferStepsLock, () => fn());
 }
 
@@ -462,14 +469,14 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 			await deviceConfig.setTarget(target.local.config, trx);
 
 			if (localSource || apiEndpoint == null) {
-				await applications.setTarget(
+				await applicationManager.setTarget(
 					target.local.apps,
 					target.dependent,
 					'local',
 					trx,
 				);
 			} else {
-				await applications.setTarget(
+				await applicationManager.setTarget(
 					target.local.apps,
 					target.dependent,
 					apiEndpoint,
@@ -488,22 +495,22 @@ export function getTarget({
 > {
 	return usingReadLockTarget(async () => {
 		if (intermediate) {
-			return intermediateTarget;
+			return intermediateTarget!;
 		}
 
 		return {
 			local: {
 				name: await config.get('name'),
 				config: await deviceConfig.getTarget({ initial }),
-				apps: await applications.getTargetApps(),
+				apps: await dbFormat.getApps(),
 			},
-			dependent: await applications.getDependentTargets(),
+			dependent: await applicationManager.getDependentTargets(),
 		};
-	}) as Bluebird<InstancedDeviceState>;
+	});
 }
 
 export async function getStatus(): Promise<DeviceStatus> {
-	const appsStatus = await applications.getStatus();
+	const appsStatus = await applicationManager.getStatus();
 	const theState: DeepPartial<DeviceStatus> = {
 		local: {},
 		dependent: {},
@@ -524,8 +531,8 @@ export async function getCurrentForComparison(): Promise<
 	const [name, devConfig, apps, dependent] = await Promise.all([
 		config.get('name'),
 		deviceConfig.getCurrent(),
-		applications.getCurrentForComparison(),
-		applications.getDependentState(),
+		applicationManager.getCurrentAppsForReport(),
+		applicationManager.getDependentState(),
 	]);
 	return {
 		local: {
@@ -538,7 +545,27 @@ export async function getCurrentForComparison(): Promise<
 	};
 }
 
-export function reportCurrentState(newState: DeviceReportFields = {}) {
+export async function getCurrentState(): Promise<InstancedDeviceState> {
+	const [name, devConfig, apps, dependent] = await Promise.all([
+		config.get('name'),
+		deviceConfig.getCurrent(),
+		applicationManager.getCurrentApps(),
+		applicationManager.getDependentState(),
+	]);
+
+	return {
+		local: {
+			name,
+			config: devConfig,
+			apps,
+		},
+		dependent,
+	};
+}
+
+export function reportCurrentState(
+	newState: DeviceReportFields & Partial<InstancedAppState> = {},
+) {
 	if (newState == null) {
 		newState = {};
 	}
@@ -547,7 +574,7 @@ export function reportCurrentState(newState: DeviceReportFields = {}) {
 }
 
 export async function reboot(force?: boolean, skipLock?: boolean) {
-	await applications.stopAll({ force, skipLock });
+	await applicationManager.stopAll({ force, skipLock });
 	logger.logSystemMessage('Rebooting', {}, 'Reboot');
 	const $reboot = await dbus.reboot();
 	shuttingDown = true;
@@ -556,7 +583,7 @@ export async function reboot(force?: boolean, skipLock?: boolean) {
 }
 
 export async function shutdown(force?: boolean, skipLock?: boolean) {
-	await applications.stopAll({ force, skipLock });
+	await applicationManager.stopAll({ force, skipLock });
 	logger.logSystemMessage('Shutting down', {}, 'Shutdown');
 	const $shutdown = await dbus.shutdown();
 	shuttingDown = true;
@@ -576,8 +603,8 @@ export async function executeStepAction<T extends PossibleStepTargets>(
 		await deviceConfig.executeStepAction(step as ConfigStep, {
 			initial,
 		});
-	} else if (_.includes(applications.validActions, step.action)) {
-		return applications.executeStepAction(step as any, {
+	} else if (_.includes(applicationManager.validActions, step.action)) {
+		return applicationManager.executeStep(step as any, {
 			force,
 			skipLock,
 		});
@@ -691,17 +718,13 @@ export const applyTarget = async ({
 	if (!intermediate) {
 		await applyBlocker;
 	}
-	await applications.localModeSwitchCompletion();
+	await applicationManager.localModeSwitchCompletion();
 
 	return usingInferStepsLock(async () => {
 		const [currentState, targetState] = await Promise.all([
 			getCurrentForComparison(),
 			getTarget({ initial, intermediate }),
 		]);
-		const extraState = await applications.getExtraStateForComparison(
-			currentState,
-			targetState,
-		);
 		const deviceConfigSteps = await deviceConfig.getRequiredSteps(
 			currentState,
 			targetState,
@@ -718,11 +741,8 @@ export const applyTarget = async ({
 			backoff = false;
 			steps = deviceConfigSteps;
 		} else {
-			const appSteps = await applications.getRequiredSteps(
-				currentState,
-				targetState,
-				extraState,
-				intermediate,
+			const appSteps = await applicationManager.getRequiredSteps(
+				targetState.local.apps,
 			);
 
 			if (_.isEmpty(appSteps)) {
@@ -742,7 +762,7 @@ export const applyTarget = async ({
 			emitAsync('apply-target-state-end', null);
 			if (!intermediate) {
 				log.debug('Finished applying target state');
-				applications.timeSpentFetching = 0;
+				applicationManager.resetTimeSpentFetching();
 				failedUpdates = 0;
 				lastSuccessfulUpdate = Date.now();
 				reportCurrentState({
@@ -878,11 +898,21 @@ export function triggerApplyTarget({
 }
 
 export function applyIntermediateTarget(
-	intermediate: TargetState,
+	intermediate: InstancedDeviceState,
 	{ force = false, skipLock = false } = {},
 ) {
-	intermediateTarget = _.cloneDeep(intermediate);
+	// TODO: Make sure we don't accidentally overwrite this
+	intermediateTarget = intermediate;
 	return applyTarget({ intermediate: true, force, skipLock }).then(() => {
 		intermediateTarget = null;
 	});
 }
+
+// This is useful as some of the api endpoints will take a current state,
+// perform some modification upon it and set it an intermediate target (for
+// example to restart a service, we remove it from the service list, apply the
+// target, then apply the original again). Here we make sure that all values
+// required in a target state are presesnt and valid
+// export function currentStateToTargetState(
+// 	current: ReturnType<typeof getCurrentForComparison>,
+// ) {}

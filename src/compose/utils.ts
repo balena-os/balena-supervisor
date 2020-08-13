@@ -309,6 +309,10 @@ export function formatDevice(deviceStr: string): DockerDevice {
 	};
 }
 
+export function dockerDeviceToStr(device: DockerDevice): string {
+	return `${device.PathOnHost}:${device.PathInContainer}:${device.CgroupPermissions}`;
+}
+
 // TODO: Export these strings to a constant lib, to
 // enable changing them easily
 // Mutates service

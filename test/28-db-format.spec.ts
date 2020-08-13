@@ -1,13 +1,22 @@
 import { expect } from 'chai';
 import prepare = require('./lib/prepare');
+import * as _ from 'lodash';
 
 import * as config from '../src/config';
 import * as dbFormat from '../src/device-state/db-format';
 import * as targetStateCache from '../src/device-state/target-state-cache';
 import * as images from '../src/compose/images';
 
+import App from '../src/compose/app';
 import Service from '../src/compose/service';
+import Network from '../src/compose/network';
 import { TargetApplication } from '../src/types/state';
+
+function getDefaultNetworks(appId: number) {
+	return {
+		default: Network.fromComposeObject('default', appId, {}),
+	};
+}
 
 describe('DB Format', () => {
 	const originalInspect = images.inspectByName;
@@ -74,24 +83,28 @@ describe('DB Format', () => {
 
 	it('should retrieve a single app from the database', async () => {
 		const app = await dbFormat.getApp(1);
+		expect(app).to.be.an.instanceOf(App);
 		expect(app).to.have.property('appId').that.equals(1);
 		expect(app).to.have.property('commit').that.equals('abcdef');
 		expect(app).to.have.property('releaseId').that.equals(123);
-		expect(app).to.have.property('name').that.equals('test-app');
+		expect(app).to.have.property('appName').that.equals('test-app');
 		expect(app)
 			.to.have.property('source')
 			.that.deep.equals(await config.get('apiEndpoint'));
-		expect(app).to.have.property('services').that.deep.equals({});
+		expect(app).to.have.property('services').that.deep.equals([]);
 		expect(app).to.have.property('volumes').that.deep.equals({});
-		expect(app).to.have.property('networks').that.deep.equals({});
+		expect(app)
+			.to.have.property('networks')
+			.that.deep.equals(getDefaultNetworks(1));
 	});
 
 	it('should correctly build services from the database', async () => {
 		const app = await dbFormat.getApp(2);
-		expect(app).to.have.property('services').that.is.an('object');
-		expect(Object.keys(app.services)).to.deep.equal(['567']);
+		expect(app).to.have.property('services').that.is.an('array');
+		const services = _.keyBy(app.services, 'serviceId');
+		expect(Object.keys(services)).to.deep.equal(['567']);
 
-		const service = app.services['567'];
+		const service = services[567];
 		expect(service).to.be.instanceof(Service);
 		// Don't do a deep equals here as a bunch of other properties are added that are
 		// tested elsewhere
@@ -120,9 +133,9 @@ describe('DB Format', () => {
 
 		const app = await dbFormat.getApp(1234);
 
-		expect(app).to.have.property('name').that.equals('pi4test');
-		expect(app).to.have.property('services').that.is.an('object');
-		expect(app.services)
+		expect(app).to.have.property('appName').that.equals('pi4test');
+		expect(app).to.have.property('services').that.is.an('array');
+		expect(_.keyBy(app.services, 'serviceId'))
 			.to.have.property('482141')
 			.that.has.property('serviceName')
 			.that.equals('main');
@@ -138,7 +151,8 @@ describe('DB Format', () => {
 				});
 
 			const app = await dbFormat.getApp(2);
-			const conf = app.services[Object.keys(app.services)[0]].config;
+			const conf =
+				app.services[parseInt(Object.keys(app.services)[0], 10)].config;
 			expect(conf)
 				.to.have.property('entrypoint')
 				.that.deep.equals(['theEntrypoint']);

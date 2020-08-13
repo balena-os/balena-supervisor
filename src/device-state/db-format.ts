@@ -1,26 +1,17 @@
-import { promises as fs } from 'fs';
-import * as path from 'path';
 import * as _ from 'lodash';
-import type { ImageInspectInfo } from 'dockerode';
 
-import * as config from '../config';
 import * as db from '../db';
 import * as targetStateCache from '../device-state/target-state-cache';
-import constants = require('../lib/constants');
-import { pathExistsOnHost } from '../lib/fs-utils';
-import * as dockerUtils from '../lib/docker-utils';
-import { NotFoundError } from '../lib/errors';
 
-import Service from '../compose/service';
-import Network from '../compose/network';
-import Volume from '../compose/volume';
-import type {
-	DeviceMetadata,
-	ServiceComposeConfig,
-} from '../compose/types/service';
+import App from '../compose/app';
 import * as images from '../compose/images';
 
-import { InstancedAppState, TargetApplication } from '../types/state';
+import {
+	InstancedAppState,
+	TargetApplication,
+	TargetApplications,
+	TargetApplicationService,
+} from '../types/state';
 import { checkInt } from '../lib/validation';
 
 type InstancedApp = InstancedAppState[0];
@@ -31,7 +22,7 @@ type InstancedApp = InstancedAppState[0];
 // requiring that data here
 export async function getApp(id: number): Promise<InstancedApp> {
 	const dbApp = await getDBEntry(id);
-	return await buildApp(dbApp);
+	return await App.fromTargetState(dbApp);
 }
 
 export async function getApps(): Promise<InstancedAppState> {
@@ -39,108 +30,10 @@ export async function getApps(): Promise<InstancedAppState> {
 	const apps: InstancedAppState = {};
 	await Promise.all(
 		dbApps.map(async (app) => {
-			apps[app.appId] = await buildApp(app);
+			apps[app.appId] = await App.fromTargetState(app);
 		}),
 	);
 	return apps;
-}
-
-async function buildApp(dbApp: targetStateCache.DatabaseApp) {
-	const volumes = _.mapValues(JSON.parse(dbApp.volumes) ?? {}, (conf, name) => {
-		if (conf == null) {
-			conf = {};
-		}
-		if (conf.labels == null) {
-			conf.labels = {};
-		}
-		return Volume.fromComposeObject(name, dbApp.appId, conf);
-	});
-
-	const networks = _.mapValues(
-		JSON.parse(dbApp.networks) ?? {},
-		(conf, name) => {
-			if (conf == null) {
-				conf = {};
-			}
-			return Network.fromComposeObject(name, dbApp.appId, conf);
-		},
-	);
-
-	const [
-		opts,
-		supervisorApiHost,
-		hostPathExists,
-		hostnameOnHost,
-	] = await Promise.all([
-		config.get('extendedEnvOptions'),
-		dockerUtils
-			.getNetworkGateway(constants.supervisorNetworkInterface)
-			.catch(() => '127.0.0.1'),
-		(async () => ({
-			firmware: await pathExistsOnHost('/lib/firmware'),
-			modules: await pathExistsOnHost('/lib/modules'),
-		}))(),
-		(async () =>
-			_.trim(
-				await fs.readFile(
-					path.join(constants.rootMountPoint, '/etc/hostname'),
-					'utf8',
-				),
-			))(),
-	]);
-
-	const svcOpts = {
-		appName: dbApp.name,
-		supervisorApiHost,
-		hostPathExists,
-		hostnameOnHost,
-		...opts,
-	};
-
-	// In the db, the services are an array, but here we switch them to an
-	// object so that they are consistent
-	const services = _.keyBy(
-		await Promise.all(
-			(JSON.parse(dbApp.services) ?? []).map(
-				async (svc: ServiceComposeConfig) => {
-					// Try to fill the image id if the image is downloaded
-					let imageInfo: ImageInspectInfo | undefined;
-					try {
-						imageInfo = await images.inspectByName(svc.image);
-					} catch (e) {
-						if (!NotFoundError(e)) {
-							throw e;
-						}
-					}
-
-					const thisSvcOpts = {
-						...svcOpts,
-						imageInfo,
-						serviceName: svc.serviceName,
-					};
-					// We force the casting here as we know that the UUID exists, but the typings do
-					// not
-					return Service.fromComposeObject(
-						svc,
-						(thisSvcOpts as unknown) as DeviceMetadata,
-					);
-				},
-			),
-		),
-		'serviceId',
-	) as Dictionary<Service>;
-
-	return {
-		appId: dbApp.appId,
-		commit: dbApp.commit,
-		releaseId: dbApp.releaseId,
-		name: dbApp.name,
-		source: dbApp.source,
-
-		services,
-		volumes,
-		networks,
-	};
 }
 
 export async function setApps(
@@ -177,6 +70,36 @@ export async function setApps(
 		}),
 	);
 	await targetStateCache.setTargetApps(dbApps, trx);
+}
+
+export async function getTargetJson(): Promise<TargetApplications> {
+	const dbApps = await getDBEntry();
+	const apps: TargetApplications = {};
+	await Promise.all(
+		dbApps.map(async (app) => {
+			const parsedServices = JSON.parse(app.services);
+
+			const services = _(parsedServices)
+				.keyBy('serviceId')
+				.mapValues(
+					(svc: TargetApplicationService) =>
+						_.omit(svc, 'commit') as TargetApplicationService,
+				)
+				.value();
+
+			apps[app.appId] = {
+				// We remove the id as this is the supervisor database id, and the
+				// source is internal and isn't used except for when we fetch the target
+				// state
+				..._.omit(app, ['id', 'source']),
+				services,
+				networks: JSON.parse(app.networks),
+				volumes: JSON.parse(app.volumes),
+				// We can add this cast because it's required in the db
+			} as TargetApplication;
+		}),
+	);
+	return apps;
 }
 
 function getDBEntry(): Promise<targetStateCache.DatabaseApp[]>;

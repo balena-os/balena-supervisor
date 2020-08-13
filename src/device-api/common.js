@@ -3,26 +3,38 @@ import * as _ from 'lodash';
 import { appNotFoundMessage } from '../lib/messages';
 import * as logger from '../logger';
 
-import * as volumes from '../compose/volume-manager';
+import * as deviceState from '../device-state';
+import * as applicationManager from '../compose/application-manager';
+import * as volumeManager from '../compose/volume-manager';
+import { InternalInconsistencyError } from '../lib/errors';
 
-export function doRestart(applications, appId, force) {
-	const { _lockingIfNecessary, deviceState } = applications;
+export async function doRestart(appId, force) {
+	await deviceState.initialized;
+	await applicationManager.initialized;
 
-	return _lockingIfNecessary(appId, { force }, () =>
-		deviceState.getCurrentForComparison().then(function (currentState) {
-			const app = safeAppClone(currentState.local.apps[appId]);
+	const { lockingIfNecessary } = applicationManager;
+
+	return lockingIfNecessary(appId, { force }, () =>
+		deviceState.getCurrentState().then(function (currentState) {
+			if (currentState.local.apps?.[appId] == null) {
+				throw new InternalInconsistencyError(
+					`Application with ID ${appId} is not in the current state`,
+				);
+			}
+			const allApps = currentState.local.apps;
+
+			const app = allApps[appId];
 			const imageIds = _.map(app.services, 'imageId');
-			applications.clearTargetVolatileForServices(imageIds);
+			applicationManager.clearTargetVolatileForServices(imageIds);
 
-			const stoppedApp = _.cloneDeep(app);
-			stoppedApp.services = [];
-			currentState.local.apps[appId] = stoppedApp;
+			const currentServices = app.services;
+			app.services = [];
 			return deviceState
 				.pausingApply(() =>
 					deviceState
 						.applyIntermediateTarget(currentState, { skipLock: true })
 						.then(function () {
-							currentState.local.apps[appId] = app;
+							app.services = currentServices;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
 							});
@@ -33,25 +45,33 @@ export function doRestart(applications, appId, force) {
 	);
 }
 
-export function doPurge(applications, appId, force) {
-	const { _lockingIfNecessary, deviceState } = applications;
+export async function doPurge(appId, force) {
+	await deviceState.initialized;
+	await applicationManager.initialized;
+
+	const { lockingIfNecessary } = applicationManager;
 
 	logger.logSystemMessage(
 		`Purging data for app ${appId}`,
 		{ appId },
 		'Purge data',
 	);
-	return _lockingIfNecessary(appId, { force }, () =>
-		deviceState.getCurrentForComparison().then(function (currentState) {
-			if (currentState.local.apps[appId] == null) {
+	return lockingIfNecessary(appId, { force }, () =>
+		deviceState.getCurrentState().then(function (currentState) {
+			const allApps = currentState.local.apps;
+
+			if (allApps == null || allApps[appId] == null) {
 				throw new Error(appNotFoundMessage);
 			}
-			const app = safeAppClone(currentState.local.apps[appId]);
 
-			const purgedApp = _.cloneDeep(app);
-			purgedApp.services = [];
-			purgedApp.volumes = {};
-			currentState.local.apps[appId] = purgedApp;
+			const app = allApps[appId];
+
+			const currentServices = app.services;
+			const currentVolumes = app.volumes;
+
+			app.services = [];
+			app.volumes = {};
+
 			return deviceState
 				.pausingApply(() =>
 					deviceState
@@ -61,12 +81,13 @@ export function doPurge(applications, appId, force) {
 							// remove the volumes, we must do this here, as the
 							// application-manager will not remove any volumes
 							// which are part of an active application
-							return Bluebird.each(volumes.getAllByAppId(appId), (vol) =>
+							return Bluebird.each(volumeManager.getAllByAppId(appId), (vol) =>
 								vol.remove(),
 							);
 						})
-						.then(function () {
-							currentState.local.apps[appId] = app;
+						.then(() => {
+							app.services = currentServices;
+							app.volumes = currentVolumes;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
 							});
