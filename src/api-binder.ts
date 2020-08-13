@@ -237,7 +237,7 @@ export async function patchDevice(
 }
 
 export async function provisionDependentDevice(
-	device: Device,
+	device: Partial<Device>,
 ): Promise<Device> {
 	const conf = await config.getMany([
 		'unmanaged',
@@ -298,13 +298,13 @@ export async function fetchDeviceTags(): Promise<DeviceTag[]> {
 	if (deviceId == null) {
 		throw new Error('Attempt to retrieve device tags before provision');
 	}
-	const tags = (await balenaApi.get({
+	const tags = await balenaApi.get({
 		resource: 'device_tag',
 		options: {
 			$select: ['id', 'tag_key', 'value'],
 			$filter: { device: deviceId },
 		},
-	}));
+	});
 
 	return tags.map((tag) => {
 		// Do some type safe decoding and throw if we get an unexpected value
@@ -565,7 +565,7 @@ async function reportInitialEnv(
 
 	const defaultConfig = deviceConfig.getDefaults();
 
-	const currentState = await deviceState.getCurrentForComparison();
+	const currentState = await deviceState.getCurrentState();
 	const targetConfig = await deviceConfig.formatConfigKeys(
 		targetConfigUnformatted,
 	);
@@ -703,8 +703,12 @@ async function reportInitialName(
 			},
 		});
 	} catch (err) {
-		log.error("Unable to report initial device name to API");
-		logger.logSystemMessage("Unable to report initial device name to API", err, 'reportInitialNameError');
+		log.error('Unable to report initial device name to API');
+		logger.logSystemMessage(
+			'Unable to report initial device name to API',
+			err,
+			'reportInitialNameError',
+		);
 	}
 }
 

@@ -1,10 +1,9 @@
 import { ComposeNetworkConfig } from '../compose/types/network';
 import { ServiceComposeConfig } from '../compose/types/service';
-import Volume, { ComposeVolumeConfig } from '../compose/volume';
+import { ComposeVolumeConfig } from '../compose/volume';
 import { EnvVarObject, LabelObject } from '../lib/types';
 
-import Network from '../compose/network';
-import Service from '../compose/service';
+import App from '../compose/app';
 
 export type DeviceReportFields = Partial<{
 	api_port: number;
@@ -24,6 +23,7 @@ export type DeviceReportFields = Partial<{
 	mac_address: string | null;
 }>;
 
+// This is the state that is sent to the cloud
 export interface DeviceStatus {
 	local?: {
 		config?: Dictionary<string>;
@@ -93,26 +93,12 @@ export interface TargetState {
 export type LocalTargetState = TargetState['local'];
 export type TargetApplications = LocalTargetState['apps'];
 export type TargetApplication = LocalTargetState['apps'][0];
+export type TargetApplicationService = TargetApplication['services'][0];
 export type AppsJsonFormat = Omit<TargetState['local'], 'name'> & {
 	pinDevice?: boolean;
 };
 
-// This structure is the internal representation of both
-// target and current state. We create instances of compose
-// objects and these are what the state engine uses to
-// detect what it should do to move between them
-export interface InstancedAppState {
-	[appId: number]: {
-		appId: number;
-		commit: string;
-		releaseId: number;
-		name: string;
-		source: string;
-		services: Dictionary<Service>;
-		volumes: Dictionary<Volume>;
-		networks: Dictionary<Network>;
-	};
-}
+export type InstancedAppState = { [appId: number]: App };
 
 export interface InstancedDeviceState {
 	local: {

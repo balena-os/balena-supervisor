@@ -175,16 +175,23 @@ export class Network {
 			network: { name: this.name, appId: this.appId },
 		});
 
-		return Bluebird.resolve(
-			docker
-				.getNetwork(Network.generateDockerName(this.appId, this.name))
-				.remove(),
-		).tapCatch((error) => {
-			logger.logSystemEvent(logTypes.removeNetworkError, {
-				network: { name: this.name, appId: this.appId },
-				error,
+		const networkName = Network.generateDockerName(this.appId, this.name);
+
+		return Bluebird.resolve(docker.listNetworks())
+			.then((networks) => networks.filter((n) => n.Name === networkName))
+			.then(([network]) => {
+				if (!network) {
+					return Bluebird.resolve();
+				}
+				return Bluebird.resolve(
+					docker.getNetwork(networkName).remove(),
+				).tapCatch((error) => {
+					logger.logSystemEvent(logTypes.removeNetworkError, {
+						network: { name: this.name, appId: this.appId },
+						error,
+					});
+				});
 			});
-		});
 	}
 
 	public isEqualConfig(network: Network): boolean {

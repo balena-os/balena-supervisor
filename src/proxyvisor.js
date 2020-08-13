@@ -20,7 +20,12 @@ import * as db from './db';
 import * as config from './config';
 import * as dockerUtils from './lib/docker-utils';
 import * as logger from './logger';
+import { InternalInconsistencyError } from './lib/errors';
+
+import * as apiBinder from './api-binder';
 import * as apiHelper from './lib/api-helper';
+import * as dbFormat from './device-state/db-format';
+import * as deviceConfig from './device-config';
 
 const mkdirpAsync = Promise.promisify(mkdirp);
 
@@ -117,7 +122,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 			belongs_to__application: req.body.appId,
 			device_type,
 		};
-		return proxyvisor.apiBinder
+		return apiBinder
 			.provisionDependentDevice(d)
 			.then(function (dev) {
 				// If the response has id: null then something was wrong in the request
@@ -278,10 +283,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 				}
 				return Promise.try(function () {
 					if (!_.isEmpty(fieldsToUpdateOnAPI)) {
-						return proxyvisor.apiBinder.patchDevice(
-							device.deviceId,
-							fieldsToUpdateOnAPI,
-						);
+						return apiBinder.patchDevice(device.deviceId, fieldsToUpdateOnAPI);
 					}
 				})
 					.then(() =>
@@ -348,8 +350,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 };
 
 export class Proxyvisor {
-	constructor({ applications }) {
-		this.bindToAPI = this.bindToAPI.bind(this);
+	constructor() {
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
 		this.normaliseDependentAppForDB = this.normaliseDependentAppForDB.bind(
@@ -364,14 +365,13 @@ export class Proxyvisor {
 		this.sendUpdate = this.sendUpdate.bind(this);
 		this.sendDeleteHook = this.sendDeleteHook.bind(this);
 		this.sendUpdates = this.sendUpdates.bind(this);
-		this.applications = applications;
 		this.acknowledgedState = {};
 		this.lastRequestForDevice = {};
 		this.router = createProxyvisorRouter(this);
 		this.actionExecutors = {
 			updateDependentTargets: (step) => {
-				return config
-					.getMany(['currentApiKey', 'apiTimeout'])
+				return config.initialized
+					.then(() => config.getMany(['currentApiKey', 'apiTimeout']))
 					.then(({ currentApiKey, apiTimeout }) => {
 						// - take each of the step.devices and update dependentDevice with it (targetCommit, targetEnvironment, targetConfig)
 						// - if update returns 0, then use APIBinder to fetch the device, then store it to the db
@@ -407,9 +407,25 @@ export class Proxyvisor {
 									}
 									// If the device is not in the DB it means it was provisioned externally
 									// so we need to fetch it.
+									if (apiBinder.balenaApi == null) {
+										throw new InternalInconsistencyError(
+											'proxyvisor called fetchDevice without an initialized API client',
+										);
+									}
+
 									return apiHelper
-										.fetchDevice(this.apiBinder.balenaApi, uuid, currentApiKey, apiTimeout)
+										.fetchDevice(
+											apiBinder.balenaApi,
+											uuid,
+											currentApiKey,
+											apiTimeout,
+										)
 										.then((dev) => {
+											if (dev == null) {
+												throw new InternalInconsistencyError(
+													`Could not fetch a device with UUID: ${uuid}`,
+												);
+											}
 											const deviceForDB = {
 												uuid,
 												appId,
@@ -487,10 +503,6 @@ export class Proxyvisor {
 			},
 		};
 		this.validActions = _.keys(this.actionExecutors);
-	}
-
-	bindToAPI(apiBinder) {
-		return (this.apiBinder = apiBinder);
 	}
 
 	executeStepAction(step) {
@@ -695,15 +707,15 @@ export class Proxyvisor {
 
 	imagesInUse(current, target) {
 		const images = [];
-		if (current.dependent?.apps != null) {
-			for (const app of current.dependent.apps) {
+		if (current?.dependent?.apps != null) {
+			_.forEach(current.dependent.apps, (app) => {
 				images.push(app.image);
-			}
+			});
 		}
-		if (target?.dependent.apps != null) {
-			for (const app of target.dependent.apps) {
+		if (target?.dependent?.apps != null) {
+			_.forEach(target.dependent.apps, (app) => {
 				images.push(app.image);
-			}
+			});
 		}
 		return images;
 	}
@@ -900,12 +912,10 @@ export class Proxyvisor {
 			.models('dependentApp')
 			.select('parentApp')
 			.where({ appId })
-			.then(([{ parentApp }]) => {
-				return this.applications.getTargetApp(parentApp);
-			})
+			.then(([{ parentApp }]) => dbFormat.getApp(parseInt(parentApp, 10)))
 			.then((parentApp) => {
-				return Promise.map(parentApp?.services ?? [], (service) => {
-					return dockerUtils.getImageEnv(service.image);
+				return Promise.map(parentApp.services ?? [], (service) => {
+					return dockerUtils.getImageEnv(service.config.image);
 				}).then(function (imageEnvs) {
 					const imageHookAddresses = _.map(
 						imageEnvs,
@@ -918,11 +928,16 @@ export class Proxyvisor {
 							return addr;
 						}
 					}
-					return (
-						parentApp?.config?.BALENA_DEPENDENT_DEVICES_HOOK_ADDRESS ??
-						parentApp?.config?.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ??
-						`${constants.proxyvisorHookReceiver}/v1/devices/`
-					);
+					// If we don't find the hook address in the images, we take it from
+					// the global config
+					return deviceConfig
+						.getTarget()
+						.then(
+							(target) =>
+								target.BALENA_DEPENDENT_DEVICES_HOOK_ADDRESS ??
+								target.RESIN_DEPENDENT_DEVICES_HOOK_ADDRESS ??
+								`${constants.proxyvisorHookReceiver}/v1/devices/`,
+						);
 				});
 			});
 	}

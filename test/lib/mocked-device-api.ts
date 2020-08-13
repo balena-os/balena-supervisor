@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import { Router } from 'express';
 import { fs } from 'mz';
 
-import { ApplicationManager } from '../../src/application-manager';
+import * as applicationManager from '../../src/compose/application-manager';
 import * as networkManager from '../../src/compose/network-manager';
 import * as serviceManager from '../../src/compose/service-manager';
 import * as volumeManager from '../../src/compose/volume-manager';
@@ -71,11 +71,10 @@ async function create(): Promise<SupervisorAPI> {
 
 	// Stub functions
 	setupStubs();
-	// Create ApplicationManager
-	const appManager = new ApplicationManager();
+
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
-		routers: [deviceState.router, buildRoutes(appManager)],
+		routers: [deviceState.router, buildRoutes()],
 		healthchecks: [deviceState.healthcheck, apiBinder.healthcheck],
 	});
 
@@ -120,13 +119,13 @@ async function initConfig(): Promise<void> {
 	});
 }
 
-function buildRoutes(appManager: ApplicationManager): Router {
+function buildRoutes(): Router {
 	// Create new Router
 	const router = Router();
 	// Add V1 routes
-	createV1Api(router, appManager);
+	createV1Api(applicationManager.router);
 	// Add V2 routes
-	createV2Api(router, appManager);
+	createV2Api(applicationManager.router);
 	// Return modified Router
 	return router;
 }

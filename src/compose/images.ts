@@ -20,6 +20,8 @@ import * as validation from '../lib/validation';
 import * as logger from '../logger';
 import { ImageDownloadBackoffError } from './errors';
 
+import type { Service } from './service';
+
 import log from '../lib/supervisor-console';
 
 interface FetchProgressEvent {
@@ -85,6 +87,23 @@ export const initialized = (async () => {
 		}
 	});
 })();
+
+type ServiceInfo = Pick<
+	Service,
+	'imageName' | 'appId' | 'serviceId' | 'serviceName' | 'imageId' | 'releaseId'
+>;
+export function imageFromService(service: ServiceInfo): Image {
+	// We know these fields are defined because we create these images from target state
+	return {
+		name: service.imageName!,
+		appId: service.appId,
+		serviceId: service.serviceId!,
+		serviceName: service.serviceName!,
+		imageId: service.imageId!,
+		releaseId: service.releaseId!,
+		dependent: 0,
+	};
+}
 
 export async function triggerFetch(
 	image: Image,
@@ -263,15 +282,10 @@ export async function getAvailable(): Promise<Image[]> {
 	);
 }
 
-// TODO: Why does this need a Bluebird.try?
-export function getDownloadingImageIds() {
-	return Bluebird.try(() =>
-		_(volatileState)
-			.pickBy({ status: 'Downloading' })
-			.keys()
-			.map(validation.checkInt)
-			.value(),
-	);
+export function getDownloadingImageIds(): number[] {
+	return _.keys(_.pickBy(volatileState, { status: 'Downloading' })).map((i) =>
+		validation.checkInt(i),
+	) as number[];
 }
 
 export async function cleanupDatabase(): Promise<void> {
@@ -407,7 +421,8 @@ export async function inspectByName(
 	imageName: string,
 ): Promise<Docker.ImageInspectInfo> {
 	try {
-		return await docker.getImage(imageName).inspect();
+		const image = await docker.getImage(imageName);
+		return await image.inspect();
 	} catch (e) {
 		if (NotFoundError(e)) {
 			const digest = imageName.split('@')[1];
@@ -459,7 +474,9 @@ export function isSameImage(
 	image1: Pick<Image, 'name'>,
 	image2: Pick<Image, 'name'>,
 ): boolean {
-	return image1.name === image2.name || hasSameDigest(image1.name, image2.name);
+	return (
+		image1?.name === image2?.name || hasSameDigest(image1?.name, image2?.name)
+	);
 }
 
 export function normalise(imageName: string): Bluebird<string> {
