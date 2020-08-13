@@ -260,24 +260,25 @@ export async function getRequiredSteps(
 			// For apps in the target state but not the current state, we generate steps to
 			// create the app by mocking an existing app which contains nothing
 			for (const id of onlyTarget) {
-				const app = targetApps[id];
+				const { appId } = targetApps[id];
+				const emptyCurrent = new App(
+					{
+						appId,
+						services: [],
+						volumes: {},
+						networks: {},
+					},
+					false,
+				);
 				steps = steps.concat(
-					targetApps[id].nextStepsForAppUpdate(
+					emptyCurrent.nextStepsForAppUpdate(
 						{
 							localMode,
 							availableImages,
-							containerIds: containerIdsByAppId[id],
+							containerIds: containerIdsByAppId[id] ?? {},
 							downloading,
 						},
-						new App(
-							{
-								appId: app.appId,
-								services: [],
-								volumes: {},
-								networks: {},
-							},
-							false,
-						),
+						targetApps[id],
 					),
 				);
 			}
@@ -326,7 +327,6 @@ export async function getRequiredSteps(
 			steps,
 		),
 	);
-
 	return steps;
 }
 

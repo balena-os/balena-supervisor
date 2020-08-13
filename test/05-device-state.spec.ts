@@ -286,13 +286,63 @@ describe('deviceState', () => {
 		const targetState = await deviceState.getTarget();
 
 		const json = await getTargetJson();
-		console.log(json);
 
-		const testTarget = _.cloneDeep(testTarget1);
-
-		expect(JSON.parse(JSON.stringify(targetState))).to.deep.equal(
-			JSON.parse(JSON.stringify(testTarget)),
-		);
+		expect(targetState)
+			.to.have.property('local')
+			.that.has.property('apps')
+			.that.has.property('1234')
+			.that.is.an('object');
+		const app = targetState.local.apps[1234];
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('services').that.is.an('array').with.length(1);
+		expect(app.services[0])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.resin.io/superapp/abcdef:latest');
+		expect(app.services[0].config)
+			.to.have.property('labels')
+			.that.has.property('io.balena.something')
+			.that.equals('bar');
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('services').that.is.an('array').with.length(1);
+		expect(app.services[0])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.resin.io/superapp/abcdef:latest');
+		expect(app.services[0].config)
+			.to.have.property('labels')
+			.that.has.property('io.balena.something')
+			.that.equals('bar');
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('services').that.is.an('array').with.length(1);
+		expect(app.services[0])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.resin.io/superapp/abcdef:latest');
+		expect(app.services[0].config)
+			.to.have.property('labels')
+			.that.has.property('io.balena.something')
+			.that.equals('bar');
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('services').that.is.an('array').with.length(1);
+		expect(app.services[0])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.resin.io/superapp/abcdef:latest');
+		expect(app.services[0].config)
+			.to.have.property('labels')
+			.that.has.property('io.balena.something')
+			.that.equals('bar');
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('services').that.is.an('array').with.length(1);
+		expect(app.services[0])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.resin.io/superapp/abcdef:latest');
+		expect(app.services[0].config)
+			.to.have.property('labels')
+			.that.has.property('io.balena.something')
+			.that.equals('bar');
 	});
 
 	it('stores info for pinning a device after loading an apps.json with a pinDevice field', async () => {

@@ -5,7 +5,7 @@ import * as logger from '../logger';
 
 import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
-import * as volumes from '../compose/volume-manager';
+import * as volumeManager from '../compose/volume-manager';
 import { InternalInconsistencyError } from '../lib/errors';
 
 export async function doRestart(appId, force) {
@@ -81,7 +81,7 @@ export async function doPurge(appId, force) {
 							// remove the volumes, we must do this here, as the
 							// application-manager will not remove any volumes
 							// which are part of an active application
-							return Bluebird.each(currentVolumes.getAllByAppId(appId), (vol) =>
+							return Bluebird.each(volumeManager.getAllByAppId(appId), (vol) =>
 								vol.remove(),
 							);
 						})
@@ -156,7 +156,7 @@ export function safeAppClone(app) {
 	const containerIdForService = _.fromPairs(
 		_.map(app.services, (svc) => [
 			svc.serviceName,
-			svc.containerId.substr(0, 12),
+			svc.containerId != null ? svc.containerId.substr(0, 12) : '',
 		]),
 	);
 	return {

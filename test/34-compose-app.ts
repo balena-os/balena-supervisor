@@ -292,7 +292,7 @@ describe('compose/app', () => {
 			.that.equals('test');
 	});
 
-	it.only('should correctly infer to remove an apps volumes when it is no longer referenced', async () => {
+	it('should correctly infer to remove an apps volumes when it is no longer referenced', async () => {
 		appMock.mockManagers(
 			[],
 			[Volume.fromComposeObject('test-volume', 1, {})],

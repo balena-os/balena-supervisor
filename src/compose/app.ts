@@ -562,12 +562,6 @@ export class App {
 
 	private generateContainerStep(current: Service, target: Service) {
 		// if the services release/image don't match, then rename the container... :/
-		/*
-		generateStep('updateMetadata') =>
-			await docker.getContainer(svc.containerId).rename({
-				name: `${service.serviceName}_${target.imageId}_${target.releaseId}`,
-			});
-		*/
 		if (
 			current.releaseId !== target.releaseId ||
 			current.imageId !== target.imageId

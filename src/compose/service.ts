@@ -42,11 +42,11 @@ export type ServiceStatus =
 
 export class Service {
 	public appId: number;
-	public imageId: number | null;
+	public imageId: number;
 	public config: ServiceConfig;
 	public serviceName: string | null;
-	public releaseId: number | null;
-	public serviceId: number | null;
+	public releaseId: number;
+	public serviceId: number;
 	public imageName: string | null;
 	public containerId: string | null;
 
@@ -108,11 +108,6 @@ export class Service {
 
 		appConfig = ComposeUtils.camelCaseConfig(appConfig);
 
-		const intOrNull = (
-			val: string | number | null | undefined,
-		): number | null => {
-			return checkInt(val) || null;
-		};
 		if (!appConfig.appId) {
 			throw new InternalInconsistencyError('No app id for service');
 		}
@@ -123,15 +118,15 @@ export class Service {
 
 		// Seperate the application information from the docker
 		// container configuration
-		service.imageId = intOrNull(appConfig.imageId);
+		service.imageId = parseInt(appConfig.imageId, 10);
 		delete appConfig.imageId;
 		service.serviceName = appConfig.serviceName;
 		delete appConfig.serviceName;
 		service.appId = appId;
 		delete appConfig.appId;
-		service.releaseId = intOrNull(appConfig.releaseId);
+		service.releaseId = parseInt(appConfig.releaseId, 10);
 		delete appConfig.releaseId;
-		service.serviceId = intOrNull(appConfig.serviceId);
+		service.serviceId = parseInt(appConfig.serviceId, 10);
 		delete appConfig.serviceId;
 		service.imageName = appConfig.image;
 		service.dependsOn = appConfig.dependsOn || null;
@@ -595,12 +590,22 @@ export class Service {
 			);
 		}
 		svc.appId = appId;
-		svc.serviceId = checkInt(svc.config.labels['io.balena.service-id']) || null;
 		svc.serviceName = svc.config.labels['io.balena.service-name'];
+		svc.serviceId = parseInt(svc.config.labels['io.balena.service-id'], 10);
+		if (Number.isNaN(svc.serviceId)) {
+			throw new InternalInconsistencyError(
+				'Attempt to build Service class from container with malformed labels',
+			);
+		}
 		const nameMatch = container.Name.match(/.*_(\d+)_(\d+)$/);
+		if (nameMatch == null) {
+			throw new InternalInconsistencyError(
+				'Attempt to build Service class from container with malformed name',
+			);
+		}
 
-		svc.imageId = nameMatch != null ? checkInt(nameMatch[1]) || null : null;
-		svc.releaseId = nameMatch != null ? checkInt(nameMatch[2]) || null : null;
+		svc.imageId = parseInt(nameMatch[1], 10);
+		svc.releaseId = parseInt(nameMatch[2], 10);
 		svc.containerId = container.Id;
 
 		return svc;

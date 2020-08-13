@@ -4,9 +4,10 @@ import * as _ from 'lodash';
 import * as eventTracker from '../event-tracker';
 import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
-import { doRestart, doPurge, serviceAction } from './common';
+import { doRestart, doPurge } from './common';
 
 import * as applicationManager from '../compose/application-manager';
+import { generateStep } from '../compose/composition-steps';
 
 export const createV1Api = function (router) {
 	router.post('/v1/restart', function (req, res, next) {
@@ -51,27 +52,22 @@ export const createV1Api = function (router) {
 					running: action !== 'stop',
 				});
 				return applicationManager
-					.executeStepAction(
-						serviceAction(action, service.serviceId, service, service, {
-							wait: true,
-						}),
-						{ force },
-					)
+					.executeStep(generateStep(action, { current: service, wait: true }), {
+						force,
+					})
 					.then(function () {
 						if (action === 'stop') {
 							return service;
 						}
 						// We refresh the container id in case we were starting an app with no container yet
-						return applicationManager
-							.getCurrentApps(appId)
-							.then(function (apps2) {
-								const app2 = apps2[appId];
-								service = app2.services[0];
-								if (service == null) {
-									throw new Error('App not found after running action');
-								}
-								return service;
-							});
+						return applicationManager.getCurrentApps().then(function (apps2) {
+							const app2 = apps2[appId];
+							service = app2.services[0];
+							if (service == null) {
+								throw new Error('App not found after running action');
+							}
+							return service;
+						});
 					})
 					.then((service2) =>
 						res.status(200).json({ containerId: service2.containerId }),
@@ -93,9 +89,10 @@ export const createV1Api = function (router) {
 			return res.status(400).send('Missing app id');
 		}
 		return Promise.join(
-			applicationManager.getCurrentApp(appId),
+			applicationManager.getCurrentApps(),
 			applicationManager.getStatus(),
-			function (app, status) {
+			function (apps, status) {
+				const app = apps[appId];
 				const service = app?.services?.[0];
 				if (service == null) {
 					return res.status(400).send('App not found');
@@ -111,9 +108,9 @@ export const createV1Api = function (router) {
 				const appToSend = {
 					appId,
 					containerId: service.containerId,
-					env: _.omit(service.environment, constants.privateAppEnvVars),
+					env: _.omit(service.config.environment, constants.privateAppEnvVars),
 					releaseId: service.releaseId,
-					imageId: service.image,
+					imageId: service.config.image,
 				};
 				if (status.commit != null) {
 					appToSend.commit = status.commit;
