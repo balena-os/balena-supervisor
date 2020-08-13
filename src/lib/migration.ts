@@ -14,6 +14,7 @@ import * as db from '../db';
 import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
 import * as deviceState from '../device-state';
+import * as applicationManager from '../compose/application-manager';
 import * as constants from '../lib/constants';
 import {
 	BackupError,
@@ -258,7 +259,8 @@ export async function normaliseLegacyDatabase() {
 	await serviceManager.killAllLegacy();
 	log.debug('Migrating legacy app volumes');
 
-	const targetApps = await deviceState.applications.getTargetApps();
+	await applicationManager.initialized;
+	const targetApps = await applicationManager.getTargetApps();
 
 	for (const appId of _.keys(targetApps)) {
 		await volumeManager.createFromLegacy(parseInt(appId, 10));

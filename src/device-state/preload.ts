@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import { fs } from 'mz';
 
-import { Image } from '../compose/images';
+import { Image, imageFromService } from '../compose/images';
 import * as deviceState from '../device-state';
 import * as config from '../config';
 import * as deviceConfig from '../device-config';
@@ -64,11 +64,11 @@ export async function loadTargetFromFile(
 					imageName: service.image,
 					serviceName: service.serviceName,
 					imageId: service.imageId,
-					serviceId,
+					serviceId: parseInt(serviceId, 10),
 					releaseId: app.releaseId,
-					appId,
+					appId: parseInt(appId, 10),
 				};
-				imgs.push(deviceState.applications.imageForService(svc));
+				imgs.push(imageFromService(svc));
 			}
 		}
 

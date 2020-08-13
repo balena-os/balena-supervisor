@@ -237,7 +237,7 @@ export async function patchDevice(
 }
 
 export async function provisionDependentDevice(
-	device: Device,
+	device: Partial<Device>,
 ): Promise<Device> {
 	const conf = await config.getMany([
 		'unmanaged',
@@ -565,7 +565,7 @@ async function reportInitialEnv(
 
 	const defaultConfig = deviceConfig.getDefaults();
 
-	const currentState = await deviceState.getCurrentForComparison();
+	const currentState = await deviceState.getCurrentState();
 	const targetConfig = await deviceConfig.formatConfigKeys(
 		targetConfigUnformatted,
 	);

@@ -3,7 +3,7 @@ import { expect } from './lib/chai-config';
 import * as _ from 'lodash';
 
 import * as apiBinder from '../src/api-binder';
-import { ApplicationManager } from '../src/application-manager';
+import * as applicationManager from '../src/compose/application-manager';
 import * as deviceState from '../src/device-state';
 import * as constants from '../src/lib/constants';
 import { docker } from '../src/lib/docker-utils';
@@ -12,21 +12,20 @@ import { Supervisor } from '../src/supervisor';
 describe('Startup', () => {
 	let startStub: SinonStub;
 	let vpnStatusPathStub: SinonStub;
-	let appManagerStub: SinonStub;
 	let deviceStateStub: SinonStub;
 	let dockerStub: SinonStub;
 
 	before(async () => {
 		startStub = stub(apiBinder as any, 'start').resolves();
 		deviceStateStub = stub(deviceState, 'applyTarget').resolves();
-		appManagerStub = stub(ApplicationManager.prototype, 'init').resolves();
+		// @ts-expect-error
+		applicationManager.initialized = Promise.resolve();
 		vpnStatusPathStub = stub(constants, 'vpnStatusPath').returns('');
 		dockerStub = stub(docker, 'listContainers').returns(Promise.resolve([]));
 	});
 
 	after(() => {
 		startStub.restore();
-		appManagerStub.restore();
 		vpnStatusPathStub.restore();
 		deviceStateStub.restore();
 		dockerStub.restore();
