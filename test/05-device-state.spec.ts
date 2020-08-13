@@ -14,7 +14,6 @@ import * as deviceConfig from '../src/device-config';
 import { loadTargetFromFile } from '../src/device-state/preload';
 import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
-import { getTargetJson } from '../src/device-state/db-format';
 
 // tslint:disable-next-line
 chai.use(require('chai-events'));
@@ -34,56 +33,6 @@ const mockedInitialConfig = {
 	RESIN_SUPERVISOR_OVERRIDE_LOCK: 'false',
 	RESIN_SUPERVISOR_POLL_INTERVAL: '60000',
 	RESIN_SUPERVISOR_VPN_CONTROL: 'true',
-};
-
-const testTarget1 = {
-	local: {
-		name: 'aDevice',
-		config: {
-			HOST_CONFIG_gpu_mem: '256',
-			HOST_FIREWALL_MODE: 'off',
-			HOST_DISCOVERABILITY: 'true',
-			SUPERVISOR_CONNECTIVITY_CHECK: 'true',
-			SUPERVISOR_DELTA: 'false',
-			SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',
-			SUPERVISOR_DELTA_REQUEST_TIMEOUT: '30000',
-			SUPERVISOR_DELTA_RETRY_COUNT: '30',
-			SUPERVISOR_DELTA_RETRY_INTERVAL: '10000',
-			SUPERVISOR_DELTA_VERSION: '2',
-			SUPERVISOR_INSTANT_UPDATE_TRIGGER: 'true',
-			SUPERVISOR_LOCAL_MODE: 'false',
-			SUPERVISOR_LOG_CONTROL: 'true',
-			SUPERVISOR_OVERRIDE_LOCK: 'false',
-			SUPERVISOR_POLL_INTERVAL: '60000',
-			SUPERVISOR_VPN_CONTROL: 'true',
-			SUPERVISOR_PERSISTENT_LOGGING: 'false',
-		},
-		apps: {
-			'1234': {
-				appId: 1234,
-				name: 'superapp',
-				commit: 'abcdef',
-				releaseId: 1,
-				services: {
-					23: {
-						appId: 1234,
-						serviceId: 23,
-						imageId: 12345,
-						serviceName: 'someservice',
-						environment: {},
-						releaseId: 1,
-						image: 'registry2.resin.io/superapp/abcdef:latest',
-						labels: {
-							'io.resin.something': 'bar',
-						},
-					},
-				},
-				volumes: {},
-				networks: {},
-			},
-		},
-	},
-	dependent: { apps: [], devices: [] },
 };
 
 const testTarget2 = {
@@ -282,8 +231,6 @@ describe('deviceState', () => {
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {
 		await loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps.json');
 		const targetState = await deviceState.getTarget();
-
-		const json = await getTargetJson();
 
 		expect(targetState)
 			.to.have.property('local')

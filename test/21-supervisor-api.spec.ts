@@ -2,13 +2,15 @@ import { expect } from 'chai';
 import { spy, stub, SinonStub } from 'sinon';
 import * as supertest from 'supertest';
 
-import * as APIBinder from '../src/api-binder';
+import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
-import * as images from '../src/compose/images';
 import SupervisorAPI from '../src/supervisor-api';
 import sampleResponses = require('./data/device-api-responses.json');
 import mockedAPI = require('./lib/mocked-device-api');
+
+import * as applicationManager from '../src/compose/application-manager';
+import { InstancedAppState } from '../src/types/state';
 
 const mockedOptions = {
 	listenPort: 54321,
@@ -21,23 +23,23 @@ describe('SupervisorAPI', () => {
 	let api: SupervisorAPI;
 	let healthCheckStubs: SinonStub[];
 	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
-	const originalGetStatus = images.getStatus;
 
 	before(async () => {
+		await apiBinder.initialized;
+		await deviceState.initialized;
+
 		// Stub health checks so we can modify them whenever needed
 		healthCheckStubs = [
-			stub(APIBinder, 'healthcheck'),
+			stub(apiBinder, 'healthcheck'),
 			stub(deviceState, 'healthcheck'),
 		];
+
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed
 		api = await mockedAPI.create();
 
-		// @ts-expect-error assigning to a RO property
-		images.getStatus = () => Promise.resolve([]);
-
 		// Start test API
-		return api.listen(mockedOptions.listenPort, mockedOptions.timeout);
+		await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 	});
 
 	after(async () => {
@@ -52,9 +54,6 @@ describe('SupervisorAPI', () => {
 		healthCheckStubs.forEach((hc) => hc.restore);
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
-
-		// @ts-expect-error assigning to a RO property
-		images.getStatus = originalGetStatus;
 	});
 
 	describe('/ping', () => {
@@ -107,6 +106,32 @@ describe('SupervisorAPI', () => {
 			});
 		});
 
+		before(() => {
+			const appState = {
+				[sampleResponses.V1.GET['/apps/2'].body.appId]: {
+					...sampleResponses.V1.GET['/apps/2'].body,
+					services: [
+						{
+							...sampleResponses.V1.GET['/apps/2'].body,
+							serviceId: 1,
+							serviceName: 'main',
+							config: {},
+						},
+					],
+				},
+			};
+
+			stub(applicationManager, 'getCurrentApps').resolves(
+				(appState as unknown) as InstancedAppState,
+			);
+			stub(applicationManager, 'executeStep').resolves();
+		});
+
+		after(() => {
+			(applicationManager.executeStep as SinonStub).restore();
+			(applicationManager.getCurrentApps as SinonStub).restore();
+		});
+
 		// TODO: add tests for V1 endpoints
 		describe('GET /v1/apps/:appId', () => {
 			it('returns information about a SPECIFIC application', async () => {
@@ -114,8 +139,8 @@ describe('SupervisorAPI', () => {
 					.get('/v1/apps/2')
 					.set('Accept', 'application/json')
 					.set('Authorization', `Bearer ${VALID_SECRET}`)
-					.expect('Content-Type', /json/)
 					.expect(sampleResponses.V1.GET['/apps/2'].statusCode)
+					.expect('Content-Type', /json/)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
 							sampleResponses.V1.GET['/apps/2'].body,
@@ -130,8 +155,8 @@ describe('SupervisorAPI', () => {
 					.post('/v1/apps/2/stop')
 					.set('Accept', 'application/json')
 					.set('Authorization', `Bearer ${VALID_SECRET}`)
-					.expect('Content-Type', /json/)
 					.expect(sampleResponses.V1.GET['/apps/2/stop'].statusCode)
+					.expect('Content-Type', /json/)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
 							sampleResponses.V1.GET['/apps/2/stop'].body,
