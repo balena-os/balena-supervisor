@@ -3,7 +3,7 @@ import { fs } from 'mz';
 
 import {
 	ConfigOptions,
-	DeviceConfigBackend,
+	ConfigBackend,
 	bootMountPoint,
 	remountAndWriteAtomic,
 } from './backend';
@@ -21,12 +21,12 @@ import log from '../../lib/supervisor-console';
  * 	- {BALENA|RESIN}_HOST_CONFIG_gpio = value | "value" | "value1","value2"
  */
 
-export class RPiConfigBackend extends DeviceConfigBackend {
+export class ConfigTxt extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}CONFIG_`;
 	private static bootConfigPath = `${bootMountPoint}/config.txt`;
 
 	public static bootConfigVarRegex = new RegExp(
-		'(?:' + _.escapeRegExp(RPiConfigBackend.bootConfigVarPrefix) + ')(.+)',
+		'(?:' + _.escapeRegExp(ConfigTxt.bootConfigVarPrefix) + ')(.+)',
 	);
 
 	private static arrayConfigKeys = [
@@ -57,13 +57,10 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 	public async getBootConfig(): Promise<ConfigOptions> {
 		let configContents = '';
 
-		if (await fs.exists(RPiConfigBackend.bootConfigPath)) {
-			configContents = await fs.readFile(
-				RPiConfigBackend.bootConfigPath,
-				'utf-8',
-			);
+		if (await fs.exists(ConfigTxt.bootConfigPath)) {
+			configContents = await fs.readFile(ConfigTxt.bootConfigPath, 'utf-8');
 		} else {
-			await fs.writeFile(RPiConfigBackend.bootConfigPath, '');
+			await fs.writeFile(ConfigTxt.bootConfigPath, '');
 		}
 
 		const conf: ConfigOptions = {};
@@ -78,7 +75,7 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 			let keyValue = /^([^=]+)=(.*)$/.exec(configStr);
 			if (keyValue != null) {
 				const [, key, value] = keyValue;
-				if (!RPiConfigBackend.arrayConfigKeys.includes(key)) {
+				if (!ConfigTxt.arrayConfigKeys.includes(key)) {
 					conf[key] = value;
 				} else {
 					if (conf[key] == null) {
@@ -119,23 +116,23 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 			}
 		});
 		const confStr = `${confStatements.join('\n')}\n`;
-		await remountAndWriteAtomic(RPiConfigBackend.bootConfigPath, confStr);
+		await remountAndWriteAtomic(ConfigTxt.bootConfigPath, confStr);
 	}
 
 	public isSupportedConfig(configName: string): boolean {
-		return !RPiConfigBackend.forbiddenConfigKeys.includes(configName);
+		return !ConfigTxt.forbiddenConfigKeys.includes(configName);
 	}
 
 	public isBootConfigVar(envVar: string): boolean {
-		return envVar.startsWith(RPiConfigBackend.bootConfigVarPrefix);
+		return envVar.startsWith(ConfigTxt.bootConfigVarPrefix);
 	}
 
 	public processConfigVarName(envVar: string): string {
-		return envVar.replace(RPiConfigBackend.bootConfigVarRegex, '$1');
+		return envVar.replace(ConfigTxt.bootConfigVarRegex, '$1');
 	}
 
 	public processConfigVarValue(key: string, value: string): string | string[] {
-		if (RPiConfigBackend.arrayConfigKeys.includes(key)) {
+		if (ConfigTxt.arrayConfigKeys.includes(key)) {
 			if (!value.startsWith('"')) {
 				return [value];
 			} else {
@@ -146,6 +143,6 @@ export class RPiConfigBackend extends DeviceConfigBackend {
 	}
 
 	public createConfigVarName(configName: string): string {
-		return RPiConfigBackend.bootConfigVarPrefix + configName;
+		return ConfigTxt.bootConfigVarPrefix + configName;
 	}
 }

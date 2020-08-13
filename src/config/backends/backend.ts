@@ -21,7 +21,7 @@ export async function remountAndWriteAtomic(
 	await writeFileAtomic(file, data);
 }
 
-export abstract class DeviceConfigBackend {
+export abstract class ConfigBackend {
 	// Does this config backend support the given device type?
 	public abstract async matches(
 		deviceType: string,
@@ -61,7 +61,7 @@ export abstract class DeviceConfigBackend {
 	public abstract createConfigVarName(configName: string): string | null;
 
 	// Allow a chosen config backend to be initialised
-	public async initialise(): Promise<DeviceConfigBackend> {
+	public async initialise(): Promise<ConfigBackend> {
 		return this;
 	}
 }

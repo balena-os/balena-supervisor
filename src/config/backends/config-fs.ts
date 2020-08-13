@@ -4,7 +4,7 @@ import * as path from 'path';
 
 import {
 	ConfigOptions,
-	DeviceConfigBackend,
+	ConfigBackend,
 	bootMountPoint,
 	remountAndWriteAtomic,
 } from './backend';
@@ -21,7 +21,7 @@ import log from '../../lib/supervisor-console';
 
 type ConfigfsConfig = Dictionary<string[]>;
 
-export class ConfigfsConfigBackend extends DeviceConfigBackend {
+export class ConfigFs extends ConfigBackend {
 	private readonly SystemAmlFiles = path.join(
 		constants.rootMountPoint,
 		'boot/acpi-tables',
@@ -129,7 +129,7 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 		}
 	}
 
-	public async initialise(): Promise<ConfigfsConfigBackend> {
+	public async initialise(): Promise<ConfigFs> {
 		try {
 			await super.initialise();
 
@@ -158,7 +158,7 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 	}
 
 	public async matches(deviceType: string): Promise<boolean> {
-		return ConfigfsConfigBackend.SupportedDeviceTypes.includes(deviceType);
+		return ConfigFs.SupportedDeviceTypes.includes(deviceType);
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {
@@ -195,15 +195,11 @@ export class ConfigfsConfigBackend extends DeviceConfigBackend {
 	}
 
 	public isSupportedConfig(name: string): boolean {
-		return ConfigfsConfigBackend.BootConfigVars.includes(
-			this.stripPrefix(name),
-		);
+		return ConfigFs.BootConfigVars.includes(this.stripPrefix(name));
 	}
 
 	public isBootConfigVar(name: string): boolean {
-		return ConfigfsConfigBackend.BootConfigVars.includes(
-			this.stripPrefix(name),
-		);
+		return ConfigFs.BootConfigVars.includes(this.stripPrefix(name));
 	}
 
 	public processConfigVarName(name: string): string {
