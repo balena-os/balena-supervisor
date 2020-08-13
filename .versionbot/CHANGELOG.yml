@@ -1,4 +1,17 @@
 - commits:
+    - subject: Refactor configurable backend class names
+      hash: ff404456b3c3edaf33fe2199387db47d9be03503
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 11.12.5
+  date: 2020-08-12T19:06:59.672Z
+- commits:
     - subject: 'bug: Firewall not blocking supervisor access from outside the device'
       hash: 5aecd94e243ee55cffbb9aa47e7adfc437401de3
       body: ''
