@@ -8,11 +8,13 @@ import * as dbus from './lib/dbus';
 import { EnvVarObject } from './lib/types';
 import { UnitNotLoadedError } from './lib/errors';
 import { checkInt, checkTruthy } from './lib/validation';
+import log from './lib/supervisor-console';
 import { DeviceStatus } from './types/state';
 import * as configUtils from './config/utils';
 import { SchemaTypeKey } from './config/schema-type';
 import { matchesAnyBootConfig } from './config/backends';
 import { ConfigOptions, ConfigBackend } from './config/backends/backend';
+import { Odmdata } from './config/backends/odmdata';
 
 const vpnServiceName = 'openvpn';
 
@@ -339,9 +341,8 @@ export function resetRateLimits() {
 	});
 }
 
-// Exported for tests
 export function bootConfigChangeRequired(
-	configBackend: ConfigBackend | null,
+	configBackend: ConfigBackend,
 	current: Dictionary<string>,
 	target: Dictionary<string>,
 	deviceType: string,
@@ -352,23 +353,39 @@ export function bootConfigChangeRequired(
 	// Some devices require specific overlays, here we apply them
 	ensureRequiredOverlay(deviceType, targetBootConfig);
 
+	// Search for any unsupported values
+	_.each(targetBootConfig, (value, key) => {
+		if (
+			!configBackend.isSupportedConfig(key) &&
+			currentBootConfig[key] !== value
+		) {
+			const err = `Attempt to change blacklisted config value ${key}`;
+			logger.logSystemMessage(err, { error: err }, 'Apply boot config error');
+			throw new Error(err);
+		}
+	});
+
 	if (!_.isEqual(currentBootConfig, targetBootConfig)) {
-		_.each(targetBootConfig, (value, key) => {
-			// Ignore null check because we can't get here if configBackend is null
-			if (!configBackend!.isSupportedConfig(key)) {
-				if (currentBootConfig[key] !== value) {
-					const err = `Attempt to change blacklisted config value ${key}`;
-					logger.logSystemMessage(
-						err,
-						{ error: err },
-						'Apply boot config error',
-					);
-					throw new Error(err);
-				}
+		// Check if the only difference is the targetBootConfig not containing a special case
+		const SPECIAL_CASE = 'configuration'; // ODMDATA Mode for TX2 devices
+		if (!(SPECIAL_CASE in targetBootConfig)) {
+			// Create a copy to modify
+			const targetCopy = _.cloneDeep(targetBootConfig);
+			// Add current value to simulate if the value was set in the cloud on provision
+			targetCopy[SPECIAL_CASE] = currentBootConfig[SPECIAL_CASE];
+			if (_.isEqual(targetCopy, currentBootConfig)) {
+				// This proves the only difference is ODMDATA configuration is not set in target config.
+				// This special case is to allow devices that upgrade to SV with ODMDATA support
+				// and have no set a ODMDATA configuration in the cloud yet.
+				// Normally on provision this value would have been sent to the cloud.
+				return false; // (no change is required)
 			}
-		});
+		}
+		// Change is required because configs do not match
 		return true;
 	}
+
+	// Return false (no change is required)
 	return false;
 }
 
@@ -480,14 +497,14 @@ export async function getRequiredSteps(
 
 	const backends = await getConfigBackends();
 	// Check for required bootConfig changes
-	backends.forEach((backend) => {
-		if (bootConfigChangeRequired(backend, current, target, deviceType)) {
+	for (const backend of backends) {
+		if (changeRequired(backend, current, target, deviceType)) {
 			steps.push({
 				action: 'setBootConfig',
 				target,
 			});
 		}
-	});
+	}
 
 	// Check if there is either no steps, or they are all
 	// noops, and we need to reboot. We want to do this
@@ -502,6 +519,43 @@ export async function getRequiredSteps(
 	}
 
 	return steps;
+}
+
+function changeRequired(
+	configBackend: ConfigBackend,
+	currentConfig: Dictionary<string>,
+	targetConfig: Dictionary<string>,
+	deviceType: string,
+): boolean {
+	let aChangeIsRequired = false;
+	try {
+		aChangeIsRequired = bootConfigChangeRequired(
+			configBackend,
+			currentConfig,
+			targetConfig,
+			deviceType,
+		);
+	} catch (e) {
+		switch (e) {
+			case 'Value missing from target configuration.':
+				if (configBackend instanceof Odmdata) {
+					// In this special case, devices with ODMDATA support may have
+					// empty configuration options in the target if they upgraded to a SV
+					// version with ODMDATA support and didn't set a value in the cloud.
+					// If this is the case then we will update the cloud with the device's
+					// current config and then continue without an error
+					aChangeIsRequired = false;
+				} else {
+					log.debug(`
+					The device has a configuration setting that the cloud does not have set.\nNo configurations for this backend will be set.`);
+					// Set changeRequired to false so we do not get stuck in a loop trying to fix this mismatch
+					aChangeIsRequired = false;
+				}
+			default:
+				throw e;
+		}
+	}
+	return aChangeIsRequired;
 }
 
 export function executeStepAction(

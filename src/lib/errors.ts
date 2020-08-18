@@ -133,3 +133,9 @@ export class FDTDirectiveError extends TypedError {}
  * This can be things like missing config files or config files we cannot write to.
  */
 export class ExtraUEnvError extends TypedError {}
+
+/**
+ * Generic error thrown when something goes wrong with handling the ODMDATA backend.
+ * This can be things like missing config files or config files we cannot write to.
+ */
+export class ODMDataError extends TypedError {}
