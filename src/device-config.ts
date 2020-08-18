@@ -2,17 +2,17 @@ import * as _ from 'lodash';
 import { inspect } from 'util';
 
 import * as config from './config';
-import { SchemaTypeKey } from './config/schema-type';
 import * as db from './db';
 import * as logger from './logger';
-
-import { ConfigOptions, ConfigBackend } from './config/backends/backend';
-import * as configUtils from './config/utils';
 import * as dbus from './lib/dbus';
-import { UnitNotLoadedError } from './lib/errors';
 import { EnvVarObject } from './lib/types';
+import { UnitNotLoadedError } from './lib/errors';
 import { checkInt, checkTruthy } from './lib/validation';
 import { DeviceStatus } from './types/state';
+import * as configUtils from './config/utils';
+import { SchemaTypeKey } from './config/schema-type';
+import { matchesAnyBootConfig } from './config/backends';
+import { ConfigOptions, ConfigBackend } from './config/backends/backend';
 
 const vpnServiceName = 'openvpn';
 
@@ -229,7 +229,7 @@ export async function setTarget(
 ): Promise<void> {
 	const $db = trx ?? db.models.bind(db);
 
-	const formatted = await formatConfigKeys(target);
+	const formatted = formatConfigKeys(target);
 	// check for legacy keys
 	if (formatted['OVERRIDE_LOCK'] != null) {
 		formatted['SUPERVISOR_OVERRIDE_LOCK'] = formatted['OVERRIDE_LOCK'];
@@ -298,18 +298,30 @@ export async function getCurrent(): Promise<Dictionary<string>> {
 	return currentConf;
 }
 
-export async function formatConfigKeys(
-	conf: Dictionary<string>,
-): Promise<Dictionary<any>> {
-	const backends = await getConfigBackends();
-	const formattedKeys: Dictionary<any> = {};
-	for (const backend of backends) {
-		_.assign(
-			formattedKeys,
-			configUtils.formatConfigKeys(backend, validKeys, conf),
-		);
-	}
-	return formattedKeys;
+export function formatConfigKeys(conf: {
+	[key: string]: any;
+}): Dictionary<any> {
+	const namespaceRegex = /^BALENA_(.*)/;
+	const legacyNamespaceRegex = /^RESIN_(.*)/;
+	const confFromNamespace = configUtils.filterNamespaceFromConfig(
+		namespaceRegex,
+		conf,
+	);
+	const confFromLegacyNamespace = configUtils.filterNamespaceFromConfig(
+		legacyNamespaceRegex,
+		conf,
+	);
+	const noNamespaceConf = _.pickBy(conf, (_v, k) => {
+		return !_.startsWith(k, 'RESIN_') && !_.startsWith(k, 'BALENA_');
+	});
+	const confWithoutNamespace = _.defaults(
+		confFromNamespace,
+		confFromLegacyNamespace,
+		noNamespaceConf,
+	);
+	return _.pickBy(confWithoutNamespace, (_v, k) => {
+		return _.includes(validKeys, k) || matchesAnyBootConfig(k);
+	});
 }
 
 export function getDefaults() {

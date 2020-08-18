@@ -5,7 +5,7 @@ import * as config from '../config';
 import * as constants from '../lib/constants';
 import { getMetaOSRelease } from '../lib/os-release';
 import { EnvVarObject } from '../lib/types';
-import Backends from './backends';
+import { allBackends as Backends } from './backends';
 import { ConfigOptions, ConfigBackend } from './backends/backend';
 
 export async function getSupportedBackends(): Promise<ConfigBackend[]> {
@@ -51,37 +51,7 @@ export function bootConfigToEnv(
 		.value();
 }
 
-export function formatConfigKeys(
-	configBackend: ConfigBackend | null,
-	allowedKeys: string[],
-	conf: { [key: string]: any },
-): { [key: string]: any } {
-	const isConfigType = configBackend != null;
-	const namespaceRegex = /^BALENA_(.*)/;
-	const legacyNamespaceRegex = /^RESIN_(.*)/;
-	const confFromNamespace = filterNamespaceFromConfig(namespaceRegex, conf);
-	const confFromLegacyNamespace = filterNamespaceFromConfig(
-		legacyNamespaceRegex,
-		conf,
-	);
-	const noNamespaceConf = _.pickBy(conf, (_v, k) => {
-		return !_.startsWith(k, 'RESIN_') && !_.startsWith(k, 'BALENA_');
-	});
-	const confWithoutNamespace = _.defaults(
-		confFromNamespace,
-		confFromLegacyNamespace,
-		noNamespaceConf,
-	);
-
-	return _.pickBy(confWithoutNamespace, (_v, k) => {
-		return (
-			_.includes(allowedKeys, k) ||
-			(isConfigType && configBackend!.isBootConfigVar(k))
-		);
-	});
-}
-
-function filterNamespaceFromConfig(
+export function filterNamespaceFromConfig(
 	namespace: RegExp,
 	conf: { [key: string]: any },
 ): { [key: string]: any } {

@@ -447,9 +447,7 @@ export class APIBinder {
 		const defaultConfig = deviceConfig.getDefaults();
 
 		const currentState = await this.deviceState.getCurrentForComparison();
-		const targetConfig = await deviceConfig.formatConfigKeys(
-			targetConfigUnformatted,
-		);
+		const targetConfig = deviceConfig.formatConfigKeys(targetConfigUnformatted);
 
 		if (!currentState.local.config) {
 			throw new InternalInconsistencyError(
