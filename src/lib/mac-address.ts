@@ -5,7 +5,7 @@ import * as path from 'path';
 import log from './supervisor-console';
 import { shouldReportInterface } from '../network';
 
-import TypedError = require('typed-error');
+import { TypedError } from 'typed-error';
 export class MacAddressError extends TypedError {}
 
 export async function getAll(sysClassNet: string): Promise<string | undefined> {

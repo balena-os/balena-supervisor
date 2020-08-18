@@ -10,5 +10,7 @@ upstream:
     url: 'https://github.com/balena-io-modules/pinejs-client-request'
   - repo: 'resumable-request'
     url: 'https://github.com/balena-io-modules/resumable-request'
+  - repo: 'typed-error'
+    url: 'https://github.com/balena-io-modules/typed-error'
   - repo: 'contrato'
     url: 'https://github.com/balena-io/contrato'

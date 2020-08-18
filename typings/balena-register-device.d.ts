@@ -3,7 +3,7 @@
 // TODO: Upstream types to the repo
 declare module 'balena-register-device' {
 	import { Response } from 'request';
-	import TypedError = require('typed-error');
+	import { TypedError } from 'typed-error';
 
 	function factory({
 		request,
