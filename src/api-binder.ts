@@ -342,13 +342,13 @@ export class APIBinder {
 		if (deviceId == null) {
 			throw new Error('Attempt to retrieve device tags before provision');
 		}
-		const tags = (await this.balenaApi.get({
+		const tags = await this.balenaApi.get({
 			resource: 'device_tag',
 			options: {
 				$select: ['id', 'tag_key', 'value'],
 				$filter: { device: deviceId },
 			},
-		})) as Array<Dictionary<unknown>>;
+		});
 
 		return tags.map((tag) => {
 			// Do some type safe decoding and throw if we get an unexpected value
@@ -398,7 +398,7 @@ export class APIBinder {
 				},
 			});
 
-			const releaseId = _.get(release, '[0].id');
+			const releaseId = release[0]?.id;
 			if (releaseId == null) {
 				throw new Error(
 					'Cannot continue pinning preloaded device! No release found!',

@@ -147,7 +147,7 @@ export async function normaliseLegacyDatabase(
 		}
 
 		log.debug(`Getting release ${app.commit} for app ${app.appId} from API`);
-		const releases = (await balenaApi.get({
+		const releases = await balenaApi.get({
 			resource: 'release',
 			options: {
 				$filter: {
@@ -161,7 +161,7 @@ export async function normaliseLegacyDatabase(
 					},
 				},
 			},
-		})) as Array<Dictionary<any>>;
+		});
 
 		if (releases.length === 0) {
 			log.warn(
