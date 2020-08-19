@@ -1,7 +1,7 @@
 // This module is for compose specific errors, but compose modules
 // will still use errors from the global ./lib/errors.ts
 
-import TypedError = require('typed-error');
+import { TypedError } from 'typed-error';
 
 export class InvalidNetworkNameError extends TypedError {
 	public constructor(public name: string) {

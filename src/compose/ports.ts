@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import TypedError = require('typed-error');
+import { TypedError } from 'typed-error';
 
 // Adapted from https://github.com/docker/docker-py/blob/master/docker/utils/ports.py#L3
 const PORTS_REGEX = /^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/;

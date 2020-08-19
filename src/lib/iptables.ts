@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import { child_process } from 'mz';
 import { Readable } from 'stream';
-import TypedError = require('typed-error');
+import { TypedError } from 'typed-error';
 
 export class IPTablesRuleError extends TypedError {
 	public constructor(err: string | Error, public ruleset: string) {

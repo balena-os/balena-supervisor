@@ -1,4 +1,4 @@
-import TypedError = require('typed-error');
+import { TypedError } from 'typed-error';
 
 export default class ShortStackError extends TypedError {
 	constructor(err: Error | string = '') {

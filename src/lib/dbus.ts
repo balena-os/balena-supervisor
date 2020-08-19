@@ -1,6 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as dbus from 'dbus';
-import TypedError = require('typed-error');
+import { TypedError } from 'typed-error';
 
 import log from './supervisor-console';
 
