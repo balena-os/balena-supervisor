@@ -6,8 +6,18 @@ backports:
   sunset: 10.3.x
 
 upstream:
+  - repo: 'docker-delta'
+    url: 'https://github.com/balena-io-modules/node-docker-delta'
+  - repo: 'docker-progress'
+    url: 'https://github.com/balena-io-modules/docker-progress'
+  - repo: 'docker-toolbelt'
+    url: 'https://github.com/balena-io-modules/docker-toolbelt'
+  - repo: 'livepush'
+    url: 'https://github.com/balena-io-modules/livepush'
   - repo: 'pinejs-client-request'
     url: 'https://github.com/balena-io-modules/pinejs-client-request'
+  - repo: 'resin-docker-build'
+    url: 'https://github.com/balena-io-modules/resin-docker-build'
   - repo: 'resumable-request'
     url: 'https://github.com/balena-io-modules/resumable-request'
   - repo: 'typed-error'
