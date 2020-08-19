@@ -1,4 +1,179 @@
 - commits:
+    - subject: Update dependencies
+      hash: ea34a2d10a3acd19cfefe4c847eb96579315429a
+      body: |
+        Update docker-delta from 2.2.9 to 2.2.11
+        Update docker-progress from 3.0.5 to 4.0.3
+        Update docker-toolbelt from 3.3.8 to 3.3.10
+        Update livepush from 3.3.0 to 3.5.1
+        Update resin-docker-build from 1.1.4 to 1.1.6
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested:
+        - commits:
+            - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+              hash: b0f552f9a21d350cb9fdca77d4f7c309f88bf68b
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: node-docker-delta-2.2.11
+          date: 2020-08-19T11:52:46.348Z
+        - commits:
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: patch
+              hash: 70b5359fedc100907c0086f7d25b7ad19cc210ad
+              subject: Removed unused dependencies
+            - author: Pagan Gazzard
+              body: ''
+              hash: 8670e850ba5d97fbaecc938fc2060ea3b4f157ed
+              subject: 'circleci: update docker'
+          date: '2020-08-05T15:20:21Z'
+          version: node-docker-delta-2.2.10
+        - commits:
+            - subject: Update to balena-lint 5.x
+              hash: 9563bf5150c39c6d6f298a9ed24f7969650273f7
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: docker-progress-4.0.3
+          date: 2020-08-17T12:03:45.249Z
+        - commits:
+            - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+              hash: 2cec0f2ef1eb24797b650024873c91c942e74017
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: docker-progress-4.0.2
+          date: 2020-08-17T11:47:14.543Z
+        - commits:
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: patch
+              hash: 9bb049ea3be13fb1362e39b057f78b19d8e3153d
+              subject: Update dependencies
+          date: '2020-03-04T14:17:04Z'
+          version: docker-progress-4.0.1
+        - commits:
+            - author: Paulo Castro
+              body: >-
+                The change type is considered 'major' because, by default,
+                errors are
+
+                now thrown for relatively common occurrences such as
+                authentication
+
+                failures when pulling from private registries, and library users
+                may
+
+                have to adapt.
+              footers:
+                change-type: major
+                signed-off-by: Paulo Castro <paulo@balena.io>
+              hash: 3eef3685262e6bae8de064b9c50129e5597f4318
+              subject: Detect error events in push/pull progress streams
+          date: '2019-03-26T16:03:31Z'
+          version: docker-progress-4.0.0
+        - commits:
+            - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+              hash: ccd1e99c5501257f1304f4cb68dd02383411e0b8
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: docker-toolbelt-3.3.10
+          date: 2020-08-19T12:10:49.102Z
+        - commits:
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: patch
+              hash: e89aedf563c4158894265c885cb86a834b5c9c7f
+              subject: Update to balena-lint 5.x
+          date: '2020-08-17T12:49:42Z'
+          version: docker-toolbelt-3.3.9
+        - commits:
+            - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+              hash: 580a4229374fc96fc3f7aeb80e6b5a09aa958d7f
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: livepush-3.5.1
+          date: 2020-08-19T12:27:19.448Z
+        - commits:
+            - author: Roman Mazur
+              body: ''
+              footers:
+                change-type: minor
+                signed-off-by: Roman Mazur <roman@balena.io>
+              hash: c180b489f3a537468f3347398824ca285354caaa
+              subject: Allow setting ENV variables in the live image
+            - author: Roman Mazur
+              body: ''
+              footers:
+                change-type: patch
+                signed-off-by: Roman Mazur <roman@balena.io>
+              hash: 7a053dd801ee5bdc8e5b0792044be611d8981a58
+              subject: Bump dockerode types dependency
+          date: '2020-07-13T11:46:04Z'
+          version: livepush-3.5.0
+        - commits:
+            - author: Cameron Diver
+              body: ''
+              footers:
+                change-type: patch
+                signed-off-by: Cameron Diver <cameron@balena.io>
+              hash: 68ebf4a50acb2b451770f79a44e256dc14adbde0
+              subject: Update README with information about live directives
+          date: '2020-05-05T10:39:11Z'
+          version: livepush-3.4.1
+        - commits:
+            - author: Cameron Diver
+              body: ''
+              footers:
+                change-type: minor
+                closes: '#76'
+                signed-off-by: Cameron Diver <cameron@balena.io>
+              hash: f4caa2052af2a820f8bf86d202b21b2fe6680af9
+              subject: "\U0001F52D Add a file watcher which can be used by library users"
+          date: '2020-04-15T10:50:17Z'
+          version: livepush-3.4.0
+        - commits:
+            - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+              hash: 139561ad61ca4f0e2a6203fe3c5f3345ba32cf83
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: resin-docker-build-1.1.6
+          date: 2020-08-19T12:14:05.986Z
+        - commits:
+            - author: CameronDiver
+              body: ''
+              footers:
+                change-type: patch
+                signed-off-by: Cameron Diver <cameron@balena.io>
+              hash: 0e84ec3d48268c0ae1a2390a2dad2cf8ec9e0eec
+              subject: Update README with correct instantiation method
+          date: '2020-04-02T16:54:05Z'
+          version: resin-docker-build-1.1.5
+  version: 11.12.8
+  date: 2020-08-19T12:38:52.114Z
+- commits:
     - subject: Update typed-error to 3.x
       hash: 379730a9e1d6530ea8bc13715a46fe895b0d4ec8
       body: |
