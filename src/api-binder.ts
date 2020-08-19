@@ -284,7 +284,7 @@ export function startCurrentStateReport() {
 			reportCurrentState();
 		}
 	});
-	return reportCurrentState();
+	reportCurrentState();
 }
 
 export async function fetchDevice(
@@ -330,9 +330,9 @@ export async function fetchDeviceTags(): Promise<DeviceTag[]> {
 	}
 	const tags = (await balenaApi.get({
 		resource: 'device_tag',
-		id: deviceId,
 		options: {
 			$select: ['id', 'tag_key', 'value'],
+			$filter: { device: deviceId },
 		},
 	})) as Array<Dictionary<unknown>>;
 

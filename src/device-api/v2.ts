@@ -49,8 +49,10 @@ export function createV2Api(router: Router) {
 		}
 
 		return applicationManager.lockingIfNecessary(appId, { force }, () => {
-			return getApp(appId)
-				.then((app) => {
+			return Promise.all([applicationManager.getCurrentApps(), getApp(appId)])
+				.then(([apps, targetApp]) => {
+					const app = apps[appId];
+
 					if (app == null) {
 						res.status(404).send(appNotFoundMessage);
 						return;
@@ -64,11 +66,20 @@ export function createV2Api(router: Router) {
 					}
 
 					let service: Service | undefined;
+					let targetService: Service | undefined;
 					if (imageId != null) {
 						service = _.find(app.services, (svc) => svc.imageId === imageId);
+						targetService = _.find(
+							targetApp.services,
+							(svc) => svc.imageId === imageId,
+						);
 					} else {
 						service = _.find(
 							app.services,
+							(svc) => svc.serviceName === serviceName,
+						);
+						targetService = _.find(
+							targetApp.services,
 							(svc) => svc.serviceName === serviceName,
 						);
 					}
@@ -82,7 +93,11 @@ export function createV2Api(router: Router) {
 					});
 					return applicationManager
 						.executeStep(
-							generateStep(action, { current: service, wait: true }),
+							generateStep(action, {
+								current: service,
+								target: targetService,
+								wait: true,
+							}),
 							{
 								skipLock: true,
 							},
@@ -463,6 +478,7 @@ export function createV2Api(router: Router) {
 				tags,
 			});
 		} catch (e) {
+			log.error(e);
 			res.status(500).json({
 				status: 'failed',
 				message: e.message,

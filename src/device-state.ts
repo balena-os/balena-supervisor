@@ -330,7 +330,7 @@ export async function initNetworkChecks({
 
 	await network.startIPAddressUpdate()(async (addresses) => {
 		const macAddress = await config.get('macAddress');
-		await reportCurrentState({
+		reportCurrentState({
 			ip_address: addresses.join(' '),
 			mac_address: macAddress,
 		});
@@ -570,7 +570,7 @@ export function reportCurrentState(
 		newState = {};
 	}
 	currentVolatile = { ...currentVolatile, ...newState };
-	return emitAsync('change', undefined);
+	emitAsync('change', undefined);
 }
 
 export async function reboot(force?: boolean, skipLock?: boolean) {
@@ -579,7 +579,7 @@ export async function reboot(force?: boolean, skipLock?: boolean) {
 	const $reboot = await dbus.reboot();
 	shuttingDown = true;
 	emitAsync('shutdown', undefined);
-	return $reboot;
+	return await $reboot;
 }
 
 export async function shutdown(force?: boolean, skipLock?: boolean) {
@@ -806,6 +806,7 @@ export const applyTarget = async ({
 				// Forward the UpdatesLockedError directly
 				throw e;
 			}
+			throw e;
 			throw new Error(
 				'Failed to apply state transition steps. ' +
 					e.message +

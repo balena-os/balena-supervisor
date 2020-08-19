@@ -171,7 +171,7 @@ export class App {
 			this.commit !== target.commit
 		) {
 			// FIXME: What does updateCommit do? where is it stored
-			generateStep('updateCommit', { target: target.commit });
+			steps.push(generateStep('updateCommit', { target: target.commit }));
 		}
 
 		return steps;

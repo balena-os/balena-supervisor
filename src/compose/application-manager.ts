@@ -364,11 +364,13 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 	const networks = _.groupBy(await networkManager.getAll(), 'appId');
 	const services = _.groupBy(await serviceManager.getAll(), 'appId');
 
-	const allAppIds = _.uniq([
-		...Object.keys(volumes),
-		...Object.keys(networks),
-		...Object.keys(services),
-	]).map((i) => parseInt(i, 10));
+	const allAppIds = _.union(
+		Object.keys(volumes),
+		Object.keys(networks),
+		Object.keys(services),
+	).map((i) => parseInt(i, 10));
+	// TODO: This will break with multiple apps
+	const commit = (await config.get('currentCommit')) ?? undefined;
 
 	return _.keyBy(
 		allAppIds.map((appId) => {
@@ -378,6 +380,7 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 					services: services[appId] ?? [],
 					networks: _.keyBy(networks[appId], 'name'),
 					volumes: _.keyBy(volumes[appId], 'name'),
+					commit,
 				},
 				false,
 			);
@@ -728,12 +731,12 @@ function saveAndRemoveImages(
 
 async function getAppContainerIds(currentApps: InstancedAppState) {
 	const containerIds: { [appId: number]: Dictionary<string> } = {};
-	await Promise.all([
+	await Promise.all(
 		_.map(currentApps, async (_app, appId) => {
 			const intAppId = parseInt(appId, 10);
 			containerIds[intAppId] = await serviceManager.getContainerIdMap(intAppId);
 		}),
-	]);
+	);
 
 	return containerIds;
 }
