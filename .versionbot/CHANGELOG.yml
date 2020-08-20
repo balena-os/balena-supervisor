@@ -1,4 +1,19 @@
 - commits:
+    - subject: Don't enforce the vc4-fkms-v3d dtoverlay on rpi4
+      hash: de4c1b25385630b6f9fadb7a362d5556c2cc5008
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1404'
+        closes: '#1404'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 11.12.9
+  date: 2020-08-20T09:24:11.110Z
+- commits:
     - subject: Update dependencies
       hash: ea34a2d10a3acd19cfefe4c847eb96579315429a
       body: |
