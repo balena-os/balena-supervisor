@@ -3,7 +3,6 @@ import * as _ from 'lodash';
 
 import { expect } from './lib/chai-config';
 import * as config from '../src/config';
-import { validKeys } from '../src/device-config';
 import * as configUtils from '../src/config/utils';
 import { ExtraUEnv } from '../src/config/backends/extra-uEnv';
 import { Extlinux } from '../src/config/backends/extlinux';
@@ -38,28 +37,6 @@ describe('Config Utilities', () => {
 			expect(
 				configUtils.bootConfigToEnv(BACKENDS[key], configObj.bootConfig),
 			).to.deep.equal(configObj.envVars);
-		});
-	});
-
-	it('formats keys from config', () => {
-		// Pick any backend to use for test
-		// note: some of the values used will be specific to this backend
-		const backend = BACKENDS['extlinux'];
-		const formattedKeys = configUtils.formatConfigKeys(backend, validKeys, {
-			FOO: 'bar',
-			BAR: 'baz',
-			RESIN_HOST_CONFIG_foo: 'foobaz',
-			BALENA_HOST_CONFIG_foo: 'foobar',
-			RESIN_HOST_CONFIG_other: 'val',
-			BALENA_HOST_CONFIG_baz: 'bad',
-			BALENA_SUPERVISOR_POLL_INTERVAL: '100', // any device
-			BALENA_HOST_EXTLINUX_isolcpus: '1,2,3', // specific to backend
-			RESIN_HOST_EXTLINUX_fdt: '/boot/mycustomdtb.dtb', // specific to backend
-		});
-		expect(formattedKeys).to.deep.equal({
-			HOST_EXTLINUX_isolcpus: '1,2,3',
-			HOST_EXTLINUX_fdt: '/boot/mycustomdtb.dtb',
-			SUPERVISOR_POLL_INTERVAL: '100',
 		});
 	});
 });

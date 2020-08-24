@@ -80,9 +80,7 @@ export async function loadTargetFromFile(
 		}
 
 		const deviceConf = await deviceConfig.getCurrent();
-		const formattedConf = await deviceConfig.formatConfigKeys(
-			preloadState.config,
-		);
+		const formattedConf = deviceConfig.formatConfigKeys(preloadState.config);
 		preloadState.config = { ...formattedConf, ...deviceConf };
 		const localState = {
 			local: { name: '', ...preloadState },

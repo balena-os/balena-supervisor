@@ -168,19 +168,22 @@ describe('Device Backend Config', () => {
 	it('accepts RESIN_ and BALENA_ variables', async () => {
 		return expect(
 			deviceConfig.formatConfigKeys({
-				FOO: 'bar',
-				BAR: 'baz',
-				RESIN_HOST_CONFIG_foo: 'foobaz',
-				BALENA_HOST_CONFIG_foo: 'foobar',
-				RESIN_HOST_CONFIG_other: 'val',
-				BALENA_HOST_CONFIG_baz: 'bad',
-				BALENA_SUPERVISOR_POLL_INTERVAL: '100',
+				FOO: 'bar', // should be removed
+				BAR: 'baz', // should be removed
+				RESIN_SUPERVISOR_LOCAL_MODE: 'false', // any device
+				BALENA_SUPERVISOR_OVERRIDE_LOCK: 'false', // any device
+				BALENA_SUPERVISOR_POLL_INTERVAL: '100', // any device
+				RESIN_HOST_CONFIG_dtparam: 'i2c_arm=on","spi=on","audio=on', // config.txt backend
+				RESIN_HOST_CONFIGFS_ssdt: 'spidev1.0', // configfs backend
+				BALENA_HOST_EXTLINUX_isolcpus: '1,2,3', // extlinux backend
 			}),
-		).to.eventually.deep.equal({
-			HOST_CONFIG_foo: 'foobar',
-			HOST_CONFIG_other: 'val',
-			HOST_CONFIG_baz: 'bad',
+		).to.deep.equal({
+			SUPERVISOR_LOCAL_MODE: 'false',
+			SUPERVISOR_OVERRIDE_LOCK: 'false',
 			SUPERVISOR_POLL_INTERVAL: '100',
+			HOST_CONFIG_dtparam: 'i2c_arm=on","spi=on","audio=on',
+			HOST_CONFIGFS_ssdt: 'spidev1.0',
+			HOST_EXTLINUX_isolcpus: '1,2,3',
 		});
 	});
 
