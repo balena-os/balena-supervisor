@@ -1,4 +1,19 @@
 - commits:
+    - subject: Preventing removing all configurations if device has no backends
+      hash: 7ea49bf4fb317346badf141e6eea8910e599c837
+      body: ''
+      footer:
+        Closes: '#1437'
+        closes: '#1437'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 11.12.10
+  date: 2020-08-24T17:43:41.125Z
+- commits:
     - subject: Don't enforce the vc4-fkms-v3d dtoverlay on rpi4
       hash: de4c1b25385630b6f9fadb7a362d5556c2cc5008
       body: ''
