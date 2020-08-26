@@ -310,6 +310,65 @@ describe('Device Backend Config', () => {
 		});
 	});
 
+	describe('Raspberry pi4', () => {
+		it('should always add the vc4-fkms-v3d dtoverlay', () => {
+			expect(
+				deviceConfig.ensureRequiredOverlay('raspberrypi4-64', {}),
+			).to.deep.equal({
+				dtoverlay: ['vc4-fkms-v3d'],
+			});
+			expect(
+				deviceConfig.ensureRequiredOverlay('raspberrypi4-64', {
+					test: '123',
+					test2: ['123'],
+					test3: ['123', '234'],
+				}),
+			).to.deep.equal({
+				test: '123',
+				test2: ['123'],
+				test3: ['123', '234'],
+				dtoverlay: ['vc4-fkms-v3d'],
+			});
+			expect(
+				deviceConfig.ensureRequiredOverlay('raspberrypi4-64', {
+					dtoverlay: 'test',
+				}),
+			).to.deep.equal({ dtoverlay: ['test', 'vc4-fkms-v3d'] });
+			expect(
+				deviceConfig.ensureRequiredOverlay('raspberrypi4-64', {
+					dtoverlay: ['test'],
+				}),
+			).to.deep.equal({ dtoverlay: ['test', 'vc4-fkms-v3d'] });
+		});
+
+		it('should not cause a config change when the cloud does not specify the pi4 overlay', () => {
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configTxtBackend,
+					{ HOST_CONFIG_dtoverlay: '"test","vc4-fkms-v3d"' },
+					{ HOST_CONFIG_dtoverlay: '"test"' },
+					'raspberrypi4-64',
+				),
+			).to.equal(false);
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configTxtBackend,
+					{ HOST_CONFIG_dtoverlay: '"test","vc4-fkms-v3d"' },
+					{ HOST_CONFIG_dtoverlay: 'test' },
+					'raspberrypi4-64',
+				),
+			).to.equal(false);
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configTxtBackend,
+					{ HOST_CONFIG_dtoverlay: '"test","test2","vc4-fkms-v3d"' },
+					{ HOST_CONFIG_dtoverlay: '"test","test2"' },
+					'raspberrypi4-64',
+				),
+			).to.equal(false);
+		});
+	});
+
 	// describe('ConfigFS', () => {
 	// 	const upboardConfig = new DeviceConfig();
 	// 	let upboardConfigBackend: ConfigBackend | null;

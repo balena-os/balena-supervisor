@@ -612,8 +612,13 @@ function checkBoolChanged(
 // Modifies conf
 // exported for tests
 export function ensureRequiredOverlay(deviceType: string, conf: ConfigOptions) {
-	if (deviceType === 'fincm3') {
-		ensureDtoverlay(conf, 'balena-fin');
+	switch (deviceType) {
+		case 'fincm3':
+			ensureDtoverlay(conf, 'balena-fin');
+			break;
+		case 'raspberrypi4-64':
+			ensureDtoverlay(conf, 'vc4-fkms-v3d');
+			break;
 	}
 
 	return conf;
