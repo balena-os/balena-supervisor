@@ -28,6 +28,7 @@
   "private": true,
   "dependencies": {
     "dbus": "^1.0.7",
+    "mdns-resolver": "^1.0.0",
     "semver": "^7.3.2",
     "sqlite3": "^4.1.1"
   },
