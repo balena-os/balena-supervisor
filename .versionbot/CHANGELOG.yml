@@ -1,4 +1,20 @@
 - commits:
+    - subject: 'bug: Resolve mDNS API URLs'
+      hash: f0c2a3cba7a6879a506d9151c7c0d9ea89544dae
+      body: |
+        Due to switching to Alpine the ability to resolve mDNS
+        hostnames was lost. This patch overrides the lookup and
+        manually resolves the names.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+  version: 11.12.11
+  date: 2020-08-27T10:36:31.040Z
+- commits:
     - subject: Preventing removing all configurations if device has no backends
       hash: 7ea49bf4fb317346badf141e6eea8910e599c837
       body: ''
