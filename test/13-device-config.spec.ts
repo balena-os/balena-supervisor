@@ -8,10 +8,13 @@ import * as fsUtils from '../src/lib/fs-utils';
 import * as logger from '../src/logger';
 import { Extlinux } from '../src/config/backends/extlinux';
 import { ConfigTxt } from '../src/config/backends/config-txt';
+import { Odmdata } from '../src/config/backends/odmdata';
+
 import prepare = require('./lib/prepare');
 
 const extlinuxBackend = new Extlinux();
 const configTxtBackend = new ConfigTxt();
+const odmdataBackend = new Odmdata();
 
 describe('Device Backend Config', () => {
 	let logSpy: SinonSpy;
@@ -305,6 +308,29 @@ describe('Device Backend Config', () => {
 					{ HOST_CONFIG_dtoverlay: '"test","test2","balena-fin"' },
 					{ HOST_CONFIG_dtoverlay: '"test","test2"' },
 					'fincm3',
+				),
+			).to.equal(false);
+		});
+	});
+
+	describe('ODMDATA', () => {
+		it('requires change when target is different', () => {
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					odmdataBackend,
+					{ HOST_ODMDATA_configuration: '2' },
+					{ HOST_ODMDATA_configuration: '5' },
+					'jetson-tx2',
+				),
+			).to.equal(true);
+		});
+		it('requires change when no target is set', () => {
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					odmdataBackend,
+					{ HOST_ODMDATA_configuration: '2' },
+					{},
+					'jetson-tx2',
 				),
 			).to.equal(false);
 		});
