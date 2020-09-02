@@ -1,4 +1,19 @@
 - commits:
+    - subject: added support for configuring ODMDATA
+      hash: 662826d3495f551a5451395d0eb6660bfb65b599
+      body: ''
+      footer:
+        Closes: '1206'
+        closes: '1206'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 11.13.0
+  date: 2020-08-29T13:07:31.541Z
+- commits:
     - subject: 'bug: Resolve mDNS API URLs'
       hash: f0c2a3cba7a6879a506d9151c7c0d9ea89544dae
       body: |
