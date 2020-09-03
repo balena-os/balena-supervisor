@@ -11,6 +11,8 @@ import DeviceState from '../device-state';
 import { CoreOptions } from 'request';
 import * as url from 'url';
 
+import * as sysInfo from '../lib/system-info';
+
 // The exponential backoff starts at 15s
 const MINIMUM_BACKOFF_DELAY = 15000;
 
@@ -121,6 +123,39 @@ const getStateDiff = (): DeviceStatus => {
 			.value(),
 	};
 
+	const shouldReportSysInfo = (type: string, past: number, now: number) => {
+		if (!past) {
+			return true;
+		}
+		// TODO: Deduplicate this code
+		switch (type) {
+			case 'cpu_usage':
+				// The bucket size of cpu usage is 20
+				return Math.floor(past / 20) !== Math.floor(now / 20);
+			case 'cpu_temp':
+				return Math.floor(past / 5) !== Math.floor(now / 5);
+			case 'memory_usage':
+				return Math.floor(past / 10) !== Math.floor(now / 10);
+		}
+		return true;
+	};
+
+	const toOmit: string[] = [];
+	_.each(diff.local, (value, key) => {
+		// if we have some system information that has changed, we check that it's
+		// within a certain range before reporting
+		if (
+			!shouldReportSysInfo(
+				key,
+				(lastReportedLocal as any)[key],
+				value as number,
+			)
+		) {
+			toOmit.push(key);
+		}
+	});
+
+	diff.local = _.omit(diff.local, toOmit);
 	return _.omitBy(diff, _.isEmpty);
 };
 
@@ -171,8 +206,16 @@ const reportCurrentState = (): null => {
 		reportPending = true;
 		try {
 			const currentDeviceState = await deviceState.getStatus();
-			_.assign(stateForReport.local, currentDeviceState.local);
-			_.assign(stateForReport.dependent, currentDeviceState.dependent);
+			const info = await sysInfo.getSysInfoToReport();
+			stateForReport.local = {
+				...stateForReport.local,
+				...currentDeviceState.local,
+				...info,
+			};
+			stateForReport.dependent = {
+				...stateForReport.dependent,
+				...currentDeviceState.dependent,
+			};
 
 			const stateDiff = getStateDiff();
 			if (_.size(stateDiff) === 0) {
