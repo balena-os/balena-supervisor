@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add device system information to state endpoint patch
+      hash: f305a333ba70e90d098decdf81c220bfcbeec899
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 11.14.0
+  date: 2020-09-03T13:43:00.299Z
+- commits:
     - subject: added support for configuring ODMDATA
       hash: 662826d3495f551a5451395d0eb6660bfb65b599
       body: ''
