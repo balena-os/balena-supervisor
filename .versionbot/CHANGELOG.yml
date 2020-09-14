@@ -1,4 +1,37 @@
 - commits:
+    - subject: 'application-manager: Convert to a singleton'
+      hash: 96c68166a1e1d9b400fca84d33910d526009ecfd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Rich Bayliss
+      nested: []
+    - subject: 'device-state: Convert to a singleton'
+      hash: e3864915bcf3b8c2865f3c14d2ad85023218db3c
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Rich Bayliss
+      nested: []
+    - subject: 'api-binder: Convert to a singleton'
+      hash: d50f7791e1f89750a35791c1ea3bd4a7472da9a1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Rich Bayliss
+      nested: []
+  version: 11.14.1
+  date: 2020-09-14T10:26:09.557Z
+- commits:
     - subject: Add device system information to state endpoint patch
       hash: f305a333ba70e90d098decdf81c220bfcbeec899
       body: ''
