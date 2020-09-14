@@ -1,8 +1,8 @@
 import * as _ from 'lodash';
 import { fs } from 'mz';
 
-import { Image } from '../compose/images';
-import DeviceState from '../device-state';
+import { Image, imageFromService } from '../compose/images';
+import * as deviceState from '../device-state';
 import * as config from '../config';
 import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
@@ -17,7 +17,6 @@ import { AppsJsonFormat } from '../types/state';
 
 export async function loadTargetFromFile(
 	appsPath: Nullable<string>,
-	deviceState: DeviceState,
 ): Promise<void> {
 	log.info('Attempting to load any preloaded applications');
 	if (!appsPath) {
@@ -65,11 +64,11 @@ export async function loadTargetFromFile(
 					imageName: service.image,
 					serviceName: service.serviceName,
 					imageId: service.imageId,
-					serviceId,
+					serviceId: parseInt(serviceId, 10),
 					releaseId: app.releaseId,
-					appId,
+					appId: parseInt(appId, 10),
 				};
-				imgs.push(deviceState.applications.imageForService(svc));
+				imgs.push(imageFromService(svc));
 			}
 		}
 
@@ -88,7 +87,6 @@ export async function loadTargetFromFile(
 		};
 
 		await deviceState.setTarget(localState);
-
 		log.success('Preloading complete');
 		if (preloadState.pinDevice) {
 			// Multi-app warning!

@@ -1,7 +1,7 @@
-import APIBinder from './api-binder';
+import * as apiBinder from './api-binder';
 import * as db from './db';
 import * as config from './config';
-import DeviceState from './device-state';
+import * as deviceState from './device-state';
 import * as eventTracker from './event-tracker';
 import { intialiseContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/migration';
@@ -31,30 +31,7 @@ const startupConfigFields: config.ConfigKey[] = [
 ];
 
 export class Supervisor {
-	private deviceState: DeviceState;
-	private apiBinder: APIBinder;
 	private api: SupervisorAPI;
-
-	public constructor() {
-		this.apiBinder = new APIBinder();
-		this.deviceState = new DeviceState({
-			apiBinder: this.apiBinder,
-		});
-		// workaround the circular dependency
-		this.apiBinder.setDeviceState(this.deviceState);
-
-		// FIXME: rearchitect proxyvisor to avoid this circular dependency
-		// by storing current state and having the APIBinder query and report it / provision devices
-		this.deviceState.applications.proxyvisor.bindToAPI(this.apiBinder);
-
-		this.api = new SupervisorAPI({
-			routers: [this.apiBinder.router, this.deviceState.router],
-			healthchecks: [
-				this.apiBinder.healthcheck.bind(this.apiBinder),
-				this.deviceState.healthcheck.bind(this.deviceState),
-			],
-		});
-	}
 
 	public async init() {
 		log.info(`Supervisor v${version} starting up...`);
@@ -78,24 +55,27 @@ export class Supervisor {
 		await firewall.initialised;
 
 		log.debug('Starting api binder');
-		await this.apiBinder.initClient();
+		await apiBinder.initialized;
+
+		await deviceState.initialized;
 
 		logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
-		if (conf.legacyAppsPresent && this.apiBinder.balenaApi != null) {
+		if (conf.legacyAppsPresent && apiBinder.balenaApi != null) {
 			log.info('Legacy app detected, running migration');
-			await normaliseLegacyDatabase(
-				this.deviceState.applications,
-				this.apiBinder.balenaApi,
-			);
+			await normaliseLegacyDatabase();
 		}
 
-		await this.deviceState.init();
+		await deviceState.loadInitialState();
 
 		log.info('Starting API server');
+		this.api = new SupervisorAPI({
+			routers: [apiBinder.router, deviceState.router],
+			healthchecks: [apiBinder.healthcheck, deviceState.healthcheck],
+		});
 		this.api.listen(conf.listenPort, conf.apiTimeout);
-		this.deviceState.on('shutdown', () => this.api.stop());
+		deviceState.on('shutdown', () => this.api.stop());
 
-		await this.apiBinder.start();
+		await apiBinder.start();
 	}
 }
 

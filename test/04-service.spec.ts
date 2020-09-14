@@ -518,7 +518,7 @@ describe('compose/service', () => {
 			expect(dockerSvc.isEqualConfig(composeSvc, {})).to.be.true;
 		});
 
-		it('should correct convert formats with a null entrypoint', () => {
+		it('should correctly convert formats with a null entrypoint', () => {
 			const composeSvc = Service.fromComposeObject(
 				configs.entrypoint.compose,
 				configs.entrypoint.imageInfo,

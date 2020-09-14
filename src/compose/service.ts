@@ -6,6 +6,7 @@ import * as path from 'path';
 
 import * as conversions from '../lib/conversions';
 import { checkInt } from '../lib/validation';
+import { InternalInconsistencyError } from '../lib/errors';
 import { DockerPortOptions, PortMap } from './ports';
 import {
 	ConfigMap,
@@ -27,19 +28,37 @@ import { EnvVarObject } from '../lib/types';
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
 
+export type ServiceStatus =
+	| 'Stopping'
+	| 'Stopped'
+	| 'Running'
+	| 'Installing'
+	| 'Installed'
+	| 'Dead'
+	| 'paused'
+	| 'restarting'
+	| 'removing'
+	| 'exited';
+
 export class Service {
-	public appId: number | null;
-	public imageId: number | null;
+	public appId: number;
+	public imageId: number;
 	public config: ServiceConfig;
 	public serviceName: string | null;
-	public releaseId: number | null;
-	public serviceId: number | null;
+	public releaseId: number;
+	public serviceId: number;
 	public imageName: string | null;
 	public containerId: string | null;
 
 	public dependsOn: string[] | null;
 
-	public status: string;
+	// This looks weird, and it is. The lowercase statuses come from Docker,
+	// except the dashboard takes these values and displays them on the dashboard.
+	// What we should be doin is defining these container statuses, and have the
+	// dashboard make these human readable instead. Until that happens we have
+	// this halfways state of some captalised statuses, and others coming directly
+	// from docker
+	public status: ServiceStatus;
 	public createdAt: Date | null;
 
 	private static configArrayFields: ServiceConfigArrayField[] = [
@@ -89,23 +108,25 @@ export class Service {
 
 		appConfig = ComposeUtils.camelCaseConfig(appConfig);
 
-		const intOrNull = (
-			val: string | number | null | undefined,
-		): number | null => {
-			return checkInt(val) || null;
-		};
+		if (!appConfig.appId) {
+			throw new InternalInconsistencyError('No app id for service');
+		}
+		const appId = checkInt(appConfig.appId);
+		if (appId == null) {
+			throw new InternalInconsistencyError('Malformed app id for service');
+		}
 
 		// Seperate the application information from the docker
 		// container configuration
-		service.imageId = intOrNull(appConfig.imageId);
+		service.imageId = parseInt(appConfig.imageId, 10);
 		delete appConfig.imageId;
 		service.serviceName = appConfig.serviceName;
 		delete appConfig.serviceName;
-		service.appId = intOrNull(appConfig.appId);
+		service.appId = appId;
 		delete appConfig.appId;
-		service.releaseId = intOrNull(appConfig.releaseId);
+		service.releaseId = parseInt(appConfig.releaseId, 10);
 		delete appConfig.releaseId;
-		service.serviceId = intOrNull(appConfig.serviceId);
+		service.serviceId = parseInt(appConfig.serviceId, 10);
 		delete appConfig.serviceId;
 		service.imageName = appConfig.image;
 		service.dependsOn = appConfig.dependsOn || null;
@@ -282,7 +303,7 @@ export class Service {
 		config.volumes = Service.extendAndSanitiseVolumes(
 			config.volumes,
 			options.imageInfo,
-			service.appId || 0,
+			service.appId,
 			service.serviceName || '',
 		);
 
@@ -439,7 +460,9 @@ export class Service {
 		} else if (container.State.Status === 'dead') {
 			svc.status = 'Dead';
 		} else {
-			svc.status = container.State.Status;
+			// We know this cast as fine as we represent all of the status available
+			// by docker in the ServiceStatus type
+			svc.status = container.State.Status as ServiceStatus;
 		}
 
 		svc.createdAt = new Date(container.Created);
@@ -560,22 +583,44 @@ export class Service {
 			tty: container.Config.Tty || false,
 		};
 
-		svc.appId = checkInt(svc.config.labels['io.balena.app-id']) || null;
-		svc.serviceId = checkInt(svc.config.labels['io.balena.service-id']) || null;
+		const appId = checkInt(svc.config.labels['io.balena.app-id']);
+		if (appId == null) {
+			throw new InternalInconsistencyError(
+				`Found a service with no appId! ${svc}`,
+			);
+		}
+		svc.appId = appId;
 		svc.serviceName = svc.config.labels['io.balena.service-name'];
+		svc.serviceId = parseInt(svc.config.labels['io.balena.service-id'], 10);
+		if (Number.isNaN(svc.serviceId)) {
+			throw new InternalInconsistencyError(
+				'Attempt to build Service class from container with malformed labels',
+			);
+		}
 		const nameMatch = container.Name.match(/.*_(\d+)_(\d+)$/);
+		if (nameMatch == null) {
+			throw new InternalInconsistencyError(
+				'Attempt to build Service class from container with malformed name',
+			);
+		}
 
-		svc.imageId = nameMatch != null ? checkInt(nameMatch[1]) || null : null;
-		svc.releaseId = nameMatch != null ? checkInt(nameMatch[2]) || null : null;
+		svc.imageId = parseInt(nameMatch[1], 10);
+		svc.releaseId = parseInt(nameMatch[2], 10);
 		svc.containerId = container.Id;
 
 		return svc;
 	}
 
-	public toComposeObject(): ServiceConfig {
-		// This isn't techinically correct as we do some changes
-		// to the configuration which we cannot reverse. We also
-		// represent the ports as a class, which isn't ideal
+	/**
+	 * Here we try to reverse the fromComposeObject to the best of our ability, as
+	 * this is used for the supervisor reporting it's own target state. Some of
+	 * these values won't match in a 1-1 comparison, such as `devices`, as we lose
+	 * some data about.
+	 *
+	 * @returns ServiceConfig
+	 * @memberof Service
+	 */
+	public toComposeObject() {
 		return this.config;
 	}
 

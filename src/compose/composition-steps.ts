@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 
 import * as config from '../config';
 
-import { ApplicationManager } from '../application-manager';
+import * as applicationManager from './application-manager';
 import type { Image } from './images';
 import * as images from './images';
 import Network from './network';
@@ -13,6 +13,7 @@ import Volume from './volume';
 import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
+import { DeviceReportFields } from '../types/state';
 
 interface BaseCompositionStepArgs {
 	force?: boolean;
@@ -36,7 +37,6 @@ interface CompositionStepArgs {
 		options?: {
 			skipLock?: boolean;
 			wait?: boolean;
-			removeImage?: boolean;
 		};
 	} & BaseCompositionStepArgs;
 	remove: {
@@ -44,7 +44,7 @@ interface CompositionStepArgs {
 	} & BaseCompositionStepArgs;
 	updateMetadata: {
 		current: Service;
-		target: { imageId: number; releaseId: number };
+		target: Service;
 		options?: {
 			skipLock?: boolean;
 		};
@@ -68,6 +68,7 @@ interface CompositionStepArgs {
 		target: Service;
 		options?: {
 			skipLock?: boolean;
+			timeout?: number;
 		};
 	} & BaseCompositionStepArgs;
 	fetch: {
@@ -94,17 +95,19 @@ interface CompositionStepArgs {
 		current: Volume;
 	};
 	ensureSupervisorNetwork: {};
+	noop: {};
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;
-export type CompositionStep<T extends CompositionStepAction> = {
+export type CompositionStepT<T extends CompositionStepAction> = {
 	action: T;
 } & CompositionStepArgs[T];
+export type CompositionStep = CompositionStepT<CompositionStepAction>;
 
 export function generateStep<T extends CompositionStepAction>(
 	action: T,
 	args: CompositionStepArgs[T],
-): CompositionStep<T> {
+): CompositionStep {
 	return {
 		action,
 		...args,
@@ -112,7 +115,7 @@ export function generateStep<T extends CompositionStepAction>(
 }
 
 type Executors<T extends CompositionStepAction> = {
-	[key in T]: (step: CompositionStep<key>) => Promise<unknown>;
+	[key in T]: (step: CompositionStepT<key>) => Promise<unknown>;
 };
 type LockingFn = (
 	// TODO: Once the entire codebase is typescript, change
@@ -130,13 +133,12 @@ interface CompositionCallbacks {
 	fetchStart: () => void;
 	fetchEnd: () => void;
 	fetchTime: (time: number) => void;
-	stateReport: (state: Dictionary<unknown>) => boolean;
+	stateReport: (state: DeviceReportFields) => void;
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
 }
 
 export function getExecutors(app: {
 	lockFn: LockingFn;
-	applications: ApplicationManager;
 	callbacks: CompositionCallbacks;
 }) {
 	const executors: Executors<CompositionStepAction> = {
@@ -167,9 +169,6 @@ export function getExecutors(app: {
 				async () => {
 					await serviceManager.kill(step.current);
 					app.callbacks.containerKilled(step.current.containerId);
-					if (_.get(step, ['options', 'removeImage'])) {
-						await images.removeByDockerId(step.current.config.image);
-					}
 				},
 			);
 		},
@@ -209,7 +208,7 @@ export function getExecutors(app: {
 			);
 		},
 		stopAll: async (step) => {
-			await app.applications.stopAll({
+			await applicationManager.stopAll({
 				force: step.force,
 				skipLock: step.skipLock,
 			});
@@ -259,7 +258,7 @@ export function getExecutors(app: {
 						// been downloaded ,and it's relevant mostly for
 						// the legacy GET /v1/device endpoint that assumes
 						// a single container app
-						await app.callbacks.stateReport({ update_downloaded: true });
+						app.callbacks.stateReport({ update_downloaded: true });
 					}
 				},
 				step.serviceName,
@@ -291,6 +290,9 @@ export function getExecutors(app: {
 		},
 		ensureSupervisorNetwork: async () => {
 			networkManager.ensureSupervisorNetwork();
+		},
+		noop: async () => {
+			/* async noop */
 		},
 	};
 

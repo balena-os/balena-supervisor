@@ -184,7 +184,7 @@ export interface ConfigMap {
 // is typescript
 export interface DeviceMetadata {
 	imageInfo?: Dockerode.ImageInspectInfo;
-	uuid: string;
+	uuid: string | null;
 	appName: string;
 	version: string;
 	deviceType: string;

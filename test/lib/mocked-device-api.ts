@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import { Router } from 'express';
 import { fs } from 'mz';
 
-import { ApplicationManager } from '../../src/application-manager';
+import * as applicationManager from '../../src/compose/application-manager';
 import * as networkManager from '../../src/compose/network-manager';
 import * as serviceManager from '../../src/compose/service-manager';
 import * as volumeManager from '../../src/compose/volume-manager';
@@ -10,8 +10,8 @@ import * as config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
 import { createV2Api } from '../../src/device-api/v2';
-import APIBinder from '../../src/api-binder';
-import DeviceState from '../../src/device-state';
+import * as apiBinder from '../../src/api-binder';
+import * as deviceState from '../../src/device-state';
 import SupervisorAPI from '../../src/supervisor-api';
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
@@ -67,17 +67,14 @@ const STUBBED_VALUES = {
 
 async function create(): Promise<SupervisorAPI> {
 	// Get SupervisorAPI construct options
-	const { deviceState, apiBinder } = await createAPIOpts();
+	await createAPIOpts();
+
 	// Stub functions
 	setupStubs();
-	// Create ApplicationManager
-	const appManager = new ApplicationManager({
-		deviceState,
-		apiBinder: null,
-	});
+
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
-		routers: [deviceState.router, buildRoutes(appManager)],
+		routers: [deviceState.router, buildRoutes()],
 		healthchecks: [deviceState.healthcheck, apiBinder.healthcheck],
 	});
 
@@ -101,19 +98,12 @@ async function cleanUp(): Promise<void> {
 	return restoreStubs();
 }
 
-async function createAPIOpts(): Promise<SupervisorAPIOpts> {
+async function createAPIOpts(): Promise<void> {
 	await db.initialized;
+	await deviceState.initialized;
+
 	// Initialize and set values for mocked Config
 	await initConfig();
-	// Create deviceState
-	const deviceState = new DeviceState({
-		apiBinder: null as any,
-	});
-	const apiBinder = new APIBinder();
-	return {
-		deviceState,
-		apiBinder,
-	};
 }
 
 async function initConfig(): Promise<void> {
@@ -129,13 +119,13 @@ async function initConfig(): Promise<void> {
 	});
 }
 
-function buildRoutes(appManager: ApplicationManager): Router {
+function buildRoutes(): Router {
 	// Create new Router
 	const router = Router();
 	// Add V1 routes
-	createV1Api(router, appManager);
+	createV1Api(applicationManager.router);
 	// Add V2 routes
-	createV2Api(router, appManager);
+	createV2Api(applicationManager.router);
 	// Return modified Router
 	return router;
 }
@@ -166,11 +156,6 @@ function restoreStubs() {
 	serviceManager.getStatus = originalSvcGetStatus;
 	// @ts-expect-error Assigning to a RO property
 	serviceManager.getAllByAppId = originalSvcGetAppId;
-}
-
-interface SupervisorAPIOpts {
-	deviceState: DeviceState;
-	apiBinder: APIBinder;
 }
 
 export = { create, cleanUp, STUBBED_VALUES };

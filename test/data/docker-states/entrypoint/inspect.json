@@ -24,7 +24,7 @@
 	"HostnamePath": "/var/lib/docker/containers/52cfd7a64d50236376741dd2578c4fbb0178d90e2e4fae55f3e14cd905e9ac9e/hostname",
 	"HostsPath": "/var/lib/docker/containers/52cfd7a64d50236376741dd2578c4fbb0178d90e2e4fae55f3e14cd905e9ac9e/hosts",
 	"LogPath": "",
-	"Name": "/nifty_swartz",
+	"Name": "main_1_1",
 	"RestartCount": 0,
 	"Driver": "aufs",
 	"Platform": "linux",
