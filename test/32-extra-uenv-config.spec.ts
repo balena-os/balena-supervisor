@@ -68,9 +68,19 @@ describe('extra_uEnv Configuration', () => {
 
 	it('only matches supported devices', async () => {
 		const existsStub = stub(fs, 'exists');
-		for (const { hasConfigFile, deviceType, supported } of MATCH_TESTS) {
-			existsStub.resolves(hasConfigFile);
-			await expect(backend.matches(deviceType)).to.eventually.equal(supported);
+		for (const device of MATCH_TESTS) {
+			// Test device that has extra_uEnv.txt
+			let hasExtraUEnv = true;
+			existsStub.resolves(hasExtraUEnv);
+			await expect(backend.matches(device.type)).to.eventually.equal(
+				device.supported && hasExtraUEnv,
+			);
+			// Test same device but without extra_uEnv.txt
+			hasExtraUEnv = false;
+			existsStub.resolves(hasExtraUEnv);
+			await expect(backend.matches(device.type)).to.eventually.equal(
+				device.supported && hasExtraUEnv,
+			);
 		}
 		existsStub.restore();
 	});
@@ -239,79 +249,22 @@ const MALFORMED_CONFIGS = [
 ];
 
 const MATCH_TESTS = [
-	{
-		deviceType: 'jetson-tx1',
-		hasConfigFile: true,
-		supported: true,
-	},
-	{
-		deviceType: 'jetson-tx2',
-		hasConfigFile: true,
-		supported: true,
-	},
-	{
-		deviceType: 'jetson-tx2',
-		hasConfigFile: false,
-		supported: false,
-	},
-	{
-		deviceType: 'jetson-nano',
-		hasConfigFile: true,
-		supported: true,
-	},
-	{
-		deviceType: 'jetson-nano',
-		hasConfigFile: false,
-		supported: false,
-	},
-	{
-		deviceType: 'jetson-xavier',
-		hasConfigFile: true,
-		supported: true,
-	},
-	{
-		deviceType: 'jetson-xavier',
-		hasConfigFile: false,
-		supported: false,
-	},
-	{
-		deviceType: 'intel-nuc',
-		hasConfigFile: true,
-		supported: true,
-	},
-	{
-		deviceType: 'intel-nuc',
-		hasConfigFile: false,
-		supported: false,
-	},
-	{
-		deviceType: 'raspberry',
-		hasConfigFile: true,
-		supported: false,
-	},
-	{
-		deviceType: 'raspberry',
-		hasConfigFile: false,
-		supported: false,
-	},
-	{
-		deviceType: 'fincm3',
-		hasConfigFile: true,
-		supported: false,
-	},
-	{
-		deviceType: 'fincm3',
-		hasConfigFile: false,
-		supported: false,
-	},
-	{
-		deviceType: 'up-board',
-		hasConfigFile: true,
-		supported: false,
-	},
-	{
-		deviceType: 'up-board',
-		hasConfigFile: false,
-		supported: false,
-	},
+	{ type: 'astro-tx2', supported: true },
+	{ type: 'blackboard-tx2', supported: true },
+	{ type: 'jetson-tx2', supported: true },
+	{ type: 'n310-tx2', supported: true },
+	{ type: 'n510-tx2', supported: true },
+	{ type: 'orbitty-tx2', supported: true },
+	{ type: 'spacely-tx2', supported: true },
+	{ type: 'srd3-tx2', supported: true },
+	{ type: 'jetson-nano', supported: true },
+	{ type: 'jetson-nano-emmc', supported: true },
+	{ type: 'jn30b-nano', supported: true },
+	{ type: 'photon-nano', supported: true },
+	{ type: 'intel-nuc', supported: true },
+	{ type: 'raspberry', supported: false },
+	{ type: 'fincm3', supported: false },
+	{ type: 'asus-tinker-board', supported: false },
+	{ type: 'nano-board', supported: false },
+	{ type: 'tx2-tx2-device', supported: false },
 ];
