@@ -1,4 +1,17 @@
 - commits:
+    - subject: Refactor extra_uEnv backend to match with more devices
+      hash: 07e644d0b69f412fb14aeaba17914b9eacd6477f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 11.14.2
+  date: 2020-09-15T18:25:31.240Z
+- commits:
     - subject: 'application-manager: Convert to a singleton'
       hash: 96c68166a1e1d9b400fca84d33910d526009ecfd
       body: ''
