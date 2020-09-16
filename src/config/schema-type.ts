@@ -88,10 +88,6 @@ export const schemaTypes = {
 	},
 
 	// Database types
-	apiSecret: {
-		type: t.string,
-		default: NullOrUndefined,
-	},
 	name: {
 		type: t.string,
 		default: 'local',
@@ -231,7 +227,6 @@ export const schemaTypes = {
 			uuid: t.union([t.string, NullOrUndefined]),
 			listenPort: PermissiveNumber,
 			name: t.string,
-			apiSecret: t.union([t.string, NullOrUndefined]),
 			deviceApiKey: t.string,
 			apiEndpoint: t.string,
 			version: t.string,

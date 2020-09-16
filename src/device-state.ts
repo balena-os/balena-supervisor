@@ -38,6 +38,7 @@ import {
 	InstancedAppState,
 } from './types/state';
 import * as dbFormat from './device-state/db-format';
+import * as apiKeys from './lib/api-keys';
 
 function validateLocalState(state: any): asserts state is TargetState['local'] {
 	if (state.name != null) {
@@ -265,9 +266,7 @@ export const initialized = (async () => {
 		if (changedConfig.loggingEnabled != null) {
 			logger.enable(changedConfig.loggingEnabled);
 		}
-		if (changedConfig.apiSecret != null) {
-			reportCurrentState({ api_secret: changedConfig.apiSecret });
-		}
+
 		if (changedConfig.appUpdatePollInterval != null) {
 			maxPollTime = changedConfig.appUpdatePollInterval;
 		}
@@ -346,11 +345,11 @@ async function saveInitialConfig() {
 
 export async function loadInitialState() {
 	await applicationManager.initialized;
+	await apiKeys.initialized;
 
 	const conf = await config.getMany([
 		'initialConfigSaved',
 		'listenPort',
-		'apiSecret',
 		'osVersion',
 		'osVariant',
 		'macAddress',
@@ -374,7 +373,7 @@ export async function loadInitialState() {
 	log.info('Reporting initial state, supervisor version and API info');
 	reportCurrentState({
 		api_port: conf.listenPort,
-		api_secret: conf.apiSecret,
+		api_secret: apiKeys.cloudApiKey,
 		os_version: conf.osVersion,
 		os_variant: conf.osVariant,
 		mac_address: conf.macAddress,

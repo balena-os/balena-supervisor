@@ -12,12 +12,13 @@ import mockedAPI = require('./lib/mocked-device-api');
 import * as applicationManager from '../src/compose/application-manager';
 import { InstancedAppState } from '../src/types/state';
 
+import * as apiKeys from '../src/lib/api-keys';
+import * as db from '../src/db';
+
 const mockedOptions = {
 	listenPort: 54321,
 	timeout: 30000,
 };
-
-const VALID_SECRET = mockedAPI.STUBBED_VALUES.config.apiSecret;
 
 describe('SupervisorAPI', () => {
 	let api: SupervisorAPI;
@@ -40,6 +41,10 @@ describe('SupervisorAPI', () => {
 
 		// Start test API
 		await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
+
+		// Create a scoped key
+		await apiKeys.initialized;
+		await apiKeys.generateCloudKey();
 	});
 
 	after(async () => {
@@ -56,6 +61,104 @@ describe('SupervisorAPI', () => {
 		await mockedAPI.cleanUp();
 	});
 
+	describe('API Key Scope', () => {
+		it('should generate a key which is scoped for a single application', async () => {
+			// single app scoped key...
+			const appScopedKey = await apiKeys.generateScopedKey(1, 1);
+
+			await request
+				.get('/v2/applications/1/state')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${appScopedKey}`)
+				.expect(200);
+		});
+		it('should generate a key which is scoped for multiple applications', async () => {
+			// multi-app scoped key...
+			const multiAppScopedKey = await apiKeys.generateScopedKey(1, 2, {
+				scopes: [1, 2].map((appId) => {
+					return { type: 'app', appId };
+				}),
+			});
+
+			await request
+				.get('/v2/applications/1/state')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${multiAppScopedKey}`)
+				.expect(200);
+
+			await request
+				.get('/v2/applications/2/state')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${multiAppScopedKey}`)
+				.expect(200);
+		});
+		it('should generate a key which is scoped for all applications', async () => {
+			await request
+				.get('/v2/applications/1/state')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(200);
+
+			await request
+				.get('/v2/applications/2/state')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(200);
+		});
+		it('should have a cached lookup of the key scopes to save DB loading', async () => {
+			const scopes = await apiKeys.getScopesForKey(apiKeys.cloudApiKey);
+
+			const key = 'not-a-normal-key';
+			await db.initialized;
+			await db
+				.models('apiSecret')
+				.update({
+					key,
+				})
+				.where({
+					key: apiKeys.cloudApiKey,
+				});
+
+			// the key we had is now gone, but the cache should return values
+			const cachedScopes = await apiKeys.getScopesForKey(apiKeys.cloudApiKey);
+			expect(cachedScopes).to.deep.equal(scopes);
+
+			// this should bust the cache...
+			await apiKeys.generateCloudKey(true);
+
+			// the key we changed should be gone now, and the new key should have the cloud scopes
+			const missingScopes = await apiKeys.getScopesForKey(key);
+			const freshScopes = await apiKeys.getScopesForKey(apiKeys.cloudApiKey);
+
+			expect(missingScopes).to.be.null;
+			expect(freshScopes).to.deep.equal(scopes);
+		});
+		it('should regenerate a key and invalidate the old one', async () => {
+			// single app scoped key...
+			const appScopedKey = await apiKeys.generateScopedKey(1, 1);
+
+			await request
+				.get('/v2/applications/1/state')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${appScopedKey}`)
+				.expect(200);
+
+			const newScopedKey = await apiKeys.refreshKey(appScopedKey);
+
+			await request
+				.get('/v2/applications/1/state')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${appScopedKey}`)
+				.expect(401);
+
+			await request
+				.get('/v2/applications/1/state')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${newScopedKey}`)
+				.expect(200);
+		});
+	});
+
 	describe('/ping', () => {
 		it('responds with OK (without auth)', async () => {
 			await request.get('/ping').set('Accept', 'application/json').expect(200);
@@ -64,7 +167,7 @@ describe('SupervisorAPI', () => {
 			await request
 				.get('/ping')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${VALID_SECRET}`)
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(200);
 		});
 	});
@@ -77,7 +180,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v1/healthy')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect(sampleResponses.V1.GET['/healthy'].statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
@@ -138,7 +241,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v1/apps/2')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect(sampleResponses.V1.GET['/apps/2'].statusCode)
 					.expect('Content-Type', /json/)
 					.then((response) => {
@@ -154,7 +257,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.post('/v1/apps/2/stop')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect(sampleResponses.V1.GET['/apps/2/stop'].statusCode)
 					.expect('Content-Type', /json/)
 					.then((response) => {
@@ -170,7 +273,7 @@ describe('SupervisorAPI', () => {
 				const response = await request
 					.get('/v1/device')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect(200);
 
 				expect(response.body).to.have.property('mac_address').that.is.not.empty;
@@ -184,7 +287,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v2/device/vpn')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect('Content-Type', /json/)
 					.expect(sampleResponses.V2.GET['/device/vpn'].statusCode)
 					.then((response) => {
@@ -200,9 +303,9 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v2/applications/1/state')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
-					.expect('Content-Type', /json/)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect(sampleResponses.V2.GET['/applications/1/state'].statusCode)
+					.expect('Content-Type', /json/)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
 							sampleResponses.V2.GET['/applications/1/state'].body,
@@ -214,7 +317,7 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v2/applications/123invalid/state')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect('Content-Type', /json/)
 					.expect(
 						sampleResponses.V2.GET['/applications/123invalid/state'].statusCode,
@@ -230,14 +333,24 @@ describe('SupervisorAPI', () => {
 				await request
 					.get('/v2/applications/9000/state')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${VALID_SECRET}`)
-					.expect('Content-Type', /json/)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect(sampleResponses.V2.GET['/applications/9000/state'].statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
 							sampleResponses.V2.GET['/applications/9000/state'].body,
 						);
 					});
+			});
+
+			describe('Scoped API Keys', () => {
+				it('returns 409 because app is out of scope of the key', async () => {
+					const apiKey = await apiKeys.generateScopedKey(3, 1);
+					await request
+						.get('/v2/applications/2/state')
+						.set('Accept', 'application/json')
+						.set('Authorization', `Bearer ${apiKey}`)
+						.expect(409);
+				});
 			});
 		});
 

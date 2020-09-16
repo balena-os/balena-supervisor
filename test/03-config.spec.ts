@@ -64,12 +64,6 @@ describe('Config', () => {
 		});
 	});
 
-	it('allows removing a db key', async () => {
-		await conf.remove('apiSecret');
-		const secret = await conf.get('apiSecret');
-		return expect(secret).to.be.undefined;
-	});
-
 	it('allows deleting a config.json key and returns a default value if none is set', async () => {
 		await conf.remove('appUpdatePollInterval');
 		const poll = await conf.get('appUpdatePollInterval');

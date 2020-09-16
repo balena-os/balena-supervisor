@@ -18,6 +18,8 @@ import {
 
 import log from '../lib/supervisor-console';
 
+import * as apiKeys from '../lib/api-keys';
+
 export function camelCaseConfig(
 	literalConfig: ConfigMap,
 ): ServiceComposeConfig {
@@ -316,10 +318,10 @@ export function dockerDeviceToStr(device: DockerDevice): string {
 // TODO: Export these strings to a constant lib, to
 // enable changing them easily
 // Mutates service
-export function addFeaturesFromLabels(
+export async function addFeaturesFromLabels(
 	service: Service,
 	options: DeviceMetadata,
-): void {
+): Promise<void> {
 	const setEnvVariables = function (key: string, val: string) {
 		service.config.environment[`RESIN_${key}`] = val;
 		service.config.environment[`BALENA_${key}`] = val;
@@ -356,18 +358,24 @@ export function addFeaturesFromLabels(
 			setEnvVariables('API_KEY', options.deviceApiKey);
 			setEnvVariables('API_URL', options.apiEndpoint);
 		},
-		'io.balena.features.supervisor-api': () => {
+		'io.balena.features.supervisor-api': async () => {
+			// create a app/service specific API secret
+			const apiSecret = await apiKeys.generateScopedKey(
+				service.appId,
+				service.serviceId,
+			);
+
+			const host = (() => {
+				if (service.config.networkMode === 'host') {
+					return '127.0.0.1';
+				} else {
+					service.config.networks[constants.supervisorNetworkInterface] = {};
+					return options.supervisorApiHost;
+				}
+			})();
+
+			setEnvVariables('SUPERVISOR_API_KEY', apiSecret);
 			setEnvVariables('SUPERVISOR_PORT', options.listenPort.toString());
-			setEnvVariables('SUPERVISOR_API_KEY', options.apiSecret);
-
-			let host: string;
-
-			if (service.config.networkMode === 'host') {
-				host = '127.0.0.1';
-			} else {
-				host = options.supervisorApiHost;
-				service.config.networks[constants.supervisorNetworkInterface] = {};
-			}
 			setEnvVariables('SUPERVISOR_HOST', host);
 			setEnvVariables(
 				'SUPERVISOR_ADDRESS',
@@ -388,11 +396,12 @@ export function addFeaturesFromLabels(
 			} as Dockerode.DeviceRequest),
 	};
 
-	_.each(features, (fn, label) => {
-		if (checkTruthy(service.config.labels[label])) {
-			fn();
+	for (const feature of Object.keys(features) as [keyof typeof features]) {
+		const fn = features[feature];
+		if (checkTruthy(service.config.labels[feature])) {
+			await fn();
 		}
-	});
+	}
 
 	// This is a special case, and folding it into the
 	// structure above would unnecessarily complicate things.

@@ -2,13 +2,13 @@ import * as supertest from 'supertest';
 
 import SupervisorAPI from '../src/supervisor-api';
 import mockedAPI = require('./lib/mocked-device-api');
+import { cloudApiKey } from '../src/lib/api-keys';
 
 const mockedOptions = {
 	listenPort: 12345,
 	timeout: 30000,
 };
 
-const VALID_SECRET = mockedAPI.STUBBED_VALUES.config.apiSecret;
 const INVALID_SECRET = 'bad_api_secret';
 
 describe('SupervisorAPI authentication', () => {
@@ -39,20 +39,20 @@ describe('SupervisorAPI authentication', () => {
 	});
 
 	it('finds apiKey from query', async () => {
-		return request.post(`/v1/blink?apikey=${VALID_SECRET}`).expect(200);
+		return request.post(`/v1/blink?apikey=${cloudApiKey}`).expect(200);
 	});
 
 	it('finds apiKey from Authorization header (ApiKey scheme)', async () => {
 		return request
 			.post('/v1/blink')
-			.set('Authorization', `ApiKey ${VALID_SECRET}`)
+			.set('Authorization', `ApiKey ${cloudApiKey}`)
 			.expect(200);
 	});
 
 	it('finds apiKey from Authorization header (Bearer scheme)', async () => {
 		return request
 			.post('/v1/blink')
-			.set('Authorization', `Bearer ${VALID_SECRET}`)
+			.set('Authorization', `Bearer ${cloudApiKey}`)
 			.expect(200);
 	});
 
@@ -70,7 +70,7 @@ describe('SupervisorAPI authentication', () => {
 		for (const scheme of randomCases) {
 			return request
 				.post('/v1/blink')
-				.set('Authorization', `${scheme} ${VALID_SECRET}`)
+				.set('Authorization', `${scheme} ${cloudApiKey}`)
 				.expect(200);
 		}
 	});

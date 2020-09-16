@@ -281,14 +281,13 @@ function validateConfigMap<T extends SchemaTypeKey>(
 }
 
 export async function generateRequiredFields() {
-	return getMany(['uuid', 'deviceApiKey', 'apiSecret', 'unmanaged']).then(
-		({ uuid, deviceApiKey, apiSecret, unmanaged }) => {
+	return getMany(['uuid', 'deviceApiKey', 'unmanaged']).then(
+		({ uuid, deviceApiKey, unmanaged }) => {
 			// These fields need to be set regardless
-			if (uuid == null || apiSecret == null) {
+			if (uuid == null) {
 				uuid = uuid || newUniqueKey();
-				apiSecret = apiSecret || newUniqueKey();
 			}
-			return set({ uuid, apiSecret }).then(() => {
+			return set({ uuid }).then(() => {
 				if (unmanaged) {
 					return;
 				}
