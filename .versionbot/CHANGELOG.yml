@@ -1,4 +1,17 @@
 - commits:
+    - subject: Clarify docs for toggling update lock override from dashboard
+      hash: 1b51db06c118ab4c60296f394e854436584c6437
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: M. Casqueira
+      nested: []
+  version: 11.14.3
+  date: 2020-09-17T22:25:21.020Z
+- commits:
     - subject: Refactor extra_uEnv backend to match with more devices
       hash: 07e644d0b69f412fb14aeaba17914b9eacd6477f
       body: ''
