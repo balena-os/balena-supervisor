@@ -775,8 +775,9 @@ export class App {
 						imageInfo,
 						serviceName: svc.serviceName,
 					};
+
 					// FIXME: Typings for DeviceMetadata
-					return Service.fromComposeObject(
+					return await Service.fromComposeObject(
 						svc,
 						(thisSvcOpts as unknown) as DeviceMetadata,
 					);

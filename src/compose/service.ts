@@ -100,10 +100,10 @@ export class Service {
 
 	// The type here is actually ServiceComposeConfig, except that the
 	// keys must be camelCase'd first
-	public static fromComposeObject(
+	public static async fromComposeObject(
 		appConfig: ConfigMap,
 		options: DeviceMetadata,
-	): Service {
+	): Promise<Service> {
 		const service = new Service();
 
 		appConfig = ComposeUtils.camelCaseConfig(appConfig);
@@ -443,7 +443,7 @@ export class Service {
 		}
 
 		// Mutate service with extra features
-		ComposeUtils.addFeaturesFromLabels(service, options);
+		await ComposeUtils.addFeaturesFromLabels(service, options);
 
 		return service;
 	}

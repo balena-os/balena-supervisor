@@ -45,7 +45,7 @@ function createApp(
 	);
 }
 
-function createService(
+async function createService(
 	conf: Partial<ServiceComposeConfig>,
 	appId = 1,
 	serviceName = 'test',
@@ -54,7 +54,7 @@ function createService(
 	imageId = 4,
 	extraState?: Partial<Service>,
 ) {
-	const svc = Service.fromComposeObject(
+	const svc = await Service.fromComposeObject(
 		{
 			appId,
 			serviceName,
@@ -265,15 +265,15 @@ describe('compose/app', () => {
 			.that.deep.equals({ 'io.balena.supervised': 'true', test: 'test' });
 	});
 
-	it('should kill dependencies of a volume before changing config', () => {
+	it('should kill dependencies of a volume before changing config', async () => {
 		const current = createApp(
-			[createService({ volumes: ['test-volume'] })],
+			[await createService({ volumes: ['test-volume'] })],
 			[],
 			[Volume.fromComposeObject('test-volume', 1, {})],
 			false,
 		);
 		const target = createApp(
-			[createService({ volumes: ['test-volume'] })],
+			[await createService({ volumes: ['test-volume'] })],
 			[],
 			[
 				Volume.fromComposeObject('test-volume', 1, {
@@ -381,14 +381,14 @@ describe('compose/app', () => {
 			.that.equals('test-network');
 	});
 
-	it('should kill dependencies of networks before removing', () => {
+	it('should kill dependencies of networks before removing', async () => {
 		const current = createApp(
-			[createService({ networks: { 'test-network': {} } })],
+			[await createService({ networks: { 'test-network': {} } })],
 			[Network.fromComposeObject('test-network', 1, {})],
 			[],
 			false,
 		);
-		const target = createApp([createService({})], [], [], true);
+		const target = createApp([await createService({})], [], [], true);
 
 		const steps = current.nextStepsForAppUpdate(defaultContext, target);
 		const idx = expectStep('kill', steps);
@@ -398,15 +398,15 @@ describe('compose/app', () => {
 			.that.equals('test');
 	});
 
-	it('should kill dependencies of networks before changing config', () => {
+	it('should kill dependencies of networks before changing config', async () => {
 		const current = createApp(
-			[createService({ networks: { 'test-network': {} } })],
+			[await createService({ networks: { 'test-network': {} } })],
 			[Network.fromComposeObject('test-network', 1, {})],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({ networks: { 'test-network': {} } })],
+			[await createService({ networks: { 'test-network': {} } })],
 			[
 				Network.fromComposeObject('test-network', 1, {
 					labels: { test: 'test' },
@@ -426,8 +426,8 @@ describe('compose/app', () => {
 		expect(() => expectStep('removeNetwork', steps)).to.throw();
 	});
 
-	it('should not output a kill step for a service which is already stopping when changing a volume', () => {
-		const service = createService({ volumes: ['test-volume'] });
+	it('should not output a kill step for a service which is already stopping when changing a volume', async () => {
+		const service = await createService({ volumes: ['test-volume'] });
 		service.status = 'Stopping';
 		const current = createApp(
 			[service],
@@ -464,13 +464,16 @@ describe('compose/app', () => {
 
 	it('should create a kill step for service which is no longer referenced', async () => {
 		const current = createApp(
-			[createService({}, 1, 'main', 1, 1), createService({}, 1, 'aux', 1, 2)],
+			[
+				await createService({}, 1, 'main', 1, 1),
+				await createService({}, 1, 'aux', 1, 2),
+			],
 			[Network.fromComposeObject('test-network', 1, {})],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({}, 1, 'main', 2, 1)],
+			[await createService({}, 1, 'main', 2, 1)],
 			[Network.fromComposeObject('test-network', 1, {})],
 			[],
 			true,
@@ -486,7 +489,7 @@ describe('compose/app', () => {
 
 	it('should emit a noop when a service which is no longer referenced is already stopping', async () => {
 		const current = createApp(
-			[createService({}, 1, 'main', 1, 1, 1, { status: 'Stopping' })],
+			[await createService({}, 1, 'main', 1, 1, 1, { status: 'Stopping' })],
 			[],
 			[],
 			false,
@@ -497,15 +500,15 @@ describe('compose/app', () => {
 		expectStep('noop', steps);
 	});
 
-	it('should remove a dead container that is still referenced in the target state', () => {
+	it('should remove a dead container that is still referenced in the target state', async () => {
 		const current = createApp(
-			[createService({}, 1, 'main', 1, 1, 1, { status: 'Dead' })],
+			[await createService({}, 1, 'main', 1, 1, 1, { status: 'Dead' })],
 			[],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({}, 1, 'main', 1, 1, 1)],
+			[await createService({}, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			true,
@@ -515,9 +518,9 @@ describe('compose/app', () => {
 		expectStep('remove', steps);
 	});
 
-	it('should remove a dead container that is not referenced in the target state', () => {
+	it('should remove a dead container that is not referenced in the target state', async () => {
 		const current = createApp(
-			[createService({}, 1, 'main', 1, 1, 1, { status: 'Dead' })],
+			[await createService({}, 1, 'main', 1, 1, 1, { status: 'Dead' })],
 			[],
 			[],
 			false,
@@ -528,10 +531,10 @@ describe('compose/app', () => {
 		expectStep('remove', steps);
 	});
 
-	it('should emit a noop when a service has an image downloading', () => {
+	it('should emit a noop when a service has an image downloading', async () => {
 		const current = createApp([], [], [], false);
 		const target = createApp(
-			[createService({}, 1, 'main', 1, 1, 1)],
+			[await createService({}, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			true,
@@ -544,15 +547,15 @@ describe('compose/app', () => {
 		expectStep('noop', steps);
 	});
 
-	it('should emit an updateMetadata step when a service has not changed but the release has', () => {
+	it('should emit an updateMetadata step when a service has not changed but the release has', async () => {
 		const current = createApp(
-			[createService({}, 1, 'main', 1, 1, 1)],
+			[await createService({}, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({}, 1, 'main', 2, 1, 1)],
+			[await createService({}, 1, 'main', 2, 1, 1)],
 			[],
 			[],
 			true,
@@ -562,15 +565,15 @@ describe('compose/app', () => {
 		expectStep('updateMetadata', steps);
 	});
 
-	it('should stop a container which has stoppped as its target', () => {
+	it('should stop a container which has stoppped as its target', async () => {
 		const current = createApp(
-			[createService({}, 1, 'main', 1, 1, 1)],
+			[await createService({}, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({ running: false }, 1, 'main', 1, 1, 1)],
+			[await createService({ running: false }, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			true,
@@ -580,7 +583,7 @@ describe('compose/app', () => {
 		expectStep('stop', steps);
 	});
 
-	it('should recreate a container if the target configuration changes', () => {
+	it('should recreate a container if the target configuration changes', async () => {
 		const contextWithImages = {
 			...defaultContext,
 			...{
@@ -598,13 +601,13 @@ describe('compose/app', () => {
 			},
 		};
 		let current = createApp(
-			[createService({}, 1, 'main', 1, 1, 1, {})],
+			[await createService({}, 1, 'main', 1, 1, 1, {})],
 			[defaultNetwork],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({ privileged: true }, 1, 'main', 1, 1, 1, {})],
+			[await createService({ privileged: true }, 1, 'main', 1, 1, 1, {})],
 			[defaultNetwork],
 			[],
 			true,
@@ -624,7 +627,7 @@ describe('compose/app', () => {
 			.forTarget((t) => t.serviceName === 'main').to.exist;
 	});
 
-	it('should not start a container when it depends on a service which is being installed', () => {
+	it('should not start a container when it depends on a service which is being installed', async () => {
 		const mainImage: Image = {
 			appId: 1,
 			dependent: 0,
@@ -651,7 +654,7 @@ describe('compose/app', () => {
 		try {
 			let current = createApp(
 				[
-					createService({ running: false }, 1, 'dep', 1, 2, 2, {
+					await createService({ running: false }, 1, 'dep', 1, 2, 2, {
 						status: 'Installing',
 						containerId: 'id',
 					}),
@@ -662,8 +665,8 @@ describe('compose/app', () => {
 			);
 			const target = createApp(
 				[
-					createService({}, 1, 'main', 1, 1, 1, { dependsOn: ['dep'] }),
-					createService({}, 1, 'dep', 1, 2, 2),
+					await createService({}, 1, 'main', 1, 1, 1, { dependsOn: ['dep'] }),
+					await createService({}, 1, 'dep', 1, 2, 2),
 				],
 				[defaultNetwork],
 				[],
@@ -681,7 +684,7 @@ describe('compose/app', () => {
 
 			// we now make our current state have the 'dep' service as started...
 			current = createApp(
-				[createService({}, 1, 'dep', 1, 2, 2, { containerId: 'id' })],
+				[await createService({}, 1, 'dep', 1, 2, 2, { containerId: 'id' })],
 				[defaultNetwork],
 				[],
 				false,
@@ -704,10 +707,10 @@ describe('compose/app', () => {
 		}
 	});
 
-	it('should emit a fetch step when an image has not been downloaded for a service', () => {
+	it('should emit a fetch step when an image has not been downloaded for a service', async () => {
 		const current = createApp([], [], [], false);
 		const target = createApp(
-			[createService({}, 1, 'main', 1, 1, 1)],
+			[await createService({}, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			true,
@@ -717,15 +720,15 @@ describe('compose/app', () => {
 		withSteps(steps).expectStep('fetch').to.exist;
 	});
 
-	it('should stop a container which has stoppped as its target', () => {
+	it('should stop a container which has stoppped as its target', async () => {
 		const current = createApp(
-			[createService({}, 1, 'main', 1, 1, 1)],
+			[await createService({}, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({ running: false }, 1, 'main', 1, 1, 1)],
+			[await createService({ running: false }, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			true,
@@ -735,7 +738,7 @@ describe('compose/app', () => {
 		withSteps(steps).expectStep('stop');
 	});
 
-	it('should create a start step when all that changes is a running state', () => {
+	it('should create a start step when all that changes is a running state', async () => {
 		const contextWithImages = {
 			...defaultContext,
 			...{
@@ -753,13 +756,13 @@ describe('compose/app', () => {
 			},
 		};
 		const current = createApp(
-			[createService({ running: false }, 1, 'main', 1, 1, 1, {})],
+			[await createService({ running: false }, 1, 'main', 1, 1, 1, {})],
 			[defaultNetwork],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({}, 1, 'main', 1, 1, 1, {})],
+			[await createService({}, 1, 'main', 1, 1, 1, {})],
 			[defaultNetwork],
 			[],
 			true,
@@ -772,7 +775,7 @@ describe('compose/app', () => {
 			.forTarget((t) => t.serviceName === 'main').to.exist;
 	});
 
-	it('should not infer a fetch step when the download is already in progress', () => {
+	it('should not infer a fetch step when the download is already in progress', async () => {
 		const contextWithDownloading = {
 			...defaultContext,
 			...{
@@ -781,7 +784,7 @@ describe('compose/app', () => {
 		};
 		const current = createApp([], [], [], false);
 		const target = createApp(
-			[createService({}, 1, 'main', 1, 1, 1)],
+			[await createService({}, 1, 'main', 1, 1, 1)],
 			[],
 			[],
 			true,
@@ -791,7 +794,7 @@ describe('compose/app', () => {
 		withSteps(steps).expectStep('fetch').forTarget('main').to.not.exist;
 	});
 
-	it('should create a kill step when a service has to be updated but the strategy is kill-then-download', () => {
+	it('should create a kill step when a service has to be updated but the strategy is kill-then-download', async () => {
 		const contextWithImages = {
 			...defaultContext,
 			...{
@@ -814,14 +817,24 @@ describe('compose/app', () => {
 		};
 
 		const current = createApp(
-			[createService({ labels, image: 'main-image' }, 1, 'main', 1, 1, 1, {})],
+			[
+				await createService(
+					{ labels, image: 'main-image' },
+					1,
+					'main',
+					1,
+					1,
+					1,
+					{},
+				),
+			],
 			[defaultNetwork],
 			[],
 			false,
 		);
 		const target = createApp(
 			[
-				createService(
+				await createService(
 					{ labels, image: 'main-image-2' },
 					1,
 					'main',
@@ -854,7 +867,7 @@ describe('compose/app', () => {
 			.that.equals('main-image-2');
 	});
 
-	it('should not infer a kill step with the default strategy if a dependency is not downloaded', () => {
+	it('should not infer a kill step with the default strategy if a dependency is not downloaded', async () => {
 		const contextWithImages = {
 			...defaultContext,
 			...{
@@ -893,10 +906,10 @@ describe('compose/app', () => {
 
 		const current = createApp(
 			[
-				createService({ image: 'main-image' }, 1, 'main', 1, 1, 1, {
+				await createService({ image: 'main-image' }, 1, 'main', 1, 1, 1, {
 					dependsOn: ['dep'],
 				}),
-				createService({ image: 'dep-image' }, 1, 'dep', 1, 2, 2, {}),
+				await createService({ image: 'dep-image' }, 1, 'dep', 1, 2, 2, {}),
 			],
 			[defaultNetwork],
 			[],
@@ -904,10 +917,10 @@ describe('compose/app', () => {
 		);
 		const target = createApp(
 			[
-				createService({ image: 'main-image-2' }, 1, 'main', 2, 1, 3, {
+				await createService({ image: 'main-image-2' }, 1, 'main', 2, 1, 3, {
 					dependsOn: ['dep'],
 				}),
-				createService({ image: 'dep-image-2' }, 1, 'dep', 2, 2, 4, {}),
+				await createService({ image: 'dep-image-2' }, 1, 'dep', 2, 2, 4, {}),
 			],
 			[defaultNetwork],
 			[],
@@ -918,7 +931,7 @@ describe('compose/app', () => {
 		withSteps(steps).expectStep('kill').forCurrent('main').to.not.exist;
 	});
 
-	it('should create several kill steps as long as there is no unmet dependencies', () => {
+	it('should create several kill steps as long as there is no unmet dependencies', async () => {
 		const contextWithImages = {
 			...defaultContext,
 			...{
@@ -946,13 +959,13 @@ describe('compose/app', () => {
 		};
 
 		const current = createApp(
-			[createService({ image: 'main-image' }, 1, 'main', 1, 1, 1, {})],
+			[await createService({ image: 'main-image' }, 1, 'main', 1, 1, 1, {})],
 			[defaultNetwork],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({ image: 'main-image-2' }, 1, 'main', 2, 1, 2)],
+			[await createService({ image: 'main-image-2' }, 1, 'main', 2, 1, 2)],
 			[defaultNetwork],
 			[],
 			true,
@@ -966,14 +979,14 @@ describe('compose/app', () => {
 		withSteps(steps).expectStep('kill').forCurrent('main').to.exist;
 	});
 
-	it('should create a kill step when a service has to be updated but the strategy is kill-then-download', () => {
+	it('should create a kill step when a service has to be updated but the strategy is kill-then-download', async () => {
 		const labels = {
 			'io.balena.update.strategy': 'kill-then-download',
 		};
 
-		const current = createApp([createService({ labels })], [], [], false);
+		const current = createApp([await createService({ labels })], [], [], false);
 		const target = createApp(
-			[createService({ privileged: true })],
+			[await createService({ privileged: true })],
 			[],
 			[],
 			true,
@@ -983,15 +996,15 @@ describe('compose/app', () => {
 		withSteps(steps).expectStep('kill').forCurrent('main');
 	});
 
-	it('should not infer a kill step with the default strategy if a dependency is not downloaded', () => {
+	it('should not infer a kill step with the default strategy if a dependency is not downloaded', async () => {
 		const current = createApp(
-			[createService({ image: 'image1' })],
+			[await createService({ image: 'image1' })],
 			[],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({ image: 'image2' })],
+			[await createService({ image: 'image2' })],
 			[],
 			[],
 			true,
@@ -1002,19 +1015,19 @@ describe('compose/app', () => {
 		withSteps(steps).rejectStep('kill');
 	});
 
-	it('should create several kill steps as long as there is no unmet dependencies', () => {
+	it('should create several kill steps as long as there is no unmet dependencies', async () => {
 		const current = createApp(
 			[
-				createService({}, 1, 'one', 1, 2),
-				createService({}, 1, 'two', 1, 3),
-				createService({}, 1, 'three', 1, 4),
+				await createService({}, 1, 'one', 1, 2),
+				await createService({}, 1, 'two', 1, 3),
+				await createService({}, 1, 'three', 1, 4),
 			],
 			[],
 			[],
 			false,
 		);
 		const target = createApp(
-			[createService({}, 1, 'three', 1, 4)],
+			[await createService({}, 1, 'three', 1, 4)],
 			[],
 			[],
 			true,
@@ -1023,10 +1036,10 @@ describe('compose/app', () => {
 		const steps = current.nextStepsForAppUpdate(defaultContext, target);
 		withSteps(steps).expectStep('kill').to.have.length(2);
 	});
-	it('should not create a service when a network it depends on is not ready', () => {
+	it('should not create a service when a network it depends on is not ready', async () => {
 		const current = createApp([], [defaultNetwork], [], false);
 		const target = createApp(
-			[createService({ networks: ['test'] }, 1)],
+			[await createService({ networks: ['test'] }, 1)],
 			[defaultNetwork, Network.fromComposeObject('test', 1, {})],
 			[],
 			true,

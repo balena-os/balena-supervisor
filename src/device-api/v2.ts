@@ -1,5 +1,5 @@
 import * as Bluebird from 'bluebird';
-import { NextFunction, Request, Response, Router } from 'express';
+import { NextFunction, Response, Router } from 'express';
 import * as _ from 'lodash';
 
 import * as deviceState from '../device-state';
@@ -30,10 +30,11 @@ import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone } from './common';
+import { AuthorizedRequest } from '../lib/api-keys';
 
 export function createV2Api(router: Router) {
 	const handleServiceAction = (
-		req: Request,
+		req: AuthorizedRequest,
 		res: Response,
 		next: NextFunction,
 		action: CompositionStepAction,
@@ -44,6 +45,15 @@ export function createV2Api(router: Router) {
 			res.status(400).json({
 				status: 'failed',
 				message: 'Missing app id',
+			});
+			return;
+		}
+
+		// handle the case where the appId is out of scope
+		if (!req.auth.isScoped({ apps: [appId] })) {
+			res.status(401).json({
+				status: 'failed',
+				message: 'Application is not available',
 			});
 			return;
 		}
@@ -115,7 +125,7 @@ export function createV2Api(router: Router) {
 
 	router.post(
 		'/v2/applications/:appId/purge',
-		(req: Request, res: Response, next: NextFunction) => {
+		(req: AuthorizedRequest, res: Response, next: NextFunction) => {
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);
 			if (!appId) {
@@ -123,6 +133,15 @@ export function createV2Api(router: Router) {
 					status: 'failed',
 					message: 'Missing app id',
 				});
+			}
+
+			// handle the case where the application is out of scope
+			if (!req.auth.isScoped({ apps: [appId] })) {
+				res.status(401).json({
+					status: 'failed',
+					message: 'Application is not available',
+				});
+				return;
 			}
 
 			return doPurge(appId, force)
@@ -150,7 +169,7 @@ export function createV2Api(router: Router) {
 
 	router.post(
 		'/v2/applications/:appId/restart',
-		(req: Request, res: Response, next: NextFunction) => {
+		(req: AuthorizedRequest, res: Response, next: NextFunction) => {
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);
 			if (!appId) {
@@ -158,6 +177,15 @@ export function createV2Api(router: Router) {
 					status: 'failed',
 					message: 'Missing app id',
 				});
+			}
+
+			// handle the case where the appId is out of scope
+			if (!req.auth.isScoped({ apps: [appId] })) {
+				res.status(401).json({
+					status: 'failed',
+					message: 'Application is not available',
+				});
+				return;
 			}
 
 			return doRestart(appId, force)
@@ -171,7 +199,7 @@ export function createV2Api(router: Router) {
 	// TODO: Support dependent applications when this feature is complete
 	router.get(
 		'/v2/applications/state',
-		async (_req: Request, res: Response, next: NextFunction) => {
+		async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
 			// It's kinda hacky to access the services and db via the application manager
 			// maybe refactor this code
 			Bluebird.join(
@@ -200,44 +228,52 @@ export function createV2Api(router: Router) {
 
 					const appNameById: { [id: number]: string } = {};
 
-					apps.forEach((app) => {
-						const appId = parseInt(app.appId, 10);
-						response[app.name] = {
-							appId,
-							commit: app.commit,
-							services: {},
-						};
+					// only access scoped apps
+					apps
+						.filter((app) =>
+							req.auth.isScoped({ apps: [parseInt(app.appId, 10)] }),
+						)
+						.forEach((app) => {
+							const appId = parseInt(app.appId, 10);
+							response[app.name] = {
+								appId,
+								commit: app.commit,
+								services: {},
+							};
 
-						appNameById[appId] = app.name;
-					});
-
-					imgs.forEach((img) => {
-						const appName = appNameById[img.appId];
-						if (appName == null) {
-							log.warn(
-								`Image found for unknown application!\nImage: ${JSON.stringify(
-									img,
-								)}`,
-							);
-							return;
-						}
-
-						const svc = _.find(services, (service: Service) => {
-							return service.imageId === img.imageId;
+							appNameById[appId] = app.name;
 						});
 
-						let status: string | undefined;
-						if (svc == null) {
-							status = img.status;
-						} else {
-							status = svc.status || img.status;
-						}
-						response[appName].services[img.serviceName] = {
-							status,
-							releaseId: img.releaseId,
-							downloadProgress: img.downloadProgress || null,
-						};
-					});
+					// only access scoped images
+					imgs
+						.filter((img) => req.auth.isScoped({ apps: [img.appId] }))
+						.forEach((img) => {
+							const appName = appNameById[img.appId];
+							if (appName == null) {
+								log.warn(
+									`Image found for unknown application!\nImage: ${JSON.stringify(
+										img,
+									)}`,
+								);
+								return;
+							}
+
+							const svc = _.find(services, (service: Service) => {
+								return service.imageId === img.imageId;
+							});
+
+							let status: string | undefined;
+							if (svc == null) {
+								status = img.status;
+							} else {
+								status = svc.status || img.status;
+							}
+							response[appName].services[img.serviceName] = {
+								status,
+								releaseId: img.releaseId,
+								downloadProgress: img.downloadProgress || null,
+							};
+						});
 
 					res.status(200).json(response);
 				},
@@ -247,7 +283,7 @@ export function createV2Api(router: Router) {
 
 	router.get(
 		'/v2/applications/:appId/state',
-		async (req: Request, res: Response) => {
+		async (req: AuthorizedRequest, res: Response) => {
 			// Check application ID provided is valid
 			const appId = checkInt(req.params.appId);
 			if (!appId) {
@@ -256,6 +292,7 @@ export function createV2Api(router: Router) {
 					message: `Invalid application ID: ${req.params.appId}`,
 				});
 			}
+
 			// Query device for all applications
 			let apps: any;
 			try {
@@ -268,12 +305,22 @@ export function createV2Api(router: Router) {
 				});
 			}
 			// Check if the application exists
-			if (!(appId in apps.local)) {
+			if (!(appId in apps.local) || !req.auth.isScoped({ apps: [appId] })) {
 				return res.status(409).json({
 					status: 'failed',
 					message: `Application ID does not exist: ${appId}`,
 				});
 			}
+
+			// handle the case where the appId is out of scope
+			if (!req.auth.isScoped({ apps: [appId] })) {
+				res.status(401).json({
+					status: 'failed',
+					message: 'Application is not available',
+				});
+				return;
+			}
+
 			// Filter applications we do not want
 			for (const app in apps.local) {
 				if (app !== appId.toString()) {
@@ -380,8 +427,10 @@ export function createV2Api(router: Router) {
 		});
 	});
 
-	router.get('/v2/containerId', async (req, res) => {
-		const services = await serviceManager.getAll();
+	router.get('/v2/containerId', async (req: AuthorizedRequest, res) => {
+		const services = (await serviceManager.getAll()).filter((service) =>
+			req.auth.isScoped({ apps: [service.appId] }),
+		);
 
 		if (req.query.serviceName != null || req.query.service != null) {
 			const serviceName = req.query.serviceName || req.query.service;
@@ -411,41 +460,45 @@ export function createV2Api(router: Router) {
 		}
 	});
 
-	router.get('/v2/state/status', async (_req, res) => {
+	router.get('/v2/state/status', async (req: AuthorizedRequest, res) => {
 		const currentRelease = await config.get('currentCommit');
 
 		const pending = deviceState.isApplyInProgress();
-		const containerStates = (await serviceManager.getAll()).map((svc) =>
-			_.pick(
-				svc,
-				'status',
-				'serviceName',
-				'appId',
-				'imageId',
-				'serviceId',
-				'containerId',
-				'createdAt',
-			),
-		);
+		const containerStates = (await serviceManager.getAll())
+			.filter((service) => req.auth.isScoped({ apps: [service.appId] }))
+			.map((svc) =>
+				_.pick(
+					svc,
+					'status',
+					'serviceName',
+					'appId',
+					'imageId',
+					'serviceId',
+					'containerId',
+					'createdAt',
+				),
+			);
 
 		let downloadProgressTotal = 0;
 		let downloads = 0;
-		const imagesStates = (await images.getStatus()).map((img) => {
-			if (img.downloadProgress != null) {
-				downloadProgressTotal += img.downloadProgress;
-				downloads += 1;
-			}
-			return _.pick(
-				img,
-				'name',
-				'appId',
-				'serviceName',
-				'imageId',
-				'dockerImageId',
-				'status',
-				'downloadProgress',
-			);
-		});
+		const imagesStates = (await images.getStatus())
+			.filter((img) => req.auth.isScoped({ apps: [img.appId] }))
+			.map((img) => {
+				if (img.downloadProgress != null) {
+					downloadProgressTotal += img.downloadProgress;
+					downloads += 1;
+				}
+				return _.pick(
+					img,
+					'name',
+					'appId',
+					'serviceName',
+					'imageId',
+					'dockerImageId',
+					'status',
+					'downloadProgress',
+				);
+			});
 
 		let overallDownloadProgress: number | null = null;
 		if (downloads > 0) {
@@ -500,10 +553,15 @@ export function createV2Api(router: Router) {
 		});
 	});
 
-	router.get('/v2/cleanup-volumes', async (_req, res) => {
+	router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res) => {
 		const targetState = await applicationManager.getTargetApps();
 		const referencedVolumes: string[] = [];
 		_.each(targetState, (app, appId) => {
+			// if this app isn't in scope of the request, do not cleanup it's volumes
+			if (!req.auth.isScoped({ apps: [parseInt(appId, 10)] })) {
+				return;
+			}
+
 			_.each(app.volumes, (_volume, volumeName) => {
 				referencedVolumes.push(
 					Volume.generateDockerName(parseInt(appId, 10), volumeName),

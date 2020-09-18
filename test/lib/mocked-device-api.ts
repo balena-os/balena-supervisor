@@ -18,7 +18,6 @@ const DB_PATH = './test/data/supervisor-api.sqlite';
 // Holds all values used for stubbing
 const STUBBED_VALUES = {
 	config: {
-		apiSecret: 'secure_api_secret',
 		currentCommit: '7fc9c5bea8e361acd49886fe6cc1e1cd',
 	},
 	services: [
@@ -109,10 +108,7 @@ async function createAPIOpts(): Promise<void> {
 async function initConfig(): Promise<void> {
 	// Initialize this config
 	await config.initialized;
-	// Set testing secret
-	await config.set({
-		apiSecret: STUBBED_VALUES.config.apiSecret,
-	});
+
 	// Set a currentCommit
 	await config.set({
 		currentCommit: STUBBED_VALUES.config.currentCommit,

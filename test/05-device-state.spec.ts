@@ -313,7 +313,9 @@ describe('deviceState', () => {
 			service.image = imageName;
 			(service as any).imageName = imageName;
 			services.push(
-				Service.fromComposeObject(service, { appName: 'supertest' } as any),
+				await Service.fromComposeObject(service, {
+					appName: 'supertest',
+				} as any),
 			);
 		}
 

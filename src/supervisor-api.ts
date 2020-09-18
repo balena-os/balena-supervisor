@@ -4,59 +4,12 @@ import { Server } from 'http';
 import * as _ from 'lodash';
 import * as morgan from 'morgan';
 
-import * as config from './config';
 import * as eventTracker from './event-tracker';
 import blink = require('./lib/blink');
 
 import log from './lib/supervisor-console';
-
-function getKeyFromReq(req: express.Request): string | undefined {
-	// Check query for key
-	if (req.query.apikey) {
-		return req.query.apikey;
-	}
-	// Get Authorization header to search for key
-	const authHeader = req.get('Authorization');
-	// Check header for key
-	if (!authHeader) {
-		return undefined;
-	}
-	// Check authHeader with various schemes
-	const match = authHeader.match(/^(?:ApiKey|Bearer) (\w+)$/i);
-	// Return key from match or undefined
-	return match?.[1];
-}
-
-function authenticate(): express.RequestHandler {
-	return async (req, res, next) => {
-		try {
-			const conf = await config.getMany([
-				'apiSecret',
-				'localMode',
-				'unmanaged',
-				'osVariant',
-			]);
-
-			const needsAuth = conf.unmanaged
-				? conf.osVariant === 'prod'
-				: !conf.localMode;
-
-			if (needsAuth) {
-				// Only get the key if we need it
-				const key = getKeyFromReq(req);
-				if (key && conf.apiSecret && key === conf.apiSecret) {
-					return next();
-				} else {
-					return res.sendStatus(401);
-				}
-			} else {
-				return next();
-			}
-		} catch (err) {
-			res.status(503).send(`Unexpected error: ${err}`);
-		}
-	};
-}
+import * as apiKeys from './lib/api-keys';
+import * as deviceState from './device-state';
 
 const expressLogger = morgan(
 	(tokens, req, res) =>
@@ -112,7 +65,7 @@ export class SupervisorAPI {
 
 		this.api.get('/ping', (_req, res) => res.send('OK'));
 
-		this.api.use(authenticate());
+		this.api.use(apiKeys.authMiddleware);
 
 		this.api.post('/v1/blink', (_req, res) => {
 			eventTracker.track('Device blink');
@@ -123,11 +76,30 @@ export class SupervisorAPI {
 
 		// Expires the supervisor's API key and generates a new one.
 		// It also communicates the new key to the balena API.
-		this.api.post('/v1/regenerate-api-key', async (_req, res) => {
-			const secret = config.newUniqueKey();
-			await config.set({ apiSecret: secret });
-			res.status(200).send(secret);
-		});
+		this.api.post(
+			'/v1/regenerate-api-key',
+			async (req: apiKeys.AuthorizedRequest, res) => {
+				await deviceState.initialized;
+				await apiKeys.initialized;
+
+				// check if we're updating the cloud API key
+				const updateCloudKey = req.auth.apiKey === apiKeys.cloudApiKey;
+
+				// regenerate the key...
+				const newKey = await apiKeys.refreshKey(req.auth.apiKey);
+
+				// if we need to update the cloud API with our new key
+				if (updateCloudKey) {
+					// report the new key to the cloud API
+					deviceState.reportCurrentState({
+						api_secret: apiKeys.cloudApiKey,
+					});
+				}
+
+				// return the value of the new key to the caller
+				res.status(200).send(newKey);
+			},
+		);
 
 		// And assign all external routers
 		for (const router of this.routers) {
@@ -135,7 +107,6 @@ export class SupervisorAPI {
 		}
 
 		// Error handling.
-
 		const messageFromError = (err?: Error | string | null): string => {
 			let message = 'Unknown error';
 			if (err != null) {

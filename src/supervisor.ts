@@ -19,7 +19,6 @@ const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
 	'listenPort',
 	'apiEndpoint',
-	'apiSecret',
 	'apiTimeout',
 	'unmanaged',
 	'deviceApiKey',
