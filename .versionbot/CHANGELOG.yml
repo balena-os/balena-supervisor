@@ -1,4 +1,24 @@
 - commits:
+    - subject: 'api: Implement scoped Supervisor API keys'
+      hash: c08de8701e49f417d2fc5849d237b9ed69b438e2
+      body: |
+        Each service, when requesting access to the Supervisor API, will
+        now get an individual key which can be scoped to specific resources.
+        In this iteration the default scope will be to the application that
+        the service belongs to.
+
+        We also have a `global` scope which is used by the cloud API when in
+        managed mode.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+  version: 11.14.4
+  date: 2020-09-18T13:02:39.469Z
+- commits:
     - subject: Clarify docs for toggling update lock override from dashboard
       hash: 1b51db06c118ab4c60296f394e854436584c6437
       body: ''
