@@ -854,7 +854,10 @@ export function triggerApplyTarget({
 			// If a delay has been set it's because we need to hold off before applying again,
 			// so we need to respect the maximum delay that has
 			// been passed
-			if (!scheduledApply.delay) {
+			if (scheduledApply.delay === undefined || isNaN(scheduledApply.delay)) {
+				log.debug(
+					`Tried to apply target with invalid delay: ${scheduledApply.delay}`,
+				);
 				throw new InternalInconsistencyError(
 					'No delay specified in scheduledApply',
 				);
