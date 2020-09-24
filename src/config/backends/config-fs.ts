@@ -94,7 +94,7 @@ export class ConfigFs extends ConfigBackend {
 				`AML: ${oemId.trim()} ${oemTableId.trim()} (Rev ${oemRevision.trim()})`,
 			);
 		} catch (e) {
-			log.error('Issue while loading AML ${aml}', e);
+			log.error(`Issue while loading AML ${aml}`, e);
 		}
 		return true;
 	}
@@ -214,7 +214,7 @@ export class ConfigFs extends ConfigBackend {
 					return [value];
 				} else {
 					// or, it could be parsable as the content of a JSON array; "value" | "value1","value2"
-					return value.split(',').map((v) => v.replace('"', '').trim());
+					return value.split(',').map((v) => v.replace(/"/g, '').trim());
 				}
 			default:
 				return value;

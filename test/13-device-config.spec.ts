@@ -9,12 +9,15 @@ import * as logger from '../src/logger';
 import { Extlinux } from '../src/config/backends/extlinux';
 import { ConfigTxt } from '../src/config/backends/config-txt';
 import { Odmdata } from '../src/config/backends/odmdata';
+import { ConfigFs } from '../src/config/backends/config-fs';
+import * as constants from '../src/lib/constants';
 
 import prepare = require('./lib/prepare');
 
 const extlinuxBackend = new Extlinux();
 const configTxtBackend = new ConfigTxt();
 const odmdataBackend = new Odmdata();
+const configFsBackend = new ConfigFs();
 
 describe('Device Backend Config', () => {
 	let logSpy: SinonSpy;
@@ -336,94 +339,138 @@ describe('Device Backend Config', () => {
 		});
 	});
 
-	// describe('ConfigFS', () => {
-	// 	const upboardConfig = new DeviceConfig();
-	// 	let upboardConfigBackend: ConfigBackend | null;
+	describe('ConfigFS files', () => {
+		it('should correctly write to configfs.json files', async () => {
+			stub(fsUtils, 'writeFileAtomic').resolves();
+			stub(child_process, 'exec').resolves();
 
-	// 	before(async () => {
-	// 		stub(child_process, 'exec').resolves();
-	// 		stub(fs, 'exists').resolves(true);
-	// 		stub(fs, 'mkdir').resolves();
-	// 		stub(fs, 'readdir').resolves([]);
-	// 		stub(fsUtils, 'writeFileAtomic').resolves();
+			const current = {};
+			const target = {
+				HOST_CONFIGFS_ssdt: 'spidev1.0',
+			};
 
-	// 		stub(fs, 'readFile').callsFake(file => {
-	// 			if (file === 'test/data/mnt/boot/configfs.json') {
-	// 				return Promise.resolve(
-	// 					JSON.stringify({
-	// 						ssdt: ['spidev1,1'],
-	// 					}),
-	// 				);
-	// 			}
-	// 			return Promise.resolve('');
-	// 		});
+			expect(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
+					configFsBackend,
+					current,
+					target,
+					'up-board',
+				),
+			).to.equal(true);
 
-	// 		stub(config, 'get').callsFake(key => {
-	// 			return Promise.try(() => {
-	// 				if (key === 'deviceType') {
-	// 					return 'up-board';
-	// 				}
-	// 				throw new Error('Unknown fake config key');
-	// 			});
-	// 		});
+			// @ts-ignore accessing private value
+			await deviceConfig.setBootConfig(configFsBackend, target);
+			expect(child_process.exec).to.be.calledOnce;
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(fsUtils.writeFileAtomic).to.be.calledWith(
+				'test/data/mnt/boot/configfs.json',
+				'{"ssdt":["spidev1.0"]}',
+			);
 
-	// 		// @ts-ignore accessing private value
-	// 		upboardConfigBackend = await upboardConfig.getConfigBackend();
-	// 		expect(upboardConfigBackend).is.not.null;
-	// 		expect((child_process.exec as SinonSpy).callCount).to.equal(
-	// 			3,
-	// 			'exec not called enough times',
-	// 		);
-	// 	});
+			// Restore stubs
+			(fsUtils.writeFileAtomic as SinonStub).restore();
+			(child_process.exec as SinonStub).restore();
+		});
 
-	// 	after(() => {
-	// 		(child_process.exec as SinonStub).restore();
-	// 		(fs.exists as SinonStub).restore();
-	// 		(fs.mkdir as SinonStub).restore();
-	// 		(fs.readdir as SinonStub).restore();
-	// 		(fs.readFile as SinonStub).restore();
-	// 		(fsUtils.writeFileAtomic as SinonStub).restore();
-	// 		(config.get as SinonStub).restore();
-	// 	});
+		it('should correctly load the configfs.json file', async () => {
+			stub(child_process, 'exec').resolves();
+			stub(fsUtils, 'writeFileAtomic').resolves();
+			stub(fs, 'exists').resolves(true);
+			stub(fs, 'mkdir').resolves();
+			stub(fs, 'readdir').resolves([]);
+			stub(fs, 'readFile').callsFake((file) => {
+				if (file === 'test/data/mnt/boot/configfs.json') {
+					return Promise.resolve(
+						JSON.stringify({
+							ssdt: ['spidev1.1'],
+						}),
+					);
+				}
+				return Promise.resolve('');
+			});
 
-	// 	it('should correctly load the configfs.json file', () => {
-	// 		expect(child_process.exec).to.be.calledWith('modprobe acpi_configfs');
-	// 		expect(child_process.exec).to.be.calledWith(
-	// 			'cat test/data/boot/acpi-tables/spidev1,1.aml > test/data/sys/kernel/config/acpi/table/spidev1,1/aml',
-	// 		);
-	// 		expect((fs.exists as SinonSpy).callCount).to.equal(2);
-	// 		expect((fs.readFile as SinonSpy).callCount).to.equal(4);
-	// 	});
+			await configFsBackend.initialise();
+			expect(child_process.exec).to.be.calledWith('modprobe acpi_configfs');
+			expect(child_process.exec).to.be.calledWith(
+				`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ./test/data/mnt/boot`,
+			);
+			expect(child_process.exec).to.be.calledWith(
+				'cat test/data/boot/acpi-tables/spidev1.1.aml > test/data/sys/kernel/config/acpi/table/spidev1.1/aml',
+			);
+			expect((fs.exists as SinonSpy).callCount).to.equal(2);
+			expect((fs.readFile as SinonSpy).callCount).to.equal(4);
 
-	// 	it('should correctly write the configfs.json file', async () => {
-	// 		const current = {};
-	// 		const target = {
-	// 			HOST_CONFIGFS_ssdt: 'spidev1,1',
-	// 		};
+			// Restore stubs
+			(fsUtils.writeFileAtomic as SinonStub).restore();
+			(child_process.exec as SinonStub).restore();
+			(fs.exists as SinonStub).restore();
+			(fs.mkdir as SinonStub).restore();
+			(fs.readdir as SinonStub).restore();
+			(fs.readFile as SinonStub).restore();
+		});
 
-	// 		(child_process.exec as SinonSpy).resetHistory();
-	// 		(fs.exists as SinonSpy).resetHistory();
-	// 		(fs.mkdir as SinonSpy).resetHistory();
-	// 		(fs.readdir as SinonSpy).resetHistory();
-	// 		(fs.readFile as SinonSpy).resetHistory();
+		it('requires change when target is different', () => {
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configFsBackend,
+					{ HOST_CONFIGFS_ssdt: '' },
+					{ HOST_CONFIGFS_ssdt: 'spidev1.0' },
+					'up-board',
+				),
+			).to.equal(true);
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configFsBackend,
+					{ HOST_CONFIGFS_ssdt: '' },
+					{ HOST_CONFIGFS_ssdt: '"spidev1.0"' },
+					'up-board',
+				),
+			).to.equal(true);
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configFsBackend,
+					{ HOST_CONFIGFS_ssdt: '"spidev1.0"' },
+					{ HOST_CONFIGFS_ssdt: '"spidev1.0","spidev1.1"' },
+					'up-board',
+				),
+			).to.equal(true);
+		});
 
-	// 		// @ts-ignore accessing private value
-	// 		upboardConfig.bootConfigChangeRequired(upboardConfigBackend, current, target);
-	// 		// @ts-ignore accessing private value
-	// 		await upboardConfig.setBootConfig(upboardConfigBackend, target);
-
-	// 		expect(child_process.exec).to.be.calledOnce;
-	// 		expect(fsUtils.writeFileAtomic).to.be.calledWith(
-	// 			'test/data/mnt/boot/configfs.json',
-	// 			JSON.stringify({
-	// 				ssdt: ['spidev1,1'],
-	// 			}),
-	// 		);
-	// 		expect(logSpy).to.be.calledTwice;
-	// 		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
-	// 	});
-	// });
-
-	// // This will require stubbing device.reboot, gosuper.post, config.get/set
-	// it('applies the target state');
+		it('should not report change when target is equal to current', () => {
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configFsBackend,
+					{ HOST_CONFIGFS_ssdt: '' },
+					{ HOST_CONFIGFS_ssdt: '' },
+					'up-board',
+				),
+			).to.equal(false);
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configFsBackend,
+					{ HOST_CONFIGFS_ssdt: 'spidev1.0' },
+					{ HOST_CONFIGFS_ssdt: 'spidev1.0' },
+					'up-board',
+				),
+			).to.equal(false);
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configFsBackend,
+					{ HOST_CONFIGFS_ssdt: 'spidev1.0' },
+					{ HOST_CONFIGFS_ssdt: '"spidev1.0"' },
+					'up-board',
+				),
+			).to.equal(false);
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configFsBackend,
+					{ HOST_CONFIGFS_ssdt: '"spidev1.0"' },
+					{ HOST_CONFIGFS_ssdt: 'spidev1.0' },
+					'up-board',
+				),
+			).to.equal(false);
+		});
+	});
 });
