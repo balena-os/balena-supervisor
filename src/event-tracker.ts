@@ -21,7 +21,7 @@ const mixpanelMask = [
 	'image',
 	'app(appId,name)',
 	'service(appId,serviceId,serviceName,commit,releaseId,image,labels)',
-	'stateDiff/local(os_version,superisor_version,ip_address,apps/*/services)',
+	'stateDiff/local(os_version,supervisor_version,ip_address,apps/*/services)',
 ].join(',');
 
 let defaultProperties: EventTrackProperties;
