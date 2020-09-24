@@ -1,4 +1,25 @@
 - commits:
+    - subject: Fix config checks for ConfigFS backend
+      hash: a5f3002e708c949b6de3c8ba495b2a89c13214fc
+      body: |
+        When trying to apply SSDT overlays in Up Board, the supervisor currently
+        gets stuck in a loop trying to apply target state. See #1465
+
+        This was due to a bug in parsing the configuration, which lead to
+        the method bootConfigChangeRequired returning true when no change was
+        needed.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+        Connects-to: '#1465'
+        connects-to: '#1465'
+      author: Felipe Lalanne
+      nested: []
+  version: 11.14.6
+  date: 2020-09-24T19:51:09.936Z
+- commits:
     - subject: 'mixpanel: superisor_version -> supervisor_version'
       hash: eebadebb53af68d9b63c948e59c1c78fb38302aa
       body: ''
