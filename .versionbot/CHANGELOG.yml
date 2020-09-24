@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'mixpanel: superisor_version -> supervisor_version'
+      hash: eebadebb53af68d9b63c948e59c1c78fb38302aa
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+      nested: []
+  version: 11.14.5
+  date: 2020-09-24T14:47:47.663Z
+- commits:
     - subject: 'api: Implement scoped Supervisor API keys'
       hash: c08de8701e49f417d2fc5849d237b9ed69b438e2
       body: |
