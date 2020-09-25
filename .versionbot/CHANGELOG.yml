@@ -1,4 +1,19 @@
 - commits:
+    - subject: Correctly evaluate if scheduledApply.delay is not set
+      hash: 90981a00bed100e1496dc71bf0631bc0ab04ffa7
+      body: ''
+      footer:
+        Closes: '#1428'
+        closes: '#1428'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 11.14.7
+  date: 2020-09-25T17:16:42.247Z
+- commits:
     - subject: Fix config checks for ConfigFS backend
       hash: a5f3002e708c949b6de3c8ba495b2a89c13214fc
       body: |
