@@ -742,6 +742,15 @@ export class Service {
 			}
 			sameNetworks =
 				sameNetworks && this.isSameNetwork(this.config.networks[name], network);
+			if (!sameNetworks) {
+				const currentNetwork = this.config.networks[name];
+				const newNetwork = network;
+				log.debug(
+					`Networks do not match!\nCurrent network: \n${JSON.stringify(
+						currentNetwork,
+					)}\nNew network: \n${JSON.stringify(newNetwork)}`,
+				);
+			}
 		});
 
 		// Check the configuration for any changes
