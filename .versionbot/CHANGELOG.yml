@@ -1,4 +1,23 @@
 - commits:
+    - subject: Fix supervisor deadlock during migration
+      hash: adffde932ec28b114a5821b9ae332a42bb330be2
+      body: |
+        Due to the singleton work, when performing migration M00005 and there
+        are apps with services created in the database, a deadlock occurs
+        during database initialization due to a circular
+        dependency for generating scoped keys.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+        Connects-to: '#1468'
+        connects-to: '#1468'
+      author: Felipe Lalanne
+      nested: []
+  version: 11.14.8
+  date: 2020-09-29T03:00:51.902Z
+- commits:
     - subject: Correctly evaluate if scheduledApply.delay is not set
       hash: 90981a00bed100e1496dc71bf0631bc0ab04ffa7
       body: ''
