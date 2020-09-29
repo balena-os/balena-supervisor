@@ -966,7 +966,6 @@ export class Service {
 						DEVICE_TYPE: options.deviceType,
 						DEVICE_ARCH: options.deviceArch,
 						HOST_OS_VERSION: options.osVersion,
-						SUPERVISOR_VERSION: options.version,
 						APP_LOCK_PATH: '/tmp/balena/updates.lock',
 					},
 					(_val, key) => `${namespace}_${key}`,

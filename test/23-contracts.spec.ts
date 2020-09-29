@@ -16,7 +16,7 @@ import supervisorVersion = require('../src/lib/supervisor-version');
 describe('Container contracts', () => {
 	before(() => {
 		intialiseContractRequirements({
-			supervisorVersion: '11.0.0',
+			supervisorVersion,
 			deviceType: 'intel-nuc',
 			l4tVersion: '32.2',
 		});
@@ -224,6 +224,7 @@ describe('Container contracts', () => {
 			)
 				.to.have.property('valid')
 				.that.equals(true);
+
 			expect(
 				containerContractsFulfilled({
 					service: {
@@ -442,7 +443,7 @@ describe('L4T version detection', () => {
 			}
 			seedExec(version);
 			intialiseContractRequirements({
-				supervisorVersion: '11.0.0',
+				supervisorVersion,
 				deviceType: 'intel-nuc',
 				l4tVersion: await osRelease.getL4tVersion(),
 			});
