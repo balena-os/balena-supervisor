@@ -1,4 +1,27 @@
 - commits:
+    - subject: 'version: drop SUPERVISOR_VERSION env var'
+      hash: 8e65466f2d8540918b1fa8d8af88d0c21fcbf7f8
+      body: >
+        In order to make supervisor upgrades more transparent, lets move away
+
+        from this env var since it requires a container restart any time the
+        supervisor
+
+        is upgraded. We should ultimately move towards providing the supervisors
+
+        set of capabilities, but that can come later
+      footer:
+        Connects-to: '#1447'
+        connects-to: '#1447'
+        Change-type: major
+        change-type: major
+        Signed-off-by: Matthew McGinn <matthew@balena.io>
+        signed-off-by: Matthew McGinn <matthew@balena.io>
+      author: Matthew McGinn
+      nested: []
+  version: 12.0.0
+  date: 2020-09-29T15:25:15.693Z
+- commits:
     - subject: Fix supervisor deadlock during migration
       hash: adffde932ec28b114a5821b9ae332a42bb330be2
       body: |
