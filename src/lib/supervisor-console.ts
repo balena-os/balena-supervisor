@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import { TransformableInfo } from 'logform';
 import * as winston from 'winston';
+import LogBuffer from '../logging/log-buffer';
 
 const levels = {
 	error: 0,
@@ -42,9 +43,11 @@ const formatter = winston.format.printf((args) => {
 	)}${message}`;
 });
 
+export const logBuffer = new LogBuffer();
+
 export const winstonLog = (winston.createLogger({
 	format: winston.format.combine(winston.format.colorize(), formatter),
-	transports: [new winston.transports.Console()],
+	transports: [new winston.transports.Console(), logBuffer],
 	// In the future we can reduce this logging level in
 	// certain scenarios, but for now we don't want to ignore
 	// any debugging without a rock solid method of making
