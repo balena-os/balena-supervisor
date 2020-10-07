@@ -1,5 +1,6 @@
 import * as apiBinder from './api-binder';
 import * as db from './db';
+import * as metadata from './metadata';
 import * as config from './config';
 import * as deviceState from './device-state';
 import * as eventTracker from './event-tracker';
@@ -35,6 +36,7 @@ export class Supervisor {
 	public async init() {
 		log.info(`Supervisor v${version} starting up...`);
 
+		await metadata.initialized;
 		await db.initialized;
 		await config.initialized;
 		await eventTracker.initialized;
