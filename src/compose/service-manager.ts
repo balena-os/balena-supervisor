@@ -394,7 +394,7 @@ export function listenToEvents() {
 							}
 						}
 						if (service != null) {
-							log.docker('Docker:', status, JSON.stringify(data));
+							log.docker('Docker:', JSON.stringify(data));
 							events.emit('change');
 							if (status === 'die') {
 								logger.logSystemEvent(LogTypes.serviceExit, { service });

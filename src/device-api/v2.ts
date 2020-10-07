@@ -31,6 +31,7 @@ import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone } from './common';
 import { AuthorizedRequest } from '../lib/api-keys';
+import ServiceEvents from '../logging/processors/service-events';
 
 export function createV2Api(router: Router) {
 	const handleServiceAction = (
@@ -599,6 +600,13 @@ export function createV2Api(router: Router) {
 		journald.on('exit', () => {
 			journald.stdout!.unpipe();
 			res.end();
+		});
+	});
+
+	router.get('/v2/services/events', (_req, res) => {
+		return res.status(200).json({
+			status: 'success',
+			events: ServiceEvents.process(),
 		});
 	});
 }

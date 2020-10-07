@@ -77,6 +77,13 @@
           "status": "failed",
           "message": "Invalid application ID: 123invalid"
         }
+      },
+      "/services/events": {
+        "statusCode": 200,
+        "body": {
+          "status": "success",
+          "events": []
+        }
       }
     },
     "POST": {}

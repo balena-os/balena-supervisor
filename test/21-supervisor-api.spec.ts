@@ -354,6 +354,22 @@ describe('SupervisorAPI', () => {
 			});
 		});
 
+		describe('GET /v2/services/events', () => {
+			it('returns list of service events', async () => {
+				await request
+					.get('/v2/services/events')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.expect(sampleResponses.V2.GET['/services/events'].statusCode)
+					.expect('Content-Type', /json/)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/services/events'].body,
+						);
+					});
+			});
+		});
+
 		// TODO: add tests for rest of V2 endpoints
 	});
 

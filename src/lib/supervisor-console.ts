@@ -56,7 +56,7 @@ export const winstonLog = (winston.createLogger({
 	// sure that debug logs are shown. For example a switch on
 	// the dashboard, a supervisor api call and supervisor
 	// process crash detection
-	level: 'debug',
+	level: 'docker',
 	levels,
 	// A bit hacky to get all the correct types for the logger
 	// below, we first cast to unknown so we can do what we
