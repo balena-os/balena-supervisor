@@ -11,6 +11,7 @@ const levels = {
 	api: 4,
 	info: 5,
 	debug: 6,
+	docker: 7,
 };
 
 type logLevel = keyof typeof levels;
@@ -23,6 +24,7 @@ const colors: { [key in logLevel]: string | string[] } = {
 	info: 'blue',
 	debug: 'magenta',
 	api: ['black', 'bgWhite'],
+	docker: 'blue',
 };
 
 const maxLevelLength = _(levels)
@@ -88,6 +90,7 @@ export const log: { [key in logLevel]: (...messageParts: any[]) => void } = {
 	info: messageFormatter(winstonLog.info),
 	debug: messageFormatter(winstonLog.debug),
 	api: messageFormatter(winstonLog.api),
+	docker: messageFormatter(winstonLog.docker),
 };
 
 export default log;

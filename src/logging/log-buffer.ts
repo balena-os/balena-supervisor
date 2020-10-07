@@ -14,7 +14,8 @@ export default class LogBuffer extends TransportStream {
 	}
 
 	log(info: any, next: () => void): any {
-		if (info.level === 'event') {
+
+		if (['event', 'docker'].includes(info.level)) {
 			this.buffer.push(info.message);
 			this.size += info.message.length;
 		}
