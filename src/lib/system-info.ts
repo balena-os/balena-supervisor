@@ -62,7 +62,7 @@ export async function getMemoryInformation(): Promise<{
 }> {
 	const mem = await systeminformation.mem();
 	return {
-		used: bytesToMb(mem.used),
+		used: bytesToMb(mem.used - mem.cached - mem.buffers),
 		total: bytesToMb(mem.total),
 	};
 }
