@@ -10,6 +10,7 @@ import constants = require('../lib/constants');
 import { docker } from '../lib/docker-utils';
 import * as logger from '../logger';
 import log from '../lib/supervisor-console';
+import { Span } from 'opentracing';
 import LocalModeManager from '../local-mode';
 import {
 	ContractViolationError,
@@ -40,6 +41,7 @@ import { checkTruthy, checkInt } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
 import * as updateLock from '../lib/update-lock';
 import { EventEmitter } from 'events';
+import tracer from '../tracing/tracer';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
@@ -327,12 +329,12 @@ export async function getRequiredSteps(
 	return steps;
 }
 
-export async function stopAll({ force = false, skipLock = false } = {}) {
+export async function stopAll({ force = false, skipLock = false, parentSpan }: { force?: boolean, skipLock?: boolean, parentSpan?: Span }) {
 	const services = await serviceManager.getAll();
 	await Promise.all(
 		services.map(async (s) => {
 			return lockingIfNecessary(s.appId, { force, skipLock }, async () => {
-				await serviceManager.kill(s, { removeContainer: false, wait: true });
+				await serviceManager.kill(s, { removeContainer: false, wait: true }, parentSpan);
 				if (s.containerId) {
 					delete containerStarted[s.containerId];
 				}
@@ -410,26 +412,36 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 
 export async function executeStep(
 	step: CompositionStep,
-	{ force = false, skipLock = false } = {},
+	{
+		force = false,
+		skipLock = false,
+		parentSpan,
+	}: { force?: boolean; skipLock?: boolean; parentSpan?: Span },
 ): Promise<void> {
-	if (proxyvisor.validActions.includes(step.action)) {
-		return proxyvisor.executeStepAction(step);
-	}
+	// const span = tracer.startSpan('executeStep', { childOf: parentSpan });
+	try {
+		if (proxyvisor.validActions.includes(step.action)) {
+			return proxyvisor.executeStepAction(step);
+		}
 
-	if (!validActions.includes(step.action)) {
-		return Promise.reject(
-			new InternalInconsistencyError(
-				`Invalid composition step action: ${step.action}`,
-			),
-		);
-	}
+		if (!validActions.includes(step.action)) {
+			return Promise.reject(
+				new InternalInconsistencyError(
+					`Invalid composition step action: ${step.action}`,
+				),
+			);
+		}
 
-	// TODO: Find out why this needs to be cast, the typings should hold true
-	await actionExecutors[step.action]({
-		...step,
-		force,
-		skipLock,
-	} as any);
+		// TODO: Find out why this needs to be cast, the typings should hold true
+		await actionExecutors[step.action]({
+			...step,
+			force,
+			skipLock,
+			parentSpan,
+		} as any);
+	} finally {
+		// span.finish();
+	}
 }
 
 // FIXME: This shouldn't be in this module

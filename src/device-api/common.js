@@ -8,7 +8,7 @@ import * as applicationManager from '../compose/application-manager';
 import * as volumeManager from '../compose/volume-manager';
 import { InternalInconsistencyError } from '../lib/errors';
 
-export async function doRestart(appId, force) {
+export async function doRestart(appId, force, span) {
 	await deviceState.initialized;
 	await applicationManager.initialized;
 
@@ -32,15 +32,16 @@ export async function doRestart(appId, force) {
 			return deviceState
 				.pausingApply(() =>
 					deviceState
-						.applyIntermediateTarget(currentState, { skipLock: true })
+						.applyIntermediateTarget(currentState, { skipLock: true, parentSpan: span })
 						.then(function () {
 							app.services = currentServices;
 							return deviceState.applyIntermediateTarget(currentState, {
 								skipLock: true,
+								parentSpan: span,
 							});
 						}),
 				)
-				.finally(() => deviceState.triggerApplyTarget());
+				.finally(() => deviceState.triggerApplyTarget({ parentSpan: span }));
 		}),
 	);
 }

@@ -128,6 +128,7 @@ export function logSystemMessage(
 	if (eventObj != null && eventObj.error != null) {
 		msgObj.isStdErr = true;
 	}
+	eventObj?.span?.log(msgObj);
 	log(msgObj);
 	if (track) {
 		eventTracker.track(

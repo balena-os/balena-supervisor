@@ -14,10 +14,16 @@ import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
 import { DeviceReportFields } from '../types/state';
+import { Span } from 'opentracing';
+import tracer from '../tracing/tracer';
 
 interface BaseCompositionStepArgs {
 	force?: boolean;
 	skipLock?: boolean;
+}
+
+interface TracerArgs {
+	parentSpan?: Span;
 }
 
 // FIXME: Most of the steps take the
@@ -31,38 +37,45 @@ interface CompositionStepArgs {
 			skipLock?: boolean;
 			wait?: boolean;
 		};
-	} & BaseCompositionStepArgs;
+	} & BaseCompositionStepArgs &
+		TracerArgs;
 	kill: {
 		current: Service;
 		options?: {
 			skipLock?: boolean;
 			wait?: boolean;
 		};
-	} & BaseCompositionStepArgs;
+	} & BaseCompositionStepArgs &
+		TracerArgs;
 	remove: {
 		current: Service;
-	} & BaseCompositionStepArgs;
+	} & BaseCompositionStepArgs &
+		TracerArgs;
 	updateMetadata: {
 		current: Service;
 		target: Service;
 		options?: {
 			skipLock?: boolean;
 		};
-	} & BaseCompositionStepArgs;
+	} & BaseCompositionStepArgs &
+		TracerArgs;
 	restart: {
 		current: Service;
 		target: Service;
 		options?: {
 			skipLock?: boolean;
 		};
-	} & BaseCompositionStepArgs;
-	stopAll: BaseCompositionStepArgs;
+	} & BaseCompositionStepArgs &
+		TracerArgs;
+	stopAll: BaseCompositionStepArgs & TracerArgs;
 	start: {
 		target: Service;
-	} & BaseCompositionStepArgs;
+	} & BaseCompositionStepArgs &
+		TracerArgs;
 	updateCommit: {
 		target: string;
-	};
+	} & BaseCompositionStepArgs &
+		TracerArgs;
 	handover: {
 		current: Service;
 		target: Service;
@@ -70,31 +83,32 @@ interface CompositionStepArgs {
 			skipLock?: boolean;
 			timeout?: number;
 		};
-	} & BaseCompositionStepArgs;
+	} & BaseCompositionStepArgs &
+		TracerArgs;
 	fetch: {
 		image: Image;
 		serviceName: string;
-	};
+	} & TracerArgs;
 	removeImage: {
 		image: Image;
-	};
+	} & TracerArgs;
 	saveImage: {
 		image: Image;
-	};
-	cleanup: {};
+	} & TracerArgs;
+	cleanup: {} & TracerArgs;
 	createNetwork: {
 		target: Network;
-	};
+	} & TracerArgs;
 	createVolume: {
 		target: Volume;
-	};
+	} & TracerArgs;
 	removeNetwork: {
 		current: Network;
-	};
+	} & TracerArgs;
 	removeVolume: {
 		current: Volume;
-	};
-	ensureSupervisorNetwork: {};
+	} & TracerArgs;
+	ensureSupervisorNetwork: {} & TracerArgs;
 	noop: {};
 }
 
@@ -150,12 +164,19 @@ export function getExecutors(app: {
 					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					const wait = _.get(step, ['options', 'wait'], false);
-					await serviceManager.kill(step.current, {
-						removeContainer: false,
-						wait,
+					const span = tracer.startSpan('executors.stop', {
+						childOf: step.parentSpan,
 					});
-					app.callbacks.containerKilled(step.current.containerId);
+					try {
+						const wait = _.get(step, ['options', 'wait'], false);
+						await serviceManager.kill(step.current, {
+							removeContainer: false,
+							wait,
+						}, span);
+						app.callbacks.containerKilled(step.current.containerId);
+					} finally {
+						span.finish();
+					}
 				},
 			);
 		},
@@ -167,15 +188,29 @@ export function getExecutors(app: {
 					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					await serviceManager.kill(step.current);
-					app.callbacks.containerKilled(step.current.containerId);
+					const span = tracer.startSpan('executors.kill', {
+						childOf: step.parentSpan,
+					});
+					try {
+						await serviceManager.kill(step.current, {}, span);
+						app.callbacks.containerKilled(step.current.containerId);
+					} finally {
+						span.finish();
+					}
 				},
 			);
 		},
 		remove: async (step) => {
 			// Only called for dead containers, so no need to
 			// take locks
-			await serviceManager.remove(step.current);
+			const span = tracer.startSpan('executors.remove', {
+				childOf: step.parentSpan,
+			});
+			try {
+				await serviceManager.remove(step.current);
+			} finally {
+				span.finish();
+			}
 		},
 		updateMetadata: (step) => {
 			const skipLock =
@@ -188,7 +223,14 @@ export function getExecutors(app: {
 					skipLock: skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					await serviceManager.updateMetadata(step.current, step.target);
+					const span = tracer.startSpan('executors.updateMetadata', {
+						childOf: step.parentSpan,
+					});
+					try {
+						await serviceManager.updateMetadata(step.current, step.target);
+					} finally {
+						span.finish();
+					}
 				},
 			);
 		},
@@ -200,25 +242,53 @@ export function getExecutors(app: {
 					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					await serviceManager.kill(step.current, { wait: true });
-					app.callbacks.containerKilled(step.current.containerId);
-					const container = await serviceManager.start(step.target);
-					app.callbacks.containerStarted(container.id);
+					const span = tracer.startSpan('executors.restart', {
+						childOf: step.parentSpan,
+					});
+					try {
+						await serviceManager.kill(step.current, { wait: true }, span);
+						app.callbacks.containerKilled(step.current.containerId);
+						const container = await serviceManager.start(step.target);
+						app.callbacks.containerStarted(container.id);
+					} finally {
+						span.finish();
+					}
 				},
 			);
 		},
 		stopAll: async (step) => {
-			await applicationManager.stopAll({
-				force: step.force,
-				skipLock: step.skipLock,
+			const span = tracer.startSpan('executors.stopAll', {
+				childOf: step.parentSpan,
 			});
+			try {
+				await applicationManager.stopAll({
+					force: step.force,
+					skipLock: step.skipLock,
+				});
+			} finally {
+				span.finish();
+			}
 		},
 		start: async (step) => {
-			const container = await serviceManager.start(step.target);
-			app.callbacks.containerStarted(container.id);
+			const span = tracer.startSpan('executors.start', {
+				childOf: step.parentSpan,
+			});
+			try {
+				const container = await serviceManager.start(step.target, step.parentSpan);
+				app.callbacks.containerStarted(container.id);
+			} finally {
+				span.finish();
+			}
 		},
 		updateCommit: async (step) => {
-			await config.set({ currentCommit: step.target });
+			const span = tracer.startSpan('executors.updateCommit', {
+				childOf: step.parentSpan,
+			});
+			try {
+				await config.set({ currentCommit: step.target });
+			} finally {
+				span.finish();
+			}
 		},
 		handover: (step) => {
 			return app.lockFn(
@@ -228,68 +298,141 @@ export function getExecutors(app: {
 					skipLock: step.skipLock || _.get(step, ['options', 'skipLock']),
 				},
 				async () => {
-					await serviceManager.handover(step.current, step.target);
+					const span = tracer.startSpan('executors.handover', {
+						childOf: step.parentSpan,
+					});
+					try {
+						await serviceManager.handover(step.current, step.target, step.parentSpan);
+					} finally {
+						span.finish();
+					}
 				},
 			);
 		},
 		fetch: async (step) => {
-			const startTime = process.hrtime();
-			app.callbacks.fetchStart();
-			const [fetchOpts, availableImages] = await Promise.all([
-				config.get('fetchOptions'),
-				images.getAvailable(),
-			]);
+			const span = tracer.startSpan('executors.fetch', {
+				childOf: step.parentSpan,
+			});
+			try {
+				const startTime = process.hrtime();
+				app.callbacks.fetchStart();
+				const [fetchOpts, availableImages] = await Promise.all([
+					config.get('fetchOptions'),
+					images.getAvailable(),
+				]);
 
-			const opts = {
-				deltaSource: app.callbacks.bestDeltaSource(step.image, availableImages),
-				...fetchOpts,
-			};
+				const opts = {
+					deltaSource: app.callbacks.bestDeltaSource(
+						step.image,
+						availableImages,
+					),
+					...fetchOpts,
+				};
 
-			await images.triggerFetch(
-				step.image,
-				opts,
-				async (success) => {
-					app.callbacks.fetchEnd();
-					const elapsed = process.hrtime(startTime);
-					const elapsedMs = elapsed[0] * 1000 + elapsed[1] / 1e6;
-					app.callbacks.fetchTime(elapsedMs);
-					if (success) {
-						// update_downloaded is true if *any* image has
-						// been downloaded ,and it's relevant mostly for
-						// the legacy GET /v1/device endpoint that assumes
-						// a single container app
-						app.callbacks.stateReport({ update_downloaded: true });
-					}
-				},
-				step.serviceName,
-			);
+				await images.triggerFetch(
+					step.image,
+					opts,
+					async (success) => {
+						app.callbacks.fetchEnd();
+						const elapsed = process.hrtime(startTime);
+						const elapsedMs = elapsed[0] * 1000 + elapsed[1] / 1e6;
+						app.callbacks.fetchTime(elapsedMs);
+						if (success) {
+							// update_downloaded is true if *any* image has
+							// been downloaded ,and it's relevant mostly for
+							// the legacy GET /v1/device endpoint that assumes
+							// a single container app
+							app.callbacks.stateReport({ update_downloaded: true });
+						}
+					},
+					step.serviceName,
+				);
+			} finally {
+				span.finish();
+			}
 		},
 		removeImage: async (step) => {
-			await images.remove(step.image);
+			const span = tracer.startSpan('executors.removeImage', {
+				childOf: step.parentSpan,
+			});
+			try {
+				await images.remove(step.image);
+			} finally {
+				span.finish();
+			}
 		},
 		saveImage: async (step) => {
-			await images.save(step.image);
+			const span = tracer.startSpan('executors.saveImage', {
+				childOf: step.parentSpan,
+			});
+			try {
+				await images.save(step.image);
+			} finally {
+				span.finish();
+			}
 		},
-		cleanup: async () => {
-			const localMode = await config.get('localMode');
-			if (!localMode) {
-				await images.cleanup();
+		cleanup: async (step) => {
+			const span = tracer.startSpan('executors.cleanup', {
+				childOf: step.parentSpan,
+			});
+			try {
+				const localMode = await config.get('localMode');
+				if (!localMode) {
+					await images.cleanup();
+				}
+			} finally {
+				span.finish();
 			}
 		},
 		createNetwork: async (step) => {
-			await networkManager.create(step.target);
+			const span = tracer.startSpan('executors.createNetwork', {
+				childOf: step.parentSpan,
+			});
+			try {
+				await networkManager.create(step.target);
+			} finally {
+				span.finish();
+			}
 		},
 		createVolume: async (step) => {
-			await volumeManager.create(step.target);
+			const span = tracer.startSpan('executors.createVolume', {
+				childOf: step.parentSpan,
+			});
+			try {
+				await volumeManager.create(step.target);
+			} finally {
+				span.finish();
+			}
 		},
 		removeNetwork: async (step) => {
-			await networkManager.remove(step.current);
+			const span = tracer.startSpan('executors.removeNetwork', {
+				childOf: step.parentSpan,
+			});
+			try {
+				await networkManager.remove(step.current);
+			} finally {
+				span.finish();
+			}
 		},
 		removeVolume: async (step) => {
-			await volumeManager.remove(step.current);
+			const span = tracer.startSpan('executors.removeVolume', {
+				childOf: step.parentSpan,
+			});
+			try {
+				await volumeManager.remove(step.current);
+			} finally {
+				span.finish();
+			}
 		},
-		ensureSupervisorNetwork: async () => {
-			networkManager.ensureSupervisorNetwork();
+		ensureSupervisorNetwork: async (step) => {
+			const span = tracer.startSpan('executors.ensureSupervisorNetwork', {
+				childOf: step.parentSpan,
+			});
+			try {
+				networkManager.ensureSupervisorNetwork();
+			} finally {
+				span.finish();
+			}
 		},
 		noop: async () => {
 			/* async noop */

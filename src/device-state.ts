@@ -11,6 +11,7 @@ import prettyMs = require('pretty-ms');
 import * as config from './config';
 import * as db from './db';
 import * as logger from './logger';
+import { Span } from 'opentracing';
 
 import {
 	CompositionStepT,
@@ -39,6 +40,7 @@ import {
 } from './types/state';
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
+import tracer from './tracing/tracer';
 
 function validateLocalState(state: any): asserts state is TargetState['local'] {
 	if (state.name != null) {
@@ -572,8 +574,8 @@ export function reportCurrentState(
 	emitAsync('change', undefined);
 }
 
-export async function reboot(force?: boolean, skipLock?: boolean) {
-	await applicationManager.stopAll({ force, skipLock });
+export async function reboot(force?: boolean, skipLock?: boolean, parentSpan?: Span) {
+	await applicationManager.stopAll({ force, skipLock, parentSpan });
 	logger.logSystemMessage('Rebooting', {}, 'Reboot');
 	const $reboot = await dbus.reboot();
 	shuttingDown = true;
@@ -581,8 +583,8 @@ export async function reboot(force?: boolean, skipLock?: boolean) {
 	return await $reboot;
 }
 
-export async function shutdown(force?: boolean, skipLock?: boolean) {
-	await applicationManager.stopAll({ force, skipLock });
+export async function shutdown(force?: boolean, skipLock?: boolean, parentSpan?: Span) {
+	await applicationManager.stopAll({ force, skipLock, parentSpan });
 	logger.logSystemMessage('Shutting down', {}, 'Shutdown');
 	const $shutdown = await dbus.shutdown();
 	shuttingDown = true;
@@ -596,40 +598,54 @@ export async function executeStepAction<T extends PossibleStepTargets>(
 		force,
 		initial,
 		skipLock,
-	}: { force?: boolean; initial?: boolean; skipLock?: boolean },
+		parentSpan,
+	}: {
+		force?: boolean;
+		initial?: boolean;
+		skipLock?: boolean;
+		parentSpan?: Span;
+	},
 ) {
-	if (deviceConfig.isValidAction(step.action)) {
-		await deviceConfig.executeStepAction(step as ConfigStep, {
-			initial,
-		});
-	} else if (_.includes(applicationManager.validActions, step.action)) {
-		return applicationManager.executeStep(step as any, {
-			force,
-			skipLock,
-		});
-	} else {
-		switch (step.action) {
-			case 'reboot':
-				// There isn't really a way that these methods can fail,
-				// and if they do, we wouldn't know about it until after
-				// the response has been sent back to the API. Just return
-				// "OK" for this and the below action
-				await reboot(force, skipLock);
-				return {
-					Data: 'OK',
-					Error: null,
-				};
-			case 'shutdown':
-				await shutdown(force, skipLock);
-				return {
-					Data: 'OK',
-					Error: null,
-				};
-			case 'noop':
-				return;
-			default:
-				throw new Error(`Invalid action ${step.action}`);
+	const span = tracer.startSpan('executeStepAction', { childOf: parentSpan });
+	span.setTag('action', step.action);
+	try {
+		if (deviceConfig.isValidAction(step.action)) {
+			await deviceConfig.executeStepAction(step as ConfigStep, {
+				initial,
+				parentSpan: span,
+			});
+		} else if (_.includes(applicationManager.validActions, step.action)) {
+			return applicationManager.executeStep(step as any, {
+				force,
+				skipLock,
+				parentSpan: span,
+			});
+		} else {
+			switch (step.action) {
+				case 'reboot':
+					// There isn't really a way that these methods can fail,
+					// and if they do, we wouldn't know about it until after
+					// the response has been sent back to the API. Just return
+					// "OK" for this and the below action
+					await reboot(force, skipLock, span);
+					return {
+						Data: 'OK',
+						Error: null,
+					};
+				case 'shutdown':
+					await shutdown(force, skipLock, span);
+					return {
+						Data: 'OK',
+						Error: null,
+					};
+				case 'noop':
+					return;
+				default:
+					throw new Error(`Invalid action ${step.action}`);
+			}
 		}
+	} finally {
+		span.finish();
 	}
 }
 
@@ -639,25 +655,33 @@ export async function applyStep<T extends PossibleStepTargets>(
 		force,
 		initial,
 		skipLock,
+		parentSpan,
 	}: {
 		force?: boolean;
 		initial?: boolean;
 		skipLock?: boolean;
+		parentSpan?: Span;
 	},
 ) {
-	if (shuttingDown) {
-		return;
-	}
+	const span = tracer.startSpan('applyStep', { childOf: parentSpan });
 	try {
-		const stepResult = await executeStepAction(step, {
-			force,
-			initial,
-			skipLock,
-		});
-		emitAsync('step-completed', null, step, stepResult || undefined);
-	} catch (e) {
-		emitAsync('step-error', e, step);
-		throw e;
+		if (shuttingDown) {
+			return;
+		}
+		try {
+			const stepResult = await executeStepAction(step, {
+				force,
+				initial,
+				skipLock,
+				parentSpan: span,
+			});
+			emitAsync('step-completed', null, step, stepResult || undefined);
+		} catch (e) {
+			emitAsync('step-error', e, step);
+			throw e;
+		}
+	} finally {
+		span.finish();
 	}
 }
 
@@ -713,108 +737,118 @@ export const applyTarget = async ({
 	skipLock = false,
 	nextDelay = 200,
 	retryCount = 0,
+	// @ts-ignore
+	parentSpan,
 } = {}) => {
-	if (!intermediate) {
-		await applyBlocker;
-	}
-	await applicationManager.localModeSwitchCompletion();
+	const span = tracer.startSpan('applyTarget', { childOf: parentSpan });
+	try {
+		if (!intermediate) {
+			await applyBlocker;
+		}
+		await applicationManager.localModeSwitchCompletion();
 
-	return usingInferStepsLock(async () => {
-		const [currentState, targetState] = await Promise.all([
-			getCurrentForComparison(),
-			getTarget({ initial, intermediate }),
-		]);
-		const deviceConfigSteps = await deviceConfig.getRequiredSteps(
-			currentState,
-			targetState,
-		);
-		const noConfigSteps = _.every(
-			deviceConfigSteps,
-			({ action }) => action === 'noop',
-		);
-
-		let backoff: boolean;
-		let steps: Array<DeviceStateStep<PossibleStepTargets>>;
-
-		if (!noConfigSteps) {
-			backoff = false;
-			steps = deviceConfigSteps;
-		} else {
-			const appSteps = await applicationManager.getRequiredSteps(
-				targetState.local.apps,
+		return usingInferStepsLock(async () => {
+			const [currentState, targetState] = await Promise.all([
+				getCurrentForComparison(),
+				getTarget({ initial, intermediate }),
+			]);
+			const deviceConfigSteps = await deviceConfig.getRequiredSteps(
+				currentState,
+				targetState,
+			);
+			const noConfigSteps = _.every(
+				deviceConfigSteps,
+				({ action }) => action === 'noop',
 			);
 
-			if (_.isEmpty(appSteps)) {
-				// If we retrieve a bunch of no-ops from the
-				// device config, generally we want to back off
-				// more than if we retrieve them from the
-				// application manager
-				backoff = true;
+			let backoff: boolean;
+			let steps: Array<DeviceStateStep<PossibleStepTargets>>;
+
+			if (!noConfigSteps) {
+				backoff = false;
 				steps = deviceConfigSteps;
 			} else {
-				backoff = false;
-				steps = appSteps;
-			}
-		}
+				const appSteps = await applicationManager.getRequiredSteps(
+					targetState.local.apps,
+				);
 
-		if (_.isEmpty(steps)) {
-			emitAsync('apply-target-state-end', null);
+				if (_.isEmpty(appSteps)) {
+					// If we retrieve a bunch of no-ops from the
+					// device config, generally we want to back off
+					// more than if we retrieve them from the
+					// application manager
+					backoff = true;
+					steps = deviceConfigSteps;
+				} else {
+					backoff = false;
+					steps = appSteps;
+				}
+			}
+
+			if (_.isEmpty(steps)) {
+				emitAsync('apply-target-state-end', null);
+				if (!intermediate) {
+					log.debug('Finished applying target state');
+					applicationManager.resetTimeSpentFetching();
+					failedUpdates = 0;
+					lastSuccessfulUpdate = Date.now();
+					reportCurrentState({
+						update_failed: false,
+						update_pending: false,
+						update_downloaded: false,
+					});
+				}
+				return;
+			}
+
 			if (!intermediate) {
-				log.debug('Finished applying target state');
-				applicationManager.resetTimeSpentFetching();
-				failedUpdates = 0;
-				lastSuccessfulUpdate = Date.now();
-				reportCurrentState({
-					update_failed: false,
-					update_pending: false,
-					update_downloaded: false,
+				reportCurrentState({ update_pending: true });
+			}
+			if (_.every(steps, (step) => step.action === 'noop')) {
+				if (backoff) {
+					retryCount += 1;
+					// Backoff to a maximum of 10 minutes
+					nextDelay = Math.min(Math.pow(2, retryCount) * 1000, 60 * 10 * 1000);
+				} else {
+					nextDelay = 1000;
+				}
+			}
+
+			try {
+				await Promise.all(
+					steps.map((s) =>
+						applyStep(s, { force, initial, skipLock, parentSpan: span }),
+					),
+				);
+
+				await Bluebird.delay(nextDelay);
+				await applyTarget({
+					force,
+					initial,
+					intermediate,
+					skipLock,
+					nextDelay,
+					retryCount,
+					parentSpan: span,
 				});
+			} catch (e) {
+				if (e instanceof UpdatesLockedError) {
+					// Forward the UpdatesLockedError directly
+					throw e;
+				}
+				throw new Error(
+					'Failed to apply state transition steps. ' +
+						e.message +
+						' Steps:' +
+						JSON.stringify(_.map(steps, 'action')),
+				);
 			}
-			return;
-		}
-
-		if (!intermediate) {
-			reportCurrentState({ update_pending: true });
-		}
-		if (_.every(steps, (step) => step.action === 'noop')) {
-			if (backoff) {
-				retryCount += 1;
-				// Backoff to a maximum of 10 minutes
-				nextDelay = Math.min(Math.pow(2, retryCount) * 1000, 60 * 10 * 1000);
-			} else {
-				nextDelay = 1000;
-			}
-		}
-
-		try {
-			await Promise.all(
-				steps.map((s) => applyStep(s, { force, initial, skipLock })),
-			);
-
-			await Bluebird.delay(nextDelay);
-			await applyTarget({
-				force,
-				initial,
-				intermediate,
-				skipLock,
-				nextDelay,
-				retryCount,
-			});
-		} catch (e) {
-			if (e instanceof UpdatesLockedError) {
-				// Forward the UpdatesLockedError directly
-				throw e;
-			}
-			throw new Error(
-				'Failed to apply state transition steps. ' +
-					e.message +
-					' Steps:' +
-					JSON.stringify(_.map(steps, 'action')),
-			);
-		}
-	}).catch((err) => {
-		return applyError(err, { force, initial, intermediate });
-	});
+		}).catch((err) => {
+			return applyError(err, { force, initial, intermediate });
+		});
+	} finally {
+		span.finish();
+	}
 };
 
 export function pausingApply(fn: () => any) {
@@ -840,72 +874,90 @@ export function triggerApplyTarget({
 	delay = 0,
 	initial = false,
 	isFromApi = false,
-} = {}) {
-	if (applyInProgress) {
-		if (scheduledApply == null || (isFromApi && cancelDelay)) {
-			scheduledApply = { force, delay };
-			if (isFromApi) {
-				// Cancel promise delay if call came from api to
-				// prevent waiting due to backoff (and if we've
-				// previously setup a delay)
-				cancelDelay?.();
+	parentSpan,
+}: {
+	force?: boolean;
+	delay?: number;
+	initial?: boolean;
+	isFromApi?: boolean;
+	parentSpan?: Span;
+}) {
+	const span = tracer.startSpan('triggerApplyTarget', { childOf: parentSpan });
+	try {
+		if (applyInProgress) {
+			if (scheduledApply == null || (isFromApi && cancelDelay)) {
+				scheduledApply = { force, delay };
+				if (isFromApi) {
+					// Cancel promise delay if call came from api to
+					// prevent waiting due to backoff (and if we've
+					// previously setup a delay)
+					cancelDelay?.();
+				}
+			} else {
+				// If a delay has been set it's because we need to hold off before applying again,
+				// so we need to respect the maximum delay that has
+				// been passed
+				if (scheduledApply.delay === undefined || isNaN(scheduledApply.delay)) {
+					log.debug(
+						`Tried to apply target with invalid delay: ${scheduledApply.delay}`,
+					);
+					throw new InternalInconsistencyError(
+						'No delay specified in scheduledApply',
+					);
+				}
+				scheduledApply.delay = Math.max(delay, scheduledApply.delay);
+				if (!scheduledApply.force) {
+					scheduledApply.force = force;
+				}
 			}
-		} else {
-			// If a delay has been set it's because we need to hold off before applying again,
-			// so we need to respect the maximum delay that has
-			// been passed
-			if (scheduledApply.delay === undefined || isNaN(scheduledApply.delay)) {
-				log.debug(
-					`Tried to apply target with invalid delay: ${scheduledApply.delay}`,
-				);
-				throw new InternalInconsistencyError(
-					'No delay specified in scheduledApply',
-				);
-			}
-			scheduledApply.delay = Math.max(delay, scheduledApply.delay);
-			if (!scheduledApply.force) {
-				scheduledApply.force = force;
-			}
+			return;
 		}
-		return;
+		applyCancelled = false;
+		applyInProgress = true;
+		new Bluebird((resolve, reject) => {
+			setTimeout(resolve, delay);
+			cancelDelay = reject;
+		})
+			.catch(() => {
+				applyCancelled = true;
+			})
+			.then(() => {
+				cancelDelay = null;
+				if (applyCancelled) {
+					log.info('Skipping applyTarget because of a cancellation');
+					return;
+				}
+				lastApplyStart = process.hrtime();
+				log.info('Applying target state');
+				return applyTarget({ force, initial, parentSpan });
+			})
+			.finally(() => {
+				applyInProgress = false;
+				reportCurrentState();
+				if (scheduledApply != null) {
+					triggerApplyTarget(scheduledApply);
+					scheduledApply = null;
+				}
+			});
+		return null;
+	} finally {
+		span.finish();
 	}
-	applyCancelled = false;
-	applyInProgress = true;
-	new Bluebird((resolve, reject) => {
-		setTimeout(resolve, delay);
-		cancelDelay = reject;
-	})
-		.catch(() => {
-			applyCancelled = true;
-		})
-		.then(() => {
-			cancelDelay = null;
-			if (applyCancelled) {
-				log.info('Skipping applyTarget because of a cancellation');
-				return;
-			}
-			lastApplyStart = process.hrtime();
-			log.info('Applying target state');
-			return applyTarget({ force, initial });
-		})
-		.finally(() => {
-			applyInProgress = false;
-			reportCurrentState();
-			if (scheduledApply != null) {
-				triggerApplyTarget(scheduledApply);
-				scheduledApply = null;
-			}
-		});
-	return null;
 }
 
 export function applyIntermediateTarget(
 	intermediate: InstancedDeviceState,
-	{ force = false, skipLock = false } = {},
+	{
+		force = false,
+		skipLock = false,
+		parentSpan,
+	}: { force?: boolean; skipLock?: boolean; parentSpan?: Span },
 ) {
 	// TODO: Make sure we don't accidentally overwrite this
 	intermediateTarget = intermediate;
-	return applyTarget({ intermediate: true, force, skipLock }).then(() => {
-		intermediateTarget = null;
-	});
+	return applyTarget({ intermediate: true, force, skipLock, parentSpan }).then(
+		() => {
+			intermediateTarget = null;
+		},
+	);
 }

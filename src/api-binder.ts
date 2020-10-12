@@ -27,6 +27,7 @@ import * as deviceState from './device-state';
 import * as globalEventBus from './event-bus';
 import * as TargetState from './device-state/target-state';
 import * as logger from './logger';
+import tracer from './tracing/tracer';
 
 import * as apiHelper from './lib/api-helper';
 import { Device } from './lib/api-helper';
@@ -183,9 +184,10 @@ export async function start() {
 	TargetState.emitter.on(
 		'target-state-update',
 		async (targetState, force, isFromApi) => {
+			const span = tracer.startSpan('target-state-update');
 			try {
 				await deviceState.setTarget(targetState);
-				deviceState.triggerApplyTarget({ force, isFromApi });
+				deviceState.triggerApplyTarget({ force, isFromApi, parentSpan: span });
 			} catch (err) {
 				if (
 					err instanceof ContractValidationError ||
@@ -202,6 +204,8 @@ export async function start() {
 				} else {
 					log.error(`Failed to get target state for device: ${err}`);
 				}
+			} finally {
+				span.finish();
 			}
 		},
 	);

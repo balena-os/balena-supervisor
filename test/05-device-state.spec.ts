@@ -347,6 +347,7 @@ describe('deviceState', () => {
 			expect(applyTargetStub).to.be.calledWith({
 				force: true,
 				initial: false,
+				parentSpan: undefined,
 			});
 			applyTargetStub.restore();
 			done();

@@ -15,6 +15,7 @@ import { SchemaTypeKey } from './config/schema-type';
 import { matchesAnyBootConfig } from './config/backends';
 import { ConfigOptions, ConfigBackend } from './config/backends/backend';
 import { Odmdata } from './config/backends/odmdata';
+import { Span } from 'opentracing';
 
 const vpnServiceName = 'openvpn';
 
@@ -39,6 +40,7 @@ export interface ConfigStep {
 
 interface DeviceActionExecutorOpts {
 	initial?: boolean;
+	parentSpan?: Span;
 }
 
 type DeviceActionExecutorFn = (

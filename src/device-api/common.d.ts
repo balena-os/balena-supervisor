@@ -9,7 +9,7 @@ export interface ServiceAction {
 	options: any;
 }
 
-declare function doRestart(appId: number, force: boolean): Promise<void>;
+declare function doRestart(appId: number, force: boolean, span: Span): Promise<void>;
 
 declare function doPurge(appId: number, force: boolean): Promise<void>;
 

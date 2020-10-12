@@ -10,9 +10,11 @@ import { doRestart, doPurge } from './common';
 import * as applicationManager from '../compose/application-manager';
 import { generateStep } from '../compose/composition-steps';
 import { AuthorizedRequest } from '../lib/api-keys';
+import tracer from "../tracing/tracer";
 
 export function createV1Api(router: express.Router) {
 	router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {
+		const span = tracer.startSpan('/v1/restart')
 		const appId = checkInt(req.body.appId);
 		const force = checkTruthy(req.body.force) ?? false;
 		eventTracker.track('Restart container (v1)', { appId });
@@ -29,9 +31,10 @@ export function createV1Api(router: express.Router) {
 			return;
 		}
 
-		return doRestart(appId, force)
+		return doRestart(appId, force, span)
 			.then(() => res.status(200).send('OK'))
-			.catch(next);
+			.catch(next)
+			.finally(() => span.finish())
 	});
 
 	const v1StopOrStart = (

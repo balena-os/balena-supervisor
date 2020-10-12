@@ -24,6 +24,8 @@ import { Service } from './service';
 import { serviceNetworksToDockerNetworks } from './utils';
 
 import log from '../lib/supervisor-console';
+import { Span } from 'opentracing';
+import tracer from '../tracing/tracer';
 
 interface ServiceManagerEvents {
 	change: void;
@@ -154,11 +156,11 @@ export async function updateMetadata(service: Service, target: Service) {
 	});
 }
 
-export async function handover(current: Service, target: Service) {
+export async function handover(current: Service, target: Service, parentSpan?: Span) {
 	// We set the running container to not restart so that in case of a poweroff
 	// it doesn't come back after boot.
 	await prepareForHandover(current);
-	await start(target);
+	await start(target, parentSpan);
 	await waitToKill(
 		current,
 		target.config.labels['io.balena.update.handover-timeout'],
@@ -181,17 +183,18 @@ export async function killAllLegacy(): Promise<void> {
 	}
 }
 
-export function kill(service: Service, opts: KillOpts = {}) {
+export function kill(service: Service, opts: KillOpts = {}, parentSpan?: Span) {
 	if (service.containerId == null) {
 		throw new InternalInconsistencyError(
 			`Attempt to kill container without containerId! Service :${service}`,
 		);
 	}
-	return killContainer(service.containerId, service, opts);
+	return killContainer(service.containerId, service, opts, parentSpan);
 }
 
-export async function remove(service: Service) {
-	logger.logSystemEvent(LogTypes.removeDeadService, { service });
+export async function remove(service: Service, parentSpan?: Span) {
+	const span = tracer.startSpan('ServiceManager.remove', { childOf: parentSpan })
+	logger.logSystemEvent(LogTypes.removeDeadService, { service, span });
 	const existingService = await get(service);
 
 	if (existingService.containerId == null) {
@@ -207,9 +210,12 @@ export async function remove(service: Service) {
 			logger.logSystemEvent(LogTypes.removeDeadServiceError, {
 				service,
 				error: e,
+				span
 			});
 			throw e;
 		}
+	} finally {
+		span.finish()
 	}
 }
 export function getAllByAppId(appId: number) {
@@ -222,7 +228,8 @@ export async function stopAllByAppId(appId: number) {
 	}
 }
 
-export async function create(service: Service) {
+export async function create(service: Service, parentSpan?: Span) {
+	const span = tracer.startSpan('ServiceManager.create', { childOf: parentSpan })
 	const mockContainerId = config.newUniqueKey();
 	try {
 		const existing = await get(service);
@@ -237,6 +244,7 @@ export async function create(service: Service) {
 			logger.logSystemEvent(LogTypes.installServiceError, {
 				service,
 				error: e,
+				span
 			});
 			throw e;
 		}
@@ -262,7 +270,7 @@ export async function create(service: Service) {
 		});
 		const nets = serviceNetworksToDockerNetworks(service.extraNetworksToJoin());
 
-		logger.logSystemEvent(LogTypes.installService, { service });
+		logger.logSystemEvent(LogTypes.installService, { service, span });
 		reportNewStatus(mockContainerId, service, 'Installing');
 
 		const container = await docker.createContainer(conf);
@@ -277,19 +285,20 @@ export async function create(service: Service) {
 			),
 		);
 
-		logger.logSystemEvent(LogTypes.installServiceSuccess, { service });
+		logger.logSystemEvent(LogTypes.installServiceSuccess, { service, span });
 		return container;
 	} finally {
 		reportChange(mockContainerId);
+		span.finish()
 	}
 }
 
-export async function start(service: Service) {
+export async function start(service: Service, parentSpan?: Span) {
 	let alreadyStarted = false;
 	let containerId: string | null = null;
-
+	const span = tracer.startSpan('ServiceManager.start', { childOf: parentSpan })
 	try {
-		const container = await create(service);
+		const container = await create(service, parentSpan);
 		containerId = container.id;
 		logger.logSystemEvent(LogTypes.startService, { service });
 
@@ -337,6 +346,7 @@ export async function start(service: Service) {
 				logger.logSystemEvent(LogTypes.startServiceError, {
 					service,
 					error: err,
+					span
 				});
 			}
 		}
@@ -352,7 +362,7 @@ export async function start(service: Service) {
 		logger.attach(container.id, { serviceId, imageId });
 
 		if (!alreadyStarted) {
-			logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
+			logger.logSystemEvent(LogTypes.startServiceSuccess, { service, span });
 		}
 
 		service.config.running = true;
@@ -361,6 +371,7 @@ export async function start(service: Service) {
 		if (containerId != null) {
 			reportChange(containerId);
 		}
+		span.finish()
 	}
 }
 
@@ -510,14 +521,18 @@ function killContainer(
 	containerId: string,
 	service: Partial<Service> = {},
 	{ removeContainer = true, wait = false }: KillOpts = {},
+	parentSpan?: Span,
 ): Bluebird<void> {
 	// To maintain compatibility of the `wait` flag, this function is not
 	// async, but it feels like whether or not the promise should be waited on
 	// should performed by the caller
 	// TODO: Remove the need for the wait flag
 
+	const span = tracer.startSpan('ServiceManager.killContainer', {
+		childOf: parentSpan,
+	});
 	return Bluebird.try(() => {
-		logger.logSystemEvent(LogTypes.stopService, { service });
+		logger.logSystemEvent(LogTypes.stopService, { service, span });
 		if (service.imageId != null) {
 			reportNewStatus(containerId, service, 'Stopping');
 		}
@@ -542,7 +557,7 @@ function killContainer(
 
 				// 304 means the container was already stopped, so we can just remove it
 				if (statusCode === 304) {
-					logger.logSystemEvent(LogTypes.stopServiceNoop, { service });
+					logger.logSystemEvent(LogTypes.stopServiceNoop, { service, span });
 					// Why do we attempt to remove the container again?
 					if (removeContainer) {
 						return containerObj.remove({ v: true });
@@ -551,6 +566,7 @@ function killContainer(
 					// 404 means the container doesn't exist, precisely what we want!
 					logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
 						service,
+						span,
 					});
 				} else {
 					throw e;
@@ -558,11 +574,12 @@ function killContainer(
 			})
 			.tap(() => {
 				delete containerHasDied[containerId];
-				logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
+				logger.logSystemEvent(LogTypes.stopServiceSuccess, { service, span });
 			})
 			.catch((e) => {
 				logger.logSystemEvent(LogTypes.stopServiceError, {
 					service,
+					span,
 					error: e,
 				});
 			})
@@ -576,7 +593,7 @@ function killContainer(
 			return killPromise;
 		}
 		return;
-	});
+	}).finally(() => span.finish());
 }
 
 async function listWithBothLabels(

@@ -31,6 +31,7 @@ import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone } from './common';
 import { AuthorizedRequest } from '../lib/api-keys';
+import tracer from "../tracing/tracer";
 
 export function createV2Api(router: Router) {
 	const handleServiceAction = (
@@ -39,6 +40,7 @@ export function createV2Api(router: Router) {
 		next: NextFunction,
 		action: CompositionStepAction,
 	): Resolvable<void> => {
+		const span = tracer.startSpan(`/v2/applications/:appId/${action}`)
 		const { imageId, serviceName, force } = req.body;
 		const appId = checkInt(req.params.appId);
 		if (!appId) {
@@ -110,13 +112,15 @@ export function createV2Api(router: Router) {
 							}),
 							{
 								skipLock: true,
+								parentSpan: span
 							},
 						)
 						.then(() => {
 							res.status(200).send('OK');
 						});
 				})
-				.catch(next);
+				.catch(next)
+				.finally(() => span.finish())
 		});
 	};
 
@@ -170,6 +174,7 @@ export function createV2Api(router: Router) {
 	router.post(
 		'/v2/applications/:appId/restart',
 		(req: AuthorizedRequest, res: Response, next: NextFunction) => {
+			const span = tracer.startSpan('/v2/applications/:appId/restart')
 			const { force } = req.body;
 			const appId = checkInt(req.params.appId);
 			if (!appId) {
@@ -188,11 +193,12 @@ export function createV2Api(router: Router) {
 				return;
 			}
 
-			return doRestart(appId, force)
+			return doRestart(appId, force, span)
 				.then(() => {
 					res.status(200).send('OK');
 				})
-				.catch(next);
+				.catch(next)
+				.finally(() => span.finish())
 		},
 	);
 
