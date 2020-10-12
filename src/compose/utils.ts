@@ -328,6 +328,11 @@ export async function addFeaturesFromLabels(
 	};
 
 	const features = {
+		'io.balena.features.journal-logs': () => {
+			service.config.volumes.push('/var/log/journal:/var/log/journal:ro');
+			service.config.volumes.push('/run/log/journal:/run/log/journal:ro');
+			service.config.volumes.push('/etc/machine-id:/etc/machine-id:ro');
+		},
 		'io.balena.features.dbus': () =>
 			service.config.volumes.push('/run/dbus:/host/run/dbus'),
 		'io.balena.features.kernel-modules': () =>
