@@ -243,12 +243,16 @@ const reportCurrentState = (): null => {
 };
 
 export const startReporting = () => {
-	deviceState.on('change', () => {
+	const doReport = () => {
 		if (!reportPending) {
-			// A latency of 100ms should be acceptable and
-			// allows avoiding catching docker at weird states
 			reportCurrentState();
 		}
-	});
+	};
+
+	// If the state changes, report it
+	deviceState.on('change', doReport);
+	// But check once every max report frequency to ensure that changes in system
+	// info are picked up (CPU temp etc)
+	setInterval(doReport, constants.maxReportFrequency);
 	return reportCurrentState();
 };

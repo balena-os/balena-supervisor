@@ -5,7 +5,7 @@ import * as express from 'express';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import * as _ from 'lodash';
-import { PinejsClientRequest, StatusError } from 'pinejs-client-request';
+import { PinejsClientRequest } from 'pinejs-client-request';
 import * as url from 'url';
 import * as deviceRegister from './lib/register-device';
 
@@ -30,17 +30,10 @@ import * as logger from './logger';
 
 import * as apiHelper from './lib/api-helper';
 import { Device } from './lib/api-helper';
-import { DeviceStatus } from './types/state';
-import constants = require('./lib/constants');
-
-// The exponential backoff starts at 15s
-const MINIMUM_BACKOFF_DELAY = 15000;
-
-const INTERNAL_STATE_KEYS = [
-	'update_pending',
-	'update_downloaded',
-	'update_failed',
-];
+import {
+	startReporting,
+	stateReportErrors,
+} from './device-state/current-state';
 
 interface DevicePinInfo {
 	app: number;
@@ -53,16 +46,6 @@ interface DeviceTag {
 	value: string;
 }
 
-const lastReportedState: DeviceStatus = {
-	local: {},
-	dependent: {},
-};
-const stateForReport: DeviceStatus = {
-	local: {},
-	dependent: {},
-};
-let reportPending = false;
-export let stateReportErrors = 0;
 let readyForUpdates = false;
 
 export async function healthcheck() {
@@ -277,19 +260,12 @@ export function startCurrentStateReport() {
 			'Trying to start state reporting without initializing API client',
 		);
 	}
-	deviceState.on('change', () => {
-		if (!reportPending) {
-			// A latency of 100ms should be acceptable and
-			// allows avoiding catching docker at weird states
-			reportCurrentState();
-		}
-	});
-	reportCurrentState();
+	startReporting();
 }
 
 export async function fetchDeviceTags(): Promise<DeviceTag[]> {
 	if (balenaApi == null) {
-		throw new Error(
+		throw new InternalInconsistencyError(
 			'Attempt to communicate with API, without initialized client',
 		);
 	}
@@ -324,160 +300,6 @@ export async function fetchDeviceTags(): Promise<DeviceTag[]> {
 			value: value.right,
 		};
 	});
-}
-
-function getStateDiff(): DeviceStatus {
-	const lastReportedLocal = lastReportedState.local;
-	const lastReportedDependent = lastReportedState.dependent;
-	if (lastReportedLocal == null || lastReportedDependent == null) {
-		throw new InternalInconsistencyError(
-			`No local or dependent component of lastReportedLocal in ApiBinder.getStateDiff: ${JSON.stringify(
-				lastReportedState,
-			)}`,
-		);
-	}
-
-	const diff = {
-		local: _(stateForReport.local)
-			.omitBy((val, key: keyof DeviceStatus['local']) =>
-				_.isEqual(lastReportedLocal[key], val),
-			)
-			.omit(INTERNAL_STATE_KEYS)
-			.value(),
-		dependent: _(stateForReport.dependent)
-			.omitBy((val, key: keyof DeviceStatus['dependent']) =>
-				_.isEqual(lastReportedDependent[key], val),
-			)
-			.omit(INTERNAL_STATE_KEYS)
-			.value(),
-	};
-
-	return _.omitBy(diff, _.isEmpty);
-}
-
-async function sendReportPatch(
-	stateDiff: DeviceStatus,
-	conf: { apiEndpoint: string; uuid: string; localMode: boolean },
-) {
-	if (balenaApi == null) {
-		throw new InternalInconsistencyError(
-			'Attempt to send report patch without an API client',
-		);
-	}
-
-	let body = stateDiff;
-	if (conf.localMode) {
-		body = stripDeviceStateInLocalMode(stateDiff);
-		// In local mode, check if it still makes sense to send any updates after data strip.
-		if (_.isEmpty(body.local)) {
-			// Nothing to send.
-			return;
-		}
-	}
-
-	const endpoint = url.resolve(
-		conf.apiEndpoint,
-		`/device/v2/${conf.uuid}/state`,
-	);
-
-	const requestParams = _.extend(
-		{
-			method: 'PATCH',
-			url: endpoint,
-			body,
-		},
-		balenaApi.passthrough,
-	);
-
-	await balenaApi._request(requestParams);
-}
-
-// Returns an object that contains only status fields relevant for the local mode.
-// It basically removes information about applications state.
-export function stripDeviceStateInLocalMode(state: DeviceStatus): DeviceStatus {
-	return {
-		local: _.cloneDeep(
-			_.omit(state.local, 'apps', 'is_on__commit', 'logs_channel'),
-		),
-	};
-}
-
-const report = _.throttle(async () => {
-	const stateDiff = getStateDiff();
-	if (_.size(stateDiff) === 0) {
-		return 0;
-	}
-
-	const conf = await config.getMany([
-		'deviceId',
-		'apiTimeout',
-		'apiEndpoint',
-		'uuid',
-		'localMode',
-	]);
-
-	const { apiEndpoint, uuid, localMode } = conf;
-	if (uuid == null || apiEndpoint == null) {
-		throw new InternalInconsistencyError(
-			'No uuid or apiEndpoint provided to ApiBinder.report',
-		);
-	}
-
-	try {
-		await Bluebird.resolve(
-			sendReportPatch(stateDiff, { apiEndpoint, uuid, localMode }),
-		).timeout(conf.apiTimeout);
-
-		stateReportErrors = 0;
-		_.assign(lastReportedState.local, stateDiff.local);
-		_.assign(lastReportedState.dependent, stateDiff.dependent);
-	} catch (e) {
-		if (e instanceof StatusError) {
-			// We don't want this to be classed as a report error, as this will cause
-			// the watchdog to kill the supervisor - and killing the supervisor will
-			// not help in this situation
-			log.error(
-				`Non-200 response from the API! Status code: ${e.statusCode} - message:`,
-				e,
-			);
-		} else {
-			throw e;
-		}
-	}
-}, constants.maxReportFrequency);
-
-function reportCurrentState(): null {
-	(async () => {
-		reportPending = true;
-		try {
-			const currentDeviceState = await deviceState.getStatus();
-			_.assign(stateForReport.local, currentDeviceState.local);
-			_.assign(stateForReport.dependent, currentDeviceState.dependent);
-
-			const stateDiff = getStateDiff();
-			if (_.size(stateDiff) === 0) {
-				reportPending = false;
-				return null;
-			}
-
-			await report();
-			reportCurrentState();
-		} catch (e) {
-			eventTracker.track('Device state report failure', { error: e });
-			// We use the poll interval as the upper limit of
-			// the exponential backoff
-			const maxDelay = await config.get('appUpdatePollInterval');
-			const delay = Math.min(
-				2 ** stateReportErrors * MINIMUM_BACKOFF_DELAY,
-				maxDelay,
-			);
-
-			++stateReportErrors;
-			await Bluebird.delay(delay);
-			reportCurrentState();
-		}
-	})();
-	return null;
 }
 
 async function pinDevice({ app, commit }: DevicePinInfo) {

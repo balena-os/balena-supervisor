@@ -447,6 +447,8 @@ describe('ApiBinder', () => {
 		});
 
 		it('fails when stateReportHealthy is false', async () => {
+			const currentState = await import('../src/device-state/current-state');
+
 			configStub.resolves({
 				unmanaged: false,
 				appUpdatePollInterval: 1000,
@@ -457,29 +459,31 @@ describe('ApiBinder', () => {
 			(TargetState as any).lastFetch = process.hrtime();
 
 			// Copy previous values to restore later
-			const previousStateReportErrors = components.apiBinder.stateReportErrors;
+			const previousStateReportErrors = currentState.stateReportErrors;
 			const previousDeviceStateConnected =
 				// @ts-ignore
 				components.deviceState.connected;
 
 			// Set additional conditions not in configStub to cause a fail
-			components.apiBinder.stateReportErrors = 4;
-			components.deviceState.connected = true;
+			try {
+				currentState.stateReportErrors = 4;
+				components.deviceState.connected = true;
 
-			expect(await components.apiBinder.healthcheck()).to.equal(false);
+				expect(await components.apiBinder.healthcheck()).to.equal(false);
 
-			expect(Log.info).to.be.calledOnce;
-			expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
-				stripIndent`
-				Healthcheck failure - At least ONE of the following conditions must be true:
-					- No connectivityCheckEnabled   ? false
-					- device state is disconnected  ? false
-					- stateReportErrors less then 3 ? false`,
-			);
-
-			// Restore previous values
-			components.apiBinder.stateReportErrors = previousStateReportErrors;
-			components.deviceState.connected = previousDeviceStateConnected;
+				expect(Log.info).to.be.calledOnce;
+				expect((Log.info as SinonSpy).lastCall?.lastArg).to.equal(
+					stripIndent`
+					Healthcheck failure - At least ONE of the following conditions must be true:
+						- No connectivityCheckEnabled   ? false
+						- device state is disconnected  ? false
+						- stateReportErrors less then 3 ? false`,
+				);
+			} finally {
+				// Restore previous values
+				currentState.stateReportErrors = previousStateReportErrors;
+				components.deviceState.connected = previousDeviceStateConnected;
+			}
 		});
 	});
 });
