@@ -1,4 +1,35 @@
 - commits:
+    - subject: Attempt a state report once every maxReportFrequency
+      hash: 0e3c0263922043b9d53a7eb3545622106f10100c
+      body: |
+        With the addition of the system information feature (CPU temp) etc if
+        there wasn't any changes in the docker or config state of the device,
+        updates in system information would not be sent to the API. Now we
+        attempt to send data once every maxReportFrequency (although this does
+        not mean that we will be sending data that often, we still only send the
+        delta, if one exists)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1481'
+        closes: '#1481'
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+    - subject: Remove superfluous current state reporting code from api-binder
+      hash: 975129188a9fcb11a081f7ba75a1b8b973499a21
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 12.0.2
+  date: 2020-10-12T10:55:40.890Z
+- commits:
     - subject: Add features label `io.balena.features.journal-logs`
       hash: 1eeff698aca56558fa09832b9bcb02c99e275dbe
       body: ''
