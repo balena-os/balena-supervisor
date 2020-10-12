@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add features label `io.balena.features.journal-logs`
+      hash: 1eeff698aca56558fa09832b9bcb02c99e275dbe
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Thomas Manning <thomasm@balena.io>
+        signed-off-by: Thomas Manning <thomasm@balena.io>
+      author: Thomas Manning
+      nested: []
+  version: 12.0.1
+  date: 2020-10-12T05:41:14.895Z
+- commits:
     - subject: 'version: drop SUPERVISOR_VERSION env var'
       hash: 8e65466f2d8540918b1fa8d8af88d0c21fcbf7f8
       body: >
