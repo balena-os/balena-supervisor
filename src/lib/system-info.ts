@@ -1,8 +1,9 @@
 import * as systeminformation from 'systeminformation';
 import * as osUtils from 'os-utils';
+import * as _ from 'lodash';
 import { fs, child_process } from 'mz';
 
-export function getCpuUsage() {
+export function getCpuUsage(): Promise<number> {
 	return new Promise((resolve) => {
 		osUtils.cpuUsage((percent) => {
 			resolve(Math.round(percent * 100));
@@ -11,7 +12,11 @@ export function getCpuUsage() {
 }
 
 const blockDeviceRegex = /(\/dev\/.*)p\d+/;
-export async function getStorageInfo() {
+export async function getStorageInfo(): Promise<{
+	blockDevice: string;
+	storageUsed?: number;
+	storageTotal?: number;
+}> {
 	const fsInfo = await systeminformation.fsSize();
 	let mainFs: string | undefined;
 	let total = 0;
@@ -51,7 +56,10 @@ export async function getStorageInfo() {
 	};
 }
 
-export async function getMemoryInformation() {
+export async function getMemoryInformation(): Promise<{
+	used: number;
+	total: number;
+}> {
 	const mem = await systeminformation.mem();
 	return {
 		used: bytesToMb(mem.used),
@@ -59,11 +67,11 @@ export async function getMemoryInformation() {
 	};
 }
 
-export async function getCpuTemp() {
+export async function getCpuTemp(): Promise<number> {
 	return Math.round((await systeminformation.cpuTemperature()).main);
 }
 
-export async function getCpuId() {
+export async function getCpuId(): Promise<string | undefined> {
 	// Read /proc/device-tree/serial-number
 	// if it's not there, return undefined
 	try {
@@ -76,7 +84,7 @@ export async function getCpuId() {
 }
 
 const undervoltageRegex = /under.*voltage/;
-export async function undervoltageDetected() {
+export async function undervoltageDetected(): Promise<boolean> {
 	try {
 		const [dmesgStdout] = await child_process.exec('dmesg');
 		return undervoltageRegex.test(dmesgStdout.toString());
@@ -106,6 +114,39 @@ export async function getSysInfoToReport() {
 		cpu_id: cpuid,
 		is_undervolted: undervoltage,
 	};
+}
+export type SystemInfo = UnwrappedPromise<
+	ReturnType<typeof getSysInfoToReport>
+>;
+
+const significantChange: { [key in keyof SystemInfo]?: number } = {
+	cpu_usage: 20,
+	cpu_temp: 5,
+	memory_usage: 10,
+};
+
+export function filterNonSignificantChanges(
+	past: Partial<SystemInfo>,
+	current: SystemInfo,
+): Array<keyof SystemInfo> {
+	return Object.keys(
+		_.omitBy(current, (value, key: keyof SystemInfo) => {
+			// If we didn't have a value for this in the past, include it
+			if (past[key] == null) {
+				return true;
+			}
+			const bucketSize = significantChange[key];
+			// If we don't have any requirements on this value, include it
+			if (bucketSize == null) {
+				return true;
+			}
+
+			return (
+				Math.floor((value as number) / bucketSize) !==
+				Math.floor((past[key] as number) / bucketSize)
+			);
+		}),
+	) as Array<keyof SystemInfo>;
 }
 
 function bytesToMb(bytes: number) {
