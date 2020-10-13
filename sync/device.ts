@@ -59,8 +59,12 @@ export async function getDeviceArch(docker: Docker): Promise<string> {
 }
 
 export async function getCacheFrom(docker: Docker): Promise<string[]> {
-	const container = await getSupervisorContainer(docker);
-	return [container.Image];
+	try {
+		const container = await getSupervisorContainer(docker);
+		return [container.Image];
+	} catch {
+		return [];
+	}
 }
 
 // perform the build and return the image id
