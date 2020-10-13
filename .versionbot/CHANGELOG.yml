@@ -1,4 +1,17 @@
 - commits:
+    - subject: Don't require an existing supervisor container to sync
+      hash: 629b410e10fb6590806d546ff94101951ec6c9a2
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 12.0.4
+  date: 2020-10-13T09:49:51.370Z
+- commits:
     - subject: Refactor system information filtering
       hash: a2ceb5c93189704beaf8b4f5c8b71c46d8e2a966
       body: ''
