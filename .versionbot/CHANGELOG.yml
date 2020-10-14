@@ -1,4 +1,38 @@
 - commits:
+    - subject: Improve calculation for used system memory
+      hash: dd5f62227a0b0d2024db924e7028c9fec8b2b1d9
+      body: >
+        The memory information reported by the supervisor currently
+
+        estimates the value of used memory as `MemTotal - MemFree`.
+
+        However, linux systems will try to cache and buffer as much
+
+        memory as possible, which will affect the output of `MemFree`
+
+        (from /proc/meminfo) and in consequence the memory usage seen
+
+        by the user on the dashboard, which will appear much greater than
+
+        it is.
+
+
+        The correct calculation should be `MemTotal - MemFree - Buffers -
+        Cached`,
+
+        which the calculation performed by `htop` and the `free` commands.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+        Connects-to: '#1471'
+        connects-to: '#1471'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.0.5
+  date: 2020-10-14T16:19:41.551Z
+- commits:
     - subject: Don't require an existing supervisor container to sync
       hash: 629b410e10fb6590806d546ff94101951ec6c9a2
       body: ''
