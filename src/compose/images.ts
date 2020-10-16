@@ -535,6 +535,33 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 				logger.logSystemEvent(LogTypes.deleteImage, { image });
 				docker.getImage(img.dockerImageId).remove({ force: true });
 				removed = true;
+			} else if (imagesFromDb.length > 1 && hasDigest(img.name)) {
+				const [dockerRepo] = img.name.split('@');
+				const dockerImage = await docker.getImage(img.dockerImageId).inspect();
+				const matchingTags = dockerImage.RepoTags.filter((tag) => {
+					const [tagRepo] = tag.split(':');
+					return tagRepo === dockerRepo;
+				});
+
+				reportChange(
+					image.imageId,
+					_.merge(_.clone(image), { status: 'Deleting' }),
+				);
+				logger.logSystemEvent(LogTypes.deleteImage, { image });
+
+				// Remove tags that match the repo part of the image.name
+				await Promise.all(
+					matchingTags.map((tag) =>
+						docker.getImage(tag).remove({ noprune: true }),
+					),
+				);
+
+				// Since there are multiple images with same id we need to
+				// remove by name
+				await Bluebird.delay(Math.random() * 100); // try to prevent race conditions
+				await docker.getImage(img.name).remove();
+
+				removed = true;
 			} else if (!hasDigest(img.name)) {
 				// Image has a regular tag, so we might have to remove unnecessary tags
 				const dockerImage = await docker.getImage(img.dockerImageId).inspect();
