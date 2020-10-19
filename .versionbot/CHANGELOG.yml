@@ -1,4 +1,48 @@
 - commits:
+    - subject: Fixes check allowing preloading in local (unmanaged) mode
+      hash: 0fd9b6376251c73f2adfd37ec80d2145178683d6
+      body: |
+        * adds apiEndpoint empty string check
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: ab77
+      nested: []
+    - subject: Handle delete of multiple images with same dockerImageId
+      hash: 4795c336d055862706be42ebb544caef93d55e35
+      body: |
+        A docker-compose.yml with the following structure
+
+        ```
+        version: '2.1'
+        services:
+          app_1:
+            build: ./noisy-1
+            image: noisy1
+          app_2:
+            build: ./noisy-1
+            image: noisy1
+          app_3:
+            build: ./noisy-1
+            image: noisy1
+        ```
+
+        Will lead to the supervisor creating multiple image database entries
+        with the same dockerId (this is because of how the engine handles this
+        particular case). This case is not handled by the removal process
+        leading to image pile up and increased disk usage.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+        Connects-to: '#1434'
+        connects-to: '#1434'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.0.6
+  date: 2020-10-16T22:32:07.462Z
+- commits:
     - subject: Improve calculation for used system memory
       hash: dd5f62227a0b0d2024db924e7028c9fec8b2b1d9
       body: >
