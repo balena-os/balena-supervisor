@@ -1,4 +1,17 @@
 - commits:
+    - subject: Improved log message when networks do not match
+      hash: edf23871d9a057b9bae8837f3ee39d7401247514
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.0.7
+  date: 2020-10-19T16:04:51.506Z
+- commits:
     - subject: Fixes check allowing preloading in local (unmanaged) mode
       hash: 0fd9b6376251c73f2adfd37ec80d2145178683d6
       body: |
