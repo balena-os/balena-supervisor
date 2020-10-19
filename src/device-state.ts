@@ -467,7 +467,7 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 			await config.set({ name: target.local.name }, trx);
 			await deviceConfig.setTarget(target.local.config, trx);
 
-			if (localSource || apiEndpoint == null) {
+			if (localSource || apiEndpoint == null || apiEndpoint === '') {
 				await applicationManager.setTarget(
 					target.local.apps,
 					target.dependent,
