@@ -565,9 +565,13 @@ export class App {
 		) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running !== current.config.running) {
-			if (target.config.running) {
+			// Since the running states don't match that means they are inversed!
+			// We can achieve the target running state by doing the opposite then of what is current.
+			// However, for starting a container we must first check the restart policy.
+			if (!current.config.running && target.config.restart === 'always') {
+				// Only start the container if is stopped and wants to be restarted
 				return generateStep('start', { target });
-			} else {
+			} else if (current.config.running) {
 				return generateStep('stop', { current });
 			}
 		}
