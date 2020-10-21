@@ -8,6 +8,7 @@ import {
 	ServiceComposeConfig,
 	ServiceConfig,
 } from '../src/compose/types/service';
+import * as constants from '../src/lib/constants';
 
 const configs = {
 	simple: {
@@ -268,6 +269,30 @@ describe('compose/service', () => {
 				'/tmp/balena-supervisor/services/123/test:/tmp/resin',
 				'/tmp/balena-supervisor/services/123/test:/tmp/balena',
 			]);
+	});
+
+	it('should correctly handle io.balena.features.balena-socket label', async () => {
+		const service = await Service.fromComposeObject(
+			{
+				appId: 123456,
+				serviceId: 123456,
+				serviceName: 'foobar',
+				labels: {
+					'io.balena.features.balena-socket': '1',
+				},
+			},
+			{ appName: 'test' } as any,
+		);
+
+		expect(service.config.volumes).to.include.members([
+			`${constants.dockerSocket}:${constants.dockerSocket}`,
+			`${constants.dockerSocket}:/host/run/balena-engine.sock`,
+			`${constants.dockerSocket}:/var/run/balena.sock`,
+		]);
+
+		expect(service.config.environment['DOCKER_HOST']).to.equal(
+			'unix:///host/run/balena-engine.sock',
+		);
 	});
 
 	describe('Ordered array parameters', () => {

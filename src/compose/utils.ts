@@ -345,12 +345,18 @@ export async function addFeaturesFromLabels(
 				: null,
 		'io.balena.features.balena-socket': () => {
 			service.config.volumes.push(
+				`${constants.dockerSocket}:${constants.containerDockerSocket}`,
+			);
+
+			// Maintain the /var/run mount for backwards compatibility
+			service.config.volumes.push(
 				`${constants.dockerSocket}:${constants.dockerSocket}`,
 			);
+
 			if (service.config.environment['DOCKER_HOST'] == null) {
 				service.config.environment[
 					'DOCKER_HOST'
-				] = `unix://${constants.dockerSocket}`;
+				] = `unix://${constants.containerDockerSocket}`;
 			}
 			// We keep balena.sock for backwards compatibility
 			if (constants.dockerSocket !== '/var/run/balena.sock') {
