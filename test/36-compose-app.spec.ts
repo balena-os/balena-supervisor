@@ -583,6 +583,49 @@ describe('compose/app', () => {
 		expectStep('stop', steps);
 	});
 
+	it('should not try to start a container which has exitted and has restart policy of no', async () => {
+		// Container is a "run once" type of service so it has exitted.
+		const current = createApp(
+			[
+				await createService(
+					{ restart: 'no', running: false },
+					1,
+					'main',
+					1,
+					1,
+					1,
+					{ containerId: 'run_once' },
+				),
+			],
+			[],
+			[],
+			false,
+		);
+
+		// Mark this container as previously being started
+		applicationManager.containerStarted['run_once'] = true;
+
+		// Now test that another start step is not added on this service
+		const target = createApp(
+			[
+				await createService(
+					{ restart: 'no', running: true },
+					1,
+					'main',
+					1,
+					1,
+					1,
+					{ containerId: 'run_once' },
+				),
+			],
+			[],
+			[],
+			true,
+		);
+		const steps = current.nextStepsForAppUpdate(defaultContext, target);
+		withSteps(steps).rejectStep('start');
+	});
+
 	it('should recreate a container if the target configuration changes', async () => {
 		const contextWithImages = {
 			...defaultContext,
