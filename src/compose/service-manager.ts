@@ -24,6 +24,7 @@ import { Service } from './service';
 import { serviceNetworksToDockerNetworks } from './utils';
 
 import log from '../lib/supervisor-console';
+import logMonitor from '../logging/monitor';
 
 interface ServiceManagerEvents {
 	change: void;
@@ -383,7 +384,7 @@ export function listenToEvents() {
 		parser.on('data', async (data: { status: string; id: string }) => {
 			if (data != null) {
 				const status = data.status;
-				if (status === 'die' || status === 'start') {
+				if (status === 'die' || status === 'start' || status === 'destroy') {
 					try {
 						let service: Service | null = null;
 						try {
@@ -415,6 +416,8 @@ export function listenToEvents() {
 									serviceId,
 									imageId,
 								});
+							} else if (status === 'destroy') {
+								await logMonitor.detach(data.id);
 							}
 						}
 					} catch (e) {

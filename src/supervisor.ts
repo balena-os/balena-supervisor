@@ -14,6 +14,7 @@ import version = require('./lib/supervisor-version');
 
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
+import logMonitor from './logging/monitor';
 
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
@@ -75,6 +76,8 @@ export class Supervisor {
 		deviceState.on('shutdown', () => this.api.stop());
 
 		await apiBinder.start();
+
+		logMonitor.start();
 	}
 }
 
