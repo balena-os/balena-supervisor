@@ -307,46 +307,78 @@ export class App {
 			}
 		}
 
-		const alreadyStarted = (serviceId: number) => {
-			const equalExceptForRunning = currentByServiceId[
-				serviceId
-			].isEqualExceptForRunningState(
-				targetByServiceId[serviceId],
-				containerIds,
-			);
-			if (!equalExceptForRunning) {
-				// We need to recreate the container, as the configuration has changed
+		/**
+		 * Checks that the config for the current and target services matches, ignoring their run state.
+		 * @param serviceCurrent
+		 * @param serviceTarget
+		 */
+		const isEqualExceptForRunningState = (
+			serviceCurrent: Service,
+			serviceTarget: Service,
+		) =>
+			serviceCurrent.isEqualExceptForRunningState(serviceTarget, containerIds);
+
+		/**
+		 * Checks if a service is running, if we tracked it as being started, if the config matches the desired config, and if we actually want it to ever be started.
+		 * @param serviceCurrent
+		 * @param serviceTarget
+		 */
+		const shouldBeStarted = (
+			serviceCurrent: Service,
+			serviceTarget: Service,
+		) => {
+			// If the target run state is stopped, or we are actually running, then we don't care about anything else
+			if (
+				serviceTarget.config.running === false ||
+				serviceCurrent.config.running === true
+			) {
 				return false;
 			}
 
-			if (targetByServiceId[serviceId].config.running) {
-				// If the container is already running, and we don't need to change it
-				// due to the config, we know it's already been started
-				return true;
+			// Check if we previously remember starting it
+			if (
+				applicationManager.containerStarted[serviceCurrent.containerId!] != null
+			) {
+				return false;
 			}
 
-			// We recently ran a start step for this container, it just hasn't
-			// started running yet
+			// If the config otherwise matches, then we should be running
+			return isEqualExceptForRunningState(serviceCurrent, serviceTarget);
+		};
+
+		/**
+		 * Checks if a service should be stopped and if we have tracked it as being stopped.
+		 *
+		 * @param serviceCurrent
+		 * @param serviceTarget
+		 */
+		const shouldBeStopped = (
+			serviceCurrent: Service,
+			serviceTarget: Service,
+		) => {
+			// check that we want to stop it, and that it isn't stopped
 			return (
-				applicationManager.containerStarted[
-					currentByServiceId[serviceId].containerId!
-				] != null
+				serviceTarget.config.running === false &&
+				// When we issue a stop step, we remove the containerId from this structure.
+				// We check if the container has been removed first, so that we can ensure we're not providing multiple stop steps.
+				applicationManager.containerStarted[serviceCurrent.containerId!] == null
 			);
 		};
 
-		const needUpdate = maybeUpdate.filter(
-			(serviceId) =>
-				!(
-					currentByServiceId[serviceId].isEqual(
-						targetByServiceId[serviceId],
-						containerIds,
-					) && alreadyStarted(serviceId)
-				),
-		);
-		const toBeUpdated = needUpdate.map((serviceId) => ({
-			current: currentByServiceId[serviceId],
-			target: targetByServiceId[serviceId],
-		}));
+		/**
+		 * Filter all the services which should be updated due to run state change, or config mismatch.
+		 */
+		const toBeUpdated = maybeUpdate
+			.map((serviceId) => ({
+				current: currentByServiceId[serviceId],
+				target: targetByServiceId[serviceId],
+			}))
+			.filter(
+				({ current: c, target: t }) =>
+					!isEqualExceptForRunningState(c, t) ||
+					shouldBeStarted(c, t) ||
+					shouldBeStopped(c, t),
+			);
 
 		return {
 			installPairs: toBeInstalled,
