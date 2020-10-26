@@ -1,4 +1,19 @@
 - commits:
+    - subject: Fixed evaluating if updates are needed to reach target state
+      hash: 77333f1e110070f17f4bf95c1554075c94a35d63
+      body: ''
+      footer:
+        Closes: '#1476'
+        closes: '#1476'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.0.8
+  date: 2020-10-26T18:56:16.649Z
+- commits:
     - subject: Improved log message when networks do not match
       hash: edf23871d9a057b9bae8837f3ee39d7401247514
       body: ''
