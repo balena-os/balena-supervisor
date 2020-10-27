@@ -87,11 +87,29 @@ export async function get<T extends SchemaTypeKey>(
 		// Cast the promise as something that produces an unknown, and this means that
 		// we can validate the output of the function as well, ensuring that the type matches
 		const promiseValue = FnSchema.fnSchema[fnKey]();
-		return promiseValue.then((value: unknown) => {
-			const decoded = schemaTypes[key].type.decode(value);
+		return promiseValue
+			.then((value: unknown) => {
+				const decoded = schemaTypes[key].type.decode(value);
 
-			return checkValueDecode(decoded, key, value) && decoded.right;
-		});
+				return checkValueDecode(decoded, key, value) && decoded.right;
+			})
+			.catch(() => {
+				const defaultValue = schemaTypes[key].default;
+				if (defaultValue instanceof t.Type) {
+					// For functions, this can happen if t.never is used as default
+					// value. In that case decoding and the value check below will throw
+					// (which is what is expected)
+					// if future functions use NullOrUndefined as with values above
+					// this branch will return undefined. In any case this should never
+					// happen
+					const maybeDecoded = (defaultValue as t.Type<any>).decode(undefined);
+
+					return (
+						checkValueDecode(maybeDecoded, key, undefined) && maybeDecoded.right
+					);
+				}
+				return defaultValue as SchemaReturn<T>;
+			});
 	} else {
 		throw new Error(`Unknown config value ${key}`);
 	}

@@ -1,5 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
+import * as memoizee from 'memoizee';
 import { fs } from 'mz';
 import { URL } from 'url';
 
@@ -38,22 +39,44 @@ export const fnSchema = {
 	macAddress: () => {
 		return macAddress.getAll(constants.macAddressPath);
 	},
-	deviceArch: async () => {
-		try {
-			// FIXME: We should be mounting the following file into the supervisor from the
-			// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
-			const data = await fs.readFile(
-				`${constants.rootMountPoint}/resin-boot/device-type.json`,
-				'utf8',
-			);
-			const deviceInfo = JSON.parse(data);
+	deviceArch: memoizee(
+		async () => {
+			try {
+				// FIXME: We should be mounting the following file into the supervisor from the
+				// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
+				const data = await fs.readFile(
+					`${constants.bootMountPoint}/device-type.json`,
+					'utf8',
+				);
+				const deviceInfo = JSON.parse(data);
 
-			return deviceInfo.arch;
-		} catch (e) {
-			log.error(`Unable to get architecture: ${e}`);
-			return 'unknown';
-		}
-	},
+				return deviceInfo.arch;
+			} catch (e) {
+				log.error(`Unable to get architecture: ${e}`);
+				throw e;
+			}
+		},
+		{ promise: true },
+	),
+	deviceType: memoizee(
+		async () => {
+			try {
+				// FIXME: We should be mounting the following file into the supervisor from the
+				// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
+				const data = await fs.readFile(
+					`${constants.bootMountPoint}/device-type.json`,
+					'utf8',
+				);
+				const deviceInfo = JSON.parse(data);
+
+				return deviceInfo.slug;
+			} catch (e) {
+				log.error(`Unable to get device type: ${e}`);
+				throw e;
+			}
+		},
+		{ promise: true },
+	),
 	provisioningOptions: () => {
 		return config
 			.getMany([

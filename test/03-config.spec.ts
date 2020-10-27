@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import { fs } from 'mz';
+import { SinonStub, stub } from 'sinon';
 
 import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
@@ -7,6 +8,7 @@ import * as conf from '../src/config';
 
 import constants = require('../src/lib/constants');
 import { SchemaTypeKey } from '../src/config/schema-type';
+import { fnSchema } from '../src/config/functions';
 
 // tslint:disable-next-line
 chai.use(require('chai-events'));
@@ -128,6 +130,138 @@ describe('Config', () => {
 
 		it('should throw if a non-mutable function provider is removed', () => {
 			expect(conf.remove('version' as any)).to.be.rejected;
+		});
+	});
+
+	describe('Config data sources', () => {
+		after(() => {
+			// Clean up memoized values
+		});
+
+		it('should obtain deviceArch from device-type.json', async () => {
+			const [slug, arch] = ['raspberrypi3', 'armv7hf'];
+			stub(fs, 'readFile').resolves(
+				JSON.stringify({
+					slug,
+					arch,
+				}),
+			);
+
+			const deviceArch = await conf.get('deviceArch');
+			expect(deviceArch).to.equal(arch);
+			expect(fs.readFile).to.be.calledOnce;
+			expect(fs.readFile).to.be.calledWith(
+				`${constants.bootMountPoint}/device-type.json`,
+				'utf8',
+			);
+
+			(fs.readFile as SinonStub).restore();
+		});
+
+		it('should obtain deviceType from device-type.json', async () => {
+			const [slug, arch] = ['raspberrypi3', 'armv7hf'];
+			stub(fs, 'readFile').resolves(
+				JSON.stringify({
+					slug,
+					arch,
+				}),
+			);
+
+			const deviceType = await conf.get('deviceType');
+			expect(deviceType).to.equal(slug);
+			expect(fs.readFile).to.be.calledOnce;
+			expect(fs.readFile).to.be.calledWith(
+				`${constants.bootMountPoint}/device-type.json`,
+				'utf8',
+			);
+
+			(fs.readFile as SinonStub).restore();
+		});
+
+		it('should memoize values from device-type.json', async () => {
+			const [slug, arch] = ['raspberrypi3', 'armv7hf'];
+			stub(fs, 'readFile').resolves(
+				JSON.stringify({
+					slug,
+					arch,
+				}),
+			);
+
+			const deviceArch = await conf.get('deviceArch');
+			expect(deviceArch).to.equal(arch);
+
+			// The result should still be memoized from the
+			// call on the previous test
+			expect(fs.readFile).to.not.be.called;
+
+			const deviceType = await conf.get('deviceType');
+			expect(deviceType).to.equal(slug);
+
+			// The result should still be memoized from the
+			// call on the previous test
+			expect(fs.readFile).to.not.be.called;
+
+			(fs.readFile as SinonStub).restore();
+		});
+
+		it('should not memoize errors when reading deviceArch', (done) => {
+			// Clean up memoized value
+			fnSchema.deviceArch.clear();
+
+			// File not found
+			stub(fs, 'readFile').throws('File not found');
+
+			expect(conf.get('deviceArch')).to.eventually.equal('unknown');
+			expect(fs.readFile).to.be.calledOnce;
+			(fs.readFile as SinonStub).restore();
+
+			// Next call should not throw
+			const [slug, arch] = ['raspberrypi3', 'armv7hf'];
+			stub(fs, 'readFile').resolves(
+				JSON.stringify({
+					slug,
+					arch,
+				}),
+			);
+
+			// We need to let rejection be discovered
+			// https://github.com/medikoo/memoizee/issues/93
+			setTimeout(() => {
+				expect(conf.get('deviceArch')).to.eventually.equal(arch);
+				expect(fs.readFile).to.be.calledOnce;
+				(fs.readFile as SinonStub).restore();
+				done();
+			});
+		});
+
+		it('should not memoize errors when reading deviceType', (done) => {
+			// Clean up memoized value
+			fnSchema.deviceType.clear();
+
+			// File not found
+			stub(fs, 'readFile').throws('File not found');
+
+			expect(conf.get('deviceType')).to.eventually.equal('unknown');
+			expect(fs.readFile).to.be.calledOnce;
+			(fs.readFile as SinonStub).restore();
+
+			// Next call should not throw
+			const [slug, arch] = ['raspberrypi3', 'armv7hf'];
+			stub(fs, 'readFile').resolves(
+				JSON.stringify({
+					slug,
+					arch,
+				}),
+			);
+
+			// We need to let rejection be discovered
+			// https://github.com/medikoo/memoizee/issues/93
+			setTimeout(() => {
+				expect(conf.get('deviceType')).to.eventually.equal(slug);
+				expect(fs.readFile).to.be.calledOnce;
+				(fs.readFile as SinonStub).restore();
+				done();
+			});
 		});
 	});
 });

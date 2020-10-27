@@ -34,11 +34,6 @@ export const schema = {
 		mutable: true,
 		removeIfNull: false,
 	},
-	deviceType: {
-		source: 'config.json',
-		mutable: false,
-		removeIfNull: false,
-	},
 	deviceId: {
 		source: 'config.json',
 		mutable: true,
