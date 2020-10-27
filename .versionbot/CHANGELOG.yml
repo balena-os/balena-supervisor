@@ -1,4 +1,21 @@
 - commits:
+    - subject: Change source of deviceType to device-type.json
+      hash: f5183df35677f091f1374c3f6e86706b141471f3
+      body: |
+        The source of truth for the device-type should be
+        device-type.json instead of config.json
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+        Connects-to: '#1472'
+        connects-to: '#1472'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.0.9
+  date: 2020-10-27T12:43:11.383Z
+- commits:
     - subject: Fixed evaluating if updates are needed to reach target state
       hash: 77333f1e110070f17f4bf95c1554075c94a35d63
       body: ''
