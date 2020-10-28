@@ -45,7 +45,7 @@ export const fnSchema = {
 				// FIXME: We should be mounting the following file into the supervisor from the
 				// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
 				const data = await fs.readFile(
-					`${constants.bootMountPoint}/device-type.json`,
+					`${constants.rootMountPoint}${constants.bootMountPoint}/device-type.json`,
 					'utf8',
 				);
 				const deviceInfo = JSON.parse(data);
@@ -64,7 +64,7 @@ export const fnSchema = {
 				// FIXME: We should be mounting the following file into the supervisor from the
 				// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
 				const data = await fs.readFile(
-					`${constants.bootMountPoint}/device-type.json`,
+					`${constants.rootMountPoint}${constants.bootMountPoint}/device-type.json`,
 					'utf8',
 				);
 				const deviceInfo = JSON.parse(data);
