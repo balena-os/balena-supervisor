@@ -151,7 +151,7 @@ describe('Config', () => {
 			expect(deviceArch).to.equal(arch);
 			expect(fs.readFile).to.be.calledOnce;
 			expect(fs.readFile).to.be.calledWith(
-				`${constants.bootMountPoint}/device-type.json`,
+				`${constants.rootMountPoint}${constants.bootMountPoint}/device-type.json`,
 				'utf8',
 			);
 
@@ -171,7 +171,7 @@ describe('Config', () => {
 			expect(deviceType).to.equal(slug);
 			expect(fs.readFile).to.be.calledOnce;
 			expect(fs.readFile).to.be.calledWith(
-				`${constants.bootMountPoint}/device-type.json`,
+				`${constants.rootMountPoint}${constants.bootMountPoint}/device-type.json`,
 				'utf8',
 			);
 
