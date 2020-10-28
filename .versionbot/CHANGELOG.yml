@@ -1,4 +1,17 @@
 - commits:
+    - subject: Use root mount point to find device-type.json
+      hash: 9d19a457017b1f696579f57569ec4cfadab3b385
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 12.1.1
+  date: 2020-10-28T13:03:20.901Z
+- commits:
     - subject: Change log source from docker to journalctl
       hash: 2c83864f22b01e7196f6ed321c96f6cb9f40593b
       body: ''
