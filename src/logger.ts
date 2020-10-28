@@ -8,12 +8,11 @@ import { LogType } from './lib/log-types';
 import { writeLock } from './lib/update-lock';
 import {
 	BalenaLogBackend,
-	ContainerLogs,
 	LocalLogBackend,
 	LogBackend,
 	LogMessage,
 } from './logging';
-import LogMonitor from './logging/monitor';
+import logMonitor from './logging/monitor';
 
 import * as globalEventBus from './event-bus';
 import superConsole from './lib/supervisor-console';
@@ -24,9 +23,6 @@ type LogEventObject = Dictionary<any> | null;
 let backend: LogBackend | null = null;
 let balenaBackend: BalenaLogBackend | null = null;
 let localBackend: LocalLogBackend | null = null;
-
-const containerLogs: { [containerId: string]: ContainerLogs } = {};
-const logMonitor = new LogMonitor();
 
 export const initialized = (async () => {
 	await config.initialized;
@@ -149,34 +145,14 @@ export function attach(
 ): Bluebird<void> {
 	// First detect if we already have an attached log stream
 	// for this container
-	if (containerId in containerLogs) {
+	if (logMonitor.isAttached(containerId)) {
 		return Bluebird.resolve();
 	}
 
 	return Bluebird.using(lock(containerId), async () => {
-		const logs = new ContainerLogs(containerId);
-		containerLogs[containerId] = logs;
-		logs.on('error', (err) => {
-			superConsole.error('Container log retrieval error', err);
-			delete containerLogs[containerId];
+		logMonitor.attach(containerId, (message) => {
+			log({ ...serviceInfo, ...message });
 		});
-		logs.on('log', async (logMessage) => {
-			log(_.merge({}, serviceInfo, logMessage));
-
-			// Take the timestamp and set it in the database as the last
-			// log sent for this
-			logMonitor.updateContainerSentTimestamp(
-				containerId,
-				logMessage.timestamp,
-			);
-		});
-
-		logs.on('closed', () => delete containerLogs[containerId]);
-
-		const lastSentTimestamp = await logMonitor.getContainerSentTimestamp(
-			containerId,
-		);
-		return logs.attach(lastSentTimestamp);
 	});
 }
 
