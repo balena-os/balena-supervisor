@@ -1,4 +1,17 @@
 - commits:
+    - subject: Change log source from docker to journalctl
+      hash: 2c83864f22b01e7196f6ed321c96f6cb9f40593b
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Thomas Manning <thomasm@balena.io>
+        signed-off-by: Thomas Manning <thomasm@balena.io>
+      author: Thomas Manning
+      nested: []
+  version: 12.1.0
+  date: 2020-10-28T06:12:20.363Z
+- commits:
     - subject: Change source of deviceType to device-type.json
       hash: f5183df35677f091f1374c3f6e86706b141471f3
       body: |
