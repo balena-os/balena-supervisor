@@ -1,4 +1,28 @@
 - commits:
+    - subject: Mount docker socket under `/host/run` for services
+      hash: 01477e41b8d3b12aebd5460bec9ed1991fbbb270
+      body: |
+        Currently, when the label `io.balena.features.balena-socket` is set,
+        the balena engine socket is mounted under `/run/balena-engine.sock`.
+
+        This causes a problem when using systemd inside the container, since
+        this service remounts `/run` and `/run/lock` as tmpfs, causing the
+        socket to become unavailable.
+
+        Making a mount of the socket into `/host/run` solves this issue. This is
+        the same approach taken with DBUS.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+        Connects-to: '#1494'
+        connects-to: '#1494'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.1.2
+  date: 2020-10-29T19:19:51.135Z
+- commits:
     - subject: Use root mount point to find device-type.json
       hash: 9d19a457017b1f696579f57569ec4cfadab3b385
       body: ''
