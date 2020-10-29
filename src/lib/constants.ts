@@ -11,6 +11,10 @@ const constants = {
 		checkString(process.env.DATABASE_PATH) || '/data/database.sqlite',
 	containerId: checkString(process.env.SUPERVISOR_CONTAINER_ID) || undefined,
 	dockerSocket: process.env.DOCKER_SOCKET || '/var/run/docker.sock',
+
+	// In-container location for docker socket
+	// Mount in /host/run to avoid clashing with systemd
+	containerDockerSocket: '/host/run/balena-engine.sock',
 	supervisorImage:
 		checkString(process.env.SUPERVISOR_IMAGE) || 'resin/rpi-supervisor',
 	ledFile:
