@@ -2,7 +2,7 @@
 
 The balena Supervisor is balena's agent that runs on devices. Its main role is to ensure your app is running, and keep communications with the balenaCloud API server.
 
-The Supervisor itself has its own set of APIs providing means for user applications to communicate and execute some special actions that affect the host OS or the application itself. There are two main ways for the application to interact with the Supervisor: 
+The Supervisor itself has its own set of APIs providing means for user applications to communicate and execute some special actions that affect the host OS or the application itself. There are two main ways for the application to interact with the Supervisor:
 - Update lockfile
 - HTTP API
 
@@ -18,7 +18,7 @@ To enable these Supervisor environment variables, the `io.balena.features.superv
 
 > Note: All endpoints (except /ping) requires an apikey parameter, which is exposed to the application as `BALENA_SUPERVISOR_API_KEY`.
 
-The full address for the API, i.e. `"http://127.0.0.1:48484"`, is available as `BALENA_SUPERVISOR_ADDRESS`. 
+The full address for the API, i.e. `"http://127.0.0.1:48484"`, is available as `BALENA_SUPERVISOR_ADDRESS`.
 
 > Note: Always use `BALENA_*` variables when communicating via the API, since address and port could change.
 
@@ -335,7 +335,7 @@ The state is a JSON object that contains some or all of the following:
 * `download_progress`: Amount of the application image that has been downloaded, expressed as a percentage. If the update has already been downloaded, this will be `null`.
 * `os_version`: Version of the host OS running on the device.
 * `supervisor_version`: Version of the supervisor running on the device.
-* `update_pending`: This one is not reported to the balenaCloud API. It's a boolean that will be true if the supervisor has detected there is a pending update.
+* `update_pending`: This one is not reported to the balenaCloud API. It's a boolean that will be true while the Supervisor is checking for updates (such as on boot or every poll interval) or if the supervisor has finally concluded there is an update.
 * `update_downloaded`: Not reported to the balenaCloud API either. Boolean that will be true if a pending update has already been downloaded.
 * `update_failed`: Not reported to the balenaCloud API. Boolean that will be true if the supervisor has tried to apply a pending update but failed (i.e. if the app was locked, there was a network failure or anything else went wrong).
 
