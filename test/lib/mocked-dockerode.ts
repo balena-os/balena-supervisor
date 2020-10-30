@@ -15,6 +15,24 @@ export class NotFoundError extends TypedError {
 
 const overrides: Dictionary<(...args: any[]) => Resolvable<any>> = {};
 
+interface Action {
+	name: string;
+	parameters: Dictionary<any>;
+}
+
+export let actions: Action[] = [];
+
+export function resetHistory() {
+	actions = [];
+}
+
+function addAction(name: string, parameters: Dictionary<any>) {
+	actions.push({
+		name,
+		parameters,
+	});
+}
+
 type DockerodeFunction = keyof dockerode;
 for (const fn of Object.getOwnPropertyNames(dockerode.prototype)) {
 	if (
@@ -62,17 +80,27 @@ export interface TestData {
 function createMockedDockerode(data: TestData) {
 	const mockedDockerode = dockerode.prototype;
 	mockedDockerode.getNetwork = (id: string) => {
+		addAction('getNetwork', { id });
 		return {
 			inspect: async () => {
+				addAction('inspect', {});
 				return data.networks[id];
 			},
 		} as dockerode.Network;
 	};
 
 	mockedDockerode.getImage = (name: string) => {
+		addAction('getImage', { name });
 		return {
 			inspect: async () => {
+				addAction('inspect', {});
 				return data.images[name];
+			},
+			remove: async () => {
+				addAction('remove', {});
+				data.images = _.reject(data.images, {
+					name,
+				});
 			},
 		} as dockerode.Image;
 	};
