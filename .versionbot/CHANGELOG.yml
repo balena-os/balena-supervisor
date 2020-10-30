@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add pipex to codeowners
+      hash: d016f7a13cde070ce95e717e9ce8a9a356150a2f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.1.3
+  date: 2020-10-30T21:52:51.348Z
+- commits:
     - subject: Mount docker socket under `/host/run` for services
       hash: 01477e41b8d3b12aebd5460bec9ed1991fbbb270
       body: |
