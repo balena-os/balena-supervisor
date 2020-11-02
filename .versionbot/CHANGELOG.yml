@@ -1,4 +1,17 @@
 - commits:
+    - subject: Clarify when `update_pending` in /v1/device is true
+      hash: c64d3cb2164c356711d1722c124bd9711e18a336
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.1.4
+  date: 2020-10-30T22:49:20.862Z
+- commits:
     - subject: Add pipex to codeowners
       hash: d016f7a13cde070ce95e717e9ce8a9a356150a2f
       body: ''
