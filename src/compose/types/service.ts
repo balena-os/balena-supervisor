@@ -200,6 +200,7 @@ export interface DeviceMetadata {
 		modules: boolean;
 		firmware: boolean;
 	};
+	source: string;
 }
 
 export interface DockerDevice {

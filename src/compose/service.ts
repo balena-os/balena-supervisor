@@ -49,6 +49,7 @@ export class Service {
 	public serviceId: number;
 	public imageName: string | null;
 	public containerId: string | null;
+	public source: string;
 
 	public dependsOn: string[] | null;
 
@@ -133,6 +134,7 @@ export class Service {
 		delete appConfig.dependsOn;
 		service.createdAt = appConfig.createdAt;
 		delete appConfig.createdAt;
+		service.source = options.source;
 
 		delete appConfig.contract;
 
@@ -607,6 +609,7 @@ export class Service {
 		svc.imageId = parseInt(nameMatch[1], 10);
 		svc.releaseId = parseInt(nameMatch[2], 10);
 		svc.containerId = container.Id;
+		svc.source = svc.config.labels['io.balena.source'];
 
 		return svc;
 	}
@@ -1044,7 +1047,7 @@ export class Service {
 
 	private static extendLabels(
 		labels: { [labelName: string]: string } | null | undefined,
-		{ imageInfo }: DeviceMetadata,
+		{ imageInfo, source }: DeviceMetadata,
 		appId: number,
 		serviceId: number,
 		serviceName: string,
@@ -1054,6 +1057,7 @@ export class Service {
 			'io.balena.app-id': appId.toString(),
 			'io.balena.service-id': serviceId.toString(),
 			'io.balena.service-name': serviceName,
+			'io.balena.source': source,
 		});
 
 		const imageLabels = _.get(imageInfo, 'Config.Labels', {});

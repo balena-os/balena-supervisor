@@ -26,6 +26,8 @@ import type { Image } from './images';
 import { getExecutors, CompositionStepT } from './composition-steps';
 
 import Service from './service';
+import Network from './network';
+import Volume from './volume';
 
 import { createV1Api } from '../device-api/v1';
 import { createV2Api } from '../device-api/v2';
@@ -264,6 +266,7 @@ export async function getRequiredSteps(
 						services: [],
 						volumes: {},
 						networks: {},
+						source: targetApps[id].source,
 					},
 					false,
 				);
@@ -357,34 +360,78 @@ export async function getCurrentAppsForReport(): Promise<
 }
 
 export async function getCurrentApps(): Promise<InstancedAppState> {
-	const volumes = _.groupBy(await volumeManager.getAll(), 'appId');
-	const networks = _.groupBy(await networkManager.getAll(), 'appId');
-	const services = _.groupBy(await serviceManager.getAll(), 'appId');
+	const [allVolumes, allNetworks, allServices] = await Promise.all([
+		volumeManager.getAll(),
+		networkManager.getAll(),
+		serviceManager.getAll(),
+	]);
 
-	const allAppIds = _.union(
-		Object.keys(volumes),
-		Object.keys(networks),
-		Object.keys(services),
-	).map((i) => parseInt(i, 10));
+	// Split all of the components by their source
+	const sourceComponents: {
+		[source: string]: {
+			services: Service[];
+			networks: Network[];
+			volumes: Volume[];
+		};
+	} = {};
 
-	// TODO: This will break with multiple apps
-	const commit = (await config.get('currentCommit')) ?? undefined;
+	// TODO: Reduce code duplication here
+	allVolumes.forEach((v) => {
+		if (sourceComponents[v.source] == null) {
+			sourceComponents[v.source] = { services: [], networks: [], volumes: [] };
+		}
+		sourceComponents[v.source].volumes.push(v);
+	});
+	allNetworks.forEach((n) => {
+		if (sourceComponents[n.source] == null) {
+			sourceComponents[n.source] = { services: [], networks: [], volumes: [] };
+		}
+		sourceComponents[n.source].networks.push(n);
+	});
+	allServices.forEach((s) => {
+		if (sourceComponents[s.source] == null) {
+			sourceComponents[s.source] = { services: [], networks: [], volumes: [] };
+		}
+		sourceComponents[s.source].services.push(s);
+	});
 
-	return _.keyBy(
-		allAppIds.map((appId) => {
-			return new App(
-				{
-					appId,
-					services: services[appId] ?? [],
-					networks: _.keyBy(networks[appId], 'name'),
-					volumes: _.keyBy(volumes[appId], 'name'),
-					commit,
-				},
-				false,
-			);
-		}),
-		'appId',
-	);
+	const apps = Object.entries(sourceComponents).map(([source, components]) => {
+		const volumes = _.groupBy(components.volumes, 'appId');
+		const networks = _.groupBy(components.networks, 'appId');
+		const services = _.groupBy(components.services, 'appId');
+	});
+
+	// const volumes = _.groupBy(await volumeManager.getAll(), 'appId');
+	// const networks = _.groupBy(await networkManager.getAll(), 'appId');
+	// const services = _.groupBy(await serviceManager.getAll(), 'appId');
+
+	// console.log(JSON.stringify(services, null, 2));
+
+	// const allAppIds = _.union(
+	// 	Object.keys(volumes),
+	// 	Object.keys(networks),
+	// 	Object.keys(services),
+	// ).map((i) => parseInt(i, 10));
+
+	// // TODO: This will break with multiple apps
+	// const commit = (await config.get('currentCommit')) ?? undefined;
+
+	// return _.keyBy(
+	// 	allAppIds.map((appId) => {
+	// 		return new App(
+	// 			{
+	// 				appId,
+	// 				services: services[appId] ?? [],
+	// 				networks: _.keyBy(networks[appId], 'name'),
+	// 				volumes: _.keyBy(volumes[appId], 'name'),
+	// 				commit,
+	// 				source: 'test',
+	// 			},
+	// 			false,
+	// 		);
+	// 	}),
+	// 	'appId',
+	// );
 }
 
 function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {

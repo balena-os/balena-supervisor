@@ -25,6 +25,7 @@ export class Network {
 	public appId: number;
 	public name: string;
 	public config: NetworkConfig;
+	public source: string;
 
 	private constructor() {}
 
@@ -74,12 +75,15 @@ export class Network {
 			options: network.Options,
 		};
 
+		ret.source = network.Labels['io.balena.source'];
+
 		return ret;
 	}
 
 	public static fromComposeObject(
 		name: string,
 		appId: number,
+		source: string,
 		network: Partial<Omit<ComposeNetworkConfig, 'ipam'>> & {
 			ipam?: Partial<ComposeNetworkConfig['ipam']>;
 		},
@@ -110,6 +114,8 @@ export class Network {
 		};
 
 		net.config.labels = ComposeUtils.normalizeLabels(net.config.labels);
+		net.config.labels['io.balena.source'] = source;
+		net.source = source;
 
 		return net;
 	}

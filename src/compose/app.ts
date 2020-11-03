@@ -32,7 +32,7 @@ export interface AppConstructOpts {
 	appName?: string;
 	commit?: string;
 	releaseId?: number;
-	source?: string;
+	source: string;
 
 	services: Service[];
 	volumes: Dictionary<Volume>;
@@ -57,7 +57,7 @@ export class App {
 	public appName?: string;
 	public commit?: string;
 	public releaseId?: number;
-	public source?: string;
+	public source: string;
 
 	// Services are stored as an array, as at any one time we could have more than one
 	// service for a single service ID running (for example handover)
@@ -80,6 +80,7 @@ export class App {
 			this.networks.default = Network.fromComposeObject(
 				'default',
 				opts.appId,
+				this.source,
 				{},
 			);
 		}
@@ -746,13 +747,18 @@ export class App {
 			if (conf.labels == null) {
 				conf.labels = {};
 			}
-			return Volume.fromComposeObject(name, app.appId, conf);
+			return Volume.fromComposeObject(name, app.appId, app.source, conf);
 		});
 
 		const networks = _.mapValues(
 			JSON.parse(app.networks) ?? {},
 			(conf, name) => {
-				return Network.fromComposeObject(name, app.appId, conf ?? {});
+				return Network.fromComposeObject(
+					name,
+					app.appId,
+					app.source,
+					conf ?? {},
+				);
 			},
 		);
 
@@ -806,6 +812,7 @@ export class App {
 						...svcOpts,
 						imageInfo,
 						serviceName: svc.serviceName,
+						source: app.source,
 					};
 
 					// FIXME: Typings for DeviceMetadata

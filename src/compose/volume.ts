@@ -28,6 +28,7 @@ export class Volume {
 		public name: string,
 		public appId: number,
 		public config: VolumeConfig,
+		public source: string,
 	) {}
 
 	public static fromDockerVolume(inspect: Docker.VolumeInspectInfo): Volume {
@@ -41,12 +42,13 @@ export class Volume {
 		// Detect the name and appId from the inspect data
 		const { name, appId } = this.deconstructDockerName(inspect.Name);
 
-		return new Volume(name, appId, config);
+		return new Volume(name, appId, config, inspect.Labels['io.balena.source']);
 	}
 
 	public static fromComposeObject(
 		name: string,
 		appId: number,
+		source: string,
 		config: Partial<ComposeVolumeConfig>,
 	) {
 		const filledConfig: VolumeConfig = {
@@ -57,9 +59,13 @@ export class Volume {
 
 		// We only need to assign the labels here, as when we
 		// get it from the daemon, they should already be there
-		assign(filledConfig.labels, constants.defaultVolumeLabels);
+		filledConfig.labels = {
+			...filledConfig.labels,
+			...constants.defaultVolumeLabels,
+			...{ 'io.balena.source': source },
+		};
 
-		return new Volume(name, appId, filledConfig);
+		return new Volume(name, appId, filledConfig, source);
 	}
 
 	public toComposeObject(): ComposeVolumeConfig {
