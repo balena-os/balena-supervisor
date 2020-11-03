@@ -1,0 +1,408 @@
+{
+  "legacy-image": {
+    "remove": {
+      "id": 246,
+      "name": "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582",
+      "appId": 1658654,
+      "serviceId": 650325,
+      "serviceName": "app_1",
+      "imageId": 2693229,
+      "releaseId": 1524186,
+      "dependent": 0
+    },
+    "database": [
+      {
+        "id": 246,
+        "name": "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582",
+        "appId": 1658654,
+        "serviceId": 650325,
+        "serviceName": "app_1",
+        "imageId": 2693229,
+        "releaseId": 1524186,
+        "dependent": 0
+      }
+    ],
+    "dockerode": {
+      "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582": {
+        "Containers": -1,
+        "Created": 1599492712,
+        "Id": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.device-type": "jetson-tx2",
+          "io.balena.qemu.version": "4.0.0+balena2-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:72b80cbd3cc12de08d4adc9dec79916bf466031553f55b59c29e397829ea129f"
+        ],
+        "RepoTags": [
+          "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a:delta-ada9fbb57d90e61e"
+        ],
+        "SharedSize": -1,
+        "Size": 217024648,
+        "VirtualSize": 217024648
+      },
+      "livepush-supervisor:11.12.11": {
+        "Containers": -1,
+        "Created": 1599492599,
+        "Id": "sha256:db5af2c94366275d8e6d7ea3047f2405eab2f04a27f66843634a45958ef59f5a",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.livepush-image": "1",
+          "io.balena.qemu.version": "4.0.0+balena-aarch64"
+        },
+        "ParentId": "sha256:4acb1652178e72c0b6143a08225e0df5ef74b338a0c9e2ca4cd261339f4f0431",
+        "RepoDigests": null,
+        "RepoTags": [
+          "livepush-supervisor:11.12.11"
+        ],
+        "SharedSize": -1,
+        "Size": 501352885,
+        "VirtualSize": 501352885
+      }
+    }
+  },
+  "single-image": {
+    "remove": {
+      "id": 246,
+      "name": "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582",
+      "appId": 1658654,
+      "serviceId": 650325,
+      "serviceName": "app_1",
+      "imageId": 2693229,
+      "releaseId": 1524186,
+      "dependent": 0,
+      "dockerImageId": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7"
+    },
+    "database": [
+      {
+        "id": 246,
+        "name": "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582",
+        "appId": 1658654,
+        "serviceId": 650325,
+        "serviceName": "app_1",
+        "imageId": 2693229,
+        "releaseId": 1524186,
+        "dependent": 0,
+        "dockerImageId": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7"
+      },
+      {
+        "id": 247,
+        "name": "registry2.balena-cloud.com/v2/902cf44eb0ed51675a0bf95a7bbf0c91@sha256:12345a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582",
+        "appId": 1658654,
+        "serviceId": 650331,
+        "serviceName": "app_2",
+        "imageId": 2693230,
+        "releaseId": 1524186,
+        "dependent": 0,
+        "dockerImageId": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc901234"
+      }
+    ],
+    "dockerode": {
+      "sha256:acf4069b3cf68d05dc8a2df0e511447927303ebef88f897f05cbad823f240d97": {
+        "Containers": -1,
+        "Created": 1599492964,
+        "Id": "sha256:acf4069b3cf68d05dc8a2df0e511447927303ebef88f897f05cbad823f240d97",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.device-type": "jetson-tx2",
+          "io.balena.qemu.version": "4.0.0+balena2-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "registry2.balena-cloud.com/v2/772eca412ce780e860b988da6ea26ee0@sha256:7d5e55d6aac00b8504c5c360a3ee59677fc5a7324360f1f54df19d0bb17c2cfe",
+          "registry2.balena-cloud.com/v2/7f1290fa85b253936ebf6e0dbbd95875@sha256:107f63eb1bc2e9978f2a4bb5b095bc010dd91dd5a6a0a39a494e27ee8b396232"
+        ],
+        "RepoTags": [
+          "registry2.balena-cloud.com/v2/772eca412ce780e860b988da6ea26ee0:delta-ff3f0a82c404830b",
+          "registry2.balena-cloud.com/v2/7f1290fa85b253936ebf6e0dbbd95875:delta-79acb6d8bf4795f6"
+        ],
+        "SharedSize": -1,
+        "Size": 217024666,
+        "VirtualSize": 217024666
+      },
+      "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7": {
+        "Containers": -1,
+        "Created": 1599492712,
+        "Id": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.device-type": "jetson-tx2",
+          "io.balena.qemu.version": "4.0.0+balena2-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:72b80cbd3cc12de08d4adc9dec79916bf466031553f55b59c29e397829ea129f"
+        ],
+        "RepoTags": [
+          "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a:delta-ada9fbb57d90e61e"
+        ],
+        "SharedSize": -1,
+        "Size": 217024648,
+        "VirtualSize": 217024648
+      },
+      "sha256:db5af2c94366275d8e6d7ea3047f2405eab2f04a27f66843634a45958ef59f5a": {
+        "Containers": -1,
+        "Created": 1599492599,
+        "Id": "sha256:db5af2c94366275d8e6d7ea3047f2405eab2f04a27f66843634a45958ef59f5a",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.livepush-image": "1",
+          "io.balena.qemu.version": "4.0.0+balena-aarch64"
+        },
+        "ParentId": "sha256:4acb1652178e72c0b6143a08225e0df5ef74b338a0c9e2ca4cd261339f4f0431",
+        "RepoDigests": null,
+        "RepoTags": [
+          "livepush-supervisor:11.12.11"
+        ],
+        "SharedSize": -1,
+        "Size": 501352885,
+        "VirtualSize": 501352885
+      },
+      "sha256:272c54e27104cf6c2153538165dba3c29b58ae35837b47134fa55b53ddb61154": {
+        "Containers": -1,
+        "Created": 1599181227,
+        "Id": "sha256:272c54e27104cf6c2153538165dba3c29b58ae35837b47134fa55b53ddb61154",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.device-type": "jetson-tx2",
+          "io.balena.qemu.version": "4.0.0+balena2-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "registry2.balena-cloud.com/v2/459bffd69101d788cc3e0722a012878a@sha256:3cc9231cf0e117585e53ebfa6bf9f75a9a4eaa371fb82c21ab9bca8fe0d5c3e3",
+          "registry2.balena-cloud.com/v2/b0cfe2b1e8c5ab3b6da23f0bd92045b4@sha256:ba5f6d1849c63c8d0f11f35fce694464240002d2c3732898935bf0fedf451063"
+        ],
+        "RepoTags": [
+          "registry2.balena-cloud.com/v2/459bffd69101d788cc3e0722a012878a:delta-80ed841a1d3fefa9",
+          "registry2.balena-cloud.com/v2/b0cfe2b1e8c5ab3b6da23f0bd92045b4:delta-532f970c60decb81"
+        ],
+        "SharedSize": -1,
+        "Size": 217024558,
+        "VirtualSize": 217024558
+      },
+      "sha256:25d6abae14f08de6b80f9d95003e674598738959a535a2f21be34c03675ebd02": {
+        "Containers": -1,
+        "Created": 1599146808,
+        "Id": "sha256:25d6abae14f08de6b80f9d95003e674598738959a535a2f21be34c03675ebd02",
+        "Labels": {
+          "io.balena.qemu.version": "4.0.0+balena-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "balena/aarch64-supervisor@sha256:e7e3b166e855f4c113a67bc528b4ef77408d05e280052f35452f3e2cd7b5322b"
+        ],
+        "RepoTags": [
+          "balena/aarch64-supervisor:v11.14.0"
+        ],
+        "SharedSize": -1,
+        "Size": 72305850,
+        "VirtualSize": 72305850
+      },
+      "sha256:60783b8688d395f9b4ce4b288d941244d1b0a4c43114ba980acd012ccffc6b53": {
+        "Containers": -1,
+        "Created": 1585746557,
+        "Id": "sha256:60783b8688d395f9b4ce4b288d941244d1b0a4c43114ba980acd012ccffc6b53",
+        "Labels": {
+          "io.balena.qemu.version": "4.0.0+balena-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "balenalib/aarch64-alpine-supervisor-base@sha256:6eb712fc797ff68f258d9032cf292c266cb9bd8be4cbdaaafeb5a8824bb104fd"
+        ],
+        "RepoTags": [
+          "balenalib/aarch64-alpine-supervisor-base:3.11"
+        ],
+        "SharedSize": -1,
+        "Size": 14503741,
+        "VirtualSize": 14503741
+      },
+      "sha256:a29f45ccde2ac0bde957b1277b1501f471960c8ca49f1588c6c885941640ae60": {
+        "Containers": -1,
+        "Created": 1578015959,
+        "Id": "sha256:a29f45ccde2ac0bde957b1277b1501f471960c8ca49f1588c6c885941640ae60",
+        "Labels": null,
+        "ParentId": "",
+        "RepoDigests": null,
+        "RepoTags": [
+          "balena-healthcheck-image:latest"
+        ],
+        "SharedSize": -1,
+        "Size": 9136,
+        "VirtualSize": 9136
+      }
+    }
+  },
+  "image-with-digests": {
+    "remove": {
+      "id": 246,
+      "name": "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582",
+      "appId": 1658654,
+      "serviceId": 650325,
+      "serviceName": "app_1",
+      "imageId": 2693229,
+      "releaseId": 1524186,
+      "dependent": 0,
+      "dockerImageId": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7"
+    },
+    "database": [
+      {
+        "id": 246,
+        "name": "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582",
+        "appId": 1658654,
+        "serviceId": 650325,
+        "serviceName": "app_1",
+        "imageId": 2693229,
+        "releaseId": 1524186,
+        "dependent": 0,
+        "dockerImageId": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7"
+      },
+      {
+        "id": 247,
+        "name": "registry2.balena-cloud.com/v2/902cf44eb0ed51675a0bf95a7bbf0c91@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582",
+        "appId": 1658654,
+        "serviceId": 650331,
+        "serviceName": "app_2",
+        "imageId": 2693230,
+        "releaseId": 1524186,
+        "dependent": 0,
+        "dockerImageId": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7"
+      }
+    ],
+    "dockerode": {
+      "sha256:acf4069b3cf68d05dc8a2df0e511447927303ebef88f897f05cbad823f240d97": {
+        "Containers": -1,
+        "Created": 1599492964,
+        "Id": "sha256:acf4069b3cf68d05dc8a2df0e511447927303ebef88f897f05cbad823f240d97",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.device-type": "jetson-tx2",
+          "io.balena.qemu.version": "4.0.0+balena2-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "registry2.balena-cloud.com/v2/772eca412ce780e860b988da6ea26ee0@sha256:7d5e55d6aac00b8504c5c360a3ee59677fc5a7324360f1f54df19d0bb17c2cfe",
+          "registry2.balena-cloud.com/v2/7f1290fa85b253936ebf6e0dbbd95875@sha256:107f63eb1bc2e9978f2a4bb5b095bc010dd91dd5a6a0a39a494e27ee8b396232"
+        ],
+        "RepoTags": [
+          "registry2.balena-cloud.com/v2/772eca412ce780e860b988da6ea26ee0:delta-ff3f0a82c404830b",
+          "registry2.balena-cloud.com/v2/7f1290fa85b253936ebf6e0dbbd95875:delta-79acb6d8bf4795f6"
+        ],
+        "SharedSize": -1,
+        "Size": 217024666,
+        "VirtualSize": 217024666
+      },
+      "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7": {
+        "Containers": -1,
+        "Created": 1599492712,
+        "Id": "sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.device-type": "jetson-tx2",
+          "io.balena.qemu.version": "4.0.0+balena2-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a@sha256:72b80cbd3cc12de08d4adc9dec79916bf466031553f55b59c29e397829ea129f"
+        ],
+        "RepoTags": [
+          "registry2.balena-cloud.com/v2/793f9296017bbfe026334820ab56bb3a:delta-ada9fbb57d90e61e"
+        ],
+        "SharedSize": -1,
+        "Size": 217024648,
+        "VirtualSize": 217024648
+      },
+      "sha256:db5af2c94366275d8e6d7ea3047f2405eab2f04a27f66843634a45958ef59f5a": {
+        "Containers": -1,
+        "Created": 1599492599,
+        "Id": "sha256:db5af2c94366275d8e6d7ea3047f2405eab2f04a27f66843634a45958ef59f5a",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.livepush-image": "1",
+          "io.balena.qemu.version": "4.0.0+balena-aarch64"
+        },
+        "ParentId": "sha256:4acb1652178e72c0b6143a08225e0df5ef74b338a0c9e2ca4cd261339f4f0431",
+        "RepoDigests": null,
+        "RepoTags": [
+          "livepush-supervisor:11.12.11"
+        ],
+        "SharedSize": -1,
+        "Size": 501352885,
+        "VirtualSize": 501352885
+      },
+      "sha256:272c54e27104cf6c2153538165dba3c29b58ae35837b47134fa55b53ddb61154": {
+        "Containers": -1,
+        "Created": 1599181227,
+        "Id": "sha256:272c54e27104cf6c2153538165dba3c29b58ae35837b47134fa55b53ddb61154",
+        "Labels": {
+          "io.balena.architecture": "aarch64",
+          "io.balena.device-type": "jetson-tx2",
+          "io.balena.qemu.version": "4.0.0+balena2-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "registry2.balena-cloud.com/v2/459bffd69101d788cc3e0722a012878a@sha256:3cc9231cf0e117585e53ebfa6bf9f75a9a4eaa371fb82c21ab9bca8fe0d5c3e3",
+          "registry2.balena-cloud.com/v2/b0cfe2b1e8c5ab3b6da23f0bd92045b4@sha256:ba5f6d1849c63c8d0f11f35fce694464240002d2c3732898935bf0fedf451063"
+        ],
+        "RepoTags": [
+          "registry2.balena-cloud.com/v2/459bffd69101d788cc3e0722a012878a:delta-80ed841a1d3fefa9",
+          "registry2.balena-cloud.com/v2/b0cfe2b1e8c5ab3b6da23f0bd92045b4:delta-532f970c60decb81"
+        ],
+        "SharedSize": -1,
+        "Size": 217024558,
+        "VirtualSize": 217024558
+      },
+      "sha256:25d6abae14f08de6b80f9d95003e674598738959a535a2f21be34c03675ebd02": {
+        "Containers": -1,
+        "Created": 1599146808,
+        "Id": "sha256:25d6abae14f08de6b80f9d95003e674598738959a535a2f21be34c03675ebd02",
+        "Labels": {
+          "io.balena.qemu.version": "4.0.0+balena-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "balena/aarch64-supervisor@sha256:e7e3b166e855f4c113a67bc528b4ef77408d05e280052f35452f3e2cd7b5322b"
+        ],
+        "RepoTags": [
+          "balena/aarch64-supervisor:v11.14.0"
+        ],
+        "SharedSize": -1,
+        "Size": 72305850,
+        "VirtualSize": 72305850
+      },
+      "sha256:60783b8688d395f9b4ce4b288d941244d1b0a4c43114ba980acd012ccffc6b53": {
+        "Containers": -1,
+        "Created": 1585746557,
+        "Id": "sha256:60783b8688d395f9b4ce4b288d941244d1b0a4c43114ba980acd012ccffc6b53",
+        "Labels": {
+          "io.balena.qemu.version": "4.0.0+balena-aarch64"
+        },
+        "ParentId": "",
+        "RepoDigests": [
+          "balenalib/aarch64-alpine-supervisor-base@sha256:6eb712fc797ff68f258d9032cf292c266cb9bd8be4cbdaaafeb5a8824bb104fd"
+        ],
+        "RepoTags": [
+          "balenalib/aarch64-alpine-supervisor-base:3.11"
+        ],
+        "SharedSize": -1,
+        "Size": 14503741,
+        "VirtualSize": 14503741
+      },
+      "sha256:a29f45ccde2ac0bde957b1277b1501f471960c8ca49f1588c6c885941640ae60": {
+        "Containers": -1,
+        "Created": 1578015959,
+        "Id": "sha256:a29f45ccde2ac0bde957b1277b1501f471960c8ca49f1588c6c885941640ae60",
+        "Labels": null,
+        "ParentId": "",
+        "RepoDigests": null,
+        "RepoTags": [
+          "balena-healthcheck-image:latest"
+        ],
+        "SharedSize": -1,
+        "Size": 9136,
+        "VirtualSize": 9136
+      }
+    }
+  }
+}
