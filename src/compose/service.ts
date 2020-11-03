@@ -799,7 +799,15 @@ export class Service {
 			}
 
 			if (!sameNetworks) {
-				log.debug('  Network changes detected');
+				log.debug('Network changes detected');
+				log.debug(
+					'service.config.networks: ',
+					JSON.stringify(service.config.networks, null, 4),
+				);
+				log.debug(
+					'this.config.networks: ',
+					JSON.stringify(this.config.networks, null, 4),
+				);
 			}
 		}
 
