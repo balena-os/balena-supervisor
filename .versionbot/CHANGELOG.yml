@@ -1,4 +1,19 @@
 - commits:
+    - subject: Add more test coverage for compose/images
+      hash: cd0d53c39da3bcd1ccefeeb6c527974825de6ac5
+      body: ''
+      footer:
+        Closes: '#1492'
+        closes: '#1492'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.1.5
+  date: 2020-11-03T18:11:27.355Z
+- commits:
     - subject: Clarify when `update_pending` in /v1/device is true
       hash: c64d3cb2164c356711d1722c124bd9711e18a336
       body: ''
