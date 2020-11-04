@@ -12,6 +12,7 @@ import {
 import { getApp } from '../device-state/db-format';
 import { Service } from '../compose/service';
 import Volume from '../compose/volume';
+import * as commitStore from '../compose/commit';
 import * as config from '../config';
 import * as db from '../db';
 import * as deviceConfig from '../device-config';
@@ -327,8 +328,11 @@ export function createV2Api(router: Router) {
 					delete apps.local[app];
 				}
 			}
+
+			const commit = await commitStore.getCommitForApp(appId);
+
 			// Return filtered applications
-			return res.status(200).json(apps);
+			return res.status(200).json({ commit, ...apps });
 		},
 	);
 
@@ -461,13 +465,13 @@ export function createV2Api(router: Router) {
 	});
 
 	router.get('/v2/state/status', async (req: AuthorizedRequest, res) => {
-		const currentRelease = await config.get('currentCommit');
-
+		const appIds: number[] = [];
 		const pending = deviceState.isApplyInProgress();
 		const containerStates = (await serviceManager.getAll())
 			.filter((service) => req.auth.isScoped({ apps: [service.appId] }))
-			.map((svc) =>
-				_.pick(
+			.map((svc) => {
+				appIds.push(svc.appId);
+				return _.pick(
 					svc,
 					'status',
 					'serviceName',
@@ -476,14 +480,15 @@ export function createV2Api(router: Router) {
 					'serviceId',
 					'containerId',
 					'createdAt',
-				),
-			);
+				);
+			});
 
 		let downloadProgressTotal = 0;
 		let downloads = 0;
 		const imagesStates = (await images.getStatus())
 			.filter((img) => req.auth.isScoped({ apps: [img.appId] }))
 			.map((img) => {
+				appIds.push(img.appId);
 				if (img.downloadProgress != null) {
 					downloadProgressTotal += img.downloadProgress;
 					downloads += 1;
@@ -505,13 +510,26 @@ export function createV2Api(router: Router) {
 			overallDownloadProgress = downloadProgressTotal / downloads;
 		}
 
+		if (_.uniq(appIds).length > 1) {
+			// We can't accurately return the commit value each app without changing
+			// the shape of the data, and instead we'd like users to use the new v3
+			// endpoints, which will come with multiapp
+			// If we're going to return information about more than one app, error out
+			return res.status(405).json({
+				status: 'failed',
+				message: `Cannot use /v2/ endpoints with a key that is scoped to multiple applications`,
+			});
+		}
+
+		const commit = await commitStore.getCommitForApp(appIds[0]);
+
 		return res.status(200).send({
 			status: 'success',
 			appState: pending ? 'applying' : 'applied',
 			overallDownloadProgress,
 			containers: containerStates,
 			images: imagesStates,
-			release: currentRelease,
+			release: commit,
 		});
 	});
 

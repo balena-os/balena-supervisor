@@ -24,6 +24,7 @@ import * as serviceManager from './service-manager';
 import * as imageManager from './images';
 import type { Image } from './images';
 import { getExecutors, CompositionStepT } from './composition-steps';
+import * as commitStore from './commit';
 
 import Service from './service';
 
@@ -367,24 +368,22 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 		Object.keys(services),
 	).map((i) => parseInt(i, 10));
 
-	// TODO: This will break with multiple apps
-	const commit = (await config.get('currentCommit')) ?? undefined;
+	const apps: InstancedAppState = {};
+	for (const appId of allAppIds) {
+		const commit = await commitStore.getCommitForApp(appId);
+		apps[appId] = new App(
+			{
+				appId,
+				services: services[appId] ?? [],
+				networks: _.keyBy(networks[appId], 'name'),
+				volumes: _.keyBy(volumes[appId], 'name'),
+				commit,
+			},
+			false,
+		);
+	}
 
-	return _.keyBy(
-		allAppIds.map((appId) => {
-			return new App(
-				{
-					appId,
-					services: services[appId] ?? [],
-					networks: _.keyBy(networks[appId], 'name'),
-					volumes: _.keyBy(volumes[appId], 'name'),
-					commit,
-				},
-				false,
-			);
-		}),
-		'appId',
-	);
+	return apps;
 }
 
 function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
@@ -758,10 +757,9 @@ function reportOptionalContainers(serviceNames: string[]) {
 // FIXME: This would be better to implement using the App class, and have each one
 // generate its status. For now we use the original from application-manager.coffee.
 export async function getStatus() {
-	const [services, images, currentCommit] = await Promise.all([
+	const [services, images] = await Promise.all([
 		serviceManager.getStatus(),
 		imageManager.getStatus(),
-		config.get('currentCommit'),
 	]);
 
 	const apps: Dictionary<any> = {};
@@ -842,5 +840,5 @@ export async function getStatus() {
 		}
 	}
 
-	return { local: apps, dependent, commit: currentCommit };
+	return { local: apps, dependent };
 }

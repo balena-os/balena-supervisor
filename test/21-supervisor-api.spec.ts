@@ -237,7 +237,7 @@ describe('SupervisorAPI', () => {
 
 		// TODO: add tests for V1 endpoints
 		describe('GET /v1/apps/:appId', () => {
-			it('returns information about a SPECIFIC application', async () => {
+			it('returns information about a specific application', async () => {
 				await request
 					.get('/v1/apps/2')
 					.set('Accept', 'application/json')

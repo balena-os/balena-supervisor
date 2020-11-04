@@ -168,7 +168,12 @@ export class App {
 			this.commit !== target.commit
 		) {
 			// TODO: The next PR should change this to support multiapp commit values
-			steps.push(generateStep('updateCommit', { target: target.commit }));
+			steps.push(
+				generateStep('updateCommit', {
+					target: target.commit,
+					appId: this.appId,
+				}),
+			);
 		}
 
 		return steps;
