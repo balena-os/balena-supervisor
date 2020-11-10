@@ -1,4 +1,22 @@
 - commits:
+    - subject: Allow storing commits against their appIds
+      hash: f08316dc57aaf15300f7810bc700345534a3368b
+      body: |
+        This paves the way for running multiple applications and storing
+        information related to the application against the application itself. A
+        couple of hacks have been added to v1 and v2 endpoints to maintain
+        compatability but these should eventually be removed with the addition
+        of a v3 api.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 12.2.0
+  date: 2020-11-10T10:53:17.869Z
+- commits:
     - subject: Add more test coverage for compose/images
       hash: cd0d53c39da3bcd1ccefeeb6c527974825de6ac5
       body: ''
