@@ -14,6 +14,7 @@ import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
 import { DeviceReportFields } from '../types/state';
+import * as commitStore from './commit';
 
 interface BaseCompositionStepArgs {
 	force?: boolean;
@@ -62,6 +63,7 @@ interface CompositionStepArgs {
 	} & BaseCompositionStepArgs;
 	updateCommit: {
 		target: string;
+		appId: number;
 	};
 	handover: {
 		current: Service;
@@ -218,7 +220,7 @@ export function getExecutors(app: {
 			app.callbacks.containerStarted(container.id);
 		},
 		updateCommit: async (step) => {
-			await config.set({ currentCommit: step.target });
+			await commitStore.upsertCommitForApp(step.appId, step.target);
 		},
 		handover: (step) => {
 			return app.lockFn(

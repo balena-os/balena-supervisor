@@ -150,10 +150,6 @@ export const schemaTypes = {
 		),
 		default: NullOrUndefined,
 	},
-	currentCommit: {
-		type: t.string,
-		default: NullOrUndefined,
-	},
 	targetStateSet: {
 		type: PermissiveBoolean,
 		default: false,

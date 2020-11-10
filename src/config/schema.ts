@@ -155,11 +155,6 @@ export const schema = {
 		mutable: true,
 		removeIfNull: false,
 	},
-	currentCommit: {
-		source: 'db',
-		mutable: true,
-		removeIfNull: false,
-	},
 	targetStateSet: {
 		source: 'db',
 		mutable: true,

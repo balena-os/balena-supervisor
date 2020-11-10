@@ -6,6 +6,7 @@ import * as applicationManager from '../../src/compose/application-manager';
 import * as networkManager from '../../src/compose/network-manager';
 import * as serviceManager from '../../src/compose/service-manager';
 import * as volumeManager from '../../src/compose/volume-manager';
+import * as commitStore from '../../src/compose/commit';
 import * as config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
@@ -17,8 +18,9 @@ import SupervisorAPI from '../../src/supervisor-api';
 const DB_PATH = './test/data/supervisor-api.sqlite';
 // Holds all values used for stubbing
 const STUBBED_VALUES = {
-	config: {
-		currentCommit: '7fc9c5bea8e361acd49886fe6cc1e1cd',
+	commits: {
+		1: '7fc9c5bea8e361acd49886fe6cc1e1cd',
+		2: '4e380136c2cf56cd64197d51a1ab263a',
 	},
 	services: [
 		{
@@ -110,9 +112,9 @@ async function initConfig(): Promise<void> {
 	await config.initialized;
 
 	// Set a currentCommit
-	await config.set({
-		currentCommit: STUBBED_VALUES.config.currentCommit,
-	});
+	for (const [id, commit] of Object.entries(STUBBED_VALUES.commits)) {
+		await commitStore.upsertCommitForApp(parseInt(id, 10), commit);
+	}
 }
 
 function buildRoutes(): Router {

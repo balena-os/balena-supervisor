@@ -1,4 +1,3 @@
-import * as Promise from 'bluebird';
 import * as express from 'express';
 import * as _ from 'lodash';
 
@@ -9,6 +8,7 @@ import { doRestart, doPurge } from './common';
 
 import * as applicationManager from '../compose/application-manager';
 import { generateStep } from '../compose/composition-steps';
+import * as commitStore from '../compose/commit';
 import { AuthorizedRequest } from '../lib/api-keys';
 
 export function createV1Api(router: express.Router) {
@@ -106,52 +106,54 @@ export function createV1Api(router: express.Router) {
 	router.post('/v1/apps/:appId/stop', createV1StopOrStartHandler('stop'));
 	router.post('/v1/apps/:appId/start', createV1StopOrStartHandler('start'));
 
-	router.get('/v1/apps/:appId', (req: AuthorizedRequest, res, next) => {
+	router.get('/v1/apps/:appId', async (req: AuthorizedRequest, res, next) => {
 		const appId = checkInt(req.params.appId);
 		eventTracker.track('GET app (v1)', { appId });
 		if (appId == null) {
 			return res.status(400).send('Missing app id');
 		}
-		return Promise.join(
-			applicationManager.getCurrentApps(),
-			applicationManager.getStatus(),
-			function (apps, status) {
-				const app = apps[appId];
-				const service = app?.services?.[0];
-				if (service == null) {
-					return res.status(400).send('App not found');
-				}
 
-				if (app.services.length > 1) {
-					return res
-						.status(400)
-						.send(
-							'Some v1 endpoints are only allowed on single-container apps',
-						);
-				}
+		try {
+			const apps = await applicationManager.getCurrentApps();
+			const app = apps[appId];
+			const service = app?.services?.[0];
+			if (service == null) {
+				return res.status(400).send('App not found');
+			}
 
-				// handle the case where the appId is out of scope
-				if (!req.auth.isScoped({ apps: [app.appId] })) {
-					res.status(401).json({
-						status: 'failed',
-						message: 'Application is not available',
-					});
-					return;
-				}
+			// handle the case where the appId is out of scope
+			if (!req.auth.isScoped({ apps: [app.appId] })) {
+				res.status(401).json({
+					status: 'failed',
+					message: 'Application is not available',
+				});
+				return;
+			}
 
-				// Don't return data that will be of no use to the user
-				const appToSend = {
-					appId,
-					commit: status.commit!,
-					containerId: service.containerId,
-					env: _.omit(service.config.environment, constants.privateAppEnvVars),
-					imageId: service.config.image,
-					releaseId: service.releaseId,
-				};
+			if (app.services.length > 1) {
+				return res
+					.status(400)
+					.send('Some v1 endpoints are only allowed on single-container apps');
+			}
 
-				return res.json(appToSend);
-			},
-		).catch(next);
+			// Because we only have a single app, we can fetch the commit for that
+			// app, and maintain backwards compatability
+			const commit = await commitStore.getCommitForApp(appId);
+
+			// Don't return data that will be of no use to the user
+			const appToSend = {
+				appId,
+				commit,
+				containerId: service.containerId,
+				env: _.omit(service.config.environment, constants.privateAppEnvVars),
+				imageId: service.config.image,
+				releaseId: service.releaseId,
+			};
+
+			return res.json(appToSend);
+		} catch (e) {
+			next(e);
+		}
 	});
 
 	router.post('/v1/purge', (req: AuthorizedRequest, res, next) => {

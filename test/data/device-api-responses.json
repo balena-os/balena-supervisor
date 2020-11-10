@@ -16,7 +16,7 @@
         "body": {
           "appId": 2,
           "containerId": "abc123",
-          "commit": "7fc9c5bea8e361acd49886fe6cc1e1cd",
+          "commit": "4e380136c2cf56cd64197d51a1ab263a",
           "env": {},
           "releaseId": 77777
         }

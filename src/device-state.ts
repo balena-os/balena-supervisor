@@ -27,6 +27,7 @@ import * as validation from './lib/validation';
 import * as network from './network';
 
 import * as applicationManager from './compose/application-manager';
+import * as commitStore from './compose/commit';
 import * as deviceConfig from './device-config';
 import { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
@@ -514,11 +515,30 @@ export async function getStatus(): Promise<DeviceStatus> {
 		local: {},
 		dependent: {},
 	};
-	theState.local = { ...theState.local, ...currentVolatile };
+	theState.local = {
+		...theState.local,
+		...currentVolatile,
+	};
 	theState.local!.apps = appsStatus.local;
 	theState.dependent!.apps = appsStatus.dependent;
-	if (appsStatus.commit && !applyInProgress) {
-		theState.local!.is_on__commit = appsStatus.commit;
+
+	// Multi-app warning!
+	// If we have more than one app, simply return the first commit.
+	// Fortunately this won't become a problem until we have system apps, and then
+	// at that point we can filter non-system apps leaving a single user app.
+	// After this, for true multi-app, we will need to report our status back in a
+	// different way, meaning this function will no longer be needed
+	const appIds = Object.keys(theState.local!.apps).map((strId) =>
+		parseInt(strId, 10),
+	);
+
+	const appId: number | undefined = appIds[0];
+	if (appId != null) {
+		const commit = await commitStore.getCommitForApp(appId);
+
+		if (commit != null && !applyInProgress) {
+			theState.local!.is_on__commit = commit;
+		}
 	}
 
 	return theState as DeviceStatus;
