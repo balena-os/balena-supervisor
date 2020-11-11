@@ -510,7 +510,12 @@ export function createV2Api(router: Router) {
 			overallDownloadProgress = downloadProgressTotal / downloads;
 		}
 
-		if (_.uniq(appIds).length > 1) {
+		// TODO: This check is to allow the CLI to continue using livepush
+		// When the CLI passes scoped API keys remove this
+		// We check if the device is in localmode because this is required for livepush
+		const ALLOW_MULTIPLE_APPS = await config.get('localMode');
+
+		if (_.uniq(appIds).length > 1 && !ALLOW_MULTIPLE_APPS) {
 			// We can't accurately return the commit value each app without changing
 			// the shape of the data, and instead we'd like users to use the new v3
 			// endpoints, which will come with multiapp

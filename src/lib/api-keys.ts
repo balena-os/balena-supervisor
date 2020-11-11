@@ -134,6 +134,8 @@ export const authMiddleware: AuthorizedRequestHandler = async (
 
 		// no need to authenticate, shortcut
 		if (!needsAuth) {
+			// Allow any requests to be scoped by default
+			req.auth.isScoped = () => true;
 			return next();
 		}
 
