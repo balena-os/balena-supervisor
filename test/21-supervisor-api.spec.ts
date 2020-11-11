@@ -13,15 +13,50 @@ import * as applicationManager from '../src/compose/application-manager';
 import { InstancedAppState } from '../src/types/state';
 
 import * as serviceManager from '../src/compose/service-manager';
+import * as images from '../src/compose/images';
 
 import * as apiKeys from '../src/lib/api-keys';
 import * as db from '../src/db';
 import * as config from '../src/config';
 import { Service } from '../src/compose/service';
+import { Image } from '../src/compose/images';
 
 const mockedOptions = {
 	listenPort: 54321,
 	timeout: 30000,
+};
+
+const mockService = (overrides?: Partial<Service>) => {
+	return {
+		...{
+			appId: 1658654,
+			status: 'Running',
+			serviceName: 'main',
+			imageId: 2885946,
+			serviceId: 640681,
+			containerId:
+				'f93d386599d1b36e71272d46ad69770cff333842db04e2e4c64dda7b54da07c6',
+			createdAt: '2020-11-13T20:29:44.143Z',
+		},
+		...overrides,
+	} as Service;
+};
+
+const mockImage = (overrides?: Partial<Image>) => {
+	return {
+		...{
+			name:
+				'registry2.balena-cloud.com/v2/e2bf6410ffc30850e96f5071cdd1dca8@sha256:e2e87a8139b8fc14510095b210ad652d7d5badcc64fdc686cbf749d399fba15e',
+			appId: 1658654,
+			serviceName: 'main',
+			imageId: 2885946,
+			dockerImageId:
+				'sha256:4502983d72e2c72bc292effad1b15b49576da3801356f47fd275ba274d409c1a',
+			status: 'Downloaded',
+			downloadProgress: null,
+		},
+		...overrides,
+	} as Image;
 };
 
 describe('SupervisorAPI', () => {
@@ -286,6 +321,19 @@ describe('SupervisorAPI', () => {
 	});
 
 	describe('V2 endpoints', () => {
+		let serviceManagerMock: SinonStub;
+		let imagesMock: SinonStub;
+
+		before(async () => {
+			serviceManagerMock = stub(serviceManager, 'getAll').resolves([]);
+			imagesMock = stub(images, 'getStatus').resolves([]);
+		});
+
+		after(async () => {
+			serviceManagerMock.restore();
+			imagesMock.restore();
+		});
+
 		describe('GET /v2/device/vpn', () => {
 			it('returns information about VPN connection', async () => {
 				await request
@@ -359,63 +407,135 @@ describe('SupervisorAPI', () => {
 		});
 
 		describe('GET /v2/state/status', () => {
-			let serviceManagerMock: SinonStub;
-
-			const mockService = (
-				appId: number,
-				serviceId: number,
-				serviceName: string,
-			) => {
-				return {
-					appId,
-					status: 'Running',
-					serviceName,
-					imageId: appId,
-					serviceId,
-					containerId: Math.random()
-						.toString(36)
-						.replace(/[^a-z]+/g, '')
-						.substr(0, 16),
-					createdAt: new Date(),
-				} as Service;
-			};
-
-			before(async () => {
-				await config.set({ localMode: true });
-				serviceManagerMock = stub(serviceManager, 'getAll').resolves([]);
-			});
-
-			after(async () => {
-				await config.set({ localMode: false });
-				serviceManagerMock.restore();
-			});
-
-			it('should succeed in LocalMode with a single application', async () => {
-				serviceManagerMock.resolves([mockService(1, 1, 'main')]);
-
-				const { body } = await request
-					.get('/v2/state/status')
-					.set('Accept', 'application/json')
-					.expect(200);
-
-				expect(body).to.have.property('status').which.equals('success');
-				expect(body).to.have.property('appState').which.equals('applied');
-				expect(body)
-					.to.have.property('containers')
-					.which.is.an('array')
-					.with.lengthOf(1);
-			});
-
-			it('should error in LocalMode with multiple applications', async () => {
-				serviceManagerMock.resolves([
-					mockService(1, 1, 'main'),
-					mockService(2, 2, 'extra'),
-				]);
-
+			it('should return scoped application', async () => {
+				// Create scoped key for application
+				const appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
+				// Setup device conditions
+				serviceManagerMock.resolves([mockService({ appId: 1658654 })]);
+				imagesMock.resolves([mockImage({ appId: 1658654 })]);
+				// Make request and evaluate response
 				await request
 					.get('/v2/state/status')
 					.set('Accept', 'application/json')
-					.expect(405);
+					.set('Authorization', `Bearer ${appScopedKey}`)
+					.expect('Content-Type', /json/)
+					.expect(
+						sampleResponses.V2.GET['/state/status?desc=single_application']
+							.statusCode,
+					)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/state/status?desc=single_application']
+								.body,
+						);
+					});
+			});
+
+			it('should return no application info due to lack of scope', async () => {
+				// Create scoped key for wrong application
+				const appScopedKey = await apiKeys.generateScopedKey(1, 1);
+				// Setup device conditions
+				serviceManagerMock.resolves([mockService({ appId: 1658654 })]);
+				imagesMock.resolves([mockImage({ appId: 1658654 })]);
+				// Make request and evaluate response
+				await request
+					.get('/v2/state/status')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${appScopedKey}`)
+					.expect('Content-Type', /json/)
+					.expect(
+						sampleResponses.V2.GET['/state/status?desc=no_applications']
+							.statusCode,
+					)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/state/status?desc=no_applications'].body,
+						);
+					});
+			});
+
+			it('should return success when device has no applications', async () => {
+				// Create scoped key for any application
+				const appScopedKey = await apiKeys.generateScopedKey(1658654, 1658654);
+				// Setup device conditions
+				serviceManagerMock.resolves([]);
+				imagesMock.resolves([]);
+				// Make request and evaluate response
+				await request
+					.get('/v2/state/status')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${appScopedKey}`)
+					.expect('Content-Type', /json/)
+					.expect(
+						sampleResponses.V2.GET['/state/status?desc=no_applications']
+							.statusCode,
+					)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/state/status?desc=no_applications'].body,
+						);
+					});
+			});
+
+			it('should only return 1 application when N > 1 applications on device', async () => {
+				// Create scoped key for application
+				const appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
+				// Setup device conditions
+				serviceManagerMock.resolves([
+					mockService({ appId: 1658654 }),
+					mockService({ appId: 222222 }),
+				]);
+				imagesMock.resolves([
+					mockImage({ appId: 1658654 }),
+					mockImage({ appId: 222222 }),
+				]);
+				// Make request and evaluate response
+				await request
+					.get('/v2/state/status')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${appScopedKey}`)
+					.expect('Content-Type', /json/)
+					.expect(
+						sampleResponses.V2.GET['/state/status?desc=single_application']
+							.statusCode,
+					)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/state/status?desc=single_application']
+								.body,
+						);
+					});
+			});
+
+			it('should only return 1 application when in LOCAL MODE (no auth)', async () => {
+				// Activate localmode
+				await config.set({ localMode: true });
+				// Setup device conditions
+				serviceManagerMock.resolves([
+					mockService({ appId: 1658654 }),
+					mockService({ appId: 222222 }),
+				]);
+				imagesMock.resolves([
+					mockImage({ appId: 1658654 }),
+					mockImage({ appId: 222222 }),
+				]);
+				// Make request and evaluate response
+				await request
+					.get('/v2/state/status')
+					.set('Accept', 'application/json')
+					.expect('Content-Type', /json/)
+					.expect(
+						sampleResponses.V2.GET['/state/status?desc=single_application']
+							.statusCode,
+					)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V2.GET['/state/status?desc=single_application']
+								.body,
+						);
+					});
+				// Deactivate localmode
+				await config.set({ localMode: false });
 			});
 		});
 

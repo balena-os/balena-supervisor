@@ -510,25 +510,22 @@ export function createV2Api(router: Router) {
 			overallDownloadProgress = downloadProgressTotal / downloads;
 		}
 
-		if (_.uniq(appIds).length > 1) {
-			// We can't accurately return the commit value each app without changing
-			// the shape of the data, and instead we'd like users to use the new v3
-			// endpoints, which will come with multiapp
-			// If we're going to return information about more than one app, error out
-			return res.status(405).json({
-				status: 'failed',
-				message: `Cannot use /v2/ endpoints with a key that is scoped to multiple applications`,
-			});
-		}
-
-		const commit = await commitStore.getCommitForApp(appIds[0]);
+		// This endpoint does not support multi-app but the device might be running multiple apps
+		// We must return information for only 1 application so use the first one in the list
+		const appId = appIds[0];
+		// Get the commit for this application
+		const commit = await commitStore.getCommitForApp(appId);
+		// Filter containers by this application
+		const appContainers = containerStates.filter((c) => c.appId === appId);
+		// Filter images by this application
+		const appImages = imagesStates.filter((i) => i.appId === appId);
 
 		return res.status(200).send({
 			status: 'success',
 			appState: pending ? 'applying' : 'applied',
 			overallDownloadProgress,
-			containers: containerStates,
-			images: imagesStates,
+			containers: appContainers,
+			images: appImages,
 			release: commit,
 		});
 	});

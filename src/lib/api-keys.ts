@@ -121,7 +121,7 @@ export const authMiddleware: AuthorizedRequestHandler = async (
 	req.auth = {
 		apiKey,
 		scopes: [],
-		isScoped: () => false,
+		isScoped: (resources) => isScoped(resources, req.auth.scopes),
 	};
 
 	try {
@@ -134,6 +134,7 @@ export const authMiddleware: AuthorizedRequestHandler = async (
 
 		// no need to authenticate, shortcut
 		if (!needsAuth) {
+			// Allow requests that do not need auth to be scoped for all applications
 			req.auth.isScoped = () => true;
 			return next();
 		}
@@ -146,10 +147,6 @@ export const authMiddleware: AuthorizedRequestHandler = async (
 			if (scopes != null) {
 				// keep the scopes for later incase they're desired
 				req.auth.scopes.push(...scopes);
-
-				// which resources are scoped...
-				req.auth.isScoped = (resources) => isScoped(resources, req.auth.scopes);
-
 				return next();
 			}
 		}
