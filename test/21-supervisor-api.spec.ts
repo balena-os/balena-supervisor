@@ -12,8 +12,12 @@ import mockedAPI = require('./lib/mocked-device-api');
 import * as applicationManager from '../src/compose/application-manager';
 import { InstancedAppState } from '../src/types/state';
 
+import * as serviceManager from '../src/compose/service-manager';
+
 import * as apiKeys from '../src/lib/api-keys';
 import * as db from '../src/db';
+import * as config from '../src/config';
+import { Service } from '../src/compose/service';
 
 const mockedOptions = {
 	listenPort: 54321,
@@ -351,6 +355,67 @@ describe('SupervisorAPI', () => {
 						.set('Authorization', `Bearer ${apiKey}`)
 						.expect(409);
 				});
+			});
+		});
+
+		describe('GET /v2/state/status', () => {
+			let serviceManagerMock: SinonStub;
+
+			const mockService = (
+				appId: number,
+				serviceId: number,
+				serviceName: string,
+			) => {
+				return {
+					appId,
+					status: 'Running',
+					serviceName,
+					imageId: appId,
+					serviceId,
+					containerId: Math.random()
+						.toString(36)
+						.replace(/[^a-z]+/g, '')
+						.substr(0, 16),
+					createdAt: new Date(),
+				} as Service;
+			};
+
+			before(async () => {
+				await config.set({ localMode: true });
+				serviceManagerMock = stub(serviceManager, 'getAll').resolves([]);
+			});
+
+			after(async () => {
+				await config.set({ localMode: false });
+				serviceManagerMock.restore();
+			});
+
+			it('should succeed in LocalMode with a single application', async () => {
+				serviceManagerMock.resolves([mockService(1, 1, 'main')]);
+
+				const { body } = await request
+					.get('/v2/state/status')
+					.set('Accept', 'application/json')
+					.expect(200);
+
+				expect(body).to.have.property('status').which.equals('success');
+				expect(body).to.have.property('appState').which.equals('applied');
+				expect(body)
+					.to.have.property('containers')
+					.which.is.an('array')
+					.with.lengthOf(1);
+			});
+
+			it('should error in LocalMode with multiple applications', async () => {
+				serviceManagerMock.resolves([
+					mockService(1, 1, 'main'),
+					mockService(2, 2, 'extra'),
+				]);
+
+				await request
+					.get('/v2/state/status')
+					.set('Accept', 'application/json')
+					.expect(405);
 			});
 		});
 
