@@ -31,10 +31,13 @@ export const emitter: StrictEventEmitter<
 const lockGetTarget = () =>
 	writeLock('getTarget').disposer((release) => release());
 
-let cache: {
+type CachedResponse = {
 	etag?: string | string[];
 	body: TargetState;
+	emitted?: boolean;
 };
+
+let cache: CachedResponse;
 
 /**
  * appUpdatePollInterval is set when startPoll successfuly queries the config
@@ -52,6 +55,39 @@ let appUpdatePollInterval: number;
 		}
 	});
 })();
+
+/**
+ * Emit target state from a cached response if there are any listeners available.
+ *
+ * If no listeners are available and the cached response has not been emitted it
+ * returns false.
+ *
+ * @param cachedResponse the response to emit
+ * @param force Emitted with the 'target-state-update' event update as necessary
+ * @param isFromApi Emitted with the 'target-state-update' event update as necessary
+ * @return true if the response has been emitted or false otherwise
+ */
+const emitTargetState = (
+	cachedResponse: CachedResponse,
+	force = false,
+	isFromApi = false,
+): boolean => {
+	if (
+		!cachedResponse.emitted &&
+		emitter.listenerCount('target-state-update') > 0
+	) {
+		emitter.emit(
+			'target-state-update',
+			_.cloneDeep(cachedResponse.body),
+			force,
+			isFromApi,
+		);
+
+		return true;
+	}
+
+	return !!cache.emitted;
+};
 
 /**
  * The last fetch attempt
@@ -107,7 +143,9 @@ export const update = async (
 			.timeout(apiTimeout);
 
 		if (statusCode === 304) {
-			// There's no change so no need to update the cache or emit a change event
+			// There's no change so no need to update the cache
+			// only emit the target state if it hasn't been emitted yet
+			cache.emitted = emitTargetState(cache, force, isFromApi);
 			return;
 		}
 
@@ -121,7 +159,8 @@ export const update = async (
 			body,
 		};
 
-		emitter.emit('target-state-update', _.cloneDeep(body), force, isFromApi);
+		// Emit the target state and update the cache
+		cache.emitted = emitTargetState(cache, force, isFromApi);
 	}).finally(() => {
 		lastFetch = process.hrtime();
 	});
