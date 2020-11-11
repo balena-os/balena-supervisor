@@ -1,4 +1,30 @@
 - commits:
+    - subject: 'validation: Ensure commit lookup has a bound value'
+      hash: bc9bdd10948105f3e92df89ea5772428a0d5766b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+    - subject: 'fix: Scoped keys not working in LocalMode'
+      hash: 591598e102599316e4c74e12e322d301073f44b5
+      body: |
+        Some endpoints filter data based on the scope of the API key
+        used to make the request. When in LocalMode the check was not
+        being made correctly and all apps were considered out of scope.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+  version: 12.2.1
+  date: 2020-11-11T11:05:11.060Z
+- commits:
     - subject: Allow storing commits against their appIds
       hash: f08316dc57aaf15300f7810bc700345534a3368b
       body: |
