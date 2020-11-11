@@ -5,6 +5,10 @@ const cache: { [appId: number]: string } = {};
 export async function getCommitForApp(
 	appId: number,
 ): Promise<string | undefined> {
+	if (isNaN(appId)) {
+		return;
+	}
+
 	if (cache[appId] != null) {
 		return cache[appId];
 	}
