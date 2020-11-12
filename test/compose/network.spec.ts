@@ -7,10 +7,16 @@ import { NetworkInspectInfo } from 'dockerode';
 describe('compose/network', () => {
 	describe('creating a network from a compose object', () => {
 		it('creates a default network configuration if no config is given', () => {
-			const network = Network.fromComposeObject('default', 12345, {});
+			const network = Network.fromComposeObject(
+				'default',
+				12345,
+				'deadc0de',
+				{},
+			);
 
 			expect(network.name).to.equal('default');
 			expect(network.appId).to.equal(12345);
+			expect(network.uuid).to.equal('deadc0de');
 
 			// Default configuration options
 			expect(network.config.driver).to.equal('bridge');
@@ -20,12 +26,14 @@ describe('compose/network', () => {
 				options: {},
 			});
 			expect(network.config.enableIPv6).to.equal(false);
-			expect(network.config.labels).to.deep.equal({});
+			expect(network.config.labels).to.deep.equal({
+				'io.balena.app-uuid': 'deadc0de',
+			});
 			expect(network.config.options).to.deep.equal({});
 		});
 
 		it('normalizes legacy labels', () => {
-			const network = Network.fromComposeObject('default', 12345, {
+			const network = Network.fromComposeObject('default', 12345, 'deadc0de', {
 				labels: {
 					'io.resin.features.something': '1234',
 				},
@@ -33,11 +41,12 @@ describe('compose/network', () => {
 
 			expect(network.config.labels).to.deep.equal({
 				'io.balena.features.something': '1234',
+				'io.balena.app-uuid': 'deadc0de',
 			});
 		});
 
 		it('accepts valid IPAM configurations', () => {
-			const network0 = Network.fromComposeObject('default', 12345, {
+			const network0 = Network.fromComposeObject('default', 12345, 'deadc0de', {
 				ipam: { driver: 'dummy', config: [], options: {} },
 			});
 
@@ -48,7 +57,7 @@ describe('compose/network', () => {
 				options: {},
 			});
 
-			const network1 = Network.fromComposeObject('default', 12345, {
+			const network1 = Network.fromComposeObject('default', 12345, 'deadc0de', {
 				ipam: {
 					driver: 'default',
 					config: [
@@ -80,7 +89,7 @@ describe('compose/network', () => {
 
 		it('rejects IPAM configuration without both gateway and subnet', () => {
 			expect(() =>
-				Network.fromComposeObject('default', 12345, {
+				Network.fromComposeObject('default', 12345, 'deadc0de', {
 					ipam: {
 						driver: 'default',
 						config: [
@@ -96,7 +105,7 @@ describe('compose/network', () => {
 			);
 
 			expect(() =>
-				Network.fromComposeObject('default', 12345, {
+				Network.fromComposeObject('default', 12345, 'deadc0de', {
 					ipam: {
 						driver: 'default',
 						config: [
@@ -167,10 +176,12 @@ describe('compose/network', () => {
 				} as NetworkInspectInfo['Options'],
 				Labels: {
 					'io.balena.features.something': '123',
+					'io.balena.app-uuid': 'deadc0de',
 				} as NetworkInspectInfo['Labels'],
 			} as NetworkInspectInfo);
 
 			expect(network.appId).to.equal(1234);
+			expect(network.uuid).to.equal('deadc0de');
 			expect(network.name).to.equal('default');
 			expect(network.config.enableIPv6).to.equal(true);
 			expect(network.config.ipam.driver).to.equal('default');
@@ -187,6 +198,7 @@ describe('compose/network', () => {
 			});
 			expect(network.config.labels).to.deep.equal({
 				'io.balena.features.something': '123',
+				'io.balena.app-uuid': 'deadc0de',
 			});
 		});
 
@@ -200,6 +212,7 @@ describe('compose/network', () => {
 					Config: [],
 				} as NetworkInspectInfo['IPAM'],
 				Labels: {
+					'io.balena.app-uuid': 'deadc0de',
 					'io.resin.features.something': '123',
 					'io.balena.features.dummy': 'abc',
 					'io.balena.supervised': 'true',
@@ -208,6 +221,7 @@ describe('compose/network', () => {
 
 			expect(network.config.labels).to.deep.equal({
 				'io.balena.features.something': '123',
+				'io.balena.app-uuid': 'deadc0de',
 				'io.balena.features.dummy': 'abc',
 			});
 		});
@@ -237,6 +251,7 @@ describe('compose/network', () => {
 				} as NetworkInspectInfo['Options'],
 				Labels: {
 					'io.balena.features.something': '123',
+					'io.balena.app-uuid': 'deadc0de',
 				} as NetworkInspectInfo['Labels'],
 			} as NetworkInspectInfo);
 
@@ -260,6 +275,7 @@ describe('compose/network', () => {
 			});
 			expect(compose.labels).to.deep.equal({
 				'io.balena.features.something': '123',
+				'io.balena.app-uuid': 'deadc0de',
 			});
 		});
 	});
@@ -276,7 +292,7 @@ describe('compose/network', () => {
 
 	describe('comparing network configurations', () => {
 		it('ignores IPAM configuration', () => {
-			const network = Network.fromComposeObject('default', 12345, {
+			const network = Network.fromComposeObject('default', 12345, 'deadc0de', {
 				ipam: {
 					driver: 'default',
 					config: [
@@ -290,13 +306,15 @@ describe('compose/network', () => {
 				},
 			});
 			expect(
-				network.isEqualConfig(Network.fromComposeObject('default', 12345, {})),
+				network.isEqualConfig(
+					Network.fromComposeObject('default', 12345, 'deadc0de', {}),
+				),
 			).to.be.true;
 
 			// Only ignores ipam.config, not other ipam elements
 			expect(
 				network.isEqualConfig(
-					Network.fromComposeObject('default', 12345, {
+					Network.fromComposeObject('default', 12345, 'deadc0de', {
 						ipam: { driver: 'aaa' },
 					}),
 				),
@@ -305,26 +323,37 @@ describe('compose/network', () => {
 
 		it('compares configurations recursively', () => {
 			expect(
-				Network.fromComposeObject('default', 12345, {}).isEqualConfig(
-					Network.fromComposeObject('default', 12345, {}),
+				Network.fromComposeObject(
+					'default',
+					12345,
+					'deadc0de',
+					{},
+				).isEqualConfig(
+					Network.fromComposeObject('default', 12345, 'deadc0de', {}),
 				),
 			).to.be.true;
 			expect(
-				Network.fromComposeObject('default', 12345, {
+				Network.fromComposeObject('default', 12345, 'deadc0de', {
 					driver: 'default',
-				}).isEqualConfig(Network.fromComposeObject('default', 12345, {})),
+				}).isEqualConfig(
+					Network.fromComposeObject('default', 12345, 'deadc0de', {}),
+				),
 			).to.be.false;
 			expect(
-				Network.fromComposeObject('default', 12345, {
+				Network.fromComposeObject('default', 12345, 'deadc0de', {
 					enable_ipv6: true,
-				}).isEqualConfig(Network.fromComposeObject('default', 12345, {})),
+				}).isEqualConfig(
+					Network.fromComposeObject('default', 12345, 'deadc0de', {}),
+				),
 			).to.be.false;
 			expect(
-				Network.fromComposeObject('default', 12345, {
+				Network.fromComposeObject('default', 12345, 'deadc0de', {
 					enable_ipv6: false,
 					internal: false,
 				}).isEqualConfig(
-					Network.fromComposeObject('default', 12345, { internal: true }),
+					Network.fromComposeObject('default', 12345, 'deadc0de', {
+						internal: true,
+					}),
 				),
 			).to.be.false;
 		});
