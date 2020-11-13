@@ -1,4 +1,26 @@
 - commits:
+    - subject: Ensure the first target state request is applied
+      hash: e4e895630f53ce5f00ebc5c1486a90b0f9ca9998
+      body: |
+        During first time run of the supervisor, the target state is queried
+        by `reportInitialEnv`. Since this happens early on the initialization
+        process, this target state report is missed by any listeners and this
+        can lead to the initial target state not beeing applied (see #1455).
+
+        This PR ensures that target state is re-emitted if there were no
+        listeners setup on call to update.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+        Connects-to: '#1455'
+        connects-to: '#1455'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.2.2
+  date: 2020-11-13T13:28:01.378Z
+- commits:
     - subject: 'validation: Ensure commit lookup has a bound value'
       hash: bc9bdd10948105f3e92df89ea5772428a0d5766b
       body: ''
