@@ -1,4 +1,28 @@
 - commits:
+    - subject: Bump systeminformation from 4.27.3 to 4.27.11
+      hash: 00b1bf8a7a66d4370cf1c7128184cfc0e2808178
+      body: >
+        Bumps
+        [systeminformation](https://github.com/sebhildebrandt/systeminformation)
+        from 4.27.3 to 4.27.11.
+
+        - [Release
+        notes](https://github.com/sebhildebrandt/systeminformation/releases)
+
+        -
+        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
+
+        - [Commits](https://github.com/sebhildebrandt/systeminformation/commits)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.2.4
+  date: 2020-11-17T20:42:40.817Z
+- commits:
     - subject: >-
         fix: Scoped keys breaking livepush with existing cloud images on the
         device
