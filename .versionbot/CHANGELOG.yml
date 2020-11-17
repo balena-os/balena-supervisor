@@ -1,4 +1,20 @@
 - commits:
+    - subject: Bump bl from 1.2.2 to 1.2.3
+      hash: caae8d0544245db777ee3abb31cb64873a825f11
+      body: |
+        Bumps [bl](https://github.com/rvagg/bl) from 1.2.2 to 1.2.3.
+        - [Release notes](https://github.com/rvagg/bl/releases)
+        - [Commits](https://github.com/rvagg/bl/compare/v1.2.2...v1.2.3)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.2.5
+  date: 2020-11-17T21:20:28.572Z
+- commits:
     - subject: Bump systeminformation from 4.27.3 to 4.27.11
       hash: 00b1bf8a7a66d4370cf1c7128184cfc0e2808178
       body: >
