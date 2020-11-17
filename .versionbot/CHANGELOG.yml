@@ -1,4 +1,21 @@
 - commits:
+    - subject: >-
+        fix: Scoped keys breaking livepush with existing cloud images on the
+        device
+      hash: 02aeb4fc1c5c5ba5b2e0fb19f1788edfc914d9bd
+      body: ''
+      footer:
+        Closes: '#1512'
+        closes: '#1512'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rich Bayliss <rich@balena.io>
+        signed-off-by: Rich Bayliss <rich@balena.io>
+      author: Rich Bayliss
+      nested: []
+  version: 12.2.3
+  date: 2020-11-17T03:09:32.058Z
+- commits:
     - subject: Ensure the first target state request is applied
       hash: e4e895630f53ce5f00ebc5c1486a90b0f9ca9998
       body: |
