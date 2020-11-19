@@ -22,6 +22,15 @@ export function mockManagers(svcs: Service[], vols: Volume[], nets: Network[]) {
 	networkManager.getAll = async () => nets;
 	// @ts-expect-error Assigning to a RO property
 	serviceManager.getAll = async () => {
+		// Filter services that are being removed
+		svcs = svcs.filter((s) => s.status !== 'removing');
+		// Update Installing containers to Running
+		svcs = svcs.map((s) => {
+			if (s.status === 'Installing') {
+				s.status = 'Running';
+			}
+			return s;
+		});
 		console.log('Calling the mock', svcs);
 		return svcs;
 	};
@@ -43,7 +52,6 @@ export function mockImages(
 ) {
 	// @ts-expect-error Assigning to a RO property
 	imageManager.getDownloadingImageIds = () => {
-		console.log('CALLED');
 		return downloading;
 	};
 	// @ts-expect-error Assigning to a RO property

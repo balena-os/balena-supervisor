@@ -75,10 +75,43 @@ export function registerOverride<
 export interface TestData {
 	networks: Dictionary<any>;
 	images: Dictionary<any>;
+	containers: Dictionary<any>;
 }
 
 function createMockedDockerode(data: TestData) {
 	const mockedDockerode = dockerode.prototype;
+	mockedDockerode.getContainer = (id: string) => {
+		addAction('getContainer', { id });
+		return {
+			start: async () => {
+				addAction('start', {});
+				data.containers = data.containers.map((c: any) => {
+					if (c.containerId === id) {
+						c.status = 'Installing';
+					}
+					return c;
+				});
+			},
+			stop: async () => {
+				addAction('stop', {});
+				data.containers = data.containers.map((c: any) => {
+					if (c.containerId === id) {
+						c.status = 'Stopping';
+					}
+					return c;
+				});
+			},
+			remove: async () => {
+				addAction('remove', {});
+				data.containers = data.containers.map((c: any) => {
+					if (c.containerId === id) {
+						c.status = 'removing';
+					}
+					return c;
+				});
+			},
+		} as dockerode.Container;
+	};
 	mockedDockerode.getNetwork = (id: string) => {
 		addAction('getNetwork', { id });
 		return {

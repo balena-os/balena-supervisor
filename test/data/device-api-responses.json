@@ -27,6 +27,18 @@
           "containerId": "abc123"
         }
       }
+    },
+    "POST": {
+      "/restart": {
+        "statusCode": 200,
+        "body": {},
+        "text": "OK"
+      },
+      "/restart [Invalid Body]": {
+        "statusCode": 400,
+        "body": {},
+        "text": "Missing app id"
+      }
     }
   },
   "V2": {

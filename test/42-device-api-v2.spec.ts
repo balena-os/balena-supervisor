@@ -11,52 +11,14 @@ import * as serviceManager from '../src/compose/service-manager';
 import * as images from '../src/compose/images';
 import * as apiKeys from '../src/lib/api-keys';
 import * as config from '../src/config';
-import { Service } from '../src/compose/service';
-import { Image } from '../src/compose/images';
-
-const mockedOptions = {
-	listenPort: 54321,
-	timeout: 30000,
-};
-
-const mockService = (overrides?: Partial<Service>) => {
-	return {
-		...{
-			appId: 1658654,
-			status: 'Running',
-			serviceName: 'main',
-			imageId: 2885946,
-			serviceId: 640681,
-			containerId:
-				'f93d386599d1b36e71272d46ad69770cff333842db04e2e4c64dda7b54da07c6',
-			createdAt: '2020-11-13T20:29:44.143Z',
-		},
-		...overrides,
-	} as Service;
-};
-
-const mockImage = (overrides?: Partial<Image>) => {
-	return {
-		...{
-			name:
-				'registry2.balena-cloud.com/v2/e2bf6410ffc30850e96f5071cdd1dca8@sha256:e2e87a8139b8fc14510095b210ad652d7d5badcc64fdc686cbf749d399fba15e',
-			appId: 1658654,
-			serviceName: 'main',
-			imageId: 2885946,
-			dockerImageId:
-				'sha256:4502983d72e2c72bc292effad1b15b49576da3801356f47fd275ba274d409c1a',
-			status: 'Downloaded',
-			downloadProgress: null,
-		},
-		...overrides,
-	} as Image;
-};
 
 describe('SupervisorAPI [V2 Endpoints]', () => {
 	let serviceManagerMock: SinonStub;
 	let imagesMock: SinonStub;
 	let api: SupervisorAPI;
-	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
+	const request = supertest(
+		`http://127.0.0.1:${mockedAPI.mockedOptions.listenPort}`,
+	);
 
 	before(async () => {
 		await apiBinder.initialized;
@@ -67,7 +29,10 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 		api = await mockedAPI.create();
 
 		// Start test API
-		await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
+		await api.listen(
+			mockedAPI.mockedOptions.listenPort,
+			mockedAPI.mockedOptions.timeout,
+		);
 
 		// Create a scoped key
 		await apiKeys.initialized;
@@ -167,8 +132,8 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			// Create scoped key for application
 			const appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
 			// Setup device conditions
-			serviceManagerMock.resolves([mockService({ appId: 1658654 })]);
-			imagesMock.resolves([mockImage({ appId: 1658654 })]);
+			serviceManagerMock.resolves([mockedAPI.mockService({ appId: 1658654 })]);
+			imagesMock.resolves([mockedAPI.mockImage({ appId: 1658654 })]);
 			// Make request and evaluate response
 			await request
 				.get('/v2/state/status')
@@ -191,8 +156,8 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			// Create scoped key for wrong application
 			const appScopedKey = await apiKeys.generateScopedKey(1, 1);
 			// Setup device conditions
-			serviceManagerMock.resolves([mockService({ appId: 1658654 })]);
-			imagesMock.resolves([mockImage({ appId: 1658654 })]);
+			serviceManagerMock.resolves([mockedAPI.mockService({ appId: 1658654 })]);
+			imagesMock.resolves([mockedAPI.mockImage({ appId: 1658654 })]);
 			// Make request and evaluate response
 			await request
 				.get('/v2/state/status')
@@ -238,12 +203,12 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			const appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
 			// Setup device conditions
 			serviceManagerMock.resolves([
-				mockService({ appId: 1658654 }),
-				mockService({ appId: 222222 }),
+				mockedAPI.mockService({ appId: 1658654 }),
+				mockedAPI.mockService({ appId: 222222 }),
 			]);
 			imagesMock.resolves([
-				mockImage({ appId: 1658654 }),
-				mockImage({ appId: 222222 }),
+				mockedAPI.mockImage({ appId: 1658654 }),
+				mockedAPI.mockImage({ appId: 222222 }),
 			]);
 			// Make request and evaluate response
 			await request
@@ -268,12 +233,12 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			await config.set({ localMode: true });
 			// Setup device conditions
 			serviceManagerMock.resolves([
-				mockService({ appId: 1658654 }),
-				mockService({ appId: 222222 }),
+				mockedAPI.mockService({ appId: 1658654 }),
+				mockedAPI.mockService({ appId: 222222 }),
 			]);
 			imagesMock.resolves([
-				mockImage({ appId: 1658654 }),
-				mockImage({ appId: 222222 }),
+				mockedAPI.mockImage({ appId: 1658654 }),
+				mockedAPI.mockImage({ appId: 222222 }),
 			]);
 			// Make request and evaluate response
 			await request

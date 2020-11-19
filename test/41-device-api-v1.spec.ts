@@ -1,25 +1,23 @@
+import * as _ from 'lodash';
 import { expect } from 'chai';
 import { stub, SinonStub } from 'sinon';
 import * as supertest from 'supertest';
 
-import sampleResponses = require('./data/device-api-responses.json');
+import * as appMock from './lib/application-state-mock';
+import * as mockedDockerode from './lib/mocked-dockerode';
 import mockedAPI = require('./lib/mocked-device-api');
+import sampleResponses = require('./data/device-api-responses.json');
+import SupervisorAPI from '../src/supervisor-api';
 import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
-import SupervisorAPI from '../src/supervisor-api';
-import * as applicationManager from '../src/compose/application-manager';
-import { InstancedAppState } from '../src/types/state';
 import * as apiKeys from '../src/lib/api-keys';
-
-const mockedOptions = {
-	listenPort: 54321,
-	timeout: 30000,
-};
 
 describe('SupervisorAPI [V1 Endpoints]', () => {
 	let api: SupervisorAPI;
 	let healthCheckStubs: SinonStub[];
-	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
+	const request = supertest(
+		`http://127.0.0.1:${mockedAPI.mockedOptions.listenPort}`,
+	);
 
 	before(async () => {
 		await apiBinder.initialized;
@@ -36,30 +34,14 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		api = await mockedAPI.create();
 
 		// Start test API
-		await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
+		await api.listen(
+			mockedAPI.mockedOptions.listenPort,
+			mockedAPI.mockedOptions.timeout,
+		);
 
 		// Create a scoped key
 		await apiKeys.initialized;
 		await apiKeys.generateCloudKey();
-
-		const appState = {
-			[sampleResponses.V1.GET['/apps/2'].body.appId]: {
-				...sampleResponses.V1.GET['/apps/2'].body,
-				services: [
-					{
-						...sampleResponses.V1.GET['/apps/2'].body,
-						serviceId: 1,
-						serviceName: 'main',
-						config: {},
-					},
-				],
-			},
-		};
-
-		stub(applicationManager, 'getCurrentApps').resolves(
-			(appState as unknown) as InstancedAppState,
-		);
-		stub(applicationManager, 'executeStep').resolves();
 	});
 
 	after(async () => {
@@ -74,8 +56,89 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		healthCheckStubs.forEach((hc) => hc.restore);
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
-		(applicationManager.executeStep as SinonStub).restore();
-		(applicationManager.getCurrentApps as SinonStub).restore();
+	});
+
+	beforeEach(() => {
+		// Sane defaults
+		appMock.mockSupervisorNetwork(true);
+		appMock.mockManagers([], [], []);
+		appMock.mockImages([], false, []);
+	});
+
+	afterEach(() => {
+		appMock.unmockAll();
+		// Clear Dockerode actions recorded for each test
+		mockedDockerode.resetHistory();
+	});
+
+	describe('POST /v1/restart', () => {
+		it('restarts application', async () => {
+			const ID_TO_RESTART = 2;
+			// single app scoped key...
+			const appScopedKey = await apiKeys.generateScopedKey(
+				ID_TO_RESTART,
+				640681,
+			);
+			const service = mockedAPI.mockService({
+				appId: ID_TO_RESTART,
+				serviceId: 640681,
+			});
+			const image = mockedAPI.mockImage({
+				appId: ID_TO_RESTART,
+				serviceId: 640681,
+			});
+			const images = [image];
+			const containers = [service];
+			// Setup device conditions
+			appMock.mockManagers([service], [], []);
+			appMock.mockImages([], false, images);
+			// Perform the test with our specially crafted data
+			await mockedDockerode.testWithData({ containers, images }, async () => {
+				// Perform test
+				await request
+					.post('/v1/restart')
+					.send({ appId: ID_TO_RESTART })
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${appScopedKey}`)
+					.expect(sampleResponses.V1.POST['/restart'].statusCode)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V1.POST['/restart'].body,
+						);
+						expect(response.text).to.deep.equal(
+							sampleResponses.V1.POST['/restart'].text,
+						);
+					});
+				// Check that mockedDockerode contains 1 stop and start action
+				const removeSteps = _(mockedDockerode.actions)
+					.pickBy({ name: 'stop' })
+					.map()
+					.value();
+				expect(removeSteps).to.have.lengthOf(1);
+				const startSteps = _(mockedDockerode.actions)
+					.pickBy({ name: 'start' })
+					.map()
+					.value();
+				expect(startSteps).to.have.lengthOf(1);
+			});
+		});
+
+		it('validates request body parameters', async () => {
+			await request
+				.post('/v1/restart')
+				.send({ thing: '' })
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(sampleResponses.V1.POST['/restart [Invalid Body]'].statusCode)
+				.then((response) => {
+					expect(response.body).to.deep.equal(
+						sampleResponses.V1.POST['/restart [Invalid Body]'].body,
+					);
+					expect(response.text).to.deep.equal(
+						sampleResponses.V1.POST['/restart [Invalid Body]'].text,
+					);
+				});
+		});
 	});
 
 	describe('GET /v1/healthy', () => {

@@ -14,8 +14,11 @@ import { createV2Api } from '../../src/device-api/v2';
 import * as apiBinder from '../../src/api-binder';
 import * as deviceState from '../../src/device-state';
 import SupervisorAPI from '../../src/supervisor-api';
+import { Service } from '../../src/compose/service';
+import { Image } from '../../src/compose/images';
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
+
 // Holds all values used for stubbing
 const STUBBED_VALUES = {
 	commits: {
@@ -52,6 +55,49 @@ const STUBBED_VALUES = {
 	images: [],
 	networks: [],
 	volumes: [],
+};
+
+// Useful for creating mock services in the ServiceManager
+const mockService = (overrides?: Partial<Service>) => {
+	return {
+		...{
+			appId: 1658654,
+			status: 'Running',
+			serviceName: 'main',
+			imageId: 2885946,
+			serviceId: 640681,
+			containerId:
+				'f93d386599d1b36e71272d46ad69770cff333842db04e2e4c64dda7b54da07c6',
+			createdAt: '2020-11-13T20:29:44.143Z',
+			config: {
+				labels: {},
+			},
+		},
+		...overrides,
+	} as Service;
+};
+
+// Useful for creating mock images that are returned from Images.getStatus
+const mockImage = (overrides?: Partial<Image>) => {
+	return {
+		...{
+			name:
+				'registry2.balena-cloud.com/v2/e2bf6410ffc30850e96f5071cdd1dca8@sha256:e2e87a8139b8fc14510095b210ad652d7d5badcc64fdc686cbf749d399fba15e',
+			appId: 1658654,
+			serviceName: 'main',
+			imageId: 2885946,
+			dockerImageId:
+				'sha256:4502983d72e2c72bc292effad1b15b49576da3801356f47fd275ba274d409c1a',
+			status: 'Downloaded',
+			downloadProgress: null,
+		},
+		...overrides,
+	} as Image;
+};
+
+const mockedOptions = {
+	listenPort: 54321,
+	timeout: 30000,
 };
 
 /**
@@ -156,4 +202,11 @@ function restoreStubs() {
 	serviceManager.getAllByAppId = originalSvcGetAppId;
 }
 
-export = { create, cleanUp, STUBBED_VALUES };
+export = {
+	create,
+	cleanUp,
+	STUBBED_VALUES,
+	mockService,
+	mockImage,
+	mockedOptions,
+};
