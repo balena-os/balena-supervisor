@@ -80,6 +80,16 @@ export interface TestData {
 
 function createMockedDockerode(data: TestData) {
 	const mockedDockerode = dockerode.prototype;
+	mockedDockerode.createContainer = async (
+		options: dockerode.ContainerCreateOptions,
+	) => {
+		addAction('createContainer', { options });
+		return {
+			start: async () => {
+				addAction('start', {});
+			},
+		} as dockerode.Container;
+	};
 	mockedDockerode.getContainer = (id: string) => {
 		addAction('getContainer', { id });
 		return {

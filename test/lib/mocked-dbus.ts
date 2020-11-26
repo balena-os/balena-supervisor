@@ -23,6 +23,9 @@ stub(dbus, 'getBus').returns({
 			) => {
 				getUnitCb(null, 'this is the unit path');
 			},
+			StartUnit: (_unitName: string) => {
+				// noop
+			},
 		} as any);
 	},
 } as any);

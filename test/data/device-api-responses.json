@@ -21,8 +21,24 @@
           "releaseId": 77777
         }
       },
+      "/apps/2 [Multiple containers running]": {
+        "statusCode": 400,
+        "body": {
+          "appId": 2,
+          "containerId": "abc123",
+          "commit": "4e380136c2cf56cd64197d51a1ab263a",
+          "env": {},
+          "releaseId": 77777
+        }
+      },
       "/apps/2/stop": {
         "statusCode": 200,
+        "body": {
+          "containerId": "abc123"
+        }
+      },
+      "/apps/2/stop [Multiple containers running]": {
+        "statusCode": 400,
         "body": {
           "containerId": "abc123"
         }

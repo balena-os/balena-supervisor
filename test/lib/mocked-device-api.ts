@@ -72,6 +72,12 @@ const mockService = (overrides?: Partial<Service>) => {
 			config: {
 				labels: {},
 			},
+			toDockerContainer: () => {
+				return;
+			},
+			extraNetworksToJoin: () => {
+				return [];
+			},
 		},
 		...overrides,
 	} as Service;

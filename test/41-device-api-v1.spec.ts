@@ -7,6 +7,7 @@ import * as appMock from './lib/application-state-mock';
 import * as mockedDockerode from './lib/mocked-dockerode';
 import mockedAPI = require('./lib/mocked-device-api');
 import sampleResponses = require('./data/device-api-responses.json');
+import * as logger from '../src/logger';
 import SupervisorAPI from '../src/supervisor-api';
 import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
@@ -18,6 +19,46 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	const request = supertest(
 		`http://127.0.0.1:${mockedAPI.mockedOptions.listenPort}`,
 	);
+	const containers = [
+		mockedAPI.mockService({
+			appId: 2,
+			serviceId: 640681,
+		}),
+		mockedAPI.mockService({
+			appId: 2,
+			serviceId: 640682,
+		}),
+		mockedAPI.mockService({
+			appId: 2,
+			serviceId: 640683,
+		}),
+	];
+	const images = [
+		mockedAPI.mockImage({
+			appId: 2,
+			serviceId: 640681,
+		}),
+		mockedAPI.mockImage({
+			appId: 2,
+			serviceId: 640682,
+		}),
+		mockedAPI.mockImage({
+			appId: 2,
+			serviceId: 640683,
+		}),
+	];
+
+	beforeEach(() => {
+		// Mock a 3 container release
+		appMock.mockManagers(containers, [], []);
+		appMock.mockImages([], false, images);
+		appMock.mockSupervisorNetwork(true);
+	});
+
+	afterEach(() => {
+		// Clear Dockerode actions recorded for each test
+		mockedDockerode.resetHistory();
+	});
 
 	before(async () => {
 		await apiBinder.initialized;
@@ -56,50 +97,30 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		healthCheckStubs.forEach((hc) => hc.restore);
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
-	});
-
-	beforeEach(() => {
-		// Sane defaults
-		appMock.mockSupervisorNetwork(true);
-		appMock.mockManagers([], [], []);
-		appMock.mockImages([], false, []);
-	});
-
-	afterEach(() => {
 		appMock.unmockAll();
-		// Clear Dockerode actions recorded for each test
-		mockedDockerode.resetHistory();
 	});
 
 	describe('POST /v1/restart', () => {
-		it('restarts application', async () => {
-			const ID_TO_RESTART = 2;
-			// single app scoped key...
-			const appScopedKey = await apiKeys.generateScopedKey(
-				ID_TO_RESTART,
-				640681,
-			);
-			const service = mockedAPI.mockService({
-				appId: ID_TO_RESTART,
-				serviceId: 640681,
-			});
-			const image = mockedAPI.mockImage({
-				appId: ID_TO_RESTART,
-				serviceId: 640681,
-			});
-			const images = [image];
-			const containers = [service];
-			// Setup device conditions
-			appMock.mockManagers([service], [], []);
-			appMock.mockImages([], false, images);
-			// Perform the test with our specially crafted data
+		let loggerStub: SinonStub;
+
+		before(async () => {
+			loggerStub = stub(logger, 'attach');
+			loggerStub.resolves();
+		});
+
+		after(() => {
+			loggerStub.restore();
+		});
+
+		it('restarts all containers in release', async () => {
+			// Perform the test with our mocked release
 			await mockedDockerode.testWithData({ containers, images }, async () => {
 				// Perform test
 				await request
 					.post('/v1/restart')
-					.send({ appId: ID_TO_RESTART })
+					.send({ appId: 2 })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${appScopedKey}`)
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 					.expect(sampleResponses.V1.POST['/restart'].statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
@@ -109,17 +130,17 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 							sampleResponses.V1.POST['/restart'].text,
 						);
 					});
-				// Check that mockedDockerode contains 1 stop and start action
+				// Check that mockedDockerode contains 3 stop and start actions
 				const removeSteps = _(mockedDockerode.actions)
 					.pickBy({ name: 'stop' })
 					.map()
 					.value();
-				expect(removeSteps).to.have.lengthOf(1);
+				expect(removeSteps).to.have.lengthOf(3);
 				const startSteps = _(mockedDockerode.actions)
 					.pickBy({ name: 'start' })
 					.map()
 					.value();
-				expect(startSteps).to.have.lengthOf(1);
+				expect(startSteps).to.have.lengthOf(3);
 			});
 		});
 
@@ -178,7 +199,31 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	});
 
 	describe('GET /v1/apps/:appId', () => {
+		it('does not return information for an application when there is more than 1 container', async () => {
+			// Every test case in this suite has a 3 service release mocked so just make the request
+			await request
+				.get('/v1/apps/2')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(
+					sampleResponses.V1.GET['/apps/2 [Multiple containers running]']
+						.statusCode,
+				);
+		});
+
 		it('returns information about a specific application', async () => {
+			// Setup single container application
+			const container = mockedAPI.mockService({
+				containerId: 'abc123',
+				appId: 2,
+				releaseId: 77777,
+			});
+			const image = mockedAPI.mockImage({
+				appId: 2,
+			});
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+			// Make request
 			await request
 				.get('/v1/apps/2')
 				.set('Accept', 'application/json')
@@ -194,18 +239,46 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	});
 
 	describe('POST /v1/apps/:appId/stop', () => {
-		it('stops a SPECIFIC application and returns a containerId', async () => {
+		it('does not allow stopping an application when there is more than 1 container', async () => {
+			// Every test case in this suite has a 3 service release mocked so just make the request
 			await request
 				.post('/v1/apps/2/stop')
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.expect(sampleResponses.V1.GET['/apps/2/stop'].statusCode)
-				.expect('Content-Type', /json/)
-				.then((response) => {
-					expect(response.body).to.deep.equal(
-						sampleResponses.V1.GET['/apps/2/stop'].body,
-					);
-				});
+				.expect(
+					sampleResponses.V1.GET['/apps/2/stop [Multiple containers running]']
+						.statusCode,
+				);
+		});
+
+		it('stops a SPECIFIC application and returns a containerId', async () => {
+			// Setup single container application
+			const container = mockedAPI.mockService({
+				containerId: 'abc123',
+				appId: 2,
+			});
+			const image = mockedAPI.mockImage({
+				appId: 2,
+			});
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+			// Perform the test with our mocked release
+			await mockedDockerode.testWithData(
+				{ containers: [container], images: [image] },
+				async () => {
+					await request
+						.post('/v1/apps/2/stop')
+						.set('Accept', 'application/json')
+						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.expect(sampleResponses.V1.GET['/apps/2/stop'].statusCode)
+						.expect('Content-Type', /json/)
+						.then((response) => {
+							expect(response.body).to.deep.equal(
+								sampleResponses.V1.GET['/apps/2/stop'].body,
+							);
+						});
+				},
+			);
 		});
 	});
 
