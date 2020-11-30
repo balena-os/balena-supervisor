@@ -1,4 +1,15 @@
 - commits:
+    - subject: Update npm entry in package.json to match the npm version we use
+      hash: cda1e9788d8d2016863effef796c62b1f72c58b8
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 12.2.6
+  date: 2020-11-30T17:26:41.644Z
+- commits:
     - subject: Bump bl from 1.2.2 to 1.2.3
       hash: caae8d0544245db777ee3abb31cb64873a825f11
       body: |
