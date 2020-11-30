@@ -1,4 +1,29 @@
 - commits:
+    - subject: Bump systeminformation from 4.27.11 to 4.30.5
+      hash: 8036d5147950a3dfb976aaceee46a75e0025c732
+      body: >
+        Bumps
+        [systeminformation](https://github.com/sebhildebrandt/systeminformation)
+        from 4.27.11 to 4.30.5.
+
+        - [Release
+        notes](https://github.com/sebhildebrandt/systeminformation/releases)
+
+        -
+        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
+
+        -
+        [Commits](https://github.com/sebhildebrandt/systeminformation/compare/v4.27.11...v4.30.5)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.2.7
+  date: 2020-11-30T19:33:51.623Z
+- commits:
     - subject: Update npm entry in package.json to match the npm version we use
       hash: cda1e9788d8d2016863effef796c62b1f72c58b8
       body: ''
