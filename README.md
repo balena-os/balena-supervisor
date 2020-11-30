@@ -271,7 +271,7 @@ Make sure you are running at least:
 
 ```sh
 node -v       # >= 12.16.2
-npm -v        # >= 6.14.0
+npm -v        # >= 6.14.4
 git --version # >= 2.13.0
 ```
 
