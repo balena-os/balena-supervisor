@@ -1,4 +1,39 @@
 - commits:
+    - subject: Patched /v1/restart exception
+      hash: 8b37df492b7e418890f5c7a8ec2d7ec08cc9d142
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1509'
+        closes: '#1509'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+    - subject: Added test case for /v1/restart API
+      hash: 7a4473f65bd0c556935ab005f33a158b608ecc96
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+    - subject: Consolidated Supervisor API tests into clearer files
+      hash: 733a2c5dc068f01e803505822e03d09c59a2a3b8
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.2.8
+  date: 2020-11-30T20:45:21.952Z
+- commits:
     - subject: Bump systeminformation from 4.27.11 to 4.30.5
       hash: 8036d5147950a3dfb976aaceee46a75e0025c732
       body: >
