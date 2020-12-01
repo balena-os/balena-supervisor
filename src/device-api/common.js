@@ -5,6 +5,7 @@ import * as logger from '../logger';
 
 import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
+import * as serviceManager from '../compose/service-manager';
 import * as volumeManager from '../compose/volume-manager';
 import { InternalInconsistencyError } from '../lib/errors';
 
@@ -27,20 +28,12 @@ export async function doRestart(appId, force) {
 			const imageIds = _.map(app.services, 'imageId');
 			applicationManager.clearTargetVolatileForServices(imageIds);
 
-			const currentServices = app.services;
-			app.services = [];
-			return deviceState
-				.pausingApply(() =>
-					deviceState
-						.applyIntermediateTarget(currentState, { skipLock: true })
-						.then(function () {
-							app.services = currentServices;
-							return deviceState.applyIntermediateTarget(currentState, {
-								skipLock: true,
-							});
-						}),
-				)
-				.finally(() => deviceState.triggerApplyTarget());
+			return deviceState.pausingApply(async () => {
+				return Bluebird.each(app.services, async (service) => {
+					await serviceManager.kill(service, { wait: true });
+					await serviceManager.start(service);
+				});
+			});
 		}),
 	);
 }
