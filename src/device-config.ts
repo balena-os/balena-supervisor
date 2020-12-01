@@ -445,6 +445,9 @@ export async function getRequiredSteps(
 					}
 				}
 				if (changingValue != null) {
+					console.log(`${envVarName} changed!`);
+					console.log('current: ', current[envVarName]);
+					console.log('target: ', target[envVarName]);
 					configChanges[key] = changingValue;
 					humanReadableConfigChanges[envVarName] = changingValue;
 					reboot = $rebootRequired || reboot;

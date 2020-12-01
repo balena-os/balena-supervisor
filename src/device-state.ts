@@ -41,6 +41,8 @@ import {
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
 
+import * as util from 'util';
+
 function validateLocalState(state: any): asserts state is TargetState['local'] {
 	if (state.name != null) {
 		if (!validation.isValidShortText(state.name)) {
@@ -775,6 +777,21 @@ export const applyTarget = async ({
 				backoff = false;
 				steps = appSteps;
 			}
+		}
+
+		if (steps.length > 0) {
+			console.log(
+				'currentState: ',
+				util.inspect(currentState, { showHidden: false, depth: null }),
+			);
+			console.log(
+				'targetState: ',
+				util.inspect(targetState, { showHidden: false, depth: null }),
+			);
+			console.log('getRequiredSteps: ', deviceConfigSteps);
+			console.log('steps: ', steps);
+		} else {
+			console.log('\n NO STEPS TO APPLY \n');
 		}
 
 		if (_.isEmpty(steps)) {
