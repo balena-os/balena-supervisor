@@ -381,6 +381,9 @@ export function bootConfigChangeRequired(
 				return false; // (no change is required)
 			}
 		}
+		console.log('boot configs are no equal!');
+		console.log(`Target :`, targetBootConfig);
+		console.log(`Current :`, currentBootConfig);
 		// Change is required because configs do not match
 		return true;
 	}

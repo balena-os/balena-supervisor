@@ -110,6 +110,7 @@ export class App {
 		// Any services which have died get a remove step
 		for (const service of this.services) {
 			if (service.status === 'Dead') {
+				console.log('service is dead so remove');
 				steps.push(generateStep('remove', { current: service }));
 			}
 		}
@@ -120,9 +121,14 @@ export class App {
 			state.containerIds,
 		);
 
+		console.log('installPairs: ', installPairs);
+		console.log('updatePairs: ', updatePairs);
+		console.log('## removePairs: ', removePairs);
+
 		for (const { current: svc } of removePairs) {
 			// All removes get a kill action if they're not already stopping
 			if (svc!.status !== 'Stopping') {
+				console.log('generate kill step');
 				steps.push(generateStep('kill', { current: svc! }));
 			} else {
 				steps.push(generateStep('noop', {}));
@@ -167,6 +173,9 @@ export class App {
 			target.commit != null &&
 			this.commit !== target.commit
 		) {
+			console.log(
+				`this.commit: ${this.commit} is not equal to target commit: ${target.commit}`,
+			);
 			// TODO: The next PR should change this to support multiapp commit values
 			steps.push(
 				generateStep('updateCommit', {

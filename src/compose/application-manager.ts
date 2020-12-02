@@ -198,6 +198,7 @@ export async function getRequiredSteps(
 
 	// First check if we need to create the supervisor network
 	if (!(await networkManager.supervisorNetworkReady())) {
+		console.log('Supervisor network not ready, going to kill containers');
 		// If we do need to create it, we first need to kill any services using the api
 		const killSteps = steps.concat(killServicesUsingApi(currentApps));
 		if (killSteps.length > 0) {
@@ -246,6 +247,7 @@ export async function getRequiredSteps(
 
 			// For apps in the current state but not target, we call their "destructor"
 			for (const id of onlyCurrent) {
+				console.log('Target does not have the current containers so removing');
 				steps = steps.concat(
 					await currentApps[id].stepsToRemoveApp({
 						localMode,
@@ -720,6 +722,8 @@ function saveAndRemoveImages(
 			return notUsedForDelta && notUsedByProxyvisor;
 		},
 	);
+
+	console.log('imagesToRemove: ', imagesToRemove);
 
 	return imagesToSave
 		.map((image) => ({ action: 'saveImage', image } as CompositionStep))
