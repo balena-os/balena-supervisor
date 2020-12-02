@@ -757,6 +757,12 @@ export const applyTarget = async ({
 			}
 		}
 
+		if (steps.length > 0) {
+			console.log('steps: ', steps);
+		} else {
+			console.log('\n NO STEPS TO APPLY \n');
+		}
+
 		if (_.isEmpty(steps)) {
 			emitAsync('apply-target-state-end', null);
 			if (!intermediate) {
