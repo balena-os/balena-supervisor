@@ -78,6 +78,12 @@ const mockService = (overrides?: Partial<Service>) => {
 			extraNetworksToJoin: () => {
 				return [];
 			},
+			isEqualConfig: (service: Service) => {
+				return _.isEqual(
+					_.pick(mockService, ['imageId', 'containerId', 'serviceId']),
+					_.pick(service, ['imageId', 'containerId', 'serviceId']),
+				);
+			},
 		},
 		...overrides,
 	} as Service;
