@@ -17,6 +17,7 @@ export function createApp(
 		{
 			appId,
 			services,
+			overlays: [],
 			networks: _.keyBy(networks, 'name'),
 			volumes: _.keyBy(volumes, 'name'),
 		},

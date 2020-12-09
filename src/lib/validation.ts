@@ -353,6 +353,7 @@ function isValidService(service: any, serviceId: string): boolean {
 					'Invalid labels object passed to validation.isValidService\nLabels:',
 					inspect(l),
 				);
+
 				return false;
 			}
 			return true;

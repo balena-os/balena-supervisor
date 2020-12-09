@@ -190,13 +190,18 @@ export class Network {
 		// in the target state (as it will be present in the
 		// current state, due to docker populating it with
 		// default or generated values)
-		let configToCompare = this.config;
-		if (network.config.ipam.config.length === 0) {
-			configToCompare = _.cloneDeep(this.config);
+		const configToCompare = { ...this.config };
+		const otherConfig = { ...network.config };
+		if (otherConfig.ipam.config.length === 0) {
 			configToCompare.ipam.config = [];
 		}
 
-		return _.isEqual(configToCompare, network.config);
+		configToCompare.labels = _.omit(configToCompare.labels, [
+			'io.balena.app-uuid',
+		]);
+		otherConfig.labels = _.omit(otherConfig.labels, ['io.balena.app-uuid']);
+
+		return _.isEqual(configToCompare, otherConfig);
 	}
 
 	private static validateComposeConfig(

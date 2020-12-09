@@ -40,6 +40,9 @@ export type ServiceStatus =
 	| 'removing'
 	| 'exited';
 
+const SERVICE_IMAGE_CLASSES = ['service', 'overlay', 'fileset'];
+export type ServiceImageClass = 'service' | 'overlay' | 'fileset';
+
 export class Service {
 	public appId: number;
 	public imageId: number;
@@ -49,6 +52,7 @@ export class Service {
 	public releaseVersion: string;
 	public serviceId: number;
 	public imageName: string | null;
+	public imageClass: ServiceImageClass;
 	public containerId: string | null;
 	public uuid: string | null;
 
@@ -281,6 +285,18 @@ export class Service {
 				service.releaseVersion,
 			),
 		);
+
+		// Get image class from labels
+		const imageClass = config.labels['io.balena.image.class'] ?? 'service';
+		if (SERVICE_IMAGE_CLASSES.includes(imageClass)) {
+			service.imageClass = imageClass as ServiceImageClass;
+		} else {
+			log.warn(
+				`Ignoring label io.balena.image.class="${imageClass}". Valid values are (${SERVICE_IMAGE_CLASSES.join(
+					',',
+				)}).`,
+			);
+		}
 
 		// Any other special case handling
 		if (config.networkMode === 'host' && !config.hostname) {
@@ -618,6 +634,18 @@ export class Service {
 		svc.imageId = parseInt(nameMatch[1], 10);
 		svc.releaseId = parseInt(nameMatch[2], 10);
 		svc.containerId = container.Id;
+
+		// Get image class from container labels
+		const imageClass = svc.config.labels['io.balena.image.class'] ?? 'service';
+		if (SERVICE_IMAGE_CLASSES.includes(imageClass)) {
+			svc.imageClass = imageClass as ServiceImageClass;
+		} else {
+			log.warn(
+				`Ignoring container label io.balena.image.class="${imageClass}". Valid values are (${SERVICE_IMAGE_CLASSES.join(
+					',',
+				)}).`,
+			);
+		}
 
 		return svc;
 	}

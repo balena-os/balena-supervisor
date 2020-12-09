@@ -141,6 +141,8 @@ describe('Volume Manager', () => {
 		// Setup volume data
 		const volumeData = [
 			createVolumeInspectInfo(Volume.generateDockerName(111, 'main'), {
+				'io.balena.app-id': '111',
+				'io.balena.app-uuid': 'deadc0de',
 				'io.balena.supervised': '1',
 			}),
 		];

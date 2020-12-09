@@ -49,6 +49,7 @@ export async function loadTargetFromFile(
 		}
 
 		const imgs: Image[] = [];
+
 		const uuids = _.keys(preloadState.apps);
 
 		for (const uuid of uuids) {
