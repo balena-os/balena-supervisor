@@ -49,6 +49,7 @@ export async function loadTargetFromFile(
 		}
 
 		const imgs: Image[] = [];
+
 		const uuids = _.keys(preloadState.apps);
 
 		for (const uuid of uuids) {
@@ -73,9 +74,8 @@ export async function loadTargetFromFile(
 				}
 
 				const cls = service.labels['io.balena.images.class'];
-				if (cls && cls !== 'service') {
-					// TODO: for now ignore also all non-service images, these
-					// will be added on another commit
+				if (cls && cls === 'fileset') {
+					// ignore not supported fileset images
 					continue;
 				}
 

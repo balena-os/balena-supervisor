@@ -151,9 +151,12 @@ export class Volume {
 
 	private static omitSupervisorLabels(labels: LabelObject): LabelObject {
 		// TODO: Export these to a constant
-		return omitBy(
-			labels,
-			(_v, k) => k === 'io.resin.supervised' || k === 'io.balena.supervised',
+		return omitBy(labels, (_v, k) =>
+			[
+				'io.resin.supervised',
+				'io.balena.supervised',
+				'io.balena.app-uuid',
+			].includes(k),
 		);
 	}
 }
