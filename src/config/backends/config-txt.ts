@@ -51,7 +51,11 @@ export class ConfigTxt extends ConfigBackend {
 	];
 
 	public async matches(deviceType: string): Promise<boolean> {
-		return deviceType.startsWith('raspberry') || deviceType === 'fincm3';
+		return (
+			deviceType.startsWith('raspberry') ||
+			deviceType === 'fincm3' ||
+			deviceType === 'rt-rpi-300'
+		);
 	}
 
 	public async getBootConfig(): Promise<ConfigOptions> {
