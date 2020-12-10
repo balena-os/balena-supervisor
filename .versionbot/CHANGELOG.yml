@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add config.txt support for Rocktech rpi
+      hash: 2c1fb7110e1f025e511d22c08f58fdaef313851d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Cameron Diver <cameron@balena.io>
+        signed-off-by: Cameron Diver <cameron@balena.io>
+      author: Cameron Diver
+      nested: []
+  version: 12.2.9
+  date: 2020-12-10T11:16:16.619Z
+- commits:
     - subject: Patched /v1/restart exception
       hash: 8b37df492b7e418890f5c7a8ec2d7ec08cc9d142
       body: ''
