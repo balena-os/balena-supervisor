@@ -52,9 +52,8 @@ export class ConfigTxt extends ConfigBackend {
 
 	public async matches(deviceType: string): Promise<boolean> {
 		return (
-			deviceType.startsWith('raspberry') ||
-			deviceType === 'fincm3' ||
-			deviceType === 'rt-rpi-300'
+			['fincm3', 'rt-rpi-300', '243390-rpi3'].includes(deviceType) ||
+			deviceType.startsWith('raspberry')
 		);
 	}
 
