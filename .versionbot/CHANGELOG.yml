@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add config.txt support for Alliance rpi3
+      hash: a8c4a6683ad07ac4d0f1f9aee28761cf2a846bdb
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+      author: Felipe Lalanne
+      nested: []
+  version: 12.2.10
+  date: 2020-12-11T12:54:34.175Z
+- commits:
     - subject: Add config.txt support for Rocktech rpi
       hash: 2c1fb7110e1f025e511d22c08f58fdaef313851d
       body: ''
