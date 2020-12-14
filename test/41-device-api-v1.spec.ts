@@ -1,4 +1,5 @@
 import * as _ from 'lodash';
+import * as Bluebird from 'bluebird';
 import { expect } from 'chai';
 import { stub, SinonStub } from 'sinon';
 import * as supertest from 'supertest';
@@ -12,47 +13,45 @@ import SupervisorAPI from '../src/supervisor-api';
 import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
 import * as apiKeys from '../src/lib/api-keys';
+import * as dbus from '../src//lib/dbus';
+import * as updateLock from '../src/lib/update-lock';
+import * as targetStateCache from '../src/device-state/target-state-cache';
+
+import { UpdatesLockedError } from '../src/lib/errors';
 
 describe('SupervisorAPI [V1 Endpoints]', () => {
 	let api: SupervisorAPI;
 	let healthCheckStubs: SinonStub[];
+	let targetStateCacheMock: SinonStub;
 	const request = supertest(
 		`http://127.0.0.1:${mockedAPI.mockedOptions.listenPort}`,
 	);
-	const containers = [
-		mockedAPI.mockService({
-			appId: 2,
-			serviceId: 640681,
-		}),
-		mockedAPI.mockService({
-			appId: 2,
-			serviceId: 640682,
-		}),
-		mockedAPI.mockService({
-			appId: 2,
-			serviceId: 640683,
-		}),
+	const services = [
+		{ appId: 2, serviceId: 640681, serviceName: 'one' },
+		{ appId: 2, serviceId: 640682, serviceName: 'two' },
+		{ appId: 2, serviceId: 640683, serviceName: 'three' },
 	];
-	const images = [
-		mockedAPI.mockImage({
-			appId: 2,
-			serviceId: 640681,
-		}),
-		mockedAPI.mockImage({
-			appId: 2,
-			serviceId: 640682,
-		}),
-		mockedAPI.mockImage({
-			appId: 2,
-			serviceId: 640683,
-		}),
-	];
+	const containers = services.map((service) => mockedAPI.mockService(service));
+	const images = services.map((service) => mockedAPI.mockImage(service));
+
+	let loggerStub: SinonStub;
 
 	beforeEach(() => {
 		// Mock a 3 container release
 		appMock.mockManagers(containers, [], []);
 		appMock.mockImages([], false, images);
 		appMock.mockSupervisorNetwork(true);
+
+		targetStateCacheMock.resolves({
+			appId: 2,
+			commit: 'abcdef2',
+			name: 'test-app2',
+			source: 'https://api.balena-cloud.com',
+			releaseId: 1232,
+			services: JSON.stringify(services),
+			networks: '{}',
+			volumes: '{}',
+		});
 	});
 
 	afterEach(() => {
@@ -63,6 +62,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	before(async () => {
 		await apiBinder.initialized;
 		await deviceState.initialized;
+		await targetStateCache.initialized;
 
 		// Stub health checks so we can modify them whenever needed
 		healthCheckStubs = [
@@ -80,9 +80,16 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			mockedAPI.mockedOptions.timeout,
 		);
 
+		// Mock target state cache
+		targetStateCacheMock = stub(targetStateCache, 'getTargetApp');
+
 		// Create a scoped key
 		await apiKeys.initialized;
 		await apiKeys.generateCloudKey();
+
+		// Stub logs for all API methods
+		loggerStub = stub(logger, 'attach');
+		loggerStub.resolves();
 	});
 
 	after(async () => {
@@ -98,20 +105,11 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
 		appMock.unmockAll();
+		targetStateCacheMock.restore();
+		loggerStub.restore();
 	});
 
 	describe('POST /v1/restart', () => {
-		let loggerStub: SinonStub;
-
-		before(async () => {
-			loggerStub = stub(logger, 'attach');
-			loggerStub.resolves();
-		});
-
-		after(() => {
-			loggerStub.restore();
-		});
-
 		it('restarts all containers in release', async () => {
 			// Perform the test with our mocked release
 			await mockedDockerode.testWithData({ containers, images }, async () => {
@@ -282,6 +280,59 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 	});
 
+	describe('POST /v1/apps/:appId/start', () => {
+		it('does not allow starting an application when there is more than 1 container', async () => {
+			// Every test case in this suite has a 3 service release mocked so just make the request
+			await request
+				.post('/v1/apps/2/start')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(400);
+		});
+
+		it('starts a SPECIFIC application and returns a containerId', async () => {
+			const service = {
+				serviceName: 'main',
+				containerId: 'abc123',
+				appId: 2,
+				serviceId: 640681,
+			};
+			// Setup single container application
+			const container = mockedAPI.mockService(service);
+			const image = mockedAPI.mockImage(service);
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+
+			// Target state returns single service
+			targetStateCacheMock.resolves({
+				appId: 2,
+				commit: 'abcdef2',
+				name: 'test-app2',
+				source: 'https://api.balena-cloud.com',
+				releaseId: 1232,
+				services: JSON.stringify([service]),
+				volumes: '{}',
+				networks: '{}',
+			});
+
+			// Perform the test with our mocked release
+			await mockedDockerode.testWithData(
+				{ containers: [container], images: [image] },
+				async () => {
+					await request
+						.post('/v1/apps/2/start')
+						.set('Accept', 'application/json')
+						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.expect(200)
+						.expect('Content-Type', /json/)
+						.then((response) => {
+							expect(response.body).to.deep.equal({ containerId: 'abc123' });
+						});
+				},
+			);
+		});
+	});
+
 	describe('GET /v1/device', () => {
 		it('returns MAC address', async () => {
 			const response = await request
@@ -291,6 +342,214 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				.expect(200);
 
 			expect(response.body).to.have.property('mac_address').that.is.not.empty;
+		});
+	});
+
+	describe('POST /v1/reboot', () => {
+		let rebootMock: SinonStub;
+		before(() => {
+			rebootMock = stub(dbus, 'reboot').resolves((() => void 0) as any);
+		});
+
+		after(() => {
+			rebootMock.restore();
+		});
+
+		afterEach(() => {
+			rebootMock.resetHistory();
+		});
+
+		it('should return 202 and reboot if no locks are set', async () => {
+			// Setup single container application
+			const container = mockedAPI.mockService({
+				containerId: 'abc123',
+				appId: 2,
+				releaseId: 77777,
+			});
+			const image = mockedAPI.mockImage({
+				appId: 2,
+			});
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+
+			const response = await request
+				.post('/v1/reboot')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(202);
+
+			expect(response.body).to.have.property('Data').that.is.not.empty;
+			expect(rebootMock).to.have.been.calledOnce;
+		});
+
+		it('should return 423 and reject the reboot if no locks are set', async () => {
+			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+				if (opts.force) {
+					return Bluebird.resolve(fn());
+				}
+				throw new UpdatesLockedError('Updates locked');
+			});
+
+			// Setup single container application
+			const container = mockedAPI.mockService({
+				containerId: 'abc123',
+				appId: 2,
+				releaseId: 77777,
+			});
+			const image = mockedAPI.mockImage({
+				appId: 2,
+			});
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+
+			const response = await request
+				.post('/v1/reboot')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(423);
+
+			expect(updateLock.lock).to.be.calledOnce;
+			expect(response.body).to.have.property('Error').that.is.not.empty;
+			expect(rebootMock).to.not.have.been.called;
+
+			(updateLock.lock as SinonStub).restore();
+		});
+
+		it('should return 202 and reboot if force is set to true', async () => {
+			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+				if (opts.force) {
+					return Bluebird.resolve(fn());
+				}
+				throw new UpdatesLockedError('Updates locked');
+			});
+
+			// Setup single container application
+			const container = mockedAPI.mockService({
+				containerId: 'abc123',
+				appId: 2,
+				releaseId: 77777,
+			});
+			const image = mockedAPI.mockImage({
+				appId: 2,
+			});
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+
+			const response = await request
+				.post('/v1/reboot')
+				.send({ force: true })
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(202);
+
+			expect(updateLock.lock).to.be.calledOnce;
+			expect(response.body).to.have.property('Data').that.is.not.empty;
+			expect(rebootMock).to.have.been.calledOnce;
+
+			(updateLock.lock as SinonStub).restore();
+		});
+	});
+
+	describe('POST /v1/shutdown', () => {
+		let shutdownMock: SinonStub;
+		before(() => {
+			shutdownMock = stub(dbus, 'shutdown').resolves((() => void 0) as any);
+		});
+
+		after(async () => {
+			shutdownMock.restore();
+		});
+
+		it('should return 202 and shutdown if no locks are set', async () => {
+			// Setup single container application
+			const container = mockedAPI.mockService({
+				containerId: 'abc123',
+				appId: 2,
+				releaseId: 77777,
+			});
+			const image = mockedAPI.mockImage({
+				appId: 2,
+			});
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+
+			const response = await request
+				.post('/v1/shutdown')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(202);
+
+			expect(response.body).to.have.property('Data').that.is.not.empty;
+			expect(shutdownMock).to.have.been.calledOnce;
+
+			shutdownMock.resetHistory();
+		});
+
+		it('should return 423 and reject the reboot if no locks are set', async () => {
+			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+				if (opts.force) {
+					return Bluebird.resolve(fn());
+				}
+				throw new UpdatesLockedError('Updates locked');
+			});
+
+			// Setup single container application
+			const container = mockedAPI.mockService({
+				containerId: 'abc123',
+				appId: 2,
+				releaseId: 77777,
+			});
+			const image = mockedAPI.mockImage({
+				appId: 2,
+			});
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+
+			const response = await request
+				.post('/v1/shutdown')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(423);
+
+			expect(updateLock.lock).to.be.calledOnce;
+			expect(response.body).to.have.property('Error').that.is.not.empty;
+			expect(shutdownMock).to.not.have.been.called;
+
+			(updateLock.lock as SinonStub).restore();
+		});
+
+		it('should return 202 and shutdown if force is set to true', async () => {
+			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+				if (opts.force) {
+					return Bluebird.resolve(fn());
+				}
+				throw new UpdatesLockedError('Updates locked');
+			});
+
+			// Setup single container application
+			const container = mockedAPI.mockService({
+				containerId: 'abc123',
+				appId: 2,
+				releaseId: 77777,
+			});
+			const image = mockedAPI.mockImage({
+				appId: 2,
+			});
+			appMock.mockManagers([container], [], []);
+			appMock.mockImages([], false, [image]);
+
+			const response = await request
+				.post('/v1/shutdown')
+				.send({ force: true })
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(202);
+
+			expect(updateLock.lock).to.be.calledOnce;
+			expect(response.body).to.have.property('Data').that.is.not.empty;
+			expect(shutdownMock).to.have.been.calledOnce;
+
+			(updateLock.lock as SinonStub).restore();
 		});
 	});
 

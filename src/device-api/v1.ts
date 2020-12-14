@@ -10,6 +10,7 @@ import * as applicationManager from '../compose/application-manager';
 import { generateStep } from '../compose/composition-steps';
 import * as commitStore from '../compose/commit';
 import { AuthorizedRequest } from '../lib/api-keys';
+import { getApp } from '../device-state/db-format';
 
 export function createV1Api(router: express.Router) {
 	router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {
@@ -46,9 +47,8 @@ export function createV1Api(router: express.Router) {
 			return res.status(400).send('Missing app id');
 		}
 
-		return applicationManager
-			.getCurrentApps()
-			.then(function (apps) {
+		return Promise.all([applicationManager.getCurrentApps(), getApp(appId)])
+			.then(([apps, targetApp]) => {
 				if (apps[appId] == null) {
 					return res.status(400).send('App not found');
 				}
@@ -70,12 +70,22 @@ export function createV1Api(router: express.Router) {
 					return res.status(401).send('Unauthorized');
 				}
 
+				// Get the service from the target state (as we do in v2)
+				// TODO: what if we want to start a service belonging to the current app?
+				const targetService = _.find(targetApp.services, {
+					serviceName: service.serviceName,
+				});
+
 				applicationManager.setTargetVolatileForService(service.imageId, {
 					running: action !== 'stop',
 				});
 
 				const stopOpts = { wait: true };
-				const step = generateStep(action, { current: service, ...stopOpts });
+				const step = generateStep(action, {
+					current: service,
+					target: targetService,
+					...stopOpts,
+				});
 
 				return applicationManager
 					.executeStep(step, { force })

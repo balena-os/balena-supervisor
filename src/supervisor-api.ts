@@ -10,6 +10,7 @@ import blink = require('./lib/blink');
 import log from './lib/supervisor-console';
 import * as apiKeys from './lib/api-keys';
 import * as deviceState from './device-state';
+import { UpdatesLockedError } from './lib/errors';
 
 const expressLogger = morgan(
 	(tokens, req, res) =>
@@ -126,8 +127,14 @@ export class SupervisorAPI {
 					next(err);
 					return;
 				}
-				log.error(`Error on ${req.method} ${req.path}: `, err);
-				res.status(503).send({
+
+				// Return 423 Locked when locks as set
+				const code = err instanceof UpdatesLockedError ? 423 : 503;
+				if (code !== 423) {
+					log.error(`Error on ${req.method} ${req.path}: `, err);
+				}
+
+				res.status(code).send({
 					status: 'failed',
 					message: messageFromError(err),
 				});

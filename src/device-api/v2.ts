@@ -59,66 +59,53 @@ export function createV2Api(router: Router) {
 			return;
 		}
 
-		return applicationManager.lockingIfNecessary(appId, { force }, () => {
-			return Promise.all([applicationManager.getCurrentApps(), getApp(appId)])
-				.then(([apps, targetApp]) => {
-					const app = apps[appId];
+		return Promise.all([applicationManager.getCurrentApps(), getApp(appId)])
+			.then(([apps, targetApp]) => {
+				const app = apps[appId];
 
-					if (app == null) {
-						res.status(404).send(appNotFoundMessage);
-						return;
-					}
+				if (app == null) {
+					res.status(404).send(appNotFoundMessage);
+					return;
+				}
 
-					// Work if we have a service name or an image id
-					if (imageId == null) {
-						if (serviceName == null) {
-							throw new Error(v2ServiceEndpointInputErrorMessage);
-						}
-					}
+				// Work if we have a service name or an image id
+				if (imageId == null && serviceName == null) {
+					throw new Error(v2ServiceEndpointInputErrorMessage);
+				}
 
-					let service: Service | undefined;
-					let targetService: Service | undefined;
-					if (imageId != null) {
-						service = _.find(app.services, (svc) => svc.imageId === imageId);
-						targetService = _.find(
-							targetApp.services,
-							(svc) => svc.imageId === imageId,
-						);
-					} else {
-						service = _.find(
-							app.services,
-							(svc) => svc.serviceName === serviceName,
-						);
-						targetService = _.find(
-							targetApp.services,
-							(svc) => svc.serviceName === serviceName,
-						);
-					}
-					if (service == null) {
-						res.status(404).send(serviceNotFoundMessage);
-						return;
-					}
+				let service: Service | undefined;
+				let targetService: Service | undefined;
+				if (imageId != null) {
+					service = _.find(app.services, { imageId });
+					targetService = _.find(targetApp.services, { imageId });
+				} else {
+					service = _.find(app.services, { serviceName });
+					targetService = _.find(targetApp.services, { serviceName });
+				}
+				if (service == null) {
+					res.status(404).send(serviceNotFoundMessage);
+					return;
+				}
 
-					applicationManager.setTargetVolatileForService(service.imageId!, {
-						running: action !== 'stop',
+				applicationManager.setTargetVolatileForService(service.imageId!, {
+					running: action !== 'stop',
+				});
+				return applicationManager
+					.executeStep(
+						generateStep(action, {
+							current: service,
+							target: targetService,
+							wait: true,
+						}),
+						{
+							force,
+						},
+					)
+					.then(() => {
+						res.status(200).send('OK');
 					});
-					return applicationManager
-						.executeStep(
-							generateStep(action, {
-								current: service,
-								target: targetService,
-								wait: true,
-							}),
-							{
-								skipLock: true,
-							},
-						)
-						.then(() => {
-							res.status(200).send('OK');
-						});
-				})
-				.catch(next);
-		});
+			})
+			.catch(next);
 	};
 
 	const createServiceActionHandler = (action: string) =>

@@ -64,6 +64,10 @@ function dispose(release: () => void): Bluebird<void> {
 		.return();
 }
 
+/**
+ * Try to take the locks for an application. If force is set, it will remove
+ * all existing lockfiles before performing the operation
+ */
 export function lock(
 	appId: number | null,
 	{ force = false }: { force: boolean },

@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import { stub, SinonStub } from 'sinon';
+import { stub, SinonStub, spy, SinonSpy } from 'sinon';
 import * as supertest from 'supertest';
+import * as Bluebird from 'bluebird';
 
 import sampleResponses = require('./data/device-api-responses.json');
 import mockedAPI = require('./lib/mocked-device-api');
@@ -11,14 +12,24 @@ import * as serviceManager from '../src/compose/service-manager';
 import * as images from '../src/compose/images';
 import * as apiKeys from '../src/lib/api-keys';
 import * as config from '../src/config';
+import * as updateLock from '../src/lib/update-lock';
+import * as targetStateCache from '../src/device-state/target-state-cache';
+import * as mockedDockerode from './lib/mocked-dockerode';
+import * as applicationManager from '../src/compose/application-manager';
+import * as logger from '../src/logger';
+
+import { UpdatesLockedError } from '../src/lib/errors';
 
 describe('SupervisorAPI [V2 Endpoints]', () => {
 	let serviceManagerMock: SinonStub;
 	let imagesMock: SinonStub;
+	let applicationManagerSpy: SinonSpy;
 	let api: SupervisorAPI;
 	const request = supertest(
 		`http://127.0.0.1:${mockedAPI.mockedOptions.listenPort}`,
 	);
+
+	let loggerStub: SinonStub;
 
 	before(async () => {
 		await apiBinder.initialized;
@@ -39,6 +50,13 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 		await apiKeys.generateCloudKey();
 		serviceManagerMock = stub(serviceManager, 'getAll').resolves([]);
 		imagesMock = stub(images, 'getStatus').resolves([]);
+
+		// We want to check the actual step that was triggered
+		applicationManagerSpy = spy(applicationManager, 'executeStep');
+
+		// Stub logs for all API methods
+		loggerStub = stub(logger, 'attach');
+		loggerStub.resolves();
 	});
 
 	after(async () => {
@@ -53,6 +71,13 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 		await mockedAPI.cleanUp();
 		serviceManagerMock.restore();
 		imagesMock.restore();
+		applicationManagerSpy.restore();
+		loggerStub.restore();
+	});
+
+	afterEach(() => {
+		mockedDockerode.resetHistory();
+		applicationManagerSpy.resetHistory();
 	});
 
 	describe('GET /v2/device/vpn', () => {
@@ -257,6 +282,249 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 				});
 			// Deactivate localmode
 			await config.set({ localMode: false });
+		});
+	});
+
+	describe('POST /v2/applications/:appId/start-service', function () {
+		let appScopedKey: string;
+		let targetStateCacheMock: SinonStub;
+		let lockMock: SinonStub;
+
+		const service = {
+			serviceName: 'main',
+			containerId: 'abc123',
+			appId: 1658654,
+			serviceId: 640681,
+		};
+
+		const mockContainers = [mockedAPI.mockService(service)];
+		const mockImages = [mockedAPI.mockImage(service)];
+
+		beforeEach(() => {
+			// Setup device conditions
+			serviceManagerMock.resolves(mockContainers);
+			imagesMock.resolves(mockImages);
+
+			targetStateCacheMock.resolves({
+				appId: 2,
+				commit: 'abcdef2',
+				name: 'test-app2',
+				source: 'https://api.balena-cloud.com',
+				releaseId: 1232,
+				services: JSON.stringify([service]),
+				networks: '{}',
+				volumes: '{}',
+			});
+
+			lockMock.reset();
+		});
+
+		before(async () => {
+			// Create scoped key for application
+			appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
+
+			// Mock target state cache
+			targetStateCacheMock = stub(targetStateCache, 'getTargetApp');
+
+			lockMock = stub(updateLock, 'lock');
+		});
+
+		after(async () => {
+			targetStateCacheMock.restore();
+			lockMock.restore();
+		});
+
+		it('should return 200 for an existing service', async () => {
+			await mockedDockerode.testWithData(
+				{ containers: mockContainers, images: mockImages },
+				async () => {
+					await request
+						.post(
+							`/v2/applications/1658654/start-service?apikey=${appScopedKey}`,
+						)
+						.send({ serviceName: 'main' })
+						.set('Content-type', 'application/json')
+						.expect(200);
+
+					expect(applicationManagerSpy).to.have.been.calledOnce;
+				},
+			);
+		});
+
+		it('should return 404 for an unknown service', async () => {
+			await request
+				.post(`/v2/applications/1658654/start-service?apikey=${appScopedKey}`)
+				.send({ serviceName: 'unknown' })
+				.set('Content-type', 'application/json')
+				.expect(404);
+
+			expect(applicationManagerSpy).to.not.have.been.called;
+		});
+
+		it('should ignore locks and return 200', async () => {
+			// Turn lock on
+			lockMock.throws(new UpdatesLockedError('Updates locked'));
+
+			await mockedDockerode.testWithData(
+				{ containers: mockContainers, images: mockImages },
+				async () => {
+					await request
+						.post(
+							`/v2/applications/1658654/start-service?apikey=${appScopedKey}`,
+						)
+						.send({ serviceName: 'main' })
+						.set('Content-type', 'application/json')
+						.expect(200);
+
+					expect(lockMock).to.not.have.been.called;
+					expect(applicationManagerSpy).to.have.been.calledOnce;
+				},
+			);
+		});
+	});
+
+	describe('POST /v2/applications/:appId/restart-service', () => {
+		let appScopedKey: string;
+		let targetStateCacheMock: SinonStub;
+		let lockMock: SinonStub;
+
+		const service = {
+			serviceName: 'main',
+			containerId: 'abc123',
+			appId: 1658654,
+			serviceId: 640681,
+		};
+
+		const mockContainers = [mockedAPI.mockService(service)];
+		const mockImages = [mockedAPI.mockImage(service)];
+		const lockFake = (_: any, opts: { force: boolean }, fn: () => any) => {
+			if (opts.force) {
+				return Bluebird.resolve(fn());
+			}
+
+			throw new UpdatesLockedError('Updates locked');
+		};
+
+		beforeEach(() => {
+			// Setup device conditions
+			serviceManagerMock.resolves(mockContainers);
+			imagesMock.resolves(mockImages);
+
+			targetStateCacheMock.resolves({
+				appId: 2,
+				commit: 'abcdef2',
+				name: 'test-app2',
+				source: 'https://api.balena-cloud.com',
+				releaseId: 1232,
+				services: JSON.stringify(mockContainers),
+				networks: '{}',
+				volumes: '{}',
+			});
+
+			lockMock.reset();
+		});
+
+		before(async () => {
+			// Create scoped key for application
+			appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
+
+			// Mock target state cache
+			targetStateCacheMock = stub(targetStateCache, 'getTargetApp');
+			lockMock = stub(updateLock, 'lock');
+		});
+
+		after(async () => {
+			targetStateCacheMock.restore();
+			lockMock.restore();
+		});
+
+		it('should return 200 for an existing service', async () => {
+			await mockedDockerode.testWithData(
+				{ containers: mockContainers, images: mockImages },
+				async () => {
+					await request
+						.post(
+							`/v2/applications/1658654/restart-service?apikey=${appScopedKey}`,
+						)
+						.send({ serviceName: 'main' })
+						.set('Content-type', 'application/json')
+						.expect(200);
+
+					expect(applicationManagerSpy).to.have.been.calledOnce;
+				},
+			);
+		});
+
+		it('should return 404 for an unknown service', async () => {
+			await request
+				.post(`/v2/applications/1658654/restart-service?apikey=${appScopedKey}`)
+				.send({ serviceName: 'unknown' })
+				.set('Content-type', 'application/json')
+				.expect(404);
+			expect(applicationManagerSpy).to.not.have.been.called;
+		});
+
+		it('should return 423 for a service with update locks', async () => {
+			// Turn lock on
+			lockMock.throws(new UpdatesLockedError('Updates locked'));
+
+			await mockedDockerode.testWithData(
+				{ containers: mockContainers, images: mockImages },
+				async () => {
+					await request
+						.post(
+							`/v2/applications/1658654/restart-service?apikey=${appScopedKey}`,
+						)
+						.send({ serviceName: 'main' })
+						.set('Content-type', 'application/json')
+						.expect(423);
+
+					expect(lockMock).to.be.calledOnce;
+					expect(applicationManagerSpy).to.have.been.calledOnce;
+				},
+			);
+		});
+
+		it('should return 200 for a service with update locks and force true', async () => {
+			// Turn lock on
+			lockMock.callsFake(lockFake);
+
+			await mockedDockerode.testWithData(
+				{ containers: mockContainers, images: mockImages },
+				async () => {
+					await request
+						.post(
+							`/v2/applications/1658654/restart-service?apikey=${appScopedKey}`,
+						)
+						.send({ serviceName: 'main', force: true })
+						.set('Content-type', 'application/json')
+						.expect(200);
+
+					expect(lockMock).to.be.calledOnce;
+					expect(applicationManagerSpy).to.have.been.calledOnce;
+				},
+			);
+		});
+
+		it('should return 423 if force is explicitely set to false', async () => {
+			// Turn lock on
+			lockMock.callsFake(lockFake);
+
+			await mockedDockerode.testWithData(
+				{ containers: mockContainers, images: mockImages },
+				async () => {
+					await request
+						.post(
+							`/v2/applications/1658654/restart-service?apikey=${appScopedKey}`,
+						)
+						.send({ serviceName: 'main', force: false })
+						.set('Content-type', 'application/json')
+						.expect(423);
+
+					expect(lockMock).to.be.calledOnce;
+					expect(applicationManagerSpy).to.have.been.calledOnce;
+				},
+			);
 		});
 	});
 
