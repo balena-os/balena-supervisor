@@ -1,4 +1,37 @@
 - commits:
+    - subject: Improve supervisor API behavior when locks are set
+      hash: 4cdf26f82fd25284f7a7496fc2d91232c64a3e2e
+      body: >
+        This PR adds the following
+
+
+        * Supervisor v1 API application actions now return HTTP status code 423
+        when locks
+          are preventing the action to be performed. Previously this resulted in a
+          503 error
+        * Supervisor API v2 service actions now returns HTTP status code 423
+        when locks are
+          preventing the action to be performed. Previously, this resulted in an
+          exception logged by the supervisor and the API query timing out
+        * Supervisor API `/v2/applications/:appId/start-service` now does not
+          check for a lock. Lock handling in v2 actions is now performed by each
+          step executor
+        * `/v1/apps/:appId/start` now queries the target state and uses that
+          information to execute the start step (as v2 does). Previously start
+          resulted in `cannot get appId from undefined`
+        * Extra tests for API methods
+      footer:
+        Change-type: patch
+        change-type: patch
+        Connects-to: '#1523'
+        connects-to: '#1523'
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+      author: Felipe Lalanne
+      nested: []
+  version: 12.2.11
+  date: 2020-12-14T13:50:07.081Z
+- commits:
     - subject: Add config.txt support for Alliance rpi3
       hash: a8c4a6683ad07ac4d0f1f9aee28761cf2a846bdb
       body: ''
