@@ -58,7 +58,7 @@
     "@types/lodash": "^4.14.159",
     "@types/memoizee": "^0.4.4",
     "@types/mkdirp": "^0.5.2",
-    "@types/mocha": "^5.2.7",
+    "@types/mocha": "^8.2.0",
     "@types/morgan": "^1.9.0",
     "@types/mz": "0.0.32",
     "@types/node": "^12.12.54",
