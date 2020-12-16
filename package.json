@@ -111,7 +111,7 @@
     "network-checker": "^0.1.1",
     "nodemon": "^2.0.4",
     "pinejs-client-request": "^7.2.1",
-    "pretty-ms": "^7.0.0",
+    "pretty-ms": "^7.0.1",
     "request": "^2.88.2",
     "resin-docker-build": "^1.1.6",
     "resumable-request": "^2.0.1",
