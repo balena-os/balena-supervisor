@@ -1,4 +1,19 @@
 - commits:
+    - subject: Add dependabot configuration
+      hash: 153655b523af94d8192f0e0eb5574c67fbf85008
+      body: ''
+      footer:
+        Closes: '#1508'
+        closes: '#1508'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.2.13
+  date: 2020-12-16T00:10:43.103Z
+- commits:
     - subject: Bump ini from 1.3.5 to 1.3.8
       hash: b319c678ce3793d86ebe506867b34e54f227456a
       body: |
