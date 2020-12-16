@@ -30,7 +30,7 @@
     "chai-like": "^1.1.1",
     "chai-things": "^0.2.0",
     "dbus": "^1.0.7",
-    "mdns-resolver": "^1.0.0",
+    "mdns-resolver": "^1.1.0",
     "os-utils": "0.0.14",
     "semver": "^7.3.2",
     "sqlite3": "^4.1.1",
