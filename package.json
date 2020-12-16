@@ -34,7 +34,7 @@
     "os-utils": "0.0.14",
     "semver": "^7.3.2",
     "sqlite3": "^4.1.1",
-    "systeminformation": "^4.30.5"
+    "systeminformation": "^4.32.0"
   },
   "engines": {
     "node": "^12.16.2",
