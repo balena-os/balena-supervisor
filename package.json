@@ -72,7 +72,7 @@
     "@types/sinon-chai": "^3.2.4",
     "@types/supertest": "^2.0.10",
     "@types/terser-webpack-plugin": "^3.0.0",
-    "@types/tmp": "^0.1.0",
+    "@types/tmp": "^0.2.0",
     "@types/webpack": "^4.41.21",
     "@types/yargs": "^15.0.5",
     "balena-register-device": "^6.1.6",
