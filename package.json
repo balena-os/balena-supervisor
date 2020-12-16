@@ -103,7 +103,7 @@
     "lockfile": "^1.0.4",
     "lodash": "^4.17.20",
     "memoizee": "^0.4.14",
-    "mixpanel": "^0.10.3",
+    "mixpanel": "^0.13.0",
     "mkdirp": "^0.5.5",
     "mocha": "^5.2.0",
     "morgan": "^1.10.0",
