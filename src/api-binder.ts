@@ -163,6 +163,7 @@ export async function start() {
 	readyForUpdates = true;
 	log.debug('Starting target state poll');
 	TargetState.startPoll();
+	// Update and apply new target state
 	TargetState.emitter.on(
 		'target-state-update',
 		async (targetState, force, isFromApi) => {
@@ -170,24 +171,36 @@ export async function start() {
 				await deviceState.setTarget(targetState);
 				deviceState.triggerApplyTarget({ force, isFromApi });
 			} catch (err) {
-				if (
-					err instanceof ContractValidationError ||
-					err instanceof ContractViolationError
-				) {
-					log.error(`Could not store target state for device: ${err}`);
-					// the dashboard does not display lines correctly,
-					// split them explcitly here
-					const lines = err.message.split(/\r?\n/);
-					lines[0] = `Could not move to new release: ${lines[0]}`;
-					for (const line of lines) {
-						logger.logSystemMessage(line, {}, 'targetStateRejection', false);
-					}
-				} else {
-					log.error(`Failed to get target state for device: ${err}`);
-				}
+				handleTargetUpdateError(err);
 			}
 		},
 	);
+	// Apply new target state
+	TargetState.emitter.on('target-state-apply', (force, isFromApi) => {
+		try {
+			deviceState.triggerApplyTarget({ force, isFromApi });
+		} catch (err) {
+			handleTargetUpdateError(err);
+		}
+	});
+
+	function handleTargetUpdateError(err: any) {
+		if (
+			err instanceof ContractValidationError ||
+			err instanceof ContractViolationError
+		) {
+			log.error(`Could not store target state for device: ${err}`);
+			// the dashboard does not display lines correctly,
+			// split them explcitly here
+			const lines = err.message.split(/\r?\n/);
+			lines[0] = `Could not move to new release: ${lines[0]}`;
+			for (const line of lines) {
+				logger.logSystemMessage(line, {}, 'targetStateRejection', false);
+			}
+		} else {
+			log.error(`Failed to get target state for device: ${err}`);
+		}
+	}
 }
 
 export async function patchDevice(

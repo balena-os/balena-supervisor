@@ -1,13 +1,14 @@
 import * as _ from 'lodash';
 import * as Bluebird from 'bluebird';
 import { expect } from 'chai';
-import { stub, SinonStub } from 'sinon';
+import { stub, spy, SinonStub, SinonSpy } from 'sinon';
 import * as supertest from 'supertest';
 
 import * as appMock from './lib/application-state-mock';
 import * as mockedDockerode from './lib/mocked-dockerode';
 import mockedAPI = require('./lib/mocked-device-api');
 import sampleResponses = require('./data/device-api-responses.json');
+import * as config from '../src/config';
 import * as logger from '../src/logger';
 import SupervisorAPI from '../src/supervisor-api';
 import * as apiBinder from '../src/api-binder';
@@ -15,6 +16,7 @@ import * as deviceState from '../src/device-state';
 import * as apiKeys from '../src/lib/api-keys';
 import * as dbus from '../src//lib/dbus';
 import * as updateLock from '../src/lib/update-lock';
+import * as TargetState from '../src/device-state/target-state';
 import * as targetStateCache from '../src/device-state/target-state-cache';
 
 import { UpdatesLockedError } from '../src/lib/errors';
@@ -179,8 +181,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				});
 		});
 		it('Fails because some checks did not pass', async () => {
-			// Make one of the healthChecks fail
-			healthCheckStubs[0].resolves(false);
+			healthCheckStubs.forEach((hc) => hc.resolves(false));
 			await request
 				.get('/v1/healthy')
 				.set('Accept', 'application/json')
@@ -550,6 +551,67 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			expect(shutdownMock).to.have.been.calledOnce;
 
 			(updateLock.lock as SinonStub).restore();
+		});
+	});
+
+	describe('POST /v1/update', () => {
+		let configStub: SinonStub;
+		let targetUpdateSpy: SinonSpy;
+
+		before(() => {
+			configStub = stub(config, 'get');
+			targetUpdateSpy = spy(TargetState, 'update');
+		});
+
+		afterEach(() => {
+			targetUpdateSpy.resetHistory();
+		});
+
+		after(() => {
+			configStub.restore();
+			targetUpdateSpy.restore();
+		});
+
+		it('returns 204 with no parameters', async () => {
+			// Stub response for getting instantUpdates
+			configStub.resolves(true);
+			// Make request
+			await request
+				.post('/v1/update')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(sampleResponses.V1.POST['/update [204 Response]'].statusCode);
+			// Check that TargetState.update was called
+			expect(targetUpdateSpy).to.be.called;
+			expect(targetUpdateSpy).to.be.calledWith(undefined, true);
+		});
+
+		it('returns 204 with force: true in body', async () => {
+			// Stub response for getting instantUpdates
+			configStub.resolves(true);
+			// Make request with force: true in the body
+			await request
+				.post('/v1/update')
+				.send({ force: true })
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(sampleResponses.V1.POST['/update [204 Response]'].statusCode);
+			// Check that TargetState.update was called
+			expect(targetUpdateSpy).to.be.called;
+			expect(targetUpdateSpy).to.be.calledWith(true, true);
+		});
+
+		it('returns 202 when instantUpdates are disabled', async () => {
+			// Stub response for getting instantUpdates
+			configStub.resolves(false);
+			// Make request
+			await request
+				.post('/v1/update')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(sampleResponses.V1.POST['/update [202 Response]'].statusCode);
+			// Check that TargetState.update was not called
+			expect(targetUpdateSpy).to.not.be.called;
 		});
 	});
 
