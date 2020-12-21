@@ -1,4 +1,28 @@
 - commits:
+    - subject: Bump systeminformation from 4.30.5 to 4.31.1
+      hash: 7ccbde985ee72296b189ba338bfa7ff49c3e6866
+      body: >
+        Bumps
+        [systeminformation](https://github.com/sebhildebrandt/systeminformation)
+        from 4.30.5 to 4.31.1.
+
+        - [Release
+        notes](https://github.com/sebhildebrandt/systeminformation/releases)
+
+        -
+        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
+
+        - [Commits](https://github.com/sebhildebrandt/systeminformation/commits)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.2.16
+  date: 2020-12-21T19:07:54.345Z
+- commits:
     - subject: Retired CameronDiver from CODEOWNERS
       hash: 98fa7509030edae46b8d46487be578f2e8c28542
       body: ''
