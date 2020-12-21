@@ -1,4 +1,17 @@
 - commits:
+    - subject: Retired CameronDiver from CODEOWNERS
+      hash: 98fa7509030edae46b8d46487be578f2e8c28542
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.2.15
+  date: 2020-12-21T17:57:16.342Z
+- commits:
     - subject: Revert "Add dependabot configuration"
       hash: 8767f145b228203c409d3972247f5a197c6a8e93
       body: >
