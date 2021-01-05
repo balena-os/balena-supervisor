@@ -1,18 +1,28 @@
 import * as Bluebird from 'bluebird';
+import * as _ from 'lodash';
 import { fs } from 'mz';
 import * as Path from 'path';
 import * as constants from './constants';
 import { ENOENT } from './errors';
 
-export function writeAndSyncFile(path: string, data: string): Bluebird<void> {
+export function writeAndSyncFile(
+	path: string,
+	data: string | Buffer,
+): Bluebird<void> {
 	return Bluebird.resolve(fs.open(path, 'w')).then((fd) => {
-		fs.write(fd, data, 0, 'utf8')
-			.then(() => fs.fsync(fd))
-			.then(() => fs.close(fd));
+		_.isString(data)
+			? fs.write(fd, data, 0, 'utf8')
+			: fs
+					.write(fd, data, 0, data.length)
+					.then(() => fs.fsync(fd))
+					.then(() => fs.close(fd));
 	});
 }
 
-export function writeFileAtomic(path: string, data: string): Bluebird<void> {
+export function writeFileAtomic(
+	path: string,
+	data: string | Buffer,
+): Bluebird<void> {
 	return Bluebird.resolve(writeAndSyncFile(`${path}.new`, data)).then(() =>
 		fs.rename(`${path}.new`, path),
 	);

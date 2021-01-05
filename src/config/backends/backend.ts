@@ -12,7 +12,7 @@ export const bootMountPoint = `${constants.rootMountPoint}${constants.bootMountP
 
 export async function remountAndWriteAtomic(
 	file: string,
-	data: string,
+	data: string | Buffer,
 ): Promise<void> {
 	// Here's the dangerous part:
 	await child_process.exec(

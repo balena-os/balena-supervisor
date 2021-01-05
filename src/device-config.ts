@@ -321,9 +321,11 @@ export function formatConfigKeys(conf: {
 		confFromLegacyNamespace,
 		noNamespaceConf,
 	);
-	return _.pickBy(confWithoutNamespace, (_v, k) => {
-		return _.includes(validKeys, k) || matchesAnyBootConfig(k);
-	});
+
+	return _.pickBy(
+		confWithoutNamespace,
+		(_v, k) => _.includes(validKeys, k) || matchesAnyBootConfig(k),
+	);
 }
 
 export function getDefaults() {
