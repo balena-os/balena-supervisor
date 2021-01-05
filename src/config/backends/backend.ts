@@ -64,4 +64,11 @@ export abstract class ConfigBackend {
 	public async initialise(): Promise<ConfigBackend> {
 		return this;
 	}
+
+	// Ensure that all required fields for device type are included in the
+	// provided configuration. It is expected to modify the configuration if
+	// necessary
+	public ensureRequiredConfig(_deviceType: string, conf: ConfigOptions) {
+		return conf;
+	}
 }
