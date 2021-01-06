@@ -13,7 +13,7 @@ import { DeviceStatus } from './types/state';
 import * as configUtils from './config/utils';
 import { SchemaTypeKey } from './config/schema-type';
 import { matchesAnyBootConfig } from './config/backends';
-import { ConfigOptions, ConfigBackend } from './config/backends/backend';
+import { ConfigBackend } from './config/backends/backend';
 import { Odmdata } from './config/backends/odmdata';
 
 const vpnServiceName = 'openvpn';
@@ -321,9 +321,11 @@ export function formatConfigKeys(conf: {
 		confFromLegacyNamespace,
 		noNamespaceConf,
 	);
-	return _.pickBy(confWithoutNamespace, (_v, k) => {
-		return _.includes(validKeys, k) || matchesAnyBootConfig(k);
-	});
+
+	return _.pickBy(
+		confWithoutNamespace,
+		(_v, k) => _.includes(validKeys, k) || matchesAnyBootConfig(k),
+	);
 }
 
 export function getDefaults() {
@@ -351,7 +353,7 @@ export function bootConfigChangeRequired(
 	const currentBootConfig = configUtils.envToBootConfig(configBackend, current);
 
 	// Some devices require specific overlays, here we apply them
-	ensureRequiredOverlay(deviceType, targetBootConfig);
+	configBackend.ensureRequiredConfig(deviceType, targetBootConfig);
 
 	// Search for any unsupported values
 	_.each(targetBootConfig, (value, key) => {
@@ -597,8 +599,8 @@ export async function setBootConfig(
 		'Apply boot config in progress',
 	);
 
-	// Ensure devices already have required overlays
-	ensureRequiredOverlay(await config.get('deviceType'), conf);
+	// Ensure the required target config is available
+	backend.ensureRequiredConfig(await config.get('deviceType'), conf);
 
 	try {
 		await backend.setBootConfig(conf);
@@ -661,29 +663,4 @@ function checkBoolChanged(
 	key: string,
 ): boolean {
 	return checkTruthy(current[key]) !== checkTruthy(target[key]);
-}
-
-// Modifies conf
-// exported for tests
-export function ensureRequiredOverlay(deviceType: string, conf: ConfigOptions) {
-	if (deviceType === 'fincm3') {
-		ensureDtoverlay(conf, 'balena-fin');
-	}
-
-	return conf;
-}
-
-// Modifies conf
-function ensureDtoverlay(conf: ConfigOptions, field: string) {
-	if (conf.dtoverlay == null) {
-		conf.dtoverlay = [];
-	} else if (_.isString(conf.dtoverlay)) {
-		conf.dtoverlay = [conf.dtoverlay];
-	}
-	if (!_.includes(conf.dtoverlay, field)) {
-		conf.dtoverlay.push(field);
-	}
-	conf.dtoverlay = conf.dtoverlay.filter((s) => !_.isEmpty(s));
-
-	return conf;
 }

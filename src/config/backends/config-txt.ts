@@ -148,4 +148,29 @@ export class ConfigTxt extends ConfigBackend {
 	public createConfigVarName(configName: string): string {
 		return ConfigTxt.bootConfigVarPrefix + configName;
 	}
+
+	// Ensure that the balena-fin overlay is defined in the target configuration
+	// overrides the parent
+	public ensureRequiredConfig(deviceType: string, conf: ConfigOptions) {
+		if (deviceType === 'fincm3') {
+			this.ensureDtoverlay(conf, 'balena-fin');
+		}
+
+		return conf;
+	}
+
+	// Modifies conf
+	private ensureDtoverlay(conf: ConfigOptions, field: string) {
+		if (conf.dtoverlay == null) {
+			conf.dtoverlay = [];
+		} else if (_.isString(conf.dtoverlay)) {
+			conf.dtoverlay = [conf.dtoverlay];
+		}
+		if (!_.includes(conf.dtoverlay, field)) {
+			conf.dtoverlay.push(field);
+		}
+		conf.dtoverlay = conf.dtoverlay.filter((s) => !_.isEmpty(s));
+
+		return conf;
+	}
 }

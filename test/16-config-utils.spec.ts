@@ -8,6 +8,7 @@ import { ExtraUEnv } from '../src/config/backends/extra-uEnv';
 import { Extlinux } from '../src/config/backends/extlinux';
 import { ConfigTxt } from '../src/config/backends/config-txt';
 import { ConfigFs } from '../src/config/backends/config-fs';
+import { SplashImage } from '../src/config/backends/splash-image';
 import { ConfigBackend } from '../src/config/backends/backend';
 
 describe('Config Utilities', () => {
@@ -16,8 +17,9 @@ describe('Config Utilities', () => {
 		const configStub = stub(config, 'get').resolves('raspberry');
 		// Get list of backends
 		const devices = await configUtils.getSupportedBackends();
-		expect(devices.length).to.equal(1);
+		expect(devices.length).to.equal(2);
 		expect(devices[0].constructor.name).to.equal('ConfigTxt');
+		expect(devices[1].constructor.name).to.equal('SplashImage');
 		// Restore stub
 		configStub.restore();
 		// TO-DO: When we have a device that will match for multiple backends
@@ -46,6 +48,7 @@ const BACKENDS: Record<string, ConfigBackend> = {
 	extlinux: new Extlinux(),
 	configtxt: new ConfigTxt(),
 	configfs: new ConfigFs(),
+	splashImage: new SplashImage(),
 };
 
 const CONFIGS = {
@@ -86,6 +89,14 @@ const CONFIGS = {
 			dtparam: ['i2c=on', 'audio=on'],
 			dtoverlay: ['ads7846', 'lirc-rpi,gpio_out_pin=17,gpio_in_pin=13'],
 			foobar: 'baz',
+		},
+	},
+	splashImage: {
+		envVars: {
+			HOST_SPLASH_image: 'data:image/png;base64,aaa',
+		},
+		bootConfig: {
+			image: 'data:image/png;base64,aaa',
 		},
 	},
 	// TO-DO: Config-FS is commented out because it behaves differently and doesn't

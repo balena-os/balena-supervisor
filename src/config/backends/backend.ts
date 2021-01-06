@@ -12,7 +12,7 @@ export const bootMountPoint = `${constants.rootMountPoint}${constants.bootMountP
 
 export async function remountAndWriteAtomic(
 	file: string,
-	data: string,
+	data: string | Buffer,
 ): Promise<void> {
 	// Here's the dangerous part:
 	await child_process.exec(
@@ -63,5 +63,12 @@ export abstract class ConfigBackend {
 	// Allow a chosen config backend to be initialised
 	public async initialise(): Promise<ConfigBackend> {
 		return this;
+	}
+
+	// Ensure that all required fields for device type are included in the
+	// provided configuration. It is expected to modify the configuration if
+	// necessary
+	public ensureRequiredConfig(_deviceType: string, conf: ConfigOptions) {
+		return conf;
 	}
 }

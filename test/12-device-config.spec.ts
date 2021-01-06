@@ -10,7 +10,9 @@ import { Extlinux } from '../src/config/backends/extlinux';
 import { ConfigTxt } from '../src/config/backends/config-txt';
 import { Odmdata } from '../src/config/backends/odmdata';
 import { ConfigFs } from '../src/config/backends/config-fs';
+import { SplashImage } from '../src/config/backends/splash-image';
 import * as constants from '../src/lib/constants';
+import * as config from '../src/config';
 
 import prepare = require('./lib/prepare');
 
@@ -18,6 +20,7 @@ const extlinuxBackend = new Extlinux();
 const configTxtBackend = new ConfigTxt();
 const odmdataBackend = new Odmdata();
 const configFsBackend = new ConfigFs();
+const splashImageBackend = new SplashImage();
 
 describe('Device Backend Config', () => {
 	let logSpy: SinonSpy;
@@ -171,6 +174,54 @@ describe('Device Backend Config', () => {
 		(child_process.exec as SinonStub).restore();
 	});
 
+	it('ensures required fields are written to config.txt', async () => {
+		stub(fsUtils, 'writeFileAtomic').resolves();
+		stub(child_process, 'exec').resolves();
+		stub(config, 'get').withArgs('deviceType').resolves('fincm3');
+		const current = {
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+			HOST_CONFIG_dtoverlay:
+				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+			HOST_CONFIG_foobar: 'baz',
+		};
+		const target = {
+			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+			HOST_CONFIG_dtparam: '"i2c=on","audio=off"',
+			HOST_CONFIG_dtoverlay: '"lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+			HOST_CONFIG_foobar: 'bat',
+			HOST_CONFIG_foobaz: 'bar',
+		};
+
+		expect(
+			// @ts-ignore accessing private value
+			deviceConfig.bootConfigChangeRequired(configTxtBackend, current, target),
+		).to.equal(true);
+
+		// @ts-ignore accessing private value
+		await deviceConfig.setBootConfig(configTxtBackend, target);
+		expect(child_process.exec).to.be.calledOnce;
+		expect(logSpy).to.be.calledTwice;
+		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+		expect(fsUtils.writeFileAtomic).to.be.calledWith(
+			'./test/data/mnt/boot/config.txt',
+			stripIndent`
+				initramfs initramf.gz 0x00800000
+				dtparam=i2c=on
+				dtparam=audio=off
+				dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
+				dtoverlay=balena-fin
+				foobar=bat
+				foobaz=bar
+			` + '\n', // add newline because stripIndent trims last newline
+		);
+
+		// Restore stubs
+		(fsUtils.writeFileAtomic as SinonStub).restore();
+		(child_process.exec as SinonStub).restore();
+		(config.get as SinonStub).restore();
+	});
+
 	it('accepts RESIN_ and BALENA_ variables', async () => {
 		return expect(
 			deviceConfig.formatConfigKeys({
@@ -258,12 +309,14 @@ describe('Device Backend Config', () => {
 
 	describe('Balena fin', () => {
 		it('should always add the balena-fin dtoverlay', () => {
-			expect(deviceConfig.ensureRequiredOverlay('fincm3', {})).to.deep.equal({
-				dtoverlay: ['balena-fin'],
-			});
+			expect(configTxtBackend.ensureRequiredConfig('fincm3', {})).to.deep.equal(
+				{
+					dtoverlay: ['balena-fin'],
+				},
+			);
 
 			expect(
-				deviceConfig.ensureRequiredOverlay('fincm3', {
+				configTxtBackend.ensureRequiredConfig('fincm3', {
 					test: '123',
 					test2: ['123'],
 					test3: ['123', '234'],
@@ -275,12 +328,12 @@ describe('Device Backend Config', () => {
 				dtoverlay: ['balena-fin'],
 			});
 			expect(
-				deviceConfig.ensureRequiredOverlay('fincm3', {
+				configTxtBackend.ensureRequiredConfig('fincm3', {
 					dtoverlay: 'test',
 				}),
 			).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] });
 			expect(
-				deviceConfig.ensureRequiredOverlay('fincm3', {
+				configTxtBackend.ensureRequiredConfig('fincm3', {
 					dtoverlay: ['test'],
 				}),
 			).to.deep.equal({ dtoverlay: ['test', 'balena-fin'] });
@@ -471,6 +524,153 @@ describe('Device Backend Config', () => {
 					'up-board',
 				),
 			).to.equal(false);
+		});
+	});
+
+	describe('Boot splash image', () => {
+		const defaultLogo =
+			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEX/wQDLA+84AAAACklEQVR4nGNiAAAABgADNjd8qAAAAABJRU5ErkJggg==';
+		const png =
+			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEX/TQBcNTh/AAAAAXRSTlPM0jRW/QAAAApJREFUeJxjYgAAAAYAAzY3fKgAAAAASUVORK5CYII=';
+		const uri = `data:image/png;base64,${png}`;
+
+		beforeEach(() => {
+			// Setup stubs
+			stub(fsUtils, 'writeFileAtomic').resolves();
+			stub(child_process, 'exec').resolves();
+		});
+
+		afterEach(() => {
+			// Restore stubs
+			(fsUtils.writeFileAtomic as SinonStub).restore();
+			(child_process.exec as SinonStub).restore();
+		});
+
+		it('should correctly write to resin-logo.png', async () => {
+			// Devices with balenaOS < 2.51 use resin-logo.png
+			stub(fs, 'readdir').resolves(['resin-logo.png']);
+
+			const current = {};
+			const target = {
+				HOST_SPLASH_image: png,
+			};
+
+			// This should work with every device type, but testing on a couple
+			// of options
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					splashImageBackend,
+					current,
+					target,
+					'fincm3',
+				),
+			).to.equal(true);
+
+			await deviceConfig.setBootConfig(splashImageBackend, target);
+
+			expect(child_process.exec).to.be.calledOnce;
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
+				'test/data/mnt/boot/splash/resin-logo.png',
+			);
+
+			// restore the stub
+			(fs.readdir as SinonStub).restore();
+		});
+
+		it('should correctly write to balena-logo.png', async () => {
+			// Devices with balenaOS >= 2.51 use balena-logo.png
+			stub(fs, 'readdir').resolves(['balena-logo.png']);
+
+			const current = {};
+			const target = {
+				HOST_SPLASH_image: png,
+			};
+
+			// This should work with every device type, but testing on a couple
+			// of options
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					splashImageBackend,
+					current,
+					target,
+					'raspberrypi4-64',
+				),
+			).to.equal(true);
+
+			await deviceConfig.setBootConfig(splashImageBackend, target);
+
+			expect(child_process.exec).to.be.calledOnce;
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
+				'test/data/mnt/boot/splash/balena-logo.png',
+			);
+
+			// restore the stub
+			(fs.readdir as SinonStub).restore();
+		});
+
+		it('should correctly write to balena-logo.png if no default logo is found', async () => {
+			// Devices with balenaOS >= 2.51 use balena-logo.png
+			stub(fs, 'readdir').resolves([]);
+
+			const current = {};
+			const target = {
+				HOST_SPLASH_image: png,
+			};
+
+			// This should work with every device type, but testing on a couple
+			// of options
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					splashImageBackend,
+					current,
+					target,
+					'raspberrypi3',
+				),
+			).to.equal(true);
+
+			await deviceConfig.setBootConfig(splashImageBackend, target);
+
+			expect(child_process.exec).to.be.calledOnce;
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
+				'test/data/mnt/boot/splash/balena-logo.png',
+			);
+
+			// restore the stub
+			(fs.readdir as SinonStub).restore();
+		});
+
+		it('should correctly read the splash logo if different from the default', async () => {
+			stub(fs, 'readdir').resolves(['balena-logo.png']);
+
+			const readFileStub: SinonStub = stub(fs, 'readFile').resolves(
+				Buffer.from(png, 'base64') as any,
+			);
+			readFileStub
+				.withArgs('test/data/mnt/boot/splash/balena-logo-default.png')
+				.resolves(Buffer.from(defaultLogo, 'base64') as any);
+
+			expect(
+				await deviceConfig.getBootConfig(splashImageBackend),
+			).to.deep.equal({
+				HOST_SPLASH_image: uri,
+			});
+			expect(readFileStub).to.be.calledWith(
+				'test/data/mnt/boot/splash/balena-logo-default.png',
+			);
+			expect(readFileStub).to.be.calledWith(
+				'test/data/mnt/boot/splash/balena-logo.png',
+			);
+
+			// Restore stubs
+			(fs.readdir as SinonStub).restore();
+			(fs.readFile as SinonStub).restore();
+			readFileStub.restore();
 		});
 	});
 });

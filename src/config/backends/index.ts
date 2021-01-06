@@ -5,6 +5,7 @@ import { ExtraUEnv } from './extra-uEnv';
 import { ConfigTxt } from './config-txt';
 import { ConfigFs } from './config-fs';
 import { Odmdata } from './odmdata';
+import { SplashImage } from './splash-image';
 
 export const allBackends = [
 	new Extlinux(),
@@ -12,6 +13,7 @@ export const allBackends = [
 	new ConfigTxt(),
 	new ConfigFs(),
 	new Odmdata(),
+	new SplashImage(),
 ];
 
 export function matchesAnyBootConfig(envVar: string): boolean {
