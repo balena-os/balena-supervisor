@@ -1,4 +1,25 @@
 - commits:
+    - subject: Add support for `BALENA_HOST_SPLASH_IMAGE` config
+      hash: 4aa8090a56f6ece4a3a0425a378ec438c38629df
+      body: >
+        Setting this this variable to a base64 encoded string will replace the
+        splash
+
+        image on the device by rewriting `/mnt/boot/splash/balena-logo.png`.
+
+        This will also make a copy of the default balena logo so the splash can
+
+        be restored if the variable is removed.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+      author: Felipe Lalanne
+      nested: []
+  version: 12.3.0
+  date: 2021-01-06T18:14:19.611Z
+- commits:
     - subject: Bump systeminformation from 4.30.5 to 4.31.1
       hash: 7ccbde985ee72296b189ba338bfa7ff49c3e6866
       body: >
