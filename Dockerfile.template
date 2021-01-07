@@ -1,4 +1,4 @@
-ARG ARCH=amd64
+ARG ARCH=%%BALENA_ARCH%%
 ARG NODE_VERSION=12.16.2
 
 FROM balenalib/$ARCH-alpine-supervisor-base:3.11 as BUILD
