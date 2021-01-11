@@ -1,4 +1,24 @@
 - commits:
+    - subject: 'patch: bump pretty-ms from 7.0.0 to 7.0.1'
+      hash: 8a4369f8dfb5d8e77a022b82f25cbeb18edbf77e
+      body: >
+        Bumps [pretty-ms](https://github.com/sindresorhus/pretty-ms) from 7.0.0
+        to 7.0.1.
+
+        - [Release notes](https://github.com/sindresorhus/pretty-ms/releases)
+
+        -
+        [Commits](https://github.com/sindresorhus/pretty-ms/compare/v7.0.0...v7.0.1)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.3.1
+  date: 2021-01-11T19:46:56.953Z
+- commits:
     - subject: Add support for `BALENA_HOST_SPLASH_IMAGE` config
       hash: 4aa8090a56f6ece4a3a0425a378ec438c38629df
       body: >
