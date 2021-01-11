@@ -74,7 +74,7 @@
     "@types/terser-webpack-plugin": "^3.0.0",
     "@types/tmp": "^0.1.0",
     "@types/webpack": "^4.41.21",
-    "@types/yargs": "^15.0.5",
+    "@types/yargs": "^15.0.12",
     "balena-register-device": "^6.1.6",
     "blinking": "~0.0.3",
     "bluebird": "^3.7.2",
