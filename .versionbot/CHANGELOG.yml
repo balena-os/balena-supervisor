@@ -1,4 +1,19 @@
 - commits:
+    - subject: Cancel pending apply target after /v1/update request
+      hash: ba1c857c4f05f527316779b909b5f0819c63b1c3
+      body: ''
+      footer:
+        Closes: '#1530'
+        closes: '#1530'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.3.3
+  date: 2021-01-21T03:23:49.379Z
+- commits:
     - subject: 'patch: bump @types/yargs from 15.0.5 to 15.0.12'
       hash: 2c61a961c1ac2e7467ef84ac1c0896ef8c60d4be
       body: >
