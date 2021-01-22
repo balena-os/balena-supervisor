@@ -22,6 +22,7 @@ interface TargetStateEvents {
 		force: boolean,
 		isFromApi: boolean,
 	) => void;
+	'target-state-apply': (force: boolean, isFromApi: boolean) => void;
 }
 export const emitter: StrictEventEmitter<
 	EventEmitter,
@@ -57,10 +58,9 @@ let appUpdatePollInterval: number;
 })();
 
 /**
- * Emit target state from a cached response if there are any listeners available.
+ * Emit target state event based on if the CacheResponse has/was emitted.
  *
- * If no listeners are available and the cached response has not been emitted it
- * returns false.
+ * Returns false if the CacheResponse is not emitted.
  *
  * @param cachedResponse the response to emit
  * @param force Emitted with the 'target-state-update' event update as necessary
@@ -76,16 +76,24 @@ const emitTargetState = (
 		!cachedResponse.emitted &&
 		emitter.listenerCount('target-state-update') > 0
 	) {
+		// CachedResponse has not been emitted before so emit as an update
 		emitter.emit(
 			'target-state-update',
 			_.cloneDeep(cachedResponse.body),
 			force,
 			isFromApi,
 		);
-
+		return true;
+	} else if (
+		cachedResponse.emitted &&
+		isFromApi &&
+		emitter.listenerCount('target-state-apply') > 0
+	) {
+		// CachedResponse has been emitted but a client triggered the check so emit an apply
+		emitter.emit('target-state-apply', force, isFromApi);
 		return true;
 	}
-
+	// Return the same emitted value but normalized to be a boolean
 	return !!cache.emitted;
 };
 

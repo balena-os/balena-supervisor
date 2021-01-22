@@ -54,6 +54,16 @@
         "statusCode": 400,
         "body": {},
         "text": "Missing app id"
+      },
+      "/update [204 Response]": {
+        "statusCode": 204,
+        "body": {},
+        "text": "OK"
+      },
+      "/update [202 Response]": {
+        "statusCode": 202,
+        "body": {},
+        "text": "OK"
       }
     }
   },

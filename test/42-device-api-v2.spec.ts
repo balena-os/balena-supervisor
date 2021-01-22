@@ -153,6 +153,15 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 	});
 
 	describe('GET /v2/state/status', () => {
+		before(() => {
+			// Stub isApplyInProgress is no other tests can impact the response data
+			stub(deviceState, 'isApplyInProgress').returns(false);
+		});
+
+		after(() => {
+			(deviceState.isApplyInProgress as SinonStub).restore();
+		});
+
 		it('should return scoped application', async () => {
 			// Create scoped key for application
 			const appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);

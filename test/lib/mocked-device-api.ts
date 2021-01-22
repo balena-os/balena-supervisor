@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import { Router } from 'express';
 import { fs } from 'mz';
+import rewire = require('rewire');
 
 import * as applicationManager from '../../src/compose/application-manager';
 import * as networkManager from '../../src/compose/network-manager';
@@ -11,11 +12,12 @@ import * as config from '../../src/config';
 import * as db from '../../src/db';
 import { createV1Api } from '../../src/device-api/v1';
 import { createV2Api } from '../../src/device-api/v2';
-import * as apiBinder from '../../src/api-binder';
 import * as deviceState from '../../src/device-state';
 import SupervisorAPI from '../../src/supervisor-api';
 import { Service } from '../../src/compose/service';
 import { Image } from '../../src/compose/images';
+
+const apiBinder = rewire('../../src/api-binder');
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
 
@@ -176,8 +178,8 @@ async function initConfig(): Promise<void> {
 }
 
 function buildRoutes(): Router {
-	// Create new Router
-	const router = Router();
+	// Add to existing apiBinder router (it contains additional middleware and endpoints)
+	const router = apiBinder.router;
 	// Add V1 routes
 	createV1Api(applicationManager.router);
 	// Add V2 routes
@@ -186,12 +188,15 @@ function buildRoutes(): Router {
 	return router;
 }
 
+// TO-DO: Create a cleaner way to restore previous values.
 const originalNetGetAll = networkManager.getAllByAppId;
 const originalVolGetAll = volumeManager.getAllByAppId;
 const originalSvcGetAppId = serviceManager.getAllByAppId;
 const originalSvcGetStatus = serviceManager.getStatus;
+const originalReadyForUpdates = apiBinder.__get__('readyForUpdates');
 
 function setupStubs() {
+	apiBinder.__set__('readyForUpdates', true);
 	// @ts-expect-error Assigning to a RO property
 	networkManager.getAllByAppId = async () => STUBBED_VALUES.networks;
 	// @ts-expect-error Assigning to a RO property
@@ -204,6 +209,7 @@ function setupStubs() {
 }
 
 function restoreStubs() {
+	apiBinder.__set__('readyForUpdates', originalReadyForUpdates);
 	// @ts-expect-error Assigning to a RO property
 	networkManager.getAllByAppId = originalNetGetAll;
 	// @ts-expect-error Assigning to a RO property
