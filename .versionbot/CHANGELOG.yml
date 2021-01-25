@@ -1,4 +1,17 @@
 - commits:
+    - subject: Removed richbayliss from CODEOWNERS
+      hash: 908be547e2e233acada029fcbdab8edf48c0c1cf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.3.4
+  date: 2021-01-25T17:54:56.728Z
+- commits:
     - subject: Cancel pending apply target after /v1/update request
       hash: ba1c857c4f05f527316779b909b5f0819c63b1c3
       body: ''
