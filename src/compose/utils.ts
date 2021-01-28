@@ -402,8 +402,11 @@ export async function addFeaturesFromLabels(
 			// bahavior of docker cli
 			// https://github.com/balena-os/balena-engine-cli/blob/19.03-balena/opts/gpus.go#L81-L89
 			service.config.deviceRequests.push({
+				Driver: '',
 				Count: 1,
+				DeviceIDs: [],
 				Capabilities: [['gpu']],
+				Options: {},
 			} as Dockerode.DeviceRequest),
 	};
 
