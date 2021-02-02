@@ -64,6 +64,11 @@
         "statusCode": 202,
         "body": {},
         "text": "OK"
+      },
+      "/blink": {
+        "statusCode": 200,
+        "body": {},
+        "text": "OK"
       }
     }
   },
