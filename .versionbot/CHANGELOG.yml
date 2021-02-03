@@ -1,4 +1,19 @@
 - commits:
+    - subject: Prevent inserting null commit during DB migration
+      hash: 277d984af20821cd87e3625a1c950555cbca0412
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1581'
+        closes: '#1581'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.3.5
+  date: 2021-02-03T15:50:27.087Z
+- commits:
     - subject: Removed richbayliss from CODEOWNERS
       hash: 908be547e2e233acada029fcbdab8edf48c0c1cf
       body: ''
