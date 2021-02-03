@@ -42,6 +42,26 @@
         "body": {
           "containerId": "abc123"
         }
+      },
+      "/device/host-config [Hostname only]": {
+        "statusCode": 200,
+        "body": { "network": { "hostname": "foobardevice" } }
+      },
+      "/device/host-config [Hostname and proxy]": {
+        "statusCode": 200,
+        "body": {
+          "network": {
+            "hostname": "foobardevice",
+            "proxy": {
+              "ip": "example.org",
+              "noProxy": ["152.10.30.4", "253.1.1.0/16"],
+              "port": 1080,
+              "type": "socks5",
+              "login": "foo",
+              "password": "bar"
+            }
+          }
+        }
       }
     },
     "POST": {
@@ -73,6 +93,13 @@
       "/regenerate-api-key": {
         "statusCode": 200,
         "body": {}
+      }
+    },
+    "PATCH": {
+      "/host/device-config": {
+        "statusCode": 200,
+        "body": {},
+        "text": "OK"
       }
     }
   },
