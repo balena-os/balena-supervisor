@@ -9,7 +9,7 @@ export async function up(knex) {
 	const currentCommit = await knex('config')
 		.where({ key: 'currentCommit' })
 		.select('value');
-	if (currentCommit[0] != null) {
+	if (currentCommit[0] != null && currentCommit[0].value != null) {
 		const apps = await knex('app').select(['appId']);
 
 		for (const app of apps) {
