@@ -93,6 +93,21 @@
       "/regenerate-api-key": {
         "statusCode": 200,
         "body": {}
+      },
+      "/purge [200]": {
+        "statusCode": 200,
+        "body": { "Data": "OK", "Error": "" }
+      },
+      "/purge [400 Invalid/missing appId]": {
+        "statusCode": 400,
+        "text": "Invalid or missing appId"
+      },
+      "/purge [401 Out of scope]": {
+        "statusCode": 401,
+        "body": {
+          "status": "failed",
+          "message": "Application is not available"
+        }
       }
     },
     "PATCH": {

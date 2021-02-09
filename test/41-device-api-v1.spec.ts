@@ -29,6 +29,7 @@ import * as TargetState from '../src/device-state/target-state';
 import * as targetStateCache from '../src/device-state/target-state-cache';
 import blink = require('../src/lib/blink');
 import constants = require('../src/lib/constants');
+import * as deviceAPI from '../src/device-api/common';
 
 import { UpdatesLockedError } from '../src/lib/errors';
 import { SchemaTypeKey } from '../src/config/schema-type';
@@ -1144,5 +1145,65 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 	});
 
-	// TODO: add tests for V1 endpoints
+	describe('POST /v1/purge', () => {
+		it('errors if no appId found in request body', async () => {
+			await request
+				.post('/v1/purge')
+				.send({})
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(
+					sampleResponses.V1.POST['/purge [400 Invalid/missing appId]']
+						.statusCode,
+				)
+				.then((response) => {
+					expect(response.text).to.equal(
+						sampleResponses.V1.POST['/purge [400 Invalid/missing appId]'].text,
+					);
+				});
+		});
+
+		it('purges the /data directory with valid appId', async () => {
+			const doPurgeStub: SinonStub = stub(deviceAPI, 'doPurge').resolves();
+
+			await mockedDockerode.testWithData({ containers, images }, async () => {
+				await request
+					.post('/v1/purge')
+					.send({ appId: 2 })
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.expect(sampleResponses.V1.POST['/purge [200]'].statusCode)
+					.then((response) => {
+						expect(response.body).to.deep.equal(
+							sampleResponses.V1.POST['/purge [200]'].body,
+						);
+					});
+			});
+
+			expect(doPurgeStub.callCount).to.equal(1);
+			doPurgeStub.restore();
+		});
+
+		it('errors if appId is out of scope (application not available)', async () => {
+			// Generate a new scoped key to call the endpoint, as mocked
+			// appId = 2 services are all in the global scope and thus
+			// resolve to true for any isScoped check
+			const scopedKey = await apiKeys.generateScopedKey(
+				2,
+				containers[0].serviceId,
+			);
+
+			await request
+				.post('/v1/purge')
+				.send({ appId: 3 })
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${scopedKey}`)
+				.expect(sampleResponses.V1.POST['/purge [401 Out of scope]'].statusCode)
+				.then((response) => {
+					expect(response.body).to.deep.equal(
+						sampleResponses.V1.POST['/purge [401 Out of scope]'].body,
+					);
+				});
+		});
+	});
 });
