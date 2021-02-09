@@ -1,4 +1,45 @@
 - commits:
+    - subject: Fix gpu label support
+      hash: f009d3a3e99aa174b03b09eca39f9f6b773f0230
+      body: >
+        The device request object was created with untouched fields left unset.
+        When
+
+        comparing state to determine if a transition is required this would
+
+        result in a mismatch between:
+
+            {
+              Driver: '',
+              Count: 1,
+              DeviceIDs: null,
+              Capabilities: [Array],
+              Options: null
+            }
+
+        and
+
+            {
+              Count: 1,
+              Capabilities: [Array],
+            }
+
+        Which in turn resulted in the target service being continously
+        restarted.
+
+        The fix is to instantiate the object in full.
+      footer:
+        Connects-to: ae646a07ec6a6c96f7cb91f1d37898a94dbab47a
+        connects-to: ae646a07ec6a6c96f7cb91f1d37898a94dbab47a
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Robert Günzler <robertg@balena.io>
+        signed-off-by: Robert Günzler <robertg@balena.io>
+      author: Robert Günzler
+      nested: []
+  version: 12.3.6
+  date: 2021-02-09T10:30:32.911Z
+- commits:
     - subject: Prevent inserting null commit during DB migration
       hash: 277d984af20821cd87e3625a1c950555cbca0412
       body: ''
