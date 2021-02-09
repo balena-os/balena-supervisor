@@ -503,8 +503,11 @@ describe('compose/service', () => {
 
 	describe('io.balena.features.gpu: Docker <-> Compose config', () => {
 		const gpuDeviceRequest = {
+			Driver: '',
+			DeviceIDs: [],
 			Count: 1,
 			Capabilities: [['gpu']],
+			Options: {},
 		};
 		it('should succeed from compose object', async () => {
 			const s = await Service.fromComposeObject(
