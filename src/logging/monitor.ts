@@ -73,13 +73,18 @@ class LogMonitor {
 					this.handleRow(row);
 				}
 			},
-			async (data: Buffer) => {
-				log.error(
-					'Non-empty stderr stream from journalctl log fetching: ',
-					data.toString(),
-				);
+			(data: Buffer) => {
+				log.error('journalctl - balena.service stderr: ', data.toString());
+			},
+			() => {
+				// noop for closed
+			},
+			async () => {
+				log.debug('balena.service journalctl process exit.');
+				// On exit of process try to create another
 				await delay(JOURNALCTL_ERROR_RETRY_DELAY);
-				this.start();
+				log.debug('Spawning another process to watch balena.service logs.');
+				return this.start();
 			},
 		);
 	}
@@ -113,12 +118,16 @@ class LogMonitor {
 		onRow: (row: JournalRow) => void,
 		onError: (data: Buffer) => void,
 		onClose?: () => void,
+		onExit?: () => void,
 	): ReturnType<typeof spawnJournalctl> {
 		const journalctl = spawnJournalctl(options);
 		journalctl.stdout?.pipe(JSONstream.parse(true).on('data', onRow));
 		journalctl.stderr?.on('data', onError);
 		if (onClose) {
 			journalctl.on('close', onClose);
+		}
+		if (onExit) {
+			journalctl.on('exit', onExit);
 		}
 		return journalctl;
 	}
@@ -137,7 +146,10 @@ class LogMonitor {
 			},
 			(row: JournalRow) => this.handleRow(row),
 			async (data: Buffer) => {
-				log.error('journalctl backfill error: ', data.toString());
+				log.error(
+					`journalctl - container ${containerId} stderr: `,
+					data.toString(),
+				);
 			},
 			() => {
 				this.containers[containerId].follow = true;
