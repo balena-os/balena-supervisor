@@ -6,6 +6,59 @@ import * as validation from '../src/lib/validation';
 const almostTooLongText = _.times(255, () => 'a').join('');
 
 describe('validation', () => {
+	describe('checkBooleanish', () => {
+		it('returns true for a truthy or falsey value', () => {
+			expect(validation.checkBooleanish(true)).to.equal(true);
+			expect(validation.checkBooleanish('true')).to.equal(true);
+			expect(validation.checkBooleanish('1')).to.equal(true);
+			expect(validation.checkBooleanish(1)).to.equal(true);
+			expect(validation.checkBooleanish('on')).to.equal(true);
+			expect(validation.checkBooleanish(false)).to.equal(true);
+			expect(validation.checkBooleanish('false')).to.equal(true);
+			expect(validation.checkBooleanish('0')).to.equal(true);
+			expect(validation.checkBooleanish(0)).to.equal(true);
+			expect(validation.checkBooleanish('off')).to.equal(true);
+		});
+
+		it('returns false for invalid values', () => {
+			expect(validation.checkBooleanish({})).to.equal(false);
+			expect(validation.checkBooleanish(10)).to.equal(false);
+			expect(validation.checkBooleanish('on1')).to.equal(false);
+			expect(validation.checkBooleanish('foo')).to.equal(false);
+			expect(validation.checkBooleanish(undefined)).to.equal(false);
+			expect(validation.checkBooleanish(null)).to.equal(false);
+			expect(validation.checkBooleanish('')).to.equal(false);
+		});
+	});
+
+	describe('checkFalsey', () => {
+		it('returns false for a truthy value', () => {
+			expect(validation.checkFalsey(true)).to.equal(false);
+			expect(validation.checkFalsey('true')).to.equal(false);
+			expect(validation.checkFalsey('1')).to.equal(false);
+			expect(validation.checkFalsey(1)).to.equal(false);
+			expect(validation.checkFalsey('on')).to.equal(false);
+		});
+
+		it('returns true for a falsey value', () => {
+			expect(validation.checkFalsey(false)).to.equal(true);
+			expect(validation.checkFalsey('false')).to.equal(true);
+			expect(validation.checkFalsey('0')).to.equal(true);
+			expect(validation.checkFalsey(0)).to.equal(true);
+			expect(validation.checkFalsey('off')).to.equal(true);
+		});
+
+		it('returns false for invalid values', () => {
+			expect(validation.checkFalsey({})).to.equal(false);
+			expect(validation.checkFalsey(10)).to.equal(false);
+			expect(validation.checkFalsey('on1')).to.equal(false);
+			expect(validation.checkFalsey('foo')).to.equal(false);
+			expect(validation.checkFalsey(undefined)).to.equal(false);
+			expect(validation.checkFalsey(null)).to.equal(false);
+			expect(validation.checkFalsey('')).to.equal(false);
+		});
+	});
+
 	describe('checkTruthy', () => {
 		it('returns true for a truthy value', () => {
 			expect(validation.checkTruthy(true)).to.equal(true);
@@ -15,7 +68,7 @@ describe('validation', () => {
 			expect(validation.checkTruthy('on')).to.equal(true);
 		});
 
-		it('returns false for a falsy value', () => {
+		it('returns false for a falsey value', () => {
 			expect(validation.checkTruthy(false)).to.equal(false);
 			expect(validation.checkTruthy('false')).to.equal(false);
 			expect(validation.checkTruthy('0')).to.equal(false);
@@ -23,14 +76,14 @@ describe('validation', () => {
 			expect(validation.checkTruthy('off')).to.equal(false);
 		});
 
-		it('returns undefined for invalid values', () => {
-			expect(validation.checkTruthy({})).to.be.undefined;
-			expect(validation.checkTruthy(10)).to.be.undefined;
-			expect(validation.checkTruthy('on1')).to.be.undefined;
-			expect(validation.checkTruthy('foo')).to.be.undefined;
-			expect(validation.checkTruthy(undefined)).to.be.undefined;
-			expect(validation.checkTruthy(null)).to.be.undefined;
-			expect(validation.checkTruthy('')).to.be.undefined;
+		it('returns false for invalid values', () => {
+			expect(validation.checkTruthy({})).to.equal(false);
+			expect(validation.checkTruthy(10)).to.equal(false);
+			expect(validation.checkTruthy('on1')).to.equal(false);
+			expect(validation.checkTruthy('foo')).to.equal(false);
+			expect(validation.checkTruthy(undefined)).to.equal(false);
+			expect(validation.checkTruthy(null)).to.equal(false);
+			expect(validation.checkTruthy('')).to.equal(false);
 		});
 	});
 

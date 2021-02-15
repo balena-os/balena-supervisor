@@ -225,8 +225,7 @@ export function validateTargetContracts(
 
 					serviceContracts[svc.serviceName] = {
 						contract: svc.contract,
-						optional:
-							checkTruthy(svc.labels?.['io.balena.features.optional']) || false,
+						optional: checkTruthy(svc.labels?.['io.balena.features.optional']),
 					};
 				} catch (e) {
 					throw new ContractValidationError(svc.serviceName, e.message);

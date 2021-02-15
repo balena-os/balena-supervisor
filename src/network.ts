@@ -7,7 +7,7 @@ import * as url from 'url';
 
 import * as constants from './lib/constants';
 import { EEXIST } from './lib/errors';
-import { checkTruthy } from './lib/validation';
+import { checkFalsey } from './lib/validation';
 
 import blink = require('./lib/blink');
 
@@ -106,8 +106,8 @@ export const startConnectivityCheck = _.once(
 );
 
 export function enableConnectivityCheck(enable: boolean) {
-	const boolEnable = checkTruthy(enable);
-	enable = boolEnable != null ? boolEnable : true;
+	// Only disable if value explicitly matches falsey
+	enable = !checkFalsey(enable);
 	enableCheck(enable);
 	log.debug(`Connectivity check enabled: ${enable}`);
 }
