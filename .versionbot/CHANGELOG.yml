@@ -1,4 +1,19 @@
 - commits:
+    - subject: Patch killServicesUsingApi to not get stuck in noop loop
+      hash: c602014617704d46710fcd7b7d96961e4f60cead
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1594'
+        closes: '#1594'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.3.7
+  date: 2021-02-16T23:36:37.734Z
+- commits:
     - subject: Fix gpu label support
       hash: f009d3a3e99aa174b03b09eca39f9f6b773f0230
       body: >
