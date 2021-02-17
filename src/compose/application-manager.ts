@@ -390,16 +390,18 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 	const steps: CompositionStep[] = [];
 	_.each(current, (app) => {
 		_.each(app.services, (service) => {
-			if (
-				checkTruthy(
-					service.config.labels['io.balena.features.supervisor-api'],
-				) &&
-				service.status !== 'Stopping'
-			) {
+			const isUsingSupervisorAPI = checkTruthy(
+				service.config.labels['io.balena.features.supervisor-api'],
+			);
+			if (!isUsingSupervisorAPI) {
+				// No need to stop service as it's not using the Supervisor's API
+				return steps;
+			}
+			if (service.status !== 'Stopping') {
+				// Stop this service
 				steps.push(generateStep('kill', { current: service }));
-			} else {
-				// We want to output a noop while waiting for a service to stop, as we don't want
-				// the state application loop to stop while this is ongoing
+			} else if (service.status === 'Stopping') {
+				// Wait for the service to finish stopping
 				steps.push(generateStep('noop', {}));
 			}
 		});
