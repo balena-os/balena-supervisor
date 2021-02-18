@@ -26,6 +26,9 @@ stub(dbus, 'getBus').returns({
 			StartUnit: (_unitName: string) => {
 				// noop
 			},
+			RestartUnit: (_unitName: string, _mode: string) => {
+				// noop
+			},
 		} as any);
 	},
 } as any);

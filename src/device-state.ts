@@ -41,6 +41,8 @@ import {
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
 
+const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
+
 function validateLocalState(state: any): asserts state is TargetState['local'] {
 	if (state.name != null) {
 		if (!validation.isValidShortText(state.name)) {
@@ -128,14 +130,62 @@ function createDeviceStateRouter() {
 			),
 	);
 
-	router.patch('/v1/device/host-config', (req, res) =>
-		hostConfig
-			.patch(req.body)
-			.then(() => res.status(200).send('OK'))
-			.catch((err) =>
-				res.status(503).send(err?.message ?? err ?? 'Unknown error'),
-			),
-	);
+	router.patch('/v1/device/host-config', async (req, res) => {
+		// Because v1 endpoints are legacy, and this endpoint might already be used
+		// by multiple users, adding too many throws might have unintended side effects.
+		// Thus we're simply logging invalid fields and allowing the request to continue.
+
+		try {
+			if (!req.body.network) {
+				log.warn("Key 'network' must exist in PATCH body");
+				// If network does not exist, skip all field validation checks below
+				throw new Error();
+			}
+
+			const { proxy } = req.body.network;
+
+			// Validate proxy fields, if they exist
+			if (proxy && Object.keys(proxy).length) {
+				const blacklistedFields = Object.keys(proxy).filter((key) =>
+					disallowedHostConfigPatchFields.includes(key),
+				);
+
+				if (blacklistedFields.length > 0) {
+					log.warn(`Invalid proxy field(s): ${blacklistedFields.join(', ')}`);
+				}
+
+				if (
+					proxy.type &&
+					!constants.validRedsocksProxyTypes.includes(proxy.type)
+				) {
+					log.warn(
+						`Invalid redsocks proxy type, must be one of ${constants.validRedsocksProxyTypes.join(
+							', ',
+						)}`,
+					);
+				}
+
+				if (proxy.noProxy && !Array.isArray(proxy.noProxy)) {
+					log.warn('noProxy field must be an array of addresses');
+				}
+			}
+		} catch (e) {
+			/* noop */
+		}
+
+		try {
+			// If hostname is an empty string, return first 7 digits of device uuid
+			if (req.body.network?.hostname === '') {
+				const uuid = await config.get('uuid');
+				req.body.network.hostname = uuid?.slice(0, 7);
+			}
+
+			await hostConfig.patch(req.body);
+			res.status(200).send('OK');
+		} catch (err) {
+			res.status(503).send(err?.message ?? err ?? 'Unknown error');
+		}
+	});
 
 	router.get('/v1/device', async (_req, res) => {
 		try {

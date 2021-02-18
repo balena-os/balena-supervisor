@@ -42,6 +42,26 @@
         "body": {
           "containerId": "abc123"
         }
+      },
+      "/device/host-config [Hostname only]": {
+        "statusCode": 200,
+        "body": { "network": { "hostname": "foobardevice" } }
+      },
+      "/device/host-config [Hostname and proxy]": {
+        "statusCode": 200,
+        "body": {
+          "network": {
+            "hostname": "foobardevice",
+            "proxy": {
+              "ip": "example.org",
+              "noProxy": ["152.10.30.4", "253.1.1.0/16"],
+              "port": 1080,
+              "type": "socks5",
+              "login": "foo",
+              "password": "bar"
+            }
+          }
+        }
       }
     },
     "POST": {
@@ -62,6 +82,37 @@
       },
       "/update [202 Response]": {
         "statusCode": 202,
+        "body": {},
+        "text": "OK"
+      },
+      "/blink": {
+        "statusCode": 200,
+        "body": {},
+        "text": "OK"
+      },
+      "/regenerate-api-key": {
+        "statusCode": 200,
+        "body": {}
+      },
+      "/purge [200]": {
+        "statusCode": 200,
+        "body": { "Data": "OK", "Error": "" }
+      },
+      "/purge [400 Invalid/missing appId]": {
+        "statusCode": 400,
+        "text": "Invalid or missing appId"
+      },
+      "/purge [401 Out of scope]": {
+        "statusCode": 401,
+        "body": {
+          "status": "failed",
+          "message": "Application is not available"
+        }
+      }
+    },
+    "PATCH": {
+      "/host/device-config": {
+        "statusCode": 200,
         "body": {},
         "text": "OK"
       }

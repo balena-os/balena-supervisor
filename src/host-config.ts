@@ -43,7 +43,7 @@ const redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf');
 const noProxyPath = path.join(proxyBasePath, 'no_proxy');
 
 interface ProxyConfig {
-	[key: string]: string | string[];
+	[key: string]: string | string[] | number;
 }
 
 interface HostConfig {
@@ -61,7 +61,8 @@ const memoizedAuthRegex = _.memoize(
 );
 
 const memoizedRegex = _.memoize(
-	(proxyField) => new RegExp(proxyField + '\\s*=\\s*([^;\\s]*)\\s*;'),
+	// Add beginning-of-line RegExp to prevent local_ip and local_port static fields from being memoized
+	(proxyField) => new RegExp('^\\s*' + proxyField + '\\s*=\\s*([^;\\s]*)\\s*;'),
 );
 
 async function readProxy(): Promise<ProxyConfig | undefined> {
@@ -93,12 +94,23 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 	}
 
 	try {
-		const noProxy = await fs.readFile(noProxyPath, 'utf-8');
-		conf.noProxy = noProxy.split('\n');
+		const noProxy = await fs
+			.readFile(noProxyPath, 'utf-8')
+			// Prevent empty newline from being reported as a noProxy address
+			.then((addrs) => addrs.split('\n').filter((addr) => addr !== ''));
+
+		if (noProxy.length) {
+			conf.noProxy = noProxy;
+		}
 	} catch (e) {
 		if (!ENOENT(e)) {
 			throw e;
 		}
+	}
+
+	// Convert port to number per API doc spec
+	if (conf.port) {
+		conf.port = parseInt(conf.port as string, 10);
 	}
 	return conf;
 }
@@ -134,9 +146,21 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 		if (_.isArray(conf.noProxy)) {
 			await writeFileAtomic(noProxyPath, conf.noProxy.join('\n'));
 		}
-		const redsocksConf = `${redsocksHeader}${generateRedsocksConfEntries(
-			conf,
-		)}${redsocksFooter}`;
+
+		let currentConf: ProxyConfig | undefined;
+		try {
+			currentConf = await readProxy();
+		} catch (err) {
+			// Noop - current redsocks.conf does not exist
+		}
+
+		// If currentConf is undefined, the currentConf spread will be skipped.
+		// See: https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-1.html#conditional-spreads-create-optional-properties
+		const redsocksConf = `
+			${redsocksHeader}\n
+			${generateRedsocksConfEntries({ ...currentConf, ...conf })}
+			${redsocksFooter}
+		`;
 		await writeFileAtomic(redsocksConfPath, redsocksConf);
 	}
 
