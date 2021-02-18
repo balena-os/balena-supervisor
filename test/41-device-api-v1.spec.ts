@@ -117,7 +117,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			}
 		}
 		// Restore healthcheck stubs
-		healthCheckStubs.forEach((hc) => hc.restore);
+		healthCheckStubs.forEach((hc) => hc.restore());
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
 		appMock.unmockAll();
