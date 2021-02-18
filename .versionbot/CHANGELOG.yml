@@ -1,4 +1,19 @@
 - commits:
+    - subject: Refactor checkTruthy to return more predictable values
+      hash: ec23d1d37141c81379fd9af487a4b3b7c907dad1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1595'
+        closes: '#1595'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.4.1
+  date: 2021-02-18T17:38:51.848Z
+- commits:
     - subject: 'Complete /v1/device/host-config unit tests, modify PATCH route'
       hash: b3b1d47b34e0e2109f2d0b08551415f588457480
       body: ''
