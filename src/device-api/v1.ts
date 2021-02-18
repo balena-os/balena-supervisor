@@ -15,7 +15,7 @@ import { getApp } from '../device-state/db-format';
 export function createV1Api(router: express.Router) {
 	router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {
 		const appId = checkInt(req.body.appId);
-		const force = checkTruthy(req.body.force) ?? false;
+		const force = checkTruthy(req.body.force);
 		eventTracker.track('Restart container (v1)', { appId });
 		if (appId == null) {
 			return res.status(400).send('Missing app id');
@@ -42,7 +42,7 @@ export function createV1Api(router: express.Router) {
 		action: 'start' | 'stop',
 	) => {
 		const appId = checkInt(req.params.appId);
-		const force = checkTruthy(req.body.force) ?? false;
+		const force = checkTruthy(req.body.force);
 		if (appId == null) {
 			return res.status(400).send('Missing app id');
 		}
@@ -168,7 +168,7 @@ export function createV1Api(router: express.Router) {
 
 	router.post('/v1/purge', (req: AuthorizedRequest, res, next) => {
 		const appId = checkInt(req.body.appId);
-		const force = checkTruthy(req.body.force) ?? false;
+		const force = checkTruthy(req.body.force);
 		if (appId == null) {
 			const errMsg = 'Invalid or missing appId';
 			return res.status(400).send(errMsg);

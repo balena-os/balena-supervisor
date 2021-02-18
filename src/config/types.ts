@@ -3,7 +3,7 @@ import * as t from 'io-ts';
 import * as _ from 'lodash';
 
 import { InternalInconsistencyError } from '../lib/errors';
-import { checkTruthy } from '../lib/validation';
+import { checkBooleanish, checkTruthy } from '../lib/validation';
 
 const permissiveValue = t.union([
 	t.boolean,
@@ -23,11 +23,10 @@ export const PermissiveBoolean = new t.Type<boolean, t.TypeOf<PermissiveType>>(
 				case 'string':
 				case 'boolean':
 				case 'number':
-					const val = checkTruthy(v);
-					if (val == null) {
+					if (!checkBooleanish(v)) {
 						return t.failure(v, c);
 					}
-					return t.success(val);
+					return t.success(checkTruthy(v));
 				case 'undefined':
 					return t.success(false);
 				case 'object':
