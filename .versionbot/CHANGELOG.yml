@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'Complete /v1/device/host-config unit tests, modify PATCH route'
+      hash: b3b1d47b34e0e2109f2d0b08551415f588457480
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.4.0
+  date: 2021-02-18T03:31:54.245Z
+- commits:
     - subject: Patch killServicesUsingApi to not get stuck in noop loop
       hash: c602014617704d46710fcd7b7d96961e4f60cead
       body: ''
