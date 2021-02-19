@@ -6,6 +6,7 @@ const rootMountPoint = checkString(process.env.ROOT_MOUNTPOINT) || '/mnt/root';
 const supervisorNetworkInterface = 'supervisor0';
 
 const constants = {
+	debug: process.env.DEBUG || true,
 	rootMountPoint,
 	databasePath:
 		checkString(process.env.DATABASE_PATH) || '/data/database.sqlite',

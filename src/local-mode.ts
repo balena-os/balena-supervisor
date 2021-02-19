@@ -308,6 +308,7 @@ export class LocalModeManager {
 		if (this.switchInProgress == null) {
 			return;
 		}
+		log.debug('Localmode switch in progress.');
 		await this.switchInProgress;
 	}
 }

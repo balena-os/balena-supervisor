@@ -351,7 +351,7 @@ export async function healthcheck() {
 		log.info(
 			stripIndent`
 				Healthcheck failure - At least ONE of the following conditions must be true:
-					- No applyInProgress      ? ${!(applyInProgress === true)}
+					- No applyInProgress      ? ${!applyInProgress}
 					- fetchesInProgress       ? ${applicationManager.fetchesInProgress > 0}
 					- cycleTimeWithinInterval ? ${cycleTimeWithinInterval}`,
 		);
@@ -784,6 +784,17 @@ export const applyTarget = async ({
 	nextDelay = 200,
 	retryCount = 0,
 } = {}) => {
+	if (constants.debug) {
+		log.debug(
+			`Applying target state with the following parameters:
+			 - force: ${force}
+			 - initial: ${initial}
+			 - intermediate: ${intermediate}
+			 - skipLock: ${skipLock}
+			 - nextDelay: ${nextDelay}
+			 - retryCount: ${retryCount}`,
+		);
+	}
 	if (!intermediate) {
 		await applyBlocker;
 	}
@@ -794,10 +805,28 @@ export const applyTarget = async ({
 			getCurrentForComparison(),
 			getTarget({ initial, intermediate }),
 		]);
+
+		if (constants.debug) {
+			log.debug(
+				'Printing current state object: ',
+				JSON.stringify(currentState),
+			);
+			log.debug('Printing target state object: ', JSON.stringify(targetState));
+		}
 		const deviceConfigSteps = await deviceConfig.getRequiredSteps(
 			currentState,
 			targetState,
 		);
+
+		log.debug(`Device requires ${deviceConfigSteps.length} config changes.`);
+
+		if (deviceConfigSteps.length > 0) {
+			log.debug('Supervisor will make the following config changes:');
+			deviceConfigSteps.forEach((configStep) => {
+				log.debug(JSON.stringify(configStep));
+			});
+		}
+
 		const noConfigSteps = _.every(
 			deviceConfigSteps,
 			({ action }) => action === 'noop',
@@ -813,6 +842,15 @@ export const applyTarget = async ({
 			const appSteps = await applicationManager.getRequiredSteps(
 				targetState.local.apps,
 			);
+
+			log.debug(`Device requires ${appSteps.length} application changes.`);
+
+			if (appSteps.length > 0) {
+				log.debug('Supervisor will make the following application changes:');
+				appSteps.forEach((configStep) => {
+					log.debug(JSON.stringify(configStep));
+				});
+			}
 
 			if (_.isEmpty(appSteps)) {
 				// If we retrieve a bunch of no-ops from the
@@ -854,6 +892,10 @@ export const applyTarget = async ({
 			} else {
 				nextDelay = 1000;
 			}
+		}
+
+		if (steps.length > 0) {
+			log.debug(`Applying ${steps.length} steps to get to target state.`);
 		}
 
 		try {
