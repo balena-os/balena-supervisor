@@ -577,8 +577,8 @@ export function createV2Api(router: Router) {
 	});
 
 	router.post('/v2/journal-logs', (req, res) => {
-		const all = checkTruthy(req.body.all) || false;
-		const follow = checkTruthy(req.body.follow) || false;
+		const all = checkTruthy(req.body.all);
+		const follow = checkTruthy(req.body.follow);
 		const count = checkInt(req.body.count, { positive: true }) || undefined;
 		const unit = req.body.unit;
 		const format = req.body.format || 'short';

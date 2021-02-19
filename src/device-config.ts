@@ -633,10 +633,8 @@ async function isVPNEnabled(): Promise<boolean> {
 	}
 }
 
-async function setVPNEnabled(value?: string | boolean) {
-	const v = checkTruthy(value || true);
-	const enable = v != null ? v : true;
-
+async function setVPNEnabled(value: string | boolean = true) {
+	const enable = checkTruthy(value);
 	if (enable) {
 		await dbus.startService(vpnServiceName);
 	} else {

@@ -13,6 +13,8 @@ export interface CheckIntOptions {
 const ENV_VAR_KEY_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
 const NUMERALS_REGEX = /^-?[0-9]+\.?0*$/; // Allows trailing 0 decimals
+const TRUTHY = ['1', 'true', true, 'on', 1];
+const FALSEY = ['0', 'false', false, 'off', 0];
 
 /**
  * checkInt
@@ -56,31 +58,39 @@ export function checkString(s: unknown): string | void {
 }
 
 /**
+ * checkBooleanish
+ *
+ * Given an unknown value, determine if it can be evaluated to truthy/falsey.
+ *
+ */
+export function checkBooleanish(v: unknown): boolean {
+	return checkTruthy(v) || checkFalsey(v);
+}
+
+/**
  * checkTruthy
  *
- * Given a value which can be a string, boolean or number, return a boolean
- * which represents if the input was truthy
+ * Given an unknown value, determine if it evaluates to true.
+ *
  */
-export function checkTruthy(v: unknown): boolean | undefined {
-	if (_.isString(v)) {
+export function checkTruthy(v: unknown): boolean {
+	if (typeof v === 'string') {
 		v = v.toLowerCase();
 	}
-	switch (v) {
-		case '1':
-		case 'true':
-		case true:
-		case 'on':
-		case 1:
-			return true;
-		case '0':
-		case 'false':
-		case false:
-		case 'off':
-		case 0:
-			return false;
-		default:
-			return;
+	return TRUTHY.includes(v as any);
+}
+
+/**
+ * checkFalsey
+ *
+ * Given an unknown value, determine if it evaluates to false.
+ *
+ */
+export function checkFalsey(v: unknown): boolean {
+	if (typeof v === 'string') {
+		v = v.toLowerCase();
 	}
+	return FALSEY.includes(v as any);
 }
 
 /*
