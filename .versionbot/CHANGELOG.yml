@@ -1,4 +1,17 @@
 - commits:
+    - subject: Call restore for each healthcheck stub in v1 tests
+      hash: 2953f313e6c83ea5a9340c6143f38bc9c7a1e699
+      body: ''
+      footer:
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+        Change-type: patch
+        change-type: patch
+      author: Christina Wang
+      nested: []
+  version: 12.4.2
+  date: 2021-02-19T02:09:38.038Z
+- commits:
     - subject: Refactor checkTruthy to return more predictable values
       hash: ec23d1d37141c81379fd9af487a4b3b7c907dad1
       body: ''
