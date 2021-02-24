@@ -1,4 +1,19 @@
 - commits:
+    - subject: Refactor journalctl monitor to only spawn new process on exit
+      hash: 898b72c7f706ef9482b76b5acfa0ecd6d3ae6c99
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1591'
+        closes: '#1591'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.4.3
+  date: 2021-02-24T17:04:34.041Z
+- commits:
     - subject: Call restore for each healthcheck stub in v1 tests
       hash: 2953f313e6c83ea5a9340c6143f38bc9c7a1e699
       body: ''
