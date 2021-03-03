@@ -3,11 +3,12 @@ import * as Path from 'path';
 import { VolumeInspectInfo } from 'dockerode';
 
 import constants = require('../lib/constants');
-import { NotFoundError } from '../lib/errors';
+import { NotFoundError, InternalInconsistencyError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
 import { defaultLegacyVolume } from '../lib/migration';
+import log from '../lib/supervisor-console';
 import * as logger from '../logger';
 import { ResourceRecreationAttemptError } from './errors';
 import Volume, { VolumeConfig } from './volume';
@@ -24,8 +25,21 @@ export async function get({ name, appId }: VolumeNameOpts): Promise<Volume> {
 }
 
 export async function getAll(): Promise<Volume[]> {
-	const volumeInspect = await listWithBothLabels();
-	return volumeInspect.map((inspect) => Volume.fromDockerVolume(inspect));
+	const volumes = await list();
+	// Normalize inspect information to Volume types and filter any that fail
+	return volumes.reduce((volumesList, volumeInfo) => {
+		try {
+			const volume = Volume.fromDockerVolume(volumeInfo);
+			volumesList.push(volume);
+		} catch (err) {
+			if (err instanceof InternalInconsistencyError) {
+				log.debug(`Cannot parse Volume: ${volumeInfo.Name}`);
+			} else {
+				throw err;
+			}
+		}
+		return volumesList;
+	}, [] as Volume[]);
 }
 
 export async function getAllByAppId(appId: number): Promise<Volume[]> {
@@ -139,17 +153,7 @@ export async function removeOrphanedVolumes(
 	await Promise.all(volumesToRemove.map((v) => docker.getVolume(v).remove()));
 }
 
-async function listWithBothLabels(): Promise<VolumeInspectInfo[]> {
-	const [legacyResponse, currentResponse] = await Promise.all([
-		docker.listVolumes({
-			filters: { label: ['io.resin.supervised'] },
-		}),
-		docker.listVolumes({
-			filters: { label: ['io.balena.supervised'] },
-		}),
-	]);
-
-	const legacyVolumes = _.get(legacyResponse, 'Volumes', []);
-	const currentVolumes = _.get(currentResponse, 'Volumes', []);
-	return _.unionBy(legacyVolumes, currentVolumes, 'Name');
+async function list(): Promise<VolumeInspectInfo[]> {
+	const allVolumes = await docker.listVolumes();
+	return _.get(allVolumes, 'Volumes', []);
 }

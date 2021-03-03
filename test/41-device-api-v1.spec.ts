@@ -65,8 +65,8 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			source: 'https://api.balena-cloud.com',
 			releaseId: 1232,
 			services: JSON.stringify(services),
-			networks: '{}',
-			volumes: '{}',
+			networks: '[]',
+			volumes: '[]',
 		});
 	});
 
@@ -326,8 +326,8 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				source: 'https://api.balena-cloud.com',
 				releaseId: 1232,
 				services: JSON.stringify([service]),
-				volumes: '{}',
-				networks: '{}',
+				volumes: '[]',
+				networks: '[]',
 			});
 
 			// Perform the test with our mocked release

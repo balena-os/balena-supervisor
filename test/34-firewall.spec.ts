@@ -180,8 +180,8 @@ describe('Host Firewall', function () {
 									commit: 'abcdef2',
 								},
 							]),
-							networks: '{}',
-							volumes: '{}',
+							networks: '[]',
+							volumes: '[]',
 						},
 					]);
 
@@ -233,8 +233,8 @@ describe('Host Firewall', function () {
 									commit: 'abcdef2',
 								},
 							]),
-							networks: '{}',
-							volumes: '{}',
+							networks: '[]',
+							volumes: '[]',
 						},
 					]);
 

@@ -26,7 +26,12 @@ export function resetHistory() {
 	actions = [];
 }
 
-function addAction(name: string, parameters: Dictionary<any>) {
+/**
+ * Tracks actions performed on a mocked dockerode instance
+ * @param name action called
+ * @param parameters data passed
+ */
+function addAction(name: string, parameters: Dictionary<any> = {}) {
 	actions.push({
 		name,
 		parameters,
@@ -52,7 +57,6 @@ for (const fn of Object.getOwnPropertyNames(dockerode.prototype)) {
 }
 
 // default overrides needed to startup...
-registerOverride('listImages', async () => []);
 registerOverride(
 	'getEvents',
 	async () =>
@@ -63,6 +67,11 @@ registerOverride(
 		}),
 );
 
+/**
+ * Used to add or modifying functions on the mocked dockerode
+ * @param name function name to override
+ * @param fn function to execute
+ */
 export function registerOverride<
 	T extends DockerodeFunction,
 	P extends Parameters<dockerode[T]>,
@@ -76,25 +85,65 @@ export interface TestData {
 	networks: Dictionary<any>;
 	images: Dictionary<any>;
 	containers: Dictionary<any>;
+	volumes: Dictionary<any>;
 }
 
 function createMockedDockerode(data: TestData) {
 	const mockedDockerode = dockerode.prototype;
+
+	mockedDockerode.listImages = async () => [];
+
+	mockedDockerode.listVolumes = async () => {
+		addAction('listVolumes');
+		return {
+			Volumes: data.volumes as dockerode.VolumeInspectInfo[],
+			Warnings: [],
+		};
+	};
+
+	mockedDockerode.getVolume = (name: string) => {
+		addAction('getVolume');
+		const picked = data.volumes.filter((v: Dictionary<any>) => v.Name === name);
+		if (picked.length !== 1) {
+			throw new NotFoundError();
+		}
+		const volume = picked[0];
+		return {
+			...volume,
+			inspect: async () => {
+				addAction('inspect');
+				// TODO fully implement volume inspect.
+				// This should return VolumeInspectInfo not Volume
+				return volume;
+			},
+			remove: async (options?: {}) => {
+				addAction('remove', options);
+				data.volumes = _.reject(data.volumes, { name: volume.name });
+			},
+			name: volume.name,
+			modem: {},
+		} as dockerode.Volume;
+	};
+
 	mockedDockerode.createContainer = async (
 		options: dockerode.ContainerCreateOptions,
 	) => {
 		addAction('createContainer', { options });
 		return {
 			start: async () => {
-				addAction('start', {});
+				addAction('start');
 			},
 		} as dockerode.Container;
 	};
+
 	mockedDockerode.getContainer = (id: string) => {
 		addAction('getContainer', { id });
 		return {
+			inspect: async () => {
+				return data.containers.filter((c: Dictionary<any>) => c.id === id);
+			},
 			start: async () => {
-				addAction('start', {});
+				addAction('start');
 				data.containers = data.containers.map((c: any) => {
 					if (c.containerId === id) {
 						c.status = 'Installing';
@@ -103,7 +152,7 @@ function createMockedDockerode(data: TestData) {
 				});
 			},
 			stop: async () => {
-				addAction('stop', {});
+				addAction('stop');
 				data.containers = data.containers.map((c: any) => {
 					if (c.containerId === id) {
 						c.status = 'Stopping';
@@ -112,7 +161,7 @@ function createMockedDockerode(data: TestData) {
 				});
 			},
 			remove: async () => {
-				addAction('remove', {});
+				addAction('remove');
 				data.containers = data.containers.map((c: any) => {
 					if (c.containerId === id) {
 						c.status = 'removing';
@@ -122,11 +171,12 @@ function createMockedDockerode(data: TestData) {
 			},
 		} as dockerode.Container;
 	};
+
 	mockedDockerode.getNetwork = (id: string) => {
 		addAction('getNetwork', { id });
 		return {
 			inspect: async () => {
-				addAction('inspect', {});
+				addAction('inspect');
 				return data.networks[id];
 			},
 		} as dockerode.Network;
@@ -136,11 +186,11 @@ function createMockedDockerode(data: TestData) {
 		addAction('getImage', { name });
 		return {
 			inspect: async () => {
-				addAction('inspect', {});
+				addAction('inspect');
 				return data.images[name];
 			},
 			remove: async () => {
-				addAction('remove', {});
+				addAction('remove');
 				data.images = _.reject(data.images, {
 					name,
 				});
@@ -157,9 +207,10 @@ export async function testWithData(
 ) {
 	const mockedData: TestData = {
 		...{
-			networks: {},
-			images: {},
-			containers: {},
+			networks: [],
+			images: [],
+			containers: [],
+			volumes: [],
 		},
 		...data,
 	};
