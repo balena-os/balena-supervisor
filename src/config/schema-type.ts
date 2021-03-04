@@ -134,7 +134,7 @@ export const schemaTypes = {
 	},
 	deltaVersion: {
 		type: PermissiveNumber,
-		default: 2,
+		default: 3,
 	},
 	lockOverride: {
 		type: PermissiveBoolean,

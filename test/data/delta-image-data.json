@@ -1,0 +1,245 @@
+{
+	"V2": {
+		"inspect": {
+			"Id": "sha256:34ec91fe6e08cb0f867bbc069c5f499d39297eb8e874bb8ce9707537d983bcbc",
+			"RepoTags": [],
+			"RepoDigests": [],
+			"Parent": "",
+			"Comment": "",
+			"Created": "2019-12-05T10:20:51.516Z",
+			"Container": "",
+			"ContainerConfig": {
+				"Hostname": "",
+				"Domainname": "",
+				"User": "",
+				"AttachStdin": false,
+				"AttachStdout": false,
+				"AttachStderr": false,
+				"Tty": false,
+				"OpenStdin": false,
+				"StdinOnce": false,
+				"Env": null,
+				"Cmd": null,
+				"Image": "",
+				"Volumes": null,
+				"WorkingDir": "",
+				"Entrypoint": null,
+				"OnBuild": null,
+				"Labels": null
+			},
+			"DockerVersion": "",
+			"Author": "",
+			"Config": {
+				"Hostname": "7675a23f4fdc",
+				"Domainname": "",
+				"User": "",
+				"AttachStdin": false,
+				"AttachStdout": false,
+				"AttachStderr": false,
+				"Tty": false,
+				"OpenStdin": false,
+				"StdinOnce": false,
+				"Env": [
+					"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+					"TINI_VERSION=0.14.0",
+					"LC_ALL=C.UTF-8",
+					"DEBIAN_FRONTEND=noninteractive",
+					"UDEV=on",
+					"container=docker",
+					"test=123"
+				],
+				"Cmd": [
+					"/bin/sh",
+					"-c",
+					"while true; do echo 'hello'; sleep 10; done;"
+				],
+				"ArgsEscaped": true,
+				"Image": "sha256:b24946093df7157727b20934d11a7287359d8de42d8a80030f51f46a73d645ec",
+				"Volumes": {
+					"/sys/fs/cgroup": {}
+				},
+				"WorkingDir": "",
+				"Entrypoint": ["/usr/bin/entry.sh"],
+				"OnBuild": [],
+				"Labels": {
+					"io.resin.architecture": "amd64",
+					"io.resin.device-type": "intel-nuc"
+				},
+				"StopSignal": "37"
+			},
+			"Architecture": "",
+			"Os": "linux",
+			"Size": 17,
+			"VirtualSize": 17,
+			"GraphDriver": {
+				"Data": null,
+				"Name": "aufs"
+			},
+			"RootFS": {
+				"Type": "layers",
+				"Layers": [
+					"sha256:c6e6cd4f95ef00e62f5c9df5798393470c991ca0148cb1e434b28101ed4219d3"
+				]
+			},
+			"Metadata": {
+				"LastTagTime": "0001-01-01T00:00:00Z"
+			}
+		},
+		"dockerode": {
+			"sha256:b24946093df7157727b20934d11a7287359d8de42d8a80030f51f46a73d645ec": {
+				"Containers": -1,
+				"Created": 1575541251,
+				"Id": "sha256:b24946093df7157727b20934d11a7287359d8de42d8a80030f51f46a73d645ec",
+				"Labels": {
+					"io.resin.architecture": "amd64",
+					"io.resin.device-type": "intel-nuc"
+				},
+				"ParentId": "",
+				"RepoDigests": null,
+				"RepoTags": null,
+				"SharedSize": -1,
+				"Size": 17,
+				"VirtualSize": 17
+			}
+		}
+	},
+	"V3": {
+		"inspect": {
+			"Id": "sha256:1ddb277521f6a708033c4db5c066b2e6054f57ab564715485c9af9f8c03506b1",
+			"RepoTags": [
+				"registry2.balena-cloud.com/v2/81de33e78fc6ec9e57b1d99f6d6fc431:delta-aa75d974d4195966"
+			],
+			"RepoDigests": [
+				"registry2.balena-cloud.com/v2/81de33e78fc6ec9e57b1d99f6d6fc431@sha256:9c13e6fc8431d984c5e94008b15835af9bd678bcaeaae172ba2eab8d44bc74db"
+			],
+			"Parent": "",
+			"Comment": "",
+			"Created": "2021-03-05T14:15:42.360201123Z",
+			"Container": "14adb9b404692d9d01b475da5a02b1a603fa9baa52db693c78c15496bbcd83b4",
+			"ContainerConfig": {
+				"Hostname": "7de9199b2792",
+				"Domainname": "",
+				"User": "",
+				"AttachStdin": false,
+				"AttachStdout": false,
+				"AttachStderr": false,
+				"Tty": false,
+				"OpenStdin": false,
+				"StdinOnce": false,
+				"Env": [
+					"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+					"LC_ALL=C.UTF-8",
+					"DEBIAN_FRONTEND=noninteractive",
+					"UDEV=off",
+					"NODE_VERSION=10.23.1",
+					"YARN_VERSION=1.22.4",
+					"JQUERY_VERSION=3.3.1",
+					"REQUIREJS_VERSION=2.3.5",
+					"HIGHCHARTS_VERSION=7.0.3"
+				],
+				"Cmd": ["/bin/sh", "-c", "#(nop) ", "CMD [\"npm\" \"start\"]"],
+				"ArgsEscaped": true,
+				"Image": "sha256:79cc53c5b0e0adeb7aafe7e5bb86d2792c75293bdc70372b8fdd3cb64488e6ba",
+				"Volumes": null,
+				"WorkingDir": "/usr/src/app",
+				"Entrypoint": ["/usr/bin/entry.sh"],
+				"OnBuild": [],
+				"Labels": {
+					"io.balena.architecture": "amd64",
+					"io.balena.device-type": "intel-nuc"
+				}
+			},
+			"DockerVersion": "dev",
+			"Author": "",
+			"Config": {
+				"Hostname": "7de9199b2792",
+				"Domainname": "",
+				"User": "",
+				"AttachStdin": false,
+				"AttachStdout": false,
+				"AttachStderr": false,
+				"Tty": false,
+				"OpenStdin": false,
+				"StdinOnce": false,
+				"Env": [
+					"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+					"LC_ALL=C.UTF-8",
+					"DEBIAN_FRONTEND=noninteractive",
+					"UDEV=off",
+					"NODE_VERSION=10.23.1",
+					"YARN_VERSION=1.22.4",
+					"JQUERY_VERSION=3.3.1",
+					"REQUIREJS_VERSION=2.3.5",
+					"HIGHCHARTS_VERSION=7.0.3"
+				],
+				"Cmd": ["npm", "start"],
+				"ArgsEscaped": true,
+				"Image": "sha256:79cc53c5b0e0adeb7aafe7e5bb86d2792c75293bdc70372b8fdd3cb64488e6ba",
+				"Volumes": null,
+				"WorkingDir": "/usr/src/app",
+				"Entrypoint": ["/usr/bin/entry.sh"],
+				"OnBuild": [],
+				"Labels": {
+					"io.balena.architecture": "amd64",
+					"io.balena.device-type": "intel-nuc"
+				}
+			},
+			"Architecture": "amd64",
+			"Os": "linux",
+			"Size": 226135477,
+			"VirtualSize": 226135477,
+			"GraphDriver": { "Data": null, "Name": "aufs" },
+			"RootFS": {
+				"Type": "layers",
+				"Layers": [
+					"sha256:55d13762c439e07035670ec521fe3d72d3c9650d767190c93b8d051185a64d98",
+					"sha256:b438b48aa2a19e849ee96c3efb81f9390e8bcb2bf6785da67081502eaf11e281",
+					"sha256:1268c0369a04c3391198920dd7bf18291a1dc29f58ea661e0848b5e17e48e429",
+					"sha256:37d4bafe80a96ca76497dcd2ead7c8dfe47078609ebcc6ebbee2a3a5286ed91c",
+					"sha256:f04581aa5bccf8a3ccc3e0b297eb77daa14f4b039148fbff4f5c8106e9c9b30b",
+					"sha256:9afaa3aca35bb7b5fc71e451e2e144100848f908b78272334c7ac040d91a4a0d",
+					"sha256:e099b3897ec18d5793c52fa920446aed1cd18d364b31928169c3c7cc42b8778c",
+					"sha256:c9ae99a636eb7d5cb9f4e57a20d4cc7a273ad955562b1414abcca8f868ef3fb6",
+					"sha256:7042698b28ce806dfa0fd698a4b61d418e2148f5491f8d0efe3056a428f81c0d",
+					"sha256:2b2bb254a71e27e6663ac3667328329a6ff481c5777729958d59331da825b089",
+					"sha256:05b93dc914c987123445d3ae9cb0121a30ea265ffa06159713e07db99c207882",
+					"sha256:e92200bdce156304f4439f15865a2152e400690d205daa5787c80ad5c4f66750",
+					"sha256:35f8bc0e15c7fdb5ec5743af77cd454cddb458533e4a3f02638e3b65513ea5a2",
+					"sha256:78c30b5ce1bff47ce514255cb8bf8af30340929eaa41c0f713c29f0dd5f87667",
+					"sha256:fee7ad254ba7c6759d3319151070a81a44fb613dbf080aabd7b7ee3515eadfe5",
+					"sha256:6f7fad9e112c956eb6e1f4aa92409f8973ab2bc72475558f72596322c77e7618",
+					"sha256:a16d68efeadca49b2347cc1319d159e6137ead1d85cf37dc32509aa669171acd",
+					"sha256:b21fe258be5eebd26c2b8f5ba143491e546a025f2dbe340b93a0c0a806908276",
+					"sha256:78fad2ab3ee5f7ff62dc5e898c56e5b277a97cdf1fcf591f8a3a364eef67fefc",
+					"sha256:da7a577625b44039aea8da882d70d78e6683ebad278f57d3a1a6266cd0d7b8e6",
+					"sha256:c11f713406f471accd40351fef2128a96f1c16dd8bcfd69ecc4e63bcca543f1f",
+					"sha256:8a0b69c125f6c5bf86f10d59d31d28d8d61bf830889af5aae9c8b11fbb0769a6",
+					"sha256:721b78148cb10caea1c38f3531addfa494be9991a71d32f1d88902db03b4734f",
+					"sha256:c3c6c9656b1d284ecd9057e803e793525d075f7ab06a3deee1b6a47c2d139f52"
+				]
+			},
+			"Metadata": { "LastTagTime": "0001-01-01T00:00:00Z" }
+		},
+		"dockerode": {
+			"sha256:79cc53c5b0e0adeb7aafe7e5bb86d2792c75293bdc70372b8fdd3cb64488e6ba": {
+				"Containers": -1,
+				"Created": 1614953742,
+				"Id": "sha256:79cc53c5b0e0adeb7aafe7e5bb86d2792c75293bdc70372b8fdd3cb64488e6ba",
+				"Labels": {
+					"io.balena.architecture": "amd64",
+					"io.balena.device-type": "intel-nuc"
+				},
+				"ParentId": "",
+				"RepoDigests": [
+					"registry2.balena-cloud.com/v2/81de33e78fc6ec9e57b1d99f6d6fc431@sha256:9c13e6fc8431d984c5e94008b15835af9bd678bcaeaae172ba2eab8d44bc74db"
+				],
+				"RepoTags": [
+					"registry2.balena-cloud.com/v2/81de33e78fc6ec9e57b1d99f6d6fc431:delta-aa75d974d4195966"
+				],
+				"SharedSize": -1,
+				"Size": 226135477,
+				"VirtualSize": 226135477
+			}
+		}
+	}
+}

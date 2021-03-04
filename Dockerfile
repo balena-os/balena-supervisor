@@ -95,7 +95,6 @@ RUN apk add --no-cache \
 	kmod \
 	iptables \
 	ip6tables \
-	rsync \
 	avahi \
 	dbus \
 	libstdc++ \
