@@ -371,7 +371,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 Temporarily stops a user application container. A reboot or supervisor restart will cause the container to start again.
 The container is not removed with this endpoint.
 
-This is only supported on single-container devices, and will return 400 on devices running multiple containers.
+This is only supported on single-container devices, and will return 400 on devices running multiple containers. Refer to v2 endpoint, [`/v2/applications/:appId/stop-service`](#post-v2applicationsappidstop-service) for running the query on multiple containers.
 
 When successful, responds with 200 and the Id of the stopped container.
 
@@ -413,7 +413,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 Starts a user application container, usually after it has been stopped with `/v1/stop`.
 
-This is only supported on single-container devices, and will return 400 on devices running multiple containers.
+This is only supported on single-container devices, and will return 400 on devices running multiple containers. Refer to v2 endpoint, [`/v2/applications/:appId/start-service`](#post-v2applicationsappidstart-service) for running the query on multiple containers.
 
 When successful, responds with 200 and the Id of the started container.
 
@@ -460,7 +460,7 @@ The app is a JSON object that contains the following:
 
 The appId must be specified in the URL.
 
-This is only supported on single-container devices, and will return 400 on devices running multiple containers.
+This is only supported on single-container devices, and will return 400 on devices running multiple containers. Refer to v2 endpoint, [`/v2/applications/:appId/state`](#get-v2applicationsappidstate) for running the query on multiple containers.
 
 #### Examples:
 From an application container:
@@ -784,7 +784,7 @@ OK
 
 This endpoint can also take an extra optional boolean, `force`, which if true informs the supervisor to ignore any update locks which have been taken.
 
-### POST /v2/applications/:appId:/stop-service
+### POST /v2/applications/:appId/stop-service
 
 > **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
