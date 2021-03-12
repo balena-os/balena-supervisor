@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add nebra-hnt to raspberry pi variants
+      hash: 8f9254b6b12503573386e8fb613a5f289473f662
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+      author: Felipe Lalanne
+      nested: []
+  version: 12.4.5
+  date: 2021-03-12T15:48:22.200Z
+- commits:
     - subject: Bump elliptic from 6.5.3 to 6.5.4
       hash: f013f04e4d0ab502f87bde263ce3ef6217a84640
       body: >
