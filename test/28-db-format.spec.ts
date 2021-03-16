@@ -44,8 +44,8 @@ describe('DB Format', () => {
 				source: apiEndpoint,
 				releaseId: 123,
 				services: '[]',
-				networks: '{}',
-				volumes: '{}',
+				networks: '[]',
+				volumes: '[]',
 			},
 			{
 				appId: 2,
@@ -68,8 +68,8 @@ describe('DB Format', () => {
 						commit: 'abcdef2',
 					},
 				]),
-				networks: '{}',
-				volumes: '{}',
+				networks: '[]',
+				volumes: '[]',
 			},
 		]);
 	});

@@ -321,8 +321,8 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 				source: 'https://api.balena-cloud.com',
 				releaseId: 1232,
 				services: JSON.stringify([service]),
-				networks: '{}',
-				volumes: '{}',
+				networks: '[]',
+				volumes: '[]',
 			});
 
 			lockMock.reset();
@@ -426,8 +426,8 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 				source: 'https://api.balena-cloud.com',
 				releaseId: 1232,
 				services: JSON.stringify(mockContainers),
-				networks: '{}',
-				volumes: '{}',
+				networks: '[]',
+				volumes: '[]',
 			});
 
 			lockMock.reset();
