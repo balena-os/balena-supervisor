@@ -1,4 +1,19 @@
 - commits:
+    - subject: Infer legacy Volumes that do not have the supervised label
+      hash: 183ea88a2ad3bbdf18ab96505920465f1a404df0
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1604'
+        closes: '#1604'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.4.6
+  date: 2021-03-15T23:49:25.274Z
+- commits:
     - subject: Add nebra-hnt to raspberry pi variants
       hash: 8f9254b6b12503573386e8fb613a5f289473f662
       body: ''
