@@ -116,7 +116,7 @@ export class Service {
 			throw new InternalInconsistencyError('Malformed app id for service');
 		}
 
-		// Seperate the application information from the docker
+		// Separate the application information from the docker
 		// container configuration
 		service.imageId = parseInt(appConfig.imageId, 10);
 		delete appConfig.imageId;

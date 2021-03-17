@@ -440,7 +440,7 @@
 ##  Hardware decoding of additional codecs can be enabled by purchasing a
 ##  license that is locked to the CPU serial number of your Raspberry Pi.
 ##
-##  Up to 8 licenses per CODEC can be specified as a comma seperated list.
+##  Up to 8 licenses per CODEC can be specified as a comma separated list.
 ##
 ################################################################################
 
