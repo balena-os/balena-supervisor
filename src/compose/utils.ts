@@ -164,7 +164,7 @@ export function getStopSignal(
 	return _.get(imageInfo, 'Config.StopSignal', 'SIGTERM');
 }
 
-// TODO: Move healthcheck stuff into seperate module
+// TODO: Move healthcheck stuff into separate module
 export function dockerHealthcheckToServiceHealthcheck(
 	healthcheck?: Dockerode.DockerHealthcheck,
 ): ServiceHealthcheck {

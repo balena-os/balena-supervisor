@@ -14,7 +14,7 @@ import { ExtraUEnvError } from '../../lib/errors';
 /**
  * Entry describes the configurable items in an extra_uEnv file
  *
- * @collection - This describes if the value can be a list of items seperated by space character.
+ * @collection - This describes if the value can be a list of items separated by space character.
  *
  */
 

@@ -166,7 +166,7 @@ export function safeAppClone(app) {
 			// here as when passing it back as target state, the service class cannot
 			// know that the alias being given is not in fact a user given one.
 			// TODO: Make the process of moving from a current state to a target state
-			// well-defined (and implemented in a seperate module)
+			// well-defined (and implemented in a separate module)
 			const svcCopy = _.cloneDeep(svc);
 
 			_.each(svcCopy.config.networks, (net) => {
