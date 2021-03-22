@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Transaction } from 'knex';
+import type { Transaction } from 'knex';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 import { inspect } from 'util';
@@ -54,7 +54,7 @@ export async function get<T extends SchemaTypeKey>(
 	key: T,
 	trx?: Transaction,
 ): Promise<SchemaReturn<T>> {
-	const $db = trx || db.models.bind(db);
+	const $db = trx || db.models;
 
 	if (Schema.schema.hasOwnProperty(key)) {
 		const schemaKey = key as Schema.SchemaKey;
@@ -183,7 +183,7 @@ export async function set<T extends SchemaTypeKey>(
 	if (trx != null) {
 		await setValuesInTransaction(trx);
 	} else {
-		await db.transaction((tx: Transaction) => setValuesInTransaction(tx));
+		await db.transaction((tx) => setValuesInTransaction(tx));
 	}
 	events.emit('change', keyValues as ConfigMap<SchemaTypeKey>);
 }
@@ -235,7 +235,7 @@ export function valueIsValid<T extends SchemaTypeKey>(
 
 async function getSchema<T extends Schema.SchemaKey>(
 	key: T,
-	$db: Transaction,
+	$db: typeof db.models,
 ): Promise<unknown> {
 	let value: unknown;
 	switch (Schema.schema[key].source) {

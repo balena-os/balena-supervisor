@@ -2,10 +2,11 @@
 	"compilerOptions": {
 		"target": "ES2019",
 		"module": "commonjs",
-		"noImplicitAny": true,
+		"strict": true,
+		"strictFunctionTypes": false,
+		"strictPropertyInitialization": false,
 		"preserveConstEnums": true,
 		"inlineSourceMap": true,
-		"strictNullChecks": true,
 		"outDir": "./build/",
 		"skipLibCheck": true,
 		"lib": ["es6"],
