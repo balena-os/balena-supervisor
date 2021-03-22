@@ -1,4 +1,15 @@
 - commits:
+    - subject: Add explicit dockerode dependency
+      hash: b83160ff4b16e4c432760ba88c30f3b1e4ab4318
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 12.4.8
+  date: 2021-03-22T13:18:12.146Z
+- commits:
     - subject: 'typos: seperate -> separate'
       hash: f9a157c9ecfd8ea37a4ed3a5f123db9ec6828fdd
       body: |
