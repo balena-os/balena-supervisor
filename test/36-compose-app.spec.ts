@@ -1079,6 +1079,7 @@ describe('compose/app', () => {
 		const steps = current.nextStepsForAppUpdate(defaultContext, target);
 		withSteps(steps).expectStep('kill').to.have.length(2);
 	});
+
 	it('should not create a service when a network it depends on is not ready', async () => {
 		const current = createApp([], [defaultNetwork], [], false);
 		const target = createApp(
@@ -1092,4 +1093,93 @@ describe('compose/app', () => {
 		withSteps(steps).expectStep('createNetwork');
 		withSteps(steps).rejectStep('start');
 	}); // no create service, is create network
+
+	describe('Intermediate state apply support', () => {
+		beforeEach(() => {
+			appMock.mockSupervisorNetwork(true);
+			appMock.mockManagers([], [], []);
+			appMock.mockImages([], false, []);
+
+			applicationManager.setIsApplyingIntermediate(true);
+		});
+		afterEach(() => {
+			appMock.unmockAll();
+			applicationManager.setIsApplyingIntermediate(false);
+		});
+
+		it('should generate the correct step sequence for a volume purge request', async () => {
+			const service = await createService({
+				volumes: ['db-volume'],
+				image: 'test-image',
+			});
+			const volume = Volume.fromComposeObject('db-volume', service.appId, {});
+			const contextWithImages = {
+				...defaultContext,
+				...{
+					availableImages: [
+						{
+							appId: service.appId,
+							dependent: 0,
+							imageId: service.imageId,
+							releaseId: service.releaseId,
+							serviceId: service.serviceId,
+							name: 'test-image',
+							serviceName: service.serviceName,
+						} as Image,
+					],
+				},
+			};
+			// Temporarily set target services & volumes to empty, as in doPurge
+			let intermediateTarget = createApp([], [defaultNetwork], [], true);
+
+			// Generate current with one service & one volume
+			const current = createApp([service], [defaultNetwork], [volume], false);
+
+			// Step 1: kill
+			let steps = current.nextStepsForAppUpdate(
+				contextWithImages,
+				intermediateTarget,
+			);
+			withSteps(steps)
+				.expectStep('kill')
+				.forCurrent(service.serviceName as ServicePredicate);
+			expect(steps).to.have.length(1);
+
+			// Step 2: noop (service is stopping)
+			service.status = 'Stopping';
+			steps = current.nextStepsForAppUpdate(
+				contextWithImages,
+				intermediateTarget,
+			);
+			expectStep('noop', steps);
+			expect(steps).to.have.length(1);
+
+			// No steps, simulate container removal & explicit volume removal as in doPurge
+			current.services = [];
+			steps = current.nextStepsForAppUpdate(
+				contextWithImages,
+				intermediateTarget,
+			);
+			expect(steps).to.have.length(0);
+			current.volumes = {};
+
+			// Step 3: start & createVolume
+			service.status = 'Running';
+			intermediateTarget = createApp(
+				[service],
+				[defaultNetwork],
+				[volume],
+				true,
+			);
+			steps = current.nextStepsForAppUpdate(
+				contextWithImages,
+				intermediateTarget,
+			);
+			expect(steps).to.have.length(2);
+			withSteps(steps)
+				.expectStep('start')
+				.forTarget(service.serviceName as ServicePredicate);
+			expectStep('createVolume', steps);
+		});
+	});
 });

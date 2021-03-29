@@ -57,13 +57,29 @@ export async function doPurge(appId, force) {
 				throw new Error(appNotFoundMessage);
 			}
 
-			const app = allApps[appId];
+			const clonedState = safeStateClone(currentState);
+			/**
+			 * With multi-container, Docker adds an invalid network alias equal to the current containerId
+			 * to that service's network configs when starting a service. Thus when reapplying intermediateState
+			 * after purging, use a cloned state instance which automatically filters out invalid network aliases.
+			 *
+			 * This will prevent error logs like the following:
+			 * https://gist.github.com/cywang117/84f9cd4e6a9641dbed530c94e1172f1d#file-logs-sh-L58
+			 *
+			 * When networks do not match because of their aliases, services are killed and recreated
+			 * an additional time which is unnecessary. Filtering prevents this additional restart BUT
+			 * it is a stopgap measure until we can keep containerId network aliases from being stored
+			 * in state's service config objects (TODO)
+			 *
+			 * See https://github.com/balena-os/balena-supervisor/blob/master/src/device-api/common.js#L160-L180
+			 * for a more in-depth explanation of why aliases need to be filtered out.
+			 */
 
-			const currentServices = app.services;
-			const currentVolumes = app.volumes;
+			// After cloning, set services & volumes as empty to be applied as intermediateTargetState
+			allApps[appId].services = [];
+			allApps[appId].volumes = {};
 
-			app.services = [];
-			app.volumes = {};
+			applicationManager.setIsApplyingIntermediate(true);
 
 			return deviceState
 				.pausingApply(() =>
@@ -79,20 +95,23 @@ export async function doPurge(appId, force) {
 							);
 						})
 						.then(() => {
-							app.services = currentServices;
-							app.volumes = currentVolumes;
-							return deviceState.applyIntermediateTarget(currentState, {
+							return deviceState.applyIntermediateTarget(clonedState, {
 								skipLock: true,
 							});
 						}),
 				)
-				.finally(() => deviceState.triggerApplyTarget());
+				.finally(() => {
+					applicationManager.setIsApplyingIntermediate(false);
+					deviceState.triggerApplyTarget();
+				});
 		}),
 	)
 		.then(() =>
 			logger.logSystemMessage('Purged data', { appId }, 'Purge data success'),
 		)
 		.catch((err) => {
+			applicationManager.setIsApplyingIntermediate(false);
+
 			logger.logSystemMessage(
 				`Error purging data: ${err}`,
 				{ appId, error: err },
@@ -109,6 +128,11 @@ export function serviceAction(action, serviceId, current, target, options) {
 	return { action, serviceId, current, target, options };
 }
 
+/**
+ * This doesn't truly return an InstancedDeviceState, but it's close enough to mostly work where it's used
+ *
+ * @returns { import('../types/state').InstancedDeviceState }
+ */
 export function safeStateClone(targetState) {
 	// We avoid using cloneDeep here, as the class
 	// instances can cause a maximum call stack exceeded
@@ -122,6 +146,7 @@ export function safeStateClone(targetState) {
 	// thing to do would be to represent the input with
 	// io-ts and make sure the below conforms to it
 
+	/** @type { any } */
 	const cloned = {
 		local: {
 			config: {},

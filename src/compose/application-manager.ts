@@ -78,6 +78,13 @@ export let containerStarted: { [containerId: string]: boolean } = {};
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;
 
+// In the case of intermediate target apply, toggle to true to avoid unintended image deletion
+let isApplyingIntermediate = false;
+
+export function setIsApplyingIntermediate(value: boolean = false) {
+	isApplyingIntermediate = value;
+}
+
 export function resetTimeSpentFetching(value: number = 0) {
 	timeSpentFetching = value;
 }
@@ -206,12 +213,15 @@ export async function getRequiredSteps(
 			steps.push({ action: 'ensureSupervisorNetwork' });
 		}
 	} else {
-		if (!localMode && downloading.length === 0) {
+		if (!localMode && downloading.length === 0 && !isApplyingIntermediate) {
+			// Avoid cleaning up dangling images while purging
 			if (cleanupNeeded) {
 				steps.push({ action: 'cleanup' });
 			}
 
-			// Detect any images which must be saved/removed
+			// Detect any images which must be saved/removed, except when purging,
+			// as we only want to remove containers, remove volumes, create volumes
+			// anew, and start containers without images being removed.
 			steps = steps.concat(
 				saveAndRemoveImages(
 					currentApps,
@@ -325,6 +335,7 @@ export async function getRequiredSteps(
 			steps,
 		),
 	);
+
 	return steps;
 }
 
@@ -717,7 +728,9 @@ function saveAndRemoveImages(
 		(image) => {
 			const notUsedForDelta = !_.includes(deltaSources, image.name);
 			const notUsedByProxyvisor = !_.some(proxyvisorImages, (proxyvisorImage) =>
-				imageManager.isSameImage(image, { name: proxyvisorImage }),
+				imageManager.isSameImage(image, {
+					name: proxyvisorImage,
+				}),
 			);
 			return notUsedForDelta && notUsedByProxyvisor;
 		},
