@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add cywang117 to CODEOWNERS
+      hash: 0f064fb84aa029e55775123a3e22a9929280a323
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.5.0
+  date: 2021-03-30T14:11:50.403Z
+- commits:
     - subject: Enable strict options by default and only disable specific ones
       hash: 2ae22b4fbd36090e65d943ebe7e5a623d6286b8f
       body: ''
