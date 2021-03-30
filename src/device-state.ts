@@ -5,6 +5,7 @@ import { EventEmitter } from 'events';
 import * as express from 'express';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
+import { Span } from '@opentelemetry/api';
 
 import prettyMs = require('pretty-ms');
 
@@ -40,6 +41,8 @@ import {
 } from './types/state';
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
+import * as tracer from './tracing/tracer';
+import { serviceNotFoundMessage } from './lib/messages';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
 
@@ -667,17 +670,31 @@ export async function executeStepAction<T extends PossibleStepTargets>(
 		initial,
 		skipLock,
 	}: { force?: boolean; initial?: boolean; skipLock?: boolean },
+	parentSpan: Span | null,
 ) {
+	let span = null;
+	if (parentSpan) {
+		span = tracer.startSpan(
+			'execute-step-action',
+			{
+				action: step.action,
+			},
+			parentSpan,
+		);
+	}
 	if (deviceConfig.isValidAction(step.action)) {
 		await deviceConfig.executeStepAction(step as ConfigStep, {
 			initial,
 		});
+		span?.end();
 	} else if (_.includes(applicationManager.validActions, step.action)) {
-		return applicationManager.executeStep(step as any, {
+		await applicationManager.executeStep(step as any, {
 			force,
 			skipLock,
 		});
+		span?.end();
 	} else {
+		span?.end();
 		switch (step.action) {
 			case 'reboot':
 				// There isn't really a way that these methods can fail,
@@ -714,21 +731,31 @@ export async function applyStep<T extends PossibleStepTargets>(
 		initial?: boolean;
 		skipLock?: boolean;
 	},
+	parentSpan: Span | null,
 ) {
+	let span = null;
+	if (parentSpan) {
+		span = tracer.startSpan('apply-step', undefined, parentSpan);
+	}
 	if (shuttingDown) {
 		return;
 	}
 	try {
-		const stepResult = await executeStepAction(step, {
-			force,
-			initial,
-			skipLock,
-		});
+		const stepResult = await executeStepAction(
+			step,
+			{
+				force,
+				initial,
+				skipLock,
+			},
+			span,
+		);
 		emitAsync('step-completed', null, step, stepResult || undefined);
 	} catch (e) {
 		emitAsync('step-error', e, step);
 		throw e;
 	}
+	span?.end();
 }
 
 function applyError(
@@ -784,6 +811,15 @@ export const applyTarget = async ({
 	nextDelay = 200,
 	retryCount = 0,
 } = {}) => {
+	await tracer.initialize();
+	const parentSpan = tracer.startSpan('apply-target', {
+		force,
+		initial,
+		intermediate,
+		skipLock,
+		nextDelay,
+		retryCount,
+	});
 	if (!intermediate) {
 		await applyBlocker;
 	}
@@ -798,6 +834,11 @@ export const applyTarget = async ({
 			currentState,
 			targetState,
 		);
+
+		parentSpan?.addEvent(
+			`Calculate ${deviceConfigSteps.length} device configuration changes required.`,
+		);
+
 		const noConfigSteps = _.every(
 			deviceConfigSteps,
 			({ action }) => action === 'noop',
@@ -812,6 +853,12 @@ export const applyTarget = async ({
 		} else {
 			const appSteps = await applicationManager.getRequiredSteps(
 				targetState.local.apps,
+				undefined,
+				parentSpan,
+			);
+
+			parentSpan?.addEvent(
+				`Calculate ${appSteps.length} application changes required.`,
 			);
 
 			if (_.isEmpty(appSteps)) {
@@ -840,6 +887,7 @@ export const applyTarget = async ({
 					update_downloaded: false,
 				});
 			}
+			parentSpan?.end();
 			return;
 		}
 
@@ -858,10 +906,13 @@ export const applyTarget = async ({
 
 		try {
 			await Promise.all(
-				steps.map((s) => applyStep(s, { force, initial, skipLock })),
+				steps.map((s) =>
+					applyStep(s, { force, initial, skipLock }, parentSpan),
+				),
 			);
 
 			await Bluebird.delay(nextDelay);
+			parentSpan?.end();
 			await applyTarget({
 				force,
 				initial,
@@ -873,6 +924,7 @@ export const applyTarget = async ({
 		} catch (e) {
 			if (e instanceof UpdatesLockedError) {
 				// Forward the UpdatesLockedError directly
+				parentSpan?.end();
 				throw e;
 			}
 			throw new Error(
@@ -883,6 +935,7 @@ export const applyTarget = async ({
 			);
 		}
 	}).catch((err) => {
+		parentSpan?.end();
 		return applyError(err, { force, initial, intermediate });
 	});
 };

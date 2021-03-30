@@ -1,6 +1,7 @@
 import * as bodyParser from 'body-parser';
 import * as express from 'express';
 import * as _ from 'lodash';
+import { Span } from '@opentelemetry/api';
 
 import * as config from '../config';
 import { transaction, Transaction } from '../db';
@@ -41,6 +42,7 @@ import { checkTruthy, checkInt } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
 import * as updateLock from '../lib/update-lock';
 import { EventEmitter } from 'events';
+import * as tracer from '../tracing/tracer';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
@@ -170,6 +172,7 @@ export async function lockingIfNecessary<T extends unknown>(
 export async function getRequiredSteps(
 	targetApps: InstancedAppState,
 	ignoreImages: boolean = false,
+	parentSpan: Span | null,
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [
@@ -186,6 +189,17 @@ export async function getRequiredSteps(
 		getCurrentApps(),
 	]);
 	const containerIdsByAppId = await getAppContainerIds(currentApps);
+	let span = null;
+	if (parentSpan) {
+		span = tracer.startSpan('get-required-steps', undefined, parentSpan);
+	}
+	span?.setAttributes({
+		localMode,
+		delta,
+		downloading,
+		cleanupNeeded,
+		availableImages: availableImages.length,
+	});
 
 	if (localMode) {
 		ignoreImages = localMode;
@@ -198,11 +212,14 @@ export async function getRequiredSteps(
 
 	// First check if we need to create the supervisor network
 	if (!(await networkManager.supervisorNetworkReady())) {
+		span?.addEvent('Detected Supervisor network is not ready');
 		// If we do need to create it, we first need to kill any services using the api
 		const killSteps = steps.concat(killServicesUsingApi(currentApps));
 		if (killSteps.length > 0) {
+			span?.addEvent(`Found ${killSteps.length} service that must be stopped.`);
 			steps = steps.concat(killSteps);
 		} else {
+			span?.addEvent(`Adding create Supervisor network step.`);
 			steps.push({ action: 'ensureSupervisorNetwork' });
 		}
 	} else {
@@ -240,6 +257,7 @@ export async function getRequiredSteps(
 							downloading,
 						},
 						targetApps[id],
+						span,
 					),
 				);
 			}
@@ -269,7 +287,7 @@ export async function getRequiredSteps(
 					false,
 				);
 				steps = steps.concat(
-					emptyCurrent.nextStepsForAppUpdate(
+					await emptyCurrent.nextStepsForAppUpdate(
 						{
 							localMode,
 							availableImages,
@@ -277,6 +295,7 @@ export async function getRequiredSteps(
 							downloading,
 						},
 						targetApps[id],
+						span,
 					),
 				);
 			}
@@ -325,6 +344,7 @@ export async function getRequiredSteps(
 			steps,
 		),
 	);
+	span?.end();
 	return steps;
 }
 

@@ -27,6 +27,13 @@
   },
   "private": true,
   "dependencies": {
+    "@opentelemetry/api": "^1.0.0-rc.0",
+    "@opentelemetry/exporter-zipkin": "^0.18.0",
+    "@opentelemetry/instrumentation": "^0.18.0",
+    "@opentelemetry/node": "^0.18.0",
+    "@opentelemetry/tracing": "^0.18.0",
+    "chai-like": "^1.1.1",
+    "chai-things": "^0.2.0",
     "dbus": "^1.0.7",
     "mdns-resolver": "^1.0.0",
     "os-utils": "0.0.14",

@@ -79,7 +79,6 @@ export const schema = {
 		mutable: false,
 		removeIfNull: false,
 	},
-
 	name: {
 		source: 'db',
 		mutable: true,
@@ -176,6 +175,11 @@ export const schema = {
 		removeIfNull: false,
 	},
 	hostDiscoverability: {
+		source: 'db',
+		mutable: true,
+		removeIfNull: false,
+	},
+	debugMode: {
 		source: 'db',
 		mutable: true,
 		removeIfNull: false,

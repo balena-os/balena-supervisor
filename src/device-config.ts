@@ -191,6 +191,11 @@ const configKeys: Dictionary<ConfigOption> = {
 		varType: 'bool',
 		defaultValue: 'true',
 	},
+	debugMode: {
+		envVarName: 'HOST_DEBUG',
+		varType: 'bool',
+		defaultValue: 'false',
+	},
 };
 
 export const validKeys = [

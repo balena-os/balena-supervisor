@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { Span } from '@opentelemetry/api';
 
 import Network from './network';
 import Volume from './volume';
@@ -26,6 +27,7 @@ import { checkTruthy, checkString } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { ImageInspectInfo } from 'dockerode';
 import { pathExistsOnHost } from '../lib/fs-utils';
+import * as tracer from '../tracing/tracer';
 
 export interface AppConstructOpts {
 	appId: number;
@@ -85,10 +87,20 @@ export class App {
 		}
 	}
 
-	public nextStepsForAppUpdate(
+	public async nextStepsForAppUpdate(
 		state: UpdateState,
 		target: App,
-	): CompositionStep[] {
+		parentSpan: Span | null,
+	): Promise<CompositionStep[]> {
+		await tracer.initialize();
+		let span = null;
+		if (parentSpan) {
+			span = tracer.startSpan(
+				'next-steps-for-app-update',
+				undefined,
+				parentSpan,
+			);
+		}
 		// Check to see if we need to polyfill in some "new" data for legacy services
 		this.migrateLegacy(target);
 
@@ -99,11 +111,16 @@ export class App {
 			target.volumes,
 			false,
 		);
+
+		span?.addEvent(`Detected ${volumeChanges.length} volume changes needed.`);
+
 		const networkChanges = this.compareComponents(
 			this.networks,
 			target.networks,
 			true,
 		);
+
+		span?.addEvent(`Detected ${networkChanges.length} network changes needed.`);
 
 		let steps: CompositionStep[] = [];
 
@@ -118,6 +135,16 @@ export class App {
 			this.services,
 			target.services,
 			state.containerIds,
+		);
+
+		span?.addEvent(
+			`Detected ${removePairs.length} services that need to be removed.`,
+		);
+		span?.addEvent(
+			`Detected ${installPairs.length} services that need to be installed.`,
+		);
+		span?.addEvent(
+			`Detected ${updatePairs.length} services that need to be updated.`,
 		);
 
 		for (const { current: svc } of removePairs) {
@@ -147,10 +174,14 @@ export class App {
 
 		// Generate volume steps
 		steps = steps.concat(
-			this.generateStepsForComponent(volumeChanges, servicePairs, (v, svc) =>
-				// TODO: Volumes are stored without the appId prepended, but networks are stored
-				// with it prepended. Sort out this inequality
-				svc.config.volumes.includes(v.name),
+			this.generateStepsForComponent(
+				volumeChanges,
+				servicePairs,
+				(v, svc) =>
+					// TODO: Volumes are stored without the appId prepended, but networks are stored
+					// with it prepended. Sort out this inequality
+					svc.config.volumes.includes(v.name),
+				span,
 			),
 		);
 		// Generate network steps
@@ -159,6 +190,7 @@ export class App {
 				networkChanges,
 				servicePairs,
 				(n, svc) => `${this.appId}_${n.name}` in svc.config.networks,
+				span,
 			),
 		);
 
@@ -175,6 +207,8 @@ export class App {
 				}),
 			);
 		}
+
+		span?.end();
 
 		return steps;
 	}
@@ -402,7 +436,16 @@ export class App {
 		components: Array<ChangingPair<T>>,
 		changingServices: Array<ChangingPair<Service>>,
 		dependencyFn: (component: T, service: Service) => boolean,
+		parentSpan: Span | null,
 	): CompositionStep[] {
+		let span = null;
+		if (parentSpan) {
+			span = tracer.startSpan(
+				'generate-steps-for-component',
+				undefined,
+				parentSpan,
+			);
+		}
 		if (components.length === 0) {
 			return [];
 		}
@@ -444,9 +487,16 @@ export class App {
 					steps = steps.concat([generateStep(actions.remove, { current })]);
 				}
 			} else if (target != null) {
+				if (target instanceof Volume) {
+					span?.addEvent(`Create volume ${target.name}.`);
+				} else {
+					span?.addEvent(`Create network ${target.name}.`);
+				}
 				steps = steps.concat([generateStep(actions.create, { target })]);
 			}
 		}
+
+		span?.end();
 
 		return steps;
 	}
