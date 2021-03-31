@@ -6,7 +6,7 @@ defaults: &defaults
   steps:
     - setup_remote_docker:
         version: 18.09.3
-        docker_layer_caching: true
+        docker_layer_caching: false
     - run:
         name: Check docker is running and install git
         command: |
