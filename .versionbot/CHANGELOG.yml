@@ -1,4 +1,17 @@
 - commits:
+    - subject: Disable docker layer caching on CircleCI
+      hash: 7a318f22274b4a72d23d743433edfc2a5d3ebd9d
+      body: |
+        Docker layer caching is a paid plan feature on Circle CI, it has started
+        being enforced by Circle
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.5.1
+  date: 2021-03-31T13:47:33.254Z
+- commits:
     - subject: Add cywang117 to CODEOWNERS
       hash: 0f064fb84aa029e55775123a3e22a9929280a323
       body: ''
