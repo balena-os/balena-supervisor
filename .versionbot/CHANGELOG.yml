@@ -1,4 +1,17 @@
 - commits:
+    - subject: Removed upgrades.md doc
+      hash: 711909d9155a38c52baba09ceef5fa8d12a6ed11
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.5.2
+  date: 2021-03-31T23:02:14.501Z
+- commits:
     - subject: Disable docker layer caching on CircleCI
       hash: 7a318f22274b4a72d23d743433edfc2a5d3ebd9d
       body: |
