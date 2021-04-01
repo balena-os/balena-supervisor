@@ -1,4 +1,21 @@
 - commits:
+    - subject: Bump y18n from 4.0.0 to 4.0.1
+      hash: 9dd508b94d1bcf93801c698ee1286fd217b9d366
+      body: |
+        Bumps [y18n](https://github.com/yargs/y18n) from 4.0.0 to 4.0.1.
+        - [Release notes](https://github.com/yargs/y18n/releases)
+        - [Changelog](https://github.com/yargs/y18n/blob/master/CHANGELOG.md)
+        - [Commits](https://github.com/yargs/y18n/commits)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.5.3
+  date: 2021-04-01T06:10:19.520Z
+- commits:
     - subject: Removed upgrades.md doc
       hash: 711909d9155a38c52baba09ceef5fa8d12a6ed11
       body: ''
