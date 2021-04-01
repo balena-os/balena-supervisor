@@ -154,6 +154,6 @@ export async function removeOrphanedVolumes(
 }
 
 async function list(): Promise<VolumeInspectInfo[]> {
-	const allVolumes = await docker.listVolumes();
-	return _.get(allVolumes, 'Volumes', []);
+	const dockerResponse = await docker.listVolumes();
+	return Array.isArray(dockerResponse.Volumes) ? dockerResponse.Volumes : [];
 }
