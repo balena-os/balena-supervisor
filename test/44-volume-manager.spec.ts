@@ -5,6 +5,7 @@ import * as mockedDockerode from './lib/mocked-dockerode';
 import * as volumeManager from '../src/compose/volume-manager';
 import log from '../src/lib/supervisor-console';
 import Volume from '../src/compose/volume';
+import { VolumeInspectInfo } from 'dockerode';
 
 describe('Volume Manager', () => {
 	let logDebug: SinonStub;
@@ -71,6 +72,16 @@ describe('Volume Manager', () => {
 			]);
 			// Check that debug message was logged saying we found a Volume not created by us
 			expect(logDebug.lastCall.lastArg).to.equal('Cannot parse Volume: decoy');
+		});
+	});
+
+	it('can parse null Volumes', async () => {
+		// Setup volume data
+		// @ts-ignore
+		const volumeData: VolumeInspectInfo[] = null;
+		// Perform test
+		await mockedDockerode.testWithData({ volumes: volumeData }, async () => {
+			await expect(volumeManager.getAll()).to.eventually.deep.equal([]);
 		});
 	});
 
