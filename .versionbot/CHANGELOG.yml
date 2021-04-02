@@ -1,4 +1,19 @@
 - commits:
+    - subject: Patch list volumes to always return an array
+      hash: ecbe9ee9f9f1105347dea320f5f356a956bf9395
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1636'
+        closes: '#1636'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.5.4
+  date: 2021-04-02T00:33:39.207Z
+- commits:
     - subject: Bump y18n from 4.0.0 to 4.0.1
       hash: 9dd508b94d1bcf93801c698ee1286fd217b9d366
       body: |
