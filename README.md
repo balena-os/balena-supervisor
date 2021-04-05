@@ -45,7 +45,7 @@ To get the codebase setup on your development machine follow these steps. For ru
 
 ```sh
 # Clone the repo
-git clone git@github.com:balena-io/balena-supervisor.git
+git clone git@github.com:balena-os/balena-supervisor.git
 
 # Install dependencies
 npm ci
