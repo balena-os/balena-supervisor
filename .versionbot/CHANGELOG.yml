@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update setup section to reflect switch to balena-os org
+      hash: dc41a7fa51725c716653e5eb7164cc73492607e5
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.5.5
+  date: 2021-04-05T10:09:42.521Z
+- commits:
     - subject: Patch list volumes to always return an array
       hash: ecbe9ee9f9f1105347dea320f5f356a956bf9395
       body: ''
