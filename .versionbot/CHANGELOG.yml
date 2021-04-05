@@ -1,4 +1,33 @@
 - commits:
+    - subject: >-
+        Prevent unintended image removal when calling purge endpoints to remove
+        volumes
+      hash: 31effed426750fabc30afb8503ec5b9feedf08b5
+      body: >
+        Using safeStateClone within doPurge to applyIntermediateTarget after
+
+        successful volume purge has led to various type deficiencies being
+        revealed
+
+        in common.js. Add several inline types in common.js to satisfy
+
+        the type checker (credit: Page <page@balena.io>). Delete common.d.ts
+
+        since it's not required and might mistakenly mask true I/O types of
+
+        functions in common.js.
+      footer:
+        Closes: '#1611'
+        closes: '#1611'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.5.6
+  date: 2021-04-05T12:21:12.006Z
+- commits:
     - subject: Update setup section to reflect switch to balena-os org
       hash: dc41a7fa51725c716653e5eb7164cc73492607e5
       body: ''
