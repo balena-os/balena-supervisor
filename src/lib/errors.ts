@@ -10,6 +10,10 @@ export interface StatusCodeError extends Error {
 	statusCode?: string | number;
 }
 
+export interface DockerDaemonError extends StatusCodeError {
+	reason: string;
+}
+
 interface CodedSysError extends Error {
 	code?: string;
 }
@@ -39,6 +43,12 @@ export function UnitNotLoadedError(err: string[]): boolean {
 export class InvalidNetGatewayError extends TypedError {}
 
 export class DeltaStillProcessingError extends TypedError {}
+
+// This error occurs when the image is removed from balenaEngine while it is needed by the application.
+// It's a 404 error that gets thrown by the Docker daemon.
+export function ImageNotFoundError(err: DockerDaemonError): boolean {
+	return checkInt(err.statusCode) === 404 && err.reason === 'no such image';
+}
 
 export class InvalidAppIdError extends TypedError {
 	public constructor(public appId: any) {

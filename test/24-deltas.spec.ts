@@ -1,7 +1,14 @@
 import { expect } from 'chai';
-import { stub } from 'sinon';
+import { stub, SinonStub } from 'sinon';
+import rewire = require('rewire');
+import mockedAPI = require('./lib/mocked-device-api');
 
 import * as dockerUtils from '../src/lib/docker-utils';
+import {
+	DeltaStillProcessingError,
+	DockerDaemonError,
+} from '../src/lib/errors';
+import log from '../src/lib/supervisor-console';
 
 describe('Deltas', () => {
 	it('should correctly detect a V2 delta', async () => {
@@ -100,5 +107,73 @@ describe('Deltas', () => {
 		expect(await dockerUtils.isV2DeltaImage('test')).to.be.true;
 		expect(imageStub.callCount).to.equal(1);
 		imageStub.restore();
+	});
+
+	// Docker daemon errors that occur when applying a delta that is suddenly unavailable (deleted / modified)
+	describe('Docker daemon errors', () => {
+		const imageManager = rewire('../src/compose/images');
+
+		class DockerDaemonErrorClass implements DockerDaemonError {
+			public name = 'Error';
+			constructor(
+				public statusCode: number,
+				public reason: string,
+				public message: string,
+			) {}
+		}
+
+		const image = mockedAPI.mockImage({ appId: 2 });
+
+		const fetchOptions = {
+			deltaSource: image.name,
+			uuid: '1234567',
+			currentApiKey: 'abcdefg',
+			apiEndpoint: 'https://api.balena-cloud.com',
+			deltaEndpoint: 'https://delta.balena-cloud.com',
+			delta: true,
+			deltaRequestTimeout: 30000,
+			deltaApplyTimeout: 0,
+			deltaRetryCount: 30,
+			deltaRetryInterval: 10000,
+			deltaVersion: 3,
+		};
+
+		before(() => {
+			stub(log, 'debug');
+
+			imageManager.__set__({
+				markAsSupervised: async () => Promise.resolve(),
+				fetchDelta: async () => {
+					throw new DeltaStillProcessingError();
+				},
+				// When there's a daemon 404 image not found error, inspectByName in triggerFetch is the method that throws this error
+				inspectByName: async () => {
+					throw new DockerDaemonErrorClass(
+						404,
+						'no such image',
+						`No such image: ${image.name}`,
+					);
+				},
+			});
+		});
+
+		after(() => {
+			(log.debug as SinonStub).restore();
+		});
+
+		it('should gracefully log Docker daemon 404 - no such image errors', async () => {
+			await imageManager.triggerFetch(
+				image,
+				fetchOptions,
+				() => {
+					/* noop */
+				},
+				image.serviceName,
+			);
+
+			expect((log.debug as SinonStub).args[0][0]).to.equal(
+				`Delta image has been modified or deleted by daemon while applying, redownloading: ${image.name}`,
+			);
+		});
 	});
 });
