@@ -1,4 +1,17 @@
 - commits:
+    - subject: Add message to refer to v2 endpoints
+      hash: 732950fb9e106bf0d28d9cbb84c73c80d60e533e
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+        signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+      author: Vipul Gupta (@vipulgupta2048)
+      nested: []
+  version: 12.5.7
+  date: 2021-04-06T14:20:11.746Z
+- commits:
     - subject: >-
         Prevent unintended image removal when calling purge endpoints to remove
         volumes
