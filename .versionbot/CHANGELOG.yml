@@ -1,4 +1,19 @@
 - commits:
+    - subject: Fix broken IPAM network validation
+      hash: fdb37191e7cd53d4731f9c75e2780959368b305c
+      body: |
+        Network validaton was failing to identify a bad IPAM network
+        configuration leading to supervisor failures (see #1618)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1618'
+        closes: '#1618'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.5.9
+  date: 2021-04-09T21:52:12.779Z
+- commits:
     - subject: Improved mutable (/data) file system detection
       hash: 204475d3dcbbb8a69b681d0348b39b5b486b628b
       body: ''
