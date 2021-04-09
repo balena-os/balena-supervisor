@@ -214,8 +214,8 @@ export class Network {
 		},
 	): void {
 		// Check if every ipam config entry has both a subnet and a gateway
-		_.each(_.get(config, 'config.ipam.config', []), ({ subnet, gateway }) => {
-			if (subnet == null || gateway == null) {
+		_.each(_.get(config, 'ipam.config', []), ({ subnet, gateway }) => {
+			if (!subnet || !gateway) {
 				throw new InvalidNetworkConfigurationError(
 					'Network IPAM config entries must have both a subnet and gateway',
 				);
