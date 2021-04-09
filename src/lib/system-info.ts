@@ -1,17 +1,15 @@
 import * as systeminformation from 'systeminformation';
-import * as osUtils from 'os-utils';
 import * as _ from 'lodash';
 import { fs, child_process } from 'mz';
 
-export function getCpuUsage(): Promise<number> {
-	return new Promise((resolve) => {
-		osUtils.cpuUsage((percent) => {
-			resolve(Math.round(percent * 100));
-		});
-	});
+export async function getCpuUsage(): Promise<number> {
+	const cpuData = await systeminformation.currentLoad();
+	const totalLoad = cpuData.cpus.reduce((load, cpuLoad) => {
+		return load + cpuLoad.load;
+	}, 0);
+	return Math.round(totalLoad / cpuData.cpus.length);
 }
 
-const blockDeviceRegex = /(\/dev\/.*)p\d+/;
 export async function getStorageInfo(): Promise<{
 	blockDevice: string;
 	storageUsed?: number;
@@ -23,13 +21,8 @@ export async function getStorageInfo(): Promise<{
 	// First we find the block device which the data partition is part of
 	for (const partition of fsInfo) {
 		if (partition.mount === '/data') {
-			const match = partition.fs.match(blockDeviceRegex);
-			if (match == null) {
-				mainFs = undefined;
-			} else {
-				mainFs = match[1];
-				total = partition.size;
-			}
+			mainFs = partition.fs;
+			total = partition.size;
 			break;
 		}
 	}
@@ -68,12 +61,11 @@ export async function getMemoryInformation(): Promise<{
 }
 
 export async function getCpuTemp(): Promise<number> {
-	return Math.round((await systeminformation.cpuTemperature()).main);
+	const tempInfo = await systeminformation.cpuTemperature();
+	return Math.round(tempInfo.main);
 }
 
 export async function getCpuId(): Promise<string | undefined> {
-	// Read /proc/device-tree/serial-number
-	// if it's not there, return undefined
 	try {
 		const buffer = await fs.readFile('/proc/device-tree/serial-number');
 		// Remove the null byte at the end
@@ -115,6 +107,7 @@ export async function getSysInfoToReport() {
 		is_undervolted: undervoltage,
 	};
 }
+
 export type SystemInfo = UnwrappedPromise<
 	ReturnType<typeof getSysInfoToReport>
 >;

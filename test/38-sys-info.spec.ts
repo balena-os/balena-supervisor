@@ -1,18 +1,27 @@
 import { expect } from 'chai';
-import * as sysInfo from '../src/lib/system-info';
-
-import { SinonStub, stub } from 'sinon';
+import { stub } from 'sinon';
 import * as systeminformation from 'systeminformation';
+import { fs } from 'mz';
+
+import * as sysInfo from '../src/lib/system-info';
 
 function toMb(bytes: number) {
 	return Math.floor(bytes / 1024 / 1024);
 }
 
-function toBytes(kb: number) {
-	return kb * 1024;
-}
+describe('System information', async () => {
+	const fsSizeStub = stub(systeminformation, 'fsSize');
+	const memStub = stub(systeminformation, 'mem');
+	const currentLoadStub = stub(systeminformation, 'currentLoad');
+	const cpuTempStub = stub(systeminformation, 'cpuTemperature');
 
-describe('System information', () => {
+	after(() => {
+		fsSizeStub.restore();
+		memStub.restore();
+		currentLoadStub.restore();
+		cpuTempStub.restore();
+	});
+
 	describe('Delta-based filtering', () => {
 		it('should correctly filter cpu usage', () => {
 			expect(
@@ -67,39 +76,240 @@ describe('System information', () => {
 		});
 	});
 
-	describe('Memory information', function () {
+	describe('CPU information', async () => {
+		it('gets CPU usage', async () => {
+			currentLoadStub.resolves(mockCPU.load);
+			const cpuUsage = await sysInfo.getCpuUsage();
+			// Make sure it is a whole number
+			expect(cpuUsage % 1).to.equal(0);
+			// Make sure it's the right number given the mocked data
+			expect(cpuUsage).to.equal(1);
+		});
+
+		it('gets CPU temp', async () => {
+			cpuTempStub.resolves(mockCPU.temp);
+			const tempInfo = await sysInfo.getCpuTemp();
+			// Make sure it is a whole number
+			expect(tempInfo % 1).to.equal(0);
+			// Make sure it's the right number given the mocked data
+			expect(tempInfo).to.equal(51);
+		});
+
+		it('gets CPU ID', async () => {
+			const fsStub = stub(fs, 'readFile').resolves(
+				// @ts-ignore TS thinks we can't return a buffer...
+				Buffer.from([
+					0x31,
+					0x30,
+					0x30,
+					0x30,
+					0x30,
+					0x30,
+					0x30,
+					0x30,
+					0x30,
+					0x31,
+					0x62,
+					0x39,
+					0x33,
+					0x66,
+					0x33,
+					0x66,
+					0x00,
+				]),
+			);
+			const cpuId = await sysInfo.getCpuId();
+			expect(cpuId).to.equal('1000000001b93f3');
+			fsStub.restore();
+		});
+	});
+
+	describe('Memory information', async () => {
 		it('should return the correct value for memory usage', async () => {
-			const [total, free, cached, buffers] = [
-				763472,
-				143896,
-				368360,
-				16724,
-			].map(toBytes);
-
-			// Stub the output of the systeminformation module
-			stub(systeminformation, 'mem').resolves({
-				total,
-				free,
-				used: total - free,
-				cached,
-				buffers,
-				slab: 0,
-				buffcache: 0,
-				available: 0,
-				active: 0,
-				swaptotal: 0,
-				swapfree: 0,
-				swapused: 0,
+			memStub.resolves(mockMemory);
+			const memoryInfo = await sysInfo.getMemoryInformation();
+			expect(memoryInfo).to.deep.equal({
+				total: toMb(mockMemory.total),
+				used: toMb(
+					mockMemory.total -
+						mockMemory.free -
+						(mockMemory.cached + mockMemory.buffers),
+				),
 			});
+		});
+	});
 
-			const meminfo = await sysInfo.getMemoryInformation();
-			expect(meminfo.total).to.be.equal(toMb(total));
+	describe('Storage information', async () => {
+		it('should return info on /data mount', async () => {
+			fsSizeStub.resolves(mockFS);
+			const storageInfo = await sysInfo.getStorageInfo();
+			expect(storageInfo).to.deep.equal({
+				blockDevice: '/dev/mmcblk0p6',
+				storageUsed: 1118,
+				storageTotal: 29023,
+			});
+		});
 
-			// used memory = total - free - (cached + buffers)
-			// this is how `htop` and `free` calculate it
-			expect(meminfo.used).to.be.equal(toMb(total - free - (cached + buffers)));
-
-			(systeminformation.mem as SinonStub).restore();
+		it('should handle no /data mount', async () => {
+			fsSizeStub.resolves([]);
+			const storageInfo = await sysInfo.getStorageInfo();
+			expect(storageInfo).to.deep.equal({
+				blockDevice: '',
+				storageUsed: undefined,
+				storageTotal: undefined,
+			});
 		});
 	});
 });
+
+const mockCPU = {
+	temp: {
+		main: 50.634,
+		cores: [],
+		max: 50.634,
+		socket: [],
+	},
+	load: {
+		avgLoad: 0.6,
+		currentLoad: 1.4602487831260142,
+		currentLoadUser: 0.7301243915630071,
+		currentLoadSystem: 0.7301243915630071,
+		currentLoadNice: 0,
+		currentLoadIdle: 98.53975121687398,
+		currentLoadIrq: 0,
+		rawCurrentLoad: 5400,
+		rawCurrentLoadUser: 2700,
+		rawCurrentLoadSystem: 2700,
+		rawCurrentLoadNice: 0,
+		rawCurrentLoadIdle: 364400,
+		rawCurrentLoadIrq: 0,
+		cpus: [
+			{
+				load: 1.8660812294182216,
+				loadUser: 0.7683863885839737,
+				loadSystem: 1.0976948408342482,
+				loadNice: 0,
+				loadIdle: 98.13391877058177,
+				loadIrq: 0,
+				rawLoad: 1700,
+				rawLoadUser: 700,
+				rawLoadSystem: 1000,
+				rawLoadNice: 0,
+				rawLoadIdle: 89400,
+				rawLoadIrq: 0,
+			},
+			{
+				load: 1.7204301075268817,
+				loadUser: 0.8602150537634409,
+				loadSystem: 0.8602150537634409,
+				loadNice: 0,
+				loadIdle: 98.27956989247312,
+				loadIrq: 0,
+				rawLoad: 1600,
+				rawLoadUser: 800,
+				rawLoadSystem: 800,
+				rawLoadNice: 0,
+				rawLoadIdle: 91400,
+				rawLoadIrq: 0,
+			},
+			{
+				load: 1.186623516720604,
+				loadUser: 0.9708737864077669,
+				loadSystem: 0.2157497303128371,
+				loadNice: 0,
+				loadIdle: 98.8133764832794,
+				loadIrq: 0,
+				rawLoad: 1100,
+				rawLoadUser: 900,
+				rawLoadSystem: 200,
+				rawLoadNice: 0,
+				rawLoadIdle: 91600,
+				rawLoadIrq: 0,
+			},
+			{
+				load: 1.0752688172043012,
+				loadUser: 0.3225806451612903,
+				loadSystem: 0.7526881720430108,
+				loadNice: 0,
+				loadIdle: 98.9247311827957,
+				loadIrq: 0,
+				rawLoad: 1000,
+				rawLoadUser: 300,
+				rawLoadSystem: 700,
+				rawLoadNice: 0,
+				rawLoadIdle: 92000,
+				rawLoadIrq: 0,
+			},
+		],
+	},
+};
+const mockFS = [
+	{
+		fs: 'overlay',
+		type: 'overlay',
+		size: 30433308672,
+		used: 1172959232,
+		available: 27684696064,
+		use: 4.06,
+		mount: '/',
+	},
+	{
+		fs: '/dev/mmcblk0p6',
+		type: 'ext4',
+		size: 30433308672,
+		used: 1172959232,
+		available: 27684696064,
+		use: 4.06,
+		mount: '/data',
+	},
+	{
+		fs: '/dev/mmcblk0p1',
+		type: 'vfat',
+		size: 41281536,
+		used: 7219200,
+		available: 34062336,
+		use: 17.49,
+		mount: '/boot/config.json',
+	},
+	{
+		fs: '/dev/disk/by-state/resin-state',
+		type: 'ext4',
+		size: 19254272,
+		used: 403456,
+		available: 17383424,
+		use: 2.27,
+		mount: '/mnt/root/mnt/state',
+	},
+	{
+		fs: '/dev/disk/by-uuid/ba1eadef-4660-4b03-9e71-9f33257f292c',
+		type: 'ext4',
+		size: 313541632,
+		used: 308860928,
+		available: 0,
+		use: 100,
+		mount: '/mnt/root/mnt/sysroot/active',
+	},
+	{
+		fs: '/dev/mmcblk0p2',
+		type: 'ext4',
+		size: 313541632,
+		used: 299599872,
+		available: 0,
+		use: 100,
+		mount: '/mnt/root/mnt/sysroot/inactive',
+	},
+];
+const mockMemory = {
+	total: 4032724992,
+	free: 2182356992,
+	used: 1850368000,
+	active: 459481088,
+	available: 3573243904,
+	buffers: 186269696,
+	cached: 1055621120,
+	slab: 252219392,
+	buffcache: 1494110208,
+	swaptotal: 2016358400,
+	swapused: 0,
+	swapfree: 2016358400,
+};

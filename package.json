@@ -29,10 +29,9 @@
   "dependencies": {
     "dbus": "^1.0.7",
     "mdns-resolver": "^1.0.0",
-    "os-utils": "0.0.14",
     "semver": "^7.3.2",
     "sqlite3": "^4.1.1",
-    "systeminformation": "^4.31.1"
+    "systeminformation": "^5.6.10"
   },
   "engines": {
     "node": "^12.16.2",
@@ -60,7 +59,6 @@
     "@types/morgan": "^1.9.0",
     "@types/mz": "0.0.32",
     "@types/node": "^12.12.54",
-    "@types/os-utils": "0.0.1",
     "@types/request": "^2.48.5",
     "@types/rewire": "^2.5.28",
     "@types/rimraf": "^2.0.4",
