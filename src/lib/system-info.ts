@@ -69,7 +69,7 @@ export async function getCpuId(): Promise<string | undefined> {
 	try {
 		const buffer = await fs.readFile('/proc/device-tree/serial-number');
 		// Remove the null byte at the end
-		return buffer.toString('utf-8').substr(0, buffer.length - 2);
+		return buffer.toString('utf-8').replace(/\0/g, '');
 	} catch {
 		return undefined;
 	}
