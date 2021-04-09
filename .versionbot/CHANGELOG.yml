@@ -1,4 +1,19 @@
 - commits:
+    - subject: Improved mutable (/data) file system detection
+      hash: 204475d3dcbbb8a69b681d0348b39b5b486b628b
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1609'
+        closes: '#1609'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.5.8
+  date: 2021-04-08T21:37:33.210Z
+- commits:
     - subject: Add message to refer to v2 endpoints
       hash: 732950fb9e106bf0d28d9cbb84c73c80d60e533e
       body: ''
