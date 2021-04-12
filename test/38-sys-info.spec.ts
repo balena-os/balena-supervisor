@@ -119,7 +119,7 @@ describe('System information', async () => {
 				]),
 			);
 			const cpuId = await sysInfo.getCpuId();
-			expect(cpuId).to.equal('1000000001b93f3');
+			expect(cpuId).to.equal('1000000001b93f3f');
 			fsStub.restore();
 		});
 	});
