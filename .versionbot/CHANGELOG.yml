@@ -1,4 +1,23 @@
 - commits:
+    - subject: 'patch: Fix the sysInfo.getCpuId() test'
+      hash: 50a2f3d313d8883c077aea7e57188b1354942edd
+      body: ''
+      footer:
+        Signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+        signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+      author: Vipul Gupta (@vipulgupta2048)
+      nested: []
+    - subject: 'patch: Fix substring end parameter for accurate CPU ID'
+      hash: d058f43febe397857ddaa7e72a58310e89576e28
+      body: ''
+      footer:
+        Signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+        signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+      author: Vipul Gupta (@vipulgupta2048)
+      nested: []
+  version: 12.5.10
+  date: 2021-04-12T21:52:54.458Z
+- commits:
     - subject: Fix broken IPAM network validation
       hash: fdb37191e7cd53d4731f9c75e2780959368b305c
       body: |
