@@ -3,13 +3,19 @@ import * as _ from 'lodash';
 import { appNotFoundMessage } from '../lib/messages';
 import * as logger from '../logger';
 
+import { InstancedDeviceState } from '../types/state';
+import { App } from '../compose/app';
+
 import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
 import * as serviceManager from '../compose/service-manager';
 import * as volumeManager from '../compose/volume-manager';
 import { InternalInconsistencyError } from '../lib/errors';
 
-export async function doRestart(appId, force) {
+export async function doRestart(
+	appId: number,
+	force: boolean,
+): Promise<unknown> {
 	await deviceState.initialized;
 	await applicationManager.initialized;
 
@@ -38,7 +44,7 @@ export async function doRestart(appId, force) {
 	);
 }
 
-export async function doPurge(appId, force) {
+export async function doPurge(appId: number, force: boolean): Promise<unknown> {
 	await deviceState.initialized;
 	await applicationManager.initialized;
 
@@ -121,22 +127,11 @@ export async function doPurge(appId, force) {
 		});
 }
 
-export function serviceAction(action, serviceId, current, target, options) {
-	if (options == null) {
-		options = {};
-	}
-	return { action, serviceId, current, target, options };
-}
-
-/**
- * This doesn't truly return an InstancedDeviceState, but it's close enough to mostly work where it's used
- *
- * @returns { import('../types/state').InstancedDeviceState }
- */
-export function safeStateClone(targetState) {
-	// We avoid using cloneDeep here, as the class
-	// instances can cause a maximum call stack exceeded
-	// error
+export function safeStateClone(
+	targetState: InstancedDeviceState,
+): InstancedDeviceState {
+	// We avoid using cloneDeep here, as the class instances
+	// can cause a maximum call stack exceeded error
 
 	// TODO: This should really return the config as it
 	// is returned from the api, but currently that's not
@@ -146,8 +141,7 @@ export function safeStateClone(targetState) {
 	// thing to do would be to represent the input with
 	// io-ts and make sure the below conforms to it
 
-	/** @type { any } */
-	const cloned = {
+	const cloned: DeepPartial<InstancedDeviceState> = {
 		local: {
 			config: {},
 		},
@@ -167,10 +161,10 @@ export function safeStateClone(targetState) {
 		cloned.dependent = _.cloneDeep(targetState.dependent);
 	}
 
-	return cloned;
+	return cloned as InstancedDeviceState;
 }
 
-export function safeAppClone(app) {
+export function safeAppClone(app: App) {
 	const containerIdForService = _.fromPairs(
 		_.map(app.services, (svc) => [
 			svc.serviceName,
@@ -179,7 +173,7 @@ export function safeAppClone(app) {
 	);
 	return {
 		appId: app.appId,
-		name: app.name,
+		name: app.appName,
 		commit: app.commit,
 		releaseId: app.releaseId,
 		services: _.map(app.services, (svc) => {
@@ -197,7 +191,7 @@ export function safeAppClone(app) {
 			_.each(svcCopy.config.networks, (net) => {
 				if (Array.isArray(net.aliases)) {
 					net.aliases = net.aliases.filter(
-						(alias) => alias !== containerIdForService[svcCopy.serviceName],
+						(alias) => alias !== containerIdForService[svcCopy.serviceName!],
 					);
 				}
 			});
