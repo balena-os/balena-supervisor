@@ -261,7 +261,7 @@ const MATCH_TESTS = [
 	{ type: 'jetson-nano-emmc', supported: true },
 	{ type: 'jn30b-nano', supported: true },
 	{ type: 'photon-nano', supported: true },
-	{ type: 'intel-nuc', supported: true },
+	{ type: 'intel-nuc', supported: false },
 	{ type: 'raspberry', supported: false },
 	{ type: 'fincm3', supported: false },
 	{ type: 'asus-tinker-board', supported: false },
