@@ -60,8 +60,7 @@ export class ExtraUEnv extends ConfigBackend {
 
 	public async matches(deviceType: string): Promise<boolean> {
 		return (
-			(deviceType === 'intel-nuc' ||
-				deviceType.endsWith('-nano') ||
+			(deviceType.endsWith('-nano') ||
 				deviceType.endsWith('-nano-emmc') ||
 				deviceType.endsWith('-tx2')) &&
 			(await fs.exists(ExtraUEnv.bootConfigPath))
