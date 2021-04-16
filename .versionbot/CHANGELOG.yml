@@ -1,4 +1,17 @@
 - commits:
+    - subject: Refactor extra_uEnv to not match with intel nuc
+      hash: e6eda0fca7b280aa5453972a26c36ab6895c227a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.5.11
+  date: 2021-04-14T05:27:23.056Z
+- commits:
     - subject: 'patch: Fix the sysInfo.getCpuId() test'
       hash: 50a2f3d313d8883c077aea7e57188b1354942edd
       body: ''
