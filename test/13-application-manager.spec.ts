@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { stub } from 'sinon';
+import { expect } from 'chai';
 
 import Network from '../src/compose/network';
 
@@ -10,7 +11,6 @@ import * as deviceState from '../src/device-state';
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as images from '../src/compose/images';
 
-import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
 import * as db from '../src/db';
 import * as dbFormat from '../src/device-state/db-format';
@@ -19,10 +19,6 @@ import * as config from '../src/config';
 import { TargetApplication, TargetApplications } from '../src/types/state';
 
 import * as applicationManager from '../src/compose/application-manager';
-
-// tslint:disable-next-line
-chai.use(require('chai-events'));
-const { expect } = chai;
 
 let availableImages: any[] | null;
 let targetState: any[] | null;

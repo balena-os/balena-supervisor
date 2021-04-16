@@ -1,7 +1,6 @@
-import * as mixpanel from 'mixpanel';
 import { SinonStub, stub, spy, SinonSpy } from 'sinon';
-
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
+import * as mixpanel from 'mixpanel';
 
 import log from '../src/lib/supervisor-console';
 import supervisorVersion = require('../src/lib/supervisor-version');

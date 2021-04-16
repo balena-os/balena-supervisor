@@ -1,4 +1,3 @@
-import * as assert from 'assert';
 import { expect } from 'chai';
 import * as Docker from 'dockerode';
 import * as sinon from 'sinon';
@@ -400,11 +399,10 @@ describe.skip('LocalModeManager', () => {
 				});
 
 				try {
-					await localMode.retrieveLatestSnapshot();
-					assert.fail('Parsing error was expected');
+					const result = await localMode.retrieveLatestSnapshot();
+					expect(result).to.not.exist;
 				} catch (e) {
-					console.log(e.message);
-					expect(e.message).to.contain('bad json');
+					expect(e.message).to.match(/Cannot parse snapshot data.*"bad json"/);
 				}
 			});
 
@@ -417,11 +415,12 @@ describe.skip('LocalModeManager', () => {
 				});
 
 				try {
-					await localMode.retrieveLatestSnapshot();
-					assert.fail('Parsing error was expected');
+					const result = await localMode.retrieveLatestSnapshot();
+					expect(result).to.not.exist;
 				} catch (e) {
-					console.log(e.message);
-					expect(e.message).to.contain('bad timestamp');
+					expect(e.message).to.match(
+						/Cannot parse snapshot data.*"bad timestamp"/,
+					);
 				}
 			});
 		});

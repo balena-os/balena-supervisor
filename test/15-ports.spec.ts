@@ -1,5 +1,5 @@
 import { PortMap, PortRange } from '../src/compose/ports';
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 
 // Force cast `PortMap` as a public version so we can test it
 const PortMapPublic = (PortMap as any) as new (

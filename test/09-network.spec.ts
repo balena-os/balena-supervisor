@@ -2,7 +2,7 @@ import { fs } from 'mz';
 import * as os from 'os';
 import { stub, spy } from 'sinon';
 
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import Log from '../src/lib/supervisor-console';
 import * as network from '../src/network';
 

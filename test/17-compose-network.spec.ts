@@ -1,4 +1,4 @@
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import { Network } from '../src/compose/network';
 
 describe('compose/network', function () {

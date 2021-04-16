@@ -1,7 +1,7 @@
 import { fs, child_process } from 'mz';
 import { SinonStub, stub } from 'sinon';
 
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as fsUtils from '../src/lib/fs-utils';
 import { SplashImage } from '../src/config/backends/splash-image';
 import log from '../src/lib/supervisor-console';

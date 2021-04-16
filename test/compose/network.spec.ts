@@ -1,5 +1,4 @@
-import ChaiConfig = require('../lib/chai-config');
-const { expect } = ChaiConfig;
+import { expect } from 'chai';
 
 import { Network } from '../../src/compose/network';
 

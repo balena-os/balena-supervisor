@@ -1,8 +1,7 @@
-import { assert, expect } from 'chai';
+import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
-
-import { child_process } from 'mz';
 import * as semver from 'semver';
+import { child_process } from 'mz';
 
 import * as constants from '../src/lib/constants';
 import {
@@ -96,8 +95,8 @@ describe('Container contracts', () => {
 			expect(await osRelease.getOSSemver(constants.hostOSVersionPath)).to.equal(
 				'2.0.6',
 			);
-			assert(semver.gt(supervisorVersionGreater, supervisorVersion));
-			assert(semver.lt(supervisorVersionLesser, supervisorVersion));
+			expect(semver.gt(supervisorVersionGreater, supervisorVersion)).to.be.true;
+			expect(semver.lt(supervisorVersionLesser, supervisorVersion)).to.be.true;
 		});
 
 		it('Should correctly run containers with no requirements', async () => {

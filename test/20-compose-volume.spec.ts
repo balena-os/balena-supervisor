@@ -3,7 +3,6 @@ import { stub, SinonStub } from 'sinon';
 
 import { docker } from '../src/lib/docker-utils';
 import * as logger from '../src/logger';
-
 import Volume from '../src/compose/volume';
 import logTypes = require('../src/lib/log-types');
 

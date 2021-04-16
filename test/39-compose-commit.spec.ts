@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+
 import * as commitStore from '../src/compose/commit';
 import * as db from '../src/db';
 

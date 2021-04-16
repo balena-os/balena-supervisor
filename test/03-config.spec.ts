@@ -1,18 +1,14 @@
 import * as _ from 'lodash';
 import { fs } from 'mz';
 import { SinonStub, stub } from 'sinon';
+import { expect } from 'chai';
 
-import chai = require('./lib/chai-config');
 import prepare = require('./lib/prepare');
 import * as conf from '../src/config';
 
 import constants = require('../src/lib/constants');
 import { SchemaTypeKey } from '../src/config/schema-type';
 import { fnSchema } from '../src/config/functions';
-
-// tslint:disable-next-line
-chai.use(require('chai-events'));
-const { expect } = chai;
 
 describe('Config', () => {
 	before(async () => {
@@ -148,6 +144,7 @@ describe('Config', () => {
 			);
 
 			const deviceArch = await conf.get('deviceArch');
+			console.log(deviceArch);
 			expect(deviceArch).to.equal(arch);
 			expect(fs.readFile).to.be.calledOnce;
 			expect(fs.readFile).to.be.calledWith(

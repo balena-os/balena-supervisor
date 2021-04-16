@@ -1,8 +1,8 @@
 import { child_process, fs } from 'mz';
 import { stripIndent } from 'common-tags';
 import { SinonStub, spy, stub } from 'sinon';
+import { expect } from 'chai';
 
-import { expect } from './lib/chai-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import Log from '../src/lib/supervisor-console';
 import { ExtraUEnv } from '../src/config/backends/extra-uEnv';

@@ -1,9 +1,8 @@
 import { SinonStub, stub } from 'sinon';
 import { promises as fs } from 'fs';
-
 import { resolve } from 'path';
+import { expect } from 'chai';
 
-import { expect } from './lib/chai-config';
 import Log from '../src/lib/supervisor-console';
 import { Odmdata } from '../src/config/backends/odmdata';
 

@@ -1,3 +1,0 @@
---exit
---timeout 30000
-build/test/**/*.js

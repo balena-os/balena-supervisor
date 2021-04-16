@@ -1,7 +1,7 @@
 import { stub } from 'sinon';
 import * as _ from 'lodash';
+import { expect } from 'chai';
 
-import { expect } from './lib/chai-config';
 import * as config from '../src/config';
 import * as configUtils from '../src/config/utils';
 import { ExtraUEnv } from '../src/config/backends/extra-uEnv';

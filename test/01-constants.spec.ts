@@ -1,6 +1,4 @@
-import ChaiConfig = require('./lib/chai-config');
-
-const { expect } = ChaiConfig;
+import { expect } from 'chai';
 
 import constants = require('../src/lib/constants');
 

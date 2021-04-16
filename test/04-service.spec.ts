@@ -1,7 +1,5 @@
 import * as _ from 'lodash';
-
-import ChaiConfig = require('./lib/chai-config');
-const { assert, expect } = ChaiConfig;
+import { expect } from 'chai';
 
 import Service from '../src/compose/service';
 import {
@@ -315,7 +313,7 @@ describe('compose/service', () => {
 				},
 				{ appName: 'test' } as any,
 			);
-			assert(svc1.isEqualConfig(svc2, {}));
+			expect(svc1.isEqualConfig(svc2, {})).to.be.true;
 
 			svc2 = await Service.fromComposeObject(
 				{
@@ -326,7 +324,7 @@ describe('compose/service', () => {
 				},
 				{ appName: 'test' } as any,
 			);
-			assert(!svc1.isEqualConfig(svc2, {}));
+			expect(svc1.isEqualConfig(svc2, {})).to.be.false;
 		});
 
 		it('should correctly compare non-ordered array parameters', async () => {
@@ -348,7 +346,7 @@ describe('compose/service', () => {
 				},
 				{ appName: 'test' } as any,
 			);
-			assert(svc1.isEqualConfig(svc2, {}));
+			expect(svc1.isEqualConfig(svc2, {})).to.be.true;
 
 			svc2 = await Service.fromComposeObject(
 				{
@@ -359,7 +357,7 @@ describe('compose/service', () => {
 				},
 				{ appName: 'test' } as any,
 			);
-			assert(svc1.isEqualConfig(svc2, {}));
+			expect(svc1.isEqualConfig(svc2, {})).to.be.true;
 		});
 
 		it('should correctly compare both ordered and non-ordered array parameters', async () => {
@@ -383,7 +381,7 @@ describe('compose/service', () => {
 				},
 				{ appName: 'test' } as any,
 			);
-			assert(svc1.isEqualConfig(svc2, {}));
+			expect(svc1.isEqualConfig(svc2, {})).to.be.true;
 		});
 	});
 

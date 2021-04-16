@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
+import { expect } from 'chai';
 
 import { docker } from '../src/lib/docker-utils';
-import { expect } from './lib/chai-config';
 import * as Images from '../src/compose/images';
 import * as mockedDockerode from './lib/mocked-dockerode';
 import * as mockedDatabase from './lib/mocked-database';

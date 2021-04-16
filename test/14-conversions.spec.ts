@@ -1,4 +1,4 @@
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as conversion from '../src/lib/conversions';
 
 describe('conversions', function () {

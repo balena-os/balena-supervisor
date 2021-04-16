@@ -1,8 +1,8 @@
 import { stripIndent } from 'common-tags';
 import { child_process, fs } from 'mz';
 import { SinonStub, stub, spy, SinonSpy } from 'sinon';
+import { expect } from 'chai';
 
-import { expect } from './lib/chai-config';
 import * as deviceConfig from '../src/device-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import * as logger from '../src/logger';

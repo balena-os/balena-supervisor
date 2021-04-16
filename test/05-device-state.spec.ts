@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import { stub } from 'sinon';
+import { expect } from 'chai';
 
-import chai = require('./lib/chai-config');
 import { StatusCodeError } from '../src/lib/errors';
 import prepare = require('./lib/prepare');
 import * as dockerUtils from '../src/lib/docker-utils';
@@ -13,10 +13,6 @@ import * as deviceConfig from '../src/device-config';
 import { loadTargetFromFile } from '../src/device-state/preload';
 import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
-
-// tslint:disable-next-line
-chai.use(require('chai-events'));
-const { expect } = chai;
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',

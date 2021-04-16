@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import { stub, SinonStub } from 'sinon';
+import { VolumeInspectInfo } from 'dockerode';
 
 import * as mockedDockerode from './lib/mocked-dockerode';
 import * as volumeManager from '../src/compose/volume-manager';
 import log from '../src/lib/supervisor-console';
 import Volume from '../src/compose/volume';
-import { VolumeInspectInfo } from 'dockerode';
 
 describe('Volume Manager', () => {
 	let logDebug: SinonStub;

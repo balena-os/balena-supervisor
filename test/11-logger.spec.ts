@@ -2,7 +2,7 @@ import * as https from 'https';
 import * as stream from 'stream';
 import * as zlib from 'zlib';
 import * as Promise from 'bluebird';
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 
 import { ContainerLogs } from '../src/logging/container';

@@ -1,8 +1,8 @@
 import { child_process, fs } from 'mz';
 import { stripIndent } from 'common-tags';
 import { SinonStub, stub } from 'sinon';
+import { expect } from 'chai';
 
-import { expect } from './lib/chai-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import { Extlinux } from '../src/config/backends/extlinux';
 

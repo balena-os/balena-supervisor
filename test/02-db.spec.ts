@@ -2,12 +2,10 @@ import * as Bluebird from 'bluebird';
 import * as Knex from 'knex';
 import { fs } from 'mz';
 
-import ChaiConfig = require('./lib/chai-config');
+import { expect } from 'chai';
 import prepare = require('./lib/prepare');
 
 import * as constants from '../src/lib/constants';
-
-const { expect } = ChaiConfig;
 
 async function createOldDatabase(path: string) {
 	const knex = Knex({

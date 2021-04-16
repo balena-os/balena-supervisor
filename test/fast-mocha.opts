@@ -1,5 +1,0 @@
---exit
---require ts-node/register/transpile-only
---timeout 30000
---bail
-test/**/*.spec.ts
