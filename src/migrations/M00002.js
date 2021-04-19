@@ -17,7 +17,7 @@ exports.up = function (knex) {
 				console.log(
 					'Failed to read config.json! Things may fail unexpectedly!',
 				);
-				return resolve();
+				return resolve(false);
 			}
 			try {
 				const parsed = JSON.parse(data.toString());

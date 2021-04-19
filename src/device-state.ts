@@ -468,7 +468,7 @@ function emitAsync<T extends keyof DeviceStateEvents>(
 		: Array<DeviceStateEvents[T]>
 ) {
 	if (_.isArray(args)) {
-		return setImmediate(() => events.emit(ev as any, ...args));
+		return setImmediate(() => events.emit(ev as any, ...(args as any)));
 	} else {
 		return setImmediate(() => events.emit(ev as any, args));
 	}

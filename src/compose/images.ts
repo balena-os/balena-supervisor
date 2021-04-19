@@ -609,7 +609,7 @@ async function markAsSupervised(image: Image): Promise<void> {
 	);
 }
 
-function format(image: Image): Omit<Image, 'id'> {
+function format(image: Image): Partial<Omit<Image, 'id'>> {
 	return _(image)
 		.defaults({
 			serviceId: null,
