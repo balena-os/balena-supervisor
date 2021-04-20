@@ -1,4 +1,21 @@
 - commits:
+    - subject: Bump ssri from 6.0.1 to 6.0.2
+      hash: ae8dc8ff227237444ae532cf7e817bfc463fbac5
+      body: |
+        Bumps [ssri](https://github.com/npm/ssri) from 6.0.1 to 6.0.2.
+        - [Release notes](https://github.com/npm/ssri/releases)
+        - [Changelog](https://github.com/npm/ssri/blob/v6.0.2/CHANGELOG.md)
+        - [Commits](https://github.com/npm/ssri/compare/v6.0.1...v6.0.2)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.5.12
+  date: 2021-04-20T22:52:22.531Z
+- commits:
     - subject: Refactor extra_uEnv to not match with intel nuc
       hash: e6eda0fca7b280aa5453972a26c36ab6895c227a
       body: ''
