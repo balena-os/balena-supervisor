@@ -1,4 +1,15 @@
 - commits:
+    - subject: Update supervisor to typescript 4
+      hash: fd06c06092b61d349e8b40f66f847065368810e3
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.5.13
+  date: 2021-04-25T23:09:44.241Z
+- commits:
     - subject: Bump ssri from 6.0.1 to 6.0.2
       hash: ae8dc8ff227237444ae532cf7e817bfc463fbac5
       body: |
