@@ -1,6 +1,8 @@
 import * as systeminformation from 'systeminformation';
 import * as _ from 'lodash';
-import { fs, child_process } from 'mz';
+import { promises as fs } from 'fs';
+
+import { exec } from './fs-utils';
 
 export async function getCpuUsage(): Promise<number> {
 	const cpuData = await systeminformation.currentLoad();
@@ -78,7 +80,7 @@ export async function getCpuId(): Promise<string | undefined> {
 const undervoltageRegex = /under.*voltage/;
 export async function undervoltageDetected(): Promise<boolean> {
 	try {
-		const [dmesgStdout] = await child_process.exec('dmesg');
+		const { stdout: dmesgStdout } = await exec('dmesg');
 		return undervoltageRegex.test(dmesgStdout.toString());
 	} catch {
 		return false;

@@ -1,7 +1,7 @@
-import { fs, child_process } from 'mz';
+import { promises as fs } from 'fs';
 import { SinonStub, stub } from 'sinon';
 
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as fsUtils from '../src/lib/fs-utils';
 import { SplashImage } from '../src/config/backends/splash-image';
 import log from '../src/lib/supervisor-console';
@@ -20,27 +20,27 @@ describe('Splash image configuration', () => {
 	beforeEach(() => {
 		// Setup stubs
 		writeFileAtomicStub = stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(child_process, 'exec').resolves();
+		stub(fsUtils, 'exec').resolves();
 		readFileStub = stub(fs, 'readFile').resolves(
 			Buffer.from(logo, 'base64') as any,
 		);
 		readFileStub
 			.withArgs('test/data/mnt/boot/splash/balena-logo-default.png')
 			.resolves(Buffer.from(defaultLogo, 'base64') as any);
-		readDirStub = stub(fs, 'readdir').resolves(['balena-logo.png']);
+		readDirStub = stub(fs, 'readdir').resolves(['balena-logo.png'] as any);
 	});
 
 	afterEach(() => {
 		// Restore stubs
 		writeFileAtomicStub.restore();
-		(child_process.exec as SinonStub).restore();
+		(fsUtils.exec as SinonStub).restore();
 		readFileStub.restore();
 		readDirStub.restore();
 	});
 
 	describe('initialise', () => {
 		it('should make a copy of the existing boot image on initialise if not yet created', async () => {
-			stub(fs, 'exists').resolves(false);
+			stub(fsUtils, 'exists').resolves(false);
 
 			// Do the initialization
 			await backend.initialise();
@@ -55,25 +55,25 @@ describe('Splash image configuration', () => {
 				Buffer.from(logo, 'base64'),
 			);
 
-			(fs.exists as SinonStub).restore();
+			(fsUtils.exists as SinonStub).restore();
 		});
 
 		it('should skip initialization if the default image already exists', async () => {
-			stub(fs, 'exists').resolves(true);
+			stub(fsUtils, 'exists').resolves(true);
 
 			// Do the initialization
 			await backend.initialise();
 
-			expect(fs.exists).to.be.calledOnceWith(
+			expect(fsUtils.exists).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
 			expect(fs.readFile).to.not.have.been.called;
 
-			(fs.exists as SinonStub).restore();
+			(fsUtils.exists as SinonStub).restore();
 		});
 
 		it('should fail initialization if there is no default image on the device', async () => {
-			stub(fs, 'exists').resolves(false);
+			stub(fsUtils, 'exists').resolves(false);
 			readDirStub.resolves([]);
 			readFileStub.rejects();
 			stub(log, 'warn');

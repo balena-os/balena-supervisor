@@ -1,20 +1,14 @@
 import * as Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import * as _ from 'lodash';
-import * as mkdirCb from 'mkdirp';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import * as config from './config';
 import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
 import { ENOENT } from './lib/errors';
-import { writeFileAtomic } from './lib/fs-utils';
-
-const mkdirp = Bluebird.promisify(mkdirCb) as (
-	path: string,
-	opts?: any,
-) => Bluebird<mkdirCb.Made>;
+import { writeFileAtomic, mkdirp, unlinkAll } from './lib/fs-utils';
 
 const redsocksHeader = stripIndent`
 	base {
@@ -131,13 +125,7 @@ function generateRedsocksConfEntries(conf: ProxyConfig): string {
 
 async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 	if (_.isEmpty(maybeConf)) {
-		try {
-			await Promise.all([fs.unlink(redsocksConfPath), fs.unlink(noProxyPath)]);
-		} catch (e) {
-			if (!ENOENT(e)) {
-				throw e;
-			}
-		}
+		await unlinkAll(redsocksConfPath, noProxyPath);
 	} else {
 		// We know that maybeConf is not null due to the _.isEmpty check above,
 		// but the compiler doesn't

@@ -1,13 +1,10 @@
 import * as Bluebird from 'bluebird';
 import * as Knex from 'knex';
-import { fs } from 'mz';
 
-import ChaiConfig = require('./lib/chai-config');
+import { expect } from 'chai';
 import prepare = require('./lib/prepare');
-
 import * as constants from '../src/lib/constants';
-
-const { expect } = ChaiConfig;
+import { exists } from '../src/lib/fs-utils';
 
 async function createOldDatabase(path: string) {
 	const knex = Knex({
@@ -63,7 +60,7 @@ describe('Database Migrations', () => {
 
 		const testDb = await import('../src/db');
 		await testDb.initialized;
-		await fs.stat(databasePath);
+		expect(await exists(databasePath)).to.be.true;
 	});
 
 	it('adds new fields and removes old ones in an old database', async () => {
@@ -109,9 +106,8 @@ describe('Database', () => {
 	it('initializes correctly, running the migrations', () => {
 		return expect(db.initialized).to.be.fulfilled;
 	});
-	it('creates a database at the path from an env var', () => {
-		const promise = fs.stat(process.env.DATABASE_PATH!);
-		return expect(promise).to.be.fulfilled;
+	it('creates a database at the path from an env var', async () => {
+		expect(await exists(process.env.DATABASE_PATH!)).to.be.true;
 	});
 	it('creates a deviceConfig table with a single default value', async () => {
 		const deviceConfig = await db.models('deviceConfig').select();

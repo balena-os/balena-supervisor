@@ -1,10 +1,8 @@
-import * as packageJson from '../package.json';
-
 import * as livepush from 'livepush';
-
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import * as yargs from 'yargs';
 
+import * as packageJson from '../package.json';
 import * as device from './device';
 import * as init from './init';
 import { startLivepush } from './livepush';

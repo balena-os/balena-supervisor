@@ -10,7 +10,7 @@ import * as deviceState from '../src/device-state';
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as images from '../src/compose/images';
 
-import chai = require('./lib/chai-config');
+import * as chai from 'chai';
 import prepare = require('./lib/prepare');
 import * as db from '../src/db';
 import * as dbFormat from '../src/device-state/db-format';

@@ -1,9 +1,10 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import * as constants from '../../lib/constants';
+import { exists } from '../../lib/fs-utils';
 import log from '../../lib/supervisor-console';
 import {
 	bootMountPoint,
@@ -126,7 +127,7 @@ export class SplashImage extends ConfigBackend {
 
 			// The default boot image file has already
 			// been created
-			if (await fs.exists(SplashImage.DEFAULT)) {
+			if (await exists(SplashImage.DEFAULT)) {
 				return this;
 			}
 

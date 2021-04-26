@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { child_process } from 'mz';
+import { spawn } from 'child_process';
 import { Readable } from 'stream';
 import { TypedError } from 'typed-error';
 
@@ -168,7 +168,7 @@ const iptablesRestoreAdaptor: RuleAdaptor = async (
 			stdinStream.push(null);
 
 			// run the restore...
-			const proc = child_process.spawn(cmd, args, { shell: true });
+			const proc = spawn(cmd, args, { shell: true });
 
 			// pipe the rules...
 			stdinStream.pipe(proc.stdin);

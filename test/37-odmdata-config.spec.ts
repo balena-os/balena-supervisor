@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 
 import { resolve } from 'path';
 
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import Log from '../src/lib/supervisor-console';
 import { Odmdata } from '../src/config/backends/odmdata';
 

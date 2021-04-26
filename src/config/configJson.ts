@@ -1,6 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import * as constants from '../lib/constants';
@@ -84,11 +84,6 @@ export default class ConfigJsonConfigBackend {
 				await this.write();
 			}
 		});
-	}
-
-	public async path(): Promise<string> {
-		await this.init();
-		return await this.pathOnHost();
 	}
 
 	private write(): Promise<void> {

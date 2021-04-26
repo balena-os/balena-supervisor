@@ -1,6 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs, watch } from 'fs';
 import * as networkCheck from 'network-checker';
 import * as os from 'os';
 import * as url from 'url';
@@ -74,7 +74,7 @@ export const startConnectivityCheck = _.once(
 				log.debug('VPN status path exists.');
 			})
 			.then(() => {
-				fs.watch(constants.vpnStatusPath, vpnStatusInotifyCallback);
+				watch(constants.vpnStatusPath, vpnStatusInotifyCallback);
 			});
 
 		if (enable) {

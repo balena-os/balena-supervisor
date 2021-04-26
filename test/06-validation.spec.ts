@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 
 import * as validation from '../src/lib/validation';
 

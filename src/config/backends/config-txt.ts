@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 
 import {
 	ConfigOptions,
@@ -9,6 +9,7 @@ import {
 } from './backend';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
+import { exists } from '../../lib/fs-utils';
 
 /**
  * A backend to handle Raspberry Pi host configuration
@@ -61,7 +62,7 @@ export class ConfigTxt extends ConfigBackend {
 	public async getBootConfig(): Promise<ConfigOptions> {
 		let configContents = '';
 
-		if (await fs.exists(ConfigTxt.bootConfigPath)) {
+		if (await exists(ConfigTxt.bootConfigPath)) {
 			configContents = await fs.readFile(ConfigTxt.bootConfigPath, 'utf-8');
 		} else {
 			await fs.writeFile(ConfigTxt.bootConfigPath, '');

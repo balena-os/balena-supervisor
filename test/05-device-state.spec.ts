@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import { stub } from 'sinon';
 
-import chai = require('./lib/chai-config');
+import * as chai from 'chai';
 import { StatusCodeError } from '../src/lib/errors';
 import prepare = require('./lib/prepare');
 import * as dockerUtils from '../src/lib/docker-utils';

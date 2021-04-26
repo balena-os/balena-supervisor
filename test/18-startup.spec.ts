@@ -1,5 +1,5 @@
 import { SinonStub, stub } from 'sinon';
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as _ from 'lodash';
 
 import * as apiBinder from '../src/api-binder';

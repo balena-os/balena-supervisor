@@ -1,7 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import { URL } from 'url';
 
 import supervisorVersion = require('../lib/supervisor-version');

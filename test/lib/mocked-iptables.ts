@@ -1,7 +1,7 @@
 import _ = require('lodash');
 import { expect } from 'chai';
 import { stub } from 'sinon';
-import { child_process } from 'mz';
+import * as childProcess from 'child_process';
 
 import * as firewall from '../../src/lib/firewall';
 import * as iptables from '../../src/lib/iptables';
@@ -130,7 +130,7 @@ export const whilstMocked = async (
 ) => {
 	const getOriginalDefaultRuleAdaptor = iptables.getDefaultRuleAdaptor;
 
-	const spawnStub = stub(child_process, 'spawn').callsFake(() => {
+	const spawnStub = stub(childProcess, 'spawn').callsFake(() => {
 		const fakeProc = new EventEmitter();
 		(fakeProc as any).stdout = new EventEmitter();
 

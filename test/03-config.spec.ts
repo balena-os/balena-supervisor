@@ -1,8 +1,8 @@
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import { SinonStub, stub } from 'sinon';
 
-import chai = require('./lib/chai-config');
+import * as chai from 'chai';
 import prepare = require('./lib/prepare');
 import * as conf from '../src/config';
 
@@ -18,12 +18,6 @@ describe('Config', () => {
 	before(async () => {
 		await prepare();
 		await conf.initialized;
-	});
-
-	it('uses the correct config.json path', async () => {
-		expect(await conf.configJsonBackend.path()).to.equal(
-			'test/data/config.json',
-		);
 	});
 
 	it('reads and exposes values from the config.json', async () => {

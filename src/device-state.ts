@@ -1,5 +1,4 @@
 import * as Bluebird from 'bluebird';
-import * as bodyParser from 'body-parser';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
 import * as express from 'express';
@@ -95,8 +94,8 @@ function validateState(state: any): asserts state is TargetState {
 // device api stuff in ./device-api
 function createDeviceStateRouter() {
 	router = express.Router();
-	router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
-	router.use(bodyParser.json({ limit: '10mb' }));
+	router.use(express.urlencoded({ limit: '10mb', extended: true }));
+	router.use(express.json({ limit: '10mb' }));
 
 	const rebootOrShutdown = async (
 		req: express.Request,
@@ -463,15 +462,11 @@ export async function loadInitialState() {
 // breaks loose due to the liberal any casting
 function emitAsync<T extends keyof DeviceStateEvents>(
 	ev: T,
-	...args: DeviceStateEvents[T] extends (...args: any) => void
-		? Parameters<DeviceStateEvents[T]>
+	...args: DeviceStateEvents[T] extends (...args: infer TArgs) => void
+		? TArgs
 		: Array<DeviceStateEvents[T]>
 ) {
-	if (_.isArray(args)) {
-		return setImmediate(() => events.emit(ev as any, ...(args as any)));
-	} else {
-		return setImmediate(() => events.emit(ev as any, args));
-	}
+	return setImmediate(() => events.emit(ev as any, ...args));
 }
 
 const readLockTarget = () =>

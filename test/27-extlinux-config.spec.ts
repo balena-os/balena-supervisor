@@ -1,8 +1,8 @@
-import { child_process, fs } from 'mz';
+import { promises as fs } from 'fs';
 import { stripIndent } from 'common-tags';
 import { SinonStub, stub } from 'sinon';
 
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as fsUtils from '../src/lib/fs-utils';
 import { Extlinux } from '../src/config/backends/extlinux';
 
@@ -182,7 +182,7 @@ describe('Extlinux Configuration', () => {
 
 	it('sets new config values', async () => {
 		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(child_process, 'exec').resolves();
+		stub(fsUtils, 'exec').resolves();
 
 		await backend.setBootConfig({
 			fdt: '/boot/mycustomdtb.dtb',
@@ -205,7 +205,7 @@ describe('Extlinux Configuration', () => {
 
 		// Restore stubs
 		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(child_process.exec as SinonStub).restore();
+		(fsUtils.exec as SinonStub).restore();
 	});
 
 	it('only allows supported configuration options', () => {

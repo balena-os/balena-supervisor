@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { child_process, fs } from 'mz';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import {
@@ -8,6 +8,7 @@ import {
 	bootMountPoint,
 	remountAndWriteAtomic,
 } from './backend';
+import { exec, exists } from '../../lib/fs-utils';
 import * as constants from '../../lib/constants';
 import * as logger from '../../logger';
 import log from '../../lib/supervisor-console';
@@ -56,7 +57,7 @@ export class ConfigFs extends ConfigBackend {
 
 		const amlSrcPath = path.join(this.SystemAmlFiles, `${aml}.aml`);
 		// log to system log if the AML doesn't exist...
-		if (!(await fs.exists(amlSrcPath))) {
+		if (!(await exists(amlSrcPath))) {
 			log.error(`Missing AML for \'${aml}\'. Unable to load.`);
 			if (logger) {
 				logger.logSystemMessage(
@@ -80,9 +81,7 @@ export class ConfigFs extends ConfigBackend {
 			log.info(`Loading AML ${aml}`);
 			// we use `cat` here as this didn't work when using `cp` and all
 			// examples of this loading mechanism use `cat`.
-			await child_process.exec(
-				`cat ${amlSrcPath} > ${path.join(amlDstPath, 'aml')}`,
-			);
+			await exec(`cat ${amlSrcPath} > ${path.join(amlDstPath, 'aml')}`);
 
 			const [oemId, oemTableId, oemRevision] = await Promise.all([
 				fs.readFile(path.join(amlDstPath, 'oem_id'), 'utf8'),
@@ -101,7 +100,7 @@ export class ConfigFs extends ConfigBackend {
 
 	private async readConfigJSON(): Promise<ConfigfsConfig> {
 		// if we don't yet have a config file, just return an empty result...
-		if (!(await fs.exists(this.ConfigFilePath))) {
+		if (!(await exists(this.ConfigFilePath))) {
 			log.info('Empty ConfigFS config file');
 			return {};
 		}
@@ -134,7 +133,7 @@ export class ConfigFs extends ConfigBackend {
 			await super.initialise();
 
 			// load the acpi_configfs module...
-			await child_process.exec('modprobe acpi_configfs');
+			await exec('modprobe acpi_configfs');
 
 			// read the existing config file...
 			const config = await this.readConfigJSON();

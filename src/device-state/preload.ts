@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 
 import { Image, imageFromService } from '../compose/images';
 import * as deviceState from '../device-state';

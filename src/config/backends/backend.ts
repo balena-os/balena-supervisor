@@ -1,8 +1,7 @@
 import * as _ from 'lodash';
-import { child_process } from 'mz';
 
 import * as constants from '../../lib/constants';
-import { writeFileAtomic } from '../../lib/fs-utils';
+import { writeFileAtomic, exec } from '../../lib/fs-utils';
 
 export interface ConfigOptions {
 	[key: string]: string | string[];
@@ -15,7 +14,7 @@ export async function remountAndWriteAtomic(
 	data: string | Buffer,
 ): Promise<void> {
 	// Here's the dangerous part:
-	await child_process.exec(
+	await exec(
 		`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ${bootMountPoint}`,
 	);
 	await writeFileAtomic(file, data);

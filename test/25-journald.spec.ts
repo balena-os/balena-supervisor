@@ -1,7 +1,7 @@
 import { SinonStub, stub } from 'sinon';
 import constants = require('../src/lib/constants');
 import { spawnJournalctl } from '../src/lib/journald';
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 
 describe('journald', () => {
 	let spawn: SinonStub;
