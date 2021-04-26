@@ -2,8 +2,14 @@
 
 # Adapted from: https://github.com/balena-os/meta-balena/blob/v2.45.0/meta-balena-common/recipes-containers/resin-supervisor/resin-supervisor/start-resin-supervisor
 
+# We still need to include resin-vars on legacy systems
+if [ -f /usr/sbin/resin-vars ]; then
 # shellcheck disable=SC1091
-. /usr/sbin/resin-vars
+  . /usr/sbin/resin-vars
+else
+# shellcheck disable=SC1091
+  . /usr/sbin/balena-config-vars
+fi
 
 if ! balena inspect $SUPERVISOR_IMAGE:$SUPERVISOR_TAG > /dev/null; then
     balena load --input /usr/src/supervisor-image.tar
