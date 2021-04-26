@@ -1,4 +1,22 @@
 - commits:
+    - subject: 'balena-supervisor: replace references to resin-vars'
+      hash: 6ca9507beb616c4b344e4927cb5db01534c8ae4b
+      body: |
+        Replace all references to the 'resin-vars' script with
+        'balena-config-vars' as it has been renamed. Add a conditional
+        test for compatibility with legacy systems.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Changelog-entry: 'balena-supervisor: replace references to resin-vars'
+        changelog-entry: 'balena-supervisor: replace references to resin-vars'
+        Signed-off-by: Mark Corbin <mark@balena.io>
+        signed-off-by: Mark Corbin <mark@balena.io>
+      author: Mark Corbin
+      nested: []
+  version: 12.5.14
+  date: 2021-04-26T18:12:32.752Z
+- commits:
     - subject: Update supervisor to typescript 4
       hash: fd06c06092b61d349e8b40f66f847065368810e3
       body: ''
