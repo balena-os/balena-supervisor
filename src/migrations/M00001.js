@@ -21,7 +21,7 @@ exports.up = function (knex) {
 					console.log(
 						'Unable to locate config.json! Things may fail unexpectedly!',
 					);
-					resolve();
+					resolve(false);
 					return;
 				}
 				fs.readFile(configJsonPath, (err, data) => {
@@ -29,7 +29,7 @@ exports.up = function (knex) {
 						console.log(
 							'Failed to read config.json! Things may fail unexpectedly!',
 						);
-						resolve();
+						resolve(false);
 						return;
 					}
 					try {
@@ -44,13 +44,13 @@ exports.up = function (knex) {
 								);
 								return;
 							}
-							resolve();
+							resolve(false);
 						});
 					} catch (e) {
 						console.log(
 							'Failed to parse config.json! Things may fail unexpectedly!',
 						);
-						resolve();
+						resolve(false);
 					}
 				});
 			}).then(() => {

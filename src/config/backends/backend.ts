@@ -23,7 +23,7 @@ export async function remountAndWriteAtomic(
 
 export abstract class ConfigBackend {
 	// Does this config backend support the given device type?
-	public abstract async matches(
+	public abstract matches(
 		deviceType: string,
 		metaRelease?: string,
 	): Promise<boolean>;
