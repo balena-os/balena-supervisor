@@ -1,4 +1,17 @@
 - commits:
+    - subject: Added clean step to remove previous builds before running tests
+      hash: 6f4030634ad05f29f72cea11456a252570c470d7
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.5.15
+  date: 2021-04-26T19:55:49.189Z
+- commits:
     - subject: 'balena-supervisor: replace references to resin-vars'
       hash: 6ca9507beb616c4b344e4927cb5db01534c8ae4b
       body: |
