@@ -1,4 +1,24 @@
 - commits:
+    - subject: 'Remove mz, mkdirp, body-parser dependencies'
+      hash: 4a2ac557ef11d334154bafa0cab4e7272cbed749
+      body: |
+        'mz' can be safely replaced with fs.promises
+        and util.promisify for faster native methods.
+        'mkdirp' after Node v8 uses native fs.mkdir, thus
+        is redundant. 'body-parser' is deprecated and
+        contained within express v4.x.
+      footer:
+        Closes: '#1567'
+        closes: '#1567'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.6.1
+  date: 2021-04-27T22:23:07.811Z
+- commits:
     - subject: Bump dockerode types to 2.5.34
       hash: 95fb568aaeb0d5a0fa8b4b88f650b51d3b96786d
       body: >
