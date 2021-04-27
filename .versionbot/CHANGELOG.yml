@@ -1,4 +1,22 @@
 - commits:
+    - subject: Bump dockerode types to 2.5.34
+      hash: 95fb568aaeb0d5a0fa8b4b88f650b51d3b96786d
+      body: >
+        This commit updates dockerode types to the latest 2.x version, removing
+        the need
+
+        for custom composer types for network.
+
+
+        This commit also modifies network tests to use the new types
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 12.6.0
+  date: 2021-04-27T17:10:23.382Z
+- commits:
     - subject: Enable docker layer caching on CircleCI
       hash: dd2df215f0c62459f3e26c56efdfce26edbcc229
       body: ''
