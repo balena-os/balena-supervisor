@@ -1,4 +1,17 @@
 - commits:
+    - subject: Enable docker layer caching on CircleCI
+      hash: dd2df215f0c62459f3e26c56efdfce26edbcc229
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.5.16
+  date: 2021-04-27T16:42:23.485Z
+- commits:
     - subject: Added clean step to remove previous builds before running tests
       hash: 6f4030634ad05f29f72cea11456a252570c470d7
       body: ''
