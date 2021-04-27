@@ -81,6 +81,12 @@ export function registerOverride<
 	overrides[name] = fn;
 }
 
+export function restoreOverride<T extends DockerodeFunction>(name: T) {
+	if (overrides.hasOwnProperty(name)) {
+		delete overrides[name];
+	}
+}
+
 export interface TestData {
 	networks: Dictionary<any>;
 	images: Dictionary<any>;
@@ -201,6 +207,24 @@ function createMockedDockerode(data: TestData) {
 	return mockedDockerode;
 }
 
+type Prototype = Dictionary<(...args: any[]) => any>;
+function clonePrototype(prototype: Prototype): Prototype {
+	const clone: Prototype = {};
+	Object.getOwnPropertyNames(prototype).forEach((fn) => {
+		if (fn !== 'constructor' && _.isFunction(prototype[fn])) {
+			clone[fn] = prototype[fn];
+		}
+	});
+
+	return clone;
+}
+
+function assignPrototype(target: Prototype, source: Prototype) {
+	Object.keys(source).forEach((fn) => {
+		target[fn] = source[fn];
+	});
+}
+
 export async function testWithData(
 	data: Partial<TestData>,
 	test: () => Promise<any>,
@@ -216,7 +240,7 @@ export async function testWithData(
 	};
 
 	// grab the original prototype...
-	const basePrototype = dockerode.prototype;
+	const basePrototype = clonePrototype(dockerode.prototype);
 
 	// @ts-expect-error setting a RO property
 	dockerode.prototype = createMockedDockerode(mockedData);
@@ -226,7 +250,6 @@ export async function testWithData(
 		await test();
 	} finally {
 		// reset the original prototype...
-		// @ts-expect-error setting a RO property
-		dockerode.prototype = basePrototype;
+		assignPrototype(dockerode.prototype, basePrototype);
 	}
 }
