@@ -4,10 +4,11 @@ import * as _ from 'lodash';
 import { Builder } from 'resin-docker-build';
 
 import { promises as fs } from 'fs';
-import { child_process } from 'mz';
 import * as Path from 'path';
 import { Duplex, Readable } from 'stream';
 import * as tar from 'tar-stream';
+
+import { exec } from '../src/lib/fs-utils';
 
 export function getDocker(deviceAddress: string): Docker {
 	return new Docker({
@@ -146,7 +147,7 @@ async function tarDirectory(
 // Absolutely no escaping in this function, just be careful
 async function runSshCommand(address: string, command: string) {
 	// TODO: Make the port configurable
-	const [stdout] = await child_process.exec(
+	const { stdout } = await exec(
 		'ssh -p 22222 -o LogLevel=ERROR ' +
 			'-o StrictHostKeyChecking=no ' +
 			'-o UserKnownHostsFile=/dev/null ' +

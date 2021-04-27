@@ -1,7 +1,5 @@
 import { assert, expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
-
-import { child_process } from 'mz';
 import * as semver from 'semver';
 
 import * as constants from '../src/lib/constants';
@@ -12,6 +10,7 @@ import {
 } from '../src/lib/contracts';
 import * as osRelease from '../src/lib/os-release';
 import supervisorVersion = require('../src/lib/supervisor-version');
+import * as fsUtils from '../src/lib/fs-utils';
 
 describe('Container contracts', () => {
 	before(() => {
@@ -405,9 +404,10 @@ describe('L4T version detection', () => {
 	let execStub: SinonStub;
 
 	const seedExec = (version: string) => {
-		execStub = stub(child_process, 'exec').returns(
-			Promise.resolve([Buffer.from(version), Buffer.from('')]),
-		);
+		execStub = stub(fsUtils, 'exec').resolves({
+			stdout: Buffer.from(version),
+			stderr: Buffer.from(''),
+		});
 	};
 
 	afterEach(() => {

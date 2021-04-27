@@ -1,5 +1,4 @@
 import * as Bluebird from 'bluebird';
-import * as bodyParser from 'body-parser';
 import { stripIndent } from 'common-tags';
 import * as express from 'express';
 import { isLeft } from 'fp-ts/lib/Either';
@@ -578,8 +577,8 @@ export const initialized = (async () => {
 })();
 
 export const router = express.Router();
-router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
-router.use(bodyParser.json({ limit: '10mb' }));
+router.use(express.urlencoded({ limit: '10mb', extended: true }));
+router.use(express.json({ limit: '10mb' }));
 
 router.post('/v1/update', (req, res, next) => {
 	eventTracker.track('Update notification');

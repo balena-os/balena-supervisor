@@ -1,8 +1,8 @@
 import * as _ from 'lodash';
 import { Router } from 'express';
-import { fs } from 'mz';
 import rewire = require('rewire');
 
+import { unlinkAll } from '../../src/lib/fs-utils';
 import * as applicationManager from '../../src/compose/application-manager';
 import * as networkManager from '../../src/compose/network-manager';
 import * as serviceManager from '../../src/compose/service-manager';
@@ -149,12 +149,8 @@ async function create(): Promise<SupervisorAPI> {
 }
 
 async function cleanUp(): Promise<void> {
-	try {
-		// clean up test data
-		await fs.unlink(DB_PATH);
-	} catch (e) {
-		/* noop */
-	}
+	// Clean up test data
+	await unlinkAll(DB_PATH);
 	// Restore created SinonStubs
 	return restoreStubs();
 }

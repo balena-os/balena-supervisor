@@ -1,12 +1,12 @@
 import * as Bluebird from 'bluebird';
 import * as lockFileLib from 'lockfile';
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as Lock from 'rwlock';
 
-import constants = require('./constants');
 import { ENOENT, UpdatesLockedError } from './errors';
+import { getPathOnHost } from './fs-utils';
 
 type asyncLockFile = typeof lockFileLib & {
 	unlockAsync(path: string): Bluebird<void>;
@@ -19,17 +19,19 @@ export type LockCallback = (
 	fn: () => PromiseLike<void>,
 ) => Bluebird<void>;
 
-function baseLockPath(appId: number): string {
-	return path.join('/tmp/balena-supervisor/services', appId.toString());
-}
-
-export function lockPath(appId: number, serviceName: string): string {
-	return path.join(baseLockPath(appId), serviceName);
+export function lockPath(appId: number, serviceName?: string): string {
+	return path.join(
+		'/tmp/balena-supervisor/services',
+		appId.toString(),
+		serviceName ?? '',
+	);
 }
 
 function lockFilesOnHost(appId: number, serviceName: string): string[] {
-	return ['updates.lock', 'resin-updates.lock'].map((filename) =>
-		path.join(constants.rootMountPoint, lockPath(appId, serviceName), filename),
+	return getPathOnHost(
+		...['updates.lock', 'resin-updates.lock'].map((filename) =>
+			path.join(lockPath(appId), serviceName, filename),
+		),
 	);
 }
 
@@ -79,10 +81,7 @@ export function lock(
 		}
 		return writeLock(appId)
 			.tap((release: () => void) => {
-				const lockDir = path.join(
-					constants.rootMountPoint,
-					baseLockPath(appId),
-				);
+				const [lockDir] = getPathOnHost(lockPath(appId));
 
 				return Bluebird.resolve(fs.readdir(lockDir))
 					.catchReturn(ENOENT, [])

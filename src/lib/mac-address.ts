@@ -1,11 +1,12 @@
 import * as _ from 'lodash';
-import { promises as fs, exists } from 'mz/fs';
+import { promises as fs } from 'fs';
 import * as path from 'path';
+import { TypedError } from 'typed-error';
 
 import log from './supervisor-console';
 import { shouldReportInterface } from '../network';
+import { exists } from './fs-utils';
 
-import { TypedError } from 'typed-error';
 export class MacAddressError extends TypedError {}
 
 export async function getAll(sysClassNet: string): Promise<string | undefined> {

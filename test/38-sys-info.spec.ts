@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import * as systeminformation from 'systeminformation';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 
 import * as sysInfo from '../src/lib/system-info';
 

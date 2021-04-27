@@ -1,7 +1,10 @@
 import * as Promise from 'bluebird';
 import * as _ from 'lodash';
 import * as express from 'express';
-import { fs, child_process as childProcess } from 'mz';
+import { promises as fs } from 'fs';
+import * as path from 'path';
+import * as url from 'url';
+
 import * as request from './lib/request';
 import * as constants from './lib/constants';
 import {
@@ -9,25 +12,19 @@ import {
 	validStringOrUndefined,
 	validObjectOrUndefined,
 } from './lib/validation';
-import * as path from 'path';
-import * as mkdirp from 'mkdirp';
-import * as bodyParser from 'body-parser';
-import * as url from 'url';
+import { log } from './lib/supervisor-console';
+import * as dockerUtils from './lib/docker-utils';
+import { InternalInconsistencyError } from './lib/errors';
+import * as apiHelper from './lib/api-helper';
+import { exec, mkdirp } from './lib/fs-utils';
 
 import { normalise } from './compose/images';
-import { log } from './lib/supervisor-console';
 import * as db from './db';
 import * as config from './config';
-import * as dockerUtils from './lib/docker-utils';
 import * as logger from './logger';
-import { InternalInconsistencyError } from './lib/errors';
-
 import * as apiBinder from './api-binder';
-import * as apiHelper from './lib/api-helper';
 import * as dbFormat from './device-state/db-format';
 import * as deviceConfig from './device-config';
-
-const mkdirpAsync = Promise.promisify(mkdirp);
 
 const isDefined = _.negate(_.isUndefined);
 
@@ -52,8 +49,8 @@ const getTarArchive = (source, destination) =>
 	fs
 		.lstat(destination)
 		.catch(() =>
-			mkdirpAsync(path.dirname(destination)).then(() =>
-				childProcess.exec(`tar -cvf '${destination}' *`, { cwd: source }),
+			mkdirp(path.dirname(destination)).then(() =>
+				exec(`tar -cvf '${destination}' *`, { cwd: source }),
 			),
 		);
 
@@ -92,8 +89,8 @@ const formatCurrentAsState = (device) => ({
 
 const createProxyvisorRouter = function (proxyvisor) {
 	const router = express.Router();
-	router.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
-	router.use(bodyParser.json({ limit: '10mb' }));
+	router.use(express.urlencoded({ limit: '10mb', extended: true }));
+	router.use(express.json({ limit: '10mb' }));
 	router.get('/v1/devices', async (_req, res) => {
 		try {
 			const fields = await db.models('dependentDevice').select();

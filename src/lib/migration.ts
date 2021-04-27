@@ -1,11 +1,9 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import * as mkdirp from 'mkdirp';
-import { child_process, fs } from 'mz';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as rimraf from 'rimraf';
 
-const mkdirpAsync = Bluebird.promisify(mkdirp);
 const rimrafAsync = Bluebird.promisify(rimraf);
 
 import * as apiBinder from '../api-binder';
@@ -23,7 +21,7 @@ import {
 	InternalInconsistencyError,
 } from '../lib/errors';
 import { docker } from '../lib/docker-utils';
-import { pathExistsOnHost } from '../lib/fs-utils';
+import { exec, pathExistsOnHost, mkdirp } from '../lib/fs-utils';
 import { log } from '../lib/supervisor-console';
 import type {
 	AppsJsonFormat,
@@ -298,8 +296,8 @@ export async function loadBackupFromMigration(
 		const backupPath = path.join(constants.rootMountPoint, 'mnt/data/backup');
 		// We clear this path in case it exists from an incomplete run of this function
 		await rimrafAsync(backupPath);
-		await mkdirpAsync(backupPath);
-		await child_process.exec(`tar -xzf backup.tgz -C ${backupPath}`, {
+		await mkdirp(backupPath);
+		await exec(`tar -xzf backup.tgz -C ${backupPath}`, {
 			cwd: path.join(constants.rootMountPoint, 'mnt/data'),
 		});
 

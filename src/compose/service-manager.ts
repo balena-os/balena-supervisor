@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as JSONStream from 'JSONStream';
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';

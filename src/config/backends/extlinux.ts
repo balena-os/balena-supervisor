@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 import * as semver from 'semver';
 
 import {

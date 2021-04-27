@@ -1,8 +1,8 @@
 import { stripIndent } from 'common-tags';
-import { child_process, fs } from 'mz';
+import { promises as fs } from 'fs';
 import { SinonStub, stub, spy, SinonSpy } from 'sinon';
 
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as deviceConfig from '../src/device-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import * as logger from '../src/logger';
@@ -131,7 +131,7 @@ describe('Device Backend Config', () => {
 
 	it('writes the target config.txt', async () => {
 		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(child_process, 'exec').resolves();
+		stub(fsUtils, 'exec').resolves();
 		const current = {
 			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
 			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
@@ -154,7 +154,7 @@ describe('Device Backend Config', () => {
 
 		// @ts-ignore accessing private value
 		await deviceConfig.setBootConfig(configTxtBackend, target);
-		expect(child_process.exec).to.be.calledOnce;
+		expect(fsUtils.exec).to.be.calledOnce;
 		expect(logSpy).to.be.calledTwice;
 		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 		expect(fsUtils.writeFileAtomic).to.be.calledWith(
@@ -171,12 +171,12 @@ describe('Device Backend Config', () => {
 
 		// Restore stubs
 		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(child_process.exec as SinonStub).restore();
+		(fsUtils.exec as SinonStub).restore();
 	});
 
 	it('ensures required fields are written to config.txt', async () => {
 		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(child_process, 'exec').resolves();
+		stub(fsUtils, 'exec').resolves();
 		stub(config, 'get').withArgs('deviceType').resolves('fincm3');
 		const current = {
 			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
@@ -200,7 +200,7 @@ describe('Device Backend Config', () => {
 
 		// @ts-ignore accessing private value
 		await deviceConfig.setBootConfig(configTxtBackend, target);
-		expect(child_process.exec).to.be.calledOnce;
+		expect(fsUtils.exec).to.be.calledOnce;
 		expect(logSpy).to.be.calledTwice;
 		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 		expect(fsUtils.writeFileAtomic).to.be.calledWith(
@@ -218,7 +218,7 @@ describe('Device Backend Config', () => {
 
 		// Restore stubs
 		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(child_process.exec as SinonStub).restore();
+		(fsUtils.exec as SinonStub).restore();
 		(config.get as SinonStub).restore();
 	});
 
@@ -269,7 +269,7 @@ describe('Device Backend Config', () => {
 	describe('Extlinux files', () => {
 		it('should correctly write to extlinux.conf files', async () => {
 			stub(fsUtils, 'writeFileAtomic').resolves();
-			stub(child_process, 'exec').resolves();
+			stub(fsUtils, 'exec').resolves();
 
 			const current = {};
 			const target = {
@@ -284,7 +284,7 @@ describe('Device Backend Config', () => {
 
 			// @ts-ignore accessing private value
 			await deviceConfig.setBootConfig(extlinuxBackend, target);
-			expect(child_process.exec).to.be.calledOnce;
+			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 			expect(fsUtils.writeFileAtomic).to.be.calledWith(
@@ -303,7 +303,7 @@ describe('Device Backend Config', () => {
 
 			// Restore stubs
 			(fsUtils.writeFileAtomic as SinonStub).restore();
-			(child_process.exec as SinonStub).restore();
+			(fsUtils.exec as SinonStub).restore();
 		});
 	});
 
@@ -395,7 +395,7 @@ describe('Device Backend Config', () => {
 	describe('ConfigFS files', () => {
 		it('should correctly write to configfs.json files', async () => {
 			stub(fsUtils, 'writeFileAtomic').resolves();
-			stub(child_process, 'exec').resolves();
+			stub(fsUtils, 'exec').resolves();
 
 			const current = {};
 			const target = {
@@ -414,7 +414,7 @@ describe('Device Backend Config', () => {
 
 			// @ts-ignore accessing private value
 			await deviceConfig.setBootConfig(configFsBackend, target);
-			expect(child_process.exec).to.be.calledOnce;
+			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 			expect(fsUtils.writeFileAtomic).to.be.calledWith(
@@ -424,13 +424,13 @@ describe('Device Backend Config', () => {
 
 			// Restore stubs
 			(fsUtils.writeFileAtomic as SinonStub).restore();
-			(child_process.exec as SinonStub).restore();
+			(fsUtils.exec as SinonStub).restore();
 		});
 
 		it('should correctly load the configfs.json file', async () => {
-			stub(child_process, 'exec').resolves();
+			stub(fsUtils, 'exec').resolves();
 			stub(fsUtils, 'writeFileAtomic').resolves();
-			stub(fs, 'exists').resolves(true);
+			stub(fsUtils, 'exists').resolves(true);
 			stub(fs, 'mkdir').resolves();
 			stub(fs, 'readdir').resolves([]);
 			stub(fs, 'readFile').callsFake((file) => {
@@ -445,20 +445,20 @@ describe('Device Backend Config', () => {
 			});
 
 			await configFsBackend.initialise();
-			expect(child_process.exec).to.be.calledWith('modprobe acpi_configfs');
-			expect(child_process.exec).to.be.calledWith(
+			expect(fsUtils.exec).to.be.calledWith('modprobe acpi_configfs');
+			expect(fsUtils.exec).to.be.calledWith(
 				`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ./test/data/mnt/boot`,
 			);
-			expect(child_process.exec).to.be.calledWith(
+			expect(fsUtils.exec).to.be.calledWith(
 				'cat test/data/boot/acpi-tables/spidev1.1.aml > test/data/sys/kernel/config/acpi/table/spidev1.1/aml',
 			);
-			expect((fs.exists as SinonSpy).callCount).to.equal(2);
+			expect((fsUtils.exists as SinonSpy).callCount).to.equal(2);
 			expect((fs.readFile as SinonSpy).callCount).to.equal(4);
 
 			// Restore stubs
 			(fsUtils.writeFileAtomic as SinonStub).restore();
-			(child_process.exec as SinonStub).restore();
-			(fs.exists as SinonStub).restore();
+			(fsUtils.exec as SinonStub).restore();
+			(fsUtils.exists as SinonStub).restore();
 			(fs.mkdir as SinonStub).restore();
 			(fs.readdir as SinonStub).restore();
 			(fs.readFile as SinonStub).restore();
@@ -537,18 +537,18 @@ describe('Device Backend Config', () => {
 		beforeEach(() => {
 			// Setup stubs
 			stub(fsUtils, 'writeFileAtomic').resolves();
-			stub(child_process, 'exec').resolves();
+			stub(fsUtils, 'exec').resolves();
 		});
 
 		afterEach(() => {
 			// Restore stubs
 			(fsUtils.writeFileAtomic as SinonStub).restore();
-			(child_process.exec as SinonStub).restore();
+			(fsUtils.exec as SinonStub).restore();
 		});
 
 		it('should correctly write to resin-logo.png', async () => {
 			// Devices with balenaOS < 2.51 use resin-logo.png
-			stub(fs, 'readdir').resolves(['resin-logo.png']);
+			stub(fs, 'readdir').resolves(['resin-logo.png'] as any);
 
 			const current = {};
 			const target = {
@@ -568,7 +568,7 @@ describe('Device Backend Config', () => {
 
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
-			expect(child_process.exec).to.be.calledOnce;
+			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
@@ -581,7 +581,7 @@ describe('Device Backend Config', () => {
 
 		it('should correctly write to balena-logo.png', async () => {
 			// Devices with balenaOS >= 2.51 use balena-logo.png
-			stub(fs, 'readdir').resolves(['balena-logo.png']);
+			stub(fs, 'readdir').resolves(['balena-logo.png'] as any);
 
 			const current = {};
 			const target = {
@@ -601,7 +601,7 @@ describe('Device Backend Config', () => {
 
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
-			expect(child_process.exec).to.be.calledOnce;
+			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
@@ -634,7 +634,7 @@ describe('Device Backend Config', () => {
 
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
-			expect(child_process.exec).to.be.calledOnce;
+			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
 			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
@@ -646,7 +646,7 @@ describe('Device Backend Config', () => {
 		});
 
 		it('should correctly read the splash logo if different from the default', async () => {
-			stub(fs, 'readdir').resolves(['balena-logo.png']);
+			stub(fs, 'readdir').resolves(['balena-logo.png'] as any);
 
 			const readFileStub: SinonStub = stub(fs, 'readFile').resolves(
 				Buffer.from(png, 'base64') as any,

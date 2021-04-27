@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { fs } from 'mz';
+import { promises as fs } from 'fs';
 
 import {
 	ConfigOptions,
@@ -10,6 +10,7 @@ import {
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { ExtraUEnvError } from '../../lib/errors';
+import { exists } from '../../lib/fs-utils';
 
 /**
  * Entry describes the configurable items in an extra_uEnv file
@@ -63,7 +64,7 @@ export class ExtraUEnv extends ConfigBackend {
 			(deviceType.endsWith('-nano') ||
 				deviceType.endsWith('-nano-emmc') ||
 				deviceType.endsWith('-tx2')) &&
-			(await fs.exists(ExtraUEnv.bootConfigPath))
+			(await exists(ExtraUEnv.bootConfigPath))
 		);
 	}
 

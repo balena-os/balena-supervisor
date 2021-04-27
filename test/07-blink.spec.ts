@@ -1,5 +1,5 @@
-import { fs } from 'mz';
-import { expect } from './lib/chai-config';
+import { promises as fs } from 'fs';
+import { expect } from 'chai';
 
 import blink = require('../src/lib/blink');
 import constants = require('../src/lib/constants');

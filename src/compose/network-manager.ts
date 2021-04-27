@@ -1,15 +1,15 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import { fs } from 'mz';
 
 import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
-import { ENOENT, NotFoundError } from '../lib/errors';
+import { NotFoundError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
+import log from '../lib/supervisor-console';
+import { exists } from '../lib/fs-utils';
+
 import * as logger from '../logger';
 import { Network } from './network';
-
-import log from '../lib/supervisor-console';
 import { ResourceRecreationAttemptError } from './errors';
 
 export function getAll(): Bluebird<Network[]> {
@@ -69,23 +69,22 @@ export async function remove(network: Network) {
 	await network.remove();
 }
 
-export function supervisorNetworkReady(): Bluebird<boolean> {
-	return Bluebird.resolve(
-		fs.stat(`/sys/class/net/${constants.supervisorNetworkInterface}`),
-	)
-		.then(() => {
-			return docker.getNetwork(constants.supervisorNetworkInterface).inspect();
-		})
-		.then((network) => {
-			return (
-				network.Options['com.docker.network.bridge.name'] ===
-					constants.supervisorNetworkInterface &&
-				network.IPAM.Config[0].Subnet === constants.supervisorNetworkSubnet &&
-				network.IPAM.Config[0].Gateway === constants.supervisorNetworkGateway
-			);
-		})
-		.catchReturn(NotFoundError, false)
-		.catchReturn(ENOENT, false);
+export async function supervisorNetworkReady(): Promise<boolean> {
+	const networkExists = exists(
+		`/sys/class/net/${constants.supervisorNetworkInterface}`,
+	);
+	if (!networkExists) {
+		return false;
+	}
+	const network = await docker
+		.getNetwork(constants.supervisorNetworkInterface)
+		.inspect();
+	return (
+		network.Options['com.docker.network.bridge.name'] ===
+			constants.supervisorNetworkInterface &&
+		network.IPAM.Config[0].Subnet === constants.supervisorNetworkSubnet &&
+		network.IPAM.Config[0].Gateway === constants.supervisorNetworkGateway
+	);
 }
 
 export function ensureSupervisorNetwork(): Bluebird<void> {
@@ -109,11 +108,13 @@ export function ensureSupervisorNetwork(): Bluebird<void> {
 			) {
 				return removeIt();
 			} else {
-				return Bluebird.resolve(
-					fs.stat(`/sys/class/net/${constants.supervisorNetworkInterface}`),
-				)
-					.catch(ENOENT, removeIt)
-					.return();
+				return exists(
+					`/sys/class/net/${constants.supervisorNetworkInterface}`,
+				).then((networkExists) => {
+					if (!networkExists) {
+						return removeIt();
+					}
+				});
 			}
 		})
 		.catch(NotFoundError, () => {

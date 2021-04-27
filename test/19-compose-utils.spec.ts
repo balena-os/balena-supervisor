@@ -1,4 +1,4 @@
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as ComposeUtils from '../src/compose/utils';
 
 describe('Composition utilities', () =>

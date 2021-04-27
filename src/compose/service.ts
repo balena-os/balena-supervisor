@@ -18,9 +18,9 @@ import {
 } from './types/service';
 import * as ComposeUtils from './utils';
 
-import * as constants from '../lib/constants';
 import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
+import { getPathOnHost } from '../lib/fs-utils';
 
 import log from '../lib/supervisor-console';
 import { EnvVarObject } from '../lib/types';
@@ -900,16 +900,14 @@ export class Service {
 	}
 
 	public handoverCompleteFullPathsOnHost(): string[] {
-		return [
-			path.join(this.handoverCompletePathOnHost(), 'handover-complete'),
-			path.join(this.handoverCompletePathOnHost(), 'resin-kill-me'),
-		];
-	}
-
-	private handoverCompletePathOnHost(): string {
-		return path.join(
-			constants.rootMountPoint,
-			updateLock.lockPath(this.appId || 0, this.serviceName || ''),
+		const lockPath = updateLock.lockPath(
+			this.appId || 0,
+			this.serviceName || '',
+		);
+		return getPathOnHost(
+			...['handover-complete', 'resin-kill-me'].map((tail) =>
+				path.join(lockPath, tail),
+			),
 		);
 	}
 

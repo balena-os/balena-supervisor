@@ -13,6 +13,7 @@ import * as supertest from 'supertest';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 
+import { exists, unlinkAll } from '../src/lib/fs-utils';
 import * as appMock from './lib/application-state-mock';
 import * as mockedDockerode from './lib/mocked-dockerode';
 import mockedAPI = require('./lib/mocked-device-api');
@@ -826,7 +827,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			});
 
 			it('returns current host config (hostname only)', async () => {
-				await Promise.all([fs.unlink(redsocksPath), fs.unlink(noProxyPath)]);
+				await unlinkAll(redsocksPath, noProxyPath);
 
 				await request
 					.get('/v1/device/host-config')
@@ -839,7 +840,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			});
 
 			it('errors if no hostname file exists', async () => {
-				await fs.unlink(hostnamePath);
+				await unlinkAll(hostnamePath);
 
 				await request
 					.get('/v1/device/host-config')
@@ -896,7 +897,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			});
 
 			it('updates the hostname with provided string if string is not empty', async () => {
-				await Promise.all([fs.unlink(redsocksPath), fs.unlink(noProxyPath)]);
+				await unlinkAll(redsocksPath, noProxyPath);
 
 				const patchBody = { network: { hostname: 'newdevice' } };
 
@@ -924,8 +925,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			});
 
 			it('updates hostname to first 7 digits of device uuid when sent invalid hostname', async () => {
-				await Promise.all([fs.unlink(redsocksPath), fs.unlink(noProxyPath)]);
-
+				await unlinkAll(redsocksPath, noProxyPath);
 				await request
 					.patch('/v1/device/host-config')
 					.send({ network: { hostname: '' } })
@@ -965,8 +965,8 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.then(async (response) => {
 						validatePatchResponse(response);
 
-						expect(fs.stat(redsocksPath)).to.be.rejected;
-						expect(fs.stat(noProxyPath)).to.be.rejected;
+						expect(await exists(redsocksPath)).to.be.false;
+						expect(await exists(noProxyPath)).to.be.false;
 					});
 
 				expect(restartServiceSpy.callCount).to.equal(2);

@@ -1,8 +1,8 @@
-import { child_process, fs } from 'mz';
+import { promises as fs } from 'fs';
 import { stripIndent } from 'common-tags';
 import { SinonStub, spy, stub } from 'sinon';
 
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 import * as fsUtils from '../src/lib/fs-utils';
 import Log from '../src/lib/supervisor-console';
 import { ExtraUEnv } from '../src/config/backends/extra-uEnv';
@@ -67,7 +67,7 @@ describe('extra_uEnv Configuration', () => {
 	});
 
 	it('only matches supported devices', async () => {
-		const existsStub = stub(fs, 'exists');
+		const existsStub = stub(fsUtils, 'exists');
 		for (const device of MATCH_TESTS) {
 			// Test device that has extra_uEnv.txt
 			let hasExtraUEnv = true;
@@ -109,7 +109,7 @@ describe('extra_uEnv Configuration', () => {
 
 	it('sets new config values', async () => {
 		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(child_process, 'exec').resolves();
+		stub(fsUtils, 'exec').resolves();
 		const logWarningStub = spy(Log, 'warn');
 
 		// This config contains a value set from something else
@@ -138,13 +138,13 @@ describe('extra_uEnv Configuration', () => {
 
 		// Restore stubs
 		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(child_process.exec as SinonStub).restore();
+		(fsUtils.exec as SinonStub).restore();
 		logWarningStub.restore();
 	});
 
 	it('sets new config values containing collections', async () => {
 		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(child_process, 'exec').resolves();
+		stub(fsUtils, 'exec').resolves();
 		const logWarningStub = spy(Log, 'warn');
 
 		// @ts-ignore accessing private value
@@ -173,7 +173,7 @@ describe('extra_uEnv Configuration', () => {
 
 		// Restore stubs
 		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(child_process.exec as SinonStub).restore();
+		(fsUtils.exec as SinonStub).restore();
 		logWarningStub.restore();
 		// @ts-ignore accessing private value
 		ExtraUEnv.supportedConfigs = previousSupportedConfigs;

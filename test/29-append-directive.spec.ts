@@ -1,5 +1,5 @@
 import { AppendDirective } from '../src/config/backends/extlinux-file';
-import { expect } from './lib/chai-config';
+import { expect } from 'chai';
 
 describe('APPEND directive', () => {
 	const supportedConfigValues = ['isolcpus'];
