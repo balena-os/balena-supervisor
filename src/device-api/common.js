@@ -30,7 +30,10 @@ export async function doRestart(appId, force) {
 
 			return deviceState.pausingApply(async () => {
 				return Bluebird.each(app.services, async (service) => {
-					await serviceManager.kill(service, { wait: true });
+					await serviceManager.kill(service, {
+						wait: true,
+						removeContainer: false,
+					});
 					await serviceManager.start(service);
 				});
 			});
