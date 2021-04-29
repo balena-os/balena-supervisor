@@ -811,11 +811,29 @@ export class App {
 			...opts,
 		};
 
+		const isService = (svc: ServiceComposeConfig) =>
+			!svc.labels ||
+			!svc.labels['io.balena.image.class'] ||
+			svc.labels['io.balena.image.class'] === 'service';
+
+		const isDataStore = (svc: ServiceComposeConfig) =>
+			!svc.labels ||
+			!svc.labels['io.balena.image.store'] ||
+			svc.labels['io.balena.image.store'] === 'data';
+
 		// In the db, the services are an array, but here we switch them to an
 		// object so that they are consistent
 		const services: Service[] = await Promise.all(
-			(JSON.parse(app.services) ?? []).map(
-				async (svc: ServiceComposeConfig) => {
+			(JSON.parse(app.services) ?? [])
+				.filter(
+					// For the host app, `io.balena.image.*` labels indicate special way
+					// to install the service image, so we ignore those we don't know how to
+					// handle yet. If a user app adds the labels, we treat those services
+					// just as any other
+					(svc: ServiceComposeConfig) =>
+						!app.isHost || (isService(svc) && isDataStore(svc)),
+				)
+				.map(async (svc: ServiceComposeConfig) => {
 					// Try to fill the image id if the image is downloaded
 					let imageInfo: ImageInspectInfo | undefined;
 					try {
@@ -837,8 +855,7 @@ export class App {
 						svc,
 						(thisSvcOpts as unknown) as DeviceMetadata,
 					);
-				},
-			),
+				}),
 		);
 
 		return new App(

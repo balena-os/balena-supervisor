@@ -63,6 +63,7 @@ export async function loadTargetFromFile(
 
 			for (const serviceId of serviceIds) {
 				const service = app.services[serviceId];
+
 				const svc = {
 					imageName: service.image,
 					serviceName: service.serviceName,
@@ -79,7 +80,11 @@ export async function loadTargetFromFile(
 		for (const image of imgs) {
 			const name = await images.normalise(image.name);
 			image.name = name;
-			await images.save(image);
+			// TODO: the only reason for adding the images to the database here
+			// is to prevent downloading images if for any reason they are not there
+			// when starting from a preloading state. But if they are not there, isn't
+			// that really a preload issue?
+			// await images.save(image);
 		}
 
 		const deviceConf = await deviceConfig.getCurrent();

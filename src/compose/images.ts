@@ -373,6 +373,7 @@ async function getImagesForCleanup(): Promise<string[]> {
 			.then((vals) => vals.map((img: Image) => img.dockerImageId)),
 	]);
 
+	// TODO: this doesn't work anymore with registry managed supervisor
 	const supervisorRepos = [supervisorImageInfo.imageName];
 	// If we're on the new balena/ARCH-supervisor image
 	if (_.startsWith(supervisorImageInfo.imageName, 'balena/')) {
