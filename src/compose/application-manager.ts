@@ -235,7 +235,6 @@ export async function getRequiredSteps(
 
 		// We want to remove images before moving on to anything else
 		if (steps.length === 0) {
-			// TODO: this should be comparing by uuid if available
 			const targetAndCurrent = _.intersection(currentAppIds, targetAppIds);
 			const onlyTarget = _.difference(targetAppIds, currentAppIds);
 			const onlyCurrent = _.difference(currentAppIds, targetAppIds);

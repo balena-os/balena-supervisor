@@ -26,12 +26,14 @@ import { checkTruthy, checkString } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { ImageInspectInfo } from 'dockerode';
 import { pathExistsOnHost } from '../lib/fs-utils';
+import { getSupervisorMetadata } from '../lib/supervisor-metadata';
 
 export interface AppConstructOpts {
 	appId: number;
 	appName?: string;
 	commit?: string;
 	isHost?: boolean;
+	isSupervisor?: boolean;
 	releaseId?: number;
 	releaseVersion?: string;
 	source?: string;
@@ -59,6 +61,10 @@ export class App {
 	public appName?: string;
 	public commit?: string;
 	public isHost?: boolean;
+
+	// This is necessary for tri-app. Once true multi-app is there this won't be
+	// necessary
+	public isSupervisor?: boolean;
 	public releaseId?: number;
 	public releaseVersion?: string;
 	public source?: string;
@@ -82,6 +88,7 @@ export class App {
 		this.volumes = opts.volumes;
 		this.networks = opts.networks;
 		this.uuid = opts.uuid;
+		this.isSupervisor = opts.isSupervisor;
 
 		if (this.networks.default == null && isTargetState) {
 			// We always want a default network
@@ -181,7 +188,9 @@ export class App {
 			steps.length === 0 &&
 			target.commit != null &&
 			this.commit !== target.commit &&
-			!target.isHost
+			// Only do this for user apps
+			!target.isHost &&
+			!target.isSupervisor
 		) {
 			steps.push(
 				generateStep('updateCommit', {
@@ -821,6 +830,8 @@ export class App {
 			!svc.labels['io.balena.image.store'] ||
 			svc.labels['io.balena.image.store'] === 'data';
 
+		const supervisorMeta = await getSupervisorMetadata();
+
 		// In the db, the services are an array, but here we switch them to an
 		// object so that they are consistent
 		const services: Service[] = await Promise.all(
@@ -832,6 +843,13 @@ export class App {
 					// just as any other
 					(svc: ServiceComposeConfig) =>
 						!app.isHost || (isService(svc) && isDataStore(svc)),
+				)
+				.filter(
+					// Ignore the supervisor service itself from the target state for now
+					// until the supervisor can update itself
+					(svc: ServiceComposeConfig) =>
+						app.uuid !== supervisorMeta.uuid ||
+						svc.serviceName !== supervisorMeta.serviceName,
 				)
 				.map(async (svc: ServiceComposeConfig) => {
 					// Try to fill the image id if the image is downloaded
@@ -865,6 +883,7 @@ export class App {
 				releaseId: app.releaseId,
 				releaseVersion: app.releaseVersion,
 				isHost: app.isHost ?? false,
+				isSupervisor: app.uuid === supervisorMeta.uuid,
 				appName: app.name,
 				source: app.source,
 				uuid: app.uuid,
