@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Adapted from: https://github.com/balena-os/meta-balena/blob/v2.45.0/meta-balena-common/recipes-containers/resin-supervisor/resin-supervisor/start-resin-supervisor
+# Adapted from: https://github.com/balena-os/meta-balena/blob/v2.45.0/meta-balena-common/recipes-containers/balena-supervisor/balena-supervisor/start-balena-supervisor
 
 # We still need to include resin-vars on legacy systems
 if [ -f /usr/sbin/resin-vars ]; then
@@ -92,7 +92,7 @@ runSupervisor() {
         -v /var/run/balena-engine.sock:/var/run/balena-engine.sock \
         -v "$CONFIG_PATH:/boot/config.json"  \
         -v /mnt/data/apps.json:/boot/apps.json \
-        -v /resin-data/resin-supervisor:/data \
+        -v /resin-data/balena-supervisor:/data \
         -v /proc/net/fib_trie:/mnt/fib_trie \
         -v /var/log/supervisor-log:/var/log \
         -v /:/mnt/root \
@@ -112,7 +112,7 @@ runSupervisor() {
 
 if [ -z "$SUPERVISOR_IMAGE_ID" ]; then
     # No supervisor image exists on the device, try to pull it
-    systemctl start update-resin-supervisor
+    systemctl start update-balena-supervisor
 elif [ "$SUPERVISOR_IMAGE_ID" = "$SUPERVISOR_CONTAINER_IMAGE_ID" ] && configIsUnchanged; then
     # Supervisor image exists, and the current supervisor container is created from
     balena start --attach resin_supervisor

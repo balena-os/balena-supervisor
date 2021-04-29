@@ -43,7 +43,7 @@ export const fnSchema = {
 		async () => {
 			try {
 				// FIXME: We should be mounting the following file into the supervisor from the
-				// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
+				// start-balena-supervisor script, changed in meta-resin - but until then, hardcode it
 				const data = await fs.readFile(
 					`${constants.rootMountPoint}${constants.bootMountPoint}/device-type.json`,
 					'utf8',
@@ -62,7 +62,7 @@ export const fnSchema = {
 		async () => {
 			try {
 				// FIXME: We should be mounting the following file into the supervisor from the
-				// start-resin-supervisor script, changed in meta-resin - but until then, hardcode it
+				// start-balena-supervisor script, changed in meta-resin - but until then, hardcode it
 				const data = await fs.readFile(
 					`${constants.rootMountPoint}${constants.bootMountPoint}/device-type.json`,
 					'utf8',

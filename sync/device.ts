@@ -158,11 +158,11 @@ async function runSshCommand(address: string, command: string) {
 }
 
 export function stopSupervisor(address: string) {
-	return runSshCommand(address, 'systemctl stop resin-supervisor');
+	return runSshCommand(address, 'systemctl stop balena-supervisor');
 }
 
 export function startSupervisor(address: string) {
-	return runSshCommand(address, 'systemctl start resin-supervisor');
+	return runSshCommand(address, 'systemctl start balena-supervisor');
 }
 
 export async function replaceSupervisorImage(

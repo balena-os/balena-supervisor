@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/resin-io/resin-supervisor.git"
+    "url": "https://github.com/balena-os/balena-supervisor.git"
   },
   "scripts": {
     "start": "./entry.sh",

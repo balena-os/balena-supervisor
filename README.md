@@ -183,7 +183,7 @@ This will show the output of `journalctl` inside the Docker-in-Docker container.
 additional options, for instance, to see the logs from the supervisor service:
 
 ```bash
-./dindctl logs -fn 100 -u resin-supervisor
+./dindctl logs -fn 100 -u balena-supervisor
 ```
 
 #### Stop the supervisor

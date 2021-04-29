@@ -118,16 +118,16 @@ function parseOptions {
 
 
 SUPERVISOR_DIND_MOUNTS="-v ${DIND_DIR}/config/supervisor-image.tar:/usr/src/supervisor-image.tar:ro"
-SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/config/supervisor.conf:/etc/resin-supervisor/supervisor.conf"
+SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/config/supervisor.conf:/etc/balena-supervisor/supervisor.conf"
 
 if [ "${MOUNT_DIST}" == "true" ]; then
-	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/../../dist:/resin-supervisor/dist"
+	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/../../dist:/balena-supervisor/dist"
 fi
 if [ "${PRELOADED_IMAGE}" == "true" ]; then
 	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/apps.json:/mnt/data/apps.json"
 fi
 if [ "${MOUNT_NODE_MODULES}" == "true" ]; then
-	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/../../node_modules:/resin-supervisor/node_modules"
+	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/../../node_modules:/balena-supervisor/node_modules"
 fi
 if [ "${MOUNT_BACKUP}" == "true" ]; then
 	SUPERVISOR_DIND_MOUNTS="${SUPERVISOR_DIND_MOUNTS} -v ${DIND_DIR}/backup.tgz:/mnt/data/backup.tgz.mounted"
@@ -154,7 +154,7 @@ function buildSupervisorSrc {
 function refreshSupervisorSrc {
 	buildSupervisorSrc
 	echo "Restarting the supervisor container"
-	docker exec -ti balena-container-$CONTAINER_NAME systemctl restart resin-supervisor
+	docker exec -ti balena-container-$CONTAINER_NAME systemctl restart balena-supervisor
 }
 
 function runDind {
