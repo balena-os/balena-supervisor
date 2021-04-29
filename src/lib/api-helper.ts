@@ -170,9 +170,31 @@ export const provision = async (
 
 			device = await exchangeKeyAndGetDeviceOrRegenerate(balenaApi, opts);
 		} else if (opts.registered_at == null) {
+			if (opts.provisioningApiKey == null) {
+				throw new Error('Cannot provision without a provisioning api key');
+			}
+			if (opts.applicationId == null) {
+				throw new Error('Cannot provision without an application id');
+			}
+			if (opts.uuid == null) {
+				throw new Error('Cannot provision without a uuid');
+			}
 			log.info('New device detected. Provisioning...');
 			try {
-				device = await deviceRegister.register(opts).timeout(opts.apiTimeout);
+				device = await Bluebird.resolve(
+					deviceRegister.register({
+						applicationId: opts.applicationId,
+						uuid: opts.uuid,
+						deviceType: opts.deviceType,
+						deviceApiKey: opts.deviceApiKey,
+						provisioningApiKey: opts.provisioningApiKey,
+						apiEndpoint: opts.apiEndpoint,
+						supervisorVersion: opts.supervisorVersion,
+						osVersion: opts.osVersion,
+						osVariant: opts.osVariant,
+						macAddress: opts.macAddress,
+					}),
+				).timeout(opts.apiTimeout);
 			} catch (err) {
 				if (
 					err instanceof deviceRegister.ApiError &&

@@ -1,5 +1,4 @@
 import { endsWith, map } from 'lodash';
-import { Response } from 'request';
 import { TypedError } from 'typed-error';
 
 import { checkInt } from './validation';
@@ -48,7 +47,7 @@ export class InvalidAppIdError extends TypedError {
 
 export class UpdatesLockedError extends TypedError {}
 
-export function isHttpConflictError(err: StatusCodeError | Response): boolean {
+export function isHttpConflictError(err: { statusCode: number }): boolean {
 	return checkInt(err.statusCode) === 409;
 }
 

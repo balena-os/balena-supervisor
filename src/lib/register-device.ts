@@ -1,15 +1,13 @@
-import factory = require('balena-register-device');
-import * as Bluebird from 'bluebird';
+import { getRegisterDevice } from 'balena-register-device';
+export { ApiError } from 'balena-register-device';
 import { getRequestInstance } from './request';
 
-export const { ApiError } = factory;
-
-export const { generateUniqueKey, register } = factory({
+export const { generateUniqueKey, register } = getRegisterDevice({
 	request: {
-		send: Bluebird.method(async (options: {}) => {
+		send: async (options: {}) => {
 			const request = await getRequestInstance();
 			const [response] = await request.postAsync({ ...options, json: true });
 			return response;
-		}),
+		},
 	},
 });
