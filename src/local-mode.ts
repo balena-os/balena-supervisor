@@ -60,6 +60,7 @@ export class EngineSnapshotRecord {
 
 /** Container name used to inspect own resources when container ID cannot be resolved. */
 const SUPERVISOR_CONTAINER_NAME_FALLBACK = 'balena_supervisor';
+const SUPERVISOR_LEGACY_CONTAINER_NAME_FALLBACK = 'resin_supervisor';
 
 /**
  * This class handles any special cases necessary for switching
@@ -162,14 +163,25 @@ export class LocalModeManager {
 			);
 		} catch (e) {
 			if (this.containerId !== undefined) {
-				// Inspect operation fails (container ID is out of sync?).
-				const fallback = SUPERVISOR_CONTAINER_NAME_FALLBACK;
-				log.warn(
-					'Supervisor container resources cannot be obtained by container ID. ' +
-						`Using '${fallback}' name instead.`,
-					e.message,
-				);
-				return this.collectContainerResources(fallback);
+				try {
+					// Inspect operation fails (container ID is out of sync?).
+					const fallback = SUPERVISOR_CONTAINER_NAME_FALLBACK;
+					log.warn(
+						'Supervisor container resources cannot be obtained by container ID. ' +
+							`Using '${fallback}' name instead.`,
+						e.message,
+					);
+					return this.collectContainerResources(fallback);
+				} catch (e) {
+					// Inspect operation fails (using legacy container name?).
+					const fallback = SUPERVISOR_LEGACY_CONTAINER_NAME_FALLBACK;
+					log.warn(
+						'Supervisor container resources cannot be obtained by container ID. ' +
+							`Using '${fallback}' name instead.`,
+						e.message,
+					);
+					return this.collectContainerResources(fallback);
+				}
 			}
 			throw new SupervisorContainerNotFoundError(e);
 		}

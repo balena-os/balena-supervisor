@@ -158,7 +158,11 @@ class LogMonitor {
 	}
 
 	private handleRow(row: JournalRow) {
-		if (row.CONTAINER_ID_FULL && row.CONTAINER_NAME !== 'balena_supervisor') {
+		if (
+			row.CONTAINER_ID_FULL &&
+			row.CONTAINER_NAME !== 'balena_supervisor' &&
+			row.CONTAINER_NAME !== 'resin_supervisor'
+		) {
 			const containerId = row.CONTAINER_ID_FULL;
 			const message = messageFieldToString(row.MESSAGE);
 			const isStdErr = row.PRIORITY === '3';
