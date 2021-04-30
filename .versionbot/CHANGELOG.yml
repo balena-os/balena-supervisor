@@ -1,4 +1,26 @@
 - commits:
+    - subject: Remove version tag from livepush generated image
+      hash: 9c1d10dc318bb7c207608ed197c5713960642af3
+      body: >
+        The `start-resin-supervisor` script in newer OS version no longer uses
+        the
+
+        SUPERVISOR_TAG environment variable setup on supervisor.conf and
+
+        update-supervisor.conf.
+
+
+        This change removes the need for that variable with livepush supervisor
+
+        to make it compatible with older and newer OS versions
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.6.2
+  date: 2021-04-30T19:54:33.136Z
+- commits:
     - subject: 'Remove mz, mkdirp, body-parser dependencies'
       hash: 4a2ac557ef11d334154bafa0cab4e7272cbed749
       body: |
