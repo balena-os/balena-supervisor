@@ -24,7 +24,7 @@ export async function getSupervisorContainer(
 ): Promise<Docker.ContainerInfo> {
 	// First get the supervisor container id
 	const containers = await docker.listContainers({
-		filters: { name: ['resin_supervisor'] },
+		filters: { name: ['balena_supervisor'] },
 		all: !requireRunning,
 	});
 

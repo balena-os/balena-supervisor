@@ -59,7 +59,7 @@ export class EngineSnapshotRecord {
 }
 
 /** Container name used to inspect own resources when container ID cannot be resolved. */
-const SUPERVISOR_CONTAINER_NAME_FALLBACK = 'resin_supervisor';
+const SUPERVISOR_CONTAINER_NAME_FALLBACK = 'balena_supervisor';
 
 /**
  * This class handles any special cases necessary for switching

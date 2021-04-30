@@ -26,7 +26,7 @@ const syncOpts = {
 	deviceIp: process.argv[2],
 	baseDir: __dirname + '/dist',
 	destination: '/usr/src/app/dist',
-	appName: 'resin_supervisor',
+	appName: 'balena_supervisor',
 	skipGitignore: true,
 };
 
