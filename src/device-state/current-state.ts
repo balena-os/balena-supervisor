@@ -34,8 +34,8 @@ const stateForReport: DeviceStatus = {
 let reportPending = false;
 
 class StatusError extends Error {
-	constructor(public statusCode: number) {
-		super();
+	constructor(public statusCode: number, public statusMessage?: string) {
+		super(statusMessage);
 	}
 }
 
@@ -86,13 +86,13 @@ const sendReportPatch = async (
 		body,
 	};
 
-	const [{ statusCode }] = await request
+	const [{ statusCode, body: statusMessage }] = await request
 		.patchAsync(endpoint, params)
 		.timeout(apiTimeout);
 
 	if (statusCode < 200 || statusCode >= 300) {
 		log.error(`Error from the API: ${statusCode}`);
-		throw new StatusError(statusCode);
+		throw new StatusError(statusCode, JSON.stringify(statusMessage, null, 2));
 	}
 };
 
