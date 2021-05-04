@@ -1,7 +1,10 @@
 import { expect } from 'chai';
+import * as sinon from 'sinon';
 
 import { Network } from '../../../src/compose/network';
 import { NetworkInspectInfo } from 'dockerode';
+
+import { log } from '../../../src/lib/supervisor-console';
 
 describe('compose/network', () => {
 	describe('creating a network from a compose object', () => {
@@ -77,38 +80,46 @@ describe('compose/network', () => {
 			});
 		});
 
-		it('rejects IPAM configuration without both gateway and subnet', () => {
-			expect(() =>
-				Network.fromComposeObject('default', 12345, {
-					ipam: {
-						driver: 'default',
-						config: [
-							{
-								subnet: '172.20.0.0/16',
-							},
-						],
-						options: {},
-					},
-				}),
-			).to.throw(
+		it('warns about IPAM configuration without both gateway and subnet', () => {
+			const logSpy = sinon.spy(log, 'warn');
+
+			Network.fromComposeObject('default', 12345, {
+				ipam: {
+					driver: 'default',
+					config: [
+						{
+							subnet: '172.20.0.0/16',
+						},
+					],
+					options: {},
+				},
+			});
+
+			expect(logSpy).to.be.called.calledOnce;
+			expect(logSpy).to.be.called.calledWithMatch(
 				'Network IPAM config entries must have both a subnet and gateway',
 			);
 
-			expect(() =>
-				Network.fromComposeObject('default', 12345, {
-					ipam: {
-						driver: 'default',
-						config: [
-							{
-								gateway: '172.20.0.1',
-							},
-						],
-						options: {},
-					},
-				}),
-			).to.throw(
+			logSpy.resetHistory();
+
+			Network.fromComposeObject('default', 12345, {
+				ipam: {
+					driver: 'default',
+					config: [
+						{
+							gateway: '172.20.0.1',
+						},
+					],
+					options: {},
+				},
+			});
+
+			expect(logSpy).to.be.called.calledOnce;
+			expect(logSpy).to.be.called.calledWithMatch(
 				'Network IPAM config entries must have both a subnet and gateway',
 			);
+
+			logSpy.restore();
 		});
 
 		it('parses values from a compose object', () => {
