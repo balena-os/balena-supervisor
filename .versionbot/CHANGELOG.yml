@@ -1,4 +1,19 @@
 - commits:
+    - subject: Added configurations.md to document all configurable vars
+      hash: 07a0344dc6ac15a67513080c63dffe0d6b811ebf
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1646'
+        closes: '#1646'
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.6.3
+  date: 2021-05-04T02:10:52.553Z
+- commits:
     - subject: Remove version tag from livepush generated image
       hash: 9c1d10dc318bb7c207608ed197c5713960642af3
       body: >
