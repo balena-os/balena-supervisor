@@ -12,8 +12,6 @@ import balenaAPI = require('./lib/mocked-balena-api');
 import { schema } from '../src/config/schema';
 import ConfigJsonConfigBackend from '../src/config/configJson';
 import * as TargetState from '../src/device-state/target-state';
-import { DeviceStatus } from '../src/types/state';
-import * as CurrentState from '../src/device-state/current-state';
 import * as ApiHelper from '../src/lib/api-helper';
 import supervisorVersion = require('../src/lib/supervisor-version');
 import * as eventTracker from '../src/event-tracker';
@@ -316,51 +314,6 @@ describe('ApiBinder', () => {
 				expect(conf['deviceApiKey']).to.be.empty;
 				return expect(conf['uuid']).to.not.be.undefined;
 			});
-		});
-	});
-
-	describe('local mode', () => {
-		const components: Dictionary<any> = {};
-
-		before(() => {
-			return initModels(components, '/config-apibinder.json');
-		});
-
-		after(async () => {
-			// @ts-expect-error setting read-only property
-			config.configJsonBackend = defaultConfigBackend;
-			await config.generateRequiredFields();
-		});
-
-		const sampleState = {
-			local: {
-				ip_address: '192.168.1.42 192.168.1.99',
-				api_port: 48484,
-				api_secret:
-					'20ffbd6e15aba827dca6381912d6aeb6c3a7a7c7206d4dfadf0d2f0a9e1136',
-				os_version: 'balenaOS 2.32.0+rev4',
-				os_variant: 'dev',
-				supervisor_version: '9.16.3',
-				provisioning_progress: null,
-				provisioning_state: '',
-				status: 'Idle',
-				logs_channel: null,
-				apps: {},
-				is_on__commit: 'whatever',
-			},
-			dependent: { apps: {} },
-		} as DeviceStatus;
-
-		it('should strip applications data', () => {
-			const result = CurrentState.stripDeviceStateInLocalMode(
-				sampleState,
-			) as Dictionary<any>;
-			expect(result).to.not.have.property('dependent');
-
-			const local = result['local'];
-			expect(local).to.not.have.property('apps');
-			expect(local).to.not.have.property('is_on__commit');
-			expect(local).to.not.have.property('logs_channel');
 		});
 	});
 

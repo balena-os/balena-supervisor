@@ -298,8 +298,6 @@ describe('deviceState', () => {
 		deviceState.reportCurrentState({ someStateDiff: 'someValue' } as any);
 	});
 
-	it('returns the current state');
-
 	it.skip('writes the target state to the db with some extra defaults', async () => {
 		const testTarget = _.cloneDeep(testTargetWithDefaults2);
 

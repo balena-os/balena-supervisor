@@ -1,17 +1,19 @@
 import Bluebird = require('bluebird');
-import constants = require('../lib/constants');
-import log from '../lib/supervisor-console';
 import * as _ from 'lodash';
-import { InternalInconsistencyError } from '../lib/errors';
-import { DeviceStatus } from '../types/state';
+import * as url from 'url';
+import { CoreOptions } from 'request';
+
+import * as constants from '../lib/constants';
+import { log } from '../lib/supervisor-console';
+import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
+import * as sysInfo from '../lib/system-info';
+
+import { DeviceStatus } from '../types/state';
 import * as config from '../config';
+import { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
-import { CoreOptions } from 'request';
-import * as url from 'url';
-
-import * as sysInfo from '../lib/system-info';
 
 // The exponential backoff starts at 15s
 const MINIMUM_BACKOFF_DELAY = 15000;
@@ -33,21 +35,23 @@ const stateForReport: DeviceStatus = {
 };
 let reportPending = false;
 
-class StatusError extends Error {
-	constructor(public statusCode: number, public statusMessage?: string) {
-		super(statusMessage);
-	}
-}
+type CurrentStateReportConf = {
+	[key in keyof Pick<
+		config.ConfigMap<SchemaTypeKey>,
+		| 'uuid'
+		| 'apiEndpoint'
+		| 'apiTimeout'
+		| 'deviceApiKey'
+		| 'deviceId'
+		| 'localMode'
+	>]: SchemaReturn<key>;
+};
 
 /**
  * Returns an object that contains only status fields relevant for the local mode.
  * It basically removes information about applications state.
- *
- * Exported for tests
  */
-export const stripDeviceStateInLocalMode = (
-	state: DeviceStatus,
-): DeviceStatus => {
+const stripDeviceStateInLocalMode = (state: DeviceStatus): DeviceStatus => {
 	return {
 		local: _.cloneDeep(
 			_.omit(state.local, 'apps', 'is_on__commit', 'logs_channel'),
@@ -57,10 +61,11 @@ export const stripDeviceStateInLocalMode = (
 
 const sendReportPatch = async (
 	stateDiff: DeviceStatus,
-	conf: { apiEndpoint: string; uuid: string; localMode: boolean },
+	conf: Omit<CurrentStateReportConf, 'deviceId'>,
 ) => {
 	let body = stateDiff;
-	if (conf.localMode) {
+	const { apiEndpoint, apiTimeout, deviceApiKey, localMode, uuid } = conf;
+	if (localMode) {
 		body = stripDeviceStateInLocalMode(stateDiff);
 		// In local mode, check if it still makes sense to send any updates after data strip.
 		if (_.isEmpty(body.local)) {
@@ -68,12 +73,6 @@ const sendReportPatch = async (
 			return;
 		}
 	}
-	const { uuid, apiEndpoint, apiTimeout, deviceApiKey } = await config.getMany([
-		'uuid',
-		'apiEndpoint',
-		'apiTimeout',
-		'deviceApiKey',
-	]);
 
 	const endpoint = url.resolve(apiEndpoint, `/device/v2/${uuid}/state`);
 	const request = await getRequestInstance();
@@ -101,7 +100,7 @@ const getStateDiff = (): DeviceStatus => {
 	const lastReportedDependent = lastReportedState.dependent;
 	if (lastReportedLocal == null || lastReportedDependent == null) {
 		throw new InternalInconsistencyError(
-			`No local or dependent component of lastReportedLocal in ApiBinder.getStateDiff: ${JSON.stringify(
+			`No local or dependent component of lastReportedLocal in CurrentState.getStateDiff: ${JSON.stringify(
 				lastReportedState,
 			)}`,
 		);
@@ -132,7 +131,7 @@ const getStateDiff = (): DeviceStatus => {
 
 const report = _.throttle(async () => {
 	const conf = await config.getMany([
-		'deviceId',
+		'deviceApiKey',
 		'apiTimeout',
 		'apiEndpoint',
 		'uuid',
@@ -144,15 +143,14 @@ const report = _.throttle(async () => {
 		return 0;
 	}
 
-	const { apiEndpoint, uuid, localMode } = conf;
-	if (uuid == null || apiEndpoint == null) {
+	if (conf.uuid == null || conf.apiEndpoint == null) {
 		throw new InternalInconsistencyError(
-			'No uuid or apiEndpoint provided to ApiBinder.report',
+			'No uuid or apiEndpoint provided to CurrentState.report',
 		);
 	}
 
 	try {
-		await sendReportPatch(stateDiff, { apiEndpoint, uuid, localMode });
+		await sendReportPatch(stateDiff, conf);
 
 		stateReportErrors = 0;
 		_.assign(lastReportedState.local, stateDiff.local);
