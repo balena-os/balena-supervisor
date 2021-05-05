@@ -77,7 +77,7 @@ export async function getCpuId(): Promise<string | undefined> {
 	}
 }
 
-const undervoltageRegex = /under.*voltage/;
+const undervoltageRegex = /under.*voltage/i;
 export async function undervoltageDetected(): Promise<boolean> {
 	try {
 		const { stdout: dmesgStdout } = await exec('dmesg');
@@ -138,6 +138,6 @@ export function isSignificantChange(
 	return Math.floor(current / bucketSize) !== Math.floor(past / bucketSize);
 }
 
-function bytesToMb(bytes: number) {
+export function bytesToMb(bytes: number) {
 	return Math.floor(bytes / 1024 / 1024);
 }
