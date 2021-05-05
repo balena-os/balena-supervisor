@@ -31,13 +31,31 @@ decision making processes!
 
 ### Pull requests
 
-Here's a few guidelines to make the process easier for everyone involved.
+Your PR will require the following to pass:
 
-- Every PR _should_ have an associated issue, and the PR's opening comment should say "Fixes #issue" or "Closes #issue".
-- We use [Versionist](https://github.com/resin-io/versionist) to manage versioning (and in particular, [semantic versioning](https://semver.org)) and generate the changelog for this project.
-- At least one commit in a PR should have a `Change-Type: type` footer, where `type` can be `patch`, `minor` or `major`. The subject of this commit will be added to the changelog.
-- Commits should be squashed as much as makes sense.
-- Commits should be signed-off (`git commit -s`)
+ - Each commit be signed-off
+ - At least one commit in the PR contains a `Change-type` value.
+
+See below for more information.
+
+#### Commit signatures
+
+Commits should be signed-off (`git commit -s`) and at least one commit contains a `Change-type` so that [Versionist](https://github.com/resin-io/versionist) can correctly update the application's [semantic versioning](https://semver.org)). Change-type's value is either patch, minor, or major.
+
+#### Clean history
+
+Fixup (squash) as many commits as you can without bundling too many changes into a single commit. However, also don't bundle too many changes as it makes reviewing and regression debugging harder.
+
+Additionally, if you make changes to a PR, squash the new additions into the existing commits and force push.
+
+#### Outdated branch
+
+Update your branch by rebasing master and force pushing:
+
+```
+git rebase master
+git push --force-with-lease origin <pr-branch>
+```
 
 ## Setup
 
