@@ -31,7 +31,6 @@ export function mockManagers(svcs: Service[], vols: Volume[], nets: Network[]) {
 			}
 			return s;
 		});
-		console.log('Calling the mock', svcs);
 		return svcs;
 	};
 }

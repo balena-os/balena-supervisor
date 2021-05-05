@@ -179,20 +179,37 @@ export async function getRequiredSteps(
 	ignoreImages: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
-	const [
-		{ localMode, delta },
-		downloading,
-		cleanupNeeded,
-		availableImages,
-		currentApps,
-	] = await Promise.all([
-		config.getMany(['localMode', 'delta']),
+	const [downloading, availableImages, currentApps] = await Promise.all([
 		imageManager.getDownloadingImageIds(),
-		imageManager.isCleanupNeeded(),
 		imageManager.getAvailable(),
 		getCurrentApps(),
 	]);
 	const containerIdsByAppId = await getAppContainerIds(currentApps);
+
+	return await inferNextSteps(currentApps, targetApps, {
+		ignoreImages,
+		downloading,
+		availableImages,
+		containerIdsByAppId,
+	});
+}
+
+// Calculate the required steps from the current to the target state
+export async function inferNextSteps(
+	currentApps: InstancedAppState,
+	targetApps: InstancedAppState,
+	{
+		ignoreImages = false,
+		downloading = [] as number[],
+		availableImages = [] as Image[],
+		containerIdsByAppId = {} as { [appId: number]: Dictionary<string> },
+	} = {},
+) {
+	// get some required data
+	const [{ localMode, delta }, cleanupNeeded] = await Promise.all([
+		config.getMany(['localMode', 'delta']),
+		imageManager.isCleanupNeeded(),
+	]);
 
 	if (localMode) {
 		ignoreImages = localMode;
