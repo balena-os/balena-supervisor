@@ -87,14 +87,31 @@ export async function undervoltageDetected(): Promise<boolean> {
 	}
 }
 
-export async function getSysInfoToReport() {
-	const [cpu, mem, temp, cpuid, storage, undervoltage] = await Promise.all([
+/**
+ * System metrics that are always reported in current state
+ * due to their importance, regardless of HARDWARE_METRICS
+ */
+export async function getSystemChecks() {
+	// TODO: feature - add more eager diagnostic style metrics here,
+	// such as fs corruption checks, network issues, etc.
+	const undervoltage = await undervoltageDetected();
+
+	return {
+		is_undervolted: undervoltage,
+	};
+}
+
+/**
+ * Metrics that would be reported in current state only
+ * when HARDWARE_METRICS config var is true.
+ */
+export async function getSystemMetrics() {
+	const [cpu, mem, temp, cpuid, storage] = await Promise.all([
 		getCpuUsage(),
 		getMemoryInformation(),
 		getCpuTemp(),
 		getCpuId(),
 		getStorageInfo(),
-		undervoltageDetected(),
 	]);
 
 	return {
@@ -106,13 +123,14 @@ export async function getSysInfoToReport() {
 		storage_block_device: storage.blockDevice,
 		cpu_temp: temp,
 		cpu_id: cpuid,
-		is_undervolted: undervoltage,
 	};
 }
 
-export type SystemInfo = UnwrappedPromise<
-	ReturnType<typeof getSysInfoToReport>
->;
+type SystemChecks = UnwrappedPromise<ReturnType<typeof getSystemChecks>>;
+
+type SystemMetrics = UnwrappedPromise<ReturnType<typeof getSystemMetrics>>;
+
+export type SystemInfo = SystemChecks & SystemMetrics;
 
 const significantChange: { [key in keyof SystemInfo]?: number } = {
 	cpu_usage: 20,
@@ -132,6 +150,11 @@ export function isSignificantChange(
 	const bucketSize = significantChange[key as keyof SystemInfo];
 	// If we don't have any requirements on this value, include it
 	if (bucketSize == null) {
+		return true;
+	}
+	// If the `current` parameter is null, HARDWARE_METRICS has been toggled false
+	// and we should include this value for the null metrics patch to the API
+	if (current === null) {
 		return true;
 	}
 

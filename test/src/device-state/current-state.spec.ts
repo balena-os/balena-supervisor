@@ -4,9 +4,12 @@ import rewire = require('rewire');
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
+import { sleep } from '../../lib/helpers';
+
 import * as config from '../../../src/config';
 import * as deviceState from '../../../src/device-state';
 import { stateReportErrors } from '../../../src/device-state/current-state';
+import * as eventTracker from '../../../src/event-tracker';
 
 import * as request from '../../../src/lib/request';
 import log from '../../../src/lib/supervisor-console';
@@ -42,7 +45,7 @@ describe('device-state/current-state', () => {
 		patchAsync: () => Bluebird.resolve([{ statusCode: 200 }]),
 	};
 
-	// Suite-level hooks
+	// Parent-level hooks to prevent any requests from actually happening in any suites below
 	before(() => {
 		stubbedGetReqInstance = stub(request, 'getRequestInstance');
 		stubbedGetReqInstance.resolves(requestInstance);
@@ -69,7 +72,7 @@ describe('device-state/current-state', () => {
 		deviceApiKey: 'testapikey',
 		deviceId: 1337,
 		localMode: false,
-		disableHardwareMetrics: true,
+		hardwareMetrics: true,
 	};
 
 	const testDeviceReportFields = {
@@ -392,7 +395,7 @@ describe('device-state/current-state', () => {
 
 		beforeEach(() => {
 			configGetManyStub.resolves(
-				_.omit(testDeviceConf, ['deviceId', 'disableHardwareMetrics']) as any,
+				_.omit(testDeviceConf, ['deviceId', 'hardwareMetrics']) as any,
 			);
 		});
 
@@ -411,7 +414,7 @@ describe('device-state/current-state', () => {
 			configGetManyStub.resolves(
 				_.omit(testDeviceConf, [
 					'deviceId',
-					'disableHardwareMetrics',
+					'hardwareMetrics',
 					'uuid',
 					'apiEndpoint',
 				]) as any,
@@ -455,19 +458,128 @@ describe('device-state/current-state', () => {
 		});
 	});
 
-	describe.skip('reportCurrentState', () => {
-		const reportPending = currentState.__get__('reportPending');
+	describe('reportCurrentState', () => {
+		const reportCurrentState = currentState.__get__('reportCurrentState');
+		const report = currentState.__get__('report');
+		let testHardwareMetrics = true;
+		const testAppUpdatePollInterval = 1000;
+
+		const unhandledRejectionHandler = () => {
+			/* noop */
+		};
 
 		before(() => {
-			stub(deviceState, 'getStatus').resolves(testCurrentState as any);
-			stub(config, 'get').resolves(true);
+			stub(deviceState, 'getStatus').resolves({});
+			stub(sysInfo, 'getSystemMetrics').resolves();
+			stub(sysInfo, 'getSystemChecks').resolves();
+			stub(eventTracker, 'track');
+			stub(config, 'get');
+			(config.get as SinonStub).callsFake((conf) =>
+				conf === 'hardwareMetrics'
+					? Promise.resolve(testHardwareMetrics)
+					: Promise.resolve(testAppUpdatePollInterval),
+			);
+			// We need to stub this rejection so that reportCurrentState doesn't keep calling itself
+			stub(config, 'getMany').rejects();
+			// We also need to stub this rejection because it's called right before
+			// reportCurrentState in the catch, to prevent more calls of reportCurrentState
+			stub(Bluebird, 'delay').rejects();
 		});
 
 		after(() => {
 			(deviceState.getStatus as SinonStub).restore();
+			(sysInfo.getSystemMetrics as SinonStub).restore();
+			(sysInfo.getSystemChecks as SinonStub).restore();
+			(eventTracker.track as SinonStub).restore();
 			(config.get as SinonStub).restore();
+			(config.getMany as SinonStub).restore();
+			(Bluebird.delay as SinonStub).restore();
 		});
 
-		it('does not report if current state has not changed');
+		beforeEach(() => {
+			resetGlobalStateObjects();
+		});
+
+		afterEach(() => {
+			// Clear the throttle time limit between tests
+			report.cancel();
+		});
+
+		it('does not report if current state has not changed', async () => {
+			// Use a temporary unhandledRejectionHandler to catch the promise
+			// rejection from the Bluebird.delay stub
+			process.on('unhandledRejection', unhandledRejectionHandler);
+			spy(_, 'size');
+
+			reportCurrentState();
+
+			// Wait 200ms for anonymous async IIFE inside reportCurrentState to finish executing
+			// TODO: is there a better way to test this? Possible race condition
+			await sleep(200);
+
+			expect(stateForReport).to.deep.equal({ local: {}, dependent: {} });
+			expect(_.size as SinonSpy).to.have.returned(0);
+
+			(_.size as SinonSpy).restore();
+			process.removeListener('unhandledRejection', unhandledRejectionHandler);
+		});
+
+		it('sends a null patch for system metrics when HARDWARE_METRICS is false', async () => {
+			// Use a temporary unhandledRejectionHandler to catch the promise
+			// rejection from the Bluebird.delay stub
+			process.on('unhandledRejection', unhandledRejectionHandler);
+
+			testHardwareMetrics = false;
+
+			(sysInfo.getSystemMetrics as SinonStub).resolves({ cpu_usage: 20 });
+			(sysInfo.getSystemChecks as SinonStub).resolves({
+				is_undervolted: false,
+			});
+
+			reportCurrentState();
+
+			await sleep(200);
+
+			expect(stateForReport).to.deep.equal({
+				local: {
+					is_undervolted: false,
+					cpu_usage: null,
+					memory_usage: null,
+					memory_total: null,
+					storage_usage: null,
+					storage_total: null,
+					storage_block_device: null,
+					cpu_temp: null,
+					cpu_id: null,
+				},
+				dependent: {},
+			});
+
+			process.removeListener('unhandledRejection', unhandledRejectionHandler);
+		});
+
+		it('reports both system metrics and system checks when HARDWARE_METRICS is true', async () => {
+			// Use a temporary unhandledRejectionHandler to catch the promise
+			// rejection from the Bluebird.delay stub
+			process.on('unhandledRejection', unhandledRejectionHandler);
+
+			testHardwareMetrics = true;
+
+			(sysInfo.getSystemMetrics as SinonStub).resolves({ cpu_usage: 20 });
+			(sysInfo.getSystemChecks as SinonStub).resolves({
+				is_undervolted: false,
+			});
+
+			reportCurrentState();
+
+			await sleep(200);
+
+			expect(stateForReport).to.deep.equal({
+				local: { is_undervolted: false, cpu_usage: 20 },
+				dependent: {},
+			});
+
+			process.removeListener('unhandledRejection', unhandledRejectionHandler);
+		});
 	});
 });

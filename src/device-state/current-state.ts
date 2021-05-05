@@ -44,6 +44,7 @@ type CurrentStateReportConf = {
 		| 'deviceApiKey'
 		| 'deviceId'
 		| 'localMode'
+		| 'hardwareMetrics'
 	>]: SchemaReturn<key>;
 };
 
@@ -61,7 +62,7 @@ const stripDeviceStateInLocalMode = (state: DeviceStatus): DeviceStatus => {
 
 const sendReportPatch = async (
 	stateDiff: DeviceStatus,
-	conf: Omit<CurrentStateReportConf, 'deviceId'>,
+	conf: Omit<CurrentStateReportConf, 'deviceId' | 'hardwareMetrics'>,
 ) => {
 	let body = stateDiff;
 	const { apiEndpoint, apiTimeout, deviceApiKey, localMode, uuid } = conf;
@@ -175,7 +176,23 @@ const reportCurrentState = (): null => {
 		reportPending = true;
 		try {
 			const currentDeviceState = await deviceState.getStatus();
-			const info = await sysInfo.getSysInfoToReport();
+			// If hardwareMetrics is false, send null patch for system metrics to cloud API
+			const info = {
+				...((await config.get('hardwareMetrics'))
+					? await sysInfo.getSystemMetrics()
+					: {
+							cpu_usage: null,
+							memory_usage: null,
+							memory_total: null,
+							storage_usage: null,
+							storage_total: null,
+							storage_block_device: null,
+							cpu_temp: null,
+							cpu_id: null,
+					  }),
+				...(await sysInfo.getSystemChecks()),
+			};
+
 			stateForReport.local = {
 				...stateForReport.local,
 				...currentDeviceState.local,

@@ -62,6 +62,20 @@ describe('System information', () => {
 				sysInfo.isSignificantChange('memory_usage', undefined, 5),
 			).to.equal(true);
 		});
+
+		it('should not filter if the current value is null', () => {
+			// When the current value is null, we're sending a null patch to the
+			// API in response to setting HARDWARE_METRICS to false, so
+			// we need to include null for all values. None of the individual metrics
+			// in systemMetrics return null (only number/undefined), so the only
+			// reason for current to be null is when a null patch is happening.
+			expect(sysInfo.isSignificantChange('cpu_usage', 15, null as any)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('cpu_temp', 55, null as any)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('memory_usage', 760, null as any)).to
+				.be.true;
+		});
 	});
 
 	describe('CPU information', () => {
