@@ -1,4 +1,17 @@
 - commits:
+    - subject: Patch awaiting response when checking if supervisor0 network exists
+      hash: 8b0c2347d8d04d3c7101016f6c885f31d9b3dc6a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.6.7
+  date: 2021-05-06T15:58:02.661Z
+- commits:
     - subject: Fix parsing driver_opts from compose to docker network creation
       hash: 1408fd7bcb5f25b75679b7ce0e509adc7f8f6004
       body: ''
