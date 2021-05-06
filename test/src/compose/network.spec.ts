@@ -110,6 +110,62 @@ describe('compose/network', () => {
 				'Network IPAM config entries must have both a subnet and gateway',
 			);
 		});
+
+		it('parses values from a compose object', () => {
+			const network1 = Network.fromComposeObject('default', 12345, {
+				driver: 'bridge',
+				enable_ipv6: true,
+				internal: false,
+				ipam: {
+					driver: 'default',
+					options: {
+						'com.docker.ipam-option': 'abcd',
+					},
+					config: [
+						{
+							subnet: '172.18.0.0/16',
+							gateway: '172.18.0.1',
+						},
+					],
+				},
+				driver_opts: {
+					'com.docker.network-option': 'abcd',
+				},
+				labels: {
+					'com.docker.some-label': 'yes',
+				},
+			});
+
+			const dockerConfig = network1.toDockerConfig();
+
+			expect(dockerConfig.Driver).to.equal('bridge');
+			// Check duplicate forced to be true
+			expect(dockerConfig.CheckDuplicate).to.equal(true);
+			expect(dockerConfig.Internal).to.equal(false);
+			expect(dockerConfig.EnableIPv6).to.equal(true);
+
+			expect(dockerConfig.IPAM).to.deep.equal({
+				Driver: 'default',
+				Options: {
+					'com.docker.ipam-option': 'abcd',
+				},
+				Config: [
+					{
+						Subnet: '172.18.0.0/16',
+						Gateway: '172.18.0.1',
+					},
+				],
+			});
+
+			expect(dockerConfig.Labels).to.deep.equal({
+				'io.balena.supervised': 'true',
+				'com.docker.some-label': 'yes',
+			});
+
+			expect(dockerConfig.Options).to.deep.equal({
+				'com.docker.network-option': 'abcd',
+			});
+		});
 	});
 
 	describe('creating a network from docker engine state', () => {
