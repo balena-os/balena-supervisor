@@ -1,7 +1,7 @@
 /node_modules/
 /automation/node_modules/
-/automation/meta-resin/
-/meta-resin/
+/automation/meta-balena/
+/meta-balena/
 *.swp
 /data/
 /build/
