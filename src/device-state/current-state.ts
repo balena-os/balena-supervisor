@@ -108,18 +108,18 @@ const getStateDiff = (): DeviceStatus => {
 	}
 
 	const diff = {
-		local: _(stateForReport.local)
-			.omitBy((val, key: keyof DeviceStatus['local']) =>
+		local: _.omitBy(
+			stateForReport.local,
+			(val, key: keyof NonNullable<DeviceStatus['local']>) =>
+				INTERNAL_STATE_KEYS.includes(key) ||
 				_.isEqual(lastReportedLocal[key], val),
-			)
-			.omit(INTERNAL_STATE_KEYS)
-			.value(),
-		dependent: _(stateForReport.dependent)
-			.omitBy((val, key: keyof DeviceStatus['dependent']) =>
+		),
+		dependent: _.omitBy(
+			stateForReport.dependent,
+			(val, key: keyof DeviceStatus['dependent']) =>
+				INTERNAL_STATE_KEYS.includes(key) ||
 				_.isEqual(lastReportedDependent[key], val),
-			)
-			.omit(INTERNAL_STATE_KEYS)
-			.value(),
+		),
 	};
 
 	const toOmit: string[] = sysInfo.filterNonSignificantChanges(
