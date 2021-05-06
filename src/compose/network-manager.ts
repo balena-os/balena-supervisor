@@ -70,7 +70,7 @@ export async function remove(network: Network) {
 }
 
 export async function supervisorNetworkReady(): Promise<boolean> {
-	const networkExists = exists(
+	const networkExists = await exists(
 		`/sys/class/net/${constants.supervisorNetworkInterface}`,
 	);
 	if (!networkExists) {
