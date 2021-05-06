@@ -1,4 +1,111 @@
 - commits:
+    - subject: Update balena-register-device and send extra info at provision time
+      hash: 9e52bb33ac931a035b4cd0fd80173bf10db771c0
+      body: |
+        This extra info will mean the API is able to immediately set default
+        config vars based on the os/supervisor version so that they are
+        available on the first target state fetch rather than having a delay
+        whilst waiting for the supervisor to report them as part of a state
+        patch
+
+        Update balena-register-device from 6.1.6 to 7.2.0
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested:
+        - commits:
+            - subject: >-
+                Support `supervisorVersion`/`osVersion`/`osVariant`/`macAddress`
+                fields
+              hash: 6f10fe77ba11ec57bb012777975423dda498a8bd
+              body: ''
+              footer:
+                Change-type: minor
+                change-type: minor
+              author: Pagan Gazzard
+          version: balena-register-device-7.2.0
+          date: 2021-04-29T12:35:30.543Z
+        - commits:
+            - subject: Update dependencies
+              hash: 8d78459d6cf6e0dcaa4721c38898eeb2d25c5674
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: balena-register-device-7.1.1
+          date: 2021-04-29T12:23:50.655Z
+        - commits:
+            - subject: Switch from randomstring to uuid for generating device uuids
+              hash: 596a76abcf0a76aef93d191e4c59b939701c80b8
+              body: ''
+              footer:
+                Change-type: minor
+                change-type: minor
+              author: Pagan Gazzard
+          version: balena-register-device-7.1.0
+          date: 2020-07-13T14:38:52.915Z
+        - commits:
+            - subject: Add .versionbot/CHANGELOG.yml for nested changelogs
+              hash: 7444f4ba2538180a5c75fa5f62de6f395ae28ba7
+              body: ''
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Pagan Gazzard
+          version: balena-register-device-7.0.1
+          date: 2020-07-13T13:03:45.818Z
+        - commits:
+            - author: Pagan Gazzard
+              body: ''
+              hash: 8cfa23ebbe2915b2f37730972cf104cb47f68c65
+              subject: Convert to type checked javascript
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: major
+              hash: 0f3e9d26f375554f793dd632b94f33e3ee88933b
+              subject: Drop callback interface in favor of promise interface
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: major
+              hash: 67d46678e910c2c8b11f417fa40d00781a1a3905
+              subject: Switch to a named export
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: major
+              hash: faa9edc73cf243acd2abe1532e64aab8303031b5
+              subject: Convert to typescript
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: major
+              hash: 9e5bdbeaee325c8a523c8498ef023baeb49ef7c1
+              subject: Update to typed-error 3.x
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: major
+              hash: 27e78f2ea3f1a059a9fb2ba43dff55f32b0b2b4a
+              subject: Switch to returning native promises
+            - author: Pagan Gazzard
+              body: ''
+              footers:
+                change-type: major
+              hash: dc21eb20dba1a977e74ffadbece66720ced4c529
+              subject: Update to balena-request 11.x
+            - author: Pagan Gazzard
+              body: ''
+              hash: f4008dad3de415cc25987268b387848fc3ed1200
+              subject: Use typescript import helpers
+          date: '2020-07-06T18:11:23Z'
+          version: balena-register-device-7.0.0
+  version: 12.6.5
+  date: 2021-05-06T10:19:39.399Z
+- commits:
     - subject: Log error responses from API when reporting state
       hash: 2203f78d517a9edf75a261dd3c77cdf5b609548c
       body: |
