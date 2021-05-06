@@ -1,4 +1,56 @@
 - commits:
+    - subject: Show warning instead of exception for invalid network config
+      hash: 5197a1330d69cbff97f3c53a77f640638e074b8a
+      body: >
+        A previous PR (#1656) fixed validation for network ipam config,
+
+        checking that both network and subnet are defined for each ipam config
+        entry
+
+        (as described in the docker documentation).
+
+
+        After that PR, the validations throws an exception if the network target
+        state is incorrect,
+
+        but this turns out to be the wrong approach, because that exception is
+        also triggered
+
+        when querying target state.
+
+
+        This isn't a problem in normal operation, but it is in local mode,
+        because local
+
+        mode queries the old target state before sending a new one. Since the
+        query fails,
+
+        the CLI can never push the new target state.
+
+
+        This PR replaces the exception with a warning on the logs, since a
+
+        misconfigured network won't cause any engine failures, it will just
+
+        prevent containers to communicate through the provided network.
+
+
+        A future improvement should move this validation to an earlier point in
+        the process,
+
+        so the target state can get rejected before it even gets to a point it
+
+        can be used.
+      footer:
+        Relates-to: '#1693'
+        relates-to: '#1693'
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.6.8
+  date: 2021-05-06T20:30:52.075Z
+- commits:
     - subject: Patch awaiting response when checking if supervisor0 network exists
       hash: 8b0c2347d8d04d3c7101016f6c885f31d9b3dc6a
       body: ''
