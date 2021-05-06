@@ -15,6 +15,7 @@ import * as TargetState from '../src/device-state/target-state';
 import { DeviceStatus } from '../src/types/state';
 import * as CurrentState from '../src/device-state/current-state';
 import * as ApiHelper from '../src/lib/api-helper';
+import supervisorVersion = require('../src/lib/supervisor-version');
 
 import { TypedError } from 'typed-error';
 import { DeviceNotFoundError } from '../src/lib/errors';
@@ -166,6 +167,10 @@ describe('ApiBinder', () => {
 					uuid: conf.uuid,
 					device_type: conf.deviceType,
 					api_key: conf.deviceApiKey,
+					mac_address: '00:11:22:33:44:55 66:77:88:99:AA:BB',
+					os_variant: 'dev',
+					os_version: 'balenaOS 2.0.6+rev1',
+					supervisor_version: supervisorVersion,
 				},
 			});
 		});

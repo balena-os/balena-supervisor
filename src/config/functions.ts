@@ -90,6 +90,10 @@ export const fnSchema = {
 				'apiTimeout',
 				'registered_at',
 				'deviceId',
+				'version',
+				'osVersion',
+				'osVariant',
+				'macAddress',
 			])
 			.then((conf) => {
 				return {
@@ -103,6 +107,10 @@ export const fnSchema = {
 					apiTimeout: conf.apiTimeout,
 					registered_at: conf.registered_at,
 					deviceId: conf.deviceId,
+					supervisorVersion: conf.version,
+					osVersion: conf.osVersion,
+					osVariant: conf.osVariant,
+					macAddress: conf.macAddress,
 				};
 			});
 	},

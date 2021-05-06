@@ -6,6 +6,8 @@ backports:
   sunset: 10.3.x
 
 upstream:
+  - repo: 'balena-register-device'
+    url: 'https://github.com/balena-io-modules/balena-register-device'
   - repo: 'docker-delta'
     url: 'https://github.com/balena-io-modules/node-docker-delta'
   - repo: 'docker-progress'
