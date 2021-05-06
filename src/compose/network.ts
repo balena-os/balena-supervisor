@@ -5,14 +5,12 @@ import * as dockerode from 'dockerode';
 import { docker } from '../lib/docker-utils';
 import logTypes = require('../lib/log-types');
 import * as logger from '../logger';
+import log from '../lib/supervisor-console';
 import * as ComposeUtils from './utils';
 
 import { ComposeNetworkConfig, NetworkConfig } from './types/network';
 
-import {
-	InvalidNetworkConfigurationError,
-	InvalidNetworkNameError,
-} from './errors';
+import { InvalidNetworkNameError } from './errors';
 
 export class Network {
 	public appId: number;
@@ -199,13 +197,17 @@ export class Network {
 		},
 	): void {
 		// Check if every ipam config entry has both a subnet and a gateway
-		_.each(_.get(config, 'ipam.config', []), ({ subnet, gateway }) => {
-			if (!subnet || !gateway) {
-				throw new InvalidNetworkConfigurationError(
-					'Network IPAM config entries must have both a subnet and gateway',
-				);
-			}
-		});
+		if (
+			_.some(
+				_.get(config, 'ipam.config', []),
+				({ subnet, gateway }) => !subnet || !gateway,
+			)
+		) {
+			log.warn(
+				'Network IPAM config entries must have both a subnet and gateway defined.' +
+					' Your network might not work properly otherwise.',
+			);
+		}
 	}
 
 	public static generateDockerName(appId: number, name: string) {
