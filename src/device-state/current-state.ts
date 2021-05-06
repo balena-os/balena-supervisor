@@ -112,7 +112,12 @@ const getStateDiff = (): DeviceStatus => {
 			stateForReport.local,
 			(val, key: keyof NonNullable<DeviceStatus['local']>) =>
 				INTERNAL_STATE_KEYS.includes(key) ||
-				_.isEqual(lastReportedLocal[key], val),
+				_.isEqual(lastReportedLocal[key], val) ||
+				!sysInfo.isSignificantChange(
+					key,
+					lastReportedLocal[key] as number,
+					val as number,
+				),
 		),
 		dependent: _.omitBy(
 			stateForReport.dependent,
@@ -122,11 +127,6 @@ const getStateDiff = (): DeviceStatus => {
 		),
 	};
 
-	const toOmit: string[] = sysInfo.filterNonSignificantChanges(
-		lastReportedLocal as sysInfo.SystemInfo,
-		stateForReport.local as sysInfo.SystemInfo,
-	);
-	diff.local = _.omit(diff.local, toOmit);
 	return _.omitBy(diff, _.isEmpty);
 };
 
