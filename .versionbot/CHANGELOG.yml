@@ -1,4 +1,19 @@
 - commits:
+    - subject: Log error responses from API when reporting state
+      hash: 2203f78d517a9edf75a261dd3c77cdf5b609548c
+      body: |
+        This adds the error message from the API to journal logs to better
+        identify those cases where patching to the API fails.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Relates-to: '#1680'
+        relates-to: '#1680'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.6.4
+  date: 2021-05-05T19:06:49.805Z
+- commits:
     - subject: Added configurations.md to document all configurable vars
       hash: 07a0344dc6ac15a67513080c63dffe0d6b811ebf
       body: ''
