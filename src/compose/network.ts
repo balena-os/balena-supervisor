@@ -130,6 +130,7 @@ export class Network {
 			Name: Network.generateDockerName(this.appId, this.name),
 			Driver: this.config.driver,
 			CheckDuplicate: true,
+			Options: this.config.options,
 			IPAM: {
 				Driver: this.config.ipam.driver,
 				Config: this.config.ipam.config.map((conf) => {
