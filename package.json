@@ -100,7 +100,7 @@
     "lint-staged": "^10.2.11",
     "livepush": "^3.5.1",
     "lockfile": "^1.0.4",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "memoizee": "^0.4.14",
     "mixpanel": "^0.10.3",
     "mocha": "^5.2.0",
