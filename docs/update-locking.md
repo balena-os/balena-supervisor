@@ -22,7 +22,7 @@ On older devices (with v4.0.0 <= supervisor version < v7.22.0) the lock is locat
 Legacy supervisors (< v4.0.0) have the lock at `/data/resin-updates.lock`. This lock is only supported on devices running balenaOS 1.X.
 This old lock has the problem that the supervisor has to clear whenever it starts up to avoid deadlocks. If the user app
 has taken the lock before the supervisor starts up, the lock will be cleared and the app can operate under the false
-assumption that updates are locked (see [issue #20](https://github.com/resin-io/resin-supervisor/issues/20)). We therefore strongly recommend switching to the new lock location as soon as possible.
+assumption that updates are locked (see [issue #20](https://github.com/balena-os/balena-supervisor/issues/20)). We therefore strongly recommend switching to the new lock location as soon as possible.
 
 ### Creating the lockfile
 

@@ -127,7 +127,7 @@ describe.skip('LocalModeManager', () => {
 				},
 				Image: 'super-image-1',
 				HostConfig: {
-					ContainerIDFile: '/resin-data/resin-supervisor/container-id',
+					ContainerIDFile: '/resin-data/balena-supervisor/container-id',
 				},
 				Mounts: [
 					{
