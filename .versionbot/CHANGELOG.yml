@@ -1,4 +1,17 @@
 - commits:
+    - subject: Bump contrato from 0.5.0 to 0.6.3
+      hash: 19a7ccb998bc86623eca204b9c67fddb3bd0a40f
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Micah Halter <micah@balena.io>
+        signed-off-by: Micah Halter <micah@balena.io>
+      author: Micah Halter
+      nested: []
+  version: 12.7.1
+  date: 2021-05-07T14:51:33.669Z
+- commits:
     - subject: Backwards compatility changes for old resin namespaces
       hash: 301aa52f032fecd29495894e828f21a93df60caa
       body: ''
