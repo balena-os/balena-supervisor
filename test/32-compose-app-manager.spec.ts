@@ -1,7 +1,4 @@
-import * as chai from 'chai';
 import { expect } from 'chai';
-import * as chaiThings from 'chai-things';
-import * as chaiLike from 'chai-like';
 import _ = require('lodash');
 
 import * as dbFormat from '../src/device-state/db-format';
@@ -17,9 +14,6 @@ import Network from '../src/compose/network';
 
 import prepare = require('./lib/prepare');
 import { intialiseContractRequirements } from '../src/lib/contracts';
-
-chai.use(chaiLike);
-chai.use(chaiThings);
 
 describe('compose/application-manager', () => {
 	before(async () => {

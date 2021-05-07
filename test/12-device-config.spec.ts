@@ -1,8 +1,8 @@
 import { stripIndent } from 'common-tags';
 import { promises as fs } from 'fs';
 import { SinonStub, stub, spy, SinonSpy } from 'sinon';
-
 import { expect } from 'chai';
+
 import * as deviceConfig from '../src/device-config';
 import * as fsUtils from '../src/lib/fs-utils';
 import * as logger from '../src/logger';

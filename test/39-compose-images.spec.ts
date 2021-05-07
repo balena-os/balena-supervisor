@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
+import { expect } from 'chai';
 
 import { docker } from '../src/lib/docker-utils';
-import { expect } from 'chai';
 import * as Images from '../src/compose/images';
 import * as mockedDockerode from './lib/mocked-dockerode';
 import * as mockedDatabase from './lib/mocked-database';
@@ -82,7 +82,7 @@ describe('compose/images', () => {
 			await Images.remove(IMAGE_TO_REMOVE);
 			// Check that docker does not have this image
 			await expect(docker.getImage(IMAGE_TO_REMOVE.name).inspect()).to
-				.eventually.be.empty;
+				.eventually.be.undefined;
 			// Check that the database longer has this image
 			await expect(db.models('image').select().where(IMAGE_TO_REMOVE)).to
 				.eventually.be.empty;
@@ -118,7 +118,7 @@ describe('compose/images', () => {
 			await Images.remove(IMAGE_TO_REMOVE);
 			// Check that docker does not have this image
 			await expect(docker.getImage(IMAGE_TO_REMOVE.name).inspect()).to
-				.eventually.be.empty;
+				.eventually.be.undefined;
 			// Check that the database no longer has this image
 			await expect(db.models('image').select().where(IMAGE_TO_REMOVE)).to
 				.eventually.be.empty;

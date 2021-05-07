@@ -1,8 +1,8 @@
 import { promises as fs } from 'fs';
 import { stripIndent } from 'common-tags';
 import { SinonStub, stub } from 'sinon';
-
 import { expect } from 'chai';
+
 import * as fsUtils from '../src/lib/fs-utils';
 import { Extlinux } from '../src/config/backends/extlinux';
 
