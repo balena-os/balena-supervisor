@@ -1,4 +1,37 @@
 - commits:
+    - subject: Backwards compatility changes for old resin namespaces
+      hash: 301aa52f032fecd29495894e828f21a93df60caa
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+    - subject: Change container name to balena_supervisor
+      hash: 09615c9d8254d3f62ef1088d0da35485b0c18734
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+    - subject: Rename resin-supervisor to balena-supervisor
+      hash: 5faf9d7686d7f03b5bb73ef9a234038e7e61037c
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+  version: 12.7.0
+  date: 2021-05-07T12:05:43.135Z
+- commits:
     - subject: Show warning instead of exception for invalid network config
       hash: 5197a1330d69cbff97f3c53a77f640638e074b8a
       body: >
