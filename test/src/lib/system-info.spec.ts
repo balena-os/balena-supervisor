@@ -26,41 +26,42 @@ describe('System information', () => {
 		(fsUtils.exec as SinonStub).restore();
 	});
 
-	describe('filterNonSignificantChanges', () => {
+	describe('isSignificantChange', () => {
 		it('should correctly filter cpu usage', () => {
-			expect(sysInfo.isSignificantChange('cpu_usage', 21, 20)).to.equal(false);
-
-			expect(sysInfo.isSignificantChange('cpu_usage', 10, 20)).to.equal(true);
+			expect(sysInfo.isSignificantChange('cpu_usage', 21, 20)).to.be.false;
+			expect(sysInfo.isSignificantChange('cpu_usage', 10, 20)).to.be.true;
 		});
 
 		it('should correctly filter cpu temperature', () => {
-			expect(sysInfo.isSignificantChange('cpu_temp', 21, 22)).to.equal(false);
-
-			expect(sysInfo.isSignificantChange('cpu_temp', 10, 20)).to.equal(true);
+			expect(sysInfo.isSignificantChange('cpu_temp', 21, 22)).to.be.false;
+			expect(sysInfo.isSignificantChange('cpu_temp', 10, 20)).to.be.true;
 		});
 
 		it('should correctly filter memory usage', () => {
-			expect(sysInfo.isSignificantChange('memory_usage', 21, 22)).to.equal(
-				false,
-			);
-
-			expect(sysInfo.isSignificantChange('memory_usage', 10, 20)).to.equal(
-				true,
-			);
+			expect(sysInfo.isSignificantChange('memory_usage', 21, 22)).to.be.false;
+			expect(sysInfo.isSignificantChange('memory_usage', 10, 20)).to.be.true;
 		});
 
 		it("should not filter if we didn't have a past value", () => {
-			expect(sysInfo.isSignificantChange('cpu_usage', undefined, 22)).to.equal(
-				true,
-			);
+			expect(sysInfo.isSignificantChange('cpu_usage', undefined, 22)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('cpu_temp', undefined, 10)).to.be.true;
+			expect(sysInfo.isSignificantChange('memory_usage', undefined, 5)).to.be
+				.true;
+		});
 
-			expect(sysInfo.isSignificantChange('cpu_temp', undefined, 10)).to.equal(
-				true,
-			);
-
-			expect(
-				sysInfo.isSignificantChange('memory_usage', undefined, 5),
-			).to.equal(true);
+		it('should not filter if the current value is null', () => {
+			// When the current value is null, we're sending a null patch to the
+			// API in response to setting DISABLE_HARDWARE_METRICS to true, so
+			// we need to include null for all values. None of the individual metrics
+			// in systemMetrics return null (only number/undefined), so the only
+			// reason for current to be null is when a null patch is happening.
+			expect(sysInfo.isSignificantChange('cpu_usage', 15, null as any)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('cpu_temp', 55, null as any)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('memory_usage', 760, null as any)).to
+				.be.true;
 		});
 
 		it('should not filter if the current value is null', () => {
