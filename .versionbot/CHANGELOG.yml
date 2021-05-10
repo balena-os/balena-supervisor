@@ -1,4 +1,23 @@
 - commits:
+    - subject: Bump lodash from 4.17.20 to 4.17.21
+      hash: 90fe8359f10094863cf1940b591cfe46f4de1442
+      body: >
+        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.20 to
+        4.17.21.
+
+        - [Release notes](https://github.com/lodash/lodash/releases)
+
+        - [Commits](https://github.com/lodash/lodash/compare/4.17.20...4.17.21)
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.7.2
+  date: 2021-05-10T04:10:57.334Z
+- commits:
     - subject: Bump contrato from 0.5.0 to 0.6.3
       hash: 19a7ccb998bc86623eca204b9c67fddb3bd0a40f
       body: ''
