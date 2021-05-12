@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import prepare = require('./lib/prepare');
 import * as _ from 'lodash';
 
+import prepare = require('./lib/prepare');
 import * as config from '../src/config';
 import * as dbFormat from '../src/device-state/db-format';
 import * as targetStateCache from '../src/device-state/target-state-cache';
