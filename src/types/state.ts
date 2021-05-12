@@ -40,7 +40,9 @@ export interface DeviceStatus {
 		};
 	} & DeviceReportFields;
 	// TODO: Type the dependent entry correctly
-	dependent?: any;
+	dependent?: {
+		[key: string]: any;
+	};
 	commit?: string;
 }
 

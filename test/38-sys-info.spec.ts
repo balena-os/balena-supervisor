@@ -24,55 +24,39 @@ describe('System information', async () => {
 
 	describe('Delta-based filtering', () => {
 		it('should correctly filter cpu usage', () => {
-			expect(
-				sysInfo.filterNonSignificantChanges({ cpu_usage: 21 }, {
-					cpu_usage: 20,
-				} as sysInfo.SystemInfo),
-			).to.deep.equal(['cpu_usage']);
+			expect(sysInfo.isSignificantChange('cpu_usage', 21, 20)).to.equal(false);
 
-			expect(
-				sysInfo.filterNonSignificantChanges({ cpu_usage: 10 }, {
-					cpu_usage: 20,
-				} as sysInfo.SystemInfo),
-			).to.deep.equal([]);
+			expect(sysInfo.isSignificantChange('cpu_usage', 10, 20)).to.equal(true);
 		});
 
 		it('should correctly filter cpu temperature', () => {
-			expect(
-				sysInfo.filterNonSignificantChanges({ cpu_temp: 21 }, {
-					cpu_temp: 22,
-				} as sysInfo.SystemInfo),
-			).to.deep.equal(['cpu_temp']);
+			expect(sysInfo.isSignificantChange('cpu_temp', 21, 22)).to.equal(false);
 
-			expect(
-				sysInfo.filterNonSignificantChanges({ cpu_temp: 10 }, {
-					cpu_temp: 20,
-				} as sysInfo.SystemInfo),
-			).to.deep.equal([]);
+			expect(sysInfo.isSignificantChange('cpu_temp', 10, 20)).to.equal(true);
 		});
 
 		it('should correctly filter memory usage', () => {
-			expect(
-				sysInfo.filterNonSignificantChanges({ memory_usage: 21 }, {
-					memory_usage: 22,
-				} as sysInfo.SystemInfo),
-			).to.deep.equal(['memory_usage']);
+			expect(sysInfo.isSignificantChange('memory_usage', 21, 22)).to.equal(
+				false,
+			);
 
-			expect(
-				sysInfo.filterNonSignificantChanges({ memory_usage: 10 }, {
-					memory_usage: 20,
-				} as sysInfo.SystemInfo),
-			).to.deep.equal([]);
+			expect(sysInfo.isSignificantChange('memory_usage', 10, 20)).to.equal(
+				true,
+			);
 		});
 
 		it('should not filter if we didnt have a past value', () => {
+			expect(sysInfo.isSignificantChange('cpu_usage', undefined, 22)).to.equal(
+				true,
+			);
+
+			expect(sysInfo.isSignificantChange('cpu_temp', undefined, 10)).to.equal(
+				true,
+			);
+
 			expect(
-				sysInfo.filterNonSignificantChanges({}, {
-					memory_usage: 22,
-					cpu_usage: 10,
-					cpu_temp: 5,
-				} as sysInfo.SystemInfo),
-			).to.deep.equal([]);
+				sysInfo.isSignificantChange('memory_usage', undefined, 5),
+			).to.equal(true);
 		});
 	});
 

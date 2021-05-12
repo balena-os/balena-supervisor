@@ -120,28 +120,22 @@ const significantChange: { [key in keyof SystemInfo]?: number } = {
 	memory_usage: 10,
 };
 
-export function filterNonSignificantChanges(
-	past: Partial<SystemInfo>,
-	current: SystemInfo,
-): Array<keyof SystemInfo> {
-	return Object.keys(
-		_.omitBy(current, (value, key: keyof SystemInfo) => {
-			// If we didn't have a value for this in the past, include it
-			if (past[key] == null) {
-				return true;
-			}
-			const bucketSize = significantChange[key];
-			// If we don't have any requirements on this value, include it
-			if (bucketSize == null) {
-				return true;
-			}
+export function isSignificantChange(
+	key: string,
+	past: number | undefined,
+	current: number,
+): boolean {
+	// If we didn't have a value for this in the past, include it
+	if (past == null) {
+		return true;
+	}
+	const bucketSize = significantChange[key as keyof SystemInfo];
+	// If we don't have any requirements on this value, include it
+	if (bucketSize == null) {
+		return true;
+	}
 
-			return (
-				Math.floor((value as number) / bucketSize) !==
-				Math.floor((past[key] as number) / bucketSize)
-			);
-		}),
-	) as Array<keyof SystemInfo>;
+	return Math.floor(current / bucketSize) !== Math.floor(past / bucketSize);
 }
 
 function bytesToMb(bytes: number) {
