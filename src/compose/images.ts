@@ -14,7 +14,11 @@ import {
 	dockerToolbelt,
 } from '../lib/docker-utils';
 import * as dockerUtils from '../lib/docker-utils';
-import { DeltaStillProcessingError, NotFoundError } from '../lib/errors';
+import {
+	ImageNotFoundError,
+	DeltaStillProcessingError,
+	NotFoundError,
+} from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import * as validation from '../lib/validation';
 import * as logger from '../logger';
@@ -152,7 +156,12 @@ export async function triggerFetch(
 		onFinish(true);
 		return;
 	} catch (e) {
-		if (!NotFoundError(e)) {
+		if (ImageNotFoundError(e)) {
+			// Handle Docker daemon HTTP 404 errors (image not accessible for some reason while needed)
+			log.debug(
+				`Delta image has been modified or deleted by daemon while applying, redownloading: ${image.name}`,
+			);
+		} else if (!NotFoundError(e)) {
 			if (!(e instanceof ImageDownloadBackoffError)) {
 				addImageFailure(image.name);
 			}
