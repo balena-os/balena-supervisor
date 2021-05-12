@@ -1,4 +1,23 @@
 - commits:
+    - subject: Simplify/optimize filtering non-significant sys info changes
+      hash: 74ae31fcfd392df901a12972332ecabce5ec62fd
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Avoid double `omit`s whilst filtering current state
+      hash: 466ff58871cba029b881eb53c4c9cf2eb842eb16
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 12.7.3
+  date: 2021-05-12T07:02:13.515Z
+- commits:
     - subject: Bump lodash from 4.17.20 to 4.17.21
       hash: 90fe8359f10094863cf1940b591cfe46f4de1442
       body: >
