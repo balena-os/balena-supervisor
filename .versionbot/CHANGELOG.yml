@@ -1,4 +1,18 @@
 - commits:
+    - subject: 'Upgrade mocha to v8, use mocha fixtures for chai plugins'
+      hash: 62375c907f2579873e590e2f05767ae6157bbc7b
+      body: |
+        Remove chai-events and add explicit chai devDependency
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.7.4
+  date: 2021-05-12T08:16:22.915Z
+- commits:
     - subject: Simplify/optimize filtering non-significant sys info changes
       hash: 74ae31fcfd392df901a12972332ecabce5ec62fd
       body: ''
