@@ -53,7 +53,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "method": "GET"}' \
+	--data '{"uuid": "<uuid>", "method": "GET"}' \
 	"https://api.balena-cloud.com/supervisor/ping"
 ```
 
@@ -79,7 +79,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>}' \
+	--data '{"uuid": "<uuid>"}' \
 	"https://api.balena-cloud.com/supervisor/v1/blink"
 ```
 
@@ -114,7 +114,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "data": {"force": true}}' \
+	--data '{"uuid": "<uuid>", "data": {"force": true}}' \
 	"https://api.balena-cloud.com/supervisor/v1/update"
 ```
 
@@ -147,14 +147,17 @@ $ curl -X POST --header "Content-Type:application/json" \
 ```
 Response:
 ```json
-{"Data":"OK","Error":""}
+{
+	"Data": "OK",
+	"Error": ""
+}
 ```
 
 Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>}' \
+	--data '{"uuid": "<uuid>"}' \
 	"https://api.balena-cloud.com/supervisor/v1/reboot"
 ```
 
@@ -165,8 +168,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 > **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
 > **Dangerous**: Shuts down the device. This will first try to stop applications, and fail if there is an update lock.
-An optional "force" parameter in the body overrides the lock when true (and the lock can also be overridden from
-the dashboard).
+An optional "force" parameter in the body overrides the lock when true (and the lock can also be overridden from the dashboard).
 
 When successful, responds with 202 accepted and a JSON object:
 ```json
@@ -188,14 +190,17 @@ $ curl -X POST --header "Content-Type:application/json" \
 Response:
 
 ```json
-{"Data":"OK","Error":""}
+{
+	"Data": "OK",
+	"Error": ""
+}
 ```
 
 Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>}' \
+	--data '{"uuid": "<uuid>"}' \
 	"https://api.balena-cloud.com/supervisor/v1/shutdown"
 ```
 
@@ -203,7 +208,9 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 ### POST /v1/purge
 
-> **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+> **Note:** 
+> - On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+> - This will remove and recreate all service containers, as volumes can only be removed when their associated containers are removed.
 
 Clears the user application's `/data` folder.
 
@@ -233,15 +240,18 @@ $ curl -X POST --header "Content-Type:application/json" \
 ```
 Response:
 
-```none
-{"Data":"OK","Error":""}
+```json
+{
+	"Data": "OK",
+	"Error": ""
+}
 ```
 
 Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "data": {"appId": <appId>}}' \
+	--data '{"uuid": "<uuid>", "data": {"appId": <appId>}}' \
 	"https://api.balena-cloud.com/supervisor/v1/purge"
 ```
 
@@ -249,7 +259,9 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 ### POST /v1/restart
 
-> **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+> **Note:** 
+> - On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+> - This will remove and recreate all service containers. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information.
 
 Restarts a user application container
 
@@ -286,7 +298,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "data": {"appId": <appId>}}' \
+	--data '{"uuid": "<uuid>", "data": {"appId": <appId>}}' \
 	"https://api.balena-cloud.com/supervisor/v1/restart"
 ```
 
@@ -313,7 +325,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>}' \
+	--data '{"uuid": "<uuid>"}' \
 	"https://api.balena-cloud.com/supervisor/v1/regenerate-api-key"
 ```
 
@@ -349,14 +361,25 @@ $ curl -X GET --header "Content-Type:application/json" \
 ```
 Response:
 ```json
-{"api_port":48484,"ip_address":"192.168.0.114 10.42.0.3","commit":"414e65cd378a69a96f403b75f14b40b55856f860","status":"Downloading","download_progress":84,"os_version":"Resin OS 1.0.4 (fido)","supervisor_version":"1.6.0","update_pending":true,"update_downloaded":false,"update_failed":false}
+{
+	"api_port":48484,
+	"ip_address":"192.168.0.114 10.42.0.3",
+	"commit":"414e65cd378a69a96f403b75f14b40b55856f860",
+	"status":"Downloading",
+	"download_progress":84,
+	"os_version":"Resin OS 1.0.4 (fido)",
+	"supervisor_version":"1.6.0",
+	"update_pending":true,
+	"update_downloaded":false,
+	"update_failed":false
+}
 ```
 
 Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "method": "GET"}' \
+	--data '{"uuid": "<uuid>", "method": "GET"}' \
 	"https://api.balena-cloud.com/supervisor/v1/device"
 ```
 
@@ -391,7 +414,9 @@ $ curl -X POST --header "Content-Type:application/json" \
 Response:
 
 ```json
-{"containerId":"5f4d4a857742e9ecac505ba5710834d3852ad7d71e10389fc6f61d8655a21806"}
+{
+	"containerId":"5f4d4a857742e9ecac505ba5710834d3852ad7d71e10389fc6f61d8655a21806"
+}
 ```
 
 Remotely via the API proxy:
@@ -399,7 +424,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>}' \
+	--data '{"uuid": "<uuid>"}' \
 	"https://api.balena-cloud.com/supervisor/v1/apps/<appId>/stop"
 ```
 
@@ -430,7 +455,9 @@ $ curl -X POST --header "Content-Type:application/json" \
 Response:
 
 ```json
-{"containerId":"6d9e1efdb9aad90fdb2df911f785b6aa00270e9448e75226a9a7361c8a9500cf"}
+{
+	"containerId":"6d9e1efdb9aad90fdb2df911f785b6aa00270e9448e75226a9a7361c8a9500cf"
+}
 ```
 
 Remotely via the API proxy:
@@ -438,7 +465,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>}' \
+	--data '{"uuid": "<uuid>"}' \
 	"https://api.balena-cloud.com/supervisor/v1/apps/<appId>/start"
 ```
 
@@ -470,14 +497,22 @@ $ curl -X GET --header "Content-Type:application/json" \
 ```
 Response:
 ```json
-{"appId": 3134,"commit":"414e65cd378a69a96f403b75f14b40b55856f860","imageId":"registry.balena-cloud.com/superapp/414e65cd378a69a96f403b75f14b40b55856f860","containerId":"e5c1eace8b4e","env":{"FOO":"bar"}}
+{
+	"appId": 3134,
+	"commit":"414e65cd378a69a96f403b75f14b40b55856f860",
+	"imageId":"registry.balena-cloud.com/superapp/414e65cd378a69a96f403b75f14b40b55856f860",
+	"containerId":"e5c1eace8b4e",
+	"env":{
+		"FOO":"bar"
+	}
+}
 ```
 
 Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "method": "GET"}' \
+	--data '{"uuid": "<uuid>", "method": "GET"}' \
 	"https://api.balena-cloud.com/supervisor/v1/apps/<appId>"
 ```
 
@@ -506,7 +541,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "method": "GET"}' \
+	--data '{"uuid": "<uuid>", "method": "GET"}' \
 	"https://api.balena-cloud.com/supervisor/v1/healthy"
 ```
 
@@ -573,7 +608,7 @@ Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "method": "PATCH", "data": {"network": {"hostname": "newhostname"}}}' \
+	--data '{"uuid": "<uuid>", "method": "PATCH", "data": {"network": {"hostname": "newhostname"}}}' \
 	"https://api.balena-cloud.com/supervisor/v1/device/host-config"
 ```
 
@@ -598,14 +633,23 @@ $ curl "$BALENA_SUPERVISOR_ADDRESS/v1/device/host-config?apikey=$BALENA_SUPERVIS
 
 Response:
 ```json
-{"network":{"proxy":{"ip":"192.168.0.199","port":"8123","type":"socks5"},"hostname":"27b0fdc"}}
+{
+	"network":{
+		"proxy":{
+			"ip":"192.168.0.199",
+			"port":"8123",
+			"type":"socks5"
+		},
+		"hostname":"27b0fdc"
+	}
+}
 ```
 
 Remotely via the API proxy:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--header "Authorization: Bearer <auth token>" \
-	--data '{"uuid": <uuid>, "method": "GET"}' \
+	--data '{"uuid": "<uuid>", "method": "GET"}' \
 	"https://api.balena-cloud.com/supervisor/v1/device/host-config"
 ```
 
@@ -763,13 +807,14 @@ url when on the device list.
 
 ### POST /v2/applications/:appId/restart-service
 
-> **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+> **Note:** 
+> - On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+> - This will remove and recreate the specified service container. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information.
 
 Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
 `imageId` added in v8.2.2.
 
-Use this endpoint to restart a service in the application with application id
-passed in with the url.
+Use this endpoint to restart a service in the application with application id passed in with the url.
 
 From an application container:
 ```bash
@@ -832,7 +877,9 @@ This endpoint can also take an extra optional boolean, `force`, which if true in
 
 ### POST /v2/applications/:appId/restart
 
-> **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+> **Note:** 
+> - On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
+> - This will remove and recreate all service containers. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information.
 
 Added in supervisor version v7.0.0.
 
@@ -878,7 +925,7 @@ This endpoint can also take an extra optional boolean, `force`, which if true in
 This endpoint returns the supervisor version currently running the device api.
 
 From an application container:
-```
+```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/version?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
 
@@ -897,7 +944,7 @@ Response:
 Use this endpoint to match a service name to a container ID.
 
 From an application container:
-```
+```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/containerId?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
 
@@ -913,7 +960,7 @@ Response:
 ```
 
 You can also specify a service, to return only that container id:
-```
+```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/containerId?apikey=$BALENA_SUPERVISOR_API_KEY&service=service-one"
 ```
 
@@ -1122,7 +1169,7 @@ not change throughout the runtime of the container, but the endpoint will always
 the latest known device name.
 
 From an application container:
-```
+```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/name?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
 
@@ -1142,7 +1189,7 @@ Retrieve any device tags from the balena API. Note that this endpoint will not w
 the device does not have an available connection to the balena API.
 
 From an application container:
-```
+```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/tags?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
 
@@ -1168,7 +1215,7 @@ Retrieve information about the VPN connection running on the device.
 
 From an application container:
 
-```sh
+```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/vpn?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
 
@@ -1195,19 +1242,19 @@ the standard update flow. To cleanup up any orphaned
 volumes, use this supervisor endpoint:
 
 From an application container:
-```
+```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/cleanup-volumes?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
 
 Successful response:
-```
+```json
 {
        "status": "success"
 }
 ```
 
 Unsuccessful response:
-```
+```json
 {
        "status": "failed",
        "message": "the error message"
@@ -1247,7 +1294,7 @@ https://www.freedesktop.org/software/systemd/man/journalctl.html#-o
 Fields should be provided via POST body in JSON format.
 
 From an application container:
-```
+```bash
 $ curl -X POST -H "Content-Type: application/json" --data '{"follow":true,"all":true}' "$BALENA_SUPERVISOR_ADDRESS/v2/journal-logs?apikey=$BALENA_SUPERVISOR_API_KEY" > log.journal
 ```
 
