@@ -9,6 +9,12 @@ export interface StatusCodeError extends Error {
 	statusCode?: string | number;
 }
 
+export class StatusError extends Error {
+	constructor(public statusCode: number, public statusMessage?: string) {
+		super(statusMessage);
+	}
+}
+
 interface CodedSysError extends Error {
 	code?: string;
 }

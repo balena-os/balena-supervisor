@@ -1,68 +1,86 @@
 import { expect } from 'chai';
-import { stub } from 'sinon';
-import * as systeminformation from 'systeminformation';
+import { SinonStub, stub } from 'sinon';
 import { promises as fs } from 'fs';
+import * as systeminformation from 'systeminformation';
 
-import * as sysInfo from '../src/lib/system-info';
+import * as fsUtils from '../../../src/lib/fs-utils';
+import * as sysInfo from '../../../src/lib/system-info';
 
-function toMb(bytes: number) {
-	return Math.floor(bytes / 1024 / 1024);
-}
-
-describe('System information', async () => {
-	const fsSizeStub = stub(systeminformation, 'fsSize');
-	const memStub = stub(systeminformation, 'mem');
-	const currentLoadStub = stub(systeminformation, 'currentLoad');
-	const cpuTempStub = stub(systeminformation, 'cpuTemperature');
-
-	after(() => {
-		fsSizeStub.restore();
-		memStub.restore();
-		currentLoadStub.restore();
-		cpuTempStub.restore();
+describe('System information', () => {
+	before(() => {
+		stub(systeminformation, 'fsSize');
+		stub(systeminformation, 'mem').resolves(mockMemory);
+		stub(systeminformation, 'currentLoad').resolves(mockCPU.load);
+		stub(systeminformation, 'cpuTemperature').resolves(mockCPU.temp);
+		// @ts-ignore TS thinks we can't return a buffer...
+		stub(fs, 'readFile').resolves(mockCPU.idBuffer);
+		stub(fsUtils, 'exec');
 	});
 
-	describe('Delta-based filtering', () => {
-		it('should correctly filter cpu usage', () => {
-			expect(sysInfo.isSignificantChange('cpu_usage', 21, 20)).to.equal(false);
+	after(() => {
+		(systeminformation.fsSize as SinonStub).restore();
+		(systeminformation.mem as SinonStub).restore();
+		(systeminformation.currentLoad as SinonStub).restore();
+		(systeminformation.cpuTemperature as SinonStub).restore();
+		(fs.readFile as SinonStub).restore();
+		(fsUtils.exec as SinonStub).restore();
+	});
 
-			expect(sysInfo.isSignificantChange('cpu_usage', 10, 20)).to.equal(true);
+	describe('isSignificantChange', () => {
+		it('should correctly filter cpu usage', () => {
+			expect(sysInfo.isSignificantChange('cpu_usage', 21, 20)).to.be.false;
+			expect(sysInfo.isSignificantChange('cpu_usage', 10, 20)).to.be.true;
 		});
 
 		it('should correctly filter cpu temperature', () => {
-			expect(sysInfo.isSignificantChange('cpu_temp', 21, 22)).to.equal(false);
-
-			expect(sysInfo.isSignificantChange('cpu_temp', 10, 20)).to.equal(true);
+			expect(sysInfo.isSignificantChange('cpu_temp', 21, 22)).to.be.false;
+			expect(sysInfo.isSignificantChange('cpu_temp', 10, 20)).to.be.true;
 		});
 
 		it('should correctly filter memory usage', () => {
-			expect(sysInfo.isSignificantChange('memory_usage', 21, 22)).to.equal(
-				false,
-			);
-
-			expect(sysInfo.isSignificantChange('memory_usage', 10, 20)).to.equal(
-				true,
-			);
+			expect(sysInfo.isSignificantChange('memory_usage', 21, 22)).to.be.false;
+			expect(sysInfo.isSignificantChange('memory_usage', 10, 20)).to.be.true;
 		});
 
-		it('should not filter if we didnt have a past value', () => {
-			expect(sysInfo.isSignificantChange('cpu_usage', undefined, 22)).to.equal(
-				true,
-			);
+		it("should not filter if we didn't have a past value", () => {
+			expect(sysInfo.isSignificantChange('cpu_usage', undefined, 22)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('cpu_temp', undefined, 10)).to.be.true;
+			expect(sysInfo.isSignificantChange('memory_usage', undefined, 5)).to.be
+				.true;
+		});
 
-			expect(sysInfo.isSignificantChange('cpu_temp', undefined, 10)).to.equal(
-				true,
-			);
+		it('should not filter if the current value is null', () => {
+			// When the current value is null, we're sending a null patch to the
+			// API in response to setting DISABLE_HARDWARE_METRICS to true, so
+			// we need to include null for all values. None of the individual metrics
+			// in systemMetrics return null (only number/undefined), so the only
+			// reason for current to be null is when a null patch is happening.
+			expect(sysInfo.isSignificantChange('cpu_usage', 15, null as any)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('cpu_temp', 55, null as any)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('memory_usage', 760, null as any)).to
+				.be.true;
+		});
 
-			expect(
-				sysInfo.isSignificantChange('memory_usage', undefined, 5),
-			).to.equal(true);
+		it('should not filter if the current value is null', () => {
+			// When the current value is null, we're sending a null patch to the
+			// API in response to setting HARDWARE_METRICS to false, so
+			// we need to include null for all values. None of the individual metrics
+			// in systemMetrics return null (only number/undefined), so the only
+			// reason for current to be null is when a null patch is happening.
+			expect(sysInfo.isSignificantChange('cpu_usage', 15, null as any)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('cpu_temp', 55, null as any)).to.be
+				.true;
+			expect(sysInfo.isSignificantChange('memory_usage', 760, null as any)).to
+				.be.true;
 		});
 	});
 
-	describe('CPU information', async () => {
+	describe('CPU information', () => {
 		it('gets CPU usage', async () => {
-			currentLoadStub.resolves(mockCPU.load);
 			const cpuUsage = await sysInfo.getCpuUsage();
 			// Make sure it is a whole number
 			expect(cpuUsage % 1).to.equal(0);
@@ -71,7 +89,6 @@ describe('System information', async () => {
 		});
 
 		it('gets CPU temp', async () => {
-			cpuTempStub.resolves(mockCPU.temp);
 			const tempInfo = await sysInfo.getCpuTemp();
 			// Make sure it is a whole number
 			expect(tempInfo % 1).to.equal(0);
@@ -80,41 +97,17 @@ describe('System information', async () => {
 		});
 
 		it('gets CPU ID', async () => {
-			const fsStub = stub(fs, 'readFile').resolves(
-				// @ts-ignore TS thinks we can't return a buffer...
-				Buffer.from([
-					0x31,
-					0x30,
-					0x30,
-					0x30,
-					0x30,
-					0x30,
-					0x30,
-					0x30,
-					0x30,
-					0x31,
-					0x62,
-					0x39,
-					0x33,
-					0x66,
-					0x33,
-					0x66,
-					0x00,
-				]),
-			);
 			const cpuId = await sysInfo.getCpuId();
 			expect(cpuId).to.equal('1000000001b93f3f');
-			fsStub.restore();
 		});
 	});
 
-	describe('Memory information', async () => {
+	describe('getMemoryInformation', async () => {
 		it('should return the correct value for memory usage', async () => {
-			memStub.resolves(mockMemory);
 			const memoryInfo = await sysInfo.getMemoryInformation();
 			expect(memoryInfo).to.deep.equal({
-				total: toMb(mockMemory.total),
-				used: toMb(
+				total: sysInfo.bytesToMb(mockMemory.total),
+				used: sysInfo.bytesToMb(
 					mockMemory.total -
 						mockMemory.free -
 						(mockMemory.cached + mockMemory.buffers),
@@ -123,9 +116,9 @@ describe('System information', async () => {
 		});
 	});
 
-	describe('Storage information', async () => {
+	describe('getStorageInfo', async () => {
 		it('should return info on /data mount', async () => {
-			fsSizeStub.resolves(mockFS);
+			(systeminformation.fsSize as SinonStub).resolves(mockFS);
 			const storageInfo = await sysInfo.getStorageInfo();
 			expect(storageInfo).to.deep.equal({
 				blockDevice: '/dev/mmcblk0p6',
@@ -135,13 +128,30 @@ describe('System information', async () => {
 		});
 
 		it('should handle no /data mount', async () => {
-			fsSizeStub.resolves([]);
+			(systeminformation.fsSize as SinonStub).resolves([]);
 			const storageInfo = await sysInfo.getStorageInfo();
 			expect(storageInfo).to.deep.equal({
 				blockDevice: '',
 				storageUsed: undefined,
 				storageTotal: undefined,
 			});
+		});
+	});
+
+	describe('undervoltageDetected', () => {
+		it('should detect undervoltage', async () => {
+			(fsUtils.exec as SinonStub).resolves({
+				stdout: Buffer.from(
+					'[58611.126996] Under-voltage detected! (0x00050005)',
+				),
+				stderr: Buffer.from(''),
+			});
+			expect(await sysInfo.undervoltageDetected()).to.be.true;
+			(fsUtils.exec as SinonStub).resolves({
+				stdout: Buffer.from('[569378.450066] eth0: renamed from veth3aa11ca'),
+				stderr: Buffer.from(''),
+			});
+			expect(await sysInfo.undervoltageDetected()).to.be.false;
 		});
 	});
 });
@@ -226,6 +236,25 @@ const mockCPU = {
 			},
 		],
 	},
+	idBuffer: Buffer.from([
+		0x31,
+		0x30,
+		0x30,
+		0x30,
+		0x30,
+		0x30,
+		0x30,
+		0x30,
+		0x30,
+		0x31,
+		0x62,
+		0x39,
+		0x33,
+		0x66,
+		0x33,
+		0x66,
+		0x00,
+	]),
 };
 const mockFS = [
 	{
