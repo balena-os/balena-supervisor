@@ -1,4 +1,22 @@
 - commits:
+    - subject: Add toggleable `SUPERVISOR_HARDWARE_METRICS` config
+      hash: dcd863eed8b58cc7eae866c941597c7e0a9bfcb1
+      body: |
+        On devices with bandwidth sensitivity, this config var
+        disables sending system information such as memory
+        usage or cpu temp as current state.
+      footer:
+        Closes: '#1645'
+        closes: '#1645'
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.8.0
+  date: 2021-05-13T05:50:32.160Z
+- commits:
     - subject: 'Upgrade mocha to v8, use mocha fixtures for chai plugins'
       hash: 62375c907f2579873e590e2f05767ae6157bbc7b
       body: |
