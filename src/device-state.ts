@@ -667,7 +667,15 @@ export async function executeStepAction<T extends PossibleStepTargets>(
 		await deviceConfig.executeStepAction(step as ConfigStep, {
 			initial,
 		});
-	} else if (_.includes(applicationManager.validActions, step.action)) {
+	} else if (
+		_.includes(
+			[
+				...applicationManager.validActions,
+				...applicationManager.validDependentActions,
+			],
+			step.action,
+		)
+	) {
 		return applicationManager.executeStep(step as any, {
 			force,
 			skipLock,
@@ -807,6 +815,7 @@ export const applyTarget = async ({
 		} else {
 			const appSteps = await applicationManager.getRequiredSteps(
 				targetState.local.apps,
+				targetState.dependent,
 			);
 
 			if (_.isEmpty(appSteps)) {

@@ -35,6 +35,7 @@ import {
 	TargetApplications,
 	DeviceStatus,
 	DeviceReportFields,
+	DependentTargetState,
 } from '../types/state';
 import { checkTruthy, checkInt } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
@@ -114,6 +115,7 @@ const actionExecutors = getExecutors({
 });
 
 export const validActions = Object.keys(actionExecutors);
+export const validDependentActions = proxyvisor.validActions;
 
 // Volatile state for a single container. This is used for temporarily setting a
 // different state for a container, such as running: false
@@ -175,6 +177,7 @@ export async function lockingIfNecessary<T extends unknown>(
 
 export async function getRequiredSteps(
 	targetApps: InstancedAppState,
+	targetDependent?: DependentTargetState,
 	ignoreImages: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
@@ -184,12 +187,14 @@ export async function getRequiredSteps(
 		cleanupNeeded,
 		availableImages,
 		currentApps,
+		currentDependent,
 	] = await Promise.all([
 		config.getMany(['localMode', 'delta']),
 		imageManager.getDownloadingImageIds(),
 		imageManager.isCleanupNeeded(),
 		imageManager.getAvailable(),
 		getCurrentApps(),
+		proxyvisor.getCurrentStates(),
 	]);
 	const containerIdsByAppId = await getAppContainerIds(currentApps);
 
@@ -227,6 +232,8 @@ export async function getRequiredSteps(
 					targetApps,
 					availableImages,
 					localMode,
+					currentDependent,
+					targetDependent,
 				),
 			);
 		}
@@ -325,15 +332,14 @@ export async function getRequiredSteps(
 		steps.push(generateStep('noop', {}));
 	}
 
-	steps = steps.concat(
-		await proxyvisor.getRequiredSteps(
-			availableImages,
-			downloading,
-			currentApps,
-			targetApps,
-			steps,
-		),
+	const pvSteps = await proxyvisor.getRequiredSteps(
+		availableImages,
+		downloading,
+		targetDependent,
+		steps,
 	);
+	console.log('proxyvisor STEPS', pvSteps);
+	steps = steps.concat(pvSteps);
 
 	return steps;
 }
@@ -424,6 +430,7 @@ export async function executeStep(
 	{ force = false, skipLock = false } = {},
 ): Promise<void> {
 	if (proxyvisor.validActions.includes(step.action)) {
+		console.log('PROXYVISOR executeStepAction');
 		return proxyvisor.executeStepAction(step);
 	}
 
@@ -616,6 +623,8 @@ function saveAndRemoveImages(
 	target: InstancedAppState,
 	availableImages: imageManager.Image[],
 	localMode: boolean,
+	currentDependent?: any, // TODO: type this
+	targetDependent?: DependentTargetState,
 ): CompositionStep[] {
 	const imageForService = (service: Service): imageManager.Image => ({
 		name: service.imageName!,
@@ -711,7 +720,10 @@ function saveAndRemoveImages(
 	const deltaSources = _.map(imagesToDownload, (image) => {
 		return bestDeltaSource(image, availableImages);
 	});
-	const proxyvisorImages = proxyvisor.imagesInUse(current, target);
+	const proxyvisorImages = proxyvisor.imagesInUse(
+		currentDependent,
+		targetDependent,
+	);
 
 	const potentialDeleteThenDownload = _(current)
 		.flatMap((app) => _.values(app.services))

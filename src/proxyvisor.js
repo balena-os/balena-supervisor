@@ -233,6 +233,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 		};
 		const requestError = validateDeviceFields();
 		if (requestError != null) {
+			console.error('DEVICE FIELDS NOT VALID');
 			res.status(400).send(requestError);
 			return;
 		}
@@ -260,6 +261,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 		}
 
 		if (_.isEmpty(fieldsToUpdateOnDB)) {
+			console.error('At least one device attribute must be updated');
 			res.status(400).send('At least one device attribute must be updated');
 			return;
 		}
@@ -270,12 +272,15 @@ const createProxyvisorRouter = function (proxyvisor) {
 			.where({ uuid })
 			.then(function ([device]) {
 				if (device == null) {
+					console.error('Device not found');
 					return res.status(404).send('Device not found');
 				}
 				if (device.markedForDeletion) {
+					console.error('Device deleted');
 					return res.status(410).send('Device deleted');
 				}
 				if (device.deviceId == null) {
+					console.error('Device is invalid');
 					throw new Error('Device is invalid');
 				}
 				return Promise.try(function () {
@@ -459,6 +464,12 @@ export class Proxyvisor {
 			},
 
 			sendDependentHooks: (step) => {
+				console.log(
+					'IN SEND DEPENDENT HOOKS, NUM DEVICES:',
+					step.devices.length,
+					', MARKED FOR DELETION:',
+					step.devices[0].markedForDeletion,
+				);
 				return Promise.join(
 					config.get('apiTimeout'),
 					this.getHookEndpoint(step.appId),
@@ -475,7 +486,9 @@ export class Proxyvisor {
 							}).then(() => {
 								this.lastRequestForDevice[device.uuid] = Date.now();
 								if (device.markedForDeletion) {
-									return this.sendDeleteHook(device, apiTimeout, endpoint);
+									console.log('DEVICE IS MARKED FOR DELETION');
+									return;
+									// return this.sendDeleteHook(device, apiTimeout, endpoint);
 								} else {
 									return this.sendUpdate(device, apiTimeout, endpoint);
 								}
@@ -704,13 +717,13 @@ export class Proxyvisor {
 
 	imagesInUse(current, target) {
 		const images = [];
-		if (current?.dependent?.apps != null) {
-			_.forEach(current.dependent.apps, (app) => {
+		if (current?.apps != null) {
+			_.forEach(current.apps, (app) => {
 				images.push(app.image);
 			});
 		}
-		if (target?.dependent?.apps != null) {
-			_.forEach(target.dependent.apps, (app) => {
+		if (target?.apps != null) {
+			_.forEach(target.apps, (app) => {
 				images.push(app.image);
 			});
 		}
@@ -848,6 +861,7 @@ export class Proxyvisor {
 
 		// - if current doesn't match target, or the devices differ, push an updateDependentTargets step
 		if (!_.isEqual(current, target) || devicesDiffer) {
+			console.log('CURRENT NOT EQUAL TO TARGET', currentDevices, targetDevices);
 			return [
 				{
 					action: 'updateDependentTargets',
@@ -867,17 +881,17 @@ export class Proxyvisor {
 		return [];
 	}
 
-	getRequiredSteps(
+	async getRequiredSteps(
 		availableImages,
 		downloading,
-		current,
 		target,
 		stepsInProgress,
 	) {
+		const current = await this.getCurrentStates();
 		return Promise.try(() => {
-			const targetApps = _.keyBy(target.dependent?.apps ?? [], 'appId');
+			const targetApps = _.keyBy(target?.apps ?? [], 'appId');
 			const targetAppIds = _.keys(targetApps);
-			const currentApps = _.keyBy(current.dependent?.apps ?? [], 'appId');
+			const currentApps = _.keyBy(current?.apps ?? [], 'appId');
 			const currentAppIds = _.keys(currentApps);
 			const allAppIds = _.union(targetAppIds, currentAppIds);
 
@@ -886,8 +900,8 @@ export class Proxyvisor {
 				const devicesForApp = (devices) =>
 					_.filter(devices, (d) => _.has(d.apps, appId));
 
-				const currentDevices = devicesForApp(current.dependent.devices);
-				const targetDevices = devicesForApp(target.dependent.devices);
+				const currentDevices = devicesForApp(current.devices);
+				const targetDevices = devicesForApp(target.devices);
 				const stepsForApp = this.nextStepsForDependentApp(
 					appId,
 					availableImages,
@@ -940,6 +954,7 @@ export class Proxyvisor {
 	}
 
 	sendUpdate(device, timeout, endpoint) {
+		console.log('sendUpdate [SINGULAR] Hook, device target: ', device.target);
 		return Promise.resolve(request.getRequestInstance())
 			.then((instance) =>
 				instance.putAsync(`${endpoint}${device.uuid}`, {
@@ -954,14 +969,18 @@ export class Proxyvisor {
 				} else {
 					this.acknowledgedState[device.uuid] = null;
 					if (response.statusCode !== 202) {
-						throw new Error(`Hook returned ${response.statusCode}: ${body}`);
+						// throw new Error(`Hook returned ${response.statusCode}: ${body}`);
+						console.error(`Hook returned ${response.statusCode}: ${body}`);
 					}
 				}
 			})
-			.catch((err) => log.error(`Error updating device ${device.uuid}`, err));
+			.catch((err) =>
+				log.error(`Error updating device ${device.uuid}`, err.message),
+			);
 	}
 
 	sendDeleteHook({ uuid }, timeout, endpoint) {
+		console.log('sendDeleteHook FOR DEVICE WITH UUID', uuid);
 		return Promise.resolve(request.getRequestInstance())
 			.then((instance) => instance.delAsync(`${endpoint}${uuid}`))
 			.timeout(timeout)
@@ -976,6 +995,7 @@ export class Proxyvisor {
 	}
 
 	sendUpdates({ uuid }) {
+		console.log('sendUpdates [PLURAL] Hook');
 		return Promise.join(
 			db.models('dependentDevice').where({ uuid }).select(),
 			config.get('apiTimeout'),

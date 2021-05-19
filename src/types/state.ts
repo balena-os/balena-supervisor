@@ -76,11 +76,14 @@ export interface TargetState {
 	// actually properly supported
 	dependent: {
 		apps: Array<{
+			appId?: number;
 			name?: string;
-			image?: string;
 			commit?: string;
+			image?: string;
+			imageId?: number;
 			config?: EnvVarObject;
 			environment?: EnvVarObject;
+			parentApp?: number;
 		}>;
 		devices: Array<{
 			name?: string;
@@ -99,6 +102,11 @@ export type TargetApplicationService = TargetApplication['services'][0];
 export type AppsJsonFormat = Omit<TargetState['local'], 'name'> & {
 	pinDevice?: boolean;
 };
+export type DependentTargetState = TargetState['dependent'];
+export type DependentTargetApplications = DependentTargetState['apps'];
+export type DependentTargetApplication = DependentTargetState['apps'][0];
+export type DependentTargetDevices = DependentTargetState['devices'];
+export type DependentTargetDevice = DependentTargetState['devices'][0];
 
 export type InstancedAppState = { [appId: number]: App };
 
