@@ -1,4 +1,26 @@
 - commits:
+    - subject: Specify that all restart API endpoints remove and recreate containers
+      hash: 7c4d232439560d17c20584dc3b51f98944dedb37
+      body: >
+        This is intended behavior.
+
+
+        Also add quotes around UUID in examples to reduce confusion, and format
+        responses
+
+        as multiline JSON for clarity.
+      footer:
+        Closes: '#1681'
+        closes: '#1681'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.8.1
+  date: 2021-05-19T02:40:22.974Z
+- commits:
     - subject: Add toggleable `SUPERVISOR_HARDWARE_METRICS` config
       hash: dcd863eed8b58cc7eae866c941597c7e0a9bfcb1
       body: |
