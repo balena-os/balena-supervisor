@@ -208,9 +208,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 ### POST /v1/purge
 
-> **Note:** 
-> - On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
-> - This will remove and recreate all service containers, as volumes can only be removed when their associated containers are removed.
+> **Note:** This route will remove and recreate all service containers, as volumes can only be removed when their associated containers are removed. On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
 Clears the user application's `/data` folder.
 
@@ -259,9 +257,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 ### POST /v1/restart
 
-> **Note:** 
-> - On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
-> - This will remove and recreate all service containers. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information.
+> **Note:** This route will remove and recreate all service containers. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information. On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
 Restarts a user application container
 
@@ -807,9 +803,7 @@ url when on the device list.
 
 ### POST /v2/applications/:appId/restart-service
 
-> **Note:** 
-> - On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
-> - This will remove and recreate the specified service container. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information.
+> **Note:** This route will remove and recreate the specified service container. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information. On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
 Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
 `imageId` added in v8.2.2.
@@ -877,9 +871,7 @@ This endpoint can also take an extra optional boolean, `force`, which if true in
 
 ### POST /v2/applications/:appId/restart
 
-> **Note:** 
-> - On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
-> - This will remove and recreate all service containers. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information.
+> **Note:** This route will remove and recreate all service containers. See [the restart action](https://www.balena.io/docs/learn/manage/actions/#restart-application) for more information. On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
 Added in supervisor version v7.0.0.
 
