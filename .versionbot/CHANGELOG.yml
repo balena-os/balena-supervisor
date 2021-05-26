@@ -1,4 +1,18 @@
 - commits:
+    - subject: Revert multiline bullet points in notes
+      hash: 5524b5e986d448110c19a226f38e984e1d699f5d
+      body: |
+        Docs engine cannot support > - markdown pattern.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.8.2
+  date: 2021-05-26T08:17:22.240Z
+- commits:
     - subject: Specify that all restart API endpoints remove and recreate containers
       hash: 7c4d232439560d17c20584dc3b51f98944dedb37
       body: >
