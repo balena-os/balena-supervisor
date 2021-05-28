@@ -505,25 +505,6 @@ describe('device-state/current-state', () => {
 			report.cancel();
 		});
 
-		it('does not report if current state has not changed', async () => {
-			// Use a temporary unhandledRejectionHandler to catch the promise
-			// rejection from the Bluebird.delay stub
-			process.on('unhandledRejection', unhandledRejectionHandler);
-			spy(_, 'size');
-
-			reportCurrentState();
-
-			// Wait 200ms for anonymous async IIFE inside reportCurrentState to finish executing
-			// TODO: is there a better way to test this? Possible race condition
-			await sleep(200);
-
-			expect(stateForReport).to.deep.equal({ local: {}, dependent: {} });
-			expect(_.size as SinonSpy).to.have.returned(0);
-
-			(_.size as SinonSpy).restore();
-			process.removeListener('unhandledRejection', unhandledRejectionHandler);
-		});
-
 		it('sends a null patch for system metrics when HARDWARE_METRICS is false', async () => {
 			// Use a temporary unhandledRejectionHandler to catch the promise
 			// rejection from the Bluebird.delay stub

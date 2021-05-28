@@ -203,14 +203,10 @@ const reportCurrentState = (): null => {
 				...currentDeviceState.dependent,
 			};
 
-			const stateDiff = getStateDiff();
-			if (_.size(stateDiff) === 0) {
-				reportPending = false;
-				return null;
-			}
-
+			// Report current state
 			await report();
-			reportCurrentState();
+			// Finishing pending report
+			reportPending = false;
 		} catch (e) {
 			eventTracker.track('Device state report failure', { error: e });
 			// We use the poll interval as the upper limit of
@@ -241,5 +237,6 @@ export const startReporting = () => {
 	// But check once every max report frequency to ensure that changes in system
 	// info are picked up (CPU temp etc)
 	setInterval(doReport, constants.maxReportFrequency);
-	return reportCurrentState();
+	// Try to perform a report right away
+	return doReport();
 };
