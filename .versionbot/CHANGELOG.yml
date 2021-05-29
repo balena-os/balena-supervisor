@@ -1,4 +1,19 @@
 - commits:
+    - subject: Prevent a recursive loop when reporting current state
+      hash: 55a344dceb826c5655067e6006e006846778b5e9
+      body: ''
+      footer:
+        Closes: '#1673'
+        closes: '#1673'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.8.3
+  date: 2021-05-28T20:23:03.757Z
+- commits:
     - subject: Revert multiline bullet points in notes
       hash: 5524b5e986d448110c19a226f38e984e1d699f5d
       body: |
