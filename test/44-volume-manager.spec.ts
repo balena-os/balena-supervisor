@@ -71,7 +71,9 @@ describe('Volume Manager', () => {
 				},
 			]);
 			// Check that debug message was logged saying we found a Volume not created by us
-			expect(logDebug.lastCall.lastArg).to.equal('Cannot parse Volume: decoy');
+			expect(logDebug.lastCall.lastArg).to.equal(
+				'Found unmanaged Volume: decoy',
+			);
 		});
 	});
 
