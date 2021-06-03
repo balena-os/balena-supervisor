@@ -1,4 +1,17 @@
 - commits:
+    - subject: Refactor debug log when unmanaged volume is found
+      hash: ab4fb454e056d3a70b4c9e1041ebdd16b0d03dca
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.8.4
+  date: 2021-06-02T17:10:32.272Z
+- commits:
     - subject: Prevent a recursive loop when reporting current state
       hash: 55a344dceb826c5655067e6006e006846778b5e9
       body: ''
