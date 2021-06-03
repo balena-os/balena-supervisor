@@ -7,8 +7,10 @@ import type { Image } from './images';
 import * as images from './images';
 import Network from './network';
 import Service from './service';
+import Overlay from './overlay';
 import * as serviceManager from './service-manager';
 import Volume from './volume';
+import * as overlayManager from './overlay-manager';
 
 import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
@@ -98,6 +100,9 @@ interface CompositionStepArgs {
 	};
 	ensureSupervisorNetwork: {};
 	noop: {};
+	updateOverlays: {
+		target: Overlay[];
+	};
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;
@@ -295,6 +300,10 @@ export function getExecutors(app: {
 		},
 		noop: async () => {
 			/* async noop */
+		},
+		// Host extension specific steps
+		updateOverlays: async (step) => {
+			await overlayManager.update(step.target);
 		},
 	};
 

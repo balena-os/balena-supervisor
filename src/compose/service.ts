@@ -40,15 +40,21 @@ export type ServiceStatus =
 	| 'removing'
 	| 'exited';
 
+const SERVICE_IMAGE_CLASSES = ['service', 'overlay', 'fileset'];
+export type ServiceImageClass = 'service' | 'overlay' | 'fileset';
+
 export class Service {
 	public appId: number;
 	public imageId: number;
 	public config: ServiceConfig;
 	public serviceName: string | null;
 	public releaseId: number;
+	public releaseVersion: string;
 	public serviceId: number;
 	public imageName: string | null;
+	public imageClass: ServiceImageClass;
 	public containerId: string | null;
+	public uuid: string | null;
 
 	public dependsOn: string[] | null;
 
@@ -126,6 +132,8 @@ export class Service {
 		delete appConfig.appId;
 		service.releaseId = parseInt(appConfig.releaseId, 10);
 		delete appConfig.releaseId;
+		service.releaseVersion = appConfig.releaseVersion;
+		delete appConfig.releaseVersion;
 		service.serviceId = parseInt(appConfig.serviceId, 10);
 		delete appConfig.serviceId;
 		service.imageName = appConfig.image;
@@ -133,6 +141,8 @@ export class Service {
 		delete appConfig.dependsOn;
 		service.createdAt = appConfig.createdAt;
 		delete appConfig.createdAt;
+		service.uuid = appConfig.uuid;
+		delete appConfig.uuid;
 
 		delete appConfig.contract;
 
@@ -271,8 +281,22 @@ export class Service {
 				service.appId || 0,
 				service.serviceId || 0,
 				service.serviceName || '',
+				service.uuid || undefined,
+				service.releaseVersion,
 			),
 		);
+
+		// Get image class from labels
+		const imageClass = config.labels['io.balena.image.class'] ?? 'service';
+		if (SERVICE_IMAGE_CLASSES.includes(imageClass)) {
+			service.imageClass = imageClass as ServiceImageClass;
+		} else {
+			log.warn(
+				`Ignoring label io.balena.image.class="${imageClass}". Valid values are (${SERVICE_IMAGE_CLASSES.join(
+					',',
+				)}).`,
+			);
+		}
 
 		// Any other special case handling
 		if (config.networkMode === 'host' && !config.hostname) {
@@ -589,9 +613,12 @@ export class Service {
 				`Found a service with no appId! ${svc}`,
 			);
 		}
+
 		svc.appId = appId;
+		svc.uuid = svc.config.labels['io.balena.app-uuid'];
 		svc.serviceName = svc.config.labels['io.balena.service-name'];
 		svc.serviceId = parseInt(svc.config.labels['io.balena.service-id'], 10);
+		svc.releaseVersion = svc.config.labels['io.balena.release-version'];
 		if (Number.isNaN(svc.serviceId)) {
 			throw new InternalInconsistencyError(
 				'Attempt to build Service class from container with malformed labels',
@@ -607,6 +634,18 @@ export class Service {
 		svc.imageId = parseInt(nameMatch[1], 10);
 		svc.releaseId = parseInt(nameMatch[2], 10);
 		svc.containerId = container.Id;
+
+		// Get image class from container labels
+		const imageClass = svc.config.labels['io.balena.image.class'] ?? 'service';
+		if (SERVICE_IMAGE_CLASSES.includes(imageClass)) {
+			svc.imageClass = imageClass as ServiceImageClass;
+		} else {
+			log.warn(
+				`Ignoring container label io.balena.image.class="${imageClass}". Valid values are (${SERVICE_IMAGE_CLASSES.join(
+					',',
+				)}).`,
+			);
+		}
 
 		return svc;
 	}
@@ -1046,13 +1085,27 @@ export class Service {
 		appId: number,
 		serviceId: number,
 		serviceName: string,
+		uuid?: string,
+		releaseVersion?: string,
 	): { [labelName: string]: string } {
-		let newLabels = _.defaults(labels, {
-			'io.balena.supervised': 'true',
-			'io.balena.app-id': appId.toString(),
-			'io.balena.service-id': serviceId.toString(),
-			'io.balena.service-name': serviceName,
-		});
+		let newLabels = {
+			...labels,
+			...{
+				'io.balena.supervised': 'true',
+				'io.balena.app-id': appId.toString(),
+				'io.balena.service-id': serviceId.toString(),
+				'io.balena.service-name': serviceName,
+			},
+			// Set a uuid label if we have one
+			// uuid and releaseVersion will become mandatory in next major
+			// supervisor version
+			...(uuid != null ? { 'io.balena.app-uuid': uuid } : {}),
+
+			// Set a releaseVersion label if we have one
+			...(releaseVersion != null
+				? { 'io.balena.release-version': releaseVersion }
+				: {}),
+		};
 
 		const imageLabels = _.get(imageInfo, 'Config.Labels', {});
 		newLabels = _.defaults(newLabels, imageLabels);

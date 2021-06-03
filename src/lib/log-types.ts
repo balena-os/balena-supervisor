@@ -168,3 +168,18 @@ export const removeNetworkError: LogType = {
 	eventName: 'Network removal error',
 	humanName: 'Error removing network',
 };
+
+export const hostOverlayUpdate: LogType = {
+	eventName: 'Host extensions update',
+	humanName: 'Updating host extensions',
+};
+
+export const hostOverlayUpdateSuccess: LogType = {
+	eventName: 'Host extensions updated',
+	humanName: 'Updated extensions will be available on reboot',
+};
+
+export const hostOverlayUpdateError: LogType = {
+	eventName: 'Host extensions update error',
+	humanName: 'Failed to update host extensions',
+};

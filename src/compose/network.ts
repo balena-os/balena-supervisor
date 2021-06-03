@@ -16,6 +16,7 @@ export class Network {
 	public appId: number;
 	public name: string;
 	public config: NetworkConfig;
+	public uuid?: string;
 
 	private constructor() {}
 
@@ -57,12 +58,15 @@ export class Network {
 			options: network.Options ?? {},
 		};
 
+		ret.uuid = ret.config.labels['io.balena.app-uuid'];
+
 		return ret;
 	}
 
 	public static fromComposeObject(
 		name: string,
 		appId: number,
+		uuid: string,
 		network: Partial<Omit<ComposeNetworkConfig, 'ipam'>> & {
 			ipam?: Partial<ComposeNetworkConfig['ipam']>;
 		},
@@ -99,7 +103,11 @@ export class Network {
 			options: network.driver_opts || {},
 		};
 
-		net.config.labels = ComposeUtils.normalizeLabels(net.config.labels);
+		net.config.labels = {
+			...ComposeUtils.normalizeLabels(net.config.labels),
+			'io.balena.app-uuid': uuid,
+		};
+		net.uuid = uuid;
 
 		return net;
 	}
@@ -182,13 +190,18 @@ export class Network {
 		// in the target state (as it will be present in the
 		// current state, due to docker populating it with
 		// default or generated values)
-		let configToCompare = this.config;
-		if (network.config.ipam.config.length === 0) {
-			configToCompare = _.cloneDeep(this.config);
+		const configToCompare = { ...this.config };
+		const otherConfig = { ...network.config };
+		if (otherConfig.ipam.config.length === 0) {
 			configToCompare.ipam.config = [];
 		}
 
-		return _.isEqual(configToCompare, network.config);
+		configToCompare.labels = _.omit(configToCompare.labels, [
+			'io.balena.app-uuid',
+		]);
+		otherConfig.labels = _.omit(otherConfig.labels, ['io.balena.app-uuid']);
+
+		return _.isEqual(configToCompare, otherConfig);
 	}
 
 	private static validateComposeConfig(
