@@ -55,8 +55,8 @@ export interface TargetState {
 		apps: {
 			[appId: string]: {
 				name: string;
-				commit: string;
-				releaseId: number;
+				commit?: string;
+				releaseId?: number;
 				services: {
 					[serviceId: string]: {
 						labels: LabelObject;
@@ -65,6 +65,7 @@ export interface TargetState {
 						image: string;
 						running?: boolean;
 						environment: Dictionary<string>;
+						contract?: Dictionary<any>;
 					} & ServiceComposeConfig;
 				};
 				volumes: Dictionary<Partial<ComposeVolumeConfig>>;
@@ -72,23 +73,29 @@ export interface TargetState {
 			};
 		};
 	};
-	// TODO: Correctly type this once dependent devices are
-	// actually properly supported
 	dependent: {
-		apps: Array<{
-			name?: string;
-			image?: string;
-			commit?: string;
-			config?: EnvVarObject;
-			environment?: EnvVarObject;
-		}>;
-		devices: Array<{
-			name?: string;
-			apps?: Dictionary<{
-				config?: EnvVarObject;
-				environment?: EnvVarObject;
-			}>;
-		}>;
+		apps: {
+			[appId: string]: {
+				name: string;
+				parentApp: number;
+				config: EnvVarObject;
+				releaseId?: number;
+				imageId?: number;
+				commit?: string;
+				image?: string;
+			};
+		};
+		devices: {
+			[uuid: string]: {
+				name: string;
+				apps: {
+					[id: string]: {
+						config: EnvVarObject;
+						environment: EnvVarObject;
+					};
+				};
+			};
+		};
 	};
 }
 
@@ -98,6 +105,10 @@ export type TargetApplication = LocalTargetState['apps'][0];
 export type TargetApplicationService = TargetApplication['services'][0];
 export type AppsJsonFormat = Omit<TargetState['local'], 'name'> & {
 	pinDevice?: boolean;
+	apps: {
+		// The releaseId/commit are required for preloading
+		[id: string]: Required<TargetState['local']['apps'][string]>;
+	};
 };
 
 export type InstancedAppState = { [appId: number]: App };

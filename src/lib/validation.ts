@@ -243,6 +243,16 @@ export function isValidDependentAppsObject(apps: unknown): boolean {
 		}
 
 		return _.conformsTo(val, {
+			parentApp: (n: any) => {
+				if (!checkInt(n)) {
+					log.debug(
+						'Invalid parentApp passed to validation.isValidDependentAppsObject\nName:',
+						inspect(n),
+					);
+					return false;
+				}
+				return true;
+			},
 			name: (n: any) => {
 				if (!isValidShortText(n)) {
 					log.debug(
@@ -278,16 +288,6 @@ export function isValidDependentAppsObject(apps: unknown): boolean {
 					log.debug(
 						'Invalid config passed to validation.isValidDependentAppsObject\nConfig:',
 						inspect(c),
-					);
-					return false;
-				}
-				return true;
-			},
-			environment: (e: any) => {
-				if (!undefinedOrValidEnv(e)) {
-					log.debug(
-						'Invalid environment passed to validation.isValidDependentAppsObject\nEnvironment:',
-						inspect(e),
 					);
 					return false;
 				}

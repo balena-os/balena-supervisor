@@ -35,6 +35,7 @@ import {
 	TargetApplications,
 	DeviceStatus,
 	DeviceReportFields,
+	TargetState,
 } from '../types/state';
 import { checkTruthy, checkInt } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
@@ -446,7 +447,7 @@ export async function executeStep(
 // FIXME: This shouldn't be in this module
 export async function setTarget(
 	apps: TargetApplications,
-	dependent: any,
+	dependent: TargetState['dependent'],
 	source: string,
 	maybeTrx?: Transaction,
 ) {

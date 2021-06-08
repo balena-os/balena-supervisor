@@ -83,7 +83,7 @@ export async function loadTargetFromFile(
 		preloadState.config = { ...formattedConf, ...deviceConf };
 		const localState = {
 			local: { name: '', ...preloadState },
-			dependent: { apps: [], devices: [] },
+			dependent: { apps: {}, devices: {} },
 		};
 
 		await deviceState.setTarget(localState);
