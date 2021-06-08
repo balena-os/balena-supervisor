@@ -54,7 +54,7 @@ targetState[0] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 targetState[1] = {
@@ -92,7 +92,7 @@ targetState[1] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 targetState[2] = {
@@ -146,7 +146,7 @@ targetState[2] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 targetState[3] = {
@@ -201,7 +201,7 @@ targetState[3] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 targetState[4] = {
@@ -255,7 +255,7 @@ targetState[4] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 targetState[5] = {
@@ -308,7 +308,7 @@ targetState[5] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 targetState[6] = {
@@ -327,7 +327,7 @@ targetState[6] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 currentState = [];
@@ -415,7 +415,7 @@ currentState[0] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 currentState[1] = {
@@ -437,7 +437,7 @@ currentState[1] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 currentState[2] = {
@@ -494,7 +494,7 @@ currentState[2] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 currentState[3] = {
@@ -585,7 +585,7 @@ currentState[3] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 currentState[4] = {
@@ -640,7 +640,7 @@ currentState[4] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 currentState[5] = {
@@ -670,7 +670,7 @@ currentState[5] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 currentState[6] = {
@@ -757,7 +757,7 @@ currentState[6] = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 availableImages = [];

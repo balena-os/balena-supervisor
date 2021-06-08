@@ -7,8 +7,8 @@ import * as db from '../db';
 // at all, and we can use the below type for both insertion and retrieval.
 export interface DatabaseApp {
 	name: string;
-	releaseId: number;
-	commit: string;
+	releaseId?: number;
+	commit?: string;
 	appId: number;
 	services: string;
 	networks: string;

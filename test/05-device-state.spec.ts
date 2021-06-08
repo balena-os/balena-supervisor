@@ -66,7 +66,7 @@ const testTarget2 = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 const testTargetWithDefaults2 = {
@@ -112,7 +112,6 @@ const testTargetWithDefaults2 = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
 };
 
 const testTargetInvalid = {
@@ -155,7 +154,7 @@ const testTargetInvalid = {
 			},
 		},
 	},
-	dependent: { apps: [], devices: [] },
+	dependent: { apps: {}, devices: {} },
 };
 
 describe('deviceState', () => {

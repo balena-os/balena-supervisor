@@ -205,7 +205,7 @@ describe('compose/application-manager', () => {
 					},
 				},
 			},
-			dependent: { apps: [], devices: [] },
+			dependent: { apps: {}, devices: {} },
 		};
 
 		before(async () => {
