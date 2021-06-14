@@ -1,4 +1,22 @@
 - commits:
+    - subject: Document the current state of HOST_FIREWALL_MODE
+      hash: 3961fbf1e714c594f730fe06fa3bbd3386f918bd
+      body: |
+        This set of docs can provide info for support agents until
+        issue 1482 is resolved. Expect this document to change as firewall
+        implementation is improved.
+      footer:
+        Connects-to: '#1525'
+        connects-to: '#1525'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.8.6
+  date: 2021-06-09T08:03:27.422Z
+- commits:
     - subject: Improve target state typings
       hash: ee4d919fca25be550306bc00197044144555361c
       body: ''
