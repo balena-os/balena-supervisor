@@ -5,8 +5,9 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as Lock from 'rwlock';
 
-import { ENOENT, UpdatesLockedError } from './errors';
-import { getPathOnHost } from './fs-utils';
+import * as constants from './constants';
+import { ENOENT, EEXIST, UpdatesLockedError } from './errors';
+import { getPathOnHost, pathExistsOnHost } from './fs-utils';
 
 type asyncLockFile = typeof lockFileLib & {
 	unlockAsync(path: string): Bluebird<void>;
@@ -33,6 +34,29 @@ function lockFilesOnHost(appId: number, serviceName: string): string[] {
 			path.join(lockPath(appId), serviceName, filename),
 		),
 	);
+}
+
+/**
+ * Check for rollback-{health|altboot}-breadcrumb, two files that exist while
+ * rollback-{health|altboot}.service have not exited. If these files exist,
+ * prevent reboot. If the Supervisor reboots while those services are still running,
+ * the device may become stuck in an invalid state during HUP.
+ */
+export function ensureNoHUPBreadcrumbsOnHost(): Promise<boolean | never> {
+	return Promise.all(
+		[
+			'rollback-health-breadcrumb',
+			'rollback-altboot-breadcrumb',
+		].map((filename) =>
+			pathExistsOnHost(path.join(constants.stateMountPoint, filename)),
+		),
+	).then((existsArray) => {
+		const anyExists = existsArray.some((exists) => exists);
+		if (anyExists) {
+			throw new UpdatesLockedError('Waiting for Host OS update to finish');
+		}
+		return anyExists;
+	});
 }
 
 const locksTaken: { [lockName: string]: boolean } = {};
@@ -65,6 +89,24 @@ function dispose(release: () => void): Bluebird<void> {
 		.finally(release)
 		.return();
 }
+
+const lockExistsErrHandler = (err: Error, release: () => void) => {
+	let errMsg = err.message;
+	if (EEXIST(err)) {
+		// Extract appId|appUuid and serviceName from lockfile path for log message
+		// appId: [0-9]{7}, appUuid: [0-9a-w]{32}, short appUuid: [0-9a-w]{7}
+		const pathMatch = err.message.match(
+			/\/([0-9]{7}|[0-9a-w]{32}|[0-9a-w]{7})\/(.*)\/(?:resin-)?updates.lock/,
+		);
+		if (pathMatch && pathMatch.length === 3) {
+			errMsg = `Lockfile exists for ${JSON.stringify({
+				serviceName: pathMatch[2],
+				[/^[0-9]{7}$/.test(pathMatch[1]) ? 'appId' : 'appUuid']: pathMatch[1],
+			})}`;
+		}
+	}
+	return dispose(release).throw(new UpdatesLockedError(errMsg));
+};
 
 /**
  * Try to take the locks for an application. If force is set, it will remove
@@ -100,12 +142,9 @@ export function lock(
 									})
 									.catchReturn(ENOENT, undefined);
 							},
-						).catch((err) => {
-							return dispose(release).throw(
-								new UpdatesLockedError(`Updates are locked: ${err.message}`),
-							);
-						});
-					});
+						);
+					})
+					.catch((err) => lockExistsErrHandler(err, release));
 			})
 			.disposer(dispose);
 	};

@@ -7,6 +7,7 @@ const supervisorNetworkInterface = 'supervisor0';
 
 const constants = {
 	rootMountPoint,
+	stateMountPoint: '/mnt/state',
 	databasePath:
 		checkString(process.env.DATABASE_PATH) || '/data/database.sqlite',
 	containerId: checkString(process.env.SUPERVISOR_CONTAINER_ID) || undefined,
