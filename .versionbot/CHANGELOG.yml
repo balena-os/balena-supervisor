@@ -1,4 +1,33 @@
 - commits:
+    - subject: Bump normalize-url from 4.5.0 to 4.5.1
+      hash: ece3be6d4503d15ffbac193479535d35bcd8030c
+      body: >
+        Bumps [normalize-url](https://github.com/sindresorhus/normalize-url)
+        from 4.5.0 to 4.5.1.
+
+        - [Release
+        notes](https://github.com/sindresorhus/normalize-url/releases)
+
+        - [Commits](https://github.com/sindresorhus/normalize-url/commits)
+
+
+        ---
+
+        updated-dependencies:
+
+        - dependency-name: normalize-url
+          dependency-type: indirect
+        ...
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.8.7
+  date: 2021-06-14T10:27:12.523Z
+- commits:
     - subject: Document the current state of HOST_FIREWALL_MODE
       hash: 3961fbf1e714c594f730fe06fa3bbd3386f918bd
       body: |
