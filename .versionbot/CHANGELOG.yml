@@ -1,4 +1,19 @@
 - commits:
+    - subject: 'Add revpi-connect, revpi-core-3 to Raspberry Pi variants'
+      hash: 7c26480ada7a413c530f076cbe2c703c28e68916
+      body: |
+        We need the supervisor to be able to manage config.txt changes for these
+        Revolution Pi boards too.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Florin Sarbu <florin@balena.io>
+        signed-off-by: Florin Sarbu <florin@balena.io>
+      author: Florin Sarbu
+      nested: []
+  version: 12.8.8
+  date: 2021-06-18T11:36:06.943Z
+- commits:
     - subject: Bump normalize-url from 4.5.0 to 4.5.1
       hash: ece3be6d4503d15ffbac193479535d35bcd8030c
       body: >
