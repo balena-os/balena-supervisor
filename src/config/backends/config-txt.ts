@@ -53,9 +53,14 @@ export class ConfigTxt extends ConfigBackend {
 
 	public async matches(deviceType: string): Promise<boolean> {
 		return (
-			['fincm3', 'rt-rpi-300', '243390-rpi3', 'nebra-hnt'].includes(
-				deviceType,
-			) || deviceType.startsWith('raspberry')
+			[
+				'fincm3',
+				'rt-rpi-300',
+				'243390-rpi3',
+				'nebra-hnt',
+				'revpi-connect',
+				'revpi-core-3',
+			].includes(deviceType) || deviceType.startsWith('raspberry')
 		);
 	}
 
