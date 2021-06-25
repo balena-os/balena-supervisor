@@ -596,10 +596,13 @@ export function bestDeltaSource(
 				return availableImage.name;
 			}
 		}
-	}
-	for (const availableImage of available) {
-		if (availableImage.appId === image.appId) {
-			return availableImage.name;
+	} else {
+		// This only makes sense for dependent devices which are still
+		// single app.
+		for (const availableImage of available) {
+			if (availableImage.appId === image.appId) {
+				return availableImage.name;
+			}
 		}
 	}
 	return null;
