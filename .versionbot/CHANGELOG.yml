@@ -1,4 +1,20 @@
 - commits:
+    - subject: Fix supervisor using wrong source for deltas
+      hash: 2fa0d3dc433aff620c28b41d05d739430c8d8922
+      body: |
+        This fixes a specific issue when the supervisor cannot find the right
+        source for deltas (e.g. after the DB gets deleted), where legacy
+        behavior was to look for any image in the app.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Relates-to: '#1729'
+        relates-to: '#1729'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.8.9
+  date: 2021-06-25T20:31:04.130Z
+- commits:
     - subject: 'Add revpi-connect, revpi-core-3 to Raspberry Pi variants'
       hash: 7c26480ada7a413c530f076cbe2c703c28e68916
       body: |
