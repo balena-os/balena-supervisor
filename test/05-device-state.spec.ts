@@ -1,8 +1,8 @@
 import * as _ from 'lodash';
-import { stub } from 'sinon';
+import { SinonStub, stub } from 'sinon';
 import { expect } from 'chai';
 
-import { StatusCodeError } from '../src/lib/errors';
+import { StatusCodeError, UpdatesLockedError } from '../src/lib/errors';
 import prepare = require('./lib/prepare');
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as config from '../src/config';
@@ -13,6 +13,7 @@ import * as deviceConfig from '../src/device-config';
 import { loadTargetFromFile } from '../src/device-state/preload';
 import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
+import * as updateLock from '../src/lib/update-lock';
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',
@@ -355,4 +356,20 @@ describe('deviceState', () => {
 	it.skip('applies the target state for device config');
 
 	it.skip('applies the target state for applications');
+
+	it('prevents reboot or shutdown when HUP rollback breadcrumbs are present', async () => {
+		const testErrMsg = 'Waiting for Host OS updates to finish';
+		stub(updateLock, 'ensureNoHUPBreadcrumbsOnHost').throws(
+			new UpdatesLockedError(testErrMsg),
+		);
+
+		await expect(deviceState.reboot())
+			.to.eventually.be.rejectedWith(testErrMsg)
+			.and.be.an.instanceOf(UpdatesLockedError);
+		await expect(deviceState.shutdown())
+			.to.eventually.be.rejectedWith(testErrMsg)
+			.and.be.an.instanceOf(UpdatesLockedError);
+
+		(updateLock.ensureNoHUPBreadcrumbsOnHost as SinonStub).restore();
+	});
 });

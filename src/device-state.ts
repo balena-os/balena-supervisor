@@ -638,6 +638,7 @@ export function reportCurrentState(
 }
 
 export async function reboot(force?: boolean, skipLock?: boolean) {
+	await updateLock.ensureNoHUPBreadcrumbsOnHost();
 	await applicationManager.stopAll({ force, skipLock });
 	logger.logSystemMessage('Rebooting', {}, 'Reboot');
 	const $reboot = await dbus.reboot();
@@ -647,6 +648,7 @@ export async function reboot(force?: boolean, skipLock?: boolean) {
 }
 
 export async function shutdown(force?: boolean, skipLock?: boolean) {
+	await updateLock.ensureNoHUPBreadcrumbsOnHost();
 	await applicationManager.stopAll({ force, skipLock });
 	logger.logSystemMessage('Shutting down', {}, 'Shutdown');
 	const $shutdown = await dbus.shutdown();
@@ -757,7 +759,7 @@ function applyError(
 		if (err instanceof UpdatesLockedError) {
 			const message = `Updates are locked, retrying in ${prettyMs(delay, {
 				compact: true,
-			})}...`;
+			})}. Reason: ${err.message}`;
 			logger.logSystemMessage(message, {}, 'updateLocked', false);
 			log.info(message);
 		} else {
