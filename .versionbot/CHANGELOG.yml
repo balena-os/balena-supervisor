@@ -1,4 +1,32 @@
 - commits:
+    - subject: Prevent updates/reboots with locks when HUP breadcrumbs present
+      hash: a9028e58ecb097f0106e74f6c4cd1b755fa9ece5
+      body: |
+        On HUP, some healthceck services need to complete before
+        it's safe for the Supervisor to reboot the device when
+        applying state changes. rollback-{health|altboot}-breadcrumb
+        are the two files that Supervisor looks for and locks the device
+        on when present in this patch.
+
+        Not closing issue 1459 because there is a possible case where,
+        on altboot rollback, the breadcrumbs are not present. 1459
+        may be closed when this edge case is investigated.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Connects-to: '#1459'
+        connects-to: '#1459'
+        See: >-
+          https://www.flowdock.com/app/rulemotion/r-supervisor/threads/cL7YfNOLSfTPfw05h59GEW0kfOt
+        see: >-
+          https://www.flowdock.com/app/rulemotion/r-supervisor/threads/cL7YfNOLSfTPfw05h59GEW0kfOt
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.8.10
+  date: 2021-06-30T04:30:34.845Z
+- commits:
     - subject: Fix supervisor using wrong source for deltas
       hash: 2fa0d3dc433aff620c28b41d05d739430c8d8922
       body: |
