@@ -1,4 +1,17 @@
 - commits:
+    - subject: Remove codeowners file
+      hash: 3d4c720d0bbfd66b8749b993cd94c33b00363587
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.8.11
+  date: 2021-06-30T15:35:26.001Z
+- commits:
     - subject: Prevent updates/reboots with locks when HUP breadcrumbs present
       hash: a9028e58ecb097f0106e74f6c4cd1b755fa9ece5
       body: |
