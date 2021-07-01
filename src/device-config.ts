@@ -168,7 +168,7 @@ const configKeys: Dictionary<ConfigOption> = {
 	deltaVersion: {
 		envVarName: 'SUPERVISOR_DELTA_VERSION',
 		varType: 'int',
-		defaultValue: '2',
+		defaultValue: '3',
 	},
 	lockOverride: {
 		envVarName: 'SUPERVISOR_OVERRIDE_LOCK',
