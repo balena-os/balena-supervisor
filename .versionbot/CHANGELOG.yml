@@ -1,4 +1,35 @@
 - commits:
+    - subject: Bump color-string from 1.5.3 to 1.5.5
+      hash: 4518c93fcaf77727663e4f91ed922b51a5d2f94f
+      body: >
+        Bumps [color-string](https://github.com/Qix-/color-string) from 1.5.3 to
+        1.5.5.
+
+        - [Release notes](https://github.com/Qix-/color-string/releases)
+
+        -
+        [Changelog](https://github.com/Qix-/color-string/blob/master/CHANGELOG.md)
+
+        - [Commits](https://github.com/Qix-/color-string/commits/1.5.5)
+
+
+        ---
+
+        updated-dependencies:
+
+        - dependency-name: color-string
+          dependency-type: indirect
+        ...
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.8.12
+  date: 2021-07-01T22:29:58.156Z
+- commits:
     - subject: Remove codeowners file
       hash: 3d4c720d0bbfd66b8749b993cd94c33b00363587
       body: ''
