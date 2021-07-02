@@ -638,7 +638,7 @@ export function reportCurrentState(
 }
 
 export async function reboot(force?: boolean, skipLock?: boolean) {
-	await updateLock.ensureNoHUPBreadcrumbsOnHost();
+	await updateLock.abortIfHUPInProgress({ force });
 	await applicationManager.stopAll({ force, skipLock });
 	logger.logSystemMessage('Rebooting', {}, 'Reboot');
 	const $reboot = await dbus.reboot();
@@ -648,7 +648,7 @@ export async function reboot(force?: boolean, skipLock?: boolean) {
 }
 
 export async function shutdown(force?: boolean, skipLock?: boolean) {
-	await updateLock.ensureNoHUPBreadcrumbsOnHost();
+	await updateLock.abortIfHUPInProgress({ force });
 	await applicationManager.stopAll({ force, skipLock });
 	logger.logSystemMessage('Shutting down', {}, 'Shutdown');
 	const $shutdown = await dbus.shutdown();

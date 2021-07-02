@@ -79,23 +79,32 @@ describe('lib/update-lock', () => {
 		});
 	});
 
-	describe('ensureNoHUPBreadcrumbsOnHost', () => {
+	describe('abortIfHUPInProgress', () => {
 		afterEach(() => mockFs.restore());
 
 		it('should throw if any breadcrumbs exist on host', async () => {
 			for (const bc of breadcrumbFiles) {
 				mockBreadcrumbs(bc);
-				await expect(updateLock.ensureNoHUPBreadcrumbsOnHost())
+				await expect(updateLock.abortIfHUPInProgress({ force: false }))
 					.to.eventually.be.rejectedWith('Waiting for Host OS update to finish')
 					.and.be.an.instanceOf(UpdatesLockedError);
 			}
 		});
 
-		it('should resolve to true if no breadcrumbs on host', async () => {
+		it('should resolve to false if no breadcrumbs on host', async () => {
 			mockBreadcrumbs();
 			await expect(
-				updateLock.ensureNoHUPBreadcrumbsOnHost(),
+				updateLock.abortIfHUPInProgress({ force: false }),
 			).to.eventually.equal(false);
+		});
+
+		it('should resolve to true if breadcrumbs are on host but force is passed', async () => {
+			for (const bc of breadcrumbFiles) {
+				mockBreadcrumbs(bc);
+				await expect(
+					updateLock.abortIfHUPInProgress({ force: true }),
+				).to.eventually.equal(true);
+			}
 		});
 	});
 

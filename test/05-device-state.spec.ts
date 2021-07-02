@@ -359,7 +359,7 @@ describe('deviceState', () => {
 
 	it('prevents reboot or shutdown when HUP rollback breadcrumbs are present', async () => {
 		const testErrMsg = 'Waiting for Host OS updates to finish';
-		stub(updateLock, 'ensureNoHUPBreadcrumbsOnHost').throws(
+		stub(updateLock, 'abortIfHUPInProgress').throws(
 			new UpdatesLockedError(testErrMsg),
 		);
 
@@ -370,6 +370,6 @@ describe('deviceState', () => {
 			.to.eventually.be.rejectedWith(testErrMsg)
 			.and.be.an.instanceOf(UpdatesLockedError);
 
-		(updateLock.ensureNoHUPBreadcrumbsOnHost as SinonStub).restore();
+		(updateLock.abortIfHUPInProgress as SinonStub).restore();
 	});
 });
