@@ -1,4 +1,60 @@
 - commits:
+    - subject: Improve testing for supervisor composition modules
+      hash: e04e64763f3aeab9b5a91be8ad238ef763d82f22
+      body: >
+        This PR cleans up testing for supervisor compose modules. It also fixes
+        broken
+
+        tests for application manager and removes a lot of dependencies for
+        those tests
+
+        on DB and other unnecessary mocks. There are probably a lot of cases
+        that tests
+
+        are missing but this should make writing new tests a lot easier.
+
+
+        This PR also creates a new mock dockerode (mockerode) module that should
+        make it
+
+        easier to test operations that interact with the engine. All references
+
+        to the old mock-dockerode have not yet been removed but that should come
+
+        soon in another PR
+
+
+        List of squashed commits:
+
+        - Add tests for network create/remove
+
+        - Move compose service tests to test/src/compose and reorganize test
+        descriptions
+
+        - Add support for image creation to mockerode
+
+        - Add additional tests for compose volumes
+
+        - Update mockerode so unimplemented fake methods throw. This is to
+        ensure
+          tests using mockerode fail if an unimplemented method is used
+        - Update tests for volume-manager with mockerode
+
+        - Update tests for compose/images
+
+        - Simplify tests using mockerode
+
+        - Clean up compose/app tests
+
+        - Create application manager tests
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 12.9.0
+  date: 2021-07-05T21:54:41.727Z
+- commits:
     - subject: Bump color-string from 1.5.3 to 1.5.5
       hash: 4518c93fcaf77727663e4f91ed922b51a5d2f94f
       body: >
