@@ -3,6 +3,7 @@ import * as sinon from 'sinon';
 
 import { Network } from '../../../src/compose/network';
 import { NetworkInspectInfo } from 'dockerode';
+import { createNetwork, withMockerode } from '../../lib/mockerode';
 
 import { log } from '../../../src/lib/supervisor-console';
 
@@ -95,8 +96,8 @@ describe('compose/network', () => {
 				},
 			});
 
-			expect(logSpy).to.be.called.calledOnce;
-			expect(logSpy).to.be.called.calledWithMatch(
+			expect(logSpy).to.have.been.calledOnce;
+			expect(logSpy).to.have.been.calledWithMatch(
 				'Network IPAM config entries must have both a subnet and gateway',
 			);
 
@@ -114,8 +115,8 @@ describe('compose/network', () => {
 				},
 			});
 
-			expect(logSpy).to.be.called.calledOnce;
-			expect(logSpy).to.be.called.calledWithMatch(
+			expect(logSpy).to.have.been.calledOnce;
+			expect(logSpy).to.have.been.calledWithMatch(
 				'Network IPAM config entries must have both a subnet and gateway',
 			);
 
@@ -393,6 +394,155 @@ describe('compose/network', () => {
 					Network.fromComposeObject('default', 12345, { internal: true }),
 				),
 			).to.be.false;
+		});
+	});
+
+	describe('creating networks', () => {
+		it('creates a new network on the engine with the given data', async () => {
+			await withMockerode(async (mockerode) => {
+				const network = Network.fromComposeObject('default', 12345, {
+					ipam: {
+						driver: 'default',
+						config: [
+							{
+								subnet: '172.20.0.0/16',
+								ip_range: '172.20.10.0/24',
+								gateway: '172.20.0.1',
+							},
+						],
+						options: {},
+					},
+				});
+
+				// Create the network
+				await network.create();
+
+				// Check that the create function was called with proper arguments
+				expect(mockerode.createNetwork).to.have.been.calledOnceWith({
+					Name: '12345_default',
+					Driver: 'bridge',
+					CheckDuplicate: true,
+					IPAM: {
+						Driver: 'default',
+						Config: [
+							{
+								Subnet: '172.20.0.0/16',
+								IPRange: '172.20.10.0/24',
+								Gateway: '172.20.0.1',
+							},
+						],
+						Options: {},
+					},
+					EnableIPv6: false,
+					Internal: false,
+					Labels: {
+						'io.balena.supervised': 'true',
+					},
+					Options: {},
+				});
+			});
+		});
+
+		it('throws the error if there is a problem while creating the network', async () => {
+			await withMockerode(async (mockerode) => {
+				const network = Network.fromComposeObject('default', 12345, {
+					ipam: {
+						driver: 'default',
+						config: [
+							{
+								subnet: '172.20.0.0/16',
+								ip_range: '172.20.10.0/24',
+								gateway: '172.20.0.1',
+							},
+						],
+						options: {},
+					},
+				});
+
+				// Re-define the dockerode.createNetwork to throw
+				mockerode.createNetwork.rejects('Unknown engine error');
+
+				// Creating the network should fail
+				return expect(network.create()).to.be.rejected.then((error) =>
+					expect(error).to.have.property('name', 'Unknown engine error'),
+				);
+			});
+		});
+	});
+
+	describe('removing a network', () => {
+		it('removes the network from the engine if it exists', async () => {
+			// Create a mock network to add to the mock engine
+			const dockerNetwork = createNetwork({
+				Id: 'deadbeef',
+				Name: '12345_default',
+			});
+
+			await withMockerode(
+				async (mockerode) => {
+					// Check that the engine has the network
+					expect(await mockerode.listNetworks()).to.have.lengthOf(1);
+
+					// Create a dummy network object
+					const network = Network.fromComposeObject('default', 12345, {});
+
+					// Perform the operation
+					await network.remove();
+
+					// The removal step should delete the object from the engine data
+					expect(mockerode.removeNetwork).to.have.been.calledOnceWith(
+						'deadbeef',
+					);
+				},
+				{ networks: [dockerNetwork] },
+			);
+		});
+
+		it('ignores the request if the given network does not exist on the engine', async () => {
+			// Create a mock network to add to the mock engine
+			const mockNetwork = createNetwork({
+				Id: 'deadbeef',
+				Name: 'some_network',
+			});
+
+			await withMockerode(
+				async (mockerode) => {
+					// Check that the engine has the network
+					expect(await mockerode.listNetworks()).to.have.lengthOf(1);
+
+					// Create a dummy network object
+					const network = Network.fromComposeObject('default', 12345, {});
+
+					// This should not fail
+					await expect(network.remove()).to.not.be.rejected;
+
+					// We expect the network state to remain constant
+					expect(await mockerode.listNetworks()).to.have.lengthOf(1);
+				},
+				{ networks: [mockNetwork] },
+			);
+		});
+
+		it('throws the error if there is a problem while removing the network', async () => {
+			// Create a mock network to add to the mock engine
+			const mockNetwork = createNetwork({
+				Id: 'deadbeef',
+				Name: '12345_default',
+			});
+
+			await withMockerode(
+				async (mockerode) => {
+					// We can change the return value of the mockerode removeNetwork
+					// to have the remove operation fail
+					mockerode.removeNetwork.throws('Failed to remove the network');
+
+					// Create a dummy network object
+					const network = Network.fromComposeObject('default', 12345, {});
+
+					await expect(network.remove()).to.be.rejected;
+				},
+				{ networks: [mockNetwork] },
+			);
 		});
 	});
 });
