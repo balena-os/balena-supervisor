@@ -1,14 +1,10 @@
 ARG ARCH=%%BALENA_ARCH%%
 ARG NODE_VERSION=12.16.2
 
-FROM balenalib/$ARCH-alpine-supervisor-base:3.11 as BUILD
+FROM balenalib/$ARCH-alpine-node:$NODE_VERSION as BUILD
 
 ARG ARCH
 ARG NODE_VERSION
-ARG NODE_ARCHIVE="node-no-intl-v${NODE_VERSION}-linux-alpine-${ARCH}.tar.gz"
-ARG S3_BASE="https://resin-packages.s3.amazonaws.com"
-ARG NODE_LOCATION="${S3_BASE}/node/v${NODE_VERSION}/${NODE_ARCHIVE}"
-
 # DO NOT REMOVE THE cross-build-* COMMANDS
 # The following commands are absolutely needed. When we
 # build for ARM architectures, we run this Dockerfile
@@ -35,15 +31,6 @@ RUN apk add --no-cache \
 	sqlite-dev \
 	dmidecode \
 	dbus-dev
-
-COPY build-utils/node-sums.txt .
-
-# Install node from balena's prebuilt cache
-RUN curl -SLO "${NODE_LOCATION}" \
-	&& grep "${NODE_ARCHIVE}" node-sums.txt | sha256sum -c - \
-	&& tar -xzf "${NODE_ARCHIVE}" -C /usr/local --strip-components=1 \
-	&& rm -f "${NODE_ARCHIVE}" \
-	&& strip /usr/local/bin/node
 
 COPY package*.json ./
 
@@ -87,7 +74,7 @@ RUN npm ci --production --no-optional --unsafe-perm --build-from-source --sqlite
 
 # RUN ["cross-build-end"]
 
-FROM balenalib/$ARCH-alpine-supervisor-base:3.11
+FROM balenalib/$ARCH-alpine-node:$NODE_VERSION
 
 # RUN ["cross-build-start"]
 
