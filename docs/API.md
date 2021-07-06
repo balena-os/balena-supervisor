@@ -830,8 +830,7 @@ This endpoint can also take an extra optional boolean, `force`, which if true in
 Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
 `imageId` added in v8.2.2.
 
-Use this endpoint to stop a service in the application with application id
-passed in with the url.
+Temporarily stops an application's container. Rebooting the device or supervisor will cause the container to start again. The container is not removed with this endpoint.
 
 From an application container:
 ```bash
