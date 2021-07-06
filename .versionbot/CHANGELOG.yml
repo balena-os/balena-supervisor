@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'Clarify that /v2/applications/:appId/stop-service is temporary'
+      hash: 3bc3274001132d4e2eb9ecdda9bd6dd8b372ae4d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.9.1
+  date: 2021-07-05T23:53:42.210Z
+- commits:
     - subject: Improve testing for supervisor composition modules
       hash: e04e64763f3aeab9b5a91be8ad238ef763d82f22
       body: >
