@@ -13,28 +13,29 @@ import * as supertest from 'supertest';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 
-import { exists, unlinkAll } from '../src/lib/fs-utils';
 import * as appMock from './lib/application-state-mock';
 import * as mockedDockerode from './lib/mocked-dockerode';
 import mockedAPI = require('./lib/mocked-device-api');
 import sampleResponses = require('./data/device-api-responses.json');
+
 import * as config from '../src/config';
+import { SchemaTypeKey } from '../src/config/schema-type';
 import * as logger from '../src/logger';
 import SupervisorAPI from '../src/supervisor-api';
 import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
-import * as apiKeys from '../src/lib/api-keys';
-import * as dbus from '../src//lib/dbus';
-import * as updateLock from '../src/lib/update-lock';
 import * as TargetState from '../src/device-state/target-state';
 import * as targetStateCache from '../src/device-state/target-state-cache';
-import blink = require('../src/lib/blink');
-import constants = require('../src/lib/constants');
 import * as deviceAPI from '../src/device-api/common';
 
+import { exists, unlinkAll } from '../src/lib/fs-utils';
+import * as apiKeys from '../src/lib/api-keys';
+import * as updateLock from '../src/lib/update-lock';
+import blink = require('../src/lib/blink');
+import * as constants from '../src/lib/constants';
 import { UpdatesLockedError } from '../src/lib/errors';
-import { SchemaTypeKey } from '../src/config/schema-type';
 import log from '../src/lib/supervisor-console';
+import * as dbus from '../src/lib/dbus';
 
 describe('SupervisorAPI [V1 Endpoints]', () => {
 	let api: SupervisorAPI;
@@ -370,17 +371,13 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	});
 
 	describe('POST /v1/reboot', () => {
-		let rebootMock: SinonStub;
-		before(() => {
-			rebootMock = stub(dbus, 'reboot').resolves((() => void 0) as any);
-		});
-
-		after(() => {
-			rebootMock.restore();
+		let rebootSpy: SinonSpy;
+		beforeEach(() => {
+			rebootSpy = spy(dbus, 'reboot');
 		});
 
 		afterEach(() => {
-			rebootMock.resetHistory();
+			rebootSpy.restore();
 		});
 
 		it('should return 202 and reboot if no locks are set', async () => {
@@ -406,7 +403,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.expect(202);
 
 					expect(response.body).to.have.property('Data').that.is.not.empty;
-					expect(rebootMock).to.have.been.calledOnce;
+					expect(rebootSpy).to.have.been.calledOnce;
 				},
 			);
 		});
@@ -442,7 +439,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 
 					expect(updateLock.lock).to.be.calledOnce;
 					expect(response.body).to.have.property('Error').that.is.not.empty;
-					expect(rebootMock).to.not.have.been.called;
+					expect(rebootSpy).to.not.have.been.called;
 				},
 			);
 
@@ -481,7 +478,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 
 					expect(updateLock.lock).to.be.calledOnce;
 					expect(response.body).to.have.property('Data').that.is.not.empty;
-					expect(rebootMock).to.have.been.calledOnce;
+					expect(rebootSpy).to.have.been.calledOnce;
 				},
 			);
 
@@ -490,13 +487,13 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	});
 
 	describe('POST /v1/shutdown', () => {
-		let shutdownMock: SinonStub;
-		before(() => {
-			shutdownMock = stub(dbus, 'shutdown').resolves((() => void 0) as any);
+		let shutdownSpy: SinonSpy;
+		beforeEach(() => {
+			shutdownSpy = spy(dbus, 'shutdown');
 		});
 
-		after(async () => {
-			shutdownMock.restore();
+		afterEach(() => {
+			shutdownSpy.restore();
 		});
 
 		it('should return 202 and shutdown if no locks are set', async () => {
@@ -522,11 +519,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.expect(202);
 
 					expect(response.body).to.have.property('Data').that.is.not.empty;
-					expect(shutdownMock).to.have.been.calledOnce;
+					expect(shutdownSpy).to.have.been.calledOnce;
 				},
 			);
-
-			shutdownMock.resetHistory();
 		});
 
 		it('should return 423 and reject the reboot if no locks are set', async () => {
@@ -560,7 +555,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 
 					expect(updateLock.lock).to.be.calledOnce;
 					expect(response.body).to.have.property('Error').that.is.not.empty;
-					expect(shutdownMock).to.not.have.been.called;
+					expect(shutdownSpy).to.not.have.been.called;
 				},
 			);
 
@@ -599,7 +594,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 
 					expect(updateLock.lock).to.be.calledOnce;
 					expect(response.body).to.have.property('Data').that.is.not.empty;
-					expect(shutdownMock).to.have.been.calledOnce;
+					expect(shutdownSpy).to.have.been.calledOnce;
 				},
 			);
 
@@ -805,8 +800,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		};
 
 		// Set hostname & proxy file content to expected defaults
-		before(async () => await restoreConfFileTemplates());
-		afterEach(async () => await restoreConfFileTemplates());
+		afterEach(async () => {
+			await restoreConfFileTemplates();
+		});
 
 		// Store GET responses for endpoint in variables so we can be less verbose in tests
 		const hostnameOnlyRes =
@@ -912,7 +908,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					});
 
 				// Should restart hostname service on successful change
-				expect(restartServiceSpy.callCount).to.equal(1);
+				expect(restartServiceSpy).to.have.been.calledOnce;
 				expect(restartServiceSpy).to.have.been.calledWith('resin-hostname');
 
 				await request
@@ -937,7 +933,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					});
 
 				// Should restart hostname service on successful change
-				expect(restartServiceSpy.callCount).to.equal(1);
+				expect(restartServiceSpy).to.have.been.calledOnce;
 				expect(restartServiceSpy).to.have.been.calledWith('resin-hostname');
 
 				await request
@@ -969,7 +965,8 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						expect(await exists(noProxyPath)).to.be.false;
 					});
 
-				expect(restartServiceSpy.callCount).to.equal(2);
+				// Should restart services upon changes to host config
+				expect(restartServiceSpy).to.have.been.calledTwice;
 				expect(restartServiceSpy.args).to.deep.equal([
 					['resin-proxy-config'],
 					['redsocks'],
@@ -1077,7 +1074,8 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						validatePatchResponse(response);
 					});
 
-				expect(restartServiceSpy.callCount).to.equal(2);
+				// Should restart services upon changes to host config
+				expect(restartServiceSpy).to.have.been.calledTwice;
 				expect(restartServiceSpy.args).to.deep.equal([
 					['resin-proxy-config'],
 					['redsocks'],
@@ -1113,7 +1111,8 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						validatePatchResponse(response);
 					});
 
-				expect(restartServiceSpy.callCount).to.equal(2);
+				// Should restart services upon changes to host config
+				expect(restartServiceSpy).to.have.been.calledTwice;
 				expect(restartServiceSpy.args).to.deep.equal([
 					['resin-proxy-config'],
 					['redsocks'],
@@ -1153,7 +1152,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					});
 
 				// As no host configs were patched, no services should be restarted
-				expect(restartServiceSpy.callCount).to.equal(0);
+				expect(restartServiceSpy).to.not.have.been.called;
 
 				await request
 					.get('/v1/device/host-config')
@@ -1178,7 +1177,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						);
 					});
 
-				expect(restartServiceSpy.callCount).to.equal(0);
+				expect(restartServiceSpy).to.not.have.been.called;
 			});
 		});
 	});
