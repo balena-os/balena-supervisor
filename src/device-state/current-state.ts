@@ -235,6 +235,7 @@ export const startReporting = () => {
 
 	// If the state changes, report it
 	deviceState.on('change', doReport);
+	// Indicate download progress via the device LED
 	deviceState.on('change', downloadProgress);
 	// But check once every max report frequency to ensure that changes in system
 	// info are picked up (CPU temp etc)

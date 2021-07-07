@@ -1,8 +1,7 @@
 import * as _ from 'lodash';
 import blink = require('./blink');
-import { DeviceStatus, TargetState } from '../types/state';
+import { DeviceStatus, InstancedDeviceState } from '../types/state';
 import * as deviceState from '../device-state';
-import * as targetState from '../device-state/target-state';
 
 interface ServiceState {
 	id: string;
@@ -10,33 +9,40 @@ interface ServiceState {
 	download_progress: number | null;
 }
 
-const DOWNLOAD_BLINK_THROTTLE = 10000;
-const DOWNLOAD_BLINK_PERIOD_BASE = 100;
-const DOWNLOAD_BLINK_PERIOD_STEP = 10;
+/*
+ * Blink the device LED with a frequency proportional to the download progress.
+ * Start fast and slow down as the download progresses. This provides an easy to spot "fade away" pattern.
+ */
+const DOWNLOAD_BLINK_PERIOD_BASE = 100; // Initialize on/off periods at 100 msec - 5 blinks per second at 0%
+const DOWNLOAD_BLINK_PERIOD_STEP = 9; // Increment by 9 msec for each % - 1 blink every 2 seconds at 100%
 
+// Throttled blink means the LED reporting could be inaccurate for at most the throttle period, so we keep it to a small value
+const DOWNLOAD_BLINK_THROTTLE = 10000;
 const throttledBlink = _.throttle((progress: number) => {
 	blink.pattern.stop();
 	if (progress < 100) {
+		const onOffDuration =
+			DOWNLOAD_BLINK_PERIOD_BASE + DOWNLOAD_BLINK_PERIOD_STEP * progress;
 		blink.pattern.start({
 			blinks: 1,
 			pause: 0,
-			onDuration:
-				DOWNLOAD_BLINK_PERIOD_BASE + DOWNLOAD_BLINK_PERIOD_STEP * progress,
-			offDuration:
-				DOWNLOAD_BLINK_PERIOD_BASE + DOWNLOAD_BLINK_PERIOD_STEP * progress,
+			onDuration: onOffDuration,
+			offDuration: onOffDuration,
 		});
 	}
 }, DOWNLOAD_BLINK_THROTTLE);
 
 export async function downloadProgress() {
+	// Get target services and current state
 	const currentDeviceState = await deviceState.getStatus();
+	const currentServicesStates = getCurrentServicesStates(currentDeviceState);
+	const targetDeviceState = await deviceState.getTarget();
+	const targetServicesIDs = getTargetServicesIds(targetDeviceState);
 
-	if (currentDeviceState.local?.update_pending) {
-		// Get target services and current state
-		const targetDeviceState = await targetState.get();
-		const targetServicesIDs = getTargetServicesIds(targetDeviceState);
-		const currentServicesStates = getCurrentServicesStates(currentDeviceState);
-
+	if (
+		currentDeviceState.local?.update_pending &&
+		targetServicesIDs.length > 0
+	) {
 		// Calculate overall progress
 		let progress = 0;
 		for (const id of targetServicesIDs) {
@@ -59,30 +65,18 @@ export async function downloadProgress() {
 	}
 }
 
-function getTargetServicesIds(target: TargetState): string[] {
-	const servicesStatus: string[] = [];
-	_.toPairs(target.local?.apps).map(([, app]) => {
-		_.toPairs(app.services).map(([, service]) => {
-			servicesStatus.push(service.imageId.toString());
-		});
-	});
-
-	return servicesStatus;
+function getTargetServicesIds(target: InstancedDeviceState): string[] {
+	return Object.values(target.local?.apps).flatMap((app) =>
+		app.services.map((s) => s.imageId.toString()),
+	);
 }
 
 function getCurrentServicesStates(current: DeviceStatus): ServiceState[] {
-	const serviceStatus: ServiceState[] = [];
-	_.toPairs(current.local?.apps).map(([, app]) => {
-		_.toPairs(app).map(([, service]) => {
-			_.toPairs(service).map(([id, serviceDetails]) => {
-				serviceStatus.push({
-					id,
-					status: serviceDetails.status,
-					download_progress: serviceDetails.download_progress,
-				});
-			});
-		});
-	});
-
-	return serviceStatus;
+	return Object.values(current.local?.apps || {}).flatMap((app) =>
+		Object.entries(app.services).flatMap(([serviceId, serviceDetails]) => ({
+			id: serviceId,
+			status: serviceDetails.status,
+			download_progress: serviceDetails.download_progress,
+		})),
+	);
 }
