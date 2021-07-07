@@ -86,6 +86,9 @@ The update lock can be overridden in case you need to force an update, for insta
 
 To do this the device or fleet must have `BALENA_SUPERVISOR_OVERRIDE_LOCK` configuration variable set to "1".
 
-The easiest way to do this is to toggle the override in the actions section of your device. Go to the device you'd like to override a lock, then click the actions menu on the left hand side, and locate the 'Update lock override' toggle. Be sure to remove this toggle after if you'd like your update locks to work.
+The easiest way to do this is to use the 'Override the update lock ...' toggle in the [Fleet or Device Configuration][device-configuration] page. Go to the configuration page of the device or fleet, locate the 'Override the update lock ...' item, click the activate button, and set the toggle to enabled. Disable the toggle afterwards in order to restore the update locks.
 
 Also, you can programatically do this by hitting the `/v1/update` endpoint of the [supervisor HTTP API](./API.md), with `{ "force": true }` as body.
+
+
+[device-configuration]:/learn/manage/configuration/#managing-device-configuration-variables
