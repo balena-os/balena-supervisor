@@ -1,4 +1,23 @@
 - commits:
+    - subject: Point users to the configuration page for overriding update locks
+      hash: 3e960f0f09267f901e10e3cbb28e167722a92756
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        See: >-
+          https://www.flowdock.com/app/rulemotion/r-product/threads/9mk8QcdNp4UAwKeEUpXPHVxYM_c
+        see: >-
+          https://www.flowdock.com/app/rulemotion/r-product/threads/9mk8QcdNp4UAwKeEUpXPHVxYM_c
+        Signed-off-by: Thodoris Greasidis thodoris@balena.io
+        signed-off-by: Thodoris Greasidis thodoris@balena.io
+        Co-authored-by: Kyle Harding <kyle@balena.io>
+        co-authored-by: Kyle Harding <kyle@balena.io>
+      author: Thodoris Greasidis
+      nested: []
+  version: 12.9.2
+  date: 2021-07-07T12:52:15.919Z
+- commits:
     - subject: 'Clarify that /v2/applications/:appId/stop-service is temporary'
       hash: 3bc3274001132d4e2eb9ecdda9bd6dd8b372ae4d
       body: ''
