@@ -42,7 +42,11 @@ function lockFilesOnHost(appId: number, serviceName: string): string[] {
  * prevent reboot. If the Supervisor reboots while those services are still running,
  * the device may become stuck in an invalid state during HUP.
  */
-export function ensureNoHUPBreadcrumbsOnHost(): Promise<boolean | never> {
+export function abortIfHUPInProgress({
+	force = false,
+}: {
+	force: boolean | undefined;
+}): Promise<boolean | never> {
 	return Promise.all(
 		[
 			'rollback-health-breadcrumb',
@@ -52,7 +56,7 @@ export function ensureNoHUPBreadcrumbsOnHost(): Promise<boolean | never> {
 		),
 	).then((existsArray) => {
 		const anyExists = existsArray.some((exists) => exists);
-		if (anyExists) {
+		if (anyExists && !force) {
 			throw new UpdatesLockedError('Waiting for Host OS update to finish');
 		}
 		return anyExists;
