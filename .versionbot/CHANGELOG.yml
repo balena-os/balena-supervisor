@@ -1,4 +1,23 @@
 - commits:
+    - subject: Fix db-helper module for tests
+      hash: 357d1baf6188d89b8552fd9068dbea9ac50aa008
+      body: >
+        The previous module was using `rewire` to get the knex instance from the
+
+        db module but that was leading to issues when running tests using
+        `test:fast`.
+
+        This provides a fix for the test module that just removes the destroy
+
+        call entirely (it turns out it is not necessary).
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.9.4
+  date: 2021-07-08T18:48:09.003Z
+- commits:
     - subject: Allow users to override HUP lock if device is stuck in invalid state
       hash: 17e740a4ba3ca083a43a2b27fcaed8d79d64f1bc
       body: |
