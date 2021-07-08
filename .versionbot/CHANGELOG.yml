@@ -1,4 +1,21 @@
 - commits:
+    - subject: Allow users to override HUP lock if device is stuck in invalid state
+      hash: 17e740a4ba3ca083a43a2b27fcaed8d79d64f1bc
+      body: |
+        This functionality is needed when breadcrumbs aren't deleted after a HUP
+        rollback for whatever reason. Also rename HUP lock function.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Connects-to: '#1459'
+        connects-to: '#1459'
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.9.3
+  date: 2021-07-08T03:46:52.250Z
+- commits:
     - subject: Point users to the configuration page for overriding update locks
       hash: 3e960f0f09267f901e10e3cbb28e167722a92756
       body: ''
