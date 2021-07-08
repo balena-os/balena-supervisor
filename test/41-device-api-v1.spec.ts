@@ -109,6 +109,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		// Stub logs for all API methods
 		loggerStub = stub(logger, 'attach');
 		loggerStub.resolves();
+
+		// Suppress API logs
+		stub(log, 'api');
 	});
 
 	after(async () => {
@@ -119,12 +122,13 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				throw e;
 			}
 		}
-		// Restore healthcheck stubs
-		healthCheckStubs.forEach((hc) => hc.restore());
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
+		// Restore healthcheck stubs
+		healthCheckStubs.forEach((hc) => hc.restore());
 		targetStateCacheMock.restore();
 		loggerStub.restore();
+		(log.api as SinonStub).restore();
 	});
 
 	describe('POST /v1/restart', () => {
