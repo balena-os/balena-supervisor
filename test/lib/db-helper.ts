@@ -2,8 +2,6 @@ import * as constants from '../../src/lib/constants';
 import * as db from '../../src/db';
 import * as sinon from 'sinon';
 
-import rewire = require('rewire');
-
 // Creates a test database and returns a query builder
 export async function createDB() {
 	const oldDatabasePath = process.env.DATABASE_PATH;
@@ -16,20 +14,18 @@ export async function createDB() {
 
 	// Cleanup the module cache in order to have it reloaded in the local context
 	delete require.cache[require.resolve('../../src/db')];
-	const testDb = rewire('../../src/db');
 
 	// Initialize the database module
-	await testDb.initialized;
+	await db.initialized;
 
 	// Get the knex instance to allow queries to the db
-	const knex = testDb.__get__('knex');
-	const { models } = testDb;
+	const { models, upsertModel } = db;
 
 	// This is hacky but haven't found another way to do it,
 	// stubbing the db methods here ensures the module under test
 	// is using the database we want
 	sinon.stub(db, 'models').callsFake(models);
-	sinon.stub(db, 'upsertModel').callsFake(testDb.upsertModel);
+	sinon.stub(db, 'upsertModel').callsFake(upsertModel);
 
 	return {
 		// Returns a query builder instance for the given
@@ -40,7 +36,7 @@ export async function createDB() {
 		// migrations
 		async reset() {
 			// Reset the contents of the db
-			await testDb.transaction(async (trx: any) => {
+			await db.transaction(async (trx: any) => {
 				const result = await trx.raw(`
 			SELECT name, sql
 			FROM sqlite_master
@@ -64,7 +60,8 @@ export async function createDB() {
 
 		// Destroys the in-memory database and resets environment
 		async destroy() {
-			await knex.destroy();
+			// Remove data from the in memory database just in case
+			this.reset();
 
 			// Restore the old datbase path
 			process.env.DATABASE_PATH = oldDatabasePath;
@@ -73,8 +70,13 @@ export async function createDB() {
 			(db.models as sinon.SinonStub).restore();
 			(db.upsertModel as sinon.SinonStub).restore();
 
+			// Restore the constants
 			// @ts-ignore
 			constants.databasePath = process.env.DATABASE_PATH;
+
+			// Cleanup the module cache in order to have it reloaded
+			// correctly next time it's used
+			delete require.cache[require.resolve('../../src/db')];
 		},
 	};
 }
