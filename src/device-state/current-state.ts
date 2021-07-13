@@ -45,6 +45,7 @@ type CurrentStateReportConf = {
 		| 'deviceId'
 		| 'localMode'
 		| 'hardwareMetrics'
+		| 'developmentMode'
 	>]: SchemaReturn<key>;
 };
 
@@ -137,6 +138,7 @@ const report = _.throttle(async () => {
 		'apiEndpoint',
 		'uuid',
 		'localMode',
+		'developmentMode',
 	]);
 
 	const stateDiff = getStateDiff();
