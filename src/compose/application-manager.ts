@@ -125,7 +125,6 @@ let targetVolatilePerImageId: {
 export const initialized = (async () => {
 	await config.initialized;
 
-	await imageManager.initialized;
 	await imageManager.cleanImageData();
 	const cleanup = async () => {
 		const containers = await docker.listContainers({ all: true });

@@ -152,18 +152,6 @@ function reportEvent(event: 'start' | 'update' | 'finish', state: Image) {
 	}
 }
 
-let appUpdatePollInterval: number;
-
-export const initialized = (async () => {
-	await config.initialized;
-	appUpdatePollInterval = await config.get('appUpdatePollInterval');
-	config.on('change', (vals) => {
-		if (vals.appUpdatePollInterval != null) {
-			appUpdatePollInterval = vals.appUpdatePollInterval;
-		}
-	});
-})();
-
 type ServiceInfo = Pick<
 	Service,
 	'imageName' | 'appId' | 'serviceId' | 'serviceName' | 'imageId' | 'releaseId'
@@ -187,6 +175,8 @@ export async function triggerFetch(
 	onFinish = _.noop,
 	serviceName: string,
 ): Promise<void> {
+	const appUpdatePollInterval = await config.get('appUpdatePollInterval');
+
 	if (imageFetchFailures[image.name] != null) {
 		// If we are retrying a pull within the backoff time of the last failure,
 		// we need to throw an error, which will be caught in the device-state
