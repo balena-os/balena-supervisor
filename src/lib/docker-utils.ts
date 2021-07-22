@@ -257,7 +257,7 @@ function applyRsyncDelta(
 	onProgress: ProgressCallback,
 	logFn: (str: string) => void,
 ): Promise<string> {
-	logFn('Applying rsync delta...');
+	logFn(`Applying rsync delta: ${deltaUrl}`);
 
 	return new Promise(async (resolve, reject) => {
 		const resumable = await request.getResumableRequest();
@@ -299,7 +299,7 @@ async function applyBalenaDelta(
 	onProgress: ProgressCallback,
 	logFn: (str: string) => void,
 ): Promise<string> {
-	logFn('Applying balena delta...');
+	logFn(`Applying balena delta: ${deltaImg}`);
 
 	let auth: Dictionary<unknown> | undefined;
 	if (token != null) {
