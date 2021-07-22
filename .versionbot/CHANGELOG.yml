@@ -1,4 +1,17 @@
 - commits:
+    - subject: Log the delta URL that will be downloaded on update
+      hash: c05c5803f08ddd31eeddb2000cc5f162fb916003
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: '#1755'
+        closes: '#1755'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.9.5
+  date: 2021-07-22T15:08:58.505Z
+- commits:
     - subject: Fix db-helper module for tests
       hash: 357d1baf6188d89b8552fd9068dbea9ac50aa008
       body: >
