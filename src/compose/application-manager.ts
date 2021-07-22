@@ -179,7 +179,7 @@ export async function getRequiredSteps(
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [downloading, availableImages, currentApps] = await Promise.all([
-		imageManager.getDownloadingImageIds(),
+		imageManager.getDownloadingImageNames(),
 		imageManager.getAvailable(),
 		getCurrentApps(),
 	]);
@@ -199,7 +199,7 @@ export async function inferNextSteps(
 	targetApps: InstancedAppState,
 	{
 		ignoreImages = false,
-		downloading = [] as number[],
+		downloading = [] as string[],
 		availableImages = [] as Image[],
 		containerIdsByAppId = {} as { [appId: number]: Dictionary<string> },
 	} = {},
@@ -674,7 +674,7 @@ function saveAndRemoveImages(
 			(svc) =>
 				_.find(availableImages, {
 					dockerImageId: svc.config.image,
-					imageId: svc.imageId,
+					name: svc.imageName,
 				}) ?? _.find(availableImages, { dockerImageId: svc.config.image }),
 		),
 	) as imageManager.Image[];

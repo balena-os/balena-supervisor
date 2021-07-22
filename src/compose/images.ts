@@ -121,30 +121,30 @@ function createTask(initialContext: Image) {
 	return running(initialContext);
 }
 
-const runningTasks: { [imageId: number]: ImageTask } = {};
+const runningTasks: { [imageName: string]: ImageTask } = {};
 function reportEvent(event: 'start' | 'update' | 'finish', state: Image) {
-	const { imageId } = state;
+	const { name: imageName } = state;
 
 	// Emit by default if a start event is reported
 	let emitChange = event === 'start';
 
 	// Get the current task and update it in memory
 	const currentTask =
-		event === 'start' ? createTask(state) : runningTasks[imageId];
-	runningTasks[imageId] = currentTask;
+		event === 'start' ? createTask(state) : runningTasks[imageName];
+	runningTasks[imageName] = currentTask;
 
 	// TODO: should we assert that the current task exists at this point?
 	// On update, update the corresponding task with the new state if it exists
 	if (event === 'update' && currentTask) {
 		const [updatedTask, changed] = currentTask.update(state);
-		runningTasks[imageId] = updatedTask;
+		runningTasks[imageName] = updatedTask;
 		emitChange = changed;
 	}
 
 	// On update, update the corresponding task with the new state if it exists
 	if (event === 'finish' && currentTask) {
 		[, emitChange] = currentTask.finish();
-		delete runningTasks[imageId];
+		delete runningTasks[imageName];
 	}
 
 	if (emitChange) {
@@ -352,6 +352,12 @@ export function getDownloadingImageIds(): number[] {
 	return Object.values(runningTasks)
 		.filter((t) => t.context.status === 'Downloading')
 		.map((t) => t.context.imageId);
+}
+
+export function getDownloadingImageNames(): string[] {
+	return Object.values(runningTasks)
+		.filter((t) => t.context.status === 'Downloading')
+		.map((t) => t.context.name);
 }
 
 export async function cleanImageData(): Promise<void> {

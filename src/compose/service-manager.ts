@@ -20,7 +20,7 @@ import {
 } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import { checkInt, isValidDeviceName } from '../lib/validation';
-import { Service } from './service';
+import { Service, ServiceStatus } from './service';
 import { serviceNetworksToDockerNetworks } from './utils';
 
 import log from '../lib/supervisor-console';
@@ -88,7 +88,7 @@ export async function get(service: Service) {
 	// Get the container ids for special network handling
 	const containerIds = await getContainerIdMap(service.appId!);
 	const services = (
-		await getAll(`service-id=${service.serviceId}`)
+		await getAll(`service-name=${service.serviceName}`)
 	).filter((currentService) =>
 		currentService.isEqualConfig(service, containerIds),
 	);
@@ -151,7 +151,7 @@ export async function updateMetadata(service: Service, target: Service) {
 	}
 
 	await docker.getContainer(svc.containerId).rename({
-		name: `${service.serviceName}_${target.imageId}_${target.releaseId}`,
+		name: `${service.serviceName}_${target.imageId}_${target.releaseId}_${target.commit}`,
 	});
 }
 
@@ -294,7 +294,7 @@ export async function start(service: Service) {
 		containerId = container.id;
 		logger.logSystemEvent(LogTypes.startService, { service });
 
-		reportNewStatus(containerId, service, 'Starting');
+		reportNewStatus(containerId, service, 'Starting' as ServiceStatus);
 
 		let shouldRemove = false;
 		let err: Error | undefined;
@@ -498,7 +498,7 @@ function reportChange(containerId?: string, status?: Partial<Service>) {
 function reportNewStatus(
 	containerId: string,
 	service: Partial<Service>,
-	status: string,
+	status: ServiceStatus,
 ) {
 	reportChange(
 		containerId,
@@ -611,7 +611,7 @@ async function prepareForHandover(service: Service) {
 	const container = docker.getContainer(svc.containerId);
 	await container.update({ RestartPolicy: {} });
 	return await container.rename({
-		name: `old_${service.serviceName}_${service.imageId}_${service.imageId}_${service.releaseId}`,
+		name: `old_${service.serviceName}_${service.imageId}_${service.releaseId}_${service.commit}`,
 	});
 }
 
