@@ -86,7 +86,6 @@ describe('DB Format', () => {
 		expect(app).to.be.an.instanceOf(App);
 		expect(app).to.have.property('appId').that.equals(1);
 		expect(app).to.have.property('commit').that.equals('abcdef');
-		expect(app).to.have.property('releaseId').that.equals(123);
 		expect(app).to.have.property('appName').that.equals('test-app');
 		expect(app)
 			.to.have.property('source')
