@@ -121,13 +121,6 @@ export async function doPurge(appId, force) {
 		});
 }
 
-export function serviceAction(action, serviceId, current, target, options) {
-	if (options == null) {
-		options = {};
-	}
-	return { action, serviceId, current, target, options };
-}
-
 /**
  * This doesn't truly return an InstancedDeviceState, but it's close enough to mostly work where it's used
  *

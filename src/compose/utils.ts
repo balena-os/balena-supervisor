@@ -373,7 +373,7 @@ export async function addFeaturesFromLabels(
 			// create a app/service specific API secret
 			const apiSecret = await apiKeys.generateScopedKey(
 				service.appId,
-				service.serviceId,
+				service.serviceName,
 			);
 
 			const host = (() => {

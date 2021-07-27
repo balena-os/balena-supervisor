@@ -142,7 +142,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		describe('Scoped API Keys', () => {
 			it('returns 409 because app is out of scope of the key', async () => {
-				const apiKey = await apiKeys.generateScopedKey(3, 1);
+				const apiKey = await apiKeys.generateScopedKey(3, 'main');
 				await request
 					.get('/v2/applications/2/state')
 					.set('Accept', 'application/json')
@@ -164,7 +164,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		it('should return scoped application', async () => {
 			// Create scoped key for application
-			const appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
+			const appScopedKey = await apiKeys.generateScopedKey(1658654, 'main');
 			// Setup device conditions
 			serviceManagerMock.resolves([mockedAPI.mockService({ appId: 1658654 })]);
 			imagesMock.resolves([mockedAPI.mockImage({ appId: 1658654 })]);
@@ -188,7 +188,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		it('should return no application info due to lack of scope', async () => {
 			// Create scoped key for wrong application
-			const appScopedKey = await apiKeys.generateScopedKey(1, 1);
+			const appScopedKey = await apiKeys.generateScopedKey(1, 'main');
 			// Setup device conditions
 			serviceManagerMock.resolves([mockedAPI.mockService({ appId: 1658654 })]);
 			imagesMock.resolves([mockedAPI.mockImage({ appId: 1658654 })]);
@@ -211,7 +211,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		it('should return success when device has no applications', async () => {
 			// Create scoped key for any application
-			const appScopedKey = await apiKeys.generateScopedKey(1658654, 1658654);
+			const appScopedKey = await apiKeys.generateScopedKey(1658654, 'main');
 			// Setup device conditions
 			serviceManagerMock.resolves([]);
 			imagesMock.resolves([]);
@@ -234,7 +234,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		it('should only return 1 application when N > 1 applications on device', async () => {
 			// Create scoped key for application
-			const appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
+			const appScopedKey = await apiKeys.generateScopedKey(1658654, 'main');
 			// Setup device conditions
 			serviceManagerMock.resolves([
 				mockedAPI.mockService({ appId: 1658654 }),
@@ -330,7 +330,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		before(async () => {
 			// Create scoped key for application
-			appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
+			appScopedKey = await apiKeys.generateScopedKey(1658654, 'main');
 
 			// Mock target state cache
 			targetStateCacheMock = stub(targetStateCache, 'getTargetApp');
@@ -439,7 +439,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		before(async () => {
 			// Create scoped key for application
-			appScopedKey = await apiKeys.generateScopedKey(1658654, 640681);
+			appScopedKey = await apiKeys.generateScopedKey(1658654, 'main');
 
 			// Mock target state cache
 			targetStateCacheMock = stub(targetStateCache, 'getTargetApp');

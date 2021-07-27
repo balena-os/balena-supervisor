@@ -1232,7 +1232,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			// resolve to true for any isScoped check
 			const scopedKey = await apiKeys.generateScopedKey(
 				2,
-				containers[0].serviceId,
+				containers[0].serviceName,
 			);
 
 			await request
