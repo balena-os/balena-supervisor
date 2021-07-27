@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import { InternalInconsistencyError } from './errors';
 import { exec } from './fs-utils';
 import log from './supervisor-console';
+import * as conf from '../config';
 
 // Retrieve the data for the OS once only per path
 const getOSReleaseData = _.memoize(
@@ -37,7 +38,7 @@ async function getOSReleaseField(
 	try {
 		const data = await getOSReleaseData(path);
 		const value = data[field];
-		if (value == null) {
+		if (value == null && field !== 'VARIANT_ID') {
 			log.warn(
 				`Field ${field} is not available in OS information file: ${path}`,
 			);
@@ -52,8 +53,13 @@ export async function getOSVersion(path: string): Promise<string | undefined> {
 	return getOSReleaseField(path, 'PRETTY_NAME');
 }
 
-export function getOSVariant(path: string): Promise<string | undefined> {
-	return getOSReleaseField(path, 'VARIANT_ID');
+export async function getOSVariant(path: string): Promise<string | undefined> {
+	const osVariant = await getOSReleaseField(path, 'VARIANT_ID');
+	if (osVariant === undefined) {
+		const developmentMode = await conf.get('developmentMode');
+		return developmentMode === true ? 'dev' : 'prod';
+	}
+	return osVariant;
 }
 
 export function getOSSemver(path: string): Promise<string | undefined> {
