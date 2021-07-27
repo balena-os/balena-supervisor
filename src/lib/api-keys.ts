@@ -125,12 +125,10 @@ export const authMiddleware: AuthorizedRequestHandler = async (
 	};
 
 	try {
-		const conf = await config.getMany(['localMode', 'unmanaged', 'osVariant']);
+		const conf = await config.getMany(['localMode', 'unmanaged']);
 
-		// we only need to check the API key if a) unmanaged and on a production image, or b) managed and not in local mode
-		const needsAuth = conf.unmanaged
-			? conf.osVariant === 'prod'
-			: !conf.localMode;
+		// we only need to check the API key if managed and not in local mode
+		const needsAuth = !conf.unmanaged && !conf.localMode;
 
 		// no need to authenticate, shortcut
 		if (!needsAuth) {
