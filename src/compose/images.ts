@@ -404,7 +404,10 @@ export async function cleanImageData(): Promise<void> {
 	await db.models('image').del().whereIn('id', ids);
 }
 
-export const getStatus = async () => {
+/**
+ * Get the current state of all downloaded and downloading images on the device
+ */
+export const getState = async () => {
 	const images = (await getAvailable()).map((img) => ({
 		...img,
 		status: 'Downloaded' as Image['status'],

@@ -166,7 +166,7 @@ function createDeviceStateRouter() {
 
 	router.get('/v1/device', async (_req, res) => {
 		try {
-			const state = await getStatus();
+			const state = await getCurrentForReport();
 			const stateToSend = _.pick(state.local, [
 				'api_port',
 				'ip_address',
@@ -528,8 +528,12 @@ export function getTarget({
 	});
 }
 
-export async function getStatus(): Promise<DeviceStatus> {
-	const appsStatus = await applicationManager.getStatus();
+// This returns the current state of the device in (more or less)
+// the same format as the target state. This method,
+// getCurrent and getCurrentForComparison should probably get
+// merged into a single method
+export async function getCurrentForReport(): Promise<DeviceStatus> {
+	const appsStatus = await applicationManager.getLegacyState();
 	const theState: DeepPartial<DeviceStatus> = {
 		local: {},
 		dependent: {},

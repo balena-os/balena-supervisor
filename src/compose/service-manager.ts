@@ -103,14 +103,17 @@ export async function get(service: Service) {
 	return services[0];
 }
 
-export async function getStatus() {
+/**
+ * Get the current state of all supervised services
+ */
+export async function getState() {
 	const services = await getAll();
 	const status = _.clone(volatileState);
 
 	for (const service of services) {
 		if (service.containerId == null) {
 			throw new InternalInconsistencyError(
-				`containerId not defined in ServiceManager.getStatus: ${service}`,
+				`containerId not defined in ServiceManager.getLegacyServicesState: ${service}`,
 			);
 		}
 		if (status[service.containerId] == null) {

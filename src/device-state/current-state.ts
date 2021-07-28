@@ -197,7 +197,7 @@ function handleRetry(retryInfo: OnFailureInfo) {
 async function generateStateForReport() {
 	const { hardwareMetrics } = await config.getMany(['hardwareMetrics']);
 
-	const currentDeviceState = await deviceState.getStatus();
+	const currentDeviceState = await deviceState.getCurrentForReport();
 
 	// If hardwareMetrics is false, send null patch for system metrics to cloud API
 	const info = {

@@ -788,12 +788,17 @@ function reportOptionalContainers(serviceNames: string[]) {
 	);
 }
 
-// FIXME: This would be better to implement using the App class, and have each one
-// generate its status. For now we use the original from application-manager.coffee.
-export async function getStatus() {
+/**
+ * This will be replaced by ApplicationManager.getState, at which
+ * point the only place this will be used will be in the API endpoints
+ * once, the API moves to v3 or we update the endpoints to return uuids, we will
+ * be able to get rid of this
+ * @deprecated
+ */
+export async function getLegacyState() {
 	const [services, images] = await Promise.all([
-		serviceManager.getStatus(),
-		imageManager.getStatus(),
+		serviceManager.getState(),
+		imageManager.getState(),
 	]);
 
 	const apps: Dictionary<any> = {};
@@ -822,7 +827,7 @@ export async function getStatus() {
 		}
 		if (imageId == null) {
 			throw new InternalInconsistencyError(
-				`imageId not defined in ApplicationManager.getStatus: ${service}`,
+				`imageId not defined in ApplicationManager.getLegacyApplicationsState: ${service}`,
 			);
 		}
 		if (apps[appId].services[imageId] == null) {

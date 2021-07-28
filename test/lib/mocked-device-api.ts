@@ -188,7 +188,7 @@ function buildRoutes(): Router {
 const originalNetGetAll = networkManager.getAllByAppId;
 const originalVolGetAll = volumeManager.getAllByAppId;
 const originalSvcGetAppId = serviceManager.getAllByAppId;
-const originalSvcGetStatus = serviceManager.getStatus;
+const originalSvcGetStatus = serviceManager.getState;
 const originalReadyForUpdates = apiBinder.__get__('readyForUpdates');
 
 function setupStubs() {
@@ -198,7 +198,7 @@ function setupStubs() {
 	// @ts-expect-error Assigning to a RO property
 	volumeManager.getAllByAppId = async () => STUBBED_VALUES.volumes;
 	// @ts-expect-error Assigning to a RO property
-	serviceManager.getStatus = async () => STUBBED_VALUES.services;
+	serviceManager.getState = async () => STUBBED_VALUES.services;
 	// @ts-expect-error Assigning to a RO property
 	serviceManager.getAllByAppId = async (appId) =>
 		_.filter(STUBBED_VALUES.services, (service) => service.appId === appId);
@@ -211,7 +211,7 @@ function restoreStubs() {
 	// @ts-expect-error Assigning to a RO property
 	volumeManager.getAllByAppId = originalVolGetAll;
 	// @ts-expect-error Assigning to a RO property
-	serviceManager.getStatus = originalSvcGetStatus;
+	serviceManager.getState = originalSvcGetStatus;
 	// @ts-expect-error Assigning to a RO property
 	serviceManager.getAllByAppId = originalSvcGetAppId;
 }

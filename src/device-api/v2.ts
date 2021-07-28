@@ -191,8 +191,8 @@ export function createV2Api(router: Router) {
 			// It's kinda hacky to access the services and db via the application manager
 			// maybe refactor this code
 			Bluebird.join(
-				serviceManager.getStatus(),
-				images.getStatus(),
+				serviceManager.getState(),
+				images.getState(),
 				db.models('app').select(['appId', 'commit', 'name']),
 				(
 					services,
@@ -284,7 +284,7 @@ export function createV2Api(router: Router) {
 			// Query device for all applications
 			let apps: any;
 			try {
-				apps = await applicationManager.getStatus();
+				apps = await applicationManager.getLegacyState();
 			} catch (e) {
 				log.error(e.message);
 				return res.status(500).json({
@@ -472,7 +472,7 @@ export function createV2Api(router: Router) {
 
 		let downloadProgressTotal = 0;
 		let downloads = 0;
-		const imagesStates = (await images.getStatus())
+		const imagesStates = (await images.getState())
 			.filter((img) => req.auth.isScoped({ apps: [img.appId] }))
 			.map((img) => {
 				appIds.push(img.appId);
