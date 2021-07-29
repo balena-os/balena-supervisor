@@ -14,7 +14,7 @@ import {
 	InvalidNetGatewayError,
 } from './errors';
 import * as request from './request';
-import { EnvVarObject } from './types';
+import { EnvVarObject } from '../types';
 
 import log from './supervisor-console';
 

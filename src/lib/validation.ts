@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import { inspect } from 'util';
 
 import { TargetState } from '../types/state';
-import { EnvVarObject, LabelObject } from './types';
+import { EnvVarObject, LabelObject } from '../types';
 
 import log from './supervisor-console';
 
