@@ -1,4 +1,42 @@
 - commits:
+    - subject: 'Remove comparison based on image, release, and service ids'
+      hash: b67f94802dd8c2e890121f6ca82eda8dff2c051c
+      body: >
+        Preparing for the new v3 target state, where the supervisor will make
+        environment
+
+        dependent ids optional and rely on using general UUIDs and user known
+        identifiers
+
+        for comparison. This PR moves forward in that direction by removing some
+        of those
+
+        comparisons for v2 target state.
+
+
+        - imageId to be replaced with imageName
+
+        - serviceId to be replace by serviceName
+
+        - releaseId to be replaced by commit (future release_uuid)
+
+
+        This is a backwards compatible change, meaning it doesn't completely get
+        rid of
+
+        these identifiers (which are still being used by supervisor API and for
+        state
+
+        patch), but will not depend on those identifiers for calculating steps
+        to target state.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 12.10.0
+  date: 2021-07-28T14:00:22.581Z
+- commits:
     - subject: Use tags to track supervised images in docker
       hash: f1bd4b8d9bcef29e326cbf97eaddd837c2704d19
       body: >
