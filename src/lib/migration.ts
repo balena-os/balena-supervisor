@@ -23,18 +23,15 @@ import {
 import { docker } from '../lib/docker-utils';
 import { exec, pathExistsOnHost, mkdirp } from '../lib/fs-utils';
 import { log } from '../lib/supervisor-console';
-import type {
-	AppsJsonFormat,
-	TargetApplication,
-	TargetState,
-} from '../types/state';
+import type { AppsJsonFormat, TargetApp, TargetState } from '../types/state';
 import type { DatabaseApp } from '../device-state/target-state-cache';
+import { ShortString } from '../types';
 
 export const defaultLegacyVolume = () => 'resin-data';
 
 export function singleToMulticontainerApp(
 	app: Dictionary<any>,
-): TargetApplication & { appId: string } {
+): TargetApp & { appId: string } {
 	const environment: Dictionary<string> = {};
 	for (const key in app.env) {
 		if (!/^RESIN_/.test(key)) {
@@ -44,7 +41,7 @@ export function singleToMulticontainerApp(
 
 	const { appId } = app;
 	const conf = app.config != null ? app.config : {};
-	const newApp: TargetApplication & { appId: string } = {
+	const newApp: TargetApp & { appId: string } = {
 		appId: appId.toString(),
 		commit: app.commit,
 		name: app.name,
@@ -72,7 +69,7 @@ export function singleToMulticontainerApp(
 		// tslint:disable-next-line
 		'1': {
 			appId,
-			serviceName: 'main',
+			serviceName: 'main' as ShortString,
 			imageId: 1,
 			commit: app.commit,
 			releaseId: 1,
@@ -132,7 +129,7 @@ export async function normaliseLegacyDatabase() {
 	}
 
 	for (const app of apps) {
-		let services: Array<TargetApplication['services']['']>;
+		let services: Array<TargetApp['services']['']>;
 
 		try {
 			services = JSON.parse(app.services);

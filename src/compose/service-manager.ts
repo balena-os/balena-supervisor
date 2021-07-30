@@ -242,6 +242,7 @@ export async function create(service: Service) {
 			throw e;
 		}
 
+		// TODO: this seems a bit late to be checking this
 		const deviceName = await config.get('name');
 		if (!isValidDeviceName(deviceName)) {
 			throw new Error(
