@@ -44,7 +44,8 @@ export class Service {
 	public appId: number;
 	public imageId: number;
 	public config: ServiceConfig;
-	public serviceName: string | null;
+	public serviceName: string;
+	public commit: string;
 	public releaseId: number;
 	public serviceId: number;
 	public imageName: string | null;
@@ -135,11 +136,10 @@ export class Service {
 		delete appConfig.dependsOn;
 		service.createdAt = appConfig.createdAt;
 		delete appConfig.createdAt;
+		service.commit = appConfig.commit;
+		delete appConfig.commit;
 
 		delete appConfig.contract;
-
-		// We don't need this value
-		delete appConfig.commit;
 
 		// Get rid of any extra values and report them to the user
 		const config = sanitiseComposeConfig(appConfig);
@@ -600,15 +600,16 @@ export class Service {
 				'Attempt to build Service class from container with malformed labels',
 			);
 		}
-		const nameMatch = container.Name.match(/.*_(\d+)_(\d+)$/);
+		const nameMatch = container.Name.match(/.*_(\d+)_(\d+)(?:_(.*?))?$/);
 		if (nameMatch == null) {
 			throw new InternalInconsistencyError(
-				'Attempt to build Service class from container with malformed name',
+				`Expected supervised container to have name '<serviceName>_<imageId>_<releaseId>_<commit>', got: ${container.Name}`,
 			);
 		}
 
 		svc.imageId = parseInt(nameMatch[1], 10);
 		svc.releaseId = parseInt(nameMatch[2], 10);
+		svc.commit = nameMatch[3];
 		svc.containerId = container.Id;
 		svc.dockerImageId = container.Config.Image;
 
@@ -656,7 +657,7 @@ export class Service {
 			this.config.networkMode = `container:${containerId}`;
 		}
 		return {
-			name: `${this.serviceName}_${this.imageId}_${this.releaseId}`,
+			name: `${this.serviceName}_${this.imageId}_${this.releaseId}_${this.commit}`,
 			Tty: this.config.tty,
 			Cmd: this.config.command,
 			Volumes: volumes,
@@ -862,8 +863,7 @@ export class Service {
 	): boolean {
 		return (
 			this.isEqualConfig(service, currentContainerIds) &&
-			this.releaseId === service.releaseId &&
-			this.imageId === service.imageId
+			this.commit === service.commit
 		);
 	}
 

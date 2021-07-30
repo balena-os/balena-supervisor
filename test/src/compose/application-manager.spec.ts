@@ -18,24 +18,25 @@ import * as dbHelper from '../../lib/db-helper';
 const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, {});
 
 async function createService(
-	conf = {} as Partial<ServiceComposeConfig>,
 	{
 		appId = 1,
 		serviceName = 'main',
-		releaseId = 1,
-		serviceId = 1,
-		imageId = 1,
-		state = {} as Partial<Service>,
-		options = {} as any,
-	} = {},
+		commit = 'main-commit',
+		...conf
+	} = {} as Partial<ServiceComposeConfig>,
+	{ state = {} as Partial<Service>, options = {} as any } = {},
 ) {
 	const svc = await Service.fromComposeObject(
 		{
 			appId,
 			serviceName,
-			releaseId,
-			serviceId,
-			imageId,
+			commit,
+			// db ids should not be used for target state calculation, but images
+			// are compared using _.isEqual so leaving this here to have image comparisons
+			// match
+			serviceId: 1,
+			imageId: 1,
+			releaseId: 1,
 			...conf,
 		},
 		options,
@@ -48,11 +49,28 @@ async function createService(
 	return svc;
 }
 
-function createImage(svc: Service) {
+function createImage(
+	{
+		appId = 1,
+		dependent = 0,
+		name = 'test-image',
+		serviceName = 'test',
+		...extra
+	} = {} as Partial<Image>,
+) {
 	return {
-		dockerImageId: svc.config.image,
-		...imageManager.imageFromService(svc),
-	};
+		appId,
+		dependent,
+		name,
+		serviceName,
+		// db ids should not be used for target state calculation, but images
+		// are compared using _.isEqual so leaving this here to have image comparisons
+		// match
+		imageId: 1,
+		releaseId: 1,
+		serviceId: 1,
+		...extra,
+	} as Image;
 }
 
 function createApps(
@@ -110,8 +128,12 @@ function createCurrentState({
 	services = [] as Service[],
 	networks = [] as Network[],
 	volumes = [] as Volume[],
-	images = services.map((s) => createImage(s)) as Image[],
-	downloading = [] as number[],
+	images = services.map((s) => ({
+		// Infer images from services by default
+		dockerImageId: s.config.image,
+		...imageManager.imageFromService(s),
+	})) as Image[],
+	downloading = [] as string[],
 }) {
 	const currentApps = createApps({ services, networks, volumes });
 
@@ -183,7 +205,7 @@ describe('compose/application-manager', () => {
 	it('infers a start step when all that changes is a running state', async () => {
 		const targetApps = createApps(
 			{
-				services: [await createService({ running: true }, { appId: 1 })],
+				services: [await createService({ running: true, appId: 1 })],
 				networks: [DEFAULT_NETWORK],
 			},
 			true,
@@ -194,7 +216,7 @@ describe('compose/application-manager', () => {
 			downloading,
 			containerIdsByAppId,
 		} = createCurrentState({
-			services: [await createService({ running: false }, { appId: 1 })],
+			services: [await createService({ running: false, appId: 1 })],
 			networks: [DEFAULT_NETWORK],
 		});
 
@@ -251,12 +273,7 @@ describe('compose/application-manager', () => {
 	it('infers a fetch step when a service has to be updated', async () => {
 		const targetApps = createApps(
 			{
-				services: [
-					await createService(
-						{ image: 'image-new' },
-						{ appId: 1, imageId: 2, options: {} },
-					),
-				],
+				services: [await createService({ image: 'image-new', appId: 1 })],
 				networks: [DEFAULT_NETWORK],
 			},
 			true,
@@ -267,7 +284,7 @@ describe('compose/application-manager', () => {
 			downloading,
 			containerIdsByAppId,
 		} = createCurrentState({
-			services: [await createService({}, { appId: 1, imageId: 1 })],
+			services: [await createService({ appId: 1 })],
 			networks: [DEFAULT_NETWORK],
 			images: [],
 		});
@@ -291,9 +308,7 @@ describe('compose/application-manager', () => {
 	it('does not infer a fetch step when the download is already in progress', async () => {
 		const targetApps = createApps(
 			{
-				services: [
-					await createService({ image: 'image-new' }, { appId: 1, imageId: 2 }),
-				],
+				services: [await createService({ image: 'image-new', appId: 1 })],
 				networks: [DEFAULT_NETWORK],
 			},
 			true,
@@ -304,9 +319,9 @@ describe('compose/application-manager', () => {
 			downloading,
 			containerIdsByAppId,
 		} = createCurrentState({
-			services: [await createService({}, { appId: 1, imageId: 1 })],
+			services: [await createService({ appId: 1 })],
 			networks: [DEFAULT_NETWORK],
-			downloading: [2],
+			downloading: ['image-new'],
 		});
 
 		const [noopStep, ...nextSteps] = await applicationManager.inferNextSteps(
@@ -330,10 +345,12 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService(
-						{ image: 'image-new', labels },
-						{ appId: 1, imageId: 2 },
-					),
+					await createService({
+						image: 'image-new',
+						labels,
+						appId: 1,
+						commit: 'new-release',
+					}),
 				],
 				networks: [DEFAULT_NETWORK],
 			},
@@ -346,10 +363,12 @@ describe('compose/application-manager', () => {
 			containerIdsByAppId,
 		} = createCurrentState({
 			services: [
-				await createService(
-					{ image: 'image-old', labels },
-					{ appId: 1, imageId: 1 },
-				),
+				await createService({
+					image: 'image-old',
+					labels,
+					appId: 1,
+					commit: 'old-release',
+				}),
 			],
 			networks: [DEFAULT_NETWORK],
 		});
@@ -374,26 +393,19 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService(
-						{ image: 'main-image', dependsOn: ['dep'] },
-						{
-							appId: 1,
-							imageId: 3,
-							serviceId: 1,
-							serviceName: 'main',
-							releaseId: 2,
-						},
-					),
-					await createService(
-						{ image: 'dep-image' },
-						{
-							appId: 1,
-							imageId: 4,
-							serviceId: 2,
-							serviceName: 'dep',
-							releaseId: 2,
-						},
-					),
+					await createService({
+						image: 'main-image',
+						dependsOn: ['dep'],
+						appId: 1,
+						commit: 'new-release',
+						serviceName: 'main',
+					}),
+					await createService({
+						image: 'dep-image',
+						appId: 1,
+						commit: 'new-release',
+						serviceName: 'dep',
+					}),
 				],
 				networks: [DEFAULT_NETWORK],
 			},
@@ -406,28 +418,27 @@ describe('compose/application-manager', () => {
 			containerIdsByAppId,
 		} = createCurrentState({
 			services: [
-				await createService(
-					{ dependsOn: ['dep'] },
-					{ appId: 1, imageId: 1, serviceId: 1, serviceName: 'main' },
-				),
-				await createService(
-					{},
-					{ appId: 1, imageId: 2, serviceId: 2, serviceName: 'dep' },
-				),
+				await createService({
+					dependsOn: ['dep'],
+					appId: 1,
+					commit: 'old-release',
+					serviceName: 'main',
+				}),
+				await createService({
+					appId: 1,
+					commit: 'old-release',
+					serviceName: 'dep',
+				}),
 			],
 			networks: [DEFAULT_NETWORK],
-			downloading: [4], // dep-image is still being downloaded
+			downloading: ['dep-image'], // dep-image is still being downloaded
 			images: [
 				// main-image was already downloaded
-				{
+				createImage({
 					appId: 1,
-					releaseId: 2,
 					name: 'main-image',
-					imageId: 3,
 					serviceName: 'main',
-					serviceId: 1,
-					dependent: 0,
-				},
+				}),
 			],
 		});
 
@@ -449,26 +460,19 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService(
-						{ image: 'main-image', dependsOn: ['dep'] },
-						{
-							appId: 1,
-							imageId: 3,
-							serviceId: 1,
-							serviceName: 'main',
-							releaseId: 2,
-						},
-					),
-					await createService(
-						{ image: 'dep-image' },
-						{
-							appId: 1,
-							imageId: 4,
-							serviceId: 2,
-							serviceName: 'dep',
-							releaseId: 2,
-						},
-					),
+					await createService({
+						image: 'main-image',
+						dependsOn: ['dep'],
+						appId: 1,
+						commit: 'new-release',
+						serviceName: 'main',
+					}),
+					await createService({
+						image: 'dep-image',
+						appId: 1,
+						commit: 'new-release',
+						serviceName: 'dep',
+					}),
 				],
 				networks: [DEFAULT_NETWORK],
 			},
@@ -482,36 +486,31 @@ describe('compose/application-manager', () => {
 			containerIdsByAppId,
 		} = createCurrentState({
 			services: [
-				await createService(
-					{ dependsOn: ['dep'] },
-					{ appId: 1, imageId: 1, serviceId: 1, serviceName: 'main' },
-				),
-				await createService(
-					{},
-					{ appId: 1, imageId: 2, serviceId: 2, serviceName: 'dep' },
-				),
+				await createService({
+					dependsOn: ['dep'],
+					appId: 1,
+					commit: 'old-release',
+					serviceName: 'main',
+				}),
+				await createService({
+					appId: 1,
+					commit: 'old-release',
+					serviceName: 'dep',
+				}),
 			],
 			networks: [DEFAULT_NETWORK],
 			images: [
 				// Both images have been downloaded
-				{
+				createImage({
 					appId: 1,
-					releaseId: 2,
 					name: 'main-image',
-					imageId: 3,
 					serviceName: 'main',
-					serviceId: 1,
-					dependent: 0,
-				},
-				{
+				}),
+				createImage({
 					appId: 1,
-					releaseId: 2,
 					name: 'dep-image',
-					imageId: 4,
 					serviceName: 'dep',
-					serviceId: 2,
-					dependent: 0,
-				},
+				}),
 			],
 		});
 
@@ -542,22 +541,17 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService(
-						{ image: 'main-image', dependsOn: ['dep'] },
-						{
-							imageId: 1,
-							serviceId: 1,
-							serviceName: 'main',
-						},
-					),
-					await createService(
-						{ image: 'dep-image' },
-						{
-							imageId: 2,
-							serviceId: 2,
-							serviceName: 'dep',
-						},
-					),
+					await createService({
+						image: 'main-image',
+						dependsOn: ['dep'],
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
+					await createService({
+						image: 'dep-image',
+						serviceName: 'dep',
+						commit: 'new-release',
+					}),
 				],
 				networks: [DEFAULT_NETWORK],
 			},
@@ -574,24 +568,16 @@ describe('compose/application-manager', () => {
 			networks: [DEFAULT_NETWORK],
 			images: [
 				// Both images have been downloaded
-				{
+				createImage({
 					appId: 1,
-					releaseId: 1,
 					name: 'main-image',
-					imageId: 1,
 					serviceName: 'main',
-					serviceId: 1,
-					dependent: 0,
-				},
-				{
+				}),
+				createImage({
 					appId: 1,
-					releaseId: 1,
 					name: 'dep-image',
-					imageId: 2,
 					serviceName: 'dep',
-					serviceId: 2,
-					dependent: 0,
-				},
+				}),
 			],
 		});
 
@@ -619,22 +605,17 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService(
-						{ image: 'main-image', dependsOn: ['dep'] },
-						{
-							imageId: 1,
-							serviceId: 1,
-							serviceName: 'main',
-						},
-					),
-					await createService(
-						{ image: 'dep-image' },
-						{
-							imageId: 2,
-							serviceId: 2,
-							serviceName: 'dep',
-						},
-					),
+					await createService({
+						image: 'main-image',
+						dependsOn: ['dep'],
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
+					await createService({
+						image: 'dep-image',
+						serviceName: 'dep',
+						commit: 'new-release',
+					}),
 				],
 				networks: [DEFAULT_NETWORK],
 			},
@@ -648,36 +629,25 @@ describe('compose/application-manager', () => {
 			containerIdsByAppId,
 		} = createCurrentState({
 			services: [
-				await createService(
-					{ image: 'dep-image' },
-					{
-						imageId: 2,
-						serviceId: 2,
-						serviceName: 'dep',
-					},
-				),
+				await createService({
+					image: 'dep-image',
+					serviceName: 'dep',
+					commit: 'new-release',
+				}),
 			],
 			networks: [DEFAULT_NETWORK],
 			images: [
 				// Both images have been downloaded
-				{
+				createImage({
 					appId: 1,
-					releaseId: 1,
 					name: 'main-image',
-					imageId: 1,
 					serviceName: 'main',
-					serviceId: 1,
-					dependent: 0,
-				},
-				{
+				}),
+				createImage({
 					appId: 1,
-					releaseId: 1,
 					name: 'dep-image',
-					imageId: 2,
 					serviceName: 'dep',
-					serviceId: 2,
-					dependent: 0,
-				},
+				}),
 			],
 		});
 
@@ -714,27 +684,15 @@ describe('compose/application-manager', () => {
 			downloading,
 			containerIdsByAppId,
 		} = createCurrentState({
-			services: [
-				await createService(
-					{},
-					{
-						appId: 5,
-						serviceName: 'old-service',
-					},
-				),
-			],
+			services: [await createService({ appId: 5, serviceName: 'old-service' })],
 			networks: [DEFAULT_NETWORK],
 			images: [
-				// Both images have been downloaded
-				{
+				// Image has been downloaded
+				createImage({
 					appId: 1,
-					releaseId: 1,
 					name: 'main-image',
-					imageId: 1,
 					serviceName: 'main',
-					serviceId: 1,
-					dependent: 0,
-				},
+				}),
 			],
 		});
 
@@ -822,7 +780,7 @@ describe('compose/application-manager', () => {
 		(networkManager.supervisorNetworkReady as sinon.SinonStub).resolves(false);
 
 		const targetApps = createApps(
-			{ services: [await createService({})], networks: [DEFAULT_NETWORK] },
+			{ services: [await createService()], networks: [DEFAULT_NETWORK] },
 			true,
 		);
 		const {
@@ -955,26 +913,18 @@ describe('compose/application-manager', () => {
 			networks: [DEFAULT_NETWORK],
 			images: [
 				// An image for a service that no longer exists
-				{
+				createImage({
 					name: 'old-image',
 					appId: 5,
-					serviceId: 5,
 					serviceName: 'old-service',
-					imageId: 5,
-					dependent: 0,
-					releaseId: 5,
 					dockerImageId: 'sha256:aaaa',
-				},
-				{
+				}),
+				createImage({
 					name: 'main-image',
 					appId: 1,
-					serviceId: 1,
 					serviceName: 'main',
-					imageId: 1,
-					dependent: 0,
-					releaseId: 1,
 					dockerImageId: 'sha256:bbbb',
-				},
+				}),
 			],
 		});
 
@@ -1021,26 +971,18 @@ describe('compose/application-manager', () => {
 			networks: [DEFAULT_NETWORK],
 			images: [
 				// An image for a service that no longer exists
-				{
+				createImage({
 					name: 'old-image',
 					appId: 5,
-					serviceId: 5,
 					serviceName: 'old-service',
-					imageId: 5,
-					dependent: 0,
-					releaseId: 5,
 					dockerImageId: 'sha256:aaaa',
-				},
-				{
+				}),
+				createImage({
 					name: 'main-image',
 					appId: 1,
-					serviceId: 1,
 					serviceName: 'main',
-					imageId: 1,
-					dependent: 0,
-					releaseId: 1,
 					dockerImageId: 'sha256:bbbb',
-				},
+				}),
 			],
 		});
 
@@ -1109,14 +1051,18 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService(
-						{ running: true, image: 'main-image-1' },
-						{ appId: 1, serviceId: 1, imageId: 1 },
-					),
-					await createService(
-						{ running: true, image: 'main-image-2' },
-						{ appId: 2, serviceId: 2, imageId: 2 },
-					),
+					await createService({
+						running: true,
+						image: 'main-image-1',
+						appId: 1,
+						commit: 'commit-for-app-1',
+					}),
+					await createService({
+						running: true,
+						image: 'main-image-2',
+						appId: 2,
+						commit: 'commit-for-app-2',
+					}),
 				],
 				networks: [
 					// Default networks for two apps
@@ -1139,24 +1085,16 @@ describe('compose/application-manager', () => {
 				Network.fromComposeObject('default', 2, {}),
 			],
 			images: [
-				{
+				createImage({
 					name: 'main-image-1',
 					appId: 1,
-					serviceId: 1,
 					serviceName: 'main',
-					imageId: 1,
-					dependent: 0,
-					releaseId: 1,
-				},
-				{
+				}),
+				createImage({
 					name: 'main-image-2',
 					appId: 2,
-					serviceId: 2,
 					serviceName: 'main',
-					imageId: 2,
-					dependent: 0,
-					releaseId: 1,
-				},
+				}),
 			],
 		});
 

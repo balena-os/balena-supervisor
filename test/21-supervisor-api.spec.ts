@@ -64,7 +64,7 @@ describe('SupervisorAPI', () => {
 	describe('API Key Scope', () => {
 		it('should generate a key which is scoped for a single application', async () => {
 			// single app scoped key...
-			const appScopedKey = await apiKeys.generateScopedKey(1, 1);
+			const appScopedKey = await apiKeys.generateScopedKey(1, 'main');
 
 			await request
 				.get('/v2/applications/1/state')
@@ -74,7 +74,7 @@ describe('SupervisorAPI', () => {
 		});
 		it('should generate a key which is scoped for multiple applications', async () => {
 			// multi-app scoped key...
-			const multiAppScopedKey = await apiKeys.generateScopedKey(1, 2, {
+			const multiAppScopedKey = await apiKeys.generateScopedKey(1, 'other', {
 				scopes: [1, 2].map((appId) => {
 					return { type: 'app', appId };
 				}),
@@ -135,7 +135,7 @@ describe('SupervisorAPI', () => {
 		});
 		it('should regenerate a key and invalidate the old one', async () => {
 			// single app scoped key...
-			const appScopedKey = await apiKeys.generateScopedKey(1, 1);
+			const appScopedKey = await apiKeys.generateScopedKey(1, 'main');
 
 			await request
 				.get('/v2/applications/1/state')

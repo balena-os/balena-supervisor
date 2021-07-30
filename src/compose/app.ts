@@ -31,7 +31,6 @@ export interface AppConstructOpts {
 	appId: number;
 	appName?: string;
 	commit?: string;
-	releaseId?: number;
 	source?: string;
 
 	services: Service[];
@@ -43,7 +42,7 @@ export interface UpdateState {
 	localMode: boolean;
 	availableImages: Image[];
 	containerIds: Dictionary<string>;
-	downloading: number[];
+	downloading: string[];
 }
 
 interface ChangingPair<T> {
@@ -56,7 +55,6 @@ export class App {
 	// When setting up an application from current state, these values are not available
 	public appName?: string;
 	public commit?: string;
-	public releaseId?: number;
 	public source?: string;
 
 	// Services are stored as an array, as at any one time we could have more than one
@@ -69,7 +67,6 @@ export class App {
 		this.appId = opts.appId;
 		this.appName = opts.appName;
 		this.commit = opts.commit;
-		this.releaseId = opts.releaseId;
 		this.source = opts.source;
 		this.services = opts.services;
 		this.volumes = opts.volumes;
@@ -266,34 +263,30 @@ export class App {
 		removePairs: Array<ChangingPair<Service>>;
 		updatePairs: Array<ChangingPair<Service>>;
 	} {
-		const currentByServiceId = _.keyBy(current, 'serviceId');
-		const targetByServiceId = _.keyBy(target, 'serviceId');
+		const currentByServiceName = _.keyBy(current, 'serviceName');
+		const targetByServiceName = _.keyBy(target, 'serviceName');
 
-		const currentServiceIds = Object.keys(currentByServiceId).map((i) =>
-			parseInt(i, 10),
-		);
-		const targetServiceIds = Object.keys(targetByServiceId).map((i) =>
-			parseInt(i, 10),
-		);
+		const currentServiceNames = Object.keys(currentByServiceName);
+		const targetServiceNames = Object.keys(targetByServiceName);
 
-		const toBeRemoved = _(currentServiceIds)
-			.difference(targetServiceIds)
-			.map((id) => ({ current: currentByServiceId[id] }))
+		const toBeRemoved = _(currentServiceNames)
+			.difference(targetServiceNames)
+			.map((id) => ({ current: currentByServiceName[id] }))
 			.value();
 
-		const toBeInstalled = _(targetServiceIds)
-			.difference(currentServiceIds)
-			.map((id) => ({ target: targetByServiceId[id] }))
+		const toBeInstalled = _(targetServiceNames)
+			.difference(currentServiceNames)
+			.map((id) => ({ target: targetByServiceName[id] }))
 			.value();
 
-		const maybeUpdate = _.intersection(targetServiceIds, currentServiceIds);
+		const maybeUpdate = _.intersection(targetServiceNames, currentServiceNames);
 
-		// Build up a list of services for a given service ID, always using the latest created
+		// Build up a list of services for a given service name, always using the latest created
 		// service. Any older services will have kill steps emitted
-		for (const serviceId of maybeUpdate) {
-			const currentServiceContainers = _.filter(current, { serviceId });
+		for (const serviceName of maybeUpdate) {
+			const currentServiceContainers = _.filter(current, { serviceName });
 			if (currentServiceContainers.length > 1) {
-				currentByServiceId[serviceId] = _.maxBy(
+				currentByServiceName[serviceName] = _.maxBy(
 					currentServiceContainers,
 					'createdAt',
 				)!;
@@ -302,13 +295,13 @@ export class App {
 				// be removed
 				const otherContainers = _.without(
 					currentServiceContainers,
-					currentByServiceId[serviceId],
+					currentByServiceName[serviceName],
 				);
 				for (const service of otherContainers) {
 					toBeRemoved.push({ current: service });
 				}
 			} else {
-				currentByServiceId[serviceId] = currentServiceContainers[0];
+				currentByServiceName[serviceName] = currentServiceContainers[0];
 			}
 		}
 
@@ -374,9 +367,9 @@ export class App {
 		 * Filter all the services which should be updated due to run state change, or config mismatch.
 		 */
 		const toBeUpdated = maybeUpdate
-			.map((serviceId) => ({
-				current: currentByServiceId[serviceId],
-				target: targetByServiceId[serviceId],
+			.map((serviceName) => ({
+				current: currentByServiceName[serviceName],
+				target: targetByServiceName[serviceName],
 			}))
 			.filter(
 				({ current: c, target: t }) =>
@@ -456,7 +449,7 @@ export class App {
 		context: {
 			localMode: boolean;
 			availableImages: Image[];
-			downloading: number[];
+			downloading: string[];
 			targetApp: App;
 			containerIds: Dictionary<string>;
 			networkPairs: Array<ChangingPair<Network>>;
@@ -486,7 +479,7 @@ export class App {
 			);
 		}
 
-		if (needsDownload && context.downloading.includes(target?.imageId!)) {
+		if (needsDownload && context.downloading.includes(target?.imageName!)) {
 			// The image needs to be downloaded, and it's currently downloading. We simply keep
 			// the application loop alive
 			return generateStep('noop', {});
@@ -563,7 +556,7 @@ export class App {
 			service.status !== 'Stopping' &&
 			!_.some(
 				changingServices,
-				({ current }) => current?.serviceId !== service.serviceId,
+				({ current }) => current?.serviceName !== service.serviceName,
 			)
 		) {
 			return [generateStep('kill', { current: service })];
@@ -595,11 +588,8 @@ export class App {
 	}
 
 	private generateContainerStep(current: Service, target: Service) {
-		// if the services release/image don't match, then rename the container...
-		if (
-			current.releaseId !== target.releaseId ||
-			current.imageId !== target.imageId
-		) {
+		// if the services release doesn't match, then rename the container...
+		if (current.commit !== target.commit) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running !== current.config.running) {
 			if (target.config.running) {
@@ -728,7 +718,7 @@ export class App {
 					!_.some(
 						availableImages,
 						(image) =>
-							image.dockerImageId === dependencyService?.imageId ||
+							image.dockerImageId === dependencyService?.config.image ||
 							imageManager.isSameImage(image, {
 								name: dependencyService?.imageName!,
 							}),
@@ -825,7 +815,6 @@ export class App {
 			{
 				appId: app.appId,
 				commit: app.commit,
-				releaseId: app.releaseId,
 				appName: app.name,
 				source: app.source,
 				services,

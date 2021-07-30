@@ -15,9 +15,9 @@ import log from '../../../src/lib/supervisor-console';
 
 const defaultContext = {
 	localMode: false,
-	availableImages: [],
+	availableImages: [] as Image[],
 	containerIds: {},
-	downloading: [],
+	downloading: [] as string[],
 };
 
 function createApp({
@@ -42,26 +42,22 @@ function createApp({
 }
 
 async function createService(
-	conf = {} as Partial<ServiceComposeConfig>,
 	{
 		appId = 1,
 		serviceName = 'test',
-		releaseId = 2,
-		serviceId = 3,
-		imageId = 4,
-		state = {} as Partial<Service>,
-	} = {},
+		commit = 'test-commit',
+		...conf
+	} = {} as Partial<ServiceComposeConfig>,
+	{ state = {} as Partial<Service>, options = {} as any } = {},
 ) {
 	const svc = await Service.fromComposeObject(
 		{
 			appId,
 			serviceName,
-			releaseId,
-			serviceId,
-			imageId,
+			commit,
 			...conf,
 		},
-		{} as any,
+		options,
 	);
 
 	// Add additonal configuration
@@ -69,6 +65,18 @@ async function createService(
 		(svc as any)[k] = (state as any)[k];
 	}
 	return svc;
+}
+
+function createImage(
+	{
+		appId = 1,
+		dependent = 0,
+		name = 'test-image',
+		serviceName = 'test',
+		...extra
+	} = {} as Partial<Image>,
+) {
+	return { appId, dependent, name, serviceName, ...extra } as Image;
 }
 
 const expectSteps = (
@@ -298,15 +306,10 @@ describe('compose/app', () => {
 				...defaultContext,
 				...{
 					availableImages: [
-						{
+						createImage({
 							appId: service.appId,
-							dependent: 0,
-							imageId: service.imageId,
-							releaseId: service.releaseId,
-							serviceId: service.serviceId,
 							name: 'test-image',
-							serviceName: service.serviceName,
-						} as Image,
+						}),
 					],
 				},
 			};
@@ -488,7 +491,7 @@ describe('compose/app', () => {
 				networks: [Network.fromComposeObject('test-network', 1, {})],
 			});
 			const target = createApp({
-				services: [await createService({})],
+				services: [await createService()],
 				networks: [],
 				isTarget: true,
 			});
@@ -557,24 +560,13 @@ describe('compose/app', () => {
 		it('should create a kill step for service which is no longer referenced', async () => {
 			const current = createApp({
 				services: [
-					await createService(
-						{},
-						{ appId: 1, serviceName: 'main', releaseId: 1, serviceId: 1 },
-					),
-					await createService(
-						{},
-						{ appId: 1, serviceName: 'aux', releaseId: 1, serviceId: 2 },
-					),
+					await createService({ appId: 1, serviceName: 'main' }),
+					await createService({ appId: 1, serviceName: 'aux' }),
 				],
 				networks: [Network.fromComposeObject('test-network', 1, {})],
 			});
 			const target = createApp({
-				services: [
-					await createService(
-						{},
-						{ appId: 1, serviceName: 'main', releaseId: 1, serviceId: 1 },
-					),
-				],
+				services: [await createService({ appId: 1, serviceName: 'main' })],
 				networks: [Network.fromComposeObject('test-network', 1, {})],
 				isTarget: true,
 			});
@@ -590,8 +582,8 @@ describe('compose/app', () => {
 			const current = createApp({
 				services: [
 					await createService(
-						{},
-						{ serviceName: 'main', state: { status: 'Stopping' } },
+						{ serviceName: 'main' },
+						{ state: { status: 'Stopping' } },
 					),
 				],
 			});
@@ -608,13 +600,13 @@ describe('compose/app', () => {
 			const current = createApp({
 				services: [
 					await createService(
-						{},
-						{ serviceName: 'main', state: { status: 'Dead' } },
+						{ serviceName: 'main' },
+						{ state: { status: 'Dead' } },
 					),
 				],
 			});
 			const target = createApp({
-				services: [await createService({}, { serviceName: 'main' })],
+				services: [await createService({ serviceName: 'main' })],
 				isTarget: true,
 			});
 
@@ -630,8 +622,8 @@ describe('compose/app', () => {
 			const current = createApp({
 				services: [
 					await createService(
-						{},
-						{ serviceName: 'main', state: { status: 'Dead' } },
+						{ serviceName: 'main' },
+						{ state: { status: 'Dead' } },
 					),
 				],
 			});
@@ -649,13 +641,13 @@ describe('compose/app', () => {
 			const current = createApp({ services: [] });
 			const target = createApp({
 				services: [
-					await createService({}, { serviceName: 'main', imageId: 123 }),
+					await createService({ image: 'main-image', serviceName: 'main' }),
 				],
 				isTarget: true,
 			});
 
 			const steps = current.nextStepsForAppUpdate(
-				{ ...defaultContext, ...{ downloading: [123] } },
+				{ ...defaultContext, ...{ downloading: ['main-image'] } },
 				target,
 			);
 			expectSteps('noop', steps);
@@ -665,12 +657,12 @@ describe('compose/app', () => {
 		it('should emit an updateMetadata step when a service has not changed but the release has', async () => {
 			const current = createApp({
 				services: [
-					await createService({}, { serviceName: 'main', releaseId: 1 }),
+					await createService({ serviceName: 'main', commit: 'old-release' }),
 				],
 			});
 			const target = createApp({
 				services: [
-					await createService({}, { serviceName: 'main', releaseId: 2 }),
+					await createService({ serviceName: 'main', commit: 'new-release' }),
 				],
 				isTarget: true,
 			});
@@ -680,20 +672,20 @@ describe('compose/app', () => {
 
 			expect(updateMetadataStep)
 				.to.have.property('current')
-				.to.deep.include({ serviceName: 'main', releaseId: 1 });
+				.to.deep.include({ serviceName: 'main', commit: 'old-release' });
 
 			expect(updateMetadataStep)
 				.to.have.property('target')
-				.to.deep.include({ serviceName: 'main', releaseId: 2 });
+				.to.deep.include({ serviceName: 'main', commit: 'new-release' });
 		});
 
 		it('should stop a container which has `running: false` as its target', async () => {
 			const current = createApp({
-				services: [await createService({}, { serviceName: 'main' })],
+				services: [await createService({ serviceName: 'main' })],
 			});
 			const target = createApp({
 				services: [
-					await createService({ running: false }, { serviceName: 'main' }),
+					await createService({ running: false, serviceName: 'main' }),
 				],
 				isTarget: true,
 			});
@@ -745,30 +737,23 @@ describe('compose/app', () => {
 				...defaultContext,
 				...{
 					availableImages: [
-						{
-							appId: 1,
-							dependent: 0,
-							imageId: 1,
-							releaseId: 1,
-							serviceId: 1,
-							name: 'main-image',
-							serviceName: 'main',
-						},
+						createImage({ appId: 1, serviceName: 'main', name: 'main-image' }),
 					],
 				},
 			};
 
 			const current = createApp({
-				services: [await createService({}, { appId: 1, serviceName: 'main' })],
+				services: [await createService({ appId: 1, serviceName: 'main' })],
 				// Default network was already created
 				networks: [defaultNetwork],
 			});
 			const target = createApp({
 				services: [
-					await createService(
-						{ privileged: true },
-						{ appId: 1, serviceName: 'main' },
-					),
+					await createService({
+						privileged: true,
+						appId: 1,
+						serviceName: 'main',
+					}),
 				],
 				networks: [defaultNetwork],
 				isTarget: true,
@@ -809,36 +794,20 @@ describe('compose/app', () => {
 
 		it('should not start a container when it depends on a service which is being installed', async () => {
 			const availableImages = [
-				{
-					appId: 1,
-					dependent: 0,
-					imageId: 1,
-					releaseId: 1,
-					serviceId: 1,
-					name: 'main-image',
-					serviceName: 'main',
-				},
-				{
-					appId: 1,
-					dependent: 0,
-					imageId: 2,
-					releaseId: 1,
-					serviceId: 2,
-					name: 'dep-image',
-					serviceName: 'dep',
-				},
+				createImage({ appId: 1, serviceName: 'main', name: 'main-image' }),
+				createImage({ appId: 1, serviceName: 'dep', name: 'dep-image' }),
 			];
 			const contextWithImages = { ...defaultContext, ...{ availableImages } };
 
 			const current = createApp({
 				services: [
 					await createService(
-						{ running: false },
 						{
+							running: false,
 							appId: 1,
 							serviceName: 'dep',
-							serviceId: 2,
-							imageId: 2,
+						},
+						{
 							state: {
 								status: 'Installing',
 								containerId: 'dep-id',
@@ -850,25 +819,15 @@ describe('compose/app', () => {
 			});
 			const target = createApp({
 				services: [
-					await createService(
-						{},
-						{
-							appId: 1,
-							serviceName: 'main',
-							serviceId: 1,
-							imageId: 1,
-							state: { dependsOn: ['dep'] },
-						},
-					),
-					await createService(
-						{},
-						{
-							appId: 1,
-							serviceName: 'dep',
-							serviceId: 2,
-							imageId: 2,
-						},
-					),
+					await createService({
+						appId: 1,
+						serviceName: 'main',
+						dependsOn: ['dep'],
+					}),
+					await createService({
+						appId: 1,
+						serviceName: 'dep',
+					}),
 				],
 				networks: [defaultNetwork],
 				isTarget: true,
@@ -889,16 +848,8 @@ describe('compose/app', () => {
 			const intermediate = createApp({
 				services: [
 					await createService(
-						{},
-						{
-							appId: 1,
-							serviceName: 'dep',
-							serviceId: 2,
-							imageId: 2,
-							state: {
-								containerId: 'dep-id',
-							},
-						},
+						{ appId: 1, serviceName: 'dep' },
+						{ state: { containerId: 'dep-id' } },
 					),
 				],
 				networks: [defaultNetwork],
@@ -931,26 +882,18 @@ describe('compose/app', () => {
 				...defaultContext,
 				...{
 					availableImages: [
-						{
-							appId: 1,
-							dependent: 0,
-							imageId: 1,
-							releaseId: 1,
-							serviceId: 1,
-							name: 'main-image',
-							serviceName: 'main',
-						},
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
 					],
 				},
 			};
 			const current = createApp({
 				services: [
-					await createService({ running: false }, { serviceName: 'main' }),
+					await createService({ running: false, serviceName: 'main' }),
 				],
 				networks: [defaultNetwork],
 			});
 			const target = createApp({
-				services: [await createService({}, { serviceName: 'main' })],
+				services: [await createService({ serviceName: 'main' })],
 				networks: [defaultNetwork],
 				isTarget: true,
 			});
@@ -969,15 +912,7 @@ describe('compose/app', () => {
 				...defaultContext,
 				...{
 					availableImages: [
-						{
-							appId: 1,
-							dependent: 0,
-							imageId: 1,
-							releaseId: 1,
-							serviceId: 1,
-							name: 'main-image',
-							serviceName: 'main',
-						},
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
 					],
 				},
 			};
@@ -988,31 +923,23 @@ describe('compose/app', () => {
 
 			const current = createApp({
 				services: [
-					await createService(
-						{ labels, image: 'main-image' },
-						{
-							appId: 1,
-							serviceName: 'main',
-							releaseId: 1,
-							serviceId: 1,
-							imageId: 1,
-						},
-					),
+					await createService({
+						labels,
+						image: 'main-image',
+						serviceName: 'main',
+						commit: 'old-release',
+					}),
 				],
 				networks: [defaultNetwork],
 			});
 			const target = createApp({
 				services: [
-					await createService(
-						{ labels, image: 'main-image-2' },
-						{
-							appId: 1,
-							serviceName: 'main',
-							releaseId: 2, // new release
-							serviceId: 1,
-							imageId: 2, // new image id
-						},
-					),
+					await createService({
+						labels,
+						image: 'main-image-2',
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
 				],
 				networks: [defaultNetwork],
 				isTarget: true,
@@ -1049,86 +976,52 @@ describe('compose/app', () => {
 			const contextWithImages = {
 				...defaultContext,
 				...{
-					downloading: [4], // The depended service image is being downloaded
+					downloading: ['dep-image-2'], // The depended service image is being downloaded
 					availableImages: [
-						{
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
+						createImage({ appId: 1, name: 'dep-image', serviceName: 'dep' }),
+						createImage({
 							appId: 1,
-							releaseId: 1,
-							dependent: 0,
-							name: 'main-image',
-							imageId: 1,
-							serviceName: 'main',
-							serviceId: 1,
-						},
-						{
-							appId: 1,
-							releaseId: 1,
-							dependent: 0,
-							name: 'dep-image',
-							imageId: 2,
-							serviceName: 'dep',
-							serviceId: 2,
-						},
-						{
-							appId: 1,
-							releaseId: 2,
-							dependent: 0,
 							name: 'main-image-2',
-							imageId: 3,
 							serviceName: 'main',
-							serviceId: 1,
-						},
+						}),
 					],
 				},
 			};
 
 			const current = createApp({
 				services: [
-					await createService(
-						{ image: 'main-image', dependsOn: ['dep'] },
-						{
-							appId: 1,
-							serviceName: 'main',
-							releaseId: 1,
-							serviceId: 1,
-							imageId: 1,
-						},
-					),
-					await createService(
-						{ image: 'dep-image' },
-						{
-							appId: 1,
-							serviceName: 'dep',
-							releaseId: 1,
-							serviceId: 2,
-							imageId: 2,
-						},
-					),
+					await createService({
+						image: 'main-image',
+						dependsOn: ['dep'],
+						appId: 1,
+						serviceName: 'main',
+						commit: 'old-release',
+					}),
+					await createService({
+						image: 'dep-image',
+						appId: 1,
+						serviceName: 'dep',
+						commit: 'old-release',
+					}),
 				],
 				networks: [defaultNetwork],
 			});
 			const target = createApp({
 				services: [
-					await createService(
-						{ image: 'main-image-2', dependsOn: ['dep'] },
-						{
-							appId: 1,
-							serviceName: 'main',
-							releaseId: 2, // new release
-							serviceId: 1,
-							imageId: 3, // image has changed
-						},
-					),
-					await createService(
-						{ image: 'dep-image-2' },
-						{
-							appId: 1,
-							serviceName: 'dep',
-							releaseId: 2,
-							serviceId: 2,
-							imageId: 4,
-						},
-					),
+					await createService({
+						image: 'main-image-2',
+						dependsOn: ['dep'],
+						appId: 1,
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
+					await createService({
+						image: 'dep-image-2',
+						appId: 1,
+						serviceName: 'dep',
+						commit: 'new-release',
+					}),
 				],
 				networks: [defaultNetwork],
 				isTarget: true,
@@ -1144,44 +1037,34 @@ describe('compose/app', () => {
 				...defaultContext,
 				...{
 					availableImages: [
-						{
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
+						createImage({
 							appId: 1,
-							releaseId: 1,
-							dependent: 0,
-							name: 'main-image',
-							imageId: 1,
-							serviceName: 'main',
-							serviceId: 1,
-						},
-						{
-							appId: 1,
-							releaseId: 2,
-							dependent: 0,
 							name: 'main-image-2',
-							imageId: 2,
 							serviceName: 'main',
-							serviceId: 1,
-						},
+						}),
 					],
 				},
 			};
 
 			const current = createApp({
 				services: [
-					await createService(
-						{ image: 'main-image' },
-						{ serviceName: 'main', releaseId: 1, serviceId: 1, imageId: 1 },
-					),
+					await createService({
+						image: 'main-image',
+						serviceName: 'main',
+						commit: 'old-release',
+					}),
 				],
 				networks: [defaultNetwork],
 			});
 			const target = createApp({
 				services: [
-					await createService(
-						{ image: 'main-image-2' },
+					await createService({
+						image: 'main-image-2',
 						// new release as target
-						{ serviceName: 'main', releaseId: 2, serviceId: 1, imageId: 2 },
-					),
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
 				],
 				networks: [defaultNetwork],
 				isTarget: true,
@@ -1238,7 +1121,7 @@ describe('compose/app', () => {
 		it('should not create a service when a network it depends on is not ready', async () => {
 			const current = createApp({ networks: [defaultNetwork] });
 			const target = createApp({
-				services: [await createService({ networks: ['test'] }, { appId: 1 })],
+				services: [await createService({ networks: ['test'], appId: 1 })],
 				networks: [defaultNetwork, Network.fromComposeObject('test', 1, {})],
 				isTarget: true,
 			});
@@ -1256,50 +1139,30 @@ describe('compose/app', () => {
 		it('should create several kill steps as long as there are no unmet dependencies', async () => {
 			const current = createApp({
 				services: [
-					await createService(
-						{},
-						{
-							appId: 1,
-							serviceName: 'one',
-							releaseId: 1,
-							serviceId: 1,
-							imageId: 1,
-						},
-					),
-					await createService(
-						{},
-						{
-							appId: 1,
-							serviceName: 'two',
-							releaseId: 1,
-							serviceId: 2,
-							imageId: 2,
-						},
-					),
-					await createService(
-						{},
-						{
-							appId: 1,
-							serviceName: 'three',
-							releaseId: 1,
-							serviceId: 3,
-							imageId: 3,
-						},
-					),
+					await createService({
+						appId: 1,
+						serviceName: 'one',
+						commit: 'old-release',
+					}),
+					await createService({
+						appId: 1,
+						serviceName: 'two',
+						commit: 'old-release',
+					}),
+					await createService({
+						appId: 1,
+						serviceName: 'three',
+						commit: 'old-release',
+					}),
 				],
 			});
 			const target = createApp({
 				services: [
-					await createService(
-						{},
-						{
-							appId: 1,
-							serviceName: 'three',
-							releaseId: 1,
-							serviceId: 3,
-							imageId: 3,
-						},
-					),
+					await createService({
+						appId: 1,
+						serviceName: 'three',
+						commit: 'new-release',
+					}),
 				],
 				isTarget: true,
 			});
@@ -1313,7 +1176,7 @@ describe('compose/app', () => {
 		it('should emit a fetch step when an image has not been downloaded for a service', async () => {
 			const current = createApp({ services: [] });
 			const target = createApp({
-				services: [await createService({}, { serviceName: 'main' })],
+				services: [await createService({ serviceName: 'main' })],
 				isTarget: true,
 			});
 
@@ -1328,13 +1191,13 @@ describe('compose/app', () => {
 			const contextWithDownloading = {
 				...defaultContext,
 				...{
-					downloading: [1],
+					downloading: ['image2'],
 				},
 			};
 			const current = createApp({ services: [] });
 			const target = createApp({
 				services: [
-					await createService({}, { serviceName: 'main', imageId: 1 }),
+					await createService({ image: 'image2', serviceName: 'main' }),
 				],
 				isTarget: true,
 			});

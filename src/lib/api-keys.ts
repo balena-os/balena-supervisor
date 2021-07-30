@@ -15,7 +15,7 @@ export class KeyNotFoundError extends Error {}
 interface DbApiSecret {
 	id: number;
 	appId: number;
-	serviceId: number;
+	serviceName: string;
 	scopes: string;
 	key: string;
 }
@@ -199,17 +199,17 @@ export async function getScopesForKey(key: string): Promise<Scope[] | null> {
 
 export async function generateScopedKey(
 	appId: number,
-	serviceId: number,
+	serviceName: string,
 	options?: Partial<GenerateKeyOptions>,
 ): Promise<string> {
 	await initialized;
-	return await generateKey(appId, serviceId, options);
+	return await generateKey(appId, serviceName, options);
 }
 
 export async function generateCloudKey(
 	force: boolean = false,
 ): Promise<string> {
-	cloudApiKey = await generateKey(0, 0, {
+	cloudApiKey = await generateKey(0, null, {
 		force,
 		scopes: [{ type: 'global' }],
 	});
@@ -223,15 +223,15 @@ export async function refreshKey(key: string): Promise<string> {
 		throw new KeyNotFoundError();
 	}
 
-	const { appId, serviceId, scopes } = apiKey;
+	const { appId, serviceName, scopes } = apiKey;
 
 	// if this is a cloud key that is being refreshed
-	if (appId === 0 && serviceId === 0) {
+	if (appId === 0 && serviceName === null) {
 		return await generateCloudKey(true);
 	}
 
 	// generate a new key, expiring the old one...
-	const newKey = await generateScopedKey(appId, serviceId, {
+	const newKey = await generateScopedKey(appId, serviceName, {
 		force: true,
 		scopes: deserialiseScopes(scopes),
 	});
@@ -244,15 +244,15 @@ export async function refreshKey(key: string): Promise<string> {
  * A cached lookup of the database key
  */
 const getApiKeyForService = memoizee(
-	async (appId: number, serviceId: number): Promise<DbApiSecret[]> => {
+	async (appId: number, serviceName: string | null): Promise<DbApiSecret[]> => {
 		await db.initialized;
 
-		return await db.models('apiSecret').where({ appId, serviceId }).select();
+		return await db.models('apiSecret').where({ appId, serviceName }).select();
 	},
 	{
 		promise: true,
 		maxAge: 60000, // 1 minute
-		normalizer: ([appId, serviceId]) => `${appId}-${serviceId}`,
+		normalizer: ([appId, serviceName]) => `${appId}-${serviceName}`,
 	},
 );
 
@@ -276,12 +276,12 @@ const getApiKeyByKey = memoizee(
  * All key generate logic should come though this method. It handles cache clearing.
  *
  * @param appId
- * @param serviceId
+ * @param serviceName
  * @param options
  */
 async function generateKey(
 	appId: number,
-	serviceId: number,
+	serviceName: string | null,
 	options?: Partial<GenerateKeyOptions>,
 ): Promise<string> {
 	// set default options
@@ -292,13 +292,13 @@ async function generateKey(
 	};
 
 	// grab the existing API key info
-	const secrets = await getApiKeyForService(appId, serviceId);
+	const secrets = await getApiKeyForService(appId, serviceName);
 
 	// if we need a new key
 	if (secrets.length === 0 || force) {
 		// are forcing a new key?
 		if (force) {
-			await db.models('apiSecret').where({ appId, serviceId }).del();
+			await db.models('apiSecret').where({ appId, serviceName }).del();
 		}
 
 		// remove the cached lookup for the key
@@ -308,10 +308,10 @@ async function generateKey(
 		}
 
 		// remove the cached value for this lookup
-		getApiKeyForService.clear(appId, serviceId);
+		getApiKeyForService.clear(appId, serviceName);
 
 		// return a new API key
-		return await createNewKey(appId, serviceId, scopes);
+		return await createNewKey(appId, serviceName, scopes);
 	}
 
 	// grab the current secret and scopes
@@ -333,21 +333,25 @@ async function generateKey(
 	}
 
 	// forcibly get a new key...
-	return await generateKey(appId, serviceId, { ...options, force: true });
+	return await generateKey(appId, serviceName, { ...options, force: true });
 }
 
 /**
  * Generates a new key value and inserts it into the DB.
  *
  * @param appId
- * @param serviceId
+ * @param serviceName
  * @param scopes
  */
-async function createNewKey(appId: number, serviceId: number, scopes: Scope[]) {
+async function createNewKey(
+	appId: number,
+	serviceName: string | null,
+	scopes: Scope[],
+) {
 	const key = generateUniqueKey();
 	await db.models('apiSecret').insert({
 		appId,
-		serviceId,
+		serviceName,
 		key,
 		scopes: serialiseScopes(scopes),
 	});
