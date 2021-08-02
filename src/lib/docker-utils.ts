@@ -80,7 +80,7 @@ export function getRegistryAndName(uri: string): ImageNameParts {
 // Normalise an image name to always have a tag, with :latest being the default
 export function normaliseImageName(image: string) {
 	const { registry, imageName, tagName, digest } = getRegistryAndName(image);
-	const repository = [registry, imageName].join('/');
+	const repository = [registry, imageName].filter((s) => !!s).join('/');
 
 	if (!digest) {
 		return [repository, tagName || 'latest'].join(':');
