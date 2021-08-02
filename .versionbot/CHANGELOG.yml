@@ -1,4 +1,15 @@
 - commits:
+    - subject: Removed fire emoji prefix for firewall logs.
+      hash: 30c728fae23ee66f3c1612736bb0c300f0b0762d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: peakyDicers
+      nested: []
+  version: 12.10.2
+  date: 2021-08-02T21:27:42.412Z
+- commits:
     - subject: Fix regression with local mode push
       hash: 6f5f3bc2f3aea1bf5e5772533be80c3bfbb4e3a9
       body: >
