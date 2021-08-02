@@ -555,6 +555,11 @@ function killContainer(
 					logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
 						service,
 					});
+				} else if (statusCode === 409 && removeContainer) {
+					// 409 means the container is refusing to be stopped, however this will lead to a service
+					// stop error loop. If the container needs to be removed anyway, we force-remove the container.
+					logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, { service });
+					return containerObj.remove({ v: true, force: true });
 				} else {
 					throw e;
 				}
