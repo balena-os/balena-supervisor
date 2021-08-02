@@ -21,7 +21,6 @@ export const initialised = (async () => {
 })();
 
 const BALENA_FIREWALL_CHAIN = 'BALENA-FIREWALL';
-const LOG_PREFIX = '🔥';
 
 const prepareChain: iptables.Rule[] = [
 	{
@@ -155,7 +154,7 @@ export async function applyFirewallMode(mode: string) {
 		mode = 'off';
 	}
 
-	log.info(`${LOG_PREFIX} Applying firewall mode: ${mode}`);
+	log.info(`Applying firewall mode: ${mode}`);
 
 	try {
 		// are we running services in host-network mode?
@@ -206,10 +205,10 @@ export async function applyFirewallMode(mode: string) {
 			.apply(ruleAdaptor);
 
 		// all done!
-		log.success(`${LOG_PREFIX} Firewall mode applied`);
+		log.success(`Firewall mode applied`);
 	} catch (err) {
-		logSystemMessage(`${LOG_PREFIX} Firewall mode not applied due to error`);
-		log.error(`${LOG_PREFIX} Firewall mode not applied`);
+		logSystemMessage(`Firewall mode not applied due to error`);
+		log.error(`Firewall mode not applied`);
 		log.error('Error applying firewall mode', err);
 
 		if (err instanceof iptables.IPTablesRuleError) {
