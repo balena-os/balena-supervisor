@@ -1,4 +1,49 @@
 - commits:
+    - subject: Fix regression with local mode push
+      hash: 6f5f3bc2f3aea1bf5e5772533be80c3bfbb4e3a9
+      body: >
+        PR #1749 introduced a bug when pushing local target state. An update to
+
+        the [image name
+        normalization](https://github.com/balena-os/balena-supervisor/blob/f1bd4b8d9bcef29e326cbf97eaddd837c2704d19/src/lib/docker-utils.ts#L81)
+
+        failed to consider the local image name format. This results in mangling
+
+        of image names in the database, i.e. the image `ubuntu:latest` is stored
+
+        as `/ubuntu:latest`. This causes an exception to be returned by the
+
+        dockerode `getImage('/ubuntu:latest').inspect()` call.
+
+
+        This sends the supervisor into a crash loop and is shown on the
+        supervisor
+
+        journal logs as
+
+
+        ```
+
+        getaddrinfo ENOTFOUND images
+            at GetAddrInfoReqWrap.onlookup [as oncomplete] (dns.js:64:26)
+        ```
+
+
+        Unfortunately if this happens on a user device, since the mangled image
+
+        name is already on the database, the easiest way to fix is to remove the
+
+        supervisor database and let the supervisor recreate it. Deleting the
+
+        database should be side effect free.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.10.1
+  date: 2021-08-02T15:55:28.001Z
+- commits:
     - subject: 'Remove comparison based on image, release, and service ids'
       hash: b67f94802dd8c2e890121f6ca82eda8dff2c051c
       body: >
