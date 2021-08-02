@@ -1,0 +1,24 @@
+# NOTE: NOT IN USE YET. Ideally, we should separate the Supervisor frontend sub-module into 
+# its own repo with its own image, and eventually deploy it as a system app that interfaces
+# with the Supervisor API.
+# TODO: Do this when multi-app support is complete to the point of supporting
+# system apps.
+
+FROM balenalib/%%BALENA_ARCH%%-node:14.16.1
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN npm ci
+
+# TODO: add start.sh script
+#dev-copy=start.sh ./
+#dev-cmd-live=LIVEPUSH=1 ./start.sh
+
+COPY src ./src
+COPY server.ts webpack.prod.config.js tsconfig.json ./
+
+RUN npm run build
+
+CMD ["/usr/src/app/start.sh"]

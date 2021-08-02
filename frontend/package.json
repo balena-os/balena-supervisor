@@ -1,0 +1,44 @@
+{
+  "name": "frontend",
+  "description": "Local UI on-device dashboard module managed by the balena Supervisor.",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "rimraf build && tsc && webpack --config webpack.prod.config.js",
+    "start": "node build/server.js",
+    "dev": "concurrently --kill-others-on-fail -n \"ui-server,ui-client\" \"npm run start:dev\" \"npm run serve\"",
+    "start:dev": "nodemon --watch server.ts --exec node -r ts-node/register/transpile-only -P tsconfig.json server.ts",
+    "serve": "webpack-dev-server --config webpack.dev.config.js",
+    "test": "jest"
+  },
+  "private": true,
+  "engines": {
+    "node": "^12.16.2",
+    "npm": "^6.14.4"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "rendition": "^21.6.1",
+    "styled-components": "^5.3.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^12.0.0",
+    "@types/express": "^4.17.13",
+    "@types/node": "^16.4.7",
+    "@types/react": "^17.0.15",
+    "@types/react-dom": "^17.0.9",
+    "concurrently": "^6.2.0",
+    "html-webpack-plugin": "^3.0.7",
+    "jest": "^27.0.6",
+    "nodemon": "^2.0.12",
+    "rimraf": "^3.0.2",
+    "ts-loader": "^8.2.0",
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5",
+    "webpack": "^4.42.0",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.10.3"
+  }
+}

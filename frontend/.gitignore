@@ -1,0 +1,3 @@
+# This contains duplicate files from Supervisor's .gitignore, but we keep it here for when we migrate this repo out into its own module
+node_modules
+build

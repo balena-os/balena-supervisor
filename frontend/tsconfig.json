@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "target": "es6",
+        "esModuleInterop": true,
+        "outDir": "build",
+        "lib": ["esnext", "dom"],
+        "types": ["react", "react-dom", "node"],
+        "jsx": "react",
+        "noUnusedParameters": true,
+        "removeComments": true,
+        "allowJs": true
+    },
+    "include": [
+        "./src/**/*",
+        "./server.ts"
+    ],
+    "exclude": ["node_modules"]
+}

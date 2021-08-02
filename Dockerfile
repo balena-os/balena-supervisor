@@ -21,6 +21,9 @@ ARG NODE_LOCATION="${S3_BASE}/node/v${NODE_VERSION}/${NODE_ARCHIVE}"
 
 WORKDIR /usr/src/app
 
+# Local UI port accessible from LOCAL_IP:48485 in livepush. TODO: Implement a working method in prod
+EXPOSE 48485
+
 RUN apk add --no-cache \
 	g++ \
 	git \
@@ -45,8 +48,14 @@ RUN curl -SLO "${NODE_LOCATION}" \
 	&& strip /usr/local/bin/node
 
 COPY package*.json ./
-
 RUN npm ci --build-from-source --sqlite=/usr/lib
+
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm install
+
+COPY frontend/server.ts frontend/tsconfig.json frontend/webpack.dev.config.js ./frontend/
+COPY frontend/src ./frontend/src
+# TODO: look at if npm install is fine for production build
 
 # We only run these commands when executing through
 # livepush, so they are presented as livepush directives

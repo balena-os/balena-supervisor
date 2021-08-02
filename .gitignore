@@ -1,4 +1,4 @@
-/node_modules/
+node_modules
 /automation/node_modules/
 /automation/meta-balena/
 /meta-balena/

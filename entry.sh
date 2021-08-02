@@ -57,8 +57,11 @@ fi
 modprobe ip6_tables || true
 
 if [ "${LIVEPUSH}" = "1" ]; then
-	exec npx nodemon --watch src --watch typings --ignore tests -e js,ts,json \
-		 --exec node -r ts-node/register/transpile-only src/app.ts
+	exec npx concurrently -n "supervisor" --kill-others-on-fail \
+		"npx nodemon --watch src --watch typings --ignore tests -e js,ts,json --exec node -r ts-node/register/transpile-only src/app.ts" \
+		"cd frontend && DOCKER_BUILD=1 npm run dev"
 else
 	exec node /usr/src/app/dist/app.js
+	# TODO: Add frontend to test if it's incorporated into a production Supervisor.
+	# Do this only after MVP is complete.
 fi
