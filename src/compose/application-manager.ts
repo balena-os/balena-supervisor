@@ -674,7 +674,9 @@ function saveAndRemoveImages(
 			(svc) =>
 				_.find(availableImages, {
 					dockerImageId: svc.config.image,
-					name: svc.imageName,
+					// There is no 1-1 mapping between services and images
+					// on disk, so the only way to compare is by imageId
+					imageId: svc.imageId,
 				}) ?? _.find(availableImages, { dockerImageId: svc.config.image }),
 		),
 	) as imageManager.Image[];
