@@ -479,27 +479,29 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 
 	globalEventBus.getInstance().emit('targetStateChanged', target);
 
-	const apiEndpoint = await config.get('apiEndpoint');
+	const { uuid, apiEndpoint } = await config.getMany([
+		'uuid',
+		'apiEndpoint',
+		'name',
+	]);
+
+	if (!uuid || !target[uuid]) {
+		throw new Error(
+			`Expected target state for local device with uuid '${uuid}'.`,
+		);
+	}
+
+	const localTarget = target[uuid];
 
 	await usingWriteLockTarget(async () => {
 		await db.transaction(async (trx) => {
-			await config.set({ name: target.local.name }, trx);
-			await deviceConfig.setTarget(target.local.config, trx);
+			await config.set({ name: localTarget.name }, trx);
+			await deviceConfig.setTarget(localTarget.config, trx);
 
 			if (localSource || apiEndpoint == null || apiEndpoint === '') {
-				await applicationManager.setTarget(
-					target.local.apps,
-					target.dependent,
-					'local',
-					trx,
-				);
+				await applicationManager.setTarget(localTarget.apps, 'local', trx);
 			} else {
-				await applicationManager.setTarget(
-					target.local.apps,
-					target.dependent,
-					apiEndpoint,
-					trx,
-				);
+				await applicationManager.setTarget(localTarget.apps, apiEndpoint, trx);
 			}
 			await config.set({ targetStateSet: true }, trx);
 		});

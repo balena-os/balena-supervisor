@@ -557,19 +557,17 @@ export function createV2Api(router: Router) {
 
 	router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res) => {
 		const targetState = await applicationManager.getTargetApps();
-		const referencedVolumes: string[] = [];
-		_.each(targetState, (app, appId) => {
+		const referencedVolumes = Object.values(targetState)
 			// if this app isn't in scope of the request, do not cleanup it's volumes
-			if (!req.auth.isScoped({ apps: [parseInt(appId, 10)] })) {
-				return;
-			}
-
-			_.each(app.volumes, (_volume, volumeName) => {
-				referencedVolumes.push(
-					Volume.generateDockerName(parseInt(appId, 10), volumeName),
+			.filter((app) => req.auth.isScoped({ apps: [app.id] }))
+			.flatMap((app) => {
+				const [release] = Object.values(app.releases);
+				// Return a list of the volume names
+				return Object.keys(release?.volumes ?? {}).map((volumeName) =>
+					Volume.generateDockerName(app.id, volumeName),
 				);
 			});
-		});
+
 		await volumeManager.removeOrphanedVolumes(referencedVolumes);
 		res.json({
 			status: 'success',

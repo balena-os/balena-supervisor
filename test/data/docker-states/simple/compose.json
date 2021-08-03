@@ -4,9 +4,12 @@
 	"image": "sha256:f9e0fa6e3e68caedbcbb4ef35d5a8dce2a8d33e39cc94115d567800f25d826f4",
 	"running": true,
 	"appId": 1011165,
+	"appUuid": "aaaaaaaa",
 	"releaseId": 572579,
 	"serviceId": 43697,
 	"commit": "b14730d691467ab0f448a308af6bf839",
 	"imageName": "registry2.resin.io/v2/8ddbe4a22e881f06def0f31400bfb6de@sha256:09b0db9e71cead5f91107fc9254b1af7088444cc6da55afa2da595940f72a34a",
-	"tty": true
+	"composition": {
+		"tty": true
+	}
 }

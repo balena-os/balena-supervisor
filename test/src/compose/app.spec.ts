@@ -55,6 +55,7 @@ async function createService(
 			appId,
 			serviceName,
 			commit,
+			running: true,
 			...conf,
 		},
 		options,
@@ -248,7 +249,7 @@ describe('compose/app', () => {
 			const current = createApp({
 				services: [
 					await createService({
-						volumes: ['test-volume:/data'],
+						composition: { volumes: ['test-volume:/data'] },
 					}),
 				],
 				volumes: [Volume.fromComposeObject('test-volume', 1, {})],
@@ -256,7 +257,7 @@ describe('compose/app', () => {
 			const target = createApp({
 				services: [
 					await createService({
-						volumes: ['test-volume:/data'],
+						composition: { volumes: ['test-volume:/data'] },
 					}),
 				],
 				volumes: [
@@ -291,7 +292,7 @@ describe('compose/app', () => {
 
 		it('should not output a kill step for a service which is already stopping when changing a volume', async () => {
 			const service = await createService({
-				volumes: ['test-volume:/data'],
+				composition: { volumes: ['test-volume:/data'] },
 			});
 			service.status = 'Stopping';
 			const current = createApp({
@@ -314,8 +315,8 @@ describe('compose/app', () => {
 
 		it('should generate the correct step sequence for a volume purge request', async () => {
 			const service = await createService({
-				volumes: ['db-volume:/data'],
 				image: 'test-image',
+				composition: { volumes: ['db-volume:/data'] },
 			});
 			const volume = Volume.fromComposeObject('db-volume', service.appId, {});
 			const contextWithImages = {
@@ -516,7 +517,11 @@ describe('compose/app', () => {
 
 		it('should kill dependencies of networks before removing', async () => {
 			const current = createApp({
-				services: [await createService({ networks: { 'test-network': {} } })],
+				services: [
+					await createService({
+						composition: { networks: { 'test-network': {} } },
+					}),
+				],
 				networks: [Network.fromComposeObject('test-network', 1, {})],
 			});
 			const target = createApp({
@@ -535,11 +540,19 @@ describe('compose/app', () => {
 
 		it('should kill dependencies of networks before changing config', async () => {
 			const current = createApp({
-				services: [await createService({ networks: { 'test-network': {} } })],
+				services: [
+					await createService({
+						composition: { networks: { 'test-network': {} } },
+					}),
+				],
 				networks: [Network.fromComposeObject('test-network', 1, {})],
 			});
 			const target = createApp({
-				services: [await createService({ networks: { 'test-network': {} } })],
+				services: [
+					await createService({
+						composition: { networks: { 'test-network': {} } },
+					}),
+				],
 				networks: [
 					Network.fromComposeObject('test-network', 1, {
 						labels: { test: 'test' },
@@ -731,7 +744,7 @@ describe('compose/app', () => {
 			const current = createApp({
 				services: [
 					await createService(
-						{ restart: 'no', running: false },
+						{ composition: { restart: 'no' }, running: false },
 						{ state: { containerId: 'run_once' } },
 					),
 				],
@@ -746,7 +759,7 @@ describe('compose/app', () => {
 			const target = createApp({
 				services: [
 					await createService(
-						{ restart: 'no', running: false },
+						{ composition: { restart: 'no' }, running: false },
 						{ state: { containerId: 'run_once' } },
 					),
 				],
@@ -779,9 +792,9 @@ describe('compose/app', () => {
 			const target = createApp({
 				services: [
 					await createService({
-						privileged: true,
 						appId: 1,
 						serviceName: 'main',
+						composition: { privileged: true },
 					}),
 				],
 				networks: [defaultNetwork],
@@ -851,7 +864,9 @@ describe('compose/app', () => {
 					await createService({
 						appId: 1,
 						serviceName: 'main',
-						dependsOn: ['dep'],
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						appId: 1,
@@ -1022,10 +1037,12 @@ describe('compose/app', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						appId: 1,
 						serviceName: 'main',
 						commit: 'old-release',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
@@ -1040,10 +1057,12 @@ describe('compose/app', () => {
 				services: [
 					await createService({
 						image: 'main-image-2',
-						dependsOn: ['dep'],
 						appId: 1,
 						serviceName: 'main',
 						commit: 'new-release',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image-2',
@@ -1134,7 +1153,9 @@ describe('compose/app', () => {
 				services: [
 					await createService({
 						labels,
-						privileged: true,
+						composition: {
+							privileged: true,
+						},
 					}),
 				],
 				isTarget: true,
@@ -1150,7 +1171,12 @@ describe('compose/app', () => {
 		it('should not start a service when a network it depends on is not ready', async () => {
 			const current = createApp({ networks: [defaultNetwork] });
 			const target = createApp({
-				services: [await createService({ networks: ['test'], appId: 1 })],
+				services: [
+					await createService({
+						composition: { networks: ['test'] },
+						appId: 1,
+					}),
+				],
 				networks: [defaultNetwork, Network.fromComposeObject('test', 1, {})],
 				isTarget: true,
 			});

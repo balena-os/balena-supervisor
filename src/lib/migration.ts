@@ -23,15 +23,22 @@ import {
 import { docker } from '../lib/docker-utils';
 import { exec, pathExistsOnHost, mkdirp } from '../lib/fs-utils';
 import { log } from '../lib/supervisor-console';
-import type { AppsJsonFormat, TargetApp, TargetState } from '../types/state';
-import type { DatabaseApp } from '../device-state/target-state-cache';
-import { ShortString } from '../types';
+import {
+	AppsJsonFormat,
+	TargetApp,
+	TargetState,
+	TargetRelease,
+} from '../types';
+import type {
+	DatabaseApp,
+	DatabaseService,
+} from '../device-state/target-state-cache';
 
 export const defaultLegacyVolume = () => 'resin-data';
 
-export function singleToMulticontainerApp(
+function singleToMulticontainerApp(
 	app: Dictionary<any>,
-): TargetApp & { appId: string } {
+): TargetApp & { uuid: string } {
 	const environment: Dictionary<string> = {};
 	for (const key in app.env) {
 		if (!/^RESIN_/.test(key)) {
@@ -40,18 +47,25 @@ export function singleToMulticontainerApp(
 	}
 
 	const { appId } = app;
-	const conf = app.config != null ? app.config : {};
-	const newApp: TargetApp & { appId: string } = {
-		appId: appId.toString(),
-		commit: app.commit,
-		name: app.name,
-		releaseId: 1,
+
+	const release: TargetRelease = {
+		id: 1,
 		networks: {},
 		volumes: {},
 		services: {},
 	};
+	const conf = app.config != null ? app.config : {};
+	const newApp: TargetApp & { uuid: string } = {
+		id: appId,
+		uuid: 'user-app',
+		name: app.name,
+		class: 'fleet',
+		releases: {
+			[app.commit]: release,
+		},
+	};
 	const defaultVolume = exports.defaultLegacyVolume();
-	newApp.volumes[defaultVolume] = {};
+	release.volumes[defaultVolume] = {};
 	const updateStrategy =
 		conf['RESIN_SUPERVISOR_UPDATE_STRATEGY'] != null
 			? conf['RESIN_SUPERVISOR_UPDATE_STRATEGY']
@@ -64,19 +78,11 @@ export function singleToMulticontainerApp(
 		conf['RESIN_APP_RESTART_POLICY'] != null
 			? conf['RESIN_APP_RESTART_POLICY']
 			: 'always';
-	newApp.services = {
-		// Disable the next line, as this *has* to be a string
-		// tslint:disable-next-line
-		'1': {
-			appId,
-			serviceName: 'main' as ShortString,
-			imageId: 1,
-			commit: app.commit,
-			releaseId: 1,
+	release.services = {
+		main: {
+			id: 1,
+			image_id: 1,
 			image: app.imageId,
-			privileged: true,
-			networkMode: 'host',
-			volumes: [`${defaultVolume}:/data`],
 			labels: {
 				'io.resin.features.kernel-modules': '1',
 				'io.resin.features.firmware': '1',
@@ -88,8 +94,13 @@ export function singleToMulticontainerApp(
 				'io.resin.legacy-container': '1',
 			},
 			environment,
-			restart: restartPolicy,
 			running: true,
+			composition: {
+				restart: restartPolicy,
+				privileged: true,
+				networkMode: 'host',
+				volumes: [`${defaultVolume}:/data`],
+			},
 		},
 	};
 	return newApp;
@@ -104,7 +115,10 @@ export function convertLegacyAppsJson(appsArray: any[]): AppsJsonFormat {
 		{},
 	);
 
-	const apps = _.keyBy(_.map(appsArray, singleToMulticontainerApp), 'appId');
+	const apps = _.keyBy(
+		_.map(appsArray, singleToMulticontainerApp),
+		'uuid',
+	) as Dictionary<TargetApp>;
 	return { apps, config: deviceConfig } as AppsJsonFormat;
 }
 
@@ -129,7 +143,7 @@ export async function normaliseLegacyDatabase() {
 	}
 
 	for (const app of apps) {
-		let services: Array<TargetApp['services']['']>;
+		let services: DatabaseService[];
 
 		try {
 			services = JSON.parse(app.services);
@@ -165,6 +179,9 @@ export async function normaliseLegacyDatabase() {
 					contains__image: {
 						$expand: 'image',
 					},
+					belongs_to__application: {
+						$select: ['uuid'],
+					},
 				},
 			},
 		});
@@ -176,8 +193,9 @@ export async function normaliseLegacyDatabase() {
 			await db.models('app').where({ appId: app.appId }).del();
 		}
 
-		// We need to get the release.id, serviceId, image.id and updated imageUrl
+		// We need to get the app.uuid, release.id, serviceId, image.id and updated imageUrl
 		const release = releases[0];
+		const uuid = release.belongs_to__application[0].uuid;
 		const image = release.contains__image[0].image[0];
 		const serviceId = image.is_a_build_of__service.__id;
 		const imageUrl = !image.content_hash
@@ -217,10 +235,12 @@ export async function normaliseLegacyDatabase() {
 					await trx('image').insert({
 						name: imageUrl,
 						appId: app.appId,
+						appUuid: uuid,
 						serviceId,
 						serviceName: service.serviceName,
 						imageId: image.id,
 						releaseId: release.id,
+						commit: app.commit,
 						dependent: 0,
 						dockerImageId: imageFromDocker.Id,
 					});
@@ -234,12 +254,17 @@ export async function normaliseLegacyDatabase() {
 				Object.assign(app, {
 					services: JSON.stringify([
 						Object.assign(service, {
+							appId: app.appId,
+							appUuid: uuid,
 							image: imageUrl,
-							serviceID: serviceId,
+							serviceId,
 							imageId: image.id,
 							releaseId: release.id,
+							commit: app.commit,
 						}),
 					]),
+					uuid,
+					class: 'fleet',
 					releaseId: release.id,
 				});
 
@@ -257,13 +282,99 @@ export async function normaliseLegacyDatabase() {
 	await applicationManager.initialized;
 	const targetApps = await applicationManager.getTargetApps();
 
-	for (const appId of _.keys(targetApps)) {
-		await volumeManager.createFromLegacy(parseInt(appId, 10));
+	for (const app of Object.values(targetApps)) {
+		await volumeManager.createFromLegacy(app.id);
 	}
 
 	await config.set({
 		legacyAppsPresent: false,
 	});
+}
+
+type AppsJsonV2 = {
+	config: {
+		[varName: string]: string;
+	};
+	apps: {
+		[id: string]: {
+			name: string;
+			commit: string;
+			releaseId: number;
+			services: { [id: string]: any };
+			volumes: { [name: string]: any };
+			networks: { [name: string]: any };
+		};
+	};
+	pinDevice?: boolean;
+};
+
+export async function convertV2toV3AppsJson(
+	appsJson: AppsJsonV2,
+): Promise<AppsJsonFormat> {
+	const { config: conf, apps, pinDevice } = appsJson;
+
+	await apiBinder.initialized;
+	await deviceState.initialized;
+
+	if (apiBinder.balenaApi == null) {
+		throw new InternalInconsistencyError(
+			'API binder is not initialized correctly',
+		);
+	}
+
+	const { balenaApi } = apiBinder;
+
+	const v3apps = (
+		await Promise.all(
+			Object.keys(apps).map(
+				async (id): Promise<[string, TargetApp]> => {
+					const appId = parseInt(id, 10);
+					const app = apps[appId];
+
+					const appDetails = await balenaApi.get({
+						resource: 'application',
+						id: appId,
+						options: {
+							$select: ['uuid'],
+						},
+					});
+
+					if (!appDetails || appDetails.length === 0) {
+						throw new InternalInconsistencyError(
+							`No app with id ${appId} found on the API. Skipping apps.json migration`,
+						);
+					}
+
+					const { uuid } = appDetails[0];
+
+					const releases = app.commit
+						? {
+								[app.commit]: {
+									id: app.releaseId,
+									services: app.services,
+									volumes: app.volumes,
+									networks: app.networks,
+								},
+						  }
+						: {};
+
+					return [
+						uuid,
+						{
+							id: appId,
+							name: app.name,
+							class: 'fleet',
+							releases,
+						} as TargetApp,
+					];
+				},
+			),
+		)
+	)
+		// Key by uuid
+		.reduce((res, [uuid, app]) => ({ ...res, [uuid]: app }), {});
+
+	return { config: conf, apps: v3apps, ...(pinDevice && { pinDevice }) };
 }
 
 export async function loadBackupFromMigration(
@@ -281,14 +392,17 @@ export async function loadBackupFromMigration(
 
 		await deviceState.setTarget(targetState);
 
-		// multi-app warning!
-		const appId = parseInt(_.keys(targetState.local?.apps)[0], 10);
+		// TODO: this code is only single-app compatible
+		const [uuid] = Object.keys(targetState.local?.apps);
 
-		if (isNaN(appId)) {
-			throw new BackupError('No appId in target state');
+		if (!!uuid) {
+			throw new BackupError('No apps in the target state');
 		}
 
-		const volumes = targetState.local?.apps?.[appId].volumes;
+		const { id: appId } = targetState.local?.apps[uuid];
+		const [release] = Object.values(targetState.local?.apps[uuid].releases);
+
+		const volumes = release?.volumes ?? {};
 
 		const backupPath = path.join(constants.rootMountPoint, 'mnt/data/backup');
 		// We clear this path in case it exists from an incomplete run of this function

@@ -20,6 +20,7 @@ const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, {});
 async function createService(
 	{
 		appId = 1,
+		appUuid = 'app-uuid',
 		serviceName = 'main',
 		commit = 'main-commit',
 		...conf
@@ -29,6 +30,7 @@ async function createService(
 	const svc = await Service.fromComposeObject(
 		{
 			appId,
+			appUuid,
 			serviceName,
 			commit,
 			// db ids should not be used for target state calculation, but images
@@ -52,23 +54,26 @@ async function createService(
 function createImage(
 	{
 		appId = 1,
-		dependent = 0,
+		appUuid = 'app-uuid',
 		name = 'test-image',
-		serviceName = 'test',
+		serviceName = 'main',
+		commit = 'main-commit',
 		...extra
 	} = {} as Partial<Image>,
 ) {
 	return {
 		appId,
-		dependent,
+		appUuid,
 		name,
 		serviceName,
+		commit,
 		// db ids should not be used for target state calculation, but images
 		// are compared using _.isEqual so leaving this here to have image comparisons
 		// match
 		imageId: 1,
 		releaseId: 1,
 		serviceId: 1,
+		dependent: 0,
 		...extra,
 	} as Image;
 }
@@ -130,7 +135,7 @@ function createCurrentState({
 	volumes = [] as Volume[],
 	images = services.map((s) => ({
 		// Infer images from services by default
-		dockerImageId: s.config.image,
+		dockerImageId: s.dockerImageId,
 		...imageManager.imageFromService(s),
 	})) as Image[],
 	downloading = [] as string[],
@@ -363,12 +368,15 @@ describe('compose/application-manager', () => {
 			containerIdsByAppId,
 		} = createCurrentState({
 			services: [
-				await createService({
-					image: 'image-old',
-					labels,
-					appId: 1,
-					commit: 'old-release',
-				}),
+				await createService(
+					{
+						image: 'image-old',
+						labels,
+						appId: 1,
+						commit: 'old-release',
+					},
+					{ options: { imageInfo: { Id: 'sha256:image-old-id' } } },
+				),
 			],
 			networks: [DEFAULT_NETWORK],
 		});
@@ -414,12 +422,15 @@ describe('compose/application-manager', () => {
 			containerIdsByAppId,
 		} = createCurrentState({
 			services: [
-				await createService({
-					image: 'image-old',
-					labels,
-					appId: 1,
-					commit: 'old-release',
-				}),
+				await createService(
+					{
+						image: 'image-old',
+						labels,
+						appId: 1,
+						commit: 'old-release',
+					},
+					{ options: { imageInfo: { Id: 'sha256:image-old-id' } } },
+				),
 			],
 			networks: [DEFAULT_NETWORK],
 		});
@@ -499,10 +510,12 @@ describe('compose/application-manager', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						appId: 1,
 						commit: 'new-release',
 						serviceName: 'main',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
@@ -523,10 +536,12 @@ describe('compose/application-manager', () => {
 		} = createCurrentState({
 			services: [
 				await createService({
-					dependsOn: ['dep'],
 					appId: 1,
 					commit: 'old-release',
 					serviceName: 'main',
+					composition: {
+						depends_on: ['dep'],
+					},
 				}),
 				await createService({
 					appId: 1,
@@ -566,14 +581,18 @@ describe('compose/application-manager', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						appId: 1,
+						appUuid: 'app-uuid',
 						commit: 'new-release',
 						serviceName: 'main',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
 						appId: 1,
+						appUuid: 'app-uuid',
 						commit: 'new-release',
 						serviceName: 'dep',
 					}),
@@ -591,13 +610,17 @@ describe('compose/application-manager', () => {
 		} = createCurrentState({
 			services: [
 				await createService({
-					dependsOn: ['dep'],
 					appId: 1,
+					appUuid: 'app-uuid',
 					commit: 'old-release',
 					serviceName: 'main',
+					composition: {
+						depends_on: ['dep'],
+					},
 				}),
 				await createService({
 					appId: 1,
+					appUuid: 'app-uuid',
 					commit: 'old-release',
 					serviceName: 'dep',
 				}),
@@ -607,13 +630,17 @@ describe('compose/application-manager', () => {
 				// Both images have been downloaded
 				createImage({
 					appId: 1,
+					appUuid: 'app-uuid',
 					name: 'main-image',
 					serviceName: 'main',
+					commit: 'new-release',
 				}),
 				createImage({
 					appId: 1,
+					appUuid: 'app-uuid',
 					name: 'dep-image',
 					serviceName: 'dep',
+					commit: 'new-release',
 				}),
 			],
 		});
@@ -647,9 +674,11 @@ describe('compose/application-manager', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						serviceName: 'main',
 						commit: 'new-release',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
@@ -673,14 +702,14 @@ describe('compose/application-manager', () => {
 			images: [
 				// Both images have been downloaded
 				createImage({
-					appId: 1,
 					name: 'main-image',
 					serviceName: 'main',
+					commit: 'new-release',
 				}),
 				createImage({
-					appId: 1,
 					name: 'dep-image',
 					serviceName: 'dep',
+					commit: 'new-release',
 				}),
 			],
 		});
@@ -711,9 +740,11 @@ describe('compose/application-manager', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						serviceName: 'main',
 						commit: 'new-release',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
@@ -743,14 +774,14 @@ describe('compose/application-manager', () => {
 			images: [
 				// Both images have been downloaded
 				createImage({
-					appId: 1,
 					name: 'main-image',
 					serviceName: 'main',
+					commit: 'new-release',
 				}),
 				createImage({
-					appId: 1,
 					name: 'dep-image',
 					serviceName: 'dep',
+					commit: 'new-release',
 				}),
 			],
 		});
@@ -793,7 +824,6 @@ describe('compose/application-manager', () => {
 			images: [
 				// Image has been downloaded
 				createImage({
-					appId: 1,
 					name: 'main-image',
 					serviceName: 'main',
 				}),
@@ -1159,12 +1189,14 @@ describe('compose/application-manager', () => {
 						running: true,
 						image: 'main-image-1',
 						appId: 1,
+						appUuid: 'app-one',
 						commit: 'commit-for-app-1',
 					}),
 					await createService({
 						running: true,
 						image: 'main-image-2',
 						appId: 2,
+						appUuid: 'app-two',
 						commit: 'commit-for-app-2',
 					}),
 				],
@@ -1192,12 +1224,16 @@ describe('compose/application-manager', () => {
 				createImage({
 					name: 'main-image-1',
 					appId: 1,
+					appUuid: 'app-one',
 					serviceName: 'main',
+					commit: 'commit-for-app-1',
 				}),
 				createImage({
 					name: 'main-image-2',
 					appId: 2,
+					appUuid: 'app-two',
 					serviceName: 'main',
+					commit: 'commit-for-app-2',
 				}),
 			],
 		});

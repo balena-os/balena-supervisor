@@ -258,9 +258,11 @@ describe('validation', () => {
 			expect(
 				isRight(
 					TargetApps.decode({
-						'1234': {
+						abcd: {
+							id: 1234,
 							name: 'something',
-							services: {},
+							class: 'fleet',
+							releases: {},
 						},
 					}),
 				),
@@ -269,11 +271,15 @@ describe('validation', () => {
 			expect(
 				isRight(
 					TargetApps.decode({
-						'1234': {
+						abcd: {
+							id: 1234,
 							name: 'something',
-							releaseId: 123,
-							commit: 'bar',
-							services: {},
+							releases: {
+								bar: {
+									id: 123,
+									services: {},
+								},
+							},
 						},
 					}),
 				),
@@ -283,21 +289,25 @@ describe('validation', () => {
 			expect(
 				isRight(
 					TargetApps.decode({
-						'1234': {
+						abcd: {
+							id: 1234,
 							name: 'something',
-							releaseId: 123,
-							commit: 'bar',
-							services: {
-								'45': {
-									serviceName: 'bazbaz',
-									imageId: 34,
-									image: 'foo',
-									environment: { MY_SERVICE_ENV_VAR: '123' },
-									labels: { 'io.balena.features.supervisor-api': 'true' },
+							releases: {
+								bar: {
+									id: 123,
+									services: {
+										bazbaz: {
+											id: 45,
+											image_id: 34,
+											image: 'foo',
+											environment: { MY_SERVICE_ENV_VAR: '123' },
+											labels: { 'io.balena.features.supervisor-api': 'true' },
+										},
+									},
+									volumes: {},
+									networks: {},
 								},
 							},
-							volumes: {},
-							networks: {},
 						},
 					}),
 				),
@@ -309,17 +319,23 @@ describe('validation', () => {
 			expect(
 				isRight(
 					TargetApps.decode({
-						'1234': {
+						abcd: {
+							id: 1234,
 							name: 'something',
-							releaseId: 123,
-							commit: 'bar',
-							services: {
-								'45': {
-									serviceName: 'bazbaz',
-									imageId: 34,
-									image: 'foo',
-									environment: { ' baz': 'bat' },
-									labels: {},
+							releases: {
+								bar: {
+									id: 123,
+									services: {
+										bazbaz: {
+											id: 45,
+											image_id: 34,
+											image: 'foo',
+											environment: { ' aaa': '123' },
+											labels: {},
+										},
+									},
+									volumes: {},
+									networks: {},
 								},
 							},
 						},
@@ -332,17 +348,23 @@ describe('validation', () => {
 			expect(
 				isRight(
 					TargetApps.decode({
-						'1234': {
+						abcd: {
+							id: 1234,
 							name: 'something',
-							releaseId: 123,
-							commit: 'bar',
-							services: {
-								'45': {
-									serviceName: 'bazbaz',
-									imageId: 34,
-									image: 'foo',
-									environment: {},
-									labels: { ' not a valid #name': 'label value' },
+							releases: {
+								bar: {
+									id: 123,
+									services: {
+										bazbaz: {
+											id: 45,
+											image_id: 34,
+											image: 'foo',
+											environment: {},
+											labels: { ' not a valid #name': 'label value' },
+										},
+									},
+									volumes: {},
+									networks: {},
 								},
 							},
 						},
@@ -355,40 +377,35 @@ describe('validation', () => {
 			expect(
 				isRight(
 					TargetApps.decode({
-						boo: {
+						abcd: {
+							id: 'booo',
 							name: 'something',
-							releaseId: 123,
-							commit: 'bar',
-							services: {
-								'45': {
-									serviceName: 'bazbaz',
-									imageId: 34,
-									image: 'foo',
-									environment: {},
-									labels: {},
-								},
-							},
+							releases: {},
 						},
 					}),
 				),
 			).to.be.false;
 		});
 
-		it('rejects a commit that is too long', () => {
+		it('rejects a release uuid that is too long', () => {
 			expect(
 				isRight(
 					TargetApps.decode({
-						boo: {
+						abcd: {
+							id: '123',
 							name: 'something',
-							releaseId: 123,
-							commit: 'a'.repeat(256),
-							services: {
-								'45': {
-									serviceName: 'bazbaz',
-									imageId: 34,
-									image: 'foo',
-									environment: {},
-									labels: {},
+							releases: {
+								['a'.repeat(256)]: {
+									id: 1234,
+									services: {
+										bazbaz: {
+											id: 45,
+											image_id: 34,
+											image: 'foo',
+											environment: {},
+											labels: {},
+										},
+									},
 								},
 							},
 						},
@@ -400,17 +417,21 @@ describe('validation', () => {
 				expect(
 					isRight(
 						TargetApps.decode({
-							boo: {
+							abcd: {
+								id: '123',
 								name: 'something',
-								releaseId: 123,
-								commit: 'a'.repeat(256),
-								services: {
-									'45': {
-										serviceName: ' not a valid name',
-										imageId: 34,
-										image: 'foo',
-										environment: {},
-										labels: {},
+								releases: {
+									aaaa: {
+										id: 1234,
+										services: {
+											' not a valid name': {
+												id: 45,
+												image_id: 34,
+												image: 'foo',
+												environment: {},
+												labels: {},
+											},
+										},
 									},
 								},
 							},
@@ -420,44 +441,17 @@ describe('validation', () => {
 			});
 		});
 
-		it('rejects a commit that is too long', () => {
-			expect(
-				isRight(
-					TargetApps.decode({
-						boo: {
-							name: 'something',
-							releaseId: 123,
-							commit: 'a'.repeat(256),
-							services: {
-								'45': {
-									serviceName: 'bazbaz',
-									imageId: 34,
-									image: 'foo',
-									environment: {},
-									labels: {},
-								},
-							},
-						},
-					}),
-				),
-			).to.be.false;
-		});
-
 		it('rejects app with an invalid releaseId', () => {
 			expect(
 				isRight(
 					TargetApps.decode({
-						boo: {
+						abcd: {
+							id: '123',
 							name: 'something',
-							releaseId: '123aaa',
-							commit: 'bar',
-							services: {
-								'45': {
-									serviceName: 'bazbaz',
-									imageId: 34,
-									image: 'foo',
-									environment: {},
-									labels: {},
+							releases: {
+								aaaa: {
+									id: 'boooo',
+									services: {},
 								},
 							},
 						},

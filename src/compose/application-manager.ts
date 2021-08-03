@@ -36,9 +36,8 @@ import {
 	TargetApps,
 	DeviceStatus,
 	DeviceReportFields,
-	TargetState,
 } from '../types/state';
-import { checkTruthy, checkInt } from '../lib/validation';
+import { checkTruthy } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
 import { EventEmitter } from 'events';
 
@@ -448,7 +447,6 @@ export async function executeStep(
 // FIXME: This shouldn't be in this module
 export async function setTarget(
 	apps: TargetApps,
-	dependent: TargetState['dependent'],
 	source: string,
 	maybeTrx?: Transaction,
 ) {
@@ -467,10 +465,9 @@ export async function setTarget(
 				// Currently this will only happen if the release
 				// which would replace it fails a contract
 				// validation check
-				_.map(apps, (_v, appId) => checkInt(appId)),
+				Object.values(apps).map(({ id: appId }) => appId),
 			)
 			.del();
-		await proxyvisor.setTargetInTransaction(dependent, trx);
 	};
 
 	// We look at the container contracts here, as if we
@@ -487,18 +484,29 @@ export async function setTarget(
 	const filteredApps = _.cloneDeep(apps);
 	_.each(
 		fulfilledContracts,
-		({ valid, unmetServices, fulfilledServices, unmetAndOptional }, appId) => {
+		(
+			{ valid, unmetServices, fulfilledServices, unmetAndOptional },
+			appUuid,
+		) => {
 			if (!valid) {
-				contractViolators[apps[appId].name] = unmetServices;
-				return delete filteredApps[appId];
+				contractViolators[apps[appUuid].name] = unmetServices;
+				return delete filteredApps[appUuid];
 			} else {
 				// valid is true, but we could still be missing
 				// some optional containers, and need to filter
 				// these out of the target state
-				filteredApps[appId].services = _.pickBy(
-					filteredApps[appId].services,
-					({ serviceName }) => fulfilledServices.includes(serviceName),
-				);
+				const [releaseUuid] = Object.keys(filteredApps[appUuid].releases);
+				if (releaseUuid) {
+					const services =
+						filteredApps[appUuid].releases[releaseUuid].services ?? {};
+					filteredApps[appUuid].releases[releaseUuid].services = _.pick(
+						services,
+						Object.keys(services).filter((serviceName) =>
+							fulfilledServices.includes(serviceName),
+						),
+					);
+				}
+
 				if (unmetAndOptional.length !== 0) {
 					return reportOptionalContainers(unmetAndOptional);
 				}
@@ -527,17 +535,20 @@ export async function getTargetApps(): Promise<TargetApps> {
 	// the instances throughout the supervisor. The target state is derived from
 	// the database entries anyway, so these two things should never be different
 	// (except for the volatile state)
-
-	_.each(apps, (app) => {
-		if (!_.isEmpty(app.services)) {
-			app.services = _.mapValues(app.services, (svc) => {
-				if (svc.imageId && targetVolatilePerImageId[svc.imageId] != null) {
-					return { ...svc, ...targetVolatilePerImageId };
-				}
-				return svc;
-			});
-		}
-	});
+	//
+	_.each(apps, (app) =>
+		// There should only be a single release but is a simpler option
+		_.each(app.releases, (release) => {
+			if (!_.isEmpty(release.services)) {
+				release.services = _.mapValues(release.services, (svc) => {
+					if (svc.image_id && targetVolatilePerImageId[svc.image_id] != null) {
+						return { ...svc, ...targetVolatilePerImageId };
+					}
+					return svc;
+				});
+			}
+		}),
+	);
 
 	return apps;
 }
@@ -562,19 +573,28 @@ export function getDependentTargets() {
 	return proxyvisor.getTarget();
 }
 
+/**
+ * This is only used by the API. Do not use as the use of serviceIds is getting
+ * deprecated
+ *
+ * @deprecated
+ */
 export async function serviceNameFromId(serviceId: number) {
 	// We get the target here as it shouldn't matter, and getting the target is cheaper
-	const targets = await getTargetApps();
-	for (const appId of Object.keys(targets)) {
-		const app = targets[parseInt(appId, 10)];
-		const service = _.find(app.services, { serviceId });
-		if (service?.serviceName === null) {
-			throw new InternalInconsistencyError(
-				`Could not find a service name for id: ${serviceId}`,
-			);
+	const targetApps = await getTargetApps();
+
+	for (const { releases } of Object.values(targetApps)) {
+		const [release] = Object.values(releases);
+		const services = release?.services ?? {};
+		const serviceName = Object.keys(services).find(
+			(svcName) => services[svcName].id === serviceId,
+		);
+
+		if (!!serviceName) {
+			return serviceName;
 		}
-		return service!.serviceName;
 	}
+
 	throw new InternalInconsistencyError(
 		`Could not find a service for id: ${serviceId}`,
 	);
@@ -622,15 +642,6 @@ function saveAndRemoveImages(
 	availableImages: imageManager.Image[],
 	localMode: boolean,
 ): CompositionStep[] {
-	const imageForService = (service: Service): imageManager.Image => ({
-		name: service.imageName!,
-		appId: service.appId,
-		serviceId: service.serviceId!,
-		serviceName: service.serviceName!,
-		imageId: service.imageId!,
-		releaseId: service.releaseId!,
-		dependent: 0,
-	});
 	type ImageWithoutID = Omit<imageManager.Image, 'dockerImageId' | 'id'>;
 
 	// imagesToRemove: images that
@@ -666,7 +677,7 @@ function saveAndRemoveImages(
 	) as imageManager.Image[];
 
 	const targetServices = Object.values(target).flatMap((app) => app.services);
-	const targetImages = targetServices.map(imageForService);
+	const targetImages = targetServices.map(imageManager.imageFromService);
 
 	const availableAndUnused = _.filter(
 		availableWithoutIds,
@@ -735,7 +746,7 @@ function saveAndRemoveImages(
 				// services
 				!targetServices.some(
 					(svc) =>
-						imageManager.isSameImage(img, imageForService(svc)) &&
+						imageManager.isSameImage(img, imageManager.imageFromService(svc)) &&
 						svc.config.labels['io.balena.update.strategy'] ===
 							'delete-then-download',
 				),

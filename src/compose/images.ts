@@ -29,14 +29,29 @@ interface FetchProgressEvent {
 
 export interface Image {
 	id?: number;
-	// image registry/repo@digest or registry/repo:tag
+	/**
+	 * image [registry/]repo@digest or [registry/]repo:tag
+	 */
 	name: string;
+	/**
+	 * @deprecated to be removed in target state v4
+	 */
 	appId: number;
+	appUuid: string;
+	/**
+	 * @deprecated to be removed in target state v4
+	 */
 	serviceId: number;
 	serviceName: string;
-	// Id from balena api
+	/**
+	 * @deprecated to be removed in target state v4
+	 */
 	imageId: number;
+	/**
+	 * @deprecated to be removed in target state v4
+	 */
 	releaseId: number;
+	commit: string;
 	dependent: number;
 	dockerImageId?: string;
 	status?: 'Downloading' | 'Downloaded' | 'Deleting';
@@ -151,17 +166,26 @@ function reportEvent(event: 'start' | 'update' | 'finish', state: Image) {
 
 type ServiceInfo = Pick<
 	Service,
-	'imageName' | 'appId' | 'serviceId' | 'serviceName' | 'imageId' | 'releaseId'
+	| 'imageName'
+	| 'appId'
+	| 'serviceId'
+	| 'serviceName'
+	| 'imageId'
+	| 'releaseId'
+	| 'appUuid'
+	| 'commit'
 >;
 export function imageFromService(service: ServiceInfo): Image {
 	// We know these fields are defined because we create these images from target state
 	return {
 		name: service.imageName!,
 		appId: service.appId,
+		appUuid: service.appUuid!,
 		serviceId: service.serviceId!,
 		serviceName: service.serviceName!,
 		imageId: service.imageId!,
 		releaseId: service.releaseId!,
+		commit: service.commit!,
 		dependent: 0,
 	};
 }
@@ -747,6 +771,7 @@ function format(image: Image): Partial<Omit<Image, 'id'>> {
 			serviceName: null,
 			imageId: null,
 			releaseId: null,
+			commit: null,
 			dependent: 0,
 			dockerImageId: null,
 		})

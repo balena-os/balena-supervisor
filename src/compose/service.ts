@@ -44,6 +44,7 @@ export type ServiceStatus =
 
 export class Service {
 	public appId: number;
+	public appUuid?: string;
 	public imageId: number;
 	public config: ServiceConfig;
 	public serviceName: string;
@@ -111,7 +112,10 @@ export class Service {
 	): Promise<Service> {
 		const service = new Service();
 
-		appConfig = ComposeUtils.camelCaseConfig(appConfig);
+		appConfig = {
+			...appConfig,
+			composition: ComposeUtils.camelCaseConfig(appConfig.composition || {}),
+		};
 
 		if (!appConfig.appId) {
 			throw new InternalInconsistencyError('No app id for service');
@@ -124,27 +128,33 @@ export class Service {
 		// Separate the application information from the docker
 		// container configuration
 		service.imageId = parseInt(appConfig.imageId, 10);
-		delete appConfig.imageId;
 		service.serviceName = appConfig.serviceName;
-		delete appConfig.serviceName;
 		service.appId = appId;
-		delete appConfig.appId;
 		service.releaseId = parseInt(appConfig.releaseId, 10);
-		delete appConfig.releaseId;
 		service.serviceId = parseInt(appConfig.serviceId, 10);
-		delete appConfig.serviceId;
 		service.imageName = appConfig.image;
-		service.dependsOn = appConfig.dependsOn || null;
-		delete appConfig.dependsOn;
 		service.createdAt = appConfig.createdAt;
-		delete appConfig.createdAt;
 		service.commit = appConfig.commit;
-		delete appConfig.commit;
+		service.appUuid = appConfig.appUuid;
 
-		delete appConfig.contract;
+		// dependsOn is used by other parts of the step
+		// calculation so we delete it from the composition
+		service.dependsOn = appConfig.composition?.dependsOn || null;
+		delete appConfig.composition?.dependsOn;
+
+		// Get remaining fields from appConfig
+		const { image, running, labels, environment, composition } = appConfig;
 
 		// Get rid of any extra values and report them to the user
-		const config = sanitiseComposeConfig(appConfig);
+		const config = sanitiseComposeConfig({
+			image,
+			running,
+			...composition,
+
+			// Ensure the top level label and environment definition is used
+			labels: { ...(composition?.labels ?? {}), ...labels },
+			environment: { ...(composition?.environment ?? {}), ...environment },
+		});
 
 		// Process some values into the correct format, delete them from
 		// the original object, and add them to the defaults object below
@@ -265,6 +275,7 @@ export class Service {
 				config.environment || {},
 				options,
 				service.appId || 0,
+				service.appUuid!,
 				service.serviceName || '',
 			),
 		);
@@ -275,6 +286,7 @@ export class Service {
 				service.appId || 0,
 				service.serviceId || 0,
 				service.serviceName || '',
+				service.appUuid!, // appUuid will always exist on the target state
 			),
 		);
 
@@ -614,6 +626,7 @@ export class Service {
 			);
 		}
 		svc.appId = appId;
+		svc.appUuid = svc.config.labels['io.balena.app-uuid'];
 		svc.serviceName = svc.config.labels['io.balena.service-name'];
 		svc.serviceId = parseInt(svc.config.labels['io.balena.service-id'], 10);
 		if (Number.isNaN(svc.serviceId)) {
@@ -957,6 +970,7 @@ export class Service {
 		environment: { [envVarName: string]: string } | null | undefined,
 		options: DeviceMetadata,
 		appId: number,
+		appUuid: string,
 		serviceName: string,
 	): { [envVarName: string]: string } {
 		const defaultEnv: { [envVarName: string]: string } = {};
@@ -966,6 +980,7 @@ export class Service {
 				_.mapKeys(
 					{
 						APP_ID: appId.toString(),
+						APP_UUID: appUuid,
 						APP_NAME: options.appName,
 						SERVICE_NAME: serviceName,
 						DEVICE_UUID: options.uuid,
@@ -1071,13 +1086,18 @@ export class Service {
 		appId: number,
 		serviceId: number,
 		serviceName: string,
+		appUuid: string,
 	): { [labelName: string]: string } {
-		let newLabels = _.defaults(labels, {
-			'io.balena.supervised': 'true',
-			'io.balena.app-id': appId.toString(),
-			'io.balena.service-id': serviceId.toString(),
-			'io.balena.service-name': serviceName,
-		});
+		let newLabels = {
+			...labels,
+			...{
+				'io.balena.supervised': 'true',
+				'io.balena.app-id': appId.toString(),
+				'io.balena.service-id': serviceId.toString(),
+				'io.balena.service-name': serviceName,
+				'io.balena.app-uuid': appUuid,
+			},
+		};
 
 		const imageLabels = _.get(imageInfo, 'Config.Labels', {});
 		newLabels = _.defaults(newLabels, imageLabels);

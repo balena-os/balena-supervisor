@@ -1,26 +1,29 @@
 {
-	"name": "aDevice",
-	"config": {
-		"RESIN_HOST_CONFIG_gpu_mem": "256",
-		"RESIN_HOST_LOG_TO_DISPLAY": "0"
-	},
-	"apps": {
-		"1234": {
-			"name": "superapp",
-			"commit": "abcdef",
-			"releaseId": 1,
-			"services": {
-				"23": {
-					"imageId": 12345,
-					"serviceName": "someservice",
-					"image": "registry2.resin.io/superapp/abcdef",
-					"labels": {
-						"io.resin.something": "bar"
-					},
-					"environment": {}
-				}
-			}
-		}
-	},
+  "config": {
+    "RESIN_HOST_CONFIG_gpu_mem": "256",
+    "RESIN_HOST_LOG_TO_DISPLAY": "0"
+  },
+  "apps": {
+    "myapp": {
+      "id": 1234,
+      "name": "superapp",
+      "releases": {
+        "abcdef": {
+          "id": 1,
+          "services": {
+            "someservice": {
+              "id": 123,
+              "image_id": 12345,
+              "image": "registry2.resin.io/superapp/abcdef",
+              "labels": {
+                "io.resin.something": "bar"
+              },
+              "environment": {}
+            }
+          }
+        }
+      }
+    }
+  },
 	"pinDevice": true
 }

@@ -1,6 +1,6 @@
 import * as t from 'io-ts';
-import { chain } from 'fp-ts/lib/Either';
-import { pipe } from 'fp-ts/function';
+import { chain, fold, isRight, left, right, Either } from 'fp-ts/lib/Either';
+import { pipe, flow } from 'fp-ts/function';
 
 /**
  * A short string is a non null string between
@@ -184,3 +184,50 @@ export const DeviceName = new t.Type<string, string>(
 );
 
 export type DeviceName = t.TypeOf<typeof DeviceName>;
+
+/**
+ * Creates a record type that checks for constraints on the record elements
+ */
+const restrictedRecord = <
+	K extends t.Mixed,
+	V extends t.Mixed,
+	R extends { [key in t.TypeOf<K>]: t.TypeOf<V> }
+>(
+	k: K,
+	v: V,
+	test: (i: R) => Either<string, R>,
+	name = 'RestrictedRecord',
+) => {
+	return new t.Type<R>(
+		name,
+		(i): i is R => t.record(k, v).is(i) && isRight(test(i as R)),
+		(i, c) =>
+			pipe(
+				// pipe takes the first result and passes it through rest of the function arguments
+				t.record(k, v).validate(i, c), // validate that the element is a proper record first (returns an Either)
+				chain(
+					// chain takes a function (a) => Either and converts it into a function (Either) => (Either)
+					flow(
+						// flow creates a function composition
+						test, // receives a record and returns Either<string,R>
+						fold((m) => t.failure(i, c, m), t.success), // fold converts Either<string,R> to an Either<Errors, R>
+					),
+				),
+			),
+		t.identity,
+	);
+};
+
+export const nonEmptyRecord = <K extends t.Mixed, V extends t.Mixed>(
+	k: K,
+	v: V,
+) =>
+	restrictedRecord(
+		k,
+		v,
+		(o) =>
+			Object.keys(o).length > 0
+				? right(o)
+				: left('must have at least 1 element'),
+		'NonEmptyRecord',
+	);

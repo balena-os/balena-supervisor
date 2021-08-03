@@ -1,166 +1,287 @@
 import { expect } from 'chai';
-import * as _ from 'lodash';
-
-import prepare = require('./lib/prepare');
+import { isRight } from 'fp-ts/lib/Either';
+import * as sinon from 'sinon';
+import App from '../src/compose/app';
+import Network from '../src/compose/network';
 import * as config from '../src/config';
 import * as dbFormat from '../src/device-state/db-format';
-import * as targetStateCache from '../src/device-state/target-state-cache';
-import * as images from '../src/compose/images';
+import log from '../src/lib/supervisor-console';
+import { TargetApps } from '../src/types/state';
+import * as dbHelper from './lib/db-helper';
+import { withMockerode } from './lib/mockerode';
 
-import App from '../src/compose/app';
-import Service from '../src/compose/service';
-import Network from '../src/compose/network';
-import { TargetApp } from '../src/types/state';
-
-function getDefaultNetworks(appId: number) {
+function getDefaultNetwork(appId: number) {
 	return {
 		default: Network.fromComposeObject('default', appId, {}),
 	};
 }
 
-describe('DB Format', () => {
-	const originalInspect = images.inspectByName;
+describe('db-format', () => {
+	let testDb: dbHelper.TestDatabase;
 	let apiEndpoint: string;
 	before(async () => {
-		await prepare();
-		await config.initialized;
-		await targetStateCache.initialized;
+		testDb = await dbHelper.createDB();
 
+		await config.initialized;
+		// Prevent side effects from changes in config
+		sinon.stub(config, 'on');
+
+		// TargetStateCache checks the API endpoint to
+		// store and invalidate the cache
+		// TODO: this is an implementation detail that
+		// should not be part of the test suite. We need to change
+		// the target state architecture for this
 		apiEndpoint = await config.get('apiEndpoint');
 
-		// Setup some mocks
-		// @ts-expect-error Assigning to a RO property
-		images.inspectByName = () => {
-			const error = new Error();
-			// @ts-ignore
-			error.statusCode = 404;
-			return Promise.reject(error);
-		};
-		await targetStateCache.setTargetApps([
-			{
-				appId: 1,
-				commit: 'abcdef',
-				name: 'test-app',
-				source: apiEndpoint,
-				releaseId: 123,
-				services: '[]',
-				networks: '[]',
-				volumes: '[]',
-			},
-			{
-				appId: 2,
-				commit: 'abcdef2',
-				name: 'test-app2',
-				source: apiEndpoint,
-				releaseId: 1232,
-				services: JSON.stringify([
-					{
-						serviceName: 'test-service',
-						image: 'test-image',
-						imageId: 5,
-						environment: {
-							TEST_VAR: 'test-string',
-						},
-						tty: true,
-						appId: 2,
-						releaseId: 1232,
-						serviceId: 567,
-						commit: 'abcdef2',
-					},
-				]),
-				networks: '[]',
-				volumes: '[]',
-			},
-		]);
+		// disable log output during testing
+		sinon.stub(log, 'debug');
+		sinon.stub(log, 'warn');
+		sinon.stub(log, 'info');
+		sinon.stub(log, 'event');
+		sinon.stub(log, 'success');
 	});
 
 	after(async () => {
-		await prepare();
+		try {
+			await testDb.destroy();
+		} catch (e) {
+			/* noop */
+		}
+		sinon.restore();
+	});
 
-		// @ts-expect-error Assigning to a RO property
-		images.inspectByName = originalInspect;
+	afterEach(async () => {
+		await testDb.reset();
+	});
+
+	it('converts target apps into the database format', async () => {
+		await dbFormat.setApps(
+			{
+				deadbeef: {
+					id: 1,
+					name: 'test-app',
+					class: 'fleet',
+					releases: {
+						one: {
+							id: 1,
+							services: {
+								ubuntu: {
+									id: 1,
+									image_id: 1,
+									image: 'ubuntu:latest',
+									environment: {},
+									labels: { 'my-label': 'true' },
+									composition: {
+										command: ['sleep', 'infinity'],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			},
+			'local',
+		);
+
+		const [app] = await testDb.models('app').where({ uuid: 'deadbeef' });
+		expect(app).to.not.be.undefined;
+		expect(app.name).to.equal('test-app');
+		expect(app.releaseId).to.equal(1);
+		expect(app.commit).to.equal('one');
+		expect(app.appId).to.equal(1);
+		expect(app.source).to.equal('local');
+		expect(app.uuid).to.equal('deadbeef');
+		expect(app.isHost).to.equal(0);
+		expect(app.services).to.equal(
+			'[{"image":"ubuntu:latest","environment":{},"labels":{"my-label":"true"},"composition":{"command":["sleep","infinity"]},"appId":1,"appUuid":"deadbeef","releaseId":1,"commit":"one","imageId":1,"serviceId":1,"serviceName":"ubuntu"}]',
+		);
+		expect(app.volumes).to.equal('{}');
+		expect(app.networks).to.equal('{}');
 	});
 
 	it('should retrieve a single app from the database', async () => {
-		const app = await dbFormat.getApp(1);
-		expect(app).to.be.an.instanceOf(App);
-		expect(app).to.have.property('appId').that.equals(1);
-		expect(app).to.have.property('commit').that.equals('abcdef');
-		expect(app).to.have.property('appName').that.equals('test-app');
-		expect(app)
-			.to.have.property('source')
-			.that.deep.equals(await config.get('apiEndpoint'));
-		expect(app).to.have.property('services').that.deep.equals([]);
-		expect(app).to.have.property('volumes').that.deep.equals({});
-		expect(app)
-			.to.have.property('networks')
-			.that.deep.equals(getDefaultNetworks(1));
-	});
+		await dbFormat.setApps(
+			{
+				deadbeef: {
+					id: 1,
+					name: 'test-app',
+					class: 'fleet',
+					releases: {
+						one: {
+							id: 1,
+							services: {
+								ubuntu: {
+									id: 1,
+									image_id: 1,
+									image: 'ubuntu:latest',
+									environment: {},
+									labels: { 'my-label': 'true' },
+									composition: {
+										command: ['sleep', 'infinity'],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			},
+			apiEndpoint,
+		);
 
-	it('should correctly build services from the database', async () => {
-		const app = await dbFormat.getApp(2);
-		expect(app).to.have.property('services').that.is.an('array');
-		const services = _.keyBy(app.services, 'serviceId');
-		expect(Object.keys(services)).to.deep.equal(['567']);
+		// getApp creates a new app instance which requires a docker instance
+		// withMockerode mocks engine
+		await withMockerode(async () => {
+			const app = await dbFormat.getApp(1);
+			expect(app).to.be.an.instanceOf(App);
+			expect(app).to.have.property('appId').that.equals(1);
+			expect(app).to.have.property('commit').that.equals('one');
+			expect(app).to.have.property('appName').that.equals('test-app');
+			expect(app).to.have.property('source').that.equals(apiEndpoint);
+			expect(app).to.have.property('services').that.has.lengthOf(1);
+			expect(app).to.have.property('volumes').that.deep.equals({});
+			expect(app)
+				.to.have.property('networks')
+				.that.deep.equals(getDefaultNetwork(1));
 
-		const service = services[567];
-		expect(service).to.be.instanceof(Service);
-		// Don't do a deep equals here as a bunch of other properties are added that are
-		// tested elsewhere
-		expect(service.config)
-			.to.have.property('environment')
-			.that.has.property('TEST_VAR')
-			.that.equals('test-string');
-		expect(service.config).to.have.property('tty').that.equals(true);
-		expect(service).to.have.property('imageName').that.equals('test-image');
-		expect(service).to.have.property('imageId').that.equals(5);
+			const [service] = app.services;
+			expect(service).to.have.property('appId').that.equals(1);
+			expect(service).to.have.property('serviceId').that.equals(1);
+			expect(service).to.have.property('imageId').that.equals(1);
+			expect(service).to.have.property('releaseId').that.equals(1);
+			expect(service.config)
+				.to.have.property('image')
+				.that.equals('ubuntu:latest');
+			expect(service.config)
+				.to.have.property('labels')
+				.that.deep.includes({ 'my-label': 'true' });
+			expect(service.config)
+				.to.have.property('command')
+				.that.deep.equals(['sleep', 'infinity']);
+		});
 	});
 
 	it('should retrieve multiple apps from the database', async () => {
-		const apps = await dbFormat.getApps();
-		expect(Object.keys(apps)).to.have.length(2).and.deep.equal(['1', '2']);
+		await dbFormat.setApps(
+			{
+				deadbeef: {
+					id: 1,
+					name: 'test-app',
+					class: 'fleet',
+					releases: {
+						one: {
+							id: 1,
+							services: {
+								ubuntu: {
+									id: 1,
+									image_id: 1,
+									image: 'ubuntu:latest',
+									environment: {},
+									labels: {},
+									composition: {
+										command: ['sleep', 'infinity'],
+									},
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+				deadc0de: {
+					id: 2,
+					name: 'other-app',
+					class: 'app',
+					releases: {
+						two: {
+							id: 2,
+							services: {},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			},
+			apiEndpoint,
+		);
+
+		await withMockerode(async () => {
+			const apps = Object.values(await dbFormat.getApps());
+			expect(apps).to.have.lengthOf(2);
+
+			const [app, otherapp] = apps;
+			expect(app).to.be.an.instanceOf(App);
+			expect(app).to.have.property('appId').that.equals(1);
+			expect(app).to.have.property('commit').that.equals('one');
+			expect(app).to.have.property('appName').that.equals('test-app');
+			expect(app).to.have.property('source').that.equals(apiEndpoint);
+			expect(app).to.have.property('services').that.has.lengthOf(1);
+			expect(app).to.have.property('volumes').that.deep.equals({});
+			expect(app)
+				.to.have.property('networks')
+				.that.deep.equals(getDefaultNetwork(1));
+
+			expect(otherapp).to.have.property('appId').that.equals(2);
+			expect(otherapp).to.have.property('commit').that.equals('two');
+			expect(otherapp).to.have.property('appName').that.equals('other-app');
+		});
 	});
 
-	it('should write target states to the database', async () => {
-		const target = await import('./data/state-endpoints/simple.json');
-		const dbApps: { [appId: number]: TargetApp } = {};
-		dbApps[1234] = {
-			...target.local.apps[1234],
+	it('should retrieve app target state from database', async () => {
+		const srcApps: TargetApps = {
+			deadbeef: {
+				id: 1,
+				name: 'test-app',
+				class: 'fleet',
+				releases: {
+					one: {
+						id: 1,
+						services: {
+							ubuntu: {
+								id: 1,
+								image_id: 1,
+								image: 'ubuntu:latest',
+								environment: {},
+								labels: { 'my-label': 'true' },
+								composition: {
+									command: ['sleep', 'infinity'],
+								},
+							},
+						},
+						volumes: {},
+						networks: {},
+					},
+				},
+			},
+			deadc0de: {
+				id: 2,
+				name: 'other-app',
+				class: 'app',
+				releases: {
+					two: {
+						id: 2,
+						services: {},
+						volumes: {},
+						networks: {},
+					},
+				},
+			},
 		};
 
-		await dbFormat.setApps(dbApps, apiEndpoint);
+		await dbFormat.setApps(srcApps, apiEndpoint);
 
-		const app = await dbFormat.getApp(1234);
-
-		expect(app).to.have.property('appName').that.equals('pi4test');
-		expect(app).to.have.property('services').that.is.an('array');
-		expect(_.keyBy(app.services, 'serviceId'))
-			.to.have.property('482141')
-			.that.has.property('serviceName')
-			.that.equals('main');
-	});
-
-	it('should add default and missing fields when retreiving from the database', async () => {
-		const originalImagesInspect = images.inspectByName;
-		try {
-			// @ts-expect-error Assigning a RO property
-			images.inspectByName = () =>
-				Promise.resolve({
-					Config: { Cmd: ['someCommand'], Entrypoint: ['theEntrypoint'] },
-				});
-
-			const app = await dbFormat.getApp(2);
-			const conf =
-				app.services[parseInt(Object.keys(app.services)[0], 10)].config;
-			expect(conf)
-				.to.have.property('entrypoint')
-				.that.deep.equals(['theEntrypoint']);
-			expect(conf)
-				.to.have.property('command')
-				.that.deep.equals(['someCommand']);
-		} finally {
-			// @ts-expect-error Assigning a RO property
-			images.inspectByName = originalImagesInspect;
-		}
+		// getApp creates a new app instance which requires a docker instance
+		// withMockerode mocks engine
+		await withMockerode(async () => {
+			const result = await dbFormat.getTargetJson();
+			expect(
+				isRight(TargetApps.decode(result)),
+				'resulting target apps is a valid TargetApps object',
+			);
+			expect(result).to.deep.equal(srcApps);
+		});
 	});
 });

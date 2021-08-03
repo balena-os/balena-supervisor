@@ -2,20 +2,43 @@ import * as _ from 'lodash';
 
 import * as config from '../config';
 import * as db from '../db';
+import { TargetAppClass } from '../types';
 
 // We omit the id (which does appear in the db) in this type, as we don't use it
 // at all, and we can use the below type for both insertion and retrieval.
 export interface DatabaseApp {
 	name: string;
+	/**
+	 * @deprecated to be removed in target state v4
+	 */
 	releaseId?: number;
 	commit?: string;
+	/**
+	 * @deprecated to be removed in target state v4
+	 */
 	appId: number;
+	uuid: string;
 	services: string;
 	networks: string;
 	volumes: string;
 	source: string;
+	class: TargetAppClass;
 }
-export type DatabaseApps = DatabaseApp[];
+
+export type DatabaseService = {
+	appId: string;
+	appUuid: string;
+	releaseId: number;
+	commit: string;
+	serviceName: string;
+	serviceId: number;
+	imageId: number;
+	image: string;
+
+	labels: { [key: string]: string };
+	environment: { [key: string]: string };
+	composition?: { [key: string]: any };
+};
 
 /*
  * This module is a wrapper around the database fetching and retrieving of
@@ -26,7 +49,7 @@ export type DatabaseApps = DatabaseApp[];
  * accesses the target state for every log line. This can very quickly cause
  * serious memory problems and database connection timeouts.
  */
-let targetState: DatabaseApps | undefined;
+let targetState: DatabaseApp[] | undefined;
 
 export const initialized = (async () => {
 	await db.initialized;
@@ -53,7 +76,7 @@ export async function getTargetApp(
 	return _.find(targetState, (app) => app.appId === appId);
 }
 
-export async function getTargetApps(): Promise<DatabaseApps> {
+export async function getTargetApps(): Promise<DatabaseApp[]> {
 	if (targetState == null) {
 		const { apiEndpoint, localMode } = await config.getMany([
 			'apiEndpoint',
@@ -67,7 +90,7 @@ export async function getTargetApps(): Promise<DatabaseApps> {
 }
 
 export async function setTargetApps(
-	apps: DatabaseApps,
+	apps: DatabaseApp[],
 	trx?: db.Transaction,
 ): Promise<void> {
 	// We can't cache the value here, as it could be for a
@@ -75,6 +98,6 @@ export async function setTargetApps(
 	targetState = undefined;
 
 	await Promise.all(
-		apps.map((app) => db.upsertModel('app', app, { appId: app.appId }, trx)),
+		apps.map((app) => db.upsertModel('app', app, { uuid: app.uuid }, trx)),
 	);
 }
