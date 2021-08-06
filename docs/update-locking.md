@@ -1,17 +1,17 @@
 ---
-title: Application update locks
-excerpt: Locking application updates on your balenaOS devices
+title: Update locks
+excerpt: Locking the updates to your application that is running on balenaOS devices.
 ---
 
-# Application update locks
+# Update locks
 
-Locking updates means that the balena supervisor will not be able to kill your application. This is meant to be used at critical sections of your code where you don't want to be interrupted, or to ensure that updates or environment variable changes take effect at certain times.
+Locking updates means that the balena supervisor will not be able to kill your application running on the device. This is meant to be used at critical sections of your code where you don't want to be interrupted, or to ensure that updates are only installed at certain times.
 
 In order to do this, users can create a lockfile in a way that it has exclusive access, which will prevent the device supervisor from killing and restarting the app. As with any other lockfile, the supervisor itself will create such a file before killing the app, so you should only create it in exclusive mode. This means that the lockfile should only be created if it doesn't already exist. The exclusive access is achieved by opening the lockfile with the [O_EXCL and O_CREAT flags](https://linux.die.net/man/3/open), and several tools exist to simplify this process with examples given [below](#creating-the-lockfile).
 
 For multicontainer applications, a release will only be updated if all of the services can be updated. While locks are per-service, having the update lock in a single service will prevent all services from updating to a new release.
 
-The presence of a lockfile will ensure that your application does not get killed, but updates will still be downloaded by the supervisor, ready to be applied once the lockfile no longer exists.
+The presence of a lockfile will ensure that your services does not get killed, but updates will still be downloaded by the supervisor, ready to be applied once the lockfile no longer exists.
 
 ### Location of the lockfile
 
