@@ -198,7 +198,7 @@ function stopDind {
 
 function cleanDind {
 	echo "Cleaning dind supervisor volumes"
-	docker volume rm "resin-boot-$CONTAINER_NAME" "resin-state-$CONTAINER_NAME" "resin-data-$CONTAINER_NAME" &> /dev/null || true
+	docker volume rm "balena-boot-$CONTAINER_NAME" "balena-state-$CONTAINER_NAME" "balena-data-$CONTAINER_NAME" &> /dev/null || true
 }
 
 function logs {
