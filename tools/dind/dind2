@@ -1,0 +1,102 @@
+#!/bin/bash
+
+#
+# This tool can be used to facilitate supervisor development. This tools runs a supervisor
+# on a Docker instance of a Balena OS. It can be used the the live-push feature in the
+# supervisors code base.
+#
+# Usage: dind2 action [options]
+#
+# Actions:
+#   start [options]           Start docker in docker.
+#   stop                      Stop the docker in docker instance.
+#   logs [-f]                 Prints our supervisor logs. Use -f to follow or any other arguments you'd wish to send to journalctl.
+#
+# Options:
+#   --os-version              Specify the balena-os version to use. See note 1. Default: 2.58.6_rev1
+#   --device-type             Specify the device type. See note 1. Default: genericx86-64-ext
+#
+#
+# Notes:
+#   1: Will be used as so: resin/resinos:${OS_VERSION}.dev-${DEVICE_TYPE}
+#
+
+THIS_FILE=$0
+OS_VERSION="2.58.6_rev1"
+DEVICE_TYPE="genericx86-64-ext"
+DIND_PREFIX="balenaos-in-container"
+DIND_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+function parseOptions {
+  while [[ $# -ge 1 ]]; do
+    case $1 in
+    --os-version)
+      OS_VERSION="$2"
+      shift || { echo "--os-version not specified" && exit 1; }
+      ;;
+    --device-type)
+      DEVICE_TYPE="$2"
+      shift || { echo "--device-type not specified" && exit 1; }
+      ;;
+    *)
+      echo "Warning: unknown argument: $1" && exit 1
+      ;;
+    esac
+    shift
+  done
+}
+
+function startDind {
+  stopDind
+
+  #get balenaos-in-container submodule if not present.
+  if [ ! -f "${DIND_DIR}/balenaos-in-container/docker-compose-yml" ]; then
+    cd "${DIND_DIR}/../.." && git submodule update --init
+  fi
+
+  #check if config.json exists.
+  if [ ! -f "$DIND_DIR/config.json" ]; then
+    echo "Config.json is missing."
+    exit 1
+  fi
+
+  #run balenaos in docker.
+  echo "Starting dind."
+  cp $DIND_DIR/config.json $DIND_DIR/balenaos-in-container/config.json
+  cd $DIND_DIR/balenaos-in-container &&
+    OS_VERSION=$OS_VERSION DEVICE_TYPE=$DEVICE_TYPE docker-compose build --no-cache &&
+    OS_VERSION=$OS_VERSION DEVICE_TYPE=$DEVICE_TYPE docker-compose up --detach
+}
+
+function stopDind {
+  echo "Stopping dind."
+  docker stop ${DIND_PREFIX}_os_1 >/dev/null 2>&1 || true
+  docker rm ${DIND_PREFIX}_os_1 >/dev/null 2>&1 || true
+  docker volume rm ${DIND_PREFIX}_boot >/dev/null 2>&1 || true
+  docker volume rm ${DIND_PREFIX}_data >/dev/null 2>&1 || true
+  docker volume rm ${DIND_PREFIX}_state >/dev/null 2>&1 || true
+}
+
+function logs {
+  docker exec -ti ${DIND_PREFIX}_os_1 journalctl $@
+}
+
+action="$1"
+shift || true
+
+if [ "$action" == "logs" ]; then
+  logs $@
+else
+  parseOptions "$@"
+  case $action in
+  start)
+    startDind
+    ;;
+  stop)
+    stopDind
+    ;;
+  *)
+    echo "Invalid command."
+    ;;
+  esac
+fi
