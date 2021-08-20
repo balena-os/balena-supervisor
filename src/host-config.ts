@@ -152,8 +152,28 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 		await writeFileAtomic(redsocksConfPath, redsocksConf);
 	}
 
-	await dbus.restartService('resin-proxy-config');
-	await dbus.restartService('redsocks');
+	// restart balena-proxy-config if it is loaded and NOT PartOf redsocks-conf.target
+	if (
+		(
+			await Bluebird.any([
+				dbus.servicePartOf('balena-proxy-config'),
+				dbus.servicePartOf('resin-proxy-config'),
+			])
+		).includes('redsocks-conf.target') === false
+	) {
+		await Bluebird.any([
+			dbus.restartService('balena-proxy-config'),
+			dbus.restartService('resin-proxy-config'),
+		]);
+	}
+
+	// restart redsocks if it is loaded and NOT PartOf redsocks-conf.target
+	if (
+		(await dbus.servicePartOf('redsocks')).includes('redsocks-conf.target') ===
+		false
+	) {
+		await dbus.restartService('redsocks');
+	}
 }
 
 const hostnamePath = path.join(constants.rootMountPoint, '/etc/hostname');
@@ -164,7 +184,21 @@ async function readHostname() {
 
 async function setHostname(val: string) {
 	await config.set({ hostname: val });
-	await dbus.restartService('resin-hostname');
+
+	// restart balena-hostname if it is loaded and NOT PartOf config-json.target
+	if (
+		(
+			await Bluebird.any([
+				dbus.servicePartOf('balena-hostname'),
+				dbus.servicePartOf('resin-hostname'),
+			])
+		).includes('config-json.target') === false
+	) {
+		await Bluebird.any([
+			dbus.restartService('balena-hostname'),
+			dbus.restartService('resin-hostname'),
+		]);
+	}
 }
 
 // Don't use async/await here to maintain the bluebird

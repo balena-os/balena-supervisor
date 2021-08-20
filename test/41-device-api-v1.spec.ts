@@ -24,7 +24,7 @@ import SupervisorAPI from '../src/supervisor-api';
 import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
 import * as apiKeys from '../src/lib/api-keys';
-import * as dbus from '../src//lib/dbus';
+import * as dbus from '../src/lib/dbus';
 import * as updateLock from '../src/lib/update-lock';
 import * as TargetState from '../src/device-state/target-state';
 import * as targetStateCache from '../src/device-state/target-state-cache';
@@ -901,6 +901,15 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			});
 
 			it('updates the hostname with provided string if string is not empty', async () => {
+				// stub servicePartOf to throw exceptions for the new service names
+				stub(dbus, 'servicePartOf').callsFake(
+					async (serviceName: string): Promise<string> => {
+						if (serviceName === 'balena-hostname') {
+							throw new Error('Unit not loaded.');
+						}
+						return '';
+					},
+				);
 				await unlinkAll(redsocksPath, noProxyPath);
 
 				const patchBody = { network: { hostname: 'newdevice' } };
@@ -915,9 +924,12 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						validatePatchResponse(response);
 					});
 
-				// Should restart hostname service on successful change
-				expect(restartServiceSpy.callCount).to.equal(1);
-				expect(restartServiceSpy).to.have.been.calledWith('resin-hostname');
+				// should restart services
+				expect(restartServiceSpy.callCount).to.equal(2);
+				expect(restartServiceSpy.args).to.deep.equal([
+					['balena-hostname'],
+					['resin-hostname'],
+				]);
 
 				await request
 					.get('/v1/device/host-config')
@@ -926,6 +938,44 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.then((response) => {
 						expect(response.body).to.deep.equal(patchBody);
 					});
+
+				(dbus.servicePartOf as SinonStub).restore();
+			});
+
+			it('skips restarting hostname services if they are part of config-json.target', async () => {
+				// stub servicePartOf to return the config-json.target we are looking for
+				stub(dbus, 'servicePartOf').callsFake(
+					async (): Promise<string> => {
+						return 'config-json.target';
+					},
+				);
+
+				await unlinkAll(redsocksPath, noProxyPath);
+
+				const patchBody = { network: { hostname: 'newdevice' } };
+
+				await request
+					.patch('/v1/device/host-config')
+					.send(patchBody)
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.expect(sampleResponses.V1.PATCH['/host/device-config'].statusCode)
+					.then((response) => {
+						validatePatchResponse(response);
+					});
+
+				// skips restarting hostname services if they are part of config-json.target
+				expect(restartServiceSpy.callCount).to.equal(0);
+
+				await request
+					.get('/v1/device/host-config')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.then((response) => {
+						expect(response.body).to.deep.equal(patchBody);
+					});
+
+				(dbus.servicePartOf as SinonStub).restore();
 			});
 
 			it('updates hostname to first 7 digits of device uuid when sent invalid hostname', async () => {
@@ -940,9 +990,12 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						validatePatchResponse(response);
 					});
 
-				// Should restart hostname service on successful change
-				expect(restartServiceSpy.callCount).to.equal(1);
-				expect(restartServiceSpy).to.have.been.calledWith('resin-hostname');
+				// should restart services
+				expect(restartServiceSpy.callCount).to.equal(2);
+				expect(restartServiceSpy.args).to.deep.equal([
+					['balena-hostname'],
+					['resin-hostname'],
+				]);
 
 				await request
 					.get('/v1/device/host-config')
@@ -973,8 +1026,10 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						expect(await exists(noProxyPath)).to.be.false;
 					});
 
-				expect(restartServiceSpy.callCount).to.equal(2);
+				// should restart services
+				expect(restartServiceSpy.callCount).to.equal(3);
 				expect(restartServiceSpy.args).to.deep.equal([
+					['balena-proxy-config'],
 					['resin-proxy-config'],
 					['redsocks'],
 				]);
@@ -990,6 +1045,15 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			});
 
 			it('updates proxy type when provided valid values', async () => {
+				// stub servicePartOf to throw exceptions for the new service names
+				stub(dbus, 'servicePartOf').callsFake(
+					async (serviceName: string): Promise<string> => {
+						if (serviceName === 'balena-proxy-config') {
+							throw new Error('Unit not loaded.');
+						}
+						return '';
+					},
+				);
 				// Test each proxy patch sequentially to prevent conflicts when writing to fs
 				let restartCallCount = 0;
 				for (const key of Object.keys(validProxyReqs)) {
@@ -1008,8 +1072,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 								validatePatchResponse(response);
 							});
 
+						// should restart services
 						expect(restartServiceSpy.callCount).to.equal(
-							++restartCallCount * 2,
+							++restartCallCount * 3,
 						);
 
 						await request
@@ -1032,6 +1097,57 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					} // end for (const value of patchBodyValuesforKey)
 					await restoreConfFileTemplates();
 				} // end for (const key in validProxyReqs)
+				(dbus.servicePartOf as SinonStub).restore();
+			});
+
+			it('skips restarting proxy services when part of redsocks-conf.target', async () => {
+				// stub servicePartOf to return the redsocks-conf.target we are looking for
+				stub(dbus, 'servicePartOf').callsFake(
+					async (): Promise<string> => {
+						return 'redsocks-conf.target';
+					},
+				);
+				// Test each proxy patch sequentially to prevent conflicts when writing to fs
+				for (const key of Object.keys(validProxyReqs)) {
+					const patchBodyValuesforKey: string[] | number[] =
+						validProxyReqs[key];
+					for (const value of patchBodyValuesforKey) {
+						await request
+							.patch('/v1/device/host-config')
+							.send({ network: { proxy: { [key]: value } } })
+							.set('Accept', 'application/json')
+							.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+							.expect(
+								sampleResponses.V1.PATCH['/host/device-config'].statusCode,
+							)
+							.then((response) => {
+								validatePatchResponse(response);
+							});
+
+						// skips restarting proxy services when part of redsocks-conf.target
+						expect(restartServiceSpy.callCount).to.equal(0);
+
+						await request
+							.get('/v1/device/host-config')
+							.set('Accept', 'application/json')
+							.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+							.expect(hostnameProxyRes.statusCode)
+							.then((response) => {
+								expect(response.body).to.deep.equal({
+									network: {
+										hostname: hostnameProxyRes.body.network.hostname,
+										// All other proxy configs should be unchanged except for any values sent in patch
+										proxy: {
+											...hostnameProxyRes.body.network.proxy,
+											[key]: value,
+										},
+									},
+								});
+							});
+					} // end for (const value of patchBodyValuesforKey)
+					await restoreConfFileTemplates();
+				} // end for (const key in validProxyReqs)
+				(dbus.servicePartOf as SinonStub).restore();
 			});
 
 			it('warns on the supervisor console when provided disallowed proxy fields', async () => {
@@ -1081,8 +1197,10 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						validatePatchResponse(response);
 					});
 
-				expect(restartServiceSpy.callCount).to.equal(2);
+				// should restart services
+				expect(restartServiceSpy.callCount).to.equal(3);
 				expect(restartServiceSpy.args).to.deep.equal([
+					['balena-proxy-config'],
 					['resin-proxy-config'],
 					['redsocks'],
 				]);
@@ -1117,8 +1235,10 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						validatePatchResponse(response);
 					});
 
-				expect(restartServiceSpy.callCount).to.equal(2);
+				// should restart services
+				expect(restartServiceSpy.callCount).to.equal(3);
 				expect(restartServiceSpy.args).to.deep.equal([
+					['balena-proxy-config'],
 					['resin-proxy-config'],
 					['redsocks'],
 				]);

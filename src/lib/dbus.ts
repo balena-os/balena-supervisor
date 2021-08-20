@@ -37,6 +37,7 @@ export async function getLoginManagerInterface() {
 
 async function startUnit(unitName: string) {
 	const systemd = await getSystemdInterface();
+	log.debug(`Starting systemd unit: ${unitName}`);
 	try {
 		systemd.StartUnit(unitName, 'fail');
 	} catch (e) {
@@ -46,6 +47,7 @@ async function startUnit(unitName: string) {
 
 export async function restartService(serviceName: string) {
 	const systemd = await getSystemdInterface();
+	log.debug(`Restarting systemd service: ${serviceName}`);
 	try {
 		systemd.RestartUnit(`${serviceName}.service`, 'fail');
 	} catch (e) {
@@ -63,6 +65,7 @@ export async function startSocket(socketName: string) {
 
 async function stopUnit(unitName: string) {
 	const systemd = await getSystemdInterface();
+	log.debug(`Stopping systemd unit: ${unitName}`);
 	try {
 		systemd.StopUnit(unitName, 'fail');
 	} catch (e) {
@@ -116,7 +119,10 @@ export const shutdown = async () =>
 		}
 	}, 1000);
 
-async function getUnitProperty(unitName: string, property: string) {
+async function getUnitProperty(
+	unitName: string,
+	property: string,
+): Promise<string> {
 	const systemd = await getSystemdInterface();
 	return new Promise((resolve, reject) => {
 		systemd.GetUnit(unitName, async (err: Error, unitPath: string) => {
@@ -132,7 +138,7 @@ async function getUnitProperty(unitName: string, property: string) {
 			iface.Get(
 				'org.freedesktop.systemd1.Unit',
 				property,
-				(e: Error, value: unknown) => {
+				(e: Error, value: string) => {
 					if (e) {
 						return reject(new DbusError(e));
 					}
@@ -145,4 +151,8 @@ async function getUnitProperty(unitName: string, property: string) {
 
 export function serviceActiveState(serviceName: string) {
 	return getUnitProperty(`${serviceName}.service`, 'ActiveState');
+}
+
+export function servicePartOf(serviceName: string) {
+	return getUnitProperty(`${serviceName}.service`, 'PartOf');
 }
