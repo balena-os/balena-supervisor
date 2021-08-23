@@ -63,7 +63,8 @@ export class ExtraUEnv extends ConfigBackend {
 		return (
 			(deviceType.endsWith('-nano') ||
 				deviceType.endsWith('-nano-emmc') ||
-				deviceType.endsWith('-tx2')) &&
+				deviceType.endsWith('-tx2') ||
+				deviceType.includes('-tx2-nx')) &&
 			(await exists(ExtraUEnv.bootConfigPath))
 		);
 	}
