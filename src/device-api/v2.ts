@@ -32,6 +32,7 @@ import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone } from './common';
 import { AuthorizedRequest } from '../lib/api-keys';
+import { fromV2TargetState } from '../lib/legacy';
 
 export function createV2Api(router: Router) {
 	const handleServiceAction = (
@@ -346,7 +347,10 @@ export function createV2Api(router: Router) {
 
 		// Now attempt to set the state
 		const force = req.body.force;
-		const targetState = req.body;
+
+		// Migrate target state from v2 to v3 to maintain API compatibility
+		const targetState = await fromV2TargetState(req.body, true);
+
 		try {
 			await deviceState.setTarget(targetState, true);
 			await deviceState.triggerApplyTarget({ force });

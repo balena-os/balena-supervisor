@@ -9,6 +9,7 @@ import * as serviceManager from '../compose/service-manager';
 import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
 import {
+	StatusError,
 	DatabaseParseError,
 	NotFoundError,
 	InternalInconsistencyError,
@@ -23,7 +24,7 @@ import type {
 	DatabaseService,
 } from '../device-state/target-state-cache';
 
-import { TargetApp, TargetApps } from '../types';
+import { TargetApp, TargetApps, TargetState } from '../types';
 
 const defaultLegacyVolume = () => 'resin-data';
 
@@ -226,13 +227,39 @@ export async function normaliseLegacyDatabase() {
 export type TargetAppsV2 = {
 	[id: string]: {
 		name: string;
-		commit: string;
-		releaseId: number;
+		commit?: string;
+		releaseId?: number;
 		services: { [id: string]: any };
 		volumes: { [name: string]: any };
 		networks: { [name: string]: any };
 	};
 };
+
+type TargetStateV2 = {
+	local: {
+		name: string;
+		config: { [name: string]: string };
+		apps: TargetAppsV2;
+	};
+};
+
+export async function fromV2TargetState(
+	target: TargetStateV2,
+	local = false,
+): Promise<TargetState> {
+	const { uuid, name } = await config.getMany(['uuid', 'name']);
+	if (!uuid) {
+		throw new InternalInconsistencyError('No UUID for device');
+	}
+
+	return {
+		[uuid]: {
+			name: target?.local?.name ?? name,
+			config: target?.local?.config ?? {},
+			apps: await fromV2TargetApps(target?.local?.apps ?? {}, local),
+		},
+	};
+}
 
 /**
  * Convert v2 to v3 target apps. If local is false
@@ -262,9 +289,7 @@ export async function fromV2TargetApps(
 		});
 
 		if (!appDetails || !appDetails.uuid) {
-			throw new InternalInconsistencyError(
-				`No app with id ${appId} found on the API.`,
-			);
+			throw new StatusError(404, `No app with id ${appId} found on the API.`);
 		}
 
 		return appDetails.uuid;
@@ -285,7 +310,7 @@ export async function fromV2TargetApps(
 							? {
 									[app.commit]: {
 										id: app.releaseId,
-										services: Object.keys(app.services)
+										services: Object.keys(app.services ?? {})
 											.map((serviceId) => {
 												const {
 													imageId,
@@ -320,8 +345,8 @@ export async function fromV2TargetApps(
 												}),
 												{},
 											),
-										volumes: app.volumes,
-										networks: app.networks,
+										volumes: app.volumes ?? {},
+										networks: app.networks ?? {},
 									},
 							  }
 							: {};

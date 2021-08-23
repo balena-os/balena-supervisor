@@ -108,6 +108,7 @@
     "mock-fs": "^4.14.0",
     "morgan": "^1.10.0",
     "network-checker": "^0.1.1",
+    "nock": "^13.1.2",
     "nodemon": "^2.0.4",
     "pinejs-client-request": "^7.2.1",
     "pretty-ms": "^7.0.1",
