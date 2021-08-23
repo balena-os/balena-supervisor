@@ -16,7 +16,7 @@ import {
 } from '../lib/errors';
 import log from '../lib/supervisor-console';
 
-import { convertLegacyAppsJson, convertV2toV3AppsJson } from '../lib/migration';
+import { fromLegacyAppsJson, fromV2AppsJson } from './legacy';
 import { AppsJsonFormat } from '../types/state';
 import * as fsUtils from '../lib/fs-utils';
 import { isLeft } from 'fp-ts/lib/Either';
@@ -42,7 +42,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 
 		if (_.isArray(stateFromFile)) {
 			log.debug('Detected a legacy apps.json, converting...');
-			stateFromFile = convertLegacyAppsJson(stateFromFile as any[]);
+			stateFromFile = fromLegacyAppsJson(stateFromFile as any[]);
 		}
 
 		// if apps.json apps are keyed by numeric ids, then convert to v3 target state
@@ -51,7 +51,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 				(appId) => !isNaN(parseInt(appId, 10)),
 			)
 		) {
-			stateFromFile = await convertV2toV3AppsJson(stateFromFile as any);
+			stateFromFile = await fromV2AppsJson(stateFromFile as any);
 		}
 
 		// Check that transformed apps.json has the correct format

@@ -7,7 +7,6 @@ import { NotFoundError, InternalInconsistencyError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
-import { defaultLegacyVolume } from '../lib/migration';
 import log from '../lib/supervisor-console';
 import * as logger from '../logger';
 import { ResourceRecreationAttemptError } from './errors';
@@ -76,25 +75,6 @@ export async function create(volume: Volume): Promise<void> {
 // add this method to provide a consistent interface
 export async function remove(volume: Volume) {
 	await volume.remove();
-}
-
-export async function createFromLegacy(appId: number): Promise<Volume | void> {
-	const name = defaultLegacyVolume();
-	const legacyPath = Path.join(
-		constants.rootMountPoint,
-		'mnt/data/resin-data',
-		appId.toString(),
-	);
-
-	try {
-		return await createFromPath({ name, appId }, {}, legacyPath);
-	} catch (e) {
-		logger.logSystemMessage(
-			`Warning: could not migrate legacy /data volume: ${e.message}`,
-			{ error: e },
-			'Volume migration error',
-		);
-	}
 }
 
 export async function createFromPath(
