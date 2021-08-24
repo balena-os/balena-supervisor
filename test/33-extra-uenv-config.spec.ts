@@ -267,4 +267,8 @@ const MATCH_TESTS = [
 	{ type: 'asus-tinker-board', supported: false },
 	{ type: 'nano-board', supported: false },
 	{ type: 'tx2-tx2-device', supported: false },
+	{ type: 'jetson-tx2-nx-devkit', supported: true },
+	{ type: 'photon-tx2-nx', supported: true },
+	{ type: 'jetson-xavier-nx-devkit', supported: false },
+	{ type: 'photon-xavier-nx', supported: false },
 ];
