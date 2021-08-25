@@ -1,4 +1,22 @@
 - commits:
+    - subject: Skip restarting services if they are part of conf targets
+      hash: 669866b4c296529bd5392a0c48cd389a6d1f5770
+      body: |
+        Some recent changes to the OS allowed some services to restart
+        automatically when the associated config files are changed.
+
+        In these cases we want to avoid restarting the same services
+        manually from the supervisor.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+  version: 12.10.3
+  date: 2021-08-24T18:07:03.099Z
+- commits:
     - subject: Removed fire emoji prefix for firewall logs.
       hash: 30c728fae23ee66f3c1612736bb0c300f0b0762d
       body: ''
