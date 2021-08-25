@@ -15,12 +15,12 @@ import { InstancedAppState } from '../../../src/types/state';
 
 import * as dbHelper from '../../lib/db-helper';
 
-const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, {});
+const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, 'appuuid', {});
 
 async function createService(
 	{
 		appId = 1,
-		appUuid = 'app-uuid',
+		appUuid = 'appuuid',
 		serviceName = 'main',
 		commit = 'main-commit',
 		...conf
@@ -54,7 +54,7 @@ async function createService(
 function createImage(
 	{
 		appId = 1,
-		appUuid = 'app-uuid',
+		appUuid = 'appuuid',
 		name = 'test-image',
 		serviceName = 'main',
 		commit = 'main-commit',
@@ -582,7 +582,7 @@ describe('compose/application-manager', () => {
 					await createService({
 						image: 'main-image',
 						appId: 1,
-						appUuid: 'app-uuid',
+						appUuid: 'appuuid',
 						commit: 'new-release',
 						serviceName: 'main',
 						composition: {
@@ -592,7 +592,7 @@ describe('compose/application-manager', () => {
 					await createService({
 						image: 'dep-image',
 						appId: 1,
-						appUuid: 'app-uuid',
+						appUuid: 'appuuid',
 						commit: 'new-release',
 						serviceName: 'dep',
 					}),
@@ -611,7 +611,7 @@ describe('compose/application-manager', () => {
 			services: [
 				await createService({
 					appId: 1,
-					appUuid: 'app-uuid',
+					appUuid: 'appuuid',
 					commit: 'old-release',
 					serviceName: 'main',
 					composition: {
@@ -620,7 +620,7 @@ describe('compose/application-manager', () => {
 				}),
 				await createService({
 					appId: 1,
-					appUuid: 'app-uuid',
+					appUuid: 'appuuid',
 					commit: 'old-release',
 					serviceName: 'dep',
 				}),
@@ -630,14 +630,14 @@ describe('compose/application-manager', () => {
 				// Both images have been downloaded
 				createImage({
 					appId: 1,
-					appUuid: 'app-uuid',
+					appUuid: 'appuuid',
 					name: 'main-image',
 					serviceName: 'main',
 					commit: 'new-release',
 				}),
 				createImage({
 					appId: 1,
-					appUuid: 'app-uuid',
+					appUuid: 'appuuid',
 					name: 'dep-image',
 					serviceName: 'dep',
 					commit: 'new-release',
@@ -1202,8 +1202,8 @@ describe('compose/application-manager', () => {
 				],
 				networks: [
 					// Default networks for two apps
-					Network.fromComposeObject('default', 1, {}),
-					Network.fromComposeObject('default', 2, {}),
+					Network.fromComposeObject('default', 1, 'app-one', {}),
+					Network.fromComposeObject('default', 2, 'app-two', {}),
 				],
 			},
 			true,
@@ -1217,8 +1217,8 @@ describe('compose/application-manager', () => {
 			services: [],
 			networks: [
 				// Default networks for two apps
-				Network.fromComposeObject('default', 1, {}),
-				Network.fromComposeObject('default', 2, {}),
+				Network.fromComposeObject('default', 1, 'app-one', {}),
+				Network.fromComposeObject('default', 2, 'app-two', {}),
 			],
 			images: [
 				createImage({

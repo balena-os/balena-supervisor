@@ -43,7 +43,7 @@
 			"Type": "journald",
 			"Config": {}
 		},
-		"NetworkMode": "1011165_default",
+		"NetworkMode": "aaaaaaaa_default",
 		"PortBindings": {},
 		"RestartPolicy": {
 			"Name": "always",
@@ -209,7 +209,7 @@
 		"IPv6Gateway": "",
 		"MacAddress": "",
 		"Networks": {
-			"1011165_default": {
+			"aaaaaaaa_default": {
 				"IPAMConfig": null,
 				"Links": null,
 				"Aliases": [

@@ -171,7 +171,7 @@ export class Service {
 			networks = config.networks || {};
 		}
 		// Prefix the network entries with the app id
-		networks = _.mapKeys(networks, (_v, k) => `${service.appId}_${k}`);
+		networks = _.mapKeys(networks, (_v, k) => `${service.appUuid}_${k}`);
 		// Ensure that we add an alias of the service name
 		networks = _.mapValues(networks, (v) => {
 			if (v.aliases == null) {
@@ -257,7 +257,7 @@ export class Service {
 		) {
 			if (networks[config.networkMode!] == null && !serviceNetworkMode) {
 				// The network mode has not been set explicitly
-				config.networkMode = `${service.appId}_${config.networkMode}`;
+				config.networkMode = `${service.appUuid}_${config.networkMode}`;
 				// If we don't have any networks, we need to
 				// create the default with some default options
 				networks[config.networkMode] = {
@@ -1008,11 +1008,23 @@ export class Service {
 	public hasNetwork(networkName: string) {
 		// TODO; we could probably export network naming methods to another
 		// module to avoid duplicate code
-		return `${this.appId}_${networkName}` in this.config.networks;
+		// We don't know if this service is current or target state so we need
+		// to check both appId and appUuid since the current service may still
+		// have appId
+		return (
+			`${this.appUuid}_${networkName}` in this.config.networks ||
+			`${this.appId}_${networkName}` in this.config.networks
+		);
 	}
 
 	public hasNetworkMode(networkName: string) {
-		return `${this.appId}_${networkName}` === this.config.networkMode;
+		// We don't know if this service is current or target state so we need
+		// to check both appId and appUuid since the current service may still
+		// have appId
+		return (
+			`${this.appUuid}_${networkName}` === this.config.networkMode ||
+			`${this.appId}_${networkName}` === this.config.networkMode
+		);
 	}
 
 	public hasVolume(volumeName: string) {

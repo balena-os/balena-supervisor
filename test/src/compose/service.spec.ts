@@ -429,6 +429,7 @@ describe('compose/service', () => {
 					await Service.fromComposeObject(
 						{
 							appId: 123456,
+							appUuid: 'deadbeef',
 							serviceId: 123456,
 							serviceName: 'test',
 							composition: {
@@ -448,7 +449,7 @@ describe('compose/service', () => {
 					).toDockerContainer({ deviceName: 'foo' } as any).NetworkingConfig,
 				).to.deep.equal({
 					EndpointsConfig: {
-						'123456_balena': {
+						deadbeef_balena: {
 							IPAMConfig: {
 								IPv4Address: '1.2.3.4',
 							},
@@ -470,7 +471,7 @@ describe('compose/service', () => {
 					).toDockerContainer({ deviceName: 'foo' } as any).NetworkingConfig,
 				).to.deep.equal({
 					EndpointsConfig: {
-						'123456_balena': {
+						deadbeef_balena: {
 							IPAMConfig: {
 								IPv4Address: '1.2.3.4',
 								IPv6Address: '5.6.7.8',

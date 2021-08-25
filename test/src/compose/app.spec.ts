@@ -26,10 +26,12 @@ function createApp({
 	volumes = [] as Volume[],
 	isTarget = false,
 	appId = 1,
+	appUuid = 'appuuid',
 } = {}) {
 	return new App(
 		{
 			appId,
+			appUuid,
 			services,
 			networks: networks.reduce(
 				(res, net) => ({ ...res, [net.name]: net }),
@@ -44,6 +46,7 @@ function createApp({
 async function createService(
 	{
 		appId = 1,
+		appUuid = 'appuuid',
 		serviceName = 'test',
 		commit = 'test-commit',
 		...conf
@@ -53,6 +56,7 @@ async function createService(
 	const svc = await Service.fromComposeObject(
 		{
 			appId,
+			appUuid,
 			serviceName,
 			commit,
 			running: true,
@@ -71,14 +75,18 @@ async function createService(
 function createImage(
 	{
 		appId = 1,
+		appUuid = 'appuuid',
 		dependent = 0,
 		name = 'test-image',
 		serviceName = 'test',
+		commit = 'test-commit',
 		...extra
 	} = {} as Partial<Image>,
 ) {
 	return {
 		appId,
+		appUuid,
+		commit,
 		dependent,
 		name,
 		serviceName,
@@ -107,7 +115,7 @@ function expectNoStep(action: CompositionStepAction, steps: CompositionStep[]) {
 	expectSteps(action, steps, 0, 0);
 }
 
-const defaultNetwork = Network.fromComposeObject('default', 1, {});
+const defaultNetwork = Network.fromComposeObject('default', 1, 'appuuid', {});
 
 describe('compose/app', () => {
 	before(() => {
@@ -323,14 +331,12 @@ describe('compose/app', () => {
 
 		it('should generate the correct step sequence for a volume purge request', async () => {
 			const service = await createService({
+				appId: 1,
+				appUuid: 'deadbeef',
 				image: 'test-image',
 				composition: { volumes: ['db-volume:/data'] },
 			});
-			const volume = Volume.fromComposeObject(
-				'db-volume',
-				service.appId,
-				'deadbeef',
-			);
+			const volume = Volume.fromComposeObject('db-volume', 1, 'deadbeef');
 			const contextWithImages = {
 				...defaultContext,
 				...{
@@ -428,7 +434,7 @@ describe('compose/app', () => {
 		it('should correctly infer a network create step', () => {
 			const current = createApp({ networks: [] });
 			const target = createApp({
-				networks: [Network.fromComposeObject('default', 1, {})],
+				networks: [Network.fromComposeObject('default', 1, 'deadbeef', {})],
 				isTarget: true,
 			});
 
@@ -442,7 +448,9 @@ describe('compose/app', () => {
 
 		it('should correctly infer a network remove step', () => {
 			const current = createApp({
-				networks: [Network.fromComposeObject('test-network', 1, {})],
+				networks: [
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
 				isTarget: true,
 			});
 			const target = createApp({ networks: [], isTarget: true });
@@ -459,8 +467,8 @@ describe('compose/app', () => {
 		it('should correctly infer more than one network removal step', () => {
 			const current = createApp({
 				networks: [
-					Network.fromComposeObject('test-network', 1, {}),
-					Network.fromComposeObject('test-network-2', 1, {}),
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+					Network.fromComposeObject('test-network-2', 1, 'deadbeef', {}),
 				],
 				isTarget: true,
 			});
@@ -480,11 +488,13 @@ describe('compose/app', () => {
 
 		it('should correctly infer a network recreation step', () => {
 			const current = createApp({
-				networks: [Network.fromComposeObject('test-network', 1, {})],
+				networks: [
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
 			});
 			const target = createApp({
 				networks: [
-					Network.fromComposeObject('test-network', 1, {
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {
 						labels: { TEST: 'TEST' },
 					}),
 				],
@@ -524,20 +534,28 @@ describe('compose/app', () => {
 			expect(createNetworkStep)
 				.to.have.property('target')
 				.that.has.property('config')
-				.that.deep.includes({ labels: { TEST: 'TEST' } });
+				.that.deep.includes({
+					labels: { TEST: 'TEST', 'io.balena.app-id': '1' },
+				});
 		});
 
 		it('should kill dependencies of networks before removing', async () => {
 			const current = createApp({
+				appUuid: 'deadbeef',
 				services: [
 					await createService({
-						composition: { networks: { 'test-network': {} } },
+						appId: 1,
+						appUuid: 'deadbeef',
+						composition: { networks: ['test-network'] },
 					}),
 				],
-				networks: [Network.fromComposeObject('test-network', 1, {})],
+				networks: [
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
 			});
 			const target = createApp({
-				services: [await createService()],
+				appUuid: 'deadbeef',
+				services: [await createService({ appUuid: 'deadbeef' })],
 				networks: [],
 				isTarget: true,
 			});
@@ -554,10 +572,10 @@ describe('compose/app', () => {
 			const current = createApp({
 				services: [
 					await createService({
-						composition: { networks: { 'test-network': {} } },
+						composition: { networks: ['test-network'] },
 					}),
 				],
-				networks: [Network.fromComposeObject('test-network', 1, {})],
+				networks: [Network.fromComposeObject('test-network', 1, 'appuuid', {})],
 			});
 			const target = createApp({
 				services: [
@@ -566,7 +584,7 @@ describe('compose/app', () => {
 					}),
 				],
 				networks: [
-					Network.fromComposeObject('test-network', 1, {
+					Network.fromComposeObject('test-network', 1, 'appuuid', {
 						labels: { test: 'test' },
 					}),
 				],
@@ -599,7 +617,7 @@ describe('compose/app', () => {
 
 		it('should not create the default network if it already exists', () => {
 			const current = createApp({
-				networks: [Network.fromComposeObject('default', 1, {})],
+				networks: [Network.fromComposeObject('default', 1, 'deadbeef', {})],
 			});
 			const target = createApp({ networks: [], isTarget: true });
 
@@ -611,17 +629,17 @@ describe('compose/app', () => {
 	});
 
 	describe('service state behavior', () => {
-		it('should create a kill step for service which is no longer referenced', async () => {
+		it('should create a kill step for a service which is no longer referenced', async () => {
 			const current = createApp({
 				services: [
 					await createService({ appId: 1, serviceName: 'main' }),
 					await createService({ appId: 1, serviceName: 'aux' }),
 				],
-				networks: [Network.fromComposeObject('test-network', 1, {})],
+				networks: [defaultNetwork],
 			});
 			const target = createApp({
 				services: [await createService({ appId: 1, serviceName: 'main' })],
-				networks: [Network.fromComposeObject('test-network', 1, {})],
+				networks: [defaultNetwork],
 				isTarget: true,
 			});
 
@@ -827,7 +845,7 @@ describe('compose/app', () => {
 			const intermediate = createApp({
 				services: [],
 				// Default network was already created
-				networks: [Network.fromComposeObject('default', 1, {})],
+				networks: [defaultNetwork],
 			});
 
 			// now should see a 'start'
@@ -1189,7 +1207,10 @@ describe('compose/app', () => {
 						appId: 1,
 					}),
 				],
-				networks: [defaultNetwork, Network.fromComposeObject('test', 1, {})],
+				networks: [
+					defaultNetwork,
+					Network.fromComposeObject('test', 1, 'appuuid', {}),
+				],
 				isTarget: true,
 			});
 

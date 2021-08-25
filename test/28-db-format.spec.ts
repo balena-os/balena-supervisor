@@ -12,7 +12,7 @@ import { withMockerode } from './lib/mockerode';
 
 function getDefaultNetwork(appId: number) {
 	return {
-		default: Network.fromComposeObject('default', appId, {}),
+		default: Network.fromComposeObject('default', appId, 'deadbeef', {}),
 	};
 }
 

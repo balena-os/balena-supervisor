@@ -29,6 +29,7 @@ import { pathExistsOnHost } from '../lib/fs-utils';
 
 export interface AppConstructOpts {
 	appId: number;
+	appUuid?: string;
 	appName?: string;
 	commit?: string;
 	source?: string;
@@ -52,6 +53,7 @@ interface ChangingPair<T> {
 
 export class App {
 	public appId: number;
+	public appUuid?: string;
 	// When setting up an application from current state, these values are not available
 	public appName?: string;
 	public commit?: string;
@@ -65,6 +67,7 @@ export class App {
 
 	public constructor(opts: AppConstructOpts, public isTargetState: boolean) {
 		this.appId = opts.appId;
+		this.appUuid = opts.appUuid;
 		this.appName = opts.appName;
 		this.commit = opts.commit;
 		this.source = opts.source;
@@ -77,6 +80,7 @@ export class App {
 			this.networks.default = Network.fromComposeObject(
 				'default',
 				opts.appId,
+				opts.appUuid!, // app uuid always exists on the target state
 				{},
 			);
 		}
@@ -160,7 +164,6 @@ export class App {
 			target.commit != null &&
 			this.commit !== target.commit
 		) {
-			// TODO: The next PR should change this to support multiapp commit values
 			steps.push(
 				generateStep('updateCommit', {
 					target: target.commit,
@@ -732,7 +735,7 @@ export class App {
 		const networks = _.mapValues(
 			JSON.parse(app.networks) ?? {},
 			(conf, name) => {
-				return Network.fromComposeObject(name, app.appId, conf ?? {});
+				return Network.fromComposeObject(name, app.appId, app.uuid, conf ?? {});
 			},
 		);
 
@@ -799,6 +802,7 @@ export class App {
 		return new App(
 			{
 				appId: app.appId,
+				appUuid: app.uuid,
 				commit: app.commit,
 				appName: app.name,
 				source: app.source,
