@@ -34,7 +34,6 @@ import { CompositionStep, generateStep } from './composition-steps';
 import {
 	InstancedAppState,
 	TargetApps,
-	DeviceStatus,
 	DeviceReportFields,
 } from '../types/state';
 import { checkTruthy } from '../lib/validation';
@@ -157,14 +156,14 @@ function reportCurrentState(data?: Partial<InstancedAppState>) {
 }
 
 export async function getRequiredSteps(
+	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
 	ignoreImages: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
-	const [downloading, availableImages, currentApps] = await Promise.all([
+	const [downloading, availableImages] = await Promise.all([
 		imageManager.getDownloadingImageNames(),
 		imageManager.getAvailable(),
-		getCurrentApps(),
 	]);
 	const containerIdsByAppId = await getAppContainerIds(currentApps);
 
@@ -350,21 +349,6 @@ export async function stopAll({ force = false, skipLock = false } = {}) {
 			});
 		}),
 	);
-}
-
-export async function getCurrentAppsForReport(): Promise<
-	NonNullable<DeviceStatus['local']>['apps']
-> {
-	const apps = await getCurrentApps();
-
-	const appsToReport: NonNullable<DeviceStatus['local']>['apps'] = {};
-	for (const appId of Object.getOwnPropertyNames(apps)) {
-		appsToReport[appId] = {
-			services: {},
-		};
-	}
-
-	return appsToReport;
 }
 
 export async function getCurrentApps(): Promise<InstancedAppState> {

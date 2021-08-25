@@ -10,7 +10,6 @@ import { EnvVarObject } from './types';
 import { UnitNotLoadedError } from './lib/errors';
 import { checkInt, checkTruthy } from './lib/validation';
 import log from './lib/supervisor-console';
-import { DeviceStatus } from './types/state';
 import * as configUtils from './config/utils';
 import { SchemaTypeKey } from './config/schema-type';
 import { matchesAnyBootConfig } from './config/backends';
@@ -560,19 +559,11 @@ async function isRebootRequired() {
 }
 
 export async function getRequiredSteps(
-	currentState: DeviceStatus,
-	targetState: { local?: { config?: Dictionary<string> } },
+	currentState: { local?: { config?: EnvVarObject } },
+	targetState: { local?: { config: EnvVarObject } },
 ): Promise<ConfigStep[]> {
-	const current: Dictionary<string> = _.get(
-		currentState,
-		['local', 'config'],
-		{},
-	);
-	const target: Dictionary<string> = _.get(
-		targetState,
-		['local', 'config'],
-		{},
-	);
+	const current = currentState?.local?.config ?? {};
+	const target = targetState?.local?.config ?? {};
 
 	const configSteps = getConfigSteps(current, target);
 	const steps = [

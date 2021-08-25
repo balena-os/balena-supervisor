@@ -9,7 +9,7 @@ import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
 import * as sysInfo from '../lib/system-info';
 
-import { DeviceStatus } from '../types/state';
+import { DeviceStatus } from '../types';
 import * as config from '../config';
 import { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
 import * as eventTracker from '../event-tracker';

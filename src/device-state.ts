@@ -42,7 +42,7 @@ import {
 	InstancedDeviceState,
 	TargetState,
 	InstancedAppState,
-} from './types/state';
+} from './types';
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
 
@@ -569,26 +569,6 @@ export async function getCurrentForReport(): Promise<DeviceStatus> {
 	return theState as DeviceStatus;
 }
 
-export async function getCurrentForComparison(): Promise<
-	DeviceStatus & { local: { name: string } }
-> {
-	const [name, devConfig, apps, dependent] = await Promise.all([
-		config.get('name'),
-		deviceConfig.getCurrent(),
-		applicationManager.getCurrentAppsForReport(),
-		applicationManager.getDependentState(),
-	]);
-	return {
-		local: {
-			name,
-			config: devConfig,
-			apps,
-		},
-
-		dependent,
-	};
-}
-
 export async function getCurrentState(): Promise<InstancedDeviceState> {
 	const [name, devConfig, apps, dependent] = await Promise.all([
 		config.get('name'),
@@ -768,7 +748,7 @@ export const applyTarget = async ({
 
 	return usingInferStepsLock(async () => {
 		const [currentState, targetState] = await Promise.all([
-			getCurrentForComparison(),
+			getCurrentState(),
 			getTarget({ initial, intermediate }),
 		]);
 		const deviceConfigSteps = await deviceConfig.getRequiredSteps(
@@ -788,6 +768,7 @@ export const applyTarget = async ({
 			steps = deviceConfigSteps;
 		} else {
 			const appSteps = await applicationManager.getRequiredSteps(
+				currentState.local.apps,
 				targetState.local.apps,
 			);
 
