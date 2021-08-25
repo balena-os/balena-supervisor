@@ -528,10 +528,29 @@ export class Service {
 		}
 		expose = _.uniq(expose);
 
-		const tmpfs: string[] = [];
-		_.each((container.HostConfig as any).Tmpfs, (_v, key) => {
-			tmpfs.push(key);
-		});
+		const tmpfs: string[] = _.uniq(
+			([] as string[]).concat(
+				Object.keys(container.HostConfig?.Tmpfs || {}),
+				// also consider mount api
+				(container.HostConfig?.Mounts || [])
+					.filter(({ Type }) => Type === 'tmpfs')
+					.map(({ Target }) => Target),
+			),
+		);
+
+		// bind and volume mounts
+		const mounts: string[] = _.uniq(
+			([] as string[]).concat(
+				Object.keys(container.Config?.Volumes || {}),
+				// also consider mount api
+				(container.HostConfig?.Mounts || [])
+					.filter(({ Type }) => Type === 'bind' || Type === 'volume')
+					.map(
+						(mount) =>
+							`${mount.Source}:${mount.Target}${mount.ReadOnly ? ':ro' : ''}`,
+					),
+			),
+		);
 
 		// We cannot use || for this value, as the empty string is a
 		// valid restart policy but will equate to null in an OR
@@ -558,10 +577,7 @@ export class Service {
 			hostname,
 			command: container.Config.Cmd || '',
 			entrypoint: container.Config.Entrypoint || '',
-			volumes: _.concat(
-				container.HostConfig.Binds || [],
-				_.keys(container.Config.Volumes || {}),
-			),
+			volumes: mounts,
 			image: container.Config.Image,
 			environment: Service.omitDeviceNameVars(
 				conversions.envArrayToObject(container.Config.Env || []),
@@ -667,7 +683,7 @@ export class Service {
 		deviceName: string;
 		containerIds: Dictionary<string>;
 	}): Dockerode.ContainerCreateOptions {
-		const { binds, volumes } = this.getBindsAndVolumes();
+		const { mounts, volumes } = this.getMountsAndVolumes();
 		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
 
 		const tmpFs: Dictionary<''> = {};
@@ -723,7 +739,6 @@ export class Service {
 			HostConfig: {
 				CapAdd: this.config.capAdd,
 				CapDrop: this.config.capDrop,
-				Binds: binds,
 				CgroupParent: this.config.cgroupParent,
 				Devices: this.config.devices,
 				DeviceRequests: this.config.deviceRequests,
@@ -751,6 +766,7 @@ export class Service {
 				CpusetCpus: this.config.cpuset,
 				Memory: this.config.memLimit,
 				MemoryReservation: this.config.memReservation,
+				Mounts: mounts,
 				OomKillDisable: this.config.oomKillDisable,
 				OomScoreAdj: this.config.oomScoreAdj,
 				Privileged: this.config.privileged,
@@ -923,21 +939,37 @@ export class Service {
 		);
 	}
 
-	private getBindsAndVolumes(): {
-		binds: string[];
+	private getMountsAndVolumes(): {
+		mounts: Dockerode.MountSettings[];
 		volumes: { [volName: string]: {} };
 	} {
-		const binds: string[] = [];
+		const mounts: Dockerode.MountSettings[] = [];
 		const volumes: { [volName: string]: {} } = {};
-		_.each(this.config.volumes, (volume) => {
+		for (const volume of this.config.volumes) {
 			if (_.includes(volume, ':')) {
-				binds.push(volume);
+				const [source, target, mode] = volume.split(':');
+				const mount: Dockerode.MountSettings = {
+					Type: 'bind',
+					Source: source,
+					Target: target,
+					ReadOnly: mode === 'ro' ? true : false,
+				};
+				if (!path.isAbsolute(source)) {
+					mount.Type = 'volume';
+				}
+				mounts.push(mount);
 			} else {
 				volumes[volume] = {};
 			}
-		});
+		}
+		for (const tmpfs of this.config.tmpfs) {
+			mounts.push({
+				Type: 'tmpfs',
+				Target: tmpfs,
+			} as Dockerode.MountSettings);
+		}
 
-		return { binds, volumes };
+		return { mounts, volumes };
 	}
 
 	private generateExposeAndPorts(): DockerPortOptions {

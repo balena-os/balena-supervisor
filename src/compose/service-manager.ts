@@ -20,6 +20,8 @@ import {
 } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import { checkInt, isValidDeviceName } from '../lib/validation';
+import { getPathOnHost, mkdirp } from '../lib/fs-utils';
+import { BASE_LOCK_DIR } from '../lib/update-lock';
 import { Service, ServiceStatus } from './service';
 import { serviceNetworksToDockerNetworks } from './utils';
 
@@ -272,6 +274,13 @@ async function create(service: Service) {
 
 		logger.logSystemEvent(LogTypes.installService, { service });
 		reportNewStatus(mockContainerId, service, 'Installing');
+
+		// Create directories on host for update lock binds, since Supervisor uses the
+		// Docker Mounts API which means an engine error is thrown if bind doesn't exist on host.
+		const lockDirPath = getPathOnHost(
+			`${BASE_LOCK_DIR}/${service.appId}/${service.serviceName}`,
+		);
+		await mkdirp(lockDirPath);
 
 		const container = await docker.createContainer(conf);
 		service.containerId = container.id;

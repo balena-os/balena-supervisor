@@ -31,6 +31,8 @@ import * as targetStateCache from '../src/device-state/target-state-cache';
 import blink = require('../src/lib/blink');
 import constants = require('../src/lib/constants');
 import * as deviceAPI from '../src/device-api/common';
+import * as lockfile from '../src/lib/lockfile';
+import * as fsUtils from '../src/lib/fs-utils';
 
 import { UpdatesLockedError } from '../src/lib/errors';
 import { SchemaTypeKey } from '../src/config/schema-type';
@@ -109,6 +111,17 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		// Stub logs for all API methods
 		loggerStub = stub(logger, 'attach');
 		loggerStub.resolves();
+
+		// Stub lockfile calls to ensure nothing leaks through
+		// TODO: remove this after redoing API tests
+		stub(lockfile, 'lock').resolves();
+
+		// Stub fs-utils methods that /v1/restart and /v1/reboot
+		// use, otherwise reboot breadcrumb and lockfile directories
+		// get written to in test environment
+		// TODO: remove this after redoing API tests
+		stub(fsUtils, 'touch').resolves();
+		stub(fsUtils, 'mkdirp').resolves();
 	});
 
 	after(async () => {
@@ -125,6 +138,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		await mockedAPI.cleanUp();
 		targetStateCacheMock.restore();
 		loggerStub.restore();
+		(lockfile.lock as SinonStub).restore();
+		(fsUtils.touch as SinonStub).restore();
+		(fsUtils.mkdirp as SinonStub).restore();
 	});
 
 	describe('POST /v1/restart', () => {

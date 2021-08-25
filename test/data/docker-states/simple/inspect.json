@@ -34,9 +34,20 @@
 	"AppArmorProfile": "",
 	"ExecIDs": null,
 	"HostConfig": {
-		"Binds": [
-			"/tmp/balena-supervisor/services/1011165/main:/tmp/resin",
-			"/tmp/balena-supervisor/services/1011165/main:/tmp/balena"
+		"Binds": null,
+		"Mounts": [
+			{
+				"Type": "bind",
+				"Source": "/tmp/balena-supervisor/services/1011165/main",
+				"Target": "/tmp/resin",
+				"ReadOnly": false
+			},
+			{
+				"Type": "bind",
+				"Source": "/tmp/balena-supervisor/services/1011165/main",
+				"Target": "/tmp/balena",
+				"ReadOnly": false
+			}
 		],
 		"ContainerIDFile": "",
 		"LogConfig": {

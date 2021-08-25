@@ -250,7 +250,7 @@ export function createContainer(container: PartialContainerInspectInfo) {
 	const fakeContainer = createFake(dockerode.Container.prototype);
 
 	return {
-		...fakeContainer, // by default all methods fail unless overriden
+		...fakeContainer, // by default all methods fail unless overridden
 		id,
 		inspectInfo,
 		info,
