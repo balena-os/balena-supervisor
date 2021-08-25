@@ -866,7 +866,7 @@ describe('compose/application-manager', () => {
 		} = createCurrentState({
 			services: [],
 			networks: [DEFAULT_NETWORK],
-			volumes: [Volume.fromComposeObject('test-volume', 1, {})],
+			volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 		});
 
 		const steps = await applicationManager.inferNextSteps(
@@ -893,7 +893,7 @@ describe('compose/application-manager', () => {
 			services: [],
 			networks: [],
 			// Volume with different id
-			volumes: [Volume.fromComposeObject('test-volume', 2, {})],
+			volumes: [Volume.fromComposeObject('test-volume', 2, 'deadbeef')],
 		});
 
 		const steps = await applicationManager.inferNextSteps(

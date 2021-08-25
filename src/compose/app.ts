@@ -726,7 +726,7 @@ export class App {
 			if (conf.labels == null) {
 				conf.labels = {};
 			}
-			return Volume.fromComposeObject(name, app.appId, conf);
+			return Volume.fromComposeObject(name, app.appId, app.uuid, conf);
 		});
 
 		const networks = _.mapValues(

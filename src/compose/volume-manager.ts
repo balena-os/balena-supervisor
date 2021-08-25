@@ -78,11 +78,19 @@ export async function remove(volume: Volume) {
 }
 
 export async function createFromPath(
-	{ name, appId }: VolumeNameOpts,
+	{ name, appId, appUuid }: VolumeNameOpts & { appUuid?: string },
 	config: Partial<VolumeConfig>,
 	oldPath: string,
 ): Promise<Volume> {
-	const volume = Volume.fromComposeObject(name, appId, config);
+	const volume = Volume.fromComposeObject(
+		name,
+		appId,
+		// We may not have a uuid here, but we need one to create a volume
+		// from a compose object. We pass uuid as undefined here so that we will
+		// fallback to id comparison for apps
+		appUuid as any,
+		config,
+	);
 
 	await create(volume);
 	const inspect = await docker

@@ -34,8 +34,11 @@ describe('compose/volume-manager', () => {
 				}),
 				createVolume({
 					Name: Volume.generateDockerName(1, 'mysql'),
-					// Recently created volumes contain io.balena.supervised label
-					Labels: { 'io.balena.supervised': '1' },
+					// Recently created volumes contain io.balena.supervised label and app-uuid
+					Labels: {
+						'io.balena.supervised': '1',
+						'io.balena.app-uuid': 'deadbeef',
+					},
 				}),
 				createVolume({
 					Name: Volume.generateDockerName(1, 'backend'),
@@ -56,6 +59,7 @@ describe('compose/volume-manager', () => {
 					await expect(volumeManager.getAll()).to.eventually.deep.equal([
 						{
 							appId: 1,
+							appUuid: undefined,
 							config: {
 								driver: 'local',
 								driverOpts: {},
@@ -67,17 +71,20 @@ describe('compose/volume-manager', () => {
 						},
 						{
 							appId: 1,
+							appUuid: 'deadbeef',
 							config: {
 								driver: 'local',
 								driverOpts: {},
 								labels: {
 									'io.balena.supervised': '1',
+									'io.balena.app-uuid': 'deadbeef',
 								},
 							},
 							name: 'mysql',
 						},
 						{
 							appId: 1,
+							appUuid: undefined,
 							config: {
 								driver: 'local',
 								driverOpts: {},
@@ -126,6 +133,7 @@ describe('compose/volume-manager', () => {
 					).to.eventually.deep.equal([
 						{
 							appId: 111,
+							appUuid: undefined,
 							config: {
 								driver: 'local',
 								driverOpts: {},
@@ -152,7 +160,7 @@ describe('compose/volume-manager', () => {
 				).to.be.rejected;
 
 				// Volume to create
-				const volume = Volume.fromComposeObject('main', 111, {});
+				const volume = Volume.fromComposeObject('main', 111, 'deadbeef', {});
 				sinon.spy(volume, 'create');
 
 				// Create volume
@@ -177,7 +185,7 @@ describe('compose/volume-manager', () => {
 			await withMockerode(
 				async () => {
 					// Create compose object for volume already set up in mock engine
-					const volume = Volume.fromComposeObject('main', 111, {});
+					const volume = Volume.fromComposeObject('main', 111, 'deadbeef', {});
 					sinon.spy(volume, 'create');
 
 					// Create volume
@@ -206,7 +214,7 @@ describe('compose/volume-manager', () => {
 			await withMockerode(
 				async (mockerode) => {
 					// Volume to remove
-					const volume = Volume.fromComposeObject('main', 111, {});
+					const volume = Volume.fromComposeObject('main', 111, 'deadbeef', {});
 					sinon.spy(volume, 'remove');
 
 					// Remove volume
@@ -234,7 +242,7 @@ describe('compose/volume-manager', () => {
 			await withMockerode(
 				async (mockerode) => {
 					// Volume to remove
-					const volume = Volume.fromComposeObject('main', 111, {});
+					const volume = Volume.fromComposeObject('main', 111, 'deadbeef', {});
 					sinon.spy(volume, 'remove');
 
 					// Remove volume

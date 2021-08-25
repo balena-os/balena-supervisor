@@ -138,7 +138,7 @@ describe('compose/app', () => {
 			// Setup current and target apps
 			const current = createApp();
 			const target = createApp({
-				volumes: [Volume.fromComposeObject('test-volume', 1, {})],
+				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 				isTarget: true,
 			});
 
@@ -156,8 +156,8 @@ describe('compose/app', () => {
 			const current = createApp();
 			const target = createApp({
 				volumes: [
-					Volume.fromComposeObject('test-volume', 1, {}),
-					Volume.fromComposeObject('test-volume-2', 1, {}),
+					Volume.fromComposeObject('test-volume', 1, 'deadbeef'),
+					Volume.fromComposeObject('test-volume-2', 1, 'deadbeef'),
 				],
 				isTarget: true,
 			});
@@ -186,12 +186,12 @@ describe('compose/app', () => {
 		it('should not infer a volume remove step when the app is still referenced', () => {
 			const current = createApp({
 				volumes: [
-					Volume.fromComposeObject('test-volume', 1, {}),
-					Volume.fromComposeObject('test-volume-2', 1, {}),
+					Volume.fromComposeObject('test-volume', 1, 'deadbeef'),
+					Volume.fromComposeObject('test-volume-2', 1, 'deadbeef'),
 				],
 			});
 			const target = createApp({
-				volumes: [Volume.fromComposeObject('test-volume-2', 1, {})],
+				volumes: [Volume.fromComposeObject('test-volume-2', 1, 'deadbeef')],
 				isTarget: true,
 			});
 
@@ -201,11 +201,11 @@ describe('compose/app', () => {
 
 		it('should correctly infer volume recreation steps', () => {
 			const current = createApp({
-				volumes: [Volume.fromComposeObject('test-volume', 1, {})],
+				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 			});
 			const target = createApp({
 				volumes: [
-					Volume.fromComposeObject('test-volume', 1, {
+					Volume.fromComposeObject('test-volume', 1, 'deadbeef', {
 						labels: { test: 'test' },
 					}),
 				],
@@ -221,8 +221,12 @@ describe('compose/app', () => {
 			const [removalStep] = expectSteps('removeVolume', stepsForRemoval);
 			expect(removalStep)
 				.to.have.property('current')
-				.that.has.property('config')
-				.that.deep.includes({ labels: { 'io.balena.supervised': 'true' } });
+				.that.has.property('name')
+				.that.equals('test-volume');
+			expect(removalStep)
+				.to.have.property('current')
+				.that.has.property('appId')
+				.that.equals(1);
 
 			// we are assuming that after the execution steps the current state of the
 			// app will look like this
@@ -241,7 +245,11 @@ describe('compose/app', () => {
 				.to.have.property('target')
 				.that.has.property('config')
 				.that.deep.includes({
-					labels: { 'io.balena.supervised': 'true', test: 'test' },
+					labels: {
+						'io.balena.supervised': 'true',
+						'io.balena.app-uuid': 'deadbeef',
+						test: 'test',
+					},
 				});
 		});
 
@@ -252,7 +260,7 @@ describe('compose/app', () => {
 						composition: { volumes: ['test-volume:/data'] },
 					}),
 				],
-				volumes: [Volume.fromComposeObject('test-volume', 1, {})],
+				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 			});
 			const target = createApp({
 				services: [
@@ -261,7 +269,7 @@ describe('compose/app', () => {
 					}),
 				],
 				volumes: [
-					Volume.fromComposeObject('test-volume', 1, {
+					Volume.fromComposeObject('test-volume', 1, 'deadbeef', {
 						labels: { test: 'test' },
 					}),
 				],
@@ -279,7 +287,7 @@ describe('compose/app', () => {
 
 		it('should correctly infer to remove an app volumes when the app is being removed', async () => {
 			const current = createApp({
-				volumes: [Volume.fromComposeObject('test-volume', 1, {})],
+				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 			});
 
 			const steps = await current.stepsToRemoveApp(defaultContext);
@@ -297,12 +305,12 @@ describe('compose/app', () => {
 			service.status = 'Stopping';
 			const current = createApp({
 				services: [service],
-				volumes: [Volume.fromComposeObject('test-volume', 1, {})],
+				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 			});
 			const target = createApp({
 				services: [service],
 				volumes: [
-					Volume.fromComposeObject('test-volume', 1, {
+					Volume.fromComposeObject('test-volume', 1, 'deadbeef', {
 						labels: { test: 'test' },
 					}),
 				],
@@ -318,7 +326,11 @@ describe('compose/app', () => {
 				image: 'test-image',
 				composition: { volumes: ['db-volume:/data'] },
 			});
-			const volume = Volume.fromComposeObject('db-volume', service.appId, {});
+			const volume = Volume.fromComposeObject(
+				'db-volume',
+				service.appId,
+				'deadbeef',
+			);
 			const contextWithImages = {
 				...defaultContext,
 				...{

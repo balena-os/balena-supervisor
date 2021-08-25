@@ -31,8 +31,9 @@ const defaultLegacyVolume = () => 'resin-data';
 /**
  * Creates a docker volume from the legacy data directory
  */
-export async function createVolumeFromLegacyData(
+async function createVolumeFromLegacyData(
 	appId: number,
+	appUuid: string,
 ): Promise<Volume | void> {
 	const name = defaultLegacyVolume();
 	const legacyPath = path.join(
@@ -42,7 +43,11 @@ export async function createVolumeFromLegacyData(
 	);
 
 	try {
-		return await volumeManager.createFromPath({ name, appId }, {}, legacyPath);
+		return await volumeManager.createFromPath(
+			{ name, appId, appUuid },
+			{},
+			legacyPath,
+		);
 	} catch (e) {
 		logger.logSystemMessage(
 			`Warning: could not migrate legacy /data volume: ${e.message}`,
@@ -128,7 +133,7 @@ export async function normaliseLegacyDatabase() {
 
 		// We need to get the app.uuid, release.id, serviceId, image.id and updated imageUrl
 		const release = releases[0];
-		const uuid = release.belongs_to__application[0].uuid;
+		const appUuid = release.belongs_to__application[0].uuid;
 		const image = release.contains__image[0].image[0];
 		const serviceId = image.is_a_build_of__service.__id;
 		const imageUrl = !image.content_hash
@@ -168,7 +173,7 @@ export async function normaliseLegacyDatabase() {
 					await trx('image').insert({
 						name: imageUrl,
 						appId: app.appId,
-						appUuid: uuid,
+						appUuid,
 						serviceId,
 						serviceName: service.serviceName,
 						imageId: image.id,
@@ -188,7 +193,7 @@ export async function normaliseLegacyDatabase() {
 					services: JSON.stringify([
 						Object.assign(service, {
 							appId: app.appId,
-							appUuid: uuid,
+							appUuid,
 							image: imageUrl,
 							serviceId,
 							imageId: image.id,
@@ -196,7 +201,7 @@ export async function normaliseLegacyDatabase() {
 							commit: app.commit,
 						}),
 					]),
-					uuid,
+					uuid: appUuid,
 					releaseId: release.id,
 					class: 'fleet',
 				});
@@ -215,8 +220,9 @@ export async function normaliseLegacyDatabase() {
 	await applicationManager.initialized;
 	const targetApps = await applicationManager.getTargetApps();
 
-	for (const app of Object.values(targetApps)) {
-		await createVolumeFromLegacyData(app.id);
+	for (const appUuid of Object.keys(targetApps)) {
+		const app = targetApps[appUuid];
+		await createVolumeFromLegacyData(app.id, appUuid);
 	}
 
 	await config.set({
