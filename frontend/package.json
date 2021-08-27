@@ -5,9 +5,9 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "rimraf build && tsc && webpack --config webpack.prod.config.js",
-    "start": "node build/server.js",
+    "start": "node build/server/index.js",
     "dev": "concurrently --kill-others-on-fail -n \"ui-server,ui-client\" \"npm run start:dev\" \"npm run serve\"",
-    "start:dev": "nodemon --watch server.ts --exec node -r ts-node/register/transpile-only -P tsconfig.json server.ts",
+    "start:dev": "nodemon --watch server/index.ts --exec node -r ts-node/register/transpile-only -P tsconfig.json server/index.ts",
     "serve": "webpack-dev-server --config webpack.dev.config.js",
     "test": "jest"
   },
@@ -21,6 +21,8 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "rendition": "^21.6.1",
+    "sqlite": "^4.0.23",
+    "sqlite3": "^5.0.2",
     "styled-components": "^5.3.0"
   },
   "devDependencies": {
@@ -29,6 +31,7 @@
     "@types/node": "^16.4.7",
     "@types/react": "^17.0.15",
     "@types/react-dom": "^17.0.9",
+    "@types/sqlite3": "^3.1.7",
     "concurrently": "^6.2.0",
     "html-webpack-plugin": "^3.0.7",
     "jest": "^27.0.6",

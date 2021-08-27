@@ -51,11 +51,11 @@ COPY package*.json ./
 RUN npm ci --build-from-source --sqlite=/usr/lib
 
 COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm install
+RUN cd frontend && npm ci --build-from-source --sqlite=/usr/lib
 
-COPY frontend/server.ts frontend/tsconfig.json frontend/webpack.dev.config.js ./frontend/
+COPY frontend/tsconfig.json frontend/webpack.dev.config.js ./frontend/
 COPY frontend/src ./frontend/src
-# TODO: look at if npm install is fine for production build
+COPY frontend/server ./frontend/server
 
 # We only run these commands when executing through
 # livepush, so they are presented as livepush directives
