@@ -76,7 +76,13 @@ function createImage(
 		...extra
 	} = {} as Partial<Image>,
 ) {
-	return { appId, dependent, name, serviceName, ...extra } as Image;
+	return {
+		appId,
+		dependent,
+		name,
+		serviceName,
+		...extra,
+	} as Image;
 }
 
 const expectSteps = (
@@ -240,11 +246,19 @@ describe('compose/app', () => {
 
 		it('should kill dependencies of a volume before changing config', async () => {
 			const current = createApp({
-				services: [await createService({ volumes: ['test-volume'] })],
+				services: [
+					await createService({
+						volumes: ['test-volume:/data'],
+					}),
+				],
 				volumes: [Volume.fromComposeObject('test-volume', 1, {})],
 			});
 			const target = createApp({
-				services: [await createService({ volumes: ['test-volume'] })],
+				services: [
+					await createService({
+						volumes: ['test-volume:/data'],
+					}),
+				],
 				volumes: [
 					Volume.fromComposeObject('test-volume', 1, {
 						labels: { test: 'test' },
@@ -276,7 +290,9 @@ describe('compose/app', () => {
 		});
 
 		it('should not output a kill step for a service which is already stopping when changing a volume', async () => {
-			const service = await createService({ volumes: ['test-volume'] });
+			const service = await createService({
+				volumes: ['test-volume:/data'],
+			});
 			service.status = 'Stopping';
 			const current = createApp({
 				services: [service],
@@ -298,7 +314,7 @@ describe('compose/app', () => {
 
 		it('should generate the correct step sequence for a volume purge request', async () => {
 			const service = await createService({
-				volumes: ['db-volume'],
+				volumes: ['db-volume:/data'],
 				image: 'test-image',
 			});
 			const volume = Volume.fromComposeObject('db-volume', service.appId, {});
@@ -364,7 +380,7 @@ describe('compose/app', () => {
 				volumes: [],
 			});
 
-			// Step 3: start & createVolume
+			// Step 3: createVolume
 			service.status = 'Running';
 			const target = createApp({
 				services: [service],
@@ -372,13 +388,26 @@ describe('compose/app', () => {
 				volumes: [volume],
 				isTarget: true,
 			});
-			const finalSteps = currentWithVolumesRemoved.nextStepsForAppUpdate(
+			const recreateVolumeSteps = currentWithVolumesRemoved.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
-			expect(finalSteps).to.have.length(2);
-			expectSteps('start', finalSteps);
-			expectSteps('createVolume', finalSteps);
+
+			expect(recreateVolumeSteps).to.have.length(1);
+			expectSteps('createVolume', recreateVolumeSteps);
+
+			// Final step: start service
+			const currentWithVolumeRecreated = createApp({
+				services: [],
+				networks: [defaultNetwork],
+				volumes: [volume],
+			});
+
+			const createServiceSteps = currentWithVolumeRecreated.nextStepsForAppUpdate(
+				contextWithImages,
+				target,
+			);
+			expectSteps('start', createServiceSteps);
 		});
 	});
 

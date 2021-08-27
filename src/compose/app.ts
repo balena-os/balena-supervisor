@@ -145,17 +145,13 @@ export class App {
 		// Generate volume steps
 		steps = steps.concat(
 			this.generateStepsForComponent(volumeChanges, servicePairs, (v, svc) =>
-				// TODO: Volumes are stored without the appId prepended, but networks are stored
-				// with it prepended. Sort out this inequality
-				svc.config.volumes.includes(v.name),
+				svc.hasVolume(v.name),
 			),
 		);
 		// Generate network steps
 		steps = steps.concat(
-			this.generateStepsForComponent(
-				networkChanges,
-				servicePairs,
-				(n, svc) => `${this.appId}_${n.name}` in svc.config.networks,
+			this.generateStepsForComponent(networkChanges, servicePairs, (n, svc) =>
+				svc.hasNetwork(n.name),
 			),
 		);
 
@@ -570,21 +566,14 @@ export class App {
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 	): boolean {
-		const serviceVolumes = svc.config.volumes;
-		for (const { current } of volumePairs) {
-			if (current && serviceVolumes.includes(`${this.appId}_${current.name}`)) {
-				return true;
-			}
-		}
-
-		const serviceNetworks = svc.config.networks;
-		for (const { current } of networkPairs) {
-			if (current && `${this.appId}_${current.name}` in serviceNetworks) {
-				return true;
-			}
-		}
-
-		return false;
+		return (
+			volumePairs.some(
+				({ current }) => current && svc.hasVolume(current.name),
+			) ||
+			networkPairs.some(
+				({ current }) => current && svc.hasNetwork(current.name),
+			)
+		);
 	}
 
 	private generateContainerStep(current: Service, target: Service) {
@@ -657,33 +646,20 @@ export class App {
 			return false;
 		}
 
+		// Wait for networks to be created before starting the service
 		if (
-			_.some(
-				networkPairs,
-				(pair) =>
-					`${this.appId}_${pair.target?.name}` === target.config.networkMode,
+			networkPairs.some(
+				(pair) => pair.target && target.hasNetworkMode(pair.target.name),
 			)
 		) {
 			return false;
 		}
 
+		// Wait for volumes to be created before starting the service
 		if (
-			_.some(target.config.volumes, (volumeDefinition) => {
-				const [sourceName, destName] = volumeDefinition.split(':');
-				if (destName == null) {
-					// If this is not a named volume, ignore it
-					return false;
-				}
-				if (sourceName[0] === '/') {
-					// Absolute paths should also be ignored
-					return false;
-				}
-
-				return _.some(
-					volumePairs,
-					(pair) => `${target.appId}_${pair.target?.name}` === sourceName,
-				);
-			})
+			volumePairs.some(
+				(pair) => pair.target && target.hasVolume(pair.target.name),
+			)
 		) {
 			return false;
 		}
