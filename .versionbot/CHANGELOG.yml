@@ -1,4 +1,17 @@
 - commits:
+    - subject: Clean up configurations.md
+      hash: af51ef8eb54af96cf00657576908f020ac401488
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.10.5
+  date: 2021-08-31T22:51:45.166Z
+- commits:
     - subject: Include issues with downgrading versions in README
       hash: 1280ac365618eb4106e9c20dd4e738a22958d0b7
       body: ''
