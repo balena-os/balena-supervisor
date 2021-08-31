@@ -36,7 +36,7 @@ In addition to these values, there may be some device-type specific configuratio
 
 > Supported boards: Any Raspberry Pi and balenaFin.
 
-This device type utilizes a [`config.txt` file](https://www.raspberrypi.org/documentation/configuration/config-txt/README.md) of which we offer some values to be configured. The following values are not all the configurations found in the `config.txt` file and are just balena additions or edits to the OEM version.
+This device type utilizes a [config.txt](https://www.raspberrypi.org/documentation/configuration/config-txt/README.md) file of which we offer some values to be configured. The following values are not all the configurations found in the `config.txt` file and are just balena additions or edits to the OEM version.
 
 | Name | Type | Reboots | Default | Description | Valid from |
 | --- | --- | --- | --- | --- | --- |
@@ -48,13 +48,11 @@ This device type utilizes a [`config.txt` file](https://www.raspberrypi.org/docu
 | BALENA_HOST_CONFIG_gpu_mem | integer | true | 16 | Define device GPU memory in megabytes. | v1.0.0 |
 | BALENA_HOST_CONFIG_gpio | string | true | undefined | Allows GPIO pins to be set to specific modes and values at boot time. See [here](https://www.raspberrypi.org/documentation/configuration/config-txt/gpio.md) for more. | v1.0.0 |
 
-You can find more information on updating `config.txt` through configuration variables in our [Advanced Boot Configuration Guide](https://www.balena.io/docs/reference/os/advanced/).
-
 ## ConfigFS
 
 > Supported boards: UP Board
 
-This device type utilizes a `configFS` [file](https://lwn.net/Articles/148973/) interface that allows definition of arbitrary functions and configurations.
+This device type utilizes a [configFS](https://lwn.net/Articles/148973/) file interface that allows definition of arbitrary functions and configurations.
 
 | Name | Type | Reboots | Default | Description | Valid from |
 | --- | --- | --- | --- | --- | --- |
