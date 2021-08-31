@@ -277,6 +277,12 @@ git --version # >= 2.13.0
 
 Also, ensure you're installing dependencies with `npm ci` as this will perform a clean install and guarantee the module versions specified are downloaded rather then installed which might attempt to upgrade!
 
+#### Downgrading versions
+
+The Supervisor will always be forwards compatible so you can just simply run newer versions. If there is data that must be normalized to a new schema such as the naming of engine resources, values in the sqlite database, etc then the new version will automatically take care of that either via [migrations](/src/migrations) or at runtime when the value is queried.
+
+However, these transformations of data are one way. You cannot run older versions of the Supervisor because the migrations are tracked in the sqlite database which will cause exceptions to be thrown once the Supervisor detects the source code is missing migration scripts that the database has. To resolve this just return to your previous Supervisor version or upgrade to the latest version if you don't remember.
+
 ## License
 
 Copyright 2020 Balena Ltd.
