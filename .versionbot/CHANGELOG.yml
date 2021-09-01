@@ -1,4 +1,17 @@
 - commits:
+    - subject: Remove "variable list" heading in configuration doc
+      hash: 5205e8ce07375a7bf9ca18f0a28bd73c275acd96
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.10.6
+  date: 2021-09-01T18:06:51.646Z
+- commits:
     - subject: Clean up configurations.md
       hash: af51ef8eb54af96cf00657576908f020ac401488
       body: ''
