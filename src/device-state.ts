@@ -37,11 +37,11 @@ import * as deviceConfig from './device-config';
 import { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
 import {
-	DeviceReportFields,
-	DeviceStatus,
+	DeviceLegacyReport,
+	DeviceLegacyState,
 	InstancedDeviceState,
 	TargetState,
-	InstancedAppState,
+	DeviceState,
 } from './types';
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
@@ -166,7 +166,7 @@ function createDeviceStateRouter() {
 
 	router.get('/v1/device', async (_req, res) => {
 		try {
-			const state = await getCurrentForReport();
+			const state = await getLegacyState();
 			const stateToSend = _.pick(state.local, [
 				'api_port',
 				'ip_address',
@@ -248,7 +248,7 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| CompositionStepT<T extends CompositionStepAction ? T : never>
 	| ConfigStep;
 
-let currentVolatile: DeviceReportFields = {};
+let currentVolatile: DeviceLegacyReport = {};
 const writeLock = updateLock.writeLock;
 const readLock = updateLock.readLock;
 let maxPollTime: number;
@@ -534,9 +534,10 @@ export function getTarget({
 // the same format as the target state. This method,
 // getCurrent and getCurrentForComparison should probably get
 // merged into a single method
-export async function getCurrentForReport(): Promise<DeviceStatus> {
+// @deprecated
+export async function getLegacyState(): Promise<DeviceLegacyState> {
 	const appsStatus = await applicationManager.getLegacyState();
-	const theState: DeepPartial<DeviceStatus> = {
+	const theState: DeepPartial<DeviceLegacyState> = {
 		local: {},
 		dependent: {},
 	};
@@ -566,9 +567,28 @@ export async function getCurrentForReport(): Promise<DeviceStatus> {
 		}
 	}
 
-	return theState as DeviceStatus;
+	return theState as DeviceLegacyState;
 }
 
+// Return current state in a way that the API understands
+export async function getCurrentForReport(): Promise<DeviceState> {
+	const apps = await applicationManager.getState();
+
+	const { name, uuid } = await config.getMany(['name', 'uuid']);
+
+	if (!uuid) {
+		throw new InternalInconsistencyError('No uuid found for local device');
+	}
+
+	return {
+		[uuid]: {
+			name,
+			apps,
+		},
+	};
+}
+
+// Get the current state as object instances
 export async function getCurrentState(): Promise<InstancedDeviceState> {
 	const [name, devConfig, apps, dependent] = await Promise.all([
 		config.get('name'),
@@ -587,9 +607,7 @@ export async function getCurrentState(): Promise<InstancedDeviceState> {
 	};
 }
 
-export function reportCurrentState(
-	newState: DeviceReportFields & Partial<InstancedAppState> = {},
-) {
+export function reportCurrentState(newState: DeviceLegacyReport = {}) {
 	if (newState == null) {
 		newState = {};
 	}

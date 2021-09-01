@@ -16,7 +16,7 @@ import {
 
 import App from '../compose/app';
 
-export type DeviceReportFields = Partial<{
+export type DeviceLegacyReport = Partial<{
 	api_port: number;
 	api_secret: string | null;
 	ip_address: string;
@@ -29,15 +29,15 @@ export type DeviceReportFields = Partial<{
 	update_failed: boolean;
 	update_pending: boolean;
 	update_downloaded: boolean;
-	is_on__commit: string;
 	logs_channel: null;
 	mac_address: string | null;
 }>;
 
 // This is the state that is sent to the cloud
-export interface DeviceStatus {
+export interface DeviceLegacyState {
 	local?: {
 		config?: Dictionary<string>;
+		is_on__commit?: string;
 		apps?: {
 			[appId: string]: {
 				services: {
@@ -49,13 +49,78 @@ export interface DeviceStatus {
 				};
 			};
 		};
-	} & DeviceReportFields;
+	} & DeviceLegacyReport;
 	// TODO: Type the dependent entry correctly
 	dependent?: {
 		[key: string]: any;
 	};
 	commit?: string;
 }
+
+export type ServiceState = {
+	image: string;
+	status: string;
+	download_progress?: number | null;
+};
+
+export type ReleaseState = {
+	services: {
+		[serviceName: string]: ServiceState;
+	};
+};
+
+export type ReleasesState = {
+	[releaseUuid: string]: ReleaseState;
+};
+
+export type AppState = {
+	release_uuid?: string;
+	releases: ReleasesState;
+};
+
+export type DeviceReport = {
+	name?: string;
+	status?: string;
+	os_version?: string | null; // TODO: Should these purely come from the os app?
+	os_variant?: string | null; // TODO: Should these purely come from the os app?
+	supervisor_version?: string; // TODO: Should this purely come from the supervisor app?
+	provisioning_progress?: number | null; // TODO: should this be reported as part of the os app?
+	provisioning_state?: string | null; // TODO: should this be reported as part of the os app?
+	ip_address?: string;
+	mac_address?: string | null;
+	api_port?: number; // TODO: should this be reported as part of the supervisor app?
+	api_secret?: string | null; // TODO: should this be reported as part of the supervisor app?
+	logs_channel?: string; // TODO: should this be reported as part of the supervisor app? or should it not be reported anymore at all?
+	memory_usage?: number;
+	memory_total?: number;
+	storage_block_device?: string;
+	storage_usage?: number;
+	storage_total?: number;
+	cpu_temp?: number;
+	cpu_usage?: number;
+	cpu_id?: string;
+	is_undervolted?: boolean;
+	// TODO: these are ignored by the API but are used by supervisor local API, remove?
+	update_failed?: boolean;
+	update_pending?: boolean;
+	update_downloaded?: boolean;
+};
+
+export type DeviceState = {
+	[deviceUuid: string]: DeviceReport & {
+		/**
+		 * Used for setting dependent devices as online
+		 */
+		is_online?: boolean;
+		/**
+		 * Used for setting gateway device of dependent devices
+		 */
+		parent_device?: number;
+		apps?: {
+			[appUuid: string]: AppState;
+		};
+	};
+};
 
 // Return a type with a default value
 const withDefault = <T extends t.Any>(

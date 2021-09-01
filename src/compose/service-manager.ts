@@ -119,6 +119,7 @@ export async function getState() {
 		if (status[service.containerId] == null) {
 			status[service.containerId] = _.pick(service, [
 				'appId',
+				'appUuid',
 				'imageId',
 				'status',
 				'releaseId',
@@ -508,7 +509,15 @@ function reportNewStatus(
 		containerId,
 		_.merge(
 			{ status },
-			_.pick(service, ['imageId', 'appId', 'releaseId', 'commit']),
+			_.pick(service, [
+				'imageId',
+				'appId',
+				'appUuid',
+				'serviceName',
+				'releaseId',
+				'createdAt',
+				'commit',
+			]),
 		),
 	);
 }

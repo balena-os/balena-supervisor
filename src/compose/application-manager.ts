@@ -36,7 +36,9 @@ import { CompositionStep, generateStep } from './composition-steps';
 import {
 	InstancedAppState,
 	TargetApps,
-	DeviceReportFields,
+	DeviceLegacyReport,
+	AppState,
+	ServiceState,
 } from '../types/state';
 import { checkTruthy } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
@@ -44,7 +46,7 @@ import { EventEmitter } from 'events';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
-	{ change: DeviceReportFields }
+	{ change: DeviceLegacyReport }
 >;
 const events: ApplicationManagerEventEmitter = new EventEmitter();
 export const on: typeof events['on'] = events.on.bind(events);
@@ -996,4 +998,141 @@ export async function getLegacyState() {
 	}
 
 	return { local: apps, dependent };
+}
+
+// TODO: this function is probably more inefficient than it needs to be, since
+// it tried to optimize for readability, look for a way to make it simpler
+export async function getState() {
+	const [services, images] = await Promise.all([
+		serviceManager.getState(),
+		imageManager.getState(),
+	]);
+
+	type ServiceInfo = {
+		appId: number;
+		appUuid: string;
+		commit: string;
+		serviceName: string;
+		createdAt?: Date;
+	} & ServiceState;
+
+	// Get service data from images
+	const stateFromImages: ServiceInfo[] = images.map(
+		({
+			appId,
+			appUuid,
+			name,
+			commit,
+			serviceName,
+			status,
+			downloadProgress,
+		}) => ({
+			appId,
+			appUuid,
+			image: name,
+			commit,
+			serviceName,
+			status: status as string,
+			...(downloadProgress && { download_progress: downloadProgress }),
+		}),
+	);
+
+	// Get all services and augment service data from the image if any
+	const stateFromServices = services
+		.map(({ appId, appUuid, commit, serviceName, status, createdAt }) => [
+			// Only include appUuid if is available, if not available we'll get it from the image
+			{
+				appId,
+				...(appUuid && { appUuid }),
+				commit,
+				serviceName,
+				status,
+				createdAt,
+			},
+			// Get the corresponding image to augment the service data
+			stateFromImages.find(
+				(img) => img.serviceName === serviceName && img.commit === commit,
+			),
+		])
+		// We cannot report services that do not have an image as the API
+		// requires passing the image name
+		.filter(([, img]) => !!img)
+		.map(([svc, img]) => ({ ...img, ...svc } as ServiceInfo))
+		.map((svc, __, serviceList) => {
+			// If the service is not running it cannot be a handover
+			if (svc.status !== 'Running') {
+				return svc;
+			}
+
+			// If there one or more running services with the same name and appUuid, but different
+			// release, then we are still handing over so we need to report the appropriate
+			// status
+			const siblings = serviceList.filter(
+				(s) =>
+					s.appUuid === svc.appUuid &&
+					s.serviceName === svc.serviceName &&
+					s.status === 'Running' &&
+					s.commit !== svc.commit,
+			);
+
+			// There should really be only one element on the `siblings` array, but
+			// we chose the oldest service to have its status reported as 'Handing over'
+			if (
+				siblings.length > 0 &&
+				siblings.every((s) => svc.createdAt!.getTime() < s.createdAt!.getTime())
+			) {
+				return { ...svc, status: 'Handing over' };
+			} else if (siblings.length > 0) {
+				return { ...svc, status: 'Awaiting handover' };
+			}
+			return svc;
+		});
+
+	const servicesToReport =
+		// The full list of services is the union of images that have no container created yet
+		stateFromImages
+			.filter(
+				(img) =>
+					!stateFromServices.some(
+						(svc) =>
+							img.serviceName === svc.serviceName && img.commit === svc.commit,
+					),
+			)
+			// With the services that have a container
+			.concat(stateFromServices);
+
+	// Get the list of commits for all appIds from the database
+	const commitsForApp = (
+		await Promise.all(
+			// Deduplicate appIds first
+			[...new Set(servicesToReport.map((svc) => svc.appId))].map(
+				async (appId) => ({
+					[appId]: await commitStore.getCommitForApp(appId),
+				}),
+			),
+		)
+	).reduce((commits, c) => ({ ...commits, ...c }), {});
+
+	// Assemble the state of apps
+	return servicesToReport.reduce(
+		(apps, { appId, appUuid, commit, serviceName, createdAt, ...svc }) => ({
+			...apps,
+			[appUuid]: {
+				...(apps[appUuid] ?? {}),
+				// Add the release_uuid if the commit has been stored in the database
+				...(commitsForApp[appId] && { release_uuid: commitsForApp[appId] }),
+				releases: {
+					...(apps[appUuid]?.releases ?? {}),
+					[commit]: {
+						...(apps[appUuid]?.releases[commit] ?? {}),
+						services: {
+							...(apps[appUuid]?.releases[commit]?.services ?? {}),
+							[serviceName]: svc,
+						},
+					},
+				},
+			},
+		}),
+		{} as { [appUuid: string]: AppState },
+	);
 }

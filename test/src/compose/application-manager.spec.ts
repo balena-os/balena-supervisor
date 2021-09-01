@@ -4,6 +4,7 @@ import { stub } from 'sinon';
 import App from '../../../src/compose/app';
 import * as applicationManager from '../../../src/compose/application-manager';
 import * as imageManager from '../../../src/compose/images';
+import * as serviceManager from '../../../src/compose/service-manager';
 import { Image } from '../../../src/compose/images';
 import Network from '../../../src/compose/network';
 import * as networkManager from '../../../src/compose/network-manager';
@@ -1265,5 +1266,242 @@ describe('compose/application-manager', () => {
 					s.target.serviceName === 'main',
 			),
 		).to.have.lengthOf(1);
+	});
+
+	describe('getting applications current state', () => {
+		let getImagesState: sinon.SinonStub;
+		let getServicesState: sinon.SinonStub;
+
+		before(() => {
+			getImagesState = sinon.stub(imageManager, 'getState');
+			getServicesState = sinon.stub(serviceManager, 'getState');
+		});
+
+		afterEach(() => {
+			getImagesState.reset();
+			getServicesState.reset();
+		});
+
+		after(() => {
+			getImagesState.restore();
+			getServicesState.restore();
+		});
+
+		it('reports the state of images if no service is available', async () => {
+			getImagesState.resolves([
+				{
+					name: 'ubuntu:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Downloaded',
+				},
+				{
+					name: 'alpine:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloading',
+					downloadProgress: 50,
+				},
+				{
+					name: 'fedora:latest',
+					commit: 'newrelease',
+					appUuid: 'fedora',
+					serviceName: 'fedora',
+					status: 'Downloading',
+					downloadProgress: 75,
+				},
+				{
+					name: 'fedora:older',
+					commit: 'oldrelease',
+					appUuid: 'fedora',
+					serviceName: 'fedora',
+					status: 'Downloaded',
+				},
+			]);
+			getServicesState.resolves([]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								ubuntu: {
+									image: 'ubuntu:latest',
+									status: 'Downloaded',
+								},
+								alpine: {
+									image: 'alpine:latest',
+									status: 'Downloading',
+									download_progress: 50,
+								},
+							},
+						},
+					},
+				},
+				fedora: {
+					releases: {
+						oldrelease: {
+							services: {
+								fedora: {
+									image: 'fedora:older',
+									status: 'Downloaded',
+								},
+							},
+						},
+						newrelease: {
+							services: {
+								fedora: {
+									image: 'fedora:latest',
+									status: 'Downloading',
+									download_progress: 75,
+								},
+							},
+						},
+					},
+				},
+			});
+		});
+
+		it('augments the service data with image data', async () => {
+			getImagesState.resolves([
+				{
+					name: 'ubuntu:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Downloaded',
+				},
+				{
+					name: 'alpine:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloading',
+					downloadProgress: 50,
+				},
+				{
+					name: 'fedora:older',
+					commit: 'oldrelease',
+					appUuid: 'fedora',
+					serviceName: 'fedora',
+					status: 'Downloaded',
+				},
+			]);
+			getServicesState.resolves([
+				{
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T13:00:00'),
+				},
+				{
+					commit: 'oldrelease',
+					serviceName: 'fedora',
+					status: 'Stopped',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+				{
+					// Service without an image should not show on the final state
+					appUuid: 'debian',
+					commit: 'otherrelease',
+					serviceName: 'debian',
+					status: 'Stopped',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+			]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								ubuntu: {
+									image: 'ubuntu:latest',
+									status: 'Running',
+								},
+								alpine: {
+									image: 'alpine:latest',
+									status: 'Downloading',
+									download_progress: 50,
+								},
+							},
+						},
+					},
+				},
+				fedora: {
+					releases: {
+						oldrelease: {
+							services: {
+								fedora: {
+									image: 'fedora:older',
+									status: 'Stopped',
+								},
+							},
+						},
+					},
+				},
+			});
+		});
+
+		it('reports handover state if multiple services are running for the same app', async () => {
+			getImagesState.resolves([
+				{
+					name: 'alpine:3.13',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloaded',
+				},
+				{
+					name: 'alpine:3.12',
+					commit: 'oldrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloaded',
+				},
+			]);
+			getServicesState.resolves([
+				{
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T13:00:00'),
+				},
+				{
+					commit: 'oldrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+			]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								alpine: {
+									image: 'alpine:3.13',
+									status: 'Awaiting handover',
+								},
+							},
+						},
+						oldrelease: {
+							services: {
+								alpine: {
+									image: 'alpine:3.12',
+									status: 'Handing over',
+								},
+							},
+						},
+					},
+				},
+			});
+		});
 	});
 });

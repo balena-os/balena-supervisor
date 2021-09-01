@@ -9,7 +9,7 @@ import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
 import * as sysInfo from '../lib/system-info';
 
-import { DeviceStatus } from '../types';
+import { DeviceLegacyState } from '../types';
 import * as config from '../config';
 import { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
 import * as eventTracker from '../event-tracker';
@@ -22,7 +22,7 @@ const INTERNAL_STATE_KEYS = [
 ];
 
 export let stateReportErrors = 0;
-const lastReportedState: DeviceStatus = {
+const lastReportedState: DeviceLegacyState = {
 	local: {},
 	dependent: {},
 };
@@ -43,7 +43,7 @@ type CurrentStateReportConf = {
 };
 
 type StateReport = {
-	stateDiff: DeviceStatus;
+	stateDiff: DeviceLegacyState;
 	conf: Omit<CurrentStateReportConf, 'deviceId' | 'hardwareMetrics'>;
 };
 
@@ -51,7 +51,9 @@ type StateReport = {
  * Returns an object that contains only status fields relevant for the local mode.
  * It basically removes information about applications state.
  */
-const stripDeviceStateInLocalMode = (state: DeviceStatus): DeviceStatus => {
+const stripDeviceStateInLocalMode = (
+	state: DeviceLegacyState,
+): DeviceLegacyState => {
 	return {
 		local: _.cloneDeep(
 			_.omit(state.local, 'apps', 'is_on__commit', 'logs_channel'),
@@ -103,7 +105,7 @@ async function report({ stateDiff, conf }: StateReport): Promise<boolean> {
 	return true;
 }
 
-function newStateDiff(stateForReport: DeviceStatus): DeviceStatus {
+function newStateDiff(stateForReport: DeviceLegacyState): DeviceLegacyState {
 	const lastReportedLocal = lastReportedState.local;
 	const lastReportedDependent = lastReportedState.dependent;
 	if (lastReportedLocal == null || lastReportedDependent == null) {
@@ -117,7 +119,7 @@ function newStateDiff(stateForReport: DeviceStatus): DeviceStatus {
 	const diff = {
 		local: _.omitBy(
 			stateForReport.local,
-			(val, key: keyof NonNullable<DeviceStatus['local']>) =>
+			(val, key: keyof NonNullable<DeviceLegacyState['local']>) =>
 				INTERNAL_STATE_KEYS.includes(key) ||
 				_.isEqual(lastReportedLocal[key], val) ||
 				!sysInfo.isSignificantChange(
@@ -128,7 +130,7 @@ function newStateDiff(stateForReport: DeviceStatus): DeviceStatus {
 		),
 		dependent: _.omitBy(
 			stateForReport.dependent,
-			(val, key: keyof DeviceStatus['dependent']) =>
+			(val, key: keyof DeviceLegacyState['dependent']) =>
 				INTERNAL_STATE_KEYS.includes(key) ||
 				_.isEqual(lastReportedDependent[key], val),
 		),
@@ -197,7 +199,7 @@ function handleRetry(retryInfo: OnFailureInfo) {
 async function generateStateForReport() {
 	const { hardwareMetrics } = await config.getMany(['hardwareMetrics']);
 
-	const currentDeviceState = await deviceState.getCurrentForReport();
+	const currentDeviceState = await deviceState.getLegacyState();
 
 	// If hardwareMetrics is false, send null patch for system metrics to cloud API
 	const info = {

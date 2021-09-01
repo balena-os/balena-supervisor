@@ -215,7 +215,7 @@ export async function patchDevice(
 	}
 
 	if (!conf.provisioned) {
-		throw new Error('DEvice must be provisioned to update a device');
+		throw new Error('Device must be provisioned to update a device');
 	}
 
 	if (balenaApi == null) {
@@ -308,11 +308,7 @@ export async function fetchDeviceTags(): Promise<DeviceTag[]> {
 				)}`,
 			);
 		}
-		return {
-			id: id.right,
-			name: name.right,
-			value: value.right,
-		};
+		return { id: id.right, name: name.right, value: value.right };
 	});
 }
 
@@ -408,17 +404,14 @@ async function reportInitialEnv(
 
 	const defaultConfig = deviceConfig.getDefaults();
 
-	const currentState = await deviceState.getCurrentState();
-	const targetConfig = await deviceConfig.formatConfigKeys(
-		targetConfigUnformatted,
-	);
+	const currentConfig = await deviceConfig.getCurrent();
+	const targetConfig = deviceConfig.formatConfigKeys(targetConfigUnformatted);
 
-	if (!currentState.local.config) {
+	if (!currentConfig) {
 		throw new InternalInconsistencyError(
 			'No config defined in reportInitialEnv',
 		);
 	}
-	const currentConfig: Dictionary<string> = currentState.local.config;
 	for (const [key, value] of _.toPairs(currentConfig)) {
 		let varValue = value;
 		// We want to disable local mode when joining a cloud

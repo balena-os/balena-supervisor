@@ -435,18 +435,18 @@ export const getState = async () => {
 	const images = (await getAvailable()).map((img) => ({
 		...img,
 		status: 'Downloaded' as Image['status'],
-		downloadImageSuccess: null,
+		downloadProgress: null,
 	}));
 
 	const imagesFromRunningTasks = Object.values(runningTasks).map(
 		(task) => task.context,
 	);
-	const runningImageIds = imagesFromRunningTasks.map((img) => img.imageId);
+	const runningImageNames = imagesFromRunningTasks.map((img) => img.name);
 
 	// TODO: this is possibly wrong, the value from getAvailable should be more reliable
 	// than the value from running tasks
 	return imagesFromRunningTasks.concat(
-		images.filter((img) => !runningImageIds.includes(img.imageId)),
+		images.filter((img) => !runningImageNames.includes(img.name)),
 	);
 };
 

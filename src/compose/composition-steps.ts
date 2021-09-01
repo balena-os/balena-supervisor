@@ -13,7 +13,7 @@ import Volume from './volume';
 import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
-import { DeviceReportFields } from '../types/state';
+import { DeviceLegacyReport } from '../types/state';
 import * as commitStore from './commit';
 
 interface BaseCompositionStepArgs {
@@ -135,7 +135,7 @@ interface CompositionCallbacks {
 	fetchStart: () => void;
 	fetchEnd: () => void;
 	fetchTime: (time: number) => void;
-	stateReport: (state: DeviceReportFields) => void;
+	stateReport: (state: DeviceLegacyReport) => void;
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
 }
 
