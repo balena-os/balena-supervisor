@@ -4,8 +4,6 @@ Configuration variables allow you to provide runtime configuration to the host O
 
 **Note:** Configuration variables defined in the dashboard will not apply to devices in local mode.
 
-## Variable list
-
 This list contains configuration variables that can be used with all balena devices, some of which will automatically appear for devices with Supervisor v7.0.0 and greater. While they may not automatically populate in the dashboard, most of these variables can still be used with older Supervisor versions, so be sure to check the _Valid from_ column:
 
 | Name | Type | Reboots | Default | Description | Valid from |
