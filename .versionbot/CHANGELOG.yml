@@ -1,4 +1,27 @@
 - commits:
+    - subject: Bump tar from 4.4.13 to 4.4.19
+      hash: b7cb494602fbd050bb9e31b5e8293a080349562c
+      body: |
+        Bumps [tar](https://github.com/npm/node-tar) from 4.4.13 to 4.4.19.
+        - [Release notes](https://github.com/npm/node-tar/releases)
+        - [Changelog](https://github.com/npm/node-tar/blob/main/CHANGELOG.md)
+        - [Commits](https://github.com/npm/node-tar/compare/v4.4.13...v4.4.19)
+
+        ---
+        updated-dependencies:
+        - dependency-name: tar
+          dependency-type: indirect
+        ...
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 'dependabot[bot] <support@github.com>'
+        signed-off-by: 'dependabot[bot] <support@github.com>'
+      author: 'dependabot[bot]'
+      nested: []
+  version: 12.10.7
+  date: 2021-09-01T20:40:01.473Z
+- commits:
     - subject: Remove "variable list" heading in configuration doc
       hash: 5205e8ce07375a7bf9ca18f0a28bd73c275acd96
       body: ''
