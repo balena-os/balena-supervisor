@@ -583,7 +583,7 @@ guaranteed to work, especially if they block connections that the balena service
 Keep in mind that, even if transparent proxy redirection will take effect immediately after the API call (i.e. all new connections will go through the proxy), open connections will not be closed. So, if for example, the device has managed to connect to the balenaCloud VPN without the proxy, it will stay connected directly without trying to reconnect through the proxy, unless the connection breaks - any reconnection attempts will then go through the proxy. To force *all* connections to go through the proxy, the best way is to reboot the device (see the /v1/reboot endpoint). In most networks were no connections to the Internet can be made if not through a proxy, this should not be necessary (as there will be no open connections before configuring the proxy settings).
 
 The "noProxy" setting for the proxy is an optional array of IP addresses/subnets that should not be routed through the
-proxy. Keep in mind that local/reserved subnets are already [excluded by balenaOS automatically](https://github.com/balena-os/meta-balena/blob/master/meta-balena-common/recipes-connectivity/resin-proxy-config/resin-proxy-config/resin-proxy-config#L76).
+proxy. Keep in mind that local/reserved subnets are already [excluded by balenaOS automatically](https://github.com/balena-os/meta-balena/blob/master/meta-balena-common/recipes-connectivity/balena-proxy-config/balena-proxy-config/balena-proxy-config).
 
 If either "proxy" or "hostname" are null or empty values (i.e. `{}` for proxy or an empty string for hostname), they will be cleared to their default values (i.e. not using a proxy, and a hostname equal to the first 7 characters of the device's uuid, respectively).
 
