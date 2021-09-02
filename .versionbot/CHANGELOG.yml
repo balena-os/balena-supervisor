@@ -1,4 +1,19 @@
 - commits:
+    - subject: Update URL to balena-proxy-config source code
+      hash: 2bcc3aeb56cce11b21d411ee55492109ebaf259f
+      body: |
+        Use a GitHub permalink that includes the commit in
+        case the file changes and the reference becomes out-of-date.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+  version: 12.10.9
+  date: 2021-09-02T12:25:21.696Z
+- commits:
     - subject: Bump path-parse from 1.0.6 to 1.0.7
       hash: 2e38356bf4f5157483017ea2e6670514cbca49c1
       body: >
