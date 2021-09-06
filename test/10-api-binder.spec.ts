@@ -405,7 +405,7 @@ describe('ApiBinder', () => {
 		});
 
 		it('fails when stateReportHealthy is false', async () => {
-			const currentState = await import('../src/device-state/current-state');
+			const currentState = await import('../src/api-binder/report');
 
 			configStub.resolves({
 				unmanaged: false,

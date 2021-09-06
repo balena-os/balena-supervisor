@@ -6,34 +6,31 @@ import * as t from 'io-ts';
 import * as _ from 'lodash';
 import { PinejsClientRequest } from 'pinejs-client-request';
 import * as url from 'url';
-import * as deviceRegister from './lib/register-device';
+import * as deviceRegister from '../lib/register-device';
 
-import * as config from './config';
-import * as deviceConfig from './device-config';
-import * as eventTracker from './event-tracker';
-import { loadBackupFromMigration } from './lib/migration';
+import * as config from '../config';
+import * as deviceConfig from '../device-config';
+import * as eventTracker from '../event-tracker';
+import { loadBackupFromMigration } from '../lib/migration';
 
 import {
 	ContractValidationError,
 	ContractViolationError,
 	InternalInconsistencyError,
 	TargetStateError,
-} from './lib/errors';
-import * as request from './lib/request';
+} from '../lib/errors';
+import * as request from '../lib/request';
 
-import log from './lib/supervisor-console';
+import log from '../lib/supervisor-console';
 
-import * as deviceState from './device-state';
-import * as globalEventBus from './event-bus';
-import * as TargetState from './device-state/target-state';
-import * as logger from './logger';
+import * as deviceState from '../device-state';
+import * as globalEventBus from '../event-bus';
+import * as TargetState from '../device-state/target-state';
+import * as logger from '../logger';
 
-import * as apiHelper from './lib/api-helper';
-import { Device } from './lib/api-helper';
-import {
-	startReporting,
-	stateReportErrors,
-} from './device-state/current-state';
+import * as apiHelper from '../lib/api-helper';
+import { Device } from '../lib/api-helper';
+import { startReporting, stateReportErrors } from './report';
 
 interface DevicePinInfo {
 	app: number;
