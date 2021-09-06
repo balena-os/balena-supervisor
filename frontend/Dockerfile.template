@@ -16,8 +16,9 @@ RUN npm ci
 #dev-copy=start.sh ./
 #dev-cmd-live=LIVEPUSH=1 ./start.sh
 
-COPY src ./src
-COPY server.ts webpack.prod.config.js tsconfig.json ./
+COPY src/ /src/
+COPY server/ /server/
+COPY webpack.prod.config.js tsconfig.json /
 
 RUN npm run build
 
