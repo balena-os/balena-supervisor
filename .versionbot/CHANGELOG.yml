@@ -1,4 +1,50 @@
 - commits:
+    - subject: 'api-keys: Remove os variant parameter for authentication check'
+      hash: 9e0cbe04c6d1c533c3e66183eca1d3abfb8c381d
+      body: |
+        The current code authenticates unmanaged production devices which makes
+        no sense. Unmanaged devices do not need to authenticate with the API.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+    - subject: 'os-release: Use developmentMode to ascertain OS variant in new releases'
+      hash: 1abd10a12947f05ae328496e98fcbcdc6a834ce1
+      body: |
+        Newer BalenaOS releases have replaced OS variants for a developmentMode
+        configuration setting. This commit uses this variable to set the OS
+        variant in the absence of `VARIANT_ID` from the os-release file.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+    - subject: 'config: Add developmentMode to schema'
+      hash: 4ad7a3ae917c888f267463fd3d5b839439cf40e6
+      body: >
+        Add a `developmentMode` configuration variable to the schema. Do not
+        expose
+
+        this on the device target state until local key-based authentication is
+
+        sorted.
+      footer:
+        Relates-to: 'https://jel.ly.fish/e9525e9e-aa74-478c-b931-52951c679f78'
+        relates-to: 'https://jel.ly.fish/e9525e9e-aa74-478c-b931-52951c679f78'
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+  version: 12.10.10
+  date: 2021-09-07T13:47:51.206Z
+- commits:
     - subject: Update URL to balena-proxy-config source code
       hash: 2bcc3aeb56cce11b21d411ee55492109ebaf259f
       body: |
