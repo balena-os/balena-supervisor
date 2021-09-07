@@ -99,13 +99,13 @@ describe('Config', () => {
 		conf.set({ name: 'someValue' });
 	});
 
-	it("returns an undefined OS variant if it doesn't exist", async () => {
+	it("returns production OS variant if it doesn't exist", async () => {
 		const oldPath = constants.hostOSVersionPath;
 		constants.hostOSVersionPath = 'test/data/etc/os-release-novariant';
 
 		const osVariant = await conf.get('osVariant');
 		constants.hostOSVersionPath = oldPath;
-		expect(osVariant).to.be.undefined;
+		expect(osVariant).to.equal('prod');
 	});
 
 	it('reads and exposes MAC addresses', async () => {
