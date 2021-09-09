@@ -29,7 +29,7 @@ export type DeviceLegacyReport = Partial<{
 	update_failed: boolean;
 	update_pending: boolean;
 	update_downloaded: boolean;
-	logs_channel: null;
+	logs_channel: string | null;
 	mac_address: string | null;
 }>;
 
@@ -85,12 +85,12 @@ export type DeviceReport = {
 	os_variant?: string | null; // TODO: Should these purely come from the os app?
 	supervisor_version?: string; // TODO: Should this purely come from the supervisor app?
 	provisioning_progress?: number | null; // TODO: should this be reported as part of the os app?
-	provisioning_state?: string | null; // TODO: should this be reported as part of the os app?
+	provisioning_state?: string; // TODO: should this be reported as part of the os app?
 	ip_address?: string;
 	mac_address?: string | null;
 	api_port?: number; // TODO: should this be reported as part of the supervisor app?
 	api_secret?: string | null; // TODO: should this be reported as part of the supervisor app?
-	logs_channel?: string; // TODO: should this be reported as part of the supervisor app? or should it not be reported anymore at all?
+	logs_channel?: string | null; // TODO: should this be reported as part of the supervisor app? or should it not be reported anymore at all?
 	memory_usage?: number;
 	memory_total?: number;
 	storage_block_device?: string;
@@ -100,7 +100,7 @@ export type DeviceReport = {
 	cpu_usage?: number;
 	cpu_id?: string;
 	is_undervolted?: boolean;
-	// TODO: these are ignored by the API but are used by supervisor local API, remove?
+	// TODO: these are ignored by the API but are used by supervisor local API
 	update_failed?: boolean;
 	update_pending?: boolean;
 	update_downloaded?: boolean;

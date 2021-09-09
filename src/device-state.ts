@@ -37,14 +37,15 @@ import * as deviceConfig from './device-config';
 import { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
 import {
-	DeviceLegacyReport,
 	DeviceLegacyState,
 	InstancedDeviceState,
 	TargetState,
 	DeviceState,
+	DeviceReport,
 } from './types';
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
+import * as sysInfo from './lib/system-info';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
 
@@ -248,7 +249,7 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| CompositionStepT<T extends CompositionStepAction ? T : never>
 	| ConfigStep;
 
-let currentVolatile: DeviceLegacyReport = {};
+let currentVolatile: DeviceReport = {};
 const writeLock = updateLock.writeLock;
 const readLock = updateLock.readLock;
 let maxPollTime: number;
@@ -355,7 +356,7 @@ export async function initNetworkChecks({
 	});
 	log.debug('Starting periodic check for IP addresses');
 
-	await network.startIPAddressUpdate()(async (addresses) => {
+	network.startIPAddressUpdate()(async (addresses) => {
 		const macAddress = await config.get('macAddress');
 		reportCurrentState({
 			ip_address: addresses.join(' '),
@@ -570,21 +571,75 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 	return theState as DeviceLegacyState;
 }
 
+async function getSysInfo(
+	lastInfo: Partial<sysInfo.SystemInfo>,
+): Promise<sysInfo.SystemInfo> {
+	// If hardwareMetrics is false, send null patch for system metrics to cloud API
+	const currentInfo = {
+		...((await config.get('hardwareMetrics'))
+			? await sysInfo.getSystemMetrics()
+			: {
+					cpu_usage: null,
+					memory_usage: null,
+					memory_total: null,
+					storage_usage: null,
+					storage_total: null,
+					storage_block_device: null,
+					cpu_temp: null,
+					cpu_id: null,
+			  }),
+		...(await sysInfo.getSystemChecks()),
+	};
+
+	return Object.assign(
+		{} as sysInfo.SystemInfo,
+		...Object.keys(currentInfo).map((key: keyof sysInfo.SystemInfo) => ({
+			[key]: sysInfo.isSignificantChange(
+				key,
+				lastInfo[key] as number,
+				currentInfo[key] as number,
+			)
+				? (currentInfo[key] as number)
+				: (lastInfo[key] as number),
+		})),
+	);
+}
+
 // Return current state in a way that the API understands
-export async function getCurrentForReport(): Promise<DeviceState> {
+export async function getCurrentForReport(
+	lastReport = {} as DeviceState,
+): Promise<DeviceState> {
 	const apps = await applicationManager.getState();
 
-	const { name, uuid } = await config.getMany(['name', 'uuid']);
+	const { name, uuid, localMode } = await config.getMany([
+		'name',
+		'uuid',
+		'localMode',
+	]);
 
 	if (!uuid) {
 		throw new InternalInconsistencyError('No uuid found for local device');
 	}
 
+	const omitFromReport = [
+		'update_pending',
+		'update_downloaded',
+		'update_failed',
+		...(localMode ? ['apps', 'logs_channel'] : []),
+	];
+
+	const systemInfo = await getSysInfo(lastReport[uuid] ?? {});
+
 	return {
-		[uuid]: {
-			name,
-			apps,
-		},
+		[uuid]: _.omitBy(
+			{
+				...currentVolatile,
+				...systemInfo,
+				name,
+				apps,
+			},
+			(__, key) => omitFromReport.includes(key),
+		),
 	};
 }
 
@@ -607,7 +662,7 @@ export async function getCurrentState(): Promise<InstancedDeviceState> {
 	};
 }
 
-export function reportCurrentState(newState: DeviceLegacyReport = {}) {
+export function reportCurrentState(newState: DeviceReport = {}) {
 	if (newState == null) {
 		newState = {};
 	}
