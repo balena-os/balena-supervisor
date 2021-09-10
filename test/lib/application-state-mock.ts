@@ -10,7 +10,6 @@ import Volume from '../../src/compose/volume';
 const originalVolGetAll = volumeManager.getAll;
 const originalSvcGetAll = serviceManager.getAll;
 const originalNetGetAll = networkManager.getAll;
-const originalGetDl = imageManager.getDownloadingImageIds;
 const originalNeedsClean = imageManager.isCleanupNeeded;
 const originalImageAvailable = imageManager.getAvailable;
 const originalNetworkReady = networkManager.supervisorNetworkReady;
@@ -45,14 +44,10 @@ function unmockManagers() {
 }
 
 export function mockImages(
-	downloading: number[],
+	_downloading: number[],
 	cleanup: boolean,
 	available: imageManager.Image[],
 ) {
-	// @ts-expect-error Assigning to a RO property
-	imageManager.getDownloadingImageIds = () => {
-		return downloading;
-	};
 	// @ts-expect-error Assigning to a RO property
 	imageManager.isCleanupNeeded = async () => cleanup;
 	// @ts-expect-error Assigning to a RO property
@@ -60,8 +55,6 @@ export function mockImages(
 }
 
 function unmockImages() {
-	// @ts-expect-error Assigning to a RO property
-	imageManager.getDownloadingImageIds = originalGetDl;
 	// @ts-expect-error Assigning to a RO property
 	imageManager.isCleanupNeeded = originalNeedsClean;
 	// @ts-expect-error Assigning to a RO property

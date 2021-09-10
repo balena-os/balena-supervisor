@@ -2,7 +2,6 @@ import * as _ from 'lodash';
 
 import * as config from '../config';
 
-import * as applicationManager from './application-manager';
 import type { Image } from './images';
 import * as images from './images';
 import Network from './network';
@@ -57,7 +56,6 @@ interface CompositionStepArgs {
 			skipLock?: boolean;
 		};
 	} & BaseCompositionStepArgs;
-	stopAll: BaseCompositionStepArgs;
 	start: {
 		target: Service;
 	} & BaseCompositionStepArgs;
@@ -208,12 +206,6 @@ export function getExecutors(app: {
 					app.callbacks.containerStarted(container.id);
 				},
 			);
-		},
-		stopAll: async (step) => {
-			await applicationManager.stopAll({
-				force: step.force,
-				skipLock: step.skipLock,
-			});
 		},
 		start: async (step) => {
 			const container = await serviceManager.start(step.target);

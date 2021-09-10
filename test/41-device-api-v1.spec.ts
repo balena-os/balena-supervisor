@@ -44,9 +44,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		`http://127.0.0.1:${mockedAPI.mockedOptions.listenPort}`,
 	);
 	const services = [
-		{ appId: 2, serviceId: 640681, serviceName: 'one' },
-		{ appId: 2, serviceId: 640682, serviceName: 'two' },
-		{ appId: 2, serviceId: 640683, serviceName: 'three' },
+		{ appId: 2, appUuid: 'deadbeef', serviceId: 640681, serviceName: 'one' },
+		{ appId: 2, appUuid: 'deadbeef', serviceId: 640682, serviceName: 'two' },
+		{ appId: 2, appUuid: 'deadbeef', serviceId: 640683, serviceName: 'three' },
 	];
 	const containers = services.map((service) => mockedAPI.mockService(service));
 	const images = services.map((service) => mockedAPI.mockImage(service));
@@ -61,6 +61,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 
 		targetStateCacheMock.resolves({
 			appId: 2,
+			appUuid: 'deadbeef',
 			commit: 'abcdef2',
 			name: 'test-app2',
 			source: 'https://api.balena-cloud.com',

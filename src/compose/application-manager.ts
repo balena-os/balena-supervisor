@@ -169,7 +169,7 @@ export async function getRequiredSteps(
 		imageManager.getDownloadingImageNames(),
 		imageManager.getAvailable(),
 	]);
-	const containerIdsByAppId = await getAppContainerIds(currentApps);
+	const containerIdsByAppId = getAppContainerIds(currentApps);
 
 	return await inferNextSteps(currentApps, targetApps, {
 		ignoreImages,
@@ -776,9 +776,10 @@ function saveAndRemoveImages(
 			(svc) =>
 				_.find(availableImages, {
 					dockerImageId: svc.config.image,
-					// There is no 1-1 mapping between services and images
-					// on disk, so the only way to compare is by imageId
-					imageId: svc.imageId,
+					// There is no way to compare a current service to an image by
+					// name, the only way to do it is by both commit and service name
+					commit: svc.commit,
+					serviceName: svc.serviceName,
 				}) ?? _.find(availableImages, { dockerImageId: svc.config.image }),
 		),
 	) as imageManager.Image[];
@@ -878,14 +879,21 @@ function saveAndRemoveImages(
 		.concat(imagesToRemove.map((image) => ({ action: 'removeImage', image })));
 }
 
-async function getAppContainerIds(currentApps: InstancedAppState) {
+function getAppContainerIds(currentApps: InstancedAppState) {
 	const containerIds: { [appId: number]: Dictionary<string> } = {};
-	await Promise.all(
-		_.map(currentApps, async (_app, appId) => {
-			const intAppId = parseInt(appId, 10);
-			containerIds[intAppId] = await serviceManager.getContainerIdMap(intAppId);
-		}),
-	);
+	Object.keys(currentApps).forEach((appId) => {
+		const intAppId = parseInt(appId, 10);
+		const app = currentApps[intAppId];
+		const services = app.services || ([] as Service[]);
+		containerIds[intAppId] = services.reduce(
+			(ids, s) => ({
+				...ids,
+				...(s.serviceName &&
+					s.containerId && { [s.serviceName]: s.containerId }),
+			}),
+			{} as Dictionary<string>,
+		);
+	});
 
 	return containerIds;
 }

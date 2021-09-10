@@ -371,12 +371,6 @@ export async function getAvailable(): Promise<Image[]> {
 	);
 }
 
-export function getDownloadingImageIds(): number[] {
-	return Object.values(runningTasks)
-		.filter((t) => t.context.status === 'Downloading')
-		.map((t) => t.context.imageId);
-}
-
 export function getDownloadingImageNames(): string[] {
 	return Object.values(runningTasks)
 		.filter((t) => t.context.status === 'Downloading')

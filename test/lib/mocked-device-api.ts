@@ -185,7 +185,6 @@ function buildRoutes(): Router {
 
 // TO-DO: Create a cleaner way to restore previous values.
 const originalVolGetAll = volumeManager.getAllByAppId;
-const originalSvcGetAppId = serviceManager.getAllByAppId;
 const originalSvcGetStatus = serviceManager.getState;
 const originalReadyForUpdates = apiBinder.__get__('readyForUpdates');
 
@@ -195,9 +194,6 @@ function setupStubs() {
 	volumeManager.getAllByAppId = async () => STUBBED_VALUES.volumes;
 	// @ts-expect-error Assigning to a RO property
 	serviceManager.getState = async () => STUBBED_VALUES.services;
-	// @ts-expect-error Assigning to a RO property
-	serviceManager.getAllByAppId = async (appId) =>
-		_.filter(STUBBED_VALUES.services, (service) => service.appId === appId);
 }
 
 function restoreStubs() {
@@ -206,8 +202,6 @@ function restoreStubs() {
 	volumeManager.getAllByAppId = originalVolGetAll;
 	// @ts-expect-error Assigning to a RO property
 	serviceManager.getState = originalSvcGetStatus;
-	// @ts-expect-error Assigning to a RO property
-	serviceManager.getAllByAppId = originalSvcGetAppId;
 }
 
 export = {
