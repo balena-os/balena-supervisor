@@ -338,6 +338,7 @@ describe('db-format', () => {
 				id: 1,
 				name: 'test-app',
 				class: 'fleet',
+				is_host: false,
 				releases: {
 					one: {
 						id: 1,
@@ -362,6 +363,7 @@ describe('db-format', () => {
 				id: 2,
 				name: 'other-app',
 				class: 'app',
+				is_host: false,
 				releases: {
 					two: {
 						id: 2,

@@ -167,6 +167,7 @@ describe('Host Firewall', function () {
 							class: 'fleet',
 							source: apiEndpoint,
 							releaseId: 1232,
+							isHost: false,
 							services: JSON.stringify([
 								{
 									serviceName: 'test-service',
@@ -221,6 +222,7 @@ describe('Host Firewall', function () {
 							source: apiEndpoint,
 							class: 'fleet',
 							releaseId: 1232,
+							isHost: false,
 							services: JSON.stringify([
 								{
 									serviceName: 'test-service',

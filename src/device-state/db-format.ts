@@ -74,6 +74,7 @@ export async function setApps(
 			appId,
 			uuid,
 			source,
+			isHost: !!app.is_host,
 			class: app.class,
 			name: app.name,
 			...(releaseUuid && { releaseId: release.id, commit: releaseUuid }),
@@ -135,6 +136,7 @@ export async function getTargetJson(): Promise<TargetApps> {
 					id: app.appId,
 					name: app.name,
 					class: app.class,
+					is_host: !!app.isHost,
 					releases,
 				},
 			];

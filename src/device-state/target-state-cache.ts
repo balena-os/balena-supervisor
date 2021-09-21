@@ -23,6 +23,7 @@ export interface DatabaseApp {
 	volumes: string;
 	source: string;
 	class: TargetAppClass;
+	isHost: boolean;
 }
 
 export type DatabaseService = {
