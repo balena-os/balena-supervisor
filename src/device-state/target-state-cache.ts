@@ -84,7 +84,13 @@ export async function getTargetApps(): Promise<DatabaseApp[]> {
 		]);
 
 		const source = localMode ? 'local' : apiEndpoint;
-		targetState = await db.models('app').where({ source });
+		targetState = await db
+			.models('app')
+			.where({ source })
+			// Local mode only applies for fleet "applications"
+			// this prevents the supervisor trying to uninstall
+			// the supervisor or host app for tri-app
+			.orWhereNot({ class: 'fleet' });
 	}
 	return targetState!;
 }

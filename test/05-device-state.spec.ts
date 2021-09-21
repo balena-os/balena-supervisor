@@ -67,7 +67,7 @@ describe('device-state', () => {
 		// TODO: all these stubs are internal implementation details of
 		// deviceState, we should refactor deviceState to use dependency
 		// injection instead of initializing everything in memory
-		sinon.stub(Service as any, 'extendEnvVars').callsFake((env) => {
+		sinon.stub(Service as any, 'extendEnvVars').callsFake((env: any) => {
 			env['ADDITIONAL_ENV_VAR'] = 'foo';
 			return env;
 		});
