@@ -26,6 +26,7 @@ import { checkTruthy, checkString } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { ImageInspectInfo } from 'dockerode';
 import { pathExistsOnHost } from '../lib/fs-utils';
+import { getSupervisorMetadata } from '../lib/supervisor-metadata';
 
 export interface AppConstructOpts {
 	appId: number;
@@ -773,20 +774,26 @@ export class App {
 			...opts,
 		};
 
+		const supervisorMeta = await getSupervisorMetadata();
+
 		const isService = (svc: ServiceComposeConfig) =>
-			!svc.labels ||
-			!svc.labels['io.balena.image.class'] ||
+			svc.labels?.['io.balena.image.class'] == null ||
 			svc.labels['io.balena.image.class'] === 'service';
 
 		const isDataStore = (svc: ServiceComposeConfig) =>
-			!svc.labels ||
-			!svc.labels['io.balena.image.store'] ||
+			svc.labels?.['io.balena.image.store'] == null ||
 			svc.labels['io.balena.image.store'] === 'data';
+
+		const isSupervisor = (svc: ServiceComposeConfig) =>
+			app.uuid === supervisorMeta.uuid &&
+			(svc.serviceName === supervisorMeta.serviceName ||
+				// keep compatibility with older supervisor releases
+				svc.serviceName === 'main');
 
 		// In the db, the services are an array, but here we switch them to an
 		// object so that they are consistent
 		const services: Service[] = await Promise.all(
-			(JSON.parse(app.services) ?? [])
+			JSON.parse(app.services ?? [])
 				.filter(
 					// For the host app, `io.balena.image.*` labels indicate special way
 					// to install the service image, so we ignore those we don't know how to
@@ -795,6 +802,9 @@ export class App {
 					(svc: ServiceComposeConfig) =>
 						!app.isHost || (isService(svc) && isDataStore(svc)),
 				)
+				// Ignore the supervisor service itself from the target state for now
+				// until the supervisor can update itself
+				.filter((svc: ServiceComposeConfig) => !isSupervisor(svc))
 				.map(async (svc: ServiceComposeConfig) => {
 					// Try to fill the image id if the image is downloaded
 					let imageInfo: ImageInspectInfo | undefined;
@@ -819,6 +829,7 @@ export class App {
 					);
 				}),
 		);
+
 		return new App(
 			{
 				appId: app.appId,
