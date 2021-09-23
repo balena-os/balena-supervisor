@@ -9,7 +9,6 @@
 # * TAG: The default will be the current branch name
 # * PUSH_IMAGES
 # * CLEANUP
-# * MIXPANEL_TOKEN: default key to inject in the supervisor image
 # * EXTRA_TAG: when PUSH_IMAGES is true, additional tag to push to the registries
 #
 # Builds the supervisor for the architecture defined by $ARCH.
@@ -45,12 +44,12 @@ if ! [ -x "$(command -v npx)" ]; then
   exit 1
 fi
 
+PROJECT_NAME="${PROJECT_NAME:-${ARCH}-supervisor}"
+SERVICE_NAME="${SERVICE_NAME:-main}"
+
 # This is the supervisor image we will produce
 TARGET_IMAGE=balena/$ARCH-supervisor:$TAG
-TARGET_BUILD_IMAGE=balena/$ARCH-supervisor:$TAG-build
-
 MASTER_IMAGE=balena/$ARCH-supervisor:master
-MASTER_BUILD_IMAGE=balena/$ARCH-supervisor:master-build
 
 CACHE_FROM=""
 function useCache() {
@@ -88,25 +87,50 @@ function processDockerfile() {
 	fi
 }
 
+function deviceType() {
+	case ${ARCH} in
+		aarch64)
+			echo "raspberrypi4-64"
+			;;
+		armv7hf)
+			echo "raspberrypi3"
+			;;
+		rpi)
+			echo "raspberry-pi"
+			;;
+		i386)
+			echo "qemux86"
+			;;
+		amd64)
+			echo "intel-nuc"
+			;;
+		*)
+			echo "unrecognized architecture ${ARCH}"
+			exit 1
+			;;
+	esac
+}
+
 export ARCH
 
 useCache "${TARGET_IMAGE}"
-useCache "${TARGET_BUILD_IMAGE}"
 useCache "${MASTER_IMAGE}"
-useCache "${MASTER_BUILD_IMAGE}"
 
 # Wait for our cache to be downloaded
 wait
 
-BUILD_ARGS="$CACHE_FROM --build-arg ARCH=${ARCH}"
-# Try to build the first stage
-processDockerfile | docker build -f - -t "${TARGET_BUILD_IMAGE}" --target BUILD ${BUILD_ARGS} .
+BUILD_ARGS="$CACHE_FROM --buildArg ARCH=$ARCH"
 
-# Now try to build the final stage
-processDockerfile | docker build -f - -t "${TARGET_IMAGE}" ${BUILD_ARGS} .
+# Make a copy of the file to match the architecture
+processDockerfile > Dockerfile.${ARCH}
+
+# Build the image
+balena build --deviceType $(deviceType) --arch ${ARCH} --dockerfile ./Dockerfile.${ARCH} \
+	--projectName ${PROJECT_NAME} --tag ${TAG} ${BUILD_ARGS}
 
 if [ "${PUSH_IMAGES}" == "true" ]; then
-	retryImagePush "${TARGET_BUILD_IMAGE}" &
+	# Tag the CLI generated image with the target
+	docker tag "${PROJECT_NAME}_${SERVICE_NAME}:${TAG}" ${TARGET_IMAGE}
 	retryImagePush "${TARGET_IMAGE}" &
 
 	if [ -n "${EXTRA_TAG}" ]; then
@@ -121,7 +145,6 @@ wait
 if [ "$CLEANUP" = "true" ]; then
 	docker rmi \
 		"${TARGET_IMAGE}" \
-		"${TARGET_BUILD_IMAGE}" \
-		"${MASTER_IMAGE}" \
-		"${MASTER_BUILD_IMAGE}"
+		"${MASTER_IMAGE}"
 fi
+

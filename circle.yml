@@ -8,7 +8,7 @@ defaults: &defaults
         version: 18.09.3
         docker_layer_caching: true
     - run:
-        name: Check docker is running and install git
+        name: Check docker is running and install dependencies
         command: |
           docker info
           apk update && apk upgrade && apk add --no-cache \
@@ -19,9 +19,15 @@ defaults: &defaults
             nodejs \
             nodejs-npm \
             openssh-client
+    - run:
+        name: Install balena CLI and test it
+        command: |
+          apk add --no-cache curl python3 g++ linux-headers && \
+            npm install balena-cli -g --production --unsafe-perm && \
+            balena version -v
     - checkout
     - run:
-        name: Initialize the submodules (yocto layers)
+        name: Initialize the submodules
         command: |
           git submodule update --init --recursive
           git clean -fxd base-image
@@ -43,15 +49,41 @@ defaults: &defaults
           else
             export PUSH_IMAGES=false
           fi
-          # start the build for this architecture
+          if [ "$PRODUCTION_API_TOKEN" != "" ]; then
+            balena login --token $PRODUCTION_API_TOKEN
+            export DEPLOY_TO_PRODUCTION=${DEPLOY_TO_PRODUCTION}
+          else
+            export DEPLOY_TO_PRODUCTION=false
+          fi
+          if [ "$STAGING_API_TOKEN" != "" ]; then
+            export DEPLOY_TO_PRODUCTION=${DEPLOY_TO_STAGING}
+          else
+            export DEPLOY_TO_STAGING=false
+          fi
+          # Create required env vars
           export TAG=$(echo ${CIRCLE_BRANCH} | sed 's/[^a-z0-9A-Z_.-]/-/g')
           export ARCH=${ARCH}
-          bash automation/build.sh
-          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_BALENA}" = "true" ]; then
+          export PROJECT_NAME=${ARCH}-supervisor
+          export SERVICE_NAME=main
+          # start the build for this architecture
+          bash -x automation/build.sh
+          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_STAGING}" = "true" ]; then
             echo "Deploying to balena API (staging)"
-            ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$STAGING_API_KEY API_ENDPOINT=$STAGING_API_ENDPOINT node automation/deploy-to-balena-cloud.js
+            BALENARC_BALENA_URL=$STAGING_API_ENDPOINT balena login --token $STAGING_API_TOKEN
+            BALENARC_BALENA_URL=$STAGING_API_ENDPOINT balena deploy ${BALENA_OS_ORG}/${PROJECT_NAME} \
+              --projectName ${PROJECT_NAME} --tag ${TAG} \
+              --release-tag gh_branch ${TAG} version ${VERSION_TAG}
+            # Cleanup credentials just in case
+            rm ~/.balena/token
+          fi
+          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_PRODUCTION}" = "true" ]; then
             echo "Deploying to balena API (production)"
-            ARCH=${ARCH} TAG=$VERSION_TAG API_KEY=$PRODUCTION_API_KEY API_ENDPOINT=$PRODUCTION_API_ENDPOINT node automation/deploy-to-balena-cloud.js
+            BALENARC_BALENA_URL=$PRODUCTION_API_ENDPOINT balena login --token $PRODUCTION_API_TOKEN
+            BALENARC_BALENA_URL=$PRODUCTION_API_ENDPOINT balena deploy ${BALENA_OS_ORG}/${PROJECT_NAME} \
+              --projectName ${PROJECT_NAME} --tag ${TAG} \
+              --release-tag gh_branch ${TAG} version ${VERSION_TAG}
+            # Cleanup credentials just in case
+            rm ~/.balena/token
           fi
 
 version: 2
@@ -74,8 +106,8 @@ jobs:
       DOCKER_USERNAME: travisciresin
       ARCH: amd64
       PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      STAGING_API_ENDPOINT: balena-staging.com
+      PRODUCTION_API_ENDPOINT: balena-cloud.com
       DEBUG: ''
   amd64:
     <<: *defaults
@@ -83,8 +115,11 @@ jobs:
       DOCKER_USERNAME: travisciresin
       ARCH: amd64
       PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      STAGING_API_ENDPOINT: balena-staging.com
+      PRODUCTION_API_ENDPOINT: balena-cloud.com
+      DEPLOY_TO_PRODUCTION: 'false'
+      DEPLOY_TO_STAGING: 'false'
+      BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
   i386:
     <<: *defaults
@@ -92,8 +127,11 @@ jobs:
       DOCKER_USERNAME: travisciresin
       ARCH: i386
       PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      STAGING_API_ENDPOINT: balena-staging.com
+      PRODUCTION_API_ENDPOINT: balena-cloud.com
+      DEPLOY_TO_PRODUCTION: 'false'
+      DEPLOY_TO_STAGING: 'false'
+      BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
   armv7hf:
     <<: *defaults
@@ -101,8 +139,11 @@ jobs:
       DOCKER_USERNAME: travisciresin
       ARCH: armv7hf
       PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      STAGING_API_ENDPOINT: balena-staging.com
+      PRODUCTION_API_ENDPOINT: balena-cloud.com
+      DEPLOY_TO_PRODUCTION: 'false'
+      DEPLOY_TO_STAGING: 'false'
+      BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
   aarch64:
     <<: *defaults
@@ -110,8 +151,11 @@ jobs:
       DOCKER_USERNAME: travisciresin
       ARCH: aarch64
       PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      STAGING_API_ENDPOINT: balena-staging.com
+      PRODUCTION_API_ENDPOINT: balena-cloud.com
+      DEPLOY_TO_PRODUCTION: 'false'
+      DEPLOY_TO_STAGING: 'false'
+      BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
   rpi:
     <<: *defaults
@@ -119,8 +163,11 @@ jobs:
       DOCKER_USERNAME: travisciresin
       ARCH: rpi
       PUSH_IMAGES: 'true'
-      STAGING_API_ENDPOINT: https://api.balena-staging.com
-      PRODUCTION_API_ENDPOINT: https://api.balena-cloud.com
+      STAGING_API_ENDPOINT: balena-staging.com
+      PRODUCTION_API_ENDPOINT: balena-cloud.com
+      DEPLOY_TO_PRODUCTION: 'false'
+      DEPLOY_TO_STAGING: 'false'
+      BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
 
 workflows:
