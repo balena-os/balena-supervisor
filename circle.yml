@@ -70,18 +70,31 @@ defaults: &defaults
           if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_STAGING}" = "true" ]; then
             echo "Deploying to balena API (staging)"
             BALENARC_BALENA_URL=$STAGING_API_ENDPOINT balena login --token $STAGING_API_TOKEN
-            BALENARC_BALENA_URL=$STAGING_API_ENDPOINT balena deploy ${BALENA_OS_ORG}/${PROJECT_NAME} \
+            # Create a draft release first in case the second step fails
+            releaseId=$(BALENARC_BALENA_URL=$STAGING_API_ENDPOINT balena deploy ${BALENA_OS_ORG}/${PROJECT_NAME} \
+              --draft \
               --projectName ${PROJECT_NAME} --tag ${TAG} \
-              --release-tag gh_branch ${TAG} version ${VERSION_TAG}
+              --release-tag gh_branch ${TAG} version ${VERSION_TAG} | sed -n 's/.*Release: //p')
+            echo "Successfully deployed release ${releaseId}"
+            # Set release_version as is still needed some places
+            curl -X PATCH -H "Content-type: application/json" -H "Authorization: Bearer ${STAGING_API_TOKEN}" \
+                "https://api.${STAGING_API_ENDPOINT}/v6/release?\$filter=commit%20eq%20'${releaseId}'%20and%20belongs_to__application/any(bta:bta/slug%20eq%20'${BALENA_OS_ORG}%2F${PROJECT_NAME}')" \
+                 -d "{\"release_version\": \"${VERSION_TAG}\", \"is_final\": true}"
             # Cleanup credentials just in case
             rm ~/.balena/token
           fi
           if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_PRODUCTION}" = "true" ]; then
             echo "Deploying to balena API (production)"
             BALENARC_BALENA_URL=$PRODUCTION_API_ENDPOINT balena login --token $PRODUCTION_API_TOKEN
-            BALENARC_BALENA_URL=$PRODUCTION_API_ENDPOINT balena deploy ${BALENA_OS_ORG}/${PROJECT_NAME} \
+            # Create a draft release first in case the second step fails
+            releaseId=$(BALENARC_BALENA_URL=$PRODUCTION_API_ENDPOINT balena deploy ${BALENA_OS_ORG}/${PROJECT_NAME} \
+              --draft \
               --projectName ${PROJECT_NAME} --tag ${TAG} \
-              --release-tag gh_branch ${TAG} version ${VERSION_TAG}
+              --release-tag gh_branch ${TAG} version ${VERSION_TAG} | sed -n 's/.*Release: //p')
+            # Set release_version as is still needed some places
+            curl -X PATCH -H "Content-type: application/json" -H "Authorization: Bearer ${PRODUCTION_API_TOKEN}" \
+                "https://api.${PRODUCTION_API_ENDPOINT}/v6/release?\$filter=commit%20eq%20'${releaseId}'%20and%20belongs_to__application/any(bta:bta/slug%20eq%20'${BALENA_OS_ORG}%2F${PROJECT_NAME}')" \
+                 -d "{\"release_version\": \"${VERSION_TAG}\", \"is_final\": true}"
             # Cleanup credentials just in case
             rm ~/.balena/token
           fi
