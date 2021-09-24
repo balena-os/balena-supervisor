@@ -117,8 +117,8 @@ jobs:
       PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: balena-staging.com
       PRODUCTION_API_ENDPOINT: balena-cloud.com
-      DEPLOY_TO_PRODUCTION: 'false'
-      DEPLOY_TO_STAGING: 'false'
+      DEPLOY_TO_PRODUCTION: 'true'
+      DEPLOY_TO_STAGING: 'true'
       BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
   i386:
@@ -129,8 +129,8 @@ jobs:
       PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: balena-staging.com
       PRODUCTION_API_ENDPOINT: balena-cloud.com
-      DEPLOY_TO_PRODUCTION: 'false'
-      DEPLOY_TO_STAGING: 'false'
+      DEPLOY_TO_PRODUCTION: 'true'
+      DEPLOY_TO_STAGING: 'true'
       BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
   armv7hf:
@@ -141,8 +141,8 @@ jobs:
       PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: balena-staging.com
       PRODUCTION_API_ENDPOINT: balena-cloud.com
-      DEPLOY_TO_PRODUCTION: 'false'
-      DEPLOY_TO_STAGING: 'false'
+      DEPLOY_TO_PRODUCTION: 'true'
+      DEPLOY_TO_STAGING: 'true'
       BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
   aarch64:
@@ -153,8 +153,8 @@ jobs:
       PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: balena-staging.com
       PRODUCTION_API_ENDPOINT: balena-cloud.com
-      DEPLOY_TO_PRODUCTION: 'false'
-      DEPLOY_TO_STAGING: 'false'
+      DEPLOY_TO_PRODUCTION: 'true'
+      DEPLOY_TO_STAGING: 'true'
       BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
   rpi:
@@ -165,8 +165,8 @@ jobs:
       PUSH_IMAGES: 'true'
       STAGING_API_ENDPOINT: balena-staging.com
       PRODUCTION_API_ENDPOINT: balena-cloud.com
-      DEPLOY_TO_PRODUCTION: 'false'
-      DEPLOY_TO_STAGING: 'false'
+      DEPLOY_TO_PRODUCTION: 'true'
+      DEPLOY_TO_STAGING: 'true'
       BALENA_OS_ORG: 'balena_os'
       DEBUG: ''
 
