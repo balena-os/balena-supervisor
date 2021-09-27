@@ -1,4 +1,19 @@
 - commits:
+    - subject: Improve network interface filter
+      hash: 802f26fe71fe98628759a120473865d40fb9575b
+      body: |
+        The supervisor filters out some network interfaces for mac address
+        reporting, to remove (balena*,lo,tun*,etc). The previous filter was
+        matching any interface containing in one of the defined filters, making
+        it stricter than necessary. This commit fixes the issue
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.10.11
+  date: 2021-09-24T16:07:26.813Z
+- commits:
     - subject: 'api-keys: Remove os variant parameter for authentication check'
       hash: 9e0cbe04c6d1c533c3e66183eca1d3abfb8c381d
       body: |
