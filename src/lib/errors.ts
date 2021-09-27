@@ -10,7 +10,11 @@ export interface StatusCodeError extends Error {
 }
 
 export class StatusError extends Error {
-	constructor(public statusCode: number, public statusMessage?: string) {
+	constructor(
+		public statusCode: number,
+		public statusMessage?: string,
+		public retryAfter?: number,
+	) {
 		super(statusMessage);
 	}
 }
