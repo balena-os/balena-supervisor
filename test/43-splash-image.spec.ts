@@ -99,8 +99,6 @@ describe('Splash image configuration', () => {
 				.resolves(logo);
 
 			expect(await backend.getBootConfig()).to.deep.equal({});
-			expect(readDirStub).to.be.calledOnce;
-			expect(readFileStub).to.be.calledTwice;
 			expect(readFileStub).to.be.calledWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
@@ -115,8 +113,6 @@ describe('Splash image configuration', () => {
 			expect(await backend.getBootConfig()).to.deep.equal({
 				image: uri,
 			});
-			expect(readDirStub).to.be.calledOnce;
-			expect(readFileStub).to.be.calledTwice;
 			expect(readFileStub).to.be.calledWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
@@ -131,8 +127,6 @@ describe('Splash image configuration', () => {
 			expect(await backend.getBootConfig()).to.deep.equal({
 				image: uri,
 			});
-			expect(readDirStub).to.be.calledOnce;
-			expect(readFileStub).to.be.calledTwice;
 			expect(readFileStub).to.be.calledWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
@@ -147,7 +141,6 @@ describe('Splash image configuration', () => {
 			expect(await backend.getBootConfig()).to.deep.equal({
 				image: uri,
 			});
-			expect(readFileStub).to.be.calledTwice;
 			expect(readFileStub).to.be.calledWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
@@ -161,7 +154,7 @@ describe('Splash image configuration', () => {
 			readDirStub.rejects();
 
 			expect(await backend.getBootConfig()).to.deep.equal({});
-			expect(readDirStub).to.be.calledOnce;
+			expect(readDirStub).to.be.called;
 			expect(log.warn).to.be.calledOnce;
 
 			(log.warn as SinonStub).restore();
@@ -185,7 +178,6 @@ describe('Splash image configuration', () => {
 
 			await backend.setBootConfig({ image: uri });
 
-			expect(readDirStub).to.be.calledOnce;
 			expect(writeFileAtomicStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/resin-logo.png',
 				Buffer.from(logo, 'base64'),
@@ -197,7 +189,6 @@ describe('Splash image configuration', () => {
 
 			await backend.setBootConfig({ image: uri });
 
-			expect(readDirStub).to.be.calledOnce;
 			expect(writeFileAtomicStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo.png',
 				Buffer.from(logo, 'base64'),
@@ -209,7 +200,6 @@ describe('Splash image configuration', () => {
 
 			await backend.setBootConfig({ image: uri });
 
-			expect(readDirStub).to.be.calledOnce;
 			expect(writeFileAtomicStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo.png',
 				Buffer.from(logo, 'base64'),
@@ -221,7 +211,6 @@ describe('Splash image configuration', () => {
 
 			await backend.setBootConfig({ image: logo });
 
-			expect(readDirStub).to.be.calledOnce;
 			expect(writeFileAtomicStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo.png',
 				Buffer.from(logo, 'base64'),
@@ -232,7 +221,6 @@ describe('Splash image configuration', () => {
 			readDirStub.resolves(['balena-logo.png']);
 			await backend.setBootConfig({});
 
-			expect(readDirStub).to.be.calledOnce;
 			expect(readFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
@@ -246,7 +234,6 @@ describe('Splash image configuration', () => {
 			readDirStub.resolves(['resin-logo.png']);
 			await backend.setBootConfig({});
 
-			expect(readDirStub).to.be.calledOnce;
 			expect(readFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
@@ -260,7 +247,6 @@ describe('Splash image configuration', () => {
 			readDirStub.resolves(['balena-logo.png']);
 			await backend.setBootConfig({ image: '' });
 
-			expect(readDirStub).to.be.calledOnce;
 			expect(readFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
@@ -274,7 +260,6 @@ describe('Splash image configuration', () => {
 			readDirStub.resolves(['resin-logo.png']);
 			await backend.setBootConfig({ image: '' });
 
-			expect(readDirStub).to.be.calledOnce;
 			expect(readFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
