@@ -1,4 +1,23 @@
 - commits:
+    - subject: Use balena CLI for pushing to balenaCloud
+      hash: 458e2a16cfa8e963dba0198ae79935a304895f3a
+      body: >
+        Updates the circle CI configuration to use the balena CLI to build the
+
+        supervisor image and deploy directly to the related balenaCloud app on
+        merge
+
+        to master. This allows to build the supervisor as any other app,
+
+        including the posibility of creating a contract and a docker-compose
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.10.12
+  date: 2021-09-27T15:33:52.758Z
+- commits:
     - subject: Improve network interface filter
       hash: 802f26fe71fe98628759a120473865d40fb9575b
       body: |
