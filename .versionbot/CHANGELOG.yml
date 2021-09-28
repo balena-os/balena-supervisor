@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add backoff to state reporting when 503 is received
+      hash: aab000209bdf7e98175a76372660ad4089ae28ec
+      body: |
+        Current state reporting had a backoff when network or inconsistency
+        errors were found, but not on API errors. This change adds a backoff
+        using RetryAfter header if present to reduce load on API
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.10.13
+  date: 2021-09-28T18:56:07.205Z
+- commits:
     - subject: Use balena CLI for pushing to balenaCloud
       hash: 458e2a16cfa8e963dba0198ae79935a304895f3a
       body: >
