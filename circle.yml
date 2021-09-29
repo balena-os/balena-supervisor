@@ -39,6 +39,13 @@ defaults: &defaults
           VERSION_TAG_NO_DEBUG=v$(jq --raw-output .version package.json)
           GIT_TAG=$(git describe --tags | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
           VERSION_TAG="${VERSION_TAG_NO_DEBUG}${DEBUG}"
+          AUTHOR=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/commits/${CIRCLE_SHA1}" \
+            | jq -r  '.author.login')
+          COMMITTER=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/commits/${CIRCLE_SHA1}" \
+            | jq -r  '.commit.committer.email')
+
           if [ "${VERSION_TAG_NO_DEBUG}" = "${GIT_TAG}" ]; then
             export EXTRA_TAG="${VERSION_TAG}"
           fi
@@ -66,15 +73,15 @@ defaults: &defaults
           export PROJECT_NAME=${ARCH}-supervisor
           export SERVICE_NAME=main
           # start the build for this architecture
-          bash -x automation/build.sh
-          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_STAGING}" = "true" ]; then
+          bash automation/build.sh
+          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${AUTHOR}" = "balena-ci"] && [ "${COMMITTER}" = "versionbot@balena.io" ] && [ "${DEPLOY_TO_STAGING}" = "true" ]; then
             echo "Deploying to balena API (staging)"
             BALENARC_BALENA_URL=$STAGING_API_ENDPOINT balena login --token $STAGING_API_TOKEN
             # Create a draft release first in case the second step fails
             releaseId=$(BALENARC_BALENA_URL=$STAGING_API_ENDPOINT balena deploy ${BALENA_OS_ORG}/${PROJECT_NAME} \
               --draft \
               --projectName ${PROJECT_NAME} --tag ${TAG} \
-              --release-tag gh_branch ${TAG} version ${VERSION_TAG} | sed -n 's/.*Release: //p')
+              --release-tag version ${VERSION_TAG} | sed -n 's/.*Release: //p')
             echo "Successfully deployed release ${releaseId}"
             # Set release_version as is still needed some places
             curl -X PATCH -H "Content-type: application/json" -H "Authorization: Bearer ${STAGING_API_TOKEN}" \
@@ -83,14 +90,14 @@ defaults: &defaults
             # Cleanup credentials just in case
             rm ~/.balena/token
           fi
-          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${DEPLOY_TO_PRODUCTION}" = "true" ]; then
+          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${AUTHOR}" = "balena-ci"] && [ "${COMMITTER}" = "versionbot@balena.io" ] && [ "${DEPLOY_TO_PRODUCTION}" = "true" ]; then
             echo "Deploying to balena API (production)"
             BALENARC_BALENA_URL=$PRODUCTION_API_ENDPOINT balena login --token $PRODUCTION_API_TOKEN
             # Create a draft release first in case the second step fails
             releaseId=$(BALENARC_BALENA_URL=$PRODUCTION_API_ENDPOINT balena deploy ${BALENA_OS_ORG}/${PROJECT_NAME} \
               --draft \
               --projectName ${PROJECT_NAME} --tag ${TAG} \
-              --release-tag gh_branch ${TAG} version ${VERSION_TAG} | sed -n 's/.*Release: //p')
+              --release-tag version ${VERSION_TAG} | sed -n 's/.*Release: //p')
             # Set release_version as is still needed some places
             curl -X PATCH -H "Content-type: application/json" -H "Authorization: Bearer ${PRODUCTION_API_TOKEN}" \
                 "https://api.${PRODUCTION_API_ENDPOINT}/v6/release?\$filter=commit%20eq%20'${releaseId}'%20and%20belongs_to__application/any(bta:bta/slug%20eq%20'${BALENA_OS_ORG}%2F${PROJECT_NAME}')" \
