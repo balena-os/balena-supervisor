@@ -1,4 +1,15 @@
 - commits:
+    - subject: Only deploy on commits from `balena-ci` and versionbot
+      hash: f13221bbd86e5ce9e61e9bc0697cd27e0e970b9a
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.10.14
+  date: 2021-09-29T12:45:50.373Z
+- commits:
     - subject: Add backoff to state reporting when 503 is received
       hash: aab000209bdf7e98175a76372660ad4089ae28ec
       body: |
