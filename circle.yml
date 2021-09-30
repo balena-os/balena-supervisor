@@ -57,6 +57,7 @@ defaults: &defaults
           if [ "${VERSION_TAG_NO_DEBUG}" = "${GIT_TAG}" ]; then
             export EXTRA_TAG="${VERSION_TAG}"
           fi
+          echo "Useless change???"
           echo "Starting build.sh"
           if [ "$DOCKER_PASSWORD" != "" ]; then
             docker login --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
