@@ -1,4 +1,16 @@
 - commits:
+    - subject: Add supervisor docker-compose
+      hash: 68d60d8aaadf17a06c66bf4f8f1f3261a0e93ccb
+      body: |
+        This will allow the supervisor service to be correctly named on the API
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.10.15
+  date: 2021-09-30T01:10:09.305Z
+- commits:
     - subject: Only deploy on commits from `balena-ci` and versionbot
       hash: f13221bbd86e5ce9e61e9bc0697cd27e0e970b9a
       body: ''
