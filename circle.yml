@@ -71,10 +71,10 @@ defaults: &defaults
           export TAG=$(echo ${CIRCLE_BRANCH} | sed 's/[^a-z0-9A-Z_.-]/-/g')
           export ARCH=${ARCH}
           export PROJECT_NAME=${ARCH}-supervisor
-          export SERVICE_NAME=main
+          export SERVICE_NAME=balena-supervisor
           # start the build for this architecture
           bash automation/build.sh
-          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${AUTHOR}" = "balena-ci"] && [ "${COMMITTER}" = "versionbot@balena.io" ] && [ "${DEPLOY_TO_STAGING}" = "true" ]; then
+          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${AUTHOR}" = "balena-ci" ] && [ "${COMMITTER}" = "versionbot@balena.io" ] && [ "${DEPLOY_TO_STAGING}" = "true" ]; then
             echo "Deploying to balena API (staging)"
             BALENARC_BALENA_URL=$STAGING_API_ENDPOINT balena login --token $STAGING_API_TOKEN
             # Create a draft release first in case the second step fails
@@ -90,7 +90,7 @@ defaults: &defaults
             # Cleanup credentials just in case
             rm ~/.balena/token
           fi
-          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${AUTHOR}" = "balena-ci"] && [ "${COMMITTER}" = "versionbot@balena.io" ] && [ "${DEPLOY_TO_PRODUCTION}" = "true" ]; then
+          if [ "${CIRCLE_BRANCH}" = "master" ] && [ "${AUTHOR}" = "balena-ci" ] && [ "${COMMITTER}" = "versionbot@balena.io" ] && [ "${DEPLOY_TO_PRODUCTION}" = "true" ]; then
             echo "Deploying to balena API (production)"
             BALENARC_BALENA_URL=$PRODUCTION_API_ENDPOINT balena login --token $PRODUCTION_API_TOKEN
             # Create a draft release first in case the second step fails

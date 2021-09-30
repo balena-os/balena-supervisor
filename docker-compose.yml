@@ -1,0 +1,16 @@
+version: '2.1'
+
+services:
+  # This service can only be named `main` or `balena-supervisor` as older
+  # devices will keep relying on the `/v6/supervisor_release` endpoint that
+  # identifies the supervisor image by that service name.
+  balena-supervisor:
+    build: ./
+    privileged: true
+    tty: true
+    restart: always
+    network_mode: host
+    labels:
+      io.balena.features.balena-api: '1'
+      io.balena.features.dbus: '1'
+      io.balena.features.balena-socket: '1'
