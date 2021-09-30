@@ -119,7 +119,7 @@ useCache "${MASTER_IMAGE}"
 # Wait for our cache to be downloaded
 wait
 
-BUILD_ARGS="$CACHE_FROM --buildArg ARCH=$ARCH"
+BUILD_ARGS="$CACHE_FROM --buildArg ARCH=$ARCH --buildArg BUILDKIT_INLINE_CACHE=1"
 
 # Make a copy of the file to match the architecture
 processDockerfile > Dockerfile.${ARCH}
