@@ -1,0 +1,24 @@
+name: balenaCloud staging 
+
+on:
+ pull_request:
+    types: [opened, synchronize, closed]
+    branches:
+      - master
+
+jobs:
+  deploy-release:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [aarch64, amd64, armv7hf, i386, rpi]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: balena-io/balena-ci@master
+        with:
+          balena_token: ${{ secrets.BALENA_STAGING_TOKEN }}
+          fleet: 'balena_os/${{ matrix.arch }}-supervisor'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          versionbot: true
+          environment: balena-staging.com 
