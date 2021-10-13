@@ -1,4 +1,21 @@
 - commits:
+    - subject: 'backends/extra-uEnv: Extend custom DTB support for Jetson TX2 NX'
+      hash: 7d678fa8384908d7e57cfac150f32cd2025c1bdb
+      body: |
+        We just added support for the TX2 NX, which supports u-boot
+        thus allows for using custom device-trees. Let's allow
+        for Jetson TX2 NX and future TX2 NX derived
+        device types to have device-trees configurable from the dashboard.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 12.10.16
+  date: 2021-10-12T10:07:12.680Z
+- commits:
     - subject: Add supervisor docker-compose
       hash: 68d60d8aaadf17a06c66bf4f8f1f3261a0e93ccb
       body: |
