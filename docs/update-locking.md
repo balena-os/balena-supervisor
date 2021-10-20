@@ -76,7 +76,7 @@ In Python you can use the [`lockfile` library](http://pythonhosted.org/lockfile/
 from lockfile import LockFile
 lock = LockFile("/tmp/balena/updates")
 with lock:
-    print lock.path, 'is locked.'
+    print(lock.path, 'is locked.')
 ```
 Check the link for more examples and other Python libraries that provide locking.
 
