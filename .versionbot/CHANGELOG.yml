@@ -1,4 +1,17 @@
 - commits:
+    - subject: Use balena-ci action to deploy releases
+      hash: caf3c1fd5867c127346058742cfa4864e9072313
+      body: ''
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.11.0
+  date: 2021-10-20T00:02:30.030Z
+- commits:
     - subject: 'backends/extra-uEnv: Extend custom DTB support for Jetson TX2 NX'
       hash: 7d678fa8384908d7e57cfac150f32cd2025c1bdb
       body: |
