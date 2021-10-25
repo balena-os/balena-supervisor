@@ -71,7 +71,7 @@ lockFile.lock('/tmp/balena/updates.lock', function(err) {
 
 #### Python
 
-In Python you can use the [`lockfile` library](http://pythonhosted.org/lockfile/lockfile.html#examples)
+In Python you can use the [`lockfile` library][lockfile-library]
 ```python
 from lockfile import LockFile
 lock = LockFile("/tmp/balena/updates")
@@ -88,7 +88,9 @@ To do this the device or fleet must have `BALENA_SUPERVISOR_OVERRIDE_LOCK` confi
 
 The easiest way to do this is to use the 'Override the update lock ...' toggle in the [Fleet or Device Configuration][device-configuration] page. Go to the configuration page of the device or fleet, locate the 'Override the update lock ...' item, click the activate button, and set the toggle to enabled. Disable the toggle afterwards in order to restore the update locks.
 
-Also, you can programatically do this by hitting the `/v1/update` endpoint of the [supervisor HTTP API](./API.md), with `{ "force": true }` as body.
+Also, you can programatically do this by hitting the `/v1/update` endpoint of the [supervisor HTTP API][supervisor-api], with `{ "force": true }` as body.
 
 
 [device-configuration]:/learn/manage/configuration/#managing-device-configuration-variables
+[supervisor-api]:/reference/supervisor/supervisor-api
+[lockfile-library]:http://pythonhosted.org/lockfile/lockfile.html#examples
