@@ -1,4 +1,13 @@
 - commits:
+    - subject: 'patch: Fix relative links in docs'
+      hash: 006acf1e8a2d8d4c617c1e563976dd80b5531a06
+      body: ''
+      footer: {}
+      author: Kyle Harding
+      nested: []
+  version: 12.11.1
+  date: 2021-10-25T17:14:39.516Z
+- commits:
     - subject: Use balena-ci action to deploy releases
       hash: caf3c1fd5867c127346058742cfa4864e9072313
       body: ''
