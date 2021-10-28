@@ -877,32 +877,6 @@ export class Service {
 		);
 	}
 
-	public getNamedVolumes() {
-		const defaults = Service.defaultBinds(
-			this.appId || 0,
-			this.serviceName || '',
-		);
-		const validVolumes = _.map(this.config.volumes, (volume) => {
-			if (_.includes(defaults, volume) || !_.includes(volume, ':')) {
-				return null;
-			}
-			const bindSource = volume.split(':')[0];
-			if (!path.isAbsolute(bindSource)) {
-				const match = bindSource.match(/[0-9]+_(.+)/);
-				if (match == null) {
-					log.error(
-						`Error: There was an error parsing a volume bind source, ignoring.\nBind source: ${bindSource}`,
-					);
-					return null;
-				}
-				return match[1];
-			}
-			return null;
-		});
-
-		return _.reject(validVolumes, _.isNil);
-	}
-
 	public handoverCompleteFullPathsOnHost(): string[] {
 		const lockPath = updateLock.lockPath(
 			this.appId || 0,
@@ -993,6 +967,32 @@ export class Service {
 		const imageInfoEnv = _.get(options.imageInfo, 'Config.Env', []);
 		env = _.defaults(env, conversions.envArrayToObject(imageInfoEnv));
 		return env;
+	}
+
+	public hasNetwork(networkName: string) {
+		// TODO; we could probably export network naming methods to another
+		// module to avoid duplicate code
+		return `${this.appId}_${networkName}` in this.config.networks;
+	}
+
+	public hasNetworkMode(networkName: string) {
+		return `${this.appId}_${networkName}` === this.config.networkMode;
+	}
+
+	public hasVolume(volumeName: string) {
+		return this.config.volumes.some((volumeDefinition) => {
+			const [sourceName, destName] = volumeDefinition.split(':');
+			if (destName == null) {
+				// If this is not a named volume, ignore it
+				return false;
+			}
+			if (sourceName[0] === '/') {
+				// Absolute paths should also be ignored
+				return false;
+			}
+
+			return `${this.appId}_${volumeName}` === sourceName;
+		});
 	}
 
 	private isSameNetwork(
@@ -1086,6 +1086,8 @@ export class Service {
 					log.warn(`Ignoring invalid bind mount ${volume}`);
 				}
 			} else {
+				// Push anonymous volume. Anonymous volumes can only be
+				// set by using the `VOLUME` instruction inside a dockerfile
 				volumes.push(volume);
 			}
 		});
