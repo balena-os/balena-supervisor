@@ -1,4 +1,19 @@
 - commits:
+    - subject: Check config for networks and volumes inside Service
+      hash: 969f4225e54ded644d38315289e0cc84a0f3bb51
+      body: |
+        This removes the need for the app module to know about the naming
+        conventions for networks and volumes since those exist now within the
+        service itself. This also fixes a small bug where the volume would be
+        removed before the service itself had been successfully stopped.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.2
+  date: 2021-10-28T13:46:53.613Z
+- commits:
     - subject: 'patch: Fix relative links in docs'
       hash: 006acf1e8a2d8d4c617c1e563976dd80b5531a06
       body: ''
