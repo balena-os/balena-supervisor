@@ -42,6 +42,7 @@ import {
 	TargetState,
 	DeviceState,
 	DeviceReport,
+	AppState,
 } from './types';
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
@@ -611,6 +612,19 @@ export async function getCurrentForReport(
 ): Promise<DeviceState> {
 	const apps = await applicationManager.getState();
 
+	// Fiter current apps by the target state as the supervisor cannot
+	// report on apps for which it doesn't have API permissions
+	const targetAppUuids = Object.keys(await applicationManager.getTargetApps());
+	const appsForReport = Object.keys(apps)
+		.filter((appUuid) => targetAppUuids.includes(appUuid))
+		.reduce(
+			(filteredApps, appUuid) => ({
+				...filteredApps,
+				[appUuid]: apps[appUuid],
+			}),
+			{} as { [appUuid: string]: AppState },
+		);
+
 	const { name, uuid, localMode } = await config.getMany([
 		'name',
 		'uuid',
@@ -636,7 +650,7 @@ export async function getCurrentForReport(
 				...currentVolatile,
 				...systemInfo,
 				name,
-				apps,
+				apps: appsForReport,
 			},
 			(__, key) => omitFromReport.includes(key),
 		),
