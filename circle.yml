@@ -62,11 +62,7 @@ defaults: &defaults
           else
             export DEPLOY_TO_PRODUCTION=false
           fi
-          if [ "$STAGING_API_TOKEN" != "" ]; then
-            export DEPLOY_TO_PRODUCTION=${DEPLOY_TO_STAGING}
-          else
-            export DEPLOY_TO_STAGING=false
-          fi
+          export DEPLOY_TO_STAGING=false
           # Create required env vars
           export TAG=$(echo ${CIRCLE_BRANCH} | sed 's/[^a-z0-9A-Z_.-]/-/g')
           export ARCH=${ARCH}
