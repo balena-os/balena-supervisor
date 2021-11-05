@@ -1,4 +1,17 @@
 - commits:
+    - subject: Do not build for staging in circleci job
+      hash: 24eea117091a95870ea8eeff885466055d45ee4d
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.11.3
+  date: 2021-11-05T14:56:19.400Z
+- commits:
     - subject: Check config for networks and volumes inside Service
       hash: 969f4225e54ded644d38315289e0cc84a0f3bb51
       body: |
