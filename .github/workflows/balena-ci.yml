@@ -1,4 +1,4 @@
-name: balenaCloud staging 
+name: balenaCloud 
 
 on:
  pull_request:
@@ -16,9 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: balena-io/balena-ci@master
+        name: Deploy to balena-cloud.com
         with:
           balena_token: ${{ secrets.BALENA_STAGING_TOKEN }}
           fleet: 'balena_os/${{ matrix.arch }}-supervisor'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           versionbot: true
-          environment: balena-staging.com 
+      - uses: balena-io/balena-ci@master
+        name: Deploy to balena-staging.com 
+        with:
+          balena_token: ${{ secrets.BALENA_STAGING_TOKEN }}
+          fleet: 'balena_os/${{ matrix.arch }}-supervisor'
+          versionbot: true
+          environment: balena-staging.com
