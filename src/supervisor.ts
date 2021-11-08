@@ -15,7 +15,7 @@ import version = require('./lib/supervisor-version');
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
 import logMonitor from './logging/monitor';
-
+console.log('something new');
 const startupConfigFields: config.ConfigKey[] = [
 	'uuid',
 	'listenPort',
