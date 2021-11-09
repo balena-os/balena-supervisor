@@ -1,4 +1,27 @@
 - commits:
+    - subject: Remove .resinci.yml file
+      hash: 22324885ea4f4eb51015654a01aa8fc9526b0096
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+    - subject: Move to balena-ci action for deployments
+      hash: 959d425a5c8a2165057ec2b1c1b97cad96804c07
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.11.4
+  date: 2021-11-09T06:15:34.957Z
+- commits:
     - subject: Do not build for staging in circleci job
       hash: 24eea117091a95870ea8eeff885466055d45ee4d
       body: ''
