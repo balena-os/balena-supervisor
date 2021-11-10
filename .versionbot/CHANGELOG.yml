@@ -1,4 +1,15 @@
 - commits:
+    - subject: Fix livepush to work with Dockerfile.template
+      hash: 31dac598a8c86be3e2f244c90bb15051cf919384
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.5
+  date: 2021-11-10T15:25:46.622Z
+- commits:
     - subject: Remove .resinci.yml file
       hash: 22324885ea4f4eb51015654a01aa8fc9526b0096
       body: ''
