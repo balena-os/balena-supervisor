@@ -1147,7 +1147,7 @@ describe('compose/app', () => {
 				.that.deep.includes({ serviceName: 'test' });
 		});
 
-		it('should not create a service when a network it depends on is not ready', async () => {
+		it('should not start a service when a network it depends on is not ready', async () => {
 			const current = createApp({ networks: [defaultNetwork] });
 			const target = createApp({
 				services: [await createService({ networks: ['test'], appId: 1 })],
@@ -1198,6 +1198,151 @@ describe('compose/app', () => {
 
 			const steps = current.nextStepsForAppUpdate(defaultContext, target);
 			expectSteps('kill', steps, 2);
+		});
+
+		it('should not infer a kill step with the default strategy before all target images have been downloaded', async () => {
+			const contextWithImages = {
+				...defaultContext,
+				...{
+					downloading: ['other-image-2'], // One of the images is being downloaded
+					availableImages: [
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
+						createImage({
+							appId: 1,
+							name: 'other-image',
+							serviceName: 'other',
+						}),
+						createImage({
+							appId: 1,
+							name: 'main-image-2',
+							serviceName: 'main',
+						}),
+					],
+				},
+			};
+
+			const current = createApp({
+				services: [
+					await createService({
+						image: 'main-image',
+						appId: 1,
+						serviceName: 'main',
+						commit: 'old-release',
+					}),
+					await createService({
+						image: 'other-image',
+						appId: 1,
+						serviceName: 'other',
+						commit: 'old-release',
+					}),
+				],
+				networks: [defaultNetwork],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						image: 'main-image-2',
+						appId: 1,
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
+					await createService({
+						image: 'other-image-2',
+						appId: 1,
+						serviceName: 'other',
+						commit: 'new-release',
+					}),
+				],
+				networks: [defaultNetwork],
+				isTarget: true,
+			});
+
+			// No kill steps should be generated
+			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			expectNoStep('kill', steps);
+		});
+
+		it('should not infer a start step before all target images have been downloaded', async () => {
+			const contextWithImages = {
+				...defaultContext,
+				...{
+					downloading: ['other-image'], // One of the images is being downloaded
+					availableImages: [
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
+					],
+				},
+			};
+
+			const current = createApp({
+				services: [],
+				networks: [defaultNetwork],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						image: 'main-image',
+						appId: 1,
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
+					await createService({
+						image: 'other-image',
+						appId: 1,
+						serviceName: 'other',
+						commit: 'new-release',
+					}),
+				],
+				networks: [defaultNetwork],
+				isTarget: true,
+			});
+
+			// No kill steps should be generated
+			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			expectNoStep('start', steps);
+		});
+
+		it('should infer a start step only when target images have been downloaded', async () => {
+			const contextWithImages = {
+				...defaultContext,
+				...{
+					downloading: [], // One of the images is being downloaded
+					availableImages: [
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
+						createImage({
+							appId: 1,
+							name: 'other-image',
+							serviceName: 'other',
+						}),
+					],
+				},
+			};
+
+			const current = createApp({
+				services: [],
+				networks: [defaultNetwork],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						image: 'main-image',
+						appId: 1,
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
+					await createService({
+						image: 'other-image',
+						appId: 1,
+						serviceName: 'other',
+						commit: 'new-release',
+					}),
+				],
+				networks: [defaultNetwork],
+				isTarget: true,
+			});
+
+			// No kill steps should be generated
+			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			expectSteps('start', steps, 2);
 		});
 	});
 
