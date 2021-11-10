@@ -55,7 +55,9 @@ const argv = yargs
 
 (async () => {
 	const address = argv['device-address']!;
-	const dockerfile = new livepush.Dockerfile(await fs.readFile('Dockerfile'));
+	const dockerfile = new livepush.Dockerfile(
+		await fs.readFile('Dockerfile.template'),
+	);
 
 	try {
 		const docker = device.getDocker(address);
