@@ -119,7 +119,7 @@ async function tarDirectory(
 			if (stat.isDirectory()) {
 				await add(newPath);
 			} else {
-				if (newPath.endsWith('Dockerfile')) {
+				if (newPath.endsWith('Dockerfile.template')) {
 					pack.entry(
 						{ name: 'Dockerfile', mode: stat.mode, size: stat.size },
 						dockerfile.generateLiveDockerfile(),
