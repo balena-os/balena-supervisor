@@ -246,8 +246,9 @@ function reportCurrentState(attempts = 0) {
 						e.retryAfter ?? MINIMUM_BACKOFF_DELAY,
 					);
 				} else {
+					// If the exception message is empty then log entire exception object for troubleshooting
 					eventTracker.track('Device state report failure', {
-						error: e.message,
+						error: e.message.length > 0 ? e.message : e,
 					});
 					backoff(reportCurrentState, stateReportErrors++, maxDelay);
 				}
