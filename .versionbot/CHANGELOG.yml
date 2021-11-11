@@ -1,4 +1,34 @@
 - commits:
+    - subject: Wait for images to be ready before moving between releases
+      hash: 7aedc97ee185953a3068ce3ef9743989e32a75b2
+      body: >
+        For download-then-kill strategy, this waits for all changing images on
+        the target
+
+        release to be available on device before killing the old services. This
+
+        will prevent that multicontainer applications get to a state where some
+
+        services of the new release start runnning much before others have been
+
+        downloaded.
+
+
+        When adding new services to a multicontainer app, the supervisor will
+
+        now wait for other changing services to be downloaded before starting
+
+        the new service.
+      footer:
+        Closes: '#1812'
+        closes: '#1812'
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.7
+  date: 2021-11-11T17:12:51.738Z
+- commits:
     - subject: Change repo type in repo.yml to skip concourse build
       hash: a57a5b354fb724392b8242c1f190311e9561e545
       body: ''
