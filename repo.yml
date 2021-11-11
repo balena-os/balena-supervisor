@@ -1,4 +1,4 @@
-type: docker
+type: generic
 
 backports:
   next: 11.9.x
