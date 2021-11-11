@@ -488,7 +488,9 @@ export class App {
 			// Either this is a new service, or the current one has already been killed
 			return this.generateFetchOrStartStep(
 				target!,
+				context.targetApp,
 				needsDownload,
+				context.availableImages,
 				context.networkPairs,
 				context.volumePairs,
 				context.servicePairs,
@@ -520,12 +522,13 @@ export class App {
 
 			const dependenciesMetForStart = this.dependenciesMetForServiceStart(
 				target,
+				context.targetApp,
+				context.availableImages,
 				context.networkPairs,
 				context.volumePairs,
 				context.servicePairs,
 			);
 			const dependenciesMetForKill = this.dependenciesMetForServiceKill(
-				target,
 				context.targetApp,
 				context.availableImages,
 				context.localMode,
@@ -591,7 +594,9 @@ export class App {
 
 	private generateFetchOrStartStep(
 		target: Service,
+		targetApp: App,
 		needsDownload: boolean,
+		availableImages: Image[],
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
@@ -605,6 +610,8 @@ export class App {
 		} else if (
 			this.dependenciesMetForServiceStart(
 				target,
+				targetApp,
+				availableImages,
 				networkPairs,
 				volumePairs,
 				servicePairs,
@@ -618,6 +625,8 @@ export class App {
 	// TODO: support networks instead of only network mode
 	private dependenciesMetForServiceStart(
 		target: Service,
+		targetApp: App,
+		availableImages: Image[],
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
@@ -626,7 +635,7 @@ export class App {
 		// different to a dependency which is in the servicePairs below, as these
 		// are services which are changing). We could have a dependency which is
 		// starting up, but is not yet running.
-		const depInstallingButNotRunning = _.some(this.services, (svc) => {
+		const depInstallingButNotRunning = _.some(targetApp.services, (svc) => {
 			if (target.dependsOn?.includes(svc.serviceName!)) {
 				if (!svc.config.running) {
 					return true;
@@ -664,16 +673,15 @@ export class App {
 			return false;
 		}
 
-		// everything is ready for the service to start...
-		return true;
+		// do not start until all images have been downloaded
+		return this.targetImagesReady(targetApp, availableImages);
 	}
 
 	// Unless the update strategy requires an early kill (i.e kill-then-download,
 	// delete-then-download), we only want to kill a service once the images for the
 	// services it depends on have been downloaded, so as to minimize downtime (but not
-	// block the killing too much, potentially causing a daedlock)
+	// block the killing too much, potentially causing a deadlock)
 	private dependenciesMetForServiceKill(
-		target: Service,
 		targetApp: App,
 		availableImages: Image[],
 		localMode: boolean,
@@ -685,26 +693,18 @@ export class App {
 			return true;
 		}
 
-		if (target.dependsOn != null) {
-			for (const dependency of target.dependsOn) {
-				const dependencyService = _.find(targetApp.services, {
-					serviceName: dependency,
-				});
-				if (
-					!_.some(
-						availableImages,
-						(image) =>
-							image.dockerImageId === dependencyService?.config.image ||
-							imageManager.isSameImage(image, {
-								name: dependencyService?.imageName!,
-							}),
-					)
-				) {
-					return false;
-				}
-			}
-		}
-		return true;
+		// Don't kill any services before all images have been downloaded
+		return this.targetImagesReady(targetApp, availableImages);
+	}
+
+	private targetImagesReady(targetApp: App, availableImages: Image[]) {
+		return targetApp.services.every((service) =>
+			availableImages.some(
+				(image) =>
+					image.dockerImageId === service.config.image ||
+					imageManager.isSameImage(image, { name: service.imageName! }),
+			),
+		);
 	}
 
 	public static async fromTargetState(
