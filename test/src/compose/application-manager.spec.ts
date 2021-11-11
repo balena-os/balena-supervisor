@@ -389,6 +389,110 @@ describe('compose/application-manager', () => {
 			.that.deep.includes({ serviceName: 'main' });
 	});
 
+	it('infers a kill step when a service has to be updated but the strategy is delete-then-download', async () => {
+		const labels = {
+			'io.balena.update.strategy': 'delete-then-download',
+		};
+		const targetApps = createApps(
+			{
+				services: [
+					await createService({
+						image: 'image-new',
+						labels,
+						appId: 1,
+						commit: 'new-release',
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+			},
+			true,
+		);
+		const {
+			currentApps,
+			availableImages,
+			downloading,
+			containerIdsByAppId,
+		} = createCurrentState({
+			services: [
+				await createService({
+					image: 'image-old',
+					labels,
+					appId: 1,
+					commit: 'old-release',
+				}),
+			],
+			networks: [DEFAULT_NETWORK],
+		});
+
+		const [killStep] = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+			},
+		);
+
+		expect(killStep).to.have.property('action').that.equals('kill');
+		expect(killStep)
+			.to.have.property('current')
+			.that.deep.includes({ serviceName: 'main' });
+	});
+
+	it('infers a remove step when the current service has stopped and the strategy is delete-then-download', async () => {
+		const labels = {
+			'io.balena.update.strategy': 'delete-then-download',
+		};
+		const targetApps = createApps(
+			{
+				services: [
+					await createService({
+						image: 'image-new',
+						labels,
+						appId: 1,
+						serviceName: 'main',
+						commit: 'new-release',
+					}),
+				],
+			},
+			true,
+		);
+		const {
+			currentApps,
+			availableImages,
+			downloading,
+			containerIdsByAppId,
+		} = createCurrentState({
+			services: [],
+			images: [
+				createImage({
+					appId: 1,
+					name: 'image-old',
+					serviceName: 'main',
+					dockerImageId: 'image-old-id',
+				}),
+			],
+			networks: [DEFAULT_NETWORK],
+		});
+
+		const [removeImage] = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+			},
+		);
+
+		// First we should see a kill
+		expect(removeImage).to.have.property('action').that.equals('removeImage');
+		expect(removeImage)
+			.to.have.property('image')
+			.that.deep.includes({ name: 'image-old' });
+	});
+
 	it('does not infer to kill a service with default strategy if a dependency is not downloaded', async () => {
 		const targetApps = createApps(
 			{

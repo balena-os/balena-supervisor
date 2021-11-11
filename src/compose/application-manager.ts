@@ -680,9 +680,9 @@ function saveAndRemoveImages(
 				}) ?? _.find(availableImages, { dockerImageId: svc.config.image }),
 		),
 	) as imageManager.Image[];
-	const targetImages = _.flatMap(target, (app) =>
-		_.map(app.services, imageForService),
-	);
+
+	const targetServices = Object.values(target).flatMap((app) => app.services);
+	const targetImages = targetServices.map(imageForService);
 
 	const availableAndUnused = _.filter(
 		availableWithoutIds,
@@ -741,32 +741,35 @@ function saveAndRemoveImages(
 		});
 	}
 
-	const deltaSources = _.map(imagesToDownload, (image) => {
-		return bestDeltaSource(image, availableImages);
-	});
+	// Find images that will be be used as delta sources. Any existing image for the
+	// same app service is considered a delta source unless the target service has set
+	// the `delete-then-download` strategy
+	const deltaSources = imagesToDownload
+		.filter(
+			(img) =>
+				// We don't need to look for delta sources for delete-then-download
+				// services
+				!targetServices.some(
+					(svc) =>
+						imageManager.isSameImage(img, imageForService(svc)) &&
+						svc.config.labels['io.balena.update.strategy'] ===
+							'delete-then-download',
+				),
+		)
+		.map((img) => bestDeltaSource(img, availableImages))
+		.filter((img) => img != null);
+
 	const proxyvisorImages = proxyvisor.imagesInUse(current, target);
 
-	const potentialDeleteThenDownload = _(current)
-		.flatMap((app) => _.values(app.services))
-		.filter(
-			(svc) =>
-				svc.config.labels['io.balena.update.strategy'] ===
-					'delete-then-download' && svc.status === 'Stopped',
-		)
-		.value();
-
-	const imagesToRemove = _.filter(
-		availableAndUnused.concat(potentialDeleteThenDownload.map(imageForService)),
-		(image) => {
-			const notUsedForDelta = !_.includes(deltaSources, image.name);
-			const notUsedByProxyvisor = !_.some(proxyvisorImages, (proxyvisorImage) =>
-				imageManager.isSameImage(image, {
-					name: proxyvisorImage,
-				}),
-			);
-			return notUsedForDelta && notUsedByProxyvisor;
-		},
-	);
+	const imagesToRemove = availableAndUnused.filter((image) => {
+		const notUsedForDelta = !deltaSources.includes(image.name);
+		const notUsedByProxyvisor = !proxyvisorImages.some((proxyvisorImage) =>
+			imageManager.isSameImage(image, {
+				name: proxyvisorImage,
+			}),
+		);
+		return notUsedForDelta && notUsedByProxyvisor;
+	});
 
 	return imagesToSave
 		.map((image) => ({ action: 'saveImage', image } as CompositionStep))
