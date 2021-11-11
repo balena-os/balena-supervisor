@@ -1,4 +1,15 @@
 - commits:
+    - subject: Change repo type in repo.yml to skip concourse build
+      hash: a57a5b354fb724392b8242c1f190311e9561e545
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.6
+  date: 2021-11-11T16:28:07.398Z
+- commits:
     - subject: Fix livepush to work with Dockerfile.template
       hash: 31dac598a8c86be3e2f244c90bb15051cf919384
       body: ''
