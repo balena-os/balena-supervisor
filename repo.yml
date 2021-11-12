@@ -1,4 +1,4 @@
-type: generic
+type: node
 
 backports:
   next: 11.9.x
