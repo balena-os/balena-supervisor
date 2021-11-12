@@ -8,7 +8,7 @@ This list contains configuration variables that can be used with all balena devi
 
 | Name | Type | Reboots | Default | Description | Valid from |
 | --- | --- | --- | --- | --- | --- |
-| BALENA_SUPERVISOR_OVERRIDE_LOCK | boolean | false | false | Override any existing locks preventing application changes. | v1.0.0 |
+| BALENA_SUPERVISOR_OVERRIDE_LOCK | boolean | false | false | Override any existing locks preventing any changes to the app. | v1.0.0 |
 | BALENA_SUPERVISOR_VPN_CONTROL | boolean | false | true | Enable / Disable VPN service on device. | v1.1.0 |
 | BALENA_SUPERVISOR_CONNECTIVITY_CHECK | boolean | false | true | Enable / Disable VPN connectivity check | v1.3.0 |
 | BALENA_SUPERVISOR_LOG_CONTROL | boolean | false | true | Enable / Disable logs being sent to the balena API | v1.3.0 |

@@ -39,7 +39,7 @@ Here's the full list of endpoints implemented so far. In all examples, replace e
 Responds with a simple "OK", signaling that the supervisor is alive and well.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X GET --header "Content-Type:application/json" \
 	"$BALENA_SUPERVISOR_ADDRESS/ping"
@@ -67,7 +67,7 @@ Starts a blink pattern on a LED for 15 seconds, if your device has one.
 Responds with an empty 200 response. It implements the "identify device" feature from the dashboard.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	"$BALENA_SUPERVISOR_ADDRESS/v1/blink?apikey=$BALENA_SUPERVISOR_API_KEY"
@@ -102,7 +102,7 @@ Can be a JSON object with a `force` property. If this property is true, the upda
 ```
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--data '{"force": true}' \
@@ -140,7 +140,7 @@ When successful, responds with 202 accepted and a JSON object:
 Can contain a `force` property, which if set to `true` will cause the update lock to be overridden.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	"$BALENA_SUPERVISOR_ADDRESS/v1/reboot?apikey=$BALENA_SUPERVISOR_API_KEY"
@@ -182,7 +182,7 @@ When successful, responds with 202 accepted and a JSON object:
 Can contain a `force` property, which if set to `true` will cause the update lock to be overridden.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	"$BALENA_SUPERVISOR_ADDRESS/v1/shutdown?apikey=$BALENA_SUPERVISOR_API_KEY"
@@ -210,7 +210,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 > **Note:** This route will remove and recreate all service containers, as volumes can only be removed when their associated containers are removed. On devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
-Clears the device's `/data` folder and named volumes.
+Clears the device's `/data` folder and named volumes if any.
 
 When successful, responds with 200 and a JSON object:
 ```json
@@ -230,7 +230,7 @@ Has to be a JSON object with an `appId` property, corresponding to the ID of the
 ```
 
 #### Examples:
-From a service::
+From an app container::
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--data '{"appId": <appId>}' \
@@ -275,7 +275,7 @@ Example:
 ```
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	--data '{"appId": <appId>}' \
@@ -304,7 +304,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 Invalidates the current `BALENA_SUPERVISOR_API_KEY` and generates a new one. Responds with the new API key, but **the fleet will be restarted on the next update cycle** to update the API key environment variable.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
 	"$BALENA_SUPERVISOR_ADDRESS/v1/regenerate-api-key?apikey=$BALENA_SUPERVISOR_API_KEY"
@@ -349,7 +349,7 @@ The state is a JSON object that contains some or all of the following:
 Other attributes may be added in the future, and some may be missing or null if they haven't been set yet.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X GET --header "Content-Type:application/json" \
 	"$BALENA_SUPERVISOR_ADDRESS/v1/device?apikey=$BALENA_SUPERVISOR_API_KEY"
@@ -399,7 +399,7 @@ The appId must be specified in the URL.
 Can contain a `force` property, which if set to `true` will cause the update lock to be overridden.
 
 #### Examples:
-From a service:
+From an app container:
 
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
@@ -440,7 +440,7 @@ When successful, responds with 200 and the Id of the started container.
 The appId must be specified in the URL.
 
 #### Examples:
-From a service:
+From an app container:
 
 ```bash
 $ curl -X POST --header "Content-Type:application/json" \
@@ -485,7 +485,7 @@ The appId must be specified in the URL.
 This is only supported on single-container devices, and will return 400 on devices running multiple containers. Refer to v2 endpoint, [`/v2/applications/:appId/state`](#get-v2applicationsappidstate) for running the query on multiple containers.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X GET --header "Content-Type:application/json" \
 	"$BALENA_SUPERVISOR_ADDRESS/v1/apps/<appId>?apikey=$BALENA_SUPERVISOR_API_KEY"
@@ -526,7 +526,7 @@ Responds with an empty 200 response if the supervisor is healthy, or a 500 statu
 correctly.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v1/healthy"
 ```
@@ -587,7 +587,7 @@ proxy. Keep in mind that local/reserved subnets are already [excluded by balenaO
 If either "proxy" or "hostname" are null or empty values (i.e. `{}` for proxy or an empty string for hostname), they will be cleared to their default values (i.e. not using a proxy, and a hostname equal to the first 7 characters of the device's uuid, respectively).
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl -X PATCH --header "Content-Type:application/json" \
 	--data '{"network": {"hostname": "newhostname"}}' \
@@ -621,7 +621,7 @@ proxy and hostname configuration.
 Please refer to the PATCH endpoint above for details on the behavior and meaning of the fields in the response.
 
 #### Examples:
-From a service:
+From an app container:
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v1/device/host-config?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -656,7 +656,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 Get a list of fleets, services and their statuses. This will reflect the current state of the supervisor, and not the target state.
 
-From a service:
+From an app container:
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/applications/state?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -716,7 +716,7 @@ curl -X POST \
 
 Use this endpoint to get the state of a single fleet, given the appId.
 
-From a service:
+From an app container:
 ```bash
 curl "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/state?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -746,7 +746,7 @@ Response:
 
 This will return a list of images, containers, the overall download progress and the status of the state engine.
 
-From a service:
+From an app container:
 ```bash
 curl "$BALENA_SUPERVISOR_ADDRESS/v2/state/status?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -807,7 +807,7 @@ Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
 
 Use this endpoint to restart a service in the fleet with fleet id passed in with the url.
 
-From a service:
+From an app container:
 ```bash
 curl --header "Content-Type:application/json" "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/restart-service?apikey=$BALENA_SUPERVISOR_API_KEY" -d '{"serviceName": "my-service"}'
 curl --header "Content-Type:application/json" "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/restart-service?apikey=$BALENA_SUPERVISOR_API_KEY" -d '{"imageId": 1234}'
@@ -829,7 +829,7 @@ Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
 
 Temporarily stops a serivce. Rebooting the device or supervisor will cause the container to start again. The container is not removed with this endpoint.
 
-From a service:
+From an app container:
 ```bash
 curl --header "Content-Type:application/json" "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/stop-service?apikey=$BALENA_SUPERVISOR_API_KEY" -d '{"serviceName": "my-service"}'
 curl --header "Content-Type:application/json" "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/stop-service?apikey=$BALENA_SUPERVISOR_API_KEY" -d '{"imageId": 1234}'
@@ -851,7 +851,7 @@ Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
 
 Use this endpoint to start a service in the fleet with fleet id passed in with the url.
 
-From a service:
+From an app container:
 ```bash
 curl --header "Content-Type:application/json" "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/start-service?apikey=$BALENA_SUPERVISOR_API_KEY" -d '{"serviceName": "my-service"}'
 curl --header "Content-Type:application/json" "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/start-service?apikey=$BALENA_SUPERVISOR_API_KEY" -d '{"imageId": 1234}'
@@ -872,7 +872,7 @@ Added in supervisor version v7.0.0.
 
 Use this endpoint to restart every service in a fleet.
 
-From a service:
+From an app container:
 ```bash
 curl -X POST --header "Content-Type: application/json" "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/restart?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -892,7 +892,7 @@ Added in supervisor version v7.0.0.
 
 Use this endpoint to purge all user data for a given fleet id.
 
-From a service:
+From an app container:
 ```bash
 curl -X POST --header "Content-Type:application/json" "$BALENA_SUPERVISOR_ADDRESS/v2/applications/$BALENA_APP_ID/purge?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -911,7 +911,7 @@ This endpoint can also take an extra optional boolean, `force`, which if true in
 
 This endpoint returns the supervisor version currently running the device api.
 
-From a service:
+From an app container:
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/version?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -930,7 +930,7 @@ Response:
 
 Use this endpoint to match a service name to a container ID.
 
-From a service:
+From an app container:
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/containerId?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -1154,7 +1154,7 @@ Get the last returned device name from the balena API. Note that this differs fr
 not change throughout the runtime of the container, but the endpoint will always return
 the latest known device name.
 
-From a service:
+From an app container:
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/name?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -1174,7 +1174,7 @@ Response:
 Retrieve any device tags from the balena API. Note that this endpoint will not work when
 the device does not have an available connection to the balena API.
 
-From a service:
+From an app container:
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/tags?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -1199,7 +1199,7 @@ Response:
 
 Retrieve information about the VPN connection running on the device.
 
-From a service:
+From an app container:
 
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/device/vpn?apikey=$BALENA_SUPERVISOR_API_KEY"
@@ -1227,7 +1227,7 @@ references are no longer automatically removed as part of
 the standard update flow. To cleanup up any orphaned
 volumes, use this supervisor endpoint:
 
-From a service:
+From an app container:
 ```bash
 $ curl "$BALENA_SUPERVISOR_ADDRESS/v2/cleanup-volumes?apikey=$BALENA_SUPERVISOR_API_KEY"
 ```
@@ -1279,7 +1279,7 @@ https://www.freedesktop.org/software/systemd/man/journalctl.html#-o
 
 Fields should be provided via POST body in JSON format.
 
-From a service:
+From an app container:
 ```bash
 $ curl -X POST -H "Content-Type: application/json" --data '{"follow":true,"all":true}' "$BALENA_SUPERVISOR_ADDRESS/v2/journal-logs?apikey=$BALENA_SUPERVISOR_API_KEY" > log.journal
 ```
