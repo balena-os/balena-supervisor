@@ -1,4 +1,4 @@
-type: node
+type: docker
 
 backports:
   next: 11.9.x
