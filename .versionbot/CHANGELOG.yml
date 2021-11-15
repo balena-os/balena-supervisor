@@ -1,4 +1,15 @@
 - commits:
+    - subject: Re-add resinci config to control node checks
+      hash: eb09ecd3653dc3d7d3f6d24de73c73f5a1437449
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.8
+  date: 2021-11-12T19:02:59.834Z
+- commits:
     - subject: Wait for images to be ready before moving between releases
       hash: 7aedc97ee185953a3068ce3ef9743989e32a75b2
       body: >
