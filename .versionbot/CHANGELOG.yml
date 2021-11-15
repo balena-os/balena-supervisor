@@ -1,4 +1,19 @@
 - commits:
+    - subject: Go back to `docker` repo type to fix versioning
+      hash: 47eae7200edd5ce377a5f464e80d6758bf625c8b
+      body: |
+        Previous commit now changed ChangeLog format and skipped update of
+        VERSION file.
+
+        This reverts config back to `docker` and fixes changelog
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.9
+  date: 2021-11-15T15:21:07.713Z
+- commits:
     - subject: Re-add resinci config to control node checks
       hash: eb09ecd3653dc3d7d3f6d24de73c73f5a1437449
       body: ''
