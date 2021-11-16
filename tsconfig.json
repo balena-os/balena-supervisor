@@ -9,7 +9,7 @@
 		"inlineSourceMap": true,
 		"outDir": "./build/",
 		"skipLibCheck": true,
-		"lib": ["es6"],
+		"lib": ["es2019"],
 		"resolveJsonModule": true,
 		"allowJs": true
 	},
