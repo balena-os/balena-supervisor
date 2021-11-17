@@ -1,4 +1,21 @@
 - commits:
+    - subject: 'Fix broken local mode after PR #1824'
+      hash: 6fd516a93024d2c5c8d95a4f424f1b6f949152ba
+      body: |
+        PR #1824 changed app update behavior to test that all images are there
+        before moving between releases. This check always fails in local mode
+        since local mode images are handled differently.
+
+        This PR fixes local mode again by skipping the check when `localMode` is
+        set.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.12
+  date: 2021-11-17T21:00:34.142Z
+- commits:
     - subject: 'backends/extra-uEnv: Extend custom DTB support for Nano 2GB Devkit'
       hash: 3b9c68246e984aea99d03953060c435dad59d117
       body: ''
