@@ -491,6 +491,7 @@ export class App {
 				context.targetApp,
 				needsDownload,
 				context.availableImages,
+				context.localMode,
 				context.networkPairs,
 				context.volumePairs,
 				context.servicePairs,
@@ -524,6 +525,7 @@ export class App {
 				target,
 				context.targetApp,
 				context.availableImages,
+				context.localMode,
 				context.networkPairs,
 				context.volumePairs,
 				context.servicePairs,
@@ -597,6 +599,7 @@ export class App {
 		targetApp: App,
 		needsDownload: boolean,
 		availableImages: Image[],
+		localMode: boolean,
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
@@ -612,6 +615,7 @@ export class App {
 				target,
 				targetApp,
 				availableImages,
+				localMode,
 				networkPairs,
 				volumePairs,
 				servicePairs,
@@ -627,6 +631,7 @@ export class App {
 		target: Service,
 		targetApp: App,
 		availableImages: Image[],
+		localMode: boolean,
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
@@ -674,7 +679,7 @@ export class App {
 		}
 
 		// do not start until all images have been downloaded
-		return this.targetImagesReady(targetApp, availableImages);
+		return this.targetImagesReady(targetApp, availableImages, localMode);
 	}
 
 	// Unless the update strategy requires an early kill (i.e kill-then-download,
@@ -686,18 +691,22 @@ export class App {
 		availableImages: Image[],
 		localMode: boolean,
 	) {
+		// Don't kill any services before all images have been downloaded
+		return this.targetImagesReady(targetApp, availableImages, localMode);
+	}
+
+	private targetImagesReady(
+		targetApp: App,
+		availableImages: Image[],
+		localMode: boolean,
+	) {
 		// because we only check for an image being available, in local mode this will always
-		// be the case, so return true regardless. If this function ever checks anything else,
-		// we'll need to change the logic here
+		// be the case, so return true regardless.
+		// If we ever unify image management betwen local and cloud mode, this will have to change
 		if (localMode) {
 			return true;
 		}
 
-		// Don't kill any services before all images have been downloaded
-		return this.targetImagesReady(targetApp, availableImages);
-	}
-
-	private targetImagesReady(targetApp: App, availableImages: Image[]) {
 		return targetApp.services.every((service) =>
 			availableImages.some(
 				(image) =>
