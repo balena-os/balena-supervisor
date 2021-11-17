@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'backends/extra-uEnv: Extend custom DTB support for Nano 2GB Devkit'
+      hash: 3b9c68246e984aea99d03953060c435dad59d117
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 12.11.11
+  date: 2021-11-17T12:51:08.705Z
+- commits:
     - subject: Fix `delete-then-download` strategy
       hash: 394377e0a183d5a26ae6527f5aafb1f29e7fa140
       body: |
