@@ -2,6 +2,12 @@
 
 set -o errexit
 
+. ./setenv.sh
+
+# TODO: should we do a pre-start check here? Ideas
+# - check that DOCKER_SOCKET is present and that it points to an actual engine socket
+# - check that ROOT_MOUNTPOINT exists and the configuration files are present
+
 # If the legacy /tmp/resin-supervisor exists on the host, a container might
 # already be using to take an update lock, so we symlink it to the new
 # location so that the supervisor can see it
@@ -12,23 +18,12 @@ set -o errexit
 [ -d /mnt/root/tmp/balena-supervisor ] ||
     mkdir -p /mnt/root/tmp/balena-supervisor
 
-# If DOCKER_ROOT isn't set then default it
-if [ -z "${DOCKER_ROOT}" ]; then
-	DOCKER_ROOT=/mnt/root/var/lib/rce
+# Look for a custom root certificate
+BALENA_ROOT_CA_FILE=${ROOT_MOUNTPOINT}/usr/share/ca-certificates/balena/balenaRootCA.crt
+if [ -z "${BALENA_ROOT_CA}" ] && [ -f "${BALENA_ROOT_CA_FILE}" ]; then
+  BALENA_ROOT_CA=$(cat ${BALENA_ROOT_CA_FILE})
+  export NODE_EXTRA_CA_CERTS=${BALENA_ROOT_CA_FILE}
 fi
-
-# Mount the DOCKER_ROOT path equivalent in the container fs
-DOCKER_LIB_PATH=${DOCKER_ROOT#/mnt/root}
-
-if [ ! -d "${DOCKER_LIB_PATH}" ]; then
-	ln -s "${DOCKER_ROOT}" "${DOCKER_LIB_PATH}"
-fi
-
-if [ -z "$DOCKER_SOCKET" ]; then
-	export DOCKER_SOCKET=/run/docker.sock
-fi
-
-export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket"
 
 # Include self-signed CAs, should they exist
 if [ -n "${BALENA_ROOT_CA}" ]; then
@@ -39,6 +34,8 @@ if [ -n "${BALENA_ROOT_CA}" ]; then
 		mkdir -p /usr/local/share/ca-certificates
 		echo "${BALENA_ROOT_CA}" > /usr/local/share/ca-certificates/balenaRootCA.crt
 		update-ca-certificates
+
+		export NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/balenaRootCA.crt
 	fi
 fi
 
@@ -55,6 +52,7 @@ fi
 # latter it means that the supervisor will fail later on, so
 # not a problem.
 modprobe ip6_tables || true
+
 
 if [ "${LIVEPUSH}" = "1" ]; then
 	exec npx nodemon --watch src --watch typings --ignore tests -e js,ts,json \

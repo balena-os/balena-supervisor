@@ -8,6 +8,7 @@ ARG NODE_VERSION
 ARG NODE_ARCHIVE="node-no-intl-v${NODE_VERSION}-linux-alpine-${ARCH}.tar.gz"
 ARG S3_BASE="https://resin-packages.s3.amazonaws.com"
 ARG NODE_LOCATION="${S3_BASE}/node/v${NODE_VERSION}/${NODE_ARCHIVE}"
+ENV SUPERVISOR_ARCH=${ARCH}
 
 # DO NOT REMOVE THE cross-build-* COMMANDS
 # The following commands are absolutely needed. When we
@@ -33,6 +34,7 @@ RUN apk add --no-cache \
 	libuv \
 	sqlite-libs \
 	sqlite-dev \
+	jq \
 	dbus-dev
 
 COPY build-utils/node-sums.txt .
@@ -51,6 +53,7 @@ RUN npm ci --build-from-source --sqlite=/usr/lib
 # We only run these commands when executing through
 # livepush, so they are presented as livepush directives
 #dev-run=apk add --no-cache ip6tables iptables
+#dev-copy=setenv.sh .
 #dev-copy=entry.sh .
 #dev-cmd-live=LIVEPUSH=1 ./entry.sh
 
@@ -99,6 +102,7 @@ RUN apk add --no-cache \
 	avahi \
 	dbus \
 	libstdc++ \
+	jq \
 	sqlite-libs
 
 WORKDIR /usr/src/app
@@ -109,17 +113,14 @@ COPY --from=BUILD /usr/src/app/package.json ./
 COPY --from=BUILD /usr/src/app/node_modules ./node_modules
 
 COPY entry.sh .
+COPY setenv.sh .
 
 RUN mkdir -p rootfs-overlay && \
 	(([ ! -d rootfs-overlay/lib64 ] && ln -s /lib rootfs-overlay/lib64) || true)
 
 ARG ARCH
-ARG VERSION=master
 ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
-ENV CONFIG_MOUNT_POINT=/boot/config.json \
-	LED_FILE=/dev/null \
-	SUPERVISOR_IMAGE=balena/$ARCH-supervisor \
-	VERSION=$VERSION \
+ENV SUPERVISOR_ARCH=${ARCH} \
 	DEFAULT_MIXPANEL_TOKEN=$DEFAULT_MIXPANEL_TOKEN
 COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 
