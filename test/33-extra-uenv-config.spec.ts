@@ -266,6 +266,8 @@ const MATCH_TESTS = [
 	{ type: 'fincm3', supported: false },
 	{ type: 'asus-tinker-board', supported: false },
 	{ type: 'nano-board', supported: false },
+	{ type: 'jetson-nano-2gb-devkit', supported: true },
+	{ type: 'jetson-nano-2gb-devkit-emmc', supported: false },
 	{ type: 'tx2-tx2-device', supported: false },
 	{ type: 'jetson-tx2-nx-devkit', supported: true },
 	{ type: 'photon-tx2-nx', supported: true },
