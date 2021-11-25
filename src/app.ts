@@ -1,5 +1,6 @@
 import { NOTFOUND } from 'dns';
 import * as mdnsResolver from 'mdns-resolver';
+import '@balena/happy-eyeballs/eye-patch';
 
 class DnsLookupError extends Error {
 	public constructor(public code: string = NOTFOUND) {
