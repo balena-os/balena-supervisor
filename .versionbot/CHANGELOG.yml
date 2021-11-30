@@ -1,4 +1,15 @@
 - commits:
+    - subject: Add happy eyeballs
+      hash: 9ed2685f63f9070dd6491bf1acae1e239b6bd557
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Zane Hitchcox
+      nested: []
+  version: 12.11.14
+  date: 2021-11-30T17:47:07.133Z
+- commits:
     - subject: Increase request timeout to 59s to better align with our backends
       hash: 2eb00fa0da15bb6fdc40421c3cf3800ed1815437
       body: ''
