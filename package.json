@@ -28,6 +28,7 @@
   },
   "private": true,
   "dependencies": {
+    "@balena/happy-eyeballs": "0.0.6",
     "dbus": "^1.0.7",
     "mdns-resolver": "^1.0.0",
     "semver": "^7.3.2",
