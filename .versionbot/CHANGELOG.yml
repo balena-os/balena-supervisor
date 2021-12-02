@@ -1,4 +1,15 @@
 - commits:
+    - subject: Improve validation messages for env vars and labels
+      hash: f6b2ec967788a48bd70caf39c77502407861b0ce
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.16
+  date: 2021-12-02T20:23:27.202Z
+- commits:
     - subject: Convert target state types to io-ts for better validation
       hash: f6692ab918b3d1c1e032ec31a057d745ffca94dc
       body: |
