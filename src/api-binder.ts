@@ -17,6 +17,7 @@ import {
 	ContractValidationError,
 	ContractViolationError,
 	InternalInconsistencyError,
+	TargetStateError,
 } from './lib/errors';
 import * as request from './lib/request';
 
@@ -186,7 +187,8 @@ export async function start() {
 	function handleTargetUpdateError(err: any) {
 		if (
 			err instanceof ContractValidationError ||
-			err instanceof ContractViolationError
+			err instanceof ContractViolationError ||
+			err instanceof TargetStateError
 		) {
 			log.error(`Could not store target state for device: ${err}`);
 			// the dashboard does not display lines correctly,

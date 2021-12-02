@@ -23,7 +23,7 @@
     "release": "tsc --project tsconfig.release.json && mv build/src/* build",
     "packagejson:copy": "cp package.json build/",
     "testitems:copy": "cp -r test/data build/test/",
-    "sync": "ts-node sync/sync.ts",
+    "sync": "ts-node --files sync/sync.ts",
     "clean": "rimraf build"
   },
   "private": true,

@@ -1,9 +1,16 @@
 import * as _ from 'lodash';
 import { expect } from 'chai';
 
-import * as validation from '../src/lib/validation';
+import { isRight } from 'fp-ts/lib/Either';
+import {
+	StringIdentifier,
+	ShortString,
+	DeviceName,
+	NumericIdentifier,
+	TargetApps,
+} from '../src/types';
 
-const almostTooLongText = _.times(255, () => 'a').join('');
+import * as validation from '../src/lib/validation';
 
 describe('validation', () => {
 	describe('checkBooleanish', () => {
@@ -144,175 +151,319 @@ describe('validation', () => {
 		});
 	});
 
-	describe('isValidShortText', () => {
-		it('returns true for a short text', () => {
-			expect(validation.isValidShortText('foo')).to.equal(true);
-			expect(validation.isValidShortText('')).to.equal(true);
-			expect(validation.isValidShortText(almostTooLongText)).to.equal(true);
-		});
-		it('returns false for a text longer than 255 characters', () =>
-			expect(validation.isValidShortText(almostTooLongText + 'a')).to.equal(
-				false,
-			));
-
-		it('returns false when passed a non-string', () => {
-			expect(validation.isValidShortText({})).to.equal(false);
-			expect(validation.isValidShortText(1)).to.equal(false);
-			expect(validation.isValidShortText(null)).to.equal(false);
-			expect(validation.isValidShortText(undefined)).to.equal(false);
-		});
-	});
-
-	describe('isValidAppsObject', () => {
-		it('returns true for a valid object', () => {
-			const apps = {
-				'1234': {
-					name: 'something',
-					releaseId: 123,
-					commit: 'bar',
-					services: {
-						'45': {
-							serviceName: 'bazbaz',
-							imageId: 34,
-							image: 'foo',
-							environment: {},
-							labels: {},
-						},
-					},
-				},
-			};
-			expect(validation.isValidAppsObject(apps)).to.equal(true);
+	describe('short string', () => {
+		it('accepts strings below 255 chars', () => {
+			expect(isRight(ShortString.decode('aaaa'))).to.be.true;
+			expect(isRight(ShortString.decode('1234'))).to.be.true;
+			expect(isRight(ShortString.decode('some longish alphanumeric text 1236')))
+				.to.be.true;
+			expect(isRight(ShortString.decode('a'.repeat(255)))).to.be.true;
 		});
 
-		it('returns false with an invalid environment', () => {
-			const apps = {
-				'1234': {
-					name: 'something',
-					releaseId: 123,
-					commit: 'bar',
-					services: {
-						'45': {
-							serviceName: 'bazbaz',
-							imageId: 34,
-							image: 'foo',
-							environment: { ' baz': 'bat' },
-							labels: {},
-						},
-					},
-				},
-			};
-			expect(validation.isValidAppsObject(apps)).to.equal(false);
-		});
-
-		it('returns false with an invalid appId', () => {
-			const apps = {
-				boo: {
-					name: 'something',
-					releaseId: 123,
-					commit: 'bar',
-					services: {
-						'45': {
-							serviceName: 'bazbaz',
-							imageId: 34,
-							image: 'foo',
-							environment: {},
-							labels: {},
-						},
-					},
-				},
-			};
-			expect(validation.isValidAppsObject(apps)).to.equal(false);
-		});
-
-		it('returns true with a missing releaseId', () => {
-			const apps = {
-				'1234': {
-					name: 'something',
-					services: {
-						'45': {
-							serviceName: 'bazbaz',
-							imageId: 34,
-							image: 'foo',
-							environment: {},
-							labels: {},
-						},
-					},
-				},
-			};
-			expect(validation.isValidAppsObject(apps)).to.equal(true);
-		});
-
-		it('returns false with an invalid releaseId', () => {
-			const apps = {
-				'1234': {
-					name: 'something',
-					releaseId: '123a',
-					services: {
-						'45': {
-							serviceName: 'bazbaz',
-							imageId: 34,
-							image: 'foo',
-							environment: {},
-							labels: {},
-						},
-					},
-				},
-			};
-			expect(validation.isValidAppsObject(apps)).to.equal(false);
+		it('rejects non strings or strings longer than 255 chars', () => {
+			expect(isRight(ShortString.decode(null))).to.be.false;
+			expect(isRight(ShortString.decode(undefined))).to.be.false;
+			expect(isRight(ShortString.decode([]))).to.be.false;
+			expect(isRight(ShortString.decode(1234))).to.be.false;
+			expect(isRight(ShortString.decode('a'.repeat(256)))).to.be.false;
 		});
 	});
 
-	describe('isValidDependentDevicesObject', () => {
-		it('returns true for a valid object', () => {
-			const devices: Dictionary<any> = {};
-			devices[almostTooLongText] = {
-				name: 'foo',
-				apps: {
-					'234': {
-						config: { bar: 'baz' },
-						environment: { dead: 'beef' },
-					},
-				},
-			};
-			expect(validation.isValidDependentDevicesObject(devices)).to.equal(true);
+	describe('device name', () => {
+		it('accepts strings below 255 chars', () => {
+			expect(isRight(DeviceName.decode('aaaa'))).to.be.true;
+			expect(isRight(DeviceName.decode('1234'))).to.be.true;
+			expect(isRight(DeviceName.decode('some longish alphanumeric text 1236')))
+				.to.be.true;
+			expect(isRight(DeviceName.decode('a'.repeat(255)))).to.be.true;
 		});
 
-		it('returns false with a missing apps object', () => {
-			const devices = {
-				abcd1234: {
-					name: 'foo',
-				},
-			};
-			expect(validation.isValidDependentDevicesObject(devices)).to.equal(false);
+		it('rejects non strings or strings longer than 255 chars', () => {
+			expect(isRight(DeviceName.decode(null))).to.be.false;
+			expect(isRight(DeviceName.decode(undefined))).to.be.false;
+			expect(isRight(DeviceName.decode([]))).to.be.false;
+			expect(isRight(DeviceName.decode(1234))).to.be.false;
+			expect(isRight(DeviceName.decode('a'.repeat(256)))).to.be.false;
 		});
 
-		it('returns false with an invalid environment', () => {
-			const devices = {
-				abcd1234: {
-					name: 'foo',
-					apps: {
-						'234': {
-							config: { bar: 'baz' },
-							environment: { dead: 1 },
+		it('rejects strings with new lines', () => {
+			expect(isRight(DeviceName.decode('\n'))).to.be.false;
+			expect(isRight(DeviceName.decode('aaaa\nbbbb'))).to.be.false;
+			expect(isRight(DeviceName.decode('\n' + 'a'.repeat(254)))).to.be.false;
+			expect(isRight(DeviceName.decode('\n' + 'a'.repeat(255)))).to.be.false;
+		});
+	});
+
+	describe('string identifier', () => {
+		it('accepts integer strings as input', () => {
+			expect(isRight(StringIdentifier.decode('0'))).to.be.true;
+			expect(isRight(StringIdentifier.decode('1234'))).to.be.true;
+			expect(isRight(StringIdentifier.decode('51564189199'))).to.be.true;
+		});
+
+		it('rejects non strings or non numeric strings', () => {
+			expect(isRight(StringIdentifier.decode(null))).to.be.false;
+			expect(isRight(StringIdentifier.decode(undefined))).to.be.false;
+			expect(isRight(StringIdentifier.decode([1]))).to.be.false;
+			expect(isRight(StringIdentifier.decode('[1]'))).to.be.false;
+			expect(isRight(StringIdentifier.decode(12345))).to.be.false;
+			expect(isRight(StringIdentifier.decode(-12345))).to.be.false;
+			expect(isRight(StringIdentifier.decode('aaaa'))).to.be.false;
+			expect(isRight(StringIdentifier.decode('-125'))).to.be.false;
+			expect(isRight(StringIdentifier.decode('0xffff'))).to.be.false;
+			expect(isRight(StringIdentifier.decode('1544.333'))).to.be.false;
+		});
+
+		it('decodes to a string', () => {
+			expect(StringIdentifier.decode('12345'))
+				.to.have.property('right')
+				.that.equals('12345');
+		});
+	});
+
+	describe('numeric identifier', () => {
+		it('accepts integers and integer strings as input', () => {
+			expect(isRight(NumericIdentifier.decode('0'))).to.be.true;
+			expect(isRight(NumericIdentifier.decode('1234'))).to.be.true;
+			expect(isRight(NumericIdentifier.decode(1234))).to.be.true;
+			expect(isRight(NumericIdentifier.decode(51564189199))).to.be.true;
+			expect(isRight(NumericIdentifier.decode('51564189199'))).to.be.true;
+		});
+
+		it('rejects non strings or non numeric strings', () => {
+			expect(isRight(NumericIdentifier.decode(null))).to.be.false;
+			expect(isRight(NumericIdentifier.decode(undefined))).to.be.false;
+			expect(isRight(NumericIdentifier.decode([1]))).to.be.false;
+			expect(isRight(NumericIdentifier.decode('[1]'))).to.be.false;
+			expect(isRight(NumericIdentifier.decode('aaaa'))).to.be.false;
+			expect(isRight(NumericIdentifier.decode('-125'))).to.be.false;
+			expect(isRight(NumericIdentifier.decode('0xffff'))).to.be.false;
+			expect(isRight(NumericIdentifier.decode('1544.333'))).to.be.false;
+			expect(isRight(NumericIdentifier.decode(1544.333))).to.be.false;
+			expect(isRight(NumericIdentifier.decode(-1544.333))).to.be.false;
+		});
+
+		it('decodes to a number', () => {
+			expect(NumericIdentifier.decode('12345'))
+				.to.have.property('right')
+				.that.equals(12345);
+			expect(NumericIdentifier.decode(12345))
+				.to.have.property('right')
+				.that.equals(12345);
+		});
+	});
+
+	describe('target apps', () => {
+		it('accept valid target apps', () => {
+			expect(
+				isRight(
+					TargetApps.decode({
+						'1234': {
+							name: 'something',
+							services: {},
 						},
-					},
-				},
-			};
-			expect(validation.isValidDependentDevicesObject(devices)).to.equal(false);
+					}),
+				),
+				'accepts apps with no no release id or commit',
+			).to.be.true;
+			expect(
+				isRight(
+					TargetApps.decode({
+						'1234': {
+							name: 'something',
+							releaseId: 123,
+							commit: 'bar',
+							services: {},
+						},
+					}),
+				),
+				'accepts apps with no services',
+			).to.be.true;
+
+			expect(
+				isRight(
+					TargetApps.decode({
+						'1234': {
+							name: 'something',
+							releaseId: 123,
+							commit: 'bar',
+							services: {
+								'45': {
+									serviceName: 'bazbaz',
+									imageId: 34,
+									image: 'foo',
+									environment: { MY_SERVICE_ENV_VAR: '123' },
+									labels: { 'io.balena.features.supervisor-api': 'true' },
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					}),
+				),
+				'accepts apps with a service',
+			).to.be.true;
 		});
 
-		it('returns false if the uuid is too long', () => {
-			const devices: Dictionary<any> = {};
-			devices[almostTooLongText + 'a'] = {
-				name: 'foo',
-				apps: {
-					'234': {
-						config: { bar: 'baz' },
-						environment: { dead: 'beef' },
-					},
-				},
-			};
-			expect(validation.isValidDependentDevicesObject(devices)).to.equal(false);
+		it('rejects app with invalid environment', () => {
+			expect(
+				isRight(
+					TargetApps.decode({
+						'1234': {
+							name: 'something',
+							releaseId: 123,
+							commit: 'bar',
+							services: {
+								'45': {
+									serviceName: 'bazbaz',
+									imageId: 34,
+									image: 'foo',
+									environment: { ' baz': 'bat' },
+									labels: {},
+								},
+							},
+						},
+					}),
+				),
+			).to.be.false;
+		});
+
+		it('rejects app with invalid labels', () => {
+			expect(
+				isRight(
+					TargetApps.decode({
+						'1234': {
+							name: 'something',
+							releaseId: 123,
+							commit: 'bar',
+							services: {
+								'45': {
+									serviceName: 'bazbaz',
+									imageId: 34,
+									image: 'foo',
+									environment: {},
+									labels: { ' not a valid #name': 'label value' },
+								},
+							},
+						},
+					}),
+				),
+			).to.be.false;
+		});
+
+		it('rejects an invalid appId', () => {
+			expect(
+				isRight(
+					TargetApps.decode({
+						boo: {
+							name: 'something',
+							releaseId: 123,
+							commit: 'bar',
+							services: {
+								'45': {
+									serviceName: 'bazbaz',
+									imageId: 34,
+									image: 'foo',
+									environment: {},
+									labels: {},
+								},
+							},
+						},
+					}),
+				),
+			).to.be.false;
+		});
+
+		it('rejects a commit that is too long', () => {
+			expect(
+				isRight(
+					TargetApps.decode({
+						boo: {
+							name: 'something',
+							releaseId: 123,
+							commit: 'a'.repeat(256),
+							services: {
+								'45': {
+									serviceName: 'bazbaz',
+									imageId: 34,
+									image: 'foo',
+									environment: {},
+									labels: {},
+								},
+							},
+						},
+					}),
+				),
+			).to.be.false;
+
+			it('rejects a service with an invalid docker name', () => {
+				expect(
+					isRight(
+						TargetApps.decode({
+							boo: {
+								name: 'something',
+								releaseId: 123,
+								commit: 'a'.repeat(256),
+								services: {
+									'45': {
+										serviceName: ' not a valid name',
+										imageId: 34,
+										image: 'foo',
+										environment: {},
+										labels: {},
+									},
+								},
+							},
+						}),
+					),
+				).to.be.false;
+			});
+		});
+
+		it('rejects a commit that is too long', () => {
+			expect(
+				isRight(
+					TargetApps.decode({
+						boo: {
+							name: 'something',
+							releaseId: 123,
+							commit: 'a'.repeat(256),
+							services: {
+								'45': {
+									serviceName: 'bazbaz',
+									imageId: 34,
+									image: 'foo',
+									environment: {},
+									labels: {},
+								},
+							},
+						},
+					}),
+				),
+			).to.be.false;
+		});
+
+		it('rejects app with an invalid releaseId', () => {
+			expect(
+				isRight(
+					TargetApps.decode({
+						boo: {
+							name: 'something',
+							releaseId: '123aaa',
+							commit: 'bar',
+							services: {
+								'45': {
+									serviceName: 'bazbaz',
+									imageId: 34,
+									image: 'foo',
+									environment: {},
+									labels: {},
+								},
+							},
+						},
+					}),
+				),
+			).to.be.false;
 		});
 	});
 });

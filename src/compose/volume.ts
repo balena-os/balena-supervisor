@@ -7,7 +7,7 @@ import constants = require('../lib/constants');
 import { docker } from '../lib/docker-utils';
 import { InternalInconsistencyError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
-import { LabelObject } from '../lib/types';
+import { LabelObject } from '../types';
 import * as logger from '../logger';
 import * as ComposeUtils from './utils';
 

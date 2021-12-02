@@ -5,7 +5,7 @@ import * as config from './config';
 import * as db from './db';
 import * as logger from './logger';
 import * as dbus from './lib/dbus';
-import { EnvVarObject } from './lib/types';
+import { EnvVarObject } from './types';
 import { UnitNotLoadedError } from './lib/errors';
 import { checkInt, checkTruthy } from './lib/validation';
 import log from './lib/supervisor-console';

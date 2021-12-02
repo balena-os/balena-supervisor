@@ -32,7 +32,7 @@ import { createV2Api } from '../device-api/v2';
 import { CompositionStep, generateStep } from './composition-steps';
 import {
 	InstancedAppState,
-	TargetApplications,
+	TargetApps,
 	DeviceStatus,
 	DeviceReportFields,
 	TargetState,
@@ -463,13 +463,13 @@ export async function executeStep(
 
 // FIXME: This shouldn't be in this module
 export async function setTarget(
-	apps: TargetApplications,
+	apps: TargetApps,
 	dependent: TargetState['dependent'],
 	source: string,
 	maybeTrx?: Transaction,
 ) {
 	const setInTransaction = async (
-		$filteredApps: TargetApplications,
+		$filteredApps: TargetApps,
 		trx: Transaction,
 	) => {
 		await dbFormat.setApps($filteredApps, source, trx);
@@ -534,7 +534,7 @@ export async function setTarget(
 	}
 }
 
-export async function getTargetApps(): Promise<TargetApplications> {
+export async function getTargetApps(): Promise<TargetApps> {
 	const apps = await dbFormat.getTargetJson();
 
 	// Whilst it may make sense here to return the target state generated from the

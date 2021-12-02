@@ -10,7 +10,7 @@ import * as images from '../src/compose/images';
 import App from '../src/compose/app';
 import Service from '../src/compose/service';
 import Network from '../src/compose/network';
-import { TargetApplication } from '../src/types/state';
+import { TargetApp } from '../src/types/state';
 
 function getDefaultNetworks(appId: number) {
 	return {
@@ -123,7 +123,7 @@ describe('DB Format', () => {
 
 	it('should write target states to the database', async () => {
 		const target = await import('./data/state-endpoints/simple.json');
-		const dbApps: { [appId: number]: TargetApplication } = {};
+		const dbApps: { [appId: number]: TargetApp } = {};
 		dbApps[1234] = {
 			...target.local.apps[1234],
 		};

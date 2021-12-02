@@ -4,7 +4,7 @@ import * as Bluebird from 'bluebird';
 import * as config from '../config';
 import * as constants from '../lib/constants';
 import { getMetaOSRelease } from '../lib/os-release';
-import { EnvVarObject } from '../lib/types';
+import { EnvVarObject } from '../types';
 import { allBackends as Backends } from './backends';
 import { ConfigOptions, ConfigBackend } from './backends/backend';
 

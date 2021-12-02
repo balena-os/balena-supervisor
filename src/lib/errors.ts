@@ -81,6 +81,8 @@ export class ConfigurationValidationError extends TypedError {
 
 export class ImageAuthenticationError extends TypedError {}
 
+export class TargetStateError extends TypedError {}
+
 /**
  * An error thrown if our own container cannot be inspected.
  * See LocalModeManager for a usage example.

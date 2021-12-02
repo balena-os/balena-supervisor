@@ -8,9 +8,9 @@ import * as images from '../compose/images';
 
 import {
 	InstancedAppState,
-	TargetApplication,
-	TargetApplications,
-	TargetApplicationService,
+	TargetApp,
+	TargetApps,
+	TargetService,
 } from '../types/state';
 import { checkInt } from '../lib/validation';
 
@@ -37,7 +37,7 @@ export async function getApps(): Promise<InstancedAppState> {
 }
 
 export async function setApps(
-	apps: { [appId: number]: TargetApplication },
+	apps: { [appId: number]: TargetApp },
 	source: string,
 	trx?: db.Transaction,
 ) {
@@ -72,9 +72,9 @@ export async function setApps(
 	await targetStateCache.setTargetApps(dbApps, trx);
 }
 
-export async function getTargetJson(): Promise<TargetApplications> {
+export async function getTargetJson(): Promise<TargetApps> {
 	const dbApps = await getDBEntry();
-	const apps: TargetApplications = {};
+	const apps: TargetApps = {};
 	await Promise.all(
 		dbApps.map(async (app) => {
 			const parsedServices = JSON.parse(app.services);
@@ -82,8 +82,7 @@ export async function getTargetJson(): Promise<TargetApplications> {
 			const services = _(parsedServices)
 				.keyBy('serviceId')
 				.mapValues(
-					(svc: TargetApplicationService) =>
-						_.omit(svc, 'commit') as TargetApplicationService,
+					(svc: TargetService) => _.omit(svc, 'commit') as TargetService,
 				)
 				.value();
 
@@ -96,7 +95,7 @@ export async function getTargetJson(): Promise<TargetApplications> {
 				networks: JSON.parse(app.networks),
 				volumes: JSON.parse(app.volumes),
 				// We can add this cast because it's required in the db
-			} as TargetApplication;
+			} as TargetApp;
 		}),
 	);
 	return apps;

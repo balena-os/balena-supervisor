@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import { EnvVarObject } from './types';
+import { EnvVarObject } from '../types';
 
 import log from '../lib/supervisor-console';
 
