@@ -1,4 +1,17 @@
 - commits:
+    - subject: Convert target state types to io-ts for better validation
+      hash: f6692ab918b3d1c1e032ec31a057d745ffca94dc
+      body: |
+        This simplifies target state validation and improves validation
+        messages.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.15
+  date: 2021-12-02T18:34:10.741Z
+- commits:
     - subject: Add happy eyeballs
       hash: 9ed2685f63f9070dd6491bf1acae1e239b6bd557
       body: ''
