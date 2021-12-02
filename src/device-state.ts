@@ -22,7 +22,11 @@ import * as globalEventBus from './event-bus';
 import * as hostConfig from './host-config';
 import constants = require('./lib/constants');
 import * as dbus from './lib/dbus';
-import { InternalInconsistencyError, UpdatesLockedError } from './lib/errors';
+import {
+	InternalInconsistencyError,
+	TargetStateError,
+	UpdatesLockedError,
+} from './lib/errors';
 import * as updateLock from './lib/update-lock';
 import * as validation from './lib/validation';
 import * as network from './network';
@@ -52,7 +56,7 @@ function parseTargetState(state: unknown): TargetState {
 	}
 
 	const errors = ['Invalid target state.'].concat(Reporter.report(res));
-	throw new Error(errors.join('\n'));
+	throw new TargetStateError(errors.join('\n'));
 }
 
 // TODO (refactor): This shouldn't be here, and instead should be part of the other
