@@ -96,7 +96,11 @@ export const VariableName = new t.Type<string, string>(
 			chain((s) =>
 				VAR_NAME_REGEX.test(s)
 					? t.success(s)
-					: t.failure(s, c, "may only contain alphanumeric chars plus '_'"),
+					: t.failure(
+							s,
+							c,
+							"needs to start with a letter and may only contain alphanumeric characters plus '_'",
+					  ),
 			),
 		),
 	t.identity,
@@ -121,7 +125,7 @@ export const LabelName = new t.Type<string, string>(
 					: t.failure(
 							s,
 							c,
-							"may only contain alphanumeric chars plus '-' and '.'",
+							"needs to start with a letter and may only contain alphanumeric characters plus '-' and '.'",
 					  ),
 			),
 		),
