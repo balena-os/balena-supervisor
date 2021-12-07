@@ -115,6 +115,11 @@ const actionExecutors: DeviceActionExecutors = {
 const configBackends: ConfigBackend[] = [];
 
 const configKeys: Dictionary<ConfigOption> = {
+	statePatchInterval: {
+		envVarName: 'SUPERVISOR_PATCH_INTERVAL',
+		varType: 'int',
+		defaultValue: '60000',
+	},
 	appUpdatePollInterval: {
 		envVarName: 'SUPERVISOR_POLL_INTERVAL',
 		varType: 'int',

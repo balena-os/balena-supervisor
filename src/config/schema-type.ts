@@ -58,6 +58,10 @@ export const schemaTypes = {
 		type: PermissiveNumber,
 		default: NullOrUndefined,
 	},
+	statePatchInterval: {
+		type: PermissiveNumber,
+		default: 60000,
+	},
 	appUpdatePollInterval: {
 		type: PermissiveNumber,
 		default: 60000,
