@@ -13,6 +13,7 @@ import * as config from '../config';
 import { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
+import { backoff } from '../lib/backoff';
 
 // The exponential backoff starts at 15s
 const MINIMUM_BACKOFF_DELAY = 15000;
@@ -148,23 +149,6 @@ const throttledReport = _.throttle(
 	constants.maxReportFrequency,
 );
 
-/**
- * Perform exponential backoff on the function, increasing the attempts
- * counter on each call
- *
- * If attempts is 0 then, it will delay for min(minDelay, maxDelay)
- */
-const backoff = (
-	retry: (attempts: number) => void,
-	attempts = 0,
-	maxDelay: number,
-	minDelay = MINIMUM_BACKOFF_DELAY,
-) => {
-	const delay = Math.min(2 ** attempts * minDelay, maxDelay);
-	log.info(`Retrying request in ${delay / 1000} seconds`);
-	setTimeout(() => retry(attempts + 1), delay);
-};
-
 function reportCurrentState(attempts = 0) {
 	(async () => {
 		const {
@@ -237,19 +221,41 @@ function reportCurrentState(attempts = 0) {
 					// get triggered.
 					// This will use retryAfter as maxDelay if the header is present in the
 					// response by the API
-					backoff(
-						reportCurrentState,
-						// Do not do exponential backoff if the API reported a retryAfter
-						e.retryAfter ? 0 : attempts,
-						maxDelay,
-						// Start the polling at the value given by the API if any
-						e.retryAfter ?? MINIMUM_BACKOFF_DELAY,
-					);
+					if (e.retryAfter) {
+						backoff({
+							retry: reportCurrentState,
+							maxDelay: e.retryAfter,
+							onRetry: (delay) =>
+								log.info(
+									`Device state report: Retrying in ${delay / 1000} seconds`,
+								),
+						});
+					} else {
+						backoff({
+							retry: reportCurrentState,
+							attempts,
+							maxDelay,
+							minDelay: MINIMUM_BACKOFF_DELAY,
+							onRetry: (delay) =>
+								log.info(
+									`Device state report: Retrying in ${delay / 1000} seconds`,
+								),
+						});
+					}
 				} else {
 					eventTracker.track('Device state report failure', {
 						error: e.message,
 					});
-					backoff(reportCurrentState, stateReportErrors++, maxDelay);
+					backoff({
+						retry: reportCurrentState,
+						attempts: stateReportErrors++,
+						maxDelay,
+						minDelay: MINIMUM_BACKOFF_DELAY,
+						onRetry: (delay) =>
+							log.info(
+								`Device state report: Retrying in ${delay / 1000} seconds`,
+							),
+					});
 				}
 			},
 		);
