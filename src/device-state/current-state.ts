@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import * as url from 'url';
+import { delay as wait } from 'bluebird';
 import { CoreOptions } from 'request';
 
 import * as constants from '../lib/constants';
@@ -7,6 +8,7 @@ import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
 import * as sysInfo from '../lib/system-info';
+import throttle from '../lib/throttle';
 
 import { DeviceStatus } from '../types/state';
 import * as config from '../config';
@@ -140,13 +142,10 @@ const getStateDiff = (): DeviceStatus => {
 	return _.omitBy(diff, _.isEmpty);
 };
 
-const throttledReport = _.throttle(
-	// We define the throttled function this way to avoid UncaughtPromise exceptions
-	// for exceptions thrown from the report function
-	(opts: StateReport, resolve: () => void, reject: (e: Error) => void) =>
-		report(opts).then(resolve).catch(reject),
-	constants.maxReportFrequency,
-);
+/**
+ * Initialize a throttled call to report using a default value
+ */
+let throttledReport = throttle(report, constants.maxReportFrequency);
 
 /**
  * Perform exponential backoff on the function, increasing the attempts
@@ -214,7 +213,7 @@ function reportCurrentState(attempts = 0) {
 
 		// report state diff
 		throttledReport(
-			{ stateDiff, conf },
+			[{ stateDiff, conf }],
 			() => {
 				// If the patch succeeds update lastReport and reset the error counter
 				_.assign(lastReportedState.local, stateDiff.local);
@@ -256,7 +255,38 @@ function reportCurrentState(attempts = 0) {
 	})();
 }
 
-export const startReporting = () => {
+export async function startReporting(): Promise<void> {
+	await config.initialized;
+
+	let reportInterval: number;
+	let reportLoop: NodeJS.Timeout;
+
+	// Listen for config changes on stateReportInterval so we can update our intervals
+	config.on('change', (changedConfig) => {
+		if (changedConfig.stateReportInterval) {
+			// Update local copy of reporting interval
+			reportInterval = changedConfig.stateReportInterval;
+			// Update throttled report interval
+			throttledReport = throttle(report, reportInterval);
+			// Stop current report interval
+			clearInterval(reportLoop);
+			// Start interval with new time
+			reportLoop = setInterval(doReport, reportInterval);
+		}
+	});
+
+	try {
+		reportInterval = await config.get('stateReportInterval');
+	} catch {
+		// Delay 10 seconds and retry loading config
+		await wait(10000);
+		// Attempt to start poll again
+		return startReporting();
+	}
+
+	// Update throttled report using default value with interval we just got
+	throttledReport = throttle(report, reportInterval);
+
 	const doReport = () => {
 		if (!reportPending) {
 			reportCurrentState();
@@ -267,7 +297,7 @@ export const startReporting = () => {
 	deviceState.on('change', doReport);
 	// But check once every max report frequency to ensure that changes in system
 	// info are picked up (CPU temp etc)
-	setInterval(doReport, constants.maxReportFrequency);
+	reportLoop = setInterval(doReport, reportInterval);
 	// Try to perform a report right away
 	return doReport();
-};
+}
