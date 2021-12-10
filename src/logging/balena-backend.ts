@@ -135,7 +135,7 @@ export class BalenaLogBackend extends LogBackend {
 			MAX_COOLDOWN_PERIOD,
 		);
 		// Work out how much of a delay has already occurred since the last attempt
-		const alreadyDelayedBy = this.lastSetupAttempt - Date.now();
+		const alreadyDelayedBy = Date.now() - this.lastSetupAttempt;
 		// The difference between the two is the actual delay we want
 		const delay = Math.max(totalDelay - alreadyDelayedBy, 0);
 
