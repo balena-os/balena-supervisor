@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { checkString } from './validation';
 
 const bootMountPointFromEnv = checkString(process.env.BOOT_MOUNTPOINT);
@@ -49,7 +50,9 @@ const constants = {
 		'lo',
 		supervisorNetworkInterface,
 	],
-	appsJsonPath: process.env.APPS_JSON_PATH || '/boot/apps.json',
+	appsJsonPath:
+		process.env.APPS_JSON_PATH ||
+		path.join(rootMountPoint, '/mnt/data', 'apps.json'),
 	ipAddressUpdateInterval: 30 * 1000,
 	imageCleanupErrorIgnoreTimeout: 3600 * 1000,
 	maxDeltaDownloads: 3,
