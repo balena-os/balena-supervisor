@@ -10,7 +10,8 @@ import { LogBackend, LogMessage } from './log-backend';
 import log from '../lib/supervisor-console';
 
 const ZLIB_TIMEOUT = 100;
-const COOLDOWN_PERIOD = 5 * 1000;
+const MIN_COOLDOWN_PERIOD = 5 * 1000; // 5 seconds
+const MAX_COOLDOWN_PERIOD = 300 * 1000; // 5 minutes
 const KEEPALIVE_TIMEOUT = 60 * 1000;
 const RESPONSE_GRACE_PERIOD = 5 * 1000;
 
@@ -118,53 +119,83 @@ export class BalenaLogBackend extends LogBackend {
 		this.initialised = true;
 	}
 
-	private setup = _.throttle(() => {
-		this.req = https.request(this.opts);
+	private lastSetupAttempt = 0;
+	private setupFailures = 0;
+	private setupPending = false;
+	private setup() {
+		if (this.setupPending || this.req != null) {
+			// If we already have a setup pending, or we are already setup, then do nothing
+			return;
+		}
+		this.setupPending = true;
 
-		// Since we haven't sent the request body yet, and never will,the
-		// only reason for the server to prematurely respond is to
-		// communicate an error. So teardown the connection immediately
-		this.req.on('response', (res) => {
-			log.error(
-				'LogBackend: server responded with status code:',
-				res.statusCode,
-			);
-			this.teardown();
-		});
+		// Work out the total delay we need
+		const totalDelay = Math.min(
+			2 ** this.setupFailures * MIN_COOLDOWN_PERIOD,
+			MAX_COOLDOWN_PERIOD,
+		);
+		// Work out how much of a delay has already occurred since the last attempt
+		const alreadyDelayedBy = this.lastSetupAttempt - Date.now();
+		// The difference between the two is the actual delay we want
+		const delay = Math.max(totalDelay - alreadyDelayedBy, 0);
 
-		this.req.on('timeout', () => this.teardown());
-		this.req.on('close', () => this.teardown());
-		this.req.on('error', (err) => {
-			log.error('LogBackend: unexpected error:', err);
-			this.teardown();
-		});
+		setTimeout(() => {
+			this.setupPending = false;
+			this.lastSetupAttempt = Date.now();
 
-		// Immediately flush the headers. This gives a chance to the server to
-		// respond with potential errors such as 401 authentication error
-		this.req.flushHeaders();
+			const setupFailed = () => {
+				this.setupFailures++;
+				this.teardown();
+			};
 
-		// We want a very low writable high watermark to prevent having many
-		// chunks stored in the writable queue of @_gzip and have them in
-		// @_stream instead. This is desirable because once @_gzip.flush() is
-		// called it will do all pending writes with that flush flag. This is
-		// not what we want though. If there are 100 items in the queue we want
-		// to write all of them with Z_NO_FLUSH and only afterwards do a
-		// Z_SYNC_FLUSH to maximize compression
-		this.gzip = zlib.createGzip({ writableHighWaterMark: 1024 });
-		this.gzip.on('error', () => this.teardown());
-		this.gzip.pipe(this.req);
+			this.req = https.request(this.opts);
 
-		// Only start piping if there has been no error after the header flush.
-		// Doing it immediately would potentialy lose logs if it turned out that
-		// the server is unavailalbe because @_req stream would consume our
-		// passthrough buffer
-		this.timeout = setTimeout(() => {
-			if (this.gzip != null) {
-				this.stream.pipe(this.gzip);
-				setImmediate(this.flush);
-			}
-		}, RESPONSE_GRACE_PERIOD);
-	}, COOLDOWN_PERIOD);
+			// Since we haven't sent the request body yet, and never will,the
+			// only reason for the server to prematurely respond is to
+			// communicate an error. So teardown the connection immediately
+			this.req.on('response', (res) => {
+				log.error(
+					'LogBackend: server responded with status code:',
+					res.statusCode,
+				);
+				setupFailed();
+			});
+
+			this.req.on('timeout', setupFailed);
+			this.req.on('close', setupFailed);
+			this.req.on('error', (err) => {
+				log.error('LogBackend: unexpected error:', err);
+				setupFailed();
+			});
+
+			// Immediately flush the headers. This gives a chance to the server to
+			// respond with potential errors such as 401 authentication error
+			this.req.flushHeaders();
+
+			// We want a very low writable high watermark to prevent having many
+			// chunks stored in the writable queue of @_gzip and have them in
+			// @_stream instead. This is desirable because once @_gzip.flush() is
+			// called it will do all pending writes with that flush flag. This is
+			// not what we want though. If there are 100 items in the queue we want
+			// to write all of them with Z_NO_FLUSH and only afterwards do a
+			// Z_SYNC_FLUSH to maximize compression
+			this.gzip = zlib.createGzip({ writableHighWaterMark: 1024 });
+			this.gzip.on('error', setupFailed);
+			this.gzip.pipe(this.req);
+
+			// Only start piping if there has been no error after the header flush.
+			// Doing it immediately would potentially lose logs if it turned out that
+			// the server is unavailalbe because @_req stream would consume our
+			// passthrough buffer
+			this.timeout = setTimeout(() => {
+				if (this.gzip != null) {
+					this.setupFailures = 0;
+					this.stream.pipe(this.gzip);
+					setImmediate(this.flush);
+				}
+			}, RESPONSE_GRACE_PERIOD);
+		}, delay);
+	}
 
 	private snooze = _.debounce(this.teardown, KEEPALIVE_TIMEOUT);
 
@@ -196,9 +227,7 @@ export class BalenaLogBackend extends LogBackend {
 
 	private write(message: LogMessage) {
 		this.snooze();
-		if (this.req == null) {
-			this.setup();
-		}
+		this.setup();
 
 		if (this.writable) {
 			try {
