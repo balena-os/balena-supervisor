@@ -1,4 +1,15 @@
 - commits:
+    - subject: Fix the "already delayed by" calculation
+      hash: 32e3399f7c156574e35cbd6c6ec207972c7afe69
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 12.11.18
+  date: 2021-12-10T15:58:06.889Z
+- commits:
     - subject: Add exponential backoff on errors for logs reporting
       hash: 6554ff5a64230352b4cd77249861807f02feda87
       body: ''
