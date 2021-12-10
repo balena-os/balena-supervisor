@@ -1,4 +1,20 @@
 - commits:
+    - subject: >-
+        Fix default value for BALENA_SUPERVISOR_POLL_INTERVAL The API typically
+        passes its own value and overrides this default. This old value was the
+        one the API passed not what the Supervisor source code had.
+      hash: 201e74280566c735b2c20fb2ca3d7f109f5c9803
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.11.19
+  date: 2021-12-10T21:59:53.428Z
+- commits:
     - subject: Fix the "already delayed by" calculation
       hash: 32e3399f7c156574e35cbd6c6ec207972c7afe69
       body: ''
