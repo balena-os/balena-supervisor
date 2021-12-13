@@ -406,24 +406,17 @@ export async function loadInitialState() {
 		update_downloaded: false,
 	});
 
-	const targetApps = await applicationManager.getTargetApps();
-	if (!conf.provisioned || (_.isEmpty(targetApps) && !conf.targetStateSet)) {
-		try {
-			await loadTargetFromFile(null);
-		} finally {
-			await config.set({ targetStateSet: true });
-		}
+	if (!conf.provisioned || !conf.targetStateSet) {
+		await loadTargetFromFile(constants.appsJsonPath);
 	} else {
 		log.debug('Skipping preloading');
-		if (conf.provisioned && !_.isEmpty(targetApps)) {
-			// If we're in this case, it's because we've updated from an older supervisor
-			// and we need to mark that the target state has been set so that
-			// the supervisor doesn't try to preload again if in the future target
-			// apps are empty again (which may happen with multi-app).
-			await config.set({ targetStateSet: true });
-		}
 	}
-	triggerApplyTarget({ initial: true });
+
+	// Only trigger initial target if we have received a target
+	// from the cloud at some point
+	if (conf.targetStateSet) {
+		triggerApplyTarget({ initial: true });
+	}
 }
 
 // We keep compatibility with the StrictEventEmitter types
@@ -498,6 +491,7 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 					trx,
 				);
 			}
+			await config.set({ targetStateSet: true }, trx);
 		});
 	});
 }
