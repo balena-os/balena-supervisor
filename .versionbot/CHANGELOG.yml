@@ -1,4 +1,32 @@
 - commits:
+    - subject: Skip initial apply until a target has been set
+      hash: 9015b0e22f7edf973798d5ace3d60e32d43bb042
+      body: >
+        The supervisor always applies target state on start to ensure that the
+
+        device is at the correct in case of a crash or another reason. This had
+
+        the side effect that if the database is deleted, the supervisor would
+
+        apply target state (which is empty), stopping services and possibly
+
+        causing volume data loss.
+
+
+        This prevents that behavior and ensures that the supervisor only
+
+        applies target state if a target has been set either by the cloud,
+        preload or local
+
+        mode.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.20
+  date: 2021-12-13T12:33:34.693Z
+- commits:
     - subject: >-
         Fix default value for BALENA_SUPERVISOR_POLL_INTERVAL The API typically
         passes its own value and overrides this default. This old value was the
