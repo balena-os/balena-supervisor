@@ -4,25 +4,10 @@ Vocabulary: supervisor
 
 -- GENERIC TERMS
 
-Term: download progress
-	Concept Type: Integer (Type)
-
-Term: ip address
-	Concept Type: Short Text (Type)
-
 Term: name
 	Concept Type: Short Text (Type)
 
-Term: port
-	Concept Type: Integer (Type)
-
-Term: slug
-	Concept Type: Short Text (Type)
-
 Term: status
-	Concept Type: Short Text (Type)
-
-Term: version
 	Concept Type: Short Text (Type)
 
 Term: uuid
@@ -32,10 +17,13 @@ Term: uuid
 
 -- DEVICE
 
-Term: mac address
+Term: device type
 	Concept Type: Short Text (Type)
 
-Term: os variant
+Term: ip address
+	Concept Type: Short Text (Type)
+
+Term: mac address
 	Concept Type: Short Text (Type)
 
 Term: hostname
@@ -43,6 +31,10 @@ Term: hostname
 	-- This doesn't need to be a database type (the SV calls the hostname service under the hood) but not sure how to express that
 
 Term: device
+
+	Fact type: device is of device type
+		Synonymous Form: device type describes device
+		Necessity: each device is of exactly one device type.
 
 	Fact type: device has ip address
 		Necessity: each device has at least one ip address.
@@ -57,14 +49,6 @@ Term: device
 
 	Fact type: device has name
 		Necessity: each device has exactly one name.
-
-	Fact type: device has version
-		-- OS version
-		Necessity: each device has exactly one version.
-
-	Fact type: device has os variant
-		Necessity: each device has exactly one os variant.
-		Definition: "development" or "production"
 
 	Fact type: device has uuid
 		Necessity: each device has exactly one uuid.
@@ -138,10 +122,90 @@ Term: metric
 		Necessity: each metric has at most one storage total
 
 	Fact type: device is undervolted
+	-- Non-optional system check, so this is not part of the metric category
+	-- Alternatively, distinguish between metrics vs checks in "metric" term
+
+
+
+-- SERVICE
+
+Term: created at timestamp
+	Concept Type: Date Time (Type)
+
+Term: service instance
+Synonym: container
+
+	Fact type: service instance has status
+		Necessity: each service instance has exactly one status.
+		Definition: "Running" or "Stopping" or "Stopped"
+		-- TODO: these are partially taken from v2 API reference which may not be ideal. Decide on status strings for v3.
+
+	Fact type: service instance has name
+		Necessity: each service instance has exactly one name.
+
+	Fact type: service instance is healthy
+	-- GET /v1/healthy
+	-- app health is a computed term comprised of all service healthcheck statuses
+
+	Fact type: service instance has created at timestamp
+		Necessity: each service instance has exactly one created at timestamp.
+
+
+-- COMMIT
+
+Term: commit
+	Concept Type: Short Text (Type)
+
+	Fact type: commit has uuid
+		Necessity: each commit has exactly one uuid.
+		Necessity: each uuid is of exactly one commit.
+		Necessity: each commit has a uuid that has a Length (Type) that is equal to 32.
+
+
+
+-- RELEASE
+
+Term: version
+	Concept Type: Short Text (Type)
+
+Term: release
+
+	Fact type: release has version
+		Necessity: each release has at most one version.
+
+	Fact type: release has commit
+		Synonymous Form: commit belongs to release
+		Necessity: each release has exactly one commit.
+		Necessity: each commit belongs to exactly one release.
+
+	Fact type: device should be operated by release
+	-- Host app
+		Synonymous Form: release should operate device
+		Necessity: each device should be operated by at most one release.
+
+	Fact type: device should be managed by release
+	-- Supervisor app
+		Synonymous Form: release should manage device
+		Necessity: each device should be managed by at most one release.
+
+	Fact type: device is running release
+	-- Current release (current state)
+		Synonymous Form: release is running on device
+		Necessity: each device is running at least one release.
+		-- Changed from "at most one release" to "at least" for multi/tri-app
+
+	Fact type: device should be running release
+	-- Target release (target state)
+		Synonymous Form: release should be running on device
+		Necessity: each device should be running at least one release.
+	
 
 
 
 -- IMAGE
+
+Term: download progress
+	Concept Type: Integer (Type)
 
 Term: image location
 	Concept Type: Short Text (Type)
@@ -164,51 +228,19 @@ Term: image install
 		Definition: "Downloaded" or "Downloading"
 		-- TODO: these are partially taken from v2 API reference which may not be ideal. Decide on status strings for v3.
 
+	Fact type: image install is provided by release
+		Synonymous Form: release provides image install
+		Necessity: each image install is provided by exactly one release.
 
-
--- SERVICE
-
-Term: service
-Synonym: container
-
-	Fact type: service has status
-		Necessity: each service has exactly one status.
-		Definition: "Running" or "Stopping" or "Stopped"
-		-- TODO: these are partially taken from v2 API reference which may not be ideal. Decide on status strings for v3.
-
-	Fact type: service has name
-		Necessity: each service has exactly one name.
-
-	Fact type: service is healthy
-	-- GET /v1/healthy
-	-- app health is a computed term comprised of all service healthcheck statuses
-
-
-
--- RELEASE
-
-Term: release
-
-	-- TODO: This is "image" and not "image install" in balena.sbvr but how do we link an image install to a release then?
-	-- Fact type: image is part of release
-	--	Synonymous Form: release contains image
-
-	Fact type: device is running release
-		Synonymous Form: release is running on device
-		Necessity: each device is running at least one release.
-		-- Changed from "at most one release" to "at least" for multi-app -- valid?
+	Fact type: service instance originates from image install
+		Necessity: each service instance originates from at least one image install.
 
 
 
 -- APP
 
-Term: commit
+Term: slug
 	Concept Type: Short Text (Type)
-
-	Fact type: commit has uuid
-		Necessity: each commit has exactly one uuid.
-		Necessity: each uuid is of exactly one commit.
-		Necessity: each commit has a uuid that has a Length (Type) that is equal to 32.
 
 Term: app
 
@@ -233,23 +265,15 @@ Term: app
 		Synonymous Form: release should be running on app
 		Necessity: each app should be running at most one release.
 
-	Fact type: app has version
-		Necessity: each app has at most one version.
+	Fact type: app has service instance
+		Synonymous Form: service instance belongs to app
+		Necessity: each app has at least one service instance.
+		Necessity: each service instance belongs to at most one app.
 
 	Fact type: device belongs to app
 		Synonymous Form: app owns device
 		Necessity: each device belongs to at least one app.
-		-- Changed from "at most one app" to "at least" for multi-app -- valid?
-
-	Fact type: release has commit
-		Synonymous Form: commit belongs to release
-		Necessity: each release has exactly one commit.
-		Necessity: each commit belongs to exactly one release.
-
-	Fact type: app has service
-		Synonymous Form: service belongs to app
-		Necessity: each app has at least one service.
-		Necessity: each service belongs to at most one app.
+		-- Changed from "at most one app" to "at least" for multi-app
 
 	Fact type: release belongs to app
 		Synonymous Form: app owns release
@@ -257,17 +281,18 @@ Term: app
 
 
 
--- CONFIG / ENV VARS
+-- ENV VARS
+-- Supervisor config var == env var
 
 Term: value
 	Concept Type: Text (Type)
 
-Term: env var
+Term: environment variable
 -- TODO: named something different in open-balena-api model
 	Concept Type: Short Text (Type)
 
-	Fact type: env var has value
-		Necessity: each env var has exactly one value.
+	Fact type: environment variable has value
+		Necessity: each environment variable has exactly one value.
 
-	Fact type: service owns env var
-		Synonymous Form: env var belongs to service
+	Fact type: service instance has environment variable
+		Synonymous Form: environment variable belongs to service instance.
