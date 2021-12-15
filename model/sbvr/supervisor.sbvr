@@ -106,7 +106,6 @@ Term: storage usage
 
 Term: metric
 -- Separate metrics from other device info for greater modularity
--- Not sure about syntax/accuracy/necessity for this section, needs sanity check
 
 	Fact type: device provides metric
 	-- Is this necessary?
@@ -272,4 +271,3 @@ Term: env var
 
 	Fact type: service owns env var
 		Synonymous Form: env var belongs to service
-		
