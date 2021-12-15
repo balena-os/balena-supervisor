@@ -1,13 +1,20 @@
 ARG ARCH=%%BALENA_ARCH%%
 ARG NODE_VERSION=12.16.2
+ARG GROUP=balena-supervisor
+ARG GID=37373
 
 FROM balenalib/$ARCH-alpine-supervisor-base:3.11 as BUILD
 
+ARG GID
+ARG GROUP
 ARG ARCH
 ARG NODE_VERSION
 ARG NODE_ARCHIVE="node-no-intl-v${NODE_VERSION}-linux-alpine-${ARCH}.tar.gz"
 ARG S3_BASE="https://resin-packages.s3.amazonaws.com"
 ARG NODE_LOCATION="${S3_BASE}/node/v${NODE_VERSION}/${NODE_ARCHIVE}"
+
+ENV GID=${GID}
+
 
 # DO NOT REMOVE THE cross-build-* COMMANDS
 # The following commands are absolutely needed. When we
@@ -42,7 +49,12 @@ RUN curl -SLO "${NODE_LOCATION}" \
 	&& grep "${NODE_ARCHIVE}" node-sums.txt | sha256sum -c - \
 	&& tar -xzf "${NODE_ARCHIVE}" -C /usr/local --strip-components=1 \
 	&& rm -f "${NODE_ARCHIVE}" \
-	&& strip /usr/local/bin/node
+	&& strip /usr/local/bin/node \
+	# Create the group the node binary will use to run
+	&& addgroup -g ${GID} ${GROUP}
+
+# Start running commands with the target group from this point forward
+USER root:${GROUP}
 
 COPY package*.json ./
 
@@ -90,6 +102,9 @@ FROM balenalib/$ARCH-alpine-supervisor-base:3.11
 
 # RUN ["cross-build-start"]
 
+ARG GID
+ARG GROUP
+
 RUN apk add --no-cache \
 	ca-certificates \
 	kmod \
@@ -99,9 +114,14 @@ RUN apk add --no-cache \
 	avahi \
 	dbus \
 	libstdc++ \
-	sqlite-libs
+	sqlite-libs \
+	# Create the group the supervisor will use to run
+	&& addgroup -g ${GID} ${GROUP}
 
 WORKDIR /usr/src/app
+
+# Start running commands with the target group from this point forward
+USER root:${GROUP}
 
 COPY --from=BUILD /usr/local/bin/node /usr/local/bin/node
 COPY --from=BUILD /usr/src/app/dist ./dist
@@ -121,6 +141,7 @@ ENV CONFIG_MOUNT_POINT=/boot/config.json \
 	SUPERVISOR_IMAGE=balena/$ARCH-supervisor \
 	VERSION=$VERSION \
 	DEFAULT_MIXPANEL_TOKEN=$DEFAULT_MIXPANEL_TOKEN
+ENV GID=${GID}
 COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 
 VOLUME /data
