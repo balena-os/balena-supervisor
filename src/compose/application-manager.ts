@@ -131,6 +131,26 @@ export const initialized = (async () => {
 		await logger.clearOutOfDateDBLogs(_.map(containers, 'Id'));
 	};
 
+	// Clean supervisor owned application locks.
+	// If we are here and there are locks created by the supervisor then
+	// it means that the lock was left behind because the supervisor
+	// got killed unexpectedly
+	const lockCleanup = (
+		await Promise.all(
+			Object.keys(await dbFormat.getApps()).map((appId) =>
+				updateLock.cleanSupervisorLocks(parseInt(appId, 10)),
+			),
+		)
+	).flat();
+
+	lockCleanup.forEach(({ lockfile, removed, message }) => {
+		if (removed) {
+			log.info(`Cleaned leftover lock ${lockfile}`);
+		} else {
+			log.warn(`Failed to clean leftover lock ${lockfile}: ${message}`);
+		}
+	});
+
 	// Rather than relying on removing out of date database entries when we're no
 	// longer using them, set a task that runs periodically to clear out the database
 	// This has the advantage that if for some reason a container is removed while the

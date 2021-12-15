@@ -36,6 +36,38 @@ function lockFilesOnHost(appId: number, serviceName: string): string[] {
 	);
 }
 
+export async function cleanSupervisorLocks(
+	appId: number,
+): Promise<Array<{ lockfile: string; removed: boolean; message?: string }>> {
+	const [lockDir] = getPathOnHost(lockPath(appId));
+	const withOwnership = (lockfile: string) =>
+		fs
+			.stat(lockfile)
+			.then((stats) => ({
+				lockfile,
+				supervisorOwned: stats.gid === constants.gid,
+			}))
+			.catch(() => ({ lockfile, supervisorOwned: false }));
+
+	const lockfiles = await Promise.all(
+		(await fs.readdir(lockDir))
+			.flatMap((serviceName) => lockFilesOnHost(appId, serviceName))
+			.map((lockfile) => withOwnership(lockfile)),
+	);
+
+	// Try to remove supervisor owned locks. Do not throw error as it won't be helpful
+	return await Promise.all(
+		lockfiles
+			.filter(({ supervisorOwned }) => supervisorOwned)
+			.map(({ lockfile }) =>
+				fs
+					.unlink(lockfile)
+					.then(() => ({ lockfile, removed: true }))
+					.catch((e) => ({ lockfile, removed: false, message: e.message })),
+			),
+	);
+}
+
 /**
  * Check for rollback-{health|altboot}-breadcrumb, two files that exist while
  * rollback-{health|altboot}.service have not exited. If these files exist,

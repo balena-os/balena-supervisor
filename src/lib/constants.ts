@@ -71,6 +71,7 @@ const constants = {
 	// a random jitter)
 	maxApiJitterDelay: 60 * 1000,
 	validRedsocksProxyTypes: ['socks4', 'socks5', 'http-connect', 'http-relay'],
+	gid: process.env.GID || 37373,
 };
 
 if (process.env.DOCKER_HOST == null) {
