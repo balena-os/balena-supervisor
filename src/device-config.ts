@@ -115,6 +115,11 @@ const actionExecutors: DeviceActionExecutors = {
 const configBackends: ConfigBackend[] = [];
 
 const configKeys: Dictionary<ConfigOption> = {
+	metricsReportInterval: {
+		envVarName: 'SUPERVISOR_METRICS_INTERVAL',
+		varType: 'int',
+		defaultValue: '0',
+	},
 	appUpdatePollInterval: {
 		envVarName: 'SUPERVISOR_POLL_INTERVAL',
 		varType: 'int',

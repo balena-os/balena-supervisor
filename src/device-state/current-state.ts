@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import * as url from 'url';
 import { CoreOptions } from 'request';
+import * as memoizee from 'memoizee';
 
 import * as constants from '../lib/constants';
 import { log } from '../lib/supervisor-console';
@@ -165,6 +166,12 @@ const backoff = (
 	setTimeout(() => retry(attempts + 1), delay);
 };
 
+// Set reference to memoized getSystemMetrics with no cache so other functions can set new maxAge
+let getSystemMetrics = memoizee(sysInfo.getSystemMetrics, {
+	promise: true,
+	maxAge: 0,
+});
+
 function reportCurrentState(attempts = 0) {
 	(async () => {
 		const {
@@ -186,7 +193,7 @@ function reportCurrentState(attempts = 0) {
 		// If hardwareMetrics is false, send null patch for system metrics to cloud API
 		const info = {
 			...(hardwareMetrics
-				? await sysInfo.getSystemMetrics()
+				? await getSystemMetrics()
 				: {
 						cpu_usage: null,
 						memory_usage: null,
@@ -256,12 +263,33 @@ function reportCurrentState(attempts = 0) {
 	})();
 }
 
-export const startReporting = () => {
+export async function startReporting(): Promise<void> {
+	await config.initialized;
+
 	const doReport = () => {
 		if (!reportPending) {
 			reportCurrentState();
 		}
 	};
+
+	let metricsInterval = await config.get('metricsReportInterval');
+
+	config.on('change', (changedConfig) => {
+		if (changedConfig.metricsReportInterval) {
+			metricsInterval = changedConfig.metricsReportInterval;
+			// Update metric querying cache maxAge
+			getSystemMetrics = memoizee(sysInfo.getSystemMetrics, {
+				promise: true,
+				maxAge: metricsInterval,
+			});
+		}
+	});
+
+	// Update metric querying cache maxAge
+	getSystemMetrics = memoizee(sysInfo.getSystemMetrics, {
+		promise: true,
+		maxAge: metricsInterval,
+	});
 
 	// If the state changes, report it
 	deviceState.on('change', doReport);
@@ -270,4 +298,4 @@ export const startReporting = () => {
 	setInterval(doReport, constants.maxReportFrequency);
 	// Try to perform a report right away
 	return doReport();
-};
+}

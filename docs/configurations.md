@@ -25,6 +25,7 @@ This list contains configuration variables that can be used with all balena devi
 | BALENA_HOST_DISCOVERABILITY | boolean | false | true | Enable / Disable Avahi to run which will allow the device to respond to requests such as network scans. | v11.9.2 |
 | BALENA_HOST_SPLASH_IMAGE | integer | true | /boot/splash/balena-logo-default.png | Allows changing splash screen on boot to user defined file from userspace. | v12.3.0 |
 | BALENA_SUPERVISOR_HARDWARE_METRICS | boolean | false | true | Toggle hardware metrics reporting to the cloud, which occurs every 10 seconds when there are changes. Metrics include CPU utilization, CPU temperature, memory usage, and disk space. Useful for devices with bandwidth sensitivity. | v12.8.0 |
+| BALENA_SUPERVISOR_METRICS_INTERVAL | integer | false | 0 | Define how frequent the device will generate new metrics data to report to the cloud in milliseconds, by default 0 means the reports are generated everytime the device tries to send the current state. This value just generates new metrics data but does not itself send it. To configure how often data is sent see `BALENA_SUPERVISOR_REPORT_INTERVAL` as device metrics are a subset of the entire report. | v12.13.0 |
 
 ---
 
