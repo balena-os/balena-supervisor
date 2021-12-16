@@ -1,6 +1,5 @@
 import { NOTFOUND } from 'dns';
 import * as mdnsResolver from 'mdns-resolver';
-import '@balena/happy-eyeballs/eye-patch';
 
 class DnsLookupError extends Error {
 	public constructor(public code: string = NOTFOUND) {
@@ -118,6 +117,7 @@ interface DnsLookupOpts {
 	};
 })();
 
+import '@balena/happy-eyeballs/eye-patch';
 import Supervisor from './supervisor';
 
 const supervisor = new Supervisor();
