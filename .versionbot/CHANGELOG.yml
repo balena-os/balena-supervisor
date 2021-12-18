@@ -1,4 +1,28 @@
 - commits:
+    - subject: Fix `.local` dns resolution when returning multiple addresses
+      hash: 39c667803d93182c595870352a597b9c07e1c9d1
+      body: >
+        The supervisor performs its own local resolution for `.local`
+
+        addresses due to a limitation in
+        [musl](https://wiki.musl-libc.org/future-ideas.html).
+
+        The resolution function was not following exactly the nodejs [dns.lookup
+
+        specification](https://nodejs.org/api/dns.html#dnslookuphostname-options-callback)
+
+        which could cause certain clients to fail (in this case happy-eyeballs).
+        This
+
+        updates the function to follow the specification.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.21
+  date: 2021-12-16T15:03:16.595Z
+- commits:
     - subject: Skip initial apply until a target has been set
       hash: 9015b0e22f7edf973798d5ace3d60e32d43bb042
       body: >
