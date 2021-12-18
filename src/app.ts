@@ -1,6 +1,5 @@
 import { NOTFOUND } from 'dns';
 import * as mdnsResolver from 'mdns-resolver';
-import '@balena/happy-eyeballs/eye-patch';
 
 class DnsLookupError extends Error {
 	public constructor(public code: string = NOTFOUND) {
@@ -11,7 +10,10 @@ class DnsLookupError extends Error {
 interface DnsLookupCallback {
 	(err: any): void;
 	(err: undefined | null, address: string, family: number): void;
-	(err: undefined | null, addresses: string[]): void;
+	(
+		err: undefined | null,
+		addresses: Array<{ address: string; family: number }>,
+	): void;
 }
 
 interface DnsLookupOpts {
@@ -75,9 +77,9 @@ interface DnsLookupOpts {
 						.catch(() => {
 							return '';
 						})
-						.then((addr) => {
+						.then((address) => {
 							return {
-								addr,
+								address,
 								family,
 							};
 						});
@@ -87,7 +89,7 @@ interface DnsLookupOpts {
 			// resolve the addresses...
 			return Promise.all(getResolvers()).then((results) => {
 				// remove any that didn't resolve...
-				let allAddresses = results.filter((result) => result.addr !== '');
+				let allAddresses = results.filter((result) => result.address !== '');
 
 				// unless the results should be returned verbatim, sort them so v4 comes first...
 				if (opts && typeof opts !== 'number' && !opts.verbatim) {
@@ -102,15 +104,12 @@ interface DnsLookupOpts {
 
 				// all the addresses were requested...
 				if (opts && typeof opts !== 'number' && opts.all) {
-					return cb(
-						null,
-						allAddresses.map((r) => r.addr),
-					);
+					return cb(null, allAddresses);
 				}
 
 				// only a single address was requested...
-				const [{ addr, family }] = allAddresses;
-				return cb(null, addr, family);
+				const [{ address, family }] = allAddresses;
+				return cb(null, address, family);
 			});
 		}
 
@@ -118,6 +117,7 @@ interface DnsLookupOpts {
 	};
 })();
 
+import '@balena/happy-eyeballs/eye-patch';
 import Supervisor from './supervisor';
 
 const supervisor = new Supervisor();
