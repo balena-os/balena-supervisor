@@ -1,4 +1,17 @@
 - commits:
+    - subject: Refactor `SUPERVISOR_POLL_INTERVAL` description to mention back off
+      hash: 51ab2032641d07df695f4fc329cb8d9ec19b92c6
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Miguel Casqueira <miguel@balena.io>
+        signed-off-by: Miguel Casqueira <miguel@balena.io>
+      author: Miguel Casqueira
+      nested: []
+  version: 12.11.22
+  date: 2021-12-22T04:19:34.979Z
+- commits:
     - subject: Fix `.local` dns resolution when returning multiple addresses
       hash: 39c667803d93182c595870352a597b9c07e1c9d1
       body: >
