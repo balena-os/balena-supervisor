@@ -12,7 +12,7 @@ This list contains configuration variables that can be used with all balena devi
 | BALENA_SUPERVISOR_VPN_CONTROL | boolean | false | true | Enable / Disable VPN service on device. | v1.1.0 |
 | BALENA_SUPERVISOR_CONNECTIVITY_CHECK | boolean | false | true | Enable / Disable VPN connectivity check | v1.3.0 |
 | BALENA_SUPERVISOR_LOG_CONTROL | boolean | false | true | Enable / Disable logs being sent to the balena API | v1.3.0 |
-| BALENA_SUPERVISOR_POLL_INTERVAL | integer | false | 600000 | Define the balena API poll interval in milliseconds. This interval will only matter if the device is not connected to the VPN at the time an update is pushed, or if BALENA_SUPERVISOR_INSTANT_UPDATE_TRIGGER is set to false. Starting from Supervisor v9.13.0, the Supervisor will use a random time between 0.5 and 1.5 times this poll interval each time it checks the balenaCloud API. The minimum value for this variable is defined by the balenaCloud backend, and may vary. | v1.3.0 |
+| BALENA_SUPERVISOR_POLL_INTERVAL | integer | false | 600000 | Define the balena API poll interval in milliseconds. This value can increase if the device needs to backoff due to server errors. The minimum value for this variable is defined by the balenaCloud backend, and may vary. | v1.3.0 | 
 | BALENA_SUPERVISOR_DELTA_REQUEST_TIMEOUT | integer | false | 30000 | Millisecond time within which an HTTP response containing delta metadata must be returned by the delta server. | v2.9.0 |
 | BALENA_SUPERVISOR_LOCAL_MODE | boolean | false | false | Enable / Disable local mode. | v4.0.0 |
 | BALENA_SUPERVISOR_DELTA_APPLY_TIMEOUT | integer | false | 0 | Millisecond time within which delta data will begin syncing to the local device. | v6.2.0 |
