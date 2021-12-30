@@ -274,8 +274,12 @@ node -v       # >= 12.16.2
 npm -v        # >= 6.14.4
 git --version # >= 2.13.0
 ```
-
 Also, ensure you're installing dependencies with `npm ci` as this will perform a clean install and guarantee the module versions specified are downloaded rather then installed which might attempt to upgrade!
+
+### DBus
+When developing on macOS you may need to install DBus on the development host.
+1. `brew install dbus`
+2. `npm ci`
 
 #### Downgrading versions
 
