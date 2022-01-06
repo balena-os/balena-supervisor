@@ -89,7 +89,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 > **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
-Triggers an update check on the supervisor. Optionally, forces an update when updates are locked.
+Triggers a check for the target state of configurations and app services. Optionally, if a new target is available, the `force` option tells the supervisor to ignore locks and install the update. This will NOT update the supervisor service.
 
 Responds with an empty 204 (No Content) response.
 
