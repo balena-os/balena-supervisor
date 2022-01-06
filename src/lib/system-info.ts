@@ -67,14 +67,87 @@ export async function getCpuTemp(): Promise<number> {
 	return Math.round(tempInfo.main);
 }
 
-export async function getCpuId(): Promise<string | undefined> {
+export async function getSystemId(): Promise<string | undefined> {
 	try {
+		// This will work on arm devices
 		const buffer = await fs.readFile('/proc/device-tree/serial-number');
 		// Remove the null byte at the end
 		return buffer.toString('utf-8').replace(/\0/g, '');
 	} catch {
-		return undefined;
+		// Otherwise use dmidecode
+		const [baseBoardInfo] = (await dmidecode('baseboard')).filter(
+			(entry) => entry.type === 'Base Board Information',
+		);
+		return baseBoardInfo?.values?.['Serial Number'] || undefined;
 	}
+}
+
+export async function getSystemModel(): Promise<string | undefined> {
+	try {
+		const buffer = await fs.readFile('/proc/device-tree/model');
+		// Remove the null byte at the end
+		return buffer.toString('utf-8').replace(/\0/g, '');
+	} catch {
+		const [baseBoardInfo] = (await dmidecode('baseboard')).filter(
+			(entry) => entry.type === 'Base Board Information',
+		);
+
+		// Join manufacturer and product name in a single string
+		return (
+			[
+				baseBoardInfo?.values?.['Manufacturer'],
+				baseBoardInfo?.values?.['Product Name'],
+			]
+				.filter((s) => !!s)
+				.join(' ') || undefined
+		);
+	}
+}
+
+/**
+ * Parse the output of dmidecode and return an array of
+ * objects {type: string, values: string[]}
+ *
+ * This only parses simple key,value pairs from the output
+ * of dmidecode, multiline strings and arrays are ignored
+ */
+export async function dmidecode(t: string) {
+	const { stdout: info } = await exec(`dmidecode -t ${t}`);
+	return (
+		info
+			.toString()
+			.split(/\r?\n/) // Split by line jumps
+			// Split into groups by looking for empty lines
+			.reduce((groups, line) => {
+				const currentGroup = groups.pop() || [];
+				if (/^\s*$/.test(line)) {
+					// For each empty line create a new group
+					groups.push(currentGroup);
+					groups.push([]);
+				} else {
+					// Otherwise append the line to the group
+					currentGroup.push(line);
+					groups.push(currentGroup);
+				}
+				return groups;
+			}, [] as string[][])
+			// Only select the handles
+			.filter((group) => group.length > 1 && /^Handle/.test(group[0]))
+			.map(([, type, ...lines]) => ({
+				type,
+				values: lines
+					// Only select lines that match 'key: value', this will exclude multiline strings
+					// and arrays (we don't care about those for these purposes)
+					.filter((line) => /^\s+[^:]+: .+$/.test(line))
+					.map((line) => {
+						const [key, value] = line.split(':').map((s) => s.trim());
+						// Finally convert the lines into key value pairs
+						return { [key]: value };
+					})
+					// And merge
+					.reduce((vals, v) => ({ ...vals, ...v }), {}),
+			}))
+	);
 }
 
 const undervoltageRegex = /under.*voltage/i;
@@ -110,7 +183,7 @@ export async function getSystemMetrics() {
 		getCpuUsage(),
 		getMemoryInformation(),
 		getCpuTemp(),
-		getCpuId(),
+		getSystemId(),
 		getStorageInfo(),
 	]);
 

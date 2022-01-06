@@ -97,7 +97,7 @@ describe('System information', () => {
 		});
 
 		it('gets CPU ID', async () => {
-			const cpuId = await sysInfo.getCpuId();
+			const cpuId = await sysInfo.getSystemId();
 			expect(cpuId).to.equal('1000000001b93f3f');
 		});
 	});
