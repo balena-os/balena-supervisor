@@ -1,4 +1,19 @@
 - commits:
+    - subject: add-supervisor-update-info
+      hash: 0c8c1864ae5e9b6dc2aaa9108d1f83bb592df1f5
+      body: >
+        Adding clarity to the supervisor /v1/update endpoint that the endpoint
+        will not trigger a supervisor update itself.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: fisehara <harald@balena.io>
+        signed-off-by: fisehara <harald@balena.io>
+      author: fisehara
+      nested: []
+  version: 12.11.23
+  date: 2021-12-28T19:02:08.272Z
+- commits:
     - subject: Refactor `SUPERVISOR_POLL_INTERVAL` description to mention back off
       hash: 51ab2032641d07df695f4fc329cb8d9ec19b92c6
       body: ''
