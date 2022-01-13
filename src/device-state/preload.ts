@@ -8,21 +8,19 @@ import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
 import * as images from '../compose/images';
 
-import constants = require('../lib/constants');
 import { AppsJsonParseError, EISDIR, ENOENT } from '../lib/errors';
 import log from '../lib/supervisor-console';
 
 import { convertLegacyAppsJson } from '../lib/migration';
 import { AppsJsonFormat } from '../types/state';
+import * as fsUtils from '../lib/fs-utils';
 
-export async function loadTargetFromFile(
-	appsPath: Nullable<string>,
-): Promise<void> {
+export function appsJsonBackup(appsPath: string) {
+	return `${appsPath}.preloaded`;
+}
+
+export async function loadTargetFromFile(appsPath: string): Promise<void> {
 	log.info('Attempting to load any preloaded applications');
-	if (!appsPath) {
-		appsPath = constants.appsJsonPath;
-	}
-
 	try {
 		const content = await fs.readFile(appsPath, 'utf8');
 
@@ -73,7 +71,7 @@ export async function loadTargetFromFile(
 		}
 
 		for (const image of imgs) {
-			const name = await images.normalise(image.name);
+			const name = images.normalise(image.name);
 			image.name = name;
 			await images.save(image);
 		}
@@ -113,6 +111,24 @@ export async function loadTargetFromFile(
 			eventTracker.track('Loading preloaded apps failed', {
 				error: e,
 			});
+		}
+	} finally {
+		const targetPath = appsJsonBackup(appsPath);
+		if (!(await fsUtils.exists(targetPath))) {
+			// Try to rename the path so the preload target state won't
+			// be used again if the database gets deleted for any reason.
+			// If the target file already exists or something fails, just debug
+			// the failure.
+			await fsUtils
+				.safeRename(appsPath, targetPath)
+				.then(() => fsUtils.writeFileAtomic(appsPath, '{}'))
+				.then(() => log.debug(`Migrated existing apps.json`))
+				.catch((e) =>
+					log.debug(
+						`Continuing without migrating apps.json because of`,
+						e.message,
+					),
+				);
 		}
 	}
 }

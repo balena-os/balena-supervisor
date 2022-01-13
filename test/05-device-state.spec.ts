@@ -10,10 +10,14 @@ import * as images from '../src/compose/images';
 import { ConfigTxt } from '../src/config/backends/config-txt';
 import * as deviceState from '../src/device-state';
 import * as deviceConfig from '../src/device-config';
-import { loadTargetFromFile } from '../src/device-state/preload';
+import {
+	loadTargetFromFile,
+	appsJsonBackup,
+} from '../src/device-state/preload';
 import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
 import * as updateLock from '../src/lib/update-lock';
+import * as fsUtils from '../src/lib/fs-utils';
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',
@@ -224,8 +228,10 @@ describe('deviceState', () => {
 	});
 
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {
-		await loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps.json');
+		const appsJson = process.env.ROOT_MOUNTPOINT + '/apps.json';
+		await loadTargetFromFile(appsJson);
 		const targetState = await deviceState.getTarget();
+		expect(await fsUtils.exists(appsJsonBackup(appsJson))).to.be.true;
 
 		expect(targetState)
 			.to.have.property('local')
@@ -283,14 +289,22 @@ describe('deviceState', () => {
 			.to.have.property('labels')
 			.that.has.property('io.balena.something')
 			.that.equals('bar');
+
+		// Restore renamed apps.json
+		await fsUtils.safeRename(appsJsonBackup(appsJson), appsJson);
 	});
 
 	it('stores info for pinning a device after loading an apps.json with a pinDevice field', async () => {
-		await loadTargetFromFile(process.env.ROOT_MOUNTPOINT + '/apps-pin.json');
+		const appsJson = process.env.ROOT_MOUNTPOINT + '/apps-pin.json';
+		await loadTargetFromFile(appsJson);
 
 		const pinned = await config.get('pinDevice');
 		expect(pinned).to.have.property('app').that.equals(1234);
 		expect(pinned).to.have.property('commit').that.equals('abcdef');
+		expect(await fsUtils.exists(appsJsonBackup(appsJson))).to.be.true;
+
+		// Restore renamed apps.json
+		await fsUtils.safeRename(appsJsonBackup(appsJson), appsJson);
 	});
 
 	it('emits a change event when a new state is reported', (done) => {
@@ -303,7 +317,7 @@ describe('deviceState', () => {
 
 		const services: Service[] = [];
 		for (const service of testTarget.local.apps['1234'].services) {
-			const imageName = await images.normalise(service.image);
+			const imageName = images.normalise(service.image);
 			service.image = imageName;
 			(service as any).imageName = imageName;
 			services.push(
