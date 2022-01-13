@@ -1,4 +1,23 @@
 - commits:
+    - subject: Remove apps.json after initial preload
+      hash: 9c6e5ee11f5014fd27c084e23b8fc2c8db7c3727
+      body: >
+        This avoids the supervisor trying to get back to the preloaded target
+
+        state if the database is deleted by any reason. It does this by moving
+        the
+
+        used apps.json to a backup location.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Depends-on: '#1841'
+        depends-on: '#1841'
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.24
+  date: 2022-01-10T19:06:59.696Z
+- commits:
     - subject: add-supervisor-update-info
       hash: 0c8c1864ae5e9b6dc2aaa9108d1f83bb592df1f5
       body: >
