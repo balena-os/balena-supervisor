@@ -367,13 +367,27 @@ export async function isV2DeltaImage(imageName: string): Promise<boolean> {
 	return inspect.Size < 40 && inspect.VirtualSize < 40;
 }
 
-const getAuthToken = memoizee(
-	async (
+const getAuthToken = (() => {
+	const memoizedGetToken = memoizee(
+		async (tokenUrl: string, tokenOpts) => {
+			const tokenResponseBody = (
+				await (await request.getRequestInstance()).getAsync(tokenUrl, tokenOpts)
+			)[1];
+			const token = tokenResponseBody?.token;
+
+			if (token == null) {
+				throw new ImageAuthenticationError('Authentication error');
+			}
+
+			return token;
+		},
+		{ maxAge: DELTA_TOKEN_TIMEOUT, promise: true, primitive: true },
+	);
+	return async (
 		srcInfo: ImageNameParts,
 		dstInfo: ImageNameParts,
 		deltaOpts: DeltaFetchOptions,
 	): Promise<string> => {
-		const tokenEndpoint = `${deltaOpts.apiEndpoint}/auth/v1/token`;
 		const tokenOpts: request.requestLib.CoreOptions = {
 			auth: {
 				user: `d_${deltaOpts.uuid}`,
@@ -382,18 +396,7 @@ const getAuthToken = memoizee(
 			},
 			json: true,
 		};
-		const tokenUrl = `${tokenEndpoint}?service=${dstInfo.registry}&scope=repository:${dstInfo.imageName}:pull&scope=repository:${srcInfo.imageName}:pull`;
-
-		const tokenResponseBody = (
-			await (await request.getRequestInstance()).getAsync(tokenUrl, tokenOpts)
-		)[1];
-		const token = tokenResponseBody != null ? tokenResponseBody.token : null;
-
-		if (token == null) {
-			throw new ImageAuthenticationError('Authentication error');
-		}
-
-		return token;
-	},
-	{ maxAge: DELTA_TOKEN_TIMEOUT, promise: true },
-);
+		const tokenUrl = `${deltaOpts.apiEndpoint}/auth/v1/token?service=${dstInfo.registry}&scope=repository:${dstInfo.imageName}:pull&scope=repository:${srcInfo.imageName}:pull`;
+		return memoizedGetToken(tokenUrl, tokenOpts);
+	};
+})();
