@@ -1,4 +1,15 @@
 - commits:
+    - subject: Fix memoization of registry token request
+      hash: fd1f646073fafe8cb6e38661882c113a4c9f1a67
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 12.11.25
+  date: 2022-01-17T16:56:17.228Z
+- commits:
     - subject: Remove apps.json after initial preload
       hash: 9c6e5ee11f5014fd27c084e23b8fc2c8db7c3727
       body: >
