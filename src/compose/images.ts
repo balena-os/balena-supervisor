@@ -125,29 +125,26 @@ const runningTasks: { [imageName: string]: ImageTask } = {};
 function reportEvent(event: 'start' | 'update' | 'finish', state: Image) {
 	const { name: imageName } = state;
 
-	// Emit by default if a start event is reported
-	let emitChange = event === 'start';
-
 	// Get the current task and update it in memory
-	const currentTask =
-		event === 'start' ? createTask(state) : runningTasks[imageName];
+	const currentTask = runningTasks[imageName] ?? createTask(state);
 	runningTasks[imageName] = currentTask;
 
-	// TODO: should we assert that the current task exists at this point?
-	// On update, update the corresponding task with the new state if it exists
-	if (event === 'update' && currentTask) {
-		const [updatedTask, changed] = currentTask.update(state);
-		runningTasks[imageName] = updatedTask;
-		emitChange = changed;
-	}
+	const stateChanged = (() => {
+		switch (event) {
+			case 'start':
+				return true; // always report change on start
+			case 'update':
+				const [updatedTask, changedAfterUpdate] = currentTask.update(state);
+				runningTasks[imageName] = updatedTask;
+				return changedAfterUpdate; // report change only if the task context changed
+			case 'finish':
+				const [, changedAfterFinish] = currentTask.finish();
+				delete runningTasks[imageName];
+				return changedAfterFinish; // report change depending on the state of the task
+		}
+	})();
 
-	// On update, update the corresponding task with the new state if it exists
-	if (event === 'finish' && currentTask) {
-		[, emitChange] = currentTask.finish();
-		delete runningTasks[imageName];
-	}
-
-	if (emitChange) {
+	if (stateChanged) {
 		events.emit('change');
 	}
 }
