@@ -118,7 +118,7 @@ export const schemaTypes = {
 	},
 	deltaRequestTimeout: {
 		type: PermissiveNumber,
-		default: 30000,
+		default: 59000,
 	},
 	deltaApplyTimeout: {
 		type: PermissiveNumber,
