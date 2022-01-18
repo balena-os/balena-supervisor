@@ -172,7 +172,7 @@ export function imageFromService(service: ServiceInfo): Image {
 export async function triggerFetch(
 	image: Image,
 	opts: FetchOptions,
-	onFinish = _.noop,
+	onFinish: (success: boolean) => void,
 	serviceName: string,
 ): Promise<void> {
 	const appUpdatePollInterval = await config.get('appUpdatePollInterval');
@@ -202,8 +202,7 @@ export async function triggerFetch(
 	let success: boolean;
 	try {
 		const imageName = normalise(image.name);
-		image = _.clone(image);
-		image.name = imageName;
+		image = { ...image, name: imageName };
 
 		// Look for a matching image on the engine
 		const img = await inspectByName(image.name);
@@ -214,8 +213,7 @@ export async function triggerFetch(
 		// Create image on the database if it already exists on the engine
 		await markAsSupervised({ ...image, dockerImageId: img.Id });
 
-		onFinish(true);
-		return;
+		success = true;
 	} catch (e) {
 		if (!NotFoundError(e)) {
 			if (!(e instanceof ImageDownloadBackoffError)) {
