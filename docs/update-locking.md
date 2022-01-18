@@ -5,7 +5,7 @@ excerpt: Locking application updates on your balenaOS devices
 
 # Application update locks
 
-Locking updates means that the balena supervisor will not be able to kill your application. This is meant to be used at critical sections of your code where you don't want to be interrupted, or to ensure that updates are only installed at certain times.
+Locking updates means that the balena supervisor will not be able to kill your application. This is meant to be used at critical sections of your code where you don't want to be interrupted, or to ensure that updates or environment variable changes take effect at certain times.
 
 In order to do this, users can create a lockfile in a way that it has exclusive access, which will prevent the device supervisor from killing and restarting the app. As with any other lockfile, the supervisor itself will create such a file before killing the app, so you should only create it in exclusive mode. This means that the lockfile should only be created if it doesn't already exist. The exclusive access is achieved by opening the lockfile with the [O_EXCL and O_CREAT flags](https://linux.die.net/man/3/open), and several tools exist to simplify this process with examples given [below](#creating-the-lockfile).
 
