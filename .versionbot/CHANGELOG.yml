@@ -1,4 +1,17 @@
 - commits:
+    - subject: 'docs: Clarify that update locks prevent restarts from env var changes'
+      hash: 111db221772138048e16ba2b1a4f5d14a8a53aa0
+      body: ''
+      footer:
+        Resolves: 'https://github.com/balena-io/docs/issues/2175'
+        resolves: 'https://github.com/balena-io/docs/issues/2175'
+        Change-type: patch
+        change-type: patch
+      author: Thodoris Greasidis
+      nested: []
+  version: 12.11.27
+  date: 2022-01-18T12:22:23.682Z
+- commits:
     - subject: Increase delta request timeout to 59s to better align with our backends
       hash: 157fd951960355f61f930581224bddb7828ebe37
       body: ''

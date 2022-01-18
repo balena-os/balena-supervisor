@@ -2,4 +2,4 @@ name: balena-supervisor
 description: 'Balena Supervisor: balena''s agent on devices.'
 joinable: false
 type: sw.application
-version: 12.11.26
+version: 12.11.27
