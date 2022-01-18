@@ -148,7 +148,7 @@ const configKeys: Dictionary<ConfigOption> = {
 	deltaRequestTimeout: {
 		envVarName: 'SUPERVISOR_DELTA_REQUEST_TIMEOUT',
 		varType: 'int',
-		defaultValue: '30000',
+		defaultValue: '59000',
 	},
 	deltaApplyTimeout: {
 		envVarName: 'SUPERVISOR_DELTA_APPLY_TIMEOUT',
