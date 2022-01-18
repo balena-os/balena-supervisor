@@ -1,4 +1,15 @@
 - commits:
+    - subject: Increase delta request timeout to 59s to better align with our backends
+      hash: 157fd951960355f61f930581224bddb7828ebe37
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 12.11.26
+  date: 2022-01-18T10:05:28.369Z
+- commits:
     - subject: Fix memoization of registry token request
       hash: fd1f646073fafe8cb6e38661882c113a4c9f1a67
       body: ''
