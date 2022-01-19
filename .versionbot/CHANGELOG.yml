@@ -1,4 +1,27 @@
 - commits:
+    - subject: Use dmidecode to read cpuid in non ARM devices
+      hash: d06b8e053ea0a66ba9fba4552499c7393ceee5fc
+      body: |
+        Cpu id is set to null so far for non ARM devices (e.g. Intel NUC). This
+        parses the output of dmidecode to get the cpu id and system model.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Use dmidecode to read cpuid in non ARM devices
+      hash: c7fc7aacf838e8867890d16e77cfaa44bb62f700
+      body: |
+        Cpu id is set to null so far for non ARM devices (e.g. Intel NUC). This
+        parses the output of dmidecode to get the cpu id and system model.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.28
+  date: 2022-01-19T13:35:11.021Z
+- commits:
     - subject: 'docs: Clarify that update locks prevent restarts from env var changes'
       hash: 111db221772138048e16ba2b1a4f5d14a8a53aa0
       body: ''
