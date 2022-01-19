@@ -33,6 +33,7 @@ RUN apk add --no-cache \
 	libuv \
 	sqlite-libs \
 	sqlite-dev \
+	dmidecode \
 	dbus-dev
 
 COPY build-utils/node-sums.txt .
@@ -99,6 +100,7 @@ RUN apk add --no-cache \
 	avahi \
 	dbus \
 	libstdc++ \
+	dmidecode \
 	sqlite-libs
 
 WORKDIR /usr/src/app

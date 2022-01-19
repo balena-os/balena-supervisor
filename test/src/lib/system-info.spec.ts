@@ -95,10 +95,57 @@ describe('System information', () => {
 			// Make sure it's the right number given the mocked data
 			expect(tempInfo).to.equal(51);
 		});
+	});
 
-		it('gets CPU ID', async () => {
-			const cpuId = await sysInfo.getCpuId();
+	describe('baseboard information', () => {
+		afterEach(() => {
+			(fs.readFile as SinonStub).reset();
+			(fsUtils.exec as SinonStub).reset();
+		});
+
+		// Do these two tests first so the dmidecode call is not memoized yet
+		it('returns undefined system model if dmidecode throws', async () => {
+			(fs.readFile as SinonStub).rejects('Not found');
+			(fsUtils.exec as SinonStub).rejects('Something bad happened');
+			const systemModel = await sysInfo.getSystemModel();
+			expect(systemModel).to.be.undefined;
+		});
+
+		it('returns undefined system ID if dmidecode throws', async () => {
+			(fs.readFile as SinonStub).rejects('Not found');
+			(fsUtils.exec as SinonStub).rejects('Something bad happened');
+			const systemId = await sysInfo.getSystemId();
+			expect(systemId).to.be.undefined;
+		});
+
+		it('gets system ID', async () => {
+			(fs.readFile as SinonStub).resolves(mockCPU.idBuffer);
+			const cpuId = await sysInfo.getSystemId();
 			expect(cpuId).to.equal('1000000001b93f3f');
+		});
+
+		it('gets system ID from dmidecode if /proc/device-tree/serial-number is not available', async () => {
+			(fs.readFile as SinonStub).rejects('Not found');
+			(fsUtils.exec as SinonStub).resolves({
+				stdout: mockCPU.dmidecode,
+			});
+			const cpuId = await sysInfo.getSystemId();
+			expect(cpuId).to.equal('GEBN94600PWW');
+		});
+
+		it('gets system model', async () => {
+			(fs.readFile as SinonStub).resolves('Raspberry PI 4');
+			const systemModel = await sysInfo.getSystemModel();
+			expect(systemModel).to.equal('Raspberry PI 4');
+		});
+
+		it('gets system model from dmidecode if /proc/device-tree/model is not available', async () => {
+			(fs.readFile as SinonStub).rejects('Not found');
+			(fsUtils.exec as SinonStub).resolves({
+				stdout: mockCPU.dmidecode,
+			});
+			const systemModel = await sysInfo.getSystemModel();
+			expect(systemModel).to.equal('Intel Corporation NUC7i5BNB');
 		});
 	});
 
@@ -152,6 +199,51 @@ describe('System information', () => {
 				stderr: Buffer.from(''),
 			});
 			expect(await sysInfo.undervoltageDetected()).to.be.false;
+		});
+	});
+
+	describe('dmidecode', () => {
+		it('parses dmidecode output into json', async () => {
+			(fsUtils.exec as SinonStub).resolves({
+				stdout: mockCPU.dmidecode,
+			});
+
+			expect(await sysInfo.dmidecode('baseboard')).to.deep.equal([
+				{
+					type: 'Base Board Information',
+					values: {
+						Manufacturer: 'Intel Corporation',
+						'Product Name': 'NUC7i5BNB',
+						Version: 'J31144-313',
+						'Serial Number': 'GEBN94600PWW',
+						'Location In Chassis': 'Default string',
+						'Chassis Handle': '0x0003',
+						Type: 'Motherboard',
+						'Contained Object Handles': '0',
+					},
+				},
+				{
+					type: 'On Board Device 1 Information',
+					values: {
+						Type: 'Sound',
+						Status: 'Enabled',
+						Description: 'Realtek High Definition Audio Device',
+					},
+				},
+				{
+					type: 'Onboard Device',
+					values: {
+						'Reference Designation': 'Onboard - Other',
+						Type: 'Other',
+						Status: 'Enabled',
+						'Type Instance': '1',
+						'Bus Address': '0000',
+					},
+				},
+			]);
+
+			// Reset the stub
+			(fsUtils.exec as SinonStub).reset();
 		});
 	});
 });
@@ -236,25 +328,48 @@ const mockCPU = {
 			},
 		],
 	},
-	idBuffer: Buffer.from([
-		0x31,
-		0x30,
-		0x30,
-		0x30,
-		0x30,
-		0x30,
-		0x30,
-		0x30,
-		0x30,
-		0x31,
-		0x62,
-		0x39,
-		0x33,
-		0x66,
-		0x33,
-		0x66,
-		0x00,
-	]),
+	idBuffer: Buffer.from('1000000001b93f3f'),
+	dmidecode: Buffer.from(`# dmidecode 3.3
+Getting SMBIOS data from sysfs.
+SMBIOS 3.1.1 present.
+
+Handle 0x0002, DMI type 2, 15 bytes
+Base Board Information
+        Manufacturer: Intel Corporation
+        Product Name: NUC7i5BNB
+        Version: J31144-313
+        Serial Number: GEBN94600PWW
+        Asset Tag:
+        Features:
+                Board is a hosting board
+                Board is replaceable
+        Location In Chassis: Default string
+        Chassis Handle: 0x0003
+        Type: Motherboard
+        Contained Object Handles: 0
+
+Handle 0x000F, DMI type 10, 20 bytes
+On Board Device 1 Information
+        Type: Video
+        Status: Enabled
+        Description:  Intel(R) HD Graphics Device
+On Board Device 2 Information
+        Type: Ethernet
+        Status: Enabled
+        Description:  Intel(R) I219-V Gigabit Network Device
+On Board Device 3 Information
+        Type: Sound
+        Status: Enabled
+        Description:  Realtek High Definition Audio Device
+
+Handle 0x003F, DMI type 41, 11 bytes
+Onboard Device
+        Reference Designation: Onboard - Other
+        Type: Other
+        Status: Enabled
+        Type Instance: 1
+        Bus Address: 0000:00:00.0
+				`),
 };
 const mockFS = [
 	{
