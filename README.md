@@ -110,8 +110,8 @@ The supervisor is run inside a balenaOS instance running in a container, so effe
 
 To configure the supervisor, you'll need a `tools/dind/config.json` file. There's two options on how to get this file:
 
-- Log in to the [balenaCloud dashboard](https://dashboard.balena-cloud.com), create or select an application, click "Add device" and on the Advanced section select "Download configuration file only". Make sure you use an x86 or amd64 device type for your application, for example Intel NUC.
-- Install the balena CLI with `npm install -g balena-cli`, then login with `balena login` and finally run `balena config generate --app <appName> -o config.json` (choose the default settings whenever prompted).
+- Log in to the [balenaCloud dashboard](https://dashboard.balena-cloud.com), create or select a fleet, click "Add device" and on the Advanced section select "Download configuration file only". Make sure you use an x86 or amd64 device type for your fleet, for example Intel NUC.
+- Install the balena CLI with `npm install -g balena-cli`, then login with `balena login` and finally run `balena config generate --fleet <appName> -o config.json` (choose the default settings whenever prompted).
 
 The `config.json` file should look something like this:
 
@@ -121,7 +121,7 @@ The `config.json` file should look something like this:
 {
 	"applicationId": "2167", /* Id of the app this supervisor will run */
 	"apiKey": "supersecretapikey", /* The API key to provision the device on the balena API */
-	"deviceType": "intel-nuc", /* The device type corresponding to the test application */
+	"deviceType": "intel-nuc", /* The device type corresponding to the test fleet */
 	"apiEndpoint": "https://api.balena-cloud.com", /* Endpoint for the balena API */
 	"deltaEndpoint": "https://delta.balena-cloud.com", /* Endpoint for the delta server to download Docker binary diffs */
 	"listenPort": 48484, /* Listen port for the supervisor API */

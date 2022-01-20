@@ -7,7 +7,7 @@ Starting with `Supervisor v11.9.1`, the balena Supervisor comes with the ability
 
 ## Firewall Modes
 
-To switch between firewall modes, the `HOST_FIREWALL_MODE` (with `BALENA_` or legacy `RESIN_` prefix) configuration variable may be defined on an application or device level through the dashboard, and has three valid settings: `on`, `off`, and `auto`, with `off` being the default mode.
+To switch between firewall modes, the `HOST_FIREWALL_MODE` (with `BALENA_` or legacy `RESIN_` prefix) configuration variable may be defined on a fleet or device level through the dashboard, and has three valid settings: `on`, `off`, and `auto`, with `off` being the default mode.
 
 **Note:** Configuration variables defined in the dashboard will not apply to devices in local mode.
 
