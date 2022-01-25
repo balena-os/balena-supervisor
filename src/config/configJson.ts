@@ -4,7 +4,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import * as constants from '../lib/constants';
-import { writeAndSyncFile, writeFileAtomic } from '../lib/fs-utils';
+import { writeAndSyncFile } from '../lib/fs-utils';
 import * as osRelease from '../lib/os-release';
 
 import log from '../lib/supervisor-console';
@@ -86,21 +86,14 @@ export default class ConfigJsonConfigBackend {
 		});
 	}
 
-	private write(): Promise<void> {
-		let atomicWritePossible = true;
-		return this.pathOnHost()
-			.catch((err) => {
-				log.error('There was an error detecting the config.json path', err);
-				atomicWritePossible = false;
-				return constants.configJsonNonAtomicPath;
-			})
-			.then((configPath) => {
-				if (atomicWritePossible) {
-					return writeFileAtomic(configPath, JSON.stringify(this.cache));
-				} else {
-					return writeAndSyncFile(configPath, JSON.stringify(this.cache));
-				}
-			});
+	private async write(): Promise<void> {
+		// We use writeAndSyncFile since /mnt/boot partition is a vfat
+		// filesystem which dows not provide atomic file renames. The best
+		// course of action on that case is to write and sync as soon as possible
+		return writeAndSyncFile(
+			await this.pathOnHost(),
+			JSON.stringify(this.cache),
+		);
 	}
 
 	private async read(): Promise<string> {
@@ -133,7 +126,7 @@ export default class ConfigJsonConfigBackend {
 			// then we can't do atomic changes (only access to config.json we have is in /boot,
 			// which is assumed to be a file bind mount where rename is impossible).
 			throw new Error(
-				'Could not determine config.json path on host, atomic write will not be possible',
+				`OS version '${osVersion}' does not match any known balenaOS version.`,
 			);
 		}
 	}
