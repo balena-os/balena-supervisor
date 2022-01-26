@@ -1,16 +1,12 @@
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 
-import {
-	ConfigOptions,
-	ConfigBackend,
-	bootMountPoint,
-	remountAndWriteAtomic,
-} from './backend';
+import { ConfigOptions, ConfigBackend } from './backend';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { ExtraUEnvError } from '../../lib/errors';
 import { exists } from '../../lib/fs-utils';
+import * as hostUtils from '../../lib/host-utils';
 
 /**
  * Entry describes the configurable items in an extra_uEnv file
@@ -43,7 +39,7 @@ const OPTION_REGEX = /^\s*(\w+)=(.*)$/;
 
 export class ExtraUEnv extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
-	private static bootConfigPath = `${bootMountPoint}/extra_uEnv.txt`;
+	private static bootConfigPath = hostUtils.pathOnBoot(`extra_uEnv.txt`);
 
 	private static entries: Record<EntryKey, Entry> = {
 		custom_fdt_file: { key: 'custom_fdt_file', collection: false },
@@ -94,7 +90,7 @@ export class ExtraUEnv extends ConfigBackend {
 		});
 
 		// Write new extra_uEnv configuration
-		return await remountAndWriteAtomic(
+		return await hostUtils.writeToBoot(
 			ExtraUEnv.bootConfigPath,
 			ExtraUEnv.configToString(supportedOptions),
 		);

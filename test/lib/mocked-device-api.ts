@@ -125,7 +125,9 @@ const mockedOptions = {
  *
  */
 
-async function create(): Promise<SupervisorAPI> {
+async function create(
+	healthchecks = [deviceState.healthcheck, apiBinder.healthcheck],
+): Promise<SupervisorAPI> {
 	// Get SupervisorAPI construct options
 	await createAPIOpts();
 
@@ -135,7 +137,7 @@ async function create(): Promise<SupervisorAPI> {
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
 		routers: [deviceState.router, buildRoutes()],
-		healthchecks: [deviceState.healthcheck, apiBinder.healthcheck],
+		healthchecks,
 	});
 
 	const macAddress = await config.get('macAddress');

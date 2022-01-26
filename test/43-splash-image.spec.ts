@@ -15,12 +15,11 @@ describe('Splash image configuration', () => {
 	const uri = `data:image/png;base64,${logo}`;
 	let readDirStub: SinonStub;
 	let readFileStub: SinonStub;
-	let writeFileAtomicStub: SinonStub;
+	let writeAndSyncFileStub: SinonStub;
 
 	beforeEach(() => {
 		// Setup stubs
-		writeFileAtomicStub = stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(fsUtils, 'exec').resolves();
+		writeAndSyncFileStub = stub(fsUtils, 'writeAndSyncFile').resolves();
 		readFileStub = stub(fs, 'readFile').resolves(
 			Buffer.from(logo, 'base64') as any,
 		);
@@ -32,8 +31,7 @@ describe('Splash image configuration', () => {
 
 	afterEach(() => {
 		// Restore stubs
-		writeFileAtomicStub.restore();
-		(fsUtils.exec as SinonStub).restore();
+		writeAndSyncFileStub.restore();
 		readFileStub.restore();
 		readDirStub.restore();
 	});
@@ -50,7 +48,7 @@ describe('Splash image configuration', () => {
 			);
 
 			// Should make a copy
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 				Buffer.from(logo, 'base64'),
 			);
@@ -178,7 +176,7 @@ describe('Splash image configuration', () => {
 
 			await backend.setBootConfig({ image: uri });
 
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/resin-logo.png',
 				Buffer.from(logo, 'base64'),
 			);
@@ -189,7 +187,7 @@ describe('Splash image configuration', () => {
 
 			await backend.setBootConfig({ image: uri });
 
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo.png',
 				Buffer.from(logo, 'base64'),
 			);
@@ -200,7 +198,7 @@ describe('Splash image configuration', () => {
 
 			await backend.setBootConfig({ image: uri });
 
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo.png',
 				Buffer.from(logo, 'base64'),
 			);
@@ -211,7 +209,7 @@ describe('Splash image configuration', () => {
 
 			await backend.setBootConfig({ image: logo });
 
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo.png',
 				Buffer.from(logo, 'base64'),
 			);
@@ -224,7 +222,7 @@ describe('Splash image configuration', () => {
 			expect(readFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo.png',
 				Buffer.from(defaultLogo, 'base64'),
 			);
@@ -237,7 +235,7 @@ describe('Splash image configuration', () => {
 			expect(readFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/resin-logo.png',
 				Buffer.from(defaultLogo, 'base64'),
 			);
@@ -250,7 +248,7 @@ describe('Splash image configuration', () => {
 			expect(readFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo.png',
 				Buffer.from(defaultLogo, 'base64'),
 			);
@@ -263,7 +261,7 @@ describe('Splash image configuration', () => {
 			expect(readFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/balena-logo-default.png',
 			);
-			expect(writeFileAtomicStub).to.be.calledOnceWith(
+			expect(writeAndSyncFileStub).to.be.calledOnceWith(
 				'test/data/mnt/boot/splash/resin-logo.png',
 				Buffer.from(defaultLogo, 'base64'),
 			);
@@ -271,12 +269,12 @@ describe('Splash image configuration', () => {
 
 		it('should throw if arg is not a valid base64 string', async () => {
 			expect(backend.setBootConfig({ image: 'somestring' })).to.be.rejected;
-			expect(writeFileAtomicStub).to.not.be.called;
+			expect(writeAndSyncFileStub).to.not.be.called;
 		});
 
 		it('should throw if image is not a valid PNG file', async () => {
 			expect(backend.setBootConfig({ image: 'aGVsbG8=' })).to.be.rejected;
-			expect(writeFileAtomicStub).to.not.be.called;
+			expect(writeAndSyncFileStub).to.not.be.called;
 		});
 	});
 

@@ -83,6 +83,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		await deviceState.initialized;
 		await targetStateCache.initialized;
 
+		// Do not apply target state
+		stub(deviceState, 'applyStep').resolves();
+
 		// Stub health checks so we can modify them whenever needed
 		healthCheckStubs = [
 			stub(apiBinder, 'healthcheck'),
@@ -91,7 +94,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed
-		api = await mockedAPI.create();
+		api = await mockedAPI.create(healthCheckStubs);
 
 		// Start test API
 		await api.listen(
@@ -119,6 +122,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				throw e;
 			}
 		}
+		(deviceState.applyStep as SinonStub).restore();
 		// Restore healthcheck stubs
 		healthCheckStubs.forEach((hc) => hc.restore());
 		// Remove any test data generated

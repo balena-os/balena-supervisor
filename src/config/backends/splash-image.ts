@@ -5,16 +5,12 @@ import * as path from 'path';
 
 import * as constants from '../../lib/constants';
 import { exists } from '../../lib/fs-utils';
+import * as hostUtils from '../../lib/host-utils';
 import log from '../../lib/supervisor-console';
-import {
-	bootMountPoint,
-	ConfigBackend,
-	ConfigOptions,
-	remountAndWriteAtomic,
-} from './backend';
+import { ConfigBackend, ConfigOptions } from './backend';
 
 export class SplashImage extends ConfigBackend {
-	private static readonly BASEPATH = path.join(bootMountPoint, 'splash');
+	private static readonly BASEPATH = hostUtils.pathOnBoot('splash');
 	private static readonly DEFAULT = path.join(
 		SplashImage.BASEPATH,
 		'balena-logo-default.png',
@@ -86,7 +82,7 @@ export class SplashImage extends ConfigBackend {
 		const buffer = Buffer.from(image, 'base64');
 		if (this.isPng(buffer)) {
 			// Write the buffer to the given location
-			await remountAndWriteAtomic(where, buffer);
+			await hostUtils.writeToBoot(where, buffer);
 		} else {
 			throw new Error('Splash image should be a base64 encoded PNG image');
 		}

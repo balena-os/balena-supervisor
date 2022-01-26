@@ -343,7 +343,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 			lockMock.restore();
 		});
 
-		it.skip('should return 200 for an existing service', async () => {
+		it('should return 200 for an existing service', async () => {
 			await mockedDockerode.testWithData(
 				{ containers: mockContainers, images: mockImages },
 				async () => {

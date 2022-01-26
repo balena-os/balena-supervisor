@@ -1,7 +1,7 @@
 import { stripIndent } from 'common-tags';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { SinonStub, stub, spy, SinonSpy } from 'sinon';
+import { SinonStub, stub, spy, SinonSpy, restore } from 'sinon';
 import { expect } from 'chai';
 
 import * as deviceConfig from '../src/device-config';
@@ -13,7 +13,8 @@ import { Odmdata } from '../src/config/backends/odmdata';
 import { ConfigFs } from '../src/config/backends/config-fs';
 import { SplashImage } from '../src/config/backends/splash-image';
 import * as constants from '../src/lib/constants';
-import * as config from '../src/config';
+import log from '../src/lib/supervisor-console';
+import { fnSchema } from '../src/config/functions';
 
 import prepare = require('./lib/prepare');
 import mock = require('mock-fs');
@@ -27,256 +28,357 @@ const splashImageBackend = new SplashImage();
 // TODO: Since the getBootConfig method is simple enough
 // these tests could probably be removed if each backend has its own
 // test and the src/config/utils module is properly tested.
-describe('Device Backend Config', () => {
+describe('device-config', () => {
+	const bootMountPoint = path.join(
+		constants.rootMountPoint,
+		constants.bootMountPoint,
+	);
+	const configJson = 'test/data/config.json';
+	const configFsJson = path.join(bootMountPoint, 'configfs.json');
+	const configTxt = path.join(bootMountPoint, 'config.txt');
+	const deviceTypeJson = path.join(bootMountPoint, 'device-type.json');
+	const osRelease = path.join(constants.rootMountPoint, '/etc/os-release');
+
 	let logSpy: SinonSpy;
 
 	before(async () => {
+		// disable log output during testing
+		stub(log, 'debug');
+		stub(log, 'warn');
+		stub(log, 'info');
+		stub(log, 'event');
+		stub(log, 'success');
 		logSpy = spy(logger, 'logSystemMessage');
 		await prepare();
+
+		// clear memoized data from config
+		fnSchema.deviceType.clear();
+		fnSchema.deviceArch.clear();
 	});
 
 	after(() => {
-		logSpy.restore();
+		restore();
+		// clear memoized data from config
+		fnSchema.deviceType.clear();
+		fnSchema.deviceArch.clear();
 	});
 
 	afterEach(() => {
+		// Restore stubs
 		logSpy.resetHistory();
 	});
 
-	it('correctly parses a config.txt file', async () => {
-		// Will try to parse /test/data/mnt/boot/config.txt
-		await expect(
-			// @ts-ignore accessing private value
-			deviceConfig.getBootConfig(configTxtBackend),
-		).to.eventually.deep.equal({
-			HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"',
-			HOST_CONFIG_enable_uart: '1',
-			HOST_CONFIG_disable_splash: '1',
-			HOST_CONFIG_avoid_warnings: '1',
-			HOST_CONFIG_gpu_mem: '16',
-		});
-
-		// Stub readFile to return a config that has initramfs and array variables
-		stub(fs, 'readFile').resolves(stripIndent`
-			initramfs initramf.gz 0x00800000
-			dtparam=i2c=on
-			dtparam=audio=on
-			dtoverlay=ads7846
-			dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
-			foobar=baz
-		`);
-
-		await expect(
-			// @ts-ignore accessing private value
-			deviceConfig.getBootConfig(configTxtBackend),
-		).to.eventually.deep.equal({
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-			HOST_CONFIG_dtoverlay:
-				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'baz',
-		});
-
-		// Restore stub
-		(fs.readFile as SinonStub).restore();
-	});
-
-	it('does not allow setting forbidden keys', async () => {
-		const current = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-			HOST_CONFIG_dtoverlay:
-				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'baz',
-		};
-		// Create another target with only change being initramfs which is blacklisted
-		const target = {
-			...current,
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00810000',
-		};
-
-		expect(() =>
-			// @ts-ignore accessing private value
-			deviceConfig.bootConfigChangeRequired(configTxtBackend, current, target),
-		).to.throw('Attempt to change blacklisted config value initramfs');
-
-		// Check if logs were called
-		expect(logSpy).to.be.calledOnce;
-		expect(logSpy).to.be.calledWith(
-			'Attempt to change blacklisted config value initramfs',
-			{
-				error: 'Attempt to change blacklisted config value initramfs',
-			},
-			'Apply boot config error',
-		);
-	});
-
-	it('does not try to change config.txt if it should not change', async () => {
-		const current = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-			HOST_CONFIG_dtoverlay:
-				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'baz',
-		};
-		const target = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-			HOST_CONFIG_dtoverlay:
-				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'baz',
-		};
-
-		expect(
-			// @ts-ignore accessing private value
-			deviceConfig.bootConfigChangeRequired(configTxtBackend, current, target),
-		).to.equal(false);
-		expect(logSpy).to.not.be.called;
-	});
-
-	it('writes the target config.txt', async () => {
-		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(fsUtils, 'exec').resolves();
-		const current = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-			HOST_CONFIG_dtoverlay:
-				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'baz',
-		};
-		const target = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=off"',
-			HOST_CONFIG_dtoverlay: '"lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'bat',
-			HOST_CONFIG_foobaz: 'bar',
-		};
-
-		expect(
-			// @ts-ignore accessing private value
-			deviceConfig.bootConfigChangeRequired(configTxtBackend, current, target),
-		).to.equal(true);
-
-		// @ts-ignore accessing private value
-		await deviceConfig.setBootConfig(configTxtBackend, target);
-		expect(fsUtils.exec).to.be.calledOnce;
-		expect(logSpy).to.be.calledTwice;
-		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
-		expect(fsUtils.writeFileAtomic).to.be.calledWith(
-			'./test/data/mnt/boot/config.txt',
-			stripIndent`
-				initramfs initramf.gz 0x00800000
-				dtparam=i2c=on
-				dtparam=audio=off
-				dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
-				foobar=bat
-				foobaz=bar
-			` + '\n', // add newline because stripIndent trims last newline
-		);
-
-		// Restore stubs
-		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(fsUtils.exec as SinonStub).restore();
-	});
-
-	it('ensures required fields are written to config.txt', async () => {
-		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(fsUtils, 'exec').resolves();
-		stub(config, 'get').withArgs('deviceType').resolves('fincm3');
-		const current = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
-			HOST_CONFIG_dtoverlay:
-				'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'baz',
-		};
-		const target = {
-			HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
-			HOST_CONFIG_dtparam: '"i2c=on","audio=off"',
-			HOST_CONFIG_dtoverlay: '"lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
-			HOST_CONFIG_foobar: 'bat',
-			HOST_CONFIG_foobaz: 'bar',
-		};
-
-		expect(
-			// @ts-ignore accessing private value
-			deviceConfig.bootConfigChangeRequired(configTxtBackend, current, target),
-		).to.equal(true);
-
-		// @ts-ignore accessing private value
-		await deviceConfig.setBootConfig(configTxtBackend, target);
-		expect(fsUtils.exec).to.be.calledOnce;
-		expect(logSpy).to.be.calledTwice;
-		expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
-		expect(fsUtils.writeFileAtomic).to.be.calledWith(
-			'./test/data/mnt/boot/config.txt',
-			stripIndent`
-				initramfs initramf.gz 0x00800000
-				dtparam=i2c=on
-				dtparam=audio=off
-				dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
-				dtoverlay=balena-fin
-				foobar=bat
-				foobaz=bar
-			` + '\n', // add newline because stripIndent trims last newline
-		);
-
-		// Restore stubs
-		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(fsUtils.exec as SinonStub).restore();
-		(config.get as SinonStub).restore();
-	});
-
-	it('accepts RESIN_ and BALENA_ variables', async () => {
-		return expect(
-			deviceConfig.formatConfigKeys({
-				FOO: 'bar', // should be removed
-				BAR: 'baz', // should be removed
-				RESIN_SUPERVISOR_LOCAL_MODE: 'false', // any device
-				BALENA_SUPERVISOR_OVERRIDE_LOCK: 'false', // any device
-				BALENA_SUPERVISOR_POLL_INTERVAL: '100', // any device
-				RESIN_HOST_CONFIG_dtparam: 'i2c_arm=on","spi=on","audio=on', // config.txt backend
-				RESIN_HOST_CONFIGFS_ssdt: 'spidev1.0', // configfs backend
-				BALENA_HOST_EXTLINUX_isolcpus: '1,2,3', // extlinux backend
-			}),
-		).to.deep.equal({
-			SUPERVISOR_LOCAL_MODE: 'false',
-			SUPERVISOR_OVERRIDE_LOCK: 'false',
-			SUPERVISOR_POLL_INTERVAL: '100',
-			HOST_CONFIG_dtparam: 'i2c_arm=on","spi=on","audio=on',
-			HOST_CONFIGFS_ssdt: 'spidev1.0',
-			HOST_EXTLINUX_isolcpus: '1,2,3',
+	describe('formatConfigKeys', () => {
+		it('accepts RESIN_ and BALENA_ variables', async () => {
+			return expect(
+				deviceConfig.formatConfigKeys({
+					FOO: 'bar', // should be removed
+					BAR: 'baz', // should be removed
+					RESIN_SUPERVISOR_LOCAL_MODE: 'false', // any device
+					BALENA_SUPERVISOR_OVERRIDE_LOCK: 'false', // any device
+					BALENA_SUPERVISOR_POLL_INTERVAL: '100', // any device
+					RESIN_HOST_CONFIG_dtparam: 'i2c_arm=on","spi=on","audio=on', // config.txt backend
+					RESIN_HOST_CONFIGFS_ssdt: 'spidev1.0', // configfs backend
+					BALENA_HOST_EXTLINUX_isolcpus: '1,2,3', // extlinux backend
+				}),
+			).to.deep.equal({
+				SUPERVISOR_LOCAL_MODE: 'false',
+				SUPERVISOR_OVERRIDE_LOCK: 'false',
+				SUPERVISOR_POLL_INTERVAL: '100',
+				HOST_CONFIG_dtparam: 'i2c_arm=on","spi=on","audio=on',
+				HOST_CONFIGFS_ssdt: 'spidev1.0',
+				HOST_EXTLINUX_isolcpus: '1,2,3',
+			});
 		});
 	});
 
-	it('returns default configuration values', () => {
-		const conf = deviceConfig.getDefaults();
-		return expect(conf).to.deep.equal({
-			HOST_FIREWALL_MODE: 'off',
-			HOST_DISCOVERABILITY: 'true',
-			SUPERVISOR_VPN_CONTROL: 'true',
-			SUPERVISOR_POLL_INTERVAL: '900000',
-			SUPERVISOR_LOCAL_MODE: 'false',
-			SUPERVISOR_CONNECTIVITY_CHECK: 'true',
-			SUPERVISOR_LOG_CONTROL: 'true',
-			SUPERVISOR_DELTA: 'false',
-			SUPERVISOR_DELTA_REQUEST_TIMEOUT: '59000',
-			SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',
-			SUPERVISOR_DELTA_RETRY_COUNT: '30',
-			SUPERVISOR_DELTA_RETRY_INTERVAL: '10000',
-			SUPERVISOR_DELTA_VERSION: '2',
-			SUPERVISOR_INSTANT_UPDATE_TRIGGER: 'true',
-			SUPERVISOR_OVERRIDE_LOCK: 'false',
-			SUPERVISOR_PERSISTENT_LOGGING: 'false',
-			SUPERVISOR_HARDWARE_METRICS: 'true',
+	describe('getDefaults', () => {
+		it('returns default configuration values', () => {
+			const conf = deviceConfig.getDefaults();
+			return expect(conf).to.deep.equal({
+				HOST_FIREWALL_MODE: 'off',
+				HOST_DISCOVERABILITY: 'true',
+				SUPERVISOR_VPN_CONTROL: 'true',
+				SUPERVISOR_POLL_INTERVAL: '900000',
+				SUPERVISOR_LOCAL_MODE: 'false',
+				SUPERVISOR_CONNECTIVITY_CHECK: 'true',
+				SUPERVISOR_LOG_CONTROL: 'true',
+				SUPERVISOR_DELTA: 'false',
+				SUPERVISOR_DELTA_REQUEST_TIMEOUT: '59000',
+				SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',
+				SUPERVISOR_DELTA_RETRY_COUNT: '30',
+				SUPERVISOR_DELTA_RETRY_INTERVAL: '10000',
+				SUPERVISOR_DELTA_VERSION: '2',
+				SUPERVISOR_INSTANT_UPDATE_TRIGGER: 'true',
+				SUPERVISOR_OVERRIDE_LOCK: 'false',
+				SUPERVISOR_PERSISTENT_LOGGING: 'false',
+				SUPERVISOR_HARDWARE_METRICS: 'true',
+			});
 		});
 	});
 
-	describe('Extlinux files', () => {
+	describe('config.txt', () => {
+		const mockFs = () => {
+			mock({
+				// This is only needed so config.get doesn't fail
+				[configJson]: JSON.stringify({ deviceType: 'fincm3' }),
+				[configTxt]: stripIndent`
+					enable_uart=1
+					dtparam=i2c_arm=on
+					dtparam=spi=on
+					disable_splash=1
+					avoid_warnings=1
+					dtparam=audio=on
+					gpu_mem=16`,
+				[osRelease]: stripIndent`
+					PRETTY_NAME="balenaOS 2.88.5+rev1"
+					META_BALENA_VERSION="2.88.5"
+					VARIANT_ID="dev"`,
+				[deviceTypeJson]: JSON.stringify({
+					slug: 'fincm3',
+					arch: 'armv7hf',
+				}),
+			});
+		};
+
+		const unmockFs = () => {
+			mock.restore();
+		};
+
+		beforeEach(() => {
+			mockFs();
+		});
+
+		afterEach(() => {
+			// Reset the state of the fs after each test to
+			// prevent tests leaking into each other
+			unmockFs();
+		});
+
+		it('correctly parses a config.txt file', async () => {
+			// Will try to parse /test/data/mnt/boot/config.txt
+			await expect(
+				// @ts-ignore accessing private value
+				deviceConfig.getBootConfig(configTxtBackend),
+			).to.eventually.deep.equal({
+				HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"',
+				HOST_CONFIG_enable_uart: '1',
+				HOST_CONFIG_disable_splash: '1',
+				HOST_CONFIG_avoid_warnings: '1',
+				HOST_CONFIG_gpu_mem: '16',
+			});
+
+			// Update config.txt to include initramfs and array variables
+			await fs.writeFile(
+				configTxt,
+				stripIndent`
+					initramfs initramf.gz 0x00800000
+					dtparam=i2c=on
+					dtparam=audio=on
+					dtoverlay=ads7846
+					dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
+					foobar=baz`,
+			);
+
+			await expect(
+				// @ts-ignore accessing private value
+				deviceConfig.getBootConfig(configTxtBackend),
+			).to.eventually.deep.equal({
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+				HOST_CONFIG_dtoverlay:
+					'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+				HOST_CONFIG_foobar: 'baz',
+			});
+		});
+
+		it('does not allow setting forbidden keys', async () => {
+			const current = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+				HOST_CONFIG_dtoverlay:
+					'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+				HOST_CONFIG_foobar: 'baz',
+			};
+			// Create another target with only change being initramfs which is blacklisted
+			const target = {
+				...current,
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00810000',
+			};
+
+			expect(() =>
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
+					configTxtBackend,
+					current,
+					target,
+				),
+			).to.throw('Attempt to change blacklisted config value initramfs');
+
+			// Check if logs were called
+			expect(logSpy).to.be.calledOnce;
+			expect(logSpy).to.be.calledWith(
+				'Attempt to change blacklisted config value initramfs',
+				{
+					error: 'Attempt to change blacklisted config value initramfs',
+				},
+				'Apply boot config error',
+			);
+		});
+
+		it('does not try to change config.txt if it should not change', async () => {
+			const current = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+				HOST_CONFIG_dtoverlay:
+					'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+				HOST_CONFIG_foobar: 'baz',
+			};
+			const target = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+				HOST_CONFIG_dtoverlay:
+					'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+				HOST_CONFIG_foobar: 'baz',
+			};
+
+			expect(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
+					configTxtBackend,
+					current,
+					target,
+				),
+			).to.equal(false);
+			expect(logSpy).to.not.be.called;
+		});
+
+		it('writes the target config.txt', async () => {
+			const current = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+				HOST_CONFIG_dtoverlay:
+					'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+				HOST_CONFIG_foobar: 'baz',
+			};
+			const target = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=off"',
+				HOST_CONFIG_dtoverlay: '"lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+				HOST_CONFIG_foobar: 'bat',
+				HOST_CONFIG_foobaz: 'bar',
+			};
+
+			expect(
+				deviceConfig.bootConfigChangeRequired(
+					configTxtBackend,
+					current,
+					target,
+					'fincm3',
+				),
+			).to.equal(true);
+
+			await deviceConfig.setBootConfig(configTxtBackend, target);
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(await fs.readFile(configTxt, 'utf-8')).to.equal(
+				stripIndent`
+					initramfs initramf.gz 0x00800000
+					dtparam=i2c=on
+					dtparam=audio=off
+					dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
+					dtoverlay=balena-fin
+					foobar=bat
+					foobaz=bar
+				` + '\n', // add newline because stripIndent trims last newline
+			);
+		});
+
+		it('ensures required fields are written to config.txt', async () => {
+			const current = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=on"',
+				HOST_CONFIG_dtoverlay:
+					'"ads7846","lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+				HOST_CONFIG_foobar: 'baz',
+			};
+			const target = {
+				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
+				HOST_CONFIG_dtparam: '"i2c=on","audio=off"',
+				HOST_CONFIG_dtoverlay: '"lirc-rpi,gpio_out_pin=17,gpio_in_pin=13"',
+				HOST_CONFIG_foobar: 'bat',
+				HOST_CONFIG_foobaz: 'bar',
+			};
+
+			expect(
+				// @ts-ignore accessing private value
+				deviceConfig.bootConfigChangeRequired(
+					configTxtBackend,
+					current,
+					target,
+				),
+			).to.equal(true);
+
+			await deviceConfig.setBootConfig(configTxtBackend, target);
+			expect(logSpy).to.be.calledTwice;
+			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
+			expect(await fs.readFile(configTxt, 'utf-8')).to.equal(
+				stripIndent`
+					initramfs initramf.gz 0x00800000
+					dtparam=i2c=on
+					dtparam=audio=off
+					dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
+					dtoverlay=balena-fin
+					foobar=bat
+					foobaz=bar
+				` + '\n', // add newline because stripIndent trims last newline
+			);
+		});
+	});
+
+	describe('extlinux', () => {
+		const extlinuxConf = path.join(bootMountPoint, 'extlinux/extlinux.conf');
+
+		const mockFs = () => {
+			mock({
+				// This is only needed so config.get doesn't fail
+				[configJson]: JSON.stringify({}),
+				[osRelease]: stripIndent`
+					PRETTY_NAME="balenaOS 2.88.5+rev1"
+					META_BALENA_VERSION="2.88.5"
+					VARIANT_ID="dev"
+				`,
+				[deviceTypeJson]: JSON.stringify({
+					slug: 'fincm3',
+					arch: 'armv7hf',
+				}),
+				[extlinuxConf]: stripIndent`
+					DEFAULT primary
+					TIMEOUT 30
+					MENU TITLE Boot Options
+					LABEL primary
+					MENU LABEL primary Image
+					LINUX /Image
+					APPEND \${cbootargs} \${resin_kernel_root} ro rootwait
+				`,
+			});
+		};
+
+		const unmockFs = () => {
+			mock.restore();
+		};
+
+		beforeEach(() => {
+			mockFs();
+		});
+
+		afterEach(() => {
+			// Reset the state of the fs after each test to
+			// prevent tests leaking into each other
+			unmockFs();
+		});
+
 		it('should correctly write to extlinux.conf files', async () => {
-			stub(fsUtils, 'writeFileAtomic').resolves();
-			stub(fsUtils, 'exec').resolves();
-
 			const current = {};
 			const target = {
 				HOST_EXTLINUX_isolcpus: '2',
@@ -290,11 +392,9 @@ describe('Device Backend Config', () => {
 
 			// @ts-ignore accessing private value
 			await deviceConfig.setBootConfig(extlinuxBackend, target);
-			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
-			expect(fsUtils.writeFileAtomic).to.be.calledWith(
-				'./test/data/mnt/boot/extlinux/extlinux.conf',
+			expect(await fs.readFile(extlinuxConf, 'utf-8')).to.equal(
 				stripIndent`
 					DEFAULT primary
 					TIMEOUT 30
@@ -306,10 +406,6 @@ describe('Device Backend Config', () => {
 					FDT /boot/mycustomdtb.dtb
 				` + '\n', // add newline because stripIndent trims last newline
 			);
-
-			// Restore stubs
-			(fsUtils.writeFileAtomic as SinonStub).restore();
-			(fsUtils.exec as SinonStub).restore();
 		});
 	});
 
@@ -398,18 +494,66 @@ describe('Device Backend Config', () => {
 		});
 	});
 
-	describe('ConfigFS files', () => {
-		it('should correctly write to configfs.json files', async () => {
-			stub(fsUtils, 'writeFileAtomic').resolves();
-			stub(fsUtils, 'exec').resolves();
+	describe('config-fs', () => {
+		const acpiTables = path.join(constants.rootMountPoint, 'boot/acpi-tables');
+		const sysKernelAcpiTable = path.join(
+			constants.rootMountPoint,
+			'sys/kernel/config/acpi/table',
+		);
 
+		const mockFs = () => {
+			mock({
+				// This is only needed so config.get doesn't fail
+				[configJson]: JSON.stringify({}),
+				[osRelease]: stripIndent`
+					PRETTY_NAME="balenaOS 2.88.5+rev1"
+					META_BALENA_VERSION="2.88.5"
+					VARIANT_ID="dev"
+				`,
+				[configFsJson]: JSON.stringify({
+					ssdt: ['spidev1.1'],
+				}),
+
+				[deviceTypeJson]: JSON.stringify({
+					slug: 'fincm3',
+					arch: 'armv7hf',
+				}),
+				[acpiTables]: {
+					'spidev1.0.aml': '',
+					'spidev1.1.aml': '',
+				},
+				[sysKernelAcpiTable]: {
+					// Add necessary files to avoid the module reporting an error
+					'spidev1.1': {
+						oem_id: '',
+						oem_table_id: '',
+						oem_revision: '',
+					},
+				},
+			});
+		};
+
+		const unmockFs = () => {
+			mock.restore();
+		};
+
+		beforeEach(() => {
+			mockFs();
+		});
+
+		afterEach(() => {
+			// Reset the state of the fs after each test to
+			// prevent tests leaking into each other
+			unmockFs();
+		});
+
+		it('should correctly write to configfs.json files', async () => {
 			const current = {};
 			const target = {
 				HOST_CONFIGFS_ssdt: 'spidev1.0',
 			};
 
 			expect(
-				// @ts-ignore accessing private value
 				deviceConfig.bootConfigChangeRequired(
 					configFsBackend,
 					current,
@@ -418,56 +562,26 @@ describe('Device Backend Config', () => {
 				),
 			).to.equal(true);
 
-			// @ts-ignore accessing private value
 			await deviceConfig.setBootConfig(configFsBackend, target);
-			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
-			expect(fsUtils.writeFileAtomic).to.be.calledWith(
-				'test/data/mnt/boot/configfs.json',
+			expect(await fs.readFile(configFsJson, 'utf-8')).to.equal(
 				'{"ssdt":["spidev1.0"]}',
 			);
-
-			// Restore stubs
-			(fsUtils.writeFileAtomic as SinonStub).restore();
-			(fsUtils.exec as SinonStub).restore();
 		});
 
 		it('should correctly load the configfs.json file', async () => {
 			stub(fsUtils, 'exec').resolves();
-			stub(fsUtils, 'writeFileAtomic').resolves();
-			stub(fsUtils, 'exists').resolves(true);
-			stub(fs, 'mkdir').resolves();
-			stub(fs, 'readdir').resolves([]);
-			stub(fs, 'readFile').callsFake((file) => {
-				if (file === 'test/data/mnt/boot/configfs.json') {
-					return Promise.resolve(
-						JSON.stringify({
-							ssdt: ['spidev1.1'],
-						}),
-					);
-				}
-				return Promise.resolve('');
-			});
-
 			await configFsBackend.initialise();
 			expect(fsUtils.exec).to.be.calledWith('modprobe acpi_configfs');
-			expect(fsUtils.exec).to.be.calledWith(
-				`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ./test/data/mnt/boot`,
-			);
+
+			// If the module performs this call, it's because all the prior checks succeeded
 			expect(fsUtils.exec).to.be.calledWith(
 				'cat test/data/boot/acpi-tables/spidev1.1.aml > test/data/sys/kernel/config/acpi/table/spidev1.1/aml',
 			);
-			expect((fsUtils.exists as SinonSpy).callCount).to.equal(2);
-			expect((fs.readFile as SinonSpy).callCount).to.equal(4);
 
 			// Restore stubs
-			(fsUtils.writeFileAtomic as SinonStub).restore();
 			(fsUtils.exec as SinonStub).restore();
-			(fsUtils.exists as SinonStub).restore();
-			(fs.mkdir as SinonStub).restore();
-			(fs.readdir as SinonStub).restore();
-			(fs.readFile as SinonStub).restore();
 		});
 
 		it('requires change when target is different', () => {
@@ -533,28 +647,52 @@ describe('Device Backend Config', () => {
 		});
 	});
 
-	describe('Boot splash image', () => {
+	describe('splash config', () => {
 		const defaultLogo =
 			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEX/wQDLA+84AAAACklEQVR4nGNiAAAABgADNjd8qAAAAABJRU5ErkJggg==';
 		const png =
 			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEX/TQBcNTh/AAAAAXRSTlPM0jRW/QAAAApJREFUeJxjYgAAAAYAAzY3fKgAAAAASUVORK5CYII=';
 		const uri = `data:image/png;base64,${png}`;
 
+		const splash = path.join(bootMountPoint, 'splash');
+
+		const mockFs = () => {
+			mock({
+				// This is only needed so config.get doesn't fail
+				[configJson]: JSON.stringify({}),
+				[osRelease]: stripIndent`
+					PRETTY_NAME="balenaOS 2.88.5+rev1"
+					META_BALENA_VERSION="2.88.5"
+					VARIANT_ID="dev"
+				`,
+				[deviceTypeJson]: JSON.stringify({
+					slug: 'raspberrypi4-64',
+					arch: 'aarch64',
+				}),
+				[splash]: {
+					/* empty directory */
+				},
+			});
+		};
+
+		const unmockFs = () => {
+			mock.restore();
+		};
+
 		beforeEach(() => {
-			// Setup stubs
-			stub(fsUtils, 'writeFileAtomic').resolves();
-			stub(fsUtils, 'exec').resolves();
+			mockFs();
 		});
 
 		afterEach(() => {
-			// Restore stubs
-			(fsUtils.writeFileAtomic as SinonStub).restore();
-			(fsUtils.exec as SinonStub).restore();
+			unmockFs();
 		});
 
 		it('should correctly write to resin-logo.png', async () => {
 			// Devices with balenaOS < 2.51 use resin-logo.png
-			stub(fs, 'readdir').resolves(['resin-logo.png'] as any);
+			fs.writeFile(
+				path.join(splash, 'resin-logo.png'),
+				Buffer.from(defaultLogo, 'base64'),
+			);
 
 			const current = {};
 			const target = {
@@ -573,20 +711,19 @@ describe('Device Backend Config', () => {
 			).to.equal(true);
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
-			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
-			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
-				'test/data/mnt/boot/splash/resin-logo.png',
-			);
-
-			// restore the stub
-			(fs.readdir as SinonStub).restore();
+			expect(
+				await fs.readFile(path.join(splash, 'resin-logo.png'), 'base64'),
+			).to.equal(png);
 		});
 
 		it('should correctly write to balena-logo.png', async () => {
 			// Devices with balenaOS >= 2.51 use balena-logo.png
-			stub(fs, 'readdir').resolves(['balena-logo.png'] as any);
+			fs.writeFile(
+				path.join(splash, 'balena-logo.png'),
+				Buffer.from(defaultLogo, 'base64'),
+			);
 
 			const current = {};
 			const target = {
@@ -606,21 +743,15 @@ describe('Device Backend Config', () => {
 
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
-			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
-			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
-				'test/data/mnt/boot/splash/balena-logo.png',
-			);
-
-			// restore the stub
-			(fs.readdir as SinonStub).restore();
+			expect(
+				await fs.readFile(path.join(splash, 'balena-logo.png'), 'base64'),
+			).to.equal(png);
 		});
 
 		it('should correctly write to balena-logo.png if no default logo is found', async () => {
 			// Devices with balenaOS >= 2.51 use balena-logo.png
-			stub(fs, 'readdir').resolves([]);
-
 			const current = {};
 			const target = {
 				HOST_SPLASH_image: png,
@@ -639,15 +770,11 @@ describe('Device Backend Config', () => {
 
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
-			expect(fsUtils.exec).to.be.calledOnce;
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');
-			expect(fsUtils.writeFileAtomic).to.be.calledOnceWith(
-				'test/data/mnt/boot/splash/balena-logo.png',
-			);
-
-			// restore the stub
-			(fs.readdir as SinonStub).restore();
+			expect(
+				await fs.readFile(path.join(splash, 'balena-logo.png'), 'base64'),
+			).to.equal(png);
 		});
 
 		it('should correctly read the splash logo if different from the default', async () => {
@@ -678,137 +805,124 @@ describe('Device Backend Config', () => {
 			readFileStub.restore();
 		});
 	});
-});
 
-describe('getRequiredSteps', () => {
-	const bootMountPoint = path.join(
-		constants.rootMountPoint,
-		constants.bootMountPoint,
-	);
-	const configJson = 'test/data/config.json';
-	const configTxt = path.join(bootMountPoint, 'config.txt');
-	const deviceTypeJson = path.join(bootMountPoint, 'device-type.json');
-	const osRelease = path.join(constants.rootMountPoint, '/etc/os-release');
-	const splash = path.join(bootMountPoint, 'splash/balena-logo.png');
+	describe('getRequiredSteps', () => {
+		const splash = path.join(bootMountPoint, 'splash/balena-logo.png');
 
-	// TODO: something like this could be done as a fixture instead of
-	// doing the file initialisation on 00-init.ts
-	const mockFs = () => {
-		mock({
-			// This is only needed so config.get doesn't fail
-			[configJson]: JSON.stringify({}),
-			[configTxt]: stripIndent`
-				enable_uart=true
-			`,
-			[osRelease]: stripIndent`
-				PRETTY_NAME="balenaOS 2.88.5+rev1"
-				META_BALENA_VERSION="2.88.5"
-				VARIANT_ID="dev"
-			`,
-			[deviceTypeJson]: JSON.stringify({
-				slug: 'raspberrypi4-64',
-				arch: 'aarch64',
-			}),
-			[splash]: Buffer.from(
-				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-				'base64',
-			),
+		// TODO: something like this could be done as a fixture instead of
+		// doing the file initialisation on 00-init.ts
+		const mockFs = () => {
+			mock({
+				// This is only needed so config.get doesn't fail
+				[configJson]: JSON.stringify({}),
+				[configTxt]: stripIndent`
+					enable_uart=true
+				`,
+				[osRelease]: stripIndent`
+					PRETTY_NAME="balenaOS 2.88.5+rev1"
+					META_BALENA_VERSION="2.88.5"
+					VARIANT_ID="dev"
+				`,
+				[deviceTypeJson]: JSON.stringify({
+					slug: 'raspberrypi4-64',
+					arch: 'aarch64',
+				}),
+				[splash]: Buffer.from(
+					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+					'base64',
+				),
+			});
+		};
+
+		const unmockFs = () => {
+			mock.restore();
+		};
+
+		beforeEach(() => {
+			mockFs();
 		});
-	};
 
-	const unmockFs = () => {
-		mock.restore();
-	};
+		afterEach(() => {
+			unmockFs();
+		});
 
-	before(() => {
-		mockFs();
-
-		// TODO: remove this once the remount on backend.ts is no longer
-		// necessary
-		stub(fsUtils, 'exec');
-	});
-
-	after(() => {
-		unmockFs();
-		(fsUtils.exec as SinonStub).restore();
-	});
-
-	it('returns required steps to config.json first if any', async () => {
-		const steps = await deviceConfig.getRequiredSteps(
-			{
-				local: {
-					config: {
-						SUPERVISOR_POLL_INTERVAL: 900000,
-						HOST_CONFIG_enable_uart: true,
+		it('returns required steps to config.json first if any', async () => {
+			const steps = await deviceConfig.getRequiredSteps(
+				{
+					local: {
+						config: {
+							SUPERVISOR_POLL_INTERVAL: 900000,
+							HOST_CONFIG_enable_uart: true,
+						},
 					},
-				},
-			} as any,
-			{
-				local: {
-					config: {
-						SUPERVISOR_POLL_INTERVAL: 600000,
-						HOST_CONFIG_enable_uart: false,
+				} as any,
+				{
+					local: {
+						config: {
+							SUPERVISOR_POLL_INTERVAL: 600000,
+							HOST_CONFIG_enable_uart: false,
+						},
 					},
-				},
-			} as any,
-		);
-		expect(steps.map((s) => s.action)).to.have.members([
-			// No reboot is required by this config change
-			'changeConfig',
-			'noop', // The noop has to be here since there are also changes from config backends
-		]);
-	});
+				} as any,
+			);
+			expect(steps.map((s) => s.action)).to.have.members([
+				// No reboot is required by this config change
+				'changeConfig',
+				'noop', // The noop has to be here since there are also changes from config backends
+			]);
+		});
 
-	it('sets the rebooot breadcrumb for config steps that require a reboot', async () => {
-		const steps = await deviceConfig.getRequiredSteps(
-			{
-				local: {
-					config: {
-						SUPERVISOR_POLL_INTERVAL: 900000,
-						SUPERVISOR_PERSISTENT_LOGGING: false,
+		it('sets the rebooot breadcrumb for config steps that require a reboot', async () => {
+			const steps = await deviceConfig.getRequiredSteps(
+				{
+					local: {
+						config: {
+							SUPERVISOR_POLL_INTERVAL: 900000,
+							SUPERVISOR_PERSISTENT_LOGGING: false,
+						},
 					},
-				},
-			} as any,
-			{
-				local: {
-					config: {
-						SUPERVISOR_POLL_INTERVAL: 600000,
-						SUPERVISOR_PERSISTENT_LOGGING: true,
+				} as any,
+				{
+					local: {
+						config: {
+							SUPERVISOR_POLL_INTERVAL: 600000,
+							SUPERVISOR_PERSISTENT_LOGGING: true,
+						},
 					},
-				},
-			} as any,
-		);
-		expect(steps.map((s) => s.action)).to.have.members([
-			'setRebootBreadcrumb',
-			'changeConfig',
-			'noop',
-		]);
-	});
+				} as any,
+			);
+			expect(steps.map((s) => s.action)).to.have.members([
+				'setRebootBreadcrumb',
+				'changeConfig',
+				'noop',
+			]);
+		});
 
-	it('returns required steps for backends if no steps are required for config.json', async () => {
-		const steps = await deviceConfig.getRequiredSteps(
-			{
-				local: {
-					config: {
-						SUPERVISOR_POLL_INTERVAL: 900000,
-						SUPERVISOR_PERSISTENT_LOGGING: true,
-						HOST_CONFIG_enable_uart: true,
+		it('returns required steps for backends if no steps are required for config.json', async () => {
+			const steps = await deviceConfig.getRequiredSteps(
+				{
+					local: {
+						config: {
+							SUPERVISOR_POLL_INTERVAL: 900000,
+							SUPERVISOR_PERSISTENT_LOGGING: true,
+							HOST_CONFIG_enable_uart: true,
+						},
 					},
-				},
-			} as any,
-			{
-				local: {
-					config: {
-						SUPERVISOR_POLL_INTERVAL: 900000,
-						SUPERVISOR_PERSISTENT_LOGGING: true,
-						HOST_CONFIG_enable_uart: false,
+				} as any,
+				{
+					local: {
+						config: {
+							SUPERVISOR_POLL_INTERVAL: 900000,
+							SUPERVISOR_PERSISTENT_LOGGING: true,
+							HOST_CONFIG_enable_uart: false,
+						},
 					},
-				},
-			} as any,
-		);
-		expect(steps.map((s) => s.action)).to.have.members([
-			'setRebootBreadcrumb',
-			'setBootConfig',
-		]);
+				} as any,
+			);
+			expect(steps.map((s) => s.action)).to.have.members([
+				'setRebootBreadcrumb',
+				'setBootConfig',
+			]);
+		});
 	});
 });

@@ -2,12 +2,7 @@ import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as semver from 'semver';
 
-import {
-	ConfigOptions,
-	ConfigBackend,
-	bootMountPoint,
-	remountAndWriteAtomic,
-} from './backend';
+import { ConfigOptions, ConfigBackend } from './backend';
 import {
 	ExtlinuxFile,
 	Directive,
@@ -17,6 +12,7 @@ import {
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { ExtLinuxEnvError, ExtLinuxParseError } from '../../lib/errors';
+import * as hostUtils from '../../lib/host-utils';
 
 // The OS version when extlinux moved to READ ONLY partition
 const EXTLINUX_READONLY = '2.47.0';
@@ -31,7 +27,9 @@ const EXTLINUX_READONLY = '2.47.0';
 
 export class Extlinux extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
-	private static bootConfigPath = `${bootMountPoint}/extlinux/extlinux.conf`;
+	private static bootConfigPath = hostUtils.pathOnBoot(
+		`extlinux/extlinux.conf`,
+	);
 	private static supportedConfigValues = ['isolcpus', 'fdt'];
 	private static supportedDirectives = ['APPEND', 'FDT'];
 
@@ -136,7 +134,7 @@ export class Extlinux extends ConfigBackend {
 		);
 
 		// Write new extlinux configuration
-		return await remountAndWriteAtomic(
+		return await hostUtils.writeToBoot(
 			Extlinux.bootConfigPath,
 			Extlinux.extlinuxFileToString(parsedBootFile),
 		);
