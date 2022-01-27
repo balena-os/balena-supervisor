@@ -1,4 +1,20 @@
 - commits:
+    - subject: Throw if target states gets a 304 without an ETAG
+      hash: f471ad736c40afe7e4b50cb0fc46e8894d8dcdd7
+      body: |
+        The API uses 304 as a mechanism for load management on target state
+        requests. This may cause that the supervisor receives a 304 response
+        without having received a copy of the target state first, leading to
+        issues. This change checks for an etag when receiving a 304, throwing an
+        exception otherwise.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.30
+  date: 2022-01-26T14:30:25.966Z
+- commits:
     - subject: 'patch: Update fleet terminology for application update locks'
       hash: 6357d3541ea726db565be947b3f9e4484707389c
       body: ''
