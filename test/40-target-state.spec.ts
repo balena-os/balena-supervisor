@@ -37,7 +37,7 @@ const req = {
 		Promise.resolve([
 			{
 				statusCode: 200,
-				headers: {},
+				headers: { etag: 'abc' },
 			} as any,
 			JSON.stringify(stateEndpointBody),
 		]),
@@ -60,6 +60,25 @@ describe('Target state', () => {
 	});
 
 	describe('update', () => {
+		it('should throw if a 304 is received but no local cache exists', async () => {
+			// new request returns 304
+			const newReq = {
+				getAsync: () =>
+					Promise.resolve([
+						{
+							statusCode: 304,
+							headers: {},
+						} as any,
+					]),
+			};
+
+			(request.getRequestInstance as SinonStub).resolves(newReq as any);
+
+			// Perform target state request
+			await expect(TargetState.update()).to.be.rejected;
+			expect(request.getRequestInstance).to.be.calledOnce;
+		});
+
 		it('should emit target state when a new one is available', async () => {
 			// Setup target state listener
 			const listener = stub();

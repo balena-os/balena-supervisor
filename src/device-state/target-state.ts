@@ -150,7 +150,7 @@ export const update = async (
 			.getAsync(endpoint, params)
 			.timeout(apiTimeout);
 
-		if (statusCode === 304) {
+		if (statusCode === 304 && cache?.etag != null) {
 			// There's no change so no need to update the cache
 			// only emit the target state if it hasn't been emitted yet
 			cache.emitted = emitTargetState(cache, force, isFromApi);
