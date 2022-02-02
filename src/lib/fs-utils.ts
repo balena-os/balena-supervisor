@@ -27,7 +27,7 @@ export async function writeFileAtomic(
 	data: string | Buffer,
 ): Promise<void> {
 	await writeAndSyncFile(`${pathName}.new`, data);
-	await fs.rename(`${pathName}.new`, pathName);
+	await safeRename(`${pathName}.new`, pathName);
 }
 
 export async function safeRename(src: string, dest: string): Promise<void> {
