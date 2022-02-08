@@ -120,6 +120,12 @@ const IP_REGEX = /^(?:(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|res
 
 export const shouldReportInterface = (intf: string) => !IP_REGEX.test(intf);
 
+const shouldReportIPv6 = (ip: os.NetworkInterfaceInfo) =>
+	ip.family === 'IPv6' && !ip.internal && ip.scopeid === 0;
+
+const shouldReportIPv4 = (ip: os.NetworkInterfaceInfo) =>
+	ip.family === 'IPv4' && !ip.internal;
+
 export function getIPAddresses(): string[] {
 	// We get IP addresses but ignore:
 	// - docker and balena bridges (docker0, docker1, balena0, etc)
@@ -130,17 +136,18 @@ export function getIPAddresses(): string[] {
 	// - the bridge for dnsmasq (resin-dns)
 	// - the docker network for the supervisor API (supervisor0)
 	// - custom docker network bridges (br- + 12 hex characters)
-	return _(os.networkInterfaces())
-		.filter((_interfaceFields, interfaceName) =>
-			shouldReportInterface(interfaceName),
-		)
+	const networkInterfaces = os.networkInterfaces();
+	return Object.keys(networkInterfaces)
+		.filter((iface) => shouldReportInterface(iface))
+		.map((iface) => networkInterfaces[iface])
 		.flatMap((validInterfaces) => {
-			return _(validInterfaces)
-				.pickBy({ family: 'IPv4', internal: false })
-				.map('address')
-				.value();
-		})
-		.value();
+			return (
+				validInterfaces
+					// Only report valid ipv6 and ipv4 addresses
+					.filter((ip) => shouldReportIPv6(ip) || shouldReportIPv4(ip))
+					.map(({ address }) => address)
+			);
+		});
 }
 
 export function startIPAddressUpdate(): (

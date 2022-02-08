@@ -61,6 +61,16 @@ describe('network', () => {
 						internal: false,
 					},
 				],
+				eth0: [
+					{
+						address: 'fe80::9992:76e3:c2e1:8a02',
+						netmask: 'ffff:ffff:ffff:ffff::',
+						family: 'IPv6',
+						mac: '58:6d:c7:c6:44:3d',
+						scopeid: 9,
+						internal: false,
+					},
+				],
 				'resin-vpn': [
 					{
 						address: '10.10.2.14',
@@ -77,7 +87,10 @@ describe('network', () => {
 		after(() => os.networkInterfaces.restore());
 
 		it('returns only the relevant IP addresses', () =>
-			expect(network.getIPAddresses()).to.deep.equal(['192.168.1.137']));
+			expect(network.getIPAddresses()).to.deep.equal([
+				'192.168.1.137',
+				'2605:9080:1103:3011:2dbe:35e3:1b5a:b99',
+			]));
 	});
 
 	it('checks VPN connection status', async () => {
