@@ -59,7 +59,7 @@ describe('Config', () => {
 	it('allows deleting a config.json key and returns a default value if none is set', async () => {
 		await conf.remove('appUpdatePollInterval');
 		const poll = await conf.get('appUpdatePollInterval');
-		return expect(poll).to.equal(60000);
+		return expect(poll).to.equal(900000);
 	});
 
 	it('allows deleting a config.json key if it is null', async () => {

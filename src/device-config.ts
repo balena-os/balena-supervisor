@@ -118,7 +118,7 @@ const configKeys: Dictionary<ConfigOption> = {
 	appUpdatePollInterval: {
 		envVarName: 'SUPERVISOR_POLL_INTERVAL',
 		varType: 'int',
-		defaultValue: '60000',
+		defaultValue: '900000',
 	},
 	instantUpdates: {
 		envVarName: 'SUPERVISOR_INSTANT_UPDATE_TRIGGER',
