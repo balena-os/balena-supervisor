@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add support for local ipv6 reporting
+      hash: 72f6cbe4c7225623ed99083d20c4a2cb2f3b70ac
+      body: |
+        With more and more devices in ipv6 only networks, this ensures the
+        local addresses are reported to the cloud as part of the state patch.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.33
+  title: "'Add support for local ipv6 reporting'"
+  date: 2022-02-09T17:57:09.778Z
+- commits:
     - subject: Use `writeAndSync` when writing to config.json
       hash: d071cd1507b8424628afa96ea1b1ed6b19225651
       body: |
