@@ -541,10 +541,19 @@ export async function getRequiredSteps(
 		{},
 	);
 
+	const configSteps = getConfigSteps(current, target);
 	const steps = ([] as ConfigStep[]).concat(
-		getConfigSteps(current, target),
+		configSteps,
 		await getVPNSteps(current, target),
-		await getBackendSteps(current, target),
+
+		// Only apply backend steps if no more config changes are left since
+		// changing config.json may restart the supervisor
+		configSteps.length > 0 &&
+			// if any config step is a not 'noop' step, skip the backend steps
+			configSteps.filter((s) => s.action !== 'noop').length > 0
+			? // Set a 'noop' action so the apply function knows to retry
+			  [{ action: 'noop' }]
+			: await getBackendSteps(current, target),
 	);
 
 	// Check if there is either no steps, or they are all

@@ -1,5 +1,6 @@
 import { stripIndent } from 'common-tags';
 import { promises as fs } from 'fs';
+import * as path from 'path';
 import { SinonStub, stub, spy, SinonSpy } from 'sinon';
 import { expect } from 'chai';
 
@@ -15,6 +16,7 @@ import * as constants from '../src/lib/constants';
 import * as config from '../src/config';
 
 import prepare = require('./lib/prepare');
+import mock = require('mock-fs');
 
 const extlinuxBackend = new Extlinux();
 const configTxtBackend = new ConfigTxt();
@@ -22,6 +24,9 @@ const odmdataBackend = new Odmdata();
 const configFsBackend = new ConfigFs();
 const splashImageBackend = new SplashImage();
 
+// TODO: Since the getBootConfig method is simple enough
+// these tests could probably be removed if each backend has its own
+// test and the src/config/utils module is properly tested.
 describe('Device Backend Config', () => {
 	let logSpy: SinonSpy;
 
@@ -566,7 +571,6 @@ describe('Device Backend Config', () => {
 					'fincm3',
 				),
 			).to.equal(true);
-
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
 			expect(fsUtils.exec).to.be.calledOnce;
@@ -673,5 +677,110 @@ describe('Device Backend Config', () => {
 			(fs.readFile as SinonStub).restore();
 			readFileStub.restore();
 		});
+	});
+});
+
+describe('getRequiredSteps', () => {
+	const bootMountPoint = path.join(
+		constants.rootMountPoint,
+		constants.bootMountPoint,
+	);
+	const configJson = 'test/data/config.json';
+	const configTxt = path.join(bootMountPoint, 'config.txt');
+	const deviceTypeJson = path.join(bootMountPoint, 'device-type.json');
+	const osRelease = path.join(constants.rootMountPoint, '/etc/os-release');
+	const splash = path.join(bootMountPoint, 'splash/balena-logo.png');
+
+	// TODO: something like this could be done as a fixture instead of
+	// doing the file initialisation on 00-init.ts
+	const mockFs = () => {
+		mock({
+			// This is only needed so config.get doesn't fail
+			[configJson]: JSON.stringify({}),
+			[configTxt]: stripIndent`
+				enable_uart=true
+			`,
+			[osRelease]: stripIndent`
+				PRETTY_NAME="balenaOS 2.88.5+rev1"
+				META_BALENA_VERSION="2.88.5"
+				VARIANT_ID="dev"
+			`,
+			[deviceTypeJson]: JSON.stringify({
+				slug: 'raspberrypi4-64',
+				arch: 'aarch64',
+			}),
+			[splash]: Buffer.from(
+				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+				'base64',
+			),
+		});
+	};
+
+	const unmockFs = () => {
+		mock.restore();
+	};
+
+	before(() => {
+		mockFs();
+
+		// TODO: remove this once the remount on backend.ts is no longer
+		// necessary
+		stub(fsUtils, 'exec');
+	});
+
+	after(() => {
+		unmockFs();
+		(fsUtils.exec as SinonStub).restore();
+	});
+
+	it('returns required steps to config.json first if any', async () => {
+		const steps = await deviceConfig.getRequiredSteps(
+			{
+				local: {
+					config: {
+						SUPERVISOR_POLL_INTERVAL: 900000,
+						SUPERVISOR_PERSISTENT_LOGGING: true,
+						HOST_CONFIG_enable_uart: true,
+					},
+				},
+			} as any,
+			{
+				local: {
+					config: {
+						SUPERVISOR_POLL_INTERVAL: 600000,
+						SUPERVISOR_PERSISTENT_LOGGING: false,
+						HOST_CONFIG_enable_uart: false,
+					},
+				},
+			} as any,
+		);
+		expect(steps.map((s) => s.action)).to.have.members([
+			'changeConfig',
+			'noop', // The noop has to be here since there are also changes from config backends
+		]);
+	});
+
+	it('returns required steps for backends if no steps are required for config.json', async () => {
+		const steps = await deviceConfig.getRequiredSteps(
+			{
+				local: {
+					config: {
+						SUPERVISOR_POLL_INTERVAL: 900000,
+						SUPERVISOR_PERSISTENT_LOGGING: true,
+						HOST_CONFIG_enable_uart: true,
+					},
+				},
+			} as any,
+			{
+				local: {
+					config: {
+						SUPERVISOR_POLL_INTERVAL: 900000,
+						SUPERVISOR_PERSISTENT_LOGGING: true,
+						HOST_CONFIG_enable_uart: false,
+					},
+				},
+			} as any,
+		);
+		expect(steps.map((s) => s.action)).to.have.members(['setBootConfig']);
 	});
 });
