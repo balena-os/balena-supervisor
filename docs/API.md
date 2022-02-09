@@ -548,16 +548,16 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 > **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
-This endpoint allows setting some configuration values for the host OS. Currently it supports
-proxy and hostname configuration.
+This endpoint allows setting some configuration values for the host OS. Currently it supports proxy and hostname configuration.
 
 For proxy configuration, balenaOS 2.0.7 and higher provides a transparent proxy redirector (redsocks) that makes all connections be routed to a SOCKS or HTTP proxy. This endpoint allows services to modify these proxy settings at runtime.
 
 
 #### Request body
 
-Is a JSON object with several optional fields. Proxy and hostname configuration go under a "network" key. If "proxy" or "hostname" are not present (undefined), those values will not be modified, so that a request can modify hostname
-without changing proxy settings and viceversa.
+A JSON object with several optional fields. Proxy and hostname configuration go under a `network` key. If `proxy` or `hostname` are not present (undefined), those values will not be modified, so that a request can modify hostname without changing proxy settings and vice versa.
+
+By default, with [balenaOS 2.82.6](https://github.com/balena-os/meta-balena/blob/master/CHANGELOG.md#v2826) or newer, host config PATCH requests will cause a balenaEngine restart. Therefore, with Supervisor v12.11.34 and newer, the PATCH request will respect the presence of update locks. Specify the `force` boolean (`false` by default) property in the request body to ignore this.
 
 ```json
 {
@@ -570,7 +570,8 @@ without changing proxy settings and viceversa.
 			"password": "password",
 			"noProxy": [ "152.10.30.4", "253.1.1.0/16" ]
 		},
-		"hostname": "mynewhostname"
+		"hostname": "mynewhostname",
+		"force": true
 	}
 }
 ```
@@ -581,10 +582,10 @@ guaranteed to work, especially if they block connections that the balena service
 
 Keep in mind that, even if transparent proxy redirection will take effect immediately after the API call (i.e. all new connections will go through the proxy), open connections will not be closed. So, if for example, the device has managed to connect to the balenaCloud VPN without the proxy, it will stay connected directly without trying to reconnect through the proxy, unless the connection breaks - any reconnection attempts will then go through the proxy. To force *all* connections to go through the proxy, the best way is to reboot the device (see the /v1/reboot endpoint). In most networks were no connections to the Internet can be made if not through a proxy, this should not be necessary (as there will be no open connections before configuring the proxy settings).
 
-The "noProxy" setting for the proxy is an optional array of IP addresses/subnets that should not be routed through the
+The `noProxy` setting for the proxy is an optional array of IP addresses/subnets that should not be routed through the
 proxy. Keep in mind that local/reserved subnets are already [excluded by balenaOS automatically](https://github.com/balena-os/meta-balena/blob/master/meta-balena-common/recipes-connectivity/balena-proxy-config/balena-proxy-config/balena-proxy-config).
 
-If either "proxy" or "hostname" are null or empty values (i.e. `{}` for proxy or an empty string for hostname), they will be cleared to their default values (i.e. not using a proxy, and a hostname equal to the first 7 characters of the device's uuid, respectively).
+If either `proxy` or `hostname` are null or empty values (i.e. `{}` for proxy or an empty string for hostname), they will be cleared to their default values (i.e. not using a proxy, and a hostname equal to the first 7 characters of the device's uuid, respectively).
 
 #### Examples:
 From an app container:
