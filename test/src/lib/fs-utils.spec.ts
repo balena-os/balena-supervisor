@@ -15,8 +15,14 @@ describe('lib/fs-utils', () => {
 
 	const mockFs = () => {
 		mock({
-			[testFile1]: 'foo',
-			[testFile2]: 'bar',
+			[testFile1]: mock.file({
+				content: 'foo',
+				mtime: new Date('2022-01-04T00:00:00'),
+			}),
+			[testFile2]: mock.file({
+				content: 'bar',
+				mtime: new Date('2022-01-04T00:00:00'),
+			}),
 		});
 	};
 
@@ -152,6 +158,43 @@ describe('lib/fs-utils', () => {
 			expect(
 				fsUtils.getPathOnHost(...[testFileName1, testFileName2]),
 			).to.deep.equal([testFile1, testFile2]);
+		});
+	});
+
+	describe('touch', () => {
+		beforeEach(mockFs);
+		afterEach(unmockFs);
+
+		it('creates the file if it does not exist', async () => {
+			await fsUtils.touch('somefile');
+			expect(await fsUtils.exists('somefile')).to.be.true;
+		});
+
+		it('updates the file mtime if file already exists', async () => {
+			const statsBefore = await fs.stat(testFile1);
+			await fsUtils.touch(testFile1);
+			const statsAfter = await fs.stat(testFile1);
+
+			// Mtime should be different
+			expect(statsAfter.mtime.getTime()).to.not.equal(
+				statsBefore.mtime.getTime(),
+			);
+		});
+
+		it('allows setting a custom time for existing files', async () => {
+			const customTime = new Date('1981-11-24T12:00:00');
+			await fsUtils.touch(testFile1, customTime);
+			const statsAfter = await fs.stat(testFile1);
+
+			expect(statsAfter.mtime.getTime()).to.be.equal(customTime.getTime());
+		});
+
+		it('allows setting a custom time for newly created files', async () => {
+			const customTime = new Date('1981-11-24T12:00:00');
+			await fsUtils.touch('somefile', customTime);
+			const statsAfter = await fs.stat('somefile');
+
+			expect(statsAfter.mtime.getTime()).to.be.equal(customTime.getTime());
 		});
 	});
 });

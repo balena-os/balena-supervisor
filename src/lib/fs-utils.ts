@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { exec as execSync } from 'child_process';
 import { promisify } from 'util';
+import { uptime } from 'os';
 
 import * as constants from './constants';
 
@@ -82,3 +83,26 @@ export async function unlinkAll(...paths: string[]): Promise<void> {
 export function getPathOnHost(...paths: string[]): string[] {
 	return paths.map((p: string) => path.join(constants.rootMountPoint, p));
 }
+
+/**
+ * Change modification and access time of the given file.
+ * It creates an empty file if it does not exist
+ */
+export const touch = (file: string, time = new Date()) =>
+	// set both access time and modified time to the value passed
+	// as argument (default to `now`)
+	fs.utimes(file, time, time).catch((e) =>
+		// only create the file if it doesn't exist,
+		// if some other error happens is probably better to not touch it
+		e.code === 'ENOENT'
+			? fs
+					.open(file, 'w')
+					.then((fd) => fd.close())
+					// If date is custom we need to change the file atime and mtime
+					.then(() => fs.utimes(file, time, time))
+			: e,
+	);
+
+// Get the system boot time as a Date object
+export const getBootTime = () =>
+	new Date(new Date().getTime() - uptime() * 1000);
