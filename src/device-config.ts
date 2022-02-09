@@ -396,31 +396,14 @@ export function bootConfigChangeRequired(
 	return false;
 }
 
-export async function getRequiredSteps(
-	currentState: DeviceStatus,
-	targetState: { local?: { config?: Dictionary<string> } },
-): Promise<ConfigStep[]> {
-	const current: Dictionary<string> = _.get(
-		currentState,
-		['local', 'config'],
-		{},
-	);
-	const target: Dictionary<string> = _.get(
-		targetState,
-		['local', 'config'],
-		{},
-	);
-
-	let steps: ConfigStep[] = [];
-
-	const { deviceType, unmanaged } = await config.getMany([
-		'deviceType',
-		'unmanaged',
-	]);
-
+function getConfigSteps(
+	current: Dictionary<string>,
+	target: Dictionary<string>,
+) {
 	const configChanges: Dictionary<string> = {};
 	const humanReadableConfigChanges: Dictionary<string> = {};
 	let reboot = false;
+	const steps: ConfigStep[] = [];
 
 	_.each(
 		configKeys,
@@ -469,6 +452,17 @@ export async function getRequiredSteps(
 		});
 	}
 
+	return steps;
+}
+
+async function getVPNSteps(
+	current: Dictionary<string>,
+	target: Dictionary<string>,
+) {
+	const { unmanaged } = await config.getMany(['unmanaged']);
+
+	let steps: ConfigStep[] = [];
+
 	// Check for special case actions for the VPN
 	if (
 		!unmanaged &&
@@ -481,6 +475,12 @@ export async function getRequiredSteps(
 		});
 	}
 
+	// TODO: the only step that requires rate limiting is setVPNEnabled
+	// do not use rate limiting in the future as it probably will change.
+	// The reason rate limiting is needed for this step is because the dbus
+	// API does not wait for the service response when a unit is started/stopped.
+	// This would cause too many requests on systemd and a possible error.
+	// Promisifying the dbus api to wait for the response would be the right solution
 	const now = Date.now();
 	steps = _.map(steps, (step) => {
 		const action = step.action;
@@ -502,7 +502,17 @@ export async function getRequiredSteps(
 		return step;
 	});
 
+	return steps;
+}
+
+async function getBackendSteps(
+	current: Dictionary<string>,
+	target: Dictionary<string>,
+) {
+	const steps: ConfigStep[] = [];
 	const backends = await getConfigBackends();
+	const { deviceType } = await config.getMany(['deviceType']);
+
 	// Check for required bootConfig changes
 	for (const backend of backends) {
 		if (changeRequired(backend, current, target, deviceType)) {
@@ -512,6 +522,30 @@ export async function getRequiredSteps(
 			});
 		}
 	}
+
+	return steps;
+}
+
+export async function getRequiredSteps(
+	currentState: DeviceStatus,
+	targetState: { local?: { config?: Dictionary<string> } },
+): Promise<ConfigStep[]> {
+	const current: Dictionary<string> = _.get(
+		currentState,
+		['local', 'config'],
+		{},
+	);
+	const target: Dictionary<string> = _.get(
+		targetState,
+		['local', 'config'],
+		{},
+	);
+
+	const steps = ([] as ConfigStep[]).concat(
+		getConfigSteps(current, target),
+		await getVPNSteps(current, target),
+		await getBackendSteps(current, target),
+	);
 
 	// Check if there is either no steps, or they are all
 	// noops, and we need to reboot. We want to do this
