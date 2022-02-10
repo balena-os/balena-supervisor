@@ -739,7 +739,6 @@ describe('getRequiredSteps', () => {
 				local: {
 					config: {
 						SUPERVISOR_POLL_INTERVAL: 900000,
-						SUPERVISOR_PERSISTENT_LOGGING: true,
 						HOST_CONFIG_enable_uart: true,
 					},
 				},
@@ -748,15 +747,41 @@ describe('getRequiredSteps', () => {
 				local: {
 					config: {
 						SUPERVISOR_POLL_INTERVAL: 600000,
-						SUPERVISOR_PERSISTENT_LOGGING: false,
 						HOST_CONFIG_enable_uart: false,
 					},
 				},
 			} as any,
 		);
 		expect(steps.map((s) => s.action)).to.have.members([
+			// No reboot is required by this config change
 			'changeConfig',
 			'noop', // The noop has to be here since there are also changes from config backends
+		]);
+	});
+
+	it('sets the rebooot breadcrumb for config steps that require a reboot', async () => {
+		const steps = await deviceConfig.getRequiredSteps(
+			{
+				local: {
+					config: {
+						SUPERVISOR_POLL_INTERVAL: 900000,
+						SUPERVISOR_PERSISTENT_LOGGING: false,
+					},
+				},
+			} as any,
+			{
+				local: {
+					config: {
+						SUPERVISOR_POLL_INTERVAL: 600000,
+						SUPERVISOR_PERSISTENT_LOGGING: true,
+					},
+				},
+			} as any,
+		);
+		expect(steps.map((s) => s.action)).to.have.members([
+			'setRebootBreadcrumb',
+			'changeConfig',
+			'noop',
 		]);
 	});
 
@@ -781,6 +806,9 @@ describe('getRequiredSteps', () => {
 				},
 			} as any,
 		);
-		expect(steps.map((s) => s.action)).to.have.members(['setBootConfig']);
+		expect(steps.map((s) => s.action)).to.have.members([
+			'setRebootBreadcrumb',
+			'setBootConfig',
+		]);
 	});
 });

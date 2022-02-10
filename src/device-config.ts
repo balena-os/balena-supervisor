@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import { inspect } from 'util';
+import { promises as fs } from 'fs';
 
 import * as config from './config';
 import * as db from './db';
@@ -15,8 +16,18 @@ import { SchemaTypeKey } from './config/schema-type';
 import { matchesAnyBootConfig } from './config/backends';
 import { ConfigBackend } from './config/backends/backend';
 import { Odmdata } from './config/backends/odmdata';
+import * as fsUtils from './lib/fs-utils';
 
 const vpnServiceName = 'openvpn';
+
+// This indicates the file on the host /tmp directory that
+// marks the need for a reboot. Since reboot is only triggered for now
+// by some config changes, we leave this here for now. There is planned
+// functionality to allow image installs to require reboots, at that moment
+// this constant can be moved somewhere else
+const REBOOT_BREADCRUMB = fsUtils.getPathOnHost(
+	'/tmp/balena-supervisor/reboot-after-apply',
+);
 
 interface ConfigOption {
 	envVarName: string;
@@ -34,7 +45,6 @@ export interface ConfigStep {
 	action: keyof DeviceActionExecutors | 'reboot' | 'noop';
 	humanReadableTarget?: Dictionary<string>;
 	target?: string | Dictionary<string>;
-	rebootRequired?: boolean;
 }
 
 interface DeviceActionExecutorOpts {
@@ -50,9 +60,9 @@ interface DeviceActionExecutors {
 	changeConfig: DeviceActionExecutorFn;
 	setVPNEnabled: DeviceActionExecutorFn;
 	setBootConfig: DeviceActionExecutorFn;
+	setRebootBreadcrumb: DeviceActionExecutorFn;
 }
 
-let rebootRequired = false;
 const actionExecutors: DeviceActionExecutors = {
 	changeConfig: async (step) => {
 		try {
@@ -69,9 +79,6 @@ const actionExecutors: DeviceActionExecutors = {
 				logger.logConfigChange(step.humanReadableTarget, {
 					success: true,
 				});
-			}
-			if (step.rebootRequired) {
-				rebootRequired = true;
 			}
 		} catch (err) {
 			if (step.humanReadableTarget) {
@@ -109,6 +116,11 @@ const actionExecutors: DeviceActionExecutors = {
 		for (const backend of backends) {
 			await setBootConfig(backend, step.target as Dictionary<string>);
 		}
+	},
+	setRebootBreadcrumb: async () => {
+		// Just create the file. The last step in the target state calculation will check
+		// the file and create a reboot step
+		await fsUtils.touch(REBOOT_BREADCRUMB);
 	},
 };
 
@@ -444,11 +456,14 @@ function getConfigSteps(
 	);
 
 	if (!_.isEmpty(configChanges)) {
+		if (reboot) {
+			steps.push({ action: 'setRebootBreadcrumb' });
+		}
+
 		steps.push({
 			action: 'changeConfig',
 			target: configChanges,
 			humanReadableTarget: humanReadableConfigChanges,
-			rebootRequired: reboot,
 		});
 	}
 
@@ -523,7 +538,25 @@ async function getBackendSteps(
 		}
 	}
 
-	return steps;
+	return [
+		// All backend steps require a reboot
+		...(steps.length > 0
+			? [{ action: 'setRebootBreadcrumb' } as ConfigStep]
+			: []),
+		...steps,
+	];
+}
+
+async function isRebootRequired() {
+	const hasBreadcrumb = await fsUtils.exists(REBOOT_BREADCRUMB);
+	if (hasBreadcrumb) {
+		const stats = await fs.stat(REBOOT_BREADCRUMB);
+
+		// If the breadcrumb exists and the last modified time is greater than the
+		// boot time, that means we need to reboot
+		return stats.mtime.getTime() > fsUtils.getBootTime().getTime();
+	}
+	return false;
 }
 
 export async function getRequiredSteps(
@@ -542,19 +575,19 @@ export async function getRequiredSteps(
 	);
 
 	const configSteps = getConfigSteps(current, target);
-	const steps = ([] as ConfigStep[]).concat(
-		configSteps,
-		await getVPNSteps(current, target),
+	const steps = [
+		...configSteps,
+		...(await getVPNSteps(current, target)),
 
 		// Only apply backend steps if no more config changes are left since
 		// changing config.json may restart the supervisor
-		configSteps.length > 0 &&
-			// if any config step is a not 'noop' step, skip the backend steps
-			configSteps.filter((s) => s.action !== 'noop').length > 0
+		...(configSteps.length > 0 &&
+		// if any config step is a not 'noop' step, skip the backend steps
+		configSteps.filter((s) => s.action !== 'noop').length > 0
 			? // Set a 'noop' action so the apply function knows to retry
-			  [{ action: 'noop' }]
-			: await getBackendSteps(current, target),
-	);
+			  [{ action: 'noop' } as ConfigStep]
+			: await getBackendSteps(current, target)),
+	];
 
 	// Check if there is either no steps, or they are all
 	// noops, and we need to reboot. We want to do this
@@ -562,6 +595,7 @@ export async function getRequiredSteps(
 	// connection, the device will try to start containers
 	// before any boot config has been applied, which can
 	// cause problems
+	const rebootRequired = await isRebootRequired();
 	if (_.every(steps, { action: 'noop' }) && rebootRequired) {
 		steps.push({
 			action: 'reboot',
@@ -657,7 +691,6 @@ export async function setBootConfig(
 			{},
 			'Apply boot config success',
 		);
-		rebootRequired = true;
 		return true;
 	} catch (err) {
 		logger.logSystemMessage(
