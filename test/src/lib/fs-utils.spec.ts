@@ -154,9 +154,9 @@ describe('lib/fs-utils', () => {
 		after(unmockFs);
 
 		it("should return the paths of one or more files as they exist on host OS's root", async () => {
-			expect(fsUtils.getPathOnHost(testFileName1)).to.deep.equal([testFile1]);
+			expect(fsUtils.getPathOnHost(testFileName1)).to.deep.equal(testFile1);
 			expect(
-				fsUtils.getPathOnHost(...[testFileName1, testFileName2]),
+				fsUtils.getPathOnHost(testFileName1, testFileName2),
 			).to.deep.equal([testFile1, testFile2]);
 		});
 	});

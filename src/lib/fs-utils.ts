@@ -80,8 +80,14 @@ export async function unlinkAll(...paths: string[]): Promise<void> {
 /**
  * Get one or more paths as they exist in relation to host OS's root.
  */
-export function getPathOnHost(...paths: string[]): string[] {
-	return paths.map((p: string) => path.join(constants.rootMountPoint, p));
+export function getPathOnHost(path: string): string;
+export function getPathOnHost(...paths: string[]): string[];
+export function getPathOnHost(...paths: string[]): string[] | string {
+	if (paths.length === 1) {
+		return path.join(constants.rootMountPoint, paths[0]);
+	} else {
+		return paths.map((p: string) => path.join(constants.rootMountPoint, p));
+	}
 }
 
 /**
