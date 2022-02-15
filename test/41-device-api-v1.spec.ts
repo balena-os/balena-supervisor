@@ -900,6 +900,62 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				restartServiceSpy.restore();
 			});
 
+			it('prevents patch if update locks are present', async () => {
+				stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+					if (opts.force) {
+						return Bluebird.resolve(fn());
+					}
+					throw new UpdatesLockedError('Updates locked');
+				});
+
+				await request
+					.patch('/v1/device/host-config')
+					.send({ network: { hostname: 'foobaz' } })
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.expect(423);
+
+				expect(updateLock.lock).to.be.calledOnce;
+				(updateLock.lock as SinonStub).restore();
+
+				await request
+					.get('/v1/device/host-config')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.then((response) => {
+						expect(response.body.network.hostname).to.deep.equal(
+							'foobardevice',
+						);
+					});
+			});
+
+			it('allows patch while update locks are present if force is in req.body', async () => {
+				stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+					if (opts.force) {
+						return Bluebird.resolve(fn());
+					}
+					throw new UpdatesLockedError('Updates locked');
+				});
+
+				await request
+					.patch('/v1/device/host-config')
+					.send({ network: { hostname: 'foobaz' }, force: true })
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.expect(200);
+
+				expect(updateLock.lock).to.be.calledOnce;
+				(updateLock.lock as SinonStub).restore();
+
+				await request
+					.get('/v1/device/host-config')
+					.set('Accept', 'application/json')
+					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.then((response) => {
+						expect(response.body.network.hostname).to.deep.equal('foobaz');
+					});
+			});
+
 			it('updates the hostname with provided string if string is not empty', async () => {
 				// stub servicePartOf to throw exceptions for the new service names
 				stub(dbus, 'servicePartOf').callsFake(

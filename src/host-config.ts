@@ -7,8 +7,9 @@ import * as path from 'path';
 import * as config from './config';
 import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
-import { ENOENT } from './lib/errors';
+import { ENOENT, InternalInconsistencyError } from './lib/errors';
 import { writeFileAtomic, mkdirp, unlinkAll } from './lib/fs-utils';
+import * as updateLock from './lib/update-lock';
 
 const redsocksHeader = stripIndent`
 	base {
@@ -214,15 +215,22 @@ export function get(): Bluebird<HostConfig> {
 	});
 }
 
-export function patch(conf: HostConfig): Bluebird<void> {
-	const promises: Array<Promise<void>> = [];
-	if (conf != null && conf.network != null) {
-		if (conf.network.proxy != null) {
-			promises.push(setProxy(conf.network.proxy));
-		}
-		if (conf.network.hostname != null) {
-			promises.push(setHostname(conf.network.hostname));
-		}
+export async function patch(conf: HostConfig, force: boolean): Promise<void> {
+	const appId = await config.get('applicationId');
+	if (!appId) {
+		throw new InternalInconsistencyError('Could not find an appId');
 	}
-	return Bluebird.all(promises).return();
+
+	return updateLock.lock(appId, { force }, () => {
+		const promises: Array<Promise<void>> = [];
+		if (conf != null && conf.network != null) {
+			if (conf.network.proxy != null) {
+				promises.push(setProxy(conf.network.proxy));
+			}
+			if (conf.network.hostname != null) {
+				promises.push(setHostname(conf.network.hostname));
+			}
+		}
+		return Bluebird.all(promises).return();
+	});
 }

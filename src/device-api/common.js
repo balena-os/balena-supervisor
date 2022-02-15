@@ -1,21 +1,20 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import { appNotFoundMessage } from '../lib/messages';
-import * as logger from '../logger';
 
+import * as logger from '../logger';
 import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
 import * as serviceManager from '../compose/service-manager';
 import * as volumeManager from '../compose/volume-manager';
 import { InternalInconsistencyError } from '../lib/errors';
+import { lock } from '../lib/update-lock';
+import { appNotFoundMessage } from '../lib/messages';
 
 export async function doRestart(appId, force) {
 	await deviceState.initialized;
 	await applicationManager.initialized;
 
-	const { lockingIfNecessary } = applicationManager;
-
-	return lockingIfNecessary(appId, { force }, () =>
+	return lock(appId, { force }, () =>
 		deviceState.getCurrentState().then(function (currentState) {
 			if (currentState.local.apps?.[appId] == null) {
 				throw new InternalInconsistencyError(
@@ -42,14 +41,12 @@ export async function doPurge(appId, force) {
 	await deviceState.initialized;
 	await applicationManager.initialized;
 
-	const { lockingIfNecessary } = applicationManager;
-
 	logger.logSystemMessage(
 		`Purging data for app ${appId}`,
 		{ appId },
 		'Purge data',
 	);
-	return lockingIfNecessary(appId, { force }, () =>
+	return lock(appId, { force }, () =>
 		deviceState.getCurrentState().then(function (currentState) {
 			const allApps = currentState.local.apps;
 

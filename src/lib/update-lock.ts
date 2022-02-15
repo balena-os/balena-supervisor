@@ -6,8 +6,14 @@ import * as path from 'path';
 import * as Lock from 'rwlock';
 
 import * as constants from './constants';
-import { ENOENT, EEXIST, UpdatesLockedError } from './errors';
+import {
+	ENOENT,
+	EEXIST,
+	UpdatesLockedError,
+	InternalInconsistencyError,
+} from './errors';
 import { getPathOnHost, pathExistsOnHost } from './fs-utils';
+import * as config from '../config';
 
 type asyncLockFile = typeof lockFileLib & {
 	unlockAsync(path: string): Bluebird<void>;
@@ -115,47 +121,65 @@ const lockExistsErrHandler = (err: Error, release: () => void) => {
 /**
  * Try to take the locks for an application. If force is set, it will remove
  * all existing lockfiles before performing the operation
+ *
+ * TODO: convert to native Promises. May require native implementation of Bluebird's dispose / using
+ *
+ * TODO: Remove skipLock as it's not a good interface. If lock is called it should try to take the lock
+ * without an option to skip.
  */
-export function lock(
+export function lock<T extends unknown>(
 	appId: number | null,
-	{ force = false }: { force: boolean },
-	fn: () => PromiseLike<void>,
-): Bluebird<void> {
+	{ force = false, skipLock = false }: { force: boolean; skipLock?: boolean },
+	fn: () => Resolvable<T>,
+): Bluebird<T> {
+	if (skipLock) {
+		return Bluebird.resolve(fn());
+	}
+
 	const takeTheLock = () => {
 		if (appId == null) {
 			return;
 		}
-		return writeLock(appId)
-			.tap((release: () => void) => {
-				const [lockDir] = getPathOnHost(lockPath(appId));
+		return config
+			.get('lockOverride')
+			.then((lockOverride) => {
+				return writeLock(appId)
+					.tap((release: () => void) => {
+						const [lockDir] = getPathOnHost(lockPath(appId));
 
-				return Bluebird.resolve(fs.readdir(lockDir))
-					.catchReturn(ENOENT, [])
-					.mapSeries((serviceName) => {
-						return Bluebird.mapSeries(
-							lockFilesOnHost(appId, serviceName),
-							(tmpLockName) => {
-								return Bluebird.try(() => {
-									if (force) {
-										return lockFile.unlockAsync(tmpLockName);
-									}
-								})
-									.then(() => lockFile.lockAsync(tmpLockName))
-									.then(() => {
-										locksTaken[tmpLockName] = true;
-									})
-									.catchReturn(ENOENT, undefined);
-							},
-						);
+						return Bluebird.resolve(fs.readdir(lockDir))
+							.catchReturn(ENOENT, [])
+							.mapSeries((serviceName) => {
+								return Bluebird.mapSeries(
+									lockFilesOnHost(appId, serviceName),
+									(tmpLockName) => {
+										return Bluebird.try(() => {
+											if (force || lockOverride) {
+												return lockFile.unlockAsync(tmpLockName);
+											}
+										})
+											.then(() => lockFile.lockAsync(tmpLockName))
+											.then(() => {
+												locksTaken[tmpLockName] = true;
+											})
+											.catchReturn(ENOENT, undefined);
+									},
+								);
+							})
+							.catch((err) => lockExistsErrHandler(err, release));
 					})
-					.catch((err) => lockExistsErrHandler(err, release));
+					.disposer(dispose);
 			})
-			.disposer(dispose);
+			.catch((err) => {
+				throw new InternalInconsistencyError(
+					`Error getting lockOverride config value: ${err?.message ?? err}`,
+				);
+			});
 	};
 
 	const disposer = takeTheLock();
 	if (disposer) {
-		return Bluebird.using(disposer, fn);
+		return Bluebird.using(disposer, fn as () => PromiseLike<T>);
 	} else {
 		return Bluebird.resolve(fn());
 	}

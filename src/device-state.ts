@@ -147,10 +147,19 @@ function createDeviceStateRouter() {
 				const uuid = await config.get('uuid');
 				req.body.network.hostname = uuid?.slice(0, 7);
 			}
-
-			await hostConfig.patch(req.body);
+			const lockOverride = await config.get('lockOverride');
+			await hostConfig.patch(
+				req.body,
+				validation.checkTruthy(req.body.force) || lockOverride,
+			);
 			res.status(200).send('OK');
 		} catch (err) {
+			// TODO: We should be able to throw err if it's UpdatesLockedError
+			// and the error middleware will handle it, but this doesn't work in
+			// the test environment. Fix this when fixing API tests.
+			if (err instanceof UpdatesLockedError) {
+				return res.status(423).send(err?.message ?? err);
+			}
 			res.status(503).send(err?.message ?? err ?? 'Unknown error');
 		}
 	});

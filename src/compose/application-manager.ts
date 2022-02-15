@@ -1,5 +1,6 @@
 import * as express from 'express';
 import * as _ from 'lodash';
+import StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import { transaction, Transaction } from '../db';
@@ -14,7 +15,7 @@ import {
 	ContractViolationError,
 	InternalInconsistencyError,
 } from '../lib/errors';
-import StrictEventEmitter from 'strict-event-emitter-types';
+import { lock } from '../lib/update-lock';
 
 import App from './app';
 import * as volumeManager from './volume-manager';
@@ -39,7 +40,6 @@ import {
 } from '../types/state';
 import { checkTruthy, checkInt } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
-import * as updateLock from '../lib/update-lock';
 import { EventEmitter } from 'events';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
@@ -90,7 +90,7 @@ export function resetTimeSpentFetching(value: number = 0) {
 }
 
 const actionExecutors = getExecutors({
-	lockFn: lockingIfNecessary,
+	lockFn: lock,
 	callbacks: {
 		containerStarted: (id: string) => {
 			containerStarted[id] = true;
@@ -155,22 +155,6 @@ export function getDependentState() {
 
 function reportCurrentState(data?: Partial<InstancedAppState>) {
 	events.emit('change', data ?? {});
-}
-
-export async function lockingIfNecessary<T extends unknown>(
-	appId: number,
-	{ force = false, skipLock = false } = {},
-	fn: () => Resolvable<T>,
-) {
-	if (skipLock) {
-		return fn();
-	}
-	const lockOverride = (await config.get('lockOverride')) || force;
-	return updateLock.lock(
-		appId,
-		{ force: lockOverride },
-		fn as () => PromiseLike<void>,
-	);
 }
 
 export async function getRequiredSteps(
@@ -359,7 +343,7 @@ export async function stopAll({ force = false, skipLock = false } = {}) {
 	const services = await serviceManager.getAll();
 	await Promise.all(
 		services.map(async (s) => {
-			return lockingIfNecessary(s.appId, { force, skipLock }, async () => {
+			return lock(s.appId, { force, skipLock }, async () => {
 				await serviceManager.kill(s, { removeContainer: false, wait: true });
 				if (s.containerId) {
 					delete containerStarted[s.containerId];
