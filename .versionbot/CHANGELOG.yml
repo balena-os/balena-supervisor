@@ -1,4 +1,19 @@
 - commits:
+    - subject: Add troubleshooting notice for macOS
+      hash: 6ab314f8c0af647cdb0537b6a396ccb3d5ce060f
+      body: |
+        When developing on macOS (Darwin) DBus may have to be installed.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: fisehara <harald@balena.io>
+        signed-off-by: fisehara <harald@balena.io>
+      author: fisehara
+      nested: []
+  version: 12.11.35
+  title: "'Add troubleshooting notice for macOS'"
+  date: 2022-02-16T19:41:22.558Z
+- commits:
     - subject: Create `touch` and `getBootTime` utility functions
       hash: a4d91d381a3e2dfda182bb7809a6d78b18aafebf
       body: ""
