@@ -145,8 +145,7 @@ export function lock<T extends unknown>(
 			.then((lockOverride) => {
 				return writeLock(appId)
 					.tap((release: () => void) => {
-						const [lockDir] = getPathOnHost(lockPath(appId));
-
+						const lockDir = getPathOnHost(lockPath(appId));
 						return Bluebird.resolve(fs.readdir(lockDir))
 							.catchReturn(ENOENT, [])
 							.mapSeries((serviceName) => {

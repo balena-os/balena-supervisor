@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import { inspect } from 'util';
+import { promises as fs } from 'fs';
 
 import * as config from './config';
 import * as db from './db';
@@ -15,8 +16,18 @@ import { SchemaTypeKey } from './config/schema-type';
 import { matchesAnyBootConfig } from './config/backends';
 import { ConfigBackend } from './config/backends/backend';
 import { Odmdata } from './config/backends/odmdata';
+import * as fsUtils from './lib/fs-utils';
 
 const vpnServiceName = 'openvpn';
+
+// This indicates the file on the host /tmp directory that
+// marks the need for a reboot. Since reboot is only triggered for now
+// by some config changes, we leave this here for now. There is planned
+// functionality to allow image installs to require reboots, at that moment
+// this constant can be moved somewhere else
+const REBOOT_BREADCRUMB = fsUtils.getPathOnHost(
+	'/tmp/balena-supervisor/reboot-after-apply',
+);
 
 interface ConfigOption {
 	envVarName: string;
@@ -34,7 +45,6 @@ export interface ConfigStep {
 	action: keyof DeviceActionExecutors | 'reboot' | 'noop';
 	humanReadableTarget?: Dictionary<string>;
 	target?: string | Dictionary<string>;
-	rebootRequired?: boolean;
 }
 
 interface DeviceActionExecutorOpts {
@@ -50,9 +60,9 @@ interface DeviceActionExecutors {
 	changeConfig: DeviceActionExecutorFn;
 	setVPNEnabled: DeviceActionExecutorFn;
 	setBootConfig: DeviceActionExecutorFn;
+	setRebootBreadcrumb: DeviceActionExecutorFn;
 }
 
-let rebootRequired = false;
 const actionExecutors: DeviceActionExecutors = {
 	changeConfig: async (step) => {
 		try {
@@ -69,9 +79,6 @@ const actionExecutors: DeviceActionExecutors = {
 				logger.logConfigChange(step.humanReadableTarget, {
 					success: true,
 				});
-			}
-			if (step.rebootRequired) {
-				rebootRequired = true;
 			}
 		} catch (err) {
 			if (step.humanReadableTarget) {
@@ -110,6 +117,11 @@ const actionExecutors: DeviceActionExecutors = {
 			await setBootConfig(backend, step.target as Dictionary<string>);
 		}
 	},
+	setRebootBreadcrumb: async () => {
+		// Just create the file. The last step in the target state calculation will check
+		// the file and create a reboot step
+		await fsUtils.touch(REBOOT_BREADCRUMB);
+	},
 };
 
 const configBackends: ConfigBackend[] = [];
@@ -118,7 +130,7 @@ const configKeys: Dictionary<ConfigOption> = {
 	appUpdatePollInterval: {
 		envVarName: 'SUPERVISOR_POLL_INTERVAL',
 		varType: 'int',
-		defaultValue: '60000',
+		defaultValue: '900000',
 	},
 	instantUpdates: {
 		envVarName: 'SUPERVISOR_INSTANT_UPDATE_TRIGGER',
@@ -396,31 +408,14 @@ export function bootConfigChangeRequired(
 	return false;
 }
 
-export async function getRequiredSteps(
-	currentState: DeviceStatus,
-	targetState: { local?: { config?: Dictionary<string> } },
-): Promise<ConfigStep[]> {
-	const current: Dictionary<string> = _.get(
-		currentState,
-		['local', 'config'],
-		{},
-	);
-	const target: Dictionary<string> = _.get(
-		targetState,
-		['local', 'config'],
-		{},
-	);
-
-	let steps: ConfigStep[] = [];
-
-	const { deviceType, unmanaged } = await config.getMany([
-		'deviceType',
-		'unmanaged',
-	]);
-
+function getConfigSteps(
+	current: Dictionary<string>,
+	target: Dictionary<string>,
+) {
 	const configChanges: Dictionary<string> = {};
 	const humanReadableConfigChanges: Dictionary<string> = {};
 	let reboot = false;
+	const steps: ConfigStep[] = [];
 
 	_.each(
 		configKeys,
@@ -461,13 +456,27 @@ export async function getRequiredSteps(
 	);
 
 	if (!_.isEmpty(configChanges)) {
+		if (reboot) {
+			steps.push({ action: 'setRebootBreadcrumb' });
+		}
+
 		steps.push({
 			action: 'changeConfig',
 			target: configChanges,
 			humanReadableTarget: humanReadableConfigChanges,
-			rebootRequired: reboot,
 		});
 	}
+
+	return steps;
+}
+
+async function getVPNSteps(
+	current: Dictionary<string>,
+	target: Dictionary<string>,
+) {
+	const { unmanaged } = await config.getMany(['unmanaged']);
+
+	let steps: ConfigStep[] = [];
 
 	// Check for special case actions for the VPN
 	if (
@@ -481,6 +490,12 @@ export async function getRequiredSteps(
 		});
 	}
 
+	// TODO: the only step that requires rate limiting is setVPNEnabled
+	// do not use rate limiting in the future as it probably will change.
+	// The reason rate limiting is needed for this step is because the dbus
+	// API does not wait for the service response when a unit is started/stopped.
+	// This would cause too many requests on systemd and a possible error.
+	// Promisifying the dbus api to wait for the response would be the right solution
 	const now = Date.now();
 	steps = _.map(steps, (step) => {
 		const action = step.action;
@@ -502,7 +517,17 @@ export async function getRequiredSteps(
 		return step;
 	});
 
+	return steps;
+}
+
+async function getBackendSteps(
+	current: Dictionary<string>,
+	target: Dictionary<string>,
+) {
+	const steps: ConfigStep[] = [];
 	const backends = await getConfigBackends();
+	const { deviceType } = await config.getMany(['deviceType']);
+
 	// Check for required bootConfig changes
 	for (const backend of backends) {
 		if (changeRequired(backend, current, target, deviceType)) {
@@ -513,12 +538,64 @@ export async function getRequiredSteps(
 		}
 	}
 
+	return [
+		// All backend steps require a reboot
+		...(steps.length > 0
+			? [{ action: 'setRebootBreadcrumb' } as ConfigStep]
+			: []),
+		...steps,
+	];
+}
+
+async function isRebootRequired() {
+	const hasBreadcrumb = await fsUtils.exists(REBOOT_BREADCRUMB);
+	if (hasBreadcrumb) {
+		const stats = await fs.stat(REBOOT_BREADCRUMB);
+
+		// If the breadcrumb exists and the last modified time is greater than the
+		// boot time, that means we need to reboot
+		return stats.mtime.getTime() > fsUtils.getBootTime().getTime();
+	}
+	return false;
+}
+
+export async function getRequiredSteps(
+	currentState: DeviceStatus,
+	targetState: { local?: { config?: Dictionary<string> } },
+): Promise<ConfigStep[]> {
+	const current: Dictionary<string> = _.get(
+		currentState,
+		['local', 'config'],
+		{},
+	);
+	const target: Dictionary<string> = _.get(
+		targetState,
+		['local', 'config'],
+		{},
+	);
+
+	const configSteps = getConfigSteps(current, target);
+	const steps = [
+		...configSteps,
+		...(await getVPNSteps(current, target)),
+
+		// Only apply backend steps if no more config changes are left since
+		// changing config.json may restart the supervisor
+		...(configSteps.length > 0 &&
+		// if any config step is a not 'noop' step, skip the backend steps
+		configSteps.filter((s) => s.action !== 'noop').length > 0
+			? // Set a 'noop' action so the apply function knows to retry
+			  [{ action: 'noop' } as ConfigStep]
+			: await getBackendSteps(current, target)),
+	];
+
 	// Check if there is either no steps, or they are all
 	// noops, and we need to reboot. We want to do this
 	// because in a preloaded setting with no internet
 	// connection, the device will try to start containers
 	// before any boot config has been applied, which can
 	// cause problems
+	const rebootRequired = await isRebootRequired();
 	if (_.every(steps, { action: 'noop' }) && rebootRequired) {
 		steps.push({
 			action: 'reboot',
@@ -614,7 +691,6 @@ export async function setBootConfig(
 			{},
 			'Apply boot config success',
 		);
-		rebootRequired = true;
 		return true;
 	} catch (err) {
 		logger.logSystemMessage(

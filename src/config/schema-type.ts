@@ -60,7 +60,7 @@ export const schemaTypes = {
 	},
 	appUpdatePollInterval: {
 		type: PermissiveNumber,
-		default: 60000,
+		default: 900000,
 	},
 	instantUpdates: {
 		type: PermissiveBoolean,
