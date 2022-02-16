@@ -268,13 +268,28 @@ export async function provisionDependentDevice(
 	).timeout(conf.apiTimeout)) as Device;
 }
 
-export function startCurrentStateReport() {
+export async function startCurrentStateReport() {
 	if (balenaApi == null) {
 		throw new InternalInconsistencyError(
 			'Trying to start state reporting without initializing API client',
 		);
 	}
-	startReporting();
+
+	// Get interval for sending current state
+	const reportInterval = await config.get('stateReportInterval');
+
+	// Store reporting cancelation if reportInterval changes
+	let reporting = startReporting(reportInterval);
+
+	// If stateReportInterval changed then reset reporting interval
+	config.on('change', (changedConfig: any) => {
+		if (changedConfig.stateReportInterval != null) {
+			// Clear previous reporting state
+			reporting.cancel();
+			// Set reporting again with new value
+			reporting = startReporting(changedConfig.stateReportInterval);
+		}
+	});
 }
 
 export async function fetchDeviceTags(): Promise<DeviceTag[]> {

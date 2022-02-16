@@ -2,7 +2,6 @@ import * as _ from 'lodash';
 import * as url from 'url';
 import { CoreOptions } from 'request';
 
-import * as constants from '../lib/constants';
 import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
@@ -140,14 +139,6 @@ const getStateDiff = (): DeviceStatus => {
 	return _.omitBy(diff, _.isEmpty);
 };
 
-const throttledReport = _.throttle(
-	// We define the throttled function this way to avoid UncaughtPromise exceptions
-	// for exceptions thrown from the report function
-	(opts: StateReport, resolve: () => void, reject: (e: Error) => void) =>
-		report(opts).then(resolve).catch(reject),
-	constants.maxReportFrequency,
-);
-
 /**
  * Perform exponential backoff on the function, increasing the attempts
  * counter on each call
@@ -165,7 +156,7 @@ const backoff = (
 	setTimeout(() => retry(attempts + 1), delay);
 };
 
-function reportCurrentState(attempts = 0) {
+function reportCurrentState(reporter: any, attempts = 0) {
 	(async () => {
 		const {
 			hardwareMetrics,
@@ -213,7 +204,7 @@ function reportCurrentState(attempts = 0) {
 		const stateDiff = getStateDiff();
 
 		// report state diff
-		throttledReport(
+		reporter(
 			{ stateDiff, conf },
 			() => {
 				// If the patch succeeds update lastReport and reset the error counter
@@ -223,7 +214,7 @@ function reportCurrentState(attempts = 0) {
 
 				reportPending = false;
 			},
-			(e) => {
+			(e: any) => {
 				if (e instanceof StatusError) {
 					// We don't want these errors to be classed as a report error, as this will cause
 					// the watchdog to kill the supervisor - and killing the supervisor will
@@ -256,18 +247,40 @@ function reportCurrentState(attempts = 0) {
 	})();
 }
 
-export const startReporting = () => {
+interface Reporting {
+	reportPending: boolean;
+	cancel: () => void;
+}
+
+export function startReporting(maxReportFrequency: number): Reporting {
+	// Create throttled wrapper for reporting
+	const throttledReport = _.throttle(
+		(opts: StateReport, resolve: () => void, reject: (e: Error) => void) =>
+			report(opts).then(resolve).catch(reject),
+		maxReportFrequency,
+	);
+	// Wrap reportCurrentState so we only call when not report is not pending
 	const doReport = () => {
 		if (!reportPending) {
-			reportCurrentState();
+			reportCurrentState(throttledReport);
 		}
 	};
-
+	// Start a report right away
+	doReport();
 	// If the state changes, report it
 	deviceState.on('change', doReport);
-	// But check once every max report frequency to ensure that changes in system
-	// info are picked up (CPU temp etc)
-	setInterval(doReport, constants.maxReportFrequency);
-	// Try to perform a report right away
-	return doReport();
-};
+	// Otherwise start an interval to report current state
+	const reportInterval = setInterval(doReport, maxReportFrequency);
+	// Return controls for reporting
+	return {
+		reportPending,
+		cancel: () => {
+			// Remove listening for device state changes
+			deviceState.removeListener('change', doReport);
+			// Clear interval for reporting state
+			clearInterval(reportInterval);
+			// Cancel any throttled reports
+			throttledReport.cancel();
+		},
+	};
+}
