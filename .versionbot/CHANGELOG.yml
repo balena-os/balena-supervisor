@@ -1,4 +1,32 @@
 - commits:
+    - subject: Create `touch` and `getBootTime` utility functions
+      hash: a4d91d381a3e2dfda182bb7809a6d78b18aafebf
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Add update lock check to PATCH /v1/device/host-config
+      hash: 5f1a77da25b9d0bd07c2fbec85cb5deefae18884
+      body: >
+        This is necessary with the changes as of balenaOS 2.82.6, which watches
+        config.json
+
+        and will restart balena-hostname and some other services automatically on file change.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Relates-to: "#1876"
+        relates-to: "#1876"
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 12.11.34
+  title: "'Make the supervisor more resistant to restarts during config changes'"
+  date: 2022-02-15T15:58:42.783Z
+- commits:
     - subject: Add support for local ipv6 reporting
       hash: 72f6cbe4c7225623ed99083d20c4a2cb2f3b70ac
       body: |
