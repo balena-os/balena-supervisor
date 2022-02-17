@@ -67,7 +67,7 @@
     "@types/rwlock": "^5.0.2",
     "@types/semver": "^7.3.3",
     "@types/shell-quote": "^1.7.0",
-    "@types/sinon": "^10.0.0",
+    "@types/sinon": "^10.0.11",
     "@types/sinon-chai": "^3.2.5",
     "@types/supertest": "^2.0.11",
     "@types/terser-webpack-plugin": "^3.0.0",
