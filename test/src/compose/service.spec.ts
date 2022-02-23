@@ -1031,4 +1031,52 @@ describe('compose/service', () => {
 				.be.false;
 		});
 	});
+
+	describe('Security options', () => {
+		it('ignores selinux security options on the target state', async () => {
+			const service = await Service.fromComposeObject(
+				{
+					appId: 123,
+					serviceId: 123,
+					serviceName: 'test',
+					securityOpt: [
+						'label=user:USER',
+						'label=user:ROLE',
+						'seccomp=unconfined',
+					],
+				},
+				{ appName: 'test' } as any,
+			);
+
+			expect(service.config)
+				.to.have.property('securityOpt')
+				.that.deep.equals(['seccomp=unconfined']);
+		});
+
+		it('ignores selinux security options on the current state', async () => {
+			const mockContainer = createContainer({
+				Id: 'deadbeef',
+				Name: 'main_431889_572579',
+				Config: {
+					Labels: {
+						'io.resin.app-id': '1011165',
+						'io.resin.architecture': 'armv7hf',
+						'io.resin.service-id': '43697',
+						'io.resin.service-name': 'main',
+						'io.resin.supervised': 'true',
+					},
+				},
+				HostConfig: {
+					SecurityOpt: ['label=disable', 'seccomp=unconfined'],
+				},
+			});
+			const service = Service.fromDockerContainer(
+				await mockContainer.inspect(),
+			);
+
+			expect(service.config)
+				.to.have.property('securityOpt')
+				.that.deep.equals(['seccomp=unconfined']);
+		});
+	});
 });
