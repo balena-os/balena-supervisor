@@ -28,6 +28,8 @@ import { EnvVarObject } from '../types';
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
 
+const unsupportedSecurityOpt = (opt: string) => /label=.*/.test(opt);
+
 export type ServiceStatus =
 	| 'Stopping'
 	| 'Stopped'
@@ -383,6 +385,18 @@ export class Service {
 		}
 		delete config.tmpfs;
 
+		if (config.securityOpt != null) {
+			const unsupported = (config.securityOpt || []).filter(
+				unsupportedSecurityOpt,
+			);
+			if (unsupported.length > 0) {
+				log.warn(`Ignoring unsupported security options: ${unsupported}`);
+				config.securityOpt = (config.securityOpt || []).filter(
+					(opt) => !unsupportedSecurityOpt(opt),
+				);
+			}
+		}
+
 		// Normalise the config before passing it to defaults
 		ComposeUtils.normalizeNullValues(config);
 
@@ -577,7 +591,14 @@ export class Service {
 			groupAdd: container.HostConfig.GroupAdd || [],
 			pid: container.HostConfig.PidMode || '',
 			pidsLimit: container.HostConfig.PidsLimit || 0,
-			securityOpt: container.HostConfig.SecurityOpt || [],
+			securityOpt: (container.HostConfig.SecurityOpt || []).filter(
+				// The docker engine v20+ adds selinux security options depending
+				// on the container configuration. Ignore those in the target state
+				// comparison as selinux is not supported by balenaOS so those options
+				// will not have any effect.
+				// https://github.com/moby/moby/blob/master/daemon/create.go#L214
+				(opt: string) => !unsupportedSecurityOpt(opt),
+			),
 			usernsMode: container.HostConfig.UsernsMode || '',
 			ipc: container.HostConfig.IpcMode || '',
 			macAddress: (container.Config as any).MacAddress || '',
