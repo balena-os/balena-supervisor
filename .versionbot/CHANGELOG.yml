@@ -1,4 +1,30 @@
 - commits:
+    - subject: Ignore selinux security opts when comparing services
+      hash: 1b54ce8bfd5dd3d1f14f573a0bfe17ee1dd81630
+      body: >
+        The moby engine v20.x.y adds some selinux [security
+        configurations](https://docs.docker.com/engine/reference/run/#security-configuration)
+
+        depending on the [container configuration](https://github.com/moby/moby/blob/master/daemon/create.go#L214).
+
+        This would cause the supervisor to enter a service restart loop as the
+
+        current and target service configurations will never match. The
+
+        supervisor now ignores selinux specific security options since those are
+
+        not supported by balenaOS.
+      footer:
+        Closes: "#1890"
+        closes: "#1890"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.36
+  title: "'Ignore selinux security opts when comparing services'"
+  date: 2022-02-23T21:15:31.484Z
+- commits:
     - subject: Add troubleshooting notice for macOS
       hash: 6ab314f8c0af647cdb0537b6a396ccb3d5ce060f
       body: |
