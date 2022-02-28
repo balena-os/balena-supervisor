@@ -1,4 +1,25 @@
 - commits:
+    - subject: Fix check for supervisor0 network
+      hash: d1956b69cc67842ffd0ea1af4c7fa44aef4bfedc
+      body: >
+        The check for the docker network supervisor0 assumed that if the
+
+        interface supervisor0 existed, then the network would exist too. However this is not
+
+        true on the case of docker directory corruption, which would lead to a
+
+        loop with `Error: (HTTP code 404) no such network - network supervisor0 not found`.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#1806"
+        closes: "#1806"
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.37
+  title: "'Fix check for supervisor0 network'"
+  date: 2022-02-25T22:57:01.032Z
+- commits:
     - subject: Ignore selinux security opts when comparing services
       hash: 1b54ce8bfd5dd3d1f14f573a0bfe17ee1dd81630
       body: >
