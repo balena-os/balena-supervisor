@@ -69,22 +69,31 @@ export async function remove(network: Network) {
 	await network.remove();
 }
 
+const supervisorIfaceSysPath = `/sys/class/net/${constants.supervisorNetworkInterface}`;
 export async function supervisorNetworkReady(): Promise<boolean> {
-	const networkExists = await exists(
-		`/sys/class/net/${constants.supervisorNetworkInterface}`,
-	);
+	const networkExists = await exists(supervisorIfaceSysPath);
 	if (!networkExists) {
 		return false;
 	}
-	const network = await docker
-		.getNetwork(constants.supervisorNetworkInterface)
-		.inspect();
-	return (
-		network.Options['com.docker.network.bridge.name'] ===
-			constants.supervisorNetworkInterface &&
-		network.IPAM.Config[0].Subnet === constants.supervisorNetworkSubnet &&
-		network.IPAM.Config[0].Gateway === constants.supervisorNetworkGateway
-	);
+
+	try {
+		// The inspect may fail even if the interface exist due to docker corruption
+		const network = await docker
+			.getNetwork(constants.supervisorNetworkInterface)
+			.inspect();
+		return (
+			network.Options['com.docker.network.bridge.name'] ===
+				constants.supervisorNetworkInterface &&
+			network.IPAM.Config[0].Subnet === constants.supervisorNetworkSubnet &&
+			network.IPAM.Config[0].Gateway === constants.supervisorNetworkGateway
+		);
+	} catch (e) {
+		log.warn(
+			`Failed to read docker configuration of network ${constants.supervisorNetworkInterface}:`,
+			e,
+		);
+		return false;
+	}
 }
 
 export function ensureSupervisorNetwork(): Bluebird<void> {
@@ -108,9 +117,7 @@ export function ensureSupervisorNetwork(): Bluebird<void> {
 			) {
 				return removeIt();
 			} else {
-				return exists(
-					`/sys/class/net/${constants.supervisorNetworkInterface}`,
-				).then((networkExists) => {
+				return exists(supervisorIfaceSysPath).then((networkExists) => {
 					if (!networkExists) {
 						return removeIt();
 					}
