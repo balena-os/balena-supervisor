@@ -34,7 +34,9 @@ RUN apk add --no-cache \
 	sqlite-libs \
 	sqlite-dev \
 	dmidecode \
-	dbus-dev
+	dbus-dev \
+	procmail
+# procmail is installed for the lockfile binary
 
 COPY build-utils/node-sums.txt .
 
@@ -106,6 +108,7 @@ RUN apk add --no-cache \
 WORKDIR /usr/src/app
 
 COPY --from=BUILD /usr/local/bin/node /usr/local/bin/node
+COPY --from=BUILD /usr/bin/lockfile /usr/bin/lockfile
 COPY --from=BUILD /usr/src/app/dist ./dist
 COPY --from=BUILD /usr/src/app/package.json ./
 COPY --from=BUILD /usr/src/app/node_modules ./node_modules
