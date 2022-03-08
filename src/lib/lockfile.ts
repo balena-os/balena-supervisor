@@ -107,9 +107,11 @@ export async function lock(path: string, uid = LOCKFILE_UID) {
 	}
 }
 
-export async function unlock(path: string) {
+export async function unlock(path: string): Promise<void> {
 	// Removing the updates.lock file releases the lock
-	return await unlinkAll(path);
+	await unlinkAll(path);
+	// Remove lockfile's in-memory tracking of a file
+	delete locksTaken[path];
 }
 
 export function unlockSync(path: string) {

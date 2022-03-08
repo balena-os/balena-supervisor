@@ -6,7 +6,6 @@ import mock = require('mock-fs');
 
 import * as lockfile from '../../../src/lib/lockfile';
 import * as fsUtils from '../../../src/lib/fs-utils';
-import { ChildProcessError } from '../../../src/lib/errors';
 
 describe('lib/lockfile', () => {
 	const lockPath = `${lockfile.BASE_LOCK_DIR}/1234567/updates.lock`;
@@ -70,8 +69,14 @@ describe('lib/lockfile', () => {
 		});
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		execStub.restore();
+
+		// Even though mock-fs is restored, this is needed to delete any in-memory storage of locks
+		for (const lock of lockfile.getLocksTaken()) {
+			await lockfile.unlock(lock);
+		}
+
 		mock.restore();
 	});
 
@@ -109,15 +114,14 @@ describe('lib/lockfile', () => {
 		// no errors, but we want it to throw an error just for this unit test
 		execStub.restore();
 
-		const childProcessError = new Error() as ChildProcessError;
-		childProcessError.code = 73;
-		childProcessError.stderr = 'lockfile: Test error';
-
+		const childProcessError = new lockfile.LockfileExistsError(
+			'/tmp/test/path',
+		);
 		execStub = stub(fsUtils, 'exec').throws(childProcessError);
 
 		try {
 			await lockfile.lock(lockPath);
-			expect.fail('lockfile.lock should have thrown an error');
+			expect.fail('lockfile.lock should throw an error');
 		} catch (err) {
 			expect(err).to.exist;
 		}
@@ -163,5 +167,19 @@ describe('lib/lockfile', () => {
 		return checkLockDirFiles(lockPath, { shouldExist: false }).catch((err) => {
 			expect.fail((err as Error)?.message ?? err);
 		});
+	});
+
+	it('should try to clean up existing locks on process exit', async () => {
+		// Mock directory with sticky + write permissions
+		mockDir(STICKY_WRITE_PERMISSIONS.unix, { createLock: false });
+
+		// Lock file, which stores lock path in memory
+		await lockfile.lock(lockPath);
+
+		// @ts-ignore
+		process.emit('exit');
+
+		// Verify lockfile removal
+		await checkLockDirFiles(lockPath, { shouldExist: false });
 	});
 });
