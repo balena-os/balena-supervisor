@@ -1,4 +1,22 @@
 - commits:
+    - subject: Apply target state if loaded from file (apps.json)
+      hash: b069d6b9d5ec2c9a45149e491fc49c489131e3c1
+      body: ""
+      footer:
+        Closes: "#1895"
+        closes: "#1895"
+        Change-type: patch
+        change-type: patch
+        See: https://www.flowdock.com/app/rulemotion/r-supervisor/threads/tSN9BgLxkgJKapbQHQJr-R9yLPM
+        see: https://www.flowdock.com/app/rulemotion/r-supervisor/threads/tSN9BgLxkgJKapbQHQJr-R9yLPM
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 12.11.38
+  title: "'Apply target state if loaded from file (apps.json)'"
+  date: 2022-03-14T22:53:42.114Z
+- commits:
     - subject: Fix check for supervisor0 network
       hash: d1956b69cc67842ffd0ea1af4c7fa44aef4bfedc
       body: >
