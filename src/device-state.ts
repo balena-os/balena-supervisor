@@ -415,15 +415,16 @@ export async function loadInitialState() {
 		update_downloaded: false,
 	});
 
+	let loadedFromFile = false;
 	if (!conf.provisioned || !conf.targetStateSet) {
-		await loadTargetFromFile(constants.appsJsonPath);
+		loadedFromFile = await loadTargetFromFile(constants.appsJsonPath);
 	} else {
 		log.debug('Skipping preloading');
 	}
 
-	// Only trigger initial target if we have received a target
-	// from the cloud at some point
-	if (conf.targetStateSet) {
+	// Only apply target if we have received a target
+	// from the cloud or loaded from file
+	if (conf.targetStateSet || loadedFromFile) {
 		triggerApplyTarget({ initial: true });
 	}
 }
