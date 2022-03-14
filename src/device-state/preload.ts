@@ -19,7 +19,7 @@ export function appsJsonBackup(appsPath: string) {
 	return `${appsPath}.preloaded`;
 }
 
-export async function loadTargetFromFile(appsPath: string): Promise<void> {
+export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 	log.info('Attempting to load any preloaded applications');
 	try {
 		const content = await fs.readFile(appsPath, 'utf8');
@@ -43,7 +43,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<void> {
 		let appToPin: string | undefined;
 
 		if (_.isEmpty(preloadState)) {
-			return;
+			return false;
 		}
 
 		const imgs: Image[] = [];
@@ -100,6 +100,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<void> {
 				});
 			}
 		}
+		return true;
 	} catch (e) {
 		// Ensure that this is actually a file, and not an empty path
 		// It can be an empty path because if the file does not exist
@@ -131,4 +132,5 @@ export async function loadTargetFromFile(appsPath: string): Promise<void> {
 				);
 		}
 	}
+	return false;
 }
