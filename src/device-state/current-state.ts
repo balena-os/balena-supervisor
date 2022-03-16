@@ -3,6 +3,7 @@ import * as url from 'url';
 import { CoreOptions } from 'request';
 
 import * as constants from '../lib/constants';
+import { withBackoff, OnFailureInfo } from '../lib/backoff';
 import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
@@ -14,9 +15,6 @@ import { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 
-// The exponential backoff starts at 15s
-const MINIMUM_BACKOFF_DELAY = 15000;
-
 const INTERNAL_STATE_KEYS = [
 	'update_pending',
 	'update_downloaded',
@@ -25,10 +23,6 @@ const INTERNAL_STATE_KEYS = [
 
 export let stateReportErrors = 0;
 const lastReportedState: DeviceStatus = {
-	local: {},
-	dependent: {},
-};
-const stateForReport: DeviceStatus = {
 	local: {},
 	dependent: {},
 };
@@ -43,6 +37,7 @@ type CurrentStateReportConf = {
 		| 'deviceApiKey'
 		| 'deviceId'
 		| 'localMode'
+		| 'appUpdatePollInterval'
 		| 'hardwareMetrics'
 	>]: SchemaReturn<key>;
 };
@@ -64,7 +59,7 @@ const stripDeviceStateInLocalMode = (state: DeviceStatus): DeviceStatus => {
 	};
 };
 
-const report = async ({ stateDiff, conf }: StateReport) => {
+async function report({ stateDiff, conf }: StateReport): Promise<boolean> {
 	let body = stateDiff;
 	const { apiEndpoint, apiTimeout, deviceApiKey, localMode, uuid } = conf;
 	if (localMode) {
@@ -73,7 +68,7 @@ const report = async ({ stateDiff, conf }: StateReport) => {
 
 	if (_.isEmpty(body.local)) {
 		// Nothing to send.
-		return;
+		return false;
 	}
 
 	if (conf.uuid == null || conf.apiEndpoint == null) {
@@ -104,9 +99,11 @@ const report = async ({ stateDiff, conf }: StateReport) => {
 			headers['retry-after'] ? parseInt(headers['retry-after'], 10) : undefined,
 		);
 	}
-};
+	// State was reported
+	return true;
+}
 
-const getStateDiff = (): DeviceStatus => {
+function newStateDiff(stateForReport: DeviceStatus): DeviceStatus {
 	const lastReportedLocal = lastReportedState.local;
 	const lastReportedDependent = lastReportedState.dependent;
 	if (lastReportedLocal == null || lastReportedDependent == null) {
@@ -138,128 +135,110 @@ const getStateDiff = (): DeviceStatus => {
 	};
 
 	return _.omitBy(diff, _.isEmpty);
-};
-
-const throttledReport = _.throttle(
-	// We define the throttled function this way to avoid UncaughtPromise exceptions
-	// for exceptions thrown from the report function
-	(opts: StateReport, resolve: () => void, reject: (e: Error) => void) =>
-		report(opts).then(resolve).catch(reject),
-	constants.maxReportFrequency,
-);
-
-/**
- * Perform exponential backoff on the function, increasing the attempts
- * counter on each call
- *
- * If attempts is 0 then, it will delay for min(minDelay, maxDelay)
- */
-const backoff = (
-	retry: (attempts: number) => void,
-	attempts = 0,
-	maxDelay: number,
-	minDelay = MINIMUM_BACKOFF_DELAY,
-) => {
-	const delay = Math.min(2 ** attempts * minDelay, maxDelay);
-	log.info(`Retrying request in ${delay / 1000} seconds`);
-	setTimeout(() => retry(attempts + 1), delay);
-};
-
-function reportCurrentState(attempts = 0) {
-	(async () => {
-		const {
-			hardwareMetrics,
-			appUpdatePollInterval: maxDelay,
-			...conf
-		} = await config.getMany([
-			'deviceApiKey',
-			'apiTimeout',
-			'apiEndpoint',
-			'uuid',
-			'localMode',
-			'appUpdatePollInterval',
-			'hardwareMetrics',
-		]);
-
-		reportPending = true;
-		const currentDeviceState = await deviceState.getStatus();
-		// If hardwareMetrics is false, send null patch for system metrics to cloud API
-		const info = {
-			...(hardwareMetrics
-				? await sysInfo.getSystemMetrics()
-				: {
-						cpu_usage: null,
-						memory_usage: null,
-						memory_total: null,
-						storage_usage: null,
-						storage_total: null,
-						storage_block_device: null,
-						cpu_temp: null,
-						cpu_id: null,
-				  }),
-			...(await sysInfo.getSystemChecks()),
-		};
-
-		stateForReport.local = {
-			...stateForReport.local,
-			...currentDeviceState.local,
-			...info,
-		};
-		stateForReport.dependent = {
-			...stateForReport.dependent,
-			...currentDeviceState.dependent,
-		};
-
-		const stateDiff = getStateDiff();
-
-		// report state diff
-		throttledReport(
-			{ stateDiff, conf },
-			() => {
-				// If the patch succeeds update lastReport and reset the error counter
-				_.assign(lastReportedState.local, stateDiff.local);
-				_.assign(lastReportedState.dependent, stateDiff.dependent);
-				stateReportErrors = 0;
-
-				reportPending = false;
-			},
-			(e) => {
-				if (e instanceof StatusError) {
-					// We don't want these errors to be classed as a report error, as this will cause
-					// the watchdog to kill the supervisor - and killing the supervisor will
-					// not help in this situation
-					log.error(
-						`Device state report failure! Status code: ${e.statusCode} - message:`,
-						e.message,
-					);
-
-					// We want to backoff on all errors, but without having the healthchecks
-					// get triggered.
-					// This will use retryAfter as maxDelay if the header is present in the
-					// response by the API
-					backoff(
-						reportCurrentState,
-						// Do not do exponential backoff if the API reported a retryAfter
-						e.retryAfter ? 0 : attempts,
-						maxDelay,
-						// Start the polling at the value given by the API if any
-						e.retryAfter ?? MINIMUM_BACKOFF_DELAY,
-					);
-				} else {
-					eventTracker.track('Device state report failure', {
-						error: e.message,
-					});
-					backoff(reportCurrentState, stateReportErrors++, maxDelay);
-				}
-			},
-		);
-	})();
 }
 
-export const startReporting = () => {
-	const doReport = () => {
+async function reportCurrentState(conf: CurrentStateReportConf) {
+	// Ensure no other report starts
+	reportPending = true;
+	// Wrap the report with fetching of state so report always has the latest state diff
+	const getStateAndReport = async () => {
+		// Get state to report
+		const stateToReport = await generateStateForReport();
+		// Get diff from last reported state
+		const stateDiff = newStateDiff(stateToReport);
+		// Report diff
+		if (await report({ stateDiff, conf })) {
+			// Update lastReportedState
+			_.assign(lastReportedState.local, stateDiff.local);
+			_.assign(lastReportedState.dependent, stateDiff.dependent);
+			// Log that we successfully reported the current state
+			log.info('Reported current state to the cloud');
+		}
+	};
+	// Create a report that will backoff on errors
+	const reportWithBackoff = withBackoff(getStateAndReport, {
+		maxDelay: conf.appUpdatePollInterval,
+		minDelay: 15000,
+		onFailure: handleRetry,
+	});
+	// Run in try block to avoid throwing any exceptions
+	try {
+		await reportWithBackoff();
+		stateReportErrors = 0;
+	} catch (e) {
+		log.error(e);
+	}
+	reportPending = false;
+}
+
+function handleRetry(retryInfo: OnFailureInfo) {
+	if (retryInfo.error instanceof StatusError) {
+		log.error(
+			`Device state report failure! Status code: ${retryInfo.error.statusCode} - message:`,
+			retryInfo.error?.message ?? retryInfo.error,
+		);
+	} else {
+		eventTracker.track('Device state report failure', {
+			error: retryInfo.error?.message ?? retryInfo.error,
+		});
+	}
+	stateReportErrors++;
+	log.info(
+		`Retrying current state report in ${retryInfo.delay / 1000} seconds`,
+	);
+}
+
+async function generateStateForReport() {
+	const { hardwareMetrics } = await config.getMany(['hardwareMetrics']);
+
+	const currentDeviceState = await deviceState.getStatus();
+
+	// If hardwareMetrics is false, send null patch for system metrics to cloud API
+	const info = {
+		...(hardwareMetrics
+			? await sysInfo.getSystemMetrics()
+			: {
+					cpu_usage: null,
+					memory_usage: null,
+					memory_total: null,
+					storage_usage: null,
+					storage_total: null,
+					storage_block_device: null,
+					cpu_temp: null,
+					cpu_id: null,
+			  }),
+		...(await sysInfo.getSystemChecks()),
+	};
+
+	return {
+		local: {
+			...currentDeviceState.local,
+			...info,
+		},
+		dependent: currentDeviceState.dependent,
+	};
+}
+
+export async function startReporting() {
+	// Get configs needed to make a report
+	const reportConfigs = (await config.getMany([
+		'uuid',
+		'apiEndpoint',
+		'apiTimeout',
+		'deviceApiKey',
+		'deviceId',
+		'localMode',
+		'appUpdatePollInterval',
+		'hardwareMetrics',
+	])) as CurrentStateReportConf;
+	// Throttle reportCurrentState so we don't query device or hit API excessively
+	const throttledReport = _.throttle(
+		reportCurrentState,
+		constants.maxReportFrequency,
+	);
+	const doReport = async () => {
 		if (!reportPending) {
-			reportCurrentState();
+			throttledReport(reportConfigs);
 		}
 	};
 
@@ -270,4 +249,4 @@ export const startReporting = () => {
 	setInterval(doReport, constants.maxReportFrequency);
 	// Try to perform a report right away
 	return doReport();
-};
+}
