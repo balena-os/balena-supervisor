@@ -1,4 +1,26 @@
 - commits:
+    - subject: Only count report connectivity errors for healthcheck
+      hash: e217ff9027dad3e2ab092d16290b2eca0ecf6c25
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: update packages for vulnerabilities
+      hash: b5a2b8b7510860ba926f2e015e9294c824c700e1
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 12.11.40
+  title: "'Only count report connectivity errors for healthcheck'"
+  date: 2022-03-16T19:01:20.454Z
+- commits:
     - subject: Move report throttle out of reporting logic
       hash: 2fdb83839c2262b398deb77eb0fa4ae2c16c374a
       body: ""
