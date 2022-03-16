@@ -1,4 +1,18 @@
 - commits:
+    - subject: Added PR template doc
+      hash: edcbb622d84bc1290cc5ce0ef7929a9ef9195df4
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 12.11.41
+  title: "'Added PR template doc'"
+  date: 2022-03-16T20:56:50.062Z
+- commits:
     - subject: Only count report connectivity errors for healthcheck
       hash: e217ff9027dad3e2ab092d16290b2eca0ecf6c25
       body: ""
