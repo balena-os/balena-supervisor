@@ -173,6 +173,9 @@ async function reportCurrentState(conf: CurrentStateReportConf) {
 
 function handleRetry(retryInfo: OnFailureInfo) {
 	if (retryInfo.error instanceof StatusError) {
+		// We don't want these errors to be classed as a report error, as this will cause
+		// the watchdog to kill the supervisor - and killing the supervisor will
+		// not help in this situation
 		log.error(
 			`Device state report failure! Status code: ${retryInfo.error.statusCode} - message:`,
 			retryInfo.error?.message ?? retryInfo.error,
@@ -181,8 +184,11 @@ function handleRetry(retryInfo: OnFailureInfo) {
 		eventTracker.track('Device state report failure', {
 			error: retryInfo.error?.message ?? retryInfo.error,
 		});
+
+		// Increase the counter so the healthcheck gets triggered
+		// if too many connectivity errors occur
+		stateReportErrors++;
 	}
-	stateReportErrors++;
 	log.info(
 		`Retrying current state report in ${retryInfo.delay / 1000} seconds`,
 	);
