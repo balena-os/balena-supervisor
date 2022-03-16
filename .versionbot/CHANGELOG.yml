@@ -1,4 +1,28 @@
 - commits:
+    - subject: Move report throttle out of reporting logic
+      hash: 2fdb83839c2262b398deb77eb0fa4ae2c16c374a
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+    - subject: Update npm dep sinon to v11.1.2
+      hash: 5e5f1fb305d06399af37f1ce490a27f6e0289140
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 12.11.39
+  title: "'Move report throttle out of reporting logic'"
+  date: 2022-03-16T02:57:26.149Z
+- commits:
     - subject: Apply target state if loaded from file (apps.json)
       hash: b069d6b9d5ec2c9a45149e491fc49c489131e3c1
       body: ""
