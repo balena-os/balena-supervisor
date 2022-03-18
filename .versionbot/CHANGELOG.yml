@@ -1,4 +1,18 @@
 - commits:
+    - subject: Moved test setup into file included for all tests
+      hash: b068c209b0cd8cff4c2fb5218bd1d4c2116451e6
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 12.11.42
+  title: "'Moved test setup into file included for all tests'"
+  date: 2022-03-18T22:22:27.948Z
+- commits:
     - subject: Added PR template doc
       hash: edcbb622d84bc1290cc5ce0ef7929a9ef9195df4
       body: ""
