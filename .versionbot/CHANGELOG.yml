@@ -1,4 +1,19 @@
 - commits:
+    - subject: Always add status to image download report
+      hash: 21c1c006f7b8dfcf566f3e4a8e853e5e9978edf4
+      body: |
+        It seems that in some cases the supervisor can report
+        an image without a `status` field leading to a cloud side 401 response.
+        See #1905 for more details.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 12.11.43
+  title: "'Always add status to image download report'"
+  date: 2022-03-21T17:55:39.079Z
+- commits:
     - subject: Moved test setup into file included for all tests
       hash: b068c209b0cd8cff4c2fb5218bd1d4c2116451e6
       body: ""
