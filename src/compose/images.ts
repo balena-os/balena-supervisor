@@ -193,7 +193,11 @@ export async function triggerFetch(
 	}
 
 	const onProgress = (progress: FetchProgressEvent) => {
-		reportEvent('update', { ...image, downloadProgress: progress.percentage });
+		reportEvent('update', {
+			...image,
+			downloadProgress: progress.percentage,
+			status: 'Downloading',
+		});
 	};
 
 	let success: boolean;
@@ -261,7 +265,7 @@ export async function triggerFetch(
 		}
 	}
 
-	reportEvent('finish', image);
+	reportEvent('finish', { ...image, status: 'Downloaded' });
 	onFinish(success);
 }
 
