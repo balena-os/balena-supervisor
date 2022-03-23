@@ -70,11 +70,12 @@ console.log('Using the following dependencies as external:', externalModules);
 module.exports = function (env) {
 	return {
 		mode: env == null || !env.noOptimize ? 'production' : 'development',
-		devtool: 'none',
+		devtool: 'source-map',
 		entry: './src/app.ts',
 		output: {
 			filename: 'app.js',
 			path: path.resolve(__dirname, 'dist'),
+			devtoolModuleFilenameTemplate: '[absolute-resource-path]',
 		},
 		resolve: {
 			extensions: ['.js', '.ts', '.json'],

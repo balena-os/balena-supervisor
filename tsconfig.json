@@ -6,7 +6,7 @@
 		"strictFunctionTypes": false,
 		"strictPropertyInitialization": false,
 		"preserveConstEnums": true,
-		"inlineSourceMap": true,
+		"sourceMap": true,
 		"outDir": "./build/",
 		"skipLibCheck": true,
 		"lib": ["es2019"],
