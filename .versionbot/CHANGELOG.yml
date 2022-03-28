@@ -1,4 +1,22 @@
 - commits:
+    - subject: Add support for GET v3 target state
+      hash: 7425d1110b719dffd132c681c6e0c28fcc218dea
+      body: |
+        This change updates types and database format in order to allow
+        receiving the new format of the target state from the cloud and allow
+        applications to keep working.
+
+        This change also updates metadata in the containers, meaning services
+        will need to be restarted on supervisor update
+      footer:
+        Change-type: major
+        change-type: major
+      author: Felipe Lalanne
+      nested: []
+  version: 13.0.0
+  title: "'Update supervisor to use new v3 target state format'"
+  date: 2022-03-23T18:15:27.194Z
+- commits:
     - subject: Always add status to image download report
       hash: 21c1c006f7b8dfcf566f3e4a8e853e5e9978edf4
       body: |
