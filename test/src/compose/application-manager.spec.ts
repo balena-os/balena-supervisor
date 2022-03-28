@@ -4,6 +4,7 @@ import { stub } from 'sinon';
 import App from '../../../src/compose/app';
 import * as applicationManager from '../../../src/compose/application-manager';
 import * as imageManager from '../../../src/compose/images';
+import * as serviceManager from '../../../src/compose/service-manager';
 import { Image } from '../../../src/compose/images';
 import Network from '../../../src/compose/network';
 import * as networkManager from '../../../src/compose/network-manager';
@@ -15,11 +16,12 @@ import { InstancedAppState } from '../../../src/types/state';
 
 import * as dbHelper from '../../lib/db-helper';
 
-const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, {});
+const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, 'appuuid', {});
 
 async function createService(
 	{
 		appId = 1,
+		appUuid = 'appuuid',
 		serviceName = 'main',
 		commit = 'main-commit',
 		...conf
@@ -29,6 +31,7 @@ async function createService(
 	const svc = await Service.fromComposeObject(
 		{
 			appId,
+			appUuid,
 			serviceName,
 			commit,
 			// db ids should not be used for target state calculation, but images
@@ -52,23 +55,26 @@ async function createService(
 function createImage(
 	{
 		appId = 1,
-		dependent = 0,
+		appUuid = 'appuuid',
 		name = 'test-image',
-		serviceName = 'test',
+		serviceName = 'main',
+		commit = 'main-commit',
 		...extra
 	} = {} as Partial<Image>,
 ) {
 	return {
 		appId,
-		dependent,
+		appUuid,
 		name,
 		serviceName,
+		commit,
 		// db ids should not be used for target state calculation, but images
 		// are compared using _.isEqual so leaving this here to have image comparisons
 		// match
 		imageId: 1,
 		releaseId: 1,
 		serviceId: 1,
+		dependent: 0,
 		...extra,
 	} as Image;
 }
@@ -130,7 +136,7 @@ function createCurrentState({
 	volumes = [] as Volume[],
 	images = services.map((s) => ({
 		// Infer images from services by default
-		dockerImageId: s.config.image,
+		dockerImageId: s.dockerImageId,
 		...imageManager.imageFromService(s),
 	})) as Image[],
 	downloading = [] as string[],
@@ -363,12 +369,15 @@ describe('compose/application-manager', () => {
 			containerIdsByAppId,
 		} = createCurrentState({
 			services: [
-				await createService({
-					image: 'image-old',
-					labels,
-					appId: 1,
-					commit: 'old-release',
-				}),
+				await createService(
+					{
+						image: 'image-old',
+						labels,
+						appId: 1,
+						commit: 'old-release',
+					},
+					{ options: { imageInfo: { Id: 'sha256:image-old-id' } } },
+				),
 			],
 			networks: [DEFAULT_NETWORK],
 		});
@@ -414,12 +423,15 @@ describe('compose/application-manager', () => {
 			containerIdsByAppId,
 		} = createCurrentState({
 			services: [
-				await createService({
-					image: 'image-old',
-					labels,
-					appId: 1,
-					commit: 'old-release',
-				}),
+				await createService(
+					{
+						image: 'image-old',
+						labels,
+						appId: 1,
+						commit: 'old-release',
+					},
+					{ options: { imageInfo: { Id: 'sha256:image-old-id' } } },
+				),
 			],
 			networks: [DEFAULT_NETWORK],
 		});
@@ -499,10 +511,12 @@ describe('compose/application-manager', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						appId: 1,
 						commit: 'new-release',
 						serviceName: 'main',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
@@ -523,10 +537,12 @@ describe('compose/application-manager', () => {
 		} = createCurrentState({
 			services: [
 				await createService({
-					dependsOn: ['dep'],
 					appId: 1,
 					commit: 'old-release',
 					serviceName: 'main',
+					composition: {
+						depends_on: ['dep'],
+					},
 				}),
 				await createService({
 					appId: 1,
@@ -566,14 +582,18 @@ describe('compose/application-manager', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						appId: 1,
+						appUuid: 'appuuid',
 						commit: 'new-release',
 						serviceName: 'main',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
 						appId: 1,
+						appUuid: 'appuuid',
 						commit: 'new-release',
 						serviceName: 'dep',
 					}),
@@ -591,13 +611,17 @@ describe('compose/application-manager', () => {
 		} = createCurrentState({
 			services: [
 				await createService({
-					dependsOn: ['dep'],
 					appId: 1,
+					appUuid: 'appuuid',
 					commit: 'old-release',
 					serviceName: 'main',
+					composition: {
+						depends_on: ['dep'],
+					},
 				}),
 				await createService({
 					appId: 1,
+					appUuid: 'appuuid',
 					commit: 'old-release',
 					serviceName: 'dep',
 				}),
@@ -607,13 +631,17 @@ describe('compose/application-manager', () => {
 				// Both images have been downloaded
 				createImage({
 					appId: 1,
+					appUuid: 'appuuid',
 					name: 'main-image',
 					serviceName: 'main',
+					commit: 'new-release',
 				}),
 				createImage({
 					appId: 1,
+					appUuid: 'appuuid',
 					name: 'dep-image',
 					serviceName: 'dep',
+					commit: 'new-release',
 				}),
 			],
 		});
@@ -647,9 +675,11 @@ describe('compose/application-manager', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						serviceName: 'main',
 						commit: 'new-release',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
@@ -673,14 +703,14 @@ describe('compose/application-manager', () => {
 			images: [
 				// Both images have been downloaded
 				createImage({
-					appId: 1,
 					name: 'main-image',
 					serviceName: 'main',
+					commit: 'new-release',
 				}),
 				createImage({
-					appId: 1,
 					name: 'dep-image',
 					serviceName: 'dep',
+					commit: 'new-release',
 				}),
 			],
 		});
@@ -711,9 +741,11 @@ describe('compose/application-manager', () => {
 				services: [
 					await createService({
 						image: 'main-image',
-						dependsOn: ['dep'],
 						serviceName: 'main',
 						commit: 'new-release',
+						composition: {
+							depends_on: ['dep'],
+						},
 					}),
 					await createService({
 						image: 'dep-image',
@@ -743,14 +775,14 @@ describe('compose/application-manager', () => {
 			images: [
 				// Both images have been downloaded
 				createImage({
-					appId: 1,
 					name: 'main-image',
 					serviceName: 'main',
+					commit: 'new-release',
 				}),
 				createImage({
-					appId: 1,
 					name: 'dep-image',
 					serviceName: 'dep',
+					commit: 'new-release',
 				}),
 			],
 		});
@@ -793,7 +825,6 @@ describe('compose/application-manager', () => {
 			images: [
 				// Image has been downloaded
 				createImage({
-					appId: 1,
 					name: 'main-image',
 					serviceName: 'main',
 				}),
@@ -836,7 +867,7 @@ describe('compose/application-manager', () => {
 		} = createCurrentState({
 			services: [],
 			networks: [DEFAULT_NETWORK],
-			volumes: [Volume.fromComposeObject('test-volume', 1, {})],
+			volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 		});
 
 		const steps = await applicationManager.inferNextSteps(
@@ -863,7 +894,7 @@ describe('compose/application-manager', () => {
 			services: [],
 			networks: [],
 			// Volume with different id
-			volumes: [Volume.fromComposeObject('test-volume', 2, {})],
+			volumes: [Volume.fromComposeObject('test-volume', 2, 'deadbeef')],
 		});
 
 		const steps = await applicationManager.inferNextSteps(
@@ -1159,19 +1190,21 @@ describe('compose/application-manager', () => {
 						running: true,
 						image: 'main-image-1',
 						appId: 1,
+						appUuid: 'app-one',
 						commit: 'commit-for-app-1',
 					}),
 					await createService({
 						running: true,
 						image: 'main-image-2',
 						appId: 2,
+						appUuid: 'app-two',
 						commit: 'commit-for-app-2',
 					}),
 				],
 				networks: [
 					// Default networks for two apps
-					Network.fromComposeObject('default', 1, {}),
-					Network.fromComposeObject('default', 2, {}),
+					Network.fromComposeObject('default', 1, 'app-one', {}),
+					Network.fromComposeObject('default', 2, 'app-two', {}),
 				],
 			},
 			true,
@@ -1185,19 +1218,23 @@ describe('compose/application-manager', () => {
 			services: [],
 			networks: [
 				// Default networks for two apps
-				Network.fromComposeObject('default', 1, {}),
-				Network.fromComposeObject('default', 2, {}),
+				Network.fromComposeObject('default', 1, 'app-one', {}),
+				Network.fromComposeObject('default', 2, 'app-two', {}),
 			],
 			images: [
 				createImage({
 					name: 'main-image-1',
 					appId: 1,
+					appUuid: 'app-one',
 					serviceName: 'main',
+					commit: 'commit-for-app-1',
 				}),
 				createImage({
 					name: 'main-image-2',
 					appId: 2,
+					appUuid: 'app-two',
 					serviceName: 'main',
+					commit: 'commit-for-app-2',
 				}),
 			],
 		});
@@ -1229,5 +1266,242 @@ describe('compose/application-manager', () => {
 					s.target.serviceName === 'main',
 			),
 		).to.have.lengthOf(1);
+	});
+
+	describe('getting applications current state', () => {
+		let getImagesState: sinon.SinonStub;
+		let getServicesState: sinon.SinonStub;
+
+		before(() => {
+			getImagesState = sinon.stub(imageManager, 'getState');
+			getServicesState = sinon.stub(serviceManager, 'getState');
+		});
+
+		afterEach(() => {
+			getImagesState.reset();
+			getServicesState.reset();
+		});
+
+		after(() => {
+			getImagesState.restore();
+			getServicesState.restore();
+		});
+
+		it('reports the state of images if no service is available', async () => {
+			getImagesState.resolves([
+				{
+					name: 'ubuntu:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Downloaded',
+				},
+				{
+					name: 'alpine:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloading',
+					downloadProgress: 50,
+				},
+				{
+					name: 'fedora:latest',
+					commit: 'newrelease',
+					appUuid: 'fedora',
+					serviceName: 'fedora',
+					status: 'Downloading',
+					downloadProgress: 75,
+				},
+				{
+					name: 'fedora:older',
+					commit: 'oldrelease',
+					appUuid: 'fedora',
+					serviceName: 'fedora',
+					status: 'Downloaded',
+				},
+			]);
+			getServicesState.resolves([]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								ubuntu: {
+									image: 'ubuntu:latest',
+									status: 'Downloaded',
+								},
+								alpine: {
+									image: 'alpine:latest',
+									status: 'Downloading',
+									download_progress: 50,
+								},
+							},
+						},
+					},
+				},
+				fedora: {
+					releases: {
+						oldrelease: {
+							services: {
+								fedora: {
+									image: 'fedora:older',
+									status: 'Downloaded',
+								},
+							},
+						},
+						newrelease: {
+							services: {
+								fedora: {
+									image: 'fedora:latest',
+									status: 'Downloading',
+									download_progress: 75,
+								},
+							},
+						},
+					},
+				},
+			});
+		});
+
+		it('augments the service data with image data', async () => {
+			getImagesState.resolves([
+				{
+					name: 'ubuntu:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Downloaded',
+				},
+				{
+					name: 'alpine:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloading',
+					downloadProgress: 50,
+				},
+				{
+					name: 'fedora:older',
+					commit: 'oldrelease',
+					appUuid: 'fedora',
+					serviceName: 'fedora',
+					status: 'Downloaded',
+				},
+			]);
+			getServicesState.resolves([
+				{
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'ubuntu',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T13:00:00'),
+				},
+				{
+					commit: 'oldrelease',
+					serviceName: 'fedora',
+					status: 'Stopped',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+				{
+					// Service without an image should not show on the final state
+					appUuid: 'debian',
+					commit: 'otherrelease',
+					serviceName: 'debian',
+					status: 'Stopped',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+			]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								ubuntu: {
+									image: 'ubuntu:latest',
+									status: 'Running',
+								},
+								alpine: {
+									image: 'alpine:latest',
+									status: 'Downloading',
+									download_progress: 50,
+								},
+							},
+						},
+					},
+				},
+				fedora: {
+					releases: {
+						oldrelease: {
+							services: {
+								fedora: {
+									image: 'fedora:older',
+									status: 'Stopped',
+								},
+							},
+						},
+					},
+				},
+			});
+		});
+
+		it('reports handover state if multiple services are running for the same app', async () => {
+			getImagesState.resolves([
+				{
+					name: 'alpine:3.13',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloaded',
+				},
+				{
+					name: 'alpine:3.12',
+					commit: 'oldrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Downloaded',
+				},
+			]);
+			getServicesState.resolves([
+				{
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T13:00:00'),
+				},
+				{
+					commit: 'oldrelease',
+					appUuid: 'myapp',
+					serviceName: 'alpine',
+					status: 'Running',
+					createdAt: new Date('2021-09-01T12:00:00'),
+				},
+			]);
+
+			expect(await applicationManager.getState()).to.deep.equal({
+				myapp: {
+					releases: {
+						latestrelease: {
+							services: {
+								alpine: {
+									image: 'alpine:3.13',
+									status: 'Awaiting handover',
+								},
+							},
+						},
+						oldrelease: {
+							services: {
+								alpine: {
+									image: 'alpine:3.12',
+									status: 'Handing over',
+								},
+							},
+						},
+					},
+				},
+			});
+		});
 	});
 });

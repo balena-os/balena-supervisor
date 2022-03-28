@@ -27,6 +27,8 @@ import { getExecutors, CompositionStepT } from './composition-steps';
 import * as commitStore from './commit';
 
 import Service from './service';
+import Network from './network';
+import Volume from './volume';
 
 import { createV1Api } from '../device-api/v1';
 import { createV2Api } from '../device-api/v2';
@@ -34,17 +36,17 @@ import { CompositionStep, generateStep } from './composition-steps';
 import {
 	InstancedAppState,
 	TargetApps,
-	DeviceStatus,
-	DeviceReportFields,
-	TargetState,
+	DeviceLegacyReport,
+	AppState,
+	ServiceState,
 } from '../types/state';
-import { checkTruthy, checkInt } from '../lib/validation';
+import { checkTruthy } from '../lib/validation';
 import { Proxyvisor } from '../proxyvisor';
 import { EventEmitter } from 'events';
 
 type ApplicationManagerEventEmitter = StrictEventEmitter<
 	EventEmitter,
-	{ change: DeviceReportFields }
+	{ change: DeviceLegacyReport }
 >;
 const events: ApplicationManagerEventEmitter = new EventEmitter();
 export const on: typeof events['on'] = events.on.bind(events);
@@ -158,16 +160,16 @@ function reportCurrentState(data?: Partial<InstancedAppState>) {
 }
 
 export async function getRequiredSteps(
+	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
 	ignoreImages: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
-	const [downloading, availableImages, currentApps] = await Promise.all([
+	const [downloading, availableImages] = await Promise.all([
 		imageManager.getDownloadingImageNames(),
 		imageManager.getAvailable(),
-		getCurrentApps(),
 	]);
-	const containerIdsByAppId = await getAppContainerIds(currentApps);
+	const containerIdsByAppId = getAppContainerIds(currentApps);
 
 	return await inferNextSteps(currentApps, targetApps, {
 		ignoreImages,
@@ -353,48 +355,152 @@ export async function stopAll({ force = false, skipLock = false } = {}) {
 	);
 }
 
-export async function getCurrentAppsForReport(): Promise<
-	NonNullable<DeviceStatus['local']>['apps']
-> {
-	const apps = await getCurrentApps();
-
-	const appsToReport: NonNullable<DeviceStatus['local']>['apps'] = {};
-	for (const appId of Object.getOwnPropertyNames(apps)) {
-		appsToReport[appId] = {
-			services: {},
-		};
-	}
-
-	return appsToReport;
-}
-
+// The following two function may look pretty odd, but after the move to uuids,
+// there's a chance that the current running apps don't have a uuid set. We
+// still need to be able to work on these and perform various state changes. To
+// do this we try to use the UUID to group the components, and if that isn't
+// available we revert to using the appIds instead
 export async function getCurrentApps(): Promise<InstancedAppState> {
-	const volumes = _.groupBy(await volumeManager.getAll(), 'appId');
-	const networks = _.groupBy(await networkManager.getAll(), 'appId');
-	const services = _.groupBy(await serviceManager.getAll(), 'appId');
-
-	const allAppIds = _.union(
-		Object.keys(volumes),
-		Object.keys(networks),
-		Object.keys(services),
-	).map((i) => parseInt(i, 10));
+	const componentGroups = groupComponents(
+		await serviceManager.getAll(),
+		await networkManager.getAll(),
+		await volumeManager.getAll(),
+	);
 
 	const apps: InstancedAppState = {};
-	for (const appId of allAppIds) {
+	for (const strAppId of Object.keys(componentGroups)) {
+		const appId = parseInt(strAppId, 10);
+
+		// TODO: get commit and release version from container
 		const commit = await commitStore.getCommitForApp(appId);
-		apps[appId] = new App(
-			{
-				appId,
-				services: services[appId] ?? [],
-				networks: _.keyBy(networks[appId], 'name'),
-				volumes: _.keyBy(volumes[appId], 'name'),
-				commit,
-			},
-			false,
-		);
+
+		const components = componentGroups[appId];
+
+		// fetch the correct uuid from any component within the appId
+		const uuid = [
+			components.services[0]?.appUuid,
+			components.volumes[0]?.appUuid,
+			components.networks[0]?.appUuid,
+		]
+			.filter((u) => !!u)
+			.shift()!;
+
+		// If we don't have any components for this app, ignore it (this can
+		// actually happen when moving between backends but maintaining UUIDs)
+		if (
+			!_.isEmpty(components.services) ||
+			!_.isEmpty(components.volumes) ||
+			!_.isEmpty(components.networks)
+		) {
+			apps[appId] = new App(
+				{
+					appId,
+					appUuid: uuid,
+					commit,
+					services: componentGroups[appId].services,
+					networks: _.keyBy(componentGroups[appId].networks, 'name'),
+					volumes: _.keyBy(componentGroups[appId].volumes, 'name'),
+				},
+				false,
+			);
+		}
 	}
 
 	return apps;
+}
+
+type AppGroup = {
+	[appId: number]: {
+		services: Service[];
+		volumes: Volume[];
+		networks: Network[];
+	};
+};
+
+function groupComponents(
+	services: Service[],
+	networks: Network[],
+	volumes: Volume[],
+): AppGroup {
+	const grouping: AppGroup = {};
+
+	const everyComponent: [{ appUuid?: string; appId: number }] = [
+		...services,
+		...networks,
+		...volumes,
+	] as any;
+
+	const allUuids: string[] = [];
+	const allAppIds: number[] = [];
+	everyComponent.forEach(({ appId, appUuid }) => {
+		// Pre-populate the groupings
+		grouping[appId] = {
+			services: [],
+			networks: [],
+			volumes: [],
+		};
+		// Save all the uuids for later
+		if (appUuid != null) {
+			allUuids.push(appUuid);
+		}
+		allAppIds.push(appId);
+	});
+
+	// First we try to group everything by it's uuid, but if any component does
+	// not have a uuid, we fall back to the old appId style
+	if (everyComponent.length === allUuids.length) {
+		const uuidGroups: { [uuid: string]: AppGroup[0] } = {};
+		new Set(allUuids).forEach((uuid) => {
+			const uuidServices = services.filter(
+				({ appUuid: sUuid }) => uuid === sUuid,
+			);
+			const uuidVolumes = volumes.filter(
+				({ appUuid: vUuid }) => uuid === vUuid,
+			);
+			const uuidNetworks = networks.filter(
+				({ appUuid: nUuid }) => uuid === nUuid,
+			);
+
+			uuidGroups[uuid] = {
+				services: uuidServices,
+				networks: uuidNetworks,
+				volumes: uuidVolumes,
+			};
+		});
+
+		for (const uuid of Object.keys(uuidGroups)) {
+			// There's a chance that the uuid and the appId is different, and this
+			// is fine. Unfortunately we have no way of knowing which is the "real"
+			// appId (that is the app id which relates to the currently joined
+			// backend) so we instead just choose the first and add everything to that
+			const appId =
+				uuidGroups[uuid].services[0]?.appId ||
+				uuidGroups[uuid].networks[0]?.appId ||
+				uuidGroups[uuid].volumes[0]?.appId;
+			grouping[appId] = uuidGroups[uuid];
+		}
+	} else {
+		// Otherwise group them by appId and let the state engine match them later.
+		// This will only happen once, as every target state going forward will
+		// contain UUIDs, we just need to handle the initial upgrade
+		const appSvcs = _.groupBy(services, 'appId');
+		const appVols = _.groupBy(volumes, 'appId');
+		const appNets = _.groupBy(networks, 'appId');
+
+		_.uniq(allAppIds).forEach((appId) => {
+			grouping[appId].services = grouping[appId].services.concat(
+				appSvcs[appId] || [],
+			);
+			grouping[appId].networks = grouping[appId].networks.concat(
+				appNets[appId] || [],
+			);
+			grouping[appId].volumes = grouping[appId].volumes.concat(
+				appVols[appId] || [],
+			);
+		});
+	}
+
+	return grouping;
 }
 
 function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
@@ -448,7 +554,6 @@ export async function executeStep(
 // FIXME: This shouldn't be in this module
 export async function setTarget(
 	apps: TargetApps,
-	dependent: TargetState['dependent'],
 	source: string,
 	maybeTrx?: Transaction,
 ) {
@@ -467,10 +572,9 @@ export async function setTarget(
 				// Currently this will only happen if the release
 				// which would replace it fails a contract
 				// validation check
-				_.map(apps, (_v, appId) => checkInt(appId)),
+				Object.values(apps).map(({ id: appId }) => appId),
 			)
 			.del();
-		await proxyvisor.setTargetInTransaction(dependent, trx);
 	};
 
 	// We look at the container contracts here, as if we
@@ -487,18 +591,29 @@ export async function setTarget(
 	const filteredApps = _.cloneDeep(apps);
 	_.each(
 		fulfilledContracts,
-		({ valid, unmetServices, fulfilledServices, unmetAndOptional }, appId) => {
+		(
+			{ valid, unmetServices, fulfilledServices, unmetAndOptional },
+			appUuid,
+		) => {
 			if (!valid) {
-				contractViolators[apps[appId].name] = unmetServices;
-				return delete filteredApps[appId];
+				contractViolators[apps[appUuid].name] = unmetServices;
+				return delete filteredApps[appUuid];
 			} else {
 				// valid is true, but we could still be missing
 				// some optional containers, and need to filter
 				// these out of the target state
-				filteredApps[appId].services = _.pickBy(
-					filteredApps[appId].services,
-					({ serviceName }) => fulfilledServices.includes(serviceName),
-				);
+				const [releaseUuid] = Object.keys(filteredApps[appUuid].releases);
+				if (releaseUuid) {
+					const services =
+						filteredApps[appUuid].releases[releaseUuid].services ?? {};
+					filteredApps[appUuid].releases[releaseUuid].services = _.pick(
+						services,
+						Object.keys(services).filter((serviceName) =>
+							fulfilledServices.includes(serviceName),
+						),
+					);
+				}
+
 				if (unmetAndOptional.length !== 0) {
 					return reportOptionalContainers(unmetAndOptional);
 				}
@@ -527,17 +642,20 @@ export async function getTargetApps(): Promise<TargetApps> {
 	// the instances throughout the supervisor. The target state is derived from
 	// the database entries anyway, so these two things should never be different
 	// (except for the volatile state)
-
-	_.each(apps, (app) => {
-		if (!_.isEmpty(app.services)) {
-			app.services = _.mapValues(app.services, (svc) => {
-				if (svc.imageId && targetVolatilePerImageId[svc.imageId] != null) {
-					return { ...svc, ...targetVolatilePerImageId };
-				}
-				return svc;
-			});
-		}
-	});
+	//
+	_.each(apps, (app) =>
+		// There should only be a single release but is a simpler option
+		_.each(app.releases, (release) => {
+			if (!_.isEmpty(release.services)) {
+				release.services = _.mapValues(release.services, (svc) => {
+					if (svc.image_id && targetVolatilePerImageId[svc.image_id] != null) {
+						return { ...svc, ...targetVolatilePerImageId };
+					}
+					return svc;
+				});
+			}
+		}),
+	);
 
 	return apps;
 }
@@ -562,19 +680,28 @@ export function getDependentTargets() {
 	return proxyvisor.getTarget();
 }
 
+/**
+ * This is only used by the API. Do not use as the use of serviceIds is getting
+ * deprecated
+ *
+ * @deprecated
+ */
 export async function serviceNameFromId(serviceId: number) {
 	// We get the target here as it shouldn't matter, and getting the target is cheaper
-	const targets = await getTargetApps();
-	for (const appId of Object.keys(targets)) {
-		const app = targets[parseInt(appId, 10)];
-		const service = _.find(app.services, { serviceId });
-		if (service?.serviceName === null) {
-			throw new InternalInconsistencyError(
-				`Could not find a service name for id: ${serviceId}`,
-			);
+	const targetApps = await getTargetApps();
+
+	for (const { releases } of Object.values(targetApps)) {
+		const [release] = Object.values(releases);
+		const services = release?.services ?? {};
+		const serviceName = Object.keys(services).find(
+			(svcName) => services[svcName].id === serviceId,
+		);
+
+		if (!!serviceName) {
+			return serviceName;
 		}
-		return service!.serviceName;
 	}
+
 	throw new InternalInconsistencyError(
 		`Could not find a service for id: ${serviceId}`,
 	);
@@ -622,15 +749,6 @@ function saveAndRemoveImages(
 	availableImages: imageManager.Image[],
 	localMode: boolean,
 ): CompositionStep[] {
-	const imageForService = (service: Service): imageManager.Image => ({
-		name: service.imageName!,
-		appId: service.appId,
-		serviceId: service.serviceId!,
-		serviceName: service.serviceName!,
-		imageId: service.imageId!,
-		releaseId: service.releaseId!,
-		dependent: 0,
-	});
 	type ImageWithoutID = Omit<imageManager.Image, 'dockerImageId' | 'id'>;
 
 	// imagesToRemove: images that
@@ -658,15 +776,16 @@ function saveAndRemoveImages(
 			(svc) =>
 				_.find(availableImages, {
 					dockerImageId: svc.config.image,
-					// There is no 1-1 mapping between services and images
-					// on disk, so the only way to compare is by imageId
-					imageId: svc.imageId,
+					// There is no way to compare a current service to an image by
+					// name, the only way to do it is by both commit and service name
+					commit: svc.commit,
+					serviceName: svc.serviceName,
 				}) ?? _.find(availableImages, { dockerImageId: svc.config.image }),
 		),
 	) as imageManager.Image[];
 
 	const targetServices = Object.values(target).flatMap((app) => app.services);
-	const targetImages = targetServices.map(imageForService);
+	const targetImages = targetServices.map(imageManager.imageFromService);
 
 	const availableAndUnused = _.filter(
 		availableWithoutIds,
@@ -735,7 +854,7 @@ function saveAndRemoveImages(
 				// services
 				!targetServices.some(
 					(svc) =>
-						imageManager.isSameImage(img, imageForService(svc)) &&
+						imageManager.isSameImage(img, imageManager.imageFromService(svc)) &&
 						svc.config.labels['io.balena.update.strategy'] ===
 							'delete-then-download',
 				),
@@ -760,14 +879,21 @@ function saveAndRemoveImages(
 		.concat(imagesToRemove.map((image) => ({ action: 'removeImage', image })));
 }
 
-async function getAppContainerIds(currentApps: InstancedAppState) {
+function getAppContainerIds(currentApps: InstancedAppState) {
 	const containerIds: { [appId: number]: Dictionary<string> } = {};
-	await Promise.all(
-		_.map(currentApps, async (_app, appId) => {
-			const intAppId = parseInt(appId, 10);
-			containerIds[intAppId] = await serviceManager.getContainerIdMap(intAppId);
-		}),
-	);
+	Object.keys(currentApps).forEach((appId) => {
+		const intAppId = parseInt(appId, 10);
+		const app = currentApps[intAppId];
+		const services = app.services || ([] as Service[]);
+		containerIds[intAppId] = services.reduce(
+			(ids, s) => ({
+				...ids,
+				...(s.serviceName &&
+					s.containerId && { [s.serviceName]: s.containerId }),
+			}),
+			{} as Dictionary<string>,
+		);
+	});
 
 	return containerIds;
 }
@@ -788,12 +914,17 @@ function reportOptionalContainers(serviceNames: string[]) {
 	);
 }
 
-// FIXME: This would be better to implement using the App class, and have each one
-// generate its status. For now we use the original from application-manager.coffee.
-export async function getStatus() {
+/**
+ * This will be replaced by ApplicationManager.getState, at which
+ * point the only place this will be used will be in the API endpoints
+ * once, the API moves to v3 or we update the endpoints to return uuids, we will
+ * be able to get rid of this
+ * @deprecated
+ */
+export async function getLegacyState() {
 	const [services, images] = await Promise.all([
-		serviceManager.getStatus(),
-		imageManager.getStatus(),
+		serviceManager.getState(),
+		imageManager.getState(),
 	]);
 
 	const apps: Dictionary<any> = {};
@@ -822,7 +953,7 @@ export async function getStatus() {
 		}
 		if (imageId == null) {
 			throw new InternalInconsistencyError(
-				`imageId not defined in ApplicationManager.getStatus: ${service}`,
+				`imageId not defined in ApplicationManager.getLegacyApplicationsState: ${service}`,
 			);
 		}
 		if (apps[appId].services[imageId] == null) {
@@ -875,4 +1006,141 @@ export async function getStatus() {
 	}
 
 	return { local: apps, dependent };
+}
+
+// TODO: this function is probably more inefficient than it needs to be, since
+// it tried to optimize for readability, look for a way to make it simpler
+export async function getState() {
+	const [services, images] = await Promise.all([
+		serviceManager.getState(),
+		imageManager.getState(),
+	]);
+
+	type ServiceInfo = {
+		appId: number;
+		appUuid: string;
+		commit: string;
+		serviceName: string;
+		createdAt?: Date;
+	} & ServiceState;
+
+	// Get service data from images
+	const stateFromImages: ServiceInfo[] = images.map(
+		({
+			appId,
+			appUuid,
+			name,
+			commit,
+			serviceName,
+			status,
+			downloadProgress,
+		}) => ({
+			appId,
+			appUuid,
+			image: name,
+			commit,
+			serviceName,
+			status: status as string,
+			...(downloadProgress && { download_progress: downloadProgress }),
+		}),
+	);
+
+	// Get all services and augment service data from the image if any
+	const stateFromServices = services
+		.map(({ appId, appUuid, commit, serviceName, status, createdAt }) => [
+			// Only include appUuid if is available, if not available we'll get it from the image
+			{
+				appId,
+				...(appUuid && { appUuid }),
+				commit,
+				serviceName,
+				status,
+				createdAt,
+			},
+			// Get the corresponding image to augment the service data
+			stateFromImages.find(
+				(img) => img.serviceName === serviceName && img.commit === commit,
+			),
+		])
+		// We cannot report services that do not have an image as the API
+		// requires passing the image name
+		.filter(([, img]) => !!img)
+		.map(([svc, img]) => ({ ...img, ...svc } as ServiceInfo))
+		.map((svc, __, serviceList) => {
+			// If the service is not running it cannot be a handover
+			if (svc.status !== 'Running') {
+				return svc;
+			}
+
+			// If there one or more running services with the same name and appUuid, but different
+			// release, then we are still handing over so we need to report the appropriate
+			// status
+			const siblings = serviceList.filter(
+				(s) =>
+					s.appUuid === svc.appUuid &&
+					s.serviceName === svc.serviceName &&
+					s.status === 'Running' &&
+					s.commit !== svc.commit,
+			);
+
+			// There should really be only one element on the `siblings` array, but
+			// we chose the oldest service to have its status reported as 'Handing over'
+			if (
+				siblings.length > 0 &&
+				siblings.every((s) => svc.createdAt!.getTime() < s.createdAt!.getTime())
+			) {
+				return { ...svc, status: 'Handing over' };
+			} else if (siblings.length > 0) {
+				return { ...svc, status: 'Awaiting handover' };
+			}
+			return svc;
+		});
+
+	const servicesToReport =
+		// The full list of services is the union of images that have no container created yet
+		stateFromImages
+			.filter(
+				(img) =>
+					!stateFromServices.some(
+						(svc) =>
+							img.serviceName === svc.serviceName && img.commit === svc.commit,
+					),
+			)
+			// With the services that have a container
+			.concat(stateFromServices);
+
+	// Get the list of commits for all appIds from the database
+	const commitsForApp = (
+		await Promise.all(
+			// Deduplicate appIds first
+			[...new Set(servicesToReport.map((svc) => svc.appId))].map(
+				async (appId) => ({
+					[appId]: await commitStore.getCommitForApp(appId),
+				}),
+			),
+		)
+	).reduce((commits, c) => ({ ...commits, ...c }), {});
+
+	// Assemble the state of apps
+	return servicesToReport.reduce(
+		(apps, { appId, appUuid, commit, serviceName, createdAt, ...svc }) => ({
+			...apps,
+			[appUuid]: {
+				...(apps[appUuid] ?? {}),
+				// Add the release_uuid if the commit has been stored in the database
+				...(commitsForApp[appId] && { release_uuid: commitsForApp[appId] }),
+				releases: {
+					...(apps[appUuid]?.releases ?? {}),
+					[commit]: {
+						...(apps[appUuid]?.releases[commit] ?? {}),
+						services: {
+							...(apps[appUuid]?.releases[commit]?.services ?? {}),
+							[serviceName]: svc,
+						},
+					},
+				},
+			},
+		}),
+		{} as { [appUuid: string]: AppState },
+	);
 }

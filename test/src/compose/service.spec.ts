@@ -60,6 +60,7 @@ describe('compose/service', () => {
 			};
 			const service = {
 				appId: '23',
+				appUuid: 'deadbeef',
 				releaseId: 2,
 				serviceId: 3,
 				imageId: 4,
@@ -78,6 +79,7 @@ describe('compose/service', () => {
 				FOO: 'bar',
 				A_VARIABLE: 'ITS_VALUE',
 				RESIN_APP_ID: '23',
+				RESIN_APP_UUID: 'deadbeef',
 				RESIN_APP_NAME: 'awesomeApp',
 				RESIN_DEVICE_UUID: '1234',
 				RESIN_DEVICE_ARCH: 'amd64',
@@ -88,6 +90,7 @@ describe('compose/service', () => {
 				RESIN_SERVICE_KILL_ME_PATH: '/tmp/balena/handover-complete',
 				RESIN: '1',
 				BALENA_APP_ID: '23',
+				BALENA_APP_UUID: 'deadbeef',
 				BALENA_APP_NAME: 'awesomeApp',
 				BALENA_DEVICE_UUID: '1234',
 				BALENA_DEVICE_ARCH: 'amd64',
@@ -127,8 +130,10 @@ describe('compose/service', () => {
 					releaseId: 2,
 					serviceId: 3,
 					imageId: 4,
-					expose: [1000, '243/udp'],
-					ports: ['2344', '2345:2354', '2346:2367/udp'],
+					composition: {
+						expose: [1000, '243/udp'],
+						ports: ['2344', '2345:2354', '2346:2367/udp'],
+					},
 				},
 				{
 					imageInfo: {
@@ -183,8 +188,10 @@ describe('compose/service', () => {
 					releaseId: 2,
 					serviceId: 3,
 					imageId: 4,
-					expose: [1000, '243/udp'],
-					ports: ['1000-1003:2000-2003'],
+					composition: {
+						expose: [1000, '243/udp'],
+						ports: ['1000-1003:2000-2003'],
+					},
 				},
 				{ appName: 'test' } as any,
 			);
@@ -236,7 +243,9 @@ describe('compose/service', () => {
 					releaseId: 2,
 					serviceId: 3,
 					imageId: 4,
-					ports: ['5-65536:5-65536/tcp', '5-65536:5-65536/udp'],
+					composition: {
+						ports: ['5-65536:5-65536/tcp', '5-65536:5-65536/udp'],
+					},
 				},
 				{ appName: 'test' } as any,
 			);
@@ -250,7 +259,9 @@ describe('compose/service', () => {
 					appId: 123456,
 					serviceId: 123456,
 					serviceName: 'test',
-					ports: ['80:80', '100:100'],
+					composition: {
+						ports: ['80:80', '100:100'],
+					},
 				},
 				{ appName: 'test' } as any,
 			);
@@ -266,12 +277,14 @@ describe('compose/service', () => {
 					appId: 123,
 					serviceId: 123,
 					serviceName: 'test',
-					volumes: [
-						'vol1:vol2',
-						'vol3 :/usr/src/app',
-						'vol4: /usr/src/app',
-						'vol5 : vol6',
-					],
+					composition: {
+						volumes: [
+							'vol1:vol2',
+							'vol3 :/usr/src/app',
+							'vol4: /usr/src/app',
+							'vol5 : vol6',
+						],
+					},
 				},
 				{ appName: 'test' } as any,
 			);
@@ -296,7 +309,9 @@ describe('compose/service', () => {
 						appId: 123456,
 						serviceId: 123456,
 						serviceName: 'foobar',
-						mem_limit: memLimit,
+						composition: {
+							mem_limit: memLimit,
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -381,7 +396,9 @@ describe('compose/service', () => {
 						appId: 123456,
 						serviceId: 123456,
 						serviceName: 'foobar',
-						workingDir: workdir,
+						composition: {
+							workingDir: workdir,
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -412,9 +429,12 @@ describe('compose/service', () => {
 					await Service.fromComposeObject(
 						{
 							appId: 123456,
+							appUuid: 'deadbeef',
 							serviceId: 123456,
 							serviceName: 'test',
-							networks,
+							composition: {
+								networks,
+							},
 						},
 						{ appName: 'test' } as any,
 					);
@@ -429,7 +449,7 @@ describe('compose/service', () => {
 					).toDockerContainer({ deviceName: 'foo' } as any).NetworkingConfig,
 				).to.deep.equal({
 					EndpointsConfig: {
-						'123456_balena': {
+						deadbeef_balena: {
 							IPAMConfig: {
 								IPv4Address: '1.2.3.4',
 							},
@@ -451,7 +471,7 @@ describe('compose/service', () => {
 					).toDockerContainer({ deviceName: 'foo' } as any).NetworkingConfig,
 				).to.deep.equal({
 					EndpointsConfig: {
-						'123456_balena': {
+						deadbeef_balena: {
 							IPAMConfig: {
 								IPv4Address: '1.2.3.4',
 								IPv6Address: '5.6.7.8',
@@ -473,7 +493,9 @@ describe('compose/service', () => {
 						appId: 1,
 						serviceId: 1,
 						serviceName: 'test',
-						dns: ['8.8.8.8', '1.1.1.1'],
+						composition: {
+							dns: ['8.8.8.8', '1.1.1.1'],
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -482,7 +504,9 @@ describe('compose/service', () => {
 						appId: 1,
 						serviceId: 1,
 						serviceName: 'test',
-						dns: ['8.8.8.8', '1.1.1.1'],
+						composition: {
+							dns: ['8.8.8.8', '1.1.1.1'],
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -493,7 +517,9 @@ describe('compose/service', () => {
 						appId: 1,
 						serviceId: 1,
 						serviceName: 'test',
-						dns: ['1.1.1.1', '8.8.8.8'],
+						composition: {
+							dns: ['1.1.1.1', '8.8.8.8'],
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -506,7 +532,9 @@ describe('compose/service', () => {
 						appId: 1,
 						serviceId: 1,
 						serviceName: 'test',
-						volumes: ['abcdef', 'ghijk'],
+						composition: {
+							volumes: ['abcdef', 'ghijk'],
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -515,7 +543,9 @@ describe('compose/service', () => {
 						appId: 1,
 						serviceId: 1,
 						serviceName: 'test',
-						volumes: ['abcdef', 'ghijk'],
+						composition: {
+							volumes: ['abcdef', 'ghijk'],
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -526,7 +556,9 @@ describe('compose/service', () => {
 						appId: 1,
 						serviceId: 1,
 						serviceName: 'test',
-						volumes: ['ghijk', 'abcdef'],
+						composition: {
+							volumes: ['ghijk', 'abcdef'],
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -539,8 +571,10 @@ describe('compose/service', () => {
 						appId: 1,
 						serviceId: 1,
 						serviceName: 'test',
-						volumes: ['abcdef', 'ghijk'],
-						dns: ['8.8.8.8', '1.1.1.1'],
+						composition: {
+							volumes: ['abcdef', 'ghijk'],
+							dns: ['8.8.8.8', '1.1.1.1'],
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -549,8 +583,10 @@ describe('compose/service', () => {
 						appId: 1,
 						serviceId: 1,
 						serviceName: 'test',
-						volumes: ['ghijk', 'abcdef'],
-						dns: ['8.8.8.8', '1.1.1.1'],
+						composition: {
+							volumes: ['ghijk', 'abcdef'],
+							dns: ['8.8.8.8', '1.1.1.1'],
+						},
 					},
 					{ appName: 'test' } as any,
 				);
@@ -951,7 +987,9 @@ describe('compose/service', () => {
 					releaseId: 2,
 					serviceId: 3,
 					imageId: 4,
-					network_mode: 'service: test',
+					composition: {
+						network_mode: 'service: test',
+					},
 				},
 				{ appName: 'test' } as any,
 			);
@@ -965,8 +1003,10 @@ describe('compose/service', () => {
 					releaseId: 2,
 					serviceId: 3,
 					imageId: 4,
-					depends_on: ['another_service'],
-					network_mode: 'service: test',
+					composition: {
+						depends_on: ['another_service'],
+						network_mode: 'service: test',
+					},
 				},
 				{ appName: 'test' } as any,
 			);
@@ -982,7 +1022,9 @@ describe('compose/service', () => {
 					releaseId: 2,
 					serviceId: 3,
 					imageId: 4,
-					network_mode: 'service: test',
+					composition: {
+						network_mode: 'service: test',
+					},
 				},
 				{ appName: 'test' } as any,
 			);
@@ -1039,11 +1081,13 @@ describe('compose/service', () => {
 					appId: 123,
 					serviceId: 123,
 					serviceName: 'test',
-					securityOpt: [
-						'label=user:USER',
-						'label=user:ROLE',
-						'seccomp=unconfined',
-					],
+					composition: {
+						securityOpt: [
+							'label=user:USER',
+							'label=user:ROLE',
+							'seccomp=unconfined',
+						],
+					},
 				},
 				{ appName: 'test' } as any,
 			);

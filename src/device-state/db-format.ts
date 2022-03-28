@@ -1,7 +1,8 @@
 import * as _ from 'lodash';
 
 import * as db from '../db';
-import * as targetStateCache from '../device-state/target-state-cache';
+import * as targetStateCache from './target-state-cache';
+import { DatabaseApp, DatabaseService } from './target-state-cache';
 
 import App from '../compose/app';
 import * as images from '../compose/images';
@@ -10,9 +11,9 @@ import {
 	InstancedAppState,
 	TargetApp,
 	TargetApps,
+	TargetRelease,
 	TargetService,
 } from '../types/state';
-import { checkInt } from '../lib/validation';
 
 type InstancedApp = InstancedAppState[0];
 
@@ -37,72 +38,114 @@ export async function getApps(): Promise<InstancedAppState> {
 }
 
 export async function setApps(
-	apps: { [appId: number]: TargetApp },
+	apps: TargetApps,
 	source: string,
 	trx?: db.Transaction,
 ) {
-	const dbApps = await Promise.all(
-		Object.keys(apps).map(async (appIdStr) => {
-			const appId = checkInt(appIdStr)!;
+	const dbApps = Object.keys(apps).map((uuid) => {
+		const { id: appId, ...app } = apps[uuid];
 
-			const app = apps[appId];
-			const services = await Promise.all(
-				_.map(app.services, async (s, sId) => ({
-					...s,
-					appId,
-					releaseId: app.releaseId,
-					serviceId: checkInt(sId),
-					commit: app.commit,
-					image: await images.normalise(s.image),
-				})),
-			);
+		// Get the first uuid
+		const [releaseUuid] = Object.keys(app.releases);
+		const release = releaseUuid
+			? app.releases[releaseUuid]
+			: ({} as TargetRelease);
+
+		const services = Object.keys(release.services ?? {}).map((serviceName) => {
+			const { id: releaseId } = release;
+			const { id: serviceId, image_id: imageId, ...service } = release.services[
+				serviceName
+			];
 
 			return {
+				...service,
 				appId,
-				source,
-				commit: app.commit,
-				name: app.name,
-				releaseId: app.releaseId,
-				services: JSON.stringify(services),
-				networks: JSON.stringify(app.networks ?? {}),
-				volumes: JSON.stringify(app.volumes ?? {}),
+				appUuid: uuid,
+				releaseId,
+				commit: releaseUuid,
+				imageId,
+				serviceId,
+				serviceName,
+				image: images.normalise(service.image),
 			};
-		}),
-	);
+		});
+
+		return {
+			appId,
+			uuid,
+			source,
+			isHost: !!app.is_host,
+			class: app.class,
+			name: app.name,
+			...(releaseUuid && { releaseId: release.id, commit: releaseUuid }),
+			services: JSON.stringify(services),
+			networks: JSON.stringify(release.networks ?? {}),
+			volumes: JSON.stringify(release.volumes ?? {}),
+		};
+	});
+
 	await targetStateCache.setTargetApps(dbApps, trx);
 }
 
+/**
+ * Create target state from database state
+ */
 export async function getTargetJson(): Promise<TargetApps> {
 	const dbApps = await getDBEntry();
-	const apps: TargetApps = {};
-	await Promise.all(
-		dbApps.map(async (app) => {
-			const parsedServices = JSON.parse(app.services);
 
-			const services = _(parsedServices)
-				.keyBy('serviceId')
-				.mapValues(
-					(svc: TargetService) => _.omit(svc, 'commit') as TargetService,
-				)
-				.value();
+	return dbApps
+		.map(({ source, uuid, releaseId, commit: releaseUuid, ...app }): [
+			string,
+			TargetApp,
+		] => {
+			const services = (JSON.parse(app.services) as DatabaseService[])
+				.map(({ serviceName, serviceId, imageId, ...service }): [
+					string,
+					TargetService,
+				] => [
+					serviceName,
+					{
+						id: serviceId,
+						image_id: imageId,
+						..._.omit(service, ['appId', 'appUuid', 'commit', 'releaseId']),
+					} as TargetService,
+				])
+				// Map by serviceName
+				.reduce(
+					(svcs, [serviceName, s]) => ({
+						...svcs,
+						[serviceName]: s,
+					}),
+					{},
+				);
 
-			apps[app.appId] = {
-				// We remove the id as this is the supervisor database id, and the
-				// source is internal and isn't used except for when we fetch the target
-				// state
-				..._.omit(app, ['id', 'source']),
-				services,
-				networks: JSON.parse(app.networks),
-				volumes: JSON.parse(app.volumes),
-				// We can add this cast because it's required in the db
-			} as TargetApp;
-		}),
-	);
-	return apps;
+			const releases = releaseUuid
+				? {
+						[releaseUuid]: {
+							id: releaseId,
+							services,
+							networks: JSON.parse(app.networks),
+							volumes: JSON.parse(app.volumes),
+						} as TargetRelease,
+				  }
+				: {};
+
+			return [
+				uuid,
+				{
+					id: app.appId,
+					name: app.name,
+					class: app.class,
+					is_host: !!app.isHost,
+					releases,
+				},
+			];
+		})
+		.reduce((apps, [uuid, app]) => ({ ...apps, [uuid]: app }), {});
 }
 
-function getDBEntry(): Promise<targetStateCache.DatabaseApp[]>;
-function getDBEntry(appId: number): Promise<targetStateCache.DatabaseApp>;
+function getDBEntry(): Promise<DatabaseApp[]>;
+function getDBEntry(appId: number): Promise<DatabaseApp>;
 async function getDBEntry(appId?: number) {
 	await targetStateCache.initialized;
 

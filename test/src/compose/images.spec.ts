@@ -7,6 +7,26 @@ import * as sinon from 'sinon';
 
 import log from '../../../src/lib/supervisor-console';
 
+// TODO: this code is duplicated in multiple tests
+// create a test module with all helper functions like this
+function createDBImage(
+	{
+		appId = 1,
+		name = 'test-image',
+		serviceName = 'test',
+		dependent = 0,
+		...extra
+	} = {} as Partial<imageManager.Image>,
+) {
+	return {
+		appId,
+		dependent,
+		name,
+		serviceName,
+		...extra,
+	} as imageManager.Image;
+}
+
 describe('compose/images', () => {
 	let testDb: dbHelper.TestDatabase;
 	before(async () => {
@@ -36,19 +56,12 @@ describe('compose/images', () => {
 	});
 
 	it('finds image by matching digest on the database', async () => {
-		const dbImage = {
-			id: 246,
+		const dbImage = createDBImage({
 			name:
 				'registry2.balena-cloud.com/v2/aaaaa@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-			appId: 1658654,
-			serviceId: 650325,
-			serviceName: 'app_1',
-			imageId: 2693229,
-			releaseId: 1524186,
-			dependent: 0,
 			dockerImageId:
 				'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
-		};
+		});
 		await testDb.models('image').insert([dbImage]);
 
 		const images = [
@@ -72,8 +85,8 @@ describe('compose/images', () => {
 				await expect(mockerode.getImage(dbImage.name).inspect()).to.be.rejected;
 
 				// Looking up the image by id should succeed
-				await expect(mockerode.getImage(dbImage.dockerImageId).inspect()).to.not
-					.be.rejected;
+				await expect(mockerode.getImage(dbImage.dockerImageId!).inspect()).to
+					.not.be.rejected;
 
 				// The image is found
 				expect(await imageManager.inspectByName(dbImage.name))
@@ -126,18 +139,11 @@ describe('compose/images', () => {
 	});
 
 	it('finds image by tag on the database', async () => {
-		const dbImage = {
-			id: 246,
+		const dbImage = createDBImage({
 			name: 'some-image:some-tag',
-			appId: 1658654,
-			serviceId: 650325,
-			serviceName: 'app_1',
-			imageId: 2693229,
-			releaseId: 1524186,
-			dependent: 0,
 			dockerImageId:
 				'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
-		};
+		});
 		await testDb.models('image').insert([dbImage]);
 
 		const images = [
@@ -245,53 +251,29 @@ describe('compose/images', () => {
 
 	it('returns all images in both the database and the engine', async () => {
 		await testDb.models('image').insert([
-			{
-				id: 1,
+			createDBImage({
 				name: 'first-image-name:first-image-tag',
-				appId: 1,
-				serviceId: 1,
 				serviceName: 'app_1',
-				imageId: 1,
-				releaseId: 1,
-				dependent: 0,
 				dockerImageId: 'sha256:first-image-id',
-			},
-			{
-				id: 2,
+			}),
+			createDBImage({
 				name: 'second-image-name:second-image-tag',
-				appId: 2,
-				serviceId: 2,
 				serviceName: 'app_2',
-				imageId: 2,
-				releaseId: 2,
-				dependent: 0,
 				dockerImageId: 'sha256:second-image-id',
-			},
-			{
-				id: 3,
+			}),
+			createDBImage({
 				name:
 					'registry2.balena-cloud.com/v2/three@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf558',
-				appId: 3,
-				serviceId: 3,
 				serviceName: 'app_3',
-				imageId: 3,
-				releaseId: 3,
-				dependent: 0,
 				// Third image has different name but same docker id
 				dockerImageId: 'sha256:second-image-id',
-			},
-			{
-				id: 4,
+			}),
+			createDBImage({
 				name: 'fourth-image-name:fourth-image-tag',
-				appId: 4,
-				serviceId: 4,
 				serviceName: 'app_4',
-				imageId: 4,
-				releaseId: 4,
-				dependent: 0,
 				// The fourth image exists on the engine but with the wrong id
 				dockerImageId: 'sha256:fourth-image-id',
-			},
+			}),
 		]);
 
 		const images = [
@@ -336,16 +318,9 @@ describe('compose/images', () => {
 
 	it('removes a single legacy db images without dockerImageId', async () => {
 		// Legacy images don't have a dockerImageId so they are queried by name
-		const imageToRemove = {
-			id: 246,
+		const imageToRemove = createDBImage({
 			name: 'image-name:image-tag',
-			appId: 1658654,
-			serviceId: 650325,
-			serviceName: 'app_1',
-			imageId: 2693229,
-			releaseId: 1524186,
-			dependent: 0,
-		};
+		});
 
 		await testDb.models('image').insert([imageToRemove]);
 
@@ -405,34 +380,20 @@ describe('compose/images', () => {
 
 	it('removes image from DB and engine when there is a single DB image with matching name', async () => {
 		// Newer image
-		const imageToRemove = {
-			id: 246,
+		const imageToRemove = createDBImage({
 			name:
 				'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-			appId: 1658654,
-			serviceId: 650325,
-			serviceName: 'app_1',
-			imageId: 2693229,
-			releaseId: 1524186,
-			dependent: 0,
 			dockerImageId: 'sha256:image-id-one',
-		};
+		});
 
 		// Insert images into the db
 		await testDb.models('image').insert([
 			imageToRemove,
-			{
-				id: 247,
+			createDBImage({
 				name:
 					'registry2.balena-cloud.com/v2/two@sha256:12345a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-				appId: 1658654,
-				serviceId: 650331,
-				serviceName: 'app_2',
-				imageId: 2693230,
-				releaseId: 1524186,
-				dependent: 0,
 				dockerImageId: 'sha256:image-id-two',
-			},
+			}),
 		]);
 
 		// Engine image state
@@ -507,33 +468,18 @@ describe('compose/images', () => {
 	});
 
 	it('removes the requested image even when there are multiple DB images with same docker ID', async () => {
-		const imageToRemove = {
-			id: 246,
+		const imageToRemove = createDBImage({
 			name:
 				'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-			appId: 1658654,
-			serviceId: 650325,
-			serviceName: 'app_1',
-			imageId: 2693229,
-			releaseId: 1524186,
-			dependent: 0,
 			dockerImageId: 'sha256:image-id-one',
-		};
+		});
 
-		const imageWithSameDockerImageId = {
-			id: 247,
+		const imageWithSameDockerImageId = createDBImage({
 			name:
 				'registry2.balena-cloud.com/v2/two@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-			appId: 1658654,
-			serviceId: 650331,
-			serviceName: 'app_2',
-			imageId: 2693230,
-			releaseId: 1524186,
-			dependent: 0,
-
 			// Same imageId
 			dockerImageId: 'sha256:image-id-one',
-		};
+		});
 
 		// Insert images into the db
 		await testDb.models('image').insert([
@@ -547,7 +493,7 @@ describe('compose/images', () => {
 			// The image to remove
 			createImage(
 				{
-					Id: imageToRemove.dockerImageId,
+					Id: imageToRemove.dockerImageId!,
 				},
 				{
 					References: [imageToRemove.name, imageWithSameDockerImageId.name],
@@ -570,7 +516,7 @@ describe('compose/images', () => {
 				// Check that the image is on the engine
 				// really checking mockerode behavior
 				await expect(
-					mockerode.getImage(imageToRemove.dockerImageId).inspect(),
+					mockerode.getImage(imageToRemove.dockerImageId!).inspect(),
 					'image exists on the engine before the test',
 				).to.not.be.rejected;
 
@@ -607,32 +553,18 @@ describe('compose/images', () => {
 	});
 
 	it('removes image from DB by tag when deltas are being used', async () => {
-		const imageToRemove = {
-			id: 246,
+		const imageToRemove = createDBImage({
 			name:
 				'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-			appId: 1658654,
-			serviceId: 650325,
-			serviceName: 'app_1',
-			imageId: 2693229,
-			releaseId: 1524186,
-			dependent: 0,
 			dockerImageId: 'sha256:image-one-id',
-		};
+		});
 
-		const imageWithSameDockerImageId = {
-			id: 247,
+		const imageWithSameDockerImageId = createDBImage({
 			name:
 				'registry2.balena-cloud.com/v2/two@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-			appId: 1658654,
-			serviceId: 650331,
-			serviceName: 'app_2',
-			imageId: 2693230,
-			releaseId: 1524186,
-			dependent: 0,
 			// Same docker id
 			dockerImageId: 'sha256:image-one-id',
-		};
+		});
 
 		// Insert images into the db
 		await testDb.models('image').insert([
@@ -646,7 +578,7 @@ describe('compose/images', () => {
 			// The image to remove
 			createImage(
 				{
-					Id: imageToRemove.dockerImageId,
+					Id: imageToRemove.dockerImageId!,
 				},
 				{
 					References: [
@@ -663,7 +595,7 @@ describe('compose/images', () => {
 			async (mockerode) => {
 				// Check that the image is on the engine
 				await expect(
-					mockerode.getImage(imageToRemove.dockerImageId).inspect(),
+					mockerode.getImage(imageToRemove.dockerImageId!).inspect(),
 					'image can be found by id before the test',
 				).to.not.be.rejected;
 

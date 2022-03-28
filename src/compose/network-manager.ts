@@ -23,16 +23,12 @@ export function getAll(): Bluebird<Network[]> {
 	});
 }
 
-export function getAllByAppId(appId: number): Bluebird<Network[]> {
-	return getAll().filter((network: Network) => network.appId === appId);
-}
-
-export async function get(network: {
+async function get(network: {
 	name: string;
-	appId: number;
+	appUuid: string;
 }): Promise<Network> {
 	const dockerNet = await docker
-		.getNetwork(Network.generateDockerName(network.appId, network.name))
+		.getNetwork(Network.generateDockerName(network.appUuid, network.name))
 		.inspect();
 	return Network.fromDockerNetwork(dockerNet);
 }
@@ -41,7 +37,7 @@ export async function create(network: Network) {
 	try {
 		const existing = await get({
 			name: network.name,
-			appId: network.appId,
+			appUuid: network.appUuid!, // new networks will always have uuid
 		});
 		if (!network.isEqualConfig(existing)) {
 			throw new ResourceRecreationAttemptError('network', network.name);
@@ -52,7 +48,7 @@ export async function create(network: Network) {
 	} catch (e) {
 		if (!NotFoundError(e)) {
 			logger.logSystemEvent(logTypes.createNetworkError, {
-				network: { name: network.name, appId: network.appId },
+				network: { name: network.name, appUuid: network.appUuid },
 				error: e,
 			});
 			throw e;

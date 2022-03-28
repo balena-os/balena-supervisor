@@ -37,14 +37,16 @@ import * as deviceConfig from './device-config';
 import { ConfigStep } from './device-config';
 import { log } from './lib/supervisor-console';
 import {
-	DeviceReportFields,
-	DeviceStatus,
+	DeviceLegacyState,
 	InstancedDeviceState,
 	TargetState,
-	InstancedAppState,
-} from './types/state';
+	DeviceState,
+	DeviceReport,
+	AppState,
+} from './types';
 import * as dbFormat from './device-state/db-format';
 import * as apiKeys from './lib/api-keys';
+import * as sysInfo from './lib/system-info';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
 
@@ -166,7 +168,7 @@ function createDeviceStateRouter() {
 
 	router.get('/v1/device', async (_req, res) => {
 		try {
-			const state = await getStatus();
+			const state = await getLegacyState();
 			const stateToSend = _.pick(state.local, [
 				'api_port',
 				'ip_address',
@@ -248,7 +250,7 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| CompositionStepT<T extends CompositionStepAction ? T : never>
 	| ConfigStep;
 
-let currentVolatile: DeviceReportFields = {};
+let currentVolatile: DeviceReport = {};
 const writeLock = updateLock.writeLock;
 const readLock = updateLock.readLock;
 let maxPollTime: number;
@@ -355,7 +357,7 @@ export async function initNetworkChecks({
 	});
 	log.debug('Starting periodic check for IP addresses');
 
-	await network.startIPAddressUpdate()(async (addresses) => {
+	network.startIPAddressUpdate()(async (addresses) => {
 		const macAddress = await config.get('macAddress');
 		reportCurrentState({
 			ip_address: addresses.join(' '),
@@ -479,27 +481,29 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 
 	globalEventBus.getInstance().emit('targetStateChanged', target);
 
-	const apiEndpoint = await config.get('apiEndpoint');
+	const { uuid, apiEndpoint } = await config.getMany([
+		'uuid',
+		'apiEndpoint',
+		'name',
+	]);
+
+	if (!uuid || !target[uuid]) {
+		throw new Error(
+			`Expected target state for local device with uuid '${uuid}'.`,
+		);
+	}
+
+	const localTarget = target[uuid];
 
 	await usingWriteLockTarget(async () => {
 		await db.transaction(async (trx) => {
-			await config.set({ name: target.local.name }, trx);
-			await deviceConfig.setTarget(target.local.config, trx);
+			await config.set({ name: localTarget.name }, trx);
+			await deviceConfig.setTarget(localTarget.config, trx);
 
 			if (localSource || apiEndpoint == null || apiEndpoint === '') {
-				await applicationManager.setTarget(
-					target.local.apps,
-					target.dependent,
-					'local',
-					trx,
-				);
+				await applicationManager.setTarget(localTarget.apps, 'local', trx);
 			} else {
-				await applicationManager.setTarget(
-					target.local.apps,
-					target.dependent,
-					apiEndpoint,
-					trx,
-				);
+				await applicationManager.setTarget(localTarget.apps, apiEndpoint, trx);
 			}
 			await config.set({ targetStateSet: true }, trx);
 		});
@@ -528,9 +532,14 @@ export function getTarget({
 	});
 }
 
-export async function getStatus(): Promise<DeviceStatus> {
-	const appsStatus = await applicationManager.getStatus();
-	const theState: DeepPartial<DeviceStatus> = {
+// This returns the current state of the device in (more or less)
+// the same format as the target state. This method,
+// getCurrent and getCurrentForComparison should probably get
+// merged into a single method
+// @deprecated
+export async function getLegacyState(): Promise<DeviceLegacyState> {
+	const appsStatus = await applicationManager.getLegacyState();
+	const theState: DeepPartial<DeviceLegacyState> = {
 		local: {},
 		dependent: {},
 	};
@@ -560,29 +569,95 @@ export async function getStatus(): Promise<DeviceStatus> {
 		}
 	}
 
-	return theState as DeviceStatus;
+	return theState as DeviceLegacyState;
 }
 
-export async function getCurrentForComparison(): Promise<
-	DeviceStatus & { local: { name: string } }
-> {
-	const [name, devConfig, apps, dependent] = await Promise.all([
-		config.get('name'),
-		deviceConfig.getCurrent(),
-		applicationManager.getCurrentAppsForReport(),
-		applicationManager.getDependentState(),
-	]);
-	return {
-		local: {
-			name,
-			config: devConfig,
-			apps,
-		},
+async function getSysInfo(
+	lastInfo: Partial<sysInfo.SystemInfo>,
+): Promise<sysInfo.SystemInfo> {
+	// If hardwareMetrics is false, send null patch for system metrics to cloud API
+	const currentInfo = {
+		...((await config.get('hardwareMetrics'))
+			? await sysInfo.getSystemMetrics()
+			: {
+					cpu_usage: null,
+					memory_usage: null,
+					memory_total: null,
+					storage_usage: null,
+					storage_total: null,
+					storage_block_device: null,
+					cpu_temp: null,
+					cpu_id: null,
+			  }),
+		...(await sysInfo.getSystemChecks()),
+	};
 
-		dependent,
+	return Object.assign(
+		{} as sysInfo.SystemInfo,
+		...Object.keys(currentInfo).map((key: keyof sysInfo.SystemInfo) => ({
+			[key]: sysInfo.isSignificantChange(
+				key,
+				lastInfo[key] as number,
+				currentInfo[key] as number,
+			)
+				? (currentInfo[key] as number)
+				: (lastInfo[key] as number),
+		})),
+	);
+}
+
+// Return current state in a way that the API understands
+export async function getCurrentForReport(
+	lastReport = {} as DeviceState,
+): Promise<DeviceState> {
+	const apps = await applicationManager.getState();
+
+	// Fiter current apps by the target state as the supervisor cannot
+	// report on apps for which it doesn't have API permissions
+	const targetAppUuids = Object.keys(await applicationManager.getTargetApps());
+	const appsForReport = Object.keys(apps)
+		.filter((appUuid) => targetAppUuids.includes(appUuid))
+		.reduce(
+			(filteredApps, appUuid) => ({
+				...filteredApps,
+				[appUuid]: apps[appUuid],
+			}),
+			{} as { [appUuid: string]: AppState },
+		);
+
+	const { name, uuid, localMode } = await config.getMany([
+		'name',
+		'uuid',
+		'localMode',
+	]);
+
+	if (!uuid) {
+		throw new InternalInconsistencyError('No uuid found for local device');
+	}
+
+	const omitFromReport = [
+		'update_pending',
+		'update_downloaded',
+		'update_failed',
+		...(localMode ? ['apps', 'logs_channel'] : []),
+	];
+
+	const systemInfo = await getSysInfo(lastReport[uuid] ?? {});
+
+	return {
+		[uuid]: _.omitBy(
+			{
+				...currentVolatile,
+				...systemInfo,
+				name,
+				apps: appsForReport,
+			},
+			(__, key) => omitFromReport.includes(key),
+		),
 	};
 }
 
+// Get the current state as object instances
 export async function getCurrentState(): Promise<InstancedDeviceState> {
 	const [name, devConfig, apps, dependent] = await Promise.all([
 		config.get('name'),
@@ -601,9 +676,7 @@ export async function getCurrentState(): Promise<InstancedDeviceState> {
 	};
 }
 
-export function reportCurrentState(
-	newState: DeviceReportFields & Partial<InstancedAppState> = {},
-) {
+export function reportCurrentState(newState: DeviceReport = {}) {
 	if (newState == null) {
 		newState = {};
 	}
@@ -762,7 +835,7 @@ export const applyTarget = async ({
 
 	return usingInferStepsLock(async () => {
 		const [currentState, targetState] = await Promise.all([
-			getCurrentForComparison(),
+			getCurrentState(),
 			getTarget({ initial, intermediate }),
 		]);
 		const deviceConfigSteps = await deviceConfig.getRequiredSteps(
@@ -782,6 +855,7 @@ export const applyTarget = async ({
 			steps = deviceConfigSteps;
 		} else {
 			const appSteps = await applicationManager.getRequiredSteps(
+				currentState.local.apps,
 				targetState.local.apps,
 			);
 

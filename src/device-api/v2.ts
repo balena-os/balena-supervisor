@@ -32,6 +32,7 @@ import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone } from './common';
 import { AuthorizedRequest } from '../lib/api-keys';
+import { fromV2TargetState } from '../lib/legacy';
 
 export function createV2Api(router: Router) {
 	const handleServiceAction = (
@@ -191,8 +192,8 @@ export function createV2Api(router: Router) {
 			// It's kinda hacky to access the services and db via the application manager
 			// maybe refactor this code
 			Bluebird.join(
-				serviceManager.getStatus(),
-				images.getStatus(),
+				serviceManager.getState(),
+				images.getState(),
 				db.models('app').select(['appId', 'commit', 'name']),
 				(
 					services,
@@ -284,7 +285,7 @@ export function createV2Api(router: Router) {
 			// Query device for all applications
 			let apps: any;
 			try {
-				apps = await applicationManager.getStatus();
+				apps = await applicationManager.getLegacyState();
 			} catch (e) {
 				log.error(e.message);
 				return res.status(500).json({
@@ -346,7 +347,10 @@ export function createV2Api(router: Router) {
 
 		// Now attempt to set the state
 		const force = req.body.force;
-		const targetState = req.body;
+
+		// Migrate target state from v2 to v3 to maintain API compatibility
+		const targetState = await fromV2TargetState(req.body, true);
+
 		try {
 			await deviceState.setTarget(targetState, true);
 			await deviceState.triggerApplyTarget({ force });
@@ -472,7 +476,7 @@ export function createV2Api(router: Router) {
 
 		let downloadProgressTotal = 0;
 		let downloads = 0;
-		const imagesStates = (await images.getStatus())
+		const imagesStates = (await images.getState())
 			.filter((img) => req.auth.isScoped({ apps: [img.appId] }))
 			.map((img) => {
 				appIds.push(img.appId);
@@ -557,19 +561,17 @@ export function createV2Api(router: Router) {
 
 	router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res) => {
 		const targetState = await applicationManager.getTargetApps();
-		const referencedVolumes: string[] = [];
-		_.each(targetState, (app, appId) => {
+		const referencedVolumes = Object.values(targetState)
 			// if this app isn't in scope of the request, do not cleanup it's volumes
-			if (!req.auth.isScoped({ apps: [parseInt(appId, 10)] })) {
-				return;
-			}
-
-			_.each(app.volumes, (_volume, volumeName) => {
-				referencedVolumes.push(
-					Volume.generateDockerName(parseInt(appId, 10), volumeName),
+			.filter((app) => req.auth.isScoped({ apps: [app.id] }))
+			.flatMap((app) => {
+				const [release] = Object.values(app.releases);
+				// Return a list of the volume names
+				return Object.keys(release?.volumes ?? {}).map((volumeName) =>
+					Volume.generateDockerName(app.id, volumeName),
 				);
 			});
-		});
+
 		await volumeManager.removeOrphanedVolumes(referencedVolumes);
 		res.json({
 			status: 'success',

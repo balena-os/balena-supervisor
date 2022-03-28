@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import * as dockerode from 'dockerode';
 
@@ -11,29 +10,64 @@ import * as ComposeUtils from './utils';
 import { ComposeNetworkConfig, NetworkConfig } from './types/network';
 
 import { InvalidNetworkNameError } from './errors';
+import { InternalInconsistencyError } from '../lib/errors';
 
 export class Network {
 	public appId: number;
+	public appUuid?: string;
 	public name: string;
 	public config: NetworkConfig;
 
 	private constructor() {}
+
+	private static deconstructDockerName(
+		name: string,
+	): { name: string; appId?: number; appUuid?: string } {
+		const matchWithAppId = name.match(/^(\d+)_(\S+)/);
+		if (matchWithAppId == null) {
+			const matchWithAppUuid = name.match(/^([0-9a-f-A-F]{32,})_(\S+)/);
+
+			if (!matchWithAppUuid) {
+				throw new InvalidNetworkNameError(name);
+			}
+
+			const appUuid = matchWithAppUuid[1];
+			return { name: matchWithAppUuid[2], appUuid };
+		}
+
+		const appId = parseInt(matchWithAppId[1], 10);
+		if (isNaN(appId)) {
+			throw new InvalidNetworkNameError(name);
+		}
+
+		return {
+			appId,
+			name: matchWithAppId[2],
+		};
+	}
 
 	public static fromDockerNetwork(
 		network: dockerode.NetworkInspectInfo,
 	): Network {
 		const ret = new Network();
 
-		const match = network.Name.match(/^([0-9]+)_(.+)$/);
-		if (match == null) {
-			throw new InvalidNetworkNameError(network.Name);
+		// Detect the name and appId from the inspect data
+		const { name, appId, appUuid } = Network.deconstructDockerName(
+			network.Name,
+		);
+
+		const labels = network.Labels ?? {};
+		if (!appId && isNaN(parseInt(labels['io.balena.app-id'], 10))) {
+			// This should never happen as supervised networks will always have either
+			// the id or the label
+			throw new InternalInconsistencyError(
+				`Could not read app id from network: ${network.Name}`,
+			);
 		}
 
-		// If the regex match succeeds `match[1]` should be a number
-		const appId = parseInt(match[1], 10);
-
-		ret.appId = appId;
-		ret.name = match[2];
+		ret.appId = appId ?? parseInt(labels['io.balena.app-id'], 10);
+		ret.name = name;
+		ret.appUuid = appUuid;
 
 		const config = network.IPAM?.Config || [];
 
@@ -51,7 +85,7 @@ export class Network {
 			},
 			enableIPv6: network.EnableIPv6,
 			internal: network.Internal,
-			labels: _.omit(ComposeUtils.normalizeLabels(network.Labels ?? {}), [
+			labels: _.omit(ComposeUtils.normalizeLabels(labels), [
 				'io.balena.supervised',
 			]),
 			options: network.Options ?? {},
@@ -63,6 +97,7 @@ export class Network {
 	public static fromComposeObject(
 		name: string,
 		appId: number,
+		appUuid: string,
 		network: Partial<Omit<ComposeNetworkConfig, 'ipam'>> & {
 			ipam?: Partial<ComposeNetworkConfig['ipam']>;
 		},
@@ -70,6 +105,7 @@ export class Network {
 		const net = new Network();
 		net.name = name;
 		net.appId = appId;
+		net.appUuid = appUuid;
 
 		Network.validateComposeConfig(network);
 
@@ -95,11 +131,12 @@ export class Network {
 			},
 			enableIPv6: network.enable_ipv6 || false,
 			internal: network.internal || false,
-			labels: network.labels || {},
+			labels: {
+				'io.balena.app-id': String(appId),
+				...ComposeUtils.normalizeLabels(network.labels || {}),
+			},
 			options: network.driver_opts || {},
 		};
-
-		net.config.labels = ComposeUtils.normalizeLabels(net.config.labels);
 
 		return net;
 	}
@@ -117,7 +154,7 @@ export class Network {
 
 	public async create(): Promise<void> {
 		logger.logSystemEvent(logTypes.createNetwork, {
-			network: { name: this.name },
+			network: { name: this.name, appUuid: this.appUuid },
 		});
 
 		await docker.createNetwork(this.toDockerConfig());
@@ -125,7 +162,7 @@ export class Network {
 
 	public toDockerConfig(): dockerode.NetworkCreateOptions {
 		return {
-			Name: Network.generateDockerName(this.appId, this.name),
+			Name: Network.generateDockerName(this.appUuid!, this.name),
 			Driver: this.config.driver,
 			CheckDuplicate: true,
 			Options: this.config.options,
@@ -153,28 +190,41 @@ export class Network {
 		};
 	}
 
-	public remove(): Bluebird<void> {
+	public async remove() {
 		logger.logSystemEvent(logTypes.removeNetwork, {
-			network: { name: this.name, appId: this.appId },
+			network: { name: this.name, appUuid: this.appUuid },
 		});
 
-		const networkName = Network.generateDockerName(this.appId, this.name);
-
-		return Bluebird.resolve(docker.listNetworks())
-			.then((networks) => networks.filter((n) => n.Name === networkName))
-			.then(([network]) => {
-				if (!network) {
-					return Bluebird.resolve();
+		// Find the network
+		const [networkName] = (await docker.listNetworks())
+			.filter((network) => {
+				try {
+					const { appId, appUuid, name } = Network.deconstructDockerName(
+						network.Name,
+					);
+					return (
+						name === this.name &&
+						(appId === this.appId || appUuid === this.appUuid)
+					);
+				} catch {
+					return false;
 				}
-				return Bluebird.resolve(
-					docker.getNetwork(networkName).remove(),
-				).tapCatch((error) => {
-					logger.logSystemEvent(logTypes.removeNetworkError, {
-						network: { name: this.name, appId: this.appId },
-						error,
-					});
-				});
+			})
+			.map((network) => network.Name);
+
+		if (!networkName) {
+			return;
+		}
+
+		try {
+			await docker.getNetwork(networkName).remove();
+		} catch (error) {
+			logger.logSystemEvent(logTypes.removeNetworkError, {
+				network: { name: this.name, appUuid: this.appUuid },
+				error,
 			});
+			throw error;
+		}
 	}
 
 	public isEqualConfig(network: Network): boolean {
@@ -210,8 +260,8 @@ export class Network {
 		}
 	}
 
-	public static generateDockerName(appId: number, name: string) {
-		return `${appId}_${name}`;
+	public static generateDockerName(appIdOrUuid: number | string, name: string) {
+		return `${appIdOrUuid}_${name}`;
 	}
 }
 

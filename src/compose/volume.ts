@@ -1,5 +1,4 @@
 import * as Docker from 'dockerode';
-import assign = require('lodash/assign');
 import isEqual = require('lodash/isEqual');
 import omitBy = require('lodash/omitBy');
 
@@ -27,6 +26,7 @@ export class Volume {
 	private constructor(
 		public name: string,
 		public appId: number,
+		public appUuid: string,
 		public config: VolumeConfig,
 	) {}
 
@@ -40,26 +40,34 @@ export class Volume {
 
 		// Detect the name and appId from the inspect data
 		const { name, appId } = this.deconstructDockerName(inspect.Name);
+		const appUuid = config.labels['io.balena.app-uuid'];
 
-		return new Volume(name, appId, config);
+		return new Volume(name, appId, appUuid, config);
 	}
 
 	public static fromComposeObject(
 		name: string,
 		appId: number,
-		config: Partial<ComposeVolumeConfig>,
+		appUuid: string,
+		config = {} as Partial<ComposeVolumeConfig>,
 	) {
 		const filledConfig: VolumeConfig = {
 			driverOpts: config.driver_opts || {},
 			driver: config.driver || 'local',
-			labels: ComposeUtils.normalizeLabels(config.labels || {}),
+			labels: {
+				// We only need to assign the labels here, as when we
+				// get it from the daemon, they should already be there
+				...ComposeUtils.normalizeLabels(config.labels || {}),
+				...constants.defaultVolumeLabels,
+
+				// the app uuid will always be in the target state, the
+				// only reason this is done this way is to be compatible
+				// with loading a volume from backup (see lib/migration)
+				...(appUuid && { 'io.balena.app-uuid': appUuid }),
+			},
 		};
 
-		// We only need to assign the labels here, as when we
-		// get it from the daemon, they should already be there
-		assign(filledConfig.labels, constants.defaultVolumeLabels);
-
-		return new Volume(name, appId, filledConfig);
+		return new Volume(name, appId, appUuid, filledConfig);
 	}
 
 	public toComposeObject(): ComposeVolumeConfig {
@@ -141,7 +149,14 @@ export class Volume {
 		// TODO: Export these to a constant
 		return omitBy(
 			labels,
-			(_v, k) => k === 'io.resin.supervised' || k === 'io.balena.supervised',
+			(_v, k) =>
+				k === 'io.resin.supervised' ||
+				k === 'io.balena.supervised' ||
+				// TODO: we need to omit the app-uuid label
+				// in the comparison or else the supervisor will try to recreate
+				// the volume, which won't fail but won't have any effect on the volume
+				// either, leading to a supervisor target state apply loop
+				k === 'io.balena.app-uuid',
 		);
 	}
 }

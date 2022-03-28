@@ -84,9 +84,11 @@ export const getAll = async (
 	return services.filter((s) => s != null) as Service[];
 };
 
-export async function get(service: Service) {
+async function get(service: Service) {
 	// Get the container ids for special network handling
-	const containerIds = await getContainerIdMap(service.appId!);
+	const containerIds = await getContainerIdMap(
+		service.appUuid || service.appId,
+	);
 	const services = (
 		await getAll(`service-name=${service.serviceName}`)
 	).filter((currentService) =>
@@ -103,19 +105,23 @@ export async function get(service: Service) {
 	return services[0];
 }
 
-export async function getStatus() {
+/**
+ * Get the current state of all supervised services
+ */
+export async function getState() {
 	const services = await getAll();
 	const status = _.clone(volatileState);
 
 	for (const service of services) {
 		if (service.containerId == null) {
 			throw new InternalInconsistencyError(
-				`containerId not defined in ServiceManager.getStatus: ${service}`,
+				`containerId not defined in ServiceManager.getLegacyServicesState: ${service}`,
 			);
 		}
 		if (status[service.containerId] == null) {
 			status[service.containerId] = _.pick(service, [
 				'appId',
+				'appUuid',
 				'imageId',
 				'status',
 				'releaseId',
@@ -213,17 +219,8 @@ export async function remove(service: Service) {
 		}
 	}
 }
-export function getAllByAppId(appId: number) {
-	return getAll(`app-id=${appId}`);
-}
 
-export async function stopAllByAppId(appId: number) {
-	for (const app of await getAllByAppId(appId)) {
-		await kill(app, { removeContainer: false });
-	}
-}
-
-export async function create(service: Service) {
+async function create(service: Service) {
 	const mockContainerId = config.newUniqueKey();
 	try {
 		const existing = await get(service);
@@ -251,12 +248,21 @@ export async function create(service: Service) {
 			);
 		}
 
-		// Get all created services so far
-		if (service.appId == null) {
+		// New services need to have an appUuid
+		if (service.appUuid == null) {
 			throw new InternalInconsistencyError(
-				'Attempt to start a service without an existing application ID',
+				'Attempt to start a service without an existing app uuid',
 			);
 		}
+
+		// We cannot get rid of appIds yet
+		if (service.appId == null) {
+			throw new InternalInconsistencyError(
+				'Attempt to start a service without an existing app id',
+			);
+		}
+
+		// Get all created services so far, there
 		const serviceContainerIds = await getContainerIdMap(service.appId);
 		const conf = service.toDockerContainer({
 			deviceName,
@@ -476,10 +482,16 @@ export async function attachToRunning() {
 	}
 }
 
-export async function getContainerIdMap(
-	appId: number,
+async function getContainerIdMap(
+	appIdOrUuid: number | string,
 ): Promise<Dictionary<string>> {
-	return _(await getAllByAppId(appId))
+	const [byAppId, byAppUuid] = await Promise.all([
+		getAll(`app-id=${appIdOrUuid}`),
+		getAll(`app-uuid=${appIdOrUuid}`),
+	]);
+
+	const containerList = _.unionBy(byAppId, byAppUuid, 'containerId');
+	return _(containerList)
 		.keyBy('serviceName')
 		.mapValues('containerId')
 		.value() as Dictionary<string>;
@@ -505,7 +517,15 @@ function reportNewStatus(
 		containerId,
 		_.merge(
 			{ status },
-			_.pick(service, ['imageId', 'appId', 'releaseId', 'commit']),
+			_.pick(service, [
+				'imageId',
+				'appId',
+				'appUuid',
+				'serviceName',
+				'releaseId',
+				'createdAt',
+				'commit',
+			]),
 		),
 	);
 }

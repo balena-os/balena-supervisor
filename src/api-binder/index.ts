@@ -6,34 +6,31 @@ import * as t from 'io-ts';
 import * as _ from 'lodash';
 import { PinejsClientRequest } from 'pinejs-client-request';
 import * as url from 'url';
-import * as deviceRegister from './lib/register-device';
+import * as deviceRegister from '../lib/register-device';
 
-import * as config from './config';
-import * as deviceConfig from './device-config';
-import * as eventTracker from './event-tracker';
-import { loadBackupFromMigration } from './lib/migration';
+import * as config from '../config';
+import * as deviceConfig from '../device-config';
+import * as eventTracker from '../event-tracker';
+import { loadBackupFromMigration } from '../lib/migration';
 
 import {
 	ContractValidationError,
 	ContractViolationError,
 	InternalInconsistencyError,
 	TargetStateError,
-} from './lib/errors';
-import * as request from './lib/request';
+} from '../lib/errors';
+import * as request from '../lib/request';
 
-import log from './lib/supervisor-console';
+import log from '../lib/supervisor-console';
 
-import * as deviceState from './device-state';
-import * as globalEventBus from './event-bus';
-import * as TargetState from './device-state/target-state';
-import * as logger from './logger';
+import * as deviceState from '../device-state';
+import * as globalEventBus from '../event-bus';
+import * as TargetState from '../device-state/target-state';
+import * as logger from '../logger';
 
-import * as apiHelper from './lib/api-helper';
-import { Device } from './lib/api-helper';
-import {
-	startReporting,
-	stateReportErrors,
-} from './device-state/current-state';
+import * as apiHelper from '../lib/api-helper';
+import { Device } from '../lib/api-helper';
+import { startReporting, stateReportErrors } from './report';
 
 interface DevicePinInfo {
 	app: number;
@@ -215,7 +212,7 @@ export async function patchDevice(
 	}
 
 	if (!conf.provisioned) {
-		throw new Error('DEvice must be provisioned to update a device');
+		throw new Error('Device must be provisioned to update a device');
 	}
 
 	if (balenaApi == null) {
@@ -308,11 +305,7 @@ export async function fetchDeviceTags(): Promise<DeviceTag[]> {
 				)}`,
 			);
 		}
-		return {
-			id: id.right,
-			name: name.right,
-			value: value.right,
-		};
+		return { id: id.right, name: name.right, value: value.right };
 	});
 }
 
@@ -353,7 +346,12 @@ async function pinDevice({ app, commit }: DevicePinInfo) {
 
 		// We force a fresh get to make sure we have the latest state
 		// and can guarantee we don't clash with any already reported config
-		const targetConfigUnformatted = (await TargetState.get())?.local?.config;
+		const uuid = await config.get('uuid');
+		if (!uuid) {
+			throw new InternalInconsistencyError('No uuid for local device');
+		}
+
+		const targetConfigUnformatted = (await TargetState.get())?.[uuid]?.config;
 		if (targetConfigUnformatted == null) {
 			throw new InternalInconsistencyError(
 				'Attempt to report initial state with malformed target state',
@@ -389,10 +387,12 @@ async function reportInitialEnv(
 		);
 	}
 
-	const targetConfigUnformatted = _.get(
-		await TargetState.get(),
-		'local.config',
-	);
+	const uuid = await config.get('uuid');
+	if (!uuid) {
+		throw new InternalInconsistencyError('No uuid for local device');
+	}
+
+	const targetConfigUnformatted = (await TargetState.get())?.[uuid]?.config;
 	if (targetConfigUnformatted == null) {
 		throw new InternalInconsistencyError(
 			'Attempt to report initial state with malformed target state',
@@ -401,17 +401,14 @@ async function reportInitialEnv(
 
 	const defaultConfig = deviceConfig.getDefaults();
 
-	const currentState = await deviceState.getCurrentState();
-	const targetConfig = await deviceConfig.formatConfigKeys(
-		targetConfigUnformatted,
-	);
+	const currentConfig = await deviceConfig.getCurrent();
+	const targetConfig = deviceConfig.formatConfigKeys(targetConfigUnformatted);
 
-	if (!currentState.local.config) {
+	if (!currentConfig) {
 		throw new InternalInconsistencyError(
 			'No config defined in reportInitialEnv',
 		);
 	}
-	const currentConfig: Dictionary<string> = currentState.local.config;
 	for (const [key, value] of _.toPairs(currentConfig)) {
 		let varValue = value;
 		// We want to disable local mode when joining a cloud

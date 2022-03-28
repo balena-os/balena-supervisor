@@ -49,7 +49,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 		await apiKeys.initialized;
 		await apiKeys.generateCloudKey();
 		serviceManagerMock = stub(serviceManager, 'getAll').resolves([]);
-		imagesMock = stub(images, 'getStatus').resolves([]);
+		imagesMock = stub(images, 'getState').resolves([]);
 
 		// We want to check the actual step that was triggered
 		applicationManagerSpy = spy(applicationManager, 'executeStep');

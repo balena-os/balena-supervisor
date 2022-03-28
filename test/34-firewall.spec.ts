@@ -161,10 +161,13 @@ describe('Host Firewall', function () {
 					await targetStateCache.setTargetApps([
 						{
 							appId: 2,
+							uuid: 'myapp',
 							commit: 'abcdef2',
 							name: 'test-app2',
+							class: 'fleet',
 							source: apiEndpoint,
 							releaseId: 1232,
+							isHost: false,
 							services: JSON.stringify([
 								{
 									serviceName: 'test-service',
@@ -213,24 +216,29 @@ describe('Host Firewall', function () {
 					await targetStateCache.setTargetApps([
 						{
 							appId: 2,
+							uuid: 'myapp',
 							commit: 'abcdef2',
 							name: 'test-app2',
 							source: apiEndpoint,
+							class: 'fleet',
 							releaseId: 1232,
+							isHost: false,
 							services: JSON.stringify([
 								{
 									serviceName: 'test-service',
-									networkMode: 'host',
 									image: 'test-image',
 									imageId: 5,
 									environment: {
 										TEST_VAR: 'test-string',
 									},
-									tty: true,
 									appId: 2,
 									releaseId: 1232,
 									serviceId: 567,
 									commit: 'abcdef2',
+									composition: {
+										tty: true,
+										network_mode: 'host',
+									},
 								},
 							]),
 							networks: '[]',

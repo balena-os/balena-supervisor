@@ -2,7 +2,6 @@ import * as _ from 'lodash';
 
 import * as config from '../config';
 
-import * as applicationManager from './application-manager';
 import type { Image } from './images';
 import * as images from './images';
 import Network from './network';
@@ -13,7 +12,7 @@ import Volume from './volume';
 import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
-import { DeviceReportFields } from '../types/state';
+import { DeviceLegacyReport } from '../types/state';
 import * as commitStore from './commit';
 
 interface BaseCompositionStepArgs {
@@ -57,7 +56,6 @@ interface CompositionStepArgs {
 			skipLock?: boolean;
 		};
 	} & BaseCompositionStepArgs;
-	stopAll: BaseCompositionStepArgs;
 	start: {
 		target: Service;
 	} & BaseCompositionStepArgs;
@@ -135,7 +133,7 @@ interface CompositionCallbacks {
 	fetchStart: () => void;
 	fetchEnd: () => void;
 	fetchTime: (time: number) => void;
-	stateReport: (state: DeviceReportFields) => void;
+	stateReport: (state: DeviceLegacyReport) => void;
 	bestDeltaSource: (image: Image, available: Image[]) => string | null;
 }
 
@@ -208,12 +206,6 @@ export function getExecutors(app: {
 					app.callbacks.containerStarted(container.id);
 				},
 			);
-		},
-		stopAll: async (step) => {
-			await applicationManager.stopAll({
-				force: step.force,
-				skipLock: step.skipLock,
-			});
 		},
 		start: async (step) => {
 			const container = await serviceManager.start(step.target);

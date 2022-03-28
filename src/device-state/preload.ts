@@ -6,14 +6,21 @@ import * as deviceState from '../device-state';
 import * as config from '../config';
 import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
-import * as images from '../compose/images';
+import * as imageManager from '../compose/images';
 
-import { AppsJsonParseError, EISDIR, ENOENT } from '../lib/errors';
+import {
+	AppsJsonParseError,
+	EISDIR,
+	ENOENT,
+	InternalInconsistencyError,
+} from '../lib/errors';
 import log from '../lib/supervisor-console';
 
-import { convertLegacyAppsJson } from '../lib/migration';
+import { fromLegacyAppsJson, fromV2AppsJson } from './legacy';
 import { AppsJsonFormat } from '../types/state';
 import * as fsUtils from '../lib/fs-utils';
+import { isLeft } from 'fp-ts/lib/Either';
+import Reporter from 'io-ts-reporters';
 
 export function appsJsonBackup(appsPath: string) {
 	return `${appsPath}.preloaded`;
@@ -35,53 +42,80 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 
 		if (_.isArray(stateFromFile)) {
 			log.debug('Detected a legacy apps.json, converting...');
-			stateFromFile = convertLegacyAppsJson(stateFromFile as any[]);
+			stateFromFile = fromLegacyAppsJson(stateFromFile as any[]);
 		}
-		const preloadState = stateFromFile as AppsJsonFormat;
 
-		let commitToPin: string | undefined;
-		let appToPin: string | undefined;
+		// if apps.json apps are keyed by numeric ids, then convert to v3 target state
+		if (
+			Object.keys(stateFromFile.apps || {}).some(
+				(appId) => !isNaN(parseInt(appId, 10)),
+			)
+		) {
+			stateFromFile = await fromV2AppsJson(stateFromFile as any);
+		}
 
-		if (_.isEmpty(preloadState)) {
+		// Check that transformed apps.json has the correct format
+		const decodedAppsJson = AppsJsonFormat.decode(stateFromFile);
+		if (isLeft(decodedAppsJson)) {
+			throw new AppsJsonParseError(
+				['Invalid apps.json.']
+					.concat(Reporter.report(decodedAppsJson))
+					.join('\n'),
+			);
+		}
+
+		// If decoding apps.json succeeded then preloadState will have the right format
+		const preloadState = decodedAppsJson.right;
+
+		if (_.isEmpty(preloadState.config) && _.isEmpty(preloadState.apps)) {
 			return false;
 		}
 
-		const imgs: Image[] = [];
-		const appIds = _.keys(preloadState.apps);
-		for (const appId of appIds) {
-			const app = preloadState.apps[appId];
-			// Multi-app warning!
-			// The following will need to be changed once running
-			// multiple applications is possible
-			commitToPin = app.commit;
-			appToPin = appId;
-			const serviceIds = _.keys(app.services);
-			for (const serviceId of serviceIds) {
-				const service = app.services[serviceId];
-				const svc = {
-					imageName: service.image,
-					serviceName: service.serviceName,
-					imageId: service.imageId,
-					serviceId: parseInt(serviceId, 10),
-					releaseId: app.releaseId,
-					appId: parseInt(appId, 10),
-				};
-				imgs.push(imageFromService(svc));
-			}
+		const uuid = await config.get('uuid');
+
+		if (!uuid) {
+			throw new InternalInconsistencyError(
+				`No uuid found for the local device`,
+			);
 		}
 
+		const imgs: Image[] = Object.keys(preloadState.apps)
+			.map((appUuid) => {
+				const app = preloadState.apps[appUuid];
+				const [releaseUuid] = Object.keys(app.releases);
+				const release = app.releases[releaseUuid] ?? {};
+				const services = release?.services ?? {};
+				return Object.keys(services).map((serviceName) => {
+					const service = services[serviceName];
+					const svc = {
+						imageName: service.image,
+						serviceName,
+						imageId: service.image_id,
+						serviceId: service.id,
+						releaseId: release.id,
+						commit: releaseUuid,
+						appId: app.id,
+						appUuid,
+					};
+					return imageFromService(svc);
+				});
+			})
+			.reduce((res, images) => res.concat(images), []);
+
 		for (const image of imgs) {
-			const name = images.normalise(image.name);
+			const name = imageManager.normalise(image.name);
 			image.name = name;
-			await images.save(image);
+			await imageManager.save(image);
 		}
 
 		const deviceConf = await deviceConfig.getCurrent();
 		const formattedConf = deviceConfig.formatConfigKeys(preloadState.config);
-		preloadState.config = { ...formattedConf, ...deviceConf };
 		const localState = {
-			local: { name: '', ...preloadState },
-			dependent: { apps: {}, devices: {} },
+			[uuid]: {
+				name: '',
+				config: { ...formattedConf, ...deviceConf },
+				apps: preloadState.apps,
+			},
 		};
 
 		await deviceState.setTarget(localState);
@@ -89,13 +123,17 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 		if (preloadState.pinDevice) {
 			// Multi-app warning!
 			// The following will need to be changed once running
-			// multiple applications is possible
+			// multiple applications is possible.
+			// For now, just select the first app with 'fleet' class (there can be only one)
+			const [appToPin] = Object.values(preloadState.apps).filter(
+				(app) => app.class === 'fleet',
+			);
+			const [commitToPin] = Object.keys(appToPin?.releases ?? {});
 			if (commitToPin != null && appToPin != null) {
-				log.debug('Device will be pinned');
 				await config.set({
 					pinDevice: {
 						commit: commitToPin,
-						app: parseInt(appToPin, 10),
+						app: appToPin.id,
 					},
 				});
 			}
@@ -109,6 +147,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 		if (ENOENT(e) || EISDIR(e)) {
 			log.debug('No apps.json file present, skipping preload');
 		} else {
+			log.debug(e.message);
 			eventTracker.track('Loading preloaded apps failed', {
 				error: e,
 			});

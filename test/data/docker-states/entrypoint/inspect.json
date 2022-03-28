@@ -42,7 +42,7 @@
 			"Type": "journald",
 			"Config": {}
 		},
-		"NetworkMode": "1011165_default",
+		"NetworkMode": "aaaaaaaa_default",
 		"PortBindings": {},
 		"RestartPolicy": {
 			"Name": "always",
@@ -142,6 +142,7 @@
 		"StdinOnce": false,
 		"Env": [
 			"RESIN_APP_ID=1011165",
+			"RESIN_APP_UUID=aaaaaaaa",
 			"RESIN_APP_NAME=supervisortest",
 			"RESIN_SERVICE_NAME=main",
 			"RESIN_DEVICE_UUID=a7feb967fac7f559ccf2a006a36bcf5d",
@@ -152,6 +153,7 @@
 			"RESIN_SERVICE_KILL_ME_PATH=/tmp/balena/handover-complete",
 			"RESIN=1",
 			"BALENA_APP_ID=1011165",
+			"BALENA_APP_UUID=aaaaaaaa",
 			"BALENA_APP_NAME=supervisortest",
 			"BALENA_SERVICE_NAME=main",
 			"BALENA_DEVICE_UUID=a7feb967fac7f559ccf2a006a36bcf5d",
@@ -181,6 +183,7 @@
 		"OnBuild": null,
 		"Labels": {
 			"io.resin.app-id": "1011165",
+			"io.balena.app-uuid": "aaaaaaaa",
 			"io.resin.service-id": "43697",
 			"io.resin.service-name": "main",
 			"io.resin.supervised": "true"
@@ -206,7 +209,7 @@
 		"IPv6Gateway": "",
 		"MacAddress": "",
 		"Networks": {
-			"1011165_default": {
+			"aaaaaaaa_default": {
 				"IPAMConfig": {},
 				"Links": null,
 				"Aliases": [

@@ -1,26 +1,15 @@
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
-import { reporter } from 'io-ts-reporters';
+import Reporter from 'io-ts-reporters';
 import * as _ from 'lodash';
 
 import { Blueprint, Contract, ContractObject } from '@balena/contrato';
 
 import { ContractValidationError, InternalInconsistencyError } from './errors';
 import { checkTruthy } from './validation';
+import { TargetApps } from '../types';
 
 export { ContractObject };
-
-// TODO{type}: When target and current state are correctly
-// defined, replace this
-interface AppWithContracts {
-	services: {
-		[key: string]: {
-			serviceName: string;
-			contract?: ContractObject;
-			labels?: Dictionary<string>;
-		};
-	};
-}
 
 export interface ApplicationContractResult {
 	valid: boolean;
@@ -194,7 +183,7 @@ export function validateContract(contract: unknown): boolean {
 	const result = contractObjectValidator.decode(contract);
 
 	if (isLeft(result)) {
-		throw new Error(reporter(result).join('\n'));
+		throw new Error(Reporter.report(result).join('\n'));
 	}
 
 	const requirementVersions = contractRequirementVersions;
@@ -208,46 +197,66 @@ export function validateContract(contract: unknown): boolean {
 	return true;
 }
 export function validateTargetContracts(
-	apps: Dictionary<AppWithContracts>,
+	apps: TargetApps,
 ): Dictionary<ApplicationContractResult> {
-	const appsFulfilled: Dictionary<ApplicationContractResult> = {};
+	return Object.keys(apps)
+		.map((appUuid): [string, ApplicationContractResult] => {
+			const app = apps[appUuid];
+			const [release] = Object.values(app.releases);
+			const serviceContracts = Object.keys(release?.services ?? [])
+				.map((serviceName) => {
+					const service = release.services[serviceName];
+					const { contract } = service;
+					if (contract) {
+						try {
+							// Validate the contract syntax
+							validateContract(contract);
 
-	for (const appId of _.keys(apps)) {
-		const app = apps[appId];
-		const serviceContracts: ServiceContracts = {};
+							return {
+								serviceName,
+								contract,
+								optional: checkTruthy(
+									service.labels?.['io.balena.features.optional'],
+								),
+							};
+						} catch (e) {
+							throw new ContractValidationError(serviceName, e.message);
+						}
+					}
 
-		for (const svcId of _.keys(app.services)) {
-			const svc = app.services[svcId];
+					// Return a default contract for the service if no contract is defined
+					return { serviceName, contract: undefined, optional: false };
+				})
+				// map by serviceName
+				.reduce(
+					(contracts, { serviceName, ...serviceContract }) => ({
+						...contracts,
+						[serviceName]: serviceContract,
+					}),
+					{} as ServiceContracts,
+				);
 
-			if (svc.contract) {
-				try {
-					validateContract(svc.contract);
-
-					serviceContracts[svc.serviceName] = {
-						contract: svc.contract,
-						optional: checkTruthy(svc.labels?.['io.balena.features.optional']),
-					};
-				} catch (e) {
-					throw new ContractValidationError(svc.serviceName, e.message);
-				}
-			} else {
-				serviceContracts[svc.serviceName] = {
-					contract: undefined,
-					optional: false,
-				};
+			if (Object.keys(serviceContracts).length > 0) {
+				// Validate service contracts if any
+				return [appUuid, containerContractsFulfilled(serviceContracts)];
 			}
 
-			if (!_.isEmpty(serviceContracts)) {
-				appsFulfilled[appId] = containerContractsFulfilled(serviceContracts);
-			} else {
-				appsFulfilled[appId] = {
+			// Return success if no services are found
+			return [
+				appUuid,
+				{
 					valid: true,
-					fulfilledServices: _.map(app.services, 'serviceName'),
+					fulfilledServices: Object.keys(release?.services ?? []),
 					unmetAndOptional: [],
 					unmetServices: [],
-				};
-			}
-		}
-	}
-	return appsFulfilled;
+				},
+			];
+		})
+		.reduce(
+			(result, [appUuid, contractFulfilled]) => ({
+				...result,
+				[appUuid]: contractFulfilled,
+			}),
+			{} as Dictionary<ApplicationContractResult>,
+		);
 }

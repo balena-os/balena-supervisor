@@ -6,9 +6,12 @@
 	"environment": {},
 	"labels": {},
 	"appId": 1011165,
+	"appUuid": "aaaaaaaa",
 	"releaseId": 597007,
 	"serviceId": 43697,
 	"commit": "ff300a701054ac15281de1f9c0e84b8c",
 	"imageName": "registry2.resin.io/v2/bf9c649a5ac2fe147bbe350875042388@sha256:3a5c17b715b4f8265539c1a006dd1abdd2ff3b758aa23df99f77c792f40c3d43",
-	"tty": true
+	"composition": {
+		"tty": true
+	}
 }

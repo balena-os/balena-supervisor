@@ -10,7 +10,7 @@ import LocalModeManager, {
 } from '../src/local-mode';
 import ShortStackError from './lib/errors';
 
-describe.skip('LocalModeManager', () => {
+describe('LocalModeManager', () => {
 	let localMode: LocalModeManager;
 	let dockerStub: sinon.SinonStubbedInstance<typeof docker>;
 

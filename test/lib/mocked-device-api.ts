@@ -4,7 +4,6 @@ import rewire = require('rewire');
 
 import { unlinkAll } from '../../src/lib/fs-utils';
 import * as applicationManager from '../../src/compose/application-manager';
-import * as networkManager from '../../src/compose/network-manager';
 import * as serviceManager from '../../src/compose/service-manager';
 import * as volumeManager from '../../src/compose/volume-manager';
 import * as commitStore from '../../src/compose/commit';
@@ -185,35 +184,24 @@ function buildRoutes(): Router {
 }
 
 // TO-DO: Create a cleaner way to restore previous values.
-const originalNetGetAll = networkManager.getAllByAppId;
 const originalVolGetAll = volumeManager.getAllByAppId;
-const originalSvcGetAppId = serviceManager.getAllByAppId;
-const originalSvcGetStatus = serviceManager.getStatus;
+const originalSvcGetStatus = serviceManager.getState;
 const originalReadyForUpdates = apiBinder.__get__('readyForUpdates');
 
 function setupStubs() {
 	apiBinder.__set__('readyForUpdates', true);
 	// @ts-expect-error Assigning to a RO property
-	networkManager.getAllByAppId = async () => STUBBED_VALUES.networks;
-	// @ts-expect-error Assigning to a RO property
 	volumeManager.getAllByAppId = async () => STUBBED_VALUES.volumes;
 	// @ts-expect-error Assigning to a RO property
-	serviceManager.getStatus = async () => STUBBED_VALUES.services;
-	// @ts-expect-error Assigning to a RO property
-	serviceManager.getAllByAppId = async (appId) =>
-		_.filter(STUBBED_VALUES.services, (service) => service.appId === appId);
+	serviceManager.getState = async () => STUBBED_VALUES.services;
 }
 
 function restoreStubs() {
 	apiBinder.__set__('readyForUpdates', originalReadyForUpdates);
 	// @ts-expect-error Assigning to a RO property
-	networkManager.getAllByAppId = originalNetGetAll;
-	// @ts-expect-error Assigning to a RO property
 	volumeManager.getAllByAppId = originalVolGetAll;
 	// @ts-expect-error Assigning to a RO property
-	serviceManager.getStatus = originalSvcGetStatus;
-	// @ts-expect-error Assigning to a RO property
-	serviceManager.getAllByAppId = originalSvcGetAppId;
+	serviceManager.getState = originalSvcGetStatus;
 }
 
 export = {

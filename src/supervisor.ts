@@ -4,7 +4,7 @@ import * as config from './config';
 import * as deviceState from './device-state';
 import * as eventTracker from './event-tracker';
 import { intialiseContractRequirements } from './lib/contracts';
-import { normaliseLegacyDatabase } from './lib/migration';
+import { normaliseLegacyDatabase } from './lib/legacy';
 import * as osRelease from './lib/os-release';
 import * as logger from './logger';
 import SupervisorAPI from './supervisor-api';

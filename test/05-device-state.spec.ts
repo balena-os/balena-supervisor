@@ -1,12 +1,10 @@
-import * as _ from 'lodash';
-import { SinonStub, stub } from 'sinon';
 import { expect } from 'chai';
+import * as sinon from 'sinon';
 
 import { StatusCodeError, UpdatesLockedError } from '../src/lib/errors';
-import prepare = require('./lib/prepare');
 import * as dockerUtils from '../src/lib/docker-utils';
 import * as config from '../src/config';
-import * as images from '../src/compose/images';
+import * as imageManager from '../src/compose/images';
 import { ConfigTxt } from '../src/config/backends/config-txt';
 import * as deviceState from '../src/device-state';
 import * as deviceConfig from '../src/device-config';
@@ -18,6 +16,10 @@ import Service from '../src/compose/service';
 import { intialiseContractRequirements } from '../src/lib/contracts';
 import * as updateLock from '../src/lib/update-lock';
 import * as fsUtils from '../src/lib/fs-utils';
+import { TargetState } from '../src/types';
+
+import * as dbHelper from './lib/db-helper';
+import log from '../src/lib/supervisor-console';
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',
@@ -35,147 +37,37 @@ const mockedInitialConfig = {
 	RESIN_SUPERVISOR_VPN_CONTROL: 'true',
 };
 
-const testTarget2 = {
-	local: {
-		name: 'aDeviceWithDifferentName',
-		config: {
-			RESIN_HOST_CONFIG_gpu_mem: '512',
-		},
-		apps: {
-			'1234': {
-				name: 'superapp',
-				commit: 'afafafa',
-				releaseId: 2,
-				services: {
-					'23': {
-						serviceName: 'aservice',
-						imageId: 12345,
-						image: 'registry2.resin.io/superapp/edfabc',
-						environment: {
-							FOO: 'bar',
-						},
-						labels: {},
-					},
-					'24': {
-						serviceName: 'anotherService',
-						imageId: 12346,
-						image: 'registry2.resin.io/superapp/afaff',
-						environment: {
-							FOO: 'bro',
-						},
-						labels: {},
-					},
-				},
-				volumes: {},
-				networks: {},
-			},
-		},
-	},
-	dependent: { apps: {}, devices: {} },
-};
-
-const testTargetWithDefaults2 = {
-	local: {
-		name: 'aDeviceWithDifferentName',
-		config: {
-			HOST_CONFIG_gpu_mem: '512',
-			HOST_FIREWALL_MODE: 'off',
-			HOST_DISCOVERABILITY: 'true',
-			SUPERVISOR_CONNECTIVITY_CHECK: 'true',
-			SUPERVISOR_DELTA: 'false',
-			SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',
-			SUPERVISOR_DELTA_REQUEST_TIMEOUT: '30000',
-			SUPERVISOR_DELTA_RETRY_COUNT: '30',
-			SUPERVISOR_DELTA_RETRY_INTERVAL: '10000',
-			SUPERVISOR_DELTA_VERSION: '2',
-			SUPERVISOR_INSTANT_UPDATE_TRIGGER: 'true',
-			SUPERVISOR_LOCAL_MODE: 'false',
-			SUPERVISOR_LOG_CONTROL: 'true',
-			SUPERVISOR_OVERRIDE_LOCK: 'false',
-			SUPERVISOR_POLL_INTERVAL: '60000',
-			SUPERVISOR_VPN_CONTROL: 'true',
-			SUPERVISOR_PERSISTENT_LOGGING: 'false',
-		},
-		apps: {
-			'1234': {
-				appId: 1234,
-				name: 'superapp',
-				commit: 'afafafa',
-				releaseId: 2,
-				services: [
-					_.merge(
-						{ appId: 1234, serviceId: 23, releaseId: 2 },
-						_.clone(testTarget2.local.apps['1234'].services['23']),
-					),
-					_.merge(
-						{ appId: 1234, serviceId: 24, releaseId: 2 },
-						_.clone(testTarget2.local.apps['1234'].services['24']),
-					),
-				],
-				volumes: {},
-				networks: {},
-			},
-		},
-	},
-};
-
-const testTargetInvalid = {
-	local: {
-		name: 'aDeviceWithDifferentName',
-		config: {
-			RESIN_HOST_CONFIG_gpu_mem: '512',
-		},
-		apps: {
-			1234: {
-				appId: '1234',
-				name: 'superapp',
-				commit: 'afafafa',
-				releaseId: '2',
-				config: {},
-				services: {
-					23: {
-						serviceId: '23',
-						serviceName: 'aservice',
-						imageId: '12345',
-						image: 'registry2.resin.io/superapp/edfabc',
-						config: {},
-						environment: {
-							' FOO': 'bar',
-						},
-						labels: {},
-					},
-					24: {
-						serviceId: '24',
-						serviceName: 'anotherService',
-						imageId: '12346',
-						image: 'registry2.resin.io/superapp/afaff',
-						config: {},
-						environment: {
-							FOO: 'bro',
-						},
-						labels: {},
-					},
-				},
-			},
-		},
-	},
-	dependent: { apps: {}, devices: {} },
-};
-
-describe('deviceState', () => {
-	let source: string;
-	const originalImagesSave = images.save;
-	const originalImagesInspect = images.inspectByName;
+describe('device-state', () => {
+	const originalImagesSave = imageManager.save;
+	const originalImagesInspect = imageManager.inspectByName;
 	const originalGetCurrent = deviceConfig.getCurrent;
 
+	let testDb: dbHelper.TestDatabase;
+
 	before(async () => {
-		await prepare();
+		testDb = await dbHelper.createDB();
+
 		await config.initialized;
+
+		// Prevent side effects from changes in config
+		sinon.stub(config, 'on');
+
+		// Set the device uuid
+		await config.set({ uuid: 'local' });
+
 		await deviceState.initialized;
 
-		source = await config.get('apiEndpoint');
+		// disable log output during testing
+		sinon.stub(log, 'debug');
+		sinon.stub(log, 'warn');
+		sinon.stub(log, 'info');
+		sinon.stub(log, 'event');
+		sinon.stub(log, 'success');
 
-		stub(Service as any, 'extendEnvVars').callsFake((env) => {
+		// TODO: all these stubs are internal implementation details of
+		// deviceState, we should refactor deviceState to use dependency
+		// injection instead of initializing everything in memory
+		sinon.stub(Service as any, 'extendEnvVars').callsFake((env: any) => {
 			env['ADDITIONAL_ENV_VAR'] = 'foo';
 			return env;
 		});
@@ -185,20 +77,20 @@ describe('deviceState', () => {
 			deviceType: 'intel-nuc',
 		});
 
-		stub(dockerUtils, 'getNetworkGateway').returns(
-			Promise.resolve('172.17.0.1'),
-		);
+		sinon
+			.stub(dockerUtils, 'getNetworkGateway')
+			.returns(Promise.resolve('172.17.0.1'));
 
 		// @ts-expect-error Assigning to a RO property
-		images.cleanImageData = () => {
+		imageManager.cleanImageData = () => {
 			console.log('Cleanup database called');
 		};
 
 		// @ts-expect-error Assigning to a RO property
-		images.save = () => Promise.resolve();
+		imageManager.save = () => Promise.resolve();
 
 		// @ts-expect-error Assigning to a RO property
-		images.inspectByName = () => {
+		imageManager.inspectByName = () => {
 			const err: StatusCodeError = new Error();
 			err.statusCode = 404;
 			return Promise.reject(err);
@@ -211,20 +103,27 @@ describe('deviceState', () => {
 		deviceConfig.getCurrent = async () => mockedInitialConfig;
 	});
 
-	after(() => {
+	after(async () => {
 		(Service as any).extendEnvVars.restore();
 		(dockerUtils.getNetworkGateway as sinon.SinonStub).restore();
 
 		// @ts-expect-error Assigning to a RO property
-		images.save = originalImagesSave;
+		imageManager.save = originalImagesSave;
 		// @ts-expect-error Assigning to a RO property
-		images.inspectByName = originalImagesInspect;
+		imageManager.inspectByName = originalImagesInspect;
 		// @ts-expect-error Assigning to a RO property
 		deviceConfig.getCurrent = originalGetCurrent;
+
+		try {
+			await testDb.destroy();
+		} catch (e) {
+			/* noop */
+		}
+		sinon.restore();
 	});
 
-	beforeEach(async () => {
-		await prepare();
+	afterEach(async () => {
+		await testDb.reset();
 	});
 
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {
@@ -233,6 +132,11 @@ describe('deviceState', () => {
 		const targetState = await deviceState.getTarget();
 		expect(await fsUtils.exists(appsJsonBackup(appsJson))).to.be.true;
 
+		expect(targetState)
+			.to.have.property('local')
+			.that.has.property('config')
+			.that.has.property('HOST_CONFIG_gpu_mem')
+			.that.equals('256');
 		expect(targetState)
 			.to.have.property('local')
 			.that.has.property('apps')
@@ -308,45 +212,140 @@ describe('deviceState', () => {
 	});
 
 	it('emits a change event when a new state is reported', (done) => {
+		// TODO: where is the test on this test?
 		deviceState.once('change', done);
 		deviceState.reportCurrentState({ someStateDiff: 'someValue' } as any);
 	});
 
-	it.skip('writes the target state to the db with some extra defaults', async () => {
-		const testTarget = _.cloneDeep(testTargetWithDefaults2);
+	it('writes the target state to the db with some extra defaults', async () => {
+		await deviceState.setTarget({
+			local: {
+				name: 'aDeviceWithDifferentName',
+				config: {
+					RESIN_HOST_CONFIG_gpu_mem: '512',
+				},
+				apps: {
+					myapp: {
+						id: 1234,
+						name: 'superapp',
+						class: 'fleet',
+						releases: {
+							afafafa: {
+								id: 2,
+								services: {
+									aservice: {
+										id: 23,
+										image_id: 12345,
+										image: 'registry2.resin.io/superapp/edfabc',
+										environment: {
+											FOO: 'bar',
+										},
+										labels: {},
+									},
+									anotherService: {
+										id: 24,
+										image_id: 12346,
+										image: 'registry2.resin.io/superapp/afaff',
+										environment: {
+											FOO: 'bro',
+										},
+										labels: {},
+									},
+								},
+								volumes: {},
+								networks: {},
+							},
+						},
+					},
+				},
+			},
+		} as TargetState);
+		const targetState = await deviceState.getTarget();
 
-		const services: Service[] = [];
-		for (const service of testTarget.local.apps['1234'].services) {
-			const imageName = images.normalise(service.image);
-			service.image = imageName;
-			(service as any).imageName = imageName;
-			services.push(
-				await Service.fromComposeObject(service, {
-					appName: 'supertest',
-				} as any),
-			);
-		}
+		expect(targetState)
+			.to.have.property('local')
+			.that.has.property('config')
+			.that.has.property('HOST_CONFIG_gpu_mem')
+			.that.equals('512');
 
-		(testTarget as any).local.apps['1234'].services = _.keyBy(
-			services,
-			'serviceId',
-		);
-		(testTarget as any).local.apps['1234'].source = source;
-		await deviceState.setTarget(testTarget2);
-		const target = await deviceState.getTarget();
-		expect(JSON.parse(JSON.stringify(target))).to.deep.equal(
-			JSON.parse(JSON.stringify(testTarget)),
-		);
+		expect(targetState)
+			.to.have.property('local')
+			.that.has.property('apps')
+			.that.has.property('1234')
+			.that.is.an('object');
+
+		const app = targetState.local.apps[1234];
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('commit').that.equals('afafafa');
+		expect(app).to.have.property('services').that.is.an('array').with.length(2);
+		expect(app.services[0])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.resin.io/superapp/edfabc:latest');
+		expect(app.services[0].config)
+			.to.have.property('environment')
+			.that.has.property('FOO')
+			.that.equals('bar');
+		expect(app.services[1])
+			.to.have.property('config')
+			.that.has.property('image')
+			.that.equals('registry2.resin.io/superapp/afaff:latest');
+		expect(app.services[1].config)
+			.to.have.property('environment')
+			.that.has.property('FOO')
+			.that.equals('bro');
 	});
 
 	it('does not allow setting an invalid target state', () => {
-		expect(deviceState.setTarget(testTargetInvalid as any)).to.be.rejected;
+		// v2 state should be rejected
+		expect(
+			deviceState.setTarget({
+				local: {
+					name: 'aDeviceWithDifferentName',
+					config: {
+						RESIN_HOST_CONFIG_gpu_mem: '512',
+					},
+					apps: {
+						1234: {
+							appId: '1234',
+							name: 'superapp',
+							commit: 'afafafa',
+							releaseId: '2',
+							config: {},
+							services: {
+								23: {
+									serviceId: '23',
+									serviceName: 'aservice',
+									imageId: '12345',
+									image: 'registry2.resin.io/superapp/edfabc',
+									environment: {
+										' FOO': 'bar',
+									},
+									labels: {},
+								},
+								24: {
+									serviceId: '24',
+									serviceName: 'anotherService',
+									imageId: '12346',
+									image: 'registry2.resin.io/superapp/afaff',
+									environment: {
+										FOO: 'bro',
+									},
+									labels: {},
+								},
+							},
+						},
+					},
+				},
+				dependent: { apps: {}, devices: {} },
+			} as any),
+		).to.be.rejected;
 	});
 
 	it('allows triggering applying the target state', (done) => {
-		const applyTargetStub = stub(deviceState, 'applyTarget').returns(
-			Promise.resolve(),
-		);
+		const applyTargetStub = sinon
+			.stub(deviceState, 'applyTarget')
+			.returns(Promise.resolve());
 
 		deviceState.triggerApplyTarget({ force: true });
 		expect(applyTargetStub).to.not.be.called;
@@ -361,6 +360,178 @@ describe('deviceState', () => {
 		}, 1000);
 	});
 
+	it('accepts a target state with an valid contract', async () => {
+		await deviceState.setTarget({
+			local: {
+				name: 'aDeviceWithDifferentName',
+				config: {},
+				apps: {
+					myapp: {
+						id: 1234,
+						name: 'superapp',
+						class: 'fleet',
+						releases: {
+							one: {
+								id: 2,
+								services: {
+									valid: {
+										id: 23,
+										image_id: 12345,
+										image: 'registry2.resin.io/superapp/valid',
+										environment: {},
+										labels: {},
+									},
+									alsoValid: {
+										id: 24,
+										image_id: 12346,
+										image: 'registry2.resin.io/superapp/afaff',
+										contract: {
+											type: 'sw.container',
+											slug: 'supervisor-version',
+											name: 'Enforce supervisor version',
+											requires: [
+												{
+													type: 'sw.supervisor',
+													version: '>=11.0.0',
+												},
+											],
+										},
+										environment: {},
+										labels: {},
+									},
+								},
+								volumes: {},
+								networks: {},
+							},
+						},
+					},
+				},
+			},
+		} as TargetState);
+		const targetState = await deviceState.getTarget();
+		const app = targetState.local.apps[1234];
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('commit').that.equals('one');
+		// Only a single service should be on the target state
+		expect(app).to.have.property('services').that.is.an('array').with.length(2);
+		expect(app.services[1])
+			.that.has.property('serviceName')
+			.that.equals('alsoValid');
+	});
+
+	it('accepts a target state with an invalid contract for an optional container', async () => {
+		await deviceState.setTarget({
+			local: {
+				name: 'aDeviceWithDifferentName',
+				config: {},
+				apps: {
+					myapp: {
+						id: 1234,
+						name: 'superapp',
+						class: 'fleet',
+						releases: {
+							one: {
+								id: 2,
+								services: {
+									valid: {
+										id: 23,
+										image_id: 12345,
+										image: 'registry2.resin.io/superapp/valid',
+										environment: {},
+										labels: {},
+									},
+									invalidButOptional: {
+										id: 24,
+										image_id: 12346,
+										image: 'registry2.resin.io/superapp/afaff',
+										contract: {
+											type: 'sw.container',
+											slug: 'supervisor-version',
+											name: 'Enforce supervisor version',
+											requires: [
+												{
+													type: 'sw.supervisor',
+													version: '>=12.0.0',
+												},
+											],
+										},
+										environment: {},
+										labels: {
+											'io.balena.features.optional': 'true',
+										},
+									},
+								},
+								volumes: {},
+								networks: {},
+							},
+						},
+					},
+				},
+			},
+		} as TargetState);
+		const targetState = await deviceState.getTarget();
+		const app = targetState.local.apps[1234];
+		expect(app).to.have.property('appName').that.equals('superapp');
+		expect(app).to.have.property('commit').that.equals('one');
+		// Only a single service should be on the target state
+		expect(app).to.have.property('services').that.is.an('array').with.length(1);
+		expect(app.services[0])
+			.that.has.property('serviceName')
+			.that.equals('valid');
+	});
+
+	it('rejects a target state with invalid contract and non optional service', async () => {
+		await expect(
+			deviceState.setTarget({
+				local: {
+					name: 'aDeviceWithDifferentName',
+					config: {},
+					apps: {
+						myapp: {
+							id: 1234,
+							name: 'superapp',
+							class: 'fleet',
+							releases: {
+								one: {
+									id: 2,
+									services: {
+										valid: {
+											id: 23,
+											image_id: 12345,
+											image: 'registry2.resin.io/superapp/valid',
+											environment: {},
+											labels: {},
+										},
+										invalid: {
+											id: 24,
+											image_id: 12346,
+											image: 'registry2.resin.io/superapp/afaff',
+											contract: {
+												type: 'sw.container',
+												slug: 'supervisor-version',
+												name: 'Enforce supervisor version',
+												requires: [
+													{
+														type: 'sw.supervisor',
+														version: '>=12.0.0',
+													},
+												],
+											},
+											environment: {},
+											labels: {},
+										},
+									},
+									volumes: {},
+									networks: {},
+								},
+							},
+						},
+					},
+				},
+			} as TargetState),
+		).to.be.rejected;
+	});
+
 	// TODO: There is no easy way to test this behaviour with the current
 	// interface of device-state. We should really think about the device-state
 	// interface to allow this flexibility (and to avoid having to change module
@@ -373,9 +544,9 @@ describe('deviceState', () => {
 
 	it('prevents reboot or shutdown when HUP rollback breadcrumbs are present', async () => {
 		const testErrMsg = 'Waiting for Host OS updates to finish';
-		stub(updateLock, 'abortIfHUPInProgress').throws(
-			new UpdatesLockedError(testErrMsg),
-		);
+		sinon
+			.stub(updateLock, 'abortIfHUPInProgress')
+			.throws(new UpdatesLockedError(testErrMsg));
 
 		await expect(deviceState.reboot())
 			.to.eventually.be.rejectedWith(testErrMsg)
@@ -384,6 +555,6 @@ describe('deviceState', () => {
 			.to.eventually.be.rejectedWith(testErrMsg)
 			.and.be.an.instanceOf(UpdatesLockedError);
 
-		(updateLock.abortIfHUPInProgress as SinonStub).restore();
+		(updateLock.abortIfHUPInProgress as sinon.SinonStub).restore();
 	});
 });
