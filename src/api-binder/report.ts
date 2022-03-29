@@ -126,7 +126,14 @@ function handleRetry(retryInfo: OnFailureInfo) {
 	);
 }
 
-export async function startReporting() {
+interface Reporting {
+	reportPending: boolean;
+	cancel: () => void;
+}
+
+export async function startReporting(
+	maxReportFrequency: number,
+): Promise<Reporting> {
 	// Get configs needed to make a report
 	const reportConfigs = (await config.getMany([
 		'apiEndpoint',
@@ -135,21 +142,29 @@ export async function startReporting() {
 		'appUpdatePollInterval',
 	])) as StateReportOpts;
 	// Throttle reportCurrentState so we don't query device or hit API excessively
-	const throttledReport = _.throttle(
-		reportCurrentState,
-		constants.maxReportFrequency,
-	);
+	const throttledReport = _.throttle(reportCurrentState, maxReportFrequency);
+	// Wrap throttledReport to avoid reporting when another report is pending
 	const doReport = async () => {
 		if (!reportPending) {
 			throttledReport(reportConfigs);
 		}
 	};
-
+	// Start a report right away
+	doReport();
 	// If the state changes, report it
 	deviceState.on('change', doReport);
-	// But check once every max report frequency to ensure that changes in system
-	// info are picked up (CPU temp etc)
-	setInterval(doReport, constants.maxReportFrequency);
-	// Try to perform a report right away
-	return doReport();
+	// Otherwise start an interval to report current state
+	const reportInterval = setInterval(doReport, maxReportFrequency);
+	// Return controls for reporting
+	return {
+		reportPending,
+		cancel: () => {
+			// Remove listening for device state changes
+			deviceState.removeListener('change', doReport);
+			// Clear interval for reporting state
+			clearInterval(reportInterval);
+			// Cancel any throttled reports
+			throttledReport.cancel();
+		},
+	};
 }

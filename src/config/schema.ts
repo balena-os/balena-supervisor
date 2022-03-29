@@ -49,6 +49,11 @@ export const schema = {
 		mutable: false,
 		removeIfNull: false,
 	},
+	stateReportInterval: {
+		source: 'config.json',
+		mutable: true,
+		removeIfNull: false,
+	},
 	appUpdatePollInterval: {
 		source: 'config.json',
 		mutable: true,
