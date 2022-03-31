@@ -82,13 +82,20 @@ export const NumericIdentifier = new t.Type<number, StringOrNumber>(
 export type NumericIdentifier = t.TypeOf<typeof NumericIdentifier>;
 
 /**
- * Valid variable names are between 0 and 255 characters
- * and match /^[a-zA-Z_][a-zA-Z0-9_]*$/
+ * Valid variable names are between 0 and 255 characters and do not contain `=`
+ *
+ * Docker has no restriction on what an environment variable name can be
+ * the shell may not be able to read non alphanumeric variable names,
+ *  see https://pubs.opengroup.org/onlinepubs/000095399/basedefs/xbd_chap08.html,
+ * but other processes (e.g. Node) may be able to read them.
+ *
+ * https://github.com/moby/moby/blob/88e1fec49011c539c9da299f8e58ec2e25dbf8f1/opts/env.go#L10-L17
  */
-const VAR_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+const VAR_NAME_REGEX = /^[^=]+$/;
 
 export const VariableName = new t.Type<string, string>(
 	'VariableName',
+	// The variable length is a limitation from the cloud side and not from docker
 	(s: unknown): s is string => ShortString.is(s) && VAR_NAME_REGEX.test(s),
 	(i, c) =>
 		pipe(
@@ -96,11 +103,7 @@ export const VariableName = new t.Type<string, string>(
 			chain((s) =>
 				VAR_NAME_REGEX.test(s)
 					? t.success(s)
-					: t.failure(
-							s,
-							c,
-							"needs to start with a letter and may only contain alphanumeric characters plus '_'",
-					  ),
+					: t.failure(s, c, "cannot have the '=' character"),
 			),
 		),
 	t.identity,
