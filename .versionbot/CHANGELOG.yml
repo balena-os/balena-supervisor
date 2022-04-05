@@ -1,4 +1,35 @@
 - commits:
+    - subject: Fix database migration for legacyApps
+      hash: eee24604459440569dee455db918d6901ea86645
+      body: >
+        Migration `M00008` had a bug with the check for legacy apps, which
+
+        resulted in devices that had at some point been updated from a single
+
+        container supervisor to get the error
+
+
+        ```
+
+        Undefined binding(s) detected when compiling UPDATE. Undefined column(s): [appUuid] query
+
+        ```
+
+
+        This adds a new migration with the fix to ensure broken fix the
+
+        inconsistent database state.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#1913"
+        closes: "#1913"
+      author: Felipe Lalanne
+      nested: []
+  version: 13.0.1
+  title: "'Fix database migration for legacyApps'"
+  date: 2022-04-01T21:09:42.303Z
+- commits:
     - subject: Add support for GET v3 target state
       hash: 7425d1110b719dffd132c681c6e0c28fcc218dea
       body: |
