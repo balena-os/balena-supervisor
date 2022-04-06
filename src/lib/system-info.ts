@@ -3,6 +3,10 @@ import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
 import { promises as fs } from 'fs';
 
+// TODO: remove this once we can update Node to v16 and typescript
+// to an es2021 compatible version for native Promise.any
+import { Promise } from 'bluebird';
+
 import { exec } from './fs-utils';
 
 export async function getCpuUsage(): Promise<number> {
@@ -71,7 +75,10 @@ export async function getCpuTemp(): Promise<number> {
 export async function getSystemId(): Promise<string | undefined> {
 	try {
 		// This will work on arm devices
-		const buffer = await fs.readFile('/proc/device-tree/serial-number');
+		const buffer = await Promise.any([
+			fs.readFile('/proc/device-tree/serial-number'),
+			fs.readFile('/proc/device-tree/product-sn'),
+		]);
 		// Remove the null byte at the end
 		return buffer.toString('utf-8').replace(/\0/g, '');
 	} catch {
@@ -85,7 +92,10 @@ export async function getSystemId(): Promise<string | undefined> {
 
 export async function getSystemModel(): Promise<string | undefined> {
 	try {
-		const buffer = await fs.readFile('/proc/device-tree/model');
+		const buffer = await Promise.any([
+			fs.readFile('/proc/device-tree/model'),
+			fs.readFile('/proc/device-tree/product-name'),
+		]);
 		// Remove the null byte at the end
 		return buffer.toString('utf-8').replace(/\0/g, '');
 	} catch {
