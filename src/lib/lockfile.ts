@@ -20,7 +20,10 @@ export const LOCKFILE_UID = isRight(decodedUid) ? decodedUid.right : 65534;
 const locksTaken: { [lockName: string]: boolean } = {};
 
 // Returns all current locks taken, as they've been stored in-memory.
-export const getLocksTaken = (): string[] => Object.keys(locksTaken);
+// Optionally accepts filter function for only getting locks that match a condition.
+export const getLocksTaken = (
+	lockFilter: (path: string) => boolean = () => true,
+): string[] => Object.keys(locksTaken).filter(lockFilter);
 
 // Try to clean up any existing locks when the process exits
 process.on('exit', () => {

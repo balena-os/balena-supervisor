@@ -8,33 +8,23 @@ import * as lockfile from '../../../src/lib/lockfile';
 import * as fsUtils from '../../../src/lib/fs-utils';
 
 describe('lib/lockfile', () => {
-	const lockPath = `${lockfile.BASE_LOCK_DIR}/1234567/updates.lock`;
-	// mock-fs expects an octal file mode, however, Node's fs.stat.mode returns a bit field:
-	//   - 16877 (Node) == octal 0755 (drwxr-xr-x)
-	//   - 17407 (Node) == octal 1777 (drwxrwxrwt)
-	const DEFAULT_PERMISSIONS = {
-		unix: 0o755,
-		node: 16877,
-	};
-	const STICKY_WRITE_PERMISSIONS = {
-		unix: 0o1777,
-		node: 17407,
-	};
+	const lockPath = `${lockfile.BASE_LOCK_DIR}/1234567/one/updates.lock`;
+	const lockPath2 = `${lockfile.BASE_LOCK_DIR}/7654321/two/updates.lock`;
 
-	const mockDir = (
-		mode: number = DEFAULT_PERMISSIONS.unix,
-		opts: { createLock: boolean } = { createLock: false },
-	) => {
-		const items: any = {};
-		if (opts.createLock) {
-			items[basename(lockPath)] = mock.file({ uid: lockfile.LOCKFILE_UID });
-		}
-
+	const mockDir = (opts: { createLock: boolean } = { createLock: false }) => {
 		mock({
-			[dirname(lockPath)]: mock.directory({
-				mode,
-				items,
-			}),
+			[lockfile.BASE_LOCK_DIR]: {
+				'1234567': {
+					one: opts.createLock
+						? { 'updates.lock': mock.file({ uid: lockfile.LOCKFILE_UID }) }
+						: {},
+				},
+				'7654321': {
+					two: opts.createLock
+						? { 'updates.lock': mock.file({ uid: lockfile.LOCKFILE_UID }) }
+						: {},
+				},
+			},
 		});
 	};
 
@@ -67,6 +57,8 @@ describe('lib/lockfile', () => {
 			await fsUtils.touch(targetPath);
 			await fs.chown(targetPath, opts!.uid!, 0);
 		});
+
+		mock({ [lockfile.BASE_LOCK_DIR]: {} });
 	});
 
 	afterEach(async () => {
@@ -81,7 +73,6 @@ describe('lib/lockfile', () => {
 	});
 
 	it('should create a lockfile as the `nobody` user at target path', async () => {
-		// Mock directory with default permissions
 		mockDir();
 
 		await lockfile.lock(lockPath);
@@ -94,7 +85,6 @@ describe('lib/lockfile', () => {
 	});
 
 	it('should create a lockfile with the provided `uid` if specified', async () => {
-		// Mock directory with default permissions
 		mockDir();
 
 		await lockfile.lock(lockPath, 2);
@@ -107,7 +97,6 @@ describe('lib/lockfile', () => {
 	});
 
 	it('should not create a lockfile if `lock` throws', async () => {
-		// Mock directory with default permissions
 		mockDir();
 
 		// Override default exec stub declaration, as it normally emulates a lockfile call with
@@ -131,8 +120,7 @@ describe('lib/lockfile', () => {
 	});
 
 	it('should asynchronously unlock a lockfile', async () => {
-		// Mock directory with sticky + write permissions and existing lockfile
-		mockDir(STICKY_WRITE_PERMISSIONS.unix, { createLock: true });
+		mockDir({ createLock: true });
 
 		// Verify lockfile exists
 		await checkLockDirFiles(lockPath, { shouldExist: true });
@@ -144,8 +132,7 @@ describe('lib/lockfile', () => {
 	});
 
 	it('should not error on async unlock if lockfile does not exist', async () => {
-		// Mock directory with sticky + write permissions
-		mockDir(STICKY_WRITE_PERMISSIONS.unix, { createLock: false });
+		mockDir({ createLock: false });
 
 		// Verify lockfile does not exist
 		await checkLockDirFiles(lockPath, { shouldExist: false });
@@ -158,8 +145,7 @@ describe('lib/lockfile', () => {
 	});
 
 	it('should synchronously unlock a lockfile', () => {
-		// Mock directory with sticky + write permissions
-		mockDir(STICKY_WRITE_PERMISSIONS.unix, { createLock: true });
+		mockDir({ createLock: true });
 
 		lockfile.unlockSync(lockPath);
 
@@ -170,16 +156,33 @@ describe('lib/lockfile', () => {
 	});
 
 	it('should try to clean up existing locks on process exit', async () => {
-		// Mock directory with sticky + write permissions
-		mockDir(STICKY_WRITE_PERMISSIONS.unix, { createLock: false });
+		mockDir({ createLock: false });
 
-		// Lock file, which stores lock path in memory
+		// Create lockfiles for multiple appId / uuids
 		await lockfile.lock(lockPath);
+		await lockfile.lock(lockPath2);
 
 		// @ts-ignore
 		process.emit('exit');
 
-		// Verify lockfile removal
+		// Verify lockfile removal regardless of appId / appUuid
 		await checkLockDirFiles(lockPath, { shouldExist: false });
+		await checkLockDirFiles(lockPath2, { shouldExist: false });
+	});
+
+	it('should list locks taken according to a filter function', async () => {
+		mockDir({ createLock: false });
+
+		// Create lockfiles for multiple appId / uuids
+		await lockfile.lock(lockPath);
+		await lockfile.lock(lockPath2);
+
+		expect(
+			lockfile.getLocksTaken((path) => path.includes('1234567')),
+		).to.have.members([lockPath]);
+		expect(
+			lockfile.getLocksTaken((path) => path.includes('7654321')),
+		).to.have.members([lockPath2]);
+		expect(lockfile.getLocksTaken()).to.have.members([lockPath, lockPath2]);
 	});
 });

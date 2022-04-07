@@ -62,10 +62,19 @@ export const readLock: LockFn = Bluebird.promisify(locker.async.readLock, {
 	context: locker,
 });
 
-function dispose(release: () => void): Bluebird<void> {
-	return Bluebird.map(lockfile.getLocksTaken(), (lockName) => {
-		return lockfile.unlock(lockName);
-	})
+// Unlock all lockfiles, optionally of an appId | appUuid, then release resources.
+function dispose(
+	release: () => void,
+	appIdentifier: string | number,
+): Bluebird<void> {
+	return Bluebird.map(
+		lockfile.getLocksTaken((p: string) =>
+			p.includes(`${lockfile.BASE_LOCK_DIR}/${appIdentifier}`),
+		),
+		(lockName) => {
+			return lockfile.unlock(lockName);
+		},
+	)
 		.finally(release)
 		.return();
 }
@@ -116,7 +125,7 @@ export function lock<T extends unknown>(
 												// dispose needs to be called even though it's referenced
 												// by .disposer later.
 												.catch((error) => {
-													return dispose(release).throw(
+													return dispose(release, appId).throw(
 														lockfile.LockfileExistsError.is(error)
 															? new UpdatesLockedError(
 																	`Lockfile exists for ${JSON.stringify({
@@ -132,7 +141,7 @@ export function lock<T extends unknown>(
 								);
 							});
 					})
-					.disposer(dispose);
+					.disposer((release: () => void) => dispose(release, appId));
 			})
 			.catch((err) => {
 				throw new InternalInconsistencyError(
