@@ -1041,7 +1041,9 @@ export async function getState() {
 			commit,
 			serviceName,
 			status: status as string,
-			...(downloadProgress && { download_progress: downloadProgress }),
+			...(Number.isInteger(downloadProgress) && {
+				download_progress: downloadProgress,
+			}),
 		}),
 	);
 

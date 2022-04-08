@@ -1374,6 +1374,14 @@ describe('compose/application-manager', () => {
 					status: 'Downloaded',
 				},
 				{
+					name: 'node:latest',
+					commit: 'latestrelease',
+					appUuid: 'myapp',
+					serviceName: 'node',
+					status: 'Downloading',
+					downloadProgress: 0,
+				},
+				{
 					name: 'alpine:latest',
 					commit: 'latestrelease',
 					appUuid: 'myapp',
@@ -1426,6 +1434,11 @@ describe('compose/application-manager', () => {
 									image: 'alpine:latest',
 									status: 'Downloading',
 									download_progress: 50,
+								},
+								node: {
+									image: 'node:latest',
+									status: 'Downloading',
+									download_progress: 0,
 								},
 							},
 						},
