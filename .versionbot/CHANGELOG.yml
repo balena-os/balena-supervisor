@@ -1,4 +1,20 @@
 - commits:
+    - subject: Correctly evaluate downloadProgress when computing current state
+      hash: c1b5e58ebd7a1c01c985f75c9a84ac22f7f090f0
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#1918"
+        closes: "#1918"
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 13.0.2
+  title: "'Correctly evaluate downloadProgress when computing current state'"
+  date: 2022-04-08T01:24:44.461Z
+- commits:
     - subject: Fix database migration for legacyApps
       hash: eee24604459440569dee455db918d6901ea86645
       body: >
