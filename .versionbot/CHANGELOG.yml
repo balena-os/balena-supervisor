@@ -1,4 +1,21 @@
 - commits:
+    - subject: Add system id/model support for Compulab IOT-gate
+      hash: e6fa22306b9e2b55480772560e62bb8e8988b529
+      body: |
+        dmidecode for alpine 3.11 doesn't work in this device type. This change
+        moves to using `/proc/device-tree/product-sn` and
+        `/proc/device-tree/product-name` for these devices.
+      footer:
+        Resolves: "#1916"
+        resolves: "#1916"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 13.0.3
+  title: "'Add system id/model support for Compulab IOT-gate'"
+  date: 2022-04-08T16:06:29.933Z
+- commits:
     - subject: Correctly evaluate downloadProgress when computing current state
       hash: c1b5e58ebd7a1c01c985f75c9a84ac22f7f090f0
       body: ""
