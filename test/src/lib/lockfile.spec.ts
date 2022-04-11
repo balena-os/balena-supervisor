@@ -6,22 +6,23 @@ import mock = require('mock-fs');
 
 import * as lockfile from '../../../src/lib/lockfile';
 import * as fsUtils from '../../../src/lib/fs-utils';
+import { BASE_LOCK_DIR, LOCKFILE_UID } from '../../../src/lib/update-lock';
 
 describe('lib/lockfile', () => {
-	const lockPath = `${lockfile.BASE_LOCK_DIR}/1234567/one/updates.lock`;
-	const lockPath2 = `${lockfile.BASE_LOCK_DIR}/7654321/two/updates.lock`;
+	const lockPath = `${BASE_LOCK_DIR}/1234567/one/updates.lock`;
+	const lockPath2 = `${BASE_LOCK_DIR}/7654321/two/updates.lock`;
 
 	const mockDir = (opts: { createLock: boolean } = { createLock: false }) => {
 		mock({
-			[lockfile.BASE_LOCK_DIR]: {
+			[BASE_LOCK_DIR]: {
 				'1234567': {
 					one: opts.createLock
-						? { 'updates.lock': mock.file({ uid: lockfile.LOCKFILE_UID }) }
+						? { 'updates.lock': mock.file({ uid: LOCKFILE_UID }) }
 						: {},
 				},
 				'7654321': {
 					two: opts.createLock
-						? { 'updates.lock': mock.file({ uid: lockfile.LOCKFILE_UID }) }
+						? { 'updates.lock': mock.file({ uid: LOCKFILE_UID }) }
 						: {},
 				},
 			},
@@ -58,7 +59,7 @@ describe('lib/lockfile', () => {
 			await fs.chown(targetPath, opts!.uid!, 0);
 		});
 
-		mock({ [lockfile.BASE_LOCK_DIR]: {} });
+		mock({ [BASE_LOCK_DIR]: {} });
 	});
 
 	afterEach(async () => {
@@ -75,13 +76,13 @@ describe('lib/lockfile', () => {
 	it('should create a lockfile as the `nobody` user at target path', async () => {
 		mockDir();
 
-		await lockfile.lock(lockPath);
+		await lockfile.lock(lockPath, LOCKFILE_UID);
 
 		// Verify lockfile exists
 		await checkLockDirFiles(lockPath, { shouldExist: true });
 
 		// Verify lockfile UID
-		expect((await fs.stat(lockPath)).uid).to.equal(lockfile.LOCKFILE_UID);
+		expect((await fs.stat(lockPath)).uid).to.equal(LOCKFILE_UID);
 	});
 
 	it('should create a lockfile with the provided `uid` if specified', async () => {
@@ -109,7 +110,7 @@ describe('lib/lockfile', () => {
 		execStub = stub(fsUtils, 'exec').throws(childProcessError);
 
 		try {
-			await lockfile.lock(lockPath);
+			await lockfile.lock(lockPath, LOCKFILE_UID);
 			expect.fail('lockfile.lock should throw an error');
 		} catch (err) {
 			expect(err).to.exist;
@@ -159,8 +160,8 @@ describe('lib/lockfile', () => {
 		mockDir({ createLock: false });
 
 		// Create lockfiles for multiple appId / uuids
-		await lockfile.lock(lockPath);
-		await lockfile.lock(lockPath2);
+		await lockfile.lock(lockPath, LOCKFILE_UID);
+		await lockfile.lock(lockPath2, LOCKFILE_UID);
 
 		// @ts-ignore
 		process.emit('exit');
@@ -174,8 +175,8 @@ describe('lib/lockfile', () => {
 		mockDir({ createLock: false });
 
 		// Create lockfiles for multiple appId / uuids
-		await lockfile.lock(lockPath);
-		await lockfile.lock(lockPath2);
+		await lockfile.lock(lockPath, LOCKFILE_UID);
+		await lockfile.lock(lockPath2, LOCKFILE_UID);
 
 		expect(
 			lockfile.getLocksTaken((path) => path.includes('1234567')),

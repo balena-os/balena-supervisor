@@ -23,10 +23,10 @@ describe('lib/update-lock', () => {
 		const lockDirFiles: any = {};
 		if (createLockfile) {
 			lockDirFiles['updates.lock'] = mockFs.file({
-				uid: lockfile.LOCKFILE_UID,
+				uid: updateLock.LOCKFILE_UID,
 			});
 			lockDirFiles['resin-updates.lock'] = mockFs.file({
-				uid: lockfile.LOCKFILE_UID,
+				uid: updateLock.LOCKFILE_UID,
 			});
 		}
 		mockFs({
@@ -177,7 +177,9 @@ describe('lib/update-lock', () => {
 			expect(lockSpy.args).to.have.length(2);
 
 			// Everything that was locked should have been unlocked
-			expect(lockSpy.args).to.deep.equal(unlockSpy.args);
+			expect(lockSpy.args.map(([lock]) => [lock])).to.deep.equal(
+				unlockSpy.args,
+			);
 		});
 
 		it('should throw UpdatesLockedError if lockfile exists', async () => {
@@ -199,7 +201,10 @@ describe('lib/update-lock', () => {
 			}
 
 			// Should only have attempted to take `updates.lock`
-			expect(lockSpy.args.flat()).to.deep.equal([lockPath]);
+			expect(lockSpy.args.flat()).to.deep.equal([
+				lockPath,
+				updateLock.LOCKFILE_UID,
+			]);
 
 			// Since the lock-taking failed, there should be no locks to dispose of
 			expect(lockfile.getLocksTaken()).to.have.length(0);
@@ -232,7 +237,9 @@ describe('lib/update-lock', () => {
 			expect(lockSpy.args).to.have.length(2);
 
 			// Everything that was locked should have been unlocked
-			expect(lockSpy.args).to.deep.equal(unlockSpy.args);
+			expect(lockSpy.args.map(([lock]) => [lock])).to.deep.equal(
+				unlockSpy.args,
+			);
 		});
 
 		it('resolves input function without locking when appId is null', async () => {

@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as Lock from 'rwlock';
+import { isRight } from 'fp-ts/lib/Either';
 
 import * as constants from './constants';
 import {
@@ -13,9 +14,16 @@ import {
 import { getPathOnHost, pathExistsOnHost } from './fs-utils';
 import * as config from '../config';
 import * as lockfile from './lockfile';
+import { NumericIdentifier } from '../types';
+
+const decodedUid = NumericIdentifier.decode(process.env.LOCKFILE_UID);
+export const LOCKFILE_UID = isRight(decodedUid) ? decodedUid.right : 65534;
+
+export const BASE_LOCK_DIR =
+	process.env.BASE_LOCK_DIR || '/tmp/balena-supervisor/services';
 
 export function lockPath(appId: number, serviceName?: string): string {
-	return path.join(lockfile.BASE_LOCK_DIR, appId.toString(), serviceName ?? '');
+	return path.join(BASE_LOCK_DIR, appId.toString(), serviceName ?? '');
 }
 
 function lockFilesOnHost(appId: number, serviceName: string): string[] {
@@ -69,7 +77,7 @@ function dispose(
 ): Bluebird<void> {
 	return Bluebird.map(
 		lockfile.getLocksTaken((p: string) =>
-			p.includes(`${lockfile.BASE_LOCK_DIR}/${appIdentifier}`),
+			p.includes(`${BASE_LOCK_DIR}/${appIdentifier}`),
 		),
 		(lockName) => {
 			return lockfile.unlock(lockName);
@@ -117,7 +125,7 @@ export function lock<T extends unknown>(
 												}
 											})
 												.then(() => {
-													return lockfile.lock(tmpLockName);
+													return lockfile.lock(tmpLockName, LOCKFILE_UID);
 												})
 												// If lockfile exists, throw a user-friendly error.
 												// Otherwise throw the error as-is.

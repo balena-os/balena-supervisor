@@ -1,17 +1,11 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import { dirname } from 'path';
-import { isRight } from 'fp-ts/lib/Either';
 
 import { exec, unlinkAll } from './fs-utils';
-import { NumericIdentifier } from '../types';
 
 // Equivalent to `drwxrwxrwt`
 const STICKY_WRITE_PERMISSIONS = 0o1777;
-export const BASE_LOCK_DIR =
-	process.env.BASE_LOCK_DIR || '/tmp/balena-supervisor/services';
-
-const decodedUid = NumericIdentifier.decode(process.env.LOCKFILE_UID);
-export const LOCKFILE_UID = isRight(decodedUid) ? decodedUid.right : 65534;
 
 /**
  * Internal lockfile manager to track files in memory
@@ -61,7 +55,7 @@ export class LockfileExistsError implements ChildProcessError {
 	}
 }
 
-export async function lock(path: string, uid = LOCKFILE_UID) {
+export async function lock(path: string, uid: number = os.userInfo().uid) {
 	/**
 	 * Set parent directory permissions to `drwxrwxrwt` (octal 1777), which are needed
 	 * for lockfile binary to run successfully as the any non-root uid, if executing
@@ -71,7 +65,9 @@ export async function lock(path: string, uid = LOCKFILE_UID) {
 	 *
 	 * `chmod` does not fail or throw if the directory already has the proper permissions.
 	 */
-	await fs.promises.chmod(dirname(path), STICKY_WRITE_PERMISSIONS);
+	if (uid !== 0) {
+		await fs.promises.chmod(dirname(path), STICKY_WRITE_PERMISSIONS);
+	}
 
 	/**
 	 * Run the lockfile binary as the provided UID. See https://linux.die.net/man/1/lockfile
@@ -102,16 +98,16 @@ export async function lock(path: string, uid = LOCKFILE_UID) {
 			 *   - other systems-based errors
 			 */
 			throw new Error(
-				`Got code ${(error as ChildProcessError).code} while locking updates: ${
-					(error as ChildProcessError).stderr
-				}`,
+				`Got code ${
+					(error as ChildProcessError).code
+				} while trying to take lock: ${(error as ChildProcessError).stderr}`,
 			);
 		}
 	}
 }
 
 export async function unlock(path: string): Promise<void> {
-	// Removing the updates.lock file releases the lock
+	// Removing the lockfile releases the lock
 	await unlinkAll(path);
 	// Remove lockfile's in-memory tracking of a file
 	delete locksTaken[path];
