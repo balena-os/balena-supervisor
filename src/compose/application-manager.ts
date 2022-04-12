@@ -74,9 +74,6 @@ export const router = (() => {
 	return $router;
 })();
 
-// We keep track of the containers we've started, to avoid triggering successive start
-// requests for a container
-export let containerStarted: { [containerId: string]: boolean } = {};
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;
 
@@ -94,12 +91,6 @@ export function resetTimeSpentFetching(value: number = 0) {
 const actionExecutors = getExecutors({
 	lockFn: lock,
 	callbacks: {
-		containerStarted: (id: string) => {
-			containerStarted[id] = true;
-		},
-		containerKilled: (id: string) => {
-			delete containerStarted[id];
-		},
 		fetchStart: () => {
 			fetchesInProgress += 1;
 		},
@@ -347,9 +338,6 @@ export async function stopAll({ force = false, skipLock = false } = {}) {
 		services.map(async (s) => {
 			return lock(s.appId, { force, skipLock }, async () => {
 				await serviceManager.kill(s, { removeContainer: false, wait: true });
-				if (s.containerId) {
-					delete containerStarted[s.containerId];
-				}
 			});
 		}),
 	);

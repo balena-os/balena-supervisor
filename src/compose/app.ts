@@ -8,7 +8,6 @@ import Service from './service';
 
 import * as imageManager from './images';
 import type { Image } from './images';
-import * as applicationManager from './application-manager';
 import {
 	CompositionStep,
 	generateStep,
@@ -358,9 +357,7 @@ export class App {
 			// check that we want to stop it, and that it isn't stopped
 			return (
 				serviceTarget.config.running === false &&
-				// When we issue a stop step, we remove the containerId from this structure.
-				// We check if the container has been removed first, so that we can ensure we're not providing multiple stop steps.
-				applicationManager.containerStarted[serviceCurrent.containerId!] == null
+				serviceCurrent.status !== 'Stopped'
 			);
 		};
 

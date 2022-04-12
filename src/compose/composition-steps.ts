@@ -128,8 +128,6 @@ type LockingFn = (
 interface CompositionCallbacks {
 	// TODO: Once the entire codebase is typescript, change
 	// this to number
-	containerStarted: (containerId: string | null) => void;
-	containerKilled: (containerId: string | null) => void;
 	fetchStart: () => void;
 	fetchEnd: () => void;
 	fetchTime: (time: number) => void;
@@ -155,7 +153,6 @@ export function getExecutors(app: {
 						removeContainer: false,
 						wait,
 					});
-					app.callbacks.containerKilled(step.current.containerId);
 				},
 			);
 		},
@@ -168,7 +165,6 @@ export function getExecutors(app: {
 				},
 				async () => {
 					await serviceManager.kill(step.current);
-					app.callbacks.containerKilled(step.current.containerId);
 				},
 			);
 		},
@@ -201,15 +197,12 @@ export function getExecutors(app: {
 				},
 				async () => {
 					await serviceManager.kill(step.current, { wait: true });
-					app.callbacks.containerKilled(step.current.containerId);
-					const container = await serviceManager.start(step.target);
-					app.callbacks.containerStarted(container.id);
+					await serviceManager.start(step.target);
 				},
 			);
 		},
 		start: async (step) => {
-			const container = await serviceManager.start(step.target);
-			app.callbacks.containerStarted(container.id);
+			await serviceManager.start(step.target);
 		},
 		updateCommit: async (step) => {
 			await commitStore.upsertCommitForApp(step.appId, step.target);
