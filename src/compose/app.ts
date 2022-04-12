@@ -336,15 +336,13 @@ export class App {
 				return false;
 			}
 
-			// Check if we previously remember starting it
-			if (
-				applicationManager.containerStarted[serviceCurrent.containerId!] != null
-			) {
-				return false;
-			}
-
-			// If the config otherwise matches, then we should be running
-			return isEqualExceptForRunningState(serviceCurrent, serviceTarget);
+			// Only start a Service if we have never started it before and the service matches target!
+			// This is so the engine can handle the restart policy configured for the container.
+			return (
+				(serviceCurrent.status === 'Installing' ||
+					serviceCurrent.status === 'Installed') &&
+				isEqualExceptForRunningState(serviceCurrent, serviceTarget)
+			);
 		};
 
 		/**

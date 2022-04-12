@@ -208,7 +208,7 @@ describe('compose/application-manager', () => {
 
 	// TODO: missing tests for getCurrentApps
 
-	it('infers a start step when all that changes is a running state', async () => {
+	it('should not infer a start step when all that changes is a running state', async () => {
 		const targetApps = createApps(
 			{
 				services: [await createService({ running: true, appId: 1 })],
@@ -226,7 +226,7 @@ describe('compose/application-manager', () => {
 			networks: [DEFAULT_NETWORK],
 		});
 
-		const [startStep] = await applicationManager.inferNextSteps(
+		const steps = await applicationManager.inferNextSteps(
 			currentApps,
 			targetApps,
 			{
@@ -236,10 +236,8 @@ describe('compose/application-manager', () => {
 			},
 		);
 
-		expect(startStep).to.have.property('action').that.equals('start');
-		expect(startStep)
-			.to.have.property('target')
-			.that.deep.includes({ serviceName: 'main' });
+		// There should be no steps since the engine manages restart policy for stopped containers
+		expect(steps.length).to.equal(0);
 	});
 
 	it('infers a kill step when a service has to be removed', async () => {

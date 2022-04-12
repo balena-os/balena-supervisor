@@ -951,7 +951,7 @@ describe('compose/app', () => {
 			applicationManager.containerStarted = {};
 		});
 
-		it('should create a start step when all that changes is a running state', async () => {
+		it('should not create a start step when all that changes is a running state', async () => {
 			const contextWithImages = {
 				...defaultContext,
 				...{
@@ -972,13 +972,10 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			// now should see a 'start'
 			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
 
-			const [startStep] = expectSteps('start', steps);
-			expect(startStep)
-				.to.have.property('target')
-				.that.deep.includes({ serviceName: 'main' });
+			// There should be no steps since the engine manages restart policy for stopped containers
+			expect(steps.length).to.equal(0);
 		});
 
 		it('should create a kill step when a service release has to be updated but the strategy is kill-then-download', async () => {
