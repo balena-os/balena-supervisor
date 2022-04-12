@@ -8,10 +8,8 @@ import { normaliseLegacyDatabase } from './lib/legacy';
 import * as osRelease from './lib/os-release';
 import * as logger from './logger';
 import SupervisorAPI from './supervisor-api';
-
 import log from './lib/supervisor-console';
 import version = require('./lib/supervisor-version');
-
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
 import logMonitor from './logging/monitor';

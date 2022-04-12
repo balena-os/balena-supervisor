@@ -1,48 +1,40 @@
 import { expect } from 'chai';
 import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 import * as path from 'path';
-import * as Bluebird from 'bluebird';
-
-import rewire = require('rewire');
+import { promises as fs } from 'fs';
 import mockFs = require('mock-fs');
 
+import * as updateLock from '../../../src/lib/update-lock';
 import * as constants from '../../../src/lib/constants';
 import { UpdatesLockedError } from '../../../src/lib/errors';
+import * as config from '../../../src/config';
+import * as lockfile from '../../../src/lib/lockfile';
+import * as fsUtils from '../../../src/lib/fs-utils';
 
 describe('lib/update-lock', () => {
-	const updateLock = rewire('../../../src/lib/update-lock');
-	const breadcrumbFiles = [
-		'rollback-health-breadcrumb',
-		'rollback-altboot-breadcrumb',
-	];
-
-	const mockBreadcrumbs = (breadcrumb?: string) => {
-		mockFs({
-			[path.join(
-				constants.rootMountPoint,
-				constants.stateMountPoint,
-				breadcrumb ? breadcrumb : '',
-			)]: '',
-		});
-	};
+	const appId = 1234567;
+	const serviceName = 'test';
 
 	const mockLockDir = ({
-		appId,
-		service,
 		createLockfile = true,
 	}: {
-		appId: number;
-		service: string;
 		createLockfile?: boolean;
 	}) => {
+		const lockDirFiles: any = {};
+		if (createLockfile) {
+			lockDirFiles['updates.lock'] = mockFs.file({
+				uid: updateLock.LOCKFILE_UID,
+			});
+			lockDirFiles['resin-updates.lock'] = mockFs.file({
+				uid: updateLock.LOCKFILE_UID,
+			});
+		}
 		mockFs({
 			[path.join(
 				constants.rootMountPoint,
 				updateLock.lockPath(appId),
-				service,
-			)]: {
-				[createLockfile ? 'updates.lock' : 'ignore-this.lock']: '',
-			},
+				serviceName,
+			)]: lockDirFiles,
 		});
 	};
 
@@ -57,29 +49,33 @@ describe('lib/update-lock', () => {
 		constants.rootMountPoint = process.env.ROOT_MOUNTPOINT;
 	});
 
-	describe('Lockfile path methods', () => {
-		const testAppId = 1234567;
-		const testService = 'test';
-
+	describe('lockPath', () => {
 		it('should return path prefix of service lockfiles on host', () => {
-			expect(updateLock.lockPath(testAppId)).to.equal(
-				`/tmp/balena-supervisor/services/${testAppId}`,
+			expect(updateLock.lockPath(appId)).to.equal(
+				`/tmp/balena-supervisor/services/${appId}`,
 			);
-			expect(updateLock.lockPath(testAppId, testService)).to.equal(
-				`/tmp/balena-supervisor/services/${testAppId}/${testService}`,
+			expect(updateLock.lockPath(appId, serviceName)).to.equal(
+				`/tmp/balena-supervisor/services/${appId}/${serviceName}`,
 			);
-		});
-
-		it('should return the complete paths of (non-)legacy lockfiles on host', () => {
-			const lockFilesOnHost = updateLock.__get__('lockFilesOnHost');
-			expect(lockFilesOnHost(testAppId, testService)).to.deep.equal([
-				`${constants.rootMountPoint}/tmp/balena-supervisor/services/${testAppId}/${testService}/updates.lock`,
-				`${constants.rootMountPoint}/tmp/balena-supervisor/services/${testAppId}/${testService}/resin-updates.lock`,
-			]);
 		});
 	});
 
 	describe('abortIfHUPInProgress', () => {
+		const breadcrumbFiles = [
+			'rollback-health-breadcrumb',
+			'rollback-altboot-breadcrumb',
+		];
+
+		const mockBreadcrumbs = (breadcrumb?: string) => {
+			mockFs({
+				[path.join(
+					constants.rootMountPoint,
+					constants.stateMountPoint,
+					breadcrumb ? breadcrumb : '',
+				)]: '',
+			});
+		};
+
 		afterEach(() => mockFs.restore());
 
 		it('should throw if any breadcrumbs exist on host', async () => {
@@ -109,152 +105,176 @@ describe('lib/update-lock', () => {
 	});
 
 	describe('Lock/dispose functionality', () => {
-		const lockFile = updateLock.__get__('lockFile');
-		const locksTaken = updateLock.__get__('locksTaken');
-		const dispose = updateLock.__get__('dispose');
-		const lockExistsErrHandler = updateLock.__get__('lockExistsErrHandler');
+		const getLockParentDir = (): string =>
+			`${constants.rootMountPoint}${updateLock.lockPath(appId, serviceName)}`;
 
-		const releaseFn = stub();
-		const testLockPaths = ['/tmp/test/1', '/tmp/test/2'];
+		const expectLocks = async (exists: boolean = true) => {
+			expect(await fs.readdir(getLockParentDir())).to.deep.equal(
+				exists ? ['resin-updates.lock', 'updates.lock'] : [],
+			);
+		};
 
-		let unlockSyncStub: SinonStub;
-		let unlockAsyncSpy: SinonSpy;
-		let lockAsyncSpy: SinonSpy;
+		let unlockSpy: SinonSpy;
+		let lockSpy: SinonSpy;
+		let execStub: SinonStub;
+
+		let configGetStub: SinonStub;
 
 		beforeEach(() => {
+			unlockSpy = spy(lockfile, 'unlock');
+			lockSpy = spy(lockfile, 'lock');
+			// lockfile.lock calls exec to interface with the lockfile binary,
+			// so mock it here as we don't have access to the binary in the test env
 			// @ts-ignore
-			unlockSyncStub = stub(lockFile, 'unlockSync').callsFake((lockPath) => {
-				// Throw error on process.exit for one of the two lockpaths
-				if (lockPath === testLockPaths[1]) {
-					throw new Error(
-						'handled unlockSync error which should not crash test process',
-					);
-				}
+			execStub = stub(fsUtils, 'exec').callsFake(async (command, opts) => {
+				// Sanity check for the command call
+				expect(command.trim().startsWith('lockfile')).to.be.true;
+
+				// Remove any `lockfile` command options to leave just the command and the target filepath
+				const [, targetPath] = command
+					.replace(/-v|-nnn|-r\s+\d+|-l\s+\d+|-s\s+\d+|-!|-ml|-mu/g, '')
+					.split(/\s+/);
+
+				// Emulate the lockfile binary exec call
+				await fsUtils.touch(targetPath);
+				await fs.chown(targetPath, opts!.uid!, 0);
 			});
-			unlockAsyncSpy = spy(lockFile, 'unlockAsync');
-			lockAsyncSpy = spy(lockFile, 'lockAsync');
+
+			// config.get is called in updateLock.lock to get `lockOverride` value,
+			// so mock it here to definitively avoid any side effects
+			configGetStub = stub(config, 'get').resolves(false);
 		});
 
-		afterEach(() => {
-			for (const key of Object.keys(locksTaken)) {
-				delete locksTaken[key];
-			}
-			unlockSyncStub.restore();
-			unlockAsyncSpy.restore();
-			lockAsyncSpy.restore();
-		});
+		afterEach(async () => {
+			unlockSpy.restore();
+			lockSpy.restore();
+			execStub.restore();
 
-		it('should try to clean up existing locks on process exit', () => {
-			testLockPaths.forEach((p) => (locksTaken[p] = true));
+			configGetStub.restore();
 
-			// @ts-ignore
-			process.emit('exit');
-			testLockPaths.forEach((p) => {
-				expect(unlockSyncStub).to.have.been.calledWith(p);
-			});
-		});
-
-		it('should dispose of locks', async () => {
-			for (const lock of testLockPaths) {
-				locksTaken[lock] = true;
+			// Even though mock-fs is restored, this is needed to delete any in-memory storage of locks
+			for (const lock of lockfile.getLocksTaken()) {
+				await lockfile.unlock(lock);
 			}
 
-			await dispose(releaseFn);
-
-			expect(locksTaken).to.deep.equal({});
-			expect(releaseFn).to.have.been.called;
-			testLockPaths.forEach((p) => {
-				expect(unlockAsyncSpy).to.have.been.calledWith(p);
-			});
+			mockFs.restore();
 		});
 
-		describe('lockExistsErrHandler', () => {
-			it('should handle EEXIST', async () => {
-				const appIdentifiers = [
-					{ id: '1234567', service: 'test1', type: 'appId' },
-					{
-						id: 'c89a7cb83d974518479591ffaf7c2417',
-						service: 'test2',
-						type: 'appUuid',
+		it('should take the lock, run the function, then dispose of locks', async () => {
+			// Set up fake filesystem for lockfiles
+			mockLockDir({ createLockfile: false });
+
+			await expect(
+				updateLock.lock(appId, { force: false }, async () => {
+					// At this point the locks should be taken and not removed
+					// until this function has been resolved
+					await expectLocks(true);
+					return Promise.resolve();
+				}),
+			).to.eventually.be.fulfilled;
+
+			// Both `updates.lock` and `resin-updates.lock` should have been taken
+			expect(lockSpy.args).to.have.length(2);
+
+			// Everything that was locked should have been unlocked
+			expect(lockSpy.args.map(([lock]) => [lock])).to.deep.equal(
+				unlockSpy.args,
+			);
+		});
+
+		it('should throw UpdatesLockedError if lockfile exists', async () => {
+			// Set up fake filesystem for lockfiles
+			mockLockDir({ createLockfile: true });
+
+			const lockPath = `${getLockParentDir()}/updates.lock`;
+
+			execStub.throws(new lockfile.LockfileExistsError(lockPath));
+
+			try {
+				await updateLock.lock(appId, { force: false }, async () => {
+					await expectLocks(false);
+					return Promise.resolve();
+				});
+				expect.fail('updateLock.lock should throw an UpdatesLockedError');
+			} catch (err) {
+				expect(err).to.be.instanceOf(UpdatesLockedError);
+			}
+
+			// Should only have attempted to take `updates.lock`
+			expect(lockSpy.args.flat()).to.deep.equal([
+				lockPath,
+				updateLock.LOCKFILE_UID,
+			]);
+
+			// Since the lock-taking failed, there should be no locks to dispose of
+			expect(lockfile.getLocksTaken()).to.have.length(0);
+
+			// Since nothing was locked, nothing should be unlocked
+			expect(unlockSpy.args).to.have.length(0);
+		});
+
+		it('should dispose of taken locks on any other errors', async () => {
+			// Set up fake filesystem for lockfiles
+			mockLockDir({ createLockfile: false });
+
+			try {
+				await updateLock.lock(
+					appId,
+					{ force: false },
+					// At this point 2 lockfiles have been written, so this is testing
+					// that even if the function rejects, lockfiles will be disposed of
+					async () => {
+						await expectLocks();
+						return Promise.reject(new Error('Test error'));
 					},
-					{ id: 'c89a7cb', service: 'test3', type: 'appUuid' },
-				];
-				for (const { id, service, type } of appIdentifiers) {
-					// Handle legacy & nonlegacy lockfile names
-					for (const lockfile of ['updates.lock', 'resin-updates.lock']) {
-						const error = {
-							code: 'EEXIST',
-							message: `EEXIST: open "/tmp/balena-supervisor/services/${id}/${service}/${lockfile}"`,
-						};
-						await expect(lockExistsErrHandler(error, releaseFn))
-							.to.eventually.be.rejectedWith(
-								`Lockfile exists for ${JSON.stringify({
-									serviceName: service,
-									[type]: id,
-								})}`,
-							)
-							.and.be.an.instanceOf(UpdatesLockedError);
-					}
-				}
-			});
+				);
+			} catch {
+				/* noop */
+				// This just catches the 'Test error' above
+			}
 
-			it('should handle any other errors', async () => {
-				await expect(lockExistsErrHandler(new Error('Test error'), releaseFn))
-					.to.eventually.be.rejectedWith('Test error')
-					.and.be.an.instanceOf(UpdatesLockedError);
-			});
+			// Both `updates.lock` and `resin-updates.lock` should have been taken
+			expect(lockSpy.args).to.have.length(2);
+
+			// Everything that was locked should have been unlocked
+			expect(lockSpy.args.map(([lock]) => [lock])).to.deep.equal(
+				unlockSpy.args,
+			);
 		});
 
-		describe('lock', () => {
-			let bluebirdUsing: SinonSpy;
-			let bluebirdResolve: SinonSpy;
-			const lockParamFn = stub().resolves();
+		it('resolves input function without locking when appId is null', async () => {
+			mockLockDir({ createLockfile: true });
 
-			beforeEach(() => {
-				bluebirdUsing = spy(Bluebird, 'using');
-				bluebirdResolve = spy(Bluebird, 'resolve');
-			});
+			await expect(
+				updateLock.lock(null as any, { force: false }, stub().resolves()),
+			).to.be.fulfilled;
 
-			afterEach(() => {
-				bluebirdUsing.restore();
-				bluebirdResolve.restore();
+			// Since appId is null, updateLock.lock should just run the function, so
+			// there should be no interfacing with the lockfile module
+			expect(unlockSpy).to.not.have.been.called;
+			expect(lockSpy).to.not.have.been.called;
+		});
 
-				mockFs.restore();
-			});
+		it('unlocks lockfile to resolve function if force option specified', async () => {
+			mockLockDir({ createLockfile: true });
 
-			it('resolves input function without dispose pattern when appId is null', async () => {
-				mockLockDir({ appId: 1234567, service: 'test', createLockfile: true });
-				await expect(updateLock.lock(null, { force: false }, lockParamFn)).to.be
-					.fulfilled;
-				expect(bluebirdResolve).to.have.been.called;
-			});
+			await expect(updateLock.lock(1234567, { force: true }, stub().resolves()))
+				.to.be.fulfilled;
 
-			it('resolves input function without dispose pattern when no lockfiles exist', async () => {
-				mockLockDir({ appId: 1234567, service: 'test', createLockfile: false });
-				await expect(updateLock.lock(1234567, { force: false }, lockParamFn)).to
-					.be.fulfilled;
-				expect(bluebirdResolve).to.have.been.called;
-			});
+			expect(unlockSpy).to.have.been.called;
+			expect(lockSpy).to.have.been.called;
+		});
 
-			it('uses dispose pattern if lockfile present and throws error', async () => {
-				mockLockDir({ appId: 1234567, service: 'test' });
-				await expect(updateLock.lock(1234567, { force: false }, lockParamFn))
-					.to.eventually.be.rejectedWith(
-						'Lockfile exists for {"serviceName":"test","appId":"1234567"}',
-					)
-					.and.be.an.instanceOf(UpdatesLockedError);
-				expect(lockAsyncSpy).to.have.been.called;
-				expect(bluebirdUsing).to.have.been.called;
-			});
+		it('unlocks lockfile to resolve function if lockOverride option specified', async () => {
+			configGetStub.resolves(true);
+			mockLockDir({ createLockfile: true });
 
-			it('unlocks lockfile to resolve function if force option specified', async () => {
-				mockLockDir({ appId: 1234567, service: 'test' });
-				await expect(updateLock.lock(1234567, { force: true }, lockParamFn)).to
-					.be.fulfilled;
-				expect(unlockAsyncSpy).to.have.been.called;
-				expect(lockAsyncSpy).to.have.been.called;
-				expect(bluebirdUsing).to.have.been.called;
-			});
+			await expect(
+				updateLock.lock(1234567, { force: false }, stub().resolves()),
+			).to.be.fulfilled;
+
+			expect(unlockSpy).to.have.been.called;
+			expect(lockSpy).to.have.been.called;
 		});
 	});
 });
