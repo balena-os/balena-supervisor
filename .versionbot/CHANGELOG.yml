@@ -1,4 +1,39 @@
 - commits:
+    - subject: Add lockfile binary and internal lib for interfacing with it
+      hash: 51e63ea22b876580de276808eca891ff6ab2a6c5
+      body: >
+        The linked issue describes the Supervisor not cleaning up locks it
+        creates due
+
+        to crashing at just the wrong time. After internal discussion we decided to
+
+        differentiate Supervisor-created lockfiles from user-created lockfiles by using
+
+        the `nobody` UID (65534) for Supervisor-created lockfiles.
+
+
+        As the existing NPM lockfile lib does not allow creating lockfiles atomically
+
+        with different UIDs, we move to using the lockfile binary, which is part of the
+
+        procmail package. To allow nonroot users to write to lock directories, permissions
+
+        are changed to allow write access by nonroot users.
+      footer:
+        See: https://www.flowdock.com/app/rulemotion/r-resinos/threads/gWMgK5hmR26TzWGHux62NpgJtVl
+        see: https://www.flowdock.com/app/rulemotion/r-resinos/threads/gWMgK5hmR26TzWGHux62NpgJtVl
+        Change-type: minor
+        change-type: minor
+        Closes: "#1758"
+        closes: "#1758"
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 13.1.0
+  title: "'Differentiate Supervisor-created lockfiles from userapp-created lockfiles'"
+  date: 2022-04-12T19:07:17.817Z
+- commits:
     - subject: Add system id/model support for Compulab IOT-gate
       hash: e6fa22306b9e2b55480772560e62bb8e8988b529
       body: |
