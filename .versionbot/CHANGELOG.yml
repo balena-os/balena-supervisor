@@ -1,4 +1,16 @@
 - commits:
+    - subject: Do not fail lockfile cleanup if files do not exist
+      hash: 8681d6b5808142613931b4e9fe63fa94f04c65bc
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 13.1.1
+  title: "'Do not fail lockfile cleanup if files do not exist'"
+  date: 2022-04-13T17:08:20.101Z
+- commits:
     - subject: Add lockfile binary and internal lib for interfacing with it
       hash: 51e63ea22b876580de276808eca891ff6ab2a6c5
       body: >
