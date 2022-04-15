@@ -84,7 +84,9 @@ export class SplashImage extends ConfigBackend {
 			// Write the buffer to the given location
 			await hostUtils.writeToBoot(where, buffer);
 		} else {
-			throw new Error('Splash image should be a base64 encoded PNG image');
+			log.error(
+				'Expected splash image to be a base64 encoded PNG image. Skipping write.',
+			);
 		}
 	}
 
