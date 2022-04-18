@@ -1,4 +1,27 @@
 - commits:
+    - subject: Explain /v2/state/status's status field in its response
+      hash: 27249c278555c46154d1e917e769dd3fb9d2dcfc
+      body: >
+        The status field does not indicate the current state of the Engine on
+        the device.
+
+        Rather, it only indicates whether the HTTP response returned successfully or not.
+
+
+        To get the current state of the device, i.e. whether it has applied target state or not,
+
+        use the `appState` field in the response.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 13.1.2
+  title: "'Explain /v2/state/status's status field in its response'"
+  date: 2022-04-18T20:20:06.946Z
+- commits:
     - subject: Do not fail lockfile cleanup if files do not exist
       hash: 8681d6b5808142613931b4e9fe63fa94f04c65bc
       body: ""
