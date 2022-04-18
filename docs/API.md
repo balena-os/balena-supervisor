@@ -747,6 +747,8 @@ Response:
 
 This will return a list of images, containers, the overall download progress and the status of the state engine.
 
+> **Note:** The `status` field in the JSON response does not indicate the status of the device itself, but rather the status of the HTTP response. To get an accurate representation of whether the device state has settled, use the `appState` field. `appState` will be one of `applying` or `applied`.
+
 From an app container:
 ```bash
 curl "$BALENA_SUPERVISOR_ADDRESS/v2/state/status?apikey=$BALENA_SUPERVISOR_API_KEY"
