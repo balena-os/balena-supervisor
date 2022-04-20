@@ -1,4 +1,31 @@
 - commits:
+    - subject: Remove in memory storage of started/stopped containers
+      hash: 5437aea786e6be4a908e2cb0c24faeca3282c37e
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+    - subject: Only start a container once in its lifetime This will ensure the
+        restart policy specified is not violated
+      hash: ca9945bdfb716e1b14b24d3f3069f48cc7aff493
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#1668"
+        closes: "#1668"
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 13.1.3
+  title: "'Prevent restart policy violation'"
+  date: 2022-04-20T03:29:57.844Z
+- commits:
     - subject: Explain /v2/state/status's status field in its response
       hash: 27249c278555c46154d1e917e769dd3fb9d2dcfc
       body: >
