@@ -275,12 +275,7 @@ async function create(service: Service) {
 		logger.logSystemEvent(LogTypes.installService, { service });
 		reportNewStatus(mockContainerId, service, 'Installing');
 
-		// Create directories on host for update lock binds, since Supervisor uses the
-		// Docker Mounts API which means an engine error is thrown if bind doesn't exist on host.
-		const lockDirPath = getPathOnHost(
-			`${BASE_LOCK_DIR}/${service.appId}/${service.serviceName}`,
-		);
-		await mkdirp(lockDirPath);
+		await createBindDir(service.appId, service.serviceName);
 
 		const container = await docker.createContainer(conf);
 		service.containerId = container.id;
@@ -488,6 +483,20 @@ export async function attachToRunning() {
 				imageId,
 			});
 		}
+	}
+}
+
+async function createBindDir(appId: number, serviceName: string) {
+	const lockDirPath = getPathOnHost(`${BASE_LOCK_DIR}/${appId}/${serviceName}`);
+	await mkdirp(lockDirPath);
+}
+
+// Create directories on host for update lock binds, since Supervisor uses the
+// Docker Mounts API which means an engine error is thrown if bind doesn't exist on host.
+export async function createBindDirs() {
+	const services = await getAll();
+	for (const service of services) {
+		await createBindDir(service.appId, service.serviceName);
 	}
 }
 

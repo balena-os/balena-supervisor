@@ -135,6 +135,7 @@ export const initialized = (async () => {
 	await cleanup();
 
 	await localModeManager.init();
+	await serviceManager.createBindDirs();
 	await serviceManager.attachToRunning();
 	serviceManager.listenToEvents();
 

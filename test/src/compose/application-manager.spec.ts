@@ -15,6 +15,7 @@ import log from '../../../src/lib/supervisor-console';
 import { InstancedAppState } from '../../../src/types/state';
 
 import * as dbHelper from '../../lib/db-helper';
+import * as fsUtils from '../../../src/lib/fs-utils';
 
 const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, 'appuuid', {});
 
@@ -179,6 +180,9 @@ describe('compose/application-manager', () => {
 		// Stub methods that depend on external dependencies
 		stub(imageManager, 'isCleanupNeeded');
 		stub(networkManager, 'supervisorNetworkReady');
+
+		// Stub mkdirp call for service manager bind directory creation
+		stub(fsUtils, 'mkdirp').resolves();
 	});
 
 	beforeEach(() => {
