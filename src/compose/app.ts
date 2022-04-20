@@ -8,7 +8,6 @@ import Service from './service';
 
 import * as imageManager from './images';
 import type { Image } from './images';
-import * as applicationManager from './application-manager';
 import {
 	CompositionStep,
 	generateStep,
@@ -336,15 +335,13 @@ export class App {
 				return false;
 			}
 
-			// Check if we previously remember starting it
-			if (
-				applicationManager.containerStarted[serviceCurrent.containerId!] != null
-			) {
-				return false;
-			}
-
-			// If the config otherwise matches, then we should be running
-			return isEqualExceptForRunningState(serviceCurrent, serviceTarget);
+			// Only start a Service if we have never started it before and the service matches target!
+			// This is so the engine can handle the restart policy configured for the container.
+			return (
+				(serviceCurrent.status === 'Installing' ||
+					serviceCurrent.status === 'Installed') &&
+				isEqualExceptForRunningState(serviceCurrent, serviceTarget)
+			);
 		};
 
 		/**
@@ -360,9 +357,7 @@ export class App {
 			// check that we want to stop it, and that it isn't stopped
 			return (
 				serviceTarget.config.running === false &&
-				// When we issue a stop step, we remove the containerId from this structure.
-				// We check if the container has been removed first, so that we can ensure we're not providing multiple stop steps.
-				applicationManager.containerStarted[serviceCurrent.containerId!] == null
+				serviceCurrent.status !== 'Stopped'
 			);
 		};
 

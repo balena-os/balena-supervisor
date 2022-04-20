@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import App from '../../../src/compose/app';
-import * as applicationManager from '../../../src/compose/application-manager';
 import {
 	CompositionStep,
 	CompositionStepAction,
@@ -127,17 +126,7 @@ describe('compose/app', () => {
 		sinon.stub(log, 'success');
 	});
 
-	beforeEach(() => {
-		// Cleanup application manager
-		// @ts-ignore
-		applicationManager.containerStarted = {};
-	});
-
 	after(() => {
-		// Cleanup application manager once more just in case
-		// @ts-ignore
-		applicationManager.containerStarted = {};
-
 		// Restore stubbed methods
 		sinon.restore();
 	});
@@ -780,11 +769,6 @@ describe('compose/app', () => {
 				],
 			});
 
-			// Mark this container as previously being started
-			// TODO: this is a circular dependency and is an implementation detail that should
-			// not be part of a test. NEEDS refactor
-			applicationManager.containerStarted['run_once'] = true;
-
 			// Now test that another start step is not added on this service
 			const target = createApp({
 				services: [
@@ -798,10 +782,6 @@ describe('compose/app', () => {
 
 			const steps = current.nextStepsForAppUpdate(defaultContext, target);
 			expectNoStep('start', steps);
-
-			// Cleanup application manager
-			// @ts-ignore
-			applicationManager.containerStarted = {};
 		});
 
 		it('should recreate a container if the target configuration changes', async () => {
@@ -929,12 +909,6 @@ describe('compose/app', () => {
 				networks: [defaultNetwork],
 			});
 
-			// We keep track of the containers that we've tried to start so that we
-			// dont spam start requests if the container hasn't started running
-			// TODO: this is a circular dependency and is an implementation detail that should
-			// not be part of a test. NEEDS refactor
-			applicationManager.containerStarted['dep-id'] = true;
-
 			// we should now see a start for the 'main' service...
 			const stepsToTarget = intermediate.nextStepsForAppUpdate(
 				{ ...contextWithImages, ...{ containerIds: { dep: 'dep-id' } } },
@@ -945,13 +919,9 @@ describe('compose/app', () => {
 			expect(startMainStep)
 				.to.have.property('target')
 				.that.deep.includes({ serviceName: 'main' });
-
-			// Reset the state of applicationManager
-			// @ts-ignore
-			applicationManager.containerStarted = {};
 		});
 
-		it('should create a start step when all that changes is a running state', async () => {
+		it('should not create a start step when all that changes is a running state', async () => {
 			const contextWithImages = {
 				...defaultContext,
 				...{
@@ -972,13 +942,10 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			// now should see a 'start'
 			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
 
-			const [startStep] = expectSteps('start', steps);
-			expect(startStep)
-				.to.have.property('target')
-				.that.deep.includes({ serviceName: 'main' });
+			// There should be no steps since the engine manages restart policy for stopped containers
+			expect(steps.length).to.equal(0);
 		});
 
 		it('should create a kill step when a service release has to be updated but the strategy is kill-then-download', async () => {
