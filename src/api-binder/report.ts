@@ -1,5 +1,6 @@
 import * as url from 'url';
 import * as _ from 'lodash';
+import { delay } from 'bluebird';
 import { CoreOptions } from 'request';
 
 import * as constants from '../lib/constants';
@@ -141,15 +142,24 @@ export async function startReporting() {
 	);
 	const doReport = async () => {
 		if (!reportPending) {
-			throttledReport(reportConfigs);
+			await throttledReport(reportConfigs);
 		}
 	};
 
 	// If the state changes, report it
 	deviceState.on('change', doReport);
-	// But check once every max report frequency to ensure that changes in system
-	// info are picked up (CPU temp etc)
-	setInterval(doReport, constants.maxReportFrequency);
-	// Try to perform a report right away
-	return doReport();
+
+	async function recursivelyReport(delayBy: number) {
+		try {
+			// Try to send current state
+			await doReport();
+		} finally {
+			// Wait until we want to report again
+			await delay(delayBy);
+			// Try to report again
+			await recursivelyReport(delayBy);
+		}
+	}
+
+	return recursivelyReport(constants.maxReportFrequency);
 }
