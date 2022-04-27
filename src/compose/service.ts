@@ -4,26 +4,34 @@ import Duration = require('duration-js');
 import * as _ from 'lodash';
 import * as path from 'path';
 
-import * as conversions from '../lib/conversions';
-import { checkInt } from '../lib/validation';
-import { InternalInconsistencyError } from '../lib/errors';
 import { DockerPortOptions, PortMap } from './ports';
-import {
-	ConfigMap,
-	DeviceMetadata,
-	DockerDevice,
-	ServiceComposeConfig,
-	ServiceConfig,
-	ServiceConfigArrayField,
-} from './types/service';
 import * as ComposeUtils from './utils';
-
 import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
 import { getPathOnHost } from '../lib/fs-utils';
-
 import log from '../lib/supervisor-console';
+import * as conversions from '../lib/conversions';
+import { checkInt } from '../lib/validation';
+import { InternalInconsistencyError } from '../lib/errors';
+
 import { EnvVarObject } from '../types';
+import {
+	ServiceConfig,
+	ServiceConfigArrayField,
+	ServiceComposeConfig,
+	ConfigMap,
+	DeviceMetadata,
+	DockerDevice,
+	ShortMount,
+	ShortBind,
+	ShortAnonymousVolume,
+	ShortNamedVolume,
+	LongDefinition,
+	LongTmpfs,
+	LongBind,
+	LongAnonymousVolume,
+	LongNamedVolume,
+} from './types/service';
 
 const SERVICE_NETWORK_MODE_REGEX = /service:\s*(.+)/;
 const CONTAINER_NETWORK_MODE_REGEX = /container:\s*(.+)/;
@@ -528,10 +536,20 @@ export class Service {
 		}
 		expose = _.uniq(expose);
 
-		const tmpfs: string[] = [];
-		_.each((container.HostConfig as any).Tmpfs, (_v, key) => {
-			tmpfs.push(key);
-		});
+		const tmpfs: string[] = Object.keys(container.HostConfig?.Tmpfs || {});
+
+		const binds: string[] = _.uniq(
+			([] as string[]).concat(
+				container.HostConfig.Binds || [],
+				Object.keys(container.Config?.Volumes || {}),
+			),
+		);
+
+		const mounts: LongDefinition[] = (container.HostConfig?.Mounts || []).map(
+			ComposeUtils.dockerMountToServiceMount,
+		);
+
+		const volumes: ServiceConfig['volumes'] = [...binds, ...mounts];
 
 		// We cannot use || for this value, as the empty string is a
 		// valid restart policy but will equate to null in an OR
@@ -558,10 +576,7 @@ export class Service {
 			hostname,
 			command: container.Config.Cmd || '',
 			entrypoint: container.Config.Entrypoint || '',
-			volumes: _.concat(
-				container.HostConfig.Binds || [],
-				_.keys(container.Config.Volumes || {}),
-			),
+			volumes,
 			image: container.Config.Image,
 			environment: Service.omitDeviceNameVars(
 				conversions.envArrayToObject(container.Config.Env || []),
@@ -667,13 +682,13 @@ export class Service {
 		deviceName: string;
 		containerIds: Dictionary<string>;
 	}): Dockerode.ContainerCreateOptions {
-		const { binds, volumes } = this.getBindsAndVolumes();
+		const { binds, mounts, volumes } = this.getBindsMountsAndVolumes();
 		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
 
-		const tmpFs: Dictionary<''> = {};
-		_.each(this.config.tmpfs, (tmp) => {
-			tmpFs[tmp] = '';
-		});
+		const tmpFs: Dictionary<''> = this.config.tmpfs.reduce(
+			(dict, tmp) => ({ ...dict, [tmp]: '' }),
+			{},
+		);
 
 		const mainNetwork = _.pickBy(
 			this.config.networks,
@@ -724,6 +739,7 @@ export class Service {
 				CapAdd: this.config.capAdd,
 				CapDrop: this.config.capDrop,
 				Binds: binds,
+				Mounts: mounts,
 				CgroupParent: this.config.cgroupParent,
 				Devices: this.config.devices,
 				DeviceRequests: this.config.deviceRequests,
@@ -923,21 +939,26 @@ export class Service {
 		);
 	}
 
-	private getBindsAndVolumes(): {
+	private getBindsMountsAndVolumes(): {
 		binds: string[];
+		mounts: Dockerode.MountSettings[];
 		volumes: { [volName: string]: {} };
 	} {
 		const binds: string[] = [];
+		const mounts: Dockerode.MountSettings[] = [];
 		const volumes: { [volName: string]: {} } = {};
-		_.each(this.config.volumes, (volume) => {
-			if (_.includes(volume, ':')) {
-				binds.push(volume);
-			} else {
-				volumes[volume] = {};
-			}
-		});
 
-		return { binds, volumes };
+		for (const volume of this.config.volumes) {
+			if (LongDefinition.is(volume)) {
+				// Volumes with the long syntax are translated into Docker-accepted configs
+				mounts.push(ComposeUtils.serviceMountToDockerMount(volume));
+			} else {
+				// Volumes with the string short syntax are acceptable as Docker configs as-is
+				ShortMount.is(volume) ? binds.push(volume) : (volumes[volume] = {});
+			}
+		}
+
+		return { binds, mounts, volumes };
 	}
 
 	private generateExposeAndPorts(): DockerPortOptions {
@@ -1029,17 +1050,17 @@ export class Service {
 
 	public hasVolume(volumeName: string) {
 		return this.config.volumes.some((volumeDefinition) => {
-			const [sourceName, destName] = volumeDefinition.split(':');
-			if (destName == null) {
-				// If this is not a named volume, ignore it
-				return false;
-			}
-			if (sourceName[0] === '/') {
-				// Absolute paths should also be ignored
+			let source: string;
+
+			if (LongNamedVolume.is(volumeDefinition)) {
+				source = volumeDefinition.source;
+			} else if (ShortNamedVolume.is(volumeDefinition)) {
+				[source] = volumeDefinition.split(':');
+			} else {
 				return false;
 			}
 
-			return `${this.appId}_${volumeName}` === sourceName;
+			return `${this.appId}_${volumeName}` === source;
 		});
 	}
 
@@ -1124,26 +1145,43 @@ export class Service {
 	): ServiceConfig['volumes'] {
 		let volumes: ServiceConfig['volumes'] = [];
 
-		_.each(composeVolumes, (volume) => {
-			const isBind = _.includes(volume, ':');
-			if (isBind) {
-				const [bindSource, bindDest, mode] = volume.split(':');
-				if (!path.isAbsolute(bindSource)) {
-					// namespace our volumes by appId
-					let volumeDef = `${appId}_${bindSource.trim()}:${bindDest.trim()}`;
-					if (mode != null) {
-						volumeDef = `${volumeDef}:${mode.trim()}`;
-					}
-					volumes.push(volumeDef);
-				} else {
-					log.warn(`Ignoring invalid bind mount ${volume}`);
-				}
-			} else {
-				// Push anonymous volume. Anonymous volumes can only be
-				// set by using the `VOLUME` instruction inside a dockerfile
+		// namespace our volumes by appId
+		const namespaceVolume = (volumeSource: string) =>
+			`${appId}_${volumeSource.trim()}`;
+
+		for (const volume of composeVolumes || []) {
+			const isString = typeof volume === 'string';
+			// Bind mounts are not allowed
+			if (LongBind.is(volume) || ShortBind.is(volume)) {
+				log.warn(
+					`Ignoring invalid bind mount ${
+						isString ? volume : JSON.stringify(volume)
+					}`,
+				);
+			} else if (
+				LongTmpfs.is(volume) ||
+				LongAnonymousVolume.is(volume) ||
+				ShortAnonymousVolume.is(volume)
+			) {
 				volumes.push(volume);
+			} else if (LongNamedVolume.is(volume)) {
+				volume.source = namespaceVolume(volume.source);
+				volumes.push(volume);
+			} else if (ShortNamedVolume.is(volume)) {
+				const [source, target, mode] = (volume as string).split(':');
+				let volumeDef = `${namespaceVolume(source)}:${target.trim()}`;
+				if (mode != null) {
+					volumeDef = `${volumeDef}:${mode.trim()}`;
+				}
+				volumes.push(volumeDef);
+			} else {
+				log.warn(
+					`Ignoring invalid compose volume definition ${
+						isString ? volume : JSON.stringify(volume)
+					}`,
+				);
 			}
-		});
+		}
 
 		// Now add the default and image binds
 		volumes = volumes.concat(Service.defaultBinds(appId, serviceName));

@@ -375,7 +375,6 @@ describe('LocalModeManager', () => {
 		it('stores snapshot and retrieves from the db', async () => {
 			await localMode.storeEngineSnapshot(recordSample);
 			const retrieved = await localMode.retrieveLatestSnapshot();
-			console.log(retrieved);
 			expect(retrieved).to.be.deep.equal(recordSample);
 		});
 
