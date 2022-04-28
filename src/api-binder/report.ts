@@ -2,6 +2,7 @@ import * as url from 'url';
 import * as _ from 'lodash';
 import { delay } from 'bluebird';
 import { CoreOptions } from 'request';
+import { performance } from 'perf_hooks';
 
 import * as constants from '../lib/constants';
 import { withBackoff, OnFailureInfo } from '../lib/backoff';
@@ -18,7 +19,7 @@ import * as deviceState from '../device-state';
 import { shallowDiff, prune, empty } from '../lib/json';
 
 let lastReport: DeviceState = {};
-let reportPending = false;
+let lastReportTime: number = -Infinity;
 export let stateReportErrors = 0;
 
 type StateReportOpts = {
@@ -32,9 +33,6 @@ type StateReport = { body: Partial<DeviceState>; opts: StateReportOpts };
 
 async function report({ body, opts }: StateReport) {
 	const { apiEndpoint, apiTimeout, deviceApiKey } = opts;
-	if (empty(body)) {
-		return false;
-	}
 
 	if (!apiEndpoint) {
 		throw new InternalInconsistencyError(
@@ -64,26 +62,31 @@ async function report({ body, opts }: StateReport) {
 			headers['retry-after'] ? parseInt(headers['retry-after'], 10) : undefined,
 		);
 	}
-	return true;
 }
 
 async function reportCurrentState(opts: StateReportOpts) {
-	// Ensure no other report starts
-	reportPending = true;
 	// Wrap the report with fetching of state so report always has the latest state diff
 	const getStateAndReport = async () => {
-		// Get state to report
-		const currentState = await deviceState.getCurrentForReport(lastReport);
+		const now = performance.now();
+		// Only try to report if enough time has elapsed since last report
+		if (now - lastReportTime >= constants.maxReportFrequency) {
+			const currentState = await deviceState.getCurrentForReport(lastReport);
+			const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
 
-		// Depth 2 is the apps level
-		const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
+			if (empty(stateDiff)) {
+				return;
+			}
 
-		// Report diff
-		if (await report({ body: stateDiff, opts })) {
-			// Update lastReportedState if the report succeeds
+			await report({ body: stateDiff, opts });
+			lastReportTime = performance.now();
 			lastReport = currentState;
-			// Log that we successfully reported the current state
 			log.info('Reported current state to the cloud');
+		} else {
+			// Not enough time has elapsed since last report
+			// Delay report until next allowed time
+			const timeSinceLastReport = now - lastReportTime;
+			await delay(constants.maxReportFrequency - timeSinceLastReport);
+			await getStateAndReport();
 		}
 	};
 
@@ -101,7 +104,6 @@ async function reportCurrentState(opts: StateReportOpts) {
 	} catch (e) {
 		log.error(e);
 	}
-	reportPending = false;
 }
 
 function handleRetry(retryInfo: OnFailureInfo) {
@@ -135,14 +137,13 @@ export async function startReporting() {
 		'deviceApiKey',
 		'appUpdatePollInterval',
 	])) as StateReportOpts;
-	// Throttle reportCurrentState so we don't query device or hit API excessively
-	const throttledReport = _.throttle(
-		reportCurrentState,
-		constants.maxReportFrequency,
-	);
+
+	let reportPending = false;
 	const doReport = async () => {
 		if (!reportPending) {
-			await throttledReport(reportConfigs);
+			reportPending = true;
+			await reportCurrentState(reportConfigs);
+			reportPending = false;
 		}
 	};
 
@@ -161,5 +162,7 @@ export async function startReporting() {
 		}
 	}
 
+	// Start monitoring for changes that do not trigger deviceState events
+	// Example - device metrics
 	return recursivelyReport(constants.maxReportFrequency);
 }
