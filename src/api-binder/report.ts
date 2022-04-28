@@ -31,9 +31,6 @@ type StateReport = { body: Partial<DeviceState>; opts: StateReportOpts };
 
 async function report({ body, opts }: StateReport) {
 	const { apiEndpoint, apiTimeout, deviceApiKey } = opts;
-	if (empty(body)) {
-		return false;
-	}
 
 	if (!apiEndpoint) {
 		throw new InternalInconsistencyError(
@@ -77,8 +74,15 @@ async function reportCurrentState(opts: StateReportOpts) {
 		// Depth 2 is the apps level
 		const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
 
+		if (empty(stateDiff.body)) {
+			return;
+		}
+
+		// Throttle report so we don't hit API excessively
+		const throttledReport = _.throttle(report, constants.maxReportFrequency);
+
 		// Report diff
-		if (await report({ body: stateDiff, opts })) {
+		if (await throttledReport({ body: stateDiff, opts })) {
 			// Update lastReportedState if the report succeeds
 			lastReport = currentState;
 			// Log that we successfully reported the current state
@@ -134,17 +138,11 @@ export async function startReporting() {
 		'deviceApiKey',
 		'appUpdatePollInterval',
 	])) as StateReportOpts;
-	// Throttle reportCurrentState so we don't query device or hit API excessively
-	const throttledReport = _.throttle(
-		reportCurrentState,
-		constants.maxReportFrequency,
-	);
 	const doReport = async () => {
 		if (!reportPending) {
-			throttledReport(reportConfigs);
+			reportCurrentState(reportConfigs);
 		}
 	};
-
 	// If the state changes, report it
 	deviceState.on('change', doReport);
 	// But check once every max report frequency to ensure that changes in system
