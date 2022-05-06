@@ -1,23 +1,7 @@
 import * as _ from 'lodash';
 
-import * as constants from '../../lib/constants';
-import { writeFileAtomic, exec } from '../../lib/fs-utils';
-
 export interface ConfigOptions {
 	[key: string]: string | string[];
-}
-
-export const bootMountPoint = `${constants.rootMountPoint}${constants.bootMountPoint}`;
-
-export async function remountAndWriteAtomic(
-	file: string,
-	data: string | Buffer,
-): Promise<void> {
-	// Here's the dangerous part:
-	await exec(
-		`mount -t vfat -o remount,rw ${constants.bootBlockDevice} ${bootMountPoint}`,
-	);
-	await writeFileAtomic(file, data);
 }
 
 export abstract class ConfigBackend {

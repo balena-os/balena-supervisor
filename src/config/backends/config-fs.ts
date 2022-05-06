@@ -2,13 +2,9 @@ import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
-import {
-	ConfigOptions,
-	ConfigBackend,
-	bootMountPoint,
-	remountAndWriteAtomic,
-} from './backend';
+import { ConfigOptions, ConfigBackend } from './backend';
 import { exec, exists } from '../../lib/fs-utils';
+import * as hostUtils from '../../lib/host-utils';
 import * as constants from '../../lib/constants';
 import * as logger from '../../logger';
 import log from '../../lib/supervisor-console';
@@ -27,7 +23,7 @@ export class ConfigFs extends ConfigBackend {
 		constants.rootMountPoint,
 		'boot/acpi-tables',
 	);
-	private readonly ConfigFilePath = path.join(bootMountPoint, 'configfs.json'); // use constant for mount path, rename to ssdt.txt
+	private readonly ConfigFilePath = hostUtils.pathOnBoot('configfs.json');
 	private readonly ConfigfsMountPoint = path.join(
 		constants.rootMountPoint,
 		'sys/kernel/config',
@@ -116,7 +112,7 @@ export class ConfigFs extends ConfigBackend {
 	}
 
 	private async writeConfigJSON(config: ConfigfsConfig): Promise<void> {
-		await remountAndWriteAtomic(this.ConfigFilePath, JSON.stringify(config));
+		await hostUtils.writeToBoot(this.ConfigFilePath, JSON.stringify(config));
 	}
 
 	private async loadConfiguredSsdt(config: ConfigfsConfig): Promise<void> {

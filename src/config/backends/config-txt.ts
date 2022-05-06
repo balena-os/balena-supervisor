@@ -1,15 +1,11 @@
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 
-import {
-	ConfigOptions,
-	ConfigBackend,
-	bootMountPoint,
-	remountAndWriteAtomic,
-} from './backend';
+import { ConfigOptions, ConfigBackend } from './backend';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { exists } from '../../lib/fs-utils';
+import * as hostUtils from '../../lib/host-utils';
 
 /**
  * A backend to handle Raspberry Pi host configuration
@@ -24,7 +20,7 @@ import { exists } from '../../lib/fs-utils';
 
 export class ConfigTxt extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}CONFIG_`;
-	private static bootConfigPath = `${bootMountPoint}/config.txt`;
+	private static bootConfigPath = hostUtils.pathOnBoot(`config.txt`);
 
 	public static bootConfigVarRegex = new RegExp(
 		'(?:' + _.escapeRegExp(ConfigTxt.bootConfigVarPrefix) + ')(.+)',
@@ -70,7 +66,7 @@ export class ConfigTxt extends ConfigBackend {
 		if (await exists(ConfigTxt.bootConfigPath)) {
 			configContents = await fs.readFile(ConfigTxt.bootConfigPath, 'utf-8');
 		} else {
-			await fs.writeFile(ConfigTxt.bootConfigPath, '');
+			await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, '');
 		}
 
 		const conf: ConfigOptions = {};
@@ -126,7 +122,7 @@ export class ConfigTxt extends ConfigBackend {
 			}
 		});
 		const confStr = `${confStatements.join('\n')}\n`;
-		await remountAndWriteAtomic(ConfigTxt.bootConfigPath, confStr);
+		await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, confStr);
 	}
 
 	public isSupportedConfig(configName: string): boolean {

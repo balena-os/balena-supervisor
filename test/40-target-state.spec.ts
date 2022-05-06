@@ -44,9 +44,11 @@ const req = {
 };
 
 describe('Target state', () => {
-	before(() => {
+	before(async () => {
 		// maxPollTime starts as undefined
 		deviceState.__set__('maxPollTime', 60000);
+
+		stub(deviceState, 'applyStep').resolves();
 	});
 
 	beforeEach(() => {
@@ -57,6 +59,10 @@ describe('Target state', () => {
 	afterEach(() => {
 		(req.getAsync as SinonSpy).restore();
 		(request.getRequestInstance as SinonStub).restore();
+	});
+
+	after(async () => {
+		(deviceState.applyStep as SinonStub).restore();
 	});
 
 	describe('update', () => {

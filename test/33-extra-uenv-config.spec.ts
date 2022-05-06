@@ -108,8 +108,7 @@ describe('extra_uEnv Configuration', () => {
 	});
 
 	it('sets new config values', async () => {
-		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(fsUtils, 'exec').resolves();
+		stub(fsUtils, 'writeAndSyncFile').resolves();
 		const logWarningStub = spy(Log, 'warn');
 
 		// This config contains a value set from something else
@@ -127,8 +126,8 @@ describe('extra_uEnv Configuration', () => {
 			console: 'tty0', // not supported so won't be set
 		});
 
-		expect(fsUtils.writeFileAtomic).to.be.calledWith(
-			'./test/data/mnt/boot/extra_uEnv.txt',
+		expect(fsUtils.writeAndSyncFile).to.be.calledWith(
+			'test/data/mnt/boot/extra_uEnv.txt',
 			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2\n',
 		);
 
@@ -137,14 +136,12 @@ describe('extra_uEnv Configuration', () => {
 		);
 
 		// Restore stubs
-		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(fsUtils.exec as SinonStub).restore();
+		(fsUtils.writeAndSyncFile as SinonStub).restore();
 		logWarningStub.restore();
 	});
 
 	it('sets new config values containing collections', async () => {
-		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(fsUtils, 'exec').resolves();
+		stub(fsUtils, 'writeAndSyncFile').resolves();
 		const logWarningStub = spy(Log, 'warn');
 
 		// @ts-ignore accessing private value
@@ -166,14 +163,13 @@ describe('extra_uEnv Configuration', () => {
 			splash: '', // collection entry so should be concatted to other collections of this entry
 		});
 
-		expect(fsUtils.writeFileAtomic).to.be.calledWith(
-			'./test/data/mnt/boot/extra_uEnv.txt',
+		expect(fsUtils.writeAndSyncFile).to.be.calledWith(
+			'test/data/mnt/boot/extra_uEnv.txt',
 			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2 console=tty0 splash\n',
 		);
 
 		// Restore stubs
-		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(fsUtils.exec as SinonStub).restore();
+		(fsUtils.writeAndSyncFile as SinonStub).restore();
 		logWarningStub.restore();
 		// @ts-ignore accessing private value
 		ExtraUEnv.supportedConfigs = previousSupportedConfigs;

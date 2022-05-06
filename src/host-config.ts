@@ -8,7 +8,8 @@ import * as config from './config';
 import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
 import { ENOENT, InternalInconsistencyError } from './lib/errors';
-import { writeFileAtomic, mkdirp, unlinkAll } from './lib/fs-utils';
+import { mkdirp, unlinkAll } from './lib/fs-utils';
+import { writeToBoot } from './lib/host-utils';
 import * as updateLock from './lib/update-lock';
 
 const redsocksHeader = stripIndent`
@@ -133,7 +134,7 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 		const conf = maybeConf as ProxyConfig;
 		await mkdirp(proxyBasePath);
 		if (_.isArray(conf.noProxy)) {
-			await writeFileAtomic(noProxyPath, conf.noProxy.join('\n'));
+			await writeToBoot(noProxyPath, conf.noProxy.join('\n'));
 		}
 
 		let currentConf: ProxyConfig | undefined;
@@ -150,7 +151,7 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 			${generateRedsocksConfEntries({ ...currentConf, ...conf })}
 			${redsocksFooter}
 		`;
-		await writeFileAtomic(redsocksConfPath, redsocksConf);
+		await writeToBoot(redsocksConfPath, redsocksConf);
 	}
 
 	// restart balena-proxy-config if it is loaded and NOT PartOf redsocks-conf.target

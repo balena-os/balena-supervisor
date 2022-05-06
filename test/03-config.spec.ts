@@ -124,8 +124,10 @@ describe('Config', () => {
 	});
 
 	describe('Config data sources', () => {
-		after(() => {
+		afterEach(() => {
 			// Clean up memoized values
+			fnSchema.deviceArch.clear();
+			fnSchema.deviceType.clear();
 		});
 
 		it('should obtain deviceArch from device-type.json', async () => {
@@ -177,27 +179,28 @@ describe('Config', () => {
 				}),
 			);
 
+			// Make a first call to get the value to be memoized
+			await conf.get('deviceType');
+			await conf.get('deviceArch');
+			expect(fs.readFile).to.be.called;
+			(fs.readFile as SinonStub).resetHistory();
+
 			const deviceArch = await conf.get('deviceArch');
 			expect(deviceArch).to.equal(arch);
 
-			// The result should still be memoized from the
-			// call on the previous test
+			// The result should still be memoized from the previous call
 			expect(fs.readFile).to.not.be.called;
 
 			const deviceType = await conf.get('deviceType');
 			expect(deviceType).to.equal(slug);
 
-			// The result should still be memoized from the
-			// call on the previous test
+			// The result should still be memoized from the previous call
 			expect(fs.readFile).to.not.be.called;
 
 			(fs.readFile as SinonStub).restore();
 		});
 
 		it('should not memoize errors when reading deviceArch', (done) => {
-			// Clean up memoized value
-			fnSchema.deviceArch.clear();
-
 			// File not found
 			stub(fs, 'readFile').throws('File not found');
 
@@ -225,9 +228,6 @@ describe('Config', () => {
 		});
 
 		it('should not memoize errors when reading deviceType', (done) => {
-			// Clean up memoized value
-			fnSchema.deviceType.clear();
-
 			// File not found
 			stub(fs, 'readFile').throws('File not found');
 

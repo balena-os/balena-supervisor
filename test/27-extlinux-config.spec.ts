@@ -181,16 +181,15 @@ describe('Extlinux Configuration', () => {
 	});
 
 	it('sets new config values', async () => {
-		stub(fsUtils, 'writeFileAtomic').resolves();
-		stub(fsUtils, 'exec').resolves();
+		stub(fsUtils, 'writeAndSyncFile').resolves();
 
 		await backend.setBootConfig({
 			fdt: '/boot/mycustomdtb.dtb',
 			isolcpus: '2',
 		});
 
-		expect(fsUtils.writeFileAtomic).to.be.calledWith(
-			'./test/data/mnt/boot/extlinux/extlinux.conf',
+		expect(fsUtils.writeAndSyncFile).to.be.calledWith(
+			'test/data/mnt/boot/extlinux/extlinux.conf',
 			stripIndent`
 	      DEFAULT primary
 	      TIMEOUT 30
@@ -204,8 +203,7 @@ describe('Extlinux Configuration', () => {
 		);
 
 		// Restore stubs
-		(fsUtils.writeFileAtomic as SinonStub).restore();
-		(fsUtils.exec as SinonStub).restore();
+		(fsUtils.writeAndSyncFile as SinonStub).restore();
 	});
 
 	it('only allows supported configuration options', () => {
