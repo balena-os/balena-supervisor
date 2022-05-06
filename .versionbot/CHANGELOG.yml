@@ -1,4 +1,24 @@
 - commits:
+    - subject: Use write + sync when writing configs to /mnt/boot
+      hash: c04955354a76ab32ab5dc52062fdf72d668f7c3b
+      body: |
+        This commit updates all backends that write to /mnt/boot to do it
+        through a new `lib/host-utils` module. Writes are now done using write +
+        sync as rename is not an atomic operation in vfat.
+
+        The change also applies for writes through the `/v1/host-config`
+        endpoint.
+
+        Finally this change includes some improvements on tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 13.1.5
+  title: "'Use write+sync when writing to '"
+  date: 2022-05-03T15:28:52.610Z
+- commits:
     - subject: Use delay instead of interval to recursively report state
       hash: 2e81a7328e6ff01c397bb1bced73010470520657
       body: ""
