@@ -1,4 +1,19 @@
 - commits:
+    - subject: Avoid splash image failures if image is corrupt
+      hash: a5ede01b18abd5e079361d24f2f8f5368d23da6d
+      body: |
+        Splash image backend would throw if the image is not a valid png during
+        the write step. This could prevent the device from provisioning if some
+        corruption happens at some point.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 13.1.6
+  title: "'Avoid splash image failures if image is corrupt'"
+  date: 2022-05-06T18:46:18.641Z
+- commits:
     - subject: Use write + sync when writing configs to /mnt/boot
       hash: c04955354a76ab32ab5dc52062fdf72d668f7c3b
       body: |
