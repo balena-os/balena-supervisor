@@ -17,8 +17,10 @@ describe('lib/update-lock', () => {
 
 	const mockLockDir = ({
 		createLockfile = true,
+		id = appId,
 	}: {
 		createLockfile?: boolean;
+		id?: number;
 	}) => {
 		const lockDirFiles: any = {};
 		if (createLockfile) {
@@ -32,7 +34,7 @@ describe('lib/update-lock', () => {
 		mockFs({
 			[path.join(
 				constants.rootMountPoint,
-				updateLock.lockPath(appId),
+				updateLock.lockPath(id),
 				serviceName,
 			)]: lockDirFiles,
 		});
@@ -180,6 +182,20 @@ describe('lib/update-lock', () => {
 			expect(lockSpy.args.map(([lock]) => [lock])).to.deep.equal(
 				unlockSpy.args,
 			);
+		});
+
+		it('locks all applications before executing provided function', async () => {
+			const appIds = [1000, 1001, 1002];
+			// Create folders for each service
+			appIds.forEach((id) => {
+				mockLockDir({ createLockfile: false, id });
+			});
+			const fnLockSpy = stub();
+			await updateLock.lockAll(appIds, false, fnLockSpy);
+			// Check that locks were called by same amount of appIds passed
+			expect(lockSpy).to.have.callCount(appIds.length);
+			// Check that our function was only ran once
+			expect(fnLockSpy).to.have.been.calledOnce;
 		});
 
 		it('should throw UpdatesLockedError if lockfile exists', async () => {

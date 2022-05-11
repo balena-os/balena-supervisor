@@ -684,32 +684,44 @@ export function reportCurrentState(newState: DeviceReport = {}) {
 	emitAsync('change', undefined);
 }
 
-export async function reboot(force?: boolean, skipLock?: boolean) {
-	await updateLock.abortIfHUPInProgress({ force });
-	await applicationManager.stopAll({ force, skipLock });
-	logger.logSystemMessage('Rebooting', {}, 'Reboot');
-	const $reboot = await dbus.reboot();
-	shuttingDown = true;
-	emitAsync('shutdown', undefined);
-	return await $reboot;
+export interface ShutdownOpts {
+	force?: boolean;
+	reboot?: boolean;
 }
 
-export async function shutdown(force?: boolean, skipLock?: boolean) {
+export async function shutdown({
+	force = false,
+	reboot = false,
+}: ShutdownOpts = {}) {
 	await updateLock.abortIfHUPInProgress({ force });
-	await applicationManager.stopAll({ force, skipLock });
-	logger.logSystemMessage('Shutting down', {}, 'Shutdown');
-	const $shutdown = await dbus.shutdown();
-	shuttingDown = true;
-	emitAsync('shutdown', undefined);
-	return $shutdown;
+	// Get current apps to create locks for
+	const apps = await applicationManager.getCurrentApps();
+	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
+	// Try to create a lock for all the services before shutting down
+	return updateLock.lockAll(appIds, force, async () => {
+		let dbusAction;
+		switch (reboot) {
+			case true:
+				logger.logSystemMessage('Rebooting', {}, 'Reboot');
+				dbusAction = await dbus.reboot();
+				break;
+			case false:
+				logger.logSystemMessage('Shutting down', {}, 'Shutdown');
+				dbusAction = await dbus.shutdown();
+				break;
+		}
+		shuttingDown = true;
+		emitAsync('shutdown', undefined);
+		return dbusAction;
+	});
 }
 
 export async function executeStepAction<T extends PossibleStepTargets>(
 	step: DeviceStateStep<T>,
 	{
-		force,
-		initial,
-		skipLock,
+		force = false,
+		initial = false,
+		skipLock = false,
 	}: { force?: boolean; initial?: boolean; skipLock?: boolean },
 ) {
 	if (deviceConfig.isValidAction(step.action)) {
@@ -728,13 +740,13 @@ export async function executeStepAction<T extends PossibleStepTargets>(
 				// and if they do, we wouldn't know about it until after
 				// the response has been sent back to the API. Just return
 				// "OK" for this and the below action
-				await reboot(force, skipLock);
+				await shutdown({ force, reboot: true });
 				return {
 					Data: 'OK',
 					Error: null,
 				};
 			case 'shutdown':
-				await shutdown(force, skipLock);
+				await shutdown({ force });
 				return {
 					Data: 'OK',
 					Error: null,

@@ -421,8 +421,8 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 
 		it('should return 423 and reject the reboot if no locks are set', async () => {
-			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
-				if (opts.force) {
+			stub(updateLock, 'lockAll').callsFake((__, force, fn) => {
+				if (force) {
 					return Bluebird.resolve(fn());
 				}
 				throw new UpdatesLockedError('Updates locked');
@@ -449,18 +449,18 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 						.expect(423);
 
-					expect(updateLock.lock).to.be.calledOnce;
+					expect(updateLock.lockAll).to.be.calledOnce;
 					expect(response.body).to.have.property('Error').that.is.not.empty;
 					expect(rebootMock).to.not.have.been.called;
 				},
 			);
 
-			(updateLock.lock as SinonStub).restore();
+			(updateLock.lockAll as SinonStub).restore();
 		});
 
 		it('should return 202 and reboot if force is set to true', async () => {
-			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
-				if (opts.force) {
+			stub(updateLock, 'lockAll').callsFake((__, force, fn) => {
+				if (force) {
 					return Bluebird.resolve(fn());
 				}
 				throw new UpdatesLockedError('Updates locked');
@@ -488,13 +488,13 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 						.expect(202);
 
-					expect(updateLock.lock).to.be.calledOnce;
+					expect(updateLock.lockAll).to.be.calledOnce;
 					expect(response.body).to.have.property('Data').that.is.not.empty;
 					expect(rebootMock).to.have.been.calledOnce;
 				},
 			);
 
-			(updateLock.lock as SinonStub).restore();
+			(updateLock.lockAll as SinonStub).restore();
 		});
 	});
 
@@ -539,8 +539,8 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 
 		it('should return 423 and reject the reboot if no locks are set', async () => {
-			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
-				if (opts.force) {
+			stub(updateLock, 'lockAll').callsFake((__, force, fn) => {
+				if (force) {
 					return Bluebird.resolve(fn());
 				}
 				throw new UpdatesLockedError('Updates locked');
@@ -567,18 +567,18 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 						.expect(423);
 
-					expect(updateLock.lock).to.be.calledOnce;
+					expect(updateLock.lockAll).to.be.calledOnce;
 					expect(response.body).to.have.property('Error').that.is.not.empty;
 					expect(shutdownMock).to.not.have.been.called;
 				},
 			);
 
-			(updateLock.lock as SinonStub).restore();
+			(updateLock.lockAll as SinonStub).restore();
 		});
 
 		it('should return 202 and shutdown if force is set to true', async () => {
-			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
-				if (opts.force) {
+			stub(updateLock, 'lockAll').callsFake((__, force, fn) => {
+				if (force) {
 					return Bluebird.resolve(fn());
 				}
 				throw new UpdatesLockedError('Updates locked');
@@ -606,13 +606,13 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 						.expect(202);
 
-					expect(updateLock.lock).to.be.calledOnce;
+					expect(updateLock.lockAll).to.be.calledOnce;
 					expect(response.body).to.have.property('Data').that.is.not.empty;
 					expect(shutdownMock).to.have.been.calledOnce;
 				},
 			);
 
-			(updateLock.lock as SinonStub).restore();
+			(updateLock.lockAll as SinonStub).restore();
 		});
 	});
 

@@ -88,6 +88,34 @@ function dispose(
 }
 
 /**
+ * Attempts to take locks for list of application IDs provided
+ * Waits until all applications are locked before running the passed function
+ */
+export async function lockAll<T extends unknown>(
+	appIds: number[],
+	force = false,
+	fn: () => Resolvable<T>,
+): Promise<T | undefined> {
+	if (appIds.length === 0) {
+		throw new UpdatesLockedError(
+			'Tried to obtain lock for empty list of applications',
+		);
+	}
+	let lockCounter = 0;
+	// Closure to create recursive locks for N appIds
+	const nextLock = async (): Promise<Resolvable<T>> => {
+		lockCounter++;
+		return lock(
+			appIds[lockCounter],
+			{ force },
+			lockCounter + 1 === appIds.length ? fn : nextLock,
+		);
+	};
+	// If there is only 1 application call fn without making more locks
+	return lock(appIds[0], { force }, appIds.length === 1 ? fn : nextLock);
+}
+
+/**
  * Try to take the locks for an application. If force is set, it will remove
  * all existing lockfiles before performing the operation
  *
