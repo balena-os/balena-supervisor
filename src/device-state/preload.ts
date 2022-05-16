@@ -26,6 +26,26 @@ export function appsJsonBackup(appsPath: string) {
 	return `${appsPath}.preloaded`;
 }
 
+async function migrateAppsJson(appsPath: string) {
+	const targetPath = appsJsonBackup(appsPath);
+	if (!(await fsUtils.exists(targetPath))) {
+		// Try to rename the path so the preload target state won't
+		// be used again if the database gets deleted for any reason.
+		// If the target file already exists or something fails, just debug
+		// the failure.
+		await fsUtils
+			.safeRename(appsPath, targetPath)
+			.then(() => fsUtils.writeFileAtomic(appsPath, '{}'))
+			.then(() => log.debug(`Migrated existing apps.json`))
+			.catch((e) =>
+				log.debug(
+					`Continuing without migrating apps.json because of`,
+					e.message,
+				),
+			);
+	}
+}
+
 export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 	log.info('Attempting to load any preloaded applications');
 	try {
@@ -119,6 +139,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 		};
 
 		await deviceState.setTarget(localState);
+		await migrateAppsJson(appsPath);
 		log.success('Preloading complete');
 		if (preloadState.pinDevice) {
 			// Multi-app warning!
@@ -151,24 +172,6 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 			eventTracker.track('Loading preloaded apps failed', {
 				error: e,
 			});
-		}
-	} finally {
-		const targetPath = appsJsonBackup(appsPath);
-		if (!(await fsUtils.exists(targetPath))) {
-			// Try to rename the path so the preload target state won't
-			// be used again if the database gets deleted for any reason.
-			// If the target file already exists or something fails, just debug
-			// the failure.
-			await fsUtils
-				.safeRename(appsPath, targetPath)
-				.then(() => fsUtils.writeFileAtomic(appsPath, '{}'))
-				.then(() => log.debug(`Migrated existing apps.json`))
-				.catch((e) =>
-					log.debug(
-						`Continuing without migrating apps.json because of`,
-						e.message,
-					),
-				);
 		}
 	}
 	return false;
