@@ -1,4 +1,18 @@
 - commits:
+    - subject: Prevent throttling reports when nothing was sent
+      hash: 67f9c44a6c7ccde29ee6e53442a74191b4f8eaea
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 13.1.7
+  title: "'Prevent throttling reports when nothing was sent'"
+  date: 2022-05-16T19:22:50.596Z
+- commits:
     - subject: Avoid splash image failures if image is corrupt
       hash: a5ede01b18abd5e079361d24f2f8f5368d23da6d
       body: |
