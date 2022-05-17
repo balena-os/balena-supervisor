@@ -95,7 +95,7 @@ describe('compose/volume-manager', () => {
 					]);
 					// Check that debug message was logged saying we found a Volume not created by us
 					expect(logDebug.lastCall.lastArg).to.equal(
-						'Found unmanaged Volume: decoy',
+						'Found unmanaged or anonymous Volume: decoy',
 					);
 				},
 				{ volumes: volumeData },
