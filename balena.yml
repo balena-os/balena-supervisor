@@ -3,3 +3,5 @@ description: 'Balena Supervisor: balena''s agent on devices.'
 joinable: false
 type: sw.application
 version: 13.1.7
+provides:
+  - slug: sw.compose.long-volume-syntax
