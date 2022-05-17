@@ -65,7 +65,7 @@ export function sanitiseComposeConfig(
 ): ServiceComposeConfig {
 	const filtered: string[] = [];
 	const toReturn = _.pickBy(composeConfig, (_v, k) => {
-		const included = _.includes(supportedComposeFields, k);
+		const included = supportedComposeFields.includes(k);
 		if (!included) {
 			filtered.push(k);
 		}

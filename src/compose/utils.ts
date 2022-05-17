@@ -14,6 +14,7 @@ import {
 	ServiceComposeConfig,
 	ServiceConfig,
 	ServiceHealthcheck,
+	LongDefinition,
 } from './types/service';
 
 import log from '../lib/supervisor-console';
@@ -601,4 +602,82 @@ export function compareArrayFields<T extends Dictionary<unknown>>(
 	} else {
 		return { equal, difference };
 	}
+}
+
+export function serviceMountToDockerMount(
+	serviceMount: LongDefinition,
+): Dockerode.MountSettings {
+	const { target, type, readOnly } = serviceMount;
+
+	const mount: Partial<Dockerode.MountSettings> = {
+		Type: type,
+		Target: target,
+	};
+
+	// Add optional mount settings
+	if ('source' in serviceMount) {
+		mount.Source = serviceMount.source;
+	}
+	if (readOnly) {
+		mount.ReadOnly = readOnly;
+	}
+	if ('bind' in serviceMount && 'propagation' in serviceMount.bind!) {
+		mount.BindOptions = {
+			Propagation: serviceMount.bind!.propagation as Dockerode.MountPropagation,
+		};
+	}
+	// Although Dockerode.MountSettings type includes some additional options
+	// under VolumeOptions and TmpfsOptions, compose does not allow setting
+	// those additional options with volume long syntax.
+	// Therefore we need to typecast here to satisfy the TS compiler.
+	if ('volume' in serviceMount && 'nocopy' in serviceMount.volume!) {
+		mount.VolumeOptions = {
+			NoCopy: serviceMount.volume!.nocopy,
+		} as Dockerode.MountSettings['VolumeOptions'];
+	}
+	if ('tmpfs' in serviceMount && 'size' in serviceMount.tmpfs!) {
+		mount.TmpfsOptions = {
+			SizeBytes: serviceMount.tmpfs!.size,
+		} as Dockerode.MountSettings['TmpfsOptions'];
+	}
+
+	return mount as Dockerode.MountSettings;
+}
+
+export function dockerMountToServiceMount(
+	dockerMount: Dockerode.MountSettings,
+): LongDefinition {
+	const {
+		Source,
+		Target,
+		Type,
+		ReadOnly,
+		BindOptions,
+		VolumeOptions,
+		TmpfsOptions,
+	} = dockerMount;
+
+	const mount: any = {
+		type: Type,
+		target: Target,
+	};
+
+	// Add optional mount settings
+	if (Source) {
+		mount.source = Source;
+	}
+	if (ReadOnly) {
+		mount.readOnly = ReadOnly;
+	}
+	if (BindOptions?.Propagation) {
+		mount.bind = { propagation: BindOptions.Propagation };
+	}
+	if (VolumeOptions?.NoCopy) {
+		mount.volume = { nocopy: VolumeOptions.NoCopy };
+	}
+	if (TmpfsOptions?.SizeBytes) {
+		mount.tmpfs = { size: TmpfsOptions.SizeBytes };
+	}
+
+	return mount as LongDefinition;
 }

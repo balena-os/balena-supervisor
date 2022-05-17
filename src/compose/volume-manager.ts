@@ -32,7 +32,7 @@ export async function getAll(): Promise<Volume[]> {
 			volumesList.push(volume);
 		} catch (err) {
 			if (err instanceof InternalInconsistencyError) {
-				log.debug(`Found unmanaged Volume: ${volumeInfo.Name}`);
+				log.debug(`Found unmanaged or anonymous Volume: ${volumeInfo.Name}`);
 			} else {
 				throw err;
 			}

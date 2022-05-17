@@ -6,10 +6,7 @@ import { createContainer } from '../../lib/mockerode';
 
 import Service from '../../../src/compose/service';
 import Volume from '../../../src/compose/volume';
-import {
-	ServiceComposeConfig,
-	ServiceConfig,
-} from '../../../src/compose/types/service';
+import * as ServiceT from '../../../src/compose/types/service';
 import * as constants from '../../../src/lib/constants';
 import * as apiKeys from '../../../src/lib/api-keys';
 
@@ -424,7 +421,7 @@ describe('compose/service', () => {
 		describe('Configuring service networks', () => {
 			it('should correctly convert networks from compose to docker format', async () => {
 				const makeComposeServiceWithNetwork = async (
-					networks: ServiceComposeConfig['networks'],
+					networks: ServiceT.ServiceComposeConfig['networks'],
 				) =>
 					await Service.fromComposeObject(
 						{
@@ -877,7 +874,7 @@ describe('compose/service', () => {
 	});
 
 	describe('Creating service instances from docker configuration', () => {
-		const omitConfigForComparison = (config: ServiceConfig) =>
+		const omitConfigForComparison = (config: ServiceT.ServiceConfig) =>
 			_.omit(config, ['running', 'networks']);
 
 		it('should be equivalent to loading from compose config for simple services', async () => {
@@ -976,7 +973,7 @@ describe('compose/service', () => {
 	});
 
 	describe('Network mode service:', () => {
-		const omitConfigForComparison = (config: ServiceConfig) =>
+		const omitConfigForComparison = (config: ServiceT.ServiceConfig) =>
 			_.omit(config, ['running', 'networks']);
 
 		it('should correctly add a depends_on entry for the service', async () => {
@@ -1121,6 +1118,335 @@ describe('compose/service', () => {
 			expect(service.config)
 				.to.have.property('securityOpt')
 				.that.deep.equals(['seccomp=unconfined']);
+		});
+	});
+
+	describe('Long syntax volume configuration', () => {
+		it('should generate a docker container config from a compose object (compose -> Service, Service -> container)', async () => {
+			/**
+			 * compose -> Service (fromComposeObject)
+			 */
+			const appId = 5;
+			const serviceName = 'main';
+			const longSyntaxVolumes = [
+				// Long named volume
+				{
+					type: 'volume',
+					source: 'another',
+					target: '/another',
+					readOnly: true,
+				},
+				// Long anonymous volume
+				{
+					type: 'volume',
+					target: '/yet/another',
+				},
+				{ type: 'bind', source: '/mnt/data', target: '/data' },
+				{ type: 'tmpfs', target: '/home/tmp' },
+			];
+			const service = await Service.fromComposeObject(
+				{
+					appId,
+					serviceName,
+					releaseId: 4,
+					serviceId: 3,
+					imageId: 2,
+					composition: {
+						volumes: [
+							'myvolume:/myvolume',
+							'readonly:/readonly:ro',
+							'/home/mybind:/mybind',
+							'anonymous_volume',
+							...longSyntaxVolumes,
+						],
+						tmpfs: ['/var/tmp'],
+					},
+				},
+				{ appName: 'bar' } as any,
+			);
+
+			// Only tmpfs from composition should be added to config.tmpfs
+			expect(service.config.tmpfs).to.deep.equal(['/var/tmp']);
+			// config.volumes should include all long syntax and short syntax mounts, excluding binds
+			expect(service.config.volumes).to.deep.include.members([
+				`${appId}_myvolume:/myvolume`,
+				`${appId}_readonly:/readonly:ro`,
+				'anonymous_volume',
+				...longSyntaxVolumes.filter(({ type }) => type !== 'bind'),
+				`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/resin`,
+				`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/balena`,
+			]);
+			// bind mounts are not allowed
+			expect(service.config.volumes).to.not.deep.include.members([
+				'/home/mybind:/mybind',
+				...longSyntaxVolumes.filter(({ type }) => type === 'bind'),
+			]);
+
+			/**
+			 * Service -> container (toDockerContainer)
+			 */
+			// Inject bind mounts (as feature labels would)
+			// Bind mounts added under feature labels use the short syntax (for now)
+			service.config.volumes.push('/var/log/journal:/var/log/journal:ro');
+			service.config.volumes.push(
+				`${constants.dockerSocket}:${constants.containerDockerSocket}`,
+			);
+
+			const ctn = service.toDockerContainer({
+				deviceName: 'thicc_nucc',
+			} as any);
+			// Only long syntax volumes should be listed under HostConfig.Mounts.
+			// This includes any tmpfs volumes defined using long syntax, consistent
+			// with docker-compose's behavior.
+			expect(ctn.HostConfig)
+				.to.have.property('Mounts')
+				.that.deep.includes.members([
+					{
+						Type: 'volume',
+						Source: `${appId}_another`, // Should be namespaced by appId
+						Target: '/another',
+						ReadOnly: true,
+					},
+					{ Type: 'tmpfs', Target: '/home/tmp' },
+				]);
+
+			// bind mounts should be filtered out
+			expect(ctn.HostConfig)
+				.to.have.property('Mounts')
+				.that.does.not.deep.include.members([
+					{ Type: 'bind', Source: '/mnt/data', Target: '/data' },
+				]);
+
+			// Short syntax volumes should be configured as HostConfig.Binds
+			expect(ctn.HostConfig)
+				.to.have.property('Binds')
+				.that.includes.members([
+					`${appId}_myvolume:/myvolume`,
+					`${appId}_readonly:/readonly:ro`,
+					`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/resin`,
+					`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/balena`,
+					'/var/log/journal:/var/log/journal:ro',
+					`${constants.dockerSocket}:${constants.containerDockerSocket}`,
+				]);
+
+			// Tmpfs volumes defined through compose's service.tmpfs are under HostConfig.Tmpfs.
+			// Otherwise tmpfs volumes defined through compose's service.volumes as type: 'tmpfs' are under HostConfig.Mounts.
+			expect(ctn.HostConfig).to.have.property('Tmpfs').that.deep.equals({
+				'/var/tmp': '',
+			});
+		});
+
+		it('should generate a service instance from a docker container (container -> Service)', async () => {
+			const appId = 6;
+			const mockContainer = createContainer({
+				Id: 'deadbeef',
+				Name: 'main_123_456_789',
+				HostConfig: {
+					Binds: [
+						`${appId}_test:/test`,
+						`${appId}_test2:/test2:ro`,
+						'/proc:/proc',
+						'/etc/machine-id:/etc/machine-id:ro',
+					],
+					Tmpfs: {
+						'/var/tmp1': '',
+					},
+					Mounts: [
+						{
+							Type: 'volume',
+							Source: '6_test3',
+							Target: '/test3',
+						},
+						{
+							Type: 'tmpfs',
+							Target: '/var/tmp2',
+						} as any,
+						// Dockerode typings require a Source field but tmpfs doesn't require Source
+					],
+				},
+				Config: {
+					Volumes: {
+						'/var/lib/volume': {},
+					},
+					Labels: {
+						'io.balena.app-id': `${appId}`,
+						'io.balena.architecture': 'amd64',
+						'io.balena.service-id': '123',
+						'io.balena.service-name': 'main',
+						'io.balena.supervised': 'true',
+					},
+				},
+			});
+
+			const service = Service.fromDockerContainer(mockContainer.inspectInfo);
+			// service.volumes should combine:
+			// - HostConfig.Binds
+			// - 'volume'|'tmpfs' types from HostConfig.Mounts
+			// - Config.Volumes
+			expect(service.config)
+				.to.have.property('volumes')
+				.that.deep.includes.members([
+					`${appId}_test:/test`,
+					`${appId}_test2:/test2:ro`,
+					'/proc:/proc',
+					'/etc/machine-id:/etc/machine-id:ro',
+					'/var/lib/volume',
+					{
+						type: 'volume',
+						source: '6_test3',
+						target: '/test3',
+					},
+					{
+						type: 'tmpfs',
+						target: '/var/tmp2',
+					},
+				]);
+
+			// service.tmpfs should only include HostConfig.Tmpfs,
+			// 'tmpfs' types defined with long syntax belong to HostConfig.Mounts
+			// and therefore are added to service.config.volumes.
+			expect(service.config)
+				.to.have.property('tmpfs')
+				.that.deep.equals(['/var/tmp1']);
+		});
+	});
+
+	describe('Service volume types', () => {
+		it('should correctly identify short syntax volumes', () => {
+			// Short binds
+			['/one:/one', '/two:/two:ro', '/three:/three:rw'].forEach((b) => {
+				expect(ServiceT.ShortMount.is(b)).to.be.true;
+				expect(ServiceT.ShortBind.is(b)).to.be.true;
+				expect(ServiceT.ShortAnonymousVolume.is(b)).to.be.false;
+				expect(ServiceT.ShortNamedVolume.is(b)).to.be.false;
+			});
+			// Short anonymous volumes
+			['volume', 'another_volume'].forEach((v) => {
+				expect(ServiceT.ShortMount.is(v)).to.be.false;
+				expect(ServiceT.ShortBind.is(v)).to.be.false;
+				expect(ServiceT.ShortAnonymousVolume.is(v)).to.be.true;
+				expect(ServiceT.ShortNamedVolume.is(v)).to.be.false;
+			});
+			// Short named volumes
+			[
+				'another_one:/another/one',
+				'yet_another:/yet/another:ro',
+				'final:/final:rw',
+			].forEach((v) => {
+				expect(ServiceT.ShortMount.is(v)).to.be.true;
+				expect(ServiceT.ShortBind.is(v)).to.be.false;
+				expect(ServiceT.ShortAnonymousVolume.is(v)).to.be.false;
+				expect(ServiceT.ShortNamedVolume.is(v)).to.be.true;
+			});
+		});
+
+		it('should correctly identify long syntax volumes', () => {
+			// For all the following examples where optionals are defined, only the option with key equal to the type
+			// will be applied to the resulting volume, but the other options shouldn't cause the type check to return false.
+			// For example, for a definition with { type: volume }, only { volume: { nocopy: boolean }} option will apply.
+			const longAnonymousVols = [
+				{ type: 'volume', target: '/one' },
+				{ type: 'volume', target: '/two', readOnly: true },
+				{ type: 'volume', target: '/three', volume: { nocopy: true } },
+				{ type: 'volume', target: '/four', bind: { propagation: 'slave' } },
+				{ type: 'volume', target: '/five', tmpfs: { size: 200 } },
+			];
+			longAnonymousVols.forEach((v) => {
+				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.true;
+				expect(ServiceT.LongNamedVolume.is(v)).to.be.false;
+				expect(ServiceT.LongBind.is(v)).to.be.false;
+				expect(ServiceT.LongTmpfs.is(v)).to.be.false;
+			});
+
+			const longNamedVols = [
+				{ type: 'volume', source: 'one', target: '/one' },
+				{ type: 'volume', source: 'two', target: '/two', readOnly: false },
+				{
+					type: 'volume',
+					source: 'three',
+					target: '/three',
+					volume: { nocopy: false },
+				},
+				{
+					type: 'volume',
+					source: 'four',
+					target: '/four',
+					bind: { propagation: 'slave' },
+				},
+				{
+					type: 'volume',
+					source: 'five',
+					target: '/five',
+					tmpfs: { size: 200 },
+				},
+			];
+			longNamedVols.forEach((v) => {
+				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.false;
+				expect(ServiceT.LongNamedVolume.is(v)).to.be.true;
+				expect(ServiceT.LongBind.is(v)).to.be.false;
+				expect(ServiceT.LongTmpfs.is(v)).to.be.false;
+			});
+
+			const longBinds = [
+				{ type: 'bind', source: '/one', target: '/one' },
+				{ type: 'bind', source: '/two', target: '/two', readOnly: true },
+				{
+					type: 'bind',
+					source: '/three',
+					target: '/three',
+					volume: { nocopy: false },
+				},
+				{
+					type: 'bind',
+					source: '/four',
+					target: '/four',
+					bind: { propagation: 'slave' },
+				},
+				{
+					type: 'bind',
+					source: '/five',
+					target: '/five',
+					tmpfs: { size: 200 },
+				},
+			];
+			longBinds.forEach((v) => {
+				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.false;
+				expect(ServiceT.LongNamedVolume.is(v)).to.be.false;
+				expect(ServiceT.LongBind.is(v)).to.be.true;
+				expect(ServiceT.LongTmpfs.is(v)).to.be.false;
+			});
+
+			const longTmpfs = [
+				{ type: 'tmpfs', target: '/var/tmp' },
+				{ type: 'tmpfs', target: '/var/tmp2', readOnly: false },
+				{ type: 'tmpfs', target: '/var/tmp3', volume: { nocopy: false } },
+				{ type: 'tmpfs', target: '/var/tmp4', bind: { propagation: 'slave' } },
+				{ type: 'tmpfs', target: '/var/tmp4', tmpfs: { size: 200 } },
+			];
+			longTmpfs.forEach((v) => {
+				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.false;
+				expect(ServiceT.LongNamedVolume.is(v)).to.be.false;
+				expect(ServiceT.LongBind.is(v)).to.be.false;
+				expect(ServiceT.LongTmpfs.is(v)).to.be.true;
+			});
+
+			// All of the following volume definitions are not allowed by docker-compose
+			const invalids = [
+				// bind without source
+				{ type: 'bind', target: '/test' },
+				// bind with source that's not an absolute path
+				{ type: 'bind', source: 'not_a_bind', target: '/bind' },
+				// tmpfs with source
+				{ type: 'tmpfs', source: '/var/tmp', target: '/home/tmp' },
+				// Other types besides volume, tmpfs, or bind
+				{ type: 'invalid', source: 'test', target: '/test2' },
+			];
+			invalids.forEach((v) => {
+				expect(ServiceT.LongAnonymousVolume.is(v)).to.be.false;
+				expect(ServiceT.LongNamedVolume.is(v)).to.be.false;
+				expect(ServiceT.LongBind.is(v)).to.be.false;
+				expect(ServiceT.LongTmpfs.is(v)).to.be.false;
+			});
 		});
 	});
 });
