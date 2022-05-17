@@ -1,4 +1,30 @@
 - commits:
+    - subject: Add compose support for volumes defined with long syntax
+      hash: 0a9c7282e8921f874315259919ba247236be5d52
+      body: >
+        balena-compose already supports this, and with this PR, Supervisor can
+
+        have the option of using HostConfig.Mounts for internal bind mounts such as
+
+        ones added by feature labels. This will be handled in a future PR.
+
+
+        The only blocker to having users use long syntax is adding this feature
+
+        to target state. This PR does not add that feature.
+      footer:
+        Relates-to: "#1933"
+        relates-to: "#1933"
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 13.1.8
+  title: "'Add compose support for volumes defined with long syntax'"
+  date: 2022-05-17T18:16:30.482Z
+- commits:
     - subject: Prevent throttling reports when nothing was sent
       hash: 67f9c44a6c7ccde29ee6e53442a74191b4f8eaea
       body: ""
