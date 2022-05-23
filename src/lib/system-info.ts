@@ -78,6 +78,7 @@ export async function getSystemId(): Promise<string | undefined> {
 		const buffer = await Promise.any([
 			fs.readFile('/proc/device-tree/serial-number'),
 			fs.readFile('/proc/device-tree/product-sn'),
+			fs.readFile('/sys/devices/soc0/serial_number'),
 		]);
 		// Remove the null byte at the end
 		return buffer.toString('utf-8').replace(/\0/g, '');
