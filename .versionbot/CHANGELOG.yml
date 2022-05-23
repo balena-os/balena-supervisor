@@ -1,4 +1,16 @@
 - commits:
+    - subject: Trim newlines from sysinfo files
+      hash: 76553c6b4a70896482735a84d2c5ea1ca5e5b8fa
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 13.1.10
+  title: "'Trim newlines from sysinfo files'"
+  date: 2022-05-23T18:46:36.830Z
+- commits:
     - subject: Fix serial number support for variscite boards
       hash: 29867ccf177b27f9dd27ca25c32168b4649c6d00
       body: |
