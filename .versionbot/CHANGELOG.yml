@@ -1,4 +1,17 @@
 - commits:
+    - subject: Fix serial number support for variscite boards
+      hash: 29867ccf177b27f9dd27ca25c32168b4649c6d00
+      body: |
+        Closes: #1950
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 13.1.9
+  title: "'Fix serial number support for variscite boards'"
+  date: 2022-05-23T14:44:28.150Z
+- commits:
     - subject: Add compose support for volumes defined with long syntax
       hash: 0a9c7282e8921f874315259919ba247236be5d52
       body: >
