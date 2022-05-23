@@ -80,8 +80,8 @@ export async function getSystemId(): Promise<string | undefined> {
 			fs.readFile('/proc/device-tree/product-sn'),
 			fs.readFile('/sys/devices/soc0/serial_number'),
 		]);
-		// Remove the null byte at the end
-		return buffer.toString('utf-8').replace(/\0/g, '');
+		// Remove the null/newline bytes at the end
+		return buffer.toString('utf-8').replace(/\0/g, '').trim();
 	} catch {
 		// Otherwise use dmidecode
 		const [baseBoardInfo] = (
@@ -98,7 +98,7 @@ export async function getSystemModel(): Promise<string | undefined> {
 			fs.readFile('/proc/device-tree/product-name'),
 		]);
 		// Remove the null byte at the end
-		return buffer.toString('utf-8').replace(/\0/g, '');
+		return buffer.toString('utf-8').replace(/\0/g, '').trim();
 	} catch {
 		const [baseBoardInfo] = (
 			await dmidecode('baseboard').catch(() => [] as DmiDecodeInfo[])
