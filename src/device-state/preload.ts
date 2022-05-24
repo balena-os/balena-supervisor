@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 
 import { Image, imageFromService } from '../compose/images';
+import { NumericIdentifier } from '../types';
 import * as deviceState from '../device-state';
 import * as config from '../config';
 import * as deviceConfig from '../device-config';
@@ -66,11 +67,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 		}
 
 		// if apps.json apps are keyed by numeric ids, then convert to v3 target state
-		if (
-			Object.keys(stateFromFile.apps || {}).some(
-				(appId) => !isNaN(parseInt(appId, 10)),
-			)
-		) {
+		if (Object.keys(stateFromFile.apps || {}).some(NumericIdentifier.is)) {
 			stateFromFile = await fromV2AppsJson(stateFromFile as any);
 		}
 
