@@ -71,11 +71,20 @@ export const readLock: LockFn = Bluebird.promisify(locker.async.readLock, {
 });
 
 // Unlock all lockfiles, optionally of an appId | appUuid, then release resources.
-async function dispose(appIdentifier: string | number): Promise<void> {
+async function dispose(
+	appIdentifier: string | number,
+	release: () => void,
+): Promise<void> {
 	const locks = lockfile.getLocksTaken((p: string) =>
 		p.includes(`${BASE_LOCK_DIR}/${appIdentifier}`),
 	);
-	await Promise.all(locks.map((l) => lockfile.unlock(l)));
+	try {
+		// Try to unlock all locks taken
+		await Promise.all(locks.map((l) => lockfile.unlock(l)));
+	} finally {
+		// Release final resource
+		release();
+	}
 }
 
 /**
@@ -88,15 +97,18 @@ async function dispose(appIdentifier: string | number): Promise<void> {
  * without an option to skip.
  */
 export async function lock<T extends unknown>(
-	appId: number,
+	appId: number | number[],
 	{ force = false, skipLock = false }: { force: boolean; skipLock?: boolean },
 	fn: () => Resolvable<T>,
 ): Promise<T> {
-	if (skipLock || appId == null) {
-		return Promise.resolve(fn());
+	const appIdsToLock = Array.isArray(appId) ? appId : [appId];
+	if (skipLock || !appId || !appIdsToLock.length) {
+		return fn();
 	}
 
-	const lockDir = getPathOnHost(lockPath(appId));
+	// Sort appIds so they are always locked in the same sequence
+	const sortedIds = appIdsToLock.sort();
+
 	let lockOverride: boolean;
 	try {
 		lockOverride = await config.get('lockOverride');
@@ -106,58 +118,43 @@ export async function lock<T extends unknown>(
 		);
 	}
 
-	let release;
+	const releases = new Map<number, () => void>();
 	try {
-		// Acquire write lock for appId
-		release = await writeLock(appId);
-		// Get list of service folders in lock directory
-		let serviceFolders: string[] = [];
-		try {
-			serviceFolders = await fs.readdir(lockDir);
-		} catch (err) {
-			if (ENOENT(err)) {
-				// Default to empty list of folders
-				serviceFolders = [];
-			} else {
-				throw err;
+		for (const id of sortedIds) {
+			const lockDir = getPathOnHost(lockPath(id));
+			// Acquire write lock for appId
+			releases.set(id, await writeLock(id));
+			// Get list of service folders in lock directory
+			const serviceFolders = await fs.readdir(lockDir).catch((e) => {
+				if (ENOENT(e)) {
+					return [];
+				}
+				throw e;
+			});
+			// Attempt to create a lock for each service
+			for (const service of serviceFolders) {
+				await lockService(id, service, force || lockOverride);
 			}
 		}
-
-		// Attempt to create a lock for each service
-		await Promise.all(
-			serviceFolders.map((service) =>
-				lockService(appId, service, { force, lockOverride }),
-			),
-		);
-
 		// Resolve the function passed
-		return Promise.resolve(fn());
+		return fn();
 	} finally {
-		// Cleanup locks
-		if (release) {
-			release();
+		for (const [id, release] of releases.entries()) {
+			// Try to dispose all the locks
+			await dispose(id, release);
 		}
-		await dispose(appId);
 	}
 }
-
-type LockOptions = {
-	force?: boolean;
-	lockOverride?: boolean;
-};
 
 async function lockService(
 	appId: number,
 	service: string,
-	opts: LockOptions = {
-		force: false,
-		lockOverride: false,
-	},
+	force: boolean = false,
 ): Promise<void> {
 	const serviceLockFiles = lockFilesOnHost(appId, service);
 	for await (const file of serviceLockFiles) {
 		try {
-			if (opts.force || opts.lockOverride) {
+			if (force) {
 				await lockfile.unlock(file);
 			}
 			await lockfile.lock(file, LOCKFILE_UID);

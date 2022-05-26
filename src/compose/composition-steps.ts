@@ -120,7 +120,7 @@ type Executors<T extends CompositionStepAction> = {
 type LockingFn = (
 	// TODO: Once the entire codebase is typescript, change
 	// this to number
-	app: number | null,
+	app: number | number[] | null,
 	args: BaseCompositionStepArgs,
 	fn: () => Promise<unknown>,
 ) => Promise<unknown>;
