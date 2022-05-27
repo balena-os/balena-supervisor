@@ -1,4 +1,18 @@
 - commits:
+    - subject: Only migrate apps.json on preload after target has been set
+      hash: 95bf4718d6717630ab0bedabfeea209ce295acb0
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Felipe Lalanne <felipe@balena.io>
+        signed-off-by: Felipe Lalanne <felipe@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 13.1.11
+  title: "'Do not migrate apps.json if preload v2 to v3 fails'"
+  date: 2022-05-26T21:02:56.665Z
+- commits:
     - subject: Trim newlines from sysinfo files
       hash: 76553c6b4a70896482735a84d2c5ea1ca5e5b8fa
       body: ""
