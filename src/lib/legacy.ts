@@ -309,8 +309,14 @@ export async function fromV2TargetApps(
 						const appId = parseInt(id, 10);
 						const app = apps[appId];
 
-						// If local mode just use id as uuid
-						const uuid = local ? id : await getUUIDFromAPI(appId);
+						// If local mode or connectivity is not available just use id as uuid
+						const uuid = local
+							? id
+							: await getUUIDFromAPI(appId).catch(() => {
+									throw new Error(
+										'Cannot migrate from v2 apps.json without Internet connectivity. Please use balenaCLI v13.5.1+ for offline preload support.',
+									);
+							  });
 
 						const releases = app.commit
 							? {
