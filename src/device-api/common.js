@@ -1,6 +1,7 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
+import { appNotFoundMessage } from './messages';
 import * as logger from '../logger';
 import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
@@ -8,7 +9,6 @@ import * as serviceManager from '../compose/service-manager';
 import * as volumeManager from '../compose/volume-manager';
 import { InternalInconsistencyError } from '../lib/errors';
 import { lock } from '../lib/update-lock';
-import { appNotFoundMessage } from '../lib/messages';
 
 export async function doRestart(appId, force) {
 	await deviceState.initialized;

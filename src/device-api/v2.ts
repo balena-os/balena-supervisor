@@ -5,6 +5,11 @@ import * as _ from 'lodash';
 
 import { doPurge, doRestart, safeStateClone } from './common';
 import { AuthorizedRequest } from './types';
+import {
+	appNotFoundMessage,
+	serviceNotFoundMessage,
+	v2ServiceEndpointInputErrorMessage,
+} from './messages';
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
@@ -24,11 +29,6 @@ import * as images from '../compose/images';
 import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
 import { spawnJournalctl } from '../lib/journald';
-import {
-	appNotFoundMessage,
-	serviceNotFoundMessage,
-	v2ServiceEndpointInputErrorMessage,
-} from '../lib/messages';
 import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
