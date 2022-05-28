@@ -1,18 +1,22 @@
 import * as Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
-import * as express from 'express';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import * as _ from 'lodash';
 import { PinejsClientRequest } from 'pinejs-client-request';
 import * as url from 'url';
-import * as deviceRegister from '../lib/register-device';
 
+import { startReporting, stateReportErrors } from './report';
 import * as config from '../config';
 import * as deviceConfig from '../device-config';
 import * as eventTracker from '../event-tracker';
-import { loadBackupFromMigration } from '../lib/migration';
+import * as deviceState from '../device-state';
+import * as globalEventBus from '../event-bus';
+import * as TargetState from '../device-state/target-state';
+import * as logger from '../logger';
 
+import { loadBackupFromMigration } from '../lib/migration';
+import * as deviceRegister from '../lib/register-device';
 import {
 	ContractValidationError,
 	ContractViolationError,
@@ -20,17 +24,8 @@ import {
 	TargetStateError,
 } from '../lib/errors';
 import * as request from '../lib/request';
-
 import log from '../lib/supervisor-console';
-
-import * as deviceState from '../device-state';
-import * as globalEventBus from '../event-bus';
-import * as TargetState from '../device-state/target-state';
-import * as logger from '../logger';
-
 import * as apiHelper from '../lib/api-helper';
-import { Device } from '../lib/api-helper';
-import { startReporting, stateReportErrors } from './report';
 
 interface DevicePinInfo {
 	app: number;
@@ -44,6 +39,10 @@ interface DeviceTag {
 }
 
 let readyForUpdates = false;
+
+export function isReadyForUpdates() {
+	return readyForUpdates;
+}
 
 export async function healthcheck() {
 	const {
@@ -231,8 +230,8 @@ export async function patchDevice(
 }
 
 export async function provisionDependentDevice(
-	device: Partial<Device>,
-): Promise<Device> {
+	device: Partial<apiHelper.Device>,
+): Promise<apiHelper.Device> {
 	const conf = await config.getMany([
 		'unmanaged',
 		'provisioned',
@@ -262,7 +261,7 @@ export async function provisionDependentDevice(
 
 	return (await Bluebird.resolve(
 		balenaApi.post({ resource: 'device', body: device }),
-	).timeout(conf.apiTimeout)) as Device;
+	).timeout(conf.apiTimeout)) as apiHelper.Device;
 }
 
 export function startCurrentStateReport() {
@@ -574,27 +573,3 @@ export const initialized = (async () => {
 
 	log.info(`API Binder bound to: ${baseUrl}`);
 })();
-
-export const router = express.Router();
-
-router.post('/v1/update', (req, res, next) => {
-	eventTracker.track('Update notification');
-	if (readyForUpdates) {
-		config
-			.get('instantUpdates')
-			.then((instantUpdates) => {
-				if (instantUpdates) {
-					TargetState.update(req.body.force, true).catch(_.noop);
-					res.sendStatus(204);
-				} else {
-					log.debug(
-						'Ignoring update notification because instant updates are disabled',
-					);
-					res.sendStatus(202);
-				}
-			})
-			.catch(next);
-	} else {
-		res.sendStatus(202);
-	}
-});

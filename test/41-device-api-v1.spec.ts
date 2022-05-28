@@ -619,10 +619,12 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	describe('POST /v1/update', () => {
 		let configStub: SinonStub;
 		let targetUpdateSpy: SinonSpy;
+		let readyForUpdatesStub: SinonStub;
 
 		before(() => {
 			configStub = stub(config, 'get');
 			targetUpdateSpy = spy(TargetState, 'update');
+			readyForUpdatesStub = stub(apiBinder, 'isReadyForUpdates').returns(true);
 		});
 
 		afterEach(() => {
@@ -632,6 +634,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		after(() => {
 			configStub.restore();
 			targetUpdateSpy.restore();
+			readyForUpdatesStub.restore();
 		});
 
 		it('returns 204 with no parameters', async () => {
