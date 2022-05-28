@@ -45,7 +45,7 @@ import {
 	AppState,
 } from './types';
 import * as dbFormat from './device-state/db-format';
-import * as apiKeys from './lib/api-keys';
+import * as apiKeys from './device-api/api-keys';
 import * as sysInfo from './lib/system-info';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];

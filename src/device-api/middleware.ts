@@ -1,8 +1,8 @@
 import * as morgan from 'morgan';
 import * as _ from 'lodash';
 
+import * as apiKeys from './api-keys';
 import * as config from '../config';
-import * as apiKeys from '../lib/api-keys';
 import log from '../lib/supervisor-console';
 import { UpdatesLockedError } from '../lib/errors';
 

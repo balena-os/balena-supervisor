@@ -7,9 +7,8 @@ import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
 import SupervisorAPI from '../src/device-api';
-import * as apiKeys from '../src/lib/api-keys';
+import * as apiKeys from '../src/device-api/api-keys';
 import * as db from '../src/db';
-import { cloudApiKey } from '../src/lib/api-keys';
 
 const mockedOptions = {
 	listenPort: 54321,
@@ -225,20 +224,22 @@ describe('SupervisorAPI', () => {
 		});
 
 		it('finds apiKey from query', async () => {
-			return request.post(`/v1/blink?apikey=${cloudApiKey}`).expect(200);
+			return request
+				.post(`/v1/blink?apikey=${apiKeys.cloudApiKey}`)
+				.expect(200);
 		});
 
 		it('finds apiKey from Authorization header (ApiKey scheme)', async () => {
 			return request
 				.post('/v1/blink')
-				.set('Authorization', `ApiKey ${cloudApiKey}`)
+				.set('Authorization', `ApiKey ${apiKeys.cloudApiKey}`)
 				.expect(200);
 		});
 
 		it('finds apiKey from Authorization header (Bearer scheme)', async () => {
 			return request
 				.post('/v1/blink')
-				.set('Authorization', `Bearer ${cloudApiKey}`)
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(200);
 		});
 
@@ -256,7 +257,7 @@ describe('SupervisorAPI', () => {
 			for (const scheme of randomCases) {
 				return request
 					.post('/v1/blink')
-					.set('Authorization', `${scheme} ${cloudApiKey}`)
+					.set('Authorization', `${scheme} ${apiKeys.cloudApiKey}`)
 					.expect(200);
 			}
 		});

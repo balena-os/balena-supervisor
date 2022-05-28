@@ -8,8 +8,7 @@ import Service from '../../../src/compose/service';
 import Volume from '../../../src/compose/volume';
 import * as ServiceT from '../../../src/compose/types/service';
 import * as constants from '../../../src/lib/constants';
-import * as apiKeys from '../../../src/lib/api-keys';
-
+import * as apiKeys from '../../../src/device-api/api-keys';
 import log from '../../../src/lib/supervisor-console';
 
 const configs = {

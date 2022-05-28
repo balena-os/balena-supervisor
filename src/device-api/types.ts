@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 
-import type { ScopedResources, Scope } from '../lib/api-keys';
+import type { ScopedResources, Scope } from './api-keys';
 
 export type AuthorizedRequest = Request & {
 	auth: {

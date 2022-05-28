@@ -10,7 +10,7 @@ import * as deviceState from '../src/device-state';
 import SupervisorAPI from '../src/device-api';
 import * as serviceManager from '../src/compose/service-manager';
 import * as images from '../src/compose/images';
-import * as apiKeys from '../src/lib/api-keys';
+import * as apiKeys from '../src/device-api/api-keys';
 import * as config from '../src/config';
 import * as updateLock from '../src/lib/update-lock';
 import * as targetStateCache from '../src/device-state/target-state-cache';

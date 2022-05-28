@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
 
 import * as db from '../db';
-import { generateUniqueKey } from './register-device';
+import { generateUniqueKey } from '../lib/register-device';
 
 export class KeyNotFoundError extends Error {}
 

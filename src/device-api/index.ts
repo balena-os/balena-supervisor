@@ -1,12 +1,12 @@
 import * as express from 'express';
 import * as _ from 'lodash';
 
+import * as apiKeys from './api-keys';
+import * as middleware from './middleware';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 import blink = require('../lib/blink');
 import log from '../lib/supervisor-console';
-import * as apiKeys from '../lib/api-keys';
-import * as middleware from './middleware';
 
 import type { Server } from 'http';
 import type { AuthorizedRequest } from './types';
