@@ -89,8 +89,6 @@ const formatCurrentAsState = (device) => ({
 
 const createProxyvisorRouter = function (proxyvisor) {
 	const router = express.Router();
-	router.use(express.urlencoded({ limit: '10mb', extended: true }));
-	router.use(express.json({ limit: '10mb' }));
 	router.get('/v1/devices', async (_req, res) => {
 		try {
 			const fields = await db.models('dependentDevice').select();

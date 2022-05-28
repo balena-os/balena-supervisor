@@ -63,8 +63,6 @@ const localModeManager = new LocalModeManager();
 
 export const router = (() => {
 	const $router = express.Router();
-	$router.use(express.urlencoded({ extended: true, limit: '10mb' }));
-	$router.use(express.json({ limit: '10mb' }));
 
 	createV1Api($router);
 	createV2Api($router);

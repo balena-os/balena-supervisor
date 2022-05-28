@@ -1,16 +1,15 @@
 import * as express from 'express';
 import * as _ from 'lodash';
 
-import * as eventTracker from '../event-tracker';
-import * as constants from '../lib/constants';
-import { checkInt, checkTruthy } from '../lib/validation';
 import { doRestart, doPurge } from './common';
-
+import { AuthorizedRequest } from './types';
+import * as eventTracker from '../event-tracker';
+import { getApp } from '../device-state/db-format';
 import * as applicationManager from '../compose/application-manager';
 import { generateStep } from '../compose/composition-steps';
 import * as commitStore from '../compose/commit';
-import { AuthorizedRequest } from '../lib/api-keys';
-import { getApp } from '../device-state/db-format';
+import { checkInt, checkTruthy } from '../lib/validation';
+import * as constants from '../lib/constants';
 
 export function createV1Api(router: express.Router) {
 	router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {

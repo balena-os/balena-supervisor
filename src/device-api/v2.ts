@@ -2,6 +2,8 @@ import * as Bluebird from 'bluebird';
 import { NextFunction, Response, Router } from 'express';
 import * as _ from 'lodash';
 
+import { doPurge, doRestart, safeStateClone } from './common';
+import { AuthorizedRequest } from './types';
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
@@ -30,8 +32,6 @@ import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
-import { doPurge, doRestart, safeStateClone } from './common';
-import { AuthorizedRequest } from '../lib/api-keys';
 import { fromV2TargetState } from '../lib/legacy';
 
 export function createV2Api(router: Router) {

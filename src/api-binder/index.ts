@@ -576,8 +576,6 @@ export const initialized = (async () => {
 })();
 
 export const router = express.Router();
-router.use(express.urlencoded({ limit: '10mb', extended: true }));
-router.use(express.json({ limit: '10mb' }));
 
 router.post('/v1/update', (req, res, next) => {
 	eventTracker.track('Update notification');

@@ -65,8 +65,6 @@ function parseTargetState(state: unknown): TargetState {
 // device api stuff in ./device-api
 function createDeviceStateRouter() {
 	router = express.Router();
-	router.use(express.urlencoded({ limit: '10mb', extended: true }));
-	router.use(express.json({ limit: '10mb' }));
 
 	const rebootOrShutdown = async (
 		req: express.Request,
