@@ -64,7 +64,6 @@ export class SupervisorAPI {
 		this.api.post(
 			'/v1/regenerate-api-key',
 			async (req: AuthorizedRequest, res) => {
-				await deviceState.initialized;
 				await apiKeys.initialized;
 
 				// check if we're updating the cloud API key

@@ -134,7 +134,7 @@ async function create(
 
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
-		routers: [v1.router, deviceState.router],
+		routers: [v1.router],
 		healthchecks,
 	});
 

@@ -69,7 +69,7 @@ export class Supervisor {
 
 		log.info('Starting API server');
 		this.api = new SupervisorAPI({
-			routers: [v1.router, deviceState.router],
+			routers: [v1.router],
 			healthchecks: [apiBinder.healthcheck, deviceState.healthcheck],
 		});
 		this.api.listen(conf.listenPort, conf.apiTimeout);
