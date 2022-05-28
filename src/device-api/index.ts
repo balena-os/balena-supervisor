@@ -5,6 +5,7 @@ import * as apiKeys from './api-keys';
 import * as middleware from './middleware';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
+import proxyvisor from '../proxyvisor';
 import blink = require('../lib/blink');
 import log from '../lib/supervisor-console';
 
@@ -92,6 +93,8 @@ export class SupervisorAPI {
 		for (const router of this.routers) {
 			this.api.use(router);
 		}
+
+		this.api.use(proxyvisor.router);
 
 		this.api.use(middleware.errorHandler);
 	}

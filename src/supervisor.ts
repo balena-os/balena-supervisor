@@ -7,6 +7,7 @@ import * as logger from './logger';
 import logMonitor from './logging/monitor';
 import SupervisorAPI from './device-api';
 import * as v1 from './device-api/v1';
+import * as v2 from './device-api/v2';
 
 import { intialiseContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/legacy';
@@ -69,7 +70,7 @@ export class Supervisor {
 
 		log.info('Starting API server');
 		this.api = new SupervisorAPI({
-			routers: [v1.router],
+			routers: [v1.router, v2.router],
 			healthchecks: [apiBinder.healthcheck, deviceState.healthcheck],
 		});
 		this.api.listen(conf.listenPort, conf.apiTimeout);

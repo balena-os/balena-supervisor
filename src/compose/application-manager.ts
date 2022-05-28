@@ -1,4 +1,3 @@
-import * as express from 'express';
 import * as _ from 'lodash';
 import { EventEmitter } from 'events';
 import StrictEventEmitter from 'strict-event-emitter-types';
@@ -7,9 +6,8 @@ import * as config from '../config';
 import { transaction, Transaction } from '../db';
 import * as logger from '../logger';
 import LocalModeManager from '../local-mode';
-import { Proxyvisor } from '../proxyvisor';
+import proxyvisor from '../proxyvisor';
 import * as dbFormat from '../device-state/db-format';
-import { createV2Api } from '../device-api/v2';
 
 import { validateTargetContracts } from '../lib/contracts';
 import constants = require('../lib/constants');
@@ -57,18 +55,7 @@ export const removeAllListeners: typeof events['removeAllListeners'] = events.re
 	events,
 );
 
-const proxyvisor = new Proxyvisor();
 const localModeManager = new LocalModeManager();
-
-export const router = (() => {
-	const $router = express.Router();
-
-	createV2Api($router);
-
-	$router.use(proxyvisor.router);
-
-	return $router;
-})();
 
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;

@@ -8,6 +8,7 @@ import * as db from '../../src/db';
 import * as deviceState from '../../src/device-state';
 import SupervisorAPI from '../../src/device-api';
 import * as v1 from '../../src/device-api/v1';
+import * as v2 from '../../src/device-api/v2';
 import { Service } from '../../src/compose/service';
 import { Image } from '../../src/compose/images';
 import * as serviceManager from '../../src/compose/service-manager';
@@ -134,7 +135,7 @@ async function create(
 
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
-		routers: [v1.router],
+		routers: [v1.router, v2.router],
 		healthchecks,
 	});
 
