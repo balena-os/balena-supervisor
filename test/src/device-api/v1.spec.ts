@@ -87,4 +87,21 @@ describe('device-api/v1', () => {
 				.expect(500, 'Unhealthy');
 		});
 	});
+
+	describe('POST /v1/blink', () => {
+		let identifyStub: SinonStub;
+
+		beforeEach(() => {
+			identifyStub = stub(actions, 'identify');
+		});
+		afterEach(() => identifyStub.restore());
+
+		it('responds with 200', async () => {
+			await request
+				.post('/v1/blink')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(200);
+		});
+	});
 });

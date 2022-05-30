@@ -1,14 +1,7 @@
 import * as _ from 'lodash';
 import * as Bluebird from 'bluebird';
 import { expect } from 'chai';
-import {
-	stub,
-	spy,
-	useFakeTimers,
-	SinonStub,
-	SinonSpy,
-	SinonFakeTimers,
-} from 'sinon';
+import { stub, spy, SinonStub, SinonSpy } from 'sinon';
 import * as supertest from 'supertest';
 import * as path from 'path';
 import { promises as fs } from 'fs';
@@ -28,7 +21,6 @@ import * as dbus from '../src/lib/dbus';
 import * as updateLock from '../src/lib/update-lock';
 import * as TargetState from '../src/device-state/target-state';
 import * as targetStateCache from '../src/device-state/target-state-cache';
-import blink = require('../src/lib/blink');
 import constants = require('../src/lib/constants');
 import * as deviceAPI from '../src/device-api/common';
 
@@ -633,45 +625,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				.expect(sampleResponses.V1.POST['/update [202 Response]'].statusCode);
 			// Check that TargetState.update was not called
 			expect(targetUpdateSpy).to.not.be.called;
-		});
-	});
-
-	describe('POST /v1/blink', () => {
-		// Further blink function-specific testing located in 07-blink.spec.ts
-		it('responds with code 200 and empty body', async () => {
-			await request
-				.post('/v1/blink')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.expect(sampleResponses.V1.POST['/blink'].statusCode)
-				.then((response) => {
-					expect(response.body).to.deep.equal(
-						sampleResponses.V1.POST['/blink'].body,
-					);
-					expect(response.text).to.deep.equal(
-						sampleResponses.V1.POST['/blink'].text,
-					);
-				});
-		});
-
-		it('directs device to blink for 15000ms (hardcoded length)', async () => {
-			const blinkStartSpy: SinonSpy = spy(blink.pattern, 'start');
-			const blinkStopSpy: SinonSpy = spy(blink.pattern, 'stop');
-			const clock: SinonFakeTimers = useFakeTimers();
-
-			await request
-				.post('/v1/blink')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.then(() => {
-					expect(blinkStartSpy.callCount).to.equal(1);
-					clock.tick(15000);
-					expect(blinkStopSpy.callCount).to.equal(1);
-				});
-
-			blinkStartSpy.restore();
-			blinkStopSpy.restore();
-			clock.restore();
 		});
 	});
 
