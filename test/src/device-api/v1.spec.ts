@@ -4,6 +4,7 @@ import * as supertest from 'supertest';
 import * as config from '../../../src/config';
 import SupervisorAPI from '../../../src/device-api';
 import { actions, apiKeys, middleware, v1 } from '../../../src/device-api';
+import * as deviceState from '../../../src/device-state';
 import log from '../../../src/lib/supervisor-console';
 
 describe('device-api/v1', () => {
@@ -99,6 +100,55 @@ describe('device-api/v1', () => {
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(200);
+		});
+	});
+
+	describe('POST /v1/regenerate-api-key', () => {
+		let reportStateStub: SinonStub;
+
+		beforeEach(() => {
+			reportStateStub = stub(deviceState, 'reportCurrentState');
+		});
+		afterEach(async () => {
+			reportStateStub.restore();
+			await apiKeys.generateCloudKey();
+		});
+
+		it('returns 200 and a valid new API key', async () => {
+			let newKey = '';
+
+			await request
+				.post('/v1/regenerate-api-key')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.expect(200)
+				.then(({ text }) => {
+					newKey = text;
+				});
+
+			// Ensure new key validity
+			await request
+				.post('/v1/blink')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${newKey}`)
+				.expect(200);
+		});
+
+		it('expires old API key after generating new key', async () => {
+			const oldKey = apiKeys.cloudApiKey;
+
+			await request
+				.post('/v1/regenerate-api-key')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${oldKey}`)
+				.expect(200);
+
+			// Ensure old key was expired
+			await request
+				.post('/v1/restart')
+				.set('Accept', 'application/json')
+				.set('Authorization', `Bearer ${oldKey}`)
+				.expect(401);
 		});
 	});
 });

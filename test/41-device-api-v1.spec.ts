@@ -627,69 +627,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 	});
 
-	describe('POST /v1/regenerate-api-key', () => {
-		it('returns a valid new API key', async () => {
-			const refreshKeySpy: SinonSpy = spy(apiKeys, 'refreshKey');
-
-			let newKey: string = '';
-
-			await request
-				.post('/v1/regenerate-api-key')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.expect(sampleResponses.V1.POST['/regenerate-api-key'].statusCode)
-				.then((response) => {
-					expect(response.body).to.deep.equal(
-						sampleResponses.V1.POST['/regenerate-api-key'].body,
-					);
-					expect(response.text).to.equal(apiKeys.cloudApiKey);
-					newKey = response.text;
-					expect(refreshKeySpy.callCount).to.equal(1);
-				});
-
-			// Ensure persistence with future calls
-			await request
-				.post('/v1/blink')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${newKey}`)
-				.expect(sampleResponses.V1.POST['/blink'].statusCode);
-
-			refreshKeySpy.restore();
-		});
-
-		it('expires old API key after generating new key', async () => {
-			const oldKey: string = apiKeys.cloudApiKey;
-
-			await request
-				.post('/v1/regenerate-api-key')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${oldKey}`)
-				.expect(sampleResponses.V1.POST['/regenerate-api-key'].statusCode);
-
-			await request
-				.post('/v1/restart')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${oldKey}`)
-				.expect(401);
-		});
-
-		it('communicates the new API key to balena API', async () => {
-			const reportStateSpy: SinonSpy = spy(deviceState, 'reportCurrentState');
-
-			await request
-				.post('/v1/regenerate-api-key')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.then(() => {
-					expect(reportStateSpy.callCount).to.equal(1);
-					// Further reportCurrentState tests should be in 05-device-state.spec.ts,
-					// but its test case seems to currently be skipped until interface redesign
-				});
-
-			reportStateSpy.restore();
-		});
-	});
-
 	describe('/v1/device/host-config', () => {
 		// Wrap GET and PATCH /v1/device/host-config tests in the same block to share
 		// common scoped variables, namely file paths and file content
