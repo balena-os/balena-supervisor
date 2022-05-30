@@ -13,6 +13,7 @@ import * as logger from './logger';
 import * as globalEventBus from './event-bus';
 import * as network from './network';
 import * as deviceConfig from './device-config';
+import { apiKeys } from './device-api';
 import {
 	DeviceLegacyState,
 	InstancedDeviceState,
@@ -36,7 +37,6 @@ import * as applicationManager from './compose/application-manager';
 import * as commitStore from './compose/commit';
 import { loadTargetFromFile } from './device-state/preload';
 import * as dbFormat from './device-state/db-format';
-import * as apiKeys from './device-api/api-keys';
 import type {
 	CompositionStepT,
 	CompositionStepAction,

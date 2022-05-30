@@ -3,10 +3,7 @@ import * as supertest from 'supertest';
 
 import * as config from '../../../src/config';
 import SupervisorAPI from '../../../src/device-api';
-import * as actions from '../../../src/device-api/actions';
-import * as v1 from '../../../src/device-api/v1';
-import * as apiKeys from '../../../src/device-api/api-keys';
-import * as middleware from '../../../src/device-api/middleware';
+import { actions, apiKeys, middleware, v1 } from '../../../src/device-api';
 import log from '../../../src/lib/supervisor-console';
 
 describe('device-api/v1', () => {

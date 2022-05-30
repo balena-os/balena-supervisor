@@ -3,8 +3,6 @@ import Duration = require('duration-js');
 import * as _ from 'lodash';
 import { parse as parseCommand } from 'shell-quote';
 
-import * as constants from '../lib/constants';
-import { checkTruthy } from '../lib/validation';
 import { Service } from './service';
 import {
 	ComposeHealthcheck,
@@ -16,9 +14,10 @@ import {
 	ServiceHealthcheck,
 	LongDefinition,
 } from './types/service';
-
+import { apiKeys } from '../device-api';
+import * as constants from '../lib/constants';
+import { checkTruthy } from '../lib/validation';
 import log from '../lib/supervisor-console';
-import * as apiKeys from '../device-api/api-keys';
 
 export function camelCaseConfig(
 	literalConfig: ConfigMap,

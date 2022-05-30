@@ -7,7 +7,7 @@ import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
 import Log from '../src/lib/supervisor-console';
 import SupervisorAPI from '../src/device-api';
-import * as apiKeys from '../src/device-api/api-keys';
+import { apiKeys } from '../src/device-api';
 import * as db from '../src/db';
 
 const mockedOptions = {

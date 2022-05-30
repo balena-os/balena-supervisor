@@ -11,6 +11,13 @@ import log from '../lib/supervisor-console';
 import type { Server } from 'http';
 import type { AuthorizedRequest } from './types';
 
+export * as actions from './actions';
+export * as apiKeys from './api-keys';
+export * as common from './common';
+export * as middleware from './middleware';
+export * as v1 from './v1';
+export * as v2 from './v2';
+
 interface SupervisorAPIConstructOpts {
 	routers: express.Router[];
 	healthchecks: Array<() => Promise<boolean>>;

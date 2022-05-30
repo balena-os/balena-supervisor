@@ -14,15 +14,14 @@ import sampleResponses = require('./data/device-api-responses.json');
 import * as config from '../src/config';
 import * as logger from '../src/logger';
 import SupervisorAPI from '../src/device-api';
+import { apiKeys, common as deviceAPI } from '../src/device-api';
 import * as apiBinder from '../src/api-binder';
 import * as deviceState from '../src/device-state';
-import * as apiKeys from '../src/device-api/api-keys';
 import * as dbus from '../src/lib/dbus';
 import * as updateLock from '../src/lib/update-lock';
 import * as TargetState from '../src/device-state/target-state';
 import * as targetStateCache from '../src/device-state/target-state-cache';
 import constants = require('../src/lib/constants');
-import * as deviceAPI from '../src/device-api/common';
 
 import { UpdatesLockedError } from '../src/lib/errors';
 import { SchemaTypeKey } from '../src/config/schema-type';

@@ -6,8 +6,7 @@ import * as eventTracker from './event-tracker';
 import * as logger from './logger';
 import logMonitor from './logging/monitor';
 import SupervisorAPI from './device-api';
-import * as v1 from './device-api/v1';
-import * as v2 from './device-api/v2';
+import { v1, v2 } from './device-api';
 
 import { intialiseContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/legacy';

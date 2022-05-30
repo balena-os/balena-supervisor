@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { stub, restore, spy, useFakeTimers } from 'sinon';
 
-import * as actions from '../../../src/device-api/actions';
+import { actions } from '../../../src/device-api';
 import log from '../../../src/lib/supervisor-console';
 import blink = require('../../../src/lib/blink');
 
