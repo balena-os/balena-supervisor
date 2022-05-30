@@ -3,6 +3,7 @@ import * as _ from 'lodash';
 
 import * as apiKeys from './api-keys';
 import * as middleware from './middleware';
+import * as actions from './actions';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 import proxyvisor from '../proxyvisor';
@@ -36,15 +37,10 @@ export class SupervisorAPI {
 		this.api.use(middleware.apiLogger);
 
 		this.api.get('/v1/healthy', async (_req, res) => {
-			try {
-				const healths = await Promise.all(this.healthchecks.map((fn) => fn()));
-				if (!_.every(healths)) {
-					log.error('Healthcheck failed');
-					return res.status(500).send('Unhealthy');
-				}
+			const isHealthy = await actions.runHealthchecks(this.healthchecks);
+			if (isHealthy) {
 				return res.sendStatus(200);
-			} catch (_e) {
-				log.error('Healthcheck failed');
+			} else {
 				return res.status(500).send('Unhealthy');
 			}
 		});
