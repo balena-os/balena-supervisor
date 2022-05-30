@@ -1,10 +1,24 @@
 import { expect } from 'chai';
-import { stub, restore, spy, useFakeTimers, SinonStub } from 'sinon';
+import {
+	stub,
+	restore,
+	spy,
+	useFakeTimers,
+	SinonStub,
+	createSandbox,
+} from 'sinon';
 
 import { actions, apiKeys } from '../../../src/device-api';
 import * as deviceState from '../../../src/device-state';
+import App from '../../../src/compose/app';
+import * as applicationManager from '../../../src/compose/application-manager';
+import * as serviceManager from '../../../src/compose/service-manager';
+import Service from '../../../src/compose/service';
 import log from '../../../src/lib/supervisor-console';
 import blink = require('../../../src/lib/blink');
+
+import { createContainer, withMockerode } from '../../lib/mockerode';
+import * as dbHelper from '../../lib/db-helper';
 
 describe('device-api/actions', () => {
 	before(() => {
@@ -84,6 +98,106 @@ describe('device-api/actions', () => {
 			expect(scopedKey).to.not.equal(newKey);
 			expect(newKey).to.not.equal(apiKeys.cloudApiKey);
 			expect(reportStateStub).to.not.have.been.called;
+		});
+	});
+
+	describe('restarts an application', () => {
+		const sandbox = createSandbox();
+		let getCurrentAppsStub: SinonStub;
+		let killServiceStub: SinonStub;
+		let startServiceStub: SinonStub;
+		let testDb: dbHelper.TestDatabase;
+
+		const appId = 1234567;
+		const appUuid = 'deadbeef';
+		const commit = 'commit';
+
+		// Set up mockerode containers & services
+		const serviceData = [
+			{ id: 1, name: 'one', containerId: 'ctn1', imageId: 4, releaseId: 7 },
+			{ id: 2, name: 'two', containerId: 'ctn2', imageId: 5, releaseId: 8 },
+			{ id: 3, name: 'thr', containerId: 'ctn3', imageId: 6, releaseId: 9 },
+		];
+		const containers = serviceData.map((service) =>
+			createContainer({
+				Id: service.containerId,
+				Name: `${service.name}_${service.imageId}_${service.releaseId}_${commit}`,
+				Config: {
+					Labels: {
+						'io.balena.app-id': String(appId),
+						'io.balena.app-uuid': appUuid,
+						'io.balena.architecture': 'aarch64',
+						'io.balena.service-id': String(service.id),
+						'io.balena.service-name': service.name,
+						'io.balena.supervised': 'true',
+					},
+				},
+			}),
+		);
+		const services = containers.map(({ inspectInfo }) =>
+			Service.fromDockerContainer(inspectInfo),
+		);
+
+		before(async () => {
+			// Multiple database calls occur during restart, so it's easier to
+			// set up the entire database instead of stubbing individually
+			testDb = await dbHelper.createDB();
+
+			// We don't care about testing clearing volatile state, so stub it
+			// to avoid any unintended side effects.
+			sandbox
+				.stub(applicationManager, 'clearTargetVolatileForServices')
+				.resolves();
+			getCurrentAppsStub = sandbox.stub(applicationManager, 'getCurrentApps');
+			killServiceStub = sandbox.stub(serviceManager, 'kill').resolves();
+			startServiceStub = sandbox.stub(serviceManager, 'start').resolves();
+		});
+
+		after(async () => {
+			// Restore all stubs created using sandbox
+			sandbox.restore();
+
+			try {
+				await testDb.destroy();
+			} catch {
+				/* noop */
+			}
+		});
+
+		afterEach(async () => {
+			// Reset history for all stubs created using sandbox
+			sandbox.resetHistory();
+			await testDb.reset();
+		});
+
+		it('restarts all containers in release', async () => {
+			getCurrentAppsStub.resolves({
+				[appId]: new App(
+					{
+						appId,
+						appUuid,
+						commit,
+						services,
+						volumes: {},
+						networks: {},
+					},
+					false,
+				),
+			});
+			// Perform test with mocked release
+			await withMockerode(
+				async () => {
+					await actions.doRestart(appId);
+
+					expect(killServiceStub).to.have.been.calledThrice;
+					expect(startServiceStub).to.have.been.calledThrice;
+					services.forEach((svc) => {
+						expect(killServiceStub).to.have.been.calledWith(svc);
+						expect(startServiceStub).to.have.been.calledWith(svc);
+					});
+				},
+				{ containers },
+			);
 		});
 	});
 });

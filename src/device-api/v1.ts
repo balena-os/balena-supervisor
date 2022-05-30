@@ -1,7 +1,8 @@
 import * as express from 'express';
 import * as _ from 'lodash';
 
-import { doRestart, doPurge } from './common';
+import * as actions from './actions';
+import { doPurge } from './common';
 import { AuthorizedRequest } from './types';
 import * as eventTracker from '../event-tracker';
 import * as apiBinder from '../api-binder';
@@ -39,7 +40,8 @@ router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {
 		return;
 	}
 
-	return doRestart(appId, force)
+	return actions
+		.doRestart(appId, force)
 		.then(() => res.status(200).send('OK'))
 		.catch(next);
 });

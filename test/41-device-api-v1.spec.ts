@@ -113,57 +113,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		loggerStub.restore();
 	});
 
-	describe('POST /v1/restart', () => {
-		it('restarts all containers in release', async () => {
-			// Perform the test with our mocked release
-			await mockedDockerode.testWithData({ containers, images }, async () => {
-				// Perform test
-				await request
-					.post('/v1/restart')
-					.send({ appId: 2 })
-					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-					.expect(sampleResponses.V1.POST['/restart'].statusCode)
-					.then((response) => {
-						expect(response.body).to.deep.equal(
-							sampleResponses.V1.POST['/restart'].body,
-						);
-						expect(response.text).to.deep.equal(
-							sampleResponses.V1.POST['/restart'].text,
-						);
-					});
-				// Check that mockedDockerode contains 3 stop and start actions
-				const removeSteps = _(mockedDockerode.actions)
-					.pickBy({ name: 'stop' })
-					.map()
-					.value();
-				expect(removeSteps).to.have.lengthOf(3);
-				const startSteps = _(mockedDockerode.actions)
-					.pickBy({ name: 'start' })
-					.map()
-					.value();
-				expect(startSteps).to.have.lengthOf(3);
-			});
-		});
-
-		it('validates request body parameters', async () => {
-			await request
-				.post('/v1/restart')
-				.send({ thing: '' })
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.expect(sampleResponses.V1.POST['/restart [Invalid Body]'].statusCode)
-				.then((response) => {
-					expect(response.body).to.deep.equal(
-						sampleResponses.V1.POST['/restart [Invalid Body]'].body,
-					);
-					expect(response.text).to.deep.equal(
-						sampleResponses.V1.POST['/restart [Invalid Body]'].text,
-					);
-				});
-		});
-	});
-
 	describe('GET /v1/apps/:appId', () => {
 		it('does not return information for an application when there is more than 1 container', async () => {
 			await request

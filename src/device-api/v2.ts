@@ -3,7 +3,8 @@ import * as express from 'express';
 import type { NextFunction, Response } from 'express';
 import * as _ from 'lodash';
 
-import { doPurge, doRestart, safeStateClone } from './common';
+import * as actions from './actions';
+import { doPurge, safeStateClone } from './common';
 import { AuthorizedRequest } from './types';
 import {
 	appNotFoundMessage,
@@ -179,7 +180,8 @@ router.post(
 			return;
 		}
 
-		return doRestart(appId, force)
+		return actions
+			.doRestart(appId, force)
 			.then(() => {
 				res.status(200).send('OK');
 			})

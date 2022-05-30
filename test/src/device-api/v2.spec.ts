@@ -3,13 +3,12 @@ import { stub, restore, SinonStub } from 'sinon';
 import * as supertest from 'supertest';
 
 import SupervisorAPI from '../../../src/device-api';
-import { actions, apiKeys, middleware, v1 } from '../../../src/device-api';
+import { actions, apiKeys, middleware, v2 } from '../../../src/device-api';
 import * as config from '../../../src/config';
-import * as deviceState from '../../../src/device-state';
 import log from '../../../src/lib/supervisor-console';
 import { UpdatesLockedError } from '../../../src/lib/errors';
 
-describe('device-api/v1', () => {
+describe('device-api/v2', () => {
 	let api: SupervisorAPI;
 	let request: supertest.SuperTest<supertest.Test>;
 	const API_PORT = 54321;
@@ -40,7 +39,7 @@ describe('device-api/v1', () => {
 
 		request = supertest(`http://127.0.0.1:${API_PORT}`);
 		api = new SupervisorAPI({
-			routers: [v1.router],
+			routers: [v2.router],
 			healthchecks: [],
 		});
 		await api.listen(API_PORT, API_TIMEOUT);
@@ -61,100 +60,7 @@ describe('device-api/v1', () => {
 		restore();
 	});
 
-	describe('GET /v1/healthy', () => {
-		let runHealthchecksStub: SinonStub;
-
-		beforeEach(() => {
-			runHealthchecksStub = stub(actions, 'runHealthchecks');
-		});
-		afterEach(() => runHealthchecksStub.restore());
-
-		it('responds with 200 because all healthchecks pass', async () => {
-			runHealthchecksStub.resolves(true);
-			await request
-				.get('/v1/healthy')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.expect(200);
-		});
-
-		it('responds with 500 because some healthchecks did not pass', async () => {
-			runHealthchecksStub.resolves(false);
-			await request
-				.get('/v1/healthy')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.expect(500, 'Unhealthy');
-		});
-	});
-
-	describe('POST /v1/blink', () => {
-		let identifyStub: SinonStub;
-
-		beforeEach(() => {
-			identifyStub = stub(actions, 'identify');
-		});
-		afterEach(() => identifyStub.restore());
-
-		it('responds with 200', async () => {
-			await request
-				.post('/v1/blink')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.expect(200);
-		});
-	});
-
-	describe('POST /v1/regenerate-api-key', () => {
-		let reportStateStub: SinonStub;
-
-		beforeEach(() => {
-			reportStateStub = stub(deviceState, 'reportCurrentState');
-		});
-		afterEach(async () => {
-			reportStateStub.restore();
-			await apiKeys.generateCloudKey();
-		});
-
-		it('returns 200 and a valid new API key', async () => {
-			let newKey = '';
-
-			await request
-				.post('/v1/regenerate-api-key')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
-				.expect(200)
-				.then(({ text }) => {
-					newKey = text;
-				});
-
-			// Ensure new key validity
-			await request
-				.post('/v1/blink')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${newKey}`)
-				.expect(200);
-		});
-
-		it('expires old API key after generating new key', async () => {
-			const oldKey = apiKeys.cloudApiKey;
-
-			await request
-				.post('/v1/regenerate-api-key')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${oldKey}`)
-				.expect(200);
-
-			// Ensure old key was expired
-			await request
-				.post('/v1/restart')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${oldKey}`)
-				.expect(401);
-		});
-	});
-
-	describe('POST /v1/restart', () => {
+	describe('POST /v2/applications/:appId/restart', () => {
 		let restartStub: SinonStub;
 
 		beforeEach(() => {
@@ -164,8 +70,9 @@ describe('device-api/v1', () => {
 
 		it('parses force from request body', async () => {
 			await request
-				.post('/v1/restart')
-				.send({ appId: 1234567, force: false })
+				.post('/v2/applications/1234567/restart')
+				.send({ force: false })
+				.set('Content-Type', 'application/json')
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(200);
@@ -174,8 +81,9 @@ describe('device-api/v1', () => {
 			restartStub.resetHistory();
 
 			await request
-				.post('/v1/restart')
-				.send({ appId: 7654321, force: true })
+				.post('/v2/applications/7654321/restart')
+				.send({ force: true })
+				.set('Content-Type', 'application/json')
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(200);
@@ -184,8 +92,9 @@ describe('device-api/v1', () => {
 
 		it('responds with 400 if appId is missing', async () => {
 			await request
-				.post('/v1/restart')
+				.post('/v2/applications/badAppId/restart')
 				.send({})
+				.set('Content-Type', 'application/json')
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(400);
@@ -194,8 +103,8 @@ describe('device-api/v1', () => {
 		it("responds with 401 if caller's API key is not in scope of appId", async () => {
 			const scopedKey = await apiKeys.generateScopedKey(1234567, 'main');
 			await request
-				.post('/v1/restart')
-				.send({ appId: 7654321 })
+				.post('/v2/applications/7654321/restart')
+				.set('Content-Type', 'application/json')
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${scopedKey}`)
 				.expect(401);
@@ -203,8 +112,8 @@ describe('device-api/v1', () => {
 
 		it('responds with 200 if restart succeeded', async () => {
 			await request
-				.post('/v1/restart')
-				.send({ appId: 1234567 })
+				.post('/v2/applications/1234567/restart')
+				.set('Content-Type', 'application/json')
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(200);
@@ -213,8 +122,8 @@ describe('device-api/v1', () => {
 		it('responds with 423 if there are update locks', async () => {
 			restartStub.throws(new UpdatesLockedError());
 			await request
-				.post('/v1/restart')
-				.send({ appId: 1234567 })
+				.post('/v2/applications/1234567/restart')
+				.set('Content-Type', 'application/json')
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(423);
@@ -223,8 +132,8 @@ describe('device-api/v1', () => {
 		it('responds with 503 for other errors that occur during restart', async () => {
 			restartStub.throws(new Error());
 			await request
-				.post('/v1/restart')
-				.send({ appId: 1234567 })
+				.post('/v2/applications/1234567/restart')
+				.set('Content-Type', 'application/json')
 				.set('Accept', 'application/json')
 				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
 				.expect(503);
