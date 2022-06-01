@@ -1,4 +1,24 @@
 - commits:
+    - subject: Use Mounts API for engine socket feature label
+      hash: 6ccd2178c18acded013e888a296e265bc0315728
+      body: |
+        When upgrading to this Supervisor version, containers using the
+        engine feature label will be restarted.
+      footer:
+        Relates-to: https://github.com/balena-os/balena-supervisor/pull/1780
+        relates-to: https://github.com/balena-os/balena-supervisor/pull/1780
+        Closes: "#1933"
+        closes: "#1933"
+        Change-type: major
+        change-type: major
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 14.0.0
+  title: "'Use Mounts API for engine socket feature label'"
+  date: 2022-05-31T19:41:00.639Z
+- commits:
     - subject: Only migrate apps.json on preload after target has been set
       hash: 95bf4718d6717630ab0bedabfeea209ce295acb0
       body: ""
