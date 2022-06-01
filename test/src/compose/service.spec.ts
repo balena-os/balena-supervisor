@@ -594,7 +594,7 @@ describe('compose/service', () => {
 
 	describe('Feature labels', () => {
 		describe('io.balena.features.balena-socket', () => {
-			it('should mount the socket in the container an set DOCKER_HOST with the proper location', async () => {
+			it('should mount the socket in the container and set DOCKER_HOST with the proper location', async () => {
 				const service = await Service.fromComposeObject(
 					{
 						appId: 123456,
@@ -607,8 +607,22 @@ describe('compose/service', () => {
 					{ appName: 'test' } as any,
 				);
 
-				expect(service.config.volumes).to.include.members([
-					`${constants.dockerSocket}:${constants.containerDockerSocket}`,
+				expect(service.config.volumes).to.deep.include.members([
+					{
+						type: 'bind',
+						source: constants.dockerSocket,
+						target: constants.containerDockerSocket,
+					},
+					{
+						type: 'bind',
+						source: constants.dockerSocket,
+						target: constants.dockerSocket,
+					},
+					{
+						type: 'bind',
+						source: constants.dockerSocket,
+						target: '/var/run/balena.sock',
+					},
 				]);
 
 				expect(service.config.environment['DOCKER_HOST']).to.equal(
@@ -1186,11 +1200,13 @@ describe('compose/service', () => {
 			 * Service -> container (toDockerContainer)
 			 */
 			// Inject bind mounts (as feature labels would)
-			// Bind mounts added under feature labels use the short syntax (for now)
+			// Bind mounts added under feature labels use the short syntax, except for the engine label
 			service.config.volumes.push('/var/log/journal:/var/log/journal:ro');
-			service.config.volumes.push(
-				`${constants.dockerSocket}:${constants.containerDockerSocket}`,
-			);
+			service.config.volumes.push({
+				type: 'bind',
+				source: constants.dockerSocket,
+				target: constants.containerDockerSocket,
+			} as ServiceT.LongBind);
 
 			const ctn = service.toDockerContainer({
 				deviceName: 'thicc_nucc',
@@ -1208,9 +1224,14 @@ describe('compose/service', () => {
 						ReadOnly: true,
 					},
 					{ Type: 'tmpfs', Target: '/home/tmp' },
+					{
+						Type: 'bind',
+						Source: constants.dockerSocket,
+						Target: constants.containerDockerSocket,
+					},
 				]);
 
-			// bind mounts should be filtered out
+			// bind mounts except for the engine feature label should be filtered out
 			expect(ctn.HostConfig)
 				.to.have.property('Mounts')
 				.that.does.not.deep.include.members([
@@ -1226,7 +1247,6 @@ describe('compose/service', () => {
 					`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/resin`,
 					`/tmp/balena-supervisor/services/${appId}/${serviceName}:/tmp/balena`,
 					'/var/log/journal:/var/log/journal:ro',
-					`${constants.dockerSocket}:${constants.containerDockerSocket}`,
 				]);
 
 			// Tmpfs volumes defined through compose's service.tmpfs are under HostConfig.Tmpfs.

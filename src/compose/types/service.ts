@@ -136,6 +136,7 @@ export const LongBind = t.brand(
 		l.type === 'bind' && isAbsolute(l.source),
 	'LongBind',
 );
+export type LongBind = t.TypeOf<typeof LongBind>;
 
 // 'source' is disallowed for tmpfs
 interface LongTmpfsBrand {

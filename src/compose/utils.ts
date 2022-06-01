@@ -15,6 +15,7 @@ import {
 	ServiceConfig,
 	ServiceHealthcheck,
 	LongDefinition,
+	LongBind,
 } from './types/service';
 
 import log from '../lib/supervisor-console';
@@ -345,14 +346,18 @@ export async function addFeaturesFromLabels(
 				? service.config.volumes.push('/lib/firmware:/lib/firmware')
 				: null,
 		'io.balena.features.balena-socket': () => {
-			service.config.volumes.push(
-				`${constants.dockerSocket}:${constants.containerDockerSocket}`,
-			);
+			service.config.volumes.push({
+				type: 'bind',
+				source: constants.dockerSocket,
+				target: constants.containerDockerSocket,
+			} as LongBind);
 
 			// Maintain the /var/run mount for backwards compatibility
-			service.config.volumes.push(
-				`${constants.dockerSocket}:${constants.dockerSocket}`,
-			);
+			service.config.volumes.push({
+				type: 'bind',
+				source: constants.dockerSocket,
+				target: constants.dockerSocket,
+			} as LongBind);
 
 			if (service.config.environment['DOCKER_HOST'] == null) {
 				service.config.environment[
@@ -361,9 +366,11 @@ export async function addFeaturesFromLabels(
 			}
 			// We keep balena.sock for backwards compatibility
 			if (constants.dockerSocket !== '/var/run/balena.sock') {
-				service.config.volumes.push(
-					`${constants.dockerSocket}:/var/run/balena.sock`,
-				);
+				service.config.volumes.push({
+					type: 'bind',
+					source: constants.dockerSocket,
+					target: '/var/run/balena.sock',
+				} as LongBind);
 			}
 		},
 		'io.balena.features.balena-api': () => {
