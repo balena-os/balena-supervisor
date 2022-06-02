@@ -1,4 +1,40 @@
 - commits:
+    - subject: Use locks before shutdown/reboot instead of stopping containers
+      hash: aad5a9efc5da5ffcd6915ac6f395e154ee38cbf8
+      body: ""
+      footer:
+        Closes: "#1940"
+        closes: "#1940"
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+    - subject: Refactor update-lock.lock to accept an array of applications to lock
+      hash: 471f0f0615c7d46a182c2d396b832eb0df9ee95e
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+    - subject: Refactor update-lock function to avoid callback hell
+      hash: ef7371a7ef40f1e73bd2277bfe997c48f5e59284
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+        signed-off-by: 20k-ultra <3946250+20k-ultra@users.noreply.github.com>
+      author: 20k-ultra
+      nested: []
+  version: 14.0.1
+  title: "'Shutdown with locks'"
+  date: 2022-06-02T04:34:24.480Z
+- commits:
     - subject: Use Mounts API for engine socket feature label
       hash: 6ccd2178c18acded013e888a296e265bc0315728
       body: |
