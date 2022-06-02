@@ -242,6 +242,45 @@ describe('lib/update-lock', () => {
 			);
 		});
 
+		it('locks all applications before resolving input function', async () => {
+			const appIds = [111, 222, 333];
+			// Set up fake filesystem for lockfiles
+			mockFs({
+				[path.join(
+					constants.rootMountPoint,
+					updateLock.lockPath(111),
+					serviceName,
+				)]: {},
+				[path.join(
+					constants.rootMountPoint,
+					updateLock.lockPath(222),
+					serviceName,
+				)]: {},
+				[path.join(
+					constants.rootMountPoint,
+					updateLock.lockPath(333),
+					serviceName,
+				)]: {},
+			});
+
+			await expect(
+				updateLock.lock(appIds, { force: false }, async () => {
+					// At this point the locks should be taken and not removed
+					// until this function has been resolved
+					// Both `updates.lock` and `resin-updates.lock` should have been taken
+					expect(lockSpy.args).to.have.length(6);
+					// Make sure that no locks have been removed also
+					expect(unlockSpy).to.not.be.called;
+					return Promise.resolve();
+				}),
+			).to.eventually.be.fulfilled;
+
+			// Everything that was locked should have been unlocked after function resolves
+			expect(lockSpy.args.map(([lock]) => [lock])).to.deep.equal(
+				unlockSpy.args,
+			);
+		});
+
 		it('resolves input function without locking when appId is null', async () => {
 			mockLockDir({ createLockfile: true });
 

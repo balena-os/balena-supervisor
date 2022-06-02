@@ -71,20 +71,20 @@ export const readLock: LockFn = Bluebird.promisify(locker.async.readLock, {
 });
 
 // Unlock all lockfiles, optionally of an appId | appUuid, then release resources.
-function dispose(
-	release: () => void,
+async function dispose(
 	appIdentifier: string | number,
-): Bluebird<void> {
-	return Bluebird.map(
-		lockfile.getLocksTaken((p: string) =>
-			p.includes(`${BASE_LOCK_DIR}/${appIdentifier}`),
-		),
-		(lockName) => {
-			return lockfile.unlock(lockName);
-		},
-	)
-		.finally(release)
-		.return();
+	release: () => void,
+): Promise<void> {
+	const locks = lockfile.getLocksTaken((p: string) =>
+		p.includes(`${BASE_LOCK_DIR}/${appIdentifier}`),
+	);
+	try {
+		// Try to unlock all locks taken
+		await Promise.all(locks.map((l) => lockfile.unlock(l)));
+	} finally {
+		// Release final resource
+		release();
+	}
 }
 
 /**
@@ -96,69 +96,77 @@ function dispose(
  * TODO: Remove skipLock as it's not a good interface. If lock is called it should try to take the lock
  * without an option to skip.
  */
-export function lock<T extends unknown>(
-	appId: number,
+export async function lock<T extends unknown>(
+	appId: number | number[],
 	{ force = false, skipLock = false }: { force: boolean; skipLock?: boolean },
 	fn: () => Resolvable<T>,
-): Bluebird<T> {
-	if (skipLock || appId == null) {
-		return Bluebird.resolve(fn());
+): Promise<T> {
+	const appIdsToLock = Array.isArray(appId) ? appId : [appId];
+	if (skipLock || !appId || !appIdsToLock.length) {
+		return fn();
 	}
 
-	const takeTheLock = () => {
-		return config
-			.get('lockOverride')
-			.then((lockOverride) => {
-				return writeLock(appId)
-					.tap((release: () => void) => {
-						const lockDir = getPathOnHost(lockPath(appId));
-						return Bluebird.resolve(fs.readdir(lockDir))
-							.catchReturn(ENOENT, [])
-							.mapSeries((serviceName) => {
-								return Bluebird.mapSeries(
-									lockFilesOnHost(appId, serviceName),
-									(tmpLockName) => {
-										return (
-											Bluebird.try(() => {
-												if (force || lockOverride) {
-													return lockfile.unlock(tmpLockName);
-												}
-											})
-												.then(() => {
-													return lockfile.lock(tmpLockName, LOCKFILE_UID);
-												})
-												// If lockfile exists, throw a user-friendly error.
-												// Otherwise throw the error as-is.
-												// This will interrupt the call to Bluebird.using, so
-												// dispose needs to be called even though it's referenced
-												// by .disposer later.
-												.catch((error) => {
-													return dispose(release, appId).throw(
-														lockfile.LockfileExistsError.is(error)
-															? new UpdatesLockedError(
-																	`Lockfile exists for ${JSON.stringify({
-																		serviceName,
-																		appId,
-																	})}`,
-															  )
-															: (error as Error),
-													);
-												})
-										);
-									},
-								);
-							});
-					})
-					.disposer((release: () => void) => dispose(release, appId));
-			})
-			.catch((err) => {
-				throw new InternalInconsistencyError(
-					`Error getting lockOverride config value: ${err?.message ?? err}`,
-				);
+	// Sort appIds so they are always locked in the same sequence
+	const sortedIds = appIdsToLock.sort();
+
+	let lockOverride: boolean;
+	try {
+		lockOverride = await config.get('lockOverride');
+	} catch (err) {
+		throw new InternalInconsistencyError(
+			`Error getting lockOverride config value: ${err?.message ?? err}`,
+		);
+	}
+
+	const releases = new Map<number, () => void>();
+	try {
+		for (const id of sortedIds) {
+			const lockDir = getPathOnHost(lockPath(id));
+			// Acquire write lock for appId
+			releases.set(id, await writeLock(id));
+			// Get list of service folders in lock directory
+			const serviceFolders = await fs.readdir(lockDir).catch((e) => {
+				if (ENOENT(e)) {
+					return [];
+				}
+				throw e;
 			});
-	};
+			// Attempt to create a lock for each service
+			for (const service of serviceFolders) {
+				await lockService(id, service, force || lockOverride);
+			}
+		}
+		// Resolve the function passed
+		return fn();
+	} finally {
+		for (const [id, release] of releases.entries()) {
+			// Try to dispose all the locks
+			await dispose(id, release);
+		}
+	}
+}
 
-	const disposer = takeTheLock();
-
-	return Bluebird.using(disposer, fn as () => PromiseLike<T>);
+async function lockService(
+	appId: number,
+	service: string,
+	force: boolean = false,
+): Promise<void> {
+	const serviceLockFiles = lockFilesOnHost(appId, service);
+	for await (const file of serviceLockFiles) {
+		try {
+			if (force) {
+				await lockfile.unlock(file);
+			}
+			await lockfile.lock(file, LOCKFILE_UID);
+		} catch (e) {
+			if (lockfile.LockfileExistsError.is(e)) {
+				// Throw more descriptive error
+				throw new UpdatesLockedError(
+					`Lockfile exists for { appId: ${appId}, service: ${service} }`,
+				);
+			}
+			// Otherwise just throw the error
+			throw e;
+		}
+	}
 }

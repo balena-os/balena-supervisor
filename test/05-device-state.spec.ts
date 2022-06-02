@@ -548,7 +548,7 @@ describe('device-state', () => {
 			.stub(updateLock, 'abortIfHUPInProgress')
 			.throws(new UpdatesLockedError(testErrMsg));
 
-		await expect(deviceState.reboot())
+		await expect(deviceState.shutdown({ reboot: true }))
 			.to.eventually.be.rejectedWith(testErrMsg)
 			.and.be.an.instanceOf(UpdatesLockedError);
 		await expect(deviceState.shutdown())

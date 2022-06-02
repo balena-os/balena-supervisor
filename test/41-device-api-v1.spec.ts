@@ -538,7 +538,54 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			shutdownMock.resetHistory();
 		});
 
-		it('should return 423 and reject the reboot if no locks are set', async () => {
+		it('should lock all applications before trying to shutdown', async () => {
+			// Setup 2 applications running
+			const twoContainers = [
+				mockedAPI.mockService({
+					containerId: 'abc123',
+					appId: 1000,
+					releaseId: 55555,
+				}),
+				mockedAPI.mockService({
+					containerId: 'def456',
+					appId: 2000,
+					releaseId: 77777,
+				}),
+			];
+			const twoImages = [
+				mockedAPI.mockImage({
+					appId: 1000,
+				}),
+				mockedAPI.mockImage({
+					appId: 2000,
+				}),
+			];
+			appMock.mockManagers(twoContainers, [], []);
+			appMock.mockImages([], false, twoImages);
+
+			const lockSpy = spy(updateLock, 'lock');
+			await mockedDockerode.testWithData(
+				{ containers: twoContainers, images: twoImages },
+				async () => {
+					const response = await request
+						.post('/v1/shutdown')
+						.set('Accept', 'application/json')
+						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.expect(202);
+
+					expect(lockSpy.callCount).to.equal(1);
+					// Check that lock was passed both application Ids
+					expect(lockSpy.lastCall.args[0]).to.deep.equal([1000, 2000]);
+					expect(response.body).to.have.property('Data').that.is.not.empty;
+					expect(shutdownMock).to.have.been.calledOnce;
+				},
+			);
+
+			shutdownMock.resetHistory();
+			lockSpy.restore();
+		});
+
+		it('should return 423 and reject the reboot if locks are set', async () => {
 			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
 				if (opts.force) {
 					return Bluebird.resolve(fn());
