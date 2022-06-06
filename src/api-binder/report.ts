@@ -2,10 +2,10 @@ import * as url from 'url';
 import * as _ from 'lodash';
 import { delay } from 'bluebird';
 import { CoreOptions } from 'request';
-import { performance } from 'perf_hooks';
 
 import * as constants from '../lib/constants';
 import { withBackoff, OnFailureInfo } from '../lib/backoff';
+import { throttle } from '../lib/throttle';
 import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';
@@ -19,7 +19,6 @@ import * as deviceState from '../device-state';
 import { shallowDiff, prune, empty } from '../lib/json';
 
 let lastReport: DeviceState = {};
-let lastReportTime: number = -Infinity;
 export let stateReportErrors = 0;
 
 type StateReportOpts = {
@@ -64,30 +63,20 @@ async function report({ body, opts }: StateReport) {
 	}
 }
 
-async function reportCurrentState(opts: StateReportOpts) {
+async function reportCurrentState(opts: StateReportOpts): Promise<boolean> {
 	// Wrap the report with fetching of state so report always has the latest state diff
 	const getStateAndReport = async () => {
-		const now = performance.now();
-		// Only try to report if enough time has elapsed since last report
-		if (now - lastReportTime >= constants.maxReportFrequency) {
-			const currentState = await deviceState.getCurrentForReport(lastReport);
-			const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
+		const currentState = await deviceState.getCurrentForReport(lastReport);
+		const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
 
-			if (empty(stateDiff)) {
-				return;
-			}
-
-			await report({ body: stateDiff, opts });
-			lastReportTime = performance.now();
-			lastReport = currentState;
-			log.info('Reported current state to the cloud');
-		} else {
-			// Not enough time has elapsed since last report
-			// Delay report until next allowed time
-			const timeSinceLastReport = now - lastReportTime;
-			await delay(constants.maxReportFrequency - timeSinceLastReport);
-			await getStateAndReport();
+		if (empty(stateDiff)) {
+			return false;
 		}
+
+		await report({ body: stateDiff, opts });
+		lastReport = currentState;
+		log.info('Reported current state to the cloud');
+		return true;
 	};
 
 	// Create a report that will backoff on errors
@@ -97,13 +86,20 @@ async function reportCurrentState(opts: StateReportOpts) {
 		onFailure: handleRetry,
 	});
 
-	// Run in try block to avoid throwing any exceptions
+	// Track if a report is actually sent since nothing
+	// is sent when nothing has changed from our last report
+	let sentReport = false;
 	try {
-		await reportWithBackoff();
+		sentReport = await reportWithBackoff();
 		stateReportErrors = 0;
 	} catch (e) {
+		// The backoff will catch all errors and retry forever
+		// This error must have happened if something really unlikely happens
+		// such as an error in the backoff module
 		log.error(e);
 	}
+
+	return sentReport;
 }
 
 function handleRetry(retryInfo: OnFailureInfo) {
@@ -138,22 +134,15 @@ export async function startReporting() {
 		'appUpdatePollInterval',
 	])) as StateReportOpts;
 
-	let reportPending = false;
-	const doReport = async () => {
-		if (!reportPending) {
-			reportPending = true;
-			await reportCurrentState(reportConfigs);
-			reportPending = false;
-		}
-	};
-
-	// If the state changes, report it
-	deviceState.on('change', doReport);
+	// Throttle reporting only when a report was actually sent
+	const throttledReport = throttle(reportCurrentState, 1000, {
+		throttleOn: (didReport: boolean) => didReport,
+	});
 
 	async function recursivelyReport(delayBy: number) {
 		try {
 			// Try to send current state
-			await doReport();
+			await throttledReport(reportConfigs);
 		} finally {
 			// Wait until we want to report again
 			await delay(delayBy);
@@ -162,7 +151,12 @@ export async function startReporting() {
 		}
 	}
 
-	// Start monitoring for changes that do not trigger deviceState events
+	// If the state changes, report it
+	deviceState.on('change', () => {
+		throttledReport(reportConfigs);
+	});
+
+	// Otherwise, start monitoring for changes that do not trigger deviceState events
 	// Example - device metrics
 	return recursivelyReport(constants.maxReportFrequency);
 }
