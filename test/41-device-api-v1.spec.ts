@@ -31,10 +31,11 @@ import * as targetStateCache from '../src/device-state/target-state-cache';
 import blink = require('../src/lib/blink');
 import constants = require('../src/lib/constants');
 import * as deviceAPI from '../src/device-api/common';
-
 import { UpdatesLockedError } from '../src/lib/errors';
 import { SchemaTypeKey } from '../src/config/schema-type';
 import log from '../src/lib/supervisor-console';
+import * as applicationManager from '../src/compose/application-manager';
+import App from '../src/compose/app';
 
 describe('SupervisorAPI [V1 Endpoints]', () => {
 	let api: SupervisorAPI;
@@ -937,11 +938,23 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			before(() => {
 				configSetStub = stub(config, 'set').callsFake(configSetFakeFn);
 				logWarnStub = stub(log, 'warn');
+				stub(applicationManager, 'getCurrentApps').resolves({
+					'1234567': new App(
+						{
+							appId: 1234567,
+							services: [],
+							volumes: {},
+							networks: {},
+						},
+						false,
+					),
+				});
 			});
 
 			after(() => {
 				configSetStub.restore();
 				logWarnStub.restore();
+				(applicationManager.getCurrentApps as SinonStub).restore();
 			});
 
 			beforeEach(() => {

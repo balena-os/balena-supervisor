@@ -5,6 +5,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import * as config from './config';
+import * as applicationManager from './compose/application-manager';
 import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
 import { ENOENT, InternalInconsistencyError } from './lib/errors';
@@ -217,12 +218,13 @@ export function get(): Bluebird<HostConfig> {
 }
 
 export async function patch(conf: HostConfig, force: boolean): Promise<void> {
-	const appId = await config.get('applicationId');
-	if (!appId) {
+	const apps = await applicationManager.getCurrentApps();
+	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
+	if (!appIds.length) {
 		throw new InternalInconsistencyError('Could not find an appId');
 	}
 
-	return updateLock.lock(appId, { force }, () => {
+	return updateLock.lock(appIds, { force }, () => {
 		const promises: Array<Promise<void>> = [];
 		if (conf != null && conf.network != null) {
 			if (conf.network.proxy != null) {
