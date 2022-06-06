@@ -20,6 +20,7 @@ import { shallowDiff, prune, empty } from '../lib/json';
 
 let lastReport: DeviceState = {};
 let lastReportTime: number = -Infinity;
+let checkForNewerState = false;
 export let stateReportErrors = 0;
 
 type StateReportOpts = {
@@ -70,6 +71,9 @@ async function reportCurrentState(opts: StateReportOpts) {
 		const now = performance.now();
 		// Only try to report if enough time has elapsed since last report
 		if (now - lastReportTime >= constants.maxReportFrequency) {
+			if (checkForNewerState) {
+				checkForNewerState = false;
+			}
 			const currentState = await deviceState.getCurrentForReport(lastReport);
 			const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
 
@@ -139,11 +143,25 @@ export async function startReporting() {
 	])) as StateReportOpts;
 
 	let reportPending = false;
-	const doReport = async () => {
-		if (!reportPending) {
-			reportPending = true;
+	const doReport = async (): Promise<void> => {
+		if (reportPending) {
+			// Defer this report so we can try again once the current one is completed
+			checkForNewerState = true;
+			return;
+		}
+
+		reportPending = true;
+
+		try {
+			// Report changes in the current state
 			await reportCurrentState(reportConfigs);
+		} finally {
 			reportPending = false;
+			// Check if a report was requested while this one was processing
+			if (checkForNewerState) {
+				// Try to report again in case something changed while the last report was running
+				doReport();
+			}
 		}
 	};
 
