@@ -1,4 +1,22 @@
 - commits:
+    - subject: Do not send name as part of the current state
+      hash: 99efd12acd05290b5fc2ae74da3226d150dc86e6
+      body: |
+        This fixes a race condition that could occur with the first current
+        state report, where if the device managed to send the current state
+        report first, then the device name on the cloud would be set to `local`
+        (see #1959).
+      footer:
+        Closes: "#1959"
+        closes: "#1959"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.3
+  title: "'Do not send name as part of the current state'"
+  date: 2022-06-07T19:53:30.522Z
+- commits:
     - subject: Don't use config.get for appId when checking locks in host config PATCH
       hash: be1c01039aea081e5beb01f72ef1c8880a736924
       body: ""
