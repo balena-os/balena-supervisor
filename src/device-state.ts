@@ -481,11 +481,7 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 
 	globalEventBus.getInstance().emit('targetStateChanged', target);
 
-	const { uuid, apiEndpoint } = await config.getMany([
-		'uuid',
-		'apiEndpoint',
-		'name',
-	]);
+	const { uuid, apiEndpoint } = await config.getMany(['uuid', 'apiEndpoint']);
 
 	if (!uuid || !target[uuid]) {
 		throw new Error(
@@ -625,11 +621,7 @@ export async function getCurrentForReport(
 			{} as { [appUuid: string]: AppState },
 		);
 
-	const { name, uuid, localMode } = await config.getMany([
-		'name',
-		'uuid',
-		'localMode',
-	]);
+	const { uuid, localMode } = await config.getMany(['uuid', 'localMode']);
 
 	if (!uuid) {
 		throw new InternalInconsistencyError('No uuid found for local device');
@@ -649,7 +641,6 @@ export async function getCurrentForReport(
 			{
 				...currentVolatile,
 				...systemInfo,
-				name,
 				apps: appsForReport,
 			},
 			(__, key) => omitFromReport.includes(key),
