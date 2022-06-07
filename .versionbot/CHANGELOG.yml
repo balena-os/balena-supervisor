@@ -1,4 +1,18 @@
 - commits:
+    - subject: Don't use config.get for appId when checking locks in host config PATCH
+      hash: be1c01039aea081e5beb01f72ef1c8880a736924
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 14.0.2
+  title: "'Don't use config.get for appId when checking locks in host config PATCH'"
+  date: 2022-06-06T19:18:06.984Z
+- commits:
     - subject: Use locks before shutdown/reboot instead of stopping containers
       hash: aad5a9efc5da5ffcd6915ac6f395e154ee38cbf8
       body: ""
