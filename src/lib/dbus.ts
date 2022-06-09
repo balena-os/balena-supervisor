@@ -1,15 +1,13 @@
-import * as Bluebird from 'bluebird';
-import * as dbus from 'dbus';
+import { getBus, DBusError } from 'dbus';
+import { promisify } from 'util';
 import { TypedError } from 'typed-error';
 
 import log from './supervisor-console';
 
 export class DbusError extends TypedError {}
 
-const bus = dbus.getBus('system');
-const getInterfaceAsync = Bluebird.promisify(bus.getInterface, {
-	context: bus,
-});
+const bus = getBus('system');
+const getInterfaceAsync = promisify(bus.getInterface.bind(bus));
 
 async function getSystemdInterface() {
 	try {
@@ -19,7 +17,7 @@ async function getSystemdInterface() {
 			'org.freedesktop.systemd1.Manager',
 		);
 	} catch (e) {
-		throw new DbusError(e);
+		throw new DbusError(e as DBusError);
 	}
 }
 
@@ -31,7 +29,7 @@ export async function getLoginManagerInterface() {
 			'org.freedesktop.login1.Manager',
 		);
 	} catch (e) {
-		throw new DbusError(e);
+		throw new DbusError(e as DBusError);
 	}
 }
 
@@ -41,7 +39,7 @@ async function startUnit(unitName: string) {
 	try {
 		systemd.StartUnit(unitName, 'fail');
 	} catch (e) {
-		throw new DbusError(e);
+		throw new DbusError(e as DBusError);
 	}
 }
 
@@ -51,7 +49,7 @@ export async function restartService(serviceName: string) {
 	try {
 		systemd.RestartUnit(`${serviceName}.service`, 'fail');
 	} catch (e) {
-		throw new DbusError(e);
+		throw new DbusError(e as DBusError);
 	}
 }
 
@@ -69,7 +67,7 @@ async function stopUnit(unitName: string) {
 	try {
 		systemd.StopUnit(unitName, 'fail');
 	} catch (e) {
-		throw new DbusError(e);
+		throw new DbusError(e as DBusError);
 	}
 }
 
@@ -86,7 +84,7 @@ export async function enableService(serviceName: string) {
 	try {
 		systemd.EnableUnitFiles([`${serviceName}.service`], false, false);
 	} catch (e) {
-		throw new DbusError(e);
+		throw new DbusError(e as DBusError);
 	}
 }
 
@@ -95,7 +93,7 @@ export async function disableService(serviceName: string) {
 	try {
 		systemd.DisableUnitFiles([`${serviceName}.service`], false);
 	} catch (e) {
-		throw new DbusError(e);
+		throw new DbusError(e as DBusError);
 	}
 }
 
