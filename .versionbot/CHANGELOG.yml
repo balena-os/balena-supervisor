@@ -1,4 +1,18 @@
 - commits:
+    - subject: Better document mocked-dbus, add missing dbus interface methods
+      hash: ffa1c734182f49fabc818c95f3a1c231bf4e05f4
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 14.0.4
+  title: "'Better document mocked-dbus, add missing test methods'"
+  date: 2022-06-09T20:18:10.430Z
+- commits:
     - subject: Do not send name as part of the current state
       hash: 99efd12acd05290b5fc2ae74da3226d150dc86e6
       body: |
