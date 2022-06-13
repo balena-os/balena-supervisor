@@ -61,7 +61,8 @@ export class ExtraUEnv extends ConfigBackend {
 				deviceType.endsWith('-nano-emmc') ||
 				deviceType.endsWith('-nano-2gb-devkit') ||
 				deviceType.endsWith('-tx2') ||
-				deviceType.includes('-tx2-nx')) &&
+				deviceType.includes('-tx2-nx') ||
+				/imx8mm?-var-dart/.test(deviceType)) &&
 			(await exists(ExtraUEnv.bootConfigPath))
 		);
 	}
