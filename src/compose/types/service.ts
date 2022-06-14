@@ -328,10 +328,6 @@ export interface DeviceMetadata {
 	supervisorApiHost: string;
 	osVersion: string;
 	hostnameOnHost: string;
-	hostPathExists: {
-		modules: boolean;
-		firmware: boolean;
-	};
 }
 
 export interface DockerDevice {

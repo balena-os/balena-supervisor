@@ -24,7 +24,6 @@ import * as config from '../config';
 import { checkTruthy, checkString } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { ImageInspectInfo } from 'dockerode';
-import { pathExistsOnHost } from '../lib/fs-utils';
 import { getSupervisorMetadata } from '../lib/supervisor-metadata';
 
 export interface AppConstructOpts {
@@ -738,20 +737,11 @@ export class App {
 			},
 		);
 
-		const [
-			opts,
-			supervisorApiHost,
-			hostPathExists,
-			hostnameOnHost,
-		] = await Promise.all([
+		const [opts, supervisorApiHost, hostnameOnHost] = await Promise.all([
 			config.get('extendedEnvOptions'),
 			dockerUtils
 				.getNetworkGateway(constants.supervisorNetworkInterface)
 				.catch(() => '127.0.0.1'),
-			(async () => ({
-				firmware: await pathExistsOnHost('/lib/firmware'),
-				modules: await pathExistsOnHost('/lib/modules'),
-			}))(),
 			(async () =>
 				_.trim(
 					await fs.readFile(
@@ -764,7 +754,6 @@ export class App {
 		const svcOpts = {
 			appName: app.name,
 			supervisorApiHost,
-			hostPathExists,
 			hostnameOnHost,
 			...opts,
 		};

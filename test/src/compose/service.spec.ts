@@ -682,7 +682,7 @@ describe('compose/service', () => {
 				expect(service.config.volumes).to.include.members(['/proc:/proc']);
 			});
 
-			it('should add `/lib/modules` to the container bind mounts when io.balena.features.kernel-modules is used (if the host path exists)', async () => {
+			it('should add `/lib/modules` to the container bind mounts with long syntax when io.balena.features.kernel-modules is used', async () => {
 				const service = await Service.fromComposeObject(
 					{
 						appId: 123456,
@@ -694,41 +694,19 @@ describe('compose/service', () => {
 					},
 					{
 						appName: 'test',
-						hostPathExists: {
-							modules: true,
-						},
 					} as any,
 				);
 
-				expect(service.config.volumes).to.include.members([
-					'/lib/modules:/lib/modules',
-				]);
-			});
-
-			it('should NOT add `/lib/modules` to the container bind mounts when io.balena.features.kernel-modules is used (if the host path does NOT exist)', async () => {
-				const service = await Service.fromComposeObject(
+				expect(service.config.volumes).to.deep.include.members([
 					{
-						appId: 123456,
-						serviceId: 123456,
-						serviceName: 'foobar',
-						labels: {
-							'io.balena.features.kernel-modules': '1',
-						},
+						type: 'bind',
+						source: '/lib/modules',
+						target: '/lib/modules',
 					},
-					{
-						appName: 'test',
-						hostPathExists: {
-							modules: false,
-						},
-					} as any,
-				);
-
-				expect(service.config.volumes).to.not.include.members([
-					'/lib/modules:/lib/modules',
 				]);
 			});
 
-			it('should add `/lib/firmware` to the container bind mounts when io.balena.features.firmware is used (if the host path exists)', async () => {
+			it('should add `/lib/firmware` to the container bind mounts with long syntax when io.balena.features.firmware is used', async () => {
 				const service = await Service.fromComposeObject(
 					{
 						appId: 123456,
@@ -740,37 +718,15 @@ describe('compose/service', () => {
 					},
 					{
 						appName: 'test',
-						hostPathExists: {
-							firmware: true,
-						},
 					} as any,
 				);
 
-				expect(service.config.volumes).to.include.members([
-					'/lib/firmware:/lib/firmware',
-				]);
-			});
-
-			it('should NOT add `/lib/firmware` to the container bind mounts when io.balena.features.firmware is used (if the host path does NOT exist)', async () => {
-				const service = await Service.fromComposeObject(
+				expect(service.config.volumes).to.deep.include.members([
 					{
-						appId: 123456,
-						serviceId: 123456,
-						serviceName: 'foobar',
-						labels: {
-							'io.balena.features.firmware': '1',
-						},
+						type: 'bind',
+						source: '/lib/firmware',
+						target: '/lib/firmware',
 					},
-					{
-						appName: 'test',
-						hostPathExists: {
-							firmware: false,
-						},
-					} as any,
-				);
-
-				expect(service.config.volumes).to.not.include.members([
-					'/lib/firmware:/lib/firmware',
 				]);
 			});
 		});

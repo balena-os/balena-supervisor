@@ -338,13 +338,17 @@ export async function addFeaturesFromLabels(
 		'io.balena.features.dbus': () =>
 			service.config.volumes.push('/run/dbus:/host/run/dbus'),
 		'io.balena.features.kernel-modules': () =>
-			options.hostPathExists.modules
-				? service.config.volumes.push('/lib/modules:/lib/modules')
-				: null,
+			service.config.volumes.push({
+				type: 'bind',
+				source: '/lib/modules',
+				target: '/lib/modules',
+			} as LongBind),
 		'io.balena.features.firmware': () =>
-			options.hostPathExists.firmware
-				? service.config.volumes.push('/lib/firmware:/lib/firmware')
-				: null,
+			service.config.volumes.push({
+				type: 'bind',
+				source: '/lib/firmware',
+				target: '/lib/firmware',
+			} as LongBind),
 		'io.balena.features.balena-socket': () => {
 			service.config.volumes.push({
 				type: 'bind',

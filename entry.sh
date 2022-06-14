@@ -42,6 +42,9 @@ if [ -n "${BALENA_ROOT_CA}" ]; then
 	fi
 fi
 
+# TODO: Remove this symlink and modprobe call when the Supervisor
+# can update itself. At that point, we should run modprobe through
+# the bind mount as we have the kernel-modules docker-compose label.
 # Mount the host kernel module path onto the expected location
 # We need to do this as busybox doesn't support using a custom location
 if [ ! -d /lib/modules ]; then
