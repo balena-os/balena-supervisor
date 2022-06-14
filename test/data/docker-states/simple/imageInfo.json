@@ -112,10 +112,6 @@
 	},
 	"appName": "supervisortest",
 	"supervisorApiHost": "172.17.0.1",
-	"hostPathExists": {
-		"firmware": true,
-		"modules": true
-	},
 	"hostnameOnHost": "7dadabd",
 	"uuid": "7dadabd4edec3067948d5952c2f2f26f",
 	"listenPort": "48484",
