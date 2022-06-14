@@ -1,4 +1,22 @@
 - commits:
+    - subject: Add custom DTB support for Variscite Dart DT family
+      hash: dfb6bcf0e6a5b32c2def588dde1a8849a11c683c
+      body: ""
+      footer:
+        Closes: "#1963"
+        closes: "#1963"
+        Relates-to: https://github.com/balena-io/open-balena-api/issues/1033
+        relates-to: https://github.com/balena-io/open-balena-api/issues/1033
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 14.0.5
+  title: "'Add custom DTB support for Variscite Dart DT family'"
+  date: 2022-06-14T19:29:37.702Z
+- commits:
     - subject: Better document mocked-dbus, add missing dbus interface methods
       hash: ffa1c734182f49fabc818c95f3a1c231bf4e05f4
       body: ""
