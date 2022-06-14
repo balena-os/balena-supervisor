@@ -1,6 +1,5 @@
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
-import * as path from 'path';
 
 import Network from './network';
 import Volume from './volume';
@@ -742,7 +741,7 @@ export class App {
 			opts,
 			supervisorApiHost,
 			hostPathExists,
-			hostnameOnHost,
+			hostname,
 		] = await Promise.all([
 			config.get('extendedEnvOptions'),
 			dockerUtils
@@ -752,20 +751,17 @@ export class App {
 				firmware: await pathExistsOnHost('/lib/firmware'),
 				modules: await pathExistsOnHost('/lib/modules'),
 			}))(),
-			(async () =>
-				_.trim(
-					await fs.readFile(
-						path.join(constants.rootMountPoint, '/etc/hostname'),
-						'utf8',
-					),
-				))(),
+			(
+				(await config.get('hostname')) ??
+				(await fs.readFile('/etc/hostname', 'utf-8'))
+			).trim(),
 		]);
 
 		const svcOpts = {
 			appName: app.name,
 			supervisorApiHost,
 			hostPathExists,
-			hostnameOnHost,
+			hostname,
 			...opts,
 		};
 

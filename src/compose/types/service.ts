@@ -327,7 +327,7 @@ export interface DeviceMetadata {
 	apiSecret: string;
 	supervisorApiHost: string;
 	osVersion: string;
-	hostnameOnHost: string;
+	hostname: string;
 	hostPathExists: {
 		modules: boolean;
 		firmware: boolean;
