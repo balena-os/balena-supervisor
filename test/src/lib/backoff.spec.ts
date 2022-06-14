@@ -2,7 +2,7 @@ import { assert, expect } from 'chai';
 import * as sinon from 'sinon';
 
 import { StatusError } from '../../../src/lib/errors';
-import { withBackoff, OnFailureInfo } from '../../../src/lib/backoff';
+import { withBackoff, OnRetry } from '../../../src/lib/limit';
 
 const DEFAULT_OPTIONS = {
 	maxRetries: 5,
@@ -121,7 +121,7 @@ describe('lib/backoff', async () => {
 			},
 			{
 				minDelay,
-				onFailure: (data: OnFailureInfo) => {
+				onFailure: (data: OnRetry) => {
 					counter++;
 					expect(data).to.deep.equal({
 						failures: counter,
