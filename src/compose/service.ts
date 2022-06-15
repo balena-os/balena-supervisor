@@ -300,7 +300,7 @@ export class Service {
 
 		// Any other special case handling
 		if (config.networkMode === 'host' && !config.hostname) {
-			config.hostname = options.hostnameOnHost;
+			config.hostname = options.hostname;
 		}
 		config.restart = ComposeUtils.createRestartPolicy(config.restart);
 		config.command = ComposeUtils.getCommand(config.command, options.imageInfo);

@@ -116,7 +116,7 @@
 		"firmware": true,
 		"modules": true
 	},
-	"hostnameOnHost": "7dadabd",
+	"hostname": "7dadabd",
 	"uuid": "7dadabd4edec3067948d5952c2f2f26f",
 	"listenPort": "48484",
 	"name": "Office",
