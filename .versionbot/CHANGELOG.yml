@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add missing docs for the containerId param of the journal-logs endpoint
+      hash: ff526c18d85ad4876025692d85e343e7661a7906
+      body: ""
+      footer:
+        Resolves: "#1975"
+        resolves: "#1975"
+        Change-type: patch
+        change-type: patch
+      author: Thodoris Greasidis
+      nested: []
+  version: 14.0.7
+  title: "'Add missing docs for the containerId param of the journal-logs endpoint'"
+  date: 2022-06-22T18:54:09.601Z
+- commits:
     - subject: Read hostname from config.json with container /etc/hostname as backup
       hash: a7a0821a3e23142265904806df5d0a6ecd2ed4b5
       body: >
