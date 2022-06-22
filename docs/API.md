@@ -1273,6 +1273,10 @@ Show the most recent `count` events, equivalent to
 Show journal logs from `unit` only, equivalent to
 `journalctl --unit=<unit>`.
 
+##### containerId
+Show journal logs for the given `containerId` identifier only, equivalent to
+`journalctl -t=<containerId>`.
+
 ##### format
 > **Introduced in supervisor v10.3**
 
