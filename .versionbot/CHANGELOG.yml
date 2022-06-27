@@ -1,4 +1,24 @@
 - commits:
+    - subject: Specify that Supervisor will not restore previous lock status from user
+        containers
+      hash: ca140639c6a2b5f9f5a2e69b5611bb3902b78c18
+      body: >
+        There is no functionality which 1) stores the filesystem lock status
+        when toggling override
+
+        to on, and 2) restore the system to that status when toggling override to off.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 14.0.8
+  title: "'Specify that Supervisor will not restore previous lock status from user
+    containers'"
+  date: 2022-06-27T15:50:08.481Z
+- commits:
     - subject: Add missing docs for the containerId param of the journal-logs endpoint
       hash: ff526c18d85ad4876025692d85e343e7661a7906
       body: ""
