@@ -35,13 +35,15 @@ const argv = yargs
 		alias: 'i',
 		type: 'string',
 		description: 'Specify the name to use for the supervisor image on device',
-		default: 'livepush-supervisor',
+		default: `livepush-supervisor-${packageJson.version}`,
 	})
 	.options('image-tag', {
 		alias: 't',
 		type: 'string',
-		description: 'Specify the tag to use for the supervisor image on device',
-		default: packageJson.version,
+		description:
+			'Specify the tag to use for the supervisor image on device. It will not have any effect on balenaOS >= v2.89.0',
+		default: 'latest',
+		deprecated: true,
 	})
 	.options('nocache', {
 		description: 'Run the intial build without cache',
@@ -59,9 +61,14 @@ const argv = yargs
 		await fs.readFile('Dockerfile.template'),
 	);
 
+	let cleanup = () => Promise.resolve();
+	let sigint = () => {
+		/** ignore empty */
+	};
+
 	try {
 		const docker = device.getDocker(address);
-		const containerId = await init.initDevice({
+		const { containerId, stageImages } = await init.initDevice({
 			address,
 			docker,
 			dockerfile,
@@ -74,14 +81,24 @@ const argv = yargs
 		console.log(`Supervisor container: ${containerId}\n`);
 
 		await setupLogs(docker, containerId);
-		await startLivepush({
+		cleanup = await startLivepush({
 			dockerfile,
 			containerId,
 			docker,
 			noinit: true,
+			stageImages,
+		});
+
+		await new Promise((_, reject) => {
+			sigint = () => reject(new Error('User interrupt (Ctrl+C) received'));
+			process.on('SIGINT', sigint);
 		});
 	} catch (e) {
-		console.error('Error:');
-		console.error(e.message);
+		console.error('Error:', e.message);
+	} finally {
+		console.info('Cleaning up. Please wait ...');
+		await cleanup();
+		process.removeListener('SIGINT', sigint);
+		process.exit(1);
 	}
 })();

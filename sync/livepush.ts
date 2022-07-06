@@ -11,11 +11,12 @@ export async function startLivepush(opts: {
 	containerId: string;
 	docker: Docker;
 	noinit: boolean;
+	stageImages?: string[];
 }) {
 	const livepush = await Livepush.init({
+		stageImages: [],
 		...opts,
 		context: Path.join(__dirname, '..'),
-		stageImages: [],
 	});
 
 	livepush.addListener('commandExecute', ({ command }) => {
@@ -34,8 +35,7 @@ export async function startLivepush(opts: {
 	});
 
 	const livepushExecutor = getExecutor(livepush);
-
-	chokidar
+	const watcher = chokidar
 		.watch('.', {
 			ignored: /((^|[\/\\])\..|(node_modules|sync|test)\/.*)/,
 			ignoreInitial: opts.noinit,
@@ -43,6 +43,11 @@ export async function startLivepush(opts: {
 		.on('add', (path) => livepushExecutor(path))
 		.on('change', (path) => livepushExecutor(path))
 		.on('unlink', (path) => livepushExecutor(undefined, path));
+
+	return async () => {
+		await watcher.close();
+		await livepush.cleanupIntermediateContainers();
+	};
 }
 
 const getExecutor = (livepush: Livepush) => {

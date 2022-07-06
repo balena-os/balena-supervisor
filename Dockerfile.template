@@ -1,70 +1,125 @@
 ARG ARCH=%%BALENA_ARCH%%
-ARG NODE_VERSION=12.16.2
 
-FROM balenalib/$ARCH-alpine-supervisor-base:3.11 as BUILD
+# Used by livepush to support multi arch images in older
+# balenaOS with buggy platform support
+# see https://github.com/balena-os/balena-engine/issues/269
+ARG PREFIX=library
 
-ARG ARCH
-ARG NODE_VERSION
-ARG NODE_ARCHIVE="node-no-intl-v${NODE_VERSION}-linux-alpine-${ARCH}.tar.gz"
-ARG S3_BASE="https://resin-packages.s3.amazonaws.com"
-ARG NODE_LOCATION="${S3_BASE}/node/v${NODE_VERSION}/${NODE_ARCHIVE}"
+###################################################
+# Build the supervisor dependencies
+###################################################
+FROM balenalib/${ARCH}-alpine-node:12-run as build-base
 
-# DO NOT REMOVE THE cross-build-* COMMANDS
-# The following commands are absolutely needed. When we
-# build for ARM architectures, we run this Dockerfile
-# through sed, which uncomments these lines. There were
-# other options for achieving the same setup, but this seems
-# to be the least intrusive. The commands start commented
-# out because the default build for balenaCI is amd64 (and
-# we can't run any sed preprocessing on it there)
-# RUN ["cross-build-start"]
+ARG PREFIX
+# Sanity check to prevent a prefix for a non-official docker image being
+# inserted. Only 'library' and 'arm32v6' are allowed right now
+RUN for allowed in "library" "arm32v6"; do [ "${PREFIX}" = "${allowed}" ] && break; done
 
 WORKDIR /usr/src/app
 
 RUN apk add --no-cache \
 	g++ \
-	git \
 	make \
-	python \
-	curl \
-	binutils \
+	python3 \
 	libgcc \
-	libstdc++ \
 	libuv \
-	sqlite-libs \
 	sqlite-dev \
-	dmidecode \
-	dbus-dev \
-	procmail
-# procmail is installed for the lockfile binary
-
-COPY build-utils/node-sums.txt .
-
-# Install node from balena's prebuilt cache
-RUN curl -SLO "${NODE_LOCATION}" \
-	&& grep "${NODE_ARCHIVE}" node-sums.txt | sha256sum -c - \
-	&& tar -xzf "${NODE_ARCHIVE}" -C /usr/local --strip-components=1 \
-	&& rm -f "${NODE_ARCHIVE}" \
-	&& strip /usr/local/bin/node
+	dbus-dev
 
 COPY package*.json ./
 
+RUN strip /usr/local/bin/node
+
+# Just install dev dependencies first
 RUN npm ci --build-from-source --sqlite=/usr/lib
 
-# We only run these commands when executing through
-# livepush, so they are presented as livepush directives
-#dev-run=apk add --no-cache ip6tables iptables
+###################################################
+# Extra dependencies. This uses alpine 3.11 as the
+# procmail package was removed on 3.12
+###################################################
+FROM ${PREFIX}/alpine:3.11 as extra
+
+RUN apk add --update --no-cache procmail
+
+###################################################
+# Image with the final production dependencies.
+# This image will also be be used for testing
+###################################################
+FROM ${PREFIX}/alpine:3.16 as runtime-base
+
+WORKDIR /usr/src/app
+
+# We just need the node binary in the final image
+COPY --from=build-base /usr/local/bin/node /usr/local/bin/node
+
+# Similarly, from the procmail package we just need the lockfile binary
+COPY --from=extra /usr/bin/lockfile /usr/bin/lockfile
+
+# Runtime dependencies
+RUN apk add --no-cache \
+	ca-certificates \
+	iptables \
+	ip6tables \
+	rsync \
+	dbus \
+	libstdc++ \
+	dmidecode \
+	sqlite-libs
+
+ARG ARCH
+ARG VERSION=master
+ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
+ENV CONFIG_MOUNT_POINT=/boot/config.json \
+	LED_FILE=/dev/null \
+	SUPERVISOR_IMAGE=balena/$ARCH-supervisor \
+	VERSION=$VERSION \
+	DEFAULT_MIXPANEL_TOKEN=$DEFAULT_MIXPANEL_TOKEN
+
+###################################################
+# Use the base image to run the tests as livepush
+###################################################
+FROM runtime-base as test
+
+WORKDIR /usr/src/app
+
+# Copy node install from the build folder
+COPY --from=build-base /usr/local/bin /usr/local/bin
+COPY --from=build-base /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+# Copy build dependencies
+COPY --from=build-base /usr/src/app/package.json ./
+COPY --from=build-base /usr/src/app/node_modules ./node_modules
+
+# Run livepush here
 #dev-copy=entry.sh .
 #dev-cmd-live=LIVEPUSH=1 ./entry.sh
 
+# Copy build files
 COPY build-utils ./build-utils
 COPY webpack.config.js tsconfig.json tsconfig.release.json ./
 COPY src ./src
 COPY test ./test
 COPY typings ./typings
 
-RUN npm run test-nolint \
-	&& npm run build
+# Run the tests
+RUN npm run test-nolint
+
+###################################################
+# Build the production package
+###################################################
+FROM build-base as build-prod
+
+WORKDIR /usr/src/app
+
+# Copy build files
+COPY build-utils ./build-utils
+COPY webpack.config.js tsconfig.json tsconfig.release.json ./
+COPY src ./src
+COPY typings ./typings
+
+# Compile the sources using the dev
+# dependencies
+RUN npm run build
 
 # Run the production install here, to avoid the npm dependency on
 # the later stage
@@ -86,52 +141,21 @@ RUN npm ci --production --no-optional --unsafe-perm --build-from-source --sqlite
 	&& find . -type f -path '*/node_modules/knex/build*' -delete \
 	&& rm -rf node_modules/sqlite3/node.dtps
 
-
-# RUN ["cross-build-end"]
-
-FROM balenalib/$ARCH-alpine-supervisor-base:3.11
-
-# RUN ["cross-build-start"]
-
-RUN apk add --no-cache \
-	ca-certificates \
-	kmod \
-	iptables \
-	ip6tables \
-	rsync \
-	avahi \
-	dbus \
-	libstdc++ \
-	dmidecode \
-	sqlite-libs
+###################################################
+# Build the production image
+###################################################
+FROM runtime-base
 
 WORKDIR /usr/src/app
 
-COPY --from=BUILD /usr/local/bin/node /usr/local/bin/node
-COPY --from=BUILD /usr/bin/lockfile /usr/bin/lockfile
-COPY --from=BUILD /usr/src/app/dist ./dist
-COPY --from=BUILD /usr/src/app/package.json ./
-COPY --from=BUILD /usr/src/app/node_modules ./node_modules
+COPY --from=build-prod /usr/src/app/dist ./dist
+COPY --from=build-prod /usr/src/app/package.json ./
+COPY --from=build-prod /usr/src/app/node_modules ./node_modules
 
 COPY entry.sh .
-
-RUN mkdir -p rootfs-overlay && \
-	(([ ! -d rootfs-overlay/lib64 ] && ln -s /lib rootfs-overlay/lib64) || true)
-
-ARG ARCH
-ARG VERSION=master
-ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
-ENV CONFIG_MOUNT_POINT=/boot/config.json \
-	LED_FILE=/dev/null \
-	SUPERVISOR_IMAGE=balena/$ARCH-supervisor \
-	VERSION=$VERSION \
-	DEFAULT_MIXPANEL_TOKEN=$DEFAULT_MIXPANEL_TOKEN
-COPY avahi-daemon.conf /etc/avahi/avahi-daemon.conf
 
 VOLUME /data
 HEALTHCHECK --interval=5m --start-period=1m --timeout=30s --retries=3 \
 	CMD wget http://127.0.0.1:${LISTEN_PORT:-48484}/v1/healthy -O - -q
-
-# RUN ["cross-build-end"]
 
 CMD ["/usr/src/app/entry.sh"]
