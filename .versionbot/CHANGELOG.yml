@@ -1,4 +1,21 @@
 - commits:
+    - subject: Allow host config patch regardless of running applications
+      hash: 0fc79e87d98e13c2c918ec89e28759447c51af56
+      body: |
+        Host config shouldn't be tied to applications in the first place, but
+        needs to be done so because it uses update locks to determine when it's
+        safe to patch host config, and update locks are tied to apps.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 14.0.9
+  title: "'Allow host config patch regardless of running applications'"
+  date: 2022-07-06T20:41:30.289Z
+- commits:
     - subject: Specify that Supervisor will not restore previous lock status from user
         containers
       hash: ca140639c6a2b5f9f5a2e69b5611bb3902b78c18
