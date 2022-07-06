@@ -8,7 +8,7 @@ import * as config from './config';
 import * as applicationManager from './compose/application-manager';
 import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
-import { ENOENT, InternalInconsistencyError } from './lib/errors';
+import { ENOENT } from './lib/errors';
 import { mkdirp, unlinkAll } from './lib/fs-utils';
 import { writeToBoot } from './lib/host-utils';
 import * as updateLock from './lib/update-lock';
@@ -220,10 +220,9 @@ export function get(): Bluebird<HostConfig> {
 export async function patch(conf: HostConfig, force: boolean): Promise<void> {
 	const apps = await applicationManager.getCurrentApps();
 	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
-	if (!appIds.length) {
-		throw new InternalInconsistencyError('Could not find an appId');
-	}
 
+	// It's possible for appIds to be an empty array, but patch shouldn't fail
+	// as it's not dependent on there being any running user applications.
 	return updateLock.lock(appIds, { force }, () => {
 		const promises: Array<Promise<void>> = [];
 		if (conf != null && conf.network != null) {
