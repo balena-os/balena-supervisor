@@ -1,8 +1,8 @@
-import * as fs from 'fs';
+import { promises as fs, unlinkSync, rmdirSync } from 'fs';
 import * as os from 'os';
 import { dirname } from 'path';
 
-import { exec, unlinkAll } from './fs-utils';
+import { exec } from './fs-utils';
 
 // Equivalent to `drwxrwxrwt`
 const STICKY_WRITE_PERMISSIONS = 0o1777;
@@ -66,7 +66,7 @@ export async function lock(path: string, uid: number = os.userInfo().uid) {
 	 * `chmod` does not fail or throw if the directory already has the proper permissions.
 	 */
 	if (uid !== 0) {
-		await fs.promises.chmod(dirname(path), STICKY_WRITE_PERMISSIONS);
+		await fs.chmod(dirname(path), STICKY_WRITE_PERMISSIONS);
 	}
 
 	/**
@@ -108,11 +108,28 @@ export async function lock(path: string, uid: number = os.userInfo().uid) {
 
 export async function unlock(path: string): Promise<void> {
 	// Removing the lockfile releases the lock
-	await unlinkAll(path);
+	await fs.unlink(path).catch((e) => {
+		// if the error is EPERM, the file is a directory
+		if (e.code === 'EPERM') {
+			return fs.rmdir(path).catch(() => {
+				// if the directory is not empty or something else
+				// happens, ignore
+			});
+		}
+		// If the file does not exist or some other error
+		// happens, then ignore the error
+	});
 	// Remove lockfile's in-memory tracking of a file
 	delete locksTaken[path];
 }
 
 export function unlockSync(path: string) {
-	return fs.unlinkSync(path);
+	try {
+		return unlinkSync(path);
+	} catch (e) {
+		if (e.code === 'EPERM') {
+			return rmdirSync(path);
+		}
+		throw e;
+	}
 }

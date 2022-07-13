@@ -22,7 +22,7 @@ describe('lib/lockfile', () => {
 				},
 				'7654321': {
 					two: opts.createLock
-						? { 'updates.lock': mock.file({ uid: LOCKFILE_UID }) }
+						? { 'updates.lock': mock.directory({ uid: LOCKFILE_UID }) }
 						: {},
 				},
 			},
@@ -127,9 +127,11 @@ describe('lib/lockfile', () => {
 		await checkLockDirFiles(lockPath, { shouldExist: true });
 
 		await lockfile.unlock(lockPath);
+		await lockfile.unlock(lockPath2);
 
 		// Verify lockfile removal
 		await checkLockDirFiles(lockPath, { shouldExist: false });
+		await checkLockDirFiles(lockPath2, { shouldExist: false });
 	});
 
 	it('should not error on async unlock if lockfile does not exist', async () => {
@@ -149,11 +151,15 @@ describe('lib/lockfile', () => {
 		mockDir({ createLock: true });
 
 		lockfile.unlockSync(lockPath);
+		lockfile.unlockSync(lockPath2);
 
 		// Verify lockfile does not exist
-		return checkLockDirFiles(lockPath, { shouldExist: false }).catch((err) => {
-			expect.fail((err as Error)?.message ?? err);
-		});
+		return Promise.all([
+			checkLockDirFiles(lockPath, { shouldExist: false }).catch((err) => {
+				expect.fail((err as Error)?.message ?? err);
+			}),
+			checkLockDirFiles(lockPath2, { shouldExist: false }),
+		]);
 	});
 
 	it('should try to clean up existing locks on process exit', async () => {
