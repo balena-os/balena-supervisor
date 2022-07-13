@@ -1,3 +1,0 @@
-[submodule "tools/dind/balenaos-in-container"]
-	path = tools/dind/balenaos-in-container
-	url = https://github.com/balena-os/balenaos-in-container.git

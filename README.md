@@ -74,7 +74,8 @@ These steps are detailed below.
 Example:
 
 ```bash
-$ npm run sync -- d19baeb.local
+# Replace amd64 with your device architecture
+$ npm run sync -- d19baeb.local -a amd64
 
 > balena-supervisor@10.11.3 sync /home/cameron/Balena/modules/balena-supervisor
 > ts-node --project tsconfig.json sync/sync.ts "d19baeb.local"
@@ -83,7 +84,6 @@ Step 1/23 : ARG ARCH=amd64
 Step 2/23 : ARG NODE_VERSION=10.19.0
 Step 3/23 : FROM balenalib/$ARCH-alpine-supervisor-base:3.11 as BUILD
 ...
-
 ```
 
 > Note: For .local resolution to work you must have installed
@@ -106,135 +106,73 @@ restarted, or let nodemon handle the changes.
 This process will allow you to run a development instance of the supervisor on your local computer. It is not recommended for production scenarios, but allows someone developing on the supervisor to test changes quickly.
 The supervisor is run inside a balenaOS instance running in a container, so effectively it's a Docker-in-Docker instance (or more precisely, [balenaEngine](https://github.com/resin-os/balena-engine)-in-Docker).
 
-#### Set up `config.json`
-
-To configure the supervisor, you'll need a `tools/dind/config.json` file. There's two options on how to get this file:
-
-- Log in to the [balenaCloud dashboard](https://dashboard.balena-cloud.com), create or select a fleet, click "Add device" and on the Advanced section select "Download configuration file only". Make sure you use an x86 or amd64 device type for your fleet, for example Intel NUC.
-- Install the balena CLI with `npm install -g balena-cli`, then login with `balena login` and finally run `balena config generate --fleet <appName> -o config.json` (choose the default settings whenever prompted).
-
-The `config.json` file should look something like this:
-
-(Please note we've added comments to the JSON for better explanation - the actual file should be valid json _without_ such comments)
-
-```
-{
-	"applicationId": "2167", /* Id of the app this supervisor will run */
-	"apiKey": "supersecretapikey", /* The API key to provision the device on the balena API */
-	"deviceType": "intel-nuc", /* The device type corresponding to the test fleet */
-	"apiEndpoint": "https://api.balena-cloud.com", /* Endpoint for the balena API */
-	"deltaEndpoint": "https://delta.balena-cloud.com", /* Endpoint for the delta server to download Docker binary diffs */
-	"listenPort": 48484, /* Listen port for the supervisor API */
-	"mixpanelToken": "aaaaaaaaaaaaaaaaaaaaaaaaaa", /* Mixpanel token to report events */
-}
-```
-
-Additionally, the `uuid`, `registered_at` and `deviceId` fields will be added by the supervisor upon registration with the balena API. Other fields may be present (the format has evolved over time and will likely continue to do so) but they are not used by the supervisor.
-
-#### Start the supervisor instance
-
-Ensure your kernel supports aufs (in Ubuntu, install `linux-image-extra-$(uname -r)`) and the `aufs` module is loaded (if necessary, run `sudo modprobe aufs`).
+To run the supervisor in a balenaOS-in-container instance, first follow the installation instructions on the [balenaOS-in-container repository](https://github.com/balena-os/balenaos-in-container/). Make sure
+you have the image configured in [development mode](https://www.balena.io/docs/reference/OS/overview/#development-vs-production-mode). After the image starts you should be able to use the [sync](#Sync) method described above for running a livepush Supervisor on the docker container.
 
 ```bash
-./dindctl run --image balena/amd64-supervisor:master
+# Replace d19baeb.local with the container address.
+$ npm run sync -- d19baeb.local -a amd64
+
+> balena-supervisor@10.11.3 sync /home/cameron/Balena/modules/balena-supervisor
+> ts-node --project tsconfig.json sync/sync.ts "d19baeb.local"
 ```
-
-This will setup a Docker-in-Docker instance with an image that runs the supervisor image. You can replace `:master` for a specific tag (see the [tags in Dockerhub](https://hub.docker.com/r/balena/amd64-supervisor/tags/)) to run
-a supervisor from a branch or specific version. The script will pull the image if it is not already available in your
-local Docker instance.
-
-If you want to develop and test your changes, you can run:
-
-```bash
-./dindctl run --image balena/amd64-supervisor:master --mount-dist
-```
-
-Note: Using `--mount-dist` requires a Node.js 6.x installed on your computer.
-
-This will mount the ./dist folder into the supervisor container and build the code before starting the instance, so that any changes you make can be added to the running supervisor with:
-
-```bash
-./dindctl refresh
-```
-
-#### Testing with preloaded apps
-
-To test preloaded apps, run `balena preload` (see the [balena CLI docs](https://docs.balena.io/tools/cli/#preload-60-image-62-) on an OS image for the app you are testing with. Then copy the `apps.json` file from the `resin-data` partition into `tools/dind/apps.json`.
-
-This file has a format equivalent to the `local` part of the target state endpoint on the balena API.
-
-Make sure the `config.json` file doesn't have uuid, registered_at or deviceId populated from a previous run.
-
-Then run the supervisor like this:
-
-```bash
-./dindctl run --image balena/amd64-supervisor:master --preload
-```
-
-This will make the Docker-in-Docker instance pull the image specified in `apps.json` before running the supervisor, simulating a preloaded balenaOS image.
-
-#### View the supervisor's logs
-
-```bash
-./dindctl logs
-```
-
-This will show the output of `journalctl` inside the Docker-in-Docker container. You can pass
-additional options, for instance, to see the logs from the supervisor service:
-
-```bash
-./dindctl logs -fn 100 -u balena-supervisor
-```
-
-#### Stop the supervisor
-
-```bash
-./dindctl stop
-```
-
-This will stop the container and remove it, also removing
-its volumes.
 
 ## Developing using a production image or device
 
 A production balena image does not have an open docker
-socket, required for livepush to work. In this situation,
-the `tools/sync.js` script can be used. Note that this
-process is no longer actively developed, so your mileage may
-vary.
+socket, required for livepush to work. In this situation, [balena tunnel](https://www.balena.io/docs/reference/balena-cli/#tunnel-deviceorfleet)
+can be used to tunnel the necessary ports to the local development machine.
 
-Bug reports and pull requests are still accepted for changes
-to `sync.js`, but the balenaSupervisor team will focus on
-`npm run sync` in the future.
+For a balena device on a different network:
+
+```bash
+# Open tunnel using the device uuid
+balena tunnel <uuid> -p 22222
+# Tunnel device ports to the local machine
+ssh -ACN -p 22222 \
+-L 2375:/var/run/balena-engine.sock \
+-L 48484:127.0.0.1:48484 \
+root@localhost
+# On another terminal
+npm run sync -- 127.0.0.1 -a amd64
+```
+
+For a balena device on the local network, the `balena tunnel` step is not necessary.
+
+```bash
+# Tunnel device ports to the local machine
+# replace d19baeb.local below with the local network address
+# of the balena device
+ssh -ACN -p 22222 \
+-L 2375:/var/run/balena-engine.sock \
+-L 48484:127.0.0.1:48484 \
+-L 22222:127.0.0.1:22222 \
+root@d19baeb.local
+# On another terminal
+npm run sync -- 127.0.0.1 -a amd64
+```
 
 ## Building
 
-### Docker images
+The supervisor is built automatically by the CI system, but a docker image can be also be built locally using the [balena CLI](https://www.balena.io/docs/reference/balena-cli/#build-source).
 
-To build a docker image for amd64 targets, it's as simple
-as:
+To build a docker image for amd64 targets, it's as simple as:
 
 ```bash
-docker build . -t my-supervisor
+balena build -d genericx86-64-ext -A amd64
 ```
 
-For other architectures, one must use the script
-`automation/build.sh`. This is because of emulation specific
-changes we have made to our base images to allow
-cross-compilation.
-
-For example, to build for the raspberry pi 3:
-
-```sh
-ARCH=armv7hf automation/build.sh
-```
-
-This will produce an image `balena/armv7hf-supervisor:<git branch name>`.
-To avoid using the branch name, you can set a `TAG` variable
-in your shell, before using the build script.
+For other architectures, the argument to `-A` must be replaced with the proper architecture and the correct device type must be
+passed using `-d`.
 
 > Available architectures: `amd64`, `i386`, `aarch64`,
 > `armv7hf` and `rpi`
+
+For instance to build for raspberrypi4:
+
+```bash
+balena build -d raspberrypi4-64 -A aarch64
+```
 
 ## Testing
 
@@ -256,11 +194,11 @@ which ensures that the environment is exactly the same.
 You can run specific tests quickly with the `test:fast` script by matching with test suites (describe) or test cases (it) using a string or regexp:
 
 ```sh
-npm run test:fast -- --grep spawnJournalctl
+npm run test:fast -- -g spawnJournalctl
 
-npm run test:fast -- --grep "detect a V2 delta"
+npm run test:fast -- -g "detect a V2 delta"
 
-npm run test:fast -- --grep (GET|POST|PUT|DELETE)
+npm run test:fast -- -g (GET|POST|PUT|DELETE)
 ```
 
 The --grep option, when specified, will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
@@ -274,10 +212,13 @@ node -v       # >= 12.16.2
 npm -v        # >= 6.14.4
 git --version # >= 2.13.0
 ```
+
 Also, ensure you're installing dependencies with `npm ci` as this will perform a clean install and guarantee the module versions specified are downloaded rather then installed which might attempt to upgrade!
 
 ### DBus
+
 When developing on macOS you may need to install DBus on the development host.
+
 1. `brew install dbus`
 2. `npm ci`
 
