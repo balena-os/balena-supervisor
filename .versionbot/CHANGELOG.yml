@@ -1,4 +1,34 @@
 - commits:
+    - subject: Remove legacy build methods
+      hash: 515b6297a089c13c80a751a303f7311b80ed15f1
+      body: |
+        Removes dindctl and `tools/sync.js` in favor of balenaos-in-container
+        and SSH tunneling respectively.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Allow directories to be used as lockfiles
+      hash: 861e902d7f460e9ed0320ff2f808d23ec53e4e30
+      body: >
+        Some libraries, like
+        [proper-lockfile](https://www.npmjs.com/package/proper-lockfile)
+
+        use directories instead of files for locking. This PR allows the supervisor to be able to
+
+        work with those types of locks when lock override is requested.
+      footer:
+        Closes: "#1978"
+        closes: "#1978"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.10
+  title: "'Remove legacy build methods'"
+  date: 2022-07-13T20:44:45.828Z
+- commits:
     - subject: Allow host config patch regardless of running applications
       hash: 0fc79e87d98e13c2c918ec89e28759447c51af56
       body: |
