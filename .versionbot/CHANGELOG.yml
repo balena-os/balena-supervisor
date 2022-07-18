@@ -1,4 +1,50 @@
 - commits:
+    - subject: Refactor supervisor Dockerfile to remove custom dependencies
+      hash: 1722286a870d53acab9e5e8cfa372e07112f89e8
+      body: >
+        Restructure the supervisor image to remove the dependency on the custom
+        `alpine-supervisor-base`
+
+        image and the custom node build. The dockerfile is now a multi-stage
+
+        build that splits the process into two build stages and two runtime
+
+        stages.
+
+
+        Here is the full list of changes
+
+
+        - The node binary is now copied from  `balenalib/${ARCH}-alpine-node:12-run`, the node binary
+
+        now supports running with a debugger.
+
+        - The runtime image now inherits from the official `alpine:3.16` image
+
+        - Tests are ran within the runtime image configuration instead of the
+          build image
+        - Livepush is ran within the runtime image context
+
+        - Unnecessary packages have been removed
+
+        - Removed avahi-daemon.conf as that service is not being used
+
+        - Fix livepush to work with a multi-stage image. This also deprecates the `image-tag` argument to npm run sync as
+
+        `SUPERVISOR_TAG` is no longer used by new OSs
+
+        - Fix livepush build on old rpi devices. Allows passing a 'PREFIX'
+          argument to let the builder pull images directly from docker hub arch
+          repositories. Relates to https://github.com/balena-os/balena-engine/issues/269
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.11
+  title: "'Refactor supervisor Dockerfile to remove custom dependencies'"
+  date: 2022-07-18T17:29:46.661Z
+- commits:
     - subject: Remove legacy build methods
       hash: 515b6297a089c13c80a751a303f7311b80ed15f1
       body: |
