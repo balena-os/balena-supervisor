@@ -20,6 +20,12 @@ import { shallowDiff, prune, empty } from '../lib/json';
 
 let lastReport: DeviceState = {};
 let lastReportTime: number = -Infinity;
+
+// TODO: This counter is read by the healthcheck to see if the
+// supervisor is having issues to connect. We have removed the
+// lines of code to increase the counter on network error as
+// we suspect that is really making things worst. This will
+// most likely get removed in the future.
 export let stateReportErrors = 0;
 
 type StateReportOpts = {
@@ -119,10 +125,6 @@ function handleRetry(retryInfo: OnFailureInfo) {
 		eventTracker.track('Device state report failure', {
 			error: retryInfo.error?.message ?? retryInfo.error,
 		});
-
-		// Increase the counter so the healthcheck gets triggered
-		// if too many connectivity errors occur
-		stateReportErrors++;
 	}
 	log.info(
 		`Retrying current state report in ${retryInfo.delay / 1000} seconds`,
