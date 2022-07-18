@@ -5,7 +5,7 @@ import { Builder } from 'resin-docker-build';
 
 import { promises as fs } from 'fs';
 import * as Path from 'path';
-import { Duplex, Readable } from 'stream';
+import { Duplex, Readable, PassThrough, Stream } from 'stream';
 import * as tar from 'tar-stream';
 
 import { exec } from '../src/lib/fs-utils';
@@ -68,26 +68,30 @@ export async function getCacheFrom(docker: Docker): Promise<string[]> {
 	}
 }
 
-// perform the build and return the image id
 export async function performBuild(
 	docker: Docker,
 	dockerfile: Dockerfile,
 	dockerOpts: { [key: string]: any },
-): Promise<void> {
+): Promise<string> {
 	const builder = Builder.fromDockerode(docker);
 
 	// tar the directory, but replace the dockerfile with the
 	// livepush generated one
 	const tarStream = await tarDirectory(Path.join(__dirname, '..'), dockerfile);
+	const bufStream = new PassThrough();
 
 	return new Promise((resolve, reject) => {
+		const chunks = [] as Buffer[];
+		bufStream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
 		builder.createBuildStream(dockerOpts, {
 			buildSuccess: () => {
-				resolve();
+				// Return the build logs
+				resolve(Buffer.concat(chunks).toString('utf8'));
 			},
 			buildFailure: reject,
 			buildStream: (stream: Duplex) => {
 				stream.pipe(process.stdout);
+				stream.pipe(bufStream);
 				tarStream.pipe(stream);
 			},
 		});
@@ -188,5 +192,22 @@ LED_FILE=/dev/null
 	return runSshCommand(
 		address,
 		`echo '${fileStr}' > /tmp/update-supervisor.conf`,
+	);
+}
+
+export async function readBuildCache(address: string): Promise<string[]> {
+	const cache = await runSshCommand(
+		address,
+		`cat /tmp/livepush-cache.json || true`,
+	);
+	return JSON.parse(cache || '[]');
+}
+
+export async function writeBuildCache(address: string, stageImages: string[]) {
+	// Convert the list to JSON with escaped quotes
+	const contents = JSON.stringify(stageImages).replace(/["]/g, '\\"');
+	return runSshCommand(
+		address,
+		`echo '${contents}' > /tmp/livepush-cache.json`,
 	);
 }
