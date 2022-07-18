@@ -1,4 +1,23 @@
 - commits:
+    - subject: Disable healthchecks failing on report errors
+      hash: 0c4e6ce4217fa17bd345483f61b27c1073327fef
+      body: |
+        State report errors contribute to the supervisor failing healthchecks
+        and being restarted by the engine. There is not evidence of this
+        improving the connectivity situation and it is likely to make things
+        worst for the API as the first report is much more expensive than
+        subsequent partial reports.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#1986"
+        closes: "#1986"
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.12
+  title: "'  Disable healthchecks failing on report errors'"
+  date: 2022-07-18T20:28:38.790Z
+- commits:
     - subject: Refactor supervisor Dockerfile to remove custom dependencies
       hash: 1722286a870d53acab9e5e8cfa372e07112f89e8
       body: >
