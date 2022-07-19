@@ -2,7 +2,6 @@ import * as apiBinder from './api-binder';
 import * as db from './db';
 import * as config from './config';
 import * as deviceState from './device-state';
-import * as eventTracker from './event-tracker';
 import { intialiseContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/legacy';
 import * as osRelease from './lib/os-release';
@@ -36,7 +35,6 @@ export class Supervisor {
 
 		await db.initialized();
 		await config.initialized();
-		await eventTracker.initialized();
 		await avahi.initialized();
 		log.debug('Starting logging infrastructure');
 		await logger.initialized();
