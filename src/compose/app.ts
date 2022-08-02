@@ -361,6 +361,18 @@ export class App {
 		};
 
 		/**
+		 * Checks if Supervisor should keep the state loop alive while waiting on a service to stop
+		 * @param serviceCurrent
+		 * @param serviceTarget
+		 */
+		const shouldWaitForStop = (serviceCurrent: Service) => {
+			return (
+				serviceCurrent.config.running === true &&
+				serviceCurrent.status === 'Stopping'
+			);
+		};
+
+		/**
 		 * Filter all the services which should be updated due to run state change, or config mismatch.
 		 */
 		const toBeUpdated = maybeUpdate
@@ -372,7 +384,8 @@ export class App {
 				({ current: c, target: t }) =>
 					!isEqualExceptForRunningState(c, t) ||
 					shouldBeStarted(c, t) ||
-					shouldBeStopped(c, t),
+					shouldBeStopped(c, t) ||
+					shouldWaitForStop(c),
 			);
 
 		return {
