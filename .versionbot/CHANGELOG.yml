@@ -1,4 +1,26 @@
 - commits:
+    - subject: Wait for Stopping services to stop before target apply success
+      hash: 12b67742c8091280c2e74e97a7c7392021db542f
+      body: >
+        This mitigates an edge case bug introduced in v13.1.3 where services
+        that
+
+        are slow to exit may get stuck in a state of Downloaded if a service var is
+
+        changed then reverted rapidly. More detailed description in linked issue.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#1991"
+        closes: "#1991"
+        Signed-off-by: Christina Wang <christina@balena.io>
+        signed-off-by: Christina Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 14.0.13
+  title: "'Wait for Stopping services to stop before target apply success'"
+  date: 2022-08-02T21:43:15.897Z
+- commits:
     - subject: Disable healthchecks failing on report errors
       hash: 0c4e6ce4217fa17bd345483f61b27c1073327fef
       body: |
