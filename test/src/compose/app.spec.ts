@@ -657,6 +657,23 @@ describe('compose/app', () => {
 			expectNoStep('kill', steps);
 		});
 
+		it('should emit a noop while waiting on a stopping service', async () => {
+			const current = createApp({
+				services: [
+					await createService(
+						{ serviceName: 'main', running: true },
+						{ state: { status: 'Stopping' } },
+					),
+				],
+			});
+			const target = createApp({
+				services: [await createService({ serviceName: 'main', running: true })],
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			expectSteps('noop', steps);
+		});
+
 		it('should remove a dead container that is still referenced in the target state', async () => {
 			const current = createApp({
 				services: [
