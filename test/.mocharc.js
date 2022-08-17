@@ -5,6 +5,7 @@ module.exports = {
 	require: [
 		// Files to execute before running suites
 		'ts-node/register/transpile-only',
+		'tsconfig-paths/register',
 		'test/config/fixtures.ts',
 	],
 	spec: ['test/**/*.spec.ts'],

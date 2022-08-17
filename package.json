@@ -119,6 +119,7 @@
 		"tmp": "^0.1.0",
 		"ts-loader": "^7.0.5",
 		"ts-node": "^8.10.2",
+		"tsconfig-paths": "^4.1.0",
 		"typed-error": "^3.2.1",
 		"typescript": "^4.2.4",
 		"webpack": "^4.44.1",
