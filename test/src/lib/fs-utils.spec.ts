@@ -4,8 +4,8 @@ import { promises as fs } from 'fs';
 import { spy, SinonSpy } from 'sinon';
 import mock = require('mock-fs');
 
-import * as fsUtils from '../../../src/lib/fs-utils';
-import { rootMountPoint } from '../../../src/lib/constants';
+import * as fsUtils from '~/lib/fs-utils';
+import { rootMountPoint } from '~/lib/constants';
 
 describe('lib/fs-utils', () => {
 	const testFileName1 = 'file.1';

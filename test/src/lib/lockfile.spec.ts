@@ -4,9 +4,9 @@ import { stub, SinonStub } from 'sinon';
 import { promises as fs } from 'fs';
 import mock = require('mock-fs');
 
-import * as lockfile from '../../../src/lib/lockfile';
-import * as fsUtils from '../../../src/lib/fs-utils';
-import { BASE_LOCK_DIR, LOCKFILE_UID } from '../../../src/lib/update-lock';
+import * as lockfile from '~/lib/lockfile';
+import * as fsUtils from '~/lib/fs-utils';
+import { BASE_LOCK_DIR, LOCKFILE_UID } from '~/lib/update-lock';
 
 describe('lib/lockfile', () => {
 	const lockPath = `${BASE_LOCK_DIR}/1234567/one/updates.lock`;

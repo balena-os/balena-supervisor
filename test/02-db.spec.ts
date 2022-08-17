@@ -2,9 +2,9 @@ import * as Bluebird from 'bluebird';
 import * as Knex from 'knex';
 
 import { expect } from 'chai';
-import prepare = require('./lib/prepare');
-import * as constants from '../src/lib/constants';
-import { exists } from '../src/lib/fs-utils';
+import prepare = require('~/test-lib/prepare');
+import * as constants from '~/lib/constants';
+import { exists } from '~/lib/fs-utils';
 
 async function createOldDatabase(path: string) {
 	const knex = Knex({
@@ -49,16 +49,16 @@ describe('Database Migrations', () => {
 	after(() => {
 		// @ts-ignore
 		constants.databasePath = process.env.DATABASE_PATH;
-		delete require.cache[require.resolve('../src/db')];
+		delete require.cache[require.resolve('~/src/db')];
 	});
 
 	it('creates a database at the path passed on creation', async () => {
 		const databasePath = process.env.DATABASE_PATH_2!;
 		// @ts-ignore
 		constants.databasePath = databasePath;
-		delete require.cache[require.resolve('../src/db')];
+		delete require.cache[require.resolve('~/src/db')];
 
-		const testDb = await import('../src/db');
+		const testDb = await import('~/src/db');
 		await testDb.initialized;
 		expect(await exists(databasePath)).to.be.true;
 	});
@@ -69,8 +69,8 @@ describe('Database Migrations', () => {
 		const knexForDB = await createOldDatabase(databasePath);
 		// @ts-ignore
 		constants.databasePath = databasePath;
-		delete require.cache[require.resolve('../src/db')];
-		const testDb = await import('../src/db');
+		delete require.cache[require.resolve('~/src/db')];
+		const testDb = await import('~/src/db');
 		await testDb.initialized;
 		await Bluebird.all([
 			expect(knexForDB.schema.hasColumn('app', 'appId')).to.eventually.be.true,
@@ -97,11 +97,11 @@ describe('Database Migrations', () => {
 });
 
 describe('Database', () => {
-	let db: typeof import('../src/db');
+	let db: typeof import('~/src/db');
 
 	before(async () => {
 		await prepare();
-		db = await import('../src/db');
+		db = await import('~/src/db');
 	});
 	it('initializes correctly, running the migrations', () => {
 		return expect(db.initialized).to.be.fulfilled;

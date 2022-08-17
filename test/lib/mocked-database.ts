@@ -2,8 +2,8 @@ import * as _ from 'lodash';
 import { SinonStub, stub } from 'sinon';
 import { QueryBuilder } from 'knex';
 
-import * as db from '../../src/db';
-import { Image } from '../../src/compose/images';
+import * as db from '~/src/db';
+import { Image } from '~/src/compose/images';
 
 let modelStub: SinonStub | null = null;
 // MOCKED MODELS

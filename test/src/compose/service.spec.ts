@@ -2,31 +2,31 @@ import * as _ from 'lodash';
 import * as sinon from 'sinon';
 
 import { expect } from 'chai';
-import { createContainer } from '../../lib/mockerode';
+import { createContainer } from '~/test-lib/mockerode';
 
-import Service from '../../../src/compose/service';
-import Volume from '../../../src/compose/volume';
-import * as ServiceT from '../../../src/compose/types/service';
-import * as constants from '../../../src/lib/constants';
-import * as apiKeys from '../../../src/lib/api-keys';
+import Service from '~/src/compose/service';
+import Volume from '~/src/compose/volume';
+import * as ServiceT from '~/src/compose/types/service';
+import * as constants from '~/lib/constants';
+import * as apiKeys from '~/lib/api-keys';
 
-import log from '../../../src/lib/supervisor-console';
+import log from '~/lib/supervisor-console';
 
 const configs = {
 	simple: {
-		compose: require('../../data/docker-states/simple/compose.json'),
-		imageInfo: require('../../data/docker-states/simple/imageInfo.json'),
-		inspect: require('../../data/docker-states/simple/inspect.json'),
+		compose: require('~/test-data/docker-states/simple/compose.json'),
+		imageInfo: require('~/test-data/docker-states/simple/imageInfo.json'),
+		inspect: require('~/test-data/docker-states/simple/inspect.json'),
 	},
 	entrypoint: {
-		compose: require('../../data/docker-states/entrypoint/compose.json'),
-		imageInfo: require('../../data/docker-states/entrypoint/imageInfo.json'),
-		inspect: require('../../data/docker-states/entrypoint/inspect.json'),
+		compose: require('~/test-data/docker-states/entrypoint/compose.json'),
+		imageInfo: require('~/test-data/docker-states/entrypoint/imageInfo.json'),
+		inspect: require('~/test-data/docker-states/entrypoint/inspect.json'),
 	},
 	networkModeService: {
-		compose: require('../../data/docker-states/network-mode-service/compose.json'),
-		imageInfo: require('../../data/docker-states/network-mode-service/imageInfo.json'),
-		inspect: require('../../data/docker-states/network-mode-service/inspect.json'),
+		compose: require('~/test-data/docker-states/network-mode-service/compose.json'),
+		imageInfo: require('~/test-data/docker-states/network-mode-service/imageInfo.json'),
+		inspect: require('~/test-data/docker-states/network-mode-service/inspect.json'),
 	},
 };
 

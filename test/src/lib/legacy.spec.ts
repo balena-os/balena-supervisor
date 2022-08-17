@@ -3,10 +3,10 @@ import { isRight } from 'fp-ts/lib/Either';
 import * as sinon from 'sinon';
 import * as nock from 'nock';
 
-import { TargetState } from '../../../src/types';
-import * as config from '../../../src/config';
-import * as legacy from '../../../src/lib/legacy';
-import log from '../../../src/lib/supervisor-console';
+import { TargetState } from '~/src/types';
+import * as config from '~/src/config';
+import * as legacy from '~/lib/legacy';
+import log from '~/lib/supervisor-console';
 
 describe('lib/legacy', () => {
 	before(async () => {

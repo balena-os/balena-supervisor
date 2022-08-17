@@ -3,8 +3,8 @@ import { promises as fs } from 'fs';
 import { resolve } from 'path';
 import { expect } from 'chai';
 
-import Log from '../src/lib/supervisor-console';
-import { Odmdata } from '../src/config/backends/odmdata';
+import Log from '~/lib/supervisor-console';
+import { Odmdata } from '~/src/config/backends/odmdata';
 
 describe('ODMDATA Configuration', () => {
 	const backend = new Odmdata();
@@ -12,7 +12,7 @@ describe('ODMDATA Configuration', () => {
 	let logErrorStub: SinonStub;
 	// @ts-ignore accessing private vluae
 	const previousConfigPath = Odmdata.bootConfigPath;
-	const testConfigPath = resolve(__dirname, 'data/boot0.img');
+	const testConfigPath = resolve(process.cwd(), 'test/data/boot0.img');
 
 	before(() => {
 		// @ts-ignore setting value of private variable

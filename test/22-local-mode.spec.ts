@@ -2,13 +2,13 @@ import { expect } from 'chai';
 import * as Docker from 'dockerode';
 import * as sinon from 'sinon';
 
-import * as db from '../src/db';
-import { docker } from '../src/lib/docker-utils';
+import * as db from '~/src/db';
+import { docker } from '~/lib/docker-utils';
 import LocalModeManager, {
 	EngineSnapshot,
 	EngineSnapshotRecord,
-} from '../src/local-mode';
-import ShortStackError from './lib/errors';
+} from '~/src/local-mode';
+import ShortStackError from '~/test-lib/errors';
 
 describe('LocalModeManager', () => {
 	let localMode: LocalModeManager;

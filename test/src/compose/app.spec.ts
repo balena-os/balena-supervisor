@@ -1,16 +1,16 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import App from '../../../src/compose/app';
+import App from '~/src/compose/app';
 import {
 	CompositionStep,
 	CompositionStepAction,
-} from '../../../src/compose/composition-steps';
-import { Image } from '../../../src/compose/images';
-import Network from '../../../src/compose/network';
-import Service from '../../../src/compose/service';
-import { ServiceComposeConfig } from '../../../src/compose/types/service';
-import Volume from '../../../src/compose/volume';
-import log from '../../../src/lib/supervisor-console';
+} from '~/src/compose/composition-steps';
+import { Image } from '~/src/compose/images';
+import Network from '~/src/compose/network';
+import Service from '~/src/compose/service';
+import { ServiceComposeConfig } from '~/src/compose/types/service';
+import Volume from '~/src/compose/volume';
+import log from '~/lib/supervisor-console';
 
 const defaultContext = {
 	localMode: false,

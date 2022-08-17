@@ -5,10 +5,10 @@ import {
 	createVolume,
 	createContainer,
 	withMockerode,
-} from '../../lib/mockerode';
-import * as volumeManager from '../../../src/compose/volume-manager';
-import log from '../../../src/lib/supervisor-console';
-import Volume from '../../../src/compose/volume';
+} from '~/test-lib/mockerode';
+import * as volumeManager from '~/src/compose/volume-manager';
+import log from '~/lib/supervisor-console';
+import Volume from '~/src/compose/volume';
 
 describe('compose/volume-manager', () => {
 	describe('Retrieving volumes from the engine', () => {

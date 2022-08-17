@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { stub } from 'sinon';
 
-import * as dockerUtils from '../src/lib/docker-utils';
+import * as dockerUtils from '~/lib/docker-utils';
 
 describe('Deltas', () => {
 	it('should correctly detect a V2 delta', async () => {

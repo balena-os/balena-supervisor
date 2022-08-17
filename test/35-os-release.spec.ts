@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 
-import * as osRelease from '../src/lib/os-release';
+import * as osRelease from '~/lib/os-release';
 
 const OS_RELEASE_PATH = 'test/data/etc/os-release-tx2';
 

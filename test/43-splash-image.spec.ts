@@ -2,9 +2,9 @@ import { promises as fs } from 'fs';
 import { SinonStub, stub } from 'sinon';
 
 import { expect } from 'chai';
-import * as fsUtils from '../src/lib/fs-utils';
-import { SplashImage } from '../src/config/backends/splash-image';
-import log from '../src/lib/supervisor-console';
+import * as fsUtils from '~/lib/fs-utils';
+import { SplashImage } from '~/src/config/backends/splash-image';
+import log from '~/lib/supervisor-console';
 
 describe('Splash image configuration', () => {
 	const backend = new SplashImage();

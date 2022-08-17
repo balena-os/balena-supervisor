@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
-import * as commitStore from '../src/compose/commit';
-import * as db from '../src/db';
+import * as commitStore from '~/src/compose/commit';
+import * as db from '~/src/db';
 
 describe('compose/commit', () => {
 	before(async () => await db.initialized);

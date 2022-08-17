@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
-import Volume from '../../../src/compose/volume';
-import * as logTypes from '../../../src/lib/log-types';
-import * as logger from '../../../src/logger';
+import Volume from '~/src/compose/volume';
+import * as logTypes from '~/lib/log-types';
+import * as logger from '~/src/logger';
 
-import { createVolume, withMockerode } from '../../lib/mockerode';
+import { createVolume, withMockerode } from '~/test-lib/mockerode';
 
 describe('compose/volume', () => {
 	describe('creating a volume from a compose object', () => {

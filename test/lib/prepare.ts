@@ -1,6 +1,6 @@
 import * as fs from 'fs';
-import * as db from '../../src/db';
-import * as config from '../../src/config';
+import * as db from '~/src/db';
+import * as config from '~/src/config';
 
 export = async function () {
 	await db.initialized;

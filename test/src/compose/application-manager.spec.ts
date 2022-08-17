@@ -1,20 +1,20 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { stub } from 'sinon';
-import App from '../../../src/compose/app';
-import * as applicationManager from '../../../src/compose/application-manager';
-import * as imageManager from '../../../src/compose/images';
-import * as serviceManager from '../../../src/compose/service-manager';
-import { Image } from '../../../src/compose/images';
-import Network from '../../../src/compose/network';
-import * as networkManager from '../../../src/compose/network-manager';
-import Service from '../../../src/compose/service';
-import { ServiceComposeConfig } from '../../../src/compose/types/service';
-import Volume from '../../../src/compose/volume';
-import log from '../../../src/lib/supervisor-console';
-import { InstancedAppState } from '../../../src/types/state';
+import App from '~/src/compose/app';
+import * as applicationManager from '~/src/compose/application-manager';
+import * as imageManager from '~/src/compose/images';
+import * as serviceManager from '~/src/compose/service-manager';
+import { Image } from '~/src/compose/images';
+import Network from '~/src/compose/network';
+import * as networkManager from '~/src/compose/network-manager';
+import Service from '~/src/compose/service';
+import { ServiceComposeConfig } from '~/src/compose/types/service';
+import Volume from '~/src/compose/volume';
+import log from '~/lib/supervisor-console';
+import { InstancedAppState } from '~/src/types/state';
 
-import * as dbHelper from '../../lib/db-helper';
+import * as dbHelper from '~/test-lib/db-helper';
 
 const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, 'appuuid', {});
 

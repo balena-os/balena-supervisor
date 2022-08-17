@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import * as constants from '~/src-lib/constants';
+import * as constants from '~/lib/constants';
 
 describe('constants', function () {
 	it('has the correct configJsonPathOnHost', () =>

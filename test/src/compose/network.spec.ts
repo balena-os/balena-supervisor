@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
-import { Network } from '../../../src/compose/network';
+import { Network } from '~/src/compose/network';
 import { NetworkInspectInfo } from 'dockerode';
-import { createNetwork, withMockerode } from '../../lib/mockerode';
+import { createNetwork, withMockerode } from '~/test-lib/mockerode';
 
-import { log } from '../../../src/lib/supervisor-console';
+import { log } from '~/lib/supervisor-console';
 
 describe('compose/network', () => {
 	describe('creating a network from a compose object', () => {

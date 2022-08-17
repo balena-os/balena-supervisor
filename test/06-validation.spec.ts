@@ -8,9 +8,9 @@ import {
 	DeviceName,
 	NumericIdentifier,
 	TargetApps,
-} from '../src/types';
+} from '~/src/types';
 
-import * as validation from '../src/lib/validation';
+import * as validation from '~/lib/validation';
 
 describe('validation', () => {
 	describe('checkBooleanish', () => {

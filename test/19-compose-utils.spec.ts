@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import * as ComposeUtils from '../src/compose/utils';
+import * as ComposeUtils from '~/src/compose/utils';
 
 describe('Composition utilities', () =>
 	it('Should correctly camel case the configuration', function () {

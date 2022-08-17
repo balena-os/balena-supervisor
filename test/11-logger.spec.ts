@@ -5,11 +5,11 @@ import * as Promise from 'bluebird';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
-import { ContainerLogs } from '../src/logging/container';
-import * as config from '../src/config';
+import { ContainerLogs } from '~/src/logging/container';
+import * as config from '~/src/config';
 
 describe('Logger', function () {
-	let logger: typeof import('../src/logger');
+	let logger: typeof import('~/src/logger');
 	let configStub: sinon.SinonStub;
 
 	beforeEach(async function () {
@@ -36,8 +36,8 @@ describe('Logger', function () {
 			}),
 		);
 		// delete the require cache for the logger module so we can force a refresh
-		delete require.cache[require.resolve('../src/logger')];
-		logger = await import('../src/logger');
+		delete require.cache[require.resolve('~/src/logger')];
+		logger = await import('~/src/logger');
 		await logger.initialized;
 	});
 
@@ -47,7 +47,7 @@ describe('Logger', function () {
 	});
 
 	after(function () {
-		delete require.cache[require.resolve('../src/logger')];
+		delete require.cache[require.resolve('~/src/logger')];
 	});
 
 	it('waits the grace period before sending any logs', function () {

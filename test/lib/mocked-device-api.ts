@@ -2,21 +2,21 @@ import * as _ from 'lodash';
 import { Router } from 'express';
 import rewire = require('rewire');
 
-import { unlinkAll } from '../../src/lib/fs-utils';
-import * as applicationManager from '../../src/compose/application-manager';
-import * as serviceManager from '../../src/compose/service-manager';
-import * as volumeManager from '../../src/compose/volume-manager';
-import * as commitStore from '../../src/compose/commit';
-import * as config from '../../src/config';
-import * as db from '../../src/db';
-import { createV1Api } from '../../src/device-api/v1';
-import { createV2Api } from '../../src/device-api/v2';
-import * as deviceState from '../../src/device-state';
-import SupervisorAPI from '../../src/supervisor-api';
-import { Service } from '../../src/compose/service';
-import { Image } from '../../src/compose/images';
+import { unlinkAll } from '~/lib/fs-utils';
+import * as applicationManager from '~/src/compose/application-manager';
+import * as serviceManager from '~/src/compose/service-manager';
+import * as volumeManager from '~/src/compose/volume-manager';
+import * as commitStore from '~/src/compose/commit';
+import * as config from '~/src/config';
+import * as db from '~/src/db';
+import { createV1Api } from '~/src/device-api/v1';
+import { createV2Api } from '~/src/device-api/v2';
+import * as deviceState from '~/src/device-state';
+import SupervisorAPI from '~/src/supervisor-api';
+import { Service } from '~/src/compose/service';
+import { Image } from '~/src/compose/images';
 
-const apiBinder = rewire('../../src/api-binder');
+const apiBinder = rewire('~/src/api-binder');
 
 const DB_PATH = './test/data/supervisor-api.sqlite';
 

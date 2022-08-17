@@ -4,12 +4,12 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import mockFs = require('mock-fs');
 
-import * as updateLock from '../../../src/lib/update-lock';
-import * as constants from '../../../src/lib/constants';
-import { UpdatesLockedError } from '../../../src/lib/errors';
-import * as config from '../../../src/config';
-import * as lockfile from '../../../src/lib/lockfile';
-import * as fsUtils from '../../../src/lib/fs-utils';
+import * as updateLock from '~/lib/update-lock';
+import * as constants from '~/lib/constants';
+import { UpdatesLockedError } from '~/lib/errors';
+import * as config from '~/src/config';
+import * as lockfile from '~/lib/lockfile';
+import * as fsUtils from '~/lib/fs-utils';
 
 describe('lib/update-lock', () => {
 	const appId = 1234567;

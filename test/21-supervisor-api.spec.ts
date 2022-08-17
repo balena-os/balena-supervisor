@@ -2,14 +2,14 @@ import { expect } from 'chai';
 import { spy } from 'sinon';
 import * as supertest from 'supertest';
 
-import mockedAPI = require('./lib/mocked-device-api');
-import * as apiBinder from '../src/api-binder';
-import * as deviceState from '../src/device-state';
-import Log from '../src/lib/supervisor-console';
-import SupervisorAPI from '../src/supervisor-api';
-import * as apiKeys from '../src/lib/api-keys';
-import * as db from '../src/db';
-import { cloudApiKey } from '../src/lib/api-keys';
+import mockedAPI = require('~/test-lib/mocked-device-api');
+import * as apiBinder from '~/src/api-binder';
+import * as deviceState from '~/src/device-state';
+import Log from '~/lib/supervisor-console';
+import SupervisorAPI from '~/src/supervisor-api';
+import * as apiKeys from '~/lib/api-keys';
+import * as db from '~/src/db';
+import { cloudApiKey } from '~/lib/api-keys';
 
 const mockedOptions = {
 	listenPort: 54321,

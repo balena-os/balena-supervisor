@@ -2,16 +2,16 @@ import { SinonStub, stub, spy, SinonSpy } from 'sinon';
 import { expect } from 'chai';
 import * as mixpanel from 'mixpanel';
 
-import log from '../src/lib/supervisor-console';
-import supervisorVersion = require('../src/lib/supervisor-version');
-import * as config from '../src/config';
+import log from '~/lib/supervisor-console';
+import supervisorVersion = require('~/lib/supervisor-version');
+import * as config from '~/src/config';
 
 describe('EventTracker', () => {
 	let logEventStub: SinonStub;
 	before(() => {
 		logEventStub = stub(log, 'event');
 
-		delete require.cache[require.resolve('../src/event-tracker')];
+		delete require.cache[require.resolve('~/src/event-tracker')];
 	});
 
 	afterEach(() => {
@@ -24,7 +24,7 @@ describe('EventTracker', () => {
 
 	describe('Unmanaged', () => {
 		let configStub: SinonStub;
-		let eventTracker: typeof import('../src/event-tracker');
+		let eventTracker: typeof import('~/src/event-tracker');
 
 		before(async () => {
 			configStub = stub(config, 'getMany').returns(
@@ -36,13 +36,13 @@ describe('EventTracker', () => {
 				}) as any,
 			);
 
-			eventTracker = await import('../src/event-tracker');
+			eventTracker = await import('~/src/event-tracker');
 		});
 
 		after(() => {
 			configStub.restore();
 
-			delete require.cache[require.resolve('../src/event-tracker')];
+			delete require.cache[require.resolve('~/src/event-tracker')];
 		});
 
 		it('initializes in unmanaged mode', () => {
@@ -62,7 +62,7 @@ describe('EventTracker', () => {
 	});
 
 	describe('Init', () => {
-		let eventTracker: typeof import('../src/event-tracker');
+		let eventTracker: typeof import('~/src/event-tracker');
 		let configStub: SinonStub;
 		let mixpanelSpy: SinonSpy;
 
@@ -78,14 +78,14 @@ describe('EventTracker', () => {
 
 			mixpanelSpy = spy(mixpanel, 'init');
 
-			eventTracker = await import('../src/event-tracker');
+			eventTracker = await import('~/src/event-tracker');
 		});
 
 		after(() => {
 			configStub.restore();
 			mixpanelSpy.restore();
 
-			delete require.cache[require.resolve('../src/event-tracker')];
+			delete require.cache[require.resolve('~/src/event-tracker')];
 		});
 
 		it('initializes a mixpanel client when not in unmanaged mode', () => {
@@ -100,7 +100,7 @@ describe('EventTracker', () => {
 	});
 
 	describe('Managed', () => {
-		let eventTracker: typeof import('../src/event-tracker');
+		let eventTracker: typeof import('~/src/event-tracker');
 		let configStub: SinonStub;
 		let mixpanelStub: SinonStub;
 
@@ -119,7 +119,7 @@ describe('EventTracker', () => {
 				track: stub(),
 			} as any);
 
-			eventTracker = await import('../src/event-tracker');
+			eventTracker = await import('~/src/event-tracker');
 			await eventTracker.initialized;
 		});
 
@@ -127,7 +127,7 @@ describe('EventTracker', () => {
 			configStub.restore();
 			mixpanelStub.restore();
 
-			delete require.cache[require.resolve('../src/event-tracker')];
+			delete require.cache[require.resolve('~/src/event-tracker')];
 		});
 
 		it('calls the mixpanel client track function with the event, properties and uuid as distinct_id', async () => {
@@ -189,21 +189,21 @@ describe('EventTracker', () => {
 	});
 
 	describe('Rate limiting', () => {
-		let eventTracker: typeof import('../src/event-tracker');
+		let eventTracker: typeof import('~/src/event-tracker');
 		let mixpanelStub: SinonStub;
 
 		before(async () => {
 			mixpanelStub = stub(mixpanel, 'init').returns({
 				track: stub(),
 			} as any);
-			eventTracker = await import('../src/event-tracker');
+			eventTracker = await import('~/src/event-tracker');
 			await eventTracker.initialized;
 		});
 
 		after(() => {
 			mixpanelStub.restore();
 
-			delete require.cache[require.resolve('../src/event-tracker')];
+			delete require.cache[require.resolve('~/src/event-tracker')];
 		});
 
 		it('should rate limit events of the same type', async () => {

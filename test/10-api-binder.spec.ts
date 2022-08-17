@@ -4,22 +4,22 @@ import { Server } from 'net';
 import { SinonSpy, SinonStub, spy, stub } from 'sinon';
 import { expect } from 'chai';
 
-import prepare = require('./lib/prepare');
-import * as config from '../src/config';
-import * as deviceState from '../src/device-state';
-import Log from '../src/lib/supervisor-console';
-import balenaAPI = require('./lib/mocked-balena-api');
-import { schema } from '../src/config/schema';
-import ConfigJsonConfigBackend from '../src/config/configJson';
-import * as TargetState from '../src/device-state/target-state';
-import * as ApiHelper from '../src/lib/api-helper';
-import supervisorVersion = require('../src/lib/supervisor-version');
-import * as eventTracker from '../src/event-tracker';
+import prepare = require('~/test-lib/prepare');
+import * as config from '~/src/config';
+import * as deviceState from '~/src/device-state';
+import Log from '~/lib/supervisor-console';
+import balenaAPI = require('~/test-lib/mocked-balena-api');
+import { schema } from '~/src/config/schema';
+import ConfigJsonConfigBackend from '~/src/config/configJson';
+import * as TargetState from '~/src/device-state/target-state';
+import * as ApiHelper from '~/lib/api-helper';
+import supervisorVersion = require('~/lib/supervisor-version');
+import * as eventTracker from '~/src/event-tracker';
 
 import { TypedError } from 'typed-error';
-import { DeviceNotFoundError } from '../src/lib/errors';
+import { DeviceNotFoundError } from '~/lib/errors';
 
-let ApiBinder: typeof import('../src/api-binder');
+let ApiBinder: typeof import('~/src/api-binder');
 
 class ExpectedError extends TypedError {}
 
@@ -40,7 +40,7 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 		},
 	} as any;
 
-	ApiBinder = await import('../src/api-binder');
+	ApiBinder = await import('~/src/api-binder');
 	await ApiBinder.initialized;
 	obj.apiBinder = ApiBinder;
 
@@ -61,7 +61,7 @@ describe('ApiBinder', () => {
 	let server: Server;
 
 	before(async () => {
-		delete require.cache[require.resolve('../src/api-binder')];
+		delete require.cache[require.resolve('~/src/api-binder')];
 
 		spy(balenaAPI.balenaBackend!, 'registerHandler');
 		server = balenaAPI.listen(3000);
@@ -405,7 +405,7 @@ describe('ApiBinder', () => {
 		});
 
 		it('fails when stateReportHealthy is false', async () => {
-			const currentState = await import('../src/api-binder/report');
+			const currentState = await import('~/src/api-binder/report');
 
 			configStub.resolves({
 				unmanaged: false,
