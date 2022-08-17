@@ -4,8 +4,9 @@ module.exports = {
 	recursive: true, // Look for tests in subdirectories
 	require: [
 		// Files to execute before running suites
-		'build/test/config/fixtures.js',
+		'ts-node/register/transpile-only',
+		'test/config/fixtures.ts',
 	],
-	spec: ['build/test/**/*.spec.js'],
+	spec: ['test/**/*.spec.ts'],
 	timeout: '30000',
 };
