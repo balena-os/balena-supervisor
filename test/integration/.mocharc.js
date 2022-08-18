@@ -7,8 +7,7 @@ module.exports = {
 		'ts-node/register/transpile-only',
 		'tsconfig-paths/register',
 		'test/lib/chai.ts',
-		'test/legacy/fixtures.ts',
 	],
-	spec: ['test/legacy/**/*.spec.ts'],
+	spec: ['test/integration/**/*.spec.ts'],
 	timeout: '30000',
 };

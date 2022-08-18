@@ -101,7 +101,7 @@ COPY src ./src
 COPY test ./test
 COPY typings ./typings
 
-# Run the tests
+# Run tests
 RUN npm run test
 
 ###################################################

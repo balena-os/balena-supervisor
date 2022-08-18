@@ -1,7 +1,7 @@
 {
 	"name": "balena-supervisor",
 	"description": "This is balena's Supervisor, a program that runs on IoT devices and has the task of running user Apps (which are Docker containers), and updating them as the balena API informs it to.",
-  "version": "14.0.14",
+	"version": "14.0.14",
 	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
@@ -12,10 +12,11 @@
 		"build": "npm run clean && npm run release && webpack",
 		"lint": "balena-lint -e ts -e js --typescript src/ test/ typings/ build-utils/ webpack.config.js",
 		"test:build": "tsc --noEmit && tsc --noEmit --project tsconfig.js.json",
+		"test:unit": "mocha --config test/unit/.mocharc.js",
+		"test:integration": "mocha --config test/integration/.mocharc.js",
 		"test:legacy": "mocha --config test/legacy/.mocharc.js",
-		"test:node": "npm run test:legacy",
+		"test:node": "npm run test:unit && npm run test:integration && npm run test:legacy",
 		"test": "npm run lint && npm run test:build  && npm run test:node",
-		"test:fast": "npm run test:build && npm run test:node",
 		"prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ build-utils/ webpack.config.js",
 		"release": "tsc --project tsconfig.release.json && mv build/src/* build",
 		"sync": "ts-node --files sync/sync.ts",
@@ -134,6 +135,6 @@
 		}
 	},
 	"versionist": {
-    "publishedAt": "2022-08-22T20:24:43.507Z"
+		"publishedAt": "2022-08-22T20:24:43.507Z"
 	}
 }

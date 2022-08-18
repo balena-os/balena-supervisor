@@ -6,7 +6,8 @@ import mock = require('mock-fs');
 
 import * as lockfile from '~/lib/lockfile';
 import * as fsUtils from '~/lib/fs-utils';
-import { BASE_LOCK_DIR, LOCKFILE_UID } from '~/lib/update-lock';
+const BASE_LOCK_DIR = '/tmp/balena-supervisor/services';
+const LOCKFILE_UID = 65534;
 
 describe('lib/lockfile', () => {
 	const lockPath = `${BASE_LOCK_DIR}/1234567/one/updates.lock`;
