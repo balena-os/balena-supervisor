@@ -6,8 +6,8 @@ module.exports = {
 		// Files to execute before running suites
 		'ts-node/register/transpile-only',
 		'tsconfig-paths/register',
-		'test/config/fixtures.ts',
+		'test/legacy/fixtures.ts',
 	],
-	spec: ['test/**/*.spec.ts'],
+	spec: ['test/legacy/**/*.spec.ts'],
 	timeout: '30000',
 };
