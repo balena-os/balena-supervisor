@@ -75,9 +75,9 @@ ENV CONFIG_MOUNT_POINT=/boot/config.json \
 	VERSION=$VERSION \
 	DEFAULT_MIXPANEL_TOKEN=$DEFAULT_MIXPANEL_TOKEN
 
-###################################################
-# Use the base image to run the tests as livepush
-###################################################
+###############################################################
+# Use the base image to run integration tests and for livepush
+###############################################################
 FROM runtime-base as test
 
 WORKDIR /usr/src/app
@@ -96,10 +96,18 @@ COPY --from=build-base /usr/src/app/node_modules ./node_modules
 
 # Copy build files
 COPY build-utils ./build-utils
-COPY webpack.config.js tsconfig.json tsconfig.release.json tsconfig.js.json ./
+COPY webpack.config.js tsconfig.json tsconfig.release.json tsconfig.js.json .mochapodrc.yml ./
+COPY typings ./typings
 COPY src ./src
 COPY test ./test
-COPY typings ./typings
+
+# When running tests from a container built from this stage, 
+# skip the mocha-pod setup
+ENV MOCHAPOD_SKIP_SETUP=1
+
+# This command will be used by default when running integration tests 
+# from this stage
+CMD npm run test:integration
 
 ##################################################
 # CI tests are ran here
@@ -107,7 +115,7 @@ COPY typings ./typings
 FROM test as test-ci
 
 # Run tests
-RUN npm run test
+RUN MOCHAPOD_SKIP_SETUP=1 npm run test
 
 ###################################################
 # Build the production package

@@ -18,3 +18,4 @@ report.xml
 .DS_Store
 .tsbuildinfo
 .prettierrc
+.cache

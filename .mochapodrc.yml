@@ -1,0 +1,31 @@
+# IP address or URL for the docker host. If no protocol is included, the protocol
+# is assumed to be `tcp://`
+# e.g.
+# - `tcp://192.168.1.105`
+# - `unix:///var/run/docker.sock`
+#
+# It defaults to unix:///var/run/docker.sock
+#
+dockerHost: unix:///var/run/docker.sock
+
+# Use command from Dockerfile when testing
+testCommand: []
+
+# Additional options to pass to the image build
+dockerBuildOpts:
+  target: 'test' # this is the stage in the Dockerfile that runs the test
+
+# This defines default configuration that
+# should apply to all testfs instances
+testfs:
+  filesystem:
+    /mnt/boot/config.json:
+      from: test/data/config.json
+    /mnt/boot/config.txt:
+      from: test/data/mnt/boot/config.txt
+    /mnt/boot/device-type.json:
+      from: test/data/mnt/boot/device-type.json
+    /etc/os-release:
+      from: test/data/etc/os-release
+  cleanup:
+    - /data/database.sqlite

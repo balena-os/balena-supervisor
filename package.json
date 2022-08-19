@@ -8,8 +8,6 @@
 		"url": "https://github.com/balena-os/balena-supervisor.git"
 	},
 	"scripts": {
-		"dev": "docker-compose -f docker-compose.dev.yml up --build || npm run compose:down",
-		"compose:down": "docker-compose -f docker-compose.dev.yml down",
 		"start": "./entry.sh",
 		"build": "npm run clean && npm run release && webpack",
 		"lint": "balena-lint -e ts -e js --typescript src/ test/ typings/ build-utils/ webpack.config.js",
@@ -18,7 +16,9 @@
 		"test:integration": "mocha --config test/integration/.mocharc.js",
 		"test:legacy": "mocha --config test/legacy/.mocharc.js",
 		"test:node": "npm run test:unit && npm run test:integration && npm run test:legacy",
+		"test:env": "docker-compose -f docker-compose.dev.yml up --build || npm run compose:down",
 		"test": "npm run lint && npm run test:build  && npm run test:node",
+		"compose:down": "docker-compose -f docker-compose.dev.yml down",
 		"prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ build-utils/ webpack.config.js",
 		"release": "tsc --project tsconfig.release.json && mv build/src/* build",
 		"sync": "ts-node --files sync/sync.ts",
@@ -100,6 +100,7 @@
 		"memoizee": "^0.4.14",
 		"mixpanel": "^0.10.3",
 		"mocha": "^8.3.2",
+		"mocha-pod": "^0.6.0",
 		"mock-fs": "^4.14.0",
 		"morgan": "^1.10.0",
 		"network-checker": "^0.1.1",
