@@ -330,7 +330,7 @@ describe('validation', () => {
 											id: 45,
 											image_id: 34,
 											image: 'foo',
-											environment: { ' aaa': '123' },
+											environment: { 'bbb=aaa': '123' },
 											labels: {},
 										},
 									},
