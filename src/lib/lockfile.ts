@@ -109,8 +109,8 @@ export async function lock(path: string, uid: number = os.userInfo().uid) {
 export async function unlock(path: string): Promise<void> {
 	// Removing the lockfile releases the lock
 	await fs.unlink(path).catch((e) => {
-		// if the error is EPERM, the file is a directory
-		if (e.code === 'EPERM') {
+		// if the error is EPERM|EISDIR, the file is a directory
+		if (e.code === 'EPERM' || e.code === 'EISDIR') {
 			return fs.rmdir(path).catch(() => {
 				// if the directory is not empty or something else
 				// happens, ignore
@@ -127,7 +127,7 @@ export function unlockSync(path: string) {
 	try {
 		return unlinkSync(path);
 	} catch (e) {
-		if (e.code === 'EPERM') {
+		if (e.code === 'EPERM' || e.code === 'EISDIR') {
 			return rmdirSync(path);
 		}
 		throw e;
