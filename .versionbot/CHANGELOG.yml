@@ -1,4 +1,26 @@
 - commits:
+    - subject: Simplify test commands in package.json
+      hash: 274503feb3f2f9cd5a8db551fd93b9cce8ae9b39
+      body: |
+        The supervisor used to perform tests both for the transpiled code (after
+        tsc) and one for the typescript code (using
+        ts-node/register/transpile-only). There is not really a reason for this
+        and this added complexity to the test configuration. This used to make
+        testing harder, as the built code didn't include source maps, meaning
+        the tests did not point to the right code.
+
+        Since we want to split tests in unit and integration tests as the next
+        test improvement, it makes sense to simplify these commands before
+        adding more complexity.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.14
+  title: "'Refactor test suite to use tsconfig paths instead of relative paths'"
+  date: 2022-08-22T20:24:43.124Z
+- commits:
     - subject: Wait for Stopping services to stop before target apply success
       hash: 12b67742c8091280c2e74e97a7c7392021db542f
       body: >
