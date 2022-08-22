@@ -1,0 +1,25 @@
+version: '2'
+
+services:
+  docker:
+    image: docker:dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ''
+    command: --tls=false --debug
+
+  sut:
+    build:
+      context: ./
+      dockerfile: Dockerfile.template
+      target: test
+      args:
+        # Change this if testing in another architecture
+        ARCH: amd64
+    command: sleep infinity
+    environment:
+      DOCKER_HOST: tcp://docker:2375
+    volumes:
+      - './.mochapodrc.yml:/usr/src/app/.mochapodrc.yml'
+      - './src:/usr/src/app/src'
+      - './test:/usr/src/app/test'

@@ -101,6 +101,11 @@ COPY src ./src
 COPY test ./test
 COPY typings ./typings
 
+##################################################
+# CI tests are ran here
+##################################################
+FROM test as test-ci
+
 # Run tests
 RUN npm run test
 

@@ -8,6 +8,8 @@
 		"url": "https://github.com/balena-os/balena-supervisor.git"
 	},
 	"scripts": {
+		"dev": "docker-compose -f docker-compose.dev.yml up --build || npm run compose:down",
+		"compose:down": "docker-compose -f docker-compose.dev.yml down",
 		"start": "./entry.sh",
 		"build": "npm run clean && npm run release && webpack",
 		"lint": "balena-lint -e ts -e js --typescript src/ test/ typings/ build-utils/ webpack.config.js",
