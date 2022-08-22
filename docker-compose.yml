@@ -1,4 +1,4 @@
-version: '2.1'
+version: '2.3'
 
 services:
   # This service can only be named `main` or `balena-supervisor` as older

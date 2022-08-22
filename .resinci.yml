@@ -1,3 +1,9 @@
 reviewers: 1
-docker: false
+docker:
+  publish: false
+  builds:
+    - dockerfile: Dockerfile.null
+      docker_repo: dev-null
+      path: .
+      publish: false
 npm: false

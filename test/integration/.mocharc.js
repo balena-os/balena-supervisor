@@ -7,7 +7,7 @@ module.exports = {
 		'ts-node/register/transpile-only',
 		'tsconfig-paths/register',
 		'test/lib/chai.ts',
-		'mocha-pod/attach',
+		'mocha-pod/skip-setup',
 	],
 	spec: ['test/integration/**/*.spec.ts'],
 	timeout: '30000',

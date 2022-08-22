@@ -1,23 +1,10 @@
-# IP address or URL for the docker host. If no protocol is included, the protocol
-# is assumed to be `tcp://`
-# e.g.
-# - `tcp://192.168.1.105`
-# - `unix:///var/run/docker.sock`
-#
-# It defaults to unix:///var/run/docker.sock
-#
-dockerHost: unix:///var/run/docker.sock
-
-# Use command from Dockerfile when testing
-testCommand: []
-
-# Additional options to pass to the image build
-dockerBuildOpts:
-  target: 'test' # this is the stage in the Dockerfile that runs the test
-
 # This defines default configuration that
-# should apply to all testfs instances
+# should apply to all mocha-pod/testfs instances
 testfs:
+  # These are test files that need to be configured
+  # for all tests. The `from` defines where to find
+  # them in the local source. These can be overriden
+  # in the `testfs` configuration.
   filesystem:
     /mnt/boot/config.json:
       from: test/data/config.json
@@ -27,5 +14,10 @@ testfs:
       from: test/data/mnt/boot/device-type.json
     /etc/os-release:
       from: test/data/etc/os-release
+  # The `keep` list defines files that already exist in the
+  # filesystem and need to be backed up before setting up the test environment
+  keep: []
+  # The `cleanup` list defines files created by the tests that need to be removed
+  # when restoring the filesystem
   cleanup:
     - /data/database.sqlite
