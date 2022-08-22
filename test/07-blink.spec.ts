@@ -1,8 +1,8 @@
 import { promises as fs } from 'fs';
 import { expect } from 'chai';
 
-import blink = require('../src/lib/blink');
-import constants = require('../src/lib/constants');
+import blink = require('~/lib/blink');
+import constants = require('~/lib/constants');
 
 describe('blink', () => {
 	it('is a blink function', () => expect(blink).to.be.a('function'));

@@ -1,11 +1,11 @@
-import * as networkManager from '../../src/compose/network-manager';
-import * as volumeManager from '../../src/compose/volume-manager';
-import * as serviceManager from '../../src/compose/service-manager';
-import * as imageManager from '../../src/compose/images';
+import * as networkManager from '~/src/compose/network-manager';
+import * as volumeManager from '~/src/compose/volume-manager';
+import * as serviceManager from '~/src/compose/service-manager';
+import * as imageManager from '~/src/compose/images';
 
-import Service from '../../src/compose/service';
-import Network from '../../src/compose/network';
-import Volume from '../../src/compose/volume';
+import Service from '~/src/compose/service';
+import Network from '~/src/compose/network';
+import Volume from '~/src/compose/volume';
 
 const originalVolGetAll = volumeManager.getAll;
 const originalSvcGetAll = serviceManager.getAll;

@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 
-import * as imageManager from '../../../src/compose/images';
-import * as dbHelper from '../../lib/db-helper';
-import { createImage, withMockerode } from '../../lib/mockerode';
+import * as imageManager from '~/src/compose/images';
+import * as dbHelper from '~/test-lib/db-helper';
+import { createImage, withMockerode } from '~/test-lib/mockerode';
 import * as sinon from 'sinon';
 
-import log from '../../../src/lib/supervisor-console';
+import log from '~/lib/supervisor-console';
 
 // TODO: this code is duplicated in multiple tests
 // create a test module with all helper functions like this

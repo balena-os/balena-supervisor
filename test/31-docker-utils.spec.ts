@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { testWithData } from './lib/mocked-dockerode';
+import { testWithData } from '~/test-lib/mocked-dockerode';
 
-import * as dockerUtils from '../src/lib/docker-utils';
+import * as dockerUtils from '~/lib/docker-utils';
 
 describe('Docker Utils', () => {
 	describe('Supervisor Address', () => {

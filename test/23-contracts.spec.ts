@@ -2,15 +2,15 @@ import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
 import * as semver from 'semver';
 
-import * as constants from '../src/lib/constants';
+import * as constants from '~/lib/constants';
 import {
 	containerContractsFulfilled,
 	intialiseContractRequirements,
 	validateContract,
-} from '../src/lib/contracts';
-import * as osRelease from '../src/lib/os-release';
-import supervisorVersion = require('../src/lib/supervisor-version');
-import * as fsUtils from '../src/lib/fs-utils';
+} from '~/lib/contracts';
+import * as osRelease from '~/lib/os-release';
+import supervisorVersion = require('~/lib/supervisor-version');
+import * as fsUtils from '~/lib/fs-utils';
 
 describe('Container contracts', () => {
 	before(() => {

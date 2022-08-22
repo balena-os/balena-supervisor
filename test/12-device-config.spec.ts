@@ -4,19 +4,19 @@ import * as path from 'path';
 import { SinonStub, stub, spy, SinonSpy, restore } from 'sinon';
 import { expect } from 'chai';
 
-import * as deviceConfig from '../src/device-config';
-import * as fsUtils from '../src/lib/fs-utils';
-import * as logger from '../src/logger';
-import { Extlinux } from '../src/config/backends/extlinux';
-import { ConfigTxt } from '../src/config/backends/config-txt';
-import { Odmdata } from '../src/config/backends/odmdata';
-import { ConfigFs } from '../src/config/backends/config-fs';
-import { SplashImage } from '../src/config/backends/splash-image';
-import * as constants from '../src/lib/constants';
-import log from '../src/lib/supervisor-console';
-import { fnSchema } from '../src/config/functions';
+import * as deviceConfig from '~/src/device-config';
+import * as fsUtils from '~/lib/fs-utils';
+import * as logger from '~/src/logger';
+import { Extlinux } from '~/src/config/backends/extlinux';
+import { ConfigTxt } from '~/src/config/backends/config-txt';
+import { Odmdata } from '~/src/config/backends/odmdata';
+import { ConfigFs } from '~/src/config/backends/config-fs';
+import { SplashImage } from '~/src/config/backends/splash-image';
+import * as constants from '~/lib/constants';
+import log from '~/lib/supervisor-console';
+import { fnSchema } from '~/src/config/functions';
 
-import prepare = require('./lib/prepare');
+import prepare = require('~/test-lib/prepare');
 import mock = require('mock-fs');
 
 const extlinuxBackend = new Extlinux();

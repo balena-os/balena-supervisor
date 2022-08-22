@@ -2,18 +2,18 @@ import _ = require('lodash');
 import { expect } from 'chai';
 
 import * as Docker from 'dockerode';
-import { docker } from '../src/lib/docker-utils';
+import { docker } from '~/lib/docker-utils';
 import * as sinon from 'sinon';
 
-import * as config from '../src/config';
-import * as firewall from '../src/lib/firewall';
-import * as logger from '../src/logger';
-import * as iptablesMock from './lib/mocked-iptables';
-import * as targetStateCache from '../src/device-state/target-state-cache';
+import * as config from '~/src/config';
+import * as firewall from '~/lib/firewall';
+import * as logger from '~/src/logger';
+import * as iptablesMock from '~/test-lib/mocked-iptables';
+import * as targetStateCache from '~/src/device-state/target-state-cache';
 
-import constants = require('../src/lib/constants');
-import { RuleAction, Rule } from '../src/lib/iptables';
-import { log } from '../src/lib/supervisor-console';
+import constants = require('~/lib/constants');
+import { RuleAction, Rule } from '~/lib/iptables';
+import { log } from '~/lib/supervisor-console';
 
 describe('Host Firewall', function () {
 	const dockerStubs: Dictionary<sinon.SinonStub> = {};

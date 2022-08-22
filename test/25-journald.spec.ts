@@ -1,8 +1,8 @@
 import { SinonStub, stub } from 'sinon';
 import { expect } from 'chai';
 
-import constants = require('../src/lib/constants');
-import { spawnJournalctl } from '../src/lib/journald';
+import constants = require('~/lib/constants');
+import { spawnJournalctl } from '~/lib/journald';
 
 describe('journald', () => {
 	let spawn: SinonStub;

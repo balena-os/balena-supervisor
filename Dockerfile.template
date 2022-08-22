@@ -96,13 +96,13 @@ COPY --from=build-base /usr/src/app/node_modules ./node_modules
 
 # Copy build files
 COPY build-utils ./build-utils
-COPY webpack.config.js tsconfig.json tsconfig.release.json ./
+COPY webpack.config.js tsconfig.json tsconfig.release.json tsconfig.js.json ./
 COPY src ./src
 COPY test ./test
 COPY typings ./typings
 
 # Run the tests
-RUN npm run test-nolint
+RUN npm run test
 
 ###################################################
 # Build the production package

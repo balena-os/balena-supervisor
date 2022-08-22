@@ -2,14 +2,14 @@ import { stub } from 'sinon';
 import * as _ from 'lodash';
 import { expect } from 'chai';
 
-import * as config from '../src/config';
-import * as configUtils from '../src/config/utils';
-import { ExtraUEnv } from '../src/config/backends/extra-uEnv';
-import { Extlinux } from '../src/config/backends/extlinux';
-import { ConfigTxt } from '../src/config/backends/config-txt';
-import { ConfigFs } from '../src/config/backends/config-fs';
-import { SplashImage } from '../src/config/backends/splash-image';
-import { ConfigBackend } from '../src/config/backends/backend';
+import * as config from '~/src/config';
+import * as configUtils from '~/src/config/utils';
+import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
+import { Extlinux } from '~/src/config/backends/extlinux';
+import { ConfigTxt } from '~/src/config/backends/config-txt';
+import { ConfigFs } from '~/src/config/backends/config-fs';
+import { SplashImage } from '~/src/config/backends/splash-image';
+import { ConfigBackend } from '~/src/config/backends/backend';
 
 describe('Config Utilities', () => {
 	it('gets list of supported backends', async () => {

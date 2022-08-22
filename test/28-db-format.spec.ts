@@ -1,13 +1,13 @@
 import { expect } from 'chai';
 import { isRight } from 'fp-ts/lib/Either';
 import * as sinon from 'sinon';
-import App from '../src/compose/app';
-import Network from '../src/compose/network';
-import * as config from '../src/config';
-import * as dbFormat from '../src/device-state/db-format';
-import log from '../src/lib/supervisor-console';
-import { TargetApps } from '../src/types/state';
-import * as dbHelper from './lib/db-helper';
+import App from '~/src/compose/app';
+import Network from '~/src/compose/network';
+import * as config from '~/src/config';
+import * as dbFormat from '~/src/device-state/db-format';
+import log from '~/lib/supervisor-console';
+import { TargetApps } from '~/src/types/state';
+import * as dbHelper from '~/test-lib/db-helper';
 
 function getDefaultNetwork(appId: number) {
 	return {

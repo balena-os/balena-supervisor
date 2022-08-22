@@ -1,25 +1,22 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
-import { StatusCodeError, UpdatesLockedError } from '../src/lib/errors';
-import * as dockerUtils from '../src/lib/docker-utils';
-import * as config from '../src/config';
-import * as imageManager from '../src/compose/images';
-import { ConfigTxt } from '../src/config/backends/config-txt';
-import * as deviceState from '../src/device-state';
-import * as deviceConfig from '../src/device-config';
-import {
-	loadTargetFromFile,
-	appsJsonBackup,
-} from '../src/device-state/preload';
-import Service from '../src/compose/service';
-import { intialiseContractRequirements } from '../src/lib/contracts';
-import * as updateLock from '../src/lib/update-lock';
-import * as fsUtils from '../src/lib/fs-utils';
-import { TargetState } from '../src/types';
+import { StatusCodeError, UpdatesLockedError } from '~/lib/errors';
+import * as dockerUtils from '~/lib/docker-utils';
+import * as config from '~/src/config';
+import * as imageManager from '~/src/compose/images';
+import { ConfigTxt } from '~/src/config/backends/config-txt';
+import * as deviceState from '~/src/device-state';
+import * as deviceConfig from '~/src/device-config';
+import { loadTargetFromFile, appsJsonBackup } from '~/src/device-state/preload';
+import Service from '~/src/compose/service';
+import { intialiseContractRequirements } from '~/lib/contracts';
+import * as updateLock from '~/lib/update-lock';
+import * as fsUtils from '~/lib/fs-utils';
+import { TargetState } from '~/src/types';
 
-import * as dbHelper from './lib/db-helper';
-import log from '../src/lib/supervisor-console';
+import * as dbHelper from '~/test-lib/db-helper';
+import log from '~/lib/supervisor-console';
 
 const mockedInitialConfig = {
 	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',

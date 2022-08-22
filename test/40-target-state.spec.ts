@@ -4,14 +4,14 @@ import * as _ from 'lodash';
 import rewire = require('rewire');
 import { expect } from 'chai';
 
-import { sleep } from './lib/helpers';
-import * as TargetState from '../src/device-state/target-state';
-import Log from '../src/lib/supervisor-console';
-import * as request from '../src/lib/request';
-import * as deviceConfig from '../src/device-config';
-import { UpdatesLockedError } from '../src/lib/errors';
+import { sleep } from '~/test-lib/helpers';
+import * as TargetState from '~/src/device-state/target-state';
+import Log from '~/lib/supervisor-console';
+import * as request from '~/lib/request';
+import * as deviceConfig from '~/src/device-config';
+import { UpdatesLockedError } from '~/lib/errors';
 
-const deviceState = rewire('../src/device-state');
+const deviceState = rewire('~/src/device-state');
 
 const stateEndpointBody = {
 	local: {

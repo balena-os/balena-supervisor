@@ -2,12 +2,12 @@ import { SinonStub, stub } from 'sinon';
 import { expect } from 'chai';
 import * as _ from 'lodash';
 
-import * as apiBinder from '../src/api-binder';
-import * as applicationManager from '../src/compose/application-manager';
-import * as deviceState from '../src/device-state';
-import * as constants from '../src/lib/constants';
-import { docker } from '../src/lib/docker-utils';
-import { Supervisor } from '../src/supervisor';
+import * as apiBinder from '~/src/api-binder';
+import * as applicationManager from '~/src/compose/application-manager';
+import * as deviceState from '~/src/device-state';
+import * as constants from '~/src/lib/constants';
+import { docker } from '~/lib/docker-utils';
+import { Supervisor } from '~/src/supervisor';
 
 describe('Startup', () => {
 	let startStub: SinonStub;

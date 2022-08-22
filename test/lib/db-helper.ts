@@ -1,5 +1,5 @@
-import * as constants from '../../src/lib/constants';
-import * as db from '../../src/db';
+import * as constants from '~/lib/constants';
+import * as db from '~/src/db';
 import * as sinon from 'sinon';
 
 // Creates a test database and returns a query builder
@@ -13,7 +13,7 @@ export async function createDB() {
 	constants.databasePath = process.env.DATABASE_PATH;
 
 	// Cleanup the module cache in order to have it reloaded in the local context
-	delete require.cache[require.resolve('../../src/db')];
+	delete require.cache[require.resolve('~/src/db')];
 
 	// Initialize the database module
 	await db.initialized;
@@ -76,7 +76,7 @@ export async function createDB() {
 
 			// Cleanup the module cache in order to have it reloaded
 			// correctly next time it's used
-			delete require.cache[require.resolve('../../src/db')];
+			delete require.cache[require.resolve('~/src/db')];
 		},
 	};
 }

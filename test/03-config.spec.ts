@@ -3,12 +3,12 @@ import { promises as fs } from 'fs';
 import { SinonStub, stub } from 'sinon';
 import { expect } from 'chai';
 
-import prepare = require('./lib/prepare');
-import * as conf from '../src/config';
+import prepare = require('~/test-lib/prepare');
+import * as conf from '~/src/config';
 
-import constants = require('../src/lib/constants');
-import { SchemaTypeKey } from '../src/config/schema-type';
-import { fnSchema } from '../src/config/functions';
+import constants = require('~/lib/constants');
+import { SchemaTypeKey } from '~/src/config/schema-type';
+import { fnSchema } from '~/src/config/functions';
 
 describe('Config', () => {
 	before(async () => {

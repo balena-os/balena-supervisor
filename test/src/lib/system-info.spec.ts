@@ -3,8 +3,8 @@ import { SinonStub, stub } from 'sinon';
 import { promises as fs } from 'fs';
 import * as systeminformation from 'systeminformation';
 
-import * as fsUtils from '../../../src/lib/fs-utils';
-import * as sysInfo from '../../../src/lib/system-info';
+import * as fsUtils from '~/lib/fs-utils';
+import * as sysInfo from '~/lib/system-info';
 
 describe('System information', () => {
 	before(() => {

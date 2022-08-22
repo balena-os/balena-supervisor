@@ -3,22 +3,22 @@ import { stub, SinonStub, spy, SinonSpy } from 'sinon';
 import * as supertest from 'supertest';
 import * as Bluebird from 'bluebird';
 
-import sampleResponses = require('./data/device-api-responses.json');
-import mockedAPI = require('./lib/mocked-device-api');
-import * as apiBinder from '../src/api-binder';
-import * as deviceState from '../src/device-state';
-import SupervisorAPI from '../src/supervisor-api';
-import * as serviceManager from '../src/compose/service-manager';
-import * as images from '../src/compose/images';
-import * as apiKeys from '../src/lib/api-keys';
-import * as config from '../src/config';
-import * as updateLock from '../src/lib/update-lock';
-import * as targetStateCache from '../src/device-state/target-state-cache';
-import * as mockedDockerode from './lib/mocked-dockerode';
-import * as applicationManager from '../src/compose/application-manager';
-import * as logger from '../src/logger';
+import sampleResponses = require('~/test-data/device-api-responses.json');
+import mockedAPI = require('~/test-lib/mocked-device-api');
+import * as apiBinder from '~/src/api-binder';
+import * as deviceState from '~/src/device-state';
+import SupervisorAPI from '~/src/supervisor-api';
+import * as serviceManager from '~/src/compose/service-manager';
+import * as images from '~/src/compose/images';
+import * as apiKeys from '~/lib/api-keys';
+import * as config from '~/src/config';
+import * as updateLock from '~/lib/update-lock';
+import * as targetStateCache from '~/src/device-state/target-state-cache';
+import * as mockedDockerode from '~/test-lib/mocked-dockerode';
+import * as applicationManager from '~/src/compose/application-manager';
+import * as logger from '~/src/logger';
 
-import { UpdatesLockedError } from '../src/lib/errors';
+import { UpdatesLockedError } from '~/lib/errors';
 
 describe('SupervisorAPI [V2 Endpoints]', () => {
 	let serviceManagerMock: SinonStub;

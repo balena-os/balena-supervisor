@@ -3,9 +3,9 @@ import { stripIndent } from 'common-tags';
 import { SinonStub, spy, stub } from 'sinon';
 import { expect } from 'chai';
 
-import * as fsUtils from '../src/lib/fs-utils';
-import Log from '../src/lib/supervisor-console';
-import { ExtraUEnv } from '../src/config/backends/extra-uEnv';
+import * as fsUtils from '~/lib/fs-utils';
+import Log from '~/lib/supervisor-console';
+import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
 
 describe('extra_uEnv Configuration', () => {
 	const backend = new ExtraUEnv();

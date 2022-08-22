@@ -3,8 +3,8 @@ import * as os from 'os';
 import { stub, spy } from 'sinon';
 
 import { expect } from 'chai';
-import Log from '../src/lib/supervisor-console';
-import * as network from '../src/network';
+import Log from '~/lib/supervisor-console';
+import * as network from '~/src/network';
 
 describe('network', () => {
 	describe('getIPAddresses', () => {

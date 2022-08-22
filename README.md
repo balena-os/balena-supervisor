@@ -176,7 +176,7 @@ balena build -d raspberrypi4-64 -A aarch64
 
 ## Testing
 
-You can run some unit tests with:
+You can run the supervisor test suite with:
 
 ```
 npm test
@@ -191,14 +191,14 @@ which ensures that the environment is exactly the same.
 
 #### Running specific tests quickly
 
-You can run specific tests quickly with the `test:fast` script by matching with test suites (describe) or test cases (it) using a string or regexp:
+You can run specific tests quickly with the `test:node` script by matching with test suites (describe) or test cases (it) using a string or regexp:
 
 ```sh
-npm run test:fast -- -g spawnJournalctl
+npm run test:node -- -g spawnJournalctl
 
-npm run test:fast -- -g "detect a V2 delta"
+npm run test:node -- -g "detect a V2 delta"
 
-npm run test:fast -- -g (GET|POST|PUT|DELETE)
+npm run test:node -- -g (GET|POST|PUT|DELETE)
 ```
 
 The --grep option, when specified, will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
