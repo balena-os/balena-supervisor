@@ -1,4 +1,45 @@
 - commits:
+    - subject: Create `test/unit` and `test/integration` folders
+      hash: c1e6dadeb47c3c52958383a2fc775a821362f853
+      body: |
+        This sets up the new `test/unit` and `test/integration` folders
+        and starts classification of some of the test files.
+
+        Note that unit tests include, `fs-utils` and `system-info` tests.
+
+        While these tests interact with the filesystem, the implementation
+        of these modules is simple enough, and the tests are fast enough to
+        allow these tests to fall under the `unit` test category (according to
+        test/README)
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Move the current test suite under `test/legacy`
+      hash: e1e35eb83b738040150ced1ee9500d780de4b632
+      body: |
+        We are refactoring the supervisor test suite into unit tests (for
+        algorithms an domain model tests) and integration
+        tests (for interaction with out-of-process dependencies).
+        This means the current test suite needs to be classified into
+        these two categories, and fixed whenever possible.
+
+        This commit moves the test suite under the `test/legacy` folder, this
+        folder should be progressively migrated and eventually removed.
+        Subsequent commits will begin to split these files into unit and
+        integration whenever possible.
+      footer:
+        Depends-on: "#1996"
+        depends-on: "#1996"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.15
+  title: "'Split test suite into unit and integration tests'"
+  date: 2022-08-24T20:09:59.828Z
+- commits:
     - subject: Simplify test commands in package.json
       hash: 274503feb3f2f9cd5a8db551fd93b9cce8ae9b39
       body: |
