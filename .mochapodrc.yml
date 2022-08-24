@@ -12,7 +12,7 @@ testfs:
       from: test/data/mnt/boot/config.txt
     /mnt/boot/device-type.json:
       from: test/data/mnt/boot/device-type.json
-    /etc/os-release:
+    /mnt/root/etc/os-release:
       from: test/data/etc/os-release
   # The `keep` list defines files that already exist in the
   # filesystem and need to be backed up before setting up the test environment

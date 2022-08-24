@@ -31,6 +31,8 @@ services:
     # Set required supervisor configuration variables here
     environment:
       DOCKER_HOST: tcp://docker:2375
+      # Required by migrations
+      CONFIG_MOUNT_POINT: /mnt/boot/config.json
     # Set required mounts as tmpfs or volumes here
     # if specific files need to be backed up between tests,
     # make sure to add them to the `testfs` configuration under
@@ -38,3 +40,4 @@ services:
     tmpfs:
       - /data
       - /mnt/boot
+      - /mnt/root
