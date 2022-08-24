@@ -176,32 +176,64 @@ balena build -d raspberrypi4-64 -A aarch64
 
 ## Testing
 
-You can run the supervisor test suite with:
+The codebase splits the test suite into unit and integration tests. While unit tests can be run in the local development machine,
+integration tests require a containerized environment with the right dependencies to be setup.
+
+To run type checks, and unit tests, you can use:
 
 ```
-npm test
+npm run test:base
 ```
 
 The supervisor runs on Node v12.16.2, so using that specific
 version will ensure tests run in the same environment as
 production.
 
-Alternatively, tests will be run when building the image,
-which ensures that the environment is exactly the same.
+In order to run all tests, unit and integration, [docker-compose](https://docs.docker.com/compose/) is required.
+The following command will build the image for an `amd64` target (running `test:base` during the build) and setup
+the necessary dependencies for running integration tests.
+
+```
+npm run test:compose
+```
+
+This is the same process that happens in the Supervisor repository CI system, to ensure released supervisor versions have been
+properly tested.
+
+Alternatively, you can launch a test environment using the following commands.
+
+```
+# Launch the environment
+npm run test:env
+
+# In another terminal, access the sut container
+docker-compose exec -i sut sh
+
+# Or alternatively, access the sut container using docker exec
+docker exec -ti $(docker ps -q --filter="name=_sut") sh
+```
+
+And then run all tests using
+
+```
+npm run test
+```
+
+For more information about testing the Supervisor, see the [testing README](test/README.md).
 
 #### Running specific tests quickly
 
-You can run specific tests quickly with the `test:node` script by matching with test suites (describe) or test cases (it) using a string or regexp:
+You can run specific tests quickly with the `test:unit` script or the `test:integration` script (if working in a test environment) by matching with test suites (describe) or test cases (it) using a string or regexp:
 
 ```sh
-npm run test:node -- -g spawnJournalctl
+npm run test:unit -- -g "JSON utils"
 
-npm run test:node -- -g "detect a V2 delta"
+npm run test:unit -- -g "detect a V2 delta"
 
-npm run test:node -- -g (GET|POST|PUT|DELETE)
+npm run test:unit -- -g "(GET|POST|PUT|DELETE)"
 ```
 
-The --grep option, when specified, will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
+The `--grep` option, when specified, will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
 
 ## Troubleshooting
 

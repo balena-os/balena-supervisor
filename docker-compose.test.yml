@@ -1,0 +1,40 @@
+version: '2.3'
+
+services:
+  # Override the supervisor service configuration. The tests will
+  # be run through the `sut` service
+  balena-supervisor:
+    build:
+      dockerfile: Dockerfile.null
+      context: ./
+    command: sleep infinity
+
+  docker:
+    image: docker:dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ''
+    command: --tls=false --debug
+
+  sut:
+    # Build the supervisor code for development and testing
+    build:
+      context: ./
+      dockerfile: Dockerfile.template
+      target: test
+      args:
+        # Change this if testing in another architecture
+        ARCH: amd64
+    depends_on:
+      - balena-supervisor
+      - docker
+    # Set required supervisor configuration variables here
+    environment:
+      DOCKER_HOST: tcp://docker:2375
+    # Set required mounts as tmpfs or volumes here
+    # if specific files need to be backed up between tests,
+    # make sure to add them to the `testfs` configuration under
+    # .mochapodrc.yml
+    tmpfs:
+      - /data
+      - /mnt/boot

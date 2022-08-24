@@ -1,0 +1,23 @@
+# This defines default configuration that
+# should apply to all mocha-pod/testfs instances
+testfs:
+  # These are test files that need to be configured
+  # for all tests. The `from` defines where to find
+  # them in the local source. These can be overriden
+  # in the `testfs` configuration.
+  filesystem:
+    /mnt/boot/config.json:
+      from: test/data/config.json
+    /mnt/boot/config.txt:
+      from: test/data/mnt/boot/config.txt
+    /mnt/boot/device-type.json:
+      from: test/data/mnt/boot/device-type.json
+    /etc/os-release:
+      from: test/data/etc/os-release
+  # The `keep` list defines files that already exist in the
+  # filesystem and need to be backed up before setting up the test environment
+  keep: []
+  # The `cleanup` list defines files created by the tests that need to be removed
+  # when restoring the filesystem
+  cleanup:
+    - /data/database.sqlite

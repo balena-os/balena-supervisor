@@ -1,0 +1,9 @@
+version: '2.3'
+
+services:
+  sut:
+    command: sleep infinity
+    volumes:
+      - './.mochapodrc.yml:/usr/src/app/.mochapodrc.yml'
+      - './src:/usr/src/app/src'
+      - './test:/usr/src/app/test'
