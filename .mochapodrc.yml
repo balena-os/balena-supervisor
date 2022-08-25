@@ -6,12 +6,13 @@ testfs:
   # them in the local source. These can be overriden
   # in the `testfs` configuration.
   filesystem:
-    /mnt/boot/config.json:
-      from: test/data/testconfig.json
-    /mnt/boot/config.txt:
-      from: test/data/mnt/boot/config.txt
-    /mnt/boot/device-type.json:
-      from: test/data/mnt/boot/device-type.json
+    /mnt/root:
+      /mnt/boot/config.json:
+        from: test/data/testconfig.json
+      /mnt/boot/config.txt:
+        from: test/data/mnt/boot/config.txt
+      /mnt/boot/device-type.json:
+        from: test/data/mnt/boot/device-type.json
     /mnt/root/etc/os-release:
       from: test/data/etc/os-release
   # The `keep` list defines files that already exist in the

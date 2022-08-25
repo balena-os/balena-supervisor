@@ -9,6 +9,10 @@ services:
       context: ./
     command: sleep infinity
 
+  dbus:
+    build:
+      context: ./test/lib/dbus/
+
   docker:
     image: docker:dind
     privileged: true
@@ -28,16 +32,19 @@ services:
     depends_on:
       - balena-supervisor
       - docker
+      - dbus
     # Set required supervisor configuration variables here
     environment:
       DOCKER_HOST: tcp://docker:2375
+      DBUS_SYSTEM_BUS_ADDRESS: tcp:host=dbus,port=6667,family=ipv4
       # Required by migrations
-      CONFIG_MOUNT_POINT: /mnt/boot/config.json
+      CONFIG_MOUNT_POINT: /mnt/root/mnt/boot/config.json
+      # Read by constants to setup `bootMountpoint`
+      BOOT_MOUNTPOINT: /mnt/boot
     # Set required mounts as tmpfs or volumes here
     # if specific files need to be backed up between tests,
     # make sure to add them to the `testfs` configuration under
     # .mochapodrc.yml
     tmpfs:
       - /data
-      - /mnt/boot
       - /mnt/root

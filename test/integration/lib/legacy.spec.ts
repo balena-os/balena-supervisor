@@ -1,31 +1,21 @@
 import { expect } from 'chai';
 import { isRight } from 'fp-ts/lib/Either';
-import * as sinon from 'sinon';
 import * as nock from 'nock';
 
 import { TargetState } from '~/src/types';
 import * as config from '~/src/config';
 import * as legacy from '~/lib/legacy';
-import log from '~/lib/supervisor-console';
 
 describe('lib/legacy', () => {
 	before(async () => {
-		// disable log output during testing
-		sinon.stub(log, 'debug');
-		sinon.stub(log, 'warn');
-		sinon.stub(log, 'info');
-		sinon.stub(log, 'event');
-		sinon.stub(log, 'success');
-
-		await config.initialized;
-
 		// Set the device uuid and name
+		// these migration methods read some data from the database
+		// (and other data from the API)
+		// which is also why they need to be defined as integration tests
+		// TODO: when the supervisor is a full app, we'll be able to control updates
+		// using contracts, meaning this legacy code can dissapear
 		await config.set({ uuid: 'local' });
 		await config.set({ name: 'my-device' });
-	});
-
-	after(() => {
-		sinon.restore();
 	});
 
 	describe('Converting target state v2 to v3', () => {
@@ -34,7 +24,6 @@ describe('lib/legacy', () => {
 
 			const decoded = TargetState.decode(target);
 			if (!isRight(decoded)) {
-				console.log(decoded.left);
 				// We do it this way let the type guard be triggered
 				expect.fail('Resulting target state is a valid v3 target state');
 			}
@@ -152,7 +141,6 @@ describe('lib/legacy', () => {
 
 			const decoded = TargetState.decode(target);
 			if (!isRight(decoded)) {
-				console.log(decoded.left);
 				// We do it this way let the type guard be triggered
 				expect.fail('Resulting target state is a valid v3 target state');
 			}
@@ -228,7 +216,6 @@ describe('lib/legacy', () => {
 
 			const decoded = TargetState.decode(target);
 			if (!isRight(decoded)) {
-				console.log(decoded.left);
 				// We do it this way let the type guard be triggered
 				expect.fail('Resulting target state is a valid v3 target state');
 			}
