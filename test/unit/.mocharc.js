@@ -7,6 +7,7 @@ module.exports = {
 		'ts-node/register/transpile-only',
 		'tsconfig-paths/register',
 		'test/lib/chai.ts',
+		'test/lib/mocha-hooks.ts',
 	],
 	spec: ['test/unit/**/*.spec.ts'],
 	timeout: '30000',

@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import * as sinon from 'sinon';
 
 import { expect } from 'chai';
 import { createContainer } from '~/test-lib/mockerode';
@@ -8,8 +7,6 @@ import Service from '~/src/compose/service';
 import Volume from '~/src/compose/volume';
 import * as ServiceT from '~/src/compose/types/service';
 import * as constants from '~/lib/constants';
-
-import log from '~/lib/supervisor-console';
 
 const configs = {
 	simple: {
@@ -30,18 +27,6 @@ const configs = {
 };
 
 describe('compose/service: unit tests', () => {
-	before(() => {
-		// disable log output during testing
-		sinon.stub(log, 'debug');
-		sinon.stub(log, 'warn');
-		sinon.stub(log, 'info');
-		sinon.stub(log, 'success');
-	});
-
-	after(() => {
-		sinon.restore();
-	});
-
 	describe('Creating a service instance from a compose object', () => {
 		it('extends environment variables with additional OS info', async () => {
 			const extendEnvVarsOpts = {

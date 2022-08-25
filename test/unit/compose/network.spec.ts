@@ -90,7 +90,7 @@ describe('compose/network: unit tests', () => {
 		});
 
 		it('warns about IPAM configuration without both gateway and subnet', () => {
-			const logSpy = sinon.spy(log, 'warn');
+			const logStub = log.warn as sinon.SinonStub;
 
 			Network.fromComposeObject('default', 12345, 'deadbeef', {
 				ipam: {
@@ -104,12 +104,12 @@ describe('compose/network: unit tests', () => {
 				},
 			});
 
-			expect(logSpy).to.have.been.calledOnce;
-			expect(logSpy).to.have.been.calledWithMatch(
+			expect(logStub).to.have.been.calledOnce;
+			expect(logStub).to.have.been.calledWithMatch(
 				'Network IPAM config entries must have both a subnet and gateway',
 			);
 
-			logSpy.resetHistory();
+			logStub.resetHistory();
 
 			Network.fromComposeObject('default', 12345, 'deadbeef', {
 				ipam: {
@@ -123,12 +123,10 @@ describe('compose/network: unit tests', () => {
 				},
 			});
 
-			expect(logSpy).to.have.been.calledOnce;
-			expect(logSpy).to.have.been.calledWithMatch(
+			expect(logStub).to.have.been.calledOnce;
+			expect(logStub).to.have.been.calledWithMatch(
 				'Network IPAM config entries must have both a subnet and gateway',
 			);
-
-			logSpy.restore();
 		});
 
 		it('parses values from a compose object', () => {
