@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import * as sinon from 'sinon';
 import App from '~/src/compose/app';
 import {
 	CompositionStep,
@@ -10,7 +9,6 @@ import Network from '~/src/compose/network';
 import Service from '~/src/compose/service';
 import { ServiceComposeConfig } from '~/src/compose/types/service';
 import Volume from '~/src/compose/volume';
-import log from '~/lib/supervisor-console';
 
 const defaultContext = {
 	localMode: false,
@@ -117,19 +115,6 @@ function expectNoStep(action: CompositionStepAction, steps: CompositionStep[]) {
 const defaultNetwork = Network.fromComposeObject('default', 1, 'appuuid', {});
 
 describe('compose/app', () => {
-	before(() => {
-		// disable log output during testing
-		sinon.stub(log, 'debug');
-		sinon.stub(log, 'warn');
-		sinon.stub(log, 'info');
-		sinon.stub(log, 'event');
-		sinon.stub(log, 'success');
-	});
-
-	after(() => {
-		// Restore stubbed methods
-		sinon.restore();
-	});
 	describe('volume state behavior', () => {
 		it('should correctly infer a volume create step', () => {
 			// Setup current and target apps

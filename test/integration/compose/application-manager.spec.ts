@@ -11,10 +11,8 @@ import * as networkManager from '~/src/compose/network-manager';
 import Service from '~/src/compose/service';
 import { ServiceComposeConfig } from '~/src/compose/types/service';
 import Volume from '~/src/compose/volume';
-import log from '~/lib/supervisor-console';
 import { InstancedAppState } from '~/src/types/state';
-
-import * as dbHelper from '~/test-lib/db-helper';
+import * as config from '~/src/config';
 
 const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, 'appuuid', {});
 
@@ -163,46 +161,46 @@ function createCurrentState({
 	};
 }
 
+// TODO: application manager inferNextSteps still queries some stuff from
+// the engine instead of receiving that information as parameter. Refactoring
+// the method to be more of a pure function would allow us to move a lot of these tests
+// to unit tests, leaving the need of integration tests just for more complex stuff that
+// the application-manager also does and that is not currently tested.
+// TODO: also, there is some redundancy between what is tested here and what is tested in
+// the app spec, remove that redundancy to simplify the tests
 describe('compose/application-manager', () => {
-	let testDb: dbHelper.TestDatabase;
-
 	before(async () => {
-		testDb = await dbHelper.createDB();
-
-		// disable log output during testing
-		sinon.stub(log, 'debug');
-		sinon.stub(log, 'warn');
-		sinon.stub(log, 'info');
-		sinon.stub(log, 'event');
-		sinon.stub(log, 'success');
-
 		// Stub methods that depend on external dependencies
 		stub(imageManager, 'isCleanupNeeded');
 		stub(networkManager, 'supervisorNetworkReady');
+
+		// Service.fromComposeObject gets api keys from the database
+		// which also depend on the local mode. This ensures the database
+		// is initialized. This can be removed when ApplicationManager and Service
+		// a refactored to work as pure functions
+		await config.initialized();
 	});
 
 	beforeEach(() => {
 		// Do not check for cleanup images by default
 		(imageManager.isCleanupNeeded as sinon.SinonStub).resolves(false);
 		// Do not check for network
+		// TODO: supervisorNetworkReady not only checks for a docker network, it also checks for the
+		// network interface to be created. That makes it harder to integration test with an external
+		// docker socket
 		(networkManager.supervisorNetworkReady as sinon.SinonStub).resolves(true);
 	});
 
-	afterEach(async () => {
-		await testDb.reset();
+	after(() => {
+		// Restore stubs
+		(imageManager.isCleanupNeeded as sinon.SinonStub).restore();
+		(networkManager.supervisorNetworkReady as sinon.SinonStub).restore();
 	});
 
-	after(async () => {
-		try {
-			await testDb.destroy();
-		} catch {
-			/* noop */
-		}
-		// Restore stubbed methods
-		sinon.restore();
-	});
-
-	it('should init', async () => {
+	// TODO: we don't test application manager initialization as it sets up a bunch of timers
+	// and listeners that may affect other tests. This is a bad pattern and it needs to be purged
+	// from the codebase
+	it.skip('should init', async () => {
 		await applicationManager.initialized();
 	});
 
