@@ -8,7 +8,6 @@ import Service from '~/src/compose/service';
 import Volume from '~/src/compose/volume';
 import * as ServiceT from '~/src/compose/types/service';
 import * as constants from '~/lib/constants';
-import * as apiKeys from '~/lib/api-keys';
 
 import log from '~/lib/supervisor-console';
 
@@ -30,7 +29,7 @@ const configs = {
 	},
 };
 
-describe('compose/service', () => {
+describe('compose/service: unit tests', () => {
 	before(() => {
 		// disable log output during testing
 		sinon.stub(log, 'debug');
@@ -823,66 +822,6 @@ describe('compose/service', () => {
 				expect(s.config)
 					.to.have.property('deviceRequests')
 					.that.deep.equals([gpuDeviceRequest]);
-			});
-		});
-
-		describe('io.balena.supervisor-api', () => {
-			it('sets BALENA_SUPERVISOR_HOST, BALENA_SUPERVISOR_PORT and BALENA_SUPERVISOR_ADDRESS env vars', async () => {
-				const service = await Service.fromComposeObject(
-					{
-						appId: 123456,
-						serviceId: 123456,
-						serviceName: 'foobar',
-						labels: {
-							'io.balena.features.supervisor-api': '1',
-						},
-					},
-					{
-						appName: 'test',
-						supervisorApiHost: 'supervisor',
-						listenPort: 48484,
-					} as any,
-				);
-
-				expect(
-					service.config.environment['BALENA_SUPERVISOR_HOST'],
-				).to.be.equal('supervisor');
-
-				expect(
-					service.config.environment['BALENA_SUPERVISOR_PORT'],
-				).to.be.equal('48484');
-
-				expect(
-					service.config.environment['BALENA_SUPERVISOR_ADDRESS'],
-				).to.be.equal('http://supervisor:48484');
-			});
-
-			it('sets BALENA_API_KEY env var to the scoped API key value', async () => {
-				// TODO: should we add an integration test that checks that the value used for the API key comes
-				// from the database
-				sinon.stub(apiKeys, 'generateScopedKey').resolves('this is a secret');
-
-				const service = await Service.fromComposeObject(
-					{
-						appId: 123456,
-						serviceId: 123456,
-						serviceName: 'foobar',
-						labels: {
-							'io.balena.features.supervisor-api': '1',
-						},
-					},
-					{
-						appName: 'test',
-						supervisorApiHost: 'supervisor',
-						listenPort: 48484,
-					} as any,
-				);
-
-				expect(
-					service.config.environment['BALENA_SUPERVISOR_API_KEY'],
-				).to.be.equal('this is a secret');
-
-				(apiKeys.generateScopedKey as sinon.SinonStub).restore();
 			});
 		});
 	});
