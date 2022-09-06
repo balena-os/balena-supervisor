@@ -61,8 +61,8 @@ async function createVolumeFromLegacyData(
  * Gets proper database ids from the cloud for the app and app services
  */
 export async function normaliseLegacyDatabase() {
-	await apiBinder.initialized;
-	await deviceState.initialized;
+	await apiBinder.initialized();
+	await deviceState.initialized();
 
 	if (apiBinder.balenaApi == null) {
 		throw new InternalInconsistencyError(
@@ -217,7 +217,7 @@ export async function normaliseLegacyDatabase() {
 	await serviceManager.killAllLegacy();
 	log.debug('Migrating legacy app volumes');
 
-	await applicationManager.initialized;
+	await applicationManager.initialized();
 	const targetApps = await applicationManager.getTargetApps();
 
 	for (const appUuid of Object.keys(targetApps)) {
@@ -275,8 +275,8 @@ export async function fromV2TargetApps(
 	apps: TargetAppsV2,
 	local = false,
 ): Promise<TargetApps> {
-	await apiBinder.initialized;
-	await deviceState.initialized;
+	await apiBinder.initialized();
+	await deviceState.initialized();
 
 	if (apiBinder.balenaApi == null) {
 		throw new InternalInconsistencyError(

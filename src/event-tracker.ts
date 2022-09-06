@@ -29,8 +29,8 @@ let defaultProperties: EventTrackProperties;
 // to it within the rest of the supervisor codebase
 export let client: mixpanel.Mixpanel | null = null;
 
-export const initialized = (async () => {
-	await config.initialized;
+export const initialized = _.once(async () => {
+	await config.initialized();
 
 	const {
 		unmanaged,
@@ -57,13 +57,13 @@ export const initialized = (async () => {
 		host: mixpanelHost.host,
 		path: mixpanelHost.path,
 	});
-})();
+});
 
 export async function track(
 	event: string,
 	properties: EventTrackProperties | Error = {},
 ) {
-	await initialized;
+	await initialized();
 
 	if (properties instanceof Error) {
 		properties = { error: properties };

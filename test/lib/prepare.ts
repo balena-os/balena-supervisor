@@ -3,8 +3,8 @@ import * as db from '~/src/db';
 import * as config from '~/src/config';
 
 export = async function () {
-	await db.initialized;
-	await config.initialized;
+	await db.initialized();
+	await config.initialized();
 
 	await db.transaction(async (trx) => {
 		const result = await trx.raw(`

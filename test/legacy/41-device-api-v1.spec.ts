@@ -80,9 +80,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	});
 
 	before(async () => {
-		await apiBinder.initialized;
-		await deviceState.initialized;
-		await targetStateCache.initialized;
+		await apiBinder.initialized();
+		await deviceState.initialized();
+		await targetStateCache.initialized();
 
 		// Do not apply target state
 		stub(deviceState, 'applyStep').resolves();
@@ -107,7 +107,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		targetStateCacheMock = stub(targetStateCache, 'getTargetApp');
 
 		// Create a scoped key
-		await apiKeys.initialized;
+		await apiKeys.initialized();
 		await apiKeys.generateCloudKey();
 
 		// Stub logs for all API methods

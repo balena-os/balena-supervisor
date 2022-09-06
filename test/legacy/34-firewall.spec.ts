@@ -40,8 +40,8 @@ describe('Host Firewall', function () {
 			},
 		} as Docker.Image);
 
-		await targetStateCache.initialized;
-		await firewall.initialised;
+		await targetStateCache.initialized();
+		await firewall.initialised();
 
 		apiEndpoint = await config.get('apiEndpoint');
 		listenPort = await config.get('listenPort');

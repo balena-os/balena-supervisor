@@ -29,7 +29,7 @@ describe('LocalModeManager', () => {
 	});
 
 	before(async () => {
-		await db.initialized;
+		await db.initialized();
 
 		dockerStub = sinon.stub(docker);
 

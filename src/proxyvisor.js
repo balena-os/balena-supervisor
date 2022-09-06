@@ -367,7 +367,8 @@ export class Proxyvisor {
 		this.router = createProxyvisorRouter(this);
 		this.actionExecutors = {
 			updateDependentTargets: (step) => {
-				return config.initialized
+				return config
+					.initialized()
 					.then(() => config.getMany(['currentApiKey', 'apiTimeout']))
 					.then(({ currentApiKey, apiTimeout }) => {
 						// - take each of the step.devices and update dependentDevice with it (targetCommit, targetEnvironment, targetConfig)

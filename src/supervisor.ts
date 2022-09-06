@@ -34,12 +34,12 @@ export class Supervisor {
 	public async init() {
 		log.info(`Supervisor v${version} starting up...`);
 
-		await db.initialized;
-		await config.initialized;
-		await eventTracker.initialized;
-		await avahi.initialized;
+		await db.initialized();
+		await config.initialized();
+		await eventTracker.initialized();
+		await avahi.initialized();
 		log.debug('Starting logging infrastructure');
-		await logger.initialized;
+		await logger.initialized();
 
 		const conf = await config.getMany(startupConfigFields);
 
@@ -50,12 +50,12 @@ export class Supervisor {
 		});
 
 		log.info('Starting firewall');
-		await firewall.initialised;
+		await firewall.initialised();
 
 		log.debug('Starting api binder');
-		await apiBinder.initialized;
+		await apiBinder.initialized();
 
-		await deviceState.initialized;
+		await deviceState.initialized();
 
 		logger.logSystemMessage('Supervisor starting', {}, 'Supervisor start');
 		if (conf.legacyAppsPresent && apiBinder.balenaApi != null) {

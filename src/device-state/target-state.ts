@@ -46,18 +46,6 @@ let cache: CachedResponse;
 let appUpdatePollInterval: number;
 
 /**
- * Listen for config changes to appUpdatePollInterval
- */
-(async () => {
-	await config.initialized;
-	config.on('change', (changedConfig) => {
-		if (changedConfig.appUpdatePollInterval) {
-			appUpdatePollInterval = changedConfig.appUpdatePollInterval;
-		}
-	});
-})();
-
-/**
  * Emit target state event based on if the CacheResponse has/was emitted.
  *
  * Returns false if the CacheResponse is not emitted.
@@ -115,7 +103,7 @@ export const update = async (
 	force = false,
 	isFromApi = false,
 ): Promise<void> => {
-	await config.initialized;
+	await config.initialized();
 	return Bluebird.using(lockGetTarget(), async () => {
 		const {
 			uuid,
@@ -228,6 +216,17 @@ export const get = async (): Promise<TargetState> => {
 export const startPoll = async (): Promise<void> => {
 	let instantUpdates;
 	try {
+		await config.initialized();
+
+		/**
+		 * Listen for config changes to appUpdatePollInterval
+		 */
+		config.on('change', (changedConfig) => {
+			if (changedConfig.appUpdatePollInterval) {
+				appUpdatePollInterval = changedConfig.appUpdatePollInterval;
+			}
+		});
+
 		// Query and set config values we need to avoid multiple db hits
 		const {
 			instantUpdates: updates,

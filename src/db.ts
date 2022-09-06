@@ -1,5 +1,6 @@
 import * as Knex from 'knex';
 import * as path from 'path';
+import * as _ from 'lodash';
 
 import * as constants from './lib/constants';
 
@@ -16,7 +17,7 @@ const knex = Knex({
 	useNullAsDefault: true,
 });
 
-export const initialized = (async () => {
+export const initialized = _.once(async () => {
 	try {
 		await knex('knex_migrations_lock').update({ is_locked: 0 });
 	} catch {
@@ -25,7 +26,7 @@ export const initialized = (async () => {
 	return knex.migrate.latest({
 		directory: path.join(__dirname, 'migrations'),
 	});
-})();
+});
 
 export function models(modelName: string): Knex.QueryBuilder {
 	return knex(modelName);

@@ -16,7 +16,7 @@ export async function createDB() {
 	delete require.cache[require.resolve('~/src/db')];
 
 	// Initialize the database module
-	await db.initialized;
+	await db.initialized();
 
 	// Get the knex instance to allow queries to the db
 	const { models, upsertModel } = db;

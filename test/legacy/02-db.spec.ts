@@ -59,7 +59,7 @@ describe('Database Migrations', () => {
 		delete require.cache[require.resolve('~/src/db')];
 
 		const testDb = await import('~/src/db');
-		await testDb.initialized;
+		await testDb.initialized();
 		expect(await exists(databasePath)).to.be.true;
 	});
 
@@ -71,7 +71,7 @@ describe('Database Migrations', () => {
 		constants.databasePath = databasePath;
 		delete require.cache[require.resolve('~/src/db')];
 		const testDb = await import('~/src/db');
-		await testDb.initialized;
+		await testDb.initialized();
 		await Bluebird.all([
 			expect(knexForDB.schema.hasColumn('app', 'appId')).to.eventually.be.true,
 			expect(knexForDB.schema.hasColumn('app', 'releaseId')).to.eventually.be
@@ -104,7 +104,7 @@ describe('Database', () => {
 		db = await import('~/src/db');
 	});
 	it('initializes correctly, running the migrations', () => {
-		return expect(db.initialized).to.be.fulfilled;
+		return expect(db.initialized()).to.be.fulfilled;
 	});
 	it('creates a database at the path from an env var', async () => {
 		expect(await exists(process.env.DATABASE_PATH!)).to.be.true;

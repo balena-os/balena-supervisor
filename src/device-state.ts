@@ -285,9 +285,9 @@ events.on('apply-target-state-end', function (err) {
 	}
 });
 
-export const initialized = (async () => {
-	await config.initialized;
-	await applicationManager.initialized;
+export const initialized = _.once(async () => {
+	await config.initialized();
+	await applicationManager.initialized();
 
 	applicationManager.on('change', (d) => reportCurrentState(d));
 	createDeviceStateRouter();
@@ -301,7 +301,7 @@ export const initialized = (async () => {
 			maxPollTime = changedConfig.appUpdatePollInterval;
 		}
 	});
-})();
+});
 
 export function isApplyInProgress() {
 	return applyInProgress;
@@ -374,8 +374,8 @@ async function saveInitialConfig() {
 }
 
 export async function loadInitialState() {
-	await applicationManager.initialized;
-	await apiKeys.initialized;
+	await applicationManager.initialized();
+	await apiKeys.initialized();
 
 	const conf = await config.getMany([
 		'initialConfigSaved',
@@ -466,8 +466,8 @@ function usingInferStepsLock<T extends () => any, U extends ReturnType<T>>(
 }
 
 export async function setTarget(target: TargetState, localSource?: boolean) {
-	await db.initialized;
-	await config.initialized;
+	await db.initialized();
+	await config.initialized();
 
 	// When we get a new target state, clear any built up apply errors
 	// This means that we can attempt to apply the new state instantly

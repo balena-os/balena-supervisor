@@ -1,10 +1,12 @@
 import * as config from '../config';
 import * as dbus from './dbus';
 
+import * as _ from 'lodash';
+
 import log from './supervisor-console';
 
-export const initialized = (async () => {
-	await config.initialized;
+export const initialized = _.once(async () => {
+	await config.initialized();
 
 	config.on('change', (conf) => {
 		if (conf.hostDiscoverability != null) {
@@ -13,7 +15,7 @@ export const initialized = (async () => {
 	});
 
 	await switchDiscoverability(await config.get('hostDiscoverability'));
-})();
+});
 
 async function switchDiscoverability(discoverable: boolean) {
 	try {

@@ -142,7 +142,7 @@ export class ConfigFs extends ConfigBackend {
 			log.success('Initialised ConfigFS');
 		} catch (error) {
 			log.error(error);
-			await logger.initialized;
+			await logger.initialized();
 			logger.logSystemMessage(
 				'Unable to initialise ConfigFS',
 				{ error },

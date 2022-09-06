@@ -24,8 +24,8 @@ let backend: LogBackend | null = null;
 let balenaBackend: BalenaLogBackend | null = null;
 let localBackend: LocalLogBackend | null = null;
 
-export const initialized = (async () => {
-	await config.initialized;
+export const initialized = _.once(async () => {
+	await config.initialized();
 	const {
 		apiEndpoint,
 		uuid,
@@ -71,7 +71,7 @@ export const initialized = (async () => {
 			}
 		});
 	}
-})();
+});
 
 export function switchBackend(localMode: boolean) {
 	if (localMode) {

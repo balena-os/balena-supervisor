@@ -8,8 +8,8 @@ import { logSystemMessage } from '../logger';
 
 import * as dbFormat from '../device-state/db-format';
 
-export const initialised = (async () => {
-	await config.initialized;
+export const initialised = _.once(async () => {
+	await config.initialized();
 	await applyFirewall();
 
 	// apply firewall whenever relevant config changes occur...
@@ -18,7 +18,7 @@ export const initialised = (async () => {
 			applyFirewall({ firewallMode, localMode });
 		}
 	});
-})();
+});
 
 const BALENA_FIREWALL_CHAIN = 'BALENA-FIREWALL';
 

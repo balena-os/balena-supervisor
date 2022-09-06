@@ -153,8 +153,8 @@ export const provision = async (
 	balenaApi: PinejsClientRequest,
 	opts: KeyExchangeOpts,
 ) => {
-	await config.initialized;
-	await eventTracker.initialized;
+	await config.initialized();
+	await eventTracker.initialized();
 
 	let device: Device | null = null;
 

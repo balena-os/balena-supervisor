@@ -115,8 +115,8 @@ let targetVolatilePerImageId: {
 	[imageId: number]: Partial<Service['config']>;
 } = {};
 
-export const initialized = (async () => {
-	await config.initialized;
+export const initialized = _.once(async () => {
+	await config.initialized();
 
 	await imageManager.cleanImageData();
 	const cleanup = async () => {
@@ -140,7 +140,7 @@ export const initialized = (async () => {
 
 	imageManager.on('change', reportCurrentState);
 	serviceManager.on('change', reportCurrentState);
-})();
+});
 
 export function getDependentState() {
 	return proxyvisor.getCurrentStates();

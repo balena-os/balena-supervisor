@@ -41,10 +41,10 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 	} as any;
 
 	ApiBinder = await import('~/src/api-binder');
-	await ApiBinder.initialized;
+	await ApiBinder.initialized();
 	obj.apiBinder = ApiBinder;
 
-	await deviceState.initialized;
+	await deviceState.initialized();
 	obj.deviceState = deviceState;
 };
 
