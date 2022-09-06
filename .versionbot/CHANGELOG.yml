@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add custom DTB support for imx8mm-var-som
+      hash: 36544b7d6e53c8a501a6def40ac0370346e63b78
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 14.0.16
+  title: "'Add custom DTB support for imx8mm-var-som'"
+  date: 2022-09-06T14:36:03.142Z
+- commits:
     - subject: Create `test/unit` and `test/integration` folders
       hash: c1e6dadeb47c3c52958383a2fc775a821362f853
       body: |
