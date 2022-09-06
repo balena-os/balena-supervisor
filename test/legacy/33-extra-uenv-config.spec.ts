@@ -273,5 +273,7 @@ const MATCH_TESTS = [
 	{ type: 'imx8mm-var-dart', supported: true },
 	{ type: 'imx8mm-var-dart-nrt', supported: true },
 	{ type: 'imx8mm-var-dart-plt', supported: true },
+	{ type: 'imx8mm-var-som', supported: true },
+	{ type: 'imx8m-var-som', supported: false },
 	{ type: 'imx6ul-var-dart', supported: false },
 ];
