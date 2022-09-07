@@ -1,3 +1,7 @@
+import { set } from '@balena/es-version';
+// Set the desired es version for downstream modules that support it, before we import any
+set('es2019');
+
 import { NOTFOUND } from 'dns';
 import * as mdnsResolver from 'mdns-resolver';
 

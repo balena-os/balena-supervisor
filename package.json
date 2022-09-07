@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@balena/contrato": "^0.6.0",
+    "@balena/es-version": "^1.0.1",
     "@balena/lint": "^5.1.0",
     "@types/bluebird": "^3.5.32",
     "@types/chai": "^4.2.16",
@@ -108,7 +109,7 @@
     "network-checker": "^0.1.1",
     "nock": "^13.1.2",
     "nodemon": "^2.0.4",
-    "pinejs-client-request": "^7.2.1",
+    "pinejs-client-request": "^7.3.5",
     "pretty-ms": "^7.0.1",
     "request": "^2.88.2",
     "resin-docker-build": "^1.1.6",
