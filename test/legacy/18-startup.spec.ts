@@ -19,7 +19,7 @@ describe('Startup', () => {
 		startStub = stub(apiBinder as any, 'start').resolves();
 		deviceStateStub = stub(deviceState, 'applyTarget').resolves();
 		// @ts-expect-error
-		applicationManager.initialized = Promise.resolve();
+		applicationManager.initialized = () => Promise.resolve();
 		vpnStatusPathStub = stub(constants, 'vpnStatusPath').returns('');
 		dockerStub = stub(docker, 'listContainers').returns(Promise.resolve([]));
 	});

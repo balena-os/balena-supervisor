@@ -46,7 +46,7 @@ describe('EventTracker', () => {
 		});
 
 		it('initializes in unmanaged mode', () => {
-			expect(eventTracker.initialized).to.be.fulfilled.then(() => {
+			expect(eventTracker.initialized()).to.be.fulfilled.then(() => {
 				expect(eventTracker.client).to.be.null;
 			});
 		});
@@ -89,7 +89,7 @@ describe('EventTracker', () => {
 		});
 
 		it('initializes a mixpanel client when not in unmanaged mode', () => {
-			expect(eventTracker.initialized).to.be.fulfilled.then(() => {
+			expect(eventTracker.initialized()).to.be.fulfilled.then(() => {
 				expect(mixpanel.init).to.have.been.calledWith('someToken');
 				// @ts-ignore
 				expect(eventTracker.client.token).to.equal('someToken');
@@ -120,7 +120,7 @@ describe('EventTracker', () => {
 			} as any);
 
 			eventTracker = await import('~/src/event-tracker');
-			await eventTracker.initialized;
+			await eventTracker.initialized();
 		});
 
 		after(() => {
@@ -197,7 +197,7 @@ describe('EventTracker', () => {
 				track: stub(),
 			} as any);
 			eventTracker = await import('~/src/event-tracker');
-			await eventTracker.initialized;
+			await eventTracker.initialized();
 		});
 
 		after(() => {

@@ -343,7 +343,7 @@ function checkValueDecode(
 	return true;
 }
 
-export const initialized = (async () => {
-	await db.initialized;
+export const initialized = _.once(async () => {
+	await db.initialized();
 	await generateRequiredFields();
-})();
+});

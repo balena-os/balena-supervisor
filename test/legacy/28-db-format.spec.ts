@@ -21,7 +21,7 @@ describe('db-format', () => {
 	before(async () => {
 		testDb = await dbHelper.createDB();
 
-		await config.initialized;
+		await config.initialized();
 		// Prevent side effects from changes in config
 		sinon.stub(config, 'on');
 

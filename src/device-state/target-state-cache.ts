@@ -52,9 +52,9 @@ export type DatabaseService = {
  */
 let targetState: DatabaseApp[] | undefined;
 
-export const initialized = (async () => {
-	await db.initialized;
-	await config.initialized;
+export const initialized = _.once(async () => {
+	await db.initialized();
+	await config.initialized();
 	// If we switch backend, the target state also needs to
 	// be invalidated (this includes switching to and from
 	// local mode)
@@ -63,7 +63,7 @@ export const initialized = (async () => {
 			targetState = undefined;
 		}
 	});
-})();
+});
 
 export async function getTargetApp(
 	appId: number,

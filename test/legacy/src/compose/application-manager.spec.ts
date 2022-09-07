@@ -203,7 +203,7 @@ describe('compose/application-manager', () => {
 	});
 
 	it('should init', async () => {
-		await applicationManager.initialized;
+		await applicationManager.initialized();
 	});
 
 	// TODO: missing tests for getCurrentApps

@@ -38,7 +38,7 @@ describe('Logger', function () {
 		// delete the require cache for the logger module so we can force a refresh
 		delete require.cache[require.resolve('~/src/logger')];
 		logger = await import('~/src/logger');
-		await logger.initialized;
+		await logger.initialized();
 	});
 
 	afterEach(function () {

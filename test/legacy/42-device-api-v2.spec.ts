@@ -32,8 +32,8 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 	let loggerStub: SinonStub;
 
 	before(async () => {
-		await apiBinder.initialized;
-		await deviceState.initialized;
+		await apiBinder.initialized();
+		await deviceState.initialized();
 
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed
@@ -46,7 +46,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 		);
 
 		// Create a scoped key
-		await apiKeys.initialized;
+		await apiKeys.initialized();
 		await apiKeys.generateCloudKey();
 		serviceManagerMock = stub(serviceManager, 'getAll').resolves([]);
 		imagesMock = stub(images, 'getState').resolves([]);

@@ -147,7 +147,7 @@ export async function getTargetJson(): Promise<TargetApps> {
 function getDBEntry(): Promise<DatabaseApp[]>;
 function getDBEntry(appId: number): Promise<DatabaseApp>;
 async function getDBEntry(appId?: number) {
-	await targetStateCache.initialized;
+	await targetStateCache.initialized();
 
 	return appId != null
 		? targetStateCache.getTargetApp(appId)

@@ -547,10 +547,10 @@ async function reportInitialName(
 
 export let balenaApi: PinejsClientRequest | null = null;
 
-export const initialized = (async () => {
-	await config.initialized;
-	await eventTracker.initialized;
-	await deviceState.initialized;
+export const initialized = _.once(async () => {
+	await config.initialized();
+	await eventTracker.initialized();
+	await deviceState.initialized();
 
 	const { unmanaged, apiEndpoint, currentApiKey } = await config.getMany([
 		'unmanaged',
@@ -573,7 +573,7 @@ export const initialized = (async () => {
 	});
 
 	log.info(`API Binder bound to: ${baseUrl}`);
-})();
+});
 
 export const router = express.Router();
 router.use(express.urlencoded({ limit: '10mb', extended: true }));

@@ -92,12 +92,12 @@ export type AuthorizedRequestHandler = (
 export let cloudApiKey: string = '';
 
 // should be called before trying to use this singleton
-export const initialized = (async () => {
-	await db.initialized;
+export const initialized = _.once(async () => {
+	await db.initialized();
 
 	// make sure we have an API key which the cloud will use to call us
 	await generateCloudKey();
-})();
+});
 
 /**
  * This middleware will extract an API key used to make a call, and then expand it out to provide
@@ -139,7 +139,7 @@ export const authMiddleware: AuthorizedRequestHandler = async (
 
 		// if we have a key, find the scopes and add them to the request
 		if (apiKey && apiKey !== '') {
-			await initialized;
+			await initialized();
 			const scopes = await getScopesForKey(apiKey);
 
 			if (scopes != null) {
@@ -200,7 +200,7 @@ export async function generateScopedKey(
 	serviceName: string,
 	options?: Partial<GenerateKeyOptions>,
 ): Promise<string> {
-	await initialized;
+	await initialized();
 	return await generateKey(appId, serviceName, options);
 }
 
@@ -243,7 +243,7 @@ export async function refreshKey(key: string): Promise<string> {
  */
 const getApiKeyForService = memoizee(
 	async (appId: number, serviceName: string | null): Promise<DbApiSecret[]> => {
-		await db.initialized;
+		await db.initialized();
 
 		return await db.models('apiSecret').where({ appId, serviceName }).select();
 	},
@@ -259,7 +259,7 @@ const getApiKeyForService = memoizee(
  */
 const getApiKeyByKey = memoizee(
 	async (key: string): Promise<DbApiSecret> => {
-		await db.initialized;
+		await db.initialized();
 
 		const [apiKey] = await db.models('apiSecret').where({ key }).select();
 		return apiKey;

@@ -21,8 +21,8 @@ describe('SupervisorAPI', () => {
 	const request = supertest(`http://127.0.0.1:${mockedOptions.listenPort}`);
 
 	before(async () => {
-		await apiBinder.initialized;
-		await deviceState.initialized;
+		await apiBinder.initialized();
+		await deviceState.initialized();
 
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed
@@ -32,7 +32,7 @@ describe('SupervisorAPI', () => {
 		await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 
 		// Create a scoped key
-		await apiKeys.initialized;
+		await apiKeys.initialized();
 		await apiKeys.generateCloudKey();
 	});
 
@@ -109,7 +109,7 @@ describe('SupervisorAPI', () => {
 			const scopes = await apiKeys.getScopesForKey(apiKeys.cloudApiKey);
 
 			const key = 'not-a-normal-key';
-			await db.initialized;
+			await db.initialized();
 			await db
 				.models('apiSecret')
 				.update({

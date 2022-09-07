@@ -13,7 +13,7 @@ import { fnSchema } from '~/src/config/functions';
 describe('Config', () => {
 	before(async () => {
 		await prepare();
-		await conf.initialized;
+		await conf.initialized();
 	});
 
 	it('reads and exposes values from the config.json', async () => {

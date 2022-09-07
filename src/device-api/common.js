@@ -11,8 +11,8 @@ import { lock } from '../lib/update-lock';
 import { appNotFoundMessage } from '../lib/messages';
 
 export async function doRestart(appId, force) {
-	await deviceState.initialized;
-	await applicationManager.initialized;
+	await deviceState.initialized();
+	await applicationManager.initialized();
 
 	return lock(appId, { force }, () =>
 		deviceState.getCurrentState().then(function (currentState) {
@@ -38,8 +38,8 @@ export async function doRestart(appId, force) {
 }
 
 export async function doPurge(appId, force) {
-	await deviceState.initialized;
-	await applicationManager.initialized;
+	await deviceState.initialized();
+	await applicationManager.initialized();
 
 	logger.logSystemMessage(
 		`Purging data for app ${appId}`,

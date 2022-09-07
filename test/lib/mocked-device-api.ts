@@ -157,8 +157,8 @@ async function cleanUp(): Promise<void> {
 }
 
 async function createAPIOpts(): Promise<void> {
-	await db.initialized;
-	await deviceState.initialized;
+	await db.initialized();
+	await deviceState.initialized();
 
 	// Initialize and set values for mocked Config
 	await initConfig();
@@ -166,7 +166,7 @@ async function createAPIOpts(): Promise<void> {
 
 async function initConfig(): Promise<void> {
 	// Initialize this config
-	await config.initialized;
+	await config.initialized();
 
 	// Set a currentCommit
 	for (const [id, commit] of Object.entries(STUBBED_VALUES.commits)) {

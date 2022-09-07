@@ -44,7 +44,7 @@ describe('device-state', () => {
 	before(async () => {
 		testDb = await dbHelper.createDB();
 
-		await config.initialized;
+		await config.initialized();
 
 		// Prevent side effects from changes in config
 		sinon.stub(config, 'on');
@@ -52,7 +52,7 @@ describe('device-state', () => {
 		// Set the device uuid
 		await config.set({ uuid: 'local' });
 
-		await deviceState.initialized;
+		await deviceState.initialized();
 
 		// disable log output during testing
 		sinon.stub(log, 'debug');
