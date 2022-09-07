@@ -330,6 +330,9 @@ export async function addFeaturesFromLabels(
 	};
 
 	const features = {
+		'io.balena.features.bind-mount': () => {
+			service.config.volumes.push('/mnt/data/bind-mount:/bind-mount:shared');
+		},
 		'io.balena.features.journal-logs': () => {
 			service.config.volumes.push('/var/log/journal:/var/log/journal:ro');
 			service.config.volumes.push('/run/log/journal:/run/log/journal:ro');
