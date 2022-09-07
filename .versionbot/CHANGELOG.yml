@@ -1,4 +1,16 @@
 - commits:
+    - subject: Set desired es-version for downstream modules that support it
+      hash: fadd51446306164b63267d2d353ae6aa00224e0c
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Thodoris Greasidis
+      nested: []
+  version: 14.0.18
+  title: "'Set desired es-version for downstream modules that support it'"
+  date: 2022-09-07T15:42:42.655Z
+- commits:
     - subject: Remove side effects for module imports
       hash: 48e0733c7e734b401f6072df5a396dfc04075d98
       body: |
