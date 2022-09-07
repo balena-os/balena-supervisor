@@ -109,7 +109,7 @@
     "network-checker": "^0.1.1",
     "nock": "^13.1.2",
     "nodemon": "^2.0.4",
-    "pinejs-client-request": "^7.2.1",
+    "pinejs-client-request": "^7.3.5",
     "pretty-ms": "^7.0.1",
     "request": "^2.88.2",
     "resin-docker-build": "^1.1.6",
