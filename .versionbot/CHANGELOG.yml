@@ -1,4 +1,50 @@
 - commits:
+    - subject: Remove side effects for module imports
+      hash: 48e0733c7e734b401f6072df5a396dfc04075d98
+      body: |
+        The supervisor uses the following pattern for async module
+        initialization
+
+        ```typescript
+        // module.ts
+
+        export const initialised = (async () => {
+            // do some async initialization
+        })();
+
+        // somewhere else
+        import * as module from 'module';
+
+        async function setup() {
+          await module.initialise;
+        }
+        ```
+
+        The above pattern means that whenever the module is imported, the
+        initialisation procedure will be ran, which is an anti-pattern.
+
+        This converts any instance of this pattern into a function
+
+        ```typescript
+        export const initialised = _.once(async () => {
+            // do some async initialization
+        });
+        ```
+
+        And anywhere else on the code it replaces the call with a
+
+        ```typescript
+        await module.initialised();
+        ```
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.17
+  title: "'Remove side effects for module imports'"
+  date: 2022-09-06T19:50:43.463Z
+- commits:
     - subject: Add custom DTB support for imx8mm-var-som
       hash: 36544b7d6e53c8a501a6def40ac0370346e63b78
       body: ""
