@@ -12,7 +12,7 @@ describe('compose/volume-manager', () => {
 	after(async () => {
 		await docker.pruneContainers();
 		await docker.pruneVolumes();
-		await docker.pruneImages();
+		await docker.pruneImages({ filters: { dangling: { false: true } } });
 	});
 
 	describe('Retrieving volumes from the engine', () => {

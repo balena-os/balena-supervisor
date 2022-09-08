@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 
 import * as imageManager from '~/src/compose/images';
-import * as dbHelper from '~/test-lib/db-helper';
 import { createImage, withMockerode } from '~/test-lib/mockerode';
-import * as sinon from 'sinon';
+import { createDockerImage } from '~/test-lib/docker-helper';
 
-import log from '~/lib/supervisor-console';
+import * as Docker from 'dockerode';
+import * as db from '~/src/db';
 
 // TODO: this code is duplicated in multiple tests
 // create a test module with all helper functions like this
@@ -28,31 +28,17 @@ function createDBImage(
 }
 
 describe('compose/images', () => {
-	let testDb: dbHelper.TestDatabase;
+	const docker = new Docker();
 	before(async () => {
-		testDb = await dbHelper.createDB();
-
-		// disable log output during testing
-		sinon.stub(log, 'debug');
-		sinon.stub(log, 'warn');
-		sinon.stub(log, 'info');
-		sinon.stub(log, 'event');
-		sinon.stub(log, 'success');
-	});
-
-	after(async () => {
-		try {
-			await testDb.destroy();
-		} catch (e) {
-			/* noop */
-		}
-
-		// Restore stubbed methods
-		sinon.restore();
+		await db.initialized();
 	});
 
 	afterEach(async () => {
-		await testDb.reset();
+		await db.models('image').del();
+	});
+
+	after(async () => {
+		await docker.pruneImages({ filters: { dangling: { false: true } } });
 	});
 
 	it('finds image by matching digest on the database', async () => {
@@ -61,7 +47,7 @@ describe('compose/images', () => {
 			dockerImageId:
 				'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
 		});
-		await testDb.models('image').insert([dbImage]);
+		await db.models('image').insert([dbImage]);
 
 		const images = [
 			createImage(
@@ -77,6 +63,8 @@ describe('compose/images', () => {
 			),
 		];
 
+		// INFO: We use mockerode here because cannot create images with a specific digest on the engine
+		// but we need to be able to test looking images by digest
 		await withMockerode(
 			async (mockerode) => {
 				// Looking by name should fail, if not, this is a mockerode issue
@@ -103,79 +91,21 @@ describe('compose/images', () => {
 	});
 
 	it('finds image by tag on the engine', async () => {
-		const images = [
-			createImage(
-				{
-					Id: 'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
-				},
-				{
-					References: ['some-image:some-tag'],
-				},
-			),
-		];
-
-		await withMockerode(
-			async (mockerode) => {
-				expect(await imageManager.inspectByName('some-image:some-tag'))
-					.to.have.property('Id')
-					.that.equals(
-						'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
-					);
-
-				expect(mockerode.getImage).to.have.been.calledWith(
-					'some-image:some-tag',
-				);
-
-				// Check that non existing tags are not found
-				await expect(
-					imageManager.inspectByName('non-existing-image:non-existing-tag'),
-				).to.be.rejected;
-			},
-			{ images },
+		const dockerImageId = await createDockerImage(
+			'some-image:some-tag',
+			['io.balena.testing=1'],
+			docker,
 		);
-	});
 
-	it('finds image by tag on the database', async () => {
-		const dbImage = createDBImage({
-			name: 'some-image:some-tag',
-			dockerImageId:
-				'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
-		});
-		await testDb.models('image').insert([dbImage]);
+		expect(await imageManager.inspectByName('some-image:some-tag'))
+			.to.have.property('Id')
+			.that.equals(dockerImageId);
 
-		const images = [
-			createImage(
-				{
-					Id: 'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
-				},
-				{
-					References: [
-						// Reference is different but there is a matching name on the database
-						'registry2.balena-cloud.com/v2/bbbb@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-					],
-				},
-			),
-		];
+		await expect(
+			imageManager.inspectByName('non-existing-image:non-existing-tag'),
+		).to.be.rejected;
 
-		await withMockerode(
-			async (mockerode) => {
-				expect(await imageManager.inspectByName(dbImage.name))
-					.to.have.property('Id')
-					.that.equals(
-						'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
-					);
-
-				expect(mockerode.getImage).to.have.been.calledWith(
-					'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
-				);
-
-				// Check that non existing tags are not found
-				await expect(
-					imageManager.inspectByName('non-existing-image:non-existing-tag'),
-				).to.be.rejected;
-			},
-			{ images },
-		);
+		await docker.getImage('some-image:some-tag').remove();
 	});
 
 	it('finds image by reference on the engine', async () => {
@@ -194,6 +124,10 @@ describe('compose/images', () => {
 			),
 		];
 
+		// INFO: we cannot create specific references to test on the engine, we need to
+		// use mockerode instead.
+		// QUESTION: Maybe the image search is overspecified and we should find a
+		// common identifier for all image search (e.g. label?)
 		await withMockerode(
 			async (mockerode) => {
 				// This is really testing mockerode functionality
@@ -245,7 +179,7 @@ describe('compose/images', () => {
 	});
 
 	it('returns all images in both the database and the engine', async () => {
-		await testDb.models('image').insert([
+		await db.models('image').insert([
 			createDBImage({
 				name: 'first-image-name:first-image-tag',
 				serviceName: 'app_1',
@@ -311,65 +245,36 @@ describe('compose/images', () => {
 	});
 
 	it('removes a single legacy db images without dockerImageId', async () => {
+		await createDockerImage(
+			'image-name:image-tag',
+			['io.balena.testing=1'],
+			docker,
+		);
+
 		// Legacy images don't have a dockerImageId so they are queried by name
 		const imageToRemove = createDBImage({
 			name: 'image-name:image-tag',
 		});
 
-		await testDb.models('image').insert([imageToRemove]);
+		await db.models('image').insert([imageToRemove]);
 
-		// Engine image state
-		const images = [
-			createImage(
-				{
-					Id: 'deadbeef',
-				},
-				{
-					// Image references
-					References: [
-						'image-name:image-tag@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-					],
-				},
-			),
-			createImage(
-				{
-					Id: 'deadca1f',
-				},
-				{
-					References: ['balena/aarch64-supervisor:11.11.11'],
-				},
-			),
-		];
+		// Check that our legacy image exists
+		// failsafe to check for mockerode problems
+		await expect(
+			docker.getImage(imageToRemove.name).inspect(),
+			'image exists on the engine before test',
+		).to.not.be.rejected;
 
-		// Perform the test with our specially crafted data
-		await withMockerode(
-			async (mockerode) => {
-				// Check that our legacy image exists
-				// failsafe to check for mockerode problems
-				await expect(
-					mockerode.getImage(imageToRemove.name).inspect(),
-					'image exists on the engine before test',
-				).to.not.be.rejected;
+		// Check that the image exists on the db
+		expect(
+			await db.models('image').select().where(imageToRemove),
+		).to.have.lengthOf(1);
 
-				// Check that the image exists on the db
-				expect(
-					await testDb.models('image').select().where(imageToRemove),
-				).to.have.lengthOf(1);
+		// Now remove this image...
+		await imageManager.remove(imageToRemove);
 
-				// Now remove this image...
-				await imageManager.remove(imageToRemove);
-
-				// This checks that the remove method was ultimately called
-				expect(mockerode.removeImage).to.have.been.calledOnceWith(
-					imageToRemove.name,
-				);
-
-				// Check that the image was removed from the db
-				expect(await testDb.models('image').select().where(imageToRemove)).to.be
-					.empty;
-			},
-			{ images },
-		);
+		// Check that the image was removed from the db
+		expect(await db.models('image').select().where(imageToRemove)).to.be.empty;
 	});
 
 	it('removes image from DB and engine when there is a single DB image with matching name', async () => {
@@ -380,7 +285,7 @@ describe('compose/images', () => {
 		});
 
 		// Insert images into the db
-		await testDb.models('image').insert([
+		await db.models('image').insert([
 			imageToRemove,
 			createDBImage({
 				name: 'registry2.balena-cloud.com/v2/two@sha256:12345a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
@@ -436,7 +341,7 @@ describe('compose/images', () => {
 				// Check that only one image with this dockerImageId exists in the db
 				// in memory db is a bit flaky sometimes, this checks for issues
 				expect(
-					await testDb.models('image').where(imageToRemove).select(),
+					await db.models('image').where(imageToRemove).select(),
 					'image exists on db before the test',
 				).to.have.lengthOf(1);
 
@@ -449,97 +354,62 @@ describe('compose/images', () => {
 				);
 
 				// Check that the database no longer has this image
-				expect(await testDb.models('image').select().where(imageToRemove)).to.be
+				expect(await db.models('image').select().where(imageToRemove)).to.be
 					.empty;
 
 				// Expect 1 entry left on the database
-				expect(await testDb.models('image').select()).to.have.lengthOf(1);
+				expect(await db.models('image').select()).to.have.lengthOf(1);
 			},
 			{ images },
 		);
 	});
 
 	it('removes the requested image even when there are multiple DB images with same docker ID', async () => {
+		const dockerImageId = await createDockerImage(
+			'registry2.balena-cloud.com/v2/one',
+			['io.balena.testing=1'],
+			docker,
+		);
+
 		const imageToRemove = createDBImage({
-			name: 'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
-			dockerImageId: 'sha256:image-id-one',
+			name: 'registry2.balena-cloud.com/v2/one',
+			dockerImageId,
 		});
 
 		const imageWithSameDockerImageId = createDBImage({
 			name: 'registry2.balena-cloud.com/v2/two@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
 			// Same imageId
-			dockerImageId: 'sha256:image-id-one',
+			dockerImageId,
 		});
 
 		// Insert images into the db
-		await testDb.models('image').insert([
+		await db.models('image').insert([
 			imageToRemove,
 			// Another image from the same app
 			imageWithSameDockerImageId,
 		]);
 
-		// Engine image state
-		const images = [
-			// The image to remove
-			createImage(
-				{
-					Id: imageToRemove.dockerImageId!,
-				},
-				{
-					References: [imageToRemove.name, imageWithSameDockerImageId.name],
-				},
-			),
-			// Other images to test
-			createImage(
-				{
-					Id: 'aaa',
-				},
-				{
-					References: ['balena/aarch64-supervisor:11.11.11'],
-				},
-			),
-		];
+		// Check that multiple images with the same dockerImageId are returned
+		expect(
+			await db
+				.models('image')
+				.where({ dockerImageId: imageToRemove.dockerImageId })
+				.select(),
+		).to.have.lengthOf(2);
 
-		// Perform the test with our specially crafted data
-		await withMockerode(
-			async (mockerode) => {
-				// Check that the image is on the engine
-				// really checking mockerode behavior
-				await expect(
-					mockerode.getImage(imageToRemove.dockerImageId!).inspect(),
-					'image exists on the engine before the test',
-				).to.not.be.rejected;
+		// Now remove these images
+		await imageManager.remove(imageToRemove);
 
-				// Check that multiple images with the same dockerImageId are returned
-				expect(
-					await testDb
-						.models('image')
-						.where({ dockerImageId: imageToRemove.dockerImageId })
-						.select(),
-				).to.have.lengthOf(2);
+		// Check that the database no longer has this image
+		expect(await db.models('image').select().where(imageToRemove)).to.be.empty;
 
-				// Now remove these images
-				await imageManager.remove(imageToRemove);
-
-				// Check that only the image with the right name was removed
-				expect(mockerode.removeImage).to.have.been.calledOnceWith(
-					imageToRemove.name,
-				);
-
-				// Check that the database no longer has this image
-				expect(await testDb.models('image').select().where(imageToRemove)).to.be
-					.empty;
-
-				// Check that the image with the same dockerImageId is still on the database
-				expect(
-					await testDb
-						.models('image')
-						.select()
-						.where({ dockerImageId: imageWithSameDockerImageId.dockerImageId }),
-				).to.have.lengthOf(1);
-			},
-			{ images },
-		);
+		// Check that the image with the same dockerImageId is still on the database
+		expect(
+			await db
+				.models('image')
+				.select()
+				.where({ dockerImageId: imageWithSameDockerImageId.dockerImageId }),
+		).to.have.lengthOf(1);
 	});
 
 	it('removes image from DB by tag when deltas are being used', async () => {
@@ -555,7 +425,7 @@ describe('compose/images', () => {
 		});
 
 		// Insert images into the db
-		await testDb.models('image').insert([
+		await db.models('image').insert([
 			imageToRemove,
 			// Another image from the same app
 			imageWithSameDockerImageId,
@@ -589,12 +459,12 @@ describe('compose/images', () => {
 
 				// Check that a single image is returned when given entire object
 				expect(
-					await testDb.models('image').select().where(imageToRemove),
+					await db.models('image').select().where(imageToRemove),
 				).to.have.lengthOf(1);
 
 				// Check that multiple images with the same dockerImageId are returned
 				expect(
-					await testDb
+					await db
 						.models('image')
 						.where({ dockerImageId: imageToRemove.dockerImageId })
 						.select(),
@@ -609,15 +479,12 @@ describe('compose/images', () => {
 				);
 
 				// Check that the database no longer has this image
-				expect(await testDb.models('image').select().where(imageToRemove)).to.be
+				expect(await db.models('image').select().where(imageToRemove)).to.be
 					.empty;
 
 				// Check that the image with the same dockerImageId is still on the database
 				expect(
-					await testDb
-						.models('image')
-						.select()
-						.where(imageWithSameDockerImageId),
+					await db.models('image').select().where(imageWithSameDockerImageId),
 				).to.have.lengthOf(1);
 			},
 			{ images },
