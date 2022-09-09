@@ -3,11 +3,13 @@ import { isRight } from 'fp-ts/lib/Either';
 import * as nock from 'nock';
 
 import { TargetState } from '~/src/types';
-import * as config from '~/src/config';
 import * as legacy from '~/lib/legacy';
+import * as config from '~/src/config';
 
 describe('lib/legacy', () => {
 	before(async () => {
+		await config.initialized();
+
 		// Set the device uuid and name
 		// these migration methods read some data from the database
 		// (and other data from the API)

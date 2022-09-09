@@ -10,6 +10,5 @@ module.exports = {
 		'test/lib/chai.ts',
 		'test/lib/mocha-hooks.ts',
 	],
-	spec: ['test/integration/**/*.spec.ts'],
 	timeout: '30000',
 };
