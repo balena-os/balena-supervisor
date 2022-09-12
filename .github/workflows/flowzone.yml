@@ -18,3 +18,9 @@ jobs:
       BALENA_API_KEY: ${{ secrets.BALENA_API_KEY }}
     with:
       protect_branch: false
+      balena_slugs:
+        - balena_os/aarch64-supervisor
+        - balena_os/amd64-supervisor
+        - balena_os/armv7hf-supervisor
+        - balena_os/i386-supervisor
+        - balena_os/rpi-supervisor
