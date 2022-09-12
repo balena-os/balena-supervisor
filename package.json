@@ -74,7 +74,7 @@
     "@types/webpack": "^4.41.21",
     "@types/yargs": "^15.0.12",
     "balena-register-device": "^7.2.0",
-    "blinking": "^0.0.4",
+    "blinking": "0.0.5",
     "bluebird": "^3.7.2",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
