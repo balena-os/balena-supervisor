@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update blinking to 0.0.5
+      hash: 45f71b38d0a69419fae19e9c1a628d023653fad5
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.0.19
+  title: "'Update blinking to 0.0.5'"
+  date: 2022-09-12T12:04:51.557Z
+- commits:
     - subject: Set desired es-version for downstream modules that support it
       hash: fadd51446306164b63267d2d353ae6aa00224e0c
       body: ""
