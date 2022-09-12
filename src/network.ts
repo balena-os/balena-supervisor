@@ -137,15 +137,14 @@ export function getIPAddresses(): string[] {
 	// - the docker network for the supervisor API (supervisor0)
 	// - custom docker network bridges (br- + 12 hex characters)
 	const networkInterfaces = os.networkInterfaces();
-	return Object.keys(networkInterfaces)
-		.filter((iface) => shouldReportInterface(iface))
-		.map((iface) => networkInterfaces[iface])
-		.flatMap((validInterfaces) => {
+	return Object.entries(networkInterfaces)
+		.filter(([iface]) => shouldReportInterface(iface))
+		.flatMap(([, validInterfaces]) => {
 			return (
 				validInterfaces
 					// Only report valid ipv6 and ipv4 addresses
-					.filter((ip) => shouldReportIPv6(ip) || shouldReportIPv4(ip))
-					.map(({ address }) => address)
+					?.filter((ip) => shouldReportIPv6(ip) || shouldReportIPv4(ip))
+					.map(({ address }) => address) ?? []
 			);
 		});
 }

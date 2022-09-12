@@ -32,11 +32,11 @@
     "dbus": "^1.0.7",
     "mdns-resolver": "^1.0.0",
     "semver": "^7.3.2",
-    "sqlite3": "^4.1.1",
+    "sqlite3": "^5.0.11",
     "systeminformation": "^5.6.10"
   },
   "engines": {
-    "node": "^12.16.2",
+    "node": "^14.20.0",
     "npm": "^6.14.4"
   },
   "devDependencies": {
@@ -59,7 +59,7 @@
     "@types/mocha": "^8.2.2",
     "@types/mock-fs": "^4.13.0",
     "@types/morgan": "^1.9.0",
-    "@types/node": "^12.12.54",
+    "@types/node": "^14.18.28",
     "@types/request": "^2.48.5",
     "@types/rewire": "^2.5.28",
     "@types/rimraf": "^2.0.4",

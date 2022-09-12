@@ -8,7 +8,7 @@ ARG PREFIX=library
 ###################################################
 # Build the supervisor dependencies
 ###################################################
-FROM balenalib/${ARCH}-alpine-node:12-run as build-base
+FROM balenalib/${ARCH}-alpine-node:14-run as build-base
 
 ARG PREFIX
 # Sanity check to prevent a prefix for a non-official docker image being
@@ -101,18 +101,18 @@ COPY typings ./typings
 COPY src ./src
 COPY test ./test
 
-# Run type checking and unit/legacy tests here 
-# to prevent setting up a test environment that will 
+# Run type checking and unit/legacy tests here
+# to prevent setting up a test environment that will
 # most likely fail.
-# For now this also runs the legacy tests, that are slow, this is a 
+# For now this also runs the legacy tests, that are slow, this is a
 # forcing function to finish the split between unit/integration
 RUN npm run test
 
-# When running tests from a container built from this stage, 
+# When running tests from a container built from this stage,
 # skip the mocha-pod setup
 ENV MOCHAPOD_SKIP_SETUP=1
 
-# This command will be used by default when running integration tests 
+# This command will be used by default when running integration tests
 # from this stage
 CMD npm run test:integration
 
