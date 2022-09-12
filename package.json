@@ -24,7 +24,8 @@
     "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ build-utils/ webpack.config.js",
     "release": "tsc --project tsconfig.release.json && mv build/src/* build",
     "sync": "ts-node --files sync/sync.ts",
-    "clean": "rimraf build"
+    "clean": "rimraf build",
+    "preinstall": "./build-utils/install-dbus.sh || true"
   },
   "private": true,
   "dependencies": {

@@ -135,7 +135,12 @@ RUN npm run build
 
 # Run the production install here, to avoid the npm dependency on
 # the later stage
-RUN npm ci --production --no-optional --unsafe-perm --build-from-source --sqlite=/usr/lib \
+RUN npm ci \
+	--production \
+	--no-optional \
+	--unsafe-perm \
+	--build-from-source \
+	--sqlite=/usr/lib \
 	&& npm cache clean --force \
 	# For some reason this doesn't get cleared with the other
 	# cache

@@ -254,6 +254,8 @@ When developing on macOS you may need to install DBus on the development host.
 1. `brew install dbus`
 2. `npm ci`
 
+On Debian-based systems, `sudo apt install libdbus-1-dev` would be the equivalent.
+
 #### Downgrading versions
 
 The Supervisor will always be forwards compatible so you can just simply run newer versions. If there is data that must be normalized to a new schema such as the naming of engine resources, values in the sqlite database, etc then the new version will automatically take care of that either via [migrations](/src/migrations) or at runtime when the value is queried.
