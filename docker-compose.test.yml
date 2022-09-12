@@ -5,7 +5,7 @@ services:
   # be run through the `sut` service
   balena-supervisor:
     build:
-      dockerfile: Dockerfile.null
+      dockerfile: Dockerfile
       context: ./
     command: sleep infinity
 
