@@ -1,4 +1,40 @@
 - commits:
+    - subject: Fix filtering of the supervisor app on the target state
+      hash: 5a57647450aa594b7112da01b9d2fc89885b6fae
+      body: >
+        Under some conditions, an aarch64 device may get a reference to a
+        armv7hf
+
+        supervisor on the target state. One of the ways this can happen is if
+
+        an aarch64 device is added to an armv7hf fleet and the target supervisor
+
+        is set before the device fully provisions.
+
+
+        If that happens, the previous filtering for the supervisor app (which
+
+        relied on the architecture in device-type.json) would
+
+        fail and the user would end up with two supervisor containers, one
+
+        running correctly and the other crash looping.
+
+
+        This fixes the filtering and just checks if the supervisor uuid/service
+
+        name belongs to a group of known uuids.
+      footer:
+        Closes: "#2006"
+        closes: "#2006"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.20
+  title: "'Fix filtering of the supervisor app on the target state'"
+  date: 2022-09-12T19:32:49.204Z
+- commits:
     - subject: Update blinking to 0.0.5
       hash: 45f71b38d0a69419fae19e9c1a628d023653fad5
       body: ""
