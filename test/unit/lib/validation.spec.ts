@@ -286,33 +286,54 @@ describe('validation', () => {
 				'accepts apps with no services',
 			).to.be.true;
 
-			expect(
-				isRight(
-					TargetApps.decode({
-						abcd: {
-							id: 1234,
-							name: 'something',
-							releases: {
-								bar: {
-									id: 123,
-									services: {
-										bazbaz: {
-											id: 45,
-											image_id: 34,
-											image: 'foo',
-											environment: { MY_SERVICE_ENV_VAR: '123' },
-											labels: { 'io.balena.features.supervisor-api': 'true' },
-										},
-									},
-									volumes: {},
-									networks: {},
+			const target = TargetApps.decode({
+				abcd: {
+					id: 1234,
+					name: 'something',
+					releases: {
+						bar: {
+							id: 123,
+							services: {
+								bazbaz: {
+									id: 45,
+									image_id: 34,
+									image: 'foo',
+									environment: { MY_SERVICE_ENV_VAR: '123' },
+									labels: { 'io.balena.features.supervisor-api': 'true' },
+									running: false,
 								},
 							},
+							volumes: {},
+							networks: {},
 						},
-					}),
-				),
-				'accepts apps with a service',
-			).to.be.true;
+					},
+				},
+			});
+			expect(isRight(target), 'accepts apps with a service').to.be.true;
+			expect((target as any).right).to.deep.equal({
+				abcd: {
+					id: 1234,
+					name: 'something',
+					class: 'fleet',
+					releases: {
+						bar: {
+							id: 123,
+							services: {
+								bazbaz: {
+									id: 45,
+									image_id: 34,
+									image: 'foo',
+									environment: { MY_SERVICE_ENV_VAR: '123' },
+									labels: { 'io.balena.features.supervisor-api': 'true' },
+									running: false,
+								},
+							},
+							volumes: {},
+							networks: {},
+						},
+					},
+				},
+			});
 		});
 
 		it('rejects app with invalid environment', () => {
