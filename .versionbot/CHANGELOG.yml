@@ -1,4 +1,22 @@
 - commits:
+    - subject: Fix withDefault type helper to work with boolean
+      hash: 3e45e9561e109186ea038c6d3b67f54071ee8a67
+      body: |
+        `withDefault` is a type helper that allows to create a type that
+        defaults to a default value when trying to decode a nullish value.
+        That type was not correctly working with boolean types, causing `false`
+        values to be replaced by true. This would specifically cause issues when
+        parsing the target state, where a `running: false` in a service would
+        become a `running: true` due to the type decoding.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.21
+  title: "'Fix withDefault type helper to work with boolean'"
+  date: 2022-09-13T20:13:18.136Z
+- commits:
     - subject: Fix filtering of the supervisor app on the target state
       hash: 5a57647450aa594b7112da01b9d2fc89885b6fae
       body: >
