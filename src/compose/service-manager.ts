@@ -298,6 +298,15 @@ export async function start(service: Service) {
 
 	try {
 		const container = await create(service);
+
+		// Exit here if the target state of the service
+		// is set to running: false
+		// QUESTION: should we split the service steps into
+		// 'install' and 'start' instead of doing this?
+		if (service.config.running === false) {
+			return container;
+		}
+
 		containerId = container.id;
 		logger.logSystemEvent(LogTypes.startService, { service });
 
@@ -310,6 +319,7 @@ export async function start(service: Service) {
 		} catch (e) {
 			// Get the statusCode from the original cause and make sure it's
 			// definitely an int for comparison reasons
+			// QUESTION: does this ever happen?
 			const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
 			if (isLeft(maybeStatusCode)) {
 				shouldRemove = true;
