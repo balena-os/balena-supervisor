@@ -1,7 +1,3 @@
-import * as memoizee from 'memoizee';
-import * as config from '../config';
-import { InternalInconsistencyError } from './errors';
-
 export type SupervisorMetadata = {
 	uuid: string;
 	serviceName: string;
@@ -41,24 +37,21 @@ const SUPERVISOR_APPS: { [arch: string]: SupervisorMetadata } = {
 };
 
 /**
- * Get the metadata from the supervisor container
+ * Check if the supervisor in the target state belongs to the known
+ * supervisors
  *
  * This is needed for the supervisor to identify itself on the target
  * state and on getStatus() in device-state.ts
  *
  * TODO: remove this once the supervisor knows how to update itself
  */
-export const getSupervisorMetadata = memoizee(
-	async () => {
-		const deviceArch = await config.get('deviceArch');
-		const meta: SupervisorMetadata = SUPERVISOR_APPS[deviceArch];
-		if (meta == null) {
-			throw new InternalInconsistencyError(
-				`Unknown device architecture ${deviceArch}. Could not find matching supervisor metadata.`,
-			);
-		}
 
-		return meta;
-	},
-	{ promise: true },
-);
+export const isSupervisor = (appUuid: string, svcName: string) => {
+	return (
+		Object.values(SUPERVISOR_APPS).filter(
+			({ uuid, serviceName }) =>
+				// Compare with `main` as well for compatibility with older supervisors
+				appUuid === uuid && (svcName === serviceName || svcName === 'main'),
+		).length > 0
+	);
+};
