@@ -8,26 +8,8 @@ on:
       - "master"
 
 jobs:
-  flowzone-staging:
-    name: balena-staging
-    uses: product-os/flowzone/.github/workflows/flowzone.yml@master
-    secrets:
-      FLOWZONE_TOKEN: ${{ secrets.FLOWZONE_TOKEN }}
-      GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-      BALENA_API_KEY: ${{ secrets.BALENA_STAGING_TOKEN }}
-    with:
-      balena_environment: balena-staging.com
-      balena_slugs: |
-        balena_os/aarch64-supervisor,
-        balena_os/amd64-supervisor,
-        balena_os/armv7hf-supervisor,
-        balena_os/i386-supervisor,
-        balena_os/rpi-supervisor
-      job_name: balena-staging
-
   flowzone:
-    name: balena-cloud
+    name: Flowzone
     uses: product-os/flowzone/.github/workflows/flowzone.yml@master
     secrets:
       FLOWZONE_TOKEN: ${{ secrets.FLOWZONE_TOKEN }}
@@ -35,11 +17,53 @@ jobs:
       GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       BALENA_API_KEY: ${{ secrets.BALENA_TOKEN }}
     with:
-      balena_environment: balena-cloud.com
       balena_slugs: |
         balena_os/aarch64-supervisor,
         balena_os/amd64-supervisor,
         balena_os/armv7hf-supervisor,
         balena_os/i386-supervisor,
         balena_os/rpi-supervisor
-      job_name: balena-cloud
+
+  staging:
+    name: Publish to balena-staging
+    runs-on: ubuntu-latest
+    needs: flowzone
+    strategy:
+      fail-fast: true
+      matrix:
+        slug: 
+          [
+            balena_os/aarch64-supervisor,
+            balena_os/amd64-supervisor,
+            balena_os/armv7hf-supervisor,
+            balena_os/i386-supervisor,
+            balena_os/rpi-supervisor
+          ]
+
+    defaults:
+      run:
+        working-directory: .
+        shell: bash --noprofile --norc -eo pipefail -x {0}
+
+    steps:
+      - name: Download source artifact
+        uses: actions/download-artifact@v3
+        with:
+          # IMPORTANT: this is relying on an undocumented flowzone
+          # interface. If flowzone ever changes their artifact names
+          # this will break
+          name: source-${{ github.event.pull_request.head.sha }}
+
+      - name: Extract source artifact
+        working-directory: .
+        run: tar -xvf source.tar
+
+      - uses: balena-io/deploy-to-balena-action@v0.13.0
+        with:
+          balena_token: ${{ secrets.BALENA_STAGING_TOKEN }}
+          fleet: ${{ matrix.slug }}
+          environment: balena-staging.com
+          versionbot: false # ignore versionbot branch since the flowzone source is already versioned
+          source: .
+
+
