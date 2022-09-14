@@ -1,4 +1,27 @@
 - commits:
+    - subject: Only install service if running is set to false
+      hash: c6f911c36b8f9afeff5003db44199c95f5bbd8a2
+      body: |
+        The supervisor supports target state `running: false` for services.
+        This state indicates that the service should be stopped if already
+        running, or that the container should just be created and never started
+        if the container does not exist. This commit fixes the latter behavior.
+
+        Although nothing in our platform currently sends this target state, this
+        enables some potential use cases, e.g. only starting some services
+        in manufacturing and starting the rest of the services when the device
+        actually connects.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#2014"
+        closes: "#2014"
+      author: Felipe Lalanne
+      nested: []
+  version: 14.0.22
+  title: "'Only install service if running is set to false'"
+  date: 2022-09-14T13:48:20.421Z
+- commits:
     - subject: Fix withDefault type helper to work with boolean
       hash: 3e45e9561e109186ea038c6d3b67f54071ee8a67
       body: |
