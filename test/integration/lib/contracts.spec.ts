@@ -12,7 +12,7 @@ import * as osRelease from '~/lib/os-release';
 import supervisorVersion = require('~/lib/supervisor-version');
 import * as fsUtils from '~/lib/fs-utils';
 
-describe('Container contracts', () => {
+describe('lib/contracts', () => {
 	before(() => {
 		intialiseContractRequirements({
 			supervisorVersion,
