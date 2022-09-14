@@ -18,7 +18,6 @@ jobs:
       BALENA_API_KEY: ${{ secrets.BALENA_STAGING_TOKEN }}
     with:
       balena_environment: balena-staging.com
-      protect_branch: false
       balena_slugs: |
         balena_os/aarch64-supervisor,
         balena_os/amd64-supervisor,
@@ -36,7 +35,6 @@ jobs:
       BALENA_API_KEY: ${{ secrets.BALENA_TOKEN }}
     with:
       balena_environment: balena-cloud.com
-      protect_branch: false
       balena_slugs: |
         balena_os/aarch64-supervisor,
         balena_os/amd64-supervisor,
