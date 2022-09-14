@@ -17,6 +17,7 @@ import {
 	InternalInconsistencyError,
 	NotFoundError,
 	StatusCodeError,
+	isStatusError,
 } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import { checkInt, isValidDeviceName } from '../lib/validation';
@@ -298,54 +299,44 @@ export async function start(service: Service) {
 
 	try {
 		const container = await create(service);
+
+		// Exit here if the target state of the service
+		// is set to running: false
+		// QUESTION: should we split the service steps into
+		// 'install' and 'start' instead of doing this?
+		if (service.config.running === false) {
+			return container;
+		}
+
 		containerId = container.id;
 		logger.logSystemEvent(LogTypes.startService, { service });
 
 		reportNewStatus(containerId, service, 'Starting' as ServiceStatus);
 
-		let shouldRemove = false;
-		let err: Error | undefined;
 		try {
 			await container.start();
 		} catch (e) {
-			// Get the statusCode from the original cause and make sure it's
-			// definitely an int for comparison reasons
-			const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
-			if (isLeft(maybeStatusCode)) {
-				shouldRemove = true;
-				err = new Error(`Could not parse status code from docker error:  ${e}`);
-				throw err;
+			if (!isStatusError(e)) {
+				throw e;
 			}
-			const statusCode = maybeStatusCode.right;
-			const message = e.message;
+
+			const { statusCode, message } = e;
 
 			// 304 means the container was already started, precisely what we want
 			if (statusCode === 304) {
 				alreadyStarted = true;
 			} else if (
 				statusCode === 500 &&
-				_.isString(message) &&
 				message.trim().match(/exec format error$/)
 			) {
 				// Provide a friendlier error message for "exec format error"
 				const deviceType = await config.get('deviceType');
-				err = new Error(
+				throw new Error(
 					`Application architecture incompatible with ${deviceType}: exec format error`,
 				);
-				throw err;
 			} else {
-				// rethrow the same error
-				err = e;
+				// rethrow the top-level error
 				throw e;
-			}
-		} finally {
-			if (shouldRemove) {
-				// If starting the container fialed, we remove it so that it doesn't litter
-				await container.remove({ v: true }).catch(_.noop);
-				logger.logSystemEvent(LogTypes.startServiceError, {
-					service,
-					error: err,
-				});
 			}
 		}
 

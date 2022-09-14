@@ -19,6 +19,9 @@ export class StatusError extends Error {
 	}
 }
 
+export const isStatusError = (x: unknown): x is StatusError =>
+	x != null && x instanceof Error && !isNaN((x as any).statusCode);
+
 interface CodedSysError extends Error {
 	code?: string;
 }
