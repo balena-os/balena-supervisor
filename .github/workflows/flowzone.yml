@@ -24,6 +24,7 @@ jobs:
         balena_os/armv7hf-supervisor,
         balena_os/i386-supervisor,
         balena_os/rpi-supervisor
+      job_name: balena-staging
 
   flowzone:
     name: balena-cloud
@@ -41,3 +42,4 @@ jobs:
         balena_os/armv7hf-supervisor,
         balena_os/i386-supervisor,
         balena_os/rpi-supervisor
+      job_name: balena-cloud
