@@ -106,7 +106,7 @@ COPY test ./test
 # most likely fail.
 # For now this also runs the legacy tests, that are slow, this is a 
 # forcing function to finish the split between unit/integration
-RUN npm run test:base
+RUN npm run test
 
 # When running tests from a container built from this stage, 
 # skip the mocha-pod setup
@@ -135,7 +135,12 @@ RUN npm run build
 
 # Run the production install here, to avoid the npm dependency on
 # the later stage
-RUN npm ci --production --no-optional --unsafe-perm --build-from-source --sqlite=/usr/lib \
+RUN npm ci \
+	--production \
+	--no-optional \
+	--unsafe-perm \
+	--build-from-source \
+	--sqlite=/usr/lib \
 	&& npm cache clean --force \
 	# For some reason this doesn't get cleared with the other
 	# cache

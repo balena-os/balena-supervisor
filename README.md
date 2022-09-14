@@ -182,7 +182,7 @@ integration tests require a containerized environment with the right dependencie
 To run type checks, and unit tests, you can use:
 
 ```
-npm run test:base
+npm run test
 ```
 
 The supervisor runs on Node v12.16.2, so using that specific
@@ -190,7 +190,7 @@ version will ensure tests run in the same environment as
 production.
 
 In order to run all tests, unit and integration, [docker-compose](https://docs.docker.com/compose/) is required.
-The following command will build the image for an `amd64` target (running `test:base` during the build) and setup
+The following command will build the image for an `amd64` target (running `test` during the build) and setup
 the necessary dependencies for running integration tests.
 
 ```
@@ -216,7 +216,7 @@ docker exec -ti $(docker ps -q --filter="name=_sut") sh
 And then run all tests using
 
 ```
-npm run test
+npm run test:node
 ```
 
 For more information about testing the Supervisor, see the [testing README](test/README.md).
@@ -253,6 +253,8 @@ When developing on macOS you may need to install DBus on the development host.
 
 1. `brew install dbus`
 2. `npm ci`
+
+On Debian-based systems, `sudo apt install libdbus-1-dev` would be the equivalent.
 
 #### Downgrading versions
 

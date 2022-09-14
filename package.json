@@ -18,13 +18,13 @@
     "test:node": "npm run test:unit && npm run test:integration && npm run test:legacy",
     "test:env": "docker-compose -f docker-compose.test.yml -f docker-compose.dev.yml up --build; npm run compose:down",
     "test:compose": "docker-compose -f docker-compose.yml -f docker-compose.test.yml up --build --remove-orphans --exit-code-from=sut ; npm run compose:down",
-    "test:base": "npm run lint && npm run test:build && npm run test:unit && npm run test:legacy",
-    "test": "npm run lint && npm run test:build && npm run test:node",
+    "test": "npm run lint && npm run test:build && npm run test:unit && npm run test:legacy",
     "compose:down": "docker-compose -f docker-compose.test.yml down",
     "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ build-utils/ webpack.config.js",
     "release": "tsc --project tsconfig.release.json && mv build/src/* build",
     "sync": "ts-node --files sync/sync.ts",
-    "clean": "rimraf build"
+    "clean": "rimraf build",
+    "preinstall": "./build-utils/install-dbus.sh || true"
   },
   "private": true,
   "dependencies": {
