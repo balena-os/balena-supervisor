@@ -7,7 +7,7 @@ testfs:
   # in the `testfs` configuration.
   filesystem:
     /mnt/boot/config.json:
-      from: test/data/config.json
+      from: test/data/testconfig.json
     /mnt/boot/config.txt:
       from: test/data/mnt/boot/config.txt
     /mnt/boot/device-type.json:
