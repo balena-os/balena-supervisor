@@ -164,6 +164,11 @@ function isEqualScope(a: Scope, b: Scope): boolean {
 function getApiKeyFromRequest(req: express.Request): string | undefined {
 	// Check query for key
 	if (req.query.apikey) {
+		if (typeof req.query.apikey !== 'string') {
+			// We were passed something as an api key but it wasn't a string
+			// so ignore it
+			return;
+		}
 		return req.query.apikey;
 	}
 
@@ -172,7 +177,7 @@ function getApiKeyFromRequest(req: express.Request): string | undefined {
 
 	// Check header for key
 	if (!authHeader) {
-		return undefined;
+		return;
 	}
 
 	// Check authHeader with various schemes

@@ -8,7 +8,7 @@ ARG PREFIX=library
 ###################################################
 # Build the supervisor dependencies
 ###################################################
-FROM balenalib/${ARCH}-alpine-node:14-run as build-base
+FROM balenalib/${ARCH}-alpine-node:16-run as build-base
 
 ARG PREFIX
 # Sanity check to prevent a prefix for a non-official docker image being
