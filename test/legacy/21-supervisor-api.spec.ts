@@ -6,7 +6,7 @@ import mockedAPI = require('~/test-lib/mocked-device-api');
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
 import Log from '~/lib/supervisor-console';
-import SupervisorAPI from '~/src/supervisor-api';
+import SupervisorAPI from '~/src/device-api';
 import * as apiKeys from '~/lib/api-keys';
 import * as db from '~/src/db';
 import { cloudApiKey } from '~/lib/api-keys';

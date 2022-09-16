@@ -7,7 +7,7 @@ import sampleResponses = require('~/test-data/device-api-responses.json');
 import mockedAPI = require('~/test-lib/mocked-device-api');
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
-import SupervisorAPI from '~/src/supervisor-api';
+import SupervisorAPI from '~/src/device-api';
 import * as serviceManager from '~/src/compose/service-manager';
 import * as images from '~/src/compose/images';
 import * as apiKeys from '~/lib/api-keys';

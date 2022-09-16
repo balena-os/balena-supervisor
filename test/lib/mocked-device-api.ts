@@ -12,7 +12,7 @@ import * as db from '~/src/db';
 import { createV1Api } from '~/src/device-api/v1';
 import { createV2Api } from '~/src/device-api/v2';
 import * as deviceState from '~/src/device-state';
-import SupervisorAPI from '~/src/supervisor-api';
+import SupervisorAPI from '~/src/device-api';
 import { Service } from '~/src/compose/service';
 import { Image } from '~/src/compose/images';
 
