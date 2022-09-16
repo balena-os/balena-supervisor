@@ -1,31 +1,14 @@
 import * as express from 'express';
 import * as _ from 'lodash';
-import * as morgan from 'morgan';
 
+import * as middleware from './middleware';
+import * as apiKeys from './api-keys';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 import blink = require('../lib/blink');
 import log from '../lib/supervisor-console';
-import * as apiKeys from '../lib/api-keys';
-import { UpdatesLockedError } from '../lib/errors';
 
 import type { Server } from 'http';
-import type { NextFunction, Request, Response } from 'express';
-
-const expressLogger = morgan(
-	(tokens, req, res) =>
-		[
-			tokens.method(req, res),
-			req.path,
-			tokens.status(req, res),
-			'-',
-			tokens['response-time'](req, res),
-			'ms',
-		].join(' '),
-	{
-		stream: { write: (d) => log.api(d.toString().trimRight()) },
-	},
-);
 
 interface SupervisorAPIConstructOpts {
 	routers: express.Router[];
@@ -48,7 +31,7 @@ export class SupervisorAPI {
 		this.healthchecks = healthchecks;
 
 		this.api.disable('x-powered-by');
-		this.api.use(expressLogger);
+		this.api.use(middleware.logging);
 
 		this.api.get('/v1/healthy', async (_req, res) => {
 			try {
@@ -66,7 +49,7 @@ export class SupervisorAPI {
 
 		this.api.get('/ping', (_req, res) => res.send('OK'));
 
-		this.api.use(apiKeys.authMiddleware);
+		this.api.use(middleware.auth);
 
 		this.api.post('/v1/blink', (_req, res) => {
 			eventTracker.track('Device blink');
@@ -102,44 +85,15 @@ export class SupervisorAPI {
 			},
 		);
 
+		this.api.use(express.urlencoded({ limit: '10mb', extended: true }));
+		this.api.use(express.json({ limit: '10mb' }));
+
 		// And assign all external routers
 		for (const router of this.routers) {
 			this.api.use(router);
 		}
 
-		// Error handling.
-		const messageFromError = (err?: Error | string | null): string => {
-			let message = 'Unknown error';
-			if (err != null) {
-				if (_.isError(err) && err.message != null) {
-					message = err.message;
-				} else {
-					message = err as string;
-				}
-			}
-			return message;
-		};
-
-		this.api.use(
-			(err: Error, req: Request, res: Response, next: NextFunction) => {
-				if (res.headersSent) {
-					// Error happens while we are writing the response - default handler closes the connection.
-					next(err);
-					return;
-				}
-
-				// Return 423 Locked when locks as set
-				const code = err instanceof UpdatesLockedError ? 423 : 503;
-				if (code !== 423) {
-					log.error(`Error on ${req.method} ${req.path}: `, err);
-				}
-
-				res.status(code).send({
-					status: 'failed',
-					message: messageFromError(err),
-				});
-			},
-		);
+		this.api.use(middleware.errors);
 	}
 
 	public async listen(port: number, apiTimeout: number): Promise<void> {

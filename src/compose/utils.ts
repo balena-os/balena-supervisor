@@ -20,7 +20,7 @@ import {
 
 import log from '../lib/supervisor-console';
 
-import * as apiKeys from '../lib/api-keys';
+import * as apiKeys from '../device-api/api-keys';
 
 export function camelCaseConfig(
 	literalConfig: ConfigMap,

@@ -9,7 +9,7 @@ import { doRestart, doPurge } from './common';
 import * as applicationManager from '../compose/application-manager';
 import { generateStep } from '../compose/composition-steps';
 import * as commitStore from '../compose/commit';
-import { AuthorizedRequest } from '../lib/api-keys';
+import { AuthorizedRequest } from './api-keys';
 import { getApp } from '../device-state/db-format';
 
 export function createV1Api(router: express.Router) {

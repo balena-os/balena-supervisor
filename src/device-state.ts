@@ -45,7 +45,7 @@ import {
 	AppState,
 } from './types';
 import * as dbFormat from './device-state/db-format';
-import * as apiKeys from './lib/api-keys';
+import * as apiKeys from './device-api/api-keys';
 import * as sysInfo from './lib/system-info';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
@@ -65,8 +65,6 @@ function parseTargetState(state: unknown): TargetState {
 // device api stuff in ./device-api
 function createDeviceStateRouter() {
 	router = express.Router();
-	router.use(express.urlencoded({ limit: '10mb', extended: true }));
-	router.use(express.json({ limit: '10mb' }));
 
 	const rebootOrShutdown = async (
 		req: express.Request,

@@ -23,7 +23,7 @@ import * as logger from '~/src/logger';
 import SupervisorAPI from '~/src/device-api';
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
-import * as apiKeys from '~/lib/api-keys';
+import * as apiKeys from '~/src/device-api/api-keys';
 import * as dbus from '~/lib/dbus';
 import * as updateLock from '~/lib/update-lock';
 import * as TargetState from '~/src/device-state/target-state';

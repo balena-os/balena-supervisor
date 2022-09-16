@@ -12,7 +12,7 @@ const api: express.Express & {
 } = express();
 
 // tslint:disable-next-line
-api.use(require('body-parser').json());
+api.use(express.json());
 
 api.balenaBackend = {
 	currentId: 1,

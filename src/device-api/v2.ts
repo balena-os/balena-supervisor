@@ -31,7 +31,7 @@ import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone } from './common';
-import { AuthorizedRequest } from '../lib/api-keys';
+import { AuthorizedRequest } from './api-keys';
 import { fromV2TargetState } from '../lib/legacy';
 
 export function createV2Api(router: Router) {
