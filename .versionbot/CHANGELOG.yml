@@ -1,4 +1,24 @@
 - commits:
+    - subject: Update @balena/lint to 6.2.0
+      hash: 96418d55b5507d8352e612d4a8074e700ea0780a
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Update to typescript 4.8.2
+      hash: a4c13aa2e925934db26b175876d492995dd4a519
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.0.26
+  title: ""
+  date: 2022-09-19T16:37:40.389Z
+- commits:
     - subject: Update to nodejs 14
       hash: 65e69f3a83863af5967e2eefddbb7cafc1d601f7
       body: ""
