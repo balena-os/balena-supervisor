@@ -32,17 +32,9 @@ export let client: mixpanel.Mixpanel | null = null;
 export const initialized = _.once(async () => {
 	await config.initialized();
 
-	const {
-		unmanaged,
-		mixpanelHost,
-		mixpanelToken,
-		uuid,
-	} = await config.getMany([
-		'unmanaged',
-		'mixpanelHost',
-		'mixpanelToken',
-		'uuid',
-	]);
+	const { unmanaged, mixpanelHost, mixpanelToken, uuid } = await config.getMany(
+		['unmanaged', 'mixpanelHost', 'mixpanelToken', 'uuid'],
+	);
 
 	defaultProperties = {
 		distinct_id: uuid,

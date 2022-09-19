@@ -101,9 +101,8 @@ class LogMonitor {
 				timestamp: Date.now(),
 				writeRequired: false,
 			};
-			this.containers[
-				containerId
-			].timestamp = await this.getContainerSentTimestamp(containerId);
+			this.containers[containerId].timestamp =
+				await this.getContainerSentTimestamp(containerId);
 			this.backfill(containerId, this.containers[containerId].timestamp);
 		}
 	}

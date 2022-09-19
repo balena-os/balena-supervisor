@@ -62,7 +62,7 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 	after(async () => {
 		try {
 			await api.stop();
-		} catch (e) {
+		} catch (e: any) {
 			if (e.message !== 'Server is not running.') {
 				throw e;
 			}

@@ -750,25 +750,21 @@ export class App {
 			},
 		);
 
-		const [
-			opts,
-			supervisorApiHost,
-			hostPathExists,
-			hostname,
-		] = await Promise.all([
-			config.get('extendedEnvOptions'),
-			dockerUtils
-				.getNetworkGateway(constants.supervisorNetworkInterface)
-				.catch(() => '127.0.0.1'),
-			(async () => ({
-				firmware: await pathExistsOnHost('/lib/firmware'),
-				modules: await pathExistsOnHost('/lib/modules'),
-			}))(),
-			(
-				(await config.get('hostname')) ??
-				(await fs.readFile('/etc/hostname', 'utf-8'))
-			).trim(),
-		]);
+		const [opts, supervisorApiHost, hostPathExists, hostname] =
+			await Promise.all([
+				config.get('extendedEnvOptions'),
+				dockerUtils
+					.getNetworkGateway(constants.supervisorNetworkInterface)
+					.catch(() => '127.0.0.1'),
+				(async () => ({
+					firmware: await pathExistsOnHost('/lib/firmware'),
+					modules: await pathExistsOnHost('/lib/modules'),
+				}))(),
+				(
+					(await config.get('hostname')) ??
+					(await fs.readFile('/etc/hostname', 'utf-8'))
+				).trim(),
+			]);
 
 		const svcOpts = {
 			appName: app.name,
@@ -809,7 +805,7 @@ export class App {
 					let imageInfo: ImageInspectInfo | undefined;
 					try {
 						imageInfo = await imageManager.inspectByName(svc.image);
-					} catch (e) {
+					} catch (e: any) {
 						if (!NotFoundError(e)) {
 							throw e;
 						}
@@ -824,7 +820,7 @@ export class App {
 					// FIXME: Typings for DeviceMetadata
 					return await Service.fromComposeObject(
 						svc,
-						(thisSvcOpts as unknown) as DeviceMetadata,
+						thisSvcOpts as unknown as DeviceMetadata,
 					);
 				}),
 		);

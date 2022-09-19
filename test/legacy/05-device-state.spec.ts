@@ -113,7 +113,7 @@ describe('device-state', () => {
 
 		try {
 			await testDb.destroy();
-		} catch (e) {
+		} catch {
 			/* noop */
 		}
 		sinon.restore();

@@ -174,7 +174,7 @@ describe('lib/lockfile', () => {
 		await expect(lockfile.lock(lockOne)).to.not.be.rejected;
 		await expect(lockfile.lock(lockTwo, NOBODY_UID)).to.not.be.rejected;
 
-		// @ts-ignore
+		// @ts-expect-error
 		process.emit('exit');
 
 		// Verify lockfile removal regardless of appId / appUuid

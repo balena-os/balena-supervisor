@@ -126,7 +126,7 @@ export async function unlock(path: string): Promise<void> {
 export function unlockSync(path: string) {
 	try {
 		return unlinkSync(path);
-	} catch (e) {
+	} catch (e: any) {
 		if (e.code === 'EPERM' || e.code === 'EISDIR') {
 			return rmdirSync(path);
 		}

@@ -24,13 +24,13 @@ export = async function () {
 
 	try {
 		fs.unlinkSync(process.env.DATABASE_PATH_2!);
-	} catch (e) {
+	} catch {
 		/* ignore /*/
 	}
 
 	try {
 		fs.unlinkSync(process.env.DATABASE_PATH_3!);
-	} catch (e) {
+	} catch {
 		/* ignore /*/
 	}
 
@@ -58,7 +58,7 @@ export = async function () {
 			'./test/data/config-apibinder-offline2.json',
 			fs.readFileSync('./test/data/testconfig-apibinder-offline2.json'),
 		);
-	} catch (e) {
+	} catch {
 		/* ignore /*/
 	}
 

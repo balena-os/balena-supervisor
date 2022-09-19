@@ -12,7 +12,6 @@ describe('System information', () => {
 		stub(systeminformation, 'mem').resolves(mockMemory);
 		stub(systeminformation, 'currentLoad').resolves(mockCPU.load);
 		stub(systeminformation, 'cpuTemperature').resolves(mockCPU.temp);
-		// @ts-ignore TS thinks we can't return a buffer...
 		stub(fs, 'readFile').resolves(mockCPU.idBuffer);
 		stub(fsUtils, 'exec');
 	});

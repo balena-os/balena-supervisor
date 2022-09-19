@@ -92,9 +92,8 @@ export class Service {
 		'dns',
 		'dnsSearch',
 	];
-	public static allConfigArrayFields: ServiceConfigArrayField[] = Service.configArrayFields.concat(
-		Service.orderedConfigArrayFields,
-	);
+	public static allConfigArrayFields: ServiceConfigArrayField[] =
+		Service.configArrayFields.concat(Service.orderedConfigArrayFields);
 
 	// A list of fields to ignore when comparing container configuration
 	private static omitFields = [
@@ -724,9 +723,8 @@ export class Service {
 			ExposedPorts: exposedPorts,
 			Image: this.config.image,
 			Labels: this.config.labels,
-			NetworkingConfig: ComposeUtils.serviceNetworksToDockerNetworks(
-				mainNetwork,
-			),
+			NetworkingConfig:
+				ComposeUtils.serviceNetworksToDockerNetworks(mainNetwork),
 			StopSignal: this.config.stopSignal,
 			Domainname: this.config.domainname,
 			Hostname: this.config.hostname,
@@ -821,8 +819,8 @@ export class Service {
 		// Service.orderedConfigArrayFields are defined as
 		// fields inside of Service.config
 		const arrayEq = ComposeUtils.compareArrayFields(
-			(this.config as unknown) as Dictionary<unknown>,
-			(service.config as unknown) as Dictionary<unknown>,
+			this.config as unknown as Dictionary<unknown>,
+			service.config as unknown as Dictionary<unknown>,
 			Service.configArrayFields,
 			Service.orderedConfigArrayFields,
 		);

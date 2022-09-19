@@ -75,7 +75,7 @@ registerOverride(
 export function registerOverride<
 	T extends DockerodeFunction,
 	P extends Parameters<dockerode[T]>,
-	R extends ReturnType<dockerode[T]>
+	R extends ReturnType<dockerode[T]>,
 >(name: T, fn: (...args: P) => R) {
 	console.log(`Overriding ${name}...`);
 	overrides[name] = fn;
@@ -207,7 +207,7 @@ function createMockedDockerode(data: TestData) {
 	return mockedDockerode;
 }
 
-type Prototype = Dictionary<(...args: any[]) => any>;
+type Prototype = { [key: string]: any };
 function clonePrototype(prototype: Prototype): Prototype {
 	const clone: Prototype = {};
 	Object.getOwnPropertyNames(prototype).forEach((fn) => {

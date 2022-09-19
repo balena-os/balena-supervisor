@@ -46,7 +46,7 @@ export async function isVPNActive(): Promise<boolean> {
 	let active: boolean = true;
 	try {
 		await fs.lstat(`${constants.vpnStatusPath}/active`);
-	} catch (e) {
+	} catch {
 		active = false;
 	}
 	log.info(`VPN connection is ${active ? 'active' : 'not active'}.`);
@@ -116,7 +116,8 @@ export const connectivityCheckEnabled = Bluebird.method(
 	() => isConnectivityCheckEnabled,
 );
 
-const IP_REGEX = /^(?:(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|resin-dns|supervisor0|balena-redsocks|resin-redsocks|br-[0-9a-f]{12})$/;
+const IP_REGEX =
+	/^(?:(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|resin-dns|supervisor0|balena-redsocks|resin-redsocks|br-[0-9a-f]{12})$/;
 
 export const shouldReportInterface = (intf: string) => !IP_REGEX.test(intf);
 

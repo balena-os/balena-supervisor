@@ -2,7 +2,7 @@ import { PortMap, PortRange } from '~/src/compose/ports';
 import { expect } from 'chai';
 
 // Force cast `PortMap` as a public version so we can test it
-const PortMapPublic = (PortMap as any) as new (
+const PortMapPublic = PortMap as any as new (
 	portStrOrObj: string | PortRange,
 ) => PortMap;
 

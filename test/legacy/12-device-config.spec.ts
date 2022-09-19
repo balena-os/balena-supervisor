@@ -158,7 +158,6 @@ describe('device-config', () => {
 		it('correctly parses a config.txt file', async () => {
 			// Will try to parse /test/data/mnt/boot/config.txt
 			await expect(
-				// @ts-ignore accessing private value
 				deviceConfig.getBootConfig(configTxtBackend),
 			).to.eventually.deep.equal({
 				HOST_CONFIG_dtparam: '"i2c_arm=on","spi=on","audio=on"',
@@ -181,7 +180,6 @@ describe('device-config', () => {
 			);
 
 			await expect(
-				// @ts-ignore accessing private value
 				deviceConfig.getBootConfig(configTxtBackend),
 			).to.eventually.deep.equal({
 				HOST_CONFIG_initramfs: 'initramf.gz 0x00800000',
@@ -207,7 +205,7 @@ describe('device-config', () => {
 			};
 
 			expect(() =>
-				// @ts-ignore accessing private value
+				// @ts-expect-error accessing private value
 				deviceConfig.bootConfigChangeRequired(
 					configTxtBackend,
 					current,
@@ -243,7 +241,7 @@ describe('device-config', () => {
 			};
 
 			expect(
-				// @ts-ignore accessing private value
+				// @ts-expect-error accessing private value
 				deviceConfig.bootConfigChangeRequired(
 					configTxtBackend,
 					current,
@@ -311,7 +309,7 @@ describe('device-config', () => {
 			};
 
 			expect(
-				// @ts-ignore accessing private value
+				// @ts-expect-error accessing private value
 				deviceConfig.bootConfigChangeRequired(
 					configTxtBackend,
 					current,
@@ -386,11 +384,10 @@ describe('device-config', () => {
 			};
 
 			expect(
-				// @ts-ignore accessing private value
+				// @ts-expect-error accessing private value
 				deviceConfig.bootConfigChangeRequired(extlinuxBackend, current, target),
 			).to.equal(true);
 
-			// @ts-ignore accessing private value
 			await deviceConfig.setBootConfig(extlinuxBackend, target);
 			expect(logSpy).to.be.calledTwice;
 			expect(logSpy.getCall(1).args[2]).to.equal('Apply boot config success');

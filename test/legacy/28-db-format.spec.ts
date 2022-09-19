@@ -43,7 +43,7 @@ describe('db-format', () => {
 	after(async () => {
 		try {
 			await testDb.destroy();
-		} catch (e) {
+		} catch {
 			/* noop */
 		}
 		sinon.restore();

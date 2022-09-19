@@ -57,7 +57,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 		let stateFromFile: AppsJsonFormat | any[];
 		try {
 			stateFromFile = JSON.parse(content);
-		} catch (e) {
+		} catch (e: any) {
 			throw new AppsJsonParseError(e);
 		}
 
@@ -157,7 +157,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 			}
 		}
 		return true;
-	} catch (e) {
+	} catch (e: any) {
 		// Ensure that this is actually a file, and not an empty path
 		// It can be an empty path because if the file does not exist
 		// on host, the docker daemon creates an empty directory when

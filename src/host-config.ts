@@ -67,7 +67,7 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 	let redsocksConf: string;
 	try {
 		redsocksConf = await fs.readFile(redsocksConfPath, 'utf-8');
-	} catch (e) {
+	} catch (e: any) {
 		if (!ENOENT(e)) {
 			throw e;
 		}
@@ -99,7 +99,7 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 		if (noProxy.length) {
 			conf.noProxy = noProxy;
 		}
-	} catch (e) {
+	} catch (e: any) {
 		if (!ENOENT(e)) {
 			throw e;
 		}
@@ -141,7 +141,7 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 		let currentConf: ProxyConfig | undefined;
 		try {
 			currentConf = await readProxy();
-		} catch (err) {
+		} catch {
 			// Noop - current redsocks.conf does not exist
 		}
 

@@ -59,7 +59,7 @@ export const fetchDevice = async (
 		}
 
 		return device;
-	} catch (e) {
+	} catch {
 		throw new DeviceNotFoundError();
 	}
 };
@@ -123,12 +123,14 @@ export const exchangeKeyAndGetDevice = async (
 			opts.provisioningApiKey,
 			apiTimeout,
 		);
-	} catch (err) {
+	} catch {
 		throw new ExchangeKeyError(`Couldn't fetch device with provisioning key`);
 	}
 
 	// We found the device so we can try to register a working device key for it
-	const [res] = await (await request.getRequestInstance())
+	const [res] = await (
+		await request.getRequestInstance()
+	)
 		.postAsync(`${opts.apiEndpoint}/api-key/device/${device.id}/device-key`, {
 			json: true,
 			body: {

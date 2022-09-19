@@ -51,12 +51,10 @@ type ApplicationManagerEventEmitter = StrictEventEmitter<
 const events: ApplicationManagerEventEmitter = new EventEmitter();
 export const on: typeof events['on'] = events.on.bind(events);
 export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] = events.removeListener.bind(
-	events,
-);
-export const removeAllListeners: typeof events['removeAllListeners'] = events.removeAllListeners.bind(
-	events,
-);
+export const removeListener: typeof events['removeListener'] =
+	events.removeListener.bind(events);
+export const removeAllListeners: typeof events['removeAllListeners'] =
+	events.removeAllListeners.bind(events);
 
 const proxyvisor = new Proxyvisor();
 const localModeManager = new LocalModeManager();

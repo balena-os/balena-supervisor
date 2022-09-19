@@ -396,10 +396,11 @@ describe('compose/app', () => {
 				volumes: [volume],
 				isTarget: true,
 			});
-			const recreateVolumeSteps = currentWithVolumesRemoved.nextStepsForAppUpdate(
-				contextWithImages,
-				target,
-			);
+			const recreateVolumeSteps =
+				currentWithVolumesRemoved.nextStepsForAppUpdate(
+					contextWithImages,
+					target,
+				);
 
 			expect(recreateVolumeSteps).to.have.length(1);
 			expectSteps('createVolume', recreateVolumeSteps);
@@ -411,10 +412,11 @@ describe('compose/app', () => {
 				volumes: [volume],
 			});
 
-			const createServiceSteps = currentWithVolumeRecreated.nextStepsForAppUpdate(
-				contextWithImages,
-				target,
-			);
+			const createServiceSteps =
+				currentWithVolumeRecreated.nextStepsForAppUpdate(
+					contextWithImages,
+					target,
+				);
 			expectSteps('start', createServiceSteps);
 		});
 	});

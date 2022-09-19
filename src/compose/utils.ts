@@ -249,9 +249,8 @@ export function getHealthcheck(
 	const imageServiceHealthcheck = dockerHealthcheckToServiceHealthcheck(
 		_.get(imageInfo, 'Config.Healthcheck', null),
 	);
-	const composeServiceHealthcheck = composeHealthcheckToServiceHealthcheck(
-		composeHealthcheck,
-	);
+	const composeServiceHealthcheck =
+		composeHealthcheckToServiceHealthcheck(composeHealthcheck);
 
 	// Overlay any compose healthcheck fields on the image healthchecks
 	return _.assign(
@@ -277,9 +276,8 @@ export function getWorkingDir(
 	workingDir: string | null | undefined,
 	imageInfo?: Dockerode.ImageInspectInfo,
 ): string {
-	return (workingDir != null
-		? workingDir
-		: _.get(imageInfo, 'Config.WorkingDir', '')
+	return (
+		workingDir != null ? workingDir : _.get(imageInfo, 'Config.WorkingDir', '')
 	).replace(/(^.+)\/$/, '$1');
 }
 
@@ -448,9 +446,10 @@ export function serviceUlimitsToDockerUlimits(
 	return ret;
 }
 
-export function serviceRestartToDockerRestartPolicy(
-	restart: string,
-): { Name: string; MaximumRetryCount: number } {
+export function serviceRestartToDockerRestartPolicy(restart: string): {
+	Name: string;
+	MaximumRetryCount: number;
+} {
 	return {
 		Name: restart,
 		MaximumRetryCount: 0,
@@ -535,9 +534,9 @@ export function normalizeNullValues(obj: Dictionary<any>): void {
 	});
 }
 
-export function normalizeLabels(labels: {
+export function normalizeLabels(labels: { [key: string]: string }): {
 	[key: string]: string;
-}): { [key: string]: string } {
+} {
 	const legacyLabels = _.mapKeys(
 		_.pickBy(labels, (_v, k) => _.startsWith(k, 'io.resin.')),
 		(_v, k) => {

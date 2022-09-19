@@ -341,57 +341,51 @@ describe('Container contracts', () => {
 
 		describe('Optional containers', () => {
 			it('should correctly run passing optional containers', async () => {
-				const {
-					valid,
-					unmetServices,
-					fulfilledServices,
-				} = containerContractsFulfilled({
-					service1: {
-						contract: {
-							type: 'sw.container',
-							slug: 'service1',
-							requires: [
-								{
-									type: 'sw.supervisor',
-									version: `<${supervisorVersionGreater}`,
-								},
-							],
+				const { valid, unmetServices, fulfilledServices } =
+					containerContractsFulfilled({
+						service1: {
+							contract: {
+								type: 'sw.container',
+								slug: 'service1',
+								requires: [
+									{
+										type: 'sw.supervisor',
+										version: `<${supervisorVersionGreater}`,
+									},
+								],
+							},
+							optional: true,
 						},
-						optional: true,
-					},
-				});
+					});
 				expect(valid).to.equal(true);
 				expect(unmetServices).to.deep.equal([]);
 				expect(fulfilledServices).to.deep.equal(['service1']);
 			});
 
 			it('should corrrectly omit failing optional containers', async () => {
-				const {
-					valid,
-					unmetServices,
-					fulfilledServices,
-				} = containerContractsFulfilled({
-					service1: {
-						contract: {
-							type: 'sw.container',
-							slug: 'service1',
-							requires: [
-								{
-									type: 'sw.supervisor',
-									version: `>${supervisorVersionGreater}`,
-								},
-							],
+				const { valid, unmetServices, fulfilledServices } =
+					containerContractsFulfilled({
+						service1: {
+							contract: {
+								type: 'sw.container',
+								slug: 'service1',
+								requires: [
+									{
+										type: 'sw.supervisor',
+										version: `>${supervisorVersionGreater}`,
+									},
+								],
+							},
+							optional: true,
 						},
-						optional: true,
-					},
-					service2: {
-						contract: {
-							type: 'sw.container',
-							slug: 'service2',
+						service2: {
+							contract: {
+								type: 'sw.container',
+								slug: 'service2',
+							},
+							optional: false,
 						},
-						optional: false,
-					},
-				});
+					});
 				expect(valid).to.equal(true);
 				expect(unmetServices).to.deep.equal(['service1']);
 				expect(fulfilledServices).to.deep.equal(['service2']);

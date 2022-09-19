@@ -70,17 +70,14 @@ const events = new ImageEventEmitter();
 
 export const on: typeof events['on'] = events.on.bind(events);
 export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] = events.removeListener.bind(
-	events,
-);
-export const removeAllListeners: typeof events['removeAllListeners'] = events.removeAllListeners.bind(
-	events,
-);
+export const removeListener: typeof events['removeListener'] =
+	events.removeListener.bind(events);
+export const removeAllListeners: typeof events['removeAllListeners'] =
+	events.removeAllListeners.bind(events);
 
 const imageFetchFailures: Dictionary<number> = {};
-const imageFetchLastFailureTime: Dictionary<ReturnType<
-	typeof process.hrtime
->> = {};
+const imageFetchLastFailureTime: Dictionary<ReturnType<typeof process.hrtime>> =
+	{};
 const imageCleanupFailures: Dictionary<number> = {};
 
 type ImageState = Pick<Image, 'status' | 'downloadProgress'>;
@@ -239,7 +236,7 @@ export async function triggerFetch(
 		await markAsSupervised({ ...image, dockerImageId: img.Id });
 
 		success = true;
-	} catch (e) {
+	} catch (e: any) {
 		if (!NotFoundError(e)) {
 			if (!(e instanceof ImageDownloadBackoffError)) {
 				addImageFailure(image.name);
@@ -538,9 +535,11 @@ async function getImagesForCleanup(): Promise<string[]> {
 // for images with deltas this should return unless there is some inconsistency
 // and the tag was deleted.
 const inspectByReference = async (imageName: string) => {
-	const { registry, imageName: name, tagName } = dockerUtils.getRegistryAndName(
-		imageName,
-	);
+	const {
+		registry,
+		imageName: name,
+		tagName,
+	} = dockerUtils.getRegistryAndName(imageName);
 
 	const repo = [registry, name].filter((s) => !!s).join('/');
 	const reference = [repo, tagName].filter((s) => !!s).join(':');
@@ -618,7 +617,7 @@ export async function cleanup() {
 		try {
 			await docker.getImage(image).remove({ force: true });
 			delete imageCleanupFailures[image];
-		} catch (e) {
+		} catch (e: any) {
 			logger.logSystemMessage(
 				`Error cleaning up ${image}: ${e.message} - will ignore for 1 hour`,
 				{ error: e },
@@ -730,7 +729,7 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 
 		// Mark the image as removed
 		removed = true;
-	} catch (e) {
+	} catch (e: any) {
 		if (NotFoundError(e)) {
 			removed = false;
 		} else {
@@ -781,7 +780,7 @@ async function fetchDelta(
 ): Promise<string> {
 	logger.logSystemEvent(LogTypes.downloadImageDelta, { image });
 
-	const deltaOpts = (opts as unknown) as DeltaFetchOptions;
+	const deltaOpts = opts as unknown as DeltaFetchOptions;
 	const srcImage = await inspectByName(deltaOpts.deltaSource);
 
 	deltaOpts.deltaSourceId = srcImage.Id;

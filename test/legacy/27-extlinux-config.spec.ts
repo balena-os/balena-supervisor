@@ -23,7 +23,7 @@ describe('Extlinux Configuration', () => {
 						APPEND \${cbootargs} \${resin_kernel_root} ro rootwait\
 		`;
 
-		// @ts-ignore accessing private method
+		// @ts-expect-error accessing private method
 		const parsed = Extlinux.parseExtlinuxFile(text);
 		expect(parsed.globals).to.have.property('DEFAULT').that.equals('primary');
 		expect(parsed.globals).to.have.property('TIMEOUT').that.equals('30');
@@ -60,7 +60,7 @@ describe('Extlinux Configuration', () => {
 						APPEND test4\
 		`;
 
-		// @ts-ignore accessing private method
+		// @ts-expect-error accessing private method
 		const parsed = Extlinux.parseExtlinuxFile(text);
 		expect(parsed.labels).to.have.property('primary').that.deep.equals({
 			LINUX: 'test1',
@@ -147,7 +147,7 @@ describe('Extlinux Configuration', () => {
 			// Expect correct rejection from the given bad config
 			try {
 				await backend.getBootConfig();
-			} catch (e) {
+			} catch (e: any) {
 				expect(e.message).to.equal(badConfig.reason);
 			}
 			// Restore stub
@@ -248,12 +248,11 @@ describe('Extlinux Configuration', () => {
 	});
 
 	it('normalizes variable value', () => {
-		[
-			{ input: { key: 'key', value: 'value' }, output: 'value' },
-		].forEach(({ input, output }) =>
-			expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
-				output,
-			),
+		[{ input: { key: 'key', value: 'value' }, output: 'value' }].forEach(
+			({ input, output }) =>
+				expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
+					output,
+				),
 		);
 	});
 

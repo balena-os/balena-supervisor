@@ -42,7 +42,7 @@ const formatter = winston.format.printf((args) => {
 	)}${message}`;
 });
 
-export const winstonLog = (winston.createLogger({
+export const winstonLog = winston.createLogger({
 	format: winston.format.combine(winston.format.colorize(), formatter),
 	transports: [new winston.transports.Console()],
 	// In the future we can reduce this logging level in
@@ -57,7 +57,7 @@ export const winstonLog = (winston.createLogger({
 	// below, we first cast to unknown so we can do what we
 	// like, and then assign every log level a function (which
 	// is what happens internally in winston)
-}) as unknown) as { [key in logLevel]: (message: string) => void };
+}) as unknown as { [key in logLevel]: (message: string) => void };
 
 winston.addColors(colors);
 

@@ -2,7 +2,8 @@ import * as _ from 'lodash';
 import { TypedError } from 'typed-error';
 
 // Adapted from https://github.com/docker/docker-py/blob/master/docker/utils/ports.py#L3
-const PORTS_REGEX = /^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/;
+const PORTS_REGEX =
+	/^(?:(?:([a-fA-F\d.:]+):)?([\d]*)(?:-([\d]+))?:)?([\d]+)(?:-([\d]+))?(?:\/(udp|tcp))?$/;
 
 // A regex to extract the protocol and internal port of the incoming Docker options
 const DOCKER_OPTS_PORTS_REGEX = /(\d+)(?:\/?([a-z]+))?/i;

@@ -43,12 +43,10 @@ interface KillOpts {
 
 export const on: typeof events['on'] = events.on.bind(events);
 export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] = events.removeListener.bind(
-	events,
-);
-export const removeAllListeners: typeof events['removeAllListeners'] = events.removeAllListeners.bind(
-	events,
-);
+export const removeListener: typeof events['removeListener'] =
+	events.removeListener.bind(events);
+export const removeAllListeners: typeof events['removeAllListeners'] =
+	events.removeAllListeners.bind(events);
 
 // Whether a container has died, indexed by ID
 const containerHasDied: Dictionary<boolean> = {};
@@ -74,7 +72,7 @@ export const getAll = async (
 				service.status = vState.status;
 			}
 			return service;
-		} catch (e) {
+		} catch (e: any) {
 			if (NotFoundError(e)) {
 				return null;
 			}
@@ -90,10 +88,8 @@ async function get(service: Service) {
 	const containerIds = await getContainerIdMap(
 		service.appUuid || service.appId,
 	);
-	const services = (
-		await getAll(`service-name=${service.serviceName}`)
-	).filter((currentService) =>
-		currentService.isEqualConfig(service, containerIds),
+	const services = (await getAll(`service-name=${service.serviceName}`)).filter(
+		(currentService) => currentService.isEqualConfig(service, containerIds),
 	);
 
 	if (services.length === 0) {
@@ -210,7 +206,7 @@ export async function remove(service: Service) {
 
 	try {
 		await docker.getContainer(existingService.containerId).remove({ v: true });
-	} catch (e) {
+	} catch (e: any) {
 		if (!NotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.removeDeadServiceError, {
 				service,
@@ -231,7 +227,7 @@ async function create(service: Service) {
 			);
 		}
 		return docker.getContainer(existing.containerId);
-	} catch (e) {
+	} catch (e: any) {
 		if (!NotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.installServiceError, {
 				service,
@@ -387,7 +383,7 @@ export function listenToEvents() {
 						let service: Service | null = null;
 						try {
 							service = await getByDockerContainerId(data.id);
-						} catch (e) {
+						} catch (e: any) {
 							if (!NotFoundError(e)) {
 								throw e;
 							}
@@ -418,7 +414,7 @@ export function listenToEvents() {
 								await logMonitor.detach(data.id);
 							}
 						}
-					} catch (e) {
+					} catch (e: any) {
 						log.error('Error on docker event:', e, e.stack);
 					}
 				}

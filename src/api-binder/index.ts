@@ -46,15 +46,12 @@ interface DeviceTag {
 let readyForUpdates = false;
 
 export async function healthcheck() {
-	const {
-		appUpdatePollInterval,
-		unmanaged,
-		connectivityCheckEnabled,
-	} = await config.getMany([
-		'appUpdatePollInterval',
-		'unmanaged',
-		'connectivityCheckEnabled',
-	]);
+	const { appUpdatePollInterval, unmanaged, connectivityCheckEnabled } =
+		await config.getMany([
+			'appUpdatePollInterval',
+			'unmanaged',
+			'connectivityCheckEnabled',
+		]);
 
 	// Don't have to perform checks for unmanaged
 	if (unmanaged) {
@@ -535,7 +532,7 @@ async function reportInitialName(
 				device_name: name,
 			},
 		});
-	} catch (err) {
+	} catch (err: any) {
 		log.error('Unable to report initial device name to API');
 		logger.logSystemMessage(
 			'Unable to report initial device name to API',

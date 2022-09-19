@@ -8,8 +8,7 @@ describe('Deltas', () => {
 		const imageStub = stub(dockerUtils.docker, 'getImage').returns({
 			inspect: () => {
 				return Promise.resolve({
-					Id:
-						'sha256:34ec91fe6e08cb0f867bbc069c5f499d39297eb8e874bb8ce9707537d983bcbc',
+					Id: 'sha256:34ec91fe6e08cb0f867bbc069c5f499d39297eb8e874bb8ce9707537d983bcbc',
 					RepoTags: [],
 					RepoDigests: [],
 					Parent: '',

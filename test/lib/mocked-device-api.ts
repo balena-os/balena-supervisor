@@ -94,8 +94,7 @@ const mockService = (overrides?: Partial<Service>) => {
 const mockImage = (overrides?: Partial<Image>) => {
 	return {
 		...{
-			name:
-				'registry2.balena-cloud.com/v2/e2bf6410ffc30850e96f5071cdd1dca8@sha256:e2e87a8139b8fc14510095b210ad652d7d5badcc64fdc686cbf749d399fba15e',
+			name: 'registry2.balena-cloud.com/v2/e2bf6410ffc30850e96f5071cdd1dca8@sha256:e2e87a8139b8fc14510095b210ad652d7d5badcc64fdc686cbf749d399fba15e',
 			appId: 1658654,
 			serviceName: 'main',
 			imageId: 2885946,

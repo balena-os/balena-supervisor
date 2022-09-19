@@ -46,11 +46,9 @@ export function abortIfHUPInProgress({
 	force: boolean | undefined;
 }): Promise<boolean | never> {
 	return Promise.all(
-		[
-			'rollback-health-breadcrumb',
-			'rollback-altboot-breadcrumb',
-		].map((filename) =>
-			pathExistsOnHost(path.join(constants.stateMountPoint, filename)),
+		['rollback-health-breadcrumb', 'rollback-altboot-breadcrumb'].map(
+			(filename) =>
+				pathExistsOnHost(path.join(constants.stateMountPoint, filename)),
 		),
 	).then((existsArray) => {
 		const anyExists = existsArray.some((exists) => exists);
@@ -112,7 +110,7 @@ export async function lock<T extends unknown>(
 	let lockOverride: boolean;
 	try {
 		lockOverride = await config.get('lockOverride');
-	} catch (err) {
+	} catch (err: any) {
 		throw new InternalInconsistencyError(
 			`Error getting lockOverride config value: ${err?.message ?? err}`,
 		);

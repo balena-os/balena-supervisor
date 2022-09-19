@@ -35,9 +35,9 @@ export default class ConfigJsonConfigBackend {
 			readLock('config.json').disposer((release) => release());
 	}
 
-	public async set<T extends Schema.SchemaKey>(
-		keyVals: { [key in T]: unknown },
-	) {
+	public async set<T extends Schema.SchemaKey>(keyVals: {
+		[key in T]: unknown;
+	}) {
 		await this.init();
 		await Bluebird.using(this.writeLockConfigJson(), async () => {
 			let changed = false;

@@ -6,7 +6,7 @@ describe('FDT directive', () => {
 
 	it('parses valid FDT value', () => {
 		VALID_VALUES.forEach(({ input, output }) =>
-			// @ts-ignore input with no FDT can still be parsed
+			// @ts-expect-error input with no FDT can still be parsed
 			expect(directive.parse(input)).to.deep.equal(output),
 		);
 	});

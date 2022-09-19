@@ -57,9 +57,9 @@ async function report({ body, opts }: StateReport) {
 		body,
 	};
 
-	const [
-		{ statusCode, body: statusMessage, headers },
-	] = await request.patchAsync(endpoint, params).timeout(apiTimeout);
+	const [{ statusCode, body: statusMessage, headers }] = await request
+		.patchAsync(endpoint, params)
+		.timeout(apiTimeout);
 
 	if (statusCode < 200 || statusCode >= 300) {
 		throw new StatusError(

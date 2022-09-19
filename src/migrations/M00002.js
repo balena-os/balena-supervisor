@@ -25,7 +25,7 @@ exports.up = function (knex) {
 					return resolve(checkTruthy(parsed.localMode));
 				}
 				return resolve(false);
-			} catch (e) {
+			} catch {
 				console.log(
 					'Failed to parse config.json! Things may fail unexpectedly!',
 				);
