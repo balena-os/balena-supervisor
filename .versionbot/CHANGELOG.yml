@@ -1,4 +1,68 @@
 - commits:
+    - subject: Update balena-register-device to 8.0.0
+      hash: 1baf972e162cb3f9bf8904f7e734f29e2afe6b6d
+      body: |
+        Update balena-register-device from 7.2.0 to 8.0.0
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Thodoris Greasidis <thodoris@balena.io>
+        signed-off-by: Thodoris Greasidis <thodoris@balena.io>
+      author: Thodoris Greasidis
+      nested:
+        - commits:
+            - subject: Remove the travis & appveyor configurations
+              hash: 32c19504ca79ec134b34e30a4e6a52157a7b0bd6
+              body: ""
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Thodoris Greasidis
+            - subject: "tsconfig: Enable strict type checking"
+              hash: 77b5211af6f87c364302342f24f9f95bc6c8ba35
+              body: ""
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Thodoris Greasidis
+            - subject: Update devDependencies
+              hash: 32a482be80c978b3c8f83a2335a17c70a224cb52
+              body: ""
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Thodoris Greasidis
+            - subject: Update the uuid package to v9
+              hash: 4567f824d6f45c825594fda3ec7c4b8e5f3ea561
+              body: ""
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Thodoris Greasidis
+            - subject: Prevent creating a package-lock.json
+              hash: 3c0e432980a30a1fb0678acd8d0459bd53d69565
+              body: ""
+              footer:
+                Change-type: patch
+                change-type: patch
+              author: Thodoris Greasidis
+            - subject: Drop support for node 10 in favor of 14 & 16
+              hash: ea7c5670950918363380cff9576a082abad6dbb9
+              body: |
+                That's required in order to update uuid to v9.
+              footer:
+                Change-type: major
+                change-type: major
+                Signed-off-by: Thodoris Greasidis <thodoris@balena.io>
+                signed-off-by: Thodoris Greasidis <thodoris@balena.io>
+              author: Thodoris Greasidis
+          version: balena-register-device-8.0.0
+          title: "'Drop node 10 in favor of 14 & 16 & update the uuid package to v9'"
+          date: 2022-09-06T12:49:29.202Z
+  version: 14.1.1
+  title: ""
+  date: 2022-09-19T21:21:50.712Z
+- commits:
     - subject: Update to nodejs 16
       hash: 5518eb17bd232d53d3fd73afd0cd565ad2d93ca4
       body: ""
