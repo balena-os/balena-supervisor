@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        slug: 
+        slug:
           [
             balena_os/aarch64-supervisor,
             balena_os/amd64-supervisor,
@@ -65,5 +65,3 @@ jobs:
           environment: balena-staging.com
           versionbot: false # ignore versionbot branch since the flowzone source is already versioned
           source: .
-
-
