@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update to nodejs 16
+      hash: 5518eb17bd232d53d3fd73afd0cd565ad2d93ca4
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Pagan Gazzard
+      nested: []
+  version: 14.1.0
+  title: ""
+  date: 2022-09-19T20:36:45.949Z
+- commits:
     - subject: Update @balena/lint to 6.2.0
       hash: 96418d55b5507d8352e612d4a8074e700ea0780a
       body: ""
