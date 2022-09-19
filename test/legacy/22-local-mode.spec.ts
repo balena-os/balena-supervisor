@@ -166,9 +166,8 @@ describe('LocalModeManager', () => {
 			const stubEngineObjectMethods = (
 				removeThrows: boolean,
 			): Array<sinon.SinonStubbedInstance<EngineStubbedObject>> => {
-				const resArray: Array<sinon.SinonStubbedInstance<
-					EngineStubbedObject
-				>> = [];
+				const resArray: Array<sinon.SinonStubbedInstance<EngineStubbedObject>> =
+					[];
 
 				const stub = <T>(
 					c: sinon.StubbableType<EngineStubbedObject>,
@@ -186,7 +185,7 @@ describe('LocalModeManager', () => {
 					}
 
 					resArray.push(res);
-					return (res as unknown) as T;
+					return res as unknown as T;
 				};
 				dockerStub.getImage.returns(stub(Docker.Image, 'image'));
 				dockerStub.getContainer.returns(stub(Docker.Container, 'container'));

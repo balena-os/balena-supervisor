@@ -91,9 +91,9 @@ describe('EventTracker', () => {
 		it('initializes a mixpanel client when not in unmanaged mode', () => {
 			expect(eventTracker.initialized()).to.be.fulfilled.then(() => {
 				expect(mixpanel.init).to.have.been.calledWith('someToken');
-				// @ts-ignore
+				// @ts-expect-error
 				expect(eventTracker.client.token).to.equal('someToken');
-				// @ts-ignore
+				// @ts-expect-error
 				expect(eventTracker.client.track).to.be.a('function');
 			});
 		});
@@ -138,7 +138,7 @@ describe('EventTracker', () => {
 				'Test event 2',
 				JSON.stringify({ appId: 'someOtherValue' }),
 			);
-			// @ts-ignore
+			// @ts-expect-error
 			expect(eventTracker.client.track).to.be.calledWith('Test event 2', {
 				appId: 'someOtherValue',
 				uuid: 'barbaz',
@@ -150,7 +150,7 @@ describe('EventTracker', () => {
 		it('can be passed an Error and it is added to the event properties', async () => {
 			const theError = new Error('something went wrong');
 			await eventTracker.track('Error event', theError);
-			// @ts-ignore
+			// @ts-expect-error
 			expect(eventTracker.client.track).to.be.calledWith('Error event', {
 				error: {
 					message: theError.message,
@@ -174,7 +174,7 @@ describe('EventTracker', () => {
 				},
 			};
 			await eventTracker.track('Some app event', props);
-			// @ts-ignore
+			// @ts-expect-error
 			expect(eventTracker.client.track).to.be.calledWith('Some app event', {
 				service: { appId: '1' },
 				uuid: 'barbaz',

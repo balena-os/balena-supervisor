@@ -75,7 +75,7 @@ registerOverride(
 export function registerOverride<
 	T extends DockerodeFunction,
 	P extends Parameters<dockerode[T]>,
-	R extends ReturnType<dockerode[T]>
+	R extends ReturnType<dockerode[T]>,
 >(name: T, fn: (...args: P) => R) {
 	console.log(`Overriding ${name}...`);
 	overrides[name] = fn;

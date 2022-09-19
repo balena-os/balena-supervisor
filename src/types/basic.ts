@@ -191,7 +191,7 @@ export type DeviceName = t.TypeOf<typeof DeviceName>;
 const restrictedRecord = <
 	K extends t.Mixed,
 	V extends t.Mixed,
-	R extends { [key in t.TypeOf<K>]: t.TypeOf<V> }
+	R extends { [key in t.TypeOf<K>]: t.TypeOf<V> },
 >(
 	k: K,
 	v: V,

@@ -170,10 +170,9 @@ export async function fetchDeltaWithProgress(
 
 	const url = `${deltaOpts.deltaEndpoint}/api/v${deltaOpts.deltaVersion}/delta?src=${deltaOpts.deltaSource}&dest=${imgDest}`;
 
-	const [res, data] = await (await request.getRequestInstance()).getAsync(
-		url,
-		opts,
-	);
+	const [res, data] = await (
+		await request.getRequestInstance()
+	).getAsync(url, opts);
 	if (res.statusCode === 502 || res.statusCode === 504) {
 		throw new DeltaStillProcessingError();
 	}

@@ -47,14 +47,14 @@ describe('Database Migrations', () => {
 	});
 
 	after(() => {
-		// @ts-ignore
+		// @ts-expect-error
 		constants.databasePath = process.env.DATABASE_PATH;
 		delete require.cache[require.resolve('~/src/db')];
 	});
 
 	it('creates a database at the path passed on creation', async () => {
 		const databasePath = process.env.DATABASE_PATH_2!;
-		// @ts-ignore
+		// @ts-expect-error
 		constants.databasePath = databasePath;
 		delete require.cache[require.resolve('~/src/db')];
 
@@ -67,7 +67,7 @@ describe('Database Migrations', () => {
 		const databasePath = process.env.DATABASE_PATH_3!;
 
 		const knexForDB = await createOldDatabase(databasePath);
-		// @ts-ignore
+		// @ts-expect-error
 		constants.databasePath = databasePath;
 		delete require.cache[require.resolve('~/src/db')];
 		const testDb = await import('~/src/db');

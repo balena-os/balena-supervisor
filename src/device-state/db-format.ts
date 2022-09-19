@@ -53,9 +53,11 @@ export async function setApps(
 
 		const services = Object.keys(release.services ?? {}).map((serviceName) => {
 			const { id: releaseId } = release;
-			const { id: serviceId, image_id: imageId, ...service } = release.services[
-				serviceName
-			];
+			const {
+				id: serviceId,
+				image_id: imageId,
+				...service
+			} = release.services[serviceName];
 
 			return {
 				...service,
@@ -94,53 +96,62 @@ export async function getTargetJson(): Promise<TargetApps> {
 	const dbApps = await getDBEntry();
 
 	return dbApps
-		.map(({ source, uuid, releaseId, commit: releaseUuid, ...app }): [
-			string,
-			TargetApp,
-		] => {
-			const services = (JSON.parse(app.services) as DatabaseService[])
-				.map(({ serviceName, serviceId, imageId, ...service }): [
-					string,
-					TargetService,
-				] => [
-					serviceName,
-					{
-						id: serviceId,
-						image_id: imageId,
-						..._.omit(service, ['appId', 'appUuid', 'commit', 'releaseId']),
-					} as TargetService,
-				])
-				// Map by serviceName
-				.reduce(
-					(svcs, [serviceName, s]) => ({
-						...svcs,
-						[serviceName]: s,
-					}),
-					{},
-				);
-
-			const releases = releaseUuid
-				? {
-						[releaseUuid]: {
-							id: releaseId,
-							services,
-							networks: JSON.parse(app.networks),
-							volumes: JSON.parse(app.volumes),
-						} as TargetRelease,
-				  }
-				: {};
-
-			return [
+		.map(
+			({
+				source,
 				uuid,
-				{
-					id: app.appId,
-					name: app.name,
-					class: app.class,
-					is_host: !!app.isHost,
-					releases,
-				},
-			];
-		})
+				releaseId,
+				commit: releaseUuid,
+				...app
+			}): [string, TargetApp] => {
+				const services = (JSON.parse(app.services) as DatabaseService[])
+					.map(
+						({
+							serviceName,
+							serviceId,
+							imageId,
+							...service
+						}): [string, TargetService] => [
+							serviceName,
+							{
+								id: serviceId,
+								image_id: imageId,
+								..._.omit(service, ['appId', 'appUuid', 'commit', 'releaseId']),
+							} as TargetService,
+						],
+					)
+					// Map by serviceName
+					.reduce(
+						(svcs, [serviceName, s]) => ({
+							...svcs,
+							[serviceName]: s,
+						}),
+						{},
+					);
+
+				const releases = releaseUuid
+					? {
+							[releaseUuid]: {
+								id: releaseId,
+								services,
+								networks: JSON.parse(app.networks),
+								volumes: JSON.parse(app.volumes),
+							} as TargetRelease,
+					  }
+					: {};
+
+				return [
+					uuid,
+					{
+						id: app.appId,
+						name: app.name,
+						class: app.class,
+						is_host: !!app.isHost,
+						releases,
+					},
+				];
+			},
+		)
 		.reduce((apps, [uuid, app]) => ({ ...apps, [uuid]: app }), {});
 }
 

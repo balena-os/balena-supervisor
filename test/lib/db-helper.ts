@@ -9,7 +9,7 @@ export async function createDB() {
 	// for testing we use an in memory database
 	process.env.DATABASE_PATH = ':memory:';
 
-	// @ts-ignore
+	// @ts-expect-error
 	constants.databasePath = process.env.DATABASE_PATH;
 
 	// Cleanup the module cache in order to have it reloaded in the local context
@@ -71,7 +71,7 @@ export async function createDB() {
 			(db.upsertModel as sinon.SinonStub).restore();
 
 			// Restore the constants
-			// @ts-ignore
+			// @ts-expect-error
 			constants.databasePath = process.env.DATABASE_PATH;
 
 			// Cleanup the module cache in order to have it reloaded

@@ -72,7 +72,7 @@ export const isScoped = (
 	scopes: Scope[],
 ) =>
 	scopes.some((scope) =>
-		scopeChecks[scope.type](resources, (scope as unknown) as any),
+		scopeChecks[scope.type](resources, scope as unknown as any),
 	);
 
 export type AuthorizedRequest = express.Request & {

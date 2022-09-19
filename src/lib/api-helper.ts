@@ -128,7 +128,9 @@ export const exchangeKeyAndGetDevice = async (
 	}
 
 	// We found the device so we can try to register a working device key for it
-	const [res] = await (await request.getRequestInstance())
+	const [res] = await (
+		await request.getRequestInstance()
+	)
 		.postAsync(`${opts.apiEndpoint}/api-key/device/${device.id}/device-key`, {
 			json: true,
 			body: {

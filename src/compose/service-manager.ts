@@ -43,12 +43,10 @@ interface KillOpts {
 
 export const on: typeof events['on'] = events.on.bind(events);
 export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] = events.removeListener.bind(
-	events,
-);
-export const removeAllListeners: typeof events['removeAllListeners'] = events.removeAllListeners.bind(
-	events,
-);
+export const removeListener: typeof events['removeListener'] =
+	events.removeListener.bind(events);
+export const removeAllListeners: typeof events['removeAllListeners'] =
+	events.removeAllListeners.bind(events);
 
 // Whether a container has died, indexed by ID
 const containerHasDied: Dictionary<boolean> = {};
@@ -90,10 +88,8 @@ async function get(service: Service) {
 	const containerIds = await getContainerIdMap(
 		service.appUuid || service.appId,
 	);
-	const services = (
-		await getAll(`service-name=${service.serviceName}`)
-	).filter((currentService) =>
-		currentService.isEqualConfig(service, containerIds),
+	const services = (await getAll(`service-name=${service.serviceName}`)).filter(
+		(currentService) => currentService.isEqualConfig(service, containerIds),
 	);
 
 	if (services.length === 0) {

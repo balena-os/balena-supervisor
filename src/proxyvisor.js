@@ -350,9 +350,8 @@ export class Proxyvisor {
 	constructor() {
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
-		this.normaliseDependentAppForDB = this.normaliseDependentAppForDB.bind(
-			this,
-		);
+		this.normaliseDependentAppForDB =
+			this.normaliseDependentAppForDB.bind(this);
 		this.setTargetInTransaction = this.setTargetInTransaction.bind(this);
 		this.getTarget = this.getTarget.bind(this);
 		this._getHookStep = this._getHookStep.bind(this);

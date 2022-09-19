@@ -46,15 +46,12 @@ interface DeviceTag {
 let readyForUpdates = false;
 
 export async function healthcheck() {
-	const {
-		appUpdatePollInterval,
-		unmanaged,
-		connectivityCheckEnabled,
-	} = await config.getMany([
-		'appUpdatePollInterval',
-		'unmanaged',
-		'connectivityCheckEnabled',
-	]);
+	const { appUpdatePollInterval, unmanaged, connectivityCheckEnabled } =
+		await config.getMany([
+			'appUpdatePollInterval',
+			'unmanaged',
+			'connectivityCheckEnabled',
+		]);
 
 	// Don't have to perform checks for unmanaged
 	if (unmanaged) {

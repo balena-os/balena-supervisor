@@ -40,12 +40,12 @@ describe('lib/update-lock', () => {
 
 	// TODO: Remove these hooks when we don't need './test/data' as test process's rootMountPoint
 	before(() => {
-		// @ts-ignore // Set rootMountPoint for mockFs
+		// @ts-expect-error // Set rootMountPoint for mockFs
 		constants.rootMountPoint = '/mnt/root';
 	});
 
 	after(() => {
-		// @ts-ignore
+		// @ts-expect-error
 		constants.rootMountPoint = process.env.ROOT_MOUNTPOINT;
 	});
 
@@ -125,7 +125,7 @@ describe('lib/update-lock', () => {
 			lockSpy = spy(lockfile, 'lock');
 			// lockfile.lock calls exec to interface with the lockfile binary,
 			// so mock it here as we don't have access to the binary in the test env
-			// @ts-ignore
+			// @ts-expect-error
 			execStub = stub(fsUtils, 'exec').callsFake(async (command, opts) => {
 				// Sanity check for the command call
 				expect(command.trim().startsWith('lockfile')).to.be.true;

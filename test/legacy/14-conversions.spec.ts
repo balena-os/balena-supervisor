@@ -30,12 +30,12 @@ describe('conversions', function () {
 			}));
 
 		it('should return an empty object with an empty input', function () {
-			// @ts-ignore passing invalid value to test
+			// @ts-expect-error passing invalid value to test
 			expect(conversion.envArrayToObject(null)).to.deep.equal({});
-			// @ts-ignore passing invalid value to test
+			// @ts-expect-error passing invalid value to test
 			expect(conversion.envArrayToObject('')).to.deep.equal({});
 			expect(conversion.envArrayToObject([])).to.deep.equal({});
-			// @ts-ignore passing invalid value to test
+			// @ts-expect-error passing invalid value to test
 			expect(conversion.envArrayToObject(1)).to.deep.equal({});
 		});
 	});

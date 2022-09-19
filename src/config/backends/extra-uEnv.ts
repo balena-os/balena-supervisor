@@ -225,10 +225,8 @@ export class ExtraUEnv extends ConfigBackend {
 		// Reduce ConfigOptions into a Map that joins collections
 		return Object.entries(configs).reduce(
 			(configMap: Map<string, string>, [configKey, configValue]) => {
-				const {
-					key: ENTRY_KEY,
-					collection: ENTRY_IS_COLLECTION,
-				} = ExtraUEnv.supportedConfigs[configKey];
+				const { key: ENTRY_KEY, collection: ENTRY_IS_COLLECTION } =
+					ExtraUEnv.supportedConfigs[configKey];
 				// Check if we have to build the value for the entry
 				if (ENTRY_IS_COLLECTION) {
 					return configMap.set(

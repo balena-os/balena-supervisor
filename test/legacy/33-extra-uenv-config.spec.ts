@@ -24,7 +24,7 @@ describe('extra_uEnv Configuration', () => {
       custom_fdt_file=mycustom.dtb
       extra_os_cmdline=isolcpus=3,4 splash console=tty0
 		`;
-		// @ts-ignore accessing private method
+		// @ts-expect-error accessing private method
 		const parsed = ExtraUEnv.parseOptions(fileContents);
 		expect(parsed).to.deep.equal({
 			fdt: 'mycustom.dtb',
@@ -100,10 +100,10 @@ describe('extra_uEnv Configuration', () => {
 			readFileStub.resolves(badConfig.contents);
 			// Expect warning log from the given bad config
 			await backend.getBootConfig();
-			// @ts-ignore
+			// @ts-expect-error
 			expect(Log.warn.lastCall?.lastArg).to.equal(badConfig.reason);
 		}
-		// @ts-ignore
+		// @ts-expect-error
 		Log.warn.restore();
 	});
 
@@ -144,10 +144,10 @@ describe('extra_uEnv Configuration', () => {
 		stub(fsUtils, 'writeAndSyncFile').resolves();
 		const logWarningStub = spy(Log, 'warn');
 
-		// @ts-ignore accessing private value
+		// @ts-expect-error accessing private value
 		const previousSupportedConfigs = ExtraUEnv.supportedConfigs;
 		// Stub isSupportedConfig so we can confirm collections work
-		// @ts-ignore accessing private value
+		// @ts-expect-error accessing private value
 		ExtraUEnv.supportedConfigs = {
 			fdt: { key: 'custom_fdt_file', collection: false },
 			isolcpus: { key: 'extra_os_cmdline', collection: true },
@@ -171,7 +171,7 @@ describe('extra_uEnv Configuration', () => {
 		// Restore stubs
 		(fsUtils.writeAndSyncFile as SinonStub).restore();
 		logWarningStub.restore();
-		// @ts-ignore accessing private value
+		// @ts-expect-error accessing private value
 		ExtraUEnv.supportedConfigs = previousSupportedConfigs;
 	});
 
@@ -212,12 +212,11 @@ describe('extra_uEnv Configuration', () => {
 	});
 
 	it('normalizes variable value', () => {
-		[
-			{ input: { key: 'key', value: 'value' }, output: 'value' },
-		].forEach(({ input, output }) =>
-			expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
-				output,
-			),
+		[{ input: { key: 'key', value: 'value' }, output: 'value' }].forEach(
+			({ input, output }) =>
+				expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
+					output,
+				),
 		);
 	});
 

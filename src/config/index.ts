@@ -35,9 +35,8 @@ interface ConfigEventTypes {
 	change: ConfigChangeMap<SchemaTypeKey>;
 }
 
-export const configJsonBackend: ConfigJsonConfigBackend = new ConfigJsonConfigBackend(
-	Schema.schema,
-);
+export const configJsonBackend: ConfigJsonConfigBackend =
+	new ConfigJsonConfigBackend(Schema.schema);
 
 type ConfigEventEmitter = StrictEventEmitter<EventEmitter, ConfigEventTypes>;
 class ConfigEvents extends (EventEmitter as new () => ConfigEventEmitter) {}
@@ -46,9 +45,8 @@ const events = new ConfigEvents();
 // Expose methods which make this module act as an EventEmitter
 export const on: typeof events['on'] = events.on.bind(events);
 export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] = events.removeListener.bind(
-	events,
-);
+export const removeListener: typeof events['removeListener'] =
+	events.removeListener.bind(events);
 
 export async function get<T extends SchemaTypeKey>(
 	key: T,
@@ -120,9 +118,9 @@ export async function getMany<T extends SchemaTypeKey>(
 	trx?: Transaction,
 ): Promise<{ [key in T]: SchemaReturn<key> }> {
 	const values = await Promise.all(keys.map((k) => get(k, trx)));
-	return (_.zipObject(keys, values) as unknown) as Promise<
-		{ [key in T]: SchemaReturn<key> }
-	>;
+	return _.zipObject(keys, values) as unknown as Promise<{
+		[key in T]: SchemaReturn<key>;
+	}>;
 }
 
 export async function set<T extends SchemaTypeKey>(

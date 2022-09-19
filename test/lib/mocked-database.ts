@@ -37,7 +37,7 @@ export function setImages(images: Image[]) {
 
 function stubImages() {
 	// Set the functions for this model (add them as you need for your test cases)
-	MOCKED_MODELS['image'] = ({
+	MOCKED_MODELS['image'] = {
 		select: () => {
 			return {
 				where: async (condition: Partial<Image>) =>
@@ -64,5 +64,5 @@ function stubImages() {
 				},
 			};
 		},
-	} as unknown) as QueryBuilder;
+	} as unknown as QueryBuilder;
 }

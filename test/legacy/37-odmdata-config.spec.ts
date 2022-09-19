@@ -10,17 +10,17 @@ describe('ODMDATA Configuration', () => {
 	const backend = new Odmdata();
 	let logWarningStub: SinonStub;
 	let logErrorStub: SinonStub;
-	// @ts-ignore accessing private vluae
+	// @ts-expect-error accessing private vluae
 	const previousConfigPath = Odmdata.bootConfigPath;
 	const testConfigPath = resolve(process.cwd(), 'test/data/boot0.img');
 
 	before(() => {
-		// @ts-ignore setting value of private variable
+		// @ts-expect-error setting value of private variable
 		Odmdata.bootConfigPath = testConfigPath;
 	});
 
 	after(() => {
-		// @ts-ignore setting value of private variable
+		// @ts-expect-error setting value of private variable
 		Odmdata.bootConfigPath = previousConfigPath;
 	});
 
@@ -60,7 +60,7 @@ describe('ODMDATA Configuration', () => {
 			// Stub openFileStub with specific error
 			openFileStub.rejects(log.error);
 			try {
-				// @ts-ignore accessing private value
+				// @ts-expect-error accessing private value
 				await backend.getFileHandle(testConfigPath);
 			} catch {
 				// noop
@@ -80,7 +80,7 @@ describe('ODMDATA Configuration', () => {
 
 	it('correctly parses configuration mode', async () => {
 		for (const config of CONFIG_MODES) {
-			// @ts-ignore accessing private value
+			// @ts-expect-error accessing private value
 			expect(backend.parseOptions(config.buffer)).to.deep.equal({
 				configuration: config.mode,
 			});
@@ -90,7 +90,7 @@ describe('ODMDATA Configuration', () => {
 	it('logs error for malformed configuration mode', async () => {
 		// Logs when configuration mode is unknown
 		try {
-			// @ts-ignore accessing private value
+			// @ts-expect-error accessing private value
 			backend.parseOptions(Buffer.from([0x9, 0x9, 0x9]));
 		} catch (e) {
 			// noop
@@ -102,7 +102,7 @@ describe('ODMDATA Configuration', () => {
 
 		// Logs when bytes don't match
 		try {
-			// @ts-ignore accessing private value
+			// @ts-expect-error accessing private value
 			backend.parseOptions(Buffer.from([0x1, 0x0, 0x0]));
 		} catch {
 			// noop
@@ -115,7 +115,7 @@ describe('ODMDATA Configuration', () => {
 
 	it('unlock/lock bootConfigPath RO access', async () => {
 		const writeSpy = stub().resolves();
-		// @ts-ignore accessing private value
+		// @ts-expect-error accessing private value
 		const handleStub = stub(backend, 'getFileHandle').resolves({
 			write: writeSpy,
 			close: async (): Promise<void> => {
@@ -123,11 +123,11 @@ describe('ODMDATA Configuration', () => {
 			},
 		});
 
-		// @ts-ignore accessing private value
+		// @ts-expect-error accessing private value
 		await backend.setReadOnly(false); // Try to unlock
 		expect(writeSpy).to.be.calledWith('0');
 
-		// @ts-ignore accessing private value
+		// @ts-expect-error accessing private value
 		await backend.setReadOnly(true); // Try to lock
 		expect(writeSpy).to.be.calledWith('1');
 
@@ -135,7 +135,7 @@ describe('ODMDATA Configuration', () => {
 	});
 
 	it('sets new config values', async () => {
-		// @ts-ignore accessing private value
+		// @ts-expect-error accessing private value
 		const setROStub = stub(backend, 'setReadOnly');
 		setROStub.resolves();
 		// Get current config
@@ -189,12 +189,11 @@ describe('ODMDATA Configuration', () => {
 	});
 
 	it('normalizes variable value', () => {
-		[
-			{ input: { key: 'key', value: 'value' }, output: 'value' },
-		].forEach(({ input, output }) =>
-			expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
-				output,
-			),
+		[{ input: { key: 'key', value: 'value' }, output: 'value' }].forEach(
+			({ input, output }) =>
+				expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
+					output,
+				),
 		);
 	});
 

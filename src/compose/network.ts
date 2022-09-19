@@ -20,9 +20,11 @@ export class Network {
 
 	private constructor() {}
 
-	private static deconstructDockerName(
-		name: string,
-	): { name: string; appId?: number; appUuid?: string } {
+	private static deconstructDockerName(name: string): {
+		name: string;
+		appId?: number;
+		appUuid?: string;
+	} {
 		const matchWithAppId = name.match(/^(\d+)_(\S+)/);
 		if (matchWithAppId == null) {
 			const matchWithAppUuid = name.match(/^([0-9a-f-A-F]{32,})_(\S+)/);

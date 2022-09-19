@@ -231,12 +231,10 @@ type DeviceStateEventEmitter = StrictEventEmitter<
 const events = new EventEmitter() as DeviceStateEventEmitter;
 export const on: typeof events['on'] = events.on.bind(events);
 export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] = events.removeListener.bind(
-	events,
-);
-export const removeAllListeners: typeof events['removeAllListeners'] = events.removeAllListeners.bind(
-	events,
-);
+export const removeListener: typeof events['removeListener'] =
+	events.removeListener.bind(events);
+export const removeAllListeners: typeof events['removeAllListeners'] =
+	events.removeAllListeners.bind(events);
 
 type DeviceStateStepTarget = 'reboot' | 'shutdown' | 'noop';
 
@@ -509,9 +507,10 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 export function getTarget({
 	initial = false,
 	intermediate = false,
-}: { initial?: boolean; intermediate?: boolean } = {}): Bluebird<
-	InstancedDeviceState
-> {
+}: {
+	initial?: boolean;
+	intermediate?: boolean;
+} = {}): Bluebird<InstancedDeviceState> {
 	return usingReadLockTarget(async () => {
 		if (intermediate) {
 			return intermediateTarget!;

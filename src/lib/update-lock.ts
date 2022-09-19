@@ -46,11 +46,9 @@ export function abortIfHUPInProgress({
 	force: boolean | undefined;
 }): Promise<boolean | never> {
 	return Promise.all(
-		[
-			'rollback-health-breadcrumb',
-			'rollback-altboot-breadcrumb',
-		].map((filename) =>
-			pathExistsOnHost(path.join(constants.stateMountPoint, filename)),
+		['rollback-health-breadcrumb', 'rollback-altboot-breadcrumb'].map(
+			(filename) =>
+				pathExistsOnHost(path.join(constants.stateMountPoint, filename)),
 		),
 	).then((existsArray) => {
 		const anyExists = existsArray.some((exists) => exists);

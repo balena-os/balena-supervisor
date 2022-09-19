@@ -122,9 +122,10 @@ export class Volume {
 		return `${appId}_${name}`;
 	}
 
-	private static deconstructDockerName(
-		name: string,
-	): { name: string; appId: number } {
+	private static deconstructDockerName(name: string): {
+		name: string;
+		appId: number;
+	} {
 		const match = name.match(/(\d+)_(\S+)/);
 		if (match == null) {
 			throw new InternalInconsistencyError(

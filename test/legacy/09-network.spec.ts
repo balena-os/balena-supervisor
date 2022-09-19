@@ -83,7 +83,7 @@ describe('network', () => {
 			} as any),
 		);
 
-		// @ts-ignore
+		// @ts-expect-error
 		after(() => os.networkInterfaces.restore());
 
 		it('returns only the relevant IP addresses', () =>

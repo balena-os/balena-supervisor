@@ -11,29 +11,25 @@ type DeepPartial<T> = {
 };
 
 // Partial container inspect info for receiving as testing data
-export type PartialContainerInspectInfo = DeepPartial<
-	dockerode.ContainerInspectInfo
-> & {
-	Id: string;
-};
+export type PartialContainerInspectInfo =
+	DeepPartial<dockerode.ContainerInspectInfo> & {
+		Id: string;
+	};
 
-export type PartialNetworkInspectInfo = DeepPartial<
-	dockerode.NetworkInspectInfo
-> & {
-	Id: string;
-};
+export type PartialNetworkInspectInfo =
+	DeepPartial<dockerode.NetworkInspectInfo> & {
+		Id: string;
+	};
 
-export type PartialVolumeInspectInfo = DeepPartial<
-	dockerode.VolumeInspectInfo
-> & {
-	Name: string;
-};
+export type PartialVolumeInspectInfo =
+	DeepPartial<dockerode.VolumeInspectInfo> & {
+		Name: string;
+	};
 
-export type PartialImageInspectInfo = DeepPartial<
-	dockerode.ImageInspectInfo
-> & {
-	Id: string;
-};
+export type PartialImageInspectInfo =
+	DeepPartial<dockerode.ImageInspectInfo> & {
+		Id: string;
+	};
 
 type Methods<T> = {
 	[K in keyof T]: T[K] extends (...args: any) => any ? T[K] : never;
@@ -320,14 +316,8 @@ export function createImage(
 	const createImageInspectInfo = (
 		partialImage: PartialImageInspectInfo,
 	): dockerode.ImageInspectInfo => {
-		const {
-			Id,
-			ContainerConfig,
-			Config,
-			GraphDriver,
-			RootFS,
-			...Info
-		} = partialImage;
+		const { Id, ContainerConfig, Config, GraphDriver, RootFS, ...Info } =
+			partialImage;
 
 		return {
 			Id,
@@ -905,9 +895,9 @@ export class MockEngine {
 }
 
 export function createMockerode(engine: MockEngine) {
-	const dockerodeStubs: Stubs<dockerode> = (Object.getOwnPropertyNames(
-		dockerode.prototype,
-	) as (keyof dockerode)[])
+	const dockerodeStubs: Stubs<dockerode> = (
+		Object.getOwnPropertyNames(dockerode.prototype) as (keyof dockerode)[]
+	)
 		.filter((fn) => typeof dockerode.prototype[fn] === 'function')
 		.reduce((stubMap, fn) => {
 			const stub = sinon.stub(dockerode.prototype, fn);

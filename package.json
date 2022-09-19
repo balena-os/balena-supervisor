@@ -10,7 +10,7 @@
   "scripts": {
     "start": "./entry.sh",
     "build": "npm run clean && npm run release && webpack",
-    "lint": "balena-lint -e ts -e js --typescript src/ test/ typings/ build-utils/ webpack.config.js",
+    "lint": "balena-lint -e ts -e js src/ test/ typings/ build-utils/ webpack.config.js",
     "test:build": "tsc --noEmit && tsc --noEmit --project tsconfig.js.json",
     "test:unit": "mocha --config test/unit/.mocharc.js",
     "test:integration": "mocha --config test/integration/.mocharc.js",
@@ -20,7 +20,7 @@
     "test:compose": "docker-compose -f docker-compose.yml -f docker-compose.test.yml up --build --remove-orphans --exit-code-from=sut ; npm run compose:down",
     "test": "npm run lint && npm run test:build && npm run test:unit && npm run test:legacy",
     "compose:down": "docker-compose -f docker-compose.test.yml down",
-    "prettify": "balena-lint -e ts -e js --typescript --fix src/ test/ typings/ build-utils/ webpack.config.js",
+    "prettify": "balena-lint -e ts -e js --fix src/ test/ typings/ build-utils/ webpack.config.js",
     "release": "tsc --project tsconfig.release.json && mv build/src/* build",
     "sync": "ts-node --files sync/sync.ts",
     "clean": "rimraf build",
@@ -42,7 +42,7 @@
   "devDependencies": {
     "@balena/contrato": "^0.6.0",
     "@balena/es-version": "^1.0.1",
-    "@balena/lint": "^5.1.0",
+    "@balena/lint": "^6.2.0",
     "@types/bluebird": "^3.5.32",
     "@types/chai": "^4.2.16",
     "@types/chai-as-promised": "^7.1.3",

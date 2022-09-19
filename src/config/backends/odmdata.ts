@@ -20,12 +20,9 @@ export class Odmdata extends ConfigBackend {
 	private static supportedConfigs = ['configuration'];
 	private BYTE_OFFSETS = [1659, 5243, 18043];
 	private CONFIG_BYTES = [
-		0x0 /* Config Option #1 */,
-		0x1 /* Config Option #2 */,
-		0x6 /* Config Option #3 */,
-		0x7 /* Config Option #4 */,
-		0x2 /* Config Option #5 */,
-		0x3 /* Config Option #6 */,
+		0x0 /* Config Option #1 */, 0x1 /* Config Option #2 */,
+		0x6 /* Config Option #3 */, 0x7 /* Config Option #4 */,
+		0x2 /* Config Option #5 */, 0x3 /* Config Option #6 */,
 	];
 	private CONFIG_BUFFER = Buffer.from(this.CONFIG_BYTES);
 

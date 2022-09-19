@@ -24,10 +24,8 @@ interface TargetStateEvents {
 	) => void;
 	'target-state-apply': (force: boolean, isFromApi: boolean) => void;
 }
-export const emitter: StrictEventEmitter<
-	EventEmitter,
-	TargetStateEvents
-> = new EventEmitter();
+export const emitter: StrictEventEmitter<EventEmitter, TargetStateEvents> =
+	new EventEmitter();
 
 const lockGetTarget = () =>
 	writeLock('getTarget').disposer((release) => release());
@@ -105,17 +103,13 @@ export const update = async (
 ): Promise<void> => {
 	await config.initialized();
 	return Bluebird.using(lockGetTarget(), async () => {
-		const {
-			uuid,
-			apiEndpoint,
-			apiTimeout,
-			deviceApiKey,
-		} = await config.getMany([
-			'uuid',
-			'apiEndpoint',
-			'apiTimeout',
-			'deviceApiKey',
-		]);
+		const { uuid, apiEndpoint, apiTimeout, deviceApiKey } =
+			await config.getMany([
+				'uuid',
+				'apiEndpoint',
+				'apiTimeout',
+				'deviceApiKey',
+			]);
 
 		if (typeof apiEndpoint !== 'string') {
 			throw new InternalInconsistencyError(
@@ -228,10 +222,8 @@ export const startPoll = async (): Promise<void> => {
 		});
 
 		// Query and set config values we need to avoid multiple db hits
-		const {
-			instantUpdates: updates,
-			appUpdatePollInterval: interval,
-		} = await config.getMany(['instantUpdates', 'appUpdatePollInterval']);
+		const { instantUpdates: updates, appUpdatePollInterval: interval } =
+			await config.getMany(['instantUpdates', 'appUpdatePollInterval']);
 		instantUpdates = updates;
 		appUpdatePollInterval = interval;
 	} catch {

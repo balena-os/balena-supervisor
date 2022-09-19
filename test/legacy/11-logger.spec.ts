@@ -25,7 +25,7 @@ describe('Logger', function () {
 		this.requestStub = sinon.stub(https, 'request').returns(this._req);
 
 		configStub = sinon.stub(config, 'getMany').returns(
-			// @ts-ignore this should actually work but the type system doesnt like it
+			// @ts-expect-error this should actually work but the type system doesnt like it
 			Promise.resolve({
 				apiEndpoint: 'https://example.com',
 				uuid: 'deadbeef',
@@ -134,7 +134,7 @@ describe('Logger', function () {
 			'\u0001\u0000\u0000\u0000\u0000\u0000\u0000?2018-09-21T12:37:09.819134000Z this is the message';
 		const buffer = Buffer.from(message);
 
-		// @ts-ignore accessing a private function
+		// @ts-expect-error accessing a private function
 		expect(ContainerLogs.extractMessage(buffer)).to.deep.equal({
 			message: 'this is the message',
 			timestamp: 1537533429819,

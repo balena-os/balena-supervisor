@@ -418,9 +418,7 @@ describe('ApiBinder', () => {
 
 			// Copy previous values to restore later
 			const previousStateReportErrors = currentState.stateReportErrors;
-			const previousDeviceStateConnected =
-				// @ts-ignore
-				components.deviceState.connected;
+			const previousDeviceStateConnected = components.deviceState.connected;
 
 			// Set additional conditions not in configStub to cause a fail
 			try {

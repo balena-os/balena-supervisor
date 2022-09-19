@@ -1065,11 +1065,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 
 			it('skips restarting hostname services if they are part of config-json.target', async () => {
 				// stub servicePartOf to return the config-json.target we are looking for
-				stub(dbus, 'servicePartOf').callsFake(
-					async (): Promise<string> => {
-						return 'config-json.target';
-					},
-				);
+				stub(dbus, 'servicePartOf').callsFake(async (): Promise<string> => {
+					return 'config-json.target';
+				});
 
 				await unlinkAll(redsocksPath, noProxyPath);
 
@@ -1223,11 +1221,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 
 			it('skips restarting proxy services when part of redsocks-conf.target', async () => {
 				// stub servicePartOf to return the redsocks-conf.target we are looking for
-				stub(dbus, 'servicePartOf').callsFake(
-					async (): Promise<string> => {
-						return 'redsocks-conf.target';
-					},
-				);
+				stub(dbus, 'servicePartOf').callsFake(async (): Promise<string> => {
+					return 'redsocks-conf.target';
+				});
 				// Test each proxy patch sequentially to prevent conflicts when writing to fs
 				for (const key of Object.keys(validProxyReqs)) {
 					const patchBodyValuesforKey: string[] | number[] =

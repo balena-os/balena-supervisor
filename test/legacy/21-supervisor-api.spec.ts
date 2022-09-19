@@ -178,9 +178,9 @@ describe('SupervisorAPI', () => {
 		});
 
 		after(async () => {
-			// @ts-ignore
+			// @ts-expect-error
 			Log.info.restore();
-			// @ts-ignore
+			// @ts-expect-error
 			Log.error.restore();
 			// Resume API for other test suites
 			return api.listen(mockedOptions.listenPort, mockedOptions.timeout);
@@ -190,7 +190,7 @@ describe('SupervisorAPI', () => {
 			// Start API
 			await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
 			// Check if success start was logged
-			// @ts-ignore
+			// @ts-expect-error
 			expect(Log.info.lastCall?.lastArg).to.equal(
 				`Supervisor API successfully started on port ${mockedOptions.listenPort}`,
 			);
@@ -202,7 +202,7 @@ describe('SupervisorAPI', () => {
 			// Stop API
 			await api.stop();
 			// Check if stopped with info was logged
-			// @ts-ignore
+			// @ts-expect-error
 			expect(Log.info.lastCall?.lastArg).to.equal('Stopped Supervisor API');
 		});
 
@@ -212,7 +212,7 @@ describe('SupervisorAPI', () => {
 			// Stop API with error
 			await api.stop({ errored: true });
 			// Check if stopped with error was logged
-			// @ts-ignore
+			// @ts-expect-error
 			expect(Log.error.lastCall?.lastArg).to.equal('Stopped Supervisor API');
 		});
 	});

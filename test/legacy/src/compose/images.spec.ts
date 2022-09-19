@@ -57,8 +57,7 @@ describe('compose/images', () => {
 
 	it('finds image by matching digest on the database', async () => {
 		const dbImage = createDBImage({
-			name:
-				'registry2.balena-cloud.com/v2/aaaaa@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
+			name: 'registry2.balena-cloud.com/v2/aaaaa@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
 			dockerImageId:
 				'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
 		});
@@ -67,8 +66,7 @@ describe('compose/images', () => {
 		const images = [
 			createImage(
 				{
-					Id:
-						'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
+					Id: 'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
 				},
 				{
 					References: [
@@ -108,8 +106,7 @@ describe('compose/images', () => {
 		const images = [
 			createImage(
 				{
-					Id:
-						'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
+					Id: 'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
 				},
 				{
 					References: ['some-image:some-tag'],
@@ -149,8 +146,7 @@ describe('compose/images', () => {
 		const images = [
 			createImage(
 				{
-					Id:
-						'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
+					Id: 'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
 				},
 				{
 					References: [
@@ -186,8 +182,7 @@ describe('compose/images', () => {
 		const images = [
 			createImage(
 				{
-					Id:
-						'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
+					Id: 'sha256:f1154d76c731f04711e5856b6e6858730e3023d9113124900ac65c2ccc90e8e7',
 				},
 				{
 					References: [
@@ -262,8 +257,7 @@ describe('compose/images', () => {
 				dockerImageId: 'sha256:second-image-id',
 			}),
 			createDBImage({
-				name:
-					'registry2.balena-cloud.com/v2/three@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf558',
+				name: 'registry2.balena-cloud.com/v2/three@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf558',
 				serviceName: 'app_3',
 				// Third image has different name but same docker id
 				dockerImageId: 'sha256:second-image-id',
@@ -381,8 +375,7 @@ describe('compose/images', () => {
 	it('removes image from DB and engine when there is a single DB image with matching name', async () => {
 		// Newer image
 		const imageToRemove = createDBImage({
-			name:
-				'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
+			name: 'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
 			dockerImageId: 'sha256:image-id-one',
 		});
 
@@ -390,8 +383,7 @@ describe('compose/images', () => {
 		await testDb.models('image').insert([
 			imageToRemove,
 			createDBImage({
-				name:
-					'registry2.balena-cloud.com/v2/two@sha256:12345a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
+				name: 'registry2.balena-cloud.com/v2/two@sha256:12345a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
 				dockerImageId: 'sha256:image-id-two',
 			}),
 		]);
@@ -469,14 +461,12 @@ describe('compose/images', () => {
 
 	it('removes the requested image even when there are multiple DB images with same docker ID', async () => {
 		const imageToRemove = createDBImage({
-			name:
-				'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
+			name: 'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
 			dockerImageId: 'sha256:image-id-one',
 		});
 
 		const imageWithSameDockerImageId = createDBImage({
-			name:
-				'registry2.balena-cloud.com/v2/two@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
+			name: 'registry2.balena-cloud.com/v2/two@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
 			// Same imageId
 			dockerImageId: 'sha256:image-id-one',
 		});
@@ -554,14 +544,12 @@ describe('compose/images', () => {
 
 	it('removes image from DB by tag when deltas are being used', async () => {
 		const imageToRemove = createDBImage({
-			name:
-				'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
+			name: 'registry2.balena-cloud.com/v2/one@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
 			dockerImageId: 'sha256:image-one-id',
 		});
 
 		const imageWithSameDockerImageId = createDBImage({
-			name:
-				'registry2.balena-cloud.com/v2/two@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
+			name: 'registry2.balena-cloud.com/v2/two@sha256:2c969a1ba1c6bc10df53481f48c6a74dbd562cfb41ba58f81beabd03facf5582',
 			// Same docker id
 			dockerImageId: 'sha256:image-one-id',
 		});

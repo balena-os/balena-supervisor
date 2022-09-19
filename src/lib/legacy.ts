@@ -304,76 +304,74 @@ export async function fromV2TargetApps(
 	return (
 		(
 			await Promise.all(
-				Object.keys(apps).map(
-					async (id): Promise<[string, TargetApp]> => {
-						const appId = parseInt(id, 10);
-						const app = apps[appId];
+				Object.keys(apps).map(async (id): Promise<[string, TargetApp]> => {
+					const appId = parseInt(id, 10);
+					const app = apps[appId];
 
-						// If local mode or connectivity is not available just use id as uuid
-						const uuid = local
-							? id
-							: await getUUIDFromAPI(appId).catch(() => {
-									throw new Error(
-										'Cannot migrate from v2 apps.json without Internet connectivity. Please use balenaCLI v13.5.1+ for offline preload support.',
-									);
-							  });
+					// If local mode or connectivity is not available just use id as uuid
+					const uuid = local
+						? id
+						: await getUUIDFromAPI(appId).catch(() => {
+								throw new Error(
+									'Cannot migrate from v2 apps.json without Internet connectivity. Please use balenaCLI v13.5.1+ for offline preload support.',
+								);
+						  });
 
-						const releases = app.commit
-							? {
-									[app.commit]: {
-										id: app.releaseId,
-										services: Object.keys(app.services ?? {})
-											.map((serviceId) => {
-												const {
-													imageId,
-													serviceName,
+					const releases = app.commit
+						? {
+								[app.commit]: {
+									id: app.releaseId,
+									services: Object.keys(app.services ?? {})
+										.map((serviceId) => {
+											const {
+												imageId,
+												serviceName,
+												image,
+												environment,
+												labels,
+												running,
+												serviceId: _serviceId,
+												contract,
+												...composition
+											} = app.services[serviceId];
+
+											return [
+												serviceName,
+												{
+													id: serviceId,
+													image_id: imageId,
 													image,
 													environment,
 													labels,
 													running,
-													serviceId: _serviceId,
 													contract,
-													...composition
-												} = app.services[serviceId];
+													composition,
+												},
+											];
+										})
+										.reduce(
+											(res, [serviceName, svc]) => ({
+												...res,
+												[serviceName]: svc,
+											}),
+											{},
+										),
+									volumes: app.volumes ?? {},
+									networks: app.networks ?? {},
+								},
+						  }
+						: {};
 
-												return [
-													serviceName,
-													{
-														id: serviceId,
-														image_id: imageId,
-														image,
-														environment,
-														labels,
-														running,
-														contract,
-														composition,
-													},
-												];
-											})
-											.reduce(
-												(res, [serviceName, svc]) => ({
-													...res,
-													[serviceName]: svc,
-												}),
-												{},
-											),
-										volumes: app.volumes ?? {},
-										networks: app.networks ?? {},
-									},
-							  }
-							: {};
-
-						return [
-							uuid,
-							{
-								id: appId,
-								name: app.name,
-								class: 'fleet',
-								releases,
-							} as TargetApp,
-						];
-					},
-				),
+					return [
+						uuid,
+						{
+							id: appId,
+							name: app.name,
+							class: 'fleet',
+							releases,
+						} as TargetApp,
+					];
+				}),
 			)
 		)
 			// Key by uuid
