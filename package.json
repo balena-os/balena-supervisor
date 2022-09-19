@@ -74,7 +74,7 @@
     "@types/tmp": "^0.1.0",
     "@types/webpack": "^4.41.21",
     "@types/yargs": "^15.0.12",
-    "balena-register-device": "^7.2.0",
+    "balena-register-device": "^8.0.0",
     "blinking": "0.0.5",
     "bluebird": "^3.7.2",
     "chai": "^4.3.4",
