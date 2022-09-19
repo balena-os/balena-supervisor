@@ -62,7 +62,7 @@ describe('ODMDATA Configuration', () => {
 			try {
 				// @ts-ignore accessing private value
 				await backend.getFileHandle(testConfigPath);
-			} catch (e) {
+			} catch {
 				// noop
 			}
 			// Check that correct message was logged
@@ -104,7 +104,7 @@ describe('ODMDATA Configuration', () => {
 		try {
 			// @ts-ignore accessing private value
 			backend.parseOptions(Buffer.from([0x1, 0x0, 0x0]));
-		} catch (e) {
+		} catch {
 			// noop
 		}
 		// Check that correct message was logged

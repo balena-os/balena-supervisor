@@ -147,7 +147,7 @@ describe('Extlinux Configuration', () => {
 			// Expect correct rejection from the given bad config
 			try {
 				await backend.getBootConfig();
-			} catch (e) {
+			} catch (e: any) {
 				expect(e.message).to.equal(badConfig.reason);
 			}
 			// Restore stub

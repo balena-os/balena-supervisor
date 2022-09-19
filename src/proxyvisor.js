@@ -96,7 +96,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 			const fields = await db.models('dependentDevice').select();
 			const devices = fields.map(parseDeviceFields);
 			res.json(devices);
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			res.status(503).send(err?.message || err || 'Unknown error');
 		}
 	});
@@ -320,7 +320,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 				);
 			}
 			res.sendFile(dest);
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
 			return res.status(503).send(err?.message || err || 'Unknown error');
 		}
@@ -337,7 +337,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 				config: JSON.parse(app.config ?? '{}'),
 			}));
 			res.json($apps);
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			log.error(`Error on ${req.method} ${url.parse(req.url).pathname}`, err);
 			return res.status(503).send(err?.message || err || 'Unknown error');
 		}

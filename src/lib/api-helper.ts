@@ -59,7 +59,7 @@ export const fetchDevice = async (
 		}
 
 		return device;
-	} catch (e) {
+	} catch {
 		throw new DeviceNotFoundError();
 	}
 };
@@ -123,7 +123,7 @@ export const exchangeKeyAndGetDevice = async (
 			opts.provisioningApiKey,
 			apiTimeout,
 		);
-	} catch (err) {
+	} catch {
 		throw new ExchangeKeyError(`Couldn't fetch device with provisioning key`);
 	}
 

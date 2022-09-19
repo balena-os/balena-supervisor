@@ -58,7 +58,7 @@ export class SupervisorAPI {
 					return res.status(500).send('Unhealthy');
 				}
 				return res.sendStatus(200);
-			} catch (_e) {
+			} catch {
 				log.error('Healthcheck failed');
 				return res.status(500).send('Unhealthy');
 			}

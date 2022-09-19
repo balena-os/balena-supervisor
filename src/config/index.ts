@@ -332,11 +332,11 @@ function valueToString(value: unknown, name: string) {
 	}
 }
 
-function checkValueDecode(
-	decoded: Either<t.Errors, unknown>,
+function checkValueDecode<T>(
+	decoded: Either<t.Errors, T>,
 	key: string,
-	value: unknown,
-): decoded is Right<unknown> {
+	value: T,
+): decoded is Right<T> {
 	if (isLeft(decoded)) {
 		throw new ConfigurationValidationError(key, value);
 	}

@@ -58,7 +58,7 @@ export async function create(volume: Volume): Promise<void> {
 		if (!volume.isEqualConfig(existing)) {
 			throw new ResourceRecreationAttemptError('volume', volume.name);
 		}
-	} catch (e) {
+	} catch (e: any) {
 		if (!NotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.createVolumeError, {
 				volume: { name: volume.name },

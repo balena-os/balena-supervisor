@@ -161,7 +161,7 @@ export class LocalModeManager {
 			return this.collectContainerResources(
 				this.containerId || SUPERVISOR_CONTAINER_NAME_FALLBACK,
 			);
-		} catch (e) {
+		} catch (e: any) {
 			if (this.containerId !== undefined) {
 				try {
 					// Inspect operation fails (container ID is out of sync?).
@@ -172,7 +172,7 @@ export class LocalModeManager {
 						e.message,
 					);
 					return this.collectContainerResources(fallback);
-				} catch (e) {
+				} catch (e: any) {
 					// Inspect operation fails (using legacy container name?).
 					const fallback = SUPERVISOR_LEGACY_CONTAINER_NAME_FALLBACK;
 					log.warn(
@@ -230,7 +230,7 @@ export class LocalModeManager {
 				EngineSnapshot.fromJSON(r.snapshot),
 				LocalModeManager.parseTimestamp(r.timestamp),
 			);
-		} catch (e) {
+		} catch (e: any) {
 			// Some parsing error happened. Ensure we add data details to the error description.
 			throw new Error(
 				`Cannot parse snapshot data ${JSON.stringify(r)}.` +

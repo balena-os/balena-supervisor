@@ -239,7 +239,7 @@ export async function triggerFetch(
 		await markAsSupervised({ ...image, dockerImageId: img.Id });
 
 		success = true;
-	} catch (e) {
+	} catch (e: any) {
 		if (!NotFoundError(e)) {
 			if (!(e instanceof ImageDownloadBackoffError)) {
 				addImageFailure(image.name);
@@ -618,7 +618,7 @@ export async function cleanup() {
 		try {
 			await docker.getImage(image).remove({ force: true });
 			delete imageCleanupFailures[image];
-		} catch (e) {
+		} catch (e: any) {
 			logger.logSystemMessage(
 				`Error cleaning up ${image}: ${e.message} - will ignore for 1 hour`,
 				{ error: e },
@@ -730,7 +730,7 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 
 		// Mark the image as removed
 		removed = true;
-	} catch (e) {
+	} catch (e: any) {
 		if (NotFoundError(e)) {
 			removed = false;
 		} else {

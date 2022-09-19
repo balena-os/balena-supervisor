@@ -809,7 +809,7 @@ export class App {
 					let imageInfo: ImageInspectInfo | undefined;
 					try {
 						imageInfo = await imageManager.inspectByName(svc.image);
-					} catch (e) {
+					} catch (e: any) {
 						if (!NotFoundError(e)) {
 							throw e;
 						}

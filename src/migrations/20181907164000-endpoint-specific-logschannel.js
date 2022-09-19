@@ -22,7 +22,7 @@ exports.up = function (knex) {
 			try {
 				const parsed = JSON.parse(data.toString());
 				resolve(parsed);
-			} catch (e) {
+			} catch {
 				console.log(
 					'Failed to parse config.json! Things may fail unexpectedly!',
 				);

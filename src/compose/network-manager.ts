@@ -45,7 +45,7 @@ export async function create(network: Network) {
 
 		// We have a network with the same config and name
 		// already created, we can skip this
-	} catch (e) {
+	} catch (e: any) {
 		if (!NotFoundError(e)) {
 			logger.logSystemEvent(logTypes.createNetworkError, {
 				network: { name: network.name, appUuid: network.appUuid },

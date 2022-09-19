@@ -47,7 +47,9 @@ function createFake<Prototype extends object>(prototype: Prototype) {
 				...res,
 				[fn]: () => {
 					throw Error(
-						`Fake method not implemented: ${prototype.constructor.name}.${fn}()`,
+						`Fake method not implemented: ${
+							prototype.constructor.name
+						}.${fn.toString()}()`,
 					);
 				},
 			}),

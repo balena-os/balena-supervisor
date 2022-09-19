@@ -4,7 +4,7 @@ const _ = require('lodash');
 var tryParse = function (obj) {
 	try {
 		return JSON.parse(obj);
-	} catch (e) {
+	} catch {
 		return {};
 	}
 };

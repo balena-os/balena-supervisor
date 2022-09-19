@@ -188,7 +188,7 @@ const poll = async (
 		await update();
 		// Reset fetchErrors because we successfuly updated
 		fetchErrors = 0;
-	} catch (e) {
+	} catch {
 		// Exponential back off if request fails
 		pollInterval = Math.min(appUpdatePollInterval, 15000 * 2 ** fetchErrors);
 		++fetchErrors;

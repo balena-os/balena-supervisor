@@ -39,7 +39,7 @@ describe('SupervisorAPI', () => {
 	after(async () => {
 		try {
 			await api.stop();
-		} catch (e) {
+		} catch (e: any) {
 			if (e.message !== 'Server is not running.') {
 				throw e;
 			}
@@ -170,7 +170,7 @@ describe('SupervisorAPI', () => {
 			// Start each case with API stopped
 			try {
 				await api.stop();
-			} catch (e) {
+			} catch (e: any) {
 				if (e.message !== 'Server is not running.') {
 					throw e;
 				}

@@ -195,7 +195,7 @@ describe('compose/application-manager', () => {
 	after(async () => {
 		try {
 			await testDb.destroy();
-		} catch (e) {
+		} catch {
 			/* noop */
 		}
 		// Restore stubbed methods

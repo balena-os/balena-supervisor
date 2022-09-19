@@ -219,7 +219,7 @@ export function validateTargetContracts(
 									service.labels?.['io.balena.features.optional'],
 								),
 							};
-						} catch (e) {
+						} catch (e: any) {
 							throw new ContractValidationError(serviceName, e.message);
 						}
 					}

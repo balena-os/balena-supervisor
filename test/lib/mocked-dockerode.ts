@@ -207,7 +207,7 @@ function createMockedDockerode(data: TestData) {
 	return mockedDockerode;
 }
 
-type Prototype = Dictionary<(...args: any[]) => any>;
+type Prototype = { [key: string]: any };
 function clonePrototype(prototype: Prototype): Prototype {
 	const clone: Prototype = {};
 	Object.getOwnPropertyNames(prototype).forEach((fn) => {

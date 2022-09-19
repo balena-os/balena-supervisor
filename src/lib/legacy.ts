@@ -48,7 +48,7 @@ async function createVolumeFromLegacyData(
 			{},
 			legacyPath,
 		);
-	} catch (e) {
+	} catch (e: any) {
 		logger.logSystemMessage(
 			`Warning: could not migrate legacy /data volume: ${e.message}`,
 			{ error: e },
@@ -85,7 +85,7 @@ export async function normaliseLegacyDatabase() {
 
 		try {
 			services = JSON.parse(app.services);
-		} catch (e) {
+		} catch (e: any) {
 			throw new DatabaseParseError(e);
 		}
 

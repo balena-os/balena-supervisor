@@ -129,7 +129,7 @@
     "ts-node": "^8.10.2",
     "tsconfig-paths": "^4.1.0",
     "typed-error": "^3.2.1",
-    "typescript": "^4.2.4",
+    "typescript": "^4.8.3",
     "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12",
     "winston": "^3.3.3",

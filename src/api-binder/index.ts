@@ -535,7 +535,7 @@ async function reportInitialName(
 				device_name: name,
 			},
 		});
-	} catch (err) {
+	} catch (err: any) {
 		log.error('Unable to report initial device name to API');
 		logger.logSystemMessage(
 			'Unable to report initial device name to API',

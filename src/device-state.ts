@@ -78,7 +78,7 @@ function createDeviceStateRouter() {
 		try {
 			const response = await executeStepAction({ action }, { force });
 			res.status(202).json(response);
-		} catch (e) {
+		} catch (e: any) {
 			const status = e instanceof UpdatesLockedError ? 423 : 500;
 			res.status(status).json({
 				Data: '',
@@ -155,7 +155,7 @@ function createDeviceStateRouter() {
 				validation.checkTruthy(req.body.force) || lockOverride,
 			);
 			res.status(200).send('OK');
-		} catch (err) {
+		} catch (err: any) {
 			// TODO: We should be able to throw err if it's UpdatesLockedError
 			// and the error middleware will handle it, but this doesn't work in
 			// the test environment. Fix this when fixing API tests.
@@ -194,7 +194,7 @@ function createDeviceStateRouter() {
 				stateToSend.download_progress = service.download_progress;
 			}
 			res.json(stateToSend);
-		} catch (e) {
+		} catch (e: any) {
 			res.status(500).json({
 				Data: '',
 				Error: (e != null ? e.message : undefined) || e || 'Unknown error',
@@ -772,7 +772,7 @@ export async function applyStep<T extends PossibleStepTargets>(
 			skipLock,
 		});
 		emitAsync('step-completed', null, step, stepResult || undefined);
-	} catch (e) {
+	} catch (e: any) {
 		emitAsync('step-error', e, step);
 		throw e;
 	}
@@ -918,7 +918,7 @@ export const applyTarget = async ({
 				nextDelay,
 				retryCount,
 			});
-		} catch (e) {
+		} catch (e: any) {
 			if (e instanceof UpdatesLockedError) {
 				// Forward the UpdatesLockedError directly
 				throw e;

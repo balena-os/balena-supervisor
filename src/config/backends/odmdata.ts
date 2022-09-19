@@ -186,7 +186,7 @@ export class Odmdata extends ConfigBackend {
 	): Promise<fs.FileHandle> {
 		try {
 			return await fs.open(file, flags);
-		} catch (e) {
+		} catch (e: any) {
 			switch (e.code) {
 				case 'ENOENT':
 					log.error(`File not found at: ${file}`);

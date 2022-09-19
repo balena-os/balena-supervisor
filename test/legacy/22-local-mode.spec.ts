@@ -400,7 +400,7 @@ describe('LocalModeManager', () => {
 				try {
 					const result = await localMode.retrieveLatestSnapshot();
 					expect(result).to.not.exist;
-				} catch (e) {
+				} catch (e: any) {
 					expect(e.message).to.match(/Cannot parse snapshot data.*"bad json"/);
 				}
 			});
@@ -416,7 +416,7 @@ describe('LocalModeManager', () => {
 				try {
 					const result = await localMode.retrieveLatestSnapshot();
 					expect(result).to.not.exist;
-				} catch (e) {
+				} catch (e: any) {
 					expect(e.message).to.match(
 						/Cannot parse snapshot data.*"bad timestamp"/,
 					);

@@ -38,7 +38,7 @@ const lookForOptionalDeps = function (sourceDir) {
 			packageJson = JSON.parse(
 				fs.readFileSync(path.join(sourceDir, dir, '/package.json'), 'utf8'),
 			);
-		} catch (e) {
+		} catch {
 			continue;
 		}
 		if (packageJson.optionalDependencies != null) {

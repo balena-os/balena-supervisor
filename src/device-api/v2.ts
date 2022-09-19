@@ -286,7 +286,7 @@ export function createV2Api(router: Router) {
 			let apps: any;
 			try {
 				apps = await applicationManager.getLegacyState();
-			} catch (e) {
+			} catch (e: any) {
 				log.error(e.message);
 				return res.status(500).json({
 					status: 'failed',
@@ -358,7 +358,7 @@ export function createV2Api(router: Router) {
 				status: 'success',
 				message: 'OK',
 			});
-		} catch (e) {
+		} catch (e: any) {
 			res.status(400).json({
 				status: 'failed',
 				message: e.message,
@@ -380,7 +380,7 @@ export function createV2Api(router: Router) {
 					deviceType,
 				},
 			});
-		} catch (e) {
+		} catch (e: any) {
 			res.status(500).json({
 				status: 'failed',
 				message: e.message,
@@ -536,7 +536,7 @@ export function createV2Api(router: Router) {
 				status: 'success',
 				tags,
 			});
-		} catch (e) {
+		} catch (e: any) {
 			log.error(e);
 			res.status(500).json({
 				status: 'failed',

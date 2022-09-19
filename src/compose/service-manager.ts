@@ -74,7 +74,7 @@ export const getAll = async (
 				service.status = vState.status;
 			}
 			return service;
-		} catch (e) {
+		} catch (e: any) {
 			if (NotFoundError(e)) {
 				return null;
 			}
@@ -210,7 +210,7 @@ export async function remove(service: Service) {
 
 	try {
 		await docker.getContainer(existingService.containerId).remove({ v: true });
-	} catch (e) {
+	} catch (e: any) {
 		if (!NotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.removeDeadServiceError, {
 				service,
@@ -231,7 +231,7 @@ async function create(service: Service) {
 			);
 		}
 		return docker.getContainer(existing.containerId);
-	} catch (e) {
+	} catch (e: any) {
 		if (!NotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.installServiceError, {
 				service,
@@ -387,7 +387,7 @@ export function listenToEvents() {
 						let service: Service | null = null;
 						try {
 							service = await getByDockerContainerId(data.id);
-						} catch (e) {
+						} catch (e: any) {
 							if (!NotFoundError(e)) {
 								throw e;
 							}
@@ -418,7 +418,7 @@ export function listenToEvents() {
 								await logMonitor.detach(data.id);
 							}
 						}
-					} catch (e) {
+					} catch (e: any) {
 						log.error('Error on docker event:', e, e.stack);
 					}
 				}

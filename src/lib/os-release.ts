@@ -21,7 +21,7 @@ const getOSReleaseData = _.memoize(
 				const value = _.trim(values.join('=')).replace(/^"(.+(?="$))"$/, '$1');
 				releaseItems[_.trim(key)] = value;
 			}
-		} catch (e) {
+		} catch (e: any) {
 			throw new InternalInconsistencyError(
 				`Unable to read file at ${path}: ${e.message} ${e.stack}`,
 			);

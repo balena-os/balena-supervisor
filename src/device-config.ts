@@ -79,7 +79,7 @@ const actionExecutors: DeviceActionExecutors = {
 					success: true,
 				});
 			}
-		} catch (err) {
+		} catch (err: any) {
 			if (step.humanReadableTarget) {
 				logger.logConfigChange(step.humanReadableTarget, {
 					err,
@@ -102,7 +102,7 @@ const actionExecutors: DeviceActionExecutors = {
 			if (!initial) {
 				logger.logConfigChange(logValue, { success: true });
 			}
-		} catch (err) {
+		} catch (err: any) {
 			logger.logConfigChange(logValue, { err });
 			throw err;
 		}
@@ -271,7 +271,7 @@ export async function getTarget({
 	let conf: Dictionary<string>;
 	try {
 		conf = JSON.parse(devConfig.targetValues);
-	} catch (e) {
+	} catch (e: any) {
 		throw new Error(`Corrupted supervisor database! Error: ${e.message}`);
 	}
 	if (initial || conf.SUPERVISOR_VPN_CONTROL == null) {
@@ -697,7 +697,7 @@ async function isVPNEnabled(): Promise<boolean> {
 	try {
 		const activeState = await dbus.serviceActiveState(vpnServiceName);
 		return !_.includes(['inactive', 'deactivating'], activeState);
-	} catch (e) {
+	} catch (e: any) {
 		if (UnitNotLoadedError(e)) {
 			return false;
 		}

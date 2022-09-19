@@ -112,7 +112,7 @@ export async function lock<T extends unknown>(
 	let lockOverride: boolean;
 	try {
 		lockOverride = await config.get('lockOverride');
-	} catch (err) {
+	} catch (err: any) {
 		throw new InternalInconsistencyError(
 			`Error getting lockOverride config value: ${err?.message ?? err}`,
 		);

@@ -109,7 +109,7 @@ export async function initDevice(opts: Opts) {
 				opts.docker,
 				true,
 			);
-		} catch (e) {
+		} catch {
 			await Bluebird.delay(500);
 		}
 	}
