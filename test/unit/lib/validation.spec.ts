@@ -299,7 +299,13 @@ describe('validation', () => {
 									image_id: 34,
 									image: 'foo',
 									environment: { MY_SERVICE_ENV_VAR: '123' },
-									labels: { 'io.balena.features.supervisor-api': 'true' },
+									labels: {
+										'io.balena.features.supervisor-api': 'true',
+										'caddy.@match.path': '/sourcepath /sourcepath/*',
+										'traefik.http.routers.router0.tls.domains[0].main':
+											'foobar',
+										_not_first_alpha: '1',
+									},
 									running: false,
 								},
 							},
@@ -324,7 +330,13 @@ describe('validation', () => {
 									image_id: 34,
 									image: 'foo',
 									environment: { MY_SERVICE_ENV_VAR: '123' },
-									labels: { 'io.balena.features.supervisor-api': 'true' },
+									labels: {
+										'io.balena.features.supervisor-api': 'true',
+										'caddy.@match.path': '/sourcepath /sourcepath/*',
+										'traefik.http.routers.router0.tls.domains[0].main':
+											'foobar',
+										_not_first_alpha: '1',
+									},
 									running: false,
 								},
 							},
@@ -381,7 +393,7 @@ describe('validation', () => {
 											image_id: 34,
 											image: 'foo',
 											environment: {},
-											labels: { ' not a valid #name': 'label value' },
+											labels: { ' not a valid "name': 'label value' },
 										},
 									},
 									volumes: {},
