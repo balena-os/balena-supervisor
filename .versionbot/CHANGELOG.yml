@@ -1,4 +1,23 @@
 - commits:
+    - subject: Disable event tracking
+      hash: e00687408ce9c1b20217f25b1c906b7855aab83f
+      body: |
+        The supervisor used to rely on specific event reporting for identifying
+        issues at runtime. As the platform has grown, it has become much more
+        difficult to get any signal from the event noise. Recently the API side
+        for these events has been disabled, meaning these events only
+        contribute to bandwidth consumption.  This commit disables the
+        event reporting feature of the supervisor which will be most likely
+        replaced by something like Sentry in the near future.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 14.2.0
+  title: ""
+  date: 2022-09-20T17:55:19.399Z
+- commits:
     - subject: Update webpack dependencies to latest webpack 4.x compatible versions
       hash: 93893093ff75a17243b46020e836c765d634677e
       body: ""
