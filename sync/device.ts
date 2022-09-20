@@ -5,8 +5,9 @@ import { Builder } from 'resin-docker-build';
 
 import { promises as fs } from 'fs';
 import * as Path from 'path';
-import { Duplex, Readable, PassThrough, Stream } from 'stream';
+import { Readable } from 'stream';
 import * as tar from 'tar-stream';
+import * as readline from 'readline';
 
 import { exec } from '../src/lib/fs-utils';
 
@@ -52,7 +53,7 @@ export async function getDeviceArch(docker: Docker): Promise<string> {
 		}
 
 		return arch.trim();
-	} catch (e) {
+	} catch (e: any) {
 		throw new Error(
 			`Unable to get device architecture: ${e.message}.\nTry specifying the architecture with -a.`,
 		);
@@ -68,31 +69,61 @@ export async function getCacheFrom(docker: Docker): Promise<string[]> {
 	}
 }
 
+// Source: https://github.com/balena-io/balena-cli/blob/f6d668684a6f5ea8102a964ca1942b242eaa7ae2/lib/utils/device/live.ts#L539-L547
+function extractDockerArrowMessage(outputLine: string): string | undefined {
+	const arrowTest = /^.*\s*-+>\s*(.+)/i;
+	const match = arrowTest.exec(outputLine);
+	if (match != null) {
+		return match[1];
+	}
+}
+
 export async function performBuild(
 	docker: Docker,
 	dockerfile: Dockerfile,
 	dockerOpts: { [key: string]: any },
-): Promise<string> {
+): Promise<string[]> {
 	const builder = Builder.fromDockerode(docker);
 
 	// tar the directory, but replace the dockerfile with the
 	// livepush generated one
 	const tarStream = await tarDirectory(Path.join(__dirname, '..'), dockerfile);
-	const bufStream = new PassThrough();
 
 	return new Promise((resolve, reject) => {
-		const chunks = [] as Buffer[];
-		bufStream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+		// Store the stage ids for caching
+		const ids = [] as string[];
 		builder.createBuildStream(dockerOpts, {
 			buildSuccess: () => {
-				// Return the build logs
-				resolve(Buffer.concat(chunks).toString('utf8'));
+				// Return the image ids
+				resolve(ids);
 			},
 			buildFailure: reject,
-			buildStream: (stream: Duplex) => {
-				stream.pipe(process.stdout);
-				stream.pipe(bufStream);
-				tarStream.pipe(stream);
+			buildStream: (input: NodeJS.ReadWriteStream) => {
+				// Parse the build output to get stage ids and
+				// for logging
+				let lastArrowMessage: string | undefined;
+				readline.createInterface({ input }).on('line', (line) => {
+					// If this was a FROM line, take the last found
+					// image id and save it as a stage id
+					// Source: https://github.com/balena-io/balena-cli/blob/f6d668684a6f5ea8102a964ca1942b242eaa7ae2/lib/utils/device/live.ts#L300-L325
+					if (
+						/step \d+(?:\/\d+)?\s*:\s*FROM/i.test(line) &&
+						lastArrowMessage != null
+					) {
+						ids.push(lastArrowMessage);
+					} else {
+						const msg = extractDockerArrowMessage(line);
+						if (msg != null) {
+							lastArrowMessage = msg;
+						}
+					}
+
+					// Log the build line
+					console.info(line);
+				});
+
+				// stream.pipe(bufStream);
+				tarStream.pipe(input);
 			},
 		});
 	});

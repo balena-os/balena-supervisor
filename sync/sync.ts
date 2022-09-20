@@ -93,12 +93,12 @@ const argv = yargs
 			sigint = () => reject(new Error('User interrupt (Ctrl+C) received'));
 			process.on('SIGINT', sigint);
 		});
-	} catch (e) {
+	} catch (e: any) {
 		console.error('Error:', e.message);
 	} finally {
 		console.info('Cleaning up. Please wait ...');
 		await cleanup();
 		process.removeListener('SIGINT', sigint);
-		process.exit(1);
+		process.exit(0);
 	}
 })();

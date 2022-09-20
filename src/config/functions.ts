@@ -2,7 +2,6 @@ import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
 import { promises as fs } from 'fs';
-import { URL } from 'url';
 
 import supervisorVersion = require('../lib/supervisor-version');
 
@@ -113,15 +112,6 @@ export const fnSchema = {
 					macAddress: conf.macAddress,
 				};
 			});
-	},
-	mixpanelHost: () => {
-		return config.get('apiEndpoint').then((apiEndpoint) => {
-			if (!apiEndpoint) {
-				return null;
-			}
-			const url = new URL(apiEndpoint);
-			return { host: url.host, path: '/mixpanel' };
-		});
 	},
 	extendedEnvOptions: () => {
 		return config.getMany([
