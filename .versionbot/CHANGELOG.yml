@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update husky/lint-staged dev dependencies
+      hash: b3d866699731eb2fe798bbf4a4aa5cc849ddece6
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.1.2
+  title: ""
+  date: 2022-09-20T12:57:51.883Z
+- commits:
     - subject: Update balena-register-device to 8.0.0
       hash: 1baf972e162cb3f9bf8904f7e734f29e2afe6b6d
       body: |
