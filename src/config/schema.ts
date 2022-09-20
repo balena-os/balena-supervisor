@@ -54,11 +54,6 @@ export const schema = {
 		mutable: true,
 		removeIfNull: false,
 	},
-	mixpanelToken: {
-		source: 'config.json',
-		mutable: false,
-		removeIfNull: false,
-	},
 	bootstrapRetryDelay: {
 		source: 'config.json',
 		mutable: false,

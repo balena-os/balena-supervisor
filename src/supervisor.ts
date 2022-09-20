@@ -20,8 +20,6 @@ const startupConfigFields: config.ConfigKey[] = [
 	'apiTimeout',
 	'unmanaged',
 	'deviceApiKey',
-	'mixpanelToken',
-	'mixpanelHost',
 	'loggingEnabled',
 	'localMode',
 	'legacyAppsPresent',

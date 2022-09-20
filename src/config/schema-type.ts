@@ -1,7 +1,5 @@
 import * as t from 'io-ts';
 
-import * as constants from '../lib/constants';
-
 import {
 	NullOrUndefined,
 	PermissiveBoolean,
@@ -65,10 +63,6 @@ export const schemaTypes = {
 	instantUpdates: {
 		type: PermissiveBoolean,
 		default: true,
-	},
-	mixpanelToken: {
-		type: t.string,
-		default: constants.defaultMixpanelToken,
 	},
 	bootstrapRetryDelay: {
 		type: PermissiveNumber,
@@ -224,10 +218,6 @@ export const schemaTypes = {
 			osVariant: t.union([t.string, t.undefined]),
 			macAddress: t.union([t.string, t.undefined]),
 		}),
-		default: t.never,
-	},
-	mixpanelHost: {
-		type: t.union([t.null, t.interface({ host: t.string, path: t.string })]),
 		default: t.never,
 	},
 	extendedEnvOptions: {

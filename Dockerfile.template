@@ -68,12 +68,10 @@ RUN apk add --no-cache \
 
 ARG ARCH
 ARG VERSION=master
-ARG DEFAULT_MIXPANEL_TOKEN=bananasbananas
 ENV CONFIG_MOUNT_POINT=/boot/config.json \
 	LED_FILE=/dev/null \
 	SUPERVISOR_IMAGE=balena/$ARCH-supervisor \
-	VERSION=$VERSION \
-	DEFAULT_MIXPANEL_TOKEN=$DEFAULT_MIXPANEL_TOKEN
+	VERSION=$VERSION
 
 ###############################################################
 # Use the base image to run integration tests and for livepush
