@@ -14,39 +14,6 @@ interface Opts {
 	arch?: string;
 }
 
-// Source: https://github.com/balena-io/balena-cli/blob/f6d668684a6f5ea8102a964ca1942b242eaa7ae2/lib/utils/device/live.ts#L539-L547
-function extractDockerArrowMessage(outputLine: string): string | undefined {
-	const arrowTest = /^.*\s*-+>\s*(.+)/i;
-	const match = arrowTest.exec(outputLine);
-	if (match != null) {
-		return match[1];
-	}
-}
-
-// Source: https://github.com/balena-io/balena-cli/blob/f6d668684a6f5ea8102a964ca1942b242eaa7ae2/lib/utils/device/live.ts#L300-L325
-function getMultiStateImageIDs(buildLog: string): string[] {
-	const ids = [] as string[];
-	const lines = buildLog.split(/\r?\n/);
-	let lastArrowMessage: string | undefined;
-	for (const line of lines) {
-		// If this was a from line, take the last found
-		// image id and save it
-		if (
-			/step \d+(?:\/\d+)?\s*:\s*FROM/i.test(line) &&
-			lastArrowMessage != null
-		) {
-			ids.push(lastArrowMessage);
-		} else {
-			const msg = extractDockerArrowMessage(line);
-			if (msg != null) {
-				lastArrowMessage = msg;
-			}
-		}
-	}
-
-	return ids;
-}
-
 function getPathPrefix(arch: string) {
 	switch (arch) {
 		/**
@@ -74,7 +41,7 @@ export async function initDevice(opts: Opts) {
 
 	const buildCache = await device.readBuildCache(opts.address);
 
-	const buildLog = await device.performBuild(opts.docker, opts.dockerfile, {
+	const stageImages = await device.performBuild(opts.docker, opts.dockerfile, {
 		buildargs: { ARCH: arch, PREFIX: getPathPrefix(arch) },
 		t: image,
 		labels: { 'io.balena.livepush-image': '1', 'io.balena.architecture': arch },
@@ -83,8 +50,6 @@ export async function initDevice(opts: Opts) {
 			.concat(buildCache),
 		nocache: opts.nocache,
 	});
-
-	const stageImages = getMultiStateImageIDs(buildLog);
 
 	// Store the list of stage images for the next time the sync
 	// command is called. This will only live until the device is rebooted
