@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update webpack dependencies to latest webpack 4.x compatible versions
+      hash: 93893093ff75a17243b46020e836c765d634677e
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.1.3
+  title: ""
+  date: 2022-09-20T13:49:10.018Z
+- commits:
     - subject: Update husky/lint-staged dev dependencies
       hash: b3d866699731eb2fe798bbf4a4aa5cc849ddece6
       body: ""
