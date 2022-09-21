@@ -2,6 +2,8 @@ import * as express from 'express';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
+import { interpolate } from '@balena/variable-substitution';
+
 import * as config from '../config';
 import { transaction, Transaction } from '../db';
 import * as dbFormat from '../device-state/db-format';
@@ -606,6 +608,19 @@ export async function setTarget(
 			}
 		},
 	);
+
+	// substitute variables in service compositions.
+	// note that we rely on object references here and mutating them in place.
+	Object.values(filteredApps).forEach((app: any) => {
+		Object.values((app.releases ?? {})).forEach((release: any) => {
+			Object.values(release.services ?? {}).forEach((service: any) => {
+				const { composition, environment } = service;
+				// FIXME: this can throw
+				service.composition = interpolate(composition ?? {}, environment ?? {});
+			});
+		});
+	});
+
 	let promise;
 	if (maybeTrx != null) {
 		promise = setInTransaction(filteredApps, maybeTrx);
