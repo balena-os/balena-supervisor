@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"baseUrl": "./",
-		"target": "ES2019",
+		"target": "ES2021",
 		"module": "commonjs",
 		"strict": true,
 		"strictFunctionTypes": false,
@@ -10,7 +10,6 @@
 		"inlineSourceMap": true,
 		"outDir": "./build/",
 		"skipLibCheck": true,
-		"lib": ["es2019"],
 		"resolveJsonModule": true,
 		"allowJs": true,
 		"paths": {

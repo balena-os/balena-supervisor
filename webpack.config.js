@@ -21,6 +21,7 @@ var externalModules = [
 	'tedious',
 	'dbus',
 	/mssql\/.*/,
+	'osx-temperature-sensor',
 ];
 
 let requiredModules = [];
@@ -70,7 +71,6 @@ console.log('Using the following dependencies as external:', externalModules);
 module.exports = function (env) {
 	return {
 		mode: env == null || !env.noOptimize ? 'production' : 'development',
-		devtool: 'none',
 		entry: './src/app.ts',
 		output: {
 			filename: 'app.js',
