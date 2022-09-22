@@ -1,0 +1,22 @@
+# https://docs.github.com/en/actions/creating-actions/creating-a-composite-action
+name: "Publish to staging"
+description: "Custom publish step to publish to balena staging"
+# these inputs are always provided by flowzone, so they must always be defined on the composite action
+inputs:
+  json:
+    description: "JSON stringified object containing all the inputs from the calling workflow"
+    required: true
+  secrets:
+    description: "JSON stringified object containing all the secrets from the calling workflow"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: balena-io/deploy-to-balena-action@v0.13.0
+      with:
+        balena_token: ${{ fromJSON(inputs.secrets).CUSTOM_JOB_SECRET_1 }}
+        fleet: ${{ env.matrix_value }}
+        environment: balena-staging.com
+        versionbot: false # ignore versionbot branch since the flowzone source is already versioned
+        source: .
