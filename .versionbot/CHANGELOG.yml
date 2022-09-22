@@ -1,4 +1,16 @@
 - commits:
+    - subject: Publish to staging with a custom publish composite job
+      hash: 29ae778e3971c2046f86f5cad3bf0ed8fd61e1d8
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.2.1
+  title: ""
+  date: 2022-09-22T20:07:26.525Z
+- commits:
     - subject: Disable event tracking
       hash: e00687408ce9c1b20217f25b1c906b7855aab83f
       body: |
