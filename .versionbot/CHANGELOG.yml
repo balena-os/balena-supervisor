@@ -1,4 +1,24 @@
 - commits:
+    - subject: Update typescript target to es2021
+      hash: e8baa63fdd4afbd19cfdcdb0e6802aebdc263278
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Update to webpack 5
+      hash: 47dca8604b5df1b2af559589946b2e52fc7e855d
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.2.2
+  title: ""
+  date: 2022-09-22T21:42:15.846Z
+- commits:
     - subject: Publish to staging with a custom publish composite job
       hash: 29ae778e3971c2046f86f5cad3bf0ed8fd61e1d8
       body: ""
