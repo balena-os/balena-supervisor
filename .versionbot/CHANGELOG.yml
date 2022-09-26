@@ -1,4 +1,16 @@
 - commits:
+    - subject: Add custom flowzone action to finalize staging releases
+      hash: 943004cf4339e579bd696875a2584cb098c65a65
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.2.4
+  title: ""
+  date: 2022-09-26T20:17:26.039Z
+- commits:
     - subject: Update dependencies to fix NPM build
       hash: 460659429d65f360b58ca0eb08ffbc8118a2a446
       body: ""
