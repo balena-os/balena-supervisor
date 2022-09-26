@@ -1,5 +1,5 @@
 import * as Bluebird from 'bluebird';
-import * as Knex from 'knex';
+import { knex, Knex } from 'knex';
 
 import { expect } from 'chai';
 import prepare = require('~/test-lib/prepare');
@@ -7,7 +7,7 @@ import * as constants from '~/lib/constants';
 import { exists } from '~/lib/fs-utils';
 
 async function createOldDatabase(path: string) {
-	const knex = Knex({
+	const db = knex({
 		client: 'sqlite3',
 		connection: {
 			filename: path,
@@ -19,7 +19,7 @@ async function createOldDatabase(path: string) {
 		name: string,
 		fn: (trx: Knex.CreateTableBuilder) => void,
 	) =>
-		knex.schema.createTable(name, (t) => {
+		db.schema.createTable(name, (t) => {
 			if (fn != null) {
 				return fn(t);
 			}
@@ -38,7 +38,7 @@ async function createOldDatabase(path: string) {
 	await createEmptyTable('dependentDevice', (t) =>
 		t.increments('id').primary(),
 	);
-	return knex;
+	return db;
 }
 
 describe('Database Migrations', () => {

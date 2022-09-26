@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import type { Transaction } from 'knex';
+import type { Knex } from 'knex';
 import * as _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 import { inspect } from 'util';
@@ -50,7 +50,7 @@ export const removeListener: typeof events['removeListener'] =
 
 export async function get<T extends SchemaTypeKey>(
 	key: T,
-	trx?: Transaction,
+	trx?: Knex.Transaction,
 ): Promise<SchemaReturn<T>> {
 	const $db = trx || db.models;
 
@@ -115,7 +115,7 @@ export async function get<T extends SchemaTypeKey>(
 
 export async function getMany<T extends SchemaTypeKey>(
 	keys: T[],
-	trx?: Transaction,
+	trx?: Knex.Transaction,
 ): Promise<{ [key in T]: SchemaReturn<key> }> {
 	const values = await Promise.all(keys.map((k) => get(k, trx)));
 	return _.zipObject(keys, values) as unknown as Promise<{
@@ -125,9 +125,9 @@ export async function getMany<T extends SchemaTypeKey>(
 
 export async function set<T extends SchemaTypeKey>(
 	keyValues: ConfigMap<T>,
-	trx?: Transaction,
+	trx?: Knex.Transaction,
 ): Promise<void> {
-	const setValuesInTransaction = async (tx: Transaction) => {
+	const setValuesInTransaction = async (tx: Knex.Transaction) => {
 		const configJsonVals: Dictionary<unknown> = {};
 		const dbVals: Dictionary<unknown> = {};
 
