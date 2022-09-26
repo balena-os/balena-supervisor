@@ -1,4 +1,4 @@
-import * as Knex from 'knex';
+import { knex, Knex } from 'knex';
 import * as path from 'path';
 import * as _ from 'lodash';
 
@@ -9,7 +9,7 @@ type DBTransactionCallback = (trx: Knex.Transaction) => void;
 export type Transaction = Knex.Transaction;
 
 const databasePath = constants.databasePath;
-const knex = Knex({
+const db = knex({
 	client: 'sqlite3',
 	connection: {
 		filename: databasePath,
@@ -19,17 +19,17 @@ const knex = Knex({
 
 export const initialized = _.once(async () => {
 	try {
-		await knex('knex_migrations_lock').update({ is_locked: 0 });
+		await db('knex_migrations_lock').update({ is_locked: 0 });
 	} catch {
 		/* ignore */
 	}
-	return knex.migrate.latest({
+	return db.migrate.latest({
 		directory: path.join(__dirname, 'migrations'),
 	});
 });
 
 export function models(modelName: string): Knex.QueryBuilder {
-	return knex(modelName);
+	return db(modelName);
 }
 
 export async function upsertModel(
@@ -38,7 +38,7 @@ export async function upsertModel(
 	id: Dictionary<unknown>,
 	trx?: Knex.Transaction,
 ): Promise<any> {
-	const k = trx || knex;
+	const k = trx || db;
 
 	const n = await k(modelName).update(obj).where(id);
 	if (n === 0) {
@@ -49,5 +49,5 @@ export async function upsertModel(
 export function transaction(
 	cb: DBTransactionCallback,
 ): Promise<Knex.Transaction> {
-	return knex.transaction(cb);
+	return db.transaction(cb);
 }
