@@ -4,8 +4,8 @@ on:
   pull_request:
     types: [opened, synchronize, closed]
     branches:
-      - "main"
-      - "master"
+      - 'main'
+      - 'master'
 
 jobs:
   flowzone:
@@ -24,8 +24,12 @@ jobs:
         balena_os/armv7hf-supervisor,
         balena_os/i386-supervisor,
         balena_os/rpi-supervisor
-      custom_publish_matrix:
-        balena_os/aarch64-supervisor,
+      custom_publish_matrix: balena_os/aarch64-supervisor,
+        balena_os/amd64-supervisor,
+        balena_os/armv7hf-supervisor,
+        balena_os/i386-supervisor,
+        balena_os/rpi-supervisor
+      custom_finalize_matrix: balena_os/aarch64-supervisor,
         balena_os/amd64-supervisor,
         balena_os/armv7hf-supervisor,
         balena_os/i386-supervisor,
