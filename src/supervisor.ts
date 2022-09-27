@@ -61,14 +61,13 @@ export class Supervisor {
 			await normaliseLegacyDatabase();
 		}
 
-		// Start the state engine, the device API and API binder
-		// in parallel
+		// Start the state engine, the device API and API binder in parallel
 		await Promise.all([
 			deviceState.loadInitialState(),
 			(() => {
 				log.info('Starting API server');
 				this.api = new SupervisorAPI({
-					routers: [v1.router, deviceState.router],
+					routers: [v1.router],
 					healthchecks: [apiBinder.healthcheck, deviceState.healthcheck],
 				});
 				this.api.listen(conf.listenPort, conf.apiTimeout);
