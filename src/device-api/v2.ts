@@ -26,7 +26,7 @@ import {
 	appNotFoundMessage,
 	serviceNotFoundMessage,
 	v2ServiceEndpointInputErrorMessage,
-} from '../lib/messages';
+} from './messages';
 import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';

@@ -8,7 +8,7 @@ import * as serviceManager from '../compose/service-manager';
 import * as volumeManager from '../compose/volume-manager';
 import { InternalInconsistencyError } from '../lib/errors';
 import { lock } from '../lib/update-lock';
-import { appNotFoundMessage } from '../lib/messages';
+import { appNotFoundMessage } from './messages';
 
 export async function doRestart(appId, force) {
 	await deviceState.initialized();
