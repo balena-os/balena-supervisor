@@ -247,6 +247,8 @@ git --version # >= 2.13.0
 
 Also, ensure you're installing dependencies with `npm ci` as this will perform a clean install and guarantee the module versions specified are downloaded rather then installed which might attempt to upgrade!
 
+If you have upgraded system packages and find that your tests are failing to initialize with docker network errors, a reboot may resolve this. See [this issue](https://github.com/moby/moby/issues/34575) for details.
+
 ### DBus
 
 When developing on macOS you may need to install DBus on the development host.
