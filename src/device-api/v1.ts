@@ -352,5 +352,3 @@ router.get('/v1/device', async (_req, res) => {
 		});
 	}
 });
-
-router.use(applicationManager.router);

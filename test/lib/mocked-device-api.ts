@@ -8,6 +8,7 @@ import * as commitStore from '~/src/compose/commit';
 import * as config from '~/src/config';
 import * as db from '~/src/db';
 import * as v1 from '~/src/device-api/v1';
+import * as v2 from '~/src/device-api/v2';
 import * as deviceState from '~/src/device-state';
 import SupervisorAPI from '~/src/device-api';
 import { Service } from '~/src/compose/service';
@@ -132,7 +133,7 @@ async function create(
 
 	// Create SupervisorAPI
 	const api = new SupervisorAPI({
-		routers: [v1.router],
+		routers: [v1.router, v2.router],
 		healthchecks,
 	});
 
