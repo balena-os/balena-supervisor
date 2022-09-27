@@ -1,4 +1,21 @@
 - commits:
+    - subject: Add test troubleshooting case that appears after upgrading system
+      hash: c6d5ad7a89714e74c6f3280bc2ed39168f0545f4
+      body: >
+        The error may be something to the effect of `failed to add the host
+
+        (vethd6242de) <=> sandbox (veth8e47b1a) pair interfaces: operation not supported`.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.2.5
+  title: ""
+  date: 2022-09-27T04:50:50.229Z
+- commits:
     - subject: Add custom flowzone action to finalize staging releases
       hash: 943004cf4339e579bd696875a2584cb098c65a65
       body: ""
