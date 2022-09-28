@@ -1,4 +1,21 @@
 - commits:
+    - subject: Split compose/volume tests into unit/integration
+      hash: 4113dde45d870f9369139da82e533343f55fe19f
+      body: |
+        This also needs to modify the test environment as database migrations
+        will look for `config.json` in the location given by the variable
+        `CONFIG_MOUNT_POINT`.
+
+        The volume tests now run against the actual docker engine setup via dind
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.2.7
+  title: ""
+  date: 2022-09-28T15:37:44.538Z
+- commits:
     - subject: Fix migrations hardcode to work with knex 0.95.15
       hash: bf0d9ee836cb32da89d7827771dc64b405d5b5fc
       body: >
