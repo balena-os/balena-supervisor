@@ -1,4 +1,26 @@
 - commits:
+    - subject: Fix migrations hardcode to work with knex 0.95.15
+      hash: bf0d9ee836cb32da89d7827771dc64b405d5b5fc
+      body: >
+        The latest upgrade of knex broke the webpack loader that hardcodes the
+
+        migration paths in the built code, that cause supervisors 14.2.3 to
+
+        14.2.5 (inclusive) to break anytime migrations needed to be ran (see linked issue).
+
+
+        This commit fixes the loader to work with the included knex version.
+      footer:
+        Relates-to: "#2032"
+        relates-to: "#2032"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.2.6
+  title: ""
+  date: 2022-09-28T00:21:04.875Z
+- commits:
     - subject: Add test troubleshooting case that appears after upgrading system
       hash: c6d5ad7a89714e74c6f3280bc2ed39168f0545f4
       body: >
