@@ -90,13 +90,7 @@ describe('lib/fs-utils', () => {
 		});
 	});
 
-	/**
-	 * TODO: Un-skip this test after all fs tests that write to a test file system use
-	 * mock-fs instead. Hypothesis: exists isn't handling the relative directory it's
-	 * being passed well. When all unit tests use mock-fs, we can set process.env.ROOT_MOUNTPOINT
-	 * to `/mnt/root` so we can have an absolute path in all these tests.
-	 */
-	describe.skip('exists', () => {
+	describe('exists', () => {
 		before(mockFs);
 		after(unmockFs);
 

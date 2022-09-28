@@ -135,7 +135,7 @@ export async function lock<T extends unknown>(
 			}
 		}
 		// Resolve the function passed
-		return fn();
+		return await fn();
 	} finally {
 		for (const [id, release] of releases.entries()) {
 			// Try to dispose all the locks

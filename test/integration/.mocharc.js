@@ -6,9 +6,9 @@ module.exports = {
 		// Files to execute before running suites
 		'ts-node/register/transpile-only',
 		'tsconfig-paths/register',
-		'test/lib/chai.ts',
 		'mocha-pod/skip-setup',
+		'test/lib/chai.ts',
+		'test/lib/mocha-hooks.ts',
 	],
-	spec: ['test/integration/**/*.spec.ts'],
 	timeout: '30000',
 };

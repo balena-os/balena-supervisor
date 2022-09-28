@@ -1,10 +1,9 @@
 import * as Bluebird from 'bluebird';
 import { knex, Knex } from 'knex';
+import { promises as fs } from 'fs';
 
 import { expect } from 'chai';
-import prepare = require('~/test-lib/prepare');
 import * as constants from '~/lib/constants';
-import { exists } from '~/lib/fs-utils';
 
 async function createOldDatabase(path: string) {
 	const db = knex({
@@ -41,35 +40,28 @@ async function createOldDatabase(path: string) {
 	return db;
 }
 
-describe('Database Migrations', () => {
-	before(async () => {
-		await prepare();
+async function restoreDb() {
+	await fs.unlink(constants.databasePath).catch(() => {
+		/* NOOP */
 	});
+	// Reset the module cache to allow the database to be initialized again
+	delete require.cache[require.resolve('~/src/db')];
+}
 
-	after(() => {
-		// @ts-expect-error
-		constants.databasePath = process.env.DATABASE_PATH;
-		delete require.cache[require.resolve('~/src/db')];
+describe('db', () => {
+	afterEach(async () => {
+		await restoreDb();
 	});
 
 	it('creates a database at the path passed on creation', async () => {
-		const databasePath = process.env.DATABASE_PATH_2!;
-		// @ts-expect-error
-		constants.databasePath = databasePath;
-		delete require.cache[require.resolve('~/src/db')];
-
 		const testDb = await import('~/src/db');
 		await testDb.initialized();
-		expect(await exists(databasePath)).to.be.true;
+		await expect(fs.access(constants.databasePath)).to.not.be.rejected;
 	});
 
-	it('adds new fields and removes old ones in an old database', async () => {
-		const databasePath = process.env.DATABASE_PATH_3!;
-
-		const knexForDB = await createOldDatabase(databasePath);
-		// @ts-expect-error
-		constants.databasePath = databasePath;
-		delete require.cache[require.resolve('~/src/db')];
+	it('migrations add new fields and removes old ones in an old database', async () => {
+		// Create a database with an older schema
+		const knexForDB = await createOldDatabase(constants.databasePath);
 		const testDb = await import('~/src/db');
 		await testDb.initialized();
 		await Bluebird.all([
@@ -94,28 +86,18 @@ describe('Database Migrations', () => {
 				.to.eventually.be.true,
 		]);
 	});
-});
 
-describe('Database', () => {
-	let db: typeof import('~/src/db');
-
-	before(async () => {
-		await prepare();
-		db = await import('~/src/db');
-	});
-	it('initializes correctly, running the migrations', () => {
-		return expect(db.initialized()).to.be.fulfilled;
-	});
-	it('creates a database at the path from an env var', async () => {
-		expect(await exists(process.env.DATABASE_PATH!)).to.be.true;
-	});
 	it('creates a deviceConfig table with a single default value', async () => {
-		const deviceConfig = await db.models('deviceConfig').select();
+		const testDb = await import('~/src/db');
+		await testDb.initialized();
+		const deviceConfig = await testDb.models('deviceConfig').select();
 		expect(deviceConfig).to.have.lengthOf(1);
 		expect(deviceConfig).to.deep.equal([{ targetValues: '{}' }]);
 	});
 
-	it('allows performing transactions', () => {
-		return db.transaction((trx) => expect(trx.commit()).to.be.fulfilled);
+	it('allows performing transactions', async () => {
+		const testDb = await import('~/src/db');
+		await testDb.initialized();
+		return testDb.transaction((trx) => expect(trx.commit()).to.be.fulfilled);
 	});
 });

@@ -117,7 +117,7 @@ export async function removeOrphanedVolumes(
 	// *all* containers. This means we don't remove
 	// something that's part of a sideloaded container
 	const [dockerContainers, dockerVolumes] = await Promise.all([
-		docker.listContainers(),
+		docker.listContainers({ all: true }),
 		docker.listVolumes(),
 	]);
 
