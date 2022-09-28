@@ -103,7 +103,10 @@ module.exports = function (env) {
 				{
 					include: [
 						new RegExp(
-							_.escapeRegExp(path.join('knex', 'lib', 'migrate', 'sources')),
+							_.escapeRegExp(
+								// this is the path as of knex@0.95.15
+								path.join('knex', 'lib', 'migrations', 'migrate', 'sources'),
+							),
 						),
 					],
 					use: require.resolve('./build-utils/hardcode-migrations'),
