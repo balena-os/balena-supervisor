@@ -10,8 +10,23 @@ services:
     command: sleep infinity
 
   dbus:
-    build:
-      context: ./test/lib/dbus/
+    image: balenablocks/dbus
+    environment:
+      DBUS_CONFIG: session.conf
+      DBUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+    volumes:
+      - dbus:/run/dbus
+
+  # Fake system service to listen for supervisor
+  # requests
+  dbus-services:
+    build: ./test/lib/dbus
+    depends_on:
+      - dbus
+    volumes:
+      - dbus:/run/dbus
+    environment:
+      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
 
   docker:
     image: docker:dind
@@ -28,15 +43,18 @@ services:
       target: test
       args:
         # Change this if testing in another architecture
-        ARCH: amd64
+        ARCH: ${ARCH:-amd64}
     depends_on:
       - balena-supervisor
       - docker
       - dbus
+      - dbus-services
+    volumes:
+      - dbus:/run/dbus
     # Set required supervisor configuration variables here
     environment:
       DOCKER_HOST: tcp://docker:2375
-      DBUS_SYSTEM_BUS_ADDRESS: tcp:host=dbus,port=6667,family=ipv4
+      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
       # Required by migrations
       CONFIG_MOUNT_POINT: /mnt/root/mnt/boot/config.json
       # Read by constants to setup `bootMountpoint`
@@ -48,3 +66,10 @@ services:
     tmpfs:
       - /data
       - /mnt/root
+
+volumes:
+  dbus:
+    driver_opts:
+      # Use tmpfs to avoid files remaining between runs
+      type: tmpfs
+      device: tmpfs

@@ -22,4 +22,5 @@ testfs:
   # when restoring the filesystem
   cleanup:
     - /data/database.sqlite
+    - /data/apps.json.preloaded
     - /mnt/root/tmp/balena-supervisor/**/*.lock

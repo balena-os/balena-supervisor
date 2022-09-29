@@ -1,134 +1,61 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-
-import { StatusCodeError, UpdatesLockedError } from '~/lib/errors';
-import * as dockerUtils from '~/lib/docker-utils';
-import * as config from '~/src/config';
-import * as imageManager from '~/src/compose/images';
-import { ConfigTxt } from '~/src/config/backends/config-txt';
-import * as deviceState from '~/src/device-state';
-import * as deviceConfig from '~/src/device-config';
-import { loadTargetFromFile, appsJsonBackup } from '~/src/device-state/preload';
-import Service from '~/src/compose/service';
-import { intialiseContractRequirements } from '~/lib/contracts';
-import * as updateLock from '~/lib/update-lock';
+import { UpdatesLockedError } from '~/lib/errors';
 import * as fsUtils from '~/lib/fs-utils';
+import * as updateLock from '~/lib/update-lock';
+import * as config from '~/src/config';
+import * as deviceState from '~/src/device-state';
+import { appsJsonBackup, loadTargetFromFile } from '~/src/device-state/preload';
 import { TargetState } from '~/src/types';
+import { promises as fs } from 'fs';
+import { intialiseContractRequirements } from '~/lib/contracts';
 
-import * as dbHelper from '~/test-lib/db-helper';
-import log from '~/lib/supervisor-console';
-
-const mockedInitialConfig = {
-	RESIN_SUPERVISOR_CONNECTIVITY_CHECK: 'true',
-	RESIN_SUPERVISOR_DELTA: 'false',
-	RESIN_SUPERVISOR_DELTA_APPLY_TIMEOUT: '0',
-	RESIN_SUPERVISOR_DELTA_REQUEST_TIMEOUT: '30000',
-	RESIN_SUPERVISOR_DELTA_RETRY_COUNT: '30',
-	RESIN_SUPERVISOR_DELTA_RETRY_INTERVAL: '10000',
-	RESIN_SUPERVISOR_DELTA_VERSION: '2',
-	RESIN_SUPERVISOR_INSTANT_UPDATE_TRIGGER: 'true',
-	RESIN_SUPERVISOR_LOCAL_MODE: 'false',
-	RESIN_SUPERVISOR_LOG_CONTROL: 'true',
-	RESIN_SUPERVISOR_OVERRIDE_LOCK: 'false',
-	RESIN_SUPERVISOR_POLL_INTERVAL: '60000',
-	RESIN_SUPERVISOR_VPN_CONTROL: 'true',
-};
+import { testfs } from 'mocha-pod';
+import { createDockerImage } from '~/test-lib/docker-helper';
+import * as Docker from 'dockerode';
 
 describe('device-state', () => {
-	const originalImagesSave = imageManager.save;
-	const originalImagesInspect = imageManager.inspectByName;
-	const originalGetCurrent = deviceConfig.getCurrent;
-
-	let testDb: dbHelper.TestDatabase;
-
+	const docker = new Docker();
 	before(async () => {
-		testDb = await dbHelper.createDB();
-
 		await config.initialized();
-
-		// Prevent side effects from changes in config
-		sinon.stub(config, 'on');
 
 		// Set the device uuid
 		await config.set({ uuid: 'local' });
-
-		await deviceState.initialized();
-
-		// disable log output during testing
-		sinon.stub(log, 'debug');
-		sinon.stub(log, 'warn');
-		sinon.stub(log, 'info');
-		sinon.stub(log, 'event');
-		sinon.stub(log, 'success');
-
-		// TODO: all these stubs are internal implementation details of
-		// deviceState, we should refactor deviceState to use dependency
-		// injection instead of initializing everything in memory
-		sinon.stub(Service as any, 'extendEnvVars').callsFake((env: any) => {
-			env['ADDITIONAL_ENV_VAR'] = 'foo';
-			return env;
-		});
-
 		intialiseContractRequirements({
 			supervisorVersion: '11.0.0',
 			deviceType: 'intel-nuc',
 		});
-
-		sinon
-			.stub(dockerUtils, 'getNetworkGateway')
-			.returns(Promise.resolve('172.17.0.1'));
-
-		// @ts-expect-error Assigning to a RO property
-		imageManager.cleanImageData = () => {
-			console.log('Cleanup database called');
-		};
-
-		// @ts-expect-error Assigning to a RO property
-		imageManager.save = () => Promise.resolve();
-
-		// @ts-expect-error Assigning to a RO property
-		imageManager.inspectByName = () => {
-			const err: StatusCodeError = new Error();
-			err.statusCode = 404;
-			return Promise.reject(err);
-		};
-
-		// @ts-expect-error Assigning to a RO property
-		deviceConfig.configBackend = new ConfigTxt();
-
-		// @ts-expect-error Assigning to a RO property
-		deviceConfig.getCurrent = async () => mockedInitialConfig;
 	});
 
 	after(async () => {
-		(Service as any).extendEnvVars.restore();
-		(dockerUtils.getNetworkGateway as sinon.SinonStub).restore();
-
-		// @ts-expect-error Assigning to a RO property
-		imageManager.save = originalImagesSave;
-		// @ts-expect-error Assigning to a RO property
-		imageManager.inspectByName = originalImagesInspect;
-		// @ts-expect-error Assigning to a RO property
-		deviceConfig.getCurrent = originalGetCurrent;
-
-		try {
-			await testDb.destroy();
-		} catch {
-			/* noop */
-		}
-		sinon.restore();
-	});
-
-	afterEach(async () => {
-		await testDb.reset();
+		await docker.pruneImages({ filters: { dangling: { false: true } } });
 	});
 
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {
-		const appsJson = process.env.ROOT_MOUNTPOINT + '/apps.json';
+		const localFs = await testfs(
+			{ '/data/apps.json': testfs.from('test/data/apps.json') },
+			{ cleanup: ['/data/apps.json.preloaded'] },
+		).enable();
+
+		// The image needs to exist before the test
+		const dockerImageId = await createDockerImage(
+			'registry2.resin.io/superapp/abcdef:latest',
+			['io.balena.testing=1'],
+			docker,
+		);
+
+		const appsJson = '/data/apps.json';
+		await expect(
+			fs.access(appsJson),
+			'apps.json exists before loading the target',
+		).to.not.be.rejected;
 		await loadTargetFromFile(appsJson);
 		const targetState = await deviceState.getTarget();
-		expect(await fsUtils.exists(appsJsonBackup(appsJson))).to.be.true;
-
+		// console.log('TARGET', JSON.stringify(targetState, null, 2));
+		await expect(
+			fs.access(appsJsonBackup(appsJson)),
+			'apps.json.preloaded is created after loading the target',
+		).to.not.be.rejected;
 		expect(targetState)
 			.to.have.property('local')
 			.that.has.property('config')
@@ -145,58 +72,31 @@ describe('device-state', () => {
 		expect(app.services[0])
 			.to.have.property('config')
 			.that.has.property('image')
-			.that.equals('registry2.resin.io/superapp/abcdef:latest');
-		expect(app.services[0].config)
-			.to.have.property('labels')
-			.that.has.property('io.balena.something')
-			.that.equals('bar');
-		expect(app).to.have.property('appName').that.equals('superapp');
-		expect(app).to.have.property('services').that.is.an('array').with.length(1);
-		expect(app.services[0])
-			.to.have.property('config')
-			.that.has.property('image')
-			.that.equals('registry2.resin.io/superapp/abcdef:latest');
-		expect(app.services[0].config)
-			.to.have.property('labels')
-			.that.has.property('io.balena.something')
-			.that.equals('bar');
-		expect(app).to.have.property('appName').that.equals('superapp');
-		expect(app).to.have.property('services').that.is.an('array').with.length(1);
-		expect(app.services[0])
-			.to.have.property('config')
-			.that.has.property('image')
-			.that.equals('registry2.resin.io/superapp/abcdef:latest');
-		expect(app.services[0].config)
-			.to.have.property('labels')
-			.that.has.property('io.balena.something')
-			.that.equals('bar');
-		expect(app).to.have.property('appName').that.equals('superapp');
-		expect(app).to.have.property('services').that.is.an('array').with.length(1);
-		expect(app.services[0])
-			.to.have.property('config')
-			.that.has.property('image')
-			.that.equals('registry2.resin.io/superapp/abcdef:latest');
-		expect(app.services[0].config)
-			.to.have.property('labels')
-			.that.has.property('io.balena.something')
-			.that.equals('bar');
-		expect(app).to.have.property('appName').that.equals('superapp');
-		expect(app).to.have.property('services').that.is.an('array').with.length(1);
-		expect(app.services[0])
-			.to.have.property('config')
-			.that.has.property('image')
-			.that.equals('registry2.resin.io/superapp/abcdef:latest');
+			.that.equals(dockerImageId);
 		expect(app.services[0].config)
 			.to.have.property('labels')
 			.that.has.property('io.balena.something')
 			.that.equals('bar');
 
-		// Restore renamed apps.json
-		await fsUtils.safeRename(appsJsonBackup(appsJson), appsJson);
+		// Remove the image
+		await docker.getImage(dockerImageId).remove();
+		await localFs.restore();
 	});
 
 	it('stores info for pinning a device after loading an apps.json with a pinDevice field', async () => {
-		const appsJson = process.env.ROOT_MOUNTPOINT + '/apps-pin.json';
+		const localFs = await testfs(
+			{ '/data/apps.json': testfs.from('test/data/apps-pin.json') },
+			{ cleanup: ['/data/apps.json.preloaded'] },
+		).enable();
+
+		// The image needs to exist before the test
+		const dockerImageId = await createDockerImage(
+			'registry2.resin.io/superapp/abcdef:latest',
+			['io.balena.testing=1'],
+			docker,
+		);
+
+		const appsJson = '/data/apps.json';
 		await loadTargetFromFile(appsJson);
 
 		const pinned = await config.get('pinDevice');
@@ -204,12 +104,12 @@ describe('device-state', () => {
 		expect(pinned).to.have.property('commit').that.equals('abcdef');
 		expect(await fsUtils.exists(appsJsonBackup(appsJson))).to.be.true;
 
-		// Restore renamed apps.json
-		await fsUtils.safeRename(appsJsonBackup(appsJson), appsJson);
+		// Remove the image
+		await docker.getImage(dockerImageId).remove();
+		await localFs.restore();
 	});
 
 	it('emits a change event when a new state is reported', (done) => {
-		// TODO: where is the test on this test?
 		deviceState.once('change', done);
 		deviceState.reportCurrentState({ someStateDiff: 'someValue' } as any);
 	});
