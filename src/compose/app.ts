@@ -59,7 +59,6 @@ export class App {
 	public commit?: string;
 	public source?: string;
 	public isHost?: boolean;
-
 	// Services are stored as an array, as at any one time we could have more than one
 	// service for a single service ID running (for example handover)
 	public services: Service[];

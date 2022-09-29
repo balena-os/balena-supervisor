@@ -6,11 +6,14 @@ import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
 import * as serviceManager from '../compose/service-manager';
 import * as volumeManager from '../compose/volume-manager';
+import { App } from '../compose/app';
 import { InternalInconsistencyError } from '../lib/errors';
 import { lock } from '../lib/update-lock';
 import { appNotFoundMessage } from './messages';
 
-export async function doRestart(appId, force) {
+import type { InstancedDeviceState } from '../types';
+
+export async function doRestart(appId: number, force: boolean) {
 	await deviceState.initialized();
 	await applicationManager.initialized();
 
@@ -37,7 +40,7 @@ export async function doRestart(appId, force) {
 	);
 }
 
-export async function doPurge(appId, force) {
+export async function doPurge(appId: number, force: boolean) {
 	await deviceState.initialized();
 	await applicationManager.initialized();
 
@@ -120,10 +123,10 @@ export async function doPurge(appId, force) {
 
 /**
  * This doesn't truly return an InstancedDeviceState, but it's close enough to mostly work where it's used
- *
- * @returns { import('../types/state').InstancedDeviceState }
  */
-export function safeStateClone(targetState) {
+export function safeStateClone(
+	targetState: InstancedDeviceState,
+): InstancedDeviceState {
 	// We avoid using cloneDeep here, as the class
 	// instances can cause a maximum call stack exceeded
 	// error
@@ -136,8 +139,7 @@ export function safeStateClone(targetState) {
 	// thing to do would be to represent the input with
 	// io-ts and make sure the below conforms to it
 
-	/** @type { any } */
-	const cloned = {
+	const cloned: DeepPartial<InstancedDeviceState> = {
 		local: {
 			config: {},
 		},
@@ -157,43 +159,48 @@ export function safeStateClone(targetState) {
 		cloned.dependent = _.cloneDeep(targetState.dependent);
 	}
 
-	return cloned;
+	return cloned as InstancedDeviceState;
 }
 
-export function safeAppClone(app) {
+export function safeAppClone(app: App): App {
 	const containerIdForService = _.fromPairs(
 		_.map(app.services, (svc) => [
 			svc.serviceName,
-			svc.containerId != null ? svc.containerId.substr(0, 12) : '',
+			svc.containerId != null ? svc.containerId.substring(0, 12) : '',
 		]),
 	);
-	return {
-		appId: app.appId,
-		name: app.name,
-		commit: app.commit,
-		releaseId: app.releaseId,
-		services: _.map(app.services, (svc) => {
-			// This is a bit of a hack, but when applying the target state as if it's
-			// the current state, this will include the previous containerId as a
-			// network alias. The container ID will be there as Docker adds it
-			// implicitly when creating a container. Here, we remove any previous
-			// container IDs before passing it back as target state. We have to do this
-			// here as when passing it back as target state, the service class cannot
-			// know that the alias being given is not in fact a user given one.
-			// TODO: Make the process of moving from a current state to a target state
-			// well-defined (and implemented in a separate module)
-			const svcCopy = _.cloneDeep(svc);
+	return new App(
+		{
+			appId: app.appId,
+			appUuid: app.appUuid,
+			appName: app.appName,
+			commit: app.commit,
+			source: app.source,
+			services: _.map(app.services, (svc) => {
+				// This is a bit of a hack, but when applying the target state as if it's
+				// the current state, this will include the previous containerId as a
+				// network alias. The container ID will be there as Docker adds it
+				// implicitly when creating a container. Here, we remove any previous
+				// container IDs before passing it back as target state. We have to do this
+				// here as when passing it back as target state, the service class cannot
+				// know that the alias being given is not in fact a user given one.
+				// TODO: Make the process of moving from a current state to a target state
+				// well-defined (and implemented in a separate module)
+				const svcCopy = _.cloneDeep(svc);
 
-			_.each(svcCopy.config.networks, (net) => {
-				if (Array.isArray(net.aliases)) {
-					net.aliases = net.aliases.filter(
-						(alias) => alias !== containerIdForService[svcCopy.serviceName],
-					);
-				}
-			});
-			return svcCopy;
-		}),
-		volumes: _.cloneDeep(app.volumes),
-		networks: _.cloneDeep(app.networks),
-	};
+				_.each(svcCopy.config.networks, (net) => {
+					if (Array.isArray(net.aliases)) {
+						net.aliases = net.aliases.filter(
+							(alias) => alias !== containerIdForService[svcCopy.serviceName],
+						);
+					}
+				});
+				return svcCopy;
+			}),
+			volumes: _.cloneDeep(app.volumes),
+			networks: _.cloneDeep(app.networks),
+			isHost: app.isHost,
+		},
+		true,
+	);
 }
