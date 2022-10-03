@@ -1,4 +1,16 @@
 - commits:
+    - subject: Update type dependencies
+      hash: 0237bd7cf4f5adeb3611bc155b4fe09995e8771d
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.2.8
+  title: ""
+  date: 2022-10-03T20:37:34.074Z
+- commits:
     - subject: Split compose/volume tests into unit/integration
       hash: 4113dde45d870f9369139da82e533343f55fe19f
       body: |
