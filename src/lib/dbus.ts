@@ -1,4 +1,4 @@
-import { getBus, DBusError } from 'dbus';
+import { getBus, Error as DBusError } from 'dbus';
 import { promisify } from 'util';
 import { TypedError } from 'typed-error';
 
