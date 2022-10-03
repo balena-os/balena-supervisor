@@ -12,21 +12,6 @@ import * as apiKeys from './lib/api-keys';
 import * as deviceState from './device-state';
 import { UpdatesLockedError } from './lib/errors';
 
-const expressLogger = morgan(
-	(tokens, req, res) =>
-		[
-			tokens.method(req, res),
-			req.path,
-			tokens.status(req, res),
-			'-',
-			tokens['response-time'](req, res),
-			'ms',
-		].join(' '),
-	{
-		stream: { write: (d) => log.api(d.toString().trimRight()) },
-	},
-);
-
 interface SupervisorAPIConstructOpts {
 	routers: express.Router[];
 	healthchecks: Array<() => Promise<boolean>>;
@@ -48,7 +33,22 @@ export class SupervisorAPI {
 		this.healthchecks = healthchecks;
 
 		this.api.disable('x-powered-by');
-		this.api.use(expressLogger);
+		this.api.use(
+			morgan(
+				(tokens, req, res) =>
+					[
+						tokens.method(req, res),
+						req.path,
+						tokens.status(req, res),
+						'-',
+						tokens['response-time'](req, res),
+						'ms',
+					].join(' '),
+				{
+					stream: { write: (d) => log.api(d.toString().trimRight()) },
+				},
+			),
+		);
 
 		this.api.get('/v1/healthy', async (_req, res) => {
 			try {

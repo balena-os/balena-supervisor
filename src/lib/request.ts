@@ -69,6 +69,7 @@ const getRequestInstances = once(async () => {
 
 	const requestHandle = requestLib.defaults(requestOpts);
 
+	// @ts-expect-error promisifyAll is a bit wonky
 	const request = Bluebird.promisifyAll(requestHandle, {
 		multiArgs: true,
 	}) as PromisifiedRequest;

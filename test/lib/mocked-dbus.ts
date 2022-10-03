@@ -1,5 +1,5 @@
 import * as dbus from 'dbus';
-import { DBusError, DBusInterface } from 'dbus';
+import { Error as DBusError, DBusInterface } from 'dbus';
 import { stub } from 'sinon';
 
 /**
