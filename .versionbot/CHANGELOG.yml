@@ -1,4 +1,23 @@
 - commits:
+    - subject: Start state engine and API binder in parallel
+      hash: b4514631b11c24c58342021e1a5b62add5a8c476
+      body: |
+        The state engine and preloading is performed before the device gets a
+        chance to register, while this is desirable for preloaded apps, it
+        introduces a delay on registration which is known to cause issues since
+        the VPN is also trying to connect at the same time.
+
+        This triggers a simultaneous start of the device engine, the API binder
+        and the supevisor API to avoid delays.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.2.9
+  title: ""
+  date: 2022-10-10T19:42:02.898Z
+- commits:
     - subject: Update type dependencies
       hash: 0237bd7cf4f5adeb3611bc155b4fe09995e8771d
       body: ""
