@@ -178,7 +178,7 @@ balena build -d raspberrypi4-64 -A aarch64
 To build the TypeDoc developer documentation, use the command below. If you change `docs/supervisor-arch.odg` in LibreOffice Draw, first export the changes to `docs/supervisor-arch-svg`.
 
 ```bash
-typedoc --out typedocs --includes docs --entryPointStrategy expand ./src
+npx typedoc --out typedocs --includes docs --entryPointStrategy expand ./src
 ```
 
 Browse to the `app` modules at `typedocs/modules/app.html` for an overview of code organization.

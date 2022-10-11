@@ -8,10 +8,15 @@
  * | ------------- | ----------- |
  * | [supervisor](supervisor.html) | Initialization for Supervisor application modules |
  * | api-binder folder | Implements HTTP interface to balena cloud API |
+ * | [application-manager](compose_application_manager.html) | Directs imageManager and creates steps for state transitions |
  * | config folder | Interface and definitions for configuration data |
+ * | [db](db.html) | Storage for Supervisor state |
+ * | device-api folder | Provides endpoints for Supervisor HTTP API |
  * | [device-config](device-config.html) | Access to device configuration and steps to change it |
  * | [device-state](device-state.html) | Application level access to device state, checks, reports, events |
- * | [db](db.html) | Storage for Supervisor state |
+ * | [logger](logger.html) | Application interface for logging |
+ * | logging folder | Contains logging implementations |
+ * | [supervisor-api](supervisor-api.html) | Server for Supervisor HTTP API |
  * | [](.html) | |
  *
  * @module
