@@ -174,6 +174,15 @@ For instance to build for raspberrypi4:
 balena build -d raspberrypi4-64 -A aarch64
 ```
 
+### Developer documentation
+To build the TypeDoc developer documentation, use the command below. If you change `docs/supervisor-arch.odg` in LibreOffice Draw, first export the changes to `docs/supervisor-arch-svg`.
+
+```bash
+typedoc --out typedocs --includes docs --entryPointStrategy expand ./src
+```
+
+Browse to the `app` modules at `typedocs/modules/app.html` for an overview of code organization.
+
 ## Testing
 
 The codebase splits the test suite into unit and integration tests. While unit tests can be run in the local development machine,

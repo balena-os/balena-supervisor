@@ -25,6 +25,9 @@ const startupConfigFields: config.ConfigKey[] = [
 	'legacyAppsPresent',
 ];
 
+/**
+ * Main class for Supervisor application. Initializes sub-modules.
+ */
 export class Supervisor {
 	private api: SupervisorAPI;
 

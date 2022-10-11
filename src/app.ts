@@ -1,3 +1,21 @@
+/**
+ * Entry point for Supervisor application. Supervisor is factored into many modules.
+ * The diagram and table below should help guide you into it.
+ *
+ * [[include:supervisor-arch.svg]]
+ *
+ * | Module/Folder | Context / Description |
+ * | ------------- | ----------- |
+ * | [supervisor](supervisor.html) | Initialization for Supervisor application modules |
+ * | api-binder folder | Implements HTTP interface to balena cloud API |
+ * | config folder | Interface and definitions for configuration data |
+ * | [device-config](device-config.html) | Access to device configuration and steps to change it |
+ * | [device-state](device-state.html) | Application level access to device state, checks, reports, events |
+ * | [db](db.html) | Storage for Supervisor state |
+ * | [](.html) | |
+ *
+ * @module
+ */
 import { set } from '@balena/es-version';
 // Set the desired es version for downstream modules that support it, before we import any
 set('es2019');

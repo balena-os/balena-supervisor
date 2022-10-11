@@ -1,3 +1,9 @@
+/**
+ * Provides access to device configuration, including current and target. Includes
+ * notion of individual "steps" to transition between configurations. 
+ *
+ * @module
+ */
 import * as _ from 'lodash';
 import { inspect } from 'util';
 import { promises as fs } from 'fs';

@@ -1,5 +1,9 @@
-// This module is for compose specific errors, but compose modules
-// will still use errors from the global ./lib/errors.ts
+/**
+ * This module is for compose specific errors, but compose modules
+ * will still use errors from the global ./lib/errors.ts
+ *
+ * @module
+ */
 
 import { TypedError } from 'typed-error';
 

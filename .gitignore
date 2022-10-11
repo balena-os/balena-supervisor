@@ -6,6 +6,8 @@
 /data/
 /build/
 /dist/
+# lock files for LibreOffice drawing
+docs/.~lock*
 tools/dind/config/
 tools/dind/config.json*
 tools/dind/apps.json
@@ -13,6 +15,7 @@ tools/dind/backup.tgz
 test/data/**/config*.json
 test/data/*.sqlite
 test/data/led_file
+/typedocs/
 /coverage/
 report.xml
 .DS_Store

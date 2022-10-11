@@ -1,3 +1,10 @@
+/**
+ * Provides application level access to device state, including user apps and
+ * device configuration. Includes checks on health and networking, as well as
+ * state reporting end event generation. 
+ *
+ * @module
+ */
 import * as Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';

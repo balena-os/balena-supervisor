@@ -1,3 +1,8 @@
+/**
+ * Provides access to internal SQLite database via [knex](https://knexjs.org/).
+ *
+ * @module
+ */
 import { knex, Knex } from 'knex';
 import * as path from 'path';
 import * as _ from 'lodash';
