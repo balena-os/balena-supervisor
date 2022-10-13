@@ -1,6 +1,6 @@
 /**
  * Entry point for Supervisor application. Supervisor is factored into many modules.
- * The diagram and table below should help guide you into it.
+ * The diagram and table below guides you to these internals.
  *
  * [[include:supervisor-arch.svg]]
  *
@@ -17,6 +17,7 @@
  * | [logger](logger.html) | Application interface for logging |
  * | logging folder | Contains logging implementations |
  * | [supervisor-api](supervisor-api.html) | Server for Supervisor HTTP API |
+ * | [supervisor-console](lib_supervisor_console.html) | Prints log messages to stdout |
  * | [](.html) | |
  *
  * @module
