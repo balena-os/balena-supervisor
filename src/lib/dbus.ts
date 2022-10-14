@@ -79,24 +79,6 @@ export async function stopSocket(socketName: string) {
 	return stopUnit(`${socketName}.socket`);
 }
 
-export async function enableService(serviceName: string) {
-	const systemd = await getSystemdInterface();
-	try {
-		systemd.EnableUnitFiles([`${serviceName}.service`], false, false);
-	} catch (e) {
-		throw new DbusError(e as DBusError);
-	}
-}
-
-export async function disableService(serviceName: string) {
-	const systemd = await getSystemdInterface();
-	try {
-		systemd.DisableUnitFiles([`${serviceName}.service`], false);
-	} catch (e) {
-		throw new DbusError(e as DBusError);
-	}
-}
-
 export const reboot = async () =>
 	setTimeout(async () => {
 		try {
