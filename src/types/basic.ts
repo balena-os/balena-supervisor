@@ -109,9 +109,11 @@ export type VariableName = t.TypeOf<typeof VariableName>;
 
 /**
  * Valid label names are between 0 and 255 characters
- * and match /^[a-zA-Z][a-zA-Z0-9\.\-]*$/
+ * and each character is any printable ASCII character except space (0x20),
+ * double and single quotes ( " 0x22,  ' 0x27) and backtick ( ` 0x60). Rationale
+ * is to accept a character unless likely not useful and error prone.
  */
-const LABEL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9\.\-]*$/;
+const LABEL_NAME_REGEX = /^[!#-&(-_a-~]+$/;
 
 export const LabelName = new t.Type<string, string>(
 	'LabelName',
@@ -125,7 +127,7 @@ export const LabelName = new t.Type<string, string>(
 					: t.failure(
 							s,
 							c,
-							"needs to start with a letter and may only contain alphanumeric characters plus '-' and '.'",
+							'may contain printable ASCII characters except space, single/double quotes and backtick',
 					  ),
 			),
 		),
