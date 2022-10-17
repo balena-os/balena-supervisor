@@ -1,4 +1,18 @@
 - commits:
+    - subject: Allow most printable ASCII chars for service label key
+      hash: 91f93952db4490aa63e9dbe420983591293c5143
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Ken Bannister <kb2ma@runbox.com>
+        signed-off-by: Ken Bannister <kb2ma@runbox.com>
+      author: Ken Bannister
+      nested: []
+  version: 14.2.11
+  title: ""
+  date: 2022-10-17T12:08:22.596Z
+- commits:
     - subject: Use inherited secrets for flowzone
       hash: 080d112f3e5da540684a0c5102d47f9e899a7d11
       body: ""
