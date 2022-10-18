@@ -1,4 +1,18 @@
 - commits:
+    - subject: Convert common.js to TypeScript
+      hash: 966d9574656bb393031ba64dd596f933eb972947
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.2.13
+  title: ""
+  date: 2022-10-18T22:58:18.023Z
+- commits:
     - subject: Setup environment for dbus tests
       hash: 819e1840956fdcc71d0bd4d7e9e5d2f7831ab29c
       body: ""
