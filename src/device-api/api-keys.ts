@@ -1,13 +1,13 @@
 import * as _ from 'lodash';
 import * as express from 'express';
 import * as memoizee from 'memoizee';
+import { TypedError } from 'typed-error';
 
-import * as config from '../config';
 import * as db from '../db';
 
-import { generateUniqueKey } from './register-device';
+import { generateUniqueKey } from '../lib/register-device';
 
-export class KeyNotFoundError extends Error {}
+class KeyNotFoundError extends TypedError {}
 
 /**
  * The schema for the `apiSecret` table in the database
@@ -20,7 +20,7 @@ interface DbApiSecret {
 	key: string;
 }
 
-export type Scope = SerializableScope<ScopeTypeKey>;
+type Scope = SerializableScope<ScopeTypeKey>;
 type ScopeTypeKey = keyof ScopeTypes;
 type SerializableScope<T extends ScopeTypeKey> = {
 	type: T;
@@ -59,13 +59,8 @@ const scopeChecks: ScopeCheckCollection = {
 		resources.apps != null && resources.apps.includes(appId),
 };
 
-export function serialiseScopes(scopes: Scope[]): string {
-	return JSON.stringify(scopes);
-}
-
-export function deserialiseScopes(json: string): Scope[] {
-	return JSON.parse(json);
-}
+const serialiseScopes = (scopes: Scope[]): string => JSON.stringify(scopes);
+const deserialiseScopes = (json: string): Scope[] => JSON.parse(json);
 
 export const isScoped = (
 	resources: Partial<ScopedResources>,
@@ -88,106 +83,28 @@ export type AuthorizedRequestHandler = (
 	next: express.NextFunction,
 ) => void;
 
-// empty until populated in `initialized`
-export let cloudApiKey: string = '';
-
 // should be called before trying to use this singleton
 export const initialized = _.once(async () => {
 	await db.initialized();
 
 	// make sure we have an API key which the cloud will use to call us
-	await generateCloudKey();
+	await generateGlobalKey();
 });
 
-/**
- * This middleware will extract an API key used to make a call, and then expand it out to provide
- * access to the scopes it has. The `req` will be updated to include this `auth` data.
- *
- * E.g. `req.auth.scopes: []`
- *
- * @param req
- * @param res
- * @param next
- */
-export const authMiddleware: AuthorizedRequestHandler = async (
-	req,
-	res,
-	next,
-) => {
-	// grab the API key used for the request
-	const apiKey = getApiKeyFromRequest(req) ?? '';
+// empty until populated in `initialized`
+let globalApiKey: string = '';
 
-	// store the key in the request, and an empty scopes array to populate after resolving the key scopes
-	req.auth = {
-		apiKey,
-		scopes: [],
-		isScoped: (resources) => isScoped(resources, req.auth.scopes),
-	};
-
-	try {
-		const conf = await config.getMany(['localMode', 'unmanaged']);
-
-		// we only need to check the API key if managed and not in local mode
-		const needsAuth = !conf.unmanaged && !conf.localMode;
-
-		// no need to authenticate, shortcut
-		if (!needsAuth) {
-			// Allow requests that do not need auth to be scoped for all applications
-			req.auth.isScoped = () => true;
-			return next();
-		}
-
-		// if we have a key, find the scopes and add them to the request
-		if (apiKey && apiKey !== '') {
-			await initialized();
-			const scopes = await getScopesForKey(apiKey);
-
-			if (scopes != null) {
-				// keep the scopes for later incase they're desired
-				req.auth.scopes.push(...scopes);
-				return next();
-			}
-		}
-
-		// we do not have a valid key...
-		return res.sendStatus(401);
-	} catch (err) {
-		console.error(err);
-		res.status(503).send(`Unexpected error: ${err}`);
+export const getGlobalApiKey = async (): Promise<string> => {
+	if (globalApiKey === '') {
+		await initialized();
 	}
+
+	return globalApiKey;
 };
 
-function isEqualScope(a: Scope, b: Scope): boolean {
-	return _.isEqual(a, b);
-}
+const isEqualScope = (a: Scope, b: Scope): boolean => _.isEqual(a, b);
 
-function getApiKeyFromRequest(req: express.Request): string | undefined {
-	// Check query for key
-	if (req.query.apikey) {
-		if (typeof req.query.apikey !== 'string') {
-			// We were passed something as an api key but it wasn't a string
-			// so ignore it
-			return;
-		}
-		return req.query.apikey;
-	}
-
-	// Get Authorization header to search for key
-	const authHeader = req.get('Authorization');
-
-	// Check header for key
-	if (!authHeader) {
-		return;
-	}
-
-	// Check authHeader with various schemes
-	const match = authHeader.match(/^(?:ApiKey|Bearer) (\w+)$/i);
-
-	// Return key from match or undefined
-	return match?.[1];
-}
-
-export type GenerateKeyOptions = { force: boolean; scopes: Scope[] };
+type GenerateKeyOptions = { force: boolean; scopes: Scope[] };
 
 export async function getScopesForKey(key: string): Promise<Scope[] | null> {
 	const apiKey = await getApiKeyByKey(key);
@@ -209,14 +126,12 @@ export async function generateScopedKey(
 	return await generateKey(appId, serviceName, options);
 }
 
-export async function generateCloudKey(
-	force: boolean = false,
-): Promise<string> {
-	cloudApiKey = await generateKey(0, null, {
+async function generateGlobalKey(force: boolean = false): Promise<string> {
+	globalApiKey = await generateKey(0, null, {
 		force,
 		scopes: [{ type: 'global' }],
 	});
-	return cloudApiKey;
+	return globalApiKey;
 }
 
 export async function refreshKey(key: string): Promise<string> {
@@ -230,7 +145,7 @@ export async function refreshKey(key: string): Promise<string> {
 
 	// if this is a cloud key that is being refreshed
 	if (appId === 0 && serviceName === null) {
-		return await generateCloudKey(true);
+		return await generateGlobalKey(true);
 	}
 
 	// generate a new key, expiring the old one...

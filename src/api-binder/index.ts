@@ -1,6 +1,5 @@
 import * as Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
-import * as express from 'express';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import * as _ from 'lodash';
@@ -44,6 +43,10 @@ interface DeviceTag {
 }
 
 let readyForUpdates = false;
+
+export function isReadyForUpdates() {
+	return readyForUpdates;
+}
 
 export async function healthcheck() {
 	const { appUpdatePollInterval, unmanaged, connectivityCheckEnabled } =
@@ -569,30 +572,4 @@ export const initialized = _.once(async () => {
 	});
 
 	log.info(`API Binder bound to: ${baseUrl}`);
-});
-
-export const router = express.Router();
-router.use(express.urlencoded({ limit: '10mb', extended: true }));
-router.use(express.json({ limit: '10mb' }));
-
-router.post('/v1/update', (req, res, next) => {
-	eventTracker.track('Update notification');
-	if (readyForUpdates) {
-		config
-			.get('instantUpdates')
-			.then((instantUpdates) => {
-				if (instantUpdates) {
-					TargetState.update(req.body.force, true).catch(_.noop);
-					res.sendStatus(204);
-				} else {
-					log.debug(
-						'Ignoring update notification because instant updates are disabled',
-					);
-					res.sendStatus(202);
-				}
-			})
-			.catch(next);
-	} else {
-		res.sendStatus(202);
-	}
 });

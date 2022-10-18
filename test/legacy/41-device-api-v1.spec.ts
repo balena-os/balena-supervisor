@@ -20,17 +20,18 @@ import mockedAPI = require('~/test-lib/mocked-device-api');
 import sampleResponses = require('~/test-data/device-api-responses.json');
 import * as config from '~/src/config';
 import * as logger from '~/src/logger';
-import SupervisorAPI from '~/src/supervisor-api';
+import SupervisorAPI from '~/src/device-api';
+import * as deviceApi from '~/src/device-api';
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
-import * as apiKeys from '~/lib/api-keys';
+import * as apiKeys from '~/src/device-api/api-keys';
 import * as dbus from '~/lib/dbus';
 import * as updateLock from '~/lib/update-lock';
 import * as TargetState from '~/src/device-state/target-state';
 import * as targetStateCache from '~/src/device-state/target-state-cache';
 import blink = require('~/lib/blink');
 import constants = require('~/lib/constants');
-import * as deviceAPI from '~/src/device-api/common';
+import * as deviceAPIActions from '~/src/device-api/common';
 import { UpdatesLockedError } from '~/lib/errors';
 import { SchemaTypeKey } from '~/src/config/schema-type';
 import log from '~/lib/supervisor-console';
@@ -106,10 +107,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		// Mock target state cache
 		targetStateCacheMock = stub(targetStateCache, 'getTargetApp');
 
-		// Create a scoped key
-		await apiKeys.initialized();
-		await apiKeys.generateCloudKey();
-
 		// Stub logs for all API methods
 		loggerStub = stub(logger, 'attach');
 		loggerStub.resolves();
@@ -141,7 +138,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.post('/v1/restart')
 					.send({ appId: 2 })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.POST['/restart'].statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
@@ -170,7 +167,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				.post('/v1/restart')
 				.send({ thing: '' })
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(sampleResponses.V1.POST['/restart [Invalid Body]'].statusCode)
 				.then((response) => {
 					expect(response.body).to.deep.equal(
@@ -190,7 +187,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			await request
 				.get('/v1/healthy')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(sampleResponses.V1.GET['/healthy'].statusCode)
 				.then((response) => {
 					expect(response.body).to.deep.equal(
@@ -223,7 +220,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			await request
 				.get('/v1/apps/2')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(
 					sampleResponses.V1.GET['/apps/2 [Multiple containers running]']
 						.statusCode,
@@ -249,7 +246,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					await request
 						.get('/v1/apps/2')
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(sampleResponses.V1.GET['/apps/2'].statusCode)
 						.expect('Content-Type', /json/)
 						.then((response) => {
@@ -271,7 +268,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.post('/v1/apps/2/stop')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(
 						sampleResponses.V1.GET['/apps/2/stop [Multiple containers running]']
 							.statusCode,
@@ -297,7 +294,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					await request
 						.post('/v1/apps/2/stop')
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(sampleResponses.V1.GET['/apps/2/stop'].statusCode)
 						.expect('Content-Type', /json/)
 						.then((response) => {
@@ -319,7 +316,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.post('/v1/apps/2/start')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(400);
 			});
 		});
@@ -356,7 +353,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					await request
 						.post('/v1/apps/2/start')
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(200)
 						.expect('Content-Type', /json/)
 						.then((response) => {
@@ -372,7 +369,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			const response = await request
 				.get('/v1/device')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(200);
 
 			expect(response.body).to.have.property('mac_address').that.is.not.empty;
@@ -412,7 +409,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					const response = await request
 						.post('/v1/reboot')
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(202);
 
 					expect(response.body).to.have.property('Data').that.is.not.empty;
@@ -447,7 +444,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					const response = await request
 						.post('/v1/reboot')
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(423);
 
 					expect(updateLock.lock).to.be.calledOnce;
@@ -486,7 +483,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.post('/v1/reboot')
 						.send({ force: true })
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(202);
 
 					expect(updateLock.lock).to.be.calledOnce;
@@ -528,7 +525,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					const response = await request
 						.post('/v1/shutdown')
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(202);
 
 					expect(response.body).to.have.property('Data').that.is.not.empty;
@@ -571,7 +568,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					const response = await request
 						.post('/v1/shutdown')
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(202);
 
 					expect(lockSpy.callCount).to.equal(1);
@@ -612,7 +609,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					const response = await request
 						.post('/v1/shutdown')
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(423);
 
 					expect(updateLock.lock).to.be.calledOnce;
@@ -651,7 +648,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.post('/v1/shutdown')
 						.send({ force: true })
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(202);
 
 					expect(updateLock.lock).to.be.calledOnce;
@@ -667,10 +664,12 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 	describe('POST /v1/update', () => {
 		let configStub: SinonStub;
 		let targetUpdateSpy: SinonSpy;
+		let readyForUpdatesStub: SinonStub;
 
 		before(() => {
 			configStub = stub(config, 'get');
 			targetUpdateSpy = spy(TargetState, 'update');
+			readyForUpdatesStub = stub(apiBinder, 'isReadyForUpdates').returns(true);
 		});
 
 		afterEach(() => {
@@ -680,6 +679,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		after(() => {
 			configStub.restore();
 			targetUpdateSpy.restore();
+			readyForUpdatesStub.restore();
 		});
 
 		it('returns 204 with no parameters', async () => {
@@ -689,7 +689,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			await request
 				.post('/v1/update')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(sampleResponses.V1.POST['/update [204 Response]'].statusCode);
 			// Check that TargetState.update was called
 			expect(targetUpdateSpy).to.be.called;
@@ -704,7 +704,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				.post('/v1/update')
 				.send({ force: true })
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(sampleResponses.V1.POST['/update [204 Response]'].statusCode);
 			// Check that TargetState.update was called
 			expect(targetUpdateSpy).to.be.called;
@@ -718,7 +718,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			await request
 				.post('/v1/update')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(sampleResponses.V1.POST['/update [202 Response]'].statusCode);
 			// Check that TargetState.update was not called
 			expect(targetUpdateSpy).to.not.be.called;
@@ -731,7 +731,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			await request
 				.post('/v1/blink')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(sampleResponses.V1.POST['/blink'].statusCode)
 				.then((response) => {
 					expect(response.body).to.deep.equal(
@@ -751,7 +751,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			await request
 				.post('/v1/blink')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.then(() => {
 					expect(blinkStartSpy.callCount).to.equal(1);
 					clock.tick(15000);
@@ -773,13 +773,16 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			await request
 				.post('/v1/regenerate-api-key')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(sampleResponses.V1.POST['/regenerate-api-key'].statusCode)
-				.then((response) => {
+				.then((response) =>
+					Promise.all([response, deviceApi.getGlobalApiKey()]),
+				)
+				.then(([response, globalApiKey]) => {
 					expect(response.body).to.deep.equal(
 						sampleResponses.V1.POST['/regenerate-api-key'].body,
 					);
-					expect(response.text).to.equal(apiKeys.cloudApiKey);
+					expect(response.text).to.equal(globalApiKey);
 					newKey = response.text;
 					expect(refreshKeySpy.callCount).to.equal(1);
 				});
@@ -795,7 +798,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 
 		it('expires old API key after generating new key', async () => {
-			const oldKey: string = apiKeys.cloudApiKey;
+			const oldKey: string = await deviceApi.getGlobalApiKey();
 
 			await request
 				.post('/v1/regenerate-api-key')
@@ -816,7 +819,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			await request
 				.post('/v1/regenerate-api-key')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.then(() => {
 					expect(reportStateSpy.callCount).to.equal(1);
 					// Further reportCurrentState tests should be in 05-device-state.spec.ts,
@@ -876,7 +879,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(hostnameProxyRes.statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(hostnameProxyRes.body);
@@ -889,7 +892,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(hostnameOnlyRes.statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(hostnameOnlyRes.body);
@@ -902,7 +905,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(503);
 			});
 		});
@@ -977,7 +980,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send({ network: { hostname: 'foobaz' } })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(423);
 
 				expect(updateLock.lock).to.be.calledOnce;
@@ -986,7 +989,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.then((response) => {
 						expect(response.body.network.hostname).to.deep.equal(
 							'foobardevice',
@@ -1006,7 +1009,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send({ network: { hostname: 'foobaz' }, force: true })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(200);
 
 				expect(updateLock.lock).to.be.calledOnce;
@@ -1015,7 +1018,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.then((response) => {
 						expect(response.body.network.hostname).to.deep.equal('foobaz');
 					});
@@ -1039,7 +1042,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send(patchBody)
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.PATCH['/host/device-config'].statusCode)
 					.then((response) => {
 						validatePatchResponse(response);
@@ -1055,7 +1058,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.then((response) => {
 						expect(response.body).to.deep.equal(patchBody);
 					});
@@ -1077,7 +1080,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send(patchBody)
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.PATCH['/host/device-config'].statusCode)
 					.then((response) => {
 						validatePatchResponse(response);
@@ -1089,7 +1092,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.then((response) => {
 						expect(response.body).to.deep.equal(patchBody);
 					});
@@ -1103,7 +1106,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send({ network: { hostname: '' } })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.PATCH['/host/device-config'].statusCode)
 					.then((response) => {
 						validatePatchResponse(response);
@@ -1119,7 +1122,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.then(async (response) => {
 						const uuidHostname = await config
 							.get('uuid')
@@ -1136,7 +1139,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send({ network: { proxy: {} } })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.PATCH['/host/device-config'].statusCode)
 					.then(async (response) => {
 						validatePatchResponse(response);
@@ -1156,7 +1159,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(hostnameOnlyRes.statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(hostnameOnlyRes.body);
@@ -1183,7 +1186,10 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 							.patch('/v1/device/host-config')
 							.send({ network: { proxy: { [key]: value } } })
 							.set('Accept', 'application/json')
-							.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+							.set(
+								'Authorization',
+								`Bearer ${await deviceApi.getGlobalApiKey()}`,
+							)
 							.expect(
 								sampleResponses.V1.PATCH['/host/device-config'].statusCode,
 							)
@@ -1199,7 +1205,10 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						await request
 							.get('/v1/device/host-config')
 							.set('Accept', 'application/json')
-							.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+							.set(
+								'Authorization',
+								`Bearer ${await deviceApi.getGlobalApiKey()}`,
+							)
 							.expect(hostnameProxyRes.statusCode)
 							.then((response) => {
 								expect(response.body).to.deep.equal({
@@ -1233,7 +1242,10 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 							.patch('/v1/device/host-config')
 							.send({ network: { proxy: { [key]: value } } })
 							.set('Accept', 'application/json')
-							.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+							.set(
+								'Authorization',
+								`Bearer ${await deviceApi.getGlobalApiKey()}`,
+							)
 							.expect(
 								sampleResponses.V1.PATCH['/host/device-config'].statusCode,
 							)
@@ -1247,7 +1259,10 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						await request
 							.get('/v1/device/host-config')
 							.set('Accept', 'application/json')
-							.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+							.set(
+								'Authorization',
+								`Bearer ${await deviceApi.getGlobalApiKey()}`,
+							)
 							.expect(hostnameProxyRes.statusCode)
 							.then((response) => {
 								expect(response.body).to.deep.equal({
@@ -1281,7 +1296,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 						.patch('/v1/device/host-config')
 						.send({ network: { proxy: { [key]: invalidProxyReqs[key] } } })
 						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 						.expect(200)
 						.then(() => {
 							if (key === 'type') {
@@ -1308,7 +1323,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send({ network: { proxy: { noProxy: ['1.2.3.4/5'] } } })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.PATCH['/host/device-config'].statusCode)
 					.then((response) => {
 						validatePatchResponse(response);
@@ -1325,7 +1340,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(hostnameProxyRes.statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal({
@@ -1346,7 +1361,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send({ network: { proxy: { noProxy: [] } } })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.PATCH['/host/device-config'].statusCode)
 					.then((response) => {
 						validatePatchResponse(response);
@@ -1363,7 +1378,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(hostnameProxyRes.statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal({
@@ -1387,7 +1402,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send({ network: {} })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.PATCH['/host/device-config'].statusCode)
 					.then((response) => {
 						validatePatchResponse(response);
@@ -1399,7 +1414,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				await request
 					.get('/v1/device/host-config')
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(hostnameProxyRes.statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(hostnameProxyRes.body);
@@ -1411,7 +1426,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					.patch('/v1/device/host-config')
 					.send({})
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(200)
 					.then(() => {
 						expect(logWarnStub).to.have.been.calledWith(
@@ -1430,7 +1445,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				.post('/v1/purge')
 				.send({})
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(
 					sampleResponses.V1.POST['/purge [400 Invalid/missing appId]']
 						.statusCode,
@@ -1443,14 +1458,17 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 
 		it('purges the /data directory with valid appId', async () => {
-			const doPurgeStub: SinonStub = stub(deviceAPI, 'doPurge').resolves();
+			const doPurgeStub: SinonStub = stub(
+				deviceAPIActions,
+				'doPurge',
+			).resolves();
 
 			await mockedDockerode.testWithData({ containers, images }, async () => {
 				await request
 					.post('/v1/purge')
 					.send({ appId: 2 })
 					.set('Accept', 'application/json')
-					.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 					.expect(sampleResponses.V1.POST['/purge [200]'].statusCode)
 					.then((response) => {
 						expect(response.body).to.deep.equal(
@@ -1467,7 +1485,7 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			// Generate a new scoped key to call the endpoint, as mocked
 			// appId = 2 services are all in the global scope and thus
 			// resolve to true for any isScoped check
-			const scopedKey = await apiKeys.generateScopedKey(
+			const scopedKey = await deviceApi.generateScopedKey(
 				2,
 				containers[0].serviceName,
 			);

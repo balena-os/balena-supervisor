@@ -87,10 +87,8 @@ const formatCurrentAsState = (device) => ({
 	config: device.config,
 });
 
-const createProxyvisorRouter = function (proxyvisor) {
+const createProxyvisorRouter = function (pv) {
 	const router = express.Router();
-	router.use(express.urlencoded({ limit: '10mb', extended: true }));
-	router.use(express.json({ limit: '10mb' }));
 	router.get('/v1/devices', async (_req, res) => {
 		try {
 			const fields = await db.models('dependentDevice').select();
@@ -315,7 +313,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 				await fs.lstat(dest);
 			} catch {
 				await Promise.using(
-					proxyvisor.docker.imageRootDirMounted(app.image),
+					pv.docker.imageRootDirMounted(app.image),
 					(rootDir) => getTarArchive(rootDir + '/assets', dest),
 				);
 			}
@@ -346,7 +344,7 @@ const createProxyvisorRouter = function (proxyvisor) {
 	return router;
 };
 
-export class Proxyvisor {
+class Proxyvisor {
 	constructor() {
 		this.executeStepAction = this.executeStepAction.bind(this);
 		this.getCurrentStates = this.getCurrentStates.bind(this);
@@ -1003,3 +1001,6 @@ export class Proxyvisor {
 		);
 	}
 }
+
+const proxyvisor = new Proxyvisor();
+export default proxyvisor;

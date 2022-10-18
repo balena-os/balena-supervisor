@@ -31,6 +31,5 @@ fs.writeFileSync(
 	fs.readFileSync('./test/data/testconfig.json'),
 );
 
-import '~/test-lib/mocked-dbus';
 import '~/test-lib/mocked-dockerode';
 import '~/test-lib/mocked-iptables';

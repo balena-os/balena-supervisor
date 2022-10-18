@@ -3,7 +3,7 @@ import * as _ from 'lodash';
 import { expect } from 'chai';
 
 import Service from '~/src/compose/service';
-import * as apiKeys from '~/lib/api-keys';
+import * as deviceApi from '~/src/device-api';
 
 describe('compose/service: integration tests', () => {
 	describe('Feature labels', () => {
@@ -43,7 +43,7 @@ describe('compose/service: integration tests', () => {
 			});
 
 			it('sets BALENA_API_KEY env var to the scoped API key value', async () => {
-				const mykey = await apiKeys.generateScopedKey(123456, 'foobar');
+				const mykey = await deviceApi.generateScopedKey(123456, 'foobar');
 
 				const service = await Service.fromComposeObject(
 					{
