@@ -1,4 +1,16 @@
 - commits:
+    - subject: Setup environment for dbus tests
+      hash: 819e1840956fdcc71d0bd4d7e9e5d2f7831ab29c
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.2.12
+  title: ""
+  date: 2022-10-18T14:01:31.670Z
+- commits:
     - subject: Allow most printable ASCII chars for service label key
       hash: 91f93952db4490aa63e9dbe420983591293c5143
       body: ""
