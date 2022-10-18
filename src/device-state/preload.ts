@@ -130,7 +130,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 		const localState = {
 			[uuid]: {
 				name: '',
-				config: { ...formattedConf, ...deviceConf },
+				config: { ...deviceConf, ...formattedConf },
 				apps: preloadState.apps,
 			},
 		};

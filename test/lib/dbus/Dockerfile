@@ -1,10 +1,10 @@
-FROM ubuntu:20.04
+FROM node:16-alpine
 
-# Install Systemd
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        dbus \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --update python3 dbus-dev make g++ libgcc
 
-COPY dbus.conf /etc/dbus-1/session.d/
+WORKDIR /usr/src/app
+COPY package.json *.ts tsconfig.json entry.sh ./
 
-ENTRYPOINT ["dbus-run-session", "sleep", "infinity"]
+RUN npm install && npm run build
+
+CMD ["./entry.sh"]
