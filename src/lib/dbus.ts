@@ -1,15 +1,27 @@
 import { getBus, Error as DBusError } from 'dbus';
 import { promisify } from 'util';
 import { TypedError } from 'typed-error';
+import * as _ from 'lodash';
 
 import log from './supervisor-console';
+import DBus = require('dbus');
 
 export class DbusError extends TypedError {}
 
-const bus = getBus('system');
-const getInterfaceAsync = promisify(bus.getInterface.bind(bus));
+let bus: DBus.DBusConnection;
+let getInterfaceAsync: <T = DBus.AnyInterfaceMethod>(
+	serviceName: string,
+	objectPath: string,
+	ifaceName: string,
+) => Promise<DBus.DBusInterface<T>>;
+
+export const initialized = _.once(async () => {
+	bus = getBus('system');
+	getInterfaceAsync = promisify(bus.getInterface.bind(bus));
+});
 
 async function getSystemdInterface() {
+	await initialized();
 	try {
 		return await getInterfaceAsync(
 			'org.freedesktop.systemd1',
@@ -21,7 +33,8 @@ async function getSystemdInterface() {
 	}
 }
 
-export async function getLoginManagerInterface() {
+async function getLoginManagerInterface() {
+	await initialized();
 	try {
 		return await getInterfaceAsync(
 			'org.freedesktop.login1',
