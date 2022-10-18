@@ -83,16 +83,24 @@ export type AuthorizedRequestHandler = (
 	next: express.NextFunction,
 ) => void;
 
-// empty until populated in `initialized`
-export let cloudApiKey: string = '';
-
 // should be called before trying to use this singleton
 export const initialized = _.once(async () => {
 	await db.initialized();
 
 	// make sure we have an API key which the cloud will use to call us
-	await generateCloudKey();
+	await generateGlobalKey();
 });
+
+// empty until populated in `initialized`
+let globalApiKey: string = '';
+
+export const getGlobalApiKey = async (): Promise<string> => {
+	if (globalApiKey === '') {
+		await initialized();
+	}
+
+	return globalApiKey;
+};
 
 const isEqualScope = (a: Scope, b: Scope): boolean => _.isEqual(a, b);
 
@@ -118,14 +126,12 @@ export async function generateScopedKey(
 	return await generateKey(appId, serviceName, options);
 }
 
-export async function generateCloudKey(
-	force: boolean = false,
-): Promise<string> {
-	cloudApiKey = await generateKey(0, null, {
+async function generateGlobalKey(force: boolean = false): Promise<string> {
+	globalApiKey = await generateKey(0, null, {
 		force,
 		scopes: [{ type: 'global' }],
 	});
-	return cloudApiKey;
+	return globalApiKey;
 }
 
 export async function refreshKey(key: string): Promise<string> {
@@ -139,7 +145,7 @@ export async function refreshKey(key: string): Promise<string> {
 
 	// if this is a cloud key that is being refreshed
 	if (appId === 0 && serviceName === null) {
-		return await generateCloudKey(true);
+		return await generateGlobalKey(true);
 	}
 
 	// generate a new key, expiring the old one...

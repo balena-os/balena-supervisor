@@ -20,7 +20,7 @@ import {
 
 import log from '../lib/supervisor-console';
 
-import * as apiKeys from '../device-api/api-keys';
+import * as deviceApi from '../device-api';
 
 export function camelCaseConfig(
 	literalConfig: ConfigMap,
@@ -377,7 +377,7 @@ export async function addFeaturesFromLabels(
 		},
 		'io.balena.features.supervisor-api': async () => {
 			// create a app/service specific API secret
-			const apiSecret = await apiKeys.generateScopedKey(
+			const apiSecret = await deviceApi.generateScopedKey(
 				service.appId,
 				service.serviceName,
 			);

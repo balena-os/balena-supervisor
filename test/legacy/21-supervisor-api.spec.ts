@@ -6,10 +6,9 @@ import mockedAPI = require('~/test-lib/mocked-device-api');
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
 import Log from '~/lib/supervisor-console';
-import SupervisorAPI from '~/src/device-api';
-import * as apiKeys from '~/src/device-api/api-keys';
 import * as db from '~/src/db';
-import { cloudApiKey } from '~/src/device-api/api-keys';
+import SupervisorAPI from '~/src/device-api';
+import * as deviceApi from '~/src/device-api';
 
 const mockedOptions = {
 	listenPort: 54321,
@@ -30,10 +29,6 @@ describe('SupervisorAPI', () => {
 
 		// Start test API
 		await api.listen(mockedOptions.listenPort, mockedOptions.timeout);
-
-		// Create a scoped key
-		await apiKeys.initialized();
-		await apiKeys.generateCloudKey();
 	});
 
 	after(async () => {
@@ -56,7 +51,7 @@ describe('SupervisorAPI', () => {
 			await request
 				.get('/ping')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(200);
 		});
 	});
@@ -64,7 +59,7 @@ describe('SupervisorAPI', () => {
 	describe('API Key Scope', () => {
 		it('should generate a key which is scoped for a single application', async () => {
 			// single app scoped key...
-			const appScopedKey = await apiKeys.generateScopedKey(1, 'main');
+			const appScopedKey = await deviceApi.generateScopedKey(1, 'main');
 
 			await request
 				.get('/v2/applications/1/state')
@@ -74,7 +69,7 @@ describe('SupervisorAPI', () => {
 		});
 		it('should generate a key which is scoped for multiple applications', async () => {
 			// multi-app scoped key...
-			const multiAppScopedKey = await apiKeys.generateScopedKey(1, 'other', {
+			const multiAppScopedKey = await deviceApi.generateScopedKey(1, 'other', {
 				scopes: [1, 2].map((appId) => {
 					return { type: 'app', appId };
 				}),
@@ -96,17 +91,19 @@ describe('SupervisorAPI', () => {
 			await request
 				.get('/v2/applications/1/state')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(200);
 
 			await request
 				.get('/v2/applications/2/state')
 				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${apiKeys.cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(200);
 		});
 		it('should have a cached lookup of the key scopes to save DB loading', async () => {
-			const scopes = await apiKeys.getScopesForKey(apiKeys.cloudApiKey);
+			const scopes = await deviceApi.getScopesForKey(
+				await deviceApi.getGlobalApiKey(),
+			);
 
 			const key = 'not-a-normal-key';
 			await db.initialized();
@@ -116,26 +113,30 @@ describe('SupervisorAPI', () => {
 					key,
 				})
 				.where({
-					key: apiKeys.cloudApiKey,
+					key: await deviceApi.getGlobalApiKey(),
 				});
 
 			// the key we had is now gone, but the cache should return values
-			const cachedScopes = await apiKeys.getScopesForKey(apiKeys.cloudApiKey);
+			const cachedScopes = await deviceApi.getScopesForKey(
+				await deviceApi.getGlobalApiKey(),
+			);
 			expect(cachedScopes).to.deep.equal(scopes);
 
 			// this should bust the cache...
-			await apiKeys.generateCloudKey(true);
+			await deviceApi.refreshKey(await deviceApi.getGlobalApiKey());
 
 			// the key we changed should be gone now, and the new key should have the cloud scopes
-			const missingScopes = await apiKeys.getScopesForKey(key);
-			const freshScopes = await apiKeys.getScopesForKey(apiKeys.cloudApiKey);
+			const missingScopes = await deviceApi.getScopesForKey(key);
+			const freshScopes = await deviceApi.getScopesForKey(
+				await deviceApi.getGlobalApiKey(),
+			);
 
 			expect(missingScopes).to.be.null;
 			expect(freshScopes).to.deep.equal(scopes);
 		});
 		it('should regenerate a key and invalidate the old one', async () => {
 			// single app scoped key...
-			const appScopedKey = await apiKeys.generateScopedKey(1, 'main');
+			const appScopedKey = await deviceApi.generateScopedKey(1, 'main');
 
 			await request
 				.get('/v2/applications/1/state')
@@ -143,7 +144,7 @@ describe('SupervisorAPI', () => {
 				.set('Authorization', `Bearer ${appScopedKey}`)
 				.expect(200);
 
-			const newScopedKey = await apiKeys.refreshKey(appScopedKey);
+			const newScopedKey = await deviceApi.refreshKey(appScopedKey);
 
 			await request
 				.get('/v2/applications/1/state')
@@ -225,20 +226,22 @@ describe('SupervisorAPI', () => {
 		});
 
 		it('finds apiKey from query', async () => {
-			return request.post(`/v1/blink?apikey=${cloudApiKey}`).expect(200);
+			return request
+				.post(`/v1/blink?apikey=${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
 		});
 
 		it('finds apiKey from Authorization header (ApiKey scheme)', async () => {
 			return request
 				.post('/v1/blink')
-				.set('Authorization', `ApiKey ${cloudApiKey}`)
+				.set('Authorization', `ApiKey ${await deviceApi.getGlobalApiKey()}`)
 				.expect(200);
 		});
 
 		it('finds apiKey from Authorization header (Bearer scheme)', async () => {
 			return request
 				.post('/v1/blink')
-				.set('Authorization', `Bearer ${cloudApiKey}`)
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(200);
 		});
 
@@ -256,7 +259,10 @@ describe('SupervisorAPI', () => {
 			for (const scheme of randomCases) {
 				return request
 					.post('/v1/blink')
-					.set('Authorization', `${scheme} ${cloudApiKey}`)
+					.set(
+						'Authorization',
+						`${scheme} ${await deviceApi.getGlobalApiKey()}`,
+					)
 					.expect(200);
 			}
 		});

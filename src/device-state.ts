@@ -24,7 +24,7 @@ import {
 } from './lib/errors';
 import * as updateLock from './lib/update-lock';
 import * as dbFormat from './device-state/db-format';
-import * as apiKeys from './device-api/api-keys';
+import { getGlobalApiKey } from './device-api';
 import * as sysInfo from './lib/system-info';
 import { log } from './lib/supervisor-console';
 import { loadTargetFromFile } from './device-state/preload';
@@ -219,7 +219,6 @@ async function saveInitialConfig() {
 
 export async function loadInitialState() {
 	await applicationManager.initialized();
-	await apiKeys.initialized();
 
 	const conf = await config.getMany([
 		'initialConfigSaved',
@@ -245,9 +244,10 @@ export async function loadInitialState() {
 	}
 
 	log.info('Reporting initial state, supervisor version and API info');
+	const globalApiKey = await getGlobalApiKey();
 	reportCurrentState({
 		api_port: conf.listenPort,
-		api_secret: apiKeys.cloudApiKey,
+		api_secret: globalApiKey,
 		os_version: conf.osVersion,
 		os_variant: conf.osVariant,
 		mac_address: conf.macAddress,

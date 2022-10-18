@@ -4,7 +4,7 @@ import * as _ from 'lodash';
 import * as middleware from './middleware';
 import * as apiKeys from './api-keys';
 import * as eventTracker from '../event-tracker';
-import * as deviceState from '../device-state';
+import { reportCurrentState } from '../device-state';
 import proxyvisor from '../proxyvisor';
 import blink = require('../lib/blink');
 import log from '../lib/supervisor-console';
@@ -19,6 +19,14 @@ interface SupervisorAPIConstructOpts {
 interface SupervisorAPIStopOpts {
 	errored: boolean;
 }
+
+// API key methods
+// For better black boxing, device-api should serve as the interface
+// to the rest of the Supervisor code for accessing API key related methods.
+export const getGlobalApiKey = apiKeys.getGlobalApiKey;
+export const refreshKey = apiKeys.refreshKey;
+export const generateScopedKey = apiKeys.generateScopedKey;
+export const getScopesForKey = apiKeys.getScopesForKey;
 
 export class SupervisorAPI {
 	private routers: express.Router[];
@@ -67,16 +75,17 @@ export class SupervisorAPI {
 				await apiKeys.initialized();
 
 				// check if we're updating the cloud API key
-				const updateCloudKey = req.auth.apiKey === apiKeys.cloudApiKey;
+				const shouldUpdateCloudKey =
+					req.auth.apiKey === (await getGlobalApiKey());
 
 				// regenerate the key...
 				const newKey = await apiKeys.refreshKey(req.auth.apiKey);
 
 				// if we need to update the cloud API with our new key
-				if (updateCloudKey) {
+				if (shouldUpdateCloudKey) {
 					// report the new key to the cloud API
-					deviceState.reportCurrentState({
-						api_secret: apiKeys.cloudApiKey,
+					reportCurrentState({
+						api_secret: newKey,
 					});
 				}
 
@@ -94,7 +103,7 @@ export class SupervisorAPI {
 		}
 
 		this.api.use(proxyvisor.router);
-		
+
 		this.api.use(middleware.errors);
 	}
 
