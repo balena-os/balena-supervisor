@@ -6,7 +6,7 @@ const PortMapPublic = PortMap as any as new (
 	portStrOrObj: string | PortRange,
 ) => PortMap;
 
-describe('Ports', function () {
+describe('compose/ports', function () {
 	describe('Port string parsing', function () {
 		it('should correctly parse a port string without a range', function () {
 			expect(new PortMapPublic('80')).to.deep.equal(

@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import constants = require('~/lib/constants');
 import { spawnJournalctl } from '~/lib/journald';
 
-describe('journald', () => {
+describe('lib/journald', () => {
 	let spawn: SinonStub;
 
 	beforeEach((done) => {
@@ -17,6 +17,8 @@ describe('journald', () => {
 		done();
 	});
 
+	// TODO: this test is not really that useful as it basically is just testing
+	// the internal implementation of the method
 	it('spawnJournalctl calls spawn child process with expected args', () => {
 		spawnJournalctl({
 			all: true,

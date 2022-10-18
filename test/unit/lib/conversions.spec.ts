@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as conversion from '~/lib/conversions';
 
-describe('conversions', function () {
+describe('lib/conversions', function () {
 	describe('envArrayToObject', function () {
 		it('should convert an env array to an object', () =>
 			expect(

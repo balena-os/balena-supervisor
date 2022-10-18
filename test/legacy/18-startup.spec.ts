@@ -9,6 +9,8 @@ import * as constants from '~/src/lib/constants';
 import { docker } from '~/lib/docker-utils';
 import { Supervisor } from '~/src/supervisor';
 
+// TODO: remove this when we can test proper supervisor startup during
+// integration tests
 describe('Startup', () => {
 	let startStub: SinonStub;
 	let vpnStatusPathStub: SinonStub;
