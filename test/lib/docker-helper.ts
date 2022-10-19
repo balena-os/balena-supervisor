@@ -8,11 +8,15 @@ export async function createDockerImage(
 	name: string,
 	labels: [string, ...string[]],
 	docker = new Docker(),
+	extra = [] as string[], // Additional instructions to add to the dockerfile
 ): Promise<string> {
 	const pack = tar.pack(); // pack is a streams2 stream
 	pack.entry(
 		{ name: 'Dockerfile' },
-		['FROM scratch'].concat(labels.map((l) => `LABEL ${l}`)).join('\n'),
+		['FROM scratch']
+			.concat(labels.map((l) => `LABEL ${l}`))
+			.concat(extra)
+			.join('\n'),
 		(err) => {
 			if (err) {
 				throw err;
