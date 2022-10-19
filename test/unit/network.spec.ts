@@ -1,9 +1,7 @@
-import { promises as fs } from 'fs';
 import * as os from 'os';
-import { stub, spy } from 'sinon';
+import { stub } from 'sinon';
 
 import { expect } from 'chai';
-import Log from '~/lib/supervisor-console';
 import * as network from '~/src/network';
 
 describe('network', () => {
@@ -91,24 +89,5 @@ describe('network', () => {
 				'192.168.1.137',
 				'2605:9080:1103:3011:2dbe:35e3:1b5a:b99',
 			]));
-	});
-
-	it('checks VPN connection status', async () => {
-		const statStub = stub(fs, 'lstat');
-		const logStub = spy(Log, 'info');
-
-		// Test when VPN is inactive
-		statStub.rejects(); // Reject so we can't stat the vpn active file
-		await expect(network.isVPNActive()).to.eventually.equal(false);
-		expect(logStub.lastCall?.lastArg).to.equal(`VPN connection is not active.`);
-
-		// Test when VPN is active
-		statStub.resolves(); // Resolve so we can stat the vpn active file
-		await expect(network.isVPNActive()).to.eventually.equal(true);
-		expect(logStub.lastCall?.lastArg).to.equal(`VPN connection is active.`);
-
-		// Restore stubs
-		statStub.restore();
-		logStub.restore();
 	});
 });

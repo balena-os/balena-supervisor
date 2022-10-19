@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as ComposeUtils from '~/src/compose/utils';
 
-describe('Composition utilities', () =>
+describe('compose/utils', () =>
 	it('Should correctly camel case the configuration', function () {
 		const config = {
 			networks: ['test', 'test2'],
