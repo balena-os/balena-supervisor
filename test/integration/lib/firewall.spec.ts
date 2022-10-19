@@ -1,46 +1,32 @@
 import _ = require('lodash');
 import { expect } from 'chai';
 
-import * as Docker from 'dockerode';
-import { docker } from '~/lib/docker-utils';
 import * as sinon from 'sinon';
 
 import * as config from '~/src/config';
 import * as firewall from '~/lib/firewall';
 import * as logger from '~/src/logger';
 import * as iptablesMock from '~/test-lib/mocked-iptables';
-import * as targetStateCache from '~/src/device-state/target-state-cache';
+import * as dbFormat from '~/src/device-state/db-format';
 
 import constants = require('~/lib/constants');
 import { RuleAction, Rule } from '~/lib/iptables';
 import { log } from '~/lib/supervisor-console';
 
-describe('Host Firewall', function () {
-	const dockerStubs: Dictionary<sinon.SinonStub> = {};
+describe('lib/firewall', function () {
 	let loggerSpy: sinon.SinonSpy;
-	let logSpy: sinon.SinonSpy;
+	let logSpy: sinon.SinonStub;
 
 	let apiEndpoint: string;
 	let listenPort: number;
 
 	before(async () => {
+		await config.initialized();
+
 		// spy the logs...
 		loggerSpy = sinon.spy(logger, 'logSystemMessage');
-		logSpy = sinon.spy(log, 'error');
+		logSpy = log.error as sinon.SinonStub;
 
-		// stub the docker calls...
-		dockerStubs.listContainers = sinon
-			.stub(docker, 'listContainers')
-			.resolves([]);
-		dockerStubs.listImages = sinon.stub(docker, 'listImages').resolves([]);
-		dockerStubs.getImage = sinon.stub(docker, 'getImage').returns({
-			id: 'abcde',
-			inspect: async () => {
-				return {};
-			},
-		} as Docker.Image);
-
-		await targetStateCache.initialized();
 		await firewall.initialised();
 
 		apiEndpoint = await config.get('apiEndpoint');
@@ -48,11 +34,7 @@ describe('Host Firewall', function () {
 	});
 
 	after(async () => {
-		for (const stub of _.values(dockerStubs)) {
-			stub.restore();
-		}
 		loggerSpy.restore();
-		logSpy.restore();
 	});
 
 	describe('Basic On/Off operation', () => {
@@ -158,35 +140,38 @@ describe('Host Firewall', function () {
 		it('should respect the HOST_FIREWALL_MODE configuration value: auto (no services in host-network)', async function () {
 			await iptablesMock.whilstMocked(
 				async ({ hasAppliedRules, expectRule }) => {
-					await targetStateCache.setTargetApps([
+					await dbFormat.setApps(
 						{
-							appId: 2,
-							uuid: 'myapp',
-							commit: 'abcdef2',
-							name: 'test-app2',
-							class: 'fleet',
-							source: apiEndpoint,
-							releaseId: 1232,
-							isHost: false,
-							services: JSON.stringify([
-								{
-									serviceName: 'test-service',
-									image: 'test-image',
-									imageId: 5,
-									environment: {
-										TEST_VAR: 'test-string',
+							myapp: {
+								id: 2,
+								name: 'test-app2',
+								class: 'fleet',
+								is_host: false,
+								releases: {
+									abcdef2: {
+										id: 1232,
+										services: {
+											'test-service': {
+												id: 567,
+												image: 'test-image',
+												image_id: 5,
+												environment: {
+													TEST_VAR: 'test-string',
+												},
+												labels: {},
+												composition: {
+													tty: true,
+												},
+											},
+										},
+										networks: {},
+										volumes: {},
 									},
-									tty: true,
-									appId: 2,
-									releaseId: 1232,
-									serviceId: 567,
-									commit: 'abcdef2',
 								},
-							]),
-							networks: '[]',
-							volumes: '[]',
+							},
 						},
-					]);
+						apiEndpoint,
+					);
 
 					// set the firewall to be in auto mode...
 					await config.set({ firewallMode: 'auto' });
@@ -213,38 +198,39 @@ describe('Host Firewall', function () {
 		it('should respect the HOST_FIREWALL_MODE configuration value: auto (service in host-network)', async function () {
 			await iptablesMock.whilstMocked(
 				async ({ hasAppliedRules, expectRule, expectNoRule }) => {
-					await targetStateCache.setTargetApps([
+					await dbFormat.setApps(
 						{
-							appId: 2,
-							uuid: 'myapp',
-							commit: 'abcdef2',
-							name: 'test-app2',
-							source: apiEndpoint,
-							class: 'fleet',
-							releaseId: 1232,
-							isHost: false,
-							services: JSON.stringify([
-								{
-									serviceName: 'test-service',
-									image: 'test-image',
-									imageId: 5,
-									environment: {
-										TEST_VAR: 'test-string',
-									},
-									appId: 2,
-									releaseId: 1232,
-									serviceId: 567,
-									commit: 'abcdef2',
-									composition: {
-										tty: true,
-										network_mode: 'host',
+							myapp: {
+								id: 2,
+								name: 'test-app2',
+								class: 'fleet',
+								is_host: false,
+								releases: {
+									abcdef2: {
+										id: 1232,
+										services: {
+											'test-service': {
+												id: 567,
+												image: 'test-image',
+												image_id: 5,
+												environment: {
+													TEST_VAR: 'test-string',
+												},
+												labels: {},
+												composition: {
+													tty: true,
+													network_mode: 'host',
+												},
+											},
+										},
+										networks: {},
+										volumes: {},
 									},
 								},
-							]),
-							networks: '[]',
-							volumes: '[]',
+							},
 						},
-					]);
+						apiEndpoint,
+					);
 
 					// set the firewall to be in auto mode...
 					await config.set({ firewallMode: 'auto' });
