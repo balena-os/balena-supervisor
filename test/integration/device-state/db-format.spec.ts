@@ -1,13 +1,11 @@
 import { expect } from 'chai';
 import { isRight } from 'fp-ts/lib/Either';
-import * as sinon from 'sinon';
 import App from '~/src/compose/app';
 import Network from '~/src/compose/network';
 import * as config from '~/src/config';
+import * as testDb from '~/src/db';
 import * as dbFormat from '~/src/device-state/db-format';
-import log from '~/lib/supervisor-console';
 import { TargetApps } from '~/src/types/state';
-import * as dbHelper from '~/test-lib/db-helper';
 
 function getDefaultNetwork(appId: number) {
 	return {
@@ -15,15 +13,10 @@ function getDefaultNetwork(appId: number) {
 	};
 }
 
-describe('db-format', () => {
-	let testDb: dbHelper.TestDatabase;
+describe('device-state/db-format', () => {
 	let apiEndpoint: string;
 	before(async () => {
-		testDb = await dbHelper.createDB();
-
 		await config.initialized();
-		// Prevent side effects from changes in config
-		sinon.stub(config, 'on');
 
 		// TargetStateCache checks the API endpoint to
 		// store and invalidate the cache
@@ -31,26 +24,14 @@ describe('db-format', () => {
 		// should not be part of the test suite. We need to change
 		// the target state architecture for this
 		apiEndpoint = await config.get('apiEndpoint');
-
-		// disable log output during testing
-		sinon.stub(log, 'debug');
-		sinon.stub(log, 'warn');
-		sinon.stub(log, 'info');
-		sinon.stub(log, 'event');
-		sinon.stub(log, 'success');
-	});
-
-	after(async () => {
-		try {
-			await testDb.destroy();
-		} catch {
-			/* noop */
-		}
-		sinon.restore();
 	});
 
 	afterEach(async () => {
-		await testDb.reset();
+		// Delete all apps between calls to prevent leaking tests
+		await testDb.models('app').del();
+
+		// Disable local mode by default
+		await config.set({ localMode: false });
 	});
 
 	it('converts target apps into the database format', async () => {
