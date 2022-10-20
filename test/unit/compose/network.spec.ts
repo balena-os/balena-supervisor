@@ -6,7 +6,7 @@ import { NetworkInspectInfo } from 'dockerode';
 
 import { log } from '~/lib/supervisor-console';
 
-describe('compose/network: unit tests', () => {
+describe('compose/network', () => {
 	describe('creating a network from a compose object', () => {
 		it('creates a default network configuration if no config is given', () => {
 			const network = Network.fromComposeObject(

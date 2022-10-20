@@ -136,11 +136,11 @@ export const whilstMocked = async (
 
 		const stdin = new Writable();
 		stdin._write = (
-			chunk: Buffer,
+			_chunk: Buffer,
 			_encoding: string,
 			callback: (err?: Error) => void,
 		) => {
-			console.log(chunk.toString('utf8'));
+			// console.log(chunk.toString('utf8'));
 			callback();
 			fakeProc.emit('close', 1);
 		};
