@@ -1,4 +1,18 @@
 - commits:
+    - subject: Migrate docker-util tests
+      hash: aa3002f9093ce72123022f628179c3e14f702690
+      body: |
+        Merged docker-utils and delta tests into a single test suite. They are
+        now ran as part of the integration tests using the real engine.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: pipex
+      nested: []
+  version: 14.2.15
+  title: ""
+  date: 2022-10-20T14:43:04.770Z
+- commits:
     - subject: Migrate simple legacy tests to test/unit and test/integration
       hash: 620bcae53a208069b9f314288381271804d62d27
       body: ""
