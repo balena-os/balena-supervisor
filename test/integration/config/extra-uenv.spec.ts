@@ -1,23 +1,14 @@
-import { promises as fs } from 'fs';
 import { stripIndent } from 'common-tags';
-import { SinonStub, spy, stub } from 'sinon';
 import { expect } from 'chai';
+import { testfs } from 'mocha-pod';
+import { promises as fs } from 'fs';
 
-import * as fsUtils from '~/lib/fs-utils';
-import Log from '~/lib/supervisor-console';
+import * as hostUtils from '~/lib/host-utils';
+import log from '~/lib/supervisor-console';
 import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
 
-describe('extra_uEnv Configuration', () => {
+describe('config/extra-uEnv', () => {
 	const backend = new ExtraUEnv();
-	let readFileStub: SinonStub;
-
-	beforeEach(() => {
-		readFileStub = stub(fs, 'readFile');
-	});
-
-	afterEach(() => {
-		readFileStub.restore();
-	});
 
 	it('should parse extra_uEnv string', () => {
 		const fileContents = stripIndent`\
@@ -35,89 +26,112 @@ describe('extra_uEnv Configuration', () => {
 	});
 
 	it('should only parse supported configuration options from bootConfigPath', async () => {
-		readFileStub.resolves(stripIndent`\
-      custom_fdt_file=mycustom.dtb
-      extra_os_cmdline=isolcpus=3,4
-    `);
+		let tfs = await testfs({
+			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+	    	custom_fdt_file=mycustom.dtb
+      	extra_os_cmdline=isolcpus=3,4
+			`,
+		}).enable();
 
 		await expect(backend.getBootConfig()).to.eventually.deep.equal({
 			fdt: 'mycustom.dtb',
 			isolcpus: '3,4',
 		});
+
+		await tfs.restore();
 
 		// Add other options that will get filtered out because they aren't supported
-		readFileStub.resolves(stripIndent`\
-      custom_fdt_file=mycustom.dtb
-      extra_os_cmdline=isolcpus=3,4 console=tty0 splash
-    `);
+		tfs = await testfs({
+			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+	    	custom_fdt_file=mycustom.dtb
+        extra_os_cmdline=isolcpus=3,4 console=tty0 splash
+			`,
+		}).enable();
 
 		await expect(backend.getBootConfig()).to.eventually.deep.equal({
 			fdt: 'mycustom.dtb',
 			isolcpus: '3,4',
 		});
 
-		// Stub with no supported values
-		readFileStub.resolves(stripIndent`\
-			fdt=something_else
-			isolcpus
-			123.12=5
-		`);
+		await tfs.restore();
 
+		// Configuration with no supported values
+		tfs = await testfs({
+			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+	    	fdt=something_else
+			 	isolcpus
+				123.12=5
+			`,
+		}).enable();
 		await expect(backend.getBootConfig()).to.eventually.deep.equal({});
+
+		await tfs.restore();
 	});
 
 	it('only matches supported devices', async () => {
-		const existsStub = stub(fsUtils, 'exists');
+		// The file exists before
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+	    	custom_fdt_file=mycustom.dtb
+      	extra_os_cmdline=isolcpus=3,4
+			`,
+		}).enable();
 		for (const device of MATCH_TESTS) {
 			// Test device that has extra_uEnv.txt
-			let hasExtraUEnv = true;
-			existsStub.resolves(hasExtraUEnv);
 			await expect(backend.matches(device.type)).to.eventually.equal(
-				device.supported && hasExtraUEnv,
-			);
-			// Test same device but without extra_uEnv.txt
-			hasExtraUEnv = false;
-			existsStub.resolves(hasExtraUEnv);
-			await expect(backend.matches(device.type)).to.eventually.equal(
-				device.supported && hasExtraUEnv,
+				device.supported,
 			);
 		}
-		existsStub.restore();
+
+		await tfs.restore();
+
+		// The file no longer exists
+		await expect(
+			fs.access(hostUtils.pathOnBoot(`extra_uEnv.txt`)),
+			'extra_uEnv.txt does not exist before the test',
+		).to.be.rejected;
+		for (const device of MATCH_TESTS) {
+			// Test same device but without extra_uEnv.txt
+			await expect(backend.matches(device.type)).to.eventually.be.false;
+		}
 	});
 
 	it('errors when cannot find extra_uEnv.txt', async () => {
-		// Stub readFile to reject much like if the file didn't exist
-		readFileStub.rejects();
+		// The file no longer exists
+		await expect(
+			fs.access(hostUtils.pathOnBoot(`extra_uEnv.txt`)),
+			'extra_uEnv.txt does not exist before the test',
+		).to.be.rejected;
 		await expect(backend.getBootConfig()).to.eventually.be.rejectedWith(
 			'Could not find extra_uEnv file. Device is possibly bricked',
 		);
 	});
 
 	it('logs warning for malformed extra_uEnv.txt', async () => {
-		spy(Log, 'warn');
 		for (const badConfig of MALFORMED_CONFIGS) {
-			// Stub bad config
-			readFileStub.resolves(badConfig.contents);
+			// Setup the environment with a bad config
+			const tfs = await testfs({
+				[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: badConfig.contents,
+			}).enable();
+
 			// Expect warning log from the given bad config
 			await backend.getBootConfig();
-			// @ts-expect-error
-			expect(Log.warn.lastCall?.lastArg).to.equal(badConfig.reason);
+
+			expect(log.warn).to.have.been.calledWith(badConfig.reason);
+			await tfs.restore();
 		}
-		// @ts-expect-error
-		Log.warn.restore();
 	});
 
 	it('sets new config values', async () => {
-		stub(fsUtils, 'writeAndSyncFile').resolves();
-		const logWarningStub = spy(Log, 'warn');
-
-		// This config contains a value set from something else
-		// We to make sure the Supervisor is enforcing the source of truth (the cloud)
-		// So after setting new values this unsupported/not set value should be gone
-		readFileStub.resolves(stripIndent`\
-      extra_os_cmdline=rootwait isolcpus=3,4
-      other_service=set_this_value
-    `);
+		const tfs = await testfs({
+			// This config contains a value set from something else
+			// We to make sure the Supervisor is enforcing the source of truth (the cloud)
+			// So after setting new values this unsupported/not set value should be gone
+			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+	    	extra_os_cmdline=rootwait isolcpus=3,4
+	     other_service=set_this_value
+			`,
+		}).enable();
 
 		// Sets config with mix of supported and not supported values
 		await backend.setBootConfig({
@@ -126,24 +140,21 @@ describe('extra_uEnv Configuration', () => {
 			console: 'tty0', // not supported so won't be set
 		});
 
-		expect(fsUtils.writeAndSyncFile).to.be.calledWith(
-			'test/data/mnt/boot/extra_uEnv.txt',
+		// Confirm that the file was written correctly
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot(`extra_uEnv.txt`), 'utf8'),
+		).to.eventually.equal(
 			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2\n',
 		);
 
-		expect(logWarningStub.lastCall?.lastArg).to.equal(
+		expect(log.warn).to.have.been.calledWith(
 			'Not setting unsupported value: { console: tty0 }',
 		);
 
-		// Restore stubs
-		(fsUtils.writeAndSyncFile as SinonStub).restore();
-		logWarningStub.restore();
+		await tfs.restore();
 	});
 
 	it('sets new config values containing collections', async () => {
-		stub(fsUtils, 'writeAndSyncFile').resolves();
-		const logWarningStub = spy(Log, 'warn');
-
 		// @ts-expect-error accessing private value
 		const previousSupportedConfigs = ExtraUEnv.supportedConfigs;
 		// Stub isSupportedConfig so we can confirm collections work
@@ -155,6 +166,12 @@ describe('extra_uEnv Configuration', () => {
 			splash: { key: 'extra_os_cmdline', collection: true },
 		};
 
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+	     	other_service=set_this_value
+			`,
+		}).enable();
+
 		// Set config again
 		await backend.setBootConfig({
 			fdt: '/boot/mycustomdtb.dtb',
@@ -163,72 +180,16 @@ describe('extra_uEnv Configuration', () => {
 			splash: '', // collection entry so should be concatted to other collections of this entry
 		});
 
-		expect(fsUtils.writeAndSyncFile).to.be.calledWith(
-			'test/data/mnt/boot/extra_uEnv.txt',
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot(`extra_uEnv.txt`), 'utf8'),
+		).to.eventually.equal(
 			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2 console=tty0 splash\n',
 		);
 
-		// Restore stubs
-		(fsUtils.writeAndSyncFile as SinonStub).restore();
-		logWarningStub.restore();
 		// @ts-expect-error accessing private value
 		ExtraUEnv.supportedConfigs = previousSupportedConfigs;
-	});
 
-	it('only allows supported configuration options', () => {
-		[
-			{ configName: 'fdt', supported: true },
-			{ configName: 'isolcpus', supported: true },
-			{ configName: 'custom_fdt_file', supported: false },
-			{ configName: 'splash', supported: false },
-			{ configName: '', supported: false },
-		].forEach(({ configName, supported }) =>
-			expect(backend.isSupportedConfig(configName)).to.equal(supported),
-		);
-	});
-
-	it('correctly detects boot config variables', () => {
-		[
-			{ config: 'HOST_EXTLINUX_isolcpus', valid: true },
-			{ config: 'HOST_EXTLINUX_fdt', valid: true },
-			{ config: 'HOST_EXTLINUX_rootwait', valid: true },
-			{ config: 'HOST_EXTLINUX_5', valid: true },
-			{ config: 'DEVICE_EXTLINUX_isolcpus', valid: false },
-			{ config: 'isolcpus', valid: false },
-		].forEach(({ config, valid }) =>
-			expect(backend.isBootConfigVar(config)).to.equal(valid),
-		);
-	});
-
-	it('converts variable to backend formatted name', () => {
-		[
-			{ input: 'HOST_EXTLINUX_isolcpus', output: 'isolcpus' },
-			{ input: 'HOST_EXTLINUX_fdt', output: 'fdt' },
-			{ input: 'HOST_EXTLINUX_', output: null },
-			{ input: 'value', output: null },
-		].forEach(({ input, output }) =>
-			expect(backend.processConfigVarName(input)).to.equal(output),
-		);
-	});
-
-	it('normalizes variable value', () => {
-		[{ input: { key: 'key', value: 'value' }, output: 'value' }].forEach(
-			({ input, output }) =>
-				expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
-					output,
-				),
-		);
-	});
-
-	it('returns the environment name for config variable', () => {
-		[
-			{ input: 'isolcpus', output: 'HOST_EXTLINUX_isolcpus' },
-			{ input: 'fdt', output: 'HOST_EXTLINUX_fdt' },
-			{ input: 'rootwait', output: 'HOST_EXTLINUX_rootwait' },
-			{ input: '', output: null },
-		].forEach(({ input, output }) =>
-			expect(backend.createConfigVarName(input)).to.equal(output),
-		);
+		await tfs.restore();
 	});
 });
 

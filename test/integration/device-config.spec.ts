@@ -1,7 +1,7 @@
 import { stripIndent } from 'common-tags';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { SinonStub, stub, spy, SinonSpy, restore } from 'sinon';
+import { SinonStub, stub, spy, SinonSpy } from 'sinon';
 import { expect } from 'chai';
 
 import * as deviceConfig from '~/src/device-config';
@@ -13,11 +13,8 @@ import { Odmdata } from '~/src/config/backends/odmdata';
 import { ConfigFs } from '~/src/config/backends/config-fs';
 import { SplashImage } from '~/src/config/backends/splash-image';
 import * as constants from '~/lib/constants';
-import log from '~/lib/supervisor-console';
-import { fnSchema } from '~/src/config/functions';
 
-import prepare = require('~/test-lib/prepare');
-import mock = require('mock-fs');
+import { testfs } from 'mocha-pod';
 
 const extlinuxBackend = new Extlinux();
 const configTxtBackend = new ConfigTxt();
@@ -33,7 +30,7 @@ describe('device-config', () => {
 		constants.rootMountPoint,
 		constants.bootMountPoint,
 	);
-	const configJson = 'test/data/config.json';
+	const configJson = path.join(bootMountPoint, 'config.json');
 	const configFsJson = path.join(bootMountPoint, 'configfs.json');
 	const configTxt = path.join(bootMountPoint, 'config.txt');
 	const deviceTypeJson = path.join(bootMountPoint, 'device-type.json');
@@ -42,29 +39,14 @@ describe('device-config', () => {
 	let logSpy: SinonSpy;
 
 	before(async () => {
-		// disable log output during testing
-		stub(log, 'debug');
-		stub(log, 'warn');
-		stub(log, 'info');
-		stub(log, 'event');
-		stub(log, 'success');
 		logSpy = spy(logger, 'logSystemMessage');
-		await prepare();
-
-		// clear memoized data from config
-		fnSchema.deviceType.clear();
-		fnSchema.deviceArch.clear();
 	});
 
 	after(() => {
-		restore();
-		// clear memoized data from config
-		fnSchema.deviceType.clear();
-		fnSchema.deviceArch.clear();
+		logSpy.restore();
 	});
 
 	afterEach(() => {
-		// Restore stubs
 		logSpy.resetHistory();
 	});
 
@@ -118,11 +100,10 @@ describe('device-config', () => {
 	});
 
 	describe('config.txt', () => {
-		const mockFs = () => {
-			mock({
-				// This is only needed so config.get doesn't fail
-				[configJson]: JSON.stringify({ deviceType: 'fincm3' }),
-				[configTxt]: stripIndent`
+		const tFs = testfs({
+			// This is only needed so config.get doesn't fail
+			[configJson]: JSON.stringify({ deviceType: 'fincm3' }),
+			[configTxt]: stripIndent`
 					enable_uart=1
 					dtparam=i2c_arm=on
 					dtparam=spi=on
@@ -130,29 +111,24 @@ describe('device-config', () => {
 					avoid_warnings=1
 					dtparam=audio=on
 					gpu_mem=16`,
-				[osRelease]: stripIndent`
+			[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
 					VARIANT_ID="dev"`,
-				[deviceTypeJson]: JSON.stringify({
-					slug: 'fincm3',
-					arch: 'armv7hf',
-				}),
-			});
-		};
-
-		const unmockFs = () => {
-			mock.restore();
-		};
-
-		beforeEach(() => {
-			mockFs();
+			[deviceTypeJson]: JSON.stringify({
+				slug: 'fincm3',
+				arch: 'armv7hf',
+			}),
 		});
 
-		afterEach(() => {
+		beforeEach(async () => {
+			await tFs.enable();
+		});
+
+		afterEach(async () => {
 			// Reset the state of the fs after each test to
 			// prevent tests leaking into each other
-			unmockFs();
+			await tFs.restore();
 		});
 
 		it('correctly parses a config.txt file', async () => {
@@ -337,20 +313,19 @@ describe('device-config', () => {
 	describe('extlinux', () => {
 		const extlinuxConf = path.join(bootMountPoint, 'extlinux/extlinux.conf');
 
-		const mockFs = () => {
-			mock({
-				// This is only needed so config.get doesn't fail
-				[configJson]: JSON.stringify({}),
-				[osRelease]: stripIndent`
+		const tFs = testfs({
+			// This is only needed so config.get doesn't fail
+			[configJson]: JSON.stringify({}),
+			[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
 					VARIANT_ID="dev"
 				`,
-				[deviceTypeJson]: JSON.stringify({
-					slug: 'fincm3',
-					arch: 'armv7hf',
-				}),
-				[extlinuxConf]: stripIndent`
+			[deviceTypeJson]: JSON.stringify({
+				slug: 'fincm3',
+				arch: 'armv7hf',
+			}),
+			[extlinuxConf]: stripIndent`
 					DEFAULT primary
 					TIMEOUT 30
 					MENU TITLE Boot Options
@@ -359,34 +334,23 @@ describe('device-config', () => {
 					LINUX /Image
 					APPEND \${cbootargs} \${resin_kernel_root} ro rootwait
 				`,
-			});
-		};
-
-		const unmockFs = () => {
-			mock.restore();
-		};
-
-		beforeEach(() => {
-			mockFs();
 		});
 
-		afterEach(() => {
+		beforeEach(async () => {
+			await tFs.enable();
+		});
+
+		afterEach(async () => {
 			// Reset the state of the fs after each test to
 			// prevent tests leaking into each other
-			unmockFs();
+			await tFs.restore();
 		});
 
 		it('should correctly write to extlinux.conf files', async () => {
-			const current = {};
 			const target = {
 				HOST_EXTLINUX_isolcpus: '2',
 				HOST_EXTLINUX_fdt: '/boot/mycustomdtb.dtb',
 			};
-
-			expect(
-				// @ts-expect-error accessing private value
-				deviceConfig.bootConfigChangeRequired(extlinuxBackend, current, target),
-			).to.equal(true);
 
 			await deviceConfig.setBootConfig(extlinuxBackend, target);
 			expect(logSpy).to.be.calledTwice;
@@ -498,50 +462,44 @@ describe('device-config', () => {
 			'sys/kernel/config/acpi/table',
 		);
 
-		const mockFs = () => {
-			mock({
-				// This is only needed so config.get doesn't fail
-				[configJson]: JSON.stringify({}),
-				[osRelease]: stripIndent`
+		const tFs = testfs({
+			// This is only needed so config.get doesn't fail
+			[configJson]: JSON.stringify({}),
+			[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
 					VARIANT_ID="dev"
 				`,
-				[configFsJson]: JSON.stringify({
-					ssdt: ['spidev1.1'],
-				}),
+			[configFsJson]: JSON.stringify({
+				ssdt: ['spidev1.1'],
+			}),
 
-				[deviceTypeJson]: JSON.stringify({
-					slug: 'fincm3',
-					arch: 'armv7hf',
-				}),
-				[acpiTables]: {
-					'spidev1.0.aml': '',
-					'spidev1.1.aml': '',
+			[deviceTypeJson]: JSON.stringify({
+				slug: 'fincm3',
+				arch: 'armv7hf',
+			}),
+			[acpiTables]: {
+				'spidev1.0.aml': '',
+				'spidev1.1.aml': '',
+			},
+			[sysKernelAcpiTable]: {
+				// Add necessary files to avoid the module reporting an error
+				'spidev1.1': {
+					oem_id: '',
+					oem_table_id: '',
+					oem_revision: '',
 				},
-				[sysKernelAcpiTable]: {
-					// Add necessary files to avoid the module reporting an error
-					'spidev1.1': {
-						oem_id: '',
-						oem_table_id: '',
-						oem_revision: '',
-					},
-				},
-			});
-		};
-
-		const unmockFs = () => {
-			mock.restore();
-		};
-
-		beforeEach(() => {
-			mockFs();
+			},
 		});
 
-		afterEach(() => {
+		beforeEach(async () => {
+			await tFs.enable();
+		});
+
+		afterEach(async () => {
 			// Reset the state of the fs after each test to
 			// prevent tests leaking into each other
-			unmockFs();
+			await tFs.restore();
 		});
 
 		it('should correctly write to configfs.json files', async () => {
@@ -568,13 +526,20 @@ describe('device-config', () => {
 		});
 
 		it('should correctly load the configfs.json file', async () => {
+			await configFsBackend.initialise();
+
 			stub(fsUtils, 'exec').resolves();
 			await configFsBackend.initialise();
+
+			// TODO: unfortunately there is no way to test initialization without stubbing
+			// modprobe cannot be replaced by something else and the up-board modules
+			// will not be present within the container environment. OS tests need
+			// to check that applying configurations actually succeds
 			expect(fsUtils.exec).to.be.calledWith('modprobe acpi_configfs');
 
 			// If the module performs this call, it's because all the prior checks succeeded
 			expect(fsUtils.exec).to.be.calledWith(
-				'cat test/data/boot/acpi-tables/spidev1.1.aml > test/data/sys/kernel/config/acpi/table/spidev1.1/aml',
+				'cat /mnt/root/boot/acpi-tables/spidev1.1.aml > /mnt/root/sys/kernel/config/acpi/table/spidev1.1/aml',
 			);
 
 			// Restore stubs
@@ -653,8 +618,8 @@ describe('device-config', () => {
 
 		const splash = path.join(bootMountPoint, 'splash');
 
-		const mockFs = () => {
-			mock({
+		const mockFs = testfs(
+			{
 				// This is only needed so config.get doesn't fail
 				[configJson]: JSON.stringify({}),
 				[osRelease]: stripIndent`
@@ -667,45 +632,33 @@ describe('device-config', () => {
 					arch: 'aarch64',
 				}),
 				[splash]: {
-					/* empty directory */
+					dummy: '', // to ensure the directory is created
 				},
-			});
-		};
+			},
+			{ cleanup: [`${splash}/*.png`] },
+		);
 
-		const unmockFs = () => {
-			mock.restore();
-		};
-
-		beforeEach(() => {
-			mockFs();
+		beforeEach(async () => {
+			await mockFs.enable();
 		});
 
-		afterEach(() => {
-			unmockFs();
+		afterEach(async () => {
+			await mockFs.restore();
 		});
 
 		it('should correctly write to resin-logo.png', async () => {
 			// Devices with balenaOS < 2.51 use resin-logo.png
-			fs.writeFile(
-				path.join(splash, 'resin-logo.png'),
-				Buffer.from(defaultLogo, 'base64'),
-			);
+			// Devices with balenaOS >= 2.51 use balena-logo.png
+			const tTfs = await testfs({
+				[splash]: {
+					'resin-logo.png': Buffer.from(png, 'base64'),
+				},
+			}).enable();
 
-			const current = {};
 			const target = {
 				HOST_SPLASH_image: png,
 			};
 
-			// This should work with every device type, but testing on a couple
-			// of options
-			expect(
-				deviceConfig.bootConfigChangeRequired(
-					splashImageBackend,
-					current,
-					target,
-					'fincm3',
-				),
-			).to.equal(true);
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
 			expect(logSpy).to.be.calledTwice;
@@ -713,30 +666,21 @@ describe('device-config', () => {
 			expect(
 				await fs.readFile(path.join(splash, 'resin-logo.png'), 'base64'),
 			).to.equal(png);
+
+			await tTfs.restore();
 		});
 
 		it('should correctly write to balena-logo.png', async () => {
 			// Devices with balenaOS >= 2.51 use balena-logo.png
-			fs.writeFile(
-				path.join(splash, 'balena-logo.png'),
-				Buffer.from(defaultLogo, 'base64'),
-			);
+			const tTfs = await testfs({
+				[splash]: {
+					'balena-logo.png': Buffer.from(png, 'base64'),
+				},
+			}).enable();
 
-			const current = {};
 			const target = {
 				HOST_SPLASH_image: png,
 			};
-
-			// This should work with every device type, but testing on a couple
-			// of options
-			expect(
-				deviceConfig.bootConfigChangeRequired(
-					splashImageBackend,
-					current,
-					target,
-					'raspberrypi4-64',
-				),
-			).to.equal(true);
 
 			await deviceConfig.setBootConfig(splashImageBackend, target);
 
@@ -745,6 +689,8 @@ describe('device-config', () => {
 			expect(
 				await fs.readFile(path.join(splash, 'balena-logo.png'), 'base64'),
 			).to.equal(png);
+
+			await tTfs.restore();
 		});
 
 		it('should correctly write to balena-logo.png if no default logo is found', async () => {
@@ -775,72 +721,52 @@ describe('device-config', () => {
 		});
 
 		it('should correctly read the splash logo if different from the default', async () => {
-			stub(fs, 'readdir').resolves(['balena-logo.png'] as any);
-
-			const readFileStub: SinonStub = stub(fs, 'readFile').resolves(
-				Buffer.from(png, 'base64') as any,
-			);
-			readFileStub
-				.withArgs('test/data/mnt/boot/splash/balena-logo-default.png')
-				.resolves(Buffer.from(defaultLogo, 'base64') as any);
+			const tTfs = await testfs({
+				[splash]: {
+					'balena-logo.png': Buffer.from(png, 'base64'),
+					'balena-logo-default.png': Buffer.from(defaultLogo, 'base64'),
+				},
+			}).enable();
 
 			expect(
 				await deviceConfig.getBootConfig(splashImageBackend),
 			).to.deep.equal({
 				HOST_SPLASH_image: uri,
 			});
-			expect(readFileStub).to.be.calledWith(
-				'test/data/mnt/boot/splash/balena-logo-default.png',
-			);
-			expect(readFileStub).to.be.calledWith(
-				'test/data/mnt/boot/splash/balena-logo.png',
-			);
-
-			// Restore stubs
-			(fs.readdir as SinonStub).restore();
-			(fs.readFile as SinonStub).restore();
-			readFileStub.restore();
+			await tTfs.restore();
 		});
 	});
 
 	describe('getRequiredSteps', () => {
 		const splash = path.join(bootMountPoint, 'splash/balena-logo.png');
 
-		// TODO: something like this could be done as a fixture instead of
-		// doing the file initialisation on 00-init.ts
-		const mockFs = () => {
-			mock({
-				// This is only needed so config.get doesn't fail
-				[configJson]: JSON.stringify({}),
-				[configTxt]: stripIndent`
+		const tFs = testfs({
+			// This is only needed so config.get doesn't fail
+			[configJson]: JSON.stringify({}),
+			[configTxt]: stripIndent`
 					enable_uart=true
 				`,
-				[osRelease]: stripIndent`
+			[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
 					VARIANT_ID="dev"
 				`,
-				[deviceTypeJson]: JSON.stringify({
-					slug: 'raspberrypi4-64',
-					arch: 'aarch64',
-				}),
-				[splash]: Buffer.from(
-					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-					'base64',
-				),
-			});
-		};
-
-		const unmockFs = () => {
-			mock.restore();
-		};
-
-		beforeEach(() => {
-			mockFs();
+			[deviceTypeJson]: JSON.stringify({
+				slug: 'raspberrypi4-64',
+				arch: 'aarch64',
+			}),
+			[splash]: Buffer.from(
+				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+				'base64',
+			),
 		});
 
-		afterEach(() => {
-			unmockFs();
+		beforeEach(async () => {
+			await tFs.enable();
+		});
+
+		afterEach(async () => {
+			await tFs.restore();
 		});
 
 		it('returns required steps to config.json first if any', async () => {

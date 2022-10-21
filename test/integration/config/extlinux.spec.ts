@@ -1,195 +1,122 @@
 import { promises as fs } from 'fs';
 import { stripIndent } from 'common-tags';
-import { SinonStub, stub } from 'sinon';
 import { expect } from 'chai';
+import { testfs } from 'mocha-pod';
 
-import * as fsUtils from '~/lib/fs-utils';
+import * as hostUtils from '~/lib/host-utils';
 import { Extlinux } from '~/src/config/backends/extlinux';
 
-describe('Extlinux Configuration', () => {
-	const backend = new Extlinux();
+describe('config/extlinux', () => {
+	it('should correctly parse an extlinux.conf file', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extlinux/extlinux.conf')]: stripIndent`
+	    	DEFAULT primary
+				# CommentExtlinux files
 
-	it('should parse a extlinux.conf file', () => {
-		const text = stripIndent`\
-			DEFAULT primary
-			# CommentExtlinux files
+				TIMEOUT 30
+				MENU TITLE Boot Options
+				LABEL primary
+							MENU LABEL primary Image
+							LINUX /Image
+							FDT /boot/mycustomdtb.dtb
+							APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3\
+			`,
+		}).enable();
+		const extLinux = new Extlinux();
 
-			TIMEOUT 30
-			MENU TITLE Boot Options
-			LABEL primary
-						MENU LABEL primary Image
-						LINUX /Image
-						FDT /boot/mycustomdtb.dtb
-						APPEND \${cbootargs} \${resin_kernel_root} ro rootwait\
-		`;
+		await expect(extLinux.getBootConfig()).to.eventually.deep.equal({
+			fdt: '/boot/mycustomdtb.dtb',
+			isolcpus: '3',
+		});
 
-		// @ts-expect-error accessing private method
-		const parsed = Extlinux.parseExtlinuxFile(text);
-		expect(parsed.globals).to.have.property('DEFAULT').that.equals('primary');
-		expect(parsed.globals).to.have.property('TIMEOUT').that.equals('30');
-		expect(parsed.globals)
-			.to.have.property('MENU TITLE')
-			.that.equals('Boot Options');
-
-		expect(parsed.labels).to.have.property('primary');
-		const { primary } = parsed.labels;
-		expect(primary).to.have.property('MENU LABEL').that.equals('primary Image');
-		expect(primary).to.have.property('LINUX').that.equals('/Image');
-		expect(primary)
-			.to.have.property('FDT')
-			.that.equals('/boot/mycustomdtb.dtb');
-		expect(primary)
-			.to.have.property('APPEND')
-			.that.equals('${cbootargs} ${resin_kernel_root} ro rootwait');
+		await tfs.restore();
 	});
 
-	it('should parse multiple service entries', () => {
-		const text = stripIndent`\
-			DEFAULT primary
-			# Comment
+	it('should parse multiple service entries', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extlinux/extlinux.conf')]: stripIndent`
+	    	DEFAULT primary
+				# Comment
 
-			TIMEOUT 30
-			MENU TITLE Boot Options
-			LABEL primary
-						LINUX test1
-						FDT /boot/mycustomdtb.dtb
-						APPEND test2
-			LABEL secondary
-						LINUX test3
-						FDT /boot/mycustomdtb.dtb
-						APPEND test4\
-		`;
+				TIMEOUT 30
+				MENU TITLE Boot Options
+				LABEL primary
+							LINUX test1
+							FDT /boot/mycustomdtb.dtb
+							APPEND test2
+				LABEL secondary
+							LINUX test3
+							FDT /boot/mycustomdtb.dtb
+							APPEND test4\
+			`,
+		}).enable();
+		const extLinux = new Extlinux();
 
-		// @ts-expect-error accessing private method
-		const parsed = Extlinux.parseExtlinuxFile(text);
-		expect(parsed.labels).to.have.property('primary').that.deep.equals({
-			LINUX: 'test1',
-			FDT: '/boot/mycustomdtb.dtb',
-			APPEND: 'test2',
+		await expect(extLinux.getBootConfig()).to.eventually.deep.equal({
+			fdt: '/boot/mycustomdtb.dtb',
 		});
-		expect(parsed.labels).to.have.property('secondary').that.deep.equals({
-			LINUX: 'test3',
-			FDT: '/boot/mycustomdtb.dtb',
-			APPEND: 'test4',
-		});
-	});
 
-	it('should parse configuration options from an extlinux.conf file', async () => {
-		let text = stripIndent`\
-			DEFAULT primary
-			# Comment
-
-			TIMEOUT 30
-			MENU TITLE Boot Options
-			LABEL primary
-						MENU LABEL primary Image
-						LINUX /Image
-						FDT /boot/mycustomdtb.dtb
-						APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3\
-		`;
-
-		let readFileStub = stub(fs, 'readFile').resolves(text);
-		let parsed = backend.getBootConfig();
-
-		await expect(parsed)
-			.to.eventually.have.property('isolcpus')
-			.that.equals('3');
-		await expect(parsed)
-			.to.eventually.have.property('fdt')
-			.that.equals('/boot/mycustomdtb.dtb');
-		readFileStub.restore();
-
-		text = stripIndent`\
-			DEFAULT primary
-			# Comment
-
-			TIMEOUT 30
-			MENU TITLE Boot Options
-			LABEL primary
-						MENU LABEL primary Image
-						LINUX /Image
-						FDT /boot/mycustomdtb.dtb
-						APPEND \${cbootargs} \${resin_kernel_root} ro rootwait isolcpus=3,4,5\
-		`;
-		readFileStub = stub(fs, 'readFile').resolves(text);
-
-		parsed = backend.getBootConfig();
-
-		readFileStub.restore();
-
-		await expect(parsed)
-			.to.eventually.have.property('isolcpus')
-			.that.equals('3,4,5');
+		await tfs.restore();
 	});
 
 	it('only matches supported devices', async () => {
+		const extLinux = new Extlinux();
 		for (const { deviceType, metaRelease, supported } of MATCH_TESTS) {
 			await expect(
-				backend.matches(deviceType, metaRelease),
+				extLinux.matches(deviceType, metaRelease),
 			).to.eventually.equal(supported);
 		}
 	});
 
 	it('errors when cannot find extlinux.conf', async () => {
+		// The file does not exist before the test
+		await expect(fs.access(hostUtils.pathOnBoot('extlinux/extlinux.conf'))).to
+			.be.rejected;
+		const extLinux = new Extlinux();
 		// Stub readFile to reject much like if the file didn't exist
-		stub(fs, 'readFile').rejects();
-		await expect(backend.getBootConfig()).to.eventually.be.rejectedWith(
+		await expect(extLinux.getBootConfig()).to.eventually.be.rejectedWith(
 			'Could not find extlinux file. Device is possibly bricked',
 		);
-		// Restore stub
-		(fs.readFile as SinonStub).restore();
 	});
 
 	it('throws error for malformed extlinux.conf', async () => {
 		for (const badConfig of MALFORMED_CONFIGS) {
-			// Stub bad config
-			stub(fs, 'readFile').resolves(badConfig.contents);
+			const tfs = await testfs({
+				[hostUtils.pathOnBoot('extlinux/extlinux.conf')]: badConfig,
+			}).enable();
+			const extLinux = new Extlinux();
+
 			// Expect correct rejection from the given bad config
-			try {
-				await backend.getBootConfig();
-			} catch (e: any) {
-				expect(e.message).to.equal(badConfig.reason);
-			}
-			// Restore stub
-			(fs.readFile as SinonStub).restore();
+			await expect(extLinux.getBootConfig()).to.be.rejectedWith(
+				badConfig.reason,
+			);
+
+			await tfs.restore();
 		}
 	});
 
-	it('parses supported config values from bootConfigPath', async () => {
-		// Will try to parse /test/data/mnt/boot/extlinux/extlinux.conf
-		await expect(backend.getBootConfig()).to.eventually.deep.equal({}); // None of the values are supported so returns empty
-
-		// Stub readFile to return a config that has supported values
-		stub(fs, 'readFile').resolves(stripIndent`
-    DEFAULT primary
-    TIMEOUT 30
-		MENU TITLE Boot Options
-    LABEL primary
-					MENU LABEL primary Image
-					LINUX /Image
-					FDT /boot/mycustomdtb.dtb
-          APPEND ro rootwait isolcpus=0,4
-    `);
-
-		await expect(backend.getBootConfig()).to.eventually.deep.equal({
-			isolcpus: '0,4',
-			fdt: '/boot/mycustomdtb.dtb',
-		});
-
-		// Restore stub
-		(fs.readFile as SinonStub).restore();
-	});
-
 	it('sets new config values', async () => {
-		stub(fsUtils, 'writeAndSyncFile').resolves();
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('extlinux/extlinux.conf')]: stripIndent`
+	    	DEFAULT primary
+				TIMEOUT 30
+				MENU TITLE Boot Options
+				LABEL primary
+      				MENU LABEL primary Image
+      				LINUX /Image
+      				APPEND \${cbootargs} \${resin_kernel_root} ro rootwait\
+			`,
+		}).enable();
 
-		await backend.setBootConfig({
+		const extLinux = new Extlinux();
+		await extLinux.setBootConfig({
 			fdt: '/boot/mycustomdtb.dtb',
 			isolcpus: '2',
 		});
 
-		expect(fsUtils.writeAndSyncFile).to.be.calledWith(
-			'test/data/mnt/boot/extlinux/extlinux.conf',
+		await expect(
+			fs.readFile(hostUtils.pathOnBoot('extlinux/extlinux.conf'), 'utf8'),
+		).to.eventually.equal(
 			stripIndent`
 	      DEFAULT primary
 	      TIMEOUT 30
@@ -202,11 +129,11 @@ describe('Extlinux Configuration', () => {
 	    ` + '\n', // add newline because stripIndent trims last newline
 		);
 
-		// Restore stubs
-		(fsUtils.writeAndSyncFile as SinonStub).restore();
+		await tfs.restore();
 	});
 
 	it('only allows supported configuration options', () => {
+		const extLinux = new Extlinux();
 		[
 			{ configName: 'isolcpus', supported: true },
 			{ configName: 'fdt', supported: true },
@@ -214,26 +141,28 @@ describe('Extlinux Configuration', () => {
 			{ configName: 'ro', supported: false }, // not allowed to configure
 			{ configName: 'rootwait', supported: false }, // not allowed to configure
 		].forEach(({ configName, supported }) =>
-			expect(backend.isSupportedConfig(configName)).to.equal(supported),
+			expect(extLinux.isSupportedConfig(configName)).to.equal(supported),
 		);
 	});
 
 	it('correctly detects boot config variables', () => {
+		const extLinux = new Extlinux();
 		[
 			{ config: 'HOST_EXTLINUX_isolcpus', valid: true },
 			{ config: 'HOST_EXTLINUX_fdt', valid: true },
 			{ config: 'HOST_EXTLINUX_rootwait', valid: true },
 			{ config: 'HOST_EXTLINUX_5', valid: true },
-			// TO-DO: { config: 'HOST_EXTLINUX', valid: false },
-			// TO-DO: { config: 'HOST_EXTLINUX_', valid: false },
+			// TODO: { config: 'HOST_EXTLINUX', valid: false },
+			// TODO: { config: 'HOST_EXTLINUX_', valid: false },
 			{ config: 'DEVICE_EXTLINUX_isolcpus', valid: false },
 			{ config: 'isolcpus', valid: false },
 		].forEach(({ config, valid }) =>
-			expect(backend.isBootConfigVar(config)).to.equal(valid),
+			expect(extLinux.isBootConfigVar(config)).to.equal(valid),
 		);
 	});
 
 	it('converts variable to backend formatted name', () => {
+		const extLinux = new Extlinux();
 		[
 			{ input: 'HOST_EXTLINUX_isolcpus', output: 'isolcpus' },
 			{ input: 'HOST_EXTLINUX_fdt', output: 'fdt' },
@@ -243,20 +172,22 @@ describe('Extlinux Configuration', () => {
 			{ input: 'HOST_EXTLINUX_ ', output: ' ' },
 			{ input: 'ROOT_EXTLINUX_isolcpus', output: 'ROOT_EXTLINUX_isolcpus' },
 		].forEach(({ input, output }) =>
-			expect(backend.processConfigVarName(input)).to.equal(output),
+			expect(extLinux.processConfigVarName(input)).to.equal(output),
 		);
 	});
 
 	it('normalizes variable value', () => {
+		const extLinux = new Extlinux();
 		[{ input: { key: 'key', value: 'value' }, output: 'value' }].forEach(
 			({ input, output }) =>
-				expect(backend.processConfigVarValue(input.key, input.value)).to.equal(
+				expect(extLinux.processConfigVarValue(input.key, input.value)).to.equal(
 					output,
 				),
 		);
 	});
 
 	it('returns the environment name for config variable', () => {
+		const extLinux = new Extlinux();
 		[
 			{ input: 'isolcpus', output: 'HOST_EXTLINUX_isolcpus' },
 			{ input: 'fdt', output: 'HOST_EXTLINUX_fdt' },
@@ -264,7 +195,7 @@ describe('Extlinux Configuration', () => {
 			{ input: '', output: 'HOST_EXTLINUX_' },
 			{ input: '5', output: 'HOST_EXTLINUX_5' },
 		].forEach(({ input, output }) =>
-			expect(backend.createConfigVarName(input)).to.equal(output),
+			expect(extLinux.createConfigVarName(input)).to.equal(output),
 		);
 	});
 });
