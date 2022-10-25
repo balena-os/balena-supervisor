@@ -17,6 +17,7 @@ export const mochaHooks = {
 		sinon.stub(log, 'success');
 		sinon.stub(log, 'event');
 		sinon.stub(log, 'error');
+		sinon.stub(log, 'api');
 	},
 
 	afterEach() {
@@ -26,6 +27,7 @@ export const mochaHooks = {
 		(log.success as sinon.SinonStub).reset();
 		(log.event as sinon.SinonStub).reset();
 		(log.error as sinon.SinonStub).reset();
+		(log.api as sinon.SinonStub).reset();
 	},
 
 	afterAll() {
@@ -35,5 +37,6 @@ export const mochaHooks = {
 		(log.success as sinon.SinonStub).restore();
 		(log.event as sinon.SinonStub).restore();
 		(log.error as sinon.SinonStub).restore();
+		(log.api as sinon.SinonStub).restore();
 	},
 };

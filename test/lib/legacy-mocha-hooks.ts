@@ -3,7 +3,7 @@
 import { stub, SinonStub } from 'sinon';
 import * as dbus from 'dbus';
 import { Error as DBusError, DBusInterface } from 'dbus';
-import { initialized } from '~/src/lib/dbus';
+import { initialized } from '~/lib/dbus';
 
 let getBusStub: SinonStub;
 

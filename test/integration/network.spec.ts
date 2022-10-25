@@ -6,7 +6,7 @@ import { testfs } from 'mocha-pod';
 import { expect } from 'chai';
 import Log from '~/lib/supervisor-console';
 import * as network from '~/src/network';
-import * as constants from '~/src/lib/constants';
+import * as constants from '~/lib/constants';
 
 describe('network', () => {
 	it('checks VPN connection status', async () => {

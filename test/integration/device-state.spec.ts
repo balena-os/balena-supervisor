@@ -51,7 +51,6 @@ describe('device-state', () => {
 		).to.not.be.rejected;
 		await loadTargetFromFile(appsJson);
 		const targetState = await deviceState.getTarget();
-		// console.log('TARGET', JSON.stringify(targetState, null, 2));
 		await expect(
 			fs.access(appsJsonBackup(appsJson)),
 			'apps.json.preloaded is created after loading the target',
