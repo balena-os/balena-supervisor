@@ -16,7 +16,6 @@ import SupervisorAPI from '~/src/device-api';
 import * as deviceApi from '~/src/device-api';
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
-import * as apiKeys from '~/src/device-api/api-keys';
 import * as dbus from '~/lib/dbus';
 import * as updateLock from '~/lib/update-lock';
 import * as TargetState from '~/src/device-state/target-state';
@@ -669,72 +668,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				.expect(sampleResponses.V1.POST['/update [202 Response]'].statusCode);
 			// Check that TargetState.update was not called
 			expect(targetUpdateSpy).to.not.be.called;
-		});
-	});
-
-	describe('POST /v1/regenerate-api-key', () => {
-		it('returns a valid new API key', async () => {
-			const refreshKeySpy: SinonSpy = spy(apiKeys, 'refreshKey');
-
-			let newKey: string = '';
-
-			await request
-				.post('/v1/regenerate-api-key')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.expect(sampleResponses.V1.POST['/regenerate-api-key'].statusCode)
-				.then((response) =>
-					Promise.all([response, deviceApi.getGlobalApiKey()]),
-				)
-				.then(([response, globalApiKey]) => {
-					expect(response.body).to.deep.equal(
-						sampleResponses.V1.POST['/regenerate-api-key'].body,
-					);
-					expect(response.text).to.equal(globalApiKey);
-					newKey = response.text;
-					expect(refreshKeySpy.callCount).to.equal(1);
-				});
-
-			// Ensure persistence with future calls
-			await request
-				.post('/v1/blink')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${newKey}`)
-				.expect(sampleResponses.V1.POST['/blink'].statusCode);
-
-			refreshKeySpy.restore();
-		});
-
-		it('expires old API key after generating new key', async () => {
-			const oldKey: string = await deviceApi.getGlobalApiKey();
-
-			await request
-				.post('/v1/regenerate-api-key')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${oldKey}`)
-				.expect(sampleResponses.V1.POST['/regenerate-api-key'].statusCode);
-
-			await request
-				.post('/v1/restart')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${oldKey}`)
-				.expect(401);
-		});
-
-		it('communicates the new API key to balena API', async () => {
-			const reportStateSpy: SinonSpy = spy(deviceState, 'reportCurrentState');
-
-			await request
-				.post('/v1/regenerate-api-key')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.then(() => {
-					expect(reportStateSpy.callCount).to.equal(1);
-					// Further reportCurrentState tests should be in 05-device-state.spec.ts,
-					// but its test case seems to currently be skipped until interface redesign
-				});
-
-			reportStateSpy.restore();
 		});
 	});
 

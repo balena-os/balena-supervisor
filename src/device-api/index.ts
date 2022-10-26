@@ -1,10 +1,8 @@
 import * as express from 'express';
-import * as _ from 'lodash';
 
 import * as middleware from './middleware';
 import * as apiKeys from './api-keys';
 import * as actions from './actions';
-import { reportCurrentState } from '../device-state';
 import proxyvisor from '../proxyvisor';
 import log from '../lib/supervisor-console';
 
@@ -59,30 +57,16 @@ export class SupervisorAPI {
 			return res.sendStatus(200);
 		});
 
-		// Expires the supervisor's API key and generates a new one.
-		// It also communicates the new key to the balena API.
 		this.api.post(
 			'/v1/regenerate-api-key',
-			async (req: apiKeys.AuthorizedRequest, res) => {
-				await apiKeys.initialized();
-
-				// check if we're updating the cloud API key
-				const shouldUpdateCloudKey =
-					req.auth.apiKey === (await getGlobalApiKey());
-
-				// regenerate the key...
-				const newKey = await apiKeys.refreshKey(req.auth.apiKey);
-
-				// if we need to update the cloud API with our new key
-				if (shouldUpdateCloudKey) {
-					// report the new key to the cloud API
-					reportCurrentState({
-						api_secret: newKey,
-					});
+			async (req: apiKeys.AuthorizedRequest, res, next) => {
+				const { apiKey: oldKey } = req.auth;
+				try {
+					const newKey = await actions.regenerateKey(oldKey);
+					return res.status(200).send(newKey);
+				} catch (e: unknown) {
+					next(e);
 				}
-
-				// return the value of the new key to the caller
-				res.status(200).send(newKey);
 			},
 		);
 

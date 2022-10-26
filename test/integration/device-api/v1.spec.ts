@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import * as express from 'express';
 import { SinonStub, stub } from 'sinon';
 import * as request from 'supertest';
@@ -61,6 +62,36 @@ describe('device-api/v1', () => {
 				.post('/v1/blink')
 				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(200);
+		});
+	});
+
+	describe('POST /v1/regenerate-api-key', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		beforeEach(() => stub(actions, 'regenerateKey'));
+		afterEach(() => (actions.regenerateKey as SinonStub).restore());
+
+		it('responds with 200 and valid new API key', async () => {
+			const oldKey = await deviceApi.getGlobalApiKey();
+			const newKey = 'my_new_key';
+			(actions.regenerateKey as SinonStub).resolves(newKey);
+
+			await request(api)
+				.post('/v1/regenerate-api-key')
+				.set('Authorization', `Bearer ${oldKey}`)
+				.expect(200)
+				.then((response) => {
+					expect(response.text).to.match(new RegExp(newKey));
+				});
+		});
+
+		it('responds with 503 if regenerate was unsuccessful', async () => {
+			const oldKey = await deviceApi.getGlobalApiKey();
+			(actions.regenerateKey as SinonStub).throws(new Error());
+
+			await request(api)
+				.post('/v1/regenerate-api-key')
+				.set('Authorization', `Bearer ${oldKey}`)
+				.expect(503);
 		});
 	});
 });
