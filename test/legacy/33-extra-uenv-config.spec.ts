@@ -267,6 +267,8 @@ const MATCH_TESTS = [
 	{ type: 'jetson-tx2-nx-devkit', supported: true },
 	{ type: 'photon-tx2-nx', supported: true },
 	{ type: 'jetson-xavier-nx-devkit', supported: false },
+	{ type: 'jetson-agx-orin-devkit', supported: true },
+	{ type: 'jetson-agx-orin', supported: false },
 	{ type: 'photon-xavier-nx', supported: false },
 	{ type: 'imx8m-var-dart', supported: true },
 	{ type: 'imx8mm-var-dart', supported: true },
