@@ -39,7 +39,6 @@ import App from '~/src/compose/app';
 
 describe('SupervisorAPI [V1 Endpoints]', () => {
 	let api: SupervisorAPI;
-	let healthCheckStubs: SinonStub[];
 	let targetStateCacheMock: SinonStub;
 	const request = supertest(
 		`http://127.0.0.1:${mockedAPI.mockedOptions.listenPort}`,
@@ -87,15 +86,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		// Do not apply target state
 		stub(deviceState, 'applyStep').resolves();
 
-		// Stub health checks so we can modify them whenever needed
-		healthCheckStubs = [
-			stub(apiBinder, 'healthcheck'),
-			stub(deviceState, 'healthcheck'),
-		];
-
 		// The mockedAPI contains stubs that might create unexpected results
 		// See the module to know what has been stubbed
-		api = await mockedAPI.create(healthCheckStubs);
+		api = await mockedAPI.create([]);
 
 		// Start test API
 		await api.listen(
@@ -120,8 +113,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			}
 		}
 		(deviceState.applyStep as SinonStub).restore();
-		// Restore healthcheck stubs
-		healthCheckStubs.forEach((hc) => hc.restore());
 		// Remove any test data generated
 		await mockedAPI.cleanUp();
 		targetStateCacheMock.restore();
@@ -174,41 +165,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 					);
 					expect(response.text).to.deep.equal(
 						sampleResponses.V1.POST['/restart [Invalid Body]'].text,
-					);
-				});
-		});
-	});
-
-	describe('GET /v1/healthy', () => {
-		it('returns OK because all checks pass', async () => {
-			// Make all healthChecks pass
-			healthCheckStubs.forEach((hc) => hc.resolves(true));
-			await request
-				.get('/v1/healthy')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.expect(sampleResponses.V1.GET['/healthy'].statusCode)
-				.then((response) => {
-					expect(response.body).to.deep.equal(
-						sampleResponses.V1.GET['/healthy'].body,
-					);
-					expect(response.text).to.deep.equal(
-						sampleResponses.V1.GET['/healthy'].text,
-					);
-				});
-		});
-		it('Fails because some checks did not pass', async () => {
-			healthCheckStubs.forEach((hc) => hc.resolves(false));
-			await request
-				.get('/v1/healthy')
-				.set('Accept', 'application/json')
-				.expect(sampleResponses.V1.GET['/healthy [2]'].statusCode)
-				.then((response) => {
-					expect(response.body).to.deep.equal(
-						sampleResponses.V1.GET['/healthy [2]'].body,
-					);
-					expect(response.text).to.deep.equal(
-						sampleResponses.V1.GET['/healthy [2]'].text,
 					);
 				});
 		});
