@@ -4,10 +4,8 @@ import * as _ from 'lodash';
 import * as middleware from './middleware';
 import * as apiKeys from './api-keys';
 import * as actions from './actions';
-import * as eventTracker from '../event-tracker';
 import { reportCurrentState } from '../device-state';
 import proxyvisor from '../proxyvisor';
-import blink = require('../lib/blink');
 import log from '../lib/supervisor-console';
 
 import type { Server } from 'http';
@@ -57,9 +55,7 @@ export class SupervisorAPI {
 		this.api.use(middleware.auth);
 
 		this.api.post('/v1/blink', (_req, res) => {
-			eventTracker.track('Device blink');
-			blink.pattern.start();
-			setTimeout(blink.pattern.stop, 15000);
+			actions.identify();
 			return res.sendStatus(200);
 		});
 

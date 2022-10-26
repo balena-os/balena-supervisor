@@ -50,4 +50,17 @@ describe('device-api/v1', () => {
 			await request(api).get('/v1/healthy').expect(500);
 		});
 	});
+
+	describe('POST /v1/blink', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		before(() => stub(actions, 'identify'));
+		after(() => (actions.identify as SinonStub).restore());
+
+		it('responds with 200', async () => {
+			await request(api)
+				.post('/v1/blink')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+		});
+	});
 });
