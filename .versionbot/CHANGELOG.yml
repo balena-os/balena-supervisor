@@ -1,4 +1,19 @@
 - commits:
+    - subject: "config/backends: Add Jetson AGX Orin Devkit to the list of DTs that
+        support configurable device-tree"
+      hash: ea92fa916253ffd0d2d2a908698e4b6c50dd01a4
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+      author: Alexandru Costache
+      nested: []
+  version: 14.2.16
+  title: ""
+  date: 2022-10-27T15:00:44.805Z
+- commits:
     - subject: Migrate docker-util tests
       hash: aa3002f9093ce72123022f628179c3e14f702690
       body: |
