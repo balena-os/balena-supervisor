@@ -20,6 +20,11 @@ import { shallowDiff, prune, empty } from '../lib/json';
 
 let lastReport: DeviceState = {};
 let lastReportTime: number = -Infinity;
+// Tracks if unable to report the latest state change event.
+let stateChangeDeferred: boolean = false;
+// How often can we report metrics to the server in ms; mirrors server setting.
+// Metrics are low priority, so less frequent than constants.maxReportFrequency.
+const maxMetricsFrequency = 300 * 1000;
 
 // TODO: This counter is read by the healthcheck to see if the
 // supervisor is having issues to connect. We have removed the
@@ -131,6 +136,11 @@ function handleRetry(retryInfo: OnFailureInfo) {
 	);
 }
 
+/**
+ * Sends state report to cloud from two sources: 1) state change events and
+ * 2) timer for metrics. Report frequency is at most constants.maxReportFrequency,
+ * and metrics is reported at most maxMetricsFrequency.
+ */
 export async function startReporting() {
 	// Get configs needed to make a report
 	const reportConfigs = (await config.getMany([
@@ -141,21 +151,43 @@ export async function startReporting() {
 	])) as StateReportOpts;
 
 	let reportPending = false;
-	const doReport = async () => {
+	// Reports current state if not already sending and does not exceed report
+	// frequency. Returns true if sent; otherwise false.
+	const doReport = async (): Promise<boolean> => {
 		if (!reportPending) {
-			reportPending = true;
-			await reportCurrentState(reportConfigs);
-			reportPending = false;
+			if (performance.now() - lastReportTime > constants.maxReportFrequency) {
+				reportPending = true;
+				await reportCurrentState(reportConfigs);
+				reportPending = false;
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
 		}
 	};
 
+	const onStateChange = async () => {
+		// Defers to timed report schedule if we can't report immediately.
+		// Ensures that we always report on a change event.
+		stateChangeDeferred = !(await doReport());
+	};
+
 	// If the state changes, report it
-	deviceState.on('change', doReport);
+	deviceState.on('change', onStateChange);
 
 	async function recursivelyReport(delayBy: number) {
 		try {
-			// Try to send current state
-			await doReport();
+			// Follow-up when report not sent immediately on change event...
+			if (stateChangeDeferred) {
+				stateChangeDeferred = !(await doReport());
+			} else {
+				// ... or on regular metrics schedule.
+				if (performance.now() - lastReportTime > maxMetricsFrequency) {
+					await doReport();
+				}
+			}
 		} finally {
 			// Wait until we want to report again
 			await delay(delayBy);
