@@ -1,8 +1,14 @@
+import * as Bluebird from 'bluebird';
+
 import { getGlobalApiKey, refreshKey } from '.';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
+import * as applicationManager from '../compose/application-manager';
+import * as serviceManager from '../compose/service-manager';
 import log from '../lib/supervisor-console';
 import blink = require('../lib/blink');
+import { lock } from '../lib/update-lock';
+import { InternalInconsistencyError } from '../lib/errors';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -58,4 +64,34 @@ export const regenerateKey = async (oldKey: string) => {
 	}
 
 	return newKey;
+};
+
+/**
+ * Restarts an application by recreating containers.
+ * Used by:
+ * - POST /v1/restart
+ * - POST /v2/applications/:appId/restart
+ */
+export const doRestart = async (appId: number, force: boolean = false) => {
+	await deviceState.initialized();
+
+	return await lock(appId, { force }, async () => {
+		const currentState = await deviceState.getCurrentState();
+		if (currentState.local.apps?.[appId] == null) {
+			throw new InternalInconsistencyError(
+				`Application with ID ${appId} is not in the current state`,
+			);
+		}
+		const { services } = currentState.local.apps?.[appId];
+		applicationManager.clearTargetVolatileForServices(
+			services.map((svc) => svc.imageId),
+		);
+
+		return deviceState.pausingApply(async () => {
+			for (const service of services) {
+				await serviceManager.kill(service, { wait: true });
+				await serviceManager.start(service);
+			}
+		});
+	});
 };

@@ -1,7 +1,8 @@
 import * as Docker from 'dockerode';
 import * as tar from 'tar-stream';
-
 import { strict as assert } from 'assert';
+
+import { isStatusError } from '~/lib/errors';
 
 // Creates an image from scratch with just some labels
 export async function createDockerImage(
@@ -41,3 +42,38 @@ export async function createDockerImage(
 		});
 	});
 }
+
+// Clean up all Docker relics from tests
+export const cleanupDocker = async (docker = new Docker()) => {
+	// Remove all containers
+	// Some containers may still be running so a prune won't suffice
+	try {
+		const containers = await docker.listContainers({ all: true });
+		await Promise.all(
+			containers.map(({ Id }) =>
+				docker.getContainer(Id).remove({ force: true }),
+			),
+		);
+	} catch (e: unknown) {
+		// Sometimes a container is already in the process of being removed
+		// This is safe to ignore since we're removing them anyway.
+		if (isStatusError(e) && e.statusCode !== 409) {
+			throw e;
+		}
+	}
+
+	// Remove all networks except defaults
+	const networks = await docker.listNetworks();
+	await Promise.all(
+		networks
+			.filter(({ Name }) => !['bridge', 'host', 'none'].includes(Name)) // exclude docker default network from the cleanup
+			.map(({ Name }) => docker.getNetwork(Name).remove()),
+	);
+
+	// Remove all volumes
+	const { Volumes } = await docker.listVolumes();
+	await Promise.all(Volumes.map(({ Name }) => docker.getVolume(Name).remove()));
+
+	// Remove all images
+	await docker.pruneImages({ filters: { dangling: { false: true } } });
+};

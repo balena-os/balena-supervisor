@@ -4,41 +4,12 @@ import * as _ from 'lodash';
 import * as logger from '../logger';
 import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
-import * as serviceManager from '../compose/service-manager';
 import * as volumeManager from '../compose/volume-manager';
 import { App } from '../compose/app';
-import { InternalInconsistencyError } from '../lib/errors';
 import { lock } from '../lib/update-lock';
 import { appNotFoundMessage } from './messages';
 
 import type { InstancedDeviceState } from '../types';
-
-export async function doRestart(appId: number, force: boolean) {
-	await deviceState.initialized();
-	await applicationManager.initialized();
-
-	return lock(appId, { force }, () =>
-		deviceState.getCurrentState().then(function (currentState) {
-			if (currentState.local.apps?.[appId] == null) {
-				throw new InternalInconsistencyError(
-					`Application with ID ${appId} is not in the current state`,
-				);
-			}
-			const allApps = currentState.local.apps;
-
-			const app = allApps[appId];
-			const imageIds = _.map(app.services, 'imageId');
-			applicationManager.clearTargetVolatileForServices(imageIds);
-
-			return deviceState.pausingApply(async () => {
-				return Bluebird.each(app.services, async (service) => {
-					await serviceManager.kill(service, { wait: true });
-					await serviceManager.start(service);
-				});
-			});
-		}),
-	);
-}
 
 export async function doPurge(appId: number, force: boolean) {
 	await deviceState.initialized();

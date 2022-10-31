@@ -10,6 +10,7 @@ services:
       args:
         ARCH: ${ARCH:-amd64}
     command: [ '/wait-for-it.sh', '--', '/usr/src/app/entry.sh' ]
+    stop_grace_period: 3s
     # Use bridge networking for the tests
     network_mode: 'bridge'
     networks:
@@ -34,6 +35,7 @@ services:
 
   dbus:
     image: balenablocks/dbus
+    stop_grace_period: 3s
     environment:
       DBUS_CONFIG: session.conf
       DBUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
@@ -44,6 +46,7 @@ services:
   # requests
   dbus-services:
     build: ./test/lib/dbus
+    stop_grace_period: 3s
     depends_on:
       - dbus
     volumes:
@@ -53,6 +56,7 @@ services:
 
   docker:
     image: docker:dind
+    stop_grace_period: 3s
     privileged: true
     environment:
       DOCKER_TLS_CERTDIR: ''
@@ -81,6 +85,7 @@ services:
       - docker
       - dbus
       - dbus-services
+    stop_grace_period: 3s
     volumes:
       - dbus:/run/dbus
     # Set required supervisor configuration variables here
