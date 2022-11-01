@@ -5,7 +5,7 @@ import * as _ from 'lodash';
 import * as apiBinder from '~/src/api-binder';
 import * as applicationManager from '~/src/compose/application-manager';
 import * as deviceState from '~/src/device-state';
-import * as constants from '~/src/lib/constants';
+import * as constants from '~/lib/constants';
 import { docker } from '~/lib/docker-utils';
 import { Supervisor } from '~/src/supervisor';
 
