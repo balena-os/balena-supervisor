@@ -1,4 +1,20 @@
 - commits:
+    - subject: Update apt repositories before installing dbus
+      hash: 574f2ffb14fccd0ad8965cf5304830fdbd7d2439
+      body: |
+        GitHub actions are erroring due to the package not being found;
+        Updating the repository listings shoud fix this.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.2.18
+  title: ""
+  date: 2022-11-02T19:00:52.814Z
+- commits:
     - subject: Migrate API tests to unit/integration
       hash: 532e75a77eb62f9df7756a98d2740736c885411b
       body: |
