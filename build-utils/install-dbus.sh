@@ -10,6 +10,7 @@ if command -v apt > /dev/null; then
         exit 0
     else
         echo "Installing $DEBIAN..."
+        sudo apt-get update
         sudo apt-get install $DEBIAN
     fi
 elif command -v brew > /dev/null; then
