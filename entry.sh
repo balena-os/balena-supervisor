@@ -12,7 +12,7 @@ set -o errexit
 [ -d /mnt/root/tmp/balena-supervisor ] ||
 	mkdir -p /mnt/root/tmp/balena-supervisor
 
-export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/mnt/root/run/dbus/system_bus_socket"
+export DBUS_SYSTEM_BUS_ADDRESS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path=/mnt/root/run/dbus/system_bus_socket}"
 
 # Include self-signed CAs, should they exist
 if [ -n "${BALENA_ROOT_CA}" ]; then

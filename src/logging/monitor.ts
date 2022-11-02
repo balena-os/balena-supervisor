@@ -29,6 +29,7 @@ const DB_FLUSH_INTERVAL = 10 * 60 * 1000;
 
 // Wait 5s when journalctl failed before trying to read the logs again
 const JOURNALCTL_ERROR_RETRY_DELAY = 5000;
+const JOURNALCTL_ERROR_RETRY_DELAY_MAX = 15 * 60 * 1000;
 
 function messageFieldToString(entry: JournalRow['MESSAGE']): string | null {
 	if (Array.isArray(entry)) {
@@ -55,6 +56,7 @@ class LogMonitor {
 			writeRequired: boolean;
 		};
 	} = {};
+	private setupAttempts = 0;
 
 	public constructor() {
 		setInterval(() => this.flushDb(), DB_FLUSH_INTERVAL);
@@ -70,6 +72,7 @@ class LogMonitor {
 			},
 			(row: JournalRow) => {
 				if (row.CONTAINER_ID_FULL && this.containers[row.CONTAINER_ID_FULL]) {
+					this.setupAttempts = 0;
 					this.handleRow(row);
 				}
 			},
@@ -82,8 +85,16 @@ class LogMonitor {
 			async () => {
 				log.debug('balena.service journalctl process exit.');
 				// On exit of process try to create another
-				await delay(JOURNALCTL_ERROR_RETRY_DELAY);
-				log.debug('Spawning another process to watch balena.service logs.');
+				const wait = Math.min(
+					2 ** this.setupAttempts++ * JOURNALCTL_ERROR_RETRY_DELAY,
+					JOURNALCTL_ERROR_RETRY_DELAY_MAX,
+				);
+				log.debug(
+					`Spawning another process to watch balena.service logs in ${
+						wait / 1000
+					}s`,
+				);
+				await delay(wait);
 				return this.start();
 			},
 		);

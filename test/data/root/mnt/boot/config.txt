@@ -1,0 +1,11 @@
+hdmi_force_hotplug1=1
+hdmi_force_hotplug_1=1
+hdmi_force_hotplug__1=1
+avoid_warnings=1
+disable_splash=1
+dtoverlay=vc4-kms-v3d
+dtoverlay=dwc2
+dtparam=i2c_arm=on
+dtparam=spi=on
+dtparam=audio=on
+gpu_mem=16
