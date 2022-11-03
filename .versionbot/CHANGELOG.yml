@@ -1,4 +1,20 @@
 - commits:
+    - subject: Run the built supervisor as part of docker-compose tests
+      hash: 46fa7321c0f6e5fcee1a057214fad1903afd2e02
+      body: >
+        This allows to test that the supervisor build actually runs and opens up
+        the
+
+        possibility of running more exhaustive API tests against a working supervisor.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.2.19
+  title: ""
+  date: 2022-11-03T21:20:50.940Z
+- commits:
     - subject: Update apt repositories before installing dbus
       hash: 574f2ffb14fccd0ad8965cf5304830fdbd7d2439
       body: |
