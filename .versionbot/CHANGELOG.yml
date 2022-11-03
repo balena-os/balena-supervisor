@@ -1,4 +1,16 @@
 - commits:
+    - subject: "patch: Update locks behavior for config changes"
+      hash: 63bd9605cff7dc1b6656da2a71d557d44a760ceb
+      body: ""
+      footer:
+        Signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+        signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+      author: Vipul Gupta (@vipulgupta2048)
+      nested: []
+  version: 14.2.20
+  title: ""
+  date: 2022-11-03T22:27:39.529Z
+- commits:
     - subject: Run the built supervisor as part of docker-compose tests
       hash: 46fa7321c0f6e5fcee1a057214fad1903afd2e02
       body: >
