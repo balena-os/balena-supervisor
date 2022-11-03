@@ -1,0 +1,12 @@
+{
+	"appUpdatePollInterval": 900000,
+	"deltaEndpoint": "https://delta.balena-cloud.com",
+	"developmentMode": "true",
+	"deviceType": "raspberrypi4-64",
+	"listenPort": "48484",
+	"registryEndpoint": "registry2.balena-cloud.com",
+	"vpnEndpoint": "cloudlink.balena-cloud.com",
+	"vpnPort": "443",
+	"uuid": "151e8026dd444b028cbf40d76c244b93",
+	"deviceApiKey": "8d6d8933c14242249da4979a5f48f333"
+}

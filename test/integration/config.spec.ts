@@ -153,7 +153,7 @@ describe('config', () => {
 	});
 
 	it('reads and exposes MAC addresses', async () => {
-		// FIXME: this variable defaults to `/mnt/root/sys/class/net`. The supervisor runs with network_mode: false
+		// FIXME: this variable defaults to `/mnt/root/sys/class/net`. The supervisor runs with network_mode: host
 		// which means that it can just use the container `/sys/class/net` and the result should be the same
 		constants.macAddressPath = '/sys/class/net';
 		const macAddress = await conf.get('macAddress');

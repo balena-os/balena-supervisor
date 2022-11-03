@@ -1,0 +1,7 @@
+{
+	"slug": "raspberrypi4-64",
+	"version": 1,
+	"aliases": ["raspberrypi4-64"],
+	"name": "Raspberry Pi 4",
+	"arch": "aarch64"
+}

@@ -5,9 +5,32 @@ services:
   # be run through the `sut` service
   balena-supervisor:
     build:
-      dockerfile: Dockerfile
       context: ./
-    command: sleep infinity
+      dockerfile: Dockerfile.template
+      args:
+        ARCH: ${ARCH:-amd64}
+    command: ['/wait-for-it.sh', '--', '/usr/src/app/entry.sh']
+    # Use bridge networking for the tests
+    network_mode: 'bridge'
+    networks:
+      - default
+    environment:
+      DOCKER_HOST: tcp://docker:2375
+      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+      # Required by migrations
+      CONFIG_MOUNT_POINT: /mnt/root/mnt/boot/config.json
+      # Read by constants to setup `bootMountpoint`
+      BOOT_MOUNTPOINT: /mnt/boot
+    depends_on:
+      - docker
+      - dbus
+      - dbus-services
+    volumes:
+      - dbus:/run/dbus
+      - ./test/data/root:/mnt/root
+      - ./test/lib/wait-for-it.sh:/wait-for-it.sh
+    tmpfs:
+      - /data
 
   dbus:
     image: balenablocks/dbus
@@ -33,7 +56,7 @@ services:
     privileged: true
     environment:
       DOCKER_TLS_CERTDIR: ''
-    command: --tls=false --debug
+    command: --tls=false # --debug
 
   sut:
     # Build the supervisor code for development and testing
@@ -44,6 +67,15 @@ services:
       args:
         # Change this if testing in another architecture
         ARCH: ${ARCH:-amd64}
+    command:
+      [
+        './test/lib/wait-for-it.sh',
+        '--supervisor',
+        '--',
+        'npm',
+        'run',
+        'test:integration',
+      ]
     depends_on:
       - balena-supervisor
       - docker
@@ -55,6 +87,7 @@ services:
     environment:
       DOCKER_HOST: tcp://docker:2375
       DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+      BALENA_SUPERVISOR_ADDRESS: http://balena-supervisor:48484
       # Required by migrations
       CONFIG_MOUNT_POINT: /mnt/root/mnt/boot/config.json
       # Read by constants to setup `bootMountpoint`
@@ -73,3 +106,6 @@ volumes:
       # Use tmpfs to avoid files remaining between runs
       type: tmpfs
       device: tmpfs
+
+networks:
+  default:
