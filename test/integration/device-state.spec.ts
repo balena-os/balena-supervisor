@@ -8,7 +8,7 @@ import * as deviceState from '~/src/device-state';
 import { appsJsonBackup, loadTargetFromFile } from '~/src/device-state/preload';
 import { TargetState } from '~/src/types';
 import { promises as fs } from 'fs';
-import { intialiseContractRequirements } from '~/lib/contracts';
+import { initializeContractRequirements } from '~/lib/contracts';
 
 import { testfs } from 'mocha-pod';
 import { createDockerImage } from '~/test-lib/docker-helper';
@@ -21,7 +21,7 @@ describe('device-state', () => {
 
 		// Set the device uuid
 		await config.set({ uuid: 'local' });
-		intialiseContractRequirements({
+		initializeContractRequirements({
 			supervisorVersion: '11.0.0',
 			deviceType: 'intel-nuc',
 		});
