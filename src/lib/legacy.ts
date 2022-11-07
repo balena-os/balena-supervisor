@@ -6,7 +6,6 @@ import * as config from '../config';
 import * as db from '../db';
 import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
-import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
 import {
 	StatusError,
@@ -62,7 +61,6 @@ async function createVolumeFromLegacyData(
  */
 export async function normaliseLegacyDatabase() {
 	await apiBinder.initialized();
-	await deviceState.initialized();
 
 	if (apiBinder.balenaApi == null) {
 		throw new InternalInconsistencyError(
@@ -268,15 +266,11 @@ export async function fromV2TargetState(
 }
 
 /**
- * Convert v2 to v3 target apps. If local is false
- * it will query the API to get the app uuid
+ * Retrieves the appUuid for an app from balena API
+ * @param appId
  */
-export async function fromV2TargetApps(
-	apps: TargetAppsV2,
-	local = false,
-): Promise<TargetApps> {
+const getUUIDFromAPI = async (appId: number) => {
 	await apiBinder.initialized();
-	await deviceState.initialized();
 
 	if (apiBinder.balenaApi == null) {
 		throw new InternalInconsistencyError(
@@ -285,22 +279,30 @@ export async function fromV2TargetApps(
 	}
 
 	const { balenaApi } = apiBinder;
-	const getUUIDFromAPI = async (appId: number) => {
-		const appDetails = await balenaApi.get({
-			resource: 'application',
-			id: appId,
-			options: {
-				$select: ['uuid'],
-			},
-		});
 
-		if (!appDetails || !appDetails.uuid) {
-			throw new StatusError(404, `No app with id ${appId} found on the API.`);
-		}
+	const appDetails = await balenaApi.get({
+		resource: 'application',
+		id: appId,
+		options: {
+			$select: ['uuid'],
+		},
+	});
 
-		return appDetails.uuid;
-	};
+	if (!appDetails || !appDetails.uuid) {
+		throw new StatusError(404, `No app with id ${appId} found on the API.`);
+	}
 
+	return appDetails.uuid;
+};
+
+/**
+ * Convert v2 to v3 target apps. If local is false
+ * it will query the API to get the app uuid
+ */
+export async function fromV2TargetApps(
+	apps: TargetAppsV2,
+	local = false,
+): Promise<TargetApps> {
 	return (
 		(
 			await Promise.all(
