@@ -1,4 +1,22 @@
 - commits:
+    - subject: Allow local target state to be applied in unmanaged mode
+      hash: fd320f85b53ec83f54cd6ad83cdf685dcc6e0d20
+      body: |
+        An unmanaged Supervisor will not have a balenaApi defined, so any
+        attempts to POST /v2/local/target-state will cause the Supervisor to
+        crash loop. This fix allows for the Supervisor to apply local target
+        state, which is useful for integration testing.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.2.21
+  title: ""
+  date: 2022-11-07T21:19:58.463Z
+- commits:
     - subject: "patch: Update locks behavior for config changes"
       hash: 63bd9605cff7dc1b6656da2a71d557d44a760ceb
       body: ""
