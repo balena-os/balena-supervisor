@@ -5,7 +5,7 @@ import * as semver from 'semver';
 import * as constants from '~/lib/constants';
 import {
 	containerContractsFulfilled,
-	intialiseContractRequirements,
+	initializeContractRequirements,
 	validateContract,
 } from '~/lib/contracts';
 import * as osRelease from '~/lib/os-release';
@@ -14,7 +14,7 @@ import * as fsUtils from '~/lib/fs-utils';
 
 describe('lib/contracts', () => {
 	before(() => {
-		intialiseContractRequirements({
+		initializeContractRequirements({
 			supervisorVersion,
 			deviceType: 'intel-nuc',
 			l4tVersion: '32.2',
@@ -436,7 +436,7 @@ describe('L4T version detection', () => {
 				execStub.restore();
 			}
 			seedExec(version);
-			intialiseContractRequirements({
+			initializeContractRequirements({
 				supervisorVersion,
 				deviceType: 'intel-nuc',
 				l4tVersion: await osRelease.getL4tVersion(),

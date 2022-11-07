@@ -8,7 +8,7 @@ import * as v1 from './device-api/v1';
 import * as v2 from './device-api/v2';
 import logMonitor from './logging/monitor';
 
-import { intialiseContractRequirements } from './lib/contracts';
+import { initializeContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/legacy';
 import * as osRelease from './lib/os-release';
 import log from './lib/supervisor-console';
@@ -42,7 +42,7 @@ export class Supervisor {
 
 		const conf = await config.getMany(startupConfigFields);
 
-		intialiseContractRequirements({
+		initializeContractRequirements({
 			supervisorVersion: version,
 			deviceType: await config.get('deviceType'),
 			l4tVersion: await osRelease.getL4tVersion(),

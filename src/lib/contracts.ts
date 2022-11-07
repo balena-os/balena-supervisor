@@ -32,7 +32,7 @@ type ContractRequirements = {
 
 const contractRequirementVersions: ContractRequirements = {};
 
-export function intialiseContractRequirements(opts: {
+export function initializeContractRequirements(opts: {
 	supervisorVersion: string;
 	deviceType: string;
 	l4tVersion?: string;
