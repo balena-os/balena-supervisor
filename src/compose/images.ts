@@ -11,7 +11,7 @@ import { DeltaFetchOptions, FetchOptions, docker } from '../lib/docker-utils';
 import * as dockerUtils from '../lib/docker-utils';
 import {
 	DeltaStillProcessingError,
-	NotFoundError,
+	isNotFoundError,
 	StatusError,
 } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
@@ -236,8 +236,8 @@ export async function triggerFetch(
 		await markAsSupervised({ ...image, dockerImageId: img.Id });
 
 		success = true;
-	} catch (e: any) {
-		if (!NotFoundError(e)) {
+	} catch (e: unknown) {
+		if (!isNotFoundError(e)) {
 			if (!(e instanceof ImageDownloadBackoffError)) {
 				addImageFailure(image.name);
 			}
@@ -729,8 +729,8 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 
 		// Mark the image as removed
 		removed = true;
-	} catch (e: any) {
-		if (NotFoundError(e)) {
+	} catch (e: unknown) {
+		if (isNotFoundError(e)) {
 			removed = false;
 		} else {
 			throw e;

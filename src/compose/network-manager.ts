@@ -3,7 +3,7 @@ import * as _ from 'lodash';
 
 import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
-import { NotFoundError } from '../lib/errors';
+import { isNotFoundError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import log from '../lib/supervisor-console';
 import { exists } from '../lib/fs-utils';
@@ -45,8 +45,8 @@ export async function create(network: Network) {
 
 		// We have a network with the same config and name
 		// already created, we can skip this
-	} catch (e: any) {
-		if (!NotFoundError(e)) {
+	} catch (e: unknown) {
+		if (!isNotFoundError(e)) {
 			logger.logSystemEvent(logTypes.createNetworkError, {
 				network: { name: network.name, appUuid: network.appUuid },
 				error: e,
@@ -120,7 +120,7 @@ export function ensureSupervisorNetwork(): Bluebird<void> {
 				});
 			}
 		})
-		.catch(NotFoundError, () => {
+		.catch(isNotFoundError, () => {
 			log.debug(`Creating ${constants.supervisorNetworkInterface} network`);
 			return Bluebird.resolve(
 				docker.createNetwork({

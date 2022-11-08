@@ -3,7 +3,7 @@ import * as Path from 'path';
 import { VolumeInspectInfo } from 'dockerode';
 
 import constants = require('../lib/constants');
-import { NotFoundError, InternalInconsistencyError } from '../lib/errors';
+import { isNotFoundError, InternalInconsistencyError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
@@ -58,8 +58,8 @@ export async function create(volume: Volume): Promise<void> {
 		if (!volume.isEqualConfig(existing)) {
 			throw new ResourceRecreationAttemptError('volume', volume.name);
 		}
-	} catch (e: any) {
-		if (!NotFoundError(e)) {
+	} catch (e: unknown) {
+		if (!isNotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.createVolumeError, {
 				volume: { name: volume.name },
 				error: e,

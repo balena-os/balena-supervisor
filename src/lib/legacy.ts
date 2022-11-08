@@ -10,7 +10,7 @@ import * as applicationManager from '../compose/application-manager';
 import {
 	StatusError,
 	DatabaseParseError,
-	NotFoundError,
+	isNotFoundError,
 	InternalInconsistencyError,
 } from '../lib/errors';
 import * as constants from '../lib/constants';
@@ -145,12 +145,12 @@ export async function normaliseLegacyDatabase() {
 		const imageFromDocker = await docker
 			.getImage(service.image)
 			.inspect()
-			.catch((error) => {
-				if (error instanceof NotFoundError) {
+			.catch((e: unknown) => {
+				if (isNotFoundError(e)) {
 					return;
 				}
 
-				throw error;
+				throw e;
 			});
 		const imagesFromDatabase = await db
 			.models('image')

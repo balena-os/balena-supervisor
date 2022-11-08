@@ -15,7 +15,7 @@ import { PermissiveNumber } from '../config/types';
 import constants = require('../lib/constants');
 import {
 	InternalInconsistencyError,
-	NotFoundError,
+	isNotFoundError,
 	StatusCodeError,
 	isStatusError,
 } from '../lib/errors';
@@ -72,8 +72,8 @@ export const getAll = async (
 				service.status = vState.status;
 			}
 			return service;
-		} catch (e: any) {
-			if (NotFoundError(e)) {
+		} catch (e: unknown) {
+			if (isNotFoundError(e)) {
 				return null;
 			}
 			throw e;
@@ -206,8 +206,8 @@ export async function remove(service: Service) {
 
 	try {
 		await docker.getContainer(existingService.containerId).remove({ v: true });
-	} catch (e: any) {
-		if (!NotFoundError(e)) {
+	} catch (e: unknown) {
+		if (!isNotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.removeDeadServiceError, {
 				service,
 				error: e,
@@ -227,8 +227,8 @@ async function create(service: Service) {
 			);
 		}
 		return docker.getContainer(existing.containerId);
-	} catch (e: any) {
-		if (!NotFoundError(e)) {
+	} catch (e: unknown) {
+		if (!isNotFoundError(e)) {
 			logger.logSystemEvent(LogTypes.installServiceError, {
 				service,
 				error: e,
@@ -383,8 +383,8 @@ export function listenToEvents() {
 						let service: Service | null = null;
 						try {
 							service = await getByDockerContainerId(data.id);
-						} catch (e: any) {
-							if (!NotFoundError(e)) {
+						} catch (e: unknown) {
+							if (!isNotFoundError(e)) {
 								throw e;
 							}
 						}

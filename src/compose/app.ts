@@ -18,7 +18,7 @@ import constants = require('../lib/constants');
 
 import { getStepsFromStrategy } from './update-strategies';
 
-import { InternalInconsistencyError, NotFoundError } from '../lib/errors';
+import { InternalInconsistencyError, isNotFoundError } from '../lib/errors';
 import * as config from '../config';
 import { checkTruthy, checkString } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
@@ -804,8 +804,8 @@ export class App {
 					let imageInfo: ImageInspectInfo | undefined;
 					try {
 						imageInfo = await imageManager.inspectByName(svc.image);
-					} catch (e: any) {
-						if (!NotFoundError(e)) {
+					} catch (e: unknown) {
+						if (!isNotFoundError(e)) {
 							throw e;
 						}
 					}
