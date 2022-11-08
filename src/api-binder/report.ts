@@ -22,8 +22,10 @@ let lastReport: DeviceState = {};
 let lastReportTime: number = -Infinity;
 // Tracks if unable to report the latest state change event.
 let stateChangeDeferred: boolean = false;
+// How often can we report our state to the server in ms
+const maxReportFrequency = 10 * 1000;
 // How often can we report metrics to the server in ms; mirrors server setting.
-// Metrics are low priority, so less frequent than constants.maxReportFrequency.
+// Metrics are low priority, so less frequent than maxReportFrequency.
 const maxMetricsFrequency = 300 * 1000;
 
 // TODO: This counter is read by the healthcheck to see if the
@@ -80,7 +82,7 @@ async function reportCurrentState(opts: StateReportOpts) {
 	const getStateAndReport = async () => {
 		const now = performance.now();
 		// Only try to report if enough time has elapsed since last report
-		if (now - lastReportTime >= constants.maxReportFrequency) {
+		if (now - lastReportTime >= maxReportFrequency) {
 			const currentState = await deviceState.getCurrentForReport(lastReport);
 			const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
 
@@ -96,7 +98,7 @@ async function reportCurrentState(opts: StateReportOpts) {
 			// Not enough time has elapsed since last report
 			// Delay report until next allowed time
 			const timeSinceLastReport = now - lastReportTime;
-			await delay(constants.maxReportFrequency - timeSinceLastReport);
+			await delay(maxReportFrequency - timeSinceLastReport);
 			await getStateAndReport();
 		}
 	};
@@ -138,8 +140,8 @@ function handleRetry(retryInfo: OnFailureInfo) {
 
 /**
  * Sends state report to cloud from two sources: 1) state change events and
- * 2) timer for metrics. Report frequency is at most constants.maxReportFrequency,
- * and metrics is reported at most maxMetricsFrequency.
+ * 2) timer for metrics. Report frequency is at most maxReportFrequency, and
+ * metrics is reported at most maxMetricsFrequency.
  */
 export async function startReporting() {
 	// Get configs needed to make a report
@@ -155,7 +157,7 @@ export async function startReporting() {
 	// frequency. Returns true if sent; otherwise false.
 	const doReport = async (): Promise<boolean> => {
 		if (!reportPending) {
-			if (performance.now() - lastReportTime > constants.maxReportFrequency) {
+			if (performance.now() - lastReportTime > maxReportFrequency) {
 				reportPending = true;
 				await reportCurrentState(reportConfigs);
 				reportPending = false;
@@ -198,5 +200,5 @@ export async function startReporting() {
 
 	// Start monitoring for changes that do not trigger deviceState events
 	// Example - device metrics
-	return recursivelyReport(constants.maxReportFrequency);
+	return recursivelyReport(maxReportFrequency);
 }
