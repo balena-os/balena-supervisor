@@ -4,7 +4,6 @@ import { delay } from 'bluebird';
 import { CoreOptions } from 'request';
 import { performance } from 'perf_hooks';
 
-import * as constants from '../lib/constants';
 import { withBackoff, OnFailureInfo } from '../lib/backoff';
 import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
@@ -77,30 +76,25 @@ async function report({ body, opts }: StateReport) {
 	}
 }
 
+/**
+ * Collects current state and reports with backoff. Diffs report content with
+ * previous report and does not send an empty report.
+ *
+ * Does *not* validate time elapsed since last report.
+ */
 async function reportCurrentState(opts: StateReportOpts) {
-	// Wrap the report with fetching of state so report always has the latest state diff
 	const getStateAndReport = async () => {
-		const now = performance.now();
-		// Only try to report if enough time has elapsed since last report
-		if (now - lastReportTime >= maxReportFrequency) {
-			const currentState = await deviceState.getCurrentForReport(lastReport);
-			const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
+		const currentState = await deviceState.getCurrentForReport(lastReport);
+		const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
 
-			if (empty(stateDiff)) {
-				return;
-			}
-
-			await report({ body: stateDiff, opts });
-			lastReportTime = performance.now();
-			lastReport = currentState;
-			log.info('Reported current state to the cloud');
-		} else {
-			// Not enough time has elapsed since last report
-			// Delay report until next allowed time
-			const timeSinceLastReport = now - lastReportTime;
-			await delay(maxReportFrequency - timeSinceLastReport);
-			await getStateAndReport();
+		if (empty(stateDiff)) {
+			return;
 		}
+
+		await report({ body: stateDiff, opts });
+		lastReportTime = performance.now();
+		lastReport = currentState;
+		log.info('Reported current state to the cloud');
 	};
 
 	// Create a report that will backoff on errors
