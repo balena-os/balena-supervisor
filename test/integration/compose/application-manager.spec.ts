@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { stub } from 'sinon';
+import * as Docker from 'dockerode';
 import App from '~/src/compose/app';
 import * as applicationManager from '~/src/compose/application-manager';
 import * as imageManager from '~/src/compose/images';
@@ -172,7 +173,6 @@ describe('compose/application-manager', () => {
 	before(async () => {
 		// Stub methods that depend on external dependencies
 		stub(imageManager, 'isCleanupNeeded');
-		stub(networkManager, 'supervisorNetworkReady');
 
 		// Service.fromComposeObject gets api keys from the database
 		// which also depend on the local mode. This ensures the database
@@ -181,20 +181,28 @@ describe('compose/application-manager', () => {
 		await config.initialized();
 	});
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		// Do not check for cleanup images by default
 		(imageManager.isCleanupNeeded as sinon.SinonStub).resolves(false);
-		// Do not check for network
-		// TODO: supervisorNetworkReady not only checks for a docker network, it also checks for the
-		// network interface to be created. That makes it harder to integration test with an external
-		// docker socket
-		(networkManager.supervisorNetworkReady as sinon.SinonStub).resolves(true);
+		// Set up network by default
+		await networkManager.ensureSupervisorNetwork();
 	});
 
 	after(() => {
 		// Restore stubs
 		(imageManager.isCleanupNeeded as sinon.SinonStub).restore();
-		(networkManager.supervisorNetworkReady as sinon.SinonStub).restore();
+	});
+
+	afterEach(async () => {
+		// Delete any created networks
+		const docker = new Docker();
+		const allNetworks = await docker.listNetworks();
+		await Promise.all(
+			allNetworks
+				// exclude docker default networks from the cleanup
+				.filter(({ Name }) => !['bridge', 'host', 'none'].includes(Name))
+				.map(({ Name }) => docker.getNetwork(Name).remove()),
+		);
 	});
 
 	// TODO: we don't test application manager initialization as it sets up a bunch of timers
@@ -853,8 +861,8 @@ describe('compose/application-manager', () => {
 	});
 
 	it('should infer that we need to create the supervisor network if it does not exist', async () => {
-		// stub the networkManager method to fail on finding the supervisor network
-		(networkManager.supervisorNetworkReady as sinon.SinonStub).resolves(false);
+		const docker = new Docker();
+		await docker.getNetwork('supervisor0').remove();
 
 		const targetApps = createApps(
 			{ services: [await createService()], networks: [DEFAULT_NETWORK] },
@@ -879,8 +887,8 @@ describe('compose/application-manager', () => {
 	});
 
 	it('should kill a service which depends on the supervisor network, if we need to create the network', async () => {
-		// stub the networkManager method to fail on finding the supervisor network
-		(networkManager.supervisorNetworkReady as sinon.SinonStub).resolves(false);
+		const docker = new Docker();
+		await docker.getNetwork('supervisor0').remove();
 
 		const labels = { 'io.balena.features.supervisor-api': 'true' };
 
