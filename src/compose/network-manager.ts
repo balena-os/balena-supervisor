@@ -79,8 +79,11 @@ export async function supervisorNetworkReady(): Promise<boolean> {
 			network.IPAM.Config[0].Subnet === subnet &&
 			network.IPAM.Config[0].Gateway === gateway;
 		return result;
-	} catch (e) {
-		log.warn(`Failed to read docker configuration of network ${iface}:`, e);
+	} catch (e: unknown) {
+		log.warn(
+			`Failed to read docker configuration of network ${iface}:`,
+			(e as Error).message,
+		);
 		return false;
 	}
 }
