@@ -1,4 +1,43 @@
 - commits:
+    - subject: Convert ensureSupervisorNetwork to native Promises
+      hash: 1034aa70e6a2e425fb4b5e0fa1155eec97b21ed2
+      body: >
+        Also remove system interface check from ensureSupervisorNetwork.
+
+
+        Previously `ensure` was a Bluebird promise which wasn't awaited in
+
+        its composition step. This has been here for some time and may contribute
+
+        to issues with duplicate networks. The conversion to native Promises
+
+        allows `ensure` to be awaited, hopefully reducing instances of duplicate
+
+        networks.
+
+
+        Removing the system interface check for /sys/class/net/supervisor0
+
+        because it's superfluous given that the Engine creates the interface
+
+        with NetworkManager. It also makes testing a lot more difficult to set up
+
+        as /sys/class/net isn't a directory that can be written to for emulating
+
+        system interface creation / removal.
+      footer:
+        Relates-to: https://github.com/balena-os/balena-supervisor/issues/1110
+        relates-to: https://github.com/balena-os/balena-supervisor/issues/1110
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.3.0
+  title: ""
+  date: 2022-11-10T01:09:38.686Z
+- commits:
     - subject: Allow local target state to be applied in unmanaged mode
       hash: fd320f85b53ec83f54cd6ad83cdf685dcc6e0d20
       body: |
