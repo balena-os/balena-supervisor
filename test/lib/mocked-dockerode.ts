@@ -3,15 +3,7 @@ process.env.DOCKER_HOST = 'unix:///your/dockerode/mocks/are/not/working';
 import * as dockerode from 'dockerode';
 import { Stream } from 'stream';
 import _ = require('lodash');
-import { TypedError } from 'typed-error';
-
-export class NotFoundError extends TypedError {
-	public statusCode: number;
-	constructor() {
-		super();
-		this.statusCode = 404;
-	}
-}
+import { NotFoundError } from '~/lib/errors';
 
 const overrides: Dictionary<(...args: any[]) => Resolvable<any>> = {};
 

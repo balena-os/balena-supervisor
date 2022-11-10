@@ -27,9 +27,7 @@ const constants = {
 	hostOSVersionPath:
 		checkString(process.env.HOST_OS_VERSION_PATH) ||
 		`${rootMountPoint}/etc/os-release`,
-	macAddressPath:
-		checkString(process.env.MAC_ADDRESS_PATH) ||
-		`${rootMountPoint}/sys/class/net`,
+	macAddressPath: checkString(process.env.MAC_ADDRESS_PATH) || `/sys/class/net`,
 	privateAppEnvVars: [
 		'RESIN_SUPERVISOR_API_KEY',
 		'RESIN_API_KEY',

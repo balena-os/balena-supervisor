@@ -22,15 +22,22 @@ export class StatusError extends Error {
 export const isStatusError = (x: unknown): x is StatusError =>
 	x != null && x instanceof Error && !isNaN((x as any).statusCode);
 
+export class NotFoundError extends Error {
+	public statusCode: number;
+	constructor() {
+		super();
+		this.statusCode = 404;
+	}
+}
+
+export const isNotFoundError = (e: unknown): e is NotFoundError =>
+	isStatusError(e) && e.statusCode === 404;
+
 interface CodedSysError extends Error {
 	code?: string;
 }
 
 export class DeviceNotFoundError extends TypedError {}
-
-export function NotFoundError(err: StatusCodeError): boolean {
-	return checkInt(err.statusCode) === 404;
-}
 
 export function ENOENT(err: CodedSysError): boolean {
 	return err.code === 'ENOENT';

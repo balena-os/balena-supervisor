@@ -9,7 +9,7 @@ const rimrafAsync = Bluebird.promisify(rimraf);
 import * as volumeManager from '../compose/volume-manager';
 import * as deviceState from '../device-state';
 import * as constants from '../lib/constants';
-import { BackupError, NotFoundError } from '../lib/errors';
+import { BackupError, isNotFoundError } from '../lib/errors';
 import { exec, pathExistsOnHost, mkdirp } from '../lib/fs-utils';
 import { log } from '../lib/supervisor-console';
 
@@ -67,11 +67,11 @@ export async function loadBackupFromMigration(
 					.then((volume) => {
 						return volume.remove();
 					})
-					.catch((error) => {
-						if (error instanceof NotFoundError) {
+					.catch((e: unknown) => {
+						if (isNotFoundError(e)) {
 							return;
 						}
-						throw error;
+						throw e;
 					});
 
 				await volumeManager.createFromPath(

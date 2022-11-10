@@ -9,7 +9,7 @@ services:
       dockerfile: Dockerfile.template
       args:
         ARCH: ${ARCH:-amd64}
-    command: ['/wait-for-it.sh', '--', '/usr/src/app/entry.sh']
+    command: [ '/wait-for-it.sh', '--', '/usr/src/app/entry.sh' ]
     # Use bridge networking for the tests
     network_mode: 'bridge'
     networks:
@@ -30,7 +30,7 @@ services:
       - ./test/data/root:/mnt/root
       - ./test/lib/wait-for-it.sh:/wait-for-it.sh
     tmpfs:
-      - /data
+      - /data # sqlite3 database
 
   dbus:
     image: balenablocks/dbus
@@ -74,7 +74,7 @@ services:
         '--',
         'npm',
         'run',
-        'test:integration',
+        'test:integration'
       ]
     depends_on:
       - balena-supervisor

@@ -15,6 +15,7 @@ import * as TargetState from '~/src/device-state/target-state';
 import * as ApiHelper from '~/lib/api-helper';
 import supervisorVersion = require('~/lib/supervisor-version');
 import * as eventTracker from '~/src/event-tracker';
+import * as constants from '~/lib/constants';
 
 import { TypedError } from 'typed-error';
 import { DeviceNotFoundError } from '~/lib/errors';
@@ -65,6 +66,10 @@ describe('ApiBinder', () => {
 
 		spy(balenaAPI.balenaBackend!, 'registerHandler');
 		server = balenaAPI.listen(3000);
+
+		// TODO: remove when moving this suite to integration tests
+		// @ts-expect-error
+		constants.macAddressPath = './test/data/sys/class/net';
 	});
 
 	after(() => {
@@ -75,6 +80,10 @@ describe('ApiBinder', () => {
 		} catch (error) {
 			/* noop */
 		}
+
+		// TODO: remove when moving this suite to integration tests
+		// @ts-expect-error
+		constants.macAddressPath = '/sys/class/net';
 	});
 
 	// We do not support older OS versions anymore, so we only test this case

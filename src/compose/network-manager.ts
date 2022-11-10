@@ -3,10 +3,9 @@ import * as _ from 'lodash';
 
 import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
-import { NotFoundError } from '../lib/errors';
+import { isNotFoundError } from '../lib/errors';
 import logTypes = require('../lib/log-types');
 import log from '../lib/supervisor-console';
-import { exists } from '../lib/fs-utils';
 
 import * as logger from '../logger';
 import { Network } from './network';
@@ -45,8 +44,8 @@ export async function create(network: Network) {
 
 		// We have a network with the same config and name
 		// already created, we can skip this
-	} catch (e: any) {
-		if (!NotFoundError(e)) {
+	} catch (e: unknown) {
+		if (!isNotFoundError(e)) {
 			logger.logSystemEvent(logTypes.createNetworkError, {
 				network: { name: network.name, appUuid: network.appUuid },
 				error: e,
@@ -65,82 +64,66 @@ export async function remove(network: Network) {
 	await network.remove();
 }
 
-const supervisorIfaceSysPath = `/sys/class/net/${constants.supervisorNetworkInterface}`;
-export async function supervisorNetworkReady(): Promise<boolean> {
-	const networkExists = await exists(supervisorIfaceSysPath);
-	if (!networkExists) {
-		return false;
-	}
+const {
+	supervisorNetworkInterface: iface,
+	supervisorNetworkGateway: gateway,
+	supervisorNetworkSubnet: subnet,
+} = constants;
 
+export async function supervisorNetworkReady(): Promise<boolean> {
 	try {
 		// The inspect may fail even if the interface exist due to docker corruption
-		const network = await docker
-			.getNetwork(constants.supervisorNetworkInterface)
-			.inspect();
-		return (
-			network.Options['com.docker.network.bridge.name'] ===
-				constants.supervisorNetworkInterface &&
-			network.IPAM.Config[0].Subnet === constants.supervisorNetworkSubnet &&
-			network.IPAM.Config[0].Gateway === constants.supervisorNetworkGateway
-		);
-	} catch (e) {
+		const network = await docker.getNetwork(iface).inspect();
+		const result =
+			network.Options['com.docker.network.bridge.name'] === iface &&
+			network.IPAM.Config[0].Subnet === subnet &&
+			network.IPAM.Config[0].Gateway === gateway;
+		return result;
+	} catch (e: unknown) {
 		log.warn(
-			`Failed to read docker configuration of network ${constants.supervisorNetworkInterface}:`,
-			e,
+			`Failed to read docker configuration of network ${iface}:`,
+			(e as Error).message,
 		);
 		return false;
 	}
 }
 
-export function ensureSupervisorNetwork(): Bluebird<void> {
-	const removeIt = () => {
-		return Bluebird.resolve(
-			docker.getNetwork(constants.supervisorNetworkInterface).remove(),
-		).then(() => {
-			return docker.getNetwork(constants.supervisorNetworkInterface).inspect();
-		});
-	};
+export async function ensureSupervisorNetwork(): Promise<void> {
+	try {
+		const net = await docker.getNetwork(iface).inspect();
+		if (
+			net.Options['com.docker.network.bridge.name'] !== iface ||
+			net.IPAM.Config[0].Subnet !== subnet ||
+			net.IPAM.Config[0].Gateway !== gateway
+		) {
+			// Remove network if its configs aren't correct
+			await docker.getNetwork(iface).remove();
+			// This will throw a 404 if network has been removed completely
+			return await docker.getNetwork(iface).inspect();
+		}
+	} catch (e: unknown) {
+		if (!isNotFoundError(e)) {
+			return;
+		}
 
-	return Bluebird.resolve(
-		docker.getNetwork(constants.supervisorNetworkInterface).inspect(),
-	)
-		.then((net) => {
-			if (
-				net.Options['com.docker.network.bridge.name'] !==
-					constants.supervisorNetworkInterface ||
-				net.IPAM.Config[0].Subnet !== constants.supervisorNetworkSubnet ||
-				net.IPAM.Config[0].Gateway !== constants.supervisorNetworkGateway
-			) {
-				return removeIt();
-			} else {
-				return exists(supervisorIfaceSysPath).then((networkExists) => {
-					if (!networkExists) {
-						return removeIt();
-					}
-				});
-			}
-		})
-		.catch(NotFoundError, () => {
-			log.debug(`Creating ${constants.supervisorNetworkInterface} network`);
-			return Bluebird.resolve(
-				docker.createNetwork({
-					Name: constants.supervisorNetworkInterface,
-					Options: {
-						'com.docker.network.bridge.name':
-							constants.supervisorNetworkInterface,
+		log.debug(`Creating ${iface} network`);
+		await docker.createNetwork({
+			Name: iface,
+			Options: {
+				'com.docker.network.bridge.name': iface,
+			},
+			IPAM: {
+				Driver: 'default',
+				Config: [
+					{
+						Subnet: subnet,
+						Gateway: gateway,
 					},
-					IPAM: {
-						Driver: 'default',
-						Config: [
-							{
-								Subnet: constants.supervisorNetworkSubnet,
-								Gateway: constants.supervisorNetworkGateway,
-							},
-						],
-					},
-				}),
-			);
+				],
+			},
+			CheckDuplicate: true,
 		});
+	}
 }
 
 function getWithBothLabels() {

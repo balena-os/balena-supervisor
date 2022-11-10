@@ -276,7 +276,7 @@ export function getExecutors(app: {
 			await volumeManager.remove(step.current);
 		},
 		ensureSupervisorNetwork: async () => {
-			networkManager.ensureSupervisorNetwork();
+			await networkManager.ensureSupervisorNetwork();
 		},
 		noop: async () => {
 			/* async noop */
