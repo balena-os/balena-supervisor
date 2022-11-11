@@ -117,7 +117,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 					return imageFromService(svc);
 				});
 			})
-			.reduce((res, images) => res.concat(images), []);
+			.flat();
 
 		for (const image of imgs) {
 			const name = imageManager.normalise(image.name);
