@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
 
 import Network from './network';
@@ -14,7 +14,7 @@ import {
 } from './composition-steps';
 import * as targetStateCache from '../device-state/target-state-cache';
 import * as dockerUtils from '../lib/docker-utils';
-import constants = require('../lib/constants');
+import constants from '../lib/constants';
 
 import { getStepsFromStrategy } from './update-strategies';
 

@@ -1,7 +1,7 @@
 import * as https from 'https';
 import * as stream from 'stream';
 import * as zlib from 'zlib';
-import * as Promise from 'bluebird';
+import Promise from 'bluebird';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 

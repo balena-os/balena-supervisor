@@ -1,5 +1,5 @@
-import * as express from 'express';
-import * as request from 'supertest';
+import express from 'express';
+import request from 'supertest';
 import { SinonStub } from 'sinon';
 import { expect } from 'chai';
 

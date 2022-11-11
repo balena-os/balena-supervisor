@@ -1,12 +1,12 @@
-import * as Bluebird from 'bluebird';
-import once = require('lodash/once');
+import Bluebird from 'bluebird';
+import once from 'lodash/once';
 import * as requestLib from 'request';
 import * as resumableRequestLib from 'resumable-request';
 
 import * as constants from './constants';
 import * as osRelease from './os-release';
 
-import supervisorVersion = require('./supervisor-version');
+import supervisorVersion from './supervisor-version';
 
 export { requestLib };
 

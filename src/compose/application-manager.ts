@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { EventEmitter } from 'events';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
@@ -10,7 +10,7 @@ import proxyvisor from '../proxyvisor';
 
 import * as dbFormat from '../device-state/db-format';
 import { validateTargetContracts } from '../lib/contracts';
-import constants = require('../lib/constants');
+import constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
 import log from '../lib/supervisor-console';
 import {

@@ -5,7 +5,7 @@ import * as volumeManager from '~/src/compose/volume-manager';
 import Volume from '~/src/compose/volume';
 import { createDockerImage } from '~/test-lib/docker-helper';
 
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 
 describe('compose/volume-manager', () => {
 	const docker = new Docker();

@@ -1,5 +1,5 @@
-import * as Bluebird from 'bluebird';
-import * as _ from 'lodash';
+import Bluebird from 'bluebird';
+import _ from 'lodash';
 import * as path from 'path';
 
 import * as constants from '../lib/constants';

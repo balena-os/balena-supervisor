@@ -1,6 +1,6 @@
-import * as _ from 'lodash';
-import * as express from 'express';
-import * as memoizee from 'memoizee';
+import _ from 'lodash';
+import express from 'express';
+import memoizee from 'memoizee';
 import { TypedError } from 'typed-error';
 
 import * as db from '../db';

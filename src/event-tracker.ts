@@ -1,5 +1,5 @@
-import mask = require('json-mask');
-import * as _ from 'lodash';
+import mask from 'json-mask';
+import _ from 'lodash';
 
 import log from './lib/supervisor-console';
 

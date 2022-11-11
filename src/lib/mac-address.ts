@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { TypedError } from 'typed-error';

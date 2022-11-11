@@ -1,7 +1,7 @@
 import { SinonStub, stub } from 'sinon';
 import { expect } from 'chai';
 
-import constants = require('~/lib/constants');
+import constants from '~/lib/constants';
 import { spawnJournalctl } from '~/lib/journald';
 
 describe('lib/journald', () => {

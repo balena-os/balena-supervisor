@@ -1,5 +1,5 @@
-import * as Bluebird from 'bluebird';
-import * as _ from 'lodash';
+import Bluebird from 'bluebird';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 

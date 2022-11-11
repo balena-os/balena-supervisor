@@ -1,8 +1,8 @@
-import * as Docker from 'dockerode';
-import isEqual = require('lodash/isEqual');
-import omitBy = require('lodash/omitBy');
+import Docker from 'dockerode';
+import isEqual from 'lodash/isEqual';
+import omitBy from 'lodash/omitBy';
 
-import constants = require('../lib/constants');
+import constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
 import { InternalInconsistencyError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';

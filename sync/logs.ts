@@ -1,5 +1,5 @@
-import * as Docker from 'dockerode';
-import * as _ from 'lodash';
+import Docker from 'dockerode';
+import _ from 'lodash';
 
 export async function setupLogs(
 	docker: Docker,

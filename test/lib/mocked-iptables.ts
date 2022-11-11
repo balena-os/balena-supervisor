@@ -1,4 +1,4 @@
-import _ = require('lodash');
+import _ from 'lodash';
 import { expect } from 'chai';
 import { stub } from 'sinon';
 import * as childProcess from 'child_process';

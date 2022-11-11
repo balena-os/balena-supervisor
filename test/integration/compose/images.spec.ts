@@ -4,7 +4,7 @@ import * as imageManager from '~/src/compose/images';
 import { createImage, withMockerode } from '~/test-lib/mockerode';
 import { createDockerImage } from '~/test-lib/docker-helper';
 
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 import * as db from '~/src/db';
 
 // TODO: this code is duplicated in multiple tests

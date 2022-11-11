@@ -1,5 +1,5 @@
-import * as express from 'express';
-import * as request from 'supertest';
+import express from 'express';
+import request from 'supertest';
 import { expect } from 'chai';
 
 import * as config from '~/src/config';

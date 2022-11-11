@@ -1,6 +1,6 @@
 import { ClientRequest } from 'http';
 import * as https from 'https';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import * as stream from 'stream';
 import * as url from 'url';
 import * as zlib from 'zlib';

@@ -12,6 +12,7 @@
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
 		"allowJs": true,
+		"esModuleInterop": true,
 		"paths": {
 			"~/src/*": ["src/*"],
 			"~/lib/*": ["src/lib/*"],

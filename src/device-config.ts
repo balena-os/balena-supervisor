@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { inspect } from 'util';
 import { promises as fs } from 'fs';
 

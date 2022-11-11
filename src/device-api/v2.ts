@@ -1,7 +1,7 @@
-import * as Bluebird from 'bluebird';
-import * as express from 'express';
+import Bluebird from 'bluebird';
+import express from 'express';
 import type { Response, NextFunction } from 'express';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
@@ -28,7 +28,7 @@ import {
 	v2ServiceEndpointInputErrorMessage,
 } from './messages';
 import log from '../lib/supervisor-console';
-import supervisorVersion = require('../lib/supervisor-version');
+import supervisorVersion from '../lib/supervisor-version';
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import { doPurge, doRestart, safeStateClone } from './common';

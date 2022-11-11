@@ -1,4 +1,4 @@
-import _ = require('lodash');
+import _ from 'lodash';
 import { expect } from 'chai';
 
 import * as sinon from 'sinon';
@@ -9,7 +9,7 @@ import * as logger from '~/src/logger';
 import * as iptablesMock from '~/test-lib/mocked-iptables';
 import * as dbFormat from '~/src/device-state/db-format';
 
-import constants = require('~/lib/constants');
+import constants from '~/lib/constants';
 import { RuleAction, Rule } from '~/lib/iptables';
 import { log } from '~/lib/supervisor-console';
 

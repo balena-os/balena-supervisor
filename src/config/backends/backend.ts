@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 export interface ConfigOptions {
 	[key: string]: string | string[];

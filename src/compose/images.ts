@@ -1,7 +1,7 @@
-import * as Bluebird from 'bluebird';
-import * as Docker from 'dockerode';
+import Bluebird from 'bluebird';
+import Docker from 'dockerode';
 import { EventEmitter } from 'events';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';

@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { fromV2TargetApps, TargetAppsV2 } from '../lib/legacy';
 import { AppsJsonFormat, TargetApp, TargetRelease } from '../types';
 
