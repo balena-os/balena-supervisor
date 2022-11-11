@@ -22,6 +22,7 @@ import type { Service } from './service';
 import { strict as assert } from 'assert';
 
 import log from '../lib/supervisor-console';
+import { setTimeout } from 'timers/promises';
 
 interface FetchProgressEvent {
 	percentage: number;
@@ -695,7 +696,7 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 		// that can lead to weird behavior with the error
 		// `(HTTP code 500) server error - unrecognized image ID`.
 		// This random delay tries to prevent that
-		await new Promise((resolve) => setTimeout(resolve, Math.random() * 100));
+		await setTimeout(Math.random() * 100);
 
 		// Remove all matching tags in sequence
 		// as removing in parallel causes some engine weirdness (see above)
