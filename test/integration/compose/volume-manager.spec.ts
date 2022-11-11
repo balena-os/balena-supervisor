@@ -46,7 +46,7 @@ describe('compose/volume-manager', () => {
 			]);
 
 			// Perform test
-			await expect(volumeManager.getAll()).to.eventually.have.deep.members([
+			await expect(volumeManager.getAll()).to.eventually.include.deep.members([
 				{
 					appId: 1,
 					appUuid: undefined,
@@ -278,17 +278,13 @@ describe('compose/volume-manager', () => {
 				]),
 			).to.not.be.rejected;
 
-			// All volumes should have been deleted
-			expect(await docker.listVolumes())
-				.to.have.property('Volumes')
-				.that.has.lengthOf(2);
-
-			// Reference volume should have been kept
-			await expect(
-				docker.getVolume(Volume.generateDockerName(111, 'main')).inspect(),
-			).to.not.be.rejected;
-			await expect(docker.getVolume('other-volume').inspect()).to.not.be
-				.rejected;
+			// Volumes not in the target state or not referenced should have been deleted
+			expect(
+				(await docker.listVolumes()).Volumes.map(({ Name }) => Name),
+			).to.include.members([
+				Volume.generateDockerName(111, 'main'),
+				'other-volume',
+			]);
 
 			// Cleanup
 			await Promise.all([

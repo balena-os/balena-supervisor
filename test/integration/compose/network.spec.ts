@@ -5,17 +5,11 @@ import { createNetwork, withMockerode } from '~/test-lib/mockerode';
 
 import * as Docker from 'dockerode';
 
-describe('compose/network: integration tests', () => {
+describe('compose/network', () => {
 	const docker = new Docker();
-	after(async () => {
-		const allNetworks = await docker.listNetworks();
 
-		// Delete any remaining networks
-		await Promise.all(
-			allNetworks
-				.filter(({ Name }) => !['bridge', 'host', 'none'].includes(Name)) // exclude docker default network from the cleanup
-				.map(({ Name }) => docker.getNetwork(Name).remove()),
-		);
+	after(async () => {
+		await docker.pruneNetworks();
 	});
 
 	describe('creating and removing networks', () => {

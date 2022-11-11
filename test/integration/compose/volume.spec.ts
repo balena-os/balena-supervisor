@@ -23,10 +23,7 @@ describe('compose/volume: integration tests', () => {
 		});
 
 		after(async () => {
-			const { Volumes: allVolumes } = await docker.listVolumes();
-			await Promise.all(
-				allVolumes.map(({ Name }) => docker.getVolume(Name).remove()),
-			);
+			await docker.pruneVolumes();
 			(logger.logSystemEvent as SinonStub).restore();
 		});
 

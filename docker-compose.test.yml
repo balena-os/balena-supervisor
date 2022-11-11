@@ -9,26 +9,27 @@ services:
       dockerfile: Dockerfile.template
       args:
         ARCH: ${ARCH:-amd64}
-    command: [ '/wait-for-it.sh', '--', '/usr/src/app/entry.sh' ]
+    image: ${ARCH:-amd64}-supervisor
+    command: ['/wait-for-it.sh', '--', '/usr/src/app/entry.sh']
     # Use bridge networking for the tests
     network_mode: 'bridge'
     networks:
       - default
     environment:
-      DOCKER_HOST: tcp://docker:2375
+      DOCKER_HOST: unix:///var/run/docker.sock
       DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
       # Required by migrations
       CONFIG_MOUNT_POINT: /mnt/root/mnt/boot/config.json
       # Read by constants to setup `bootMountpoint`
       BOOT_MOUNTPOINT: /mnt/boot
     depends_on:
-      - docker
       - dbus
       - dbus-services
     volumes:
       - dbus:/run/dbus
       - ./test/data/root:/mnt/root
       - ./test/lib/wait-for-it.sh:/wait-for-it.sh
+      - /var/run/docker.sock:/var/run/docker.sock
     tmpfs:
       - /data # sqlite3 database
 
@@ -51,13 +52,6 @@ services:
     environment:
       DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
 
-  docker:
-    image: docker:dind
-    privileged: true
-    environment:
-      DOCKER_TLS_CERTDIR: ''
-    command: --tls=false # --debug
-
   sut:
     # Build the supervisor code for development and testing
     build:
@@ -74,18 +68,18 @@ services:
         '--',
         'npm',
         'run',
-        'test:integration'
+        'test:integration',
       ]
     depends_on:
       - balena-supervisor
-      - docker
       - dbus
       - dbus-services
     volumes:
       - dbus:/run/dbus
+      - /var/run/docker.sock:/var/run/docker.sock
     # Set required supervisor configuration variables here
     environment:
-      DOCKER_HOST: tcp://docker:2375
+      DOCKER_HOST: unix:///var/run/docker.sock
       DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
       BALENA_SUPERVISOR_ADDRESS: http://balena-supervisor:48484
       # Required by migrations
