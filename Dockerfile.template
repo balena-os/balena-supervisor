@@ -4,13 +4,18 @@ ARG ARCH=%%BALENA_ARCH%%
 # balenaOS with buggy platform support
 # see https://github.com/balena-os/balena-engine/issues/269
 ARG PREFIX=library
+ARG FATRW_VERSION=0.2.9
 
 ###################################################
 # Build the supervisor dependencies
 ###################################################
 FROM balenalib/${ARCH}-alpine-node:16-run as build-base
 
+ARG ARCH
 ARG PREFIX
+ARG FATRW_VERSION
+ARG FATRW_ARCHIVE="fatrw-${ARCH}.tar.gz"
+ARG FATRW_LOCATION="https://github.com/balena-os/fatrw/releases/download/v${FATRW_VERSION}/${FATRW_ARCHIVE}"
 # Sanity check to prevent a prefix for a non-official docker image being
 # inserted. Only 'library' and 'arm32v6' are allowed right now
 RUN for allowed in "library" "arm32v6"; do [ "${PREFIX}" = "${allowed}" ] && break; done
@@ -29,6 +34,13 @@ RUN apk add --no-cache \
 COPY package*.json ./
 
 RUN strip /usr/local/bin/node
+
+# Install fatrw
+RUN curl -SLO "${FATRW_LOCATION}" && \
+		echo curl -SLO "${FATRW_LOCATION}" && \
+		ls -la "${FATRW_ARCHIVE}" && \
+		tar -xzf "${FATRW_ARCHIVE}" -C /usr/local/bin && \
+		rm -f "${FATRW_ARCHIVE}"
 
 # Just install dev dependencies first
 RUN npm ci --build-from-source --sqlite=/usr/lib
@@ -51,6 +63,9 @@ WORKDIR /usr/src/app
 
 # We just need the node binary in the final image
 COPY --from=build-base /usr/local/bin/node /usr/local/bin/node
+
+# Also copy the fatrw binary
+COPY --from=build-base /usr/local/bin/fatrw /usr/local/bin/fatrw
 
 # Similarly, from the procmail package we just need the lockfile binary
 COPY --from=extra /usr/bin/lockfile /usr/bin/lockfile
@@ -99,11 +114,9 @@ COPY typings ./typings
 COPY src ./src
 COPY test ./test
 
-# Run type checking and unit/legacy tests here
+# Run type checking and unit tests here
 # to prevent setting up a test environment that will
 # most likely fail.
-# For now this also runs the legacy tests, that are slow, this is a
-# forcing function to finish the split between unit/integration
 RUN npm run test
 
 # When running tests from a container built from this stage,

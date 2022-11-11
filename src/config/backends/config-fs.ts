@@ -103,7 +103,10 @@ export class ConfigFs extends ConfigBackend {
 
 		// read the config file...
 		try {
-			const content = await fs.readFile(this.ConfigFilePath, 'utf8');
+			const content = await hostUtils.readFromBoot(
+				this.ConfigFilePath,
+				'utf-8',
+			);
 			return JSON.parse(content);
 		} catch (err) {
 			log.error('Unable to deserialise ConfigFS configuration.', err);

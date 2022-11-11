@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import { promises as fs } from 'fs';
 import * as semver from 'semver';
 
 import { ConfigOptions, ConfigBackend } from './backend';
@@ -59,7 +58,10 @@ export class Extlinux extends ConfigBackend {
 		let confContents: string;
 
 		try {
-			confContents = await fs.readFile(Extlinux.bootConfigPath, 'utf-8');
+			confContents = await hostUtils.readFromBoot(
+				Extlinux.bootConfigPath,
+				'utf-8',
+			);
 		} catch {
 			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick
@@ -97,7 +99,10 @@ export class Extlinux extends ConfigBackend {
 		let confContents: string;
 
 		try {
-			confContents = await fs.readFile(Extlinux.bootConfigPath, 'utf-8');
+			confContents = await hostUtils.readFromBoot(
+				Extlinux.bootConfigPath,
+				'utf-8',
+			);
 		} catch {
 			// In the rare case where the user might have deleted extlinux conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick

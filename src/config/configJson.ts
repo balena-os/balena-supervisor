@@ -1,10 +1,9 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import * as constants from '../lib/constants';
-import { writeAndSyncFile } from '../lib/fs-utils';
+import * as hostUtils from '../lib/host-utils';
 import * as osRelease from '../lib/os-release';
 
 import log from '../lib/supervisor-console';
@@ -87,10 +86,8 @@ export default class ConfigJsonConfigBackend {
 	}
 
 	private async write(): Promise<void> {
-		// We use writeAndSyncFile since /mnt/boot partition is a vfat
-		// filesystem which dows not provide atomic file renames. The best
-		// course of action on that case is to write and sync as soon as possible
-		return writeAndSyncFile(
+		// writeToBoot uses fatrw to safely write to the boot partition
+		return hostUtils.writeToBoot(
 			await this.pathOnHost(),
 			JSON.stringify(this.cache),
 		);
@@ -98,7 +95,7 @@ export default class ConfigJsonConfigBackend {
 
 	private async read(): Promise<string> {
 		const filename = await this.pathOnHost();
-		return JSON.parse(await fs.readFile(filename, 'utf-8'));
+		return JSON.parse(await hostUtils.readFromBoot(filename, 'utf-8'));
 	}
 
 	private async resolveConfigPath(): Promise<string> {
