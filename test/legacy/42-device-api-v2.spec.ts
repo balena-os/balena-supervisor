@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import { stub, SinonStub, spy, SinonSpy } from 'sinon';
 import * as supertest from 'supertest';
-import * as Bluebird from 'bluebird';
 
 import sampleResponses = require('~/test-data/device-api-responses.json');
 import mockedAPI = require('~/test-lib/mocked-device-api');
@@ -407,9 +406,13 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 
 		const mockContainers = [mockedAPI.mockService(service)];
 		const mockImages = [mockedAPI.mockImage(service)];
-		const lockFake = (_: any, opts: { force: boolean }, fn: () => any) => {
+		const lockFake = async (
+			_: any,
+			opts: { force: boolean },
+			fn: () => any,
+		) => {
 			if (opts.force) {
-				return Bluebird.resolve(fn());
+				return fn();
 			}
 
 			throw new UpdatesLockedError('Updates locked');
