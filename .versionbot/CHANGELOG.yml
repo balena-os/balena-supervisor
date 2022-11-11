@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix locking stubs that were returning `Bluebird` rather than `Promise`
+      hash: d587a323f2da396aa0f84e4720b73d61bfe5a88a
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.3.2
+  title: ""
+  date: 2022-11-11T17:14:04.145Z
+- commits:
     - subject: Update blinking to 0.0.7
       hash: 9e154da76e74638f31b212ad45e296e444e45fe4
       body: |
