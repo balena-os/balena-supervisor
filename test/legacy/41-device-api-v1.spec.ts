@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import * as Bluebird from 'bluebird';
 import { expect } from 'chai';
 import {
 	stub,
@@ -419,9 +418,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 
 		it('should return 423 and reject the reboot if no locks are set', async () => {
-			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+			stub(updateLock, 'lock').callsFake(async (__, opts, fn) => {
 				if (opts.force) {
-					return Bluebird.resolve(fn());
+					return fn();
 				}
 				throw new UpdatesLockedError('Updates locked');
 			});
@@ -457,9 +456,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 
 		it('should return 202 and reboot if force is set to true', async () => {
-			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+			stub(updateLock, 'lock').callsFake(async (__, opts, fn) => {
 				if (opts.force) {
-					return Bluebird.resolve(fn());
+					return fn();
 				}
 				throw new UpdatesLockedError('Updates locked');
 			});
@@ -584,9 +583,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 
 		it('should return 423 and reject the reboot if locks are set', async () => {
-			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+			stub(updateLock, 'lock').callsFake(async (__, opts, fn) => {
 				if (opts.force) {
-					return Bluebird.resolve(fn());
+					return fn();
 				}
 				throw new UpdatesLockedError('Updates locked');
 			});
@@ -622,9 +621,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		});
 
 		it('should return 202 and shutdown if force is set to true', async () => {
-			stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+			stub(updateLock, 'lock').callsFake(async (__, opts, fn) => {
 				if (opts.force) {
-					return Bluebird.resolve(fn());
+					return fn();
 				}
 				throw new UpdatesLockedError('Updates locked');
 			});
@@ -969,9 +968,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			});
 
 			it('prevents patch if update locks are present', async () => {
-				stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+				stub(updateLock, 'lock').callsFake(async (__, opts, fn) => {
 					if (opts.force) {
-						return Bluebird.resolve(fn());
+						return fn();
 					}
 					throw new UpdatesLockedError('Updates locked');
 				});
@@ -998,9 +997,9 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 			});
 
 			it('allows patch while update locks are present if force is in req.body', async () => {
-				stub(updateLock, 'lock').callsFake((__, opts, fn) => {
+				stub(updateLock, 'lock').callsFake(async (__, opts, fn) => {
 					if (opts.force) {
-						return Bluebird.resolve(fn());
+						return fn();
 					}
 					throw new UpdatesLockedError('Updates locked');
 				});
