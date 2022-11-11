@@ -12,6 +12,7 @@ services:
     command: [ '/wait-for-it.sh', '--', '/usr/src/app/entry.sh' ]
     # Use bridge networking for the tests
     network_mode: 'bridge'
+    stop_grace_period: 3s
     networks:
       - default
     environment:
@@ -34,6 +35,7 @@ services:
 
   dbus:
     image: balenablocks/dbus
+    stop_grace_period: 3s
     environment:
       DBUS_CONFIG: session.conf
       DBUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
@@ -44,6 +46,7 @@ services:
   # requests
   dbus-services:
     build: ./test/lib/dbus
+    stop_grace_period: 3s
     depends_on:
       - dbus
     volumes:
@@ -54,6 +57,7 @@ services:
   docker:
     image: docker:dind
     privileged: true
+    stop_grace_period: 3s
     environment:
       DOCKER_TLS_CERTDIR: ''
     command: --tls=false # --debug
@@ -76,6 +80,7 @@ services:
         'run',
         'test:integration'
       ]
+    stop_grace_period: 3s
     depends_on:
       - balena-supervisor
       - docker
@@ -92,6 +97,7 @@ services:
       CONFIG_MOUNT_POINT: /mnt/root/mnt/boot/config.json
       # Read by constants to setup `bootMountpoint`
       BOOT_MOUNTPOINT: /mnt/boot
+      INTEGRATION: true
     # Set required mounts as tmpfs or volumes here
     # if specific files need to be backed up between tests,
     # make sure to add them to the `testfs` configuration under

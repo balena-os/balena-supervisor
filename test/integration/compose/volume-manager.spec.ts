@@ -3,16 +3,14 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import * as volumeManager from '~/src/compose/volume-manager';
 import Volume from '~/src/compose/volume';
-import { createDockerImage } from '~/test-lib/docker-helper';
+import { cleanupDocker, createDockerImage } from '~/test-lib/docker-helper';
 
 import * as Docker from 'dockerode';
 
 describe('compose/volume-manager', () => {
 	const docker = new Docker();
 	after(async () => {
-		await docker.pruneContainers();
-		await docker.pruneVolumes();
-		await docker.pruneImages({ filters: { dangling: { false: true } } });
+		await cleanupDocker({ docker });
 	});
 
 	describe('Retrieving volumes from the engine', () => {

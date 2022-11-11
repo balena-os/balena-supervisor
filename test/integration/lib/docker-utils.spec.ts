@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { stub } from 'sinon';
 
 import * as dockerUtils from '~/lib/docker-utils';
-import { createDockerImage } from '~/test-lib/docker-helper';
+import { cleanupDocker, createDockerImage } from '~/test-lib/docker-helper';
 import * as Docker from 'dockerode';
 
 describe('lib/docker-utils', () => {
@@ -28,14 +28,7 @@ describe('lib/docker-utils', () => {
 		});
 
 		after(async () => {
-			const allNetworks = await docker.listNetworks();
-
-			// Delete any remaining networks
-			await Promise.all(
-				allNetworks
-					.filter(({ Name }) => !['bridge', 'host', 'none'].includes(Name)) // exclude docker default network from the cleanup
-					.map(({ Name }) => docker.getNetwork(Name).remove()),
-			);
+			await cleanupDocker({ docker });
 		});
 
 		// test using existing data...
@@ -59,7 +52,7 @@ describe('lib/docker-utils', () => {
 		});
 
 		after(async () => {
-			await docker.pruneImages({ filters: { dangling: { false: true } } });
+			await cleanupDocker({ docker });
 		});
 
 		// test using existing data...

@@ -2,7 +2,7 @@ import { expect } from 'chai';
 
 import * as imageManager from '~/src/compose/images';
 import { createImage, withMockerode } from '~/test-lib/mockerode';
-import { createDockerImage } from '~/test-lib/docker-helper';
+import { cleanupDocker, createDockerImage } from '~/test-lib/docker-helper';
 
 import * as Docker from 'dockerode';
 import * as db from '~/src/db';
@@ -38,7 +38,7 @@ describe('compose/images', () => {
 	});
 
 	after(async () => {
-		await docker.pruneImages({ filters: { dangling: { false: true } } });
+		await cleanupDocker({ docker });
 	});
 
 	it('finds image by matching digest on the database', async () => {

@@ -14,6 +14,7 @@ import { ServiceComposeConfig } from '~/src/compose/types/service';
 import Volume from '~/src/compose/volume';
 import { InstancedAppState } from '~/src/types/state';
 import * as config from '~/src/config';
+import { cleanupDocker } from '~/test-lib/docker-helper';
 
 const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, 'appuuid', {});
 
@@ -194,15 +195,7 @@ describe('compose/application-manager', () => {
 	});
 
 	afterEach(async () => {
-		// Delete any created networks
-		const docker = new Docker();
-		const allNetworks = await docker.listNetworks();
-		await Promise.all(
-			allNetworks
-				// exclude docker default networks from the cleanup
-				.filter(({ Name }) => !['bridge', 'host', 'none'].includes(Name))
-				.map(({ Name }) => docker.getNetwork(Name).remove()),
-		);
+		await cleanupDocker();
 	});
 
 	// TODO: we don't test application manager initialization as it sets up a bunch of timers

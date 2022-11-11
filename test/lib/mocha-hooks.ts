@@ -1,5 +1,8 @@
 import * as sinon from 'sinon';
 import log from '~/lib/supervisor-console';
+import { setupSupervisorImage, cleanupDocker } from './docker-helper';
+
+const isIntegration = process.env.INTEGRATION != null;
 
 /**
  * Mocha runs these hooks before/after each test suite (beforeAll/afterAll)
@@ -9,7 +12,7 @@ import log from '~/lib/supervisor-console';
  * https://mochajs.org/#test-fixture-decision-tree-wizard-thing
  */
 export const mochaHooks = {
-	beforeAll() {
+	async beforeAll() {
 		// disable log output during testing
 		sinon.stub(log, 'debug');
 		sinon.stub(log, 'warn');
@@ -18,6 +21,10 @@ export const mochaHooks = {
 		sinon.stub(log, 'event');
 		sinon.stub(log, 'error');
 		sinon.stub(log, 'api');
+
+		if (isIntegration) {
+			await setupSupervisorImage();
+		}
 	},
 
 	afterEach() {
@@ -30,7 +37,7 @@ export const mochaHooks = {
 		(log.api as sinon.SinonStub).reset();
 	},
 
-	afterAll() {
+	async afterAll() {
 		(log.debug as sinon.SinonStub).restore();
 		(log.warn as sinon.SinonStub).restore();
 		(log.info as sinon.SinonStub).restore();
@@ -38,5 +45,9 @@ export const mochaHooks = {
 		(log.event as sinon.SinonStub).restore();
 		(log.error as sinon.SinonStub).restore();
 		(log.api as sinon.SinonStub).restore();
+
+		if (isIntegration) {
+			await cleanupDocker({ imagesToExclude: [] });
+		}
 	},
 };

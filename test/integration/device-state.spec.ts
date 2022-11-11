@@ -11,7 +11,7 @@ import { promises as fs } from 'fs';
 import { initializeContractRequirements } from '~/lib/contracts';
 
 import { testfs } from 'mocha-pod';
-import { createDockerImage } from '~/test-lib/docker-helper';
+import { cleanupDocker, createDockerImage } from '~/test-lib/docker-helper';
 import * as Docker from 'dockerode';
 
 describe('device-state', () => {
@@ -28,7 +28,7 @@ describe('device-state', () => {
 	});
 
 	after(async () => {
-		await docker.pruneImages({ filters: { dangling: { false: true } } });
+		await cleanupDocker({ docker });
 	});
 
 	it('loads a target state from an apps.json file and saves it as target state, then returns it', async () => {

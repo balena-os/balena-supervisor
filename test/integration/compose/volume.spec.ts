@@ -7,6 +7,7 @@ import * as logger from '~/src/logger';
 import * as Docker from 'dockerode';
 
 import { createVolume, withMockerode } from '~/test-lib/mockerode';
+import { cleanupDocker } from '~/test-lib/docker-helper';
 
 describe('compose/volume: integration tests', () => {
 	const docker = new Docker();
@@ -23,10 +24,7 @@ describe('compose/volume: integration tests', () => {
 		});
 
 		after(async () => {
-			const { Volumes: allVolumes } = await docker.listVolumes();
-			await Promise.all(
-				allVolumes.map(({ Name }) => docker.getVolume(Name).remove()),
-			);
+			await cleanupDocker({ docker });
 			(logger.logSystemEvent as SinonStub).restore();
 		});
 

@@ -2,6 +2,7 @@ version: '2.3'
 
 services:
   dbus-services:
+    stop_grace_period: 3s
     environment:
       DEVELOPMENT: 1
     volumes:
@@ -9,6 +10,7 @@ services:
       - './test/lib/dbus/login.ts:/usr/src/app/login.ts'
 
   sut:
+    stop_grace_period: 3s
     command: sleep infinity
     volumes:
       - './.mochapodrc.yml:/usr/src/app/.mochapodrc.yml'
