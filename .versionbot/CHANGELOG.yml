@@ -1,4 +1,17 @@
 - commits:
+    - subject: Update blinking to 0.0.7
+      hash: 9e154da76e74638f31b212ad45e296e444e45fe4
+      body: |
+        Update blinking from 0.0.5 to 0.0.7
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.3.1
+  title: ""
+  date: 2022-11-11T16:47:25.205Z
+- commits:
     - subject: Convert ensureSupervisorNetwork to native Promises
       hash: 1034aa70e6a2e425fb4b5e0fa1155eec97b21ed2
       body: >
