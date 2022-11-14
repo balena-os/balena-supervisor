@@ -15,7 +15,9 @@ while :; do
 			shift
 		else
 			printf 'ERROR: "--timeout" requires a non-empty option argument.\n' >&2
+			exit 1
 		fi
+		shift
 		break
 		;;
 	--) # End of all options.
@@ -24,6 +26,7 @@ while :; do
 		;;
 	-?*)
 		printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
+		shift
 		;;
 	*) # Default case: If no more options then break out of the loop.
 		break ;;

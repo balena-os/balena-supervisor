@@ -1,8 +1,6 @@
-import { stub } from 'sinon';
-import * as _ from 'lodash';
 import { expect } from 'chai';
+import { testfs } from 'mocha-pod';
 
-import * as config from '~/src/config';
 import * as configUtils from '~/src/config/utils';
 import { ExtraUEnv } from '~/src/config/backends/extra-uEnv';
 import { Extlinux } from '~/src/config/backends/extlinux';
@@ -11,34 +9,43 @@ import { ConfigFs } from '~/src/config/backends/config-fs';
 import { SplashImage } from '~/src/config/backends/splash-image';
 import { ConfigBackend } from '~/src/config/backends/backend';
 
-describe('Config Utilities', () => {
+import * as hostUtils from '~/lib/host-utils';
+
+const keys = <T extends object>(obj: T) => Object.keys(obj) as Array<keyof T>;
+
+describe('config/utils', () => {
 	it('gets list of supported backends', async () => {
-		// Stub so that we get an array containing only config-txt backend
-		const configStub = stub(config, 'get').resolves('raspberry');
+		const tFs = await testfs({
+			// This is only needed so config.get doesn't fail
+			[hostUtils.pathOnBoot('config.json')]: JSON.stringify({
+				deviceType: 'raspberrypi4',
+			}),
+		}).enable();
+
 		// Get list of backends
 		const devices = await configUtils.getSupportedBackends();
 		expect(devices.length).to.equal(2);
 		expect(devices[0].constructor.name).to.equal('ConfigTxt');
 		expect(devices[1].constructor.name).to.equal('SplashImage');
-		// Restore stub
-		configStub.restore();
+
+		await tFs.restore();
 		// TO-DO: When we have a device that will match for multiple backends
 		// add a test that we get more then 1 backend for that device
 	});
 
 	it('transforms environment variables to boot configs', () => {
-		_.forEach(CONFIGS, (configObj: any, key: string) => {
+		keys(CONFIGS).forEach((key) => {
 			expect(
-				configUtils.envToBootConfig(BACKENDS[key], configObj.envVars),
-			).to.deep.equal(configObj.bootConfig);
+				configUtils.envToBootConfig(BACKENDS[key], CONFIGS[key].envVars),
+			).to.deep.equal(CONFIGS[key].bootConfig);
 		});
 	});
 
 	it('transforms boot configs to environment variables', () => {
-		_.forEach(CONFIGS, (configObj: any, key: string) => {
+		keys(CONFIGS).forEach((key) => {
 			expect(
-				configUtils.bootConfigToEnv(BACKENDS[key], configObj.bootConfig),
-			).to.deep.equal(configObj.envVars);
+				configUtils.bootConfigToEnv(BACKENDS[key], CONFIGS[key].bootConfig),
+			).to.deep.equal(CONFIGS[key].envVars);
 		});
 	});
 });

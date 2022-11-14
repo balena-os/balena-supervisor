@@ -7,12 +7,13 @@ testfs:
   # in the `testfs` configuration.
   filesystem:
     /mnt/root:
-      /mnt/boot/config.json:
-        from: test/data/testconfig.json
-      /mnt/boot/config.txt:
-        from: test/data/mnt/boot/config.txt
-      /mnt/boot/device-type.json:
-        from: test/data/mnt/boot/device-type.json
+      /mnt/boot:
+        config.json:
+          from: test/data/testconfig.json
+        config.txt:
+          from: test/data/mnt/boot/config.txt
+        device-type.json:
+          from: test/data/mnt/boot/device-type.json
       /etc/os-release:
         from: test/data/etc/os-release
   # The `keep` list defines files that already exist in the
@@ -24,3 +25,4 @@ testfs:
     - /data/database.sqlite
     - /data/apps.json.preloaded
     - /mnt/root/tmp/balena-supervisor/**/*.lock
+    - /mnt/root/mnt/boot/splash/*.png
