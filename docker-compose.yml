@@ -14,3 +14,12 @@ services:
       io.balena.features.balena-api: '1'
       io.balena.features.dbus: '1'
       io.balena.features.balena-socket: '1'
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: '10.114.105.0/25'
+          gateway: '10.114.105.1'
