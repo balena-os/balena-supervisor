@@ -1,4 +1,43 @@
 - commits:
+    - subject: Migrate all device config tests to integration.
+      hash: 827f892c138dd05f9402d91e43125aa3a4dc35ac
+      body: >
+        This means that configuration backend tests no longer use stubs and
+
+        (mostly) avoid internal dependencies in the tests. Instead of stubs and
+
+        mock-fs, the tests use [testfs](https://github.com/balena-io-modules/mocha-pod#working-with-the-filesystem)
+
+        which allows working with a real filesystem and ensuring everything is
+
+        re-set between tests.
+
+
+        This is the last change needed in order to be able to merge #1971. Here is the list of changes
+
+
+        - [x] Migrate splash image backend tests
+
+        - [x] Migrate extlinux backend tests
+
+        - [x] Migrate config.txt backend tests
+
+        - [x] Migrate extra-uenv config tests
+
+        - [x] Migrate odmdata config tests
+
+        - [x] Migrate config utils tests
+
+        - [x] Migrate device-config tests
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: pipex
+      nested: []
+  version: 14.3.3
+  title: ""
+  date: 2022-11-14T15:28:56.604Z
+- commits:
     - subject: Fix locking stubs that were returning `Bluebird` rather than `Promise`
       hash: d587a323f2da396aa0f84e4720b73d61bfe5a88a
       body: ""
