@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 
 import { Network } from '~/src/compose/network';
-import { NetworkInspectInfo } from 'dockerode';
+import { NetworkInspectInfo } from '~/src/compose/types/network';
 
 import { log } from '~/lib/supervisor-console';
 
@@ -32,6 +32,7 @@ describe('compose/network', () => {
 				'io.balena.app-id': '12345',
 			});
 			expect(network.config.options).to.deep.equal({});
+			expect(network.config.configOnly).to.equal(false);
 		});
 
 		it('normalizes legacy labels', () => {
@@ -152,6 +153,7 @@ describe('compose/network', () => {
 				labels: {
 					'com.docker.some-label': 'yes',
 				},
+				config_only: true,
 			});
 
 			const dockerConfig = network1.toDockerConfig();
@@ -174,7 +176,9 @@ describe('compose/network', () => {
 					},
 				],
 			});
-
+			// If ConfigOnly is true, Subnet & Gateway remain in config
+			// but no actual networks are created.
+			expect(dockerConfig.ConfigOnly).to.equal(true);
 			expect(dockerConfig.Labels).to.deep.equal({
 				'io.balena.supervised': 'true',
 				'io.balena.app-id': '12345',
@@ -251,6 +255,7 @@ describe('compose/network', () => {
 					'io.balena.supervised': 'true',
 					'io.balena.features.something': '123',
 				} as NetworkInspectInfo['Labels'],
+				ConfigOnly: false,
 			} as NetworkInspectInfo);
 
 			expect(network.appId).to.equal(1234);
@@ -271,6 +276,7 @@ describe('compose/network', () => {
 			expect(network.config.labels).to.deep.equal({
 				'io.balena.features.something': '123',
 			});
+			expect(network.config.configOnly).to.equal(false);
 		});
 
 		it('creates a network object from a docker network configuration', () => {
@@ -299,6 +305,7 @@ describe('compose/network', () => {
 					'io.balena.features.something': '123',
 					'io.balena.app-id': '1234',
 				} as NetworkInspectInfo['Labels'],
+				ConfigOnly: false,
 			} as NetworkInspectInfo);
 
 			expect(network.appId).to.equal(1234);
@@ -321,6 +328,7 @@ describe('compose/network', () => {
 				'io.balena.features.something': '123',
 				'io.balena.app-id': '1234',
 			});
+			expect(network.config.configOnly).to.equal(false);
 		});
 
 		it('normalizes legacy label names and excludes supervised label', () => {
@@ -372,6 +380,7 @@ describe('compose/network', () => {
 					'io.balena.features.something': '123',
 					'io.balena.app-id': '12345',
 				} as NetworkInspectInfo['Labels'],
+				ConfigOnly: true,
 			} as NetworkInspectInfo);
 
 			expect(network.appId).to.equal(12345);
@@ -399,6 +408,7 @@ describe('compose/network', () => {
 				'io.balena.features.something': '123',
 				'io.balena.app-id': '12345',
 			});
+			expect(compose.config_only).to.equal(true);
 		});
 	});
 

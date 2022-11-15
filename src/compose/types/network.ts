@@ -1,3 +1,11 @@
+import { NetworkInspectInfo as DockerNetworkInspectInfo } from 'dockerode';
+
+// TODO: ConfigOnly is part of @types/dockerode@v3.2.0, but that version isn't
+// compatible with `resin-docker-build` which is used for `npm run sync`.
+export interface NetworkInspectInfo extends DockerNetworkInspectInfo {
+	ConfigOnly: boolean;
+}
+
 export interface ComposeNetworkConfig {
 	driver: string;
 	driver_opts: Dictionary<string>;
@@ -16,6 +24,7 @@ export interface ComposeNetworkConfig {
 	enable_ipv6: boolean;
 	internal: boolean;
 	labels: Dictionary<string>;
+	config_only: boolean;
 }
 export interface NetworkConfig {
 	driver: string;
@@ -33,4 +42,5 @@ export interface NetworkConfig {
 	internal: boolean;
 	labels: { [labelName: string]: string };
 	options: { [optName: string]: string };
+	configOnly: boolean;
 }

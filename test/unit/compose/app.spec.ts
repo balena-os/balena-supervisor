@@ -602,6 +602,78 @@ describe('compose/app', () => {
 			// The network should not be created again
 			expectNoStep('createNetwork', steps);
 		});
+
+		it('should create a config-only network if network_mode is host for all services', async () => {
+			const svcOne = await createService({
+				appId: 1,
+				serviceName: 'one',
+				composition: { network_mode: 'host' },
+			});
+			const svcTwo = await createService({
+				appId: 1,
+				serviceName: 'two',
+				composition: { network_mode: 'host' },
+			});
+			const current = createApp({
+				services: [svcOne, svcTwo],
+				networks: [],
+			});
+			const target = createApp({
+				services: [svcOne, svcTwo],
+				networks: [],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+
+			const [createNetworkStep] = expectSteps('createNetwork', steps);
+			expect(createNetworkStep)
+				.to.have.property('target')
+				.that.has.property('config')
+				.that.deep.includes({ configOnly: true });
+		});
+
+		it('should not create a config-only network if network_mode: host is not specified for any service', async () => {
+			const svcOne = await createService({
+				appId: 1,
+				serviceName: 'one',
+				composition: { network_mode: 'host' },
+			});
+			const svcTwo = await createService({
+				appId: 1,
+				serviceName: 'two',
+			});
+			const current = createApp({
+				services: [svcOne, svcTwo],
+				networks: [],
+			});
+			const target = createApp({
+				services: [svcOne, svcTwo],
+				networks: [],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+
+			const [createNetworkStep] = expectSteps('createNetwork', steps);
+			expect(createNetworkStep)
+				.to.have.property('target')
+				.that.has.property('config')
+				.that.deep.includes({ configOnly: false });
+		});
+
+		it('should create a config-only network if there are no services in the app', async () => {
+			const current = createApp({});
+			const target = createApp({ isTarget: true });
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+
+			const [createNetworkStep] = expectSteps('createNetwork', steps);
+			expect(createNetworkStep)
+				.to.have.property('target')
+				.that.has.property('config')
+				.that.deep.includes({ configOnly: true });
+		});
 	});
 
 	describe('service state behavior', () => {
