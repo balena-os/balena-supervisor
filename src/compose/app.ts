@@ -77,12 +77,20 @@ export class App {
 		this.isHost = !!opts.isHost;
 
 		if (this.networks.default == null && isTargetState) {
+			const allHostNetworking = this.services.every(
+				(svc) => svc.config.networkMode === 'host',
+			);
 			// We always want a default network
 			this.networks.default = Network.fromComposeObject(
 				'default',
 				opts.appId,
-				opts.appUuid!, // app uuid always exists on the target state
-				{},
+				// app uuid always exists on the target state
+				opts.appUuid!,
+				// We don't want the default bridge to have actual addresses at all if services
+				// aren't using it, to minimize chances of host-Docker address conflicts.
+				// If config_only is specified, the network is created and available in Docker
+				// by name and config only, and no actual networking setup occurs.
+				{ config_only: allHostNetworking },
 			);
 		}
 	}

@@ -69,6 +69,7 @@ describe('compose/network: integration tests', () => {
 					'io.balena.app-id': '12345',
 				},
 				Options: {},
+				ConfigOnly: false,
 			});
 
 			// Test network removal

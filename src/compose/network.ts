@@ -7,7 +7,11 @@ import * as logger from '../logger';
 import log from '../lib/supervisor-console';
 import * as ComposeUtils from './utils';
 
-import { ComposeNetworkConfig, NetworkConfig } from './types/network';
+import {
+	ComposeNetworkConfig,
+	NetworkConfig,
+	NetworkInspectInfo,
+} from './types/network';
 
 import { InvalidNetworkNameError } from './errors';
 import { InternalInconsistencyError } from '../lib/errors';
@@ -48,9 +52,7 @@ export class Network {
 		};
 	}
 
-	public static fromDockerNetwork(
-		network: dockerode.NetworkInspectInfo,
-	): Network {
+	public static fromDockerNetwork(network: NetworkInspectInfo): Network {
 		const ret = new Network();
 
 		// Detect the name and appId from the inspect data
@@ -91,6 +93,7 @@ export class Network {
 				'io.balena.supervised',
 			]),
 			options: network.Options ?? {},
+			configOnly: network.ConfigOnly,
 		};
 
 		return ret;
@@ -138,6 +141,7 @@ export class Network {
 				...ComposeUtils.normalizeLabels(network.labels || {}),
 			},
 			options: network.driver_opts || {},
+			configOnly: network.config_only || false,
 		};
 
 		return net;
@@ -151,6 +155,7 @@ export class Network {
 			internal: this.config.internal,
 			ipam: this.config.ipam,
 			labels: this.config.labels,
+			config_only: this.config.configOnly,
 		};
 	}
 
@@ -162,7 +167,9 @@ export class Network {
 		await docker.createNetwork(this.toDockerConfig());
 	}
 
-	public toDockerConfig(): dockerode.NetworkCreateOptions {
+	public toDockerConfig(): dockerode.NetworkCreateOptions & {
+		ConfigOnly: boolean;
+	} {
 		return {
 			Name: Network.generateDockerName(this.appUuid!, this.name),
 			Driver: this.config.driver,
@@ -189,6 +196,7 @@ export class Network {
 				},
 				this.config.labels,
 			),
+			ConfigOnly: this.config.configOnly,
 		};
 	}
 
@@ -230,7 +238,7 @@ export class Network {
 	}
 
 	public isEqualConfig(network: Network): boolean {
-		// don't compare the ipam.config if it's not present
+		// Don't compare the ipam.config if it's not present
 		// in the target state (as it will be present in the
 		// current state, due to docker populating it with
 		// default or generated values)
@@ -238,6 +246,15 @@ export class Network {
 		if (network.config.ipam.config.length === 0) {
 			configToCompare = _.cloneDeep(this.config);
 			configToCompare.ipam.config = [];
+		}
+
+		// If configOnly is true, driver will always be null even if
+		// it's specified as bridge in the target state, so don't compare drivers.
+		// Any ipam config will be included in the network, but not applied
+		// in the host's networking layer.
+		if (network.config.configOnly) {
+			configToCompare = _.cloneDeep(this.config);
+			configToCompare.driver = network.config.driver;
 		}
 
 		return _.isEqual(configToCompare, network.config);

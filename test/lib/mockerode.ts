@@ -78,6 +78,7 @@ export function createNetwork(network: PartialNetworkInspectInfo) {
 		Containers: {},
 		Options: {},
 		Labels: {},
+		ConfigOnly: false,
 
 		// Add defaults
 		...networkInspect,
