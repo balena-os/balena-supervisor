@@ -1,4 +1,24 @@
 - commits:
+    - subject: Simplify getting images for cleanup
+      hash: 8174ea9643fb1059aad6fb05c68f42ade0579475
+      body: |
+        getImagesForCleanup used to query the Engine for the Supervisor
+        image, which is unnecessary given that the Supervisor has access
+        to constants.supervisorImage. Thus, this Engine query is removed.
+
+        The method is simplified and made more clear, and
+        imageManager.isCleanupNeeded doesn't need to be stubbed in tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.3.5
+  title: ""
+  date: 2022-11-16T22:29:57.342Z
+- commits:
     - subject: Create default network as config-only when services have host networking
       hash: f558be0a167c679ed50eb46350d14176bc3b8d89
       body: |
