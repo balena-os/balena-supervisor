@@ -465,71 +465,70 @@ export const save = async (image: Image): Promise<void> => {
 	await markAsSupervised(image);
 };
 
-async function getImagesForCleanup(): Promise<string[]> {
-	const images: string[] = [];
+// TODO: remove after we agree on what to do for Supervisor image cleanup after hup
+const getSupervisorRepos = (imageName: string) => {
+	const supervisorRepos = new Set<string>();
+	supervisorRepos.add(imageName);
+	// If we're on the new balena/ARCH-supervisor image, add legacy image.
+	// If the image name is legacy, the `replace` will have no effect.
+	supervisorRepos.add(imageName.replace(/^balena/, 'resin'));
+	return [...supervisorRepos];
+};
 
-	const supervisorImageInfo = dockerUtils.getRegistryAndName(
+// TODO: same as above, we no longer use tags to identify supervisors
+const isSupervisorRepoTag = ({
+	repoTag,
+	svRepos,
+	svTag,
+}: {
+	repoTag: string;
+	svRepos: ReturnType<typeof getSupervisorRepos>;
+	svTag?: string;
+}) => {
+	const { imageName, tagName } = dockerUtils.getRegistryAndName(repoTag);
+	return svRepos.some((repo) => imageName === repo) && tagName !== svTag;
+};
+
+async function getImagesForCleanup(): Promise<Array<Docker.ImageInfo['Id']>> {
+	// Get Supervisor image metadata for exclusion from image cleanup
+	const { imageName: svImage, tagName: svTag } = dockerUtils.getRegistryAndName(
 		constants.supervisorImage,
 	);
-	const [supervisorImage, usedImageIds] = await Promise.all([
-		docker.getImage(constants.supervisorImage).inspect(),
-		db
-			.models('image')
-			.select('dockerImageId')
-			.then((vals) => vals.map((img: Image) => img.dockerImageId)),
-	]);
+	const svRepos = getSupervisorRepos(svImage);
 
-	// TODO: remove after we agree on what to do for
-	// supervisor image cleanup after hup
-	const supervisorRepos = [supervisorImageInfo.imageName];
-	// If we're on the new balena/ARCH-supervisor image
-	if (_.startsWith(supervisorImageInfo.imageName, 'balena/')) {
-		supervisorRepos.push(
-			supervisorImageInfo.imageName.replace(/^balena/, 'resin'),
-		);
-	}
-
-	// TODO: same as above, we no longer use tags to identify supervisors
-	const isSupervisorRepoTag = ({
-		imageName,
-		tagName,
-	}: {
-		imageName: string;
-		tagName?: string;
-	}) => {
-		return (
-			_.some(supervisorRepos, (repo) => imageName === repo) &&
-			tagName !== supervisorImageInfo.tagName
-		);
-	};
+	const usedImageIds: string[] = await db
+		.models('image')
+		.select('dockerImageId')
+		.then((vals) => vals.map(({ dockerImageId }: Image) => dockerImageId));
 
 	const dockerImages = await docker.listImages({ digests: true });
+
+	const imagesToCleanup = new Set<Docker.ImageInfo['Id']>();
 	for (const image of dockerImages) {
 		// Cleanup should remove truly dangling images (i.e dangling and with no digests)
-		if (isDangling(image) && !_.includes(usedImageIds, image.Id)) {
-			images.push(image.Id);
-		} else if (!_.isEmpty(image.RepoTags) && image.Id !== supervisorImage.Id) {
-			// We also remove images from the supervisor repository with a different tag
-			for (const tag of image.RepoTags) {
-				const imageNameComponents = dockerUtils.getRegistryAndName(tag);
-				// If
-				if (isSupervisorRepoTag(imageNameComponents)) {
-					images.push(image.Id);
-				}
+		if (isDangling(image) && !usedImageIds.includes(image.Id)) {
+			imagesToCleanup.add(image.Id);
+			continue;
+		}
+
+		// We also remove images from the Supervisor repository with a different tag
+		for (const repoTag of image.RepoTags || []) {
+			if (isSupervisorRepoTag({ repoTag, svRepos, svTag })) {
+				imagesToCleanup.add(image.Id);
 			}
 		}
 	}
 
-	return _(images)
-		.uniq()
-		.filter(
-			(image) =>
-				imageCleanupFailures[image] == null ||
-				Date.now() - imageCleanupFailures[image] >
-					constants.imageCleanupErrorIgnoreTimeout,
-		)
-		.value();
+	return [...imagesToCleanup].filter(
+		(image) =>
+			imageCleanupFailures[image] == null ||
+			Date.now() - imageCleanupFailures[image] >
+				constants.imageCleanupErrorIgnoreTimeout,
+	);
 }
+
+export const isCleanupNeeded = async () =>
+	(await getImagesForCleanup()).length > 0;
 
 // Look for an image in the engine with registry/image as reference (tag)
 // for images with deltas this should return unless there is some inconsistency
@@ -604,10 +603,6 @@ export async function inspectByName(imageName: string) {
 			'Promise sequence in inspectByName is broken. This is a bug.',
 		),
 	);
-}
-
-export async function isCleanupNeeded() {
-	return !_.isEmpty(await getImagesForCleanup());
 }
 
 export async function cleanup() {

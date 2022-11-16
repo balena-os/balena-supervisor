@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { stub } from 'sinon';
 import * as Docker from 'dockerode';
 import App from '~/src/compose/app';
 import * as applicationManager from '~/src/compose/application-manager';
@@ -14,6 +13,7 @@ import { ServiceComposeConfig } from '~/src/compose/types/service';
 import Volume from '~/src/compose/volume';
 import { InstancedAppState } from '~/src/types/state';
 import * as config from '~/src/config';
+import { createDockerImage } from '~/test-lib/docker-helper';
 
 const DEFAULT_NETWORK = Network.fromComposeObject('default', 1, 'appuuid', {});
 
@@ -171,9 +171,6 @@ function createCurrentState({
 // the app spec, remove that redundancy to simplify the tests
 describe('compose/application-manager', () => {
 	before(async () => {
-		// Stub methods that depend on external dependencies
-		stub(imageManager, 'isCleanupNeeded');
-
 		// Service.fromComposeObject gets api keys from the database
 		// which also depend on the local mode. This ensures the database
 		// is initialized. This can be removed when ApplicationManager and Service
@@ -182,15 +179,8 @@ describe('compose/application-manager', () => {
 	});
 
 	beforeEach(async () => {
-		// Do not check for cleanup images by default
-		(imageManager.isCleanupNeeded as sinon.SinonStub).resolves(false);
 		// Set up network by default
 		await networkManager.ensureSupervisorNetwork();
-	});
-
-	after(() => {
-		// Restore stubs
-		(imageManager.isCleanupNeeded as sinon.SinonStub).restore();
 	});
 
 	afterEach(async () => {
@@ -927,8 +917,21 @@ describe('compose/application-manager', () => {
 	});
 
 	it('should infer a cleanup step when a cleanup is required', async () => {
-		// Stub the image manager function
-		(imageManager.isCleanupNeeded as sinon.SinonStub).resolves(true);
+		// Create a dangling image; this is done by building an image again with
+		// some slightly different metadata, leaving the old image with no metadata.
+		const docker = new Docker();
+		const dockerImageIdOne = await createDockerImage(
+			'some-image:some-tag',
+			['io.balena.testing=1'],
+			docker,
+		);
+		const dockerImageIdTwo = await createDockerImage(
+			'some-image:some-tag',
+			['io.balena.testing=2'],
+			docker,
+		);
+		// Remove the tagged image, leaving only the dangling image
+		await docker.getImage(dockerImageIdTwo).remove();
 
 		const targetApps = createApps(
 			{
@@ -958,6 +961,8 @@ describe('compose/application-manager', () => {
 			action: 'cleanup',
 		});
 		expect(nextSteps).to.have.lengthOf(0);
+
+		await docker.getImage(dockerImageIdOne).remove();
 	});
 
 	it('should infer that an image should be removed if it is no longer referenced in current or target state (only target)', async () => {
@@ -1188,7 +1193,7 @@ describe('compose/application-manager', () => {
 		).to.have.lengthOf(1);
 	});
 
-	describe('getting applications current state', () => {
+	describe("getting application's current state", () => {
 		let getImagesState: sinon.SinonStub;
 		let getServicesState: sinon.SinonStub;
 
