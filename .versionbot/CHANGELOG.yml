@@ -1,4 +1,22 @@
 - commits:
+    - subject: Create default network as config-only when services have host networking
+      hash: f558be0a167c679ed50eb46350d14176bc3b8d89
+      body: |
+        This eliminates chances of host-Docker address collision for apps such
+        as the Supervisor where all services have host networking.
+      footer:
+        Closes: "#2062"
+        closes: "#2062"
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.3.4
+  title: ""
+  date: 2022-11-16T18:55:00.377Z
+- commits:
     - subject: Migrate all device config tests to integration.
       hash: 827f892c138dd05f9402d91e43125aa3a4dc35ac
       body: >
