@@ -1,4 +1,31 @@
 - commits:
+    - subject: Use fatrw utility for writes to boot partition
+      hash: dade5987370c68d639d698cc3e4a9d6ccf4df9c5
+      body: >
+        This PR changes the way the supervisor reads and writes files from
+        /mnt/boot. Reads will
+
+        now use the [fatrw utility](https://github.com/balena-os/fatrw/) as a way to minimize corruption of
+
+        files in the boot partition, and thus preventing possible bricking of the device.
+
+
+        Since this basically changes the way a lot of configurations are read, this work was being blocked because of
+
+        the way tests were being done. While there still remain a couple of legacy tests to be migrated, this PR disables
+
+        test:legacy tests when running npm run test, as the work on refactoring those tests is in progress (see #2048) and
+
+        fatrw integration is of higher priority.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 14.4.0
+  title: ""
+  date: 2022-11-17T01:37:52.537Z
+- commits:
     - subject: Simplify getting images for cleanup
       hash: 8174ea9643fb1059aad6fb05c68f42ade0579475
       body: |
