@@ -82,13 +82,28 @@ async function report({ body, opts }: StateReport) {
  *
  * Does *not* validate time elapsed since last report.
  */
-async function reportCurrentState(opts: StateReportOpts) {
+async function reportCurrentState(opts: StateReportOpts, uuid: string) {
 	const getStateAndReport = async () => {
 		const currentState = await deviceState.getCurrentForReport(lastReport);
 		const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
 
 		if (empty(stateDiff)) {
 			return;
+		}
+
+		// If metrics not yet scheduled, report must include a state change to
+		// qualify for sending.
+		const metricsScheduled =
+			performance.now() - lastReportTime > maxMetricsFrequency;
+		if (!metricsScheduled) {
+			const uuidMap = stateDiff[uuid] as { [k: string]: any };
+			if (
+				Object.keys(uuidMap).every((n) =>
+					deviceState.sysInfoPropertyNames.includes(n),
+				)
+			) {
+				return;
+			}
 		}
 
 		await report({ body: stateDiff, opts });
@@ -145,6 +160,11 @@ export async function startReporting() {
 		'deviceApiKey',
 		'appUpdatePollInterval',
 	])) as StateReportOpts;
+	// Pass uuid to report separately to guarantee it exists.
+	const uuid = await config.get('uuid');
+	if (!uuid) {
+		throw new InternalInconsistencyError('No uuid found for local device');
+	}
 
 	let reportPending = false;
 	// Reports current state if not already sending and does not exceed report
@@ -153,7 +173,7 @@ export async function startReporting() {
 		if (!reportPending) {
 			if (performance.now() - lastReportTime > maxReportFrequency) {
 				reportPending = true;
-				await reportCurrentState(reportConfigs);
+				await reportCurrentState(reportConfigs, uuid);
 				reportPending = false;
 				return true;
 			} else {
