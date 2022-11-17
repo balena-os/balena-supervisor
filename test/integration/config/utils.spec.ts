@@ -17,9 +17,16 @@ describe('config/utils', () => {
 	it('gets list of supported backends', async () => {
 		const tFs = await testfs({
 			// This is only needed so config.get doesn't fail
-			[hostUtils.pathOnBoot('config.json')]: JSON.stringify({
-				deviceType: 'raspberrypi4',
+			[hostUtils.pathOnBoot('device-type.json')]: JSON.stringify({
+				slug: 'raspberrypi4-64',
+				arch: 'aarch64',
 			}),
+			[hostUtils.pathOnBoot('splash')]: {
+				'balena-logo.png': Buffer.from(
+					'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEX/TQBcNTh/AAAAAXRSTlPM0jRW/QAAAApJREFUeJxjYgAAAAYAAzY3fKgAAAAASUVORK5CYII=',
+					'base64',
+				),
+			},
 		}).enable();
 
 		// Get list of backends

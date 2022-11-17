@@ -71,7 +71,7 @@ export class SplashImage extends ConfigBackend {
 		where = where ?? (await this.getSplashPath());
 
 		// read the image file...
-		return (await fs.readFile(where)).toString('base64');
+		return (await hostUtils.readFromBoot(where)).toString('base64');
 	}
 
 	// Write a splash image provided as a base64 string

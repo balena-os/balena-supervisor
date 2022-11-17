@@ -10,7 +10,7 @@ import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
 import { ENOENT } from './lib/errors';
 import { mkdirp, unlinkAll } from './lib/fs-utils';
-import { writeToBoot } from './lib/host-utils';
+import { writeToBoot, readFromBoot } from './lib/host-utils';
 import * as updateLock from './lib/update-lock';
 
 const redsocksHeader = stripIndent`
@@ -66,7 +66,7 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 	const conf: ProxyConfig = {};
 	let redsocksConf: string;
 	try {
-		redsocksConf = await fs.readFile(redsocksConfPath, 'utf-8');
+		redsocksConf = await readFromBoot(redsocksConfPath, 'utf-8');
 	} catch (e: any) {
 		if (!ENOENT(e)) {
 			throw e;
@@ -91,8 +91,7 @@ async function readProxy(): Promise<ProxyConfig | undefined> {
 	}
 
 	try {
-		const noProxy = await fs
-			.readFile(noProxyPath, 'utf-8')
+		const noProxy = await readFromBoot(noProxyPath, 'utf-8')
 			// Prevent empty newline from being reported as a noProxy address
 			.then((addrs) => addrs.split('\n').filter((addr) => addr !== ''));
 

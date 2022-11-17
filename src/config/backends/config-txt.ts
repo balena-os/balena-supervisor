@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import { promises as fs } from 'fs';
 
 import { ConfigOptions, ConfigBackend } from './backend';
 import * as constants from '../../lib/constants';
@@ -64,7 +63,10 @@ export class ConfigTxt extends ConfigBackend {
 		let configContents = '';
 
 		if (await exists(ConfigTxt.bootConfigPath)) {
-			configContents = await fs.readFile(ConfigTxt.bootConfigPath, 'utf-8');
+			configContents = await hostUtils.readFromBoot(
+				ConfigTxt.bootConfigPath,
+				'utf-8',
+			);
 		} else {
 			await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, '');
 		}

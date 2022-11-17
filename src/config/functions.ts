@@ -1,7 +1,6 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
-import { promises as fs } from 'fs';
 
 import supervisorVersion = require('../lib/supervisor-version');
 
@@ -9,6 +8,7 @@ import * as config from '.';
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
 import * as macAddress from '../lib/mac-address';
+import * as hostUtils from '../lib/host-utils';
 import log from '../lib/supervisor-console';
 
 export const fnSchema = {
@@ -43,9 +43,9 @@ export const fnSchema = {
 			try {
 				// FIXME: We should be mounting the following file into the supervisor from the
 				// start-balena-supervisor script, changed in meta-balena - but until then, hardcode it
-				const data = await fs.readFile(
-					`${constants.rootMountPoint}${constants.bootMountPoint}/device-type.json`,
-					'utf8',
+				const data = await hostUtils.readFromBoot(
+					hostUtils.pathOnBoot('device-type.json'),
+					'utf-8',
 				);
 				const deviceInfo = JSON.parse(data);
 
@@ -62,9 +62,9 @@ export const fnSchema = {
 			try {
 				// FIXME: We should be mounting the following file into the supervisor from the
 				// start-balena-supervisor script, changed in meta-balena - but until then, hardcode it
-				const data = await fs.readFile(
-					`${constants.rootMountPoint}${constants.bootMountPoint}/device-type.json`,
-					'utf8',
+				const data = await hostUtils.readFromBoot(
+					hostUtils.pathOnBoot('device-type.json'),
+					'utf-8',
 				);
 				const deviceInfo = JSON.parse(data);
 

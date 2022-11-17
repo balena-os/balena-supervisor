@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import { promises as fs } from 'fs';
 
 import { ConfigOptions, ConfigBackend } from './backend';
 import * as constants from '../../lib/constants';
@@ -197,7 +196,7 @@ export class ExtraUEnv extends ConfigBackend {
 
 	private static async readBootConfigPath(): Promise<string> {
 		try {
-			return await fs.readFile(ExtraUEnv.bootConfigPath, 'utf-8');
+			return await hostUtils.readFromBoot(ExtraUEnv.bootConfigPath, 'utf-8');
 		} catch {
 			// In the rare case where the user might have deleted extra_uEnv conf file between linux boot and supervisor boot
 			// We do not have any backup to fallback too; warn the user of a possible brick
