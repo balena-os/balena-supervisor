@@ -447,6 +447,18 @@ async function getSysInfo(
 	);
 }
 
+/** SysInfo (metrics) property names used in report. */
+export const sysInfoPropertyNames = [
+	'cpu_usage',
+	'memory_usage',
+	'memory_total',
+	'storage_usage',
+	'storage_total',
+	'storage_block_device',
+	'cpu_temp',
+	'cpu_id',
+];
+
 // Return current state in a way that the API understands
 export async function getCurrentForReport(
 	lastReport = {} as DeviceState,

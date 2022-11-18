@@ -4,7 +4,6 @@ import { delay } from 'bluebird';
 import { CoreOptions } from 'request';
 import { performance } from 'perf_hooks';
 
-import * as constants from '../lib/constants';
 import { withBackoff, OnFailureInfo } from '../lib/backoff';
 import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
@@ -20,6 +19,13 @@ import { shallowDiff, prune, empty } from '../lib/json';
 
 let lastReport: DeviceState = {};
 let lastReportTime: number = -Infinity;
+// Tracks if unable to report the latest state change event.
+let stateChangeDeferred: boolean = false;
+// How often can we report our state to the server in ms
+const maxReportFrequency = 10 * 1000;
+// How often can we report metrics to the server in ms; mirrors server setting.
+// Metrics are low priority, so less frequent than maxReportFrequency.
+const maxMetricsFrequency = 300 * 1000;
 
 // TODO: This counter is read by the healthcheck to see if the
 // supervisor is having issues to connect. We have removed the
@@ -70,30 +76,40 @@ async function report({ body, opts }: StateReport) {
 	}
 }
 
-async function reportCurrentState(opts: StateReportOpts) {
-	// Wrap the report with fetching of state so report always has the latest state diff
+/**
+ * Collects current state and reports with backoff. Diffs report content with
+ * previous report and does not send an empty report.
+ *
+ * Does *not* validate time elapsed since last report.
+ */
+async function reportCurrentState(opts: StateReportOpts, uuid: string) {
 	const getStateAndReport = async () => {
-		const now = performance.now();
-		// Only try to report if enough time has elapsed since last report
-		if (now - lastReportTime >= constants.maxReportFrequency) {
-			const currentState = await deviceState.getCurrentForReport(lastReport);
-			const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
+		const currentState = await deviceState.getCurrentForReport(lastReport);
+		const stateDiff = prune(shallowDiff(lastReport, currentState, 2));
 
-			if (empty(stateDiff)) {
+		if (empty(stateDiff)) {
+			return;
+		}
+
+		// If metrics not yet scheduled, report must include a state change to
+		// qualify for sending.
+		const metricsScheduled =
+			performance.now() - lastReportTime > maxMetricsFrequency;
+		if (!metricsScheduled) {
+			const uuidMap = stateDiff[uuid] as { [k: string]: any };
+			if (
+				Object.keys(uuidMap).every((n) =>
+					deviceState.sysInfoPropertyNames.includes(n),
+				)
+			) {
 				return;
 			}
-
-			await report({ body: stateDiff, opts });
-			lastReportTime = performance.now();
-			lastReport = currentState;
-			log.info('Reported current state to the cloud');
-		} else {
-			// Not enough time has elapsed since last report
-			// Delay report until next allowed time
-			const timeSinceLastReport = now - lastReportTime;
-			await delay(constants.maxReportFrequency - timeSinceLastReport);
-			await getStateAndReport();
 		}
+
+		await report({ body: stateDiff, opts });
+		lastReportTime = performance.now();
+		lastReport = currentState;
+		log.info('Reported current state to the cloud');
 	};
 
 	// Create a report that will backoff on errors
@@ -131,6 +147,11 @@ function handleRetry(retryInfo: OnFailureInfo) {
 	);
 }
 
+/**
+ * Sends state report to cloud from two sources: 1) state change events and
+ * 2) timer for metrics. Report frequency is at most maxReportFrequency, and
+ * metrics is reported at most maxMetricsFrequency.
+ */
 export async function startReporting() {
 	// Get configs needed to make a report
 	const reportConfigs = (await config.getMany([
@@ -139,23 +160,59 @@ export async function startReporting() {
 		'deviceApiKey',
 		'appUpdatePollInterval',
 	])) as StateReportOpts;
+	// Pass uuid to report separately to guarantee it exists.
+	const uuid = await config.get('uuid');
+	if (!uuid) {
+		throw new InternalInconsistencyError('No uuid found for local device');
+	}
 
 	let reportPending = false;
-	const doReport = async () => {
+	// Reports current state if not already sending and prevents a state change
+	// from exceeding report frequency. Returns true if sent; otherwise false.
+	const doReport = async (): Promise<boolean> => {
 		if (!reportPending) {
-			reportPending = true;
-			await reportCurrentState(reportConfigs);
-			reportPending = false;
+			if (performance.now() - lastReportTime > maxReportFrequency) {
+				// Can't wait until report complete to clear deferred marker.
+				// Change events while in progress will set deferred marker synchronously.
+				// Ensure we don't miss reporting a change event.
+				stateChangeDeferred = false;
+				reportPending = true;
+				await reportCurrentState(reportConfigs, uuid);
+				reportPending = false;
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	};
+
+	const onStateChange = async () => {
+		// State change events are async, but may arrive in rapid succession.
+		// Defers to a timed report schedule if we can't report immediately, to
+		// ensure we don't miss reporting an event.
+		if (!(await doReport())) {
+			stateChangeDeferred = true;
 		}
 	};
 
 	// If the state changes, report it
-	deviceState.on('change', doReport);
+	deviceState.on('change', onStateChange);
 
 	async function recursivelyReport(delayBy: number) {
 		try {
-			// Try to send current state
-			await doReport();
+			// Follow-up when report not sent immediately on change event...
+			if (stateChangeDeferred) {
+				if (!(await doReport())) {
+					stateChangeDeferred = true;
+				}
+			} else {
+				// ... or on regular metrics schedule.
+				if (performance.now() - lastReportTime > maxMetricsFrequency) {
+					await doReport();
+				}
+			}
 		} finally {
 			// Wait until we want to report again
 			await delay(delayBy);
@@ -166,5 +223,5 @@ export async function startReporting() {
 
 	// Start monitoring for changes that do not trigger deviceState events
 	// Example - device metrics
-	return recursivelyReport(constants.maxReportFrequency);
+	return recursivelyReport(maxReportFrequency);
 }
