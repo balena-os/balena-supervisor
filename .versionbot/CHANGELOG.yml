@@ -1,4 +1,64 @@
 - commits:
+    - subject: Improve determination of when a state change may need to be reported
+      hash: 599b5cf811eaf3fbc0d52ac1ca249b58e1f5d942
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Ken Bannister <kb2ma@runbox.com>
+        signed-off-by: Ken Bannister <kb2ma@runbox.com>
+      author: Ken Bannister
+      nested: []
+    - subject: Report must include a state change if sooner than metrics frequency
+      hash: b1d4aa5159add5269999087507ef355def358f86
+      body: |
+        Export list of metrics properties from device state module for this
+        determination.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Ken Bannister <kb2ma@runbox.com>
+        signed-off-by: Ken Bannister <kb2ma@runbox.com>
+      author: Ken Bannister
+      nested: []
+    - subject: Remove report frequency management from current state reporting function
+      hash: d1dd53b5b6dd4b81e634c769a59ad3cf8111d343
+      body: |
+        Report frequency now managed completely by callers.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Ken Bannister <kb2ma@runbox.com>
+        signed-off-by: Ken Bannister <kb2ma@runbox.com>
+      author: Ken Bannister
+      nested: []
+    - subject: Move definition of maxReportFrequency to the reporting file
+      hash: c67429f3e11158335a780778e04b2a94a5623788
+      body: >
+        Narrows scope to where it is used, like the new maxMetricsFrequency value.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Ken Bannister <kb2ma@runbox.com>
+        signed-off-by: Ken Bannister <kb2ma@runbox.com>
+      author: Ken Bannister
+      nested: []
+    - subject: Report metrics in target-state PATCH based on a max frequency
+      hash: 45d71fa60d8da9bbf8071b359620de43a8ca15be
+      body: |
+        Adds maxMetricsFrequency, separate from maxReportFrequency.
+        Also ensures most recent state change event is reported.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Ken Bannister <kb2ma@runbox.com>
+        signed-off-by: Ken Bannister <kb2ma@runbox.com>
+      author: Ken Bannister
+      nested: []
+  version: 14.4.1
+  title: ""
+  date: 2022-11-18T16:08:13.927Z
+- commits:
     - subject: Use fatrw utility for writes to boot partition
       hash: dade5987370c68d639d698cc3e4a9d6ccf4df9c5
       body: >
