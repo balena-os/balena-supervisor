@@ -167,11 +167,15 @@ export async function startReporting() {
 	}
 
 	let reportPending = false;
-	// Reports current state if not already sending and does not exceed report
-	// frequency. Returns true if sent; otherwise false.
+	// Reports current state if not already sending and prevents a state change
+	// from exceeding report frequency. Returns true if sent; otherwise false.
 	const doReport = async (): Promise<boolean> => {
 		if (!reportPending) {
 			if (performance.now() - lastReportTime > maxReportFrequency) {
+				// Can't wait until report complete to clear deferred marker.
+				// Change events while in progress will set deferred marker synchronously.
+				// Ensure we don't miss reporting a change event.
+				stateChangeDeferred = false;
 				reportPending = true;
 				await reportCurrentState(reportConfigs, uuid);
 				reportPending = false;
@@ -185,9 +189,12 @@ export async function startReporting() {
 	};
 
 	const onStateChange = async () => {
-		// Defers to timed report schedule if we can't report immediately.
-		// Ensures that we always report on a change event.
-		stateChangeDeferred = !(await doReport());
+		// State change events are async, but may arrive in rapid succession.
+		// Defers to a timed report schedule if we can't report immediately, to
+		// ensure we don't miss reporting an event.
+		if (!(await doReport())) {
+			stateChangeDeferred = true;
+		}
 	};
 
 	// If the state changes, report it
@@ -197,7 +204,9 @@ export async function startReporting() {
 		try {
 			// Follow-up when report not sent immediately on change event...
 			if (stateChangeDeferred) {
-				stateChangeDeferred = !(await doReport());
+				if (!(await doReport())) {
+					stateChangeDeferred = true;
+				}
 			} else {
 				// ... or on regular metrics schedule.
 				if (performance.now() - lastReportTime > maxMetricsFrequency) {
