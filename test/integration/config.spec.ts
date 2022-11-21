@@ -9,6 +9,9 @@ import * as hostUtils from '~/lib/host-utils';
 import constants = require('~/lib/constants');
 import { fnSchema } from '~/src/config/functions';
 
+// Utility method to use along with `require`
+type Config = typeof import('~/src/config');
+
 describe('config', () => {
 	const configJsonPath = path.join(
 		constants.rootMountPoint,
@@ -42,7 +45,7 @@ describe('config', () => {
 	});
 
 	it('reads and exposes values from config.json', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const configJson = await readConfigJson();
 		const id = await config.get('applicationId');
@@ -50,7 +53,7 @@ describe('config', () => {
 	});
 
 	it('allows reading several values in one getMany call', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const configJson = await readConfigJson();
 		return expect(
@@ -62,7 +65,7 @@ describe('config', () => {
 	});
 
 	it('generates a uuid and stores it in config.json', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const configJson = await readConfigJson();
 		const uuid = await config.get('uuid');
@@ -72,14 +75,14 @@ describe('config', () => {
 	});
 
 	it('does not allow setting an immutable field', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		return expect(config.set({ deviceType: 'a different device type' })).to.be
 			.rejected;
 	});
 
 	it('allows setting both config.json and database fields transparently', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await config.set({
 			appUpdatePollInterval: 30000,
@@ -93,7 +96,7 @@ describe('config', () => {
 	});
 
 	it('allows deleting a config.json key and returns a default value if none is set', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await config.remove('appUpdatePollInterval');
 		const poll = await config.get('appUpdatePollInterval');
@@ -101,7 +104,7 @@ describe('config', () => {
 	});
 
 	it('allows deleting a config.json key if it is null', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await config.set({ apiKey: null });
 		const key = await config.get('apiKey');
@@ -114,7 +117,7 @@ describe('config', () => {
 	});
 
 	it('does not allow modifying or removing a function value', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		// We have to cast to any below, as the type system will
 		// not allow removing a function value
@@ -123,13 +126,13 @@ describe('config', () => {
 	});
 
 	it('throws when asked for an unknown key', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await expect(config.get('unknownInvalidValue' as any)).to.be.rejected;
 	});
 
 	it('emits a change event when values change', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const listener = stub();
 		config.on('change', listener);
@@ -156,7 +159,7 @@ describe('config', () => {
 			),
 		}).enable();
 
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await config.set({ developmentMode: false });
 
@@ -167,7 +170,7 @@ describe('config', () => {
 	});
 
 	it('reads and exposes MAC addresses', async () => {
-		const config = await import('~/src/config');
+		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const macAddress = await config.get('macAddress');
 		expect(macAddress).to.have.length.greaterThan(0);
@@ -175,13 +178,13 @@ describe('config', () => {
 
 	describe('Function config providers', () => {
 		it('should throw if a non-mutable function provider is set', async () => {
-			const config = await import('~/src/config');
+			const config = require('~/src/config') as Config;
 			await config.initialized();
 			await expect(config.set({ version: 'some-version' })).to.be.rejected;
 		});
 
 		it('should throw if a non-mutable function provider is removed', async () => {
-			const config = await import('~/src/config');
+			const config = require('~/src/config') as Config;
 			await config.initialized();
 			await expect(config.remove('version' as any)).to.be.rejected;
 		});
@@ -196,7 +199,7 @@ describe('config', () => {
 
 		it('should obtain deviceArch from device-type.json', async () => {
 			const dtJson = await readDeviceTypeJson();
-			const config = await import('~/src/config');
+			const config = require('~/src/config') as Config;
 			await config.initialized();
 
 			const deviceArch = await config.get('deviceArch');
@@ -205,7 +208,7 @@ describe('config', () => {
 
 		it('should obtain deviceType from device-type.json', async () => {
 			const dtJson = await readDeviceTypeJson();
-			const config = await import('~/src/config');
+			const config = require('~/src/config') as Config;
 			await config.initialized();
 
 			const deviceArch = await config.get('deviceType');
@@ -213,7 +216,7 @@ describe('config', () => {
 		});
 
 		it('should memoize values from device-type.json', async () => {
-			const config = await import('~/src/config');
+			const config = require('~/src/config') as Config;
 			await config.initialized();
 			const dtJson = await readDeviceTypeJson();
 			spy(hostUtils, 'readFromBoot');
@@ -240,7 +243,7 @@ describe('config', () => {
 		});
 
 		it('should not memoize errors when reading deviceArch', async () => {
-			const config = await import('~/src/config');
+			const config = require('~/src/config') as Config;
 			await config.initialized();
 
 			const tfs = await testfs({}, { keep: [deviceTypeJsonPath] }).enable();
@@ -260,7 +263,7 @@ describe('config', () => {
 		});
 
 		it('should not memoize errors when reading deviceType', async () => {
-			const config = await import('~/src/config');
+			const config = require('~/src/config') as Config;
 			await config.initialized();
 
 			const tfs = await testfs({}, { keep: [deviceTypeJsonPath] }).enable();
