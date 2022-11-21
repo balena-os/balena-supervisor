@@ -61,11 +61,31 @@ const getRequestInstances = once(async () => {
 		},
 	};
 
+	const { got } = await import('got');
+
 	const resumableOpts = {
 		timeout: DEFAULT_REQUEST_TIMEOUT,
 		maxRetries: DEFAULT_REQUEST_RETRY_COUNT,
 		retryInterval: DEFAULT_REQUEST_RETRY_INTERVAL,
 	};
+
+	got.extend({
+		responseType: 'json',
+		decompress: true,
+		timeout: {
+			// TODO: We use the same default timeout for all of these in order to have a timeout generally
+			// but it would probably make sense to tune them individually
+			lookup: DEFAULT_REQUEST_TIMEOUT,
+			connect: DEFAULT_REQUEST_TIMEOUT,
+			secureConnect: DEFAULT_REQUEST_TIMEOUT,
+			socket: DEFAULT_REQUEST_TIMEOUT,
+			send: DEFAULT_REQUEST_TIMEOUT,
+			response: DEFAULT_REQUEST_TIMEOUT,
+		},
+		headers: {
+			'User-Agent': userAgent,
+		},
+	});
 
 	const requestHandle = requestLib.defaults(requestOpts);
 
@@ -76,6 +96,7 @@ const getRequestInstances = once(async () => {
 	const resumable = resumableRequestLib.defaults(resumableOpts);
 
 	return {
+		got,
 		requestOpts,
 		request,
 		resumable,
@@ -84,6 +105,10 @@ const getRequestInstances = once(async () => {
 
 export const getRequestInstance = once(async () => {
 	return (await getRequestInstances()).request;
+});
+
+export const getGotInstance = once(async () => {
+	return (await getRequestInstances()).got;
 });
 
 export const getRequestOptions = once(async () => {

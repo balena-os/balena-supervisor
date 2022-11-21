@@ -7,8 +7,7 @@ import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import type { TargetState } from '../types/state';
 import { InternalInconsistencyError } from '../lib/errors';
-import { getRequestInstance } from '../lib/request';
-import { CoreOptions } from 'request';
+import { getGotInstance } from '../lib/request';
 import * as config from '../config';
 import { writeLock } from '../lib/update-lock';
 import constants = require('../lib/constants');
@@ -118,19 +117,25 @@ export const update = async (
 		}
 
 		const endpoint = url.resolve(apiEndpoint, `/device/v3/${uuid}/state`);
-		const request = await getRequestInstance();
+		const got = await getGotInstance();
 
-		const params: CoreOptions = {
-			json: true,
+		const { statusCode, headers, body } = await got(endpoint, {
+			responseType: 'json',
 			headers: {
 				Authorization: `Bearer ${deviceApiKey}`,
 				'If-None-Match': cache?.etag,
 			},
-		};
-
-		const [{ statusCode, headers }, body] = await request
-			.getAsync(endpoint, params)
-			.timeout(apiTimeout);
+			timeout: {
+				// TODO: We use the same default timeout for all of these in order to have a timeout generally
+				// but it would probably make sense to tune them individually
+				lookup: apiTimeout,
+				connect: apiTimeout,
+				secureConnect: apiTimeout,
+				socket: apiTimeout,
+				send: apiTimeout,
+				response: apiTimeout,
+			},
+		});
 
 		if (statusCode === 304 && cache?.etag != null) {
 			// There's no change so no need to update the cache
@@ -146,7 +151,7 @@ export const update = async (
 
 		cache = {
 			etag: headers.etag,
-			body,
+			body: body as any,
 		};
 
 		// Emit the target state and update the cache

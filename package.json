@@ -33,6 +33,7 @@
   "dependencies": {
     "@balena/happy-eyeballs": "0.0.6",
     "dbus": "^1.0.7",
+    "got": "^12.5.3",
     "mdns-resolver": "^1.0.0",
     "semver": "^7.3.2",
     "sqlite3": "^5.0.11",
