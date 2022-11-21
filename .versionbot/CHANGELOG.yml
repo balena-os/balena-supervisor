@@ -1,4 +1,16 @@
 - commits:
+    - subject: Remove some unnecessary usage of `.reduce`
+      hash: 3dea88c74ee6233c3d8d7fa0d163ee80ba1a690d
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.4.2
+  title: ""
+  date: 2022-11-21T20:02:26.524Z
+- commits:
     - subject: Improve determination of when a state change may need to be reported
       hash: 599b5cf811eaf3fbc0d52ac1ca249b58e1f5d942
       body: ""
