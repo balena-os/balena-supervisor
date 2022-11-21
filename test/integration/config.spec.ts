@@ -9,7 +9,7 @@ import * as hostUtils from '~/lib/host-utils';
 import constants = require('~/lib/constants');
 import { fnSchema } from '~/src/config/functions';
 
-describe('config poop', () => {
+describe('config', () => {
 	const configJsonPath = path.join(
 		constants.rootMountPoint,
 		constants.bootMountPoint,
