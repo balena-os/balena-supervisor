@@ -1081,37 +1081,41 @@ export async function getState() {
 			.concat(stateFromServices);
 
 	// Get the list of commits for all appIds from the database
-	const commitsForApp = (
-		await Promise.all(
-			// Deduplicate appIds first
-			[...new Set(servicesToReport.map((svc) => svc.appId))].map(
-				async (appId) => ({
-					[appId]: await commitStore.getCommitForApp(appId),
-				}),
-			),
-		)
-	).reduce((commits, c) => ({ ...commits, ...c }), {});
+	const commitsForApp: Dictionary<string | undefined> = {};
+	// Deduplicate appIds first
+	await Promise.all(
+		[...new Set(servicesToReport.map((svc) => svc.appId))].map(
+			async (appId) => {
+				commitsForApp[appId] = await commitStore.getCommitForApp(appId);
+			},
+		),
+	);
 
 	// Assemble the state of apps
-	return servicesToReport.reduce(
-		(apps, { appId, appUuid, commit, serviceName, createdAt, ...svc }) => ({
-			...apps,
-			[appUuid]: {
-				...(apps[appUuid] ?? {}),
-				// Add the release_uuid if the commit has been stored in the database
-				...(commitsForApp[appId] && { release_uuid: commitsForApp[appId] }),
-				releases: {
-					...(apps[appUuid]?.releases ?? {}),
-					[commit]: {
-						...(apps[appUuid]?.releases[commit] ?? {}),
-						services: {
-							...(apps[appUuid]?.releases[commit]?.services ?? {}),
-							[serviceName]: svc,
-						},
+	const state: { [appUuid: string]: AppState } = {};
+	for (const {
+		appId,
+		appUuid,
+		commit,
+		serviceName,
+		createdAt,
+		...svc
+	} of servicesToReport) {
+		state[appUuid] = {
+			...state[appUuid],
+			// Add the release_uuid if the commit has been stored in the database
+			...(commitsForApp[appId] && { release_uuid: commitsForApp[appId] }),
+			releases: {
+				...state[appUuid]?.releases,
+				[commit]: {
+					...state[appUuid]?.releases[commit],
+					services: {
+						...state[appUuid]?.releases[commit]?.services,
+						[serviceName]: svc,
 					},
 				},
 			},
-		}),
-		{} as { [appUuid: string]: AppState },
-	);
+		};
+	}
+	return state;
 }

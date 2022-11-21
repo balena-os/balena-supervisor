@@ -597,12 +597,15 @@ export async function inspectByName(imageName: string) {
 
 	// Run the queries in sequence, return the first one that matches or
 	// the error from the last query
-	return await [inspectByURI, inspectByReference, inspectByDigest].reduce(
-		(promise, query) => promise.catch(() => query(imageName)),
-		Promise.reject(
-			'Promise sequence in inspectByName is broken. This is a bug.',
-		),
-	);
+	let err;
+	for (const query of [inspectByURI, inspectByReference, inspectByDigest]) {
+		try {
+			return await query(imageName);
+		} catch ($err) {
+			err = $err;
+		}
+	}
+	throw err;
 }
 
 export async function cleanup() {
@@ -681,10 +684,7 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 				digests: true,
 				filters: { reference: [reference] },
 			})
-		).reduce(
-			(tagList, imgInfo) => tagList.concat(imgInfo.RepoTags || []),
-			[] as string[],
-		);
+		).flatMap((imgInfo) => imgInfo.RepoTags || []);
 
 		reportEvent('start', { ...image, status: 'Deleting' });
 		logger.logSystemEvent(LogTypes.deleteImage, { image });
@@ -700,10 +700,9 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 		// Remove all matching tags in sequence
 		// as removing in parallel causes some engine weirdness (see above)
 		// this stops on the first error
-		await tags.reduce(
-			(promise, tag) => promise.then(() => docker.getImage(tag).remove()),
-			Promise.resolve(),
-		);
+		for (const tag of tags) {
+			await docker.getImage(tag).remove();
+		}
 
 		// Check for any remaining digests.
 		const digests = (
@@ -711,16 +710,12 @@ async function removeImageIfNotNeeded(image: Image): Promise<void> {
 				digests: true,
 				filters: { reference: [reference] },
 			})
-		).reduce(
-			(digestList, imgInfo) => digestList.concat(imgInfo.RepoDigests || []),
-			[] as string[],
-		);
+		).flatMap((imgInfo) => imgInfo.RepoDigests || []);
 
 		// Remove all remaining digests
-		await digests.reduce(
-			(promise, digest) => promise.then(() => docker.getImage(digest).remove()),
-			Promise.resolve(),
-		);
+		for (const digest of digests) {
+			await docker.getImage(digest).remove();
+		}
 
 		// Mark the image as removed
 		removed = true;

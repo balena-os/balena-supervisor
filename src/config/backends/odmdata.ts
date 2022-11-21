@@ -127,19 +127,15 @@ export class Odmdata extends ConfigBackend {
 			);
 		}
 		// Find the configuration given the optionsBuffer
-		const configIndex = this.CONFIG_BYTES.reduce(
-			(currentIndex: number, _config: number, index: number) => {
-				if (
+		const configIndex = this.CONFIG_BYTES.findIndex(
+			(_config: number, index: number) => {
+				return (
 					this.CONFIG_BUFFER.readUInt8(index) === optionsBuffer.readUInt8(0)
-				) {
-					return index;
-				}
-				return currentIndex;
+				);
 			},
-			null,
 		);
 		// Check if we found a configuration we support
-		if (configIndex === null) {
+		if (configIndex === -1) {
 			log.error(
 				`ODMDATA is set with an unsupported byte: 0x${optionsBuffer.readUInt8(
 					0,

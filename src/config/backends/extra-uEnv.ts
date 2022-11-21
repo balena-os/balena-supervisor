@@ -223,27 +223,26 @@ export class ExtraUEnv extends ConfigBackend {
 
 	private static configToMap(configs: ConfigOptions): Map<string, string> {
 		// Reduce ConfigOptions into a Map that joins collections
-		return Object.entries(configs).reduce(
-			(configMap: Map<string, string>, [configKey, configValue]) => {
-				const { key: ENTRY_KEY, collection: ENTRY_IS_COLLECTION } =
-					ExtraUEnv.supportedConfigs[configKey];
-				// Check if we have to build the value for the entry
-				if (ENTRY_IS_COLLECTION) {
-					return configMap.set(
-						ENTRY_KEY,
-						ExtraUEnv.appendToCollection(
-							configMap.get(ENTRY_KEY),
-							configKey,
-							configValue,
-						),
-					);
-				}
+		const configMap = new Map();
+		for (const [configKey, configValue] of Object.entries(configs)) {
+			const { key: ENTRY_KEY, collection: ENTRY_IS_COLLECTION } =
+				ExtraUEnv.supportedConfigs[configKey];
+			// Check if we have to build the value for the entry
+			if (ENTRY_IS_COLLECTION) {
+				configMap.set(
+					ENTRY_KEY,
+					ExtraUEnv.appendToCollection(
+						configMap.get(ENTRY_KEY),
+						configKey,
+						configValue,
+					),
+				);
+			} else {
 				// Set the value of this config
-				return configMap.set(ENTRY_KEY, `${configValue}`);
-			},
-			// Start with empty Map
-			new Map(),
-		);
+				configMap.set(ENTRY_KEY, `${configValue}`);
+			}
+		}
+		return configMap;
 	}
 
 	private static appendToCollection(

@@ -444,10 +444,8 @@ export class App {
 					// FIXME: We should add to the changingServices array, as we could emit several
 					// kill steps for a service
 					steps = steps.concat(
-						dependencies.reduce(
-							(acc, svc) =>
-								acc.concat(this.generateKillStep(svc, changingServices)),
-							[] as CompositionStep[],
+						dependencies.flatMap((svc) =>
+							this.generateKillStep(svc, changingServices),
 						),
 					);
 				} else {

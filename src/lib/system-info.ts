@@ -11,9 +11,9 @@ import { exec } from './fs-utils';
 
 export async function getCpuUsage(): Promise<number> {
 	const cpuData = await systeminformation.currentLoad();
-	const totalLoad = cpuData.cpus.reduce((load, cpuLoad) => {
-		return load + cpuLoad.load;
-	}, 0);
+	const totalLoad = _.sumBy(cpuData.cpus, ({ load }) => {
+		return load;
+	});
 	return Math.round(totalLoad / cpuData.cpus.length);
 }
 
