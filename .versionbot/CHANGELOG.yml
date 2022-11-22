@@ -1,4 +1,16 @@
 - commits:
+    - subject: Use timers/promises for promisified setTimeout
+      hash: b8891ebb08361c9579cc706036edef9d80fe3445
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.4.3
+  title: ""
+  date: 2022-11-22T02:54:20.484Z
+- commits:
     - subject: Remove some unnecessary usage of `.reduce`
       hash: 3dea88c74ee6233c3d8d7fa0d163ee80ba1a690d
       body: ""
