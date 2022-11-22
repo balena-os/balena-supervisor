@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 import { stub, SinonStub, spy, SinonSpy } from 'sinon';
-import * as supertest from 'supertest';
+import supertest from 'supertest';
 
-import sampleResponses = require('~/test-data/device-api-responses.json');
-import mockedAPI = require('~/test-lib/mocked-device-api');
+import sampleResponses from '~/test-data/device-api-responses.json';
+import mockedAPI from '~/test-lib/mocked-device-api';
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
 import SupervisorAPI from '~/src/device-api';

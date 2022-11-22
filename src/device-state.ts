@@ -1,11 +1,11 @@
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
-import prettyMs = require('pretty-ms');
+import prettyMs from 'pretty-ms';
 
 import * as config from './config';
 import * as db from './db';
@@ -15,7 +15,7 @@ import * as globalEventBus from './event-bus';
 import * as network from './network';
 import * as deviceConfig from './device-config';
 
-import constants = require('./lib/constants');
+import constants from './lib/constants';
 import * as dbus from './lib/dbus';
 import {
 	InternalInconsistencyError,

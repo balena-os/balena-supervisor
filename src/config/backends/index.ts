@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import { Extlinux } from './extlinux';
 import { ExtraUEnv } from './extra-uEnv';

@@ -1,6 +1,6 @@
-import * as systeminformation from 'systeminformation';
-import * as _ from 'lodash';
-import * as memoizee from 'memoizee';
+import systeminformation from 'systeminformation';
+import _ from 'lodash';
+import memoizee from 'memoizee';
 import { promises as fs } from 'fs';
 
 // TODO: remove this once we can update Node to v16 and typescript

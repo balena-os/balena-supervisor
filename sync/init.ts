@@ -1,5 +1,5 @@
-import * as Bluebird from 'bluebird';
-import * as Docker from 'dockerode';
+import Bluebird from 'bluebird';
+import Docker from 'dockerode';
 import { Dockerfile } from 'livepush';
 
 import * as device from './device';

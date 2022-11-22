@@ -1,10 +1,10 @@
 import { getBus, Error as DBusError } from 'dbus';
 import { promisify } from 'util';
 import { TypedError } from 'typed-error';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import log from './supervisor-console';
-import DBus = require('dbus');
+import DBus from 'dbus';
 
 export class DbusError extends TypedError {}
 

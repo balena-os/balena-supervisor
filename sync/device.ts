@@ -1,6 +1,6 @@
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 import { Dockerfile } from 'livepush';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { Builder } from 'resin-docker-build';
 
 import { promises as fs } from 'fs';

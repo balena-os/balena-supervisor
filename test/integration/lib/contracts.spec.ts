@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
-import * as semver from 'semver';
+import semver from 'semver';
 
 import * as constants from '~/lib/constants';
 import {
@@ -9,7 +9,7 @@ import {
 	validateContract,
 } from '~/lib/contracts';
 import * as osRelease from '~/lib/os-release';
-import supervisorVersion = require('~/lib/supervisor-version');
+import supervisorVersion from '~/lib/supervisor-version';
 import * as fsUtils from '~/lib/fs-utils';
 
 describe('lib/contracts', () => {

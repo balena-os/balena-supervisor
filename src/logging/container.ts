@@ -1,6 +1,6 @@
 import * as es from 'event-stream';
 import { EventEmitter } from 'events';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import * as Stream from 'stream';
 import StrictEventEmitter from 'strict-event-emitter-types';
 

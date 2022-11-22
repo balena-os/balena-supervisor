@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { SinonSpy, spy, stub } from 'sinon';
@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { testfs, TestFs } from 'mocha-pod';
 import * as hostUtils from '~/lib/host-utils';
 
-import constants = require('~/lib/constants');
+import constants from '~/lib/constants';
 import { fnSchema } from '~/src/config/functions';
 
 // Utility method to use along with `require`

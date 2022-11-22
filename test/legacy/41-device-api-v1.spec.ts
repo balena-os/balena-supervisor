@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { expect } from 'chai';
 import {
 	stub,
@@ -8,15 +8,15 @@ import {
 	SinonSpy,
 	SinonFakeTimers,
 } from 'sinon';
-import * as supertest from 'supertest';
+import supertest from 'supertest';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 
 import { exists, unlinkAll } from '~/lib/fs-utils';
 import * as appMock from '~/test-lib/application-state-mock';
 import * as mockedDockerode from '~/test-lib/mocked-dockerode';
-import mockedAPI = require('~/test-lib/mocked-device-api');
-import sampleResponses = require('~/test-data/device-api-responses.json');
+import mockedAPI from '~/test-lib/mocked-device-api';
+import sampleResponses from '~/test-data/device-api-responses.json';
 import * as config from '~/src/config';
 import * as logger from '~/src/logger';
 import SupervisorAPI from '~/src/device-api';
@@ -28,8 +28,8 @@ import * as dbus from '~/lib/dbus';
 import * as updateLock from '~/lib/update-lock';
 import * as TargetState from '~/src/device-state/target-state';
 import * as targetStateCache from '~/src/device-state/target-state-cache';
-import blink = require('~/lib/blink');
-import constants = require('~/lib/constants');
+import blink from '~/lib/blink';
+import constants from '~/lib/constants';
 import * as deviceAPIActions from '~/src/device-api/common';
 import { UpdatesLockedError } from '~/lib/errors';
 import { SchemaTypeKey } from '~/src/config/schema-type';

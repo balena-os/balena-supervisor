@@ -1,7 +1,7 @@
 import { detailedDiff as diff } from 'deep-object-diff';
 import * as Dockerode from 'dockerode';
-import Duration = require('duration-js');
-import * as _ from 'lodash';
+import Duration from 'duration-js';
+import _ from 'lodash';
 import * as path from 'path';
 
 import { DockerPortOptions, PortMap } from './ports';

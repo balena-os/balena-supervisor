@@ -1,6 +1,6 @@
-import * as Promise from 'bluebird';
-import * as _ from 'lodash';
-import * as express from 'express';
+import Promise from 'bluebird';
+import _ from 'lodash';
+import express from 'express';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as url from 'url';

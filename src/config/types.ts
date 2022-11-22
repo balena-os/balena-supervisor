@@ -1,6 +1,6 @@
 import { either, isRight } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import { InternalInconsistencyError } from '../lib/errors';
 import { checkBooleanish, checkTruthy } from '../lib/validation';

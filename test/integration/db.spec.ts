@@ -1,4 +1,4 @@
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import { knex, Knex } from 'knex';
 import { promises as fs } from 'fs';
 

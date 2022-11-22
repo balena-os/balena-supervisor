@@ -1,5 +1,5 @@
 import * as url from 'url';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { delay } from 'bluebird';
 import { CoreOptions } from 'request';
 import { performance } from 'perf_hooks';

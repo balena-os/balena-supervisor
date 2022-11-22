@@ -1,8 +1,8 @@
-import * as Bluebird from 'bluebird';
-import * as _ from 'lodash';
+import Bluebird from 'bluebird';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import * as rimraf from 'rimraf';
+import rimraf from 'rimraf';
 
 const rimrafAsync = Bluebird.promisify(rimraf);
 

@@ -1,12 +1,12 @@
-import * as express from 'express';
-import * as _ from 'lodash';
+import express from 'express';
+import _ from 'lodash';
 
 import * as middleware from './middleware';
 import * as apiKeys from './api-keys';
 import * as eventTracker from '../event-tracker';
 import { reportCurrentState } from '../device-state';
 import proxyvisor from '../proxyvisor';
-import blink = require('../lib/blink');
+import blink from '../lib/blink';
 import log from '../lib/supervisor-console';
 
 import type { Server } from 'http';

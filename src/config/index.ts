@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import type { Knex } from 'knex';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import StrictEventEmitter from 'strict-event-emitter-types';
 import { inspect } from 'util';
 import { generateUniqueKey } from '../lib/register-device';
@@ -86,7 +86,7 @@ export async function get<T extends SchemaTypeKey>(
 		// we can validate the output of the function as well, ensuring that the type matches
 		const promiseValue = FnSchema.fnSchema[fnKey]();
 		return promiseValue
-			.then((value: unknown) => {
+			.then((value) => {
 				const decoded = schemaTypes[key].type.decode(value);
 
 				return checkValueDecode(decoded, key, value) && decoded.right;

@@ -1,5 +1,5 @@
-import * as express from 'express';
-import * as _ from 'lodash';
+import express from 'express';
+import _ from 'lodash';
 
 import { doRestart, doPurge } from './common';
 import { AuthorizedRequest } from './api-keys';

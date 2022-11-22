@@ -1,5 +1,5 @@
-import * as Bluebird from 'bluebird';
-import * as _ from 'lodash';
+import Bluebird from 'bluebird';
+import _ from 'lodash';
 import { promises as fs, watch } from 'fs';
 import * as networkCheck from 'network-checker';
 import * as os from 'os';
@@ -9,7 +9,7 @@ import * as constants from './lib/constants';
 import { EEXIST } from './lib/errors';
 import { checkFalsey } from './lib/validation';
 
-import blink = require('./lib/blink');
+import blink from './lib/blink';
 
 import log from './lib/supervisor-console';
 
@@ -127,8 +127,10 @@ const shouldReportIPv6 = (ip: os.NetworkInterfaceInfo) =>
 const shouldReportIPv4 = (ip: os.NetworkInterfaceInfo) =>
 	ip.family === 'IPv4' && !ip.internal;
 
-export function getIPAddresses(): string[] {
-	// We get IP addresses but ignore:
+export function filterValidInterfaces(
+	networkInterfaces: ReturnType<typeof os.networkInterfaces>,
+) {
+	// We ignore:
 	// - docker and balena bridges (docker0, docker1, balena0, etc)
 	// - legacy rce bridges (rce0, etc)
 	// - tun interfaces like the legacy vpn
@@ -137,7 +139,6 @@ export function getIPAddresses(): string[] {
 	// - the bridge for dnsmasq (resin-dns)
 	// - the docker network for the supervisor API (supervisor0)
 	// - custom docker network bridges (br- + 12 hex characters)
-	const networkInterfaces = os.networkInterfaces();
 	return Object.entries(networkInterfaces)
 		.filter(([iface]) => shouldReportInterface(iface))
 		.flatMap(([, validInterfaces]) => {
@@ -148,6 +149,9 @@ export function getIPAddresses(): string[] {
 					.map(({ address }) => address) ?? []
 			);
 		});
+}
+export function getIPAddresses(): string[] {
+	return filterValidInterfaces(os.networkInterfaces());
 }
 
 export function startIPAddressUpdate(): (

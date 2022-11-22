@@ -1,8 +1,7 @@
-import * as Bluebird from 'bluebird';
-import * as _ from 'lodash';
-import * as memoizee from 'memoizee';
+import _ from 'lodash';
+import memoizee from 'memoizee';
 
-import supervisorVersion = require('../lib/supervisor-version');
+import supervisorVersion from '../lib/supervisor-version';
 
 import * as config from '.';
 import * as constants from '../lib/constants';
@@ -12,8 +11,8 @@ import * as hostUtils from '../lib/host-utils';
 import log from '../lib/supervisor-console';
 
 export const fnSchema = {
-	version: () => {
-		return Bluebird.resolve(supervisorVersion);
+	version: async () => {
+		return supervisorVersion;
 	},
 	currentApiKey: () => {
 		return config

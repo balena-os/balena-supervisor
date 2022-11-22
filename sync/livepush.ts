@@ -1,6 +1,6 @@
 import * as chokidar from 'chokidar';
-import * as Docker from 'dockerode';
-import * as _ from 'lodash';
+import Docker from 'dockerode';
+import _ from 'lodash';
 import * as Path from 'path';
 
 import { Dockerfile, Livepush } from 'livepush';

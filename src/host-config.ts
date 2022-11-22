@@ -1,6 +1,6 @@
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 

@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 import * as sinon from 'sinon';
 
 import * as db from '~/src/db';

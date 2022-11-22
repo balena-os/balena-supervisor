@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { spy, SinonSpy } from 'sinon';
-import mock = require('mock-fs');
+import mock from 'mock-fs';
 
 import * as fsUtils from '~/lib/fs-utils';
 import { rootMountPoint } from '~/lib/constants';

@@ -1,8 +1,8 @@
 import * as chai from 'chai';
-import * as chaiAsPromised from 'chai-as-promised';
-import * as sinonChai from 'sinon-chai';
-import * as chaiThings from 'chai-things';
-import * as chaiLike from 'chai-like';
+import chaiAsPromised from 'chai-as-promised';
+import sinonChai from 'sinon-chai';
+import chaiThings from 'chai-things';
+import chaiLike from 'chai-like';
 
 /**
  * Mocha runs this EXACTLY ONCE before all tests to set up globals that

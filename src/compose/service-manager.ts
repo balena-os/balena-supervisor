@@ -1,9 +1,9 @@
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import * as Dockerode from 'dockerode';
 import { EventEmitter } from 'events';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as JSONStream from 'JSONStream';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
 import StrictEventEmitter from 'strict-event-emitter-types';
 
@@ -12,7 +12,7 @@ import { docker } from '../lib/docker-utils';
 import * as logger from '../logger';
 
 import { PermissiveNumber } from '../config/types';
-import constants = require('../lib/constants');
+import constants from '../lib/constants';
 import {
 	InternalInconsistencyError,
 	isNotFoundError,

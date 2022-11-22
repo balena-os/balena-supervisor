@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import * as config from '../config/index';
 import * as constants from './constants';

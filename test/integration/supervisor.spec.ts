@@ -1,4 +1,4 @@
-import * as request from 'supertest';
+import request from 'supertest';
 
 const BALENA_SUPERVISOR_ADDRESS =
 	process.env.BALENA_SUPERVISOR_ADDRESS || 'http://balena-supervisor:48484';

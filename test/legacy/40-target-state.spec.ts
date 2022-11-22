@@ -1,7 +1,7 @@
 import { SinonStub, stub, spy, SinonSpy } from 'sinon';
 import { Promise } from 'bluebird';
-import * as _ from 'lodash';
-import rewire = require('rewire');
+import _ from 'lodash';
+import rewire from 'rewire';
 import { expect } from 'chai';
 
 import * as TargetState from '~/src/device-state/target-state';
