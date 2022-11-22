@@ -1,6 +1,6 @@
 import * as t from 'io-ts';
 import { chain, fold, isRight, left, right, Either } from 'fp-ts/lib/Either';
-import { pipe, flow } from 'fp-ts/function';
+import { pipe, flow } from 'fp-ts/lib/function';
 
 /**
  * A short string is a non null string between

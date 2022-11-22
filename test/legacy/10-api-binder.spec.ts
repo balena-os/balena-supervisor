@@ -41,7 +41,7 @@ const initModels = async (obj: Dictionary<any>, filename: string) => {
 		},
 	} as any;
 
-	ApiBinder = await import('~/src/api-binder');
+	ApiBinder = require('~/src/api-binder');
 	await ApiBinder.initialized();
 	obj.apiBinder = ApiBinder;
 
@@ -414,7 +414,8 @@ describe('ApiBinder', () => {
 		});
 
 		it('fails when stateReportHealthy is false', async () => {
-			const currentState = await import('~/src/api-binder/report');
+			const currentState =
+				require('~/src/api-binder/report') as typeof import('~/src/api-binder/report');
 
 			configStub.resolves({
 				unmanaged: false,
