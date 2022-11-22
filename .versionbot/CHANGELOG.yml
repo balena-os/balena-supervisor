@@ -1,4 +1,19 @@
 - commits:
+    - subject: Enable node16 module resolution in tsconfig to ease the ESM transition
+      hash: 836f6ab7541b49776e23f143209257d9d0b18004
+      body: |
+        This means that dynamic import statements will emit actual `import`
+        statements rather than being translated to `require`, the benefit being
+        that we can now import ES modules via dynamic imports
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.4.4
+  title: ""
+  date: 2022-11-22T15:22:24.653Z
+- commits:
     - subject: Use timers/promises for promisified setTimeout
       hash: b8891ebb08361c9579cc706036edef9d80fe3445
       body: ""
