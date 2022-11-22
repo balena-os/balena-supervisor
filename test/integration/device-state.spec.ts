@@ -13,6 +13,7 @@ import { initializeContractRequirements } from '~/lib/contracts';
 import { testfs } from 'mocha-pod';
 import { createDockerImage } from '~/test-lib/docker-helper';
 import * as Docker from 'dockerode';
+import { setTimeout } from 'timers/promises';
 
 describe('device-state', () => {
 	const docker = new Docker();
@@ -238,7 +239,7 @@ describe('device-state', () => {
 		).to.be.rejected;
 	});
 
-	it('allows triggering applying the target state', (done) => {
+	it('allows triggering applying the target state', async () => {
 		const applyTargetStub = sinon
 			.stub(deviceState, 'applyTarget')
 			.returns(Promise.resolve());
@@ -246,14 +247,12 @@ describe('device-state', () => {
 		deviceState.triggerApplyTarget({ force: true });
 		expect(applyTargetStub).to.not.be.called;
 
-		setTimeout(() => {
-			expect(applyTargetStub).to.be.calledWith({
-				force: true,
-				initial: false,
-			});
-			applyTargetStub.restore();
-			done();
-		}, 1000);
+		await setTimeout(1000);
+		expect(applyTargetStub).to.be.calledWith({
+			force: true,
+			initial: false,
+		});
+		applyTargetStub.restore();
 	});
 
 	it('accepts a target state with an valid contract', async () => {

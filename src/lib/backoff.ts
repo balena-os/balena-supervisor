@@ -38,7 +38,8 @@ export function withBackoff<T extends (...args: any[]) => any>(
 	// otherwise use the actual return
 	type TReturn = ReturnType<T> extends Promise<infer R> ? R : ReturnType<T>;
 
-	// TODO use standard lib async setTimout (requires node 16)
+	// TODO: use standard lib async setTimeout (Node 16). Tests for backoff will fail
+	// due to Sinon fake timers, so those will need to be redone too.
 	const sleep = promisify(setTimeout);
 
 	const normalizedOptions: Options = {

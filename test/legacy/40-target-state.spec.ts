@@ -4,12 +4,12 @@ import * as _ from 'lodash';
 import rewire = require('rewire');
 import { expect } from 'chai';
 
-import { sleep } from '~/test-lib/helpers';
 import * as TargetState from '~/src/device-state/target-state';
 import Log from '~/lib/supervisor-console';
 import * as request from '~/lib/request';
 import * as deviceConfig from '~/src/device-config';
 import { UpdatesLockedError } from '~/lib/errors';
+import { setTimeout } from 'timers/promises';
 
 const deviceState = rewire('~/src/device-state');
 
@@ -210,7 +210,7 @@ describe('Target state', () => {
 			await TargetState.update(false, false);
 
 			// Wait for interval to tick a few times
-			await sleep(2000); // 2 seconds
+			await setTimeout(2000); // 2 seconds
 
 			// Trigger another update but say it's from the API
 			await TargetState.update(false, true);
