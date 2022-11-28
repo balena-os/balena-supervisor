@@ -180,9 +180,6 @@ describe('manages application lifecycle', () => {
 			}
 			await setTimeout(500);
 		}
-
-		// Make sure Supervisor doesn't have any apps running before assertions
-		await setSupervisorTarget(await generateTarget({ serviceCount: 0 }));
 	});
 
 	after(async () => {
@@ -204,13 +201,10 @@ describe('manages application lifecycle', () => {
 				serviceCount,
 				serviceNames,
 			});
-
-			// Create a single-container application in local mode
-			await setSupervisorTarget(targetState);
 		});
 
-		afterEach(async () => {
-			// Make sure target state has reset to single-container app between assertions
+		beforeEach(async () => {
+			// Create a single-container application in local mode
 			await setSupervisorTarget(targetState);
 		});
 
@@ -247,6 +241,61 @@ describe('manages application lifecycle', () => {
 				containers.map((ctn) => ctn.Id),
 			);
 		});
+
+		// This test should be ordered last in this `describe` block, because the test compares
+		// the `CreatedAt` timestamps of volumes to determine whether purge was successful. Thus,
+		// ordering the assertion last will ensure some time has passed between the first `CreatedAt`
+		// and the `CreatedAt` extracted from the new volume to pass this assertion.
+		it('should purge an application by removing services then removing volumes', async () => {
+			containers = await waitForSetup(targetState);
+			const isRestartSuccessful = startTimesChanged(
+				containers.map((ctn) => ctn.State.StartedAt),
+			);
+
+			// Get volume metadata. As the name stays the same, we just need to check that the volume
+			// has been deleted & recreated. We can use the CreatedAt timestamp to determine this.
+			const volume = (await docker.listVolumes()).Volumes.find((vol) =>
+				/data/.test(vol.Name),
+			);
+			if (!volume) {
+				expect.fail('Expected initial volume with name matching "data"');
+			}
+			// CreatedAt is a valid key but isn't typed properly
+			const createdAt = (volume as any).CreatedAt;
+
+			// Calling actions.doPurge won't work as intended because purge relies on
+			// setting and applying intermediate state before applying target state again,
+			// but target state is set in the balena-supervisor container instead of sut.
+			// NOTE: if running ONLY this test, it has a chance of failing since the first and
+			// second volume creation happen in quick succession (sometimes in the same second).
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v1/purge')
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ appId: 1 }));
+
+			const restartedContainers = await waitForSetup(
+				targetState,
+				isRestartSuccessful,
+			);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isRestartSuccessful(restartedContainers)).to.be.true;
+
+			// Containers should have different Ids since they're recreated
+			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Volume should be recreated
+			const newVolume = (await docker.listVolumes()).Volumes.find((vol) =>
+				/data/.test(vol.Name),
+			);
+			if (!volume) {
+				expect.fail('Expected recreated volume with name matching "data"');
+			}
+			expect((newVolume as any).CreatedAt).to.not.equal(createdAt);
+		});
 	});
 
 	describe('manages multi-container application lifecycle', () => {
@@ -260,13 +309,10 @@ describe('manages application lifecycle', () => {
 				serviceCount,
 				serviceNames,
 			});
-
-			// Create a single-container application in local mode
-			await setSupervisorTarget(targetState);
 		});
 
-		afterEach(async () => {
-			// Make sure target state has reset to single-container app between assertions
+		beforeEach(async () => {
+			// Create a multi-container application in local mode
 			await setSupervisorTarget(targetState);
 		});
 
@@ -302,6 +348,61 @@ describe('manages application lifecycle', () => {
 			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
 				containers.map((ctn) => ctn.Id),
 			);
+		});
+
+		// This test should be ordered last in this `describe` block, because the test compares
+		// the `CreatedAt` timestamps of volumes to determine whether purge was successful. Thus,
+		// ordering the assertion last will ensure some time has passed between the first `CreatedAt`
+		// and the `CreatedAt` extracted from the new volume to pass this assertion.
+		it('should purge an application by removing services then removing volumes', async () => {
+			containers = await waitForSetup(targetState);
+			const isRestartSuccessful = startTimesChanged(
+				containers.map((ctn) => ctn.State.StartedAt),
+			);
+
+			// Get volume metadata. As the name stays the same, we just need to check that the volume
+			// has been deleted & recreated. We can use the CreatedAt timestamp to determine this.
+			const volume = (await docker.listVolumes()).Volumes.find((vol) =>
+				/data/.test(vol.Name),
+			);
+			if (!volume) {
+				expect.fail('Expected initial volume with name matching "data"');
+			}
+			// CreatedAt is a valid key but isn't typed properly
+			const createdAt = (volume as any).CreatedAt;
+
+			// Calling actions.doPurge won't work as intended because purge relies on
+			// setting and applying intermediate state before applying target state again,
+			// but target state is set in the balena-supervisor container instead of sut.
+			// NOTE: if running ONLY this test, it has a chance of failing since the first and
+			// second volume creation happen in quick succession (sometimes in the same second).
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v1/purge')
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ appId: 1 }));
+
+			const restartedContainers = await waitForSetup(
+				targetState,
+				isRestartSuccessful,
+			);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isRestartSuccessful(restartedContainers)).to.be.true;
+
+			// Containers should have different Ids since they're recreated
+			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Volume should be recreated
+			const newVolume = (await docker.listVolumes()).Volumes.find((vol) =>
+				/data/.test(vol.Name),
+			);
+			if (!volume) {
+				expect.fail('Expected recreated volume with name matching "data"');
+			}
+			expect((newVolume as any).CreatedAt).to.not.equal(createdAt);
 		});
 	});
 });

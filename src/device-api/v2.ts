@@ -32,7 +32,6 @@ import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkTruthy } from '../lib/validation';
 import { isVPNActive } from '../network';
 import * as actions from './actions';
-import { doPurge, safeStateClone } from './common';
 import { AuthorizedRequest } from './api-keys';
 import { fromV2TargetState } from '../lib/legacy';
 
@@ -118,8 +117,8 @@ const createServiceActionHandler = (action: string) =>
 router.post(
 	'/v2/applications/:appId/purge',
 	(req: AuthorizedRequest, res: Response, next: NextFunction) => {
-		const { force } = req.body;
 		const appId = checkInt(req.params.appId);
+		const force = checkTruthy(req.body.force);
 		if (!appId) {
 			return res.status(400).json({
 				status: 'failed',
@@ -135,7 +134,8 @@ router.post(
 			});
 		}
 
-		return doPurge(appId, force)
+		return actions
+			.doPurge(appId, force)
 			.then(() => {
 				res.status(200).send('OK');
 			})
@@ -329,7 +329,7 @@ router.get(
 
 router.get('/v2/local/target-state', async (_req, res) => {
 	const targetState = await deviceState.getTarget();
-	const target = safeStateClone(targetState);
+	const target = actions.safeStateClone(targetState);
 
 	res.status(200).json({
 		status: 'success',

@@ -1,6 +1,7 @@
 import * as Docker from 'dockerode';
 import * as tar from 'tar-stream';
 import { strict as assert } from 'assert';
+import { setTimeout } from 'timers/promises';
 
 import { isStatusError } from '~/lib/errors';
 
@@ -59,6 +60,15 @@ export const cleanupDocker = async (docker = new Docker()) => {
 		// This is safe to ignore since we're removing them anyway.
 		if (isStatusError(e) && e.statusCode !== 409) {
 			throw e;
+		}
+	}
+
+	// Wait until containers are all removed
+	while (true) {
+		if ((await docker.listContainers({ all: true })).length > 0) {
+			await setTimeout(100);
+		} else {
+			break;
 		}
 	}
 
