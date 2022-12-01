@@ -9,12 +9,22 @@ import { App } from '../compose/app';
 import * as applicationManager from '../compose/application-manager';
 import * as serviceManager from '../compose/service-manager';
 import * as volumeManager from '../compose/volume-manager';
+import {
+	CompositionStepAction,
+	generateStep,
+} from '../compose/composition-steps';
+import { getApp } from '../device-state/db-format';
 import log from '../lib/supervisor-console';
 import blink = require('../lib/blink');
 import { lock } from '../lib/update-lock';
-import { InternalInconsistencyError } from '../lib/errors';
+import {
+	InternalInconsistencyError,
+	NotFoundError,
+	BadRequestError,
+} from '../lib/errors';
 
 import type { InstancedDeviceState } from '../types';
+import * as messages from './messages';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -264,4 +274,109 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 			);
 			throw err;
 		});
+};
+
+type ClientError = BadRequestError | NotFoundError;
+/**
+ * Get the current app by its appId from application manager, handling the
+ * case of app not being found or app not having services. ClientError should be
+ * BadRequestError if querying from a legacy endpoint (v1), otherwise NotFoundError.
+ */
+const getCurrentApp = async (
+	appId: number,
+	clientError: new (message: string) => ClientError,
+) => {
+	const currentApps = await applicationManager.getCurrentApps();
+	const currentApp = currentApps[appId];
+	if (currentApp == null || currentApp.services.length === 0) {
+		// App with given appId doesn't exist, or app doesn't have any services.
+		throw new clientError(messages.appNotFound);
+	}
+	return currentApp;
+};
+
+/**
+ * Get service details from a legacy (single-container) app.
+ * Will only return the first service for multi-container apps, so shouldn't
+ * be used for multi-container. The routes that use this, use it to return
+ * the containerId of the service after an action was executed on that service,
+ * in keeping with the existing legacy interface.
+ *
+ * Used by:
+ * - POST /v1/apps/:appId/stop
+ * - POST /v1/apps/:appId/start
+ */
+export const getLegacyService = async (appId: number) => {
+	return (await getCurrentApp(appId, BadRequestError)).services[0];
+};
+
+/**
+ * Executes a composition step action on a service.
+ * isLegacy indicates that the action is being called from a legacy (v1) endpoint,
+ * as a different error code is returned on certain failures to maintain the old interface.
+ * Used by:
+ * - POST /v1/apps/:appId/(stop|start)
+ * - POST /v2/applications/:appId/(restart|stop|start)-service
+ */
+export const executeServiceAction = async ({
+	action,
+	appId,
+	serviceName,
+	imageId,
+	force = false,
+	isLegacy = false,
+}: {
+	action: CompositionStepAction;
+	appId: number;
+	serviceName?: string;
+	imageId?: number;
+	force?: boolean;
+	isLegacy?: boolean;
+}): Promise<void> => {
+	// Get current and target apps
+	const [currentApp, targetApp] = await Promise.all([
+		getCurrentApp(appId, isLegacy ? BadRequestError : NotFoundError),
+		getApp(appId),
+	]);
+	const isSingleContainer = currentApp.services.length === 1;
+	if (!isSingleContainer && !serviceName && !imageId) {
+		// App is multicontainer but no service parameters were provided
+		throw new BadRequestError(messages.v2ServiceEndpointError);
+	}
+
+	// Find service in current and target apps
+	const currentService = isSingleContainer
+		? currentApp.services[0]
+		: currentApp.services.find(
+				(s) => s.imageId === imageId || s.serviceName === serviceName,
+		  );
+	if (currentService == null) {
+		// Legacy (v1) throws 400 while v2 throws 404, and we have to keep the interface consistent.
+		throw new (isLegacy ? BadRequestError : NotFoundError)(
+			messages.serviceNotFound,
+		);
+	}
+	const targetService = targetApp.services.find(
+		(s) =>
+			s.imageId === currentService.imageId ||
+			s.serviceName === currentService.serviceName,
+	);
+	if (targetService == null) {
+		throw new NotFoundError(messages.targetServiceNotFound);
+	}
+
+	// Set volatile target state
+	applicationManager.setTargetVolatileForService(currentService.imageId, {
+		running: action !== 'stop',
+	});
+
+	// Execute action on service
+	return await applicationManager.executeStep(
+		generateStep(action, {
+			current: currentService,
+			target: targetService,
+			wait: true,
+		}),
+		{ force },
+	);
 };

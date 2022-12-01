@@ -37,8 +37,6 @@ describe('regenerates API keys', () => {
 	});
 });
 
-// TODO: test all the container stop / start / recreate / purge related actions
-// together here to avoid repeated setup of containers and images.
 describe('manages application lifecycle', () => {
 	const BASE_IMAGE = 'alpine:latest';
 	const BALENA_SUPERVISOR_ADDRESS =
@@ -132,11 +130,21 @@ describe('manages application lifecycle', () => {
 		};
 	};
 
+	const isAllRunning = (ctns: Docker.ContainerInspectInfo[]) =>
+		ctns.every((ctn) => ctn.State.Running);
+
+	const isAllStopped = (ctns: Docker.ContainerInspectInfo[]) =>
+		ctns.every((ctn) => !ctn.State.Running);
+
+	const isSomeStopped = (ctns: Docker.ContainerInspectInfo[]) =>
+		ctns.some((ctn) => !ctn.State.Running);
+
 	// Wait until containers are in a ready state prior to testing assertions
 	const waitForSetup = async (
 		targetState: Dictionary<any>,
-		isWaitComplete: (ctns: Docker.ContainerInspectInfo[]) => boolean = (ctns) =>
-			ctns.every((ctn) => ctn.State.Running),
+		isWaitComplete: (
+			ctns: Docker.ContainerInspectInfo[],
+		) => boolean = isAllRunning,
 	) => {
 		// Get expected number of containers from target state
 		const expected = Object.keys(
@@ -240,6 +248,111 @@ describe('manages application lifecycle', () => {
 			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
 				containers.map((ctn) => ctn.Id),
 			);
+		});
+
+		it('should restart service by removing and recreating corresponding container', async () => {
+			containers = await waitForSetup(targetState);
+			const isRestartSuccessful = startTimesChanged(
+				containers.map((ctn) => ctn.State.StartedAt),
+			);
+
+			// Calling actions.executeServiceAction directly doesn't work
+			// because it relies on querying target state of the balena-supervisor
+			// container, which isn't accessible directly from sut.
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v2/applications/1/restart-service')
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ serviceName: serviceNames[0] }));
+
+			const restartedContainers = await waitForSetup(
+				targetState,
+				isRestartSuccessful,
+			);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isRestartSuccessful(restartedContainers)).to.be.true;
+
+			// Containers should have different Ids since they're recreated
+			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+		});
+
+		it('should stop a running service', async () => {
+			containers = await waitForSetup(targetState);
+
+			// Calling actions.executeServiceAction directly doesn't work
+			// because it relies on querying target state of the balena-supervisor
+			// container, which isn't accessible directly from sut.
+			const response = await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v1/apps/1/stop')
+				.set('Content-Type', 'application/json');
+
+			const stoppedContainers = await waitForSetup(targetState, isAllStopped);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isAllStopped(stoppedContainers)).to.be.true;
+
+			// Containers should have the same Ids since none should be removed
+			expect(stoppedContainers.map(({ Id }) => Id)).to.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Endpoint should return the containerId of the stopped service
+			expect(response.body).to.deep.equal({
+				containerId: stoppedContainers[0].Id,
+			});
+
+			// Start the container
+			const containerToStart = containers.find(({ Name }) =>
+				new RegExp(serviceNames[0]).test(Name),
+			);
+			if (!containerToStart) {
+				expect.fail(
+					`Expected a container matching "${serviceNames[0]}" to be present`,
+				);
+			}
+			await docker.getContainer(containerToStart.Id).start();
+		});
+
+		it('should start a stopped service', async () => {
+			containers = await waitForSetup(targetState);
+
+			// First, stop the container so we can test the start step
+			const containerToStop = containers.find((ctn) =>
+				new RegExp(serviceNames[0]).test(ctn.Name),
+			);
+			if (!containerToStop) {
+				expect.fail(
+					`Expected a container matching "${serviceNames[0]}" to be present`,
+				);
+			}
+			await docker.getContainer(containerToStop.Id).stop();
+
+			// Calling actions.executeServiceAction directly doesn't work
+			// because it relies on querying target state of the balena-supervisor
+			// container, which isn't accessible directly from sut.
+			const response = await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v1/apps/1/start')
+				.set('Content-Type', 'application/json');
+
+			const runningContainers = await waitForSetup(targetState, isAllRunning);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isAllRunning(runningContainers)).to.be.true;
+
+			// Containers should have the same Ids since none should be removed
+			expect(runningContainers.map(({ Id }) => Id)).to.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Endpoint should return the containerId of the started service
+			expect(response.body).to.deep.equal({
+				containerId: runningContainers[0].Id,
+			});
 		});
 
 		// This test should be ordered last in this `describe` block, because the test compares
@@ -346,6 +459,103 @@ describe('manages application lifecycle', () => {
 
 			// Containers should have different Ids since they're recreated
 			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+		});
+
+		it('should restart service by removing and recreating corresponding container', async () => {
+			containers = await waitForSetup(targetState);
+			const isRestartSuccessful = startTimesChanged(
+				containers.map((ctn) => ctn.State.StartedAt),
+			);
+
+			// Calling actions.executeServiceAction directly doesn't work
+			// because it relies on querying target state of the balena-supervisor
+			// container, which isn't accessible directly from sut.
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v2/applications/1/restart-service')
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ serviceName: serviceNames[0] }));
+
+			const restartedContainers = await waitForSetup(
+				targetState,
+				isRestartSuccessful,
+			);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isRestartSuccessful(restartedContainers)).to.be.true;
+
+			// Containers should have different Ids since they're recreated
+			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+		});
+
+		it('should stop a running service', async () => {
+			containers = await waitForSetup(targetState);
+
+			// Calling actions.executeServiceAction directly doesn't work
+			// because it relies on querying target state of the balena-supervisor
+			// container, which isn't accessible directly from sut.
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v2/applications/1/stop-service')
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ serviceName: serviceNames[0] }));
+
+			const stoppedContainers = await waitForSetup(targetState, isSomeStopped);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isSomeStopped(stoppedContainers)).to.be.true;
+
+			// Containers should have the same Ids since none should be removed
+			expect(stoppedContainers.map(({ Id }) => Id)).to.have.members(
+				containers.map((ctn) => ctn.Id),
+			);
+
+			// Start the container
+			const containerToStart = containers.find(({ Name }) =>
+				new RegExp(serviceNames[0]).test(Name),
+			);
+			if (!containerToStart) {
+				expect.fail(
+					`Expected a container matching "${serviceNames[0]}" to be present`,
+				);
+			}
+			await docker.getContainer(containerToStart.Id).start();
+		});
+
+		it('should start a stopped service', async () => {
+			containers = await waitForSetup(targetState);
+
+			// First, stop the container so we can test the start step
+			const containerToStop = containers.find((ctn) =>
+				new RegExp(serviceNames[0]).test(ctn.Name),
+			);
+			if (!containerToStop) {
+				expect.fail(
+					`Expected a container matching "${serviceNames[0]}" to be present`,
+				);
+			}
+			await docker.getContainer(containerToStop.Id).stop();
+
+			// Calling actions.executeServiceAction directly doesn't work
+			// because it relies on querying target state of the balena-supervisor
+			// container, which isn't accessible directly from sut.
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post('/v2/applications/1/start-service')
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ serviceName: serviceNames[0] }));
+
+			const runningContainers = await waitForSetup(targetState, isAllRunning);
+
+			// Technically the wait function above should already verify that the two
+			// containers have been restarted, but verify explcitly with an assertion
+			expect(isAllRunning(runningContainers)).to.be.true;
+
+			// Containers should have the same Ids since none should be removed
+			expect(runningContainers.map(({ Id }) => Id)).to.have.members(
 				containers.map((ctn) => ctn.Id),
 			);
 		});

@@ -5,10 +5,15 @@ import * as request from 'supertest';
 
 import * as config from '~/src/config';
 import * as db from '~/src/db';
+import Service from '~/src/compose/service';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as v1 from '~/src/device-api/v1';
-import { UpdatesLockedError } from '~/lib/errors';
+import {
+	UpdatesLockedError,
+	NotFoundError,
+	BadRequestError,
+} from '~/lib/errors';
 
 // All routes that require Authorization are integration tests due to
 // the api-key module relying on the database.
@@ -259,6 +264,234 @@ describe('device-api/v1', () => {
 			await request(api)
 				.post('/v1/purge')
 				.send({ appId: 1234567 })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('POST /v1/apps/:appId/stop', () => {
+		let executeServiceActionStub: SinonStub;
+		let getLegacyServiceStub: SinonStub;
+		beforeEach(() => {
+			executeServiceActionStub = stub(
+				actions,
+				'executeServiceAction',
+			).resolves();
+			getLegacyServiceStub = stub(actions, 'getLegacyService').resolves({
+				containerId: 'abcdef',
+			} as Service);
+		});
+		afterEach(async () => {
+			executeServiceActionStub.restore();
+			getLegacyServiceStub.restore();
+			// Remove all scoped API keys between tests
+			await db.models('apiSecret').whereNot({ appId: 0 }).del();
+		});
+
+		it('validates data from request body', async () => {
+			// Parses force: false
+			await request(api)
+				.post('/v1/apps/1234567/stop')
+				.send({ force: false })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'stop',
+				appId: 1234567,
+				force: false,
+				isLegacy: true,
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses force: true
+			await request(api)
+				.post('/v1/apps/7654321/stop')
+				.send({ force: true })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'stop',
+				appId: 7654321,
+				force: true,
+				isLegacy: true,
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Defaults to force: false
+			await request(api)
+				.post('/v1/apps/7654321/stop')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'stop',
+				appId: 7654321,
+				force: false,
+				isLegacy: true,
+			});
+		});
+
+		it("responds with 401 if caller's API key is not in scope of appId", async () => {
+			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			await request(api)
+				.post('/v1/apps/7654321/stop')
+				.set('Authorization', `Bearer ${scopedKey}`)
+				.expect(401);
+		});
+
+		it('responds with 200 and containerId if service stop succeeded if service stop succeeded', async () => {
+			await request(api)
+				.post('/v1/apps/1234567/stop')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { containerId: 'abcdef' });
+		});
+
+		it('responds with 404 if app or service not found', async () => {
+			executeServiceActionStub.throws(new NotFoundError());
+			await request(api)
+				.post('/v1/apps/1234567/stop')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(404);
+		});
+
+		it('responds with 400 if invalid appId or appId corresponds to a multicontainer release', async () => {
+			await request(api)
+				.post('/v1/apps/badAppId/stop')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+
+			executeServiceActionStub.throws(new BadRequestError());
+			await request(api)
+				.post('/v1/apps/1234567/stop')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+		});
+
+		it('responds with 423 if there are update locks', async () => {
+			executeServiceActionStub.throws(new UpdatesLockedError());
+			await request(api)
+				.post('/v1/apps/1234567/stop')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(423);
+		});
+
+		it('responds with 503 for other errors that occur during service stop', async () => {
+			executeServiceActionStub.throws(new Error());
+			await request(api)
+				.post('/v1/apps/1234567/stop')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('POST /v1/apps/:appId/start', () => {
+		let executeServiceActionStub: SinonStub;
+		let getLegacyServiceStub: SinonStub;
+		beforeEach(() => {
+			executeServiceActionStub = stub(
+				actions,
+				'executeServiceAction',
+			).resolves();
+			getLegacyServiceStub = stub(actions, 'getLegacyService').resolves({
+				containerId: 'abcdef',
+			} as Service);
+		});
+		afterEach(async () => {
+			executeServiceActionStub.restore();
+			getLegacyServiceStub.restore();
+			// Remove all scoped API keys between tests
+			await db.models('apiSecret').whereNot({ appId: 0 }).del();
+		});
+
+		it('validates data from request body', async () => {
+			// Parses force: false
+			await request(api)
+				.post('/v1/apps/1234567/start')
+				.send({ force: false })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'start',
+				appId: 1234567,
+				force: false,
+				isLegacy: true,
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses force: true
+			await request(api)
+				.post('/v1/apps/7654321/start')
+				.send({ force: true })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'start',
+				appId: 7654321,
+				force: true,
+				isLegacy: true,
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Defaults to force: false
+			await request(api)
+				.post('/v1/apps/7654321/start')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'start',
+				appId: 7654321,
+				force: false,
+				isLegacy: true,
+			});
+		});
+
+		it("responds with 401 if caller's API key is not in scope of appId", async () => {
+			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			await request(api)
+				.post('/v1/apps/7654321/start')
+				.set('Authorization', `Bearer ${scopedKey}`)
+				.expect(401);
+		});
+
+		it('responds with 200 and containerId if service start succeeded', async () => {
+			await request(api)
+				.post('/v1/apps/1234567/start')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { containerId: 'abcdef' });
+		});
+
+		it('responds with 404 if app or service not found', async () => {
+			executeServiceActionStub.throws(new NotFoundError());
+			await request(api)
+				.post('/v1/apps/1234567/start')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(404);
+		});
+
+		it('responds with 400 if invalid appId or appId corresponds to a multicontainer release', async () => {
+			await request(api)
+				.post('/v1/apps/badAppId/start')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+
+			executeServiceActionStub.throws(new BadRequestError());
+			await request(api)
+				.post('/v1/apps/1234567/start')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+		});
+
+		it('responds with 423 if there are update locks', async () => {
+			executeServiceActionStub.throws(new UpdatesLockedError());
+			await request(api)
+				.post('/v1/apps/1234567/start')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(423);
+		});
+
+		it('responds with 503 for other errors that occur during service start', async () => {
+			executeServiceActionStub.throws(new Error());
+			await request(api)
+				.post('/v1/apps/1234567/start')
 				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(503);
 		});

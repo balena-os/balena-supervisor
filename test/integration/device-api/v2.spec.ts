@@ -8,7 +8,11 @@ import * as db from '~/src/db';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as v2 from '~/src/device-api/v2';
-import { UpdatesLockedError } from '~/lib/errors';
+import {
+	UpdatesLockedError,
+	NotFoundError,
+	BadRequestError,
+} from '~/lib/errors';
 
 // All routes that require Authorization are integration tests due to
 // the api-key module relying on the database.
@@ -179,6 +183,456 @@ describe('device-api/v2', () => {
 			doPurgeStub.throws(new Error());
 			await request(api)
 				.post('/v2/applications/7654321/purge')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('POST /v2/applications/:appId/stop-service', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let executeServiceActionStub: SinonStub;
+		beforeEach(() => {
+			executeServiceActionStub = stub(
+				actions,
+				'executeServiceAction',
+			).resolves();
+		});
+		afterEach(async () => {
+			executeServiceActionStub.restore();
+			// Remove all scoped API keys between tests
+			await db.models('apiSecret').whereNot({ appId: 0 }).del();
+		});
+
+		it('validates data from request body', async () => {
+			// Parses force: false
+			await request(api)
+				.post('/v2/applications/1234567/stop-service')
+				.send({ force: false, serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'stop',
+				appId: 1234567,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses force: true
+			await request(api)
+				.post('/v2/applications/7654321/stop-service')
+				.send({ force: true, serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'stop',
+				appId: 7654321,
+				force: true,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Defaults to force: false
+			await request(api)
+				.post('/v2/applications/7654321/stop-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'stop',
+				appId: 7654321,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses imageId
+			await request(api)
+				.post('/v2/applications/7654321/stop-service')
+				.send({ imageId: 111 })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'stop',
+				appId: 7654321,
+				force: false,
+				imageId: 111,
+				serviceName: undefined,
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses serviceName
+			await request(api)
+				.post('/v2/applications/7654321/stop-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'stop',
+				appId: 7654321,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+		});
+
+		it("responds with 401 if caller's API key is not in scope of appId", async () => {
+			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			await request(api)
+				.post('/v2/applications/7654321/stop-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${scopedKey}`)
+				.expect(401);
+		});
+
+		it('responds with 200 if service stop succeeded', async () => {
+			await request(api)
+				.post('/v2/applications/1234567/stop-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+		});
+
+		it('responds with 404 if app or service not found', async () => {
+			executeServiceActionStub.throws(new NotFoundError());
+			await request(api)
+				.post('/v2/applications/1234567/stop-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(404);
+		});
+
+		it('responds with 400 if invalid appId or missing serviceName/imageId from request body', async () => {
+			await request(api)
+				.post('/v2/applications/badAppId/stop-service')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+
+			executeServiceActionStub.throws(new BadRequestError());
+			await request(api)
+				.post('/v2/applications/1234567/stop-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+		});
+
+		it('responds with 423 if there are update locks', async () => {
+			executeServiceActionStub.throws(new UpdatesLockedError());
+			await request(api)
+				.post('/v2/applications/1234567/stop-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(423);
+		});
+
+		it('responds with 503 for other errors that occur during service stop', async () => {
+			executeServiceActionStub.throws(new Error());
+			await request(api)
+				.post('/v2/applications/7654321/stop-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('POST /v2/applications/:appId/start-service', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let executeServiceActionStub: SinonStub;
+		beforeEach(() => {
+			executeServiceActionStub = stub(
+				actions,
+				'executeServiceAction',
+			).resolves();
+		});
+		afterEach(async () => {
+			executeServiceActionStub.restore();
+			// Remove all scoped API keys between tests
+			await db.models('apiSecret').whereNot({ appId: 0 }).del();
+		});
+
+		it('validates data from request body', async () => {
+			// Parses force: false
+			await request(api)
+				.post('/v2/applications/1234567/start-service')
+				.send({ force: false, serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'start',
+				appId: 1234567,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses force: true
+			await request(api)
+				.post('/v2/applications/7654321/start-service')
+				.send({ force: true, serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'start',
+				appId: 7654321,
+				force: true,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Defaults to force: false
+			await request(api)
+				.post('/v2/applications/7654321/start-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'start',
+				appId: 7654321,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses imageId
+			await request(api)
+				.post('/v2/applications/7654321/start-service')
+				.send({ imageId: 111 })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'start',
+				appId: 7654321,
+				force: false,
+				imageId: 111,
+				serviceName: undefined,
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses serviceName
+			await request(api)
+				.post('/v2/applications/7654321/start-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'start',
+				appId: 7654321,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+		});
+
+		it("responds with 401 if caller's API key is not in scope of appId", async () => {
+			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			await request(api)
+				.post('/v2/applications/7654321/start-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${scopedKey}`)
+				.expect(401);
+		});
+
+		it('responds with 200 if service start succeeded', async () => {
+			await request(api)
+				.post('/v2/applications/1234567/start-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+		});
+
+		it('responds with 404 if app or service not found', async () => {
+			executeServiceActionStub.throws(new NotFoundError());
+			await request(api)
+				.post('/v2/applications/1234567/start-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(404);
+		});
+
+		it('responds with 400 if invalid appId or missing serviceName/imageId from request body', async () => {
+			await request(api)
+				.post('/v2/applications/badAppId/start-service')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+
+			executeServiceActionStub.throws(new BadRequestError());
+			await request(api)
+				.post('/v2/applications/1234567/start-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+		});
+
+		it('responds with 423 if there are update locks', async () => {
+			executeServiceActionStub.throws(new UpdatesLockedError());
+			await request(api)
+				.post('/v2/applications/1234567/start-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(423);
+		});
+
+		it('responds with 503 for other errors that occur during service start', async () => {
+			executeServiceActionStub.throws(new Error());
+			await request(api)
+				.post('/v2/applications/7654321/start-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('POST /v2/applications/:appId/restart-service', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let executeServiceActionStub: SinonStub;
+		beforeEach(() => {
+			executeServiceActionStub = stub(
+				actions,
+				'executeServiceAction',
+			).resolves();
+		});
+		afterEach(async () => {
+			executeServiceActionStub.restore();
+			// Remove all scoped API keys between tests
+			await db.models('apiSecret').whereNot({ appId: 0 }).del();
+		});
+
+		it('validates data from request body', async () => {
+			// Parses force: false
+			await request(api)
+				.post('/v2/applications/1234567/restart-service')
+				.send({ force: false, serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'restart',
+				appId: 1234567,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses force: true
+			await request(api)
+				.post('/v2/applications/7654321/restart-service')
+				.send({ force: true, serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'restart',
+				appId: 7654321,
+				force: true,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Defaults to force: false
+			await request(api)
+				.post('/v2/applications/7654321/restart-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'restart',
+				appId: 7654321,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses imageId
+			await request(api)
+				.post('/v2/applications/7654321/restart-service')
+				.send({ imageId: 111 })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'restart',
+				appId: 7654321,
+				force: false,
+				imageId: 111,
+				serviceName: undefined,
+			});
+			executeServiceActionStub.resetHistory();
+
+			// Parses serviceName
+			await request(api)
+				.post('/v2/applications/7654321/restart-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+			expect(executeServiceActionStub).to.have.been.calledWith({
+				action: 'restart',
+				appId: 7654321,
+				force: false,
+				imageId: undefined,
+				serviceName: 'test',
+			});
+		});
+
+		it("responds with 401 if caller's API key is not in scope of appId", async () => {
+			const scopedKey = await deviceApi.generateScopedKey(1234567, 'main');
+			await request(api)
+				.post('/v2/applications/7654321/restart-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${scopedKey}`)
+				.expect(401);
+		});
+
+		it('responds with 200 if service restart succeeded', async () => {
+			await request(api)
+				.post('/v2/applications/1234567/restart-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+		});
+
+		it('responds with 404 if app or service not found', async () => {
+			executeServiceActionStub.throws(new NotFoundError());
+			await request(api)
+				.post('/v2/applications/1234567/restart-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(404);
+		});
+
+		it('responds with 400 if invalid appId or missing serviceName/imageId from request body', async () => {
+			await request(api)
+				.post('/v2/applications/badAppId/restart-service')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+
+			executeServiceActionStub.throws(new BadRequestError());
+			await request(api)
+				.post('/v2/applications/1234567/restart-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+		});
+
+		it('responds with 423 if there are update locks', async () => {
+			executeServiceActionStub.throws(new UpdatesLockedError());
+			await request(api)
+				.post('/v2/applications/1234567/restart-service')
+				.send({ serviceName: 'test' })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(423);
+		});
+
+		it('responds with 503 for other errors that occur during service restart', async () => {
+			executeServiceActionStub.throws(new Error());
+			await request(api)
+				.post('/v2/applications/7654321/restart-service')
+				.send({ serviceName: 'test' })
 				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(503);
 		});

@@ -6,11 +6,7 @@ import * as _ from 'lodash';
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
-import {
-	CompositionStepAction,
-	generateStep,
-} from '../compose/composition-steps';
-import { getApp } from '../device-state/db-format';
+import { CompositionStepAction } from '../compose/composition-steps';
 import { Service } from '../compose/service';
 import Volume from '../compose/volume';
 import * as commitStore from '../compose/commit';
@@ -22,97 +18,82 @@ import * as images from '../compose/images';
 import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
 import { spawnJournalctl } from '../lib/journald';
-import {
-	appNotFoundMessage,
-	serviceNotFoundMessage,
-	v2ServiceEndpointInputErrorMessage,
-} from './messages';
 import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
-import { checkInt, checkTruthy } from '../lib/validation';
+import { checkInt, checkString, checkTruthy } from '../lib/validation';
+import {
+	isNotFoundError,
+	isBadRequestError,
+	BadRequestError,
+} from '../lib/errors';
 import { isVPNActive } from '../network';
-import * as actions from './actions';
 import { AuthorizedRequest } from './api-keys';
 import { fromV2TargetState } from '../lib/legacy';
+import * as actions from './actions';
+import { v2ServiceEndpointError } from './messages';
 
 export const router = express.Router();
 
-const handleServiceAction = (
-	req: AuthorizedRequest,
-	res: Response,
-	next: NextFunction,
-	action: CompositionStepAction,
-): Resolvable<void> => {
-	const { imageId, serviceName, force } = req.body;
-	const appId = checkInt(req.params.appId);
-	if (!appId) {
-		res.status(400).json({
-			status: 'failed',
-			message: 'Missing app id',
-		});
-		return;
-	}
+const handleServiceAction = (action: CompositionStepAction) => {
+	return async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
+		const [appId, imageId, serviceName, force] = [
+			checkInt(req.params.appId),
+			checkInt(req.body.imageId),
+			checkString(req.body.serviceName),
+			checkTruthy(req.body.force),
+		];
 
-	// handle the case where the appId is out of scope
-	if (!req.auth.isScoped({ apps: [appId] })) {
-		res.status(401).json({
-			status: 'failed',
-			message: 'Application is not available',
-		});
-		return;
-	}
-
-	return Promise.all([applicationManager.getCurrentApps(), getApp(appId)])
-		.then(([apps, targetApp]) => {
-			const app = apps[appId];
-
-			if (app == null) {
-				res.status(404).send(appNotFoundMessage);
-				return;
-			}
-
-			// Work if we have a service name or an image id
-			if (imageId == null && serviceName == null) {
-				throw new Error(v2ServiceEndpointInputErrorMessage);
-			}
-
-			let service: Service | undefined;
-			let targetService: Service | undefined;
-			if (imageId != null) {
-				service = _.find(app.services, { imageId });
-				targetService = _.find(targetApp.services, { imageId });
-			} else {
-				service = _.find(app.services, { serviceName });
-				targetService = _.find(targetApp.services, { serviceName });
-			}
-			if (service == null) {
-				res.status(404).send(serviceNotFoundMessage);
-				return;
-			}
-
-			applicationManager.setTargetVolatileForService(service.imageId!, {
-				running: action !== 'stop',
+		if (!appId) {
+			return res.status(400).json({
+				status: 'failed',
+				message: 'Invalid app id',
 			});
-			return applicationManager
-				.executeStep(
-					generateStep(action, {
-						current: service,
-						target: targetService,
-						wait: true,
-					}),
-					{
-						force,
-					},
-				)
-				.then(() => {
-					res.status(200).send('OK');
-				});
-		})
-		.catch(next);
+		}
+
+		if (!req.auth.isScoped({ apps: [appId] })) {
+			return res.status(401).json({
+				status: 'failed',
+				message: 'Unauthorized',
+			});
+		}
+
+		try {
+			if (!serviceName && !imageId) {
+				throw new BadRequestError(v2ServiceEndpointError);
+			}
+
+			await actions.executeServiceAction({
+				action,
+				appId,
+				imageId,
+				serviceName,
+				force,
+			});
+			return res.status(200).send('OK');
+		} catch (e: unknown) {
+			if (isNotFoundError(e) || isBadRequestError(e)) {
+				return res.status(e.statusCode).send(e.statusMessage);
+			} else {
+				next(e);
+			}
+		}
+	};
 };
 
-const createServiceActionHandler = (action: string) =>
-	_.partial(handleServiceAction, _, _, _, action);
+router.post(
+	'/v2/applications/:appId/restart-service',
+	handleServiceAction('restart'),
+);
+
+router.post(
+	'/v2/applications/:appId/stop-service',
+	handleServiceAction('stop'),
+);
+
+router.post(
+	'/v2/applications/:appId/start-service',
+	handleServiceAction('start'),
+);
 
 router.post(
 	'/v2/applications/:appId/purge',
@@ -130,7 +111,7 @@ router.post(
 		if (!req.auth.isScoped({ apps: [appId] })) {
 			return res.status(401).json({
 				status: 'failed',
-				message: 'Application is not available',
+				message: 'Unauthorized',
 			});
 		}
 
@@ -141,21 +122,6 @@ router.post(
 			})
 			.catch(next);
 	},
-);
-
-router.post(
-	'/v2/applications/:appId/restart-service',
-	createServiceActionHandler('restart'),
-);
-
-router.post(
-	'/v2/applications/:appId/stop-service',
-	createServiceActionHandler('stop'),
-);
-
-router.post(
-	'/v2/applications/:appId/start-service',
-	createServiceActionHandler('start'),
 );
 
 router.post(
@@ -172,11 +138,10 @@ router.post(
 
 		// handle the case where the appId is out of scope
 		if (!req.auth.isScoped({ apps: [appId] })) {
-			res.status(401).json({
+			return res.status(401).json({
 				status: 'failed',
-				message: 'Application is not available',
+				message: 'Unauthorized',
 			});
-			return;
 		}
 
 		return actions
@@ -306,11 +271,10 @@ router.get(
 
 		// handle the case where the appId is out of scope
 		if (!req.auth.isScoped({ apps: [appId] })) {
-			res.status(401).json({
+			return res.status(401).json({
 				status: 'failed',
-				message: 'Application is not available',
+				message: 'Unauthorized',
 			});
-			return;
 		}
 
 		// Filter applications we do not want

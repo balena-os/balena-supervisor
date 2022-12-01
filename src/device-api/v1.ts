@@ -11,12 +11,15 @@ import * as deviceState from '../device-state';
 import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
 import log from '../lib/supervisor-console';
-import { UpdatesLockedError } from '../lib/errors';
+import {
+	UpdatesLockedError,
+	isNotFoundError,
+	isBadRequestError,
+} from '../lib/errors';
 import * as hostConfig from '../host-config';
 import * as applicationManager from '../compose/application-manager';
-import { generateStep } from '../compose/composition-steps';
+import { CompositionStepAction } from '../compose/composition-steps';
 import * as commitStore from '../compose/commit';
-import { getApp } from '../device-state/db-format';
 import * as TargetState from '../device-state/target-state';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
@@ -33,11 +36,10 @@ router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {
 
 	// handle the case where the appId is out of scope
 	if (!req.auth.isScoped({ apps: [appId] })) {
-		res.status(401).json({
+		return res.status(401).json({
 			status: 'failed',
-			message: 'Application is not available',
+			message: 'Unauthorized',
 		});
-		return;
 	}
 
 	return actions
@@ -46,84 +48,44 @@ router.post('/v1/restart', (req: AuthorizedRequest, res, next) => {
 		.catch(next);
 });
 
-const v1StopOrStart = (
-	req: AuthorizedRequest,
-	res: express.Response,
-	next: express.NextFunction,
-	action: 'start' | 'stop',
-) => {
-	const appId = checkInt(req.params.appId);
-	const force = checkTruthy(req.body.force);
-	if (appId == null) {
-		return res.status(400).send('Missing app id');
-	}
+const handleLegacyServiceAction = (action: CompositionStepAction) => {
+	return async (
+		req: AuthorizedRequest,
+		res: express.Response,
+		next: express.NextFunction,
+	) => {
+		const appId = checkInt(req.params.appId);
+		const force = checkTruthy(req.body.force);
 
-	return Promise.all([applicationManager.getCurrentApps(), getApp(appId)])
-		.then(([apps, targetApp]) => {
-			if (apps[appId] == null) {
-				return res.status(400).send('App not found');
-			}
-			const app = apps[appId];
-			let service = app.services[0];
-			if (service == null) {
-				return res.status(400).send('No services on app');
-			}
-			if (app.services.length > 1) {
-				return res
-					.status(400)
-					.send('Some v1 endpoints are only allowed on single-container apps');
-			}
+		if (appId == null) {
+			return res.status(400).send('Invalid app id');
+		}
 
-			// check that the request is scoped to cover this application
-			if (!req.auth.isScoped({ apps: [app.appId] })) {
-				return res.status(401).send('Unauthorized');
-			}
+		if (!req.auth.isScoped({ apps: [appId] })) {
+			return res.status(401).send('Unauthorized');
+		}
 
-			// Get the service from the target state (as we do in v2)
-			// TODO: what if we want to start a service belonging to the current app?
-			const targetService = _.find(targetApp.services, {
-				serviceName: service.serviceName,
+		try {
+			await actions.executeServiceAction({
+				action,
+				appId,
+				force,
+				isLegacy: true,
 			});
-
-			applicationManager.setTargetVolatileForService(service.imageId, {
-				running: action !== 'stop',
-			});
-
-			const stopOpts = { wait: true };
-			const step = generateStep(action, {
-				current: service,
-				target: targetService,
-				...stopOpts,
-			});
-
-			return applicationManager
-				.executeStep(step, { force })
-				.then(function () {
-					if (action === 'stop') {
-						return service;
-					}
-					// We refresh the container id in case we were starting an app with no container yet
-					return applicationManager.getCurrentApps().then(function (apps2) {
-						const app2 = apps2[appId];
-						service = app2.services[0];
-						if (service == null) {
-							throw new Error('App not found after running action');
-						}
-						return service;
-					});
-				})
-				.then((service2) =>
-					res.status(200).json({ containerId: service2.containerId }),
-				);
-		})
-		.catch(next);
+			const service = await actions.getLegacyService(appId);
+			return res.status(200).send({ containerId: service.containerId });
+		} catch (e: unknown) {
+			if (isNotFoundError(e) || isBadRequestError(e)) {
+				return res.status(e.statusCode).send(e.statusMessage);
+			} else {
+				next(e);
+			}
+		}
+	};
 };
 
-const createV1StopOrStartHandler = (action: 'start' | 'stop') =>
-	_.partial(v1StopOrStart, _, _, _, action);
-
-router.post('/v1/apps/:appId/stop', createV1StopOrStartHandler('stop'));
-router.post('/v1/apps/:appId/start', createV1StopOrStartHandler('start'));
+router.post('/v1/apps/:appId/stop', handleLegacyServiceAction('stop'));
+router.post('/v1/apps/:appId/start', handleLegacyServiceAction('start'));
 
 const rebootOrShutdown = async (
 	req: express.Request,
@@ -166,11 +128,10 @@ router.get('/v1/apps/:appId', async (req: AuthorizedRequest, res, next) => {
 
 		// handle the case where the appId is out of scope
 		if (!req.auth.isScoped({ apps: [app.appId] })) {
-			res.status(401).json({
+			return res.status(401).json({
 				status: 'failed',
-				message: 'Application is not available',
+				message: 'Unauthorized',
 			});
-			return;
 		}
 
 		if (app.services.length > 1) {
@@ -209,11 +170,10 @@ router.post('/v1/purge', (req: AuthorizedRequest, res, next) => {
 
 	// handle the case where the appId is out of scope
 	if (!req.auth.isScoped({ apps: [appId] })) {
-		res.status(401).json({
+		return res.status(401).json({
 			status: 'failed',
-			message: 'Application is not available',
+			message: 'Unauthorized',
 		});
-		return;
 	}
 
 	return actions

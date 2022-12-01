@@ -22,16 +22,23 @@ export class StatusError extends Error {
 export const isStatusError = (x: unknown): x is StatusError =>
 	x != null && x instanceof Error && !isNaN((x as any).statusCode);
 
-export class NotFoundError extends Error {
-	public statusCode: number;
-	constructor() {
-		super();
-		this.statusCode = 404;
+export class NotFoundError extends StatusError {
+	constructor(statusMessage?: string) {
+		super(404, statusMessage ?? 'Not Found');
 	}
 }
 
 export const isNotFoundError = (e: unknown): e is NotFoundError =>
 	isStatusError(e) && e.statusCode === 404;
+
+export class BadRequestError extends StatusError {
+	constructor(statusMessage?: string) {
+		super(400, statusMessage ?? 'Bad Request');
+	}
+}
+
+export const isBadRequestError = (e: unknown): e is BadRequestError =>
+	isStatusError(e) && e.statusCode === 400;
 
 interface CodedSysError extends Error {
 	code?: string;
