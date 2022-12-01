@@ -496,4 +496,144 @@ describe('device-api/v1', () => {
 				.expect(503);
 		});
 	});
+
+	describe('POST /v1/reboot', () => {
+		let executeDeviceActionStub: SinonStub;
+		beforeEach(() => {
+			executeDeviceActionStub = stub(actions, 'executeDeviceAction').resolves();
+		});
+		afterEach(async () => executeDeviceActionStub.restore());
+
+		it('validates data from request body', async () => {
+			// Parses force: false
+			await request(api)
+				.post('/v1/reboot')
+				.send({ force: false })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(executeDeviceActionStub).to.have.been.calledWith(
+				{
+					action: 'reboot',
+				},
+				false,
+			);
+			executeDeviceActionStub.resetHistory();
+
+			// Parses force: true
+			await request(api)
+				.post('/v1/reboot')
+				.send({ force: true })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(executeDeviceActionStub).to.have.been.calledWith(
+				{
+					action: 'reboot',
+				},
+				true,
+			);
+			executeDeviceActionStub.resetHistory();
+
+			// Defaults to force: false
+			await request(api)
+				.post('/v1/reboot')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(executeDeviceActionStub).to.have.been.calledWith(
+				{
+					action: 'reboot',
+				},
+				false,
+			);
+		});
+
+		it('responds with 202 if request successful', async () => {
+			await request(api)
+				.post('/v1/reboot')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(202);
+		});
+
+		it('responds with 423 if there are update locks', async () => {
+			executeDeviceActionStub.throws(new UpdatesLockedError());
+			await request(api)
+				.post('/v1/reboot')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(423);
+		});
+
+		it('responds with 500 for other errors that occur during reboot', async () => {
+			executeDeviceActionStub.throws(new Error());
+			await request(api)
+				.post('/v1/reboot')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(500);
+		});
+	});
+
+	describe('POST /v1/shutdown', () => {
+		let executeDeviceActionStub: SinonStub;
+		beforeEach(() => {
+			executeDeviceActionStub = stub(actions, 'executeDeviceAction').resolves();
+		});
+		afterEach(async () => executeDeviceActionStub.restore());
+
+		it('validates data from request body', async () => {
+			// Parses force: false
+			await request(api)
+				.post('/v1/shutdown')
+				.send({ force: false })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(executeDeviceActionStub).to.have.been.calledWith(
+				{
+					action: 'shutdown',
+				},
+				false,
+			);
+			executeDeviceActionStub.resetHistory();
+
+			// Parses force: true
+			await request(api)
+				.post('/v1/shutdown')
+				.send({ force: true })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(executeDeviceActionStub).to.have.been.calledWith(
+				{
+					action: 'shutdown',
+				},
+				true,
+			);
+			executeDeviceActionStub.resetHistory();
+
+			// Defaults to force: false
+			await request(api)
+				.post('/v1/shutdown')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(executeDeviceActionStub).to.have.been.calledWith(
+				{
+					action: 'shutdown',
+				},
+				false,
+			);
+		});
+
+		it('responds with 202 if request successful', async () => {
+			await request(api)
+				.post('/v1/shutdown')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(202);
+		});
+
+		it('responds with 423 if there are update locks', async () => {
+			executeDeviceActionStub.throws(new UpdatesLockedError());
+			await request(api)
+				.post('/v1/shutdown')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(423);
+		});
+
+		it('responds with 500 for other errors that occur during shutdown', async () => {
+			executeDeviceActionStub.throws(new Error());
+			await request(api)
+				.post('/v1/shutdown')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(500);
+		});
+	});
 });

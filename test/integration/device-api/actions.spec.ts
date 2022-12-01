@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { stub, SinonStub } from 'sinon';
+import { stub, SinonStub, spy, SinonSpy } from 'sinon';
 import * as Docker from 'dockerode';
 import * as request from 'supertest';
 import { setTimeout } from 'timers/promises';
@@ -7,6 +7,7 @@ import { setTimeout } from 'timers/promises';
 import * as deviceState from '~/src/device-state';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
+import * as dbus from '~/lib/dbus';
 import { cleanupDocker } from '~/test-lib/docker-helper';
 
 describe('regenerates API keys', () => {
@@ -111,13 +112,13 @@ describe('manages application lifecycle', () => {
 		appId?: number;
 		serviceNames?: string[];
 	}) => {
-		const { name, config } = await getSupervisorTarget();
+		const { name, config: svConfig } = await getSupervisorTarget();
 		return {
 			local: {
 				// We don't want to change name or config as this may result in
 				// unintended reboots. We just want to test state changes in containers.
 				name,
-				config,
+				config: svConfig,
 				apps:
 					serviceCount === 0
 						? {}
@@ -614,5 +615,27 @@ describe('manages application lifecycle', () => {
 			}
 			expect((newVolume as any).CreatedAt).to.not.equal(createdAt);
 		});
+	});
+});
+
+describe('reboots or shuts down device', () => {
+	before(async () => {
+		spy(dbus, 'reboot');
+		spy(dbus, 'shutdown');
+	});
+
+	after(() => {
+		(dbus.reboot as SinonSpy).restore();
+		(dbus.shutdown as SinonSpy).restore();
+	});
+
+	it('reboots device', async () => {
+		await actions.executeDeviceAction({ action: 'reboot' });
+		expect(dbus.reboot as SinonSpy).to.have.been.called;
+	});
+
+	it('shuts down device', async () => {
+		await actions.executeDeviceAction({ action: 'shutdown' });
+		expect(dbus.shutdown as SinonSpy).to.have.been.called;
 	});
 });

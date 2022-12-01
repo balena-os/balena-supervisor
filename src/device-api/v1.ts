@@ -1,5 +1,6 @@
 import * as express from 'express';
 import * as _ from 'lodash';
+import type { Response } from 'express';
 
 import * as actions from './actions';
 import { AuthorizedRequest } from './api-keys';
@@ -87,29 +88,24 @@ const handleLegacyServiceAction = (action: CompositionStepAction) => {
 router.post('/v1/apps/:appId/stop', handleLegacyServiceAction('stop'));
 router.post('/v1/apps/:appId/start', handleLegacyServiceAction('start'));
 
-const rebootOrShutdown = async (
-	req: express.Request,
-	res: express.Response,
-	action: deviceState.DeviceStateStepTarget,
-) => {
-	const override = await config.get('lockOverride');
-	const force = checkTruthy(req.body.force) || override;
-	try {
-		const response = await deviceState.executeStepAction({ action }, { force });
-		res.status(202).json(response);
-	} catch (e: any) {
-		const status = e instanceof UpdatesLockedError ? 423 : 500;
-		res.status(status).json({
-			Data: '',
-			Error: (e != null ? e.message : undefined) || e || 'Unknown error',
-		});
-	}
+const handleDeviceAction = (action: deviceState.DeviceStateStepTarget) => {
+	return async (req: AuthorizedRequest, res: Response) => {
+		const force = checkTruthy(req.body.force);
+		try {
+			await actions.executeDeviceAction({ action }, force);
+			return res.status(202).send({ Data: 'OK', Error: null });
+		} catch (e: unknown) {
+			const status = e instanceof UpdatesLockedError ? 423 : 500;
+			return res.status(status).json({
+				Data: '',
+				Error: (e as Error)?.message ?? e ?? 'Unknown error',
+			});
+		}
+	};
 };
 
-router.post('/v1/reboot', (req, res) => rebootOrShutdown(req, res, 'reboot'));
-router.post('/v1/shutdown', (req, res) =>
-	rebootOrShutdown(req, res, 'shutdown'),
-);
+router.post('/v1/reboot', handleDeviceAction('reboot'));
+router.post('/v1/shutdown', handleDeviceAction('shutdown'));
 
 router.get('/v1/apps/:appId', async (req: AuthorizedRequest, res, next) => {
 	const appId = checkInt(req.params.appId);

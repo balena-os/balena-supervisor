@@ -89,11 +89,7 @@ export type DeviceStateStepTarget = 'reboot' | 'shutdown' | 'noop';
 
 type PossibleStepTargets = CompositionStepAction | DeviceStateStepTarget;
 type DeviceStateStep<T extends PossibleStepTargets> =
-	| {
-			action: 'reboot';
-	  }
-	| { action: 'shutdown' }
-	| { action: 'noop' }
+	| { action: DeviceStateStepTarget }
 	| CompositionStepT<T extends CompositionStepAction ? T : never>
 	| deviceConfig.ConfigStep;
 
@@ -564,8 +560,8 @@ export async function shutdown({
 	});
 }
 
-export async function executeStepAction<T extends PossibleStepTargets>(
-	step: DeviceStateStep<T>,
+export async function executeStepAction(
+	step: DeviceStateStep<PossibleStepTargets>,
 	{
 		force,
 		initial,
@@ -586,19 +582,12 @@ export async function executeStepAction<T extends PossibleStepTargets>(
 			case 'reboot':
 				// There isn't really a way that these methods can fail,
 				// and if they do, we wouldn't know about it until after
-				// the response has been sent back to the API. Just return
-				// "OK" for this and the below action
+				// the response has been sent back to the API.
 				await shutdown({ force, reboot: true });
-				return {
-					Data: 'OK',
-					Error: null,
-				};
+				return;
 			case 'shutdown':
 				await shutdown({ force, reboot: false });
-				return {
-					Data: 'OK',
-					Error: null,
-				};
+				return;
 			case 'noop':
 				return;
 			default:
@@ -607,8 +596,8 @@ export async function executeStepAction<T extends PossibleStepTargets>(
 	}
 }
 
-export async function applyStep<T extends PossibleStepTargets>(
-	step: DeviceStateStep<T>,
+export async function applyStep(
+	step: DeviceStateStep<PossibleStepTargets>,
 	{
 		force,
 		initial,
@@ -623,12 +612,12 @@ export async function applyStep<T extends PossibleStepTargets>(
 		return;
 	}
 	try {
-		const stepResult = await executeStepAction(step, {
+		await executeStepAction(step, {
 			force,
 			initial,
 			skipLock,
 		});
-		emitAsync('step-completed', null, step, stepResult || undefined);
+		emitAsync('step-completed', null, step);
 	} catch (e: any) {
 		emitAsync('step-error', e, step);
 		throw e;

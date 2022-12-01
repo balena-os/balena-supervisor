@@ -311,6 +311,22 @@ export const getLegacyService = async (appId: number) => {
 };
 
 /**
+ * Executes a device state action such as reboot, shutdown, or noop
+ * Used by:
+ * - POST /v1/reboot
+ * - POST /v1/shutdown
+ * - actions.executeServiceAction
+ */
+export const executeDeviceAction = async (
+	step: Parameters<typeof deviceState.executeStepAction>[0],
+	force: boolean = false,
+) => {
+	return await deviceState.executeStepAction(step, {
+		force,
+	});
+};
+
+/**
  * Executes a composition step action on a service.
  * isLegacy indicates that the action is being called from a legacy (v1) endpoint,
  * as a different error code is returned on certain failures to maintain the old interface.
@@ -371,12 +387,12 @@ export const executeServiceAction = async ({
 	});
 
 	// Execute action on service
-	return await applicationManager.executeStep(
+	return await executeDeviceAction(
 		generateStep(action, {
 			current: currentService,
 			target: targetService,
 			wait: true,
 		}),
-		{ force },
+		force,
 	);
 };
