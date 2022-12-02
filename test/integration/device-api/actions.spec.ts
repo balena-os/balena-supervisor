@@ -7,6 +7,7 @@ import { setTimeout } from 'timers/promises';
 import * as deviceState from '~/src/device-state';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
+import * as TargetState from '~/src/device-state/target-state';
 import * as dbus from '~/lib/dbus';
 import { cleanupDocker } from '~/test-lib/docker-helper';
 
@@ -637,5 +638,42 @@ describe('reboots or shuts down device', () => {
 	it('shuts down device', async () => {
 		await actions.executeDeviceAction({ action: 'shutdown' });
 		expect(dbus.shutdown as SinonSpy).to.have.been.called;
+	});
+});
+
+describe('updates target state cache', () => {
+	let updateStub: SinonStub;
+	// Stub external dependencies. TargetState.update and api-binder methods
+	// should be tested separately.
+	before(async () => {
+		updateStub = stub(TargetState, 'update').resolves();
+		// updateTarget reads instantUpdates from the db
+		await config.initialized();
+	});
+
+	after(() => {
+		updateStub.restore();
+	});
+
+	afterEach(() => {
+		updateStub.resetHistory();
+	});
+
+	it('updates target state cache if instant updates are enabled', async () => {
+		await config.set({ instantUpdates: true });
+		await actions.updateTarget();
+		expect(updateStub).to.have.been.calledWith(false);
+	});
+
+	it('updates target state cache if force is specified', async () => {
+		await config.set({ instantUpdates: false });
+		await actions.updateTarget(true);
+		expect(updateStub).to.have.been.calledWith(true);
+	});
+
+	it("doesn't update target state cache if instantUpdates and force are false", async () => {
+		await config.set({ instantUpdates: false });
+		await actions.updateTarget(false);
+		expect(updateStub).to.not.have.been.called;
 	});
 });

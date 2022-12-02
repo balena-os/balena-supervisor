@@ -17,7 +17,6 @@ import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
 import * as dbus from '~/lib/dbus';
 import * as updateLock from '~/lib/update-lock';
-import * as TargetState from '~/src/device-state/target-state';
 import * as targetStateCache from '~/src/device-state/target-state-cache';
 import constants = require('~/lib/constants');
 import { UpdatesLockedError } from '~/lib/errors';
@@ -161,70 +160,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 				.expect(200);
 
 			expect(response.body).to.have.property('mac_address').that.is.not.empty;
-		});
-	});
-
-	describe('POST /v1/update', () => {
-		let configStub: SinonStub;
-		let targetUpdateSpy: SinonSpy;
-		let readyForUpdatesStub: SinonStub;
-
-		before(() => {
-			configStub = stub(config, 'get');
-			targetUpdateSpy = spy(TargetState, 'update');
-			readyForUpdatesStub = stub(apiBinder, 'isReadyForUpdates').returns(true);
-		});
-
-		afterEach(() => {
-			targetUpdateSpy.resetHistory();
-		});
-
-		after(() => {
-			configStub.restore();
-			targetUpdateSpy.restore();
-			readyForUpdatesStub.restore();
-		});
-
-		it('returns 204 with no parameters', async () => {
-			// Stub response for getting instantUpdates
-			configStub.resolves(true);
-			// Make request
-			await request
-				.post('/v1/update')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.expect(sampleResponses.V1.POST['/update [204 Response]'].statusCode);
-			// Check that TargetState.update was called
-			expect(targetUpdateSpy).to.be.called;
-			expect(targetUpdateSpy).to.be.calledWith(undefined, true);
-		});
-
-		it('returns 204 with force: true in body', async () => {
-			// Stub response for getting instantUpdates
-			configStub.resolves(true);
-			// Make request with force: true in the body
-			await request
-				.post('/v1/update')
-				.send({ force: true })
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.expect(sampleResponses.V1.POST['/update [204 Response]'].statusCode);
-			// Check that TargetState.update was called
-			expect(targetUpdateSpy).to.be.called;
-			expect(targetUpdateSpy).to.be.calledWith(true, true);
-		});
-
-		it('returns 202 when instantUpdates are disabled', async () => {
-			// Stub response for getting instantUpdates
-			configStub.resolves(false);
-			// Make request
-			await request
-				.post('/v1/update')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.expect(sampleResponses.V1.POST['/update [202 Response]'].statusCode);
-			// Check that TargetState.update was not called
-			expect(targetUpdateSpy).to.not.be.called;
 		});
 	});
 

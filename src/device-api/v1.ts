@@ -5,7 +5,6 @@ import type { Response } from 'express';
 import * as actions from './actions';
 import { AuthorizedRequest } from './api-keys';
 import * as eventTracker from '../event-tracker';
-import { isReadyForUpdates } from '../api-binder';
 import * as config from '../config';
 import * as deviceState from '../device-state';
 
@@ -21,7 +20,6 @@ import * as hostConfig from '../host-config';
 import * as applicationManager from '../compose/application-manager';
 import { CompositionStepAction } from '../compose/composition-steps';
 import * as commitStore from '../compose/commit';
-import * as TargetState from '../device-state/target-state';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
 
@@ -178,25 +176,13 @@ router.post('/v1/purge', (req: AuthorizedRequest, res, next) => {
 		.catch(next);
 });
 
-router.post('/v1/update', (req, res, next) => {
-	eventTracker.track('Update notification');
-	if (isReadyForUpdates()) {
-		config
-			.get('instantUpdates')
-			.then((instantUpdates) => {
-				if (instantUpdates) {
-					TargetState.update(req.body.force, true).catch(_.noop);
-					res.sendStatus(204);
-				} else {
-					log.debug(
-						'Ignoring update notification because instant updates are disabled',
-					);
-					res.sendStatus(202);
-				}
-			})
-			.catch(next);
-	} else {
-		res.sendStatus(202);
+router.post('/v1/update', async (req, res, next) => {
+	const force = checkTruthy(req.body.force);
+	try {
+		const result = await actions.updateTarget(force);
+		return res.sendStatus(result ? 204 : 202);
+	} catch (e: unknown) {
+		next(e);
 	}
 });
 

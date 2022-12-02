@@ -2,6 +2,7 @@ import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import { getGlobalApiKey, refreshKey } from '.';
+import * as messages from './messages';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 import * as logger from '../logger';
@@ -14,6 +15,7 @@ import {
 	generateStep,
 } from '../compose/composition-steps';
 import { getApp } from '../device-state/db-format';
+import * as TargetState from '../device-state/target-state';
 import log from '../lib/supervisor-console';
 import blink = require('../lib/blink');
 import { lock } from '../lib/update-lock';
@@ -23,8 +25,7 @@ import {
 	BadRequestError,
 } from '../lib/errors';
 
-import type { InstancedDeviceState } from '../types';
-import * as messages from './messages';
+import { InstancedDeviceState } from '../types';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -395,4 +396,23 @@ export const executeServiceAction = async ({
 		}),
 		force,
 	);
+};
+
+/**
+ * Updates the target state cache of the Supervisor, which triggers an apply if applicable.
+ * Used by:
+ * - POST /v1/update
+ */
+export const updateTarget = async (force: boolean = false) => {
+	eventTracker.track('Update notification');
+
+	if (force || (await config.get('instantUpdates'))) {
+		TargetState.update(force, true).catch(_.noop);
+		return true;
+	}
+
+	log.debug(
+		'Ignoring update notification because instant updates are disabled or force not specified',
+	);
+	return false;
 };

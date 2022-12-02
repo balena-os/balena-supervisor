@@ -636,4 +636,52 @@ describe('device-api/v1', () => {
 				.expect(500);
 		});
 	});
+
+	describe('POST /v1/update', () => {
+		let updateTargetStub: SinonStub;
+		beforeEach(() => {
+			updateTargetStub = stub(actions, 'updateTarget');
+		});
+		afterEach(async () => updateTargetStub.restore());
+
+		it('validates data from request body', async () => {
+			// Parses force: false
+			await request(api)
+				.post('/v1/update')
+				.send({ force: false })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(updateTargetStub.lastCall.firstArg).to.be.false;
+			updateTargetStub.resetHistory();
+
+			// Parses force: true
+			await request(api)
+				.post('/v1/update')
+				.send({ force: true })
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(updateTargetStub.lastCall.firstArg).to.be.true;
+			updateTargetStub.resetHistory();
+
+			// Defaults to force: false
+			await request(api)
+				.post('/v1/update')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(updateTargetStub.lastCall.firstArg).to.be.false;
+		});
+
+		it('responds with 204 if update triggered', async () => {
+			updateTargetStub.returns(true);
+			await request(api)
+				.post('/v1/update')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(204);
+		});
+
+		it('responds with 202 if update not triggered', async () => {
+			updateTargetStub.returns(false);
+			await request(api)
+				.post('/v1/update')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(202);
+		});
+	});
 });
