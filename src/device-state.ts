@@ -112,6 +112,13 @@ let scheduledApply: { force?: boolean; delay?: number } | null = null;
 let shuttingDown = false;
 
 let applyInProgress = false;
+let lastSysinfo: Partial<sysInfo.SystemInfo> = {};
+const averagingKeys = [
+	'cpu_usage',
+	'memory_usage',
+	'storage_usage',
+	'cpu_temp',
+];
 export let connected: boolean;
 export let lastSuccessfulUpdate: number | null = null;
 
@@ -238,6 +245,13 @@ export async function loadInitialState() {
 	maxPollTime = conf.appUpdatePollInterval;
 
 	initNetworkChecks(conf);
+
+	const updateSysinfo = async () => {
+		// todo: Add a try/catch block? Don't let metrics kill the supervisor.
+		lastSysinfo = await getSysInfo();
+	}
+	await updateSysinfo();
+	setInterval(updateSysinfo, 60 * 1000);
 
 	if (!conf.initialConfigSaved) {
 		await saveInitialConfig();
@@ -413,11 +427,9 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 	return theState as DeviceLegacyState;
 }
 
-async function getSysInfo(
-	lastInfo: Partial<sysInfo.SystemInfo>,
-): Promise<sysInfo.SystemInfo> {
+async function getSysInfo(): Promise<sysInfo.SystemInfo> {
 	// If hardwareMetrics is false, send null patch for system metrics to cloud API
-	const currentInfo = {
+	let currentInfo = {
 		...((await config.get('hardwareMetrics'))
 			? await sysInfo.getSystemMetrics()
 			: {
@@ -431,20 +443,19 @@ async function getSysInfo(
 					cpu_id: null,
 			  }),
 		...(await sysInfo.getSystemChecks()),
-	};
+	} as sysInfo.SystemInfo;
 
-	return Object.assign(
-		{} as sysInfo.SystemInfo,
-		...Object.keys(currentInfo).map((key: keyof sysInfo.SystemInfo) => ({
-			[key]: sysInfo.isSignificantChange(
-				key,
-				lastInfo[key] as number,
-				currentInfo[key] as number,
-			)
-				? (currentInfo[key] as number)
-				: (lastInfo[key] as number),
-		})),
-	);
+	// Adjust running average values over last 5 readings.
+	averagingKeys.forEach((key) => {
+		const mykey = key as keyof sysInfo.SystemInfo;
+		const currentVal = currentInfo[mykey] as number;
+		let avgVal = lastSysinfo[mykey] as number;
+		if (! (_.isUndefined(lastSysinfo[mykey]))) {
+			avgVal = (avgVal * 4 + currentVal) / 5;
+			(currentInfo[mykey] as number) = avgVal;
+		}
+	});
+	return currentInfo;
 }
 
 /** SysInfo (metrics) property names used in report. */
@@ -491,7 +502,21 @@ export async function getCurrentForReport(
 		...(localMode ? ['apps', 'logs_channel'] : []),
 	];
 
-	const systemInfo = await getSysInfo(lastReport[uuid] ?? {});
+	const reportInfo = lastReport[uuid] ?? {};
+	const systemInfo = Object.assign(
+		{} as sysInfo.SystemInfo,
+		...Object.keys(lastSysinfo).map((key: keyof sysInfo.SystemInfo) => ({
+			[key]: sysInfo.isSignificantChange(
+				key,
+				reportInfo[key] as number,
+				(_.isNumber(lastSysinfo[key])
+					? Math.round(lastSysinfo[key] as number) : lastSysinfo[key] as number),
+			)
+				? (_.isNumber(lastSysinfo[key])
+					? Math.round(lastSysinfo[key] as number) : lastSysinfo[key] as number)
+				: (reportInfo[key] as number),
+		})),
+	);
 
 	return {
 		[uuid]: _.omitBy(
