@@ -26,6 +26,16 @@ if [ -n "${BALENA_ROOT_CA}" ]; then
 	fi
 fi
 
+# Setup necessary directories for journalctl
+# NOTE: this won't be necessary once the supervisor can update
+# itself, as using the label io.balena.features.journal-logs will
+# achieve the same objective
+if [ -d /mnt/root/run/log/journal ]; then
+	mkdir -p /run/log
+	ln -sf /mnt/root/run/log/journal /run/log/journal
+	ln -sf /mnt/root/etc/machine-id /etc/machine-id
+fi
+
 # Mount the host kernel module path onto the expected location
 # We need to do this as busybox doesn't support using a custom location
 if [ ! -d /lib/modules ]; then

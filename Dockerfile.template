@@ -37,13 +37,27 @@ RUN strip /usr/local/bin/node
 
 # Install fatrw
 RUN curl -SLO "${FATRW_LOCATION}" && \
-		echo curl -SLO "${FATRW_LOCATION}" && \
 		ls -la "${FATRW_ARCHIVE}" && \
 		tar -xzf "${FATRW_ARCHIVE}" -C /usr/local/bin && \
 		rm -f "${FATRW_ARCHIVE}"
 
 # Just install dev dependencies first
 RUN npm ci --build-from-source --sqlite=/usr/lib
+
+###################################################################
+# Journal access.
+# The supervisor is built on an alpine image but still needs
+# to use journalctl (from systemd) which cannot be built for
+# musl. We hack around this by copying the binary and its library
+# dependencies to the final image
+###################################################################
+FROM balenalib/${ARCH}-debian:bullseye-run as journal
+
+RUN apt-get update && apt-get install -y --no-install-recommends systemd
+
+COPY ./build-utils/setup-journal.sh /
+RUN /setup-journal.sh
+
 
 ###################################################
 # Extra dependencies. This uses alpine 3.11 as the
@@ -69,6 +83,9 @@ COPY --from=build-base /usr/local/bin/fatrw /usr/local/bin/fatrw
 
 # Similarly, from the procmail package we just need the lockfile binary
 COPY --from=extra /usr/bin/lockfile /usr/bin/lockfile
+
+# Copy journalctl and library dependecies to the final image
+COPY --from=journal /sysroot /
 
 # Runtime dependencies
 RUN apk add --no-cache \

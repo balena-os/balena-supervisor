@@ -1,6 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
 
-import constants = require('./constants');
 import log from './supervisor-console';
 
 export function spawnJournalctl(opts: {
@@ -13,11 +12,7 @@ export function spawnJournalctl(opts: {
 	filterString?: string;
 	since?: number;
 }): ChildProcess {
-	const args = [
-		// The directory we want to run the chroot from
-		constants.rootMountPoint,
-		'journalctl',
-	];
+	const args: string[] = [];
 	if (opts.all) {
 		args.push('-a');
 	}
@@ -52,9 +47,9 @@ export function spawnJournalctl(opts: {
 		args.push(opts.filterString);
 	}
 
-	log.debug('Spawning journald with: chroot ', args.join(' '));
+	log.debug('Spawning journalctl', args.join(' '));
 
-	const journald = spawn('chroot', args, {
+	const journald = spawn('journalctl', args, {
 		stdio: 'pipe',
 	});
 

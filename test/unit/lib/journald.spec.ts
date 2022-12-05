@@ -1,7 +1,6 @@
 import { SinonStub, stub } from 'sinon';
 import { expect } from 'chai';
 
-import constants = require('~/lib/constants');
 import { spawnJournalctl } from '~/lib/journald';
 
 describe('lib/journald', () => {
@@ -29,8 +28,7 @@ describe('lib/journald', () => {
 			format: 'json-pretty',
 		});
 
-		const expectedCommand = `chroot`;
-		const expectedCoreArgs = [`${constants.rootMountPoint}`, 'journalctl'];
+		const expectedCommand = `journalctl`;
 		const expectedOptionalArgs = [
 			'-a',
 			'--follow',
@@ -45,13 +43,11 @@ describe('lib/journald', () => {
 		];
 
 		const actualCommand = spawn.firstCall.args[0];
-		const actualCoreArgs = spawn.firstCall.args[1].slice(0, 2);
-		const actualOptionalArgs = spawn.firstCall.args[1].slice(2);
+		const actualOptionalArgs = spawn.firstCall.args[1];
 
 		expect(spawn.calledOnce).to.be.true;
 
 		expect(actualCommand).deep.equal(expectedCommand);
-		expect(actualCoreArgs).deep.equal(expectedCoreArgs);
 
 		expectedOptionalArgs.forEach((arg) => {
 			expect(actualOptionalArgs).to.include(arg);
