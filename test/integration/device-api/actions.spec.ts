@@ -378,6 +378,39 @@ describe('manages application lifecycle', () => {
 			expect(body.env).to.have.property('BALENA_SERVICE_NAME', serviceNames[0]);
 		});
 
+		it('should return legacy information about device state', async () => {
+			containers = await waitForSetup(targetState);
+
+			const { body } = await request(BALENA_SUPERVISOR_ADDRESS).get(
+				'/v1/device',
+			);
+
+			expect(body).to.have.property('api_port', 48484);
+			// Versions match semver versioning scheme: major.minor.patch(+rev)?
+			expect(body)
+				.to.have.property('os_version')
+				.that.matches(/balenaOS\s[1-2]\.[0-9]{1,3}\.[0-9]{1,3}(?:\+rev[0-9])?/);
+			expect(body)
+				.to.have.property('supervisor_version')
+				.that.matches(/(?:[0-9]+\.?){3}/);
+			// Matches a space-separated string of IPv4 and/or IPv6 addresses
+			expect(body)
+				.to.have.property('ip_address')
+				.that.matches(
+					/(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}))\s?/,
+				);
+			// Matches a space-separated string of MAC addresses
+			expect(body)
+				.to.have.property('mac_address')
+				.that.matches(/(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\s?/);
+			expect(body).to.have.property('update_pending').that.is.a('boolean');
+			expect(body).to.have.property('update_failed').that.is.a('boolean');
+			expect(body).to.have.property('update_downloaded').that.is.a('boolean');
+			// Container should be running so the overall status is Idle
+			expect(body).to.have.property('status', 'Idle');
+			expect(body).to.have.property('download_progress', null);
+		});
+
 		// This test should be ordered last in this `describe` block, because the test compares
 		// the `CreatedAt` timestamps of volumes to determine whether purge was successful. Thus,
 		// ordering the assertion last will ensure some time has passed between the first `CreatedAt`

@@ -235,38 +235,11 @@ router.patch('/v1/device/host-config', async (req, res) => {
 	}
 });
 
-router.get('/v1/device', async (_req, res) => {
+router.get('/v1/device', async (_req, res, next) => {
 	try {
-		const state = await deviceState.getLegacyState();
-		const stateToSend = _.pick(state.local, [
-			'api_port',
-			'ip_address',
-			'os_version',
-			'mac_address',
-			'supervisor_version',
-			'update_pending',
-			'update_failed',
-			'update_downloaded',
-		]) as Dictionary<unknown>;
-		if (state.local?.is_on__commit != null) {
-			stateToSend.commit = state.local.is_on__commit;
-		}
-		const service = _.toPairs(
-			_.toPairs(state.local?.apps)[0]?.[1]?.services,
-		)[0]?.[1];
-
-		if (service != null) {
-			stateToSend.status = service.status;
-			if (stateToSend.status === 'Running') {
-				stateToSend.status = 'Idle';
-			}
-			stateToSend.download_progress = service.download_progress;
-		}
-		res.json(stateToSend);
-	} catch (e: any) {
-		res.status(500).json({
-			Data: '',
-			Error: (e != null ? e.message : undefined) || e || 'Unknown error',
-		});
+		const state = await actions.getLegacyDeviceState();
+		return res.json(state);
+	} catch (e: unknown) {
+		next(e);
 	}
 });

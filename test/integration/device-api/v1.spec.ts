@@ -744,4 +744,28 @@ describe('device-api/v1', () => {
 				.expect(503);
 		});
 	});
+
+	describe('GET /v1/device', () => {
+		let getLegacyDeviceStateStub: SinonStub;
+		beforeEach(() => {
+			getLegacyDeviceStateStub = stub(actions, 'getLegacyDeviceState');
+		});
+		afterEach(() => getLegacyDeviceStateStub.restore());
+
+		it('responds with 200 and legacy device state', async () => {
+			getLegacyDeviceStateStub.resolves({ test_state: 'Success' });
+			await request(api)
+				.get('/v1/device')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { test_state: 'Success' });
+		});
+
+		it('responds with 503 for other errors that occur during request', async () => {
+			getLegacyDeviceStateStub.throws(new Error());
+			await request(api)
+				.get('/v1/device')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
 });

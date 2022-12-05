@@ -107,18 +107,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		loggerStub.restore();
 	});
 
-	describe('GET /v1/device', () => {
-		it('returns MAC address', async () => {
-			const response = await request
-				.get('/v1/device')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.expect(200);
-
-			expect(response.body).to.have.property('mac_address').that.is.not.empty;
-		});
-	});
-
 	describe('/v1/device/host-config', () => {
 		// Wrap GET and PATCH /v1/device/host-config tests in the same block to share
 		// common scoped variables, namely file paths and file content

@@ -453,3 +453,44 @@ export const getSingleContainerApp = async (appId: number) => {
 		releaseId: service.releaseId,
 	};
 };
+
+/**
+ * Returns legacy device info, update status, and service status for a single-container application.
+ * Used by:
+ * 	- GET /v1/device
+ */
+export const getLegacyDeviceState = async () => {
+	const state = await deviceState.getLegacyState();
+	const stateToSend = _.pick(state.local, [
+		'api_port',
+		'ip_address',
+		'os_version',
+		'mac_address',
+		'supervisor_version',
+		'update_pending',
+		'update_failed',
+		'update_downloaded',
+	]) as Dictionary<any>;
+
+	if (state.local?.is_on__commit != null) {
+		stateToSend.commit = state.local.is_on__commit;
+	}
+
+	// NOTE: This only returns the status of the first service,
+	// even in a multi-container app. We should deprecate this endpoint
+	// in favor of a multi-container friendly device endpoint (which doesn't
+	// exist yet), and use that for cloud dashboard diagnostic queries.
+	const service = _.toPairs(
+		_.toPairs(state.local?.apps)[0]?.[1]?.services,
+	)[0]?.[1];
+
+	if (service != null) {
+		stateToSend.status = service.status;
+		if (stateToSend.status === 'Running') {
+			stateToSend.status = 'Idle';
+		}
+		stateToSend.download_progress = service.download_progress;
+	}
+
+	return stateToSend;
+};
