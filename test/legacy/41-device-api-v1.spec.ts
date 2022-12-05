@@ -107,50 +107,6 @@ describe('SupervisorAPI [V1 Endpoints]', () => {
 		loggerStub.restore();
 	});
 
-	describe('GET /v1/apps/:appId', () => {
-		it('does not return information for an application when there is more than 1 container', async () => {
-			await request
-				.get('/v1/apps/2')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.expect(
-					sampleResponses.V1.GET['/apps/2 [Multiple containers running]']
-						.statusCode,
-				);
-		});
-
-		it('returns information about a specific application', async () => {
-			// Setup single container application
-			const container = mockedAPI.mockService({
-				containerId: 'abc123',
-				appId: 2,
-				releaseId: 77777,
-			});
-			const image = mockedAPI.mockImage({
-				appId: 2,
-			});
-			appMock.mockManagers([container], [], []);
-			appMock.mockImages([], false, [image]);
-			await mockedDockerode.testWithData(
-				{ containers: [container], images: [image] },
-				async () => {
-					// Make request
-					await request
-						.get('/v1/apps/2')
-						.set('Accept', 'application/json')
-						.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-						.expect(sampleResponses.V1.GET['/apps/2'].statusCode)
-						.expect('Content-Type', /json/)
-						.then((response) => {
-							expect(response.body).to.deep.equal(
-								sampleResponses.V1.GET['/apps/2'].body,
-							);
-						});
-				},
-			);
-		});
-	});
-
 	describe('GET /v1/device', () => {
 		it('returns MAC address', async () => {
 			const response = await request

@@ -6,6 +6,7 @@ import * as messages from './messages';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 import * as logger from '../logger';
+import * as config from '../config';
 import { App } from '../compose/app';
 import * as applicationManager from '../compose/application-manager';
 import * as serviceManager from '../compose/service-manager';
@@ -14,11 +15,13 @@ import {
 	CompositionStepAction,
 	generateStep,
 } from '../compose/composition-steps';
+import * as commitStore from '../compose/commit';
 import { getApp } from '../device-state/db-format';
 import * as TargetState from '../device-state/target-state';
 import log from '../lib/supervisor-console';
 import blink = require('../lib/blink');
 import { lock } from '../lib/update-lock';
+import * as constants from '../lib/constants';
 import {
 	InternalInconsistencyError,
 	NotFoundError,
@@ -415,4 +418,38 @@ export const updateTarget = async (force: boolean = false) => {
 		'Ignoring update notification because instant updates are disabled or force not specified',
 	);
 	return false;
+};
+
+/**
+ * Get application information for a single-container app, throwing if multicontainer
+ * Used by:
+ * - GET /v1/apps/:appId
+ */
+export const getSingleContainerApp = async (appId: number) => {
+	eventTracker.track('GET app (v1)', { appId });
+	const apps = await applicationManager.getCurrentApps();
+	const app = apps[appId];
+	const service = app?.services?.[0];
+	if (service == null) {
+		// This should return a 404 Not Found, but we can't change the interface now so keep it as a 400
+		throw new BadRequestError('App not found');
+	}
+	if (app.services.length > 1) {
+		throw new BadRequestError(
+			'Some v1 endpoints are only allowed on single-container apps',
+		);
+	}
+
+	// Because we only have a single app, we can fetch the commit for that
+	// app, and maintain backwards compatability
+	const commit = await commitStore.getCommitForApp(appId);
+
+	return {
+		appId,
+		commit,
+		containerId: service.containerId,
+		env: _.omit(service.config.environment, constants.privateAppEnvVars),
+		imageId: service.config.image,
+		releaseId: service.releaseId,
+	};
 };

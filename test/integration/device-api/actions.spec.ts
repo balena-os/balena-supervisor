@@ -5,6 +5,7 @@ import * as request from 'supertest';
 import { setTimeout } from 'timers/promises';
 
 import * as deviceState from '~/src/device-state';
+import * as config from '~/src/config';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
@@ -355,6 +356,26 @@ describe('manages application lifecycle', () => {
 			expect(response.body).to.deep.equal({
 				containerId: runningContainers[0].Id,
 			});
+		});
+
+		it('should return information about a single-container app', async () => {
+			containers = await waitForSetup(targetState);
+			const containerId = containers[0].Id;
+			const imageHash = containers[0].Config.Image;
+
+			// Calling actions.getSingleContainerApp doesn't work because
+			// the action queries the database
+			const { body } = await request(BALENA_SUPERVISOR_ADDRESS).get(
+				'/v1/apps/1',
+			);
+
+			expect(body).to.have.property('appId', APP_ID);
+			expect(body).to.have.property('containerId', containerId);
+			expect(body).to.have.property('imageId', imageHash);
+			expect(body).to.have.property('releaseId', 1);
+			// Should return the environment of the single service
+			expect(body.env).to.have.property('BALENA_APP_ID', String(APP_ID));
+			expect(body.env).to.have.property('BALENA_SERVICE_NAME', serviceNames[0]);
 		});
 
 		// This test should be ordered last in this `describe` block, because the test compares

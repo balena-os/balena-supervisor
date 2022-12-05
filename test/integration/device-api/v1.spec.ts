@@ -684,4 +684,64 @@ describe('device-api/v1', () => {
 				.expect(202);
 		});
 	});
+
+	describe('GET /v1/apps/:appId', () => {
+		let getSingleContainerAppStub: SinonStub;
+		beforeEach(() => {
+			getSingleContainerAppStub = stub(
+				actions,
+				'getSingleContainerApp',
+			).resolves({} as any);
+		});
+		afterEach(async () => {
+			getSingleContainerAppStub.restore();
+			// Remove all scoped API keys between tests
+			await db.models('apiSecret').whereNot({ appId: 0 }).del();
+		});
+
+		it('validates data from request body', async () => {
+			await request(api)
+				.get('/v1/apps/1234567')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`);
+			expect(getSingleContainerAppStub).to.have.been.calledWith(1234567);
+		});
+
+		it('responds with 200 if request successful', async () => {
+			await request(api)
+				.get('/v1/apps/1234567')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, {});
+		});
+
+		it('responds with 400 if invalid appId parameter', async () => {
+			await request(api)
+				.get('/v1/apps/badAppId')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+		});
+
+		it('responds with 400 if action throws BadRequestError', async () => {
+			getSingleContainerAppStub.throws(new BadRequestError());
+			await request(api)
+				.get('/v1/apps/1234567')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(400);
+		});
+
+		it("responds with 401 if caller's API key is not in scope of appId", async () => {
+			const scopedKey = await deviceApi.generateScopedKey(7654321, 'main');
+			await request(api)
+				.get('/v1/apps/1234567')
+				.set('Authorization', `Bearer ${scopedKey}`)
+				.expect(401);
+		});
+
+		it('responds with 503 for other errors that occur during request', async () => {
+			getSingleContainerAppStub.throws(new Error());
+			await request(api)
+				.get('/v1/apps/1234567')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
 });
