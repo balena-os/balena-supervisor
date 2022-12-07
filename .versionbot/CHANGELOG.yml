@@ -1,4 +1,21 @@
 - commits:
+    - subject: Stop using host journalctl
+      hash: 91b119cbaec5c8f8a58ab0e2f724641195a1d316
+      body: |
+        The supervisor had to chroot into the host root in order to read the
+        journal logs. This won't be possible anymore once the supervisor becomes
+        an app. This commit copies the journalctl binary and necessary libraries
+        from a debian image into the supervisor image in order to be able to use
+        the tool on runtime.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.4.5
+  title: ""
+  date: 2022-12-07T19:29:23.028Z
+- commits:
     - subject: Enable node16 module resolution in tsconfig to ease the ESM transition
       hash: 836f6ab7541b49776e23f143209257d9d0b18004
       body: |
