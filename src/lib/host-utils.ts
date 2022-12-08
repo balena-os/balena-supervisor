@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as constants from './constants';
-import { exec } from './fs-utils';
+import { exec, exists } from './fs-utils';
 
 // Returns an absolute path starting from the hostOS root partition
 // This path is accessible from within the Supervisor container
@@ -16,7 +16,7 @@ export function pathOnBoot(relPath: string) {
 }
 
 class CodedError extends Error {
-	constructor(msg: string, readonly code: number) {
+	constructor(msg: string, readonly code: number | string) {
 		super(msg);
 	}
 }
@@ -33,11 +33,22 @@ export async function readFromBoot(
 	fileName: string,
 	encoding?: 'utf8' | 'utf-8',
 ): Promise<string | Buffer> {
+	if (!(await exists(fileName))) {
+		// Mimic the behavior of Node readFile
+		throw new CodedError(`Failed to read file ${fileName}`, 'ENOENT');
+	}
+
 	const cmd = ['fatrw', 'read', fileName].join(' ');
-	const { stdout } = await exec(cmd, {
-		encoding,
-	});
-	return stdout;
+
+	try {
+		const { stdout } = await exec(cmd, {
+			encoding,
+		});
+		return stdout;
+	} catch (e: any) {
+		const { code, stderr } = e;
+		throw new CodedError(stderr ?? e.message, code);
+	}
 }
 
 // Receives an absolute path for a file (assumed to be under the boot partition, e.g. `/mnt/root/mnt/boot/config.txt`)
@@ -59,7 +70,7 @@ export async function writeToBoot(fileName: string, data: string | Buffer) {
 		fatrw.on('close', resolve);
 	});
 
-	if (exitCode) {
+	if (exitCode !== 0) {
 		throw new CodedError(`Write failed with error: ${error}`, exitCode);
 	}
 }

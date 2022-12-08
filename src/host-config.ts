@@ -117,7 +117,8 @@ function generateRedsocksConfEntries(conf: ProxyConfig): string {
 		let v = conf[field];
 		if (v != null) {
 			if (isAuthField(field)) {
-				v = `"${v}"`;
+				// Escape any quotes in the field value
+				v = `"${v.toString().replace(/"/g, '\\"')}"`;
 			}
 			val += `\t${field} = ${v};\n`;
 		}
