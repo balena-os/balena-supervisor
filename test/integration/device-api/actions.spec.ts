@@ -6,6 +6,7 @@ import { setTimeout } from 'timers/promises';
 
 import * as deviceState from '~/src/device-state';
 import * as config from '~/src/config';
+import * as hostConfig from '~/src/host-config';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
@@ -729,5 +730,47 @@ describe('updates target state cache', () => {
 		await config.set({ instantUpdates: false });
 		await actions.updateTarget(false);
 		expect(updateStub).to.not.have.been.called;
+	});
+});
+
+describe('patches host config', () => {
+	// Stub external dependencies
+	let hostConfigPatch: SinonStub;
+	before(async () => {
+		await config.initialized();
+	});
+	beforeEach(() => {
+		hostConfigPatch = stub(hostConfig, 'patch');
+	});
+	afterEach(() => {
+		hostConfigPatch.restore();
+	});
+
+	it('patches host config', async () => {
+		const conf = {
+			network: {
+				proxy: {
+					type: 'socks5',
+					noProxy: ['172.0.10.1'],
+				},
+				hostname: 'deadbeef',
+			},
+		};
+		await actions.patchHostConfig(conf, true);
+		expect(hostConfigPatch).to.have.been.calledWith(conf, true);
+	});
+
+	it('patches hostname as first 7 digits of uuid if hostname parameter is empty string', async () => {
+		const conf = {
+			network: {
+				hostname: '',
+			},
+		};
+		const uuid = await config.get('uuid');
+		await actions.patchHostConfig(conf, true);
+		expect(hostConfigPatch).to.have.been.calledWith(
+			{ network: { hostname: uuid?.slice(0, 7) } },
+			true,
+		);
 	});
 });

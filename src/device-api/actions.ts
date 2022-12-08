@@ -7,6 +7,7 @@ import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 import * as logger from '../logger';
 import * as config from '../config';
+import * as hostConfig from '../host-config';
 import { App } from '../compose/app';
 import * as applicationManager from '../compose/application-manager';
 import * as serviceManager from '../compose/service-manager';
@@ -493,4 +494,30 @@ export const getLegacyDeviceState = async () => {
 	}
 
 	return stateToSend;
+};
+
+/**
+ * Get host config from the host-config module; Returns proxy config and hostname.
+ * Used by:
+ * 	- GET /v1/device/host-config
+ */
+export const getHostConfig = async () => {
+	return await hostConfig.get();
+};
+
+/**
+ * Patch host configs such as proxy config and hostname
+ * Used by:
+ * 	- PATCH /v1/device/host-config
+ */
+export const patchHostConfig = async (
+	conf: Parameters<typeof hostConfig.patch>[0],
+	force: boolean,
+) => {
+	// If hostname is an empty string, return first 7 digits of device uuid
+	if (conf.network?.hostname === '') {
+		const uuid = await config.get('uuid');
+		conf.network.hostname = uuid?.slice(0, 7);
+	}
+	await hostConfig.patch(conf, force);
 };

@@ -5,6 +5,7 @@ import * as request from 'supertest';
 
 import * as config from '~/src/config';
 import * as db from '~/src/db';
+import * as hostConfig from '~/src/host-config';
 import Service from '~/src/compose/service';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
@@ -14,6 +15,8 @@ import {
 	NotFoundError,
 	BadRequestError,
 } from '~/lib/errors';
+import log from '~/lib/supervisor-console';
+import * as constants from '~/lib/constants';
 
 // All routes that require Authorization are integration tests due to
 // the api-key module relying on the database.
@@ -766,6 +769,95 @@ describe('device-api/v1', () => {
 				.get('/v1/device')
 				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(503);
+		});
+	});
+
+	describe('GET /v1/device/host-config', () => {
+		// Stub external dependencies
+		let getHostConfigStub: SinonStub;
+		beforeEach(() => {
+			getHostConfigStub = stub(hostConfig, 'get');
+		});
+		afterEach(() => {
+			getHostConfigStub.restore();
+		});
+
+		it('responds with 200 and host config', async () => {
+			getHostConfigStub.resolves({ network: { hostname: 'deadbeef' } });
+			await request(api)
+				.get('/v1/device/host-config')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { network: { hostname: 'deadbeef' } });
+		});
+
+		it('responds with 503 for other errors that occur during request', async () => {
+			getHostConfigStub.throws(new Error());
+			await request(api)
+				.get('/v1/device/host-config')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('PATCH /v1/device/host-config', () => {
+		before(() => stub(actions, 'patchHostConfig'));
+		after(() => (actions.patchHostConfig as SinonStub).restore());
+
+		const validProxyReqs: { [key: string]: number[] | string[] } = {
+			ip: ['proxy.example.org', 'proxy.foo.org'],
+			port: [5128, 1080],
+			type: constants.validRedsocksProxyTypes,
+			login: ['user', 'user2'],
+			password: ['foo', 'bar'],
+		};
+
+		it('warns on the supervisor console when provided disallowed proxy fields', async () => {
+			const invalidProxyReqs: { [key: string]: string | number } = {
+				// At this time, don't support changing local_ip or local_port
+				local_ip: '0.0.0.0',
+				local_port: 12345,
+				type: 'invalidType',
+				noProxy: 'not a list of addresses',
+			};
+
+			for (const key of Object.keys(invalidProxyReqs)) {
+				await request(api)
+					.patch('/v1/device/host-config')
+					.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+					.send({ network: { proxy: { [key]: invalidProxyReqs[key] } } })
+					.expect(200)
+					.then(() => {
+						if (key === 'type') {
+							expect(log.warn as SinonStub).to.have.been.calledWith(
+								`Invalid redsocks proxy type, must be one of ${validProxyReqs.type.join(
+									', ',
+								)}`,
+							);
+						} else if (key === 'noProxy') {
+							expect(log.warn as SinonStub).to.have.been.calledWith(
+								'noProxy field must be an array of addresses',
+							);
+						} else {
+							expect(log.warn as SinonStub).to.have.been.calledWith(
+								`Invalid proxy field(s): ${key}`,
+							);
+						}
+					});
+				(log.warn as SinonStub).reset();
+			}
+		});
+
+		it('warns on console when sent a malformed patch body', async () => {
+			await request(api)
+				.patch('/v1/device/host-config')
+				.send({})
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(() => {
+					expect(log.warn as SinonStub).to.have.been.calledWith(
+						"Key 'network' must exist in PATCH body",
+					);
+				});
 		});
 	});
 });

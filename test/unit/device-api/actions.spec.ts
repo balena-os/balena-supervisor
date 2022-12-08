@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import { spy, useFakeTimers } from 'sinon';
+import { spy, useFakeTimers, stub, SinonStub } from 'sinon';
 
+import * as hostConfig from '~/src/host-config';
 import * as actions from '~/src/device-api/actions';
 import blink = require('~/lib/blink');
 
@@ -41,6 +42,29 @@ describe('device-api/actions', () => {
 			blinkStartSpy.restore();
 			blinkStopSpy.restore();
 			clock.restore();
+		});
+	});
+
+	describe('gets host config', () => {
+		// Stub external dependencies
+		// TODO: host-config module integration tests
+		let hostConfigGet: SinonStub;
+		before(() => {
+			hostConfigGet = stub(hostConfig, 'get');
+		});
+		after(() => {
+			hostConfigGet.restore();
+		});
+
+		it('gets host config', async () => {
+			const conf = {
+				network: {
+					proxy: {},
+					hostname: 'deadbeef',
+				},
+			};
+			hostConfigGet.resolves(conf);
+			expect(await actions.getHostConfig()).to.deep.equal(conf);
 		});
 	});
 });

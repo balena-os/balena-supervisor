@@ -5,18 +5,16 @@ import type { Response } from 'express';
 import * as actions from './actions';
 import { AuthorizedRequest } from './api-keys';
 import * as eventTracker from '../event-tracker';
-import * as config from '../config';
 import * as deviceState from '../device-state';
 
 import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
 import log from '../lib/supervisor-console';
 import {
-	UpdatesLockedError,
 	isNotFoundError,
 	isBadRequestError,
+	UpdatesLockedError,
 } from '../lib/errors';
-import * as hostConfig from '../host-config';
 import { CompositionStepAction } from '../compose/composition-steps';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
@@ -160,20 +158,19 @@ router.post('/v1/update', async (req, res, next) => {
 	}
 });
 
-router.get('/v1/device/host-config', (_req, res) =>
-	hostConfig
-		.get()
-		.then((conf) => res.json(conf))
-		.catch((err) =>
-			res.status(503).send(err?.message ?? err ?? 'Unknown error'),
-		),
-);
+router.get('/v1/device/host-config', async (_req, res, next) => {
+	try {
+		const conf = await actions.getHostConfig();
+		return res.json(conf);
+	} catch (e: unknown) {
+		next(e);
+	}
+});
 
 router.patch('/v1/device/host-config', async (req, res) => {
 	// Because v1 endpoints are legacy, and this endpoint might already be used
 	// by multiple users, adding too many throws might have unintended side effects.
 	// Thus we're simply logging invalid fields and allowing the request to continue.
-
 	try {
 		if (!req.body.network) {
 			log.warn("Key 'network' must exist in PATCH body");
@@ -213,25 +210,16 @@ router.patch('/v1/device/host-config', async (req, res) => {
 	}
 
 	try {
-		// If hostname is an empty string, return first 7 digits of device uuid
-		if (req.body.network?.hostname === '') {
-			const uuid = await config.get('uuid');
-			req.body.network.hostname = uuid?.slice(0, 7);
+		await actions.patchHostConfig(req.body, checkTruthy(req.body.force));
+		return res.status(200).send('OK');
+	} catch (e: unknown) {
+		// Normally the error middleware handles 423 / 503 errors, however this interface
+		// throws the errors in a different format (text) compared to the middleware (JSON).
+		// Therefore we need to keep this here to keep the interface consistent.
+		if (e instanceof UpdatesLockedError) {
+			return res.status(423).send(e?.message ?? e);
 		}
-		const lockOverride = await config.get('lockOverride');
-		await hostConfig.patch(
-			req.body,
-			checkTruthy(req.body.force) || lockOverride,
-		);
-		res.status(200).send('OK');
-	} catch (err: any) {
-		// TODO: We should be able to throw err if it's UpdatesLockedError
-		// and the error middleware will handle it, but this doesn't work in
-		// the test environment. Fix this when fixing API tests.
-		if (err instanceof UpdatesLockedError) {
-			return res.status(423).send(err?.message ?? err);
-		}
-		res.status(503).send(err?.message ?? err ?? 'Unknown error');
+		return res.status(503).send((e as Error)?.message ?? e ?? 'Unknown error');
 	}
 });
 
