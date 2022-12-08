@@ -1,4 +1,33 @@
 - commits:
+    - subject: Make readFromBoot behave more like Node readFile
+      hash: 0605e996c9225380e39fd78b1c99cc7ad3c0f959
+      body: >
+        The `readFromBoot` function replaced calls to readFile in the codebase
+
+        when the target location is under `/mnt/boot` in order to use `fatrw`
+
+        to check for corruption. Unfortunately this function behaved a little
+
+        differently with regards to errors. While `readFile` returns a code `ENOENT`
+
+        when the file is not found, `readFromBoot` would just throw an exception
+
+        with whatever code was given by fatrw. This would cause confusion for
+
+        some calls that were behaving differently with a `ENOENT`, causing some
+
+        issues.
+      footer:
+        Closes: "#2071"
+        closes: "#2071"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.4.6
+  title: ""
+  date: 2022-12-08T18:39:56.950Z
+- commits:
     - subject: Stop using host journalctl
       hash: 91b119cbaec5c8f8a58ab0e2f724641195a1d316
       body: |
