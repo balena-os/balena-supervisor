@@ -706,14 +706,17 @@ export class Service {
 		}
 
 		// Format container name to keep it under 64 characters to make it a legal DNS hostname
-		const imageIdPart = ('' + this.imageId).substring(0,10);
-		const releaseIdPart = ('' + this.releaseId).substring(0,10);
+		const imageIdPart = ('' + this.imageId).substring(0, 10);
+		const releaseIdPart = ('' + this.releaseId).substring(0, 10);
 		// Shorten the service name so that it leaves room for the required imageId and releaseId parts ( see fromDockerContainer )
-		const serviceNamePart = this.serviceName?.substring(0,28);
+		const serviceNamePart = this.serviceName?.substring(0, 28);
 		// Use a commit prefix so that all containers will get the same commit suffix in normal cases where the name length is <= 63
-		const commitPrefix = this.commit?.substring(0,12)
+		const commitPrefix = this.commit?.substring(0, 12);
 		return {
-			name: `${serviceNamePart}_${imageIdPart}_${releaseIdPart}_${commitPrefix}`.substring(0, 63),
+			name: `${serviceNamePart}_${imageIdPart}_${releaseIdPart}_${commitPrefix}`.substring(
+				0,
+				63,
+			),
 			Tty: this.config.tty,
 			Cmd: this.config.command,
 			Volumes: volumes,

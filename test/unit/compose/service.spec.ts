@@ -467,12 +467,17 @@ describe('compose/service: unit tests', () => {
 		});
 
 		describe('Container naming', () => {
-
-			function validateExpectationsOnName(containerCreateOptions: Dockerode.ContainerCreateOptions) {
+			function validateExpectationsOnName(
+				containerCreateOptions: Dockerode.ContainerCreateOptions,
+			) {
 				console.log(containerCreateOptions.name);
 				const MAX_DNS_HOSTNAME_LENGTH = 63;
-				expect(containerCreateOptions.name?.length).to.be.lessThanOrEqual(MAX_DNS_HOSTNAME_LENGTH);
-				const nameMatch = containerCreateOptions.name?.match(/.*_(\d+)_(\d+)(?:_(.*?))?$/);
+				expect(containerCreateOptions.name?.length).to.be.lessThanOrEqual(
+					MAX_DNS_HOSTNAME_LENGTH,
+				);
+				const nameMatch = containerCreateOptions.name?.match(
+					/.*_(\d+)_(\d+)(?:_(.*?))?$/,
+				);
 				expect(nameMatch).to.be.not.null;
 			}
 
@@ -488,9 +493,11 @@ describe('compose/service: unit tests', () => {
 						commit: '72b853b44d0246fd789c89269db742d04a2e5ef9',
 					},
 					{ appName: 'test' } as any,
-				);;
+				);
 
-				const containerCreateOptions = service.toDockerContainer({ deviceName: 'foo' } as any);
+				const containerCreateOptions = service.toDockerContainer({
+					deviceName: 'foo',
+				} as any);
 				validateExpectationsOnName(containerCreateOptions);
 			});
 
@@ -506,14 +513,14 @@ describe('compose/service: unit tests', () => {
 						commit: '72b853b44d0246fd789c89269db742d04a2e5ef9',
 					},
 					{ appName: 'test' } as any,
-				);;
+				);
 
-				const containerCreateOptions = service.toDockerContainer({ deviceName: 'foo' } as any);
+				const containerCreateOptions = service.toDockerContainer({
+					deviceName: 'foo',
+				} as any);
 				validateExpectationsOnName(containerCreateOptions);
 			});
 		});
-
-
 	});
 
 	describe('Comparing services', () => {
