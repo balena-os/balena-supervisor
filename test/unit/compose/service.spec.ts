@@ -7,6 +7,7 @@ import Service from '~/src/compose/service';
 import Volume from '~/src/compose/volume';
 import * as ServiceT from '~/src/compose/types/service';
 import * as constants from '~/lib/constants';
+import Dockerode = require('dockerode');
 
 const configs = {
 	simple: {
@@ -464,6 +465,55 @@ describe('compose/service: unit tests', () => {
 				});
 			});
 		});
+
+		describe('Container naming', () => {
+
+			function validateExpectationsOnName(containerCreateOptions: Dockerode.ContainerCreateOptions) {
+				console.log(containerCreateOptions.name);
+				const MAX_DNS_HOSTNAME_LENGTH = 63;
+				expect(containerCreateOptions.name?.length).to.be.lessThanOrEqual(MAX_DNS_HOSTNAME_LENGTH);
+				const nameMatch = containerCreateOptions.name?.match(/.*_(\d+)_(\d+)(?:_(.*?))?$/);
+				expect(nameMatch).to.be.not.null;
+			}
+
+			it('should create valid DNS names with long commits', async () => {
+				const service = await Service.fromComposeObject(
+					{
+						appId: 1234567,
+						appUuid: 'ae8c6ddc272547a49531149bd2dd187f',
+						serviceId: 1234568,
+						serviceName: 'test_broker_client',
+						imageId: '5826138',
+						releaseId: '2403300',
+						commit: '72b853b44d0246fd789c89269db742d04a2e5ef9',
+					},
+					{ appName: 'test' } as any,
+				);;
+
+				const containerCreateOptions = service.toDockerContainer({ deviceName: 'foo' } as any);
+				validateExpectationsOnName(containerCreateOptions);
+			});
+
+			it('should create valid DNS names with long service names', async () => {
+				const service = await Service.fromComposeObject(
+					{
+						appId: 1234567,
+						appUuid: 'ae8c6ddc272547a49531149bd2dd187f',
+						serviceId: 1234568,
+						serviceName: 'X'.repeat(64),
+						imageId: '5826138',
+						releaseId: '2403300',
+						commit: '72b853b44d0246fd789c89269db742d04a2e5ef9',
+					},
+					{ appName: 'test' } as any,
+				);;
+
+				const containerCreateOptions = service.toDockerContainer({ deviceName: 'foo' } as any);
+				validateExpectationsOnName(containerCreateOptions);
+			});
+		});
+
+
 	});
 
 	describe('Comparing services', () => {

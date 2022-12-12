@@ -651,7 +651,7 @@ export class Service {
 		const nameMatch = container.Name.match(/.*_(\d+)_(\d+)(?:_(.*?))?$/);
 		if (nameMatch == null) {
 			throw new InternalInconsistencyError(
-				`Expected supervised container to have name '<serviceName>_<imageId>_<releaseId>_<commit>', got: ${container.Name}`,
+				`Expected supervised container to have name '<serviceName>_<imageId>_<releaseId>(_<commit>)', got: ${container.Name}`,
 			);
 		}
 
@@ -704,8 +704,16 @@ export class Service {
 			}
 			this.config.networkMode = `container:${containerId}`;
 		}
+
+		// Format container name to keep it under 64 characters to make it a legal DNS hostname
+		const imageIdPart = ('' + this.imageId).substring(0,10);
+		const releaseIdPart = ('' + this.releaseId).substring(0,10);
+		// Shorten the service name so that it leaves room for the required imageId and releaseId parts ( see fromDockerContainer )
+		const serviceNamePart = this.serviceName?.substring(0,28);
+		// Use a commit prefix so that all containers will get the same commit suffix in normal cases where the name length is <= 63
+		const commitPrefix = this.commit?.substring(0,12)
 		return {
-			name: `${this.serviceName}_${this.imageId}_${this.releaseId}_${this.commit}`,
+			name: `${serviceNamePart}_${imageIdPart}_${releaseIdPart}_${commitPrefix}`.substring(0, 63),
 			Tty: this.config.tty,
 			Cmd: this.config.command,
 			Volumes: volumes,

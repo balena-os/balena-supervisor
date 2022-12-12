@@ -251,9 +251,9 @@ If you have upgraded system packages and find that your tests are failing to ini
 
 ### DBus
 
-When developing on macOS you may need to install DBus on the development host.
+When developing on macOS you may need to install DBus on the development host if you get errors like `Package dbus-1 was not found in the pkg-config search path.`.
 
-1. `brew install dbus`
+1. `brew install dbus` or `sudo port install dbus`
 2. `npm ci`
 
 On Debian-based systems, `sudo apt install libdbus-1-dev` would be the equivalent.
