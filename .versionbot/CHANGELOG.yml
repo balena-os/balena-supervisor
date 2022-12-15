@@ -1,4 +1,22 @@
 - commits:
+    - subject: Update API.md
+      hash: 24e5996b56464d5476c3a3940a967c25ba3a32da
+      body: >
+        Clarify that only containers on a single device will be restarted
+        following API key refresh,
+
+        not the whole fleet. Each device has its own distinct API key.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Wang
+      nested: []
+  version: 14.4.7
+  title: ""
+  date: 2022-12-15T20:39:47.886Z
+- commits:
     - subject: Make readFromBoot behave more like Node readFile
       hash: 0605e996c9225380e39fd78b1c99cc7ad3c0f959
       body: >
