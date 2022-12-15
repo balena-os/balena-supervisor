@@ -1,4 +1,31 @@
 - commits:
+    - subject: Fix journalctl to work with persistent logs
+      hash: 55594274f78d20b2d86c3bc683d7c27d7cde60c2
+      body: >
+        v14.4.5 introduced a new way to retrieve the host logs by symlinking the
+
+        log directories into the host /run/log/journal and using a local copy of
+
+        the journalctl binary instead of chrooting into the host. This failed to
+
+        account for the location of persistent logs when that option is turned
+
+        on (/var/log/journal instead of /run/log/journal). This fixes the checks
+
+        consider this case and also makes sure to remove the original symlink to
+
+        avoid having nested links `/run/log/journal/journal/journal`, which was a
+
+        bug in the previous implementation.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.4.8
+  title: ""
+  date: 2022-12-15T22:29:17.729Z
+- commits:
     - subject: Update API.md
       hash: 24e5996b56464d5476c3a3940a967c25ba3a32da
       body: >
