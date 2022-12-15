@@ -301,7 +301,7 @@ $ curl -X POST --header "Content-Type:application/json" \
 
 > **Note:** on devices with supervisor version lower than 7.22.0, replace all `BALENA_` variables with `RESIN_`, e.g. `RESIN_SUPERVISOR_ADDRESS` instead of `BALENA_SUPERVISOR_ADDRESS`.
 
-Invalidates the current `BALENA_SUPERVISOR_API_KEY` and generates a new one. Responds with the new API key, but **the fleet will be restarted on the next update cycle** to update the API key environment variable.
+Invalidates the current `BALENA_SUPERVISOR_API_KEY` and generates a new one. Responds with the new API key, but **the containers will be restarted on the next update cycle** to update the API key environment variable.
 
 #### Examples:
 From an app container:
