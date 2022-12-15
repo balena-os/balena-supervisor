@@ -30,10 +30,23 @@ fi
 # NOTE: this won't be necessary once the supervisor can update
 # itself, as using the label io.balena.features.journal-logs will
 # achieve the same objective
-if [ -d /mnt/root/run/log/journal ]; then
+if { [ ! -d /run/log/journal ] || [ -L /run/log/journal ]; } && [ -s /mnt/root/etc/machine-id ]; then
+	# Only enter here if the directory does not exist or the location exists and is a symlink
+	# (note that test -d /symlink-to-dir will return true)
+
+	# Create the directory
 	mkdir -p /run/log
-	ln -sf /mnt/root/run/log/journal /run/log/journal
+
+	# Override the local machine-id
 	ln -sf /mnt/root/etc/machine-id /etc/machine-id
+
+	# Remove the original link if it exists to avoid creating deep links
+	[ -L /run/log/journal ] && rm /run/log/journal
+
+	# If using persistent logging, the host will the journal under `/var/log/journal`
+	# otherwise it will have it under /run/log/journal
+	[ -d "/mnt/root/run/log/journal/$(cat /etc/machine-id)" ] && ln -sf /mnt/root/run/log/journal /run/log/journal
+	[ -d "/mnt/root/var/log/journal/$(cat /etc/machine-id)" ] && ln -sf /mnt/root/var/log/journal /run/log/journal
 fi
 
 # Mount the host kernel module path onto the expected location
