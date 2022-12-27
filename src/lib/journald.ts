@@ -10,7 +10,8 @@ export function spawnJournalctl(opts: {
 	containerId?: string;
 	format: string;
 	filterString?: string;
-	since?: number;
+	since?: number | string;
+	until?: number | string;
 }): ChildProcess {
 	const args: string[] = [];
 	if (opts.all) {
@@ -33,12 +34,11 @@ export function spawnJournalctl(opts: {
 	}
 	if (opts.since != null) {
 		args.push('-S');
-		args.push(
-			new Date(opts.since)
-				.toISOString()
-				.replace(/T/, ' ') // replace T with a space
-				.replace(/\..+/, ''), // delete the dot and everything after
-		);
+		args.push(opts.since.toString());
+	}
+	if (opts.until != null) {
+		args.push('-U');
+		args.push(opts.until.toString());
 	}
 	args.push('-o');
 	args.push(opts.format);
