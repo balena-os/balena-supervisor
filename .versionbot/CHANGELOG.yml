@@ -1,4 +1,18 @@
 - commits:
+    - subject: "Docs: clarify that Supervisor creates lockfiles as nobody UID"
+      hash: 3a824448faec04fd139ceb9cbedc327ced117bf8
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.4.10
+  title: ""
+  date: 2023-01-04T20:25:53.656Z
+- commits:
     - subject: Use `got` for fetching the target state in order to have brotli support
       hash: fd135214fe4c1c365ce8e2d67f272bd824adb1dd
       body: ""
