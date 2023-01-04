@@ -1,24 +1,25 @@
 # Working with the Supervisor
 
-Service: `balena-supervisor.service`
+Service: `balena-supervisor.service`, or `resin-supervisor.service` if OS < v2.78.0
 
 The balena Supervisor is the service that carries out the management of the
 software release on a device, including determining when to download updates,
-the changing of variables, ensuring services
-are restarted correctly, etc. It is, in effect, the on-device agent for
-balenaCloud.
+the changing of variables, ensuring services are restarted correctly, etc. 
+It is the on-device agent for balenaCloud.
 
 As such, it's imperative that the Supervisor is operational and healthy at all
-times, even when a device is not connected via the Internet, as it still
+times, even when a device is not connected to the Internet, as the Supervisor still
 ensures the running of a device that is offline.
 
 The Supervisor itself is a Docker service that runs alongside any installed
-user services and the healthcheck container (more on that later). One
-major advantage of running it as a Docker service is that it can be updated
-just like any other service (although actually carrying that out is slightly
-different to updating user containers, see 'Updating the Supervisor').
+user services and the healthcheck container. One major advantage of running it as 
+a Docker service is that it can be updated just like any other service, although 
+carrying that out is slightly different than updating user containers. (See [Updating the Supervisor](#82-updating-the-supervisor)).
 
-Assuming you're still logged into your development device, run the following:
+Before attempting to debug the Supervisor, it's recommended to upgrade the Supervisor to
+the latest version, as we frequently release bugfixes and features that may resolve device issues.
+
+Otherwise, assuming you're still logged into your development device, run the following:
 
 ```shell
 root@debug-device:~# systemctl status balena-supervisor
@@ -49,24 +50,24 @@ Aug 19 18:09:18 debug-device balena-supervisor[2486]: [info]    Reported current
 ```
 
 You can see the Supervisor is just another `systemd` service
-(`balena-supervisor.service)`, and that it is started and run by balenaEngine.
+(`balena-supervisor.service`) and that it is started and run by balenaEngine.
 
-Supervisor issues, due to their nature, vary quite significantly. It's also
-commonly used to misattribute issues to. As the Supervisor is verbose about its
-state and actions (such as the download of images), it tends to be suspected of
+Supervisor issues, due to their nature, vary significantly. Issues may commonly 
+be misattributed to the Supervisor. As the Supervisor is verbose about its
+state and actions, such as the download of images, it tends to be suspected of
 problems when in fact there are usually other underlying issues. A few examples
 are:
 
-- Networking problems - In the case of the Supervisor reporting failed downloads
-  or attempting to retrieve the same images repeatedly (where in fact instable
-  networking is usually the cause).
+- Networking problems - The Supervisor reports failed downloads
+  or attempts to retrieve the same images repeatedly, where in fact unstable
+  networking is usually the cause.
 - Service container restarts - The default policy for service containers is to
-  restart if they exit, and this sometimes is misunderstood. If a container's
+  restart if they exit, and this sometimes is misunderstood. If a container is
   restarting, it's worth ensuring it's not because the container itself is
-  exiting correctly either due to a bug in the service container code or
+  exiting either due to a bug in the service container code or
   because it has correctly come to the end of its running process.
-- Staged releases - A fleet/device has been pinned to a particular
-  version, and a new push is not being downloaded.
+- Release not being downloaded - For instance, a fleet/device has been pinned 
+  to a particular version, and a new push is not being downloaded.
 
 It's _always_ worth considering how the system is configured, how releases were
 produced, how the fleet or device is configured and what the current
@@ -78,9 +79,9 @@ Another point to note is that the Supervisor is started using
 ensures that the Supervisor is present by using balenaEngine to find the
 Supervisor image. If the image isn't present, or balenaEngine doesn't respond,
 then the Supervisor is restarted. The default period for this check is 180
-seconds at the time of writing, but inspect the
-`/lib/systemd/system/balena-supervisor.service` file on-device to see what
-it is for the device you're SSHd into. For example, using our example device:
+seconds. Inspecting `/lib/systemd/system/balena-supervisor.service` on-device 
+will show whether the timeout period is different for a particular device.
+For example:
 
 ```shell
 root@debug-device:~# cat /lib/systemd/system/balena-supervisor.service
@@ -127,15 +128,15 @@ Alias=resin-supervisor.service
 
 #### 8.1 Restarting the Supervisor
 
-It's actually incredibly rare to actually _need_ a Supervisor restart. The
-Supervisor will attempt to recover from issues that occur automatically, without
-the requirement for a restart. If you've got to a point where you believe that
-a restart is required, double check with the other agent on-duty, and if
-required either with the Supervisor maintainer or another knowledgeable engineer
-before doing so.
+It's rare to actually _need_ a Supervisor restart. The Supervisor will attempt to 
+recover from issues that occur automatically, without the requirement for a restart. 
+When in doubt about whether a restart is required, look at the Supervisor logs and 
+double check other on-duty support agents if needed. If fairly certain, it's generally
+safe to restart the Supervisor, as long as the user is aware that some extra bandwidth 
+and device resources will be used on startup.
 
 There are instances where the Supervisor is incorrectly restarted when in fact
-the issue could be down to corruption of service images, containers, volumes
+the issue could be the corruption of service images, containers, volumes
 or networking. In these cases, you're better off dealing with the underlying
 balenaEngine to ensure that anything corrupt is recreated correctly. See the
 balenaEngine section for more details.
@@ -143,8 +144,8 @@ balenaEngine section for more details.
 If a restart is required, ensure that you have gathered as much information
 as possible before a restart, including pertinent logs and symptoms so that
 investigations can occur asynchronously to determine what occurred and how it
-may be mitigated in the future. Enabling permanent logging may also be of
-benefit in cases where symptoms are repeatedly occurring.
+may be mitigated in the future. Enabling persistent logging may also be beneficial
+in cases where symptoms are repeatedly occurring.
 
 To restart the Supervisor, simply restart the `systemd` service:
 
@@ -185,7 +186,7 @@ the Supervisor on a device is outdated and is causing an issue. Usually the best
 way to achieve this is via a balenaOS update, either from the dashboard or via
 the command line on the device.
 
-If updating balenaOS is not desirable or a user prefers updating the Supervisor independently, this can easily be accomplished using the [self-service](https://www.balena.io/docs/reference/supervisor/supervisor-upgrades/) Supervisor upgrades. Alternatively, this can be programmatically done by using the Node.js SDK method [device.setSupervisorRelease](https://www.balena.io/docs/reference/sdk/node-sdk/#devicesetsupervisorreleaseuuidorid-supervisorversionorid-%E2%87%92-codepromisecode).
+If updating balenaOS is not desirable or a user prefers updating the Supervisor independently, this can easily be accomplished using [self-service](https://www.balena.io/docs/reference/supervisor/supervisor-upgrades/) Supervisor upgrades. Alternatively, this can be programmatically done by using the Node.js SDK method [device.setSupervisorRelease](https://www.balena.io/docs/reference/sdk/node-sdk/#devicesetsupervisorreleaseuuidorid-supervisorversionorid-%E2%87%92-codepromisecode).
 
 You can additionally write a script to manage this for a fleet of devices in combination with other SDK functions such as [device.getAll](https://www.balena.io/docs/reference/sdk/node-sdk/#devicegetalloptions-%E2%87%92-codepromisecode).
 
@@ -193,15 +194,15 @@ You can additionally write a script to manage this for a fleet of devices in com
 
 #### 8.3 The Supervisor Database
 
-The Supervisor uses a SQLite database to store persistent state (so in the
+The Supervisor uses a SQLite database to store persistent state, so in the
 case of going offline, or a reboot, it knows exactly what state an
 app should be in, and which images, containers, volumes and networks
-to apply to it).
+to apply to it.
 
 This database is located at
 `/mnt/data/resin-data/balena-supervisor/database.sqlite` and can be accessed
-inside the Supervisor, most easily by running Node. Assuming you're logged
-into your device, run the following:
+inside the Supervisor container at `/data/database.sqlite` by running Node. 
+Assuming you're logged into your device, run the following:
 
 ```shell
 root@debug-device:~# balena exec -ti balena_supervisor node
@@ -330,7 +331,7 @@ root@debug-device:~# rm /mnt/data/resin-data/balena-supervisor/database.sqlite
 This:
 
 - Stops the Supervisor (and the timer that will attempt to restart it).
-- Removes all current services containers (including the Supervisor).
+- Removes all current service containers, including the Supervisor.
 - Removes the Supervisor database.
   (If for some reason the images also need to be removed, run
   `balena rmi -f $(balena images -q)` which will remove all images _including_
@@ -344,6 +345,6 @@ root@debug-device:~# systemctl start update-balena-supervisor.timer balena-super
 If you deleted all the images, this will first download the Supervisor image
 again before restarting it.
 At this point, the Supervisor will start up as if the device has just been
-provisioned (though it will already be registered), and the release will
-be freshly downloaded (if the images were removed) before starting the service
+provisioned and already registered, and the device's target release will
+be freshly downloaded if images were removed before starting the service
 containers.
