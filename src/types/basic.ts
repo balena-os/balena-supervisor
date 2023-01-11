@@ -87,25 +87,22 @@ export type NumericIdentifier = t.TypeOf<typeof NumericIdentifier>;
  */
 const VAR_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
 
-export const VariableName = new t.Type<string, string>(
-	'VariableName',
-	(s: unknown): s is string => ShortString.is(s) && VAR_NAME_REGEX.test(s),
-	(i, c) =>
-		pipe(
-			ShortString.validate(i, c),
-			chain((s) =>
-				VAR_NAME_REGEX.test(s)
-					? t.success(s)
-					: t.failure(
-							s,
-							c,
-							"needs to start with a letter and may only contain alphanumeric characters plus '_'",
-					  ),
+/**
+ * Config vars also allow a colon in the name
+ */
+const CONFIG_VAR_NAME_REGEX = /^[a-zA-Z_][a-zA-Z0-9_:]*$/;
+
+const shortStringWithRegex = (name: string, regex: RegExp, message: string) =>
+	new t.Type<string, string>(
+		name,
+		(s: unknown): s is string => ShortString.is(s) && VAR_NAME_REGEX.test(s),
+		(i, c) =>
+			pipe(
+				ShortString.validate(i, c),
+				chain((s) => (regex.test(s) ? t.success(s) : t.failure(s, c, message))),
 			),
-		),
-	t.identity,
-);
-export type VariableName = t.TypeOf<typeof VariableName>;
+		t.identity,
+	);
 
 /**
  * Valid label names are between 0 and 255 characters
@@ -115,30 +112,37 @@ export type VariableName = t.TypeOf<typeof VariableName>;
  */
 const LABEL_NAME_REGEX = /^[!#-&(-_a-~]+$/;
 
-export const LabelName = new t.Type<string, string>(
+export const LabelName = shortStringWithRegex(
 	'LabelName',
-	(s: unknown): s is string => ShortString.is(s) && LABEL_NAME_REGEX.test(s),
-	(i, c) =>
-		pipe(
-			ShortString.validate(i, c),
-			chain((s) =>
-				LABEL_NAME_REGEX.test(s)
-					? t.success(s)
-					: t.failure(
-							s,
-							c,
-							'may contain printable ASCII characters except space, single/double quotes and backtick',
-					  ),
-			),
-		),
-	t.identity,
+	LABEL_NAME_REGEX,
+	'may contain printable ASCII characters except space, single/double quotes and backtick',
 );
 export type LabelName = t.TypeOf<typeof LabelName>;
 
 /**
  * An env var object is a dictionary with valid variables as keys
  */
-export const EnvVarObject = t.record(VariableName, t.string);
+export const ConfigVarObject = t.record(
+	shortStringWithRegex(
+		'ConfigVarName',
+		CONFIG_VAR_NAME_REGEX,
+		"needs to start with a letter and may only contain alphanumeric characters plus '_' or ':'",
+	),
+	t.string,
+);
+export type ConfigVarObject = t.TypeOf<typeof ConfigVarObject>;
+
+/**
+ * An env var object is a dictionary with valid variables as keys
+ */
+export const EnvVarObject = t.record(
+	shortStringWithRegex(
+		'EnvVarName',
+		VAR_NAME_REGEX,
+		"needs to start with a letter and may only contain alphanumeric characters plus '_'",
+	),
+	t.string,
+);
 export type EnvVarObject = t.TypeOf<typeof EnvVarObject>;
 
 /**
@@ -151,19 +155,10 @@ export type LabelObject = t.TypeOf<typeof LabelObject>;
 // https://github.com/moby/moby/blob/04c6f09fbdf60c7765cc4cb78883faaa9d971fa5/daemon/daemon.go#L56
 // [a-zA-Z0-9][a-zA-Z0-9_.-]
 const DOCKER_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_\.\-]*$/;
-export const DockerName = new t.Type<string, string>(
-	'DockerName',
-	(s: unknown): s is string => ShortString.is(s) && DOCKER_NAME_REGEX.test(s),
-	(i, c) =>
-		pipe(
-			ShortString.validate(i, c),
-			chain((s) =>
-				DOCKER_NAME_REGEX.test(s)
-					? t.success(s)
-					: t.failure(s, c, 'only "[a-zA-Z0-9][a-zA-Z0-9_.-]" are allowed'),
-			),
-		),
-	t.identity,
+export const DockerName = shortStringWithRegex(
+	'LabelName',
+	DOCKER_NAME_REGEX,
+	'only "[a-zA-Z0-9][a-zA-Z0-9_.-]" are allowed',
 );
 export type DockerName = t.TypeOf<typeof DockerName>;
 

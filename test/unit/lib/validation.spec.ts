@@ -8,6 +8,7 @@ import {
 	DeviceName,
 	NumericIdentifier,
 	TargetApps,
+	TargetState,
 } from '~/src/types';
 
 import * as validation from '~/lib/validation';
@@ -485,6 +486,49 @@ describe('validation', () => {
 								aaaa: {
 									id: 'boooo',
 									services: {},
+								},
+							},
+						},
+					}),
+				),
+			).to.be.false;
+		});
+	});
+
+	describe('target state', () => {
+		it('accepts target state with config vars and apps', () => {
+			expect(
+				isRight(
+					TargetState.decode({
+						one: {
+							name: 'angry-einstein',
+							config: {
+								BALENA_HOST_CONFIG_hdmi_force_hotplug: '0',
+								'BALENA_HOST_CONFIG_hdmi_force_hotplug:1': '1',
+								BALENA_HOST_CONFIG_dtoverlay: 'balena-fin',
+							},
+							apps: {},
+						},
+					}),
+				),
+			).to.be.true;
+		});
+
+		it('rejects target state with an invalid config vars', () => {
+			expect(
+				isRight(
+					TargetState.decode({
+						one: {
+							name: 'angry-einstein',
+							config: {
+								'BALENA_CONFIG_ INVALID VAR': '123',
+							},
+							apps: {
+								abcd: {
+									id: 1234,
+									name: 'something',
+									class: 'fleet',
+									releases: {},
 								},
 							},
 						},
