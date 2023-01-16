@@ -120,7 +120,6 @@ export const update = async (
 		const got = await getGotInstance();
 
 		const { statusCode, headers, body } = await got(endpoint, {
-			responseType: 'json',
 			headers: {
 				Authorization: `Bearer ${deviceApiKey}`,
 				'If-None-Match': cache?.etag,

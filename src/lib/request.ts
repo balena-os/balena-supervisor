@@ -69,24 +69,6 @@ const getRequestInstances = once(async () => {
 		retryInterval: DEFAULT_REQUEST_RETRY_INTERVAL,
 	};
 
-	got.extend({
-		responseType: 'json',
-		decompress: true,
-		timeout: {
-			// TODO: We use the same default timeout for all of these in order to have a timeout generally
-			// but it would probably make sense to tune them individually
-			lookup: DEFAULT_REQUEST_TIMEOUT,
-			connect: DEFAULT_REQUEST_TIMEOUT,
-			secureConnect: DEFAULT_REQUEST_TIMEOUT,
-			socket: DEFAULT_REQUEST_TIMEOUT,
-			send: DEFAULT_REQUEST_TIMEOUT,
-			response: DEFAULT_REQUEST_TIMEOUT,
-		},
-		headers: {
-			'User-Agent': userAgent,
-		},
-	});
-
 	const requestHandle = requestLib.defaults(requestOpts);
 
 	// @ts-expect-error promisifyAll is a bit wonky
@@ -96,7 +78,23 @@ const getRequestInstances = once(async () => {
 	const resumable = resumableRequestLib.defaults(resumableOpts);
 
 	return {
-		got,
+		got: got.extend({
+			responseType: 'json',
+			decompress: true,
+			timeout: {
+				// TODO: We use the same default timeout for all of these in order to have a timeout generally
+				// but it would probably make sense to tune them individually
+				lookup: DEFAULT_REQUEST_TIMEOUT,
+				connect: DEFAULT_REQUEST_TIMEOUT,
+				secureConnect: DEFAULT_REQUEST_TIMEOUT,
+				socket: DEFAULT_REQUEST_TIMEOUT,
+				send: DEFAULT_REQUEST_TIMEOUT,
+				response: DEFAULT_REQUEST_TIMEOUT,
+			},
+			headers: {
+				'User-Agent': userAgent,
+			},
+		}),
 		requestOpts,
 		request,
 		resumable,
