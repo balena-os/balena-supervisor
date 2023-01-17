@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update host-config, route, and action tests for host config endpoints
+      hash: e1bacda58076ab4d76f6fbe4da986ac9b87c8e30
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.5.0
+  title: ""
+  date: 2023-01-17T19:28:44.795Z
+- commits:
     - subject: "Docs: clarify that Supervisor creates lockfiles as nobody UID"
       hash: 3a824448faec04fd139ceb9cbedc327ced117bf8
       body: ""
