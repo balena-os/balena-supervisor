@@ -1,12 +1,9 @@
 import * as express from 'express';
-import * as _ from 'lodash';
 
 import * as middleware from './middleware';
 import * as apiKeys from './api-keys';
-import * as eventTracker from '../event-tracker';
-import { reportCurrentState } from '../device-state';
+import * as actions from './actions';
 import proxyvisor from '../proxyvisor';
-import blink = require('../lib/blink');
 import log from '../lib/supervisor-console';
 
 import type { Server } from 'http';
@@ -43,15 +40,10 @@ export class SupervisorAPI {
 		this.api.use(middleware.logging);
 
 		this.api.get('/v1/healthy', async (_req, res) => {
-			try {
-				const healths = await Promise.all(this.healthchecks.map((fn) => fn()));
-				if (!_.every(healths)) {
-					log.error('Healthcheck failed');
-					return res.status(500).send('Unhealthy');
-				}
+			const isHealthy = await actions.runHealthchecks(this.healthchecks);
+			if (isHealthy) {
 				return res.sendStatus(200);
-			} catch {
-				log.error('Healthcheck failed');
+			} else {
 				return res.status(500).send('Unhealthy');
 			}
 		});
@@ -61,36 +53,20 @@ export class SupervisorAPI {
 		this.api.use(middleware.auth);
 
 		this.api.post('/v1/blink', (_req, res) => {
-			eventTracker.track('Device blink');
-			blink.pattern.start();
-			setTimeout(blink.pattern.stop, 15000);
+			actions.identify();
 			return res.sendStatus(200);
 		});
 
-		// Expires the supervisor's API key and generates a new one.
-		// It also communicates the new key to the balena API.
 		this.api.post(
 			'/v1/regenerate-api-key',
-			async (req: apiKeys.AuthorizedRequest, res) => {
-				await apiKeys.initialized();
-
-				// check if we're updating the cloud API key
-				const shouldUpdateCloudKey =
-					req.auth.apiKey === (await getGlobalApiKey());
-
-				// regenerate the key...
-				const newKey = await apiKeys.refreshKey(req.auth.apiKey);
-
-				// if we need to update the cloud API with our new key
-				if (shouldUpdateCloudKey) {
-					// report the new key to the cloud API
-					reportCurrentState({
-						api_secret: newKey,
-					});
+			async (req: apiKeys.AuthorizedRequest, res, next) => {
+				const { apiKey: oldKey } = req.auth;
+				try {
+					const newKey = await actions.regenerateKey(oldKey);
+					return res.status(200).send(newKey);
+				} catch (e: unknown) {
+					next(e);
 				}
-
-				// return the value of the new key to the caller
-				res.status(200).send(newKey);
 			},
 		);
 

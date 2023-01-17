@@ -42,7 +42,7 @@ export function checkInt(
  *
  * Check that a string exists, and is not an empty string, 'null', or 'undefined'
  */
-export function checkString(s: unknown): string | void {
+export function checkString(s: unknown): string | undefined {
 	if (s == null || !_.isString(s) || _.includes(['null', 'undefined', ''], s)) {
 		return;
 	}

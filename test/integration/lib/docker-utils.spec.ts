@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { stub } from 'sinon';
 
 import * as dockerUtils from '~/lib/docker-utils';
-import { createDockerImage } from '~/test-lib/docker-helper';
+import { createDockerImage, cleanupDocker } from '~/test-lib/docker-helper';
 import * as Docker from 'dockerode';
 
 describe('lib/docker-utils', () => {
@@ -10,6 +10,8 @@ describe('lib/docker-utils', () => {
 
 	describe('getNetworkGateway', async () => {
 		before(async () => {
+			// Remove network if it already exists
+			await cleanupDocker(docker);
 			await docker.createNetwork({
 				Name: 'supervisor0',
 				Options: {
@@ -28,14 +30,7 @@ describe('lib/docker-utils', () => {
 		});
 
 		after(async () => {
-			const allNetworks = await docker.listNetworks();
-
-			// Delete any remaining networks
-			await Promise.all(
-				allNetworks
-					.filter(({ Name }) => !['bridge', 'host', 'none'].includes(Name)) // exclude docker default network from the cleanup
-					.map(({ Name }) => docker.getNetwork(Name).remove()),
-			);
+			await cleanupDocker(docker);
 		});
 
 		// test using existing data...

@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
@@ -158,13 +157,13 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 	// restart balena-proxy-config if it is loaded and NOT PartOf redsocks-conf.target
 	if (
 		(
-			await Bluebird.any([
+			await Promise.any([
 				dbus.servicePartOf('balena-proxy-config'),
 				dbus.servicePartOf('resin-proxy-config'),
 			])
 		).includes('redsocks-conf.target') === false
 	) {
-		await Bluebird.any([
+		await Promise.any([
 			dbus.restartService('balena-proxy-config'),
 			dbus.restartService('resin-proxy-config'),
 		]);
@@ -191,39 +190,38 @@ async function setHostname(val: string) {
 	// restart balena-hostname if it is loaded and NOT PartOf config-json.target
 	if (
 		(
-			await Bluebird.any([
+			await Promise.any([
 				dbus.servicePartOf('balena-hostname'),
 				dbus.servicePartOf('resin-hostname'),
 			])
 		).includes('config-json.target') === false
 	) {
-		await Bluebird.any([
+		await Promise.any([
 			dbus.restartService('balena-hostname'),
 			dbus.restartService('resin-hostname'),
 		]);
 	}
 }
 
-// Don't use async/await here to maintain the bluebird
-// promises being returned
-export function get(): Bluebird<HostConfig> {
-	return Bluebird.join(readProxy(), readHostname(), (proxy, hostname) => {
-		return {
-			network: {
-				proxy,
-				hostname,
-			},
-		};
-	});
+export async function get(): Promise<HostConfig> {
+	return {
+		network: {
+			proxy: await readProxy(),
+			hostname: await readHostname(),
+		},
+	};
 }
 
-export async function patch(conf: HostConfig, force: boolean): Promise<void> {
+export async function patch(
+	conf: HostConfig,
+	force: boolean = false,
+): Promise<void> {
 	const apps = await applicationManager.getCurrentApps();
 	const appIds = Object.keys(apps).map((strId) => parseInt(strId, 10));
 
 	// It's possible for appIds to be an empty array, but patch shouldn't fail
 	// as it's not dependent on there being any running user applications.
-	return updateLock.lock(appIds, { force }, () => {
+	return updateLock.lock(appIds, { force }, async () => {
 		const promises: Array<Promise<void>> = [];
 		if (conf != null && conf.network != null) {
 			if (conf.network.proxy != null) {
@@ -233,6 +231,6 @@ export async function patch(conf: HostConfig, force: boolean): Promise<void> {
 				promises.push(setHostname(conf.network.hostname));
 			}
 		}
-		return Bluebird.all(promises).return();
+		await Promise.all(promises);
 	});
 }
