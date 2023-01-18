@@ -1,4 +1,17 @@
 - commits:
+    - subject: Correctly use the extended got instance for target-state
+      hash: 63cc4ad58ccce8ceba8879401be3bc0516811f45
+      body: |
+        In practice this fixes the missing user-agent
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.5.1
+  title: ""
+  date: 2023-01-18T11:58:54.402Z
+- commits:
     - subject: Update host-config, route, and action tests for host config endpoints
       hash: e1bacda58076ab4d76f6fbe4da986ac9b87c8e30
       body: ""
