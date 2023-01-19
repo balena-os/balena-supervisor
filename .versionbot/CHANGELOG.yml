@@ -1,4 +1,18 @@
 - commits:
+    - subject: Allow external contribtions to execute checks
+      hash: b26d2e0e7c6a8a8365782fb98c312408376e01e3
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+      nested: []
+  version: 14.5.2
+  title: ""
+  date: 2023-01-19T19:40:01.765Z
+- commits:
     - subject: Correctly use the extended got instance for target-state
       hash: 63cc4ad58ccce8ceba8879401be3bc0516811f45
       body: |
