@@ -7,6 +7,7 @@ import { ComposeVolumeConfig } from '../compose/volume';
 import {
 	DockerName,
 	EnvVarObject,
+	ConfigVarObject,
 	LabelObject,
 	NumericIdentifier,
 	ShortString,
@@ -274,7 +275,7 @@ export type TargetApps = t.TypeOf<typeof TargetApps>;
 const TargetDevice = t.intersection([
 	t.type({
 		name: DeviceName,
-		config: EnvVarObject,
+		config: ConfigVarObject,
 		apps: TargetApps,
 	}),
 	t.partial({
@@ -350,7 +351,7 @@ const TargetAppWithRelease = t.intersection([
 
 export const AppsJsonFormat = t.intersection([
 	t.type({
-		config: withDefault(EnvVarObject, {}),
+		config: withDefault(ConfigVarObject, {}),
 		apps: withDefault(t.record(UUID, TargetAppWithRelease), {}),
 	}),
 	t.partial({ pinDevice: t.boolean }),
