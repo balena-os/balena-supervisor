@@ -1,4 +1,23 @@
 - commits:
+    - subject: Allow using colon character in config vars
+      hash: 67d1503b54d7ec9517441e014ca1873ee491df80
+      body: |
+        The Raspberry Pi config.txt file defines the use of colon to configure
+        variables of the same name in different ports, for instance on those
+        devices with two hdmi ports. This syntax was previously not supported by
+        the supervisor. This change relaxes the syntax validation on config vars
+        to allow the use of the colon character.
+      footer:
+        Relates-to: "#1573, #2046"
+        relates-to: "#1573, #2046"
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 14.6.0
+  title: ""
+  date: 2023-01-20T20:51:23.226Z
+- commits:
     - subject: Allow external contribtions to execute checks
       hash: b26d2e0e7c6a8a8365782fb98c312408376e01e3
       body: ""
