@@ -20,6 +20,7 @@ jobs:
       (github.event.pull_request.head.repo.full_name != github.repository && github.event_name == 'pull_request_target')
     secrets: inherit
     with:
+      restrict_custom_actions: false
       balena_slugs: |
         balena_os/aarch64-supervisor,
         balena_os/amd64-supervisor,
