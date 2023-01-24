@@ -95,7 +95,7 @@
     "dockerode": "^2.5.8",
     "duration-js": "^4.0.0",
     "event-stream": "3.3.4",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "fork-ts-checker-webpack-plugin": "^7.2.13",
     "fp-ts": "^2.8.1",
     "husky": "^8.0.1",
