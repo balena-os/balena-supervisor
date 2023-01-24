@@ -102,7 +102,7 @@
     "io-ts": "^2.2.10",
     "io-ts-reporters": "^1.2.2",
     "json-mask": "^0.3.9",
-    "knex": "^0.95.15",
+    "knex": "^2.4.0",
     "lint-staged": "^13.0.3",
     "livepush": "^3.5.1",
     "lodash": "^4.17.21",
