@@ -1,4 +1,18 @@
 - commits:
+    - subject: Remove custom action restriction for external contributors
+      hash: b945142caab20771dc0060f3c4054c7b5cfbc0a4
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.6.1
+  title: ""
+  date: 2023-01-24T20:34:00.000Z
+- commits:
     - subject: Allow using colon character in config vars
       hash: 67d1503b54d7ec9517441e014ca1873ee491df80
       body: |
