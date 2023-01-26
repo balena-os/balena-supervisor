@@ -1,4 +1,16 @@
 - commits:
+    - subject: "patch: Migrate Supervisor Debugging docs from masterclass"
+      hash: a9045d5eda25683fe24afadefe0575eef55a7de1
+      body: ""
+      footer:
+        Signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+        signed-off-by: Vipul Gupta (@vipulgupta2048) <vipul@balena.io>
+      author: Vipul Gupta (@vipulgupta2048)
+      nested: []
+  version: 14.6.2
+  title: ""
+  date: 2023-01-26T20:58:34.050Z
+- commits:
     - subject: Remove custom action restriction for external contributors
       hash: b945142caab20771dc0060f3c4054c7b5cfbc0a4
       body: ""
