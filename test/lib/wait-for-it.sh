@@ -72,21 +72,18 @@ set_abort_timer() {
 	kill -USR2 "$2"
 }
 
-# Flag indicating whether the required services are ready
-ready=0
 abort_if_not_ready() {
 	# If the timeout is reached and the required services are not ready, it probably
 	# means something went wrong so we terminate the program with an error
-	if [ "${ready}" = "0" ]; then
-		echo "Something happened, failed to start in ${timeout}s" >&2
-		exit 1
-	fi
+	echo "Something happened, failed to start in ${timeout}s" >&2
+	exit 1
 }
 
 # Trap the signal and start the timer if user timeout is greater than 0
 if [ "$timeout" -gt 0 ]; then
 	trap 'abort_if_not_ready' USR2
 	set_abort_timer "$timeout" $$ &
+	timer_pid=$!
 fi
 
 # Wait for docker
@@ -110,7 +107,9 @@ if [ "${with_supervisor}" = "1" ]; then
 	done
 fi
 
-# Ignore signal if received
-ready=1
+# Kill the timer since we are ready to start
+if [ "$timer_pid" != "" ]; then
+	kill $timer_pid
+fi
 
 exec ${cmd}
