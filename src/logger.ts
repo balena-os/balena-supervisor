@@ -101,13 +101,6 @@ export function enable(value: boolean = true) {
 	}
 }
 
-export function logDependent(message: LogMessage, device: { uuid: string }) {
-	if (backend != null) {
-		message.uuid = device.uuid;
-		backend.log(message);
-	}
-}
-
 export function log(message: LogMessage) {
 	if (backend != null) {
 		backend.log(message);

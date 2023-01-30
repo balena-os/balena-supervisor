@@ -37,7 +37,6 @@ const constants = {
 	bootMountPointFromEnv,
 	bootMountPoint: bootMountPointFromEnv || '/boot',
 	configJsonPathOnHost: checkString(process.env.CONFIG_JSON_PATH),
-	proxyvisorHookReceiver: 'http://0.0.0.0:1337',
 	configJsonNonAtomicPath: '/boot/config.json',
 	supervisorNetworkInterface,
 	allowedInterfaces: [

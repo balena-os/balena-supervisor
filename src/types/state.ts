@@ -51,10 +51,6 @@ export interface DeviceLegacyState {
 			};
 		};
 	} & DeviceLegacyReport;
-	// TODO: Type the dependent entry correctly
-	dependent?: {
-		[key: string]: any;
-	};
 	commit?: string;
 }
 
@@ -109,14 +105,6 @@ export type DeviceReport = {
 
 export type DeviceState = {
 	[deviceUuid: string]: DeviceReport & {
-		/**
-		 * Used for setting dependent devices as online
-		 */
-		is_online?: boolean;
-		/**
-		 * Used for setting gateway device of dependent devices
-		 */
-		parent_device?: number;
 		apps?: {
 			[appUuid: string]: AppState;
 		};
@@ -272,22 +260,16 @@ export type TargetApps = t.TypeOf<typeof TargetApps>;
 /**
  * A device has a name, config and collection of apps
  */
-const TargetDevice = t.intersection([
-	t.type({
-		name: DeviceName,
-		config: ConfigVarObject,
-		apps: TargetApps,
-	}),
-	t.partial({
-		parent_device: UUID,
-	}),
-]);
+const TargetDevice = t.type({
+	name: DeviceName,
+	config: ConfigVarObject,
+	apps: TargetApps,
+});
 export type TargetDevice = t.TypeOf<typeof TargetDevice>;
 
 /**
  * Target state is a collection of devices one local device
- * (with uuid matching the one in config.json) and zero or more dependent
- * devices
+ * (with uuid matching the one in config.json)
  *
  *
  * When all io-ts types are composed, the final type of the target state
@@ -296,7 +278,6 @@ export type TargetDevice = t.TypeOf<typeof TargetDevice>;
  * {
  *  [uuid: string]: {
  *    name: string;
- *    parent_device?: string;
  *    config?: {
  *      [varName: string]: string;
  *    };
@@ -366,5 +347,4 @@ export interface InstancedDeviceState {
 		config: Dictionary<string>;
 		apps: InstancedAppState;
 	};
-	dependent: any;
 }

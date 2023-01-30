@@ -73,7 +73,6 @@ function createImage(
 	{
 		appId = 1,
 		appUuid = 'appuuid',
-		dependent = 0,
 		name = 'test-image',
 		serviceName = 'test',
 		commit = 'test-commit',
@@ -84,7 +83,6 @@ function createImage(
 		appId,
 		appUuid,
 		commit,
-		dependent,
 		name,
 		serviceName,
 		...extra,
