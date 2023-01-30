@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update deploy-to-balena action to 0.26.0
+      hash: 2bd2879cc580cd5b6a7cba73bc10d8ba55a3cf4c
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.6.3
+  title: ""
+  date: 2023-01-30T18:59:37.957Z
+- commits:
     - subject: "patch: Migrate Supervisor Debugging docs from masterclass"
       hash: a9045d5eda25683fe24afadefe0575eef55a7de1
       body: ""
