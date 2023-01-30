@@ -364,7 +364,6 @@ export function getTarget({
 				config: await deviceConfig.getTarget({ initial }),
 				apps: await dbFormat.getApps(),
 			},
-			dependent: await applicationManager.getDependentTargets(),
 		};
 	});
 }
@@ -378,14 +377,12 @@ export async function getLegacyState(): Promise<DeviceLegacyState> {
 	const appsStatus = await applicationManager.getLegacyState();
 	const theState: DeepPartial<DeviceLegacyState> = {
 		local: {},
-		dependent: {},
 	};
 	theState.local = {
 		...theState.local,
 		...currentVolatile,
 	};
 	theState.local!.apps = appsStatus.local;
-	theState.dependent!.apps = appsStatus.dependent;
 
 	// Multi-app warning!
 	// If we have more than one app, simply return the first commit.
@@ -503,11 +500,10 @@ export async function getCurrentForReport(
 
 // Get the current state as object instances
 export async function getCurrentState(): Promise<InstancedDeviceState> {
-	const [name, devConfig, apps, dependent] = await Promise.all([
+	const [name, devConfig, apps] = await Promise.all([
 		config.get('name'),
 		deviceConfig.getCurrent(),
 		applicationManager.getCurrentApps(),
-		applicationManager.getDependentState(),
 	]);
 
 	return {
@@ -516,7 +512,6 @@ export async function getCurrentState(): Promise<InstancedDeviceState> {
 			config: devConfig,
 			apps,
 		},
-		dependent,
 	};
 }
 

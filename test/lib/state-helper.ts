@@ -70,7 +70,6 @@ export function createImage(
 		imageId: 1,
 		releaseId: 1,
 		serviceId: 1,
-		dependent: 0,
 		...extra,
 	} as Image;
 }

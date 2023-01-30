@@ -3,7 +3,6 @@ import * as express from 'express';
 import * as middleware from './middleware';
 import * as apiKeys from './api-keys';
 import * as actions from './actions';
-import proxyvisor from '../proxyvisor';
 import log from '../lib/supervisor-console';
 
 import type { Server } from 'http';
@@ -77,8 +76,6 @@ export class SupervisorAPI {
 		for (const router of this.routers) {
 			this.api.use(router);
 		}
-
-		this.api.use(proxyvisor.router);
 
 		this.api.use(middleware.errors);
 	}

@@ -177,7 +177,6 @@ export async function normaliseLegacyDatabase() {
 						imageId: image.id,
 						releaseId: release.id,
 						commit: app.commit,
-						dependent: 0,
 						dockerImageId: imageFromDocker.Id,
 					});
 				} else {

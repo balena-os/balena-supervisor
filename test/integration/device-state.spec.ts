@@ -234,7 +234,6 @@ describe('device-state', () => {
 						},
 					},
 				},
-				dependent: { apps: {}, devices: {} },
 			} as any),
 		).to.be.rejected;
 	});

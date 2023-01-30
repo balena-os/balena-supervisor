@@ -26,10 +26,6 @@ const stateEndpointBody = {
 			},
 		},
 	},
-	dependent: {
-		apps: {},
-		devices: {},
-	},
 };
 
 const req = {

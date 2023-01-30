@@ -53,7 +53,6 @@ export interface Image {
 	 */
 	releaseId: number;
 	commit: string;
-	dependent: number;
 	dockerImageId?: string;
 	status?: 'Downloading' | 'Downloaded' | 'Deleting';
 	downloadProgress?: number | null;
@@ -184,7 +183,6 @@ export function imageFromService(service: ServiceInfo): Image {
 		imageId: service.imageId!,
 		releaseId: service.releaseId!,
 		commit: service.commit!,
-		dependent: 0,
 	};
 }
 
@@ -756,7 +754,6 @@ function format(image: Image): Partial<Omit<Image, 'id'>> {
 			imageId: null,
 			releaseId: null,
 			commit: null,
-			dependent: 0,
 			dockerImageId: null,
 		})
 		.omit('id')

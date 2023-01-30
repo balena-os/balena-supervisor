@@ -153,7 +153,6 @@ router.post(
 	},
 );
 
-// TODO: Support dependent applications when this feature is complete
 router.get(
 	'/v2/applications/state',
 	async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
