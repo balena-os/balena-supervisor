@@ -53,7 +53,7 @@ interface DnsLookupOpts {
 		 * and on openBalena setups, this extra code will perform
 		 * the lookup instead of passing it to the built-in
 		 * function.
-		   ================================================== */
+			 ================================================== */
 		if (name && name.endsWith('.local')) {
 			// determine which resolvers to use...
 			const getResolvers = () => {
@@ -123,6 +123,17 @@ interface DnsLookupOpts {
 
 import '@balena/happy-eyeballs/eye-patch';
 import Supervisor from './supervisor';
+import * as process from 'process';
+import log from './lib/supervisor-console';
+
+// Register signal handlers before starting the supervisor service
+process.on('SIGTERM', () => {
+	log.info('Received SIGTERM. Exiting.');
+
+	// This is standard exit code to indicate a graceful shutdown
+	// it equals 128 + 15 (the signal code)
+	process.exit(143);
+});
 
 const supervisor = new Supervisor();
 supervisor.init();
