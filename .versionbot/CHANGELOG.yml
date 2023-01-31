@@ -1,4 +1,45 @@
 - commits:
+    - subject: Add SIGTERM listener on application start
+      hash: 6683bca07da0e6b8f822dfcb22211b24a182dc16
+      body: >
+        As reported by issue #2100, the supervisor was not correctly reacting to
+
+        `SIGTERM` sent by the engine when terminating the process (for instance
+
+        before a reboot). This would lead to the supervisor requiring an
+
+        additional 10 seconds to terminate (after which the engine will send a
+
+        `SIGKILL`).
+
+
+        The reason for this is explained by the following info coming from Node
+
+
+        > Node.js was not designed to run as PID 1 which leads to unexpected behaviour when running inside of Docker. For example, a Node.js process running as PID 1 will not respond to `SIGINT` (`CTRL-C`) and similar signals. [reference](https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals)
+
+
+        On internal testing, it was discovered that simply adding a listener for
+
+        the signal on the Node process was enough to handle the signal, even
+
+        when the process runs as PID 1.
+
+
+        This adds a listener for `SIGTERM` before starting the supervisor main
+
+        loop.
+      footer:
+        Closes: "#2100"
+        closes: "#2100"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.6.4
+  title: ""
+  date: 2023-01-31T19:43:26.722Z
+- commits:
     - subject: Update deploy-to-balena action to 0.26.0
       hash: 2bd2879cc580cd5b6a7cba73bc10d8ba55a3cf4c
       body: ""
