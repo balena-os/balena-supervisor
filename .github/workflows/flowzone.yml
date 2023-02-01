@@ -1,5 +1,4 @@
 name: Flowzone
-
 on:
   pull_request:
     types: [opened, synchronize, closed]
@@ -8,11 +7,10 @@ on:
   pull_request_target:
     types: [opened, synchronize, closed]
     branches: [main, master]
-
 jobs:
   flowzone:
     name: Flowzone
-    uses: product-os/flowzone/.github/workflows/flowzone.yml@master
+    uses: product-os/flowzone/.github/workflows/flowzone.yml@b915c532115671418c55bcd0059f4fd33e4ceb1c
     # prevent duplicate workflows and only allow one `pull_request` or `pull_request_target` for
     # internal or external contributions respectively
     if: |
@@ -27,13 +25,6 @@ jobs:
         balena_os/armv7hf-supervisor,
         balena_os/i386-supervisor,
         balena_os/rpi-supervisor
-      custom_publish_matrix: balena_os/aarch64-supervisor,
-        balena_os/amd64-supervisor,
-        balena_os/armv7hf-supervisor,
-        balena_os/i386-supervisor,
-        balena_os/rpi-supervisor
-      custom_finalize_matrix: balena_os/aarch64-supervisor,
-        balena_os/amd64-supervisor,
-        balena_os/armv7hf-supervisor,
-        balena_os/i386-supervisor,
-        balena_os/rpi-supervisor
+      custom_publish_matrix: balena_os/aarch64-supervisor, balena_os/amd64-supervisor, balena_os/armv7hf-supervisor, balena_os/i386-supervisor, balena_os/rpi-supervisor
+      custom_finalize_matrix: balena_os/aarch64-supervisor, balena_os/amd64-supervisor, balena_os/armv7hf-supervisor, balena_os/i386-supervisor, balena_os/rpi-supervisor
+      protect_branch: false
