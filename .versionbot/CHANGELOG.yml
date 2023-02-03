@@ -1,4 +1,20 @@
 - commits:
+    - subject: Support `since` and `until` in supervisor journalctl wrapper API.
+      hash: 9a1cde7f44319940320746c6106ee965ff269459
+      body: ""
+      footer:
+        Signed-off-by: Ruben Keulemans ruben.keulemans@protonmail.com
+        signed-off-by: Ruben Keulemans ruben.keulemans@protonmail.com
+        Change-type: minor
+        change-type: minor
+        Closes: "#2083"
+        closes: "#2083"
+      author: Ruben Keulemans
+      nested: []
+  version: 14.7.0
+  title: ""
+  date: 2023-02-03T00:06:04.096Z
+- commits:
     - subject: Add SIGTERM listener on application start
       hash: 6683bca07da0e6b8f822dfcb22211b24a182dc16
       body: >
