@@ -1,4 +1,21 @@
 - commits:
+    - subject: "patch: Convert internal timestamp passed to journalctl from number to
+        string"
+      hash: 9b26fc263a683c0d2d372b5e0b88b179cff64f88
+      body: ""
+      footer:
+        See: https://github.com/balena-os/balena-supervisor/pull/2084
+        see: https://github.com/balena-os/balena-supervisor/pull/2084
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.7.1
+  title: ""
+  date: 2023-02-07T00:59:05.179Z
+- commits:
     - subject: Support `since` and `until` in supervisor journalctl wrapper API.
       hash: 9a1cde7f44319940320746c6106ee965ff269459
       body: ""
