@@ -2,6 +2,17 @@ import { ChildProcess, spawn } from 'child_process';
 
 import log from './supervisor-console';
 
+/**
+ * Given a date integer in ms, return in a format acceptable by journalctl.
+ * This function is intended to be used internally. Queries to POST /v2/journal-logs
+ * should provide `since` and `until` as formats acceptable by journalctl and not
+ * rely on the Supervisor to convert inputs into an appropriate format.
+ *
+ * Example output: '2014-03-25 03:59:56'
+ */
+export const toJournalDate = (timestamp: number): string =>
+	new Date(timestamp).toISOString().replace(/T/, ' ').replace(/\..+$/, '');
+
 export function spawnJournalctl(opts: {
 	all: boolean;
 	follow: boolean;
@@ -10,8 +21,8 @@ export function spawnJournalctl(opts: {
 	containerId?: string;
 	format: string;
 	filterString?: string;
-	since?: number | string;
-	until?: number | string;
+	since?: string;
+	until?: string;
 }): ChildProcess {
 	const args: string[] = [];
 	if (opts.all) {
@@ -34,11 +45,11 @@ export function spawnJournalctl(opts: {
 	}
 	if (opts.since != null) {
 		args.push('-S');
-		args.push(opts.since.toString());
+		args.push(opts.since);
 	}
 	if (opts.until != null) {
 		args.push('-U');
-		args.push(opts.until.toString());
+		args.push(opts.until);
 	}
 	args.push('-o');
 	args.push(opts.format);

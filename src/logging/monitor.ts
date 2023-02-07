@@ -2,7 +2,7 @@ import * as JSONstream from 'JSONStream';
 import { delay } from 'bluebird';
 
 import * as db from '../db';
-import { spawnJournalctl } from '../lib/journald';
+import { spawnJournalctl, toJournalDate } from '../lib/journald';
 import log from '../lib/supervisor-console';
 
 export type MonitorHook = ({
@@ -152,7 +152,7 @@ class LogMonitor {
 				follow: false,
 				format: 'json',
 				filterString: `CONTAINER_ID_FULL=${containerId}`,
-				since: lastSentTimestamp + 1, // increment to exclude last sent log
+				since: toJournalDate(lastSentTimestamp + 1), // increment to exclude last sent log
 			},
 			(row: JournalRow) => this.handleRow(row),
 			async (data: Buffer) => {
