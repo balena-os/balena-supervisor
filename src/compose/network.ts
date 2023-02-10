@@ -205,8 +205,12 @@ export class Network {
 			network: { name: this.name, appUuid: this.appUuid },
 		});
 
-		// Find the network
-		const [networkName] = (await docker.listNetworks())
+		// Find the networks with the same name. While theoretically
+		// the network name is unique, because moby is not great with concurrency
+		// it's possible to have multiple networks with the same name
+		// https://github.com/moby/moby/issues/20648
+		// For this reason we need to delete them all
+		const networkIds = (await docker.listNetworks())
 			.filter((network) => {
 				try {
 					const { appId, appUuid, name } = Network.deconstructDockerName(
@@ -220,14 +224,16 @@ export class Network {
 					return false;
 				}
 			})
-			.map((network) => network.Name);
+			.map((network) => network.Id);
 
-		if (!networkName) {
+		if (networkIds.length === 0) {
 			return;
 		}
 
 		try {
-			await docker.getNetwork(networkName).remove();
+			await Promise.all(
+				networkIds.map((networkId) => docker.getNetwork(networkId).remove()),
+			);
 		} catch (error) {
 			logger.logSystemEvent(logTypes.removeNetworkError, {
 				network: { name: this.name, appUuid: this.appUuid },
