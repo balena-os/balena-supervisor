@@ -1,4 +1,30 @@
 - commits:
+    - subject: Remove dependent devices content in codebase
+      hash: c4f9d72172ef678c73ee05e8766c9bcfddd47073
+      body: >
+        This includes:
+
+        - proxyvisor.js
+
+        - references in docs
+
+        - references device-state, api-binder, compose modules, API
+
+        - references in tests
+
+
+        The commit also adds a migration to remove the 4 dependent device tables from the DB.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.8.0
+  title: ""
+  date: 2023-02-10T23:01:03.277Z
+- commits:
     - subject: "patch: Convert internal timestamp passed to journalctl from number to
         string"
       hash: 9b26fc263a683c0d2d372b5e0b88b179cff64f88
