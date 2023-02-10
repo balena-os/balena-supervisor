@@ -35,8 +35,8 @@ export interface AppConstructOpts {
 	isHost?: boolean;
 
 	services: Service[];
-	volumes: Dictionary<Volume>;
-	networks: Dictionary<Network>;
+	volumes: Volume[];
+	networks: Network[];
 }
 
 export interface UpdateState {
@@ -62,8 +62,8 @@ export class App {
 	// Services are stored as an array, as at any one time we could have more than one
 	// service for a single service ID running (for example handover)
 	public services: Service[];
-	public networks: Dictionary<Network>;
-	public volumes: Dictionary<Volume>;
+	public networks: Network[];
+	public volumes: Volume[];
 
 	public constructor(opts: AppConstructOpts, public isTargetState: boolean) {
 		this.appId = opts.appId;
@@ -76,21 +76,26 @@ export class App {
 		this.networks = opts.networks;
 		this.isHost = !!opts.isHost;
 
-		if (this.networks.default == null && isTargetState) {
+		if (
+			this.networks.find((n) => n.name === 'default') == null &&
+			isTargetState
+		) {
 			const allHostNetworking = this.services.every(
 				(svc) => svc.config.networkMode === 'host',
 			);
 			// We always want a default network
-			this.networks.default = Network.fromComposeObject(
-				'default',
-				opts.appId,
-				// app uuid always exists on the target state
-				opts.appUuid!,
-				// We don't want the default bridge to have actual addresses at all if services
-				// aren't using it, to minimize chances of host-Docker address conflicts.
-				// If config_only is specified, the network is created and available in Docker
-				// by name and config only, and no actual networking setup occurs.
-				{ config_only: allHostNetworking },
+			this.networks.push(
+				Network.fromComposeObject(
+					'default',
+					opts.appId,
+					// app uuid always exists on the target state
+					opts.appUuid!,
+					// We don't want the default bridge to have actual addresses at all if services
+					// aren't using it, to minimize chances of host-Docker address conflicts.
+					// If config_only is specified, the network is created and available in Docker
+					// by name and config only, and no actual networking setup occurs.
+					{ config_only: allHostNetworking },
+				),
 			);
 		}
 	}
@@ -231,33 +236,63 @@ export class App {
 		}
 	}
 
-	private compareComponents<T extends { isEqualConfig(target: T): boolean }>(
-		current: Dictionary<T>,
-		target: Dictionary<T>,
+	private compareComponents<
+		T extends { name: string; isEqualConfig(target: T): boolean },
+	>(
+		current: T[],
+		target: T[],
 		// Should this function issue remove steps? (we don't want to for volumes)
 		generateRemoves: boolean,
 	): Array<ChangingPair<T>> {
-		const currentNames = _.keys(current);
-		const targetNames = _.keys(target);
-
 		const outputs: Array<{ current?: T; target?: T }> = [];
+		const toBeUpdated: string[] = [];
+
+		// Find those components that change between the current and target state
+		// those will have to be removed first and added later
+		target.forEach((tgt) => {
+			const curr = current.find(
+				(item) => item.name === tgt.name && !item.isEqualConfig(tgt),
+			);
+			if (curr) {
+				outputs.push({ current: curr, target: tgt });
+				toBeUpdated.push(curr.name);
+			}
+		});
 
 		if (generateRemoves) {
-			for (const name of _.difference(currentNames, targetNames)) {
-				outputs.push({ current: current[name] });
-			}
-		}
-		for (const name of _.difference(targetNames, currentNames)) {
-			outputs.push({ target: target[name] });
+			const toBeRemoved: string[] = [];
+			// Find those components that are not part of the target state
+			current.forEach((curr) => {
+				if (!target.find((tgt) => tgt.name === curr.name)) {
+					outputs.push({ current: curr });
+					toBeRemoved.push(curr.name);
+				}
+			});
+
+			// Find duplicates in the current state and remove them
+			current.forEach((item, index) => {
+				const hasDuplicate =
+					current.findIndex((it) => it.name === item.name) !== index;
+
+				if (
+					hasDuplicate &&
+					// Skip components that are being updated as those will need to be removed anyway
+					!toBeUpdated.includes(item.name) &&
+					// Avoid adding the component again if it has already been marked for removal
+					!toBeRemoved.includes(item.name)
+				) {
+					outputs.push({ current: item });
+					toBeRemoved.push(item.name);
+				}
+			});
 		}
 
-		const toBeUpdated = _.filter(
-			_.intersection(targetNames, currentNames),
-			(name) => !current[name].isEqualConfig(target[name]),
-		);
-		for (const name of toBeUpdated) {
-			outputs.push({ current: current[name], target: target[name] });
-		}
+		// Find newly created components
+		target.forEach((tgt) => {
+			if (!current.find((curr) => tgt.name === curr.name)) {
+				outputs.push({ target: tgt });
+			}
+		});
 
 		return outputs;
 	}
@@ -370,7 +405,6 @@ export class App {
 		/**
 		 * Checks if Supervisor should keep the state loop alive while waiting on a service to stop
 		 * @param serviceCurrent
-		 * @param serviceTarget
 		 */
 		const shouldWaitForStop = (serviceCurrent: Service) => {
 			return (
@@ -738,22 +772,20 @@ export class App {
 	public static async fromTargetState(
 		app: targetStateCache.DatabaseApp,
 	): Promise<App> {
-		const volumes = _.mapValues(JSON.parse(app.volumes) ?? {}, (conf, name) => {
-			if (conf == null) {
-				conf = {};
-			}
+		const jsonVolumes = JSON.parse(app.volumes) ?? {};
+		const volumes = Object.keys(jsonVolumes).map((name) => {
+			const conf = jsonVolumes[name];
 			if (conf.labels == null) {
 				conf.labels = {};
 			}
 			return Volume.fromComposeObject(name, app.appId, app.uuid, conf);
 		});
 
-		const networks = _.mapValues(
-			JSON.parse(app.networks) ?? {},
-			(conf, name) => {
-				return Network.fromComposeObject(name, app.appId, app.uuid, conf ?? {});
-			},
-		);
+		const jsonNetworks = JSON.parse(app.networks) ?? {};
+		const networks = Object.keys(jsonNetworks).map((name) => {
+			const conf = jsonNetworks[name];
+			return Network.fromComposeObject(name, app.appId, app.uuid, conf ?? {});
+		});
 
 		const [opts, supervisorApiHost, hostPathExists, hostname] =
 			await Promise.all([

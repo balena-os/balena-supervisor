@@ -234,7 +234,7 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 		const clonedState = safeStateClone(currentState);
 		// Set services & volumes as empty to be applied as intermediate state
 		app.services = [];
-		app.volumes = {};
+		app.volumes = [];
 
 		applicationManager.setIsApplyingIntermediate(true);
 

@@ -30,11 +30,8 @@ function createApp({
 			appId,
 			appUuid,
 			services,
-			networks: networks.reduce(
-				(res, net) => ({ ...res, [net.name]: net }),
-				{},
-			),
-			volumes: volumes.reduce((res, vol) => ({ ...res, [vol.name]: vol }), {}),
+			networks,
+			volumes,
 		},
 		isTarget,
 	);
@@ -425,7 +422,6 @@ describe('compose/app', () => {
 				networks: [
 					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
 				],
-				isTarget: true,
 			});
 			const target = createApp({ networks: [], isTarget: true });
 
@@ -435,6 +431,115 @@ describe('compose/app', () => {
 
 			expect(removeNetworkStep).to.have.property('current').that.deep.includes({
 				name: 'test-network',
+			});
+		});
+
+		it('should correctly remove default duplicate networks', () => {
+			const current = createApp({
+				networks: [defaultNetwork, defaultNetwork],
+			});
+			const target = createApp({
+				networks: [],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+
+			const [removeNetworkStep] = expectSteps('removeNetwork', steps);
+
+			expect(removeNetworkStep).to.have.property('current').that.deep.includes({
+				name: 'default',
+			});
+		});
+
+		it('should correctly remove duplicate networks', () => {
+			const current = createApp({
+				networks: [
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
+			});
+			const target = createApp({
+				networks: [
+					// The target is a single network
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+
+			const [removeNetworkStep] = expectSteps('removeNetwork', steps);
+
+			expect(removeNetworkStep).to.have.property('current').that.deep.includes({
+				name: 'test-network',
+			});
+		});
+
+		it('should ignore the duplicates if there are changes already', () => {
+			const current = createApp({
+				networks: [
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
+			});
+			const target = createApp({
+				networks: [
+					// The target is a single network
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {
+						config_only: true,
+					}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const [removeNetworkStep] = expectSteps('removeNetwork', steps);
+
+			expect(removeNetworkStep).to.have.property('current').that.deep.includes({
+				name: 'test-network',
+			});
+		});
+
+		// This should never happen because there can never be a service that is refencing
+		// a network that has a duplicate
+		it('should generate service kill steps if there are duplicate networks', async () => {
+			const current = createApp({
+				appUuid: 'deadbeef',
+				networks: [
+					defaultNetwork,
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
+				services: [
+					await createService({
+						appId: 1,
+						appUuid: 'deadbeef',
+						composition: { networks: ['test-network'] },
+					}),
+				],
+			});
+			const target = createApp({
+				networks: [
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
+				services: [
+					await createService({
+						appId: 1,
+						appUuid: 'deadbeef',
+						composition: { networks: ['test-network'] },
+					}),
+				],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+
+			const [removeNetworkStep] = expectSteps('kill', steps);
+
+			expect(removeNetworkStep).to.have.property('current').that.deep.includes({
+				serviceName: 'test',
 			});
 		});
 

@@ -8,9 +8,7 @@ import * as dbFormat from '~/src/device-state/db-format';
 import { TargetApps } from '~/src/types/state';
 
 function getDefaultNetwork(appId: number) {
-	return {
-		default: Network.fromComposeObject('default', appId, 'deadbeef', {}),
-	};
+	return [Network.fromComposeObject('default', appId, 'deadbeef', {})];
 }
 
 describe('device-state/db-format', () => {
@@ -119,7 +117,7 @@ describe('device-state/db-format', () => {
 		expect(app).to.have.property('appName').that.equals('test-app');
 		expect(app).to.have.property('source').that.equals(apiEndpoint);
 		expect(app).to.have.property('services').that.has.lengthOf(1);
-		expect(app).to.have.property('volumes').that.deep.equals({});
+		expect(app).to.have.property('volumes').that.deep.equals([]);
 		expect(app)
 			.to.have.property('networks')
 			.that.deep.equals(getDefaultNetwork(1));
@@ -194,7 +192,7 @@ describe('device-state/db-format', () => {
 		expect(app).to.have.property('appName').that.equals('test-app');
 		expect(app).to.have.property('source').that.equals(apiEndpoint);
 		expect(app).to.have.property('services').that.has.lengthOf(1);
-		expect(app).to.have.property('volumes').that.deep.equals({});
+		expect(app).to.have.property('volumes').that.deep.equals([]);
 		expect(app)
 			.to.have.property('networks')
 			.that.deep.equals(getDefaultNetwork(1));
@@ -303,7 +301,7 @@ describe('device-state/db-format', () => {
 		expect(newapp).to.have.property('appName').that.equals('test-app');
 		expect(newapp).to.have.property('source').that.equals('local');
 		expect(newapp).to.have.property('services').that.has.lengthOf(1);
-		expect(newapp).to.have.property('volumes').that.deep.equals({});
+		expect(newapp).to.have.property('volumes').that.deep.equals([]);
 		expect(newapp)
 			.to.have.property('networks')
 			.that.deep.equals(getDefaultNetwork(1));
