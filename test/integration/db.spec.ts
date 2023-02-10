@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import { knex, Knex } from 'knex';
 import { promises as fs } from 'fs';
 
@@ -67,7 +66,7 @@ describe('db', () => {
 		const knexForDB = await createOldDatabase(constants.databasePath);
 		const testDb = require('~/src/db') as Db;
 		await testDb.initialized();
-		await Bluebird.all([
+		await Promise.all([
 			expect(knexForDB.schema.hasColumn('app', 'appId')).to.eventually.be.true,
 			expect(knexForDB.schema.hasColumn('app', 'releaseId')).to.eventually.be
 				.true,
@@ -77,16 +76,13 @@ describe('db', () => {
 				.false,
 			expect(knexForDB.schema.hasColumn('app', 'containerId')).to.eventually.be
 				.false,
-			expect(knexForDB.schema.hasColumn('dependentApp', 'environment')).to
-				.eventually.be.true,
-			expect(knexForDB.schema.hasColumn('dependentDevice', 'markedForDeletion'))
-				.to.eventually.be.true,
-			expect(knexForDB.schema.hasColumn('dependentDevice', 'localId')).to
-				.eventually.be.true,
-			expect(knexForDB.schema.hasColumn('dependentDevice', 'is_managed_by')).to
-				.eventually.be.true,
-			expect(knexForDB.schema.hasColumn('dependentDevice', 'lock_expiry_date'))
-				.to.eventually.be.true,
+			expect(knexForDB.schema.hasTable('dependentDeviceTarget')).to.eventually
+				.be.false,
+			expect(knexForDB.schema.hasTable('dependentDevice')).to.eventually.be
+				.false,
+			expect(knexForDB.schema.hasTable('dependentAppTarget')).to.eventually.be
+				.false,
+			expect(knexForDB.schema.hasTable('dependentApp')).to.eventually.be.false,
 		]);
 	});
 

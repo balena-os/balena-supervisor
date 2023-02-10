@@ -736,7 +736,6 @@ Response:
       }
     }
   },
-  "dependent": {},
   "commit": "7fc9c5bea8e361acd49886fe6cc1e1cd"
 }
 ```
@@ -1010,10 +1009,6 @@ Response:
 				"SUPERVISOR_OVERRIDE_LOCK": "false"
 			},
 			"apps": {}
-		},
-		"dependent": {
-			"apps": [],
-			"devices": []
 		}
 	}
 }
@@ -1080,10 +1075,6 @@ TARGET_STATE='{
 				"networks": {}
 			}
 		}
-	},
-	"dependent": {
-		"apps": [],
-		"devices": []
 	}
 }
 '

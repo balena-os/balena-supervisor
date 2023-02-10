@@ -5,7 +5,6 @@ import * as t from 'io-ts';
 import * as _ from 'lodash';
 import { PinejsClientRequest } from 'pinejs-client-request';
 import * as url from 'url';
-import * as deviceRegister from '../lib/register-device';
 
 import * as config from '../config';
 import * as deviceConfig from '../device-config';
@@ -28,7 +27,6 @@ import * as TargetState from '../device-state/target-state';
 import * as logger from '../logger';
 
 import * as apiHelper from '../lib/api-helper';
-import { Device } from '../lib/api-helper';
 import { startReporting, stateReportErrors } from './report';
 
 interface DevicePinInfo {
@@ -228,41 +226,6 @@ export async function patchDevice(
 			body: updatedFields,
 		}),
 	).timeout(conf.apiTimeout);
-}
-
-export async function provisionDependentDevice(
-	device: Partial<Device>,
-): Promise<Device> {
-	const conf = await config.getMany([
-		'unmanaged',
-		'provisioned',
-		'apiTimeout',
-		'deviceId',
-	]);
-
-	if (conf.unmanaged) {
-		throw new Error('Cannot provision dependent device in unmanaged mode');
-	}
-	if (!conf.provisioned) {
-		throw new Error(
-			'Device must be provisioned to provision a dependent device',
-		);
-	}
-	if (balenaApi == null) {
-		throw new InternalInconsistencyError(
-			'Attempt to provision a dependent device without an API client',
-		);
-	}
-
-	_.defaults(device, {
-		is_managed_by__device: conf.deviceId,
-		uuid: deviceRegister.generateUniqueKey(),
-		registered_at: Math.floor(Date.now() / 1000),
-	});
-
-	return (await Bluebird.resolve(
-		balenaApi.post({ resource: 'device', body: device }),
-	).timeout(conf.apiTimeout)) as Device;
 }
 
 export function startCurrentStateReport() {

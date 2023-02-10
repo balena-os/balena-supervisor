@@ -14,13 +14,11 @@ function createDBImage(
 		appId = 1,
 		name = 'test-image',
 		serviceName = 'test',
-		dependent = 0,
 		...extra
 	} = {} as Partial<imageManager.Image>,
 ) {
 	return {
 		appId,
-		dependent,
 		name,
 		serviceName,
 		...extra,

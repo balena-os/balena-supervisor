@@ -139,9 +139,6 @@ export function safeStateClone(
 		local: {
 			config: {},
 		},
-		dependent: {
-			config: {},
-		},
 	};
 
 	if (targetState.local != null) {
@@ -150,9 +147,6 @@ export function safeStateClone(
 			config: _.cloneDeep(targetState.local.config),
 			apps: _.mapValues(targetState.local.apps, safeAppClone),
 		};
-	}
-	if (targetState.dependent != null) {
-		cloned.dependent = _.cloneDeep(targetState.dependent);
 	}
 
 	return cloned as InstancedDeviceState;

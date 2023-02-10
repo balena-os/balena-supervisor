@@ -6,7 +6,6 @@ import * as config from '../config';
 import { transaction, Transaction } from '../db';
 import * as logger from '../logger';
 import LocalModeManager from '../local-mode';
-import proxyvisor from '../proxyvisor';
 
 import * as dbFormat from '../device-state/db-format';
 import { validateTargetContracts } from '../lib/contracts';
@@ -122,10 +121,6 @@ export const initialized = _.once(async () => {
 	imageManager.on('change', reportCurrentState);
 	serviceManager.on('change', reportCurrentState);
 });
-
-export function getDependentState() {
-	return proxyvisor.getCurrentStates();
-}
 
 function reportCurrentState(data?: Partial<InstancedAppState>) {
 	events.emit('change', data ?? {});
@@ -299,16 +294,6 @@ export async function inferNextSteps(
 		// We want to keep the state application alive
 		steps.push(generateStep('noop', {}));
 	}
-
-	steps = steps.concat(
-		await proxyvisor.getRequiredSteps(
-			availableImages,
-			downloading,
-			currentApps,
-			targetApps,
-			steps,
-		),
-	);
 
 	return steps;
 }
@@ -500,10 +485,6 @@ export async function executeStep(
 	step: CompositionStep,
 	{ force = false, skipLock = false } = {},
 ): Promise<void> {
-	if (proxyvisor.validActions.includes(step.action)) {
-		return proxyvisor.executeStepAction(step);
-	}
-
 	if (!validActions.includes(step.action)) {
 		return Promise.reject(
 			new InternalInconsistencyError(
@@ -645,10 +626,6 @@ export function clearTargetVolatileForServices(imageIds: number[]) {
 	}
 }
 
-export function getDependentTargets() {
-	return proxyvisor.getTarget();
-}
-
 /**
  * This is only used by the API. Do not use as the use of serviceIds is getting
  * deprecated
@@ -684,22 +661,12 @@ export function bestDeltaSource(
 	image: Image,
 	available: Image[],
 ): string | null {
-	if (!image.dependent) {
-		for (const availableImage of available) {
-			if (
-				availableImage.serviceName === image.serviceName &&
-				availableImage.appId === image.appId
-			) {
-				return availableImage.name;
-			}
-		}
-	} else {
-		// This only makes sense for dependent devices which are still
-		// single app.
-		for (const availableImage of available) {
-			if (availableImage.appId === image.appId) {
-				return availableImage.name;
-			}
+	for (const availableImage of available) {
+		if (
+			availableImage.serviceName === image.serviceName &&
+			availableImage.appId === image.appId
+		) {
+			return availableImage.name;
 		}
 	}
 	return null;
@@ -831,17 +798,9 @@ function saveAndRemoveImages(
 		.map((img) => bestDeltaSource(img, availableImages))
 		.filter((img) => img != null);
 
-	const proxyvisorImages = proxyvisor.imagesInUse(current, target);
-
-	const imagesToRemove = availableAndUnused.filter((image) => {
-		const notUsedForDelta = !deltaSources.includes(image.name);
-		const notUsedByProxyvisor = !proxyvisorImages.some((proxyvisorImage) =>
-			imageManager.isSameImage(image, {
-				name: proxyvisorImage,
-			}),
-		);
-		return notUsedForDelta && notUsedByProxyvisor;
-	});
+	const imagesToRemove = availableAndUnused.filter(
+		(image) => !deltaSources.includes(image.name),
+	);
 
 	return imagesToSave
 		.map((image) => ({ action: 'saveImage', image } as CompositionStep))
@@ -897,7 +856,6 @@ export async function getLegacyState() {
 	]);
 
 	const apps: Dictionary<any> = {};
-	const dependent: Dictionary<any> = {};
 	let releaseId: number | boolean | null | undefined = null; // ????
 	const creationTimesAndReleases: Dictionary<any> = {};
 	// We iterate over the current running services and add them to the current state
@@ -944,37 +902,23 @@ export async function getLegacyState() {
 
 	for (const image of images) {
 		const { appId } = image;
-		if (!image.dependent) {
-			if (apps[appId] == null) {
-				apps[appId] = {};
-			}
-			if (apps[appId].services == null) {
-				apps[appId].services = {};
-			}
-			if (apps[appId].services[image.imageId] == null) {
-				apps[appId].services[image.imageId] = _.pick(image, [
-					'status',
-					'releaseId',
-				]);
-				apps[appId].services[image.imageId].download_progress =
-					image.downloadProgress;
-			}
-		} else if (image.imageId != null) {
-			if (dependent[appId] == null) {
-				dependent[appId] = {};
-			}
-			if (dependent[appId].images == null) {
-				dependent[appId].images = {};
-			}
-			dependent[appId].images[image.imageId] = _.pick(image, ['status']);
-			dependent[appId].images[image.imageId].download_progress =
+		if (apps[appId] == null) {
+			apps[appId] = {};
+		}
+		if (apps[appId].services == null) {
+			apps[appId].services = {};
+		}
+		if (apps[appId].services[image.imageId] == null) {
+			apps[appId].services[image.imageId] = _.pick(image, [
+				'status',
+				'releaseId',
+			]);
+			apps[appId].services[image.imageId].download_progress =
 				image.downloadProgress;
-		} else {
-			log.debug('Ignoring legacy dependent image', image);
 		}
 	}
 
-	return { local: apps, dependent };
+	return { local: apps };
 }
 
 // TODO: this function is probably more inefficient than it needs to be, since
