@@ -242,8 +242,8 @@ export async function inferNextSteps(
 					{
 						appId,
 						services: [],
-						volumes: {},
-						networks: {},
+						volumes: [],
+						networks: [],
 					},
 					false,
 				);
@@ -352,8 +352,8 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 					appUuid: uuid,
 					commit,
 					services: componentGroups[appId].services,
-					networks: _.keyBy(componentGroups[appId].networks, 'name'),
-					volumes: _.keyBy(componentGroups[appId].volumes, 'name'),
+					networks: componentGroups[appId].networks,
+					volumes: componentGroups[appId].volumes,
 				},
 				false,
 			);

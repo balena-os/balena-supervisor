@@ -109,14 +109,8 @@ export function createApps(
 			{
 				appId,
 				services: servicesByAppId[appId] ?? [],
-				networks: (networksByAppId[appId] ?? []).reduce(
-					(nets, n) => ({ ...nets, [n.name]: n }),
-					{},
-				),
-				volumes: (volumesByAppId[appId] ?? []).reduce(
-					(vols, v) => ({ ...vols, [v.name]: v }),
-					{},
-				),
+				networks: networksByAppId[appId] ?? [],
+				volumes: volumesByAppId[appId] ?? [],
 			},
 			target,
 		);
