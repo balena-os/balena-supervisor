@@ -11,10 +11,10 @@ import * as logger from '../logger';
 import { Network } from './network';
 import { ResourceRecreationAttemptError } from './errors';
 
-export function getAll(): Bluebird<Network[]> {
-	return getWithBothLabels().map((network: { Name: string }) => {
+export async function getAll(): Promise<Network[]> {
+	return getWithBothLabels().map(async (network: { Id: string }) => {
 		return docker
-			.getNetwork(network.Name)
+			.getNetwork(network.Id)
 			.inspect()
 			.then((net) => {
 				return Network.fromDockerNetwork(net);
