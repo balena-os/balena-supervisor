@@ -129,7 +129,7 @@ describe('System information', () => {
 				stdout: mockCPU.dmidecode,
 			});
 			const cpuId = await sysInfo.getSystemId();
-			expect(cpuId).to.equal('GEBN94600PWW');
+			expect(cpuId).to.equal('gebn94600pww');
 		});
 
 		it('gets system model', async () => {
