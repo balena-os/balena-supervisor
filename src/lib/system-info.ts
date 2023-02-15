@@ -73,6 +73,7 @@ export async function getCpuTemp(): Promise<number> {
 }
 
 export async function getSystemId(): Promise<string | undefined> {
+	let systemId: undefined | string;
 	try {
 		// This will work on arm devices
 		const buffer = await Promise.any([
@@ -81,14 +82,20 @@ export async function getSystemId(): Promise<string | undefined> {
 			fs.readFile('/sys/devices/soc0/serial_number'),
 		]);
 		// Remove the null/newline bytes at the end
-		return buffer.toString('utf-8').replace(/\0/g, '').trim();
+		systemId = buffer.toString('utf-8').replace(/\0/g, '').trim();
 	} catch {
 		// Otherwise use dmidecode
 		const [baseBoardInfo] = (
 			await dmidecode('baseboard').catch(() => [] as DmiDecodeInfo[])
 		).filter((entry) => entry.type === 'Base Board Information');
-		return baseBoardInfo?.values?.['Serial Number'] || undefined;
+		systemId = baseBoardInfo?.values?.['Serial Number'] || undefined;
 	}
+	if (systemId == null) {
+		return;
+	}
+	// Always lower case so as not to jump between casing when jumping between eg /proc/device-tree/serial-number and /sys/devices/soc0/serial_number which can return different casing
+	// Lower case was chosen because that is what `/proc/device-tree/serial-number` usually returns and seems to be the more consistently available version
+	return systemId.toLowerCase();
 }
 
 export async function getSystemModel(): Promise<string | undefined> {
