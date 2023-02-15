@@ -1,4 +1,17 @@
 - commits:
+    - subject: Always lower case the cpu id to avoid bouncing between casing when
+        reporting
+      hash: d356f979d3addbf8b08933694b9e80f66af8d9e2
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.9.1
+  title: ""
+  date: 2023-02-15T14:13:57.161Z
+- commits:
     - subject: Find and remove duplicate networks
       hash: 89175432af9beb9f9765a6cfdbc8914a8eae251e
       body: >
