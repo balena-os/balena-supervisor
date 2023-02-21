@@ -33,7 +33,7 @@ fi
 # NOTE: this won't be necessary once the supervisor can update
 # itself, as using the label io.balena.features.journal-logs will
 # achieve the same objective
-if { [ ! -d /run/log/journal ] || [ -L /run/log/journal ]; } && [ -s "${ROOT_MOUNTPOINT}"/etc/machine-id ]; then
+if { [ ! -d /run/log/journal ] || [ -L /run/log/journal ]; } && [ -s "${STATE_MOUNTPOINT}"/machine-id ]; then
 	# Only enter here if the directory does not exist or the location exists and is a symlink
 	# (note that test -d /symlink-to-dir will return true)
 

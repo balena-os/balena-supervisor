@@ -101,6 +101,9 @@ services:
       ROOT_MOUNTPOINT: /mnt/root
       BOOT_MOUNTPOINT: /mnt/boot
       HOST_OS_VERSION_PATH: /mnt/boot/os-release
+      STATE_MOUNTPOINT: /mnt/state
+      DATA_MOUNTPOINT: /mnt/data
+      DATABASE_PATH: /data/database.sqlite
     # Set required mounts as tmpfs or volumes here
     # if specific files need to be backed up between tests,
     # make sure to add them to the `testfs` configuration under
@@ -109,6 +112,8 @@ services:
       - /data
       - /mnt/root
       - /mnt/boot
+      - /mnt/state
+      - /mnt/data
 
 volumes:
   dbus:

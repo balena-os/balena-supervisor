@@ -5,14 +5,12 @@ import * as path from 'path';
 import * as Lock from 'rwlock';
 import { isRight } from 'fp-ts/lib/Either';
 
-import * as constants from './constants';
 import {
 	ENOENT,
 	UpdatesLockedError,
 	InternalInconsistencyError,
 } from './errors';
-import { exists } from './fs-utils';
-import { pathOnRoot } from './host-utils';
+import { pathOnRoot, pathExistsOnState } from './host-utils';
 import * as config from '../config';
 import * as lockfile from './lockfile';
 import { NumericIdentifier } from '../types';
@@ -48,8 +46,7 @@ export function abortIfHUPInProgress({
 }): Promise<boolean | never> {
 	return Promise.all(
 		['rollback-health-breadcrumb', 'rollback-altboot-breadcrumb'].map(
-			(filename) =>
-				exists(pathOnRoot(path.join(constants.stateMountPoint, filename))),
+			(filename) => pathExistsOnState(filename),
 		),
 	).then((existsArray) => {
 		const anyExists = existsArray.some((e) => e);

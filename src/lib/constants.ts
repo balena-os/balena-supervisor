@@ -7,6 +7,9 @@ const supervisorNetworkInterface = 'supervisor0';
 const rootMountPoint = checkString(process.env.ROOT_MOUNTPOINT) || '/mnt/root';
 const withRootMount = (p: string) => path.join(rootMountPoint, p);
 const bootMountPoint = checkString(process.env.BOOT_MOUNTPOINT) || '/mnt/boot';
+const stateMountPoint =
+	checkString(process.env.STATE_MOUNTPOINT) || '/mnt/state';
+const dataMountPoint = checkString(process.env.DATA_MOUNTPOINT) || '/mnt/data';
 
 const constants = {
 	// Root overlay paths
@@ -23,13 +26,13 @@ const constants = {
 		checkString(process.env.HOST_OS_VERSION_PATH) ||
 		withRootMount('/etc/os-release'),
 	// Data paths
+	dataMountPoint,
 	databasePath:
 		checkString(process.env.DATABASE_PATH) || '/data/database.sqlite',
-	appsJsonPath:
-		process.env.APPS_JSON_PATH || withRootMount('/mnt/data/apps.json'),
-	migrationBackupFile: 'backup.tgz',
+	appsJsonPath: path.join(dataMountPoint, 'apps.json'),
+	migrationBackupFile: path.join(dataMountPoint, 'backup.tgz'),
 	// State paths
-	stateMountPoint: '/mnt/state',
+	stateMountPoint,
 	// Other constants: network, Engine, /sys
 	containerId: checkString(process.env.SUPERVISOR_CONTAINER_ID) || undefined,
 	dockerSocket: process.env.DOCKER_SOCKET || '/var/run/docker.sock',
