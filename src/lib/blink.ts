@@ -1,5 +1,5 @@
 import blinking = require('blinking');
 
-import constants = require('./constants');
+import { ledFile } from './constants';
 
-export = blinking(constants.ledFile);
+export = blinking(ledFile);

@@ -15,7 +15,7 @@ import * as globalEventBus from './event-bus';
 import * as network from './network';
 import * as deviceConfig from './device-config';
 
-import constants = require('./lib/constants');
+import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
 import {
 	InternalInconsistencyError,
