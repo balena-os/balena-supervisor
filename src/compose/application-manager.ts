@@ -9,7 +9,7 @@ import LocalModeManager from '../local-mode';
 
 import * as dbFormat from '../device-state/db-format';
 import { validateTargetContracts } from '../lib/contracts';
-import constants = require('../lib/constants');
+import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
 import log from '../lib/supervisor-console';
 import {

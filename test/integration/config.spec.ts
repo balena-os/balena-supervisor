@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { testfs, TestFs } from 'mocha-pod';
 import * as hostUtils from '~/lib/host-utils';
 
-import constants = require('~/lib/constants');
+import * as constants from '~/lib/constants';
 import { fnSchema } from '~/src/config/functions';
 
 // Utility method to use along with `require`

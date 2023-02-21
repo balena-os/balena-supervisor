@@ -10,7 +10,7 @@ import { InternalInconsistencyError } from '../lib/errors';
 import { getGotInstance } from '../lib/request';
 import * as config from '../config';
 import { writeLock } from '../lib/update-lock';
-import constants = require('../lib/constants');
+import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
 
 export class ApiResponseError extends Error {}
