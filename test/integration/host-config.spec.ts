@@ -8,10 +8,10 @@ import * as hostConfig from '~/src/host-config';
 import * as config from '~/src/config';
 import * as applicationManager from '~/src/compose/application-manager';
 import { InstancedAppState } from '~/src/types/state';
-import * as constants from '~/lib/constants';
 import * as updateLock from '~/lib/update-lock';
 import { UpdatesLockedError } from '~/lib/errors';
 import * as dbus from '~/lib/dbus';
+import { pathOnBoot, pathOnRoot } from '~/lib/host-utils';
 import {
 	createApps,
 	createService,
@@ -23,18 +23,11 @@ describe('host-config', () => {
 	let currentApps: InstancedAppState;
 	const APP_ID = 1;
 	const SERVICE_NAME = 'one';
-	const proxyBase = path.join(
-		constants.rootMountPoint,
-		constants.bootMountPoint,
-		'system-proxy',
-	);
+	const proxyBase = pathOnBoot('system-proxy');
 	const redsocksConf = path.join(proxyBase, 'redsocks.conf');
 	const noProxy = path.join(proxyBase, 'no_proxy');
-	const hostname = path.join(constants.rootMountPoint, '/etc/hostname');
-	const appLockDir = path.join(
-		constants.rootMountPoint,
-		updateLock.lockPath(APP_ID),
-	);
+	const hostname = pathOnRoot('/etc/hostname');
+	const appLockDir = pathOnRoot(updateLock.lockPath(APP_ID));
 
 	before(async () => {
 		await config.initialized();

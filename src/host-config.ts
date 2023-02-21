@@ -5,11 +5,15 @@ import * as path from 'path';
 
 import * as config from './config';
 import * as applicationManager from './compose/application-manager';
-import * as constants from './lib/constants';
 import * as dbus from './lib/dbus';
 import { ENOENT } from './lib/errors';
 import { mkdirp, unlinkAll } from './lib/fs-utils';
-import { writeToBoot, readFromBoot } from './lib/host-utils';
+import {
+	writeToBoot,
+	readFromBoot,
+	pathOnRoot,
+	pathOnBoot,
+} from './lib/host-utils';
 import * as updateLock from './lib/update-lock';
 
 const redsocksHeader = stripIndent`
@@ -30,11 +34,7 @@ const redsocksFooter = '}\n';
 
 const proxyFields = ['type', 'ip', 'port', 'login', 'password'];
 
-const proxyBasePath = path.join(
-	constants.rootMountPoint,
-	constants.bootMountPoint,
-	'system-proxy',
-);
+const proxyBasePath = pathOnBoot('system-proxy');
 const redsocksConfPath = path.join(proxyBasePath, 'redsocks.conf');
 const noProxyPath = path.join(proxyBasePath, 'no_proxy');
 
@@ -178,7 +178,7 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 	}
 }
 
-const hostnamePath = path.join(constants.rootMountPoint, '/etc/hostname');
+const hostnamePath = pathOnRoot('/etc/hostname');
 async function readHostname() {
 	const hostnameData = await fs.readFile(hostnamePath, 'utf-8');
 	return _.trim(hostnameData);

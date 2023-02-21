@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import * as url from 'url';
 import { delay } from 'bluebird';
 import * as _ from 'lodash';
-import Bluebird = require('bluebird');
+import * as Bluebird from 'bluebird';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import type { TargetState } from '../types/state';

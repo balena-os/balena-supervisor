@@ -23,7 +23,7 @@ import * as config from '../config';
 import { checkTruthy, checkString } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { ImageInspectInfo } from 'dockerode';
-import { pathExistsOnHost } from '../lib/fs-utils';
+import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
 
 export interface AppConstructOpts {
@@ -794,8 +794,8 @@ export class App {
 					.getNetworkGateway(constants.supervisorNetworkInterface)
 					.catch(() => '127.0.0.1'),
 				(async () => ({
-					firmware: await pathExistsOnHost('/lib/firmware'),
-					modules: await pathExistsOnHost('/lib/modules'),
+					firmware: await pathExistsOnRoot('/lib/firmware'),
+					modules: await pathExistsOnRoot('/lib/modules'),
 				}))(),
 				(
 					(await config.get('hostname')) ??
