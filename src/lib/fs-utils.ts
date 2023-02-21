@@ -5,8 +5,6 @@ import { exec as execSync } from 'child_process';
 import { promisify } from 'util';
 import { uptime } from 'os';
 
-import * as constants from './constants';
-
 export const exec = promisify(execSync);
 
 export async function writeAndSyncFile(
@@ -48,14 +46,6 @@ export async function exists(p: string): Promise<boolean> {
 }
 
 /**
- * Check if a path exists as a direct child of the device's root mountpoint,
- * which is equal to constants.rootMountPoint (`/mnt/root`).
- */
-export function pathExistsOnHost(pathName: string): Promise<boolean> {
-	return exists(path.join(constants.rootMountPoint, pathName));
-}
-
-/**
  * Recursively create directories until input directory.
  * Equivalent to mkdirp package, which uses this under the hood.
  */
@@ -75,19 +65,6 @@ export async function unlinkAll(...paths: string[]): Promise<void> {
 			}),
 		),
 	);
-}
-
-/**
- * Get one or more paths as they exist in relation to host OS's root.
- */
-export function getPathOnHost(path: string): string;
-export function getPathOnHost(...paths: string[]): string[];
-export function getPathOnHost(...paths: string[]): string[] | string {
-	if (paths.length === 1) {
-		return path.join(constants.rootMountPoint, paths[0]);
-	} else {
-		return paths.map((p: string) => path.join(constants.rootMountPoint, p));
-	}
 }
 
 /**

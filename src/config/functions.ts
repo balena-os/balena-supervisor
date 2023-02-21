@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
 
@@ -13,7 +12,7 @@ import log from '../lib/supervisor-console';
 
 export const fnSchema = {
 	version: () => {
-		return Bluebird.resolve(supervisorVersion);
+		return Promise.resolve(supervisorVersion);
 	},
 	currentApiKey: () => {
 		return config

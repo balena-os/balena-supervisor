@@ -5,6 +5,7 @@ import { ConfigOptions, ConfigBackend } from './backend';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { ODMDataError } from '../../lib/errors';
+import { pathOnRoot } from '../../lib/host-utils';
 
 /**
  * A backend to handle ODMDATA configuration
@@ -15,8 +16,10 @@ import { ODMDataError } from '../../lib/errors';
 
 export class Odmdata extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}ODMDATA_`;
-	private static bootConfigPath = `${constants.rootMountPoint}/dev/mmcblk0boot0`;
-	private static bootConfigLockPath = `${constants.rootMountPoint}/sys/block/mmcblk0boot0/force_ro`;
+	private static bootConfigPath = pathOnRoot('/dev/mmcblk0boot0');
+	private static bootConfigLockPath = pathOnRoot(
+		'/sys/block/mmcblk0boot0/force_ro',
+	);
 	private static supportedConfigs = ['configuration'];
 	private BYTE_OFFSETS = [1659, 5243, 18043];
 	private CONFIG_BYTES = [

@@ -27,7 +27,7 @@ describe('config/extra-uEnv', () => {
 
 	it('should only parse supported configuration options from bootConfigPath', async () => {
 		let tfs = await testfs({
-			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	custom_fdt_file=mycustom.dtb
       	extra_os_cmdline=isolcpus=3,4
 			`,
@@ -42,7 +42,7 @@ describe('config/extra-uEnv', () => {
 
 		// Add other options that will get filtered out because they aren't supported
 		tfs = await testfs({
-			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	custom_fdt_file=mycustom.dtb
         extra_os_cmdline=isolcpus=3,4 console=tty0 splash
 			`,
@@ -57,7 +57,7 @@ describe('config/extra-uEnv', () => {
 
 		// Configuration with no supported values
 		tfs = await testfs({
-			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	fdt=something_else
 			 	isolcpus
 				123.12=5
@@ -71,7 +71,7 @@ describe('config/extra-uEnv', () => {
 	it('only matches supported devices', async () => {
 		// The file exists before
 		const tfs = await testfs({
-			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	custom_fdt_file=mycustom.dtb
       	extra_os_cmdline=isolcpus=3,4
 			`,
@@ -87,7 +87,7 @@ describe('config/extra-uEnv', () => {
 
 		// The file no longer exists
 		await expect(
-			fs.access(hostUtils.pathOnBoot(`extra_uEnv.txt`)),
+			fs.access(hostUtils.pathOnBoot('extra_uEnv.txt')),
 			'extra_uEnv.txt does not exist before the test',
 		).to.be.rejected;
 		for (const device of MATCH_TESTS) {
@@ -99,7 +99,7 @@ describe('config/extra-uEnv', () => {
 	it('errors when cannot find extra_uEnv.txt', async () => {
 		// The file no longer exists
 		await expect(
-			fs.access(hostUtils.pathOnBoot(`extra_uEnv.txt`)),
+			fs.access(hostUtils.pathOnBoot('extra_uEnv.txt')),
 			'extra_uEnv.txt does not exist before the test',
 		).to.be.rejected;
 		await expect(backend.getBootConfig()).to.eventually.be.rejectedWith(
@@ -111,7 +111,7 @@ describe('config/extra-uEnv', () => {
 		for (const badConfig of MALFORMED_CONFIGS) {
 			// Setup the environment with a bad config
 			const tfs = await testfs({
-				[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: badConfig.contents,
+				[hostUtils.pathOnBoot('extra_uEnv.txt')]: badConfig.contents,
 			}).enable();
 
 			// Expect warning log from the given bad config
@@ -127,7 +127,7 @@ describe('config/extra-uEnv', () => {
 			// This config contains a value set from something else
 			// We to make sure the Supervisor is enforcing the source of truth (the cloud)
 			// So after setting new values this unsupported/not set value should be gone
-			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	    	extra_os_cmdline=rootwait isolcpus=3,4
 	     other_service=set_this_value
 			`,
@@ -142,7 +142,7 @@ describe('config/extra-uEnv', () => {
 
 		// Confirm that the file was written correctly
 		await expect(
-			fs.readFile(hostUtils.pathOnBoot(`extra_uEnv.txt`), 'utf8'),
+			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
 		).to.eventually.equal(
 			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2\n',
 		);
@@ -167,7 +167,7 @@ describe('config/extra-uEnv', () => {
 		};
 
 		const tfs = await testfs({
-			[hostUtils.pathOnBoot(`extra_uEnv.txt`)]: stripIndent`
+			[hostUtils.pathOnBoot('extra_uEnv.txt')]: stripIndent`
 	     	other_service=set_this_value
 			`,
 		}).enable();
@@ -181,7 +181,7 @@ describe('config/extra-uEnv', () => {
 		});
 
 		await expect(
-			fs.readFile(hostUtils.pathOnBoot(`extra_uEnv.txt`), 'utf8'),
+			fs.readFile(hostUtils.pathOnBoot('extra_uEnv.txt'), 'utf8'),
 		).to.eventually.equal(
 			'custom_fdt_file=/boot/mycustomdtb.dtb\nextra_os_cmdline=isolcpus=2 console=tty0 splash\n',
 		);

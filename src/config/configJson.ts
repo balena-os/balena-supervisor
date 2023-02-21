@@ -1,13 +1,9 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import * as path from 'path';
 
 import * as constants from '../lib/constants';
 import * as hostUtils from '../lib/host-utils';
 import * as osRelease from '../lib/os-release';
-
-import log from '../lib/supervisor-console';
-
 import { readLock, writeLock } from '../lib/update-lock';
 import * as Schema from './schema';
 
@@ -87,23 +83,19 @@ export default class ConfigJsonConfigBackend {
 
 	private async write(): Promise<void> {
 		// writeToBoot uses fatrw to safely write to the boot partition
-		return hostUtils.writeToBoot(
-			await this.pathOnHost(),
-			JSON.stringify(this.cache),
-		);
+		return hostUtils.writeToBoot(await this.path(), JSON.stringify(this.cache));
 	}
 
 	private async read(): Promise<string> {
-		const filename = await this.pathOnHost();
+		const filename = await this.path();
 		return JSON.parse(await hostUtils.readFromBoot(filename, 'utf-8'));
 	}
 
-	private async resolveConfigPath(): Promise<string> {
+	private async path(): Promise<string> {
+		// TODO: Remove this once api-binder tests are migrated. The only
+		// time configPath is passed to the constructor is in the legacy tests.
 		if (this.configPath != null) {
 			return this.configPath;
-		}
-		if (constants.configJsonPathOnHost != null) {
-			return constants.configJsonPathOnHost;
 		}
 
 		const osVersion = await osRelease.getOSVersion(constants.hostOSVersionPath);
@@ -111,32 +103,7 @@ export default class ConfigJsonConfigBackend {
 			throw new Error('Failed to detect OS version!');
 		}
 
-		if (/^(Resin OS|balenaOS)/.test(osVersion)) {
-			// In Resin OS 1.12, $BOOT_MOUNTPOINT was added and it coincides with config.json's path.
-			if (constants.bootMountPointFromEnv != null) {
-				return path.join(constants.bootMountPointFromEnv, 'config.json');
-			}
-			// Older 1.X versions have config.json here
-			return '/mnt/conf/config.json';
-		} else {
-			// In non-balenaOS hosts (or older than 1.0.0), if CONFIG_JSON_PATH wasn't passed
-			// then we can't do atomic changes (only access to config.json we have is in /boot,
-			// which is assumed to be a file bind mount where rename is impossible).
-			throw new Error(
-				`OS version '${osVersion}' does not match any known balenaOS version.`,
-			);
-		}
-	}
-
-	private async pathOnHost(): Promise<string> {
-		try {
-			return path.join(
-				constants.rootMountPoint,
-				await this.resolveConfigPath(),
-			);
-		} catch (err) {
-			log.error('There was an error detecting the config.json path', err);
-			return constants.configJsonNonAtomicPath;
-		}
+		// The default path in the boot partition
+		return constants.configJsonPath;
 	}
 }

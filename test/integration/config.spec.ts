@@ -1,28 +1,18 @@
 import * as _ from 'lodash';
-import * as path from 'path';
 import { promises as fs } from 'fs';
 import { SinonSpy, spy, stub } from 'sinon';
 import { expect } from 'chai';
 import { testfs, TestFs } from 'mocha-pod';
-import * as hostUtils from '~/lib/host-utils';
 
-import * as constants from '~/lib/constants';
 import { fnSchema } from '~/src/config/functions';
+import * as hostUtils from '~/lib/host-utils';
+import { configJsonPath } from '~/lib/constants';
 
 // Utility method to use along with `require`
 type Config = typeof import('~/src/config');
 
 describe('config', () => {
-	const configJsonPath = path.join(
-		constants.rootMountPoint,
-		constants.bootMountPoint,
-		'config.json',
-	);
-	const deviceTypeJsonPath = path.join(
-		constants.rootMountPoint,
-		constants.bootMountPoint,
-		'device-type.json',
-	);
+	const deviceTypeJsonPath = hostUtils.pathOnBoot('device-type.json');
 
 	const readConfigJson = () =>
 		fs.readFile(configJsonPath, 'utf8').then((data) => JSON.parse(data));
@@ -154,7 +144,7 @@ describe('config', () => {
 	// this is being skipped until the config module can be refactored
 	it.skip('deduces OS variant from developmentMode if not set', async () => {
 		const tFs = await testfs({
-			'/mnt/root/etc/os-release': testfs.from(
+			[hostUtils.pathOnBoot('os-release')]: testfs.from(
 				'test/data/etc/os-release-novariant',
 			),
 		}).enable();

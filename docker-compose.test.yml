@@ -18,10 +18,8 @@ services:
     environment:
       DOCKER_HOST: tcp://docker:2375
       DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
-      # Required by migrations
-      CONFIG_MOUNT_POINT: /mnt/root/mnt/boot/config.json
-      # Read by constants to setup `bootMountpoint`
-      BOOT_MOUNTPOINT: /mnt/boot
+      # Required to skip device mounting in test env
+      TEST: 1
     depends_on:
       - docker
       - dbus
@@ -29,6 +27,7 @@ services:
     volumes:
       - dbus:/run/dbus
       - ./test/data/root:/mnt/root
+      - ./test/data/root/mnt/boot:/mnt/boot
       - ./test/lib/wait-for-it.sh:/wait-for-it.sh
     tmpfs:
       - /data # sqlite3 database
@@ -61,6 +60,9 @@ services:
     environment:
       DOCKER_TLS_CERTDIR: ''
     command: --tls=false # --debug
+    tmpfs:
+    # Prevent dind creating a bunch of anonymous volumes on host
+      - /var/lib/docker
 
   sut:
     # Build the supervisor code for development and testing
@@ -94,9 +96,11 @@ services:
       DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
       BALENA_SUPERVISOR_ADDRESS: http://balena-supervisor:48484
       # Required by migrations
-      CONFIG_MOUNT_POINT: /mnt/root/mnt/boot/config.json
-      # Read by constants to setup `bootMountpoint`
+      CONFIG_MOUNT_POINT: /mnt/boot/config.json
+      # Required to set mountpoints normally set in entry.sh
+      ROOT_MOUNTPOINT: /mnt/root
       BOOT_MOUNTPOINT: /mnt/boot
+      HOST_OS_VERSION_PATH: /mnt/boot/os-release
     # Set required mounts as tmpfs or volumes here
     # if specific files need to be backed up between tests,
     # make sure to add them to the `testfs` configuration under
@@ -104,6 +108,7 @@ services:
     tmpfs:
       - /data
       - /mnt/root
+      - /mnt/boot
 
 volumes:
   dbus:

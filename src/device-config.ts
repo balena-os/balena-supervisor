@@ -16,6 +16,7 @@ import { matchesAnyBootConfig } from './config/backends';
 import { ConfigBackend } from './config/backends/backend';
 import { Odmdata } from './config/backends/odmdata';
 import * as fsUtils from './lib/fs-utils';
+import { pathOnRoot } from './lib/host-utils';
 
 const vpnServiceName = 'openvpn';
 
@@ -24,7 +25,7 @@ const vpnServiceName = 'openvpn';
 // by some config changes, we leave this here for now. There is planned
 // functionality to allow image installs to require reboots, at that moment
 // this constant can be moved somewhere else
-const REBOOT_BREADCRUMB = fsUtils.getPathOnHost(
+const REBOOT_BREADCRUMB = pathOnRoot(
 	'/tmp/balena-supervisor/reboot-after-apply',
 );
 

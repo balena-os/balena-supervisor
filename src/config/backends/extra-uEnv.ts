@@ -38,7 +38,7 @@ const OPTION_REGEX = /^\s*(\w+)=(.*)$/;
 
 export class ExtraUEnv extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}EXTLINUX_`;
-	private static bootConfigPath = hostUtils.pathOnBoot(`extra_uEnv.txt`);
+	private static bootConfigPath = hostUtils.pathOnBoot('extra_uEnv.txt');
 
 	private static entries: Record<EntryKey, Entry> = {
 		custom_fdt_file: { key: 'custom_fdt_file', collection: false },

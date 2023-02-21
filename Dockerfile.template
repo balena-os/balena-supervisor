@@ -91,6 +91,9 @@ COPY --from=extra /usr/bin/lockfile /usr/bin/lockfile
 # Copy journalctl and library dependecies to the final image
 COPY --from=journal /sysroot /
 
+# Copy mount script for mounting host partitions into container
+COPY mount-partitions.sh .
+
 # Runtime dependencies
 RUN apk add --no-cache \
 	ca-certificates \
@@ -100,12 +103,12 @@ RUN apk add --no-cache \
 	dbus \
 	libstdc++ \
 	dmidecode \
-	sqlite-libs
+	sqlite-libs \
+	lsblk
 
 ARG ARCH
 ARG VERSION=master
-ENV CONFIG_MOUNT_POINT=/boot/config.json \
-	LED_FILE=/dev/null \
+ENV LED_FILE=/dev/null \
 	SUPERVISOR_IMAGE=balena/$ARCH-supervisor \
 	VERSION=$VERSION
 

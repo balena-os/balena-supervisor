@@ -1,10 +1,10 @@
 import * as _ from 'lodash';
-import * as Path from 'path';
+import * as path from 'path';
 import { VolumeInspectInfo } from 'dockerode';
 
-import * as constants from '../lib/constants';
 import { isNotFoundError, InternalInconsistencyError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
+import { pathOnRoot } from '../lib/host-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
 import log from '../lib/supervisor-console';
@@ -97,10 +97,8 @@ export async function createFromPath(
 		.getVolume(Volume.generateDockerName(volume.appId, volume.name))
 		.inspect();
 
-	const volumePath = Path.join(
-		constants.rootMountPoint,
-		'mnt/data',
-		...inspect.Mountpoint.split(Path.sep).slice(3),
+	const volumePath = pathOnRoot(
+		path.join('mnt/data', ...inspect.Mountpoint.split(path.sep).slice(3)),
 	);
 
 	await safeRename(oldPath, volumePath);

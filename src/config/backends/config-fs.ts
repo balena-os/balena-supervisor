@@ -19,15 +19,10 @@ import log from '../../lib/supervisor-console';
 type ConfigfsConfig = Dictionary<string[]>;
 
 export class ConfigFs extends ConfigBackend {
-	private readonly SystemAmlFiles = path.join(
-		constants.rootMountPoint,
-		'boot/acpi-tables',
-	);
+	private readonly SystemAmlFiles = hostUtils.pathOnRoot('boot/acpi-tables');
 	private readonly ConfigFilePath = hostUtils.pathOnBoot('configfs.json');
-	private readonly ConfigfsMountPoint = path.join(
-		constants.rootMountPoint,
-		'sys/kernel/config',
-	);
+	private readonly ConfigfsMountPoint =
+		hostUtils.pathOnRoot('sys/kernel/config');
 	private readonly ConfigVarNamePrefix = `${constants.hostConfigVarPrefix}CONFIGFS_`;
 
 	// supported backend for the following device types...

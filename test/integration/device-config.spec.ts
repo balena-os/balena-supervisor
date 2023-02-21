@@ -12,7 +12,11 @@ import { ConfigTxt } from '~/src/config/backends/config-txt';
 import { Odmdata } from '~/src/config/backends/odmdata';
 import { ConfigFs } from '~/src/config/backends/config-fs';
 import { SplashImage } from '~/src/config/backends/splash-image';
-import * as constants from '~/lib/constants';
+import { pathOnBoot, pathOnRoot } from '~/lib/host-utils';
+import {
+	configJsonPath as configJson,
+	hostOSVersionPath as osRelease,
+} from '~/src/lib/constants';
 
 import { testfs } from 'mocha-pod';
 
@@ -26,15 +30,9 @@ const splashImageBackend = new SplashImage();
 // these tests could probably be removed if each backend has its own
 // test and the src/config/utils module is properly tested.
 describe('device-config', () => {
-	const bootMountPoint = path.join(
-		constants.rootMountPoint,
-		constants.bootMountPoint,
-	);
-	const configJson = path.join(bootMountPoint, 'config.json');
-	const configFsJson = path.join(bootMountPoint, 'configfs.json');
-	const configTxt = path.join(bootMountPoint, 'config.txt');
-	const deviceTypeJson = path.join(bootMountPoint, 'device-type.json');
-	const osRelease = path.join(constants.rootMountPoint, '/etc/os-release');
+	const configFsJson = pathOnBoot('configfs.json');
+	const configTxt = pathOnBoot('config.txt');
+	const deviceTypeJson = pathOnBoot('device-type.json');
 
 	let logSpy: SinonSpy;
 
@@ -114,7 +112,9 @@ describe('device-config', () => {
 			[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
-					VARIANT_ID="dev"`,
+					VERSION="2.88.5+rev1"
+					VARIANT_ID="dev"
+			`,
 			[deviceTypeJson]: JSON.stringify({
 				slug: 'fincm3',
 				arch: 'armv7hf',
@@ -311,7 +311,7 @@ describe('device-config', () => {
 	});
 
 	describe('extlinux', () => {
-		const extlinuxConf = path.join(bootMountPoint, 'extlinux/extlinux.conf');
+		const extlinuxConf = pathOnBoot('extlinux/extlinux.conf');
 
 		const tFs = testfs({
 			// This is only needed so config.get doesn't fail
@@ -319,6 +319,7 @@ describe('device-config', () => {
 			[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
+					VERSION="2.88.5+rev1"
 					VARIANT_ID="dev"
 				`,
 			[deviceTypeJson]: JSON.stringify({
@@ -456,11 +457,8 @@ describe('device-config', () => {
 	});
 
 	describe('config-fs', () => {
-		const acpiTables = path.join(constants.rootMountPoint, 'boot/acpi-tables');
-		const sysKernelAcpiTable = path.join(
-			constants.rootMountPoint,
-			'sys/kernel/config/acpi/table',
-		);
+		const acpiTables = pathOnRoot('boot/acpi-tables');
+		const sysKernelAcpiTable = pathOnRoot('sys/kernel/config/acpi/table');
 
 		const tFs = testfs({
 			// This is only needed so config.get doesn't fail
@@ -468,6 +466,7 @@ describe('device-config', () => {
 			[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
+					VERSION="2.88.5+rev1"
 					VARIANT_ID="dev"
 				`,
 			[configFsJson]: JSON.stringify({
@@ -619,7 +618,7 @@ describe('device-config', () => {
 			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEX/TQBcNTh/AAAAAXRSTlPM0jRW/QAAAApJREFUeJxjYgAAAAYAAzY3fKgAAAAASUVORK5CYII=';
 		const uri = `data:image/png;base64,${png}`;
 
-		const splash = path.join(bootMountPoint, 'splash');
+		const splash = pathOnBoot('splash');
 
 		const mockFs = testfs(
 			{
@@ -628,6 +627,7 @@ describe('device-config', () => {
 				[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
+					VERSION="2.88.5+rev1"
 					VARIANT_ID="dev"
 				`,
 				[deviceTypeJson]: JSON.stringify({
@@ -741,7 +741,7 @@ describe('device-config', () => {
 	});
 
 	describe('getRequiredSteps', () => {
-		const splash = path.join(bootMountPoint, 'splash/balena-logo.png');
+		const splash = pathOnBoot('splash/balena-logo.png');
 
 		const tFs = testfs({
 			// This is only needed so config.get doesn't fail
@@ -752,6 +752,7 @@ describe('device-config', () => {
 			[osRelease]: stripIndent`
 					PRETTY_NAME="balenaOS 2.88.5+rev1"
 					META_BALENA_VERSION="2.88.5"
+					VERSION="2.88.5+rev1"
 					VARIANT_ID="dev"
 				`,
 			[deviceTypeJson]: JSON.stringify({

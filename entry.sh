@@ -2,17 +2,20 @@
 
 set -o errexit
 
+# Mounts boot, state, & data partitions from balenaOS.
+source ./mount-partitions.sh
+
 # If the legacy /tmp/resin-supervisor exists on the host, a container might
 # already be using to take an update lock, so we symlink it to the new
 # location so that the supervisor can see it
-[ -d /mnt/root/tmp/resin-supervisor ] &&
-	([ -d /mnt/root/tmp/balena-supervisor ] || ln -s ./resin-supervisor /mnt/root/tmp/balena-supervisor)
+[ -d "${ROOT_MOUNTPOINT}"/tmp/resin-supervisor ] &&
+	([ -d "${ROOT_MOUNTPOINT}"/tmp/balena-supervisor ] || ln -s ./resin-supervisor "${ROOT_MOUNTPOINT}"/tmp/balena-supervisor)
 
 # Otherwise, if the lockfiles directory doesn't exist
-[ -d /mnt/root/tmp/balena-supervisor ] ||
-	mkdir -p /mnt/root/tmp/balena-supervisor
+[ -d "${ROOT_MOUNTPOINT}"/tmp/balena-supervisor ] ||
+	mkdir -p "${ROOT_MOUNTPOINT}"/tmp/balena-supervisor
 
-export DBUS_SYSTEM_BUS_ADDRESS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path=/mnt/root/run/dbus/system_bus_socket}"
+export DBUS_SYSTEM_BUS_ADDRESS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path="${ROOT_MOUNTPOINT}"/run/dbus/system_bus_socket}"
 
 # Include self-signed CAs, should they exist
 if [ -n "${BALENA_ROOT_CA}" ]; then
@@ -30,7 +33,7 @@ fi
 # NOTE: this won't be necessary once the supervisor can update
 # itself, as using the label io.balena.features.journal-logs will
 # achieve the same objective
-if { [ ! -d /run/log/journal ] || [ -L /run/log/journal ]; } && [ -s /mnt/root/etc/machine-id ]; then
+if { [ ! -d /run/log/journal ] || [ -L /run/log/journal ]; } && [ -s "${ROOT_MOUNTPOINT}"/etc/machine-id ]; then
 	# Only enter here if the directory does not exist or the location exists and is a symlink
 	# (note that test -d /symlink-to-dir will return true)
 
@@ -38,21 +41,21 @@ if { [ ! -d /run/log/journal ] || [ -L /run/log/journal ]; } && [ -s /mnt/root/e
 	mkdir -p /run/log
 
 	# Override the local machine-id
-	ln -sf /mnt/root/etc/machine-id /etc/machine-id
+	ln -sf "${ROOT_MOUNTPOINT}"/etc/machine-id /etc/machine-id
 
 	# Remove the original link if it exists to avoid creating deep links
 	[ -L /run/log/journal ] && rm /run/log/journal
 
 	# If using persistent logging, the host will the journal under `/var/log/journal`
 	# otherwise it will have it under /run/log/journal
-	[ -d "/mnt/root/run/log/journal/$(cat /etc/machine-id)" ] && ln -sf /mnt/root/run/log/journal /run/log/journal
-	[ -d "/mnt/root/var/log/journal/$(cat /etc/machine-id)" ] && ln -sf /mnt/root/var/log/journal /run/log/journal
+	[ -d "${ROOT_MOUNTPOINT}/run/log/journal/$(cat /etc/machine-id)" ] && ln -sf "${ROOT_MOUNTPOINT}"/run/log/journal /run/log/journal
+	[ -d "${ROOT_MOUNTPOINT}/var/log/journal/$(cat /etc/machine-id)" ] && ln -sf "${ROOT_MOUNTPOINT}"/var/log/journal /run/log/journal
 fi
 
 # Mount the host kernel module path onto the expected location
 # We need to do this as busybox doesn't support using a custom location
 if [ ! -d /lib/modules ]; then
-	ln -s /mnt/root/lib/modules /lib/modules
+	ln -s "${ROOT_MOUNTPOINT}"/lib/modules /lib/modules
 fi
 # Now load the ip6_tables kernel module, so we can do
 # filtering on ipv6 addresses. Don't fail here if the
@@ -68,7 +71,7 @@ export LOCKFILE_UID=65534
 
 # Cleanup leftover Supervisor-created lockfiles from any previous processes.
 # Supervisor-created lockfiles have a UID of 65534.
-find "/mnt/root${BASE_LOCK_DIR}" -type f -user "${LOCKFILE_UID}" -name "*updates.lock" -delete || true
+find "${ROOT_MOUNTPOINT}${BASE_LOCK_DIR}" -type f -user "${LOCKFILE_UID}" -name "*updates.lock" -delete || true
 
 if [ "${LIVEPUSH}" = "1" ]; then
 	exec npx nodemon --watch src --watch typings --ignore tests -e js,ts,json \

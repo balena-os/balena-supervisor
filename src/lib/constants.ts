@@ -1,19 +1,38 @@
 import * as path from 'path';
 import { checkString } from './validation';
 
-const bootMountPointFromEnv = checkString(process.env.BOOT_MOUNTPOINT);
-const rootMountPoint = checkString(process.env.ROOT_MOUNTPOINT) || '/mnt/root';
-
 const supervisorNetworkInterface = 'supervisor0';
 
+// /mnt/root is the legacy root mountpoint
+const rootMountPoint = checkString(process.env.ROOT_MOUNTPOINT) || '/mnt/root';
+const withRootMount = (p: string) => path.join(rootMountPoint, p);
+const bootMountPoint = checkString(process.env.BOOT_MOUNTPOINT) || '/mnt/boot';
+
 const constants = {
+	// Root overlay paths
 	rootMountPoint,
-	stateMountPoint: '/mnt/state',
+	vpnStatusPath:
+		checkString(process.env.VPN_STATUS_PATH) ||
+		withRootMount('/run/openvpn/vpn_status'),
+	// Boot paths
+	bootMountPoint,
+	configJsonPath:
+		checkString(process.env.CONFIG_MOUNT_POINT) ||
+		path.join(bootMountPoint, 'config.json'),
+	hostOSVersionPath:
+		checkString(process.env.HOST_OS_VERSION_PATH) ||
+		withRootMount('/etc/os-release'),
+	// Data paths
 	databasePath:
 		checkString(process.env.DATABASE_PATH) || '/data/database.sqlite',
+	appsJsonPath:
+		process.env.APPS_JSON_PATH || withRootMount('/mnt/data/apps.json'),
+	migrationBackupFile: 'backup.tgz',
+	// State paths
+	stateMountPoint: '/mnt/state',
+	// Other constants: network, Engine, /sys
 	containerId: checkString(process.env.SUPERVISOR_CONTAINER_ID) || undefined,
 	dockerSocket: process.env.DOCKER_SOCKET || '/var/run/docker.sock',
-
 	// In-container location for docker socket
 	// Mount in /host/run to avoid clashing with systemd
 	containerDockerSocket: '/host/run/balena-engine.sock',
@@ -21,12 +40,6 @@ const constants = {
 		checkString(process.env.SUPERVISOR_IMAGE) || 'resin/rpi-supervisor',
 	ledFile:
 		checkString(process.env.LED_FILE) || '/sys/class/leds/led0/brightness',
-	vpnStatusPath:
-		checkString(process.env.VPN_STATUS_PATH) ||
-		`${rootMountPoint}/run/openvpn/vpn_status`,
-	hostOSVersionPath:
-		checkString(process.env.HOST_OS_VERSION_PATH) ||
-		`${rootMountPoint}/etc/os-release`,
 	macAddressPath: checkString(process.env.MAC_ADDRESS_PATH) || `/sys/class/net`,
 	privateAppEnvVars: [
 		'RESIN_SUPERVISOR_API_KEY',
@@ -34,10 +47,6 @@ const constants = {
 		'BALENA_SUPERVISOR_API_KEY',
 		'BALENA_API_KEY',
 	],
-	bootMountPointFromEnv,
-	bootMountPoint: bootMountPointFromEnv || '/boot',
-	configJsonPathOnHost: checkString(process.env.CONFIG_JSON_PATH),
-	configJsonNonAtomicPath: '/boot/config.json',
 	supervisorNetworkInterface,
 	allowedInterfaces: [
 		'resin-vpn',
@@ -46,9 +55,6 @@ const constants = {
 		'lo',
 		supervisorNetworkInterface,
 	],
-	appsJsonPath:
-		process.env.APPS_JSON_PATH ||
-		path.join(rootMountPoint, '/mnt/data', 'apps.json'),
 	ipAddressUpdateInterval: 30 * 1000,
 	imageCleanupErrorIgnoreTimeout: 3600 * 1000,
 	maxDeltaDownloads: 3,
@@ -57,7 +63,6 @@ const constants = {
 	},
 	bootBlockDevice: '/dev/mmcblk0p1',
 	hostConfigVarPrefix: 'HOST_',
-	migrationBackupFile: 'backup.tgz',
 	// Use this failure multiplied by 2**Number of failures to increase
 	// the backoff on subsequent failures
 	backoffIncrement: 500,

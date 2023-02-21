@@ -4,10 +4,10 @@ import { promises as fs } from 'fs';
 import { testfs } from 'mocha-pod';
 
 import * as updateLock from '~/lib/update-lock';
-import * as constants from '~/lib/constants';
 import { UpdatesLockedError } from '~/lib/errors';
 import * as config from '~/src/config';
 import * as lockfile from '~/lib/lockfile';
+import { pathOnRoot } from '~/lib/host-utils';
 
 describe('lib/update-lock', () => {
 	describe('abortIfHUPInProgress', () => {
@@ -16,10 +16,7 @@ describe('lib/update-lock', () => {
 			'rollback-altboot-breadcrumb',
 		];
 
-		const breadcrumbsDir = path.join(
-			constants.rootMountPoint,
-			constants.stateMountPoint,
-		);
+		const breadcrumbsDir = pathOnRoot('/mnt/state');
 
 		const createBreadcrumb = (breadcrumb: string) =>
 			testfs({
@@ -87,10 +84,7 @@ describe('lib/update-lock', () => {
 		};
 
 		const lockdir = (appId: number, serviceName: string): string =>
-			path.join(
-				constants.rootMountPoint,
-				updateLock.lockPath(appId, serviceName),
-			);
+			pathOnRoot(updateLock.lockPath(appId, serviceName));
 
 		const expectLocks = async (
 			exists: boolean,
