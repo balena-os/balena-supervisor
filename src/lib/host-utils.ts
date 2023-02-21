@@ -30,6 +30,17 @@ export const pathExistsOnRoot = async (p: string) =>
 // This path is accessible from within the Supervisor container
 export const pathOnBoot = withBase(constants.bootMountPoint);
 
+// Returns an absolute path starting from the hostOS data partition
+// This path is accessible from within the Supervisor container
+export const pathOnData = withBase(constants.dataMountPoint);
+
+// Returns an absolute path starting from the hostOS state partition
+// This path is accessible from within the Supervisor container
+export const pathOnState = withBase(constants.stateMountPoint);
+
+export const pathExistsOnState = async (p: string) =>
+	await exists(pathOnState(p));
+
 class CodedError extends Error {
 	constructor(msg: string, readonly code: number | string) {
 		super(msg);

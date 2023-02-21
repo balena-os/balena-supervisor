@@ -4,7 +4,7 @@ import { VolumeInspectInfo } from 'dockerode';
 
 import { isNotFoundError, InternalInconsistencyError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
-import { pathOnRoot } from '../lib/host-utils';
+import { pathOnData } from '../lib/host-utils';
 import { docker } from '../lib/docker-utils';
 import * as LogTypes from '../lib/log-types';
 import log from '../lib/supervisor-console';
@@ -97,8 +97,8 @@ export async function createFromPath(
 		.getVolume(Volume.generateDockerName(volume.appId, volume.name))
 		.inspect();
 
-	const volumePath = pathOnRoot(
-		path.join('mnt/data', ...inspect.Mountpoint.split(path.sep).slice(3)),
+	const volumePath = pathOnData(
+		path.join(...inspect.Mountpoint.split(path.sep).slice(3)),
 	);
 
 	await safeRename(oldPath, volumePath);

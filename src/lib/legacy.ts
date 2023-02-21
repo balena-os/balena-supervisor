@@ -15,7 +15,7 @@ import {
 } from './errors';
 import { docker } from './docker-utils';
 import { log } from './supervisor-console';
-import { pathOnRoot } from './host-utils';
+import { pathOnData } from './host-utils';
 import Volume from '../compose/volume';
 import * as logger from '../logger';
 import type {
@@ -35,9 +35,7 @@ async function createVolumeFromLegacyData(
 	appUuid: string,
 ): Promise<Volume | void> {
 	const name = defaultLegacyVolume();
-	const legacyPath = pathOnRoot(
-		path.join('mnt/data/resin-data', appId.toString()),
-	);
+	const legacyPath = pathOnData(path.join('resin-data', appId.toString()));
 
 	try {
 		return await volumeManager.createFromPath(

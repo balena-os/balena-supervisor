@@ -27,7 +27,7 @@ export async function getStorageInfo(): Promise<{
 	let total = 0;
 	// First we find the block device which the data partition is part of
 	for (const partition of fsInfo) {
-		if (partition.mount === '/data') {
+		if (new RegExp('/data').test(partition.mount)) {
 			mainFs = partition.fs;
 			total = partition.size;
 			break;

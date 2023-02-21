@@ -7,7 +7,7 @@ import * as updateLock from '~/lib/update-lock';
 import { UpdatesLockedError } from '~/lib/errors';
 import * as config from '~/src/config';
 import * as lockfile from '~/lib/lockfile';
-import { pathOnRoot } from '~/lib/host-utils';
+import { pathOnRoot, pathOnState } from '~/lib/host-utils';
 
 describe('lib/update-lock', () => {
 	describe('abortIfHUPInProgress', () => {
@@ -16,7 +16,7 @@ describe('lib/update-lock', () => {
 			'rollback-altboot-breadcrumb',
 		];
 
-		const breadcrumbsDir = pathOnRoot('/mnt/state');
+		const breadcrumbsDir = pathOnState();
 
 		const createBreadcrumb = (breadcrumb: string) =>
 			testfs({

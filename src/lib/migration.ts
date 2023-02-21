@@ -10,17 +10,14 @@ import * as constants from './constants';
 import { BackupError, isNotFoundError } from './errors';
 import { exec, exists, mkdirp, unlinkAll } from './fs-utils';
 import { log } from './supervisor-console';
-import { pathOnRoot } from './host-utils';
+import { pathOnData } from './host-utils';
 
 export async function loadBackupFromMigration(
 	targetState: TargetState,
 	retryDelay: number,
 ): Promise<void> {
 	try {
-		const migrationExists = await exists(
-			pathOnRoot(path.join('mnt/data', constants.migrationBackupFile)),
-		);
-		if (!migrationExists) {
+		if (!(await exists(constants.migrationBackupFile))) {
 			return;
 		}
 		log.info('Migration backup detected');
@@ -39,12 +36,12 @@ export async function loadBackupFromMigration(
 
 		const volumes = release?.volumes ?? {};
 
-		const backupPath = pathOnRoot('mnt/data/backup');
+		const backupPath = pathOnData('backup');
 		// We clear this path in case it exists from an incomplete run of this function
 		await unlinkAll(backupPath);
 		await mkdirp(backupPath);
 		await exec(`tar -xzf backup.tgz -C ${backupPath}`, {
-			cwd: pathOnRoot('mnt/data'),
+			cwd: pathOnData(),
 		});
 
 		for (const volumeName of await fs.readdir(backupPath)) {
@@ -84,9 +81,7 @@ export async function loadBackupFromMigration(
 		}
 
 		await unlinkAll(backupPath);
-		await unlinkAll(
-			pathOnRoot(path.join('mnt/data', constants.migrationBackupFile)),
-		);
+		await unlinkAll(constants.migrationBackupFile);
 	} catch (err) {
 		log.error(`Error restoring migration backup, retrying: ${err}`);
 

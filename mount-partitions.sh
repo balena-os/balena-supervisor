@@ -79,3 +79,23 @@ export HOST_OS_VERSION_PATH="${BOOT_MOUNTPOINT}/os-release"
 # CONFIG_MOUNT_POINT is set to /boot/config.json in Dockerfile.template,
 # but that's a legacy mount provided by host and we should override it.
 export CONFIG_MOUNT_POINT="${BOOT_MOUNTPOINT}/config.json"
+
+# Set state mountpoint
+STATE_MOUNTPOINT="/mnt/state"
+setup_then_mount "state" "${STATE_MOUNTPOINT}"
+export STATE_MOUNTPOINT
+
+# Set data mountpoint
+DATA_MOUNTPOINT="/mnt/data"
+setup_then_mount "data" "${DATA_MOUNTPOINT}"
+export DATA_MOUNTPOINT
+
+# Mount the Supervisor database directory to a more accessible & backwards compatible location.
+# TODO: DB should be moved to a managed volume and mounted to /data in-container.
+# Handle the case of such a Supervisor volume already existing.
+# NOTE: After this PR, it should be good to remove the OS's /data/database.sqlite mount.
+if [ ! -f /data/database.sqlite ]; then
+    mkdir -p "${DATA_MOUNTPOINT}/resin-data/balena-supervisor"
+    mount -o bind,shared "${DATA_MOUNTPOINT}"/resin-data/balena-supervisor /data
+fi
+export DATABASE_PATH="/data/database.sqlite"
