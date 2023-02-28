@@ -10,6 +10,7 @@ import * as iptablesMock from '~/test-lib/mocked-iptables';
 import * as dbFormat from '~/src/device-state/db-format';
 
 import constants = require('~/lib/constants');
+import * as iptables from '~/lib/iptables';
 import { RuleAction, Rule } from '~/lib/iptables';
 import { log } from '~/lib/supervisor-console';
 
@@ -86,7 +87,7 @@ describe('lib/firewall', function () {
 
 					// expect that we jump to the firewall chain...
 					expectRule({
-						action: RuleAction.Append,
+						action: RuleAction.Insert,
 						target: 'BALENA-FIREWALL',
 						chain: 'INPUT',
 						family: 4,
@@ -122,7 +123,7 @@ describe('lib/firewall', function () {
 
 					// expect that we jump to the firewall chain...
 					expectRule({
-						action: RuleAction.Append,
+						action: RuleAction.Insert,
 						target: 'BALENA-FIREWALL',
 						chain: 'INPUT',
 						family: 4,
@@ -179,7 +180,7 @@ describe('lib/firewall', function () {
 
 					// expect that we jump to the firewall chain...
 					expectRule({
-						action: RuleAction.Append,
+						action: RuleAction.Insert,
 						target: 'BALENA-FIREWALL',
 						chain: 'INPUT',
 						family: 4,
@@ -238,7 +239,7 @@ describe('lib/firewall', function () {
 
 					// expect that we jump to the firewall chain...
 					expectRule({
-						action: RuleAction.Append,
+						action: RuleAction.Insert,
 						target: 'BALENA-FIREWALL',
 						chain: 'INPUT',
 						family: 4,
@@ -268,6 +269,65 @@ describe('lib/firewall', function () {
 				expect(logSpy.calledWith('Error applying firewall mode')).to.be.true;
 				expect(loggerSpy.called).to.be.true;
 			}, iptablesMock.realRuleAdaptor);
+		});
+
+		// TODO: The way that iptables & mocked-iptables are implemented does not
+		// translate to well-written, side-effect free tests. While this test passes,
+		// it's not able to check that BALENA-FIREWALL was inserted at the correct
+		// position in the INPUT rule chain.
+		// We should refactor the test setup for iptables to write rules to a file,
+		// and test whether that file can be applied successfully with `iptables-restore --test`.
+		it('should only replace the BALENA-FIREWALL rule from INPUT chain', async () => {
+			const acceptRuleOnPort = (port: number) => ({
+				action: RuleAction.Append,
+				proto: 'tcp',
+				matches: [`--dport ${port}`],
+				target: 'ACCEPT',
+			});
+
+			await iptablesMock.whilstMocked(
+				async ({ hasAppliedRules, expectRule }) => {
+					// clear the spies...
+					loggerSpy.resetHistory();
+					logSpy.resetHistory();
+
+					// Add some rules to INPUT: 3 unrelated rules,
+					// and BALENA-FIREWALL at position 4.
+					await iptables
+						.build()
+						.forTable('filter', (filter) =>
+							filter.forChain('INPUT', (chain) =>
+								chain
+									.addRule(acceptRuleOnPort(80))
+									.addRule(acceptRuleOnPort(443))
+									.addRule(acceptRuleOnPort(22))
+									.addRule({
+										action: RuleAction.Append,
+										target: 'BALENA-FIREWALL',
+										chain: 'INPUT',
+									}),
+							),
+						)
+						.apply(iptablesMock.fakeRuleAdaptor);
+
+					// set the firewall to be in off mode...
+					await config.set({ firewallMode: 'off' });
+					await hasAppliedRules;
+
+					// Unrelated rules should not have been flushed
+					expectRule(acceptRuleOnPort(80));
+					expectRule(acceptRuleOnPort(443));
+					expectRule(acceptRuleOnPort(22));
+					// TODO: this should be testable but isn't because of the reason above.
+					// expectRule({
+					// 	action: RuleAction.Insert,
+					// 	target: 'BALENA-FIREWALL',
+					// 	chain: 'INPUT',
+					// 	id: 4,
+					// });
+				},
+				iptablesMock.fakeRuleAdaptor,
+			);
 		});
 	});
 
