@@ -107,7 +107,7 @@ class FakeRuleAdaptor {
 export const realRuleAdaptor = iptables.getDefaultRuleAdaptor();
 
 const fakeRuleAdaptorManager = new FakeRuleAdaptor();
-const fakeRuleAdaptor = fakeRuleAdaptorManager.getRuleAdaptor();
+export const fakeRuleAdaptor = fakeRuleAdaptorManager.getRuleAdaptor();
 
 // @ts-expect-error Assigning to a RO property
 iptables.getDefaultRuleAdaptor = () => {
@@ -121,11 +121,11 @@ export interface MockedState {
 	clearHistory: () => void;
 }
 
-export type MockedConext = (state: MockedState) => Promise<any>;
+export type MockedContext = (state: MockedState) => Promise<any>;
 
 const applyFirewallRules = firewall.applyFirewallMode;
 export const whilstMocked = async (
-	context: MockedConext,
+	context: MockedContext,
 	ruleAdaptor: iptables.RuleAdaptor = fakeRuleAdaptor,
 ) => {
 	const getOriginalDefaultRuleAdaptor = iptables.getDefaultRuleAdaptor;
