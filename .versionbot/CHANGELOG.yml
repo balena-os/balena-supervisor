@@ -1,4 +1,32 @@
 - commits:
+    - subject: Replace BALENA-FIREWALL rule in INPUT chain instead of flushing
+      hash: 84a9e7e9acd803b6b49d58ae3040694a5e2f823d
+      body: >
+        The issue with the original Supervisor implementation of the firewall is
+        that
+
+        on Supervisor start, the Supervisor flushes the INPUT chain of the filter table.
+
+        This doesn't play well with services that add to the INPUT chain on startup that
+
+        may start up before the Supervisor, such as certain NetworkManager connection
+
+        profiles. This change only replaces the BALENA-FIREWALL rule in the INPUT chain,
+
+        preserving the other rules as well as their order.
+      footer:
+        Closes: "#1482"
+        closes: "#1482"
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.9.2
+  title: ""
+  date: 2023-03-02T21:48:06.727Z
+- commits:
     - subject: Always lower case the cpu id to avoid bouncing between casing when
         reporting
       hash: d356f979d3addbf8b08933694b9e80f66af8d9e2
