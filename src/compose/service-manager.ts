@@ -159,7 +159,7 @@ export async function updateMetadata(service: Service, target: Service) {
 
 	try {
 		await docker.getContainer(svc.containerId).rename({
-			name: `${service.serviceName}_${target.imageId}_${target.releaseId}_${target.commit}`,
+			name: `${service.serviceName}_${target.imageId}_${target.commit}`,
 		});
 	} catch (e) {
 		if (isNotFoundError(e)) {
@@ -642,7 +642,7 @@ async function prepareForHandover(service: Service) {
 	const container = docker.getContainer(svc.containerId);
 	await container.update({ RestartPolicy: {} });
 	return await container.rename({
-		name: `old_${service.serviceName}_${service.imageId}_${service.releaseId}_${service.commit}`,
+		name: `old_${service.serviceName}_${service.imageId}_${service.commit}`,
 	});
 }
 

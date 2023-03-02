@@ -12,6 +12,7 @@ import type {
 	LegacyHostConfiguration,
 } from '../host-config/types';
 import * as applicationManager from '../compose/application-manager';
+import * as imageManager from '../compose/images';
 import type { CompositionStepAction } from '../compose/composition-steps';
 import { generateStep } from '../compose/composition-steps';
 import * as commitStore from '../compose/commit';
@@ -366,6 +367,15 @@ export const getSingleContainerApp = async (appId: number) => {
 			'Some v1 endpoints are only allowed on single-container apps',
 		);
 	}
+
+	// releaseId is not part of the documented outputs of this endpoint
+	// but it has been there for a while, we query the value from
+	// the image list if available. But we won't error if not found
+	const images = await imageManager.getState();
+	service.releaseId = images.find(
+		(img) =>
+			img.serviceName === service.serviceName && img.commit === service.commit,
+	)?.releaseId;
 
 	// Because we only have a single app, we can fetch the commit for that
 	// app, and maintain backwards compatability

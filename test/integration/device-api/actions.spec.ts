@@ -670,7 +670,6 @@ describe('manages application lifecycle', () => {
 			expect(body).to.have.property('appId', APP_ID);
 			expect(body).to.have.property('containerId', containerId);
 			expect(body).to.have.property('imageId', imageHash);
-			expect(body).to.have.property('releaseId', 1);
 			// Should return the environment of the single service
 			expect(body.env).to.have.property('BALENA_APP_ID', String(APP_ID));
 			expect(body.env).to.have.property('BALENA_SERVICE_NAME', serviceNames[0]);
