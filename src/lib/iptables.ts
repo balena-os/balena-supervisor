@@ -3,6 +3,9 @@ import { spawn } from 'child_process';
 import { Readable } from 'stream';
 import { TypedError } from 'typed-error';
 
+import { exec } from './fs-utils';
+import log from './supervisor-console';
+
 export class IPTablesRuleError extends TypedError {
 	public constructor(err: string | Error, public ruleset: string) {
 		super(err);
@@ -13,6 +16,7 @@ export enum RuleAction {
 	Insert = '-I',
 	Append = '-A',
 	Flush = '-F',
+	Delete = '-D',
 }
 export interface Rule {
 	id?: number;
@@ -96,6 +100,14 @@ export function convertToRestoreRulesFormat(rules: Rule[]): string {
 				}
 				if (rule.chain) {
 					args.push(rule.chain);
+					// Optionally push a rule to a specific position in the chain
+					if (
+						(rule.action === RuleAction.Insert ||
+							rule.action === RuleAction.Delete) &&
+						rule.id
+					) {
+						args.push(rule.id?.toString() ?? '1');
+					}
 				}
 				if (rule.proto) {
 					args.push(`-p ${rule.proto}`);
@@ -290,4 +302,35 @@ async function applyRules(rules: Rule | Rule[], adaptor: RuleAdaptor) {
 	_.castArray(rules).forEach((rule) => processRule(rule, processedRules));
 
 	await adaptor(processedRules);
+}
+
+class StdError extends TypedError {}
+
+export async function getRulePosition(
+	chain: string,
+	ruleMatch: string,
+	family: 4 | 6,
+): Promise<number> {
+	const cmd = `ip${
+		family === 6 ? '6' : ''
+	}tables -L ${chain} -n --line-numbers`;
+	try {
+		const { stdout, stderr } = await exec(cmd);
+		if (stderr) {
+			throw new StdError(stderr);
+		}
+		const line = stdout.split('\n').find((l) => l.includes(ruleMatch));
+		if (!line) {
+			return -1;
+		}
+		return parseInt(line.split(' ')[0], 10);
+	} catch (e: unknown) {
+		log.error(
+			`Received ${
+				e instanceof StdError ? 'stderr' : 'error'
+			} querying iptables ${chain} chain:`,
+			(e as Error).message ?? e ?? 'Unknown error',
+		);
+		return -1;
+	}
 }

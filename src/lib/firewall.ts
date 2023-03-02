@@ -170,6 +170,18 @@ export async function applyFirewallMode(mode: string) {
 				  }
 				: [];
 
+		// Get position of BALENA-FIREWALL rule in the INPUT chain for both iptables & ip6tables
+		const v4Position = await iptables.getRulePosition(
+			'INPUT',
+			'BALENA-FIREWALL',
+			4,
+		);
+		const v6Position = await iptables.getRulePosition(
+			'INPUT',
+			'BALENA-FIREWALL',
+			6,
+		);
+
 		// get an adaptor to manipulate iptables rules...
 		const ruleAdaptor = iptables.getDefaultRuleAdaptor();
 
@@ -178,6 +190,37 @@ export async function applyFirewallMode(mode: string) {
 			.build()
 			.forTable('filter', (filter) =>
 				filter
+					.forChain('INPUT', (chain) => {
+						// Delete & insert to v4 tables
+						if (v4Position !== -1) {
+							chain.addRule({
+								action: iptables.RuleAction.Delete,
+								target: 'BALENA-FIREWALL',
+								family: 4,
+							});
+						}
+						chain.addRule({
+							action: iptables.RuleAction.Insert,
+							id: v4Position > 0 ? v4Position : 1,
+							target: 'BALENA-FIREWALL',
+							family: 4,
+						});
+						// Delete & insert to v6 tables
+						if (v6Position !== -1) {
+							chain.addRule({
+								action: iptables.RuleAction.Delete,
+								target: 'BALENA-FIREWALL',
+								family: 6,
+							});
+						}
+						chain.addRule({
+							action: iptables.RuleAction.Insert,
+							id: v6Position > 0 ? v6Position : 1,
+							target: 'BALENA-FIREWALL',
+							family: 6,
+						});
+						return chain;
+					})
 					.forChain(BALENA_FIREWALL_CHAIN, (chain) =>
 						chain
 							.addRule(prepareChain)
@@ -189,16 +232,6 @@ export async function applyFirewallMode(mode: string) {
 								comment: 'Reject everything else',
 								action: iptables.RuleAction.Append,
 								target: 'REJECT',
-							}),
-					)
-					.forChain('INPUT', (chain) =>
-						chain
-							.addRule({
-								action: iptables.RuleAction.Flush,
-							})
-							.addRule({
-								action: iptables.RuleAction.Append,
-								target: 'BALENA-FIREWALL',
 							}),
 					),
 			)
