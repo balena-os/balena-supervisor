@@ -410,6 +410,7 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 
 				s.imageName = imageForService?.name ?? s.imageName;
 				s.releaseId = imageForService?.releaseId ?? s.releaseId;
+				s.imageId = imageForService?.imageId ?? s.imageId;
 				return s;
 			});
 
@@ -744,8 +745,8 @@ function saveAndRemoveImages(
 		(image) =>
 			!_.some(currentImages.concat(targetImages), (imageInUse) => {
 				return _.isEqual(
-					_.omit(image, ['releaseId']),
-					_.omit(imageInUse, ['dockerImageId', 'id', 'releaseId']),
+					_.omit(image, ['releaseId', 'imageId']),
+					_.omit(imageInUse, ['dockerImageId', 'id', 'releaseId', 'imageId']),
 				);
 			}),
 	);
@@ -885,8 +886,16 @@ export async function getLegacyState() {
 	// We iterate over the current running services and add them to the current state
 	// of the app they belong to.
 	for (const service of services) {
-		const { appId, imageId } = service;
-		if (!appId) {
+		const { appId } = service;
+
+		// We get the image for the service so we can get service metadata not
+		// in the containers
+		const imageForService = images.find(
+			(img) =>
+				img.serviceName === service.serviceName &&
+				img.commit === service.commit,
+		);
+		if (!appId || !imageForService) {
 			continue;
 		}
 		if (apps[appId] == null) {
@@ -897,12 +906,10 @@ export async function getLegacyState() {
 			apps[appId].services = {};
 		}
 
-		// Get releaseId from the list of images if it can be found
-		service.releaseId = images.find(
-			(img) =>
-				img.serviceName === service.serviceName &&
-				img.commit === service.commit,
-		)?.releaseId;
+		const { releaseId: rId, imageId } = imageForService;
+
+		// Replace the service releaseId with the one from the image table above
+		service.releaseId = rId;
 
 		// We only send commit if all services have the same release, and it matches the target release
 		if (releaseId == null) {
@@ -910,11 +917,7 @@ export async function getLegacyState() {
 		} else if (service.releaseId != null && releaseId !== service.releaseId) {
 			releaseId = false;
 		}
-		if (imageId == null) {
-			throw new InternalInconsistencyError(
-				`imageId not defined in ApplicationManager.getLegacyApplicationsState: ${service}`,
-			);
-		}
+
 		if (apps[appId].services[imageId] == null) {
 			apps[appId].services[imageId] = _.pick(service, ['status', 'releaseId']);
 			creationTimesAndReleases[appId][imageId] = _.pick(service, [
@@ -933,20 +936,16 @@ export async function getLegacyState() {
 	}
 
 	for (const image of images) {
-		const { appId } = image;
+		const { appId, imageId } = image;
 		if (apps[appId] == null) {
 			apps[appId] = {};
 		}
 		if (apps[appId].services == null) {
 			apps[appId].services = {};
 		}
-		if (apps[appId].services[image.imageId] == null) {
-			apps[appId].services[image.imageId] = _.pick(image, [
-				'status',
-				'releaseId',
-			]);
-			apps[appId].services[image.imageId].download_progress =
-				image.downloadProgress;
+		if (apps[appId].services[imageId] == null) {
+			apps[appId].services[imageId] = _.pick(image, ['status', 'releaseId']);
+			apps[appId].services[imageId].download_progress = image.downloadProgress;
 		}
 	}
 
