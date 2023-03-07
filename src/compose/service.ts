@@ -55,7 +55,12 @@ export type Service = ServiceIface;
 class ServiceImpl implements Service {
 	public appId: number;
 	public appUuid?: string;
-	public imageId: number;
+	/**
+	 * We make this available as it still needed by application manager to
+	 * compare images, but it is only available in the target state.
+	 * @deprecated
+	 */
+	public imageId?: number;
 	public config: ServiceConfig;
 	public serviceName: string;
 	public commit: string;
@@ -633,13 +638,16 @@ class ServiceImpl implements Service {
 				'Attempt to build Service class from container with malformed labels',
 			);
 		}
-		const nameMatch = container.Name.match(/.*_(\d+)(?:_(\d+))?(?:_(.*?))?$/);
+		const nameMatch = container.Name.match(
+			/.*?(?:_(\d+))?(?:_(\d+))?(?:_([a-f0-9]*))?$/,
+		);
 		if (nameMatch == null) {
 			throw new InternalInconsistencyError(
-				`Expected supervised container to have name '<serviceName>_<imageId>_<commit>', got: ${container.Name}`,
+				`Expected supervised container to have name '<serviceName>_<commit>', got: ${container.Name}`,
 			);
 		}
 
+		// If we have not renamed the service yet we can still use the image id
 		svc.imageId = parseInt(nameMatch[1], 10);
 		svc.releaseId = parseInt(nameMatch[2], 10);
 		svc.commit = nameMatch[3];
@@ -690,7 +698,7 @@ class ServiceImpl implements Service {
 			this.config.networkMode = `container:${containerId}`;
 		}
 		return {
-			name: `${this.serviceName}_${this.imageId}_${this.commit}`,
+			name: `${this.serviceName}_${this.commit}`,
 			Tty: this.config.tty,
 			Cmd: this.config.command,
 			Volumes: volumes,
@@ -1164,7 +1172,7 @@ class ServiceImpl implements Service {
 				log.warn(
 					`Ignoring invalid compose volume definition ${
 						isString ? volume : JSON.stringify(volume)
-					}`,
+					} `,
 				);
 			}
 		}

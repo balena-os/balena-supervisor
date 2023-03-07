@@ -142,7 +142,7 @@ describe('manages application lifecycle', () => {
 		return {
 			[appId]: {
 				name: 'localapp',
-				commit: 'localcommit',
+				commit: '10ca12e1ea5e',
 				releaseId: '1',
 				services,
 				volumes: {

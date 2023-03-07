@@ -302,9 +302,7 @@ export const executeServiceAction = async ({
 		);
 	}
 	const targetService = targetApp.services.find(
-		(s) =>
-			s.imageId === currentService.imageId ||
-			s.serviceName === currentService.serviceName,
+		(s) => s.serviceName === currentService.serviceName,
 	);
 	if (targetService == null) {
 		throw new NotFoundError(messages.targetServiceNotFound);

@@ -124,9 +124,7 @@ export async function getState() {
 		status[service.containerId] ??= _.pick(service, [
 			'appId',
 			'appUuid',
-			'imageId',
 			'status',
-			'releaseId',
 			'commit',
 			'createdAt',
 			'serviceName',
@@ -159,7 +157,7 @@ export async function updateMetadata(service: Service, target: Service) {
 
 	try {
 		await docker.getContainer(svc.containerId).rename({
-			name: `${service.serviceName}_${target.imageId}_${target.commit}`,
+			name: `${service.serviceName}_${target.commit}`,
 		});
 	} catch (e) {
 		if (isNotFoundError(e)) {
@@ -531,15 +529,7 @@ function reportNewStatus(
 		containerId,
 		_.merge(
 			{ status },
-			_.pick(service, [
-				'imageId',
-				'appId',
-				'appUuid',
-				'serviceName',
-				'releaseId',
-				'createdAt',
-				'commit',
-			]),
+			_.pick(service, ['appUuid', 'serviceName', 'createdAt', 'commit']),
 		),
 	);
 }
@@ -555,9 +545,7 @@ async function killContainer(
 	// TODO: Remove the need for the wait flag
 
 	logger.logSystemEvent(LogTypes.stopService, { service });
-	if (service.imageId != null) {
-		reportNewStatus(containerId, service, 'Stopping');
-	}
+	reportNewStatus(containerId, service, 'Stopping');
 
 	const containerObj = docker.getContainer(containerId);
 	const killPromise = containerObj
@@ -603,9 +591,7 @@ async function killContainer(
 			});
 		})
 		.finally(() => {
-			if (service.imageId != null) {
-				reportChange(containerId);
-			}
+			reportChange(containerId);
 		});
 
 	if (wait) {
@@ -642,7 +628,7 @@ async function prepareForHandover(service: Service) {
 	const container = docker.getContainer(svc.containerId);
 	await container.update({ RestartPolicy: {} });
 	return await container.rename({
-		name: `old_${service.serviceName}_${service.imageId}_${service.commit}`,
+		name: `old_${service.serviceName}_${service.commit}`,
 	});
 }
 

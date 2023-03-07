@@ -352,11 +352,11 @@ export type ServiceStatus =
 export interface Service {
 	appId: number;
 	appUuid?: string;
-	imageId: number;
+	imageId?: number;
 	config: ServiceConfig;
 	serviceName: string;
 	commit: string;
-	releaseId: number;
+	releaseId?: number;
 	serviceId: number;
 	imageName: string | null;
 	containerId: string | null;
