@@ -5,6 +5,10 @@ import Network from '~/src/compose/network';
 import Service from '~/src/compose/service';
 import { ServiceComposeConfig } from '~/src/compose/types/service';
 import Volume from '~/src/compose/volume';
+import {
+	CompositionStep,
+	CompositionStepAction,
+} from '~/src/compose/composition-steps';
 import { InstancedAppState } from '~/src/types/state';
 
 export const DEFAULT_NETWORK = Network.fromComposeObject(
@@ -74,6 +78,26 @@ export function createImage(
 	} as Image;
 }
 
+export function createApp({
+	services = [] as Service[],
+	networks = [] as Network[],
+	volumes = [] as Volume[],
+	isTarget = false,
+	appId = 1,
+	appUuid = 'appuuid',
+} = {}) {
+	return new App(
+		{
+			appId,
+			appUuid,
+			services,
+			networks,
+			volumes,
+		},
+		isTarget,
+	);
+}
+
 export function createApps(
 	{
 		services = [] as Service[],
@@ -105,15 +129,14 @@ export function createApps(
 
 	const apps: InstancedAppState = {};
 	for (const appId of allAppIds) {
-		apps[appId] = new App(
-			{
-				appId,
-				services: servicesByAppId[appId] ?? [],
-				networks: networksByAppId[appId] ?? [],
-				volumes: volumesByAppId[appId] ?? [],
-			},
-			target,
-		);
+		apps[appId] = createApp({
+			services: servicesByAppId[appId] ?? [],
+			networks: networksByAppId[appId] ?? [],
+			volumes: volumesByAppId[appId] ?? [],
+			appId,
+			appUuid: servicesByAppId[appId]?.[0]?.appUuid ?? 'deadbeef',
+			isTarget: target,
+		});
 	}
 
 	return apps;
@@ -150,4 +173,28 @@ export function createCurrentState({
 		downloading,
 		containerIdsByAppId,
 	};
+}
+
+export const expectSteps = (
+	action: CompositionStepAction,
+	steps: CompositionStep[],
+	min = 1,
+	max = min,
+	message = `Expected to find ${min} step(s) with action '${action}', instead found ${JSON.stringify(
+		steps.map((s) => s.action),
+	)}`,
+) => {
+	const filtered = steps.filter((s) => s.action === action);
+
+	if (filtered.length < min || filtered.length > max) {
+		throw new Error(message);
+	}
+	return filtered;
+};
+
+export function expectNoStep(
+	action: CompositionStepAction,
+	steps: CompositionStep[],
+) {
+	expectSteps(action, steps, 0, 0);
 }
