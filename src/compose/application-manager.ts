@@ -129,7 +129,6 @@ function reportCurrentState(data?: Partial<InstancedAppState>) {
 export async function getRequiredSteps(
 	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
-	ignoreImages: boolean = false,
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [downloading, availableImages] = await Promise.all([
@@ -139,7 +138,6 @@ export async function getRequiredSteps(
 	const containerIdsByAppId = getAppContainerIds(currentApps);
 
 	return await inferNextSteps(currentApps, targetApps, {
-		ignoreImages,
 		downloading,
 		availableImages,
 		containerIdsByAppId,
@@ -151,7 +149,6 @@ export async function inferNextSteps(
 	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
 	{
-		ignoreImages = false,
 		downloading = [] as string[],
 		availableImages = [] as Image[],
 		containerIdsByAppId = {} as { [appId: number]: Dictionary<string> },
@@ -162,10 +159,6 @@ export async function inferNextSteps(
 		config.getMany(['localMode', 'delta']),
 		imageManager.isCleanupNeeded(),
 	]);
-
-	if (localMode) {
-		ignoreImages = localMode;
-	}
 
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
@@ -263,7 +256,7 @@ export async function inferNextSteps(
 	}
 
 	const newDownloads = steps.filter((s) => s.action === 'fetch').length;
-	if (!ignoreImages && delta && newDownloads > 0) {
+	if (!localMode && delta && newDownloads > 0) {
 		// Check that this is not the first pull for an
 		// application, as we want to download all images then
 		// Otherwise we want to limit the downloading of
@@ -290,7 +283,7 @@ export async function inferNextSteps(
 		});
 	}
 
-	if (!ignoreImages && steps.length === 0 && downloading.length > 0) {
+	if (!localMode && steps.length === 0 && downloading.length > 0) {
 		// We want to keep the state application alive
 		steps.push(generateStep('noop', {}));
 	}
