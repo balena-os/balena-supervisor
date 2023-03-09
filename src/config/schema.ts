@@ -79,6 +79,11 @@ export const schema = {
 		mutable: true,
 		removeIfNull: false,
 	},
+	logsEndpoint: {
+		source: 'config.json',
+		mutable: false,
+		removeIfNull: false,
+	},
 
 	name: {
 		source: 'db',

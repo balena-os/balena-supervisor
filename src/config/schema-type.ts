@@ -80,6 +80,10 @@ export const schemaTypes = {
 		type: t.string,
 		default: NullOrUndefined,
 	},
+	logsEndpoint: {
+		type: t.string,
+		default: NullOrUndefined,
+	},
 
 	// Database types
 	name: {
