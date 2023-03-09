@@ -35,14 +35,14 @@ export class BalenaLogBackend extends LogBackend {
 	public initialised = false;
 
 	public constructor(
-		apiEndpoint: string,
+		endpoint: string,
 		uuid: Nullable<string>,
 		deviceApiKey: string,
 	) {
 		super();
 
 		if (uuid != null && deviceApiKey !== '') {
-			this.assignFields(apiEndpoint, uuid, deviceApiKey);
+			this.assignFields(endpoint, uuid, deviceApiKey);
 		}
 		// This stream serves serves as a message buffer during reconnections
 		// while we unpipe the old, malfunctioning connection and then repipe a
@@ -107,8 +107,8 @@ export class BalenaLogBackend extends LogBackend {
 		this.write(message);
 	}
 
-	public assignFields(apiEndpoint: string, uuid: string, deviceApiKey: string) {
-		this.opts = url.parse(`${apiEndpoint}/device/v2/${uuid}/log-stream`) as any;
+	public assignFields(endpoint: string, uuid: string, deviceApiKey: string) {
+		this.opts = url.parse(`${endpoint}/device/v2/${uuid}/log-stream`) as any;
 		this.opts.method = 'POST';
 		this.opts.headers = {
 			Authorization: `Bearer ${deviceApiKey}`,
