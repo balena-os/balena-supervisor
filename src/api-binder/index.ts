@@ -302,9 +302,11 @@ async function pinDevice({ app, commit }: DevicePinInfo) {
 
 		const releaseId: number | undefined = release?.[0]?.id;
 		if (releaseId == null) {
-			throw new Error(
-				'Cannot continue pinning preloaded device! No release found!',
+			log.warn(
+				'Cannot pin device to release. Release no longer exists. Skipping.',
 			);
+			await config.remove('pinDevice');
+			return;
 		}
 
 		// We force a fresh get to make sure we have the latest state
