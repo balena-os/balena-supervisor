@@ -1,43 +1,37 @@
 ARG ARCH=%%BALENA_ARCH%%
 ARG FATRW_VERSION=0.2.9
-
-
-FROM arm32v6/alpine:3.16 as alpine-rpi
-FROM arm32v7/alpine:3.16 as alpine-armv7hf
-FROM arm64v8/alpine:3.16 as alpine-aarch64
-FROM amd64/alpine:3.16 as alpine-amd64
-FROM i386/alpine:3.16 as alpine-i386
-
-FROM arm32v6/alpine:3.11 as procmail-rpi
-FROM arm32v7/alpine:3.11 as procmail-armv7hf
-FROM arm64v8/alpine:3.11 as procmail-aarch64
-FROM amd64/alpine:3.11 as procmail-amd64
-FROM i386/alpine:3.11 as procmail-i386
+ARG NODE="nodejs<18"
+ARG NPM="npm<9"
 
 ###################################################
 # Build the supervisor dependencies
 ###################################################
-FROM balenalib/${ARCH}-alpine-node:16-run as build-base
+FROM alpine:3.16 as build-base
 
 ARG ARCH
+ARG NODE
+ARG NPM
 ARG FATRW_VERSION
 ARG FATRW_ARCHIVE="fatrw-${ARCH}.tar.gz"
 ARG FATRW_LOCATION="https://github.com/balena-os/fatrw/releases/download/v${FATRW_VERSION}/${FATRW_ARCHIVE}"
 
 WORKDIR /usr/src/app
 
-RUN apk add --no-cache \
+RUN apk add --update --no-cache \
 	g++ \
 	make \
 	python3 \
-	libgcc \
+	curl \
+	$NODE \
+	$NPM \
 	libuv \
 	sqlite-dev \
-	dbus-dev
+	dbus-dev && \
+	npm install -g npm@8
 
 COPY package*.json ./
 
-RUN strip /usr/local/bin/node
+RUN strip "$(which node)"
 
 # Install fatrw
 RUN curl -SLO "${FATRW_LOCATION}" && \
@@ -55,7 +49,7 @@ RUN npm ci --build-from-source --sqlite=/usr/lib
 # musl. We hack around this by copying the binary and its library
 # dependencies to the final image
 ###################################################################
-FROM balenalib/${ARCH}-debian:bullseye-run as journal
+FROM debian:bullseye-slim as journal
 
 RUN apt-get update && apt-get install -y --no-install-recommends systemd
 
@@ -67,7 +61,7 @@ RUN /setup-journal.sh
 # Extra dependencies. This uses alpine 3.11 as the
 # procmail package was removed on 3.12
 ###################################################
-FROM procmail-${ARCH} as extra
+FROM alpine:3.11 as extra
 
 RUN apk add --update --no-cache procmail
 
@@ -75,12 +69,11 @@ RUN apk add --update --no-cache procmail
 # Image with the final production dependencies.
 # This image will also be be used for testing
 ###################################################
-FROM alpine-${ARCH} as runtime-base
+FROM alpine:3.16 as runtime-base
+
+ARG NODE
 
 WORKDIR /usr/src/app
-
-# We just need the node binary in the final image
-COPY --from=build-base /usr/local/bin/node /usr/local/bin/node
 
 # Also copy the fatrw binary
 COPY --from=build-base /usr/local/bin/fatrw /usr/local/bin/fatrw
@@ -92,13 +85,12 @@ COPY --from=extra /usr/bin/lockfile /usr/bin/lockfile
 COPY --from=journal /sysroot /
 
 # Runtime dependencies
-RUN apk add --no-cache \
-	ca-certificates \
+RUN apk add --update --no-cache \
+	$NODE \
 	iptables \
 	ip6tables \
 	rsync \
 	dbus \
-	libstdc++ \
 	dmidecode \
 	sqlite-libs
 
@@ -114,11 +106,14 @@ ENV CONFIG_MOUNT_POINT=/boot/config.json \
 ###############################################################
 FROM runtime-base as test
 
-WORKDIR /usr/src/app
+ARG NPM
+ARG ARCH
 
-# Copy node install from the build folder
-COPY --from=build-base /usr/local/bin /usr/local/bin
-COPY --from=build-base /usr/local/lib/node_modules /usr/local/lib/node_modules
+# We want to use as close to the final image when running tests
+# but we need npm so we install it here again
+RUN apk add --update --no-cache $NPM && npm install -g npm@8
+
+WORKDIR /usr/src/app
 
 # Copy build dependencies
 COPY --from=build-base /usr/src/app/package.json ./
