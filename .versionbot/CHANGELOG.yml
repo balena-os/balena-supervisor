@@ -1,4 +1,32 @@
 - commits:
+    - subject: Use single-arch in dockerfile
+      hash: 17aa625d3b115103efa30bb98b83ee1fc54230c4
+      body: >
+        This is necessary since the builder no longer passes the platform flag
+
+        to the build. This would lead to dockerfiles that are mixing multi and single
+
+        arch stages to pull the wrong architecture images, particularly when
+
+        trying to build images in emulated builds (e.g. armv7hf built on aarch64).
+
+
+        Moving the full build to single-arch solves this as the docker engine is
+
+        capable of chosing the right architecture from the manifest. Once some
+
+        of the builder issues are fixed, we should move to #2141
+      footer:
+        Relates-to: balena-io/balena-builder#1010
+        relates-to: balena-io/balena-builder#1010
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.9.3
+  title: ""
+  date: 2023-03-10T22:26:07.185Z
+- commits:
     - subject: Replace BALENA-FIREWALL rule in INPUT chain instead of flushing
       hash: 84a9e7e9acd803b6b49d58ae3040694a5e2f823d
       body: >
