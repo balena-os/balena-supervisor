@@ -1,10 +1,18 @@
 ARG ARCH=%%BALENA_ARCH%%
-
-# Used by livepush to support multi arch images in older
-# balenaOS with buggy platform support
-# see https://github.com/balena-os/balena-engine/issues/269
-ARG PREFIX=library
 ARG FATRW_VERSION=0.2.9
+
+
+FROM arm32v6/alpine:3.16 as alpine-rpi
+FROM arm32v7/alpine:3.16 as alpine-armv7hf
+FROM arm64v8/alpine:3.16 as alpine-aarch64
+FROM amd64/alpine:3.16 as alpine-amd64
+FROM i386/alpine:3.16 as alpine-i386
+
+FROM arm32v6/alpine:3.11 as procmail-rpi
+FROM arm32v7/alpine:3.11 as procmail-armv7hf
+FROM arm64v8/alpine:3.11 as procmail-aarch64
+FROM amd64/alpine:3.11 as procmail-amd64
+FROM i386/alpine:3.11 as procmail-i386
 
 ###################################################
 # Build the supervisor dependencies
@@ -12,13 +20,9 @@ ARG FATRW_VERSION=0.2.9
 FROM balenalib/${ARCH}-alpine-node:16-run as build-base
 
 ARG ARCH
-ARG PREFIX
 ARG FATRW_VERSION
 ARG FATRW_ARCHIVE="fatrw-${ARCH}.tar.gz"
 ARG FATRW_LOCATION="https://github.com/balena-os/fatrw/releases/download/v${FATRW_VERSION}/${FATRW_ARCHIVE}"
-# Sanity check to prevent a prefix for a non-official docker image being
-# inserted. Only 'library' and 'arm32v6' are allowed right now
-RUN for allowed in "library" "arm32v6"; do [ "${PREFIX}" = "${allowed}" ] && break; done
 
 WORKDIR /usr/src/app
 
@@ -63,7 +67,7 @@ RUN /setup-journal.sh
 # Extra dependencies. This uses alpine 3.11 as the
 # procmail package was removed on 3.12
 ###################################################
-FROM ${PREFIX}/alpine:3.11 as extra
+FROM procmail-${ARCH} as extra
 
 RUN apk add --update --no-cache procmail
 
@@ -71,7 +75,7 @@ RUN apk add --update --no-cache procmail
 # Image with the final production dependencies.
 # This image will also be be used for testing
 ###################################################
-FROM ${PREFIX}/alpine:3.16 as runtime-base
+FROM alpine-${ARCH} as runtime-base
 
 WORKDIR /usr/src/app
 

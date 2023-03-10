@@ -14,27 +14,6 @@ interface Opts {
 	arch?: string;
 }
 
-function getPathPrefix(arch: string) {
-	switch (arch) {
-		/**
-		 * Proper paths are
-		 * - armv6 - arm32v6
-		 * - armv7hf - arm32v7
-		 * - aarch64 - arm64v8
-		 * - amd64 - amd64
-		 * - i386 - i386
-		 *
-		 * We only set the prefix for v6 images since rpi devices are
-		 * the only ones that seem to have the issue
-		 * https://github.com/balena-os/balena-engine/issues/269
-		 */
-		case 'rpi':
-			return 'arm32v6';
-		default:
-			return 'library';
-	}
-}
-
 export async function initDevice(opts: Opts) {
 	const arch = opts.arch ?? (await device.getDeviceArch(opts.docker));
 	const image = `${opts.imageName}:${opts.imageTag}`;
@@ -42,7 +21,7 @@ export async function initDevice(opts: Opts) {
 	const buildCache = await device.readBuildCache(opts.address);
 
 	const stageImages = await device.performBuild(opts.docker, opts.dockerfile, {
-		buildargs: { ARCH: arch, PREFIX: getPathPrefix(arch) },
+		buildargs: { ARCH: arch },
 		t: image,
 		labels: { 'io.balena.livepush-image': '1', 'io.balena.architecture': arch },
 		cachefrom: (await device.getCacheFrom(opts.docker))
