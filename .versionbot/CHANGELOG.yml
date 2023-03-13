@@ -1,4 +1,26 @@
 - commits:
+    - subject: Skip pin device step if release was deleted
+      hash: f6435814cd86380dd3b02416f6f2199b483bb33c
+      body: |
+        Preloaded devices can require that the device is pinned to the preloaded
+        release on provisioning. However if the provisioned release gets
+        released in the future, that would lead to the device remaining in "VPN
+        only" state forever as the provisioning process could not finish due to
+        pinning failure.
+
+        This commit changes the behavior so if the release does not exist, the
+        pinning step is skipped and the device follows the fleet pinning state.
+      footer:
+        Closes: "#2133"
+        closes: "#2133"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.9.4
+  title: ""
+  date: 2023-03-13T20:49:30.509Z
+- commits:
     - subject: Use single-arch in dockerfile
       hash: 17aa625d3b115103efa30bb98b83ee1fc54230c4
       body: >
