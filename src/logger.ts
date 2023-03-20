@@ -28,6 +28,7 @@ export const initialized = _.once(async () => {
 	await config.initialized();
 	const {
 		apiEndpoint,
+		logsEndpoint,
 		uuid,
 		deviceApiKey,
 		unmanaged,
@@ -35,6 +36,7 @@ export const initialized = _.once(async () => {
 		localMode,
 	} = await config.getMany([
 		'apiEndpoint',
+		'logsEndpoint',
 		'uuid',
 		'deviceApiKey',
 		'unmanaged',
@@ -42,7 +44,11 @@ export const initialized = _.once(async () => {
 		'localMode',
 	]);
 
-	balenaBackend = new BalenaLogBackend(apiEndpoint, uuid, deviceApiKey);
+	balenaBackend = new BalenaLogBackend(
+		logsEndpoint ?? apiEndpoint,
+		uuid,
+		deviceApiKey,
+	);
 	localBackend = new LocalLogBackend();
 	backend = localMode ? localBackend : balenaBackend;
 	backend.unmanaged = unmanaged;
