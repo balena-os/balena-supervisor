@@ -1,4 +1,20 @@
 - commits:
+    - subject: Use log endpoint subdomain if it exists in config.json
+      hash: 36e46d80a6f147b95664ac052fd01cd438388555
+      body: ""
+      footer:
+        See: https://github.com/balena-io/open-balena-api/pull/1288
+        see: https://github.com/balena-io/open-balena-api/pull/1288
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.9.5
+  title: ""
+  date: 2023-03-20T19:21:47.709Z
+- commits:
     - subject: Skip pin device step if release was deleted
       hash: f6435814cd86380dd3b02416f6f2199b483bb33c
       body: |
