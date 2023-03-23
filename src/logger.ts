@@ -59,6 +59,7 @@ export const initialized = _.once(async () => {
 			const conf = await config.getMany([
 				'uuid',
 				'apiEndpoint',
+				'logsEndpoint',
 				'deviceApiKey',
 			]);
 
@@ -70,7 +71,7 @@ export const initialized = _.once(async () => {
 				// Everything is set, provide the values to the
 				// balenaBackend, and remove our listener
 				balenaBackend!.assignFields(
-					conf.apiEndpoint,
+					conf.logsEndpoint ?? conf.apiEndpoint,
 					conf.uuid!,
 					conf.deviceApiKey,
 				);
