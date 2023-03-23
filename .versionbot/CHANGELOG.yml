@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add missing log backend field assignment in logger init
+      hash: 37371d89dcea3e1d713b9bb806fc6866cdd5ae9f
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.9.7
+  title: ""
+  date: 2023-03-23T21:40:32.099Z
+- commits:
     - subject: Update deploy-to-balena action to 0.26.2
       hash: 7cde98d7f7fb6a476dd14bbec5df7d45a1bfd3e8
       body: ""
