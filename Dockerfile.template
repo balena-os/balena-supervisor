@@ -133,6 +133,10 @@ COPY typings ./typings
 COPY src ./src
 COPY test ./test
 
+# Fail-safe, check the architecture used by apk against the expected architecture
+# from the device type
+RUN APK_ARCH=$(./build-utils/apk-print-arch.sh); [ "$APK_ARCH" = "$ARCH" ] || (echo "Image architecture ($APK_ARCH) does not match the target architecture ($ARCH)" && exit 1)
+
 # Run type checking and unit tests here
 # to prevent setting up a test environment that will
 # most likely fail.
