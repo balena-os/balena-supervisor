@@ -1,13 +1,13 @@
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
-import { promises as fs, watch } from 'fs';
+import { promises as fs } from 'fs';
 import * as networkCheck from 'network-checker';
 import * as os from 'os';
 import * as url from 'url';
 
 import * as constants from './lib/constants';
-import { EEXIST } from './lib/errors';
 import { checkFalsey } from './lib/validation';
+import { readFromRoot } from './lib/host-utils';
 
 import blink = require('./lib/blink');
 
@@ -18,17 +18,12 @@ const networkPattern = {
 	pause: 1000,
 };
 
-let isConnectivityCheckPaused = false;
 let isConnectivityCheckEnabled = true;
 
 function checkHost(
 	opts: networkCheck.ConnectOptions,
 ): boolean | PromiseLike<boolean> {
-	return (
-		!isConnectivityCheckEnabled ||
-		isConnectivityCheckPaused ||
-		networkCheck.checkHost(opts)
-	);
+	return !isConnectivityCheckEnabled || networkCheck.checkHost(opts);
 }
 
 function customMonitor(
@@ -45,16 +40,12 @@ export function enableCheck(enable: boolean) {
 export async function isVPNActive(): Promise<boolean> {
 	let active: boolean = true;
 	try {
-		await fs.lstat(`${constants.vpnStatusPath}/active`);
+		await readFromRoot(`${constants.vpnStatusPath}/active`);
 	} catch {
 		active = false;
 	}
 	log.info(`VPN connection is ${active ? 'active' : 'not active'}.`);
 	return active;
-}
-
-async function vpnStatusInotifyCallback(): Promise<void> {
-	isConnectivityCheckPaused = await isVPNActive();
 }
 
 export const startConnectivityCheck = _.once(
@@ -67,18 +58,6 @@ export const startConnectivityCheck = _.once(
 		if (!apiEndpoint) {
 			log.debug('No API endpoint specified, skipping connectivity check');
 			return;
-		}
-
-		await Bluebird.resolve(fs.mkdir(constants.vpnStatusPath))
-			.catch(EEXIST, () => {
-				log.debug('VPN status path exists.');
-			})
-			.then(() => {
-				watch(constants.vpnStatusPath, vpnStatusInotifyCallback);
-			});
-
-		if (enable) {
-			vpnStatusInotifyCallback();
 		}
 
 		const parsedUrl = url.parse(apiEndpoint);
