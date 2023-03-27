@@ -1,4 +1,20 @@
 - commits:
+    - subject: Revert "Use multi-arch in dockerfile"
+      hash: 75eeac5ed4b7ec076482c0cace2d2cfca8b6b2d4
+      body: |
+        This reverts commit 00e389e5f559dd10e49cfa411784b89498c3c0eb.
+
+        Images generated using this dockerfile still don't have the right
+        architecture. More testing is needed
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.9.8
+  title: ""
+  date: 2023-03-27T08:05:44.148Z
+- commits:
     - subject: Add missing log backend field assignment in logger init
       hash: 37371d89dcea3e1d713b9bb806fc6866cdd5ae9f
       body: ""
