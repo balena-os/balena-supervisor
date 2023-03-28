@@ -19,7 +19,7 @@ import * as hostUtils from '../../lib/host-utils';
 
 export class ConfigTxt extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}CONFIG_`;
-	private static bootConfigPath = hostUtils.pathOnBoot(`config.txt`);
+	private static bootConfigPath = hostUtils.pathOnBoot('config.txt');
 
 	public static bootConfigVarRegex = new RegExp(
 		'(?:' + _.escapeRegExp(ConfigTxt.bootConfigVarPrefix) + ')(.+)',

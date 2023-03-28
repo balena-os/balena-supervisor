@@ -3,17 +3,43 @@ import * as path from 'path';
 import * as constants from './constants';
 import { exec, exists } from './fs-utils';
 
+function withBase(base: string) {
+	function withPath(): string;
+	function withPath(path: string): string;
+	function withPath(...paths: string[]): string[];
+	function withPath(...paths: string[]): string[] | string {
+		if (arguments.length === 0) {
+			return base;
+		} else if (paths.length === 1) {
+			return path.join(base, paths[0]);
+		} else {
+			return paths.map((p: string) => path.join(base, p));
+		}
+	}
+	return withPath;
+}
+
 // Returns an absolute path starting from the hostOS root partition
 // This path is accessible from within the Supervisor container
-export function pathOnRoot(relPath: string) {
-	return path.join(constants.rootMountPoint, relPath);
-}
+export const pathOnRoot = withBase(constants.rootMountPoint);
+
+export const pathExistsOnRoot = async (p: string) =>
+	await exists(pathOnRoot(p));
 
 // Returns an absolute path starting from the hostOS boot partition
 // This path is accessible from within the Supervisor container
-export function pathOnBoot(relPath: string) {
-	return pathOnRoot(path.join(constants.bootMountPoint, relPath));
-}
+export const pathOnBoot = withBase(constants.bootMountPoint);
+
+// Returns an absolute path starting from the hostOS data partition
+// This path is accessible from within the Supervisor container
+export const pathOnData = withBase(constants.dataMountPoint);
+
+// Returns an absolute path starting from the hostOS state partition
+// This path is accessible from within the Supervisor container
+export const pathOnState = withBase(constants.stateMountPoint);
+
+export const pathExistsOnState = async (p: string) =>
+	await exists(pathOnState(p));
 
 class CodedError extends Error {
 	constructor(msg: string, readonly code: number | string) {
@@ -21,7 +47,7 @@ class CodedError extends Error {
 	}
 }
 
-// Receives an absolute path for a file (assumed to be under the boot partition, e.g. `/mnt/root/mnt/boot/config.txt`)
+// Receives an absolute path for a file (assumed to be under the boot partition, e.g. `/mnt/boot/config.txt`)
 // and reads from the given location. This function uses fatrw to safely read from a FAT filesystem
 // https://github.com/balena-os/fatrw
 export async function readFromBoot(
@@ -51,7 +77,8 @@ export async function readFromBoot(
 	}
 }
 
-// Receives an absolute path for a file (assumed to be under the boot partition, e.g. `/mnt/root/mnt/boot/config.txt`)
+// Receives an absolute path for a file (assumed to be under the boot partition,
+// e.g. `/mnt/boot/config.txt` or legacy `/mnt/root/mnt/boot/config.txt`)
 // and writes the given data. This function uses fatrw to safely write from a FAT filesystem
 // https://github.com/balena-os/fatrw
 export async function writeToBoot(fileName: string, data: string | Buffer) {

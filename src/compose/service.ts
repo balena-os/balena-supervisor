@@ -8,7 +8,7 @@ import { DockerPortOptions, PortMap } from './ports';
 import * as ComposeUtils from './utils';
 import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
-import { getPathOnHost } from '../lib/fs-utils';
+import { pathOnRoot } from '../lib/host-utils';
 import log from '../lib/supervisor-console';
 import * as conversions from '../lib/conversions';
 import { checkInt } from '../lib/validation';
@@ -930,7 +930,7 @@ export class Service {
 			this.appId || 0,
 			this.serviceName || '',
 		);
-		return getPathOnHost(
+		return pathOnRoot(
 			...['handover-complete', 'resin-kill-me'].map((tail) =>
 				path.join(lockPath, tail),
 			),

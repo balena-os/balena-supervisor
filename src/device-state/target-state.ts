@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import * as url from 'url';
 import { delay } from 'bluebird';
 import * as _ from 'lodash';
-import Bluebird = require('bluebird');
+import * as Bluebird from 'bluebird';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import type { TargetState } from '../types/state';
@@ -10,7 +10,7 @@ import { InternalInconsistencyError } from '../lib/errors';
 import { getGotInstance } from '../lib/request';
 import * as config from '../config';
 import { writeLock } from '../lib/update-lock';
-import constants = require('../lib/constants');
+import * as constants from '../lib/constants';
 import log from '../lib/supervisor-console';
 
 export class ApiResponseError extends Error {}

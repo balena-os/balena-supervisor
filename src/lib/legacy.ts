@@ -12,10 +12,10 @@ import {
 	DatabaseParseError,
 	isNotFoundError,
 	InternalInconsistencyError,
-} from '../lib/errors';
-import * as constants from '../lib/constants';
-import { docker } from '../lib/docker-utils';
-import { log } from '../lib/supervisor-console';
+} from './errors';
+import { docker } from './docker-utils';
+import { log } from './supervisor-console';
+import { pathOnData } from './host-utils';
 import Volume from '../compose/volume';
 import * as logger from '../logger';
 import type {
@@ -35,11 +35,7 @@ async function createVolumeFromLegacyData(
 	appUuid: string,
 ): Promise<Volume | void> {
 	const name = defaultLegacyVolume();
-	const legacyPath = path.join(
-		constants.rootMountPoint,
-		'mnt/data/resin-data',
-		appId.toString(),
-	);
+	const legacyPath = pathOnData(path.join('resin-data', appId.toString()));
 
 	try {
 		return await volumeManager.createFromPath(

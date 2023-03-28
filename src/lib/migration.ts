@@ -2,28 +2,22 @@ import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import * as rimraf from 'rimraf';
-
-const rimrafAsync = Bluebird.promisify(rimraf);
 
 import * as volumeManager from '../compose/volume-manager';
 import * as deviceState from '../device-state';
-import * as constants from '../lib/constants';
-import { BackupError, isNotFoundError } from '../lib/errors';
-import { exec, pathExistsOnHost, mkdirp } from '../lib/fs-utils';
-import { log } from '../lib/supervisor-console';
-
 import { TargetState } from '../types';
+import * as constants from './constants';
+import { BackupError, isNotFoundError } from './errors';
+import { exec, exists, mkdirp, unlinkAll } from './fs-utils';
+import { log } from './supervisor-console';
+import { pathOnData } from './host-utils';
 
 export async function loadBackupFromMigration(
 	targetState: TargetState,
 	retryDelay: number,
 ): Promise<void> {
 	try {
-		const exists = await pathExistsOnHost(
-			path.join('mnt/data', constants.migrationBackupFile),
-		);
-		if (!exists) {
+		if (!(await exists(constants.migrationBackupFile))) {
 			return;
 		}
 		log.info('Migration backup detected');
@@ -42,12 +36,12 @@ export async function loadBackupFromMigration(
 
 		const volumes = release?.volumes ?? {};
 
-		const backupPath = path.join(constants.rootMountPoint, 'mnt/data/backup');
+		const backupPath = pathOnData('backup');
 		// We clear this path in case it exists from an incomplete run of this function
-		await rimrafAsync(backupPath);
+		await unlinkAll(backupPath);
 		await mkdirp(backupPath);
 		await exec(`tar -xzf backup.tgz -C ${backupPath}`, {
-			cwd: path.join(constants.rootMountPoint, 'mnt/data'),
+			cwd: pathOnData(),
 		});
 
 		for (const volumeName of await fs.readdir(backupPath)) {
@@ -86,14 +80,8 @@ export async function loadBackupFromMigration(
 			}
 		}
 
-		await rimrafAsync(backupPath);
-		await rimrafAsync(
-			path.join(
-				constants.rootMountPoint,
-				'mnt/data',
-				constants.migrationBackupFile,
-			),
-		);
+		await unlinkAll(backupPath);
+		await unlinkAll(constants.migrationBackupFile);
 	} catch (err) {
 		log.error(`Error restoring migration backup, retrying: ${err}`);
 

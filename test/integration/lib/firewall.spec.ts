@@ -1,16 +1,15 @@
-import _ = require('lodash');
+import * as _ from 'lodash';
 import { expect } from 'chai';
-
 import * as sinon from 'sinon';
 
 import * as config from '~/src/config';
-import * as firewall from '~/lib/firewall';
 import * as logger from '~/src/logger';
 import * as iptablesMock from '~/test-lib/mocked-iptables';
 import * as dbFormat from '~/src/device-state/db-format';
 
-import constants = require('~/lib/constants');
 import * as iptables from '~/lib/iptables';
+import * as firewall from '~/lib/firewall';
+import * as constants from '~/lib/constants';
 import { RuleAction, Rule } from '~/lib/iptables';
 import { log } from '~/lib/supervisor-console';
 

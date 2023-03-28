@@ -6,16 +6,15 @@ testfs:
   # them in the local source. These can be overriden
   # in the `testfs` configuration.
   filesystem:
-    /mnt/root:
-      /mnt/boot:
-        config.json:
-          from: test/data/testconfig.json
-        config.txt:
-          from: test/data/mnt/boot/config.txt
-        device-type.json:
-          from: test/data/mnt/boot/device-type.json
-      /etc/os-release:
+    /mnt/boot:
+      os-release:
         from: test/data/etc/os-release
+      config.json:
+        from: test/data/testconfig.json
+      config.txt:
+        from: test/data/mnt/boot/config.txt
+      device-type.json:
+        from: test/data/mnt/boot/device-type.json
   # The `keep` list defines files that already exist in the
   # filesystem and need to be backed up before setting up the test environment
   keep: []
@@ -23,6 +22,6 @@ testfs:
   # when restoring the filesystem
   cleanup:
     - /data/database.sqlite
-    - /data/apps.json.preloaded
+    - /mnt/data/apps.json.preloaded
     - /mnt/root/tmp/balena-supervisor/**/*.lock
-    - /mnt/root/mnt/boot/splash/*.png
+    - /mnt/boot/splash/*.png

@@ -5,13 +5,12 @@ import * as path from 'path';
 import * as Lock from 'rwlock';
 import { isRight } from 'fp-ts/lib/Either';
 
-import * as constants from './constants';
 import {
 	ENOENT,
 	UpdatesLockedError,
 	InternalInconsistencyError,
 } from './errors';
-import { getPathOnHost, pathExistsOnHost } from './fs-utils';
+import { pathOnRoot, pathExistsOnState } from './host-utils';
 import * as config from '../config';
 import * as lockfile from './lockfile';
 import { NumericIdentifier } from '../types';
@@ -27,7 +26,7 @@ export function lockPath(appId: number, serviceName?: string): string {
 }
 
 function lockFilesOnHost(appId: number, serviceName: string): string[] {
-	return getPathOnHost(
+	return pathOnRoot(
 		...['updates.lock', 'resin-updates.lock'].map((filename) =>
 			path.join(lockPath(appId), serviceName, filename),
 		),
@@ -47,11 +46,10 @@ export function abortIfHUPInProgress({
 }): Promise<boolean | never> {
 	return Promise.all(
 		['rollback-health-breadcrumb', 'rollback-altboot-breadcrumb'].map(
-			(filename) =>
-				pathExistsOnHost(path.join(constants.stateMountPoint, filename)),
+			(filename) => pathExistsOnState(filename),
 		),
 	).then((existsArray) => {
-		const anyExists = existsArray.some((exists) => exists);
+		const anyExists = existsArray.some((e) => e);
 		if (anyExists && !force) {
 			throw new UpdatesLockedError('Waiting for Host OS update to finish');
 		}
@@ -119,7 +117,7 @@ export async function lock<T extends unknown>(
 	const releases = new Map<number, () => void>();
 	try {
 		for (const id of sortedIds) {
-			const lockDir = getPathOnHost(lockPath(id));
+			const lockDir = pathOnRoot(lockPath(id));
 			// Acquire write lock for appId
 			releases.set(id, await writeLock(id));
 			// Get list of service folders in lock directory
