@@ -1,4 +1,39 @@
 - commits:
+    - subject: Mount boot partition into container on Supervisor start
+      hash: 49ee1042a87ce0b101054e32b84afaa324a371de
+      body: >
+        As the Supervisor is a privileged container, it has access to host /dev,
+        and therefore has access
+
+        to boot, data, and state balenaOS partitions. This commit sets up the framework for the following:
+
+
+        - Finds the /dev partition that corresponds to each partition based on partition label
+
+        - Mounts the partitions into set mountpoints in the device
+
+        - Removes reliance on env vars and mountpoints provided by host's start-balena-supervisor script
+
+        - Simplifies host path querying by centralizing these queries through methods in lib/host-utils.ts
+
+
+        This particular changes env vars for and mounts the boot partition.
+
+
+        Since the Supervisor would no longer rely on container `run` arguments provided by a host script,
+
+        this change moves Supervisor closer to being able to start itself (Supervisor-as-an-app).
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.10.0
+  title: ""
+  date: 2023-03-28T19:13:49.886Z
+- commits:
     - subject: Revert "Use multi-arch in dockerfile"
       hash: 75eeac5ed4b7ec076482c0cace2d2cfca8b6b2d4
       body: |
