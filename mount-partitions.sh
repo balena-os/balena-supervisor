@@ -3,14 +3,33 @@
 # Mounts boot, state, & data partitions from balenaOS.
 # The container must be privileged for this to function correctly.
 
+# Set overlayfs root mountpoint
+export ROOT_MOUNTPOINT="/mnt/root"
+
+# Set DBus system bus address for getting the current boot block device
+export DBUS_SYSTEM_BUS_ADDRESS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path="${ROOT_MOUNTPOINT}"/run/dbus/system_bus_socket}"
+
 # Get the current boot block device in case there are duplicate partition labels
 # for `(balena|resin)-(boot|state|data)` found.
 current_boot_block_device=""
 if [ "${TEST}" != 1 ]; then
-    current_boot_partition=$(fdisk -l | grep '*  ' | cut -d' ' -f1 2>&1)
-    current_boot_block_device=$(lsblk -no pkname "${current_boot_partition}")
+    # Get the current boot block device from systemd
+    # The dbus-send command below should return something like:
+    # ```
+    # method return time=1680132905.878117 sender=:1.0 -> destination=:1.20155 serial=245193 reply_serial=2
+    #   variant       string "/dev/sda1"
+    # ```
+    mnt_boot_mount=$(dbus-send --system --print-reply \
+        --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1/unit/mnt_2dboot_2emount org.freedesktop.DBus.Properties.Get \
+        string:"org.freedesktop.systemd1.Mount" string:"What" | grep "string" | cut -d'"' -f2 2>&1)
+    # If the output doesn't match the /dev/* device regex, exit with an error
+    if [ "$(echo "${mnt_boot_mount}" | grep -E '^/dev/')" = "" ]; then
+        echo "ERROR: Could not determine boot device from dbus. Please launch Supervisor as a privileged container with DBus socket access."
+        exit 1
+    fi
+    current_boot_block_device=$(lsblk -no pkname "${mnt_boot_mount}")
     if [ "${current_boot_block_device}" = "" ]; then
-        echo "ERROR: Could not determine boot device. Please launch Supervisor as a privileged container with host networking."
+        echo "ERROR: Could not determine boot device from lsblk. Please launch Supervisor as a privileged container."
         exit 1
     fi
 fi
@@ -65,9 +84,6 @@ setup_then_mount() {
     exit 1
 }
 
-# Set overlayfs root mountpoint
-export ROOT_MOUNTPOINT="/mnt/root"
-
 # Set boot mountpoint
 BOOT_MOUNTPOINT="/mnt/boot"
 setup_then_mount "boot" "${BOOT_MOUNTPOINT}"
@@ -94,7 +110,7 @@ export DATA_MOUNTPOINT
 # TODO: DB should be moved to a managed volume and mounted to /data in-container.
 # Handle the case of such a Supervisor volume already existing.
 # NOTE: After this PR, it should be good to remove the OS's /data/database.sqlite mount.
-if [ ! -f /data/database.sqlite ]; then
+if [ ! -f /data/database.sqlite ] && [ "${TEST}" != 1 ]; then
     mkdir -p "${DATA_MOUNTPOINT}/resin-data/balena-supervisor"
     mount -o bind,shared "${DATA_MOUNTPOINT}"/resin-data/balena-supervisor /data
 fi
