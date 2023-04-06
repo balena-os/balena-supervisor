@@ -136,4 +136,9 @@ process.on('SIGTERM', () => {
 });
 
 const supervisor = new Supervisor();
-supervisor.init();
+supervisor.init().catch((e) => {
+	log.error('Uncaught exception:', e);
+
+	// Terminate the process to avoid leaving the supervisor in a bad state
+	process.exit(1);
+});
