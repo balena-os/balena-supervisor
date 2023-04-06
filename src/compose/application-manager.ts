@@ -131,13 +131,20 @@ export async function getRequiredSteps(
 	targetApps: InstancedAppState,
 ): Promise<CompositionStep[]> {
 	// get some required data
-	const [downloading, availableImages] = await Promise.all([
-		imageManager.getDownloadingImageNames(),
-		imageManager.getAvailable(),
-	]);
+	const [downloading, availableImages, { localMode, delta }] =
+		await Promise.all([
+			imageManager.getDownloadingImageNames(),
+			imageManager.getAvailable(),
+			config.getMany(['localMode', 'delta']),
+		]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
 
 	return await inferNextSteps(currentApps, targetApps, {
+		// Images are not removed while in local mode to avoid removing the user app images
+		keepImages: localMode,
+		// Volumes are not removed when stopping an app when going to local mode
+		keepVolumes: localMode,
+		delta,
 		downloading,
 		availableImages,
 		containerIdsByAppId,
@@ -149,17 +156,14 @@ export async function inferNextSteps(
 	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
 	{
+		keepImages = false,
+		keepVolumes = false,
+		delta = true,
 		downloading = [] as string[],
 		availableImages = [] as Image[],
 		containerIdsByAppId = {} as { [appId: number]: Dictionary<string> },
 	} = {},
 ) {
-	// get some required data
-	const [{ localMode, delta }, cleanupNeeded] = await Promise.all([
-		config.getMany(['localMode', 'delta']),
-		imageManager.isCleanupNeeded(),
-	]);
-
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
 
@@ -175,9 +179,9 @@ export async function inferNextSteps(
 			steps.push({ action: 'ensureSupervisorNetwork' });
 		}
 	} else {
-		if (!localMode && downloading.length === 0 && !isApplyingIntermediate) {
+		if (downloading.length === 0 && !isApplyingIntermediate) {
 			// Avoid cleaning up dangling images while purging
-			if (cleanupNeeded) {
+			if (!keepImages && (await imageManager.isCleanupNeeded())) {
 				steps.push({ action: 'cleanup' });
 			}
 
@@ -189,7 +193,7 @@ export async function inferNextSteps(
 					currentApps,
 					targetApps,
 					availableImages,
-					localMode,
+					keepImages,
 				),
 			);
 		}
@@ -206,7 +210,6 @@ export async function inferNextSteps(
 				steps = steps.concat(
 					currentApps[id].nextStepsForAppUpdate(
 						{
-							localMode,
 							availableImages,
 							containerIds: containerIdsByAppId[id],
 							downloading,
@@ -220,7 +223,7 @@ export async function inferNextSteps(
 			for (const id of onlyCurrent) {
 				steps = steps.concat(
 					await currentApps[id].stepsToRemoveApp({
-						localMode,
+						keepVolumes,
 						downloading,
 						containerIds: containerIdsByAppId[id],
 					}),
@@ -243,7 +246,6 @@ export async function inferNextSteps(
 				steps = steps.concat(
 					emptyCurrent.nextStepsForAppUpdate(
 						{
-							localMode,
 							availableImages,
 							containerIds: containerIdsByAppId[id] ?? {},
 							downloading,
@@ -256,7 +258,7 @@ export async function inferNextSteps(
 	}
 
 	const newDownloads = steps.filter((s) => s.action === 'fetch').length;
-	if (!localMode && delta && newDownloads > 0) {
+	if (delta && newDownloads > 0) {
 		// Check that this is not the first pull for an
 		// application, as we want to download all images then
 		// Otherwise we want to limit the downloading of
@@ -283,7 +285,7 @@ export async function inferNextSteps(
 		});
 	}
 
-	if (!localMode && steps.length === 0 && downloading.length > 0) {
+	if (steps.length === 0 && downloading.length > 0) {
 		// We want to keep the state application alive
 		steps.push(generateStep('noop', {}));
 	}
@@ -676,7 +678,7 @@ function saveAndRemoveImages(
 	current: InstancedAppState,
 	target: InstancedAppState,
 	availableImages: imageManager.Image[],
-	localMode: boolean,
+	skipRemoval: boolean,
 ): CompositionStep[] {
 	type ImageWithoutID = Omit<imageManager.Image, 'dockerImageId' | 'id'>;
 
@@ -737,9 +739,9 @@ function saveAndRemoveImages(
 	);
 
 	// Images that are available but we don't have them in the DB with the exact metadata:
-	let imagesToSave: imageManager.Image[] = [];
-	if (!localMode) {
-		imagesToSave = _.filter(targetImages, (targetImage) => {
+	const imagesToSave: imageManager.Image[] = _.filter(
+		targetImages,
+		(targetImage) => {
 			const isActuallyAvailable = _.some(availableImages, (availableImage) => {
 				// There is an image with same image name or digest
 				// on the database
@@ -770,8 +772,8 @@ function saveAndRemoveImages(
 				(isActuallyAvailable && isNotSaved) ||
 				(!isActuallyAvailable && isAvailableOnTheEngine)
 			);
-		});
-	}
+		},
+	);
 
 	// Find images that will be be used as delta sources. Any existing image for the
 	// same app service is considered a delta source unless the target service has set
@@ -791,9 +793,9 @@ function saveAndRemoveImages(
 		.map((img) => bestDeltaSource(img, availableImages))
 		.filter((img) => img != null);
 
-	const imagesToRemove = availableAndUnused.filter(
-		(image) => !deltaSources.includes(image.name),
-	);
+	const imagesToRemove = skipRemoval
+		? []
+		: availableAndUnused.filter((image) => !deltaSources.includes(image.name));
 
 	return imagesToSave
 		.map((image) => ({ action: 'saveImage', image } as CompositionStep))

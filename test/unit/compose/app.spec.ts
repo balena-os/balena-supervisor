@@ -11,7 +11,7 @@ import { ServiceComposeConfig } from '~/src/compose/types/service';
 import Volume from '~/src/compose/volume';
 
 const defaultContext = {
-	localMode: false,
+	keepVolumes: false,
 	availableImages: [] as Image[],
 	containerIds: {},
 	downloading: [] as string[],

@@ -40,7 +40,6 @@ export interface AppConstructOpts {
 }
 
 export interface UpdateState {
-	localMode: boolean;
 	availableImages: Image[];
 	containerIds: Dictionary<string>;
 	downloading: string[];
@@ -190,7 +189,7 @@ export class App {
 	}
 
 	public async stepsToRemoveApp(
-		state: Omit<UpdateState, 'availableImages'>,
+		state: Omit<UpdateState, 'availableImages'> & { keepVolumes: boolean },
 	): Promise<CompositionStep[]> {
 		if (Object.keys(this.services).length > 0) {
 			return Object.values(this.services).map((service) =>
@@ -203,7 +202,7 @@ export class App {
 			);
 		}
 		// Don't remove volumes in local mode
-		if (!state.localMode) {
+		if (!state.keepVolumes) {
 			if (Object.keys(this.volumes).length > 0) {
 				return Object.values(this.volumes).map((volume) =>
 					generateStep('removeVolume', { current: volume }),
@@ -496,7 +495,6 @@ export class App {
 	private generateStepsForService(
 		{ current, target }: ChangingPair<Service>,
 		context: {
-			localMode: boolean;
 			availableImages: Image[];
 			downloading: string[];
 			targetApp: App;
@@ -517,16 +515,12 @@ export class App {
 			return;
 		}
 
-		let needsDownload = false;
-		// don't attempt to fetch images whilst in local mode, as they should be there already
-		if (!context.localMode) {
-			needsDownload = !_.some(
-				context.availableImages,
-				(image) =>
-					image.dockerImageId === target?.config.image ||
-					imageManager.isSameImage(image, { name: target?.imageName! }),
-			);
-		}
+		const needsDownload = !_.some(
+			context.availableImages,
+			(image) =>
+				image.dockerImageId === target?.config.image ||
+				imageManager.isSameImage(image, { name: target?.imageName! }),
+		);
 
 		if (needsDownload && context.downloading.includes(target?.imageName!)) {
 			// The image needs to be downloaded, and it's currently downloading. We simply keep
@@ -544,7 +538,6 @@ export class App {
 				context.targetApp,
 				needsDownload,
 				context.availableImages,
-				context.localMode,
 				context.networkPairs,
 				context.volumePairs,
 				context.servicePairs,
@@ -578,7 +571,6 @@ export class App {
 				target,
 				context.targetApp,
 				context.availableImages,
-				context.localMode,
 				context.networkPairs,
 				context.volumePairs,
 				context.servicePairs,
@@ -586,7 +578,6 @@ export class App {
 			const dependenciesMetForKill = this.dependenciesMetForServiceKill(
 				context.targetApp,
 				context.availableImages,
-				context.localMode,
 			);
 
 			return getStepsFromStrategy(strategy, {
@@ -652,7 +643,6 @@ export class App {
 		targetApp: App,
 		needsDownload: boolean,
 		availableImages: Image[],
-		localMode: boolean,
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
@@ -668,7 +658,6 @@ export class App {
 				target,
 				targetApp,
 				availableImages,
-				localMode,
 				networkPairs,
 				volumePairs,
 				servicePairs,
@@ -684,7 +673,6 @@ export class App {
 		target: Service,
 		targetApp: App,
 		availableImages: Image[],
-		localMode: boolean,
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
@@ -732,7 +720,7 @@ export class App {
 		}
 
 		// do not start until all images have been downloaded
-		return this.targetImagesReady(targetApp, availableImages, localMode);
+		return this.targetImagesReady(targetApp, availableImages);
 	}
 
 	// Unless the update strategy requires an early kill (i.e kill-then-download,
@@ -742,24 +730,12 @@ export class App {
 	private dependenciesMetForServiceKill(
 		targetApp: App,
 		availableImages: Image[],
-		localMode: boolean,
 	) {
 		// Don't kill any services before all images have been downloaded
-		return this.targetImagesReady(targetApp, availableImages, localMode);
+		return this.targetImagesReady(targetApp, availableImages);
 	}
 
-	private targetImagesReady(
-		targetApp: App,
-		availableImages: Image[],
-		localMode: boolean,
-	) {
-		// because we only check for an image being available, in local mode this will always
-		// be the case, so return true regardless.
-		// If we ever unify image management betwen local and cloud mode, this will have to change
-		if (localMode) {
-			return true;
-		}
-
+	private targetImagesReady(targetApp: App, availableImages: Image[]) {
 		return targetApp.services.every((service) =>
 			availableImages.some(
 				(image) =>
