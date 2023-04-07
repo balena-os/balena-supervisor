@@ -57,13 +57,6 @@ const localModeManager = new LocalModeManager();
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;
 
-// In the case of intermediate target apply, toggle to true to avoid unintended image deletion
-let isApplyingIntermediate = false;
-
-export function setIsApplyingIntermediate(value: boolean = false) {
-	isApplyingIntermediate = value;
-}
-
 export function resetTimeSpentFetching(value: number = 0) {
 	timeSpentFetching = value;
 }
@@ -129,6 +122,7 @@ function reportCurrentState(data?: Partial<InstancedAppState>) {
 export async function getRequiredSteps(
 	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
+	keepImages?: boolean,
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [downloading, availableImages, { localMode, delta }] =
@@ -139,9 +133,15 @@ export async function getRequiredSteps(
 		]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
 
+	// Local mode sets the image and volume retention only
+	// if not explicitely set by the caller
+	if (keepImages == null) {
+		keepImages = localMode;
+	}
+
 	return await inferNextSteps(currentApps, targetApps, {
 		// Images are not removed while in local mode to avoid removing the user app images
-		keepImages: localMode,
+		keepImages,
 		// Volumes are not removed when stopping an app when going to local mode
 		keepVolumes: localMode,
 		delta,
@@ -179,7 +179,7 @@ export async function inferNextSteps(
 			steps.push({ action: 'ensureSupervisorNetwork' });
 		}
 	} else {
-		if (downloading.length === 0 && !isApplyingIntermediate) {
+		if (downloading.length === 0) {
 			// Avoid cleaning up dangling images while purging
 			if (!keepImages && (await imageManager.isCleanupNeeded())) {
 				steps.push({ action: 'cleanup' });

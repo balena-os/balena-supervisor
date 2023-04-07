@@ -701,6 +701,10 @@ export const applyTarget = async ({
 			const appSteps = await applicationManager.getRequiredSteps(
 				currentState.local.apps,
 				targetState.local.apps,
+				// Do not remove images while applying an intermediate state
+				// if not applying intermediate, we let getRequired steps set
+				// the value
+				intermediate || undefined,
 			);
 
 			if (_.isEmpty(appSteps)) {
@@ -858,7 +862,7 @@ export function triggerApplyTarget({
 	return null;
 }
 
-export function applyIntermediateTarget(
+export async function applyIntermediateTarget(
 	intermediate: InstancedDeviceState,
 	{ force = false, skipLock = false } = {},
 ) {
