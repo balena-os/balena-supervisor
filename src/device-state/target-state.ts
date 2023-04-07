@@ -165,6 +165,9 @@ const poll = async (
 	fetchErrors: number = 0,
 ): Promise<void> => {
 	// Add random jitter up to `maxApiJitterDelay` to space out poll requests
+	// NOTE: the jitter has as objective to reduce the load on networks that have
+	// devices on the 1000s. It's not meant to ease the load on the API as the backend performs
+	// other operations to deal with scaling issues
 	let pollInterval =
 		Math.random() * constants.maxApiJitterDelay + appUpdatePollInterval;
 
