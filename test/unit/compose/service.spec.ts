@@ -574,6 +574,80 @@ describe('compose/service: unit tests', () => {
 				expect(svc1.isEqualConfig(svc2, {})).to.be.true;
 			});
 		});
+
+		it('should accept that target network aliases are a subset of current network aliases', async () => {
+			const svc1 = await Service.fromComposeObject(
+				{
+					appId: 1,
+					serviceId: 1,
+					serviceName: 'test',
+					composition: {
+						networks: {
+							test: {
+								aliases: ['hello', 'world'],
+							},
+						},
+					},
+				},
+				{ appName: 'test' } as any,
+			);
+			const svc2 = await Service.fromComposeObject(
+				{
+					appId: 1,
+					serviceId: 1,
+					serviceName: 'test',
+					composition: {
+						networks: {
+							test: {
+								aliases: ['hello', 'sweet', 'world'],
+							},
+						},
+					},
+				},
+				{ appName: 'test' } as any,
+			);
+
+			// All aliases in target service (svc1) are contained in service 2
+			expect(svc2.isEqualConfig(svc1, {})).to.be.true;
+			// But the opposite is not true
+			expect(svc1.isEqualConfig(svc2, {})).to.be.false;
+		});
+
+		it('should accept equal lists of network aliases', async () => {
+			const svc1 = await Service.fromComposeObject(
+				{
+					appId: 1,
+					serviceId: 1,
+					serviceName: 'test',
+					composition: {
+						networks: {
+							test: {
+								aliases: ['hello', 'world'],
+							},
+						},
+					},
+				},
+				{ appName: 'test' } as any,
+			);
+			const svc2 = await Service.fromComposeObject(
+				{
+					appId: 1,
+					serviceId: 1,
+					serviceName: 'test',
+					composition: {
+						networks: {
+							test: {
+								aliases: ['hello', 'world'],
+							},
+						},
+					},
+				},
+				{ appName: 'test' } as any,
+			);
+
+			expect(svc1.isEqualConfig(svc2, {})).to.be.true;
+			expect(svc2.isEqualConfig(svc1, {})).to.be.true;
+		});
 	});
 
 	describe('Feature labels', () => {
