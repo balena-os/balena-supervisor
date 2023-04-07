@@ -1,4 +1,20 @@
 - commits:
+    - subject: Use dbus-send to get current boot block device instead of fdisk
+      hash: 4ab8250c971e2f05d9dbf5870f9feb8dd298bdda
+      body: ""
+      footer:
+        Closes: "#2150"
+        closes: "#2150"
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.10.1
+  title: ""
+  date: 2023-04-07T00:15:59.534Z
+- commits:
     - subject: Mount boot partition into container on Supervisor start
       hash: 49ee1042a87ce0b101054e32b84afaa324a371de
       body: >
