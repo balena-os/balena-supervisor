@@ -515,6 +515,7 @@ export class Service {
 		if (_.get(container, 'NetworkSettings.Networks', null) != null) {
 			networks = ComposeUtils.dockerNetworkToServiceNetwork(
 				container.NetworkSettings.Networks,
+				svc.containerId,
 			);
 		}
 

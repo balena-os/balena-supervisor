@@ -496,6 +496,7 @@ export function serviceNetworksToDockerNetworks(
 
 export function dockerNetworkToServiceNetwork(
 	dockerNetworks: Dockerode.ContainerInspectInfo['NetworkSettings']['Networks'],
+	containerId: string,
 ): ServiceConfig['networks'] {
 	// Take the input network object, filter out any nullish fields, extract things to
 	// the correct level and return
@@ -504,7 +505,12 @@ export function dockerNetworkToServiceNetwork(
 	_.each(dockerNetworks, (net, name) => {
 		networks[name] = {};
 		if (net.Aliases != null && !_.isEmpty(net.Aliases)) {
-			networks[name].aliases = net.Aliases;
+			networks[name].aliases = net.Aliases.filter(
+				// Docker adds the container alias with the container id to the
+				// list. We don't want that alias to be part of the service config
+				// in case we want to re-use this service as target
+				(alias: string) => !containerId.startsWith(alias),
+			);
 		}
 		if (net.IPAMConfig != null) {
 			const ipam = net.IPAMConfig;

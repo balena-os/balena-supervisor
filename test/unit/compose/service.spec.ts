@@ -895,7 +895,7 @@ describe('compose/service: unit tests', () => {
 								IPv6Address: '5.6.7.8',
 								LinkLocalIps: ['123.123.123'],
 							},
-							Aliases: ['test', '1123'],
+							Aliases: ['test', '1123', 'deadbeef'],
 						},
 					}).config.networks,
 				).to.deep.equal({
@@ -903,6 +903,7 @@ describe('compose/service: unit tests', () => {
 						ipv4Address: '1.2.3.4',
 						ipv6Address: '5.6.7.8',
 						linkLocalIps: ['123.123.123'],
+						// The container id got removed from the alias list
 						aliases: ['test', '1123'],
 					},
 				});
