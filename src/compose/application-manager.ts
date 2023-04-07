@@ -123,6 +123,7 @@ export async function getRequiredSteps(
 	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
 	keepImages?: boolean,
+	keepVolumes?: boolean,
 ): Promise<CompositionStep[]> {
 	// get some required data
 	const [downloading, availableImages, { localMode, delta }] =
@@ -139,11 +140,15 @@ export async function getRequiredSteps(
 		keepImages = localMode;
 	}
 
+	if (keepVolumes == null) {
+		keepVolumes = localMode;
+	}
+
 	return await inferNextSteps(currentApps, targetApps, {
 		// Images are not removed while in local mode to avoid removing the user app images
 		keepImages,
 		// Volumes are not removed when stopping an app when going to local mode
-		keepVolumes: localMode,
+		keepVolumes,
 		delta,
 		downloading,
 		availableImages,

@@ -237,7 +237,10 @@ describe('manages application lifecycle', () => {
 				containers.map((ctn) => ctn.State.StartedAt),
 			);
 
-			await actions.doRestart(APP_ID);
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post(`/v1/restart`)
+				.set('Content-Type', 'application/json')
+				.send(JSON.stringify({ appId: APP_ID }));
 
 			const restartedContainers = await waitForSetup(
 				targetState,
@@ -503,7 +506,9 @@ describe('manages application lifecycle', () => {
 				containers.map((ctn) => ctn.State.StartedAt),
 			);
 
-			await actions.doRestart(APP_ID);
+			await request(BALENA_SUPERVISOR_ADDRESS)
+				.post(`/v2/applications/${APP_ID}/restart`)
+				.set('Content-Type', 'application/json');
 
 			const restartedContainers = await waitForSetup(
 				targetState,

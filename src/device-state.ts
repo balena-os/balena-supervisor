@@ -671,6 +671,7 @@ export const applyTarget = async ({
 	skipLock = false,
 	nextDelay = 200,
 	retryCount = 0,
+	keepVolumes = undefined as boolean | undefined,
 } = {}) => {
 	if (!intermediate) {
 		await applyBlocker;
@@ -705,6 +706,7 @@ export const applyTarget = async ({
 				// if not applying intermediate, we let getRequired steps set
 				// the value
 				intermediate || undefined,
+				keepVolumes,
 			);
 
 			if (_.isEmpty(appSteps)) {
@@ -762,6 +764,7 @@ export const applyTarget = async ({
 				skipLock,
 				nextDelay,
 				retryCount,
+				keepVolumes,
 			});
 		} catch (e: any) {
 			if (e instanceof UpdatesLockedError) {
@@ -864,11 +867,17 @@ export function triggerApplyTarget({
 
 export async function applyIntermediateTarget(
 	intermediate: InstancedDeviceState,
-	{ force = false, skipLock = false } = {},
+	{
+		force = false,
+		skipLock = false,
+		keepVolumes = undefined as boolean | undefined,
+	} = {},
 ) {
 	// TODO: Make sure we don't accidentally overwrite this
 	intermediateTarget = intermediate;
-	return applyTarget({ intermediate: true, force, skipLock }).then(() => {
-		intermediateTarget = null;
-	});
+	return applyTarget({ intermediate: true, force, skipLock, keepVolumes }).then(
+		() => {
+			intermediateTarget = null;
+		},
+	);
 }

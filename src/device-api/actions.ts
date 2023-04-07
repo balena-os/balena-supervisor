@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import { getGlobalApiKey, refreshKey } from '.';
@@ -10,8 +9,6 @@ import * as config from '../config';
 import * as hostConfig from '../host-config';
 import { App } from '../compose/app';
 import * as applicationManager from '../compose/application-manager';
-import * as serviceManager from '../compose/service-manager';
-import * as volumeManager from '../compose/volume-manager';
 import {
 	CompositionStepAction,
 	generateStep,
@@ -103,17 +100,26 @@ export const doRestart = async (appId: number, force: boolean = false) => {
 				`Application with ID ${appId} is not in the current state`,
 			);
 		}
-		const { services } = currentState.local.apps?.[appId];
-		applicationManager.clearTargetVolatileForServices(
-			services.map((svc) => svc.imageId),
-		);
+		const app = currentState.local.apps[appId];
+		const services = app.services;
+		app.services = [];
 
-		return deviceState.pausingApply(async () => {
-			for (const service of services) {
-				await serviceManager.kill(service, { wait: true });
-				await serviceManager.start(service);
-			}
-		});
+		return deviceState
+			.pausingApply(() =>
+				deviceState
+					.applyIntermediateTarget(currentState, {
+						skipLock: true,
+					})
+					.then(() => {
+						app.services = services;
+						return deviceState.applyIntermediateTarget(currentState, {
+							skipLock: true,
+						});
+					}),
+			)
+			.finally(() => {
+				deviceState.triggerApplyTarget();
+			});
 	});
 };
 
@@ -218,45 +224,28 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 			);
 		}
 
-		const app = currentState.local.apps?.[appId];
-		/**
-		 * With multi-container, Docker adds an invalid network alias equal to the current containerId
-		 * to that service's network configs when starting a service. Thus when reapplying intermediateState
-		 * after purging, use a cloned state instance which automatically filters out invalid network aliases.
-		 * This will prevent error logs like the following:
-		 * https://gist.github.com/cywang117/84f9cd4e6a9641dbed530c94e1172f1d#file-logs-sh-L58
-		 *
-		 * When networks do not match because of their aliases, services are killed and recreated
-		 * an additional time which is unnecessary. Filtering prevents this additional restart BUT
-		 * it is a stopgap measure until we can keep containerId network aliases from being stored
-		 * in state's service config objects (TODO)
-		 */
-		const clonedState = safeStateClone(currentState);
-		// Set services & volumes as empty to be applied as intermediate state
-		app.services = [];
-		app.volumes = [];
+		const app = currentState.local.apps[appId];
 
-		applicationManager.setIsApplyingIntermediate(true);
+		// Delete the app from the current state
+		delete currentState.local.apps[appId];
 
 		return deviceState
 			.pausingApply(() =>
 				deviceState
-					.applyIntermediateTarget(currentState, { skipLock: true })
-					.then(() => {
-						// Explicitly remove volumes because application-manager won't
-						// remove any volumes that are part of an active application.
-						return Bluebird.each(volumeManager.getAllByAppId(appId), (vol) =>
-							vol.remove(),
-						);
+					.applyIntermediateTarget(currentState, {
+						skipLock: true,
+						// Purposely tell the apply function to delete volumes so they can get
+						// deleted even in local mode
+						keepVolumes: false,
 					})
 					.then(() => {
-						return deviceState.applyIntermediateTarget(clonedState, {
+						currentState.local.apps[appId] = app;
+						return deviceState.applyIntermediateTarget(currentState, {
 							skipLock: true,
 						});
 					}),
 			)
 			.finally(() => {
-				applicationManager.setIsApplyingIntermediate(false);
 				deviceState.triggerApplyTarget();
 			});
 	})
@@ -264,8 +253,6 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 			logger.logSystemMessage('Purged data', { appId }, 'Purge data success'),
 		)
 		.catch((err) => {
-			applicationManager.setIsApplyingIntermediate(false);
-
 			logger.logSystemMessage(
 				`Error purging data: ${err}`,
 				{ appId, error: err },
