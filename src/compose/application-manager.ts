@@ -316,6 +316,8 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 		await volumeManager.getAll(),
 	);
 
+	const images = await imageManager.getState();
+
 	const apps: InstancedAppState = {};
 	for (const strAppId of Object.keys(componentGroups)) {
 		const appId = parseInt(strAppId, 10);
@@ -341,12 +343,23 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 			!_.isEmpty(components.volumes) ||
 			!_.isEmpty(components.networks)
 		) {
+			const services = componentGroups[appId].services.map((s) => {
+				// We get the image metadata from the image database because we cannot
+				// get it from the container itself
+				const imageForService = images.find(
+					(img) => img.serviceName === s.serviceName && img.commit === s.commit,
+				);
+
+				s.imageName = imageForService?.name ?? s.imageName;
+				return s;
+			});
+
 			apps[appId] = new App(
 				{
 					appId,
 					appUuid: uuid,
 					commit,
-					services: componentGroups[appId].services,
+					services,
 					networks: componentGroups[appId].networks,
 					volumes: componentGroups[appId].volumes,
 				},
@@ -496,7 +509,6 @@ export async function executeStep(
 	} as any);
 }
 
-// FIXME: This shouldn't be in this module
 export async function setTarget(
 	apps: TargetApps,
 	source: string,
