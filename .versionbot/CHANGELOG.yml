@@ -1,4 +1,18 @@
 - commits:
+    - subject: "backends: Add Jetson Orin NX custom device-tree support"
+      hash: 6b67db98e54cd7756d7e31d9676d31ab305c4d56
+      body: ""
+      footer:
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+        Change-type: patch
+        change-type: patch
+      author: Alexandru Costache
+      nested: []
+  version: 14.10.2
+  title: ""
+  date: 2023-04-07T18:35:17.559Z
+- commits:
     - subject: Use dbus-send to get current boot block device instead of fdisk
       hash: 4ab8250c971e2f05d9dbf5870f9feb8dd298bdda
       body: ""
