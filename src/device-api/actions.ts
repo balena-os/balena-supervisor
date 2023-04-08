@@ -105,18 +105,16 @@ export const doRestart = async (appId: number, force: boolean = false) => {
 		app.services = [];
 
 		return deviceState
-			.pausingApply(() =>
-				deviceState
-					.applyIntermediateTarget(currentState, {
-						skipLock: true,
-					})
-					.then(() => {
-						app.services = services;
-						return deviceState.applyIntermediateTarget(currentState, {
-							skipLock: true,
-						});
-					}),
-			)
+			.applyIntermediateTarget(currentState, {
+				skipLock: true,
+			})
+			.then(() => {
+				app.services = services;
+				return deviceState.applyIntermediateTarget(currentState, {
+					skipLock: true,
+					keepVolumes: false,
+				});
+			})
 			.finally(() => {
 				deviceState.triggerApplyTarget();
 			});
@@ -230,21 +228,18 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 		delete currentState.local.apps[appId];
 
 		return deviceState
-			.pausingApply(() =>
-				deviceState
-					.applyIntermediateTarget(currentState, {
-						skipLock: true,
-						// Purposely tell the apply function to delete volumes so they can get
-						// deleted even in local mode
-						keepVolumes: false,
-					})
-					.then(() => {
-						currentState.local.apps[appId] = app;
-						return deviceState.applyIntermediateTarget(currentState, {
-							skipLock: true,
-						});
-					}),
-			)
+			.applyIntermediateTarget(currentState, {
+				skipLock: true,
+				// Purposely tell the apply function to delete volumes so they can get
+				// deleted even in local mode
+				keepVolumes: false,
+			})
+			.then(() => {
+				currentState.local.apps[appId] = app;
+				return deviceState.applyIntermediateTarget(currentState, {
+					skipLock: true,
+				});
+			})
 			.finally(() => {
 				deviceState.triggerApplyTarget();
 			});

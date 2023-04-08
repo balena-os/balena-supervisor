@@ -783,7 +783,7 @@ export const applyTarget = async ({
 	});
 };
 
-export function pausingApply(fn: () => any) {
+function pausingApply(fn: () => any) {
 	const lock = () => {
 		return writeLock('pause').disposer((release) => release());
 	};
@@ -873,11 +873,16 @@ export async function applyIntermediateTarget(
 		keepVolumes = undefined as boolean | undefined,
 	} = {},
 ) {
-	// TODO: Make sure we don't accidentally overwrite this
-	intermediateTarget = intermediate;
-	return applyTarget({ intermediate: true, force, skipLock, keepVolumes }).then(
-		() => {
+	return pausingApply(async () => {
+		// TODO: Make sure we don't accidentally overwrite this
+		intermediateTarget = intermediate;
+		return applyTarget({
+			intermediate: true,
+			force,
+			skipLock,
+			keepVolumes,
+		}).then(() => {
 			intermediateTarget = null;
-		},
-	);
+		});
+	});
 }
