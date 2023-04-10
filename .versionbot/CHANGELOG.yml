@@ -1,4 +1,24 @@
 - commits:
+    - subject: Fix assertion error in restart-service
+      hash: b9e1464d96824f5332c71324d753d94ddbdecf90
+      body: >
+        From:
+        https://github.com/balena-os/balena-supervisor/pull/2153/commits/c0b4fafe842115933b1da9b4d68e601a19c3e4eb
+
+        Restart-service checks that both services have restarted in its test assertion, which is
+
+        incorrect as restart-service should only restart one service.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.10.3
+  title: ""
+  date: 2023-04-10T15:17:58.539Z
+- commits:
     - subject: "backends: Add Jetson Orin NX custom device-tree support"
       hash: 6b67db98e54cd7756d7e31d9676d31ab305c4d56
       body: ""
