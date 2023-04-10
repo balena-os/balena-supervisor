@@ -7,7 +7,6 @@ import * as deviceState from '../device-state';
 import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
-import { App } from '../compose/app';
 import * as applicationManager from '../compose/application-manager';
 import {
 	CompositionStepAction,
@@ -25,8 +24,6 @@ import {
 	NotFoundError,
 	BadRequestError,
 } from '../lib/errors';
-
-import { InstancedDeviceState } from '../types';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -120,84 +117,6 @@ export const doRestart = async (appId: number, force: boolean = false) => {
 			});
 	});
 };
-
-/**
- * This doesn't truly return an InstancedDeviceState, but it's close enough to mostly work where it's used
- */
-export function safeStateClone(
-	targetState: InstancedDeviceState,
-): InstancedDeviceState {
-	// We avoid using cloneDeep here, as the class
-	// instances can cause a maximum call stack exceeded
-	// error
-
-	// TODO: This should really return the config as it
-	// is returned from the api, but currently that's not
-	// the easiest thing due to the way they are stored and
-	// retrieved from the db - when all of the application
-	// manager is strongly typed, revisit this. The best
-	// thing to do would be to represent the input with
-	// io-ts and make sure the below conforms to it
-
-	const cloned: DeepPartial<InstancedDeviceState> = {
-		local: {
-			config: {},
-		},
-	};
-
-	if (targetState.local != null) {
-		cloned.local = {
-			name: targetState.local.name,
-			config: _.cloneDeep(targetState.local.config),
-			apps: _.mapValues(targetState.local.apps, safeAppClone),
-		};
-	}
-
-	return cloned as InstancedDeviceState;
-}
-
-export function safeAppClone(app: App): App {
-	const containerIdForService = _.fromPairs(
-		_.map(app.services, (svc) => [
-			svc.serviceName,
-			svc.containerId != null ? svc.containerId.substring(0, 12) : '',
-		]),
-	);
-	return new App(
-		{
-			appId: app.appId,
-			appUuid: app.appUuid,
-			appName: app.appName,
-			commit: app.commit,
-			source: app.source,
-			services: app.services.map((svc) => {
-				// This is a bit of a hack, but when applying the target state as if it's
-				// the current state, this will include the previous containerId as a
-				// network alias. The container ID will be there as Docker adds it
-				// implicitly when creating a container. Here, we remove any previous
-				// container IDs before passing it back as target state. We have to do this
-				// here as when passing it back as target state, the service class cannot
-				// know that the alias being given is not in fact a user given one.
-				// TODO: Make the process of moving from a current state to a target state
-				// well-defined (and implemented in a separate module)
-				const svcCopy = _.cloneDeep(svc);
-
-				_.each(svcCopy.config.networks, (net) => {
-					if (Array.isArray(net.aliases)) {
-						net.aliases = net.aliases.filter(
-							(alias) => alias !== containerIdForService[svcCopy.serviceName],
-						);
-					}
-				});
-				return svcCopy;
-			}),
-			volumes: _.cloneDeep(app.volumes),
-			networks: _.cloneDeep(app.networks),
-			isHost: app.isHost,
-		},
-		true,
-	);
-}
 
 /**
  * Purges volumes for an application.
