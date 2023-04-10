@@ -1,4 +1,30 @@
 - commits:
+    - subject: Log uncaught promise exceptions on the app entry
+      hash: 676464142690da2e36a810cb35e4ea4d0d751636
+      body: >
+        Node 15 [changed the way it treats unhandled promise
+        rejections](https://github.com/nodejs/node/blob/main/doc/changelogs/CHANGELOG_V15.md#throw-on-unhandled-rejections---33021)
+        from a warning to a throw.
+
+        For this reason errors like a corrupt migration directory, that happens when trying to
+
+        roll back to a previous supervisor version were no longer showing a
+
+        message but dumping the full minimized code into the journal logs.
+
+
+        This PR adds a catchall on app.ts to log the exception and throw an exit
+
+        code of 1.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.10.4
+  title: ""
+  date: 2023-04-10T18:15:41.878Z
+- commits:
     - subject: Fix assertion error in restart-service
       hash: b9e1464d96824f5332c71324d753d94ddbdecf90
       body: >
