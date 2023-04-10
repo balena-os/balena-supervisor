@@ -82,12 +82,6 @@ const actionExecutors = getExecutors({
 
 export const validActions = Object.keys(actionExecutors);
 
-// Volatile state for a single container. This is used for temporarily setting a
-// different state for a container, such as running: false
-let targetVolatilePerImageId: {
-	[imageId: number]: Partial<Service['config']>;
-} = {};
-
 export const initialized = _.once(async () => {
 	await config.initialized();
 
@@ -493,7 +487,9 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 	return steps;
 }
 
-// TODO: deprecate this method. Application changes should use intermediate targets
+// this method is meant to be used only by device-state for applying the
+// target state and not by other modules. Application changes should use
+// intermediate targets to perform changes
 export async function executeStep(
 	step: CompositionStep,
 	{ force = false, skipLock = false } = {},
@@ -589,53 +585,13 @@ export async function setTarget(
 		promise = transaction((trx) => setInTransaction(filteredApps, trx));
 	}
 	await promise;
-	targetVolatilePerImageId = {};
 	if (!_.isEmpty(contractViolators)) {
 		throw new ContractViolationError(contractViolators);
 	}
 }
 
 export async function getTargetApps(): Promise<TargetApps> {
-	const apps = await dbFormat.getTargetJson();
-
-	// Whilst it may make sense here to return the target state generated from the
-	// internal instanced representation that we have, we make irreversable
-	// changes to the input target state to avoid having undefined entries into
-	// the instances throughout the supervisor. The target state is derived from
-	// the database entries anyway, so these two things should never be different
-	// (except for the volatile state)
-	//
-	_.each(apps, (app) =>
-		// There should only be a single release but is a simpler option
-		_.each(app.releases, (release) => {
-			if (!_.isEmpty(release.services)) {
-				release.services = _.mapValues(release.services, (svc) => {
-					if (svc.image_id && targetVolatilePerImageId[svc.image_id] != null) {
-						return { ...svc, ...targetVolatilePerImageId };
-					}
-					return svc;
-				});
-			}
-		}),
-	);
-
-	return apps;
-}
-
-export function setTargetVolatileForService(
-	imageId: number,
-	target: Partial<Service['config']>,
-) {
-	if (targetVolatilePerImageId[imageId] == null) {
-		targetVolatilePerImageId = {};
-	}
-	targetVolatilePerImageId[imageId] = target;
-}
-
-export function clearTargetVolatileForServices(imageIds: number[]) {
-	for (const imageId of imageIds) {
-		targetVolatilePerImageId[imageId] = {};
-	}
+	return await dbFormat.getTargetJson();
 }
 
 /**

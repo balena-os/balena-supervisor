@@ -362,11 +362,6 @@ export const executeServiceAction = async ({
 		throw new NotFoundError(messages.targetServiceNotFound);
 	}
 
-	// Set volatile target state
-	applicationManager.setTargetVolatileForService(currentService.imageId, {
-		running: action !== 'stop',
-	});
-
 	// Execute action on service
 	return await executeDeviceAction(
 		generateStep(action, {

@@ -555,6 +555,8 @@ export async function shutdown({
 	});
 }
 
+// FIXME: this method should not be exported, all target state changes
+// should happen via intermediate targets
 export async function executeStepAction(
 	step: DeviceStateStep<PossibleStepTargets>,
 	{
