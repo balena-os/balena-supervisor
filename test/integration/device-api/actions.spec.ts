@@ -522,9 +522,19 @@ describe('manages application lifecycle', () => {
 
 		it('should restart service by removing and recreating corresponding container', async () => {
 			containers = await waitForSetup(targetState);
-			const isRestartSuccessful = startTimesChanged(
-				containers.map((ctn) => ctn.State.StartedAt),
-			);
+			const serviceName = serviceNames[0];
+			const { State } = containers.filter((ctn) =>
+				ctn.Name.startsWith(`/${serviceName}`),
+			)[0];
+
+			const { StartedAt: startedAt } = State;
+
+			const isRestartSuccessful = (ctns: Docker.ContainerInspectInfo[]) =>
+				ctns.some(
+					(ctn) =>
+						ctn.Name.startsWith(`/${serviceName}`) &&
+						ctn.State.StartedAt !== startedAt,
+				);
 
 			// Calling actions.executeServiceAction directly doesn't work
 			// because it relies on querying target state of the balena-supervisor
@@ -543,10 +553,12 @@ describe('manages application lifecycle', () => {
 			// containers have been restarted, but verify explcitly with an assertion
 			expect(isRestartSuccessful(restartedContainers)).to.be.true;
 
-			// Containers should have different Ids since they're recreated
-			expect(restartedContainers.map(({ Id }) => Id)).to.not.have.members(
-				containers.map((ctn) => ctn.Id),
-			);
+			// One container should have the same Id as before the restart call, since
+			// it wasn't restarted.
+			const sharedIds = restartedContainers
+				.map(({ Id }) => Id)
+				.filter((id) => containers.some((ctn) => ctn.Id === id));
+			expect(sharedIds.length).to.equal(1);
 		});
 
 		it('should stop a running service', async () => {
