@@ -60,9 +60,6 @@ services:
     environment:
       DOCKER_TLS_CERTDIR: ''
     command: --tls=false # --debug
-    tmpfs:
-    # Prevent dind creating a bunch of anonymous volumes on host
-      - /var/lib/docker
 
   sut:
     # Build the supervisor code for development and testing
