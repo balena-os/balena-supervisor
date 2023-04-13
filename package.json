@@ -135,7 +135,7 @@
     "tsconfig-paths": "^4.1.0",
     "typed-error": "^3.2.1",
     "typescript": "^4.8.4",
-    "webpack": "^5.74.0",
+    "webpack": "^5.76.0",
     "webpack-cli": "^4.10.0",
     "winston": "^3.3.3",
     "yargs": "^15.4.1"
