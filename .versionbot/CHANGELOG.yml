@@ -1,4 +1,21 @@
 - commits:
+    - subject: Remove anonymous build volume from Dockerfile
+      hash: a3675651898f050eaefce0a9c4e02890ddc57b57
+      body: |
+        We don't need this anonymous volume as /data is bind mounted into
+        the container from host (legacy), and will soon be mounted by the
+        Supervisor itself on startup.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.10.5
+  title: ""
+  date: 2023-04-13T21:01:21.133Z
+- commits:
     - subject: Log uncaught promise exceptions on the app entry
       hash: 676464142690da2e36a810cb35e4ea4d0d751636
       body: >
