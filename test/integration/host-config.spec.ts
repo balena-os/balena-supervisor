@@ -122,15 +122,8 @@ describe('host-config', () => {
 	it('patches hostname', async () => {
 		await hostConfig.patch({ network: { hostname: 'test' } });
 		// /etc/hostname isn't changed until the balena-hostname service
-		// is restarted through dbus, so we verify the change from config.
+		// is restarted by the OS.
 		expect(await config.get('hostname')).to.equal('test');
-	});
-
-	it('skips restarting hostname services if they are part of config-json.target', async () => {
-		(dbus.servicePartOf as SinonStub).resolves('config-json.target');
-		await hostConfig.patch({ network: { hostname: 'newdevice' } });
-		expect(dbus.restartService as SinonStub).to.not.have.been.called;
-		expect(await config.get('hostname')).to.equal('newdevice');
 	});
 
 	it('patches proxy', async () => {

@@ -185,22 +185,10 @@ async function readHostname() {
 }
 
 async function setHostname(val: string) {
+	// Changing the hostname on config.json will trigger
+	// the OS config-json service to restart the necessary services
+	// so the change gets reflected on containers
 	await config.set({ hostname: val });
-
-	// restart balena-hostname if it is loaded and NOT PartOf config-json.target
-	if (
-		(
-			await Promise.any([
-				dbus.servicePartOf('balena-hostname'),
-				dbus.servicePartOf('resin-hostname'),
-			])
-		).includes('config-json.target') === false
-	) {
-		await Promise.any([
-			dbus.restartService('balena-hostname'),
-			dbus.restartService('resin-hostname'),
-		]);
-	}
 }
 
 export async function get(): Promise<HostConfig> {
