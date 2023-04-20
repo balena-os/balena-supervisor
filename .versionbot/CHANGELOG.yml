@@ -1,4 +1,23 @@
 - commits:
+    - subject: Do not restart balena-hostname on rename
+      hash: 7b68ee4c4f03f464c762afc0b3da06e3f4620440
+      body: |
+        The OS since v2.82.6 will monitor changes to config.json and restart
+        the relevant services to apply the changes. There is no need to trigger
+        restart of the services via the supervisor. Users on older OS versions
+        will need to update their OS or restart the services manually as OS
+        loses support after 2y.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#2160"
+        closes: "#2160"
+      author: Felipe Lalanne
+      nested: []
+  version: 14.10.6
+  title: ""
+  date: 2023-04-20T18:25:01.001Z
+- commits:
     - subject: Remove anonymous build volume from Dockerfile
       hash: a3675651898f050eaefce0a9c4e02890ddc57b57
       body: |
