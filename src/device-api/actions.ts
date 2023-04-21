@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import { getGlobalApiKey, refreshKey } from '.';
@@ -8,10 +7,7 @@ import * as deviceState from '../device-state';
 import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
-import { App } from '../compose/app';
 import * as applicationManager from '../compose/application-manager';
-import * as serviceManager from '../compose/service-manager';
-import * as volumeManager from '../compose/volume-manager';
 import {
 	CompositionStepAction,
 	generateStep,
@@ -28,8 +24,6 @@ import {
 	NotFoundError,
 	BadRequestError,
 } from '../lib/errors';
-
-import { InstancedDeviceState } from '../types';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -103,97 +97,26 @@ export const doRestart = async (appId: number, force: boolean = false) => {
 				`Application with ID ${appId} is not in the current state`,
 			);
 		}
-		const { services } = currentState.local.apps?.[appId];
-		applicationManager.clearTargetVolatileForServices(
-			services.map((svc) => svc.imageId),
-		);
+		const app = currentState.local.apps[appId];
+		const services = app.services;
+		app.services = [];
 
-		return deviceState.pausingApply(async () => {
-			for (const service of services) {
-				await serviceManager.kill(service, { wait: true });
-				await serviceManager.start(service);
-			}
-		});
+		return deviceState
+			.applyIntermediateTarget(currentState, {
+				skipLock: true,
+			})
+			.then(() => {
+				app.services = services;
+				return deviceState.applyIntermediateTarget(currentState, {
+					skipLock: true,
+					keepVolumes: false,
+				});
+			})
+			.finally(() => {
+				deviceState.triggerApplyTarget();
+			});
 	});
 };
-
-/**
- * This doesn't truly return an InstancedDeviceState, but it's close enough to mostly work where it's used
- */
-export function safeStateClone(
-	targetState: InstancedDeviceState,
-): InstancedDeviceState {
-	// We avoid using cloneDeep here, as the class
-	// instances can cause a maximum call stack exceeded
-	// error
-
-	// TODO: This should really return the config as it
-	// is returned from the api, but currently that's not
-	// the easiest thing due to the way they are stored and
-	// retrieved from the db - when all of the application
-	// manager is strongly typed, revisit this. The best
-	// thing to do would be to represent the input with
-	// io-ts and make sure the below conforms to it
-
-	const cloned: DeepPartial<InstancedDeviceState> = {
-		local: {
-			config: {},
-		},
-	};
-
-	if (targetState.local != null) {
-		cloned.local = {
-			name: targetState.local.name,
-			config: _.cloneDeep(targetState.local.config),
-			apps: _.mapValues(targetState.local.apps, safeAppClone),
-		};
-	}
-
-	return cloned as InstancedDeviceState;
-}
-
-export function safeAppClone(app: App): App {
-	const containerIdForService = _.fromPairs(
-		_.map(app.services, (svc) => [
-			svc.serviceName,
-			svc.containerId != null ? svc.containerId.substring(0, 12) : '',
-		]),
-	);
-	return new App(
-		{
-			appId: app.appId,
-			appUuid: app.appUuid,
-			appName: app.appName,
-			commit: app.commit,
-			source: app.source,
-			services: app.services.map((svc) => {
-				// This is a bit of a hack, but when applying the target state as if it's
-				// the current state, this will include the previous containerId as a
-				// network alias. The container ID will be there as Docker adds it
-				// implicitly when creating a container. Here, we remove any previous
-				// container IDs before passing it back as target state. We have to do this
-				// here as when passing it back as target state, the service class cannot
-				// know that the alias being given is not in fact a user given one.
-				// TODO: Make the process of moving from a current state to a target state
-				// well-defined (and implemented in a separate module)
-				const svcCopy = _.cloneDeep(svc);
-
-				_.each(svcCopy.config.networks, (net) => {
-					if (Array.isArray(net.aliases)) {
-						net.aliases = net.aliases.filter(
-							(alias) => alias !== containerIdForService[svcCopy.serviceName],
-						);
-					}
-				});
-				return svcCopy;
-			}),
-			volumes: _.cloneDeep(app.volumes),
-			networks: _.cloneDeep(app.networks),
-			isHost: app.isHost,
-		},
-		true,
-	);
-}
 
 /**
  * Purges volumes for an application.
@@ -218,45 +141,25 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 			);
 		}
 
-		const app = currentState.local.apps?.[appId];
-		/**
-		 * With multi-container, Docker adds an invalid network alias equal to the current containerId
-		 * to that service's network configs when starting a service. Thus when reapplying intermediateState
-		 * after purging, use a cloned state instance which automatically filters out invalid network aliases.
-		 * This will prevent error logs like the following:
-		 * https://gist.github.com/cywang117/84f9cd4e6a9641dbed530c94e1172f1d#file-logs-sh-L58
-		 *
-		 * When networks do not match because of their aliases, services are killed and recreated
-		 * an additional time which is unnecessary. Filtering prevents this additional restart BUT
-		 * it is a stopgap measure until we can keep containerId network aliases from being stored
-		 * in state's service config objects (TODO)
-		 */
-		const clonedState = safeStateClone(currentState);
-		// Set services & volumes as empty to be applied as intermediate state
-		app.services = [];
-		app.volumes = [];
+		const app = currentState.local.apps[appId];
 
-		applicationManager.setIsApplyingIntermediate(true);
+		// Delete the app from the current state
+		delete currentState.local.apps[appId];
 
 		return deviceState
-			.pausingApply(() =>
-				deviceState
-					.applyIntermediateTarget(currentState, { skipLock: true })
-					.then(() => {
-						// Explicitly remove volumes because application-manager won't
-						// remove any volumes that are part of an active application.
-						return Bluebird.each(volumeManager.getAllByAppId(appId), (vol) =>
-							vol.remove(),
-						);
-					})
-					.then(() => {
-						return deviceState.applyIntermediateTarget(clonedState, {
-							skipLock: true,
-						});
-					}),
-			)
+			.applyIntermediateTarget(currentState, {
+				skipLock: true,
+				// Purposely tell the apply function to delete volumes so they can get
+				// deleted even in local mode
+				keepVolumes: false,
+			})
+			.then(() => {
+				currentState.local.apps[appId] = app;
+				return deviceState.applyIntermediateTarget(currentState, {
+					skipLock: true,
+				});
+			})
 			.finally(() => {
-				applicationManager.setIsApplyingIntermediate(false);
 				deviceState.triggerApplyTarget();
 			});
 	})
@@ -264,8 +167,6 @@ export const doPurge = async (appId: number, force: boolean = false) => {
 			logger.logSystemMessage('Purged data', { appId }, 'Purge data success'),
 		)
 		.catch((err) => {
-			applicationManager.setIsApplyingIntermediate(false);
-
 			logger.logSystemMessage(
 				`Error purging data: ${err}`,
 				{ appId, error: err },
@@ -379,11 +280,6 @@ export const executeServiceAction = async ({
 	if (targetService == null) {
 		throw new NotFoundError(messages.targetServiceNotFound);
 	}
-
-	// Set volatile target state
-	applicationManager.setTargetVolatileForService(currentService.imageId, {
-		running: action !== 'stop',
-	});
 
 	// Execute action on service
 	return await executeDeviceAction(

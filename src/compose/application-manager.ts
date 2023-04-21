@@ -57,13 +57,6 @@ const localModeManager = new LocalModeManager();
 export let fetchesInProgress = 0;
 export let timeSpentFetching = 0;
 
-// In the case of intermediate target apply, toggle to true to avoid unintended image deletion
-let isApplyingIntermediate = false;
-
-export function setIsApplyingIntermediate(value: boolean = false) {
-	isApplyingIntermediate = value;
-}
-
 export function resetTimeSpentFetching(value: number = 0) {
 	timeSpentFetching = value;
 }
@@ -88,12 +81,6 @@ const actionExecutors = getExecutors({
 });
 
 export const validActions = Object.keys(actionExecutors);
-
-// Volatile state for a single container. This is used for temporarily setting a
-// different state for a container, such as running: false
-let targetVolatilePerImageId: {
-	[imageId: number]: Partial<Service['config']>;
-} = {};
 
 export const initialized = _.once(async () => {
 	await config.initialized();
@@ -129,17 +116,34 @@ function reportCurrentState(data?: Partial<InstancedAppState>) {
 export async function getRequiredSteps(
 	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
-	ignoreImages: boolean = false,
+	keepImages?: boolean,
+	keepVolumes?: boolean,
 ): Promise<CompositionStep[]> {
 	// get some required data
-	const [downloading, availableImages] = await Promise.all([
-		imageManager.getDownloadingImageNames(),
-		imageManager.getAvailable(),
-	]);
+	const [downloading, availableImages, { localMode, delta }] =
+		await Promise.all([
+			imageManager.getDownloadingImageNames(),
+			imageManager.getAvailable(),
+			config.getMany(['localMode', 'delta']),
+		]);
 	const containerIdsByAppId = getAppContainerIds(currentApps);
 
+	// Local mode sets the image and volume retention only
+	// if not explicitely set by the caller
+	if (keepImages == null) {
+		keepImages = localMode;
+	}
+
+	if (keepVolumes == null) {
+		keepVolumes = localMode;
+	}
+
 	return await inferNextSteps(currentApps, targetApps, {
-		ignoreImages,
+		// Images are not removed while in local mode to avoid removing the user app images
+		keepImages,
+		// Volumes are not removed when stopping an app when going to local mode
+		keepVolumes,
+		delta,
 		downloading,
 		availableImages,
 		containerIdsByAppId,
@@ -151,22 +155,14 @@ export async function inferNextSteps(
 	currentApps: InstancedAppState,
 	targetApps: InstancedAppState,
 	{
-		ignoreImages = false,
+		keepImages = false,
+		keepVolumes = false,
+		delta = true,
 		downloading = [] as string[],
 		availableImages = [] as Image[],
 		containerIdsByAppId = {} as { [appId: number]: Dictionary<string> },
 	} = {},
 ) {
-	// get some required data
-	const [{ localMode, delta }, cleanupNeeded] = await Promise.all([
-		config.getMany(['localMode', 'delta']),
-		imageManager.isCleanupNeeded(),
-	]);
-
-	if (localMode) {
-		ignoreImages = localMode;
-	}
-
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
 	const targetAppIds = Object.keys(targetApps).map((i) => parseInt(i, 10));
 
@@ -182,9 +178,9 @@ export async function inferNextSteps(
 			steps.push({ action: 'ensureSupervisorNetwork' });
 		}
 	} else {
-		if (!localMode && downloading.length === 0 && !isApplyingIntermediate) {
+		if (downloading.length === 0) {
 			// Avoid cleaning up dangling images while purging
-			if (cleanupNeeded) {
+			if (!keepImages && (await imageManager.isCleanupNeeded())) {
 				steps.push({ action: 'cleanup' });
 			}
 
@@ -196,7 +192,7 @@ export async function inferNextSteps(
 					currentApps,
 					targetApps,
 					availableImages,
-					localMode,
+					keepImages,
 				),
 			);
 		}
@@ -213,7 +209,6 @@ export async function inferNextSteps(
 				steps = steps.concat(
 					currentApps[id].nextStepsForAppUpdate(
 						{
-							localMode,
 							availableImages,
 							containerIds: containerIdsByAppId[id],
 							downloading,
@@ -227,7 +222,7 @@ export async function inferNextSteps(
 			for (const id of onlyCurrent) {
 				steps = steps.concat(
 					await currentApps[id].stepsToRemoveApp({
-						localMode,
+						keepVolumes,
 						downloading,
 						containerIds: containerIdsByAppId[id],
 					}),
@@ -250,7 +245,6 @@ export async function inferNextSteps(
 				steps = steps.concat(
 					emptyCurrent.nextStepsForAppUpdate(
 						{
-							localMode,
 							availableImages,
 							containerIds: containerIdsByAppId[id] ?? {},
 							downloading,
@@ -263,7 +257,7 @@ export async function inferNextSteps(
 	}
 
 	const newDownloads = steps.filter((s) => s.action === 'fetch').length;
-	if (!ignoreImages && delta && newDownloads > 0) {
+	if (delta && newDownloads > 0) {
 		// Check that this is not the first pull for an
 		// application, as we want to download all images then
 		// Otherwise we want to limit the downloading of
@@ -290,7 +284,7 @@ export async function inferNextSteps(
 		});
 	}
 
-	if (!ignoreImages && steps.length === 0 && downloading.length > 0) {
+	if (steps.length === 0 && downloading.length > 0) {
 		// We want to keep the state application alive
 		steps.push(generateStep('noop', {}));
 	}
@@ -321,6 +315,8 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 		await volumeManager.getAll(),
 	);
 
+	const images = await imageManager.getState();
+
 	const apps: InstancedAppState = {};
 	for (const strAppId of Object.keys(componentGroups)) {
 		const appId = parseInt(strAppId, 10);
@@ -346,12 +342,23 @@ export async function getCurrentApps(): Promise<InstancedAppState> {
 			!_.isEmpty(components.volumes) ||
 			!_.isEmpty(components.networks)
 		) {
+			const services = componentGroups[appId].services.map((s) => {
+				// We get the image metadata from the image database because we cannot
+				// get it from the container itself
+				const imageForService = images.find(
+					(img) => img.serviceName === s.serviceName && img.commit === s.commit,
+				);
+
+				s.imageName = imageForService?.name ?? s.imageName;
+				return s;
+			});
+
 			apps[appId] = new App(
 				{
 					appId,
 					appUuid: uuid,
 					commit,
-					services: componentGroups[appId].services,
+					services,
 					networks: componentGroups[appId].networks,
 					volumes: componentGroups[appId].volumes,
 				},
@@ -480,7 +487,9 @@ function killServicesUsingApi(current: InstancedAppState): CompositionStep[] {
 	return steps;
 }
 
-// TODO: deprecate this method. Application changes should use intermediate targets
+// this method is meant to be used only by device-state for applying the
+// target state and not by other modules. Application changes should use
+// intermediate targets to perform changes
 export async function executeStep(
 	step: CompositionStep,
 	{ force = false, skipLock = false } = {},
@@ -501,7 +510,6 @@ export async function executeStep(
 	} as any);
 }
 
-// FIXME: This shouldn't be in this module
 export async function setTarget(
 	apps: TargetApps,
 	source: string,
@@ -577,53 +585,13 @@ export async function setTarget(
 		promise = transaction((trx) => setInTransaction(filteredApps, trx));
 	}
 	await promise;
-	targetVolatilePerImageId = {};
 	if (!_.isEmpty(contractViolators)) {
 		throw new ContractViolationError(contractViolators);
 	}
 }
 
 export async function getTargetApps(): Promise<TargetApps> {
-	const apps = await dbFormat.getTargetJson();
-
-	// Whilst it may make sense here to return the target state generated from the
-	// internal instanced representation that we have, we make irreversable
-	// changes to the input target state to avoid having undefined entries into
-	// the instances throughout the supervisor. The target state is derived from
-	// the database entries anyway, so these two things should never be different
-	// (except for the volatile state)
-	//
-	_.each(apps, (app) =>
-		// There should only be a single release but is a simpler option
-		_.each(app.releases, (release) => {
-			if (!_.isEmpty(release.services)) {
-				release.services = _.mapValues(release.services, (svc) => {
-					if (svc.image_id && targetVolatilePerImageId[svc.image_id] != null) {
-						return { ...svc, ...targetVolatilePerImageId };
-					}
-					return svc;
-				});
-			}
-		}),
-	);
-
-	return apps;
-}
-
-export function setTargetVolatileForService(
-	imageId: number,
-	target: Partial<Service['config']>,
-) {
-	if (targetVolatilePerImageId[imageId] == null) {
-		targetVolatilePerImageId = {};
-	}
-	targetVolatilePerImageId[imageId] = target;
-}
-
-export function clearTargetVolatileForServices(imageIds: number[]) {
-	for (const imageId of imageIds) {
-		targetVolatilePerImageId[imageId] = {};
-	}
+	return await dbFormat.getTargetJson();
 }
 
 /**
@@ -683,7 +651,7 @@ function saveAndRemoveImages(
 	current: InstancedAppState,
 	target: InstancedAppState,
 	availableImages: imageManager.Image[],
-	localMode: boolean,
+	skipRemoval: boolean,
 ): CompositionStep[] {
 	type ImageWithoutID = Omit<imageManager.Image, 'dockerImageId' | 'id'>;
 
@@ -744,9 +712,9 @@ function saveAndRemoveImages(
 	);
 
 	// Images that are available but we don't have them in the DB with the exact metadata:
-	let imagesToSave: imageManager.Image[] = [];
-	if (!localMode) {
-		imagesToSave = _.filter(targetImages, (targetImage) => {
+	const imagesToSave: imageManager.Image[] = _.filter(
+		targetImages,
+		(targetImage) => {
 			const isActuallyAvailable = _.some(availableImages, (availableImage) => {
 				// There is an image with same image name or digest
 				// on the database
@@ -777,8 +745,8 @@ function saveAndRemoveImages(
 				(isActuallyAvailable && isNotSaved) ||
 				(!isActuallyAvailable && isAvailableOnTheEngine)
 			);
-		});
-	}
+		},
+	);
 
 	// Find images that will be be used as delta sources. Any existing image for the
 	// same app service is considered a delta source unless the target service has set
@@ -798,9 +766,9 @@ function saveAndRemoveImages(
 		.map((img) => bestDeltaSource(img, availableImages))
 		.filter((img) => img != null);
 
-	const imagesToRemove = availableAndUnused.filter(
-		(image) => !deltaSources.includes(image.name),
-	);
+	const imagesToRemove = skipRemoval
+		? []
+		: availableAndUnused.filter((image) => !deltaSources.includes(image.name));
 
 	return imagesToSave
 		.map((image) => ({ action: 'saveImage', image } as CompositionStep))

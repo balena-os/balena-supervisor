@@ -258,10 +258,7 @@ export function getExecutors(app: {
 			await images.save(step.image);
 		},
 		cleanup: async () => {
-			const localMode = await config.get('localMode');
-			if (!localMode) {
-				await images.cleanup();
-			}
+			await images.cleanup();
 		},
 		createNetwork: async (step) => {
 			await networkManager.create(step.target);

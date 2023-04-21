@@ -705,6 +705,30 @@ describe('compose/application-manager', () => {
 		expect(steps.filter((s) => s.action === 'removeVolume')).to.not.be.empty;
 	});
 
+	it('should remove volumes from previous applications except if keepVolumes is set', async () => {
+		const targetApps = createApps({ networks: [DEFAULT_NETWORK] }, true);
+		const { currentApps, availableImages, downloading, containerIdsByAppId } =
+			createCurrentState({
+				services: [],
+				networks: [],
+				// Volume with different id
+				volumes: [Volume.fromComposeObject('test-volume', 2, 'deadbeef')],
+			});
+
+		const steps = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				keepVolumes: true,
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+			},
+		);
+
+		expect(steps.filter((s) => s.action === 'removeVolume')).to.be.empty;
+	});
+
 	it('should infer that we need to create the supervisor network if it does not exist', async () => {
 		const docker = new Docker();
 		await docker.getNetwork('supervisor0').remove();
@@ -874,6 +898,54 @@ describe('compose/application-manager', () => {
 			.that.deep.includes({ name: 'old-image' });
 	});
 
+	it('should infer that an image should be removed if it is no longer referenced in current or target state (only target) unless keepImages is true', async () => {
+		const targetApps = createApps(
+			{
+				services: [
+					await createService(
+						{ image: 'main-image' },
+						// Target has a matching image already
+						{ options: { imageInfo: { Id: 'sha256:bbbb' } } },
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+			},
+			true,
+		);
+		const { currentApps, availableImages, downloading, containerIdsByAppId } =
+			createCurrentState({
+				services: [],
+				networks: [DEFAULT_NETWORK],
+				images: [
+					// An image for a service that no longer exists
+					createImage({
+						name: 'old-image',
+						appId: 5,
+						serviceName: 'old-service',
+						dockerImageId: 'sha256:aaaa',
+					}),
+					createImage({
+						name: 'main-image',
+						appId: 1,
+						serviceName: 'main',
+						dockerImageId: 'sha256:bbbb',
+					}),
+				],
+			});
+
+		const steps = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				keepImages: true,
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+			},
+		);
+		expect(steps.filter((s) => s.action === 'removeImage')).to.be.empty;
+	});
+
 	it('should infer that an image should be removed if it is no longer referenced in current or target state (only current)', async () => {
 		const targetApps = createApps(
 			{
@@ -926,6 +998,54 @@ describe('compose/application-manager', () => {
 		expect(removeImageStep)
 			.to.have.property('image')
 			.that.deep.includes({ name: 'old-image' });
+	});
+
+	it('should infer that an image should be removed if it is no longer referenced in current or target state (only current) unless keepImages is true', async () => {
+		const targetApps = createApps(
+			{
+				services: [],
+				networks: [DEFAULT_NETWORK],
+			},
+			true,
+		);
+		const { currentApps, availableImages, downloading, containerIdsByAppId } =
+			createCurrentState({
+				services: [
+					await createService(
+						{ image: 'main-image' },
+						// Target has a matching image already
+						{ options: { imageInfo: { Id: 'sha256:bbbb' } } },
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+				images: [
+					// An image for a service that no longer exists
+					createImage({
+						name: 'old-image',
+						appId: 5,
+						serviceName: 'old-service',
+						dockerImageId: 'sha256:aaaa',
+					}),
+					createImage({
+						name: 'main-image',
+						appId: 1,
+						serviceName: 'main',
+						dockerImageId: 'sha256:bbbb',
+					}),
+				],
+			});
+
+		const steps = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				keepImages: true,
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+			},
+		);
+		expect(steps.filter((s) => s.action === 'removeImage')).to.be.empty;
 	});
 
 	it('should infer that an image should be saved if it is not in the available image list but it can be found on disk', async () => {

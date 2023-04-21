@@ -24,7 +24,10 @@ export class Network {
 
 	private constructor() {}
 
-	private static deconstructDockerName(name: string): {
+	private static deconstructDockerName(
+		name: string,
+		appId?: number,
+	): {
 		name: string;
 		appId?: number;
 		appUuid?: string;
@@ -41,7 +44,14 @@ export class Network {
 			return { name: matchWithAppUuid[2], appUuid };
 		}
 
-		const appId = parseInt(matchWithAppId[1], 10);
+		// If the appId is provided, then it was already available
+		// as a label, which means that the appUuid is the first match
+		// even if it is numeric only
+		if (appId != null && !isNaN(appId)) {
+			return { name: matchWithAppId[2], appUuid: matchWithAppId[1], appId };
+		}
+
+		appId = parseInt(matchWithAppId[1], 10);
 		if (isNaN(appId)) {
 			throw new InvalidNetworkNameError(name);
 		}
@@ -55,12 +65,13 @@ export class Network {
 	public static fromDockerNetwork(network: NetworkInspectInfo): Network {
 		const ret = new Network();
 
+		const labels = network.Labels ?? {};
 		// Detect the name and appId from the inspect data
 		const { name, appId, appUuid } = Network.deconstructDockerName(
 			network.Name,
+			parseInt(labels['io.balena.app-id'], 10),
 		);
 
-		const labels = network.Labels ?? {};
 		if (!appId && isNaN(parseInt(labels['io.balena.app-id'], 10))) {
 			// This should never happen as supervised networks will always have either
 			// the id or the label

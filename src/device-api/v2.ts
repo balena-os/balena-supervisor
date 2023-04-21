@@ -291,8 +291,7 @@ router.get(
 );
 
 router.get('/v2/local/target-state', async (_req, res) => {
-	const targetState = await deviceState.getTarget();
-	const target = actions.safeStateClone(targetState);
+	const target = await deviceState.getTarget();
 
 	res.status(200).json({
 		status: 'success',

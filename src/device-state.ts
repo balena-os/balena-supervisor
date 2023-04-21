@@ -555,6 +555,8 @@ export async function shutdown({
 	});
 }
 
+// FIXME: this method should not be exported, all target state changes
+// should happen via intermediate targets
 export async function executeStepAction(
 	step: DeviceStateStep<PossibleStepTargets>,
 	{
@@ -671,6 +673,7 @@ export const applyTarget = async ({
 	skipLock = false,
 	nextDelay = 200,
 	retryCount = 0,
+	keepVolumes = undefined as boolean | undefined,
 } = {}) => {
 	if (!intermediate) {
 		await applyBlocker;
@@ -701,6 +704,11 @@ export const applyTarget = async ({
 			const appSteps = await applicationManager.getRequiredSteps(
 				currentState.local.apps,
 				targetState.local.apps,
+				// Do not remove images while applying an intermediate state
+				// if not applying intermediate, we let getRequired steps set
+				// the value
+				intermediate || undefined,
+				keepVolumes,
 			);
 
 			if (_.isEmpty(appSteps)) {
@@ -758,6 +766,7 @@ export const applyTarget = async ({
 				skipLock,
 				nextDelay,
 				retryCount,
+				keepVolumes,
 			});
 		} catch (e: any) {
 			if (e instanceof UpdatesLockedError) {
@@ -776,7 +785,7 @@ export const applyTarget = async ({
 	});
 };
 
-export function pausingApply(fn: () => any) {
+function pausingApply(fn: () => any) {
 	const lock = () => {
 		return writeLock('pause').disposer((release) => release());
 	};
@@ -858,13 +867,24 @@ export function triggerApplyTarget({
 	return null;
 }
 
-export function applyIntermediateTarget(
+export async function applyIntermediateTarget(
 	intermediate: InstancedDeviceState,
-	{ force = false, skipLock = false } = {},
+	{
+		force = false,
+		skipLock = false,
+		keepVolumes = undefined as boolean | undefined,
+	} = {},
 ) {
-	// TODO: Make sure we don't accidentally overwrite this
-	intermediateTarget = intermediate;
-	return applyTarget({ intermediate: true, force, skipLock }).then(() => {
-		intermediateTarget = null;
+	return pausingApply(async () => {
+		// TODO: Make sure we don't accidentally overwrite this
+		intermediateTarget = intermediate;
+		return applyTarget({
+			intermediate: true,
+			force,
+			skipLock,
+			keepVolumes,
+		}).then(() => {
+			intermediateTarget = null;
+		});
 	});
 }

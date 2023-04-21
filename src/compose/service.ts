@@ -515,6 +515,7 @@ export class Service {
 		if (_.get(container, 'NetworkSettings.Networks', null) != null) {
 			networks = ComposeUtils.dockerNetworkToServiceNetwork(
 				container.NetworkSettings.Networks,
+				svc.containerId,
 			);
 		}
 
@@ -1073,20 +1074,17 @@ export class Service {
 			if (current.aliases == null) {
 				sameNetwork = false;
 			} else {
-				// Take out the container id from both aliases, as it *will* be present
-				// in a currently running container, and can also be present in the target
-				// for example when doing a start-service
-				// Also sort the aliases, so we can do a simple comparison
 				const [currentAliases, targetAliases] = [
 					current.aliases,
 					target.aliases,
-				].map((aliases) =>
-					_.sortBy(
-						aliases.filter((a) => !_.startsWith(this.containerId || '', a)),
-					),
-				);
+				];
 
-				sameNetwork = _.isEqual(currentAliases, targetAliases);
+				// Docker may add keep old container ids as aliases for a specific service after
+				// restarts, this means that the target aliases really needs to be a subset of the
+				// current aliases to prevent service restarts when re-applying the same target state
+				sameNetwork =
+					_.intersection(currentAliases, targetAliases).length ===
+					targetAliases.length;
 			}
 		}
 		if (target.ipv4Address != null) {
