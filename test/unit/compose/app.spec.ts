@@ -681,6 +681,70 @@ describe('compose/app', () => {
 			expectNoStep('removeNetwork', steps);
 		});
 
+		it('should kill dependencies of networks before updating between releases', async () => {
+			const current = createApp({
+				services: [
+					await createService({
+						image: 'alpine',
+						serviceName: 'one',
+						commit: 'deadbeef',
+						composition: { command: 'sleep infinity', networks: ['default'] },
+					}),
+					await createService({
+						image: 'alpine',
+						serviceName: 'two',
+						commit: 'deadbeef',
+						composition: { command: 'sleep infinity', networks: ['default'] },
+					}),
+				],
+				networks: [Network.fromComposeObject('default', 1, 'appuuid', {})],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						image: 'alpine',
+						serviceName: 'one',
+						commit: 'deadca1f',
+						composition: { command: 'sleep infinity', networks: ['default'] },
+					}),
+					await createService({
+						image: 'alpine',
+						serviceName: 'two',
+						commit: 'deadca1f',
+						composition: {
+							command: 'sh -c "echo two && sleep infinity"',
+							networks: ['default'],
+						},
+					}),
+				],
+				networks: [
+					Network.fromComposeObject('default', 1, 'appuuid', {
+						labels: { test: 'test' },
+					}),
+				],
+				isTarget: true,
+			});
+
+			const availableImages = [
+				createImage({ appId: 1, serviceName: 'one', name: 'alpine' }),
+				createImage({ appId: 1, serviceName: 'two', name: 'alpine' }),
+			];
+
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages },
+				target,
+			);
+			expectSteps('kill', steps, 2);
+
+			expect(steps.map((s) => (s as any).current.serviceName)).to.have.members([
+				'one',
+				'two',
+			]);
+
+			// We shouldn't try to remove the network until we have gotten rid of the dependencies
+			expectNoStep('removeNetwork', steps);
+		});
+
 		it('should create the default network if it does not exist', () => {
 			const current = createApp({ networks: [] });
 			const target = createApp({ networks: [], isTarget: true });
