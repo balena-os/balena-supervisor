@@ -150,7 +150,7 @@ export class App {
 				.map((pair) =>
 					this.generateStepsForService(pair, {
 						...state,
-						servicePairs: installPairs.concat(updatePairs),
+						servicePairs,
 						targetApp: target,
 						networkPairs: networkChanges,
 						volumePairs: volumeChanges,
@@ -528,10 +528,7 @@ export class App {
 			return generateStep('noop', {});
 		}
 
-		if (target && current?.isEqualConfig(target, context.containerIds)) {
-			// we're only starting/stopping a service
-			return this.generateContainerStep(current, target);
-		} else if (current == null) {
+		if (current == null) {
 			// Either this is a new service, or the current one has already been killed
 			return this.generateFetchOrStartStep(
 				target!,
@@ -548,11 +545,20 @@ export class App {
 					'An empty changing pair passed to generateStepsForService',
 				);
 			}
+
 			const needsSpecialKill = this.serviceHasNetworkOrVolume(
 				current,
 				context.networkPairs,
 				context.volumePairs,
 			);
+
+			if (
+				!needsSpecialKill &&
+				current.isEqualConfig(target, context.containerIds)
+			) {
+				// we're only starting/stopping a service
+				return this.generateContainerStep(current, target);
+			}
 
 			let strategy =
 				checkString(target.config.labels['io.balena.update.strategy']) || '';
