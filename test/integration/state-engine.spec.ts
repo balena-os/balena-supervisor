@@ -134,6 +134,118 @@ describe('state engine', () => {
 		]);
 	});
 
+	// This test recovery from issue #1576, where a device running a service from the target release
+	// would not stop the service even if there were still network and container changes to be applied
+	it('always stops running services depending on a network being changed', async () => {
+		// Install part of the target release
+		await setTargetState({
+			config: {},
+			apps: {
+				'123': {
+					name: 'test-app',
+					commit: 'deadca1f',
+					releaseId: 2,
+					services: {
+						'1': {
+							image: 'alpine:latest',
+							imageId: 21,
+							serviceName: 'one',
+							restart: 'unless-stopped',
+							running: true,
+							command: 'sleep infinity',
+							stop_signal: 'SIGKILL',
+							labels: {},
+							environment: {},
+						},
+					},
+					networks: {},
+					volumes: {},
+				},
+			},
+		});
+
+		const state = await getCurrentState();
+		expect(
+			state.apps['123'].services.map((s: any) => s.serviceName),
+		).to.deep.equal(['one']);
+
+		const containers = await docker.listContainers();
+		expect(
+			containers.map(({ Names, State }) => ({ Name: Names[0], State })),
+		).to.have.deep.members([{ Name: '/one_21_2_deadca1f', State: 'running' }]);
+		const containerIds = containers.map(({ Id }) => Id);
+
+		await setTargetState({
+			config: {},
+			apps: {
+				'123': {
+					name: 'test-app',
+					commit: 'deadca1f',
+					releaseId: 2,
+					services: {
+						'1': {
+							image: 'alpine:latest',
+							imageId: 21,
+							serviceName: 'one',
+							restart: 'unless-stopped',
+							running: true,
+							command: 'sleep infinity',
+							stop_signal: 'SIGKILL',
+							networks: ['default'],
+							labels: {},
+							environment: {},
+						},
+						'2': {
+							image: 'alpine:latest',
+							imageId: 22,
+							serviceName: 'two',
+							restart: 'unless-stopped',
+							running: true,
+							command: 'sh -c "echo two && sleep infinity"',
+							stop_signal: 'SIGKILL',
+							networks: ['default'],
+							labels: {},
+							environment: {},
+						},
+					},
+					networks: {
+						default: {
+							driver: 'bridge',
+							ipam: {
+								config: [
+									{ gateway: '192.168.91.1', subnet: '192.168.91.0/24' },
+								],
+								driver: 'default',
+							},
+						},
+					},
+					volumes: {},
+				},
+			},
+		});
+
+		const updatedContainers = await docker.listContainers();
+		expect(
+			updatedContainers.map(({ Names, State }) => ({ Name: Names[0], State })),
+		).to.have.deep.members([
+			{ Name: '/one_21_2_deadca1f', State: 'running' },
+			{ Name: '/two_22_2_deadca1f', State: 'running' },
+		]);
+
+		// Container ids must have changed
+		expect(updatedContainers.map(({ Id }) => Id)).to.not.have.members(
+			containerIds,
+		);
+
+		expect(await docker.getNetwork('123_default').inspect())
+			.to.have.property('IPAM')
+			.to.deep.equal({
+				Config: [{ Gateway: '192.168.91.1', Subnet: '192.168.91.0/24' }],
+				Driver: 'default',
+				Options: {},
+			});
+	});
+
 	it('updates an app with two services with a network change', async () => {
 		await setTargetState({
 			config: {},

@@ -639,8 +639,12 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const availableImages = [createImage({ appUuid: 'deadbeef' })];
 
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages },
+				target,
+			);
 			const [killStep] = expectSteps('kill', steps);
 			expect(killStep)
 				.to.have.property('current')
@@ -676,6 +680,65 @@ describe('compose/app', () => {
 			expect(killStep)
 				.to.have.property('current')
 				.that.deep.includes({ serviceName: 'test' });
+
+			// We shouldn't try to remove the network until we have gotten rid of the dependencies
+			expectNoStep('removeNetwork', steps);
+		});
+
+		it('should always kill dependencies of networks before removing', async () => {
+			const current = createApp({
+				services: [
+					// The device for some reason is already running some services
+					// of the new release, but we need to kill it anyways
+					await createService({
+						image: 'alpine',
+						serviceName: 'one',
+						commit: 'deadca1f',
+						composition: { command: 'sleep infinity', networks: ['default'] },
+					}),
+				],
+				networks: [Network.fromComposeObject('default', 1, 'appuuid', {})],
+			});
+			const target = createApp({
+				services: [
+					await createService({
+						image: 'alpine',
+						serviceName: 'one',
+						commit: 'deadca1f',
+						composition: { command: 'sleep infinity', networks: ['default'] },
+					}),
+					await createService({
+						image: 'alpine',
+						serviceName: 'two',
+						commit: 'deadca1f',
+						composition: {
+							command: 'sh -c "echo two && sleep infinity"',
+							networks: ['default'],
+						},
+					}),
+				],
+				networks: [
+					Network.fromComposeObject('default', 1, 'appuuid', {
+						labels: { test: 'test' },
+					}),
+				],
+				isTarget: true,
+			});
+
+			const availableImages = [
+				createImage({ appId: 1, serviceName: 'one', name: 'alpine' }),
+				createImage({ appId: 1, serviceName: 'two', name: 'alpine' }),
+			];
+
+			const steps = current.nextStepsForAppUpdate(
+				{ ...defaultContext, availableImages },
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps);
+
+			expect(killStep)
+				.to.have.property('current')
+				.that.deep.includes({ serviceName: 'one' });
 
 			// We shouldn't try to remove the network until we have gotten rid of the dependencies
 			expectNoStep('removeNetwork', steps);
