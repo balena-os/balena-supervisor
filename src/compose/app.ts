@@ -607,7 +607,7 @@ export class App {
 			service.status !== 'Stopping' &&
 			!_.some(
 				changingServices,
-				({ current }) => current?.serviceName !== service.serviceName,
+				({ current }) => current?.serviceName === service.serviceName,
 			)
 		) {
 			return [generateStep('kill', { current: service })];
