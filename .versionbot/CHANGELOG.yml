@@ -1,4 +1,83 @@
 - commits:
+    - subject: Fix service comparison when creating component steps
+      hash: 5fdd689590d048685cc11e32a14ccf7faf3887ee
+      body: |
+        A bug in service comparison would make it that a device already running
+        a service from a new release with network changes would never stop the
+        running service so remaining services would forever get stuck in
+        `Downloaded` state.
+
+        This fixes the comparison so the service will get killed in this case,
+        particularly allowing devices to recover from #1576
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: "Create tests with recovery from #1576"
+      hash: 7b8b187c749c3390243b2246ba20d60ccc40db1f
+      body: |
+        Devices affected by the bug described in 1576, are also stuck with some
+        services in the `Downloaded` state, because the state engine does not
+        detect that the running services should be killed on a network change
+        even if they belong to a new release. This is a bug, which can be
+        replicated by the tests in this commit
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Skip updateMetadata step if there are network changes
+      hash: 7aecaae8b02832afca3d52d233ecf5eaa8fa9ab8
+      body: |
+        Previous behavior would make it that an `updateMetadata` step would take
+        precedence over a `kill` step when network changes are present. This
+        would lead to an inconsistent state if an update included a
+        network and a container change.
+      footer:
+        Closes: "#1576"
+        closes: "#1576"
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Add replication of issue using unit tests
+      hash: 0a358a4463717b53c3619432781a0ab568fb74c1
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Add integration tests for state-engine
+      hash: 138aec5de418c7673285303d66d35b8cea43e4a8
+      body: |
+        These tests use the supervisor API to check that applying a target state
+        allows the device to eventually get to the desired target configuration.
+
+        This are high-level tests that work with real images and containers
+        using dind.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Do not pass auth to images with no registry
+      hash: c1207cbbff836f99fadb33dd5cf65baa2da0ecf8
+      body: |
+        The supervisor allows the target image to be an image without a
+        registry (e.g. `alpine:latest`), while this really only happens while in
+        local mode, we don't want to pass credentials to the default registry as
+        those credentials are meant for balena registry and will otherwise fail.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.10.8
+  title: ""
+  date: 2023-04-26T18:49:41.754Z
+- commits:
     - subject: Remove safeStateClone function
       hash: 6c031299d686cca9bb89f950b105ab5bf62fae97
       body: |
@@ -933,7 +1012,8 @@
     - subject: Move definition of maxReportFrequency to the reporting file
       hash: c67429f3e11158335a780778e04b2a94a5623788
       body: >
-        Narrows scope to where it is used, like the new maxMetricsFrequency value.
+        Narrows scope to where it is used, like the new maxMetricsFrequency
+        value.
       footer:
         Change-type: patch
         change-type: patch
@@ -1658,7 +1738,8 @@
     - subject: Fix filtering of the supervisor app on the target state
       hash: 5a57647450aa594b7112da01b9d2fc89885b6fae
       body: >
-        Under some conditions, an aarch64 device may get a reference to a armv7hf
+        Under some conditions, an aarch64 device may get a reference to a
+        armv7hf
 
         supervisor on the target state. One of the ways this can happen is if
 
@@ -1840,7 +1921,8 @@
     - subject: Wait for Stopping services to stop before target apply success
       hash: 12b67742c8091280c2e74e97a7c7392021db542f
       body: >
-        This mitigates an edge case bug introduced in v13.1.3 where services that
+        This mitigates an edge case bug introduced in v13.1.3 where services
+        that
 
         are slow to exit may get stuck in a state of Downloaded if a service var is
 
@@ -1974,8 +2056,8 @@
         containers
       hash: ca140639c6a2b5f9f5a2e69b5611bb3902b78c18
       body: >
-        There is no functionality which 1) stores the filesystem lock status when
-        toggling override
+        There is no functionality which 1) stores the filesystem lock status
+        when toggling override
 
         to on, and 2) restore the system to that status when toggling override to off.
       footer:
@@ -2007,7 +2089,8 @@
     - subject: Read hostname from config.json with container /etc/hostname as backup
       hash: a7a0821a3e23142265904806df5d0a6ecd2ed4b5
       body: >
-        We don't need to read the host's hostname through /mnt/root/etc/hostname,
+        We don't need to read the host's hostname through
+        /mnt/root/etc/hostname,
 
         because the hostname is written to config.json on a change. When the hostname
 
@@ -2307,8 +2390,8 @@
     - subject: Explain /v2/state/status's status field in its response
       hash: 27249c278555c46154d1e917e769dd3fb9d2dcfc
       body: >
-        The status field does not indicate the current state of the Engine on the
-        device.
+        The status field does not indicate the current state of the Engine on
+        the device.
 
         Rather, it only indicates whether the HTTP response returned successfully or not.
 
@@ -2342,8 +2425,8 @@
     - subject: Add lockfile binary and internal lib for interfacing with it
       hash: 51e63ea22b876580de276808eca891ff6ab2a6c5
       body: >
-        The linked issue describes the Supervisor not cleaning up locks it creates
-        due
+        The linked issue describes the Supervisor not cleaning up locks it
+        creates due
 
         to crashing at just the wrong time. After internal discussion we decided to
 
@@ -3039,8 +3122,8 @@
     - subject: Wait for images to be ready before moving between releases
       hash: 7aedc97ee185953a3068ce3ef9743989e32a75b2
       body: >
-        For download-then-kill strategy, this waits for all changing images on the
-        target
+        For download-then-kill strategy, this waits for all changing images on
+        the target
 
         release to be available on device before killing the old services. This
 
@@ -3787,8 +3870,8 @@
     - subject: Bump normalize-url from 4.5.0 to 4.5.1
       hash: ece3be6d4503d15ffbac193479535d35bcd8030c
       body: >
-        Bumps [normalize-url](https://github.com/sindresorhus/normalize-url) from
-        4.5.0 to 4.5.1.
+        Bumps [normalize-url](https://github.com/sindresorhus/normalize-url)
+        from 4.5.0 to 4.5.1.
 
         - [Release notes](https://github.com/sindresorhus/normalize-url/releases)
 
@@ -3958,7 +4041,8 @@
     - subject: Bump lodash from 4.17.20 to 4.17.21
       hash: 90fe8359f10094863cf1940b591cfe46f4de1442
       body: >
-        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.20 to 4.17.21.
+        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.20 to
+        4.17.21.
 
         - [Release notes](https://github.com/lodash/lodash/releases)
 
@@ -4229,7 +4313,8 @@
     - subject: Remove version tag from livepush generated image
       hash: 9c1d10dc318bb7c207608ed197c5713960642af3
       body: >
-        The `start-resin-supervisor` script in newer OS version no longer uses the
+        The `start-resin-supervisor` script in newer OS version no longer uses
+        the
 
         SUPERVISOR_TAG environment variable setup on supervisor.conf and
 
@@ -4621,7 +4706,8 @@
     - subject: Bump elliptic from 6.5.3 to 6.5.4
       hash: f013f04e4d0ab502f87bde263ce3ef6217a84640
       body: >
-        Bumps [elliptic](https://github.com/indutny/elliptic) from 6.5.3 to 6.5.4.
+        Bumps [elliptic](https://github.com/indutny/elliptic) from 6.5.3 to
+        6.5.4.
 
         - [Release notes](https://github.com/indutny/elliptic/releases)
 
@@ -4813,8 +4899,8 @@
     - subject: "patch: bump pretty-ms from 7.0.0 to 7.0.1"
       hash: 8a4369f8dfb5d8e77a022b82f25cbeb18edbf77e
       body: >
-        Bumps [pretty-ms](https://github.com/sindresorhus/pretty-ms) from 7.0.0 to
-        7.0.1.
+        Bumps [pretty-ms](https://github.com/sindresorhus/pretty-ms) from 7.0.0
+        to 7.0.1.
 
         - [Release notes](https://github.com/sindresorhus/pretty-ms/releases)
 
@@ -5788,7 +5874,8 @@
         - commits:
             - author: Paulo Castro
               body: >-
-                The change type is considered 'major' because, by default, errors are
+                The change type is considered 'major' because, by default,
+                errors are
 
                 now thrown for relatively common occurrences such as authentication
 
@@ -6323,7 +6410,8 @@
             - subject: Remove handlebars-helpers to shrink bundle size
               hash: 1305553f48747e0e450c89254790e67674c252b7
               body: >
-                We can re-add specific helpers as necessary without needing to bloat
+                We can re-add specific helpers as necessary without needing to
+                bloat
 
                 with the entirety of the helpers package
               footer:
@@ -6433,7 +6521,8 @@
                 - commits:
                     - author: Juan Cruz Viotti
                       body: >-
-                        This is very similar to the cache class they use by default, with the
+                        This is very similar to the cache class they use by
+                        default, with the
 
                         difference that it has a limit and won't grow indefinitely, causing
 
@@ -6478,7 +6567,8 @@
                 - commits:
                     - author: Lucian Buzzo
                       body: >-
-                        Only match elements with .filter() if the base schema (the schema with no
+                        Only match elements with .filter() if the base schema
+                        (the schema with no
 
                         anyOf branches) matches the element.
                       footers:
@@ -6598,7 +6688,8 @@
                 - commits:
                     - author: Giovanni Garufi
                       body: >-
-                        Merge multiple anyOf subschemas that match into a single one.
+                        Merge multiple anyOf subschemas that match into a single
+                        one.
 
                         Add axioms in test
                       footers:
@@ -6622,7 +6713,8 @@
                 - commits:
                     - author: Juan Cruz Viotti
                       body: >-
-                        This is a hack, and should be reverted once we get to the bottom of it.
+                        This is a hack, and should be reverted once we get to
+                        the bottom of it.
 
                         It will impact performance, but right now there are things that should
 
@@ -6693,8 +6785,8 @@
         - commits:
             - author: Stevche Radevski
               body: >-
-                Handlebars supports very basic if condition checking, but it only checks
-                for
+                Handlebars supports very basic if condition checking, but it
+                only checks for
 
                 existence of a field. There are times when we want to combine conditions in order
 
@@ -6716,7 +6808,8 @@
     - subject: Bump elliptic from 6.5.2 to 6.5.3
       hash: c11004cd24fe66e6af7f16a79c0cc9e8847eb415
       body: >
-        Bumps [elliptic](https://github.com/indutny/elliptic) from 6.5.2 to 6.5.3.
+        Bumps [elliptic](https://github.com/indutny/elliptic) from 6.5.2 to
+        6.5.3.
 
         - [Release notes](https://github.com/indutny/elliptic/releases)
 
@@ -6924,7 +7017,8 @@
     - subject: Bump lodash from 4.17.15 to 4.17.19
       hash: 01655b595555ae63ea1b70d623451c9ad3ec03dd
       body: >
-        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.15 to 4.17.19.
+        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.15 to
+        4.17.19.
 
         - [Release notes](https://github.com/lodash/lodash/releases)
 
@@ -8689,7 +8783,8 @@
     - subject: 🔧 Move to an alpine base image and drop i386-nlp support
       hash: 3690acbd70df726030b648a1c32a9b2b21015232
       body: >
-        We also remove the Makefile to go to a simpler build system, as long with
+        We also remove the Makefile to go to a simpler build system, as long
+        with
 
         the retry_docker_push.sh file. We remove the rest of the automation tools
 
@@ -9522,7 +9617,8 @@
     - subject: Bump js-yaml from 3.12.0 to 3.13.1
       hash: 9c88d8fb722c6005465754dff900379d091eb324
       body: >
-        Bumps [js-yaml](https://github.com/nodeca/js-yaml) from 3.12.0 to 3.13.1.
+        Bumps [js-yaml](https://github.com/nodeca/js-yaml) from 3.12.0 to
+        3.13.1.
 
         - [Release notes](https://github.com/nodeca/js-yaml/releases)
 
@@ -9721,7 +9817,8 @@
     - subject: Bump lodash from 4.17.11 to 4.17.13
       hash: 835ef7908e8daba1c0362fae8aaa4b592b2d1b2f
       body: >
-        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.11 to 4.17.13.
+        Bumps [lodash](https://github.com/lodash/lodash) from 4.17.11 to
+        4.17.13.
 
         - [Release notes](https://github.com/lodash/lodash/releases)
 
@@ -9761,8 +9858,8 @@
     - subject: Bump mixin-deep from 1.3.1 to 1.3.2
       hash: d0f35359b3f32a87804f760c1d5303c380ea730f
       body: >
-        Bumps [mixin-deep](https://github.com/jonschlinkert/mixin-deep) from 1.3.1
-        to 1.3.2.
+        Bumps [mixin-deep](https://github.com/jonschlinkert/mixin-deep) from
+        1.3.1 to 1.3.2.
 
         - [Release notes](https://github.com/jonschlinkert/mixin-deep/releases)
 
@@ -10218,8 +10315,8 @@
     - subject: Prevent supervisor from deleting itself
       hash: 4846acb25ebd5b1400e3a74bc3a3c607ae98be8e
       body: >
-        With recent changes to local mode behavior, supervisor removes all engine
-        objects
+        With recent changes to local mode behavior, supervisor removes all
+        engine objects
 
         that were not present before entering local mode.
 
@@ -10579,8 +10676,8 @@
         unnecessary override'
       hash: 743c8406c973af7ef85ff31ea8bb0bc99d4592fb
       body: >
-        Since we were comparing the VPN's value before adding the explicit "true",
-        there were cases
+        Since we were comparing the VPN's value before adding the explicit
+        "true", there were cases
 
         were the VPN is off, and therefore "value" didn't match the default, so the supervisor would
 
@@ -10660,8 +10757,8 @@
     - subject: Ensure we get input on parsing errors
       hash: 645bc6c185b804df0e6d2088c5239eabcfa4ce80
       body: >
-        We wrap JSON and date parsing code to ensure input data is logged in case
-        of an error.
+        We wrap JSON and date parsing code to ensure input data is logged in
+        case of an error.
       footer:
         Change-type: minor
         change-type: minor
@@ -11348,8 +11445,8 @@
     - subject: In /v1/update, return 202 when we're not updating immediately
       hash: 9961ebb41d37c14b18b2bf4545eefae343a2c026
       body: >
-        We also add a catch to any errors when getting configuration, and send 503
-        in this case, even if it's
+        We also add a catch to any errors when getting configuration, and send
+        503 in this case, even if it's
 
         unlikely.
       footer:
@@ -11614,8 +11711,8 @@
         legacy OS"
       hash: d64dcb4b4060d3e6fd84382d3b12c6d8a3fe2310
       body: >
-        The last update of pinejs-client to pinejs-client-request made the way we
-        were
+        The last update of pinejs-client to pinejs-client-request made the way
+        we were
 
         using $expand on the migration break. This switches to the correct way of doing it now.
       footer:
