@@ -247,13 +247,18 @@ export async function fetchImageWithProgress(
 ): Promise<string> {
 	const { registry } = await dockerToolbelt.getRegistryAndName(image);
 
-	const dockerOpts = {
-		authconfig: {
-			username: `d_${uuid}`,
-			password: currentApiKey,
-			serverAddress: registry,
-		},
-	};
+	const dockerOpts =
+		// If no registry is specified, we assume the image is a public
+		// image on the default engine registry, and we don't need to pass any auth
+		registry != null
+			? {
+					authconfig: {
+						username: `d_${uuid}`,
+						password: currentApiKey,
+						serverAddress: registry,
+					},
+			  }
+			: {};
 
 	await dockerProgress.pull(image, onProgress, dockerOpts);
 	return (await docker.getImage(image).inspect()).Id;

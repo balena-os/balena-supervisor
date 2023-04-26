@@ -234,7 +234,10 @@ export type TargetAppsV2 = {
 	};
 };
 
-type TargetStateV2 = {
+/**
+ * @deprecated exported only for testing
+ */
+export type TargetStateV2 = {
 	local: {
 		name: string;
 		config: { [name: string]: string };
