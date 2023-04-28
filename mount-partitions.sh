@@ -9,25 +9,42 @@ export ROOT_MOUNTPOINT="/mnt/root"
 # Set DBus system bus address for getting the current boot block device
 export DBUS_SYSTEM_BUS_ADDRESS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path="${ROOT_MOUNTPOINT}"/run/dbus/system_bus_socket}"
 
+# Get the block device from systemd
+# The dbus-send command below should return something like:
+# ```
+# method return time=1680132905.878117 sender=:1.0 -> destination=:1.20155 serial=245193 reply_serial=2
+#   variant       string "/dev/sda1"
+# ```
+# Usage: dbus_get_mount PARTITION
+# Partition is only the label, e.g. boot, state, data
+dbus_get_mount() {
+    part="$1"
+
+    result=$(dbus-send --system --print-reply \
+        --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1/unit/mnt_2d${part}_2emount org.freedesktop.DBus.Properties.Get \
+        string:"org.freedesktop.systemd1.Mount" string:"What" | grep "string" | cut -d'"' -f2 2>&1)
+    # If the output doesn't match the /dev/* device regex, exit with an error
+    if [ "$(echo "${result}" | grep -E '^/dev/')" = "" ]; then
+        echo "ERROR: Could not determine ${part} device from dbus. Please launch Supervisor as a privileged container with DBus socket access."
+        exit 1
+    fi
+
+    echo "${result}"
+}
+
 # Get the current boot block device in case there are duplicate partition labels
 # for `(balena|resin)-(boot|state|data)` found.
 current_boot_block_device=""
 if [ "${TEST}" != 1 ]; then
-    # Get the current boot block device from systemd
-    # The dbus-send command below should return something like:
-    # ```
-    # method return time=1680132905.878117 sender=:1.0 -> destination=:1.20155 serial=245193 reply_serial=2
-    #   variant       string "/dev/sda1"
-    # ```
-    mnt_boot_mount=$(dbus-send --system --print-reply \
-        --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1/unit/mnt_2dboot_2emount org.freedesktop.DBus.Properties.Get \
-        string:"org.freedesktop.systemd1.Mount" string:"What" | grep "string" | cut -d'"' -f2 2>&1)
-    # If the output doesn't match the /dev/* device regex, exit with an error
-    if [ "$(echo "${mnt_boot_mount}" | grep -E '^/dev/')" = "" ]; then
-        echo "ERROR: Could not determine boot device from dbus. Please launch Supervisor as a privileged container with DBus socket access."
-        exit 1
+    mnt_boot_mount=$(dbus_get_mount "boot")
+    mnt_boot_type=$(lsblk -no type "${mnt_boot_mount}")
+    # If the (resin|balena)-boot partition is encrypted, we need to have a look at the efi partition
+    if [ "${mnt_boot_type}" = "crypt" ]; then
+        boot_part=$(dbus_get_mount "efi")
+    else
+        boot_part="${mnt_boot_mount}"
     fi
-    current_boot_block_device=$(lsblk -no pkname "${mnt_boot_mount}")
+    current_boot_block_device=$(lsblk -no pkname "${boot_part}")
     if [ "${current_boot_block_device}" = "" ]; then
         echo "ERROR: Could not determine boot device from lsblk. Please launch Supervisor as a privileged container."
         exit 1
@@ -63,18 +80,13 @@ setup_then_mount() {
     partition_label=$1
     target_path=$2
 
-    # Get one or more devices matching label, accounting for legacy partition labels.
-    device=$(blkid | grep -E "(resin|balena)-${partition_label}" | awk -F':' '{print $1}')
-    
-    # If multiple devices with the partition label are found, mount to the device
-    # that's part of the current boot device, as this indicates a duplicate 
-    # label somewhere created by a user or an inconsistency in the system.
-    # We've been able to identify the current boot device, so use that
-    # to find the device with the correct label amongst 2+ devices.
-    for d in ${device}; do
-        if [ "$(echo "$d" | grep "$current_boot_block_device")" != "" ]; then
-            echo "INFO: Found device $d on current boot device $current_boot_block_device, using as mount for '(resin|balena)-${partition_label}'."
-            do_mount "${d}" "${target_path}"
+    # Try FS label first and partition label as a fallback
+    for arg in label partlabel; do
+        kname=$(lsblk "/dev/${current_boot_block_device}" -nlo "kname,${arg}" | grep -E "(resin|balena)-${partition_label}" | awk '{print $1}')
+        device="/dev/${kname}"
+        if [ -b "${device}" ]; then
+            echo "INFO: Found device $device on current boot device $current_boot_block_device, using as mount for '(resin|balena)-${partition_label}'."
+            do_mount "${device}" "${target_path}"
             return 0
         fi
     done
