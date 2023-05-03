@@ -1,4 +1,23 @@
 - commits:
+    - subject: Run test supervisor under a different service name
+      hash: 33b29cfa225959dd0a58564128017e04d019ea5f
+      body: |
+        The docker compose V2 spec no longer accepts `network_mode: bridge`,
+        which means we can no longer override the network configuration of
+        the `balena-supervisor` service for tests.
+
+        For this reason we now create a separate service to run the built
+        supervisor `balena-supervisor-sut` and run API tests against this
+        service instead of the default `balena-supervisor`.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Kyle Harding
+      nested: []
+  version: 14.10.9
+  title: ""
+  date: 2023-05-03T14:26:36.360Z
+- commits:
     - subject: Fix service comparison when creating component steps
       hash: 5fdd689590d048685cc11e32a14ccf7faf3887ee
       body: |
