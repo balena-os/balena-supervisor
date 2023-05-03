@@ -1,20 +1,15 @@
 version: '2.3'
 
 services:
-  # Override the supervisor service configuration. The tests will
-  # be run through the `sut` service
-  balena-supervisor:
+  balena-supervisor-sut:
     build:
       context: ./
       dockerfile: Dockerfile.template
       args:
         ARCH: ${ARCH:-amd64}
-    command: [ '/wait-for-it.sh', '--', '/usr/src/app/entry.sh' ]
+    command: ['/wait-for-it.sh', '--', '/usr/src/app/entry.sh']
     stop_grace_period: 3s
     # Use bridge networking for the tests
-    network_mode: 'bridge'
-    networks:
-      - default
     environment:
       DOCKER_HOST: tcp://docker:2375
       DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
@@ -77,10 +72,10 @@ services:
         '--',
         'npm',
         'run',
-        'test:integration'
+        'test:integration',
       ]
     depends_on:
-      - balena-supervisor
+      - balena-supervisor-sut
       - docker
       - dbus
       - dbus-services
@@ -91,7 +86,7 @@ services:
     environment:
       DOCKER_HOST: tcp://docker:2375
       DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
-      BALENA_SUPERVISOR_ADDRESS: http://balena-supervisor:48484
+      BALENA_SUPERVISOR_ADDRESS: http://balena-supervisor-sut:48484
       # Required by migrations
       CONFIG_MOUNT_POINT: /mnt/boot/config.json
       # Required to set mountpoints normally set in entry.sh
@@ -118,6 +113,3 @@ volumes:
       # Use tmpfs to avoid files remaining between runs
       type: tmpfs
       device: tmpfs
-
-networks:
-  default:
