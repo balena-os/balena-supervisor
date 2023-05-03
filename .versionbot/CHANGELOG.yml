@@ -1,4 +1,31 @@
 - commits:
+    - subject: "mount-partitions.sh: Add support for encrypted partitions"
+      hash: 004592894474676e3d024e5636b9fccce9f173f9
+      body: |
+        After a recent change enforcing all the partitions to be on the same
+        block device, encrypted partitions are no longer being detected
+        correctly. This is because the assumption that the parent block device
+        is a substring of the actually mounted block device does not work
+        for LUKS devices - the mount will either be /dev/mapper/luks-XXX
+        or /dev/dm-X while the parent device is still e.g. /dev/sda.
+
+        The usual balenaOS boot partition is also split in two - boot and efi.
+        The boot partition (mounted under /mnt/boot) is encrypted and the efi
+        partition (mounted under /mnt/efi) is not.
+
+        This patch generalizes the detection of the parent device so that
+        it works with both encrypted and unencrypted partitions.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Michal Toman <michalt@balena.io>
+        signed-off-by: Michal Toman <michalt@balena.io>
+      author: Michal Toman
+      nested: []
+  version: 14.10.10
+  title: ""
+  date: 2023-05-03T16:01:37.089Z
+- commits:
     - subject: Run test supervisor under a different service name
       hash: 33b29cfa225959dd0a58564128017e04d019ea5f
       body: |
