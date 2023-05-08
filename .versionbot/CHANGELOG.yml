@@ -1,4 +1,31 @@
 - commits:
+    - subject: Add information about hdmi port 2 config vars
+      hash: d5cc8238cbe7218d318cf1ce0375ab649a4495c6
+      body: |
+        Support for colon characters was added v14.6.0 which enabled
+        configurations for HDMI port 2 (e.g on the RPi 4). These configurations
+        are not documented anywhere else so this allows users to be able to
+        better find the relevant information for working with HDMI.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Relates-to: "#2090"
+        relates-to: "#2090"
+      author: Felipe Lalanne
+      nested: []
+    - subject: Update table formatting on configurations.md
+      hash: ba39cf539ef381f6cb80f81408f8e4571fd61179
+      body: |
+        For better readability on text editor
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.10.11
+  title: ""
+  date: 2023-05-08T20:35:26.833Z
+- commits:
     - subject: "mount-partitions.sh: Add support for encrypted partitions"
       hash: 004592894474676e3d024e5636b9fccce9f173f9
       body: |
