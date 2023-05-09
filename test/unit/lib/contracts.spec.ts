@@ -54,6 +54,7 @@ describe('lib/contracts', () => {
 						{
 							type: 'sw.supervisor',
 						},
+						{ type: 'hw.device-type', slug: 'raspberrypi3' },
 					],
 				}),
 			).to.not.throw());
@@ -144,6 +145,7 @@ describe('lib/contracts', () => {
 									type: 'sw.supervisor',
 									version: `>${supervisorVersionLesser}`,
 								},
+								{ type: 'hw.device-type', slug: 'intel-nuc' },
 							],
 						},
 						optional: false,
@@ -165,6 +167,7 @@ describe('lib/contracts', () => {
 									type: 'sw.supervisor',
 									version: `<${supervisorVersionGreater}`,
 								},
+								{ type: 'hw.device-type', name: 'intel-nuc' },
 							],
 						},
 						optional: false,
@@ -211,6 +214,7 @@ describe('lib/contracts', () => {
 									type: 'sw.l4t',
 									version: '32.2',
 								},
+								{ type: 'hw.device-type', slug: 'intel-nuc' },
 							],
 						},
 						optional: false,
@@ -242,6 +246,8 @@ describe('lib/contracts', () => {
 							name: 'user-container1',
 							slug: 'user-container1',
 							requires: [
+								// sw.os is not a supported contract type, so validation
+								// ignores this requirement
 								{
 									type: 'sw.os',
 									version: '<3.0.0',
@@ -267,6 +273,48 @@ describe('lib/contracts', () => {
 							{
 								type: 'sw.supervisor',
 								version: `>=${supervisorVersionGreater}`,
+							},
+						],
+					},
+					optional: false,
+				},
+			});
+			expect(fulfilled).to.have.property('valid').that.equals(false);
+			expect(fulfilled)
+				.to.have.property('unmetServices')
+				.that.deep.equals(['service']);
+
+			fulfilled = contracts.containerContractsFulfilled({
+				service: {
+					contract: {
+						type: 'sw.container',
+						name: 'user-container',
+						slug: 'user-container',
+						requires: [
+							{
+								type: 'hw.device-type',
+								slug: 'raspberrypi3',
+							},
+						],
+					},
+					optional: false,
+				},
+			});
+			expect(fulfilled).to.have.property('valid').that.equals(false);
+			expect(fulfilled)
+				.to.have.property('unmetServices')
+				.that.deep.equals(['service']);
+
+			fulfilled = contracts.containerContractsFulfilled({
+				service: {
+					contract: {
+						type: 'sw.container',
+						name: 'user-container',
+						slug: 'user-container',
+						requires: [
+							{
+								type: 'hw.device-type',
+								name: 'raspberrypi3',
 							},
 						],
 					},
@@ -381,9 +429,22 @@ describe('lib/contracts', () => {
 							},
 							optional: false,
 						},
+						service3: {
+							contract: {
+								type: 'sw.container',
+								slug: 'service3',
+								requires: [
+									{
+										type: 'hw.device-type',
+										slug: 'raspberrypi3',
+									},
+								],
+							},
+							optional: true,
+						},
 					});
 				expect(valid).to.equal(true);
-				expect(unmetServices).to.deep.equal(['service1']);
+				expect(unmetServices).to.deep.equal(['service1', 'service3']);
 				expect(fulfilledServices).to.deep.equal(['service2']);
 			});
 		});

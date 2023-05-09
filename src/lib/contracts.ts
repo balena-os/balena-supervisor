@@ -165,7 +165,8 @@ function getContractsFromVersions(components: ContractRequirements) {
 		if (component === 'hw.device-type') {
 			return {
 				type: component,
-				slug: component,
+				slug: value,
+
 				name: value,
 			};
 		} else {
