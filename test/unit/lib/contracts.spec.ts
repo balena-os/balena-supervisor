@@ -13,6 +13,7 @@ describe('lib/contracts', () => {
 		contracts.initializeContractRequirements({
 			supervisorVersion,
 			deviceType: 'intel-nuc',
+			deviceArch: 'amd64',
 			l4tVersion: '32.2',
 		});
 	});
@@ -55,6 +56,7 @@ describe('lib/contracts', () => {
 							type: 'sw.supervisor',
 						},
 						{ type: 'hw.device-type', slug: 'raspberrypi3' },
+						{ type: 'arch.sw', slug: 'aarch64' },
 					],
 				}),
 			).to.not.throw());
@@ -167,7 +169,8 @@ describe('lib/contracts', () => {
 									type: 'sw.supervisor',
 									version: `<${supervisorVersionGreater}`,
 								},
-								{ type: 'hw.device-type', name: 'intel-nuc' },
+								{ type: 'sw.arch', name: 'amd64' },
+								{ type: 'hw.device-type', slug: 'intel-nuc' },
 							],
 						},
 						optional: false,
@@ -189,6 +192,7 @@ describe('lib/contracts', () => {
 									type: 'sw.supervisor',
 									version: `>${supervisorVersionLesser}`,
 								},
+								{ type: 'sw.arch', slug: 'amd64' },
 							],
 						},
 						optional: false,
@@ -294,6 +298,27 @@ describe('lib/contracts', () => {
 							{
 								type: 'hw.device-type',
 								slug: 'raspberrypi3',
+							},
+						],
+					},
+					optional: false,
+				},
+			});
+			expect(fulfilled).to.have.property('valid').that.equals(false);
+			expect(fulfilled)
+				.to.have.property('unmetServices')
+				.that.deep.equals(['service']);
+
+			fulfilled = contracts.containerContractsFulfilled({
+				service: {
+					contract: {
+						type: 'sw.container',
+						name: 'user-container',
+						slug: 'user-container',
+						requires: [
+							{
+								type: 'arch.sw',
+								slug: 'armv7hf',
 							},
 						],
 					},
@@ -442,9 +467,26 @@ describe('lib/contracts', () => {
 							},
 							optional: true,
 						},
+						service4: {
+							contract: {
+								type: 'sw.container',
+								slug: 'service3',
+								requires: [
+									{
+										type: 'arch.sw',
+										slug: 'armv7hf',
+									},
+								],
+							},
+							optional: true,
+						},
 					});
 				expect(valid).to.equal(true);
-				expect(unmetServices).to.deep.equal(['service1', 'service3']);
+				expect(unmetServices).to.deep.equal([
+					'service1',
+					'service3',
+					'service4',
+				]);
 				expect(fulfilledServices).to.deep.equal(['service2']);
 			});
 		});
@@ -494,6 +536,7 @@ describe('lib/contracts', () => {
 				engine.initializeContractRequirements({
 					supervisorVersion,
 					deviceType: 'intel-nuc',
+					deviceArch: 'amd64',
 					l4tVersion: await osRelease.getL4tVersion(),
 				});
 
