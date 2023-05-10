@@ -1,4 +1,35 @@
 - commits:
+    - subject: Add `arch.sw` to the valid container requirements
+      hash: 8656bd62f705624a5cb02a0b0677888b21dd4627
+      body: ""
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+    - subject: Allow using slug to validate hw.device-type contract
+      hash: f1f09e0e27b1b538d0ca806cd1bb167303d65779
+      body: |
+        This also adds the hw.device-type test case to the unit tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Simplify and move lib/contract.spec.ts to tests/unit
+      hash: a884a58b4cdbc9e06be01929138b4973e5e8ffd9
+      body: |
+        Improve contract tests to remove dependence on stubs and unnecessary
+        system calls.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.11.0
+  title: ""
+  date: 2023-05-10T12:39:14.767Z
+- commits:
     - subject: Add information about hdmi port 2 config vars
       hash: d5cc8238cbe7218d318cf1ce0375ab649a4495c6
       body: |
