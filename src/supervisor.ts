@@ -45,6 +45,7 @@ export class Supervisor {
 		initializeContractRequirements({
 			supervisorVersion: version,
 			deviceType: await config.get('deviceType'),
+			deviceArch: await config.get('deviceArch'),
 			l4tVersion: await osRelease.getL4tVersion(),
 		});
 

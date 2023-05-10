@@ -25,7 +25,8 @@ export interface ServiceContracts {
 type PotentialContractRequirements =
 	| 'sw.supervisor'
 	| 'sw.l4t'
-	| 'hw.device-type';
+	| 'hw.device-type'
+	| 'arch.sw';
 type ContractRequirements = {
 	[key in PotentialContractRequirements]?: string;
 };
@@ -35,11 +36,13 @@ const contractRequirementVersions: ContractRequirements = {};
 export function initializeContractRequirements(opts: {
 	supervisorVersion: string;
 	deviceType: string;
+	deviceArch: string;
 	l4tVersion?: string;
 }) {
 	contractRequirementVersions['sw.supervisor'] = opts.supervisorVersion;
 	contractRequirementVersions['sw.l4t'] = opts.l4tVersion;
 	contractRequirementVersions['hw.device-type'] = opts.deviceType;
+	contractRequirementVersions['arch.sw'] = opts.deviceArch;
 }
 
 function isValidRequirementType(
@@ -162,10 +165,10 @@ const contractObjectValidator = t.type({
 
 function getContractsFromVersions(components: ContractRequirements) {
 	return _.map(components, (value, component) => {
-		if (component === 'hw.device-type') {
+		if (component === 'hw.device-type' || component === 'arch.sw') {
 			return {
 				type: component,
-				slug: component,
+				slug: value,
 				name: value,
 			};
 		} else {

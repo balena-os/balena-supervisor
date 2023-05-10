@@ -25,6 +25,7 @@ describe('device-state', () => {
 		initializeContractRequirements({
 			supervisorVersion: '11.0.0',
 			deviceType: 'intel-nuc',
+			deviceArch: 'amd64',
 		});
 	});
 
@@ -406,8 +407,8 @@ describe('device-state', () => {
 												name: 'Enforce supervisor version',
 												requires: [
 													{
-														type: 'sw.supervisor',
-														version: '>=12.0.0',
+														type: 'arch.sw',
+														version: 'armv7hf',
 													},
 												],
 											},
