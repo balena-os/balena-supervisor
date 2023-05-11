@@ -408,7 +408,7 @@ describe('device-state', () => {
 												requires: [
 													{
 														type: 'arch.sw',
-														version: 'armv7hf',
+														slug: 'armv7hf',
 													},
 												],
 											},
