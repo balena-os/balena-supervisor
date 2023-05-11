@@ -123,6 +123,18 @@ describe('System information', () => {
 			expect(cpuId).to.equal('1000000001b93f3f');
 		});
 
+		it('system ID is always lower case', async () => {
+			(fs.readFile as SinonStub).resolves('AAAA');
+			const cpuId = await sysInfo.getSystemId();
+			expect(cpuId).to.be.equal('aaaa');
+		});
+
+		it('returns undefined system ID if OS result is invalid', async () => {
+			(fs.readFile as SinonStub).resolves('\x19\x80');
+			const cpuId = await sysInfo.getSystemId();
+			expect(cpuId).to.be.undefined;
+		});
+
 		it('gets system ID from dmidecode if /proc/device-tree/serial-number is not available', async () => {
 			(fs.readFile as SinonStub).rejects('Not found');
 			(fsUtils.exec as SinonStub).resolves({

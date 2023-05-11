@@ -93,6 +93,13 @@ export async function getSystemId(): Promise<string | undefined> {
 	if (systemId == null) {
 		return;
 	}
+
+	if (/[^\x20-\x7E]/.test(systemId)) {
+		// if the CPU id is not in the character range of 0x20 (SPACE) to 0x7e (~) we drop the CPU ID
+		// this cpu id wouldn't be rendered anyway
+		return;
+	}
+
 	// Always lower case so as not to jump between casing when jumping between eg /proc/device-tree/serial-number and /sys/devices/soc0/serial_number which can return different casing
 	// Lower case was chosen because that is what `/proc/device-tree/serial-number` usually returns and seems to be the more consistently available version
 	return systemId.toLowerCase();
