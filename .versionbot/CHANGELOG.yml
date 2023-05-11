@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix `sw.arch` typo when testing contracts
+      hash: 2758e190b28ea07d5b40daaa9e59434f2bfc28e9
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.11.1
+  title: ""
+  date: 2023-05-11T22:07:32.863Z
+- commits:
     - subject: Add `arch.sw` to the valid container requirements
       hash: 8656bd62f705624a5cb02a0b0677888b21dd4627
       body: ""
