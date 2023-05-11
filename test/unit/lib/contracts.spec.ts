@@ -169,7 +169,7 @@ describe('lib/contracts', () => {
 									type: 'sw.supervisor',
 									version: `<${supervisorVersionGreater}`,
 								},
-								{ type: 'sw.arch', name: 'amd64' },
+								{ type: 'arch.sw', slug: 'amd64' },
 								{ type: 'hw.device-type', slug: 'intel-nuc' },
 							],
 						},
