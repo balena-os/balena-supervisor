@@ -693,3 +693,7 @@ export function dockerMountToServiceMount(
 
 	return mount as LongDefinition;
 }
+
+export function isOlderThan(currentTime: Date, seconds: number) {
+	return new Date().getTime() - currentTime.getTime() > seconds * 1000;
+}

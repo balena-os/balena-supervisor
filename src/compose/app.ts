@@ -4,7 +4,6 @@ import { promises as fs } from 'fs';
 import Network from './network';
 import Volume from './volume';
 import Service from './service';
-
 import * as imageManager from './images';
 import type { Image } from './images';
 import {
@@ -12,6 +11,7 @@ import {
 	generateStep,
 	CompositionStepAction,
 } from './composition-steps';
+import { isOlderThan } from './utils';
 import * as targetStateCache from '../device-state/target-state-cache';
 import * as dockerUtils from '../lib/docker-utils';
 import * as constants from '../lib/constants';
@@ -25,6 +25,8 @@ import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { ImageInspectInfo } from 'dockerode';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
+
+const SECONDS_TO_WAIT_FOR_START = 60;
 
 export interface AppConstructOpts {
 	appId: number;
@@ -184,7 +186,6 @@ export class App {
 				}),
 			);
 		}
-
 		return steps;
 	}
 
@@ -377,9 +378,22 @@ export class App {
 
 			// Only start a Service if we have never started it before and the service matches target!
 			// This is so the engine can handle the restart policy configured for the container.
+			//
+			// However, there is a certain race condition where the container's compose depends on a host
+			// resource that may not be there when the Engine starts the container, such as a port binding
+			// of 192.168.88.1:3000:3000, where 192.168.88.1 is a user-defined interface configured in system-connections
+			// and created by the host. This interface creation may not occur before the container creation.
+			// In this case, the container is created and never started, and the Engine does not attempt to restart it
+			// regardless of restart policy.
+			const requiresExplicitStart =
+				['always', 'unless-stopped'].includes(serviceTarget.config.restart) &&
+				serviceCurrent.status === 'exited' &&
+				serviceCurrent.createdAt != null &&
+				isOlderThan(serviceCurrent.createdAt, SECONDS_TO_WAIT_FOR_START);
 			return (
 				(serviceCurrent.status === 'Installing' ||
-					serviceCurrent.status === 'Installed') &&
+					serviceCurrent.status === 'Installed' ||
+					requiresExplicitStart) &&
 				isEqualExceptForRunningState(serviceCurrent, serviceTarget)
 			);
 		};
@@ -398,6 +412,26 @@ export class App {
 			return (
 				serviceTarget.config.running === false &&
 				serviceCurrent.status !== 'Stopped'
+			);
+		};
+
+		/**
+		 * Under the race condition of a container depending on a host resource that may not be there when the Engine
+		 * starts up, resulting in the Engine not restarting the container regardless of restart policy, the Supervisor
+		 * state loop needs to stay alive so that the Supervisor may issue a start step after a wait.
+		 * @param serviceCurrent
+		 */
+		const shouldWaitForStart = (
+			serviceCurrent: Service,
+			serviceTarget: Service,
+		) => {
+			return (
+				['always', 'unless-stopped'].includes(serviceTarget.config.restart) &&
+				serviceCurrent.config.running === false &&
+				serviceTarget.config.running === true &&
+				serviceCurrent.status === 'exited' &&
+				serviceCurrent.createdAt != null &&
+				!isOlderThan(serviceCurrent.createdAt, SECONDS_TO_WAIT_FOR_START)
 			);
 		};
 
@@ -425,7 +459,8 @@ export class App {
 					!isEqualExceptForRunningState(c, t) ||
 					shouldBeStarted(c, t) ||
 					shouldBeStopped(c, t) ||
-					shouldWaitForStop(c),
+					shouldWaitForStop(c) ||
+					shouldWaitForStart(c, t),
 			);
 
 		return {
@@ -636,6 +671,26 @@ export class App {
 		if (current.commit !== target.commit) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running !== current.config.running) {
+			// In the case where the Engine does not start the container despite the
+			// restart policy (this can happen in cases of Engine race conditions with
+			// host resources that are slower to be created but that a service relies on),
+			// we need to start the container after a delay.
+			// FIXME: It makes absolutely zero sense that an empty string is the value
+			// for config.restart if the restart policy is 'no'.
+			// TODO: There is no way to tell from a Service instance whether a service
+			// exited with a non-zero exit code, therefore this method cannot determine
+			// whether to start a service with a restart policy of 'on-failure'. There
+			// is no way to get the exit message from a Service instance either, so we
+			// can't parse the error message to determine whether to start a service with
+			// a restart policy of 'no' (in case a oneshot suffered from this race condition).
+			if (
+				['always', 'unless-stopped'].includes(target.config.restart) &&
+				current.status === 'exited' &&
+				current.createdAt != null &&
+				!isOlderThan(current.createdAt, SECONDS_TO_WAIT_FOR_START)
+			) {
+				return generateStep('noop', {});
+			}
 			if (target.config.running) {
 				return generateStep('start', { target });
 			} else {
