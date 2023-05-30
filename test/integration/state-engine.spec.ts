@@ -49,6 +49,8 @@ const setTargetState = async (
 		while (true) {
 			const status = await getStatus();
 			if (status.appState === 'applied') {
+				// Wait a tiny bit more after applied for state to settle
+				await delay(1000);
 				clearTimeout(timer);
 				resolve(true);
 				break;
