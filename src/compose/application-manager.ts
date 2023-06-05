@@ -207,7 +207,7 @@ export async function inferNextSteps(
 			// do to move to the target state
 			for (const id of targetAndCurrent) {
 				steps = steps.concat(
-					currentApps[id].nextStepsForAppUpdate(
+					await currentApps[id].nextStepsForAppUpdate(
 						{
 							availableImages,
 							containerIds: containerIdsByAppId[id],
@@ -243,7 +243,7 @@ export async function inferNextSteps(
 					false,
 				);
 				steps = steps.concat(
-					emptyCurrent.nextStepsForAppUpdate(
+					await emptyCurrent.nextStepsForAppUpdate(
 						{
 							availableImages,
 							containerIds: containerIdsByAppId[id] ?? {},

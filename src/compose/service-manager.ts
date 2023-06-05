@@ -135,7 +135,7 @@ export async function getState() {
 export async function getByDockerContainerId(
 	containerId: string,
 ): Promise<Service | null> {
-	const container = await docker.getContainer(containerId).inspect();
+	const container = await inspectByDockerContainerId(containerId);
 	if (
 		container.Config.Labels['io.balena.supervised'] == null &&
 		container.Config.Labels['io.resin.supervised'] == null
@@ -143,6 +143,12 @@ export async function getByDockerContainerId(
 		return null;
 	}
 	return Service.fromDockerContainer(container);
+}
+
+export async function inspectByDockerContainerId(
+	containerId: string,
+): Promise<Dockerode.ContainerInspectInfo> {
+	return await docker.getContainer(containerId).inspect();
 }
 
 export async function updateMetadata(service: Service, target: Service) {

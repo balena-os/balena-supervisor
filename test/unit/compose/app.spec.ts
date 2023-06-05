@@ -111,7 +111,7 @@ const defaultNetwork = Network.fromComposeObject('default', 1, 'appuuid', {});
 
 describe('compose/app', () => {
 	describe('volume state behavior', () => {
-		it('should correctly infer a volume create step', () => {
+		it('should correctly infer a volume create step', async () => {
 			// Setup current and target apps
 			const current = createApp();
 			const target = createApp({
@@ -120,7 +120,7 @@ describe('compose/app', () => {
 			});
 
 			// Calculate the steps
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			// Check that a createVolume step has been created
 			const [createVolumeStep] = expectSteps('createVolume', steps);
@@ -129,7 +129,7 @@ describe('compose/app', () => {
 				.that.deep.includes({ name: 'test-volume' });
 		});
 
-		it('should correctly infer more than one volume create step', () => {
+		it('should correctly infer more than one volume create step', async () => {
 			const current = createApp();
 			const target = createApp({
 				volumes: [
@@ -139,7 +139,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			// Check that 2 createVolume steps are found
 			const createVolumeSteps = expectSteps('createVolume', steps, 2);
@@ -160,7 +160,7 @@ describe('compose/app', () => {
 		});
 
 		// We don't remove volumes until the end
-		it('should not infer a volume remove step when the app is still referenced', () => {
+		it('should not infer a volume remove step when the app is still referenced', async () => {
 			const current = createApp({
 				volumes: [
 					Volume.fromComposeObject('test-volume', 1, 'deadbeef'),
@@ -172,11 +172,11 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			expectNoStep('removeVolume', steps);
 		});
 
-		it('should correctly infer volume recreation steps', () => {
+		it('should correctly infer volume recreation steps', async () => {
 			const current = createApp({
 				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 			});
@@ -190,7 +190,7 @@ describe('compose/app', () => {
 			});
 
 			// First step should create a volume removal step
-			const stepsForRemoval = current.nextStepsForAppUpdate(
+			const stepsForRemoval = await current.nextStepsForAppUpdate(
 				defaultContext,
 				target,
 			);
@@ -212,7 +212,7 @@ describe('compose/app', () => {
 			});
 
 			// This test is extra since we have already tested that the volume gets created
-			const stepsForCreation = intermediate.nextStepsForAppUpdate(
+			const stepsForCreation = await intermediate.nextStepsForAppUpdate(
 				defaultContext,
 				target,
 			);
@@ -254,7 +254,7 @@ describe('compose/app', () => {
 			});
 
 			// Calculate steps
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [killStep] = expectSteps('kill', steps);
 			expect(killStep)
@@ -294,7 +294,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			expectNoStep('kill', steps);
 		});
 
@@ -333,7 +333,7 @@ describe('compose/app', () => {
 			});
 
 			// Step 1: kill
-			const steps = current.nextStepsForAppUpdate(
+			const steps = await current.nextStepsForAppUpdate(
 				contextWithImages,
 				intermediateTarget,
 			);
@@ -341,7 +341,7 @@ describe('compose/app', () => {
 
 			// Step 2: noop (service is stopping)
 			service.status = 'Stopping';
-			const secondStageSteps = current.nextStepsForAppUpdate(
+			const secondStageSteps = await current.nextStepsForAppUpdate(
 				contextWithImages,
 				intermediateTarget,
 			);
@@ -355,7 +355,7 @@ describe('compose/app', () => {
 				volumes: [volume],
 			});
 			expect(
-				currentWithServiceRemoved.nextStepsForAppUpdate(
+				await currentWithServiceRemoved.nextStepsForAppUpdate(
 					contextWithImages,
 					intermediateTarget,
 				),
@@ -377,7 +377,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 			const recreateVolumeSteps =
-				currentWithVolumesRemoved.nextStepsForAppUpdate(
+				await currentWithVolumesRemoved.nextStepsForAppUpdate(
 					contextWithImages,
 					target,
 				);
@@ -393,7 +393,7 @@ describe('compose/app', () => {
 			});
 
 			const createServiceSteps =
-				currentWithVolumeRecreated.nextStepsForAppUpdate(
+				await currentWithVolumeRecreated.nextStepsForAppUpdate(
 					contextWithImages,
 					target,
 				);
@@ -402,14 +402,14 @@ describe('compose/app', () => {
 	});
 
 	describe('network state behavior', () => {
-		it('should correctly infer a network create step', () => {
+		it('should correctly infer a network create step', async () => {
 			const current = createApp({ networks: [] });
 			const target = createApp({
 				networks: [Network.fromComposeObject('default', 1, 'deadbeef', {})],
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [createNetworkStep] = expectSteps('createNetwork', steps);
 			expect(createNetworkStep).to.have.property('target').that.deep.includes({
@@ -417,7 +417,7 @@ describe('compose/app', () => {
 			});
 		});
 
-		it('should correctly infer a network remove step', () => {
+		it('should correctly infer a network remove step', async () => {
 			const current = createApp({
 				networks: [
 					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
@@ -425,7 +425,7 @@ describe('compose/app', () => {
 			});
 			const target = createApp({ networks: [], isTarget: true });
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [removeNetworkStep] = expectSteps('removeNetwork', steps);
 
@@ -434,7 +434,7 @@ describe('compose/app', () => {
 			});
 		});
 
-		it('should correctly remove default duplicate networks', () => {
+		it('should correctly remove default duplicate networks', async () => {
 			const current = createApp({
 				networks: [defaultNetwork, defaultNetwork],
 			});
@@ -443,7 +443,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [removeNetworkStep] = expectSteps('removeNetwork', steps);
 
@@ -452,7 +452,7 @@ describe('compose/app', () => {
 			});
 		});
 
-		it('should correctly remove duplicate networks', () => {
+		it('should correctly remove duplicate networks', async () => {
 			const current = createApp({
 				networks: [
 					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
@@ -468,7 +468,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [removeNetworkStep] = expectSteps('removeNetwork', steps);
 
@@ -477,7 +477,7 @@ describe('compose/app', () => {
 			});
 		});
 
-		it('should ignore the duplicates if there are changes already', () => {
+		it('should ignore the duplicates if there are changes already', async () => {
 			const current = createApp({
 				networks: [
 					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
@@ -494,7 +494,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [removeNetworkStep] = expectSteps('removeNetwork', steps);
 
 			expect(removeNetworkStep).to.have.property('current').that.deep.includes({
@@ -534,7 +534,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [removeNetworkStep] = expectSteps('kill', steps);
 
@@ -543,7 +543,7 @@ describe('compose/app', () => {
 			});
 		});
 
-		it('should correctly infer more than one network removal step', () => {
+		it('should correctly infer more than one network removal step', async () => {
 			const current = createApp({
 				networks: [
 					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
@@ -553,7 +553,7 @@ describe('compose/app', () => {
 			});
 			const target = createApp({ networks: [], isTarget: true });
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [first, second] = expectSteps('removeNetwork', steps, 2);
 
@@ -565,7 +565,7 @@ describe('compose/app', () => {
 			});
 		});
 
-		it('should correctly infer a network recreation step', () => {
+		it('should correctly infer a network recreation step', async () => {
 			const current = createApp({
 				networks: [
 					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
@@ -580,7 +580,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const stepsForRemoval = current.nextStepsForAppUpdate(
+			const stepsForRemoval = await current.nextStepsForAppUpdate(
 				defaultContext,
 				target,
 			);
@@ -595,7 +595,7 @@ describe('compose/app', () => {
 				networks: [],
 			});
 
-			const stepsForCreation = intermediate.nextStepsForAppUpdate(
+			const stepsForCreation = await intermediate.nextStepsForAppUpdate(
 				defaultContext,
 				target,
 			);
@@ -641,7 +641,7 @@ describe('compose/app', () => {
 
 			const availableImages = [createImage({ appUuid: 'deadbeef' })];
 
-			const steps = current.nextStepsForAppUpdate(
+			const steps = await current.nextStepsForAppUpdate(
 				{ ...defaultContext, availableImages },
 				target,
 			);
@@ -674,7 +674,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [killStep] = expectSteps('kill', steps);
 
 			expect(killStep)
@@ -730,7 +730,7 @@ describe('compose/app', () => {
 				createImage({ appId: 1, serviceName: 'two', name: 'alpine' }),
 			];
 
-			const steps = current.nextStepsForAppUpdate(
+			const steps = await current.nextStepsForAppUpdate(
 				{ ...defaultContext, availableImages },
 				target,
 			);
@@ -793,7 +793,7 @@ describe('compose/app', () => {
 				createImage({ appId: 1, serviceName: 'two', name: 'alpine' }),
 			];
 
-			const steps = current.nextStepsForAppUpdate(
+			const steps = await current.nextStepsForAppUpdate(
 				{ ...defaultContext, availableImages },
 				target,
 			);
@@ -808,11 +808,11 @@ describe('compose/app', () => {
 			expectNoStep('removeNetwork', steps);
 		});
 
-		it('should create the default network if it does not exist', () => {
+		it('should create the default network if it does not exist', async () => {
 			const current = createApp({ networks: [] });
 			const target = createApp({ networks: [], isTarget: true });
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			// A default network should always be created
 			const [createNetworkStep] = expectSteps('createNetwork', steps);
@@ -821,13 +821,13 @@ describe('compose/app', () => {
 				.that.deep.includes({ name: 'default' });
 		});
 
-		it('should not create the default network if it already exists', () => {
+		it('should not create the default network if it already exists', async () => {
 			const current = createApp({
 				networks: [Network.fromComposeObject('default', 1, 'deadbeef', {})],
 			});
 			const target = createApp({ networks: [], isTarget: true });
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			// The network should not be created again
 			expectNoStep('createNetwork', steps);
@@ -854,7 +854,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [createNetworkStep] = expectSteps('createNetwork', steps);
 			expect(createNetworkStep)
@@ -883,7 +883,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [createNetworkStep] = expectSteps('createNetwork', steps);
 			expect(createNetworkStep)
@@ -896,7 +896,7 @@ describe('compose/app', () => {
 			const current = createApp({});
 			const target = createApp({ isTarget: true });
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [createNetworkStep] = expectSteps('createNetwork', steps);
 			expect(createNetworkStep)
@@ -921,7 +921,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [killStep] = expectSteps('kill', steps);
 			expect(killStep)
 				.to.have.property('current')
@@ -939,7 +939,7 @@ describe('compose/app', () => {
 			});
 			const target = createApp({ services: [], isTarget: true });
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			expectSteps('noop', steps);
 
 			// Kill was already emitted for this service
@@ -959,7 +959,7 @@ describe('compose/app', () => {
 				services: [await createService({ serviceName: 'main', running: true })],
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			expectSteps('noop', steps);
 		});
 
@@ -977,7 +977,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [removeStep] = expectSteps('remove', steps);
 
 			expect(removeStep)
@@ -996,7 +996,7 @@ describe('compose/app', () => {
 			});
 			const target = createApp({ services: [], isTarget: true });
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [removeStep] = expectSteps('remove', steps);
 
 			expect(removeStep)
@@ -1013,7 +1013,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(
+			const steps = await current.nextStepsForAppUpdate(
 				{ ...defaultContext, ...{ downloading: ['main-image'] } },
 				target,
 			);
@@ -1034,7 +1034,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [updateMetadataStep] = expectSteps('updateMetadata', steps);
 
 			expect(updateMetadataStep)
@@ -1057,7 +1057,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [stopStep] = expectSteps('stop', steps);
 			expect(stopStep)
 				.to.have.property('current')
@@ -1086,7 +1086,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			expectNoStep('start', steps);
 		});
 
@@ -1118,7 +1118,7 @@ describe('compose/app', () => {
 			});
 
 			// should see a 'stop'
-			const stepsToIntermediate = current.nextStepsForAppUpdate(
+			const stepsToIntermediate = await current.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
@@ -1135,7 +1135,7 @@ describe('compose/app', () => {
 			});
 
 			// now should see a 'start'
-			const stepsToTarget = intermediate.nextStepsForAppUpdate(
+			const stepsToTarget = await intermediate.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
@@ -1193,7 +1193,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const stepsToIntermediate = current.nextStepsForAppUpdate(
+			const stepsToIntermediate = await current.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
@@ -1216,7 +1216,7 @@ describe('compose/app', () => {
 			});
 
 			// we should now see a start for the 'main' service...
-			const stepsToTarget = intermediate.nextStepsForAppUpdate(
+			const stepsToTarget = await intermediate.nextStepsForAppUpdate(
 				{ ...contextWithImages, ...{ containerIds: { dep: 'dep-id' } } },
 				target,
 			);
@@ -1248,7 +1248,10 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			const steps = await current.nextStepsForAppUpdate(
+				contextWithImages,
+				target,
+			);
 
 			// There should be no steps since the engine manages restart policy for stopped containers
 			expect(steps.length).to.equal(0);
@@ -1292,7 +1295,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const stepsToIntermediate = current.nextStepsForAppUpdate(
+			const stepsToIntermediate = await current.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
@@ -1308,7 +1311,7 @@ describe('compose/app', () => {
 				networks: [defaultNetwork],
 			});
 
-			const stepsToTarget = intermediate.nextStepsForAppUpdate(
+			const stepsToTarget = await intermediate.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
@@ -1379,7 +1382,10 @@ describe('compose/app', () => {
 			});
 
 			// No kill steps should be generated
-			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			const steps = await current.nextStepsForAppUpdate(
+				contextWithImages,
+				target,
+			);
 			expectNoStep('kill', steps);
 		});
 
@@ -1421,7 +1427,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const stepsFirstTry = current.nextStepsForAppUpdate(
+			const stepsFirstTry = await current.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
@@ -1432,7 +1438,7 @@ describe('compose/app', () => {
 				.that.deep.includes({ serviceName: 'main' });
 
 			// if at first you don't succeed
-			const stepsSecondTry = current.nextStepsForAppUpdate(
+			const stepsSecondTry = await current.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
@@ -1464,7 +1470,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [killStep] = expectSteps('kill', steps);
 			expect(killStep)
 				.to.have.property('current')
@@ -1487,7 +1493,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [createNetworkStep] = expectSteps('createNetwork', steps);
 			expect(createNetworkStep)
 				.to.have.property('target')
@@ -1528,7 +1534,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			expectSteps('kill', steps, 2);
 		});
 
@@ -1590,7 +1596,10 @@ describe('compose/app', () => {
 			});
 
 			// No kill steps should be generated
-			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			const steps = await current.nextStepsForAppUpdate(
+				contextWithImages,
+				target,
+			);
 			expectNoStep('kill', steps);
 		});
 
@@ -1629,7 +1638,10 @@ describe('compose/app', () => {
 			});
 
 			// No kill steps should be generated
-			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			const steps = await current.nextStepsForAppUpdate(
+				contextWithImages,
+				target,
+			);
 			expectNoStep('start', steps);
 		});
 
@@ -1673,7 +1685,10 @@ describe('compose/app', () => {
 			});
 
 			// No kill steps should be generated
-			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			const steps = await current.nextStepsForAppUpdate(
+				contextWithImages,
+				target,
+			);
 			expectSteps('start', steps, 2);
 		});
 	});
@@ -1686,7 +1701,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 			const [fetchStep] = expectSteps('fetch', steps);
 			expect(fetchStep)
 				.to.have.property('image')
@@ -1708,7 +1723,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(
+			const steps = await current.nextStepsForAppUpdate(
 				contextWithDownloading,
 				target,
 			);
@@ -1724,7 +1739,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const steps = await current.nextStepsForAppUpdate(defaultContext, target);
 
 			const [fetchStep] = expectSteps('fetch', steps);
 			expect(fetchStep)
