@@ -1,10 +1,10 @@
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
+import { ImageInspectInfo } from 'dockerode';
 
 import Network from './network';
 import Volume from './volume';
 import Service from './service';
-
 import * as imageManager from './images';
 import type { Image } from './images';
 import {
@@ -12,8 +12,10 @@ import {
 	generateStep,
 	CompositionStepAction,
 } from './composition-steps';
+import { isOlderThan } from './utils';
+import { inspectByDockerContainerId } from './service-manager';
 import * as targetStateCache from '../device-state/target-state-cache';
-import * as dockerUtils from '../lib/docker-utils';
+import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
 
 import { getStepsFromStrategy } from './update-strategies';
@@ -22,9 +24,10 @@ import { InternalInconsistencyError, isNotFoundError } from '../lib/errors';
 import * as config from '../config';
 import { checkTruthy, checkString } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
-import { ImageInspectInfo } from 'dockerode';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
+
+const SECONDS_TO_WAIT_FOR_START = 60;
 
 export interface AppConstructOpts {
 	appId: number;
@@ -99,10 +102,10 @@ export class App {
 		}
 	}
 
-	public nextStepsForAppUpdate(
+	public async nextStepsForAppUpdate(
 		state: UpdateState,
 		target: App,
-	): CompositionStep[] {
+	): Promise<CompositionStep[]> {
 		// Check to see if we need to polyfill in some "new" data for legacy services
 		this.migrateLegacy(target);
 
@@ -128,11 +131,12 @@ export class App {
 			}
 		}
 
-		const { removePairs, installPairs, updatePairs } = this.compareServices(
-			this.services,
-			target.services,
-			state.containerIds,
-		);
+		const { removePairs, installPairs, updatePairs } =
+			await this.compareServices(
+				this.services,
+				target.services,
+				state.containerIds,
+			);
 
 		for (const { current: svc } of removePairs) {
 			// All removes get a kill action if they're not already stopping
@@ -145,18 +149,19 @@ export class App {
 
 		// For every service which needs to be updated, update via update strategy.
 		const servicePairs = updatePairs.concat(installPairs);
+		const serviceSteps = await Promise.all(
+			servicePairs.map((pair) =>
+				this.generateStepsForService(pair, {
+					...state,
+					servicePairs,
+					targetApp: target,
+					networkPairs: networkChanges,
+					volumePairs: volumeChanges,
+				}),
+			),
+		);
 		steps = steps.concat(
-			servicePairs
-				.map((pair) =>
-					this.generateStepsForService(pair, {
-						...state,
-						servicePairs,
-						targetApp: target,
-						networkPairs: networkChanges,
-						volumePairs: volumeChanges,
-					}),
-				)
-				.filter((step) => step != null) as CompositionStep[],
+			serviceSteps.filter((step) => step != null) as CompositionStep[],
 		);
 
 		// Generate volume steps
@@ -184,7 +189,6 @@ export class App {
 				}),
 			);
 		}
-
 		return steps;
 	}
 
@@ -296,15 +300,15 @@ export class App {
 		return outputs;
 	}
 
-	private compareServices(
+	private async compareServices(
 		current: Service[],
 		target: Service[],
 		containerIds: Dictionary<string>,
-	): {
+	): Promise<{
 		installPairs: Array<ChangingPair<Service>>;
 		removePairs: Array<ChangingPair<Service>>;
 		updatePairs: Array<ChangingPair<Service>>;
-	} {
+	}> {
 		const currentByServiceName = _.keyBy(current, 'serviceName');
 		const targetByServiceName = _.keyBy(target, 'serviceName');
 
@@ -363,7 +367,7 @@ export class App {
 		 * @param serviceCurrent
 		 * @param serviceTarget
 		 */
-		const shouldBeStarted = (
+		const shouldBeStarted = async (
 			serviceCurrent: Service,
 			serviceTarget: Service,
 		) => {
@@ -377,9 +381,20 @@ export class App {
 
 			// Only start a Service if we have never started it before and the service matches target!
 			// This is so the engine can handle the restart policy configured for the container.
+			//
+			// However, there is a certain race condition where the container's compose depends on a host
+			// resource that may not be there when the Engine starts the container, such as a port binding
+			// of 192.168.88.1:3000:3000, where 192.168.88.1 is a user-defined interface configured in system-connections
+			// and created by the host. This interface creation may not occur before the container creation.
+			// In this case, the container is created and never started, and the Engine does not attempt to restart it
+			// regardless of restart policy.
 			return (
 				(serviceCurrent.status === 'Installing' ||
-					serviceCurrent.status === 'Installed') &&
+					serviceCurrent.status === 'Installed' ||
+					(await this.requirementsMetForSpecialStart(
+						serviceCurrent,
+						serviceTarget,
+					))) &&
 				isEqualExceptForRunningState(serviceCurrent, serviceTarget)
 			);
 		};
@@ -415,18 +430,24 @@ export class App {
 		/**
 		 * Filter all the services which should be updated due to run state change, or config mismatch.
 		 */
-		const toBeUpdated = maybeUpdate
-			.map((serviceName) => ({
-				current: currentByServiceName[serviceName],
-				target: targetByServiceName[serviceName],
-			}))
-			.filter(
-				({ current: c, target: t }) =>
-					!isEqualExceptForRunningState(c, t) ||
-					shouldBeStarted(c, t) ||
-					shouldBeStopped(c, t) ||
-					shouldWaitForStop(c),
-			);
+		const satisfiesRequirementsForUpdate = async (c: Service, t: Service) =>
+			!isEqualExceptForRunningState(c, t) ||
+			(await shouldBeStarted(c, t)) ||
+			shouldBeStopped(c, t) ||
+			shouldWaitForStop(c);
+
+		const maybeUpdatePairs = maybeUpdate.map((serviceName) => ({
+			current: currentByServiceName[serviceName],
+			target: targetByServiceName[serviceName],
+		}));
+		const maybeUpdatePairsFiltered = await Promise.all(
+			maybeUpdatePairs.map(({ current: c, target: t }) =>
+				satisfiesRequirementsForUpdate(c, t),
+			),
+		);
+		const toBeUpdated = maybeUpdatePairs.filter(
+			(__, idx) => maybeUpdatePairsFiltered[idx],
+		);
 
 		return {
 			installPairs: toBeInstalled,
@@ -492,7 +513,7 @@ export class App {
 		return steps;
 	}
 
-	private generateStepsForService(
+	private async generateStepsForService(
 		{ current, target }: ChangingPair<Service>,
 		context: {
 			availableImages: Image[];
@@ -503,7 +524,7 @@ export class App {
 			volumePairs: Array<ChangingPair<Volume>>;
 			servicePairs: Array<ChangingPair<Service>>;
 		},
-	): Nullable<CompositionStep> {
+	): Promise<Nullable<CompositionStep>> {
 		if (current?.status === 'Stopping') {
 			// Theres a kill step happening already, emit a noop to ensure we stay alive while
 			// this happens
@@ -557,7 +578,7 @@ export class App {
 				current.isEqualConfig(target, context.containerIds)
 			) {
 				// we're only starting/stopping a service
-				return this.generateContainerStep(current, target);
+				return await this.generateContainerStep(current, target);
 			}
 
 			let strategy =
@@ -631,11 +652,56 @@ export class App {
 		);
 	}
 
-	private generateContainerStep(current: Service, target: Service) {
+	// In the case where the Engine does not start the container despite the
+	// restart policy (this can happen in cases of Engine race conditions with
+	// host resources that are slower to be created but that a service relies on),
+	// we need to start the container after a delay.
+	private async requirementsMetForSpecialStart(
+		current: Service,
+		target: Service,
+	): Promise<boolean> {
+		// Shortcut the Engine inspect queries if status isn't exited
+		if (
+			current.status !== 'exited' ||
+			current.config.running !== false ||
+			target.config.running !== true
+		) {
+			return false;
+		}
+		let conditionsMetWithRestartPolicy = ['always', 'unless-stopped'].includes(
+			target.config.restart,
+		);
+
+		if (current.containerId != null && !conditionsMetWithRestartPolicy) {
+			const containerInspect = await inspectByDockerContainerId(
+				current.containerId,
+			);
+			// If the container has previously been started but exited unsuccessfully, it needs to be started.
+			// If the container has a restart policy of 'no' and has never been started, it
+			// should also be started, however, in that case, the status of the container will
+			// be 'Installed' and the state funnel will already be trying to start it until success,
+			// so we don't need to add any additional handling.
+			if (
+				target.config.restart === 'on-failure' &&
+				containerInspect.State.ExitCode !== 0
+			) {
+				conditionsMetWithRestartPolicy = true;
+			}
+		}
+		return conditionsMetWithRestartPolicy;
+	}
+
+	private async generateContainerStep(current: Service, target: Service) {
 		// if the services release doesn't match, then rename the container...
 		if (current.commit !== target.commit) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running !== current.config.running) {
+			if (
+				(await this.requirementsMetForSpecialStart(current, target)) &&
+				!isOlderThan(current.createdAt, SECONDS_TO_WAIT_FOR_START)
+			) {
+				return generateStep('noop', {});
+			}
 			if (target.config.running) {
 				return generateStep('start', { target });
 			} else {
@@ -772,9 +838,9 @@ export class App {
 		const [opts, supervisorApiHost, hostPathExists, hostname] =
 			await Promise.all([
 				config.get('extendedEnvOptions'),
-				dockerUtils
-					.getNetworkGateway(constants.supervisorNetworkInterface)
-					.catch(() => '127.0.0.1'),
+				getNetworkGateway(constants.supervisorNetworkInterface).catch(
+					() => '127.0.0.1',
+				),
 				(async () => ({
 					firmware: await pathExistsOnRoot('/lib/firmware'),
 					modules: await pathExistsOnRoot('/lib/modules'),
