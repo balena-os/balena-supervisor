@@ -13,7 +13,6 @@ import {
 	CompositionStepAction,
 } from './composition-steps';
 import { isOlderThan } from './utils';
-import { inspectByDockerContainerId } from './service-manager';
 import * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
@@ -102,10 +101,10 @@ export class App {
 		}
 	}
 
-	public async nextStepsForAppUpdate(
+	public nextStepsForAppUpdate(
 		state: UpdateState,
 		target: App,
-	): Promise<CompositionStep[]> {
+	): CompositionStep[] {
 		// Check to see if we need to polyfill in some "new" data for legacy services
 		this.migrateLegacy(target);
 
@@ -131,12 +130,11 @@ export class App {
 			}
 		}
 
-		const { removePairs, installPairs, updatePairs } =
-			await this.compareServices(
-				this.services,
-				target.services,
-				state.containerIds,
-			);
+		const { removePairs, installPairs, updatePairs } = this.compareServices(
+			this.services,
+			target.services,
+			state.containerIds,
+		);
 
 		for (const { current: svc } of removePairs) {
 			// All removes get a kill action if they're not already stopping
@@ -149,19 +147,18 @@ export class App {
 
 		// For every service which needs to be updated, update via update strategy.
 		const servicePairs = updatePairs.concat(installPairs);
-		const serviceSteps = await Promise.all(
-			servicePairs.map((pair) =>
-				this.generateStepsForService(pair, {
-					...state,
-					servicePairs,
-					targetApp: target,
-					networkPairs: networkChanges,
-					volumePairs: volumeChanges,
-				}),
-			),
-		);
 		steps = steps.concat(
-			serviceSteps.filter((step) => step != null) as CompositionStep[],
+			servicePairs
+				.map((pair) =>
+					this.generateStepsForService(pair, {
+						...state,
+						servicePairs,
+						targetApp: target,
+						networkPairs: networkChanges,
+						volumePairs: volumeChanges,
+					}),
+				)
+				.filter((step) => step != null) as CompositionStep[],
 		);
 
 		// Generate volume steps
@@ -300,15 +297,15 @@ export class App {
 		return outputs;
 	}
 
-	private async compareServices(
+	private compareServices(
 		current: Service[],
 		target: Service[],
 		containerIds: Dictionary<string>,
-	): Promise<{
+	): {
 		installPairs: Array<ChangingPair<Service>>;
 		removePairs: Array<ChangingPair<Service>>;
 		updatePairs: Array<ChangingPair<Service>>;
-	}> {
+	} {
 		const currentByServiceName = _.keyBy(current, 'serviceName');
 		const targetByServiceName = _.keyBy(target, 'serviceName');
 
@@ -367,7 +364,7 @@ export class App {
 		 * @param serviceCurrent
 		 * @param serviceTarget
 		 */
-		const shouldBeStarted = async (
+		const shouldBeStarted = (
 			serviceCurrent: Service,
 			serviceTarget: Service,
 		) => {
@@ -391,10 +388,7 @@ export class App {
 			return (
 				(serviceCurrent.status === 'Installing' ||
 					serviceCurrent.status === 'Installed' ||
-					(await this.requirementsMetForSpecialStart(
-						serviceCurrent,
-						serviceTarget,
-					))) &&
+					this.requirementsMetForSpecialStart(serviceCurrent, serviceTarget)) &&
 				isEqualExceptForRunningState(serviceCurrent, serviceTarget)
 			);
 		};
@@ -430,24 +424,18 @@ export class App {
 		/**
 		 * Filter all the services which should be updated due to run state change, or config mismatch.
 		 */
-		const satisfiesRequirementsForUpdate = async (c: Service, t: Service) =>
-			!isEqualExceptForRunningState(c, t) ||
-			(await shouldBeStarted(c, t)) ||
-			shouldBeStopped(c, t) ||
-			shouldWaitForStop(c);
-
-		const maybeUpdatePairs = maybeUpdate.map((serviceName) => ({
-			current: currentByServiceName[serviceName],
-			target: targetByServiceName[serviceName],
-		}));
-		const maybeUpdatePairsFiltered = await Promise.all(
-			maybeUpdatePairs.map(({ current: c, target: t }) =>
-				satisfiesRequirementsForUpdate(c, t),
-			),
-		);
-		const toBeUpdated = maybeUpdatePairs.filter(
-			(__, idx) => maybeUpdatePairsFiltered[idx],
-		);
+		const toBeUpdated = maybeUpdate
+			.map((serviceName) => ({
+				current: currentByServiceName[serviceName],
+				target: targetByServiceName[serviceName],
+			}))
+			.filter(
+				({ current: c, target: t }) =>
+					!isEqualExceptForRunningState(c, t) ||
+					shouldBeStarted(c, t) ||
+					shouldBeStopped(c, t) ||
+					shouldWaitForStop(c),
+			);
 
 		return {
 			installPairs: toBeInstalled,
@@ -513,7 +501,7 @@ export class App {
 		return steps;
 	}
 
-	private async generateStepsForService(
+	private generateStepsForService(
 		{ current, target }: ChangingPair<Service>,
 		context: {
 			availableImages: Image[];
@@ -524,7 +512,7 @@ export class App {
 			volumePairs: Array<ChangingPair<Volume>>;
 			servicePairs: Array<ChangingPair<Service>>;
 		},
-	): Promise<Nullable<CompositionStep>> {
+	): Nullable<CompositionStep> {
 		if (current?.status === 'Stopping') {
 			// Theres a kill step happening already, emit a noop to ensure we stay alive while
 			// this happens
@@ -578,7 +566,7 @@ export class App {
 				current.isEqualConfig(target, context.containerIds)
 			) {
 				// we're only starting/stopping a service
-				return await this.generateContainerStep(current, target);
+				return this.generateContainerStep(current, target);
 			}
 
 			let strategy =
@@ -656,11 +644,10 @@ export class App {
 	// restart policy (this can happen in cases of Engine race conditions with
 	// host resources that are slower to be created but that a service relies on),
 	// we need to start the container after a delay.
-	private async requirementsMetForSpecialStart(
+	private requirementsMetForSpecialStart(
 		current: Service,
 		target: Service,
-	): Promise<boolean> {
-		// Shortcut the Engine inspect queries if status isn't exited
+	): boolean {
 		if (
 			current.status !== 'exited' ||
 			current.config.running !== false ||
@@ -668,36 +655,22 @@ export class App {
 		) {
 			return false;
 		}
-		let conditionsMetWithRestartPolicy = ['always', 'unless-stopped'].includes(
-			target.config.restart,
-		);
-
-		if (current.containerId != null && !conditionsMetWithRestartPolicy) {
-			const containerInspect = await inspectByDockerContainerId(
-				current.containerId,
-			);
-			// If the container has previously been started but exited unsuccessfully, it needs to be started.
-			// If the container has a restart policy of 'no' and has never been started, it
-			// should also be started, however, in that case, the status of the container will
-			// be 'Installed' and the state funnel will already be trying to start it until success,
-			// so we don't need to add any additional handling.
-			if (
-				target.config.restart === 'on-failure' &&
-				containerInspect.State.ExitCode !== 0
-			) {
-				conditionsMetWithRestartPolicy = true;
-			}
-		}
-		return conditionsMetWithRestartPolicy;
+		const restartIsAlwaysOrUnlessStopped = [
+			'always',
+			'unless-stopped',
+		].includes(target.config.restart);
+		const restartIsOnFailureWithNonZeroExit =
+			target.config.restart === 'on-failure' && current.exitCode !== 0;
+		return restartIsAlwaysOrUnlessStopped || restartIsOnFailureWithNonZeroExit;
 	}
 
-	private async generateContainerStep(current: Service, target: Service) {
+	private generateContainerStep(current: Service, target: Service) {
 		// if the services release doesn't match, then rename the container...
 		if (current.commit !== target.commit) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running !== current.config.running) {
 			if (
-				(await this.requirementsMetForSpecialStart(current, target)) &&
+				this.requirementsMetForSpecialStart(current, target) &&
 				!isOlderThan(current.createdAt, SECONDS_TO_WAIT_FOR_START)
 			) {
 				return generateStep('noop', {});
