@@ -26,7 +26,7 @@ import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
 
-const SECONDS_TO_WAIT_FOR_START = 60;
+const SECONDS_TO_WAIT_FOR_START = 30;
 
 export interface AppConstructOpts {
 	appId: number;

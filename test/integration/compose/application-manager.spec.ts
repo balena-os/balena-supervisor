@@ -1422,7 +1422,7 @@ describe('compose/application-manager', () => {
 	// comes up, the Engine will not attempt to restart the container which seems to be Docker's implemented behavior (if not the correct behavior).
 	// An example of a host resource would be a port binding such as 192.168.88.1:3000:3000, where the IP is an interface delayed in creation by host.
 	// In this case, the Supervisor needs to wait a grace period for the Engine to start the container, and if this does not occur, the Supervisor
-	// deduces the existence of this race condition and generates another start step after a delay (1 minute by default).
+	// deduces the existence of this race condition and generates another start step after a delay (SECONDS_TO_WAIT_FOR_START).
 	describe('handling Engine restart policy inaction when host resource required by container is delayed in creation', () => {
 		// Time 61 seconds ago
 		const date61SecondsAgo = new Date();
@@ -1490,7 +1490,7 @@ describe('compose/application-manager', () => {
 							{
 								state: {
 									status: 'exited',
-									// Should not generate noop if exited within 1 minute
+									// Should not generate noop if exited within SECONDS_TO_WAIT_FOR_START
 									createdAt: date50SecondsAgo,
 								},
 							},
@@ -1506,7 +1506,7 @@ describe('compose/application-manager', () => {
 							{
 								state: {
 									status: 'exited',
-									// Should not generate start if exited more than 1 minute ago
+									// Should not generate start if exited more than SECONDS_TO_WAIT_FOR_START ago
 									createdAt: date61SecondsAgo,
 								},
 							},
@@ -1522,7 +1522,7 @@ describe('compose/application-manager', () => {
 							{
 								state: {
 									status: 'exited',
-									// Should not generate noop if exited within 1 minute
+									// Should not generate noop if exited within SECONDS_TO_WAIT_FOR_START
 									createdAt: date50SecondsAgo,
 								},
 							},
@@ -1538,7 +1538,7 @@ describe('compose/application-manager', () => {
 							{
 								state: {
 									status: 'exited',
-									// Should not generate start if exited more than 1 minute ago
+									// Should not generate start if exited more than SECONDS_TO_WAIT_FOR_START ago
 									createdAt: date61SecondsAgo,
 								},
 							},
@@ -1578,7 +1578,7 @@ describe('compose/application-manager', () => {
 			expect(steps).to.have.lengthOf(0);
 		});
 
-		it('should infer a noop step for a service that was created <=1 min ago with status of "exited" if restart policy is "always" or "unless-stopped"', async () => {
+		it('should infer a noop step for a service that was created <= SECONDS_TO_WAIT_FOR_START ago with status of "exited" if restart policy is "always" or "unless-stopped"', async () => {
 			// Conditions:
 			// - restart: "always" || "unless-stopped"
 			// - status: "exited"
@@ -1668,11 +1668,11 @@ describe('compose/application-manager', () => {
 			expect(nextSteps).to.have.lengthOf(0);
 		});
 
-		it('should infer a start step for a service that was created >1 min ago with status of "exited" if restart policy is "always" or "unless-stopped"', async () => {
+		it('should infer a start step for a service that was created > SECONDS_TO_WAIT_FOR_START ago with status of "exited" if restart policy is "always" or "unless-stopped"', async () => {
 			// Conditions:
 			// - restart: "always" || "unless-stopped"
 			// - status: "exited"
-			// - createdAt: <= SECONDS_TO_WAIT_FOR_START ago
+			// - createdAt: > SECONDS_TO_WAIT_FOR_START ago
 			const targetApps = createApps(
 				{
 					services: [
