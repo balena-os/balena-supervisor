@@ -189,9 +189,9 @@ export class App {
 		return steps;
 	}
 
-	public async stepsToRemoveApp(
+	public stepsToRemoveApp(
 		state: Omit<UpdateState, 'availableImages'> & { keepVolumes: boolean },
-	): Promise<CompositionStep[]> {
+	): CompositionStep[] {
 		if (Object.keys(this.services).length > 0) {
 			return Object.values(this.services).map((service) =>
 				generateStep('kill', { current: service }),

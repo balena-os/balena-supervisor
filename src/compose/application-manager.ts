@@ -221,7 +221,7 @@ export async function inferNextSteps(
 			// For apps in the current state but not target, we call their "destructor"
 			for (const id of onlyCurrent) {
 				steps = steps.concat(
-					await currentApps[id].stepsToRemoveApp({
+					currentApps[id].stepsToRemoveApp({
 						keepVolumes,
 						downloading,
 						containerIds: containerIdsByAppId[id],

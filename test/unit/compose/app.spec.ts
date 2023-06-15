@@ -262,12 +262,12 @@ describe('compose/app', () => {
 				.that.deep.includes({ serviceName: 'test' });
 		});
 
-		it('should correctly infer to remove an app volumes when the app is being removed', async () => {
+		it('should correctly infer to remove an app volumes when the app is being removed', () => {
 			const current = createApp({
 				volumes: [Volume.fromComposeObject('test-volume', 1, 'deadbeef')],
 			});
 
-			const steps = await current.stepsToRemoveApp(defaultContext);
+			const steps = current.stepsToRemoveApp(defaultContext);
 			const [removeVolumeStep] = expectSteps('removeVolume', steps);
 
 			expect(removeVolumeStep).to.have.property('current').that.deep.includes({
