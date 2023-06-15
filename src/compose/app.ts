@@ -12,7 +12,7 @@ import {
 	generateStep,
 	CompositionStepAction,
 } from './composition-steps';
-import { isOlderThan } from './utils';
+import { isValidDateAndOlderThan } from './utils';
 import * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
@@ -671,7 +671,7 @@ export class App {
 		} else if (target.config.running !== current.config.running) {
 			if (
 				this.requirementsMetForSpecialStart(current, target) &&
-				!isOlderThan(current.createdAt, SECONDS_TO_WAIT_FOR_START)
+				!isValidDateAndOlderThan(current.createdAt, SECONDS_TO_WAIT_FOR_START)
 			) {
 				return generateStep('noop', {});
 			}
