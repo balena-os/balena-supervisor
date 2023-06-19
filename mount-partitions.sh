@@ -52,17 +52,18 @@ if [ "${TEST}" != 1 ]; then
 fi
 
 # Mounts a device to a path if it's not already mounted.
-# Usage: do_mount DEVICE MOUNT_PATH 
+# Usage: do_mount DEVICE MOUNT_PATH [FS_TYPE]
 do_mount() {
     device=$1
     mount_path=$2
+    fs_type=${3:-ext4}
 
     # Create the directory if it doesn't exist
     mkdir -p "${mount_path}"
 
     # Mount the device if it doesn't exist
     if [ "$(mountpoint -n "${mount_path}" | awk '{ print $1 }')" != "${device}" ]; then
-        mount "${device}" "${mount_path}"
+        mount -t "${fs_type}" "${device}" "${mount_path}"
     fi
 }
 
@@ -80,13 +81,20 @@ setup_then_mount() {
     partition_label=$1
     target_path=$2
 
+    # Mount as vfat if boot, otherwise ext4
+    if [ "${partition_label}" = "boot" ]; then
+        fs_type="vfat"
+    else    
+        fs_type="ext4"
+    fi
+
     # Try FS label first and partition label as a fallback
     for arg in label partlabel; do
         kname=$(lsblk "/dev/${current_boot_block_device}" -nlo "kname,${arg}" | grep -E "(resin|balena)-${partition_label}" | awk '{print $1}')
         device="/dev/${kname}"
         if [ -b "${device}" ]; then
             echo "INFO: Found device $device on current boot device $current_boot_block_device, using as mount for '(resin|balena)-${partition_label}'."
-            do_mount "${device}" "${target_path}"
+            do_mount "${device}" "${target_path}" "${fs_type}"
             return 0
         fi
     done
