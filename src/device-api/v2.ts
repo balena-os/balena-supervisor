@@ -156,8 +156,8 @@ router.post(
 router.get(
 	'/v2/applications/state',
 	async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
-		// It's kinda hacky to access the services and db via the application manager
-		// maybe refactor this code
+		// It's very hacky to access the services and db via the application manager
+		// refactor this code to use applicationManager.getState() instead.
 		Bluebird.join(
 			serviceManager.getState(),
 			images.getState(),
@@ -183,6 +183,7 @@ router.get(
 				} = {};
 
 				const appNameById: { [id: number]: string } = {};
+				const commits: string[] = [];
 
 				// only access scoped apps
 				apps
@@ -198,11 +199,17 @@ router.get(
 						};
 
 						appNameById[appId] = app.name;
+						commits.push(app.commit);
 					});
 
 				// only access scoped images
 				imgs
-					.filter((img) => req.auth.isScoped({ apps: [img.appId] }))
+					.filter(
+						(img) =>
+							req.auth.isScoped({ apps: [img.appId] }) &&
+							// Ensure we are using the apps for the target release
+							commits.includes(img.commit),
+					)
 					.forEach((img) => {
 						const appName = appNameById[img.appId];
 						if (appName == null) {
@@ -214,8 +221,10 @@ router.get(
 							return;
 						}
 
-						const svc = _.find(services, (service: Service) => {
-							return service.imageId === img.imageId;
+						const svc = _.find(services, (s: Service) => {
+							return (
+								s.serviceName === img.serviceName && s.commit === img.commit
+							);
 						});
 
 						let status: string | undefined;
