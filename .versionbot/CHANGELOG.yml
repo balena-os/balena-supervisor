@@ -1,4 +1,20 @@
 - commits:
+    - subject: Fix /v2/applications/state endpoint
+      hash: 12eac04484e3c0a347b6f31783ed7973991046fa
+      body: |
+        It was returning stale information, particularly the download progress
+        of the target release images never got updated.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#2174"
+        closes: "#2174"
+      author: Felipe Lalanne
+      nested: []
+  version: 14.11.7
+  title: ""
+  date: 2023-06-19T21:54:56.093Z
+- commits:
     - subject: Add fail-safe to test the image architecture
       hash: 1cf325d5c55bfb9d2ebb4cde7b9c448a6cfb2067
       body: |
