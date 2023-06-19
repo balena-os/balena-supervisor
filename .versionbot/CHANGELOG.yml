@@ -1,4 +1,19 @@
 - commits:
+    - subject: Specify fs type when mounting partitions to prevent "Can't open
+        blockdev" warnings
+      hash: e6662f664c15a16e4f36fa128510c5367b20a09f
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.11.4
+  title: ""
+  date: 2023-06-19T07:56:33.558Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action to v0.27.0
       hash: 1675c16622d861ce6e6e445400b5440a447688f7
       body: |
