@@ -1,4 +1,20 @@
 - commits:
+    - subject: Improve tests surrounding Engine-host race patch
+      hash: 7eba48f8b832ec16465565f210e659a9f822e5b3
+      body: ""
+      footer:
+        See: "#2170"
+        see: "#2170"
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.11.5
+  title: ""
+  date: 2023-06-19T19:01:19.323Z
+- commits:
     - subject: Specify fs type when mounting partitions to prevent "Can't open
         blockdev" warnings
       hash: e6662f664c15a16e4f36fa128510c5367b20a09f
