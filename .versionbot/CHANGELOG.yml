@@ -1,4 +1,40 @@
 - commits:
+    - subject: Add fail-safe to test the image architecture
+      hash: 1cf325d5c55bfb9d2ebb4cde7b9c448a6cfb2067
+      body: |
+        Verify that the target image architecture matches what is expected
+        according to the balena app architecture.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Use multi-arch in dockerfile
+      hash: c1b157971d5fe15f9b85cdc6f0eed90b8d2eb22f
+      body: >
+        This is necessary since the builder no longer passes the platform flag
+
+        to the build. This would lead to dockerfiles that are mixing multi and single
+
+        arch stages to pull the wrong architecture images, particularly when
+
+        trying to build images in emulated builds (e.g. armv7hf built on aarch64).
+
+
+        Moving the full build to multi-arch solves this as the docker engine is
+
+        capable of chosing the right architecture from the manifest.
+      footer:
+        Relatest-to: balena-io/balena-builder#1010
+        relatest-to: balena-io/balena-builder#1010
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.11.6
+  title: ""
+  date: 2023-06-19T20:53:34.395Z
+- commits:
     - subject: Improve tests surrounding Engine-host race patch
       hash: 7eba48f8b832ec16465565f210e659a9f822e5b3
       body: ""
