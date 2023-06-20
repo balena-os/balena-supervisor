@@ -16,6 +16,7 @@ import {
 	createCurrentState,
 	DEFAULT_NETWORK,
 } from '~/test-lib/state-helper';
+import { InstancedAppState } from '~/src/types';
 
 // TODO: application manager inferNextSteps still queries some stuff from
 // the engine instead of receiving that information as parameter. Refactoring
@@ -1421,36 +1422,135 @@ describe('compose/application-manager', () => {
 	// In the case where a container requires a host resource such as a network interface that is not created by the time the Engine
 	// comes up, the Engine will not attempt to restart the container which seems to be Docker's implemented behavior (if not the correct behavior).
 	// An example of a host resource would be a port binding such as 192.168.88.1:3000:3000, where the IP is an interface delayed in creation by host.
-	// In this case, the Supervisor needs to wait a grace period for the Engine to start the container, and if this does not occur, the Supervisor
-	// deduces the existence of this race condition and generates another start step after a delay (SECONDS_TO_WAIT_FOR_START).
+	// In this case, the Supervisor parses the exit message of the container, and if it matches the error regex, start the container.
 	describe('handling Engine restart policy inaction when host resource required by container is delayed in creation', () => {
-		const SECONDS_TO_WAIT_FOR_START = 30;
-		const newer = SECONDS_TO_WAIT_FOR_START - 2;
-		const older = SECONDS_TO_WAIT_FOR_START + 2;
-
-		const getTimeNSecondsAgo = (date: Date, seconds: number) => {
-			const newDate = new Date(date);
-			newDate.setSeconds(newDate.getSeconds() - seconds);
-			return newDate;
-		};
-
-		it('should not infer any steps for a service with a status of "exited" if restart policy is "no"', async () => {
-			// Conditions:
-			// - restart: "no"
-			// - status: "exited"
-			const targetApps = createApps(
-				{
-					services: [
-						await createService({
-							image: 'image-1',
+		const getCurrentState = async (withHostError: boolean) => {
+			const exitErrorMessage = withHostError
+				? 'driver failed programming external connectivity on endpoint one_1_1_deadbeef (deadca1f): Error starting userland proxy: listen tcp4 192.168.88.1:8081: bind: cannot assign requested address'
+				: 'My test error';
+			return createCurrentState({
+				services: [
+					await createService(
+						{
+							image: 'test-image',
 							serviceName: 'one',
+							running: false,
+							composition: {
+								restart: 'always',
+							},
+						},
+						{
+							state: {
+								status: 'exited',
+								exitErrorMessage,
+							},
+						},
+					),
+					await createService(
+						{
+							image: 'test-image',
+							serviceName: 'two',
+							running: false,
+							composition: {
+								restart: 'unless-stopped',
+							},
+						},
+						{
+							state: {
+								status: 'exited',
+								exitErrorMessage,
+							},
+						},
+					),
+					await createService(
+						{
+							image: 'test-image',
+							serviceName: 'three',
+							running: false,
+							composition: {
+								restart: 'on-failure',
+							},
+						},
+						{
+							state: {
+								status: 'exited',
+								exitErrorMessage,
+							},
+						},
+					),
+					await createService(
+						{
+							image: 'test-image',
+							serviceName: 'four',
+							running: false,
 							composition: {
 								restart: 'no',
 							},
+						},
+						{
+							state: {
+								status: 'exited',
+								exitErrorMessage,
+							},
+						},
+					),
+				],
+				networks: [DEFAULT_NETWORK],
+				images: [
+					createImage({
+						name: 'test-image',
+						serviceName: 'one',
+					}),
+					createImage({
+						name: 'test-image',
+						serviceName: 'two',
+					}),
+					createImage({
+						name: 'test-image',
+						serviceName: 'three',
+					}),
+					createImage({
+						name: 'test-image',
+						serviceName: 'four',
+					}),
+				],
+			});
+		};
+
+		let targetApps: InstancedAppState;
+
+		before(async () => {
+			targetApps = createApps(
+				{
+					services: [
+						await createService({
+							image: 'test-image',
+							serviceName: 'one',
+							running: true,
+							composition: {
+								restart: 'always',
+							},
 						}),
 						await createService({
-							image: 'image-2',
+							image: 'test-image',
 							serviceName: 'two',
+							running: true,
+							composition: {
+								restart: 'unless-stopped',
+							},
+						}),
+						await createService({
+							image: 'test-image',
+							serviceName: 'three',
+							running: true,
+							composition: {
+								restart: 'on-failure',
+							},
+						}),
+						await createService({
+							image: 'test-image',
+							serviceName: 'four',
+							running: true,
 							composition: {
 								restart: 'no',
 							},
@@ -1460,53 +1560,32 @@ describe('compose/application-manager', () => {
 				},
 				true,
 			);
+		});
 
+		it('should infer a start step for a service that exited with the "userland proxy" error for all restart policies', async () => {
 			const { currentApps, availableImages, downloading, containerIdsByAppId } =
-				createCurrentState({
-					services: [
-						await createService(
-							{
-								image: 'image-1',
-								serviceName: 'one',
-								composition: {
-									restart: 'no',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									createdAt: getTimeNSecondsAgo(new Date(), newer),
-								},
-							},
-						),
-						await createService(
-							{
-								image: 'image-2',
-								serviceName: 'two',
-								composition: {
-									restart: 'no',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									createdAt: getTimeNSecondsAgo(new Date(), older),
-								},
-							},
-						),
-					],
-					networks: [DEFAULT_NETWORK],
-					images: [
-						createImage({
-							name: 'image-1',
-							serviceName: 'one',
-						}),
-						createImage({
-							name: 'image-2',
-							serviceName: 'two',
-						}),
-					],
+				await getCurrentState(true);
+
+			const [startStep1, startStep2, startStep3, startStep4, ...nextSteps] =
+				await applicationManager.inferNextSteps(currentApps, targetApps, {
+					downloading,
+					availableImages,
+					containerIdsByAppId,
 				});
+
+			[startStep1, startStep2, startStep3, startStep4].forEach((step) => {
+				expect(step).to.have.property('action').that.equals('start');
+				expect(step)
+					.to.have.property('target')
+					.that.has.property('serviceName')
+					.that.is.oneOf(['one', 'two', 'three', 'four']);
+			});
+			expect(nextSteps).to.have.lengthOf(0);
+		});
+
+		it('should not infer any steps for a service with a status of "exited" without the "userland proxy" error message', async () => {
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				await getCurrentState(false);
 
 			const [...steps] = await applicationManager.inferNextSteps(
 				currentApps,
@@ -1519,432 +1598,6 @@ describe('compose/application-manager', () => {
 			);
 
 			expect(steps).to.have.lengthOf(0);
-		});
-
-		describe('restart policy "on-failure"', () => {
-			it('should not infer any steps for a service that exited with code 0', async () => {
-				// Conditions:
-				// - restart: "on-failure"
-				// - status: "exited"
-				// - exitCode: 0
-				const targetApps = createApps(
-					{
-						services: [
-							await createService({
-								image: 'image-1',
-								serviceName: 'one',
-								composition: {
-									restart: 'on-failure',
-								},
-							}),
-							await createService({
-								image: 'image-2',
-								serviceName: 'two',
-								composition: {
-									restart: 'on-failure',
-								},
-							}),
-						],
-						networks: [DEFAULT_NETWORK],
-					},
-					true,
-				);
-
-				const {
-					currentApps,
-					availableImages,
-					downloading,
-					containerIdsByAppId,
-				} = createCurrentState({
-					services: [
-						await createService(
-							{
-								image: 'image-1',
-								serviceName: 'one',
-								running: false,
-								composition: {
-									restart: 'on-failure',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									exitCode: 0,
-									createdAt: getTimeNSecondsAgo(new Date(), newer),
-								},
-							},
-						),
-						await createService(
-							{
-								image: 'image-2',
-								serviceName: 'two',
-								running: false,
-								composition: {
-									restart: 'on-failure',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									exitCode: 0,
-									createdAt: getTimeNSecondsAgo(new Date(), older),
-								},
-							},
-						),
-					],
-					networks: [DEFAULT_NETWORK],
-					images: [
-						createImage({
-							name: 'image-1',
-							serviceName: 'one',
-						}),
-						createImage({
-							name: 'image-2',
-							serviceName: 'two',
-						}),
-					],
-				});
-
-				const [...steps] = await applicationManager.inferNextSteps(
-					currentApps,
-					targetApps,
-					{
-						downloading,
-						availableImages,
-						containerIdsByAppId,
-					},
-				);
-
-				expect(steps).to.have.lengthOf(0);
-			});
-
-			it('should infer a noop step for a service that was created <= SECONDS_TO_WAIT_FOR_START ago and exited non-zero', async () => {
-				// Conditions:
-				// - restart: "on-failure"
-				// - status: "exited"
-				// - exitCode: non-zero
-				// - createdAt: <= SECONDS_TO_WAIT_FOR_START
-				const targetApps = createApps(
-					{
-						services: [
-							await createService({
-								image: 'image-1',
-								serviceName: 'one',
-								composition: {
-									restart: 'on-failure',
-								},
-							}),
-						],
-						networks: [DEFAULT_NETWORK],
-					},
-					true,
-				);
-
-				const {
-					currentApps,
-					availableImages,
-					downloading,
-					containerIdsByAppId,
-				} = createCurrentState({
-					services: [
-						await createService(
-							{
-								image: 'image-1',
-								serviceName: 'one',
-								running: false,
-								composition: {
-									restart: 'on-failure',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									exitCode: 1,
-									createdAt: getTimeNSecondsAgo(new Date(), newer),
-								},
-							},
-						),
-					],
-					networks: [DEFAULT_NETWORK],
-					images: [
-						createImage({
-							name: 'image-1',
-							serviceName: 'one',
-						}),
-					],
-				});
-
-				const [noopStep, ...nextSteps] =
-					await applicationManager.inferNextSteps(currentApps, targetApps, {
-						downloading,
-						availableImages,
-						containerIdsByAppId,
-					});
-
-				expect(noopStep).to.have.property('action').that.equals('noop');
-				expect(nextSteps).to.have.lengthOf(0);
-			});
-
-			it('should infer a start step for a service that was created > SECONDS_TO_WAIT_FOR_START ago and exited non-zero', async () => {
-				// Conditions:
-				// - restart: "on-failure"
-				// - status: "exited"
-				// - exitCode: non-zero\
-				// - createdAt: > SECONDS_TO_WAIT_FOR_START
-				const targetApps = createApps(
-					{
-						services: [
-							await createService({
-								image: 'image-1',
-								serviceName: 'one',
-								composition: {
-									restart: 'on-failure',
-								},
-							}),
-						],
-						networks: [DEFAULT_NETWORK],
-					},
-					true,
-				);
-
-				const {
-					currentApps,
-					availableImages,
-					downloading,
-					containerIdsByAppId,
-				} = createCurrentState({
-					services: [
-						await createService(
-							{
-								image: 'image-1',
-								serviceName: 'one',
-								running: false,
-								composition: {
-									restart: 'on-failure',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									exitCode: 1,
-									createdAt: getTimeNSecondsAgo(new Date(), older),
-								},
-							},
-						),
-					],
-					networks: [DEFAULT_NETWORK],
-					images: [
-						createImage({
-							name: 'image-1',
-							serviceName: 'one',
-						}),
-					],
-				});
-
-				const [startStep, ...nextSteps] =
-					await applicationManager.inferNextSteps(currentApps, targetApps, {
-						downloading,
-						availableImages,
-						containerIdsByAppId,
-					});
-
-				expect(startStep).to.have.property('action').that.equals('start');
-				expect(nextSteps).to.have.lengthOf(0);
-			});
-		});
-
-		describe('restart policy "always" or "unless-stopped"', () => {
-			it('should infer a noop step for a service that was created <= SECONDS_TO_WAIT_FOR_START ago with status of "exited"', async () => {
-				// Conditions:
-				// - restart: "always" || "unless-stopped"
-				// - status: "exited"
-				// - createdAt: <= SECONDS_TO_WAIT_FOR_START ago
-				const targetApps = createApps(
-					{
-						services: [
-							await createService({
-								image: 'image-1',
-								serviceName: 'one',
-								composition: {
-									restart: 'always',
-								},
-							}),
-							await createService({
-								image: 'image-2',
-								serviceName: 'two',
-								composition: {
-									restart: 'unless-stopped',
-								},
-							}),
-						],
-						networks: [DEFAULT_NETWORK],
-					},
-					true,
-				);
-
-				const {
-					currentApps,
-					availableImages,
-					downloading,
-					containerIdsByAppId,
-				} = createCurrentState({
-					services: [
-						await createService(
-							{
-								image: 'image-1',
-								serviceName: 'one',
-								running: false,
-								composition: {
-									restart: 'always',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									createdAt: getTimeNSecondsAgo(new Date(), newer),
-								},
-							},
-						),
-						await createService(
-							{
-								image: 'image-2',
-								serviceName: 'two',
-								running: false,
-								composition: {
-									restart: 'unless-stopped',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									createdAt: getTimeNSecondsAgo(new Date(), newer),
-								},
-							},
-						),
-					],
-					networks: [DEFAULT_NETWORK],
-					images: [
-						createImage({
-							name: 'image-1',
-							serviceName: 'one',
-						}),
-						createImage({
-							name: 'image-2',
-							serviceName: 'two',
-						}),
-					],
-				});
-
-				const [noopStep1, noopStep2, ...nextSteps] =
-					await applicationManager.inferNextSteps(currentApps, targetApps, {
-						downloading,
-						availableImages,
-						containerIdsByAppId,
-					});
-
-				expect(noopStep1).to.have.property('action').that.equals('noop');
-				expect(noopStep2).to.have.property('action').that.equals('noop');
-
-				expect(nextSteps).to.have.lengthOf(0);
-			});
-
-			it('should infer a start step for a service that was created > SECONDS_TO_WAIT_FOR_START ago with status of "exited"', async () => {
-				// Conditions:
-				// - restart: "always" || "unless-stopped"
-				// - status: "exited"
-				// - createdAt: > SECONDS_TO_WAIT_FOR_START ago
-				const targetApps = createApps(
-					{
-						services: [
-							await createService({
-								image: 'image-1',
-								serviceName: 'one',
-								composition: {
-									restart: 'always',
-								},
-							}),
-							await createService({
-								image: 'image-2',
-								serviceName: 'two',
-								composition: {
-									restart: 'unless-stopped',
-								},
-							}),
-						],
-						networks: [DEFAULT_NETWORK],
-					},
-					true,
-				);
-
-				const {
-					currentApps,
-					availableImages,
-					downloading,
-					containerIdsByAppId,
-				} = createCurrentState({
-					services: [
-						await createService(
-							{
-								image: 'image-1',
-								serviceName: 'one',
-								running: false,
-								composition: {
-									restart: 'always',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									createdAt: getTimeNSecondsAgo(new Date(), older),
-								},
-							},
-						),
-						await createService(
-							{
-								image: 'image-2',
-								serviceName: 'two',
-								running: false,
-								composition: {
-									restart: 'unless-stopped',
-								},
-							},
-							{
-								state: {
-									status: 'exited',
-									createdAt: getTimeNSecondsAgo(new Date(), older),
-								},
-							},
-						),
-					],
-					networks: [DEFAULT_NETWORK],
-					images: [
-						createImage({
-							name: 'image-1',
-							serviceName: 'one',
-						}),
-						createImage({
-							name: 'image-2',
-							serviceName: 'two',
-						}),
-					],
-				});
-
-				const [startStep1, startStep2, ...nextSteps] =
-					await applicationManager.inferNextSteps(currentApps, targetApps, {
-						downloading,
-						availableImages,
-						containerIdsByAppId,
-					});
-
-				[startStep1, startStep2].forEach((step) => {
-					expect(step).to.have.property('action').that.equals('start');
-					expect(step)
-						.to.have.property('target')
-						.that.has.property('serviceName')
-						.that.is.oneOf(['one', 'two']);
-				});
-				expect(nextSteps).to.have.lengthOf(0);
-			});
 		});
 	});
 });
