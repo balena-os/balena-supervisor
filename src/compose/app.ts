@@ -403,7 +403,7 @@ export class App {
 			// check that we want to stop it, and that it isn't stopped
 			return (
 				serviceTarget.config.running === false &&
-				serviceCurrent.status !== 'Stopped'
+				serviceCurrent.status !== 'exited'
 			);
 		};
 

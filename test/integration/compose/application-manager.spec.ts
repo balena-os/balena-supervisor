@@ -1309,7 +1309,7 @@ describe('compose/application-manager', () => {
 				{
 					commit: 'oldrelease',
 					serviceName: 'fedora',
-					status: 'Stopped',
+					status: 'exited',
 					createdAt: new Date('2021-09-01T12:00:00'),
 				},
 				{
@@ -1317,7 +1317,7 @@ describe('compose/application-manager', () => {
 					appUuid: 'debian',
 					commit: 'otherrelease',
 					serviceName: 'debian',
-					status: 'Stopped',
+					status: 'exited',
 					createdAt: new Date('2021-09-01T12:00:00'),
 				},
 			]);
@@ -1351,7 +1351,7 @@ describe('compose/application-manager', () => {
 							services: {
 								fedora: {
 									image: 'fedora:older',
-									status: 'Stopped',
+									status: 'exited',
 								},
 							},
 						},
