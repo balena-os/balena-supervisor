@@ -12,7 +12,6 @@ import {
 	generateStep,
 	CompositionStepAction,
 } from './composition-steps';
-import { isValidDateAndOlderThan } from './utils';
 import * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
@@ -25,8 +24,6 @@ import { checkTruthy, checkString } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
-
-const SECONDS_TO_WAIT_FOR_START = 30;
 
 export interface AppConstructOpts {
 	appId: number;
@@ -643,25 +640,20 @@ export class App {
 	// In the case where the Engine does not start the container despite the
 	// restart policy (this can happen in cases of Engine race conditions with
 	// host resources that are slower to be created but that a service relies on),
-	// we need to start the container after a delay.
+	// we need to start the container after a delay. The error message is parsed in this case.
 	private requirementsMetForSpecialStart(
 		current: Service,
 		target: Service,
 	): boolean {
-		if (
-			current.status !== 'exited' ||
-			current.config.running !== false ||
-			target.config.running !== true
-		) {
-			return false;
-		}
-		const restartIsAlwaysOrUnlessStopped = [
-			'always',
-			'unless-stopped',
-		].includes(target.config.restart);
-		const restartIsOnFailureWithNonZeroExit =
-			target.config.restart === 'on-failure' && current.exitCode !== 0;
-		return restartIsAlwaysOrUnlessStopped || restartIsOnFailureWithNonZeroExit;
+		const hostRaceErrorRegex = new RegExp(
+			/userland proxy.*cannot assign requested address$/i,
+		);
+		return (
+			current.status === 'exited' &&
+			current.config.running === false &&
+			target.config.running === true &&
+			hostRaceErrorRegex.test(current.exitErrorMessage ?? '')
+		);
 	}
 
 	private generateContainerStep(current: Service, target: Service) {
@@ -669,12 +661,6 @@ export class App {
 		if (current.commit !== target.commit) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running !== current.config.running) {
-			if (
-				this.requirementsMetForSpecialStart(current, target) &&
-				!isValidDateAndOlderThan(current.createdAt, SECONDS_TO_WAIT_FOR_START)
-			) {
-				return generateStep('noop', {});
-			}
 			if (target.config.running) {
 				return generateStep('start', { target });
 			} else {

@@ -61,7 +61,7 @@ export class Service {
 	public serviceId: number;
 	public imageName: string | null;
 	public containerId: string | null;
-	public exitCode: number | null;
+	public exitErrorMessage: string | null;
 
 	public dependsOn: string[] | null;
 
@@ -504,7 +504,7 @@ export class Service {
 
 		svc.createdAt = new Date(container.Created);
 		svc.containerId = container.Id;
-		svc.exitCode = container.State.ExitCode;
+		svc.exitErrorMessage = container.State.Error;
 
 		let hostname = container.Config.Hostname;
 		if (hostname.length === 12 && _.startsWith(container.Id, hostname)) {

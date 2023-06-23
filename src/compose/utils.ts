@@ -693,22 +693,3 @@ export function dockerMountToServiceMount(
 
 	return mount as LongDefinition;
 }
-
-function isDate(d: unknown): d is Date {
-	return d instanceof Date;
-}
-
-/**
- * @param currentTime Date instance
- * @param seconds time in seconds to check against currentTime
- * @returns
- */
-export function isValidDateAndOlderThan(
-	currentTime: unknown,
-	seconds: number,
-): boolean {
-	if (!isDate(currentTime)) {
-		return false;
-	}
-	return new Date().getTime() - currentTime.getTime() > seconds * 1000;
-}
