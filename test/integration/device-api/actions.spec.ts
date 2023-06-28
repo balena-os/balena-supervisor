@@ -137,10 +137,10 @@ describe('manages application lifecycle', () => {
 	const isAllRunning = (ctns: Docker.ContainerInspectInfo[]) =>
 		ctns.every((ctn) => ctn.State.Running);
 
-	const isAllStopped = (ctns: Docker.ContainerInspectInfo[]) =>
+	const isAllExited = (ctns: Docker.ContainerInspectInfo[]) =>
 		ctns.every((ctn) => !ctn.State.Running);
 
-	const isSomeStopped = (ctns: Docker.ContainerInspectInfo[]) =>
+	const isSomeExited = (ctns: Docker.ContainerInspectInfo[]) =>
 		ctns.some((ctn) => !ctn.State.Running);
 
 	// Wait until containers are in a ready state prior to testing assertions
@@ -296,11 +296,11 @@ describe('manages application lifecycle', () => {
 				.post('/v1/apps/1/stop')
 				.set('Content-Type', 'application/json');
 
-			const stoppedContainers = await waitForSetup(targetState, isAllStopped);
+			const stoppedContainers = await waitForSetup(targetState, isAllExited);
 
 			// Technically the wait function above should already verify that the two
 			// containers have been restarted, but verify explcitly with an assertion
-			expect(isAllStopped(stoppedContainers)).to.be.true;
+			expect(isAllExited(stoppedContainers)).to.be.true;
 
 			// Containers should have the same Ids since none should be removed
 			expect(stoppedContainers.map(({ Id }) => Id)).to.have.members(
@@ -577,11 +577,11 @@ describe('manages application lifecycle', () => {
 				.set('Content-Type', 'application/json')
 				.send(JSON.stringify({ serviceName: serviceNames[0] }));
 
-			const stoppedContainers = await waitForSetup(targetState, isSomeStopped);
+			const stoppedContainers = await waitForSetup(targetState, isSomeExited);
 
 			// Technically the wait function above should already verify that the two
 			// containers have been restarted, but verify explcitly with an assertion
-			expect(isSomeStopped(stoppedContainers)).to.be.true;
+			expect(isSomeExited(stoppedContainers)).to.be.true;
 
 			// Containers should have the same Ids since none should be removed
 			expect(stoppedContainers.map(({ Id }) => Id)).to.have.members(

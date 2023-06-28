@@ -40,7 +40,6 @@ const unsupportedSecurityOpt = (opt: string) => /label=.*/.test(opt);
 
 export type ServiceStatus =
 	| 'Stopping'
-	| 'Stopped'
 	| 'Running'
 	| 'Installing'
 	| 'Installed'
