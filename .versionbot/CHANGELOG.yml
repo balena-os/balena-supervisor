@@ -1,4 +1,20 @@
 - commits:
+    - subject: Add revpi-connect-s to Raspberry Pi variants
+      hash: 8d2b310af840d86ed9b96ac5bb4c5bc74e52e7ff
+      body: |
+        We need the supervisor to be able to manage config.txt changes for the
+        Revolution Pi Connect S.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Florin Sarbu <florin@balena.io>
+        signed-off-by: Florin Sarbu <florin@balena.io>
+      author: Florin Sarbu
+      nested: []
+  version: 14.11.10
+  title: ""
+  date: 2023-07-05T19:00:39.117Z
+- commits:
     - subject: Remove the 'Stopped' status for services
       hash: 38fe8dae75cd05bf313626b968e208dcfb6f307c
       body: >
