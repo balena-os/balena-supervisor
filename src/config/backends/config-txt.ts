@@ -54,6 +54,7 @@ export class ConfigTxt extends ConfigBackend {
 				'243390-rpi3',
 				'nebra-hnt',
 				'revpi-connect',
+				'revpi-connect-s',
 				'revpi-core-3',
 			].includes(deviceType) || deviceType.startsWith('raspberry')
 		);
