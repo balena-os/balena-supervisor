@@ -63,6 +63,7 @@ export class ExtraUEnv extends ConfigBackend {
 				deviceType.includes('-tx2-nx') ||
 				deviceType.includes('-agx-orin-') ||
 				deviceType.includes('-orin-nx-') ||
+				deviceType.includes('-orin-nano-') ||
 				/imx8mm-var-som/.test(deviceType) ||
 				/imx8mm?-var-dart/.test(deviceType)) &&
 			(await exists(ExtraUEnv.bootConfigPath))

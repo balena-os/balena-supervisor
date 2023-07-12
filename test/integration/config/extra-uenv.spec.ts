@@ -233,6 +233,8 @@ const MATCH_TESTS = [
 	{ type: 'jetson-orin-nx-xavier-nx-devkit', supported: true },
 	{ type: 'cti-orin-nx-custom-carrier', supported: true },
 	{ type: 'jetson-orin-agx-nx-xavier-nx-devkit', supported: false },
+	{ type: 'jetson-orin-nano-devkit-nvme', supported: true },
+	{ type: 'jetson-orin-agx-nano-devkit-nvme', supported: false },
 	{ type: 'photon-xavier-nx', supported: false },
 	{ type: 'imx8m-var-dart', supported: true },
 	{ type: 'imx8mm-var-dart', supported: true },
