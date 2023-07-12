@@ -1,4 +1,18 @@
 - commits:
+    - subject: "backends: Add Jetson Orin NANO custom device-tree support"
+      hash: 512240c54490ccd0cb83c13f0c6e8cae43fe9a88
+      body: ""
+      footer:
+        Signed-off-by: Alexandru Costache <alexandru@balena.io>
+        signed-off-by: Alexandru Costache <alexandru@balena.io>
+        Change-type: patch
+        change-type: patch
+      author: Alexandru Costache
+      nested: []
+  version: 14.11.11
+  title: ""
+  date: 2023-07-12T08:35:23.009Z
+- commits:
     - subject: Add revpi-connect-s to Raspberry Pi variants
       hash: 8d2b310af840d86ed9b96ac5bb4c5bc74e52e7ff
       body: |
