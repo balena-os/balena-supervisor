@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { stub, SinonStub, spy, SinonSpy } from 'sinon';
+import { stub, SinonStub } from 'sinon';
 import * as Docker from 'dockerode';
 import * as request from 'supertest';
 import { setTimeout } from 'timers/promises';
@@ -10,8 +10,40 @@ import * as hostConfig from '~/src/host-config';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
-import * as dbus from '~/lib/dbus';
 import { cleanupDocker } from '~/test-lib/docker-helper';
+
+import { exec } from '~/src/lib/fs-utils';
+
+export async function dbusSend(
+	dest: string,
+	path: string,
+	message: string,
+	...contents: string[]
+) {
+	const { stdout, stderr } = await exec(
+		[
+			'dbus-send',
+			'--system',
+			`--dest=${dest}`,
+			'--print-reply',
+			path,
+			message,
+			...contents,
+		].join(' '),
+		{ encoding: 'utf8' },
+	);
+
+	if (stderr) {
+		throw new Error(stderr);
+	}
+
+	// Remove first line, trim each line, and join them back together
+	return stdout
+		.split(/\r?\n/)
+		.slice(1)
+		.map((s) => s.trim())
+		.join('');
+}
 
 describe('regenerates API keys', () => {
 	// Stub external dependency - current state report should be tested separately.
@@ -692,24 +724,34 @@ describe('manages application lifecycle', () => {
 });
 
 describe('reboots or shuts down device', () => {
-	before(async () => {
-		spy(dbus, 'reboot');
-		spy(dbus, 'shutdown');
-	});
-
-	after(() => {
-		(dbus.reboot as SinonSpy).restore();
-		(dbus.shutdown as SinonSpy).restore();
-	});
-
 	it('reboots device', async () => {
 		await actions.executeDeviceAction({ action: 'reboot' });
-		expect(dbus.reboot as SinonSpy).to.have.been.called;
+		// The reboot method delays the call by one second
+		await setTimeout(1500);
+		await expect(
+			dbusSend(
+				'org.freedesktop.login1',
+				'/org/freedesktop/login1',
+				'org.freedesktop.DBus.Properties.Get',
+				'string:org.freedesktop.login1.Manager',
+				'string:MockState',
+			),
+		).to.eventually.equal('variant       string "rebooting"');
 	});
 
 	it('shuts down device', async () => {
 		await actions.executeDeviceAction({ action: 'shutdown' });
-		expect(dbus.shutdown as SinonSpy).to.have.been.called;
+		// The shutdown method delays the call by one second
+		await setTimeout(1500);
+		await expect(
+			dbusSend(
+				'org.freedesktop.login1',
+				'/org/freedesktop/login1',
+				'org.freedesktop.DBus.Properties.Get',
+				'string:org.freedesktop.login1.Manager',
+				'string:MockState',
+			),
+		).to.eventually.equal('variant       string "off"');
 	});
 });
 

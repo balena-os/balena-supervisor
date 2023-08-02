@@ -12,41 +12,30 @@ services:
     # Use bridge networking for the tests
     environment:
       DOCKER_HOST: tcp://docker:2375
-      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/shared/dbus/system_bus_socket
       # Required to skip device mounting in test env
       TEST: 1
     depends_on:
       - docker
-      - dbus
-      - dbus-services
+      - mock-systemd
     volumes:
-      - dbus:/run/dbus
+      - dbus:/shared/dbus
       - ./test/data/root:/mnt/root
       - ./test/data/root/mnt/boot:/mnt/boot
       - ./test/lib/wait-for-it.sh:/wait-for-it.sh
     tmpfs:
       - /data # sqlite3 database
 
-  dbus:
-    image: balenablocks/dbus
-    stop_grace_period: 3s
-    environment:
-      DBUS_CONFIG: session.conf
-      DBUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+  # The service setup
+  mock-systemd:
+    image: ghcr.io/balena-os/mock-systemd-bus
+    # Necessary to run systemd in a container
+    privileged: true
     volumes:
-      - dbus:/run/dbus
-
-  # Fake system service to listen for supervisor
-  # requests
-  dbus-services:
-    build: ./test/lib/dbus
-    stop_grace_period: 3s
-    depends_on:
-      - dbus
-    volumes:
-      - dbus:/run/dbus
+      - dbus:/shared/dbus
     environment:
-      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/shared/dbus/system_bus_socket
+      MOCK_SYSTEMD_UNITS: openvpn.service avahi.socket
 
   docker:
     image: docker:dind
@@ -77,15 +66,14 @@ services:
     depends_on:
       - balena-supervisor-sut
       - docker
-      - dbus
-      - dbus-services
+      - mock-systemd
     stop_grace_period: 3s
     volumes:
-      - dbus:/run/dbus
+      - dbus:/shared/dbus
     # Set required supervisor configuration variables here
     environment:
       DOCKER_HOST: tcp://docker:2375
-      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/shared/dbus/system_bus_socket
       BALENA_SUPERVISOR_ADDRESS: http://balena-supervisor-sut:48484
       # Required by migrations
       CONFIG_MOUNT_POINT: /mnt/boot/config.json
