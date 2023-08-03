@@ -31,7 +31,6 @@
   },
   "private": true,
   "dependencies": {
-    "@balena/happy-eyeballs": "0.0.6",
     "@balena/systemd": "^0.4.1",
     "got": "^12.5.3",
     "mdns-resolver": "^1.0.0",
@@ -45,6 +44,7 @@
   "devDependencies": {
     "@balena/contrato": "^0.6.0",
     "@balena/es-version": "^1.0.1",
+    "@balena/happy-eyeballs": "0.0.6",
     "@balena/lint": "^6.2.0",
     "@types/bluebird": "^3.5.37",
     "@types/chai": "^4.3.3",
