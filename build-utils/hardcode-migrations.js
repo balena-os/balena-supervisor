@@ -5,9 +5,12 @@ module.exports = function (source) {
 	return (
 		source
 			.toString()
-			// IMPORTANT: this is known to work with knex v0.95.15. It will most likely break
+			// IMPORTANT: this is known to work with knex v2.5.0. It will most likely break
 			// if knex is upgraded. This is really a hack and should be replaced by a more sustainable
 			// webpack configuration.
-			.replace('importFile(_path)', "require('./migrations/'+migration.file)")
+			.replace(
+				'importFile(_path)',
+				"require('./migrations/'+migrationsInfo.file)",
+			)
 	);
 };

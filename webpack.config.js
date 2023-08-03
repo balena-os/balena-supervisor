@@ -19,6 +19,7 @@ var externalModules = [
 	'oracledb',
 	'pg-query-stream',
 	'tedious',
+	'better-sqlite3',
 	/mssql\/.*/,
 	'osx-temperature-sensor',
 	'@balena/systemd',
@@ -104,8 +105,8 @@ module.exports = function (env) {
 					include: [
 						new RegExp(
 							_.escapeRegExp(
-								// this is the path as of knex@0.95.15
-								path.join('knex', 'lib', 'migrations', 'migrate', 'sources'),
+								// this is the path as of knex@2.5.1
+								path.join('knex', 'lib', 'migrations', 'common'),
 							),
 						),
 					],
