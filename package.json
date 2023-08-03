@@ -32,7 +32,6 @@
   "private": true,
   "dependencies": {
     "@balena/systemd": "^0.4.1",
-    "got": "^12.5.3",
     "mdns-resolver": "^1.0.0",
     "sqlite3": "^5.1.6"
   },
@@ -95,6 +94,7 @@
     "express": "^4.17.1",
     "fork-ts-checker-webpack-plugin": "^7.2.13",
     "fp-ts": "^2.8.1",
+    "got": "12.6.1",
     "husky": "^8.0.1",
     "io-ts": "^2.2.10",
     "io-ts-reporters": "^1.2.2",
