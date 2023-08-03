@@ -32,7 +32,6 @@
   "private": true,
   "dependencies": {
     "@balena/systemd": "^0.4.1",
-    "mdns-resolver": "^1.0.0",
     "sqlite3": "^5.1.6"
   },
   "engines": {
@@ -103,6 +102,7 @@
     "lint-staged": "^13.0.3",
     "livepush": "^3.5.1",
     "lodash": "^4.17.21",
+    "mdns-resolver": "1.1.0",
     "memoizee": "^0.4.14",
     "mocha": "^8.3.2",
     "mocha-pod": "^0.9.0",
