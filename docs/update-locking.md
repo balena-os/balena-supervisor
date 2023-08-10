@@ -86,9 +86,7 @@ Check the link for more examples and other Python libraries that provide locking
 
 The update lock can be overridden in case you need to force an update, for instance, if your app has hung in a critical section.
 
-To do this the device or fleet must have `BALENA_SUPERVISOR_OVERRIDE_LOCK` configuration variable set to "1".
-
-The easiest way to do this is to use the 'Override the update lock ...' toggle in the [Fleet or Device Configuration][device-configuration] page. Go to the configuration page of the device or fleet, locate the 'Override the update lock ...' item, click the activate button, and set the toggle to enabled. After disabling the toggle, update locks may be set again and will be respected.
+The recommended way to do this is to use the 'Override the update lock ...' toggle in the [Fleet or Device Configuration][device-configuration] page. Go to the configuration page of the device or fleet, locate the 'Override the update lock ...' item from the list, click the activate button, and set the toggle to enabled. After disabling the toggle, update locks may be set again and will be respected.
 
 Also, you can programatically override locks one time by querying the `/v1/update` endpoint of the [Supervisor HTTP API][supervisor-api], with `{ "force": true }` as body. Note that this will not set the lock override config var.
 
