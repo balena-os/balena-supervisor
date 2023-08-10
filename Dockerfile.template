@@ -1,7 +1,7 @@
 ARG ARCH=%%BALENA_ARCH%%
 ARG FATRW_VERSION=0.2.9
-ARG NODE="nodejs>16"
-ARG NPM="npm>8"
+ARG NODE="nodejs<19"
+ARG NPM="npm<10"
 
 ###################################################
 # Build the supervisor dependencies
@@ -18,16 +18,15 @@ ARG FATRW_LOCATION="https://github.com/balena-os/fatrw/releases/download/v${FATR
 WORKDIR /usr/src/app
 
 RUN apk add --update --no-cache \
-	g++ \
-	make \
+	build-base \
 	python3 \
 	curl \
 	$NODE \
 	$NPM \
 	libuv \
 	sqlite-dev \
-	dbus-dev && \
-	npm install -g npm@8
+	cargo \
+	rust
 
 COPY package*.json ./
 
@@ -114,7 +113,7 @@ ARG ARCH
 
 # We want to use as close to the final image when running tests
 # but we need npm so we install it here again
-RUN apk add --update --no-cache $NPM && npm install -g npm@8
+RUN apk add --update --no-cache $NPM
 
 WORKDIR /usr/src/app
 
@@ -170,8 +169,8 @@ RUN npm run build
 # Run the production install here, to avoid the npm dependency on
 # the later stage
 RUN npm ci \
-	--production \
-	--no-optional \
+	--omit=dev \
+	--omit=optional \
 	--unsafe-perm \
 	--build-from-source \
 	--sqlite=/usr/lib \
