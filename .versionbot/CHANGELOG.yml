@@ -1,4 +1,16 @@
 - commits:
+    - subject: "patch: Remove reference of override_lock variable"
+      hash: 7560c70a085d27d8b44eb0dab8b3fa40ab0c9e94
+      body: This is being done to keep the source of truth for this variable in one
+        place and reduce confusion since it's better for dashboard users to
+        reference the dashboard option rather than the actual variable name
+      footer: {}
+      author: Vipul Gupta
+      nested: []
+  version: 14.11.13
+  title: ""
+  date: 2023-08-10T16:51:23.863Z
+- commits:
     - subject: "mount-partitions: do not hardcode partition types"
       hash: cc2ca84448e2a3894294c39b8078c050c0237b87
       body: |
