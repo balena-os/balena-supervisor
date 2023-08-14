@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action to v0.28.0
+      hash: 4f54395be2cbbb7bcd1d0c1a9acef3b707f34691
+      body: Update balena-io/deploy-to-balena-action
+      footer:
+        Changelog-entry: Update balena-io/deploy-to-balena-action to v0.28.0
+        changelog-entry: Update balena-io/deploy-to-balena-action to v0.28.0
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 14.11.14
+  title: ""
+  date: 2023-08-14T23:47:06.985Z
+- commits:
     - subject: "patch: Remove reference of override_lock variable"
       hash: 7560c70a085d27d8b44eb0dab8b3fa40ab0c9e94
       body: This is being done to keep the source of truth for this variable in one
