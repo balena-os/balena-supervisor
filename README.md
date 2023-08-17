@@ -39,7 +39,18 @@ Here's a few guidelines to make the process easier for everyone involved.
 - Commits should be squashed as much as makes sense.
 - Commits should be signed-off (`git commit -s`)
 
-## Setup
+
+## Developing the supervisor
+
+### Requirements
+
+These are the system requirements for developing and testing the balenaSupervisor on a local machine
+
+- [Node.js](https://nodejs.org/en) v18 or latest
+- [Rust](https://www.rust-lang.org/) v1.64 or latest for installing the [@balena/systemd](https://www.npmjs.com/package/@balena/systemd) NPM package.
+- If developing on an architecture not supported by default by [node-sqlite3](https://github.com/TryGhost/node-sqlite3#prebuilt-binaries), a C++ compiler and linker are also required, plus the libsqlite development headers.
+
+### Setup
 
 To get the codebase setup on your development machine follow these steps. For running the supervisor on a device see [Developing the supervisor](#developing-the-supervisor) or [Using balenaOS-in-container](#using-balenaos-in-container).
 
@@ -53,11 +64,11 @@ npm ci
 
 We explicitly use `npm ci` over `npm install` to ensure the correct package versions are installed. More documentation for this can be found [here](https://docs.npmjs.com/cli/ci) on the npm cli docs.
 
-You're now ready to start developing. If you get stuck at some point please reference the [troubleshooting](#troubleshooting) section before creating an issue.
+You're now ready to start developing. 
 
-## Developing the supervisor
+### Running your code 
 
-By far the most convenient way to develop the supervisor is
+By far the most convenient way to test your supervisor code is
 to download a development image of balenaOS from the
 dashboard, and run it on a device you have to hand. You can
 then use the local network to sync changes using
@@ -69,7 +80,7 @@ a supervisor locally, using
 [balenaOS-in-container](https://github.com/balena-os/balenaos-in-container).
 These steps are detailed below.
 
-### Sync
+#### Sync
 
 Example:
 
@@ -101,7 +112,7 @@ and sync any relevant file changes to the running supervisor
 container. It will then decide if the container should be
 restarted, or let nodemon handle the changes.
 
-### Using balenaOS-in-container
+#### Using balenaOS-in-container
 
 This process will allow you to run a development instance of the supervisor on your local computer. It is not recommended for production scenarios, but allows someone developing on the supervisor to test changes quickly.
 The supervisor is run inside a balenaOS instance running in a container, so effectively it's a Docker-in-Docker instance (or more precisely, [balenaEngine](https://github.com/resin-os/balena-engine)-in-Docker).
@@ -117,7 +128,7 @@ $ npm run sync -- d19baeb.local -a amd64
 > ts-node --project tsconfig.json sync/sync.ts "d19baeb.local"
 ```
 
-## Developing using a production image or device
+### Developing using a production image or device
 
 A production balena image does not have an open docker
 socket, required for livepush to work. In this situation, [balena tunnel](https://www.balena.io/docs/reference/balena-cli/#tunnel-deviceorfleet)
@@ -152,7 +163,7 @@ root@d19baeb.local
 npm run sync -- 127.0.0.1 -a amd64
 ```
 
-## Building
+### Building
 
 The supervisor is built automatically by the CI system, but a docker image can be also be built locally using the [balena CLI](https://www.balena.io/docs/reference/balena-cli/#build-source).
 
@@ -174,7 +185,7 @@ For instance to build for raspberrypi4:
 balena build -d raspberrypi4-64 -A aarch64
 ```
 
-## Testing
+### Testing
 
 The codebase splits the test suite into unit and integration tests. While unit tests can be run in the local development machine,
 integration tests require a containerized environment with the right dependencies to be setup.
@@ -235,30 +246,7 @@ npm run test:unit -- -g "(GET|POST|PUT|DELETE)"
 
 The `--grep` option, when specified, will trigger mocha to only run tests matching the given pattern which is internally compiled to a RegExp.
 
-## Troubleshooting
-
-Make sure you are running at least:
-
-```sh
-node -v       # >= 12.16.2
-npm -v        # >= 6.14.4
-git --version # >= 2.13.0
-```
-
-Also, ensure you're installing dependencies with `npm ci` as this will perform a clean install and guarantee the module versions specified are downloaded rather then installed which might attempt to upgrade!
-
-If you have upgraded system packages and find that your tests are failing to initialize with docker network errors, a reboot may resolve this. See [this issue](https://github.com/moby/moby/issues/34575) for details.
-
-### DBus
-
-When developing on macOS you may need to install DBus on the development host.
-
-1. `brew install dbus`
-2. `npm ci`
-
-On Debian-based systems, `sudo apt install libdbus-1-dev` would be the equivalent.
-
-#### Downgrading versions
+## Downgrading versions
 
 The Supervisor will always be forwards compatible so you can just simply run newer versions. If there is data that must be normalized to a new schema such as the naming of engine resources, values in the sqlite database, etc then the new version will automatically take care of that either via [migrations](/src/migrations) or at runtime when the value is queried.
 

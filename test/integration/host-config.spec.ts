@@ -68,7 +68,7 @@ describe('host-config', () => {
 	beforeEach(async () => {
 		await tFs.enable();
 		// Stub external dependencies
-		stub(dbus, 'servicePartOf').resolves('');
+		stub(dbus, 'servicePartOf').resolves([]);
 		stub(dbus, 'restartService').resolves();
 	});
 
@@ -153,7 +153,7 @@ describe('host-config', () => {
 	});
 
 	it('skips restarting proxy services when part of redsocks-conf.target', async () => {
-		(dbus.servicePartOf as SinonStub).resolves('redsocks-conf.target');
+		(dbus.servicePartOf as SinonStub).resolves(['redsocks-conf.target']);
 		await hostConfig.patch({
 			network: {
 				proxy: {

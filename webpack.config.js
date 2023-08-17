@@ -19,9 +19,9 @@ var externalModules = [
 	'oracledb',
 	'pg-query-stream',
 	'tedious',
-	'dbus',
 	/mssql\/.*/,
 	'osx-temperature-sensor',
+	'@balena/systemd',
 ];
 
 let requiredModules = [];

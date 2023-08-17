@@ -1,13 +1,6 @@
 version: '2.3'
 
 services:
-  dbus-services:
-    environment:
-      DEVELOPMENT: 1
-    volumes:
-      - './test/lib/dbus/systemd.ts:/usr/src/app/systemd.ts'
-      - './test/lib/dbus/login.ts:/usr/src/app/login.ts'
-
   sut:
     command: sleep infinity
     volumes:

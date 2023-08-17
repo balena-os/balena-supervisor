@@ -1,69 +1,21 @@
-import { getBus, Error as DBusError } from 'dbus';
-import { promisify } from 'util';
-import { TypedError } from 'typed-error';
-import * as _ from 'lodash';
-
 import log from './supervisor-console';
-import DBus = require('dbus');
-
-export class DbusError extends TypedError {}
-
-let bus: DBus.DBusConnection;
-let getInterfaceAsync: <T = DBus.AnyInterfaceMethod>(
-	serviceName: string,
-	objectPath: string,
-	ifaceName: string,
-) => Promise<DBus.DBusInterface<T>>;
-
-export const initialized = _.once(async () => {
-	bus = getBus('system');
-	getInterfaceAsync = promisify(bus.getInterface.bind(bus));
-});
-
-async function getSystemdInterface() {
-	await initialized();
-	try {
-		return await getInterfaceAsync(
-			'org.freedesktop.systemd1',
-			'/org/freedesktop/systemd1',
-			'org.freedesktop.systemd1.Manager',
-		);
-	} catch (e) {
-		throw new DbusError(e as DBusError);
-	}
-}
-
-async function getLoginManagerInterface() {
-	await initialized();
-	try {
-		return await getInterfaceAsync(
-			'org.freedesktop.login1',
-			'/org/freedesktop/login1',
-			'org.freedesktop.login1.Manager',
-		);
-	} catch (e) {
-		throw new DbusError(e as DBusError);
-	}
-}
+import { singleton, ServiceManager, LoginManager } from '@balena/systemd';
+import { setTimeout } from 'timers/promises';
 
 async function startUnit(unitName: string) {
-	const systemd = await getSystemdInterface();
+	const bus = await singleton();
+	const systemd = new ServiceManager(bus);
+	const unit = systemd.getUnit(unitName);
 	log.debug(`Starting systemd unit: ${unitName}`);
-	try {
-		systemd.StartUnit(unitName, 'fail');
-	} catch (e) {
-		throw new DbusError(e as DBusError);
-	}
+	await unit.start('fail');
 }
 
 export async function restartService(serviceName: string) {
-	const systemd = await getSystemdInterface();
+	const bus = await singleton();
+	const systemd = new ServiceManager(bus);
+	const unit = systemd.getUnit(`${serviceName}.service`);
 	log.debug(`Restarting systemd service: ${serviceName}`);
-	try {
-		systemd.RestartUnit(`${serviceName}.service`, 'fail');
-	} catch (e) {
-		throw new DbusError(e as DBusError);
-	}
+	await unit.restart('fail');
 }
 
 export async function startService(serviceName: string) {
@@ -75,13 +27,11 @@ export async function startSocket(socketName: string) {
 }
 
 async function stopUnit(unitName: string) {
-	const systemd = await getSystemdInterface();
+	const bus = await singleton();
+	const systemd = new ServiceManager(bus);
+	const unit = systemd.getUnit(unitName);
 	log.debug(`Stopping systemd unit: ${unitName}`);
-	try {
-		systemd.StopUnit(unitName, 'fail');
-	} catch (e) {
-		throw new DbusError(e as DBusError);
-	}
+	await unit.stop('fail');
 }
 
 export async function stopService(serviceName: string) {
@@ -92,60 +42,44 @@ export async function stopSocket(socketName: string) {
 	return stopUnit(`${socketName}.socket`);
 }
 
-export const reboot = async () =>
-	setTimeout(async () => {
-		try {
-			const logind = await getLoginManagerInterface();
-			logind.Reboot(false);
-		} catch (e) {
-			log.error(`Unable to reboot: ${e}`);
-		}
-	}, 1000);
-
-export const shutdown = async () =>
-	setTimeout(async () => {
-		try {
-			const logind = await getLoginManagerInterface();
-			logind.PowerOff(false);
-		} catch (e) {
-			log.error(`Unable to shutdown: ${e}`);
-		}
-	}, 1000);
-
-async function getUnitProperty(
-	unitName: string,
-	property: string,
-): Promise<string> {
-	const systemd = await getSystemdInterface();
-	return new Promise((resolve, reject) => {
-		systemd.GetUnit(unitName, async (err: Error, unitPath: string) => {
-			if (err) {
-				return reject(err);
-			}
-			const iface = await getInterfaceAsync(
-				'org.freedesktop.systemd1',
-				unitPath,
-				'org.freedesktop.DBus.Properties',
-			);
-
-			iface.Get(
-				'org.freedesktop.systemd1.Unit',
-				property,
-				(e: Error, value: string) => {
-					if (e) {
-						return reject(new DbusError(e));
-					}
-					resolve(value);
-				},
-			);
-		});
-	});
+export async function reboot() {
+	// No idea why this timeout is here, my guess
+	// is that it is to allow the API reboot endpoint to be able
+	// to send a response before the event happens
+	await setTimeout(1000);
+	const bus = await singleton();
+	const logind = new LoginManager(bus);
+	try {
+		await logind.reboot();
+	} catch (e) {
+		log.error(`Unable to reboot: ${e}`);
+	}
 }
 
-export function serviceActiveState(serviceName: string) {
-	return getUnitProperty(`${serviceName}.service`, 'ActiveState');
+export async function shutdown() {
+	// No idea why this timeout is here, my guess
+	// is that it is to allow the API shutdown endpoint to be able
+	// to send a response before the event happens
+	await setTimeout(1000);
+	const bus = await singleton();
+	const logind = new LoginManager(bus);
+	try {
+		await logind.powerOff();
+	} catch (e) {
+		log.error(`Unable to shutdown: ${e}`);
+	}
 }
 
-export function servicePartOf(serviceName: string) {
-	return getUnitProperty(`${serviceName}.service`, 'PartOf');
+export async function serviceActiveState(serviceName: string) {
+	const bus = await singleton();
+	const systemd = new ServiceManager(bus);
+	const unit = systemd.getUnit(`${serviceName}.service`);
+	return await unit.activeState;
+}
+
+export async function servicePartOf(serviceName: string) {
+	const bus = await singleton();
+	const systemd = new ServiceManager(bus);
+	const unit = systemd.getUnit(`${serviceName}.service`);
+	return await unit.partOf;
 }
