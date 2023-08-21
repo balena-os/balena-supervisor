@@ -1,4 +1,24 @@
 - commits:
+    - subject: Bump sqlite3 to 5.1.6
+      hash: 99962dc94f2356008c063ede08a2a71b4ef21630
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Bump knex to v2.5.1
+      hash: 06e258ecad2e91f40c2b1602a59b0120bc5639c3
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.12.1
+  title: ""
+  date: 2023-08-21T16:17:32.755Z
+- commits:
     - subject: Update README
       hash: c88d557aafc3088e4048a8cd9b9fc5fea8a45e01
       body: |
