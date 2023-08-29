@@ -43,6 +43,12 @@ import type {
 	CompositionStepT,
 	CompositionStepAction,
 } from './compose/composition-steps';
+import * as fsUtils from './lib/fs-utils';
+import { pathOnRoot } from './lib/host-utils';
+
+const TARGET_STATE_CONFIG_DUMP = pathOnRoot(
+	'/tmp/balena-supervisor/target-state-config',
+);
 
 function parseTargetState(state: unknown): TargetState {
 	const res = TargetState.decode(state);
@@ -330,6 +336,11 @@ export async function setTarget(target: TargetState, localSource?: boolean) {
 	}
 
 	const localTarget = target[uuid];
+
+	await fsUtils.writeAndSyncFile(
+		TARGET_STATE_CONFIG_DUMP,
+		JSON.stringify(localTarget.config),
+	);
 
 	await usingWriteLockTarget(async () => {
 		await db.transaction(async (trx) => {
