@@ -2,11 +2,12 @@ ARG ARCH=%%BALENA_ARCH%%
 ARG FATRW_VERSION=0.2.9
 ARG NODE="nodejs<19"
 ARG NPM="npm<10"
+ARG ALPINE_VERSION="3.18"
 
 ###################################################
 # Build the supervisor dependencies
 ###################################################
-FROM alpine:3.18 as build-base
+FROM alpine:${ALPINE_VERSION} as build-base
 
 ARG ARCH
 ARG NODE
@@ -68,7 +69,7 @@ RUN apk add --update --no-cache procmail
 # Image with the final production dependencies.
 # This image will also be be used for testing
 ###################################################
-FROM alpine:3.16 as runtime-base
+FROM alpine:${ALPINE_VERSION} as runtime-base
 
 ARG NODE
 
