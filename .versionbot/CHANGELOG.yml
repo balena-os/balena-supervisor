@@ -1,4 +1,21 @@
 - commits:
+    - subject: Dump target-state to hostOS tmp dir
+      hash: ab513cc021d90b1337bd79b58e6bb9e0c91e11d0
+      body: |
+        This change is mainly for the hostOS
+        to know if update locks should be ignored
+        when updating to a newer version.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: jaomaloy <jao.maloy@balena.io>
+        signed-off-by: jaomaloy <jao.maloy@balena.io>
+      author: jaomaloy
+      nested: []
+  version: 14.12.2
+  title: ""
+  date: 2023-09-15T01:57:40.718Z
+- commits:
     - subject: Bump sqlite3 to 5.1.6
       hash: 99962dc94f2356008c063ede08a2a71b4ef21630
       body: ""
