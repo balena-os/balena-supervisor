@@ -1,4 +1,20 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action to v1.0.3
+      hash: aa07a160e9fb7b94576b428064ff61b6de193170
+      body: Update balena-io/deploy-to-balena-action
+      footer:
+        Changelog-entry: Update balena-io/deploy-to-balena-action to v1.0.3
+        changelog-entry: Update balena-io/deploy-to-balena-action to v1.0.3
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 14.13.1
+  title: ""
+  date: 2023-09-28T20:17:05.922Z
+- commits:
     - subject: Update runtime-base image to alpine:3.18
       hash: 3766013cbdbb8864abf2f353332b27713c357818
       body: |
