@@ -1,4 +1,20 @@
 - commits:
+    - subject: Update runtime-base image to alpine:3.18
+      hash: 3766013cbdbb8864abf2f353332b27713c357818
+      body: |
+        We were still on 3.16, where the nodejs package was
+        pointed at Node 16. 3.18 moves the pointer to Node 18.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.13.0
+  title: ""
+  date: 2023-09-28T18:13:11.954Z
+- commits:
     - subject: Dump target-state to hostOS tmp dir
       hash: ab513cc021d90b1337bd79b58e6bb9e0c91e11d0
       body: |
