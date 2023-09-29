@@ -546,7 +546,7 @@ export async function setTarget(
 	// filter those out and add the target state to the database
 	const contractViolators: { [appName: string]: string[] } = {};
 	const fulfilledContracts = validateTargetContracts(apps);
-	const filteredApps = _.cloneDeep(apps);
+	const filteredApps = structuredClone(apps);
 	_.each(
 		fulfilledContracts,
 		(

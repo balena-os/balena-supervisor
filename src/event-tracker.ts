@@ -24,7 +24,7 @@ export async function track(
 		properties = { error: properties };
 	}
 
-	properties = _.cloneDeep(properties);
+	properties = structuredClone(properties);
 	if (properties.error instanceof Error) {
 		// Format the error for printing, to avoid display as { }
 		properties.error = {

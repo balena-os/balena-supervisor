@@ -528,7 +528,7 @@ export const initialized = _.once(async () => {
 	}
 
 	const baseUrl = url.resolve(apiEndpoint, '/v6/');
-	const passthrough = _.cloneDeep(await request.getRequestOptions());
+	const passthrough = structuredClone(await request.getRequestOptions());
 	passthrough.headers = passthrough.headers != null ? passthrough.headers : {};
 	passthrough.headers.Authorization = `Bearer ${currentApiKey}`;
 	balenaApi = new PinejsClientRequest({
