@@ -1,4 +1,20 @@
 - commits:
+    - subject: Use native structuredClone instead of _.cloneDeep
+      hash: 06d4775178af40264d0dfe476ee11815235fc52e
+      body: >
+        Memory tests have shown performance improvements to using the native
+        method.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.13.2
+  title: ""
+  date: 2023-09-30T00:37:03.496Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action to v1.0.3
       hash: aa07a160e9fb7b94576b428064ff61b6de193170
       body: Update balena-io/deploy-to-balena-action
