@@ -30,7 +30,7 @@ export function camelCaseConfig(
 	// Networks can either be an object or array, but given _.isObject
 	// returns true for an array, we check the other way
 	if (!_.isArray(config.networks)) {
-		const networksTmp = _.cloneDeep(config.networks);
+		const networksTmp = structuredClone(config.networks);
 		_.each(networksTmp, (v, k) => {
 			config.networks[k] = _.mapKeys(v, (_v, key) => _.camelCase(key));
 		});

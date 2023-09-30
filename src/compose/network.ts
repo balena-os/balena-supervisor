@@ -261,7 +261,7 @@ export class Network {
 		// default or generated values)
 		let configToCompare = this.config;
 		if (network.config.ipam.config.length === 0) {
-			configToCompare = _.cloneDeep(this.config);
+			configToCompare = structuredClone(this.config);
 			configToCompare.ipam.config = [];
 		}
 
@@ -270,7 +270,7 @@ export class Network {
 		// Any ipam config will be included in the network, but not applied
 		// in the host's networking layer.
 		if (network.config.configOnly) {
-			configToCompare = _.cloneDeep(this.config);
+			configToCompare = structuredClone(this.config);
 			configToCompare.driver = network.config.driver;
 		}
 

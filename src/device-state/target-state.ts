@@ -64,7 +64,7 @@ const emitTargetState = (
 		// CachedResponse has not been emitted before so emit as an update
 		emitter.emit(
 			'target-state-update',
-			_.cloneDeep(cachedResponse.body),
+			structuredClone(cachedResponse.body),
 			force,
 			isFromApi,
 		);
@@ -201,7 +201,7 @@ const poll = async (
  */
 export const get = async (): Promise<TargetState> => {
 	await update();
-	return _.cloneDeep(cache.body);
+	return structuredClone(cache.body);
 };
 
 /**

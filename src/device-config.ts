@@ -389,7 +389,7 @@ export function bootConfigChangeRequired(
 		const SPECIAL_CASE = 'configuration'; // ODMDATA Mode for TX2 devices
 		if (!(SPECIAL_CASE in targetBootConfig)) {
 			// Create a copy to modify
-			const targetCopy = _.cloneDeep(targetBootConfig);
+			const targetCopy = structuredClone(targetBootConfig);
 			// Add current value to simulate if the value was set in the cloud on provision
 			targetCopy[SPECIAL_CASE] = currentBootConfig[SPECIAL_CASE];
 			if (_.isEqual(targetCopy, currentBootConfig)) {
