@@ -1,4 +1,19 @@
 - commits:
+    - subject: Use `~=` to specify alpine package versions
+      hash: 4a4a8a59bfd664e9683f60d4681a0c6583c68dd1
+      body: |
+        Alpine allows the `~=` syntax to match a part of the package version
+        when installing. In this case we want to use it to specify node and
+        npm major versions
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.13.3
+  title: ""
+  date: 2023-10-02T14:22:18.491Z
+- commits:
     - subject: Use native structuredClone instead of _.cloneDeep
       hash: 06d4775178af40264d0dfe476ee11815235fc52e
       body: >
