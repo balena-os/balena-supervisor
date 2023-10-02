@@ -1,4 +1,20 @@
 - commits:
+    - subject: Add tmpfs for /mnt/root/tmp in test env
+      hash: 5564a51acf4897c7981808d8bdd28e1c016caca1
+      body: |
+        This is to prevent the target state cache from getting written to host
+        during tests.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.13.4
+  title: ""
+  date: 2023-10-02T21:38:10.350Z
+- commits:
     - subject: Use `~=` to specify alpine package versions
       hash: 4a4a8a59bfd664e9683f60d4681a0c6583c68dd1
       body: |
