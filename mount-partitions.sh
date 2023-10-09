@@ -103,7 +103,11 @@ setup_then_mount "boot" "${BOOT_MOUNTPOINT}"
 export BOOT_MOUNTPOINT
 
 # Read from the os-release of boot partition instead of overlay
-export HOST_OS_VERSION_PATH="${BOOT_MOUNTPOINT}/os-release"
+#
+# TODO: We need to remove the dependence on /mnt/root for this particular file.
+# Reading from /mnt/boot/os-release is not always accurate, so we need to work
+# with the OS team to find a better way to get the OS version.
+export HOST_OS_VERSION_PATH="/mnt/root/etc/os-release"
 
 # CONFIG_MOUNT_POINT is set to /boot/config.json in Dockerfile.template,
 # but that's a legacy mount provided by host and we should override it.

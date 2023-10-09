@@ -425,7 +425,7 @@ describe('manages application lifecycle', () => {
 			// Versions match semver versioning scheme: major.minor.patch(+rev)?
 			expect(body)
 				.to.have.property('os_version')
-				.that.matches(/balenaOS\s[1-2]\.[0-9]{1,3}\.[0-9]{1,3}(?:\+rev[0-9])?/);
+				.that.matches(/balenaOS\s[1-4]\.[0-9]{1,3}\.[0-9]{1,3}(?:\+rev[0-9])?/);
 			expect(body)
 				.to.have.property('supervisor_version')
 				.that.matches(/(?:[0-9]+\.?){3}/);
