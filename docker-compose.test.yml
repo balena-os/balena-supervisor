@@ -81,7 +81,7 @@ services:
       # Required to set mountpoints normally set in entry.sh
       ROOT_MOUNTPOINT: /mnt/root
       BOOT_MOUNTPOINT: /mnt/boot
-      HOST_OS_VERSION_PATH: /mnt/boot/os-release
+      HOST_OS_VERSION_PATH: /mnt/root/etc/os-release
       STATE_MOUNTPOINT: /mnt/state
       DATA_MOUNTPOINT: /mnt/data
       DATABASE_PATH: /data/database.sqlite
