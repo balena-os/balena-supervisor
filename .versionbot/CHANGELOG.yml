@@ -1,4 +1,20 @@
 - commits:
+    - subject: Revert os-release path to /mnt/root
+      hash: bc1d251e66b863abbd7829fecc4b618fca71d2c3
+      body: >
+        /mnt/boot/os-release isn't always accurate so /mnt/root should be the
+        source of truth.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 14.13.5
+  title: ""
+  date: 2023-10-10T18:54:18.074Z
+- commits:
     - subject: Add tmpfs for /mnt/root/tmp in test env
       hash: 5564a51acf4897c7981808d8bdd28e1c016caca1
       body: |
