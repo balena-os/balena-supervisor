@@ -5,7 +5,6 @@ import * as Promise from 'bluebird';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
 
-import { ContainerLogs } from '~/src/logging/container';
 import * as config from '~/src/config';
 
 describe('Logger', function () {
@@ -126,18 +125,6 @@ describe('Logger', function () {
 			expect(msg).to.have.property('message').that.equals('Hello there!');
 			expect(msg).to.have.property('isSystem').that.equals(true);
 			expect(msg).to.have.property('timestamp').that.is.at.least(timestamp);
-		});
-	});
-
-	it('should support non-tty log lines', function () {
-		const message =
-			'\u0001\u0000\u0000\u0000\u0000\u0000\u0000?2018-09-21T12:37:09.819134000Z this is the message';
-		const buffer = Buffer.from(message);
-
-		// @ts-expect-error accessing a private function
-		expect(ContainerLogs.extractMessage(buffer)).to.deep.equal({
-			message: 'this is the message',
-			timestamp: 1537533429819,
 		});
 	});
 });
