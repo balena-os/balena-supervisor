@@ -5,10 +5,7 @@ import * as db from '../db';
 import { spawnJournalctl, toJournalDate } from '../lib/journald';
 import log from '../lib/supervisor-console';
 
-export type MonitorHook = ({
-	message,
-	isStdErr,
-}: {
+export type MonitorHook = (message: {
 	message: string;
 	isStdErr: boolean;
 	timestamp: number;
