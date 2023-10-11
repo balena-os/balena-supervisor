@@ -70,13 +70,13 @@ class LogMonitor {
 				format: 'json',
 				filterString: '_SYSTEMD_UNIT=balena.service',
 			},
-			(row: JournalRow) => {
+			(row) => {
 				if (row.CONTAINER_ID_FULL && this.containers[row.CONTAINER_ID_FULL]) {
 					this.setupAttempts = 0;
 					this.handleRow(row);
 				}
 			},
-			(data: Buffer) => {
+			(data) => {
 				log.error('journalctl - balena.service stderr: ', data.toString());
 			},
 			() => {
@@ -154,8 +154,8 @@ class LogMonitor {
 				filterString: `CONTAINER_ID_FULL=${containerId}`,
 				since: toJournalDate(lastSentTimestamp + 1), // increment to exclude last sent log
 			},
-			(row: JournalRow) => this.handleRow(row),
-			async (data: Buffer) => {
+			(row) => this.handleRow(row),
+			(data) => {
 				log.error(
 					`journalctl - container ${containerId} stderr: `,
 					data.toString(),
