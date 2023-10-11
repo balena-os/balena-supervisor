@@ -169,19 +169,24 @@ class LogMonitor {
 
 	private handleRow(row: JournalRow) {
 		if (
-			row.CONTAINER_ID_FULL &&
-			row.CONTAINER_NAME !== 'balena_supervisor' &&
-			row.CONTAINER_NAME !== 'resin_supervisor'
+			row.CONTAINER_ID_FULL == null ||
+			row.CONTAINER_NAME === 'balena_supervisor' ||
+			row.CONTAINER_NAME === 'resin_supervisor'
 		) {
-			const containerId = row.CONTAINER_ID_FULL;
-			const message = messageFieldToString(row.MESSAGE);
-			const isStdErr = row.PRIORITY === '3';
-			const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
-			if (message != null && this.containers[containerId]) {
-				this.updateContainerSentTimestamp(containerId, timestamp);
-				this.containers[containerId].hook({ message, isStdErr, timestamp });
-			}
+			return;
 		}
+		const containerId = row.CONTAINER_ID_FULL;
+		if (this.containers[containerId] == null) {
+			return;
+		}
+		const message = messageFieldToString(row.MESSAGE);
+		if (message == null) {
+			return;
+		}
+		const isStdErr = row.PRIORITY === '3';
+		const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
+		this.updateContainerSentTimestamp(containerId, timestamp);
+		this.containers[containerId].hook({ message, isStdErr, timestamp });
 	}
 
 	private updateContainerSentTimestamp(
