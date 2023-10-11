@@ -150,7 +150,7 @@ export function attach(
 	}
 
 	return Bluebird.using(lock(containerId), async () => {
-		logMonitor.attach(containerId, (message) => {
+		await logMonitor.attach(containerId, (message) => {
 			log({ ...serviceInfo, ...message });
 		});
 	});
