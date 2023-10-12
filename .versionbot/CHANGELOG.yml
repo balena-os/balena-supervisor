@@ -1,4 +1,40 @@
 - commits:
+    - subject: Use mutation for adding service/image ids to logs to reduce allocations
+      hash: 3d73bf3e915e9a33e7d9dbb2635d8a626df51ab3
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Keep the container lock for the entire duration of attaching logs
+      hash: d685ccacb245f0f0e4e2c8cd04d5c202da0d551b
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Remove unnecessary async on handling journald stderr entries
+      hash: 74d374b5ad974d8baf004d7378d151d226ff06a6
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Avoid unnecessary work in systemd log row handling for invalid logs
+      hash: e3806ec018bd7d29bec15074a5c09494fe5e9d6b
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.13.7
+  title: ""
+  date: 2023-10-12T01:34:01.769Z
+- commits:
     - subject: Remove unused docker logs logging code
       hash: 894bdeeeb66ff997c7e16157d932024ece5bea09
       body: ""
