@@ -12,7 +12,7 @@ import {
 	LogBackend,
 	LogMessage,
 } from './logging';
-import logMonitor from './logging/monitor';
+import logMonitor, { MonitorHook } from './logging/monitor';
 
 import * as globalEventBus from './event-bus';
 import superConsole from './lib/supervisor-console';
@@ -109,9 +109,7 @@ export function enable(value: boolean = true) {
 }
 
 export function log(message: LogMessage) {
-	if (backend != null) {
-		backend.log(message);
-	}
+	backend?.log(message);
 }
 
 export function logSystemMessage(
@@ -139,9 +137,10 @@ export function lock(containerId: string): Bluebird.Disposer<() => void> {
 	});
 }
 
+type ServiceInfo = { serviceId: number; imageId: number };
 export function attach(
 	containerId: string,
-	serviceInfo: { serviceId: number; imageId: number },
+	{ serviceId, imageId }: ServiceInfo,
 ): Bluebird<void> {
 	// First detect if we already have an attached log stream
 	// for this container
@@ -150,9 +149,14 @@ export function attach(
 	}
 
 	return Bluebird.using(lock(containerId), async () => {
-		logMonitor.attach(containerId, (message) => {
-			log({ ...serviceInfo, ...message });
-		});
+		await logMonitor.attach(
+			containerId,
+			(message: Parameters<MonitorHook>[0] & Partial<ServiceInfo>) => {
+				message.serviceId = serviceId;
+				message.imageId = imageId;
+				log(message);
+			},
+		);
 	});
 }
 

@@ -5,10 +5,7 @@ import * as db from '../db';
 import { spawnJournalctl, toJournalDate } from '../lib/journald';
 import log from '../lib/supervisor-console';
 
-export type MonitorHook = ({
-	message,
-	isStdErr,
-}: {
+export type MonitorHook = (message: {
 	message: string;
 	isStdErr: boolean;
 	timestamp: number;
@@ -70,13 +67,13 @@ class LogMonitor {
 				format: 'json',
 				filterString: '_SYSTEMD_UNIT=balena.service',
 			},
-			(row: JournalRow) => {
+			(row) => {
 				if (row.CONTAINER_ID_FULL && this.containers[row.CONTAINER_ID_FULL]) {
 					this.setupAttempts = 0;
 					this.handleRow(row);
 				}
 			},
-			(data: Buffer) => {
+			(data) => {
 				log.error('journalctl - balena.service stderr: ', data.toString());
 			},
 			() => {
@@ -154,8 +151,8 @@ class LogMonitor {
 				filterString: `CONTAINER_ID_FULL=${containerId}`,
 				since: toJournalDate(lastSentTimestamp + 1), // increment to exclude last sent log
 			},
-			(row: JournalRow) => this.handleRow(row),
-			async (data: Buffer) => {
+			(row) => this.handleRow(row),
+			(data) => {
 				log.error(
 					`journalctl - container ${containerId} stderr: `,
 					data.toString(),
@@ -169,19 +166,24 @@ class LogMonitor {
 
 	private handleRow(row: JournalRow) {
 		if (
-			row.CONTAINER_ID_FULL &&
-			row.CONTAINER_NAME !== 'balena_supervisor' &&
-			row.CONTAINER_NAME !== 'resin_supervisor'
+			row.CONTAINER_ID_FULL == null ||
+			row.CONTAINER_NAME === 'balena_supervisor' ||
+			row.CONTAINER_NAME === 'resin_supervisor'
 		) {
-			const containerId = row.CONTAINER_ID_FULL;
-			const message = messageFieldToString(row.MESSAGE);
-			const isStdErr = row.PRIORITY === '3';
-			const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
-			if (message != null && this.containers[containerId]) {
-				this.updateContainerSentTimestamp(containerId, timestamp);
-				this.containers[containerId].hook({ message, isStdErr, timestamp });
-			}
+			return;
 		}
+		const containerId = row.CONTAINER_ID_FULL;
+		if (this.containers[containerId] == null) {
+			return;
+		}
+		const message = messageFieldToString(row.MESSAGE);
+		if (message == null) {
+			return;
+		}
+		const isStdErr = row.PRIORITY === '3';
+		const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
+		this.updateContainerSentTimestamp(containerId, timestamp);
+		this.containers[containerId].hook({ message, isStdErr, timestamp });
 	}
 
 	private updateContainerSentTimestamp(
