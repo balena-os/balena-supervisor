@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import * as url from 'url';
-import { delay } from 'bluebird';
+import { setTimeout } from 'timers/promises';
 import * as _ from 'lodash';
 import * as Bluebird from 'bluebird';
 import type StrictEventEmitter from 'strict-event-emitter-types';
@@ -171,7 +171,7 @@ const poll = async (
 	// Convenience function used for delaying poll loops
 	const delayedLoop = async (delayBy: number) => {
 		// Wait until we want to poll again
-		await delay(delayBy);
+		await setTimeout(delayBy);
 		// Poll again
 		await poll(false, fetchErrors);
 	};
@@ -232,7 +232,7 @@ export const startPoll = async (): Promise<void> => {
 		appUpdatePollInterval = interval;
 	} catch {
 		// Delay 10 seconds and retry loading config
-		await delay(10000);
+		await setTimeout(10000);
 		// Attempt to start poll again
 		return startPoll();
 	}

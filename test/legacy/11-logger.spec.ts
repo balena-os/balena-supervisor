@@ -1,9 +1,10 @@
 import * as https from 'https';
 import * as stream from 'stream';
 import * as zlib from 'zlib';
-import * as Promise from 'bluebird';
+import * as Bluebird from 'bluebird';
 import { expect } from 'chai';
 import * as sinon from 'sinon';
+import { setTimeout } from 'timers/promises';
 
 import * as config from '~/src/config';
 
@@ -25,7 +26,7 @@ describe('Logger', function () {
 
 		configStub = sinon.stub(config, 'getMany').returns(
 			// @ts-expect-error this should actually work but the type system doesnt like it
-			Promise.resolve({
+			Bluebird.resolve({
 				apiEndpoint: 'https://example.com',
 				uuid: 'deadbeef',
 				deviceApiKey: 'secretkey',
@@ -49,66 +50,63 @@ describe('Logger', function () {
 		delete require.cache[require.resolve('~/src/logger')];
 	});
 
-	it('waits the grace period before sending any logs', function () {
+	it('waits the grace period before sending any logs', async function () {
 		const clock = sinon.useFakeTimers();
 		logger.log({ message: 'foobar', serviceId: 15 });
 		clock.tick(4999);
 		clock.restore();
 
-		return Promise.delay(100).then(() => {
-			expect(this._req.body).to.equal('');
-		});
+		await setTimeout(100);
+		expect(this._req.body).to.equal('');
 	});
 
-	it('tears down the connection after inactivity', function () {
+	it('tears down the connection after inactivity', async function () {
 		const clock = sinon.useFakeTimers();
 		logger.log({ message: 'foobar', serviceId: 15 });
 		clock.tick(61000);
 		clock.restore();
 
-		return Promise.delay(100).then(() => {
-			expect(this._req.end.calledOnce).to.be.true;
-		});
+		await setTimeout(100);
+		expect(this._req.end.calledOnce).to.be.true;
 	});
 
-	it('sends logs as gzipped ndjson', function () {
+	it('sends logs as gzipped ndjson', async function () {
 		const timestamp = Date.now();
 		logger.log({ message: 'foobar', serviceId: 15 });
 		logger.log({ timestamp: 1337, message: 'foobar', serviceId: 15 });
 		logger.log({ message: 'foobar' }); // shold be ignored
 
-		return Promise.delay(5500).then(() => {
-			expect(this.requestStub.calledOnce).to.be.true;
-			const opts = this.requestStub.firstCall.args[0];
+		await setTimeout(5500);
+		expect(this.requestStub.calledOnce).to.be.true;
+		const opts = this.requestStub.firstCall.args[0];
 
-			expect(opts.href).to.equal(
-				'https://example.com/device/v2/deadbeef/log-stream',
-			);
-			expect(opts.method).to.equal('POST');
-			expect(opts.headers).to.deep.equal({
-				Authorization: 'Bearer secretkey',
-				'Content-Type': 'application/x-ndjson',
-				'Content-Encoding': 'gzip',
-			});
+		expect(opts.href).to.equal(
+			'https://example.com/device/v2/deadbeef/log-stream',
+		);
+		expect(opts.method).to.equal('POST');
+		expect(opts.headers).to.deep.equal({
+			Authorization: 'Bearer secretkey',
+			'Content-Type': 'application/x-ndjson',
+			'Content-Encoding': 'gzip',
+		});
 
-			const lines = this._req.body.split('\n');
-			expect(lines.length).to.equal(3);
-			expect(lines[2]).to.equal('');
+		const lines = this._req.body.split('\n');
+		expect(lines.length).to.equal(3);
+		expect(lines[2]).to.equal('');
 
-			let msg = JSON.parse(lines[0]);
-			expect(msg).to.have.property('message').that.equals('foobar');
-			expect(msg).to.have.property('serviceId').that.equals(15);
-			expect(msg).to.have.property('timestamp').that.is.at.least(timestamp);
-			msg = JSON.parse(lines[1]);
-			expect(msg).to.deep.equal({
-				timestamp: 1337,
-				message: 'foobar',
-				serviceId: 15,
-			});
+		let msg = JSON.parse(lines[0]);
+		expect(msg).to.have.property('message').that.equals('foobar');
+		expect(msg).to.have.property('serviceId').that.equals(15);
+		expect(msg).to.have.property('timestamp').that.is.at.least(timestamp);
+		msg = JSON.parse(lines[1]);
+		expect(msg).to.deep.equal({
+			timestamp: 1337,
+			message: 'foobar',
+			serviceId: 15,
 		});
 	});
 
-	it('allows logging system messages which are also reported to the eventTracker', function () {
+	it('allows logging system messages which are also reported to the eventTracker', async function () {
 		const timestamp = Date.now();
 		logger.logSystemMessage(
 			'Hello there!',
@@ -116,15 +114,14 @@ describe('Logger', function () {
 			'Some event name',
 		);
 
-		return Promise.delay(5500).then(() => {
-			const lines = this._req.body.split('\n');
-			expect(lines.length).to.equal(2);
-			expect(lines[1]).to.equal('');
+		await setTimeout(5500);
+		const lines = this._req.body.split('\n');
+		expect(lines.length).to.equal(2);
+		expect(lines[1]).to.equal('');
 
-			const msg = JSON.parse(lines[0]);
-			expect(msg).to.have.property('message').that.equals('Hello there!');
-			expect(msg).to.have.property('isSystem').that.equals(true);
-			expect(msg).to.have.property('timestamp').that.is.at.least(timestamp);
-		});
+		const msg = JSON.parse(lines[0]);
+		expect(msg).to.have.property('message').that.equals('Hello there!');
+		expect(msg).to.have.property('isSystem').that.equals(true);
+		expect(msg).to.have.property('timestamp').that.is.at.least(timestamp);
 	});
 });

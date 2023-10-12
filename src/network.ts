@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { promises as fs, watch } from 'fs';
 import * as networkCheck from 'network-checker';
@@ -69,13 +68,16 @@ export const startConnectivityCheck = _.once(
 			return;
 		}
 
-		await Bluebird.resolve(fs.mkdir(constants.vpnStatusPath))
-			.catch(EEXIST, () => {
+		try {
+			await fs.mkdir(constants.vpnStatusPath);
+		} catch (err: any) {
+			if (EEXIST(err)) {
 				log.debug('VPN status path exists.');
-			})
-			.then(() => {
-				watch(constants.vpnStatusPath, vpnStatusInotifyCallback);
-			});
+			} else {
+				throw err;
+			}
+		}
+		watch(constants.vpnStatusPath, vpnStatusInotifyCallback);
 
 		if (enable) {
 			vpnStatusInotifyCallback();
@@ -112,9 +114,7 @@ export function enableConnectivityCheck(enable: boolean) {
 	log.debug(`Connectivity check enabled: ${enable}`);
 }
 
-export const connectivityCheckEnabled = Bluebird.method(
-	() => isConnectivityCheckEnabled,
-);
+export const connectivityCheckEnabled = async () => isConnectivityCheckEnabled;
 
 const IP_REGEX =
 	/^(?:(?:balena|docker|rce|tun)[0-9]+|tun[0-9]+|resin-vpn|lo|resin-dns|supervisor0|balena-redsocks|resin-redsocks|br-[0-9a-f]{12})$/;

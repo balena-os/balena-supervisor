@@ -1,8 +1,8 @@
-import * as Bluebird from 'bluebird';
 import * as Docker from 'dockerode';
 import { Dockerfile } from 'livepush';
 
 import * as device from './device';
+import { setTimeout } from 'timers/promises';
 
 interface Opts {
 	address: string;
@@ -54,7 +54,7 @@ export async function initDevice(opts: Opts) {
 				true,
 			);
 		} catch {
-			await Bluebird.delay(500);
+			await setTimeout(500);
 		}
 	}
 	return { containerId: supervisorContainer.Id, stageImages };

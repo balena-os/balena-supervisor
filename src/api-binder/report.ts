@@ -1,6 +1,5 @@
 import * as url from 'url';
 import * as _ from 'lodash';
-import { delay } from 'bluebird';
 import { CoreOptions } from 'request';
 import { performance } from 'perf_hooks';
 
@@ -16,6 +15,7 @@ import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 
 import { shallowDiff, prune, empty } from '../lib/json';
+import { setTimeout } from 'timers/promises';
 
 let lastReport: DeviceState = {};
 let lastReportTime: number = -Infinity;
@@ -215,7 +215,7 @@ export async function startReporting() {
 			}
 		} finally {
 			// Wait until we want to report again
-			await delay(delayBy);
+			await setTimeout(delayBy);
 			// Try to report again
 			await recursivelyReport(delayBy);
 		}

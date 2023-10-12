@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import * as config from './config';
@@ -76,7 +75,7 @@ export class LocalModeManager {
 	) {}
 
 	// Indicates that switch from or to the local mode is not complete.
-	private switchInProgress: Bluebird<void> | null = null;
+	private switchInProgress: Promise<void> | null = null;
 
 	public async init() {
 		// Setup a listener to catch state changes relating to local mode
@@ -111,11 +110,11 @@ export class LocalModeManager {
 	}
 
 	public startLocalModeChangeHandling(local: boolean) {
-		this.switchInProgress = Bluebird.resolve(
-			this.handleLocalModeStateChange(local),
-		).finally(() => {
-			this.switchInProgress = null;
-		});
+		this.switchInProgress = this.handleLocalModeStateChange(local).finally(
+			() => {
+				this.switchInProgress = null;
+			},
+		);
 	}
 
 	// Query the engine to get currently running containers and installed images.
@@ -131,7 +130,7 @@ export class LocalModeManager {
 			.listNetworks()
 			.then((resp) => _.map(resp, 'Id'));
 
-		const [containers, images, volumes, networks] = await Bluebird.all([
+		const [containers, images, volumes, networks] = await Promise.all([
 			containersPromise,
 			imagesPromise,
 			volumesPromise,
@@ -243,30 +242,38 @@ export class LocalModeManager {
 		log.debug(`Going to delete the following objects: ${objects}`);
 
 		// Delete engine objects. We catch every deletion error, so that we can attempt other objects deletions.
-		await Bluebird.map(objects.containers, (cId) => {
-			return docker
-				.getContainer(cId)
-				.remove({ force: true })
-				.catch((e) => log.error(`Unable to delete container ${cId}`, e));
-		});
-		await Bluebird.map(objects.images, (iId) => {
-			return docker
-				.getImage(iId)
-				.remove({ force: true })
-				.catch((e) => log.error(`Unable to delete image ${iId}`, e));
-		});
-		await Bluebird.map(objects.networks, (nId) => {
-			return docker
-				.getNetwork(nId)
-				.remove()
-				.catch((e) => log.error(`Unable to delete network ${nId}`, e));
-		});
-		await Bluebird.map(objects.volumes, (vId) => {
-			return docker
-				.getVolume(vId)
-				.remove()
-				.catch((e) => log.error(`Unable to delete volume ${vId}`, e));
-		});
+		await Promise.all(
+			objects.containers.map((cId) => {
+				return docker
+					.getContainer(cId)
+					.remove({ force: true })
+					.catch((e) => log.error(`Unable to delete container ${cId}`, e));
+			}),
+		);
+		await Promise.all(
+			objects.images.map((iId) => {
+				return docker
+					.getImage(iId)
+					.remove({ force: true })
+					.catch((e) => log.error(`Unable to delete image ${iId}`, e));
+			}),
+		);
+		await Promise.all(
+			objects.networks.map((nId) => {
+				return docker
+					.getNetwork(nId)
+					.remove()
+					.catch((e) => log.error(`Unable to delete network ${nId}`, e));
+			}),
+		);
+		await Promise.all(
+			objects.volumes.map((vId) => {
+				return docker
+					.getVolume(vId)
+					.remove()
+					.catch((e) => log.error(`Unable to delete volume ${vId}`, e));
+			}),
+		);
 
 		// Remove any local mode state added to the database.
 		await db

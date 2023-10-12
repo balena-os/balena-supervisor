@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import { Readable } from 'stream';
@@ -10,18 +9,16 @@ import log from '../lib/supervisor-console';
 export class LocalLogBackend extends LogBackend {
 	private globalListeners: Readable[] = [];
 
-	private serviceNameResolver: (
-		serviceId: number,
-	) => Promise<string> | Bluebird<string>;
+	private serviceNameResolver: (serviceId: number) => Promise<string>;
 
-	public log(message: LogMessage): void {
+	public async log(message: LogMessage): Promise<void> {
 		if (this.publishEnabled) {
-			Bluebird.try(() => {
+			try {
 				if (!message.isSystem) {
 					if (this.serviceNameResolver == null) {
 						// This means there is no listener assigned, drop the logs
 						// TODO: Store these, and resolve them when a listener is attached
-						return null;
+						return;
 					}
 					const svcId = checkInt(message.serviceId);
 					if (svcId == null) {
@@ -29,29 +26,20 @@ export class LocalLogBackend extends LogBackend {
 							'Non-integer service id found in local logs:\n',
 							JSON.stringify(message),
 						);
-						return null;
+						return;
 					}
 					// TODO: Can we cache this value? The service ids are reused, so
 					// we would need a way of invalidating the cache
-					return (this.serviceNameResolver(svcId) as Promise<string>).then(
-						(serviceName: string) => {
-							return _.assign({}, { serviceName }, message);
-						},
-					);
-				} else {
-					return message;
+					const serviceName = await this.serviceNameResolver(svcId);
+
+					_.assign({}, { serviceName }, message);
 				}
-			})
-				.then((msg: LogMessage | null) => {
-					if (msg != null) {
-						_.each(this.globalListeners, (listener) => {
-							listener.push(`${JSON.stringify(msg)}\n`);
-						});
-					}
-				})
-				.catch((e) => {
-					log.error('Error streaming local log output:', e);
+				_.each(this.globalListeners, (listener) => {
+					listener.push(`${JSON.stringify(message)}\n`);
 				});
+			} catch (e) {
+				log.error('Error streaming local log output:', e);
+			}
 		}
 	}
 

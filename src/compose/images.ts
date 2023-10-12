@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as Docker from 'dockerode';
 import { EventEmitter } from 'events';
 import * as _ from 'lodash';
@@ -318,10 +317,14 @@ async function withImagesFromDockerAndDB<T>(
 	cb: (dockerImages: Docker.ImageInfo[], composeImages: Image[]) => T,
 ) {
 	const [normalisedImages, dbImages] = await Promise.all([
-		Bluebird.map(docker.listImages({ digests: true }), (image) => ({
-			...image,
-			RepoTag: getNormalisedTags(image),
-		})),
+		docker.listImages({ digests: true }).then(async (images) => {
+			return await Promise.all(
+				images.map((image) => ({
+					...image,
+					RepoTag: getNormalisedTags(image),
+				})),
+			);
+		}),
 		db.models('image').select(),
 	]);
 	return cb(normalisedImages, dbImages);

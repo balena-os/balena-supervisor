@@ -1,5 +1,5 @@
 import { SinonStub, stub, spy, SinonSpy } from 'sinon';
-import { Promise } from 'bluebird';
+import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import rewire = require('rewire');
 import { expect } from 'chai';
@@ -30,7 +30,7 @@ const stateEndpointBody = {
 
 const req = {
 	getAsync: () =>
-		Promise.resolve([
+		Bluebird.resolve([
 			{
 				statusCode: 200,
 				headers: { etag: 'abc' },
@@ -66,7 +66,7 @@ describe('Target state', () => {
 			// new request returns 304
 			const newReq = {
 				getAsync: () =>
-					Promise.resolve([
+					Bluebird.resolve([
 						{
 							statusCode: 304,
 							headers: {},
@@ -106,7 +106,7 @@ describe('Target state', () => {
 			// new request returns 304
 			const newReq = {
 				getAsync: () =>
-					Promise.resolve([
+					Bluebird.resolve([
 						{
 							statusCode: 304,
 							headers: {},
@@ -148,7 +148,7 @@ describe('Target state', () => {
 			// new request returns 304
 			const newReq = {
 				getAsync: () =>
-					Promise.resolve([
+					Bluebird.resolve([
 						{
 							statusCode: 304,
 							headers: {},
@@ -246,7 +246,7 @@ describe('Target state', () => {
 			(request.getRequestInstance as SinonStub).restore();
 			const newReq = {
 				getAsync: () =>
-					Promise.resolve([
+					Bluebird.resolve([
 						{
 							statusCode: 304,
 							headers: {},

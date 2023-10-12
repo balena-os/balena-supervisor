@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as Dockerode from 'dockerode';
 import { EventEmitter } from 'events';
 import { isLeft } from 'fp-ts/lib/Either';
@@ -26,6 +25,7 @@ import { serviceNetworksToDockerNetworks } from './utils';
 
 import log from '../lib/supervisor-console';
 import logMonitor from '../logging/monitor';
+import { setTimeout } from 'timers/promises';
 
 interface ServiceManagerEvents {
 	change: void;
@@ -61,24 +61,28 @@ export const getAll = async (
 	const filterLabels = ['supervised'].concat(extraLabelFilters);
 	const containers = await listWithBothLabels(filterLabels);
 
-	const services = await Bluebird.map(containers, async (container) => {
-		try {
-			const serviceInspect = await docker.getContainer(container.Id).inspect();
-			const service = Service.fromDockerContainer(serviceInspect);
-			// We know that the containerId is set below, because `fromDockerContainer`
-			// always sets it
-			const vState = volatileState[service.containerId!];
-			if (vState != null && vState.status != null) {
-				service.status = vState.status;
+	const services = await Promise.all(
+		containers.map(async (container) => {
+			try {
+				const serviceInspect = await docker
+					.getContainer(container.Id)
+					.inspect();
+				const service = Service.fromDockerContainer(serviceInspect);
+				// We know that the containerId is set below, because `fromDockerContainer`
+				// always sets it
+				const vState = volatileState[service.containerId!];
+				if (vState != null && vState.status != null) {
+					service.status = vState.status;
+				}
+				return service;
+			} catch (e: unknown) {
+				if (isNotFoundError(e)) {
+					return null;
+				}
+				throw e;
 			}
-			return service;
-		} catch (e: unknown) {
-			if (isNotFoundError(e)) {
-				return null;
-			}
-			throw e;
-		}
-	});
+		}),
+	);
 
 	return services.filter((s) => s != null) as Service[];
 };
@@ -432,14 +436,17 @@ export function listenToEvents() {
 		});
 	};
 
-	Bluebird.resolve(listen())
-		.catch((e) => {
-			log.error('Error listening to events:', e, e.stack);
-		})
-		.finally(() => {
+	(async () => {
+		try {
+			await listen();
+		} catch (e) {
+			log.error('Error listening to events:', e);
+		} finally {
 			listening = false;
-			setTimeout(listenToEvents, 1000);
-		});
+			await setTimeout(1000);
+			listenToEvents();
+		}
+	})();
 
 	return;
 }
@@ -517,77 +524,73 @@ function reportNewStatus(
 	);
 }
 
-function killContainer(
+async function killContainer(
 	containerId: string,
 	service: Partial<Service> = {},
 	{ removeContainer = true, wait = false }: KillOpts = {},
-): Bluebird<void> {
+): Promise<void> {
 	// To maintain compatibility of the `wait` flag, this function is not
 	// async, but it feels like whether or not the promise should be waited on
 	// should performed by the caller
 	// TODO: Remove the need for the wait flag
 
-	return Bluebird.try(() => {
-		logger.logSystemEvent(LogTypes.stopService, { service });
-		if (service.imageId != null) {
-			reportNewStatus(containerId, service, 'Stopping');
-		}
+	logger.logSystemEvent(LogTypes.stopService, { service });
+	if (service.imageId != null) {
+		reportNewStatus(containerId, service, 'Stopping');
+	}
 
-		const containerObj = docker.getContainer(containerId);
-		const killPromise = Bluebird.resolve(containerObj.stop())
-			.then(() => {
+	const containerObj = docker.getContainer(containerId);
+	const killPromise = containerObj
+		.stop()
+		.then(() => {
+			if (removeContainer) {
+				return containerObj.remove({ v: true });
+			}
+		})
+		.catch((e) => {
+			// Get the statusCode from the original cause and make sure it's
+			// definitely an int for comparison reasons
+			const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
+			if (isLeft(maybeStatusCode)) {
+				throw new Error(`Could not parse status code from docker error:  ${e}`);
+			}
+			const statusCode = maybeStatusCode.right;
+
+			// 304 means the container was already stopped, so we can just remove it
+			if (statusCode === 304) {
+				logger.logSystemEvent(LogTypes.stopServiceNoop, { service });
+				// Why do we attempt to remove the container again?
 				if (removeContainer) {
 					return containerObj.remove({ v: true });
 				}
-			})
-			.catch((e) => {
-				// Get the statusCode from the original cause and make sure it's
-				// definitely an int for comparison reasons
-				const maybeStatusCode = PermissiveNumber.decode(e.statusCode);
-				if (isLeft(maybeStatusCode)) {
-					throw new Error(
-						`Could not parse status code from docker error:  ${e}`,
-					);
-				}
-				const statusCode = maybeStatusCode.right;
-
-				// 304 means the container was already stopped, so we can just remove it
-				if (statusCode === 304) {
-					logger.logSystemEvent(LogTypes.stopServiceNoop, { service });
-					// Why do we attempt to remove the container again?
-					if (removeContainer) {
-						return containerObj.remove({ v: true });
-					}
-				} else if (statusCode === 404) {
-					// 404 means the container doesn't exist, precisely what we want!
-					logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
-						service,
-					});
-				} else {
-					throw e;
-				}
-			})
-			.tap(() => {
-				delete containerHasDied[containerId];
-				logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
-			})
-			.catch((e) => {
-				logger.logSystemEvent(LogTypes.stopServiceError, {
+			} else if (statusCode === 404) {
+				// 404 means the container doesn't exist, precisely what we want!
+				logger.logSystemEvent(LogTypes.stopRemoveServiceNoop, {
 					service,
-					error: e,
 				});
-			})
-			.finally(() => {
-				if (service.imageId != null) {
-					reportChange(containerId);
-				}
+			} else {
+				throw e;
+			}
+		})
+		.then(() => {
+			delete containerHasDied[containerId];
+			logger.logSystemEvent(LogTypes.stopServiceSuccess, { service });
+		})
+		.catch((e) => {
+			logger.logSystemEvent(LogTypes.stopServiceError, {
+				service,
+				error: e,
 			});
+		})
+		.finally(() => {
+			if (service.imageId != null) {
+				reportChange(containerId);
+			}
+		});
 
-		if (wait) {
-			return killPromise;
-		}
-		return;
-	});
+	if (wait) {
+		return killPromise;
+	}
 }
 
 async function listWithBothLabels(
@@ -630,21 +633,29 @@ function waitToKill(service: Service, timeout: number | string) {
 
 	const handoverCompletePaths = service.handoverCompleteFullPathsOnHost();
 
-	const wait = (): Bluebird<void> =>
-		Bluebird.any(
-			handoverCompletePaths.map((file) =>
-				fs.stat(file).then(() => fs.unlink(file).catch(_.noop)),
-			),
-		).catch(async () => {
+	const wait = async (): Promise<void> => {
+		try {
+			await Promise.any(
+				handoverCompletePaths.map(async (file) => {
+					try {
+						await fs.stat(file);
+						await fs.unlink(file);
+					} catch {
+						// noop
+					}
+				}),
+			);
+		} catch {
 			if (Date.now() < deadline) {
-				await Bluebird.delay(pollInterval);
+				await setTimeout(pollInterval);
 				return wait();
 			} else {
 				log.info(
 					`Handover timeout has passed, assuming handover was completed for service ${service.serviceName}`,
 				);
 			}
-		});
+		}
+	};
 
 	log.info(
 		`Waiting for handover to be completed for service: ${service.serviceName}`,
