@@ -170,7 +170,7 @@ export class Service {
 
 		// First process the networks correctly
 		let networks: ServiceConfig['networks'] = {};
-		if (_.isArray(config.networks)) {
+		if (Array.isArray(config.networks)) {
 			_.each(config.networks, (name) => {
 				networks[name] = {};
 			});
@@ -368,7 +368,7 @@ export class Service {
 			config.tty = Boolean(config.tty);
 		}
 
-		if (_.isArray(config.sysctls)) {
+		if (Array.isArray(config.sysctls)) {
 			config.sysctls = _.fromPairs(
 				_.map(config.sysctls, (v) => _.split(v, '=')),
 			);

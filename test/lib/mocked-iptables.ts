@@ -38,7 +38,7 @@ class FakeRuleAdaptor {
 			return '';
 		};
 
-		if (_.isArray(rules)) {
+		if (Array.isArray(rules)) {
 			for (const rule of rules) {
 				await handleRule(rule);
 			}

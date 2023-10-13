@@ -61,7 +61,7 @@ export async function loadTargetFromFile(appsPath: string): Promise<boolean> {
 			throw new AppsJsonParseError(e);
 		}
 
-		if (_.isArray(stateFromFile)) {
+		if (Array.isArray(stateFromFile)) {
 			log.debug('Detected a legacy apps.json, converting...');
 			stateFromFile = fromLegacyAppsJson(stateFromFile as any[]);
 		}

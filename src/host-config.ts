@@ -133,7 +133,7 @@ async function setProxy(maybeConf: ProxyConfig | null): Promise<void> {
 		// but the compiler doesn't
 		const conf = maybeConf as ProxyConfig;
 		await mkdirp(proxyBasePath);
-		if (_.isArray(conf.noProxy)) {
+		if (Array.isArray(conf.noProxy)) {
 			await writeToBoot(noProxyPath, conf.noProxy.join('\n'));
 		}
 
