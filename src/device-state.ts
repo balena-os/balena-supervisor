@@ -581,7 +581,7 @@ export async function executeStepAction(
 		await deviceConfig.executeStepAction(step as deviceConfig.ConfigStep, {
 			initial,
 		});
-	} else if (_.includes(applicationManager.validActions, step.action)) {
+	} else if (applicationManager.validActions.includes(step.action)) {
 		return applicationManager.executeStep(step as any, {
 			force,
 			skipLock,

@@ -46,7 +46,7 @@ export function checkString(s: unknown): string | undefined {
 	if (
 		s == null ||
 		typeof s !== 'string' ||
-		_.includes(['null', 'undefined', ''], s)
+		['null', 'undefined', ''].includes(s)
 	) {
 		return;
 	}

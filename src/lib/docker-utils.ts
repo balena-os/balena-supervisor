@@ -124,7 +124,7 @@ export async function fetchDeltaWithProgress(
 	const logFn = (str: string) =>
 		log.debug(`delta([${serviceName}] ${deltaOpts.deltaSource}): ${str}`);
 
-	if (!_.includes([2, 3], deltaOpts.deltaVersion)) {
+	if (![2, 3].includes(deltaOpts.deltaVersion)) {
 		logFn(
 			`Unsupported delta version: ${deltaOpts.deltaVersion}. Falling back to regular pull`,
 		);

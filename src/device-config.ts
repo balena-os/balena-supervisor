@@ -341,7 +341,7 @@ export function formatConfigKeys(conf: {
 
 	return _.pickBy(
 		confWithoutNamespace,
-		(_v, k) => _.includes(validKeys, k) || matchesAnyBootConfig(k),
+		(_v, k) => validKeys.includes(k) || matchesAnyBootConfig(k),
 	);
 }
 
@@ -644,7 +644,7 @@ export function executeStepAction(
 }
 
 export function isValidAction(action: string): boolean {
-	return _.includes(_.keys(actionExecutors), action);
+	return _.keys(actionExecutors).includes(action);
 }
 
 export async function getBootConfig(
@@ -697,7 +697,7 @@ export async function setBootConfig(
 async function isVPNEnabled(): Promise<boolean> {
 	try {
 		const activeState = await dbus.serviceActiveState(vpnServiceName);
-		return !_.includes(['inactive', 'deactivating'], activeState);
+		return !['inactive', 'deactivating'].includes(activeState);
 	} catch (e: any) {
 		if (UnitNotLoadedError(e)) {
 			return false;

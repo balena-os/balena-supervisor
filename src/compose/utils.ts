@@ -91,7 +91,7 @@ export function createRestartPolicy(name?: string): string {
 	}
 
 	name = name.toLowerCase().trim();
-	if (!_.includes(validRestartPolicies, name)) {
+	if (!validRestartPolicies.includes(name)) {
 		return 'always';
 	}
 

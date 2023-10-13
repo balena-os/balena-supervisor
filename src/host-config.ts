@@ -50,7 +50,7 @@ interface HostConfig {
 }
 
 const isAuthField = (field: string): boolean =>
-	_.includes(['login', 'password'], field);
+	['login', 'password'].includes(field);
 
 const memoizedAuthRegex = _.memoize(
 	(proxyField: string) => new RegExp(proxyField + '\\s*=\\s*"(.*)"\\s*;'),
