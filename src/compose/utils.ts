@@ -253,7 +253,7 @@ export function getHealthcheck(
 		composeHealthcheckToServiceHealthcheck(composeHealthcheck);
 
 	// Overlay any compose healthcheck fields on the image healthchecks
-	return _.assign(
+	return Object.assign(
 		{ test: ['NONE'] },
 		imageServiceHealthcheck,
 		composeServiceHealthcheck,
@@ -556,7 +556,7 @@ export function normalizeLabels(labels: { [key: string]: string }): {
 		labels,
 		(_v, k) => !(_.startsWith(k, 'io.balena.') || _.startsWith(k, 'io.resin.')),
 	);
-	return _.assign({}, otherLabels, legacyLabels, balenaLabels);
+	return Object.assign({}, otherLabels, legacyLabels, balenaLabels);
 }
 
 function compareArrayField(

@@ -311,7 +311,7 @@ export async function getCurrent(): Promise<Dictionary<string>> {
 	const backends = await getConfigBackends();
 	// Add each backends configurable values
 	for (const backend of backends) {
-		_.assign(currentConf, await getBootConfig(backend));
+		Object.assign(currentConf, await getBootConfig(backend));
 	}
 	// Return compiled configuration
 	return currentConf;

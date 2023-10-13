@@ -714,7 +714,7 @@ export class Service {
 			// Typings are wrong here, the docker daemon accepts a string or string[],
 			Entrypoint: this.config.entrypoint as string,
 			Env: conversions.envObjectToArray(
-				_.assign(
+				Object.assign(
 					{
 						RESIN_DEVICE_NAME_AT_INIT: opts.deviceName,
 						BALENA_DEVICE_NAME_AT_INIT: opts.deviceName,
@@ -996,7 +996,7 @@ export class Service {
 	): { [envVarName: string]: string } {
 		const defaultEnv: { [envVarName: string]: string } = {};
 		for (const namespace of ['BALENA', 'RESIN']) {
-			_.assign(
+			Object.assign(
 				defaultEnv,
 				_.mapKeys(
 					{
