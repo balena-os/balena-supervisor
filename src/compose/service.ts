@@ -213,7 +213,7 @@ export class Service {
 		// ulimits
 		const ulimits: ServiceConfig['ulimits'] = {};
 		_.each(config.ulimits, (limit, name) => {
-			if (_.isNumber(limit)) {
+			if (typeof limit === 'number') {
 				ulimits[name] = { soft: limit, hard: limit };
 				return;
 			}
