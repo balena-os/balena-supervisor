@@ -141,10 +141,7 @@ export class SplashImage extends ConfigBackend {
 
 	public ensureRequiredConfig(_deviceType: string, conf: ConfigOptions) {
 		// If the value from the cloud is empty, it is the same as no definition
-		if (
-			!_.isUndefined(conf.image) &&
-			_.isEmpty((conf.image as string).trim())
-		) {
+		if (conf.image != null && _.isEmpty((conf.image as string).trim())) {
 			delete conf.image;
 		}
 		return conf;

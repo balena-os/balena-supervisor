@@ -100,7 +100,7 @@ export function isValidDeviceName(v: unknown): v is DeviceName {
  * Ensure a string is either undefined, or a non-empty string
  */
 export function validStringOrUndefined(s: string | undefined): boolean {
-	return _.isUndefined(s) || (typeof s === 'string' && !_.isEmpty(s));
+	return s == null || (typeof s === 'string' && !_.isEmpty(s));
 }
 
 /**
@@ -109,5 +109,5 @@ export function validStringOrUndefined(s: string | undefined): boolean {
  * Ensure an object is either undefined or an actual object
  */
 export function validObjectOrUndefined(o: object | undefined): boolean {
-	return _.isUndefined(o) || _.isObject(o);
+	return o == null || _.isObject(o);
 }
