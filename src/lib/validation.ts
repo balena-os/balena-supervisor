@@ -43,7 +43,11 @@ export function checkInt(
  * Check that a string exists, and is not an empty string, 'null', or 'undefined'
  */
 export function checkString(s: unknown): string | undefined {
-	if (s == null || !_.isString(s) || _.includes(['null', 'undefined', ''], s)) {
+	if (
+		s == null ||
+		typeof s !== 'string' ||
+		_.includes(['null', 'undefined', ''], s)
+	) {
 		return;
 	}
 
@@ -96,7 +100,7 @@ export function isValidDeviceName(v: unknown): v is DeviceName {
  * Ensure a string is either undefined, or a non-empty string
  */
 export function validStringOrUndefined(s: string | undefined): boolean {
-	return _.isUndefined(s) || (_.isString(s) && !_.isEmpty(s));
+	return _.isUndefined(s) || (typeof s === 'string' && !_.isEmpty(s));
 }
 
 /**

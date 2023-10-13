@@ -85,7 +85,7 @@ export function createRestartPolicy(name?: string): string {
 
 	// Ensure that name is a string, otherwise the below could
 	// throw
-	if (!_.isString(name)) {
+	if (typeof name !== 'string') {
 		log.warn(`Non-string argument for restart field: ${name} - ignoring.`);
 		return 'always';
 	}
@@ -109,7 +109,7 @@ function processCommandString(command: string): string {
 function processCommandParsedArrayElement(
 	arg: string | { [key: string]: string },
 ): string {
-	if (_.isString(arg)) {
+	if (typeof arg === 'string') {
 		return arg;
 	}
 	if (arg.op === 'glob') {
@@ -119,7 +119,7 @@ function processCommandParsedArrayElement(
 }
 
 function commandAsArray(command: string | string[]): string[] {
-	if (_.isString(command)) {
+	if (typeof command === 'string') {
 		return _.map(
 			parseCommand(processCommandString(command)),
 			processCommandParsedArrayElement,
@@ -158,7 +158,7 @@ export function getStopSignal(
 	imageInfo?: Dockerode.ImageInspectInfo,
 ): string {
 	if (composeStop != null) {
-		if (!_.isString(composeStop)) {
+		if (typeof composeStop !== 'string') {
 			return composeStop.toString();
 		}
 		return composeStop;
@@ -197,7 +197,7 @@ export function dockerHealthcheckToServiceHealthcheck(
 }
 
 function buildHealthcheckTest(test: string | string[]): string[] {
-	if (_.isString(test)) {
+	if (typeof test === 'string') {
 		return ['CMD-SHELL', test];
 	}
 	return test;

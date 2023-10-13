@@ -222,11 +222,11 @@ export class Service {
 		delete config.ulimits;
 
 		// string or array of strings - normalise to an array
-		if (_.isString(config.dns)) {
+		if (typeof config.dns === 'string') {
 			config.dns = [config.dns];
 		}
 
-		if (_.isString(config.dnsSearch)) {
+		if (typeof config.dnsSearch === 'string') {
 			config.dnsSearch = [config.dnsSearch];
 		}
 
@@ -396,7 +396,7 @@ export class Service {
 
 		let tmpfs: string[] = [];
 		if (config.tmpfs != null) {
-			if (_.isString(config.tmpfs)) {
+			if (typeof config.tmpfs === 'string') {
 				tmpfs = [config.tmpfs];
 			} else {
 				tmpfs = config.tmpfs;

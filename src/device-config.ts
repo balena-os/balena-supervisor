@@ -91,7 +91,7 @@ const actionExecutors: DeviceActionExecutors = {
 	},
 	setVPNEnabled: async (step, opts = {}) => {
 		const { initial = false } = opts;
-		if (!_.isString(step.target)) {
+		if (typeof step.target !== 'string') {
 			throw new Error('Non-string value passed to setVPNEnabled');
 		}
 		const logValue = { SUPERVISOR_VPN_CONTROL: step.target };
