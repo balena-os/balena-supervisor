@@ -386,7 +386,7 @@ export class Service {
 
 		if (config.cpus != null) {
 			config.cpus = Math.round(Number(config.cpus) * 10 ** 9);
-			if (_.isNaN(config.cpus)) {
+			if (Number.isNaN(config.cpus)) {
 				log.warn(
 					`config.cpus value cannot be parsed. Ignoring.\n  Value:${config.cpus}`,
 				);

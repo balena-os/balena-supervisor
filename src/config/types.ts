@@ -56,7 +56,7 @@ export const PermissiveNumber = new t.Type<number, string | number>(
 					return t.success(v);
 				case 'string':
 					const i = parseInt(v, 10);
-					if (_.isNaN(i)) {
+					if (Number.isNaN(i)) {
 						return t.failure(v, c);
 					}
 					return t.success(i);
