@@ -173,7 +173,7 @@ export class SplashImage extends ConfigBackend {
 	): string | string[] {
 		// check data url regex
 		const matches = value.match(SplashImage.DATA_URI_REGEX);
-		if (!_.isNull(matches)) {
+		if (matches != null) {
 			const [, media, data] = matches;
 			const [type] = media.split(';'); // discard mediatype parameters
 
