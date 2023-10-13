@@ -203,7 +203,7 @@ type Prototype = { [key: string]: any };
 function clonePrototype(prototype: Prototype): Prototype {
 	const clone: Prototype = {};
 	Object.getOwnPropertyNames(prototype).forEach((fn) => {
-		if (fn !== 'constructor' && _.isFunction(prototype[fn])) {
+		if (fn !== 'constructor' && typeof prototype[fn] === 'function') {
 			clone[fn] = prototype[fn];
 		}
 	});
