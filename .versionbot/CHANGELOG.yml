@@ -1,4 +1,23 @@
 - commits:
+    - subject: Do not expose ports from image if service network mode
+      hash: 0c7bad779291e15e419166a2c66c2a21dd06aa83
+      body: |
+        The supervisor exposes ports configured using the `EXPOSE` directive in
+        the dockerfile when configuring the container for runtime. This can
+        cause issues if using `network_mode: service:<service name>` as the
+        expose configuration is not compatible with that network mode. This
+        fix now skips image exposed ports for that particular network mode.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Relates-to: "#2211"
+        relates-to: "#2211"
+      author: Felipe Lalanne
+      nested: []
+  version: 14.13.9
+  title: ""
+  date: 2023-10-16T02:14:30.242Z
+- commits:
     - subject: Move mdns-resolver to devDependencies
       hash: eb485cfde4a0a2adcbe00a1e107156e0711c1c67
       body: ""
