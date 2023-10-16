@@ -1,4 +1,16 @@
 - commits:
+    - subject: Fix husky config for automatic linting on commit
+      hash: 23d5311a515755ba3171fc5d26dc4c6486eff9a2
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.13.11
+  title: ""
+  date: 2023-10-16T15:43:25.738Z
+- commits:
     - subject: Convert multiple bluebird uses to native promises
       hash: 766cce89c772440d86472ff0a0a0efd884261188
       body: ""
