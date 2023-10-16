@@ -1,4 +1,80 @@
 - commits:
+    - subject: Switch some _.includes usage to native versions
+      hash: e15205301c345398873097b07869c191d1f09d08
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Switch _.assign usage to native versions
+      hash: a4a9a17c1aba1a7611b000b2b440600331349a07
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Switch _.isNaN usage to native versions
+      hash: d0cb54537f74c19f5262a6b1515e13cfb476dfd3
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Switch _.isFunction usage to native versions
+      hash: c9f032e13ad0f2b31b8316c8334f2175f3af4014
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Switch _.isUndefined usage to native versions
+      hash: 3bfdc4454e90732f17e8adaaadfe60c21a8f3748
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Switch _.isNull usage to native versions
+      hash: 8e23091aa9c997dbcbce8faacd34c275239a746e
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Switch _.isNumber usage to native versions
+      hash: ca3faebfc9ade3b720380b5f002a747ba4817b92
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Switch _.isArray usage to native versions
+      hash: 20df54668ce12790320ec78cbc8044a4065f6a16
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+    - subject: Switch _.isString usage to native versions
+      hash: 3fe8a22fb0158bf456bf3eba1b0a0b27ce004c8a
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Pagan Gazzard
+      nested: []
+  version: 14.13.13
+  title: ""
+  date: 2023-10-16T21:43:19.070Z
+- commits:
     - subject: Revert "Do not expose ports from image if service network mode"
       hash: 3e828dcc5262528639a7a039d62855d9607d1779
       body: |
