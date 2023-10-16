@@ -346,7 +346,9 @@ export class Service {
 			'Config.ExposedPorts',
 			{},
 		);
-		expose = expose.concat(_.keys(imageExposedPorts));
+		if (!serviceNetworkMode) {
+			expose = expose.concat(_.keys(imageExposedPorts));
+		}
 		// Also add any exposed ports which are implied from the portMaps
 		const exposedFromPortMappings = _.flatMap(portMaps, (port) =>
 			port.toExposedPortArray(),

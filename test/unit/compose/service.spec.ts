@@ -1082,6 +1082,35 @@ describe('compose/service: unit tests', () => {
 			return expect(dockerSvc.isEqualConfig(composeSvc, { test: 'qwerty' })).to
 				.be.false;
 		});
+
+		it('should omit exposing ports from the source image', async () => {
+			const s = await Service.fromComposeObject(
+				{
+					appId: '1234',
+					serviceName: 'foo',
+					releaseId: 2,
+					serviceId: 3,
+					imageId: 4,
+					composition: {
+						network_mode: 'service: test',
+						expose: ['433/tcp'],
+					},
+				},
+				{
+					appName: 'test',
+					imageInfo: {
+						Config: {
+							ExposedPorts: {
+								'8080/tcp': {},
+							},
+						},
+					},
+				} as any,
+			);
+
+			// Only explicitely exposed ports are set if network_mode: service is used
+			expect(s.config.expose).to.deep.equal(['433/tcp']);
+		});
 	});
 
 	describe('Security options', () => {
