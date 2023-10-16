@@ -45,6 +45,7 @@ import type {
 } from './compose/composition-steps';
 import * as fsUtils from './lib/fs-utils';
 import { pathOnRoot } from './lib/host-utils';
+import { setTimeout } from 'timers/promises';
 
 const TARGET_STATE_CONFIG_DUMP = pathOnRoot(
 	'/tmp/balena-supervisor/target-state-config',
@@ -769,7 +770,7 @@ export const applyTarget = async ({
 				steps.map((s) => applyStep(s, { force, initial, skipLock })),
 			);
 
-			await Bluebird.delay(nextDelay);
+			await setTimeout(nextDelay);
 			await applyTarget({
 				force,
 				initial,
@@ -850,8 +851,8 @@ export function triggerApplyTarget({
 	}
 	applyCancelled = false;
 	applyInProgress = true;
-	new Bluebird((resolve, reject) => {
-		setTimeout(resolve, delay);
+	new Promise((resolve, reject) => {
+		setTimeout(delay).then(resolve);
 		cancelDelay = reject;
 	})
 		.catch(() => {

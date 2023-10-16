@@ -3,10 +3,6 @@ import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
 import { promises as fs } from 'fs';
 
-// TODO: remove this once we can update Node to v16 and typescript
-// to an es2021 compatible version for native Promise.any
-import { Promise } from 'bluebird';
-
 import { exec } from './fs-utils';
 
 export async function getCpuUsage(): Promise<number> {

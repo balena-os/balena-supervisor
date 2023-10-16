@@ -1,9 +1,9 @@
 import * as JSONstream from 'JSONStream';
-import { delay } from 'bluebird';
 
 import * as db from '../db';
 import { spawnJournalctl, toJournalDate } from '../lib/journald';
 import log from '../lib/supervisor-console';
+import { setTimeout } from 'timers/promises';
 
 export type MonitorHook = (message: {
 	message: string;
@@ -91,7 +91,7 @@ class LogMonitor {
 						wait / 1000
 					}s`,
 				);
-				await delay(wait);
+				await setTimeout(wait);
 				return this.start();
 			},
 		);

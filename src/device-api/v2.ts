@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as express from 'express';
 import type { Response, NextFunction } from 'express';
 import * as _ from 'lodash';
@@ -156,93 +155,89 @@ router.post(
 router.get(
 	'/v2/applications/state',
 	async (req: AuthorizedRequest, res: Response, next: NextFunction) => {
-		// It's very hacky to access the services and db via the application manager
-		// refactor this code to use applicationManager.getState() instead.
-		Bluebird.join(
-			serviceManager.getState(),
-			images.getState(),
-			db.models('app').select(['appId', 'commit', 'name']),
-			(
-				services,
-				imgs,
-				apps: Array<{ appId: string; commit: string; name: string }>,
-			) => {
-				// Create an object which is keyed my application name
-				const response: {
-					[appName: string]: {
-						appId: number;
-						commit: string;
-						services: {
-							[serviceName: string]: {
-								status?: string;
-								releaseId: number;
-								downloadProgress: number | null;
-							};
+		try {
+			// It's very hacky to access the services and db via the application manager
+			// refactor this code to use applicationManager.getState() instead.
+			const [services, imgs, apps] = await Promise.all([
+				serviceManager.getState(),
+				images.getState(),
+				db.models('app').select(['appId', 'commit', 'name']) as Promise<
+					Array<{ appId: string; commit: string; name: string }>
+				>,
+			]);
+			// Create an object which is keyed my application name
+			const response: {
+				[appName: string]: {
+					appId: number;
+					commit: string;
+					services: {
+						[serviceName: string]: {
+							status?: string;
+							releaseId: number;
+							downloadProgress: number | null;
 						};
 					};
-				} = {};
+				};
+			} = {};
 
-				const appNameById: { [id: number]: string } = {};
-				const commits: string[] = [];
+			const appNameById: { [id: number]: string } = {};
+			const commits: string[] = [];
 
-				// only access scoped apps
-				apps
-					.filter((app) =>
-						req.auth.isScoped({ apps: [parseInt(app.appId, 10)] }),
-					)
-					.forEach((app) => {
-						const appId = parseInt(app.appId, 10);
-						response[app.name] = {
-							appId,
-							commit: app.commit,
-							services: {},
-						};
+			// only access scoped apps
+			apps
+				.filter((app) => req.auth.isScoped({ apps: [parseInt(app.appId, 10)] }))
+				.forEach((app) => {
+					const appId = parseInt(app.appId, 10);
+					response[app.name] = {
+						appId,
+						commit: app.commit,
+						services: {},
+					};
 
-						appNameById[appId] = app.name;
-						commits.push(app.commit);
+					appNameById[appId] = app.name;
+					commits.push(app.commit);
+				});
+
+			// only access scoped images
+			imgs
+				.filter(
+					(img) =>
+						req.auth.isScoped({ apps: [img.appId] }) &&
+						// Ensure we are using the apps for the target release
+						commits.includes(img.commit),
+				)
+				.forEach((img) => {
+					const appName = appNameById[img.appId];
+					if (appName == null) {
+						log.warn(
+							`Image found for unknown application!\nImage: ${JSON.stringify(
+								img,
+							)}`,
+						);
+						return;
+					}
+
+					const svc = _.find(services, (s: Service) => {
+						return s.serviceName === img.serviceName && s.commit === img.commit;
 					});
 
-				// only access scoped images
-				imgs
-					.filter(
-						(img) =>
-							req.auth.isScoped({ apps: [img.appId] }) &&
-							// Ensure we are using the apps for the target release
-							commits.includes(img.commit),
-					)
-					.forEach((img) => {
-						const appName = appNameById[img.appId];
-						if (appName == null) {
-							log.warn(
-								`Image found for unknown application!\nImage: ${JSON.stringify(
-									img,
-								)}`,
-							);
-							return;
-						}
+					let status: string | undefined;
+					if (svc == null) {
+						status = img.status;
+					} else {
+						status = svc.status || img.status;
+					}
+					response[appName].services[img.serviceName] = {
+						status,
+						releaseId: img.releaseId,
+						downloadProgress: img.downloadProgress || null,
+					};
+				});
 
-						const svc = _.find(services, (s: Service) => {
-							return (
-								s.serviceName === img.serviceName && s.commit === img.commit
-							);
-						});
-
-						let status: string | undefined;
-						if (svc == null) {
-							status = img.status;
-						} else {
-							status = svc.status || img.status;
-						}
-						response[appName].services[img.serviceName] = {
-							status,
-							releaseId: img.releaseId,
-							downloadProgress: img.downloadProgress || null,
-						};
-					});
-
-				res.status(200).json(response);
-			},
-		).catch(next);
+			res.status(200).json(response);
+		} catch (err) {
+			next(err);
+		}
 	},
 );
 

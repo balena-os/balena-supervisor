@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 
 import * as constants from '../lib/constants';
@@ -12,14 +11,13 @@ import { Network } from './network';
 import { ResourceRecreationAttemptError } from './errors';
 
 export async function getAll(): Promise<Network[]> {
-	return getWithBothLabels().map(async (network: { Id: string }) => {
-		return docker
-			.getNetwork(network.Id)
-			.inspect()
-			.then((net) => {
-				return Network.fromDockerNetwork(net);
-			});
-	});
+	const networks = await getWithBothLabels();
+	return await Promise.all(
+		networks.map(async (network: { Id: string }) => {
+			const net = await docker.getNetwork(network.Id).inspect();
+			return Network.fromDockerNetwork(net);
+		}),
+	);
 }
 
 async function get(network: {
@@ -126,8 +124,8 @@ export async function ensureSupervisorNetwork(): Promise<void> {
 	}
 }
 
-function getWithBothLabels() {
-	return Bluebird.join(
+async function getWithBothLabels() {
+	const [legacyNetworks, currentNetworks] = await Promise.all([
 		docker.listNetworks({
 			filters: {
 				label: ['io.resin.supervised'],
@@ -138,8 +136,6 @@ function getWithBothLabels() {
 				label: ['io.balena.supervised'],
 			},
 		}),
-		(legacyNetworks, currentNetworks) => {
-			return _.unionBy(currentNetworks, legacyNetworks, 'Id');
-		},
-	);
+	]);
+	return _.unionBy(currentNetworks, legacyNetworks, 'Id');
 }

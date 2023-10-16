@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -11,6 +10,7 @@ import { BackupError, isNotFoundError } from './errors';
 import { exec, exists, mkdirp, unlinkAll } from './fs-utils';
 import { log } from './supervisor-console';
 import { pathOnData } from './host-utils';
+import { setTimeout } from 'timers/promises';
 
 export async function loadBackupFromMigration(
 	targetState: TargetState,
@@ -85,7 +85,7 @@ export async function loadBackupFromMigration(
 	} catch (err) {
 		log.error(`Error restoring migration backup, retrying: ${err}`);
 
-		await Bluebird.delay(retryDelay);
+		await setTimeout(retryDelay);
 		return loadBackupFromMigration(targetState, retryDelay);
 	}
 }

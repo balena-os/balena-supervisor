@@ -28,6 +28,7 @@ import * as logger from '../logger';
 
 import * as apiHelper from '../lib/api-helper';
 import { startReporting, stateReportErrors } from './report';
+import { setTimeout } from 'timers/promises';
 
 interface DevicePinInfo {
 	app: number;
@@ -415,7 +416,7 @@ async function reportInitialConfig(
 		await reportInitialEnv(apiEndpoint, deviceId, initialName);
 	} catch (err) {
 		log.error('Error reporting initial configuration, will retry', err);
-		await Bluebird.delay(retryDelay);
+		await setTimeout(retryDelay);
 		await reportInitialConfig(apiEndpoint, deviceId, retryDelay, initialName);
 	}
 }
@@ -454,7 +455,7 @@ async function provisionOrRetry(retryDelay: number): Promise<void> {
 			error: e,
 			delay: retryDelay,
 		});
-		await Bluebird.delay(retryDelay);
+		await setTimeout(retryDelay);
 		return provisionOrRetry(retryDelay);
 	}
 }

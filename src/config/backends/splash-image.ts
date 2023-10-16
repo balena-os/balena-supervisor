@@ -1,4 +1,3 @@
-import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -50,12 +49,10 @@ export class SplashImage extends ConfigBackend {
 		const [
 			// If no logo is found, assume the file is `balena-logo.png`
 			splashFile = path.join(SplashImage.BASEPATH, 'balena-logo.png'),
-		] = (
-			await Bluebird.resolve(fs.readdir(SplashImage.BASEPATH))
-				// Read the splash dir (will throw if the path does not exist)
-				// And filter valid filenames
-				.filter((filename) => SplashImage.FILENAMES.includes(filename))
-		)
+		] = (await fs.readdir(SplashImage.BASEPATH))
+			// Read the splash dir (will throw if the path does not exist)
+			// And filter valid filenames
+			.filter((filename) => SplashImage.FILENAMES.includes(filename))
 			// Sort by name, so in case both files are defined, balena-logo will
 			// be chosen
 			.sort()
