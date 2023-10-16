@@ -1,4 +1,22 @@
 - commits:
+    - subject: Revert "Do not expose ports from image if service network mode"
+      hash: 3e828dcc5262528639a7a039d62855d9607d1779
+      body: |
+        This reverts commit 0c7bad779291e15e419166a2c66c2a21dd06aa83, as that
+        change causes a service restart loop. The supervisor cannot distinguish
+        between ports exposed via the `EXPOSE` directive and the docker-compose
+        `expose` property. Because of this, in the case of `network-mode:
+        service:<...>` the current state and target state never match, leading
+        to a service restart loop.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.13.12
+  title: ""
+  date: 2023-10-16T16:59:13.864Z
+- commits:
     - subject: Fix husky config for automatic linting on commit
       hash: 23d5311a515755ba3171fc5d26dc4c6486eff9a2
       body: ""
