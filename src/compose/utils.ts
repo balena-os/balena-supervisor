@@ -29,7 +29,7 @@ export function camelCaseConfig(
 
 	// Networks can either be an object or array, but given _.isObject
 	// returns true for an array, we check the other way
-	if (!_.isArray(config.networks)) {
+	if (!Array.isArray(config.networks)) {
 		const networksTmp = structuredClone(config.networks);
 		_.each(networksTmp, (v, k) => {
 			config.networks[k] = _.mapKeys(v, (_v, key) => _.camelCase(key));
@@ -85,13 +85,13 @@ export function createRestartPolicy(name?: string): string {
 
 	// Ensure that name is a string, otherwise the below could
 	// throw
-	if (!_.isString(name)) {
+	if (typeof name !== 'string') {
 		log.warn(`Non-string argument for restart field: ${name} - ignoring.`);
 		return 'always';
 	}
 
 	name = name.toLowerCase().trim();
-	if (!_.includes(validRestartPolicies, name)) {
+	if (!validRestartPolicies.includes(name)) {
 		return 'always';
 	}
 
@@ -109,7 +109,7 @@ function processCommandString(command: string): string {
 function processCommandParsedArrayElement(
 	arg: string | { [key: string]: string },
 ): string {
-	if (_.isString(arg)) {
+	if (typeof arg === 'string') {
 		return arg;
 	}
 	if (arg.op === 'glob') {
@@ -119,7 +119,7 @@ function processCommandParsedArrayElement(
 }
 
 function commandAsArray(command: string | string[]): string[] {
-	if (_.isString(command)) {
+	if (typeof command === 'string') {
 		return _.map(
 			parseCommand(processCommandString(command)),
 			processCommandParsedArrayElement,
@@ -158,7 +158,7 @@ export function getStopSignal(
 	imageInfo?: Dockerode.ImageInspectInfo,
 ): string {
 	if (composeStop != null) {
-		if (!_.isString(composeStop)) {
+		if (typeof composeStop !== 'string') {
 			return composeStop.toString();
 		}
 		return composeStop;
@@ -197,7 +197,7 @@ export function dockerHealthcheckToServiceHealthcheck(
 }
 
 function buildHealthcheckTest(test: string | string[]): string[] {
-	if (_.isString(test)) {
+	if (typeof test === 'string') {
 		return ['CMD-SHELL', test];
 	}
 	return test;
@@ -253,7 +253,7 @@ export function getHealthcheck(
 		composeHealthcheckToServiceHealthcheck(composeHealthcheck);
 
 	// Overlay any compose healthcheck fields on the image healthchecks
-	return _.assign(
+	return Object.assign(
 		{ test: ['NONE'] },
 		imageServiceHealthcheck,
 		composeServiceHealthcheck,
@@ -556,7 +556,7 @@ export function normalizeLabels(labels: { [key: string]: string }): {
 		labels,
 		(_v, k) => !(_.startsWith(k, 'io.balena.') || _.startsWith(k, 'io.resin.')),
 	);
-	return _.assign({}, otherLabels, legacyLabels, balenaLabels);
+	return Object.assign({}, otherLabels, legacyLabels, balenaLabels);
 }
 
 function compareArrayField(

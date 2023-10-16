@@ -170,7 +170,7 @@ export class Service {
 
 		// First process the networks correctly
 		let networks: ServiceConfig['networks'] = {};
-		if (_.isArray(config.networks)) {
+		if (Array.isArray(config.networks)) {
 			_.each(config.networks, (name) => {
 				networks[name] = {};
 			});
@@ -213,7 +213,7 @@ export class Service {
 		// ulimits
 		const ulimits: ServiceConfig['ulimits'] = {};
 		_.each(config.ulimits, (limit, name) => {
-			if (_.isNumber(limit)) {
+			if (typeof limit === 'number') {
 				ulimits[name] = { soft: limit, hard: limit };
 				return;
 			}
@@ -222,11 +222,11 @@ export class Service {
 		delete config.ulimits;
 
 		// string or array of strings - normalise to an array
-		if (_.isString(config.dns)) {
+		if (typeof config.dns === 'string') {
 			config.dns = [config.dns];
 		}
 
-		if (_.isString(config.dnsSearch)) {
+		if (typeof config.dnsSearch === 'string') {
 			config.dnsSearch = [config.dnsSearch];
 		}
 
@@ -368,7 +368,7 @@ export class Service {
 			config.tty = Boolean(config.tty);
 		}
 
-		if (_.isArray(config.sysctls)) {
+		if (Array.isArray(config.sysctls)) {
 			config.sysctls = _.fromPairs(
 				_.map(config.sysctls, (v) => _.split(v, '=')),
 			);
@@ -386,7 +386,7 @@ export class Service {
 
 		if (config.cpus != null) {
 			config.cpus = Math.round(Number(config.cpus) * 10 ** 9);
-			if (_.isNaN(config.cpus)) {
+			if (Number.isNaN(config.cpus)) {
 				log.warn(
 					`config.cpus value cannot be parsed. Ignoring.\n  Value:${config.cpus}`,
 				);
@@ -396,7 +396,7 @@ export class Service {
 
 		let tmpfs: string[] = [];
 		if (config.tmpfs != null) {
-			if (_.isString(config.tmpfs)) {
+			if (typeof config.tmpfs === 'string') {
 				tmpfs = [config.tmpfs];
 			} else {
 				tmpfs = config.tmpfs;
@@ -714,7 +714,7 @@ export class Service {
 			// Typings are wrong here, the docker daemon accepts a string or string[],
 			Entrypoint: this.config.entrypoint as string,
 			Env: conversions.envObjectToArray(
-				_.assign(
+				Object.assign(
 					{
 						RESIN_DEVICE_NAME_AT_INIT: opts.deviceName,
 						BALENA_DEVICE_NAME_AT_INIT: opts.deviceName,
@@ -996,7 +996,7 @@ export class Service {
 	): { [envVarName: string]: string } {
 		const defaultEnv: { [envVarName: string]: string } = {};
 		for (const namespace of ['BALENA', 'RESIN']) {
-			_.assign(
+			Object.assign(
 				defaultEnv,
 				_.mapKeys(
 					{

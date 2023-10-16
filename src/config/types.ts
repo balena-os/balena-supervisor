@@ -30,7 +30,7 @@ export const PermissiveBoolean = new t.Type<boolean, t.TypeOf<PermissiveType>>(
 				case 'undefined':
 					return t.success(false);
 				case 'object':
-					if (_.isNull(v)) {
+					if (v == null) {
 						return t.success(false);
 					} else {
 						return t.failure(v, c);
@@ -56,7 +56,7 @@ export const PermissiveNumber = new t.Type<number, string | number>(
 					return t.success(v);
 				case 'string':
 					const i = parseInt(v, 10);
-					if (_.isNaN(i)) {
+					if (Number.isNaN(i)) {
 						return t.failure(v, c);
 					}
 					return t.success(i);

@@ -32,7 +32,7 @@ export class PortMap {
 	private ports: PortRange;
 
 	private constructor(portStrOrObj: string | PortRange) {
-		if (_.isString(portStrOrObj)) {
+		if (typeof portStrOrObj === 'string') {
 			this.parsePortString(portStrOrObj);
 		} else {
 			this.ports = portStrOrObj;

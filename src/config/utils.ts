@@ -43,7 +43,7 @@ export function bootConfigToEnv(
 	return _(configOptions)
 		.mapKeys((_val, key) => configBackend.createConfigVarName(key))
 		.mapValues((val) => {
-			if (_.isArray(val)) {
+			if (Array.isArray(val)) {
 				return JSON.stringify(val).replace(/^\[(.*)\]$/, '$1');
 			}
 			return val;

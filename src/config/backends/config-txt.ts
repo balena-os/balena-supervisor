@@ -169,7 +169,7 @@ export class ConfigTxt extends ConfigBackend {
 	private ensureDtoverlay(conf: ConfigOptions, field: string) {
 		if (conf.dtoverlay == null) {
 			conf.dtoverlay = [];
-		} else if (_.isString(conf.dtoverlay)) {
+		} else if (typeof conf.dtoverlay === 'string') {
 			conf.dtoverlay = [conf.dtoverlay];
 		}
 		if (!_.includes(conf.dtoverlay, field)) {

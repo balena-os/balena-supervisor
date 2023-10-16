@@ -32,7 +32,7 @@ export class LocalLogBackend extends LogBackend {
 					// we would need a way of invalidating the cache
 					const serviceName = await this.serviceNameResolver(svcId);
 
-					_.assign({}, { serviceName }, message);
+					message = Object.assign({}, { serviceName }, message);
 				}
 				_.each(this.globalListeners, (listener) => {
 					listener.push(`${JSON.stringify(message)}\n`);

@@ -17,7 +17,7 @@ export default class ConfigJsonConfigBackend {
 	private cache: { [key: string]: unknown } = {};
 
 	private readonly init = _.once(async () =>
-		_.assign(this.cache, await this.read()),
+		Object.assign(this.cache, await this.read()),
 	);
 
 	public constructor(schema: Schema.Schema, configPath?: string) {

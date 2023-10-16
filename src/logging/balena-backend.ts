@@ -87,7 +87,7 @@ export class BalenaLogBackend extends LogBackend {
 			return;
 		}
 
-		message = _.assign(
+		message = Object.assign(
 			{
 				timestamp: Date.now(),
 				message: '',
