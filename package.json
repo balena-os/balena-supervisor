@@ -139,11 +139,6 @@
     "winston": "^3.3.3",
     "yargs": "^15.4.1"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "versionist": {
     "publishedAt": "2023-10-16T13:50:18.745Z"
   }
