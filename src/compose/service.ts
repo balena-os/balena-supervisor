@@ -83,7 +83,6 @@ export class Service {
 		'dnsOpt',
 		'tmpfs',
 		'extraHosts',
-		'expose',
 		'ulimitsArray',
 		'groupAdd',
 		'securityOpt',
@@ -336,25 +335,6 @@ export class Service {
 		}
 		delete config.ports;
 
-		// get the exposed ports, both from the image and the compose file
-		let expose: string[] = [];
-		if (config.expose != null) {
-			expose = _.map(config.expose, ComposeUtils.sanitiseExposeFromCompose);
-		}
-		const imageExposedPorts = _.get(
-			options.imageInfo,
-			'Config.ExposedPorts',
-			{},
-		);
-		expose = expose.concat(_.keys(imageExposedPorts));
-		// Also add any exposed ports which are implied from the portMaps
-		const exposedFromPortMappings = _.flatMap(portMaps, (port) =>
-			port.toExposedPortArray(),
-		);
-		expose = expose.concat(exposedFromPortMappings);
-		expose = _.uniq(expose);
-		delete config.expose;
-
 		let devices: DockerDevice[] = [];
 		if (config.devices != null) {
 			devices = _.map(config.devices, ComposeUtils.formatDevice);
@@ -430,7 +410,6 @@ export class Service {
 			dnsOpt: [],
 			entrypoint: '',
 			extraHosts: [],
-			expose,
 			networks,
 			dns: [],
 			dnsSearch: [],
@@ -526,17 +505,6 @@ export class Service {
 		});
 
 		const portMaps = PortMap.fromDockerOpts(container.HostConfig.PortBindings);
-		let expose = _.flatMap(
-			_.flatMap(portMaps, (p) => p.toDockerOpts().exposedPorts),
-			_.keys,
-		);
-		if (container.Config.ExposedPorts != null) {
-			expose = expose.concat(
-				_.map(container.Config.ExposedPorts, (_v, k) => k.toString()),
-			);
-		}
-		expose = _.uniq(expose);
-
 		const tmpfs: string[] = Object.keys(container.HostConfig?.Tmpfs || {});
 
 		const binds: string[] = _.uniq(
@@ -573,7 +541,6 @@ export class Service {
 			networkMode: container.HostConfig.NetworkMode!,
 
 			portMaps,
-			expose,
 			hostname,
 			command: container.Config.Cmd || '',
 			entrypoint: container.Config.Entrypoint || '',
@@ -684,7 +651,7 @@ export class Service {
 		containerIds: Dictionary<string>;
 	}): Dockerode.ContainerCreateOptions {
 		const { binds, mounts, volumes } = this.getBindsMountsAndVolumes();
-		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
+		const { portBindings } = this.generatePortBindings();
 
 		const tmpFs: Dictionary<''> = this.config.tmpfs.reduce(
 			(dict, tmp) => ({ ...dict, [tmp]: '' }),
@@ -722,7 +689,6 @@ export class Service {
 					this.config.environment,
 				),
 			),
-			ExposedPorts: exposedPorts,
 			Image: this.config.image,
 			Labels: this.config.labels,
 			NetworkingConfig:
@@ -961,13 +927,11 @@ export class Service {
 		return { binds, mounts, volumes };
 	}
 
-	private generateExposeAndPorts(): DockerPortOptions {
-		const exposed: DockerPortOptions['exposedPorts'] = {};
+	private generatePortBindings(): DockerPortOptions {
 		const ports: DockerPortOptions['portBindings'] = {};
 
 		_.each(this.config.portMaps, (pmap) => {
-			const { exposedPorts, portBindings } = pmap.toDockerOpts();
-			_.merge(exposed, exposedPorts);
+			const { portBindings } = pmap.toDockerOpts();
 			_.mergeWith(ports, portBindings, (destVal, srcVal) => {
 				if (destVal == null) {
 					return srcVal;
@@ -976,15 +940,7 @@ export class Service {
 			});
 		});
 
-		// We also want to merge the compose and image exposedPorts
-		// into the list of exposedPorts
-		const composeExposed: DockerPortOptions['exposedPorts'] = {};
-		_.each(this.config.expose, (port) => {
-			composeExposed[port] = {};
-		});
-		_.merge(exposed, composeExposed);
-
-		return { exposedPorts: exposed, portBindings: ports };
+		return { portBindings: ports };
 	}
 
 	private static extendEnvVars(

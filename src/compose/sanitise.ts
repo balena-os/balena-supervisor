@@ -18,7 +18,6 @@ const supportedComposeFields = [
 	'tmpfs',
 	'entrypoint',
 	'environment',
-	'expose',
 	'extraHosts',
 	'groupAdd',
 	'healthcheck',
