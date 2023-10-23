@@ -1,4 +1,16 @@
 - commits:
+    - subject: Add note regading API jitter on target state poll
+      hash: b107868765563e26ec04746f84d1bc15dd211723
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 14.13.14
+  title: ""
+  date: 2023-10-23T13:34:41.452Z
+- commits:
     - subject: Switch some _.includes usage to native versions
       hash: e15205301c345398873097b07869c191d1f09d08
       body: ""
