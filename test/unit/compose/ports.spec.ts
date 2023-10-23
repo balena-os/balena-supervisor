@@ -98,9 +98,6 @@ describe('compose/ports', function () {
 	describe('toDockerOpts', function () {
 		it('should correctly generate docker options', () =>
 			expect(new PortMapPublic('80').toDockerOpts()).to.deep.equal({
-				exposedPorts: {
-					'80/tcp': {},
-				},
 				portBindings: {
 					'80/tcp': [{ HostIp: '', HostPort: '80' }],
 				},
@@ -108,14 +105,6 @@ describe('compose/ports', function () {
 
 		it('should correctly generate docker options for a port range', () =>
 			expect(new PortMapPublic('80-85').toDockerOpts()).to.deep.equal({
-				exposedPorts: {
-					'80/tcp': {},
-					'81/tcp': {},
-					'82/tcp': {},
-					'83/tcp': {},
-					'84/tcp': {},
-					'85/tcp': {},
-				},
 				portBindings: {
 					'80/tcp': [{ HostIp: '', HostPort: '80' }],
 					'81/tcp': [{ HostIp: '', HostPort: '81' }],

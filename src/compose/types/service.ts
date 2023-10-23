@@ -179,7 +179,6 @@ export interface ServiceComposeConfig {
 	tmpfs?: string | string[];
 	entrypoint?: string | string[];
 	environment?: { [envVarName: string]: string };
-	expose?: string[];
 	extraHosts?: string[];
 	groupAdd?: string[];
 	healthcheck?: ComposeHealthcheck;
@@ -239,7 +238,6 @@ export interface ServiceConfig {
 	tmpfs: string[];
 	entrypoint: string | string[];
 	environment: { [envVarName: string]: string };
-	expose: string[];
 	extraHosts: string[];
 	groupAdd: string[];
 	healthcheck: ServiceHealthcheck;
@@ -295,7 +293,6 @@ export type ServiceConfigArrayField =
 	| 'dns'
 	| 'dnsSearch'
 	| 'dnsOpt'
-	| 'expose'
 	| 'tmpfs'
 	| 'extraHosts'
 	| 'ulimitsArray'

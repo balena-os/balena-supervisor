@@ -129,7 +129,7 @@ describe('compose/service: unit tests', () => {
 				} as any,
 			);
 
-			const ports = (s as any).generateExposeAndPorts();
+			const ports = (s as any).generatePortBindings();
 			expect(ports.portBindings).to.deep.equal({
 				'2344/tcp': [
 					{
@@ -150,15 +150,6 @@ describe('compose/service: unit tests', () => {
 					},
 				],
 			});
-			expect(ports.exposedPorts).to.deep.equal({
-				'1000/tcp': {},
-				'243/udp': {},
-				'2344/tcp': {},
-				'2354/tcp': {},
-				'2367/udp': {},
-				'53/tcp': {},
-				'53/udp': {},
-			});
 		});
 
 		it('correctly handles port ranges', async () => {
@@ -177,7 +168,7 @@ describe('compose/service: unit tests', () => {
 				{ appName: 'test' } as any,
 			);
 
-			const ports = (s as any).generateExposeAndPorts();
+			const ports = (s as any).generatePortBindings();
 			expect(ports.portBindings).to.deep.equal({
 				'2000/tcp': [
 					{
@@ -204,15 +195,6 @@ describe('compose/service: unit tests', () => {
 					},
 				],
 			});
-
-			expect(ports.exposedPorts).to.deep.equal({
-				'1000/tcp': {},
-				'2000/tcp': {},
-				'2001/tcp': {},
-				'2002/tcp': {},
-				'2003/tcp': {},
-				'243/udp': {},
-			});
 		});
 
 		it('should correctly handle large port ranges', async function () {
@@ -231,10 +213,10 @@ describe('compose/service: unit tests', () => {
 				{ appName: 'test' } as any,
 			);
 
-			expect((s as any).generateExposeAndPorts()).to.not.throw;
+			expect((s as any).generatePortBindings).to.not.throw;
 		});
 
-		it('should correctly report implied exposed ports from portMappings', async () => {
+		it('should not report implied exposed ports from portMappings', async () => {
 			const service = await Service.fromComposeObject(
 				{
 					appId: 123456,
@@ -247,9 +229,7 @@ describe('compose/service: unit tests', () => {
 				{ appName: 'test' } as any,
 			);
 
-			expect(service.config)
-				.to.have.property('expose')
-				.that.deep.equals(['80/tcp', '100/tcp']);
+			expect(service.config).to.not.have.property('expose');
 		});
 
 		it('should correctly handle spaces in volume definitions', async () => {

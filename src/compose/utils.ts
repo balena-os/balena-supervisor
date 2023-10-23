@@ -288,13 +288,6 @@ export function getUser(
 	return user != null ? user : _.get(imageInfo, 'Config.User', '');
 }
 
-export function sanitiseExposeFromCompose(portStr: string): string {
-	if (/^[0-9]*$/.test(portStr)) {
-		return `${portStr}/tcp`;
-	}
-	return portStr;
-}
-
 export function formatDevice(deviceStr: string): DockerDevice {
 	const [pathOnHost, ...parts] = deviceStr.split(':');
 	let [pathInContainer, cgroup] = parts;
