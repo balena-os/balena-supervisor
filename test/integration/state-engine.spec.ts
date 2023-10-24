@@ -3,6 +3,7 @@ import * as Docker from 'dockerode';
 import { TargetStateV2 } from '~/lib/legacy';
 import * as request from 'supertest';
 import { setTimeout as delay } from 'timers/promises';
+import { exec } from '~/lib/fs-utils';
 
 const BALENA_SUPERVISOR_ADDRESS =
 	process.env.BALENA_SUPERVISOR_ADDRESS || 'http://balena-supervisor:48484';
@@ -97,9 +98,11 @@ describe('state engine', () => {
 							serviceName: 'one',
 							restart: 'unless-stopped',
 							running: true,
-							command: 'sleep infinity',
+							command:
+								'sh -c "while true; do echo -n \'Hello World!!\' | nc -lv -p 8080; done"',
 							stop_signal: 'SIGKILL',
 							networks: ['default'],
+							ports: ['8080'],
 							labels: {},
 							environment: {},
 						},
@@ -134,6 +137,10 @@ describe('state engine', () => {
 			{ Name: '/one_11_1_deadbeef', State: 'running' },
 			{ Name: '/two_12_1_deadbeef', State: 'running' },
 		]);
+
+		// Test that the service is running and accesssible via port 8080
+		// this will throw if the server does not respond
+		await exec('nc -v docker 8080 -z');
 	});
 
 	// This test recovery from issue #1576, where a device running a service from the target release

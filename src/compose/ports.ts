@@ -15,6 +15,7 @@ export interface PortBindings {
 }
 
 export interface DockerPortOptions {
+	exposedPorts: Dictionary<{}>;
 	portBindings: PortBindings;
 }
 
@@ -48,15 +49,19 @@ export class PortMap {
 			this.ports.externalEnd,
 		);
 
+		const exposedPorts: { [key: string]: {} } = {};
 		const portBindings: PortBindings = {};
 
 		_.zipWith(internalRange, externalRange, (internal, external) => {
+			exposedPorts[`${internal}/${this.ports.protocol}`] = {};
+
 			portBindings[`${internal}/${this.ports.protocol}`] = [
 				{ HostIp: this.ports.host, HostPort: external.toString() },
 			];
 		});
 
 		return {
+			exposedPorts,
 			portBindings,
 		};
 	}
