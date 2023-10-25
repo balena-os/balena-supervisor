@@ -1,4 +1,20 @@
 - commits:
+    - subject: Expose ports from port mappings on services
+      hash: 9bd216327fda4526cd60ccf98178960242383769
+      body: |
+        PR #2217 removed the expose configuration but also caused a regresion
+        where ports set via the `ports` configuration would no longer get
+        exposed to the host, despite portmappings being set. This fixes that
+        issue by exposing only those ports comming from port mappings.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 15.0.1
+  title: ""
+  date: 2023-10-25T13:04:05.171Z
+- commits:
     - subject: Ignore `expose` service compose configuration
       hash: 416170bc05a9a725f5a7f8ecbab4f8b1c8da5ddf
       body: >
