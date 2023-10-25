@@ -112,6 +112,7 @@ describe('compose/service: unit tests', () => {
 					serviceId: 3,
 					imageId: 4,
 					composition: {
+						// This will be ignored
 						expose: [1000, '243/udp'],
 						ports: ['2344', '2345:2354', '2346:2367/udp'],
 					},
@@ -120,6 +121,7 @@ describe('compose/service: unit tests', () => {
 					imageInfo: {
 						Config: {
 							ExposedPorts: {
+								// This will be ignored by generateExposeAndPorts
 								'53/tcp': {},
 								'53/udp': {},
 								'2354/tcp': {},
@@ -129,7 +131,7 @@ describe('compose/service: unit tests', () => {
 				} as any,
 			);
 
-			const ports = (s as any).generatePortBindings();
+			const ports = (s as any).generateExposeAndPorts();
 			expect(ports.portBindings).to.deep.equal({
 				'2344/tcp': [
 					{
@@ -150,6 +152,13 @@ describe('compose/service: unit tests', () => {
 					},
 				],
 			});
+			// Only exposes ports coming from the `ports`
+			// property
+			expect(ports.exposedPorts).to.deep.equal({
+				'2344/tcp': {},
+				'2354/tcp': {},
+				'2367/udp': {},
+			});
 		});
 
 		it('correctly handles port ranges', async () => {
@@ -168,7 +177,7 @@ describe('compose/service: unit tests', () => {
 				{ appName: 'test' } as any,
 			);
 
-			const ports = (s as any).generatePortBindings();
+			const ports = (s as any).generateExposeAndPorts();
 			expect(ports.portBindings).to.deep.equal({
 				'2000/tcp': [
 					{
@@ -195,6 +204,13 @@ describe('compose/service: unit tests', () => {
 					},
 				],
 			});
+
+			expect(ports.exposedPorts).to.deep.equal({
+				'2000/tcp': {},
+				'2001/tcp': {},
+				'2002/tcp': {},
+				'2003/tcp': {},
+			});
 		});
 
 		it('should correctly handle large port ranges', async function () {
@@ -213,23 +229,7 @@ describe('compose/service: unit tests', () => {
 				{ appName: 'test' } as any,
 			);
 
-			expect((s as any).generatePortBindings).to.not.throw;
-		});
-
-		it('should not report implied exposed ports from portMappings', async () => {
-			const service = await Service.fromComposeObject(
-				{
-					appId: 123456,
-					serviceId: 123456,
-					serviceName: 'test',
-					composition: {
-						ports: ['80:80', '100:100'],
-					},
-				},
-				{ appName: 'test' } as any,
-			);
-
-			expect(service.config).to.not.have.property('expose');
+			expect((s as any).generateExposeAndPorts()).to.not.throw;
 		});
 
 		it('should correctly handle spaces in volume definitions', async () => {

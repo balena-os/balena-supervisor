@@ -651,7 +651,7 @@ export class Service {
 		containerIds: Dictionary<string>;
 	}): Dockerode.ContainerCreateOptions {
 		const { binds, mounts, volumes } = this.getBindsMountsAndVolumes();
-		const { portBindings } = this.generatePortBindings();
+		const { exposedPorts, portBindings } = this.generateExposeAndPorts();
 
 		const tmpFs: Dictionary<''> = this.config.tmpfs.reduce(
 			(dict, tmp) => ({ ...dict, [tmp]: '' }),
@@ -689,6 +689,7 @@ export class Service {
 					this.config.environment,
 				),
 			),
+			ExposedPorts: exposedPorts,
 			Image: this.config.image,
 			Labels: this.config.labels,
 			NetworkingConfig:
@@ -927,11 +928,13 @@ export class Service {
 		return { binds, mounts, volumes };
 	}
 
-	private generatePortBindings(): DockerPortOptions {
+	private generateExposeAndPorts(): DockerPortOptions {
+		const exposed: DockerPortOptions['exposedPorts'] = {};
 		const ports: DockerPortOptions['portBindings'] = {};
 
 		_.each(this.config.portMaps, (pmap) => {
-			const { portBindings } = pmap.toDockerOpts();
+			const { exposedPorts, portBindings } = pmap.toDockerOpts();
+			_.merge(exposed, exposedPorts);
 			_.mergeWith(ports, portBindings, (destVal, srcVal) => {
 				if (destVal == null) {
 					return srcVal;
@@ -940,7 +943,7 @@ export class Service {
 			});
 		});
 
-		return { portBindings: ports };
+		return { exposedPorts: exposed, portBindings: ports };
 	}
 
 	private static extendEnvVars(
