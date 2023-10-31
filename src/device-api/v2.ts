@@ -42,6 +42,17 @@ const handleServiceAction = (action: CompositionStepAction) => {
 			checkTruthy(req.body.force),
 		];
 
+		if (action === 'stop') {
+			log.debug(
+				'[DEBUG] Received stop call',
+				appId,
+				imageId,
+				serviceName,
+				force,
+				req.auth.apiKey,
+			);
+		}
+
 		if (!appId) {
 			return res.status(400).json({
 				status: 'failed',
