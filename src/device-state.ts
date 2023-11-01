@@ -890,6 +890,7 @@ export async function applyIntermediateTarget(
 	return pausingApply(async () => {
 		// TODO: Make sure we don't accidentally overwrite this
 		intermediateTarget = intermediate;
+		applyInProgress = true;
 		return applyTarget({
 			intermediate: true,
 			force,
@@ -897,6 +898,7 @@ export async function applyIntermediateTarget(
 			keepVolumes,
 		}).then(() => {
 			intermediateTarget = null;
+			applyInProgress = false;
 		});
 	});
 }
