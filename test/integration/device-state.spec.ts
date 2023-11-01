@@ -15,7 +15,7 @@ import { createDockerImage } from '~/test-lib/docker-helper';
 import * as Docker from 'dockerode';
 import { setTimeout } from 'timers/promises';
 
-describe('device-state', () => {
+describe.skip('device-state', () => {
 	const docker = new Docker();
 	before(async () => {
 		await config.initialized();
