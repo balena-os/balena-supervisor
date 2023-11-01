@@ -1,4 +1,21 @@
 - commits:
+    - subject: Set applyInProgress to true while applying intermediate state
+      hash: a993b3e7af9637ac4573786aa7d31eb7a16a4dbd
+      body: |
+        Intermediate state is utilized when executing device actions such as a
+        volume purge. It's a type of state apply, but despite that,
+        applyInProgress is not true.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 15.0.2
+  title: ""
+  date: 2023-11-01T22:16:57.319Z
+- commits:
     - subject: Expose ports from port mappings on services
       hash: 9bd216327fda4526cd60ccf98178960242383769
       body: |
