@@ -139,6 +139,7 @@ export const update = async (
 		if (statusCode === 304 && cache?.etag != null) {
 			// There's no change so no need to update the cache
 			// only emit the target state if it hasn't been emitted yet
+			log.debug('emitTargetState from update 304');
 			cache.emitted = emitTargetState(cache, force, isFromApi);
 			return;
 		}
@@ -154,6 +155,7 @@ export const update = async (
 		};
 
 		// Emit the target state and update the cache
+		log.debug('emitTargetState from update');
 		cache.emitted = emitTargetState(cache, force, isFromApi);
 	}).finally(() => {
 		lastFetch = process.hrtime();

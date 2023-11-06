@@ -164,7 +164,11 @@ export async function start() {
 		'target-state-update',
 		async (targetState, force, isFromApi) => {
 			try {
+				log.debug('Call setTarget from api-binder start()');
 				await deviceState.setTarget(targetState);
+				log.debug(
+					'triggerApplyTarget from target-state-update from api-binder start()',
+				);
 				deviceState.triggerApplyTarget({ force, isFromApi });
 			} catch (err) {
 				handleTargetUpdateError(err);
@@ -174,6 +178,9 @@ export async function start() {
 	// Apply new target state
 	TargetState.emitter.on('target-state-apply', (force, isFromApi) => {
 		try {
+			log.debug(
+				'triggerApplyTarget from target-state-apply from api-binder start()',
+			);
 			deviceState.triggerApplyTarget({ force, isFromApi });
 		} catch (err) {
 			handleTargetUpdateError(err);

@@ -274,6 +274,7 @@ export async function loadInitialState() {
 	// Only apply target if we have received a target
 	// from the cloud or loaded from file
 	if (conf.targetStateSet || loadedFromFile) {
+		log.debug('triggerApplyTarget from loadInitialState');
 		triggerApplyTarget({ initial: true });
 	}
 }
@@ -847,6 +848,7 @@ export function triggerApplyTarget({
 				scheduledApply.force = force;
 			}
 		}
+		log.debug('triggerApplyTarget while applyInProgress');
 		return;
 	}
 	applyCancelled = false;
