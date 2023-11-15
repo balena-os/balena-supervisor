@@ -157,7 +157,7 @@ export async function updateMetadata(service: Service, target: Service) {
 
 	try {
 		await docker.getContainer(svc.containerId).rename({
-			name: `${service.serviceName}_${target.commit}`,
+			name: target.containerName,
 		});
 	} catch (e) {
 		if (isNotFoundError(e)) {

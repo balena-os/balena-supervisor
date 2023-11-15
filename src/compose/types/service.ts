@@ -360,6 +360,7 @@ export interface Service {
 	serviceId: number;
 	imageName: string | null;
 	containerId: string | null;
+	containerName: string;
 	exitErrorMessage: string | null;
 
 	dependsOn: string[] | null;
