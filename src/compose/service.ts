@@ -66,6 +66,7 @@ class ServiceImpl implements Service {
 	public serviceId: number;
 	public imageName: string | null;
 	public containerId: string | null;
+	public containerName: string;
 	public exitErrorMessage: string | null;
 	public dependsOn: string[] | null;
 	public dockerImageId: string | null;
@@ -141,6 +142,9 @@ class ServiceImpl implements Service {
 		service.imageName = appConfig.image;
 		service.commit = appConfig.commit;
 		service.appUuid = appConfig.appUuid;
+
+		// The target container name
+		service.containerName = `${service.serviceName}_${service.commit}`;
 
 		// dependsOn is used by other parts of the step
 		// calculation so we delete it from the composition
@@ -645,6 +649,9 @@ class ServiceImpl implements Service {
 			);
 		}
 
+		// The current container name, minus the initial '/'
+		svc.containerName = container.Name.slice(1);
+
 		// If we have not renamed the service yet we can still use the image id
 		svc.imageId = parseInt(nameMatch[1], 10);
 		svc.releaseId = parseInt(nameMatch[2], 10);
@@ -903,7 +910,8 @@ class ServiceImpl implements Service {
 	): boolean {
 		return (
 			this.isEqualConfig(service, currentContainerIds) &&
-			this.commit === service.commit
+			this.commit === service.commit &&
+			this.containerName === service.containerName
 		);
 	}
 

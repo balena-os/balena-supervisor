@@ -43,7 +43,7 @@ export async function createService(
 				? {
 						imageId: 1,
 						releaseId: 1,
-				  }
+					}
 				: {}),
 			...conf,
 		},
