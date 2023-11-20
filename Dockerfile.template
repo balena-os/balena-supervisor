@@ -40,7 +40,7 @@ RUN curl -SLO "${FATRW_LOCATION}" && \
 		rm -f "${FATRW_ARCHIVE}"
 
 # Just install dev dependencies first
-RUN npm ci --build-from-source --sqlite=/usr/lib
+RUN npm ci --build-from-source=sqlite3 --sqlite=/usr/lib
 
 ###################################################################
 # Journal access.
@@ -173,7 +173,7 @@ RUN npm ci \
 	--omit=dev \
 	--omit=optional \
 	--unsafe-perm \
-	--build-from-source \
+	--build-from-source=sqlite3 \
 	--sqlite=/usr/lib \
 	&& npm cache clean --force \
 	# For some reason this doesn't get cleared with the other
