@@ -16,6 +16,8 @@ testfs:
     /mnt/root/etc:
       os-release:
         from: test/data/etc/os-release
+    /mnt/root/tmp/balena-supervisor:
+      target-state-config: ''
   # The `keep` list defines files that already exist in the
   # filesystem and need to be backed up before setting up the test environment
   keep: []
