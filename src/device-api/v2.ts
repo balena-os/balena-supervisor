@@ -3,7 +3,6 @@ import type { Response, NextFunction } from 'express';
 import * as _ from 'lodash';
 
 import * as deviceState from '../device-state';
-import * as apiBinder from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
 import { CompositionStepAction } from '../compose/composition-steps';
 import { Service } from '../compose/service';
@@ -499,16 +498,15 @@ router.get('/v2/device/name', async (_req, res, next) => {
 
 router.get('/v2/device/tags', async (_req, res) => {
 	try {
-		const tags = await apiBinder.fetchDeviceTags();
+		const tags = await actions.getDeviceTags();
 		return res.json({
 			status: 'success',
 			tags,
 		});
-	} catch (e: any) {
-		log.error(e);
-		res.status(500).json({
+	} catch (e: unknown) {
+		return res.status(500).json({
 			status: 'failed',
-			message: e.message,
+			message: (e as Error).message ?? e,
 		});
 	}
 });

@@ -708,4 +708,38 @@ describe('device-api/v2', () => {
 				.expect(503);
 		});
 	});
+
+	describe('GET /v2/device/tags', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getDeviceTagsStub: SinonStub;
+		before(() => {
+			getDeviceTagsStub = stub(actions, 'getDeviceTags');
+		});
+		after(() => {
+			getDeviceTagsStub.restore();
+		});
+
+		it('responds with 200 and device tags', async () => {
+			const tags = { id: 1, name: 'test', value: '' };
+			getDeviceTagsStub.resolves(tags);
+			await request(api)
+				.get('/v2/device/tags')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(({ body }) => {
+					expect(body).to.deep.equal({
+						status: 'success',
+						tags,
+					});
+				});
+		});
+
+		it('responds with 500 if an error occurred', async () => {
+			getDeviceTagsStub.throws(new Error());
+			await request(api)
+				.get('/v2/device/tags')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(500);
+		});
+	});
 });

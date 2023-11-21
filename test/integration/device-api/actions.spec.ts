@@ -9,6 +9,7 @@ import * as config from '~/src/config';
 import * as hostConfig from '~/src/host-config';
 import * as network from '~/src/network';
 import * as deviceApi from '~/src/device-api';
+import * as apiBinder from '~/src/api-binder';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
 import { cleanupDocker } from '~/test-lib/docker-helper';
@@ -875,5 +876,21 @@ describe('gets device name', () => {
 	it('returns device name', async () => {
 		await config.set({ name: 'test' });
 		expect(await actions.getDeviceName()).to.equal('test');
+	});
+});
+
+describe('gets device tags', () => {
+	let fetchDeviceTagsStub: SinonStub;
+	before(() => {
+		fetchDeviceTagsStub = stub(apiBinder, 'fetchDeviceTags');
+	});
+	after(() => {
+		fetchDeviceTagsStub.restore();
+	});
+
+	it('returns device tags fetched from api-binder', async () => {
+		const fetchResponse = [{ id: 1, name: 'test', value: '' }];
+		fetchDeviceTagsStub.resolves(fetchResponse);
+		expect(await actions.getDeviceTags()).to.deep.equal(fetchResponse);
 	});
 });

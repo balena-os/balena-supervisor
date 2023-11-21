@@ -8,6 +8,7 @@ import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
 import { isVPNEnabled, isVPNActive } from '../network';
+import { fetchDeviceTags } from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
 import {
 	CompositionStepAction,
@@ -432,4 +433,18 @@ export const getVPNStatus = async () => {
  */
 export const getDeviceName = async () => {
 	return await config.get('name');
+};
+
+/**
+ * Get device tags
+ * Used by:
+ * - GET /v2/device/tags
+ */
+export const getDeviceTags = async () => {
+	try {
+		return await fetchDeviceTags();
+	} catch (e: unknown) {
+		log.error((e as Error).message ?? e);
+		throw e;
+	}
 };
