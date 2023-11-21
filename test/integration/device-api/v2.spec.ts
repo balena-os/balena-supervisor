@@ -674,4 +674,38 @@ describe('device-api/v2', () => {
 				.expect(503);
 		});
 	});
+
+	describe('GET /v2/device/name', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getDeviceNameStub: SinonStub;
+		before(() => {
+			getDeviceNameStub = stub(actions, 'getDeviceName');
+		});
+		after(() => {
+			getDeviceNameStub.restore();
+		});
+
+		it('responds with 200 and device name', async () => {
+			const deviceName = 'my-rpi4';
+			getDeviceNameStub.resolves(deviceName);
+			await request(api)
+				.get('/v2/device/name')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(({ body }) => {
+					expect(body).to.deep.equal({
+						status: 'success',
+						deviceName,
+					});
+				});
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getDeviceNameStub.throws(new Error());
+			await request(api)
+				.get('/v2/device/name')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
 });

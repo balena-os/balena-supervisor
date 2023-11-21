@@ -485,12 +485,16 @@ router.get('/v2/state/status', async (req: AuthorizedRequest, res) => {
 	});
 });
 
-router.get('/v2/device/name', async (_req, res) => {
-	const deviceName = await config.get('name');
-	res.json({
-		status: 'success',
-		deviceName,
-	});
+router.get('/v2/device/name', async (_req, res, next) => {
+	try {
+		const deviceName = await actions.getDeviceName();
+		return res.json({
+			status: 'success',
+			deviceName,
+		});
+	} catch (e) {
+		next(e);
+	}
 });
 
 router.get('/v2/device/tags', async (_req, res) => {

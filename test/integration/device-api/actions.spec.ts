@@ -866,3 +866,14 @@ describe('gets VPN status', () => {
 		});
 	});
 });
+
+describe('gets device name', () => {
+	before(async () => {
+		await config.initialized();
+	});
+
+	it('returns device name', async () => {
+		await config.set({ name: 'test' });
+		expect(await actions.getDeviceName()).to.equal('test');
+	});
+});

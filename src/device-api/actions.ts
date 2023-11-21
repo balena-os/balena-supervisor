@@ -349,7 +349,7 @@ export const getSingleContainerApp = async (appId: number) => {
 /**
  * Returns legacy device info, update status, and service status for a single-container application.
  * Used by:
- * 	- GET /v1/device
+ * - GET /v1/device
  */
 export const getLegacyDeviceState = async () => {
 	const state = await deviceState.getLegacyState();
@@ -390,7 +390,7 @@ export const getLegacyDeviceState = async () => {
 /**
  * Get host config from the host-config module; Returns proxy config and hostname.
  * Used by:
- * 	- GET /v1/device/host-config
+ * - GET /v1/device/host-config
  */
 export const getHostConfig = async () => {
 	return await hostConfig.get();
@@ -399,7 +399,7 @@ export const getHostConfig = async () => {
 /**
  * Patch host configs such as proxy config and hostname
  * Used by:
- * 	- PATCH /v1/device/host-config
+ * - PATCH /v1/device/host-config
  */
 export const patchHostConfig = async (
 	conf: Parameters<typeof hostConfig.patch>[0],
@@ -416,11 +416,20 @@ export const patchHostConfig = async (
 /**
  * Get device VPN status
  * Used by:
- * 	- GET /v2/device/vpn
+ * - GET /v2/device/vpn
  */
 export const getVPNStatus = async () => {
 	return {
 		enabled: await isVPNEnabled(),
 		connected: await isVPNActive(),
 	};
+};
+
+/**
+ * Get device name
+ * Used by:
+ * - GET /v2/device/name
+ */
+export const getDeviceName = async () => {
+	return await config.get('name');
 };
