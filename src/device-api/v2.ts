@@ -11,7 +11,6 @@ import Volume from '../compose/volume';
 import * as commitStore from '../compose/commit';
 import * as config from '../config';
 import * as db from '../db';
-import * as deviceConfig from '../device-config';
 import * as logger from '../logger';
 import * as images from '../compose/images';
 import * as volumeManager from '../compose/volume-manager';
@@ -25,7 +24,6 @@ import {
 	isBadRequestError,
 	BadRequestError,
 } from '../lib/errors';
-import { isVPNActive } from '../network';
 import { AuthorizedRequest } from './api-keys';
 import { fromV2TargetState } from '../lib/legacy';
 import * as actions from './actions';
@@ -511,18 +509,16 @@ router.get('/v2/device/tags', async (_req, res) => {
 	}
 });
 
-router.get('/v2/device/vpn', async (_req, res) => {
-	const conf = await deviceConfig.getCurrent();
-	// Build VPNInfo
-	const info = {
-		enabled: conf.SUPERVISOR_VPN_CONTROL === 'true',
-		connected: await isVPNActive(),
-	};
-	// Return payload
-	return res.json({
-		status: 'success',
-		vpn: info,
-	});
+router.get('/v2/device/vpn', async (_req, res, next) => {
+	try {
+		const vpnStatus = await actions.getVPNStatus();
+		return res.json({
+			status: 'success',
+			vpn: vpnStatus,
+		});
+	} catch (e: unknown) {
+		next(e);
+	}
 });
 
 router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res) => {

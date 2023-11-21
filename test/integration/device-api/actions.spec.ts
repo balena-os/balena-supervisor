@@ -7,6 +7,7 @@ import { setTimeout } from 'timers/promises';
 import * as deviceState from '~/src/device-state';
 import * as config from '~/src/config';
 import * as hostConfig from '~/src/host-config';
+import * as network from '~/src/network';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
@@ -831,5 +832,37 @@ describe('patches host config', () => {
 			{ network: { hostname: uuid?.slice(0, 7) } },
 			true,
 		);
+	});
+});
+
+describe('gets VPN status', () => {
+	let activeStub: SinonStub;
+	let enabledStub: SinonStub;
+
+	before(() => {
+		// Stub external dependencies which are separately tested in network.spec.ts
+		activeStub = stub(network, 'isVPNActive');
+		enabledStub = stub(network, 'isVPNEnabled');
+	});
+
+	after(() => {
+		activeStub.restore();
+		enabledStub.restore();
+	});
+
+	it('returns VPN active and enabled statuses', async () => {
+		activeStub.resolves(true);
+		enabledStub.resolves(true);
+		expect(await actions.getVPNStatus()).to.deep.equal({
+			enabled: true,
+			connected: true,
+		});
+
+		activeStub.resolves(false);
+		enabledStub.resolves(false);
+		expect(await actions.getVPNStatus()).to.deep.equal({
+			enabled: false,
+			connected: false,
+		});
 	});
 });

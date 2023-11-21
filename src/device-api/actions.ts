@@ -7,6 +7,7 @@ import * as deviceState from '../device-state';
 import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
+import { isVPNEnabled, isVPNActive } from '../network';
 import * as applicationManager from '../compose/application-manager';
 import {
 	CompositionStepAction,
@@ -410,4 +411,16 @@ export const patchHostConfig = async (
 		conf.network.hostname = uuid?.slice(0, 7);
 	}
 	await hostConfig.patch(conf, force);
+};
+
+/**
+ * Get device VPN status
+ * Used by:
+ * 	- GET /v2/device/vpn
+ */
+export const getVPNStatus = async () => {
+	return {
+		enabled: await isVPNEnabled(),
+		connected: await isVPNActive(),
+	};
 };

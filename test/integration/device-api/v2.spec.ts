@@ -637,4 +637,41 @@ describe('device-api/v2', () => {
 				.expect(503);
 		});
 	});
+
+	describe('GET /v2/device/vpn', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getVPNStatusStub: SinonStub;
+		before(() => {
+			getVPNStatusStub = stub(actions, 'getVPNStatus');
+		});
+		after(() => {
+			getVPNStatusStub.restore();
+		});
+
+		it('responds with 200 and vpn status', async () => {
+			const vpnStatus = {
+				active: true,
+				connected: false,
+			};
+			getVPNStatusStub.resolves(vpnStatus);
+			await request(api)
+				.get('/v2/device/vpn')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(({ body }) => {
+					expect(body).to.deep.equal({
+						status: 'success',
+						vpn: vpnStatus,
+					});
+				});
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getVPNStatusStub.throws(new Error());
+			await request(api)
+				.get('/v2/device/vpn')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
 });
