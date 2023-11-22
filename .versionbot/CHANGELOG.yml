@@ -1,4 +1,25 @@
 - commits:
+    - subject: Force remove container if updateMetadata fails
+      hash: 3ea8d4727a4f4b068b308d1f407b7cf0dae2733b
+      body: |
+        The `updateMetadata` step renames the container to match the target
+        release when the service doesn't change between releases. We have seen
+        this step fail because of an engine bug that seems to relate to the
+        engine keeping stale references after container restarts. The only way
+        around this issue is to remove the old container and create it again.
+        This implements that workaround during the updateMetadata step to deal
+        with that issue.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Relates-to: balena-os/balena-engine#261
+        relates-to: balena-os/balena-engine#261
+      author: Felipe Lalanne
+      nested: []
+  version: 15.1.0
+  title: ""
+  date: 2023-11-22T20:12:13.595Z
+- commits:
     - subject: Only build sqlite3 from source
       hash: d18292f68e09d5846eb0fa254d5205f07052dea8
       body: ""
