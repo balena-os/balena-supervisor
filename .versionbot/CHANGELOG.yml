@@ -1,4 +1,28 @@
 - commits:
+    - subject: Cache last reported current state to /mnt/root/tmp
+      hash: eb8ad11cd702e7d5ffba499c6b2d2fcadc030dd4
+      body: >
+        Whenever the Supervisor reports current state, it diffs the current
+        state
+
+        with its last reported current state. However, when the Supervisor starts
+
+        up, there is no last reported state, since that last report is stored in
+
+        process memory. Caching the last report in a location that survives
+
+        Supervisor restarts will reduce the current report bandwidth used on startup.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 15.0.3
+  title: ""
+  date: 2023-11-22T00:32:48.806Z
+- commits:
     - subject: Set applyInProgress to true while applying intermediate state
       hash: a993b3e7af9637ac4573786aa7d31eb7a16a4dbd
       body: |
