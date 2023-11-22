@@ -157,9 +157,20 @@ export async function updateMetadata(service: Service, target: Service) {
 		);
 	}
 
-	await docker.getContainer(svc.containerId).rename({
-		name: `${service.serviceName}_${target.imageId}_${target.releaseId}_${target.commit}`,
-	});
+	try {
+		await docker.getContainer(svc.containerId).rename({
+			name: `${service.serviceName}_${target.imageId}_${target.releaseId}_${target.commit}`,
+		});
+	} catch (e) {
+		if (isNotFoundError(e)) {
+			log.warn(
+				'Got 404 error while updating container metadata. Will attempt to recreate the container instead',
+				e,
+			);
+			return await docker.getContainer(svc.containerId).remove({ force: true });
+		}
+		throw e;
+	}
 }
 
 export async function handover(current: Service, target: Service) {
