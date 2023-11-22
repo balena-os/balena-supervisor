@@ -54,63 +54,6 @@ export interface DeviceLegacyState {
 	commit?: string;
 }
 
-export type ServiceState = {
-	image: string;
-	status: string;
-	download_progress?: number | null;
-};
-
-export type ReleaseState = {
-	services: {
-		[serviceName: string]: ServiceState;
-	};
-};
-
-export type ReleasesState = {
-	[releaseUuid: string]: ReleaseState;
-};
-
-export type AppState = {
-	release_uuid?: string;
-	releases: ReleasesState;
-};
-
-export type DeviceReport = {
-	name?: string;
-	status?: string;
-	os_version?: string | null; // TODO: Should these purely come from the os app?
-	os_variant?: string | null; // TODO: Should these purely come from the os app?
-	supervisor_version?: string; // TODO: Should this purely come from the supervisor app?
-	provisioning_progress?: number | null; // TODO: should this be reported as part of the os app?
-	provisioning_state?: string; // TODO: should this be reported as part of the os app?
-	ip_address?: string;
-	mac_address?: string | null;
-	api_port?: number; // TODO: should this be reported as part of the supervisor app?
-	api_secret?: string | null; // TODO: should this be reported as part of the supervisor app?
-	logs_channel?: string | null; // TODO: should this be reported as part of the supervisor app? or should it not be reported anymore at all?
-	memory_usage?: number;
-	memory_total?: number;
-	storage_block_device?: string;
-	storage_usage?: number;
-	storage_total?: number;
-	cpu_temp?: number;
-	cpu_usage?: number;
-	cpu_id?: string;
-	is_undervolted?: boolean;
-	// TODO: these are ignored by the API but are used by supervisor local API
-	update_failed?: boolean;
-	update_pending?: boolean;
-	update_downloaded?: boolean;
-};
-
-export type DeviceState = {
-	[deviceUuid: string]: DeviceReport & {
-		apps?: {
-			[appUuid: string]: AppState;
-		};
-	};
-};
-
 // Return a type with a default value
 export const withDefault = <T extends t.Any>(
 	type: T,
@@ -162,6 +105,80 @@ const fromType = <T extends object>(name: string) =>
 // Alias short string to UUID so code reads more clearly
 export const UUID = ShortString;
 
+/*****************
+ * Current state *
+ *****************/
+const ServiceState = t.intersection([
+	t.type({
+		image: t.string,
+		status: t.string,
+	}),
+	t.partial({
+		download_progress: t.union([t.number, t.null]),
+	}),
+]);
+export type ServiceState = t.TypeOf<typeof ServiceState>;
+
+const ReleaseState = t.type({
+	services: t.record(DockerName, ServiceState),
+});
+export type ReleaseState = t.TypeOf<typeof ReleaseState>;
+
+const ReleasesState = t.record(UUID, ReleaseState);
+export type ReleasesState = t.TypeOf<typeof ReleasesState>;
+
+const AppState = t.intersection([
+	t.type({
+		releases: ReleasesState,
+	}),
+	t.partial({
+		release_uuid: UUID,
+	}),
+]);
+export type AppState = t.TypeOf<typeof AppState>;
+
+const DeviceReport = t.partial({
+	name: t.string,
+	status: t.string,
+	os_version: t.union([t.string, t.null]),
+	os_variant: t.union([t.string, t.null]),
+	supervisor_version: t.string,
+	provisioning_progress: t.union([t.number, t.null]),
+	provisioning_state: t.string,
+	ip_address: t.string,
+	mac_address: t.union([t.string, t.null]),
+	api_port: t.number,
+	api_secret: t.union([t.string, t.null]),
+	logs_channel: t.union([t.string, t.null]),
+	memory_usage: t.number,
+	memory_total: t.number,
+	storage_block_device: t.string,
+	storage_usage: t.number,
+	storage_total: t.number,
+	cpu_temp: t.number,
+	cpu_usage: t.number,
+	cpu_id: t.string,
+	is_undervolted: t.boolean,
+	update_failed: t.boolean,
+	update_pending: t.boolean,
+	update_downloaded: t.boolean,
+});
+export type DeviceReport = t.TypeOf<typeof DeviceReport>;
+
+export const DeviceState = t.record(
+	UUID,
+	t.intersection([
+		DeviceReport,
+		t.partial({
+			apps: t.record(UUID, AppState),
+		}),
+	]),
+);
+export type DeviceState = t.TypeOf<typeof DeviceState>;
+
+/****************
+ * Target state *
+ ****************/
 /**
  * A target service has docker image, a set of environment variables
  * and labels as well as one or more configurations

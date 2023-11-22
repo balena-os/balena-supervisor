@@ -2,11 +2,8 @@ import * as url from 'url';
 import * as _ from 'lodash';
 import { CoreOptions } from 'request';
 import { performance } from 'perf_hooks';
-
-import { withBackoff, OnFailureInfo } from '../lib/backoff';
-import { log } from '../lib/supervisor-console';
-import { InternalInconsistencyError, StatusError } from '../lib/errors';
-import { getRequestInstance } from '../lib/request';
+import { setTimeout } from 'timers/promises';
+import { readFile } from 'fs/promises';
 
 import { DeviceState } from '../types';
 import * as config from '../config';
@@ -14,8 +11,13 @@ import { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 
+import { withBackoff, OnFailureInfo } from '../lib/backoff';
+import { log } from '../lib/supervisor-console';
+import { InternalInconsistencyError, StatusError } from '../lib/errors';
+import { getRequestInstance } from '../lib/request';
 import { shallowDiff, prune, empty } from '../lib/json';
-import { setTimeout } from 'timers/promises';
+import { pathOnRoot } from '../lib/host-utils';
+import { touch, writeAndSyncFile } from '../lib/fs-utils';
 
 let lastReport: DeviceState = {};
 let lastReportTime: number = -Infinity;
@@ -26,6 +28,8 @@ const maxReportFrequency = 10 * 1000;
 // How often can we report metrics to the server in ms; mirrors server setting.
 // Metrics are low priority, so less frequent than maxReportFrequency.
 const maxMetricsFrequency = 300 * 1000;
+// Path of the cache for last reported state
+const CACHE_PATH = pathOnRoot('/tmp/balena-supervisor/state-report-cache');
 
 // TODO: This counter is read by the healthcheck to see if the
 // supervisor is having issues to connect. We have removed the
@@ -109,6 +113,12 @@ async function reportCurrentState(opts: StateReportOpts, uuid: string) {
 		await report({ body: stateDiff, opts });
 		lastReportTime = performance.now();
 		lastReport = currentState;
+
+		// Cache last report so it survives Supervisor restart.
+		// On Supervisor startup, Supervisor will be able to diff between the
+		// cached report and thereby report less unnecessary data.
+		await cache(currentState);
+
 		log.info('Reported current state to the cloud');
 	};
 
@@ -125,6 +135,43 @@ async function reportCurrentState(opts: StateReportOpts, uuid: string) {
 		stateReportErrors = 0;
 	} catch (e) {
 		log.error(e);
+	}
+}
+
+/**
+ * Cache last reported current state to CACHE_PATH
+ */
+async function cache(state: DeviceState) {
+	try {
+		await writeAndSyncFile(CACHE_PATH, JSON.stringify(state));
+	} catch (e: unknown) {
+		log.debug(`Failed to cache last reported state: ${(e as Error).message}`);
+	}
+}
+
+/**
+ * Get last cached state report from CACHE_PATH
+ */
+async function getCache(): Promise<DeviceState> {
+	try {
+		// Touch the file, which will create it if it doesn't exist
+		await touch(CACHE_PATH);
+
+		// Get last reported current state
+		const rawStateCache = await readFile(CACHE_PATH, 'utf-8');
+		const state = JSON.parse(rawStateCache);
+
+		// Return current state cache if valid
+		if (!DeviceState.is(state)) {
+			throw new Error();
+		}
+		log.debug('Retrieved last reported state from cache');
+		return state;
+	} catch {
+		log.debug(
+			'Could not retrieve last reported state from cache, proceeding with empty cache',
+		);
+		return {};
 	}
 }
 
@@ -165,6 +212,9 @@ export async function startReporting() {
 	if (!uuid) {
 		throw new InternalInconsistencyError('No uuid found for local device');
 	}
+
+	// Get last reported state from cache
+	lastReport = await getCache();
 
 	let reportPending = false;
 	// Reports current state if not already sending and prevents a state change
