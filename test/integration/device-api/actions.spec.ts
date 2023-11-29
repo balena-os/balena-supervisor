@@ -12,6 +12,7 @@ import * as deviceApi from '~/src/device-api';
 import * as apiBinder from '~/src/api-binder';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
+import * as applicationManager from '~/src/compose/application-manager';
 import { cleanupDocker } from '~/test-lib/docker-helper';
 
 import { exec } from '~/src/lib/fs-utils';
@@ -892,5 +893,20 @@ describe('gets device tags', () => {
 		const fetchResponse = [{ id: 1, name: 'test', value: '' }];
 		fetchDeviceTagsStub.resolves(fetchResponse);
 		expect(await actions.getDeviceTags()).to.deep.equal(fetchResponse);
+	});
+});
+
+describe('cleans up orphaned volumes', () => {
+	let removeOrphanedVolumes: SinonStub;
+	before(() => {
+		removeOrphanedVolumes = stub(applicationManager, 'removeOrphanedVolumes');
+	});
+	after(() => {
+		removeOrphanedVolumes.restore();
+	});
+
+	it('cleans up orphaned volumes through application-manager', async () => {
+		await actions.cleanupVolumes();
+		expect(removeOrphanedVolumes).to.have.been.calledOnce;
 	});
 });

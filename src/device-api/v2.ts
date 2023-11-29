@@ -6,13 +6,11 @@ import * as deviceState from '../device-state';
 import * as applicationManager from '../compose/application-manager';
 import { CompositionStepAction } from '../compose/composition-steps';
 import { Service } from '../compose/service';
-import Volume from '../compose/volume';
 import * as commitStore from '../compose/commit';
 import * as config from '../config';
 import * as db from '../db';
 import * as logger from '../logger';
 import * as images from '../compose/images';
-import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
 import { spawnJournalctl } from '../lib/journald';
 import log from '../lib/supervisor-console';
@@ -523,23 +521,16 @@ router.get('/v2/device/vpn', async (_req, res, next) => {
 	}
 });
 
-router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res) => {
-	const targetState = await applicationManager.getTargetApps();
-	const referencedVolumes = Object.values(targetState)
-		// if this app isn't in scope of the request, do not cleanup it's volumes
-		.filter((app) => req.auth.isScoped({ apps: [app.id] }))
-		.flatMap((app) => {
-			const [release] = Object.values(app.releases);
-			// Return a list of the volume names
-			return Object.keys(release?.volumes ?? {}).map((volumeName) =>
-				Volume.generateDockerName(app.id, volumeName),
-			);
+// This should be a POST but we have to keep it a GET for interface consistency
+router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res, next) => {
+	try {
+		await actions.cleanupVolumes(req.auth.isScoped);
+		return res.json({
+			status: 'success',
 		});
-
-	await volumeManager.removeOrphanedVolumes(referencedVolumes);
-	res.json({
-		status: 'success',
-	});
+	} catch (e: unknown) {
+		next(e);
+	}
 });
 
 router.post('/v2/journal-logs', (req, res) => {

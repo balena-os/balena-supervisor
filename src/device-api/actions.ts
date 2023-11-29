@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 
 import { getGlobalApiKey, refreshKey } from '.';
 import * as messages from './messages';
+import { AuthorizedRequest } from './api-keys';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 import * as logger from '../logger';
@@ -447,4 +448,19 @@ export const getDeviceTags = async () => {
 		log.error((e as Error).message ?? e);
 		throw e;
 	}
+};
+
+/**
+ * Clean up orphaned volumes
+ * Used by:
+ * - GET /v2/cleanup-volumes
+ */
+export const cleanupVolumes = async (
+	withScope: AuthorizedRequest['auth']['isScoped'] = () => true,
+) => {
+	// It's better practice to access engine functionality through application-manager
+	// than through volume-manager directly, as the latter should be an internal module
+	await applicationManager.removeOrphanedVolumes((id) =>
+		withScope({ apps: [id] }),
+	);
 };

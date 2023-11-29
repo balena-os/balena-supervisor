@@ -742,4 +742,31 @@ describe('device-api/v2', () => {
 				.expect(500);
 		});
 	});
+
+	describe('GET /v2/cleanup-volumes', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let cleanupVolumesStub: SinonStub;
+		before(() => {
+			cleanupVolumesStub = stub(actions, 'cleanupVolumes');
+		});
+		after(() => {
+			cleanupVolumesStub.restore();
+		});
+
+		it('responds with 200', async () => {
+			cleanupVolumesStub.resolves();
+			await request(api)
+				.get('/v2/cleanup-volumes')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			cleanupVolumesStub.throws(new Error());
+			await request(api)
+				.get('/v2/cleanup-volumes')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
 });
