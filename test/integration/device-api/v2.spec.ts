@@ -829,4 +829,71 @@ describe('device-api/v2', () => {
 				.expect(503);
 		});
 	});
+
+	describe('GET /v2/containerId', () => {
+		let getContainerIdStub: SinonStub;
+		beforeEach(() => {
+			getContainerIdStub = stub(actions, 'getContainerIds');
+		});
+		afterEach(() => {
+			getContainerIdStub.restore();
+		});
+
+		it('accepts query parameters if they are strings', async () => {
+			getContainerIdStub.resolves('test');
+			await request(api)
+				.get('/v2/containerId?serviceName=one')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+			expect(getContainerIdStub.firstCall.args[0]).to.equal('one');
+
+			await request(api)
+				.get('/v2/containerId?service=two')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+			expect(getContainerIdStub.secondCall.args[0]).to.equal('two');
+		});
+
+		it('ignores query parameters that are repeated', async () => {
+			getContainerIdStub.resolves('test');
+			await request(api)
+				.get('/v2/containerId?serviceName=one&serviceName=two')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+			expect(getContainerIdStub.firstCall.args[0]).to.equal('');
+
+			await request(api)
+				.get('/v2/containerId?service=one&service=two')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+			expect(getContainerIdStub.secondCall.args[0]).to.equal('');
+		});
+
+		it('responds with 200 and single containerId', async () => {
+			getContainerIdStub.resolves('test');
+			await request(api)
+				.get('/v2/containerId')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+		});
+
+		it('responds with 200 and multiple containerIds', async () => {
+			getContainerIdStub.resolves({ one: 'abc', two: 'def' });
+			await request(api)
+				.get('/v2/containerId')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, {
+					status: 'success',
+					services: { one: 'abc', two: 'def' },
+				});
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getContainerIdStub.throws(new Error());
+			await request(api)
+				.get('/v2/containerId')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
 });

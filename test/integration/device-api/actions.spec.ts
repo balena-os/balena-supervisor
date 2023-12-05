@@ -14,6 +14,7 @@ import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
 import * as applicationManager from '~/src/compose/application-manager';
 import { cleanupDocker } from '~/test-lib/docker-helper';
+import { createService } from '~/test-lib/state-helper';
 
 import { exec } from '~/lib/fs-utils';
 import * as journald from '~/lib/journald';
@@ -937,5 +938,57 @@ describe('spawns a journal process', () => {
 		};
 		await actions.getLogStream(opts);
 		expect(spawnJournalctlStub).to.have.been.calledOnceWith(opts);
+	});
+});
+
+describe('gets service container ids', () => {
+	// getAllServicesStub is tested in app manager tests
+	// so we can stub it here
+	let getAllServicesStub: SinonStub;
+	before(async () => {
+		getAllServicesStub = stub(applicationManager, 'getAllServices').resolves([
+			await createService(
+				{
+					serviceName: 'one',
+					appId: 1,
+				},
+				{ state: { containerId: 'abc' } },
+			),
+			await createService(
+				{
+					serviceName: 'two',
+					appId: 2,
+				},
+				{ state: { containerId: 'def' } },
+			),
+		]);
+	});
+	after(() => {
+		getAllServicesStub.restore();
+	});
+
+	it('gets all containerIds by default', async () => {
+		expect(await actions.getContainerIds()).to.deep.equal({
+			one: 'abc',
+			two: 'def',
+		});
+	});
+
+	it('gets a single containerId associated with provided service', async () => {
+		expect(await actions.getContainerIds('one')).to.deep.equal('abc');
+		expect(await actions.getContainerIds('two')).to.deep.equal('def');
+	});
+
+	it('errors if no containerId found associated with provided service', async () => {
+		try {
+			await actions.getContainerIds('three');
+			expect.fail(
+				'getContainerIds should throw for a nonexistent serviceName parameter',
+			);
+		} catch (e: unknown) {
+			expect((e as Error).message).to.equal(
+				"Could not find service with name 'three'",
+			);
+		}
 	});
 });

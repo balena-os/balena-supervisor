@@ -1050,3 +1050,9 @@ export async function removeOrphanedVolumes(
 
 	await volumeManager.removeOrphanedVolumes(referencedVolumes);
 }
+
+export async function getAllServices(
+	inScope: (id: number) => boolean = () => true,
+) {
+	return (await serviceManager.getAll()).filter((svc) => inScope(svc.appId));
+}

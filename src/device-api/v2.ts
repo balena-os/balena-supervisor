@@ -389,33 +389,38 @@ router.get('/v2/version', (_req, res, next) => {
 	}
 });
 
-router.get('/v2/containerId', async (req: AuthorizedRequest, res) => {
-	const services = (await serviceManager.getAll()).filter((service) =>
-		req.auth.isScoped({ apps: [service.appId] }),
-	);
-
-	if (req.query.serviceName != null || req.query.service != null) {
-		const serviceName = req.query.serviceName || req.query.service;
-		const service = _.find(services, (svc) => svc.serviceName === serviceName);
-		if (service != null) {
-			res.status(200).json({
+router.get('/v2/containerId', async (req: AuthorizedRequest, res, next) => {
+	try {
+		// While technically query parameters support entering a query multiple times
+		// as in ?service=foo&service=bar, we don't explicitly support this,
+		// so only pass the serviceName / service if it's a string
+		let serviceQuery: string = '';
+		const { serviceName, service } = req.query;
+		if (typeof serviceName === 'string' && !!serviceName) {
+			serviceQuery = serviceName;
+		}
+		if (typeof service === 'string' && !!service) {
+			serviceQuery = service;
+		}
+		const result = await actions.getContainerIds(
+			serviceQuery,
+			req.auth.isScoped,
+		);
+		// Single containerId
+		if (typeof result === 'string') {
+			return res.status(200).json({
 				status: 'success',
-				containerId: service.containerId,
+				containerId: result,
 			});
 		} else {
-			res.status(503).json({
-				status: 'failed',
-				message: 'Could not find service with that name',
+			// Multiple containerIds
+			return res.status(200).json({
+				status: 'success',
+				services: result,
 			});
 		}
-	} else {
-		res.status(200).json({
-			status: 'success',
-			services: _(services)
-				.keyBy('serviceName')
-				.mapValues('containerId')
-				.value(),
-		});
+	} catch (e: unknown) {
+		next(e);
 	}
 });
 

@@ -7,6 +7,7 @@ import * as serviceManager from '~/src/compose/service-manager';
 import Network from '~/src/compose/network';
 import * as networkManager from '~/src/compose/network-manager';
 import Volume from '~/src/compose/volume';
+import Service from '~/src/compose/service';
 import * as config from '~/src/config';
 import { createDockerImage } from '~/test-lib/docker-helper';
 import {
@@ -1598,6 +1599,54 @@ describe('compose/application-manager', () => {
 			);
 
 			expect(steps).to.have.lengthOf(0);
+		});
+	});
+
+	describe('getting all services', () => {
+		let getAllServices: sinon.SinonStub;
+		let testServices: Service[];
+		before(async () => {
+			testServices = [
+				await createService(
+					{
+						serviceName: 'one',
+						appId: 1,
+					},
+					{ state: { containerId: 'abc' } },
+				),
+				await createService(
+					{
+						serviceName: 'two',
+						appId: 2,
+					},
+					{ state: { containerId: 'def' } },
+				),
+			];
+			getAllServices = sinon
+				.stub(serviceManager, 'getAll')
+				.resolves(testServices);
+		});
+
+		after(() => {
+			getAllServices.restore();
+		});
+
+		it('should get all services by default', async () => {
+			expect(await applicationManager.getAllServices()).to.deep.equal(
+				testServices,
+			);
+		});
+
+		it('should get services scoped by appId', async () => {
+			expect(
+				await applicationManager.getAllServices((appId) => appId === 1),
+			).to.deep.equal([testServices[0]]);
+			expect(
+				await applicationManager.getAllServices((appId) => appId === 2),
+			).to.deep.equal([testServices[1]]);
+			expect(
+				await applicationManager.getAllServices((appId) => appId === 3),
+			).to.deep.equal([]);
 		});
 	});
 });

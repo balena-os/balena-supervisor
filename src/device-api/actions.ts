@@ -484,3 +484,37 @@ export const getLogStream = (opts: JournalctlOpts) => {
 export const getSupervisorVersion = () => {
 	return supervisorVersion;
 };
+
+/**
+ * Get the containerId(s) associated with a service.
+ * If no serviceName is provided, get all containerIds.
+ * Used by:
+ * - GET /v2/containerId
+ */
+export const getContainerIds = async (
+	serviceName: string = '',
+	withScope: AuthorizedRequest['auth']['isScoped'] = () => true,
+) => {
+	const services = await applicationManager.getAllServices((id) =>
+		withScope({ apps: [id] }),
+	);
+
+	// Return all containerIds if no serviceName is provided
+	if (!serviceName) {
+		return services.reduce(
+			(svcToContainerIdMap, svc) => ({
+				[svc.serviceName]: svc.containerId,
+				...svcToContainerIdMap,
+			}),
+			{},
+		);
+	}
+
+	// Otherwise, only return containerId of provided serviceNmae
+	const service = services.find((svc) => svc.serviceName === serviceName);
+	if (service != null) {
+		return service.containerId;
+	} else {
+		throw new Error(`Could not find service with name '${serviceName}'`);
+	}
+};
