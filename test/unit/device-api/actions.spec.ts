@@ -3,6 +3,7 @@ import { spy, useFakeTimers, stub, SinonStub } from 'sinon';
 
 import * as hostConfig from '~/src/host-config';
 import * as actions from '~/src/device-api/actions';
+import { supervisorVersion } from '~/lib/supervisor-version';
 import blink = require('~/lib/blink');
 
 describe('device-api/actions', () => {
@@ -65,6 +66,12 @@ describe('device-api/actions', () => {
 			};
 			hostConfigGet.resolves(conf);
 			expect(await actions.getHostConfig()).to.deep.equal(conf);
+		});
+	});
+
+	describe('gets Supervisor version', () => {
+		it('gets Supervisor version from package.json', () => {
+			expect(actions.getSupervisorVersion()).to.equal(supervisorVersion);
 		});
 	});
 });

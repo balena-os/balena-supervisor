@@ -13,7 +13,6 @@ import * as logger from '../logger';
 import * as images from '../compose/images';
 import * as serviceManager from '../compose/service-manager';
 import log from '../lib/supervisor-console';
-import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkString, checkTruthy } from '../lib/validation';
 import {
 	isNotFoundError,
@@ -378,11 +377,16 @@ router.get('/v2/local/logs', async (_req, res) => {
 	listenStream.pipe(res);
 });
 
-router.get('/v2/version', (_req, res) => {
-	res.status(200).json({
-		status: 'success',
-		version: supervisorVersion,
-	});
+router.get('/v2/version', (_req, res, next) => {
+	try {
+		const supervisorVersion = actions.getSupervisorVersion();
+		return res.status(200).json({
+			status: 'success',
+			version: supervisorVersion,
+		});
+	} catch (e: unknown) {
+		next(e);
+	}
 });
 
 router.get('/v2/containerId', async (req: AuthorizedRequest, res) => {

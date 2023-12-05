@@ -1,14 +1,13 @@
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
 
-import supervisorVersion = require('../lib/supervisor-version');
-
 import * as config from '.';
 import * as constants from '../lib/constants';
 import * as osRelease from '../lib/os-release';
 import * as macAddress from '../lib/mac-address';
 import * as hostUtils from '../lib/host-utils';
 import log from '../lib/supervisor-console';
+import { supervisorVersion } from '../lib/supervisor-version';
 
 export const fnSchema = {
 	version: () => {

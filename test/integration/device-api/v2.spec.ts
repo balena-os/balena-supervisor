@@ -13,6 +13,7 @@ import {
 	NotFoundError,
 	BadRequestError,
 } from '~/lib/errors';
+import { supervisorVersion } from '~/src/lib/supervisor-version';
 
 // All routes that require Authorization are integration tests due to
 // the api-key module relying on the database.
@@ -798,6 +799,32 @@ describe('device-api/v2', () => {
 			getLogStreamStub.throws(new Error());
 			await request(api)
 				.post('/v2/journal-logs')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('GET /v2/version', () => {
+		let getSupervisorVersionStub: SinonStub;
+		before(() => {
+			getSupervisorVersionStub = stub(actions, 'getSupervisorVersion');
+		});
+		after(() => {
+			getSupervisorVersionStub.restore();
+		});
+
+		it('responds with 200 and Supervisor version', async () => {
+			getSupervisorVersionStub.callThrough();
+			await request(api)
+				.get('/v2/version')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', version: supervisorVersion });
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getSupervisorVersionStub.throws(new Error());
+			await request(api)
+				.get('/v2/version')
 				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(503);
 		});

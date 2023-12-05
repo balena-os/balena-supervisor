@@ -28,6 +28,7 @@ import {
 	BadRequestError,
 } from '../lib/errors';
 import { JournalctlOpts, spawnJournalctl } from '../lib/journald';
+import { supervisorVersion } from '../lib/supervisor-version';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -473,4 +474,13 @@ export const cleanupVolumes = async (
  */
 export const getLogStream = (opts: JournalctlOpts) => {
 	return spawnJournalctl(opts);
+};
+
+/**
+ * Get version of running Supervisor
+ * Used by:
+ * - GET /v2/version
+ */
+export const getSupervisorVersion = () => {
+	return supervisorVersion;
 };
