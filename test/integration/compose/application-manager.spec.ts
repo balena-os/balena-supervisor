@@ -661,6 +661,57 @@ describe('compose/application-manager', () => {
 		).to.have.lengthOf(1);
 	});
 
+	it('should test', async () => {
+		const targetApps = createApps(
+			{
+				services: [
+					await createService({
+						image: 'image-one',
+						serviceName: 'one',
+						commit: 'new-release',
+					}),
+					await createService({
+						image: 'image-new',
+						serviceName: 'new',
+						commit: 'new-release',
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+			},
+			true,
+		);
+		const { currentApps, availableImages, downloading, containerIdsByAppId } =
+			createCurrentState({
+				services: [
+					await createService({
+						image: 'image-one',
+						serviceName: 'one',
+						commit: 'old-release',
+					}),
+				],
+				networks: [DEFAULT_NETWORK],
+				images: [
+					createImage({
+						name: 'image-one',
+						serviceName: 'one',
+						commit: 'old-release',
+					}),
+				],
+			});
+
+		const steps = await applicationManager.inferNextSteps(
+			currentApps,
+			targetApps,
+			{
+				downloading,
+				availableImages,
+				containerIdsByAppId,
+			},
+		);
+
+		console.log({ steps });
+	});
+
 	it('should not remove an app volumes when they are no longer referenced', async () => {
 		const targetApps = createApps({ networks: [DEFAULT_NETWORK] }, true);
 		const { currentApps, availableImages, downloading, containerIdsByAppId } =
