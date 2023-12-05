@@ -12,7 +12,6 @@ import * as db from '../db';
 import * as logger from '../logger';
 import * as images from '../compose/images';
 import * as serviceManager from '../compose/service-manager';
-import { spawnJournalctl } from '../lib/journald';
 import log from '../lib/supervisor-console';
 import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkString, checkTruthy } from '../lib/validation';
@@ -533,34 +532,31 @@ router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res, next) => {
 	}
 });
 
-router.post('/v2/journal-logs', (req, res) => {
-	const all = checkTruthy(req.body.all);
-	const follow = checkTruthy(req.body.follow);
-	const count = checkInt(req.body.count, { positive: true }) || undefined;
-	const unit = req.body.unit;
-	const format = req.body.format || 'short';
-	const containerId = req.body.containerId;
-	const since = req.body.since;
-	const until = req.body.until;
+router.post('/v2/journal-logs', (req, res, next) => {
+	try {
+		const opts = {
+			all: checkTruthy(req.body.all),
+			follow: checkTruthy(req.body.follow),
+			count: checkInt(req.body.count, { positive: true }),
+			unit: req.body.unit,
+			format: req.body.format,
+			containerId: req.body.containerId,
+			since: req.body.since,
+			until: req.body.until,
+		};
 
-	const journald = spawnJournalctl({
-		all,
-		follow,
-		count,
-		unit,
-		format,
-		containerId,
-		since,
-		until,
-	});
-	res.status(200);
-	// We know stdout will be present
-	journald.stdout!.pipe(res);
-	res.on('close', () => {
-		journald.kill('SIGKILL');
-	});
-	journald.on('exit', () => {
-		journald.stdout!.unpipe();
-		res.end();
-	});
+		const journalProcess = actions.getLogStream(opts);
+		res.status(200);
+
+		journalProcess.stdout.pipe(res);
+		res.on('close', () => {
+			journalProcess.kill('SIGKILL');
+		});
+		journalProcess.on('exit', () => {
+			journalProcess.stdout.unpipe();
+			res.end();
+		});
+	} catch (e: unknown) {
+		next(e);
+	}
 });

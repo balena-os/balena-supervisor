@@ -15,7 +15,8 @@ import * as TargetState from '~/src/device-state/target-state';
 import * as applicationManager from '~/src/compose/application-manager';
 import { cleanupDocker } from '~/test-lib/docker-helper';
 
-import { exec } from '~/src/lib/fs-utils';
+import { exec } from '~/lib/fs-utils';
+import * as journald from '~/lib/journald';
 
 export async function dbusSend(
 	dest: string,
@@ -908,5 +909,33 @@ describe('cleans up orphaned volumes', () => {
 	it('cleans up orphaned volumes through application-manager', async () => {
 		await actions.cleanupVolumes();
 		expect(removeOrphanedVolumes).to.have.been.calledOnce;
+	});
+});
+
+describe('spawns a journal process', () => {
+	// This action simply calls spawnJournalctl which we test in
+	// journald.spec.ts, so we can just stub it here
+	let spawnJournalctlStub: SinonStub;
+	before(() => {
+		spawnJournalctlStub = stub(journald, 'spawnJournalctl');
+	});
+	after(() => {
+		spawnJournalctlStub.restore();
+	});
+
+	it('spawns a journal process through journald', async () => {
+		const opts = {
+			all: true,
+			follow: true,
+			unit: 'test-unit',
+			containerId: 'test-container-id',
+			count: 10,
+			since: '2019-01-01 00:00:00',
+			until: '2019-01-01 01:00:00',
+			format: 'json',
+			matches: '_SYSTEMD_UNIT=test-unit',
+		};
+		await actions.getLogStream(opts);
+		expect(spawnJournalctlStub).to.have.been.calledOnceWith(opts);
 	});
 });

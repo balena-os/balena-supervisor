@@ -769,4 +769,37 @@ describe('device-api/v2', () => {
 				.expect(503);
 		});
 	});
+
+	describe('POST /v2/journal-logs', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getLogStreamStub: SinonStub;
+		before(() => {
+			getLogStreamStub = stub(actions, 'getLogStream');
+		});
+		after(() => {
+			getLogStreamStub.restore();
+		});
+
+		it('responds with 200 and pipes journal stdout to response', async () => {
+			getLogStreamStub.callThrough();
+
+			await request(api)
+				.post('/v2/journal-logs')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(({ text }) => {
+					// journalctl in the sut service should be empty
+					// as we don't log to it during testing
+					expect(text).to.equal('-- No entries --\n');
+				});
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getLogStreamStub.throws(new Error());
+			await request(api)
+				.post('/v2/journal-logs')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
 });

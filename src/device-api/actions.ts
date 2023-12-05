@@ -27,6 +27,7 @@ import {
 	NotFoundError,
 	BadRequestError,
 } from '../lib/errors';
+import { JournalctlOpts, spawnJournalctl } from '../lib/journald';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -463,4 +464,13 @@ export const cleanupVolumes = async (
 	await applicationManager.removeOrphanedVolumes((id) =>
 		withScope({ apps: [id] }),
 	);
+};
+
+/**
+ * Spawn a journalctl process with the given options
+ * Used by:
+ * - POST /v2/journal-logs
+ */
+export const getLogStream = (opts: JournalctlOpts) => {
+	return spawnJournalctl(opts);
 };
