@@ -896,4 +896,39 @@ describe('device-api/v2', () => {
 				.expect(503);
 		});
 	});
+
+	describe('GET /v2/local/device-info', () => {
+		let getDeviceInfoStub: SinonStub;
+		beforeEach(() => {
+			getDeviceInfoStub = stub(actions, 'getDeviceInfo');
+		});
+		afterEach(() => {
+			getDeviceInfoStub.restore();
+		});
+
+		it('responds with 200 and device info', async () => {
+			getDeviceInfoStub.resolves({
+				deviceArch: 'aarch64',
+				deviceType: 'raspberrypi4-64',
+			});
+			await request(api)
+				.get('/v2/local/device-info')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, {
+					status: 'success',
+					info: {
+						arch: 'aarch64',
+						deviceType: 'raspberrypi4-64',
+					},
+				});
+		});
+
+		it('responds with 500 if an error occurred', async () => {
+			getDeviceInfoStub.throws(new Error());
+			await request(api)
+				.get('/v2/local/device-info')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(500);
+		});
+	});
 });

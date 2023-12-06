@@ -518,3 +518,12 @@ export const getContainerIds = async (
 		throw new Error(`Could not find service with name '${serviceName}'`);
 	}
 };
+
+/**
+ * Get device type & arch
+ * Used by:
+ * - GET /v2/local/device-info
+ */
+export const getDeviceInfo = async () => {
+	return await config.getMany(['deviceType', 'deviceArch']);
+};

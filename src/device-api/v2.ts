@@ -330,10 +330,7 @@ router.post('/v2/local/target-state', async (req, res) => {
 
 router.get('/v2/local/device-info', async (_req, res) => {
 	try {
-		const { deviceType, deviceArch } = await config.getMany([
-			'deviceType',
-			'deviceArch',
-		]);
+		const { deviceType, deviceArch } = await actions.getDeviceInfo();
 
 		return res.status(200).json({
 			status: 'success',
@@ -342,10 +339,10 @@ router.get('/v2/local/device-info', async (_req, res) => {
 				deviceType,
 			},
 		});
-	} catch (e: any) {
-		res.status(500).json({
+	} catch (e: unknown) {
+		return res.status(500).json({
 			status: 'failed',
-			message: e.message,
+			message: (e as Error).message ?? e,
 		});
 	}
 });

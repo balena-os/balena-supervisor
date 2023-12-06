@@ -992,3 +992,25 @@ describe('gets service container ids', () => {
 		}
 	});
 });
+
+describe('gets device type and arch', () => {
+	let configGetManyStub: SinonStub;
+	before(() => {
+		// @ts-expect-error
+		configGetManyStub = stub(config, 'getMany').resolves({
+			deviceType: 'test-type',
+			deviceArch: 'test-arch',
+		});
+	});
+
+	after(() => {
+		configGetManyStub.restore();
+	});
+
+	it('returns device type and arch', async () => {
+		expect(await actions.getDeviceInfo()).to.deep.equal({
+			deviceType: 'test-type',
+			deviceArch: 'test-arch',
+		});
+	});
+});
