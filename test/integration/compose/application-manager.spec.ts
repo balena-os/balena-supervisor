@@ -15,6 +15,8 @@ import {
 	createApps,
 	createCurrentState,
 	DEFAULT_NETWORK,
+	expectSteps,
+	expectNoStep,
 } from '~/test-lib/state-helper';
 import { InstancedAppState } from '~/src/types';
 
@@ -325,6 +327,458 @@ describe('compose/application-manager', () => {
 		expect(removeImage)
 			.to.have.property('image')
 			.that.deep.includes({ name: 'image-old' });
+	});
+
+	// These cases test whether the Supervisor handles multi-container updates
+	// on a per-app basis rather than a per-service while also respecting update strategies.
+	describe('update strategy compliance for multi-container apps', () => {
+		const createCurrentAndTargetServicesWithLabels = async (labels: {
+			[key: string]: string;
+		}) => {
+			const currentServices = [
+				await createService({
+					image: 'image-main',
+					labels,
+					appId: 1,
+					serviceName: 'main',
+					commit: 'old-release',
+					releaseId: 1,
+				}),
+				await createService({
+					image: 'image-old',
+					labels,
+					appId: 1,
+					serviceName: 'old',
+					commit: 'old-release',
+					releaseId: 1,
+				}),
+			];
+			const targetServices = [
+				await createService({
+					image: 'image-main',
+					labels,
+					appId: 1,
+					serviceName: 'main',
+					commit: 'new-release',
+					releaseId: 2,
+				}),
+				await createService({
+					image: 'image-new',
+					labels,
+					appId: 1,
+					serviceName: 'new',
+					commit: 'new-release',
+					releaseId: 2,
+				}),
+			];
+			return { currentServices, targetServices };
+		};
+
+		it('should not infer a kill step for current service A before target service B download finishes with download-then-kill', async () => {
+			const labels = {
+				'io.balena.update.strategy': 'download-then-kill',
+			};
+			const { currentServices, targetServices } =
+				await createCurrentAndTargetServicesWithLabels(labels);
+
+			/**
+			 * Before target image finishes downloading, do not infer kill step
+			 */
+			let targetApps = createApps(
+				{
+					services: targetServices,
+				},
+				true,
+			);
+			const c1 = createCurrentState({
+				services: currentServices,
+				networks: [DEFAULT_NETWORK],
+				downloading: ['image-new'],
+			});
+			const steps = await applicationManager.inferNextSteps(
+				c1.currentApps,
+				targetApps,
+				{
+					downloading: c1.downloading,
+					availableImages: c1.availableImages,
+					containerIdsByAppId: c1.containerIdsByAppId,
+				},
+			);
+			// There should be two noop steps, one for target service which is still downloading,
+			// and one for current service which is waiting on target download to complete.
+			expectSteps('noop', steps, 2);
+			// No kill step yet
+			expectNoStep('kill', steps);
+
+			/**
+			 * After target image finishes downloading, infer a kill step
+			 */
+			targetApps = createApps(
+				{
+					services: targetServices,
+				},
+				true,
+			);
+			const { currentApps, availableImages, downloading, containerIdsByAppId } =
+				createCurrentState({
+					services: currentServices,
+					networks: [DEFAULT_NETWORK],
+					images: [
+						// Both images have been downloaded or had their metadata updated
+						createImage({
+							name: 'image-main',
+							appId: 1,
+							serviceName: 'main',
+							commit: 'new-release',
+							releaseId: 2,
+						}),
+						createImage({
+							name: 'image-new',
+							appId: 1,
+							serviceName: 'new',
+							commit: 'new-release',
+							releaseId: 2,
+						}),
+					],
+				});
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading,
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			// Service `old` is safe to kill after download for `new` has completed
+			const [killStep] = expectSteps('kill', steps2, 1);
+			expect(killStep)
+				.to.have.property('current')
+				.that.deep.includes({ serviceName: 'old' });
+			// Service `new` in target release should be started as download has completed
+			const [startStep] = expectSteps('start', steps2, 1);
+			expect(startStep)
+				.to.have.property('target')
+				.that.deep.includes({ serviceName: 'new' });
+			// No noop steps
+			expectNoStep('noop', steps2);
+		});
+
+		it('should infer a fetch step for target service B together with current service A kill with kill-then-download', async () => {
+			const labels = {
+				'io.balena.update.strategy': 'kill-then-download',
+			};
+			const { currentServices, targetServices } =
+				await createCurrentAndTargetServicesWithLabels(labels);
+			const targetApps = createApps(
+				{
+					services: targetServices,
+				},
+				true,
+			);
+
+			/**
+			 * Infer fetch step for new target service together with kill & updateMetadata steps for current services
+			 */
+			const c1 = createCurrentState({
+				services: currentServices,
+				networks: [DEFAULT_NETWORK],
+			});
+			const steps = await applicationManager.inferNextSteps(
+				c1.currentApps,
+				targetApps,
+				{
+					downloading: c1.downloading,
+					// Simulate old images already removed from image table
+					// to avoid removeImage steps
+					availableImages: [],
+					containerIdsByAppId: c1.containerIdsByAppId,
+				},
+			);
+			// Service `new` should be fetched
+			const [fetchStep] = expectSteps('fetch', steps, 1);
+			expect(fetchStep).to.have.property('serviceName').that.equals('new');
+			// Service `old` should be killed
+			const [killStep] = expectSteps('kill', steps, 1);
+			expect(killStep)
+				.to.have.property('current')
+				.that.deep.includes({ serviceName: 'old' });
+			// Service `main` should have its metadata updated
+			const [updateMetadataStep] = expectSteps('updateMetadata', steps, 1);
+			expect(updateMetadataStep)
+				.to.have.property('target')
+				.that.deep.includes({ serviceName: 'main' });
+
+			/**
+			 * Noop while target image is downloading
+			 */
+			const c2 = createCurrentState({
+				// Simulate `kill` and `updateMetadata` steps already executed
+				services: currentServices
+					.filter(({ serviceName }) => serviceName !== 'old')
+					.map((svc) => {
+						svc.releaseId = 2;
+						svc.commit = 'new-release';
+						return svc;
+					}),
+				networks: [DEFAULT_NETWORK],
+			});
+			const steps2 = await applicationManager.inferNextSteps(
+				c2.currentApps,
+				targetApps,
+				{
+					downloading: ['image-new'],
+					availableImages: c2.availableImages,
+					containerIdsByAppId: c2.containerIdsByAppId,
+				},
+			);
+			// Noop while service `new` is downloading
+			expectSteps('noop', steps2, 1);
+			// No start step should be generated until fetch completes
+			expectNoStep('start', steps2);
+			// No other steps
+			expect(steps2).to.have.length(1);
+
+			/**
+			 * Infer start step only after download completes
+			 */
+			const steps3 = await applicationManager.inferNextSteps(
+				c2.currentApps,
+				targetApps,
+				{
+					downloading: c1.downloading,
+					// Both images have been downloaded or had their metadata updated
+					availableImages: [
+						createImage({
+							name: 'image-main',
+							appId: 1,
+							serviceName: 'main',
+							commit: 'new-release',
+							releaseId: 2,
+						}),
+						createImage({
+							name: 'image-new',
+							appId: 1,
+							serviceName: 'new',
+							commit: 'new-release',
+							releaseId: 2,
+						}),
+					],
+					containerIdsByAppId: c1.containerIdsByAppId,
+				},
+			);
+			// Service `new` should be started
+			const [startStep] = expectSteps('start', steps3, 1);
+			expect(startStep)
+				.to.have.property('target')
+				.that.deep.includes({ serviceName: 'new' });
+			// No other steps
+			expect(steps3).to.have.length(1);
+		});
+
+		it('should infer a fetch step for target service B together with current service A removal with delete-then-download', async () => {
+			const labels = {
+				'io.balena.update.strategy': 'delete-then-download',
+			};
+			const { currentServices, targetServices } =
+				await createCurrentAndTargetServicesWithLabels(labels);
+			const targetApps = createApps(
+				{
+					services: targetServices,
+				},
+				true,
+			);
+
+			/**
+			 * Infer fetch step for new target service together with kill & updateMetadata steps for current services
+			 */
+			const c1 = createCurrentState({
+				services: currentServices,
+				networks: [DEFAULT_NETWORK],
+			});
+			const steps = await applicationManager.inferNextSteps(
+				c1.currentApps,
+				targetApps,
+				{
+					downloading: c1.downloading,
+					// Simulate old images already removed from image table
+					// to avoid removeImage steps
+					availableImages: [],
+					containerIdsByAppId: c1.containerIdsByAppId,
+				},
+			);
+			// Service `new` should be fetched
+			const [fetchStep] = expectSteps('fetch', steps, 1);
+			expect(fetchStep).to.have.property('serviceName').that.equals('new');
+			// Service `old` should be killed
+			const [killStep] = expectSteps('kill', steps, 1);
+			expect(killStep)
+				.to.have.property('current')
+				.that.deep.includes({ serviceName: 'old' });
+			// Service `main` should have its metadata updated
+			const [updateMetadataStep] = expectSteps('updateMetadata', steps, 1);
+			expect(updateMetadataStep)
+				.to.have.property('target')
+				.that.deep.includes({ serviceName: 'main' });
+
+			/**
+			 * Noop while target image is downloading
+			 */
+			const c2 = createCurrentState({
+				// Simulate `kill` and `updateMetadata` steps already executed
+				services: currentServices
+					.filter(({ serviceName }) => serviceName !== 'old')
+					.map((svc) => {
+						svc.releaseId = 2;
+						svc.commit = 'new-release';
+						return svc;
+					}),
+				networks: [DEFAULT_NETWORK],
+			});
+			const steps2 = await applicationManager.inferNextSteps(
+				c2.currentApps,
+				targetApps,
+				{
+					downloading: ['image-new'],
+					availableImages: c2.availableImages,
+					containerIdsByAppId: c2.containerIdsByAppId,
+				},
+			);
+			// Noop while service `new` is downloading
+			expectSteps('noop', steps2, 1);
+			// No start step should be generated until fetch completes
+			expectNoStep('start', steps2);
+			// No other steps
+			expect(steps2).to.have.length(1);
+
+			/**
+			 * Infer start step only after download completes
+			 */
+			const steps3 = await applicationManager.inferNextSteps(
+				c2.currentApps,
+				targetApps,
+				{
+					downloading: c1.downloading,
+					// Both images have been downloaded or had their metadata updated
+					availableImages: [
+						createImage({
+							name: 'image-main',
+							appId: 1,
+							serviceName: 'main',
+							commit: 'new-release',
+							releaseId: 2,
+						}),
+						createImage({
+							name: 'image-new',
+							appId: 1,
+							serviceName: 'new',
+							commit: 'new-release',
+							releaseId: 2,
+						}),
+					],
+					containerIdsByAppId: c1.containerIdsByAppId,
+				},
+			);
+			// Service `new` should be started
+			const [startStep] = expectSteps('start', steps3, 1);
+			expect(startStep)
+				.to.have.property('target')
+				.that.deep.includes({ serviceName: 'new' });
+			// No other steps
+			expect(steps3).to.have.length(1);
+		});
+
+		it('should not start target services until all downloads have completed with kill|delete-then-download', async () => {
+			const targetServices = [
+				await createService({
+					serviceName: 'one',
+					image: 'image-one',
+					labels: {
+						'io.balena.update.strategy': 'kill-then-download',
+					},
+				}),
+				await createService({
+					serviceName: 'two',
+					image: 'image-two',
+					labels: {
+						'io.balena.update.strategy': 'delete-then-download',
+					},
+				}),
+			];
+			const targetApps = createApps(
+				{
+					services: targetServices,
+				},
+				true,
+			);
+			const { currentApps, availableImages, containerIdsByAppId } =
+				createCurrentState({
+					services: [],
+					networks: [DEFAULT_NETWORK],
+				});
+
+			/**
+			 * Noop while both images are still downloading
+			 */
+			const steps = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading: ['image-one', 'image-two'],
+					availableImages,
+					containerIdsByAppId,
+				},
+			);
+			expectSteps('noop', steps, 2);
+			// No other steps
+			expect(steps).to.have.length(2);
+
+			/**
+			 * Noop while one image is still downloading
+			 */
+			const steps2 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading: ['image-two'],
+					availableImages: [
+						createImage({
+							name: 'image-one',
+							serviceName: 'one',
+						}),
+					],
+					containerIdsByAppId,
+				},
+			);
+			expectSteps('noop', steps2, 1);
+			// No other steps
+			expect(steps2).to.have.length(1);
+
+			/**
+			 * Only start target services after both images downloaded
+			 */
+			const steps3 = await applicationManager.inferNextSteps(
+				currentApps,
+				targetApps,
+				{
+					downloading: [],
+					availableImages: [
+						createImage({
+							name: 'image-one',
+							serviceName: 'one',
+						}),
+						createImage({
+							name: 'image-two',
+							serviceName: 'two',
+						}),
+					],
+					containerIdsByAppId,
+				},
+			);
+			expectSteps('start', steps3, 2);
+			// No other steps
+			expect(steps3).to.have.length(2);
+		});
 	});
 
 	it('does not infer to kill a service with default strategy if a dependency is not downloaded', async () => {
