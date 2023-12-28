@@ -119,11 +119,24 @@ async function mdnsLookup(
 			return lookup(name, { verbatim: true }, opts);
 		}
 
-		if (name && name.endsWith('.local')) {
-			return mdnsLookup(name, opts, cb);
-		}
+		// Try a regular dns lookup first
+		return lookup(
+			name,
+			Object.assign({ verbatim: true }, opts),
+			(error: any, address: string, family: number) => {
+				if (error == null) {
+					return cb(null, address, family);
+				}
 
-		return lookup(name, Object.assign({ verbatim: true }, opts), cb);
+				// If the regular lookup fails, we perform a mdns lookup if the
+				// name ends with .local
+				if (name && name.endsWith('.local')) {
+					return mdnsLookup(name, opts, cb);
+				}
+
+				return cb(error);
+			},
+		);
 	};
 })();
 
