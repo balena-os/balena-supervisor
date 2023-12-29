@@ -829,7 +829,7 @@ This endpoint can also take an extra optional boolean, `force`, which if true in
 Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
 `imageId` added in v8.2.2.
 
-Temporarily stops a serivce. Rebooting the device or supervisor will cause the container to start again. The container is not removed with this endpoint.
+Temporarily stops a service. Rebooting the device or supervisor will cause the container to start again. The container is not removed with this endpoint.
 
 From an app container:
 ```bash
@@ -851,7 +851,7 @@ This endpoint can also take an extra optional boolean, `force`, which if true in
 Added in supervisor version v7.0.0. Support for passing `serviceName` instead of
 `imageId` added in v8.2.2.
 
-Use this endpoint to start a service in the fleet with fleet id passed in with the url.
+Use this endpoint to start a service in the device.
 
 From an app container:
 ```bash
