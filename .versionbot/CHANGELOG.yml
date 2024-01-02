@@ -1,4 +1,20 @@
 - commits:
+    - subject: "docs: api: start-service: specify this endpoint affects the device"
+      hash: 096fdbc74ab4ca9a58603eec5774435ff07bedb1
+      body: |
+        The description incorrectly states the endpoint would start a service
+        in the whole fleet while it only affects the device.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+      nested: []
+  version: 15.1.1
+  title: ""
+  date: 2024-01-02T18:35:24.583Z
+- commits:
     - subject: Force remove container if updateMetadata fails
       hash: 3ea8d4727a4f4b068b308d1f407b7cf0dae2733b
       body: |
