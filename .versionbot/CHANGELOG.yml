@@ -1,4 +1,32 @@
 - commits:
+    - subject: Try MDNS lookup only if regular DNS lookup fails
+      hash: dec39a35d40532a82ac2f2bbcaa2c179b67d3d4a
+      body: >
+        This is meant to allow users to configure their device to
+
+        resolve `.local` queries via dnsmasq by modifying config.json, e.g. `dnsServers":
+
+        "/bob.local/172.17.0.33`.
+
+
+        This would fail before as MDNS lookups would always come first
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+    - subject: Refactor mdns lookup code in app entry
+      hash: 7a39da92b7bb1537a6df3dec6ad665d35e891bcc
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 15.2.0
+  title: ""
+  date: 2024-01-08T13:25:37.100Z
+- commits:
     - subject: "docs: api: start-service: specify this endpoint affects the device"
       hash: 096fdbc74ab4ca9a58603eec5774435ff07bedb1
       body: |
