@@ -292,7 +292,7 @@ export class App {
 	private compareServices(
 		current: Service[],
 		target: Service[],
-		containerIds: Dictionary<string>,
+		containerIds: UpdateState['containerIds'],
 	): {
 		installPairs: Array<ChangingPair<Service>>;
 		removePairs: Array<ChangingPair<Service>>;
@@ -496,14 +496,11 @@ export class App {
 	private generateStepsForService(
 		{ current, target }: ChangingPair<Service>,
 		context: {
-			availableImages: Image[];
-			downloading: string[];
 			targetApp: App;
-			containerIds: Dictionary<string>;
 			networkPairs: Array<ChangingPair<Network>>;
 			volumePairs: Array<ChangingPair<Volume>>;
 			servicePairs: Array<ChangingPair<Service>>;
-		},
+		} & UpdateState,
 	): Nullable<CompositionStep> {
 		if (current?.status === 'Stopping') {
 			// There's a kill step happening already, emit a noop to ensure
@@ -664,7 +661,7 @@ export class App {
 		target: Service,
 		targetApp: App,
 		needsDownload: boolean,
-		availableImages: Image[],
+		availableImages: UpdateState['availableImages'],
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
@@ -728,7 +725,7 @@ export class App {
 	private dependenciesMetForServiceStart(
 		target: Service,
 		targetApp: App,
-		availableImages: Image[],
+		availableImages: UpdateState['availableImages'],
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
@@ -785,14 +782,14 @@ export class App {
 	// block the killing too much, potentially causing a deadlock)
 	private dependenciesMetForServiceKill(
 		targetApp: App,
-		availableImages: Image[],
+		availableImages: UpdateState['availableImages'],
 	) {
 		return this.targetImagesReady(targetApp.services, availableImages);
 	}
 
 	private targetImagesReady(
 		targetServices: Service[],
-		availableImages: Image[],
+		availableImages: UpdateState['availableImages'],
 	) {
 		return targetServices.every((service) =>
 			availableImages.some(
