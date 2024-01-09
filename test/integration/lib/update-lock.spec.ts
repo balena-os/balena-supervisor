@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { testfs } from 'mocha-pod';
+import type { TestFs } from 'mocha-pod';
 
 import * as updateLock from '~/lib/update-lock';
 import { UpdatesLockedError } from '~/lib/errors';
@@ -279,6 +280,77 @@ describe('lib/update-lock', () => {
 				false,
 				'using lockOverride gave lock ownership to the callback, so they should now be deleted',
 			);
+		});
+	});
+
+	describe('getServicesLockedByAppId', () => {
+		const validPaths = [
+			'/tmp/123/one/updates.lock',
+			'/tmp/123/two/updates.lock',
+			'/tmp/123/three/updates.lock',
+			'/tmp/balena-supervisor/services/456/server/updates.lock',
+			'/tmp/balena-supervisor/services/456/client/updates.lock',
+			'/tmp/balena-supervisor/services/789/main/resin-updates.lock',
+		];
+		const invalidPaths = [
+			'/tmp/balena-supervisor/services/456/updates.lock',
+			'/tmp/balena-supervisor/services/server/updates.lock',
+			'/tmp/test/updates.lock',
+		];
+		let tFs: TestFs.Enabled;
+		beforeEach(async () => {
+			tFs = await testfs({ '/tmp': {} }).enable();
+			// TODO: mocha-pod should support empty directories
+			await Promise.all(
+				validPaths
+					.concat(invalidPaths)
+					.map((p) => fs.mkdir(path.dirname(p), { recursive: true })),
+			);
+		});
+		afterEach(async () => {
+			await Promise.all(
+				validPaths
+					.concat(invalidPaths)
+					.map((p) => fs.rm(path.dirname(p), { recursive: true })),
+			);
+			await tFs.restore();
+		});
+
+		it('should return locks taken by appId', async () => {
+			// Set up lockfiles
+			await Promise.all(
+				validPaths.map((p) => lockfile.lock(p, updateLock.LOCKFILE_UID)),
+			);
+
+			const locksTakenMap = updateLock.getServicesLockedByAppId();
+			expect([...locksTakenMap.keys()]).to.deep.include.members([
+				123, 456, 789,
+			]);
+			// Should register as locked if only `updates.lock` is present
+			expect(locksTakenMap.getServices(123)).to.deep.include.members([
+				'one',
+				'two',
+				'three',
+			]);
+			expect(locksTakenMap.getServices(456)).to.deep.include.members([
+				'server',
+				'client',
+			]);
+			// Should register as locked if only `resin-updates.lock` is present
+			expect(locksTakenMap.getServices(789)).to.deep.include.members(['main']);
+
+			// Cleanup lockfiles
+			await Promise.all(validPaths.map((p) => lockfile.unlock(p)));
+		});
+
+		it('should ignore invalid lockfile locations', async () => {
+			// Set up lockfiles
+			await Promise.all(invalidPaths.map((p) => lockfile.lock(p)));
+
+			expect(updateLock.getServicesLockedByAppId().size).to.equal(0);
+
+			// Cleanup lockfiles
+			await Promise.all(invalidPaths.map((p) => lockfile.unlock(p)));
 		});
 	});
 });

@@ -12,7 +12,7 @@ import {
 import { pathOnRoot, pathExistsOnState } from './host-utils';
 import * as config from '../config';
 import * as lockfile from './lockfile';
-import { NumericIdentifier } from '../types';
+import { NumericIdentifier, StringIdentifier, DockerName } from '../types';
 
 const decodedUid = NumericIdentifier.decode(process.env.LOCKFILE_UID);
 export const LOCKFILE_UID = isRight(decodedUid) ? decodedUid.right : 65534;
@@ -65,7 +65,7 @@ export const readLock: LockFn = Bluebird.promisify(locker.async.readLock, {
 	context: locker,
 });
 
-// Unlock all lockfiles, optionally of an appId | appUuid, then release resources.
+// Unlock all lockfiles of an appId | appUuid, then release resources.
 async function dispose(
 	appIdentifier: string | number,
 	release: () => void,
@@ -80,6 +80,83 @@ async function dispose(
 		// Release final resource
 		release();
 	}
+}
+
+/**
+ * Given a lockfile path `p`, return a tuple [appId, serviceName] of that path.
+ * Paths are assumed to end in the format /:appId/:serviceName/(resin-)updates.lock.
+ */
+function getIdentifiersFromPath(p: string) {
+	const parts = p.split('/');
+	if (parts.pop()?.match(/updates\.lock/) === null) {
+		return [];
+	}
+	const serviceName = parts.pop();
+	const appId = parts.pop();
+	return [appId, serviceName];
+}
+
+type LockedEntity = { appId: number; services: string[] };
+
+/**
+ * A map of locked services by appId.
+ * Exported for tests only; getServicesLockedByAppId is the public generator interface.
+ */
+export class LocksTakenMap extends Map<number, Set<string>> {
+	constructor(lockedEntities: LockedEntity[] = []) {
+		// Construct a Map<number, Set<string>> from user-friendly input args
+		super(
+			lockedEntities.map(({ appId, services }) => [appId, new Set(services)]),
+		);
+	}
+
+	// Add one or more locked services to an appId
+	public add(appId: number, services: string | string[]): void {
+		if (typeof services === 'string') {
+			services = [services];
+		}
+		if (this.has(appId)) {
+			const lockedSvcs = this.get(appId)!;
+			services.forEach((s) => lockedSvcs.add(s));
+		} else {
+			this.set(appId, new Set(services));
+		}
+	}
+
+	/**
+	 * @private Use this.getServices instead as there is no need to return
+	 * a mutable reference to the internal Set data structure.
+	 */
+	public get(appId: number): Set<string> | undefined {
+		return super.get(appId);
+	}
+
+	// Return an array copy of locked services under an appId
+	public getServices(appId: number): string[] {
+		return this.has(appId) ? Array.from(this.get(appId)!) : [];
+	}
+
+	// Return whether a service is locked under an appId
+	public isLocked(appId: number, service: string): boolean {
+		return this.has(appId) && this.get(appId)!.has(service);
+	}
+}
+
+/**
+ * Return a list of services that are locked by the Supervisor under each appId.
+ */
+export function getServicesLockedByAppId(): LocksTakenMap {
+	const locksTaken = lockfile.getLocksTaken();
+	const servicesByAppId = new LocksTakenMap();
+	for (const lockTakenPath of locksTaken) {
+		const [appId, serviceName] = getIdentifiersFromPath(lockTakenPath);
+		if (!StringIdentifier.is(appId) || !DockerName.is(serviceName)) {
+			continue;
+		}
+		const numAppId = +appId;
+		servicesByAppId.add(numAppId, serviceName);
+	}
+	return servicesByAppId;
 }
 
 /**
