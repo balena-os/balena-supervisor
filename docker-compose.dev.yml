@@ -1,6 +1,17 @@
 version: '2.3'
 
 services:
+  balena-supervisor-sut:
+    build:
+      context: ./
+      dockerfile: Dockerfile.template
+      target: test
+      args:
+        ARCH: ${ARCH:-amd64}
+    environment:
+      LIVEPUSH: '1'
+    volumes:
+      - './src:/usr/src/app/src'
   sut:
     command: sleep infinity
     volumes:
