@@ -21,8 +21,8 @@ describe('lib/docker-utils', () => {
 					Driver: 'default',
 					Config: [
 						{
-							Gateway: '10.0.105.1',
-							Subnet: '10.0.105.0/16',
+							Gateway: '10.105.0.1',
+							Subnet: '10.105.0.0/16',
 						},
 					],
 				},
@@ -36,7 +36,7 @@ describe('lib/docker-utils', () => {
 		// test using existing data...
 		it('should return the correct gateway address for supervisor0', async () => {
 			const gateway = await dockerUtils.getNetworkGateway('supervisor0');
-			expect(gateway).to.equal('10.0.105.1');
+			expect(gateway).to.equal('10.105.0.1');
 		});
 
 		it('should return the correct gateway address for host', async () => {
