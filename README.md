@@ -39,7 +39,6 @@ Here's a few guidelines to make the process easier for everyone involved.
 - Commits should be squashed as much as makes sense.
 - Commits should be signed-off (`git commit -s`)
 
-
 ## Developing the supervisor
 
 ### Requirements
@@ -64,9 +63,9 @@ npm ci
 
 We explicitly use `npm ci` over `npm install` to ensure the correct package versions are installed. More documentation for this can be found [here](https://docs.npmjs.com/cli/ci) on the npm cli docs.
 
-You're now ready to start developing. 
+You're now ready to start developing.
 
-### Running your code 
+### Running your code
 
 By far the most convenient way to test your supervisor code is
 to download a development image of balenaOS from the
@@ -216,12 +215,6 @@ Alternatively, you can launch a test environment using the following commands.
 ```
 # Launch the environment
 npm run test:env
-
-# In another terminal, access the sut container
-docker-compose exec -i sut sh
-
-# Or alternatively, access the sut container using docker exec
-docker exec -ti $(docker ps -q --filter="name=_sut") sh
 ```
 
 And then run all tests using

@@ -127,6 +127,7 @@ COPY --from=build-base /usr/src/app/node_modules ./node_modules
 #dev-cmd-live=LIVEPUSH=1 ./entry.sh
 
 # Copy build files
+COPY entry.sh .
 COPY build-utils ./build-utils
 COPY webpack.config.js tsconfig.json tsconfig.release.json tsconfig.js.json .mochapodrc.yml ./
 COPY typings ./typings

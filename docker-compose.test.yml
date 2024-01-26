@@ -39,7 +39,7 @@ services:
       MOCK_SYSTEMD_UNITS: openvpn.service avahi.socket
 
   docker:
-    image: docker:dind
+    image: docker:24-dind
     stop_grace_period: 3s
     privileged: true
     environment:
