@@ -7,8 +7,9 @@ import {
 import { Image } from '~/src/compose/images';
 import Network from '~/src/compose/network';
 import Service from '~/src/compose/service';
-import { ServiceComposeConfig } from '~/src/compose/types/service';
 import Volume from '~/src/compose/volume';
+
+import { createService, createImage } from '~/test-lib/state-helper';
 
 const defaultContext = {
 	keepVolumes: false,
@@ -35,55 +36,6 @@ function createApp({
 		},
 		isTarget,
 	);
-}
-
-async function createService(
-	{
-		appId = 1,
-		appUuid = 'appuuid',
-		serviceName = 'test',
-		commit = 'test-commit',
-		...conf
-	} = {} as Partial<ServiceComposeConfig>,
-	{ state = {} as Partial<Service>, options = {} as any } = {},
-) {
-	const svc = await Service.fromComposeObject(
-		{
-			appId,
-			appUuid,
-			serviceName,
-			commit,
-			running: true,
-			...conf,
-		},
-		options,
-	);
-
-	// Add additonal configuration
-	for (const k of Object.keys(state)) {
-		(svc as any)[k] = (state as any)[k];
-	}
-	return svc;
-}
-
-function createImage(
-	{
-		appId = 1,
-		appUuid = 'appuuid',
-		name = 'test-image',
-		serviceName = 'test',
-		commit = 'test-commit',
-		...extra
-	} = {} as Partial<Image>,
-) {
-	return {
-		appId,
-		appUuid,
-		commit,
-		name,
-		serviceName,
-		...extra,
-	} as Image;
 }
 
 const expectSteps = (
@@ -234,6 +186,7 @@ describe('compose/app', () => {
 			const current = createApp({
 				services: [
 					await createService({
+						serviceName: 'test',
 						composition: { volumes: ['test-volume:/data'] },
 					}),
 				],
@@ -242,6 +195,7 @@ describe('compose/app', () => {
 			const target = createApp({
 				services: [
 					await createService({
+						serviceName: 'test',
 						composition: { volumes: ['test-volume:/data'] },
 					}),
 				],
@@ -277,6 +231,7 @@ describe('compose/app', () => {
 
 		it('should not output a kill step for a service which is already stopping when changing a volume', async () => {
 			const service = await createService({
+				serviceName: 'test',
 				composition: { volumes: ['test-volume:/data'] },
 			});
 			service.status = 'Stopping';
@@ -516,6 +471,7 @@ describe('compose/app', () => {
 					await createService({
 						appId: 1,
 						appUuid: 'deadbeef',
+						serviceName: 'test',
 						composition: { networks: ['test-network'] },
 					}),
 				],
@@ -528,6 +484,7 @@ describe('compose/app', () => {
 					await createService({
 						appId: 1,
 						appUuid: 'deadbeef',
+						serviceName: 'test',
 						composition: { networks: ['test-network'] },
 					}),
 				],
@@ -625,6 +582,7 @@ describe('compose/app', () => {
 					await createService({
 						appId: 1,
 						appUuid: 'deadbeef',
+						serviceName: 'test',
 						composition: { networks: ['test-network'] },
 					}),
 				],
@@ -634,7 +592,9 @@ describe('compose/app', () => {
 			});
 			const target = createApp({
 				appUuid: 'deadbeef',
-				services: [await createService({ appUuid: 'deadbeef' })],
+				services: [
+					await createService({ appUuid: 'deadbeef', serviceName: 'test' }),
+				],
 				networks: [],
 				isTarget: true,
 			});
@@ -655,6 +615,7 @@ describe('compose/app', () => {
 			const current = createApp({
 				services: [
 					await createService({
+						serviceName: 'test',
 						composition: { networks: ['test-network'] },
 					}),
 				],
@@ -663,6 +624,7 @@ describe('compose/app', () => {
 			const target = createApp({
 				services: [
 					await createService({
+						serviceName: 'test',
 						composition: { networks: { 'test-network': {} } },
 					}),
 				],
@@ -1450,11 +1412,12 @@ describe('compose/app', () => {
 			};
 
 			const current = createApp({
-				services: [await createService({ labels })],
+				services: [await createService({ serviceName: 'test', labels })],
 			});
 			const target = createApp({
 				services: [
 					await createService({
+						serviceName: 'test',
 						labels,
 						composition: {
 							privileged: true,

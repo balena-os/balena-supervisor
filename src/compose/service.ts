@@ -52,14 +52,25 @@ export type ServiceStatus =
 export class Service {
 	public appId: number;
 	public appUuid?: string;
-	public imageId: number;
+	/**
+	 * We make this available as it still needed by application manager to
+	 * compare images, but it is only available in the target state.
+	 * @deprecated
+	 */
+	public imageId?: number;
 	public config: ServiceConfig;
 	public serviceName: string;
 	public commit: string;
-	public releaseId: number;
+	/**
+	 * We make this available as it still needed by application manager
+	 * but it is only available on the target state
+	 * @deprecated
+	 */
+	public releaseId?: number;
 	public serviceId: number;
 	public imageName: string | null;
 	public containerId: string | null;
+	public containerName: string;
 	public exitErrorMessage: string | null;
 
 	public dependsOn: string[] | null;
@@ -142,6 +153,9 @@ export class Service {
 		service.createdAt = appConfig.createdAt;
 		service.commit = appConfig.commit;
 		service.appUuid = appConfig.appUuid;
+
+		// The target container name
+		service.containerName = `${service.serviceName}_${service.commit}`;
 
 		// dependsOn is used by other parts of the step
 		// calculation so we delete it from the composition
@@ -617,13 +631,19 @@ export class Service {
 				'Attempt to build Service class from container with malformed labels',
 			);
 		}
-		const nameMatch = container.Name.match(/.*_(\d+)_(\d+)(?:_(.*?))?$/);
+		const nameMatch = container.Name.match(
+			/.*?(?:_(\d+))?(?:_(\d+))?(?:_([a-f0-9]*))?$/,
+		);
 		if (nameMatch == null) {
 			throw new InternalInconsistencyError(
-				`Expected supervised container to have name '<serviceName>_<imageId>_<releaseId>_<commit>', got: ${container.Name}`,
+				`Expected supervised container to have name '<serviceName>_<commit>', got: ${container.Name}`,
 			);
 		}
 
+		// The current container name, minus the initial '/'
+		svc.containerName = container.Name.slice(1);
+
+		// If we have not renamed the service yet we can still use the image id
 		svc.imageId = parseInt(nameMatch[1], 10);
 		svc.releaseId = parseInt(nameMatch[2], 10);
 		svc.commit = nameMatch[3];
@@ -674,7 +694,7 @@ export class Service {
 			this.config.networkMode = `container:${containerId}`;
 		}
 		return {
-			name: `${this.serviceName}_${this.imageId}_${this.releaseId}_${this.commit}`,
+			name: `${this.serviceName}_${this.commit}`,
 			Tty: this.config.tty,
 			Cmd: this.config.command,
 			Volumes: volumes,
@@ -880,7 +900,8 @@ export class Service {
 	): boolean {
 		return (
 			this.isEqualConfig(service, currentContainerIds) &&
-			this.commit === service.commit
+			this.commit === service.commit &&
+			this.containerName === service.containerName
 		);
 	}
 
@@ -1134,7 +1155,7 @@ export class Service {
 				log.warn(
 					`Ignoring invalid compose volume definition ${
 						isString ? volume : JSON.stringify(volume)
-					}`,
+					} `,
 				);
 			}
 		}

@@ -8,6 +8,7 @@ import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
 import * as applicationManager from '../compose/application-manager';
+import * as imageManager from '../compose/images';
 import {
 	CompositionStepAction,
 	generateStep,
@@ -273,9 +274,7 @@ export const executeServiceAction = async ({
 		);
 	}
 	const targetService = targetApp.services.find(
-		(s) =>
-			s.imageId === currentService.imageId ||
-			s.serviceName === currentService.serviceName,
+		(s) => s.serviceName === currentService.serviceName,
 	);
 	if (targetService == null) {
 		throw new NotFoundError(messages.targetServiceNotFound);
@@ -330,6 +329,15 @@ export const getSingleContainerApp = async (appId: number) => {
 			'Some v1 endpoints are only allowed on single-container apps',
 		);
 	}
+
+	// releaseId is not part of the documented outputs of this endpoint
+	// but it has been there for a while, we query the value from
+	// the image list if available. But we won't error if not found
+	const images = await imageManager.getState();
+	service.releaseId = images.find(
+		(img) =>
+			img.serviceName === service.serviceName && img.commit === service.commit,
+	)?.releaseId;
 
 	// Because we only have a single app, we can fetch the commit for that
 	// app, and maintain backwards compatability

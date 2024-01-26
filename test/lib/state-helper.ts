@@ -23,6 +23,7 @@ export async function createService(
 		...conf
 	} = {} as Partial<ServiceComposeConfig>,
 	{ state = {} as Partial<Service>, options = {} as any } = {},
+	isTarget = false,
 ) {
 	const svc = await Service.fromComposeObject(
 		{
@@ -34,8 +35,12 @@ export async function createService(
 			// are compared using _.isEqual so leaving this here to have image comparisons
 			// match
 			serviceId: 1,
-			imageId: 1,
-			releaseId: 1,
+			...(isTarget
+				? {
+						imageId: 1,
+						releaseId: 1,
+				  }
+				: {}),
 			...conf,
 		},
 		options,

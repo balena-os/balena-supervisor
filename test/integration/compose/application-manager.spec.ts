@@ -398,23 +398,31 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService({
-						image: 'main-image',
-						appId: 1,
-						appUuid: 'appuuid',
-						commit: 'new-release',
-						serviceName: 'main',
-						composition: {
-							depends_on: ['dep'],
+					await createService(
+						{
+							image: 'main-image',
+							appId: 1,
+							appUuid: 'appuuid',
+							commit: 'new-release',
+							serviceName: 'main',
+							composition: {
+								depends_on: ['dep'],
+							},
 						},
-					}),
-					await createService({
-						image: 'dep-image',
-						appId: 1,
-						appUuid: 'appuuid',
-						commit: 'new-release',
-						serviceName: 'dep',
-					}),
+						{},
+						true,
+					),
+					await createService(
+						{
+							image: 'dep-image',
+							appId: 1,
+							appUuid: 'appuuid',
+							commit: 'new-release',
+							serviceName: 'dep',
+						},
+						{},
+						true,
+					),
 				],
 				networks: [DEFAULT_NETWORK],
 			},
@@ -487,19 +495,27 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService({
-						image: 'main-image',
-						serviceName: 'main',
-						commit: 'new-release',
-						composition: {
-							depends_on: ['dep'],
+					await createService(
+						{
+							image: 'main-image',
+							serviceName: 'main',
+							commit: 'new-release',
+							composition: {
+								depends_on: ['dep'],
+							},
 						},
-					}),
-					await createService({
-						image: 'dep-image',
-						serviceName: 'dep',
-						commit: 'new-release',
-					}),
+						{},
+						true,
+					),
+					await createService(
+						{
+							image: 'dep-image',
+							serviceName: 'dep',
+							commit: 'new-release',
+						},
+						{},
+						true,
+					),
 				],
 				networks: [DEFAULT_NETWORK],
 			},
@@ -549,19 +565,27 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService({
-						image: 'main-image',
-						serviceName: 'main',
-						commit: 'new-release',
-						composition: {
-							depends_on: ['dep'],
+					await createService(
+						{
+							image: 'main-image',
+							serviceName: 'main',
+							commit: 'new-release',
+							composition: {
+								depends_on: ['dep'],
+							},
 						},
-					}),
-					await createService({
-						image: 'dep-image',
-						serviceName: 'dep',
-						commit: 'new-release',
-					}),
+						{},
+						true,
+					),
+					await createService(
+						{
+							image: 'dep-image',
+							serviceName: 'dep',
+							commit: 'new-release',
+						},
+						{},
+						true,
+					),
 				],
 				networks: [DEFAULT_NETWORK],
 			},
@@ -615,7 +639,7 @@ describe('compose/application-manager', () => {
 	it('infers to remove spurious containers', async () => {
 		const targetApps = createApps(
 			{
-				services: [await createService({ image: 'main-image' })],
+				services: [await createService({ image: 'main-image' }, {}, true)],
 				networks: [DEFAULT_NETWORK],
 			},
 			true,
@@ -853,6 +877,7 @@ describe('compose/application-manager', () => {
 						{ image: 'main-image' },
 						// Target has a matching image already
 						{ options: { imageInfo: { Id: 'sha256:bbbb' } } },
+						true,
 					),
 				],
 				networks: [DEFAULT_NETWORK],
@@ -1091,20 +1116,28 @@ describe('compose/application-manager', () => {
 		const targetApps = createApps(
 			{
 				services: [
-					await createService({
-						running: true,
-						image: 'main-image-1',
-						appId: 1,
-						appUuid: 'app-one',
-						commit: 'commit-for-app-1',
-					}),
-					await createService({
-						running: true,
-						image: 'main-image-2',
-						appId: 2,
-						appUuid: 'app-two',
-						commit: 'commit-for-app-2',
-					}),
+					await createService(
+						{
+							running: true,
+							image: 'main-image-1',
+							appId: 1,
+							appUuid: 'app-one',
+							commit: 'commit-for-app-1',
+						},
+						{},
+						true,
+					),
+					await createService(
+						{
+							running: true,
+							image: 'main-image-2',
+							appId: 2,
+							appUuid: 'app-two',
+							commit: 'commit-for-app-2',
+						},
+						{},
+						true,
+					),
 				],
 				networks: [
 					// Default networks for two apps
@@ -1523,38 +1556,54 @@ describe('compose/application-manager', () => {
 			targetApps = createApps(
 				{
 					services: [
-						await createService({
-							image: 'test-image',
-							serviceName: 'one',
-							running: true,
-							composition: {
-								restart: 'always',
+						await createService(
+							{
+								image: 'test-image',
+								serviceName: 'one',
+								running: true,
+								composition: {
+									restart: 'always',
+								},
 							},
-						}),
-						await createService({
-							image: 'test-image',
-							serviceName: 'two',
-							running: true,
-							composition: {
-								restart: 'unless-stopped',
+							{},
+							true,
+						),
+						await createService(
+							{
+								image: 'test-image',
+								serviceName: 'two',
+								running: true,
+								composition: {
+									restart: 'unless-stopped',
+								},
 							},
-						}),
-						await createService({
-							image: 'test-image',
-							serviceName: 'three',
-							running: true,
-							composition: {
-								restart: 'on-failure',
+							{},
+							true,
+						),
+						await createService(
+							{
+								image: 'test-image',
+								serviceName: 'three',
+								running: true,
+								composition: {
+									restart: 'on-failure',
+								},
 							},
-						}),
-						await createService({
-							image: 'test-image',
-							serviceName: 'four',
-							running: true,
-							composition: {
-								restart: 'no',
+							{},
+							true,
+						),
+						await createService(
+							{
+								image: 'test-image',
+								serviceName: 'four',
+								running: true,
+								composition: {
+									restart: 'no',
+								},
 							},
-						}),
+							{},
+							true,
+						),
 					],
 					networks: [DEFAULT_NETWORK],
 				},

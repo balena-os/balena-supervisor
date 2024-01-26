@@ -658,7 +658,10 @@ export class App {
 
 	private generateContainerStep(current: Service, target: Service) {
 		// if the services release doesn't match, then rename the container...
-		if (current.commit !== target.commit) {
+		if (
+			current.commit !== target.commit ||
+			current.containerName !== target.containerName
+		) {
 			return generateStep('updateMetadata', { current, target });
 		} else if (target.config.running !== current.config.running) {
 			if (target.config.running) {

@@ -179,7 +179,11 @@ export function imageFromService(service: ServiceInfo): Image {
 		appUuid: service.appUuid!,
 		serviceId: service.serviceId!,
 		serviceName: service.serviceName!,
+		// Image id is optional in service, but it is always available
+		// on the target state
 		imageId: service.imageId!,
+		// Release id is optional in service, but it is always available
+		// on the target state
 		releaseId: service.releaseId!,
 		commit: service.commit!,
 	};

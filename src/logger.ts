@@ -137,10 +137,10 @@ export function lock(containerId: string): Bluebird.Disposer<() => void> {
 	});
 }
 
-type ServiceInfo = { serviceId: number; imageId: number };
+type ServiceInfo = { serviceId: number };
 export function attach(
 	containerId: string,
-	{ serviceId, imageId }: ServiceInfo,
+	{ serviceId }: ServiceInfo,
 ): Bluebird<void> {
 	// First detect if we already have an attached log stream
 	// for this container
@@ -153,7 +153,6 @@ export function attach(
 			containerId,
 			(message: Parameters<MonitorHook>[0] & Partial<ServiceInfo>) => {
 				message.serviceId = serviceId;
-				message.imageId = imageId;
 				log(message);
 			},
 		);

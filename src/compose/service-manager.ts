@@ -123,9 +123,7 @@ export async function getState() {
 			status[service.containerId] = _.pick(service, [
 				'appId',
 				'appUuid',
-				'imageId',
 				'status',
-				'releaseId',
 				'commit',
 				'createdAt',
 				'serviceName',
@@ -159,7 +157,7 @@ export async function updateMetadata(service: Service, target: Service) {
 
 	try {
 		await docker.getContainer(svc.containerId).rename({
-			name: `${service.serviceName}_${target.imageId}_${target.releaseId}_${target.commit}`,
+			name: target.containerName,
 		});
 	} catch (e) {
 		if (isNotFoundError(e)) {
@@ -352,14 +350,13 @@ export async function start(service: Service) {
 		}
 
 		const serviceId = service.serviceId;
-		const imageId = service.imageId;
-		if (serviceId == null || imageId == null) {
+		if (serviceId == null) {
 			throw new InternalInconsistencyError(
-				`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.start`,
+				`serviceId not defined for service: ${service.serviceName} in ServiceManager.start`,
 			);
 		}
 
-		logger.attach(container.id, { serviceId, imageId });
+		logger.attach(container.id, { serviceId });
 
 		if (!alreadyStarted) {
 			logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
@@ -415,15 +412,13 @@ export function listenToEvents() {
 								});
 
 								const serviceId = service.serviceId;
-								const imageId = service.imageId;
-								if (serviceId == null || imageId == null) {
+								if (serviceId == null) {
 									throw new InternalInconsistencyError(
-										`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
+										`serviceId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
 									);
 								}
 								logger.attach(data.id, {
 									serviceId,
-									imageId,
 								});
 							} else if (status === 'destroy') {
 								await logMonitor.detach(data.id);
@@ -467,10 +462,9 @@ export async function attachToRunning() {
 	for (const service of services) {
 		if (service.status === 'Running') {
 			const serviceId = service.serviceId;
-			const imageId = service.imageId;
-			if (serviceId == null || imageId == null) {
+			if (serviceId == null) {
 				throw new InternalInconsistencyError(
-					`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.start`,
+					`serviceId not defined for service: ${service.serviceName} in ServiceManager.start`,
 				);
 			}
 
@@ -481,7 +475,6 @@ export async function attachToRunning() {
 			}
 			logger.attach(service.containerId, {
 				serviceId,
-				imageId,
 			});
 		}
 	}
@@ -522,15 +515,7 @@ function reportNewStatus(
 		containerId,
 		_.merge(
 			{ status },
-			_.pick(service, [
-				'imageId',
-				'appId',
-				'appUuid',
-				'serviceName',
-				'releaseId',
-				'createdAt',
-				'commit',
-			]),
+			_.pick(service, ['appUuid', 'serviceName', 'createdAt', 'commit']),
 		),
 	);
 }
@@ -546,9 +531,7 @@ async function killContainer(
 	// TODO: Remove the need for the wait flag
 
 	logger.logSystemEvent(LogTypes.stopService, { service });
-	if (service.imageId != null) {
-		reportNewStatus(containerId, service, 'Stopping');
-	}
+	reportNewStatus(containerId, service, 'Stopping');
 
 	const containerObj = docker.getContainer(containerId);
 	const killPromise = containerObj
@@ -594,9 +577,7 @@ async function killContainer(
 			});
 		})
 		.finally(() => {
-			if (service.imageId != null) {
-				reportChange(containerId);
-			}
+			reportChange(containerId);
 		});
 
 	if (wait) {
@@ -633,7 +614,7 @@ async function prepareForHandover(service: Service) {
 	const container = docker.getContainer(svc.containerId);
 	await container.update({ RestartPolicy: {} });
 	return await container.rename({
-		name: `old_${service.serviceName}_${service.imageId}_${service.releaseId}_${service.commit}`,
+		name: `old_${service.serviceName}_${service.commit}`,
 	});
 }
 
