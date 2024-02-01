@@ -1,4 +1,24 @@
 - commits:
+    - subject: Respect update strategies app-wide instead of at the service level
+      hash: 3afcef296914840268356f7f98bc4bd8cce9427c
+      body: >
+        Fixes behavior for release updates which removes a service in current
+        state
+
+        and adds a new service in target state.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Closes: "#2095"
+        closes: "#2095"
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 15.3.1
+  title: ""
+  date: 2024-02-01T19:31:12.515Z
+- commits:
     - subject: Pin docker version to v24 for tests
       hash: 0500fe10bb1c35b01a4a46713c98165685a93433
       body: >
