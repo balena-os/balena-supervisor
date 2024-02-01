@@ -15,12 +15,13 @@ import {
 import * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
-
-import { getStepsFromStrategy } from './update-strategies';
-
-import { InternalInconsistencyError, isNotFoundError } from '../lib/errors';
+import {
+	getStepsFromStrategy,
+	getStrategyFromService,
+} from './update-strategies';
+import { isNotFoundError } from '../lib/errors';
 import * as config from '../config';
-import { checkTruthy, checkString } from '../lib/validation';
+import { checkTruthy } from '../lib/validation';
 import { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
@@ -133,17 +134,8 @@ export class App {
 			state.containerIds,
 		);
 
-		for (const { current: svc } of removePairs) {
-			// All removes get a kill action if they're not already stopping
-			if (svc!.status !== 'Stopping') {
-				steps.push(generateStep('kill', { current: svc! }));
-			} else {
-				steps.push(generateStep('noop', {}));
-			}
-		}
-
 		// For every service which needs to be updated, update via update strategy.
-		const servicePairs = updatePairs.concat(installPairs);
+		const servicePairs = removePairs.concat(updatePairs, installPairs);
 		steps = steps.concat(
 			servicePairs
 				.map((pair) =>
@@ -511,8 +503,8 @@ export class App {
 		},
 	): Nullable<CompositionStep> {
 		if (current?.status === 'Stopping') {
-			// Theres a kill step happening already, emit a noop to ensure we stay alive while
-			// this happens
+			// There's a kill step happening already, emit a noop to ensure
+			// we stay alive while this happens
 			return generateStep('noop', {});
 		}
 		if (current?.status === 'Dead') {
@@ -521,16 +513,14 @@ export class App {
 			return;
 		}
 
-		const needsDownload = !_.some(
-			context.availableImages,
+		const needsDownload = !context.availableImages.some(
 			(image) =>
 				image.dockerImageId === target?.config.image ||
 				imageManager.isSameImage(image, { name: target?.imageName! }),
 		);
-
 		if (needsDownload && context.downloading.includes(target?.imageName!)) {
-			// The image needs to be downloaded, and it's currently downloading. We simply keep
-			// the application loop alive
+			// The image needs to be downloaded, and it's currently downloading.
+			// We simply keep the application loop alive
 			return generateStep('noop', {});
 		}
 
@@ -546,47 +536,39 @@ export class App {
 				context.servicePairs,
 			);
 		} else {
-			if (!target) {
-				throw new InternalInconsistencyError(
-					'An empty changing pair passed to generateStepsForService',
-				);
-			}
-
+			// This service is in both current & target so requires an update,
+			// or it's a service that's not in target so requires removal
 			const needsSpecialKill = this.serviceHasNetworkOrVolume(
 				current,
 				context.networkPairs,
 				context.volumePairs,
 			);
-
 			if (
 				!needsSpecialKill &&
+				target != null &&
 				current.isEqualConfig(target, context.containerIds)
 			) {
 				// we're only starting/stopping a service
 				return this.generateContainerStep(current, target);
 			}
 
-			let strategy =
-				checkString(target.config.labels['io.balena.update.strategy']) || '';
-			const validStrategies = [
-				'download-then-kill',
-				'kill-then-download',
-				'delete-then-download',
-				'hand-over',
-			];
-
-			if (!validStrategies.includes(strategy)) {
-				strategy = 'download-then-kill';
+			let strategy: string;
+			let dependenciesMetForStart: boolean;
+			if (target != null) {
+				strategy = getStrategyFromService(target);
+				dependenciesMetForStart = this.dependenciesMetForServiceStart(
+					target,
+					context.targetApp,
+					context.availableImages,
+					context.networkPairs,
+					context.volumePairs,
+					context.servicePairs,
+				);
+			} else {
+				strategy = getStrategyFromService(current);
+				dependenciesMetForStart = false;
 			}
 
-			const dependenciesMetForStart = this.dependenciesMetForServiceStart(
-				target,
-				context.targetApp,
-				context.availableImages,
-				context.networkPairs,
-				context.volumePairs,
-				context.servicePairs,
-			);
 			const dependenciesMetForKill = this.dependenciesMetForServiceKill(
 				context.targetApp,
 				context.availableImages,
@@ -678,7 +660,10 @@ export class App {
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
 	): CompositionStep | undefined {
-		if (needsDownload) {
+		if (
+			needsDownload &&
+			this.dependenciesMetForServiceFetch(target, servicePairs)
+		) {
 			// We know the service name exists as it always does for targets
 			return generateStep('fetch', {
 				image: imageManager.imageFromService(target),
@@ -696,6 +681,37 @@ export class App {
 		) {
 			return generateStep('start', { target });
 		}
+	}
+
+	private dependenciesMetForServiceFetch(
+		target: Service,
+		servicePairs: Array<ChangingPair<Service>>,
+	) {
+		const [servicePairsWithCurrent, servicePairsWithoutCurrent] = _.partition(
+			servicePairs,
+			(pair) => pair.current != null,
+		);
+
+		// Target services not in current can be safely fetched
+		for (const pair of servicePairsWithoutCurrent) {
+			if (target.serviceName === pair.target!.serviceName) {
+				return true;
+			}
+		}
+
+		// Current services should be killed before target
+		// service fetch depending on update strategy
+		for (const pair of servicePairsWithCurrent) {
+			// Prefer target's update strategy if target service exists
+			const strategy = getStrategyFromService(pair.target ?? pair.current!);
+			if (
+				['kill-then-download', 'delete-then-download'].includes(strategy) &&
+				pair.current!.config.running
+			) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	// TODO: account for volumes-from, networks-from, links, etc
@@ -751,7 +767,7 @@ export class App {
 		}
 
 		// do not start until all images have been downloaded
-		return this.targetImagesReady(targetApp, availableImages);
+		return this.targetImagesReady(targetApp.services, availableImages);
 	}
 
 	// Unless the update strategy requires an early kill (i.e kill-then-download,
@@ -762,12 +778,14 @@ export class App {
 		targetApp: App,
 		availableImages: Image[],
 	) {
-		// Don't kill any services before all images have been downloaded
-		return this.targetImagesReady(targetApp, availableImages);
+		return this.targetImagesReady(targetApp.services, availableImages);
 	}
 
-	private targetImagesReady(targetApp: App, availableImages: Image[]) {
-		return targetApp.services.every((service) =>
+	private targetImagesReady(
+		targetServices: Service[],
+		availableImages: Image[],
+	) {
+		return targetServices.every((service) =>
 			availableImages.some(
 				(image) =>
 					image.dockerImageId === service.config.image ||
