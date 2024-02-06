@@ -260,10 +260,12 @@ describe('device-config', () => {
 					initramfs initramf.gz 0x00800000
 					dtparam=i2c=on
 					dtparam=audio=off
-					dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
-					dtoverlay=balena-fin
 					foobar=bat
 					foobaz=bar
+					dtoverlay=lirc-rpi
+					dtparam=gpio_out_pin=17
+					dtparam=gpio_in_pin=13
+					dtoverlay=balena-fin
 				` + '\n', // add newline because stripIndent trims last newline
 			);
 		});
@@ -301,10 +303,12 @@ describe('device-config', () => {
 					initramfs initramf.gz 0x00800000
 					dtparam=i2c=on
 					dtparam=audio=off
-					dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
-					dtoverlay=balena-fin
 					foobar=bat
 					foobaz=bar
+					dtoverlay=lirc-rpi
+					dtparam=gpio_out_pin=17
+					dtparam=gpio_in_pin=13
+					dtoverlay=balena-fin
 				` + '\n', // add newline because stripIndent trims last newline
 			);
 		});
