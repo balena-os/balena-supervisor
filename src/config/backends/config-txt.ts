@@ -6,6 +6,26 @@ import log from '../../lib/supervisor-console';
 import { exists } from '../../lib/fs-utils';
 import * as hostUtils from '../../lib/host-utils';
 
+const ARRAY_CONFIGS = [
+	'dtparam',
+	'dtoverlay',
+	'device_tree_param',
+	'device_tree_overlay',
+	'gpio',
+] as const;
+
+type ArrayConfig = typeof ARRAY_CONFIGS[number];
+
+// Refinement on the ConfigOptions type
+// to indicate what properties are arrays
+type ConfigTxtOptions = ConfigOptions & {
+	[key in ArrayConfig]?: string[];
+};
+
+function isArrayConfig(x: string): x is ArrayConfig {
+	return x != null && ARRAY_CONFIGS.includes(x as any);
+}
+
 /**
  * A backend to handle Raspberry Pi host configuration
  *
@@ -16,7 +36,6 @@ import * as hostUtils from '../../lib/host-utils';
  * 	- {BALENA|RESIN}_HOST_CONFIG_device_tree_overlay = value | "value" | "value1","value2"
  * 	- {BALENA|RESIN}_HOST_CONFIG_gpio = value | "value" | "value1","value2"
  */
-
 export class ConfigTxt extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}CONFIG_`;
 	private static bootConfigPath = hostUtils.pathOnBoot('config.txt');
@@ -25,13 +44,6 @@ export class ConfigTxt extends ConfigBackend {
 		'(?:' + _.escapeRegExp(ConfigTxt.bootConfigVarPrefix) + ')(.+)',
 	);
 
-	private static arrayConfigKeys = [
-		'dtparam',
-		'dtoverlay',
-		'device_tree_param',
-		'device_tree_overlay',
-		'gpio',
-	];
 	private static forbiddenConfigKeys = [
 		'disable_commandline_tags',
 		'cmdline',
@@ -69,39 +81,38 @@ export class ConfigTxt extends ConfigBackend {
 				'utf-8',
 			);
 		} else {
-			await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, '');
+			return {};
 		}
 
-		const conf: ConfigOptions = {};
+		const conf: ConfigTxtOptions = {};
 		const configStatements = configContents.split(/\r?\n/);
 
 		for (const configStr of configStatements) {
 			// Don't show warnings for comments and empty lines
-			const trimmed = _.trimStart(configStr);
+			const trimmed = configStr.trimStart();
 			if (trimmed.startsWith('#') || trimmed === '') {
 				continue;
 			}
+
+			// Try to split the line into key+value
 			let keyValue = /^([^=]+)=(.*)$/.exec(configStr);
 			if (keyValue != null) {
 				const [, key, value] = keyValue;
-				if (!ConfigTxt.arrayConfigKeys.includes(key)) {
+				if (!isArrayConfig(key)) {
+					// If key is not one of the array configs, just add it to the
+					// configuration
 					conf[key] = value;
 				} else {
-					if (conf[key] == null) {
-						conf[key] = [];
-					}
-					const confArr = conf[key];
-					if (!Array.isArray(confArr)) {
-						throw new Error(
-							`Expected '${key}' to have a config array but got ${typeof confArr}`,
-						);
-					}
-					confArr.push(value);
+					// TODO: dtparams and dtoverlays need to be treated as a special case
+					// Otherwise push the new value to the array
+					const arrayConf = conf[key] == null ? [] : conf[key]!;
+					arrayConf.push(value);
 				}
 				continue;
 			}
 
-			// Try the next regex instead
+			// If the line does not match a key-value pair, we check
+			// if it is initramfs, otherwise ignore it
 			keyValue = /^(initramfs) (.+)/.exec(configStr);
 			if (keyValue != null) {
 				const [, key, value] = keyValue;
@@ -115,7 +126,7 @@ export class ConfigTxt extends ConfigBackend {
 	}
 
 	public async setBootConfig(opts: ConfigOptions): Promise<void> {
-		const confStatements = _.flatMap(opts, (value, key) => {
+		const confStatements = Object.entries(opts).flatMap(([key, value]) => {
 			if (key === 'initramfs') {
 				return `${key} ${value}`;
 			} else if (Array.isArray(value)) {
@@ -124,6 +135,7 @@ export class ConfigTxt extends ConfigBackend {
 				return `${key}=${value}`;
 			}
 		});
+		// TODO: split dtoverlay into dtparams
 		const confStr = `${confStatements.join('\n')}\n`;
 		await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, confStr);
 	}
@@ -141,7 +153,7 @@ export class ConfigTxt extends ConfigBackend {
 	}
 
 	public processConfigVarValue(key: string, value: string): string | string[] {
-		if (ConfigTxt.arrayConfigKeys.includes(key)) {
+		if (isArrayConfig(key)) {
 			if (!value.startsWith('"')) {
 				return [value];
 			} else {
