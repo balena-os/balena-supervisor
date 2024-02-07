@@ -23,6 +23,7 @@ import {
 	UpdatesLockedError,
 } from './lib/errors';
 import * as updateLock from './lib/update-lock';
+import { takeGlobalLockRO, takeGlobalLockRW } from './lib/process-lock';
 import * as dbFormat from './device-state/db-format';
 import { getGlobalApiKey } from './device-api';
 import * as sysInfo from './lib/system-info';
@@ -101,8 +102,6 @@ type DeviceStateStep<T extends PossibleStepTargets> =
 	| deviceConfig.ConfigStep;
 
 let currentVolatile: DeviceReport = {};
-const writeLock = updateLock.writeLock;
-const readLock = updateLock.readLock;
 let maxPollTime: number;
 let intermediateTarget: InstancedDeviceState | null = null;
 let applyBlocker: Nullable<Promise<void>>;
@@ -295,11 +294,11 @@ function emitAsync<T extends keyof DeviceStateEvents>(
 }
 
 const readLockTarget = () =>
-	readLock('target').disposer((release) => release());
+	takeGlobalLockRO('target').disposer((release) => release());
 const writeLockTarget = () =>
-	writeLock('target').disposer((release) => release());
+	takeGlobalLockRW('target').disposer((release) => release());
 const inferStepsLock = () =>
-	writeLock('inferSteps').disposer((release) => release());
+	takeGlobalLockRW('inferSteps').disposer((release) => release());
 function usingReadLockTarget<T extends () => any, U extends ReturnType<T>>(
 	fn: T,
 ): Bluebird<UnwrappedPromise<U>> {
@@ -803,7 +802,7 @@ export const applyTarget = async ({
 
 function pausingApply(fn: () => any) {
 	const lock = () => {
-		return writeLock('pause').disposer((release) => release());
+		return takeGlobalLockRW('pause').disposer((release) => release());
 	};
 	// TODO: This function is a bit of a mess
 	const pause = () => {

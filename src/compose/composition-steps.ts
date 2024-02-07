@@ -1,19 +1,17 @@
 import _ from 'lodash';
 
 import * as config from '../config';
-
 import type { Image } from './images';
 import * as images from './images';
 import type Network from './network';
 import type Service from './service';
 import * as serviceManager from './service-manager';
-import type Volume from './volume';
-
-import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
-import type { DeviceLegacyReport } from '../types/state';
+import type Volume from './volume';
 import * as commitStore from './commit';
+import { checkTruthy } from '../lib/validation';
+import type { DeviceLegacyReport } from '../types/state';
 
 interface BaseCompositionStepArgs {
 	force?: boolean;

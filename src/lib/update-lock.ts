@@ -1,7 +1,5 @@
-import Bluebird from 'bluebird';
 import { promises as fs } from 'fs';
 import path from 'path';
-import Lock from 'rwlock';
 import { isRight } from 'fp-ts/lib/Either';
 
 import {
@@ -13,6 +11,7 @@ import { pathOnRoot, pathExistsOnState } from './host-utils';
 import * as config from '../config';
 import * as lockfile from './lockfile';
 import { NumericIdentifier, StringIdentifier, DockerName } from '../types';
+import { takeGlobalLockRW } from './process-lock';
 
 const decodedUid = NumericIdentifier.decode(process.env.LOCKFILE_UID);
 export const LOCKFILE_UID = isRight(decodedUid) ? decodedUid.right : 65534;
@@ -55,15 +54,6 @@ export function abortIfHUPInProgress({
 		return anyExists;
 	});
 }
-
-type LockFn = (key: string | number) => Bluebird<() => void>;
-const locker = new Lock();
-export const writeLock: LockFn = Bluebird.promisify(locker.async.writeLock, {
-	context: locker,
-});
-export const readLock: LockFn = Bluebird.promisify(locker.async.readLock, {
-	context: locker,
-});
 
 // Unlock all lockfiles of an appId | appUuid, then release resources.
 async function dispose(
@@ -195,7 +185,7 @@ export async function lock<T>(
 		for (const id of sortedIds) {
 			const lockDir = pathOnRoot(lockPath(id));
 			// Acquire write lock for appId
-			releases.set(id, await writeLock(id));
+			releases.set(id, await takeGlobalLockRW(id));
 			// Get list of service folders in lock directory
 			const serviceFolders = await fs.readdir(lockDir).catch((e) => {
 				if (ENOENT(e)) {
