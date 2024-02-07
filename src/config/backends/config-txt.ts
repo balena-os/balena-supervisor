@@ -26,6 +26,11 @@ function isArrayConfig(x: string): x is ArrayConfig {
 	return x != null && ARRAY_CONFIGS.includes(x as any);
 }
 
+// The DTOverlays type is a collection of DtParams
+type DTParam = string;
+type DTOverlays = { [name: string]: DTParam[] };
+const BASE_OVERLAY = '';
+
 /**
  * A backend to handle Raspberry Pi host configuration
  *
@@ -87,6 +92,9 @@ export class ConfigTxt extends ConfigBackend {
 		const conf: ConfigTxtOptions = {};
 		const configStatements = configContents.split(/\r?\n/);
 
+		let currOverlay = BASE_OVERLAY;
+		const dtOverlays: DTOverlays = { [BASE_OVERLAY]: [] };
+
 		for (const configStr of configStatements) {
 			// Don't show warnings for comments and empty lines
 			const trimmed = configStr.trimStart();
@@ -103,10 +111,27 @@ export class ConfigTxt extends ConfigBackend {
 					// configuration
 					conf[key] = value;
 				} else {
-					// TODO: dtparams and dtoverlays need to be treated as a special case
-					// Otherwise push the new value to the array
-					const arrayConf = conf[key] == null ? [] : conf[key]!;
-					arrayConf.push(value);
+					// dtparams and dtoverlays need to be treated as a special case
+					if (key === 'dtparam') {
+						dtOverlays[currOverlay].push(value);
+					} else if (key === 'dtoverlay') {
+						// Assume that the first element is the overlay name
+						// we don't validate that the value is well formed
+						const [overlay, ...params] = value.split(',');
+
+						// Update the DTO for next dtparam
+						currOverlay = overlay;
+						if (dtOverlays[overlay] == null) {
+							dtOverlays[overlay] = [];
+						}
+
+						// Add params to the list
+						dtOverlays[overlay].push(...params);
+					} else {
+						// Otherwise push the new value to the array
+						const arrayConf = conf[key] == null ? [] : conf[key]!;
+						arrayConf.push(value);
+					}
 				}
 				continue;
 			}
@@ -122,20 +147,48 @@ export class ConfigTxt extends ConfigBackend {
 			}
 		}
 
+		// Convert the base overlay to global dtparams
+		const baseOverlay = dtOverlays[BASE_OVERLAY];
+		delete dtOverlays[BASE_OVERLAY];
+		if (baseOverlay.length > 0) {
+			conf.dtparam = baseOverlay;
+		}
+
+		// Convert dtoverlays to array format
+		const overlayEntries = Object.entries(dtOverlays);
+		if (overlayEntries.length > 0) {
+			conf.dtoverlay = overlayEntries.map(([overlay, params]) =>
+				[overlay, ...params].join(','),
+			);
+		}
+
 		return conf;
 	}
 
-	public async setBootConfig(opts: ConfigOptions): Promise<void> {
-		const confStatements = Object.entries(opts).flatMap(([key, value]) => {
-			if (key === 'initramfs') {
-				return `${key} ${value}`;
-			} else if (Array.isArray(value)) {
-				return value.map((entry) => `${key}=${entry}`);
-			} else {
-				return `${key}=${value}`;
+	public async setBootConfig(opts: ConfigTxtOptions): Promise<void> {
+		const confStatements = Object.entries(opts)
+			// Treat dtoverlays separately
+			.filter(([key]) => key !== 'dtoverlay')
+			.flatMap(([key, value]) => {
+				if (key === 'initramfs') {
+					return `${key} ${value}`;
+				} else if (Array.isArray(value)) {
+					return value.map((entry) => `${key}=${entry}`);
+				} else {
+					return `${key}=${value}`;
+				}
+			});
+
+		// Split dtoverlays from their params to avoid running into char limits
+		// and write at the end to prevent overriding the base overlay
+		if (opts.dtoverlay != null) {
+			for (const entry of opts.dtoverlay) {
+				const [overlay, ...params] = entry.split(',');
+				confStatements.push(`dtoverlay=${overlay}`);
+				confStatements.push(...params.map((p) => `dtparam=${p}`));
 			}
-		});
-		// TODO: split dtoverlay into dtparams
+		}
+
 		const confStr = `${confStatements.join('\n')}\n`;
 		await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, confStr);
 	}
