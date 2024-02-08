@@ -6,6 +6,46 @@ import log from '../../lib/supervisor-console';
 import { exists } from '../../lib/fs-utils';
 import * as hostUtils from '../../lib/host-utils';
 
+const ARRAY_CONFIGS = [
+	'dtparam',
+	'dtoverlay',
+	'device_tree_param',
+	'device_tree_overlay',
+	'gpio',
+] as const;
+
+type ArrayConfig = typeof ARRAY_CONFIGS[number];
+
+// Refinement on the ConfigOptions type
+// to indicate what properties are arrays
+type ConfigTxtOptions = ConfigOptions & {
+	[key in ArrayConfig]?: string[];
+};
+
+function isArrayConfig(x: string): x is ArrayConfig {
+	return x != null && ARRAY_CONFIGS.includes(x as any);
+}
+
+// The DTOverlays type is a collection of DtParams
+type DTParam = string;
+type DTOverlays = { [name: string]: DTParam[] };
+const BASE_OVERLAY = '';
+
+function isBaseParam(dtparam: string): boolean {
+	const match = /^([^=]+)=(.*)$/.exec(dtparam);
+	let key = dtparam;
+	if (match != null) {
+		key = match[1];
+	}
+
+	// These hardcoded params correspond to the params set
+	// in the default config.txt provided by balena for pi devices
+	if (['audio', 'i2c_arm', 'spi'].includes(key)) {
+		return true;
+	}
+	return false;
+}
+
 /**
  * A backend to handle Raspberry Pi host configuration
  *
@@ -16,7 +56,6 @@ import * as hostUtils from '../../lib/host-utils';
  * 	- {BALENA|RESIN}_HOST_CONFIG_device_tree_overlay = value | "value" | "value1","value2"
  * 	- {BALENA|RESIN}_HOST_CONFIG_gpio = value | "value" | "value1","value2"
  */
-
 export class ConfigTxt extends ConfigBackend {
 	private static bootConfigVarPrefix = `${constants.hostConfigVarPrefix}CONFIG_`;
 	private static bootConfigPath = hostUtils.pathOnBoot('config.txt');
@@ -25,13 +64,6 @@ export class ConfigTxt extends ConfigBackend {
 		'(?:' + _.escapeRegExp(ConfigTxt.bootConfigVarPrefix) + ')(.+)',
 	);
 
-	private static arrayConfigKeys = [
-		'dtparam',
-		'dtoverlay',
-		'device_tree_param',
-		'device_tree_overlay',
-		'gpio',
-	];
 	private static forbiddenConfigKeys = [
 		'disable_commandline_tags',
 		'cmdline',
@@ -69,39 +101,69 @@ export class ConfigTxt extends ConfigBackend {
 				'utf-8',
 			);
 		} else {
-			await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, '');
+			return {};
 		}
 
-		const conf: ConfigOptions = {};
+		const conf: ConfigTxtOptions = {};
 		const configStatements = configContents.split(/\r?\n/);
+
+		let currOverlay = BASE_OVERLAY;
+		const dtOverlays: DTOverlays = { [BASE_OVERLAY]: [] };
 
 		for (const configStr of configStatements) {
 			// Don't show warnings for comments and empty lines
-			const trimmed = _.trimStart(configStr);
+			const trimmed = configStr.trimStart();
 			if (trimmed.startsWith('#') || trimmed === '') {
 				continue;
 			}
+
+			// Try to split the line into key+value
 			let keyValue = /^([^=]+)=(.*)$/.exec(configStr);
 			if (keyValue != null) {
 				const [, key, value] = keyValue;
-				if (!ConfigTxt.arrayConfigKeys.includes(key)) {
+				if (!isArrayConfig(key)) {
+					// If key is not one of the array configs, just add it to the
+					// configuration
 					conf[key] = value;
 				} else {
-					if (conf[key] == null) {
-						conf[key] = [];
+					// dtparams and dtoverlays need to be treated as a special case
+					if (key === 'dtparam') {
+						// The specification allows multiple params in a line
+						const params = value.split(',');
+						params.forEach((param) => {
+							if (isBaseParam(param)) {
+								// We make sure to put the base param in the right overlays
+								// since RPI doesn't seem to be too strict about the ordering
+								// when it comes to these base params
+								dtOverlays[BASE_OVERLAY].push(value);
+							} else {
+								dtOverlays[currOverlay].push(value);
+							}
+						});
+					} else if (key === 'dtoverlay') {
+						// Assume that the first element is the overlay name
+						// we don't validate that the value is well formed
+						const [overlay, ...params] = value.split(',');
+
+						// Update the DTO for next dtparam
+						currOverlay = overlay;
+						if (dtOverlays[overlay] == null) {
+							dtOverlays[overlay] = [];
+						}
+
+						// Add params to the list
+						dtOverlays[overlay].push(...params);
+					} else {
+						// Otherwise push the new value to the array
+						const arrayConf = conf[key] == null ? [] : conf[key]!;
+						arrayConf.push(value);
 					}
-					const confArr = conf[key];
-					if (!Array.isArray(confArr)) {
-						throw new Error(
-							`Expected '${key}' to have a config array but got ${typeof confArr}`,
-						);
-					}
-					confArr.push(value);
 				}
 				continue;
 			}
 
-			// Try the next regex instead
+			// If the line does not match a key-value pair, we check
+			// if it is initramfs, otherwise ignore it
 			keyValue = /^(initramfs) (.+)/.exec(configStr);
 			if (keyValue != null) {
 				const [, key, value] = keyValue;
@@ -111,19 +173,48 @@ export class ConfigTxt extends ConfigBackend {
 			}
 		}
 
+		// Convert the base overlay to global dtparams
+		const baseOverlay = dtOverlays[BASE_OVERLAY];
+		delete dtOverlays[BASE_OVERLAY];
+		if (baseOverlay.length > 0) {
+			conf.dtparam = baseOverlay;
+		}
+
+		// Convert dtoverlays to array format
+		const overlayEntries = Object.entries(dtOverlays);
+		if (overlayEntries.length > 0) {
+			conf.dtoverlay = overlayEntries.map(([overlay, params]) =>
+				[overlay, ...params].join(','),
+			);
+		}
+
 		return conf;
 	}
 
-	public async setBootConfig(opts: ConfigOptions): Promise<void> {
-		const confStatements = _.flatMap(opts, (value, key) => {
-			if (key === 'initramfs') {
-				return `${key} ${value}`;
-			} else if (Array.isArray(value)) {
-				return value.map((entry) => `${key}=${entry}`);
-			} else {
-				return `${key}=${value}`;
+	public async setBootConfig(opts: ConfigTxtOptions): Promise<void> {
+		const confStatements = Object.entries(opts)
+			// Treat dtoverlays separately
+			.filter(([key]) => key !== 'dtoverlay')
+			.flatMap(([key, value]) => {
+				if (key === 'initramfs') {
+					return `${key} ${value}`;
+				} else if (Array.isArray(value)) {
+					return value.map((entry) => `${key}=${entry}`);
+				} else {
+					return `${key}=${value}`;
+				}
+			});
+
+		// Split dtoverlays from their params to avoid running into char limits
+		// and write at the end to prevent overriding the base overlay
+		if (opts.dtoverlay != null) {
+			for (const entry of opts.dtoverlay) {
+				const [overlay, ...params] = entry.split(',');
+				confStatements.push(`dtoverlay=${overlay}`);
+				confStatements.push(...params.map((p) => `dtparam=${p}`));
 			}
-		});
+		}
+
 		const confStr = `${confStatements.join('\n')}\n`;
 		await hostUtils.writeToBoot(ConfigTxt.bootConfigPath, confStr);
 	}
@@ -141,7 +232,7 @@ export class ConfigTxt extends ConfigBackend {
 	}
 
 	public processConfigVarValue(key: string, value: string): string | string[] {
-		if (ConfigTxt.arrayConfigKeys.includes(key)) {
+		if (isArrayConfig(key)) {
 			if (!value.startsWith('"')) {
 				return [value];
 			} else {
