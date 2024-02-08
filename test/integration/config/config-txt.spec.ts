@@ -78,6 +78,42 @@ describe('config/config-txt', () => {
 		await tfs.restore();
 	});
 
+	it('correctly parses default params on config.txt', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('config.txt')]: stripIndent`
+	        initramfs initramf.gz 0x00800000
+					dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
+					dtparam=gpio_out_pin=17
+					enable_uart=1
+					avoid_warnings=1
+					dtparam=i2c_arm=on
+					dtparam=spi=on
+					dtparam=audio=on
+					dtoverlay=ads7846
+					gpu_mem=16
+					hdmi_force_hotplug:1=1
+					`,
+		}).enable();
+
+		const configTxt = new ConfigTxt();
+
+		// Will try to parse /test/data/mnt/boot/config.txt
+		await expect(configTxt.getBootConfig()).to.eventually.deep.equal({
+			dtparam: ['i2c_arm=on', 'spi=on', 'audio=on'],
+			dtoverlay: [
+				'lirc-rpi,gpio_out_pin=17,gpio_in_pin=13,gpio_out_pin=17',
+				'ads7846',
+			],
+			enable_uart: '1',
+			avoid_warnings: '1',
+			gpu_mem: '16',
+			initramfs: 'initramf.gz 0x00800000',
+			'hdmi_force_hotplug:1': '1',
+		});
+
+		await tfs.restore();
+	});
+
 	it('maintains ordering of dtoverlays and dtparams', async () => {
 		const tfs = await testfs({
 			[hostUtils.pathOnBoot('config.txt')]: stripIndent`

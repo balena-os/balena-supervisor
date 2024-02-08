@@ -31,6 +31,21 @@ type DTParam = string;
 type DTOverlays = { [name: string]: DTParam[] };
 const BASE_OVERLAY = '';
 
+function isBaseParam(dtparam: string): boolean {
+	const match = /^([^=]+)=(.*)$/.exec(dtparam);
+	let key = dtparam;
+	if (match != null) {
+		key = match[1];
+	}
+
+	// These hardcoded params correspond to the params set
+	// in the default config.txt provided by balena for pi devices
+	if (['audio', 'i2c_arm', 'spi'].includes(key)) {
+		return true;
+	}
+	return false;
+}
+
 /**
  * A backend to handle Raspberry Pi host configuration
  *
@@ -113,7 +128,18 @@ export class ConfigTxt extends ConfigBackend {
 				} else {
 					// dtparams and dtoverlays need to be treated as a special case
 					if (key === 'dtparam') {
-						dtOverlays[currOverlay].push(value);
+						// The specification allows multiple params in a line
+						const params = value.split(',');
+						params.forEach((param) => {
+							if (isBaseParam(param)) {
+								// We make sure to put the base param in the right overlays
+								// since RPI doesn't seem to be too strict about the ordering
+								// when it comes to these base params
+								dtOverlays[BASE_OVERLAY].push(value);
+							} else {
+								dtOverlays[currOverlay].push(value);
+							}
+						});
 					} else if (key === 'dtoverlay') {
 						// Assume that the first element is the overlay name
 						// we don't validate that the value is well formed
