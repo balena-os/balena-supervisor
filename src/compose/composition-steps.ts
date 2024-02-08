@@ -11,6 +11,7 @@ import * as volumeManager from './volume-manager';
 import type Volume from './volume';
 import * as commitStore from './commit';
 import { checkTruthy } from '../lib/validation';
+import * as updateLock from '../lib/update-lock';
 import type { DeviceLegacyReport } from '../types/state';
 
 interface BaseCompositionStepArgs {
@@ -94,6 +95,12 @@ interface CompositionStepArgs {
 	};
 	ensureSupervisorNetwork: object;
 	noop: object;
+	takeLock: {
+		appId: number;
+	};
+	releaseLock: {
+		appId: number;
+	};
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;
@@ -275,6 +282,12 @@ export function getExecutors(app: {
 		},
 		noop: async () => {
 			/* async noop */
+		},
+		takeLock: async () => {
+			// TODO
+		},
+		releaseLock: async (step) => {
+			await updateLock.releaseLock(step.appId);
 		},
 	};
 

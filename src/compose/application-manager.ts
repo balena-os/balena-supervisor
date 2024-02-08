@@ -17,7 +17,7 @@ import {
 	ContractViolationError,
 	InternalInconsistencyError,
 } from '../lib/errors';
-import { lock } from '../lib/update-lock';
+import { getServicesLockedByAppId, lock } from '../lib/update-lock';
 import { checkTruthy } from '../lib/validation';
 
 import App from './app';
@@ -149,6 +149,7 @@ export async function getRequiredSteps(
 		downloading,
 		availableImages,
 		containerIdsByAppId,
+		locksTaken: getServicesLockedByAppId(),
 	});
 }
 
@@ -165,6 +166,7 @@ export async function inferNextSteps(
 		containerIdsByAppId = {} as {
 			[appId: number]: UpdateState['containerIds'];
 		},
+		locksTaken = getServicesLockedByAppId(),
 	} = {},
 ) {
 	const currentAppIds = Object.keys(currentApps).map((i) => parseInt(i, 10));
@@ -216,6 +218,7 @@ export async function inferNextSteps(
 							availableImages,
 							containerIds: containerIdsByAppId[id],
 							downloading,
+							locksTaken,
 						},
 						targetApps[id],
 					),
@@ -229,6 +232,7 @@ export async function inferNextSteps(
 						keepVolumes,
 						downloading,
 						containerIds: containerIdsByAppId[id],
+						locksTaken,
 					}),
 				);
 			}
@@ -252,6 +256,7 @@ export async function inferNextSteps(
 							availableImages,
 							containerIds: containerIdsByAppId[id] ?? {},
 							downloading,
+							locksTaken,
 						},
 						targetApps[id],
 					),

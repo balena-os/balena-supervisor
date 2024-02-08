@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import type { Image } from '~/src/compose/images';
 import Network from '~/src/compose/network';
 import Volume from '~/src/compose/volume';
+import { LocksTakenMap } from '~/lib/update-lock';
 
 import {
 	createService,
@@ -17,6 +18,7 @@ const defaultContext = {
 	availableImages: [] as Image[],
 	containerIds: {},
 	downloading: [] as string[],
+	locksTaken: new LocksTakenMap(),
 };
 
 describe('compose/app', () => {
@@ -1669,6 +1671,95 @@ describe('compose/app', () => {
 				.that.deep.includes({ name: 'image2' });
 
 			expectNoStep('kill', steps);
+		});
+	});
+
+	describe('update lock state behavior', () => {
+		it('should infer a releaseLock step if there are locks to be released before settling target state', async () => {
+			const services = [
+				await createService({ serviceName: 'server' }),
+				await createService({ serviceName: 'client' }),
+			];
+			const current = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['server', 'client'] },
+					]),
+				},
+				target,
+			);
+			const [releaseLockStep] = expectSteps('releaseLock', steps, 1);
+			expect(releaseLockStep).to.have.property('appId').that.equals(1);
+
+			// Even if not all the locks are taken, releaseLock should be inferred
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['server'] }]),
+				},
+				target,
+			);
+			const [releaseLockStep2] = expectSteps('releaseLock', steps2, 1);
+			expect(releaseLockStep2).to.have.property('appId').that.equals(1);
+		});
+
+		it('should not infer a releaseLock step if there are no locks to be released', async () => {
+			const services = [
+				await createService({ serviceName: 'server' }),
+				await createService({ serviceName: 'client' }),
+			];
+			const current = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			expect(steps).to.have.length(0);
+		});
+
+		it('should infer a releaseLock step for the current appId only', async () => {
+			const services = [
+				await createService({ serviceName: 'server' }),
+				await createService({ serviceName: 'client' }),
+			];
+			const current = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+			});
+			const target = createApp({
+				services,
+				networks: [DEFAULT_NETWORK],
+				isTarget: true,
+			});
+
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['server', 'client'] },
+						{ appId: 2, services: ['main'] },
+					]),
+				},
+				target,
+			);
+			const [releaseLockStep] = expectSteps('releaseLock', steps, 1);
+			expect(releaseLockStep).to.have.property('appId').that.equals(1);
 		});
 	});
 });

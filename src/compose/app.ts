@@ -25,6 +25,7 @@ import { checkTruthy } from '../lib/validation';
 import type { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
+import type { LocksTakenMap } from '../lib/update-lock';
 
 export interface AppConstructOpts {
 	appId: number;
@@ -43,6 +44,7 @@ export interface UpdateState {
 	availableImages: Image[];
 	containerIds: Dictionary<string>;
 	downloading: string[];
+	locksTaken: LocksTakenMap;
 }
 
 interface ChangingPair<T> {
@@ -166,17 +168,29 @@ export class App {
 			),
 		);
 
-		if (
-			steps.length === 0 &&
-			target.commit != null &&
-			this.commit !== target.commit
-		) {
-			steps.push(
-				generateStep('updateCommit', {
-					target: target.commit,
-					appId: this.appId,
-				}),
-			);
+		if (steps.length === 0) {
+			// Update commit in db if different
+			if (target.commit != null && this.commit !== target.commit) {
+				steps.push(
+					generateStep('updateCommit', {
+						target: target.commit,
+						appId: this.appId,
+					}),
+				);
+			} else if (
+				target.services.length > 0 &&
+				target.services.some(({ appId, serviceName }) =>
+					state.locksTaken.isLocked(appId, serviceName),
+				)
+			) {
+				// Release locks for current services before settling state.
+				// Current services should be the same as target services at this point.
+				steps.push(
+					generateStep('releaseLock', {
+						appId: target.appId,
+					}),
+				);
+			}
 		}
 		return steps;
 	}

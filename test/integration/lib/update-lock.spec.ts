@@ -3,12 +3,15 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import { testfs } from 'mocha-pod';
 import type { TestFs } from 'mocha-pod';
+import { setTimeout } from 'timers/promises';
 
 import * as updateLock from '~/lib/update-lock';
 import { UpdatesLockedError } from '~/lib/errors';
 import * as config from '~/src/config';
 import * as lockfile from '~/lib/lockfile';
 import { pathOnRoot, pathOnState } from '~/lib/host-utils';
+import { mkdirp } from '~/lib/fs-utils';
+import { takeGlobalLockRW } from '~/lib/process-lock';
 
 describe('lib/update-lock', () => {
 	describe('abortIfHUPInProgress', () => {
@@ -351,6 +354,114 @@ describe('lib/update-lock', () => {
 
 			// Cleanup lockfiles
 			await Promise.all(invalidPaths.map((p) => lockfile.unlock(p)));
+		});
+	});
+
+	describe('composition step actions', () => {
+		const lockdir = pathOnRoot(updateLock.BASE_LOCK_DIR);
+		const serviceLockPaths = {
+			1: [
+				`${lockdir}/1/server/updates.lock`,
+				`${lockdir}/1/server/resin-updates.lock`,
+				`${lockdir}/1/client/updates.lock`,
+				`${lockdir}/1/client/resin-updates.lock`,
+			],
+			2: [
+				`${lockdir}/2/main/updates.lock`,
+				`${lockdir}/2/main/resin-updates.lock`,
+			],
+		};
+
+		describe('takeLock', () => {
+			// TODO
+		});
+
+		describe('releaseLock', () => {
+			let testFs: TestFs.Enabled;
+
+			beforeEach(async () => {
+				testFs = await testfs(
+					{},
+					{ cleanup: [path.join(lockdir, '*', '*', '**.lock')] },
+				).enable();
+				// TODO: Update mocha-pod to work with creating empty directories
+				await mkdirp(`${lockdir}/1/server`);
+				await mkdirp(`${lockdir}/1/client`);
+				await mkdirp(`${lockdir}/2/main`);
+			});
+
+			afterEach(async () => {
+				await testFs.restore();
+				await fs.rm(`${lockdir}/1`, { recursive: true });
+				await fs.rm(`${lockdir}/2`, { recursive: true });
+			});
+
+			it('releases locks for an appId', async () => {
+				// Lock services for appId 1
+				for (const lockPath of serviceLockPaths[1]) {
+					await lockfile.lock(lockPath);
+				}
+				// Sanity check that locks are taken & tracked by Supervisor
+				expect(lockfile.getLocksTaken()).to.deep.include.members(
+					serviceLockPaths[1],
+				);
+				// Release locks for appId 1
+				await updateLock.releaseLock(1);
+				// Locks should have been released
+				expect(lockfile.getLocksTaken()).to.have.length(0);
+				// Double check that the lockfiles are removed
+				expect(await fs.readdir(`${lockdir}/1/server`)).to.have.length(0);
+				expect(await fs.readdir(`${lockdir}/1/client`)).to.have.length(0);
+			});
+
+			it('does not error if there are no locks to release', async () => {
+				expect(lockfile.getLocksTaken()).to.have.length(0);
+				// Should not error
+				await updateLock.releaseLock(1);
+				expect(lockfile.getLocksTaken()).to.have.length(0);
+			});
+
+			it('ignores locks outside of appId scope', async () => {
+				const lockPath = `${lockdir}/2/main/updates.lock`;
+				// Lock services outside of appId scope
+				await lockfile.lock(lockPath);
+				// Sanity check that locks are taken & tracked by Supervisor
+				expect(lockfile.getLocksTaken()).to.deep.include.members([lockPath]);
+				// Release locks for appId 1
+				await updateLock.releaseLock(1);
+				// Locks for appId 2 should not have been released
+				expect(lockfile.getLocksTaken()).to.deep.include.members([lockPath]);
+				// Double check that the lockfile is still there
+				expect(await fs.readdir(`${lockdir}/2/main`)).to.have.length(1);
+				// Clean up the lockfile
+				await lockfile.unlock(lockPath);
+			});
+
+			it('waits to release locks until resource write lock is taken', async () => {
+				// Lock services for appId 1
+				for (const lockPath of serviceLockPaths[1]) {
+					await lockfile.lock(lockPath);
+				}
+				// Sanity check that locks are taken & tracked by Supervisor
+				expect(lockfile.getLocksTaken()).to.deep.include.members(
+					serviceLockPaths[1],
+				);
+				// Take the write lock for appId 1
+				const release = await takeGlobalLockRW(1);
+				// Queue releaseLock, won't resolve until the write lock is released
+				const releaseLockPromise = updateLock.releaseLock(1);
+				// Locks should have not been released even after waiting
+				await setTimeout(500);
+				expect(lockfile.getLocksTaken()).to.deep.include.members(
+					serviceLockPaths[1],
+				);
+				// Release the write lock
+				release();
+				// Release locks for appId 1 should resolve
+				await releaseLockPromise;
+				// Locks should have been released
+				expect(lockfile.getLocksTaken()).to.have.length(0);
+			});
 		});
 	});
 });

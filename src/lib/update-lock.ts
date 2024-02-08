@@ -55,7 +55,11 @@ export function abortIfHUPInProgress({
 	});
 }
 
-// Unlock all lockfiles of an appId | appUuid, then release resources.
+/**
+ * Unlock all lockfiles of an appId | appUuid, then release resources.
+ * Meant for use in update-lock module only as as it assumes that a
+ * write lock has been acquired.
+ */
 async function dispose(
 	appIdentifier: string | number,
 	release: () => void,
@@ -70,6 +74,15 @@ async function dispose(
 		// Release final resource
 		release();
 	}
+}
+
+/**
+ * Composition step used by Supervisor compose module.
+ * Release all locks for an appId | appUuid.
+ */
+export async function releaseLock(appId: number) {
+	const release = await takeGlobalLockRW(appId);
+	await dispose(appId, release);
 }
 
 /**
