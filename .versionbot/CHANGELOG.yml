@@ -1,4 +1,61 @@
 - commits:
+    - subject: Add special case for base DTO params on RPI config
+      hash: 6e6a796da5ecc846248eae4c8495bc626964c038
+      body: >
+        While ordering is important in the RPI firmware configuration file
+        (config.txt),
+
+        some dt params are by default considered part of the base dt overlay
+
+        if they are not used by other overlays.
+
+        Unfortunately the [list of dtparams](https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README#L133)
+
+        is too long to add all of them as exceptions, but we can add the params
+
+        used in the default config.txt provided in OS images, to avoid reboots
+
+        when updating to this new supervisor and correctly parsing the
+
+        provisioning config.txt as variables.
+
+
+        While this addition handles most common scenarios, there is still a
+
+        chance a user may have use other base overlay dt params in the initial
+
+        config, in which case those will be interpreted according to the
+
+        relative ordering
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+    - subject: Fix processing of dtoverlay/dtparams on config.txt
+      hash: 9546a1a3b1b919649dc401b63f0ff0dedad918b0
+      body: |
+        DT overlays and DT params need to be consumed in the order that they
+        appear on the file. DT params apply to the last dtoverlay defined on the
+        file, or to the base overlay.
+
+        This commit updates config.txt parsing to consider this ordering, and it
+        also ensures global dtparams are written first so they cannot be
+        overriden by later overlays.
+
+        Because of the more strict parsing method, it is possible that existing
+        HOST_CONFIG vars do not match the interpretation of the parser. If
+        that's the case, the supervisor will re-apply the target state which
+        will cause the device to reboot.
+      footer:
+        Change-type: major
+        change-type: major
+      author: Felipe Lalanne
+      nested: []
+  version: 16.0.0
+  title: ""
+  date: 2024-02-08T21:45:41.648Z
+- commits:
     - subject: Respect update strategies app-wide instead of at the service level
       hash: 3afcef296914840268356f7f98bc4bd8cce9427c
       body: >
