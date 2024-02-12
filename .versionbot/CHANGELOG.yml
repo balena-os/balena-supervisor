@@ -1,4 +1,18 @@
 - commits:
+    - subject: Update balena-io/deploy-to-balena-action to v2.0.27
+      hash: ac12d9a50c1569229ff97459b7306cd5f7f4faad
+      body: Update balena-io/deploy-to-balena-action
+      footer:
+        Changelog-entry: Update balena-io/deploy-to-balena-action to v2.0.27
+        changelog-entry: Update balena-io/deploy-to-balena-action to v2.0.27
+        Change-type: patch
+        change-type: patch
+      author: Self-hosted Renovate Bot
+      nested: []
+  version: 16.0.1
+  title: ""
+  date: 2024-02-12T19:56:17.362Z
+- commits:
     - subject: Add special case for base DTO params on RPI config
       hash: 6e6a796da5ecc846248eae4c8495bc626964c038
       body: >
