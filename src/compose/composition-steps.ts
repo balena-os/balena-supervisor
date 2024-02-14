@@ -97,6 +97,7 @@ interface CompositionStepArgs {
 	noop: object;
 	takeLock: {
 		appId: number;
+		services: string[];
 	};
 	releaseLock: {
 		appId: number;
@@ -283,8 +284,8 @@ export function getExecutors(app: {
 		noop: async () => {
 			/* async noop */
 		},
-		takeLock: async () => {
-			// TODO
+		takeLock: async (step) => {
+			await updateLock.takeLock(step.appId, step.services);
 		},
 		releaseLock: async (step) => {
 			await updateLock.releaseLock(step.appId);

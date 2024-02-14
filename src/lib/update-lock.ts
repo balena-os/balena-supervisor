@@ -8,6 +8,7 @@ import {
 	InternalInconsistencyError,
 } from './errors';
 import { pathOnRoot, pathExistsOnState } from './host-utils';
+import { mkdirp } from './fs-utils';
 import * as config from '../config';
 import * as lockfile from './lockfile';
 import { NumericIdentifier, StringIdentifier, DockerName } from '../types';
@@ -72,6 +73,31 @@ async function dispose(
 		await Promise.all(locks.map((l) => lockfile.unlock(l)));
 	} finally {
 		// Release final resource
+		release();
+	}
+}
+
+/**
+ * Composition step used by Supervisor compose module.
+ * Take all locks for an appId | appUuid, creating directories if they don't exist.
+ */
+export async function takeLock(appId: number, services: string[]) {
+	const release = await takeGlobalLockRW(appId);
+	try {
+		const actuallyLocked: string[] = [];
+		// Filter out services that already have Supervisor-taken locks.
+		// This needs to be done after taking the appId write lock to avoid
+		// race conditions with locking.
+		const servicesWithoutLock = services.filter(
+			(svc) => !getServicesLockedByAppId().isLocked(appId, svc),
+		);
+		for (const service of servicesWithoutLock) {
+			await mkdirp(pathOnRoot(lockPath(appId, service)));
+			await lockService(appId, service);
+			actuallyLocked.push(service);
+		}
+		return actuallyLocked;
+	} finally {
 		release();
 	}
 }
