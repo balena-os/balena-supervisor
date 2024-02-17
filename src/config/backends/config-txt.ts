@@ -157,6 +157,9 @@ export class ConfigTxt extends ConfigBackend {
 						// Otherwise push the new value to the array
 						const arrayConf = conf[key] == null ? [] : conf[key]!;
 						arrayConf.push(value);
+						if (conf[key] == null) {
+							conf[key] = arrayConf;
+						}
 					}
 				}
 				continue;

@@ -17,6 +17,8 @@ describe('config/config-txt', () => {
 					dtoverlay=ads7846
 					enable_uart=1
 					avoid_warnings=1
+					gpio=8=pd
+					gpio=17=op,dh
 					gpu_mem=16
 					hdmi_force_hotplug:1=1
 					dtoverlay=lirc-rpi,gpio_out_pin=17,gpio_in_pin=13
@@ -34,6 +36,7 @@ describe('config/config-txt', () => {
 			],
 			enable_uart: '1',
 			avoid_warnings: '1',
+			gpio: ['8=pd', '17=op,dh'],
 			gpu_mem: '16',
 			initramfs: 'initramf.gz 0x00800000',
 			'hdmi_force_hotplug:1': '1',
