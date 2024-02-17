@@ -1,4 +1,24 @@
 - commits:
+    - subject: Patch config.txt backend to return array configs correctly
+      hash: e22253ce6ebc40e865b5bc26844901026f04ec4e
+      body: |
+        Previously, getBootConfig() of the config.txt backend was omitting
+        array configurations such as gpio settings, thus resulting in the SV
+        mistakenly assuming that boot config had not been applied, since gpio
+        would not be in current config.txt config but would be in target config.
+        This resulted in SV entering an infinite loop of attempting to apply the
+        gpio config when it wasn't necessary.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.0.2
+  title: ""
+  date: 2024-02-17T02:44:51.708Z
+- commits:
     - subject: Update balena-io/deploy-to-balena-action to v2.0.27
       hash: ac12d9a50c1569229ff97459b7306cd5f7f4faad
       body: Update balena-io/deploy-to-balena-action
