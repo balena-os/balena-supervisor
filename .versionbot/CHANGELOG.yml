@@ -1,4 +1,20 @@
 - commits:
+    - subject: Patch default dtparam handling in config.txt
+      hash: 3fd035c5bdc88993af66c5f2bc3a6300c44f4ed4
+      body: |
+        This commit completes the list of default / board-wide dtparams
+        to include some `baudrate` and `vc` i2c params.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 16.0.3
+  title: ""
+  date: 2024-02-21T21:03:18.619Z
+- commits:
     - subject: Patch config.txt backend to return array configs correctly
       hash: e22253ce6ebc40e865b5bc26844901026f04ec4e
       body: |
