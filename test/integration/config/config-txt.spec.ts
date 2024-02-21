@@ -89,10 +89,15 @@ describe('config/config-txt', () => {
 					dtparam=gpio_out_pin=17
 					enable_uart=1
 					avoid_warnings=1
-					dtparam=i2c_arm=on
 					dtparam=spi=on
 					dtparam=audio=on
+					dtparam=i2c=on
+					dtparam=i2c_arm=on
+					dtparam=i2c_vc=on
+					dtparam=i2c_baudrate=100000
+					dtparam=i2c_arm_baudrate=100000
 					dtoverlay=ads7846
+					dtparam=i2c_vc_baudrate=100000
 					gpu_mem=16
 					hdmi_force_hotplug:1=1
 					`,
@@ -102,7 +107,16 @@ describe('config/config-txt', () => {
 
 		// Will try to parse /test/data/mnt/boot/config.txt
 		await expect(configTxt.getBootConfig()).to.eventually.deep.equal({
-			dtparam: ['i2c_arm=on', 'spi=on', 'audio=on'],
+			dtparam: [
+				'spi=on',
+				'audio=on',
+				'i2c=on',
+				'i2c_arm=on',
+				'i2c_vc=on',
+				'i2c_baudrate=100000',
+				'i2c_arm_baudrate=100000',
+				'i2c_vc_baudrate=100000',
+			],
 			dtoverlay: [
 				'lirc-rpi,gpio_out_pin=17,gpio_in_pin=13,gpio_out_pin=17',
 				'ads7846',
