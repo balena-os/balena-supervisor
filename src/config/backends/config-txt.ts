@@ -40,7 +40,19 @@ function isBaseParam(dtparam: string): boolean {
 
 	// These hardcoded params correspond to the params set
 	// in the default config.txt provided by balena for pi devices
-	if (['audio', 'i2c_arm', 'spi'].includes(key)) {
+	// See: https://www.raspberrypi.com/documentation/computers/configuration.html#part3.3
+	if (
+		[
+			'audio',
+			'spi',
+			'i2c',
+			'i2c_arm',
+			'i2c_vc',
+			'i2c_baudrate',
+			'i2c_arm_baudrate',
+			'i2c_vc_baudrate',
+		].includes(key)
+	) {
 		return true;
 	}
 	return false;
