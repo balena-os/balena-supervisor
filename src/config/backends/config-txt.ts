@@ -26,9 +26,9 @@ function isArrayConfig(x: string): x is ArrayConfig {
 	return x != null && ARRAY_CONFIGS.includes(x as any);
 }
 
-// The DTOverlays type is a collection of DtParams
-type DTParam = string;
-type DTOverlays = { [name: string]: DTParam[] };
+// We use the empty string as the identifier of the base
+// overlay to allow handling the case where the user defines an
+// empty overlay as `dtoverlay=`
 const BASE_OVERLAY = '';
 
 function isBaseParam(dtparam: string): boolean {
@@ -119,8 +119,10 @@ export class ConfigTxt extends ConfigBackend {
 		const conf: ConfigTxtOptions = {};
 		const configStatements = configContents.split(/\r?\n/);
 
-		let currOverlay = BASE_OVERLAY;
-		const dtOverlays: DTOverlays = { [BASE_OVERLAY]: [] };
+		const baseParams: string[] = [];
+		const overlayQueue: Array<[string, string[]]> = [
+			[BASE_OVERLAY, baseParams],
+		];
 
 		for (const configStr of configStatements) {
 			// Don't show warnings for comments and empty lines
@@ -140,6 +142,7 @@ export class ConfigTxt extends ConfigBackend {
 				} else {
 					// dtparams and dtoverlays need to be treated as a special case
 					if (key === 'dtparam') {
+						const [, currParams] = overlayQueue[overlayQueue.length - 1];
 						// The specification allows multiple params in a line
 						const params = value.split(',');
 						params.forEach((param) => {
@@ -147,9 +150,9 @@ export class ConfigTxt extends ConfigBackend {
 								// We make sure to put the base param in the right overlays
 								// since RPI doesn't seem to be too strict about the ordering
 								// when it comes to these base params
-								dtOverlays[BASE_OVERLAY].push(value);
+								baseParams.push(value);
 							} else {
-								dtOverlays[currOverlay].push(value);
+								currParams.push(value);
 							}
 						});
 					} else if (key === 'dtoverlay') {
@@ -157,21 +160,15 @@ export class ConfigTxt extends ConfigBackend {
 						// we don't validate that the value is well formed
 						const [overlay, ...params] = value.split(',');
 
-						// Update the DTO for next dtparam
-						currOverlay = overlay;
-						if (dtOverlays[overlay] == null) {
-							dtOverlays[overlay] = [];
-						}
-
-						// Add params to the list
-						dtOverlays[overlay].push(...params);
+						// A new dtoverlay statement means we add a new entry to the
+						// queue with the given params list
+						overlayQueue.push([overlay, params]);
 					} else {
 						// Otherwise push the new value to the array
-						const arrayConf = conf[key] == null ? [] : conf[key]!;
-						arrayConf.push(value);
 						if (conf[key] == null) {
-							conf[key] = arrayConf;
+							conf[key] = [];
 						}
+						conf[key]!.push(value);
 					}
 				}
 				continue;
@@ -188,19 +185,16 @@ export class ConfigTxt extends ConfigBackend {
 			}
 		}
 
-		// Convert the base overlay to global dtparams
-		const baseOverlay = dtOverlays[BASE_OVERLAY];
-		delete dtOverlays[BASE_OVERLAY];
-		if (baseOverlay.length > 0) {
-			conf.dtparam = baseOverlay;
-		}
-
-		// Convert dtoverlays to array format
-		const overlayEntries = Object.entries(dtOverlays);
-		if (overlayEntries.length > 0) {
-			conf.dtoverlay = overlayEntries.map(([overlay, params]) =>
-				[overlay, ...params].join(','),
-			);
+		for (const [overlay, params] of overlayQueue) {
+			// Convert the base overlay to global dtparams
+			if (overlay === BASE_OVERLAY && params.length > 0) {
+				conf.dtparam = conf.dtparam != null ? conf.dtparam : [];
+				conf.dtparam.push(...params);
+			} else if (overlay !== BASE_OVERLAY) {
+				// Convert dtoverlays to array format
+				conf.dtoverlay = conf.dtoverlay != null ? conf.dtoverlay : [];
+				conf.dtoverlay.push([overlay, ...params].join(','));
+			}
 		}
 
 		return conf;

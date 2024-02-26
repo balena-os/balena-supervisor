@@ -45,6 +45,52 @@ describe('config/config-txt', () => {
 		await tfs.restore();
 	});
 
+	it('correctly parses a config.txt file with repeated overlays', async () => {
+		const tfs = await testfs({
+			[hostUtils.pathOnBoot('config.txt')]: stripIndent`
+	        gpu_mem=64
+					avoid_warnings=1
+					dtoverlay=vc4-kms-v3d
+					dtoverlay=ads1015
+					dtparam=addr=0x48
+					dtparam=cha_cfg=4
+					dtparam=chb_cfg=5
+					dtparam=chc_cfg=6
+					dtparam=chd_cfg=7
+					dtoverlay=ads1015
+					dtparam=addr=0x49
+					dtparam=chc_enable=false
+					dtparam=chd_enable=false
+					dtparam=cha_cfg=0
+					dtparam=chb_cfg=3
+					dtparam=i2c_arm=on
+					dtparam=spi=on
+					dtparam=audio=on
+					enable_uart=0
+					gpio=8=pd
+					gpio=17=op,dh
+					`,
+		}).enable();
+
+		const configTxt = new ConfigTxt();
+
+		// Will try to parse /test/data/mnt/boot/config.txt
+		await expect(configTxt.getBootConfig()).to.eventually.deep.equal({
+			dtparam: ['i2c_arm=on', 'spi=on', 'audio=on'],
+			dtoverlay: [
+				'vc4-kms-v3d',
+				'ads1015,addr=0x48,cha_cfg=4,chb_cfg=5,chc_cfg=6,chd_cfg=7',
+				'ads1015,addr=0x49,chc_enable=false,chd_enable=false,cha_cfg=0,chb_cfg=3',
+			],
+			enable_uart: '0',
+			avoid_warnings: '1',
+			gpio: ['8=pd', '17=op,dh'],
+			gpu_mem: '64',
+		});
+
+		await tfs.restore();
+	});
+
 	it('correctly parses a config.txt file with an empty overlay', async () => {
 		const tfs = await testfs({
 			[hostUtils.pathOnBoot('config.txt')]: stripIndent`
@@ -55,6 +101,7 @@ describe('config/config-txt', () => {
 					avoid_warnings=1
 					dtoverlay=
 					dtparam=i2c=on
+					dtparam=lala=on
 					dtparam=audio=on
 					dtoverlay=ads7846
 					gpu_mem=16
@@ -66,7 +113,7 @@ describe('config/config-txt', () => {
 
 		// Will try to parse /test/data/mnt/boot/config.txt
 		await expect(configTxt.getBootConfig()).to.eventually.deep.equal({
-			dtparam: ['i2c=on', 'audio=on'],
+			dtparam: ['i2c=on', 'audio=on', 'lala=on'],
 			dtoverlay: [
 				'lirc-rpi,gpio_out_pin=17,gpio_in_pin=13,gpio_out_pin=17',
 				'ads7846',
