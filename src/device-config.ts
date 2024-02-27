@@ -5,9 +5,8 @@ import { promises as fs } from 'fs';
 import * as config from './config';
 import * as db from './db';
 import * as logger from './logger';
-import * as dbus from './lib/dbus';
+import * as network from './network';
 import { EnvVarObject } from './types';
-import { UnitNotLoadedError } from './lib/errors';
 import { checkInt, checkTruthy } from './lib/validation';
 import log from './lib/supervisor-console';
 import * as configUtils from './config/utils';
@@ -17,8 +16,6 @@ import { ConfigBackend } from './config/backends/backend';
 import { Odmdata } from './config/backends/odmdata';
 import * as fsUtils from './lib/fs-utils';
 import { pathOnRoot } from './lib/host-utils';
-
-const vpnServiceName = 'openvpn';
 
 // This indicates the file on the host /tmp directory that
 // marks the need for a reboot. Since reboot is only triggered for now
@@ -99,7 +96,7 @@ const actionExecutors: DeviceActionExecutors = {
 			logger.logConfigChange(logValue);
 		}
 		try {
-			await setVPNEnabled(step.target);
+			await network.setVPNEnabled(step.target);
 			if (!initial) {
 				logger.logConfigChange(logValue, { success: true });
 			}
@@ -304,7 +301,7 @@ export async function getCurrent(): Promise<Dictionary<string>> {
 		currentConf[envVarName] = confValue != null ? confValue.toString() : '';
 	}
 	// Add VPN information
-	currentConf['SUPERVISOR_VPN_CONTROL'] = (await isVPNEnabled())
+	currentConf['SUPERVISOR_VPN_CONTROL'] = (await network.isVPNEnabled())
 		? 'true'
 		: 'false';
 	// Get list of configurable backends
@@ -691,27 +688,6 @@ export async function setBootConfig(
 			'Apply boot config error',
 		);
 		throw err;
-	}
-}
-
-async function isVPNEnabled(): Promise<boolean> {
-	try {
-		const activeState = await dbus.serviceActiveState(vpnServiceName);
-		return !['inactive', 'deactivating'].includes(activeState);
-	} catch (e: any) {
-		if (UnitNotLoadedError(e)) {
-			return false;
-		}
-		throw e;
-	}
-}
-
-async function setVPNEnabled(value: string | boolean = true) {
-	const enable = checkTruthy(value);
-	if (enable) {
-		await dbus.startService(vpnServiceName);
-	} else {
-		await dbus.stopService(vpnServiceName);
 	}
 }
 

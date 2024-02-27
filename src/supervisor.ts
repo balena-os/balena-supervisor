@@ -12,7 +12,7 @@ import { initializeContractRequirements } from './lib/contracts';
 import { normaliseLegacyDatabase } from './lib/legacy';
 import * as osRelease from './lib/os-release';
 import log from './lib/supervisor-console';
-import version = require('./lib/supervisor-version');
+import { supervisorVersion } from './lib/supervisor-version';
 import * as avahi from './lib/avahi';
 import * as firewall from './lib/firewall';
 
@@ -32,7 +32,7 @@ export class Supervisor {
 	private api: SupervisorAPI;
 
 	public async init() {
-		log.info(`Supervisor v${version} starting up...`);
+		log.info(`Supervisor v${supervisorVersion} starting up...`);
 
 		await db.initialized();
 		await config.initialized();
@@ -43,7 +43,7 @@ export class Supervisor {
 		const conf = await config.getMany(startupConfigFields);
 
 		initializeContractRequirements({
-			supervisorVersion: version,
+			supervisorVersion,
 			deviceType: await config.get('deviceType'),
 			deviceArch: await config.get('deviceArch'),
 			l4tVersion: await osRelease.getL4tVersion(),

@@ -13,6 +13,7 @@ import {
 	NotFoundError,
 	BadRequestError,
 } from '~/lib/errors';
+import { supervisorVersion } from '~/src/lib/supervisor-version';
 
 // All routes that require Authorization are integration tests due to
 // the api-key module relying on the database.
@@ -635,6 +636,299 @@ describe('device-api/v2', () => {
 				.send({ serviceName: 'test' })
 				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
 				.expect(503);
+		});
+	});
+
+	describe('GET /v2/device/vpn', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getVPNStatusStub: SinonStub;
+		before(() => {
+			getVPNStatusStub = stub(actions, 'getVPNStatus');
+		});
+		after(() => {
+			getVPNStatusStub.restore();
+		});
+
+		it('responds with 200 and vpn status', async () => {
+			const vpnStatus = {
+				active: true,
+				connected: false,
+			};
+			getVPNStatusStub.resolves(vpnStatus);
+			await request(api)
+				.get('/v2/device/vpn')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(({ body }) => {
+					expect(body).to.deep.equal({
+						status: 'success',
+						vpn: vpnStatus,
+					});
+				});
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getVPNStatusStub.throws(new Error());
+			await request(api)
+				.get('/v2/device/vpn')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('GET /v2/device/name', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getDeviceNameStub: SinonStub;
+		before(() => {
+			getDeviceNameStub = stub(actions, 'getDeviceName');
+		});
+		after(() => {
+			getDeviceNameStub.restore();
+		});
+
+		it('responds with 200 and device name', async () => {
+			const deviceName = 'my-rpi4';
+			getDeviceNameStub.resolves(deviceName);
+			await request(api)
+				.get('/v2/device/name')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(({ body }) => {
+					expect(body).to.deep.equal({
+						status: 'success',
+						deviceName,
+					});
+				});
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getDeviceNameStub.throws(new Error());
+			await request(api)
+				.get('/v2/device/name')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('GET /v2/device/tags', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getDeviceTagsStub: SinonStub;
+		before(() => {
+			getDeviceTagsStub = stub(actions, 'getDeviceTags');
+		});
+		after(() => {
+			getDeviceTagsStub.restore();
+		});
+
+		it('responds with 200 and device tags', async () => {
+			const tags = { id: 1, name: 'test', value: '' };
+			getDeviceTagsStub.resolves(tags);
+			await request(api)
+				.get('/v2/device/tags')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(({ body }) => {
+					expect(body).to.deep.equal({
+						status: 'success',
+						tags,
+					});
+				});
+		});
+
+		it('responds with 500 if an error occurred', async () => {
+			getDeviceTagsStub.throws(new Error());
+			await request(api)
+				.get('/v2/device/tags')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(500);
+		});
+	});
+
+	describe('GET /v2/cleanup-volumes', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let cleanupVolumesStub: SinonStub;
+		before(() => {
+			cleanupVolumesStub = stub(actions, 'cleanupVolumes');
+		});
+		after(() => {
+			cleanupVolumesStub.restore();
+		});
+
+		it('responds with 200', async () => {
+			cleanupVolumesStub.resolves();
+			await request(api)
+				.get('/v2/cleanup-volumes')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200);
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			cleanupVolumesStub.throws(new Error());
+			await request(api)
+				.get('/v2/cleanup-volumes')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('POST /v2/journal-logs', () => {
+		// Actions are tested elsewhere so we can stub the dependency here
+		let getLogStreamStub: SinonStub;
+		before(() => {
+			getLogStreamStub = stub(actions, 'getLogStream');
+		});
+		after(() => {
+			getLogStreamStub.restore();
+		});
+
+		it('responds with 200 and pipes journal stdout to response', async () => {
+			getLogStreamStub.callThrough();
+
+			await request(api)
+				.post('/v2/journal-logs')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200)
+				.then(({ text }) => {
+					// journalctl in the sut service should be empty
+					// as we don't log to it during testing
+					expect(text).to.equal('-- No entries --\n');
+				});
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getLogStreamStub.throws(new Error());
+			await request(api)
+				.post('/v2/journal-logs')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('GET /v2/version', () => {
+		let getSupervisorVersionStub: SinonStub;
+		before(() => {
+			getSupervisorVersionStub = stub(actions, 'getSupervisorVersion');
+		});
+		after(() => {
+			getSupervisorVersionStub.restore();
+		});
+
+		it('responds with 200 and Supervisor version', async () => {
+			getSupervisorVersionStub.callThrough();
+			await request(api)
+				.get('/v2/version')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', version: supervisorVersion });
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getSupervisorVersionStub.throws(new Error());
+			await request(api)
+				.get('/v2/version')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('GET /v2/containerId', () => {
+		let getContainerIdStub: SinonStub;
+		beforeEach(() => {
+			getContainerIdStub = stub(actions, 'getContainerIds');
+		});
+		afterEach(() => {
+			getContainerIdStub.restore();
+		});
+
+		it('accepts query parameters if they are strings', async () => {
+			getContainerIdStub.resolves('test');
+			await request(api)
+				.get('/v2/containerId?serviceName=one')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+			expect(getContainerIdStub.firstCall.args[0]).to.equal('one');
+
+			await request(api)
+				.get('/v2/containerId?service=two')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+			expect(getContainerIdStub.secondCall.args[0]).to.equal('two');
+		});
+
+		it('ignores query parameters that are repeated', async () => {
+			getContainerIdStub.resolves('test');
+			await request(api)
+				.get('/v2/containerId?serviceName=one&serviceName=two')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+			expect(getContainerIdStub.firstCall.args[0]).to.equal('');
+
+			await request(api)
+				.get('/v2/containerId?service=one&service=two')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+			expect(getContainerIdStub.secondCall.args[0]).to.equal('');
+		});
+
+		it('responds with 200 and single containerId', async () => {
+			getContainerIdStub.resolves('test');
+			await request(api)
+				.get('/v2/containerId')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, { status: 'success', containerId: 'test' });
+		});
+
+		it('responds with 200 and multiple containerIds', async () => {
+			getContainerIdStub.resolves({ one: 'abc', two: 'def' });
+			await request(api)
+				.get('/v2/containerId')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, {
+					status: 'success',
+					services: { one: 'abc', two: 'def' },
+				});
+		});
+
+		it('responds with 503 if an error occurred', async () => {
+			getContainerIdStub.throws(new Error());
+			await request(api)
+				.get('/v2/containerId')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(503);
+		});
+	});
+
+	describe('GET /v2/local/device-info', () => {
+		let getDeviceInfoStub: SinonStub;
+		beforeEach(() => {
+			getDeviceInfoStub = stub(actions, 'getDeviceInfo');
+		});
+		afterEach(() => {
+			getDeviceInfoStub.restore();
+		});
+
+		it('responds with 200 and device info', async () => {
+			getDeviceInfoStub.resolves({
+				deviceArch: 'aarch64',
+				deviceType: 'raspberrypi4-64',
+			});
+			await request(api)
+				.get('/v2/local/device-info')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(200, {
+					status: 'success',
+					info: {
+						arch: 'aarch64',
+						deviceType: 'raspberrypi4-64',
+					},
+				});
+		});
+
+		it('responds with 500 if an error occurred', async () => {
+			getDeviceInfoStub.throws(new Error());
+			await request(api)
+				.get('/v2/local/device-info')
+				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
+				.expect(500);
 		});
 	});
 });

@@ -1031,3 +1031,28 @@ export async function getState() {
 	}
 	return state;
 }
+
+export async function removeOrphanedVolumes(
+	inScope: (id: number) => boolean = () => true,
+) {
+	const targetState = await getTargetApps();
+	// Get list of referenced volumes to keep
+	const referencedVolumes = Object.values(targetState)
+		// Don't include volumes out of scope
+		.filter((app) => inScope(app.id))
+		.flatMap((app) => {
+			const [release] = Object.values(app.releases);
+			// Return a list of the volume names
+			return Object.keys(release?.volumes ?? {}).map((volumeName) =>
+				Volume.generateDockerName(app.id, volumeName),
+			);
+		});
+
+	await volumeManager.removeOrphanedVolumes(referencedVolumes);
+}
+
+export async function getAllServices(
+	inScope: (id: number) => boolean = () => true,
+) {
+	return (await serviceManager.getAll()).filter((svc) => inScope(svc.appId));
+}

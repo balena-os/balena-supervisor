@@ -65,7 +65,7 @@ class LogMonitor {
 				all: true,
 				follow: true,
 				format: 'json',
-				filterString: '_SYSTEMD_UNIT=balena.service',
+				matches: '_SYSTEMD_UNIT=balena.service',
 			},
 			(row) => {
 				if (row.CONTAINER_ID_FULL && this.containers[row.CONTAINER_ID_FULL]) {
@@ -148,7 +148,7 @@ class LogMonitor {
 				all: true,
 				follow: false,
 				format: 'json',
-				filterString: `CONTAINER_ID_FULL=${containerId}`,
+				matches: `CONTAINER_ID_FULL=${containerId}`,
 				since: toJournalDate(lastSentTimestamp + 1), // increment to exclude last sent log
 			},
 			(row) => this.handleRow(row),

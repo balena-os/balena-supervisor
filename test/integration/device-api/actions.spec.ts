@@ -7,12 +7,17 @@ import { setTimeout } from 'timers/promises';
 import * as deviceState from '~/src/device-state';
 import * as config from '~/src/config';
 import * as hostConfig from '~/src/host-config';
+import * as network from '~/src/network';
 import * as deviceApi from '~/src/device-api';
+import * as apiBinder from '~/src/api-binder';
 import * as actions from '~/src/device-api/actions';
 import * as TargetState from '~/src/device-state/target-state';
+import * as applicationManager from '~/src/compose/application-manager';
 import { cleanupDocker } from '~/test-lib/docker-helper';
+import { createService } from '~/test-lib/state-helper';
 
-import { exec } from '~/src/lib/fs-utils';
+import { exec } from '~/lib/fs-utils';
+import * as journald from '~/lib/journald';
 
 export async function dbusSend(
 	dest: string,
@@ -831,5 +836,181 @@ describe('patches host config', () => {
 			{ network: { hostname: uuid?.slice(0, 7) } },
 			true,
 		);
+	});
+});
+
+describe('gets VPN status', () => {
+	let activeStub: SinonStub;
+	let enabledStub: SinonStub;
+
+	before(() => {
+		// Stub external dependencies which are separately tested in network.spec.ts
+		activeStub = stub(network, 'isVPNActive');
+		enabledStub = stub(network, 'isVPNEnabled');
+	});
+
+	after(() => {
+		activeStub.restore();
+		enabledStub.restore();
+	});
+
+	it('returns VPN active and enabled statuses', async () => {
+		activeStub.resolves(true);
+		enabledStub.resolves(true);
+		expect(await actions.getVPNStatus()).to.deep.equal({
+			enabled: true,
+			connected: true,
+		});
+
+		activeStub.resolves(false);
+		enabledStub.resolves(false);
+		expect(await actions.getVPNStatus()).to.deep.equal({
+			enabled: false,
+			connected: false,
+		});
+	});
+});
+
+describe('gets device name', () => {
+	before(async () => {
+		await config.initialized();
+	});
+
+	it('returns device name', async () => {
+		await config.set({ name: 'test' });
+		expect(await actions.getDeviceName()).to.equal('test');
+	});
+});
+
+describe('gets device tags', () => {
+	let fetchDeviceTagsStub: SinonStub;
+	before(() => {
+		fetchDeviceTagsStub = stub(apiBinder, 'fetchDeviceTags');
+	});
+	after(() => {
+		fetchDeviceTagsStub.restore();
+	});
+
+	it('returns device tags fetched from api-binder', async () => {
+		const fetchResponse = [{ id: 1, name: 'test', value: '' }];
+		fetchDeviceTagsStub.resolves(fetchResponse);
+		expect(await actions.getDeviceTags()).to.deep.equal(fetchResponse);
+	});
+});
+
+describe('cleans up orphaned volumes', () => {
+	let removeOrphanedVolumes: SinonStub;
+	before(() => {
+		removeOrphanedVolumes = stub(applicationManager, 'removeOrphanedVolumes');
+	});
+	after(() => {
+		removeOrphanedVolumes.restore();
+	});
+
+	it('cleans up orphaned volumes through application-manager', async () => {
+		await actions.cleanupVolumes();
+		expect(removeOrphanedVolumes).to.have.been.calledOnce;
+	});
+});
+
+describe('spawns a journal process', () => {
+	// This action simply calls spawnJournalctl which we test in
+	// journald.spec.ts, so we can just stub it here
+	let spawnJournalctlStub: SinonStub;
+	before(() => {
+		spawnJournalctlStub = stub(journald, 'spawnJournalctl');
+	});
+	after(() => {
+		spawnJournalctlStub.restore();
+	});
+
+	it('spawns a journal process through journald', async () => {
+		const opts = {
+			all: true,
+			follow: true,
+			unit: 'test-unit',
+			containerId: 'test-container-id',
+			count: 10,
+			since: '2019-01-01 00:00:00',
+			until: '2019-01-01 01:00:00',
+			format: 'json',
+			matches: '_SYSTEMD_UNIT=test-unit',
+		};
+		await actions.getLogStream(opts);
+		expect(spawnJournalctlStub).to.have.been.calledOnceWith(opts);
+	});
+});
+
+describe('gets service container ids', () => {
+	// getAllServicesStub is tested in app manager tests
+	// so we can stub it here
+	let getAllServicesStub: SinonStub;
+	before(async () => {
+		getAllServicesStub = stub(applicationManager, 'getAllServices').resolves([
+			await createService(
+				{
+					serviceName: 'one',
+					appId: 1,
+				},
+				{ state: { containerId: 'abc' } },
+			),
+			await createService(
+				{
+					serviceName: 'two',
+					appId: 2,
+				},
+				{ state: { containerId: 'def' } },
+			),
+		]);
+	});
+	after(() => {
+		getAllServicesStub.restore();
+	});
+
+	it('gets all containerIds by default', async () => {
+		expect(await actions.getContainerIds()).to.deep.equal({
+			one: 'abc',
+			two: 'def',
+		});
+	});
+
+	it('gets a single containerId associated with provided service', async () => {
+		expect(await actions.getContainerIds('one')).to.deep.equal('abc');
+		expect(await actions.getContainerIds('two')).to.deep.equal('def');
+	});
+
+	it('errors if no containerId found associated with provided service', async () => {
+		try {
+			await actions.getContainerIds('three');
+			expect.fail(
+				'getContainerIds should throw for a nonexistent serviceName parameter',
+			);
+		} catch (e: unknown) {
+			expect((e as Error).message).to.equal(
+				"Could not find service with name 'three'",
+			);
+		}
+	});
+});
+
+describe('gets device type and arch', () => {
+	let configGetManyStub: SinonStub;
+	before(() => {
+		// @ts-expect-error
+		configGetManyStub = stub(config, 'getMany').resolves({
+			deviceType: 'test-type',
+			deviceArch: 'test-arch',
+		});
+	});
+
+	after(() => {
+		configGetManyStub.restore();
+	});
+
+	it('returns device type and arch', async () => {
+		expect(await actions.getDeviceInfo()).to.deep.equal({
+			deviceType: 'test-type',
+			deviceArch: 'test-arch',
+		});
 	});
 });

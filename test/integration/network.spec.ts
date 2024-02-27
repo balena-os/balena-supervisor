@@ -7,6 +7,7 @@ import { expect } from 'chai';
 import Log from '~/lib/supervisor-console';
 import * as network from '~/src/network';
 import * as constants from '~/lib/constants';
+import * as dbus from '~/lib/dbus';
 
 describe('network', () => {
 	it('checks VPN connection status', async () => {
@@ -32,5 +33,12 @@ describe('network', () => {
 
 		// Restore file system
 		await testFs.restore();
+	});
+
+	it('checks VPN enabled status', async () => {
+		await dbus.stopService('openvpn');
+		expect(await network.isVPNEnabled()).to.equal(false);
+		await dbus.startService('openvpn');
+		expect(await network.isVPNEnabled()).to.equal(true);
 	});
 });

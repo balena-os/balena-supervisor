@@ -4,12 +4,11 @@ import * as networkCheck from 'network-checker';
 import * as os from 'os';
 import * as url from 'url';
 
+import * as dbus from './lib/dbus';
 import * as constants from './lib/constants';
-import { EEXIST } from './lib/errors';
-import { checkFalsey } from './lib/validation';
-
+import { EEXIST, UnitNotLoadedError } from './lib/errors';
+import { checkFalsey, checkTruthy } from './lib/validation';
 import blink = require('./lib/blink');
-
 import log from './lib/supervisor-console';
 
 const networkPattern = {
@@ -50,6 +49,29 @@ export async function isVPNActive(): Promise<boolean> {
 	}
 	log.info(`VPN connection is ${active ? 'active' : 'not active'}.`);
 	return active;
+}
+
+const vpnServiceName = 'openvpn';
+
+export async function isVPNEnabled(): Promise<boolean> {
+	try {
+		const activeState = await dbus.serviceActiveState(vpnServiceName);
+		return !['inactive', 'deactivating'].includes(activeState);
+	} catch (e: any) {
+		if (UnitNotLoadedError(e)) {
+			return false;
+		}
+		throw e;
+	}
+}
+
+export async function setVPNEnabled(value: string | boolean = true) {
+	const enable = checkTruthy(value);
+	if (enable) {
+		await dbus.startService(vpnServiceName);
+	} else {
+		await dbus.stopService(vpnServiceName);
+	}
 }
 
 async function vpnStatusInotifyCallback(): Promise<void> {

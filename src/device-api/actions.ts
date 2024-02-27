@@ -2,11 +2,14 @@ import * as _ from 'lodash';
 
 import { getGlobalApiKey, refreshKey } from '.';
 import * as messages from './messages';
+import { AuthorizedRequest } from './api-keys';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
+import { isVPNEnabled, isVPNActive } from '../network';
+import { fetchDeviceTags } from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
 import {
 	CompositionStepAction,
@@ -24,6 +27,8 @@ import {
 	NotFoundError,
 	BadRequestError,
 } from '../lib/errors';
+import { JournalctlOpts, spawnJournalctl } from '../lib/journald';
+import { supervisorVersion } from '../lib/supervisor-version';
 
 /**
  * Run an array of healthchecks, outputting whether all passed or not
@@ -348,7 +353,7 @@ export const getSingleContainerApp = async (appId: number) => {
 /**
  * Returns legacy device info, update status, and service status for a single-container application.
  * Used by:
- * 	- GET /v1/device
+ * - GET /v1/device
  */
 export const getLegacyDeviceState = async () => {
 	const state = await deviceState.getLegacyState();
@@ -389,7 +394,7 @@ export const getLegacyDeviceState = async () => {
 /**
  * Get host config from the host-config module; Returns proxy config and hostname.
  * Used by:
- * 	- GET /v1/device/host-config
+ * - GET /v1/device/host-config
  */
 export const getHostConfig = async () => {
 	return await hostConfig.get();
@@ -398,7 +403,7 @@ export const getHostConfig = async () => {
 /**
  * Patch host configs such as proxy config and hostname
  * Used by:
- * 	- PATCH /v1/device/host-config
+ * - PATCH /v1/device/host-config
  */
 export const patchHostConfig = async (
 	conf: Parameters<typeof hostConfig.patch>[0],
@@ -410,4 +415,115 @@ export const patchHostConfig = async (
 		conf.network.hostname = uuid?.slice(0, 7);
 	}
 	await hostConfig.patch(conf, force);
+};
+
+/**
+ * Get device VPN status
+ * Used by:
+ * - GET /v2/device/vpn
+ */
+export const getVPNStatus = async () => {
+	return {
+		enabled: await isVPNEnabled(),
+		connected: await isVPNActive(),
+	};
+};
+
+/**
+ * Get device name
+ * Used by:
+ * - GET /v2/device/name
+ */
+export const getDeviceName = async () => {
+	return await config.get('name');
+};
+
+/**
+ * Get device tags
+ * Used by:
+ * - GET /v2/device/tags
+ */
+export const getDeviceTags = async () => {
+	try {
+		return await fetchDeviceTags();
+	} catch (e: unknown) {
+		log.error((e as Error).message ?? e);
+		throw e;
+	}
+};
+
+/**
+ * Clean up orphaned volumes
+ * Used by:
+ * - GET /v2/cleanup-volumes
+ */
+export const cleanupVolumes = async (
+	withScope: AuthorizedRequest['auth']['isScoped'] = () => true,
+) => {
+	// It's better practice to access engine functionality through application-manager
+	// than through volume-manager directly, as the latter should be an internal module
+	await applicationManager.removeOrphanedVolumes((id) =>
+		withScope({ apps: [id] }),
+	);
+};
+
+/**
+ * Spawn a journalctl process with the given options
+ * Used by:
+ * - POST /v2/journal-logs
+ */
+export const getLogStream = (opts: JournalctlOpts) => {
+	return spawnJournalctl(opts);
+};
+
+/**
+ * Get version of running Supervisor
+ * Used by:
+ * - GET /v2/version
+ */
+export const getSupervisorVersion = () => {
+	return supervisorVersion;
+};
+
+/**
+ * Get the containerId(s) associated with a service.
+ * If no serviceName is provided, get all containerIds.
+ * Used by:
+ * - GET /v2/containerId
+ */
+export const getContainerIds = async (
+	serviceName: string = '',
+	withScope: AuthorizedRequest['auth']['isScoped'] = () => true,
+) => {
+	const services = await applicationManager.getAllServices((id) =>
+		withScope({ apps: [id] }),
+	);
+
+	// Return all containerIds if no serviceName is provided
+	if (!serviceName) {
+		return services.reduce(
+			(svcToContainerIdMap, svc) => ({
+				[svc.serviceName]: svc.containerId,
+				...svcToContainerIdMap,
+			}),
+			{},
+		);
+	}
+
+	// Otherwise, only return containerId of provided serviceNmae
+	const service = services.find((svc) => svc.serviceName === serviceName);
+	if (service != null) {
+		return service.containerId;
+	} else {
+		throw new Error(`Could not find service with name '${serviceName}'`);
+	}
+};
+
+/**
+ * Get device type & arch
+ * Used by:
+ * - GET /v2/local/device-info
+ */
+export const getDeviceInfo = async () => {
+	return await config.getMany(['deviceType', 'deviceArch']);
 };

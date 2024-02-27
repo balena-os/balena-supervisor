@@ -3,29 +3,22 @@ import type { Response, NextFunction } from 'express';
 import * as _ from 'lodash';
 
 import * as deviceState from '../device-state';
-import * as apiBinder from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
 import { CompositionStepAction } from '../compose/composition-steps';
 import { Service } from '../compose/service';
-import Volume from '../compose/volume';
 import * as commitStore from '../compose/commit';
 import * as config from '../config';
 import * as db from '../db';
-import * as deviceConfig from '../device-config';
 import * as logger from '../logger';
 import * as images from '../compose/images';
-import * as volumeManager from '../compose/volume-manager';
 import * as serviceManager from '../compose/service-manager';
-import { spawnJournalctl } from '../lib/journald';
 import log from '../lib/supervisor-console';
-import supervisorVersion = require('../lib/supervisor-version');
 import { checkInt, checkString, checkTruthy } from '../lib/validation';
 import {
 	isNotFoundError,
 	isBadRequestError,
 	BadRequestError,
 } from '../lib/errors';
-import { isVPNActive } from '../network';
 import { AuthorizedRequest } from './api-keys';
 import { fromV2TargetState } from '../lib/legacy';
 import * as actions from './actions';
@@ -337,10 +330,7 @@ router.post('/v2/local/target-state', async (req, res) => {
 
 router.get('/v2/local/device-info', async (_req, res) => {
 	try {
-		const { deviceType, deviceArch } = await config.getMany([
-			'deviceType',
-			'deviceArch',
-		]);
+		const { deviceType, deviceArch } = await actions.getDeviceInfo();
 
 		return res.status(200).json({
 			status: 'success',
@@ -349,10 +339,10 @@ router.get('/v2/local/device-info', async (_req, res) => {
 				deviceType,
 			},
 		});
-	} catch (e: any) {
-		res.status(500).json({
+	} catch (e: unknown) {
+		return res.status(500).json({
 			status: 'failed',
-			message: e.message,
+			message: (e as Error).message ?? e,
 		});
 	}
 });
@@ -384,40 +374,50 @@ router.get('/v2/local/logs', async (_req, res) => {
 	listenStream.pipe(res);
 });
 
-router.get('/v2/version', (_req, res) => {
-	res.status(200).json({
-		status: 'success',
-		version: supervisorVersion,
-	});
+router.get('/v2/version', (_req, res, next) => {
+	try {
+		const supervisorVersion = actions.getSupervisorVersion();
+		return res.status(200).json({
+			status: 'success',
+			version: supervisorVersion,
+		});
+	} catch (e: unknown) {
+		next(e);
+	}
 });
 
-router.get('/v2/containerId', async (req: AuthorizedRequest, res) => {
-	const services = (await serviceManager.getAll()).filter((service) =>
-		req.auth.isScoped({ apps: [service.appId] }),
-	);
-
-	if (req.query.serviceName != null || req.query.service != null) {
-		const serviceName = req.query.serviceName || req.query.service;
-		const service = _.find(services, (svc) => svc.serviceName === serviceName);
-		if (service != null) {
-			res.status(200).json({
+router.get('/v2/containerId', async (req: AuthorizedRequest, res, next) => {
+	try {
+		// While technically query parameters support entering a query multiple times
+		// as in ?service=foo&service=bar, we don't explicitly support this,
+		// so only pass the serviceName / service if it's a string
+		let serviceQuery: string = '';
+		const { serviceName, service } = req.query;
+		if (typeof serviceName === 'string' && !!serviceName) {
+			serviceQuery = serviceName;
+		}
+		if (typeof service === 'string' && !!service) {
+			serviceQuery = service;
+		}
+		const result = await actions.getContainerIds(
+			serviceQuery,
+			req.auth.isScoped,
+		);
+		// Single containerId
+		if (typeof result === 'string') {
+			return res.status(200).json({
 				status: 'success',
-				containerId: service.containerId,
+				containerId: result,
 			});
 		} else {
-			res.status(503).json({
-				status: 'failed',
-				message: 'Could not find service with that name',
+			// Multiple containerIds
+			return res.status(200).json({
+				status: 'success',
+				services: result,
 			});
 		}
-	} else {
-		res.status(200).json({
-			status: 'success',
-			services: _(services)
-				.keyBy('serviceName')
-				.mapValues('containerId')
-				.value(),
-		});
+	} catch (e: unknown) {
+		next(e);
 	}
 });
 
@@ -487,91 +487,82 @@ router.get('/v2/state/status', async (req: AuthorizedRequest, res) => {
 	});
 });
 
-router.get('/v2/device/name', async (_req, res) => {
-	const deviceName = await config.get('name');
-	res.json({
-		status: 'success',
-		deviceName,
-	});
+router.get('/v2/device/name', async (_req, res, next) => {
+	try {
+		const deviceName = await actions.getDeviceName();
+		return res.json({
+			status: 'success',
+			deviceName,
+		});
+	} catch (e) {
+		next(e);
+	}
 });
 
 router.get('/v2/device/tags', async (_req, res) => {
 	try {
-		const tags = await apiBinder.fetchDeviceTags();
+		const tags = await actions.getDeviceTags();
 		return res.json({
 			status: 'success',
 			tags,
 		});
-	} catch (e: any) {
-		log.error(e);
-		res.status(500).json({
+	} catch (e: unknown) {
+		return res.status(500).json({
 			status: 'failed',
-			message: e.message,
+			message: (e as Error).message ?? e,
 		});
 	}
 });
 
-router.get('/v2/device/vpn', async (_req, res) => {
-	const conf = await deviceConfig.getCurrent();
-	// Build VPNInfo
-	const info = {
-		enabled: conf.SUPERVISOR_VPN_CONTROL === 'true',
-		connected: await isVPNActive(),
-	};
-	// Return payload
-	return res.json({
-		status: 'success',
-		vpn: info,
-	});
-});
-
-router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res) => {
-	const targetState = await applicationManager.getTargetApps();
-	const referencedVolumes = Object.values(targetState)
-		// if this app isn't in scope of the request, do not cleanup it's volumes
-		.filter((app) => req.auth.isScoped({ apps: [app.id] }))
-		.flatMap((app) => {
-			const [release] = Object.values(app.releases);
-			// Return a list of the volume names
-			return Object.keys(release?.volumes ?? {}).map((volumeName) =>
-				Volume.generateDockerName(app.id, volumeName),
-			);
+router.get('/v2/device/vpn', async (_req, res, next) => {
+	try {
+		const vpnStatus = await actions.getVPNStatus();
+		return res.json({
+			status: 'success',
+			vpn: vpnStatus,
 		});
-
-	await volumeManager.removeOrphanedVolumes(referencedVolumes);
-	res.json({
-		status: 'success',
-	});
+	} catch (e: unknown) {
+		next(e);
+	}
 });
 
-router.post('/v2/journal-logs', (req, res) => {
-	const all = checkTruthy(req.body.all);
-	const follow = checkTruthy(req.body.follow);
-	const count = checkInt(req.body.count, { positive: true }) || undefined;
-	const unit = req.body.unit;
-	const format = req.body.format || 'short';
-	const containerId = req.body.containerId;
-	const since = req.body.since;
-	const until = req.body.until;
+// This should be a POST but we have to keep it a GET for interface consistency
+router.get('/v2/cleanup-volumes', async (req: AuthorizedRequest, res, next) => {
+	try {
+		await actions.cleanupVolumes(req.auth.isScoped);
+		return res.json({
+			status: 'success',
+		});
+	} catch (e: unknown) {
+		next(e);
+	}
+});
 
-	const journald = spawnJournalctl({
-		all,
-		follow,
-		count,
-		unit,
-		format,
-		containerId,
-		since,
-		until,
-	});
-	res.status(200);
-	// We know stdout will be present
-	journald.stdout!.pipe(res);
-	res.on('close', () => {
-		journald.kill('SIGKILL');
-	});
-	journald.on('exit', () => {
-		journald.stdout!.unpipe();
-		res.end();
-	});
+router.post('/v2/journal-logs', (req, res, next) => {
+	try {
+		const opts = {
+			all: checkTruthy(req.body.all),
+			follow: checkTruthy(req.body.follow),
+			count: checkInt(req.body.count, { positive: true }),
+			unit: req.body.unit,
+			format: req.body.format,
+			containerId: req.body.containerId,
+			since: req.body.since,
+			until: req.body.until,
+		};
+
+		const journalProcess = actions.getLogStream(opts);
+		res.status(200);
+
+		journalProcess.stdout.pipe(res);
+		res.on('close', () => {
+			journalProcess.kill('SIGKILL');
+		});
+		journalProcess.on('exit', () => {
+			journalProcess.stdout.unpipe();
+			res.end();
+		});
+	} catch (e: unknown) {
+		next(e);
+	}
 });

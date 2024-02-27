@@ -1,10 +1,9 @@
-import * as _ from 'lodash';
-
-import * as packageJson from '../../package.json';
-let version = packageJson.version;
+import { version as packageJsonVersion } from '../../package.json';
+let supervisorVersion = packageJsonVersion;
 
 const tagExtra = process.env.SUPERVISOR_TAG_EXTRA;
-if (!_.isEmpty(tagExtra)) {
-	version += '+' + tagExtra;
+if (tagExtra != null) {
+	supervisorVersion += '+' + tagExtra;
 }
-export = version;
+
+export { supervisorVersion };

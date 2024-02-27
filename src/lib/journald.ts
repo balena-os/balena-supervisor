@@ -1,6 +1,7 @@
 import { ChildProcess, spawn } from 'child_process';
 
 import log from './supervisor-console';
+import { Readable } from 'stream';
 
 /**
  * Given a date integer in ms, return in a format acceptable by journalctl.
@@ -13,17 +14,24 @@ import log from './supervisor-console';
 export const toJournalDate = (timestamp: number): string =>
 	new Date(timestamp).toISOString().replace(/T/, ' ').replace(/\..+$/, '');
 
-export function spawnJournalctl(opts: {
+export interface JournalctlOpts {
 	all: boolean;
 	follow: boolean;
-	count?: number | 'all';
 	unit?: string;
 	containerId?: string;
-	format: string;
-	filterString?: string;
+	count?: number;
 	since?: string;
 	until?: string;
-}): ChildProcess {
+	format?: string;
+	matches?: string;
+}
+
+// A journalctl process has a non-null stdout
+export interface JournalctlProcess extends ChildProcess {
+	stdout: Readable;
+}
+
+export function spawnJournalctl(opts: JournalctlOpts): JournalctlProcess {
 	const args: string[] = [];
 	if (opts.all) {
 		args.push('-a');
@@ -52,10 +60,15 @@ export function spawnJournalctl(opts: {
 		args.push(opts.until);
 	}
 	args.push('-o');
-	args.push(opts.format);
-
-	if (opts.filterString) {
-		args.push(opts.filterString);
+	if (opts.format != null) {
+		args.push(opts.format);
+	} else {
+		args.push('short');
+	}
+	// Filter logs by space-seperated matches per
+	// journalctl interface of `journalctl [OPTIONS..] [MATCHES..]`
+	if (opts.matches) {
+		args.push(opts.matches);
 	}
 
 	log.debug('Spawning journalctl', args.join(' '));

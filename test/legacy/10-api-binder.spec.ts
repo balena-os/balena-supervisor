@@ -13,7 +13,7 @@ import { schema } from '~/src/config/schema';
 import ConfigJsonConfigBackend from '~/src/config/configJson';
 import * as TargetState from '~/src/device-state/target-state';
 import * as ApiHelper from '~/lib/api-helper';
-import supervisorVersion = require('~/lib/supervisor-version');
+import { supervisorVersion } from '~/lib/supervisor-version';
 import * as eventTracker from '~/src/event-tracker';
 import * as constants from '~/lib/constants';
 

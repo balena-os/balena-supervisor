@@ -72,22 +72,6 @@ describe('SupervisorAPI [V2 Endpoints]', () => {
 		applicationManagerSpy.resetHistory();
 	});
 
-	describe('GET /v2/device/vpn', () => {
-		it('returns information about VPN connection', async () => {
-			await request
-				.get('/v2/device/vpn')
-				.set('Accept', 'application/json')
-				.set('Authorization', `Bearer ${await deviceApi.getGlobalApiKey()}`)
-				.expect('Content-Type', /json/)
-				.expect(sampleResponses.V2.GET['/device/vpn'].statusCode)
-				.then((response) => {
-					expect(response.body).to.deep.equal(
-						sampleResponses.V2.GET['/device/vpn'].body,
-					);
-				});
-		});
-	});
-
 	describe('GET /v2/applications/:appId/state', () => {
 		it('returns information about a SPECIFIC application', async () => {
 			await request
