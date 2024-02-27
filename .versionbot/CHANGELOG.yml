@@ -1,4 +1,39 @@
 - commits:
+    - subject: Add support for repeated overlays
+      hash: bda1bac04c708ea0c35318604f926c035ff0883b
+      body: >
+        RPI firmware configuration allows repeating overlays to define
+
+        configurations on multiple devices. For instance, for configuring
+
+        multiple `ads` devices, `config.txt` needs to be setup this way
+
+
+        ```
+
+        dtoverlay=ads1115,addr=0x48
+
+        dtoverlay=ads1115,addr=0x49
+
+        ```
+
+
+        Before this change, the supervisor would interpret both lines as
+
+        belonging to the same overlay, preventing users from configuring multiple
+
+        devices, and leading to a loop when trying to apply configurations with
+
+        repeated overlays coming from the cloud side.
+      footer:
+        Change-type: minor
+        change-type: minor
+      author: Felipe Lalanne
+      nested: []
+  version: 16.1.0
+  title: ""
+  date: 2024-02-27T19:30:49.055Z
+- commits:
     - subject: Fix support for rsync deltas
       hash: 24e222045ac511cd4fbb3be66e57eb678a29d854
       body: >
