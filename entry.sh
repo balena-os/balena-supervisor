@@ -15,6 +15,19 @@ source ./mount-partitions.sh
 [ -d "${ROOT_MOUNTPOINT}"/tmp/balena-supervisor ] ||
 	mkdir -p "${ROOT_MOUNTPOINT}"/tmp/balena-supervisor
 
+# If DOCKER_ROOT isn't set then default it
+DOCKER_LIB_PATH="/var/lib/docker"
+if [ -z "${DOCKER_ROOT}" ]; then
+	DOCKER_ROOT="${ROOT_MOUNTPOINT}${DOCKER_LIB_PATH}"
+fi
+
+# Mount the DOCKER_ROOT path equivalent in the container fs
+# this is necessary as long as the supervisor still has support
+# for rsync deltas
+if [ ! -d "${DOCKER_LIB_PATH}" ]; then
+	ln -s "${DOCKER_ROOT}" "${DOCKER_LIB_PATH}"
+fi
+
 # Include self-signed CAs, should they exist
 if [ -n "${BALENA_ROOT_CA}" ]; then
 	if [ ! -e '/etc/ssl/certs/balenaRootCA.pem' ]; then
