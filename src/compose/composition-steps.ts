@@ -10,7 +10,6 @@ import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
 import type Volume from './volume';
 import * as commitStore from './commit';
-import { checkTruthy } from '../lib/validation';
 import * as updateLock from '../lib/update-lock';
 import type { DeviceLegacyReport } from '../types/state';
 
@@ -44,10 +43,7 @@ interface CompositionStepArgs {
 	updateMetadata: {
 		current: Service;
 		target: Service;
-		options?: {
-			skipLock?: boolean;
-		};
-	} & BaseCompositionStepArgs;
+	};
 	restart: {
 		current: Service;
 		target: Service;
@@ -179,20 +175,10 @@ export function getExecutors(app: {
 			// take locks
 			await serviceManager.remove(step.current);
 		},
-		updateMetadata: (step) => {
-			const skipLock =
-				step.skipLock ||
-				checkTruthy(step.current.config.labels['io.balena.legacy-container']);
-			return app.lockFn(
-				step.current.appId,
-				{
-					force: step.force,
-					skipLock: skipLock || _.get(step, ['options', 'skipLock']),
-				},
-				async () => {
-					await serviceManager.updateMetadata(step.current, step.target);
-				},
-			);
+		updateMetadata: async (step) => {
+			// Should always be preceded by a takeLock step,
+			// so the call is executed assuming that the lock is taken.
+			await serviceManager.updateMetadata(step.current, step.target);
 		},
 		restart: (step) => {
 			return app.lockFn(

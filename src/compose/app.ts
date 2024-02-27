@@ -558,6 +558,8 @@ export class App {
 		} else {
 			// This service is in both current & target so requires an update,
 			// or it's a service that's not in target so requires removal
+
+			// Skip updateMetadata for services with networks or volumes
 			const needsSpecialKill = this.serviceHasNetworkOrVolume(
 				current,
 				context.networkPairs,
@@ -568,8 +570,8 @@ export class App {
 				target != null &&
 				current.isEqualConfig(target, context.containerIds)
 			) {
-				// we're only starting/stopping a service
-				return this.generateContainerStep(current, target);
+				// Update service metadata or start/stop a service
+				return this.generateContainerStep(current, target, context.locksTaken);
 			}
 
 			let strategy: string;
@@ -658,10 +660,26 @@ export class App {
 		);
 	}
 
-	private generateContainerStep(current: Service, target: Service) {
-		// if the services release doesn't match, then rename the container...
+	private generateContainerStep(
+		current: Service,
+		target: Service,
+		locksTaken: LocksTakenMap,
+	) {
+		// Update container metadata if service release has changed
 		if (current.commit !== target.commit) {
-			return generateStep('updateMetadata', { current, target });
+			// QUESTION: Should updateMetadata only be allowed when
+			// *all* services have locks taken by the Supervisor? Currently
+			// it proceeds when the service it's updating has locks taken,
+			// meaning the service could be on new release while another service
+			// with a user-taken lock is still on old release.
+			if (locksTaken.isLocked(target.appId, target.serviceName)) {
+				return generateStep('updateMetadata', { current, target });
+			}
+			// Otherwise, take lock for service first
+			return generateStep('takeLock', {
+				appId: target.appId,
+				services: [target.serviceName],
+			});
 		} else if (target.config.running !== current.config.running) {
 			if (target.config.running) {
 				return generateStep('start', { target });
@@ -687,7 +705,7 @@ export class App {
 			// We know the service name exists as it always does for targets
 			return generateStep('fetch', {
 				image: imageManager.imageFromService(target),
-				serviceName: target.serviceName!,
+				serviceName: target.serviceName,
 			});
 		} else if (
 			this.dependenciesMetForServiceStart(
@@ -749,7 +767,7 @@ export class App {
 		// are services which are changing). We could have a dependency which is
 		// starting up, but is not yet running.
 		const depInstallingButNotRunning = _.some(targetApp.services, (svc) => {
-			if (target.dependsOn?.includes(svc.serviceName!)) {
+			if (target.dependsOn?.includes(svc.serviceName)) {
 				if (!svc.config.running) {
 					return true;
 				}

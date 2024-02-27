@@ -8,6 +8,7 @@ import Network from '~/src/compose/network';
 import * as networkManager from '~/src/compose/network-manager';
 import Volume from '~/src/compose/volume';
 import * as config from '~/src/config';
+import { LocksTakenMap } from '~/lib/update-lock';
 import { createDockerImage } from '~/test-lib/docker-helper';
 import {
 	createService,
@@ -493,6 +494,9 @@ describe('compose/application-manager', () => {
 					// to avoid removeImage steps
 					availableImages: [],
 					containerIdsByAppId: c1.containerIdsByAppId,
+					// Mock locks for service to be updated via updateMetadata
+					// to avoid takeLock step
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
 				},
 			);
 			// Service `new` should be fetched
@@ -605,6 +609,9 @@ describe('compose/application-manager', () => {
 					// to avoid removeImage steps
 					availableImages: [],
 					containerIdsByAppId: c1.containerIdsByAppId,
+					// Mock locks for service to be updated via updateMetadata
+					// to avoid takeLock step
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
 				},
 			);
 			// Service `new` should be fetched

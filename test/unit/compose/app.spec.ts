@@ -951,26 +951,49 @@ describe('compose/app', () => {
 			expectNoStep('fetch', steps);
 		});
 
-		it('should emit an updateMetadata step when a service has not changed but the release has', async () => {
+		it('should emit a takeLock followed by an updateMetadata step when a service has not changed but the release has', async () => {
 			const current = createApp({
 				services: [
-					await createService({ serviceName: 'main', commit: 'old-release' }),
+					await createService({
+						serviceName: 'main',
+						appId: 1,
+						commit: 'old-release',
+					}),
 				],
+				networks: [DEFAULT_NETWORK],
 			});
 			const target = createApp({
 				services: [
-					await createService({ serviceName: 'main', commit: 'new-release' }),
+					await createService({
+						serviceName: 'main',
+						appId: 1,
+						commit: 'new-release',
+					}),
 				],
+				networks: [DEFAULT_NETWORK],
 				isTarget: true,
 			});
 
+			// Take lock before updating metadata
 			const steps = current.nextStepsForAppUpdate(defaultContext, target);
-			const [updateMetadataStep] = expectSteps('updateMetadata', steps);
+			const [takeLockStep] = expectSteps('takeLock', steps);
+			expect(takeLockStep).to.have.property('appId').that.equals(1);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.equals(['main']);
 
+			// Infer updateMetadata after locks are taken
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+				target,
+			);
+			const [updateMetadataStep] = expectSteps('updateMetadata', steps2);
 			expect(updateMetadataStep)
 				.to.have.property('current')
 				.to.deep.include({ serviceName: 'main', commit: 'old-release' });
-
 			expect(updateMetadataStep)
 				.to.have.property('target')
 				.to.deep.include({ serviceName: 'main', commit: 'new-release' });
