@@ -1,4 +1,25 @@
 - commits:
+    - subject: Fix support for rsync deltas
+      hash: 24e222045ac511cd4fbb3be66e57eb678a29d854
+      body: >
+        Rsync (v2) deltas have been broken since [Supervisor
+        v14](https://github.com/balena-os/balena-supervisor/commit/460c3ba0aab31d18a02e3f5dda1838691768c494).
+        While considered legacy,
+
+        they are still used by a few customers with devices running OS < 2.47.1.
+
+        This should fix v2 delta support for those devices until we can
+
+        completely remove rsync deltas from the supervisor
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.0.4
+  title: ""
+  date: 2024-02-27T15:06:23.251Z
+- commits:
     - subject: Patch default dtparam handling in config.txt
       hash: 3fd035c5bdc88993af66c5f2bc3a6300c44f4ed4
       body: |
