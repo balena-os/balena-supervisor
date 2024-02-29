@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Image } from '~/src/compose/images';
+import type { Image } from '~/src/compose/images';
 import Network from '~/src/compose/network';
 import Volume from '~/src/compose/volume';
 

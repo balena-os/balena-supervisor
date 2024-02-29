@@ -2,7 +2,7 @@ import * as Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
 import * as _ from 'lodash';
-import StrictEventEmitter from 'strict-event-emitter-types';
+import type StrictEventEmitter from 'strict-event-emitter-types';
 import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
 import prettyMs = require('pretty-ms');
@@ -31,14 +31,14 @@ import { loadTargetFromFile } from './device-state/preload';
 import * as applicationManager from './compose/application-manager';
 import * as commitStore from './compose/commit';
 
-import {
+import type {
 	DeviceLegacyState,
 	InstancedDeviceState,
-	TargetState,
 	DeviceState,
 	DeviceReport,
 	AppState,
 } from './types';
+import { TargetState } from './types';
 import type {
 	CompositionStepT,
 	CompositionStepAction,
@@ -85,11 +85,11 @@ type DeviceStateEventEmitter = StrictEventEmitter<
 	DeviceStateEvents
 >;
 const events = new EventEmitter() as DeviceStateEventEmitter;
-export const on: typeof events['on'] = events.on.bind(events);
-export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] =
+export const on: (typeof events)['on'] = events.on.bind(events);
+export const once: (typeof events)['once'] = events.once.bind(events);
+export const removeListener: (typeof events)['removeListener'] =
 	events.removeListener.bind(events);
-export const removeAllListeners: typeof events['removeAllListeners'] =
+export const removeAllListeners: (typeof events)['removeAllListeners'] =
 	events.removeAllListeners.bind(events);
 
 export type DeviceStateStepTarget = 'reboot' | 'shutdown' | 'noop';
@@ -194,9 +194,13 @@ export async function initNetworkChecks({
 	apiEndpoint: config.ConfigType<'apiEndpoint'>;
 	connectivityCheckEnabled: config.ConfigType<'connectivityCheckEnabled'>;
 }) {
-	network.startConnectivityCheck(apiEndpoint, connectivityCheckEnabled, (c) => {
-		connected = c;
-	});
+	await network.startConnectivityCheck(
+		apiEndpoint,
+		connectivityCheckEnabled,
+		(c) => {
+			connected = c;
+		},
+	);
 	config.on('change', function (changedConfig) {
 		if (changedConfig.connectivityCheckEnabled != null) {
 			network.enableConnectivityCheck(changedConfig.connectivityCheckEnabled);
@@ -240,7 +244,7 @@ export async function loadInitialState() {
 	]);
 	maxPollTime = conf.appUpdatePollInterval;
 
-	initNetworkChecks(conf);
+	await initNetworkChecks(conf);
 
 	if (!conf.initialConfigSaved) {
 		await saveInitialConfig();
@@ -434,7 +438,7 @@ async function getSysInfo(
 					storage_block_device: null,
 					cpu_temp: null,
 					cpu_id: null,
-			  }),
+				}),
 		...(await sysInfo.getSystemChecks()),
 	};
 
@@ -851,8 +855,8 @@ export function triggerApplyTarget({
 	}
 	applyCancelled = false;
 	applyInProgress = true;
-	new Promise((resolve, reject) => {
-		setTimeout(delay).then(resolve);
+	void new Promise((resolve, reject) => {
+		void setTimeout(delay).then(resolve);
 		cancelDelay = reject;
 	})
 		.catch(() => {

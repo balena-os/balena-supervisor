@@ -9,7 +9,8 @@ export async function createDB() {
 	// for testing we use an in memory database
 	process.env.DATABASE_PATH = ':memory:';
 
-	// @ts-expect-error
+	// @ts-expect-error need to rewrite the value of databasePath as that
+	// is used directly by the db module
 	constants.databasePath = process.env.DATABASE_PATH;
 
 	// Cleanup the module cache in order to have it reloaded in the local context
@@ -61,7 +62,7 @@ export async function createDB() {
 		// Destroys the in-memory database and resets environment
 		async destroy() {
 			// Remove data from the in memory database just in case
-			this.reset();
+			await this.reset();
 
 			// Restore the old datbase path
 			process.env.DATABASE_PATH = oldDatabasePath;
@@ -70,8 +71,7 @@ export async function createDB() {
 			(db.models as sinon.SinonStub).restore();
 			(db.upsertModel as sinon.SinonStub).restore();
 
-			// Restore the constants
-			// @ts-expect-error
+			// @ts-expect-error restore the constant default
 			constants.databasePath = process.env.DATABASE_PATH;
 
 			// Cleanup the module cache in order to have it reloaded

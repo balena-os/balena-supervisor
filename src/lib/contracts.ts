@@ -7,7 +7,7 @@ import { Blueprint, Contract, ContractObject } from '@balena/contrato';
 
 import { ContractValidationError, InternalInconsistencyError } from './errors';
 import { checkTruthy } from './validation';
-import { TargetApps } from '../types';
+import type { TargetApps } from '../types';
 
 export { ContractObject };
 

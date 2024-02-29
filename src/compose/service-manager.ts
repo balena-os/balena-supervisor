@@ -1,10 +1,10 @@
-import * as Dockerode from 'dockerode';
+import type * as Dockerode from 'dockerode';
 import { EventEmitter } from 'events';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as JSONStream from 'JSONStream';
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
-import StrictEventEmitter from 'strict-event-emitter-types';
+import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import { docker } from '../lib/docker-utils';
@@ -12,15 +12,16 @@ import * as logger from '../logger';
 
 import { PermissiveNumber } from '../config/types';
 import * as constants from '../lib/constants';
+import type { StatusCodeError } from '../lib/errors';
 import {
 	InternalInconsistencyError,
 	isNotFoundError,
-	StatusCodeError,
 	isStatusError,
 } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
 import { checkInt, isValidDeviceName } from '../lib/validation';
-import { Service, ServiceStatus } from './service';
+import type { ServiceStatus } from './service';
+import { Service } from './service';
 import { serviceNetworksToDockerNetworks } from './utils';
 
 import log from '../lib/supervisor-console';
@@ -41,11 +42,11 @@ interface KillOpts {
 	wait?: boolean;
 }
 
-export const on: typeof events['on'] = events.on.bind(events);
-export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] =
+export const on: (typeof events)['on'] = events.on.bind(events);
+export const once: (typeof events)['once'] = events.once.bind(events);
+export const removeListener: (typeof events)['removeListener'] =
 	events.removeListener.bind(events);
-export const removeAllListeners: typeof events['removeAllListeners'] =
+export const removeAllListeners: (typeof events)['removeAllListeners'] =
 	events.removeAllListeners.bind(events);
 
 // Whether a container has died, indexed by ID
@@ -359,7 +360,7 @@ export async function start(service: Service) {
 			);
 		}
 
-		logger.attach(container.id, { serviceId, imageId });
+		void logger.attach(container.id, { serviceId, imageId });
 
 		if (!alreadyStarted) {
 			logger.logSystemEvent(LogTypes.startServiceSuccess, { service });
@@ -421,7 +422,7 @@ export function listenToEvents() {
 										`serviceId and imageId not defined for service: ${service.serviceName} in ServiceManager.listenToEvents`,
 									);
 								}
-								logger.attach(data.id, {
+								void logger.attach(data.id, {
 									serviceId,
 									imageId,
 								});
@@ -447,7 +448,7 @@ export function listenToEvents() {
 		});
 	};
 
-	(async () => {
+	void (async () => {
 		try {
 			await listen();
 		} catch (e) {
@@ -479,7 +480,7 @@ export async function attachToRunning() {
 					`containerId not defined for service: ${service.serviceName} in ServiceManager.attachToRunning`,
 				);
 			}
-			logger.attach(service.containerId, {
+			void logger.attach(service.containerId, {
 				serviceId,
 				imageId,
 			});

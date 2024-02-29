@@ -2,7 +2,8 @@ import * as _ from 'lodash';
 
 import { Readable } from 'stream';
 import { checkInt } from '../lib/validation';
-import { LogBackend, LogMessage } from './log-backend';
+import type { LogMessage } from './log-backend';
+import { LogBackend } from './log-backend';
 
 import log from '../lib/supervisor-console';
 

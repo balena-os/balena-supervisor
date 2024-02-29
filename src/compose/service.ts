@@ -1,10 +1,11 @@
 import { detailedDiff as diff } from 'deep-object-diff';
-import * as Dockerode from 'dockerode';
+import type * as Dockerode from 'dockerode';
 import Duration = require('duration-js');
 import * as _ from 'lodash';
 import * as path from 'path';
 
-import { DockerPortOptions, PortMap } from './ports';
+import type { DockerPortOptions } from './ports';
+import { PortMap } from './ports';
 import * as ComposeUtils from './utils';
 import * as updateLock from '../lib/update-lock';
 import { sanitiseComposeConfig } from './sanitise';
@@ -14,14 +15,16 @@ import * as conversions from '../lib/conversions';
 import { checkInt } from '../lib/validation';
 import { InternalInconsistencyError } from '../lib/errors';
 
-import { EnvVarObject } from '../types';
-import {
+import type { EnvVarObject } from '../types';
+import type {
 	ServiceConfig,
 	ServiceConfigArrayField,
 	ServiceComposeConfig,
 	ConfigMap,
 	DeviceMetadata,
 	DockerDevice,
+} from './types/service';
+import {
 	ShortMount,
 	ShortBind,
 	ShortAnonymousVolume,
@@ -108,7 +111,9 @@ export class Service {
 		'hostname',
 	].concat(Service.allConfigArrayFields);
 
-	private constructor() {}
+	private constructor() {
+		/* do not allow instancing a service object with `new` */
+	}
 
 	// The type here is actually ServiceComposeConfig, except that the
 	// keys must be camelCase'd first
@@ -909,11 +914,11 @@ export class Service {
 	private getBindsMountsAndVolumes(): {
 		binds: string[];
 		mounts: Dockerode.MountSettings[];
-		volumes: { [volName: string]: {} };
+		volumes: { [volName: string]: EmptyObject };
 	} {
 		const binds: string[] = [];
 		const mounts: Dockerode.MountSettings[] = [];
-		const volumes: { [volName: string]: {} } = {};
+		const volumes: { [volName: string]: EmptyObject } = {};
 
 		for (const volume of this.config.volumes) {
 			if (LongDefinition.is(volume)) {
@@ -921,7 +926,11 @@ export class Service {
 				mounts.push(ComposeUtils.serviceMountToDockerMount(volume));
 			} else {
 				// Volumes with the string short syntax are acceptable as Docker configs as-is
-				ShortMount.is(volume) ? binds.push(volume) : (volumes[volume] = {});
+				if (ShortMount.is(volume)) {
+					binds.push(volume);
+				} else {
+					volumes[volume] = {};
+				}
 			}
 		}
 

@@ -11,8 +11,8 @@ import * as v1 from '~/src/device-api/v1';
 import * as v2 from '~/src/device-api/v2';
 import * as deviceState from '~/src/device-state';
 import SupervisorAPI from '~/src/device-api';
-import { Service } from '~/src/compose/service';
-import { Image } from '~/src/compose/images';
+import type { Service } from '~/src/compose/service';
+import type { Image } from '~/src/compose/images';
 
 const apiBinder = rewire('~/src/api-binder');
 

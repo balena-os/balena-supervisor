@@ -107,7 +107,9 @@ async function mdnsLookup(
 	// Make NodeJS RFC 3484 compliant for properly handling IPv6
 	// See: https://github.com/nodejs/node/pull/14731
 	//      https://github.com/nodejs/node/pull/17793
-	const dns = require('dns');
+	// We disable linting for the next line. The require call
+	// is necesary for monkey-patching the dns module
+	const dns = require('dns'); // eslint-disable-line
 	const { lookup } = dns;
 
 	dns.lookup = (

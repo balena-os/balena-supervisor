@@ -4,15 +4,12 @@ import * as _ from 'lodash';
 import * as config from './config';
 import * as db from './db';
 import * as eventTracker from './event-tracker';
-import { LogType } from './lib/log-types';
+import type { LogType } from './lib/log-types';
 import { writeLock } from './lib/update-lock';
-import {
-	BalenaLogBackend,
-	LocalLogBackend,
-	LogBackend,
-	LogMessage,
-} from './logging';
-import logMonitor, { MonitorHook } from './logging/monitor';
+import type { LogBackend, LogMessage } from './logging';
+import { BalenaLogBackend, LocalLogBackend } from './logging';
+import type { MonitorHook } from './logging/monitor';
+import logMonitor from './logging/monitor';
 
 import * as globalEventBus from './event-bus';
 import superConsole from './lib/supervisor-console';

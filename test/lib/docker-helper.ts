@@ -64,12 +64,8 @@ export const cleanupDocker = async (docker = new Docker()) => {
 	}
 
 	// Wait until containers are all removed
-	while (true) {
-		if ((await docker.listContainers({ all: true })).length > 0) {
-			await setTimeout(100);
-		} else {
-			break;
-		}
+	while ((await docker.listContainers({ all: true })).length > 0) {
+		await setTimeout(100);
 	}
 
 	// Remove all networks except defaults

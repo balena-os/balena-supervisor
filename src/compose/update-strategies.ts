@@ -1,6 +1,7 @@
 import * as imageManager from './images';
-import Service from './service';
-import { CompositionStep, generateStep } from './composition-steps';
+import type Service from './service';
+import type { CompositionStep } from './composition-steps';
+import { generateStep } from './composition-steps';
 import { InternalInconsistencyError } from '../lib/errors';
 import { checkString } from '../lib/validation';
 

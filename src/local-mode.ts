@@ -171,13 +171,13 @@ export class LocalModeManager {
 						e.message,
 					);
 					return this.collectContainerResources(fallback);
-				} catch (e: any) {
+				} catch (err: any) {
 					// Inspect operation fails (using legacy container name?).
 					const fallback = SUPERVISOR_LEGACY_CONTAINER_NAME_FALLBACK;
 					log.warn(
 						'Supervisor container resources cannot be obtained by container ID. ' +
 							`Using '${fallback}' name instead.`,
-						e.message,
+						err.message,
 					);
 					return this.collectContainerResources(fallback);
 				}

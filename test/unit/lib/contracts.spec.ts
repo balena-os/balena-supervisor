@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import * as semver from 'semver';
-import { SinonStub, stub } from 'sinon';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 
 import * as osRelease from '~/lib/os-release';
 import supervisorVersion = require('~/lib/supervisor-version');
@@ -8,7 +9,7 @@ import * as fsUtils from '~/lib/fs-utils';
 
 describe('lib/contracts', () => {
 	type Contracts = typeof import('~/src/lib/contracts');
-	const contracts = require('~/src/lib/contracts') as Contracts;
+	const contracts = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
 	before(() => {
 		contracts.initializeContractRequirements({
 			supervisorVersion,
@@ -530,7 +531,7 @@ describe('lib/contracts', () => {
 
 		describe('L4T comparison', () => {
 			const seedEngine = async (version: string) => {
-				const engine = require('~/src/lib/contracts') as Contracts;
+				const engine = require('~/src/lib/contracts') as Contracts; // eslint-disable-line
 
 				seedExec(version);
 				engine.initializeContractRequirements({

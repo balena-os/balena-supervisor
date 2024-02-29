@@ -1,7 +1,8 @@
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 
-import { ConfigOptions, ConfigBackend } from './backend';
+import type { ConfigOptions } from './backend';
+import { ConfigBackend } from './backend';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { ODMDataError } from '../../lib/errors';

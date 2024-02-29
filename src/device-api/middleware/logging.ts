@@ -1,5 +1,5 @@
 import * as morgan from 'morgan';
-import { Request } from 'express';
+import type { Request } from 'express';
 
 import log from '../../lib/supervisor-console';
 

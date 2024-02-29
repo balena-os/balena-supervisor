@@ -1,5 +1,6 @@
 import * as t from 'io-ts';
-import { chain, fold, isRight, left, right, Either } from 'fp-ts/lib/Either';
+import type { Either } from 'fp-ts/lib/Either';
+import { chain, fold, isRight, left, right } from 'fp-ts/lib/Either';
 import { pipe, flow } from 'fp-ts/lib/function';
 
 /**
@@ -154,7 +155,7 @@ export type LabelObject = t.TypeOf<typeof LabelObject>;
 // Valid docker container and volume name according to
 // https://github.com/moby/moby/blob/04c6f09fbdf60c7765cc4cb78883faaa9d971fa5/daemon/daemon.go#L56
 // [a-zA-Z0-9][a-zA-Z0-9_.-]
-const DOCKER_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_\.\-]*$/;
+const DOCKER_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
 export const DockerName = shortStringWithRegex(
 	'LabelName',
 	DOCKER_NAME_REGEX,

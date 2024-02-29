@@ -1,5 +1,7 @@
-import { SinonStub, stub } from 'sinon';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 import { expect } from 'chai';
+import * as childProcess from 'child_process';
 
 import { spawnJournalctl } from '~/lib/journald';
 
@@ -7,7 +9,7 @@ describe('lib/journald', () => {
 	let spawn: SinonStub;
 
 	beforeEach((done) => {
-		spawn = stub(require('child_process'), 'spawn');
+		spawn = stub(childProcess, 'spawn');
 		done();
 	});
 

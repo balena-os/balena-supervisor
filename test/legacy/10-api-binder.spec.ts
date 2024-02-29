@@ -1,7 +1,8 @@
 import { stripIndent } from 'common-tags';
 import { promises as fs } from 'fs';
-import { Server } from 'net';
-import { SinonSpy, SinonStub, spy, stub } from 'sinon';
+import type { Server } from 'net';
+import type { SinonSpy, SinonStub } from 'sinon';
+import { spy, stub } from 'sinon';
 import { expect } from 'chai';
 
 import prepare = require('~/test-lib/prepare');
@@ -68,7 +69,7 @@ describe('ApiBinder', () => {
 		server = balenaAPI.listen(3000);
 
 		// TODO: remove when moving this suite to integration tests
-		// @ts-expect-error
+		// @ts-expect-error replace the default mac address path for tests
 		constants.macAddressPath = './test/data/sys/class/net';
 	});
 
@@ -82,7 +83,7 @@ describe('ApiBinder', () => {
 		}
 
 		// TODO: remove when moving this suite to integration tests
-		// @ts-expect-error
+		// @ts-expect-error restore the mac address path
 		constants.macAddressPath = '/sys/class/net';
 	});
 
@@ -415,7 +416,7 @@ describe('ApiBinder', () => {
 
 		it('fails when stateReportHealthy is false', async () => {
 			const currentState =
-				require('~/src/api-binder/report') as typeof import('~/src/api-binder/report');
+				require('~/src/api-binder/report') as typeof import('~/src/api-binder/report'); // eslint-disable-line
 
 			configStub.resolves({
 				unmanaged: false,

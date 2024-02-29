@@ -1,6 +1,7 @@
 import { expect } from 'chai';
-import * as express from 'express';
-import { SinonStub, stub } from 'sinon';
+import type * as express from 'express';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 import * as request from 'supertest';
 
 import * as config from '~/src/config';
@@ -28,7 +29,7 @@ describe('device-api/v2', () => {
 		api = new deviceApi.SupervisorAPI({
 			routers: [v2.router],
 			healthchecks: [],
-			// @ts-expect-error
+			// @ts-expect-error extract private variable for testing
 		}).api;
 	});
 

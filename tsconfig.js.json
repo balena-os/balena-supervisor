@@ -1,8 +1,14 @@
 {
-	"extends": "./tsconfig.release.json",
-	"compilerOptions": {
-		"noImplicitAny": false,
-		"checkJs": true
-	},
-	"include": ["src/**/*", "test/**/*", "typings/**/*.d.ts", "build-utils/**/*", "webpack.config.js"]
+  "extends": "./tsconfig.release.json",
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "checkJs": true
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "typings/**/*.d.ts",
+    "build-utils/**/*",
+    "webpack.config.js"
+  ]
 }

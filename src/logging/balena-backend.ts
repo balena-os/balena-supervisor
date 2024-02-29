@@ -1,11 +1,12 @@
-import { ClientRequest } from 'http';
+import type { ClientRequest } from 'http';
 import * as https from 'https';
 import * as _ from 'lodash';
 import * as stream from 'stream';
 import * as url from 'url';
 import * as zlib from 'zlib';
 
-import { LogBackend, LogMessage } from './log-backend';
+import type { LogMessage } from './log-backend';
+import { LogBackend } from './log-backend';
 
 import log from '../lib/supervisor-console';
 

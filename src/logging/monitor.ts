@@ -183,7 +183,10 @@ class LogMonitor {
 		const isStdErr = row.PRIORITY === '3';
 		const timestamp = Math.floor(Number(row.__REALTIME_TIMESTAMP) / 1000); // microseconds to milliseconds
 		this.updateContainerSentTimestamp(containerId, timestamp);
-		this.containers[containerId].hook({ message, isStdErr, timestamp });
+
+		// WARNING: this could lead to a memory leak as the hook is not being awaited
+		// and the journal can be very verbose
+		void this.containers[containerId].hook({ message, isStdErr, timestamp });
 	}
 
 	private updateContainerSentTimestamp(

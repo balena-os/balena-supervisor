@@ -2,10 +2,4 @@
 	"*.ts": [
 		"balena-lint --typescript --fix",
 	],
-	"*.js": [
-		"balena-lint --typescript --fix",
-	],
-	"test/**/*.ts": [
-		"balena-lint --typescript --no-prettier --tests"
-	],
 }

@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
 import * as url from 'url';
 import { setTimeout } from 'timers/promises';
-import * as _ from 'lodash';
 import * as Bluebird from 'bluebird';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 

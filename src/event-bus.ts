@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import * as _ from 'lodash';
-import StrictEventEmitter from 'strict-event-emitter-types';
-import { TargetState } from './types/state';
+import type StrictEventEmitter from 'strict-event-emitter-types';
+import type { TargetState } from './types/state';
 
 export interface GlobalEvents {
 	deviceProvisioned: void;
@@ -10,10 +10,6 @@ export interface GlobalEvents {
 
 type GlobalEventEmitter = StrictEventEmitter<EventEmitter, GlobalEvents>;
 
-export class GlobalEventBus extends (EventEmitter as new () => GlobalEventEmitter) {
-	public constructor() {
-		super();
-	}
-}
-
-export const getInstance = _.once(() => new GlobalEventBus());
+export const getInstance = _.once(
+	() => new EventEmitter() as GlobalEventEmitter,
+);

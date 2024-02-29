@@ -100,9 +100,11 @@ export class SupervisorAPI {
 						log.error('Failed to stop Supervisor API');
 						return reject(err);
 					}
-					options?.errored
-						? log.error('Stopped Supervisor API')
-						: log.info('Stopped Supervisor API');
+					if (options?.errored) {
+						log.error('Stopped Supervisor API');
+					} else {
+						log.info('Stopped Supervisor API');
+					}
 					return resolve();
 				});
 			});

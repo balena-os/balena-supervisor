@@ -6,7 +6,7 @@ import * as updateLock from '~/lib/update-lock';
 import * as config from '~/src/config';
 import * as deviceState from '~/src/device-state';
 import { appsJsonBackup, loadTargetFromFile } from '~/src/device-state/preload';
-import { TargetState } from '~/src/types';
+import type { TargetState } from '~/src/types';
 import { promises as fs } from 'fs';
 import { initializeContractRequirements } from '~/lib/contracts';
 
@@ -196,7 +196,7 @@ describe('device-state', () => {
 
 	it('does not allow setting an invalid target state', () => {
 		// v2 state should be rejected
-		expect(
+		return expect(
 			deviceState.setTarget({
 				local: {
 					name: 'aDeviceWithDifferentName',

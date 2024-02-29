@@ -1,4 +1,5 @@
 import * as os from 'os';
+import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 
 import { expect } from 'chai';
@@ -81,8 +82,7 @@ describe('network', () => {
 			} as any),
 		);
 
-		// @ts-expect-error
-		after(() => os.networkInterfaces.restore());
+		after(() => (os.networkInterfaces as SinonStub).restore());
 
 		it('returns only the relevant IP addresses', () =>
 			expect(network.getIPAddresses()).to.deep.equal([

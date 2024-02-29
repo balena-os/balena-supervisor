@@ -1,13 +1,15 @@
 import { expect } from 'chai';
-import { testfs, TestFs } from 'mocha-pod';
+import type { TestFs } from 'mocha-pod';
+import { testfs } from 'mocha-pod';
 import * as path from 'path';
-import { SinonStub, stub } from 'sinon';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 import * as fs from 'fs/promises';
 
 import * as hostConfig from '~/src/host-config';
 import * as config from '~/src/config';
 import * as applicationManager from '~/src/compose/application-manager';
-import { InstancedAppState } from '~/src/types/state';
+import type { InstancedAppState } from '~/src/types/state';
 import * as updateLock from '~/lib/update-lock';
 import { UpdatesLockedError } from '~/lib/errors';
 import * as dbus from '~/lib/dbus';

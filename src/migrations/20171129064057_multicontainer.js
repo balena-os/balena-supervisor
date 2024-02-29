@@ -1,7 +1,7 @@
-const Bluebird = require('bluebird');
-const _ = require('lodash');
+import * as Bluebird from 'bluebird';
+import * as _ from 'lodash';
 
-var tryParse = function (obj) {
+const tryParse = function (obj) {
 	try {
 		return JSON.parse(obj);
 	} catch {
@@ -9,14 +9,14 @@ var tryParse = function (obj) {
 	}
 };
 
-var singleToMulticontainerApp = function (app) {
+const singleToMulticontainerApp = function (app) {
 	// From *very* old supervisors, env or config may be null
 	// so we ignore errors parsing them
 	const conf = tryParse(app.config);
 	const env = tryParse(app.env);
 	const environment = {};
 	const appId = parseInt(app.appId, 10);
-	for (let key in env) {
+	for (const key in env) {
 		if (!/^RESIN_/.test(key)) {
 			environment[key] = env[key];
 		}
@@ -68,7 +68,7 @@ var singleToMulticontainerApp = function (app) {
 	return newApp;
 };
 
-var jsonifyAppFields = function (app) {
+const jsonifyAppFields = function (app) {
 	const newApp = _.clone(app);
 	newApp.services = JSON.stringify(app.services);
 	newApp.networks = JSON.stringify(app.networks);
@@ -76,7 +76,7 @@ var jsonifyAppFields = function (app) {
 	return newApp;
 };
 
-var imageForApp = function (app) {
+const imageForApp = function (app) {
 	const service = app.services[0];
 	return {
 		name: service.image,
@@ -89,7 +89,7 @@ var imageForApp = function (app) {
 	};
 };
 
-var imageForDependentApp = function (app) {
+const imageForDependentApp = function (app) {
 	return {
 		name: app.image,
 		appId: app.appId,

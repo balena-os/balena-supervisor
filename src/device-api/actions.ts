@@ -8,10 +8,8 @@ import * as logger from '../logger';
 import * as config from '../config';
 import * as hostConfig from '../host-config';
 import * as applicationManager from '../compose/application-manager';
-import {
-	CompositionStepAction,
-	generateStep,
-} from '../compose/composition-steps';
+import type { CompositionStepAction } from '../compose/composition-steps';
+import { generateStep } from '../compose/composition-steps';
 import * as commitStore from '../compose/commit';
 import { getApp } from '../device-state/db-format';
 import * as TargetState from '../device-state/target-state';
@@ -265,7 +263,7 @@ export const executeServiceAction = async ({
 		? currentApp.services[0]
 		: currentApp.services.find(
 				(s) => s.imageId === imageId || s.serviceName === serviceName,
-		  );
+			);
 	if (currentService == null) {
 		// Legacy (v1) throws 400 while v2 throws 404, and we have to keep the interface consistent.
 		throw new (isLegacy ? BadRequestError : NotFoundError)(

@@ -1,12 +1,13 @@
 import { expect } from 'chai';
-import { stub, SinonStub, spy, SinonSpy } from 'sinon';
+import type { SinonStub, SinonSpy } from 'sinon';
+import { stub, spy } from 'sinon';
 import * as supertest from 'supertest';
 
 import sampleResponses = require('~/test-data/device-api-responses.json');
 import mockedAPI = require('~/test-lib/mocked-device-api');
 import * as apiBinder from '~/src/api-binder';
 import * as deviceState from '~/src/device-state';
-import SupervisorAPI from '~/src/device-api';
+import type SupervisorAPI from '~/src/device-api';
 import * as deviceApi from '~/src/device-api';
 import * as serviceManager from '~/src/compose/service-manager';
 import * as images from '~/src/compose/images';

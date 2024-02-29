@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { promises as fs, mkdirSync } from 'fs';
-import { testfs, TestFs } from 'mocha-pod';
+import type { TestFs } from 'mocha-pod';
+import { testfs } from 'mocha-pod';
 import * as os from 'os';
 import * as path from 'path';
 import { stub } from 'sinon';
@@ -174,7 +175,7 @@ describe('lib/lockfile', () => {
 		await expect(lockfile.lock(lockOne)).to.not.be.rejected;
 		await expect(lockfile.lock(lockTwo, NOBODY_UID)).to.not.be.rejected;
 
-		// @ts-expect-error
+		// @ts-expect-error simulate process exit event
 		process.emit('exit');
 
 		// Verify lockfile removal regardless of appId / appUuid

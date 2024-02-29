@@ -1,6 +1,6 @@
 import * as express from 'express';
 import * as request from 'supertest';
-import { SinonStub } from 'sinon';
+import type { SinonStub } from 'sinon';
 import { expect } from 'chai';
 
 import * as middleware from '~/src/device-api/middleware';
@@ -13,10 +13,10 @@ describe('device-api/middleware', () => {
 	describe('errors', () => {
 		before(() => {
 			app = express();
-			app.get('/locked', (_req, _res) => {
+			app.get('/locked', () => {
 				throw new UpdatesLockedError();
 			});
-			app.get('/errored', (_req, _res) => {
+			app.get('/errored', () => {
 				throw new Error();
 			});
 			app.use(middleware.errors);
@@ -35,8 +35,8 @@ describe('device-api/middleware', () => {
 		before(() => {
 			app = express();
 			app.use(middleware.logging);
-			app.get('/', (_req, res) => res.sendStatus(200));
-			app.post('/', (_req, res) => res.sendStatus(304));
+			app.get('/', (_, res) => res.sendStatus(200));
+			app.post('/', (_, res) => res.sendStatus(304));
 			(log.api as SinonStub).reset();
 		});
 

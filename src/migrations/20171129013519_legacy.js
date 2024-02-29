@@ -89,7 +89,7 @@ exports.up = function (knex) {
 					addColumn('app', 'markedForDeletion', 'boolean'),
 					dropColumn('app', 'containerId'),
 				]).then(() => {
-					//When updating from older supervisors, config can be null
+					// When updating from older supervisors, config can be null
 					return knex('app')
 						.update({ config: '{}' })
 						.whereNull('config')

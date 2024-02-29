@@ -5,7 +5,7 @@ import * as constants from '../lib/constants';
 import * as hostUtils from '../lib/host-utils';
 import * as osRelease from '../lib/os-release';
 import { readLock, writeLock } from '../lib/update-lock';
-import * as Schema from './schema';
+import type * as Schema from './schema';
 
 export default class ConfigJsonConfigBackend {
 	private readonly readLockConfigJson: () => Bluebird.Disposer<() => void>;

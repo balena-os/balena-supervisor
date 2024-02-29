@@ -63,7 +63,7 @@ export function withBackoff<T extends (...args: any[]) => any>(
 						normalizedOptions.retryCount,
 						normalizedOptions.minDelay,
 						normalizedOptions.maxDelay,
-				  );
+					);
 
 			normalizedOptions.retryCount++;
 

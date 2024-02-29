@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import * as Docker from 'dockerode';
-import { TargetStateV2 } from '~/lib/legacy';
+import type { TargetStateV2 } from '~/lib/legacy';
 import * as request from 'supertest';
 import { setTimeout as delay } from 'timers/promises';
 import { exec } from '~/lib/fs-utils';
@@ -33,7 +33,16 @@ const setTargetState = async (
 		.send(JSON.stringify(targetState))
 		.expect(200);
 
-	return new Promise(async (resolve, reject) => {
+	const waitApplied = async () => {
+		// Wait for the app state to be applied
+		while ((await getStatus()).appState !== 'applied') {
+			await delay(1000);
+		}
+		// Wait a tiny bit more after applied for state to settle
+		await delay(1000);
+	};
+
+	return new Promise((resolve, reject) => {
 		const timer =
 			timeout > 0
 				? setTimeout(
@@ -44,20 +53,15 @@ const setTargetState = async (
 								),
 							),
 						timeout,
-				  )
+					)
 				: undefined;
 
-		while (true) {
-			const status = await getStatus();
-			if (status.appState === 'applied') {
-				// Wait a tiny bit more after applied for state to settle
-				await delay(1000);
+		waitApplied()
+			.then(() => {
 				clearTimeout(timer);
 				resolve(true);
-				break;
-			}
-			await delay(1000);
-		}
+			})
+			.catch(reject);
 	});
 };
 

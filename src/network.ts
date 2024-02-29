@@ -80,7 +80,7 @@ export const startConnectivityCheck = _.once(
 		watch(constants.vpnStatusPath, vpnStatusInotifyCallback);
 
 		if (enable) {
-			vpnStatusInotifyCallback();
+			void vpnStatusInotifyCallback();
 		}
 
 		const parsedUrl = url.parse(apiEndpoint);

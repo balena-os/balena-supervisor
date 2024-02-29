@@ -1,4 +1,5 @@
-import { SinonStub, stub, spy, SinonSpy } from 'sinon';
+import type { SinonStub, SinonSpy } from 'sinon';
+import { stub, spy } from 'sinon';
 import * as Bluebird from 'bluebird';
 import * as _ from 'lodash';
 import rewire = require('rewire');

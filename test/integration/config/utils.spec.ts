@@ -7,7 +7,7 @@ import { Extlinux } from '~/src/config/backends/extlinux';
 import { ConfigTxt } from '~/src/config/backends/config-txt';
 import { ConfigFs } from '~/src/config/backends/config-fs';
 import { SplashImage } from '~/src/config/backends/splash-image';
-import { ConfigBackend } from '~/src/config/backends/backend';
+import type { ConfigBackend } from '~/src/config/backends/backend';
 
 import * as hostUtils from '~/lib/host-utils';
 

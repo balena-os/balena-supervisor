@@ -1,12 +1,13 @@
-import * as Docker from 'dockerode';
+import type * as Docker from 'dockerode';
 import { EventEmitter } from 'events';
 import * as _ from 'lodash';
-import StrictEventEmitter from 'strict-event-emitter-types';
+import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
 import * as db from '../db';
 import * as constants from '../lib/constants';
-import { DeltaFetchOptions, FetchOptions, docker } from '../lib/docker-utils';
+import type { DeltaFetchOptions, FetchOptions } from '../lib/docker-utils';
+import { docker } from '../lib/docker-utils';
 import * as dockerUtils from '../lib/docker-utils';
 import {
 	DeltaStillProcessingError,
@@ -67,11 +68,11 @@ class ImageEventEmitter extends (EventEmitter as new () => StrictEventEmitter<
 >) {}
 const events = new ImageEventEmitter();
 
-export const on: typeof events['on'] = events.on.bind(events);
-export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] =
+export const on: (typeof events)['on'] = events.on.bind(events);
+export const once: (typeof events)['once'] = events.once.bind(events);
+export const removeListener: (typeof events)['removeListener'] =
 	events.removeListener.bind(events);
-export const removeAllListeners: typeof events['removeAllListeners'] =
+export const removeAllListeners: (typeof events)['removeAllListeners'] =
 	events.removeAllListeners.bind(events);
 
 const imageFetchFailures: Dictionary<number> = {};
@@ -144,14 +145,16 @@ function reportEvent(event: 'start' | 'update' | 'finish', state: Image) {
 		switch (event) {
 			case 'start':
 				return true; // always report change on start
-			case 'update':
+			case 'update': {
 				const [updatedTask, changedAfterUpdate] = currentTask.update(state);
 				runningTasks[imageName] = updatedTask;
 				return changedAfterUpdate; // report change only if the task context changed
-			case 'finish':
+			}
+			case 'finish': {
 				const [, changedAfterFinish] = currentTask.finish();
 				delete runningTasks[imageName];
 				return changedAfterFinish; // report change depending on the state of the task
+			}
 		}
 	})();
 
@@ -551,14 +554,14 @@ const inspectByReference = async (imageName: string) => {
 			filters: { reference: [reference] },
 		})
 		.then(([img]) =>
-			!!img
+			img
 				? docker.getImage(img.Id).inspect()
 				: Promise.reject(
 						new StatusError(
 							404,
 							`Failed to find an image matching ${imageName}`,
 						),
-				  ),
+					),
 		);
 };
 
@@ -582,14 +585,14 @@ const inspectByDigest = async (imageName: string) => {
 		// Assume that all db entries will point to the same dockerImageId, so use
 		// the first one. If this assumption is false, there is a bug with cleanup
 		.then(([img]) =>
-			!!img
+			img
 				? docker.getImage(img.dockerImageId).inspect()
 				: Promise.reject(
 						new StatusError(
 							404,
 							`Failed to find an image matching ${imageName}`,
 						),
-				  ),
+					),
 		);
 };
 

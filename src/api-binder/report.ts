@@ -1,17 +1,17 @@
 import * as url from 'url';
-import * as _ from 'lodash';
-import { CoreOptions } from 'request';
+import type { CoreOptions } from 'request';
 import { performance } from 'perf_hooks';
 import { setTimeout } from 'timers/promises';
 import { readFile } from 'fs/promises';
 
 import { DeviceState } from '../types';
 import * as config from '../config';
-import { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
+import type { SchemaTypeKey, SchemaReturn } from '../config/schema-type';
 import * as eventTracker from '../event-tracker';
 import * as deviceState from '../device-state';
 
-import { withBackoff, OnFailureInfo } from '../lib/backoff';
+import type { OnFailureInfo } from '../lib/backoff';
+import { withBackoff } from '../lib/backoff';
 import { log } from '../lib/supervisor-console';
 import { InternalInconsistencyError, StatusError } from '../lib/errors';
 import { getRequestInstance } from '../lib/request';

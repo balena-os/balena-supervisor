@@ -4,15 +4,15 @@ import * as config from '../config';
 
 import type { Image } from './images';
 import * as images from './images';
-import Network from './network';
-import Service from './service';
+import type Network from './network';
+import type Service from './service';
 import * as serviceManager from './service-manager';
-import Volume from './volume';
+import type Volume from './volume';
 
 import { checkTruthy } from '../lib/validation';
 import * as networkManager from './network-manager';
 import * as volumeManager from './volume-manager';
-import { DeviceLegacyReport } from '../types/state';
+import type { DeviceLegacyReport } from '../types/state';
 import * as commitStore from './commit';
 
 interface BaseCompositionStepArgs {
@@ -81,7 +81,7 @@ interface CompositionStepArgs {
 	saveImage: {
 		image: Image;
 	};
-	cleanup: {};
+	cleanup: object;
 	createNetwork: {
 		target: Network;
 	};
@@ -94,8 +94,8 @@ interface CompositionStepArgs {
 	removeVolume: {
 		current: Volume;
 	};
-	ensureSupervisorNetwork: {};
-	noop: {};
+	ensureSupervisorNetwork: object;
+	noop: object;
 }
 
 export type CompositionStepAction = keyof CompositionStepArgs;

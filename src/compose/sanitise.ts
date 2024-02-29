@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import { ConfigMap, ServiceComposeConfig } from './types/service';
+import type { ConfigMap, ServiceComposeConfig } from './types/service';
 
 import log from '../lib/supervisor-console';
 

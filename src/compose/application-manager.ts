@@ -1,9 +1,10 @@
 import * as _ from 'lodash';
 import { EventEmitter } from 'events';
-import StrictEventEmitter from 'strict-event-emitter-types';
+import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';
-import { transaction, Transaction } from '../db';
+import type { Transaction } from '../db';
+import { transaction } from '../db';
 import * as logger from '../logger';
 import LocalModeManager from '../local-mode';
 
@@ -25,9 +26,9 @@ import * as networkManager from './network-manager';
 import * as serviceManager from './service-manager';
 import * as imageManager from './images';
 import * as commitStore from './commit';
-import Service from './service';
-import Network from './network';
-import Volume from './volume';
+import type Service from './service';
+import type Network from './network';
+import type Volume from './volume';
 import { generateStep, getExecutors } from './composition-steps';
 
 import type {
@@ -45,11 +46,11 @@ type ApplicationManagerEventEmitter = StrictEventEmitter<
 	{ change: DeviceLegacyReport }
 >;
 const events: ApplicationManagerEventEmitter = new EventEmitter();
-export const on: typeof events['on'] = events.on.bind(events);
-export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] =
+export const on: (typeof events)['on'] = events.on.bind(events);
+export const once: (typeof events)['once'] = events.once.bind(events);
+export const removeListener: (typeof events)['removeListener'] =
 	events.removeListener.bind(events);
-export const removeAllListeners: typeof events['removeAllListeners'] =
+export const removeAllListeners: (typeof events)['removeAllListeners'] =
 	events.removeAllListeners.bind(events);
 
 const localModeManager = new LocalModeManager();
@@ -611,7 +612,7 @@ export async function serviceNameFromId(serviceId: number) {
 			(svcName) => services[svcName].id === serviceId,
 		);
 
-		if (!!serviceName) {
+		if (serviceName) {
 			return serviceName;
 		}
 	}
@@ -771,7 +772,7 @@ function saveAndRemoveImages(
 		: availableAndUnused.filter((image) => !deltaSources.includes(image.name));
 
 	return imagesToSave
-		.map((image) => ({ action: 'saveImage', image } as CompositionStep))
+		.map((image) => ({ action: 'saveImage', image }) as CompositionStep)
 		.concat(imagesToRemove.map((image) => ({ action: 'removeImage', image })));
 }
 
@@ -948,7 +949,7 @@ export async function getState() {
 		// We cannot report services that do not have an image as the API
 		// requires passing the image name
 		.filter(([, img]) => !!img)
-		.map(([svc, img]) => ({ ...img, ...svc } as ServiceInfo))
+		.map(([svc, img]) => ({ ...img, ...svc }) as ServiceInfo)
 		.map((svc, __, serviceList) => {
 			// If the service is not running it cannot be a handover
 			if (svc.status !== 'Running') {

@@ -1,8 +1,8 @@
 import { expect } from 'chai';
-import * as sinon from 'sinon';
+import type * as sinon from 'sinon';
 
 import { Network } from '~/src/compose/network';
-import { NetworkInspectInfo } from '~/src/compose/types/network';
+import type { NetworkInspectInfo } from '~/src/compose/types/network';
 
 import { log } from '~/lib/supervisor-console';
 

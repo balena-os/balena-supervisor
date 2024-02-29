@@ -1,8 +1,8 @@
-import * as Dockerode from 'dockerode';
+import type * as Dockerode from 'dockerode';
 import * as t from 'io-ts';
 import { isAbsolute } from 'path';
 
-import { PortMap } from '../ports';
+import type { PortMap } from '../ports';
 
 export interface ComposeHealthcheck {
 	test: string | string[];

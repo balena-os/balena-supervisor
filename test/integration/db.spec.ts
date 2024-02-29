@@ -1,4 +1,5 @@
-import { knex, Knex } from 'knex';
+import type { Knex } from 'knex';
+import { knex } from 'knex';
 import { promises as fs } from 'fs';
 
 import { expect } from 'chai';
@@ -56,6 +57,7 @@ describe('db', () => {
 	});
 
 	it('creates a database at the path passed on creation', async () => {
+		// eslint-disable-next-line
 		const testDb = require('~/src/db') as Db;
 		await testDb.initialized();
 		await expect(fs.access(constants.databasePath)).to.not.be.rejected;
@@ -64,6 +66,7 @@ describe('db', () => {
 	it('migrations add new fields and removes old ones in an old database', async () => {
 		// Create a database with an older schema
 		const knexForDB = await createOldDatabase(constants.databasePath);
+		// eslint-disable-next-line
 		const testDb = require('~/src/db') as Db;
 		await testDb.initialized();
 		await Promise.all([
@@ -87,6 +90,7 @@ describe('db', () => {
 	});
 
 	it('creates a deviceConfig table with a single default value', async () => {
+		// eslint-disable-next-line
 		const testDb = require('~/src/db') as Db;
 		await testDb.initialized();
 		const deviceConfig = await testDb.models('deviceConfig').select();
@@ -95,6 +99,7 @@ describe('db', () => {
 	});
 
 	it('allows performing transactions', async () => {
+		// eslint-disable-next-line
 		const testDb = require('~/src/db') as Db;
 		await testDb.initialized();
 		return testDb.transaction((trx) => expect(trx.commit()).to.be.fulfilled);

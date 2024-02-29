@@ -1,4 +1,4 @@
-import { ContainerInspectInfo } from 'dockerode';
+export { ContainerInspectInfo } from 'dockerode';
 
 declare module 'dockerode' {
 	// Extend the HostConfig interface with the missing fields.

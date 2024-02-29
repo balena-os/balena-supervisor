@@ -1,5 +1,4 @@
 import * as Bluebird from 'bluebird';
-import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import * as Lock from 'rwlock';
@@ -92,7 +91,7 @@ async function dispose(
  * TODO: Remove skipLock as it's not a good interface. If lock is called it should try to take the lock
  * without an option to skip.
  */
-export async function lock<T extends unknown>(
+export async function lock<T>(
 	appId: number | number[],
 	{ force = false, skipLock = false }: { force: boolean; skipLock?: boolean },
 	fn: () => Resolvable<T>,

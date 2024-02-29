@@ -1,5 +1,3 @@
-import * as _ from 'lodash';
-
 import * as path from 'path';
 import * as apiBinder from '../api-binder';
 import * as config from '../config';
@@ -16,14 +14,14 @@ import {
 import { docker } from './docker-utils';
 import { log } from './supervisor-console';
 import { pathOnData } from './host-utils';
-import Volume from '../compose/volume';
+import type Volume from '../compose/volume';
 import * as logger from '../logger';
 import type {
 	DatabaseApp,
 	DatabaseService,
 } from '../device-state/target-state-cache';
 
-import { TargetApp, TargetApps, TargetState } from '../types';
+import type { TargetApp, TargetApps, TargetState } from '../types';
 
 const defaultLegacyVolume = () => 'resin-data';
 
@@ -315,7 +313,7 @@ export async function fromV2TargetApps(
 								throw new Error(
 									'Cannot migrate from v2 apps.json without Internet connectivity. Please use balenaCLI v13.5.1+ for offline preload support.',
 								);
-						  });
+							});
 
 					const releases = app.commit
 						? {
@@ -359,7 +357,7 @@ export async function fromV2TargetApps(
 									volumes: app.volumes ?? {},
 									networks: app.networks ?? {},
 								},
-						  }
+							}
 						: {};
 
 					return [

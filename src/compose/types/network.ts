@@ -1,4 +1,4 @@
-import { NetworkInspectInfo as DockerNetworkInspectInfo } from 'dockerode';
+import type { NetworkInspectInfo as DockerNetworkInspectInfo } from 'dockerode';
 
 // TODO: ConfigOnly is part of @types/dockerode@v3.2.0, but that version isn't
 // compatible with `resin-docker-build` which is used for `npm run sync`.

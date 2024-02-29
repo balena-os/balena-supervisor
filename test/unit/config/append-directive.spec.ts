@@ -13,8 +13,7 @@ describe('APPEND directive', () => {
 
 	it('errors when parsing invalid APPEND value', () => {
 		INVALID_VALUES.forEach(({ input, reason }) =>
-			// @ts-expect-error
-			expect(() => directive.parse(input)).to.throw(reason),
+			expect(() => directive.parse(input as any)).to.throw(reason),
 		);
 	});
 

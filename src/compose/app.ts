@@ -1,18 +1,18 @@
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
-import { ImageInspectInfo } from 'dockerode';
+import type { ImageInspectInfo } from 'dockerode';
 
 import Network from './network';
 import Volume from './volume';
 import Service from './service';
 import * as imageManager from './images';
 import type { Image } from './images';
-import {
+import type {
 	CompositionStep,
-	generateStep,
 	CompositionStepAction,
 } from './composition-steps';
-import * as targetStateCache from '../device-state/target-state-cache';
+import { generateStep } from './composition-steps';
+import type * as targetStateCache from '../device-state/target-state-cache';
 import { getNetworkGateway } from '../lib/docker-utils';
 import * as constants from '../lib/constants';
 import {
@@ -22,7 +22,7 @@ import {
 import { isNotFoundError } from '../lib/errors';
 import * as config from '../config';
 import { checkTruthy } from '../lib/validation';
-import { ServiceComposeConfig, DeviceMetadata } from './types/service';
+import type { ServiceComposeConfig, DeviceMetadata } from './types/service';
 import { pathExistsOnRoot } from '../lib/host-utils';
 import { isSupervisor } from '../lib/supervisor-metadata';
 
@@ -64,7 +64,10 @@ export class App {
 	public networks: Network[];
 	public volumes: Volume[];
 
-	public constructor(opts: AppConstructOpts, public isTargetState: boolean) {
+	public constructor(
+		opts: AppConstructOpts,
+		public isTargetState: boolean,
+	) {
 		this.appId = opts.appId;
 		this.appUuid = opts.appUuid;
 		this.appName = opts.appName;
@@ -513,12 +516,18 @@ export class App {
 			return;
 		}
 
-		const needsDownload = !context.availableImages.some(
-			(image) =>
-				image.dockerImageId === target?.config.image ||
-				imageManager.isSameImage(image, { name: target?.imageName! }),
-		);
-		if (needsDownload && context.downloading.includes(target?.imageName!)) {
+		const needsDownload =
+			target != null &&
+			!context.availableImages.some(
+				(image) =>
+					image.dockerImageId === target.config.image ||
+					imageManager.isSameImage(image, { name: target.imageName! }),
+			);
+		if (
+			target != null &&
+			needsDownload &&
+			context.downloading.includes(target.imageName!)
+		) {
 			// The image needs to be downloaded, and it's currently downloading.
 			// We simply keep the application loop alive
 			return generateStep('noop', {});

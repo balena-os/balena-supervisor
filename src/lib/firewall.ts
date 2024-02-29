@@ -15,7 +15,7 @@ export const initialised = _.once(async () => {
 	// apply firewall whenever relevant config changes occur...
 	config.on('change', ({ firewallMode, localMode }) => {
 		if (firewallMode || localMode != null) {
-			applyFirewall({ firewallMode, localMode });
+			void applyFirewall({ firewallMode, localMode });
 		}
 	});
 });
@@ -167,7 +167,7 @@ export async function applyFirewallMode(mode: string) {
 						comment: `Firewall disabled (${mode})`,
 						action: iptables.RuleAction.Append,
 						target: 'RETURN',
-				  }
+					}
 				: [];
 
 		// Get position of BALENA-FIREWALL rule in the INPUT chain for both iptables & ip6tables

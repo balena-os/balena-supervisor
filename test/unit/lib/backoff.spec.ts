@@ -2,7 +2,8 @@ import { assert, expect } from 'chai';
 import * as sinon from 'sinon';
 
 import { StatusError } from '~/lib/errors';
-import { withBackoff, OnFailureInfo } from '~/lib/backoff';
+import type { OnFailureInfo } from '~/lib/backoff';
+import { withBackoff } from '~/lib/backoff';
 
 const DEFAULT_OPTIONS = {
 	maxRetries: 5,
@@ -29,7 +30,7 @@ describe('lib/backoff', async () => {
 			return failer.willResolve('fails 3 times then resolves on 4th');
 		}, DEFAULT_OPTIONS);
 		// Call function and allow clock to trigger all events
-		clock.runAllAsync();
+		void clock.runAllAsync();
 		await expect(fnWithBackoff()).to.eventually.equal(
 			'fails 3 times then resolves on 4th',
 		);
@@ -51,7 +52,7 @@ describe('lib/backoff', async () => {
 		// Function should have been called 0 times to start
 		expect(failer.callCount).to.equal(0);
 		// Call function
-		myBackoffFunc();
+		void myBackoffFunc();
 		// Check that function was run at least once
 		expect(failer.callCount).to.equal(1);
 		// Elapse some time but not enough to be minDelay
@@ -102,7 +103,7 @@ describe('lib/backoff', async () => {
 		const fnWithBackoff = withBackoff(async () => {
 			return failer.willResolve('ok');
 		}, DEFAULT_OPTIONS);
-		clock.runAllAsync();
+		void clock.runAllAsync();
 		// Call the function
 		await expect(fnWithBackoff()).to.eventually.be.rejectedWith(
 			`Reached max number of retries: ${DEFAULT_OPTIONS.maxRetries}`,
@@ -133,7 +134,7 @@ describe('lib/backoff', async () => {
 			},
 		);
 		// Call function and allow clock to trigger all events
-		clock.runAllAsync();
+		void clock.runAllAsync();
 		await fnWithBackoff();
 	});
 

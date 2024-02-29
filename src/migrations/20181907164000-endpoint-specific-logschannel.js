@@ -1,5 +1,5 @@
-const Bluebird = require('bluebird');
-const fs = require('fs');
+import * as Bluebird from 'bluebird';
+import * as fs from 'fs';
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 exports.up = function (knex) {

@@ -21,8 +21,7 @@ describe('FDT directive', () => {
 
 	it('errors when generating with invalid ConfigOptions', () => {
 		INVALID_CONFIGS_OPTIONS.forEach(({ input, reason }) =>
-			// @ts-expect-error
-			expect(() => directive.generate(input)).to.throw(reason),
+			expect(() => directive.generate(input as any)).to.throw(reason),
 		);
 	});
 });
