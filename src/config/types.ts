@@ -54,12 +54,13 @@ export const PermissiveNumber = new t.Type<number, string | number>(
 			switch (typeof v) {
 				case 'number':
 					return t.success(v);
-				case 'string':
+				case 'string': {
 					const i = parseInt(v, 10);
 					if (Number.isNaN(i)) {
 						return t.failure(v, c);
 					}
 					return t.success(i);
+				}
 				default:
 					return t.failure(v, c);
 			}
@@ -73,7 +74,7 @@ export const PermissiveNumber = new t.Type<number, string | number>(
 
 // Define this differently, so that we can add a generic to it
 export class StringJSON<T> extends t.Type<T, string> {
-	public readonly _tag: 'StringJSON' = 'StringJSON';
+	public readonly _tag: 'StringJSON' = 'StringJSON' as const;
 	constructor(type: t.InterfaceType<any>) {
 		super(
 			'StringJSON',

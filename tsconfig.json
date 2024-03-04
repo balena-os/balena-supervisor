@@ -1,24 +1,37 @@
 {
-	"compilerOptions": {
-		"baseUrl": "./",
-		"target": "ES2022",
-		"module": "commonjs",
-		"moduleResolution": "Node16",
-		"strict": true,
-		"strictFunctionTypes": false,
-		"strictPropertyInitialization": false,
-		"preserveConstEnums": true,
-		"inlineSourceMap": true,
-		"outDir": "./build/",
-		"skipLibCheck": true,
-		"resolveJsonModule": true,
-		"allowJs": true,
-		"paths": {
-			"~/src/*": ["src/*"],
-			"~/lib/*": ["src/lib/*"],
-			"~/test-lib/*": ["test/lib/*"],
-			"~/test-data/*": ["test/data/*"]
-		}
-	},
-	"include": ["src/**/*", "test/**/*", "typings/**/*.d.ts"]
+  "compilerOptions": {
+    "baseUrl": "./",
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "Node16",
+    "strict": true,
+    "strictFunctionTypes": false,
+    "strictPropertyInitialization": false,
+    "preserveConstEnums": true,
+    "inlineSourceMap": true,
+    "outDir": "./build/",
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "paths": {
+      "~/src/*": [
+        "src/*"
+      ],
+      "~/lib/*": [
+        "src/lib/*"
+      ],
+      "~/test-lib/*": [
+        "test/lib/*"
+      ],
+      "~/test-data/*": [
+        "test/data/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "typings/**/*.d.ts",
+    "build-utils/**/*"
+  ]
 }

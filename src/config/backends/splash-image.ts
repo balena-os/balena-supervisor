@@ -6,7 +6,8 @@ import * as constants from '../../lib/constants';
 import { exists } from '../../lib/fs-utils';
 import * as hostUtils from '../../lib/host-utils';
 import log from '../../lib/supervisor-console';
-import { ConfigBackend, ConfigOptions } from './backend';
+import type { ConfigOptions } from './backend';
+import { ConfigBackend } from './backend';
 
 export class SplashImage extends ConfigBackend {
 	private static readonly BASEPATH = hostUtils.pathOnBoot('splash');
@@ -155,7 +156,7 @@ export class SplashImage extends ConfigBackend {
 		return SplashImage.CONFIGS.includes(this.stripPrefix(name).toLowerCase());
 	}
 
-	public async matches(_deviceType: string): Promise<boolean> {
+	public async matches(): Promise<boolean> {
 		// all device types
 		return true;
 	}
@@ -191,7 +192,10 @@ export class SplashImage extends ConfigBackend {
 			: await this.readSplashImage(SplashImage.DEFAULT);
 
 		// If it is a data URI get only the data part
-		const [, image] = value.startsWith('data:') ? value.split(',') : [, value];
+		let image = value;
+		if (value.startsWith('data:')) {
+			[, image] = value.split(',');
+		}
 
 		// Rewrite the splash image
 		await this.writeSplashImage(image);

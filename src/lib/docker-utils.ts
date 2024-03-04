@@ -1,4 +1,5 @@
-import { DockerProgress, ProgressCallback } from 'docker-progress';
+import type { ProgressCallback } from 'docker-progress';
+import { DockerProgress } from 'docker-progress';
 import * as Dockerode from 'dockerode';
 import * as _ from 'lodash';
 import * as memoizee from 'memoizee';
@@ -6,7 +7,7 @@ import * as memoizee from 'memoizee';
 import { applyDelta, OutOfSyncError } from 'docker-delta';
 import DockerToolbelt = require('docker-toolbelt');
 
-import { SchemaReturn } from '../config/schema-type';
+import type { SchemaReturn } from '../config/schema-type';
 import { envArrayToObject } from './conversions';
 import {
 	DeltaStillProcessingError,
@@ -14,7 +15,7 @@ import {
 	InvalidNetGatewayError,
 } from './errors';
 import * as request from './request';
-import { EnvVarObject } from '../types';
+import type { EnvVarObject } from '../types';
 
 import log from './supervisor-console';
 
@@ -191,21 +192,24 @@ export async function fetchDeltaWithProgress(
 						`Got ${res.statusCode} when requesting an image from delta server.`,
 					);
 				}
-				const deltaUrl = res.headers['location'];
-				const deltaSrc = deltaSourceId;
-				const resumeOpts = {
-					timeout: deltaOpts.deltaRequestTimeout,
-					maxRetries: deltaOpts.deltaRetryCount,
-					retryInterval: deltaOpts.deltaRetryInterval,
-				};
-				id = await applyRsyncDelta(
-					deltaSrc,
-					deltaUrl,
-					timeout,
-					resumeOpts,
-					onProgress,
-					logFn,
-				);
+				{
+					// lexical declarations inside a case clause need to be wrapped in a block
+					const deltaUrl = res.headers['location'];
+					const deltaSrc = deltaSourceId;
+					const resumeOpts = {
+						timeout: deltaOpts.deltaRequestTimeout,
+						maxRetries: deltaOpts.deltaRetryCount,
+						retryInterval: deltaOpts.deltaRetryInterval,
+					};
+					id = await applyRsyncDelta(
+						deltaSrc,
+						deltaUrl,
+						timeout,
+						resumeOpts,
+						onProgress,
+						logFn,
+					);
+				}
 				break;
 			case 3:
 				if (res.statusCode !== 200) {
@@ -213,15 +217,18 @@ export async function fetchDeltaWithProgress(
 						`Got ${res.statusCode} when requesting v3 delta from delta server.`,
 					);
 				}
-				let name;
-				try {
-					name = JSON.parse(data).name;
-				} catch (e) {
-					throw new Error(
-						`Got an error when parsing delta server response for v3 delta: ${e}`,
-					);
+				{
+					// lexical declarations inside a case clause need to be wrapped in a block
+					let name;
+					try {
+						name = JSON.parse(data).name;
+					} catch (e) {
+						throw new Error(
+							`Got an error when parsing delta server response for v3 delta: ${e}`,
+						);
+					}
+					id = await applyBalenaDelta(name, token, onProgress, logFn);
 				}
-				id = await applyBalenaDelta(name, token, onProgress, logFn);
 				break;
 			default:
 				throw new Error(`Unsupported delta version: ${deltaOpts.deltaVersion}`);
@@ -257,7 +264,7 @@ export async function fetchImageWithProgress(
 						password: currentApiKey,
 						serverAddress: registry,
 					},
-			  }
+				}
 			: {};
 
 	await dockerProgress.pull(image, onProgress, dockerOpts);
@@ -295,7 +302,7 @@ export async function getNetworkGateway(networkName: string): Promise<string> {
 	);
 }
 
-function applyRsyncDelta(
+async function applyRsyncDelta(
 	imgSrc: string,
 	deltaUrl: string,
 	applyTimeout: number,
@@ -305,8 +312,8 @@ function applyRsyncDelta(
 ): Promise<string> {
 	logFn(`Applying rsync delta: ${deltaUrl}`);
 
-	return new Promise(async (resolve, reject) => {
-		const resumable = await request.getResumableRequest();
+	const resumable = await request.getResumableRequest();
+	return new Promise((resolve, reject) => {
 		const req = resumable(Object.assign({ url: deltaUrl }, opts));
 		req
 			.on('progress', onProgress)

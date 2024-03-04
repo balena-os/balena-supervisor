@@ -1,13 +1,15 @@
 import * as dockerode from 'dockerode';
 import * as sinon from 'sinon';
 
+import { randomUUID as uuidv4 } from 'crypto';
+
 // Recursively convert properties of an object as optional
 type DeepPartial<T> = {
 	[P in keyof T]?: T[P] extends Array<infer U>
 		? Array<DeepPartial<U>>
 		: T[P] extends object
-		? DeepPartial<T[P]>
-		: T[P];
+			? DeepPartial<T[P]>
+			: T[P];
 };
 
 // Partial container inspect info for receiving as testing data
@@ -477,8 +479,11 @@ export function createImage(
 		inspectInfo,
 		references,
 		inspect: () => Promise.resolve(inspectInfo),
-		remove: (_opts: any): Promise<boolean> =>
-			Promise.reject('Mock image not attached to an engine'),
+		remove: (o: any): Promise<boolean> =>
+			Promise.reject(
+				'Mock image not attached to an engine, ignored opts: ' +
+					JSON.stringify(o),
+			),
 	};
 }
 
@@ -519,17 +524,6 @@ export type MockEngineState = {
 	volumes?: MockVolume[];
 	images?: MockImage[];
 };
-
-// Good enough function go generate ids for mock engine
-// source: https://stackoverflow.com/a/2117523
-function uuidv4() {
-	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-		// tslint:disable
-		const r = (Math.random() * 16) | 0,
-			v = c == 'x' ? r : (r & 0x3) | 0x8;
-		return v.toString(16);
-	});
-}
 
 type Stubs<T> = {
 	[K in keyof T]: T[K] extends (...args: infer TArgs) => infer TReturnValue
@@ -709,8 +703,8 @@ export class MockEngine {
 	}
 
 	listImages({ filters = { reference: [] as string[] } } = {}) {
-		const filterList = [] as ((img: MockImage) => boolean)[];
-		const transformers = [] as ((img: MockImage) => MockImage)[];
+		const filterList = [] as Array<(img: MockImage) => boolean>;
+		const transformers = [] as Array<(img: MockImage) => MockImage>;
 
 		// Add reference filters
 		if (filters.reference?.length > 0) {
@@ -897,14 +891,15 @@ export class MockEngine {
 
 export function createMockerode(engine: MockEngine) {
 	const dockerodeStubs: Stubs<dockerode> = (
-		Object.getOwnPropertyNames(dockerode.prototype) as (keyof dockerode)[]
+		Object.getOwnPropertyNames(dockerode.prototype) as Array<keyof dockerode>
 	)
 		.filter((fn) => typeof dockerode.prototype[fn] === 'function')
 		.reduce((stubMap, fn) => {
 			const stub = sinon.stub(dockerode.prototype, fn);
+			const proto: any = MockEngine.prototype;
 
-			if (MockEngine.prototype.hasOwnProperty(fn)) {
-				stub.callsFake((MockEngine.prototype as any)[fn].bind(engine));
+			if (fn in proto) {
+				stub.callsFake(proto[fn].bind(engine));
 			} else {
 				// By default all unimplemented methods will throw to avoid the tests
 				// silently failing

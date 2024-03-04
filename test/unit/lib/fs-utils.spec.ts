@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import { spy, SinonSpy } from 'sinon';
+import type { SinonSpy } from 'sinon';
+import { spy } from 'sinon';
 import mock = require('mock-fs');
 
 import * as fsUtils from '~/lib/fs-utils';

@@ -1,5 +1,3 @@
-import * as _ from 'lodash';
-
 import { expect } from 'chai';
 
 import Service from '~/src/compose/service';

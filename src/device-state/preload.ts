@@ -1,7 +1,8 @@
 import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 
-import { Image, imageFromService } from '../compose/images';
+import type { Image } from '../compose/images';
+import { imageFromService } from '../compose/images';
 import { NumericIdentifier } from '../types';
 import * as deviceState from '../device-state';
 import * as config from '../config';

@@ -30,7 +30,7 @@ export function equals<T>(value: T, other: T): boolean {
  * Returns true if the the object equals `{}` or is an empty
  * array
  */
-export function empty<T extends {}>(value: T): boolean {
+export function empty<T extends object>(value: T): boolean {
 	return (Array.isArray(value) && value.length === 0) || equals(value, {});
 }
 

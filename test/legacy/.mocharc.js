@@ -8,7 +8,6 @@ module.exports = {
 		'tsconfig-paths/register',
 		'test/lib/chai.ts',
 		'test/legacy/fixtures.ts',
-		'test/lib/legacy-mocha-hooks.ts'
 	],
 	spec: ['test/legacy/**/*.spec.ts'],
 	timeout: '30000',

@@ -72,8 +72,8 @@ export class Supervisor {
 					routers: [v1.router, v2.router],
 					healthchecks: [apiBinder.healthcheck, deviceState.healthcheck],
 				});
-				this.api.listen(conf.listenPort, conf.apiTimeout);
 				deviceState.on('shutdown', () => this.api.stop());
+				return this.api.listen(conf.listenPort, conf.apiTimeout);
 			})(),
 			apiBinder.start(),
 		]);

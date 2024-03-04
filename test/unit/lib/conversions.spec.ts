@@ -11,7 +11,7 @@ describe('lib/conversions', function () {
 					'k=v',
 					'equalsvalue=thisvaluehasan=char',
 					'asd=',
-					'number=123',
+					'num=123',
 				]),
 			).to.deep.equal({
 				key: 'value',
@@ -19,7 +19,7 @@ describe('lib/conversions', function () {
 				k: 'v',
 				equalsvalue: 'thisvaluehasan=char',
 				asd: '',
-				number: '123',
+				num: '123',
 			}));
 
 		it('should ignore invalid env array entries', () =>

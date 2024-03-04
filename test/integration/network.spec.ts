@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import { SinonStub } from 'sinon';
+import type { SinonStub } from 'sinon';
 import { testfs } from 'mocha-pod';
 
 import { expect } from 'chai';

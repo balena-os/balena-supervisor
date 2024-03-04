@@ -1,4 +1,3 @@
-import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { exec as execSync } from 'child_process';

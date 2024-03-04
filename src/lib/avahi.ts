@@ -10,7 +10,7 @@ export const initialized = _.once(async () => {
 
 	config.on('change', (conf) => {
 		if (conf.hostDiscoverability != null) {
-			switchDiscoverability(conf.hostDiscoverability);
+			void switchDiscoverability(conf.hostDiscoverability);
 		}
 	});
 

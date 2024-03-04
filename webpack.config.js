@@ -6,7 +6,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const TerserWebpackPlugin = require('terser-webpack-plugin');
 
-var externalModules = [
+const externalModules = [
 	'async_hooks',
 	'sqlite3',
 	'mysql2',
@@ -29,10 +29,10 @@ let requiredModules = [];
 let maybeOptionalModules = [];
 const lookForOptionalDeps = function (sourceDir) {
 	// We iterate over the node modules and mark all optional dependencies as external
-	var dirs = fs.readdirSync(sourceDir);
-	for (let dir of dirs) {
+	const dirs = fs.readdirSync(sourceDir);
+	for (const dir of dirs) {
 		let packageJson = {};
-		let internalNodeModules = path.join(sourceDir, dir, 'node_modules');
+		const internalNodeModules = path.join(sourceDir, dir, 'node_modules');
 		if (fs.existsSync(internalNodeModules)) {
 			lookForOptionalDeps(internalNodeModules);
 		}
@@ -134,7 +134,7 @@ module.exports = function (env) {
 			],
 		},
 		externals: (_context, request, callback) => {
-			for (let m of externalModules) {
+			for (const m of externalModules) {
 				if (
 					(typeof m === 'string' && m === request) ||
 					(m instanceof RegExp && m.test(request))

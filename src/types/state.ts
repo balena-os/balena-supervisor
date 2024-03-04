@@ -1,8 +1,8 @@
 import * as t from 'io-ts';
 
 // TODO: move all these exported types to ../compose/types
-import { ComposeNetworkConfig } from '../compose/types/network';
-import { ComposeVolumeConfig } from '../compose/volume';
+import type { ComposeNetworkConfig } from '../compose/types/network';
+import type { ComposeVolumeConfig } from '../compose/volume';
 
 import {
 	DockerName,
@@ -15,7 +15,7 @@ import {
 	nonEmptyRecord,
 } from './basic';
 
-import App from '../compose/app';
+import type App from '../compose/app';
 
 export type DeviceLegacyReport = Partial<{
 	api_port: number;
@@ -98,14 +98,14 @@ const fromType = <T extends object>(name: string) =>
 						input,
 						context,
 						`Expected value to be an object of type ${name}, got: ${input}`,
-				  ),
+					),
 		t.identity,
 	);
 
 // Alias short string to UUID so code reads more clearly
 export const UUID = ShortString;
 
-/*****************
+/** ***************
  * Current state *
  *****************/
 const ServiceState = t.intersection([
@@ -176,7 +176,7 @@ export const DeviceState = t.record(
 );
 export type DeviceState = t.TypeOf<typeof DeviceState>;
 
-/****************
+/** **************
  * Target state *
  ****************/
 /**

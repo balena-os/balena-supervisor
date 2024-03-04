@@ -1,4 +1,5 @@
-import { knex, Knex } from 'knex';
+import type { Knex } from 'knex';
+import { knex } from 'knex';
 import * as path from 'path';
 import * as _ from 'lodash';
 

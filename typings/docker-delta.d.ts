@@ -1,6 +1,6 @@
 declare module 'docker-delta' {
 	// Incomplete type definitions
-	import { Duplex } from 'stream';
+	import type { Duplex } from 'stream';
 	import { TypedError } from 'typed-error';
 
 	export class OutOfSyncError extends TypedError {}

@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { SinonStub, stub } from 'sinon';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 import Volume from '~/src/compose/volume';
 import * as logTypes from '~/lib/log-types';
 import * as logger from '~/src/logger';

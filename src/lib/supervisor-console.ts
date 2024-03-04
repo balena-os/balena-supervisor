@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { TransformableInfo } from 'logform';
+import type { TransformableInfo } from 'logform';
 import * as winston from 'winston';
 
 const levels = {

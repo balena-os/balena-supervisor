@@ -1,5 +1,3 @@
-import * as _ from 'lodash';
-
 import { Extlinux } from './extlinux';
 import { ExtraUEnv } from './extra-uEnv';
 import { ConfigTxt } from './config-txt';

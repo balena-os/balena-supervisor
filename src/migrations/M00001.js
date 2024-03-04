@@ -1,7 +1,7 @@
-const fs = require('fs');
+import * as fs from 'fs';
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
-const { checkTruthy } = require('../lib/validation');
+import { checkTruthy } from '../lib/validation';
 
 exports.up = function (knex) {
 	return knex('config')

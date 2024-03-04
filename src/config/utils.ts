@@ -4,9 +4,9 @@ import * as Bluebird from 'bluebird';
 import * as config from '../config';
 import * as constants from '../lib/constants';
 import { getMetaOSRelease } from '../lib/os-release';
-import { EnvVarObject } from '../types';
+import type { EnvVarObject } from '../types';
 import { allBackends as Backends } from './backends';
-import { ConfigOptions, ConfigBackend } from './backends/backend';
+import type { ConfigOptions, ConfigBackend } from './backends/backend';
 
 export async function getSupportedBackends(): Promise<ConfigBackend[]> {
 	// Get required information to find supported backends

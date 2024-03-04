@@ -6,14 +6,14 @@ import * as config from './config';
 import * as db from './db';
 import * as logger from './logger';
 import * as dbus from './lib/dbus';
-import { EnvVarObject } from './types';
+import type { EnvVarObject } from './types';
 import { UnitNotLoadedError } from './lib/errors';
 import { checkInt, checkTruthy } from './lib/validation';
 import log from './lib/supervisor-console';
 import * as configUtils from './config/utils';
-import { SchemaTypeKey } from './config/schema-type';
+import type { SchemaTypeKey } from './config/schema-type';
 import { matchesAnyBootConfig } from './config/backends';
-import { ConfigBackend } from './config/backends/backend';
+import type { ConfigBackend } from './config/backends/backend';
 import { Odmdata } from './config/backends/odmdata';
 import * as fsUtils from './lib/fs-utils';
 import { pathOnRoot } from './lib/host-utils';
@@ -577,7 +577,7 @@ export async function getRequiredSteps(
 		// if any config step is a not 'noop' step, skip the backend steps
 		configSteps.filter((s) => s.action !== 'noop').length > 0
 			? // Set a 'noop' action so the apply function knows to retry
-			  [{ action: 'noop' } as ConfigStep]
+				[{ action: 'noop' } as ConfigStep]
 			: await getBackendSteps(current, target)),
 	];
 
@@ -627,6 +627,7 @@ function changeRequired(
 					// Set changeRequired to false so we do not get stuck in a loop trying to fix this mismatch
 					aChangeIsRequired = false;
 				}
+				throw e;
 			default:
 				throw e;
 		}

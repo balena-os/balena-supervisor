@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
-import { testfs, TestFs } from 'mocha-pod';
+import type { TestFs } from 'mocha-pod';
+import { testfs } from 'mocha-pod';
 
 import { expect } from 'chai';
 import * as hostUtils from '~/lib/host-utils';

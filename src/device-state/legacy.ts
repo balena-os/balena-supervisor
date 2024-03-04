@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
-import { fromV2TargetApps, TargetAppsV2 } from '../lib/legacy';
-import { AppsJsonFormat, TargetApp, TargetRelease } from '../types';
+import type { TargetAppsV2 } from '../lib/legacy';
+import { fromV2TargetApps } from '../lib/legacy';
+import type { AppsJsonFormat, TargetApp, TargetRelease } from '../types';
 
 /**
  * Converts a single app from single container format into

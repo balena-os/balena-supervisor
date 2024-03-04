@@ -1,4 +1,4 @@
-import * as express from 'express';
+import type * as express from 'express';
 import * as request from 'supertest';
 
 import * as deviceApi from '~/src/device-api';
@@ -10,7 +10,7 @@ describe('device-api/index', () => {
 		api = new deviceApi.SupervisorAPI({
 			routers: [],
 			healthchecks: [],
-			// @ts-expect-error
+			// @ts-expect-error extract private variable for testing
 		}).api;
 		// Express app set in SupervisorAPI is private here
 		// but we need to access it for supertest

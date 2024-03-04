@@ -1,6 +1,4 @@
 import mask = require('json-mask');
-import * as _ from 'lodash';
-
 import log from './lib/supervisor-console';
 
 export type EventTrackProperties = Dictionary<any>;
@@ -16,7 +14,7 @@ const mixpanelMask = [
 	'stateDiff/local(os_version,supervisor_version,ip_address,apps/*/services)',
 ].join(',');
 
-export async function track(
+export function track(
 	event: string,
 	properties: EventTrackProperties | Error = {},
 ) {
@@ -34,6 +32,6 @@ export async function track(
 	}
 
 	// Don't send potentially sensitive information, by using a whitelist
-	properties = mask(properties, mixpanelMask);
+	properties = mask(properties, mixpanelMask) || {};
 	log.event('Event:', event, JSON.stringify(properties));
 }

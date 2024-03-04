@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { stub, SinonStub } from 'sinon';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 import * as Docker from 'dockerode';
 import * as request from 'supertest';
 import { setTimeout } from 'timers/promises';
@@ -161,7 +162,7 @@ describe('manages application lifecycle', () => {
 								serviceCount,
 								appId,
 								serviceNames,
-						  }),
+							}),
 			},
 		};
 	};
@@ -191,17 +192,21 @@ describe('manages application lifecycle', () => {
 		// This test suite will timeout if anything goes wrong, since
 		// we don't have any way of knowing whether Docker has finished
 		// setting up containers or not.
-		while (true) {
-			const containers = await docker.listContainers({ all: true });
-			const containerInspects = await Promise.all(
+		let containers = await docker.listContainers({ all: true });
+		let containerInspects = await Promise.all(
+			containers.map(({ Id }) => docker.getContainer(Id).inspect()),
+		);
+		while (
+			expected !== containers.length ||
+			!isWaitComplete(containerInspects)
+		) {
+			await setTimeout(500);
+			containers = await docker.listContainers({ all: true });
+			containerInspects = await Promise.all(
 				containers.map(({ Id }) => docker.getContainer(Id).inspect()),
 			);
-			if (expected === containers.length && isWaitComplete(containerInspects)) {
-				return containerInspects;
-			} else {
-				await setTimeout(500);
-			}
 		}
+		return containerInspects;
 	};
 
 	// Get NEW container inspects. This function should be passed to waitForSetup
@@ -217,12 +222,10 @@ describe('manages application lifecycle', () => {
 		// Images are ignored in local mode so we need to pull the base image
 		await docker.pull(BASE_IMAGE);
 		// Wait for base image to finish pulling
-		while (true) {
-			const images = await docker.listImages();
-			if (images.length > 0) {
-				break;
-			}
+		let images = await docker.listImages();
+		while (images.length === 0) {
 			await setTimeout(500);
+			images = await docker.listImages();
 		}
 	});
 

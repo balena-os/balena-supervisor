@@ -1,12 +1,13 @@
 import { expect } from 'chai';
-import * as express from 'express';
-import { SinonStub, stub } from 'sinon';
+import type * as express from 'express';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 import * as request from 'supertest';
 
 import * as config from '~/src/config';
 import * as db from '~/src/db';
 import * as hostConfig from '~/src/host-config';
-import Service from '~/src/compose/service';
+import type Service from '~/src/compose/service';
 import * as deviceApi from '~/src/device-api';
 import * as actions from '~/src/device-api/actions';
 import * as v1 from '~/src/device-api/v1';
@@ -32,7 +33,7 @@ describe('device-api/v1', () => {
 		api = new deviceApi.SupervisorAPI({
 			routers: [v1.router],
 			healthchecks: [],
-			// @ts-expect-error
+			// @ts-expect-error extract private variable for testing
 		}).api;
 	});
 
@@ -41,7 +42,7 @@ describe('device-api/v1', () => {
 			api = new deviceApi.SupervisorAPI({
 				routers: [v1.router],
 				healthchecks: [],
-				// @ts-expect-error
+				// @ts-expect-error extract private variable for testing
 			}).api;
 		});
 
@@ -49,7 +50,7 @@ describe('device-api/v1', () => {
 			api = new deviceApi.SupervisorAPI({
 				routers: [v1.router],
 				healthchecks: [stub().resolves(true), stub().resolves(true)],
-				// @ts-expect-error
+				// @ts-expect-error extract private variable for testing
 			}).api;
 			await request(api).get('/v1/healthy').expect(200);
 		});
@@ -58,7 +59,7 @@ describe('device-api/v1', () => {
 			api = new deviceApi.SupervisorAPI({
 				routers: [v1.router],
 				healthchecks: [stub().resolves(false), stub().resolves(true)],
-				// @ts-expect-error
+				// @ts-expect-error extract private variable for testing
 			}).api;
 			await request(api).get('/v1/healthy').expect(500);
 		});

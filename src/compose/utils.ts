@@ -1,12 +1,12 @@
-import * as Dockerode from 'dockerode';
+import type * as Dockerode from 'dockerode';
 import Duration = require('duration-js');
 import * as _ from 'lodash';
 import { parse as parseCommand } from 'shell-quote';
 
 import * as constants from '../lib/constants';
 import { checkTruthy } from '../lib/validation';
-import { Service } from './service';
-import {
+import type { Service } from './service';
+import type {
 	ComposeHealthcheck,
 	ConfigMap,
 	DeviceMetadata,
@@ -209,7 +209,7 @@ function getNanoseconds(timeStr: string): number {
 
 export function composeHealthcheckToServiceHealthcheck(
 	healthcheck: ComposeHealthcheck | null | undefined,
-): ServiceHealthcheck | {} {
+): ServiceHealthcheck | EmptyObject {
 	if (healthcheck == null) {
 		return {};
 	}
@@ -351,9 +351,8 @@ export async function addFeaturesFromLabels(
 			} as LongBind);
 
 			if (service.config.environment['DOCKER_HOST'] == null) {
-				service.config.environment[
-					'DOCKER_HOST'
-				] = `unix://${constants.containerDockerSocket}`;
+				service.config.environment['DOCKER_HOST'] =
+					`unix://${constants.containerDockerSocket}`;
 			}
 			// We keep balena.sock for backwards compatibility
 			if (constants.dockerSocket !== '/var/run/balena.sock') {

@@ -147,7 +147,7 @@ export async function start() {
 	}
 
 	log.debug('Starting current state report');
-	await startCurrentStateReport();
+	void startCurrentStateReport();
 
 	// When we've provisioned, try to load the backup. We
 	// must wait for the provisioning because we need a
@@ -158,7 +158,7 @@ export async function start() {
 
 	readyForUpdates = true;
 	log.debug('Starting target state poll');
-	TargetState.startPoll();
+	void TargetState.startPoll();
 	// Update and apply new target state
 	TargetState.emitter.on(
 		'target-state-update',
@@ -235,7 +235,7 @@ export function startCurrentStateReport() {
 			'Trying to start state reporting without initializing API client',
 		);
 	}
-	startReporting();
+	return startReporting();
 }
 
 export async function fetchDeviceTags(): Promise<DeviceTag[]> {

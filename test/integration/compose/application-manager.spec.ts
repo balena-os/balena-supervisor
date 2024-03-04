@@ -18,7 +18,7 @@ import {
 	expectSteps,
 	expectNoStep,
 } from '~/test-lib/state-helper';
-import { InstancedAppState } from '~/src/types';
+import type { InstancedAppState } from '~/src/types';
 
 // TODO: application manager inferNextSteps still queries some stuff from
 // the engine instead of receiving that information as parameter. Refactoring

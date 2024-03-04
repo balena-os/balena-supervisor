@@ -10,7 +10,8 @@ import * as dbFormat from '~/src/device-state/db-format';
 import * as iptables from '~/lib/iptables';
 import * as firewall from '~/lib/firewall';
 import * as constants from '~/lib/constants';
-import { RuleAction, Rule } from '~/lib/iptables';
+import type { Rule } from '~/lib/iptables';
+import { RuleAction } from '~/lib/iptables';
 import { log } from '~/lib/supervisor-console';
 
 describe('lib/firewall', function () {

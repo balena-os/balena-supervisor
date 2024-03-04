@@ -1,5 +1,3 @@
-import * as _ from 'lodash';
-
 export interface ConfigOptions {
 	[key: string]: string | string[];
 }

@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import * as path from 'path';
-import { VolumeInspectInfo } from 'dockerode';
+import type { VolumeInspectInfo } from 'dockerode';
 
 import { isNotFoundError, InternalInconsistencyError } from '../lib/errors';
 import { safeRename } from '../lib/fs-utils';
@@ -10,7 +10,8 @@ import * as LogTypes from '../lib/log-types';
 import log from '../lib/supervisor-console';
 import * as logger from '../logger';
 import { ResourceRecreationAttemptError } from './errors';
-import Volume, { VolumeConfig } from './volume';
+import type { VolumeConfig } from './volume';
+import Volume from './volume';
 
 export interface VolumeNameOpts {
 	name: string;

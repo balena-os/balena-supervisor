@@ -1,18 +1,20 @@
 import { EventEmitter } from 'events';
 import type { Knex } from 'knex';
 import * as _ from 'lodash';
-import StrictEventEmitter from 'strict-event-emitter-types';
+import type StrictEventEmitter from 'strict-event-emitter-types';
 import { inspect } from 'util';
 import { generateUniqueKey } from '../lib/register-device';
 
-import { Either, isLeft, isRight, Right } from 'fp-ts/lib/Either';
+import type { Either, Right } from 'fp-ts/lib/Either';
+import { isLeft, isRight } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 
 import ConfigJsonConfigBackend from './configJson';
 
 import * as FnSchema from './functions';
 import * as Schema from './schema';
-import { SchemaReturn, SchemaTypeKey, schemaTypes } from './schema-type';
+import type { SchemaReturn, SchemaTypeKey } from './schema-type';
+import { schemaTypes } from './schema-type';
 
 import * as db from '../db';
 import {
@@ -43,9 +45,9 @@ class ConfigEvents extends (EventEmitter as new () => ConfigEventEmitter) {}
 const events = new ConfigEvents();
 
 // Expose methods which make this module act as an EventEmitter
-export const on: typeof events['on'] = events.on.bind(events);
-export const once: typeof events['once'] = events.once.bind(events);
-export const removeListener: typeof events['removeListener'] =
+export const on: (typeof events)['on'] = events.on.bind(events);
+export const once: (typeof events)['once'] = events.once.bind(events);
+export const removeListener: (typeof events)['removeListener'] =
 	events.removeListener.bind(events);
 
 export async function get<T extends SchemaTypeKey>(
@@ -54,7 +56,7 @@ export async function get<T extends SchemaTypeKey>(
 ): Promise<SchemaReturn<T>> {
 	const $db = trx || db.models;
 
-	if (Schema.schema.hasOwnProperty(key)) {
+	if (Object.prototype.hasOwnProperty.call(Schema.schema, key)) {
 		const schemaKey = key as Schema.SchemaKey;
 
 		return getSchema(schemaKey, $db).then((value) => {
@@ -80,7 +82,7 @@ export async function get<T extends SchemaTypeKey>(
 			// the type system happy
 			return checkValueDecode(decoded, key, value) && decoded.right;
 		});
-	} else if (FnSchema.fnSchema.hasOwnProperty(key)) {
+	} else if (Object.prototype.hasOwnProperty.call(FnSchema.fnSchema, key)) {
 		const fnKey = key as FnSchema.FnSchemaKey;
 		// Cast the promise as something that produces an unknown, and this means that
 		// we can validate the output of the function as well, ensuring that the type matches
@@ -241,9 +243,11 @@ async function getSchema<T extends Schema.SchemaKey>(
 			value = await configJsonBackend.get(key);
 			break;
 		case 'db':
-			const [conf] = await $db('config').select('value').where({ key });
-			if (conf != null) {
-				return conf.value;
+			{
+				const [conf] = await $db('config').select('value').where({ key });
+				if (conf != null) {
+					return conf.value;
+				}
 			}
 			break;
 	}
@@ -265,7 +269,7 @@ function validateConfigMap<T extends SchemaTypeKey>(
 	// throw if any value fails verification
 	return _.mapValues(configMap, (value, key) => {
 		if (
-			!Schema.schema.hasOwnProperty(key) ||
+			!Object.prototype.hasOwnProperty.call(Schema.schema, key) ||
 			!Schema.schema[key as Schema.SchemaKey].mutable
 		) {
 			throw new Error(

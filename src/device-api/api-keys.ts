@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import * as express from 'express';
+import type * as express from 'express';
 import * as memoizee from 'memoizee';
 import { TypedError } from 'typed-error';
 
@@ -37,7 +37,7 @@ type ScopeCheckCollection = {
  * The scopes which a key can cover.
  */
 type ScopeTypes = {
-	global: {};
+	global: NonNullable<unknown>;
 	app: {
 		appId: number;
 	};
@@ -222,11 +222,11 @@ async function generateKey(
 		// remove the cached lookup for the key
 		const [apiKey] = secrets;
 		if (apiKey != null) {
-			getApiKeyByKey.clear(apiKey.key);
+			await getApiKeyByKey.clear(apiKey.key);
 		}
 
 		// remove the cached value for this lookup
-		getApiKeyForService.clear(appId, serviceName);
+		await getApiKeyForService.clear(appId, serviceName);
 
 		// return a new API key
 		return await createNewKey(appId, serviceName, scopes);

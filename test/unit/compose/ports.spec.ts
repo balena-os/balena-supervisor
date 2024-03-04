@@ -1,5 +1,9 @@
-import { PortMap, PortRange } from '~/src/compose/ports';
+import type { PortRange } from '~/src/compose/ports';
+import { PortMap } from '~/src/compose/ports';
 import { expect } from 'chai';
+
+import portBindings = require('~/test-data/ports/not-ascending/port-bindings.json');
+import compose = require('~/test-data/ports/not-ascending/compose.json');
 
 // Force cast `PortMap` as a public version so we can test it
 const PortMapPublic = PortMap as any as new (
@@ -298,8 +302,6 @@ describe('compose/ports', function () {
 
 	describe('Running container comparison', () =>
 		it('should not consider order when comparing current and target state', function () {
-			const portBindings = require('~/test-data/ports/not-ascending/port-bindings.json');
-			const compose = require('~/test-data/ports/not-ascending/compose.json');
 			const portMapsCurrent = PortMap.fromDockerOpts(portBindings);
 			const portMapsTarget = PortMap.fromComposePorts(compose.ports);
 

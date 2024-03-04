@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 
-import { ConfigOptions, ConfigBackend } from './backend';
+import type { ConfigOptions } from './backend';
+import { ConfigBackend } from './backend';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { exists } from '../../lib/fs-utils';
@@ -14,7 +15,7 @@ const ARRAY_CONFIGS = [
 	'gpio',
 ] as const;
 
-type ArrayConfig = typeof ARRAY_CONFIGS[number];
+type ArrayConfig = (typeof ARRAY_CONFIGS)[number];
 
 // Refinement on the ConfigOptions type
 // to indicate what properties are arrays

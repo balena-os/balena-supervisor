@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { testfs, TestFs } from 'mocha-pod';
+import type { TestFs } from 'mocha-pod';
+import { testfs } from 'mocha-pod';
 
 import * as osRelease from '~/lib/os-release';
 

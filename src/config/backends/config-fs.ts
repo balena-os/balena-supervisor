@@ -2,7 +2,8 @@ import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
-import { ConfigOptions, ConfigBackend } from './backend';
+import type { ConfigOptions } from './backend';
+import { ConfigBackend } from './backend';
 import { exec, exists } from '../../lib/fs-utils';
 import * as hostUtils from '../../lib/host-utils';
 import * as constants from '../../lib/constants';
@@ -49,10 +50,10 @@ export class ConfigFs extends ConfigBackend {
 		const amlSrcPath = path.join(this.SystemAmlFiles, `${aml}.aml`);
 		// log to system log if the AML doesn't exist...
 		if (!(await exists(amlSrcPath))) {
-			log.error(`Missing AML for \'${aml}\'. Unable to load.`);
+			log.error(`Missing AML for '${aml}'. Unable to load.`);
 			if (logger) {
 				logger.logSystemMessage(
-					`Missing AML for \'${aml}\'. Unable to load.`,
+					`Missing AML for '${aml}'. Unable to load.`,
 					{ aml, path: amlSrcPath },
 					'Load AML error',
 					false,

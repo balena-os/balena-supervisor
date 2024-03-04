@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { SinonStub, stub } from 'sinon';
+import type { SinonStub } from 'sinon';
+import { stub } from 'sinon';
 import { promises as fs } from 'fs';
 import * as systeminformation from 'systeminformation';
 

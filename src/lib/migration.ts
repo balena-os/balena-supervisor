@@ -1,10 +1,9 @@
-import * as _ from 'lodash';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
 import * as volumeManager from '../compose/volume-manager';
 import * as deviceState from '../device-state';
-import { TargetState } from '../types';
+import type { TargetState } from '../types';
 import * as constants from './constants';
 import { BackupError, isNotFoundError } from './errors';
 import { exec, exists, mkdirp, unlinkAll } from './fs-utils';
@@ -24,15 +23,18 @@ export async function loadBackupFromMigration(
 
 		await deviceState.setTarget(targetState);
 
-		// TODO: this code is only single-app compatible
-		const [uuid] = Object.keys(targetState.local?.apps);
+		// Assume there is only a single device in the target state
+		const [localDevice] = Object.values(targetState);
 
-		if (!!uuid) {
+		// TODO: this code is only single-app compatible
+		const [uuid] = Object.keys(localDevice?.apps);
+
+		if (uuid) {
 			throw new BackupError('No apps in the target state');
 		}
 
-		const { id: appId } = targetState.local?.apps[uuid];
-		const [release] = Object.values(targetState.local?.apps[uuid].releases);
+		const { id: appId } = localDevice.apps[uuid];
+		const [release] = Object.values(localDevice.apps[uuid].releases);
 
 		const volumes = release?.volumes ?? {};
 

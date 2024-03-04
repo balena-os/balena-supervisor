@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import * as dockerode from 'dockerode';
+import type * as dockerode from 'dockerode';
 
 import { docker } from '../lib/docker-utils';
 import logTypes = require('../lib/log-types');
@@ -7,7 +7,7 @@ import * as logger from '../logger';
 import log from '../lib/supervisor-console';
 import * as ComposeUtils from './utils';
 
-import {
+import type {
 	ComposeNetworkConfig,
 	NetworkConfig,
 	NetworkInspectInfo,
@@ -22,7 +22,9 @@ export class Network {
 	public name: string;
 	public config: NetworkConfig;
 
-	private constructor() {}
+	private constructor() {
+		/* do not allow instances using `new` */
+	}
 
 	private static deconstructDockerName(
 		name: string,

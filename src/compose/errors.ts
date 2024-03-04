@@ -10,7 +10,10 @@ export class InvalidNetworkNameError extends TypedError {
 }
 
 export class ResourceRecreationAttemptError extends TypedError {
-	public constructor(public resource: string, public name: string) {
+	public constructor(
+		public resource: string,
+		public name: string,
+	) {
 		super(
 			`Trying to create ${resource} with name: ${name}, but a ${resource} ` +
 				'with that name and a different configuration already exists',

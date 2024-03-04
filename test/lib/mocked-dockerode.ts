@@ -74,7 +74,7 @@ export function registerOverride<
 }
 
 export function restoreOverride<T extends DockerodeFunction>(name: T) {
-	if (overrides.hasOwnProperty(name)) {
+	if (Object.prototype.hasOwnProperty.call(overrides, name)) {
 		delete overrides[name];
 	}
 }
@@ -114,7 +114,7 @@ function createMockedDockerode(data: TestData) {
 				// This should return VolumeInspectInfo not Volume
 				return volume;
 			},
-			remove: async (options?: {}) => {
+			remove: async (options?: any) => {
 				addAction('remove', options);
 				data.volumes = _.reject(data.volumes, { name: volume.name });
 			},

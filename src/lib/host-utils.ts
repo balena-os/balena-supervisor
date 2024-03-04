@@ -5,7 +5,7 @@ import { exec, exists } from './fs-utils';
 
 function withBase(base: string) {
 	function withPath(): string;
-	function withPath(path: string): string;
+	function withPath(singlePath: string): string;
 	function withPath(...paths: string[]): string[];
 	function withPath(...paths: string[]): string[] | string {
 		if (arguments.length === 0) {
@@ -42,7 +42,10 @@ export const pathExistsOnState = async (p: string) =>
 	await exists(pathOnState(p));
 
 class CodedError extends Error {
-	constructor(msg: string, readonly code: number | string) {
+	constructor(
+		msg: string,
+		readonly code: number | string,
+	) {
 		super(msg);
 	}
 }

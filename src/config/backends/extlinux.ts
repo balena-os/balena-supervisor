@@ -1,13 +1,10 @@
 import * as _ from 'lodash';
 import * as semver from 'semver';
 
-import { ConfigOptions, ConfigBackend } from './backend';
-import {
-	ExtlinuxFile,
-	Directive,
-	AppendDirective,
-	FDTDirective,
-} from './extlinux-file';
+import type { ConfigOptions } from './backend';
+import { ConfigBackend } from './backend';
+import type { ExtlinuxFile, Directive } from './extlinux-file';
+import { AppendDirective, FDTDirective } from './extlinux-file';
 import * as constants from '../../lib/constants';
 import log from '../../lib/supervisor-console';
 import { ExtLinuxEnvError, ExtLinuxParseError } from '../../lib/errors';

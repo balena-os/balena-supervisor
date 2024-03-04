@@ -7,7 +7,10 @@ import { exec } from './fs-utils';
 import log from './supervisor-console';
 
 export class IPTablesRuleError extends TypedError {
-	public constructor(err: string | Error, public ruleset: string) {
+	public constructor(
+		err: string | Error,
+		public ruleset: string,
+	) {
 		super(err);
 	}
 }

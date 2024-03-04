@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { spy, useFakeTimers, stub, SinonStub } from 'sinon';
+import type { SinonStub } from 'sinon';
+import { spy, useFakeTimers, stub } from 'sinon';
 
 import * as hostConfig from '~/src/host-config';
 import * as actions from '~/src/device-api/actions';

@@ -4,7 +4,7 @@ import { getRequestInstance } from './request';
 
 export const { generateUniqueKey, register } = getRegisterDevice({
 	request: {
-		send: async (options: {}) => {
+		send: async (options: object) => {
 			const request = await getRequestInstance();
 			const [response] = await request.postAsync({ ...options, json: true });
 			return response;

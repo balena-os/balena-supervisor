@@ -6,7 +6,7 @@ import * as config from '~/src/config';
 import * as testDb from '~/src/db';
 import * as deviceApi from '~/src/device-api';
 import * as middleware from '~/src/device-api/middleware';
-import { AuthorizedRequest } from '~/src/device-api/api-keys';
+import type { AuthorizedRequest } from '~/src/device-api/api-keys';
 
 describe('device-api/api-keys', () => {
 	let app: express.Application;

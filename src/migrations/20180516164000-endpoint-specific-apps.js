@@ -1,4 +1,4 @@
-const fs = require('fs');
+import * as fs from 'fs';
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 exports.up = function (knex) {

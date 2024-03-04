@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 
 import * as config from '../config';
 import * as db from '../db';
-import { TargetAppClass } from '../types';
+import type { TargetAppClass } from '../types';
 
 // We omit the id (which does appear in the db) in this type, as we don't use it
 // at all, and we can use the below type for both insertion and retrieval.

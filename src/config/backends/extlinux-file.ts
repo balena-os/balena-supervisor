@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 
-import { ConfigOptions } from './backend';
+import type { ConfigOptions } from './backend';
 import {
 	ExtLinuxParseError,
 	AppendDirectiveError,

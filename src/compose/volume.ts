@@ -1,4 +1,4 @@
-import * as Docker from 'dockerode';
+import type * as Docker from 'dockerode';
 import isEqual = require('lodash/isEqual');
 import omitBy = require('lodash/omitBy');
 
@@ -6,7 +6,7 @@ import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';
 import { InternalInconsistencyError } from '../lib/errors';
 import * as LogTypes from '../lib/log-types';
-import { LabelObject } from '../types';
+import type { LabelObject } from '../types';
 import * as logger from '../logger';
 import * as ComposeUtils from './utils';
 

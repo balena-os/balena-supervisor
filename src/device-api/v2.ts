@@ -5,8 +5,8 @@ import * as _ from 'lodash';
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';
 import * as applicationManager from '../compose/application-manager';
-import { CompositionStepAction } from '../compose/composition-steps';
-import { Service } from '../compose/service';
+import type { CompositionStepAction } from '../compose/composition-steps';
+import type { Service } from '../compose/service';
 import Volume from '../compose/volume';
 import * as commitStore from '../compose/commit';
 import * as config from '../config';
@@ -26,7 +26,7 @@ import {
 	BadRequestError,
 } from '../lib/errors';
 import { isVPNActive } from '../network';
-import { AuthorizedRequest } from './api-keys';
+import type { AuthorizedRequest } from './api-keys';
 import { fromV2TargetState } from '../lib/legacy';
 import * as actions from './actions';
 import { v2ServiceEndpointError } from './messages';

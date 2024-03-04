@@ -1,14 +1,15 @@
-import * as _ from 'lodash';
 import { promises as fs } from 'fs';
-import { SinonSpy, spy, stub } from 'sinon';
+import type { SinonSpy } from 'sinon';
+import { spy, stub } from 'sinon';
 import { expect } from 'chai';
-import { testfs, TestFs } from 'mocha-pod';
+import type { TestFs } from 'mocha-pod';
+import { testfs } from 'mocha-pod';
 
 import { fnSchema } from '~/src/config/functions';
 import * as hostUtils from '~/lib/host-utils';
 import { configJsonPath } from '~/lib/constants';
 
-// Utility method to use along with `require`
+// Utility type to use along with `require`
 type Config = typeof import('~/src/config');
 
 describe('config', () => {
@@ -35,6 +36,7 @@ describe('config', () => {
 	});
 
 	it('reads and exposes values from config.json', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const configJson = await readConfigJson();
@@ -43,6 +45,7 @@ describe('config', () => {
 	});
 
 	it('allows reading several values in one getMany call', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const configJson = await readConfigJson();
@@ -55,6 +58,7 @@ describe('config', () => {
 	});
 
 	it('generates a uuid and stores it in config.json', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const configJson = await readConfigJson();
@@ -65,6 +69,7 @@ describe('config', () => {
 	});
 
 	it('does not allow setting an immutable field', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		return expect(config.set({ deviceType: 'a different device type' })).to.be
@@ -72,6 +77,7 @@ describe('config', () => {
 	});
 
 	it('allows setting both config.json and database fields transparently', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await config.set({
@@ -86,6 +92,7 @@ describe('config', () => {
 	});
 
 	it('allows deleting a config.json key and returns a default value if none is set', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await config.remove('appUpdatePollInterval');
@@ -94,6 +101,7 @@ describe('config', () => {
 	});
 
 	it('allows deleting a config.json key if it is null', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await config.set({ apiKey: null });
@@ -107,6 +115,7 @@ describe('config', () => {
 	});
 
 	it('does not allow modifying or removing a function value', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		// We have to cast to any below, as the type system will
@@ -116,19 +125,19 @@ describe('config', () => {
 	});
 
 	it('throws when asked for an unknown key', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await expect(config.get('unknownInvalidValue' as any)).to.be.rejected;
 	});
 
 	it('emits a change event when values change', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const listener = stub();
 		config.on('change', listener);
-		config.set({ name: 'someValue' });
-
-		await new Promise((resolve) => setTimeout(resolve, 1000));
+		await config.set({ name: 'someValue' });
 
 		expect(listener).to.have.been.calledWith({ name: 'someValue' });
 	});
@@ -149,6 +158,7 @@ describe('config', () => {
 			),
 		}).enable();
 
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		await config.set({ developmentMode: false });
@@ -160,6 +170,7 @@ describe('config', () => {
 	});
 
 	it('reads and exposes MAC addresses', async () => {
+		// eslint-disable-next-line
 		const config = require('~/src/config') as Config;
 		await config.initialized();
 		const macAddress = await config.get('macAddress');
@@ -168,12 +179,14 @@ describe('config', () => {
 
 	describe('Function config providers', () => {
 		it('should throw if a non-mutable function provider is set', async () => {
+			// eslint-disable-next-line
 			const config = require('~/src/config') as Config;
 			await config.initialized();
 			await expect(config.set({ version: 'some-version' })).to.be.rejected;
 		});
 
 		it('should throw if a non-mutable function provider is removed', async () => {
+			// eslint-disable-next-line
 			const config = require('~/src/config') as Config;
 			await config.initialized();
 			await expect(config.remove('version' as any)).to.be.rejected;
@@ -181,14 +194,15 @@ describe('config', () => {
 	});
 
 	describe('Config data sources', () => {
-		afterEach(() => {
+		afterEach(async () => {
 			// Clean up memoized values
-			fnSchema.deviceArch.clear();
-			fnSchema.deviceType.clear();
+			await fnSchema.deviceArch.clear();
+			await fnSchema.deviceType.clear();
 		});
 
 		it('should obtain deviceArch from device-type.json', async () => {
 			const dtJson = await readDeviceTypeJson();
+			// eslint-disable-next-line
 			const config = require('~/src/config') as Config;
 			await config.initialized();
 
@@ -198,6 +212,7 @@ describe('config', () => {
 
 		it('should obtain deviceType from device-type.json', async () => {
 			const dtJson = await readDeviceTypeJson();
+			// eslint-disable-next-line
 			const config = require('~/src/config') as Config;
 			await config.initialized();
 
@@ -206,6 +221,7 @@ describe('config', () => {
 		});
 
 		it('should memoize values from device-type.json', async () => {
+			// eslint-disable-next-line
 			const config = require('~/src/config') as Config;
 			await config.initialized();
 			const dtJson = await readDeviceTypeJson();
@@ -233,6 +249,7 @@ describe('config', () => {
 		});
 
 		it('should not memoize errors when reading deviceArch', async () => {
+			// eslint-disable-next-line
 			const config = require('~/src/config') as Config;
 			await config.initialized();
 
@@ -253,6 +270,7 @@ describe('config', () => {
 		});
 
 		it('should not memoize errors when reading deviceType', async () => {
+			// eslint-disable-next-line
 			const config = require('~/src/config') as Config;
 			await config.initialized();
 

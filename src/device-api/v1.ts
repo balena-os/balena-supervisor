@@ -1,11 +1,10 @@
 import * as express from 'express';
-import * as _ from 'lodash';
 import type { Response } from 'express';
 
 import * as actions from './actions';
-import { AuthorizedRequest } from './api-keys';
+import type { AuthorizedRequest } from './api-keys';
 import * as eventTracker from '../event-tracker';
-import * as deviceState from '../device-state';
+import type * as deviceState from '../device-state';
 
 import * as constants from '../lib/constants';
 import { checkInt, checkTruthy } from '../lib/validation';
@@ -15,7 +14,7 @@ import {
 	isBadRequestError,
 	UpdatesLockedError,
 } from '../lib/errors';
-import { CompositionStepAction } from '../compose/composition-steps';
+import type { CompositionStepAction } from '../compose/composition-steps';
 
 const disallowedHostConfigPatchFields = ['local_ip', 'local_port'];
 

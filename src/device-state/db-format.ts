@@ -1,13 +1,13 @@
 import * as _ from 'lodash';
 
-import * as db from '../db';
+import type * as db from '../db';
 import * as targetStateCache from './target-state-cache';
-import { DatabaseApp, DatabaseService } from './target-state-cache';
+import type { DatabaseApp, DatabaseService } from './target-state-cache';
 
 import App from '../compose/app';
 import * as images from '../compose/images';
 
-import {
+import type {
 	InstancedAppState,
 	TargetApp,
 	TargetApps,
@@ -137,7 +137,7 @@ export async function getTargetJson(): Promise<TargetApps> {
 								networks: JSON.parse(app.networks),
 								volumes: JSON.parse(app.volumes),
 							} as TargetRelease,
-					  }
+						}
 					: {};
 
 				return [
