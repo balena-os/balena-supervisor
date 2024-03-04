@@ -1,4 +1,21 @@
 - commits:
+    - subject: Update @balena/lint to v7
+      hash: 988a1c9e9a2317a66f2be0a1dbddb89f8084014f
+      body: |
+        This updates balena lint to the latest version to enable eslint support
+        and unblock Typescript updates. This is a huge number of changes as the
+        linting rules are much more strict now, requiring modifiying most files
+        in the codebase. This commit also bumps the test dependency `rewire` as
+        that was interfering with the update of balena-lint
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.1.1
+  title: ""
+  date: 2024-03-04T18:16:11.250Z
+- commits:
     - subject: Add support for repeated overlays
       hash: bda1bac04c708ea0c35318604f926c035ff0883b
       body: >
