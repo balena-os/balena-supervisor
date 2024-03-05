@@ -1,9 +1,10 @@
 import * as chokidar from 'chokidar';
-import * as Docker from 'dockerode';
-import * as _ from 'lodash';
-import * as Path from 'path';
+import type Docker from 'dockerode';
+import _ from 'lodash';
+import Path from 'path';
 
-import { Dockerfile, Livepush } from 'livepush';
+import type { Dockerfile } from 'livepush';
+import { Livepush } from 'livepush';
 
 // TODO: Pass build args to the livepush process
 export async function startLivepush(opts: {
@@ -37,7 +38,7 @@ export async function startLivepush(opts: {
 	const livepushExecutor = getExecutor(livepush);
 	const watcher = chokidar
 		.watch('.', {
-			ignored: /((^|[\/\\])\..|(node_modules|sync|test)\/.*)/,
+			ignored: /((^|[/\\])\..|(node_modules|sync|test)\/.*)/,
 			ignoreInitial: opts.noinit,
 		})
 		.on('add', (path) => livepushExecutor(path))
@@ -65,6 +66,6 @@ const getExecutor = (livepush: Livepush) => {
 		if (deleted) {
 			deletedFiles.push(deleted);
 		}
-		actualExecutor();
+		return actualExecutor();
 	};
 };

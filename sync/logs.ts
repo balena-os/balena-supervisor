@@ -1,5 +1,4 @@
-import * as Docker from 'dockerode';
-import * as _ from 'lodash';
+import type Docker from 'dockerode';
 
 export async function setupLogs(
 	docker: Docker,
@@ -16,7 +15,7 @@ export async function setupLogs(
 		since: lastReadTimestamp,
 	});
 
-	stream.on('data', chunk => {
+	stream.on('data', (chunk) => {
 		const { message, timestamp } = extractMessage(chunk);
 		// Add one here, other we can end up constantly reading
 		// the same log line
@@ -26,7 +25,7 @@ export async function setupLogs(
 
 	// This happens when a container is restarted
 	stream.on('end', () => {
-		setupLogs(docker, containerId, lastReadTimestamp);
+		void setupLogs(docker, containerId, lastReadTimestamp);
 	});
 }
 
