@@ -1,6 +1,6 @@
-import type * as Docker from 'dockerode';
+import type Docker from 'dockerode';
 import { EventEmitter } from 'events';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import * as config from '../config';

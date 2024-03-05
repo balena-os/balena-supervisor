@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
-import * as url from 'url';
+import url from 'url';
 import { setTimeout } from 'timers/promises';
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 
 import type { TargetState } from '../types/state';

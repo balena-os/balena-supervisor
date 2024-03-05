@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 import type { TargetStateV2 } from '~/lib/legacy';
-import * as request from 'supertest';
+import request from 'supertest';
 import { setTimeout as delay } from 'timers/promises';
 import { exec } from '~/lib/fs-utils';
 

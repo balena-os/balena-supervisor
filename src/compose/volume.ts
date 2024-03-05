@@ -1,4 +1,4 @@
-import type * as Docker from 'dockerode';
+import type Docker from 'dockerode';
 import isEqual = require('lodash/isEqual');
 import omitBy = require('lodash/omitBy');
 

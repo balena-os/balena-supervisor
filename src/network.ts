@@ -1,8 +1,8 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { promises as fs, watch } from 'fs';
-import * as networkCheck from 'network-checker';
-import * as os from 'os';
-import * as url from 'url';
+import networkCheck from 'network-checker';
+import os from 'os';
+import url from 'url';
 
 import * as constants from './lib/constants';
 import { EEXIST } from './lib/errors';

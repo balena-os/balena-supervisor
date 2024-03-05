@@ -5,7 +5,7 @@ import Volume from '~/src/compose/volume';
 import * as logTypes from '~/lib/log-types';
 import * as logger from '~/src/logger';
 
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 
 import { createVolume, withMockerode } from '~/test-lib/mockerode';
 

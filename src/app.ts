@@ -3,7 +3,7 @@ import { set } from '@balena/es-version';
 set('es2019');
 
 import { NOTFOUND } from 'dns';
-import * as mdnsResolver from 'mdns-resolver';
+import mdnsResolver from 'mdns-resolver';
 
 class DnsLookupError extends Error {
 	public constructor(public code: string = NOTFOUND) {
@@ -144,7 +144,7 @@ async function mdnsLookup(
 
 import '@balena/happy-eyeballs/eye-patch';
 import Supervisor from './supervisor';
-import * as process from 'process';
+import process from 'process';
 import log from './lib/supervisor-console';
 
 // Register signal handlers before starting the supervisor service

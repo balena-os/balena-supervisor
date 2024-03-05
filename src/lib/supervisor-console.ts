@@ -1,6 +1,6 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import type { TransformableInfo } from 'logform';
-import * as winston from 'winston';
+import winston from 'winston';
 
 const levels = {
 	error: 0,

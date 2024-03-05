@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type * as express from 'express';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
-import * as request from 'supertest';
+import request from 'supertest';
 
 import * as config from '~/src/config';
 import * as db from '~/src/db';

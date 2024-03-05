@@ -1,6 +1,6 @@
-import type * as Dockerode from 'dockerode';
+import type Dockerode from 'dockerode';
 import Duration = require('duration-js');
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { parse as parseCommand } from 'shell-quote';
 
 import * as constants from '../lib/constants';

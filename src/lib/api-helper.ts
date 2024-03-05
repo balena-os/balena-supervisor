@@ -1,6 +1,6 @@
 import type { PinejsClientRequest } from 'pinejs-client-request';
 
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import * as config from '../config';
 import * as eventTracker from '../event-tracker';
 

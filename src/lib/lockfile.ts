@@ -1,5 +1,5 @@
 import { promises as fs, unlinkSync, rmdirSync } from 'fs';
-import * as os from 'os';
+import os from 'os';
 import { dirname } from 'path';
 
 import { exec } from './fs-utils';

@@ -1,7 +1,7 @@
 import type { Knex } from 'knex';
 import { knex } from 'knex';
-import * as path from 'path';
-import * as _ from 'lodash';
+import path from 'path';
+import _ from 'lodash';
 
 import * as constants from './lib/constants';
 

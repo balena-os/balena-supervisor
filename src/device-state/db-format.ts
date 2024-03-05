@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import type * as db from '../db';
 import * as targetStateCache from './target-state-cache';

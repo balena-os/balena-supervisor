@@ -1,7 +1,7 @@
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import { promises as fs } from 'fs';
-import * as path from 'path';
-import * as Lock from 'rwlock';
+import path from 'path';
+import Lock from 'rwlock';
 import { isRight } from 'fp-ts/lib/Either';
 
 import {

@@ -1,5 +1,5 @@
-import * as _ from 'lodash';
-import * as semver from 'semver';
+import _ from 'lodash';
+import semver from 'semver';
 
 import type { ConfigOptions } from './backend';
 import { ConfigBackend } from './backend';

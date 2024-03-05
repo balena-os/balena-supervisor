@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import type { SinonStub, SinonSpy } from 'sinon';
 import { stub, spy } from 'sinon';
-import * as supertest from 'supertest';
+import supertest from 'supertest';
 
 import sampleResponses = require('~/test-data/device-api-responses.json');
 import mockedAPI = require('~/test-lib/mocked-device-api');

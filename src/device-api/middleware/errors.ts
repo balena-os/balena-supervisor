@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import { UpdatesLockedError } from '../../lib/errors';
 import log from '../../lib/supervisor-console';

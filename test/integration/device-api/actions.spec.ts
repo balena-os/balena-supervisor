@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
-import * as Docker from 'dockerode';
-import * as request from 'supertest';
+import Docker from 'dockerode';
+import request from 'supertest';
 import { setTimeout } from 'timers/promises';
 
 import * as deviceState from '~/src/device-state';

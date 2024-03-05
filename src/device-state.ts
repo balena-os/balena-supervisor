@@ -1,11 +1,11 @@
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { EventEmitter } from 'events';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 import { isRight } from 'fp-ts/lib/Either';
 import Reporter from 'io-ts-reporters';
-import prettyMs = require('pretty-ms');
+import prettyMs from 'pretty-ms';
 
 import * as config from './config';
 import * as db from './db';

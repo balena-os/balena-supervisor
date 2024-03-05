@@ -1,5 +1,5 @@
-import type * as Dockerode from 'dockerode';
 import * as t from 'io-ts';
+import type Dockerode from 'dockerode';
 import { isAbsolute } from 'path';
 
 import type { PortMap } from '../ports';

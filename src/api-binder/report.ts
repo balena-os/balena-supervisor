@@ -1,4 +1,4 @@
-import * as url from 'url';
+import url from 'url';
 import type { CoreOptions } from 'request';
 import { performance } from 'perf_hooks';
 import { setTimeout } from 'timers/promises';

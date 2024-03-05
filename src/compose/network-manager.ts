@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import * as constants from '../lib/constants';
 import { docker } from '../lib/docker-utils';

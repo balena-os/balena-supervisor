@@ -1,5 +1,5 @@
 import type * as express from 'express';
-import * as request from 'supertest';
+import request from 'supertest';
 
 import * as deviceApi from '~/src/device-api';
 

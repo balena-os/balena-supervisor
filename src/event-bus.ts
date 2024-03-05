@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 import type { TargetState } from './types/state';
 

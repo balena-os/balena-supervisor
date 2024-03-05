@@ -1,9 +1,9 @@
 import type { ClientRequest } from 'http';
-import * as https from 'https';
-import * as _ from 'lodash';
-import * as stream from 'stream';
-import * as url from 'url';
-import * as zlib from 'zlib';
+import https from 'https';
+import _ from 'lodash';
+import stream from 'stream';
+import url from 'url';
+import zlib from 'zlib';
 
 import type { LogMessage } from './log-backend';
 import { LogBackend } from './log-backend';

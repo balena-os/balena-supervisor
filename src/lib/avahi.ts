@@ -1,7 +1,7 @@
 import * as config from '../config';
 import * as dbus from './dbus';
 
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import log from './supervisor-console';
 

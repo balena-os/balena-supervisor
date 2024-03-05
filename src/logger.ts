@@ -1,5 +1,5 @@
-import * as Bluebird from 'bluebird';
-import * as _ from 'lodash';
+import Bluebird from 'bluebird';
+import _ from 'lodash';
 
 import * as config from './config';
 import * as db from './db';

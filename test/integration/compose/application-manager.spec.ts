@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 import * as applicationManager from '~/src/compose/application-manager';
 import * as imageManager from '~/src/compose/images';
 import * as serviceManager from '~/src/compose/service-manager';

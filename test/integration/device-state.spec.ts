@@ -12,7 +12,7 @@ import { initializeContractRequirements } from '~/lib/contracts';
 
 import { testfs } from 'mocha-pod';
 import { createDockerImage } from '~/test-lib/docker-helper';
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 import { setTimeout } from 'timers/promises';
 
 describe('device-state', () => {

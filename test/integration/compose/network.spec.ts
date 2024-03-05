@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { Network } from '~/src/compose/network';
 import { createNetwork, withMockerode } from '~/test-lib/mockerode';
 
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 
 describe('compose/network: integration tests', () => {
 	const docker = new Docker();
