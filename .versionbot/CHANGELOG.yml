@@ -1,4 +1,19 @@
 - commits:
+    - subject: Update typescript to v5
+      hash: 6217546894e25c8216d305f231876fc888a6e407
+      body: |
+        This also updates code to use the default import syntax instead of
+        `import * as` when the imported module exposes a default. This is needed
+        with the latest typescript version.
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 16.1.2
+  title: ""
+  date: 2024-03-06T14:06:45.274Z
+- commits:
     - subject: Update @balena/lint to v7
       hash: 988a1c9e9a2317a66f2be0a1dbddb89f8084014f
       body: |
@@ -37,7 +52,8 @@
 
         Before this change, the supervisor would interpret both lines as
 
-        belonging to the same overlay, preventing users from configuring multiple
+        belonging to the same overlay, preventing users from configuring
+        multiple
 
         devices, and leading to a loop when trying to apply configurations with
 
@@ -132,7 +148,8 @@
 
         if they are not used by other overlays.
 
-        Unfortunately the [list of dtparams](https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README#L133)
+        Unfortunately the [list of
+        dtparams](https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README#L133)
 
         is too long to add all of them as exceptions, but we can add the params
 
@@ -211,7 +228,8 @@
         seems to be a bug in Moby that we reported in moby/moby#47228
 
 
-        The issue won't affect Balena devices until balenaEngine is updated, and this
+        The issue won't affect Balena devices until balenaEngine is updated, and
+        this
 
         change fixes testing for now.
       footer:
@@ -271,7 +289,8 @@
       body: >
         This is meant to allow users to configure their device to
 
-        resolve `.local` queries via dnsmasq by modifying config.json, e.g. `dnsServers":
+        resolve `.local` queries via dnsmasq by modifying config.json, e.g.
+        `dnsServers":
 
         "/bob.local/172.17.0.33`.
 
@@ -359,13 +378,15 @@
         Whenever the Supervisor reports current state, it diffs the current
         state
 
-        with its last reported current state. However, when the Supervisor starts
+        with its last reported current state. However, when the Supervisor
+        starts
 
         up, there is no last reported state, since that last report is stored in
 
         process memory. Caching the last report in a location that survives
 
-        Supervisor restarts will reduce the current report bandwidth used on startup.
+        Supervisor restarts will reduce the current report bandwidth used on
+        startup.
       footer:
         Change-type: patch
         change-type: patch
@@ -417,7 +438,8 @@
 
         service configuration serves as documentation/metadata that a container
 
-        listens on a certain port that may be used for service discovery but it doesn't
+        listens on a certain port that may be used for service discovery but it
+        doesn't
 
         have any real impact on the ability for
 
@@ -434,7 +456,8 @@
 
         property out of the whitelist. A composition with the `expose` property
 
-        will result in the log message `Ignoring unsupported or unknown compose fields: expose`.
+        will result in the log message `Ignoring unsupported or unknown compose
+        fields: expose`.
 
 
         While this change should not have operational impact, it still removes
@@ -951,9 +974,11 @@
       body: >
         It's not an official status from container inspects, and the Supervisor
 
-        doesn't set it internally anywhere. It's better to remove it entirely as the
+        doesn't set it internally anywhere. It's better to remove it entirely as
+        the
 
-        method by which Supervisor sets internal service statuses is by using a global
+        method by which Supervisor sets internal service statuses is by using a
+        global
 
         event emitter (reportNewStatus) which makes things difficult to test.
       footer:
@@ -973,22 +998,30 @@
         The previous implementation in #2170 of parsing the container status was
         too general,
 
-        because it relied on the mistaken assumption that a container would have a status of
+        because it relied on the mistaken assumption that a container would have
+        a status of
 
-        `Stopped` if it was manually stopped. This turned out to be untrue, as manually stopped
+        `Stopped` if it was manually stopped. This turned out to be untrue, as
+        manually stopped
 
-        containers were also getting restarted by the Supervisor due to their inspect status of
+        containers were also getting restarted by the Supervisor due to their
+        inspect status of
 
-        `exited`. With this, parsing the exit message became unavoidable as there are no other
+        `exited`. With this, parsing the exit message became unavoidable as
+        there are no other
 
-        clear ways to discern a container that has been manually stopped and shouldn't be started
+        clear ways to discern a container that has been manually stopped and
+        shouldn't be started
 
-        from a container experiencing the Engine-host race condition issue (again, see #2170).
+        from a container experiencing the Engine-host race condition issue
+        (again, see #2170).
 
 
-        Since we're just parsing the exit error message, we don't need to worry about different behaviors
+        Since we're just parsing the exit error message, we don't need to worry
+        about different behaviors
 
-        amongst restart policies, as any container with the error message on exit should be started.
+        amongst restart policies, as any container with the error message on
+        exit should be started.
       footer:
         Change-type: patch
         change-type: patch
@@ -1033,11 +1066,13 @@
       body: >
         This is necessary since the builder no longer passes the platform flag
 
-        to the build. This would lead to dockerfiles that are mixing multi and single
+        to the build. This would lead to dockerfiles that are mixing multi and
+        single
 
         arch stages to pull the wrong architecture images, particularly when
 
-        trying to build images in emulated builds (e.g. armv7hf built on aarch64).
+        trying to build images in emulated builds (e.g. armv7hf built on
+        aarch64).
 
 
         Moving the full build to multi-arch solves this as the docker engine is
@@ -1107,38 +1142,51 @@
         There exists a race condition between Engine and a host resource that
         may not
 
-        be immediately created. In this race condition, if a container's compose config
+        be immediately created. In this race condition, if a container's compose
+        config
 
-        depends on the existence of that host resource, such as a network interface, and the
+        depends on the existence of that host resource, such as a network
+        interface, and the
 
-        Engine tries to create & start the container before the host resource is created, the
+        Engine tries to create & start the container before the host resource is
+        created, the
 
-        Engine will not reattempt to start the container, regardless of the restart policy.
+        Engine will not reattempt to start the container, regardless of the
+        restart policy.
 
-        This is undesireable behavior but seems to be the behavior as implemented by Docker.
+        This is undesireable behavior but seems to be the behavior as
+        implemented by Docker.
 
 
-        To rectify this, the Supervisor state funnel noops for a grace period of 1 minute
+        To rectify this, the Supervisor state funnel noops for a grace period of
+        1 minute
 
-        after starting a container to see that the container's status has become 'running`.
+        after starting a container to see that the container's status has become
+        'running`.
 
-        If the container exits because of the race condition, the status becomes 'exited' and the
+        If the container exits because of the race condition, the status becomes
+        'exited' and the
 
-        Supervisor will attempt to generate another start step. This noop-wait-start step loop
+        Supervisor will attempt to generate another start step. This
+        noop-wait-start step loop
 
         will repeat until the container is able to start.
 
 
-        If the container is never able to start, there was a problem in the host in the creation of the
+        If the container is never able to start, there was a problem in the host
+        in the creation of the
 
         host resource, and that should be fixed at the host level.
 
 
-        This commit does not handle the case of services with restart policies "no" or "on-failure"
+        This commit does not handle the case of services with restart policies
+        "no" or "on-failure"
 
-        which encounter this host race, as metadata from container inspects needs to be introduced
+        which encounter this host race, as metadata from container inspects
+        needs to be introduced
 
-        during step calculation in order to figure out whether services with those restart policies
+        during step calculation in order to figure out whether services with
+        those restart policies
 
         need to be started. This will be fixed in a future PR.
       footer:
@@ -1458,7 +1506,8 @@
       body: >
         This replaces the previous flag `isApplyingIntermediate` on application
 
-        manager and simplifies the interface of the state engine to make temporary changes to the
+        manager and simplifies the interface of the state engine to make
+        temporary changes to the
 
         general app state.
       footer:
@@ -1542,7 +1591,8 @@
         rejections](https://github.com/nodejs/node/blob/main/doc/changelogs/CHANGELOG_V15.md#throw-on-unhandled-rejections---33021)
         from a warning to a throw.
 
-        For this reason errors like a corrupt migration directory, that happens when trying to
+        For this reason errors like a corrupt migration directory, that happens
+        when trying to
 
         roll back to a previous supervisor version were no longer showing a
 
@@ -1567,7 +1617,8 @@
         From:
         https://github.com/balena-os/balena-supervisor/pull/2153/commits/c0b4fafe842115933b1da9b4d68e601a19c3e4eb
 
-        Restart-service checks that both services have restarted in its test assertion, which is
+        Restart-service checks that both services have restarted in its test
+        assertion, which is
 
         incorrect as restart-service should only restart one service.
       footer:
@@ -1617,24 +1668,30 @@
         As the Supervisor is a privileged container, it has access to host /dev,
         and therefore has access
 
-        to boot, data, and state balenaOS partitions. This commit sets up the framework for the following:
+        to boot, data, and state balenaOS partitions. This commit sets up the
+        framework for the following:
 
 
-        - Finds the /dev partition that corresponds to each partition based on partition label
+        - Finds the /dev partition that corresponds to each partition based on
+        partition label
 
         - Mounts the partitions into set mountpoints in the device
 
-        - Removes reliance on env vars and mountpoints provided by host's start-balena-supervisor script
+        - Removes reliance on env vars and mountpoints provided by host's
+        start-balena-supervisor script
 
-        - Simplifies host path querying by centralizing these queries through methods in lib/host-utils.ts
+        - Simplifies host path querying by centralizing these queries through
+        methods in lib/host-utils.ts
 
 
         This particular changes env vars for and mounts the boot partition.
 
 
-        Since the Supervisor would no longer rely on container `run` arguments provided by a host script,
+        Since the Supervisor would no longer rely on container `run` arguments
+        provided by a host script,
 
-        this change moves Supervisor closer to being able to start itself (Supervisor-as-an-app).
+        this change moves Supervisor closer to being able to start itself
+        (Supervisor-as-an-app).
       footer:
         Change-type: minor
         change-type: minor
@@ -1689,11 +1746,13 @@
       body: >
         This is necessary since the builder no longer passes the platform flag
 
-        to the build. This would lead to dockerfiles that are mixing multi and single
+        to the build. This would lead to dockerfiles that are mixing multi and
+        single
 
         arch stages to pull the wrong architecture images, particularly when
 
-        trying to build images in emulated builds (e.g. armv7hf built on aarch64).
+        trying to build images in emulated builds (e.g. armv7hf built on
+        aarch64).
 
 
         Moving the full build to multi-arch solves this as the docker engine is
@@ -1753,11 +1812,13 @@
       body: >
         This is necessary since the builder no longer passes the platform flag
 
-        to the build. This would lead to dockerfiles that are mixing multi and single
+        to the build. This would lead to dockerfiles that are mixing multi and
+        single
 
         arch stages to pull the wrong architecture images, particularly when
 
-        trying to build images in emulated builds (e.g. armv7hf built on aarch64).
+        trying to build images in emulated builds (e.g. armv7hf built on
+        aarch64).
 
 
         Moving the full build to single-arch solves this as the docker engine is
@@ -1782,13 +1843,17 @@
         The issue with the original Supervisor implementation of the firewall is
         that
 
-        on Supervisor start, the Supervisor flushes the INPUT chain of the filter table.
+        on Supervisor start, the Supervisor flushes the INPUT chain of the
+        filter table.
 
-        This doesn't play well with services that add to the INPUT chain on startup that
+        This doesn't play well with services that add to the INPUT chain on
+        startup that
 
-        may start up before the Supervisor, such as certain NetworkManager connection
+        may start up before the Supervisor, such as certain NetworkManager
+        connection
 
-        profiles. This change only replaces the BALENA-FIREWALL rule in the INPUT chain,
+        profiles. This change only replaces the BALENA-FIREWALL rule in the
+        INPUT chain,
 
         preserving the other rules as well as their order.
       footer:
@@ -1824,7 +1889,8 @@
 
         reason. While we don't know the cause the networks get duplicates, this
 
-        can be disruptive for updates as trying to create a container referencing a duplicate
+        can be disruptive for updates as trying to create a container
+        referencing a duplicate
 
         network results in a 400 error from the engine.
 
@@ -1877,7 +1943,8 @@
 
         networks are referenced by id when creating a container, the engine will
 
-        throw an error (see https://github.com/balena-os/balena-supervisor/issues/590#issuecomment-1423557871)
+        throw an error (see
+        https://github.com/balena-os/balena-supervisor/issues/590#issuecomment-1423557871)
       footer:
         Change-type: patch
         change-type: patch
@@ -1903,7 +1970,8 @@
         - references in tests
 
 
-        The commit also adds a migration to remove the 4 dependent device tables from the DB.
+        The commit also adds a migration to remove the 4 dependent device tables
+        from the DB.
       footer:
         Change-type: minor
         change-type: minor
@@ -1965,7 +2033,11 @@
         The reason for this is explained by the following info coming from Node
 
 
-        > Node.js was not designed to run as PID 1 which leads to unexpected behaviour when running inside of Docker. For example, a Node.js process running as PID 1 will not respond to `SIGINT` (`CTRL-C`) and similar signals. [reference](https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals)
+        > Node.js was not designed to run as PID 1 which leads to unexpected
+        behaviour when running inside of Docker. For example, a Node.js process
+        running as PID 1 will not respond to `SIGINT` (`CTRL-C`) and similar
+        signals.
+        [reference](https://github.com/nodejs/docker-node/blob/main/docs/BestPractices.md#handling-kernel-signals)
 
 
         On internal testing, it was discovered that simply adding a listener for
@@ -2130,7 +2202,8 @@
 
         consider this case and also makes sure to remove the original symlink to
 
-        avoid having nested links `/run/log/journal/journal/journal`, which was a
+        avoid having nested links `/run/log/journal/journal/journal`, which was
+        a
 
         bug in the previous implementation.
       footer:
@@ -2169,7 +2242,8 @@
 
         to check for corruption. Unfortunately this function behaved a little
 
-        differently with regards to errors. While `readFile` returns a code `ENOENT`
+        differently with regards to errors. While `readFile` returns a code
+        `ENOENT`
 
         when the file is not found, `readFromBoot` would just throw an exception
 
@@ -2312,16 +2386,21 @@
         This PR changes the way the supervisor reads and writes files from
         /mnt/boot. Reads will
 
-        now use the [fatrw utility](https://github.com/balena-os/fatrw/) as a way to minimize corruption of
+        now use the [fatrw utility](https://github.com/balena-os/fatrw/) as a
+        way to minimize corruption of
 
-        files in the boot partition, and thus preventing possible bricking of the device.
+        files in the boot partition, and thus preventing possible bricking of
+        the device.
 
 
-        Since this basically changes the way a lot of configurations are read, this work was being blocked because of
+        Since this basically changes the way a lot of configurations are read,
+        this work was being blocked because of
 
-        the way tests were being done. While there still remain a couple of legacy tests to be migrated, this PR disables
+        the way tests were being done. While there still remain a couple of
+        legacy tests to be migrated, this PR disables
 
-        test:legacy tests when running npm run test, as the work on refactoring those tests is in progress (see #2048) and
+        test:legacy tests when running npm run test, as the work on refactoring
+        those tests is in progress (see #2048) and
 
         fatrw integration is of higher priority.
       footer:
@@ -2378,14 +2457,16 @@
 
         (mostly) avoid internal dependencies in the tests. Instead of stubs and
 
-        mock-fs, the tests use [testfs](https://github.com/balena-io-modules/mocha-pod#working-with-the-filesystem)
+        mock-fs, the tests use
+        [testfs](https://github.com/balena-io-modules/mocha-pod#working-with-the-filesystem)
 
         which allows working with a real filesystem and ensuring everything is
 
         re-set between tests.
 
 
-        This is the last change needed in order to be able to merge #1971. Here is the list of changes
+        This is the last change needed in order to be able to merge #1971. Here
+        is the list of changes
 
 
         - [x] Migrate splash image backend tests
@@ -2443,7 +2524,8 @@
 
         Previously `ensure` was a Bluebird promise which wasn't awaited in
 
-        its composition step. This has been here for some time and may contribute
+        its composition step. This has been here for some time and may
+        contribute
 
         to issues with duplicate networks. The conversion to native Promises
 
@@ -2456,7 +2538,8 @@
 
         because it's superfluous given that the Engine creates the interface
 
-        with NetworkManager. It also makes testing a lot more difficult to set up
+        with NetworkManager. It also makes testing a lot more difficult to set
+        up
 
         as /sys/class/net isn't a directory that can be written to for emulating
 
@@ -2510,7 +2593,8 @@
         This allows to test that the supervisor build actually runs and opens up
         the
 
-        possibility of running more exhaustive API tests against a working supervisor.
+        possibility of running more exhaustive API tests against a working
+        supervisor.
       footer:
         Change-type: patch
         change-type: patch
@@ -2700,7 +2784,8 @@
 
         migration paths in the built code, that cause supervisors 14.2.3 to
 
-        14.2.5 (inclusive) to break anytime migrations needed to be ran (see linked issue).
+        14.2.5 (inclusive) to break anytime migrations needed to be ran (see
+        linked issue).
 
 
         This commit fixes the loader to work with the included knex version.
@@ -2720,7 +2805,8 @@
       body: >
         The error may be something to the effect of `failed to add the host
 
-        (vethd6242de) <=> sandbox (veth8e47b1a) pair interfaces: operation not supported`.
+        (vethd6242de) <=> sandbox (veth8e47b1a) pair interfaces: operation not
+        supported`.
       footer:
         Change-type: patch
         change-type: patch
@@ -3193,9 +3279,11 @@
         This mitigates an edge case bug introduced in v13.1.3 where services
         that
 
-        are slow to exit may get stuck in a state of Downloaded if a service var is
+        are slow to exit may get stuck in a state of Downloaded if a service var
+        is
 
-        changed then reverted rapidly. More detailed description in linked issue.
+        changed then reverted rapidly. More detailed description in linked
+        issue.
       footer:
         Change-type: patch
         change-type: patch
@@ -3244,7 +3332,8 @@
         Here is the full list of changes
 
 
-        - The node binary is now copied from  `balenalib/${ARCH}-alpine-node:12-run`, the node binary
+        - The node binary is now copied
+        from  `balenalib/${ARCH}-alpine-node:12-run`, the node binary
 
         now supports running with a debugger.
 
@@ -3258,7 +3347,8 @@
 
         - Removed avahi-daemon.conf as that service is not being used
 
-        - Fix livepush to work with a multi-stage image. This also deprecates the `image-tag` argument to npm run sync as
+        - Fix livepush to work with a multi-stage image. This also deprecates
+        the `image-tag` argument to npm run sync as
 
         `SUPERVISOR_TAG` is no longer used by new OSs
 
@@ -3290,7 +3380,8 @@
         Some libraries, like
         [proper-lockfile](https://www.npmjs.com/package/proper-lockfile)
 
-        use directories instead of files for locking. This PR allows the supervisor to be able to
+        use directories instead of files for locking. This PR allows the
+        supervisor to be able to
 
         work with those types of locks when lock override is requested.
       footer:
@@ -3328,7 +3419,8 @@
         There is no functionality which 1) stores the filesystem lock status
         when toggling override
 
-        to on, and 2) restore the system to that status when toggling override to off.
+        to on, and 2) restore the system to that status when toggling override
+        to off.
       footer:
         Change-type: patch
         change-type: patch
@@ -3361,9 +3453,11 @@
         We don't need to read the host's hostname through
         /mnt/root/etc/hostname,
 
-        because the hostname is written to config.json on a change. When the hostname
+        because the hostname is written to config.json on a change. When the
+        hostname
 
-        has never changed, it won't be found in config.json, so we can default to
+        has never changed, it won't be found in config.json, so we can default
+        to
 
         the Supervisor container's /etc/hostname as it will match the host's
 
@@ -3545,7 +3639,8 @@
       body: >
         balena-compose already supports this, and with this PR, Supervisor can
 
-        have the option of using HostConfig.Mounts for internal bind mounts such as
+        have the option of using HostConfig.Mounts for internal bind mounts such
+        as
 
         ones added by feature labels. This will be handled in a future PR.
 
@@ -3662,10 +3757,12 @@
         The status field does not indicate the current state of the Engine on
         the device.
 
-        Rather, it only indicates whether the HTTP response returned successfully or not.
+        Rather, it only indicates whether the HTTP response returned
+        successfully or not.
 
 
-        To get the current state of the device, i.e. whether it has applied target state or not,
+        To get the current state of the device, i.e. whether it has applied
+        target state or not,
 
         use the `appState` field in the response.
       footer:
@@ -3697,18 +3794,23 @@
         The linked issue describes the Supervisor not cleaning up locks it
         creates due
 
-        to crashing at just the wrong time. After internal discussion we decided to
+        to crashing at just the wrong time. After internal discussion we decided
+        to
 
-        differentiate Supervisor-created lockfiles from user-created lockfiles by using
+        differentiate Supervisor-created lockfiles from user-created lockfiles
+        by using
 
         the `nobody` UID (65534) for Supervisor-created lockfiles.
 
 
-        As the existing NPM lockfile lib does not allow creating lockfiles atomically
+        As the existing NPM lockfile lib does not allow creating lockfiles
+        atomically
 
-        with different UIDs, we move to using the lockfile binary, which is part of the
+        with different UIDs, we move to using the lockfile binary, which is part
+        of the
 
-        procmail package. To allow nonroot users to write to lock directories, permissions
+        procmail package. To allow nonroot users to write to lock directories,
+        permissions
 
         are changed to allow write access by nonroot users.
       footer:
@@ -3771,7 +3873,8 @@
 
         ```
 
-        Undefined binding(s) detected when compiling UPDATE. Undefined column(s): [appUuid] query
+        Undefined binding(s) detected when compiling UPDATE. Undefined
+        column(s): [appUuid] query
 
         ```
 
@@ -3920,11 +4023,13 @@
       body: >
         The check for the docker network supervisor0 assumed that if the
 
-        interface supervisor0 existed, then the network would exist too. However this is not
+        interface supervisor0 existed, then the network would exist too. However
+        this is not
 
         true on the case of docker directory corruption, which would lead to a
 
-        loop with `Error: (HTTP code 404) no such network - network supervisor0 not found`.
+        loop with `Error: (HTTP code 404) no such network - network supervisor0
+        not found`.
       footer:
         Change-type: patch
         change-type: patch
@@ -3942,7 +4047,8 @@
         The moby engine v20.x.y adds some selinux [security
         configurations](https://docs.docker.com/engine/reference/run/#security-configuration)
 
-        depending on the [container configuration](https://github.com/moby/moby/blob/master/daemon/create.go#L214).
+        depending on the [container
+        configuration](https://github.com/moby/moby/blob/master/daemon/create.go#L214).
 
         This would cause the supervisor to enter a service restart loop as the
 
@@ -3991,7 +4097,8 @@
         This is necessary with the changes as of balenaOS 2.82.6, which watches
         config.json
 
-        and will restart balena-hostname and some other services automatically on file change.
+        and will restart balena-hostname and some other services automatically
+        on file change.
       footer:
         Change-type: patch
         change-type: patch
@@ -4142,7 +4249,8 @@
       body: >
         This avoids the supervisor trying to get back to the preloaded target
 
-        state if the database is deleted by any reason. It does this by moving the
+        state if the database is deleted by any reason. It does this by moving
+        the
 
         used apps.json to a backup location.
       footer:
@@ -4188,13 +4296,15 @@
       body: >
         The supervisor performs its own local resolution for `.local`
 
-        addresses due to a limitation in [musl](https://wiki.musl-libc.org/future-ideas.html).
+        addresses due to a limitation in
+        [musl](https://wiki.musl-libc.org/future-ideas.html).
 
         The resolution function was not following exactly the nodejs [dns.lookup
 
         specification](https://nodejs.org/api/dns.html#dnslookuphostname-options-callback)
 
-        which could cause certain clients to fail (in this case happy-eyeballs). This
+        which could cause certain clients to fail (in this case happy-eyeballs).
+        This
 
         updates the function to follow the specification.
       footer:
@@ -4221,7 +4331,8 @@
 
         This prevents that behavior and ensures that the supervisor only
 
-        applies target state if a target has been set either by the cloud, preload or local
+        applies target state if a target has been set either by the cloud,
+        preload or local
 
         mode.
       footer:
@@ -4572,7 +4683,8 @@
       body: >
         Updates the circle CI configuration to use the balena CLI to build the
 
-        supervisor image and deploy directly to the related balenaCloud app on merge
+        supervisor image and deploy directly to the related balenaCloud app on
+        merge
 
         to master. This allows to build the supervisor as any other app,
 
@@ -4785,7 +4897,8 @@
       body: >
         PR #1749 introduced a bug when pushing local target state. An update to
 
-        the [image name normalization](https://github.com/balena-os/balena-supervisor/blob/f1bd4b8d9bcef29e326cbf97eaddd837c2704d19/src/lib/docker-utils.ts#L81)
+        the [image name
+        normalization](https://github.com/balena-os/balena-supervisor/blob/f1bd4b8d9bcef29e326cbf97eaddd837c2704d19/src/lib/docker-utils.ts#L81)
 
         failed to consider the local image name format. This results in mangling
 
@@ -4796,7 +4909,8 @@
         dockerode `getImage('/ubuntu:latest').inspect()` call.
 
 
-        This sends the supervisor into a crash loop and is shown on the supervisor
+        This sends the supervisor into a crash loop and is shown on the
+        supervisor
 
         journal logs as
 
@@ -4829,9 +4943,11 @@
         Preparing for the new v3 target state, where the supervisor will make
         environment
 
-        dependent ids optional and rely on using general UUIDs and user known identifiers
+        dependent ids optional and rely on using general UUIDs and user known
+        identifiers
 
-        for comparison. This PR moves forward in that direction by removing some of those
+        for comparison. This PR moves forward in that direction by removing some
+        of those
 
         comparisons for v2 target state.
 
@@ -4843,11 +4959,14 @@
         - releaseId to be replaced by commit (future release_uuid)
 
 
-        This is a backwards compatible change, meaning it doesn't completely get rid of
+        This is a backwards compatible change, meaning it doesn't completely get
+        rid of
 
-        these identifiers (which are still being used by supervisor API and for state
+        these identifiers (which are still being used by supervisor API and for
+        state
 
-        patch), but will not depend on those identifiers for calculating steps to target state.
+        patch), but will not depend on those identifiers for calculating steps
+        to target state.
       footer:
         Change-type: minor
         change-type: minor
@@ -4863,7 +4982,8 @@
 
         way to identify docker images on the engine. That is, if the target
 
-        state image has a name `imageName:tag@digest`, the supervisor will always use
+        state image has a name `imageName:tag@digest`, the supervisor will
+        always use
 
         the given `imageName` and `tag` (which may be empty) to tag the image on
 
@@ -4879,7 +4999,8 @@
 
         Before this change the supervisor relied only on information in the
 
-        supervisor database, and used that to remove images by docker ID. However, the docker
+        supervisor database, and used that to remove images by docker ID.
+        However, the docker
 
         id is not a reliable identifier, since images retain the same id between
 
@@ -4925,7 +5046,8 @@
       body: >
         The previous module was using `rewire` to get the knex instance from the
 
-        db module but that was leading to issues when running tests using `test:fast`.
+        db module but that was leading to issues when running tests using
+        `test:fast`.
 
         This provides a fix for the test module that just removes the destroy
 
@@ -4991,14 +5113,17 @@
         This PR cleans up testing for supervisor compose modules. It also fixes
         broken
 
-        tests for application manager and removes a lot of dependencies for those tests
+        tests for application manager and removes a lot of dependencies for
+        those tests
 
-        on DB and other unnecessary mocks. There are probably a lot of cases that tests
+        on DB and other unnecessary mocks. There are probably a lot of cases
+        that tests
 
         are missing but this should make writing new tests a lot easier.
 
 
-        This PR also creates a new mock dockerode (mockerode) module that should make it
+        This PR also creates a new mock dockerode (mockerode) module that should
+        make it
 
         easier to test operations that interact with the engine. All references
 
@@ -5011,13 +5136,15 @@
 
         - Add tests for network create/remove
 
-        - Move compose service tests to test/src/compose and reorganize test descriptions
+        - Move compose service tests to test/src/compose and reorganize test
+        descriptions
 
         - Add support for image creation to mockerode
 
         - Add additional tests for compose volumes
 
-        - Update mockerode so unimplemented fake methods throw. This is to ensure
+        - Update mockerode so unimplemented fake methods throw. This is to
+        ensure
           tests using mockerode fail if an unimplemented method is used
         - Update tests for volume-manager with mockerode
 
@@ -5044,7 +5171,8 @@
 
         - [Release notes](https://github.com/Qix-/color-string/releases)
 
-        - [Changelog](https://github.com/Qix-/color-string/blob/master/CHANGELOG.md)
+        -
+        [Changelog](https://github.com/Qix-/color-string/blob/master/CHANGELOG.md)
 
         - [Commits](https://github.com/Qix-/color-string/commits/1.5.5)
 
@@ -5142,7 +5270,8 @@
         Bumps [normalize-url](https://github.com/sindresorhus/normalize-url)
         from 4.5.0 to 4.5.1.
 
-        - [Release notes](https://github.com/sindresorhus/normalize-url/releases)
+        - [Release
+        notes](https://github.com/sindresorhus/normalize-url/releases)
 
         - [Commits](https://github.com/sindresorhus/normalize-url/commits)
 
@@ -5241,7 +5370,8 @@
         This is intended behavior.
 
 
-        Also add quotes around UUID in examples to reduce confusion, and format responses
+        Also add quotes around UUID in examples to reduce confusion, and format
+        responses
 
         as multiline JSON for clarity.
       footer:
@@ -5377,21 +5507,26 @@
       body: >
         A previous PR (#1656) fixed validation for network ipam config,
 
-        checking that both network and subnet are defined for each ipam config entry
+        checking that both network and subnet are defined for each ipam config
+        entry
 
         (as described in the docker documentation).
 
 
-        After that PR, the validations throws an exception if the network target state is incorrect,
+        After that PR, the validations throws an exception if the network target
+        state is incorrect,
 
-        but this turns out to be the wrong approach, because that exception is also triggered
+        but this turns out to be the wrong approach, because that exception is
+        also triggered
 
         when querying target state.
 
 
-        This isn't a problem in normal operation, but it is in local mode, because local
+        This isn't a problem in normal operation, but it is in local mode,
+        because local
 
-        mode queries the old target state before sending a new one. Since the query fails,
+        mode queries the old target state before sending a new one. Since the
+        query fails,
 
         the CLI can never push the new target state.
 
@@ -5403,7 +5538,8 @@
         prevent containers to communicate through the provided network.
 
 
-        A future improvement should move this validation to an earlier point in the process,
+        A future improvement should move this validation to an earlier point in
+        the process,
 
         so the target state can get rejected before it even gets to a point it
 
@@ -5792,7 +5928,8 @@
       body: >
         Using safeStateClone within doPurge to applyIntermediateTarget after
 
-        successful volume purge has led to various type deficiencies being revealed
+        successful volume purge has led to various type deficiencies being
+        revealed
 
         in common.js. Add several inline types in common.js to satisfy
 
@@ -6087,7 +6224,8 @@
               Capabilities: [Array],
             }
 
-        Which in turn resulted in the target service being continously restarted.
+        Which in turn resulted in the target service being continously
+        restarted.
 
         The fix is to instantiate the object in full.
       footer:
@@ -6152,9 +6290,11 @@
         [@types/yargs](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/HEAD/types/yargs)
         from 15.0.5 to 15.0.12.
 
-        - [Release notes](https://github.com/DefinitelyTyped/DefinitelyTyped/releases)
+        - [Release
+        notes](https://github.com/DefinitelyTyped/DefinitelyTyped/releases)
 
-        - [Commits](https://github.com/DefinitelyTyped/DefinitelyTyped/commits/HEAD/types/yargs)
+        -
+        [Commits](https://github.com/DefinitelyTyped/DefinitelyTyped/commits/HEAD/types/yargs)
       footer:
         Change-type: patch
         change-type: patch
@@ -6173,7 +6313,8 @@
 
         - [Release notes](https://github.com/sindresorhus/pretty-ms/releases)
 
-        - [Commits](https://github.com/sindresorhus/pretty-ms/compare/v7.0.0...v7.0.1)
+        -
+        [Commits](https://github.com/sindresorhus/pretty-ms/compare/v7.0.0...v7.0.1)
       footer:
         Change-type: patch
         change-type: patch
@@ -6212,9 +6353,11 @@
         [systeminformation](https://github.com/sebhildebrandt/systeminformation)
         from 4.30.5 to 4.31.1.
 
-        - [Release notes](https://github.com/sebhildebrandt/systeminformation/releases)
+        - [Release
+        notes](https://github.com/sebhildebrandt/systeminformation/releases)
 
-        - [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
+        -
+        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
 
         - [Commits](https://github.com/sebhildebrandt/systeminformation/commits)
       footer:
@@ -6246,7 +6389,8 @@
         This reverts commit 153655b523af94d8192f0e0eb5574c67fbf85008.
 
 
-        Dependabot does not allow to limit version updates to just patches or security
+        Dependabot does not allow to limit version updates to just patches or
+        security
 
         updates. Adding this configuration results in excess noise from
 
@@ -6300,10 +6444,12 @@
         This PR adds the following
 
 
-        * Supervisor v1 API application actions now return HTTP status code 423 when locks
+        * Supervisor v1 API application actions now return HTTP status code 423
+        when locks
           are preventing the action to be performed. Previously this resulted in a
           503 error
-        * Supervisor API v2 service actions now returns HTTP status code 423 when locks are
+        * Supervisor API v2 service actions now returns HTTP status code 423
+        when locks are
           preventing the action to be performed. Previously, this resulted in an
           exception logged by the supervisor and the API query timing out
         * Supervisor API `/v2/applications/:appId/start-service` now does not
@@ -6393,11 +6539,14 @@
         [systeminformation](https://github.com/sebhildebrandt/systeminformation)
         from 4.27.11 to 4.30.5.
 
-        - [Release notes](https://github.com/sebhildebrandt/systeminformation/releases)
+        - [Release
+        notes](https://github.com/sebhildebrandt/systeminformation/releases)
 
-        - [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
+        -
+        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
 
-        - [Commits](https://github.com/sebhildebrandt/systeminformation/compare/v4.27.11...v4.30.5)
+        -
+        [Commits](https://github.com/sebhildebrandt/systeminformation/compare/v4.27.11...v4.30.5)
       footer:
         Change-type: patch
         change-type: patch
@@ -6442,9 +6591,11 @@
         [systeminformation](https://github.com/sebhildebrandt/systeminformation)
         from 4.27.3 to 4.27.11.
 
-        - [Release notes](https://github.com/sebhildebrandt/systeminformation/releases)
+        - [Release
+        notes](https://github.com/sebhildebrandt/systeminformation/releases)
 
-        - [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
+        -
+        [Changelog](https://github.com/sebhildebrandt/systeminformation/blob/master/CHANGELOG.md)
 
         - [Commits](https://github.com/sebhildebrandt/systeminformation/commits)
       footer:
@@ -6737,7 +6888,8 @@
         it is.
 
 
-        The correct calculation should be `MemTotal - MemFree - Buffers - Cached`,
+        The correct calculation should be `MemTotal - MemFree - Buffers -
+        Cached`,
 
         which the calculation performed by `htop` and the `free` commands.
       footer:
@@ -6837,7 +6989,8 @@
       body: >
         In order to make supervisor upgrades more transparent, lets move away
 
-        from this env var since it requires a container restart any time the supervisor
+        from this env var since it requires a container restart any time the
+        supervisor
 
         is upgraded. We should ultimately move towards providing the supervisors
 
@@ -7146,9 +7299,11 @@
                 The change type is considered 'major' because, by default,
                 errors are
 
-                now thrown for relatively common occurrences such as authentication
+                now thrown for relatively common occurrences such as
+                authentication
 
-                failures when pulling from private registries, and library users may
+                failures when pulling from private registries, and library users
+                may
 
                 have to adapt.
               footers:
@@ -7793,9 +7948,11 @@
                         This is very similar to the cache class they use by
                         default, with the
 
-                        difference that it has a limit and won't grow indefinitely, causing
+                        difference that it has a limit and won't grow
+                        indefinitely, causing
 
-                        memory leaks on long running applications like Jellyfish.
+                        memory leaks on long running applications like
+                        Jellyfish.
                       footers:
                         change-type: patch
                         signed-off-by: Juan Cruz Viotti <juan@balena.io>
@@ -7985,9 +8142,11 @@
                         This is a hack, and should be reverted once we get to
                         the bottom of it.
 
-                        It will impact performance, but right now there are things that should
+                        It will impact performance, but right now there are
+                        things that should
 
-                        be filtered and are not, so lets get this merged for security purposes.
+                        be filtered and are not, so lets get this merged for
+                        security purposes.
 
                         Hopefully this library will be re-written soon.
                       footers:
@@ -8057,11 +8216,14 @@
                 Handlebars supports very basic if condition checking, but it
                 only checks for
 
-                existence of a field. There are times when we want to combine conditions in order
+                existence of a field. There are times when we want to combine
+                conditions in order
 
-                to generate something as part of a blueprint, without defining a completely separate
+                to generate something as part of a blueprint, without defining a
+                completely separate
 
-                blueprint for it (like generating network config schema if a dt has a wifi chip or
+                blueprint for it (like generating network config schema if a dt
+                has a wifi chip or
 
                 a usb port to which we can connect a dongle).
               footers:
@@ -10055,12 +10217,14 @@
         We also remove the Makefile to go to a simpler build system, as long
         with
 
-        the retry_docker_push.sh file. We remove the rest of the automation tools
+        the retry_docker_push.sh file. We remove the rest of the automation
+        tools
 
         as they're no longer used and update the circle.yml file.
 
 
-        We also remove debug builds, as these aren't needed moving forward, and were
+        We also remove debug builds, as these aren't needed moving forward, and
+        were
 
         only to enable livepush builds.
       footer:
@@ -10839,7 +11003,8 @@
       body: >
         If we had it eearlier, it would have prevented #1148.
 
-        When init is called, withImagesFromDockerAndDB in images.ts is called as well.
+        When init is called, withImagesFromDockerAndDB in images.ts is called as
+        well.
       footer:
         Change-type: patch
         change-type: patch
@@ -10891,7 +11056,8 @@
 
         - [Release notes](https://github.com/nodeca/js-yaml/releases)
 
-        - [Changelog](https://github.com/nodeca/js-yaml/blob/master/CHANGELOG.md)
+        -
+        [Changelog](https://github.com/nodeca/js-yaml/blob/master/CHANGELOG.md)
 
         - [Commits](https://github.com/nodeca/js-yaml/compare/3.12.0...3.13.1)
       footer:
@@ -11132,7 +11298,8 @@
 
         - [Release notes](https://github.com/jonschlinkert/mixin-deep/releases)
 
-        - [Commits](https://github.com/jonschlinkert/mixin-deep/compare/1.3.1...1.3.2)
+        -
+        [Commits](https://github.com/jonschlinkert/mixin-deep/compare/1.3.1...1.3.2)
       footer:
         Change-type: patch
         change-type: patch
@@ -11271,14 +11438,17 @@
       body: >
         With this change, we define a custom error handler as express middleware
 
-        which renders 503 error with JSON response that includes status and message
+        which renders 503 error with JSON response that includes status and
+        message
 
         fields.
 
 
-        The handler also logs the error, so the stack can be inspected in supervisor
+        The handler also logs the error, so the stack can be inspected in
+        supervisor
 
-        logs. It's also a point where we can report the error to analytics services.
+        logs. It's also a point where we can report the error to analytics
+        services.
 
 
         This removes a bunch of error handlers written in every request handler
@@ -11589,7 +11759,8 @@
 
         that were not present before entering local mode.
 
-        With this change, supervisor also detects its own resources and does not delete them
+        With this change, supervisor also detects its own resources and does not
+        delete them
 
         if it was updated during local mode operations.
       footer:
@@ -11948,16 +12119,21 @@
         Since we were comparing the VPN's value before adding the explicit
         "true", there were cases
 
-        were the VPN is off, and therefore "value" didn't match the default, so the supervisor would
+        were the VPN is off, and therefore "value" didn't match the default, so
+        the supervisor would
 
-        create a device specific SUPERVISOR_VPN_CONTROL = true, which is unnecessary and causes issues if
+        create a device specific SUPERVISOR_VPN_CONTROL = true, which is
+        unnecessary and causes issues if
 
-        users don't expect this and move the device to an app that has VPN disabled. The correct behavior
+        users don't expect this and move the device to an app that has VPN
+        disabled. The correct behavior
 
-        is to compare "varValue" and only create a device config var if this value differs from the default.
+        is to compare "varValue" and only create a device config var if this
+        value differs from the default.
 
 
-        (This was the behavior before the TS conversion in 01ed7bb103b4df8fb0679cf858220db42d4a0b92 )
+        (This was the behavior before the TS conversion in
+        01ed7bb103b4df8fb0679cf858220db42d4a0b92 )
       footer:
         Change-type: patch
         change-type: patch
@@ -11972,7 +12148,8 @@
       body: >
         A simple script that detects presence of .only statements in tests.
 
-        The idea is to avoid comitting them, so that all the tests are run with npm test.
+        The idea is to avoid comitting them, so that all the tests are run with
+        npm test.
       footer:
         Change-type: patch
         change-type: patch
@@ -12040,7 +12217,8 @@
         This change makes DeviceState to wait until local mode switch is
         definitely
 
-        completed before actually applying the state, which avoids races in state cleanup.
+        completed before actually applying the state, which avoids races in
+        state cleanup.
       footer:
         Change-type: patch
         change-type: patch
@@ -12731,16 +12909,22 @@
         This commit does two related things:
 
 
-        * We make the poll interval a random time between 0.5 and 1.5 times the configured interval.
+        * We make the poll interval a random time between 0.5 and 1.5 times the
+        configured interval.
 
-        * We introduce the BALENA_SUPERVISOR_INSTANT_UPDATE_TRIGGER configuration variable, that defaults to true. If this variable is set
+        * We introduce the BALENA_SUPERVISOR_INSTANT_UPDATE_TRIGGER
+        configuration variable, that defaults to true. If this variable is set
 
-        to false, then calls to /v1/update are ignored, and on startup the supervisor waits for a poll interval before getting the target state.
+        to false, then calls to /v1/update are ignored, and on startup the
+        supervisor waits for a poll interval before getting the target state.
 
 
-        This will help especially on cases where there's a large number of devices on a single network. By disabling instant updates and setting a large
+        This will help especially on cases where there's a large number of
+        devices on a single network. By disabling instant updates and setting a
+        large
 
-        poll interval, we can now achieve a sitation where not all devices apply an update at the same time, which can help avoid
+        poll interval, we can now achieve a sitation where not all devices apply
+        an update at the same time, which can help avoid
 
         overwhelming the network.
       footer:
@@ -12776,14 +12960,17 @@
         In an edge case observed in the field, a supervisor's database held two
         applications
 
-        because the device had been moved and the update lock was set in the old app. This causes
+        because the device had been moved and the update lock was set in the old
+        app. This causes
 
-        the updated supervisor to be unable to start, logging "No compatible releases found in API",
+        the updated supervisor to be unable to start, logging "No compatible
+        releases found in API",
 
         because it can't fetch the release for the app it was moved from.
 
 
-        This commit changes the migration code to iterate through all apps, and remove any for which
+        This commit changes the migration code to iterate through all apps, and
+        remove any for which
 
         we can't get a release.
       footer:
@@ -12917,13 +13104,17 @@
         Without this patch, if for some reason device pinning fails (e.g.
         connectivity goes down) or anything
 
-        interrupts the initialization after provisioning completes but before pinning is completed, after a retry
+        interrupts the initialization after provisioning completes but before
+        pinning is completed, after a retry
 
-        the supervisor would just skip the pinning code, leaving the device unpinned. This patch ensures that the
+        the supervisor would just skip the pinning code, leaving the device
+        unpinned. This patch ensures that the
 
-        pinning procedure is run even if the device was already provisioned (as long as the pinning flag has been set,
+        pinning procedure is run even if the device was already provisioned (as
+        long as the pinning flag has been set,
 
-        of course). This matches the behavior that the CoffeeScript code had from before the TypeScript conversion.
+        of course). This matches the behavior that the CoffeeScript code had
+        from before the TypeScript conversion.
       footer:
         Change-type: patch
         change-type: patch
@@ -12983,7 +13174,8 @@
         The last update of pinejs-client to pinejs-client-request made the way
         we were
 
-        using $expand on the migration break. This switches to the correct way of doing it now.
+        using $expand on the migration break. This switches to the correct way
+        of doing it now.
       footer:
         Change-type: patch
         change-type: patch
@@ -13152,7 +13344,8 @@
         - BALENA_API_URL
 
 
-        This allows the container to access the currently associated API using the KEY.
+        This allows the container to access the currently associated API using
+        the KEY.
       footer:
         Change-type: patch
         change-type: patch
@@ -14089,22 +14282,33 @@
         Up to now, there was a slim but non-zero chance that an image would be
         downloaded between the call to `@getTarget` inside deviceState
 
-        (which gets the target state and creates Service objects using information from available images), and the call to
+        (which gets the target state and creates Service objects using
+        information from available images), and the call to
 
-        `@images.getAvailable` in ApplicationManager (which is used to determine whether we should keep waiting for a download or start the
+        `@images.getAvailable` in ApplicationManager (which is used to determine
+        whether we should keep waiting for a download or start the
 
-        service). If this race condition happened, then the ApplicationManager would infer that a service was ready to be started (because
+        service). If this race condition happened, then the ApplicationManager
+        would infer that a service was ready to be started (because
 
-        the image appears as available), but would have incomplete information about the service because the image wasn't available when
+        the image appears as available), but would have incomplete information
+        about the service because the image wasn't available when
 
-        the Service object was created. The result would be that the service would be started, and then immediately on the next applyTarget
+        the Service object was created. The result would be that the service
+        would be started, and then immediately on the next applyTarget
 
-        the ApplicationManager would try to kill it and restart it to update it with the complete information from the image.
+        the ApplicationManager would try to kill it and restart it to update it
+        with the complete information from the image.
 
 
-        This patch changes this behavior by ensuring that all of the additional information about the current state, which includes available images,
+        This patch changes this behavior by ensuring that all of the additional
+        information about the current state, which includes available images,
 
-        is gathered *before* building the current and target states that we compare. This means that if the image is downloaded after the call to getAvailable, the Service might be constructed with all the information about the image, but it won't be started until the next pass, because ApplicationManager will treat it as still downloading.
+        is gathered *before* building the current and target states that we
+        compare. This means that if the image is downloaded after the call to
+        getAvailable, the Service might be constructed with all the information
+        about the image, but it won't be started until the next pass, because
+        ApplicationManager will treat it as still downloading.
       footer:
         Change-type: patch
         change-type: patch
