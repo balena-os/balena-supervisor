@@ -35,8 +35,8 @@
     "sqlite3": "^5.1.6"
   },
   "engines": {
-    "node": "^18.18.0",
-    "npm": "^9.8.1"
+    "node": ">=20 <21",
+    "npm": ">=10"
   },
   "devDependencies": {
     "@balena/contrato": "^0.6.0",
@@ -60,7 +60,7 @@
     "@types/mocha": "^8.2.3",
     "@types/mock-fs": "^4.13.1",
     "@types/morgan": "^1.9.3",
-    "@types/node": "^18.11.7",
+    "@types/node": "^20.11.24",
     "@types/request": "^2.48.8",
     "@types/rewire": "^2.5.28",
     "@types/rimraf": "^2.0.5",
