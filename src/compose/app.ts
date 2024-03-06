@@ -53,6 +53,10 @@ interface ChangingPair<T> {
 	target?: T;
 }
 
+export interface AppsToLockMap {
+	[appId: number]: Set<string>;
+}
+
 export class App {
 	public appId: number;
 	public appUuid?: string;
@@ -132,39 +136,60 @@ export class App {
 			true,
 		);
 
-		const { removePairs, installPairs, updatePairs } = this.compareServices(
-			this.services,
-			target.services,
-			state.containerIds,
-		);
+		const { removePairs, installPairs, updatePairs, dependentServices } =
+			this.compareServices(
+				this.services,
+				target.services,
+				state.containerIds,
+				networkChanges,
+				volumeChanges,
+			);
 
 		// For every service which needs to be updated, update via update strategy.
 		const servicePairs = removePairs.concat(updatePairs, installPairs);
-		steps = steps.concat(
-			servicePairs
-				.map((pair) =>
-					this.generateStepsForService(pair, {
-						...state,
-						servicePairs,
-						targetApp: target,
-						networkPairs: networkChanges,
-						volumePairs: volumeChanges,
+		// generateStepsForService will populate appsToLock with services that
+		// need to be locked, including services that need to be removed due to
+		// network or volume changes.
+		const appsToLock: AppsToLockMap = {
+			// this.appId should always equal target.appId.
+			[target.appId]: new Set<string>(),
+		};
+		const serviceSteps = servicePairs
+			.flatMap((pair) =>
+				this.generateStepsForService(pair, {
+					...state,
+					servicePairs,
+					targetApp: target,
+					networkPairs: networkChanges,
+					volumePairs: volumeChanges,
+					appsToLock,
+				}),
+			)
+			.filter((step) => step != null);
+
+		// Generate lock steps from appsToLock
+		for (const [appId, services] of Object.entries(appsToLock)) {
+			if (services.size > 0) {
+				steps.push(
+					generateStep('takeLock', {
+						appId: parseInt(appId, 10),
+						services: Array.from(services),
+						force: state.force,
 					}),
-				)
-				.filter((step) => step != null) as CompositionStep[],
-		);
+				);
+			}
+		}
+
+		// Attach service steps
+		steps = steps.concat(serviceSteps);
 
 		// Generate volume steps
 		steps = steps.concat(
-			this.generateStepsForComponent(volumeChanges, servicePairs, (v, svc) =>
-				svc.hasVolume(v.name),
-			),
+			this.generateStepsForComponent(volumeChanges, dependentServices),
 		);
 		// Generate network steps
 		steps = steps.concat(
-			this.generateStepsForComponent(networkChanges, servicePairs, (n, svc) =>
-				svc.hasNetwork(n.name),
-			),
+			this.generateStepsForComponent(networkChanges, dependentServices),
 		);
 
 		if (steps.length === 0) {
@@ -176,14 +201,17 @@ export class App {
 						appId: this.appId,
 					}),
 				);
-			} else if (
-				target.services.length > 0 &&
-				target.services.some(({ appId, serviceName }) =>
-					state.locksTaken.isLocked(appId, serviceName),
+			}
+			// Current & target should be the same appId, but one of either current
+			// or target may not have any services, so we need to check both
+			const allServices = this.services.concat(target.services);
+			if (
+				allServices.length > 0 &&
+				allServices.some((s) =>
+					state.locksTaken.isLocked(s.appId, s.serviceName),
 				)
 			) {
-				// Release locks for current services before settling state.
-				// Current services should be the same as target services at this point.
+				// Release locks for all services before settling state
 				steps.push(
 					generateStep('releaseLock', {
 						appId: target.appId,
@@ -198,6 +226,21 @@ export class App {
 		state: Omit<UpdateState, 'availableImages'> & { keepVolumes: boolean },
 	): CompositionStep[] {
 		if (Object.keys(this.services).length > 0) {
+			// Take all locks before killing
+			if (
+				this.services.some(
+					(svc) => !state.locksTaken.isLocked(svc.appId, svc.serviceName),
+				)
+			) {
+				return [
+					generateStep('takeLock', {
+						appId: this.appId,
+						services: this.services.map((svc) => svc.serviceName),
+						force: state.force,
+					}),
+				];
+			}
+
 			return Object.values(this.services).map((service) =>
 				generateStep('kill', { current: service }),
 			);
@@ -302,14 +345,24 @@ export class App {
 		return outputs;
 	}
 
+	private getDependentServices<T extends Volume | Network>(
+		component: T,
+		dependencyFn: (component: T, service: Service) => boolean,
+	) {
+		return this.services.filter((s) => dependencyFn(component, s));
+	}
+
 	private compareServices(
 		current: Service[],
 		target: Service[],
 		containerIds: UpdateState['containerIds'],
+		networkChanges: Array<ChangingPair<Network>>,
+		volumeChanges: Array<ChangingPair<Volume>>,
 	): {
 		installPairs: Array<ChangingPair<Service>>;
 		removePairs: Array<ChangingPair<Service>>;
 		updatePairs: Array<ChangingPair<Service>>;
+		dependentServices: Service[];
 	} {
 		const currentByServiceName = _.keyBy(current, 'serviceName');
 		const targetByServiceName = _.keyBy(target, 'serviceName');
@@ -317,8 +370,26 @@ export class App {
 		const currentServiceNames = Object.keys(currentByServiceName);
 		const targetServiceNames = Object.keys(targetByServiceName);
 
+		// For volume|network removal or config changes, we require dependent
+		// services be killed first.
+		const dependentServices: Service[] = [];
+		for (const { current: c } of networkChanges) {
+			if (c != null) {
+				dependentServices.push(
+					...this.getDependentServices(c, (n, svc) => svc.hasNetwork(n.name)),
+				);
+			}
+		}
+		for (const { current: c } of volumeChanges) {
+			if (c != null) {
+				dependentServices.push(
+					...this.getDependentServices(c, (v, svc) => svc.hasVolume(v.name)),
+				);
+			}
+		}
 		const toBeRemoved = _(currentServiceNames)
 			.difference(targetServiceNames)
+			.union(dependentServices.map((s) => s.serviceName))
 			.map((id) => ({ current: currentByServiceName[id] }))
 			.value();
 
@@ -427,6 +498,15 @@ export class App {
 		};
 
 		/**
+		 * Checks if a service is destined for removal due to a network or volume change
+		 */
+		const shouldBeRemoved = (serviceCurrent: Service) => {
+			return toBeRemoved.some(
+				(pair) => pair.current.serviceName === serviceCurrent.serviceName,
+			);
+		};
+
+		/**
 		 * Filter all the services which should be updated due to run state change, or config mismatch.
 		 */
 		const toBeUpdated = maybeUpdate
@@ -436,16 +516,18 @@ export class App {
 			}))
 			.filter(
 				({ current: c, target: t }) =>
-					!isEqualExceptForRunningState(c, t) ||
-					shouldBeStarted(c, t) ||
-					shouldBeStopped(c, t) ||
-					shouldWaitForStop(c),
+					!shouldBeRemoved(c) &&
+					(!isEqualExceptForRunningState(c, t) ||
+						shouldBeStarted(c, t) ||
+						shouldBeStopped(c, t) ||
+						shouldWaitForStop(c)),
 			);
 
 		return {
 			installPairs: toBeInstalled,
 			removePairs: toBeRemoved,
 			updatePairs: toBeUpdated,
+			dependentServices,
 		};
 	}
 
@@ -457,8 +539,7 @@ export class App {
 	// it should be changed.
 	private generateStepsForComponent<T extends Volume | Network>(
 		components: Array<ChangingPair<T>>,
-		changingServices: Array<ChangingPair<Service>>,
-		dependencyFn: (component: T, service: Service) => boolean,
+		dependentServices: Service[],
 	): CompositionStep[] {
 		if (components.length === 0) {
 			return [];
@@ -466,36 +547,42 @@ export class App {
 
 		let steps: CompositionStep[] = [];
 
+		const componentIsVolume =
+			(components[0].current ?? components[0].target) instanceof Volume;
+
 		const actions: {
 			create: CompositionStepAction;
 			remove: CompositionStepAction;
-		} =
-			(components[0].current ?? components[0].target) instanceof Volume
-				? { create: 'createVolume', remove: 'removeVolume' }
-				: { create: 'createNetwork', remove: 'removeNetwork' };
+		} = componentIsVolume
+			? { create: 'createVolume', remove: 'removeVolume' }
+			: { create: 'createNetwork', remove: 'removeNetwork' };
 
 		for (const { current, target } of components) {
 			// If a current exists, we're either removing it or updating the configuration. In
-			// both cases, we must remove the component first, so we output those steps first.
+			// both cases, we must remove the component before creating it to avoid
+			// Engine conflicts. So we always emit a remove step first.
 			// If we do remove the component, we first need to remove any services which depend
-			// on the component
+			// on the component. The service removal steps are generated in this.generateStepsForService
+			// after their removal is calculated in this.compareServices.
 			if (current != null) {
-				// Find any services which are currently running which need to be killed when we
-				// recreate this component
-				const dependencies = _.filter(this.services, (s) =>
-					dependencyFn(current, s),
-				);
-				if (dependencies.length > 0) {
-					// We emit kill steps for these services, and wait to destroy the component in
-					// the next state application loop
-					// FIXME: We should add to the changingServices array, as we could emit several
-					// kill steps for a service
-					steps = steps.concat(
-						dependencies.flatMap((svc) =>
-							this.generateKillStep(svc, changingServices),
-						),
-					);
-				} else {
+				// If there are any dependent services which have the volume or network,
+				// we cannot proceed to component removal.
+				const dependentServicesOfComponent = dependentServices.filter((s) => {
+					if (componentIsVolume) {
+						return this.serviceHasNetworkOrVolume(
+							s,
+							[],
+							[{ current: current as Volume, target: target as Volume }],
+						);
+					} else {
+						return this.serviceHasNetworkOrVolume(
+							s,
+							[{ current: current as Network, target: target as Network }],
+							[],
+						);
+					}
+				});
+				if (dependentServicesOfComponent.length === 0) {
 					steps = steps.concat([generateStep(actions.remove, { current })]);
 				}
 			} else if (target != null) {
@@ -513,17 +600,21 @@ export class App {
 			networkPairs: Array<ChangingPair<Network>>;
 			volumePairs: Array<ChangingPair<Volume>>;
 			servicePairs: Array<ChangingPair<Service>>;
+			appsToLock: AppsToLockMap;
 		} & UpdateState,
-	): Nullable<CompositionStep> {
+	): CompositionStep[] {
+		const servicesLocked = this.services
+			.concat(context.targetApp.services)
+			.every((svc) => context.locksTaken.isLocked(svc.appId, svc.serviceName));
 		if (current?.status === 'Stopping') {
 			// There's a kill step happening already, emit a noop to ensure
 			// we stay alive while this happens
-			return generateStep('noop', {});
+			return [generateStep('noop', {})];
 		}
 		if (current?.status === 'Dead') {
 			// A remove step will already have been generated, so we let the state
 			// application loop revisit this service, once the state has settled
-			return;
+			return [];
 		}
 
 		const needsDownload =
@@ -540,7 +631,7 @@ export class App {
 		) {
 			// The image needs to be downloaded, and it's currently downloading.
 			// We simply keep the application loop alive
-			return generateStep('noop', {});
+			return [generateStep('noop', {})];
 		}
 
 		if (current == null) {
@@ -549,6 +640,8 @@ export class App {
 				target!,
 				context.targetApp,
 				needsDownload,
+				servicesLocked,
+				context.appsToLock,
 				context.availableImages,
 				context.networkPairs,
 				context.volumePairs,
@@ -573,8 +666,9 @@ export class App {
 				return this.generateContainerStep(
 					current,
 					target,
-					context.locksTaken,
-					context.force,
+					context.appsToLock,
+					context.targetApp.services,
+					servicesLocked,
 				);
 			}
 
@@ -607,26 +701,10 @@ export class App {
 				dependenciesMetForStart,
 				dependenciesMetForKill,
 				needsSpecialKill,
+				servicesLocked,
+				services: this.services.concat(context.targetApp.services),
+				appsToLock: context.appsToLock,
 			});
-		}
-	}
-
-	// We return an array from this function so the caller can just concatenate the arrays
-	// without worrying if the step is skipped or not
-	private generateKillStep(
-		service: Service,
-		changingServices: Array<ChangingPair<Service>>,
-	): CompositionStep[] {
-		if (
-			service.status !== 'Stopping' &&
-			!_.some(
-				changingServices,
-				({ current }) => current?.serviceName === service.serviceName,
-			)
-		) {
-			return [generateStep('kill', { current: service })];
-		} else {
-			return [];
 		}
 	}
 
@@ -667,31 +745,36 @@ export class App {
 	private generateContainerStep(
 		current: Service,
 		target: Service,
-		locksTaken: LocksTakenMap,
-		force: boolean,
-	) {
+		appsToLock: AppsToLockMap,
+		targetServices: Service[],
+		servicesLocked: boolean,
+	): CompositionStep[] {
 		// Update container metadata if service release has changed
 		if (current.commit !== target.commit) {
-			// QUESTION: Should updateMetadata only be allowed when
-			// *all* services have locks taken by the Supervisor? Currently
-			// it proceeds when the service it's updating has locks taken,
-			// meaning the service could be on new release while another service
-			// with a user-taken lock is still on old release.
-			if (locksTaken.isLocked(target.appId, target.serviceName)) {
-				return generateStep('updateMetadata', { current, target });
-			}
-			// Otherwise, take lock for service first
-			return generateStep('takeLock', {
-				appId: target.appId,
-				services: [target.serviceName],
-				force,
-			});
-		} else if (target.config.running !== current.config.running) {
-			if (target.config.running) {
-				return generateStep('start', { target });
+			if (servicesLocked) {
+				return [generateStep('updateMetadata', { current, target })];
 			} else {
-				return generateStep('stop', { current });
+				// Otherwise, take lock for all services first
+				this.services.concat(targetServices).forEach((s) => {
+					appsToLock[target.appId].add(s.serviceName);
+				});
+				return [];
 			}
+		} else if (target.config.running !== current.config.running) {
+			// Take lock for all services before starting/stopping container
+			if (!servicesLocked) {
+				this.services.concat(targetServices).forEach((s) => {
+					appsToLock[target.appId].add(s.serviceName);
+				});
+				return [];
+			}
+			if (target.config.running) {
+				return [generateStep('start', { target })];
+			} else {
+				return [generateStep('stop', { current })];
+			}
+		} else {
+			return [];
 		}
 	}
 
@@ -699,21 +782,26 @@ export class App {
 		target: Service,
 		targetApp: App,
 		needsDownload: boolean,
+		servicesLocked: boolean,
+		appsToLock: AppsToLockMap,
 		availableImages: UpdateState['availableImages'],
 		networkPairs: Array<ChangingPair<Network>>,
 		volumePairs: Array<ChangingPair<Volume>>,
 		servicePairs: Array<ChangingPair<Service>>,
-	): CompositionStep | undefined {
+	): CompositionStep[] {
 		if (
 			needsDownload &&
 			this.dependenciesMetForServiceFetch(target, servicePairs)
 		) {
 			// We know the service name exists as it always does for targets
-			return generateStep('fetch', {
-				image: imageManager.imageFromService(target),
-				serviceName: target.serviceName,
-			});
+			return [
+				generateStep('fetch', {
+					image: imageManager.imageFromService(target),
+					serviceName: target.serviceName,
+				}),
+			];
 		} else if (
+			target != null &&
 			this.dependenciesMetForServiceStart(
 				target,
 				targetApp,
@@ -723,7 +811,15 @@ export class App {
 				servicePairs,
 			)
 		) {
-			return generateStep('start', { target });
+			if (!servicesLocked) {
+				this.services
+					.concat(targetApp.services)
+					.forEach((svc) => appsToLock[target.appId].add(svc.serviceName));
+				return [];
+			}
+			return [generateStep('start', { target })];
+		} else {
+			return [];
 		}
 	}
 

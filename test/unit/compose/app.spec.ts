@@ -170,13 +170,38 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			// Calculate steps
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const availableImages = [createImage({ serviceName: 'test' })];
+			// Take lock first
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+				},
+				target,
+			);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['test']);
 
-			const [killStep] = expectSteps('kill', steps);
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+					// Mock lock already taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+				},
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps2);
 			expect(killStep)
 				.to.have.property('current')
 				.that.deep.includes({ serviceName: 'test' });
+
+			// No remove volume steps until dependencies are killed
+			expectNoStep('removeVolume', steps);
+			expectNoStep('removeVolume', steps2);
 		});
 
 		it('should correctly infer to remove an app volumes when the app is being removed', () => {
@@ -250,17 +275,32 @@ describe('compose/app', () => {
 				volumes: [volume],
 			});
 
-			// Step 1: kill
-			const steps = current.nextStepsForAppUpdate(
+			// Step 1: takeLock
+			const lockStep = current.nextStepsForAppUpdate(
 				contextWithImages,
 				intermediateTarget,
 			);
-			expectSteps('kill', steps);
+			expectSteps('takeLock', lockStep, 1, 1);
 
-			// Step 2: noop (service is stopping)
+			// Step 2: kill
+			const killSteps = current.nextStepsForAppUpdate(
+				{
+					...contextWithImages,
+					// Mock locks already taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+				intermediateTarget,
+			);
+			expectSteps('kill', killSteps);
+
+			// Step 3: noop (service is stopping)
 			service.status = 'Stopping';
 			const secondStageSteps = current.nextStepsForAppUpdate(
-				contextWithImages,
+				{
+					...contextWithImages,
+					// Mock locks already taken
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
 				intermediateTarget,
 			);
 			expectSteps('noop', secondStageSteps);
@@ -286,7 +326,7 @@ describe('compose/app', () => {
 				volumes: [],
 			});
 
-			// Step 3: createVolume
+			// Step 4: createVolume
 			service.status = 'Running';
 			const target = createApp({
 				services: [service],
@@ -303,16 +343,27 @@ describe('compose/app', () => {
 			expect(recreateVolumeSteps).to.have.length(1);
 			expectSteps('createVolume', recreateVolumeSteps);
 
-			// Final step: start service
+			// Step 5: takeLock
 			const currentWithVolumeRecreated = createApp({
 				services: [],
 				networks: [DEFAULT_NETWORK],
 				volumes: [volume],
 			});
-
-			const createServiceSteps =
+			const lockStepAfterRecreate =
 				currentWithVolumeRecreated.nextStepsForAppUpdate(
 					contextWithImages,
+					target,
+				);
+			expectSteps('takeLock', lockStepAfterRecreate, 1, 1);
+
+			// Final step: start service
+			const createServiceSteps =
+				currentWithVolumeRecreated.nextStepsForAppUpdate(
+					{
+						...contextWithImages,
+						// Mock locks already taken
+						locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+					},
 					target,
 				);
 			expectSteps('start', createServiceSteps);
@@ -441,6 +492,7 @@ describe('compose/app', () => {
 			});
 			const target = createApp({
 				networks: [
+					DEFAULT_NETWORK,
 					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
 				],
 				services: [
@@ -454,13 +506,60 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
+			const availableImages = [createImage({ appUuid: 'deadbeef' })];
+			// Take lock first
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+				},
+				target,
+			);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['test']);
 
-			const [killStep] = expectSteps('kill', steps);
-			console.log(killStep);
-
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+				},
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps2);
 			expect(killStep).to.have.property('current').that.deep.includes({
 				serviceName: 'test',
+			});
+
+			// removeNetwork should not be generated until after the kill
+			expectNoStep('removeNetwork', steps);
+			expectNoStep('removeNetwork', steps2);
+
+			// Then remove duplicate networks
+			const current2 = createApp({
+				appUuid: 'deadbeef',
+				networks: [
+					DEFAULT_NETWORK,
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+					Network.fromComposeObject('test-network', 1, 'deadbeef', {}),
+				],
+				services: [],
+			});
+
+			const steps3 = current2.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+				},
+				target,
+			);
+			const [removeNetworkStep] = expectSteps('removeNetwork', steps3);
+			expect(removeNetworkStep).to.have.property('current').that.deep.includes({
+				name: 'test-network',
 			});
 		});
 
@@ -564,15 +663,33 @@ describe('compose/app', () => {
 			});
 
 			const availableImages = [createImage({ appUuid: 'deadbeef' })];
-
+			// Take lock first
 			const steps = current.nextStepsForAppUpdate(
 				{ ...defaultContext, availableImages },
 				target,
 			);
-			const [killStep] = expectSteps('kill', steps);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['test']);
+
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+				},
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps2);
 			expect(killStep)
 				.to.have.property('current')
 				.that.deep.includes({ serviceName: 'test' });
+
+			// Network should not be removed until after dependency kills
+			expectNoStep('removeNetwork', steps);
+			expectNoStep('removeNetwork', steps2);
 		});
 
 		it('should kill dependencies of networks before changing config', async () => {
@@ -599,16 +716,37 @@ describe('compose/app', () => {
 				],
 				isTarget: true,
 			});
+			const availableImages = [createImage({ appId: 1, serviceName: 'test' })];
+			// Take lock first
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+				},
+				target,
+			);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['test']);
 
-			const steps = current.nextStepsForAppUpdate(defaultContext, target);
-			const [killStep] = expectSteps('kill', steps);
-
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+				},
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps2);
 			expect(killStep)
 				.to.have.property('current')
 				.that.deep.includes({ serviceName: 'test' });
 
-			// We shouldn't try to remove the network until we have gotten rid of the dependencies
+			// Network should not be removed until after dependency kills
 			expectNoStep('removeNetwork', steps);
+			expectNoStep('removeNetwork', steps2);
 		});
 
 		it('should always kill dependencies of networks before removing', async () => {
@@ -655,19 +793,35 @@ describe('compose/app', () => {
 				createImage({ appId: 1, serviceName: 'one', name: 'alpine' }),
 				createImage({ appId: 1, serviceName: 'two', name: 'alpine' }),
 			];
-
+			// Take lock first
 			const steps = current.nextStepsForAppUpdate(
 				{ ...defaultContext, availableImages },
 				target,
 			);
-			const [killStep] = expectSteps('kill', steps);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['one']);
 
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
+				},
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps2);
 			expect(killStep)
 				.to.have.property('current')
 				.that.deep.includes({ serviceName: 'one' });
 
 			// We shouldn't try to remove the network until we have gotten rid of the dependencies
 			expectNoStep('removeNetwork', steps);
+			expectNoStep('removeNetwork', steps2);
 		});
 
 		it('should kill dependencies of networks before updating between releases', async () => {
@@ -718,20 +872,35 @@ describe('compose/app', () => {
 				createImage({ appId: 1, serviceName: 'one', name: 'alpine' }),
 				createImage({ appId: 1, serviceName: 'two', name: 'alpine' }),
 			];
-
+			// Take lock first
 			const steps = current.nextStepsForAppUpdate(
 				{ ...defaultContext, availableImages },
 				target,
 			);
-			expectSteps('kill', steps, 2);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['one', 'two']);
 
-			expect(steps.map((s) => (s as any).current.serviceName)).to.have.members([
-				'one',
-				'two',
-			]);
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages,
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two'] },
+					]),
+				},
+				target,
+			);
+			expectSteps('kill', steps2, 2);
+			expect(steps2.map((s) => (s as any).current.serviceName)).to.have.members(
+				['one', 'two'],
+			);
 
 			// We shouldn't try to remove the network until we have gotten rid of the dependencies
 			expectNoStep('removeNetwork', steps);
+			expectNoStep('removeNetwork', steps2);
 		});
 
 		it('should create the default network if it does not exist', () => {
@@ -847,6 +1016,7 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
+			// Take lock first
 			const steps = current.nextStepsForAppUpdate(
 				{
 					...defaultContext,
@@ -856,7 +1026,24 @@ describe('compose/app', () => {
 				},
 				target,
 			);
-			const [killStep] = expectSteps('kill', steps);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main', 'aux']);
+
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages: [createImage({ serviceName: 'main' })],
+					// Mock locks already taken
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['main', 'aux'] },
+					]),
+				},
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps2);
 			expect(killStep)
 				.to.have.property('current')
 				.to.deep.include({ serviceName: 'aux' });
@@ -1013,8 +1200,22 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
+			// Take lock first
 			const steps = current.nextStepsForAppUpdate(defaultContext, target);
-			const [stopStep] = expectSteps('stop', steps);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main']);
+
+			// Then stop
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+				target,
+			);
+			const [stopStep] = expectSteps('stop', steps2);
 			expect(stopStep)
 				.to.have.property('current')
 				.to.deep.include({ serviceName: 'main' });
@@ -1073,9 +1274,19 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			// should see a 'stop'
+			// Take lock first
+			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main']);
+
+			// Then kill
 			const stepsToIntermediate = current.nextStepsForAppUpdate(
-				contextWithImages,
+				{
+					...contextWithImages,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
 				target,
 			);
 			const [killStep] = expectSteps('kill', stepsToIntermediate);
@@ -1090,9 +1301,12 @@ describe('compose/app', () => {
 				networks: [DEFAULT_NETWORK],
 			});
 
-			// now should see a 'start'
+			// Then start
 			const stepsToTarget = intermediate.nextStepsForAppUpdate(
-				contextWithImages,
+				{
+					...contextWithImages,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
 				target,
 			);
 			const [startStep] = expectSteps('start', stepsToTarget);
@@ -1106,12 +1320,6 @@ describe('compose/app', () => {
 		});
 
 		it('should not start a container when it depends on a service which is being installed', async () => {
-			const availableImages = [
-				createImage({ appId: 1, serviceName: 'main', name: 'main-image' }),
-				createImage({ appId: 1, serviceName: 'dep', name: 'dep-image' }),
-			];
-			const contextWithImages = { ...defaultContext, ...{ availableImages } };
-
 			const current = createApp({
 				services: [
 					await createService(
@@ -1148,12 +1356,24 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
+			const availableImages = [
+				createImage({ appId: 1, serviceName: 'main', name: 'main-image' }),
+				createImage({ appId: 1, serviceName: 'dep', name: 'dep-image' }),
+			];
+			// As service is already being installed, lock for target should have been taken
+			const contextWithImages = {
+				...defaultContext,
+				...{ availableImages },
+				locksTaken: new LocksTakenMap([
+					{ appId: 1, services: ['main', 'dep'] },
+				]),
+			};
+
+			// Only one start step and it should be that of the 'dep' service
 			const stepsToIntermediate = current.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
-
-			// Only one start step and it should be that of the 'dep' service
 			const [startStep] = expectSteps('start', stepsToIntermediate);
 			expect(startStep)
 				.to.have.property('target')
@@ -1246,11 +1466,28 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const stepsToIntermediate = current.nextStepsForAppUpdate(
+			// Take lock first
+			const stepsToIntermediateBeforeLock = current.nextStepsForAppUpdate(
 				contextWithImages,
 				target,
 			);
+			const [takeLockStep] = expectSteps(
+				'takeLock',
+				stepsToIntermediateBeforeLock,
+			);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main']);
 
+			// Then kill
+			const stepsToIntermediate = current.nextStepsForAppUpdate(
+				{
+					...contextWithImages,
+					// Mock locks taken before kill
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
+				target,
+			);
 			const [killStep] = expectSteps('kill', stepsToIntermediate);
 			expect(killStep)
 				.to.have.property('current')
@@ -1263,7 +1500,12 @@ describe('compose/app', () => {
 			});
 
 			const stepsToTarget = intermediate.nextStepsForAppUpdate(
-				contextWithImages,
+				{
+					...contextWithImages,
+					// Mock locks still taken after kill (releaseLock not
+					// yet inferred as state is not yet settled)
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
 				target,
 			);
 
@@ -1375,8 +1617,23 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const stepsFirstTry = current.nextStepsForAppUpdate(
+			// Take lock first
+			const stepsBeforeLock = current.nextStepsForAppUpdate(
 				contextWithImages,
+				target,
+			);
+			const [takeLockStep] = expectSteps('takeLock', stepsBeforeLock);
+			expect(takeLockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main']);
+
+			// Then kill
+			const stepsFirstTry = current.nextStepsForAppUpdate(
+				{
+					...contextWithImages,
+					// Mock locks taken from previous step
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
 				target,
 			);
 
@@ -1385,13 +1642,17 @@ describe('compose/app', () => {
 				.to.have.property('current')
 				.that.deep.includes({ serviceName: 'main' });
 
-			// if at first you don't succeed
+			// As long as a kill step has not succeeded (current state hasn't
+			// changed), a kill step should be generated.
 			const stepsSecondTry = current.nextStepsForAppUpdate(
-				contextWithImages,
+				{
+					...contextWithImages,
+					// Mock locks taken from previous step
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['main'] }]),
+				},
 				target,
 			);
 
-			// Since current state has not changed, another kill step needs to be generated
 			const [newKillStep] = expectSteps('kill', stepsSecondTry);
 			expect(newKillStep)
 				.to.have.property('current')
@@ -1419,8 +1680,22 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
+			// Take lock first
 			const steps = current.nextStepsForAppUpdate(defaultContext, target);
-			const [killStep] = expectSteps('kill', steps);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['test']);
+
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					locksTaken: new LocksTakenMap([{ appId: 1, services: ['test'] }]),
+				},
+				target,
+			);
+			const [killStep] = expectSteps('kill', steps2);
 			expect(killStep)
 				.to.have.property('current')
 				.that.deep.includes({ serviceName: 'test' });
@@ -1485,16 +1760,31 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			const steps = current.nextStepsForAppUpdate(
+			const contextWithImages = {
+				...defaultContext,
+				// With default download-then-kill strategy, target images
+				// should all be available before a kill step is inferred
+				availableImages: [createImage({ serviceName: 'three' })],
+			};
+			// Take lock first
+			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
+			const [lockStep] = expectSteps('takeLock', steps);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['one', 'two', 'three']);
+
+			// Then kill
+			const steps2 = current.nextStepsForAppUpdate(
 				{
-					...defaultContext,
-					// With default download-then-kill strategy, target images
-					// should all be available before a kill step is inferred
-					availableImages: [createImage({ serviceName: 'three' })],
+					...contextWithImages,
+					// Mock locks already taken
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['one', 'two', 'three'] },
+					]),
 				},
 				target,
 			);
-			expectSteps('kill', steps, 2);
+			expectSteps('kill', steps2, 2);
 		});
 
 		it('should not infer a kill step with the default strategy before all target images have been downloaded', async () => {
@@ -1599,21 +1889,6 @@ describe('compose/app', () => {
 		});
 
 		it('should infer a start step only when target images have been downloaded', async () => {
-			const contextWithImages = {
-				...defaultContext,
-				...{
-					downloading: [], // One of the images is being downloaded
-					availableImages: [
-						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
-						createImage({
-							appId: 1,
-							name: 'other-image',
-							serviceName: 'other',
-						}),
-					],
-				},
-			};
-
 			const current = createApp({
 				services: [],
 				networks: [DEFAULT_NETWORK],
@@ -1637,9 +1912,59 @@ describe('compose/app', () => {
 				isTarget: true,
 			});
 
-			// No kill steps should be generated
-			const steps = current.nextStepsForAppUpdate(contextWithImages, target);
-			expectSteps('start', steps, 2);
+			// No start steps should be generated as long as any target image is downloading
+			const steps = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					downloading: ['other-image'],
+					availableImages: [
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
+					],
+				},
+				target,
+			);
+			expectNoStep('start', steps);
+			expectSteps('noop', steps, 1);
+
+			// Take lock before starting once downloads complete
+			const steps2 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages: [
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
+						createImage({
+							appId: 1,
+							name: 'other-image',
+							serviceName: 'other',
+						}),
+					],
+				},
+				target,
+			);
+			const [lockStep] = expectSteps('takeLock', steps2);
+			expect(lockStep)
+				.to.have.property('services')
+				.that.deep.includes.members(['main', 'other']);
+
+			// Then start
+			const steps3 = current.nextStepsForAppUpdate(
+				{
+					...defaultContext,
+					availableImages: [
+						createImage({ appId: 1, name: 'main-image', serviceName: 'main' }),
+						createImage({
+							appId: 1,
+							name: 'other-image',
+							serviceName: 'other',
+						}),
+					],
+					locksTaken: new LocksTakenMap([
+						{ appId: 1, services: ['main', 'other'] },
+					]),
+				},
+				target,
+			);
+			expectSteps('start', steps3, 2);
 		});
 	});
 
