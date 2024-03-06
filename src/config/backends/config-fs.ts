@@ -1,6 +1,6 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
-import * as path from 'path';
+import path from 'path';
 
 import type { ConfigOptions } from './backend';
 import { ConfigBackend } from './backend';

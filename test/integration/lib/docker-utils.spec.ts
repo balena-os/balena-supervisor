@@ -3,7 +3,7 @@ import { stub } from 'sinon';
 
 import * as dockerUtils from '~/lib/docker-utils';
 import { createDockerImage, cleanupDocker } from '~/test-lib/docker-helper';
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 
 describe('lib/docker-utils', () => {
 	const docker = new Docker();

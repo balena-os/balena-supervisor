@@ -1,8 +1,8 @@
 import type { SinonStub, SinonSpy } from 'sinon';
 import { stub, spy } from 'sinon';
-import * as Bluebird from 'bluebird';
-import * as _ from 'lodash';
-import rewire = require('rewire');
+import Bluebird from 'bluebird';
+import _ from 'lodash';
+import rewire from 'rewire';
 import { expect } from 'chai';
 
 import * as TargetState from '~/src/device-state/target-state';

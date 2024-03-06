@@ -1,10 +1,10 @@
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import { stripIndent } from 'common-tags';
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { PinejsClientRequest } from 'pinejs-client-request';
-import * as url from 'url';
+import url from 'url';
 
 import * as config from '../config';
 import * as deviceConfig from '../device-config';

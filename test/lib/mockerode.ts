@@ -1,5 +1,5 @@
-import * as dockerode from 'dockerode';
-import * as sinon from 'sinon';
+import dockerode from 'dockerode';
+import sinon from 'sinon';
 
 import { randomUUID as uuidv4 } from 'crypto';
 

@@ -1,11 +1,10 @@
-import * as Docker from 'dockerode';
-import { Dockerfile } from 'livepush';
-import * as _ from 'lodash';
+import Docker from 'dockerode';
+import type { Dockerfile } from 'livepush';
 import { Builder } from 'resin-docker-build';
 
 import { promises as fs } from 'fs';
 import * as Path from 'path';
-import { Readable } from 'stream';
+import type { Readable } from 'stream';
 import * as tar from 'tar-stream';
 import * as readline from 'readline';
 

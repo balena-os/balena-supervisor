@@ -1,7 +1,7 @@
-import _ = require('lodash');
+import _ from 'lodash';
 import { expect } from 'chai';
 import { stub } from 'sinon';
-import * as childProcess from 'child_process';
+import childProcess from 'child_process';
 
 import * as firewall from '~/lib/firewall';
 import * as iptables from '~/lib/iptables';

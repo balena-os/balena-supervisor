@@ -1,4 +1,4 @@
-import * as fs from 'fs';
+import fs from 'fs';
 const configJsonPath = process.env.CONFIG_MOUNT_POINT;
 
 exports.up = function (knex) {

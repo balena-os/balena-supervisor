@@ -1,7 +1,7 @@
 import { stripIndent } from 'common-tags';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
-import * as path from 'path';
+import path from 'path';
 
 import * as config from './config';
 import * as applicationManager from './compose/application-manager';

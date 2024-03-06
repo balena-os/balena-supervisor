@@ -1,8 +1,8 @@
 import type { ProgressCallback } from 'docker-progress';
 import { DockerProgress } from 'docker-progress';
-import * as Dockerode from 'dockerode';
-import * as _ from 'lodash';
-import * as memoizee from 'memoizee';
+import Dockerode from 'dockerode';
+import _ from 'lodash';
+import memoizee from 'memoizee';
 
 import { applyDelta, OutOfSyncError } from 'docker-delta';
 import DockerToolbelt = require('docker-toolbelt');

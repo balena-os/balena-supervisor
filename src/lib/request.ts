@@ -1,7 +1,7 @@
-import * as Bluebird from 'bluebird';
+import Bluebird from 'bluebird';
 import once = require('lodash/once');
-import * as requestLib from 'request';
-import * as resumableRequestLib from 'resumable-request';
+import requestLib from 'request';
+import resumableRequestLib from 'resumable-request';
 
 import * as constants from './constants';
 import * as osRelease from './os-release';

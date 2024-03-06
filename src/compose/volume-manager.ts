@@ -1,5 +1,5 @@
-import * as _ from 'lodash';
-import * as path from 'path';
+import _ from 'lodash';
+import path from 'path';
 import type { VolumeInspectInfo } from 'dockerode';
 
 import { isNotFoundError, InternalInconsistencyError } from '../lib/errors';

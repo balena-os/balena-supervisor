@@ -1,6 +1,6 @@
-import * as express from 'express';
+import express from 'express';
 import type { Response, NextFunction } from 'express';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import * as deviceState from '../device-state';
 import * as apiBinder from '../api-binder';

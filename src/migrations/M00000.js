@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 // We take legacy deviceConfig targets and store them without the RESIN_ prefix
 // (we also strip the BALENA_ prefix for completeness, even though no supervisors

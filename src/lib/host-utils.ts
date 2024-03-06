@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import * as path from 'path';
+import path from 'path';
 import * as constants from './constants';
 import { exec, exists } from './fs-utils';
 

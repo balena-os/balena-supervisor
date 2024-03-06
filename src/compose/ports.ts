@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { TypedError } from 'typed-error';
 
 // Adapted from https://github.com/docker/docker-py/blob/master/docker/utils/ports.py#L3

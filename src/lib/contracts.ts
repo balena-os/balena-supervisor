@@ -1,7 +1,7 @@
 import { isLeft } from 'fp-ts/lib/Either';
 import * as t from 'io-ts';
 import Reporter from 'io-ts-reporters';
-import * as _ from 'lodash';
+import _ from 'lodash';
 
 import { Blueprint, Contract, ContractObject } from '@balena/contrato';
 

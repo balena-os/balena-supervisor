@@ -1,4 +1,4 @@
-import * as morgan from 'morgan';
+import morgan from 'morgan';
 import type { Request } from 'express';
 
 import log from '../../lib/supervisor-console';

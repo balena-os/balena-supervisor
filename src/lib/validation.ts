@@ -1,5 +1,5 @@
 import { isRight } from 'fp-ts/lib/Either';
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { DeviceName } from '../types';
 export interface CheckIntOptions {
 	positive?: boolean;

@@ -1,5 +1,5 @@
-import * as Docker from 'dockerode';
-import { Dockerfile } from 'livepush';
+import type Docker from 'dockerode';
+import type { Dockerfile } from 'livepush';
 
 import * as device from './device';
 import { setTimeout } from 'timers/promises';

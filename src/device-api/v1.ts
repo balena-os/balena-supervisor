@@ -1,4 +1,4 @@
-import * as express from 'express';
+import express from 'express';
 import type { Response } from 'express';
 
 import * as actions from './actions';

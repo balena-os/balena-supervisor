@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 import { promises as fs } from 'fs';
-import * as systeminformation from 'systeminformation';
+import systeminformation from 'systeminformation';
 
 import * as fsUtils from '~/lib/fs-utils';
 import * as sysInfo from '~/lib/system-info';

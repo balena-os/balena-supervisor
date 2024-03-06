@@ -1,8 +1,8 @@
-import type * as Dockerode from 'dockerode';
+import type Dockerode from 'dockerode';
 import { EventEmitter } from 'events';
 import { isLeft } from 'fp-ts/lib/Either';
-import * as JSONStream from 'JSONStream';
-import * as _ from 'lodash';
+import JSONStream from 'JSONStream';
+import _ from 'lodash';
 import { promises as fs } from 'fs';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 
@@ -390,7 +390,7 @@ export function listenToEvents() {
 		stream.on('error', (e) => {
 			log.error(`Error on docker events stream:`, e);
 		});
-		const parser = JSONStream.parse();
+		const parser = JSONStream.parse(true);
 		parser.on('data', async (data: { status: string; id: string }) => {
 			if (data != null) {
 				const status = data.status;

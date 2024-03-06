@@ -1,4 +1,4 @@
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 import * as tar from 'tar-stream';
 import { strict as assert } from 'assert';
 import { setTimeout } from 'timers/promises';

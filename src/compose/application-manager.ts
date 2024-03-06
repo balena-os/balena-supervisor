@@ -1,4 +1,4 @@
-import * as _ from 'lodash';
+import _ from 'lodash';
 import { EventEmitter } from 'events';
 import type StrictEventEmitter from 'strict-event-emitter-types';
 

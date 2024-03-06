@@ -55,7 +55,7 @@ const argv = yargs
 	.scriptName('npm run sync --')
 	.alias('h', 'help').argv;
 
-(async () => {
+void (async () => {
 	const address = argv['device-address']!;
 	const dockerfile = new livepush.Dockerfile(
 		await fs.readFile('Dockerfile.template'),

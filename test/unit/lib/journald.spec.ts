@@ -1,7 +1,7 @@
 import type { SinonStub } from 'sinon';
 import { stub } from 'sinon';
 import { expect } from 'chai';
-import * as childProcess from 'child_process';
+import childProcess from 'child_process';
 
 import { spawnJournalctl } from '~/lib/journald';
 

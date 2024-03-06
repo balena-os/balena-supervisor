@@ -1,4 +1,4 @@
-import * as JSONstream from 'JSONStream';
+import JSONstream from 'JSONStream';
 
 import * as db from '../db';
 import { spawnJournalctl, toJournalDate } from '../lib/journald';

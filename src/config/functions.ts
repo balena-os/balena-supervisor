@@ -1,5 +1,5 @@
-import * as _ from 'lodash';
-import * as memoizee from 'memoizee';
+import _ from 'lodash';
+import memoizee from 'memoizee';
 
 import supervisorVersion = require('../lib/supervisor-version');
 

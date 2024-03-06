@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { isRight } from 'fp-ts/lib/Either';
-import * as nock from 'nock';
+import nock from 'nock';
 
 import { TargetState } from '~/src/types';
 import * as legacy from '~/lib/legacy';

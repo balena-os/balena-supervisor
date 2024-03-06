@@ -1,5 +1,5 @@
-import * as _ from 'lodash';
-import type * as dockerode from 'dockerode';
+import _ from 'lodash';
+import type dockerode from 'dockerode';
 
 import { docker } from '../lib/docker-utils';
 import logTypes = require('../lib/log-types');

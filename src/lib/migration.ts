@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs';
-import * as path from 'path';
+import path from 'path';
 
 import * as volumeManager from '../compose/volume-manager';
 import * as deviceState from '../device-state';

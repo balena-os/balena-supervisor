@@ -1,5 +1,5 @@
-import * as express from 'express';
-import * as _ from 'lodash';
+import express from 'express';
+import _ from 'lodash';
 
 const api: express.Express & {
 	balenaBackend?: {

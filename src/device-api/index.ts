@@ -1,4 +1,4 @@
-import * as express from 'express';
+import express from 'express';
 
 import * as middleware from './middleware';
 import * as apiKeys from './api-keys';
